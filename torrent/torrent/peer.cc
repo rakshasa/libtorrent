@@ -75,9 +75,9 @@ Peer::get_outgoing_queue_size() {
 // since gcc does ref counted std::string, you can inexpensively
 // copy the resulting string. Will consider making BitField use a
 // std::string.
-const char*
+const unsigned char*
 Peer::get_bitfield_data() {
-  return ((PeerConnection*)m_ptr)->bitfield().data();
+  return (const unsigned char*)((PeerConnection*)m_ptr)->bitfield().data();
 }
 
 uint32_t

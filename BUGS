@@ -1,35 +1,7 @@
-0 rtorrent [0x804ef7d]
-1 /lib/tls/libc.so.6 [0xb7223eb8]
-2 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.0(_ZN7torrent9Delegator8delegateERKSsRKNS_8BitFieldERSt4listINS_5PieceESaIS7_EE+0x2e3) [0xb759b96b]
-3 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.0(_ZN7torrent14PeerConnection12fillWriteBufEv+0x108) [0xb75c0a84]
-4 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.0(_ZN7torrent14PeerConnection5writeEv+0x6d) [0xb75bdcc1]
-5 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.0(_ZN4algo8for_eachILb1ESt14_List_iteratorIPN7torrent10SocketBaseERS4_PS4_ENS_4IfOnINS2_18check_socket_issetENS_10CallMemberIS3_vNS_11back_as_refEEENS_5emptyEEEEEvT0_SF_T1_+0x91) [0xb75d2a11]
-6 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.0(_ZN7torrent4workEP6fd_setS1_S1_+0x22a) [0xb75cd6fa]
-7 rtorrent [0x804f5cf]
-8 /lib/tls/libc.so.6(__libc_start_main+0xed) [0xb721179d]
-9 rtorrent(_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_c+0x31) [0x804b13d]
-Aborted
-
-burgio: tmp>c++filt _ZN7torrent9Delegator8delegateERKSsRKNS_8BitFieldERSt4listINS_5PieceESaIS7_EE
-
-torrent::Delegator::delegate(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, torrent::BitField const&, std::list<torrent::Piece, std::allocator<torrent::Piece> >&)
-
-
-********
-0 rtorrent [0x8051ebd]
-1 /lib/tls/libc.so.6 [0x138eb8]
-2 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.0(_ZN4algo8for_eachILb1ESt14_List_iteratorIPN7torrent10SocketBaseERS4_PS4_ENS_4IfOnINS2_18check_socket_issetENS_10CallMemberIS3_vNS_11back_as_refEEENS_5emptyEEEEEvT0_SF_T1_+0x91) [0x55618d]
-3 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.0(_ZN7torrent4workEP6fd_setS1_S1_+0x1bb) [0x55051b]
-4 rtorrent [0x8052566]
-5 /lib/tls/libc.so.6(__libc_start_main+0xed) [0x12679d]
-6 rtorrent(_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_c+0x31) [0x804b65d]
-Aborted
-
-Removed a download, had deleted it's file first. Restarted it with an url. Another download was going on. No file managed to be created.
-
-
-Torrent finished, quit with ^C
-test.cc caught "Connection write fd(5) state(10) "Throttle::spendt(...) error, used to many bytes""
-
-
 Seen bitfield is mangled on more than 128 or 256 seen.
+
+
+Somehow choke delay got stuck:
+0.0    0.0    ci/und 0/16
+
+Fix bencode map, should be list.

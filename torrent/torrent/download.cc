@@ -3,6 +3,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "download_main.h"
+#include "peer_connection.h"
 #include "tracker/tracker_control.h"
 
 #include <algo/algo.h>
@@ -199,11 +200,6 @@ Download::get_entry_size() {
   return ((DownloadMain*)m_ptr)->state().content().get_files().size();
 }
 
-Download::SignalDownloadDone& 
-Download::signalDownloadDone() {
-  return ((DownloadMain*)m_ptr)->state().content().signal_download_done();
-}
-
 void
 Download::update_priorities() {
   Priority& p = ((DownloadMain*)m_ptr)->state().delegator().select().get_priority();
@@ -224,6 +220,44 @@ Download::update_priorities() {
 
     pos += i->get_size();
   }
+}
+
+void
+Download::peer_list(PList& pList) {
+  std::for_each(((DownloadMain*)m_ptr)->state().connections().begin(),
+		((DownloadMain*)m_ptr)->state().connections().end(),
+
+		call_member(ref(pList),
+			    &PList::push_back,
+			    back_as_ptr()));
+}
+
+Peer
+Download::peer_find(const std::string& id) {
+  DownloadState::Connections::iterator itr = std::find_if(((DownloadMain*)m_ptr)->state().connections().begin(),
+							  ((DownloadMain*)m_ptr)->state().connections().end(),
+
+							  eq(ref(id),
+							     call_member(call_member(&PeerConnection::peer),
+									 &PeerInfo::id)));
+
+  return itr != ((DownloadMain*)m_ptr)->state().connections().end() ?
+    *itr : NULL;
+}
+
+Download::SignalDownloadDone& 
+Download::signal_download_done() {
+  return ((DownloadMain*)m_ptr)->state().content().signal_download_done();
+}
+
+Download::SignalPeerConnected&
+Download::signal_peer_connected() {
+  return ((DownloadMain*)m_ptr)->state().signal_peer_connected();
+}
+
+Download::SignalPeerDisconnected&
+Download::signal_peer_disconnected() {
+  return ((DownloadMain*)m_ptr)->state().signal_peer_disconnected();
 }
 
 }

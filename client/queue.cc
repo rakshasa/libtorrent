@@ -8,8 +8,8 @@ void Queue::insert(torrent::Download dItr) {
   if (m_list.empty())
     dItr.start();
 
-  dItr.signalDownloadDone().connect(sigc::bind(sigc::mem_fun(*this, &Queue::receive_done),
-                                               dItr.get_hash()));
+  dItr.signal_download_done().connect(sigc::bind(sigc::mem_fun(*this, &Queue::receive_done),
+						 dItr.get_hash()));
 
   m_list.push_back(dItr.get_hash());
 }

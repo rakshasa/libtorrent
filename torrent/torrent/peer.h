@@ -6,52 +6,55 @@
 
 namespace torrent {
 
+// == and = operators works.
+
 // The Peer class is a wrapper around the internal peer class. This
 // peer class may be invalidated during a torrent::work call. So if
 // you keep a list or single instances in the client, you need to
-// listen to the appropriate signals to keep up to date. 
+// listen to the appropriate signals from the download to keep up to
+// date. 
 class Peer {
 public:
   Peer()        : m_ptr(NULL) {}
   Peer(void* p) : m_ptr(NULL) {}
 
   // Does not check if it has been removed from the download.
-  bool            is_valid()  { return m_ptr; }
+  bool                 is_valid()  { return m_ptr; }
 
-  std::string     get_id();
-  std::string     get_dns();
-  uint16_t        get_port();
+  std::string          get_id();
+  std::string          get_dns();
+  uint16_t             get_port();
 
-  bool            get_local_choked();
-  bool            get_local_interested();
+  bool                 get_local_choked();
+  bool                 get_local_interested();
 
-  bool            get_remote_choked();
-  bool            get_remote_interested();
+  bool                 get_remote_choked();
+  bool                 get_remote_interested();
 
-  bool            get_choke_delayed();
-  bool            get_snubbed();
+  bool                 get_choke_delayed();
+  bool                 get_snubbed();
 
   // Bytes per second.
-  uint32_t        get_rate_down();
-  uint32_t        get_rate_up();
+  uint32_t             get_rate_down();
+  uint32_t             get_rate_up();
 
-  uint32_t        get_incoming_queue_size();
-  uint32_t        get_outgoing_queue_size();
+  uint32_t             get_incoming_queue_size();
+  uint32_t             get_outgoing_queue_size();
 
   // Currently needs to copy the data once to a std::string. But 
   // since gcc does ref counted std::string, you can inexpensively
   // copy the resulting string. Will consider making BitField use a
   // std::string.
-  const char*     get_bitfield_data();
-  uint32_t        get_bitfield_size();
+  const unsigned char* get_bitfield_data();
+  uint32_t             get_bitfield_size();
 
-  void            set_snubbed(bool v);
+  void                 set_snubbed(bool v);
 
-  void*           get_ptr()          { return m_ptr; }
-  void            set_ptr(void* ptr) { m_ptr = ptr; }
+  void*                get_ptr()          { return m_ptr; }
+  void                 set_ptr(void* ptr) { m_ptr = ptr; }
 
 private:
-  void* m_ptr;
+  void*                m_ptr;
 };
 
 }

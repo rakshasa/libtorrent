@@ -8,7 +8,9 @@
 #include "settings.h"
 #include "content/content.h"
 #include "data/hash_torrent.h"
+#include "torrent/peer.h"
 #include <list>
+#include <sigc++/signal.h>
 
 namespace torrent {
 
@@ -43,8 +45,6 @@ class DownloadState {
   DownloadSettings& settings() { return m_settings; }
   const DownloadSettings& settings() const { return m_settings; }
 
-  void removeConnection(PeerConnection* p);
-
   int canUnchoke();
   void chokeBalance();
 
@@ -55,6 +55,7 @@ class DownloadState {
   int countConnections() const; 
 
   void addConnection(int fd, const PeerInfo& p);
+  void removeConnection(PeerConnection* p);
 
   void download_stats(uint64_t& down, uint64_t& up, uint64_t& left);
 
@@ -62,6 +63,12 @@ class DownloadState {
 
   // Incoming signals.
   void receive_hashdone(std::string id, Storage::Chunk c, std::string hash);
+
+  typedef sigc::signal1<void, Peer> SignalPeerConnected;
+  SignalPeerConnected&              signal_peer_connected() { return m_signalPeerConnected; }
+
+  typedef sigc::signal1<void, Peer> SignalPeerDisconnected;
+  SignalPeerConnected&              signal_peer_disconnected() { return m_signalPeerDisconnected; }
 
 private:
   // Disable
@@ -84,6 +91,9 @@ private:
   Rate m_rateDown;
   
   BitFieldCounter m_bfCounter;
+
+  SignalPeerConnected    m_signalPeerConnected;
+  SignalPeerDisconnected m_signalPeerDisconnected;
 };
 
 }

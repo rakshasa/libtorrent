@@ -132,6 +132,8 @@ void DownloadState::addConnection(int fd, const PeerInfo& p) {
 
   if (itr != m_availablePeers.end())
     m_availablePeers.erase(itr);
+
+  m_signalPeerConnected.emit(c);
 }
 
 void DownloadState::removeConnection(PeerConnection* p) {
@@ -139,6 +141,8 @@ void DownloadState::removeConnection(PeerConnection* p) {
 
   if (itr == m_connections.end())
     throw internal_error("Tried to remove peer connection from download that doesn't exist");
+
+  m_signalPeerDisconnected.emit(*itr);
 
   delete *itr;
   m_connections.erase(itr);

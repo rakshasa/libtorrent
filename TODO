@@ -18,8 +18,6 @@ choke/unchoke?
 
 Set IP TOS
 
-Optimize Rate::rate(), use integer seconds. (or bitshifted)
-
 Add a snub factor. The more you upload without getting back, the
 higher it goes. Add a start buffer.
 
@@ -40,13 +38,8 @@ Frobnicate the tracker reconnect timeout.
 
 Add host lookup+connection to SocketBase
 
-Delegator doesn't need to copy the bitfield, do the notIn algorithm as
-you iterate.
-
 HttpGet should handle urls with only domain name (+port), without the
 leading '/'.
-
-Add numwant.
 
 Fair sharing of bandwidth to peers, sort them in some way? Or does the
 kernel allow each to fill up their buffers, thereby making the order
@@ -60,8 +53,6 @@ Files class does stuff it isn't supposed to do, like keeping track of
 how much is done and stuff.
 
 libCurl requires attention every second or so for timeouts.
-
-tracker "key" is 8 char hex, implement.
 
 bencode stores position in the stream where they were found? Copy the
 stream? Or is the current system the only flexible one we can use?
@@ -78,12 +69,16 @@ Sane timeouts on handshakes.
 
 Do something about tracker connect fails, they are not handled optimally.
 
-Somehow choke delay got stuck:
-0.0    0.0    ci/und 0/16
-
 Switch to a proper type for file offset/length and chunk length.
 
 Different priorities don't properly affect interested/not interested.
+
+
+TRACKER STUFF
+
+Add numwant.
+
+tracker "key" is 8 char hex, implement.
 
 
 API REDESIGN:
@@ -102,7 +97,9 @@ client be ignorant of errors while creating stuff. (Make some kind of
 C friendly layer ontop)
 
 Consider ways of optimizing bitfield memory usage. A bitfield with all
-set shouldn't change ever...
+set shouldn't change ever... And do a count on number of set bits?
+
+Bitfield class needs to use unsigned char
 
 
 COOL STUFF THAT NEEDS TO BE DONE
