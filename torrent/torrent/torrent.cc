@@ -40,7 +40,8 @@ struct check_socket_isset {
   check_socket_isset(fd_set* s) : fds(s) {}
 
   bool operator () (SocketBase* socket) {
-    assert(socket != NULL);
+    if (socket == NULL)
+      throw internal_error("Polled socket is NULL");
 
     return FD_ISSET(socket->fd(), fds);
   }

@@ -73,6 +73,8 @@ Switch to a proper type for file offset/length and chunk length.
 
 Different priorities don't properly affect interested/not interested.
 
+Client does not convert to the right kind of mega.
+
 
 TRACKER STUFF
 

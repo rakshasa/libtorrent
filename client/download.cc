@@ -8,8 +8,6 @@ Download::Download(torrent::Download dItr) :
   m_entryPos(0),
   m_state(DRAW_PEERS) {
   
-  assert(m_peers.empty());
-
   if (dItr.is_valid()) {
     dItr.peer_list(m_peers);
     m_pItr = m_peers.begin();
@@ -17,10 +15,10 @@ Download::Download(torrent::Download dItr) :
     m_signalCon = dItr.signal_peer_connected().connect(sigc::mem_fun(*this, &Download::receive_peer_connect));
     m_signalDis = dItr.signal_peer_disconnected().connect(sigc::mem_fun(*this, &Download::receive_peer_disconnect));
 
-    torrent::Download::SignalPeerConnected::slot_list s1 = dItr.signal_peer_connected().slots();
-    torrent::Download::SignalPeerDisconnected::slot_list s2 = dItr.signal_peer_disconnected().slots();
+    //torrent::Download::SignalPeerConnected::slot_list s1 = dItr.signal_peer_connected().slots();
+    //torrent::Download::SignalPeerDisconnected::slot_list s2 = dItr.signal_peer_disconnected().slots();
 
-    assert(s1.begin() != s1.end() && s2.begin() != s2.end());
+    //assert(s1.begin() != s1.end() && s2.begin() != s2.end());
   }
 
   for (torrent::PList::iterator itr = m_peers.begin(); itr != m_peers.end(); ++itr)
@@ -276,8 +274,9 @@ void Download::drawPeers(int y1, int y2) {
   torrent::PList::iterator itr = m_peers.begin();
   torrent::PList::iterator last = m_peers.end();
   
-  if (m_pItr != m_peers.end())
-    assert(std::find(m_peers.begin(), m_peers.end(), *m_pItr) == m_pItr);
+  if (m_pItr != m_peers.end() &&
+      std::find(m_peers.begin(), m_peers.end(), *m_pItr) != m_pItr)
+    throw torrent::client_error("Client has bad m_peers");
 
   if (m_peers.size() > (unsigned)(y2 - y1) &&
       m_pItr != m_peers.end()) {
@@ -444,7 +443,7 @@ void Download::drawEntry(int y1, int y2) {
 
 void
 Download::receive_peer_connect(torrent::Peer p) {
-  assert(p.get_dns().length());
+  //assert(p.get_dns().length());
 
   m_peers.push_back(p);
 }
