@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libtorrent.la
 
-libtorrent_la_LDFLAGS =
+libtorrent_la_LDFLAGS = -version-info $(LIBTORRENT_INTERFACE_VERSION_INFO)
 libtorrent_la_SOURCES = \
 	torrent/download.cc \
 	torrent/download.h \
@@ -92,10 +92,10 @@ libtorrent_la_SOURCES = \
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
+	torrent/common.h \
+	torrent/download.h \
 	torrent/entry.h \
 	torrent/peer.h \
-	torrent.h \
-	exceptions.h \
-	url/http.h
+	torrent/torrent.h
 
 DISTCLEANFILES = *~ */*~

@@ -1,6 +1,6 @@
 OBJECTS = http.o queue.o display.o download.o rtorrent.o
 
-LIBS = -ltorrent -lncurses -lcrypto `pkg-config --libs sigc++-2.0` -L../torrent/.libs
+LIBS = -lncurses -lcrypto `pkg-config --libs sigc++-2.0` ../torrent/.libs/libtorrent.so
 CFLAGS = -Wall -O3 -g `pkg-config --cflags sigc++-2.0` -I. -I..
 
 all: torrent $(OBJECTS)
