@@ -55,7 +55,7 @@ initialize() {
   if (listen == NULL) {
     listen = new Listen;
 
-    listen->signal_incoming().connect(sigc::ptr_fun3(&PeerHandshake::connect));
+    listen->slot_incoming(sigc::ptr_fun3(&PeerHandshake::connect));
   }
 
   srandom(Timer::current().usec());

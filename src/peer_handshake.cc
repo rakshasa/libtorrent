@@ -62,7 +62,7 @@ PeerHandshake::~PeerHandshake() {
     ::close(m_fd);
 }
 
-void PeerHandshake::connect(int& fdesc, const std::string dns, unsigned short port) {
+void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short port) {
   if (fdesc < 0)
     //return;
     throw internal_error("PeerhHandshake received a negative fd, bug or feature?");
@@ -77,8 +77,6 @@ void PeerHandshake::connect(int& fdesc, const std::string dns, unsigned short po
 
   // TODO: add checks so we don't do multiple connections.
   addConnection(new PeerHandshake(fdesc, dns, port));
-
-  fdesc = -1;
 }
 
 bool PeerHandshake::connect(const PeerInfo& p, DownloadState* d) {

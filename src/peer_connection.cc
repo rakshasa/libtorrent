@@ -660,27 +660,6 @@ void PeerConnection::sendHave(int index) {
     m_up.interested = false;
   }
 
-  // Clear all pieces with this index and if one is being downloaded then
-  // skip it.
-  if (m_requests.is_downloading() &&
-      m_requests.get_piece().get_index() == index) {
-
-    if (m_down.state != READ_PIECE)
-      throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading() but state is not READ_PIECE");
-
-    m_down.state = READ_SKIP_PIECE;
-    m_down.length = m_requests.get_piece().get_length() - m_down.pos;
-    m_down.pos = 0;
-
-    m_requests.skip();
-
-    m_down.data = Storage::Chunk();
-  }
-
-  if (m_requests.remove_invalid() &&
-      m_requests.get_size() == 0)
-    remove_service(SERVICE_STALL);
-
   if (m_requests.has_index(index))
     throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
 

@@ -28,7 +28,7 @@ public:
 
   ~PeerHandshake();
 
-  static void connect(int& fdesc, const std::string dns, unsigned short port);
+  static void connect(int fdesc, const std::string dns, unsigned short port);
   static bool connect(const PeerInfo& p, DownloadState* d);
 
   // Only checks for outgoing connections.

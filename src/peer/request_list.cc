@@ -95,7 +95,8 @@ RequestList::skip() {
 bool
 RequestList::has_index(unsigned int i) {
   return std::find_if(m_reservees.begin(), m_reservees.end(),
-		      eq(value((signed int)i), call_member(call_member(&DelegatorReservee::get_piece), &Piece::get_index)))
+		      bool_and(call_member(&DelegatorReservee::is_valid),
+			       eq(value((signed int)i), call_member(call_member(&DelegatorReservee::get_piece), &Piece::get_index))))
     != m_reservees.end();
 }
 
