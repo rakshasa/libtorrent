@@ -7,7 +7,6 @@
 #include "settings.h"
 #include "content/content.h"
 #include "data/hash_torrent.h"
-#include "download/pipe_size.h"
 #include "torrent/peer.h"
 
 #include <list>
