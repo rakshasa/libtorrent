@@ -7,8 +7,10 @@ namespace torrent {
   
 DelegatorChunk::DelegatorChunk(unsigned int index,
 			       uint32_t size,
-			       uint32_t piece_length) :
-  m_index(index) {
+			       uint32_t piece_length,
+			       Priority::Type p) :
+  m_index(index),
+  m_priority(p) {
 
   if (size == 0 || piece_length == 0)
     throw internal_error("DelegatorChunk ctor received size or piece_length equal to 0");

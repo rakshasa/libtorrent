@@ -23,53 +23,50 @@ DelegatorReservee*
 Delegator::delegate(const BitField& bf, int affinity) {
   // TODO: Make sure we don't queue the same piece several time on the same peer when
   // it timeout cancels them.
-  
   DelegatorPiece* target = NULL;
 
   // Find piece with same index as affinity. This affinity should ensure that we
   // never start another piece while the chunk this peer used to download is still
   // in progress.
-  if (affinity >= 0) 
-    std::find_if(m_chunks.begin(), m_chunks.end(),
-		 bool_and(eq(value((unsigned)affinity), call_member(&DelegatorChunk::get_index)),
-			  
-			  find_if_on(back_as_ref_t<DelegatorChunk>(),
-				     bool_and(bool_not(call_member(&DelegatorPiece::is_finished)),
-					      bool_not(call_member(&DelegatorPiece::get_reservees_size))),
-				     assign_ref(target, back_as_ptr()))));
-	       
-  if (target)
+  if (affinity >= 0 && 
+      std::find_if(m_chunks.begin(), m_chunks.end(),
+		   bool_and(eq(value((unsigned)affinity), call_member(&DelegatorChunk::get_index)),
+			    call_member(ref(*this),
+					&Delegator::delegate_piece,
+					back_as_ref(),
+					ref(target))))
+      != m_chunks.end())
     return target->create();
 
-  std::find_if(m_chunks.begin(), m_chunks.end(),
-	       bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
-			
-			find_if_on(back_as_ref_t<DelegatorChunk>(),
-				   bool_and(bool_not(call_member(&DelegatorPiece::is_finished)),
-					    bool_not(call_member(&DelegatorPiece::get_reservees_size))),
-				   assign_ref(target, back_as_ptr()))));
-  
-  if (target)
+  // High priority pieces.
+  if (std::find_if(m_chunks.begin(), m_chunks.end(),
+		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::HIGH)),
+			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
+
+				     call_member(ref(*this),
+						 &Delegator::delegate_piece,
+						 back_as_ref(),
+						 ref(target)))))
+      != m_chunks.end())
     return target->create();
 
-  // else find a new chunk
-  target = new_chunk(bf);
-  
-  if (target)
+  // Find normal priority pieces.
+  if ((target = new_chunk(bf, Priority::HIGH)))
     return target->create();
 
-  // Download stalled pieces.
-  std::find_if(m_chunks.begin(), m_chunks.end(),
-	       bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
-			
-			find_if_on(back_as_ref_t<DelegatorChunk>(),
+  // Normal priority pieces.
+  if (std::find_if(m_chunks.begin(), m_chunks.end(),
+		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::NORMAL)),
+			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
+				     
+				     call_member(ref(*this),
+						 &Delegator::delegate_piece,
+						 back_as_ref(),
+						 ref(target)))))
+      != m_chunks.end())
+    return target->create();
 
-				   bool_and(bool_not(call_member(&DelegatorPiece::is_finished)),
-					    bool_not(call_member(&DelegatorPiece::get_not_stalled))),
-
-				   assign_ref(target, back_as_ptr()))));
-  
-  if (target)
+  if ((target = new_chunk(bf, Priority::NORMAL)))
     return target->create();
 
   return NULL;
@@ -127,14 +124,14 @@ void Delegator::redo(int index) {
   done(index);
 }
 
-DelegatorPiece* Delegator::new_chunk(const BitField& bf) {
-  int index = m_select.find(bf, random() % bf.sizeBits(), 1024);
+DelegatorPiece* Delegator::new_chunk(const BitField& bf, Priority::Type p) {
+  int index = m_select.find(bf, random() % bf.sizeBits(), 1024, p);
 
   if (index == -1)
     return NULL;
 
   m_select.add_ignore(index);
-  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), 1 << 16));
+  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), 1 << 16, p));
 
   return (*m_chunks.rbegin())->begin();
 }
@@ -165,6 +162,21 @@ Delegator::all_finished(int index) {
     std::find_if((*c)->begin(), (*c)->end(),
 		 bool_not(call_member(&DelegatorPiece::is_finished)))
     == (*c)->end();
+}
+
+bool
+Delegator::delegate_piece(DelegatorChunk& c, DelegatorPiece*& p) {
+  for (DelegatorChunk::iterator i = c.begin(); i != c.end(); ++i) {
+    if (i->is_finished() || i->get_not_stalled())
+      continue;
+
+    p = i;
+
+    if (i->get_reservees_size() == 0)
+      return true;
+  }
+      
+  return p != NULL;
 }
 
 } // namespace torrent

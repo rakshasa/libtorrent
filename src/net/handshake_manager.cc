@@ -18,6 +18,7 @@ HandshakeManager::add_incoming(int fd,
 			       const std::string& dns,
 			       uint16_t port) {
   m_handshakes.push_back(new HandshakeIncoming(fd, this, PeerInfo("", dns, port)));
+  m_size++;
 }
   
 void
@@ -89,6 +90,7 @@ HandshakeManager::remove(Handshake* h) {
     throw internal_error("HandshakeManager::remove(...) could not find Handshake");
 
   m_handshakes.erase(itr);
+  m_size--;
 }
 
 }

@@ -68,70 +68,56 @@ DelegatorSelect::remove_ignore(unsigned int index) {
 }
 
 int
-DelegatorSelect::find(const BitField& bf, unsigned int start, unsigned int rarity) {
+DelegatorSelect::find(const BitField& bf, unsigned int start, unsigned int rarity, Priority::Type p) {
   int found = -1, f;
   unsigned int cur_rarity = (unsigned)-1;
 
-  Priority::Type p = Priority::HIGH;
+  // TODO: Ugly, refactor.
+  Priority::List::iterator itr = m_priority.find(p, start);
 
-  while (1) {
-    // TODO: Ugly, refactor.
-    Priority::List::iterator itr = m_priority.find(p, start);
+  if (itr == m_priority.get_list(p).end())
+    return found;
 
-    if (itr == m_priority.get_list(p).end())
-      if (p == Priority::HIGH) {
-	p = Priority::NORMAL;
-	continue;
-      } else {
-	break;
-      }
+  // Check the range start is contained by.
+  f = check_range(bf, std::max(start, itr->first), itr->second, rarity, cur_rarity);
 
-    // Check the range start is contained by.
-    f = check_range(bf, std::max(start, itr->first), itr->second, rarity, cur_rarity);
+  if (cur_rarity <= rarity)
+    return f;
+  else if (f > 0)
+    found = f;
+
+  f = check_range(bf, itr->first, start, rarity, cur_rarity);
+
+  if (cur_rarity <= rarity)
+    return f;
+  else if (f > 0)
+    found = f;
+
+  // Check ranges above the midpoint.
+  Priority::List::iterator fItr = itr;
+
+  while (++fItr != m_priority.get_list(p).end()) {
+    f = check_range(bf, fItr->first, fItr->second, rarity, cur_rarity);
 
     if (cur_rarity <= rarity)
       return f;
     else if (f > 0)
       found = f;
+  }
 
-    f = check_range(bf, itr->first, start, rarity, cur_rarity);
+  // Check ranges below the midpoint.
+  Priority::List::reverse_iterator rItr(++itr);
+
+  if (rItr == m_priority.get_list(p).rend())
+    throw internal_error("DelegatorSelect reverse iterator borkage!?");
+
+  while (++rItr != m_priority.get_list(p).rend()) {
+    f = check_range(bf, rItr->first, rItr->second, rarity, cur_rarity);
 
     if (cur_rarity <= rarity)
       return f;
     else if (f > 0)
       found = f;
-
-    // Check ranges above the midpoint.
-    Priority::List::iterator fItr = itr;
-
-    while (++fItr != m_priority.get_list(p).end()) {
-      f = check_range(bf, fItr->first, fItr->second, rarity, cur_rarity);
-
-      if (cur_rarity <= rarity)
-	return f;
-      else if (f > 0)
-	found = f;
-    }
-
-    // Check ranges below the midpoint.
-    Priority::List::reverse_iterator rItr(++itr);
-
-    if (rItr == m_priority.get_list(p).rend())
-      throw internal_error("DelegatorSelect reverse iterator borkage!?");
-
-    while (++rItr != m_priority.get_list(p).rend()) {
-      f = check_range(bf, rItr->first, rItr->second, rarity, cur_rarity);
-
-      if (cur_rarity <= rarity)
-	return f;
-      else if (f > 0)
-	found = f;
-    }
-
-    if (p == Priority::HIGH)
-      p = Priority::NORMAL;
-    else
-      break;
   }
 
   return found;

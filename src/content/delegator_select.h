@@ -36,7 +36,7 @@ public:
   void                   add_ignore(unsigned int index);
   void                   remove_ignore(unsigned int index);
 
-  int                    find(const BitField& bf, unsigned int start, unsigned int rarity);
+  int                    find(const BitField& bf, unsigned int start, unsigned int rarity, Priority::Type p);
 
 private:
   int                    check_range(const BitField& bf,

@@ -13,3 +13,8 @@
 Incoming connections connect to hash-checking downloads, fixme
 
 test.cc caught "RequestList::skip() called without a downloading piece"
+
+
+* Stopped in the endgame, did a stop/start cycle: 
+
+test.cc caught "Called Delegator::done(...) with an index that is not in the Delegator"

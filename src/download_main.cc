@@ -214,7 +214,7 @@ std::string
 DownloadMain::get_download_id(const std::string& hash) {
   DownloadMain* d = getDownload(hash);
 
-  return d && d->m_started && d->m_checked ? d->state().me().get_id() : "";
+  return (d && d->m_started && d->m_checked) ? d->state().me().get_id() : std::string("");
 }
 
 void DownloadMain::add_peers(const Peers& p) {

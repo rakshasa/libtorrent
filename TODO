@@ -60,8 +60,6 @@ Eliminate virtual fd() in socket_base
 
 DELEGATOR STUFF
 
-Different priorities don't properly affect interested/not interested.
-
 * Add message about pieces being ignored, so i can test the code.
 
 Proper canceling of pieces in sendHave, unless only one can download a piece.
@@ -71,15 +69,16 @@ Proper canceling of pieces in sendHave, unless only one can download a piece.
 
 If you add SERVICE_CANCEL, modify discardincomingqueue.
 
-Delegator done receives done's when doing initial hash check, do something to enable the exceptions.
-
 * Make sure we don't stall+cancel if we're just *very* slow and not in endgame+fast.
 
 * Make endgameBorder do pieces instead of chunks.
 
 * Make sure stalled pieces get properly downloaded when doing part download of the torrent.
 
+! Stalled pieces don't get downloaded unless we're in the endgame or a peer only has that piece... fixme
+
 Make set endgame take priorities into account.
+
 
 TRACKER STUFF
 
