@@ -11,7 +11,7 @@ public:
   friend class StorageConsolidator;
 
   struct Node {
-    Node(unsigned int pos) : position(pos) {}
+    Node(unsigned int pos, unsigned int len) : position(pos), length(len) {}
 
     FileChunk    chunk;
     unsigned int position;

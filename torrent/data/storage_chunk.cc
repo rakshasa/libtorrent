@@ -34,7 +34,7 @@ StorageChunk::add_file(unsigned int length) {
 
   m_size += length;
 
-  return (*m_nodes.insert(m_nodes.end(), new Node(m_size - length)))->chunk;
+  return (*m_nodes.insert(m_nodes.end(), new Node(m_size - length, length)))->chunk;
 }
 
 void
