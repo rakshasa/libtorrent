@@ -76,7 +76,8 @@ void DownloadState::chokeBalance() {
 	 itr != m_connections.end() && s != 0; ++itr) {
       
       if ((*itr)->up().c_choked() &&
-	  (*itr)->down().c_interested()) {
+	  (*itr)->down().c_interested() &&
+	  !(*itr)->throttle().get_snub()) {
 	(*itr)->choke(false);
 	--s;
       }

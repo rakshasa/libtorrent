@@ -562,6 +562,7 @@ void set(PList::const_iterator p, PValue t, int64_t v) {
   switch (t) {
   case PEER_SNUB:
     (*p)->throttle().set_snub(v);
+    (*p)->choke(true);
     break;
 
   default:

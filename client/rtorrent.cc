@@ -300,6 +300,12 @@ int main(int argc, char** argv) {
 
 	    break;
 
+	  case ' ':
+	    if (curDownload != torrent::downloads().end())
+	      torrent::start(curDownload);
+
+	    break;
+
 	  default:
 	    break;
 	  }

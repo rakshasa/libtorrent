@@ -15,28 +15,28 @@ namespace torrent {
 class File {
  public:
   // Flags, not functions. See iostream
-  static const int in             = 0x01;
-  static const int out            = 0x02;
-  static const int create         = 0x04;
-  static const int truncate       = 0x08;
-  static const int nonblock       = 0x10;
-  static const int largefile      = 0x20;
+  static const unsigned int in             = 0x01;
+  static const unsigned int out            = 0x02;
+  static const unsigned int create         = 0x04;
+  static const unsigned int truncate       = 0x08;
+  static const unsigned int nonblock       = 0x10;
+  static const unsigned int largefile      = 0x20;
 
-  static const int type_regular   = 0x01;
-  static const int type_directory = 0x02;
-  static const int type_character = 0x04;
-  static const int type_block     = 0x08;
-  static const int type_fifo      = 0x10;
-  static const int type_link      = 0x20;
-  static const int type_socket    = 0x40;
+  static const unsigned int type_regular   = 0x01;
+  static const unsigned int type_directory = 0x02;
+  static const unsigned int type_character = 0x04;
+  static const unsigned int type_block     = 0x08;
+  static const unsigned int type_fifo      = 0x10;
+  static const unsigned int type_link      = 0x20;
+  static const unsigned int type_socket    = 0x40;
 
   File() : m_fd(-1), m_flags(0), m_stat(NULL) {}
   ~File() { close(); }
 
   // Create only regular files for now.
   bool     open(const std::string& path,
-		  int flags = in,
-		  int mode = 0666);
+		unsigned int flags = in,
+		unsigned int mode = 0666);
 
   void     close();
   

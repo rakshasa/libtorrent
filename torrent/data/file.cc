@@ -10,8 +10,8 @@
 namespace torrent {
 
 bool File::open(const std::string& path,
-		int flags,
-		int mode) {
+		unsigned int flags,
+		unsigned int mode) {
   close();
 
   int fd = ::open(path.c_str(), 

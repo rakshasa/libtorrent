@@ -40,6 +40,7 @@ Main:
   Backspace - Add torrent url as a queued download. Add all torrents with this key to get proper queues.
   L         - View Log
   Shift-Q   - Stop download / remove stopped download
+  SpaceBar  - Resume torrent
 
 Download view:
 
