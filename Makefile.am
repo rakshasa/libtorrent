@@ -1,4 +1,4 @@
-SUBDIRS = torrent
+SUBDIRS = src
 
 DISTCLEANFILES = *~
 

@@ -1,4 +1,4 @@
-AC_INIT(torrent/torrent/torrent.cc)
+AC_INIT(src/torrent/torrent.cc)
 
 LIBTORRENT_VERSION=0.4.3
 
@@ -83,7 +83,7 @@ AC_DEFINE(HAVE_CONFIG_H, 1, true if config.h was included)
 AC_OUTPUT([
 	Makefile
 	libtorrent.pc
-	torrent/Makefile
+	src/Makefile
 ])
 
 AC_MSG_RESULT()
