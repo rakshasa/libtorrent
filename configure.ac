@@ -45,26 +45,6 @@ AC_ARG_ENABLE(debug,
     ]
 )
 
-
-dnl AX_KERNEL_VERSION(major, minor, level, comparison, action-if-true, action-if-false)
-AC_DEFUN(AX_KERNEL_VERSION, [
-SAVE_CFLAGS=$CFLAGS
-CFLAGS="-I$KINC -D__KERNEL__ -Werror"
-AC_TRY_COMPILE(
-  [
-  #include <linux/version.h>
-  #include <linux/config.h>
-  ],
-  [
-  #if LINUX_VERSION_CODE $4 KERNEL_VERSION($1, $2, $3)
-  break_me_hard(\\\);
-  #endif
-  ],
-[$5],[$6],)
-CFLAGS=$SAVE_CFLAGS
-])
-
-
 PKG_CHECK_MODULES(OPENSSL, openssl,
 		  CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";
                   LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`",
@@ -76,11 +56,21 @@ PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 
 AC_CHECK_LIB(curl, curl_easy_init)
 
-AC_MSG_CHECKING([for linux 2.4.x])
-AX_KERNEL_VERSION(2, 4, 99, <,
-                  AC_MSG_RESULT([disable madvise see README]); AC_DEFINE(USE_MADVISE_WILLNEED, 0, Disable due to a kernel bug),
-                  AC_MSG_RESULT([enable madvise]); AC_DEFINE(USE_MADVISE_WILLNEED, 1, Disable this if you wish to run on 2.4.x))
-
+AC_ARG_ENABLE(madvise,
+    [  --enable-madvise        enable madvise optimization [default=no]],
+    [
+        if test "$enableval" = "yes"; then
+            AC_DEFINE(USE_MADVISE_WILLNEED, 1, we can use madvise(... MADV_WILLNEED))
+	    VAR_USE_MADVISE=1
+        else
+            AC_DEFINE(USE_MADVISE_WILLNEED, 0, we cannot use madvise(... MADV_WILLNEED))
+	    VAR_USE_MADVISE=0
+        fi
+    ],[
+        AC_DEFINE(USE_MADVISE_WILLNEED, 1, we can use madvise(... MADV_WILLNEED))
+        VAR_USE_MADVISE=1
+    ]
+)
 
 LIBTORRENT_LIBS="-ltorrent"
 AC_SUBST(LIBTORRENT_LIBS)
@@ -95,3 +85,13 @@ AC_OUTPUT([
 	libtorrent.pc
 	torrent/Makefile
 ])
+
+AC_MSG_RESULT()
+
+if test $VAR_USE_MADVISE = "0"; then
+  AC_MSG_RESULT([  ( ) madvise(... MADV_WILLNEED) optimizing. (Known to kill linux 2.4.20)])
+else
+  AC_MSG_RESULT([  (X) madvise(... MADV_WILLNEED) optimizing. (Known to kill linux 2.4.20)])
+fi
+
+AC_MSG_RESULT()

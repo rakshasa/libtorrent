@@ -19,7 +19,8 @@ class FileChunk {
   bool         is_valid()                                           { return m_ptr; }
   bool         is_read()                                            { return m_read; }
   bool         is_write()                                           { return m_write; }
-  bool         is_incore(unsigned int offset, unsigned int length);
+
+  inline bool  is_incore(unsigned int offset, unsigned int length);
 
   char*        begin()                                              { return m_begin; }
   char*        end()                                                { return m_begin + m_length; }
@@ -28,7 +29,15 @@ class FileChunk {
 
   void         clear();
 
-  void         advise(unsigned int offset, unsigned int length, int advice);
+  void         incore(unsigned char* buf,
+		      unsigned int offset,
+		      unsigned int length);
+
+  void         advise(unsigned int offset,
+		      unsigned int length,
+		      int advice);
+
+  unsigned int touched_pages(unsigned int offset, unsigned int length);
 
  protected:
   // Ptr must not be NULL.
@@ -57,6 +66,20 @@ private:
   bool m_read;
   bool m_write;
 };
+
+inline bool FileChunk::is_incore(unsigned int offset, unsigned int length) {
+  unsigned int size = touched_pages(offset, length);
+
+  unsigned char buf[size];
+  
+  incore(buf, offset, length);
+
+  for (unsigned int i = 0; i < size; ++i)
+    if (!buf[i])
+      return false;
+
+  return true;
+}
 
 }
 

@@ -32,6 +32,7 @@ private:
   static List m_checks;
 
   unsigned int m_position;
+  unsigned int m_tries;
 
   Files* m_files;
   Service* m_service;

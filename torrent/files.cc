@@ -17,6 +17,7 @@ using namespace algo;
 #include "general.h"
 #include "settings.h"
 #include "data/file.h"
+#include "data/hash_compute.h"
 
 #include "files.h"
 #include "files_algo.h"
@@ -145,9 +146,9 @@ std::string Files::tmp_calc_hash(Storage::Chunk c) {
   if (c->get_nodes().empty())
     return "";
 
-  SHA_CTX ctx;
+  HashCompute hc;
 
-  SHA1_Init(&ctx);
+  hc.init();
 
   for (StorageChunk::Nodes::iterator itr = c->get_nodes().begin(); itr != c->get_nodes().end(); ++itr) {
     if ((*itr)->chunk.length() != (*itr)->length)
@@ -161,14 +162,10 @@ std::string Files::tmp_calc_hash(Storage::Chunk c) {
 //       throw internal_error(s.str());
 //     }
 
-    SHA1_Update(&ctx, (*itr)->chunk.begin(), (*itr)->chunk.length());
+    hc.update((*itr)->chunk.begin(), (*itr)->chunk.length());
   }
 
-  char buf[20];
-
-  SHA1_Final((unsigned char*)buf, &ctx);
-
-  return std::string(buf, 20);
+  return hc.final();
 }
 
 void Files::rootDir(const std::string& s) {

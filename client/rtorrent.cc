@@ -61,7 +61,7 @@ void signal_handler(int signum) {
 
     called = true;
 
-    std::cout << "Signal " << signum == SIGSEGV ? "SIGSEGV" : "SIGBUS" << " recived, dumping stack:" << std::endl;
+    std::cout << "Signal " << (signum == SIGSEGV ? "SIGSEGV" : "SIGBUS") << " recived, dumping stack:" << std::endl;
 
 #ifdef USE_EXECINFO
     // Print the stack and exit.

@@ -21,35 +21,26 @@ void FileChunk::clear() {
   m_read = m_write = false;
 }
 
-bool FileChunk::is_incore(unsigned int offset, unsigned int length) {
+void FileChunk::incore(unsigned char* buf, unsigned int offset, unsigned int length) {
   if (!is_valid())
     throw internal_error("Called FileChunk::is_incore() on an invalid object");
 
   if (offset >= m_length ||
       length > m_length ||
-      offset + length > m_length)
-    throw internal_error("Tried to check incore status in FileChunk with out of range parameters");
+      offset + length > m_length ||
+      buf == NULL)
+    throw internal_error("Tried to check incore status in FileChunk with out of range parameters or a NULL buffer");
 
   if (length == 0)
-    return true;
+    return;
 
   offset += m_begin - m_ptr;
 
   length += offset % getpagesize();
   offset -= offset % getpagesize();
 
-  unsigned int size = (length + getpagesize() - 1) / getpagesize();
-
-  unsigned char buf[size];
-
   if (mincore(m_ptr + offset, length, buf))
     throw storage_error("System call mincore failed for FileChunk");
-
-  for (unsigned int i = 0; i < size; ++i)
-    if (!buf[i])
-      return false;
-
-  return true;
 }
 
 void FileChunk::advise(unsigned int offset, unsigned int length, int advice) {
@@ -94,6 +85,10 @@ void FileChunk::advise(unsigned int offset, unsigned int length, int advice) {
   if (madvise(m_ptr + offset, length, t))
     throw storage_error("System call madvise failed in FileChunk");
 }
+
+unsigned int FileChunk::touched_pages(unsigned int offset, unsigned int length) {
+  return (length + (offset + (m_begin - m_ptr)) % getpagesize() + getpagesize() - 1) / getpagesize();
+}  
 
 FileChunk::FileChunk(const FileChunk&) {
   throw internal_error("FileChunk ctor used, but supposed to be disabled");

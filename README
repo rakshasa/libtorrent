@@ -43,3 +43,10 @@ LOCAL TRANSFER RATES COMPARED WITH POPULAR CLIENTS
   MB/s. To the official BitTorrent client the rates were around 2 MB/s,
   while Azureus only managed a pathetic 500 KB/s. Does it spend the
   equivalent of 1.5 MB/s on those nice and shiny GUI thingies?
+
+MADVISE WILLNEED KERNEL BUG
+
+   The 2.4.20 kernels i've tried the madvise(..., MADV_WILLNEED)
+  system call on have locked up. It will be disabled on those kernels
+  when i manage to write a configure script. (Or i'm going to make
+  enableing it explicit)
