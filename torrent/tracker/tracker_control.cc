@@ -32,7 +32,8 @@ TrackerControl::~TrackerControl() {
   }
 }
 
-void TrackerControl::add_url(const std::string& url) {
+void
+TrackerControl::add_url(const std::string& url) {
   std::string::size_type p = url.find("http://");
 
   if (p == std::string::npos)
@@ -53,7 +54,8 @@ void TrackerControl::add_url(const std::string& url) {
     m_itr = m_list.begin();
 }
 
-void TrackerControl::set_next(Timer interval) {
+void
+TrackerControl::set_next(Timer interval) {
   if (!in_service(TIMEOUT))
     return;
 
@@ -61,7 +63,8 @@ void TrackerControl::set_next(Timer interval) {
   insert_service(Timer::current() + interval, TIMEOUT);
 }
 
-Timer TrackerControl::get_next() {
+Timer
+TrackerControl::get_next() {
   if (in_service(TIMEOUT)) {
     Timer t = when_service(TIMEOUT);
 
@@ -71,14 +74,16 @@ Timer TrackerControl::get_next() {
   }
 }
 
-bool TrackerControl::is_busy() {
+bool
+TrackerControl::is_busy() {
   if (m_itr == m_list.end())
     return false;
   else
     return (*m_itr)->is_busy();
 }
 
-void TrackerControl::send_state(TrackerState s) {
+void
+TrackerControl::send_state(TrackerState s) {
   if ((m_state == TRACKER_STOPPED && s == TRACKER_STOPPED) ||
       m_itr == m_list.end())
     return;
@@ -93,11 +98,13 @@ void TrackerControl::send_state(TrackerState s) {
   // TODO: If completed, set num wanted to zero.
 }
 
-void TrackerControl::service(int type) {
+void
+TrackerControl::service(int type) {
   send_itr(m_state);
 }
 
-void TrackerControl::receive_done(const PeerList& l, int interval) {
+void
+TrackerControl::receive_done(const PeerList& l, int interval) {
   if (m_state == TRACKER_STOPPED)
     return;
 
@@ -114,7 +121,8 @@ void TrackerControl::receive_done(const PeerList& l, int interval) {
   m_signalPeers.emit(l);
 }
 
-void TrackerControl::receive_failed(std::string msg) {
+void
+TrackerControl::receive_failed(std::string msg) {
   if (m_state != TRACKER_STOPPED) {
     // TODO: Add support for multiple trackers. Iterate if m_failed > X.
 
@@ -124,7 +132,8 @@ void TrackerControl::receive_failed(std::string msg) {
   m_signalFailed.emit(msg);
 }
 
-void TrackerControl::send_itr(TrackerState s) {
+void
+TrackerControl::send_itr(TrackerState s) {
   if (m_itr == m_list.end())
     throw internal_error("TrackerControl tried to send with an invalid m_itr");
 

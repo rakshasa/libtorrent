@@ -7,10 +7,10 @@
 #include <fstream>
 
 #include "torrent/exceptions.h"
+#include "torrent/http.h"
 #include "bencode.h"
 #include "settings.h"
 #include "tracker_http.h"
-#include "url/http.h"
 
 // STOPPED is only sent once, if the connections fails then we stop trying.
 // START has a retry of [very short]
@@ -21,9 +21,11 @@
 namespace torrent {
 
 TrackerHttp::TrackerHttp() :
-  m_get(new Http()),
+  m_get(Http::call_factory()),
   m_data(NULL),
   m_compact(true) {
+
+  m_get->set_user_agent(PACKAGE "/" VERSION);
 
   m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
   m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));

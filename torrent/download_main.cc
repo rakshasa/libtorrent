@@ -122,6 +122,7 @@ void DownloadMain::stop() {
 }
 
 void DownloadMain::service(int type) {
+  bool foundInterested;
   int s;
   PeerConnection *p1, *p2;
   float f = 0, g = 0;
@@ -163,6 +164,8 @@ void DownloadMain::service(int type) {
     p2 = NULL;
     f = 0;
 
+    foundInterested = false;
+
     // Candidates for unchoking. Don't give a grace period since we want
     // to be quick to unchoke good peers. Use the snub to avoid unchoking
     // bad peers. Try untried peers first.
@@ -171,8 +174,12 @@ void DownloadMain::service(int type) {
 
       if ((*itr)->up().c_choked() &&
 	  (*itr)->down().c_interested() &&
-	  
-	  (g = (*itr)->throttle().down().rate()) >= f) {
+
+	  ((g = (*itr)->throttle().down().rate()) >= f ||
+	   (!foundInterested && (*itr)->up().c_interested()))) {
+	// Prefer peers we are interested in.
+
+	foundInterested = (*itr)->up().c_interested();
 	f = g;
 	p2 = *itr;
       }

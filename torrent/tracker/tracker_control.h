@@ -21,8 +21,8 @@ class TrackerHttp;
 
 class TrackerControl : public Service {
  public:
-  typedef std::list<PeerInfo>     PeerList;
-  typedef std::list<TrackerHttp*> TrackerList;
+  typedef std::list<PeerInfo>                                  PeerList;
+  typedef std::list<TrackerHttp*>                              TrackerList;
 
   typedef sigc::signal1<void, const PeerList&>                 SignalPeers;
   typedef sigc::signal1<void, std::string>                     SignalFailed;
@@ -31,21 +31,21 @@ class TrackerControl : public Service {
   TrackerControl(const PeerInfo& me, const std::string hash);
   ~TrackerControl();
 
-  void  send_state(TrackerState s);
+  void                 send_state(TrackerState s);
 
-  void  add_url(const std::string& url);
-  void  set_next(Timer interval);
+  void                 add_url(const std::string& url);
+  void                 set_next(Timer interval);
 
-  Timer        get_next();
-  TrackerState get_state() { return m_state; }
+  Timer                get_next();
+  TrackerState         get_state() { return m_state; }
 
-  bool         is_busy();
+  bool                 is_busy();
 
-  SignalPeers&  signal_peers()  { return m_signalPeers; }
-  SignalFailed& signal_failed() { return m_signalFailed; }
-  SignalStats&  signal_stats()  { return m_signalStats; }
+  SignalPeers&         signal_peers()  { return m_signalPeers; }
+  SignalFailed&        signal_failed() { return m_signalFailed; }
+  SignalStats&         signal_stats()  { return m_signalStats; }
 
-  virtual void service(int type);
+  virtual void         service(int type);
 
  private:
 
@@ -54,26 +54,26 @@ class TrackerControl : public Service {
   };
 
   TrackerControl(const TrackerControl& t);
-  void operator = (const TrackerControl& t);
+  void                  operator = (const TrackerControl& t);
 
-  void receive_done(const PeerList& l, int interval);
-  void receive_failed(std::string msg);
+  void                  receive_done(const PeerList& l, int interval);
+  void                  receive_failed(std::string msg);
 
-  void send_itr(TrackerState s);
+  void                  send_itr(TrackerState s);
 
-  PeerInfo     m_me;
-  std::string  m_hash;
+  PeerInfo              m_me;
+  std::string           m_hash;
   
-  int          m_tries;
-  int          m_interval;
-  TrackerState m_state;
+  int                   m_tries;
+  int                   m_interval;
+  TrackerState          m_state;
 
   TrackerList           m_list;
   TrackerList::iterator m_itr;
 
-  SignalPeers  m_signalPeers;
-  SignalFailed m_signalFailed;
-  SignalStats  m_signalStats;
+  SignalPeers           m_signalPeers;
+  SignalFailed          m_signalFailed;
+  SignalStats           m_signalStats;
 };
 
 }

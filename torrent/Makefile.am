@@ -7,6 +7,8 @@ libtorrent_la_SOURCES = \
 	torrent/entry.cc \
 	torrent/entry.h \
 	torrent/exceptions.h \
+	torrent/http.cc \
+	torrent/http.h \
 	torrent/peer.cc \
 	torrent/peer.h \
 	torrent/torrent.cc \
@@ -52,8 +54,6 @@ libtorrent_la_SOURCES = \
 	url/curl_get.h \
 	url/curl_stack.cc \
 	url/curl_stack.h \
-	url/http.cc \
-	url/http.h \
 	bencode.cc \
 	bencode.h \
         bitfield.cc \
@@ -97,8 +97,8 @@ libtorrentinclude_HEADERS = \
 	torrent/download.h \
 	torrent/exceptions.h \
 	torrent/entry.h \
+	torrent/http.h \
 	torrent/peer.h \
-	torrent/torrent.h \
-	url/http.h
+	torrent/torrent.h
 
 DISTCLEANFILES = *~ */*~
