@@ -8,27 +8,14 @@
 
 #include "listen.h"
 #include "exceptions.h"
-#include "peer_handshake.h"
 
 namespace torrent {
 
-Listen* Listen::m_listen = NULL;
+void Listen::open(uint16_t first, uint16_t last) {
+  close();
 
-void Listen::open(int first, int last) {
-  if (m_listen && m_listen->m_fd >= 0)
-    throw internal_error("Tried to open listening port multiple times");
-
-  if (first <= 0 || first >= (1 << 16) ||
-      last <= 0 || last >= (1 << 16) ||
-      first > last)
+  if (first = 0 || last = 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range");
-
-  if (m_listen == NULL) {
-    m_listen = new Listen;
-  }
-
-  m_listen->m_fd = -1;
-  m_listen->m_port = 0;
 
   int fdesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -41,19 +28,18 @@ void Listen::open(int first, int last) {
   sa.sin_family = AF_INET;
   sa.sin_addr.s_addr = htonl(INADDR_ANY);
 
-  for (int i = first; i <= last; ++i) {
+  for (uint16_t i = first; i <= last; ++i) {
     sa.sin_port = htons(i);
 
     if (bind(fdesc, (sockaddr*)&sa, sizeof(sockaddr_in)) == 0) {
       // Opened a port, rejoice.
-      m_listen->m_fd = fdesc;
-      m_listen->m_port = i;
+      m_fd = fdesc;
+      m_port = i;
 
-      m_listen->set_socket_nonblock(m_listen->m_fd);
+      set_socket_nonblock(m_fd);
 
-      m_listen->insertRead();
-      // TODO: Should listener be in exception?
-      m_listen->insertExcept();
+      insertRead();
+      insertExcept();
 
       // Create cue.
       ::listen(fdesc, 50);
@@ -64,35 +50,33 @@ void Listen::open(int first, int last) {
 
   ::close(fdesc);
 
-  throw local_error("Could not bind socket for listening");
+  return false;
 }
 
 void Listen::close() {
-  if (m_listen == NULL || m_listen->m_fd < 0)
+  if (m_fd < 0)
     return;
 
-  ::close(m_listen->m_fd);
+  ::close(m_fd);
   
-  m_listen->m_fd = -1;
+  m_fd = -1;
+  m_port = 0;
 
-  m_listen->removeRead();
-  m_listen->removeExcept();
+  removeRead();
+  removeExcept();
 }
   
 void Listen::read() {
+  if (m_incoming.slots().size() != 1)
+    throw internal_error("Listen received a read event but number of signals connected is not one");
+
   sockaddr_in sa;
   socklen_t sl = sizeof(sockaddr_in);
 
   int fd;
 
-  while ((fd = accept(m_fd, (sockaddr*)&sa, &sl)) >= 0) {
-    if (fd < 0)
-      return;
-    
-    PeerHandshake::connect(fd,
-			   inet_ntoa(sa.sin_addr),
-			   ntohs(sa.sin_port));
-  }
+  while ((fd = accept(m_fd, (sockaddr*)&sa, &sl)) >= 0)
+      m_incoming.emit(fd, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 }
 
 void Listen::write() {

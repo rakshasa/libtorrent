@@ -17,6 +17,7 @@ EXTRA_DIST= \
 	algo/operation_impl.h \
 	algo/use.h \
 	algo/use_impl.h \
+	algo/ref_anchored.h \
 	client/Makefile \
 	client/Makefile2 \
 	client/README \

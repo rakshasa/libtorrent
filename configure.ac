@@ -1,12 +1,12 @@
 AC_INIT(torrent/torrent.cc)
 
-LIBTORRENT_VERSION=0.3.3
+LIBTORRENT_VERSION=0.3.4
 
 AC_SUBST(LIBTORRENT_VERSION)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,
-          "-lt0303-",
+          "-lt0304-",
           Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=0

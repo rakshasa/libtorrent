@@ -19,6 +19,8 @@ libtorrent_la_SOURCES = \
 	data/storage_chunk.h \
 	data/storage_consolidator.cc \
 	data/storage_consolidator.h \
+	net/listen.cc \
+	net/listen.h \
 	tracker/tracker_control.cc \
 	tracker/tracker_control.h \
 	tracker/tracker_http.cc \
@@ -46,8 +48,6 @@ libtorrent_la_SOURCES = \
 	files_algo.h \
         general.cc \
         general.h \
-        listen.cc \
-        listen.h \
         peer.cc \
         peer.h \
         peer_handshake.cc \
