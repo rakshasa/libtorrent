@@ -210,6 +210,13 @@ DownloadMain* DownloadMain::getDownload(const std::string& hash) {
   return itr != m_downloads.end() ? *itr : NULL;
 }
 
+std::string
+DownloadMain::get_download_id(const std::string& hash) {
+  DownloadMain* m = getDownload(hash);
+
+  return m ? m->state().me().get_id() : "";
+}
+
 void DownloadMain::add_peers(const Peers& p) {
   std::stringstream ss;
   ss << "New peers received " << p.size();

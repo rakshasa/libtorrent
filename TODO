@@ -117,6 +117,8 @@ OPTIMIZING
 Can we check the fd_set's in any more efficient way?... reverse the
 current setup?
 
+SocketBase should use a stl::vector instead.
+
 Using lists for the sockets we're waiting on does provide for many
 cache misses. (i would assume). find out if you can't use something more
 clever. Sort by fd number? iterate only to that number?

@@ -17,7 +17,7 @@ void
 HandshakeManager::add_incoming(int fd,
 			       const std::string& dns,
 			       uint16_t port) {
-  SocketBase::close_socket(fd);
+  m_handshakes.push_back(new HandshakeIncoming(fd, this, PeerInfo("", dns, port)));
 }
   
 void

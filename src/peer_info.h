@@ -11,9 +11,14 @@ public:
   PeerInfo(const std::string& id, const std::string& dns, unsigned int port);
   ~PeerInfo();
 
+  // Deprecated
   const std::string& id() const { return m_id; }
   const std::string& dns() const { return m_dns; }
   unsigned short port() const { return m_port; }
+
+  const std::string& get_id() const { return m_id; }
+  const std::string& get_dns() const { return m_dns; }
+  unsigned short get_port() const { return m_port; }
 
   const std::string& protocol() const { return m_protocol; }
   const std::string& options() const { return m_options; }
