@@ -156,10 +156,10 @@ void TrackerHttp::receive_done() {
 
 	  std::stringstream buf;
 
-	  buf << (unsigned int)*itr2++ << '.'
-	      << (unsigned int)*itr2++ << '.'
-	      << (unsigned int)*itr2++ << '.'
-	      << (unsigned int)*itr2++;
+	  buf << (int)(unsigned char)*itr2++ << '.'
+	      << (int)(unsigned char)*itr2++ << '.'
+	      << (int)(unsigned char)*itr2++ << '.'
+	      << (int)(unsigned char)*itr2++;
 
 	  unsigned short port = (unsigned short)((unsigned char)*itr2++) << 8;
 	  port += (unsigned short)((unsigned char)*itr2++);

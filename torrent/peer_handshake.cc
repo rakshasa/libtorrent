@@ -7,7 +7,7 @@
 #include "download.h"
 #include "peer_handshake.h"
 
-#include <errno.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <algo/algo.h>
 

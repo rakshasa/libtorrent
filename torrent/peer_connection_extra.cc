@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 
+#include <unistd.h>
 #include <algo/algo.h>
 #include <netinet/in.h>
 

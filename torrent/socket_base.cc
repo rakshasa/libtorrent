@@ -10,6 +10,7 @@
 #include <sstream>
 #include <cerrno>
 #include <cstring>
+#include <unistd.h>
 
 #include "socket_base.h"
 #include "exceptions.h"

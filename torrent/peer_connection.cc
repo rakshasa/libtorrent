@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 
+#include <cerrno>
 #include <sstream>
 #include <netinet/in.h>
 #include <algo/algo.h>

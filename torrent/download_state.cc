@@ -2,14 +2,15 @@
 #include "config.h"
 #endif
 
+#include <unistd.h>
 #include <inttypes.h>
+#include <algo/algo.h>
 
 #include "exceptions.h"
 #include "download_state.h"
 #include "peer_connection.h"
 #include "peer_handshake.h"
 #include "throttle_control.h"
-#include <algo/algo.h>
 
 using namespace algo;
 

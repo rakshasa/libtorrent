@@ -16,9 +16,13 @@ public:
   Storage();
   ~Storage();
 
-  void set_block_size(unsigned int bs);
-  void set_offset(unsigned int offset);
-
+  bool open(const std::string& filename,
+	    unsigned int blockSize, unsigned int offset,
+	    bool writeAccess, bool createFile, unsigned int mask = 0644);
+  void close();
+  
+  // Don't touch.
+  int fd() { return m_fd; }
 
   // Call this to make sure you can write, open's rw arg
   // does not guarantee write access.

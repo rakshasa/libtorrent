@@ -1,6 +1,8 @@
 #ifndef ALGO_CONTAINER_IMPL_H
 #define ALGO_CONTAINER_IMPL_H
 
+#include <algorithm>
+
 namespace algo {
 
 template <bool PreInc, typename Iterator, typename Ftor>

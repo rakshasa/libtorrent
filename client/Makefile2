@@ -1,0 +1,18 @@
+OBJECTS = http.o display.o download.o rtorrent.o
+
+LIBS = -ltorrent -lncurses -lcrypto `pkg-config --libs sigc++-2.0` -L../torrent/.libs
+CFLAGS = -Wall -O3 -g `pkg-config --cflags sigc++-2.0` -I.
+
+all: torrent $(OBJECTS)
+	g++ $(CFLAGS) -o rtorrent $(OBJECTS) $(LIBS)
+
+torrent:
+	mkdir torrent
+	ln -s ../../torrent/{torrent.h,exceptions.h,url/http.h} torrent
+
+%.o: %.cc
+	g++ $(CFLAGS) -c $<
+
+clean:
+	-rm rtorrent *.o *~
+	-rm -r torrent

@@ -51,7 +51,7 @@ Download::Download(const bencode& b) :
   m_tracker->signal_stats().connect(sigc::mem_fun(m_state, &DownloadState::download_stats));
 
   m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions,
-						   &std::list<std::string>::push_back));
+						   (void (std::list<std::string>::*)(const std::string&))&std::list<std::string>::push_back));
 
   FilesCheck::check(&state().files(), this, HASH_COMPLETED);
 
@@ -105,7 +105,7 @@ void Download::stop() {
 void Download::service(int type) {
   int s;
   PeerConnection *p1, *p2;
-  float f, g;
+  float f = 0, g = 0;
 
   switch (type) {
   case HASH_COMPLETED:
@@ -212,7 +212,7 @@ void Download::add_peers(const Peers& p) {
 		     call_member(&Peer::is_same_host, ref(*itr)))
 	!= m_state.available_peers().end())
       // We already know this peer
-      return;
+      continue;
 
     // Push to back since we want to connect to old peers since they are more
     // likely to have more of the file. This also makes sure we don't end up with
