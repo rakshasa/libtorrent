@@ -11,18 +11,19 @@ using namespace algo;
 
 namespace torrent {
 
-HashTorrent::HashTorrent(const std::string& id,
-			 Storage* s,
-			 HashQueue* q) :
+HashTorrent::HashTorrent(const std::string& id, Storage* s) :
   m_id(id),
   m_position(0),
   m_outstanding(0),
   m_storage(s),
-  m_queue(q) {
+  m_queue(NULL) {
 }
 
 void
 HashTorrent::start() {
+  if (m_queue == NULL || m_storage == NULL)
+    throw internal_error("HashTorrent::start() called on an object with invalid m_queue or m_storage");
+
   if (is_checking() || m_position == m_storage->get_chunkcount())
     return;
 

@@ -192,7 +192,7 @@ download_create(std::istream& s) {
   // TODO: Should we clear failed bits?
   s.clear();
 
-  std::auto_ptr<DownloadWrapper> d(new DownloadWrapper(generateId()));
+  std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
 
   s >> d->get_bencode();
 
@@ -205,20 +205,10 @@ download_create(std::istream& s) {
   parse_main(d->get_bencode(), d->get_main());
   parse_info(d->get_bencode()["info"], d->get_main().get_state().get_content());
 
-  // Hash must be calculated before these are connected.
-  d->get_main().get_net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
-  d->get_main().get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
-					       d->get_main().get_hash(), d->get_main().get_me().get_id()));
-  d->get_main().get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
-						d->get_main().get_hash()));
+  d->initialize(calcHash(d->get_bencode()["info"]), generateId());
 
-  d->get_main().get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(hashQueue, &HashQueue::add),
-						sigc::mem_fun(d->get_main().get_state(), &DownloadState::receive_hash_done),
-						d->get_main().get_hash()));
-
-  d->get_main().setup_net();
-  d->get_main().setup_delegator();
-  d->get_main().setup_tracker();
+  d->set_handshake_manager(handshakes);
+  d->set_hash_queue(hashQueue);
 
   parse_tracker(d->get_bencode(), d->get_main().get_tracker());
 

@@ -16,19 +16,9 @@ using namespace algo;
 
 namespace torrent {
 
-extern HashTorrent hashTorrent;
-
 void
 Download::open() {
-  DownloadMain& d = m_ptr->get_main();
-
-  if (d.is_open())
-    return;
-
-  d.open();
-
-  // TODO: Remove this hash check.
-  m_ptr->get_hash_checker().start();
+  m_ptr->open();
 }
 
 void

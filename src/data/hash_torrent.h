@@ -15,22 +15,25 @@ class HashQueue;
 
 class HashTorrent {
 public:
-  typedef algo::RefAnchored<StorageChunk>         Chunk;
-  typedef sigc::signal0<void>                     SignalTorrentDone;
-  typedef sigc::signal2<void, Chunk, std::string> SignalChunkDone;
+  typedef algo::RefAnchored<StorageChunk>           Chunk;
+  typedef sigc::signal0<void>                       SignalTorrentDone;
+  typedef sigc::signal2<void, Chunk, std::string>   SignalChunkDone;
   
-  HashTorrent(const std::string& id, Storage* s, HashQueue* queue);
+  HashTorrent(const std::string& id, Storage* s);
   ~HashTorrent() { stop(); }
 
   void                start();
   void                stop();
 
-  bool                is_checking()         { return m_outstanding; }
+  bool                is_checking()                 { return m_outstanding; }
 
-  Ranges&             get_ranges()          { return m_ranges; }
+  Ranges&             get_ranges()                  { return m_ranges; }
 
-  SignalTorrentDone   signal_torrent()      { return m_signalTorrent; }
-  SignalChunkDone     signal_chunk()        { return m_signalChunk; }
+  HashQueue*          get_queue()                   { return m_queue; }
+  void                set_queue(HashQueue* q)       { m_queue = q; }
+
+  SignalTorrentDone   signal_torrent()              { return m_signalTorrent; }
+  SignalChunkDone     signal_chunk()                { return m_signalChunk; }
 
 private:
   void                queue();

@@ -11,12 +11,18 @@ namespace torrent {
 
 class Bencode;
 class HashTorrent;
+class HashQueue;
+class HandshakeManager;
 
 class DownloadWrapper {
 public:
-  DownloadWrapper(const std::string& id);
+  DownloadWrapper();
   ~DownloadWrapper();
 
+  // Initialize hash checker and various download stuff.
+  void                initialize(const std::string& hash, const std::string& id);
+
+  void                open();
   void                stop();
 
   const std::string&  get_hash()          { return m_main.get_hash(); }
@@ -24,6 +30,9 @@ public:
 
   Bencode&            get_bencode()       { return *m_bencode.get(); }
   HashTorrent&        get_hash_checker()  { return *m_hash.get(); }
+
+  void                set_handshake_manager(HandshakeManager& h);
+  void                set_hash_queue(HashQueue& h);
 
   // Various functions for manipulating bencode's data with the
   // download.
