@@ -14,8 +14,8 @@ class Rate {
  public:
   Rate() : m_new(true), m_bytes(0) {}
 
-  unsigned int rate();
-  unsigned int rate_quick();
+  unsigned int rate() const;
+  unsigned int rate_quick() const;
 
   uint64_t total() const { return m_bytes; }
 
@@ -35,10 +35,10 @@ class Rate {
   }
 
  private:
-  bool m_new;
+  mutable bool m_new;
   uint64_t m_bytes;
 
-  std::deque<std::pair<Timer, int> > m_entries;
+  mutable std::deque<std::pair<Timer, int> > m_entries;
 };
 
 }

@@ -7,7 +7,7 @@
 
 namespace torrent {
 
-unsigned int Rate::rate() {
+unsigned int Rate::rate() const {
   while (!m_entries.empty() &&
 	 m_entries.back().first + Settings::rateWindow < Timer::cache()) {
     m_new = false;
@@ -32,7 +32,7 @@ unsigned int Rate::rate() {
   return (bytes * 1000000) / window;
 }
 
-unsigned int Rate::rate_quick() {
+unsigned int Rate::rate_quick() const {
   if (m_entries.empty())
     return 0;
 

@@ -274,11 +274,12 @@ void PeerConnection::read() {
     m_down.pos = 0;
 
     if (m_down.length == 0) {
+      // Done with this piece.
       m_down.state = IDLE;
-    }
 
-    if (m_requests.get_size())
-      insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+      if (m_requests.get_size())
+	insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+    }
 
     goto evil_goto_read;
 
@@ -723,7 +724,7 @@ void PeerConnection::service(int type) {
       return;
 
     if (m_down.state == READ_PIECE)
-      throw communication_error("Peer choke while downloaing piece");
+      throw communication_error("Peer choke while downloading piece");
 
     remove_service(SERVICE_STALL);
     m_requests.cancel();
