@@ -17,22 +17,5 @@ EXTRA_DIST= \
 	algo/use.h \
 	algo/use_impl.h \
 	algo/ref_anchored.h \
-	client/Makefile \
-	client/Makefile2 \
-	client/README \
-	client/curl_get.cc \
-	client/curl_get.h \
-	client/curl_stack.cc \
-	client/curl_stack.h \
-	client/display.cc \
-	client/display.h \
-	client/download.cc \
-	client/download.h \
-	client/functional.h \
-	client/http.cc \
-	client/http.h \
-	client/rtorrent.cc \
-	client/queue.cc \
-	client/queue.h \
 	doc/main.xml \
 	doc/torrent.xml
