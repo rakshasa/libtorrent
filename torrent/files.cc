@@ -5,6 +5,7 @@
 #include <string>
 #include <cerrno>
 #include <inttypes.h>
+#include <sys/stat.h>
 #include <openssl/sha.h>
 #include <algo/algo.h>
 
@@ -15,29 +16,25 @@ using namespace algo;
 #include "exceptions.h"
 #include "general.h"
 #include "settings.h"
-
-#include "files_algo.h"
+#include "data/file.h"
 
 namespace torrent {
 
 Files::Files() :
   m_doneSize(0),
-  m_totalSize(0),
-  m_chunkSize(0),
   m_completed(0),
   m_rootDir(".")
 {
 }
 
 Files::~Files() {
-  std::for_each(m_files.begin(), m_files.end(), algo::delete_on(&File::m_storage));
 }
 
 void Files::set(const bencode& b) {
   if (!m_files.empty())
     throw internal_error("Tried to initialize Files object twice");
 
-  m_chunkSize = b["piece length"].asValue();
+  m_storage.set_chunksize(b["piece length"].asValue());
 
   for (unsigned int i = 0, e = b["pieces"].asString().length();
        i + 20 <= e; i += 20)
@@ -47,160 +44,126 @@ void Files::set(const bencode& b) {
     // Single file torrent
     m_files.resize(1);
 
-    m_files[0].m_length = b["length"].asValue();
+    m_files[0].m_size = b["length"].asValue();
     m_files[0].m_path.push_back(b["name"].asString());
-    m_files[0].m_storage = new Storage();
 
-  } else if (b.hasKey("files")) {
-    // Multi file torrent
-    if (b["files"].asList().empty())
-      throw input_error("Bad torrent file, entry no files");
+//   } else if (b.hasKey("files")) {
+//     // Multi file torrent
+//     if (b["files"].asList().empty())
+//       throw input_error("Bad torrent file, entry no files");
 
-    m_files.resize(b["files"].asList().size());
+//     m_files.resize(b["files"].asList().size());
 
-    std::for_each(m_files.begin(), m_files.end(),
-		  new_on(&File::m_storage));
+//     std::for_each(m_files.begin(), m_files.end(),
+// 		  new_on(&File::m_storage));
 
-    std::for_each(m_files.begin(), m_files.end(),
-		  bencode_to_file(b["files"].asList().begin(),
-				  b["files"].asList().end()));
+//     std::for_each(m_files.begin(), m_files.end(),
+// 		  bencode_to_file(b["files"].asList().begin(),
+// 				  b["files"].asList().end()));
 
-    // Do we want the "name" in the root dir?...
-    m_rootDir += "/" + b["name"].asString();
+//     // Do we want the "name" in the root dir?...
+//     m_rootDir += "/" + b["name"].asString();
 
   } else {
     throw input_error("Torrent must have either length or files entry");
   }
 
-  m_totalSize = m_files[m_files.size() - 1].m_position + m_files[m_files.size() - 1].m_length;
-
   if (b["pieces"].asString().length() % 20)
     throw input_error("Bad torrent, \"pieces\" entry not a multiple of 20");
-
-  if ((m_files.rbegin()->m_position + m_files.rbegin()->m_length) == 0)
-    throw input_error("Bad torrent, total length of files is zero");
-
-  if (m_hashes.size() != ( (m_files.rbegin()->m_position + m_files.rbegin()->m_length - 1) / m_chunkSize + 1))
-    throw input_error("Bad torrent file, length of files does not match number of hashes");
 }
 
 void Files::openAll() {
+  if (m_storage.get_size())
+    throw internal_error("Files::openAll does not support opening twice.");
+
   if (m_files.size() > 1)
     createDirs();
 
-  for (FileVector::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    if (itr->m_storage->isOpen())
-      // TODO: Do something about already opened files.
-      continue;
+  for (FileInfos::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
+    std::string path = m_rootDir;
 
-    std::string path = m_rootDir + "/";
+    std::for_each(itr->m_path.begin(), itr->m_path.end(),
+		  add_ref(path, add(value("/"), back_as_ref())));
 
-    std::for_each(itr->m_path.begin(), --itr->m_path.end(),
-		  add_ref(path, add(back_as_ref(), value("/"))));
+    File* f = new File;
 
-    path += *itr->m_path.rbegin();
+    if (!f->open(path, File::in | File::out | File::create | File::largefile)) {
+      delete f;
+      m_storage.close();
 
-    itr->m_storage->open(path, m_chunkSize, itr->m_position % m_chunkSize,
-			 true, true, Settings::filesMode);
-
-    if (!itr->m_storage->isOpen() ||
-	!itr->m_storage->isWrite()) {
-      closeAll();
-      throw storage_error("Could not open file for write \"" + path + "\"");
+      throw storage_error("Could not open file \"" + path + "\"");
     }
+      
+    m_storage.add_file(f, itr->m_size);
   }
 
-  m_bitfield = BitField(chunkCount());
-  m_bitfield.clear();
+  if (m_hashes.size() != ( (m_storage.get_size() - 1) / m_storage.get_chunksize() + 1))
+    throw input_error("Bad torrent file, length of files does not match number of hashes");
 
+  m_bitfield = BitField(m_storage.get_chunkcount());
+
+  m_doneSize = 0;
   m_completed = 0;
+
+  // Update sizes of anchors in m_storage.
+  m_storage.set_chunksize(m_storage.get_chunksize());
 }
 
 void Files::closeAll() {
-  for (FileVector::iterator itr = m_files.begin(); itr != m_files.end(); ++itr)
-    itr->m_storage->close();
+  m_storage.close();
 
   m_bitfield = BitField();
   m_completed = 0;
+  m_doneSize = 0;
 }
 
 void Files::resizeAll() {
-  for (FileVector::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    if (!itr->m_storage->isOpen())
-      throw internal_error("Tried to resize a file that isn't open");
-
-    itr->m_storage->resize(itr->m_length);
-  }
+  if (!m_storage.resize())
+    throw storage_error("Could not resize files");
 }  
 
-Chunk Files::getChunk(unsigned int index, bool write, bool resize) {
-  if (!resize && index >= chunkCount())
-    throw internal_error("Tried to access chunk out of range");
-
-  Chunk c(index);
-
-  FileVector::iterator itr, itr2 = m_files.begin(); // Just so we bork
-
-  while (itr2 != m_files.end() &&
-	 itr2->m_position <= (uint64_t)index * m_chunkSize)
-    itr = itr2++;
-
-  // TODO, this could be optimized
-
-  while (itr != m_files.end()) {
-    uint64_t endPos = (uint64_t)index * m_chunkSize + (uint64_t)chunkSize(index) - itr->m_position;
-
-    if ((uint64_t)endPos < 0)
-      throw internal_error("Files::getChunk bad file length");
-
-    // If the current file is smaller than the chunk and it is not yet it's full size.
-    if (itr->m_storage->fileSize() < endPos &&
-	itr->m_storage->fileSize() < itr->m_length) {
-
-      if (resize) {
-	throw internal_error("We don't do resizing when calling getBlock (for now)");
-	//itr->m_storage->resize(itr->m_length < endPos ? itr->m_length : endPos);
-
-      } else {
-	return Chunk(index);
-      }	
-
-    }
-
-    c.add(itr->m_storage->getBlock(index - itr->m_position / m_chunkSize, write));
-
-    if (c.length() >= m_chunkSize)
-      break;
-    else
-      ++itr;
-  }
-
-  if ((c.length() != m_chunkSize && index != chunkCount() - 1) ||
-      c.length() == 0)
-    throw internal_error("getChunk got wrong chunk length");
-
-  return c;
-}
-
-bool Files::doneChunk(Chunk& c) {
-  if (c.index() < 0 ||
-      c.index() >= (signed)chunkCount())
+bool Files::doneChunk(Storage::Chunk c) {
+  if (c->get_index() < 0 ||
+      c->get_index() >= (signed)m_storage.get_chunkcount())
     throw internal_error("Files::doneChunk received index out of range");
   
-  if (m_bitfield[c.index()])
+  if (m_bitfield[c->get_index()])
     throw internal_error("Files::doneChunk received index that has already been marked as done");
 
-  if (!c.parts().empty() &&
-      c.hash() == m_hashes[c.index()]) {
-    m_bitfield.set(c.index(), true);
+  if (!c->get_nodes().empty() &&
+      tmp_calc_hash(c) == m_hashes[c->get_index()]) {
+
+    m_bitfield.set(c->get_index(), true);
     m_completed++;
 
-    m_doneSize += c.length();
+    m_doneSize += c->get_size();
 
     return true;
   } else {
     return false;
   }
+}
+
+std::string Files::tmp_calc_hash(Storage::Chunk c) {
+  if (c->get_nodes().empty())
+    return "";
+
+  SHA_CTX ctx;
+
+  SHA1_Init(&ctx);
+
+  for (StorageChunk::Nodes::iterator itr = c->get_nodes().begin(); itr != c->get_nodes().end(); ++itr) {
+    if ((*itr)->chunk.length() != (*itr)->length)
+      return "";
+
+    SHA1_Update(&ctx, (*itr)->chunk.begin(), (*itr)->chunk.length());
+  }
+
+  char buf[20];
+
+  SHA1_Final((unsigned char*)buf, &ctx);
+
+  return std::string(buf, 20);
 }
 
 void Files::rootDir(const std::string& s) {
@@ -209,24 +172,24 @@ void Files::rootDir(const std::string& s) {
 }
 
 void Files::createDirs() {
-  makeDir(m_rootDir);
+//   makeDir(m_rootDir);
 
-  Path lastPath;
+//   Path lastPath;
 
-  for (FileVector::iterator fItr = m_files.begin(); fItr != m_files.end(); ++fItr) {
-    if (fItr->m_path.empty())
-      throw internal_error("A file with zero path elements slipt through");
+//   for (FileVector::iterator fItr = m_files.begin(); fItr != m_files.end(); ++fItr) {
+//     if (fItr->m_path.empty())
+//       throw internal_error("A file with zero path elements slipt through");
 
-    if (fItr->m_path != lastPath) {
-      std::string path = m_rootDir;
+//     if (fItr->m_path != lastPath) {
+//       std::string path = m_rootDir;
 
-      std::for_each(fItr->m_path.begin(), --fItr->m_path.end(),
-		    branch(add_ref(path, add(value("/"), back_as_ref())),
-			   call(&Files::makeDir, ref(path))));
+//       std::for_each(fItr->m_path.begin(), --fItr->m_path.end(),
+// 		    branch(add_ref(path, add(value("/"), back_as_ref())),
+// 			   call(&Files::makeDir, ref(path))));
 
-      lastPath = fItr->m_path;
-    }
-  }
+//       lastPath = fItr->m_path;
+//     }
+//   }
 }
 
 void Files::makeDir(const std::string& dir) {

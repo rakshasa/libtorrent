@@ -48,7 +48,7 @@ public:
 
   Type* data() { return m_ptr ? m_ptr->m_data : NULL; }
 
-  RefAnchor& operator = (const RefAnchor& a)  { clear(); }
+  RefAnchor& operator = (const RefAnchor& a)  { clear(); return *this; }
 
 protected:
   void set(RefAnchorData<Type>* d) {
@@ -79,12 +79,14 @@ public:
 
   RefAnchored& operator = (const RefAnchored& a) {
     if (&a == this)
-      return;
+      return *this;
 
     clear();
     m_ptr = a.m_ptr;
 
     if (m_ptr) m_ptr->m_ref++;
+
+    return *this;
   }
 
   bool  is_valid()                 { return m_ptr && m_ptr->m_data; }
@@ -96,7 +98,7 @@ public:
   Type* data()                     { return m_ptr ? m_ptr->m_data : NULL; }
 
   Type& operator * ()              { return *m_ptr->m_data; }
-  Type& operator -> ()             { return *m_ptr->m_data; }
+  Type* operator -> ()             { return m_ptr->m_data; }
 
 private:
   RefAnchorData<Type>* m_ptr;

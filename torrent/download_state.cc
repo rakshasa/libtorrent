@@ -33,16 +33,16 @@ DownloadState::~DownloadState() {
   m_files.closeAll();
 }
 
-void DownloadState::chunkDone(Chunk& c) {
+void DownloadState::chunkDone(Storage::Chunk& c) {
   if (m_files.doneChunk(c)) {
-    m_delegator.done(c.index());
+    m_delegator.done(c->get_index());
     
     std::for_each(m_connections.begin(), m_connections.end(),
 		  call_member(&PeerConnection::sendHave,
-			      value(c.index())));
+			      value(c->get_index())));
 
   } else {
-    m_delegator.redo(c.index());
+    m_delegator.redo(c->get_index());
   }
 }
 
@@ -163,7 +163,7 @@ int DownloadState::countConnections() const {
 void DownloadState::download_stats(uint64_t& up, uint64_t& down, uint64_t& left) {
   up = m_rateUp.total();
   down = m_rateDown.total();
-  left = m_files.totalSize() - m_files.doneSize();
+  left = m_files.storage().get_size() - m_files.doneSize();
 }
 
 void DownloadState::connect_peers() {
@@ -171,11 +171,11 @@ void DownloadState::connect_peers() {
 	 (signed)connections().size() < settings().minPeers &&
 	 countConnections() < settings().maxPeers) {
 
-    std::stringstream s;
+//     std::stringstream s;
     
-    s << "Connecting to " << available_peers().front().dns() << ':' << available_peers().front().port();
+//     s << "Connecting to " << available_peers().front().dns() << ':' << available_peers().front().port();
 
-    caughtExceptions.push_front(s.str());
+//     caughtExceptions.push_front(s.str());
 
     PeerHandshake::connect(available_peers().front(), this);
     available_peers().pop_front();

@@ -30,6 +30,6 @@ class Sub {
   unsigned int length;
   unsigned int lengthOrig;
   
-  Chunk data;
+  Storage::Chunk data;
   PieceList list;
 };

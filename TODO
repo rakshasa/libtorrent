@@ -76,7 +76,7 @@ Don't open with largefile unless the torrent requires it.
 
 Can we make FileChunk either ref counted or move owner on copy?
 
-
+Sane timeouts on handshakes.
 
 
 API REDESIGN:

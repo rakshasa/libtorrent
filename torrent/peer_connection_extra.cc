@@ -50,14 +50,14 @@ int PeerConnection::fd() {
 }
 
 bool PeerConnection::writeChunk(int maxBytes) {
-  Chunk::Part& part = m_up.data.get(m_up.list.front().offset() + m_up.pos);
+  StorageChunk::Node& part = m_up.data->get_position(m_up.list.front().offset() + m_up.pos);
 
-  // Length between piece start and the end of the current part of the piece.
-  unsigned int length = std::min(part.first + part.second.length() - m_up.list.front().offset(),
-				 m_up.list.front().length());
+  unsigned int length = std::min(m_up.list.front().length(),
+				 part.position + part.length - m_up.list.front().offset());
 
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
-  writeBuf(part.second.data() + m_up.list.front().offset() + m_up.pos - part.first,
+
+  writeBuf(part.chunk.begin() + m_up.list.front().offset() + m_up.pos - part.position,
 	   std::min(length, m_up.pos + maxBytes),
 	   m_up.pos);
 
@@ -68,16 +68,18 @@ bool PeerConnection::readChunk() {
   if (m_down.pos > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
-  Chunk::Part part    = m_down.data.get(m_down.list.front().offset() + m_down.pos);
-  unsigned int offset = m_down.list.front().offset() + m_down.pos - part.first;
+  StorageChunk::Node& part = m_down.data->get_position(m_down.list.front().offset() + m_down.pos);
+
+  unsigned int offset = m_down.list.front().offset() + m_down.pos - part.position;
   
-  if (!part.second.isValid() ||
-      !part.second.isWrite())
+  if (!part.chunk.is_valid() ||
+      !part.chunk.is_write())
     throw storage_error("Tried to write piece to file area that isn't valid or can't be written to");
   
-  if (!readBuf(part.second.data() + offset,
-	       std::min(part.first + part.second.length() - m_down.list.front().offset(),
-			m_down.list.front().length()), m_down.pos))
+  if (!readBuf(part.chunk.begin() + offset,
+	       std::min(part.position + part.chunk.length() - m_down.list.front().offset(),
+			m_down.list.front().length()),
+	       m_down.pos))
     return false; // Did not read the whole part of the piece
   
   if (m_down.pos != m_down.list.front().length())
@@ -129,7 +131,7 @@ void PeerConnection::discardIncomingQueue() {
 
   // TODO, don't clear list here.(?)
   m_down.list.clear();
-  m_down.data = Chunk();
+  m_down.data = Storage::Chunk();
 }
 
 bool PeerConnection::chokeDelayed() {

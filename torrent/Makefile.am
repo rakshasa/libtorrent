@@ -28,8 +28,6 @@ libtorrent_la_SOURCES = \
         bitfield.cc \
         bitfield.h \
 	bitfield_counter.h \
-        chunk.cc \
-        chunk.h \
         delegator.cc \
         delegator.h \
         download.cc \

@@ -44,7 +44,7 @@ class DownloadState {
   int canUnchoke();
   void chokeBalance();
 
-  void chunkDone(Chunk& c);
+  void chunkDone(Storage::Chunk& c);
 
   BitFieldCounter& bfCounter() { return m_bfCounter; }
 

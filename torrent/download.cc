@@ -41,7 +41,7 @@ Download::Download(const bencode& b) :
 
   m_state.me() = Peer(generateId(), "", Listen::port());
   m_state.hash() = calcHash(b["info"]);
-  m_state.bfCounter() = BitFieldCounter(m_state.files().chunkCount());
+  m_state.bfCounter() = BitFieldCounter(m_state.files().storage().get_chunkcount());
 
   m_tracker = new TrackerControl(m_state.me(), m_state.hash());
 
@@ -112,7 +112,7 @@ void Download::service(int type) {
     m_checked = true;
     state().files().resizeAll();
 
-    if (m_state.files().chunkCompleted() == m_state.files().chunkCount() &&
+    if (m_state.files().chunkCompleted() == m_state.files().storage().get_chunkcount() &&
 	!m_state.files().bitfield().allSet())
       throw internal_error("Loaded torrent is done but bitfield isn't all set");
     

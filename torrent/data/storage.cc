@@ -62,7 +62,7 @@ Storage::get_chunk(unsigned int b, bool wr, bool rd) {
   if (m_anchors[b].is_valid())
     return Chunk(m_anchors[b]);
 
-  Chunk chunk(new StorageChunk);
+  Chunk chunk(new StorageChunk(b));
 
   if (!m_consolidator->get_chunk(*chunk, b, wr, rd))
     return Chunk();

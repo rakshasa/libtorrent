@@ -73,31 +73,29 @@ void FilesCheck::service(int type) {
   if (this != *m_checks.begin())
     throw internal_error("FileCheck::read called on wrong object");
 
-  Chunk c;
+  while (m_position != m_files->storage().get_chunkcount()) {
 
-  do {
-    c = m_files->getChunk(m_position++, false, false);
+    Storage::Chunk c = m_files->storage().get_chunk(m_position++, false);
 
+    if (!c.is_valid())
+      continue;
+    
     m_files->doneChunk(c);
+    
+    // TODO: Add some time here so we don't work to much.
+    return insertService(Timer::cache() + Settings::filesCheckWait, 0);
+  }
 
-    if (m_position == m_files->chunkCount()) {
-      m_service->insertService(Timer::cache(), m_arg);
-
-      delete m_checks.front();
-
-      m_checks.pop_front();
-
-      if (!m_checks.empty())
-	m_checks.front()->insertService(Timer::cache() + Settings::filesCheckWait, 0);
-
-      return;
-    }
-
-    // Only do one loop if we had to check the hash.
-  } while (c.parts().size() == 0);
-
-  // TODO: Add some time here so we don't work to much.
-  insertService(Timer::cache() + Settings::filesCheckWait, 0);
+  m_service->insertService(Timer::cache(), m_arg);
+  
+  delete m_checks.front();
+  
+  m_checks.pop_front();
+  
+  if (!m_checks.empty())
+    m_checks.front()->insertService(Timer::cache() + Settings::filesCheckWait, 0);
+  
+  return;
 }
 
 }

@@ -17,7 +17,7 @@ StorageChunk::get_position(unsigned int pos) {
   Nodes::iterator itr = m_nodes.begin();
 
   while (itr != m_nodes.end()) {
-    if (pos < (*itr)->position + (*itr)->fileChunk.length())
+    if (pos < (*itr)->position + (*itr)->chunk.length())
       return **itr;
   }
   
@@ -34,7 +34,7 @@ StorageChunk::add_file(unsigned int length) {
 
   m_size += length;
 
-  return (*m_nodes.insert(m_nodes.end(), new Node(m_size - length)))->fileChunk;
+  return (*m_nodes.insert(m_nodes.end(), new Node(m_size - length)))->chunk;
 }
 
 void

@@ -288,7 +288,7 @@ int64_t get(DList::const_iterator d, DValue t) {
     return (*d)->state().bytesUploaded();
 
   case BYTES_TOTAL:
-    return (*d)->state().files().totalSize();
+    return (*d)->state().files().storage().get_size();
 
   case BYTES_DONE:
     a = 0;
@@ -307,10 +307,10 @@ int64_t get(DList::const_iterator d, DValue t) {
     return (*d)->state().files().chunkCompleted();
 
   case CHUNKS_SIZE:
-    return (*d)->state().files().chunkSize();
+    return (*d)->state().files().storage().get_chunksize();
 
   case CHUNKS_TOTAL:
-    return (*d)->state().files().chunkCount();
+    return (*d)->state().files().storage().get_chunkcount();
 
   case CHOKE_CYCLE:
     return (*d)->state().settings().chokeCycle;

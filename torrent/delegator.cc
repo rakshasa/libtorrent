@@ -215,7 +215,9 @@ Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
   if (index == -1)
     return NULL;
 
-  unsigned int size = m_state->files().chunkSize(index);
+  unsigned int size = (unsigned)index + 1 != m_state->files().storage().get_chunkcount() ?
+    m_state->files().storage().get_chunksize() :
+    m_state->files().storage().get_size() % m_state->files().storage().get_chunksize();
 
   std::list<Chunk>::iterator itr = m_chunks.insert(m_chunks.end(), Chunk(index));
 

@@ -87,7 +87,7 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, unsigned int b, bool wr
     ++itr;
   }
 
-  if (chunk.get_size() != end - pos)
+  if (chunk.get_size() != end - b * (uint64_t)m_chunksize)
     throw internal_error("StorageConsolidator::get_chunk didn't get a chunk with the correct size");
 
   return true;

@@ -34,6 +34,7 @@ bool File::open(const std::string& path,
   if (fd == -1)
     return false;
 
+  m_fd = fd;
   m_stat = new struct stat;
   m_path = path;
   m_flags = flags;
@@ -117,7 +118,7 @@ bool File::get_chunk(FileChunk& f,
   if (!is_open() ||
       offset + length > (uint64_t)m_stat->st_size ||
       m_stat->st_size <= 0) {
-    f = FileChunk();
+    f.clear();
 
     return false;
   }
@@ -130,9 +131,9 @@ bool File::get_chunk(FileChunk& f,
 
   
   if (ptr == MAP_FAILED)
-    f = FileChunk();
+    f.clear();
   else
-    f = FileChunk(ptr, ptr + align, length, m_flags & in, m_flags & out);
+    f.set(ptr, ptr + align, length, m_flags & in, m_flags & out);
 
   return f.is_valid();
 }

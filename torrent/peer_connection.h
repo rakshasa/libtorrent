@@ -2,7 +2,7 @@
 #define LIBTORRENT_PEER_CONNECTION_H
 
 #include "bitfield.h"
-#include "chunk.h"
+#include "data/storage.h"
 #include "socket_base.h"
 #include "service.h"
 #include "peer.h"

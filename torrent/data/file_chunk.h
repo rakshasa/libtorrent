@@ -8,7 +8,7 @@ class FileChunk {
   friend class File;
 
   FileChunk() : m_ptr(NULL), m_begin(NULL), m_length(0), m_read(false), m_write(false) {}
-  ~FileChunk();
+  ~FileChunk() { clear(); }
 
   bool  is_valid()      { return m_ptr; }
   bool  is_read()       { return m_read; }
@@ -19,18 +19,23 @@ class FileChunk {
 
   unsigned int length() { return m_length; }
 
+  void clear();
+
  protected:
   // Ptr must not be NULL.
-  FileChunk(char* ptr,
-	    char* begin,
-	    unsigned int length,
-	    bool r,
-	    bool w) :
-    m_ptr(ptr),
-    m_begin(begin),
-    m_length(length),
-    m_read(r),
-    m_write(w) {}
+  void set(char* ptr,
+	   char* begin,
+	   unsigned int length,
+	   bool r,
+	   bool w) {
+    clear();
+
+    m_ptr = ptr;
+    m_begin = begin;
+    m_length = length;
+    m_read = r;
+    m_write = w;
+  }
 
 private:
   FileChunk(const FileChunk&);

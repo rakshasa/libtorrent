@@ -13,18 +13,19 @@ public:
   struct Node {
     Node(unsigned int pos) : position(pos) {}
 
-    FileChunk    fileChunk;
+    FileChunk    chunk;
     unsigned int position;
     unsigned int length;
   };
 
   typedef std::vector<Node*> Nodes;
 
-  StorageChunk() : m_size(0)                   {}
+  StorageChunk(unsigned int index) : m_index(index), m_size(0) {}
   ~StorageChunk()                              { clear(); }
 
   bool is_valid()                              { return m_size; }
 
+  int          get_index()                     { return m_index; }
   unsigned int get_size()                      { return m_size; }
   Nodes&       get_nodes()                     { return m_nodes; }
 
@@ -41,7 +42,8 @@ protected:
 private:
   StorageChunk(const StorageChunk&);
   void operator = (const StorageChunk&);
-
+  
+  unsigned int m_index;
   unsigned int m_size;
   Nodes        m_nodes;
 };
