@@ -15,7 +15,7 @@ BitField::BitField(unsigned int s) :
   m_size(s) {
 
   if (s) {
-    int a = ((m_size + 8 * sizeof(pad_t) - 1) / (8 * sizeof(pad_t))) * sizeof(pad_t);
+    int a = (m_size + 7) / 8 + sizeof(pad_t);
 
     m_start = new data_t[a];
     m_end = m_start + (m_size + 7) / 8;
@@ -52,6 +52,7 @@ BitField::operator = (const BitField& bf) {
   
   if (bf.m_size) {
     m_size = bf.m_size;
+
     m_start = new data_t[bf.m_pad - bf.m_start];
     m_end = m_start + bf.size_bytes();
     m_pad = m_start + (bf.m_pad - bf.m_start);

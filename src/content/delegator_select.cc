@@ -191,7 +191,7 @@ DelegatorSelect::interested_range(const BitField& bf, uint32_t start, uint32_t e
   uint32_t* i1 = (uint32_t*)(m_bitfield->begin() + (start + 7) / 8);
   uint32_t* i2 = (uint32_t*)(bf.begin() + (start + 7) / 8);
 
-  uint32_t* e1 = i1 + (end - start) / sizeof(uint32_t);
+  uint32_t* e1 = i1 + (end - start) / (8 * sizeof(uint32_t));
 
   // At this point start must be aligned to the byte.
   while (i1 != e1) {
