@@ -1,0 +1,35 @@
+#ifndef LIBTORRENT_UTILS_TASK_SCHEDULE_H
+#define LIBTORRENT_UTILS_TASK_SCHEDULE_H
+
+#include <list>
+
+#include "timer.h"
+
+namespace torrent {
+
+class Task;
+
+class TaskSchedule {
+public:
+  friend class Task;
+
+  typedef std::list<Task*>    Container;
+  typedef Container::iterator iterator;
+
+  static void      perform(Timer t);
+
+  static Timer     get_timeout();
+
+protected:
+  static iterator  end()               { return m_container.end(); }
+
+  static iterator  insert(Task* t);
+  static void      erase(iterator itr) { m_container.erase(itr); }
+
+private:
+  static Container m_container;
+};
+
+}
+
+#endif

@@ -7,6 +7,9 @@ libsub_utils_la_SOURCES = \
 	bitfield_ext.h \
 	ranges.cc \
 	ranges.h \
+	task.h \
+	task_schedule.cc \
+	task_schedule.h \
 	timer.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
