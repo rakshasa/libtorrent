@@ -13,6 +13,8 @@ HandshakeIncoming::HandshakeIncoming(int fd, HandshakeManager* m, const PeerInfo
 
   m_peer = p;
 
+  set_socket_nonblock(fd);
+
   insert_read();
   insert_except();
 }

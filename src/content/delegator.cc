@@ -170,10 +170,15 @@ Delegator::delegate_piece(DelegatorChunk& c, DelegatorPiece*& p) {
     if (i->is_finished() || i->get_not_stalled())
       continue;
 
-    p = i;
-
-    if (i->get_reservees_size() == 0)
+    if (i->get_reservees_size() == 0) {
+      // Noone is downloading this, assign.
+      p = i;
       return true;
+
+    } else if (true) {
+      // Stalled but we really want to finish this piece.
+      p = i;
+    }
   }
       
   return p != NULL;

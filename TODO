@@ -55,7 +55,8 @@ communication error, not a internal error.
 
 Make sure we can handle out of order incoming pieces.
 
-Eliminate virtual fd() in socket_base
+set_socket_nonblock should be explicit, remove from make_socket
+
 
 
 DELEGATOR STUFF
