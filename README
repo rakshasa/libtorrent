@@ -10,7 +10,7 @@ DEPENDENCIES
   libsigc++ 2.0 (deb: libsigc++-2.0-dev)
   openssl       (deb: libssl-dev)
   libcurl       (deb: libcurl3-dev)
-  ncurses
+  ncurses       (deb: libncurses5-dev)
   g++ >= 3.2
 
 SIGC++

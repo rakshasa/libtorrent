@@ -18,6 +18,7 @@ namespace torrent {
 Throttle::Throttle() :
   m_parent(NULL),
   m_inActive(false),
+  m_snub(false),
   m_activeSize(0),
   m_left(0),
   m_spent(0),
@@ -63,7 +64,10 @@ void Throttle::idle() {
 }
 
 int Throttle::left() {
-  if (m_left == UNLIMITED)
+  if (m_snub)
+    return 0;
+
+  else if (m_left == UNLIMITED)
     return std::numeric_limits<int>::max() / 2;
 
   else

@@ -105,7 +105,9 @@ typedef enum {
   PEER_RATE_DOWN,         // Bytes per second.
   PEER_RATE_UP,
 
-  PEER_PORT
+  PEER_PORT,
+  PEER_SNUB
+
 } PValue;
 
 typedef enum {
@@ -171,6 +173,7 @@ std::string get(PList::const_iterator p, PString t);
 
 void set(GValue t, int64_t v);
 void set(DList::const_iterator d, DValue t, int64_t v);
+void set(PList::const_iterator d, PValue t, int64_t v);
 
 void set(GString t, const std::string& s);
 void set(DList::const_iterator d, DString t, const std::string& s);

@@ -27,6 +27,9 @@ class Throttle {
 
   bool in_active() { return m_inActive; }
 
+  void set_snub(bool s) { m_snub = s; }
+  bool get_snub() { return m_snub; }
+
   Rate& up() { return m_up; }
   Rate& down() { return m_down; }
   
@@ -55,6 +58,8 @@ class Throttle {
   Children m_active;
 
   bool m_inActive;
+  bool m_snub;
+
   int m_activeSize;
 
   int m_left;

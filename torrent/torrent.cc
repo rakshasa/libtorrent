@@ -421,6 +421,9 @@ int64_t get(PList::const_iterator p, PValue t) {
   case PEER_PORT:
     return (*p)->peer().port();
 
+  case PEER_SNUB:
+    return (*p)->throttle().get_snub();
+
   default:
     throw internal_error("get(itr, PValue) received invalid type");
   }
@@ -553,6 +556,17 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
 }
 
 void set(DList::const_iterator d, DString t, const std::string& s) {
+}
+
+void set(PList::const_iterator p, PValue t, int64_t v) {
+  switch (t) {
+  case PEER_SNUB:
+    (*p)->throttle().set_snub(v);
+    break;
+
+  default:
+    throw internal_error("set(PItr, PValue, int) received invalid type");
+  }
 }
 
 SignalDownloadDone& signalDownloadDone(DList::const_iterator itr) {

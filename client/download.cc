@@ -137,6 +137,18 @@ bool Download::key(int c) {
 
       return true;
 
+    case '*':
+      m_peers = torrent::peers(m_dItr);
+      m_peers.sort();
+      
+      if (m_peers.empty())
+	return true;
+
+      cur = selectedPeer();
+      
+      torrent::set(cur, torrent::PEER_SNUB, !torrent::get(cur, torrent::PEER_SNUB));
+      break;
+
     default:
       break;
     }
@@ -230,12 +242,13 @@ bool Download::key(int c) {
 void Download::drawPeers(int y1, int y2) {
   int x = 2;
 
-  mvprintw(y1, x, "DNS"); x += 16;
-  mvprintw(y1, x, "UP"); x += 7;
-  mvprintw(y1, x, "DOWN"); x += 7;
+  mvprintw(y1, x, "DNS");   x += 16;
+  mvprintw(y1, x, "UP");    x += 7;
+  mvprintw(y1, x, "DOWN");  x += 7;
   mvprintw(y1, x, "RE/LO"); x += 7;
-  mvprintw(y1, x, "QS"); x += 6;
-  mvprintw(y1, x, "REQ");
+  mvprintw(y1, x, "QS");    x += 6;
+  mvprintw(y1, x, "REQ");   x += 6;
+  mvprintw(y1, x, "SNUB");
 
   ++y1;
 
@@ -298,6 +311,10 @@ void Download::drawPeers(int y1, int y2) {
       mvprintw(i, x, "%i",
 	       *(int*)incoming.c_str());
 
+    x += 6;
+
+    if (torrent::get(itr, torrent::PEER_SNUB))
+      mvprintw(i, x, "*");
   }
 }
 
