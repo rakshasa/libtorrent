@@ -62,7 +62,7 @@ class FileChunk {
 
   void               incore(unsigned char* buf, uint32_t offset, uint32_t length);
   void               advise(uint32_t offset, uint32_t length, int advice);
-  void               sync(uint32_t offset, uint32_t length, int flags);
+  bool               sync(uint32_t offset, uint32_t length, int flags);
 
   uint32_t           page_align()                             { return m_begin - m_ptr; }
   uint32_t           page_align(uint32_t o)                   { return (o + page_align()) % m_pagesize; }

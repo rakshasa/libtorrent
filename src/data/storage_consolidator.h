@@ -39,8 +39,9 @@ public:
   void            add_file(File* file, uint64_t size);
 
   bool            resize();
-  bool            sync();
   void            close();
+
+  void            sync();
 
   void            set_chunksize(uint32_t size);
 

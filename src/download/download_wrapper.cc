@@ -124,9 +124,10 @@ DownloadWrapper::hash_save() {
   // want the old resume data.
   Bencode& resume = m_bencode.insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
 
-  // We're guaranteed that file modification time is correctly updated after this.
-  if (!content.get_storage().sync())
-    return;
+  // We're guaranteed that file modification time is correctly updated
+  // after this. Though won't help if the files have been delete while
+  // we had them open.
+  content.get_storage().sync();
 
   resume.insert_key("bitfield", std::string((char*)content.get_bitfield().begin(), content.get_bitfield().size_bytes()));
 

@@ -20,55 +20,33 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#ifndef LIBTORRENT_HASH_COMPUTE_H
+#define LIBTORRENT_HASH_COMPUTE_H
 
-#include <inttypes.h>
-
-#include "general.h"
-#include "utils/bitfield.h"
-#include "torrent/exceptions.h"
-#include "settings.h"
-#include "torrent/bencode.h"
-
-#include <stdlib.h>
-#include <iomanip>
-#include <sstream>
+#include <string>
 #include <openssl/sha.h>
-#include <sys/time.h>
 
 namespace torrent {
 
-std::string generateId() {
-  std::string id = Settings::peerName;
+class Sha1 {
+public:
+  void        init()                      { SHA1_Init(&m_ctx); }
 
-  for (int i = id.length(); i < 20; ++i)
-    id += random();
+  void        update(const void* data,
+		     unsigned int length) { SHA1_Update(&m_ctx, data, length); }
 
-  return id;
-}
+  std::string final() {
+    unsigned char buf[20];
 
-std::string generateKey() {
-  std::string id;
+    SHA1_Final(buf, &m_ctx);
 
-  for (int i = 0; i < 8; ++i) {
-    unsigned int v = random() % 16;
-
-    if (v < 10)
-      id += '0' + v;
-    else
-      id += 'a' + v - 10;
+    return std::string((char*)buf, 20);
   }
 
-  return id;
-}
-
-std::string calcHash(const Bencode& b) {
-  std::stringstream str;
-  str << b;
-
-  return std::string((const char*)SHA1((const unsigned char*)(str.str().c_str()), str.str().length(), NULL), 20);
-}
+private:
+  SHA_CTX m_ctx;
+};
 
 }
+
+#endif

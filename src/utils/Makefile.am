@@ -9,6 +9,8 @@ libsub_utils_la_SOURCES = \
 	ranges.h \
 	rate.cc \
 	rate.h \
+	string_manip.cc \
+	string_manip.h \
 	task.h \
 	task_schedule.cc \
 	task_schedule.h \

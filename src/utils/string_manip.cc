@@ -20,33 +20,44 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_HASH_COMPUTE_H
-#define LIBTORRENT_HASH_COMPUTE_H
+#include "config.h"
 
-#include <string>
-#include <openssl/sha.h>
+#include "string_manip.h"
+
+#include <stdlib.h>
 
 namespace torrent {
 
-class HashCompute {
-public:
-  void        init()                      { SHA1_Init(&m_ctx); }
-
-  void        update(const void* data,
-		     unsigned int length) { SHA1_Update(&m_ctx, data, length); }
-
-  std::string final() {
-    unsigned char buf[20];
-
-    SHA1_Final(buf, &m_ctx);
-
-    return std::string((char*)buf, 20);
-  }
-
-private:
-  SHA_CTX m_ctx;
+struct random_gen {
+  int operator () () { return random(); }
 };
 
+struct random_gen_hex {
+  char operator () () {
+    int r = random() % 16;
+
+    return r < 10 ? ('0' + r) : ('A' + r - 10);
+  }
+};
+
+std::string
+random_string(size_t length) {
+  std::string s;
+  s.reserve(length);
+
+  std::generate_n(std::back_inserter(s), length, random_gen());
+
+  return s;
 }
 
-#endif
+std::string
+random_string_hex(size_t length) {
+  std::string s;
+  s.reserve(length);
+
+  std::generate_n(std::back_inserter(s), length, random_gen_hex());
+
+  return s;
+}
+
+}

@@ -23,6 +23,8 @@
 #ifndef LIBTORRENT_STORAGE_FILE_H
 #define LIBTORRENT_STORAGE_FILE_H
 
+#include "file.h"
+
 namespace torrent {
 
 class File;
@@ -39,6 +41,8 @@ public:
   uint64_t    size()            { return m_size; }
 
   File const* c_file() const    { return m_file; }
+
+  bool        sync();
 
 private:
   File* m_file;

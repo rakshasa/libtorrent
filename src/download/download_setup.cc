@@ -28,8 +28,8 @@
 
 #include "torrent/exceptions.h"
 #include "tracker/tracker_control.h"
+#include "utils/string_manip.h"
 
-#include "general.h"
 #include "download_main.h"
 #include "peer_connection.h"
 
@@ -61,7 +61,7 @@ DownloadMain::setup_net() {
 
 void
 DownloadMain::setup_tracker() {
-  m_tracker = new TrackerControl(m_hash, generateKey());
+  m_tracker = new TrackerControl(m_hash, random_string_hex(8));
   m_tracker->get_info().set_me(&m_me);
 
   m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_rate_down(), &Rate::total));

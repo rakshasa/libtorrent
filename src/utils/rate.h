@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_RATE_H
-#define LIBTORRENT_RATE_H
+#ifndef LIBTORRENT_UTILS_RATE_H
+#define LIBTORRENT_UTILS_RATE_H
 
 #include "utils/timer.h"
 #include <deque>

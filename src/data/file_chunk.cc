@@ -91,7 +91,7 @@ FileChunk::advise(uint32_t offset, uint32_t length, int advice) {
     throw storage_error("System call madvise failed in FileChunk");
 }
 
-void
+bool
 FileChunk::sync(uint32_t offset, uint32_t length, int flags) {
   if (!is_valid())
     throw internal_error("Called FileChunk::sync() on an invalid object");
@@ -100,15 +100,14 @@ FileChunk::sync(uint32_t offset, uint32_t length, int flags) {
     internal_error("Tried to advise FileChunk with out of range parameters");
 
   if (length == 0)
-    return;
+    return true;
 
   offset += page_align();
 
   length += offset % m_pagesize;
   offset -= offset % m_pagesize;
   
-  if (msync(m_ptr + offset, length, flags))
-    throw storage_error("System call msync failed in FileChunk");
+  return !msync(m_ptr + offset, length, flags);
 }    
 
 }

@@ -29,7 +29,6 @@
 #include "content/delegator_reservee.h"
 #include "download/download_state.h"
 
-#include "general.h"
 #include "delegator.h"
 
 using namespace algo;

@@ -20,9 +20,7 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <cerrno>
 #include <sstream>
@@ -35,7 +33,6 @@
 
 #include "download/download_state.h"
 #include "peer_connection.h"
-#include "general.h"
 #include "settings.h"
 
 // TODO: Put this somewhere better, make adjustable?
@@ -101,6 +98,8 @@ void PeerConnection::read() {
   Piece piece;
   int previous;
   bool s;
+
+  m_lastMsg = Timer::cache();
 
   try {
     
@@ -349,8 +348,6 @@ void PeerConnection::read() {
 void PeerConnection::write() {
   bool s;
   int previous, maxBytes;
-
-  m_lastMsg = Timer::cache();
 
   try {
 
@@ -710,7 +707,7 @@ void PeerConnection::sendHave(int index) {
 void
 PeerConnection::task_keep_alive() {
   // Check if remote peer is dead.
-  if (Timer::cache() - m_lastMsg > 150 * 1000000) {
+  if (Timer::cache() - m_lastMsg > 240 * 1000000) {
     m_net->remove_connection(this);
     return;
   }

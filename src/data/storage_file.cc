@@ -20,22 +20,28 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_GENERAL_H
-#define LIBTORRENT_GENERAL_H
+#include "config.h"
 
-#include <string>
-#include <vector>
+#include "storage_file.h"
 
 namespace torrent {
 
-class BitField;
-class Bencode;
+bool
+StorageFile::sync() {
+  FileChunk f;
+  uint64_t pos = 0;
 
-std::string generateId();
-std::string generateKey();
+  while (pos != m_size) {
+    uint32_t length = std::min<uint64_t>(m_size - pos, (128 << 20));
 
-std::string calcHash(const Bencode& b);
+    if (!m_file->get_chunk(f, pos, length, true))
+      return false;
 
-} // namespace torrent
+    f.sync(0, length, FileChunk::sync_async);
+    pos += length;
+  }
 
-#endif // LIBTORRENT_TORRENT_H
+  return true;
+}
+
+}

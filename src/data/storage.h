@@ -51,7 +51,7 @@ public:
   void      add_file(File* file, uint64_t length)   { m_consolidator->add_file(file, length); }
 
   bool      resize()                                { return m_consolidator->resize(); }
-  bool      sync()                                  { return m_consolidator->sync(); }
+  void      sync()                                  { return m_consolidator->sync(); }
   void      close()                                 { m_anchors.clear(); m_consolidator->close(); }
 
   // Call this when all files have been added.

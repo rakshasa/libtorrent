@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <algo/algo.h>
 #include <sigc++/bind.h>
@@ -30,9 +31,10 @@
 #include "exceptions.h"
 #include "torrent.h"
 #include "throttle_control.h"
-#include "general.h"
 #include "bencode.h"
 
+#include "utils/sha1.h"
+#include "utils/string_manip.h"
 #include "utils/task_schedule.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
@@ -219,6 +221,23 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   TaskSchedule::perform(Timer::current());
 }
 
+std::string
+bencode_hash(Bencode& b) {
+  std::stringstream str;
+  str << b;
+
+  if (str.fail())
+    throw bencode_error("Could not write bencode to stream");
+
+  std::string s = str.str();
+  Sha1 sha1;
+
+  sha1.init();
+  sha1.update(s.c_str(), s.size());
+
+  return sha1.final();
+}  
+
 Download
 download_create(std::istream* s) {
   if (s == NULL)
@@ -240,7 +259,8 @@ download_create(std::istream* s) {
   parse_main(d->get_bencode(), d->get_main());
   parse_info(d->get_bencode()["info"], d->get_main().get_state().get_content());
 
-  d->initialize(calcHash(d->get_bencode()["info"]), generateId());
+  d->initialize(bencode_hash(d->get_bencode()["info"]),
+		Settings::peerName + random_string(20 - Settings::peerName.size()));
 
   d->set_handshake_manager(handshakes);
   d->set_hash_queue(hashQueue);

@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_RANGES_H
-#define LIBTORRENT_RANGES_H
+#ifndef LIBTORRENT_UTILS_RANGES_H
+#define LIBTORRENT_UTILS_RANGES_H
 
 #include <inttypes.h>
 #include <vector>

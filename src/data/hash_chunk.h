@@ -25,7 +25,7 @@
 
 #include <algo/ref_anchored.h>
 
-#include "hash_compute.h"
+#include "utils/sha1.h"
 #include "storage_chunk.h"
 
 namespace torrent {
@@ -58,7 +58,7 @@ private:
   uint32_t            m_position;
 
   Chunk               m_chunk;
-  HashCompute         m_hash;
+  Sha1                m_hash;
 };
 
 }

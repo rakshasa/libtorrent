@@ -24,6 +24,9 @@
 
 #include <algo/algo.h>
 
+#include <algorithm>
+#include <functional>
+
 #include "torrent/exceptions.h"
 #include "file.h"
 #include "storage_consolidator.h"
@@ -58,36 +61,17 @@ bool StorageConsolidator::resize() {
     == m_files.end();
 }
 					   
-bool
-StorageConsolidator::sync() {
-  bool result = true;
-
-  for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    FileChunk f;
-    uint64_t pos = 0;
-
-    while (pos != itr->size()) {
-      uint32_t length = std::min<uint64_t>(itr->size() - pos, (128 << 20));
-
-      if (!itr->file()->get_chunk(f, pos, length, true)) {
-	result = false;
-	break;
-      }
-
-      f.sync(0, length, FileChunk::sync_async);
-      pos += length;
-    }
-  }
-
-  return result;
-}
-
 void StorageConsolidator::close() {
   std::for_each(m_files.begin(), m_files.end(),
 		on(call_member(&StorageFile::file), delete_on()));
 
   m_files.clear();
   m_size = 0;
+}
+
+void
+StorageConsolidator::sync() {
+  std::for_each(m_files.begin(), m_files.end(), std::mem_fun_ref(&StorageFile::sync));
 }
 
 void StorageConsolidator::set_chunksize(uint32_t size) {

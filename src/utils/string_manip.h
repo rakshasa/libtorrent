@@ -20,18 +20,16 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_UTILS_STRING_H
+#define LIBTORRENT_UTILS_STRING_H
 
-#include "torrent/exceptions.h"
-#include "download/download_main.h"
-
-#include "torrent/bencode.h"
-#include "parse.h"
+#include <string>
 
 namespace torrent {
 
-void parse_main(const Bencode& b, DownloadMain& download) {
-  download.set_name(b["info"]["name"].as_string());
-}
+std::string random_string(size_t length);
+std::string random_string_hex(size_t length);
 
 }
+
+#endif

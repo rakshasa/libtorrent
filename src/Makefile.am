@@ -24,8 +24,6 @@ libtorrent_la_LIBADD = \
 	$(top_srcdir)/src/utils/libsub_utils.la
 
 libtorrent_la_SOURCES = \
-        general.cc \
-        general.h \
         peer_info.cc \
         peer_info.h \
         peer_connection.cc \

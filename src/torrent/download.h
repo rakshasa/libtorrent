@@ -76,6 +76,7 @@ public:
   // Returns "" if the object is not valid.
   std::string          get_name();
   std::string          get_hash();
+  std::string          get_id();
 
   // Only set the root directory while the torrent is closed.
   std::string          get_root_dir();

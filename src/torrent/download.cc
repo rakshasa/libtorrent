@@ -110,6 +110,11 @@ Download::get_hash() {
 }
 
 std::string
+Download::get_id() {
+  return m_ptr ? m_ptr->get_main().get_me().get_id() : "";
+}
+
+std::string
 Download::get_root_dir() {
   return m_ptr->get_main().get_state().get_content().get_root_dir();
 }

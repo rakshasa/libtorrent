@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_BITFIELD_H
-#define LIBTORRENT_BITFIELD_H
+#ifndef LIBTORRENT_UTILS_BITFIELD_H
+#define LIBTORRENT_UTILS_BITFIELD_H
 
 #include <cstring>
 
