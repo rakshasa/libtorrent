@@ -102,6 +102,7 @@ void PeerConnection::bufCmd(Protocol cmd, unsigned int length, unsigned int send
 }
 
 void PeerConnection::bufW32(uint32_t v) {
+  // TODO: Clean up when stable.
   if (m_up.pos + 4 > m_up.length)
     throw internal_error("PeerConnection tried to write beyond scope of packet");
 

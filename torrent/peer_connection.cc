@@ -11,7 +11,8 @@
 #include <netinet/in.h>
 #include <algo/algo.h>
 
-#define BUFFER_SIZE (1<<9)
+// TODO: Put this somewhere better, make adjustable?
+#define BUFFER_SIZE ((unsigned int)(1<<9))
 
 using namespace algo;
 
@@ -96,6 +97,7 @@ void PeerConnection::read() {
     
     m_down.state = READ_TYPE;
 
+    // TODO: Read up to 9 or something.
   case READ_TYPE:
     if (!readBuf(m_down.buf, 1, m_down.pos))
       return;
@@ -115,8 +117,14 @@ void PeerConnection::read() {
       break;
 
     case PIECE:
-      if (m_down.length <= 9 || m_down.length > 9 + (1 << 17))
-	throw communication_error("Recived piece message with bad length");
+      if (m_down.length != m_down.lengthOrig)
+	throw internal_error("PeerConnection::read() READ_TYPE PIECE length != lengthOrig");
+
+      if (m_down.length == 9)
+	throw communication_error("Received piece message with zero length");
+
+      if (m_down.length < 9 || m_down.length > 9 + (1 << 17))
+	throw communication_error("Received piece message with bad length");
 
       m_down.length = 9;
 
@@ -178,7 +186,7 @@ void PeerConnection::read() {
 	} else {
 	  // Receiving piece we really don't want.
 	  
-	  m_down.length = m_down.lengthOrig - 9;
+	  m_down.length = piece.length();
 	  m_down.state = READ_SKIP_PIECE;
 	}
 
@@ -197,15 +205,11 @@ void PeerConnection::read() {
 	if (pItr != m_down.list.begin()) {
 	  // Sender skipped a few pieces
 
-	  std::for_each(m_down.list.begin(), pItr,
-			call_member(ref(m_download->delegator()),
-				    &Delegator::cancel,
+	  while (m_down.list.begin() != pItr) {
+	    m_download->delegator().cancel(m_peer.id(), m_down.list.front(), true);
 
-				    ref(m_peer.id()),
-				    back_as_ref(),
-				    value(true)));
-
-	  m_down.list.erase(m_down.list.begin(), pItr);
+	    m_down.list.pop_front();
+	  }
 	}
 
 	m_down.state = READ_PIECE;
@@ -299,8 +303,7 @@ void PeerConnection::read() {
   case READ_SKIP_PIECE:
     previous = m_down.pos;
     s = readBuf(m_down.buf,
-		m_down.length > BUFFER_SIZE ?
-		BUFFER_SIZE : m_down.length,
+		std::min(m_down.length, BUFFER_SIZE),
 		m_down.pos);
 
     m_throttle.down().add(m_down.pos - previous);
@@ -599,6 +602,7 @@ void PeerConnection::fillWriteBuf() {
     // Let us request more chunks.
     bool addService = m_down.list.empty();
 
+    // TODO: Use ref to piece instead of list.
     while (m_down.list.size() < 10 &&
 	   m_download->delegator().delegate(m_peer.id(), m_bitfield, m_down.list)) {
 

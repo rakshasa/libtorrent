@@ -32,11 +32,9 @@ Consider splitting up download_state's peer connection management and download s
 
 fix socketBase setAsync
 
-We're counting bytes we haven't downloaded in requested pieces, fixme.
-
 Recursively update the up/down rates in throttle.
 
-Implement min size of chunks sent in peer_connection
+Make a seperate class for doing read and write to buffer in PC.
 
 
 IN/AFTER API REDESIGN:
@@ -46,4 +44,3 @@ client be ignorant of errors while creating stuff. (Make some kind of
 C friendly layer ontop)
 
 Let the client retrive the file names in the torrent. (Add support for all in one string, or path broken up)
-
