@@ -1,0 +1,15 @@
+#ifndef LIBTORRENT_TRACKER_STATE_H
+#define LIBTORRENT_TRACKER_STATE_H
+
+namespace torrent {
+
+enum TrackerState {
+  TRACKER_NONE,
+  TRACKER_STARTED,
+  TRACKER_STOPPED,
+  TRACKER_COMPLETED
+};
+
+}
+
+#endif

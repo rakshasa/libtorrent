@@ -35,11 +35,15 @@ TrackerControl::~TrackerControl() {
 void TrackerControl::add_url(const std::string& url) {
   TrackerHttp* t = NULL;
 
-  if (url.find("http") == 0)
+  if (url.find("http://") == 0)
     t = new TrackerHttp();
   
   if (t == NULL)
     throw input_error("Unknown tracker url");
+
+  t->set_url(url);
+  t->set_me(m_me);
+  t->set_hash(m_hash);
 
   t->signal_done().connect(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
@@ -77,7 +81,7 @@ bool TrackerControl::is_busy() {
 
 void TrackerControl::send_state(TrackerState s) {
   if ((m_state == TRACKER_STOPPED && s == TRACKER_STOPPED) ||
-      m_itr == m_list.end());
+      m_itr == m_list.end())
     return;
 
   m_tries = -1;
@@ -122,9 +126,9 @@ void TrackerControl::send_itr(TrackerState s) {
   if (m_itr == m_list.end())
     throw internal_error("TrackerControl tried to send with an invalid m_itr");
 
-  uint64_t downloaded;
-  uint64_t uploaded;
-  uint64_t left;
+  uint64_t downloaded = 0;
+  uint64_t uploaded = 0;
+  uint64_t left = 0;
 
   m_signalStats.emit(downloaded, uploaded, left);
 

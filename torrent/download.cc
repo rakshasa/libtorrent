@@ -1,8 +1,7 @@
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <sigc++/signal.h>
+#include <sigc++/hide.h>
 
 #include "exceptions.h"
 #include "download.h"
@@ -24,6 +23,9 @@ using namespace algo;
 namespace torrent {
 
 Download::Downloads Download::m_downloads;
+
+// Temporary solution untill we get proper error handling.
+extern std::list<std::string> caughtExceptions;
 
 Download::Download(const bencode& b) :
   m_tracker(NULL),
@@ -47,6 +49,9 @@ Download::Download(const bencode& b) :
 
   m_tracker->signal_peers().connect(sigc::mem_fun(*this, &Download::add_peers));
   m_tracker->signal_stats().connect(sigc::mem_fun(m_state, &DownloadState::download_stats));
+
+  m_tracker->signal_failed().connect(sigc::hide<0>(sigc::mem_fun(caughtExceptions,
+								 &std::list<std::string>::push_back)));
 
   FilesCheck::check(&state().files(), this, HASH_COMPLETED);
 

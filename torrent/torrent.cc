@@ -513,10 +513,7 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
     break;
 
   case TRACKER_TIMEOUT:
-    if (v >= 0 && (*d)->tracker().inService(0)) {
-      (*d)->tracker().removeService(0);
-      (*d)->tracker().insertService(Timer::current() + v, 0);
-    }
+    (*d)->tracker().set_next(v);
 
     break;
 

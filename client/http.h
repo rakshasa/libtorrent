@@ -19,7 +19,7 @@ class Http {
   Urls list_urls();
 
  private:
-  void receive_done(int code, std::string status, List::iterator itr);
+  void receive_done(List::iterator itr);
   void receive_failed(int code, std::string status, List::iterator itr);
 
   List m_list;

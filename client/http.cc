@@ -49,9 +49,11 @@ void Http::add_url(const std::string& s) {
 
 //   Urls list_urls();
 
-void Http::receive_done(int code, std::string status, List::iterator itr) {
+void Http::receive_done(List::iterator itr) {
   try {
     torrent::DItr dItr = torrent::create(*itr->second);
+
+    torrent::start(dItr);
 
   } catch (torrent::local_error& e) {
     log_entries.push_front(e.what());

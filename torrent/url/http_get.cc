@@ -41,7 +41,7 @@ void HttpGet::set_url(const std::string& url) {
 
   if ((s = std::sscanf(url.c_str(), "http://%256[^:]:%i/%1024s", hostBuf, &port, pathBuf)) != 3 &&
       (s = std::sscanf(url.c_str(), "http://%256[^/]/%1024s", hostBuf, pathBuf)) != 2)
-    throw input_error("HttpGet::start() received bad URL");
+    throw input_error("HttpGet::start() received bad URL \"" + url + "\"");
 
   if (s == 2)
     port = 80;
@@ -82,6 +82,10 @@ void HttpGet::close() {
 
   m_fd = -1;
   m_buf = NULL;
+
+  removeRead();
+  removeWrite();
+  removeExcept();
 }
 
 void HttpGet::read() {

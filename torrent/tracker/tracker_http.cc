@@ -35,6 +35,11 @@ TrackerHttp::~TrackerHttp() {
 void TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
+  if (m_me.id().length() != 20 ||
+      m_me.port() == 0 ||
+      m_hash.length() != 20)
+    throw internal_error("Send state with TrackerHttp with bad hash, id or port");
+
   std::stringstream s;
 
   s << m_url
@@ -72,6 +77,8 @@ void TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uin
 
   m_get->set_url(s.str());
   m_get->set_out(m_data);
+
+  m_get->start();
 }
 
 void TrackerHttp::close() {
