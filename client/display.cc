@@ -70,16 +70,16 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
 	       first == mark ? '*' : ' ',
 	       (double)torrent::get(first, torrent::BYTES_DONE) / 1000000.0,
 	       (double)torrent::get(first, torrent::BYTES_TOTAL) / 1000000.0,
-	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
 	       (double)torrent::get(first, torrent::RATE_UP) / 1000.0,
+	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
 	       (double)torrent::get(first, torrent::BYTES_UPLOADED) / 1000000.0);
 
     else
       mvprintw(i + 1, 0, "%c Torrent: Done %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
 	       first == mark ? '*' : ' ',
 	       (double)torrent::get(first, torrent::BYTES_TOTAL) / 1000000.0,
-	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
 	       (double)torrent::get(first, torrent::RATE_UP) / 1000.0,
+	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
 	       (double)torrent::get(first, torrent::BYTES_UPLOADED) / 1000000.0);
     
     mvprintw(i + 2, 0, "%c Tracker: [%c:%i] %s",
