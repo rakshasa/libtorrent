@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_DOWNLOAD_H
-#define LIBTORRENT_DOWNLOAD_H
+#ifndef LIBTORRENT_DOWNLOAD_MAIN_H
+#define LIBTORRENT_DOWNLOAD_MAIN_H
 
 #include "bencode.h"
 #include "service.h"
@@ -9,17 +9,17 @@ namespace torrent {
 
 class TrackerControl;
 
-class Download : public Service {
+class DownloadMain : public Service {
 public:
   typedef std::list<PeerInfo> Peers;
-  typedef std::list<Download*> Downloads;
+  typedef std::list<DownloadMain*> Downloads;
 
   enum ServiceState {
     CHOKE_CYCLE = 0x1001
   };
 
-  Download(const bencode& b);
-  ~Download();
+  DownloadMain(const bencode& b);
+  ~DownloadMain();
 
   void start();
   void stop();
@@ -35,11 +35,11 @@ public:
 
   void add_peers(const Peers& p);
 
-  static Download*  getDownload(const std::string& hash);
+  static DownloadMain*  getDownload(const std::string& hash);
   static Downloads& downloads() { return m_downloads; }
 
 private:
-  Download();
+  DownloadMain();
 
   void receive_initial_hash(const std::string& id);
 

@@ -4,7 +4,7 @@
 #include <sigc++/hide.h>
 
 #include "exceptions.h"
-#include "download.h"
+#include "download_main.h"
 #include "general.h"
 #include "net/listen.h"
 #include "peer_handshake.h"
@@ -23,13 +23,13 @@ using namespace algo;
 
 namespace torrent {
 
-Download::Downloads Download::m_downloads;
+DownloadMain::Downloads DownloadMain::m_downloads;
 
 // Temporary solution untill we get proper error handling.
 extern std::list<std::string> caughtExceptions;
 extern Listen* listen;
 
-Download::Download(const bencode& b) :
+DownloadMain::DownloadMain(const bencode& b) :
   m_tracker(NULL),
   m_checked(false),
   m_started(false)
@@ -50,7 +50,7 @@ Download::Download(const bencode& b) :
 
   m_tracker->add_url(b["announce"].asString());
 
-  m_tracker->signal_peers().connect(sigc::mem_fun(*this, &Download::add_peers));
+  m_tracker->signal_peers().connect(sigc::mem_fun(*this, &DownloadMain::add_peers));
   m_tracker->signal_stats().connect(sigc::mem_fun(m_state, &DownloadState::download_stats));
 
   m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions,
@@ -58,7 +58,7 @@ Download::Download(const bencode& b) :
 
   HashTorrent::SignalDone sd;
 
-  sd.connect(sigc::mem_fun(*this, &Download::receive_initial_hash));
+  sd.connect(sigc::mem_fun(*this, &DownloadMain::receive_initial_hash));
 
   hashTorrent.add(m_state.hash(), &state().content().get_storage(), sd,
 		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
@@ -84,13 +84,13 @@ Download::Download(const bencode& b) :
   }
 }
 
-Download::~Download() {
+DownloadMain::~DownloadMain() {
   delete m_tracker;
 
   m_downloads.erase(std::find(m_downloads.begin(), m_downloads.end(), this));
 }
 
-void Download::start() {
+void DownloadMain::start() {
   if (m_started)
     return;
 
@@ -103,7 +103,7 @@ void Download::start() {
 }  
 
 
-void Download::stop() {
+void DownloadMain::stop() {
   if (!m_started)
     return;
 
@@ -119,7 +119,7 @@ void Download::stop() {
   }
 }
 
-void Download::service(int type) {
+void DownloadMain::service(int type) {
   int s;
   PeerConnection *p1, *p2;
   float f = 0, g = 0;
@@ -184,24 +184,24 @@ void Download::service(int type) {
     return;
 
   default:
-    throw internal_error("Download::service called with bad argument");
+    throw internal_error("DownloadMain::service called with bad argument");
   };
 }
 
-bool Download::isStopped() {
+bool DownloadMain::isStopped() {
   return !m_started && !m_tracker->is_busy();
 }
 
-Download* Download::getDownload(const std::string& hash) {
+DownloadMain* DownloadMain::getDownload(const std::string& hash) {
   Downloads::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
 					 eq(ref(hash),
-					    call_member(member(&Download::m_state),
+					    call_member(member(&DownloadMain::m_state),
 							&DownloadState::hash)));
  
   return itr != m_downloads.end() ? *itr : NULL;
 }
 
-void Download::add_peers(const Peers& p) {
+void DownloadMain::add_peers(const Peers& p) {
   std::stringstream ss;
   ss << "New peers received " << p.size();
 
@@ -235,9 +235,9 @@ void Download::add_peers(const Peers& p) {
     m_state.connect_peers();
 }
 
-void Download::receive_initial_hash(const std::string& id) {
+void DownloadMain::receive_initial_hash(const std::string& id) {
   if (id != state().hash())
-    throw internal_error("Download::receive_initial_hash received wrong id");
+    throw internal_error("DownloadMain::receive_initial_hash received wrong id");
 
   m_checked = true;
   state().content().resize();

@@ -54,8 +54,8 @@ libtorrent_la_SOURCES = \
 	bitfield_counter.h \
         delegator.cc \
         delegator.h \
-        download.cc \
-        download.h \
+        download_main.cc \
+        download_main.h \
 	download_state.cc \
 	download_state.h \
 	entry.cc \
