@@ -46,7 +46,7 @@ you iterate.
 HttpGet should handle urls with only domain name (+port), without the
 leading '/'.
 
-Add compact and numwant.
+Add numwant.
 
 Fair sharing of bandwidth to peers, sort them in some way? Or does the
 kernel allow each to fill up their buffers, thereby making the order
@@ -70,8 +70,6 @@ fast str().c_str(). (Check if it's isstream that does this)
 
 QS in client needs to be swapped.
 
-Add stop/remove to client. (I'm too lazy... it should be really eays;)
-
 Don't open with largefile unless the torrent requires it.
 
 Can we make FileChunk either ref counted or move owner on copy?
@@ -79,6 +77,9 @@ Can we make FileChunk either ref counted or move owner on copy?
 Sane timeouts on handshakes.
 
 Do something about tracker connect fails, they are not handled optimally.
+
+Somehow choke delay got stuck:
+0.0    0.0    ci/und 0/16
 
 
 API REDESIGN:

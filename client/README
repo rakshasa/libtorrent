@@ -1,5 +1,5 @@
-This is the test client for libtorrent. Dog food. Note that decreasing
-max peers does not yet disconnect them.
+This is the test client for libtorrent. Note that decreasing max peers
+does not yet disconnect them.
 
 This client is just something i've been throwing togheter as i
 finished implementing stuff in the library. When i'm finished with the
@@ -13,8 +13,9 @@ script later.
 
 Files that start with "http://" are downloaded. The "Http:" counter on
 the bottom of the main page shows how many downloads are in
-progress. Check the logs 'l' to see if the download of a torrent
-failed. You can also add torrents with the Enter key.
+progress. This includes tracker requests. Check the logs 'l' to see if
+the download of a torrent failed. You can also add torrents with the
+Enter key.
 
 
 All:
@@ -37,7 +38,8 @@ Main:
   Right     - View download
 
   Enter     - Add torrent url
-  Backspace - Add torrent url as a queued download. Add all torrents with this key to get proper queues.
+  Backspace - Add torrent url as a queued download. Add all torrents
+              with this key to get proper queues.
   L         - View Log
   Shift-Q   - Stop download / remove stopped download
   SpaceBar  - Resume torrent
@@ -47,7 +49,8 @@ Download view:
   Up/Down - Select a peer
   Left    - Back to main
 
-  T       - Request new peers from the tracker. (Don't overuse it, you'll be banned)
+  T       - Request new peers from the tracker. (Don't overuse it,
+            you'll be banned)
 
   P       - View peers
   O       - Number of chunks seen amongst peers
@@ -63,4 +66,5 @@ Download view:
   5       - Decrease max uploads
   6       - Increase max uploads
 
-  *       - Snub peer. Got annoyed by a leech that didn't show his pieces so i hacked in this.
+  *       - Snub peer. Got annoyed by a leech that didn't show his
+            pieces so i hacked in this.
