@@ -3,7 +3,8 @@
 #endif
 
 #include <string>
-#include <iostream>
+#include <cerrno>
+#include <inttypes.h>
 #include <openssl/sha.h>
 #include <algo/algo.h>
 

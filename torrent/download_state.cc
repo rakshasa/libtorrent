@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#include <inttypes.h>
+
 #include "exceptions.h"
 #include "download_state.h"
 #include "peer_connection.h"

@@ -2,6 +2,9 @@
 #include "config.h"
 #endif
 
+#include <inttypes.h>
+#include <netinet/in.h>
+
 #include "bitfield.h"
 #include "exceptions.h"
 
@@ -11,7 +14,7 @@ BitField::BitField(unsigned int s) :
   m_size(s) {
 
   if (s) {
-    int a = ((m_size + 8 * sizeof(int) - 1) / (8 * sizeof(int))) * sizeof(int);
+    int a = ((m_size + 8 * sizeof(Type) - 1) / (8 * sizeof(Type))) * sizeof(Type);
 
     m_start = new char[a];
     m_end = m_start + (m_size + 7) / 8;
@@ -67,8 +70,8 @@ BitField& BitField::notIn(const BitField& bf) {
   if (m_size != bf.m_size)
     throw internal_error("Tried to do operations between different sized bitfields");
 
-  for (int* i = (int*)m_start, *i2 = (int*)bf.m_start;
-       i < (int*)m_pad; i++, i2++)
+  for (Type* i = (Type*)m_start, *i2 = (Type*)bf.m_start;
+       i < (Type*)m_pad; i++, i2++)
     *i &= ~*i2;
 
   return *this;
@@ -78,7 +81,7 @@ bool BitField::zero() const {
   if (m_size == 0)
     return true;
 
-  for (int* i = (int*)m_start; i < (int*)m_pad; i++)
+  for (Type* i = (Type*)m_start; i < (Type*)m_pad; i++)
     if (*i)
       return false;
 
@@ -90,22 +93,19 @@ bool BitField::allSet() const {
     return false;
 
   char* i = m_start;
+  char* end = m_pad - sizeof(Type);
 
-  while (i + sizeof(int) < m_pad) {
-    if (*(int*)i != -1)
+  while (i < end) {
+    if (*(Type*)i != (Type)-1)
       return false;
 
-    i += sizeof(int);
+    i += sizeof(Type);
   }
 
-  while (i + 1 != m_end) {
-    if (*i != (char)-1)
-      return false;
-
-    ++i;
-  }
-  
-  return *i == (char)-1 << 7 - (m_size - 1) % 8;
+  if (m_size % (8 * sizeof(Type)))
+    return *(Type*)i == htonl((Type)-1 << 8 * sizeof(Type) - m_size % (8 * sizeof(Type)));
+  else
+    return *(Type*)i == (Type)-1;
 }
 
 unsigned int BitField::count() const {
@@ -130,4 +130,3 @@ void BitField::clear(int start, int end) {
 }
 
 }
-

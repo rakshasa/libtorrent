@@ -8,9 +8,7 @@
 #include "peer_handshake.h"
 
 #include <errno.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <sys/socket.h>
+#include <netinet/in.h>
 #include <algo/algo.h>
 
 using namespace algo;
@@ -34,18 +32,16 @@ PeerHandshake::PeerHandshake(int fdesc, const std::string dns, unsigned short po
 }
 
 // Outgoing connections.
-PeerHandshake::PeerHandshake(int fdesc, const Peer& p, DownloadState* d, bool connected) :
+PeerHandshake::PeerHandshake(int fdesc, const Peer& p, DownloadState* d) :
   m_fd(fdesc),
   m_peer(p),
   m_peerOrig(p),
   m_download(d),
-  m_state(connected ? WRITE_HEADER : CONNECTING),
+  m_state(CONNECTING),
   m_incoming(false),
   m_buf(new char[256+48]),
   m_pos(0)
 {
-  setSocketAsync(m_fd);
-
   insertWrite();
   insertExcept();
 
@@ -69,7 +65,7 @@ void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short por
   if (fdesc < 0)
     throw internal_error("Tried to assign negative file desc to PeerHandshake");
 
-  setSocketAsync(fdesc);
+  set_socket_async(fdesc);
 
   // TODO: add checks so we don't do multiple connections.
   addConnection(new PeerHandshake(fdesc, dns, port));
@@ -79,39 +75,18 @@ bool PeerHandshake::connect(const Peer& p, DownloadState* d) {
   if (!p.valid())
     throw internal_error("Tried to connect with invalid peer information");
 
-  hostent* he = gethostbyname(p.dns().c_str());
+  try {
+    
+    sockaddr_in sa;
+    make_sockaddr(p.dns(), p.port(), sa);
 
-  if (he == NULL) {
+    addConnection(new PeerHandshake(make_socket(sa), p, d));
+
+    return true;
+
+  } catch (network_error& e) {
     return false;
   }
-
-  int fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  if (fd < 0)
-    throw local_error("Could not allocate socket for connecting");
-
-  setSocketAsync(fd);
-
-  sockaddr_in sa;
-  std::memset(&sa, 0, sizeof(sockaddr_in));
-
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons(p.port());
-
-  std::memcpy(&sa.sin_addr, he->h_addr_list[0], sizeof(in_addr));
-
-  if (::connect(fd, (sockaddr*)&sa, sizeof(sockaddr_in)) == 0) {
-    addConnection(new PeerHandshake(fd, p, d, true));
-
-  } else if (errno == EINPROGRESS) {
-    addConnection(new PeerHandshake(fd, p, d, false));
-
-  } else {
-    ::close(fd);
-    return false;
-  }
-
-  return true;
 }
 
 void PeerHandshake::read() {
@@ -189,7 +164,7 @@ void PeerHandshake::write() {
 
   switch (m_state) {
   case CONNECTING:
-    error = getSocketError(m_fd);
+    error = get_socket_error(m_fd);
 
     if (error != 0) {
       throw network_error("Could not connect to client");

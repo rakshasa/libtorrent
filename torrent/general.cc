@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#include <inttypes.h>
+
 #include "general.h"
 #include "bitfield.h"
 #include "exceptions.h"

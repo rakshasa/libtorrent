@@ -36,9 +36,11 @@ Recursively update the up/down rates in throttle.
 
 Make a seperate class for doing read and write to buffer in PC.
 
-Done indicator.
-
 Each throttle can have it's own rules to decide the priority it gets.
+
+Frobnicate the tracker reconnect timeout.
+
+Add host lookup+connection to SocketBase
 
 
 IN/AFTER API REDESIGN:

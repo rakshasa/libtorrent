@@ -7,6 +7,8 @@ namespace torrent {
 
 class BitField {
 public:
+  typedef uint32_t Type;
+
   BitField() :
     m_size(0),
     m_start(NULL),
@@ -20,7 +22,7 @@ public:
 
   unsigned int sizeBits() const { return m_size; }
   unsigned int sizeBytes() const { return m_end - m_start; }
-  unsigned int sizeInts() const { return (m_pad - m_start) / sizeof(int); }
+  unsigned int sizeInts() const { return (m_pad - m_start) / sizeof(Type); }
 
   unsigned int count() const;
 
@@ -31,7 +33,10 @@ public:
   void clear(int start, int end);
 
   void set(unsigned int i, bool s = true) {
-    m_start[i / 8] = (m_start[i / 8] & ~(1 << 7 - i % 8)) | (s % 2 << 7 - i % 8);
+    if (s)
+      m_start[i / 8] |= 1 << 7 - i % 8;
+    else
+      m_start[i / 8] &= ~(1 << 7 - i % 8);
   }
 
   bool operator [] (unsigned int i) const {

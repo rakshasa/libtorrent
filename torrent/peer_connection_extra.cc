@@ -2,15 +2,12 @@
 #include "config.h"
 #endif
 
+#include <algo/algo.h>
+#include <netinet/in.h>
+
 #include "peer_connection.h"
 #include "exceptions.h"
 #include "download.h"
-
-#include <unistd.h>
-#include <netinet/in.h>
-#include <sstream>
-#include <iostream>
-#include <algo/algo.h>
 
 #define BUFFER_SIZE (1<<9)
 

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <algo/algo.h>
+#include <inttypes.h>
 
 #include "files.h"
 #include "files_check.h"

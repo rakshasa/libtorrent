@@ -45,7 +45,7 @@ public:
 
 protected: // Disable private ctor only warning.
   PeerHandshake(int fdesc, const std::string dns, unsigned short port);
-  PeerHandshake(int fdesc, const Peer& p, DownloadState* d, bool connected);
+  PeerHandshake(int fdesc, const Peer& p, DownloadState* d);
 
 private:
   // Disable

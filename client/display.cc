@@ -58,14 +58,24 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
 	     first == mark ? '*' : ' ',
 	     torrent::get(first, torrent::INFO_NAME).c_str());
     
-    mvprintw(i + 1, 0, "%c Torrent: %.1f / %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
-	     first == mark ? '*' : ' ',
-	     (double)torrent::get(first, torrent::BYTES_DONE) / 1000000.0,
-	     (double)torrent::get(first, torrent::BYTES_TOTAL) / 1000000.0,
-	     (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
-	     (double)torrent::get(first, torrent::RATE_UP) / 1000.0,
-	     (double)torrent::get(first, torrent::BYTES_UPLOADED) / 1000000.0);
+    if (torrent::get(first, torrent::CHUNKS_DONE) != torrent::get(first, torrent::CHUNKS_TOTAL))
 
+      mvprintw(i + 1, 0, "%c Torrent: %.1f / %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
+	       first == mark ? '*' : ' ',
+	       (double)torrent::get(first, torrent::BYTES_DONE) / 1000000.0,
+	       (double)torrent::get(first, torrent::BYTES_TOTAL) / 1000000.0,
+	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
+	       (double)torrent::get(first, torrent::RATE_UP) / 1000.0,
+	       (double)torrent::get(first, torrent::BYTES_UPLOADED) / 1000000.0);
+
+    else
+      mvprintw(i + 1, 0, "%c Torrent: Done %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
+	       first == mark ? '*' : ' ',
+	       (double)torrent::get(first, torrent::BYTES_TOTAL) / 1000000.0,
+	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
+	       (double)torrent::get(first, torrent::RATE_UP) / 1000.0,
+	       (double)torrent::get(first, torrent::BYTES_UPLOADED) / 1000000.0);
+    
     mvprintw(i + 2, 0, "%c Tracker: [%c:%i] %s",
 	     first == mark ? '*' : ' ',
 	     torrent::get(first, torrent::TRACKER_CONNECTING) ? 'C' : ' ',

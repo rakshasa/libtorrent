@@ -98,6 +98,10 @@ void Download::service(int type) {
     m_checked = true;
     state().files().resizeAll();
 
+    if (m_state.files().chunkCompleted() == m_state.files().chunkCount() &&
+	!m_state.files().bitfield().allSet())
+      throw internal_error("Loaded torrent is done but bitfield isn't all set");
+    
     if (m_tracker->state() == TrackerQuery::STARTED)
       m_tracker->state(TrackerQuery::STARTED);
 

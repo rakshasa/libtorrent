@@ -161,7 +161,7 @@ void TrackerQuery::sendState() {
     throw internal_error("Could not write tracker request message to buffer");
 
   // Connect to server, and stuff.
-  m_fd = makeSocket(m_sockaddr);
+  m_fd = make_socket(*m_sockaddr);
   m_buf = new char[BUFFER_SIZE];
 
   m_data = NULL;
@@ -295,7 +295,7 @@ void TrackerQuery::write() {
 
   // m_pos is set to m_length when a new connection is opening.
   if (m_pos == m_length)
-    if (getSocketError(m_fd) == 0)
+    if (get_socket_error(m_fd) == 0)
       m_pos = 0;
     else
       throw network_error("Could not connect to tracker");

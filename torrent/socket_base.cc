@@ -3,12 +3,11 @@
 #endif
 
 #include <fcntl.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
-#include <unistd.h>
 #include <sstream>
-#include <iostream>
 #include <cerrno>
 #include <cstring>
 
@@ -64,19 +63,12 @@ void SocketBase::removeExcept() {
   }
 }
 
-void SocketBase::setSocketAsync(int fd) {
-  // Set Reuseaddr.
-  //int opt = 1;
-
-  // TODO: this doesn't belong here
-  //if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
-  //  throw local_error("Error setting socket to SO_REUSEADDR");
-
+void SocketBase::set_socket_async(int fd) {
   // Set async.
   fcntl(fd, F_SETFL, O_NONBLOCK | O_ASYNC);
 }
 
-void SocketBase::setSocketMinCost(int fd) {
+void SocketBase::set_socket_min_cost(int fd) {
   // TODO: What of priorities?
 //   char opt = ;
 
@@ -84,7 +76,7 @@ void SocketBase::setSocketMinCost(int fd) {
 //     throw local_error("Error setting socket to IPTOS_MINCOST");
 }
 
-int SocketBase::getSocketError(int fd) {
+int SocketBase::get_socket_error(int fd) {
   int err = 0;
   socklen_t length = sizeof(err);
   getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &length);
@@ -92,20 +84,32 @@ int SocketBase::getSocketError(int fd) {
   return err;
 }
 
-int SocketBase::makeSocket(sockaddr_in* sa) {
+void SocketBase::make_sockaddr(const std::string& host, int port, sockaddr_in& sa) {
+  if (!host.length() ||
+      port <= 0 || port >= (1 << 16))
+    throw input_error("Tried connecting with invalid hostname or port");
+
+  hostent* he = gethostbyname(host.c_str());
+
+  if (he == NULL)
+    throw input_error("Could not lookup host");
+
+  std::memset(&sa, 0, sizeof(sockaddr_in));
+  std::memcpy(&sa.sin_addr, he->h_addr_list[0], sizeof(in_addr));
+
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(port);
+}
+
+int SocketBase::make_socket(sockaddr_in& sa) {
   int f = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (f < 0)
     throw local_error("Could not open socket");
 
-  // Set Reuseaddr.
-  int opt = 1;
+  set_socket_async(f);
 
-  if (setsockopt(f, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1 ||
-      fcntl(f, F_SETFL, O_NONBLOCK | O_ASYNC) == -1)
-    throw local_error("Could not configure socket");
-
-  if (connect(f, (sockaddr*)sa, sizeof(sockaddr_in)) != 0 &&
+  if (connect(f, (sockaddr*)&sa, sizeof(sockaddr_in)) != 0 &&
       errno != EINPROGRESS) {
     close(f);
     throw network_error("Could not connect to remote host");

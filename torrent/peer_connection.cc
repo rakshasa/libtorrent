@@ -2,14 +2,14 @@
 #include "config.h"
 #endif
 
+#include <sstream>
+#include <netinet/in.h>
+#include <algo/algo.h>
+
 #include "exceptions.h"
 #include "download_state.h"
 #include "peer_connection.h"
 #include "general.h"
-
-#include <sstream>
-#include <netinet/in.h>
-#include <algo/algo.h>
 
 // TODO: Put this somewhere better, make adjustable?
 #define BUFFER_SIZE ((unsigned int)(1<<9))
@@ -25,7 +25,7 @@ void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
 
-  setSocketMinCost(m_fd);
+  set_socket_min_cost(m_fd);
 
   m_fd = fd;
   m_peer = p;
@@ -163,8 +163,10 @@ void PeerConnection::read() {
     switch (m_down.buf[0]) {
     case PIECE:
       if (m_down.lengthOrig == 9) {
-	// TODO: Some clients seem to be sending zero length pieces.
-	// Is this a bug in my program or do they really do that, and why.
+	// Some clients send zero length messages when we request pieces
+	// they don't have.
+	caughtExceptions.push_front("Received piece with length zero");
+
 	m_down.state = IDLE;
 	goto evil_goto_read;
       }
@@ -622,6 +624,11 @@ void PeerConnection::fillWriteBuf() {
 
 	throw internal_error(s.str());
       }
+
+      if (m_down.list.back().index() < 0 ||
+	  m_down.list.back().index() >= (int)m_bitfield.sizeBits() ||
+	  !m_bitfield[m_down.list.back().index()])
+	throw internal_error("Delegator gave us a piece with invalid range or not in peer");
 
       if (addService) {
 	insertService(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);

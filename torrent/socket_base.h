@@ -18,19 +18,13 @@ public:
 
   virtual ~SocketBase();
 
-  virtual void read() = 0;
-  virtual void write() = 0;
-  virtual void except() = 0;
-
-  virtual int fd() = 0;
-
   bool inRead() { return m_readItr != m_readSockets.end(); }
   bool inWrite() { return m_writeItr != m_writeSockets.end(); }
   bool inExcept() { return m_exceptItr != m_exceptSockets.end(); }
 
-  static void setSocketAsync(int fd);
-  static void setSocketMinCost(int fd);
-  static int  getSocketError(int fd);
+  static void set_socket_async(int fd);
+  static void set_socket_min_cost(int fd);
+  static int  get_socket_error(int fd);
 
   static Sockets& readSockets() { return m_readSockets; }
   static Sockets& writeSockets() { return m_writeSockets; }
@@ -44,13 +38,20 @@ public:
   void removeWrite();
   void removeExcept();
 
+  virtual int fd() = 0;
+
+  virtual void read() = 0;
+  virtual void write() = 0;
+  virtual void except() = 0;
+
 protected:
   bool readBuf(char* buf, unsigned int length, unsigned int& pos);
   bool writeBuf(const char* buf, unsigned int length, unsigned int& pos);
 
   static void makeBuf(char** buf, unsigned int length, unsigned int old = 0);
 
-  static int makeSocket(sockaddr_in* sa);
+  static void make_sockaddr(const std::string& host, int port, sockaddr_in& sa);
+  static int make_socket(sockaddr_in& sa);
 
 private:
   // Disable copying

@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#include <inttypes.h>
+
 #include "exceptions.h"
 #include "general.h"
 #include "delegator.h"
