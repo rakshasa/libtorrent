@@ -191,7 +191,7 @@ void PeerConnection::read() {
 	m_down.length = piece.get_length();
 	m_down.state = READ_SKIP_PIECE;
 
-	caughtExceptions.push_back("Receiving piece we don't want from " + m_peer.dns());
+	caughtExceptions.push_back("Receiving piece we don't want from " + m_peer.get_dns());
       }
 
       goto evil_goto_read;
@@ -706,7 +706,7 @@ void PeerConnection::service(int type) {
     // entries get those new ones stalled if needed.
     insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
 
-    caughtExceptions.push_back("Peer stalled " + m_peer.dns());
+    caughtExceptions.push_back("Peer stalled " + m_peer.get_dns());
     return;
 
   default:

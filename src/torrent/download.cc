@@ -271,7 +271,7 @@ Download::peer_find(const std::string& id) {
 
 							  eq(ref(id),
 							     call_member(call_member(&PeerConnection::peer),
-									 &PeerInfo::id)));
+									 &PeerInfo::get_id)));
 
   return itr != ((DownloadMain*)m_ptr)->state().connections().end() ?
     *itr : NULL;

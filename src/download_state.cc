@@ -185,7 +185,7 @@ void DownloadState::connect_peers() {
 	 (signed)connections().size() < settings().minPeers &&
 	 countConnections() < settings().maxPeers) {
 
-    handshakes.add_outgoing(available_peers().front(), m_hash, m_me.id());
+    handshakes.add_outgoing(available_peers().front(), m_hash, m_me.get_id());
     available_peers().pop_front();
   }
 }

@@ -42,8 +42,8 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
   close();
 
   if (m_me == NULL ||
-      m_me->id().length() != 20 ||
-      m_me->port() == 0 ||
+      m_me->get_id().length() != 20 ||
+      m_me->get_port() == 0 ||
       m_hash.length() != 20)
     throw internal_error("Send state with TrackerHttp with bad hash, id or port");
 
@@ -56,13 +56,13 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
 
   s << "&peer_id=";
 
-  escape_string(m_me->id(), s);
+  escape_string(m_me->get_id(), s);
 
   if (m_key.length())
     s << "&key=" << m_key;
 
-  if (m_me->dns().length())
-    s << "&ip=" << m_me->dns();
+  if (m_me->get_dns().length())
+    s << "&ip=" << m_me->get_dns();
 
   if (m_compact)
     s << "&compact=1";
@@ -70,7 +70,7 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
   if (m_numwant >= 0)
     s << "&numwant=" << m_numwant;
 
-  s << "&port=" << m_me->port()
+  s << "&port=" << m_me->get_port()
     << "&uploaded=" << up
     << "&downloaded=" << down
     << "&left=" << left;
@@ -194,15 +194,15 @@ PeerInfo TrackerHttp::parse_peer(const bencode& b) {
   for (bencode::Map::const_iterator itr = b.asMap().begin(); itr != b.asMap().end(); ++itr) {
     if (itr->first == "ip" &&
 	itr->second.isString()) {
-      p.ref_dns() = itr->second.asString();
+      p.set_dns(itr->second.asString());
 	    
     } else if (itr->first == "peer id" &&
 	       itr->second.isString()) {
-      p.ref_id() = itr->second.asString();
+      p.set_id(itr->second.asString());
 	    
     } else if (itr->first == "port" &&
 	       itr->second.isValue()) {
-      p.ref_port() = itr->second.asValue();
+      p.set_port(itr->second.asValue());
     }
   }
 	
@@ -239,8 +239,8 @@ TrackerHttp::parse_peers_compact(PeerList& l, const std::string& s) {
 	<< (int)(unsigned char)*itr++ << '.'
 	<< (int)(unsigned char)*itr++;
 
-    unsigned short port = (unsigned short)((unsigned char)*itr++) << 8;
-    port += (unsigned short)((unsigned char)*itr++);
+    uint16_t port = (unsigned short)((unsigned char)*itr++) << 8;
+    port += (uint16_t)((unsigned char)*itr++);
 
     l.push_back(PeerInfo("", buf.str(), port));
   }

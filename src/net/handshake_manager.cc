@@ -27,7 +27,7 @@ HandshakeManager::add_outgoing(const PeerInfo& p,
 			       const std::string& ourId) {
   try {
     sockaddr_in sa;
-    SocketBase::make_sockaddr(p.dns(), p.port(), sa);
+    SocketBase::make_sockaddr(p.get_dns(), p.get_port(), sa);
 
     m_handshakes.push_back(new HandshakeOutgoing(SocketBase::make_socket(sa), this, p, infoHash, ourId));
     m_size++;

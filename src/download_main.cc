@@ -220,7 +220,7 @@ DownloadMain::get_download_id(const std::string& hash) {
 void DownloadMain::add_peers(const Peers& p) {
   for (Peers::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
 
-    if (itr->dns().length() == 0 || itr->port() == 0 ||
+    if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||
 
 	std::find_if(m_state.connections().begin(), m_state.connections().end(),
 		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))

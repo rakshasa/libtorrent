@@ -1,12 +1,6 @@
 '*' Things are stuff that *must* be done by the next release.
 '!' Things are stuff that MUST MUST MUST be done ASAP.
 
-DownloadChunk::interested should take into consideration chunks being
-downloaded?
-
-Randomize the chunks list so we don't start all downloads at the same
-spot.
-
 After 25 seconds, choke a peer if no requests have been received?
 
 Add average, max and total to rates. Will this be controlled by
@@ -36,8 +30,6 @@ Since I'm using these nice sigc++ signals, seperate the download/state
 class into specific functions like peer/choking management,
 data/delegation and such.
 
-libCurl requires attention every second or so for timeouts.
-
 bencode stores position in the stream where they were found? Copy the
 stream? Or is the current system the only flexible one we can use?
 Consider making the stringstream input only to allow for lightning
@@ -51,13 +43,13 @@ type for chunk index.
 ! Make sure that a peer sending a piece, but being choked throws a
 communication error, not a internal error.
 
-! Why is the client lagging when downloading a http torrent? Check async'ness.
+! Why is the client lagging when downloading a http torrent? Looks like dnsdomainlookup
 
 Make sure we can handle out of order incoming pieces.
 
-set_socket_nonblock should be explicit, remove from make_socket
-
 Cleanup PeerInfo and it's users.
+
+std::isalpha in escape string
 
 
 DELEGATOR STUFF

@@ -1,20 +1,3 @@
-0 rtorrent [0x806ddc5]
-1 /lib/tls/libc.so.6 [0x39eeb8]
-2 /uio/platon/mn-l2/jaris/local/lib/libcurl.so.3(Curl_cache_addr+0x71) [0x1e0311]
-3 /uio/platon/mn-l2/jaris/local/lib/libcurl.so.3(Curl_resolv+0x13b) [0x1e04a7]
-4 /uio/platon/mn-l2/jaris/local/lib/libcurl.so.3 [0x1ecc59]
-5 /uio/platon/mn-l2/jaris/local/lib/libcurl.so.3(Curl_connect+0x2b) [0x1ee0b7]
-6 /uio/platon/mn-l2/jaris/local/lib/libcurl.so.3(curl_multi_perform+0x19c) [0x1fabf0]
-7 rtorrent [0x80683a3]
-8 rtorrent [0x806ebd8]
-9 /lib/tls/libc.so.6(__libc_start_main+0xed) [0x38c79d]
-10 rtorrent(dlopen+0x45) [0x8065931]
-
-Incoming connections connect to hash-checking downloads, fixme
-
-test.cc caught "RequestList::skip() called without a downloading piece"
-
-
-* Stopped in the endgame, did a stop/start cycle: 
-
-test.cc caught "Called Delegator::done(...) with an index that is not in the Delegator"
+test.cc caught "Connection write fd(18) state(10) "Throttle::spendt(...) error, used to many bytes""
+*** glibc detected *** double free or corruption: 0x0805ec90 ***
+Aborted

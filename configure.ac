@@ -81,17 +81,15 @@ AC_SUBST(LIBTORRENT_CFLAGS)
 AC_DEFINE(HAVE_CONFIG_H, 1, true if config.h was included)
 
 AC_OUTPUT([
-	Makefile
 	libtorrent.pc
+	Makefile
 	src/Makefile
+	src/torrent/Makefile
+	src/content/Makefile
+	src/data/Makefile
+	src/download/Makefile
+	src/net/Makefile
+	src/parse/Makefile
+	src/peer/Makefile
+	src/tracker/Makefile
 ])
-
-AC_MSG_RESULT()
-
-if test $VAR_USE_MADVISE = "0"; then
-  AC_MSG_RESULT([  ( ) madvise(..., MADV_WILLNEED) optimizing. (Known to kill linux <= 2.4.20)])
-else
-  AC_MSG_RESULT([  (X) madvise(..., MADV_WILLNEED) optimizing. (Known to kill linux <= 2.4.20)])
-fi
-
-AC_MSG_RESULT()
