@@ -9,10 +9,10 @@ namespace torrent {
 class StorageConsolidator {
 public:
   struct Node {
-    Node(File* f, uint64_t p, uint64_t l) : file(f), pos(p), length(l) {}
+    Node(File* f, uint64_t p, uint64_t l) : file(f), position(p), length(l) {}
 
     File* file;
-    uint64_t pos;
+    uint64_t position;
     uint64_t length;
   };
 
@@ -33,7 +33,7 @@ public:
   unsigned int get_chunkcount()               { return (m_size + m_chunksize - 1) / m_chunksize; }
   unsigned int get_chunksize()                { return m_chunksize; }
 
-  bool         get_chunk(StorageChunk& chunk, unsigned int b);
+  bool         get_chunk(StorageChunk& chunk, unsigned int b, bool wr = false, bool rd = true);
 
   const Files& files()                        { return m_files; }
 

@@ -3,15 +3,21 @@
 
 namespace algo {
 
+template <typename>
+class RefAnchor;
+
+template <typename>
+class RefAnchored;
+
 template <typename Type>
-class RefAnchoredData {
+class RefAnchorData {
 protected:
-  friend class RefAnchored;
-  friend class RefAnchor;
+  template <class> friend class RefAnchored;
+  template <class> friend class RefAnchor;
 
-  RefAnchoredData(Type* d) : m_ref(1), m_data(d), m_anchor(NULL) {}
+  RefAnchorData(Type* d) : m_ref(1), m_data(d), m_anchor(NULL) {}
 
-  ~RefAnchoredData() {
+  ~RefAnchorData() {
     if (m_anchor)
       m_anchor->clear();
   }
@@ -19,64 +25,81 @@ protected:
   int m_ref;
   Type* m_data;
 
-  RefAnchor* m_anchor;
+  RefAnchor<Type>* m_anchor;
 };
 
 template <typename Type>
 class RefAnchor {
 public:
-  friend class RefAnchored;
+  template<typename> friend class RefAnchored;
 
-  RefAnchor() : m_data(NULL)                   {}
-  RefAnchor(const RefAnchor& a) : m_data(NULL) {}
-  ~RefAnchor()                                 { clear(); }
+  RefAnchor() : m_ptr(NULL)                   {}
+  RefAnchor(const RefAnchor& a) : m_ptr(NULL) {}
+  ~RefAnchor()                                { clear(); }
 
-  RefAnchor& operator = (const RefAnchor& a)   { clear(); }
+  bool  is_valid()           { return m_ptr && m_ptr->m_data; }
 
   void clear() {
-    if (m_data == NULL)
-      return;
+    if (m_ptr)
+      m_ptr->m_anchor = NULL;
 
-    m_data->m_anchor = NULL;
-    m_data = NULL;
+    m_ptr = NULL;
   }
+
+  Type* data() { return m_ptr ? m_ptr->m_data : NULL; }
+
+  RefAnchor& operator = (const RefAnchor& a)  { clear(); }
 
 protected:
-  void set(RefAnchorData& d) {
-    clear();
+  void set(RefAnchorData<Type>* d) {
+    if (m_ptr)
+      m_ptr->m_anchor = NULL;
 
-    m_data = &d;
-    m_data->m_anchor = this;
+    m_ptr = d;
+
+    if (m_ptr) {
+      if (m_ptr->m_anchor)
+	m_ptr->m_anchor->set(NULL);
+
+      m_ptr->m_anchor = this;
+    }
   }
 
-private:
-  RefAnchoredData* m_data;
+  RefAnchorData<Type>* m_ptr;
 };
 
 template <typename Type>
-class Reference {
+class RefAnchored {
 public:
-  RefAnchored()                     : m_ref(NULL)                 {}
-  RefAnchored(Type* t)              : m_ref(new RefAnchorData(t)) {}
-  RefAnchored(const RefAnchored& r) : m_ptr(r.m_ptr)              { if (m_ptr) m_ptr->m_ref++; }
-  ~RefAnchored()                                                  { clear(); }
+  RefAnchored()                     : m_ptr(NULL)                       {}
+  RefAnchored(Type* t)              : m_ptr(new RefAnchorData<Type>(t)) {}
+  RefAnchored(RefAnchor<Type>& r)   : m_ptr(r.m_ptr)                    { if (m_ptr) m_ptr->m_ref++; }
+  RefAnchored(const RefAnchored& r) : m_ptr(r.m_ptr)                    { if (m_ptr) m_ptr->m_ref++; }
+  ~RefAnchored()                                                        { clear(); }
 
   RefAnchored& operator = (const RefAnchored& a) {
-    clear();
+    if (&a == this)
+      return;
 
-    m_ref = a.m_ref;
+    clear();
+    m_ptr = a.m_ptr;
 
     if (m_ptr) m_ptr->m_ref++;
   }
 
-  Type* data()               { return m_ptr ? m_ptr->m_data : NULL; }
+  bool  is_valid()                 { return m_ptr && m_ptr->m_data; }
 
-  void  anchor(RefAnchor& a) { a.set(m_ptr); }
+  void  anchor(RefAnchor<Type>& a) { a.set(m_ptr); }
+  void  clear()                    { if (m_ptr && --m_ptr->m_ref == 0) delete m_ptr; m_ptr = NULL; }
+  void  drift()                    { if (m_ptr && m_ptr->m_anchor) m_ptr->m_anchor->clear(); }
 
-  void  clear()              { if (m_ref && --m_ptr->m_ref == 0) delete m_ptr; m_ptr = NULL }
+  Type* data()                     { return m_ptr ? m_ptr->m_data : NULL; }
+
+  Type& operator * ()              { return *m_ptr->m_data; }
+  Type& operator -> ()             { return *m_ptr->m_data; }
 
 private:
-  RefAnchorData* m_ptr;
+  RefAnchorData<Type>* m_ptr;
 };
 
 }

@@ -9,12 +9,8 @@ using namespace algo;
 
 namespace torrent {
 
-StorageChunk::~StorageChunk() {
-  std::for_each(m_nodes.begin(), m_nodes.end(),
-		delete_on());
-}
-
-StorageChunk::Node& StorageChunk::get_position(unsigned int pos) {
+StorageChunk::Node&
+StorageChunk::get_position(unsigned int pos) {
   if (pos >= m_size)
     throw internal_error("Tried to get StorageChunk position out of range.");
 
@@ -32,12 +28,22 @@ StorageChunk::Node& StorageChunk::get_position(unsigned int pos) {
 // the size of the vector at exactly what we need. Though it
 // will require a few more cycles, it won't matter as we only
 // rarely have more than 1 or 2 nodes.
-FileChunk& StorageChunk::add_file(unsigned int length) {
+FileChunk&
+StorageChunk::add_file(unsigned int length) {
   m_nodes.reserve(m_nodes.size() + 1);
 
   m_size += length;
 
   return (*m_nodes.insert(m_nodes.end(), new Node(m_size - length)))->fileChunk;
+}
+
+void
+StorageChunk::clear() {
+  std::for_each(m_nodes.begin(), m_nodes.end(),
+		delete_on());
+
+  m_size = 0;
+  m_nodes.clear();
 }
 
 }

@@ -68,7 +68,15 @@ stream? Or is the current system the only flexible one we can use?
 Consider making the stringstream input only to allow for lightning
 fast str().c_str(). (Check if it's isstream that does this)
 
+QS in client needs to be swapped.
+
+Add stop/remove to client. (I'm too lazy... it should be really eays;)
+
 Don't open with largefile unless the torrent requires it.
+
+Can we make FileChunk either ref counted or move owner on copy?
+
+
 
 
 API REDESIGN:
@@ -85,6 +93,9 @@ AFTER API REDESIGN:
 Add the option to not throw non-critical exceptions. This lets the
 client be ignorant of errors while creating stuff. (Make some kind of
 C friendly layer ontop)
+
+Consider ways of optimizing bitfield memory usage. A bitfield with all
+set shouldn't change ever...
 
 
 COOL STUFF THAT NEEDS TO BE DONE

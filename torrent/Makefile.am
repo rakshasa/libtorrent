@@ -6,6 +6,8 @@ libtorrent_la_SOURCES = \
 	data/file.h \
 	data/file_chunk.cc \
 	data/file_chunk.h \
+	data/storage.cc \
+	data/storage.h \
 	data/storage_chunk.cc \
 	data/storage_chunk.h \
 	data/storage_consolidator.cc \
