@@ -80,10 +80,22 @@ void FilesCheck::service(int type) {
     if (!c.is_valid())
       continue;
     
+    bool wait = false;
+
+    for (StorageChunk::Nodes::iterator itr = c->get_nodes().begin(); itr != c->get_nodes().end(); ++itr)
+      if (!(*itr)->chunk.is_incore(0, (*itr)->chunk.length())) {
+	(*itr)->chunk.advise(0, (*itr)->chunk.length(), FileChunk::advice_willneed);
+
+	wait = true;
+      }
+
+    if (wait) {
+      m_position--;
+
+      return insertService(Timer::current() + 10000000, 0);
+    }
+
     m_files->doneChunk(c);
-    
-    // TODO: Add some time here so we don't work to much.
-    return insertService(Timer::cache() + Settings::filesCheckWait, 0);
   }
 
   m_service->insertService(Timer::cache(), m_arg);

@@ -1,3 +1,7 @@
+2004-08-23  Jari Petter Sundell  <jaris@student.matnat.uio.no>
+
+	* torrent/data: Wrote new and cleaner files to chunk abstraction. Much prettier.
+
 2004-08-14    <jaris@ifi.uio.no>
 
 	* torrent/tracker: New tracker request code. Modular using sigc++

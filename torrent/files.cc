@@ -3,6 +3,7 @@
 #endif
 
 #include <string>
+#include <sstream>
 #include <cerrno>
 #include <inttypes.h>
 #include <sys/stat.h>
@@ -151,6 +152,14 @@ std::string Files::tmp_calc_hash(Storage::Chunk c) {
   for (StorageChunk::Nodes::iterator itr = c->get_nodes().begin(); itr != c->get_nodes().end(); ++itr) {
     if ((*itr)->chunk.length() != (*itr)->length)
       return "";
+
+//     if (!(*itr)->chunk.is_incore(0, (*itr)->chunk.length())) {
+//       std::stringstream s;
+
+//       s << "Not incore " << c->get_index();
+
+//       throw internal_error(s.str());
+//     }
 
     SHA1_Update(&ctx, (*itr)->chunk.begin(), (*itr)->chunk.length());
   }

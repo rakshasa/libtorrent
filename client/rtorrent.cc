@@ -61,7 +61,7 @@ void signal_handler(int signum) {
 
     called = true;
 
-    std::cout << "Signal SEGFAULT recived, dumping stack:" << std::endl;
+    std::cout << "Signal " << signum == SIGSEGV ? "SIGSEGV" : "SIGBUS" << " recived, dumping stack:" << std::endl;
 
 #ifdef USE_EXECINFO
     // Print the stack and exit.
@@ -75,6 +75,9 @@ void signal_handler(int signum) {
     for (int i = 0; i < stackSize; ++i)
       std::cout << i << ' ' << stackStrings[i] << std::endl;
 #endif
+
+    if (signum == SIGBUS)
+      std::cout << "A bus error might mean you ran out of diskspace." << std::endl;
 
     exit(-1);
 
