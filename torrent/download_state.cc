@@ -53,8 +53,6 @@ void DownloadState::chunkDone(Chunk& c) {
 
   } else {
     m_delegator.redo(c.index());
-
-    // TODO: Hash fail logic needed. Redo piece by piece
   }
 }
 
@@ -71,10 +69,14 @@ int DownloadState::canUnchoke() {
 }
 
 void DownloadState::chokeBalance() {
+  //  Connections::iterator itr;
   int s = canUnchoke();
 
   // TODO: Optimize, do a single pass with a 's' sized list of (un)chokings.
   if (s > 0) {
+//     while (s && itr != m_connections.end()) {
+//       if (
+
     m_connections.sort(gt(call_member(call_member(&PeerConnection::down),
 				      &PeerConnection::Sub::c_rate),
 			  call_member(call_member(&PeerConnection::down),

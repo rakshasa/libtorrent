@@ -58,8 +58,6 @@ bool BitField::allSet() const {
 
   int* i;
 
-  // 1111 1111 1111 1111 1110 end
-
   for (i = m_start; i + 1 < (int*)m_end; ++i)
     if (*i != -1)
       return false;

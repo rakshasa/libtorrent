@@ -101,11 +101,6 @@ void Download::service(int type) {
     if (m_tracker->state() == TrackerQuery::STARTED)
       m_tracker->state(TrackerQuery::STARTED);
 
-    // TODO: Remove this
-    if (state().files().chunkCompleted() == state().files().chunkCount() &&
-	!state().files().bitfield().allSet())
-      throw internal_error("BitField.allSet() bork");
-
     return;
     
   case CHOKE_CYCLE:

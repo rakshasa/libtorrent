@@ -3,7 +3,7 @@
 #endif
 
 #include "exceptions.h"
-#include "download.h"
+#include "download_state.h"
 #include "peer_connection.h"
 #include "general.h"
 
@@ -23,6 +23,8 @@ extern std::list<std::string> caughtExceptions;
 void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
+
+  setSocketMinCost(m_fd);
 
   m_fd = fd;
   m_peer = p;
@@ -165,20 +167,20 @@ void PeerConnection::read() {
 
 	if (!m_download->files().bitfield()[piece.index()] &&
 	    m_download->delegator().downloading(m_peer.id(), piece)) {
-	  //std::cout << m_fd << " -> Receiving piece we don't have in queue, but still want" << std::endl;
+	  // Receiving piece we don't have in queue, but still want.
 
 	  m_down.list.push_front(piece);
 	  m_down.state = READ_PIECE;
 
 	} else {
-	  //std::cout << m_fd << " -> Receiving piece we really don't want" << std::endl;
+	  // Receiving piece we really don't want.
 	  
 	  m_down.length = m_down.lengthOrig - 9;
 	  m_down.state = READ_SKIP_PIECE;
 	}
 
       } else if (!m_download->delegator().downloading(m_peer.id(), piece)) {
-	//std::cout << " -> Piece in queue but we don't want it" << std::endl;
+	// Piece in queue but we don't want it
 
 	m_down.list.erase(pItr);
 
@@ -190,7 +192,7 @@ void PeerConnection::read() {
 	// skips. This will protect against a peer sending unrequested pieces.
 
 	if (pItr != m_down.list.begin()) {
-	  //std::cout << m_fd << " -> Sender skipped a few pieces" << std::endl;
+	  // Sender skipped a few pieces
 
 	  std::for_each(m_down.list.begin(), pItr,
 			call_member(ref(m_download->delegator()),
@@ -379,16 +381,9 @@ void PeerConnection::write() {
       if (m_up.list.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      if (m_up.list.front().index() < 0 ||
-	  (unsigned)m_up.list.front().index() >= m_bitfield.sizeBits())
-	throw internal_error("Tried writing piece with bad index");
-
       m_up.data = m_download->files().getChunk(m_up.list.front().index());
-      
-      if (m_up.data.length() < m_up.list.front().offset() + m_up.list.front().length())
-	throw communication_error("Tried to process request we don't have a valid chunk for");
-      
       m_up.state = WRITE_PIECE;
+
       goto evil_goto_write;
       
     default:
@@ -588,6 +583,10 @@ void PeerConnection::fillWriteBuf() {
     while (m_down.list.size() < 10 &&
 	   m_download->delegator().delegate(m_peer.id(), m_bitfield, m_down.list)) {
 
+      if (!m_down.list.back().valid(m_download->files().chunkCount(),
+				    m_download->files().chunkSize(m_down.list.back().index())))
+	throw internal_error("We tried to request an invalid piece");
+
       if (m_down.list.empty())
 	insertService(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
 
@@ -615,7 +614,8 @@ void PeerConnection::fillWriteBuf() {
     // Sending chunk to peer.
 
     if (m_up.list.front().length() > (1 << 17) ||
-	(unsigned)m_up.list.front().index() >= m_bitfield.sizeBits() ||
+	!m_down.list.back().valid(m_download->files().chunkCount(),
+				  m_download->files().chunkSize()) ||
 	!m_download->files().bitfield()[m_up.list.front().index()])
       throw communication_error("Peer requested a bad piece");
 

@@ -10,8 +10,16 @@
 #include "display.h"
 #include "download.h"
 
+std::list<std::string> log_entries;
+
 Display* display = NULL;
 bool shutdown = false;
+
+typedef enum {
+  DISPLAY_MAIN,
+  DISPLAY_DOWNLOAD,
+  DISPLAY_LOG
+} DisplayState;
 
 void signal_handler(int signum) {
   void* stackPtrs[50];
@@ -62,15 +70,18 @@ int main(int argc, char** argv) {
   fd_set rset, wset, eset;
   struct timeval timeout;
 
-  std::ofstream log;
-  //std::ofstream log("./rtorrent.log");
-
   signal(SIGINT, signal_handler);
   signal(SIGSEGV, signal_handler);
 
   try {
 
   torrent::initialize();
+  torrent::DList::const_iterator curDownload = torrent::downloads().end();
+
+  display = new Display();
+  Download download(curDownload);
+
+  DisplayState displayState = DISPLAY_MAIN;
 
   for (fIndex = 1; fIndex < argc; ++fIndex) {
     std::fstream f(argv[fIndex], std::ios::in);
@@ -85,23 +96,29 @@ int main(int argc, char** argv) {
   
   fIndex = 0;
 
-  display = new Display();
-
-  bool viewPeers = false;
   int64_t lastDraw = torrent::get(torrent::TIME_CURRENT) - (1 << 22);
-
-  torrent::DList::const_iterator curDownload = torrent::downloads().end();
-
-  Download download(curDownload);
+  int maxY, maxX;
 
   while (!shutdown) {
     if (lastDraw + 1000000 < torrent::get(torrent::TIME_CURRENT)) {
       lastDraw = torrent::get(torrent::TIME_CURRENT);
       
-      if (viewPeers)
-	download.draw();
-      else
+      switch (displayState) {
+      case DISPLAY_MAIN:
 	display->drawDownloads(curDownload);
+	break;
+	
+      case DISPLAY_DOWNLOAD:
+	download.draw();
+	break;
+
+      case DISPLAY_LOG:
+	getmaxyx(stdscr, maxY, maxX);
+
+	display->clear(0, 0, maxX, maxY);
+	display->drawLog(log_entries, 0, maxY);
+	break;
+      }
     }
 
     FD_ZERO(&rset);
@@ -129,16 +146,19 @@ int main(int argc, char** argv) {
 
     torrent::work(&rset, &wset, &eset);
 
-    while (log.is_open() &&
-	   torrent::get(torrent::HAS_EXCEPTION)) {
-      log << "Work Exception: " << torrent::get(torrent::POP_EXCEPTION) << std::endl;
+    while (torrent::get(torrent::HAS_EXCEPTION)) {
+      log_entries.push_front(torrent::get(torrent::POP_EXCEPTION));
+
+      if (log_entries.size() > 30)
+	log_entries.pop_back();
     }
 
     // Interface stuff, this is an ugly hack job.
     if (!FD_ISSET(0, &rset))
       continue;
 
-    if (!viewPeers) {
+    switch (displayState) {
+    case DISPLAY_MAIN:
       switch (getch()) {
       case KEY_DOWN:
 	++curDownload;
@@ -153,17 +173,34 @@ int main(int argc, char** argv) {
       case KEY_RIGHT:
 	if (curDownload != torrent::downloads().end()) {
 	  download = Download(curDownload);
-	  viewPeers = true;
+	  displayState = DISPLAY_DOWNLOAD;
 	}
 
+	break;
+
+      case 'l':
+	displayState = DISPLAY_LOG;
 	break;
 
       default:
 	break;
       }
 
-    } else {
-      viewPeers = download.key(getch());
+      break;
+
+    case DISPLAY_DOWNLOAD:
+      displayState = download.key(getch()) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
+      break;
+
+    case DISPLAY_LOG:
+      switch (getch()) {
+      case '\n':
+      case ' ':
+	displayState = DISPLAY_MAIN;
+	break;
+      default:
+	break;
+      }
     }
 
     lastDraw -= (1 << 30);

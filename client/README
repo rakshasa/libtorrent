@@ -3,26 +3,29 @@ max peers does not yet disconnect. Most of the stuff is in KiB.
 
 Main:
 
-Up/Down - Select a download
-Right   - View download
+  Up/Down - Select a download
+  Right   - View download
+
+  L       - View Log
+
 
 Download view:
 
-Up/Down - Select a peer
-Left    - Back to main
+  Up/Down - Select a peer
+  Left    - Back to main
 
-T       - Request new peers from the tracker. (Don't overuse it, you'll be banned)
+  T       - Request new peers from the tracker. (Don't overuse it, you'll be banned)
 
-P       - View peers
-O       - Number of chunks seen amongst peers
-B       - Local bitfield
-N       - Peer bitfield
+  P       - View peers
+  O       - Number of chunks seen amongst peers
+  B       - Local bitfield
+  N       - Peer bitfield
 
-1       - Decrease min peers connected
-2       - Increase min peers connected
+  1       - Decrease min peers connected
+  2       - Increase min peers connected
 
-3       - Decrease max peers connected
-4       - Increase max peers connected
+  3       - Decrease max peers connected
+  4       - Increase max peers connected
 
-5       - Decrease max uploads
-6       - Increase max uploads
+  5       - Decrease max uploads
+  6       - Increase max uploads

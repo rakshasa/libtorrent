@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/ip.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sstream>
@@ -72,10 +73,21 @@ void SocketBase::removeExcept() {
 void SocketBase::setSocketAsync(int fd) {
   // Set Reuseaddr.
   int opt = 1;
-  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+  // TODO: this doesn't belong here
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
+    throw local_error("Error setting socket to SO_REUSEADDR");
 
   // Set async.
   fcntl(fd, F_SETFL, O_NONBLOCK | O_ASYNC);
+}
+
+void SocketBase::setSocketMinCost(int fd) {
+  // TODO: What of priorities?
+//   char opt = ;
+
+//   if (setsockopt(fd, SOL_SOCKET, SO_PRIORITY, &opt, sizeof(opt)))
+//     throw local_error("Error setting socket to IPTOS_MINCOST");
 }
 
 int SocketBase::getSocketError(int fd) {

@@ -7,6 +7,7 @@ Display::Display() {
   noecho();
   nodelay(stdscr, TRUE);
   keypad(stdscr, TRUE);
+  curs_set(0);
 }
 
 Display::~Display() {
@@ -75,6 +76,23 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
   mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i",
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL));
+
+  refresh();
+}
+
+void Display::drawLog(std::list<std::string> log, int y1, int y2) {
+  int maxX, maxY, y = y1;
+
+  getmaxyx(stdscr, maxY, maxX);
+
+  if (y2 - y1 < 2 || y2 > maxY || maxX < 30)
+    return;
+
+  mvprintw(y++, 0, "Log:");
+  
+  for (std::list<std::string>::iterator itr = log.begin();
+       itr != log.end() && y < y2; ++itr)
+    mvprintw(y++, 0, "%s", itr->c_str());
 
   refresh();
 }

@@ -29,6 +29,7 @@ public:
   bool inExcept() { return m_exceptItr != m_exceptSockets.end(); }
 
   static void setSocketAsync(int fd);
+  static void setSocketMinCost(int fd);
   static int  getSocketError(int fd);
 
   static Sockets& readSockets() { return m_readSockets; }
