@@ -12,7 +12,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "general.h"
-#include "listen.h"
+#include "net/listen.h"
 #include "peer_handshake.h"
 #include "peer_connection.h"
 #include "throttle_control.h"
@@ -30,6 +30,7 @@ int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
 
 extern CurlStack curlStack;
+Listen* listen = NULL;
 
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
@@ -61,9 +62,16 @@ struct check_socket_isset {
 };
 
 void initialize(int beginPort, int endPort) {
+  if (listen == NULL) {
+    listen = new Listen;
+
+    listen->signal_incoming().connect(sigc::ptr_fun3(&PeerHandshake::connect));
+  }
+
   srandom(Timer::current().usec());
 
-  Listen::open(beginPort, endPort);
+  if (!listen->open(beginPort, endPort))
+    throw local_error("Could not open port for listening");
 
   ThrottleControl::global().insert_service(Timer::current(), 0);
 
@@ -71,7 +79,7 @@ void initialize(int beginPort, int endPort) {
 }
 
 void shutdown() {
-  Listen::close();
+  listen->close();
 
   std::for_each(Download::downloads().begin(), Download::downloads().end(),
 		call_member(&Download::stop));
@@ -81,7 +89,7 @@ void shutdown() {
 // not required, but highly recommended.
 void cleanup() {
   // Close again if shutdown wasn't called.
-  Listen::close();
+  listen->close();
  
   ThrottleControl::global().remove_service();
 
@@ -213,7 +221,7 @@ bool stop(DList::const_iterator d) {
 int64_t get(GValue t) {
   switch (t) {
   case LISTEN_PORT:
-    return Listen::port();
+    return listen->get_port();
 
   case HANDSHAKES_TOTAL:
     return PeerHandshake::handshakes().size();

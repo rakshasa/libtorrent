@@ -11,10 +11,10 @@
 
 namespace torrent {
 
-void Listen::open(uint16_t first, uint16_t last) {
+bool Listen::open(uint16_t first, uint16_t last) {
   close();
 
-  if (first = 0 || last = 0 || first > last)
+  if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range");
 
   int fdesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -44,7 +44,7 @@ void Listen::open(uint16_t first, uint16_t last) {
       // Create cue.
       ::listen(fdesc, 50);
 
-      return;
+      return true;
     }
   }
 
@@ -67,16 +67,17 @@ void Listen::close() {
 }
   
 void Listen::read() {
-  if (m_incoming.slots().size() != 1)
-    throw internal_error("Listen received a read event but number of signals connected is not one");
-
   sockaddr_in sa;
   socklen_t sl = sizeof(sockaddr_in);
 
   int fd;
 
-  while ((fd = accept(m_fd, (sockaddr*)&sa, &sl)) >= 0)
-      m_incoming.emit(fd, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
+  while ((fd = accept(m_fd, (sockaddr*)&sa, &sl)) >= 0) {
+    m_incoming.emit(fd, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
+
+    if (fd < 0)
+      ::close(fd);
+  }
 }
 
 void Listen::write() {

@@ -1,14 +1,14 @@
 #ifndef LIBTORRENT_LISTEN_H
 #define LIBTORRENT_LISTEN_H
 
-#include <sigc/signal.h>
+#include <sigc++/signal.h>
 #include "socket_base.h"
 
 namespace torrent {
 
 class Listen : public SocketBase {
 public:
-  typedef sigc::signal3<void, int, std::string, uint16_t> SignalIncoming;
+  typedef sigc::signal3<void, int&, std::string, uint16_t> SignalIncoming;
 
   Listen() : m_fd(-1), m_port(0) {}
   ~Listen() { close(); }
@@ -20,6 +20,9 @@ public:
 
   uint16_t        get_port()        { return m_port; }
 
+  // int         fd - Set to -1 if you take ownership of it.
+  // std::string address
+  // uint16_t    port
   SignalIncoming& signal_incoming() { return m_incoming; }
 
   virtual void read();
@@ -28,8 +31,11 @@ public:
   virtual int  fd();
 
 private:
-  int m_fd;
-  unsigned short m_port;
+  Listen(const Listen&);
+  void operator = (const Listen&);
+
+  int            m_fd;
+  uint64_t       m_port;
 
   SignalIncoming m_incoming;
 };

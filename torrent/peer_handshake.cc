@@ -62,14 +62,16 @@ PeerHandshake::~PeerHandshake() {
     ::close(m_fd);
 }
 
-void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short port) {
+void PeerHandshake::connect(int& fdesc, const std::string dns, unsigned short port) {
   if (fdesc < 0)
-    throw internal_error("Tried to assign negative file desc to PeerHandshake");
+    return;
 
   set_socket_nonblock(fdesc);
 
   // TODO: add checks so we don't do multiple connections.
   addConnection(new PeerHandshake(fdesc, dns, port));
+
+  fdesc = -1;
 }
 
 bool PeerHandshake::connect(const Peer& p, DownloadState* d) {

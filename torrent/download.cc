@@ -6,7 +6,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "general.h"
-#include "listen.h"
+#include "net/listen.h"
 #include "peer_handshake.h"
 #include "peer_connection.h"
 #include "settings.h"
@@ -25,6 +25,7 @@ Download::Downloads Download::m_downloads;
 
 // Temporary solution untill we get proper error handling.
 extern std::list<std::string> caughtExceptions;
+extern Listen* listen;
 
 Download::Download(const bencode& b) :
   m_tracker(NULL),
@@ -38,7 +39,7 @@ Download::Download(const bencode& b) :
   m_state.files().set(b["info"]);
   m_state.files().openAll();
 
-  m_state.me() = Peer(generateId(), "", Listen::port());
+  m_state.me() = Peer(generateId(), "", listen->get_port());
   m_state.hash() = calcHash(b["info"]);
   m_state.bfCounter() = BitFieldCounter(m_state.files().storage().get_chunkcount());
 
