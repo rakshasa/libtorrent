@@ -1,3 +1,38 @@
+SMALL TODO STUFF I HAVEN'T BOTHERED LOOKING INTO:
+
+After 25 seconds, choke a peer if no requests have been received?
+
+Add average, max and total to rates. Will this be controlled by
+choke/unchoke?
+
+Set IP TOS
+
+Add a snub factor. The more you upload without getting back, the
+higher it goes. Add a start buffer.
+
+Add config for how often we unchoke unknown peers vs good uploaders
+
+Recursively update the up/down rates in throttle.
+
+Make a seperate class for doing read and write to buffer in PC.
+
+Each throttle can have it's own rules to decide the priority it gets.
+
+Switch to a proper type for file offset/length and chunk length. A proper
+type for chunk index.
+
+std::isalpha in escape string
+
+Consider not calling insert_write() when filling have list.
+
+storage_consolidator get_chunk takes to many arguments, use flags instead.
+
+File::get_chunk() needs to have error for improper permission access, and stuff.
+
+Store data on which side inititalized the connection.
+
+torrent::Http::call_cleanup to delete the factory created object?
+
 TIMER RELATED
 
 Throttle update needs to be off when no throttle is on. Make sure it
@@ -67,22 +102,6 @@ IMPORTANT
 make sure handshake gets "" id if the download does not want connections,
 or some other filter system.
 
-
-MEMORY STUFF
-
-Seperate out mincore/advise from file_chunk. Make a "memory page"
-class that deals with offsets and allows different memory related
-operations to be done on it. Use this in file_chunk etc.
-
-Will it include permissions?
-
-Mincore doesn't care about length not being on the page boundary.
-
-
-
-RTORRENT RELATED
-
-
 DOCUMENTATION
 
 As far as documentation is concerned: a step through example that shows all
@@ -96,37 +115,26 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
-SMALL TODO STUFF I HAVEN'T BOTHERED LOOKING INTO:
-
-After 25 seconds, choke a peer if no requests have been received?
-
-Add average, max and total to rates. Will this be controlled by
-choke/unchoke?
-
-Set IP TOS
-
-Add a snub factor. The more you upload without getting back, the
-higher it goes. Add a start buffer.
-
-Add config for how often we unchoke unknown peers vs good uploaders
-
-Recursively update the up/down rates in throttle.
-
-Make a seperate class for doing read and write to buffer in PC.
-
-Each throttle can have it's own rules to decide the priority it gets.
-
-Switch to a proper type for file offset/length and chunk length. A proper
-type for chunk index.
-
-std::isalpha in escape string
-
-Consider not calling insert_write() when filling have list.
+NEXT: Storage/File refactoring
 
 storage_consolidator get_chunk takes to many arguments, use flags instead.
 
-File::get_chunk() needs to have error for improper permission access, and stuff.
+File::get_chunk() needs to have error for improper permission access,
+and it must respect and properly handle the permissions.
 
-Store data on which side inititalized the connection.
+Create an independent "memory area" class, which does *not*
+automagically unmap on dtor. StorageChunk can do the unmapping.
 
-torrent::Http::call_cleanup to delete the factory created object?
+Clean up MemoryChunk::is_incore.
+
+Clean up StorageChunk.
+
+Fix MemoryChunk::align_pair, it should calculate page align once.
+
+Cleanup File, make it use flags and prot instead of bools in get_chunk.
+
+Cleanup StorageConsolidator.
+
+Cleanup HashChunk
+
+

@@ -24,7 +24,7 @@
 #define LIBTORRENT_STORAGE_CHUNK_H
 
 #include <vector>
-#include "file_chunk.h"
+#include "memory_chunk.h"
 
 namespace torrent {
 
@@ -33,9 +33,10 @@ public:
   friend class StorageConsolidator;
 
   struct Node {
-    Node(unsigned int pos, unsigned int len) : position(pos), length(len) {}
+    Node(const MemoryChunk& c, unsigned int pos, unsigned int len) : chunk(c), position(pos), length(len) {}
+    ~Node() { chunk.unmap(); }
 
-    FileChunk    chunk;
+    MemoryChunk  chunk;
     unsigned int position;
     unsigned int length;
   };
@@ -59,7 +60,7 @@ public:
 protected:
   // When adding file chunks, make sure you clear this object if *any*
   // fails.
-  FileChunk&   add_file(unsigned int length);
+  void add_chunk(const MemoryChunk& c);
 
 private:
   StorageChunk(const StorageChunk&);

@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <algo/algo.h>
+#include <functional>
 
 #include "torrent/exceptions.h"
 #include "storage_chunk.h"
@@ -35,7 +36,7 @@ bool StorageChunk::is_valid() {
   return !m_nodes.empty() &&
     std::find_if(m_nodes.begin(), m_nodes.end(),
 		 bool_not(call_member(member(&StorageChunk::Node::chunk),
-				      &FileChunk::is_valid)))
+				      &MemoryChunk::is_valid)))
     == m_nodes.end();
 }
 
@@ -65,19 +66,17 @@ StorageChunk::get_position(unsigned int pos) {
 // the size of the vector at exactly what we need. Though it
 // will require a few more cycles, it won't matter as we only
 // rarely have more than 1 or 2 nodes.
-FileChunk&
-StorageChunk::add_file(unsigned int length) {
+void
+StorageChunk::add_chunk(const MemoryChunk& c) {
   m_nodes.reserve(m_nodes.size() + 1);
+  m_nodes.insert(m_nodes.end(), new Node(c, m_size, c.size()));
 
-  m_size += length;
-
-  return (*m_nodes.insert(m_nodes.end(), new Node(m_size - length, length)))->chunk;
+  m_size += c.size();
 }
 
 void
 StorageChunk::clear() {
-  std::for_each(m_nodes.begin(), m_nodes.end(),
-		delete_on());
+  std::for_each(m_nodes.begin(), m_nodes.end(), delete_on());
 
   m_size = 0;
   m_nodes.clear();

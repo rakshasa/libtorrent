@@ -28,16 +28,19 @@ namespace torrent {
 
 bool
 StorageFile::sync() {
-  FileChunk f;
   off_t pos = 0;
 
   while (pos != m_size) {
     uint32_t length = std::min(m_size - pos, (off_t)(128 << 20));
 
-    if (!m_file->get_chunk(f, pos, length, true))
+    MemoryChunk c = m_file->get_chunk(pos, length, true);
+
+    if (!c.is_valid())
       return false;
 
-    f.sync(0, length, FileChunk::sync_async);
+    c.sync(0, length, MemoryChunk::sync_async);
+    c.unmap();
+
     pos += length;
   }
 

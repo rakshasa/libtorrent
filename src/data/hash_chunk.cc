@@ -55,7 +55,7 @@ bool HashChunk::perform(uint32_t length, bool force) {
 
     } else {
       uint32_t incore, size = node.chunk.page_touched(m_position - node.position, l);
-      unsigned char buf[size];
+      char buf[size];
 
       // TODO: We're borking here with NULL node.
       node.chunk.incore(buf, m_position - node.position, l);
@@ -97,7 +97,7 @@ bool HashChunk::willneed(uint32_t length) {
 
     uint32_t l = std::min(length, node.length - (pos - node.position));
 
-    node.chunk.advise(pos - node.position, l, FileChunk::advice_willneed);
+    node.chunk.advise(pos - node.position, l, MemoryChunk::advice_willneed);
 
     pos    += l;
     length -= l;

@@ -3,8 +3,6 @@ noinst_LTLIBRARIES = libsub_data.la
 libsub_data_la_SOURCES = \
 	file.cc \
 	file.h \
-	file_chunk.cc \
-	file_chunk.h \
 	file_stat.cc \
 	file_stat.h \
 	hash_chunk.cc \
@@ -13,6 +11,8 @@ libsub_data_la_SOURCES = \
 	hash_queue.h \
 	hash_torrent.cc \
 	hash_torrent.h \
+	memory_chunk.cc \
+	memory_chunk.h \
 	path.cc \
 	path.h \
 	piece.h \

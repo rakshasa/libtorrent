@@ -108,14 +108,16 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, bool wr, bo
     if (length > m_chunksize)
       throw internal_error("StorageConsolidator::get_chunk caught an excessively large piece");
 
-    FileChunk& f = chunk.add_file(length);
+    MemoryChunk mc = itr->file()->get_chunk(offset, length, wr, rd);
 
-    if (!itr->file()->get_chunk(f, offset, length, wr, rd)) {
-      // Clear so we don't keep unneeded references to FileChunks.
+    if (!mc.is_valid()) {
+      // Require the caller to clear?
       chunk.clear();
 
       return false;
     }
+
+    chunk.add_chunk(mc);
 
     pos += length;
     ++itr;

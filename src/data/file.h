@@ -26,9 +26,7 @@
 #include <string>
 #include <inttypes.h>
 
-#include "file_chunk.h"
-
-struct stat;
+#include "memory_chunk.h"
 
 namespace torrent {
 
@@ -61,11 +59,7 @@ class File {
 
   int                 get_flags() const               { return m_flags; }
 
-  bool                get_chunk(FileChunk& f,
-				uint64_t offset,
-				uint32_t length,
-				bool wr = false,
-				bool rd = true);
+  MemoryChunk         get_chunk(uint64_t offset, uint32_t length, bool wr = false, bool rd = true);
   
   int                 fd() const                      { return m_fd; }
 

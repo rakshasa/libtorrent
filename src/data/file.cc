@@ -90,30 +90,28 @@ File::set_size(uint64_t v) {
   return ftruncate(m_fd, v) == 0;
 }
 
-bool
-File::get_chunk(FileChunk& f,
-		uint64_t offset,
-		uint32_t length,
-		bool wr,
-		bool rd) {
+MemoryChunk
+File::get_chunk(uint64_t offset, uint32_t length, bool wr, bool rd) {
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.
   if (!is_open() || (off_t)offset + length > get_size())
-    return false;
+    return MemoryChunk();
 
   uint64_t align = offset % getpagesize();
 
-  char* ptr = (char*)mmap(NULL, length + align,
+  char* ptr = (char*)mmap(NULL,
+			  length + align,
 			  (m_flags & in ? PROT_READ : 0) | (m_flags & out ? PROT_WRITE : 0),
-			  MAP_SHARED, m_fd, offset - align);
+			  MAP_SHARED,
+			  m_fd,
+			  offset - align);
 
   
   if (ptr == MAP_FAILED)
-    return false;
+    return MemoryChunk();
 
-  f.set(ptr, ptr + align, ptr + align + length, m_flags & in, m_flags & out);
-
-  return true;
+  return MemoryChunk(ptr, ptr + align, ptr + align + length,
+		     (rd ? MemoryChunk::prot_read : 0) | (wr ? MemoryChunk::prot_write : 0));
 }
 
 }
