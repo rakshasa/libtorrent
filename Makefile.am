@@ -27,5 +27,7 @@ EXTRA_DIST= \
 	client/download.h \
 	client/http.cc \
 	client/http.h \
-	client/rtorrent.cc
+	client/rtorrent.cc \
+	client/queue.cc \
+	client/queue.h
 

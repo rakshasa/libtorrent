@@ -1,12 +1,12 @@
 AC_INIT(torrent/torrent.cc)
 
-LIBTORRENT_VERSION=0.3.4
+LIBTORRENT_VERSION=0.3.5
 
 AC_SUBST(LIBTORRENT_VERSION)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,
-          "-lt0304-",
+          "-lt0305-",
           Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=0
@@ -54,6 +54,7 @@ PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
 		  LIBS="$LIBS $STUFF_liBS")
 
+dnl ********************************************************
 AC_CHECK_LIB(curl, curl_easy_init)
 
 AC_DEFUN(MY_CURL,[
@@ -90,7 +91,7 @@ MY_CURL()
 AC_LANG_PUSH(C++)
 
 dnl **************************************************************
-AC_MSG_CHECKING(has proper template specialization disambiguation)
+AC_MSG_CHECKING(has proper overloaded template function disambiguation)
 
 AC_COMPILE_IFELSE(
     [[template <typename T> void f(T&) {}
@@ -101,7 +102,7 @@ AC_COMPILE_IFELSE(
       AC_MSG_RESULT(yes)
     ], [
       AC_MSG_RESULT(no)
-      AC_MSG_ERROR([your compiler does not properly handle template specialization disambiguation])
+      AC_MSG_ERROR([your compiler does not properly handle overloaded template function disambiguation])
     ]
 )
 
