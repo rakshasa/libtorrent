@@ -5,6 +5,8 @@ libsub_tracker_la_SOURCES = \
 	tracker_control.h \
 	tracker_http.cc \
 	tracker_http.h \
-	tracker_info.h
+	tracker_info.h \
+	tracker_list.cc \
+	tracker_list.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

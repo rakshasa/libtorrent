@@ -8,13 +8,12 @@
 
 #include "peer_info.h"
 #include "tracker_info.h"
+#include "tracker_list.h"
 
 #include "torrent/bencode.h"
 #include "utils/task.h"
 
 namespace torrent {
-
-class TrackerHttp;
 
 // This will use TrackerBase once i implement UDP tracker support.
 //
@@ -26,7 +25,6 @@ class TrackerHttp;
 class TrackerControl {
  public:
   typedef std::list<PeerInfo>                  PeerList;
-  typedef std::list<TrackerHttp*>              TrackerList;
 
   typedef sigc::slot0<uint64_t>                SlotStat;
   typedef sigc::signal1<void, Bencode&>        SignalBencode;
@@ -34,7 +32,6 @@ class TrackerControl {
   typedef sigc::signal1<void, std::string>     SignalFailed;
 
   TrackerControl(const std::string& hash, const std::string& key);
-  ~TrackerControl();
 
   void                  send_state(TrackerInfo::State s);
   void                  cancel();
@@ -43,6 +40,7 @@ class TrackerControl {
 
   TrackerInfo::State    get_state()                             { return m_state; }
   TrackerInfo&          get_info()                              { return m_info; }
+  TrackerList&          get_list()                              { return m_list; }
 
   // Use set_next_time(...) to do tracker rerequests.
   Timer                 get_next_time();

@@ -66,11 +66,6 @@ Make set endgame take priorities into account.
 Don't be so aggressive at selecting stalled pieces.
 
 
-TRACKER STUFF
-
-Add/change tracker.
-
-
 API REDESIGN:
 
 Exceptions are pushed out with signals, support different groups with
@@ -135,4 +130,9 @@ the torren::init calls and sets up a download and doxygen comments in the
 header files would be great.
 
 
-TODO NOW
+TRACKER STUFF
+
+Add/change tracker.
+
+Make sure adding trackers doesn't invalidate current requests,
+disallow for open torrents?

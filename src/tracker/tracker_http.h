@@ -4,6 +4,7 @@
 #include <list>
 #include <iosfwd>
 #include <inttypes.h>
+#include <sigc++/signal.h>
 
 #include "torrent/bencode.h"
 

@@ -24,13 +24,6 @@ TrackerControl::TrackerControl(const std::string& hash, const std::string& key) 
   m_itr = m_list.end();
 }
 
-TrackerControl::~TrackerControl() {
-  while (!m_list.empty()) {
-    delete m_list.front();
-    m_list.pop_front();
-  }
-}
-
 void
 TrackerControl::add_url(const std::string& url) {
   std::string::size_type p = url.find("http://");
@@ -45,10 +38,11 @@ TrackerControl::add_url(const std::string& url) {
   t->signal_done().connect(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
 
-  m_list.push_back(t);
+  m_list.insert(0, t);
 
-  if (m_itr == m_list.end())
-    m_itr = m_list.begin();
+  // Set to the first element since we can't be certain the last one
+  // wasn't invalidated. Don't allow when busy?
+  m_itr = m_list.begin();
 }
 
 void
@@ -67,7 +61,7 @@ TrackerControl::is_busy() {
   if (m_itr == m_list.end())
     return false;
   else
-    return (*m_itr)->is_busy();
+    return m_itr->second->is_busy();
 }
 
 void
@@ -88,7 +82,7 @@ TrackerControl::cancel() {
   if (m_itr == m_list.end())
     return;
 
-  (*m_itr)->close();
+  m_itr->second->close();
 }
 
 void
@@ -112,7 +106,7 @@ TrackerControl::receive_done(Bencode& bencode) {
     m_timerMinInterval = Timer::cache() + std::max<int64_t>(0, bencode["min interval"].as_value()) * 1000000;
 
   if (bencode.has_key("tracker id") && bencode["tracker id"].is_string())
-    (*m_itr)->set_tracker_id(bencode["tracker id"].as_string());
+    m_itr->second->set_tracker_id(bencode["tracker id"].as_string());
 
   PeerList l;
 
@@ -155,7 +149,7 @@ TrackerControl::query_current() {
   if (m_itr == m_list.end())
     throw internal_error("TrackerControl tried to send with an invalid m_itr");
 
-  (*m_itr)->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
+  m_itr->second->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
 }
 
 PeerInfo
