@@ -54,7 +54,7 @@ PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 TORRENT_CHECK_OPENSSL()
 
 dnl ********************************************************
-AC_CHECK_LIB(curl, curl_easy_init)
+dnl AC_CHECK_LIB(curl, curl_easy_init)
 TORRENT_CHECK_CURL()
 
 AC_LANG_PUSH(C++)
