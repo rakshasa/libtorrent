@@ -179,14 +179,17 @@ void PeerConnection::read() {
       
       m_down.pos = 0;
       
-      if (!m_requests.downloading(piece)) {
-	// Piece in queue but we don't want it
+      if (m_requests.downloading(piece)) {
+	m_down.state = READ_PIECE;
+	load_chunk(m_requests.get_piece().get_index(), m_down);
+
+      } else {
+	// We don't want the piece,
 	m_down.length = piece.get_length();
 	m_down.state = READ_SKIP_PIECE;
 
-      } else {
-	m_down.state = READ_PIECE;
-	load_chunk(m_requests.get_piece().get_index(), m_down);
+	remove_service(SERVICE_STALL);
+	caughtExceptions.push_back("Receiving piece we don't want from " + m_peer.dns());
       }
 
       goto evil_goto_read;
@@ -222,6 +225,10 @@ void PeerConnection::read() {
     if (!m_requests.is_downloading())
       throw internal_error("READ_PIECE state but RequestList is not downloading");
 
+    // TODO: Temporary, kill as soon as possible.
+    if (!in_service(SERVICE_STALL))
+      throw internal_error("READ_PIECE state but peer not in SERVICE_STALL");
+
     previous = m_down.pos;
     s = readChunk();
 
@@ -249,6 +256,10 @@ void PeerConnection::read() {
     goto evil_goto_read;
 
   case READ_SKIP_PIECE:
+    // TODO: Temporary, kill as soon as possible.
+    if (in_service(SERVICE_STALL))
+      throw internal_error("READ_SKIP_PIECE state but peer is in SERVICE_STALL");
+
     previous = m_down.pos;
     s = readBuf(m_down.buf,
 		std::min(m_down.length, BUFFER_SIZE),
@@ -265,6 +276,9 @@ void PeerConnection::read() {
     if (m_down.length == 0) {
       m_down.state = IDLE;
     }
+
+    if (m_requests.get_size())
+      insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
 
     goto evil_goto_read;
 
@@ -428,12 +442,13 @@ void PeerConnection::parseReadBuf() {
   switch (m_down.buf[0]) {
   case CHOKE:
     m_down.choked = true;
-    discardIncomingQueue();
-    
+    insert_service(Timer::cache() + m_download->settings().cancelTimeout, SERVICE_CANCEL);
+
     return;
 
   case UNCHOKE:
     m_down.choked = false;
+    remove_service(SERVICE_CANCEL);
     
     return insertWrite();
 
@@ -550,12 +565,12 @@ void PeerConnection::fillWriteBuf() {
     m_sendInterested = false;
   }
 
-  if (!m_down.choked && m_up.interested) {
+  if (!m_down.choked && m_up.interested && !m_stallCount && m_down.state != READ_SKIP_PIECE) {
 
     while (m_up.length + 16 < BUFFER_SIZE && request_piece())
       if (m_requests.get_size() == 1) {
-	if (in_service(SERVICE_STALL) || in_service(SERVICE_CANCEL))
-	  throw internal_error("Only one request, but we're already in SERVICE_STALL or SERVICE_CANCEL");
+	if (in_service(SERVICE_STALL))
+	  throw internal_error("Only one request, but we're already in SERVICE_STALL");
 	
 	insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
       }	
@@ -691,18 +706,30 @@ void PeerConnection::service(int type) {
     
   case SERVICE_STALL:
     // Clear the incoming queue reservations so we can request from other peers.
-    if (m_down.state != READ_PIECE)
-      return;
-
-    m_down.state = READ_SKIP_PIECE;
-    m_down.length = m_requests.get_piece().get_length() - m_down.pos;
-    m_down.pos = 0;
+    if (m_down.state == READ_PIECE) {
+      m_down.state = READ_SKIP_PIECE;
+      m_down.length = m_requests.get_piece().get_length() - m_down.pos;
+      m_down.pos = 0;
+    }
 
     m_requests.stall();
+    m_stallCount++;
 
-    caughtExceptions.push_back("Peer stalled");
+    caughtExceptions.push_back("Peer stalled " + m_peer.dns());
+    return;
+
+  case SERVICE_CANCEL:
+    if (!m_down.choked)
+      return;
+
+    if (m_down.state == READ_PIECE)
+      throw communication_error("Peer choke while downloaing piece");
+
+    remove_service(SERVICE_STALL);
+    m_requests.cancel();
 
     return;
+
   default:
     throw internal_error("PeerConnection::service received bad type");
   };

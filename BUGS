@@ -4,7 +4,6 @@ Seen bitfield is mangled on more than 128 or 256 seen.
 Somehow choke delay got stuck:
 0.0    0.0    ci/und 0/16
 
-Fix bencode map, should be list.
 
 0 rtorrent [0x806d2a5]
 1 /lib/tls/libc.so.6 [0x138eb8]

@@ -25,6 +25,7 @@ extern std::list<std::string> caughtExceptions;
 PeerConnection::PeerConnection() :
   m_fd(-1),
   m_shutdown(false),
+  m_stallCount(0),
 
   m_download(NULL),
 
@@ -35,7 +36,7 @@ PeerConnection::PeerConnection() :
 
 PeerConnection::~PeerConnection() {
   if (m_download) {
-    discardIncomingQueue();
+    m_requests.cancel();
 
     if (m_down.state != READ_BITFIELD)
       m_download->bfCounter().dec(m_bitfield);
@@ -125,12 +126,6 @@ uint32_t PeerConnection::bufR32(bool peep) {
   return ntohl(*(uint32_t*)&(m_down.buf[pos]));
 }
  
-void PeerConnection::discardIncomingQueue() {
-  m_requests.cancel();
-
-  m_down.data = Storage::Chunk();
-}
-
 void
 PeerConnection::load_chunk(int index, Sub& sub) {
   if (sub.data.is_valid() && index == sub.data->get_index())
@@ -152,8 +147,6 @@ PeerConnection::request_piece() {
   if (m_requests.get_size() > 5)
     return false;
     
-  caughtExceptions.push_back("Attempting request");
-
   if ((p = m_requests.delegate()) == NULL)
     return false;
 
@@ -185,8 +178,6 @@ PeerConnection::request_piece() {
   bufW32(p->get_index());
   bufW32(p->get_offset());
   bufW32(p->get_length());
-
-  caughtExceptions.push_back("Did request");
 
   return true;
 }

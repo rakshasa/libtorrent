@@ -29,11 +29,6 @@ Snubbing:
 Delegator refactoring:
 
 
-New piece selection:
-
-* Select a piece with as few seen as possible.
-
-
 Few chunks mode:
 
 * Select pieces with a higher number of seen's.
@@ -95,3 +90,8 @@ How to encode timed out and downloading as cheaply as possible? We need multiple
 How long will we acceptably wait for a chunk request to timeout?
 
 What is required: progressive queueing based on download speed.
+
+
+
+****
+

@@ -47,18 +47,24 @@ Sane timeouts on handshakes.
 Switch to a proper type for file offset/length and chunk length. A proper
 type for chunk index.
 
+! Make sure that a peer sending a piece, but being choked throws a
+communication error.
+
 
 DELEGATOR STUFF
 
 Different priorities don't properly affect interested/not interested.
-
-* Add a delay between peer choking you and the list getting thrown out.
 
 * Add message about pieces being ignored, so i can test the code.
 
 Proper canceling of pieces in sendHave, unless only one can download a piece.
 
 * Move chunkDone to a signal in delegator.
+
+* Flag stalled peers, ignore them for a while after. Make sure we try to download
+  from previously stalled peers if those are the only ones left. Figure this out.
+
+If you add SERVICE_CANCEL, modify discardincomingqueue.
 
 
 TRACKER STUFF

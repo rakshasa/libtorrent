@@ -97,10 +97,10 @@ private:
   bool writeChunk(int maxBytes);
   bool readChunk();
 
-  void discardIncomingQueue();
   void load_chunk(int index, Sub& sub);
 
   bool request_piece();
+  void skip_piece();
 
   // Send a msg to the buffer.
   void bufCmd(Protocol cmd, unsigned int length, unsigned int send = 0);
@@ -114,6 +114,8 @@ private:
 
   int m_fd;
   bool m_shutdown;
+
+  int m_stallCount;
 
   PeerInfo m_peer;
   DownloadState* m_download;

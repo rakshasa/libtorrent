@@ -171,9 +171,11 @@ void DownloadState::download_stats(uint64_t& down, uint64_t& up, uint64_t& left)
   up = m_rateUp.total();
   down = m_rateDown.total();
 
-  // Check if last chunk is completed, and adjust for it's different size.
-  if (!m_content.get_bitfield()[m_content.get_storage().get_chunkcount() - 1])
+  if (!m_content.get_bitfield()[m_content.get_storage().get_chunkcount() - 1] ||
+      m_content.get_size() % m_content.get_storage().get_chunksize() == 0)
+    // The last chunk is not done, or the last chunk is the same size as the others.
     left = m_content.get_size() - m_content.get_completed() * m_content.get_storage().get_chunksize();
+
   else
     left = m_content.get_size()
       - (m_content.get_completed() - 1) * m_content.get_storage().get_chunksize()
