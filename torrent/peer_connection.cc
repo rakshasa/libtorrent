@@ -4,6 +4,7 @@
 
 #include <cerrno>
 #include <sstream>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <algo/algo.h>
 
