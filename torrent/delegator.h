@@ -34,10 +34,10 @@ public:
   bool interested(int index);
 
   DelegatorReservee* delegate(const BitField& bf, int affinity);
-  bool downloading(DelegatorReservee& r);
-  bool finished(DelegatorReservee& r);
+  bool               downloading(DelegatorReservee& r);
+  bool               finished(DelegatorReservee& r);
 
-  void cancel(DelegatorReservee& r, bool clear);
+  void cancel(DelegatorReservee& r);
 
   void done(int index);
   void redo(int index);

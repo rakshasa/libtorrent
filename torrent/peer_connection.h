@@ -48,6 +48,7 @@ public:
   } Protocol;
 
   typedef std::list<DelegatorReservee*> PieceList;
+  typedef std::list<Piece>              RequestList;
 
 #include "peer_connection_sub.h"
 
@@ -93,6 +94,9 @@ private:
   bool readChunk();
 
   void discardIncomingQueue();
+  void load_chunk(int index, Sub& sub);
+
+  bool request_piece();
 
   // Send a msg to the buffer.
   void bufCmd(Protocol cmd, unsigned int length, unsigned int send = 0);
@@ -115,6 +119,7 @@ private:
   bool m_sendChoked;
   bool m_sendInterested;
 
+  RequestList m_requests;
   std::list<int> m_haveQueue;
 
   Timer m_lastChoked;

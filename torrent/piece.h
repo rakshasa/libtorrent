@@ -22,6 +22,10 @@ public:
   unsigned int c_offset() const { return m_offset; }
   unsigned int c_length() const { return m_length; }
 
+  int get_index() const { return m_index; }
+  unsigned int get_offset() const { return m_offset; }
+  unsigned int get_length() const { return m_length; }
+
   bool operator == (const Piece& p) const {
     return
       m_index == p.m_index &&

@@ -127,7 +127,7 @@ Delegator::downloading(DelegatorReservee& r) {
       throw internal_error("Delegator::downloading(...) got object with wrong state");
     
     r.set_state(DELEGATOR_DOWNLOADING);
-    
+
     return true;
 
   } else {
@@ -160,7 +160,7 @@ Delegator::finished(DelegatorReservee& r) {
 // never touched.
 
 void
-Delegator::cancel(DelegatorReservee& r, bool clear) {
+Delegator::cancel(DelegatorReservee& r) {
   r.set_state(DELEGATOR_NONE);
 }
 
