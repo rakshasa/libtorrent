@@ -102,3 +102,15 @@ COOL STUFF THAT NEEDS TO BE DONE
 
 Add lambda style operators to algo, use a wrapper class to get right
 type for overloaded operators. (that gets discarded when not used)
+
+
+OPTIMIZING
+
+Can we check the fd_set's in any more efficient way?... reverse the
+current setup?
+
+Using lists for the sockets we're waiting on does provide for many
+cache hits. (i would assume). find out if you can't use something more
+clever. Sort by fd number? iterate only to that number?
+
+Cache iterators to different borders, and update them as we add/remove?
