@@ -8,6 +8,8 @@ libtorrent_la_SOURCES = \
 	torrent/entry.h \
 	torrent/peer.cc \
 	torrent/peer.h \
+	torrent/torrent.cc \
+	torrent/torrent.h \
 	content/content.cc \
 	content/content.h \
 	content/content_file.h \
@@ -85,8 +87,6 @@ libtorrent_la_SOURCES = \
 	throttle.h \
 	throttle_control.cc \
 	throttle_control.h \
-        torrent.cc \
-        torrent.h \
         service.cc \
         service.h
 
