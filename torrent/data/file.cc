@@ -69,11 +69,11 @@ bool File::set_size(uint64_t v) {
   return r == 0;
 }
 
-int File::get_mode() {
+int File::get_mode() const {
   return is_open() ? m_stat->st_mode & (S_IRWXU | S_IRWXG | S_IRWXO) : 0;
 }
 
-int File::get_type() {
+int File::get_type() const {
   if (!is_open())
     return 0;
 
@@ -102,7 +102,7 @@ int File::get_type() {
     return 0;
 }
 
-uint64_t File::get_size() {
+uint64_t File::get_size()  const {
   return is_open() ? m_stat->st_size : 0;
 }
 

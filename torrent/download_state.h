@@ -3,10 +3,10 @@
 
 #include "bitfield_counter.h"
 #include "delegator.h"
-#include "files.h"
 #include "peer.h"
 #include "rate.h"
 #include "settings.h"
+#include "content/content.h"
 #include "data/hash_torrent.h"
 #include <list>
 
@@ -29,10 +29,10 @@ class DownloadState {
   Peer& me() { return m_me; }
   std::string& hash() { return m_hash; }
 
-  Files&        files()          { return m_files; }
-  Connections&  connections()    { return m_connections; }
-  Delegator&    delegator()      { return m_delegator; }
-  Peers&          available_peers() { return m_availablePeers; }
+  Content&      content()         { return m_content; }
+  Connections&  connections()     { return m_connections; }
+  Delegator&    delegator()       { return m_delegator; }
+  Peers&        available_peers() { return m_availablePeers; }
 
   uint64_t& bytesDownloaded() { return m_bytesDownloaded; }
   uint64_t& bytesUploaded() { return m_bytesUploaded; }
@@ -74,7 +74,7 @@ private:
   Peer m_me;
   std::string m_hash;
   
-  Files m_files;
+  Content m_content;
   Delegator m_delegator;
   Connections m_connections;
   Peers m_availablePeers;

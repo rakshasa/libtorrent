@@ -43,7 +43,7 @@ void StorageConsolidator::close() {
 
 void StorageConsolidator::set_chunksize(unsigned int size) {
   if (size == 0)
-    throw internal_error("Tried to set StorageConsolidator's blocksize to zero");
+    throw internal_error("Tried to set StorageConsolidator's chunksize to zero");
 
   m_chunksize = size;
 }

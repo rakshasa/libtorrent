@@ -4,21 +4,21 @@
 #include <vector>
 #include <string>
 
+#include "data/path.h"
+
 namespace torrent {
 
 class ContentFile {
 public:
-  typedef std::vector<std::string> FileName;
+  ContentFile(const Path& p, uint64_t size) : m_path(p), m_size(size) {}
 
-  ContentFile(const Filename& f, uint64_t size) : m_filename(f), m_size(size) {}
+  uint64_t    size() const { return m_size; }
 
-  uint64_t  size() { return m_size; }
-
-  FileName& filename() { return m_filename; }
+  Path&       path() { return m_path; }
+  const Path& path() const { return m_path; }
 
 private:
-  FileName m_filename;
-
+  Path     m_path;
   uint64_t m_size;
 };
 

@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 
+#include <cstring>
 #include <unistd.h>
 #include <inttypes.h>
 #include <algo/algo.h>
@@ -32,8 +33,6 @@ DownloadState::DownloadState() :
 
 DownloadState::~DownloadState() {
   std::for_each(m_connections.begin(), m_connections.end(), delete_on());
-
-  m_files.closeAll();
 }
 
 void DownloadState::chunkDone(Storage::Chunk& c) {
@@ -166,7 +165,7 @@ int DownloadState::countConnections() const {
 void DownloadState::download_stats(uint64_t& up, uint64_t& down, uint64_t& left) {
   up = m_rateUp.total();
   down = m_rateDown.total();
-  left = m_files.storage().get_size() - m_files.doneSize();
+  left = m_content.get_size() - m_content.get_completed() * m_content.get_storage().get_chunksize();
 }
 
 void DownloadState::connect_peers() {
@@ -187,7 +186,9 @@ void DownloadState::receive_hashdone(std::string id, Storage::Chunk c, std::stri
   if (id != m_hash)
     throw internal_error("Download received hash check comeplete signal beloning to another info hash");
 
-  if (m_files.doneChunk(c, hash)) {
+  if (std::memcmp(hash.c_str(), m_content.get_hash_c(c->get_index()), 20) == 0) {
+
+    m_content.mark_done(c->get_index());
     m_delegator.done(c->get_index());
     
     std::for_each(m_connections.begin(), m_connections.end(),

@@ -12,6 +12,8 @@ class Path {
 public:
   typedef std::list<std::string> List;
 
+  Path() {}
+  Path(const std::string& p, bool literal = false);
   Path(const List& l) : m_list(l) {}
 
   List&              list() { return m_list; }
@@ -19,6 +21,8 @@ public:
   std::string        path(bool escaped = true);
 
   static std::string escape(const std::string& s);
+
+  static void        mkdir(const std::string& root, const Path& path, const Path& ignore, int umask = 0777);
 
 private:
   List m_list;

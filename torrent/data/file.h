@@ -40,14 +40,14 @@ class File {
 
   void     close();
   
-  bool     is_open()             { return m_fd != -1; }
+  bool     is_open() const       { return m_fd != -1; }
 
   bool     set_size(uint64_t v);
 
-  int      get_flags()           { return m_flags; }
-  int      get_mode();
-  int      get_type();
-  uint64_t get_size();
+  int      get_flags() const     { return m_flags; }
+  int      get_mode() const;
+  int      get_type() const;
+  uint64_t get_size() const;
 
   bool     get_chunk(FileChunk& f,
 		     uint64_t offset,

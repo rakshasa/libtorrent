@@ -10,6 +10,7 @@
 #include "peer_handshake.h"
 #include "peer_connection.h"
 #include "settings.h"
+#include "parse/parse_info.h"
 #include "tracker/tracker_control.h"
 
 #include <sstream>
@@ -36,12 +37,13 @@ Download::Download(const bencode& b) :
 
   m_name = b["info"]["name"].asString();
 
-  m_state.files().set(b["info"]);
-  m_state.files().openAll();
+  parse_info(b["info"], m_state.content());
+
+  m_state.content().open();
 
   m_state.me() = Peer(generateId(), "", listen->get_port());
   m_state.hash() = calcHash(b["info"]);
-  m_state.bfCounter() = BitFieldCounter(m_state.files().storage().get_chunkcount());
+  m_state.bfCounter() = BitFieldCounter(m_state.content().get_storage().get_chunkcount());
 
   m_tracker = new TrackerControl(m_state.me(), m_state.hash());
 
@@ -57,18 +59,18 @@ Download::Download(const bencode& b) :
 
   sd.connect(sigc::mem_fun(*this, &Download::receive_initial_hash));
 
-  hashTorrent.add(m_state.hash(), &state().files().storage(), sd,
+  hashTorrent.add(m_state.hash(), &state().content().get_storage(), sd,
 		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
 
   } catch (const bencode_error& e) {
 
-    state().files().closeAll();
+    state().content().close();
     delete m_tracker;
 
     throw local_error("Bad torrent file \"" + std::string(e.what()) + "\"");
   } catch (const local_error& e) {
 
-    state().files().closeAll();
+    state().content().close();
     delete m_tracker;
 
     throw e;
@@ -226,10 +228,10 @@ void Download::receive_initial_hash(const std::string& id) {
     throw internal_error("Download::receive_initial_hash received wrong id");
 
   m_checked = true;
-  state().files().resizeAll();
+  state().content().resize();
 
-  if (m_state.files().chunkCompleted() == m_state.files().storage().get_chunkcount() &&
-      !m_state.files().bitfield().allSet())
+  if (m_state.content().get_completed() == m_state.content().get_storage().get_chunkcount() &&
+      !m_state.content().get_bitfield().allSet())
     throw internal_error("Loaded torrent is done but bitfield isn't all set");
     
   if (m_started)

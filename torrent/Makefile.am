@@ -2,6 +2,9 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
+	content/content.cc \
+	content/content.h \
+	content/content_file.h \
 	data/file.cc \
 	data/file.h \
 	data/file_chunk.cc \
@@ -24,6 +27,8 @@ libtorrent_la_SOURCES = \
 	data/storage_file.h \
 	net/listen.cc \
 	net/listen.h \
+	parse/parse_info.cc \
+	parse/parse_info.h \
 	tracker/tracker_control.cc \
 	tracker/tracker_control.h \
 	tracker/tracker_http.cc \

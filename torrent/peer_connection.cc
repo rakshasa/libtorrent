@@ -38,7 +38,7 @@ void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitField(d->files().storage().get_chunkcount());
+  m_bitfield = BitField(d->content().get_storage().get_chunkcount());
 
   insertRead();
   insertWrite();
@@ -47,9 +47,9 @@ void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
   makeBuf(&m_up.buf, BUFFER_SIZE);
   makeBuf(&m_down.buf, BUFFER_SIZE);
 
-  if (!d->files().bitfield().zero()) {
+  if (!d->content().get_bitfield().zero()) {
     // Send bitfield to peer.
-    bufCmd(BITFIELD, 1 + m_download->files().bitfield().sizeBytes(), 1);
+    bufCmd(BITFIELD, 1 + m_download->content().get_bitfield().sizeBytes(), 1);
     m_up.pos = 0;
     m_up.state = WRITE_MSG;
   }
@@ -183,7 +183,7 @@ void PeerConnection::read() {
 
       if (pItr == m_down.list.end()) {
 
-	if (!m_download->files().bitfield()[piece.index()] &&
+	if (!m_download->content().get_bitfield()[piece.index()] &&
 	    m_download->delegator().downloading(m_peer.id(), piece)) {
 	  // Receiving piece we don't have in queue, but still want.
 
@@ -231,7 +231,7 @@ void PeerConnection::read() {
 	    m_down.list.front().index() >= (signed)m_bitfield.sizeBits()) 
 	  throw internal_error("Incoming pieces list contains a bad index value");
 
-	  m_down.data = m_download->files().storage().get_chunk(m_down.list.front().index(), true);
+	  m_down.data = m_download->content().get_storage().get_chunk(m_down.list.front().index(), true);
       
 	  if (!m_down.data.is_valid())
 	    throw local_error("Failed to get a chunk to write to");
@@ -255,7 +255,7 @@ void PeerConnection::read() {
     if (m_download->delegator().interested(m_bitfield)) {
       m_up.interested = m_sendInterested = true;
 
-    } else if (m_download->files().chunkCompleted() == m_download->files().storage().get_chunkcount() &&
+    } else if (m_download->content().get_completed() == m_download->content().get_storage().get_chunkcount() &&
 	       m_bitfield.allSet()) {
       // Both sides are done so we might as well close the connection.
       throw close_connection();
@@ -400,7 +400,7 @@ void PeerConnection::write() {
       if (m_up.list.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_up.data = m_download->files().storage().get_chunk(m_up.list.front().index());
+      m_up.data = m_download->content().get_storage().get_chunk(m_up.list.front().index());
       m_up.state = WRITE_PIECE;
 
       if (!m_up.data.is_valid())
@@ -416,8 +416,8 @@ void PeerConnection::write() {
     m_up.pos = 0;
 
   case WRITE_BITFIELD:
-    if (!writeBuf(m_download->files().bitfield().data() + m_up.pos,
-		  m_download->files().bitfield().sizeBytes(), m_up.pos))
+    if (!writeBuf(m_download->content().get_bitfield().data() + m_up.pos,
+		  m_download->content().get_bitfield().sizeBytes(), m_up.pos))
       return;
 
     m_up.state = IDLE;
@@ -628,9 +628,9 @@ void PeerConnection::fillWriteBuf() {
 	  m_down.list.back().length() == 0 ||
 	  m_down.list.back().length() + m_down.list.back().offset() >
 
-	  ((unsigned)m_down.list.back().index() + 1 != m_download->files().storage().get_chunkcount() ?
-	   m_download->files().storage().get_chunksize() :
-	   m_download->files().storage().get_size() % m_download->files().storage().get_chunksize())) {
+	  ((unsigned)m_down.list.back().index() + 1 != m_download->content().get_storage().get_chunkcount() ?
+	   m_download->content().get_storage().get_chunksize() :
+	   m_download->content().get_storage().get_size() % m_download->content().get_storage().get_chunksize())) {
 
 	std::stringstream s;
 
@@ -679,9 +679,9 @@ void PeerConnection::fillWriteBuf() {
 	m_up.list.front().length() == 0 ||
 	m_up.list.front().length() + m_up.list.front().offset() >
 
-	((unsigned)m_up.list.front().index() + 1 != m_download->files().storage().get_chunkcount() ?
-	 m_download->files().storage().get_chunksize() :
-	 m_download->files().storage().get_size() % m_download->files().storage().get_chunksize())) {
+	((unsigned)m_up.list.front().index() + 1 != m_download->content().get_storage().get_chunkcount() ?
+	 m_download->content().get_storage().get_chunksize() :
+	 m_download->content().get_storage().get_size() % m_download->content().get_storage().get_chunksize())) {
 
       std::stringstream s;
 
@@ -693,8 +693,8 @@ void PeerConnection::fillWriteBuf() {
     }
       
     if (m_up.list.front().index() < 0 ||
-	m_up.list.front().index() >= (signed)m_download->files().storage().get_chunkcount() ||
-	!m_download->files().bitfield()[m_up.list.front().index()]) {
+	m_up.list.front().index() >= (signed)m_download->content().get_storage().get_chunkcount() ||
+	!m_download->content().get_bitfield()[m_up.list.front().index()]) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index: " << m_up.list.front().index();
@@ -711,7 +711,7 @@ void PeerConnection::fillWriteBuf() {
 void PeerConnection::sendHave(int index) {
   m_haveQueue.push_back(index);
 
-  if (m_download->files().chunkCompleted() == m_download->files().storage().get_chunkcount()) {
+  if (m_download->content().get_completed() == m_download->content().get_storage().get_chunkcount()) {
     // We're done downloading.
 
     if (m_bitfield.allSet()) {

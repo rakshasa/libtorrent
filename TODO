@@ -118,3 +118,10 @@ clever. Sort by fd number? iterate only to that number?
 Cache iterators to different borders, and update them as we add/remove?
 
 Use iterators in StorageChunk::get_position instead.
+
+
+DUMPING TORRENT FILES
+
+Since gcc's std::string is ref counted, it would be cheap to retain
+the bencoded torrent. Hash and path's are the only two that take any
+space at all, and both are used as originally stored.

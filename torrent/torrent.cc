@@ -296,7 +296,7 @@ int64_t get(DList::const_iterator d, DValue t) {
     return (*d)->state().bytesUploaded();
 
   case BYTES_TOTAL:
-    return (*d)->state().files().storage().get_size();
+    return (*d)->state().content().get_storage().get_size();
 
   case BYTES_DONE:
     a = 0;
@@ -309,16 +309,16 @@ int64_t get(DList::const_iterator d, DValue t) {
 				    add_ref(a, call_member(member(&Delegator::PieceInfo::m_piece),
 							   &Piece::length)))));
 
-    return a + (*d)->state().files().doneSize();
+    return a + (*d)->state().content().get_completed() * (*d)->state().content().get_storage().get_chunksize();
 
   case CHUNKS_DONE:
-    return (*d)->state().files().chunkCompleted();
+    return (*d)->state().content().get_completed();
 
   case CHUNKS_SIZE:
-    return (*d)->state().files().storage().get_chunksize();
+    return (*d)->state().content().get_storage().get_chunksize();
 
   case CHUNKS_TOTAL:
-    return (*d)->state().files().storage().get_chunkcount();
+    return (*d)->state().content().get_storage().get_chunkcount();
 
   case CHOKE_CYCLE:
     return (*d)->state().settings().chokeCycle;
@@ -363,7 +363,7 @@ std::string get(DList::const_iterator d, DString t) {
 
   switch (t) {
   case BITFIELD_LOCAL:
-    return std::string((*d)->state().files().bitfield().data(), (*d)->state().files().bitfield().sizeBytes());
+    return std::string((*d)->state().content().get_bitfield().data(), (*d)->state().content().get_bitfield().sizeBytes());
 
   case BITFIELD_SEEN:
     std::for_each((*d)->state().bfCounter().field().begin(),

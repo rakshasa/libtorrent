@@ -34,14 +34,14 @@ bool Delegator::interested(const BitField& bf) {
 
   BitField b(bf);
   
-  return !b.notIn(m_state->files().bitfield()).zero();
+  return !b.notIn(m_state->content().get_bitfield()).zero();
 }
 
 bool Delegator::interested(int index) {
-  if (index < 0 && (unsigned)index >= m_state->files().bitfield().sizeBits())
+  if (index < 0 && (unsigned)index >= m_state->content().get_bitfield().sizeBits())
     throw internal_error("Delegator::interested received index out of range");
 
-  return !m_state->files().bitfield()[index];
+  return !m_state->content().get_bitfield()[index];
 }
 
 bool Delegator::delegate(const std::string& id, const BitField& bf, std::list<Piece>& pieces) {
@@ -197,7 +197,7 @@ void Delegator::redo(int index) {
 
 Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
   BitField available(bf);
-  available.notIn(m_state->files().bitfield());
+  available.notIn(m_state->content().get_bitfield());
 
   // Make sure we don't try downloading a chunk we already got in the list.
   std::for_each(m_chunks.begin(), m_chunks.end(),
@@ -213,9 +213,9 @@ Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
   if (index == -1)
     return NULL;
 
-  unsigned int size = (unsigned)index + 1 != m_state->files().storage().get_chunkcount() ?
-    m_state->files().storage().get_chunksize() :
-    m_state->files().storage().get_size() % m_state->files().storage().get_chunksize();
+  unsigned int size = (unsigned)index + 1 != m_state->content().get_storage().get_chunkcount() ?
+    m_state->content().get_storage().get_chunksize() :
+    m_state->content().get_size() % m_state->content().get_storage().get_chunksize();
 
   std::list<Chunk>::iterator itr = m_chunks.insert(m_chunks.end(), Chunk(index));
 
