@@ -3,8 +3,6 @@
 #endif
 
 #include <inttypes.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
 #include "bitfield.h"
 #include "torrent/exceptions.h"
@@ -15,14 +13,13 @@ BitField::BitField(unsigned int s) :
   m_size(s) {
 
   if (s) {
-    int a = (m_size + 7) / 8 + sizeof(pad_t);
+    int a = (m_size + 7) / 8;
 
     m_start = new data_t[a];
-    m_end = m_start + (m_size + 7) / 8;
-    m_pad = m_start + a;
+    m_end = m_start + a;
 
   } else {
-    m_start = m_end = m_pad = NULL;
+    m_start = m_end = NULL;
   }
 
   clear();
@@ -32,14 +29,13 @@ BitField::BitField(const BitField& bf) :
   m_size(bf.m_size) {
 
   if (m_size) {
-    m_start = new data_t[bf.m_pad - bf.m_start];
-    m_end = m_start + (bf.m_end - bf.m_start);
-    m_pad = m_start + (bf.m_pad - bf.m_start);
+    m_start = new data_t[bf.size_bytes()];
+    m_end = m_start + bf.size_bytes();
 
-    std::memcpy(m_start, bf.m_start, bf.m_pad - bf.m_start);
+    std::memcpy(m_start, bf.m_start, bf.size_bytes());
 
   } else {
-    m_start = m_end = m_pad = NULL;
+    m_start = m_end = NULL;
   }
 }
 
@@ -53,17 +49,15 @@ BitField::operator = (const BitField& bf) {
   if (bf.m_size) {
     m_size = bf.m_size;
 
-    m_start = new data_t[bf.m_pad - bf.m_start];
+    m_start = new data_t[bf.size_bytes()];
     m_end = m_start + bf.size_bytes();
-    m_pad = m_start + (bf.m_pad - bf.m_start);
     
-    std::memcpy(m_start, bf.m_start, m_pad - m_start);
+    std::memcpy(m_start, bf.m_start, bf.size_bytes());
     
   } else {
     m_size = 0;
     m_start = NULL;
     m_end = NULL;
-    m_pad = NULL;
   }
   
   return *this;
@@ -74,8 +68,7 @@ BitField::not_in(const BitField& bf) {
   if (m_size != bf.m_size)
     throw internal_error("Tried to do operations between different sized bitfields");
 
-  for (pad_t* i = (pad_t*)m_start, *i2 = (pad_t*)bf.m_start;
-       i < (pad_t*)m_pad; i++, i2++)
+  for (data_t* i = m_start, *i2 = bf.m_start; i < m_end; i++, i2++)
     *i &= ~*i2;
 
   return *this;
@@ -86,7 +79,7 @@ BitField::all_zero() const {
   if (m_size == 0)
     return true;
 
-  for (pad_t* i = (pad_t*)m_start; i < (pad_t*)m_pad; i++)
+  for (data_t* i = m_start; i < m_end; i++)
     if (*i)
       return false;
 
@@ -99,19 +92,19 @@ BitField::all_set() const {
     return false;
 
   data_t* i = m_start;
-  data_t* end = m_pad - sizeof(pad_t);
+  data_t* end = m_end;
 
-  while (i < end) {
-    if (*(pad_t*)i != ~pad_t())
+  if (m_size % 8)
+    --end;
+
+  while (i != end) {
+    if (*i != (data_t)~0)
       return false;
 
-    i += sizeof(pad_t);
+    ++i;
   }
 
-  if (m_size % (8 * sizeof(pad_t)))
-    return *(pad_t*)i == htonl(~pad_t() << 8 * sizeof(pad_t) - m_size % (8 * sizeof(pad_t)));
-  else
-    return *(pad_t*)i == ~pad_t();
+  return m_size % 8 == 0 || *i == ~data_t() << (8 - m_size % 8);
 }
 
 static const unsigned char bit_count_256[] = 

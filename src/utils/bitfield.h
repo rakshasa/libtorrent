@@ -7,7 +7,6 @@ namespace torrent {
 
 class BitField {
 public:
-  typedef uint32_t       pad_t;
   typedef uint32_t       size_t;
   typedef uint8_t        data_t;
   typedef const uint8_t  c_data_t;
@@ -15,25 +14,26 @@ public:
   BitField() :
     m_size(0),
     m_start(NULL),
-    m_end(NULL),
-    m_pad(NULL) {}
+    m_end(NULL) {}
 
   BitField(size_t s);
   BitField(const BitField& bf);
 
   ~BitField()                             { delete [] m_start; m_start = NULL; }
 
-  void      clear()                       { if (m_start) std::memset(m_start, 0, m_pad - m_start); }
+  void      clear()                       { if (m_start) std::memset(m_start, 0, size_bytes()); }
 
   size_t    size_bits() const             { return m_size; }
   size_t    size_bytes() const            { return m_end - m_start; }
-  size_t    size_ints() const             { return (m_pad - m_start) / sizeof(pad_t); }
 
   // Allow this?
   size_t    count() const;
 
   // Clear the last byte's padding.
-  void      cleanup()                     { if (m_start && m_size % 8) *(m_end - 1) &= ~(data_t)0 << 8 - m_size % 8; }
+  void      cleanup() {
+    if (m_start && m_size % 8)
+      *(m_end - 1) &= ~(data_t)0 << 8 - m_size % 8;
+  }
 
   void      set(size_t i, bool s) {
     if (s)
@@ -65,7 +65,6 @@ private:
 
   data_t*   m_start;
   data_t*   m_end;
-  data_t*   m_pad;
 };
 
 }
