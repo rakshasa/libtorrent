@@ -35,7 +35,7 @@ class Http {
 
   static  void               set_factory(const SlotFactory& f);
 
-  // Guaranteed to return a valid object.
+  // Guaranteed to return a valid object or throw a client_error.
   static  Http*              call_factory();
 
  private:

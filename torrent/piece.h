@@ -18,9 +18,9 @@ public:
   unsigned int& offset() { return m_offset; }
   unsigned int& length() { return m_length; }
 
-  int indexC() const { return m_index; }
-  unsigned int offsetC() const { return m_offset; }
-  unsigned int lengthC() const { return m_length; }
+  int c_index() const { return m_index; }
+  unsigned int c_offset() const { return m_offset; }
+  unsigned int c_length() const { return m_length; }
 
   bool operator == (const Piece& p) const {
     return

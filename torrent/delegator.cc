@@ -143,7 +143,7 @@ bool Delegator::downloading(const std::string& id, const Piece& piece) {
   
 bool Delegator::finished(const std::string& id, const Piece& piece) {
   std::list<Chunk>::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-					      eq(member(&Chunk::m_index), value(piece.indexC())));
+					      eq(member(&Chunk::m_index), value(piece.c_index())));
 
   if (c == m_chunks.end())
     throw internal_error("Delegator::finished called on wrong index");

@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include "exceptions.h"
 #include "peer.h"
 #include "peer_connection.h"
 
@@ -70,6 +71,19 @@ uint32_t
 Peer::get_outgoing_queue_size() {
   return ((PeerConnection*)m_ptr)->up().c_list().size();
 }  
+
+uint32_t
+Peer::get_incoming_index(uint32_t pos) {
+  for (PeerConnection::PieceList::const_iterator itr = ((PeerConnection*)m_ptr)->down().c_list().begin();
+       itr != ((PeerConnection*)m_ptr)->down().c_list().end(); ++itr, --pos)
+    if (!pos)
+      return itr->c_index();
+
+  throw client_error("get_incoming_index(pos) out of range");
+}
+
+  uint32_t             get_incoming_offset(uint32_t pos);
+  uint32_t             get_incoming_length(uint32_t pos);
 
 // Currently needs to copy the data once to a std::string. But 
 // since gcc does ref counted std::string, you can inexpensively

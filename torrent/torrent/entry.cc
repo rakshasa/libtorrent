@@ -10,15 +10,20 @@ Entry::get_size() {
   return ((ContentFile*)m_entry)->get_size();
 }
 
-Entry::Range
-Entry::get_range() {
-  return ((ContentFile*)m_entry)->get_range();
-}
-
 uint32_t
 Entry::get_completed() {
   return ((ContentFile*)m_entry)->get_completed();
 }
+
+uint32_t
+Entry::get_chunk_begin() {
+  return ((ContentFile*)m_entry)->get_range().first;
+}
+
+uint32_t
+Entry::get_chunk_end() {
+  return ((ContentFile*)m_entry)->get_range().second;
+}  
 
 Entry::Priority
 Entry::get_priority() {

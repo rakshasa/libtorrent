@@ -19,7 +19,7 @@ bool listen_open(uint16_t begin, uint16_t end);
 void listen_close();  
 
 // Set the file descriptors we want to pool for R/W/E events. All
-// fd_set's must be valid pointers. Returns the highest fd.
+// fd_set's must be valid pointers.
 void mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
 
 // Do work on the polled file descriptors.

@@ -91,18 +91,18 @@ void Download::draw() {
   if (m_dItr.get_chunks_done() != m_dItr.get_chunks_total())
 
     mvprintw(maxY - 3, 0, "Torrent: %.1f / %.1f MiB Rate: %5.1f/%5.1f KiB Uploaded: %.1f MiB",
-	     (double)m_dItr.get_bytes_done() / 1000000.0,
-	     (double)m_dItr.get_bytes_total() / 1000000.0,
+	     (double)m_dItr.get_bytes_done() / (double)(1 << 20),
+	     (double)m_dItr.get_bytes_total() / (double)(1 << 20),
 	     (double)m_dItr.get_rate_up() / 1000.0,
 	     (double)m_dItr.get_rate_down() / 1000.0,
-	     (double)m_dItr.get_bytes_up() / 1000000.0);
+	     (double)m_dItr.get_bytes_up() / (double)(1 << 20));
 
   else
     mvprintw(maxY - 3, 0, "Torrent: Done %.1f MiB Rate: %5.1f/%5.1f KiB Uploaded: %.1f MiB",
-	     (double)m_dItr.get_bytes_total() / 1000000.0,
+	     (double)m_dItr.get_bytes_total() / (double)(1 << 20),
 	     (double)m_dItr.get_rate_up() / 1000.0,
 	     (double)m_dItr.get_rate_down() / 1000.0,
-	     (double)m_dItr.get_bytes_up() / 1000000.0);
+	     (double)m_dItr.get_bytes_up() / (double)(1 << 20));
 
   mvprintw(maxY - 2, 0, "Peers: %i(%i) Min/Max: %i/%i Uploads: %i Throttle: %i KiB",
 	   (int)m_dItr.get_peers_connected(),
@@ -163,15 +163,15 @@ bool Download::key(int c) {
     case ' ':
       switch (m_dItr.get_entry(m_entryPos).get_priority()) {
       case torrent::Entry::STOPPED:
-	m_dItr.get_entry(m_entryPos).set_priority(torrent::Entry::NORMAL);
-	break;
-
-      case torrent::Entry::NORMAL:
 	m_dItr.get_entry(m_entryPos).set_priority(torrent::Entry::HIGH);
 	break;
 
-      case torrent::Entry::HIGH:
+      case torrent::Entry::NORMAL:
 	m_dItr.get_entry(m_entryPos).set_priority(torrent::Entry::STOPPED);
+	break;
+
+      case torrent::Entry::HIGH:
+	m_dItr.get_entry(m_entryPos).set_priority(torrent::Entry::NORMAL);
 	break;
 	
       default:
@@ -324,9 +324,9 @@ void Download::drawPeers(int y1, int y2) {
 	     itr->get_incoming_queue_size());
     x += 6;
 
-//     if (incoming.size())
-//       mvprintw(i, x, "%i",
-// 	       *(int*)incoming.c_str());
+    if (itr->get_incoming_queue_size())
+      mvprintw(i, x, "%i",
+	       itr->get_incoming_index(0));
 
     x += 6;
 
@@ -339,6 +339,8 @@ void Download::drawSeen(int y1, int y2) {
   unsigned int maxX, maxY;
 
   getmaxyx(stdscr, maxY, maxX);
+
+  --maxX;
 
   mvprintw(y1, 0, "Seen bitfields");
 
@@ -359,6 +361,7 @@ void Download::drawBitfield(const unsigned char* bf, int size, int y1, int y2) {
   getmaxyx(stdscr, maxY, maxX);
 
   maxX /= 2;
+  --maxX;
 
   move(y, 0);
 
@@ -432,9 +435,12 @@ void Download::drawEntry(int y1, int y2) {
     mvprintw(y1, 0, "%c %s  %5.1f   %s   %3d",
 	     (unsigned)index == m_entryPos ? '*' : ' ',
 	     path.c_str(),
-	     (double)e.get_size() / 1000000.0,
+	     (double)e.get_size() / (double)(1 << 20),
 	     priority.c_str(),
-	     e.get_size() ? ((e.get_completed() * 100) / (e.get_range().second - e.get_range().first)) : 100);
+
+	     (e.get_chunk_end() - e.get_chunk_begin())
+	     ? ((e.get_completed() * 100) / (e.get_chunk_end() - e.get_chunk_begin()))
+	     : 100);
 
     ++index;
     ++y1;

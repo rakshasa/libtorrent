@@ -19,14 +19,21 @@ public:
   Entry(void* e) : m_entry(e) {}
   
   uint64_t        get_size();
-  Range           get_range();
   uint32_t        get_completed();
+
+  uint32_t        get_chunk_begin();
+  uint32_t        get_chunk_end();
+
+  // Need this?
+  //uint64_t        get_byte_begin();
+  //uint64_t        get_byte_end();
 
   // Relative to root of torrent.
   std::string     get_path();
 
   Priority        get_priority();
 
+  // Remember to call update_priorities
   void            set_priority(Priority p);
 
 private:

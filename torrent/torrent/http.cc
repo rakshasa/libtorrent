@@ -5,12 +5,7 @@
 
 namespace torrent {
 
-static Http*
-http_null_factory() {
-  return NULL;
-}
-
-Http::SlotFactory Http::m_factory(sigc::ptr_fun(&http_null_factory));
+Http::SlotFactory Http::m_factory;
 
 Http::~Http() {
 }
@@ -22,6 +17,9 @@ Http::set_factory(const SlotFactory& f) {
 
 Http*
 Http::call_factory() {
+  if (m_factory.empty())
+    throw client_error("Http factory not set");
+
   Http* h = m_factory();
 
   if (h == NULL)
