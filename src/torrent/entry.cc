@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include "exceptions.h"
 #include "entry.h"
 #include "content/content_file.h"
 
@@ -34,6 +35,19 @@ Entry::get_priority() {
 std::string
 Entry::get_path() {
   return ((ContentFile*)m_entry)->get_path().path(false);
+}
+
+const Entry::Path&
+Entry::get_path_list() {
+  return ((ContentFile*)m_entry)->get_path().list();
+}
+
+void
+Entry::set_path_list(const Path& l) {
+  if (l.empty())
+    throw client_error("Tried to set empty path list for Entry");
+
+  ((ContentFile*)m_entry)->get_path().list() = l;
 }
 
 void
