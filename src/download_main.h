@@ -43,6 +43,8 @@ public:
   static DownloadMain*  getDownload(const std::string& hash);
   static Downloads&     downloads() { return m_downloads; }
 
+  static void receive_connection(int fd, const std::string& hash, const PeerInfo& peer);
+
   // Modifying signals
   typedef sigc::signal0<void>              SignalTrackerSucceded;
 

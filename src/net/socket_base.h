@@ -45,12 +45,14 @@ public:
   virtual void        write() = 0;
   virtual void        except() = 0;
 
+  static void         make_sockaddr(const std::string& host, int port, sockaddr_in& sa);
+  static int          make_socket(sockaddr_in& sa);
+
+  static void         close_socket(int fd);
+
 protected:
   bool read_buf(char* buf, unsigned int length, unsigned int& pos);
   bool write_buf(const char* buf, unsigned int length, unsigned int& pos);
-
-  static void         make_sockaddr(const std::string& host, int port, sockaddr_in& sa);
-  static int          make_socket(sockaddr_in& sa);
 
   int                 m_fd;
 

@@ -1,9 +1,10 @@
 #include "config.h"
 
+#include <iostream>
 #include <algo/algo.h>
 
 #include "net/listen.h"
-#include "net/handshake.h"
+#include "net/handshake_manager.h"
 
 #include "torrent.h"
 #include "exceptions.h"
@@ -19,6 +20,7 @@ int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
 
 Listen* listen = NULL;
+HandshakeManager handshakes;
 
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
@@ -56,12 +58,14 @@ initialize() {
   if (listen == NULL) {
     listen = new Listen;
 
-    listen->slot_incoming(sigc::ptr_fun3(&Handshake::connect));
+    listen->slot_incoming(sigc::mem_fun(handshakes, &HandshakeManager::add_incoming));
   }
 
   srandom(Timer::current().usec());
 
   ThrottleControl::global().insert_service(Timer::current(), 0);
+
+  handshakes.slot_connected(sigc::ptr_fun3(&DownloadMain::receive_connection));
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -73,8 +77,7 @@ cleanup() {
   for_each<true>(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
 		 delete_on());
 
-  for_each<true>(Handshake::handshakes().begin(), Handshake::handshakes().end(),
-		 delete_on());
+  handshakes.clear();
 }
 
 bool
@@ -204,7 +207,7 @@ get(GValue t) {
     return listen->get_port();
 
   case HANDSHAKES_TOTAL:
-    return Handshake::handshakes().size();
+    return handshakes.get_size();
 
   case SHUTDOWN_DONE:
     return std::find_if(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),

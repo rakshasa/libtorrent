@@ -8,7 +8,7 @@
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
-#include "net/handshake.h"
+#include "net/handshake_manager.h"
 
 #include "download_state.h"
 #include "peer_connection.h"
@@ -20,6 +20,7 @@ namespace torrent {
 
 // Temporary solution untill we get proper error handling.
 extern std::list<std::string> caughtExceptions;
+extern HandshakeManager handshakes;
 
 HashQueue hashQueue;
 HashTorrent hashTorrent(&hashQueue);
@@ -165,15 +166,7 @@ void DownloadState::removeConnection(PeerConnection* p) {
 }
 
 int DownloadState::countConnections() const {
-  int s = m_connections.size();
-
-  std::for_each(Handshake::handshakes().begin(), Handshake::handshakes().end(),
-		if_on(eq(call_member(&Handshake::download),
-			 value(this)),
-
-		      add_ref(s, value(1))));
-
-  return s;
+  return m_connections.size() + handshakes.get_size_hash(m_hash);
 }
 
 uint64_t
@@ -192,7 +185,7 @@ void DownloadState::connect_peers() {
 	 (signed)connections().size() < settings().minPeers &&
 	 countConnections() < settings().maxPeers) {
 
-    Handshake::connect(available_peers().front(), this);
+    handshakes.add_outgoing(available_peers().front(), m_hash, m_me.id());
     available_peers().pop_front();
   }
 }

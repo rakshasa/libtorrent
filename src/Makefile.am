@@ -52,6 +52,10 @@ libtorrent_la_SOURCES = \
 	download/download_net.h \
         net/handshake.cc \
         net/handshake.h \
+        net/handshake_manager.cc \
+        net/handshake_manager.h \
+        net/handshake_outgoing.cc \
+        net/handshake_outgoing.h \
 	net/listen.cc \
 	net/listen.h \
 	net/socket_base.cc \

@@ -5,7 +5,7 @@
 
 #include "torrent/exceptions.h"
 #include "net/listen.h"
-#include "net/handshake.h"
+#include "net/handshake_manager.h"
 #include "parse/parse_info.h"
 #include "tracker/tracker_control.h"
 #include "content/delegator_select.h"
@@ -29,6 +29,7 @@ DownloadMain::Downloads DownloadMain::m_downloads;
 // Temporary solution untill we get proper error handling.
 extern std::list<std::string> caughtExceptions;
 extern Listen* listen;
+extern HandshakeManager handshakes;
 
 DownloadMain::DownloadMain(const bencode& b) :
   m_tracker(NULL),
@@ -166,7 +167,7 @@ void DownloadMain::service(int type) {
     // bad peers. Try untried peers first.
     for (DownloadState::Connections::const_iterator itr = state().connections().begin();
 	 itr != state().connections().end(); ++itr)
-
+      
       // Prioritize those we are interested in, those also have higher
       // download rates.
 
@@ -223,9 +224,7 @@ void DownloadMain::add_peers(const Peers& p) {
 		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
 	!= m_state.connections().end() ||
 
-	std::find_if(Handshake::handshakes().begin(), Handshake::handshakes().end(),
-		     call_member(call_member(&Handshake::peer), &PeerInfo::is_same_host, ref(*itr)))
-	!= Handshake::handshakes().end() ||
+	handshakes.has_peer(*itr) ||
 
 	std::find_if(m_state.available_peers().begin(), m_state.available_peers().end(),
 		     call_member(&PeerInfo::is_same_host, ref(*itr)))
@@ -241,6 +240,15 @@ void DownloadMain::add_peers(const Peers& p) {
 
   if (m_started)
     m_state.connect_peers();
+}
+
+void DownloadMain::receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
+  DownloadMain* d = getDownload(hash);
+
+  if (d)
+    d->state().addConnection(fd, peer);
+  else
+    SocketBase::close_socket(fd);
 }
 
 void DownloadMain::receive_initial_hash(const std::string& id) {

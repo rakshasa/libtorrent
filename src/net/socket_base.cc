@@ -119,6 +119,11 @@ int SocketBase::make_socket(sockaddr_in& sa) {
   return f;
 }
 
+void
+SocketBase::close_socket(int fd) {
+  ::close(fd);
+}
+
 bool SocketBase::read_buf(char* buf, unsigned int length, unsigned int& pos) {
   if (length <= pos) {
     std::stringstream s;

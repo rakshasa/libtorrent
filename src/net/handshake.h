@@ -1,81 +1,55 @@
-#ifndef LIBTORRENT_PEER_HANDSHAKE_H
-#define LIBTORRENT_PEER_HANDSHAKE_H
+#ifndef LIBTORRENT_HANDSHAKE_H
+#define LIBTORRENT_HANDSHAKE_H
 
+#include <inttypes.h>
+
+#include "socket_base.h"
 #include "peer_info.h"
-
-#include "net/socket_base.h"
-
-#include <sstream>
-#include <list>
 
 namespace torrent {
 
-class DownloadState;
+class HandshakeManager;
 
-// This class handles the initial handshake and then hands
-// the socket to the downloader.
-class Handshake : SocketBase {
+class Handshake : public SocketBase {
 public:
-  typedef std::list<Handshake*> Handshakes;
+  Handshake(int fd, HandshakeManager* m) :
+    SocketBase(fd),
+    m_manager(m),
+    m_buf(new char[256 + 48]),
+    m_pos(0) {}
 
-  typedef enum {
-    INACTIVE,      // We can't return to being inactive, destroy when closing.
-    CONNECTING,
-    READ_HEADER,
-    WRITE_HEADER,
-    READ_ID
-  } State;
+  virtual ~Handshake();
 
-  ~Handshake();
+  const PeerInfo&     get_peer() { return m_peer; }
+  const std::string&  get_hash() { return m_hash; }
+  const std::string&  get_id()   { return m_id; }
 
-  static void connect(int fdesc, const std::string dns, unsigned short port);
-  static bool connect(const PeerInfo& p, DownloadState* d);
+  void                set_manager(HandshakeManager* m) { m_manager = m; }
+  void                set_fd(int fd)                   { m_fd = fd; }
 
-  // Only checks for outgoing connections.
-  static bool isConnecting(const std::string& id);
+  void                close();
 
-  virtual void read();
-  virtual void write();
-  virtual void except();
-   
-  const PeerInfo& peer() const { return m_peer; }
-  DownloadState* download() const { return m_download; }
-
-  static Handshakes& handshakes() { return m_handshakes; }
-
-protected: // Disable private ctor only warning.
-  Handshake(int fdesc, const std::string dns, unsigned short port);
-  Handshake(int fdesc, const PeerInfo& p, DownloadState* d);
-
-private:
-  // Disable
-  Handshake();
-  Handshake(const Handshake& p);
-  Handshake& operator = (const Handshake& p);
-
-  void close();
+protected:
+  
+  // Make sure you don't touch anything in the class after calling these,
+  // return immidiately.
+  void send_connected();
+  void send_failed();
 
   bool recv1();
   bool recv2();
 
-  static void Handshake::addConnection(Handshake* p);
-  static void Handshake::removeConnection(Handshake* p);
+  PeerInfo          m_peer;
+  std::string       m_hash;
+  std::string       m_id;
 
-  static Handshakes m_handshakes;
+  HandshakeManager* m_manager;
 
-  std::string m_infoHash;
-
-  PeerInfo m_peer;
-  DownloadState* m_download;
-
-  // internal state
-  State m_state;
-  bool m_incoming;
-
-  char* m_buf;
-  unsigned int m_pos;
+  char*             m_buf;
+  uint32_t          m_pos;
 };
 
-} // namespace torrent
+}
 
-#endif // LIBTORRENT_PEER_HANDSHAKE_H
+#endif
+
