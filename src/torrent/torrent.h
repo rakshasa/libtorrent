@@ -5,6 +5,9 @@
 #include <torrent/common.h>
 #include <torrent/download.h>
 
+#include <sys/types.h>
+#include <sys/select.h>
+
 namespace torrent {
 
 class Bencode;
