@@ -5,6 +5,14 @@ CONTACT
    Send bug reports, suggestions and patches to <jaris@ifi.uio.no> or
   to the mailinglist.
 
+DEPENDENCIES
+
+  libsigc++ 2.0 (deb: libsigc++-2.0-dev)
+  openssl       (deb: libssl-dev)
+  libcurl       (deb: libcurl3-dev)
+  ncurses
+  g++ >= 3.2
+
 SIGC++
 
    The API will use sigc++ signals to give the client a simple, yet

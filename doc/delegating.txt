@@ -1,5 +1,63 @@
-Select piece that is already downloading but has few seen amongst peers.
+If the owner of the rare piece is a slow/unreliable/unknown uploader:
 
-To properly delegate a Chunk amonst more than one downloader, start with small pipe that grows.
+* Use small pipe. Is this handled at a higher level? The information
+  is available there.
 
-Finish orphaned chunks as quickly as possible.
+* Don't delegate a piece with a fast uploader?
+
+
+Timeout of pieces and choking:
+
+* Some clients do choke/unchoke cycles, put a timer for the true
+  canceling of requested pieces.
+
+* Different timeout for request that are currently being downloaded
+  and those that haven't started.
+
+* Starting timeout of some... 20 seconds?...
+
+
+Snubbing:
+
+* Individual rate control of uploads depending on downloads will
+  handle clients that are snubing us.
+
+* Differenciate between snubbers that have choked us and previous good
+  uploaders or unknowns.
+
+
+Delegator refactoring:
+
+
+New piece selection:
+
+* Select a piece with as few seen as possible.
+
+
+Few chunks mode:
+
+* Select pieces with a higher number of seen's.
+
+* Higher level needs to control the pipe size, use smaller 2-3?. This
+  is not such a performance bottleneck since we usually don't get that
+  high download speeds for the first ones.
+
+* Always select the pieces with least number of pieces left. Unless
+  we're already working on a piece.
+
+* Quick timeouts.
+
+
+Normal mode:
+
+* Affinity to the chunk we're working on.
+
+* Slow uploaders should prefer to work on the same chunks as other
+  slow uploaders. Work on abundant pieces.
+
+* Fast uploaders should have a large pipe and work on rare pieces.
+
+
+Endgame mode:
+
+* Divide the pieces download evenly.
