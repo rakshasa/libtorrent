@@ -48,6 +48,10 @@ PKG_CHECK_MODULES(OPENSSL, openssl,
                   LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`",
 		  AC_MSG_ERROR(Could not find openssl's crypto library))
 
+PKG_CHECK_MODULES(STUFF, sigc++-2.0,
+	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
+		  LIBS="$LIBS $STUFF_liBS")
+
 LIBTORRENT_LIBS="-ltorrent"
 AC_SUBST(LIBTORRENT_LIBS)
 

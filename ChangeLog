@@ -1,3 +1,9 @@
+2004-08-07    <jaris@ifi.uio.no>
+
+	* configure: Added sigc++-2.0 to dependencies.
+
+	* torrent/url: Shiny new http interface with sigc++ signals.
+
 2004-08-05    <jaris@ifi.uio.no>
 
 	* client: Added support for http urls.

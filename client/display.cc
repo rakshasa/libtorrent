@@ -1,5 +1,4 @@
 #include "display.h"
-#include "http.h"
 #include <ncurses.h>
 
 int loops = 0;
@@ -96,7 +95,7 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
 	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000,
-	   httpList.size());
+	   999); //httpList.size());
 
   refresh();
 }

@@ -1,54 +1,77 @@
-#include <sstream>
-#include <algo/algo.h>
+#include <sigc++/signal.h>
+#include <sigc++/bind.h>
+
 #include <torrent/torrent.h>
+#include <torrent/http.h>
 #include <torrent/exceptions.h>
-#include <fstream>
 
 #include "http.h"
 
 extern std::list<std::string> log_entries;
 
-struct HttpNode {
-  int m_id;
-  std::stringstream m_buf;
-};
-
-std::list<HttpNode*> httpList;
-
-void http_get(const std::string& url) {
-  HttpNode* node = new HttpNode;
-
-  node->m_id = torrent::http_get(url, &node->m_buf, &http_success, node, &http_failed, node);
-
-  httpList.push_back(node);
-}
-
-void http_success(void* arg) {
-  std::list<HttpNode*>::iterator itr = std::find(httpList.begin(), httpList.end(), (HttpNode*)arg);
-
-  if (itr == httpList.end()) {
-    log_entries.push_front("Http success, but client doesn't have the node");
-    return;
-
-  } else {
-    log_entries.push_front("Http success");
+Http::~Http() {
+  while (!m_list.empty()) {
+    delete m_list.front().first;
+    delete m_list.front().second;
+    m_list.pop_front();
   }
+}
+ 
+void Http::add_url(const std::string& s) {
+  List::iterator itr = m_list.end();
+
+  torrent::Http* http = new torrent::Http();
+  std::stringstream* out = new std::stringstream();
 
   try {
-    torrent::DItr dItr = torrent::create((*itr)->m_buf);
-    
-    torrent::start(dItr);
+    http->set_url(s);
+    http->set_out(out);
+
+    itr = m_list.insert(m_list.end(), std::make_pair(http, out));
+
+    http->signal_done().connect(sigc::bind(sigc::mem_fun(*this, &Http::receive_done), itr));
+    http->signal_failed().connect(sigc::bind(sigc::mem_fun(*this, &Http::receive_failed), itr));
+
+    http->start();
+
+  } catch (torrent::input_error& e) {
+    // do stuff
+    if (itr != m_list.end()) {
+      delete itr->first;
+      delete itr->second;
+
+      m_list.erase(itr);
+    }
+
+    log_entries.push_front(e.what());
+  }
+}
+
+//   Urls list_urls();
+
+void Http::receive_done(int code, std::string status, List::iterator itr) {
+  try {
+    torrent::DItr dItr = torrent::create(*itr->second);
 
   } catch (torrent::local_error& e) {
-    log_entries.push_front("Could not start torrent: " + std::string(e.what()));
+    log_entries.push_front(e.what());
   }
 
-  delete *itr;
+  delete itr->first;
+  delete itr->second;
 
-  httpList.erase(itr);
+  m_list.erase(itr);
 }
 
-void http_failed(void* arg) {
-  log_entries.push_front("Http failed");
-}
+void Http::receive_failed(int code, std::string status, List::iterator itr) {
+  std::stringstream msg;
 
+  msg << "Failed http get " << code << " \"" << status << "\"";
+
+  log_entries.push_front(msg.str());
+
+  delete itr->first;
+  delete itr->second;
+
+  m_list.erase(itr);
+}  

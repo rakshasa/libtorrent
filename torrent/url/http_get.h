@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iosfwd>
+#include <sigc++/signal.h>
 
 #include "socket_base.h"
 
@@ -12,19 +13,23 @@ class Service;
 
 class HttpGet : public SocketBase {
  public:
+  typedef sigc::signal2<void,int,std::string> Signal;
+
   HttpGet();
   ~HttpGet();
 
   void set_url(const std::string& url);
-  void set_out(std::ostream* out);
-  void set_success(Service* service, int type);
-  void set_failed(Service* service, int type);
+  void set_out(std::ostream* out)    { m_out = out; }
+  void set_done(Signal* s)           { m_done = s; }
+  void set_failed(Signal* s)         { m_failed = s; }
+
+  const std::string& get_url() const { return m_url; }
 
   void start();
   void close();
   
-  int  code() { return m_code; }
-  const std::string& status() { return m_status; }
+  int  code()                        { return m_code; }
+  const std::string& status()        { return m_status; }
 
   virtual void read();
   virtual void write();
@@ -44,8 +49,9 @@ class HttpGet : public SocketBase {
   int           m_bufSize;
   int           m_bufEnd;
 
-  int           m_port;
+  std::string   m_url;
   std::string   m_host;
+  int           m_port;
   std::string   m_path;
 
   int           m_code;
@@ -53,11 +59,8 @@ class HttpGet : public SocketBase {
 
   std::ostream* m_out;
 
-  Service*      m_successService;
-  int           m_successType;
-
-  Service*      m_failedService;
-  int           m_failedType;
+  Signal*       m_done;
+  Signal*       m_failed;
 };
 
 }

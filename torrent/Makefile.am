@@ -2,6 +2,10 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
+	url/http.cc \
+	url/http.h \
+	url/http_get.cc \
+	url/http_get.h \
 	bencode.cc \
 	bencode.h \
         bitfield.cc \
@@ -22,10 +26,6 @@ libtorrent_la_SOURCES = \
         files_check.h \
         general.cc \
         general.h \
-	http_get.cc \
-	http_get.h \
-	http_list.cc \
-	http_list.h \
         listen.cc \
         listen.h \
         peer.cc \
@@ -60,6 +60,9 @@ libtorrent_la_SOURCES = \
         service.h
 
 libtorrentincludedir = $(includedir)/torrent
-libtorrentinclude_HEADERS = torrent.h exceptions.h
+libtorrentinclude_HEADERS = \
+	torrent.h \
+	exceptions.h \
+	url/http.h
 
 DISTCLEANFILES = *~

@@ -5,6 +5,13 @@ CONTACT
    Send bug reports, suggestions and patches to <jaris@ifi.uio.no> or
   to the mailinglist.
 
+SIGC++
+
+   The API will use sigc++ signals to give the client a simple, yet
+  powerfull way of reacting to events from the library. The client can
+  hook multiple slots on each signal and modify the parameters to suit
+  the functions. This avoids lots of unnessesary code in the client.
+
 DOWNLOADING 220mb
 
   ./rtorrent

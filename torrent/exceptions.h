@@ -58,17 +58,17 @@ public:
   local_error(const std::string& msg) : base_error(msg) {}
 };
 
-class input_error : public local_error {
-public:
-  input_error(const std::string& msg) : local_error(msg) {}
-};
-
 class storage_error : public local_error {
 public:
   storage_error(const std::string& msg) : local_error(msg) {}
 };
 
-class bencode_error : public local_error {
+class input_error : public local_error {
+public:
+  input_error(const std::string& msg) : local_error(msg) {}
+};
+
+class bencode_error : public input_error {
 public:
   bencode_error(const std::string& msg) : local_error(msg) {}
 };

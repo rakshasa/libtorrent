@@ -88,6 +88,7 @@ int main(int argc, char** argv) {
   struct timeval timeout;
 
   display = new Display();
+  Http http;
 
   signal(SIGINT, signal_handler);
   signal(SIGSEGV, signal_handler);
@@ -105,7 +106,7 @@ int main(int argc, char** argv) {
 
     if (std::strncmp(argv[fIndex], "http://", 7) == 0) {
       // Found an http url, download.
-      http_get(argv[fIndex]);
+      http.add_url(argv[fIndex]);
 
     } else {
       std::fstream f(argv[fIndex], std::ios::in);
@@ -193,7 +194,7 @@ int main(int argc, char** argv) {
       if (inputActive) {
 	if (c == '\n') {
 	  try {
-	    http_get(inputBuf);
+	    http.add_url(inputBuf);
 	  } catch (torrent::input_error& e) {}
 
 	  inputActive = false;

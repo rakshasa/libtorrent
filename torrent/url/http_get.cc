@@ -8,7 +8,6 @@
 #include "settings.h"
 
 #include <cstdio>
-#include <ostream>
 #include <sstream>
 #include <netinet/in.h>
 
@@ -19,8 +18,8 @@ HttpGet::HttpGet() :
   m_buf(NULL),
   m_code(0),
   m_out(NULL),
-  m_successService(NULL),
-  m_failedService(NULL) {
+  m_done(NULL),
+  m_failed(NULL) {
 }
 
 HttpGet::~HttpGet() {
@@ -29,6 +28,8 @@ HttpGet::~HttpGet() {
 
 void HttpGet::set_url(const std::string& url) {
   // TODO: Don't change in the midle of a request.
+  if (m_fd >= 0)
+    throw internal_error("HttpGet::set_url called on a busy object");
 
   int port, s;
 
@@ -50,23 +51,10 @@ void HttpGet::set_url(const std::string& url) {
   if (port <= 0 || port >= 1 << 16)
     throw input_error("HttpGet::start() received bad port number");
 
+  m_url  = url;
   m_host = hostBuf;
   m_path = pathBuf;
   m_port = port;
-}
-
-void HttpGet::set_out(std::ostream* out) {
-  m_out = out;
-}
-
-void HttpGet::set_success(Service* service, int type) {
-  m_successService = service;
-  m_successType = type;
-}
-
-void HttpGet::set_failed(Service* service, int type) {
-  m_failedService = service;
-  m_failedType = type;
 }
 
 void HttpGet::start() {
@@ -127,13 +115,21 @@ void HttpGet::read() {
     
   } catch (close_connection& e) {
     // TODO: Read up on http protocol, does closing always mean it's finished?
+
+    // TODO: Add error messages.
+
     if (m_bufEnd)
       return except();
 
     close();
 
-    if (m_successService)
-      m_successService->service(m_successType);
+    if (m_done) {
+      // Make a shallow copy so it is safe to delete this object inside
+      // the signal.
+      Signal s = *m_done;
+
+      s.emit(m_code, m_status);
+    }
 
   } catch (network_error& e) {
     except();
@@ -181,8 +177,13 @@ void HttpGet::write() {
 void HttpGet::except() {
   close();
 
-  if (m_failedService)
-    m_failedService->service(m_failedType);
+  if (m_failed) {
+    // Make a shallow copy so it is safe to delete this object inside
+    // the signal.
+    Signal s = *m_failed;
+    
+    s.emit(m_code, m_status);
+  }
 }
 
 // ParseHeader throws closeConnection if done

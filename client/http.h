@@ -1,14 +1,28 @@
 #ifndef HTTP_H
 #define HTTP_H
 
-void http_get(const std::string& url);
+#include <sstream>
 
-void http_success(void* arg);
+namespace torrent {
+  class Http;
+}
 
-void http_failed(void* arg);
+class Http {
+ public:
+  typedef std::list<std::pair<torrent::Http*, std::stringstream*> > List;
+  typedef std::list<std::string> Urls;
 
-struct HttpNode;
+  ~Http();
 
-extern std::list<HttpNode*> httpList;
+  void add_url(const std::string& s);
+
+  Urls list_urls();
+
+ private:
+  void receive_done(int code, std::string status, List::iterator itr);
+  void receive_failed(int code, std::string status, List::iterator itr);
+
+  List m_list;
+};
 
 #endif

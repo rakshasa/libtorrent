@@ -536,8 +536,10 @@ void PeerConnection::parseReadBuf() {
 
     } else if (rItr != m_up.list.end()) {
 
-      if (m_up.state != WRITE_MSG || rItr != m_up.list.begin())
-	// Only cancel it if we're not writing it out at the moment.
+      if (rItr != m_up.list.begin() ||
+	  m_up.lastCommand != PIECE ||
+	  m_up.state == IDLE)
+	// Only cancel if we're not writing it.
 	m_up.list.erase(rItr);
     }
 

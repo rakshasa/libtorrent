@@ -47,10 +47,15 @@ Delegator doesn't need to copy the bitfield, do the notIn algorithm as you itera
 HttpGet should handle urls with only domain name (+port), without the leading '/'.
 
 
-IN/AFTER API REDESIGN:
+API REDESIGN:
+
+Let the client retrive the file names in the torrent. (Add support for all in one string, or path broken up)
+
+Exceptions are pushed out with signals, support different groups with multiple signals.
+
+
+AFTER API REDESIGN:
 
 Add the option to not throw non-critical exceptions. This lets the
 client be ignorant of errors while creating stuff. (Make some kind of
 C friendly layer ontop)
-
-Let the client retrive the file names in the torrent. (Add support for all in one string, or path broken up)
