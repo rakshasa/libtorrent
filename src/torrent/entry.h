@@ -6,6 +6,8 @@
 
 namespace torrent {
 
+class ContentFile;
+
 class Entry {
 public:
   typedef std::pair<uint32_t, uint32_t> Range;
@@ -18,7 +20,7 @@ public:
   } Priority;
 
   Entry() : m_entry(NULL) {}
-  Entry(void* e) : m_entry(e) {}
+  Entry(ContentFile* e) : m_entry(e) {}
   
   uint64_t        get_size();
 
@@ -45,7 +47,7 @@ public:
   void            set_priority(Priority p);
 
 private:
-  void*           m_entry;
+  ContentFile*    m_entry;
 };
 
 }

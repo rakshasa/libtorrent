@@ -246,12 +246,25 @@ Download::set_tracker_numwant(int16_t n) {
   m_ptr->get_main().get_tracker().get_info().set_numwant(n);
 }
 
+Tracker
+Download::get_tracker(uint32_t index) {
+  if (index >= m_ptr->get_main().get_tracker().get_list().size())
+    throw client_error("Client called Download::get_tracker(...) with out of range index");
+
+  return m_ptr->get_main().get_tracker().get_list()[index];
+}
+
+uint32_t
+Download::get_tracker_size() {
+  return m_ptr->get_main().get_tracker().get_list().size();
+}
+
 Entry
-Download::get_entry(uint32_t i) {
-  if (i >= m_ptr->get_main().get_state().get_content().get_files().size())
+Download::get_entry(uint32_t index) {
+  if (index >= m_ptr->get_main().get_state().get_content().get_files().size())
     throw client_error("Client called Download::get_entry(...) with out of range index");
 
-  return Entry(&m_ptr->get_main().get_state().get_content().get_files()[i]);
+  return &m_ptr->get_main().get_state().get_content().get_files()[index];
 }
 
 uint32_t

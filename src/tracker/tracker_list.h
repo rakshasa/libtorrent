@@ -29,6 +29,8 @@ public:
   using Base::rbegin;
   using Base::rend;
 
+  using Base::operator[];
+
   ~TrackerList() { clear(); }
 
   void     randomize();

@@ -4,6 +4,7 @@
 #include <torrent/common.h>
 #include <torrent/entry.h>
 #include <torrent/peer.h>
+#include <torrent/tracker.h>
 
 #include <iosfwd>
 #include <list>
@@ -102,7 +103,12 @@ public:
   void                 set_tracker_timeout(uint64_t v);
   void                 set_tracker_numwant(int16_t n);
 
-  Entry                get_entry(uint32_t i);
+  // Access the trackers in the torrent.
+  Tracker              get_tracker(uint32_t index);
+  uint32_t             get_tracker_size();
+
+  // Access the files in the torrent.
+  Entry                get_entry(uint32_t index);
   uint32_t             get_entry_size();
 
   const SeenVector&    get_seen();
