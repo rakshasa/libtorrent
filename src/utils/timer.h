@@ -15,8 +15,6 @@ class Timer {
 
   int64_t   usec() const                  { return m_time; }
 
-  double    seconds() const               { return (double)m_time / 1000000.0; }
-
   timeval tval() const                    { return (timeval) { m_time / 1000000, m_time % 1000000}; }
 
   Timer operator - (const Timer& t) const { return Timer(m_time - t.m_time); }

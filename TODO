@@ -40,6 +40,12 @@ File::get_chunk() needs to have error for improper permission access, and stuff.
 Store data on which side inititalized the connection.
 
 
+FUTURE
+
+Enable torrents with hugh number of files by downloading to a single
+file then splitting it up?
+
+
 DELEGATOR STUFF
 
 * Add message about pieces being ignored, so i can test the code.
@@ -135,3 +141,7 @@ X+#include <sys/select.h>
 ++++ src/data/file_chunk.cc	
 ++#include <sys/types.h>
 
+
+RTORRENT RELATED
+
+Cancel tracker requests.

@@ -153,8 +153,6 @@ listen_close() {
 // fd_set's must be valid pointers. Returns the highest fd.
 void
 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
-  *maxFd = 0;
-
   if (readSet == NULL || writeSet == NULL || exceptSet == NULL || maxFd == NULL)
     throw client_error("torrent::mark(...) received a NULL pointer");
 
@@ -316,7 +314,7 @@ get(GString t) {
 
   switch (t) {
   case LIBRARY_NAME:
-    return std::string("LibTorrent") + " " VERSION;
+    return std::string("libtorrent") + " " VERSION;
 
   case POP_EXCEPTION:
     if (caughtExceptions.empty())

@@ -560,7 +560,7 @@ void PeerConnection::fillWriteBuf() {
   if (m_sendChoked) {
     m_sendChoked = false;
 
-    if ((Timer::cache() - m_lastChoked).seconds() < 10) {
+    if ((Timer::cache() - m_lastChoked).usec() < 10 * 1000000) {
       // Wait with the choke message.
       insert_service(m_lastChoked + 10 * 1000000,
 		    SERVICE_SEND_CHOKE);

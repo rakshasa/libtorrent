@@ -30,6 +30,7 @@ Throttle::Throttle() :
 Throttle::~Throttle() {
   set_parent(NULL);
 
+  // TODO: This may bork.
   while (!m_children.empty())
     m_children.front()->set_parent(NULL);
 }
@@ -167,7 +168,7 @@ void Throttle::set_parent(Throttle* parent) {
     idle();
 
     m_parent->m_children.erase(std::find(m_parent->m_children.begin(),
-					 m_parent->m_children.begin(),
+					 m_parent->m_children.end(),
 					 this));
   }
 
