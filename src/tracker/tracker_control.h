@@ -7,8 +7,9 @@
 #include <sigc++/slot.h>
 
 #include "peer_info.h"
-#include "service.h"
 #include "tracker_state.h"
+
+#include "utils/task.h"
 
 namespace torrent {
 
@@ -21,49 +22,42 @@ class TrackerHttp;
 // tracker we can connect to, NONE's should be interpreted as a
 // started download.
 
-class TrackerControl : public Service {
+class TrackerControl {
  public:
   typedef std::list<PeerInfo>                  PeerList;
   typedef std::list<TrackerHttp*>              TrackerList;
 
-  TrackerControl(const std::string& hash, const std::string& key);
-  ~TrackerControl();
-
-  void                 send_state(TrackerState s);
-
-  void                 add_url(const std::string& url);
-
-  TrackerState         get_state()                             { return m_state; }
-
-  Timer                get_next_time();
-  void                 set_next_time(Timer interval);
-
-  int16_t              get_numwant()                           { return m_numwant; }
-  void                 set_numwant(int16_t n)                  { m_numwant = n; }
-
-  void                 set_me(const PeerInfo* me);
-
-  bool                 is_busy();
-
+  typedef sigc::slot0<uint64_t>                SlotStat;
   typedef sigc::signal1<void, const PeerList&> SignalPeers;
   typedef sigc::signal1<void, std::string>     SignalFailed;
 
-  typedef sigc::slot0<uint64_t>                SlotStat;
+  TrackerControl(const std::string& hash, const std::string& key);
+  ~TrackerControl();
 
-  SignalPeers&         signal_peers()                          { return m_signalPeers; }
-  SignalFailed&        signal_failed()                         { return m_signalFailed; }
+  void                  send_state(TrackerState s);
 
-  void                 slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
-  void                 slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
-  void                 slot_stat_left(SlotStat s)              { m_slotStatLeft = s; }
+  void                  add_url(const std::string& url);
 
-  virtual void         service(int type);
+  TrackerState          get_state()                             { return m_state; }
+
+  Timer                 get_next_time();
+  void                  set_next_time(Timer interval);
+
+  int16_t               get_numwant()                           { return m_numwant; }
+  void                  set_numwant(int16_t n)                  { m_numwant = n; }
+
+  void                  set_me(const PeerInfo* me);
+
+  bool                  is_busy();
+
+  SignalPeers&          signal_peers()                          { return m_signalPeers; }
+  SignalFailed&         signal_failed()                         { return m_signalFailed; }
+
+  void                  slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
+  void                  slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
+  void                  slot_stat_left(SlotStat s)              { m_slotStatLeft = s; }
 
  private:
-
-  enum {
-    TIMEOUT = 0x3000
-  };
 
   TrackerControl(const TrackerControl& t);
   void                  operator = (const TrackerControl& t);
@@ -71,7 +65,7 @@ class TrackerControl : public Service {
   void                  receive_done(const PeerList& l, int interval);
   void                  receive_failed(std::string msg);
 
-  void                  send_itr(TrackerState s);
+  void                  query_current();
 
   const PeerInfo*       m_me;
   std::string           m_hash;
@@ -85,6 +79,8 @@ class TrackerControl : public Service {
 
   TrackerList           m_list;
   TrackerList::iterator m_itr;
+
+  Task                  m_taskTimeout;
 
   SignalPeers           m_signalPeers;
   SignalFailed          m_signalFailed;

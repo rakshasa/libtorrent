@@ -33,7 +33,11 @@ PeerConnection::PeerConnection() :
 
   m_sendChoked(false),
   m_sendInterested(false),
-  m_tryRequest(true)
+  m_tryRequest(true),
+  
+  m_taskKeepAlive(sigc::mem_fun(*this, &PeerConnection::task_keep_alive)),
+  m_taskSendChoke(sigc::mem_fun(*this, &PeerConnection::task_send_choke)),
+  m_taskStall(sigc::mem_fun(*this, &PeerConnection::task_stall))
 {
 }
 
@@ -181,7 +185,7 @@ PeerConnection::request_piece() {
 }
 
 bool PeerConnection::chokeDelayed() {
-  return m_sendChoked || in_service(SERVICE_SEND_CHOKE);
+  return m_sendChoked || m_taskSendChoke.is_scheduled();
 }
 
 void PeerConnection::choke(bool v) {

@@ -31,7 +31,7 @@ struct task_comp {
   task_comp(Timer t) : m_time(t) {}
 
   bool operator () (Task* t) {
-    return m_time >= t->get_time();
+    return m_time <= t->get_time();
   }
 
   Timer m_time;

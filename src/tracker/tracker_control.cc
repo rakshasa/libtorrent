@@ -20,7 +20,8 @@ TrackerControl::TrackerControl(const std::string& hash, const std::string& key) 
   m_tries(-1),
   m_interval(1800),
   m_state(TRACKER_STOPPED),
-  m_numwant(-1) {
+  m_numwant(-1),
+  m_taskTimeout(sigc::mem_fun(*this, &TrackerControl::query_current)) {
   
   m_itr = m_list.end();
 }
@@ -57,22 +58,13 @@ TrackerControl::add_url(const std::string& url) {
 
 void
 TrackerControl::set_next_time(Timer interval) {
-  if (!in_service(TIMEOUT))
-    return;
-
-  remove_service(TIMEOUT);
-  insert_service(Timer::current() + interval, TIMEOUT);
+  if (m_taskTimeout.is_scheduled())
+    m_taskTimeout.insert(Timer::current() + interval);
 }
 
 Timer
 TrackerControl::get_next_time() {
-  if (in_service(TIMEOUT)) {
-    Timer t = when_service(TIMEOUT);
-
-    return t > Timer::current() ? t - Timer::current() : 0;
-  } else {
-    return 0;
-  }
+  return m_taskTimeout.is_scheduled() ? std::max(Timer::current() - m_taskTimeout.get_time(), Timer(0)) : 0;
 }
 
 void
@@ -98,13 +90,8 @@ TrackerControl::send_state(TrackerState s) {
   m_tries = -1;
   m_state = s;
 
-  send_itr(m_state);
-  remove_service(TIMEOUT);
-}
-
-void
-TrackerControl::service(int type) {
-  send_itr(m_state);
+  query_current();
+  m_taskTimeout.remove();
 }
 
 void
@@ -122,7 +109,7 @@ TrackerControl::receive_done(const PeerList& l, int interval) {
   if (m_interval < 60)
     throw internal_error("TrackerControl m_interval is to small");
 
-  insert_service(Timer::current() + (int64_t)m_interval * 1000000, TIMEOUT);
+  m_taskTimeout.insert(Timer::current() + (int64_t)m_interval * 1000000);
 
   m_signalPeers.emit(l);
 }
@@ -132,14 +119,14 @@ TrackerControl::receive_failed(std::string msg) {
   if (m_state != TRACKER_STOPPED) {
     // TODO: Add support for multiple trackers. Iterate if m_failed > X.
 
-    insert_service(Timer::current() + 20 * 1000000, TIMEOUT);
+    m_taskTimeout.insert(Timer::current() + 20 * 1000000);
   }
 
   m_signalFailed.emit(msg);
 }
 
 void
-TrackerControl::send_itr(TrackerState s) {
+TrackerControl::query_current() {
   if (m_itr == m_list.end())
     throw internal_error("TrackerControl tried to send with an invalid m_itr");
 

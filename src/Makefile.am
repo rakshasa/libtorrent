@@ -34,11 +34,9 @@ libtorrent_la_SOURCES = \
 	peer_connection_sub.h \
 	rate.cc \
 	rate.h \
-	settings.cc \
-	settings.h \
 	throttle.cc \
 	throttle.h \
 	throttle_control.cc \
 	throttle_control.h \
-        service.cc \
-        service.h
+	settings.cc \
+	settings.h

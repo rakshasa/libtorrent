@@ -1,14 +1,15 @@
 #ifndef LIBTORRENT_THROTTLE_CONTROL_H
 #define LIBTORRENT_THROTTLE_CONTROL_H
 
-#include "service.h"
+#include <vector>
+
 #include "settings.h"
 #include "throttle.h"
-#include <vector>
+#include "utils/task.h"
 
 namespace torrent {
 
-class ThrottleControl : public Service {
+class ThrottleControl {
  public:
   typedef enum {
     SETTINGS_ROOT,
@@ -23,7 +24,9 @@ class ThrottleControl : public Service {
     return &m_settings[type];
   }
 
-  void service(int type);
+  void update();
+
+  Task& get_task_update() { return m_taskUpdate; }
 
   static ThrottleControl& global() { return m_global; }
 
@@ -33,6 +36,8 @@ class ThrottleControl : public Service {
   Throttle m_root;
 
   std::vector<ThrottleSettings> m_settings;
+
+  Task     m_taskUpdate;
 };
 
 }

@@ -12,6 +12,10 @@ using namespace algo;
 
 namespace torrent {
 
+HashQueue::HashQueue() :
+  m_taskWork(sigc::mem_fun(*this, &HashQueue::work)) {
+}
+
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
@@ -22,11 +26,11 @@ HashQueue::add(Chunk c, SlotDone d, const std::string& id) {
   HashChunk* hc = new HashChunk(c);
 
   if (m_chunks.empty()) {
-    if (in_service(0))
-      throw internal_error("Empty HashQueue is still in service");
+    if (m_taskWork.is_scheduled())
+      throw internal_error("Empty HashQueue is still in task schedule");
 
     m_tries = 0;
-    insert_service(Timer::current(), 0);
+    m_taskWork.insert(Timer::current());
   }
 
   m_chunks.push_back(Node(hc, id, d));
@@ -64,10 +68,10 @@ HashQueue::clear() {
 
 // TODO: Clean up this code, it's ugly.
 void
-HashQueue::service(int type) {
+HashQueue::work() {
   while (!m_chunks.empty()) {
     if (!check(++m_tries >= Settings::hashTries))
-      return insert_service(Timer::current() + Settings::hashWait, 0);
+      return m_taskWork.insert(Timer::current() + Settings::hashWait);
     
     m_tries = 0;
   }

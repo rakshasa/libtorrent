@@ -5,8 +5,9 @@
 #include <sigc++/signal.h>
 #include <algo/ref_anchored.h>
 
-#include "service.h"
 #include "storage_chunk.h"
+
+#include "utils/task.h"
 
 namespace torrent {
 
@@ -18,7 +19,7 @@ class HashChunk;
 // helps us in getting as much done as possible while the pages are in
 // memory.
 
-class HashQueue : public Service {
+class HashQueue {
 public:
   // SignalDone: (Return void)
   // unsigned int - index of chunk
@@ -27,6 +28,7 @@ public:
   typedef algo::RefAnchored<StorageChunk>       Chunk;
   typedef sigc::slot2<void, Chunk, std::string> SlotDone;
 
+  HashQueue();
   ~HashQueue() { clear(); }
 
   void                add(Chunk c, SlotDone d, const std::string& id);
@@ -36,7 +38,7 @@ public:
   void                remove(const std::string& id);
   void                clear();
 
-  void                service(int type);
+  void                work();
 
 private:
   struct Node {
@@ -60,6 +62,8 @@ private:
 
   uint16_t            m_tries;
   ChunkList           m_chunks;
+
+  Task                m_taskWork;
 };
 
 }

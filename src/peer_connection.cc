@@ -73,7 +73,7 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
     m_up.state = WRITE_MSG;
   }
     
-  insert_service(Timer::current() + 120 * 1000000, SERVICE_KEEP_ALIVE);
+  m_taskKeepAlive.insert(Timer::current() + 120 * 1000000);
 
   m_lastMsg = Timer::current();
 }
@@ -265,10 +265,10 @@ void PeerConnection::read() {
     m_requests.finished();
     
     // TODO: Find a way to avoid this remove/insert cycle.
-    remove_service(SERVICE_STALL);
+    m_taskStall.remove();
     
     if (m_requests.get_size())
-      insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
+      m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
 
     // TODO: clear m_down.data?
 
@@ -294,10 +294,10 @@ void PeerConnection::read() {
       m_down.state = IDLE;
       m_tryRequest = true;
 
-      remove_service(SERVICE_STALL);
+      m_taskStall.remove();
 
       if (m_requests.get_size())
-	insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
+	m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
     }
 
     if (s)
@@ -465,7 +465,7 @@ void PeerConnection::parseReadBuf() {
     m_down.choked = true;
     m_requests.cancel();
 
-    remove_service(SERVICE_STALL);
+    m_taskStall.remove();
 
     return;
 
@@ -562,8 +562,7 @@ void PeerConnection::fillWriteBuf() {
 
     if ((Timer::cache() - m_lastChoked).usec() < 10 * 1000000) {
       // Wait with the choke message.
-      insert_service(m_lastChoked + 10 * 1000000,
-		    SERVICE_SEND_CHOKE);
+      m_taskSendChoke.insert(m_lastChoked + 10 * 1000000);
 
     } else {
       // CHOKE ME
@@ -603,11 +602,11 @@ void PeerConnection::fillWriteBuf() {
     while (m_requests.get_size() < pipeSize && m_up.length + 16 < BUFFER_SIZE && request_piece())
 
       if (m_requests.get_size() == 1) {
-	if (in_service(SERVICE_STALL))
-	  throw internal_error("Only one request, but we're already in SERVICE_STALL");
+	if (m_taskStall.is_scheduled())
+	  throw internal_error("Only one request, but we're already in task stall");
 	
 	m_tryRequest = true;
-	insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
+	m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
       }	
   }
 
@@ -689,50 +688,46 @@ void PeerConnection::sendHave(int index) {
   insert_write();
 }
 
-void PeerConnection::service(int type) {
-  switch (type) {
-  case SERVICE_KEEP_ALIVE:
-    if ((Timer::cache() - m_lastMsg).usec() > 150 * 1000000) {
-      m_net->remove_connection(this);
-      return;
-    }
-
-    if (m_up.state == IDLE) {
-      m_up.length = 0;
-
-      bufCmd(KEEP_ALIVE, 0);
-
-      m_up.state = WRITE_MSG;
-      m_up.pos = 0;
-
-      insert_write();
-    }
-
-    m_tryRequest = true;
-    insert_service(Timer::cache() + 120 * 1000000, SERVICE_KEEP_ALIVE);
-
+void
+PeerConnection::task_keep_alive() {
+  // Check if remote peer is dead.
+  if (Timer::cache() - m_lastMsg > 150 * 1000000) {
+    m_net->remove_connection(this);
     return;
-  
-  case SERVICE_SEND_CHOKE:
-    m_sendChoked = true;
+  }
+
+  if (m_up.state == IDLE) {
+    m_up.length = 0;
+
+    bufCmd(KEEP_ALIVE, 0);
+
+    m_up.state = WRITE_MSG;
+    m_up.pos = 0;
 
     insert_write();
-    return;
-    
-  case SERVICE_STALL:
-    m_stallCount++;
-    m_requests.stall();
+  }
 
-    // Make sure we regulary call SERVICE_STALL so stalled queues with new
-    // entries get those new ones stalled if needed.
-    insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
+  m_tryRequest = true;
+  m_taskKeepAlive.insert(Timer::cache() + 120 * 1000000);
+}
 
-    caughtExceptions.push_back("Peer stalled " + m_peer.get_dns());
-    return;
+void
+PeerConnection::task_send_choke() {
+  m_sendChoked = true;
 
-  default:
-    throw internal_error("PeerConnection::service received bad type");
-  };
+  insert_write();
+}
+
+void
+PeerConnection::task_stall() {
+  m_stallCount++;
+  m_requests.stall();
+
+  // Make sure we regulary call task_stall() so stalled queues with new
+  // entries get those new ones stalled if needed.
+  m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
+
+  caughtExceptions.push_back("Peer stalled " + m_peer.get_dns());
 }
 
 }

@@ -1,11 +1,12 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
-#include "service.h"
 #include "settings.h"
 #include "peer_info.h"
 #include "download_state.h"
 #include "download_net.h"
+
+#include "utils/task.h"
 
 #include <sigc++/connection.h>
 
@@ -13,12 +14,8 @@ namespace torrent {
 
 class TrackerControl;
 
-class DownloadMain : public Service {
+class DownloadMain {
 public:
-  enum ServiceState {
-    CHOKE_CYCLE = 0x1001
-  };
-
   DownloadMain();
   ~DownloadMain();
 
@@ -55,8 +52,6 @@ public:
   void                receive_initial_hash();
   void                receive_download_done();
 
-  void                service(int type);
-
 private:
   // Disable copy ctor and assignment.
   DownloadMain(const DownloadMain&);
@@ -64,6 +59,8 @@ private:
 
   void                setup_start();
   void                setup_stop();
+
+  void                choke_cycle();
 
   DownloadState       m_state;
   DownloadNet         m_net;
@@ -81,9 +78,10 @@ private:
   sigc::connection    m_connectionChunkPassed;
   sigc::connection    m_connectionChunkFailed;
   sigc::connection    m_connectionAddAvailablePeers;
+
+  Task                m_taskChokeCycle;
 };
 
 } // namespace torrent
 
 #endif // LIBTORRENT_DOWNLOAD_H
-

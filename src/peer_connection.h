@@ -1,7 +1,6 @@
 #ifndef LIBTORRENT_PEER_CONNECTION_H
 #define LIBTORRENT_PEER_CONNECTION_H
 
-#include "service.h"
 #include "peer_info.h"
 #include "data/piece.h"
 #include "rate.h"
@@ -11,15 +10,19 @@
 #include "peer/request_list.h"
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
+#include "utils/task.h"
 
 #include <vector>
+
+// Yes, this source is a horrible mess. But its stable enough so i won't
+// start refactoring until i finish the other stuff i need to do.
 
 namespace torrent {
 
 class DownloadState;
 class DownloadNet;
 
-class PeerConnection : public SocketBase, public Service {
+class PeerConnection : public SocketBase {
 public:
   typedef enum {
     IDLE = 1,
@@ -56,8 +59,6 @@ public:
   PeerConnection();
   ~PeerConnection();
 
-  void service(int type);
-
   void sendHave(int i);
   void choke(bool v);
 
@@ -90,12 +91,6 @@ private:
   PeerConnection(const PeerConnection&);
   PeerConnection& operator = (const PeerConnection&);
 
-  enum {
-    SERVICE_KEEP_ALIVE = 0x2000,
-    SERVICE_SEND_CHOKE,
-    SERVICE_STALL
-  };
-
   void set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   
   bool writeChunk(int maxBytes);
@@ -116,33 +111,41 @@ private:
 
   void fillWriteBuf();
 
-  bool m_shutdown;
+  void task_keep_alive();
+  void task_send_choke();
+  void task_stall();
 
-  int m_stallCount;
+  bool           m_shutdown;
 
-  PeerInfo m_peer;
+  int            m_stallCount;
+
+  PeerInfo       m_peer;
   DownloadState* m_download;
   DownloadNet*   m_net;
    
   BitFieldExt    m_bitfield;
    
-  bool m_sendChoked;
-  bool m_sendInterested;
-  bool m_tryRequest;
+  bool           m_sendChoked;
+  bool           m_sendInterested;
+  bool           m_tryRequest;
 
-  SendList    m_sends;
-  RequestList m_requests;
+  SendList       m_sends;
+  RequestList    m_requests;
 
   std::list<int> m_haveQueue;
 
-  Timer m_lastChoked;
-  Timer m_lastMsg;
+  Timer          m_lastChoked;
+  Timer          m_lastMsg;
 
-  Sub m_up;
-  Sub m_down;
+  Sub            m_up;
+  Sub            m_down;
 
-  Rate     m_ratePeer;
-  Throttle m_throttle;
+  Rate           m_ratePeer;
+  Throttle       m_throttle;
+
+  Task           m_taskKeepAlive;
+  Task           m_taskSendChoke;
+  Task           m_taskStall;
 };
 
 }

@@ -11,7 +11,7 @@
 #include "general.h"
 #include "bencode.h"
 
-#include "utils/timer.h"
+#include "utils/task_schedule.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "parse/parse.h"
@@ -99,7 +99,7 @@ initialize() {
 
   srandom(Timer::current().usec());
 
-  ThrottleControl::global().insert_service(Timer::current(), 0);
+  ThrottleControl::global().get_task_update().insert(Timer::current());
 
   handshakes->slot_connected(sigc::ptr_fun3(&receive_connection));
   handshakes->slot_download_id(sigc::ptr_fun1(download_id));
@@ -112,7 +112,7 @@ cleanup() {
   if (listen == NULL || hashQueue == NULL || handshakes == NULL || downloadManager == NULL)
     throw client_error("torrent::cleanup() called but the library is not initialized");
 
-  ThrottleControl::global().remove_service();
+  ThrottleControl::global().get_task_update().remove();
 
   handshakes->clear();
   downloadManager->clear();
@@ -198,7 +198,7 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
 
   // TODO: Consider moving before the r/w/e. libsic++ should remove the use of
   // zero timeout stuff to send signal. Better yet, use on both sides, it's cheap.
-  Service::perform_service();
+  TaskSchedule::perform(Timer::current());
 }
 
 Download
@@ -301,7 +301,7 @@ get(GValue t) {
     return Timer::current().usec();
 
   case TIME_SELECT:
-    return Service::next_service().usec();
+    return TaskSchedule::get_timeout().usec();
 
   case THROTTLE_ROOT_CONST_RATE:
     return std::max(ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate, 0);
