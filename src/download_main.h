@@ -53,6 +53,7 @@ private:
   void receive_download_done();
 
   void setup_delegator();
+  void setup_net();
 
   static Downloads m_downloads;
   

@@ -69,6 +69,7 @@ DownloadMain::DownloadMain(const bencode& b) :
 
   m_state.content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 
+  setup_net();
   setup_delegator();
 
   } catch (const bencode_error& e) {
@@ -290,6 +291,16 @@ DownloadMain::setup_delegator() {
 
   m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
   m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
+}
+
+void
+DownloadMain::setup_net() {
+  m_net.set_settings(&m_state.settings());
+
+  m_net.slot_chunks_completed(sigc::mem_fun(m_state.content(), &Content::get_chunks_completed));
+  m_net.slot_chunks_count(sigc::mem_fun(m_state.content().get_storage(), &Storage::get_chunkcount));
+
+  m_state.signal_chunk_passed().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::update_endgame)));
 }
 
 }

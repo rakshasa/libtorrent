@@ -37,6 +37,8 @@ class DownloadSettings {
   // Time to wait after a choke before we consider it final.
   int cancelTimeout;
 
+  int32_t endgameBorder;
+
   static DownloadSettings& global() { return *m_global; }
 
  private:
