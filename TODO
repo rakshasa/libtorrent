@@ -36,6 +36,10 @@ Recursively update the up/down rates in throttle.
 
 Make a seperate class for doing read and write to buffer in PC.
 
+Done indicator.
+
+Each throttle can have it's own rules to decide the priority it gets.
+
 
 IN/AFTER API REDESIGN:
 
