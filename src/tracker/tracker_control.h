@@ -24,12 +24,12 @@ namespace torrent {
 
 class TrackerControl {
  public:
-  typedef std::list<PeerInfo>                  PeerList;
+  typedef std::list<PeerInfo>                     PeerList;
 
-  typedef sigc::slot0<uint64_t>                SlotStat;
-  typedef sigc::signal1<void, Bencode&>        SignalBencode;
-  typedef sigc::signal1<void, const PeerList&> SignalPeers;
-  typedef sigc::signal1<void, std::string>     SignalFailed;
+  typedef sigc::slot0<uint64_t>                   SlotStat;
+  typedef sigc::signal1<void, Bencode&>           SignalBencode;
+  typedef sigc::signal1<void, const PeerList&>    SignalPeers;
+  typedef sigc::signal1<void, const std::string&> SignalString;
 
   TrackerControl(const std::string& hash, const std::string& key);
 
@@ -50,7 +50,7 @@ class TrackerControl {
 
   SignalBencode         signal_bencode()                        { return m_signalBencode; }
   SignalPeers&          signal_peers()                          { return m_signalPeers; }
-  SignalFailed&         signal_failed()                         { return m_signalFailed; }
+  SignalString&         signal_failed()                         { return m_signalFailed; }
 
   void                  slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
   void                  slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
@@ -62,7 +62,7 @@ class TrackerControl {
   void                  operator = (const TrackerControl& t);
 
   void                  receive_done(Bencode& bencode);
-  void                  receive_failed(std::string msg);
+  void                  receive_failed(const std::string& msg);
 
   void                  query_current();
 
@@ -88,7 +88,7 @@ class TrackerControl {
 
   SignalBencode         m_signalBencode;
   SignalPeers           m_signalPeers;
-  SignalFailed          m_signalFailed;
+  SignalString          m_signalFailed;
 
   SlotStat              m_slotStatDown;
   SlotStat              m_slotStatUp;

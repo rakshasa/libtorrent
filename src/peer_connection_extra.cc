@@ -22,8 +22,6 @@ using namespace algo;
 
 namespace torrent {
 
-extern std::list<std::string> caughtExceptions;
-
 PeerConnection::PeerConnection() :
   m_shutdown(false),
   m_stallCount(0),

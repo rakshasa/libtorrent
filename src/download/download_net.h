@@ -17,9 +17,9 @@ class PeerConnection;
 
 class DownloadNet {
 public:
-  typedef std::deque<PeerInfo>       PeerContainer;
-  typedef std::list<PeerInfo>        PeerList;
-  typedef std::list<PeerConnection*> ConnectionList;
+  typedef std::deque<PeerInfo>                    PeerContainer;
+  typedef std::list<PeerInfo>                     PeerList;
+  typedef std::list<PeerConnection*>              ConnectionList;
 
   DownloadNet() : m_settings(NULL), m_endgame(false) {}
   ~DownloadNet();
@@ -58,20 +58,23 @@ public:
 
   // Signals and slots.
 
-  typedef sigc::signal1<void, Peer>                          SignalPeer;
+  typedef sigc::signal1<void, Peer>                            SignalPeer;
+  typedef sigc::signal1<void, const std::string&>              SignalString;
 
-  typedef sigc::slot2<PeerConnection*, int, const PeerInfo&> SlotCreateConnection;
-  typedef sigc::slot1<void, const PeerInfo&>                 SlotStartHandshake;
-  typedef sigc::slot1<bool, const PeerInfo&>                 SlotHasHandshake;
-  typedef sigc::slot0<uint32_t>                              SlotCountHandshakes;
+  typedef sigc::slot2<PeerConnection*, int, const PeerInfo&>   SlotCreateConnection;
+  typedef sigc::slot1<void, const PeerInfo&>                   SlotStartHandshake;
+  typedef sigc::slot1<bool, const PeerInfo&>                   SlotHasHandshake;
+  typedef sigc::slot0<uint32_t>                                SlotCountHandshakes;
 
-  SignalPeer& signal_peer_connected()                        { return m_signalPeerConnected; }
-  SignalPeer& signal_peer_disconnected()                     { return m_signalPeerDisconnected; }
+  SignalPeer&   signal_peer_connected()                        { return m_signalPeerConnected; }
+  SignalPeer&   signal_peer_disconnected()                     { return m_signalPeerDisconnected; }
 
-  void slot_create_connection(SlotCreateConnection s)        { m_slotCreateConnection = s; }
-  void slot_start_handshake(SlotStartHandshake s)            { m_slotStartHandshake = s; }
-  void slot_has_handshake(SlotHasHandshake s)                { m_slotHasHandshake = s; }
-  void slot_count_handshakes(SlotCountHandshakes s)          { m_slotCountHandshakes = s; }
+  SignalString& signal_network_log()                           { return m_signalNetworkLog; }
+
+  void          slot_create_connection(SlotCreateConnection s) { m_slotCreateConnection = s; }
+  void          slot_start_handshake(SlotStartHandshake s)     { m_slotStartHandshake = s; }
+  void          slot_has_handshake(SlotHasHandshake s)         { m_slotHasHandshake = s; }
+  void          slot_count_handshakes(SlotCountHandshakes s)   { m_slotCountHandshakes = s; }
 
 private:
   DownloadNet(const DownloadNet&);
@@ -89,6 +92,7 @@ private:
 
   SignalPeer             m_signalPeerConnected;
   SignalPeer             m_signalPeerDisconnected;
+  SignalString           m_signalNetworkLog;
 
   SlotCreateConnection   m_slotCreateConnection;
   SlotStartHandshake     m_slotStartHandshake;

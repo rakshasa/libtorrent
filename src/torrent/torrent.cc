@@ -25,7 +25,6 @@ using namespace algo;
 namespace torrent {
 
 int64_t Timer::m_cache;
-std::list<std::string> caughtExceptions;
 
 Listen* listen = NULL;
 HashQueue* hashQueue = NULL;
@@ -180,8 +179,6 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
 
-  caughtExceptions.clear();
-
   // If except is called, make sure you correctly remove us from the poll.
   for_each<true>(SocketBase::except_sockets().begin(), SocketBase::except_sockets().end(),
 		 if_on(check_socket_isset(exceptSet),
@@ -293,9 +290,6 @@ get(GValue t) {
   case DEFAULT_CHOKE_CYCLE:
     return DownloadSettings::global().chokeCycle;
 
-  case HAS_EXCEPTION:
-    return !caughtExceptions.empty();
-
   case TIME_CURRENT:
     return Timer::current().usec();
 
@@ -317,15 +311,6 @@ get(GString t) {
   switch (t) {
   case LIBRARY_NAME:
     return std::string("libtorrent") + " " VERSION;
-
-  case POP_EXCEPTION:
-    if (caughtExceptions.empty())
-      throw internal_error("get(GString) tried to pop an exception from an empty list");
-
-    s = caughtExceptions.front();
-    caughtExceptions.pop_front();
-
-    return s;
 
   default:
     throw internal_error("get(GString) received invalid type");

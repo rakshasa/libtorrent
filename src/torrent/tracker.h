@@ -17,6 +17,9 @@ public:
   uint32_t            get_group()                        { return m_tracker.first; }
   const std::string&  get_url();
 
+  // The "tracker id" string returned by the tracker.
+  const std::string&  get_tracker_id();
+
 private:
   value_type          m_tracker;
 };

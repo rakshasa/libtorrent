@@ -326,12 +326,12 @@ Download::peer_find(const std::string& id) {
 }
 
 sigc::connection
-Download::signal_download_done(Download::Slot s) {
+Download::signal_download_done(Download::SlotVoid s) {
   return m_ptr->get_main().get_state().get_content().signal_download_done().connect(s);
 }
 
 sigc::connection
-Download::signal_hash_done(Download::Slot s) {
+Download::signal_hash_done(Download::SlotVoid s) {
   return m_ptr->get_hash_checker().signal_torrent().connect(s);
 }
 
@@ -346,17 +346,17 @@ Download::signal_peer_disconnected(Download::SlotPeer s) {
 }
 
 sigc::connection
-Download::signal_tracker_succeded(Download::Slot s) {
+Download::signal_tracker_succeded(Download::SlotVoid s) {
   return m_ptr->get_main().get_tracker().signal_peers().connect(sigc::hide(s));
 }
 
 sigc::connection
-Download::signal_tracker_failed(Download::SlotTrackerFailed s) {
+Download::signal_tracker_failed(Download::SlotString s) {
   return m_ptr->get_main().get_tracker().signal_failed().connect(s);
 }
 
 sigc::connection
-Download::signal_tracker_dump(Download::SlotTrackerDump s) {
+Download::signal_tracker_dump(Download::SlotBencode s) {
   return m_ptr->get_main().get_tracker().signal_bencode().connect(s);
 }
 
@@ -368,6 +368,11 @@ Download::signal_chunk_passed(Download::SlotChunk s) {
 sigc::connection
 Download::signal_chunk_failed(Download::SlotChunk s) {
   return m_ptr->get_main().get_state().signal_chunk_failed().connect(s);
+}
+
+sigc::connection
+Download::signal_network_log(SlotString s) {
+  return m_ptr->get_main().get_net().signal_network_log().connect(s);
 }
 
 }

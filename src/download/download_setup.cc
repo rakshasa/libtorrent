@@ -13,8 +13,6 @@
 
 namespace torrent {
 
-extern std::list<std::string> caughtExceptions;
-
 void
 DownloadMain::setup_delegator() {
   m_net.get_delegator().get_select().set_bitfield(&m_state.get_content().get_bitfield());

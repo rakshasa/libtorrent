@@ -11,4 +11,9 @@ Tracker::get_url() {
   return m_tracker.second->get_url();
 }
 
+const std::string&
+Tracker::get_tracker_id() {
+  return m_tracker.second->get_tracker_id();
+}
+
 }

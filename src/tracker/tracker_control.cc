@@ -123,7 +123,7 @@ TrackerControl::receive_done(Bencode& bencode) {
 }
 
 void
-TrackerControl::receive_failed(std::string msg) {
+TrackerControl::receive_failed(const std::string& msg) {
   ++m_itr;
 
   if (m_itr == m_list.end())

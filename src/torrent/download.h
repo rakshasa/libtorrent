@@ -128,25 +128,28 @@ public:
   // class does not get copied as the binding only points to the original
   // memory location.
 
-  typedef sigc::slot0<void>                Slot;
+  typedef sigc::slot0<void>                     SlotVoid;
+  typedef sigc::slot1<void, const std::string&> SlotString;
 
-  typedef sigc::slot1<void, Peer>          SlotPeer;
-  typedef sigc::slot1<void, Bencode&>      SlotTrackerDump;
-  typedef sigc::slot1<void, std::string>   SlotTrackerFailed;
-  typedef sigc::slot1<void, uint32_t>      SlotChunk;
+  typedef sigc::slot1<void, Peer>               SlotPeer;
+  typedef sigc::slot1<void, Bencode&>           SlotBencode;
+  typedef sigc::slot1<void, uint32_t>           SlotChunk;
 
-  sigc::connection    signal_download_done(Slot s);
-  sigc::connection    signal_hash_done(Slot s);
+  sigc::connection    signal_download_done(SlotVoid s);
+  sigc::connection    signal_hash_done(SlotVoid s);
 
   sigc::connection    signal_peer_connected(SlotPeer s);
   sigc::connection    signal_peer_disconnected(SlotPeer s);
 
-  sigc::connection    signal_tracker_succeded(Slot s);
-  sigc::connection    signal_tracker_failed(SlotTrackerFailed s);
-  sigc::connection    signal_tracker_dump(SlotTrackerDump s);
+  sigc::connection    signal_tracker_succeded(SlotVoid s);
+  sigc::connection    signal_tracker_failed(SlotString s);
+  sigc::connection    signal_tracker_dump(SlotBencode s);
 
   sigc::connection    signal_chunk_passed(SlotChunk s);
   sigc::connection    signal_chunk_failed(SlotChunk s);
+
+  // Various log message signals.
+  sigc::connection    signal_network_log(SlotString s);
 
 private:
   DownloadWrapper*      m_ptr;

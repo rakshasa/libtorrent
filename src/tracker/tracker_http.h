@@ -41,6 +41,7 @@ public:
   const std::string& get_url()                             { return m_url; }
   void               set_url(const std::string& url)       { m_url = url; }
 
+  const std::string& get_tracker_id()                      { return m_trackerId; }
   void               set_tracker_id(const std::string& id) { m_trackerId = id; }
 
   SignalDone&        signal_done()                         { return m_signalDone; }

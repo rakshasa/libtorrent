@@ -10,9 +10,9 @@ namespace torrent {
 // Keep in mind that these objects get reused.
 class Http {
  public:
-  typedef sigc::signal0<void>              SignalDone;
-  typedef sigc::signal1<void, std::string> SignalFailed;
-  typedef sigc::slot0<Http*>               SlotFactory;
+  typedef sigc::signal0<void>                     Signal;
+  typedef sigc::signal1<void, const std::string&> SignalString;
+  typedef sigc::slot0<Http*>                      SlotFactory;
 
   Http() : m_userAgent("not_set"), m_stream(NULL) {}
   virtual ~Http();
@@ -32,8 +32,8 @@ class Http {
   void               set_user_agent(const std::string& s) { m_userAgent = s; }
   const std::string& get_user_agent()                     { return m_userAgent; }
 
-  SignalDone&        signal_done()                        { return m_signalDone; }
-  SignalFailed&      signal_failed()                      { return m_signalFailed; }
+  Signal&            signal_done()                        { return m_signalDone; }
+  SignalString&      signal_failed()                      { return m_signalFailed; }
 
   // Set the factory function that constructs and returns a valid Http* object.
   static  void       set_factory(const SlotFactory& f);
@@ -46,8 +46,8 @@ protected:
   std::string        m_userAgent;
   std::iostream*     m_stream;
 
-  SignalDone         m_signalDone;
-  SignalFailed       m_signalFailed;
+  Signal             m_signalDone;
+  SignalString       m_signalFailed;
 
 private:
   // Disabled ctor. Do we want ref counting instead?

@@ -23,9 +23,6 @@ using namespace algo;
 
 namespace torrent {
 
-// Find a better way to do this?
-extern std::list<std::string> caughtExceptions;
-
 PeerConnection*
 PeerConnection::create(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
   PeerConnection* pc = new PeerConnection;
@@ -181,7 +178,7 @@ void PeerConnection::read() {
       if (m_down.lengthOrig == 9) {
 	// Some clients send zero length messages when we request pieces
 	// they don't have.
-	caughtExceptions.push_front("Received piece with length zero");
+	m_net->signal_network_log().emit("Received piece with length zero");
 
 	m_down.state = IDLE;
 	goto evil_goto_read;
@@ -203,7 +200,7 @@ void PeerConnection::read() {
 	m_down.length = piece.get_length();
 	m_down.state = READ_SKIP_PIECE;
 
-	caughtExceptions.push_back("Receiving piece we don't want from " + m_peer.get_dns());
+	m_net->signal_network_log().emit("Receiving piece we don't want from " + m_peer.get_dns());
       }
 
       goto evil_goto_read;
@@ -313,7 +310,7 @@ void PeerConnection::read() {
     m_net->remove_connection(this);
 
   } catch (network_error& e) {
-    caughtExceptions.push_front(e.what());
+    m_net->signal_network_log().emit(e.what());
 
     m_net->remove_connection(this);
 
@@ -436,7 +433,7 @@ void PeerConnection::write() {
     m_net->remove_connection(this);
 
   } catch (network_error& e) {
-    caughtExceptions.push_front(e.what());
+    m_net->signal_network_log().emit(e.what());
 
     m_net->remove_connection(this);
 
@@ -451,7 +448,7 @@ void PeerConnection::write() {
 }
 
 void PeerConnection::except() {
-  caughtExceptions.push_front("Connection exception: " + std::string(strerror(errno)));
+  m_net->signal_network_log().emit("Connection exception: " + std::string(strerror(errno)));
 
   m_net->remove_connection(this);
 }
@@ -727,7 +724,7 @@ PeerConnection::task_stall() {
   // entries get those new ones stalled if needed.
   m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
 
-  caughtExceptions.push_back("Peer stalled " + m_peer.get_dns());
+  m_net->signal_network_log().emit("Peer stalled " + m_peer.get_dns());
 }
 
 }

@@ -1,45 +1,12 @@
-test.cc caught "Connection write fd(18) state(10) "Throttle::spendt(...) error, used to many bytes""
-*** glibc detected *** double free or corruption: 0x0805ec90 ***
-Aborted
+FIXME SOON: 
 
-Somehow every peer is marked interested, check if this is a real problem. 
+Caught exception: "System call msync failed in FileChunk"
 
-test.cc caught "Connection read fd(67) state(1) "Empty HashQueue is still in service""
-
-Writing "Refrain Blue OVA - 01.avi": Success
-Writing "battlestar.galactica.s01e02.proper.pdtv-sfm.avi": Success
-Exited
-Signal SIGSEGV recived, dumping stack:
-0 rtorrent [0x806f345]
-1 /lib/tls/libc.so.6 [0x20bec8]
-2 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent7Service14remove_serviceEv+0xd8) [0x8e4988]
-3 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent7ServiceD2Ev+0x2a) [0x8e45ba]
-4 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x8ed251]
-5 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x8ef7fa]
-6 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x8d52fb]
-7 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x9262f6]
-8 /lib/ld-linux.so.2 [0x621edd]
-9 /lib/tls/libc.so.6(exit+0x63) [0x20e6d3]
-10 /lib/tls/libc.so.6 [0x1f97ff]
-11 rtorrent(dlopen+0x41) [0x8065f61]
+Removed the underlying file while it was open, then closed the torrent.
 
 
-Signal SIGBUS recived, dumping stack:
-0 rtorrent [0x80685f3]
-1 rtorrent [0x80692c2]
-2 rtorrent [0x806c62a]
-3 /lib/tls/libc.so.6 [0x37aec8]
-4 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN4sigc8internal10slot_call2INS_12bind_functorILin1ENS_16pointer_functor4IiRKN7torrent8PeerInfoEPNS4_13DownloadStateEPNS4_11DownloadNetEPNS4_14PeerConnectionEEES9_SB_NS_3nilESF_SF_SF_SF_EESD_iS7_E7call_itEPNS0_8slot_repERKiS7_+0x29) [0x2ca8d9]
-5 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent11DownloadNet14add_connectionEiRKNS_8PeerInfoE+0x4d4) [0x2c5a14]
-6 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent18receive_connectionEiRKSsRKNS_8PeerInfoE+0x76) [0x2aaa56]
-7 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN4sigc8internal10slot_call3INS_16pointer_functor3IiRKSsRKN7torrent8PeerInfoEvEEviS4_S8_E7call_itEPNS0_8slot_repERKiS4_S8_+0x22) [0x2ad1f2]
-8 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent16HandshakeManager17receive_connectedEPNS_9HandshakeE+0x98) [0x2d2268]
-9 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent17HandshakeOutgoing4readEv+0xf1) [0x2d2e81]
-10 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN4algo8for_eachILb1ESt14_List_iteratorIPN7torrent10SocketBaseERS4_PS4_ENS_4IfOnINS2_18check_socket_issetENS_10CallMemberIS3_vNS_11back_as_refEEENS_5emptyEEEEEvT0_SF_T1_+0x67) [0x2ace17]
-11 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent4workEP6fd_setS1_S1_i+0x186) [0x2abab6]
-12 rtorrent [0x8077be5]
-13 rtorrent [0x8077a8b]
-14 rtorrent [0x8067b7a]
-15 /lib/tls/libc.so.6(__libc_start_main+0xed) [0x36879d]
-16 rtorrent(_ZNSt13runtime_errorC1ERKSs+0x3d) [0x8066751]
-A bus error might mean you ran out of diskspace.
+FIXME LATER:
+
+Caught exception: "DownloadWrapper::resume_save() called with wrong state"
+
+Pressed ^D during hash check/resume check.

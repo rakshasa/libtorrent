@@ -61,8 +61,6 @@ typedef enum {
 
   DEFAULT_CHOKE_CYCLE,
 
-  HAS_EXCEPTION,
-
   TIME_CURRENT,            // Unix time. (usec)
   TIME_SELECT,             // Timeout for the next select call. (usec)
 
@@ -74,9 +72,7 @@ typedef enum {
 } GValue;
 
 typedef enum {
-  LIBRARY_NAME,
-
-  POP_EXCEPTION
+  LIBRARY_NAME
 } GString;
 
 int64_t     get(GValue t);
