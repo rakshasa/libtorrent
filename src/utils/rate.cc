@@ -62,6 +62,7 @@ Rate::insert(uint32_t bytes) {
   else
     m_container.front().second += bytes;
 
+  m_total += bytes;
   m_current += bytes;
 }
   
