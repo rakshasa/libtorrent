@@ -3,6 +3,8 @@
 #endif
 
 #include <inttypes.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 
 #include "bitfield.h"

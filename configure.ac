@@ -95,13 +95,13 @@ AC_MSG_CHECKING(has proper template specialization disambiguation)
 AC_COMPILE_IFELSE(
     [[template <typename T> void f(T&) {}
       template <typename T> void f(T*) {}
-      int main() { int i = 0; f(i); f(&i); }
+      int main() { int *i = 0; f(*i); f(i); }
     ]],
     [
       AC_MSG_RESULT(yes)
     ], [
       AC_MSG_RESULT(no)
-      AC_MSG_ERROR([your compiler does not handle template specialization disambiguation properly])
+      AC_MSG_ERROR([your compiler does not properly handle template specialization disambiguation])
     ]
 )
 
