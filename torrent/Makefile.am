@@ -51,9 +51,6 @@ libtorrent_la_SOURCES = \
         download.h \
 	download_state.cc \
 	download_state.h \
-        files.cc \
-        files.h \
-	files_algo.h \
         general.cc \
         general.h \
         peer.cc \
