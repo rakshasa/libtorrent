@@ -5,6 +5,8 @@
 #include "task.h"
 #include "task_schedule.h"
 
+#include "torrent/exceptions.h"
+
 namespace torrent {
 
 TaskSchedule::Container TaskSchedule::m_container;
@@ -13,6 +15,9 @@ void
 TaskSchedule::perform(Timer t) {
   while (!m_container.empty() && m_container.front()->get_time() <= t) {
     Task* u = m_container.front();
+
+    if (u->get_iterator() != m_container.begin())
+      throw internal_error("TaskSchedule::perform(...) bork bork bork");
 
     u->remove();
     u->get_slot()();

@@ -36,7 +36,12 @@ public:
     }
   }
 
+  TaskSchedule::iterator get_iterator() { return m_itr; }
+
 private:
+  Task(const Task&);
+  void operator () (const Task&);
+
   Timer                  m_time;
   TaskSchedule::iterator m_itr;
   Slot                   m_slot;

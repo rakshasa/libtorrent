@@ -59,12 +59,12 @@ TrackerControl::add_url(const std::string& url) {
 void
 TrackerControl::set_next_time(Timer interval) {
   if (m_taskTimeout.is_scheduled())
-    m_taskTimeout.insert(Timer::current() + interval);
+    m_taskTimeout.insert(Timer::cache() + interval);
 }
 
 Timer
 TrackerControl::get_next_time() {
-  return m_taskTimeout.is_scheduled() ? std::max(Timer::current() - m_taskTimeout.get_time(), Timer(0)) : 0;
+  return m_taskTimeout.is_scheduled() ? std::max(m_taskTimeout.get_time() - Timer::cache(), Timer(0)) : 0;
 }
 
 void
@@ -109,7 +109,7 @@ TrackerControl::receive_done(const PeerList& l, int interval) {
   if (m_interval < 60)
     throw internal_error("TrackerControl m_interval is to small");
 
-  m_taskTimeout.insert(Timer::current() + (int64_t)m_interval * 1000000);
+  m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
 
   m_signalPeers.emit(l);
 }
@@ -119,7 +119,7 @@ TrackerControl::receive_failed(std::string msg) {
   if (m_state != TRACKER_STOPPED) {
     // TODO: Add support for multiple trackers. Iterate if m_failed > X.
 
-    m_taskTimeout.insert(Timer::current() + 20 * 1000000);
+    m_taskTimeout.insert(Timer::cache() + 20 * 1000000);
   }
 
   m_signalFailed.emit(msg);
