@@ -19,6 +19,9 @@ int Settings::rateWindow = 60 * 1000000;
 int Settings::rateQuick = 10 * 1000000;
 int Settings::rateSample = 1000000;
 
+int Settings::hashForcedWait = 10000;
+int Settings::hashMadviceWait = 5000;
+
 DownloadSettings* DownloadSettings::m_global = new DownloadSettings();
 
 DownloadSettings::DownloadSettings() :

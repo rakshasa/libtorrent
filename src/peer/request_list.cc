@@ -28,12 +28,19 @@ RequestList::delegate() {
   }
 }
 
+// Replace m_canceled with m_reservees and set them to stalled.
 void
 RequestList::cancel() {
   if (m_downloading)
     throw internal_error("RequestList::cancel(...) called while is_downloading() == true");
 
-  cancel_range(m_reservees.end());
+  std::for_each(m_canceled.begin(), m_canceled.end(), delete_on());
+  m_canceled.clear();
+
+  std::for_each(m_reservees.begin(), m_reservees.end(),
+		call_member(&DelegatorReservee::set_stalled, value(true)));
+
+  m_canceled.swap(m_reservees);
 }
 
 void
@@ -53,17 +60,26 @@ RequestList::downloading(const Piece& p) {
     std::find_if(m_reservees.begin(), m_reservees.end(),
 		 eq(ref(p), call_member(&DelegatorReservee::get_piece)));
   
-  if (itr == m_reservees.end())
-    return false;
+  if (itr == m_reservees.end()) {
+    itr = std::find_if(m_canceled.begin(), m_canceled.end(),
+		       eq(ref(p), call_member(&DelegatorReservee::get_piece)));
 
-  if ((*m_delegator->get_select().get_bitfield())[p.get_index()])
-    throw internal_error("RequestList::downloading(...) called with a piece index we already have");
+    if (itr == m_canceled.end())
+      return false;
 
-  cancel_range(itr);
+    m_reservees.push_front(*itr);
+    m_canceled.erase(itr);
+
+  } else {
+    cancel_range(itr);
+  }
   
   m_downloading = true;
   m_piece = m_reservees.front()->get_piece();
   
+  if ((*m_delegator->get_select().get_bitfield())[p.get_index()])
+    throw internal_error("RequestList::downloading(...) called with a piece index we already have");
+
   return true;
 }
 
@@ -103,9 +119,9 @@ RequestList::has_index(unsigned int i) {
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
   while (m_reservees.begin() != end) {
-    m_reservees.front()->invalidate();
+    m_reservees.front()->set_stalled(true);
     
-    delete m_reservees.front();
+    m_canceled.push_back(m_reservees.front());
     m_reservees.pop_front();
   }
 }
@@ -122,6 +138,14 @@ RequestList::remove_invalid() {
     count++;
     delete *itr;
     m_reservees.erase(itr);
+  }
+
+  // Don't count m_canceled that are invalid.
+  while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(),
+			     bool_not(call_member(&DelegatorReservee::is_valid))))
+	 != m_canceled.end()) {
+    delete *itr;
+    m_canceled.erase(itr);
   }
 
   return count;

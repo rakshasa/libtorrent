@@ -27,7 +27,7 @@ public:
 
   // If is downloading, call skip before cancel.
   void               cancel();
-  void               stall(); // Just calls cancel for now
+  void               stall();
   void               skip();
 
   bool               downloading(const Piece& p);
@@ -64,8 +64,9 @@ private:
 
   int                m_affinity;
   bool               m_downloading;
-  ReserveeList       m_reservees;
 
+  ReserveeList       m_reservees;
+  ReserveeList       m_canceled;
 };
 
 }

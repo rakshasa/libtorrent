@@ -4,6 +4,7 @@
 #include "hash_queue.h"
 #include "hash_chunk.h"
 #include "storage_chunk.h"
+#include "settings.h"
 
 #include <algo/algo.h>
 
@@ -68,7 +69,7 @@ void HashQueue::service(int type) {
   if (m_chunks.empty())
     return;
   else if (forced)
-    return insert_service(Timer::current() + 100000, 0);
+    return insert_service(Timer::current() + Settings::hashForcedWait, 0);
 
   HashChunk* chunk = m_chunks.front().chunk;
 
@@ -83,7 +84,7 @@ void HashQueue::service(int type) {
     if (m_tries++ < 3) {
       chunk->willneed(chunk->remaining());
       
-      return insert_service(Timer::current() + 50000, 0);
+      return insert_service(Timer::current() + Settings::hashMadviceWait, 0);
     } else {
       chunk->perform(chunk->remaining(), forced = true);
     }

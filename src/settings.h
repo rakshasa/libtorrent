@@ -19,6 +19,9 @@ class Settings {
   static int rateWindow;
   static int rateQuick;
   static int rateSample;
+
+  static int hashForcedWait;
+  static int hashMadviceWait;
 };
 
 class DownloadSettings {

@@ -10,7 +10,7 @@ Handshake::~Handshake() {
   if (m_fd >= 0)
     throw internal_error("Handshake dtor called but m_fd is still open");
 
-  delete m_buf;
+  delete [] m_buf;
 }
 
 void

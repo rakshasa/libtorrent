@@ -451,13 +451,14 @@ void PeerConnection::parseReadBuf() {
   switch (m_down.buf[0]) {
   case CHOKE:
     m_down.choked = true;
-    insert_service(Timer::cache() + m_download->settings().cancelTimeout, SERVICE_CANCEL);
+    m_requests.cancel();
+
+    remove_service(SERVICE_STALL);
 
     return;
 
   case UNCHOKE:
     m_down.choked = false;
-    remove_service(SERVICE_CANCEL);
     
     return insert_write();
 
@@ -706,26 +707,6 @@ void PeerConnection::service(int type) {
     insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
 
     caughtExceptions.push_back("Peer stalled " + m_peer.dns());
-    return;
-
-  case SERVICE_CANCEL:
-    if (!m_down.choked)
-      return;
-
-    if (m_requests.is_downloading()) {
-      if (m_down.state != READ_PIECE)
-	throw internal_error("PeerConnection::service(SERVICE_CANCEL) caught m_requests.is_downloading() but we are not in READ_PIECE state");
-
-      m_down.state = READ_SKIP_PIECE;
-      m_down.length = m_requests.get_piece().get_length() - m_down.pos;
-      m_down.pos = 0;
-
-      m_requests.skip();
-    }
-
-    remove_service(SERVICE_STALL);
-    m_requests.cancel();
-
     return;
 
   default:
