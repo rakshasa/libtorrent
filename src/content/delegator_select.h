@@ -12,7 +12,7 @@ class BitFieldCounter;
 class DelegatorSelect {
 public:
 
-  typedef std::vector<unsigned int> Indexes;
+  typedef std::vector<uint32_t> Indexes;
   
   DelegatorSelect() :
     m_bitfield(NULL),
@@ -33,10 +33,10 @@ public:
 
   // Never touch index value 'size', this is used to avoid unnessesary
   // checks for the end iterator.
-  void                   add_ignore(unsigned int index);
-  void                   remove_ignore(unsigned int index);
+  void                   add_ignore(uint32_t index);
+  void                   remove_ignore(uint32_t index);
 
-  int                    find(const BitField& bf, unsigned int start, unsigned int rarity, Priority::Type p);
+  int                    find(const BitField& bf, uint32_t start, uint32_t rarity, Priority::Type p);
 
   void                   clear() {
     m_ignore.clear();
@@ -45,14 +45,14 @@ public:
   }
 
 private:
-  int                    check_range(const BitField& bf,
-				     unsigned int start,
-				     unsigned int end,
-				     unsigned int rarity,
-				     unsigned int& cur_rarity);
+  int32_t                check_range(const BitField& bf,
+				     uint32_t start,
+				     uint32_t end,
+				     uint32_t rarity,
+				     uint32_t& cur_rarity);
 
   uint32_t               wanted(const BitField& bf,
-				unsigned int start,
+				uint32_t start,
 				Indexes::const_iterator& indexes);
 
   Indexes                m_ignore;

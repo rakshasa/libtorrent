@@ -15,22 +15,11 @@ namespace torrent {
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
-HashQueue::add(const std::string& id, Chunk c, SlotDone d, bool try_immediately) {
+HashQueue::add(Chunk c, SlotDone d, const std::string& id) {
   if (!c.is_valid() || !c->is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
   HashChunk* hc = new HashChunk(c);
-
-  if (try_immediately)
-    while (hc->remaining() &&
-	   hc->perform(hc->remaining()));
-  
-  if (!hc->remaining()) {
-    d(c, hc->get_hash());
-
-    delete hc;
-    return;
-  }
 
   if (m_chunks.empty()) {
     if (in_service(0))
@@ -44,7 +33,7 @@ HashQueue::add(const std::string& id, Chunk c, SlotDone d, bool try_immediately)
 }
 
 bool
-HashQueue::has(const std::string& id, uint32_t index) {
+HashQueue::has(uint32_t index, const std::string& id) {
   return std::find_if(m_chunks.begin(), m_chunks.end(),
 		      bool_and(eq(ref(id), member(&HashQueue::Node::m_id)),
 			       eq(value(index), call_member(&HashQueue::Node::get_index))))

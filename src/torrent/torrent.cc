@@ -7,6 +7,8 @@
 #include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "parse/parse.h"
+#include "data/hash_queue.h"
+#include "data/hash_torrent.h"
 
 #include "torrent.h"
 #include "exceptions.h"
@@ -95,8 +97,7 @@ listen_open(uint16_t begin, uint16_t end) {
     return false;
 
   std::for_each(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
-		call_member(call_member(call_member(&DownloadMain::state), &DownloadState::get_me),
-			    &PeerInfo::set_port, value(listen->get_port())));
+		call_member(&DownloadMain::set_port, value(listen->get_port())));
 
   return true;
 }
@@ -173,17 +174,37 @@ download_create(std::istream& s) {
     // Make it configurable whetever we throw or return .end()?
     throw local_error("Could not parse bencoded torrent");
   
-  DownloadMain* d = new DownloadMain(b);
+  DownloadMain* d = new DownloadMain();
+
+  try {
+
+    d->set_port(listen->get_port());
+
+    parse_main(b, *d);
+    parse_info(b["info"], d->state().get_content());
+
+    // Hash must be calculated before these are connected.
+    d->net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
+    d->net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
+					     d->state().get_hash(), d->state().get_me().get_id()));
+    d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
+					      d->state().get_hash()));
+
+    d->state().slot_hash_check_add(sigc::bind(sigc::mem_fun(d->state(), &DownloadState::receive_hash_done),
+					      d->state().get_hash()));
+
+    d->setup_net();
+    d->setup_delegator();
+    d->setup_tracker();
+
+    parse_tracker(b, d->tracker());
+
+  } catch (...) {
+    delete d;
+    throw;
+  }
+
   DownloadMain::downloads().insert(DownloadMain::downloads().end(), d);
-
-  d->net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
-  d->net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
-					   d->state().get_hash(), d->state().get_me().get_id()));
-  d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
-					    d->state().get_hash()));
-
-  d->setup_tracker();
-  parse_tracker(b, d->tracker());
 
   return Download((DownloadWrapper*)d);
 }

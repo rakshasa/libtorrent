@@ -28,9 +28,9 @@ public:
   // SignalDone: (Return void)
   // unsigned int - index of chunk
   // std::string  - chunk hash
-  void                add(const std::string& id, Chunk c, SlotDone d, bool try_immediately = false);
+  void                add(Chunk c, SlotDone d, const std::string& id);
 
-  bool                has(const std::string& id, uint32_t index);
+  bool                has(uint32_t index, const std::string& id);
 
   void                remove(const std::string& id);
   void                clear();

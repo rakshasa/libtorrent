@@ -40,7 +40,7 @@ DelegatorSelect::interested(uint32_t index) {
 }
 
 void
-DelegatorSelect::add_ignore(unsigned int index) {
+DelegatorSelect::add_ignore(uint32_t index) {
   Indexes::iterator itr = std::find_if(m_ignore.begin(), m_ignore.end(),
 				       leq(value(index), back_as_ref()));
   
@@ -55,7 +55,7 @@ DelegatorSelect::add_ignore(unsigned int index) {
 
 
 void
-DelegatorSelect::remove_ignore(unsigned int index) {
+DelegatorSelect::remove_ignore(uint32_t index) {
   Indexes::iterator itr = std::find(m_ignore.begin(), m_ignore.end(), index);
 				    
   if (itr == m_ignore.end())
@@ -68,9 +68,9 @@ DelegatorSelect::remove_ignore(unsigned int index) {
 }
 
 int
-DelegatorSelect::find(const BitField& bf, unsigned int start, unsigned int rarity, Priority::Type p) {
+DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Priority::Type p) {
   int found = -1, f;
-  unsigned int cur_rarity = (unsigned)-1;
+  uint32_t cur_rarity = (unsigned)-1;
 
   // TODO: Ugly, refactor.
   Priority::List::iterator itr = m_priority.find(p, start);
@@ -123,18 +123,18 @@ DelegatorSelect::find(const BitField& bf, unsigned int start, unsigned int rarit
   return found;
 }
 
-int
+int32_t
 DelegatorSelect::check_range(const BitField& bf,
-			     unsigned int start,
-			     unsigned int end,
-			     unsigned int rarity,
-			     unsigned int& cur_rarity) {
+			     uint32_t start,
+			     uint32_t end,
+			     uint32_t rarity,
+			     uint32_t& cur_rarity) {
 
   Indexes::const_iterator indexes = std::find_if(m_ignore.begin(), m_ignore.end(),
 						 leq(value(start), back_as_ref()));
 
-  int found = -1;
-  int pos = start % 8;
+  int32_t found = -1;
+  int32_t pos = start % 8;
   
   start -= pos;
 
@@ -170,7 +170,7 @@ DelegatorSelect::check_range(const BitField& bf,
 // Start must lie on an 8bit boundary. Returned in network byte order.
 uint32_t
 DelegatorSelect::wanted(const BitField& bf,
-			unsigned int start,
+			uint32_t start,
 			Indexes::const_iterator& indexes) {
 
   uint32_t v = ntohl(*(uint32_t*)(bf.data() + start / 8) & ~*(uint32_t*)(m_bitfield->data() + start / 8));

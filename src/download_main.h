@@ -21,7 +21,7 @@ public:
     CHOKE_CYCLE = 0x1001
   };
 
-  DownloadMain(const bencode& b);
+  DownloadMain();
   ~DownloadMain();
 
   void                open();
@@ -32,12 +32,15 @@ public:
 
   bool                is_open() { return m_state.get_content().is_open(); }
   bool                is_active() { return m_started; }
+  bool                is_checked() { return m_checked; }
   bool                is_stopped();
 
   void                service(int type);
 
   const std::string&  get_name() const { return m_name; }
   void                set_name(const std::string& s) { m_name = s; }
+
+  void                set_port(uint16_t p) { m_state.get_me().set_port(p); }
 
   DownloadState&  state()           { return m_state; }
   DownloadNet&    net()             { return m_net; }
@@ -55,11 +58,12 @@ public:
 
   static void receive_connection(int fd, const std::string& hash, const PeerInfo& peer);
 
-private:
-  DownloadMain();
-
   void receive_initial_hash();
   void receive_download_done();
+
+private:
+  DownloadMain(const DownloadMain&);
+  void operator = (const DownloadMain&);
 
   void setup_start();
   void setup_stop();

@@ -99,8 +99,7 @@ HashTorrent::queue(unsigned int s) {
     if (!c.is_valid() || !c->is_valid())
       continue;
 
-    m_queue->add(m_list.front().id, c, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone));
-
+    m_queue->add(c, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_list.front().id);
     m_outstanding++;
   }
 }

@@ -5,6 +5,8 @@
 #include "download_main.h"
 #include "peer_connection.h"
 #include "tracker/tracker_control.h"
+#include "data/hash_queue.h"
+#include "data/hash_torrent.h"
 
 #include <algo/algo.h>
 #include <sigc++/hide.h>
@@ -13,9 +15,21 @@ using namespace algo;
 
 namespace torrent {
 
+extern HashQueue hashQueue;
+extern HashTorrent hashTorrent;
+
 void
 Download::open() {
-  ((DownloadMain*)m_ptr)->open();
+  DownloadMain& d = *(DownloadMain*)m_ptr;
+
+  if (d.is_open())
+    return;
+
+  d.open();
+
+  hashTorrent.add(d.state().get_hash(), &d.state().get_content().get_storage(),
+		  sigc::mem_fun(d, &DownloadMain::receive_initial_hash),
+		  sigc::mem_fun(d.state(), &DownloadState::receive_hash_done));
 }
 
 void
@@ -33,7 +47,12 @@ Download::start() {
 
 void
 Download::stop() {
-  ((DownloadMain*)m_ptr)->stop();
+  DownloadMain& d = *(DownloadMain*)m_ptr;
+
+  d.stop();
+
+  hashTorrent.remove(d.state().get_hash());
+  hashQueue.remove(d.state().get_hash());
 }
 
 bool
@@ -49,6 +68,11 @@ Download::is_active() {
 bool
 Download::is_tracker_busy() {
   return ((DownloadMain*)m_ptr)->tracker().is_busy();
+}
+
+bool
+Download::is_hash_checked() {
+  return ((DownloadMain*)m_ptr)->is_checked();
 }
 
 std::string

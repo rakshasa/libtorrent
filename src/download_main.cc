@@ -3,7 +3,6 @@
 #include <sigc++/signal.h>
 
 #include "torrent/exceptions.h"
-#include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "parse/parse.h"
 #include "tracker/tracker_control.h"
@@ -23,43 +22,14 @@ namespace torrent {
 
 DownloadMain::Downloads DownloadMain::m_downloads;
 
-extern Listen* listen;
-
-DownloadMain::DownloadMain(const bencode& b) :
+DownloadMain::DownloadMain() :
   m_settings(DownloadSettings::global()),
   m_tracker(NULL),
   m_checked(false),
   m_started(false)
 {
-  // Yeah, i know this looks horrible, but it will be rewritten when i get around to it.
-  try {
-
-  m_name = b["info"]["name"].asString();
-
-  m_state.get_me() = PeerInfo(generateId(), "", listen->get_port());
-  m_state.get_hash() = calcHash(b["info"]);
-
-  parse_info(b["info"], m_state.get_content());
-
+  m_state.get_me().set_id(generateId());
   m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
-
-  setup_net();
-  setup_delegator();
-
-  } catch (const bencode_error& e) {
-
-    state().get_content().close();
-    delete m_tracker;
-
-    throw local_error("Bad torrent file \"" + std::string(e.what()) + "\"");
-
-  } catch (...) {
-
-    state().get_content().close();
-    delete m_tracker;
-
-    throw;
-  }
 }
 
 DownloadMain::~DownloadMain() {
@@ -71,14 +41,10 @@ DownloadMain::~DownloadMain() {
 void
 DownloadMain::open() {
   if (is_open())
-    return;
+    throw internal_error("Tried to open a download that is already open");
 
   m_state.get_content().open();
   m_state.get_bitfield_counter() = BitFieldCounter(m_state.get_content().get_storage().get_chunkcount());
-
-  hashTorrent.add(m_state.get_hash(), &state().get_content().get_storage(),
-		  sigc::mem_fun(*this, &DownloadMain::receive_initial_hash),
-		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
 }
 
 void
@@ -89,9 +55,6 @@ DownloadMain::close() {
   m_checked = false;
   m_state.get_content().close();
   m_net.get_delegator().clear();
-
-  hashTorrent.remove(m_state.get_hash());
-  hashQueue.remove(m_state.get_hash());
 }
 
 void DownloadMain::start() {

@@ -41,6 +41,7 @@ public:
   bool                 is_open();
   bool                 is_active();
   bool                 is_tracker_busy();
+  bool                 is_hash_checked();
 
   // Returns "" if the object is not valid.
   std::string          get_name();
