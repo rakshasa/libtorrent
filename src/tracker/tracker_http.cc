@@ -105,7 +105,6 @@ TrackerHttp::close() {
   m_get->set_stream(NULL);
 
   delete m_data;
-
   m_data = NULL;
 }
 

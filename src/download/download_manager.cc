@@ -14,7 +14,7 @@ using namespace algo;
 void
 DownloadManager::add(DownloadWrapper* d) {
   if (find(d->get_hash()))
-    throw internal_error("Tried to add an existing DownloadMain to DownloadManager");
+    throw input_error("Could not add download, info-hash already exists.");
 
   m_downloads.push_back(d);
 }

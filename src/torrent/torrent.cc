@@ -217,7 +217,7 @@ download_create(std::istream* s) {
 
   if (s->fail())
     // Make it configurable whetever we throw or return .end()?
-    throw local_error("Could not parse Bencoded torrent");
+    throw input_error("Could not parse Bencoded torrent");
   
   d->get_main().set_port(listen->get_port());
 
