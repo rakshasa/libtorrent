@@ -106,13 +106,12 @@ void Display::drawDownloads(const std::string& id) {
 	     "");
   }
 
-  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i IP: %s Passed: %u Failed: %u",
+  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i IP: %s",
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
 	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000,
 	   curlStack.get_size(),
-	   ip.c_str(),
-	   chunkPassed, chunkFailed);
+	   ip.c_str());
 
   refresh();
 }

@@ -138,3 +138,9 @@ Schedule torrents.
 COMMENTS
 
 ! Curl_*
+
+
+IMPORTANT
+
+make sure handshake gets "" id if the download does not want connections,
+or some other filter system.

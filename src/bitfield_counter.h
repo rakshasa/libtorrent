@@ -15,6 +15,8 @@ class BitFieldCounter {
   BitFieldCounter() : m_field(0) {}
   BitFieldCounter(int size) : m_field(size, 0) {}
 
+  void create(uint16_t size) { m_field = Field(size, 0); }
+
   const Field& field() const { return m_field; }
 
   short inc(int index) {

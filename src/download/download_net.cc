@@ -58,17 +58,15 @@ DownloadNet::send_have_chunk(uint32_t index) {
 		call_member(&PeerConnection::sendHave, value(index)));
 }
 
-void
+bool
 DownloadNet::add_connection(int fd, const PeerInfo& p) {
   if (std::find_if(m_connections.begin(), m_connections.end(),
 		   eq(ref(p), call_member(&PeerConnection::peer))) != m_connections.end()) {
-    ::close(fd);
-    return;
+    return false;
   }
 
   if (count_connections() >= m_settings->maxPeers) {
-    ::close(fd);
-    return;
+    return false;
   }
 
   PeerConnection* c = m_slotCreateConnection(fd, p);
@@ -88,6 +86,8 @@ DownloadNet::add_connection(int fd, const PeerInfo& p) {
     m_availablePeers.erase(itr);
 
   m_signalPeerConnected.emit(Peer(c));
+
+  return true;
 }
 
 void

@@ -11,7 +11,6 @@
 #include "download_main.h"
 #include "general.h"
 #include "peer_connection.h"
-#include "settings.h"
 
 #include <limits>
 #include <algo/algo.h>
@@ -19,8 +18,6 @@
 using namespace algo;
 
 namespace torrent {
-
-DownloadMain::Downloads DownloadMain::m_downloads;
 
 DownloadMain::DownloadMain() :
   m_settings(DownloadSettings::global()),
@@ -34,8 +31,6 @@ DownloadMain::DownloadMain() :
 
 DownloadMain::~DownloadMain() {
   delete m_tracker;
-
-  m_downloads.erase(std::find(m_downloads.begin(), m_downloads.end(), this));
 }
 
 void
@@ -44,7 +39,9 @@ DownloadMain::open() {
     throw internal_error("Tried to open a download that is already open");
 
   m_state.get_content().open();
-  m_state.get_bitfield_counter() = BitFieldCounter(m_state.get_content().get_storage().get_chunkcount());
+  m_state.get_bitfield_counter().create(m_state.get_content().get_storage().get_chunkcount());
+
+  m_net.get_delegator().get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_content().get_storage().get_chunkcount());
 }
 
 void
@@ -70,11 +67,7 @@ void DownloadMain::start() {
   }
 
   m_started = true;
-
-  // TODO: Move this to the proper location.
-  m_net.get_delegator().get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_content().get_storage().get_chunkcount());
-
-  insert_service(Timer::current() + state().get_settings().chokeCycle * 2, CHOKE_CYCLE);
+  insert_service(Timer::current() + m_state.get_settings().chokeCycle * 2, CHOKE_CYCLE);
 }  
 
 void DownloadMain::stop() {
@@ -82,7 +75,6 @@ void DownloadMain::stop() {
     return;
 
   m_tracker->send_state(TRACKER_STOPPED);
-
   m_started = false;
 
   remove_service(CHOKE_CYCLE);
@@ -103,7 +95,7 @@ void DownloadMain::service(int type) {
 
   switch (type) {
   case CHOKE_CYCLE:
-    insert_service(Timer::cache() + state().get_settings().chokeCycle, CHOKE_CYCLE);
+    insert_service(Timer::cache() + m_state.get_settings().chokeCycle, CHOKE_CYCLE);
 
     // Clean up the download rate in case the client doesn't read
     // it regulary.
@@ -128,7 +120,7 @@ void DownloadMain::service(int type) {
 	 itr != m_net.get_connections().end(); ++itr)
 
       if (!(*itr)->up().c_choked() &&
-	  (*itr)->lastChoked() + state().get_settings().chokeGracePeriod < Timer::cache() &&
+	  (*itr)->lastChoked() + m_state.get_settings().chokeGracePeriod < Timer::cache() &&
 	  
 	  (g = (*itr)->throttle().down().rate() * 16 + (*itr)->throttle().up().rate()) <= f) {
 	f = g;
@@ -179,40 +171,13 @@ bool DownloadMain::is_stopped() {
   return !m_started && !m_tracker->is_busy();
 }
 
-DownloadMain* DownloadMain::getDownload(const std::string& hash) {
-  Downloads::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					 eq(ref(hash), call_member(&DownloadMain::get_hash)));
- 
-  return itr != m_downloads.end() ? *itr : NULL;
-}
-
-std::string
-DownloadMain::get_download_id(const std::string& hash) {
-  DownloadMain* d = getDownload(hash);
-
-  return (d && d->m_started && d->m_checked) ? d->m_me.get_id() : std::string("");
-}
-
-void DownloadMain::receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadMain* d = getDownload(hash);
-
-  if (d && d->m_started && d->m_checked)
-    d->m_net.add_connection(fd, peer);
-  else
-    SocketBase::close_socket(fd);
-}
-
 void DownloadMain::receive_initial_hash() {
   if (m_checked)
     throw internal_error("DownloadMain::receive_initial_hash called but m_checked == true");
 
   m_checked = true;
-  state().get_content().resize();
+  m_state.get_content().resize();
 
-  if (m_state.get_content().get_chunks_completed() == m_state.get_content().get_storage().get_chunkcount() &&
-      !m_state.get_content().get_bitfield().allSet())
-    throw internal_error("Loaded torrent is done but bitfield isn't all set");
-    
   if (m_started) {
     m_tracker->send_state(TRACKER_STARTED);
     setup_start();
@@ -221,8 +186,7 @@ void DownloadMain::receive_initial_hash() {
 
 void
 DownloadMain::receive_download_done() {
-  // Don't send TRACKER_COMPLETED if we received done due to initial
-  // hash check.
+  // Don't send TRACKER_COMPLETED if we received done due to initial hash check.
   if (!m_started || !m_checked || m_tracker->get_state() == TRACKER_STARTED)
     return;
 

@@ -175,7 +175,7 @@ void chunk_passed(uint32_t t) {
 }
 
 void chunk_failed(uint32_t t) {
-  chunkPassed++;
+  chunkFailed++;
 }
 
 int main(int argc, char** argv) {

@@ -202,7 +202,7 @@ bool Download::key(int c) {
   case 't':
   case 'T':
     m_dItr.set_tracker_timeout(5 * 1000000);
-    m_dItr.set_tracker_numwant(250);
+    m_dItr.set_tracker_numwant(100);
     break;
     
   case '1':

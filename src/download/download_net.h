@@ -45,7 +45,7 @@ public:
   ConnectionList&   get_connections()                        { return m_connections; }
   PeerContainer&    get_available_peers()                    { return m_availablePeers; }
 
-  void              add_connection(int fd, const PeerInfo& p);
+  bool              add_connection(int fd, const PeerInfo& p);
   void              remove_connection(PeerConnection* p);
 
   void              add_available_peers(const PeerList& p);

@@ -9,6 +9,7 @@
 #include "parse/parse.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
+#include "download/download_manager.h"
 
 #include "torrent.h"
 #include "exceptions.h"
@@ -25,6 +26,7 @@ std::list<std::string> caughtExceptions;
 
 Listen* listen = NULL;
 HandshakeManager handshakes;
+DownloadManager downloadManager;
 
 HashQueue hashQueue;
 HashTorrent hashTorrent(&hashQueue);
@@ -59,6 +61,22 @@ struct check_socket_isset {
   fd_set* fds;
 };
 
+// Find some better way of doing this.
+std::string
+download_id(const std::string& hash) {
+  DownloadMain* d = downloadManager.find(hash);
+
+  return d && d->is_active() && d->is_checked() ? d->get_me().get_id() : "";
+}
+
+void
+receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
+  DownloadMain* d = downloadManager.find(hash);
+  
+  if (!d || !d->is_active() || !d->is_checked() || !d->get_net().add_connection(fd, peer))
+    SocketBase::close_socket(fd);
+}
+
 // Make sure srandom is properly initialized by the client.
 void
 initialize() {
@@ -72,8 +90,8 @@ initialize() {
 
   ThrottleControl::global().insert_service(Timer::current(), 0);
 
-  handshakes.slot_connected(sigc::ptr_fun3(&DownloadMain::receive_connection));
-  handshakes.slot_download_id(sigc::ptr_fun1(&DownloadMain::get_download_id));
+  handshakes.slot_connected(sigc::ptr_fun3(&receive_connection));
+  handshakes.slot_download_id(sigc::ptr_fun1(download_id));
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -82,7 +100,7 @@ void
 cleanup() {
   ThrottleControl::global().remove_service();
 
-  for_each<true>(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
+  for_each<true>(downloadManager.get_list().begin(), downloadManager.get_list().end(),
 		 delete_on());
 
   handshakes.clear();
@@ -96,7 +114,7 @@ listen_open(uint16_t begin, uint16_t end) {
   if (!listen->open(begin, end))
     return false;
 
-  std::for_each(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
+  std::for_each(downloadManager.get_list().begin(), downloadManager.get_list().end(),
 		call_member(&DownloadMain::set_port, value(listen->get_port())));
 
   return true;
@@ -181,31 +199,31 @@ download_create(std::istream& s) {
     d->set_port(listen->get_port());
 
     parse_main(b, *d);
-    parse_info(b["info"], d->state().get_content());
+    parse_info(b["info"], d->get_state().get_content());
 
     // Hash must be calculated before these are connected.
-    d->net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
-    d->net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
+    d->get_net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
+    d->get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
 					     d->get_hash(), d->get_me().get_id()));
-    d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
+    d->get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
 					      d->get_hash()));
 
-    d->state().slot_hash_check_add(sigc::bind(sigc::mem_fun(hashQueue, &HashQueue::add),
-					      sigc::mem_fun(d->state(), &DownloadState::receive_hash_done),
+    d->get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(hashQueue, &HashQueue::add),
+					      sigc::mem_fun(d->get_state(), &DownloadState::receive_hash_done),
 					      d->get_hash()));
 
     d->setup_net();
     d->setup_delegator();
     d->setup_tracker();
 
-    parse_tracker(b, d->tracker());
+    parse_tracker(b, d->get_tracker());
 
   } catch (...) {
     delete d;
     throw;
   }
 
-  DownloadMain::downloads().insert(DownloadMain::downloads().end(), d);
+  downloadManager.add(d);
 
   return Download((DownloadWrapper*)d);
 }
@@ -213,30 +231,20 @@ download_create(std::istream& s) {
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
-  for (DownloadMain::Downloads::iterator itr = DownloadMain::downloads().begin(); itr != DownloadMain::downloads().end(); ++itr)
+  for (DownloadManager::DownloadList::const_iterator itr = downloadManager.get_list().begin();
+       itr != downloadManager.get_list().end(); ++itr)
     dlist.push_back(Download((DownloadWrapper*)*itr));
 }
 
 // Make sure you check that it's valid.
 Download
 download_find(const std::string& id) {
-  DownloadMain::Downloads::iterator itr = std::find_if(DownloadMain::downloads().begin(),
-                                                       DownloadMain::downloads().end(),
-                                                       eq(ref(id), call_member(&DownloadMain::get_hash)));
-
-  return itr != DownloadMain::downloads().end() ? Download((DownloadWrapper*)*itr) : Download(NULL);
+  return (DownloadWrapper*)downloadManager.find(id);
 }
 
 void
 download_remove(const std::string& id) {
-  DownloadMain::Downloads::iterator itr = std::find_if(DownloadMain::downloads().begin(),
-                                                       DownloadMain::downloads().end(),
-                                                       eq(ref(id), call_member(&DownloadMain::get_hash)));
-
-  if (itr == DownloadMain::downloads().end())
-    throw client_error("Tried to remove a non-existant download");
-
-  delete *itr;
+  downloadManager.remove(id);
 }
 
 // Throws a local_error of some sort.
@@ -250,9 +258,9 @@ get(GValue t) {
     return handshakes.get_size();
 
   case SHUTDOWN_DONE:
-    return std::find_if(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
+    return std::find_if(downloadManager.get_list().begin(), downloadManager.get_list().end(),
 			bool_not(call_member(&DownloadMain::is_stopped)))
-      == DownloadMain::downloads().end();
+      == downloadManager.get_list().end();
 
   case FILES_CHECK_WAIT:
     return Settings::filesCheckWait;
