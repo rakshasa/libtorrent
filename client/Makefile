@@ -1,10 +1,8 @@
 OBJECTS = http.o display.o download.o rtorrent.o
 
-LIBS_TMP = `pkg-config --libs sigc++-2.0`
-LIBS = -ltorrent -lncurses -lcrypto $(LIBS_TMP)
+LIBS = -ltorrent -lncurses -lcrypto `pkg-config --libs sigc++-2.0 libtorrent`
 
-CFLAGS_TMP = `pkg-config --cflags sigc++-2.0`
-CFLAGS = -Wall -O3 -g $(CFLAGS_TMP)
+CFLAGS = -Wall -O3 -g `pkg-config --cflags sigc++-2.0 libtorrent`
 
 all: $(OBJECTS)
 	g++ $(CFLAGS) -o rtorrent $(OBJECTS) $(LIBS)

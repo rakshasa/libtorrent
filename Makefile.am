@@ -2,6 +2,9 @@ SUBDIRS = torrent
 
 DISTCLEANFILES = *~
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libtorrent.pc
+
 EXTRA_DIST= \
 	autogen.sh \
 	algo/algo.h \
@@ -23,3 +26,4 @@ EXTRA_DIST= \
 	client/http.cc \
 	client/http.h \
 	client/rtorrent.cc
+
