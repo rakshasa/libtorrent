@@ -72,7 +72,9 @@ DownloadNet::should_request(uint32_t stall) {
   if (!m_endgame)
     return true;
   else
-    // Removed stall check... don't really want it?
+    // We check if the peer is stalled, if it is not then we should
+    // request. If the peer is stalled then we only request if the
+    // download rate is below a certain value.
     return !stall || m_rateDown.rate() < m_settings->endgameRate;
 }
 

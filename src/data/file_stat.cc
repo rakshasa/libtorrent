@@ -22,26 +22,49 @@
 
 #include "config.h"
 
-#include "storage_file.h"
+#include "torrent/exceptions.h"
+
+#include "file_stat.h"
 
 namespace torrent {
 
-bool
-StorageFile::sync() {
-  FileChunk f;
-  off_t pos = 0;
+void
+FileStat::update_throws(int fd) {
+  int r = update(fd);
 
-  while (pos != m_size) {
-    uint32_t length = std::min(m_size - pos, (off_t)(128 << 20));
+  if (r < 0)
+    throw storage_error(error_string(r));
+}
 
-    if (!m_file->get_chunk(f, pos, length, true))
-      return false;
+void
+FileStat::update_throws(const char* filename) {
+  int r = update(filename);
 
-    f.sync(0, length, FileChunk::sync_async);
-    pos += length;
+  if (r < 0)
+    throw storage_error(error_string(r));
+}
+
+std::string
+FileStat::error_string(int err) {
+  switch (err) {
+  case 0:
+    return "Success";
+
+  case EBADF:
+    return "Bad file descriptor";
+
+  case ENOENT:
+    return "Filename does not exist";
+
+  case ENOTDIR:
+    return "Path not a directory";
+
+  case EACCES:
+    return "Permission denied";
+
+  default:
+    return "Unknown error";
   }
-
-  return true;
 }
 
 }

@@ -34,14 +34,14 @@ class ContentFile {
 public:
   typedef std::pair<uint32_t, uint32_t> Range;
 
-  ContentFile(const Path& p, uint64_t s, Range r) :
+  ContentFile(const Path& p, off_t s, Range r) :
     m_path(p),
     m_size(s),
     m_range(r),
     m_completed(0),
     m_priority(1) {}
 
-  uint64_t       get_size() const               { return m_size; }
+  off_t          get_size() const               { return m_size; }
   unsigned char  get_priority() const           { return m_priority; }
 
   Range          get_range() const              { return m_range; }
@@ -55,7 +55,7 @@ public:
 
 private:
   Path           m_path;
-  uint64_t       m_size;
+  off_t          m_size;
   Range          m_range;
 
   uint32_t       m_completed;

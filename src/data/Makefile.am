@@ -5,6 +5,8 @@ libsub_data_la_SOURCES = \
 	file.h \
 	file_chunk.cc \
 	file_chunk.h \
+	file_stat.cc \
+	file_stat.h \
 	hash_chunk.cc \
 	hash_chunk.h \
 	hash_queue.cc \

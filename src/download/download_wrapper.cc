@@ -28,6 +28,7 @@
 #include "data/hash_torrent.h"
 #include "data/hash_queue.h"
 #include "data/file.h"
+#include "data/file_stat.h"
 #include "net/handshake_manager.h"
 
 #include "download_wrapper.h"
@@ -90,11 +91,11 @@ DownloadWrapper::hash_load() {
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
     while (cItr != content.get_files().end()) {
-      sItr->file()->update_stats();
+      FileStat fs(sItr->file()->fd());
 
       // Check that the size and modified stamp matches.
-      if (sItr->size() != sItr->file()->get_size() ||
-	  (*bItr)["mtime"].as_value() != sItr->file()->get_mtime())
+      if (sItr->size() != fs.get_size() ||
+	  (*bItr)["mtime"].as_value() != fs.get_mtime())
 	m_hash->get_ranges().insert(cItr->get_range().first, cItr->get_range().second);
 
       ++cItr;
@@ -136,9 +137,7 @@ DownloadWrapper::hash_save() {
   for (Storage::FileList::iterator itr = content.get_storage().get_files().begin(); itr != content.get_storage().get_files().end(); ++itr) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
-    itr->file()->update_stats();
-
-    b.insert_key("mtime", itr->file()->get_mtime());
+    b.insert_key("mtime", FileStat(itr->file()->fd()).get_mtime());
   }
 }
 

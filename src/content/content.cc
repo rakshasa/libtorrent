@@ -27,6 +27,7 @@
 #include "torrent/exceptions.h"
 #include "content.h"
 #include "data/file.h"
+#include "data/file_stat.h"
 
 using namespace algo;
 
@@ -110,7 +111,7 @@ Content::is_correct_size() {
   Storage::FileList::const_iterator sItr = m_storage.get_files().begin();
   
   while (fItr != m_files.end()) {
-    if (fItr->get_size() != sItr->c_file()->get_size())
+    if (fItr->get_size() != FileStat(sItr->c_file()->fd()).get_size())
       return false;
 
     ++fItr;
