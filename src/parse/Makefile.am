@@ -1,7 +1,8 @@
 noinst_LTLIBRARIES = libsub_parse.la
 
 libsub_parse_la_SOURCES = \
+	parse.h \
 	parse_info.cc \
-	parse_info.h
+	parse_tracker.cc
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

@@ -10,14 +10,14 @@ class Storage;
 
 class HashTorrent {
 public:
-  typedef sigc::signal1<void, const std::string&> SignalDone;
+  typedef sigc::slot0<void> SlotDone;
   
   HashTorrent(HashQueue* queue) : m_position(0), m_outstanding(0), m_queue(queue) {}
   ~HashTorrent()                { clear(); }
 
   void add(const std::string& id,
 	   Storage* storage,
-	   SignalDone torrentDone,
+	   SlotDone torrentDone,
 	   HashQueue::SlotDone slotDone);
   
   void clear();
@@ -25,12 +25,12 @@ public:
 
 private:
   struct Node {
-    Node(const std::string& i, Storage* s, SignalDone t, HashQueue::SlotDone& d) :
+    Node(const std::string& i, Storage* s, SlotDone t, HashQueue::SlotDone& d) :
       id(i), storage(s), torrentDone(t), chunkDone(d) {}
 
     std::string         id;
     Storage*            storage;
-    SignalDone          torrentDone;
+    SlotDone            torrentDone;
     HashQueue::SlotDone chunkDone;
   };
 
@@ -38,7 +38,7 @@ private:
 
   void queue(unsigned int s);
 
-  void receive_chunkdone(std::string id, HashQueue::Chunk c, std::string hash);
+  void receive_chunkdone(HashQueue::Chunk c, std::string hash);
 
   unsigned int m_position;
   unsigned int m_outstanding;

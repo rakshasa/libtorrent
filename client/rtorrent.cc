@@ -40,6 +40,9 @@ bool inputActive = false;
 std::string inputBuf;
 std::string ip;
 
+uint16_t port1 = 6890;
+uint16_t port2 = 6999;
+
 Display* display = NULL;
 bool shutdown_progress = false;
 
@@ -67,6 +70,21 @@ bool parse_ip(const char* s) {
   torrent::download_list(dlist);
 
   std::for_each(dlist.begin(), dlist.end(), call_member(&torrent::Download::set_ip, ref(ip)));
+
+  return true;
+}
+
+bool parse_port(const char* s) {
+  unsigned int a, b;
+
+  if (sscanf(s, "--port=%u-%u", &a, &b) != 2)
+    return false;
+
+  if (a == 0 || a >= (1 << 16) || b == 0 || b >= (1 << 16) || a >= b)
+    return false;
+
+  port1 = a;
+  port2 = b;
 
   return true;
 }
@@ -169,11 +187,6 @@ int main(int argc, char** argv) {
 
   torrent::initialize();
 
-  if (!torrent::listen_open(6890, 6999)) {
-    std::cout << "Could not open a port." << std::endl;
-    return -1;
-  }
-  
   torrent::download_list(downloads);
   torrent::DList::iterator curDownload = downloads.end();
 
@@ -183,7 +196,8 @@ int main(int argc, char** argv) {
       // Found an http url, download.
       http.add_url(argv[fIndex], false);
 
-    } else if (!parse_ip(argv[fIndex])) {
+    } else if (!parse_ip(argv[fIndex]) &&
+	       !parse_port(argv[fIndex])) {
       std::fstream f(argv[fIndex], std::ios::in);
       
       if (!f.is_open())
@@ -192,13 +206,19 @@ int main(int argc, char** argv) {
       torrent::Download d = torrent::download_create(f);
 
       d.set_ip(ip);
-      d.start();
 
       downloads.push_back(d);
     }
   }
   
   fIndex = 0;
+
+  if (!torrent::listen_open(port1, port2)) {
+    std::cout << "Could not open a port." << std::endl;
+    return -1;
+  }
+  
+  std::for_each(downloads.begin(), downloads.end(), call_member(&torrent::Download::start));
 
   int64_t lastDraw = torrent::get(torrent::TIME_CURRENT) - (1 << 22);
   int maxY, maxX;

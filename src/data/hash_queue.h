@@ -20,41 +20,39 @@ class HashChunk;
 
 class HashQueue : public Service {
 public:
-  typedef algo::RefAnchored<StorageChunk>                      Chunk;
-  typedef sigc::slot3<void, std::string, Chunk, std::string>   SlotDone;
-  typedef sigc::signal3<void, std::string, Chunk, std::string> SignalDone;
-
-  struct Node {
-    Node(HashChunk* c, const std::string& i, int j) : chunk(c), id(i), index(j) {}
-
-    HashChunk*  chunk;
-    std::string id;
-    int         index;
-    SignalDone  signal;
-  };
-
-  typedef std::list<Node> ChunkList;
+  typedef algo::RefAnchored<StorageChunk>       Chunk;
+  typedef sigc::slot2<void, Chunk, std::string> SlotDone;
 
   ~HashQueue() { clear(); }
 
   // SignalDone: (Return void)
-  // std::string  - id (torrent info hash)
   // unsigned int - index of chunk
   // std::string  - chunk hash
-  SignalDone& add(const std::string& id, Chunk c, bool try_immediately = false);
+  void                add(const std::string& id, Chunk c, SlotDone d, bool try_immediately = false);
 
-  void        remove(const std::string& id);
+  bool                has(const std::string& id, uint32_t index);
 
-  void        clear();
+  void                remove(const std::string& id);
+  void                clear();
 
-  void        service(int type);
-
-  ChunkList&  chunks() { return m_chunks; }
+  void                service(int type);
 
 private:
-  int         m_tries;
+  struct Node {
+    Node(HashChunk* c, const std::string& i, SlotDone d) :
+      m_chunk(c), m_id(i), m_done(d) {}
 
-  ChunkList   m_chunks;
+    uint32_t          get_index();
+
+    HashChunk*        m_chunk;
+    std::string       m_id;
+    SlotDone          m_done;
+  };
+
+  typedef std::list<Node> ChunkList;
+
+  uint16_t            m_tries;
+  ChunkList           m_chunks;
 };
 
 }

@@ -3,12 +3,12 @@
 #endif
 
 #include <cstring>
-#include <unistd.h>
 #include <inttypes.h>
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
 
+#include "settings.h"
 #include "download_state.h"
 #include "peer_connection.h"
 
@@ -16,14 +16,8 @@ using namespace algo;
 
 namespace torrent {
 
-// Temporary solution untill we get proper error handling.
-extern std::list<std::string> caughtExceptions;
-
-HashQueue hashQueue;
-HashTorrent hashTorrent(&hashQueue);
-
 DownloadState::DownloadState() :
-  m_settings(DownloadSettings::global())
+  m_settings(NULL)
 {
 }
 
@@ -32,7 +26,7 @@ DownloadState::~DownloadState() {
 
 void
 DownloadState::update_endgame() {
-  if (m_content.get_chunks_completed() + m_slotDelegatedChunks() + m_settings.endgameBorder
+  if (m_content.get_chunks_completed() + m_slotDelegatedChunks() + m_settings->endgameBorder
       >= m_content.get_storage().get_chunkcount())
     m_slotSetEndgame(true);
 }
@@ -43,16 +37,10 @@ void DownloadState::chunk_done(unsigned int index) {
   if (!c.is_valid())
     throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrive from storage");
 
-  if (std::find_if(hashQueue.chunks().begin(), hashQueue.chunks().end(),
-		   bool_and(eq(ref(m_hash), member(&HashQueue::Node::id)),
-			    eq(value(c->get_index()), member(&HashQueue::Node::index))))
-
-      != hashQueue.chunks().end())
+  if (hashQueue.has(m_hash, c->get_index()))
     throw internal_error("DownloadState::chunk_done(...) found the same index waiting in the hash queue");
 
-  HashQueue::SignalDone& s = hashQueue.add(m_hash, c, true);
-
-  s.connect(sigc::mem_fun(*this, &DownloadState::receive_hashdone));
+  hashQueue.add(m_hash, c, sigc::mem_fun(*this, &DownloadState::receive_hashdone), true);
 }
 
 uint64_t
@@ -66,10 +54,7 @@ DownloadState::bytes_left() {
   return left;
 }
 
-void DownloadState::receive_hashdone(std::string id, Storage::Chunk c, std::string hash) {
-  if (id != m_hash)
-    throw internal_error("Download received hash check comeplete signal beloning to another info hash");
-
+void DownloadState::receive_hashdone(Storage::Chunk c, std::string hash) {
   if (std::memcmp(hash.c_str(), m_content.get_hash_c(c->get_index()), 20) == 0) {
 
     m_content.mark_done(c->get_index());

@@ -3,6 +3,8 @@
 
 #include <list>
 #include <string>
+#include <sigc++/signal.h>
+#include <sigc++/slot.h>
 
 #include "peer_info.h"
 #include "service.h"

@@ -23,6 +23,9 @@ std::list<std::string> caughtExceptions;
 Listen* listen = NULL;
 HandshakeManager handshakes;
 
+HashQueue hashQueue;
+HashTorrent hashTorrent(&hashQueue);
+
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
 
@@ -87,7 +90,14 @@ listen_open(uint16_t begin, uint16_t end) {
   if (listen == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
-  return listen->open(begin, end);
+  if (!listen->open(begin, end))
+    return false;
+
+  std::for_each(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
+		call_member(call_member(call_member(&DownloadMain::state), &DownloadState::get_me),
+			    &PeerInfo::set_port, value(listen->get_port())));
+
+  return true;
 }
 
 void
@@ -151,7 +161,7 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
 
 Download
 download_create(std::istream& s) {
-    // TODO: Should we clear failed bits?
+  // TODO: Should we clear failed bits?
   s.clear();
 
   bencode b;
@@ -167,9 +177,9 @@ download_create(std::istream& s) {
 
   d->net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
   d->net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
-					   d->state().hash(), d->state().me().get_id()));
+					   d->state().get_hash(), d->state().get_me().get_id()));
   d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
-					    d->state().hash()));
+					    d->state().get_hash()));
 
   return Download((DownloadWrapper*)d);
 }
@@ -188,7 +198,7 @@ download_find(const std::string& id) {
                                                        DownloadMain::downloads().end(),
                                                        eq(ref(id),
                                                           call_member(call_member(&DownloadMain::state),
-                                                                      &DownloadState::hash)));
+                                                                      &DownloadState::get_hash)));
 
   return itr != DownloadMain::downloads().end() ? Download((DownloadWrapper*)*itr) : Download(NULL);
 }
@@ -199,7 +209,7 @@ download_remove(const std::string& id) {
                                                        DownloadMain::downloads().end(),
                                                        eq(ref(id),
                                                           call_member(call_member(&DownloadMain::state),
-                                                                      &DownloadState::hash)));
+                                                                      &DownloadState::get_hash)));
 
   if (itr == DownloadMain::downloads().end())
     throw client_error("Tried to remove a non-existant download");

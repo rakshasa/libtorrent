@@ -14,9 +14,9 @@ namespace torrent {
 
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
-HashQueue::SignalDone& HashQueue::add(const std::string& id, Chunk c, bool try_immediately) {
-  if (!c.is_valid() ||
-      !c->is_valid())
+void
+HashQueue::add(const std::string& id, Chunk c, SlotDone d, bool try_immediately) {
+  if (!c.is_valid() || !c->is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
   if (m_chunks.empty()) {
@@ -27,34 +27,46 @@ HashQueue::SignalDone& HashQueue::add(const std::string& id, Chunk c, bool try_i
     insert_service(Timer::current(), 0);
   }
 
-  ChunkList::iterator itr = m_chunks.insert(m_chunks.end(), Node(new HashChunk(c), id, c->get_index()));
+  HashChunk* hc = new HashChunk(c);
 
-  if (try_immediately) {
-    
-    while (itr->chunk->remaining() &&
-	   itr->chunk->perform(itr->chunk->remaining()));
+  if (try_immediately)
+    while (hc->remaining() &&
+	   hc->perform(hc->remaining()));
+  
+  if (hc->remaining() == 0) {
+    d(c, hc->get_hash());
 
-    if (itr->chunk->remaining() == 0)
-      m_chunks.splice(m_chunks.begin(), m_chunks, itr);
+    delete hc;
+    return;
   }
 
-  return itr->signal;
+  m_chunks.push_back(Node(hc, id, d));
 }
 
-void HashQueue::remove(const std::string& id) {
+bool
+HashQueue::has(const std::string& id, uint32_t index) {
+  return std::find_if(m_chunks.begin(), m_chunks.end(),
+		      bool_and(eq(ref(id), member(&HashQueue::Node::m_id)),
+			       eq(value(index), call_member(&HashQueue::Node::get_index))))
+    != m_chunks.end();
+}
+
+void
+HashQueue::remove(const std::string& id) {
   ChunkList::iterator itr = m_chunks.begin();
   
-  while ((itr = std::find_if(itr, m_chunks.end(), eq(ref(id), member(&Node::id))))
+  while ((itr = std::find_if(itr, m_chunks.end(), eq(ref(id), member(&Node::m_id))))
 	 != m_chunks.end()) {
-    delete itr->chunk;
+    delete itr->m_chunk;
     
     itr = m_chunks.erase(itr);
   }
 }
 
-void HashQueue::clear() {
+void
+HashQueue::clear() {
   while (!m_chunks.empty()) {
-    delete m_chunks.front().chunk;
+    delete m_chunks.front().m_chunk;
 
     m_chunks.pop_front();
   }
@@ -71,7 +83,7 @@ void HashQueue::service(int type) {
   else if (forced)
     return insert_service(Timer::current() + Settings::hashForcedWait, 0);
 
-  HashChunk* chunk = m_chunks.front().chunk;
+  HashChunk* chunk = m_chunks.front().m_chunk;
 
   unsigned int done = chunk->remaining();
 
@@ -97,9 +109,7 @@ void HashQueue::service(int type) {
     // Not done yet, reschedule service. Atleast 10ms so the disk head has time to relocate.
     return insert_service(Timer::current() + 10000, 0);
 
-  m_chunks.front().signal.emit(m_chunks.front().id,
-			       chunk->get_chunk(),
-			       chunk->get_hash());
+  m_chunks.front().m_done(chunk->get_chunk(), chunk->get_hash());
 
   delete chunk;
   m_chunks.pop_front();
@@ -108,5 +118,9 @@ void HashQueue::service(int type) {
 
   goto hashqueue_service_loop;
 }  
+
+uint32_t HashQueue::Node::get_index() {
+  return m_chunk->get_chunk()->get_index();
+}
 
 }

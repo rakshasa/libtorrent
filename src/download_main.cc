@@ -5,7 +5,7 @@
 #include "torrent/exceptions.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
-#include "parse/parse_info.h"
+#include "parse/parse.h"
 #include "tracker/tracker_control.h"
 #include "content/delegator_select.h"
 
@@ -26,6 +26,7 @@ DownloadMain::Downloads DownloadMain::m_downloads;
 extern Listen* listen;
 
 DownloadMain::DownloadMain(const bencode& b) :
+  m_settings(DownloadSettings::global()),
   m_tracker(NULL),
   m_checked(false),
   m_started(false)
@@ -35,37 +36,36 @@ DownloadMain::DownloadMain(const bencode& b) :
 
   m_name = b["info"]["name"].asString();
 
-  parse_info(b["info"], m_state.content());
+  m_state.get_me() = PeerInfo(generateId(), "", listen->get_port());
+  m_state.get_hash() = calcHash(b["info"]);
 
-  m_state.content().open();
+  setup_tracker();
 
-  m_state.me() = PeerInfo(generateId(), "", listen->get_port());
-  m_state.hash() = calcHash(b["info"]);
-  m_state.bfCounter() = BitFieldCounter(m_state.content().get_storage().get_chunkcount());
+  parse_info(b["info"], m_state.get_content());
+  parse_tracker(b, *m_tracker);
 
-  HashTorrent::SignalDone sd;
+  m_state.get_content().open();
+  m_state.get_bitfield_counter() = BitFieldCounter(m_state.get_content().get_storage().get_chunkcount());
 
-  sd.connect(sigc::mem_fun(*this, &DownloadMain::receive_initial_hash));
-
-  hashTorrent.add(m_state.hash(), &state().content().get_storage(), sd,
+  hashTorrent.add(m_state.get_hash(), &state().get_content().get_storage(),
+		  sigc::mem_fun(*this, &DownloadMain::receive_initial_hash),
 		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
 
-  m_state.content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
+  m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 
-  setup_tracker(b);
   setup_net();
   setup_delegator();
 
   } catch (const bencode_error& e) {
 
-    state().content().close();
+    state().get_content().close();
     delete m_tracker;
 
     throw local_error("Bad torrent file \"" + std::string(e.what()) + "\"");
 
   } catch (...) {
 
-    state().content().close();
+    state().get_content().close();
     delete m_tracker;
 
     throw;
@@ -89,7 +89,7 @@ void DownloadMain::start() {
 
   m_started = true;
 
-  insert_service(Timer::current() + state().settings().chokeCycle * 2, CHOKE_CYCLE);
+  insert_service(Timer::current() + state().get_settings().chokeCycle * 2, CHOKE_CYCLE);
 }  
 
 void DownloadMain::stop() {
@@ -121,7 +121,7 @@ void DownloadMain::service(int type) {
 
   switch (type) {
   case CHOKE_CYCLE:
-    insert_service(Timer::cache() + state().settings().chokeCycle, CHOKE_CYCLE);
+    insert_service(Timer::cache() + state().get_settings().chokeCycle, CHOKE_CYCLE);
 
     // Clean up the download rate in case the client doesn't read
     // it regulary.
@@ -146,7 +146,7 @@ void DownloadMain::service(int type) {
 	 itr != m_net.get_connections().end(); ++itr)
 
       if (!(*itr)->up().c_choked() &&
-	  (*itr)->lastChoked() + state().settings().chokeGracePeriod < Timer::cache() &&
+	  (*itr)->lastChoked() + state().get_settings().chokeGracePeriod < Timer::cache() &&
 	  
 	  (g = (*itr)->throttle().down().rate() * 16 + (*itr)->throttle().up().rate()) <= f) {
 	f = g;
@@ -201,7 +201,7 @@ DownloadMain* DownloadMain::getDownload(const std::string& hash) {
   Downloads::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
 					 eq(ref(hash),
 					    call_member(member(&DownloadMain::m_state),
-							&DownloadState::hash)));
+							&DownloadState::get_hash)));
  
   return itr != m_downloads.end() ? *itr : NULL;
 }
@@ -210,7 +210,7 @@ std::string
 DownloadMain::get_download_id(const std::string& hash) {
   DownloadMain* d = getDownload(hash);
 
-  return (d && d->m_started && d->m_checked) ? d->state().me().get_id() : std::string("");
+  return (d && d->m_started && d->m_checked) ? d->state().get_me().get_id() : std::string("");
 }
 
 void DownloadMain::receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
@@ -222,18 +222,15 @@ void DownloadMain::receive_connection(int fd, const std::string& hash, const Pee
     SocketBase::close_socket(fd);
 }
 
-void DownloadMain::receive_initial_hash(const std::string& id) {
+void DownloadMain::receive_initial_hash() {
   if (m_checked)
     throw internal_error("DownloadMain::receive_initial_hash called but m_checked == true");
 
-  if (id != state().hash())
-    throw internal_error("DownloadMain::receive_initial_hash received wrong id");
-
   m_checked = true;
-  state().content().resize();
+  state().get_content().resize();
 
-  if (m_state.content().get_chunks_completed() == m_state.content().get_storage().get_chunkcount() &&
-      !m_state.content().get_bitfield().allSet())
+  if (m_state.get_content().get_chunks_completed() == m_state.get_content().get_storage().get_chunkcount() &&
+      !m_state.get_content().get_bitfield().allSet())
     throw internal_error("Loaded torrent is done but bitfield isn't all set");
     
   if (m_started) {

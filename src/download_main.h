@@ -3,6 +3,7 @@
 
 #include "bencode.h"
 #include "service.h"
+#include "settings.h"
 #include "download_state.h"
 #include "download/download_net.h"
 
@@ -47,12 +48,12 @@ public:
 private:
   DownloadMain();
 
-  void receive_initial_hash(const std::string& id);
+  void receive_initial_hash();
   void receive_download_done();
 
   void setup_delegator();
   void setup_net();
-  void setup_tracker(const bencode& b);
+  void setup_tracker();
 
   void setup_start();
   void setup_stop();
@@ -61,6 +62,7 @@ private:
   
   DownloadState m_state;
   DownloadNet   m_net;
+  DownloadSettings m_settings;
   TrackerControl* m_tracker;
 
   std::string m_name;

@@ -14,6 +14,7 @@
 #include "download_state.h"
 #include "peer_connection.h"
 #include "general.h"
+#include "settings.h"
 
 // TODO: Put this somewhere better, make adjustable?
 #define BUFFER_SIZE ((unsigned int)(1<<9))
@@ -53,7 +54,7 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitField(d->content().get_storage().get_chunkcount());
+  m_bitfield = BitField(d->get_content().get_storage().get_chunkcount());
 
   insert_read();
   insert_write();
@@ -62,9 +63,9 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
   m_up.buf = new char[BUFFER_SIZE];
   m_down.buf = new char[BUFFER_SIZE];
 
-  if (!d->content().get_bitfield().zero()) {
+  if (!d->get_content().get_bitfield().zero()) {
     // Send bitfield to peer.
-    bufCmd(BITFIELD, 1 + m_download->content().get_bitfield().sizeBytes(), 1);
+    bufCmd(BITFIELD, 1 + m_download->get_content().get_bitfield().sizeBytes(), 1);
     m_up.pos = 0;
     m_up.state = WRITE_MSG;
   }
@@ -219,14 +220,14 @@ void PeerConnection::read() {
     if (m_net->get_delegator().get_select().interested(m_bitfield)) {
       m_up.interested = m_sendInterested = true;
       
-    } else if (m_download->content().get_chunks_completed() == m_download->content().get_storage().get_chunkcount() &&
+    } else if (m_download->get_content().get_chunks_completed() == m_download->get_content().get_storage().get_chunkcount() &&
 	       m_bitfield.allSet()) {
       // Both sides are done so we might as well close the connection.
       throw close_connection();
     }
 
     m_down.state = IDLE;
-    m_download->bfCounter().inc(m_bitfield);
+    m_download->get_bitfield_counter().inc(m_bitfield);
 
     insert_write();
     goto evil_goto_read;
@@ -261,7 +262,7 @@ void PeerConnection::read() {
     remove_service(SERVICE_STALL);
     
     if (m_requests.get_size())
-      insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+      insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
 
     // TODO: clear m_down.data?
 
@@ -289,7 +290,7 @@ void PeerConnection::read() {
       remove_service(SERVICE_STALL);
 
       if (m_requests.get_size())
-	insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+	insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
     }
 
     if (s)
@@ -364,7 +365,7 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_up.data = m_download->content().get_storage().get_chunk(m_sends.front().index());
+      m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().index());
       m_up.state = WRITE_PIECE;
 
       if (!m_up.data.is_valid())
@@ -380,8 +381,8 @@ void PeerConnection::write() {
     m_up.pos = 0;
 
   case WRITE_BITFIELD:
-    if (!write_buf(m_download->content().get_bitfield().data() + m_up.pos,
-		   m_download->content().get_bitfield().sizeBytes(), m_up.pos))
+    if (!write_buf(m_download->get_content().get_bitfield().data() + m_up.pos,
+		   m_download->get_content().get_bitfield().sizeBytes(), m_up.pos))
       return;
 
     m_up.state = IDLE;
@@ -525,7 +526,7 @@ void PeerConnection::parseReadBuf() {
 
     if (!m_bitfield[index]) {
       m_bitfield.set(index);
-      m_download->bfCounter().inc(index);
+      m_download->get_bitfield_counter().inc(index);
     }
     
     if (!m_up.interested && m_net->get_delegator().get_select().interested(index)) {
@@ -588,7 +589,7 @@ void PeerConnection::fillWriteBuf() {
 	if (in_service(SERVICE_STALL))
 	  throw internal_error("Only one request, but we're already in SERVICE_STALL");
 	
-	insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+	insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
       }	
   }
 
@@ -613,11 +614,11 @@ void PeerConnection::fillWriteBuf() {
 	m_sends.front().length() == 0 ||
 	m_sends.front().length() + m_sends.front().offset() >
 
-	((unsigned)m_sends.front().index() + 1 != m_download->content().get_storage().get_chunkcount()  ||
-	 !(m_download->content().get_size() % m_download->content().get_storage().get_chunksize()) ?
+	((unsigned)m_sends.front().index() + 1 != m_download->get_content().get_storage().get_chunkcount()  ||
+	 !(m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunksize()) ?
 
-	 m_download->content().get_storage().get_chunksize() :
-	 (m_download->content().get_storage().get_size() % m_download->content().get_storage().get_chunksize()))) {
+	 m_download->get_content().get_storage().get_chunksize() :
+	 (m_download->get_content().get_storage().get_size() % m_download->get_content().get_storage().get_chunksize()))) {
 
       std::stringstream s;
 
@@ -629,8 +630,8 @@ void PeerConnection::fillWriteBuf() {
     }
       
     if (m_sends.front().index() < 0 ||
-	m_sends.front().index() >= (signed)m_download->content().get_storage().get_chunkcount() ||
-	!m_download->content().get_bitfield()[m_sends.front().index()]) {
+	m_sends.front().index() >= (signed)m_download->get_content().get_storage().get_chunkcount() ||
+	!m_download->get_content().get_bitfield()[m_sends.front().index()]) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index: " << m_sends.front().index();
@@ -647,7 +648,7 @@ void PeerConnection::fillWriteBuf() {
 void PeerConnection::sendHave(int index) {
   m_haveQueue.push_back(index);
 
-  if (m_download->content().get_chunks_completed() == m_download->content().get_storage().get_chunkcount()) {
+  if (m_download->get_content().get_chunks_completed() == m_download->get_content().get_storage().get_chunkcount()) {
     // We're done downloading.
 
     if (m_bitfield.allSet()) {
@@ -709,7 +710,7 @@ void PeerConnection::service(int type) {
 
     // Make sure we regulary call SERVICE_STALL so stalled queues with new
     // entries get those new ones stalled if needed.
-    insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+    insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
 
     caughtExceptions.push_back("Peer stalled " + m_peer.get_dns());
     return;
