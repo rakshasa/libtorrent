@@ -83,6 +83,8 @@ Somehow choke delay got stuck:
 
 Switch to a proper type for file offset/length and chunk length.
 
+Different priorities don't properly affect interested/not interested.
+
 
 API REDESIGN:
 

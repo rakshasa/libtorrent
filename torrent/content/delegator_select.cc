@@ -58,6 +58,7 @@ DelegatorSelect::find(const BitField& bf, unsigned int start, unsigned int rarit
 	break;
       }
 
+    // Check the range start is contained by.
     f = check_range(bf, std::max(start, itr->first), itr->second, rarity, cur_rarity);
 
     if (cur_rarity <= rarity)
@@ -84,7 +85,7 @@ DelegatorSelect::find(const BitField& bf, unsigned int start, unsigned int rarit
 	found = f;
     }
 
-    // Check ranges above the midpoint.
+    // Check ranges below the midpoint.
     Priority::List::const_reverse_iterator rItr(++itr);
 
     if (rItr == m_priority.get_list(p).rend())
