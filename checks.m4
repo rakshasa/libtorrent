@@ -49,7 +49,7 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL],
 
         else
 		CXXFLAGS="$CXXFLAGS -I$withval/include"
-		LIBS="$LIBS -L$withval/lib"
+		LIBS="$LIBS -lcrypto -L$withval/lib"
         fi
   ],
   [
