@@ -12,7 +12,7 @@ class DelegatorReservee {
 public:
   friend class DelegatorPiece;
 
-  DelegatorReservee(DelegatorPiece p = NULL) : m_piece(NULL) {}
+  DelegatorReservee(DelegatorPiece* p = NULL) : m_piece(NULL) {}
 
   bool              is_valid()     { return m_piece; }
 

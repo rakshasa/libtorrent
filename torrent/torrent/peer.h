@@ -38,6 +38,9 @@ public:
   uint32_t             get_rate_down();
   uint32_t             get_rate_up();
 
+  uint64_t             get_transfered_down();
+  uint64_t             get_transfered_up();
+
   uint32_t             get_incoming_queue_size();
   uint32_t             get_outgoing_queue_size();
 

@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include "torrent/exceptions.h"
 #include "delegator_reservee.h"
 
 namespace torrent {
@@ -14,10 +15,14 @@ DelegatorReservee::set_state(DelegatorState s) {
 
   m_piece->set_state(s);
 
-  if (s == NONE || s == FINISHED) {
+  if (s == DELEGATOR_NONE || s == DELEGATOR_FINISHED) {
     m_piece->set_reservee(NULL);
     m_piece = NULL;
   }
+}
+
+void
+DelegatorReservee::set_parent(DelegatorPiece* p) {
 }
 
 }

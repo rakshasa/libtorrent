@@ -2,6 +2,7 @@
 #include "display.h"
 #include <ncurses.h>
 #include <torrent/exceptions.h>
+#include <sstream>
 
 Download::Download(torrent::Download dItr) :
   m_dItr(dItr),
@@ -71,6 +72,10 @@ void Download::draw() {
     drawPeers(1, maxY - 3);
     break;
     
+  case DRAW_STATS:
+    drawStats(1, maxY - 3);
+    break;
+
   case DRAW_SEEN:
     drawSeen(1, maxY - 3);
     break;
@@ -128,6 +133,7 @@ bool Download::key(int c) {
   switch (m_state) {
   case DRAW_PEERS:
   case DRAW_PEER_BITFIELD:
+  case DRAW_STATS:
 
     switch (c) {
     case KEY_DOWN:
@@ -236,6 +242,11 @@ bool Download::key(int c) {
   case 'i':
   case 'I':
     m_state = DRAW_ENTRY;
+    break;
+
+  case 'u':
+  case 'U':
+    m_state = DRAW_STATS;
     break;
 
   case 'b':
@@ -356,6 +367,44 @@ void Download::drawSeen(int y1, int y2) {
       mvprintw(i / maxX + y1, i % maxX, "%c", 'A' + v[i] - 10);
     else
       mvprintw(i / maxX + y1, i % maxX, "%c", 'X');
+}
+
+std::string
+escape_string(const std::string& src) {
+  std::stringstream stream;
+
+  // TODO: Correct would be to save the state.
+  stream << std::hex << std::uppercase;
+
+  for (std::string::const_iterator itr = src.begin(); itr != src.end(); ++itr)
+    if ((*itr >= 'A' && *itr <= 'Z') ||
+	(*itr >= 'a' && *itr <= 'z') ||
+	(*itr >= '0' && *itr <= '9') ||
+	*itr == '-')
+      stream << *itr;
+    else
+      stream << '%' << ((unsigned char)*itr >> 4) << ((unsigned char)*itr & 0xf);
+
+  return stream.str();
+}
+
+void Download::drawStats(int y1, int y2) {
+  unsigned int maxX, maxY;
+
+  getmaxyx(stdscr, maxY, maxX);
+
+  if (m_pItr == m_peers.end() || y2 - y1 < 8 || maxX < 30)
+    return;
+
+  mvprintw(y1++, 0, "DNS: %s:%hu", m_pItr->get_dns().c_str(), m_pItr->get_port());
+  mvprintw(y1++, 0, "Hash: %s" , escape_string(m_pItr->get_id()).c_str());
+  mvprintw(y1++, 0, "Snubbed: %s", m_pItr->get_snubbed() ? "Yes" : "No");
+
+  mvprintw(y1++, 0, "Rate: %5.1f/%5.1f KiB Total: %.1f/%.1f MiB",
+	   (double)m_pItr->get_rate_up() / (double)(1 << 10),
+	   (double)m_pItr->get_rate_down() / (double)(1 << 10),
+	   (double)m_pItr->get_transfered_up() / (double)(1 << 20),
+	   (double)m_pItr->get_transfered_down() / (double)(1 << 20));
 }
 
 void Download::drawBitfield(const unsigned char* bf, int size, int y1, int y2) {

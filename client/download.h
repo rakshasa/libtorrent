@@ -15,6 +15,7 @@ class Download {
  private:
   typedef enum {
     DRAW_PEERS,
+    DRAW_STATS,
     DRAW_SEEN,
     DRAW_BITFIELD,
     DRAW_PEER_BITFIELD,
@@ -22,6 +23,7 @@ class Download {
   } State;
 
   void drawPeers(int y1, int y2);
+  void drawStats(int y1, int y2);
   void drawSeen(int y1, int y2);
   void drawBitfield(const unsigned char* bf, int size, int y1, int y2);
   void drawEntry(int y1, int y2);

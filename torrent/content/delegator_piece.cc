@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include "torrent/exceptions.h"
 #include "delegator_piece.h"
 #include "delegator_reservee.h"
 

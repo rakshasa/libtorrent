@@ -62,6 +62,16 @@ Peer::get_rate_up() {
   return ((PeerConnection*)m_ptr)->throttle().up().rate_quick();
 }
 
+uint64_t
+Peer::get_transfered_down() {
+  return ((PeerConnection*)m_ptr)->throttle().down().total();
+}  
+
+uint64_t
+Peer::get_transfered_up() {
+  return ((PeerConnection*)m_ptr)->throttle().up().total();
+}  
+
 uint32_t
 Peer::get_incoming_queue_size() {
   return ((PeerConnection*)m_ptr)->down().c_list().size();

@@ -54,6 +54,8 @@ Download view:
   P         - View peers
   O         - Number of chunks seen amongst peers
   I         - View files in torrent
+  U         - View peer stats
+
   B         - Local bitfield
   N         - Peer bitfield
 
