@@ -5,7 +5,6 @@
 
 #include "exceptions.h"
 #include "download.h"
-#include "files_check.h"
 #include "general.h"
 #include "listen.h"
 #include "peer_handshake.h"
@@ -53,7 +52,12 @@ Download::Download(const bencode& b) :
   m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions,
 						   (void (std::list<std::string>::*)(const std::string&))&std::list<std::string>::push_back));
 
-  FilesCheck::check(&state().files(), this, HASH_COMPLETED);
+  HashTorrent::SignalDone sd;
+
+  sd.connect(sigc::mem_fun(*this, &Download::receive_initial_hash));
+
+  hashTorrent.add(m_state.hash(), &state().files().storage(), sd,
+		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
 
   } catch (const bencode_error& e) {
 
@@ -111,19 +115,6 @@ void Download::service(int type) {
   float f = 0, g = 0;
 
   switch (type) {
-  case HASH_COMPLETED:
-    m_checked = true;
-    state().files().resizeAll();
-
-    if (m_state.files().chunkCompleted() == m_state.files().storage().get_chunkcount() &&
-	!m_state.files().bitfield().allSet())
-      throw internal_error("Loaded torrent is done but bitfield isn't all set");
-    
-    if (m_started)
-      m_tracker->send_state(TRACKER_STARTED);
-
-    return;
-    
   case CHOKE_CYCLE:
     insert_service(Timer::cache() + state().settings().chokeCycle, CHOKE_CYCLE);
 
@@ -226,5 +217,20 @@ void Download::add_peers(const Peers& p) {
   if (m_started)
     m_state.connect_peers();
 }
+
+void Download::receive_initial_hash(const std::string& id) {
+  if (id != state().hash())
+    throw internal_error("Download::receive_initial_hash received wrong id");
+
+  m_checked = true;
+  state().files().resizeAll();
+
+  if (m_state.files().chunkCompleted() == m_state.files().storage().get_chunkcount() &&
+      !m_state.files().bitfield().allSet())
+    throw internal_error("Loaded torrent is done but bitfield isn't all set");
+    
+  if (m_started)
+    m_tracker->send_state(TRACKER_STARTED);
+}    
 
 }

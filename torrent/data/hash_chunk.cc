@@ -75,9 +75,9 @@ bool HashChunk::willneed(unsigned int length) {
   while (length) {
     StorageChunk::Node& node = m_chunk->get_position(pos);
 
-    unsigned int l = std::min(length, length - (pos - node.position));
+    unsigned int l = std::min(length, node.length - (pos - node.position));
 
-    node.chunk.advise(pos, l, FileChunk::advice_willneed);
+    node.chunk.advise(pos - node.position, l, FileChunk::advice_willneed);
 
     pos    += l;
     length -= l;

@@ -62,10 +62,10 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, unsigned int b, bool wr
 					add<uint64_t>(member(&Node::position),
 						      member(&Node::length))));
 
-  if (itr == m_files.end())
-    throw internal_error("StorageConsolidator could not find a valid file to start the chunk");
+  while (pos != end) {
+    if (itr == m_files.end())
+      throw internal_error("StorageConsolidator could not find a valid file for chunk");
 
-  while (pos != end && itr != m_files.end()) {
     unsigned int offset = pos - itr->position;
     unsigned int length = std::min(end - pos, itr->length - offset);
 

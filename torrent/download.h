@@ -15,7 +15,6 @@ public:
   typedef std::list<Download*> Downloads;
 
   enum ServiceState {
-    HASH_COMPLETED = 0x1000,
     CHOKE_CYCLE = 0x1001
   };
 
@@ -41,6 +40,8 @@ public:
 
 private:
   Download();
+
+  void receive_initial_hash(const std::string& id);
 
   static Downloads m_downloads;
   

@@ -185,10 +185,8 @@ void Delegator::done(int index) {
   std::list<Chunk>::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(),
 						eq(&Chunk::m_index, value(index)));
 
-  if (itr == m_chunks.end())
-    throw internal_error("Tried to set as done a chunk that is not in the Delegator queue");
-
-  m_chunks.erase(itr);
+  if (itr != m_chunks.end())
+    m_chunks.erase(itr);
 }
 
 void Delegator::redo(int index) {

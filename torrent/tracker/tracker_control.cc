@@ -33,15 +33,14 @@ TrackerControl::~TrackerControl() {
 }
 
 void TrackerControl::add_url(const std::string& url) {
-  TrackerHttp* t = NULL;
+  std::string::size_type p = url.find("http://");
 
-  if (url.find("http://") == 0)
-    t = new TrackerHttp();
-  
-  if (t == NULL)
+  if (p == std::string::npos)
     throw input_error("Unknown tracker url");
 
-  t->set_url(url);
+  TrackerHttp* t = new TrackerHttp();
+  
+  t->set_url(url.substr(p, url.length() - p));
   t->set_me(m_me);
   t->set_hash(m_hash);
 

@@ -26,7 +26,7 @@ AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
 
-CXXFLAGS="-O3 -g"
+CXXFLAGS="-O3"
 
 AC_PROG_CXX
 
@@ -36,12 +36,12 @@ AC_ARG_ENABLE(debug,
     [  --enable-debug          enable debug information [default=yes]],
     [
         if test "$enableval" = "yes"; then
-            CXXFLAGS="$CXXFLAGS -Wall -DDEBUG"
+            CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
         else
             CXXFLAGS="$CXXFLAGS -Wall -DNDEBUG"
         fi
     ],[
-        CXXFLAGS="$CXXFLAGS -Wall -DDEBUG"
+        CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
     ]
 )
 

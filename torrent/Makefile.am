@@ -11,6 +11,8 @@ libtorrent_la_SOURCES = \
 	data/hash_compute.h \
 	data/hash_queue.cc \
 	data/hash_queue.h \
+	data/hash_torrent.cc \
+	data/hash_torrent.h \
 	data/storage.cc \
 	data/storage.h \
 	data/storage_chunk.cc \
@@ -42,8 +44,6 @@ libtorrent_la_SOURCES = \
         files.cc \
         files.h \
 	files_algo.h \
-        files_check.cc \
-        files_check.h \
         general.cc \
         general.h \
         listen.cc \

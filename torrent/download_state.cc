@@ -11,7 +11,6 @@
 #include "peer_connection.h"
 #include "peer_handshake.h"
 #include "throttle_control.h"
-#include "data/hash_queue.h"
 
 using namespace algo;
 
@@ -21,6 +20,7 @@ namespace torrent {
 extern std::list<std::string> caughtExceptions;
 
 HashQueue hashQueue;
+HashTorrent hashTorrent(&hashQueue);
 
 DownloadState::DownloadState() :
   m_bytesUploaded(0),

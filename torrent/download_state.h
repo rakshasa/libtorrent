@@ -7,9 +7,13 @@
 #include "peer.h"
 #include "rate.h"
 #include "settings.h"
+#include "data/hash_torrent.h"
 #include <list>
 
 namespace torrent {
+
+extern HashQueue hashQueue;
+extern HashTorrent hashTorrent;
 
 class PeerConnection;
 
