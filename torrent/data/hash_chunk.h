@@ -30,7 +30,7 @@ public:
 
   bool         willneed(unsigned int length);
 
-  unsigned int remaining_chunk();
+  unsigned int remaining();
   unsigned int remaining_file();
 
 private:

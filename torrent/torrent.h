@@ -73,7 +73,9 @@ typedef enum {
   TRACKER_CONNECTING,
   TRACKER_TIMEOUT,        // Set this to 0 if you want to get stuff from the tracker.
 
-  UPLOADS_MAX
+  UPLOADS_MAX,
+
+  IS_STOPPED
 } DValue;
 
 typedef enum {

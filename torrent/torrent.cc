@@ -194,7 +194,7 @@ void remove(DList::const_iterator d) {
 
   delete *itr;
 
-  Download::downloads().erase(itr);
+  //Download::downloads().erase(itr);
 }
 
 bool start(DList::const_iterator d) {
@@ -341,6 +341,9 @@ int64_t get(DList::const_iterator d, DValue t) {
 
   case UPLOADS_MAX:
     return (*d)->state().settings().maxUploads;
+
+  case IS_STOPPED:
+    return (*d)->isStopped();
 
   default:
     throw internal_error("get(itr, DValue) received invalid type");

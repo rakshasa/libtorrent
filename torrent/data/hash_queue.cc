@@ -22,6 +22,7 @@ HashQueue::SignalDone& HashQueue::add(const std::string& id, Chunk c, bool try_i
     if (in_service(0))
       throw internal_error("Empty HashQueue is still in service");
 
+    m_tries = 0;
     insert_service(Timer::current(), 0);
   }
 
@@ -29,10 +30,10 @@ HashQueue::SignalDone& HashQueue::add(const std::string& id, Chunk c, bool try_i
 
   if (try_immediately) {
     
-    while (itr->chunk->remaining_chunk() &&
-	   itr->chunk->perform(itr->chunk->remaining_chunk()));
+    while (itr->chunk->remaining() &&
+	   itr->chunk->perform(itr->chunk->remaining()));
 
-    if (itr->chunk->remaining_chunk() == 0)
+    if (itr->chunk->remaining() == 0)
       m_chunks.splice(m_chunks.begin(), m_chunks, itr);
   }
 
@@ -58,6 +59,7 @@ void HashQueue::clear() {
   }
 }
 
+// TODO: Clean up this code, it's ugly.
 void HashQueue::service(int type) {
   bool forced = false;
 
@@ -68,23 +70,40 @@ void HashQueue::service(int type) {
   else if (forced)
     return insert_service(Timer::current() + 10000, 0);
 
-  m_chunks.front().chunk->perform(m_chunks.front().chunk->remaining_chunk(), false);
+  HashChunk* chunk = m_chunks.front().chunk;
 
-  // TODO: Add willneed stuff here.
+  unsigned int done = chunk->remaining();
 
-  if (m_chunks.front().chunk->remaining_chunk())
-    m_chunks.front().chunk->perform(1 << 16, forced = true);
+  chunk->perform(chunk->remaining(), false);
 
-  if (m_chunks.front().chunk->remaining_chunk())
+  done -= chunk->remaining();
+
+#if USE_MADVISE_WILLNEED == 1
+  if (chunk->remaining())
+    if (m_tries++ < 3) {
+      chunk->willneed(chunk->remaining());
+      
+      return insert_service(Timer::current() + 5000, 0);
+    } else {
+      chunk->perform(chunk->remaining(), forced = true);
+    }
+#else
+  if (chunk->remaining())
+    chunk->perform(1 << 16, forced = true);
+#endif
+
+  if (chunk->remaining())
     // Not done yet, reschedule service. Atleast 10ms so the disk head has time to relocate.
     return insert_service(Timer::current() + 10000, 0);
 
   m_chunks.front().signal.emit(m_chunks.front().id,
-			       m_chunks.front().chunk->get_chunk(),
-			       m_chunks.front().chunk->get_hash());
+			       chunk->get_chunk(),
+			       chunk->get_hash());
 
-  delete m_chunks.front().chunk;
+  delete chunk;
   m_chunks.pop_front();
+
+  m_tries = 0;
 
   goto hashqueue_service_loop;
 }  

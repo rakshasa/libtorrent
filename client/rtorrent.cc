@@ -274,6 +274,19 @@ int main(int argc, char** argv) {
 	    displayState = DISPLAY_LOG;
 	    break;
 
+	  case 'Q':
+	    if (curDownload != torrent::downloads().end()) {
+	      if (torrent::get(curDownload, torrent::IS_STOPPED)) {
+		torrent::DItr itr = curDownload++;
+		torrent::remove(itr);
+
+	      } else {
+		torrent::stop(curDownload);
+	      }
+	    }
+
+	    break;
+
 	  default:
 	    break;
 	  }

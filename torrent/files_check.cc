@@ -88,7 +88,7 @@ void FilesCheck::service(int type) {
 
     HashChunk hc(c);
  
-    hc.perform(hc.remaining_chunk());
+    hc.perform(hc.remaining());
 
     m_files->doneChunk(c, hc.get_hash());
     m_tries = 0;

@@ -14,7 +14,7 @@ bool HashChunk::perform(unsigned int length, bool force) {
   if (m_position + length > m_chunk->get_size())
     throw internal_error("HashChunk::process_force(...) received length out of range");
   
-  length = std::min(length, remaining_chunk());
+  length = std::min(length, remaining());
 
   // TODO: Length should really only be an advise, we can optimize here IMO.
 
@@ -86,9 +86,9 @@ bool HashChunk::willneed(unsigned int length) {
   return true;
 }
 
-unsigned int HashChunk::remaining_chunk() {
+unsigned int HashChunk::remaining() {
   if (!m_chunk.is_valid())
-    throw internal_error("HashChunk::remaining_chunk() called on an invalid chunk");
+    throw internal_error("HashChunk::remaining() called on an invalid chunk");
 
   return m_chunk->get_size() - m_position;
 }

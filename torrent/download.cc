@@ -99,7 +99,10 @@ void Download::stop() {
 
   remove_service(CHOKE_CYCLE);
 
-  // TODO, handle stopping of download correctly.
+  while (!m_state.connections().empty()) {
+    delete m_state.connections().front();
+    m_state.connections().pop_front();
+  }
 }
 
 void Download::service(int type) {
@@ -220,7 +223,8 @@ void Download::add_peers(const Peers& p) {
     m_state.available_peers().push_back(*itr);
   }
 
-  m_state.connect_peers();
+  if (m_started)
+    m_state.connect_peers();
 }
 
 }

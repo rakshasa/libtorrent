@@ -21,7 +21,7 @@ class HashChunk;
 class HashQueue : public Service {
 public:
   typedef algo::RefAnchored<StorageChunk>                      Chunk;
-  typedef sigc::slot3<std::string, Chunk, std::string>         SlotDone;
+  typedef sigc::slot3<void, std::string, Chunk, std::string>   SlotDone;
   typedef sigc::signal3<void, std::string, Chunk, std::string> SignalDone;
 
   struct Node {
@@ -52,12 +52,11 @@ public:
   ChunkList&  chunks() { return m_chunks; }
 
 private:
+  int         m_tries;
+
   ChunkList   m_chunks;
 };
 
 }
 
 #endif
-
-  
-  
