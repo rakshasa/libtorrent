@@ -64,7 +64,8 @@ PeerHandshake::~PeerHandshake() {
 
 void PeerHandshake::connect(int& fdesc, const std::string dns, unsigned short port) {
   if (fdesc < 0)
-    return;
+    //return;
+    throw internal_error("PeerhHandshake received a negative fd, bug or feature?");
 
   set_socket_nonblock(fdesc);
 

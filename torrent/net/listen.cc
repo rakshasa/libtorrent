@@ -75,8 +75,9 @@ void Listen::read() {
   while ((fd = accept(m_fd, (sockaddr*)&sa, &sl)) >= 0) {
     m_incoming.emit(fd, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 
-    if (fd < 0)
-      ::close(fd);
+    if (fd >= 0)
+      throw internal_error("No handler for listen socket");
+      //::close(fd);
   }
 }
 
