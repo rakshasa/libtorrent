@@ -18,25 +18,25 @@ public:
 
   virtual ~SocketBase();
 
-  bool inRead() { return m_readItr != m_readSockets.end(); }
-  bool inWrite() { return m_writeItr != m_writeSockets.end(); }
-  bool inExcept() { return m_exceptItr != m_exceptSockets.end(); }
+  bool in_read() { return m_readItr != m_readSockets.end(); }
+  bool in_write() { return m_writeItr != m_writeSockets.end(); }
+  bool in_except() { return m_exceptItr != m_exceptSockets.end(); }
 
   static void set_socket_nonblock(int fd);
   static void set_socket_min_cost(int fd);
   static int  get_socket_error(int fd);
 
-  static Sockets& readSockets() { return m_readSockets; }
-  static Sockets& writeSockets() { return m_writeSockets; }
-  static Sockets& exceptSockets() { return m_exceptSockets; }
+  static Sockets& read_sockets() { return m_readSockets; }
+  static Sockets& write_sockets() { return m_writeSockets; }
+  static Sockets& except_sockets() { return m_exceptSockets; }
 
-  void insertRead();
-  void insertWrite();
-  void insertExcept();
+  void insert_read();
+  void insert_write();
+  void insert_except();
 
-  void removeRead();
-  void removeWrite();
-  void removeExcept();
+  void remove_read();
+  void remove_write();
+  void remove_except();
 
   virtual int fd() = 0;
 
@@ -45,10 +45,8 @@ public:
   virtual void except() = 0;
 
 protected:
-  bool readBuf(char* buf, unsigned int length, unsigned int& pos);
-  bool writeBuf(const char* buf, unsigned int length, unsigned int& pos);
-
-  static void makeBuf(char** buf, unsigned int length, unsigned int old = 0);
+  bool read_buf(char* buf, unsigned int length, unsigned int& pos);
+  bool write_buf(const char* buf, unsigned int length, unsigned int& pos);
 
   static void make_sockaddr(const std::string& host, int port, sockaddr_in& sa);
   static int  make_socket(sockaddr_in& sa);

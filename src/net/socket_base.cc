@@ -23,42 +23,42 @@ SocketBase::Sockets SocketBase::m_writeSockets;
 SocketBase::Sockets SocketBase::m_exceptSockets;
 
 SocketBase::~SocketBase() {
-  removeRead();
-  removeWrite();
-  removeExcept();
+  remove_read();
+  remove_write();
+  remove_except();
 }
 
-void SocketBase::insertRead() {
-  if (!inRead())
+void SocketBase::insert_read() {
+  if (!in_read())
     m_readItr = m_readSockets.insert(m_readSockets.begin(), this);
 }
 
-void SocketBase::insertWrite() {
-  if (!inWrite())
+void SocketBase::insert_write() {
+  if (!in_write())
     m_writeItr = m_writeSockets.insert(m_writeSockets.begin(), this);
 }
 
-void SocketBase::insertExcept() {
-  if (!inExcept())
+void SocketBase::insert_except() {
+  if (!in_except())
     m_exceptItr = m_exceptSockets.insert(m_exceptSockets.begin(), this);
 }
 
-void SocketBase::removeRead() {
-  if (inRead()) {
+void SocketBase::remove_read() {
+  if (in_read()) {
     m_readSockets.erase(m_readItr);
     m_readItr = m_readSockets.end();
   }
 }
 
-void SocketBase::removeWrite() {
-  if (inWrite()) {
+void SocketBase::remove_write() {
+  if (in_write()) {
     m_writeSockets.erase(m_writeItr);
     m_writeItr = m_writeSockets.end();
   }
 }
 
-void SocketBase::removeExcept() {
-  if (inExcept()) {
+void SocketBase::remove_except() {
+  if (in_except()) {
     m_exceptSockets.erase(m_exceptItr);
     m_exceptItr = m_exceptSockets.end();
   }
@@ -119,7 +119,7 @@ int SocketBase::make_socket(sockaddr_in& sa) {
   return f;
 }
 
-bool SocketBase::readBuf(char* buf, unsigned int length, unsigned int& pos) {
+bool SocketBase::read_buf(char* buf, unsigned int length, unsigned int& pos) {
   if (length <= pos) {
     std::stringstream s;
     s << "Tried to read socket buffer with wrong length and pos " << length << ' ' << pos;
@@ -143,7 +143,7 @@ bool SocketBase::readBuf(char* buf, unsigned int length, unsigned int& pos) {
   return length == (pos += r);
 }
 
-bool SocketBase::writeBuf(const char* buf, unsigned int length, unsigned int& pos) {
+bool SocketBase::write_buf(const char* buf, unsigned int length, unsigned int& pos) {
   if (length <= pos) {
     std::stringstream s;
     s << "Tried to write socket buffer with wrong length and pos " << length << ' ' << pos;
@@ -164,21 +164,6 @@ bool SocketBase::writeBuf(const char* buf, unsigned int length, unsigned int& po
   }
 
   return length == (pos += r);
-}
-
-void SocketBase::makeBuf(char** buf, unsigned int length, unsigned int old) {
-  char* oldBuf = *buf;
- 
-  if (length == 0) {
-    *buf = NULL;
-  } else {
-    *buf = new char[length];
- 
-    if (old)
-      std::memcpy(*buf, oldBuf, std::min(old, length));
-  }
- 
-  delete oldBuf;
 }
 
 } // namespace torrent
