@@ -42,9 +42,7 @@ bool Listen::open(uint16_t first, uint16_t last) {
       insertExcept();
 
       // Create cue.
-      ::listen(fdesc, 50);
-
-      return true;
+      return ::listen(fdesc, 50) == 0;
     }
   }
 
