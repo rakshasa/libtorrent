@@ -6,6 +6,7 @@ libtorrent_la_SOURCES = \
 	bencode.h \
         bitfield.cc \
         bitfield.h \
+	bitfield_counter.h \
         chunk.cc \
         chunk.h \
         delegator.cc \
@@ -16,6 +17,7 @@ libtorrent_la_SOURCES = \
 	download_state.h \
         files.cc \
         files.h \
+	files_algo.h \
         files_check.cc \
         files_check.h \
         general.cc \
@@ -31,7 +33,8 @@ libtorrent_la_SOURCES = \
         peer_connection.cc \
         peer_connection.h \
         peer_connection_extra.cc \
-        peer_connection_extra.h \
+	peer_connection_sub.h \
+	piece.h \
 	rate.cc \
 	rate.h \
 	settings.cc \
@@ -42,6 +45,7 @@ libtorrent_la_SOURCES = \
         storage.h \
         storage_block.cc \
         storage_block.h \
+	timer.h \
 	throttle.cc \
 	throttle.h \
 	throttle_control.cc \

@@ -1,3 +1,7 @@
+2004-08-03  Rakshasa  <jaris@student.matnat.uio.no>
+
+	* torrent: Don't throw on zero length piece messages. Why do they send these?
+
 2004-07-28    <jaris@ifi.uio.no>
 
 	* torrent: Fixed a few bugs in the throttle and added min chunk size.
