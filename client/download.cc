@@ -28,6 +28,8 @@ Download::~Download() {
   if (m_dItr.is_valid()) {
     m_signalCon->disconnect();
     m_signalDis->disconnect();
+    m_signalTF->disconnect();
+    m_signalTS->disconnect();
   }
 }
 

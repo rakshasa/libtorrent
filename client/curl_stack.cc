@@ -1,5 +1,3 @@
-#include "config.h"
-
 #include "curl_get.h"
 #include "curl_stack.h"
 #include <torrent/exceptions.h>

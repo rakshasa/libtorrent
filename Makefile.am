@@ -22,6 +22,10 @@ EXTRA_DIST= \
 	client/Makefile \
 	client/Makefile2 \
 	client/README \
+	client/curl_get.cc \
+	client/curl_get.h \
+	client/curl_stack.cc \
+	client/curl_stack.h \
 	client/display.cc \
 	client/display.h \
 	client/download.cc \

@@ -1,14 +1,14 @@
 OBJECTS = http.o curl_get.o curl_stack.o display.o download.o queue.o rtorrent.o
 
 LIBS = -lncurses `pkg-config --libs sigc++-2.0` `curl-config --libs` ../torrent/.libs/libtorrent.so
-CFLAGS = -Wall -O3 -g `pkg-config --cflags sigc++-2.0` `curl-config --cflags` -I..
+CFLAGS = -Wall -O3 -g `pkg-config --cflags sigc++-2.0` `curl-config --cflags` -I.. -I.
 
 all: tests torrent $(OBJECTS)
 	g++ $(CFLAGS) -o rtorrent $(OBJECTS) $(LIBS)
 
 tests:
 	@curl-config --version
-	@pkg-config --exists sigc++-2.0 libtorrent
+	@pkg-config --exists sigc++-2.0
 
 torrent:
 	ln -s ../torrent/torrent torrent
