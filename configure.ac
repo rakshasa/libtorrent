@@ -87,6 +87,34 @@ AC_DEFUN(MY_CURL,[
 
 MY_CURL()
 
+AC_LANG_PUSH(C++)
+
+AC_MSG_CHECKING(signedness of mincore paramter)
+
+AC_COMPILE_IFELSE(
+    [[#include <sys/mman.h>
+      void f() { mincore(0, 0, (unsigned char*)0); }
+    ]],
+    [
+     AC_DEFINE(USE_MINCORE_UNSIGNED, 1, use unsigned char* in mincore)
+     AC_MSG_RESULT(unsigned)
+    ],
+[
+AC_COMPILE_IFELSE(
+    [[#include <sys/mman.h>
+      void f() { mincore(0, 0, (char*)0); }
+    ]],
+    [
+     AC_DEFINE(USE_MINCORE_UNSIGNED, 0, use char* in mincore)
+     AC_MSG_RESULT(signed)
+    ],
+    [
+     AC_MSG_ERROR([mincore signedness test failed])
+    ])
+])
+
+AC_LANG_POP(C++)
+
 AC_ARG_ENABLE(madvise,
     [  --enable-madvise        enable madvise optimization [default=no]],
     [

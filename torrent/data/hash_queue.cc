@@ -78,7 +78,7 @@ void HashQueue::service(int type) {
 
   done -= chunk->remaining();
 
-#if USE_MADVISE_WILLNEED == 1
+#if USE_MADVISE_WILLNEED
   if (chunk->remaining())
     if (m_tries++ < 3) {
       chunk->willneed(chunk->remaining());

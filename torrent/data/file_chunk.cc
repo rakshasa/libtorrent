@@ -45,7 +45,11 @@ void FileChunk::incore(unsigned char* buf, unsigned int offset, unsigned int len
   len    += offset % m_pagesize;
   offset -= offset % m_pagesize;
 
+#if USE_MINCORE_UNSIGNED
   if (mincore(m_ptr + offset, len, buf))
+#else
+  if (mincore(m_ptr + offset, len, (char*)buf))
+#endif
     throw storage_error("System call mincore failed for FileChunk");
 }
 
