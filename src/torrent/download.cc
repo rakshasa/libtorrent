@@ -72,6 +72,11 @@ Download::is_hash_checked() {
   return m_ptr->get_main().is_checked();
 }
 
+bool
+Download::is_hash_checking() {
+  return m_ptr->get_hash_checker().is_checking();
+}
+
 std::string
 Download::get_name() {
   return m_ptr ? m_ptr->get_main().get_name() : "";
