@@ -13,6 +13,11 @@ inline T& Direct(T* t) {
   return *t;
 }
 
+// template <typename T>
+// inline T& Direct(T*& t) {
+//   return *t;
+// }
+
 template <typename T>
 inline T* Pointer(T& t) {
   return &t;
@@ -22,6 +27,11 @@ template <typename T>
 inline T* Pointer(T* t) {
   return t;
 }
+
+// template <typename T>
+// inline T* Pointer(T*& t) {
+//   return t;
+// }
 
 }
 

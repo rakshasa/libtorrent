@@ -65,7 +65,11 @@ bool File::set_size(uint64_t v) {
   if (!is_open())
     return false;
 
-  return !ftruncate(m_fd, v);
+  int r = ftruncate(m_fd, v);
+  
+  fstat(m_fd, m_stat);
+
+  return r == 0;
 }
 
 int File::get_mode() {
@@ -105,12 +109,18 @@ uint64_t File::get_size() {
   return is_open() ? m_stat->st_size : 0;
 }
 
-FileChunk File::get_chunk(uint64_t offset,
-			  unsigned int length,
-			  bool wr,
-			  bool rd) {
-  if (!is_open())
-    return FileChunk();
+bool File::get_chunk(FileChunk& f,
+		     uint64_t offset,
+		     unsigned int length,
+		     bool wr,
+		     bool rd) {
+  if (!is_open() ||
+      offset + length > (uint64_t)m_stat->st_size ||
+      m_stat->st_size <= 0) {
+    f = FileChunk();
+
+    return false;
+  }
 
   uint64_t align = offset % getpagesize();
 
@@ -120,9 +130,11 @@ FileChunk File::get_chunk(uint64_t offset,
 
   
   if (ptr == MAP_FAILED)
-    return FileChunk();
+    f = FileChunk();
   else
-    return FileChunk(ptr, ptr + align, length);
+    f = FileChunk(ptr, ptr + align, length, m_flags & in, m_flags & out);
+
+  return f.is_valid();
 }
 
 }

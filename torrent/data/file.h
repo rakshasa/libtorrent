@@ -34,29 +34,30 @@ class File {
   ~File();
 
   // Create only regular files for now.
-  bool       open(const std::string& path,
+  bool     open(const std::string& path,
 		  int flags = in,
 		  int mode = 0666);
 
-  void       close();
+  void     close();
   
-  bool       is_open()             { return m_fd != -1; }
+  bool     is_open()             { return m_fd != -1; }
 
-  bool       set_size(uint64_t v);
+  bool     set_size(uint64_t v);
 
-  int        get_flags()           { return m_flags; }
-  int        get_mode();
-  int        get_type();
-  uint64_t   get_size();
+  int      get_flags()           { return m_flags; }
+  int      get_mode();
+  int      get_type();
+  uint64_t get_size();
 
-  FileChunk  get_chunk(uint64_t offset,
-		       unsigned int length,
-		       bool wr = false,
-		       bool rd = true);
+  bool     get_chunk(FileChunk& f,
+		     uint64_t offset,
+		     unsigned int length,
+		     bool wr = false,
+		     bool rd = true);
+  
+  int      fd()                  { return m_fd; }
 
-  int        fd()                  { return m_fd; }
-
-  const std::string& path()        { return m_path; }
+  const std::string& path()      { return m_path; }
 
  private:
   File(const File&);

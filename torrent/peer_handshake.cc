@@ -149,7 +149,7 @@ void PeerHandshake::read() {
   }
 
   } catch (network_error& e) {
-    caughtExceptions.push_front("Handshake: " + std::string(e.what()));
+    //caughtExceptions.push_front("Handshake: " + std::string(e.what()));
 
     delete this;
   }
@@ -187,7 +187,7 @@ void PeerHandshake::write() {
   }
 
   } catch (network_error& e) {
-    caughtExceptions.push_front("Handshake: " + std::string(e.what()));
+    //caughtExceptions.push_front("Handshake: " + std::string(e.what()));
 
     delete this;
   }

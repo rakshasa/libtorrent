@@ -85,3 +85,9 @@ AFTER API REDESIGN:
 Add the option to not throw non-critical exceptions. This lets the
 client be ignorant of errors while creating stuff. (Make some kind of
 C friendly layer ontop)
+
+
+COOL STUFF THAT NEEDS TO BE DONE
+
+Add lambda style operators to algo, use a wrapper class to get right
+type for overloaded operators. (that gets discarded when not used)

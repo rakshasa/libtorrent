@@ -22,6 +22,12 @@ inline On<Target, Call> on(Target target, Call call) {
   return On<Target, Call>(target, call);
 }
 
+// Target and Call do not inherit On's Ret template argument.
+template <typename Target, typename Call, typename Ret>
+inline Convert<Ret, On<Target, Call> > on(Target target, Call call) {
+  return convert(On<Target, Call>(target, call));
+}
+
 template <typename Ret, typename Target, typename Call>
 inline Convert<Ret, On<Target, Call> > on(Target target, Call call) {
   return convert<Ret>(On<Target, Call>(target, call));
