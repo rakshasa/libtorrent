@@ -93,4 +93,12 @@ Ranges::has(uint32_t index) {
   return itr != List::end() && index >= itr->first;
 }
 
+Ranges&
+Ranges::intersect(Ranges& r) {
+  std::for_each(r.begin(), r.end(),
+		call_member(ref(*this), &Ranges::erase, member(&Range::first), member(&Range::second)));
+
+  return *this;
+}
+
 }

@@ -10,7 +10,7 @@ namespace torrent {
 
 class ContentFile {
 public:
-  typedef std::pair<unsigned int, unsigned int> Range;
+  typedef std::pair<uint32_t, uint32_t> Range;
 
   ContentFile(const Path& p, uint64_t s, Range r) :
     m_path(p),
@@ -23,20 +23,20 @@ public:
   unsigned char  get_priority() const           { return m_priority; }
 
   Range          get_range() const              { return m_range; }
-  unsigned int   get_completed() const          { return m_completed; }
+  uint32_t       get_completed() const          { return m_completed; }
 
   Path&          get_path()                     { return m_path; }
   const Path&    get_path() const               { return m_path; }
 
   void           set_priority(unsigned char t)  { m_priority = t; }
-  void           set_completed(unsigned int v)  { m_completed = v; }
+  void           set_completed(uint32_t v)      { m_completed = v; }
 
 private:
   Path           m_path;
   uint64_t       m_size;
   Range          m_range;
 
-  unsigned int   m_completed;
+  uint32_t       m_completed;
   unsigned char  m_priority;
 };
 

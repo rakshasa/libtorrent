@@ -138,7 +138,7 @@ Download::get_bytes_total() {
 
 uint32_t
 Download::get_chunks_size() {
-  return m_ptr->get_main().get_state().get_content().get_storage().get_chunksize();
+  return m_ptr->get_main().get_state().get_content().get_storage().get_chunk_size();
 }
 
 uint32_t
@@ -267,7 +267,7 @@ Download::update_priorities() {
   p.clear();
 
   uint64_t pos = 0;
-  unsigned int cs = content.get_storage().get_chunksize();
+  unsigned int cs = content.get_storage().get_chunk_size();
 
   for (Content::FileList::const_iterator i = content.get_files().begin(); i != content.get_files().end(); ++i) {
     unsigned int s = pos / cs;

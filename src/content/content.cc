@@ -1,8 +1,12 @@
 #include "config.h"
 
+#include <algo/algo.h>
+
 #include "torrent/exceptions.h"
 #include "content.h"
 #include "data/file.h"
+
+using namespace algo;
 
 namespace torrent {
 
@@ -12,9 +16,9 @@ Content::add_file(const Path& path, uint64_t size) {
     throw internal_error("Tried to add file to Content that is open");
 
   m_files.push_back(ContentFile(path, size,
-				ContentFile::Range(m_size / m_storage.get_chunksize(),
-						   size ? ((m_size + size + m_storage.get_chunksize() - 1) / m_storage.get_chunksize())
-						   : (m_size / m_storage.get_chunksize()))));
+				ContentFile::Range(m_size / m_storage.get_chunk_size(),
+						   size ? ((m_size + size + m_storage.get_chunk_size() - 1) / m_storage.get_chunk_size())
+						   : (m_size / m_storage.get_chunk_size()))));
 
   m_size += size;
 }
@@ -48,13 +52,13 @@ Content::get_hash(unsigned int index) {
 
 uint32_t
 Content::get_chunksize(uint32_t index) {
-  if (m_storage.get_chunksize() == 0 || index >= m_storage.get_chunk_total())
+  if (m_storage.get_chunk_size() == 0 || index >= m_storage.get_chunk_total())
     throw internal_error("Content::get_chunksize(...) called but we borked");
 
-  if (index + 1 != m_storage.get_chunk_total() || m_size % m_storage.get_chunksize() == 0)
-    return m_storage.get_chunksize();
+  if (index + 1 != m_storage.get_chunk_total() || m_size % m_storage.get_chunk_size() == 0)
+    return m_storage.get_chunk_size();
   else
-    return m_size % m_storage.get_chunksize();
+    return m_size % m_storage.get_chunk_size();
 }
 
 uint64_t
@@ -62,7 +66,7 @@ Content::get_bytes_completed() {
   if (!is_open())
     return 0;
 
-  uint64_t cs = m_storage.get_chunksize();
+  uint64_t cs = m_storage.get_chunk_size();
 
   if (!m_bitfield[m_storage.get_chunk_total() - 1] || m_size % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
@@ -77,11 +81,11 @@ Content::is_correct_size() {
   if (!is_open())
     return false;
 
-  if (m_files.size() != m_storage.files().size())
+  if (m_files.size() != m_storage.get_files().size())
     throw internal_error("Content::is_correct_size called on an open object with mismatching FileList and Storage::FileList sizes");
 
   FileList::const_iterator fItr = m_files.begin();
-  Storage::FileList::const_iterator sItr = m_storage.files().begin();
+  Storage::FileList::const_iterator sItr = m_storage.get_files().begin();
   
   while (fItr != m_files.end()) {
     if (fItr->get_size() != sItr->c_file()->get_size())
@@ -113,8 +117,8 @@ Content::open(bool wr) {
     } catch (base_error& e) {
       delete f;
       m_storage.close();
-      
-      throw e;
+
+      throw;
     }
 
     lastPath = itr->get_path();
@@ -125,7 +129,7 @@ Content::open(bool wr) {
   m_bitfield = BitField(m_storage.get_chunk_total());
 
   // Update anchor count in m_storage.
-  m_storage.set_chunksize(m_storage.get_chunksize());
+  m_storage.set_chunksize(m_storage.get_chunk_size());
 
   if (m_hash.size() / 20 != m_storage.get_chunk_total())
     throw internal_error("Content::open(...): Chunk count does not match hash count");
@@ -140,6 +144,8 @@ Content::close() {
 
   m_completed = 0;
   m_bitfield = BitField();
+
+  std::for_each(m_files.begin(), m_files.end(), call_member(&ContentFile::set_completed, value(0)));
 }
 
 void
@@ -162,20 +168,24 @@ Content::mark_done(uint32_t index) {
   m_bitfield.set(index, true);
   m_completed++;
 
-  for (FileList::iterator itr = m_files.begin(); itr != m_files.end() && index >= itr->get_range().first; ++itr)
-    if (index < itr->get_range().second)
-      itr->set_completed(itr->get_completed() + 1);
+  mark_done_file(m_files.begin(), index);
 
   if (m_completed == m_storage.get_chunk_total())
     m_downloadDone.emit();
 }
 
-// Recalculate done pieces, make sure the bitfield padding is properly
-// cleared.
+// Recalculate done pieces, this function clears the padding bits on the
+// bitfield.
 void
 Content::update_done() {
   m_bitfield.cleanup();
   m_completed = m_bitfield.count();
+
+  FileList::iterator itr = m_files.begin();
+
+  for (BitField::size_t i = 0; i < m_bitfield.size_bits(); ++i)
+    if (m_bitfield[i])
+      itr = mark_done_file(itr, i);
 }
 
 void

@@ -33,11 +33,11 @@ public:
   
   uint64_t     get_size();
   uint32_t     get_chunk_total();
-  uint32_t     get_chunksize();
+  uint32_t     get_chunk_size();
 
   Chunk        get_chunk(unsigned int b, bool wr = false, bool rd = true);
 
-  FileList&    files();
+  FileList&    get_files();
 
 private:
   StorageConsolidator* m_consolidator;

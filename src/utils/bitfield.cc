@@ -43,7 +43,8 @@ BitField::BitField(const BitField& bf) :
   }
 }
 
-BitField& BitField::operator = (const BitField& bf) {
+BitField&
+BitField::operator = (const BitField& bf) {
   if (this == &bf)
     return *this;
 
@@ -67,7 +68,8 @@ BitField& BitField::operator = (const BitField& bf) {
   return *this;
 }
 
-BitField& BitField::not_in(const BitField& bf) {
+BitField&
+BitField::not_in(const BitField& bf) {
   if (m_size != bf.m_size)
     throw internal_error("Tried to do operations between different sized bitfields");
 
@@ -78,7 +80,8 @@ BitField& BitField::not_in(const BitField& bf) {
   return *this;
 }
 
-bool BitField::all_zero() const {
+bool
+BitField::all_zero() const {
   if (m_size == 0)
     return true;
 
@@ -89,7 +92,8 @@ bool BitField::all_zero() const {
   return true;
 }
 
-bool BitField::all_set() const {
+bool
+BitField::all_set() const {
   if (m_size == 0)
     return false;
 
@@ -129,7 +133,8 @@ static const unsigned char bit_count_256[] =
   4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-uint32_t BitField::count() const {
+uint32_t
+BitField::count() const {
   // Might be faster since it doesn't touch the memory.
   // for (n = 0; x; n++)
   //   x &= x-1;
@@ -140,6 +145,13 @@ uint32_t BitField::count() const {
     c += bit_count_256[*i];
 
   return c;
+}
+
+void
+BitField::set(size_t begin, size_t end, bool s) {
+  // Quick, dirty and slow.
+  while (begin != end)
+    set(begin++, s);
 }
 
 }

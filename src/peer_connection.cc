@@ -546,7 +546,7 @@ void PeerConnection::parseReadBuf() {
       insert_write();
     }
 
-    m_ratePeer.add(m_download->get_content().get_storage().get_chunksize());
+    m_ratePeer.add(m_download->get_content().get_storage().get_chunk_size());
 
     return;
 

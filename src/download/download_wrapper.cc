@@ -3,9 +3,9 @@
 #include <sigc++/bind.h>
 
 #include "torrent/exceptions.h"
-#include "torrent/bencode.h"
 #include "data/hash_torrent.h"
 #include "data/hash_queue.h"
+#include "data/file.h"
 #include "net/handshake_manager.h"
 
 #include "download_wrapper.h"
@@ -13,7 +13,6 @@
 namespace torrent {
 
 DownloadWrapper::DownloadWrapper() {
-  m_bencode = std::auto_ptr<Bencode>(new Bencode);
 }
 
 DownloadWrapper::~DownloadWrapper() {
@@ -41,22 +40,41 @@ DownloadWrapper::hash_load() {
   if (!m_main.is_open() || m_main.is_active() || m_main.is_checked())
     throw client_error("DownloadWrapper::resume_load() called with wrong state");
 
-  if (!m_bencode->has_key("libtorrent resume"))
+  if (!m_bencode.has_key("libtorrent resume"))
     return;
 
-  Bencode& b = (*m_bencode)["libtorrent resume"];
+  Bencode& b = m_bencode["libtorrent resume"];
+  Content& c = m_main.get_state().get_content();
+
+  if (c.get_files().size() != c.get_storage().get_files().size())
+    throw internal_error("DownloadWrapper::hash_load() size mismatch in file entries");
 
   if (!b.has_key("bitfield") ||
       !b["bitfield"].is_string() ||
-      b["bitfield"].as_string().size() != m_main.get_state().get_content().get_bitfield().size_bytes())
+      b["bitfield"].as_string().size() != c.get_bitfield().size_bytes())
     return;
 
-  // Clear the hash checking ranges, and add the ones we must do later.
+  // Clear the hash checking ranges, and add the files ranges we must check.
   m_hash->get_ranges().clear();
 
-  std::memcpy(m_main.get_state().get_content().get_bitfield().begin(),
-	      b["bitfield"].as_string().c_str(),
-	      m_main.get_state().get_content().get_bitfield().size_bytes());
+  std::memcpy(c.get_bitfield().begin(), b["bitfield"].as_string().c_str(), c.get_bitfield().size_bytes());
+
+  Content::FileList::iterator cItr = c.get_files().begin();
+  Storage::FileList::iterator sItr = c.get_storage().get_files().begin();
+
+  // Check the validity of each file, add to the m_hash's ranges if invalid.
+  while (cItr != c.get_files().end()) {
+    // Check that the size and modified stamp matches.
+    if (sItr->size() != sItr->file()->get_size())
+      m_hash->get_ranges().insert(cItr->get_range().first, cItr->get_range().second);
+
+    ++cItr;
+    ++sItr;
+  }  
+
+  // Clear bits in invalid regions which will be checked by m_hash.
+  for (Ranges::iterator itr = m_hash->get_ranges().begin(); itr != m_hash->get_ranges().end(); ++itr)
+    c.get_bitfield().set(itr->first, itr->second, false);
 
   m_main.get_state().get_content().update_done();
 }
@@ -68,7 +86,7 @@ DownloadWrapper::hash_save() {
   if (!m_main.is_open() || m_main.is_active() || !m_main.is_checked())
     throw client_error("DownloadWrapper::resume_save() called with wrong state");
 
-  Bencode& resume = m_bencode->insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
+  Bencode& resume = m_bencode.insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
 
   resume.insert_key("bitfield", std::string((char*)m_main.get_state().get_content().get_bitfield().begin(),
 					    m_main.get_state().get_content().get_bitfield().size_bytes()));

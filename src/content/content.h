@@ -14,6 +14,11 @@ namespace torrent {
 // Since g++ uses reference counted strings, it's cheaper to just hand
 // over bencode's string.
 
+// The ranges in the ContentFile elements spans from the first chunk
+// they have data on, to the last plus one. This means the range end
+// minus one of one file can be the start of one or more other file
+// ranges.
+
 class Content {
 public:
   typedef std::vector<ContentFile> FileList;
@@ -60,6 +65,16 @@ public:
 private:
   
   void                   open_file(File* f, Path& p, Path& lastPath);
+
+  FileList::iterator     mark_done_file(FileList::iterator itr, uint32_t index) {
+    while (index >= itr->get_range().second) ++itr;
+
+    do {
+      itr->set_completed(itr->get_completed() + 1);
+    } while (index + 1 == itr->get_range().second && ++itr != m_files.end());
+
+    return itr;
+  }
 
   uint64_t               m_size;
   uint32_t               m_completed;

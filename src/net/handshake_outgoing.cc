@@ -72,7 +72,7 @@ HandshakeOutgoing::write() {
   case CONNECTING:
     error = get_socket_error(m_fd);
  
-    if (error != 0)
+    if (error)
       throw connection_error("Could not connect to client");
  
     m_state = WRITE_HEADER;

@@ -3,13 +3,13 @@
 
 #include <memory>
 
+#include "torrent/bencode.h"
 #include "download_main.h"
 
 namespace torrent {
 
 // Remember to clean up the pointers, DownloadWrapper won't do it.
 
-class Bencode;
 class HashTorrent;
 class HashQueue;
 class HandshakeManager;
@@ -32,7 +32,7 @@ public:
   const std::string&  get_hash()          { return m_main.get_hash(); }
   DownloadMain&       get_main()          { return m_main; }
 
-  Bencode&            get_bencode()       { return *m_bencode.get(); }
+  Bencode&            get_bencode()       { return m_bencode; }
   HashTorrent&        get_hash_checker()  { return *m_hash.get(); }
 
   void                set_handshake_manager(HandshakeManager& h);
@@ -46,7 +46,7 @@ private:
   void operator = (const DownloadWrapper&);
 
   DownloadMain               m_main;
-  std::auto_ptr<Bencode>     m_bencode;
+  Bencode                    m_bencode;
   std::auto_ptr<HashTorrent> m_hash;
 };
 

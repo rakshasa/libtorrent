@@ -30,8 +30,8 @@ public:
   // Use find with no closest match.
   bool                has(uint32_t index);
 
-private:
-  List      m_list;
+  // Remove ranges in r from this.
+  Ranges&             intersect(Ranges& r);
 };
 
 }

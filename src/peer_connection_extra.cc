@@ -154,10 +154,10 @@ PeerConnection::request_piece() {
       p->get_length() + p->get_offset() >
       
       ((unsigned)p->get_index() + 1 != m_download->get_chunk_total() ||
-       !(m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunksize()) ?
+       !(m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunk_size()) ?
        
-       m_download->get_content().get_storage().get_chunksize() :
-       (m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunksize()))) {
+       m_download->get_content().get_storage().get_chunk_size() :
+       (m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunk_size()))) {
     
     std::stringstream s;
     

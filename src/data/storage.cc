@@ -51,8 +51,8 @@ Storage::get_chunk_total() {
 }
 
 uint32_t
-Storage::get_chunksize() {
-  return m_consolidator->get_chunksize();
+Storage::get_chunk_size() {
+  return m_consolidator->get_chunk_size();
 }
 
 Storage::Chunk
@@ -74,8 +74,8 @@ Storage::get_chunk(unsigned int b, bool wr, bool rd) {
 }
 
 Storage::FileList& 
-Storage::files() {
-  return m_consolidator->files();
+Storage::get_files() {
+  return m_consolidator->get_files();
 }
 
 }
