@@ -146,7 +146,7 @@ Content::resize() {
 }
 
 void
-Content::mark_done(unsigned int index) {
+Content::mark_done(uint32_t index) {
   if (index >= m_storage.get_chunkcount())
     throw internal_error("Content::mark_done received index out of range");
     

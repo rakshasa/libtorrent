@@ -51,7 +51,7 @@ public:
 
   void                   resize();
 
-  void                   mark_done(unsigned int index);
+  void                   mark_done(uint32_t index);
 
   SignalDownloadDone&    signal_download_done()          { return m_downloadDone; }
 
@@ -60,7 +60,7 @@ private:
   void                   open_file(File* f, Path& p, Path& lastPath);
 
   uint64_t               m_size;
-  unsigned int           m_completed;
+  uint32_t               m_completed;
 
   FileList               m_files;
   Storage                m_storage;

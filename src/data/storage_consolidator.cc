@@ -15,6 +15,9 @@ StorageConsolidator::~StorageConsolidator() {
 }
 
 void StorageConsolidator::add_file(File* file, uint64_t size) {
+  if (sizeof(off_t) != 8)
+    throw internal_error("sizeof(off_t) != 8");
+
   if (size + m_size < m_size)
     throw internal_error("Sum of files added to StorageConsolidator overflowed 64bit");
 
@@ -66,8 +69,8 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, unsigned int b, bool wr
     if (itr == m_files.end())
       throw internal_error("StorageConsolidator could not find a valid file for chunk");
 
-    unsigned int offset = pos - itr->position();
-    unsigned int length = std::min(end - pos, itr->size() - offset);
+    uint64_t offset = pos - itr->position();
+    uint32_t length = std::min(end - pos, itr->size() - offset);
 
     if (length == 0)
       throw internal_error("StorageConsolidator::get_chunk caught a piece with 0 lenght");

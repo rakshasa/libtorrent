@@ -51,6 +51,11 @@ Consider not calling insert_write() when filling have list.
 
 Handshake manager must be spread with slots.
 
+storage_consolidator get_chunk takes to many arguments, use flags instead.
+
+! We're blocking during torrent open due to very fast preloading, we're getting
+ahead of the is_incore() calls, thereby not yielding. FIXME
+
 
 DELEGATOR STUFF
 
