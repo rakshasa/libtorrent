@@ -73,7 +73,7 @@ DownloadNet::should_request(uint32_t stall) {
     return true;
   else
     // Removed stall check... don't really want it?
-    return m_rateDown.rate() < m_settings->endgameRate;
+    return !stall || m_rateDown.rate() < m_settings->endgameRate;
 }
 
 void
