@@ -28,8 +28,8 @@ TrackerHttp::TrackerHttp() :
 
   m_get->set_user_agent(PACKAGE "/" VERSION);
 
-  m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
-  m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
+  m_get->slot_done(sigc::mem_fun(*this, &TrackerHttp::receive_done));
+  m_get->slot_failed(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
 }
 
 TrackerHttp::~TrackerHttp() {

@@ -116,6 +116,8 @@ TrackerControl::receive_done(const PeerList& l, int interval) {
 
   if (interval > 0)
     m_interval = interval;
+  else
+    m_interval = 1800;
 
   if (m_interval < 60)
     throw internal_error("TrackerControl m_interval is to small");

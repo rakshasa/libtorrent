@@ -202,6 +202,7 @@ DelegatorSelect::interested_range(const BitField& bf, uint32_t start, uint32_t e
     ++i2;
   }
 
+  // TODO: Invalid read of size 4.
   return (r = (end - start) / sizeof(uint32_t)) != 0 &&
     ~(ntohl(*i1) >> sizeof(uint32_t) - r) & (ntohl(*i2) >> sizeof(uint32_t) - r);
 }      
