@@ -66,6 +66,8 @@ Proper canceling of pieces in sendHave, unless only one can download a piece.
 
 If you add SERVICE_CANCEL, modify discardincomingqueue.
 
+Delegator done receives done's when doing initial hash check, do something to enable the exceptions.
+
 
 TRACKER STUFF
 

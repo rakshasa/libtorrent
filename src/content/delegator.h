@@ -17,10 +17,10 @@ class DownloadState;
 class Delegator {
 public:
   typedef std::vector<DelegatorChunk*>        Chunks;
-  typedef sigc::signal1<void, unsigned int> SignalChunkDone;
+  typedef sigc::signal1<void, unsigned int>   SignalChunkDone;
+  typedef sigc::slot1<uint32_t, unsigned int> SlotChunkSize;
 
-  Delegator() : m_state(NULL) {}
-  Delegator(DownloadState* ds) : m_state(ds) { }
+  Delegator() : m_chunksize(0) { }
   ~Delegator();
 
   bool               interested(const BitField& bf);
@@ -35,26 +35,29 @@ public:
   void               done(int index);
   void               redo(int index);
 
-  Chunks&            chunks() { return m_chunks; }
-  DelegatorSelect&   select() { return m_select; }
+  Chunks&            get_chunks()                         { return m_chunks; }
+  DelegatorSelect&   get_select()                         { return m_select; }
 
-  SignalChunkDone&   signal_chunk_done() { return m_signalChunkDone; }
+  SignalChunkDone&   signal_chunk_done()                  { return m_signalChunkDone; }
+
+  void               slot_chunk_size(SlotChunkSize s)     { m_slotChunkSize = s; }
 
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
   DelegatorPiece*    new_chunk(const BitField& bf);
-
   DelegatorPiece*    find_piece(const Piece& p);
 
   bool               all_state(int index, DelegatorState s);
 
-  // TODO: Get rid of m_state.
-  DownloadState*     m_state;
+  uint64_t           m_totalsize;
+  uint32_t           m_chunksize;
+
   Chunks             m_chunks;
   DelegatorSelect    m_select;
 
   SignalChunkDone    m_signalChunkDone;
+  SlotChunkSize      m_slotChunkSize;
 };
 
 } // namespace torrent

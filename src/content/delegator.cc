@@ -20,18 +20,18 @@ Delegator::~Delegator() {
 }
 
 bool Delegator::interested(const BitField& bf) {
-  // TODO: Unmark some of the downloading chunks.
+  // TODO: Optimize this.
 
   BitField b(bf);
   
-  return !b.notIn(m_state->content().get_bitfield()).zero();
+  return !b.notIn(*m_select.get_bitfield()).zero();
 }
 
 bool Delegator::interested(int index) {
-  if (index < 0 && (unsigned)index >= m_state->content().get_bitfield().sizeBits())
+  if (index < 0 && (unsigned)index >= m_select.get_bitfield()->sizeBits())
     throw internal_error("Delegator::interested received index out of range");
 
-  return !m_state->content().get_bitfield()[index];
+  return !(*m_select.get_bitfield())[index];
 }
 
 DelegatorReservee*
@@ -122,7 +122,8 @@ void Delegator::done(int index) {
 				      eq(call_member(&DelegatorChunk::get_index), value((unsigned int)index)));
 
   if (itr == m_chunks.end())
-    throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
+    //throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
+    return;
 
   m_select.remove_ignore((*itr)->get_index());
 
@@ -143,17 +144,7 @@ DelegatorPiece* Delegator::new_chunk(const BitField& bf) {
     return NULL;
 
   m_select.add_ignore(index);
-
-  // If index is the last piece, and the last piece is not divisible by chunk size
-  // then set size to the size of the whole torrent modulo chunk size.
-  unsigned int size =
-    (unsigned)index + 1 == m_state->content().get_storage().get_chunkcount() &&
-    (m_state->content().get_size() % m_state->content().get_storage().get_chunksize()) ?
-
-    (m_state->content().get_size() % m_state->content().get_storage().get_chunksize()) :
-    m_state->content().get_storage().get_chunksize();
-
-  m_chunks.push_back(new DelegatorChunk(index, size, 1 << 16));
+  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), 1 << 16));
 
   return (*m_chunks.rbegin())->begin();
 }

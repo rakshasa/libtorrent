@@ -17,6 +17,7 @@ class Storage {
 public:
   typedef std::vector<StorageFile>        FileList;
   typedef algo::RefAnchored<StorageChunk> Chunk;
+  typedef algo::RefAnchor<StorageChunk>   Anchor;
 
   Storage();
   ~Storage();
@@ -34,14 +35,13 @@ public:
   unsigned int get_chunkcount();
   unsigned int get_chunksize();
 
-  Chunk get_chunk(unsigned int b, bool wr = false, bool rd = true);
+  Chunk        get_chunk(unsigned int b, bool wr = false, bool rd = true);
 
   FileList&    files();
 
 private:
-  StorageConsolidator*                        m_consolidator;
-
-  std::vector<algo::RefAnchor<StorageChunk> > m_anchors;
+  StorageConsolidator* m_consolidator;
+  std::vector<Anchor>  m_anchors;
 };
 
 }

@@ -23,14 +23,12 @@ extern std::list<std::string> caughtExceptions;
 HashQueue hashQueue;
 HashTorrent hashTorrent(&hashQueue);
 
-DownloadState::DownloadState(DownloadNet* net) :
+DownloadState::DownloadState() :
   m_bytesUploaded(0),
   m_bytesDownloaded(0),
-  m_delegator(this),
-  m_net(net),
+  m_net(NULL),
   m_settings(DownloadSettings::global())
 {
-  m_delegator.signal_chunk_done().connect(sigc::mem_fun(*this, &DownloadState::chunk_done));
 }
 
 DownloadState::~DownloadState() {
@@ -125,6 +123,9 @@ void DownloadState::addConnection(int fd, const PeerInfo& p) {
     return;
   }
 
+  if (m_net == NULL)
+    throw internal_error("DownloadState::addConnection(...) with m_net == NULL");
+
   PeerConnection* c = new PeerConnection();
 
   c->set(fd, p, this, m_net);
@@ -201,14 +202,14 @@ void DownloadState::receive_hashdone(std::string id, Storage::Chunk c, std::stri
   if (std::memcmp(hash.c_str(), m_content.get_hash_c(c->get_index()), 20) == 0) {
 
     m_content.mark_done(c->get_index());
-    m_delegator.done(c->get_index());
+    m_signalChunkPassed.emit(c->get_index());
     
     std::for_each(m_connections.begin(), m_connections.end(),
 		  call_member(&PeerConnection::sendHave,
 			      value(c->get_index())));
 
   } else {
-    m_delegator.redo(c->get_index());
+    m_signalChunkFailed.emit(c->get_index());
   }
 }  
 

@@ -31,7 +31,6 @@ extern Listen* listen;
 
 DownloadMain::DownloadMain(const bencode& b) :
   m_tracker(NULL),
-  m_state(&this->m_net),
   m_checked(false),
   m_started(false)
 {
@@ -47,6 +46,7 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_state.me() = PeerInfo(generateId(), "", listen->get_port());
   m_state.hash() = calcHash(b["info"]);
   m_state.bfCounter() = BitFieldCounter(m_state.content().get_storage().get_chunkcount());
+  m_state.set_net(&m_net);
 
   m_tracker = new TrackerControl(m_state.me(), m_state.hash(), generateKey());
 
@@ -69,11 +69,7 @@ DownloadMain::DownloadMain(const bencode& b) :
 
   m_state.content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 
-  m_state.delegator().select().set_bitfield(&m_state.content().get_bitfield());
-  m_state.delegator().select().set_seen(&m_state.bfCounter());
-
-  // TODO: Fix this, just testing get of first file.
-  m_state.delegator().select().get_priority().add(Priority::NORMAL, 0, m_state.content().get_storage().get_chunkcount());
+  setup_delegator();
 
   } catch (const bencode_error& e) {
 
@@ -280,6 +276,20 @@ DownloadMain::receive_download_done() {
   m_tracker->send_state(TRACKER_COMPLETED);
 
   caughtExceptions.push_back("Sendt completed to tracker");
+}
+
+void
+DownloadMain::setup_delegator() {
+  m_net.get_delegator().get_select().set_bitfield(&m_state.content().get_bitfield());
+  m_net.get_delegator().get_select().set_seen(&m_state.bfCounter());
+
+  m_net.get_delegator().get_select().get_priority().add(Priority::NORMAL, 0, m_state.content().get_storage().get_chunkcount());
+
+  m_net.get_delegator().signal_chunk_done().connect(sigc::mem_fun(m_state, &DownloadState::chunk_done));
+  m_net.get_delegator().slot_chunk_size(sigc::mem_fun(m_state.content(), &Content::get_chunksize));
+
+  m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
+  m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
 }
 
 }

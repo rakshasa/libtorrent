@@ -6,7 +6,6 @@
 #include "rate.h"
 #include "settings.h"
 #include "content/content.h"
-#include "content/delegator.h"
 #include "data/hash_torrent.h"
 #include "download/pipe_size.h"
 #include "torrent/peer.h"
@@ -28,7 +27,7 @@ class DownloadState {
   typedef std::list<PeerInfo>        Peers;
   typedef std::list<PeerConnection*> Connections;
 
-  DownloadState(DownloadNet* net);
+  DownloadState();
   ~DownloadState();
 
   PeerInfo&     me()              { return m_me; }
@@ -36,7 +35,6 @@ class DownloadState {
 
   Content&      content()         { return m_content; }
   Connections&  connections()     { return m_connections; }
-  Delegator&    delegator()       { return m_delegator; }
   Peers&        available_peers() { return m_availablePeers; }
 
   uint64_t& bytesDownloaded() { return m_bytesDownloaded; }
@@ -64,14 +62,20 @@ class DownloadState {
 
   void connect_peers();
 
+  void set_net(DownloadNet* net) { m_net = net; }
+
   // Incoming signals.
   void receive_hashdone(std::string id, Storage::Chunk c, std::string hash);
 
-  typedef sigc::signal1<void, Peer> SignalPeerConnected;
-  SignalPeerConnected&              signal_peer_connected() { return m_signalPeerConnected; }
+  typedef sigc::signal1<void, Peer>     SignalPeerConnected;
+  typedef sigc::signal1<void, Peer>     SignalPeerDisconnected;
+  typedef sigc::signal1<void, uint32_t> SignalChunkPassed;
+  typedef sigc::signal1<void, uint32_t> SignalChunkFailed;
 
-  typedef sigc::signal1<void, Peer> SignalPeerDisconnected;
+  SignalPeerConnected&              signal_peer_connected()    { return m_signalPeerConnected; }
   SignalPeerConnected&              signal_peer_disconnected() { return m_signalPeerDisconnected; }
+  SignalChunkPassed&                signal_chunk_passed()      { return m_signalChunkPassed; }
+  SignalChunkFailed&                signal_chunk_failed()      { return m_signalChunkFailed; }
 
 private:
   // Disable
@@ -85,7 +89,6 @@ private:
   std::string m_hash;
   
   Content m_content;
-  Delegator m_delegator;
   Connections m_connections;
   Peers m_availablePeers;
 
@@ -98,6 +101,8 @@ private:
 
   SignalPeerConnected    m_signalPeerConnected;
   SignalPeerDisconnected m_signalPeerDisconnected;
+  SignalChunkPassed      m_signalChunkPassed;
+  SignalChunkFailed      m_signalChunkFailed;
 };
 
 }

@@ -40,10 +40,10 @@ AC_ARG_ENABLE(debug,
         if test "$enableval" = "yes"; then
             CXXFLAGS="$CXXFLAGS -Wall -Werror -g -DDEBUG"
         else
-            CXXFLAGS="$CXXFLAGS -Wall -Werror -DNDEBUG"
+            CXXFLAGS="$CXXFLAGS -Wall -DNDEBUG"
         fi
     ],[
-        CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
+        CXXFLAGS="$CXXFLAGS -Wall -Werror -g -DDEBUG"
     ]
 )
 

@@ -37,6 +37,8 @@ public:
   uint32_t               get_chunks_completed()          { return m_completed; }
   uint64_t               get_bytes_completed();
 
+  uint32_t               get_chunksize(uint32_t index);
+
   const BitField&        get_bitfield()                  { return m_bitfield; }
   FileList&              get_files()                     { return m_files; }
   Storage&               get_storage()                   { return m_storage; }
@@ -55,7 +57,7 @@ public:
 
 private:
   
-  bool                   open_file(File* f, Path& p, Path& lastPath);
+  void                   open_file(File* f, Path& p, Path& lastPath);
 
   uint64_t               m_size;
   unsigned int           m_completed;

@@ -29,15 +29,15 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
 
-  m_requests.set_delegator(&d->delegator());
-  m_requests.set_bitfield(&m_bitfield);
-
   set_socket_min_cost(m_fd);
 
   m_fd = fd;
   m_peer = p;
   m_download = d;
   m_net = net;
+
+  m_requests.set_delegator(&m_net->get_delegator());
+  m_requests.set_bitfield(&m_bitfield);
 
   if (d == NULL ||
       !p.is_valid() ||
@@ -209,7 +209,7 @@ void PeerConnection::read() {
     if (!readBuf(m_bitfield.data() + m_down.pos, m_down.length - 1, m_down.pos))
       return;
 
-    if (m_download->delegator().interested(m_bitfield)) {
+    if (m_net->get_delegator().interested(m_bitfield)) {
       m_up.interested = m_sendInterested = true;
 
     } else if (m_download->content().get_chunks_completed() == m_download->content().get_storage().get_chunkcount() &&
@@ -518,8 +518,7 @@ void PeerConnection::parseReadBuf() {
       m_download->bfCounter().inc(index);
     }
     
-    if (!m_up.interested &&
-	m_download->delegator().interested(index)) {
+    if (!m_up.interested && m_net->get_delegator().interested(index)) {
       // We are interested, send flag if not already set.
       m_sendInterested = !m_up.interested;
       m_up.interested = true;
@@ -649,8 +648,7 @@ void PeerConnection::sendHave(int index) {
       m_up.interested = false;
     }
 
-  } else if (m_up.interested &&
-	     !m_download->delegator().interested(m_bitfield)) {
+  } else if (m_up.interested && !m_net->get_delegator().interested(m_bitfield)) {
     m_sendInterested = true;
     m_up.interested = false;
   }

@@ -52,6 +52,8 @@ private:
   void receive_initial_hash(const std::string& id);
   void receive_download_done();
 
+  void setup_delegator();
+
   static Downloads m_downloads;
   
   DownloadState m_state;

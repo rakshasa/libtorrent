@@ -80,7 +80,9 @@ uint64_t
 Download::get_bytes_done() {
   uint64_t a = 0;
  
-  std::for_each(((DownloadMain*)m_ptr)->state().delegator().chunks().begin(), ((DownloadMain*)m_ptr)->state().delegator().chunks().end(),
+  Delegator& d = ((DownloadMain*)m_ptr)->net().get_delegator();
+
+  std::for_each(d.get_chunks().begin(), d.get_chunks().end(),
 		for_each_on(back_as_ref(),
 			    if_on(eq(value(DELEGATOR_FINISHED),
 				     call_member(&DelegatorPiece::get_state)),
@@ -221,16 +223,15 @@ Download::get_seen() {
 
 void
 Download::update_priorities() {
-  Priority& p = ((DownloadMain*)m_ptr)->state().delegator().select().get_priority();
+  Priority& p = ((DownloadMain*)m_ptr)->net().get_delegator().get_select().get_priority();
+  Content& content = ((DownloadMain*)m_ptr)->state().content();
 
   p.clear();
 
   uint64_t pos = 0;
-  unsigned int cs = ((DownloadMain*)m_ptr)->state().content().get_storage().get_chunksize();
+  unsigned int cs = content.get_storage().get_chunksize();
 
-  for (Content::FileList::const_iterator i = ((DownloadMain*)m_ptr)->state().content().get_files().begin();
-       i != ((DownloadMain*)m_ptr)->state().content().get_files().end(); ++i) {
-    
+  for (Content::FileList::const_iterator i = content.get_files().begin(); i != content.get_files().end(); ++i) {
     unsigned int s = pos / cs;
     unsigned int e = i->get_size() ? (pos + i->get_size() + cs - 1) / cs : s;
 

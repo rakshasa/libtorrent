@@ -46,6 +46,17 @@ Content::get_hash(unsigned int index) {
   return m_hash.substr(index * 20, 20);
 }
 
+uint32_t
+Content::get_chunksize(uint32_t index) {
+  if (m_storage.get_chunksize() == 0 || index >= m_storage.get_chunkcount())
+    throw internal_error("Content::get_chunksize(...) called but we borked");
+
+  if (index + 1 != m_storage.get_chunkcount() || m_size % m_storage.get_chunksize() == 0)
+    return m_storage.get_chunksize();
+  else
+    return m_size % m_storage.get_chunksize();
+}
+
 uint64_t
 Content::get_bytes_completed() {
   if (!m_bitfield[m_storage.get_chunkcount() - 1] || m_size % m_storage.get_chunksize() == 0)
@@ -53,7 +64,7 @@ Content::get_bytes_completed() {
     return m_completed * m_storage.get_chunksize();
 
   else
-    return (m_completed - 1) * m_storage.get_chunksize() - m_size % m_storage.get_chunksize();
+    return (m_completed - 1) * m_storage.get_chunksize() + m_size % m_storage.get_chunksize();
 }
 
 bool
@@ -151,7 +162,7 @@ Content::mark_done(unsigned int index) {
     m_downloadDone.emit();
 }
 
-bool
+void
 Content::open_file(File* f, Path& p, Path& lastPath) {
   if (p.list().empty())
     throw internal_error("Tried to open file with empty path");

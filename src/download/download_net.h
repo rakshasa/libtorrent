@@ -2,6 +2,7 @@
 #define LIBTORRENT_DOWNLOAD_NET_H
 
 #include <inttypes.h>
+#include "content/delegator.h"
 
 namespace torrent {
 
@@ -17,8 +18,11 @@ public:
   bool              get_endgame()       { return m_endgame; }
   void              set_endgame(bool b) { m_endgame = b; }
 
+  Delegator&        get_delegator()     { return m_delegator; }
+
 private:
   DownloadSettings* m_settings;
+  Delegator         m_delegator;
 
   bool              m_endgame;
 };

@@ -56,7 +56,7 @@ RequestList::downloading(const Piece& p) {
   if (itr == m_reservees.end())
     return false;
 
-  if ((*m_delegator->select().get_bitfield())[p.get_index()])
+  if ((*m_delegator->get_select().get_bitfield())[p.get_index()])
     throw internal_error("RequestList::downloading(...) called with a piece index we already have");
 
   if (m_delegator->downloading(**itr)) {
