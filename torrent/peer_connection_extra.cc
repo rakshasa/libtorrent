@@ -51,39 +51,41 @@ int PeerConnection::fd() {
 }
 
 bool PeerConnection::writeChunk(int maxBytes) {
-  StorageChunk::Node& part = m_up.data->get_position(m_requests.front().offset() + m_up.pos);
+  StorageChunk::Node& part = m_up.data->get_position(m_sends.front().offset() + m_up.pos);
 
-  unsigned int length = std::min(m_requests.front().length(),
-				 part.position + part.length - m_requests.front().offset());
+  unsigned int length = std::min(m_sends.front().length(),
+				 part.position + part.length - m_sends.front().offset());
 
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 
-  writeBuf(part.chunk.begin() + m_requests.front().offset() + m_up.pos - part.position,
+  writeBuf(part.chunk.begin() + m_sends.front().offset() + m_up.pos - part.position,
 	   std::min(length, m_up.pos + maxBytes),
 	   m_up.pos);
 
-  return m_up.pos == m_requests.front().length();
+  return m_up.pos == m_sends.front().length();
 }
 
 bool PeerConnection::readChunk() {
   if (m_down.pos > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
-  StorageChunk::Node& part = m_down.data->get_position(m_down.list.front()->get_piece().get_offset() + m_down.pos);
+  const Piece& p = m_requests.get_piece();
 
-  unsigned int offset = m_down.list.front()->get_piece().get_offset() + m_down.pos - part.position;
+  StorageChunk::Node& part = m_down.data->get_position(p.get_offset() + m_down.pos);
+
+  unsigned int offset = p.get_offset() + m_down.pos - part.position;
   
   if (!part.chunk.is_valid() ||
       !part.chunk.is_write())
     throw storage_error("Tried to write piece to file area that isn't valid or can't be written to");
   
   if (!readBuf(part.chunk.begin() + offset,
-	       std::min(part.position + part.chunk.length() - m_down.list.front()->get_piece().get_offset(),
-			m_down.list.front()->get_piece().get_length()),
+	       std::min(part.position + part.chunk.length() - p.get_offset(),
+			p.get_length()),
 	       m_down.pos))
     return false; // Did not read the whole part of the piece
   
-  if (m_down.pos != m_down.list.front()->get_piece().get_length())
+  if (m_down.pos != p.get_length())
     return false; // We still got parts of the piece to read
 
   return true;
@@ -122,12 +124,7 @@ uint32_t PeerConnection::bufR32(bool peep) {
 }
  
 void PeerConnection::discardIncomingQueue() {
-  while (!m_down.list.empty()) {
-    m_download->delegator().cancel(*m_down.list.front());
-
-    delete m_down.list.front();
-    m_down.list.pop_front();
-  }
+  m_requests.cancel();
 
   m_down.data = Storage::Chunk();
 }
@@ -148,17 +145,17 @@ PeerConnection::load_chunk(int index, Sub& sub) {
 
 bool
 PeerConnection::request_piece() {
-  DelegatorReservee* r;
+  const Piece* p;
 
-  if (m_down.list.size() > 5 ||
-      (r = m_download->delegator().delegate(m_bitfield, -1)) == NULL)
+  if (m_requests.get_size() > 5 ||
+      (p = m_requests.delegate()) == NULL)
     return false;
 
-  if (r->get_piece().get_length() > (1 << 17) ||
-      r->get_piece().get_length() == 0 ||
-      r->get_piece().get_length() + r->get_piece().get_offset() >
+  if (p->get_length() > (1 << 17) ||
+      p->get_length() == 0 ||
+      p->get_length() + p->get_offset() >
       
-      ((unsigned)r->get_piece().get_index() + 1 != m_download->content().get_storage().get_chunkcount() ||
+      ((unsigned)p->get_index() + 1 != m_download->content().get_storage().get_chunkcount() ||
        !(m_download->content().get_size() % m_download->content().get_storage().get_chunksize()) ?
        
        m_download->content().get_storage().get_chunksize() :
@@ -167,72 +164,24 @@ PeerConnection::request_piece() {
     std::stringstream s;
     
     s << "Tried to request a piece with invalid length or offset: "
-      << r->get_piece().get_length() << ' '
-      << r->get_piece().get_offset();
+      << p->get_length() << ' '
+      << p->get_offset();
     
     throw internal_error(s.str());
   }
 
-  if (r->get_piece().get_index() < 0 ||
-      r->get_piece().get_index() >= (int)m_bitfield.sizeBits() ||
-      !m_bitfield[r->get_piece().get_index()])
+  if (p->get_index() < 0 ||
+      p->get_index() >= (int)m_bitfield.sizeBits() ||
+      !m_bitfield[p->get_index()])
     throw internal_error("Delegator gave us a piece with invalid range or not in peer");
 
   bufCmd(REQUEST, 13);
-  bufW32(r->get_piece().get_index());
-  bufW32(r->get_piece().get_offset());
-  bufW32(r->get_piece().get_length());
-
-  r->set_state(DELEGATOR_QUEUED);
-
-  m_down.list.push_back(r);
+  bufW32(p->get_index());
+  bufW32(p->get_offset());
+  bufW32(p->get_length());
 
   return true;
 }
-
-void
-PeerConnection::received_piece_header(const Piece& p) {
-  PieceList::iterator pItr = std::find_if(m_down.list.begin(), m_down.list.end(),
-					  eq(ref(p), call_member(&DelegatorReservee::get_piece)));
-
-  if (pItr == m_down.list.end()) {
-
-    // Ignore piece. We might want it but it's not in the list
-    m_down.length = p.get_length();
-    m_down.state = READ_SKIP_PIECE;
-
-  } else if (!m_download->delegator().downloading(**pItr)) {
-    // Piece in queue but we don't want it
-
-    delete *pItr;
-    m_down.list.erase(pItr);
-
-    m_down.length = p.get_length();
-    m_down.state = READ_SKIP_PIECE;
-
-  } else {
-    // TODO: Keep around all the requests, and erase all those the peer
-    // skips. This will protect against a peer sending unrequested pieces.
-
-    if (pItr != m_down.list.begin()) {
-      // Sender skipped a few pieces
-
-      while (m_down.list.begin() != pItr) {
-	m_download->delegator().cancel(*m_down.list.front());
-
-	m_down.list.front()->set_state(DELEGATOR_NONE);
-
-	delete m_down.list.front();
-	m_down.list.pop_front();
-      }
-    }
-
-    (*pItr)->set_state(DELEGATOR_DOWNLOADING);
-
-    m_down.state = READ_PIECE;
-  }
-}
-
 
 bool PeerConnection::chokeDelayed() {
   return m_sendChoked || in_service(SERVICE_SEND_CHOKE);

@@ -27,6 +27,9 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d) {
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
 
+  m_requests.set_delegator(&d->delegator());
+  m_requests.set_bitfield(&d->content().get_bitfield());
+
   set_socket_min_cost(m_fd);
 
   m_fd = fd;
@@ -61,7 +64,6 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d) {
 }
 
 void PeerConnection::read() {
-  PieceList::iterator pItr;
   Piece piece;
   int previous;
   bool s;
@@ -119,9 +121,6 @@ void PeerConnection::read() {
       break;
 
     case PIECE:
-      if (m_down.length != m_down.lengthOrig)
-	throw internal_error("PeerConnection::read() READ_TYPE PIECE length != lengthOrig");
-
       if (m_down.length < 9 || m_down.length > 9 + (1 << 17))
 	throw communication_error("Received piece message with bad length");
 
@@ -180,11 +179,14 @@ void PeerConnection::read() {
       
       m_down.pos = 0;
       
-      received_piece_header(piece);
-      
-      // TODO: Need to handle the getChunk stuff in some better place.
-      if (m_down.state == READ_PIECE && !m_down.list.empty())
-	load_chunk(m_down.list.front()->get_piece().c_index(), m_down);
+      if (!m_requests.downloading(piece)) {
+	// Piece in queue but we don't want it
+	m_down.length = piece.get_length();
+	m_down.state = READ_SKIP_PIECE;
+
+      } else {
+	load_chunk(m_requests.get_piece().get_index(), m_down);
+      }
 
       goto evil_goto_read;
 
@@ -216,11 +218,8 @@ void PeerConnection::read() {
     goto evil_goto_read;
 
   case READ_PIECE:
-    if (m_down.list.empty())
-      throw internal_error("READ_PIECE on an empty list");
-
-    if (!m_down.list.front()->is_valid() || m_down.list.front()->get_state() != DELEGATOR_DOWNLOADING)
-      throw internal_error("READ_PIECE on a DelegatorReservee with wrong state");
+    if (!m_requests.is_downloading())
+      throw internal_error("READ_PIECE state but RequestList is not downloading");
 
     previous = m_down.pos;
     s = readChunk();
@@ -233,22 +232,14 @@ void PeerConnection::read() {
     }
 
     m_down.state = IDLE;
-    m_download->bytesDownloaded() += m_down.list.front()->get_piece().c_length();
+    m_download->bytesDownloaded() += m_requests.get_piece().get_length();
 
-    if (m_download->delegator().finished(*m_down.list.front())) {
-      // chunkDone pops the m_down.list
+    if (m_requests.finished())
       m_download->chunkDone(m_down.data);
-
-    } else {
-      m_down.list.front()->set_state(DELEGATOR_FINISHED);
-
-      delete m_down.list.front();
-      m_down.list.pop_front();
-    }
     
     remove_service(SERVICE_INCOMING_PIECE);
     
-    if (!m_down.list.empty())
+    if (m_requests.get_size())
       insert_service(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
 
     // TODO: clear m_down.data?
@@ -341,10 +332,10 @@ void PeerConnection::write() {
 
     case PIECE:
       // TODO: Do this somewhere else, and check to see if we are already using the right chunk
-      if (m_requests.empty())
+      if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_up.data = m_download->content().get_storage().get_chunk(m_requests.front().index());
+      m_up.data = m_download->content().get_storage().get_chunk(m_sends.front().index());
       m_up.state = WRITE_PIECE;
 
       if (!m_up.data.is_valid())
@@ -368,7 +359,7 @@ void PeerConnection::write() {
     return;
 
   case WRITE_PIECE:
-    if (m_requests.empty())
+    if (m_sends.empty())
       throw internal_error("WRITE_PIECE on an empty list");
 
     previous = m_up.pos;
@@ -392,12 +383,12 @@ void PeerConnection::write() {
     if (!s)
       return;
     
-    m_download->bytesUploaded() += m_requests.front().length();
+    m_download->bytesUploaded() += m_sends.front().length();
 
-    if (m_requests.empty())
+    if (m_sends.empty())
       m_up.data = Storage::Chunk();
 
-    m_requests.pop_front();
+    m_sends.pop_front();
 
     m_up.state = IDLE;
     return;
@@ -432,7 +423,7 @@ void PeerConnection::except() {
 
 void PeerConnection::parseReadBuf() {
   uint32_t index, offset, length;
-  RequestList::iterator rItr;
+  SendList::iterator rItr;
 
   switch (m_down.buf[0]) {
   case CHOKE:
@@ -478,23 +469,21 @@ void PeerConnection::parseReadBuf() {
     offset = bufR32();
     length = bufR32();
 
-    rItr = std::find(m_requests.begin(), m_requests.end(),
+    rItr = std::find(m_sends.begin(), m_sends.end(),
 		     Piece(index, offset, length));
       
     if (m_down.buf[0] == REQUEST) {
-      if (rItr != m_requests.end())
-	m_requests.erase(rItr);
+      if (rItr != m_sends.end())
+	m_sends.erase(rItr);
       
-      m_requests.push_back(Piece(index, offset, length));
+      m_sends.push_back(Piece(index, offset, length));
       insertWrite();
 
-    } else if (rItr != m_requests.end()) {
+    } else if (rItr != m_sends.end()) {
 
-      if (rItr != m_requests.begin() ||
-	  m_up.lastCommand != PIECE ||
-	  m_up.state == IDLE)
-	// Only cancel if we're not writing it.
-	m_requests.erase(rItr);
+      // Only cancel if we're not writing it.
+      if (rItr != m_sends.begin() || m_up.lastCommand != PIECE || m_up.state == IDLE)
+	m_sends.erase(rItr);
     }
 
     return insertWrite();
@@ -543,7 +532,7 @@ void PeerConnection::fillWriteBuf() {
 
       if (m_up.choked) {
 	// Clear the request queue and mmaped chunk.
-	m_requests.clear();
+	m_sends.clear();
 	m_up.data = Storage::Chunk();
 	
 	m_throttle.idle();
@@ -562,7 +551,7 @@ void PeerConnection::fillWriteBuf() {
 
   if (!m_down.choked && m_up.interested) {
     // Let us request more chunks.
-    bool addService = m_down.list.empty();
+    bool addService = !m_requests.get_size();
 
     while (m_up.length + 16 < BUFFER_SIZE && request_piece()) {
       if (addService) {
@@ -584,16 +573,16 @@ void PeerConnection::fillWriteBuf() {
 
   if (!m_up.choked &&
       !m_sendChoked &&
-      !m_requests.empty() &&
+      !m_sends.empty() &&
       m_up.length + 13 < BUFFER_SIZE) {
     // Sending chunk to peer.
 
     // This check takes care of all possible errors in lenght and offset.
-    if (m_requests.front().length() > (1 << 17) ||
-	m_requests.front().length() == 0 ||
-	m_requests.front().length() + m_requests.front().offset() >
+    if (m_sends.front().length() > (1 << 17) ||
+	m_sends.front().length() == 0 ||
+	m_sends.front().length() + m_sends.front().offset() >
 
-	((unsigned)m_requests.front().index() + 1 != m_download->content().get_storage().get_chunkcount()  ||
+	((unsigned)m_sends.front().index() + 1 != m_download->content().get_storage().get_chunkcount()  ||
 	 !(m_download->content().get_size() % m_download->content().get_storage().get_chunksize()) ?
 
 	 m_download->content().get_storage().get_chunksize() :
@@ -602,25 +591,25 @@ void PeerConnection::fillWriteBuf() {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid length or offset: "
-	<< m_requests.front().length() << ' '
-	<< m_requests.front().offset();
+	<< m_sends.front().length() << ' '
+	<< m_sends.front().offset();
 
       throw communication_error(s.str());
     }
       
-    if (m_requests.front().index() < 0 ||
-	m_requests.front().index() >= (signed)m_download->content().get_storage().get_chunkcount() ||
-	!m_download->content().get_bitfield()[m_requests.front().index()]) {
+    if (m_sends.front().index() < 0 ||
+	m_sends.front().index() >= (signed)m_download->content().get_storage().get_chunkcount() ||
+	!m_download->content().get_bitfield()[m_sends.front().index()]) {
       std::stringstream s;
 
-      s << "Peer requested a piece with invalid index: " << m_requests.front().index();
+      s << "Peer requested a piece with invalid index: " << m_sends.front().index();
 
       throw communication_error(s.str());
     }
 
-    bufCmd(PIECE, 9 + m_requests.front().length(), 9);
-    bufW32(m_requests.front().index());
-    bufW32(m_requests.front().offset());
+    bufCmd(PIECE, 9 + m_sends.front().length(), 9);
+    bufW32(m_sends.front().index());
+    bufW32(m_sends.front().offset());
   }
 }
 
@@ -647,32 +636,23 @@ void PeerConnection::sendHave(int index) {
 
   // Clear all pieces with this index and if one is being downloaded then
   // skip it.
-  if (m_down.state == READ_PIECE &&
-      !m_down.list.empty() &&
-      m_down.list.front()->get_piece().get_index() == index) {
+  if (m_requests.is_downloading()) {
+    throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading()");
+
+    if (m_down.state != READ_PIECE)
+      throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading() but state is not READ_PIECE");
 
     m_down.state = READ_SKIP_PIECE;
-    m_down.length = m_down.list.front()->get_piece().get_length() - m_down.pos;
+    m_down.length = m_requests.get_piece().get_length() - m_down.pos;
     m_down.pos = 0;
+
+    // TODO: Do some proper canceling here.
 
     m_down.data = Storage::Chunk();
   }
 
-  PieceList::iterator itr = m_down.list.begin();
-
-  do {
-    itr = std::find_if(itr, m_down.list.end(),
-		       eq(call_member(call_member(&DelegatorReservee::get_piece), &Piece::get_index), value(index)));
-
-    if (itr == m_down.list.end())
-      break;
-
-    (*itr)->clear();
-
-    delete *itr;
-    itr = m_down.list.erase(itr);
-
-  } while(true);
+  if (m_requests.has_index(index))
+    throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
 
   // TODO: Also send cancel messages!
 
@@ -710,11 +690,7 @@ void PeerConnection::service(int type) {
     
   case SERVICE_INCOMING_PIECE:
     // Clear the incoming queue reservations so we can request from other peers.
-    std::for_each(m_down.list.begin(), m_down.list.end(),
-		  call_member(ref(m_download->delegator()),
-			      &Delegator::cancel,
-			      
-			      back_as_ref()));
+    m_requests.stall();
 
     return;
   default:

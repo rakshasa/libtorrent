@@ -1,3 +1,5 @@
+'*' Things are stuff that *must* be done by the next release.
+
 DownloadChunk::interested should take into consideration chunks being
 downloaded?
 
@@ -52,18 +54,23 @@ Different priorities don't properly affect interested/not interested.
 
 * Add a delay between peer choking you and the list getting thrown out.
 
-Add message about pieces being ignored, so i can test the code.
+* Add message about pieces being ignored, so i can test the code.
 
+Proper canceling of pieces in sendHave, unless only one can download a piece.
 
 TRACKER STUFF
 
-Make it NAT friendly, add selectable DNS
+* Make it NAT friendly, add selectable DNS
 
 
 API REDESIGN:
 
 Exceptions are pushed out with signals, support different groups with
 multiple signals.
+
+* Add setting for download root.
+
+* Fix the incoming queue/downloading piece thing.
 
 
 AFTER API REDESIGN:

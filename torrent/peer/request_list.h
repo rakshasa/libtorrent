@@ -13,29 +13,36 @@ class RequestList {
 public:
   typedef std::deque<DelegatorReservee*> ReserveeList;
 
-  RequestList(Delegator* d, BitField* bf);
-  ~RequestList()                              { cancel(); }
+  RequestList() : m_delegator(NULL), m_bitfield(NULL), m_downloading(NULL) {}
+  ~RequestList()                                                           { cancel(); }
 
   // Some parameters here, like how fast we are downloading and stuff
   // when we start considering those.
-  bool               delegate();
+  const Piece*       delegate();
 
   void               cancel();
-  //void              stall();
+  void               stall(); // Just calls cancel for now
 
   bool               downloading(const Piece& p);
   bool               finished();
 
-  bool               is_downloading()         { return m_downloading; }
+  bool               is_downloading()                 { return m_downloading; }
 
-  unsigned int       get_size()               { return m_reservees.size(); }
-  const Piece&       get_piece()              { return m_downloading->get_piece(); }
+  bool               has_index(unsigned int i);
+
+  unsigned int       get_size()                       { return m_reservees.size(); }
+
+  const Piece&       get_piece()                      { return m_downloading->get_piece(); }
+  const Piece&       get_queued_piece(unsigned int i) { return m_reservees[i]->get_piece(); }
+
+  void               set_delegator(Delegator* d)      { m_delegator = d; }
+  void               set_bitfield(const BitField* b)  { m_bitfield = b; }
 
 private:
   void               delete_range(ReserveeList::iterator end);
 
   Delegator*         m_delegator;
-  BitField*          m_bitfield;
+  const BitField*    m_bitfield;
 
   DelegatorReservee* m_downloading;
   ReserveeList       m_reservees;

@@ -13,23 +13,17 @@ using namespace algo;
 
 namespace torrent {
 
-RequestList::RequestList(Delegator* d, BitField* bf) :
-  m_delegator(d),
-  m_bitfield(bf),
-  m_downloading(NULL) {
-
-  if (m_delegator == NULL || m_bitfield == NULL)
-    throw internal_error("RequestList ctor received Delegator or BitField null pointer");
-}
-
-bool
+const Piece*
 RequestList::delegate() {
   DelegatorReservee* r = m_delegator->delegate(*m_bitfield, -1);
 
-  if (r)
+  if (r) {
     m_reservees.push_back(r);
+    return &r->get_piece();
 
-  return r;
+  } else {
+    return NULL;
+  }
 }
 
 void
@@ -42,6 +36,11 @@ RequestList::cancel() {
   }
 
   delete_range(m_reservees.end());
+}
+
+void
+RequestList::stall() {
+  cancel();
 }
 
 bool
@@ -82,6 +81,12 @@ RequestList::finished() {
   return r;
 }
 
+bool
+RequestList::has_index(unsigned int i) {
+  return std::find_if(m_reservees.begin(), m_reservees.end(),
+		      eq(value((signed int)i), call_member(call_member(&DelegatorReservee::get_piece), &Piece::get_index)))
+    != m_reservees.end();
+}
 
 void
 RequestList::delete_range(ReserveeList::iterator end) {

@@ -72,6 +72,9 @@ public:
   Sub& up() { return m_up; }
   Sub& down() { return m_down; }
 
+  RequestList& get_requests() { return m_requests; }
+  SendList&    get_sends()    { return m_sends; }
+
   Throttle& throttle() { return m_throttle; }
 
   virtual void read();
@@ -97,7 +100,6 @@ private:
   void load_chunk(int index, Sub& sub);
 
   bool request_piece();
-  void received_piece_header(const Piece& p);
 
   // Send a msg to the buffer.
   void bufCmd(Protocol cmd, unsigned int length, unsigned int send = 0);

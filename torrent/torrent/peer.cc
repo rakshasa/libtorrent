@@ -74,22 +74,20 @@ Peer::get_transfered_up() {
 
 uint32_t
 Peer::get_incoming_queue_size() {
-  return ((PeerConnection*)m_ptr)->down().c_list().size();
+  return ((PeerConnection*)m_ptr)->get_requests().get_size();
 }
 
 uint32_t
 Peer::get_outgoing_queue_size() {
-  return ((PeerConnection*)m_ptr)->up().c_list().size();
+  return ((PeerConnection*)m_ptr)->get_sends().size();
 }  
 
 uint32_t
 Peer::get_incoming_index(uint32_t pos) {
-  for (PeerConnection::PieceList::const_iterator itr = ((PeerConnection*)m_ptr)->down().c_list().begin();
-       itr != ((PeerConnection*)m_ptr)->down().c_list().end(); ++itr, --pos)
-    if (!pos)
-      return (*itr)->get_piece().c_index();
+  if (pos >= ((PeerConnection*)m_ptr)->get_requests().get_size())
+    throw client_error("get_incoming_index(pos) out of range");
 
-  throw client_error("get_incoming_index(pos) out of range");
+  return ((PeerConnection*)m_ptr)->get_requests().get_queued_piece(pos).get_index();
 }
 
   uint32_t             get_incoming_offset(uint32_t pos);
