@@ -8,9 +8,10 @@
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
+#include "net/handshake.h"
+
 #include "download_state.h"
 #include "peer_connection.h"
-#include "peer_handshake.h"
 #include "throttle_control.h"
 
 using namespace algo;
@@ -166,8 +167,8 @@ void DownloadState::removeConnection(PeerConnection* p) {
 int DownloadState::countConnections() const {
   int s = m_connections.size();
 
-  std::for_each(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
-		if_on(eq(call_member(&PeerHandshake::download),
+  std::for_each(Handshake::handshakes().begin(), Handshake::handshakes().end(),
+		if_on(eq(call_member(&Handshake::download),
 			 value(this)),
 
 		      add_ref(s, value(1))));
@@ -191,7 +192,7 @@ void DownloadState::connect_peers() {
 	 (signed)connections().size() < settings().minPeers &&
 	 countConnections() < settings().maxPeers) {
 
-    PeerHandshake::connect(available_peers().front(), this);
+    Handshake::connect(available_peers().front(), this);
     available_peers().pop_front();
   }
 }

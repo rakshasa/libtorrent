@@ -5,7 +5,7 @@
 #include "general.h"
 #include "torrent/exceptions.h"
 #include "download_main.h"
-#include "peer_handshake.h"
+#include "handshake.h"
 
 #include <unistd.h>
 #include <netinet/in.h>
@@ -17,11 +17,11 @@ namespace torrent {
 
 extern std::list<std::string> caughtExceptions;
 
-PeerHandshake::Handshakes PeerHandshake::m_handshakes;
+Handshake::Handshakes Handshake::m_handshakes;
 
 // Incoming connections.
-PeerHandshake::PeerHandshake(int fdesc, const std::string dns, unsigned short port)  :
-  m_fd(fdesc),
+Handshake::Handshake(int fdesc, const std::string dns, unsigned short port)  :
+  SocketBase(fdesc),
   m_peer("", dns, port),
   m_download(NULL),
   m_state(READ_HEADER),
@@ -34,8 +34,8 @@ PeerHandshake::PeerHandshake(int fdesc, const std::string dns, unsigned short po
 }
 
 // Outgoing connections.
-PeerHandshake::PeerHandshake(int fdesc, const PeerInfo& p, DownloadState* d) :
-  m_fd(fdesc),
+Handshake::Handshake(int fdesc, const PeerInfo& p, DownloadState* d) :
+  SocketBase(fdesc),
   m_peer(p),
   m_download(d),
   m_state(CONNECTING),
@@ -53,7 +53,7 @@ PeerHandshake::PeerHandshake(int fdesc, const PeerInfo& p, DownloadState* d) :
   std::memcpy(&m_buf[48], m_download->me().id().c_str(), 20);
 }
 
-PeerHandshake::~PeerHandshake() {
+Handshake::~Handshake() {
   removeConnection(this);
 
   delete [] m_buf;
@@ -62,7 +62,7 @@ PeerHandshake::~PeerHandshake() {
     ::close(m_fd);
 }
 
-void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short port) {
+void Handshake::connect(int fdesc, const std::string dns, unsigned short port) {
   if (fdesc < 0)
     //return;
     throw internal_error("PeerhHandshake received a negative fd, bug or feature?");
@@ -76,10 +76,10 @@ void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short por
   set_socket_nonblock(fdesc);
 
   // TODO: add checks so we don't do multiple connections.
-  addConnection(new PeerHandshake(fdesc, dns, port));
+  addConnection(new Handshake(fdesc, dns, port));
 }
 
-bool PeerHandshake::connect(const PeerInfo& p, DownloadState* d) {
+bool Handshake::connect(const PeerInfo& p, DownloadState* d) {
   if (p.dns().length() == 0 ||
       p.port() == 0)
     throw internal_error("Tried to connect with invalid peer information");
@@ -89,7 +89,7 @@ bool PeerHandshake::connect(const PeerInfo& p, DownloadState* d) {
     sockaddr_in sa;
     make_sockaddr(p.dns(), p.port(), sa);
 
-    addConnection(new PeerHandshake(make_socket(sa), p, d));
+    addConnection(new Handshake(make_socket(sa), p, d));
 
     return true;
 
@@ -98,7 +98,7 @@ bool PeerHandshake::connect(const PeerInfo& p, DownloadState* d) {
   }
 }
 
-void PeerHandshake::read() {
+void Handshake::read() {
   DownloadMain* d;
 
   try {
@@ -152,7 +152,7 @@ void PeerHandshake::read() {
     return;
 
   default:
-    throw internal_error("PeerHandshake::read() called on object in wrong state");
+    throw internal_error("Handshake::read() called on object in wrong state");
   }
 
   } catch (network_error& e) {
@@ -162,7 +162,7 @@ void PeerHandshake::read() {
   }
 }
 
-void PeerHandshake::write() {
+void Handshake::write() {
   int error;
 
   try {
@@ -190,7 +190,7 @@ void PeerHandshake::write() {
     return;
 
   default:
-    throw internal_error("PeerHandshake::write() called on object in wrong state");
+    throw internal_error("Handshake::write() called on object in wrong state");
   }
 
   } catch (network_error& e) {
@@ -200,15 +200,11 @@ void PeerHandshake::write() {
   }
 }
 
-void PeerHandshake::except() {
+void Handshake::except() {
   delete this;
 }
 
-int PeerHandshake::fd() {
-  return m_fd;
-}
-
-bool PeerHandshake::recv1() {
+bool Handshake::recv1() {
   if (m_pos == 0 &&
       !read_buf(m_buf, 1, m_pos))
     return false;
@@ -229,7 +225,7 @@ bool PeerHandshake::recv1() {
   }
 }
 
-bool PeerHandshake::recv2() {
+bool Handshake::recv2() {
   if (!read_buf(m_buf + m_pos, 20, m_pos))
     return false;
 
@@ -238,9 +234,9 @@ bool PeerHandshake::recv2() {
   return true;
 }  
 
-void PeerHandshake::addConnection(PeerHandshake* p) {
+void Handshake::addConnection(Handshake* p) {
   if (p == NULL)
-    throw internal_error("Tried to add bad PeerHandshake to handshake cue");
+    throw internal_error("Tried to add bad Handshake to handshake cue");
 
   if (m_handshakes.size() > 2000)
     throw internal_error("Handshake queue is bigger than 2000");
@@ -248,7 +244,7 @@ void PeerHandshake::addConnection(PeerHandshake* p) {
   m_handshakes.push_back(p);
 }
 
-void PeerHandshake::removeConnection(PeerHandshake* p) {
+void Handshake::removeConnection(Handshake* p) {
   Handshakes::iterator itr = std::find(m_handshakes.begin(), m_handshakes.end(), p);
 
   if (itr == m_handshakes.end())
@@ -257,9 +253,9 @@ void PeerHandshake::removeConnection(PeerHandshake* p) {
   m_handshakes.erase(itr);
 }
 
-bool PeerHandshake::isConnecting(const std::string& id) {
+bool Handshake::isConnecting(const std::string& id) {
   return std::find_if(m_handshakes.begin(), m_handshakes.end(),
-		      eq(ref(id), on<const std::string&>(call_member(&PeerHandshake::peer),
+		      eq(ref(id), on<const std::string&>(call_member(&Handshake::peer),
 							 call_member(&PeerInfo::id))))
     != m_handshakes.end();
 }

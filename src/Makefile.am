@@ -50,6 +50,8 @@ libtorrent_la_SOURCES = \
 	data/storage_file.h \
 	download/download_net.cc \
 	download/download_net.h \
+        net/handshake.cc \
+        net/handshake.h \
 	net/listen.cc \
 	net/listen.h \
 	net/socket_base.cc \
@@ -76,8 +78,6 @@ libtorrent_la_SOURCES = \
         general.h \
         peer_info.cc \
         peer_info.h \
-        peer_handshake.cc \
-        peer_handshake.h \
         peer_connection.cc \
         peer_connection.h \
         peer_connection_extra.cc \

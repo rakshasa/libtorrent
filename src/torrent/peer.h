@@ -44,6 +44,7 @@ public:
   uint32_t             get_incoming_queue_size();
   uint32_t             get_outgoing_queue_size();
 
+  // index == -1 for incoming pieces that we don't want anymore.
   uint32_t             get_incoming_index(uint32_t pos);
   uint32_t             get_incoming_offset(uint32_t pos);
   uint32_t             get_incoming_length(uint32_t pos);

@@ -24,7 +24,6 @@ namespace torrent {
 extern std::list<std::string> caughtExceptions;
 
 PeerConnection::PeerConnection() :
-  m_fd(-1),
   m_shutdown(false),
   m_stallCount(0),
 
@@ -52,10 +51,6 @@ PeerConnection::~PeerConnection() {
 
   if (m_fd >= 0)
     close(m_fd);
-}
-
-int PeerConnection::fd() {
-  return m_fd;
 }
 
 bool PeerConnection::writeChunk(int maxBytes) {

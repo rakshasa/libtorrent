@@ -1,7 +1,9 @@
 #ifndef LIBTORRENT_LISTEN_H
 #define LIBTORRENT_LISTEN_H
 
+#include <inttypes.h>
 #include <sigc++/signal.h>
+
 #include "socket_base.h"
 
 namespace torrent {
@@ -10,7 +12,7 @@ class Listen : public SocketBase {
 public:
   typedef sigc::slot3<void, int, std::string, uint16_t> SlotIncoming;
 
-  Listen() : m_fd(-1), m_port(0) {}
+  Listen() : SocketBase(-1), m_port(0) {}
   ~Listen() { close(); }
 
   bool            open(uint16_t first, uint16_t last);
@@ -28,13 +30,11 @@ public:
   virtual void    read();
   virtual void    write();
   virtual void    except();
-  virtual int     fd();
 
 private:
   Listen(const Listen&);
   void operator = (const Listen&);
 
-  int             m_fd;
   uint64_t        m_port;
 
   SlotIncoming    m_slotIncoming;

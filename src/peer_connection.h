@@ -83,8 +83,6 @@ public:
   virtual void read();
   virtual void write();
   virtual void except();
-   
-  virtual int fd();
 
 private:
   PeerConnection(const PeerConnection&);
@@ -115,7 +113,6 @@ private:
 
   void fillWriteBuf();
 
-  int m_fd;
   bool m_shutdown;
 
   int m_stallCount;

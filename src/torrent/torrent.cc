@@ -1,14 +1,15 @@
 #include "config.h"
 
+#include <algo/algo.h>
+
+#include "net/listen.h"
+#include "net/handshake.h"
+
 #include "torrent.h"
 #include "exceptions.h"
 #include "download_main.h"
 #include "throttle_control.h"
 #include "timer.h"
-#include "peer_handshake.h"
-#include "net/listen.h"
-
-#include <algo/algo.h>
 
 using namespace algo;
 
@@ -55,7 +56,7 @@ initialize() {
   if (listen == NULL) {
     listen = new Listen;
 
-    listen->slot_incoming(sigc::ptr_fun3(&PeerHandshake::connect));
+    listen->slot_incoming(sigc::ptr_fun3(&Handshake::connect));
   }
 
   srandom(Timer::current().usec());
@@ -72,7 +73,7 @@ cleanup() {
   for_each<true>(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
 		 delete_on());
 
-  for_each<true>(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
+  for_each<true>(Handshake::handshakes().begin(), Handshake::handshakes().end(),
 		 delete_on());
 }
 
@@ -203,7 +204,7 @@ get(GValue t) {
     return listen->get_port();
 
   case HANDSHAKES_TOTAL:
-    return PeerHandshake::handshakes().size();
+    return Handshake::handshakes().size();
 
   case SHUTDOWN_DONE:
     return std::find_if(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),

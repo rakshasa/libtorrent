@@ -84,8 +84,4 @@ void Listen::except() {
   throw local_error("Listener port recived exception");
 }
 
-int Listen::fd() {
-  return m_fd;
-}
-
 }

@@ -7,12 +7,12 @@
 #include "general.h"
 #include "bitfield.h"
 #include "torrent/exceptions.h"
-#include "peer_handshake.h"
 #include "settings.h"
 #include "bencode.h"
 
 #include <stdlib.h>
 #include <iomanip>
+#include <sstream>
 #include <openssl/sha.h>
 #include <sys/time.h>
 

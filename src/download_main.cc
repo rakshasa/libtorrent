@@ -4,15 +4,16 @@
 #include <sigc++/hide.h>
 
 #include "torrent/exceptions.h"
-#include "download_main.h"
-#include "general.h"
 #include "net/listen.h"
-#include "peer_handshake.h"
-#include "peer_connection.h"
-#include "settings.h"
+#include "net/handshake.h"
 #include "parse/parse_info.h"
 #include "tracker/tracker_control.h"
 #include "content/delegator_select.h"
+
+#include "download_main.h"
+#include "general.h"
+#include "peer_connection.h"
+#include "settings.h"
 
 #include <sstream>
 #include <limits>
@@ -222,9 +223,9 @@ void DownloadMain::add_peers(const Peers& p) {
 		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
 	!= m_state.connections().end() ||
 
-	std::find_if(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
-		     call_member(call_member(&PeerHandshake::peer), &PeerInfo::is_same_host, ref(*itr)))
-	!= PeerHandshake::handshakes().end() ||
+	std::find_if(Handshake::handshakes().begin(), Handshake::handshakes().end(),
+		     call_member(call_member(&Handshake::peer), &PeerInfo::is_same_host, ref(*itr)))
+	!= Handshake::handshakes().end() ||
 
 	std::find_if(m_state.available_peers().begin(), m_state.available_peers().end(),
 		     call_member(&PeerInfo::is_same_host, ref(*itr)))

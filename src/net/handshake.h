@@ -14,9 +14,9 @@ class DownloadState;
 
 // This class handles the initial handshake and then hands
 // the socket to the downloader.
-class PeerHandshake : SocketBase {
+class Handshake : SocketBase {
 public:
-  typedef std::list<PeerHandshake*> Handshakes;
+  typedef std::list<Handshake*> Handshakes;
 
   typedef enum {
     INACTIVE,      // We can't return to being inactive, destroy when closing.
@@ -26,7 +26,7 @@ public:
     READ_ID
   } State;
 
-  ~PeerHandshake();
+  ~Handshake();
 
   static void connect(int fdesc, const std::string dns, unsigned short port);
   static bool connect(const PeerInfo& p, DownloadState* d);
@@ -38,34 +38,31 @@ public:
   virtual void write();
   virtual void except();
    
-  virtual int fd();
-
   const PeerInfo& peer() const { return m_peer; }
   DownloadState* download() const { return m_download; }
 
   static Handshakes& handshakes() { return m_handshakes; }
 
 protected: // Disable private ctor only warning.
-  PeerHandshake(int fdesc, const std::string dns, unsigned short port);
-  PeerHandshake(int fdesc, const PeerInfo& p, DownloadState* d);
+  Handshake(int fdesc, const std::string dns, unsigned short port);
+  Handshake(int fdesc, const PeerInfo& p, DownloadState* d);
 
 private:
   // Disable
-  PeerHandshake();
-  PeerHandshake(const PeerHandshake& p);
-  PeerHandshake& operator = (const PeerHandshake& p);
+  Handshake();
+  Handshake(const Handshake& p);
+  Handshake& operator = (const Handshake& p);
 
   void close();
 
   bool recv1();
   bool recv2();
 
-  static void PeerHandshake::addConnection(PeerHandshake* p);
-  static void PeerHandshake::removeConnection(PeerHandshake* p);
+  static void Handshake::addConnection(Handshake* p);
+  static void Handshake::removeConnection(Handshake* p);
 
   static Handshakes m_handshakes;
 
-  int m_fd; // Make sure you set this to below zero if you don't want to close it on dtor
   std::string m_infoHash;
 
   PeerInfo m_peer;
