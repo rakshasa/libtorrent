@@ -50,8 +50,8 @@ void Display::drawDownloads(const std::string& id) {
   torrent::DList::iterator first = dList.begin();
   torrent::DList::iterator last = dList.end();
   torrent::DList::iterator mark = std::find_if(dList.begin(), dList.end(),
-                                                     eq(ref(id),
-                                                        call_member(&torrent::Download::get_hash)));
+					       eq(ref(id),
+						  call_member(&torrent::Download::get_hash)));
 
   if (mark != dList.end() && dList.size() > fit) {
     first = last = mark;

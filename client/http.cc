@@ -9,6 +9,7 @@
 #include "queue.h"
 
 extern std::list<std::string> log_entries;
+extern torrent::DList downloads;
 
 Queue globalQueue;
 
@@ -57,6 +58,8 @@ void Http::receive_done(List::iterator itr, bool queued) {
       globalQueue.insert(dItr);
     else
       dItr.start();
+
+    downloads.push_back(dItr);
 
   } catch (torrent::local_error& e) {
     log_entries.push_front(e.what());

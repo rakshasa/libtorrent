@@ -16,7 +16,7 @@ namespace torrent {
 class Peer {
 public:
   Peer()        : m_ptr(NULL) {}
-  Peer(void* p) : m_ptr(NULL) {}
+  Peer(void* p) : m_ptr(p) {}
 
   // Does not check if it has been removed from the download.
   bool                 is_valid()  { return m_ptr; }

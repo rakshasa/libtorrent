@@ -33,6 +33,7 @@ public:
   bool                 is_active();
   bool                 is_tracker_busy();
 
+  // Returns "" if the object is not valid.
   std::string          get_name();
   std::string          get_hash();
 

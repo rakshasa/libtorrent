@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
   torrent::download_list(downloads);
   torrent::DList::iterator curDownload = downloads.end();
 
-  Download download(torrent::Download(NULL));
+  Download* download = new Download(torrent::Download(NULL));
 
   DisplayState displayState = DISPLAY_MAIN;
 
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
 	break;
 	
       case DISPLAY_DOWNLOAD:
-	download.draw();
+	download->draw();
 	break;
 
       case DISPLAY_LOG:
@@ -322,7 +322,9 @@ int main(int argc, char** argv) {
 	
 	  case KEY_RIGHT:
 	    if (curDownload != downloads.end()) {
-	      download = Download(*curDownload);
+	      delete download;
+	      download = new Download(*curDownload);
+
 	      displayState = DISPLAY_DOWNLOAD;
 	    }
 
@@ -364,7 +366,7 @@ int main(int argc, char** argv) {
 	  break;
 
 	case DISPLAY_DOWNLOAD:
-	  displayState = download.key(c) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
+	  displayState = download->key(c) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
 	  break;
 
 	case DISPLAY_LOG:

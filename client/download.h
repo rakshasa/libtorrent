@@ -5,14 +5,8 @@
 
 class Download {
  public:
-  Download(torrent::Download dItr) :
-    m_dItr(dItr),
-    m_entryPos(0),
-    m_state(DRAW_PEERS) {
-    
-    dItr.peer_list(m_peers);
-    m_pItr = m_peers.end();
-  }
+  Download(torrent::Download dItr);
+  ~Download();
 
   void draw();
 
@@ -44,6 +38,9 @@ class Download {
   unsigned int m_entryPos;
 
   State m_state;
+
+  torrent::Download::SignalPeerConnected::iterator    m_signalCon;
+  torrent::Download::SignalPeerDisconnected::iterator m_signalDis;
 };
 
 #endif
