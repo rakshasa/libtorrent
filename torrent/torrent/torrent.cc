@@ -113,7 +113,7 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
 
 // Do work on the polled file descriptors.
 void
-work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   // Update the cached time.
   Timer::update();
 

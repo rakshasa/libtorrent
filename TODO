@@ -4,8 +4,6 @@ downloaded?
 Randomize the chunks list so we don't start all downloads at the same
 spot.
 
-Make peer::connection::read* static?
-
 Setting for pipelining requests.
 
 Make request list keep choked requests, though it needs to be done in
@@ -36,21 +34,9 @@ Each throttle can have it's own rules to decide the priority it gets.
 
 Frobnicate the tracker reconnect timeout.
 
-Add host lookup+connection to SocketBase
-
-HttpGet should handle urls with only domain name (+port), without the
-leading '/'.
-
-Fair sharing of bandwidth to peers, sort them in some way? Or does the
-kernel allow each to fill up their buffers, thereby making the order
-in the SocketBase list irrelevant=
-
 Since I'm using these nice sigc++ signals, seperate the download/state
 class into specific functions like peer/choking management,
 data/delegation and such.
-
-Files class does stuff it isn't supposed to do, like keeping track of
-how much is done and stuff.
 
 libCurl requires attention every second or so for timeouts.
 
@@ -59,34 +45,17 @@ stream? Or is the current system the only flexible one we can use?
 Consider making the stringstream input only to allow for lightning
 fast str().c_str(). (Check if it's isstream that does this)
 
-QS in client needs to be swapped.
-
-Don't open with largefile unless the torrent requires it.
-
-Can we make FileChunk either ref counted or move owner on copy?
-
 Sane timeouts on handshakes.
-
-Do something about tracker connect fails, they are not handled optimally.
 
 Switch to a proper type for file offset/length and chunk length.
 
 Different priorities don't properly affect interested/not interested.
 
-Client does not convert to the right kind of mega.
-
 
 TRACKER STUFF
 
-Add numwant.
-
-tracker "key" is 8 char hex, implement.
-
 
 API REDESIGN:
-
-Let the client retrive the file names in the torrent. (Add support for
-all in one string, or path broken up)
 
 Exceptions are pushed out with signals, support different groups with
 multiple signals.
@@ -116,7 +85,7 @@ Can we check the fd_set's in any more efficient way?... reverse the
 current setup?
 
 Using lists for the sockets we're waiting on does provide for many
-cache hits. (i would assume). find out if you can't use something more
+cache misses. (i would assume). find out if you can't use something more
 clever. Sort by fd number? iterate only to that number?
 
 Cache iterators to different borders, and update them as we add/remove?

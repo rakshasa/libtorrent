@@ -29,23 +29,26 @@ class TrackerControl : public Service {
 
   typedef sigc::slot3<void, uint64_t&, uint64_t&, uint64_t&>   SlotStats;
 
-  TrackerControl(const PeerInfo& me, const std::string hash);
+  TrackerControl(const PeerInfo& me, const std::string& hash, const std::string& key);
   ~TrackerControl();
 
   void                 send_state(TrackerState s);
 
   void                 add_url(const std::string& url);
-  void                 set_next(Timer interval);
 
-  Timer                get_next();
-  TrackerState         get_state() { return m_state; }
+  Timer                get_next_time();
+  int16_t              get_numwant()                           { return m_numwant; }
+  TrackerState         get_state()                             { return m_state; }
+
+  void                 set_next_time(Timer interval);
+  void                 set_numwant(int16_t n)                  { m_numwant = n; }
 
   bool                 is_busy();
 
-  SignalPeers&         signal_peers()  { return m_signalPeers; }
-  SignalFailed&        signal_failed() { return m_signalFailed; }
+  SignalPeers&         signal_peers()                          { return m_signalPeers; }
+  SignalFailed&        signal_failed()                         { return m_signalFailed; }
 
-  SlotStats&           slot_stats()  { return m_slotStats; }
+  SlotStats&           slot_stats()                            { return m_slotStats; }
 
   virtual void         service(int type);
 
@@ -65,10 +68,12 @@ class TrackerControl : public Service {
 
   PeerInfo              m_me;
   std::string           m_hash;
+  std::string           m_key;
   
   int                   m_tries;
   int                   m_interval;
   TrackerState          m_state;
+  int16_t               m_numwant;
 
   TrackerList           m_list;
   TrackerList::iterator m_itr;

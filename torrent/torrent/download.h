@@ -20,6 +20,10 @@ class Download {
 public:
   typedef std::vector<uint16_t> SeenVector;
 
+  enum {
+    NUMWANT_DISABLED = -1
+  };
+
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
   // Not active atm
@@ -64,6 +68,7 @@ public:
   uint32_t             get_uploads_max();
   
   uint64_t             get_tracker_timeout();
+  int16_t              get_tracker_numwant();
 
   void                 set_peers_min(uint32_t v);
   void                 set_peers_max(uint32_t v);
@@ -71,6 +76,7 @@ public:
   void                 set_uploads_max(uint32_t v);
 
   void                 set_tracker_timeout(uint64_t v);
+  void                 set_tracker_numwant(int16_t n);
 
   Entry                get_entry(uint32_t i);
   uint32_t             get_entry_size();

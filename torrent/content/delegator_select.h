@@ -17,7 +17,7 @@ public:
   DelegatorSelect() :
     m_bitfield(NULL),
     m_seen(NULL) {
-    m_indexes.push_back((unsigned)-1);
+    m_ignore.push_back((unsigned)-1);
   }
     
   Priority&	         get_priority()               { return m_priority; }
@@ -45,7 +45,7 @@ private:
 				    unsigned int start,
 				    Indexes::const_iterator& indexes);
 
-  Indexes                m_indexes;
+  Indexes                m_ignore;
   Priority               m_priority;
 
   const BitField*        m_bitfield;

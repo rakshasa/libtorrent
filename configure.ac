@@ -52,57 +52,9 @@ PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 		  LIBS="$LIBS $STUFF_liBS")
 
 TORRENT_CHECK_OPENSSL()
-
-dnl ********************************************************
-dnl AC_CHECK_LIB(curl, curl_easy_init)
 TORRENT_CHECK_CURL()
-
-AC_LANG_PUSH(C++)
-
-dnl **************************************************************
-AC_MSG_CHECKING(for proper overloaded template function disambiguation)
-
-AC_COMPILE_IFELSE(
-    [[template <typename T> void f(T&) {}
-      template <typename T> void f(T*) {}
-      int main() { int *i = 0; f(*i); f(i); }
-    ]],
-    [
-      AC_MSG_RESULT(yes)
-    ], [
-      AC_MSG_RESULT(no)
-      AC_MSG_ERROR([your compiler does not properly handle overloaded template function disambiguation])
-    ]
-)
-
-dnl *******************************************
-AC_MSG_CHECKING(signedness of mincore parameter)
-
-AC_COMPILE_IFELSE(
-    [[#include <sys/types.h>
-      #include <sys/mman.h>
-      void f() { mincore((void*)0, 0, (unsigned char*)0); }
-    ]],
-    [
-     AC_DEFINE(USE_MINCORE_UNSIGNED, 1, use unsigned char* in mincore)
-     AC_MSG_RESULT(unsigned)
-    ],
-[
-AC_COMPILE_IFELSE(
-    [[#include <sys/types.h>
-      #include <sys/mman.h>
-      void f() { mincore((void*)0, 0, (char*)0); }
-    ]],
-    [
-     AC_DEFINE(USE_MINCORE_UNSIGNED, 0, use char* in mincore)
-     AC_MSG_RESULT(signed)
-    ],
-    [
-     AC_MSG_ERROR([mincore signedness test failed])
-    ])
-])
-
-AC_LANG_POP(C++)
+TORRENT_MINCORE_SIGNEDNESS()
+TORRENT_OTFD()
 
 AC_ARG_ENABLE(madvise,
     [  --enable-madvise        enable madvise optimization [default=no]],

@@ -10,12 +10,14 @@ namespace torrent {
 
 // m_tries is -1 if last connection wasn't successfull or we haven't tried yet.
 
-TrackerControl::TrackerControl(const PeerInfo& me, const std::string hash) :
+TrackerControl::TrackerControl(const PeerInfo& me, const std::string& hash, const std::string& key) :
   m_me(me),
   m_hash(hash),
+  m_key(key),
   m_tries(-1),
   m_interval(1800),
-  m_state(TRACKER_STOPPED) {
+  m_state(TRACKER_STOPPED),
+  m_numwant(-1) {
   
   m_itr = m_list.end();
 
@@ -44,6 +46,7 @@ TrackerControl::add_url(const std::string& url) {
   t->set_url(url.substr(p, url.length() - p));
   t->set_me(m_me);
   t->set_hash(m_hash);
+  t->set_key(m_key);
 
   t->signal_done().connect(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
@@ -55,7 +58,7 @@ TrackerControl::add_url(const std::string& url) {
 }
 
 void
-TrackerControl::set_next(Timer interval) {
+TrackerControl::set_next_time(Timer interval) {
   if (!in_service(TIMEOUT))
     return;
 
@@ -64,7 +67,7 @@ TrackerControl::set_next(Timer interval) {
 }
 
 Timer
-TrackerControl::get_next() {
+TrackerControl::get_next_time() {
   if (in_service(TIMEOUT)) {
     Timer t = when_service(TIMEOUT);
 
@@ -143,6 +146,7 @@ TrackerControl::send_itr(TrackerState s) {
 
   m_slotStats(downloaded, uploaded, left);
 
+  (*m_itr)->set_numwant(m_numwant);
   (*m_itr)->send_state(m_state, downloaded, uploaded, left);
 }
 

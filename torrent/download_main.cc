@@ -47,7 +47,7 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_state.hash() = calcHash(b["info"]);
   m_state.bfCounter() = BitFieldCounter(m_state.content().get_storage().get_chunkcount());
 
-  m_tracker = new TrackerControl(m_state.me(), m_state.hash());
+  m_tracker = new TrackerControl(m_state.me(), m_state.hash(), generateKey());
 
   m_tracker->add_url(b["announce"].asString());
 

@@ -17,6 +17,9 @@ libtorrent_la_SOURCES = \
 	content/content.h \
 	content/content_file.h \
 	content/delegator_piece.h \
+	content/delegator_piece.cc \
+	content/delegator_reservee.h \
+	content/delegator_reservee.cc \
 	content/delegator_select.cc \
 	content/delegator_select.h \
 	content/priority.cc \

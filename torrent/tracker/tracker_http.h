@@ -25,17 +25,21 @@ public:
   TrackerHttp();
   ~TrackerHttp();
 
-  void               set_url(const std::string& url)   { m_url = url; }
-  void               set_hash(const std::string& hash) { m_hash = hash; }
-  void               set_me(const PeerInfo& me)        { m_me = me; }
-  void               set_compact(bool c)               { m_compact = c; }
-  
+  bool               is_busy()                         { return m_data != NULL; }
+
   void               send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left);
 
   void               close();
 
-  bool               is_busy()                         { return m_data != NULL; }
+  // Add get_* if you need it.
 
+  void               set_url(const std::string& url)   { m_url = url; }
+  void               set_hash(const std::string& hash) { m_hash = hash; }
+  void               set_key(const std::string& key)   { m_key = key; }
+  void               set_me(const PeerInfo& me)        { m_me = me; }
+  void               set_compact(bool c)               { m_compact = c; }
+  void               set_numwant(int16_t n)            { m_numwant = n; }
+  
   SignalDone&        signal_done()                     { return m_done; }
   SignalFailed&      signal_failed()                   { return m_failed; }
 
@@ -44,23 +48,24 @@ private:
   TrackerHttp(const TrackerHttp& t);
   void operator = (const TrackerHttp& t);
 
-  void               escape_string(const std::string& src, std::ostream& stream);
-  
   void               parse_peers_normal(PeerList& l, const bencode::List& b);
   void               parse_peers_compact(PeerList& l, const std::string& s);
 
   void               receive_done();
   void               receive_failed(std::string msg);
 
-  PeerInfo           parse_peer(const bencode& b);
+  static PeerInfo    parse_peer(const bencode& b);
+  static void        escape_string(const std::string& src, std::ostream& stream);
 
   Http*              m_get;
   std::stringstream* m_data;
 
   std::string        m_url;
   std::string        m_hash;
+  std::string        m_key;
 
   bool               m_compact;
+  int16_t            m_numwant;
 
   PeerInfo           m_me;
 

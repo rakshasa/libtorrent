@@ -1,5 +1,6 @@
-AC_DEFUN(TORRENT_CHECK_CURL,[
-  AC_CACHE_VAL(my_cv_curl_vers,[
+AC_DEFUN([TORRENT_CHECK_CURL], [
+
+  AC_CACHE_VAL(my_cv_curl_vers, [
     my_cv_curl_vers=NONE
     dnl check is the plain-text version of the required version
     check="7.12.0"
@@ -36,7 +37,7 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL], [
                       form `HEADER:LIB', then search for header files in
                       HEADER, and the library in LIB.  If you omit the
                       option completely, the configure script will
-                      search for Berkeley DB in a number of standard
+                      search for OpenSSL in a number of standard
                       places.
     ], [
       if test "$withval" = "yes"; then
@@ -55,4 +56,58 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL], [
       LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`",
       AC_MSG_ERROR(Could not find openssl's crypto library, try --with-openssl=PATH))
     ])
+])
+
+
+AC_DEFUN([TORRENT_MINCORE_SIGNEDNESS], [
+
+  AC_LANG_PUSH(C++)
+  AC_MSG_CHECKING(signedness of mincore parameter)
+
+  AC_COMPILE_IFELSE(
+    [[#include <sys/types.h>
+      #include <sys/mman.h>
+      void f() { mincore((void*)0, 0, (unsigned char*)0); }
+    ]],
+    [
+      AC_DEFINE(USE_MINCORE_UNSIGNED, 1, use unsigned char* in mincore)
+      AC_MSG_RESULT(unsigned)
+    ],
+    [
+      AC_COMPILE_IFELSE(
+        [[#include <sys/types.h>
+          #include <sys/mman.h>
+          void f() { mincore((void*)0, 0, (char*)0); }
+        ]],
+        [
+          AC_DEFINE(USE_MINCORE_UNSIGNED, 0, use char* in mincore)
+          AC_MSG_RESULT(signed)
+        ],
+        [
+          AC_MSG_ERROR([mincore signedness test failed])
+      ])
+  ])
+
+  AC_LANG_POP(C++)
+])
+
+
+AC_DEFUN([TORRENT_OTFD], [
+
+  AC_LANG_PUSH(C++)
+  AC_MSG_CHECKING(for proper overloaded template function disambiguation)
+
+  AC_COMPILE_IFELSE(
+    [[template <typename T> void f(T&) {}
+      template <typename T> void f(T*) {}
+      int main() { int *i = 0; f(*i); f(i); }
+    ]],
+    [
+      AC_MSG_RESULT(yes)
+    ], [
+      AC_MSG_RESULT(no)
+      AC_MSG_ERROR([your compiler does not properly handle overloaded template function disambiguation])
+  ])
+
+  AC_LANG_POP(C++)
 ])

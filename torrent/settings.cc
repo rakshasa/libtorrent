@@ -22,8 +22,8 @@ int Settings::rateSample = 1000000;
 DownloadSettings* DownloadSettings::m_global = new DownloadSettings();
 
 DownloadSettings::DownloadSettings() :
-  minPeers(30),
-  maxPeers(70),
+  minPeers(40),
+  maxPeers(100),
   maxUploads(7),
   chokeCycle(30 * 1000000),
   chokeGracePeriod(55 * 1000000)

@@ -53,7 +53,7 @@ CurlGet::get_out() {
 
 void
 CurlGet::set_user_agent(const std::string& s) {
-  curl_easy_setopt(m_handle, CURLOPT_USERAGENT,     PACKAGE "/" VERSION);
+  curl_easy_setopt(m_handle, CURLOPT_USERAGENT, s.c_str());
 
   m_useragent = s;
 }

@@ -226,13 +226,15 @@ int main(int argc, char** argv) {
     timeout.tv_sec = t / 1000000;
     timeout.tv_usec = t % 1000000;
 
-    if (select(n + 1, &rset, &wset, &eset, &timeout) == -1)
+    int maxFd;
+
+    if ((maxFd = select(n + 1, &rset, &wset, &eset, &timeout)) == -1)
       if (errno == EINTR)
 	continue;
       else
 	throw torrent::local_error("Error polling sockets");
 
-    torrent::work(&rset, &wset, &eset);
+    torrent::work(&rset, &wset, &eset, maxFd);
 
     while (torrent::get(torrent::HAS_EXCEPTION)) {
       log_entries.push_front(torrent::get(torrent::POP_EXCEPTION));

@@ -27,6 +27,21 @@ std::string generateId() {
   return id;
 }
 
+std::string generateKey() {
+  std::string id;
+
+  for (int i = 0; i < 8; ++i) {
+    unsigned int v = random() % 16;
+
+    if (v < 10)
+      id += '0' + v;
+    else
+      id += 'a' + v - 10;
+  }
+
+  return id;
+}
+
 std::string calcHash(const bencode& b) {
   std::stringstream str;
   str << b;

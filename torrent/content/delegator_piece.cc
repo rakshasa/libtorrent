@@ -7,8 +7,10 @@ namespace torrent {
 
 void
 DelegatorPiece::clear() {
-  if (m_state >= QUEUED)
-    ;// Do clearing stuff here
+  if (m_reservee)
+    m_reservee->set_parent(NULL);
+
+  m_reservee = NULL;
 }
 
 }

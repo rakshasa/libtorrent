@@ -2,8 +2,8 @@ LibTorrent
 
 CONTACT
 
-   Send bug reports, suggestions and patches to <jaris@ifi.uio.no> or
-  to the mailinglist.
+ Send bug reports, suggestions and patches to <jaris@ifi.uio.no> or
+to the mailinglist.
 
 LIBRARY DEPENDENCIES
 
@@ -18,14 +18,12 @@ CLIENT DEPENDENCIES
 
 SIGC++
 
-   The API will use sigc++ signals to give the client a simple, yet
-  powerful way of reacting to events from the library. The client can
-  hook multiple slots on each signal and modify the parameters to suit
-  the functions. This avoids lots of unnecessary code in the client.
+ The API will use sigc++ signals to give the client a simple, yet
+powerful way of reacting to events from the library. The client can
+hook multiple slots on each signal and modify the parameters to suit
+the functions. This avoids lots of unnecessary code in the client.
 
 DOWNLOADING 220mb
-
-These tests are old, redo them:
 
   ./rtorrent
   7.22 user 4.84 system 1:26.69 elapsed 13 %CPU
@@ -43,24 +41,23 @@ UPLOADING 220mb
 
 TESTS (PRELIMINARY)
 
-   The higher number of page faults in rtorrent happens since mmap'ed
-  blocks of the file might not be in memory when it tries to
-  read/write. Even though the official BitTorrent client uses python,
-  that shouldn't have this much impact on CPU usage.
+ The higher number of page faults in rtorrent happens since mmap'ed
+blocks of the file might not be in memory when it tries to
+read/write. Even though the official BitTorrent client uses python,
+that shouldn't have this much impact on CPU usage.
 
 LOCAL TRANSFER RATES COMPARED WITH POPULAR CLIENTS
 
-   While testing uploading from a libTorrent client to some popular
-  clients i got some fairly interesting numbers on an 800Mhz
-  PIII. Uploading to another libTorrent client got transfer rates of 4
-  MB/s. To the official BitTorrent client the rates were around 2 MB/s,
-  while Azureus only managed a pathetic 500 KB/s. Does it spend the
-  equivalent of 1.5 MB/s on those nice and shiny GUI thingies?
+ While testing uploading from a libTorrent client to some popular
+clients i got some fairly interesting numbers on an 800Mhz
+PIII. Uploading to another libTorrent client got transfer rates of 4
+MB/s. To the official BitTorrent client the rates were around 2 MB/s,
+while Azureus only managed a pathetic 500 KB/s. Does it spend the
+equivalent of 1.5 MB/s on those nice and shiny GUI thingies?
 
 MADVISE WILLNEED KERNEL BUG
 
-   On the 2.4.20 kernels I've tried, the madvise(..., MADV_WILLNEED)
-  system call can look up the kernel. It will be disabled on those
-  kernels when i manage to write a configure script. (Or I'm going to
-  make enabling it explicit)
+ On the 2.4.20 kernels I've tried, the madvise(..., MADV_WILLNEED)
+system call can look up the kernel. Use the --disable-madvice to
+disable it.
 

@@ -23,7 +23,7 @@ void listen_close();
 void mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
 
 // Do work on the polled file descriptors.
-void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
+void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
 
 // Will always return a valid Download. On errors it throws.
 Download download_create(std::istream& s);

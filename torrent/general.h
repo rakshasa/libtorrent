@@ -10,6 +10,7 @@ class BitField;
 class bencode;
 
 std::string generateId();
+std::string generateKey();
 
 std::string calcHash(const bencode& b);
 

@@ -51,7 +51,7 @@ protected:
   static void makeBuf(char** buf, unsigned int length, unsigned int old = 0);
 
   static void make_sockaddr(const std::string& host, int port, sockaddr_in& sa);
-  static int make_socket(sockaddr_in& sa);
+  static int  make_socket(sockaddr_in& sa);
 
 private:
   // Disable copying

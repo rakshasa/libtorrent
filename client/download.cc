@@ -30,6 +30,8 @@ Download::~Download() {
     m_signalDis->disconnect();
     m_signalTF->disconnect();
     m_signalTS->disconnect();
+
+    m_dItr.set_tracker_numwant(torrent::Download::NUMWANT_DISABLED);
   }
 }
 
@@ -194,6 +196,7 @@ bool Download::key(int c) {
   case 't':
   case 'T':
     m_dItr.set_tracker_timeout(5 * 1000000);
+    m_dItr.set_tracker_numwant(250);
     break;
     
   case '1':
@@ -475,4 +478,6 @@ Download::receive_tracker_failed(std::string s) {
 void
 Download::receive_tracker_succeded() {
   m_msg = "^_^";
+
+  m_dItr.set_tracker_numwant(torrent::Download::NUMWANT_DISABLED);
 }

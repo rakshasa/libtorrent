@@ -151,7 +151,12 @@ Download::get_uploads_max() {
   
 uint64_t
 Download::get_tracker_timeout() {
-  return ((DownloadMain*)m_ptr)->tracker().get_next().usec();
+  return ((DownloadMain*)m_ptr)->tracker().get_next_time().usec();
+}
+
+int16_t
+Download::get_tracker_numwant() {
+  return ((DownloadMain*)m_ptr)->tracker().get_numwant();
 }
 
 void
@@ -180,7 +185,12 @@ Download::set_uploads_max(uint32_t v) {
 
 void
 Download::set_tracker_timeout(uint64_t v) {
-  ((DownloadMain*)m_ptr)->tracker().set_next(v);
+  ((DownloadMain*)m_ptr)->tracker().set_next_time(v);
+}
+
+void
+Download::set_tracker_numwant(int16_t n) {
+  ((DownloadMain*)m_ptr)->tracker().set_numwant(n);
 }
 
 Entry

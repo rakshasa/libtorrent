@@ -14,30 +14,30 @@ namespace torrent {
 
 void
 DelegatorSelect::add_ignore(unsigned int index) {
-  Indexes::iterator itr = std::find_if(m_indexes.begin(), m_indexes.end(),
+  Indexes::iterator itr = std::find_if(m_ignore.begin(), m_ignore.end(),
 				       leq(value(index), back_as_ref()));
   
-  if (itr == m_indexes.end())
+  if (itr == m_ignore.end())
     throw internal_error("DelegatorSelect::add_ignore(...) received an index out of range");
 
   if (*itr == index)
     throw internal_error("DelegatorSelect::add_ignore(...) received an index that is already inserted");
 
-  m_indexes.insert(itr, index);
+  m_ignore.insert(itr, index);
 }
 
 
 void
 DelegatorSelect::remove_ignore(unsigned int index) {
-  Indexes::iterator itr = std::find(m_indexes.begin(), m_indexes.end(), index);
+  Indexes::iterator itr = std::find(m_ignore.begin(), m_ignore.end(), index);
 				    
-  if (itr == m_indexes.end())
+  if (itr == m_ignore.end())
     throw internal_error("DelegatorSelect::remove_ignore(...) could not find the index");
 
-  if (itr == --m_indexes.end())
+  if (itr == --m_ignore.end())
     throw internal_error("DelegatorSelect::remove_ignore(...) tried to remove the last element");
 
-  m_indexes.erase(itr);
+  m_ignore.erase(itr);
 }
 
 int
@@ -116,7 +116,7 @@ DelegatorSelect::check_range(const BitField& bf,
 			     unsigned int rarity,
 			     unsigned int& cur_rarity) {
 
-  Indexes::const_iterator indexes = std::find_if(m_indexes.begin(), m_indexes.end(),
+  Indexes::const_iterator indexes = std::find_if(m_ignore.begin(), m_ignore.end(),
 						 leq(value(start), back_as_ref()));
 
   int found = -1;

@@ -1,3 +1,9 @@
+2004-10-27    <jaris@ifi.uio.no>
+
+	* client: On 'T' key, retrive 250 peers from tracker.
+
+	* library: Added tracker numwant and key.
+
 2004-10-02  Jari Petter Sundell  <jaris@student.matnat.uio.no>
 
 	* torrent: New class for selecting the chunks to download.
