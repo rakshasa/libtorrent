@@ -14,8 +14,12 @@ using namespace algo;
 
 namespace torrent {
 
-Delegator::~Delegator() {
+void Delegator::clear() {
   std::for_each(m_chunks.begin(), m_chunks.end(), delete_on());
+
+  m_chunks.clear();
+  m_select.clear();
+  m_aggressive = false;
 }
 
 DelegatorReservee*

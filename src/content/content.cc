@@ -59,6 +59,9 @@ Content::get_chunksize(uint32_t index) {
 
 uint64_t
 Content::get_bytes_completed() {
+  if (!is_open())
+    return 0;
+
   uint64_t cs = m_storage.get_chunksize();
 
   if (!m_bitfield[m_storage.get_chunkcount() - 1] || m_size % cs == 0)

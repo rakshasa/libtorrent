@@ -38,6 +38,12 @@ public:
 
   int                    find(const BitField& bf, unsigned int start, unsigned int rarity, Priority::Type p);
 
+  void                   clear() {
+    m_ignore.clear();
+    m_priority.clear();
+    m_ignore.push_back((unsigned)-1);
+  }
+
 private:
   int                    check_range(const BitField& bf,
 				     unsigned int start,

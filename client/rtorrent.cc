@@ -434,8 +434,10 @@ int main(int argc, char** argv) {
 	    break;
 
 	  case ' ':
-	    if (curDownload != downloads.end())
+	    if (curDownload != downloads.end()) {
+	      curDownload->open();
 	      curDownload->start();
+	    }
 
 	    break;
 

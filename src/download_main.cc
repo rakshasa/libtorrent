@@ -39,10 +39,7 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_state.get_me() = PeerInfo(generateId(), "", listen->get_port());
   m_state.get_hash() = calcHash(b["info"]);
 
-  setup_tracker();
-
   parse_info(b["info"], m_state.get_content());
-  parse_tracker(b, *m_tracker);
 
   m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 
@@ -73,6 +70,9 @@ DownloadMain::~DownloadMain() {
 
 void
 DownloadMain::open() {
+  if (is_open())
+    return;
+
   m_state.get_content().open();
   m_state.get_bitfield_counter() = BitFieldCounter(m_state.get_content().get_storage().get_chunkcount());
 
@@ -83,7 +83,12 @@ DownloadMain::open() {
 
 void
 DownloadMain::close() {
+  if (is_active())
+    throw internal_error("Tried to close an active download");
+
+  m_checked = false;
   m_state.get_content().close();
+  m_net.get_delegator().clear();
 
   hashTorrent.remove(m_state.get_hash());
   hashQueue.remove(m_state.get_hash());
@@ -125,9 +130,6 @@ void DownloadMain::stop() {
   }
 
   setup_stop();
-
-//   if (std::distance(m_state.signal_chunk_failed().slots().begin(), m_state.signal_chunk_failed().slots().end()) != 0)
-//     throw internal_error("DownloadMain::stop() did no properly disconnect signals");
 }
 
 void DownloadMain::service(int type) {
@@ -210,7 +212,7 @@ void DownloadMain::service(int type) {
   };
 }
 
-bool DownloadMain::isStopped() {
+bool DownloadMain::is_stopped() {
   return !m_started && !m_tracker->is_busy();
 }
 

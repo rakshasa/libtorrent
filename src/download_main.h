@@ -24,23 +24,29 @@ public:
   DownloadMain(const bencode& b);
   ~DownloadMain();
 
-  void open();
-  void close();
+  void                open();
+  void                close();
 
-  void start();
-  void stop();
+  void                start();
+  void                stop();
 
-  bool is_open() { return m_state.get_content().is_open(); }
-  bool is_active() { return m_started; }
-  bool isStopped();
+  bool                is_open() { return m_state.get_content().is_open(); }
+  bool                is_active() { return m_started; }
+  bool                is_stopped();
 
-  void service(int type);
+  void                service(int type);
 
-  std::string& name() { return m_name; }
+  const std::string&  get_name() const { return m_name; }
+  void                set_name(const std::string& s) { m_name = s; }
 
   DownloadState&  state()           { return m_state; }
   DownloadNet&    net()             { return m_net; }
   TrackerControl& tracker()         { return *m_tracker; }
+
+  // Carefull with these.
+  void setup_delegator();
+  void setup_net();
+  void setup_tracker();
 
   static DownloadMain*  getDownload(const std::string& hash);
   static Downloads&     downloads() { return m_downloads; }
@@ -54,10 +60,6 @@ private:
 
   void receive_initial_hash();
   void receive_download_done();
-
-  void setup_delegator();
-  void setup_net();
-  void setup_tracker();
 
   void setup_start();
   void setup_stop();

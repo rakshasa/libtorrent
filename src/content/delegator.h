@@ -21,7 +21,9 @@ public:
   typedef sigc::slot1<uint32_t, unsigned int> SlotChunkSize;
 
   Delegator() : m_aggressive(false) { }
-  ~Delegator();
+  ~Delegator() { clear(); }
+
+  void               clear();
 
   DelegatorReservee* delegate(const BitField& bf, int affinity);
 

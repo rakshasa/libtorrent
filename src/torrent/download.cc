@@ -53,7 +53,7 @@ Download::is_tracker_busy() {
 
 std::string
 Download::get_name() {
-  return m_ptr ? ((DownloadMain*)m_ptr)->name() : "";
+  return m_ptr ? ((DownloadMain*)m_ptr)->get_name() : "";
 }
 
 std::string

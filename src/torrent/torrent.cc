@@ -6,6 +6,7 @@
 
 #include "net/listen.h"
 #include "net/handshake_manager.h"
+#include "parse/parse.h"
 
 #include "torrent.h"
 #include "exceptions.h"
@@ -181,6 +182,9 @@ download_create(std::istream& s) {
   d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
 					    d->state().get_hash()));
 
+  d->setup_tracker();
+  parse_tracker(b, d->tracker());
+
   return Download((DownloadWrapper*)d);
 }
 
@@ -229,7 +233,7 @@ get(GValue t) {
 
   case SHUTDOWN_DONE:
     return std::find_if(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
-			bool_not(call_member(&DownloadMain::isStopped)))
+			bool_not(call_member(&DownloadMain::is_stopped)))
       == DownloadMain::downloads().end();
 
   case FILES_CHECK_WAIT:

@@ -95,7 +95,7 @@ void Download::draw() {
     break;
   }
 
-  if (m_dItr.get_chunks_done() != m_dItr.get_chunks_total() && m_dItr.is_open())
+  if (m_dItr.get_chunks_done() != m_dItr.get_chunks_total() || !m_dItr.is_open())
 
     mvprintw(maxY - 3, 0, "Torrent: %.1f / %.1f MiB Rate: %5.1f/%5.1f KiB Uploaded: %.1f MiB",
 	     (double)m_dItr.get_bytes_done() / (double)(1 << 20),
