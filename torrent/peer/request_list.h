@@ -24,7 +24,7 @@ public:
   void               stall(); // Just calls cancel for now
 
   bool               downloading(const Piece& p);
-  bool               finished();
+  void               finished();
 
   bool               is_downloading()                 { return m_downloading; }
 

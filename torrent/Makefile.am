@@ -16,6 +16,8 @@ libtorrent_la_SOURCES = \
 	content/content.cc \
 	content/content.h \
 	content/content_file.h \
+	content/delegator.cc \
+	content/delegator.h \
 	content/delegator_chunk.cc \
 	content/delegator_chunk.h \
 	content/delegator_piece.h \
@@ -64,8 +66,6 @@ libtorrent_la_SOURCES = \
         bitfield.cc \
         bitfield.h \
 	bitfield_counter.h \
-        delegator.cc \
-        delegator.h \
         download_main.cc \
         download_main.h \
 	download_state.cc \

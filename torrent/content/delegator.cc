@@ -1,30 +1,15 @@
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <inttypes.h>
-
-#include "torrent/exceptions.h"
-#include "general.h"
-#include "delegator.h"
-#include "download_state.h"
-#include "content/delegator_reservee.h"
-
 #include <algo/algo.h>
-#include <iostream>
 #include <limits>
 
-// id = "",  state = NONE - Noone has this queued, because noone touched it or we
-//                          received choke.
-//
-// id = "*", state = NONE - One or more peers tried to download, but timed out.
-//                          Is still queued by someone. Designate if no pieces remain
-//                          and newChunk fails.(?)
-//
-// id = "X", state = DOWNLOADING - Is in X's download queue. Can also be in other
-//                                 peer's queues. Don't designate.
-//
-// id = "X", state = FINISHED - X finished this piece.
+#include "torrent/exceptions.h"
+#include "content/delegator_reservee.h"
+#include "general.h"
+#include "download_state.h"
+
+#include "delegator.h"
 
 using namespace algo;
 
@@ -74,7 +59,7 @@ Delegator::delegate(const BitField& bf, int affinity) {
     return new DelegatorReservee(target);
 
   // else find a new chunk
-  target = newChunk(bf);
+  target = new_chunk(bf);
   
   if (target)
     return new DelegatorReservee(target);
@@ -136,7 +121,7 @@ Delegator::downloading(DelegatorReservee& r) {
   }
 }
   
-bool
+void
 Delegator::finished(DelegatorReservee& r) {
   DelegatorPiece* p = find_piece(r.get_piece());
 
@@ -151,11 +136,9 @@ Delegator::finished(DelegatorReservee& r) {
 
   r.set_state(DELEGATOR_FINISHED);
 
-  return all_state(r.get_piece().c_index(), DELEGATOR_FINISHED);
+  if (all_state(r.get_piece().get_index(), DELEGATOR_FINISHED))
+    m_signalChunkDone.emit(r.get_piece().get_index());
 }
-
-// If clear is set, clear the id of the piece so it is designated as if it was
-// never touched.
 
 void
 Delegator::cancel(DelegatorReservee& r) {
@@ -166,12 +149,13 @@ void Delegator::done(int index) {
   Chunks::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(),
 				      eq(call_member(&DelegatorChunk::get_index), value((unsigned int)index)));
 
-  if (itr != m_chunks.end()) {
-    m_select.remove_ignore((*itr)->get_index());
+  if (itr == m_chunks.end())
+    throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
 
-    delete *itr;
-    m_chunks.erase(itr);
-  }
+  m_select.remove_ignore((*itr)->get_index());
+
+  delete *itr;
+  m_chunks.erase(itr);
 }
 
 void Delegator::redo(int index) {
@@ -180,7 +164,7 @@ void Delegator::redo(int index) {
   done(index);
 }
 
-DelegatorPiece* Delegator::newChunk(const BitField& bf) {
+DelegatorPiece* Delegator::new_chunk(const BitField& bf) {
   int index = m_select.find(bf, random() % bf.sizeBits(), 1024);
 
   if (index == -1)

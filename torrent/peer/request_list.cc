@@ -4,10 +4,10 @@
 
 #include "algo/algo.h"
 #include "torrent/exceptions.h"
+#include "content/delegator.h"
 #include "content/delegator_reservee.h"
 
 #include "request_list.h"
-#include "delegator.h"
 
 using namespace algo;
 
@@ -71,19 +71,17 @@ RequestList::downloading(const Piece& p) {
 }
 
 // Must clear the downloading piece.
-bool
+void
 RequestList::finished() {
   if (!m_downloading || !m_reservees.size())
     throw internal_error("RequestList::finished() called without a downloading piece");
 
-  bool r = m_delegator->finished(*m_reservees.front());
+  m_delegator->finished(*m_reservees.front());
 
   delete m_reservees.front();;
   m_reservees.pop_front();
 
   m_downloading = false;
-
-  return r;
 }
 
 bool

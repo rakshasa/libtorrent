@@ -241,9 +241,9 @@ void PeerConnection::read() {
     m_down.state = IDLE;
     m_download->bytesDownloaded() += m_requests.get_piece().get_length();
 
-    if (m_requests.finished())
-      m_download->chunkDone(m_down.data);
+    m_requests.finished();
     
+    // TODO: Find a way to avoid this remove/insert cycle.
     remove_service(SERVICE_STALL);
     
     if (m_requests.get_size())

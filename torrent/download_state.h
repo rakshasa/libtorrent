@@ -2,11 +2,11 @@
 #define LIBTORRENT_DOWNLOAD_STATE_H
 
 #include "bitfield_counter.h"
-#include "delegator.h"
 #include "peer_info.h"
 #include "rate.h"
 #include "settings.h"
 #include "content/content.h"
+#include "content/delegator.h"
 #include "data/hash_torrent.h"
 #include "download/pipe_size.h"
 #include "torrent/peer.h"
@@ -52,7 +52,7 @@ class DownloadState {
   int canUnchoke();
   void chokeBalance();
 
-  void chunkDone(Storage::Chunk& c);
+  void chunk_done(unsigned int index);
 
   BitFieldCounter& bfCounter() { return m_bfCounter; }
 

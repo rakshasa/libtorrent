@@ -30,13 +30,19 @@ DownloadState::DownloadState() :
   m_settings(DownloadSettings::global()),
   m_pipeSize(&this->m_settings)
 {
+  m_delegator.signal_chunk_done().connect(sigc::mem_fun(*this, &DownloadState::chunk_done));
 }
 
 DownloadState::~DownloadState() {
   std::for_each(m_connections.begin(), m_connections.end(), delete_on());
 }
 
-void DownloadState::chunkDone(Storage::Chunk& c) {
+void DownloadState::chunk_done(unsigned int index) {
+  Storage::Chunk c = m_content.get_storage().get_chunk(index);
+
+  if (!c.is_valid())
+    throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrive from storage");
+
   if (std::find_if(hashQueue.chunks().begin(), hashQueue.chunks().end(),
 
 		   bool_and(eq(ref(m_hash), member(&HashQueue::Node::id)),
