@@ -67,6 +67,12 @@ void PeerHandshake::connect(int& fdesc, const std::string dns, unsigned short po
     //return;
     throw internal_error("PeerhHandshake received a negative fd, bug or feature?");
 
+  std::stringstream s;
+
+  s << "Incoming connection " << dns << ':' << port;
+
+  caughtExceptions.push_front(s.str());
+
   set_socket_nonblock(fdesc);
 
   // TODO: add checks so we don't do multiple connections.
