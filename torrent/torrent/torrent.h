@@ -25,27 +25,53 @@ void mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
 // Do work on the polled file descriptors.
 void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
 
+// Will always return a valid Download. On errors it throws.
+Download download_create(std::istream& s);
+
 // Add all downloads to dlist. Make sure it's cleared.
-void downloads_list(DList& dlist);
+void     download_list(DList& dlist);
 
 // Make sure you check that it's valid.
-Download downloads_find(const std::string& id);
+Download download_find(const std::string& id);
 
-// Returns 0 if it's not open.
-uint32_t get_listen_port();
+// Variables, do stuff.
+typedef enum {
+  LISTEN_PORT,             // Returns 0 if it isn't listening on any port.
+  HANDSHAKES_TOTAL,        // Number of handshakes currently being performed.
+  SHUTDOWN_DONE,           // Returns 1 if all downloads have stopped.
 
-uint32_t get_handshakes_size();
+  FILES_CHECK_WAIT,        // Wait between checks during torrent init. (usec)
 
-uint64_t get_select_timeout();
-uint64_t get_current_time(); // remove
+  DEFAULT_PEERS_MIN,
+  DEFAULT_PEERS_MAX,
 
-uint32_t get_http_gets();
+  DEFAULT_UPLOADS_MAX,
 
-uint32_t get_root_throttle();
-void     set_root_throttle(uint32_t v);
+  DEFAULT_CHOKE_CYCLE,
 
-std::string get_library_name();
-std::string get_next_message();
+  HAS_EXCEPTION,
+
+  TIME_CURRENT,            // Unix time. (usec)
+  TIME_SELECT,             // Timeout for the next select call. (usec)
+
+  RATE_WINDOW,             // Window size used to measure rate. (usec)
+  RATE_START,              // Window size to use on new bursts of data. (usec)
+
+  THROTTLE_ROOT_CONST_RATE, // Bytes per second, 0 for unlimited.
+                            // (the code supports 0 for none, but not in this API)
+  
+  HTTP_GETS
+
+} GValue;
+
+typedef enum {
+  LIBRARY_NAME,
+
+  POP_EXCEPTION
+} GString;
+
+int64_t     get(GValue t);
+std::string get(GString t);
 
 }
 

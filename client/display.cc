@@ -1,6 +1,10 @@
 #include "display.h"
 #include <ncurses.h>
 
+#include <algo/algo.h>
+
+using namespace algo;
+
 int loops = 0;
 
 extern bool inputActive;
@@ -19,7 +23,7 @@ Display::~Display() {
   endwin();
 }
 
-void Display::drawDownloads(torrent::DList::const_iterator mark) {
+void Display::drawDownloads(const std::string& id) {
   int maxX, maxY;
 
   getmaxyx(stdscr, maxY, maxX);
@@ -40,55 +44,61 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
   else
     mvprintw(0, 0, "Input: %s", inputBuf.c_str());
 
-  torrent::DList::const_iterator first = torrent::downloads().begin();
-  torrent::DList::const_iterator last = torrent::downloads().end();
+  torrent::DList dList;
+  torrent::download_list(dList);
 
-  if (mark != torrent::downloads().end() && torrent::downloads().size() > fit) {
+  torrent::DList::iterator first = dList.begin();
+  torrent::DList::iterator last = dList.end();
+  torrent::DList::iterator mark = std::find_if(dList.begin(), dList.end(),
+                                                     eq(ref(id),
+                                                        call_member(&torrent::Download::get_hash)));
+
+  if (mark != dList.end() && dList.size() > fit) {
     first = last = mark;
 
     for (unsigned int i = 0; i < fit;) {
-      if (first != torrent::downloads().begin()) {
+      if (first != dList.begin()) {
 	--first;
 	++i;
       }
 
-      if (last != torrent::downloads().end()) {
+      if (last != dList.end()) {
 	++last;
 	++i;
       }
     }
   }      
 
-  for (int i = 1; i < (maxY - 1) && first != torrent::downloads().end(); i +=3, ++first) {
+  for (int i = 1; i < (maxY - 1) && first != dList.end(); i +=3, ++first) {
     mvprintw(i, 0, "%c %s",
 	     first == mark ? '*' : ' ',
-	     torrent::get(first, torrent::INFO_NAME).c_str());
+	     first->get_name().c_str());
     
-    if (torrent::get(first, torrent::CHUNKS_DONE) != torrent::get(first, torrent::CHUNKS_TOTAL))
+    if (first->get_chunks_done() != first->get_chunks_total())
 
       mvprintw(i + 1, 0, "%c Torrent: %.1f / %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
 	       first == mark ? '*' : ' ',
-	       (double)torrent::get(first, torrent::BYTES_DONE) / 1000000.0,
-	       (double)torrent::get(first, torrent::BYTES_TOTAL) / 1000000.0,
-	       (double)torrent::get(first, torrent::RATE_UP) / 1000.0,
-	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
-	       (double)torrent::get(first, torrent::BYTES_UPLOADED) / 1000000.0);
+	       (double)first->get_bytes_done() / 1000000.0,
+	       (double)first->get_bytes_total() / 1000000.0,
+	       (double)first->get_rate_up() / 1000.0,
+	       (double)first->get_rate_down() / 1000.0,
+	       (double)first->get_bytes_up() / 1000000.0);
 
     else
       mvprintw(i + 1, 0, "%c Torrent: Done %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
 	       first == mark ? '*' : ' ',
-	       (double)torrent::get(first, torrent::BYTES_TOTAL) / 1000000.0,
-	       (double)torrent::get(first, torrent::RATE_UP) / 1000.0,
-	       (double)torrent::get(first, torrent::RATE_DOWN) / 1000.0,
-	       (double)torrent::get(first, torrent::BYTES_UPLOADED) / 1000000.0);
+	       (double)first->get_bytes_total() / 1000000.0,
+	       (double)first->get_rate_up() / 1000.0,
+	       (double)first->get_rate_down() / 1000.0,
+	       (double)first->get_bytes_up() / 1000000.0);
     
     mvprintw(i + 2, 0, "%c Tracker: [%c:%i] %s",
 	     first == mark ? '*' : ' ',
-	     torrent::get(first, torrent::TRACKER_CONNECTING) ? 'C' : ' ',
-	     (int)(torrent::get(first, torrent::TRACKER_TIMEOUT) / 1000000),
-	     torrent::get(first, torrent::TRACKER_MSG).length() > 40 ?
+	     first->is_tracker_busy() ? 'C' : ' ',
+	     (int)(first->get_tracker_timeout() / 1000000),
+	     first->get_tracker_msg().length() > 40 ?
 	     "OVERFLOW" :
-	     torrent::get(first, torrent::TRACKER_MSG).c_str());
+	     first->get_tracker_msg().c_str());
   }
 
   mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i",

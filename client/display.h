@@ -10,7 +10,7 @@ class Display {
   Display();
   ~Display();
 
-  void drawDownloads(torrent::DList::const_iterator mark);
+  void drawDownloads(const std::string& id);
   void drawLog(std::list<std::string> log, int y1, int y2);
 
   void clear(int x, int y, int lx, int ly);

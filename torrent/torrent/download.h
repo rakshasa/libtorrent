@@ -4,12 +4,21 @@
 #include <torrent/common.h>
 #include <torrent/entry.h>
 
+#include <sigc++/signal.h>
+
 namespace torrent {
 
 class Download {
 public:
   Download() : m_ptr(NULL) {}
   Download(void* d) : m_ptr(d) {}
+
+  // Not active atm
+  void            open();
+  void            close();
+
+  void            start();
+  void            stop();
 
   // Does not check if it has been removed.
   bool            is_valid()  { return m_ptr; }
@@ -45,6 +54,7 @@ public:
   uint32_t        get_uploads_max();
   
   uint64_t        get_tracker_timeout();
+  std::string     get_tracker_msg();
 
   void            set_peers_min(uint32_t v);
   void            set_peers_max(uint32_t v);
@@ -56,8 +66,17 @@ public:
   Entry           get_entry(uint32_t i);
   uint32_t        get_entry_size();
 
+  // Call this when you want the modifications of the download priorities
+  // in the entries to take effect.
+  void            update_priorities();
+
   void*           get_ptr()          { return m_ptr; }
   void            set_ptr(void* ptr) { m_ptr = ptr; }
+
+  // Signals:
+  typedef sigc::signal0<void>      SignalDownloadDone;
+
+  SignalDownloadDone& signalDownloadDone();
 
 private:
   void*           m_ptr;

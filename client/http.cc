@@ -51,12 +51,12 @@ void Http::add_url(const std::string& s, bool queue) {
 
 void Http::receive_done(List::iterator itr, bool queued) {
   try {
-    torrent::DItr dItr = torrent::create(*itr->second);
+    torrent::Download dItr = torrent::download_create(*itr->second);
 
     if (queued)
       globalQueue.insert(dItr);
     else
-      torrent::start(dItr);
+      dItr.start();
 
   } catch (torrent::local_error& e) {
     log_entries.push_front(e.what());

@@ -2,10 +2,7 @@
 #define HTTP_H
 
 #include <sstream>
-
-namespace torrent {
-  class Http;
-}
+#include <torrent/http.h>
 
 class Http {
  public:

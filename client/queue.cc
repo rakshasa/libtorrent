@@ -4,14 +4,14 @@
 
 #include "queue.h"
 
-void Queue::insert(torrent::DItr dItr) {
+void Queue::insert(torrent::Download dItr) {
   if (m_list.empty())
-    torrent::start(dItr);
+    dItr.start();
 
-  torrent::signalDownloadDone(dItr).connect(sigc::bind(sigc::mem_fun(*this, &Queue::receive_done),
-						       torrent::get(dItr, torrent::INFO_HASH)));
+  dItr.signalDownloadDone().connect(sigc::bind(sigc::mem_fun(*this, &Queue::receive_done),
+                                               dItr.get_hash()));
 
-  m_list.push_back(torrent::get(dItr, torrent::INFO_HASH));
+  m_list.push_back(dItr.get_hash());
 }
   
 void Queue::receive_done(std::string id) {
@@ -20,31 +20,23 @@ void Queue::receive_done(std::string id) {
   if (itr == m_list.end())
     return;
 
+  torrent::Download dItr = torrent::download_find(id);
+
+  if (dItr.is_valid())
+    dItr.stop();
+
   if (itr != m_list.begin()) {
     m_list.erase(itr);
     return;
   }
 
-  torrent::DItr dItr = torrent::downloads().begin();
-
-  while (dItr != torrent::downloads().end() &&
-	 torrent::get(dItr, torrent::INFO_HASH) != id)
-    ++dItr;
-  
-  if (dItr != torrent::downloads().end())
-    torrent::stop(dItr);
-
   m_list.pop_front();
 
   while (!m_list.empty()) {
-    dItr = torrent::downloads().begin();
+    dItr = torrent::download_find(m_list.front());
     
-    while (dItr != torrent::downloads().end() &&
-	   torrent::get(dItr, torrent::INFO_HASH) != m_list.front())
-      ++dItr;
-    
-    if (dItr != torrent::downloads().end()) {
-      torrent::start(dItr);
+    if (dItr.is_valid()) {
+      dItr.start();
       return;
     }
       
@@ -52,6 +44,6 @@ void Queue::receive_done(std::string id) {
   }
 }
 
-bool Queue::has(torrent::DItr dItr) {
-  return std::find(m_list.begin(), m_list.end(), torrent::get(dItr, torrent::INFO_HASH)) != m_list.end();
+bool Queue::has(torrent::Download dItr) {
+  return std::find(m_list.begin(), m_list.end(), dItr.get_hash()) != m_list.end();
 }

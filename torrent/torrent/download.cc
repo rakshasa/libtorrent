@@ -11,6 +11,24 @@ using namespace algo;
 
 namespace torrent {
 
+void
+Download::open() {
+}
+
+void
+Download::close() {
+}
+
+void
+Download::start() {
+  ((DownloadMain*)m_ptr)->start();
+}
+
+void
+Download::stop() {
+  ((DownloadMain*)m_ptr)->stop();
+}
+
 bool
 Download::is_open() {
   return ((DownloadMain*)m_ptr)->state().content().is_open();
@@ -134,6 +152,11 @@ Download::get_tracker_timeout() {
   return ((DownloadMain*)m_ptr)->tracker().get_next().usec();
 }
 
+std::string
+Download::get_tracker_msg() {
+  return "";
+}
+
 void
 Download::set_peers_min(uint32_t v) {
   if (v > 0 && v < 1000) {
@@ -176,5 +199,31 @@ Download::get_entry_size() {
   return ((DownloadMain*)m_ptr)->state().content().get_files().size();
 }
 
+Download::SignalDownloadDone& 
+Download::signalDownloadDone() {
+  return ((DownloadMain*)m_ptr)->state().content().signal_download_done();
 }
 
+void
+Download::update_priorities() {
+  Priority& p = ((DownloadMain*)m_ptr)->state().delegator().select().get_priority();
+
+  p.clear();
+
+  uint64_t pos = 0;
+  unsigned int cs = ((DownloadMain*)m_ptr)->state().content().get_storage().get_chunksize();
+
+  for (Content::FileList::const_iterator i = ((DownloadMain*)m_ptr)->state().content().get_files().begin();
+       i != ((DownloadMain*)m_ptr)->state().content().get_files().end(); ++i) {
+    
+    unsigned int s = pos / cs;
+    unsigned int e = i->get_size() ? (pos + i->get_size() + cs - 1) / cs : s;
+
+    if (s != e)
+      p.add((Priority::Type)i->get_priority(), s, e);
+
+    pos += i->get_size();
+  }
+}
+
+}
