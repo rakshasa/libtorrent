@@ -75,7 +75,7 @@ void shutdown() {
 void cleanup() {
   // Close again if shutdown wasn't called.
   Listen::close();
-
+ 
   ThrottleControl::global().removeService();
 
   for_each<true>(Download::downloads().begin(), Download::downloads().end(),
@@ -231,6 +231,9 @@ int64_t get(GValue t) {
 
   case TIME_SELECT:
     return Service::nextService().usec();
+
+  case THROTTLE_ROOT_CONST_RATE:
+    return std::max(ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate, 0);
 
   default:
     throw internal_error("get(GValue) received invalid type");
@@ -445,6 +448,11 @@ void set(GValue t, int64_t v) {
   case DEFAULT_CHOKE_CYCLE:
     if (v > 10 * 1000000 && v < 3600 * 1000000)
       DownloadSettings::global().chokeCycle = v;
+    break;
+
+  case THROTTLE_ROOT_CONST_RATE:
+    ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate =
+      v > 0 ? v : Throttle::UNLIMITED;
     break;
 
   default:

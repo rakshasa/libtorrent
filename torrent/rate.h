@@ -24,8 +24,11 @@ class Rate {
 
     // We don't need to clean up old entries here since bytes() is called
     // every 30 seconds by Download::CHOKE_CYCLE.
-    m_entries.push_front(std::make_pair(Timer::cache(), bytes));
     m_bytes += bytes;
+
+    // Todo: Only create a new entry each seconds or something (right-shift the
+    // time or something)
+    m_entries.push_front(std::make_pair(Timer::cache(), bytes));
   }
 
   bool operator < (Rate& r) {

@@ -32,8 +32,6 @@ libtorrent_la_SOURCES = \
         peer_connection_extra.h \
 	rate.cc \
 	rate.h \
-        service.cc \
-        service.h \
 	settings.cc \
 	settings.h \
         socket_base.cc \
@@ -49,7 +47,9 @@ libtorrent_la_SOURCES = \
         tracker_query.cc \
         tracker_query.h \
         torrent.cc \
-        torrent.h
+        torrent.h \
+        service.cc \
+        service.h
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = torrent.h exceptions.h

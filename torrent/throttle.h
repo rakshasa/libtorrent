@@ -25,6 +25,8 @@ class Throttle {
   void activate();
   void idle();
 
+  bool in_active() { return m_inActive; }
+
   Rate& up() { return m_up; }
   Rate& down() { return m_down; }
   
@@ -33,10 +35,10 @@ class Throttle {
   void spent(unsigned int bytes);
 
   // Called when we want to allocate more bandwidth.
-  void update(float period, int bytes);
+  int update(float period, int bytes);
 
-  const Children children() { return m_children; }
-  const Children active() { return m_active; }
+  const Children& children() { return m_children; }
+  const Children& active() { return m_active; }
 
   void set_parent(Throttle* parent);
   void set_settings(ThrottleSettings* settings);
@@ -50,14 +52,13 @@ class Throttle {
   Throttle* m_parent;
 
   Children m_children;
-  Children::iterator m_childrenItr;
-  int m_childrenSize;
+  Children m_active;
 
-  Children m_active; // Only contains those that want feeding.
-  Children::iterator m_activeItr;
+  bool m_inActive;
   int m_activeSize;
 
   int m_left;
+  int m_spent;
 
   Rate m_up;
   Rate m_down;

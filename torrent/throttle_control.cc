@@ -15,7 +15,6 @@ ThrottleControl::ThrottleControl() :
   m_root.set_settings(&m_settings[SETTINGS_ROOT]);
 
   m_settings[SETTINGS_ROOT].constantRate = Throttle::UNLIMITED;
-
   m_settings[SETTINGS_PEER].constantRate = Throttle::UNLIMITED;
 }
 

@@ -45,6 +45,15 @@ class ThrottleSettings {
 
   static int minPeriod;
   static int wakeupPoint;
+
+  // If greater than 'starvePoint' bytes was left then limit the amount
+  // allocated.
+  static int starvePoint;
+
+  // Each turn give spent + starveBuffer bytes if not starved.
+  static int starveBuffer;
+
+  // Min size of chunks to send out.
   static int minChunk;
 };
 

@@ -41,3 +41,5 @@ fix socketBase setAsync
 We're counting bytes we haven't downloaded, fixme.
 
 Recursively update the up/down rates in throttle.
+
+Implement min size of chunks sent in peer_connection

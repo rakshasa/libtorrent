@@ -57,20 +57,21 @@ void Download::draw() {
     break;
   }
 
-  mvprintw(maxY - 3, 0, "Torrent: %.1f / %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
+  mvprintw(maxY - 3, 0, "Torrent: %.1f / %.1f MiB Rate: %5.1f/%5.1f KiB Uploaded: %.1f MiB",
 	   (double)torrent::get(m_dItr, torrent::BYTES_DONE) / 1000000.0,
 	   (double)torrent::get(m_dItr, torrent::BYTES_TOTAL) / 1000000.0,
-	   (double)torrent::get(m_dItr, torrent::RATE_DOWN) / 1000.0,
 	   (double)torrent::get(m_dItr, torrent::RATE_UP) / 1000.0,
+	   (double)torrent::get(m_dItr, torrent::RATE_DOWN) / 1000.0,
 	   (double)torrent::get(m_dItr, torrent::BYTES_UPLOADED) / 1000000.0);
 
 
-  mvprintw(maxY - 2, 0, "Peers: %i(%i) Min/Max: %i/%i Uploads: %i",
+  mvprintw(maxY - 2, 0, "Peers: %i(%i) Min/Max: %i/%i Uploads: %i Throttle: %i KiB",
 	   (int)torrent::get(m_dItr, torrent::PEERS_CONNECTED),
 	   (int)torrent::get(m_dItr, torrent::PEERS_NOT_CONNECTED),
 	   (int)torrent::get(m_dItr, torrent::PEERS_MIN),
 	   (int)torrent::get(m_dItr, torrent::PEERS_MAX),
-	   (int)torrent::get(m_dItr, torrent::UPLOADS_MAX));
+	   (int)torrent::get(m_dItr, torrent::UPLOADS_MAX),
+	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000);
 
   mvprintw(maxY - 1, 0, "Tracker: [%c:%i] %s",
 	   torrent::get(m_dItr, torrent::TRACKER_CONNECTING) ? 'C' : ' ',

@@ -10,6 +10,20 @@ If your system doesn't have "execinfo.h", uncomment "#define
 USE_EXECINFO" in rtorrent.cc. This will be handled by an autoconf
 script later.
 
+All:
+
+  Ctrl-C  - Quit
+
+  A       - Increase Throttle by 1 KiB
+  Z       - Decrease Throttle by 1 KiB
+
+  S       - Increase Throttle by 5 KiB
+  X       - Decrease Throttle by 5 KiB
+
+  D       - Increase Throttle by 50 KiB
+  C       - Decrease Throttle by 50 KiB
+
+
 Main:
 
   Up/Down - Select a download

@@ -525,8 +525,6 @@ void PeerConnection::parseReadBuf() {
       m_up.list.push_back(Piece(index, offset, length));
       insertWrite();
 
-      m_throttle.activate();
-
     } else if (rItr != m_up.list.end()) {
 
       if (m_up.state != WRITE_MSG || rItr != m_up.list.begin())
@@ -567,14 +565,6 @@ void PeerConnection::fillWriteBuf() {
   if (m_sendChoked) {
     m_sendChoked = false;
 
-    if (m_up.choked) {
-      // Clear the request queue and mmaped chunk.
-      m_up.list.clear();
-      m_up.data = Chunk();
-
-      m_throttle.idle();
-    }
-
     if ((Timer::cache() - m_lastChoked).seconds() < 10) {
       // Wait with the choke message.
       insertService(m_lastChoked + 10 * 1000000,
@@ -585,6 +575,17 @@ void PeerConnection::fillWriteBuf() {
       bufCmd(m_up.choked ? CHOKE : UNCHOKE, 1);
       
       m_lastChoked = Timer::cache();
+
+      if (m_up.choked) {
+	// Clear the request queue and mmaped chunk.
+	m_up.list.clear();
+	m_up.data = Chunk();
+	
+	m_throttle.idle();
+	
+      } else {
+	m_throttle.activate();
+      }
     }
   }
 

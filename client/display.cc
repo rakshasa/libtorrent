@@ -75,9 +75,10 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
 	     torrent::get(first, torrent::TRACKER_MSG).c_str());
   }
 
-  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Loops: %i",
+  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Loops: %i",
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
+	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000,
 	   loops);
 
   refresh();

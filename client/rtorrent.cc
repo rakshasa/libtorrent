@@ -39,7 +39,7 @@ void signal_handler(int signum) {
   switch (signum) {
   case SIGINT:
     if (shutdown) {
-      torrent::cleanup();
+      //torrent::cleanup();
       exit(0);
     }
 
@@ -173,53 +173,85 @@ int main(int argc, char** argv) {
     if (!FD_ISSET(0, &rset))
       continue;
 
-    switch (displayState) {
-    case DISPLAY_MAIN:
-      switch (getch()) {
-      case KEY_DOWN:
-	++curDownload;
+    lastDraw -= (1 << 30);
+
+    int c = getch();
+    int64_t constRate = torrent::get(torrent::THROTTLE_ROOT_CONST_RATE);
+
+    switch (c) {
+    case 'a':
+      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 1000);
+      break;
+
+    case 'z':
+      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 1000);
+      break;
+
+    case 's':
+      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 5000);
+      break;
+
+    case 'x':
+      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 5000);
+      break;
+
+    case 'd':
+      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 50000);
+      break;
+
+    case 'c':
+      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 50000);
+      break;
+
+    default:
+      switch (displayState) {
+      case DISPLAY_MAIN:
+	switch (c) {
+	case KEY_DOWN:
+	  ++curDownload;
 	
-	break;
+	  break;
 	
-      case KEY_UP:
-	--curDownload;
+	case KEY_UP:
+	  --curDownload;
 	
-	break;
+	  break;
 	
-      case KEY_RIGHT:
-	if (curDownload != torrent::downloads().end()) {
-	  download = Download(curDownload);
-	  displayState = DISPLAY_DOWNLOAD;
+	case KEY_RIGHT:
+	  if (curDownload != torrent::downloads().end()) {
+	    download = Download(curDownload);
+	    displayState = DISPLAY_DOWNLOAD;
+	  }
+
+	  break;
+
+	case 'l':
+	  displayState = DISPLAY_LOG;
+	  break;
+
+	default:
+	  break;
 	}
 
 	break;
 
-      case 'l':
-	displayState = DISPLAY_LOG;
+      case DISPLAY_DOWNLOAD:
+	displayState = download.key(c) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
 	break;
 
-      default:
-	break;
+      case DISPLAY_LOG:
+	switch (getch()) {
+	case '\n':
+	case ' ':
+	  displayState = DISPLAY_MAIN;
+	  break;
+	default:
+	  break;
+	}
       }
 
       break;
-
-    case DISPLAY_DOWNLOAD:
-      displayState = download.key(getch()) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
-      break;
-
-    case DISPLAY_LOG:
-      switch (getch()) {
-      case '\n':
-      case ' ':
-	displayState = DISPLAY_MAIN;
-	break;
-      default:
-	break;
-      }
     }
-
-    lastDraw -= (1 << 30);
   }
 
   delete display;

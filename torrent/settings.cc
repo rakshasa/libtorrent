@@ -27,8 +27,11 @@ DownloadSettings::DownloadSettings() :
   chokeGracePeriod(55 * 1000000)
 {}
 
-int ThrottleSettings::minPeriod = 500000;
+int ThrottleSettings::minPeriod = 1000000;
 int ThrottleSettings::wakeupPoint = 2048;
+int ThrottleSettings::starvePoint = 2048;
+int ThrottleSettings::starveBuffer = 1024;
+
 int ThrottleSettings::minChunk = 512;
 
 ThrottleSettings::ThrottleSettings() :
