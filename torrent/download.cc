@@ -200,19 +200,16 @@ Download* Download::getDownload(const std::string& hash) {
 void Download::add_peers(const Peers& p) {
   for (Peers::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
 
-    if (*itr == m_state.me() ||
-
-	std::find_if(m_state.connections().begin(), m_state.connections().end(),
-		     eq(call_member(&PeerConnection::peer),
-			ref(*itr)))
+    if (std::find_if(m_state.connections().begin(), m_state.connections().end(),
+		     call_member(call_member(&PeerConnection::peer), &Peer::is_same_host, ref(*itr)))
 	!= m_state.connections().end() ||
 
 	std::find_if(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
-		     eq(call_member(&PeerHandshake::peer),
-			ref(*itr)))
+		     call_member(call_member(&PeerHandshake::peer), &Peer::is_same_host, ref(*itr)))
 	!= PeerHandshake::handshakes().end() ||
 
-	std::find(m_state.available_peers().begin(), m_state.available_peers().end(), *itr)
+	std::find_if(m_state.available_peers().begin(), m_state.available_peers().end(),
+		     call_member(&Peer::is_same_host, ref(*itr)))
 	!= m_state.available_peers().end())
       // We already know this peer
       return;

@@ -92,7 +92,7 @@ void SocketBase::make_sockaddr(const std::string& host, int port, sockaddr_in& s
   hostent* he = gethostbyname(host.c_str());
 
   if (he == NULL)
-    throw input_error("Could not lookup host");
+    throw input_error("Could not lookup host \"" + host + "\"");
 
   std::memset(&sa, 0, sizeof(sockaddr_in));
   std::memcpy(&sa.sin_addr, he->h_addr_list[0], sizeof(in_addr));

@@ -35,7 +35,6 @@ PeerHandshake::PeerHandshake(int fdesc, const std::string dns, unsigned short po
 PeerHandshake::PeerHandshake(int fdesc, const Peer& p, DownloadState* d) :
   m_fd(fdesc),
   m_peer(p),
-  m_peerOrig(p),
   m_download(d),
   m_state(CONNECTING),
   m_incoming(false),
@@ -72,7 +71,8 @@ void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short por
 }
 
 bool PeerHandshake::connect(const Peer& p, DownloadState* d) {
-  if (!p.is_valid())
+  if (p.dns().length() == 0 ||
+      p.port() == 0)
     throw internal_error("Tried to connect with invalid peer information");
 
   try {
@@ -133,14 +133,8 @@ void PeerHandshake::read() {
     if (!recv2())
       return;
 
-    if (m_incoming &&
-	m_peer.id() == m_download->me().id())
+    if (m_peer.id() == m_download->me().id())
       throw communication_error("Connected to client with the same id");
-      
-    else if (!m_incoming &&
-	     (m_peer.id() != m_peerOrig.id() ||
-	      m_peer.id() == m_download->me().id()))
-      throw communication_error("Peer returned bad peer id");
 
     m_download->addConnection(m_fd, m_peer);
     m_fd = -1;

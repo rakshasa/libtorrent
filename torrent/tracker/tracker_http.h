@@ -26,6 +26,7 @@ public:
   void set_url(const std::string& url)   { m_url = url; }
   void set_hash(const std::string& hash) { m_hash = hash; }
   void set_me(const Peer& me)            { m_me = me; }
+  void set_compact(bool c)               { m_compact = c; }
   
   void send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left);
 
@@ -60,6 +61,8 @@ private:
 
   std::string m_url;
   std::string m_hash;
+
+  bool m_compact;
 
   Peer m_me;
 

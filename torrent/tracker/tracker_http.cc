@@ -21,7 +21,8 @@ namespace torrent {
 
 TrackerHttp::TrackerHttp() :
   m_get(new HttpGet()),
-  m_data(NULL) {
+  m_data(NULL),
+  m_compact(true) {
 
   m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
   m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
@@ -53,6 +54,9 @@ void TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uin
 
   if (m_me.dns().length())
     s << "&ip=" << m_me.dns();
+
+  if (m_compact)
+    s << "&compact=1";
 
   s << "&port=" << m_me.port()
     << "&uploaded=" << up
@@ -127,18 +131,42 @@ void TrackerHttp::receive_done() {
 
     if (itr->first == "peers") {
 
-      if (!itr->second.isList())
-	return emit_error(0, "Peers list entry is not a bencoded list");
+      if (itr->second.isList()) {
+	// Normal list of peers.
 
-      for (bencode::List::const_iterator itr2 = itr->second.asList().begin();
-	   itr2 != itr->second.asList().end(); ++itr2) {
-	Peer p = parse_peer(*itr2);
+	for (bencode::List::const_iterator itr2 = itr->second.asList().begin();
+	     itr2 != itr->second.asList().end(); ++itr2) {
+	  Peer p = parse_peer(*itr2);
+	  
+	  if (p.is_valid())
+	    l.push_back(p);
+	}
 
-	if (p.is_valid())
-	  l.push_back(p);
+      } else if (itr->second.isString()) {
+	// Compact list of peers
+
+	for (std::string::const_iterator itr2 = itr->second.asString().begin();
+	     itr2 + 6 <= itr->second.asString().end();) {
+
+	  std::stringstream buf;
+
+	  buf << (unsigned int)*itr2++ << '.'
+	      << (unsigned int)*itr2++ << '.'
+	      << (unsigned int)*itr2++ << '.'
+	      << (unsigned int)*itr2++;
+
+	  unsigned short port = (unsigned short)((unsigned char)*itr2++) << 8;
+	  port += (unsigned short)((unsigned char)*itr2++);
+
+	  l.push_back(Peer("", buf.str(), port));
+	}
+
+      } else {
+	return emit_error(0, "Peers entry is not a bencoded list nor a string");
       }
 
     } else if (itr->first == "interval") {
+
       if (!itr->second.isValue())
 	emit_error(0, "Interval not a number");
 
@@ -146,6 +174,7 @@ void TrackerHttp::receive_done() {
 	interval = itr->second.asValue();
 
     } else if (itr->first == "failure reason") {
+
       if (!itr->second.isString())
 	emit_error(0, "Failure reason is not a string");
 

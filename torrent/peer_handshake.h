@@ -67,7 +67,6 @@ private:
   std::string m_infoHash;
 
   Peer m_peer;
-  Peer m_peerOrig;
   DownloadState* m_download;
 
   // internal state

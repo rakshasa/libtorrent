@@ -15,6 +15,9 @@ using namespace algo;
 
 namespace torrent {
 
+// Temporary solution untill we get proper error handling.
+extern std::list<std::string> caughtExceptions;
+
 DownloadState::DownloadState() :
   m_bytesUploaded(0),
   m_bytesDownloaded(0),
@@ -166,6 +169,12 @@ void DownloadState::connect_peers() {
   while (!available_peers().empty() &&
 	 (signed)connections().size() < settings().minPeers &&
 	 countConnections() < settings().maxPeers) {
+
+    std::stringstream s;
+    
+    s << "Connecting to " << available_peers().front().dns() << ':' << available_peers().front().port();
+
+    caughtExceptions.push_front(s.str());
 
     PeerHandshake::connect(available_peers().front(), this);
     available_peers().pop_front();
