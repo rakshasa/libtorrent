@@ -153,6 +153,8 @@ int main(int argc, char** argv) {
     FD_ZERO(&wset);
     FD_ZERO(&eset);
 
+    int n = std::max(0, torrent::mark(&rset, &wset, &eset));
+
     FD_SET(0, &rset);
 
     int64_t t = std::min(1000000 + lastDraw - torrent::get(torrent::TIME_CURRENT),
@@ -163,8 +165,6 @@ int main(int argc, char** argv) {
 
     timeout.tv_sec = t / 1000000;
     timeout.tv_usec = t % 1000000;
-
-    int n = std::max(1, torrent::mark(&rset, &wset, &eset));
 
     if (select(n + 1, &rset, &wset, &eset, &timeout) == -1)
       if (errno == EINTR)

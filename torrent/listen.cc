@@ -49,7 +49,7 @@ void Listen::open(int first, int last) {
       m_listen->m_fd = fdesc;
       m_listen->m_port = i;
 
-      m_listen->set_socket_async(m_listen->m_fd);
+      m_listen->set_socket_nonblock(m_listen->m_fd);
 
       m_listen->insertRead();
       // TODO: Should listener be in exception?

@@ -3,7 +3,7 @@
 
 #include "chunk.h"
 #include "bitfield.h"
-#include "storage.h"
+#include "data/storage.h"
 #include <list>
 #include <vector>
 

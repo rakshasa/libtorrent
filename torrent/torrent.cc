@@ -99,6 +99,9 @@ void cleanup() {
 int mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   int maxFd = 0;
 
+  if (curlStack.busy())
+    curlStack.fdset(readSet, writeSet, exceptSet, maxFd);
+
   maxFd = std::max(maxFd, std::for_each(SocketBase::readSockets().begin(),
 					SocketBase::readSockets().end(),
 					add_socket(readSet)).fd);
@@ -110,8 +113,6 @@ int mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   maxFd = std::max(maxFd, std::for_each(SocketBase::exceptSockets().begin(),
 					SocketBase::exceptSockets().end(),
 					add_socket(exceptSet)).fd);
-
-  curlStack.fdset(readSet, writeSet, exceptSet, maxFd);
 
   return maxFd;
 }    

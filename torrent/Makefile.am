@@ -2,6 +2,10 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
+	data/storage.cc \
+	data/storage.h \
+	data/storage_block.cc \
+	data/storage_block.h \
 	tracker/tracker_control.cc \
 	tracker/tracker_control.h \
 	tracker/tracker_http.cc \
@@ -49,10 +53,6 @@ libtorrent_la_SOURCES = \
 	settings.h \
         socket_base.cc \
         socket_base.h \
-        storage.cc \
-        storage.h \
-        storage_block.cc \
-        storage_block.h \
 	timer.h \
 	throttle.cc \
 	throttle.h \

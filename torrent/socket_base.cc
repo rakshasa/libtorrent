@@ -63,9 +63,9 @@ void SocketBase::removeExcept() {
   }
 }
 
-void SocketBase::set_socket_async(int fd) {
-  // Set async.
-  fcntl(fd, F_SETFL, O_NONBLOCK | O_ASYNC);
+void SocketBase::set_socket_nonblock(int fd) {
+  // Set non-blocking.
+  fcntl(fd, F_SETFL, O_NONBLOCK);
 }
 
 void SocketBase::set_socket_min_cost(int fd) {
@@ -107,7 +107,7 @@ int SocketBase::make_socket(sockaddr_in& sa) {
   if (f < 0)
     throw local_error("Could not open socket");
 
-  set_socket_async(f);
+  set_socket_nonblock(f);
 
   if (connect(f, (sockaddr*)&sa, sizeof(sockaddr_in)) != 0 &&
       errno != EINPROGRESS) {

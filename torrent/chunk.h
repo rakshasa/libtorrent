@@ -8,6 +8,8 @@
 
 namespace torrent {
 
+// TODO: Reference count Chunk?
+
 class Chunk {
 public:
   typedef std::pair<unsigned int,StorageBlock> Part;

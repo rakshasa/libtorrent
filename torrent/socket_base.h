@@ -22,7 +22,7 @@ public:
   bool inWrite() { return m_writeItr != m_writeSockets.end(); }
   bool inExcept() { return m_exceptItr != m_exceptSockets.end(); }
 
-  static void set_socket_async(int fd);
+  static void set_socket_nonblock(int fd);
   static void set_socket_min_cost(int fd);
   static int  get_socket_error(int fd);
 

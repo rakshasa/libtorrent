@@ -6,11 +6,6 @@ spot.
 
 Make peer::connection::read* static?
 
-Find out how to make autoconf use big files.
-
-Support compact tracker query and 302 redirects, make a new class that
-handles http gets.
-
 Setting for pipelining requests.
 
 Make request list keep choked requests, though it needs to be done in
@@ -34,8 +29,6 @@ Add config for how often we unchoke unknown peers vs good uploaders
 
 Consider splitting up download_state's peer connection management and
 download state stuff.
-
-fix socketBase setAsync
 
 Recursively update the up/down rates in throttle.
 
@@ -67,6 +60,13 @@ Files class does stuff it isn't supposed to do, like keeping track of
 how much is done and stuff.
 
 libCurl requires attention every second or so for timeouts.
+
+tracker "key" is 8 char hex, implement.
+
+bencode stores position in the stream where they were found? Copy the
+stream? Or is the current system the only flexible one we can use?
+Consider making the stringstream input only to allow for lightning
+fast str().c_str(). (Check if it's isstream that does this)
 
 
 API REDESIGN:

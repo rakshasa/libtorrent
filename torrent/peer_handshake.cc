@@ -15,6 +15,8 @@ using namespace algo;
 
 namespace torrent {
 
+extern std::list<std::string> caughtExceptions;
+
 PeerHandshake::Handshakes PeerHandshake::m_handshakes;
 
 // Incoming connections.
@@ -64,7 +66,7 @@ void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short por
   if (fdesc < 0)
     throw internal_error("Tried to assign negative file desc to PeerHandshake");
 
-  set_socket_async(fdesc);
+  set_socket_nonblock(fdesc);
 
   // TODO: add checks so we don't do multiple connections.
   addConnection(new PeerHandshake(fdesc, dns, port));
@@ -147,6 +149,8 @@ void PeerHandshake::read() {
   }
 
   } catch (network_error& e) {
+    caughtExceptions.push_front("Handshake: " + std::string(e.what()));
+
     delete this;
   }
 }
@@ -183,6 +187,8 @@ void PeerHandshake::write() {
   }
 
   } catch (network_error& e) {
+    caughtExceptions.push_front("Handshake: " + std::string(e.what()));
+
     delete this;
   }
 }

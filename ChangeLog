@@ -1,3 +1,10 @@
+2004-08-14    <jaris@ifi.uio.no>
+
+	* torrent/tracker: New tracker request code. Modular using sigc++
+	and ready for extension.
+
+	* torrent: Moved over to using libcurl for http downloads.
+
 2004-08-07    <jaris@ifi.uio.no>
 
 	* configure: Added sigc++-2.0 to dependencies.
@@ -8,7 +15,8 @@
 
 	* client: Added support for http urls.
 
-	* delegator: Fixed a bug that caused us to request pieces the peer didn't have. (DOH!)
+	* delegator: Fixed a bug that caused us to request pieces the peer
+	didn't have. (DOH!)
 
 2004-08-04    <jaris@ifi.uio.no>
 
@@ -18,19 +26,24 @@
 
 2004-08-03      <jaris@ifi.uio.no>
 
-	* torrent: Don't throw on zero length piece messages. Why do they send these?
+	* torrent: Don't throw on zero length piece messages. Why do they
+	send these?
 
 2004-07-28    <jaris@ifi.uio.no>
 
-	* torrent: Fixed a few bugs in the throttle and added min chunk size.
+	* torrent: Fixed a few bugs in the throttle and added min chunk
+	size.
 
 2004-07-25    <jaris@ifi.uio.no>
 
-	* torrent: Fixed bug that made it skip sending the stop message to the tracker when quiting.
+	* torrent: Fixed bug that made it skip sending the stop message to
+	the tracker when quiting.
 
-	* torrent: Changed stdint.h to inttypes.h and made it easy to disable execinfo.h in client.
+	* torrent: Changed stdint.h to inttypes.h and made it easy to
+	disable execinfo.h in client.
 
-	* torrent: Added throttle with tree structure. Bandwidth delegation needs work.
+	* torrent: Added throttle with tree structure. Bandwidth
+	delegation needs work.
 
 2004-07-20    <jaris@ifi.uio.no>
 
@@ -42,13 +55,16 @@
 
 2004-07-11    <jaris@ifi.uio.no>
 
-	* torrent: Choosing new chunks to download according to how many we see.
+	* torrent: Choosing new chunks to download according to how many
+	we see.
 
 2004-07-10    <jaris@ifi.uio.no>
 
-	* torrent: BitField::allSet() now works right, fixes problems with finished peers not being disconnected.
+	* torrent: BitField::allSet() now works right, fixes problems with
+	finished peers not being disconnected.
 
-	* client: No longer breaks when it receives resize interrupts during select.
+	* client: No longer breaks when it receives resize interrupts
+	during select.
 
 2004-07-08    <jaris@ifi.uio.no>
 
@@ -62,13 +78,16 @@
 
 2004-07-04    <jaris@ifi.uio.no>
 
-	* client: Added scrolling when selecting peers or downloads. View the local bitfield.
+	* client: Added scrolling when selecting peers or downloads. View
+	the local bitfield.
 
-	* torrent: Fixed some unchoking bugs and made it better at choosing whom to unchoke.
+	* torrent: Fixed some unchoking bugs and made it better at
+	choosing whom to unchoke.
 
 2004-06-29    <jaris@ifi.uio.no>
 
-	* torrent: Cleaned up PeerConnection::write and made it buffer more commands in one send.
+	* torrent: Cleaned up PeerConnection::write and made it buffer
+	more commands in one send.
 
 2004-06-27    <jaris@ifi.uio.no>
 
@@ -78,7 +97,8 @@
 
 2004-06-26    <jaris@ifi.uio.no>
 
-	* client: Made the display code more maintainable. Added chunks seen amongst peers
+	* client: Made the display code more maintainable. Added chunks
+	seen amongst peers
 	
 	* torrent: Added counting of chunks seen amongst the peers.
 

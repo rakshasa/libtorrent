@@ -30,6 +30,8 @@ CXXFLAGS="-O3 -g"
 
 AC_PROG_CXX
 
+AC_SYS_LARGEFILE
+
 AC_ARG_ENABLE(debug,
     [  --enable-debug          enable debug information [default=yes]],
     [
@@ -52,7 +54,7 @@ PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
 		  LIBS="$LIBS $STUFF_liBS")
 
-LIBS="$LIBS -lcurl"
+AC_CHECK_LIB(curl, curl_easy_init)
 
 LIBTORRENT_LIBS="-ltorrent"
 AC_SUBST(LIBTORRENT_LIBS)
@@ -61,7 +63,6 @@ LIBTORRENT_CFLAGS=""
 AC_SUBST(LIBTORRENT_CFLAGS)
 
 AC_DEFINE(HAVE_CONFIG_H, 1, true if config.h was included)
-AC_DEFINE(_FILE_OFFSET_BITS, 64, Make sure we are using 64 bit version of file operations)
 
 AC_OUTPUT([
 	Makefile
