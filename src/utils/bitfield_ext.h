@@ -48,7 +48,7 @@ public:
     if (get(i) == s)
       return;
 
-    set(i, s);
+    BitField::set(i, s);
 
     if (s)
       m_count++;

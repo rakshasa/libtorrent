@@ -130,12 +130,13 @@ static const unsigned char bit_count_256[] =
 };
 
 uint32_t BitField::count() const {
+  // Might be faster since it doesn't touch the memory.
   // for (n = 0; x; n++)
   //   x &= x-1;
 
   size_t c = 0;
 
-  for (data_t* i = m_start; m_start != m_end; ++i)
+  for (data_t* i = m_start; i != m_end; ++i)
     c += bit_count_256[*i];
 
   return c;
