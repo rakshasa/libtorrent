@@ -1,7 +1,5 @@
 SUBDIRS = src
 
-DISTCLEANFILES = *~
-
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent.pc
 

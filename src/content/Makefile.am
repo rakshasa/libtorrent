@@ -13,6 +13,7 @@ libsub_content_la_SOURCES = \
 	delegator_reservee.h \
 	delegator_reservee.cc \
 	delegator_select.cc \
-	delegator_select.h
+	delegator_select.h \
+	piece.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

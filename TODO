@@ -26,10 +26,6 @@ Each throttle can have it's own rules to decide the priority it gets.
 
 Frobnicate the tracker reconnect timeout.
 
-Since I'm using these nice sigc++ signals, seperate the download/state
-class into specific functions like peer/choking management,
-data/delegation and such.
-
 bencode stores position in the stream where they were found? Copy the
 stream? Or is the current system the only flexible one we can use?
 Consider making the stringstream input only to allow for lightning
@@ -118,13 +114,9 @@ Look into epoll.
 
 DUMPING TORRENT FILES
 
-Since gcc's std::string is ref counted, it would be cheap to retain
-the bencoded torrent. Hash and path's are the only two that take any
-space at all, and both are used as originally stored.
-
 Does it make sense to have *.bt_part or similar suffixes on partially
 downloaded files? This would be uncompatible with other clients, but
-make it configurable? This is fully client size, though need to
+make it configurable? This is fully client side, though need to
 support a way to move files.
 
 

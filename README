@@ -9,7 +9,7 @@ LIBRARY DEPENDENCIES
 
   libsigc++ 2.0 (deb: libsigc++-2.0-dev)
   openssl       (deb: libssl-dev)
-  g++ >= 3.2
+  g++ >= 3.3
 
 CLIENT DEPENDENCIES
 
@@ -38,22 +38,6 @@ UPLOADING 220mb
 
   btdownloadcurses.py
   21.28 user 11.28 system 1:30.34 elapsed 36 %CPU
-
-TESTS (PRELIMINARY)
-
- The higher number of page faults in rtorrent happens since mmap'ed
-blocks of the file might not be in memory when it tries to
-read/write. Even though the official BitTorrent client uses python,
-that shouldn't have this much impact on CPU usage.
-
-LOCAL TRANSFER RATES COMPARED WITH POPULAR CLIENTS
-
- While testing uploading from a libTorrent client to some popular
-clients i got some fairly interesting numbers on an 800Mhz
-PIII. Uploading to another libTorrent client got transfer rates of 4
-MB/s. To the official BitTorrent client the rates were around 2 MB/s,
-while Azureus only managed a pathetic 500 KB/s. Does it spend the
-equivalent of 1.5 MB/s on those nice and shiny GUI thingies?
 
 MADVISE WILLNEED KERNEL BUG
 

@@ -1,8 +1,8 @@
 #ifndef LIBTORRENT_BITFIELD_COUNTER_H
 #define LIBTORRENT_BITFIELD_COUNTER_H
 
-#include "utils/bitfield.h"
 #include <vector>
+#include "utils/bitfield.h"
 
 namespace torrent {
 
@@ -10,24 +10,19 @@ class BitFieldCounter {
  public:
   // Use short since we're never going to get more than 2^16 peers connected
   // at once.
-  typedef std::vector<unsigned short> Field;
+  typedef std::vector<uint16_t> Field;
 
   BitFieldCounter() : m_field(0) {}
   BitFieldCounter(int size) : m_field(size, 0) {}
 
-  void create(uint16_t size) { m_field = Field(size, 0); }
-
   const Field& field() const { return m_field; }
 
-  short inc(int index) {
-    return ++m_field[index];
-  }
+  void      create(uint16_t size) { m_field = Field(size, 0); }
 
-  short dec(int index) {
-    return --m_field[index];
-  }
+  uint16_t  inc(int index) { return ++m_field[index]; }
+  uint16_t  dec(int index) { return --m_field[index]; }
 
-  void inc(const BitField& bf) {
+  void      inc(const BitField& bf) {
     if (bf.size_bits() != m_field.size())
       throw internal_error("BitFieldCounter::inc called on fields with mismatching size");
 
@@ -45,7 +40,7 @@ class BitFieldCounter {
     }
   }
 
-  void dec(const BitField& bf) {
+  void      dec(const BitField& bf) {
     if (bf.size_bits() != m_field.size())
       throw internal_error("BitFieldCounter::dec called on fields with mismatching size");
 

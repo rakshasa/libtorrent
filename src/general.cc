@@ -49,24 +49,4 @@ std::string calcHash(const Bencode& b) {
   return std::string((const char*)SHA1((const unsigned char*)(str.str().c_str()), str.str().length(), NULL), 20);
 }
 
-std::vector<std::string> partitionLine(char*& pos, char* end) {
-  std::vector<std::string> l;
-  std::string s;
-
-  while (pos != end && *pos != '\n') {
-
-    if ((*pos == ' ' || *pos == '\r' || *pos == '\t') &&
-	s.length()) {
-      l.push_back(s);
-      s = std::string();
-    } else {
-      s += *pos;
-    }
-
-    ++pos;
-  }
-
-  return pos != end ? l : std::vector<std::string>();
-}
-
 }

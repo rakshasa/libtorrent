@@ -6,7 +6,7 @@
 #include "torrent/exceptions.h"
 #include "delegator_select.h"
 #include "utils/bitfield.h"
-#include "bitfield_counter.h"
+#include "utils/bitfield_counter.h"
 
 using namespace algo;
 

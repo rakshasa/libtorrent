@@ -33,7 +33,6 @@ libtorrent_la_SOURCES = \
         peer_connection.h \
         peer_connection_extra.cc \
 	peer_connection_sub.h \
-	piece.h \
 	rate.cc \
 	rate.h \
 	settings.cc \

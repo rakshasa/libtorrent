@@ -6,7 +6,7 @@
 
 #include "data/storage_chunk.h"
 #include "content/content.h"
-#include "bitfield_counter.h"
+#include "utils/bitfield_counter.h"
 
 namespace torrent {
 
