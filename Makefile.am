@@ -18,6 +18,7 @@ EXTRA_DIST= \
 	algo/use.h \
 	algo/use_impl.h \
 	client/Makefile \
+	client/Makefile2 \
 	client/README \
 	client/display.cc \
 	client/display.h \
