@@ -30,8 +30,13 @@
 namespace torrent {
 
 bool
-StorageChunk::is_valid() {
-  return !empty() && std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageNode::is_valid))) == end();
+StorageChunk::is_valid() const {
+  return !empty() && std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageChunkPart::is_valid))) == end();
+}
+
+bool
+StorageChunk::has_permissions(int prot) const {
+  return std::find_if(begin(), end(), std::not1(std::bind2nd(std::mem_fun_ref(&StorageChunkPart::has_permissions), prot))) == end();
 }
 
 StorageChunk::iterator
@@ -39,7 +44,7 @@ StorageChunk::at_position(uint32_t pos) {
   if (pos >= m_size)
     throw internal_error("Tried to get StorageChunk position out of range.");
 
-  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageNode::is_contained), pos));
+  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageChunkPart::is_contained), pos));
 
   if (itr == end())
     throw internal_error("StorageChunk might be mangled, get_position failed horribly");
@@ -57,14 +62,14 @@ StorageChunk::at_position(uint32_t pos) {
 void
 StorageChunk::push_back(const MemoryChunk& c) {
   Base::reserve(Base::size() + 1);
-  Base::insert(end(), StorageNode(c, m_size, c.size()));
+  Base::insert(end(), StorageChunkPart(c, m_size, c.size()));
 
   m_size += c.size();
 }
 
 void
 StorageChunk::clear() {
-  std::for_each(begin(), end(), std::mem_fun_ref(&StorageNode::clear));
+  std::for_each(begin(), end(), std::mem_fun_ref(&StorageChunkPart::clear));
 
   m_size = 0;
   Base::clear();

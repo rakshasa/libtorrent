@@ -28,44 +28,34 @@
 
 namespace torrent {
 
-Storage::Storage() :
-  m_consolidator(new StorageConsolidator()) {
-}
-
-Storage::~Storage() {
-  close();
-
-  delete m_consolidator;
-}
-
 void
-Storage::set_chunksize(uint32_t s) {
-  m_consolidator->set_chunksize(s);
+Storage::set_chunk_size(uint32_t s) {
+  m_consolidator.set_chunk_size(s);
 
   m_anchors.resize(get_chunk_total());
 }
 
 Storage::Chunk
-Storage::get_chunk(unsigned int b, int prot) {
+Storage::get_chunk(uint32_t b, int prot) {
   if (b >= m_anchors.size())
     throw internal_error("Chunk out of range in Storage");
 
-  if (m_anchors[b].is_valid())
+  if (m_anchors[b].is_valid() &&
+      m_anchors[b].data()->has_permissions(prot))
     return Chunk(m_anchors[b]);
+
+  // TODO: We will propably need to store a per StorageChunk prot.
+//   if (m_anchors[b].is_valid())
+//     prot |= m_anchors[b].data()->get_prot();
 
   Chunk chunk(new StorageChunk(b));
 
-  if (!m_consolidator->get_chunk(*chunk, b, prot))
+  if (!m_consolidator.get_chunk(*chunk, b, prot))
     return Chunk();
   
   chunk.anchor(m_anchors[b]);
 
   return chunk;
-}
-
-StorageConsolidator& 
-Storage::get_files() {
-  return *m_consolidator;
 }
 
 }

@@ -117,10 +117,9 @@ disallow for open torrents?
 
 NEXT: Storage/File refactoring
 
-Cleanup StorageConsolidator.
-Cleanup Storage
-Move StorageNode to StorageChunkPart?
-
 Cleanup HashChunk
 
 Cleanup errno in memorychunk.cc and file.cc.
+
+If we get conflicting prot flags in get_chunk, we might go into cycle
+of re-allocating. Do a union instead.

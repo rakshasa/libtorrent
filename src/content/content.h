@@ -70,7 +70,7 @@ public:
   FileList&              get_files()                     { return m_files; }
   Storage&               get_storage()                   { return m_storage; }
 
-  bool                   is_open()                       { return m_storage.get_size(); }
+  bool                   is_open()                       { return m_storage.get_bytes_size(); }
   bool                   is_correct_size();
   bool                   is_done()                       { return m_completed == m_storage.get_chunk_total(); }
 
@@ -98,7 +98,7 @@ private:
     return itr;
   }
 
-  uint64_t               m_size;
+  off_t                  m_size;
   uint32_t               m_completed;
 
   FileList               m_files;

@@ -33,10 +33,7 @@
 
 namespace torrent {
 
-class File;
-class StorageConsolidator;
-
-// TODO: Make Consolidator a private base class.
+// TODO: Consider making this do private inheritance of consolidator.
 
 class Storage {
 public:
@@ -44,26 +41,24 @@ public:
   typedef algo::RefAnchored<StorageChunk> Chunk;
   typedef algo::RefAnchor<StorageChunk>   Anchor;
 
-  Storage();
-  ~Storage();
+  ~Storage() { clear(); }
 
-  bool      resize()                                { return m_consolidator->resize(); }
-  void      sync()                                  { return m_consolidator->sync(); }
-  void      close()                                 { m_anchors.clear(); m_consolidator->close(); }
+  void                 sync()                                  { return m_consolidator.sync(); }
+  void                 clear()                                 { m_anchors.clear(); m_consolidator.clear(); }
 
   // Call this when all files have been added.
-  void      set_chunksize(uint32_t s);
+  void                 set_chunk_size(uint32_t s);
   
-  uint64_t  get_size()                              { return m_consolidator->get_size(); }
-  uint32_t  get_chunk_total()                       { return m_consolidator->get_chunk_total(); }
-  uint32_t  get_chunk_size()                        { return m_consolidator->get_chunk_size(); }
+  off_t                get_bytes_size()                        { return m_consolidator.get_bytes_size(); }
+  uint32_t             get_chunk_total()                       { return m_consolidator.get_chunk_total(); }
+  uint32_t             get_chunk_size()                        { return m_consolidator.get_chunk_size(); }
 
-  Chunk     get_chunk(unsigned int b, int prot = MemoryChunk::prot_read | MemoryChunk::prot_write);
+  Chunk                get_chunk(uint32_t b, int prot = MemoryChunk::prot_read | MemoryChunk::prot_write);
 
-  StorageConsolidator& get_files();
+  StorageConsolidator& get_consolidator()                      { return m_consolidator; }
 
 private:
-  StorageConsolidator* m_consolidator;
+  StorageConsolidator  m_consolidator;
   std::vector<Anchor>  m_anchors;
 };
 

@@ -36,7 +36,6 @@ public:
 
   using Base::iterator;
   using Base::reverse_iterator;
-  using Base::size;
 
   using Base::begin;
   using Base::end;
@@ -44,21 +43,23 @@ public:
   using Base::rend;
 
   StorageConsolidator() : m_size(0), m_chunksize(1 << 16) {}
-  ~StorageConsolidator();
+  ~StorageConsolidator() { clear(); }
 
   // We take over ownership of 'file'.
   void                push_back(File* file, off_t size);
 
   // TODO: Rename this to something else.
-  bool                resize();
-  void                close();
+  bool                resize_files();
+  void                clear();
 
   void                sync();
 
-  void                set_chunksize(uint32_t size);
+  void                set_chunk_size(uint32_t size);
 
-  off_t               get_size()                              { return m_size; }
+  size_t              get_files_size()                        { return Base::size(); }
+  off_t               get_bytes_size()                        { return m_size; }
 
+  // If this call returns false, the chunk might only be partially valid.
   bool                get_chunk(StorageChunk& chunk, uint32_t b, int prot);
 
   uint32_t            get_chunk_total()                       { return (m_size + m_chunksize - 1) / m_chunksize; }
@@ -67,6 +68,8 @@ public:
   off_t               get_chunk_position(uint32_t c)          { return c * (off_t)m_chunksize; }
 
 private:
+  MemoryChunk         get_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);
+
   off_t               m_size;
   uint32_t            m_chunksize;
 };

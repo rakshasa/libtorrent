@@ -24,13 +24,13 @@
 #define LIBTORRENT_STORAGE_CHUNK_H
 
 #include <vector>
-#include "storage_node.h"
+#include "storage_chunk_part.h"
 
 namespace torrent {
 
-class StorageChunk : private std::vector<StorageNode> {
+class StorageChunk : private std::vector<StorageChunkPart> {
 public:
-  typedef std::vector<StorageNode> Base;
+  typedef std::vector<StorageChunkPart> Base;
 
   using Base::value_type;
 
@@ -46,7 +46,9 @@ public:
   StorageChunk(uint32_t index) : m_index(index), m_size(0) {}
   ~StorageChunk()                                           { clear(); }
 
-  bool                is_valid();
+  bool                is_valid() const;
+
+  bool                has_permissions(int prot) const;
 
   int                 get_index()                           { return m_index; }
   uint32_t            get_size()                            { return m_size; }

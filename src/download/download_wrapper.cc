@@ -73,7 +73,7 @@ DownloadWrapper::hash_load() {
     Bencode& files = root["files"];
 
     // Don't need this.
-    if (content.get_files().size() != content.get_storage().get_files().size())
+    if (content.get_files().size() != content.get_storage().get_consolidator().get_files_size())
       throw internal_error("DownloadWrapper::hash_load() size mismatch in file entries");
 
     if (root["bitfield"].as_string().size() != content.get_bitfield().size_bytes() ||
@@ -87,7 +87,7 @@ DownloadWrapper::hash_load() {
 
     Bencode::List::iterator bItr = files.as_list().begin();
     Content::FileList::iterator cItr = content.get_files().begin();
-    Storage::FileList::iterator sItr = content.get_storage().get_files().begin();
+    StorageConsolidator::iterator sItr = content.get_storage().get_consolidator().begin();
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
     while (cItr != content.get_files().end()) {
@@ -134,7 +134,8 @@ DownloadWrapper::hash_save() {
 
   Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
 
-  for (Storage::FileList::iterator itr = content.get_storage().get_files().begin(); itr != content.get_storage().get_files().end(); ++itr) {
+  for (StorageConsolidator::iterator itr = content.get_storage().get_consolidator().begin();
+       itr != content.get_storage().get_consolidator().end(); ++itr) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
     b.insert_key("mtime", FileStat(itr->get_file()->fd()).get_mtime());

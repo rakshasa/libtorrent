@@ -31,10 +31,6 @@
 
 namespace torrent {
 
-StorageConsolidator::~StorageConsolidator() {
-  close();
-}
-
 void
 StorageConsolidator::push_back(File* file, off_t size) {
   if (sizeof(off_t) != 8)
@@ -51,12 +47,12 @@ StorageConsolidator::push_back(File* file, off_t size) {
 }
 
 bool
-StorageConsolidator::resize() {
+StorageConsolidator::resize_files() {
   return std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageFile::resize_file))) == end();
 }
 					   
 void
-StorageConsolidator::close() {
+StorageConsolidator::clear() {
   std::for_each(begin(), end(), std::mem_fun_ref(&StorageFile::clear));
 
   Base::clear();
@@ -69,7 +65,7 @@ StorageConsolidator::sync() {
 }
 
 void
-StorageConsolidator::set_chunksize(uint32_t size) {
+StorageConsolidator::set_chunk_size(uint32_t size) {
   if (size == 0)
     throw internal_error("Tried to set StorageConsolidator's chunksize to zero");
 
@@ -78,41 +74,26 @@ StorageConsolidator::set_chunksize(uint32_t size) {
 
 bool
 StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, int prot) {
-  chunk.clear();
+  MemoryChunk mc;
 
-  off_t pos = get_chunk_position(b);
+  off_t first = get_chunk_position(b);
   off_t last = std::min(get_chunk_position(b + 1), m_size);
 
-  if (pos >= m_size)
+  if (first >= m_size)
     throw internal_error("Tried to access chunk out of range in StorageConsolidator");
 
-  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageFile::is_valid_position), pos));
+  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageFile::is_valid_position), first));
 
-  while (pos != last) {
+  while (first != last) {
     if (itr == end())
       throw internal_error("StorageConsolidator could not find a valid file for chunk");
 
-    off_t offset = pos - itr->get_position();
-    uint32_t length = std::min(last - pos, itr->get_size() - offset);
-
-    if (length == 0)
-      throw internal_error("StorageConsolidator::get_chunk caught a piece with 0 lenght");
-
-    if (length > m_chunksize)
-      throw internal_error("StorageConsolidator::get_chunk caught an excessively large piece");
-
-    MemoryChunk mc = itr->get_file()->get_chunk(offset, length, prot, MemoryChunk::map_shared);
-
-    if (!mc.is_valid()) {
-      // Require the caller to clear?
-      chunk.clear();
-
+    if (!(mc = get_chunk_part(itr, first, last - first, prot)).is_valid())
       return false;
-    }
 
     chunk.push_back(mc);
 
-    pos += length;
+    first += mc.size();
     ++itr;
   }
 
@@ -120,6 +101,23 @@ StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, int prot) {
     throw internal_error("StorageConsolidator::get_chunk didn't get a chunk with the correct size");
 
   return true;
+}
+
+MemoryChunk
+StorageConsolidator::get_chunk_part(iterator itr, off_t offset, uint32_t length, int prot) {
+  offset -= itr->get_position();
+  length = std::min<off_t>(length, itr->get_size() - offset);
+
+  if (offset < 0)
+    throw internal_error("StorageConsolidator::get_chunk_part(...) caught a negative offset");
+
+  if (length == 0)
+    throw internal_error("StorageConsolidator::get_chunk_part(...) caught a piece with 0 lenght");
+
+  if (length > m_chunksize)
+    throw internal_error("StorageConsolidator::get_chunk_part(...) caught an excessively large piece");
+
+  return itr->get_file()->get_chunk(offset, length, prot, MemoryChunk::map_shared);
 }
 
 }

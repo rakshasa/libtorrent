@@ -104,8 +104,11 @@ bool PeerConnection::readChunk() {
 
   unsigned int offset = p.get_offset() + m_down.pos - part->get_position();
   
-  if (!part->get_chunk().is_valid() || !part->get_chunk().is_writable())
-    throw storage_error("Tried to write piece to file area that isn't valid or can't be written to");
+  if (!part->get_chunk().is_valid())
+    throw storage_error("PeerConnection::readChunk() could not create a valid chunk");
+  
+  if (!part->get_chunk().is_writable())
+    throw storage_error("PeerConnection::readChunk() chunk not writable, permission denided");
   
   if (!read_buf(part->get_chunk().begin() + offset,
 	       std::min(part->get_position() + part->get_chunk().size() - p.get_offset(), p.get_length()),
@@ -158,7 +161,7 @@ PeerConnection::load_chunk(int index, Sub& sub) {
   if (index < 0 || index >= (signed)m_download->get_chunk_total())
     throw internal_error("Incoming pieces list contains a bad index value");
   
-  sub.data = m_download->get_content().get_storage().get_chunk(index, true);
+  sub.data = m_download->get_content().get_storage().get_chunk(index);
   
   if (!sub.data.is_valid())
     throw local_error("PeerConnection failed to get a chunk to write to");

@@ -20,33 +20,18 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_STORAGE_NODE_H
-#define LIBTORRENT_DATA_STORAGE_NODE_H
+#include "config.h"
 
-#include "memory_chunk.h"
+#include <unistd.h>
+
+#include "storage_chunk_part.h"
 
 namespace torrent {
 
-class StorageNode {
-public:
-  StorageNode(const MemoryChunk& c, uint32_t pos, uint32_t len) : m_chunk(c), m_position(pos), m_length(len) {}
-
-  bool                is_valid() const                      { return m_chunk.is_valid(); }
-  bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + m_length; }
-
-  void                clear();
-
-  MemoryChunk&        get_chunk()                           { return m_chunk; }
-  uint32_t            get_position() const                  { return m_position; }
-  uint32_t            get_length() const                    { return m_length; }
-
-private:
-  MemoryChunk         m_chunk;
-
-  uint32_t            m_position;
-  uint32_t            m_length;
-};
-
+void
+StorageChunkPart::clear() {
+  m_chunk.unmap();
+  m_chunk.clear();
 }
 
-#endif
+}

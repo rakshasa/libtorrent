@@ -104,11 +104,11 @@ Content::is_correct_size() {
   if (!is_open())
     return false;
 
-  if (m_files.size() != m_storage.get_files().size())
+  if (m_files.size() != m_storage.get_consolidator().get_files_size())
     throw internal_error("Content::is_correct_size called on an open object with mismatching FileList and Storage::FileList sizes");
 
   FileList::const_iterator fItr = m_files.begin();
-  Storage::FileList::const_iterator sItr = m_storage.get_files().begin();
+  Storage::FileList::const_iterator sItr = m_storage.get_consolidator().begin();
   
   while (fItr != m_files.end()) {
     if (fItr->get_size() != FileStat(sItr->get_file()->fd()).get_size())
@@ -139,31 +139,31 @@ Content::open(bool wr) {
 
     } catch (base_error& e) {
       delete f;
-      m_storage.close();
+      m_storage.clear();
 
       throw;
     }
 
     lastPath = itr->get_path();
 
-    m_storage.get_files().push_back(f, itr->get_size());
+    m_storage.get_consolidator().push_back(f, itr->get_size());
   }
 
   m_bitfield = BitField(m_storage.get_chunk_total());
 
   // Update anchor count in m_storage.
-  m_storage.set_chunksize(m_storage.get_chunk_size());
+  m_storage.set_chunk_size(m_storage.get_chunk_size());
 
   if (m_hash.size() / 20 != m_storage.get_chunk_total())
     throw internal_error("Content::open(...): Chunk count does not match hash count");
 
-  if (m_size != m_storage.get_size())
+  if (m_size != m_storage.get_bytes_size())
     throw internal_error("Content::open(...): m_size != m_storage.get_size()");
 }
 
 void
 Content::close() {
-  m_storage.close();
+  m_storage.clear();
 
   m_completed = 0;
   m_bitfield = BitField();
@@ -173,7 +173,7 @@ Content::close() {
 
 void
 Content::resize() {
-  if (!m_storage.resize())
+  if (!m_storage.get_consolidator().resize_files())
     throw storage_error("Could not resize files");
 }
 
