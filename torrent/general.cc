@@ -6,7 +6,7 @@
 
 #include "general.h"
 #include "bitfield.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "peer_handshake.h"
 #include "settings.h"
 #include "bencode.h"

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "hash_queue.h"
 #include "hash_chunk.h"
 #include "storage_chunk.h"

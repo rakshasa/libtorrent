@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "curl_get.h"
 #include "curl_stack.h"
 #include "http.h"

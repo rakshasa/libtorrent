@@ -3,7 +3,7 @@
 #endif
 
 #include "bencode.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include <iostream>
 
 namespace torrent {

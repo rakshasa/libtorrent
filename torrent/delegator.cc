@@ -4,7 +4,7 @@
 
 #include <inttypes.h>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "general.h"
 #include "delegator.h"
 #include "download_state.h"

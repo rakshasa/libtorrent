@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #include "socket_base.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "poll.h"
 
 namespace torrent {

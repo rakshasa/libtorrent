@@ -2,7 +2,7 @@
 
 #include <algo/algo.h>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "file.h"
 #include "storage_consolidator.h"
 

@@ -2,7 +2,7 @@
 
 #include <sigc++/signal.h>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "tracker_control.h"
 #include "tracker_http.h"
 

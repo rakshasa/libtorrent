@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "file_chunk.h"
 
 #include <sstream>

@@ -3,7 +3,7 @@
 #include <sigc++/signal.h>
 #include <sigc++/hide.h>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "download_main.h"
 #include "general.h"
 #include "net/listen.h"

@@ -6,6 +6,7 @@ libtorrent_la_SOURCES = \
 	torrent/download.h \
 	torrent/entry.cc \
 	torrent/entry.h \
+	torrent/exceptions.h \
 	torrent/peer.cc \
 	torrent/peer.h \
 	torrent/torrent.cc \
@@ -97,6 +98,7 @@ libtorrentinclude_HEADERS = \
 	torrent/exceptions.h \
 	torrent/entry.h \
 	torrent/peer.h \
-	torrent/torrent.h
+	torrent/torrent.h \
+	url/http.h
 
 DISTCLEANFILES = *~ */*~

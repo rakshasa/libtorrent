@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <algo/algo.h>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "path.h"
 
 using namespace algo;

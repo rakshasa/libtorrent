@@ -3,7 +3,7 @@
 #include <algo/algo.h>
 #include <netinet/in.h>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "delegator_select.h"
 #include "bitfield.h"
 #include "bitfield_counter.h"

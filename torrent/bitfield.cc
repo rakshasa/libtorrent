@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 
 #include "bitfield.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 
 namespace torrent {
   

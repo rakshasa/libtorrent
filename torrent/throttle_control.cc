@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "throttle_control.h"
 
 namespace torrent {

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "parse_info.h"
 #include "bencode.h"
 #include "content/content.h"

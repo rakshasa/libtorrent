@@ -8,7 +8,7 @@
 #include <netinet/in.h>
 
 #include "listen.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 
 namespace torrent {
 

@@ -3,7 +3,7 @@
 #endif
 
 #include "service.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 
 #include <algorithm>
 #include <algo/algo.h>

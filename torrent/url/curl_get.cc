@@ -2,7 +2,7 @@
 
 #include "curl_get.h"
 #include "curl_stack.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 
 #include <ostream>
 #include <curl/curl.h>

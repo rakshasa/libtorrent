@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 
 #include "peer_connection.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "download_state.h"
 
 #define BUFFER_SIZE (1<<9)

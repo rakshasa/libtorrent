@@ -229,19 +229,12 @@ Download::update_priorities() {
 
 void
 Download::peer_list(PList& pList) {
-//   std::for_each(((DownloadMain*)m_ptr)->state().connections().begin(),
-// 		((DownloadMain*)m_ptr)->state().connections().end(),
+  std::for_each(((DownloadMain*)m_ptr)->state().connections().begin(),
+		((DownloadMain*)m_ptr)->state().connections().end(),
 
-// 		call_member(ref(pList),
-// 			    &PList::push_back,
-// 			    back_as_ptr()));
-
-  for (DownloadState::Connections::iterator itr = ((DownloadMain*)m_ptr)->state().connections().begin();
-       itr != ((DownloadMain*)m_ptr)->state().connections().end(); ++itr) {
-    
-    assert((*itr)->peer().dns().length());
-    pList.push_back(*itr);
-  }
+		call_member(ref(pList),
+			    &PList::push_back,
+			    back_as_ptr()));
 }
 
 Peer

@@ -6,7 +6,7 @@
 #include <numeric>
 #include <algo/algo.h>
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "settings.h"
 #include "socket_base.h"
 #include "throttle.h"

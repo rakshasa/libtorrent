@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "http_get.h"
 #include "service.h"
 #include "settings.h"

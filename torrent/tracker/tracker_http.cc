@@ -6,9 +6,9 @@
 #include <sstream>
 #include <fstream>
 
+#include "torrent/exceptions.h"
 #include "bencode.h"
 #include "settings.h"
-#include "exceptions.h"
 #include "tracker_http.h"
 #include "url/http.h"
 

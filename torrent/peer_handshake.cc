@@ -3,7 +3,7 @@
 #endif
 
 #include "general.h"
-#include "exceptions.h"
+#include "torrent/exceptions.h"
 #include "download_main.h"
 #include "peer_handshake.h"
 
