@@ -6,9 +6,8 @@
 
 namespace torrent {
 
-bool HashChunk::perform(unsigned int length, bool force) {
-  if (!m_chunk.is_valid() ||
-      !m_chunk->is_valid())
+bool HashChunk::perform(uint32_t length, bool force) {
+  if (!m_chunk.is_valid() || !m_chunk->is_valid())
     throw internal_error("HashChunk::perform(...) called on an invalid chunk");
 
   length = std::min(length, remaining());
@@ -21,7 +20,7 @@ bool HashChunk::perform(unsigned int length, bool force) {
   while (length) {
     StorageChunk::Node& node = m_chunk->get_position(m_position);
 
-    unsigned int l = std::min(length, node.length - (m_position - node.position));
+    uint32_t l = std::min(length, node.length - (m_position - node.position));
 
     // Usually we only have one or two files in a chunk, so we don't mind the if statement
     // inside the loop.
@@ -33,7 +32,7 @@ bool HashChunk::perform(unsigned int length, bool force) {
       m_position += l;
 
     } else {
-      unsigned int incore, size = node.chunk.page_touched(m_position - node.position, l);
+      uint32_t incore, size = node.chunk.page_touched(m_position - node.position, l);
       unsigned char buf[size];
 
       // TODO: We're borking here with NULL node.
@@ -63,19 +62,19 @@ bool HashChunk::perform(unsigned int length, bool force) {
 
 
 // Warning: Can paralyze linux 2.4.20.
-bool HashChunk::willneed(unsigned int length) {
+bool HashChunk::willneed(uint32_t length) {
   if (!m_chunk.is_valid())
     throw internal_error("HashChunk::willneed(...) called on an invalid chunk");
 
   if (m_position + length > m_chunk->get_size())
     throw internal_error("HashChunk::willneed(...) received length out of range");
 
-  unsigned int pos = m_position;
+  uint32_t pos = m_position;
 
   while (length) {
     StorageChunk::Node& node = m_chunk->get_position(pos);
 
-    unsigned int l = std::min(length, node.length - (pos - node.position));
+    uint32_t l = std::min(length, node.length - (pos - node.position));
 
     node.chunk.advise(pos - node.position, l, FileChunk::advice_willneed);
 
@@ -86,14 +85,14 @@ bool HashChunk::willneed(unsigned int length) {
   return true;
 }
 
-unsigned int HashChunk::remaining() {
+uint32_t HashChunk::remaining() {
   if (!m_chunk.is_valid())
     throw internal_error("HashChunk::remaining() called on an invalid chunk");
 
   return m_chunk->get_size() - m_position;
 }
 
-unsigned int HashChunk::remaining_file() {
+uint32_t HashChunk::remaining_file() {
   if (!m_chunk.is_valid())
     throw internal_error("HashChunk::remaining_chunk() called on an invalid chunk");
   

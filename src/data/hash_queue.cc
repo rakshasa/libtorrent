@@ -26,6 +26,7 @@ HashQueue::add(Chunk c, SlotDone d, const std::string& id) {
       throw internal_error("Empty HashQueue is still in service");
 
     m_tries = 0;
+    hc->willneed(hc->remaining());
     insert_service(Timer::current(), 0);
   }
 
@@ -62,53 +63,40 @@ HashQueue::clear() {
 }
 
 // TODO: Clean up this code, it's ugly.
-void HashQueue::service(int type) {
-  bool forced = false;
+void
+HashQueue::service(int type) {
+  while (!m_chunks.empty()) {
+    if (!check(++m_tries >= 3))
+      return insert_service(Timer::current() + Settings::hashForcedWait, 0);
+    
+    m_tries = 0;
+  }
+}
 
- hashqueue_service_loop:
-
-  if (m_chunks.empty())
-    return;
-  else if (forced)
-    return insert_service(Timer::current() + Settings::hashForcedWait, 0);
-
+bool
+HashQueue::check(bool force) {
   HashChunk* chunk = m_chunks.front().m_chunk;
-
-  unsigned int done = chunk->remaining();
-
-  chunk->perform(chunk->remaining(), false);
-
-  done -= chunk->remaining();
-
-#if USE_MADVISE_WILLNEED
-  if (chunk->remaining())
-    if (m_tries++ < 3) {
-      chunk->willneed(chunk->remaining());
-      
-      return insert_service(Timer::current() + Settings::hashMadviceWait, 0);
-    } else {
-      chunk->perform(chunk->remaining(), forced = true);
-    }
-#else
-  if (chunk->remaining())
-    chunk->perform(1 << 16, forced = true);
-#endif
+  
+  // TODO: Don't go so far when forcing.
+  chunk->perform(chunk->remaining(), force);
 
   if (chunk->remaining())
-    // Not done yet, reschedule service. Atleast 10ms so the disk head has time to relocate.
-    return insert_service(Timer::current() + 10000, 0);
+    return false;
 
   m_chunks.front().m_done(chunk->get_chunk(), chunk->get_hash());
 
   delete chunk;
   m_chunks.pop_front();
 
-  m_tries = 0;
+  // This should be a few chunks ahead.
+  if (!m_chunks.empty())
+    m_chunks.front().m_chunk->willneed(m_chunks.front().m_chunk->remaining());
 
-  goto hashqueue_service_loop;
-}  
+  return true;
+}
 
-uint32_t HashQueue::Node::get_index() {
+uint32_t
+HashQueue::Node::get_index() {
   return m_chunk->get_chunk()->get_index();
 }
 

@@ -65,22 +65,6 @@ TORRENT_CHECK_CURL()
 TORRENT_MINCORE_SIGNEDNESS()
 TORRENT_OTFD()
 
-AC_ARG_ENABLE(madvise,
-    [  --enable-madvise        enable madvise optimization [default=yes]],
-    [
-        if test "$enableval" = "yes"; then
-            AC_DEFINE(USE_MADVISE_WILLNEED, 1, we can use madvise(... MADV_WILLNEED))
-	    VAR_USE_MADVISE=1
-        else
-            AC_DEFINE(USE_MADVISE_WILLNEED, 0, we cannot use madvise(... MADV_WILLNEED))
-	    VAR_USE_MADVISE=0
-        fi
-    ],[
-        AC_DEFINE(USE_MADVISE_WILLNEED, 1, we can use madvise(... MADV_WILLNEED))
-        VAR_USE_MADVISE=1
-    ]
-)
-
 LIBTORRENT_LIBS="-ltorrent"
 AC_SUBST(LIBTORRENT_LIBS)
 

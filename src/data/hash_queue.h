@@ -50,6 +50,8 @@ private:
     SlotDone          m_done;
   };
 
+  bool                check(bool force);
+
   typedef std::list<Node> ChunkList;
 
   uint16_t            m_tries;

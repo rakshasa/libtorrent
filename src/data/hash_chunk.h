@@ -16,27 +16,27 @@ class HashChunk {
 public:
   typedef algo::RefAnchored<StorageChunk> Chunk;
 
-  HashChunk()                     {}
-  HashChunk(Chunk c)              { set_chunk(c); }
+  HashChunk()         {}
+  HashChunk(Chunk c)  { set_chunk(c); }
   
-  void         set_chunk(Chunk c) { m_position = 0; m_chunk = c; m_hash.init(); }
+  void                set_chunk(Chunk c) { m_position = 0; m_chunk = c; m_hash.init(); }
 
-  Chunk        get_chunk()        { return m_chunk; }
-  std::string  get_hash()         { return m_hash.final(); }
+  Chunk               get_chunk()        { return m_chunk; }
+  std::string         get_hash()         { return m_hash.final(); }
 
   // If force is true, then the return value is always true.
-  bool         perform(unsigned int length, bool force = true);
+  bool                perform(uint32_t length, bool force = true);
 
-  bool         willneed(unsigned int length);
+  bool                willneed(uint32_t length);
 
-  unsigned int remaining();
-  unsigned int remaining_file();
+  uint32_t            remaining();
+  uint32_t            remaining_file();
 
 private:
-  unsigned int m_position;
+  uint32_t            m_position;
 
-  Chunk        m_chunk;
-  HashCompute  m_hash;
+  Chunk               m_chunk;
+  HashCompute         m_hash;
 };
 
 }
