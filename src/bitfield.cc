@@ -112,6 +112,9 @@ bool BitField::allSet() const {
 unsigned int BitField::count() const {
   // TODO: Optimize, use a lookup table
 
+  // for (n = 0; x; n++)
+  //   x &= x-1;
+
   unsigned int c = 0;
 
   for (unsigned int i = 0; i < sizeBits(); ++i)

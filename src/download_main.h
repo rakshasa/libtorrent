@@ -6,6 +6,7 @@
 #include "settings.h"
 #include "download_state.h"
 #include "download/download_net.h"
+#include "peer_info.h"
 
 #include <sigc++/connection.h>
 
@@ -40,7 +41,12 @@ public:
   const std::string&  get_name() const { return m_name; }
   void                set_name(const std::string& s) { m_name = s; }
 
-  void                set_port(uint16_t p) { m_state.get_me().set_port(p); }
+  const std::string&  get_hash() const                         { return m_hash; }
+  void                set_hash(const std::string& s)           { m_hash = s; }
+
+  PeerInfo&           get_me()                                 { return m_me; }
+
+  void                set_port(uint16_t p) { m_me.set_port(p); }
 
   DownloadState&  state()           { return m_state; }
   DownloadNet&    net()             { return m_net; }
@@ -76,6 +82,10 @@ private:
   TrackerControl* m_tracker;
 
   std::string m_name;
+  std::string m_hash;
+
+  PeerInfo            m_me;
+  
   bool m_checked;
   bool m_started;
 

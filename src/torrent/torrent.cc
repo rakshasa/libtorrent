@@ -186,13 +186,13 @@ download_create(std::istream& s) {
     // Hash must be calculated before these are connected.
     d->net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
     d->net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
-					     d->state().get_hash(), d->state().get_me().get_id()));
+					     d->get_hash(), d->get_me().get_id()));
     d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
-					      d->state().get_hash()));
+					      d->get_hash()));
 
     d->state().slot_hash_check_add(sigc::bind(sigc::mem_fun(hashQueue, &HashQueue::add),
 					      sigc::mem_fun(d->state(), &DownloadState::receive_hash_done),
-					      d->state().get_hash()));
+					      d->get_hash()));
 
     d->setup_net();
     d->setup_delegator();
@@ -222,9 +222,7 @@ Download
 download_find(const std::string& id) {
   DownloadMain::Downloads::iterator itr = std::find_if(DownloadMain::downloads().begin(),
                                                        DownloadMain::downloads().end(),
-                                                       eq(ref(id),
-                                                          call_member(call_member(&DownloadMain::state),
-                                                                      &DownloadState::get_hash)));
+                                                       eq(ref(id), call_member(&DownloadMain::get_hash)));
 
   return itr != DownloadMain::downloads().end() ? Download((DownloadWrapper*)*itr) : Download(NULL);
 }
@@ -233,9 +231,7 @@ void
 download_remove(const std::string& id) {
   DownloadMain::Downloads::iterator itr = std::find_if(DownloadMain::downloads().begin(),
                                                        DownloadMain::downloads().end(),
-                                                       eq(ref(id),
-                                                          call_member(call_member(&DownloadMain::state),
-                                                                      &DownloadState::get_hash)));
+                                                       eq(ref(id), call_member(&DownloadMain::get_hash)));
 
   if (itr == DownloadMain::downloads().end())
     throw client_error("Tried to remove a non-existant download");

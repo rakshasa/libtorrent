@@ -27,7 +27,7 @@ Download::open() {
 
   d.open();
 
-  hashTorrent.add(d.state().get_hash(), &d.state().get_content().get_storage(),
+  hashTorrent.add(d.get_hash(), &d.state().get_content().get_storage(),
 		  sigc::mem_fun(d, &DownloadMain::receive_initial_hash),
 		  sigc::mem_fun(d.state(), &DownloadState::receive_hash_done));
 }
@@ -51,8 +51,8 @@ Download::stop() {
 
   d.stop();
 
-  hashTorrent.remove(d.state().get_hash());
-  hashQueue.remove(d.state().get_hash());
+  hashTorrent.remove(d.get_hash());
+  hashQueue.remove(d.get_hash());
 }
 
 bool
@@ -82,7 +82,7 @@ Download::get_name() {
 
 std::string
 Download::get_hash() {
-  return m_ptr ? ((DownloadMain*)m_ptr)->state().get_hash() : "";
+  return m_ptr ? ((DownloadMain*)m_ptr)->get_hash() : "";
 }
 
 std::string
@@ -100,12 +100,12 @@ Download::set_root_dir(const std::string& dir) {
 
 std::string
 Download::get_ip() {
-  return ((DownloadMain*)m_ptr)->state().get_me().get_dns();
+  return ((DownloadMain*)m_ptr)->get_me().get_dns();
 }
 
 void
 Download::set_ip(const std::string& ip) {
-  ((DownloadMain*)m_ptr)->state().get_me().set_dns(ip);
+  ((DownloadMain*)m_ptr)->get_me().set_dns(ip);
 }
 
 uint64_t

@@ -28,7 +28,7 @@ DownloadMain::DownloadMain() :
   m_checked(false),
   m_started(false)
 {
-  m_state.get_me().set_id(generateId());
+  m_me.set_id(generateId());
   m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 }
 
@@ -181,9 +181,7 @@ bool DownloadMain::is_stopped() {
 
 DownloadMain* DownloadMain::getDownload(const std::string& hash) {
   Downloads::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					 eq(ref(hash),
-					    call_member(member(&DownloadMain::m_state),
-							&DownloadState::get_hash)));
+					 eq(ref(hash), call_member(&DownloadMain::get_hash)));
  
   return itr != m_downloads.end() ? *itr : NULL;
 }
@@ -192,7 +190,7 @@ std::string
 DownloadMain::get_download_id(const std::string& hash) {
   DownloadMain* d = getDownload(hash);
 
-  return (d && d->m_started && d->m_checked) ? d->state().get_me().get_id() : std::string("");
+  return (d && d->m_started && d->m_checked) ? d->m_me.get_id() : std::string("");
 }
 
 void DownloadMain::receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
