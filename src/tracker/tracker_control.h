@@ -35,6 +35,7 @@ class TrackerControl {
   ~TrackerControl();
 
   void                  send_state(TrackerState s);
+  void                  cancel();
 
   void                  add_url(const std::string& url);
 

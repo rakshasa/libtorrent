@@ -95,6 +95,14 @@ TrackerControl::send_state(TrackerState s) {
 }
 
 void
+TrackerControl::cancel() {
+  if (m_itr == m_list.end())
+    return;
+
+  (*m_itr)->close();
+}
+
+void
 TrackerControl::receive_done(const PeerList& l, int interval) {
   if (m_state == TRACKER_STOPPED)
     return;

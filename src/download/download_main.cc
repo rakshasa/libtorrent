@@ -51,6 +51,7 @@ DownloadMain::close() {
   m_checked = false;
   m_state.get_content().close();
   m_net.get_delegator().clear();
+  m_tracker->cancel();
 }
 
 void DownloadMain::start() {
