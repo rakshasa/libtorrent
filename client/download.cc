@@ -12,8 +12,8 @@ Download::Download(torrent::Download dItr) :
     dItr.peer_list(m_peers);
     m_pItr = m_peers.begin();
 
-    m_signalCon = dItr.signal_peer_connected().connect(sigc::mem_fun(*this, &Download::receive_peer_connect));
-    m_signalDis = dItr.signal_peer_disconnected().connect(sigc::mem_fun(*this, &Download::receive_peer_disconnect));
+    m_signalCon = dItr.signal_peer_connected(sigc::mem_fun(*this, &Download::receive_peer_connect));
+    m_signalDis = dItr.signal_peer_disconnected(sigc::mem_fun(*this, &Download::receive_peer_disconnect));
 
     //torrent::Download::SignalPeerConnected::slot_list s1 = dItr.signal_peer_connected().slots();
     //torrent::Download::SignalPeerDisconnected::slot_list s2 = dItr.signal_peer_disconnected().slots();

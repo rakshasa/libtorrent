@@ -13,14 +13,11 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
-struct DownloadWrapper;
-
 class Download {
 public:
   typedef std::vector<uint16_t> SeenVector;
 
-  Download() :                   m_ptr(NULL) {}
-  Download(DownloadWrapper* d) : m_ptr(d) {}
+  Download(void* d = NULL) : m_ptr(d) {}
 
   // Not active atm
   void                 open();
@@ -85,8 +82,8 @@ public:
   void                 peer_list(PList& pList);
   Peer                 peer_find(const std::string& id);
 
-  void*                get_ptr()          { return m_ptr; }
-  void                 set_ptr(void* ptr) { m_ptr = ptr; }
+//   void*                get_ptr()          { return m_ptr; }
+//   void                 set_ptr(void* ptr) { m_ptr = ptr; }
 
   // Signals:
 
@@ -102,14 +99,14 @@ public:
   typedef sigc::slot0<void>                SlotTrackerSucceded;
   typedef sigc::slot1<void, std::string>   SlotTrackerFailed;
 
-  SignalDownloadDone::iterator    signal_download_done(SlotDownloadDone& s);
-  SignalPeerConnected::iterator   signal_peer_connected(SlotPeerConnected& s);
-  SignalPeerConnected::iterator   signal_peer_disconnected(SlotPeerConnected& s);
-  SignalTrackerSucceded::iterator signal_tracker_succeded(SlotTrackerSucceded& s);
-  SignalTrackerFailed::iterator   signal_tracker_failed(SlotTrackerFailed& s);
+  SignalDownloadDone::iterator    signal_download_done(SlotDownloadDone s);
+  SignalPeerConnected::iterator   signal_peer_connected(SlotPeerConnected s);
+  SignalPeerConnected::iterator   signal_peer_disconnected(SlotPeerConnected s);
+  SignalTrackerSucceded::iterator signal_tracker_succeded(SlotTrackerSucceded s);
+  SignalTrackerFailed::iterator   signal_tracker_failed(SlotTrackerFailed s);
 
 private:
-  DownloadWrapper*     m_ptr;
+  void*     m_ptr;
 };
 
 }

@@ -157,7 +157,6 @@ download_create(std::istream& s) {
     throw local_error("Could not parse bencoded torrent");
   
   DownloadMain* download = new DownloadMain(b);
-
   DownloadMain::downloads().insert(DownloadMain::downloads().end(), download);
 
   return download;

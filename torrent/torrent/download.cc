@@ -3,7 +3,6 @@
 #include "exceptions.h"
 #include "download.h"
 #include "download_main.h"
-#include "download_wrapper.h"
 #include "peer_connection.h"
 #include "tracker/tracker_control.h"
 
@@ -251,28 +250,28 @@ Download::peer_find(const std::string& id) {
     *itr : NULL;
 }
 
-void
-Download::signal_download_done(Download::SignalDownloadDone& s) {
-  ((DownloadMain*)m_ptr)->state().content().signal_download_done().connect(s);
+Download::SignalDownloadDone::iterator
+Download::signal_download_done(Download::SlotDownloadDone s) {
+  return ((DownloadMain*)m_ptr)->state().content().signal_download_done().connect(s);
 }
 
-void
-Download::signal_peer_connected(Download::SignalPeerConnected& s) {
-  ((DownloadMain*)m_ptr)->state().signal_peer_connected().connect(s);
+Download::SignalPeerConnected::iterator
+Download::signal_peer_connected(Download::SlotPeerConnected s) {
+  return ((DownloadMain*)m_ptr)->state().signal_peer_connected().connect(s);
 }
 
-void
-Download::signal_peer_disconnected(Download::SignalPeerDisconnected& s) {
-  ((DownloadMain*)m_ptr)->state().signal_peer_disconnected().connect(s);
+Download::SignalPeerConnected::iterator
+Download::signal_peer_disconnected(Download::SlotPeerConnected s) {
+  return ((DownloadMain*)m_ptr)->state().signal_peer_disconnected().connect(s);
 }
 
-void
-Download::signal_tracker_succeded(Download::SignalTrackerSucceded& s) {
+Download::SignalTrackerSucceded::iterator
+Download::signal_tracker_succeded(Download::SlotTrackerSucceded s) {
 }
 
-void
-Download::signal_tracker_failed(Download::SignalTrackerFailed& s) {
-  ((DownloadMain*)m_ptr)->tracker().signal_failed().connect(s);
+Download::SignalTrackerFailed::iterator
+Download::signal_tracker_failed(Download::SlotTrackerFailed s) {
+  return ((DownloadMain*)m_ptr)->tracker().signal_failed().connect(s);
 }
 
 }
