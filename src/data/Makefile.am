@@ -14,6 +14,7 @@ libsub_data_la_SOURCES = \
 	hash_torrent.h \
 	path.cc \
 	path.h \
+	piece.h \
 	storage.cc \
 	storage.h \
 	storage_chunk.cc \

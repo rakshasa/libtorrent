@@ -24,7 +24,6 @@ libtorrent_la_LIBADD = \
 	$(top_srcdir)/src/utils/libsub_utils.la
 
 libtorrent_la_SOURCES = \
-	bitfield_counter.h \
         general.cc \
         general.h \
         peer_info.cc \
