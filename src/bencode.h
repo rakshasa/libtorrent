@@ -8,10 +8,10 @@
 
 namespace torrent {
 
-class bencode {
+class Bencode {
  public:
-  typedef std::list<bencode> List;
-  typedef std::map<std::string, bencode> Map;
+  typedef std::list<Bencode>             List;
+  typedef std::map<std::string, Bencode> Map;
 
   enum Type {
     TYPE_NONE,
@@ -21,62 +21,56 @@ class bencode {
     TYPE_MAP
   };
 
-  bencode();
-  bencode(const bencode& b);
+  Bencode()                     : m_type(TYPE_NONE) {}
+  Bencode(const int64_t v)      : m_type(TYPE_VALUE), m_value(v) {}
+  Bencode(const std::string& s) : m_type(TYPE_STRING), m_string(new std::string(s)) {}
+  Bencode(const Bencode& b);
 
-  bencode(const int64_t v);
-  bencode(const std::string& s);
-  bencode(const char* s);
-
-  ~bencode();
+  ~Bencode()                              { clear(); }
   
-  Type type() const     { return m_type; }
-  bool isValue() const  { return m_type == TYPE_VALUE; }
-  bool isString() const { return m_type == TYPE_STRING; }
-  bool isList() const   { return m_type == TYPE_LIST; }
-  bool isMap() const    { return m_type == TYPE_MAP; }
+  Type                get_type() const    { return m_type; }
 
-  int64_t&           asValue();
-  std::string&       asString();
-  List&              asList();
-  Map&               asMap();
+  bool                is_value() const    { return m_type == TYPE_VALUE; }
+  bool                is_string() const   { return m_type == TYPE_STRING; }
+  bool                is_list() const     { return m_type == TYPE_LIST; }
+  bool                is_map() const      { return m_type == TYPE_MAP; }
 
-  int64_t            asValue() const;
-  const std::string& asString() const;
-  const List&        asList() const;
-  const Map&         asMap() const;
+  bool                has_key(const std::string& s) const;
 
-  bencode& operator = (const bencode& b);
-  bencode& operator [] (const std::string& k);
-  const bencode& operator [] (const std::string& k) const;
+  int64_t&            as_value();
+  std::string&        as_string();
+  List&               as_list();
+  Map&                as_map();
 
-  bool hasKey(const std::string& s) const;
+  int64_t             as_value() const;
+  const std::string&  as_string() const;
+  const List&         as_list() const;
+  const Map&          as_map() const;
 
-  friend std::istream& operator >> (std::istream& s, bencode& b);
-  friend std::ostream& operator << (std::ostream& s, const bencode& b);
+  // Unambigious const version of as_*
+  int64_t             c_value() const     { return as_value(); }
+  const std::string&  c_string() const    { return as_string(); }
+  const List&         c_list() const      { return as_list(); }
+  const Map&          c_map() const       { return as_map(); }
 
-  // Unambigious constness.
-  int64_t            nValue() { return asValue(); }
-  const std::string& nString() { return asString(); }
-  const List&        nList() { return asList(); }
-  const Map&         nMap() { return asMap(); }
-  
-  int64_t            cValue() const { return asValue(); }
-  const std::string& cString() const { return asString(); }
-  const List&        cList() const { return asList(); }
-  const Map&         cMap() const { return asMap(); }
+  Bencode&            operator = (const Bencode& b);
+  Bencode&            operator [] (const std::string& k);
+  const Bencode&      operator [] (const std::string& k) const;
+
+  friend std::istream& operator >> (std::istream& s, Bencode& b);
+  friend std::ostream& operator << (std::ostream& s, const Bencode& b);
 
  private:
-  void clear();
-  static bool readString(std::istream& s, std::string* str);
+  void                clear();
+  static bool         readString(std::istream& s, std::string* str);
 
-  Type m_type;
+  Type                m_type;
 
   union {
-    int64_t m_value;
-    std::string* m_string;
-    List* m_list;
-    Map* m_map;
+    int64_t             m_value;
+    std::string*        m_string;
+    List*               m_list;
+    Map*                m_map;
   };
 };
 

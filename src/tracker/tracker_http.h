@@ -49,13 +49,13 @@ private:
   TrackerHttp(const TrackerHttp& t);
   void operator = (const TrackerHttp& t);
 
-  void               parse_peers_normal(PeerList& l, const bencode::List& b);
+  void               parse_peers_normal(PeerList& l, const Bencode::List& b);
   void               parse_peers_compact(PeerList& l, const std::string& s);
 
   void               receive_done();
   void               receive_failed(std::string msg);
 
-  static PeerInfo    parse_peer(const bencode& b);
+  static PeerInfo    parse_peer(const Bencode& b);
   static void        escape_string(const std::string& src, std::ostream& stream);
 
   Http*              m_get;

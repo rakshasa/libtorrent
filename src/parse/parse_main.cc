@@ -9,8 +9,8 @@
 
 namespace torrent {
 
-void parse_main(const bencode& b, DownloadMain& download) {
-  download.set_name(b["info"]["name"].asString());
+void parse_main(const Bencode& b, DownloadMain& download) {
+  download.set_name(b["info"]["name"].as_string());
   download.set_hash(calcHash(b["info"]));
 }
 

@@ -8,13 +8,13 @@
 
 namespace torrent {
 
-void parse_tracker(const bencode& b, TrackerControl& tracker) {
+void parse_tracker(const Bencode& b, TrackerControl& tracker) {
   // TODO: Add multi-tracker support here.
 
-  if (!b.hasKey("announce") || !b["announce"].isString())
+  if (!b.has_key("announce") || !b["announce"].is_string())
     throw bencode_error("Tracker info not found or invalid");
 
-  tracker.add_url(b["announce"].asString());
+  tracker.add_url(b["announce"].as_string());
 }
 
 }

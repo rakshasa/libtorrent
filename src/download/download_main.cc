@@ -9,7 +9,6 @@
 #include "content/delegator_select.h"
 
 #include "download_main.h"
-#include "general.h"
 #include "peer_connection.h"
 
 #include <limits>
@@ -25,7 +24,6 @@ DownloadMain::DownloadMain() :
   m_checked(false),
   m_started(false)
 {
-  m_me.set_id(generateId());
   m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 }
 

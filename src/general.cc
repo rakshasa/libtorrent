@@ -42,7 +42,7 @@ std::string generateKey() {
   return id;
 }
 
-std::string calcHash(const bencode& b) {
+std::string calcHash(const Bencode& b) {
   std::stringstream str;
   str << b;
 

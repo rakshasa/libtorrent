@@ -16,59 +16,59 @@ namespace torrent {
 struct bencode_to_file {
   bencode_to_file(Content& c) : m_content(c) {}
 
-  void operator () (const bencode& b) {
+  void operator () (const Bencode& b) {
     // Make sure we are given a proper file path.
-    if (b["path"].asList().empty() ||
+    if (b["path"].as_list().empty() ||
 
-	std::find_if(b["path"].asList().begin(),
-		     b["path"].asList().end(),
+	std::find_if(b["path"].as_list().begin(),
+		     b["path"].as_list().end(),
 
-		     eq(call_member(&bencode::cString),
+		     eq(call_member(&Bencode::c_string),
 			value("")))
 
-	!= b["path"].asList().end())
+	!= b["path"].as_list().end())
       throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
 
-    if (b["length"].asValue() < 0 ||
-	b["length"].asValue() > MAX_FILE_LENGTH)
+    if (b["length"].as_value() < 0 ||
+	b["length"].as_value() > MAX_FILE_LENGTH)
       throw input_error("Bad torrent file, invalid length for file given");
 
     Path p;
 
-    std::for_each(b["path"].asList().begin(),
-		  b["path"].asList().end(),
+    std::for_each(b["path"].as_list().begin(),
+		  b["path"].as_list().end(),
 		  
 		  call_member(call_member(ref(p), &Path::list),
 			      &Path::List::push_back,
-			      call_member(&bencode::cString)));
+			      call_member(&Bencode::c_string)));
 
-    m_content.add_file(p, b["length"].asValue());
+    m_content.add_file(p, b["length"].as_value());
   }
 
   Content& m_content;
 };
 
-void parse_info(const bencode& b, Content& c) {
+void parse_info(const Bencode& b, Content& c) {
   if (!c.get_files().empty())
     throw internal_error("parse_info received an already initialized Content object");
 
-  c.get_storage().set_chunksize(b["piece length"].asValue());
+  c.get_storage().set_chunksize(b["piece length"].as_value());
 
-  c.set_complete_hash(b["pieces"].asString());
+  c.set_complete_hash(b["pieces"].as_string());
 
-  if (b.hasKey("length")) {
+  if (b.has_key("length")) {
     // Single file torrent
-    c.add_file(Path(b["name"].asString(), true), b["length"].asValue());
+    c.add_file(Path(b["name"].as_string(), true), b["length"].as_value());
 
-  } else if (b.hasKey("files")) {
+  } else if (b.has_key("files")) {
     // Multi file torrent
-    if (b["files"].asList().empty())
+    if (b["files"].as_list().empty())
       throw input_error("Bad torrent file, entry no files");
 
-    std::for_each(b["files"].asList().begin(), b["files"].asList().end(),
+    std::for_each(b["files"].as_list().begin(), b["files"].as_list().end(),
 		  bencode_to_file(c));
 
-    c.set_root_dir("./" + b["name"].asString());
+    c.set_root_dir("./" + b["name"].as_string());
 
   } else {
     throw input_error("Torrent must have either length or files entry");

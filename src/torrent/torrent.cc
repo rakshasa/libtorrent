@@ -16,6 +16,7 @@
 #include "download/download_main.h"
 #include "throttle_control.h"
 #include "timer.h"
+#include "general.h"
 
 using namespace algo;
 
@@ -182,18 +183,19 @@ download_create(std::istream& s) {
   // TODO: Should we clear failed bits?
   s.clear();
 
-  bencode b;
+  Bencode b;
 
   s >> b;
 
   if (s.fail())
     // Make it configurable whetever we throw or return .end()?
-    throw local_error("Could not parse bencoded torrent");
+    throw local_error("Could not parse Bencoded torrent");
   
   DownloadMain* d = new DownloadMain();
 
   try {
 
+    d->get_me().set_id(generateId());
     d->set_port(listen->get_port());
 
     parse_main(b, *d);

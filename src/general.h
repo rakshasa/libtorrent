@@ -7,12 +7,12 @@
 namespace torrent {
 
 class BitField;
-class bencode;
+class Bencode;
 
 std::string generateId();
 std::string generateKey();
 
-std::string calcHash(const bencode& b);
+std::string calcHash(const Bencode& b);
 
 std::vector<std::string> partitionLine(char*& pos, char* end);
 
