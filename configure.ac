@@ -92,8 +92,9 @@ AC_LANG_PUSH(C++)
 AC_MSG_CHECKING(signedness of mincore paramter)
 
 AC_COMPILE_IFELSE(
-    [[#include <sys/mman.h>
-      void f() { mincore(0, 0, (unsigned char*)0); }
+    [[#include <sys/types.h>
+      #include <sys/mman.h>
+      void f() { mincore((void*)0, 0, (unsigned char*)0); }
     ]],
     [
      AC_DEFINE(USE_MINCORE_UNSIGNED, 1, use unsigned char* in mincore)
@@ -101,8 +102,9 @@ AC_COMPILE_IFELSE(
     ],
 [
 AC_COMPILE_IFELSE(
-    [[#include <sys/mman.h>
-      void f() { mincore(0, 0, (char*)0); }
+    [[#include <sys/types.h>
+      #include <sys/mman.h>
+      void f() { mincore((void*)0, 0, (char*)0); }
     ]],
     [
      AC_DEFINE(USE_MINCORE_UNSIGNED, 0, use char* in mincore)
