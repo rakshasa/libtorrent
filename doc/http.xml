@@ -1,0 +1,64 @@
+<chapter id="http">
+  <title>Http handler</title>
+
+
+<section id="introduction"><title>Introduction</title>
+
+<para>
+LibTorrent depends on the client to handle http downloads, thus the
+library does not have a dependency on any specific http library. The
+library provides a base class named torrent::Http with virtual member
+functions that the client must implement, and a sigc++ slot which must
+be set to create an instance of the derived torrent::Http class when
+called.  
+</para>
+
+<para>
+The torrent::Http class and the factory slot related functions can be
+found in the header "torrent/http.h". The http handler should have
+reasonable connection timeouts, be non-blocking and not do reconnects
+on failed downloads.
+</para>
+
+</section>
+
+
+<section id="factory"><title>Factory Slot</title>
+
+<para>
+The client registers the desired factory slot with the static
+torrent::Http::set_factory member function. Using sigc++ the client
+may bind values to the arguments of their function to avoid depending
+on globals. The factory slot must return a pointer to a new instance
+with the base type torrent::Http, and the caller takes responsibility
+of deleting the object. (Note: consider making the cleanup a slot)
+</para>
+
+</section>
+
+
+<section id="stream"><title>Output Stream</title>
+
+<para>
+The data downloaded by the http handler is to be written to
+torrent::Http::m_stream which is a pointer to an std::iostream. The
+http handler must not change any of the flags on the stream.
+</para>
+
+</section>
+
+
+<section id="signals"><title>Signals</title>
+
+<para>
+There are two mutually exclusive signals that are called when the
+download has stopped. The signal torrent::Http::m_signalDone is called
+if the download was successful and torrent::Http::m_stream contains
+the complete data. Or if the download was unsuccessful for some
+reason, then torrent::Http::m_signalFailed is called with an error
+message.
+</para>
+
+</section>
+
+</chapter>

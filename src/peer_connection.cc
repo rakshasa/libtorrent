@@ -568,7 +568,7 @@ void PeerConnection::parseReadBuf() {
 
   default:
     // TODO: this is a communication error.
-    throw internal_error("peer sent unsupported command");
+    throw communication_error("peer sent unsupported command");
   };
 }
 

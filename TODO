@@ -1,45 +1,3 @@
-'*' Things are stuff that *must* be done by the next release.
-'!' Things are stuff that MUST MUST MUST be done ASAP.
-
-After 25 seconds, choke a peer if no requests have been received?
-
-Add average, max and total to rates. Will this be controlled by
-choke/unchoke?
-
-Set IP TOS
-
-Add a snub factor. The more you upload without getting back, the
-higher it goes. Add a start buffer.
-
-Add config for how often we unchoke unknown peers vs good uploaders
-
-Recursively update the up/down rates in throttle.
-
-Make a seperate class for doing read and write to buffer in PC.
-
-Each throttle can have it's own rules to decide the priority it gets.
-
-Frobnicate the tracker reconnect timeout.
-
-Switch to a proper type for file offset/length and chunk length. A proper
-type for chunk index.
-
-! Make sure that a peer sending a piece, but being choked throws a
-communication error, not a internal error.
-
-! Why is the client lagging when downloading a http torrent? Looks like dnsdomainlookup
-
-std::isalpha in escape string
-
-Consider not calling insert_write() when filling have list.
-
-storage_consolidator get_chunk takes to many arguments, use flags instead.
-
-File::get_chunk() needs to have error for improper permission access, and stuff.
-
-Store data on which side inititalized the connection.
-
-
 TIMER RELATED
 
 Throttle update needs to be off when no throttle is on. Make sure it
@@ -48,18 +6,16 @@ doesn't bork with using up allocated bytes.
 
 FUTURE
 
-Enable torrents with hugh number of files by downloading to a single
-file then splitting it up? Rather, open files as needed.
+Enable torrents with hugh number of files by doing dynamic
+open/closing of files as needed. This would require refactoring the
+file chunk code and propably need lazy unmapping and bulk mapping of
+file chunks to avoid inefficiency of repeated opening of files.
 
 
 DELEGATOR STUFF
 
-* Add message about pieces being ignored, so i can test the code.
-
 Proper canceling of pieces in sendHave, unless only one can download a
 piece.
-
-* Make endgameBorder do pieces instead of chunks.
 
 Make set endgame take priorities into account.
 
@@ -67,9 +23,6 @@ Don't be so aggressive at selecting stalled pieces.
 
 
 API REDESIGN:
-
-Exceptions are pushed out with signals, support different groups with
-multiple signals.
 
 Changing the piece length.
 
@@ -82,8 +35,6 @@ C friendly layer ontop)
 
 Consider ways of optimizing bitfield memory usage. A bitfield with all
 set shouldn't change ever... And do a count on number of set bits?
-
-Bitfield class needs to use unsigned char
 
 
 OPTIMIZING
@@ -116,7 +67,16 @@ IMPORTANT
 make sure handshake gets "" id if the download does not want connections,
 or some other filter system.
 
-Clean up the m_checked flag in DownloadMain::start/stop/foo.
+
+MEMORY STUFF
+
+Seperate out mincore/advise from file_chunk. Make a "memory page"
+class that deals with offsets and allows different memory related
+operations to be done on it. Use this in file_chunk etc.
+
+Will it include permissions?
+
+Mincore doesn't care about length not being on the page boundary.
 
 
 
@@ -132,9 +92,41 @@ header files would be great.
 
 TRACKER STUFF
 
-Add/change tracker.
-
 Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
-Wait... don't use signal_bencode for successful tracker connections!!!
+
+SMALL TODO STUFF I HAVEN'T BOTHERED LOOKING INTO:
+
+After 25 seconds, choke a peer if no requests have been received?
+
+Add average, max and total to rates. Will this be controlled by
+choke/unchoke?
+
+Set IP TOS
+
+Add a snub factor. The more you upload without getting back, the
+higher it goes. Add a start buffer.
+
+Add config for how often we unchoke unknown peers vs good uploaders
+
+Recursively update the up/down rates in throttle.
+
+Make a seperate class for doing read and write to buffer in PC.
+
+Each throttle can have it's own rules to decide the priority it gets.
+
+Switch to a proper type for file offset/length and chunk length. A proper
+type for chunk index.
+
+std::isalpha in escape string
+
+Consider not calling insert_write() when filling have list.
+
+storage_consolidator get_chunk takes to many arguments, use flags instead.
+
+File::get_chunk() needs to have error for improper permission access, and stuff.
+
+Store data on which side inititalized the connection.
+
+torrent::Http::call_cleanup to delete the factory created object?
