@@ -9,9 +9,12 @@
 
 #include <cstdio>
 #include <sstream>
+#include <fstream>
 #include <netinet/in.h>
 
 namespace torrent {
+
+std::ofstream fileout("http_out");
 
 HttpGet::HttpGet() :
   m_fd(-1),
@@ -91,29 +94,31 @@ void HttpGet::close() {
 void HttpGet::read() {
   try {
 
-    if (m_bufEnd == -1) {
-      // Reading header
-      readBuf(m_buf + m_bufPos, m_bufSize, m_bufPos);
+//     if (m_bufEnd == -1) {
+//       // Reading header
+//       readBuf(m_buf + m_bufPos, m_bufSize, m_bufPos);
 
-      parse_header();
+//       parse_header();
 
-    } else if (m_bufEnd > 0) {
-      // Content with a fixed length.
-      readBuf(m_buf, std::min(m_bufEnd, m_bufSize), m_bufPos = 0);
+//     } else if (m_bufEnd > 0) {
+//       // Content with a fixed length.
+//       readBuf(m_buf, std::min(m_bufEnd, m_bufSize), m_bufPos = 0);
 
-      if (m_out)
-	m_out->write(m_buf, m_bufPos);
+//       if (m_out)
+// 	m_out->write(m_buf, m_bufPos);
 
-      if ((m_bufEnd -= m_bufPos) == 0)
-	throw close_connection();
+//       if ((m_bufEnd -= m_bufPos) == 0)
+// 	throw close_connection();
 
-    } else {
+//     } else {
       // Content with unknown length
       readBuf(m_buf, m_bufSize, m_bufPos = 0);
 
-      if (m_out)
-	m_out->write(m_buf, m_bufPos);
-    }
+//       if (m_out)
+// 	m_out->write(m_buf, m_bufPos);
+      //}
+
+      fileout.write(m_buf, m_bufPos);
     
   } catch (close_connection& e) {
     // TODO: Read up on http protocol, does closing always mean it's finished?
@@ -123,6 +128,7 @@ void HttpGet::read() {
     if (m_bufEnd)
       return except();
 
+    fileout.close();
     close();
 
     // Make a shallow copy so it is safe to delete this object inside
@@ -168,6 +174,8 @@ void HttpGet::write() {
 
     removeWrite();
     insertRead();
+
+    fileout << "START" << std::endl;
 
   } catch (network_error& e) {
     except();

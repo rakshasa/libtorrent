@@ -57,6 +57,8 @@ void Http::receive_done(List::iterator itr) {
 
   } catch (torrent::local_error& e) {
     log_entries.push_front(e.what());
+
+    
   }
 
   delete itr->first;

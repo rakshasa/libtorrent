@@ -119,8 +119,13 @@ void TrackerHttp::receive_done() {
 
   *m_data >> b;
 
-  if (m_data->fail())
+  if (m_data->fail()) {
+    std::ofstream f("./tracker_dump");
+
+    f << m_data->str();
+
     return receive_failed("Could not parse bencoded data");
+  }
 
   else if (!b.isMap())
     return receive_failed("Root not a bencoded map");

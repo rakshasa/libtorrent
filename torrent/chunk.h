@@ -4,7 +4,7 @@
 #include <list>
 #include <string>
 
-#include "storage_block.h"
+#include "data/storage_block.h"
 
 namespace torrent {
 

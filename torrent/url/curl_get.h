@@ -3,7 +3,7 @@
 
 #include <iosfwd>
 #include <string>
-#include <curl/types.h>
+#include <curl/curl.h>
 #include <sigc++/signal.h>
 
 struct CURLMsg;
