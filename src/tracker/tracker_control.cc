@@ -58,7 +58,7 @@ TrackerControl::add_url(const std::string& url) {
 void
 TrackerControl::set_next_time(Timer interval) {
   if (m_taskTimeout.is_scheduled())
-    m_taskTimeout.insert(Timer::cache() + interval);
+    m_taskTimeout.insert(std::max(Timer::cache() + interval, m_timerMinInterval));
 }
 
 Timer
