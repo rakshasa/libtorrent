@@ -36,7 +36,7 @@ class TrackerControl {
   void                  send_state(TrackerInfo::State s);
   void                  cancel();
 
-  void                  add_url(const std::string& url);
+  void                  add_url(int group, const std::string& url);
 
   TrackerInfo::State    get_state()                             { return m_state; }
   TrackerInfo&          get_info()                              { return m_info; }

@@ -9,7 +9,7 @@ class DownloadMain;
 class TrackerControl;
 
 void parse_main(const Bencode& b, DownloadMain& download);
-void parse_tracker(const Bencode& b, TrackerControl& tracker);
+void parse_tracker(const Bencode& b, TrackerControl* tracker);
 void parse_info(const Bencode& b, Content& content);
 
 }

@@ -25,7 +25,10 @@ TrackerControl::TrackerControl(const std::string& hash, const std::string& key) 
 }
 
 void
-TrackerControl::add_url(const std::string& url) {
+TrackerControl::add_url(int group, const std::string& url) {
+  if (m_itr != m_list.end() && m_itr->second->is_busy())
+    throw internal_error("Added tracker url while the current tracker is busy");
+
   std::string::size_type p = url.find("http://");
 
   if (p == std::string::npos)
@@ -38,7 +41,7 @@ TrackerControl::add_url(const std::string& url) {
   t->signal_done().connect(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
 
-  m_list.insert(0, t);
+  m_list.insert(group, t);
 
   // Set to the first element since we can't be certain the last one
   // wasn't invalidated. Don't allow when busy?
@@ -73,6 +76,10 @@ TrackerControl::send_state(TrackerInfo::State s) {
   m_state = s;
   m_timerMinInterval = 0;
 
+  // Reset the target tracker since we're doing a new request.
+  m_itr->second->close();
+  m_itr = m_list.begin();
+
   query_current();
   m_taskTimeout.remove();
 }
@@ -83,6 +90,7 @@ TrackerControl::cancel() {
     return;
 
   m_itr->second->close();
+  m_itr = m_list.begin();
 }
 
 void
@@ -125,6 +133,10 @@ TrackerControl::receive_done(Bencode& bencode) {
     return receive_failed("Peers entry not found.");
   }
 
+  // Successful tracker request, rearrange the list.
+  m_list.promote(m_itr);
+  m_itr = m_list.begin();
+
   if (m_state != TrackerInfo::STOPPED) {
     m_state = TrackerInfo::NONE;
     
@@ -135,9 +147,13 @@ TrackerControl::receive_done(Bencode& bencode) {
 
 void
 TrackerControl::receive_failed(std::string msg) {
+  ++m_itr;
+
+  if (m_itr == m_list.end())
+    m_itr = m_list.begin();
+
   if (m_state != TrackerInfo::STOPPED) {
     // TODO: Add support for multiple trackers. Iterate if m_failed > X.
-
     m_taskTimeout.insert(Timer::cache() + 20 * 1000000);
   }
 

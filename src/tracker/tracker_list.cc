@@ -26,9 +26,14 @@ TrackerList::promote(iterator itr) {
   iterator beg = begin_group(itr->first);
 
   if (beg == end())
-    throw internal_error("torrent::TrackerList::promote(...) Could not find beginning or group");
+    throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group");
 
-  std::swap(beg, itr);
+  // GCC 3.3 bug, don't use yet.
+  //std::swap(beg, itr);
+
+  value_type tmp = *beg;
+  *beg = *itr;
+  *itr = tmp;
 }
 
 TrackerList::iterator

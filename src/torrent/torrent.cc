@@ -229,7 +229,7 @@ download_create(std::istream* s) {
   d->set_handshake_manager(handshakes);
   d->set_hash_queue(hashQueue);
 
-  parse_tracker(d->get_bencode(), d->get_main().get_tracker());
+  parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
 
   downloadManager->add(d.get());
 
