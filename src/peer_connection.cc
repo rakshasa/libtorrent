@@ -237,10 +237,6 @@ void PeerConnection::read() {
       remove_service(SERVICE_STALL);
     }
 
-    // TODO: Temporary, kill as soon as possible.
-    if (!in_service(SERVICE_STALL))
-      throw internal_error("READ_PIECE state but peer not in SERVICE_STALL");
-
     previous = m_down.pos;
     s = readChunk();
 

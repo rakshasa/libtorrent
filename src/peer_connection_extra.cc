@@ -38,6 +38,9 @@ PeerConnection::PeerConnection() :
 
 PeerConnection::~PeerConnection() {
   if (m_download) {
+    if (m_requests.is_downloading())
+      m_requests.skip();
+
     m_requests.cancel();
 
     if (m_down.state != READ_BITFIELD)
