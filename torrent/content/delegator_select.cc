@@ -42,23 +42,70 @@ DelegatorSelect::remove_ignore(unsigned int index) {
 
 int
 DelegatorSelect::find(const BitField& bf, unsigned int start, unsigned int rarity) {
-  int found = -1;
-  unsigned int i = start;
+  int found = -1, f;
   unsigned int cur_rarity = (unsigned)-1;
 
-  Priority::Type p = Priority::NORMAL;
-  Priority::List::const_iterator itr = m_priority.get_list(p).begin();
+  Priority::Type p = Priority::HIGH;
 
-  if (itr == m_priority.get_list(p).end())
-    throw internal_error("DelegatorSelect::find(...) got bad priority object");
+  while (1) {
+    Priority::List::const_iterator itr = m_priority.find(p, start);
 
-  // Todo: Add priorities loop here after doing some testing on the rest.
-  found = check_range(bf, start, itr->second, rarity, cur_rarity);
-  
-  if (found > 0)
-    return found;
+    if (itr == m_priority.get_list(p).end())
+      if (p == Priority::HIGH) {
+	p = Priority::NORMAL;
+	continue;
+      } else {
+	break;
+      }
 
-  return check_range(bf, 0, start, rarity, cur_rarity);
+    f = check_range(bf, std::max(start, itr->first), itr->second, rarity, cur_rarity);
+
+    if (cur_rarity <= rarity)
+      return f;
+    else if (f > 0)
+      found = f;
+
+    f = check_range(bf, itr->first, start, rarity, cur_rarity);
+
+    if (cur_rarity <= rarity)
+      return f;
+    else if (f > 0)
+      found = f;
+
+    // Check ranges above the midpoint.
+    Priority::List::const_iterator fItr = itr;
+
+    while (++fItr != m_priority.get_list(p).end()) {
+      f = check_range(bf, fItr->first, fItr->second, rarity, cur_rarity);
+
+      if (cur_rarity <= rarity)
+	return f;
+      else if (f > 0)
+	found = f;
+    }
+
+    // Check ranges above the midpoint.
+    Priority::List::const_reverse_iterator rItr(++itr);
+
+    if (rItr == m_priority.get_list(p).rend())
+      throw internal_error("DelegatorSelect reverse iterator borkage!?");
+
+    while (++rItr != m_priority.get_list(p).rend()) {
+      f = check_range(bf, rItr->first, rItr->second, rarity, cur_rarity);
+
+      if (cur_rarity <= rarity)
+	return f;
+      else if (f > 0)
+	found = f;
+    }
+
+    if (p == Priority::HIGH)
+      p = Priority::NORMAL;
+    else
+      break;
+  }
+
+  return found;
 }
 
 int
@@ -67,6 +114,7 @@ DelegatorSelect::check_range(const BitField& bf,
 			     unsigned int end,
 			     unsigned int rarity,
 			     unsigned int& cur_rarity) {
+
   Indexes::const_iterator indexes = std::find_if(m_indexes.begin(), m_indexes.end(),
 						 leq(value(start), back_as_ref()));
 
@@ -75,7 +123,7 @@ DelegatorSelect::check_range(const BitField& bf,
   
   start -= pos;
 
-  do {
+  while(start < end) {
     uint32_t v = interested(bf, start, indexes);
 
     if (v) {
@@ -98,7 +146,8 @@ DelegatorSelect::check_range(const BitField& bf,
       pos = 0;
     }
 
-  } while((start += 32) < end);
+    start += 32;
+  }
 
   return found;
 }

@@ -46,26 +46,28 @@ Main:
 
 Download view:
 
-  Up/Down - Select a peer
-  Left    - Back to main
+  Up/Down   - Select a peer
+  Left      - Back to main
 
-  T       - Request new peers from the tracker. (Don't overuse it,
-            you'll be banned)
+  T         - Request new peers from the tracker. (Don't overuse it,
+              you'll be banned)
 
-  P       - View peers
-  O       - Number of chunks seen amongst peers
-  I       - View files in torrent
-  B       - Local bitfield
-  N       - Peer bitfield
+  P         - View peers
+  O         - Number of chunks seen amongst peers
+  I         - View files in torrent
+  B         - Local bitfield
+  N         - Peer bitfield
 
-  1       - Decrease min peers connected
-  2       - Increase min peers connected
+  1         - Decrease min peers connected
+  2         - Increase min peers connected
 
-  3       - Decrease max peers connected
-  4       - Increase max peers connected
+  3         - Decrease max peers connected
+  4         - Increase max peers connected
 
-  5       - Decrease max uploads
-  6       - Increase max uploads
+  5         - Decrease max uploads
+  6         - Increase max uploads
 
-  *       - Snub peer. Got annoyed by a leech that didn't show his
-            pieces so i hacked in this.
+  *         - Snub peer. Got annoyed by a leech that didn't show his
+              pieces so i hacked in this.
+
+  SpaceBar  - Change priority of file

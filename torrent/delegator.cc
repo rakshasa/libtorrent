@@ -209,8 +209,7 @@ Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
 			    member(&Chunk::m_index),
 			    value(false)));
 
-
-  int index = m_select.find(bf, random() % bf.sizeBytes(), 3);
+  int index = m_select.find(bf, random() % bf.sizeBytes(), 1024);
 
   if (index == -1)
     return NULL;

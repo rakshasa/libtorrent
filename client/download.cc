@@ -166,7 +166,7 @@ bool Download::key(int c) {
       break;
 
     case KEY_DOWN:
-      m_entryPos += 1;
+      m_entryPos = std::max<unsigned int>(m_entryPos + 1, torrent::get(m_dItr, torrent::ENTRY_COUNT) - 1);
       break;
 
     case ' ':
@@ -454,9 +454,9 @@ void Download::drawEntry(int y1, int y2) {
   int x = 2;
 
   mvprintw(y1, x,       "File");
-  mvprintw(y1, x += 43, "Size");
+  mvprintw(y1, x += 53, "Size");
   mvprintw(y1, x += 7,  "Pri");
-  mvprintw(y1, x += 4,  "Cmpl");
+  mvprintw(y1, x += 5,  "Cmpl");
 
   ++y1;
 
@@ -469,10 +469,10 @@ void Download::drawEntry(int y1, int y2) {
 
     std::string path = e.get_path();
 
-    if (path.length() <= 40)
+    if (path.length() <= 50)
       path = path + std::string(40 - path.length(), ' ');
     else
-      path = path.substr(0, 40);
+      path = path.substr(0, 50);
 
     std::string priority;
 
@@ -494,7 +494,7 @@ void Download::drawEntry(int y1, int y2) {
       break;
     };
 
-    mvprintw(y1, 0, "%c %s  %5.1f   %s  %3d",
+    mvprintw(y1, 0, "%c %s  %5.1f   %s %3d",
 	     (unsigned)index == m_entryPos ? '*' : ' ',
 	     path.c_str(),
 	     (double)e.get_size() / 1000000.0,
