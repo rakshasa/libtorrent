@@ -1,0 +1,40 @@
+<chapter id="torrent">
+  <title>Torrent</title>
+
+<section id="file-paths">
+<title>File Paths</title>
+
+<para> The paths of files in a Download consists of two parts, the
+root directory and the paths of each file. The file paths are read
+from the torrent file and the files usually reside on the root
+directory. The root directory is by default "./" for single file
+torrents and "./[torrent_name]/" for multi-file torrents. </para>
+
+<para>
+<blockquote>
+<programlisting>
+// Get and set the root directory.
+std::string    torrent::Download::get_root_dir();
+void           torrent::Download::set_root_dir(const std::string& dir);
+
+// Get the torrent::Entry class for each file in the download.
+torrent::Entry torrent::Download::get_entry(uint32_t index);
+uint32_t       torrent::Download::get_entry_size();
+
+typedef std::list&lt;std::string> torrent::Entry::Path;
+
+// Get and set the file path.
+std::string    torrent::Entry::get_path();
+const Path&    torrent::Entry::get_path_list();
+
+void           torrent::Entry::set_path_list(const Path& l);
+
+</programlisting>
+</blockquote>
+</para>
+
+<para> The modifications can only be done while the download is in a
+closed state. Modifying the file paths will not change the "info hash"
+part of the in-memory bencode'd torrent. (TODO: When exporting, save
+root dir and file paths to another section of the torrent) </para>
+

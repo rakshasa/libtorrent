@@ -1,0 +1,10 @@
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V4.2//EN" [
+  <!ENTITY torrent SYSTEM "torrent.xml">
+]>
+
+<book>
+<title>libTorrent Manual</title>
+
+&torrent;
+
+</book>
