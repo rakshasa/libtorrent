@@ -6,7 +6,7 @@
 #include <torrent/exceptions.h>
 
 #include <unistd.h>
-//#include <sys/select.h>
+#include <errno.h>
 
 #include "display.h"
 #include "download.h"
