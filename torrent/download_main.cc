@@ -63,6 +63,8 @@ DownloadMain::DownloadMain(const bencode& b) :
   hashTorrent.add(m_state.hash(), &state().content().get_storage(), sd,
 		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
 
+  m_state.content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
+
   m_state.delegator().select().set_bitfield(&m_state.content().get_bitfield());
   m_state.delegator().select().set_seen(&m_state.bfCounter());
 
@@ -260,6 +262,8 @@ DownloadMain::receive_download_done() {
     return;
 
   m_tracker->send_state(TRACKER_COMPLETED);
+
+  caughtExceptions.push_back("Sendt completed to tracker");
 }
 
 }
