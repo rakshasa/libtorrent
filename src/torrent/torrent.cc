@@ -66,6 +66,7 @@ initialize() {
   ThrottleControl::global().insert_service(Timer::current(), 0);
 
   handshakes.slot_connected(sigc::ptr_fun3(&DownloadMain::receive_connection));
+  handshakes.slot_download_id(sigc::ptr_fun1(&DownloadMain::get_download_id));
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for

@@ -212,9 +212,9 @@ DownloadMain* DownloadMain::getDownload(const std::string& hash) {
 
 std::string
 DownloadMain::get_download_id(const std::string& hash) {
-  DownloadMain* m = getDownload(hash);
+  DownloadMain* d = getDownload(hash);
 
-  return m ? m->state().me().get_id() : "";
+  return d && d->m_started && d->m_checked ? d->state().me().get_id() : "";
 }
 
 void DownloadMain::add_peers(const Peers& p) {
@@ -252,7 +252,7 @@ void DownloadMain::add_peers(const Peers& p) {
 void DownloadMain::receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
   DownloadMain* d = getDownload(hash);
 
-  if (d)
+  if (d && d->m_started && d->m_checked)
     d->state().addConnection(fd, peer);
   else
     SocketBase::close_socket(fd);
