@@ -670,6 +670,7 @@ void PeerConnection::sendHave(int index) {
 
   // TODO: Also send cancel messages!
 
+  // TODO: Remove this so we group the have messages with other stuff.
   insert_write();
 }
 

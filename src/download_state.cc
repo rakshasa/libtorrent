@@ -30,6 +30,13 @@ DownloadState::DownloadState() :
 DownloadState::~DownloadState() {
 }
 
+void
+DownloadState::update_endgame() {
+  if (m_content.get_chunks_completed() + m_slotDelegatedChunks() + m_settings.endgameBorder
+      >= m_content.get_storage().get_chunkcount())
+    m_slotSetEndgame(true);
+}
+
 void DownloadState::chunk_done(unsigned int index) {
   Storage::Chunk c = m_content.get_storage().get_chunk(index);
 
@@ -67,6 +74,8 @@ void DownloadState::receive_hashdone(std::string id, Storage::Chunk c, std::stri
 
     m_content.mark_done(c->get_index());
     m_signalChunkPassed.emit(c->get_index());
+
+    update_endgame();
 
   } else {
     m_signalChunkFailed.emit(c->get_index());

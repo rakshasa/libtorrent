@@ -40,6 +40,9 @@ class DownloadState {
 
   uint64_t bytes_left();
 
+  // Set endgame mode if we're close enough to the end.
+  void     update_endgame();
+
   // Incoming signals.
   void receive_hashdone(std::string id, Storage::Chunk c, std::string hash);
 
@@ -47,6 +50,12 @@ class DownloadState {
 
   SignalChunk&                          signal_chunk_passed()      { return m_signalChunkPassed; }
   SignalChunk&                          signal_chunk_failed()      { return m_signalChunkFailed; }
+
+  typedef sigc::slot1<void, bool> SlotSetEndgame;
+  typedef sigc::slot0<uint32_t>   SlotDelegatedChunks;
+
+  void slot_set_endgame(SlotSetEndgame s)                          { m_slotSetEndgame = s; }
+  void slot_delegated_chunks(SlotDelegatedChunks s)                { m_slotDelegatedChunks = s; }
 
 private:
   // Disable
@@ -64,6 +73,9 @@ private:
 
   SignalChunk            m_signalChunkPassed;
   SignalChunk            m_signalChunkFailed;
+
+  SlotSetEndgame         m_slotSetEndgame;
+  SlotDelegatedChunks    m_slotDelegatedChunks;
 };
 
 }

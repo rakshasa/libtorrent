@@ -18,6 +18,12 @@ DownloadNet::~DownloadNet() {
   std::for_each(m_connections.begin(), m_connections.end(), delete_on());
 }  
 
+void
+DownloadNet::set_endgame(bool b) {
+  m_endgame = b;
+  m_delegator.set_aggressive(b);
+}
+
 uint32_t
 DownloadNet::pipe_size(const Rate& r) {
   float s = r.rate();
@@ -33,15 +39,6 @@ DownloadNet::pipe_size(const Rate& r) {
       return 1;
     else
       return std::min(80, (int)((s + 32000.0f) / 16000.0f));
-}
-
-void
-DownloadNet::update_endgame() {
-  if (!m_endgame)
-    m_endgame = (m_slotChunksCompleted() + m_delegator.get_chunks().size() + m_settings->endgameBorder)
-      >= m_slotChunksCount();
-
-  m_delegator.set_aggressive(m_endgame);
 }
 
 // High stall count peers should request if we're *not* in endgame, or

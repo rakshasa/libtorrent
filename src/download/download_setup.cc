@@ -36,8 +36,11 @@ DownloadMain::setup_net() {
   m_net.slot_create_connection(sigc::bind(sigc::ptr_fun(PeerConnection::create), &m_state, &m_net));
 
   // TODO: Consider disabling these during hash check.
-  m_state.signal_chunk_passed().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::update_endgame)));
   m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net, &DownloadNet::send_have_chunk));
+
+  // This is really _state stuff:
+  m_state.slot_set_endgame(sigc::mem_fun(m_net, &DownloadNet::set_endgame));
+  m_state.slot_delegated_chunks(sigc::mem_fun(m_net.get_delegator().get_chunks(), &Delegator::Chunks::size));
 }
 
 void
