@@ -81,7 +81,8 @@ void FilesCheck::service(int type) {
 
     Storage::Chunk c = m_files->storage().get_chunk(m_position++, false);
 
-    if (!c.is_valid())
+    if (!c.is_valid() ||
+	!c->is_valid())
       continue;
     
 #if USE_MADVISE_WILLNEED == 1
@@ -107,6 +108,8 @@ void FilesCheck::service(int type) {
 
     m_files->doneChunk(c);
     m_tries = 0;
+
+    return insertService(Timer::current() + 5000, 0);
   }
 
   m_service->insertService(Timer::cache(), m_arg);

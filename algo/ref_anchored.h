@@ -18,6 +18,8 @@ protected:
   RefAnchorData(Type* d) : m_ref(1), m_data(d), m_anchor(NULL) {}
 
   ~RefAnchorData() {
+    delete m_data;
+
     if (m_anchor)
       m_anchor->clear();
   }

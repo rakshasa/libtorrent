@@ -621,7 +621,7 @@ void PeerConnection::fillWriteBuf() {
     bool addService = m_down.list.empty();
 
     // TODO: Use ref to piece instead of list.
-    while (m_down.list.size() < 10 &&
+    while (m_down.list.size() < 5 &&
 	   m_download->delegator().delegate(m_peer.id(), m_bitfield, m_down.list)) {
 
       if (m_down.list.back().length() > (1 << 17) ||

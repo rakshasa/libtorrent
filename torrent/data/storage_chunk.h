@@ -23,7 +23,7 @@ public:
   StorageChunk(unsigned int index) : m_index(index), m_size(0) {}
   ~StorageChunk()                              { clear(); }
 
-  bool is_valid()                              { return m_size; }
+  bool is_valid();
 
   int          get_index()                     { return m_index; }
   unsigned int get_size()                      { return m_size; }

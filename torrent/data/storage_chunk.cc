@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include <algo/common.h>
+#include <algo/algo.h>
 
 #include "exceptions.h"
 #include "storage_chunk.h"
@@ -8,6 +8,14 @@
 using namespace algo;
 
 namespace torrent {
+
+bool StorageChunk::is_valid() {
+  return !m_nodes.empty() &&
+    std::find_if(m_nodes.begin(), m_nodes.end(),
+		 bool_not(call_member(member(&StorageChunk::Node::chunk),
+				      &FileChunk::is_valid)))
+    == m_nodes.end();
+}
 
 StorageChunk::Node&
 StorageChunk::get_position(unsigned int pos) {

@@ -8,6 +8,8 @@
 
 namespace torrent {
 
+unsigned int FileChunk::m_pagesize = getpagesize();
+
 void FileChunk::clear() {
   if (m_ptr &&
       munmap(m_ptr, m_end - m_ptr) == -1)

@@ -17,7 +17,7 @@ using namespace algo;
 #include "general.h"
 #include "settings.h"
 #include "data/file.h"
-#include "data/hash_compute.h"
+#include "data/hash_chunk.h"
 
 #include "files.h"
 #include "files_algo.h"
@@ -128,8 +128,14 @@ bool Files::doneChunk(Storage::Chunk c) {
   if (m_bitfield[c->get_index()])
     throw internal_error("Files::doneChunk received index that has already been marked as done");
 
-  if (!c->get_nodes().empty() &&
-      tmp_calc_hash(c) == m_hashes[c->get_index()]) {
+  if (!c.is_valid() || !c->is_valid())
+    return false;
+
+  HashChunk hc(c);
+
+  hc.process(hc.remaining_chunk());
+
+  if (hc.get_hash() == m_hashes[c->get_index()]) {
 
     m_bitfield.set(c->get_index(), true);
     m_completed++;
@@ -140,32 +146,6 @@ bool Files::doneChunk(Storage::Chunk c) {
   } else {
     return false;
   }
-}
-
-std::string Files::tmp_calc_hash(Storage::Chunk c) {
-  if (c->get_nodes().empty())
-    return "";
-
-  HashCompute hc;
-
-  hc.init();
-
-  for (StorageChunk::Nodes::iterator itr = c->get_nodes().begin(); itr != c->get_nodes().end(); ++itr) {
-    if ((*itr)->chunk.length() != (*itr)->length)
-      return "";
-
-//     if (!(*itr)->chunk.is_incore(0, (*itr)->chunk.length())) {
-//       std::stringstream s;
-
-//       s << "Not incore " << c->get_index();
-
-//       throw internal_error(s.str());
-//     }
-
-    hc.update((*itr)->chunk.begin(), (*itr)->chunk.length());
-  }
-
-  return hc.final();
 }
 
 void Files::rootDir(const std::string& s) {

@@ -7,7 +7,8 @@
 namespace torrent {
 
 bool HashChunk::process(unsigned int length, bool force) {
-  if (!m_chunk.is_valid())
+  if (!m_chunk.is_valid() ||
+      !m_chunk->is_valid())
     throw internal_error("HashChunk::process_force(...) called on an invalid chunk");
 
   if (m_position + length > m_chunk->get_size())
@@ -16,7 +17,7 @@ bool HashChunk::process(unsigned int length, bool force) {
   while (length) {
     StorageChunk::Node& node = m_chunk->get_position(m_position);
 
-    unsigned int l = std::min(length, length - (m_position - node.position));
+    unsigned int l = std::min(length, node.length - (m_position - node.position));
 
     // Usually we only have one or two files in a chunk, so we don't mind the if statement
     // inside the loop.
@@ -31,6 +32,7 @@ bool HashChunk::process(unsigned int length, bool force) {
       unsigned int incore, size = node.chunk.page_touched(m_position - node.position, l);
       unsigned char buf[size];
 
+      // TODO: We're borking here with NULL node.
       node.chunk.incore(buf, m_position - node.position, l);
 
       for (incore = 0; incore < size; ++incore)
