@@ -5,50 +5,32 @@
 
 namespace torrent {
 
-DelegatorReservee::DelegatorReservee(DelegatorPiece* p) :
-  m_parent(p),
-  m_piece(p ? p->get_piece() : Piece()) {
-
-  if (p == NULL)
-    return;
-
-  if (p->get_reservee())
-    throw internal_error("DelegatorReservee ctor received a DelegatorPiece that already has a reservee");
-
-  p->set_reservee(this);
-}
-
-DelegatorReservee::~DelegatorReservee() {
-  if (m_parent)
-    throw internal_error("Deleted an DelegatorReservee object that has not set DELEGATOR_NONE or DELEGATOR_FINISHED");
-}
-
 void
-DelegatorReservee::clear() {
+DelegatorReservee::invalidate() {
   if (m_parent == NULL)
     return;
 
-  if (m_parent->get_reservee() != this)
-    throw internal_error("DelegatorReservee::clear() received a DelegatorPiece with a parent mismatch");
+  if (m_stalled)
+    m_parent->dec_stalled();
 
-  m_parent->set_reservee(NULL);
+  m_parent->remove(this);
   m_parent = NULL;
 }
 
 void
-DelegatorReservee::set_state(DelegatorState s) {
+DelegatorReservee::set_stalled(bool b) {
+  if (b == m_stalled)
+    return;
+
   if (m_parent == NULL)
-    throw internal_error("DelegatorReservee::set_state(...) called on an invalid object");
+    throw internal_error("DelegatorReservee::set_stalled(...) called on an invalid object");
 
-  if (m_parent->get_reservee() != this)
-    throw internal_error("DelegatorReservee::set_state(...) called on an object that has a parent piece but is not a child of that");
+  m_stalled = b;
 
-  m_parent->set_state(s);
-
-  if (s == DELEGATOR_NONE || s == DELEGATOR_FINISHED) {
-    m_parent->set_reservee(NULL);
-    m_parent = NULL;
-  }
+  if (b)
+    m_parent->inc_stalled();
+  else
+    m_parent->dec_stalled();
 }
 
 }

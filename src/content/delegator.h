@@ -24,9 +24,11 @@ public:
   ~Delegator();
 
   DelegatorReservee* delegate(const BitField& bf, int affinity);
-  bool               downloading(DelegatorReservee& r);
-  void               finished(DelegatorReservee& r);
 
+  bool               downloading(DelegatorReservee& r);
+
+  void               stall(DelegatorReservee& r);
+  void               finished(DelegatorReservee& r);
   void               cancel(DelegatorReservee& r);
 
   void               done(int index);
@@ -45,7 +47,7 @@ private:
   DelegatorPiece*    new_chunk(const BitField& bf);
   DelegatorPiece*    find_piece(const Piece& p);
 
-  bool               all_state(int index, DelegatorState s);
+  bool               all_finished(int index);
 
   uint64_t           m_totalsize;
   uint32_t           m_chunksize;

@@ -19,25 +19,28 @@ public:
     m_affinity(-1),
     m_downloading(false) {}
 
-  ~RequestList()                                                            { cancel(); }
+  ~RequestList() { cancel(); }
 
   // Some parameters here, like how fast we are downloading and stuff
   // when we start considering those.
   const Piece*       delegate();
 
+  // If is downloading, call skip before cancel.
   void               cancel();
   void               stall(); // Just calls cancel for now
+  void               skip();
 
   bool               downloading(const Piece& p);
   void               finished();
 
   bool               is_downloading()                 { return m_downloading; }
+  bool               is_wanted()                      { return m_reservees.front()->is_valid(); }
 
   bool               has_index(unsigned int i);
 
   unsigned int       get_size()                       { return m_reservees.size(); }
 
-  const Piece&       get_piece()                      { return m_reservees.front()->get_piece(); }
+  const Piece&       get_piece()                      { return m_piece; }
   const Piece&       get_queued_piece(unsigned int i) { return m_reservees[i]->get_piece(); }
 
   void               set_delegator(Delegator* d)      { m_delegator = d; }
@@ -45,6 +48,8 @@ public:
 
 private:
   void               cancel_range(ReserveeList::iterator end);
+
+  Piece              m_piece;
 
   Delegator*         m_delegator;
   const BitField*    m_bitfield;

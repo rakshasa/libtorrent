@@ -53,6 +53,8 @@ communication error, not a internal error.
 
 ! Why is the client lagging when downloading a http torrent? Check async'ness.
 
+Make sure we can handle out of order incoming pieces.
+
 
 DELEGATOR STUFF
 
@@ -72,6 +74,8 @@ Delegator done receives done's when doing initial hash check, do something to en
 * Make sure we don't stall+cancel if we're just *very* slow and not in endgame+fast.
 
 * Make endgameBorder do pieces instead of chunks.
+
+* Make sure stalled pieces get properly downloaded when doing part download of the torrent.
 
 
 TRACKER STUFF

@@ -34,72 +34,61 @@ Delegator::delegate(const BitField& bf, int affinity) {
 		 bool_and(eq(value((unsigned)affinity), call_member(&DelegatorChunk::get_index)),
 			  
 			  find_if_on(back_as_ref_t<DelegatorChunk>(),
-				     eq(call_member(&DelegatorPiece::get_state), value(DELEGATOR_NONE)),
+				     bool_and(bool_not(call_member(&DelegatorPiece::is_finished)),
+					      bool_not(call_member(&DelegatorPiece::get_reservees_size))),
 				     assign_ref(target, back_as_ptr()))));
 	       
   if (target)
-    return new DelegatorReservee(target);
+    return target->create();
 
-  // Find a piece that is not queued by anyone. "" and NONE.
   std::find_if(m_chunks.begin(), m_chunks.end(),
 	       bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
 			
 			find_if_on(back_as_ref_t<DelegatorChunk>(),
-				   eq(call_member(&DelegatorPiece::get_state), value(DELEGATOR_NONE)),
+				   bool_and(bool_not(call_member(&DelegatorPiece::is_finished)),
+					    bool_not(call_member(&DelegatorPiece::get_reservees_size))),
 				   assign_ref(target, back_as_ptr()))));
   
   if (target)
-    return new DelegatorReservee(target);
+    return target->create();
 
   // else find a new chunk
   target = new_chunk(bf);
   
   if (target)
-    return new DelegatorReservee(target);
+    return target->create();
 
   return NULL;
 }
   
 bool
 Delegator::downloading(DelegatorReservee& r) {
-  if (r.is_valid()) {
-    if (r.get_state() != DELEGATOR_QUEUED && r.get_state() != DELEGATOR_STALLED)
-      throw internal_error("Delegator::downloading(...) got object with wrong state");
-    
-    r.set_state(DELEGATOR_DOWNLOADING);
+  if (!r.is_valid())
+    throw internal_error("Delegator::downloading(...) got an invalid reservee");
 
-    return true;
+  if (r.get_parent()->is_finished())
+    throw internal_error("Delegator::downloading(...) got an reservee that is already finished");
 
-  } else {
-    // We are guaranteed that the piece is still not finished.
-    DelegatorPiece* pi = find_piece(r.get_piece());
-
-    return pi && pi->get_state() != DELEGATOR_FINISHED;
-  }
+  return true;
 }
-  
+
 void
 Delegator::finished(DelegatorReservee& r) {
-  DelegatorPiece* p = find_piece(r.get_piece());
+  if (!r.is_valid() || r.get_parent()->is_finished())
+    throw internal_error("Delegator::finished(...) got object with wrong state");
 
-  if (p == NULL)
-    throw internal_error("Delegator::finished called with wrong piece");
-    
-  if (p->get_state() == DELEGATOR_FINISHED)
-    throw internal_error("Delegator::finished called on piece that is already marked FINISHED");
+  DelegatorPiece* p = r.get_parent();
 
-  if (p != r.get_parent())
-    throw internal_error("Delegator::finished got a mismatched reservee and piece");
+  p->clear();
+  p->set_finished(true);
 
-  r.set_state(DELEGATOR_FINISHED);
-
-  if (all_state(r.get_piece().get_index(), DELEGATOR_FINISHED))
-    m_signalChunkDone.emit(r.get_piece().get_index());
+  if (all_finished(p->get_piece().get_index()))
+    m_signalChunkDone.emit(p->get_piece().get_index());
 }
 
 void
 Delegator::cancel(DelegatorReservee& r) {
-  r.set_state(DELEGATOR_NONE);
+  r.invalidate();
 }
 
 void Delegator::done(int index) {
@@ -152,13 +141,13 @@ Delegator::find_piece(const Piece& p) {
 }
   
 bool
-Delegator::all_state(int index, DelegatorState s) {
+Delegator::all_finished(int index) {
   Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
 				    eq(call_member(&DelegatorChunk::get_index), value((unsigned)index)));
 
   return c != m_chunks.end() &&
     std::find_if((*c)->begin(), (*c)->end(),
-		 neq(call_member(&DelegatorPiece::get_state), value(s)))
+		 bool_not(call_member(&DelegatorPiece::is_finished)))
     == (*c)->end();
 }
 

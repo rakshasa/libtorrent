@@ -1,8 +1,8 @@
 #ifndef LIBTORRENT_DELEGATOR_PIECE_H
 #define LIBTORRENT_DELEGATOR_PIECE_H
 
+#include <vector>
 #include "piece.h"
-#include "delegator_state.h"
 
 namespace torrent {
 
@@ -16,25 +16,41 @@ class DelegatorReservee;
 
 class DelegatorPiece {
 public:
-  DelegatorPiece() : m_state(DELEGATOR_NONE), m_reservee(NULL) {}
+  typedef std::vector<DelegatorReservee*> Reservees;
+
+  DelegatorPiece() : m_finished(false), m_stalled(0) {}
   ~DelegatorPiece();
+
+  DelegatorReservee* create();
+
+  void               clear();
+
+  bool               is_finished()                      { return m_finished; }
+  void               set_finished(bool f)               { m_finished = f; }
 
   const Piece&       get_piece()                        { return m_piece; }
   void               set_piece(const Piece& p)          { m_piece = p; }
 
-  DelegatorState     get_state()                        { return m_state; }
-  void               set_state(DelegatorState s)        { m_state = s; }
-  
-  DelegatorReservee* get_reservee()                     { return m_reservee; }
-  void               set_reservee(DelegatorReservee* r) { m_reservee = r; }
+  unsigned int       get_reservees_size()               { return m_reservees.size(); }
+  unsigned int       get_stalled()                      { return m_stalled; }
+
+protected:
+  friend class DelegatorReservee;
+
+  void               remove(DelegatorReservee* r);
+
+  void               inc_stalled()                      { ++m_stalled; }
+  void               dec_stalled()                      { --m_stalled; }
 
 private:
   DelegatorPiece(const DelegatorPiece&);
   void operator = (const DelegatorPiece&);
 
   Piece              m_piece;
-  DelegatorState     m_state;
-  DelegatorReservee* m_reservee;
+  Reservees          m_reservees;
+
+  bool               m_finished;
+  unsigned int       m_stalled;
 };
 
 }

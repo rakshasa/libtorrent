@@ -228,6 +228,15 @@ void PeerConnection::read() {
     if (!m_requests.is_downloading())
       throw internal_error("READ_PIECE state but RequestList is not downloading");
 
+    if (!m_requests.is_wanted()) {
+      m_down.state = READ_SKIP_PIECE;
+      m_down.length = m_requests.get_piece().get_length() - m_down.pos;
+      m_down.pos = 0;
+
+      m_requests.skip();
+      remove_service(SERVICE_STALL);
+    }
+
     // TODO: Temporary, kill as soon as possible.
     if (!in_service(SERVICE_STALL))
       throw internal_error("READ_PIECE state but peer not in SERVICE_STALL");
@@ -711,14 +720,6 @@ void PeerConnection::service(int type) {
     
   case SERVICE_STALL:
     m_stallCount++;
-
-    // Clear the incoming queue reservations so we can request from other peers.
-    if (m_down.state == READ_PIECE) {
-      m_down.state = READ_SKIP_PIECE;
-      m_down.length = m_requests.get_piece().get_length() - m_down.pos;
-      m_down.pos = 0;
-    }
-
     m_requests.stall();
 
     caughtExceptions.push_back("Peer stalled " + m_peer.dns());
@@ -728,8 +729,13 @@ void PeerConnection::service(int type) {
     if (!m_down.choked)
       return;
 
-    if (m_down.state == READ_PIECE)
-      throw communication_error("Peer choke while downloading piece");
+    if (m_down.state == READ_PIECE) {
+      m_down.state = READ_SKIP_PIECE;
+      m_down.length = m_requests.get_piece().get_length() - m_down.pos;
+      m_down.pos = 0;
+
+      m_requests.skip();
+    }
 
     remove_service(SERVICE_STALL);
     m_requests.cancel();

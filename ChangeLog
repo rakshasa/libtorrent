@@ -1,3 +1,8 @@
+2004-11-21  Jari Petter Sundell  <jaris@student.matnat.uio.no>
+
+	* library: Properly update interested/not interested depending on
+	file priorities.
+
 2004-11-15  Jari Petter Sundell  <jaris@student.matnat.uio.no>
 
 	* library: Variable pipe size depending on download speed.
