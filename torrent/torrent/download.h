@@ -13,11 +13,14 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
+// Not a real struct.
+struct DownloadWrapper;
+
 class Download {
 public:
   typedef std::vector<uint16_t> SeenVector;
 
-  Download(void* d = NULL) : m_ptr(d) {}
+  Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
   // Not active atm
   void                 open();
@@ -82,9 +85,6 @@ public:
   void                 peer_list(PList& pList);
   Peer                 peer_find(const std::string& id);
 
-//   void*                get_ptr()          { return m_ptr; }
-//   void                 set_ptr(void* ptr) { m_ptr = ptr; }
-
   // Signals:
 
   typedef sigc::signal0<void>              SignalDownloadDone;
@@ -106,7 +106,7 @@ public:
   SignalTrackerFailed::iterator   signal_tracker_failed(SlotTrackerFailed s);
 
 private:
-  void*     m_ptr;
+  DownloadWrapper*      m_ptr;
 };
 
 }

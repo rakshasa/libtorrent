@@ -57,6 +57,8 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions,
 						   (void (std::list<std::string>::*)(const std::string&))&std::list<std::string>::push_back));
 
+  m_tracker->signal_peers().connect(sigc::hide(m_signalTrackerSucceded.make_slot()));
+
   HashTorrent::SignalDone sd;
 
   sd.connect(sigc::mem_fun(*this, &DownloadMain::receive_initial_hash));

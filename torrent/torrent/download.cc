@@ -7,6 +7,7 @@
 #include "tracker/tracker_control.h"
 
 #include <algo/algo.h>
+#include <sigc++/hide.h>
 
 using namespace algo;
 
@@ -267,6 +268,7 @@ Download::signal_peer_disconnected(Download::SlotPeerConnected s) {
 
 Download::SignalTrackerSucceded::iterator
 Download::signal_tracker_succeded(Download::SlotTrackerSucceded s) {
+  return ((DownloadMain*)m_ptr)->signal_tracker_succeded().connect(s);
 }
 
 Download::SignalTrackerFailed::iterator

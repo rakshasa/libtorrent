@@ -31,6 +31,9 @@ class Download {
   void receive_peer_connect(torrent::Peer p);
   void receive_peer_disconnect(torrent::Peer p);
 
+  void receive_tracker_failed(std::string s);
+  void receive_tracker_succeded();
+
   torrent::Download m_dItr;
   torrent::PList m_peers;
   torrent::PList::iterator m_pItr;
@@ -39,8 +42,12 @@ class Download {
 
   State m_state;
 
+  std::string m_msg;
+
   torrent::Download::SignalPeerConnected::iterator    m_signalCon;
   torrent::Download::SignalPeerDisconnected::iterator m_signalDis;
+  torrent::Download::SignalTrackerFailed::iterator    m_signalTF;
+  torrent::Download::SignalTrackerSucceded::iterator  m_signalTS;
 };
 
 #endif

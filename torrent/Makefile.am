@@ -4,7 +4,6 @@ libtorrent_la_LDFLAGS = -version-info $(LIBTORRENT_INTERFACE_VERSION_INFO)
 libtorrent_la_SOURCES = \
 	torrent/download.cc \
 	torrent/download.h \
-	torrent/download_wrapper.h \
 	torrent/entry.cc \
 	torrent/entry.h \
 	torrent/exceptions.h \

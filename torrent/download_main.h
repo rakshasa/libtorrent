@@ -39,6 +39,11 @@ public:
   static DownloadMain*  getDownload(const std::string& hash);
   static Downloads& downloads() { return m_downloads; }
 
+  // Modifying signals
+  typedef sigc::signal0<void>              SignalTrackerSucceded;
+
+  SignalTrackerSucceded& signal_tracker_succeded() { return m_signalTrackerSucceded; }
+
 private:
   DownloadMain();
 
@@ -53,6 +58,8 @@ private:
   std::string m_name;
   bool m_checked;
   bool m_started;
+
+  SignalTrackerSucceded m_signalTrackerSucceded;
 };
 
 } // namespace torrent

@@ -14,11 +14,9 @@ Download::Download(torrent::Download dItr) :
 
     m_signalCon = dItr.signal_peer_connected(sigc::mem_fun(*this, &Download::receive_peer_connect));
     m_signalDis = dItr.signal_peer_disconnected(sigc::mem_fun(*this, &Download::receive_peer_disconnect));
-
-    //torrent::Download::SignalPeerConnected::slot_list s1 = dItr.signal_peer_connected().slots();
-    //torrent::Download::SignalPeerDisconnected::slot_list s2 = dItr.signal_peer_disconnected().slots();
-
-    //assert(s1.begin() != s1.end() && s2.begin() != s2.end());
+    m_signalTF  = dItr.signal_tracker_failed(sigc::mem_fun(*this, &Download::receive_tracker_failed));
+    m_signalTS  = dItr.signal_tracker_succeded(sigc::mem_fun(*this, &Download::receive_tracker_succeded));
+    
   }
 
   for (torrent::PList::iterator itr = m_peers.begin(); itr != m_peers.end(); ++itr)
@@ -115,9 +113,9 @@ void Download::draw() {
   mvprintw(maxY - 1, 0, "Tracker: [%c:%i] %s",
 	   m_dItr.is_tracker_busy() ? 'C' : ' ',
 	   (int)(m_dItr.get_tracker_timeout() / 1000000),
-	   m_dItr.get_tracker_msg().length() > 40 ?
-	   "OVERFLOW" :
-	   m_dItr.get_tracker_msg().c_str());
+	   (signed)m_msg.length() > maxX - 16 ?
+	   m_msg.substr(0, maxX - 16).c_str() :
+	   m_msg.c_str());
 
   refresh();
 }
@@ -461,4 +459,12 @@ Download::receive_peer_disconnect(torrent::Peer p) {
   m_peers.erase(itr);
 }
 
-					      
+void
+Download::receive_tracker_failed(std::string s) {
+  m_msg = s;
+}
+
+void
+Download::receive_tracker_succeded() {
+  m_msg = "^_^";
+}

@@ -156,17 +156,17 @@ download_create(std::istream& s) {
     // Make it configurable whetever we throw or return .end()?
     throw local_error("Could not parse bencoded torrent");
   
-  DownloadMain* download = new DownloadMain(b);
-  DownloadMain::downloads().insert(DownloadMain::downloads().end(), download);
+  DownloadMain* d = new DownloadMain(b);
+  DownloadMain::downloads().insert(DownloadMain::downloads().end(), d);
 
-  return download;
+  return Download((DownloadWrapper*)d);
 }
 
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
   for (DownloadMain::Downloads::iterator itr = DownloadMain::downloads().begin(); itr != DownloadMain::downloads().end(); ++itr)
-    dlist.push_back(Download(*itr));
+    dlist.push_back(Download((DownloadWrapper*)*itr));
 }
 
 // Make sure you check that it's valid.
@@ -178,7 +178,7 @@ download_find(const std::string& id) {
                                                           call_member(call_member(&DownloadMain::state),
                                                                       &DownloadState::hash)));
 
-  return itr != DownloadMain::downloads().end() ? Download(*itr) : Download(NULL);
+  return itr != DownloadMain::downloads().end() ? Download((DownloadWrapper*)*itr) : Download(NULL);
 }
 
 void
