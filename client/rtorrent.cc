@@ -11,6 +11,7 @@
 #include "display.h"
 #include "download.h"
 #include "http.h"
+#include "queue.h"
 
 // Uncomment this if your system doesn't have execinfo.h
 #define USE_EXECINFO
@@ -26,6 +27,8 @@ std::string inputBuf;
 
 Display* display = NULL;
 bool shutdown = false;
+
+extern Queue globalQueue;
 
 typedef enum {
   DISPLAY_MAIN,
@@ -289,6 +292,8 @@ int main(int argc, char** argv) {
 		torrent::remove(itr);
 
 	      } else {
+		globalQueue.receive_done(torrent::get(curDownload, torrent::INFO_HASH));
+
 		torrent::stop(curDownload);
 	      }
 	    }

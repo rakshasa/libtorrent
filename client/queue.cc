@@ -36,17 +36,20 @@ void Queue::receive_done(std::string id) {
 
   m_list.pop_front();
 
-  if (m_list.empty())
-    return;
+  while (!m_list.empty()) {
+    dItr = torrent::downloads().begin();
     
-  dItr = torrent::downloads().begin();
-
-  while (dItr != torrent::downloads().end() &&
-	 torrent::get(dItr, torrent::INFO_HASH) != m_list.front())
-    ++dItr;
-  
-  if (dItr != torrent::downloads().end())
-    torrent::start(dItr);
+    while (dItr != torrent::downloads().end() &&
+	   torrent::get(dItr, torrent::INFO_HASH) != m_list.front())
+      ++dItr;
+    
+    if (dItr != torrent::downloads().end()) {
+      torrent::start(dItr);
+      return;
+    }
+      
+    m_list.pop_front();
+  }
 }
 
 bool Queue::has(torrent::DItr dItr) {
