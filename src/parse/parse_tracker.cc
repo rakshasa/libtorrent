@@ -46,6 +46,8 @@ void parse_tracker(const Bencode& b, TrackerControl* control) {
 
   else
     throw bencode_error("Could not find any trackers");
+
+  control->get_list().randomize();
 }
 
 }

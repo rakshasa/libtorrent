@@ -20,10 +20,11 @@
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp(TrackerInfo* info) :
+TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
   m_get(Http::call_factory()),
   m_data(NULL),
-  m_info(info) {
+  m_info(info),
+  m_url(url) {
 
   m_get->set_user_agent(PACKAGE "/" VERSION);
 

@@ -136,3 +136,5 @@ Add/change tracker.
 
 Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
+
+Wait... don't use signal_bencode for successful tracker connections!!!

@@ -84,7 +84,6 @@ receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
     SocketBase::close_socket(fd);
 }
 
-// Make sure srandom is properly initialized by the client.
 void
 initialize() {
   if (listen || hashQueue || handshakes || downloadManager)
@@ -96,8 +95,6 @@ initialize() {
   downloadManager = new DownloadManager;
 
   listen->slot_incoming(sigc::mem_fun(*handshakes, &HandshakeManager::add_incoming));
-
-  srandom(Timer::current().usec());
 
   ThrottleControl::global().get_task_update().insert(Timer::current());
 

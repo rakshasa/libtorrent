@@ -66,10 +66,13 @@ class TrackerControl {
 
   void                  query_current();
 
-  void                  parse_peers_normal(PeerList& l, const Bencode::List& b);
-  void                  parse_peers_compact(PeerList& l, const std::string& s);
+  void                  parse_check_failure(const Bencode& b);
+  void                  parse_fields(const Bencode& b);
 
   static PeerInfo       parse_peer(const Bencode& b);
+
+  void                  parse_peers_normal(PeerList& l, const Bencode::List& b);
+  void                  parse_peers_compact(PeerList& l, const std::string& s);
 
   int                   m_tries;
   int                   m_interval;

@@ -24,7 +24,7 @@ public:
   typedef sigc::signal1<void, Bencode&>    SignalDone;
   typedef sigc::signal1<void, std::string> SignalFailed;
 
-  TrackerHttp(TrackerInfo* info);
+  TrackerHttp(TrackerInfo* info, const std::string& url);
   ~TrackerHttp();
 
   bool               is_busy()                             { return m_data != NULL; }

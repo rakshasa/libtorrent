@@ -12,6 +12,15 @@ namespace torrent {
 void
 TrackerList::randomize() {
   // Random random random.
+  iterator itr = begin();
+  
+  while (itr != end()) {
+    iterator tmp = end_group(itr->first);
+
+    std::random_shuffle(itr, tmp);
+
+    itr = tmp;
+  }
 }
 
 void

@@ -29,15 +29,11 @@ TrackerControl::add_url(int group, const std::string& url) {
   if (m_itr != m_list.end() && m_itr->second->is_busy())
     throw internal_error("Added tracker url while the current tracker is busy");
 
-  std::string::size_type p = url.find("http://");
+  if (url.empty())
+    throw input_error("Tried to add an empty tracker url");
 
-  if (p == std::string::npos)
-    throw input_error("Unknown tracker url");
-
-  TrackerHttp* t = new TrackerHttp(&m_info);
+  TrackerHttp* t = new TrackerHttp(&m_info, url);
   
-  t->set_url(url.substr(p, url.length() - p));
-
   t->signal_done().connect(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
 
@@ -95,42 +91,22 @@ TrackerControl::cancel() {
 
 void
 TrackerControl::receive_done(Bencode& bencode) {
-  m_signalBencode.emit(bencode);
-
-  if (!bencode.is_map())
-    return receive_failed("Root not a bencoded map");
-
-  if (bencode.has_key("failure reason")) {
-    if (!bencode["failure reason"].is_string())
-      return receive_failed("Failure reason is not a string");
-    else
-      return receive_failed("Failure reason \"" + bencode["failure reason"].as_string() + "\"");
-  }
-
-  if (bencode.has_key("interval") && bencode["interval"].is_value())
-    m_interval = std::max<int64_t>(60, bencode["interval"].as_value());
-
-  if (bencode.has_key("min interval") && bencode["min interval"].is_value())
-    m_timerMinInterval = Timer::cache() + std::max<int64_t>(0, bencode["min interval"].as_value()) * 1000000;
-
-  if (bencode.has_key("tracker id") && bencode["tracker id"].is_string())
-    m_itr->second->set_tracker_id(bencode["tracker id"].as_string());
-
   PeerList l;
 
-  if (bencode.has_key("peers")) {
+  m_signalBencode.emit(bencode);
 
-    if (bencode["peers"].is_list())
-      parse_peers_normal(l, bencode["peers"].as_list());
+  try {
 
-    else if (bencode["peers"].is_string())
-      parse_peers_compact(l, bencode["peers"].as_string());
-    
-    else
-      return receive_failed("Peers entry is not a bencoded list nor a string.");
+  parse_check_failure(bencode);
+  parse_fields(bencode);
 
-  } else {
-    return receive_failed("Peers entry not found.");
+  if (bencode["peers"].is_string())
+    parse_peers_compact(l, bencode["peers"].as_string());
+  else
+    parse_peers_normal(l, bencode["peers"].as_list());
+
+  } catch (bencode_error& e) {
+    return receive_failed(e.what());
   }
 
   // Successful tracker request, rearrange the list.
@@ -141,8 +117,9 @@ TrackerControl::receive_done(Bencode& bencode) {
     m_state = TrackerInfo::NONE;
     
     m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
-    m_signalPeers.emit(l);
   }
+
+  m_signalPeers.emit(l);
 }
 
 void
@@ -166,6 +143,27 @@ TrackerControl::query_current() {
     throw internal_error("TrackerControl tried to send with an invalid m_itr");
 
   m_itr->second->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
+}
+
+void
+TrackerControl::parse_check_failure(const Bencode& b) {
+  if (!b.is_map())
+    throw bencode_error("Root not a bencoded map");
+
+  if (b.has_key("failure reason"))
+    throw bencode_error("Failure reason \"" + b["failure reason"].as_string() + "\"");
+}
+
+void
+TrackerControl::parse_fields(const Bencode& b) {
+  if (b.has_key("interval") && b["interval"].is_value())
+    m_interval = std::max<int64_t>(60, b["interval"].as_value());
+  
+  if (b.has_key("min interval") && b["min interval"].is_value())
+    m_timerMinInterval = Timer::cache() + std::max<int64_t>(0, b["min interval"].as_value()) * 1000000;
+
+  if (b.has_key("tracker id") && b["tracker id"].is_string())
+    m_itr->second->set_tracker_id(b["tracker id"].as_string());
 }
 
 PeerInfo
