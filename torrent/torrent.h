@@ -88,6 +88,7 @@ typedef enum {
   BITFIELD_SEEN,          // Char per chunk, max 255.
 
   INFO_NAME,
+  INFO_HASH,
 
   TRACKER_MSG
 } DString;

@@ -14,12 +14,12 @@ class Http {
 
   ~Http();
 
-  void add_url(const std::string& s);
+  void add_url(const std::string& s, bool queue);
 
   Urls list_urls();
 
  private:
-  void receive_done(List::iterator itr);
+  void receive_done(List::iterator itr, bool queued);
   void receive_failed(std::string msg, List::iterator itr);
 
   List m_list;

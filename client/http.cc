@@ -6,8 +6,11 @@
 #include <torrent/exceptions.h>
 
 #include "http.h"
+#include "queue.h"
 
 extern std::list<std::string> log_entries;
+
+Queue globalQueue;
 
 Http::~Http() {
   while (!m_list.empty()) {
@@ -17,7 +20,7 @@ Http::~Http() {
   }
 }
  
-void Http::add_url(const std::string& s) {
+void Http::add_url(const std::string& s, bool queue) {
   List::iterator itr = m_list.end();
 
   torrent::Http* http = new torrent::Http();
@@ -29,7 +32,7 @@ void Http::add_url(const std::string& s) {
 
     itr = m_list.insert(m_list.end(), std::make_pair(http, out));
 
-    http->signal_done().connect(sigc::bind(sigc::mem_fun(*this, &Http::receive_done), itr));
+    http->signal_done().connect(sigc::bind(sigc::mem_fun(*this, &Http::receive_done), itr, queue));
     http->signal_failed().connect(sigc::bind(sigc::mem_fun(*this, &Http::receive_failed), itr));
 
     http->start();
@@ -47,18 +50,17 @@ void Http::add_url(const std::string& s) {
   }
 }
 
-//   Urls list_urls();
-
-void Http::receive_done(List::iterator itr) {
+void Http::receive_done(List::iterator itr, bool queued) {
   try {
     torrent::DItr dItr = torrent::create(*itr->second);
 
-    torrent::start(dItr);
+    if (queued)
+      globalQueue.insert(dItr);
+    else
+      torrent::start(dItr);
 
   } catch (torrent::local_error& e) {
     log_entries.push_front(e.what());
-
-    
   }
 
   delete itr->first;

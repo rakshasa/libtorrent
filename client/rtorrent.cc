@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
 
     if (std::strncmp(argv[fIndex], "http://", 7) == 0) {
       // Found an http url, download.
-      http.add_url(argv[fIndex]);
+      http.add_url(argv[fIndex], false);
 
     } else {
       std::fstream f(argv[fIndex], std::ios::in);
@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
 
   int64_t lastDraw = torrent::get(torrent::TIME_CURRENT) - (1 << 22);
   int maxY, maxX;
+  bool queueNext = false;
 
   while (!shutdown || !torrent::get(torrent::SHUTDOWN_DONE)) {
     loops++;
@@ -199,7 +200,7 @@ int main(int argc, char** argv) {
       if (inputActive) {
 	if (c == '\n') {
 	  try {
-	    http.add_url(inputBuf);
+	    http.add_url(inputBuf, queueNext);
 	  } catch (torrent::input_error& e) {}
 
 	  inputActive = false;
@@ -248,6 +249,13 @@ int main(int argc, char** argv) {
 	  switch (c) {
 	  case '\n':
 	  case KEY_ENTER:
+	    queueNext = false;
+	    inputActive = true;
+	    inputBuf.clear();
+	    break;
+
+	  case KEY_BACKSPACE:
+	    queueNext = true;
 	    inputActive = true;
 	    inputBuf.clear();
 	    break;

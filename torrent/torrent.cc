@@ -382,6 +382,9 @@ std::string get(DList::const_iterator d, DString t) {
   case INFO_NAME:
     return (*d)->name();
 
+  case INFO_HASH:
+    return (*d)->state().hash();
+
   case TRACKER_MSG:
     return ""; //(*d)->tracker().msg();
 
