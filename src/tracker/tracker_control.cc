@@ -88,15 +88,10 @@ TrackerControl::send_state(TrackerState s) {
 
   m_tries = -1;
   m_state = s;
+  m_timerMinInterval = 0;
 
-  if (s == TRACKER_NONE && Timer::cache() < m_timerMinInterval) {
-    // Tracker min interval has not yet elapsed.
-    m_taskTimeout.insert(m_timerMinInterval);
-
-  } else {
-    query_current();
-    m_taskTimeout.remove();
-  }
+  query_current();
+  m_taskTimeout.remove();
 }
 
 void
@@ -121,19 +116,11 @@ TrackerControl::receive_done(Bencode& bencode) {
       return receive_failed("Failure reason \"" + bencode["failure reason"].as_string() + "\"");
   }
 
-  if (bencode.has_key("interval")) {
-    if (!bencode["interval"].is_value())
-      return receive_failed("Interval not a number");
-    else
-      m_interval = std::max<int64_t>(60, bencode["interval"].as_value());
-  }
+  if (bencode.has_key("interval") && bencode["interval"].is_value())
+    m_interval = std::max<int64_t>(60, bencode["interval"].as_value());
 
-  if (bencode.has_key("min interval")) {
-    if (!bencode["min interval"].is_value())
-      return receive_failed("Min interval not a number");
-    else
-      m_timerMinInterval = Timer::cache() + std::max<int64_t>(0, bencode["min interval"].as_value()) * 1000000;
-  }
+  if (bencode.has_key("min interval") && bencode["min interval"].is_value())
+    m_timerMinInterval = Timer::cache() + std::max<int64_t>(0, bencode["min interval"].as_value()) * 1000000;
 
   if (bencode.has_key("tracker id") && bencode["tracker id"].is_string())
     (*m_itr)->set_tracker_id(bencode["tracker id"].as_string());

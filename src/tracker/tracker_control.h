@@ -43,6 +43,7 @@ class TrackerControl {
 
   TrackerState          get_state()                             { return m_state; }
 
+  // Use set_next_time(...) to do tracker rerequests.
   Timer                 get_next_time();
   void                  set_next_time(Timer interval);
 
