@@ -94,6 +94,7 @@ libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
 	torrent/common.h \
 	torrent/download.h \
+	torrent/exceptions.h \
 	torrent/entry.h \
 	torrent/peer.h \
 	torrent/torrent.h
