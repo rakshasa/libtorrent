@@ -45,7 +45,6 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_state.me() = PeerInfo(generateId(), "", listen->get_port());
   m_state.hash() = calcHash(b["info"]);
   m_state.bfCounter() = BitFieldCounter(m_state.content().get_storage().get_chunkcount());
-  m_state.set_net(&m_net);
 
   HashTorrent::SignalDone sd;
 
@@ -106,9 +105,9 @@ void DownloadMain::stop() {
 
   remove_service(CHOKE_CYCLE);
 
-  while (!m_state.connections().empty()) {
-    delete m_state.connections().front();
-    m_state.connections().pop_front();
+  while (!m_net.get_connections().empty()) {
+    delete m_net.get_connections().front();
+    m_net.get_connections().pop_front();
   }
 
   setup_stop();
@@ -132,7 +131,7 @@ void DownloadMain::service(int type) {
     m_net.get_rate_up().rate();
     m_net.get_rate_down().rate();
 
-    s = state().canUnchoke();
+    s = m_net.can_unchoke();
 
     if (s > 0)
       // If we haven't filled up out chokes then we shouldn't do cycle.
@@ -146,8 +145,8 @@ void DownloadMain::service(int type) {
     f = std::numeric_limits<float>::max();
 
     // Candidates for choking.
-    for (DownloadState::Connections::const_iterator itr = state().connections().begin();
-	 itr != state().connections().end(); ++itr)
+    for (DownloadNet::ConnectionList::const_iterator itr = m_net.get_connections().begin();
+	 itr != m_net.get_connections().end(); ++itr)
 
       if (!(*itr)->up().c_choked() &&
 	  (*itr)->lastChoked() + state().settings().chokeGracePeriod < Timer::cache() &&
@@ -165,8 +164,8 @@ void DownloadMain::service(int type) {
     // Candidates for unchoking. Don't give a grace period since we want
     // to be quick to unchoke good peers. Use the snub to avoid unchoking
     // bad peers. Try untried peers first.
-    for (DownloadState::Connections::const_iterator itr = state().connections().begin();
-	 itr != state().connections().end(); ++itr)
+    for (DownloadNet::ConnectionList::const_iterator itr = m_net.get_connections().begin();
+	 itr != m_net.get_connections().end(); ++itr)
       
       // Prioritize those we are interested in, those also have higher
       // download rates.
@@ -222,33 +221,33 @@ void DownloadMain::add_peers(const Peers& p) {
 
     if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||
 
-	std::find_if(m_state.connections().begin(), m_state.connections().end(),
+	std::find_if(m_net.get_connections().begin(), m_net.get_connections().end(),
 		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
-	!= m_state.connections().end() ||
+	!= m_net.get_connections().end() ||
 
 	handshakes.has_peer(*itr) ||
 
-	std::find_if(m_state.available_peers().begin(), m_state.available_peers().end(),
+	std::find_if(m_net.get_available_peers().begin(), m_net.get_available_peers().end(),
 		     call_member(&PeerInfo::is_same_host, ref(*itr)))
-	!= m_state.available_peers().end())
+	!= m_net.get_available_peers().end())
       // We already know this peer
       continue;
 
     // Push to back since we want to connect to old peers since they are more
     // likely to have more of the file. This also makes sure we don't end up with
     // lots of old dead peers in the stack.
-    m_state.available_peers().push_back(*itr);
+    m_net.get_available_peers().push_back(*itr);
   }
 
   if (m_started)
-    m_state.connect_peers();
+    m_net.connect_peers();
 }
 
 void DownloadMain::receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
   DownloadMain* d = getDownload(hash);
 
   if (d && d->m_started && d->m_checked)
-    d->state().addConnection(fd, peer);
+    d->m_net.add_connection(fd, peer);
   else
     SocketBase::close_socket(fd);
 }

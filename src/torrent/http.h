@@ -33,6 +33,7 @@ class Http {
   virtual SignalDone&        signal_done() = 0;
   virtual SignalFailed&      signal_failed() = 0;
 
+  // Set the factory function that returns a valid Http* object.
   static  void               set_factory(const SlotFactory& f);
 
   // Guaranteed to return a valid object or throw a client_error.

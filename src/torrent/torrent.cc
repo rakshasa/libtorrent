@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <algo/algo.h>
+#include <sigc++/bind.h>
 
 #include "net/listen.h"
 #include "net/handshake_manager.h"
@@ -163,6 +164,11 @@ download_create(std::istream& s) {
   
   DownloadMain* d = new DownloadMain(b);
   DownloadMain::downloads().insert(DownloadMain::downloads().end(), d);
+
+  d->net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
+					   d->state().hash(), d->state().me().get_id()));
+  d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
+					    d->state().hash()));
 
   return Download((DownloadWrapper*)d);
 }

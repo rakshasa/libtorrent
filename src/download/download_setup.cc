@@ -2,11 +2,14 @@
 
 #include <sigc++/signal.h>
 #include <sigc++/hide.h>
+#include <sigc++/bind.h>
 
 #include "torrent/exceptions.h"
 #include "tracker/tracker_control.h"
+
 #include "general.h"
 #include "download_main.h"
+#include "peer_connection.h"
 
 namespace torrent {
 
@@ -30,7 +33,11 @@ DownloadMain::setup_net() {
   m_net.slot_chunks_completed(sigc::mem_fun(m_state.content(), &Content::get_chunks_completed));
   m_net.slot_chunks_count(sigc::mem_fun(m_state.content().get_storage(), &Storage::get_chunkcount));
 
+  m_net.slot_create_connection(sigc::bind(sigc::ptr_fun(PeerConnection::create), &m_state, &m_net));
+
+  // TODO: Consider disabling these during hash check.
   m_state.signal_chunk_passed().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::update_endgame)));
+  m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net, &DownloadNet::send_have_chunk));
 }
 
 void

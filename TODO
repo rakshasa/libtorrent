@@ -35,8 +35,6 @@ stream? Or is the current system the only flexible one we can use?
 Consider making the stringstream input only to allow for lightning
 fast str().c_str(). (Check if it's isstream that does this)
 
-Sane timeouts on handshakes.
-
 Switch to a proper type for file offset/length and chunk length. A proper
 type for chunk index.
 
@@ -45,11 +43,13 @@ communication error, not a internal error.
 
 ! Why is the client lagging when downloading a http torrent? Looks like dnsdomainlookup
 
-Make sure we can handle out of order incoming pieces.
-
 Cleanup PeerInfo and it's users.
 
 std::isalpha in escape string
+
+Consider not calling insert_write() when filling have list.
+
+Handshake manager must be spread with slots.
 
 
 DELEGATOR STUFF
@@ -58,29 +58,14 @@ DELEGATOR STUFF
 
 Proper canceling of pieces in sendHave, unless only one can download a piece.
 
-* Flag stalled peers, ignore them for a while after. Make sure we try to download
-  from previously stalled peers if those are the only ones left. Figure this out.
-
-If you add SERVICE_CANCEL, modify discardincomingqueue.
-
-* Make sure we don't stall+cancel if we're just *very* slow and not in endgame+fast.
-
 * Make endgameBorder do pieces instead of chunks.
 
-* Make sure stalled pieces get properly downloaded when doing part download of the torrent.
-
-! Stalled pieces don't get downloaded unless we're in the endgame or a peer only has that piece... fixme
-
 Make set endgame take priorities into account.
-
-! Looks like the choke/unchoke cycle messes up our request pipe size.
 
 Don't be so aggressive at selecting stalled pieces.
 
 
 TRACKER STUFF
-
-* Make it NAT friendly, add selectable DNS
 
 We can accumulate too many peers, put a limit on it.
 
@@ -92,7 +77,7 @@ multiple signals.
 
 Changing the piece length.
 
-Since i found out about sigc::connections, fix the API.
+!!! Download should return sigc::connection, not iterator
 
 
 AFTER API REDESIGN:

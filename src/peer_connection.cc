@@ -25,6 +25,14 @@ namespace torrent {
 // Find a better way to do this?
 extern std::list<std::string> caughtExceptions;
 
+PeerConnection*
+PeerConnection::create(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
+  PeerConnection* pc = new PeerConnection;
+  pc->set(fd, p, d, net);
+
+  return pc;
+}
+
 void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
@@ -247,8 +255,6 @@ void PeerConnection::read() {
       return;
 
     m_down.state = IDLE;
-    m_download->bytesDownloaded() += m_requests.get_piece().get_length();
-
     m_requests.finished();
     
     // TODO: Find a way to avoid this remove/insert cycle.
@@ -296,12 +302,12 @@ void PeerConnection::read() {
   }
 
   } catch (close_connection& e) {
-    m_download->removeConnection(this);
+    m_net->remove_connection(this);
 
   } catch (network_error& e) {
     caughtExceptions.push_front(e.what());
 
-    m_download->removeConnection(this);
+    m_net->remove_connection(this);
 
   } catch (base_error& e) {
     std::stringstream s;
@@ -405,8 +411,6 @@ void PeerConnection::write() {
 
     if (!s)
       return;
-    
-    m_download->bytesUploaded() += m_sends.front().length();
 
     if (m_sends.empty())
       m_up.data = Storage::Chunk();
@@ -421,12 +425,12 @@ void PeerConnection::write() {
   }
 
   } catch (close_connection& e) {
-    m_download->removeConnection(this);
+    m_net->remove_connection(this);
 
   } catch (network_error& e) {
     caughtExceptions.push_front(e.what());
 
-    m_download->removeConnection(this);
+    m_net->remove_connection(this);
 
   } catch (base_error& e) {
     std::stringstream s;
@@ -441,7 +445,7 @@ void PeerConnection::write() {
 void PeerConnection::except() {
   caughtExceptions.push_front("Connection exception: " + std::string(strerror(errno)));
 
-  m_download->removeConnection(this);
+  m_net->remove_connection(this);
 }
 
 void PeerConnection::parseReadBuf() {
@@ -467,7 +471,7 @@ void PeerConnection::parseReadBuf() {
 
     // If we want to send stuff.
     if (m_up.choked &&
-	m_download->canUnchoke() > 0) {
+	m_net->can_unchoke() > 0) {
       choke(false);
     }
     
@@ -480,7 +484,7 @@ void PeerConnection::parseReadBuf() {
     if (!m_up.choked) {
       choke(true);
 
-      m_download->chokeBalance();
+      m_net->choke_balance();
     }
 
     return;
@@ -673,7 +677,7 @@ void PeerConnection::service(int type) {
   switch (type) {
   case SERVICE_KEEP_ALIVE:
     if ((Timer::cache() - m_lastMsg).usec() > 150 * 1000000) {
-      m_download->removeConnection(this);
+      m_net->remove_connection(this);
       return;
     }
 

@@ -78,12 +78,12 @@ Download::set_ip(const std::string& ip) {
 
 uint64_t
 Download::get_bytes_up() {
-  return ((DownloadMain*)m_ptr)->state().bytesUploaded();
+  return ((DownloadMain*)m_ptr)->net().get_rate_up().total();
 }
 
 uint64_t
 Download::get_bytes_down() {
-  return ((DownloadMain*)m_ptr)->state().bytesDownloaded();
+  return ((DownloadMain*)m_ptr)->net().get_rate_down().total();
 }
 
 uint64_t
@@ -155,12 +155,12 @@ Download::get_peers_max() {
 
 uint32_t
 Download::get_peers_connected() {
-  return ((DownloadMain*)m_ptr)->state().connections().size();
+  return ((DownloadMain*)m_ptr)->net().get_connections().size();
 }
 
 uint32_t
 Download::get_peers_not_connected() {
-  return ((DownloadMain*)m_ptr)->state().available_peers().size();
+  return ((DownloadMain*)m_ptr)->net().get_available_peers().size();
 }
 
 uint32_t
@@ -182,7 +182,7 @@ void
 Download::set_peers_min(uint32_t v) {
   if (v > 0 && v < 1000) {
     ((DownloadMain*)m_ptr)->state().settings().minPeers = v;
-    ((DownloadMain*)m_ptr)->state().connect_peers();
+    ((DownloadMain*)m_ptr)->net().connect_peers();
   }
 }
 
@@ -198,7 +198,7 @@ void
 Download::set_uploads_max(uint32_t v) {
   if (v > 0 && v < 1000) {
     ((DownloadMain*)m_ptr)->state().settings().maxUploads = v;
-    ((DownloadMain*)m_ptr)->state().chokeBalance();
+    ((DownloadMain*)m_ptr)->net().choke_balance();
   }
 }
 
@@ -250,14 +250,14 @@ Download::update_priorities() {
     pos += i->get_size();
   }
 
-  std::for_each(((DownloadMain*)m_ptr)->state().connections().begin(), ((DownloadMain*)m_ptr)->state().connections().end(),
+  std::for_each(((DownloadMain*)m_ptr)->net().get_connections().begin(), ((DownloadMain*)m_ptr)->net().get_connections().end(),
 		call_member(&PeerConnection::update_interested));
 }
 
 void
 Download::peer_list(PList& pList) {
-  std::for_each(((DownloadMain*)m_ptr)->state().connections().begin(),
-		((DownloadMain*)m_ptr)->state().connections().end(),
+  std::for_each(((DownloadMain*)m_ptr)->net().get_connections().begin(),
+		((DownloadMain*)m_ptr)->net().get_connections().end(),
 
 		call_member(ref(pList),
 			    &PList::push_back,
@@ -266,38 +266,39 @@ Download::peer_list(PList& pList) {
 
 Peer
 Download::peer_find(const std::string& id) {
-  DownloadState::Connections::iterator itr = std::find_if(((DownloadMain*)m_ptr)->state().connections().begin(),
-							  ((DownloadMain*)m_ptr)->state().connections().end(),
+  DownloadNet::ConnectionList::iterator itr =
+    std::find_if(((DownloadMain*)m_ptr)->net().get_connections().begin(),
+		 ((DownloadMain*)m_ptr)->net().get_connections().end(),
+		 
+		 eq(ref(id),
+		    call_member(call_member(&PeerConnection::peer),
+				&PeerInfo::get_id)));
 
-							  eq(ref(id),
-							     call_member(call_member(&PeerConnection::peer),
-									 &PeerInfo::get_id)));
-
-  return itr != ((DownloadMain*)m_ptr)->state().connections().end() ?
+  return itr != ((DownloadMain*)m_ptr)->net().get_connections().end() ?
     *itr : NULL;
 }
 
-Download::SignalDownloadDone::iterator
+sigc::connection
 Download::signal_download_done(Download::SlotDownloadDone s) {
   return ((DownloadMain*)m_ptr)->state().content().signal_download_done().connect(s);
 }
 
-Download::SignalPeerConnected::iterator
+sigc::connection
 Download::signal_peer_connected(Download::SlotPeerConnected s) {
-  return ((DownloadMain*)m_ptr)->state().signal_peer_connected().connect(s);
+  return ((DownloadMain*)m_ptr)->net().signal_peer_connected().connect(s);
 }
 
-Download::SignalPeerConnected::iterator
+sigc::connection
 Download::signal_peer_disconnected(Download::SlotPeerConnected s) {
-  return ((DownloadMain*)m_ptr)->state().signal_peer_disconnected().connect(s);
+  return ((DownloadMain*)m_ptr)->net().signal_peer_disconnected().connect(s);
 }
 
-Download::SignalTrackerSucceded::iterator
+sigc::connection
 Download::signal_tracker_succeded(Download::SlotTrackerSucceded s) {
   return ((DownloadMain*)m_ptr)->signal_tracker_succeded().connect(s);
 }
 
-Download::SignalTrackerFailed::iterator
+sigc::connection
 Download::signal_tracker_failed(Download::SlotTrackerFailed s) {
   return ((DownloadMain*)m_ptr)->tracker().signal_failed().connect(s);
 }

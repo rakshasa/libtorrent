@@ -7,7 +7,8 @@
 
 #include <list>
 #include <vector>
-#include <sigc++/signal.h>
+#include <sigc++/slot.h>
+#include <sigc++/connection.h>
 
 namespace torrent {
 
@@ -113,23 +114,17 @@ public:
   // class does not get copied as the binding only points to the original
   // memory location.
 
-  typedef sigc::signal0<void>              SignalDownloadDone;
-  typedef sigc::signal1<void, Peer>        SignalPeerConnected;
-  typedef sigc::signal1<void, Peer>        SignalPeerDisconnected;
-  typedef sigc::signal0<void>              SignalTrackerSucceded;
-  typedef sigc::signal1<void, std::string> SignalTrackerFailed;
-
   typedef sigc::slot0<void>                SlotDownloadDone;
   typedef sigc::slot1<void, Peer>          SlotPeerConnected;
   typedef sigc::slot1<void, Peer>          SlotPeerDisconnected;
   typedef sigc::slot0<void>                SlotTrackerSucceded;
   typedef sigc::slot1<void, std::string>   SlotTrackerFailed;
 
-  SignalDownloadDone::iterator    signal_download_done(SlotDownloadDone s);
-  SignalPeerConnected::iterator   signal_peer_connected(SlotPeerConnected s);
-  SignalPeerConnected::iterator   signal_peer_disconnected(SlotPeerConnected s);
-  SignalTrackerSucceded::iterator signal_tracker_succeded(SlotTrackerSucceded s);
-  SignalTrackerFailed::iterator   signal_tracker_failed(SlotTrackerFailed s);
+  sigc::connection    signal_download_done(SlotDownloadDone s);
+  sigc::connection    signal_peer_connected(SlotPeerConnected s);
+  sigc::connection    signal_peer_disconnected(SlotPeerConnected s);
+  sigc::connection    signal_tracker_succeded(SlotTrackerSucceded s);
+  sigc::connection    signal_tracker_failed(SlotTrackerFailed s);
 
 private:
   DownloadWrapper*      m_ptr;

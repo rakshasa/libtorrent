@@ -1,3 +1,5 @@
 test.cc caught "Connection write fd(18) state(10) "Throttle::spendt(...) error, used to many bytes""
 *** glibc detected *** double free or corruption: 0x0805ec90 ***
 Aborted
+
+Somehow every peer is marked interested, check if this is a real problem. 

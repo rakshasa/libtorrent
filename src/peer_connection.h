@@ -56,8 +56,6 @@ public:
   PeerConnection();
   ~PeerConnection();
 
-  void set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
-  
   void service(int type);
 
   void sendHave(int i);
@@ -84,6 +82,8 @@ public:
   virtual void write();
   virtual void except();
 
+  static PeerConnection* create(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
+
 private:
   PeerConnection(const PeerConnection&);
   PeerConnection& operator = (const PeerConnection&);
@@ -94,6 +94,8 @@ private:
     SERVICE_STALL
   };
 
+  void set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
+  
   bool writeChunk(int maxBytes);
   bool readChunk();
 
