@@ -42,7 +42,7 @@ DownloadMain::setup_net() {
 void
 DownloadMain::setup_tracker() {
   m_tracker = new TrackerControl(m_hash, generateKey());
-  m_tracker->set_me(&m_me);
+  m_tracker->get_info().set_me(&m_me);
 
   m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_rate_down(), &Rate::total));
   m_tracker->slot_stat_up(sigc::mem_fun(m_net.get_rate_up(), &Rate::total));

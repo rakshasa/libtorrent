@@ -13,15 +13,14 @@ namespace torrent {
 // m_tries is -1 if last connection wasn't successfull or we haven't tried yet.
 
 TrackerControl::TrackerControl(const std::string& hash, const std::string& key) :
-  m_me(NULL),
-  m_hash(hash),
-  m_key(key),
   m_tries(-1),
   m_interval(1800),
-  m_state(TRACKER_STOPPED),
-  m_numwant(-1),
+  m_state(TrackerInfo::STOPPED),
   m_taskTimeout(sigc::mem_fun(*this, &TrackerControl::query_current)) {
   
+  m_info.set_hash(hash);
+  m_info.set_key(key);
+
   m_itr = m_list.end();
 }
 
@@ -39,12 +38,9 @@ TrackerControl::add_url(const std::string& url) {
   if (p == std::string::npos)
     throw input_error("Unknown tracker url");
 
-  TrackerHttp* t = new TrackerHttp();
+  TrackerHttp* t = new TrackerHttp(&m_info);
   
   t->set_url(url.substr(p, url.length() - p));
-  t->set_me(m_me);
-  t->set_hash(m_hash);
-  t->set_key(m_key);
 
   t->signal_done().connect(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
@@ -66,13 +62,6 @@ TrackerControl::get_next_time() {
   return m_taskTimeout.is_scheduled() ? std::max(m_taskTimeout.get_time() - Timer::cache(), Timer(0)) : 0;
 }
 
-void
-TrackerControl::set_me(const PeerInfo* me) {
-  m_me = me;
-
-  std::for_each(m_list.begin(), m_list.end(), std::bind2nd(std::mem_fun(&TrackerHttp::set_me), me));
-}
-
 bool
 TrackerControl::is_busy() {
   if (m_itr == m_list.end())
@@ -82,8 +71,8 @@ TrackerControl::is_busy() {
 }
 
 void
-TrackerControl::send_state(TrackerState s) {
-  if ((m_state == TRACKER_STOPPED && s == TRACKER_STOPPED) || m_itr == m_list.end())
+TrackerControl::send_state(TrackerInfo::State s) {
+  if ((m_state == TrackerInfo::STOPPED && s == TrackerInfo::STOPPED) || m_itr == m_list.end())
     return;
 
   m_tries = -1;
@@ -142,8 +131,8 @@ TrackerControl::receive_done(Bencode& bencode) {
     return receive_failed("Peers entry not found.");
   }
 
-  if (m_state != TRACKER_STOPPED) {
-    m_state = TRACKER_NONE;
+  if (m_state != TrackerInfo::STOPPED) {
+    m_state = TrackerInfo::NONE;
     
     m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
     m_signalPeers.emit(l);
@@ -152,7 +141,7 @@ TrackerControl::receive_done(Bencode& bencode) {
 
 void
 TrackerControl::receive_failed(std::string msg) {
-  if (m_state != TRACKER_STOPPED) {
+  if (m_state != TrackerInfo::STOPPED) {
     // TODO: Add support for multiple trackers. Iterate if m_failed > X.
 
     m_taskTimeout.insert(Timer::cache() + 20 * 1000000);
@@ -166,7 +155,6 @@ TrackerControl::query_current() {
   if (m_itr == m_list.end())
     throw internal_error("TrackerControl tried to send with an invalid m_itr");
 
-  (*m_itr)->set_numwant(m_numwant);
   (*m_itr)->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
 }
 

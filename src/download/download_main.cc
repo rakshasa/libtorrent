@@ -62,7 +62,7 @@ void DownloadMain::start() {
     return;
 
   m_started = true;
-  m_tracker->send_state(TRACKER_STARTED);
+  m_tracker->send_state(TrackerInfo::STARTED);
 
   setup_start();
 
@@ -76,7 +76,7 @@ void DownloadMain::stop() {
   while (!m_net.get_connections().empty())
     m_net.remove_connection(m_net.get_connections().front());
 
-  m_tracker->send_state(TRACKER_STOPPED);
+  m_tracker->send_state(TrackerInfo::STOPPED);
   m_started = false;
 
   m_taskChokeCycle.remove();
@@ -167,10 +167,10 @@ void DownloadMain::receive_initial_hash() {
 void
 DownloadMain::receive_download_done() {
   // Don't send TRACKER_COMPLETED if we received done due to initial hash check.
-  if (!m_started || !m_checked || m_tracker->get_state() == TRACKER_STARTED)
+  if (!m_started || !m_checked || m_tracker->get_state() == TrackerInfo::STARTED)
     return;
 
-  m_tracker->send_state(TRACKER_COMPLETED);
+  m_tracker->send_state(TrackerInfo::COMPLETED);
 }
 
 }

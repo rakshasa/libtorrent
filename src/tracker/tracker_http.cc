@@ -10,6 +10,7 @@
 #include "torrent/http.h"
 #include "settings.h"
 #include "tracker_http.h"
+#include "tracker_info.h"
 
 // STOPPED is only sent once, if the connections fails then we stop trying.
 // START has a retry of [very short]
@@ -19,12 +20,10 @@
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp() :
+TrackerHttp::TrackerHttp(TrackerInfo* info) :
   m_get(Http::call_factory()),
   m_data(NULL),
-  m_compact(true),
-  m_numwant(-1),
-  m_me(NULL) {
+  m_info(info) {
 
   m_get->set_user_agent(PACKAGE "/" VERSION);
 
@@ -38,58 +37,55 @@ TrackerHttp::~TrackerHttp() {
 }
 
 void
-TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left) {
+TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
-  if (m_me == NULL)
-    throw internal_error("TrackerHttp::send_state(...) does not have a m_me");
+  if (m_info == NULL || m_info->get_me() == NULL)
+    throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info or m_me");
 
-  if (m_me->get_id().length() != 20 ||
-      m_me->get_port() == 0 ||
-      m_hash.length() != 20)
+  if (m_info->get_me()->get_id().length() != 20 ||
+      m_info->get_me()->get_port() == 0 ||
+      m_info->get_hash().length() != 20)
     throw internal_error("Send state with TrackerHttp with bad hash, id or port");
 
   std::stringstream s;
 
-  s << m_url
-    << "?info_hash=";
-  
-  escape_string(m_hash, s);
+  s << m_url << "?info_hash=";
+  escape_string(m_info->get_hash(), s);
 
   s << "&peer_id=";
+  escape_string(m_info->get_me()->get_id(), s);
 
-  escape_string(m_me->get_id(), s);
-
-  if (!m_key.empty())
-    s << "&key=" << m_key;
+  if (!m_info->get_key().empty())
+    s << "&key=" << m_info->get_key();
 
   if (!m_trackerId.empty()) {
     s << "&trackerid=";
     escape_string(m_trackerId, s);
   }
 
-  if (m_me->get_dns().length())
-    s << "&ip=" << m_me->get_dns();
+  if (m_info->get_me()->get_dns().length())
+    s << "&ip=" << m_info->get_me()->get_dns();
 
-  if (m_compact)
+  if (m_info->get_compact())
     s << "&compact=1";
 
-  if (m_numwant >= 0)
-    s << "&numwant=" << m_numwant;
+  if (m_info->get_numwant() >= 0)
+    s << "&numwant=" << m_info->get_numwant();
 
-  s << "&port=" << m_me->get_port()
+  s << "&port=" << m_info->get_me()->get_port()
     << "&uploaded=" << up
     << "&downloaded=" << down
     << "&left=" << left;
 
   switch(state) {
-  case TRACKER_STARTED:
+  case TrackerInfo::STARTED:
     s << "&event=started";
     break;
-  case TRACKER_STOPPED:
+  case TrackerInfo::STOPPED:
     s << "&event=stopped";
     break;
-  case TRACKER_COMPLETED:
+  case TrackerInfo::COMPLETED:
     s << "&event=completed";
     break;
   default:

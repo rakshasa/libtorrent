@@ -7,6 +7,7 @@
 #include <sigc++/slot.h>
 
 #include "peer_info.h"
+#include "tracker_info.h"
 #include "tracker_state.h"
 
 #include "torrent/bencode.h"
@@ -36,21 +37,17 @@ class TrackerControl {
   TrackerControl(const std::string& hash, const std::string& key);
   ~TrackerControl();
 
-  void                  send_state(TrackerState s);
+  void                  send_state(TrackerInfo::State s);
   void                  cancel();
 
   void                  add_url(const std::string& url);
 
-  TrackerState          get_state()                             { return m_state; }
+  TrackerInfo::State    get_state()                             { return m_state; }
+  TrackerInfo&          get_info()                              { return m_info; }
 
   // Use set_next_time(...) to do tracker rerequests.
   Timer                 get_next_time();
   void                  set_next_time(Timer interval);
-
-  int16_t               get_numwant()                           { return m_numwant; }
-  void                  set_numwant(int16_t n)                  { m_numwant = n; }
-
-  void                  set_me(const PeerInfo* me);
 
   bool                  is_busy();
 
@@ -77,16 +74,11 @@ class TrackerControl {
 
   static PeerInfo       parse_peer(const Bencode& b);
 
-  const PeerInfo*       m_me;
-  std::string           m_hash;
-  std::string           m_key;
-  std::string           m_ip;
-  
   int                   m_tries;
   int                   m_interval;
 
-  TrackerState          m_state;
-  int16_t               m_numwant;
+  TrackerInfo           m_info;
+  TrackerInfo::State    m_state;
 
   TrackerList           m_list;
   TrackerList::iterator m_itr;

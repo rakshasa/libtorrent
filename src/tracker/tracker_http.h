@@ -8,7 +8,7 @@
 #include "torrent/bencode.h"
 
 #include "peer_info.h"
-#include "tracker_state.h"
+#include "tracker_info.h"
 
 struct sockaddr_in;
 
@@ -23,27 +23,24 @@ public:
   typedef sigc::signal1<void, Bencode&>    SignalDone;
   typedef sigc::signal1<void, std::string> SignalFailed;
 
-  TrackerHttp();
+  TrackerHttp(TrackerInfo* info);
   ~TrackerHttp();
 
   bool               is_busy()                             { return m_data != NULL; }
 
-  void               send_state(TrackerState state,
+  void               send_state(TrackerInfo::State state,
 				uint64_t down,
 				uint64_t up,
 				uint64_t left);
 
   void               close();
 
-  void               set_url(const std::string& url)       { m_url = url; }
-  void               set_hash(const std::string& hash)     { m_hash = hash; }
-  void               set_key(const std::string& key)       { m_key = key; }
-  void               set_tracker_id(const std::string& id) { m_trackerId = id; }
+  TrackerInfo*       get_info()                            { return m_info; }
 
-  void               set_compact(bool c)                   { m_compact = c; }
-  void               set_numwant(int16_t n)                { m_numwant = n; }
-  
-  void               set_me(const PeerInfo* me)            { m_me = me; }
+  const std::string& get_url()                             { return m_url; }
+  void               set_url(const std::string& url)       { m_url = url; }
+
+  void               set_tracker_id(const std::string& id) { m_trackerId = id; }
 
   SignalDone&        signal_done()                         { return m_signalDone; }
   SignalFailed&      signal_failed()                       { return m_signalFailed; }
@@ -61,15 +58,9 @@ private:
   Http*              m_get;
   std::stringstream* m_data;
 
+  TrackerInfo*       m_info;
   std::string        m_url;
-  std::string        m_hash;
-  std::string        m_key;
   std::string        m_trackerId;
-
-  bool               m_compact;
-  int16_t            m_numwant;
-
-  const PeerInfo*    m_me;
 
   SignalDone         m_signalDone;
   SignalFailed       m_signalFailed;
