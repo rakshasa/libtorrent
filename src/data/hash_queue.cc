@@ -19,25 +19,25 @@ HashQueue::add(const std::string& id, Chunk c, SlotDone d, bool try_immediately)
   if (!c.is_valid() || !c->is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
-  if (m_chunks.empty()) {
-    if (in_service(0))
-      throw internal_error("Empty HashQueue is still in service");
-
-    m_tries = 0;
-    insert_service(Timer::current(), 0);
-  }
-
   HashChunk* hc = new HashChunk(c);
 
   if (try_immediately)
     while (hc->remaining() &&
 	   hc->perform(hc->remaining()));
   
-  if (hc->remaining() == 0) {
+  if (!hc->remaining()) {
     d(c, hc->get_hash());
 
     delete hc;
     return;
+  }
+
+  if (m_chunks.empty()) {
+    if (in_service(0))
+      throw internal_error("Empty HashQueue is still in service");
+
+    m_tries = 0;
+    insert_service(Timer::current(), 0);
   }
 
   m_chunks.push_back(Node(hc, id, d));
