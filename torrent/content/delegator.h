@@ -17,6 +17,7 @@ public:
   typedef sigc::signal1<bool, unsigned int> SignalChunkDone;
   typedef sigc::signal1<void, const Piece&> SignalPieceDone;
 
+  // Queue size thing?
   bool delegate(const std::string& id, const BitField& bf, int flags, Piece& piece);
 
   Priority& priority();

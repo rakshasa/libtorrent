@@ -1,3 +1,7 @@
+2004-09-25  Jari Petter Sundell  <jaris@student.matnat.uio.no>
+
+	* client: View files in torrent and their size. Will be used for priority later.
+
 2004-09-19  Jari Petter Sundell  <jaris@student.matnat.uio.no>
 
 	* all: Forgotten to update this file for a while. Lot's of stuff happen with the code. ;)

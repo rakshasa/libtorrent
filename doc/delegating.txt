@@ -61,3 +61,37 @@ Normal mode:
 Endgame mode:
 
 * Divide the pieces download evenly.
+
+
+
+****
+
+Will we only need to delegate overlapping pieces in endgame mode?
+
+* Requires that there's only one outstanding request per peer at any
+  time in the endgame mode.
+
+* No id needed in the delegation. No ref counting either, or use ref
+  counting with only 0/1 in the normal mode and ref in endgame.
+
+Do we have a timed out state and a truly canceled state?
+
+* Timed out state can allow downloads that finaly start to be received.
+
+* We could not prefer allocating timed out pieces. (except for endgame/startgame mode).
+
+* Timed out state should eventually really time out. *snub*
+
+* If the download finally starts we set the state to downloading.
+
+* Pieces being downloaded have lower timeout than pieces waiting to start.
+
+How to encode timed out and downloading as cheaply as possible? We need multiple ref's for endgame mode.
+
+* One ref count for downloading, one for timed out.
+
+
+
+How long will we acceptably wait for a chunk request to timeout?
+
+What is required: progressive queueing based on download speed.
