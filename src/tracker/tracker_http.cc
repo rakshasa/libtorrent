@@ -28,8 +28,8 @@ TrackerHttp::TrackerHttp() :
 
   m_get->set_user_agent(PACKAGE "/" VERSION);
 
-  m_get->slot_done(sigc::mem_fun(*this, &TrackerHttp::receive_done));
-  m_get->slot_failed(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
+  m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
+  m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
 }
 
 TrackerHttp::~TrackerHttp() {
@@ -94,7 +94,7 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
   m_data = new std::stringstream();
 
   m_get->set_url(s.str());
-  m_get->set_out(m_data);
+  m_get->set_stream(m_data);
 
   m_get->start();
 }
@@ -102,7 +102,7 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
 void
 TrackerHttp::close() {
   m_get->close();
-  m_get->set_out(NULL);
+  m_get->set_stream(NULL);
 
   delete m_data;
 
@@ -182,9 +182,7 @@ TrackerHttp::receive_done() {
 
   close();
 
-  sigc::signal2<void, const PeerList&, int> s = m_done;
-
-  s.emit(l, interval);
+  m_signalDone.emit(l, interval);
 }
 
 PeerInfo TrackerHttp::parse_peer(const Bencode& b) {
@@ -215,9 +213,7 @@ void
 TrackerHttp::receive_failed(std::string msg) {
   close();
 
-  sigc::signal1<void, std::string> s = m_failed;
-
-  s.emit(msg);
+  m_signalFailed.emit(msg);
 }
 
 void

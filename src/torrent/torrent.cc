@@ -202,15 +202,18 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
 }
 
 Download
-download_create(std::istream& s) {
+download_create(std::istream* s) {
+  if (s == NULL)
+    throw client_error("torrent::download_create(...) received a NULL pointer");
+
   // TODO: Should we clear failed bits?
-  s.clear();
+  s->clear();
 
   std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
 
-  s >> d->get_bencode();
+  *s >> d->get_bencode();
 
-  if (s.fail())
+  if (s->fail())
     // Make it configurable whetever we throw or return .end()?
     throw local_error("Could not parse Bencoded torrent");
   

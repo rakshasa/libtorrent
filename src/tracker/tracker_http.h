@@ -41,8 +41,8 @@ public:
   
   void               set_me(const PeerInfo* me)        { m_me = me; }
 
-  SignalDone&        signal_done()                     { return m_done; }
-  SignalFailed&      signal_failed()                   { return m_failed; }
+  SignalDone&        signal_done()                     { return m_signalDone; }
+  SignalFailed&      signal_failed()                   { return m_signalFailed; }
 
 private:
   // Don't allow ctor.
@@ -70,8 +70,8 @@ private:
 
   const PeerInfo*    m_me;
 
-  SignalDone         m_done;
-  SignalFailed       m_failed;
+  SignalDone         m_signalDone;
+  SignalFailed       m_signalFailed;
 };
 
 } // namespace torrent

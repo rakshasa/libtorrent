@@ -28,7 +28,7 @@ void      mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd)
 void      work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
 
 // Will always return a valid Download. On errors it throws.
-Download  download_create(std::istream& s);
+Download  download_create(std::istream* s);
 
 // Add all downloads to dlist. Make sure it's cleared.
 void      download_list(DList& dlist);
