@@ -630,9 +630,10 @@ void PeerConnection::fillWriteBuf() {
 	  m_down.list.back().length() + m_down.list.back().offset() >
 
 	  ((unsigned)m_down.list.back().index() + 1 != m_download->content().get_storage().get_chunkcount() ||
-	   (m_download->content().get_size() % m_download->content().get_storage().get_chunksize()) ?
+	   !(m_download->content().get_size() % m_download->content().get_storage().get_chunksize()) ?
+
 	   m_download->content().get_storage().get_chunksize() :
-	   (m_download->content().get_storage().get_size() % m_download->content().get_storage().get_chunksize()))) {
+	   (m_download->content().get_size() % m_download->content().get_storage().get_chunksize()))) {
 
 	std::stringstream s;
 
@@ -682,7 +683,8 @@ void PeerConnection::fillWriteBuf() {
 	m_up.list.front().length() + m_up.list.front().offset() >
 
 	((unsigned)m_up.list.front().index() + 1 != m_download->content().get_storage().get_chunkcount()  ||
-	   (m_download->content().get_size() % m_download->content().get_storage().get_chunksize()) ?
+	 !(m_download->content().get_size() % m_download->content().get_storage().get_chunksize()) ?
+
 	 m_download->content().get_storage().get_chunksize() :
 	 (m_download->content().get_storage().get_size() % m_download->content().get_storage().get_chunksize()))) {
 

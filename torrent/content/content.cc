@@ -107,13 +107,16 @@ Content::open(bool wr) {
     m_storage.add_file(f, itr->get_size());
   }
 
-  if (m_hash.size() / 20 != m_storage.get_chunkcount())
-    throw internal_error("Tried to open Content with wrong hash size");
-
   m_bitfield = BitField(m_storage.get_chunkcount());
 
   // Update anchor count in m_storage.
   m_storage.set_chunksize(m_storage.get_chunksize());
+
+  if (m_hash.size() / 20 != m_storage.get_chunkcount())
+    throw internal_error("Content::open(...): Chunk count does not match hash count");
+
+  if (m_size != m_storage.get_size())
+    throw internal_error("Content::open(...): m_size != m_storage.get_size()");
 }
 
 void
