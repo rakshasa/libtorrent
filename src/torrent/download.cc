@@ -1,12 +1,13 @@
 #include "config.h"
 
+#include "tracker/tracker_control.h"
+#include "data/hash_queue.h"
+#include "data/hash_torrent.h"
+
 #include "exceptions.h"
 #include "download.h"
 #include "download_main.h"
 #include "peer_connection.h"
-#include "tracker/tracker_control.h"
-#include "data/hash_queue.h"
-#include "data/hash_torrent.h"
 
 #include <algo/algo.h>
 #include <sigc++/hide.h>
@@ -333,6 +334,16 @@ Download::signal_tracker_succeded(Download::SlotTrackerSucceded s) {
 sigc::connection
 Download::signal_tracker_failed(Download::SlotTrackerFailed s) {
   return ((DownloadMain*)m_ptr)->tracker().signal_failed().connect(s);
+}
+
+sigc::connection
+Download::signal_chunk_passed(Download::SlotChunk s) {
+  return ((DownloadMain*)m_ptr)->state().signal_chunk_passed().connect(s);
+}
+
+sigc::connection
+Download::signal_chunk_failed(Download::SlotChunk s) {
+  return ((DownloadMain*)m_ptr)->state().signal_chunk_failed().connect(s);
 }
 
 }

@@ -11,7 +11,7 @@
 #include "torrent/exceptions.h"
 #include "download/download_net.h"
 
-#include "download_state.h"
+#include "download/download_state.h"
 #include "peer_connection.h"
 #include "general.h"
 #include "settings.h"

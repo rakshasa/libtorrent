@@ -120,12 +120,18 @@ public:
   typedef sigc::slot1<void, Peer>          SlotPeerDisconnected;
   typedef sigc::slot0<void>                SlotTrackerSucceded;
   typedef sigc::slot1<void, std::string>   SlotTrackerFailed;
+  typedef sigc::slot1<void, uint32_t>      SlotChunk;
 
   sigc::connection    signal_download_done(SlotDownloadDone s);
+
   sigc::connection    signal_peer_connected(SlotPeerConnected s);
   sigc::connection    signal_peer_disconnected(SlotPeerConnected s);
+
   sigc::connection    signal_tracker_succeded(SlotTrackerSucceded s);
   sigc::connection    signal_tracker_failed(SlotTrackerFailed s);
+
+  sigc::connection    signal_chunk_passed(SlotChunk s);
+  sigc::connection    signal_chunk_failed(SlotChunk s);
 
 private:
   DownloadWrapper*      m_ptr;

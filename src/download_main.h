@@ -1,11 +1,12 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
+#include "download/download_state.h"
+#include "download/download_net.h"
+
 #include "bencode.h"
 #include "service.h"
 #include "settings.h"
-#include "download_state.h"
-#include "download/download_net.h"
 #include "peer_info.h"
 
 #include <sigc++/connection.h>

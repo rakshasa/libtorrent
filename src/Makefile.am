@@ -29,8 +29,6 @@ libtorrent_la_SOURCES = \
 	bitfield_counter.h \
         download_main.cc \
         download_main.h \
-	download_state.cc \
-	download_state.h \
         general.cc \
         general.h \
         peer_info.cc \

@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
+
 #include "storage.h"
 #include "storage_consolidator.h"
 

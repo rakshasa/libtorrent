@@ -43,6 +43,9 @@ std::string ip;
 uint16_t port1 = 6890;
 uint16_t port2 = 6999;
 
+uint32_t chunkPassed = 0;
+uint32_t chunkFailed = 0;
+
 Display* display = NULL;
 bool shutdown_progress = false;
 
@@ -167,6 +170,14 @@ void signal_handler(int signum) {
   }
 }
 
+void chunk_passed(uint32_t t) {
+  chunkPassed++;
+}
+
+void chunk_failed(uint32_t t) {
+  chunkPassed++;
+}
+
 int main(int argc, char** argv) {
   int fIndex = 0;
   fd_set rset, wset, eset;
@@ -233,7 +244,7 @@ int main(int argc, char** argv) {
       
       switch (displayState) {
       case DISPLAY_MAIN:
-	display->drawDownloads(curDownload->get_hash());
+	display->drawDownloads(curDownload != downloads.end() ? curDownload->get_hash() : "");
 	break;
 	
       case DISPLAY_DOWNLOAD:

@@ -8,9 +8,10 @@
 #include <sstream>
 
 #include "torrent/exceptions.h"
-#include "peer_connection.h"
-#include "download_state.h"
+#include "download/download_state.h"
 #include "download/download_net.h"
+
+#include "peer_connection.h"
 
 #define BUFFER_SIZE (1<<9)
 
