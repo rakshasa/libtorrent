@@ -6,26 +6,23 @@
 
 namespace torrent {
 
-class Ranges {
+class Ranges : private std::vector<std::pair<uint32_t, uint32_t> > {
 public:
   typedef std::pair<uint32_t, uint32_t>        Range;
   typedef std::vector<Range>                   List;
 
-  typedef std::vector<Range>::iterator         iterator;
-  typedef std::vector<Range>::reverse_iterator reverse_iterator;
+  using List::iterator;
+  using List::reverse_iterator;
+  using List::clear;
+  using List::size;
 
-  void                clear()             { m_list.clear(); }
-
-  List::size_type     size()              { return m_list.size(); }
+  using List::begin;
+  using List::end;
+  using List::rbegin;
+  using List::rend;
 
   void                insert(uint32_t begin, uint32_t end);
   void                erase(uint32_t begin, uint32_t end);
-
-  iterator            begin()             { return m_list.begin(); }
-  iterator            end()               { return m_list.end(); }
-
-  reverse_iterator    rbegin()            { return m_list.rbegin(); }
-  reverse_iterator    rend()              { return m_list.rend(); }
 
   iterator            find(uint32_t index);
 

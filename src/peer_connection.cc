@@ -537,7 +537,7 @@ void PeerConnection::parseReadBuf() {
       m_download->get_bitfield_counter().inc(index);
     }
     
-    if (m_net->get_delegator().get_select().interested(index)) {
+    if (!m_up.interested && m_net->get_delegator().get_select().interested(index)) {
       // We are interested, send flag if not already set.
       m_sendInterested = !m_up.interested;
       m_up.interested = true;
