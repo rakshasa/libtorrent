@@ -3,10 +3,13 @@
 
 #include <sigc++/signal.h>
 
-#include "piece.h"
+#include "priority.h"
+#include "delegator_chunk.h"
 
 namespace torrent {
 
+// Go out of engame mode if the last piece is failing, perhaps a
+// panic mode of sorts?
 class Delegator {
 public:
   static const unsigned int slow_peer    = 0x01;
@@ -14,21 +17,24 @@ public:
   static const unsigned int start_mode   = 0x04;
   static const unsigned int endgame_mode = 0x08;
   
+  typedef std::list<DelegatorChunk>         ChunkList;
   typedef sigc::signal1<bool, unsigned int> SignalChunkDone;
   typedef sigc::signal1<void, const Piece&> SignalPieceDone;
 
-  // Queue size thing?
-  bool delegate(const std::string& id, const BitField& bf, int flags, Piece& piece);
+  Priority&        priority()          { return m_priority; }
 
-  Priority& priority();
+  DelegatorPiece   delegate(const BitField& bf, int flags);
 
-  void done(const std::string& id, Piece& piece);
-  void cancel(const std::string& id);
+  // Add id here so we can avoid downloading from the same source?
+  void             done(DelegatorPiece& p);
 
-  SignalChunkDone& signal_chunk_done();
+  SignalChunkDone& signal_chunk_done() { return m_signalChunkDone; }
 
 private:
+  Priority         m_priority;
+  ChunkList        m_chunks;
 
+  SignalChunkDone  m_signalChunkDone;
 };
 
 }

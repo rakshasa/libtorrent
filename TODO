@@ -81,6 +81,8 @@ Do something about tracker connect fails, they are not handled optimally.
 Somehow choke delay got stuck:
 0.0    0.0    ci/und 0/16
 
+Switch to a proper type for file offset/length and chunk length.
+
 
 API REDESIGN:
 
