@@ -47,9 +47,10 @@ RequestList::downloading(const Piece& p) {
   if (m_downloading)
     throw internal_error("RequestList::downloading(...) bug, m_downloaing is already set");
 
-  ReserveeList::iterator itr = std::find_if(m_reservees.begin(), m_reservees.end(),
-					    eq(ref(p), call_member(&DelegatorReservee::get_piece)));
-
+  ReserveeList::iterator itr =
+    std::find_if(m_reservees.begin(), m_reservees.end(),
+		 eq(ref(p), call_member(&DelegatorReservee::get_piece)));
+  
   if (itr == m_reservees.end() || !m_delegator->downloading(**itr))
     return false;
 
@@ -104,6 +105,23 @@ RequestList::cancel_range(ReserveeList::iterator end) {
     delete m_reservees.front();
     m_reservees.pop_front();
   }
+}
+
+unsigned int
+RequestList::remove_invalid() {
+  unsigned int count = 0;
+  ReserveeList::iterator itr;
+
+  // Could be more efficient, but rarely do we find any.
+  while ((itr = std::find_if(m_reservees.begin(), m_reservees.end(),
+			     bool_not(call_member(&DelegatorReservee::is_valid))))
+	 != m_reservees.end()) {
+    count++;
+    delete *itr;
+    m_reservees.erase(itr);
+  }
+
+  return count;
 }
 
 }

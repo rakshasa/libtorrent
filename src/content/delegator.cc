@@ -52,6 +52,12 @@ Delegator::delegate(const BitField& bf, int affinity) {
   if (target)
     return target->create();
 
+  // else find a new chunk
+  target = new_chunk(bf);
+  
+  if (target)
+    return target->create();
+
   // Download stalled pieces.
   std::find_if(m_chunks.begin(), m_chunks.end(),
 	       bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
@@ -62,12 +68,6 @@ Delegator::delegate(const BitField& bf, int affinity) {
 					    bool_not(call_member(&DelegatorPiece::get_not_stalled))),
 
 				   assign_ref(target, back_as_ptr()))));
-  
-  if (target)
-    return target->create();
-
-  // else find a new chunk
-  target = new_chunk(bf);
   
   if (target)
     return target->create();

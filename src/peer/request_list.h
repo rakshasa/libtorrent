@@ -37,11 +37,19 @@ public:
   bool               is_wanted()                      { return m_reservees.front()->is_valid(); }
 
   bool               has_index(unsigned int i);
+  unsigned int       remove_invalid();
 
   unsigned int       get_size()                       { return m_reservees.size(); }
 
   const Piece&       get_piece()                      { return m_piece; }
-  const Piece&       get_queued_piece(unsigned int i) { return m_reservees[i]->get_piece(); }
+
+  Piece              get_queued_piece(unsigned int i) {
+    // TODO: Make this unnessesary?
+    if (m_reservees[i]->is_valid())
+      return m_reservees[i]->get_piece();
+    else
+      return Piece();
+  }
 
   void               set_delegator(Delegator* d)      { m_delegator = d; }
   void               set_bitfield(const BitField* b)  { m_bitfield = b; }

@@ -191,7 +191,6 @@ void PeerConnection::read() {
 	m_down.length = piece.get_length();
 	m_down.state = READ_SKIP_PIECE;
 
-	remove_service(SERVICE_STALL);
 	caughtExceptions.push_back("Receiving piece we don't want from " + m_peer.dns());
       }
 
@@ -234,7 +233,8 @@ void PeerConnection::read() {
       m_down.pos = 0;
 
       m_requests.skip();
-      remove_service(SERVICE_STALL);
+
+      goto evil_goto_read;
     }
 
     previous = m_down.pos;
@@ -264,20 +264,15 @@ void PeerConnection::read() {
     goto evil_goto_read;
 
   case READ_SKIP_PIECE:
-    // TODO: Temporary, kill as soon as possible.
-    if (in_service(SERVICE_STALL))
-      throw internal_error("READ_SKIP_PIECE state but peer is in SERVICE_STALL");
+    if (m_down.pos != 0)
+      throw internal_error("READ_SKIP_PIECE m_down.pos != 0");
 
-    previous = m_down.pos;
     s = readBuf(m_down.buf,
 		std::min(m_down.length, BUFFER_SIZE),
 		m_down.pos);
 
-    m_throttle.down().add(m_down.pos - previous);
+    m_throttle.down().add(m_down.pos);
 
-    if (!s)
-      return;
-    
     m_down.length -= m_down.pos;
     m_down.pos = 0;
 
@@ -285,11 +280,16 @@ void PeerConnection::read() {
       // Done with this piece.
       m_down.state = IDLE;
 
+      remove_service(SERVICE_STALL);
+
       if (m_requests.get_size())
 	insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
     }
 
-    goto evil_goto_read;
+    if (s)
+      goto evil_goto_read;
+    else
+      return;
 
   default:
     throw internal_error("peer_connectino::read() called on object in wrong state");
@@ -663,7 +663,6 @@ void PeerConnection::sendHave(int index) {
   // skip it.
   if (m_requests.is_downloading() &&
       m_requests.get_piece().get_index() == index) {
-    throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading() with this index");
 
     if (m_down.state != READ_PIECE)
       throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading() but state is not READ_PIECE");
@@ -672,10 +671,14 @@ void PeerConnection::sendHave(int index) {
     m_down.length = m_requests.get_piece().get_length() - m_down.pos;
     m_down.pos = 0;
 
-    // TODO: Do some proper canceling here.
+    m_requests.skip();
 
     m_down.data = Storage::Chunk();
   }
+
+  if (m_requests.remove_invalid() &&
+      m_requests.get_size() == 0)
+    remove_service(SERVICE_STALL);
 
   if (m_requests.has_index(index))
     throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
