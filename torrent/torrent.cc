@@ -280,8 +280,11 @@ int64_t get(DList::const_iterator d, DValue t) {
 
     std::for_each((*d)->state().delegator().chunks().begin(), (*d)->state().delegator().chunks().end(),
 		  for_each_on(member(&Delegator::Chunk::m_pieces),
-			      add_ref(a, call_member(member(&Delegator::PieceInfo::m_piece),
-						     &Piece::length))));
+			      if_on(eq(value(Delegator::FINISHED),
+				       member(&Delegator::PieceInfo::m_state)),
+				    
+				    add_ref(a, call_member(member(&Delegator::PieceInfo::m_piece),
+							   &Piece::length)))));
 
     return a + (*d)->state().files().doneSize();
 
@@ -298,10 +301,10 @@ int64_t get(DList::const_iterator d, DValue t) {
     return (*d)->state().settings().chokeCycle;
 
   case RATE_UP:
-    return (*d)->state().rateUp().rate(true);
+    return (*d)->state().rateUp().rate_quick();
 
   case RATE_DOWN:
-    return (*d)->state().rateDown().rate(true);
+    return (*d)->state().rateDown().rate_quick();
 
   case PEERS_MIN:
     return (*d)->state().settings().minPeers;
@@ -378,10 +381,10 @@ int64_t get(PList::const_iterator p, PValue t) {
     return (*p)->chokeDelayed();
 
   case PEER_RATE_DOWN:
-    return (*p)->throttle().down().rate(true);
+    return (*p)->throttle().down().rate_quick();
 
   case PEER_RATE_UP:
-    return (*p)->throttle().up().rate(true);
+    return (*p)->throttle().up().rate_quick();
 
   case PEER_PORT:
     return (*p)->peer().port();

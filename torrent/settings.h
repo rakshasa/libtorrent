@@ -17,6 +17,7 @@ class Settings {
   static int rateStart;
   static int rateWindow;
   static int rateQuick;
+  static int rateSample;
 };
 
 class DownloadSettings {
@@ -54,7 +55,7 @@ class ThrottleSettings {
   static int starveBuffer;
 
   // Min size of chunks to send out.
-  static int minChunk;
+  static int minChunkMask;
 };
 
 // When pipelining of requests is implemented, add bounds so it can never

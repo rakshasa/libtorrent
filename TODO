@@ -7,14 +7,8 @@ Make peer::connection::read* static?
 
 Find out how to make autoconf use big files.
 
-Add the option to not throw non-critical exceptions. This lets the
-client be ignorant of errors while creating stuff. (Make some kind of
-C friendly layer ontop)
-
 Support compact tracker query and 302 redirects, make a new class that handles
 http gets.
-
-Let the client retrive the file names in the torrent. (Add support for all in one string, or path broken up)
 
 Setting for pipelining requests.
 
@@ -26,7 +20,7 @@ Add average, max and total to rates. Will this be controlled by choke/unchoke?
 
 Set IP TOS
 
-Optimize Rate::rate()
+Optimize Rate::rate(), use integer seconds. (or bitshifted)
 
 Add a snub factor. The more you upload without getting back, the higher it goes. Add a start buffer.
 
@@ -34,12 +28,22 @@ Make configure do the peer id thingie automagically
 
 Add config for how often we unchoke unknown peers vs good uploaders
 
-Consider splitting up download_state's peer connection management and choking stuff.
+Consider splitting up download_state's peer connection management and download state stuff.
 
 fix socketBase setAsync
 
-We're counting bytes we haven't downloaded, fixme.
+We're counting bytes we haven't downloaded in requested pieces, fixme.
 
 Recursively update the up/down rates in throttle.
 
 Implement min size of chunks sent in peer_connection
+
+
+IN/AFTER API REDESIGN:
+
+Add the option to not throw non-critical exceptions. This lets the
+client be ignorant of errors while creating stuff. (Make some kind of
+C friendly layer ontop)
+
+Let the client retrive the file names in the torrent. (Add support for all in one string, or path broken up)
+

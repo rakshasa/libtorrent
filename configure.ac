@@ -1,12 +1,12 @@
 AC_INIT(torrent/torrent.cc)
 
-LIBTORRENT_VERSION=0.2.7
+LIBTORRENT_VERSION=0.3.0
 
 AC_SUBST(LIBTORRENT_VERSION)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,
-          "-lt0027-",
+          "-lt0030-",
           Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=0
@@ -26,8 +26,9 @@ AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
 
-CXXFLAGS="-O3 -g"
-CFLAGS="-O3 -g"
+dnl CXXFLAGS="-O3 -g"
+dnl CFLAGS="-O3 -g"
+CXXFLAGS="-O3"
 
 AC_LANG(C++)
 AC_PROG_CXX

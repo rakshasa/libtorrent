@@ -2,12 +2,14 @@
 #include "config.h"
 #endif
 
+#include <inttypes.h>
+#include <numeric>
+#include <algo/algo.h>
+
 #include "exceptions.h"
 #include "settings.h"
 #include "socket_base.h"
 #include "throttle.h"
-#include <numeric>
-#include <algo/algo.h>
 
 using namespace algo;
 
@@ -64,16 +66,17 @@ int Throttle::left() {
   if (m_left == UNLIMITED)
     return std::numeric_limits<int>::max() / 2;
 
-  // TODO: Give chunks.
-  return m_left;
+  else
+    return m_left & ThrottleSettings::minChunkMask;
 }
 
 void Throttle::spent(unsigned int bytes) {
+  m_spent += bytes;
+
   if (m_left == UNLIMITED)
     return;
 
   m_left -= bytes;
-  m_spent += bytes;
 
   if (m_left < 0)
     throw internal_error("Throttle::spendt(...) error, used to many bytes");
@@ -91,7 +94,8 @@ int Throttle::update(float period, int bytes) {
 		     (unsigned int)(m_settings->constantRate * period));
 
   // Make sure we always build up enough to be able to get past wakeupPoint.
-  if (bytes < ThrottleSettings::wakeupPoint) {
+  if (bytes != UNLIMITED &&
+      bytes < ThrottleSettings::wakeupPoint) {
     
     if (m_left + bytes > ThrottleSettings::wakeupPoint)
       bytes = std::max(ThrottleSettings::wakeupPoint - m_left, 0);

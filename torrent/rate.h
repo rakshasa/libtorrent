@@ -6,31 +6,21 @@
 
 namespace torrent {
 
+// TODO: We need to have a quick changeing rate class with total/average
+// for the past X*k seconds and stuff like that.
+
 // Assumes Timer::cache() is up to date.
 class Rate {
  public:
   Rate() : m_new(true), m_bytes(0) {}
 
-  // Bytes per second. Not using default parm since it borks my algorithms.
-  // quick - Zero the rate quickly.
-  int rate() { return rate(false); }
-  int rate(bool quick);
+  unsigned int rate();
+  unsigned int rate_quick();
 
-  uint64_t bytes() const { return m_bytes; }
+  uint64_t total() const { return m_bytes; }
 
-  void add(unsigned int bytes) {
-    if (m_entries.empty())
-      m_new = true;
-
-    // We don't need to clean up old entries here since bytes() is called
-    // every 30 seconds by Download::CHOKE_CYCLE.
-    m_bytes += bytes;
-
-    // Todo: Only create a new entry each seconds or something (right-shift the
-    // time or something)
-    m_entries.push_front(std::make_pair(Timer::cache(), bytes));
-  }
-
+  void add(unsigned int bytes);
+  
   bool operator < (Rate& r) {
     return rate() < r.rate();
   }

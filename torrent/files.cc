@@ -9,12 +9,12 @@
 
 using namespace algo;
 
+#include "files.h"
 #include "bencode.h"
 #include "exceptions.h"
 #include "general.h"
 #include "settings.h"
 
-#include "files.h"
 #include "files_algo.h"
 
 namespace torrent {

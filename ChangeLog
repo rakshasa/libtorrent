@@ -1,3 +1,7 @@
+2004-07-28    <jaris@ifi.uio.no>
+
+	* torrent: Fixed a few bugs in the throttle and added min chunk size.
+
 2004-07-25    <jaris@ifi.uio.no>
 
 	* torrent: Fixed bug that made it skip sending the stop message to the tracker when quiting.
@@ -8,9 +12,9 @@
 
 2004-07-20    <jaris@ifi.uio.no>
 
-	* torrent/rate.h: Using deque instead of list to increase performance.
+	* torrent: Using deque instead of list to increase performance.
 
-	* torrent/socket_base.cc: Don't close the connection if errno == EINTR.
+	* torrent: Don't close the connection if errno == EINTR.
 
 	* client: Added view of the exceptions log.
 

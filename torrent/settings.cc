@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 
+#include <inttypes.h>
 #include "settings.h"
 
 namespace torrent {
@@ -15,7 +16,8 @@ int Settings::dirMode = 0777;
 
 int Settings::rateStart = 20 * 1000000;
 int Settings::rateWindow = 60 * 1000000;
-int Settings::rateQuick = 5 * 1000000;
+int Settings::rateQuick = 10 * 1000000;
+int Settings::rateSample = 1000000;
 
 DownloadSettings* DownloadSettings::m_global = new DownloadSettings();
 
@@ -32,7 +34,8 @@ int ThrottleSettings::wakeupPoint = 2048;
 int ThrottleSettings::starvePoint = 2048;
 int ThrottleSettings::starveBuffer = 1024;
 
-int ThrottleSettings::minChunk = 512;
+// Send out 512 byte chunks
+int ThrottleSettings::minChunkMask = ~((1 << 9) - 1);
 
 ThrottleSettings::ThrottleSettings() :
   constantRate(-1)

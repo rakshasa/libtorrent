@@ -70,6 +70,8 @@ class Timer {
 
   // Cached time, updated in the beginning of torrent::work call.
   // Don't use outside socket_base read/write/except or Service::service.
+  
+  // TODO: Find out if it's worth it. The kernel is supposed to cache the time.
   static Timer cache() {
     return Timer(m_cache);
   }
@@ -84,6 +86,14 @@ class Timer {
 
   bool operator > (const Timer& t) const {
     return m_time > t.m_time;
+  }
+
+  bool operator <= (const Timer& t) const {
+    return m_time <= t.m_time;
+  }
+
+  bool operator >= (const Timer& t) const {
+    return m_time >= t.m_time;
   }
 
  private:

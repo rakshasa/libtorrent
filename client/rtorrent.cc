@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
 	break;
 
       case DISPLAY_LOG:
-	switch (getch()) {
+	switch (c) {
 	case '\n':
 	case ' ':
 	  displayState = DISPLAY_MAIN;
