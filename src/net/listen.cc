@@ -39,8 +39,8 @@ bool Listen::open(uint16_t first, uint16_t last) {
 
       set_socket_nonblock(m_fd);
 
-      insertRead();
-      insertExcept();
+      insert_read();
+      insert_except();
 
       // Create cue.
       return ::listen(fdesc, 50) == 0;
@@ -61,8 +61,8 @@ void Listen::close() {
   m_fd = -1;
   m_port = 0;
 
-  removeRead();
-  removeExcept();
+  remove_read();
+  remove_except();
 }
   
 void Listen::read() {

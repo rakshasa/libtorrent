@@ -98,16 +98,16 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
   if (readSet == NULL || writeSet == NULL || exceptSet == NULL || maxFd == NULL)
     throw client_error("torrent::mark(...) received a NULL pointer");
 
-  *maxFd = std::max(*maxFd, std::for_each(SocketBase::readSockets().begin(),
-                                          SocketBase::readSockets().end(),
+  *maxFd = std::max(*maxFd, std::for_each(SocketBase::read_sockets().begin(),
+                                          SocketBase::read_sockets().end(),
                                           add_socket(readSet)).fd);
 
-  *maxFd = std::max(*maxFd, std::for_each(SocketBase::writeSockets().begin(),
-                                          SocketBase::writeSockets().end(),
+  *maxFd = std::max(*maxFd, std::for_each(SocketBase::write_sockets().begin(),
+                                          SocketBase::write_sockets().end(),
                                           add_socket(writeSet)).fd);
   
-  *maxFd = std::max(*maxFd, std::for_each(SocketBase::exceptSockets().begin(),
-                                          SocketBase::exceptSockets().end(),
+  *maxFd = std::max(*maxFd, std::for_each(SocketBase::except_sockets().begin(),
+                                          SocketBase::except_sockets().end(),
                                           add_socket(exceptSet)).fd);
 }
 
@@ -126,15 +126,15 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   caughtExceptions.clear();
 
   // If except is called, make sure you correctly remove us from the poll.
-  for_each<true>(SocketBase::exceptSockets().begin(), SocketBase::exceptSockets().end(),
+  for_each<true>(SocketBase::except_sockets().begin(), SocketBase::except_sockets().end(),
 		 if_on(check_socket_isset(exceptSet),
 		       call_member(&SocketBase::except)));
 
-  for_each<true>(SocketBase::readSockets().begin(), SocketBase::readSockets().end(),
+  for_each<true>(SocketBase::read_sockets().begin(), SocketBase::read_sockets().end(),
 		 if_on(check_socket_isset(readSet),
 		       call_member(&SocketBase::read)));
 
-  for_each<true>(SocketBase::writeSockets().begin(), SocketBase::writeSockets().end(),
+  for_each<true>(SocketBase::write_sockets().begin(), SocketBase::write_sockets().end(),
 		 if_on(check_socket_isset(writeSet),
 		       call_member(&SocketBase::write)));
 

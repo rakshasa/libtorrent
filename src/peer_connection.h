@@ -2,7 +2,6 @@
 #define LIBTORRENT_PEER_CONNECTION_H
 
 #include "bitfield.h"
-#include "socket_base.h"
 #include "service.h"
 #include "peer_info.h"
 #include "piece.h"
@@ -11,6 +10,7 @@
 
 #include "data/storage.h"
 #include "peer/request_list.h"
+#include "net/socket_base.h"
 
 #include <vector>
 

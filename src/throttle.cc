@@ -7,8 +7,9 @@
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
+#include "net/socket_base.h"
+
 #include "settings.h"
-#include "socket_base.h"
 #include "throttle.h"
 
 using namespace algo;
@@ -116,7 +117,7 @@ int Throttle::update(float period, int bytes) {
 
   if (m_socket &&
       (m_left >= ThrottleSettings::wakeupPoint || m_left == UNLIMITED))
-    m_socket->insertWrite();
+    m_socket->insert_write();
 
   // TODO: This needs to be alot more intelligent.
 

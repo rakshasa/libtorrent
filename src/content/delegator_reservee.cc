@@ -19,11 +19,8 @@ DelegatorReservee::invalidate() {
 
 void
 DelegatorReservee::set_stalled(bool b) {
-  if (b == m_stalled)
+  if (b == m_stalled || m_parent == NULL)
     return;
-
-  if (m_parent == NULL)
-    throw internal_error("DelegatorReservee::set_stalled(...) called on an invalid object");
 
   m_stalled = b;
 

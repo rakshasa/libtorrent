@@ -47,12 +47,12 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
   // Set the bitfield size and zero it
   m_bitfield = BitField(d->content().get_storage().get_chunkcount());
 
-  insertRead();
-  insertWrite();
-  insertExcept();
+  insert_read();
+  insert_write();
+  insert_except();
 
-  makeBuf(&m_up.buf, BUFFER_SIZE);
-  makeBuf(&m_down.buf, BUFFER_SIZE);
+  m_up.buf = new char[BUFFER_SIZE];
+  m_down.buf = new char[BUFFER_SIZE];
 
   if (!d->content().get_bitfield().zero()) {
     // Send bitfield to peer.
@@ -81,7 +81,7 @@ void PeerConnection::read() {
     m_down.state = READ_LENGTH;
 
   case READ_LENGTH:
-    if (!readBuf(m_down.buf + m_down.pos, 4, m_down.pos))
+    if (!read_buf(m_down.buf + m_down.pos, 4, m_down.pos))
       return;
 
     m_down.pos = 0;
@@ -106,7 +106,7 @@ void PeerConnection::read() {
 
     // TODO: Read up to 9 or something.
   case READ_TYPE:
-    if (!readBuf(m_down.buf, 1, m_down.pos))
+    if (!read_buf(m_down.buf, 1, m_down.pos))
       return;
 
     switch (m_down.buf[0]) {
@@ -161,7 +161,7 @@ void PeerConnection::read() {
 
   case READ_MSG:
     if (m_down.length > 1 &&
-	!readBuf(m_down.buf + m_down.pos, m_down.length, m_down.pos))
+	!read_buf(m_down.buf + m_down.pos, m_down.length, m_down.pos))
       return;
 
     switch (m_down.buf[0]) {
@@ -205,7 +205,7 @@ void PeerConnection::read() {
     }
 
   case READ_BITFIELD:
-    if (!readBuf(m_bitfield.data() + m_down.pos, m_down.length - 1, m_down.pos))
+    if (!read_buf(m_bitfield.data() + m_down.pos, m_down.length - 1, m_down.pos))
       return;
 
     if (m_net->get_delegator().get_select().interested(m_bitfield)) {
@@ -220,7 +220,7 @@ void PeerConnection::read() {
     m_down.state = IDLE;
     m_download->bfCounter().inc(m_bitfield);
 
-    insertWrite();
+    insert_write();
     goto evil_goto_read;
 
   case READ_PIECE:
@@ -259,7 +259,7 @@ void PeerConnection::read() {
 
     // TODO: clear m_down.data?
 
-    insertWrite();
+    insert_write();
 
     goto evil_goto_read;
 
@@ -267,9 +267,9 @@ void PeerConnection::read() {
     if (m_down.pos != 0)
       throw internal_error("READ_SKIP_PIECE m_down.pos != 0");
 
-    s = readBuf(m_down.buf,
-		std::min(m_down.length, BUFFER_SIZE),
-		m_down.pos);
+    s = read_buf(m_down.buf,
+		 std::min(m_down.length, BUFFER_SIZE),
+		 m_down.pos);
 
     m_throttle.down().add(m_down.pos);
 
@@ -336,13 +336,13 @@ void PeerConnection::write() {
     fillWriteBuf();
 
     if (m_up.length == 0)
-      return removeWrite();
+      return remove_write();
 
     m_up.state = WRITE_MSG;
     m_up.pos = 0;
 
   case WRITE_MSG:
-    if (!writeBuf(m_up.buf + m_up.pos, m_up.length, m_up.pos))
+    if (!write_buf(m_up.buf + m_up.pos, m_up.length, m_up.pos))
       return;
 
     m_up.pos = 0;
@@ -374,8 +374,8 @@ void PeerConnection::write() {
     m_up.pos = 0;
 
   case WRITE_BITFIELD:
-    if (!writeBuf(m_download->content().get_bitfield().data() + m_up.pos,
-		  m_download->content().get_bitfield().sizeBytes(), m_up.pos))
+    if (!write_buf(m_download->content().get_bitfield().data() + m_up.pos,
+		   m_download->content().get_bitfield().sizeBytes(), m_up.pos))
       return;
 
     m_up.state = IDLE;
@@ -389,7 +389,7 @@ void PeerConnection::write() {
     maxBytes = m_throttle.left();
     
     if (maxBytes == 0) {
-      removeWrite();
+      remove_write();
       return;
     }
 
@@ -459,7 +459,7 @@ void PeerConnection::parseReadBuf() {
     m_down.choked = false;
     remove_service(SERVICE_CANCEL);
     
-    return insertWrite();
+    return insert_write();
 
   case INTERESTED:
     m_down.interested = true;
@@ -501,7 +501,7 @@ void PeerConnection::parseReadBuf() {
 	m_sends.erase(rItr);
       
       m_sends.push_back(Piece(index, offset, length));
-      insertWrite();
+      insert_write();
 
     } else if (rItr != m_sends.end()) {
 
@@ -510,7 +510,7 @@ void PeerConnection::parseReadBuf() {
 	m_sends.erase(rItr);
     }
 
-    return insertWrite();
+    return insert_write();
 
   case HAVE:
     index = bufR32();
@@ -528,7 +528,7 @@ void PeerConnection::parseReadBuf() {
       m_sendInterested = !m_up.interested;
       m_up.interested = true;
 
-      insertWrite();
+      insert_write();
     }
 
     return;
@@ -686,7 +686,7 @@ void PeerConnection::sendHave(int index) {
 
   // TODO: Also send cancel messages!
 
-  insertWrite();
+  insert_write();
 }
 
 void PeerConnection::service(int type) {
@@ -705,7 +705,7 @@ void PeerConnection::service(int type) {
       m_up.state = WRITE_MSG;
       m_up.pos = 0;
 
-      insertWrite();
+      insert_write();
     }
 
     insert_service(Timer::cache() + 120 * 1000000, SERVICE_KEEP_ALIVE);
@@ -715,7 +715,7 @@ void PeerConnection::service(int type) {
   case SERVICE_SEND_CHOKE:
     m_sendChoked = true;
 
-    insertWrite();
+    insert_write();
     return;
     
   case SERVICE_STALL:
@@ -733,7 +733,10 @@ void PeerConnection::service(int type) {
     if (!m_down.choked)
       return;
 
-    if (m_down.state == READ_PIECE) {
+    if (m_requests.is_downloading()) {
+      if (m_down.state != READ_PIECE)
+	throw internal_error("PeerConnection::service(SERVICE_CANCEL) caught m_requests.is_downloading() but we are not in READ_PIECE state");
+
       m_down.state = READ_SKIP_PIECE;
       m_down.length = m_requests.get_piece().get_length() - m_down.pos;
       m_down.pos = 0;

@@ -2,7 +2,9 @@
 #define LIBTORRENT_PEER_HANDSHAKE_H
 
 #include "peer_info.h"
-#include "socket_base.h"
+
+#include "net/socket_base.h"
+
 #include <sstream>
 #include <list>
 

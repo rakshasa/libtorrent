@@ -52,6 +52,8 @@ libtorrent_la_SOURCES = \
 	download/download_net.h \
 	net/listen.cc \
 	net/listen.h \
+	net/socket_base.cc \
+        net/socket_base.h \
 	parse/parse_info.cc \
 	parse/parse_info.h \
 	peer/request_list.cc \
@@ -85,8 +87,6 @@ libtorrent_la_SOURCES = \
 	rate.h \
 	settings.cc \
 	settings.h \
-        socket_base.cc \
-        socket_base.h \
 	timer.h \
 	throttle.cc \
 	throttle.h \

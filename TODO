@@ -134,3 +134,8 @@ Does it make sense to have *.bt_part or similar suffixes on partially
 downloaded files? This would be uncompatible with other clients, but
 make it configurable? This is fully client size, though need to
 support a way to move files.
+
+
+CLIENT
+
+Schedule torrents.

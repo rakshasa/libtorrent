@@ -29,8 +29,8 @@ PeerHandshake::PeerHandshake(int fdesc, const std::string dns, unsigned short po
   m_buf(new char[256+48]),
   m_pos(0)
 {
-  insertRead();
-  insertExcept();
+  insert_read();
+  insert_except();
 }
 
 // Outgoing connections.
@@ -43,8 +43,8 @@ PeerHandshake::PeerHandshake(int fdesc, const PeerInfo& p, DownloadState* d) :
   m_buf(new char[256+48]),
   m_pos(0)
 {
-  insertWrite();
-  insertExcept();
+  insert_write();
+  insert_except();
 
   m_buf[0] = 19;
   std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
@@ -114,8 +114,8 @@ void PeerHandshake::read() {
       if ((d = DownloadMain::getDownload(m_infoHash)) != NULL) {
 	m_download = &d->state();
 
-	removeRead();
-	insertWrite();
+	remove_read();
+	insert_write();
 	
 	m_buf[0] = 19;
 	std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
@@ -180,11 +180,11 @@ void PeerHandshake::write() {
     m_state = WRITE_HEADER;
 
   case WRITE_HEADER:
-    if (!writeBuf(m_buf + m_pos, 68, m_pos))
+    if (!write_buf(m_buf + m_pos, 68, m_pos))
       return;
 
-    removeWrite();
-    insertRead();
+    remove_write();
+    insert_read();
 
     m_pos = 0;
     m_state = m_incoming ? READ_ID : READ_HEADER;
@@ -212,12 +212,12 @@ int PeerHandshake::fd() {
 
 bool PeerHandshake::recv1() {
   if (m_pos == 0 &&
-      !readBuf(m_buf, 1, m_pos))
+      !read_buf(m_buf, 1, m_pos))
     return false;
 
   int l = (unsigned char)m_buf[0];
 
-  if (!readBuf(m_buf + m_pos, l + 29, m_pos))
+  if (!read_buf(m_buf + m_pos, l + 29, m_pos))
     return false;
 
   m_peer.ref_protocol() = std::string(&m_buf[1], l);
@@ -232,7 +232,7 @@ bool PeerHandshake::recv1() {
 }
 
 bool PeerHandshake::recv2() {
-  if (!readBuf(m_buf + m_pos, 20, m_pos))
+  if (!read_buf(m_buf + m_pos, 20, m_pos))
     return false;
 
   m_peer.ref_id() = std::string(m_buf, 20);

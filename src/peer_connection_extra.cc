@@ -66,7 +66,7 @@ bool PeerConnection::writeChunk(int maxBytes) {
 
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 
-  writeBuf(part.chunk.begin() + m_sends.front().offset() + m_up.pos - part.position,
+  write_buf(part.chunk.begin() + m_sends.front().offset() + m_up.pos - part.position,
 	   std::min(length, m_up.pos + maxBytes),
 	   m_up.pos);
 
@@ -87,7 +87,7 @@ bool PeerConnection::readChunk() {
       !part.chunk.is_write())
     throw storage_error("Tried to write piece to file area that isn't valid or can't be written to");
   
-  if (!readBuf(part.chunk.begin() + offset,
+  if (!read_buf(part.chunk.begin() + offset,
 	       std::min(part.position + part.chunk.length() - p.get_offset(),
 			p.get_length()),
 	       m_down.pos))
@@ -193,7 +193,7 @@ void PeerConnection::choke(bool v) {
     m_sendChoked = true;
     m_up.choked = v;
 
-    insertWrite();
+    insert_write();
   }
 }
 
