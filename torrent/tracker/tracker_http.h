@@ -18,7 +18,9 @@ class Http;
 // TODO: Use a base class when we implement UDP tracker support.
 class TrackerHttp {
 public:
-  typedef std::list<PeerInfo> PeerList;
+  typedef std::list<PeerInfo>                       PeerList;
+  typedef sigc::signal2<void, const PeerList&, int> SignalDone;
+  typedef sigc::signal1<void, std::string>          SignalFailed;
 
   TrackerHttp();
   ~TrackerHttp();
@@ -32,15 +34,10 @@ public:
 
   void               close();
 
-  bool               is_busy() { return m_data != NULL; }
+  bool               is_busy()                         { return m_data != NULL; }
 
-  // New peers.
-  // Interval      - 0 if not received or invalid.
-  typedef sigc::signal2<void, const PeerList&, int> SignalDone;
-  SignalDone&        signal_done() { return m_done; }
-
-  typedef sigc::signal1<void, std::string> SignalFailed;
-  SignalFailed&      signal_failed()        { return m_failed; }
+  SignalDone&        signal_done()                     { return m_done; }
+  SignalFailed&      signal_failed()                   { return m_failed; }
 
 private:
   // Don't allow ctor.

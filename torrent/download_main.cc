@@ -34,6 +34,7 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_checked(false),
   m_started(false)
 {
+  // Yeah, i know this looks horrible, but it will be rewritten when i get around to it.
   try {
 
   m_name = b["info"]["name"].asString();
@@ -51,7 +52,7 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_tracker->add_url(b["announce"].asString());
 
   m_tracker->signal_peers().connect(sigc::mem_fun(*this, &DownloadMain::add_peers));
-  m_tracker->signal_stats().connect(sigc::mem_fun(m_state, &DownloadState::download_stats));
+  m_tracker->slot_stats() = sigc::mem_fun(m_state, &DownloadState::download_stats);
 
   m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions,
 						   (void (std::list<std::string>::*)(const std::string&))&std::list<std::string>::push_back));

@@ -3,6 +3,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "download_main.h"
+#include "download_wrapper.h"
 #include "peer_connection.h"
 #include "tracker/tracker_control.h"
 
@@ -250,19 +251,28 @@ Download::peer_find(const std::string& id) {
     *itr : NULL;
 }
 
-Download::SignalDownloadDone& 
-Download::signal_download_done() {
-  return ((DownloadMain*)m_ptr)->state().content().signal_download_done();
+void
+Download::signal_download_done(Download::SignalDownloadDone& s) {
+  ((DownloadMain*)m_ptr)->state().content().signal_download_done().connect(s);
 }
 
-Download::SignalPeerConnected&
-Download::signal_peer_connected() {
-  return ((DownloadMain*)m_ptr)->state().signal_peer_connected();
+void
+Download::signal_peer_connected(Download::SignalPeerConnected& s) {
+  ((DownloadMain*)m_ptr)->state().signal_peer_connected().connect(s);
 }
 
-Download::SignalPeerDisconnected&
-Download::signal_peer_disconnected() {
-  return ((DownloadMain*)m_ptr)->state().signal_peer_disconnected();
+void
+Download::signal_peer_disconnected(Download::SignalPeerDisconnected& s) {
+  ((DownloadMain*)m_ptr)->state().signal_peer_disconnected().connect(s);
+}
+
+void
+Download::signal_tracker_succeded(Download::SignalTrackerSucceded& s) {
+}
+
+void
+Download::signal_tracker_failed(Download::SignalTrackerFailed& s) {
+  ((DownloadMain*)m_ptr)->tracker().signal_failed().connect(s);
 }
 
 }

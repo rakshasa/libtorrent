@@ -178,6 +178,10 @@ void DownloadState::download_stats(uint64_t& down, uint64_t& up, uint64_t& left)
     left = m_content.get_size()
       - (m_content.get_completed() - 1) * m_content.get_storage().get_chunksize()
       - m_content.get_size() % m_content.get_storage().get_chunksize();
+
+  if (left > ((uint64_t)1 << 60) ||
+      (m_content.get_completed() == m_content.get_storage().get_chunkcount() && left != 0))
+    throw internal_error("DownloadState::download_stats's 'left' has an invalid size"); 
 }
 
 void DownloadState::connect_peers() {

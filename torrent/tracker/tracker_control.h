@@ -26,7 +26,8 @@ class TrackerControl : public Service {
 
   typedef sigc::signal1<void, const PeerList&>                 SignalPeers;
   typedef sigc::signal1<void, std::string>                     SignalFailed;
-  typedef sigc::signal3<void, uint64_t&, uint64_t&, uint64_t&> SignalStats;
+
+  typedef sigc::slot3<void, uint64_t&, uint64_t&, uint64_t&>   SlotStats;
 
   TrackerControl(const PeerInfo& me, const std::string hash);
   ~TrackerControl();
@@ -43,7 +44,8 @@ class TrackerControl : public Service {
 
   SignalPeers&         signal_peers()  { return m_signalPeers; }
   SignalFailed&        signal_failed() { return m_signalFailed; }
-  SignalStats&         signal_stats()  { return m_signalStats; }
+
+  SlotStats&           slot_stats()  { return m_slotStats; }
 
   virtual void         service(int type);
 
@@ -73,7 +75,7 @@ class TrackerControl : public Service {
 
   SignalPeers           m_signalPeers;
   SignalFailed          m_signalFailed;
-  SignalStats           m_signalStats;
+  SlotStats             m_slotStats;
 };
 
 }

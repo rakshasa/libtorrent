@@ -141,7 +141,7 @@ TrackerControl::send_itr(TrackerState s) {
   uint64_t uploaded = 0;
   uint64_t left = 0;
 
-  m_signalStats.emit(downloaded, uploaded, left);
+  m_slotStats(downloaded, uploaded, left);
 
   (*m_itr)->send_state(m_state, downloaded, uploaded, left);
 }
