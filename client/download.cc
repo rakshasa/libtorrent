@@ -470,7 +470,7 @@ void Download::drawEntry(int y1, int y2) {
     std::string path = e.get_path();
 
     if (path.length() <= 50)
-      path = path + std::string(40 - path.length(), ' ');
+      path = path + std::string(50 - path.length(), ' ');
     else
       path = path.substr(0, 50);
 
@@ -494,7 +494,7 @@ void Download::drawEntry(int y1, int y2) {
       break;
     };
 
-    mvprintw(y1, 0, "%c %s  %5.1f   %s %3d",
+    mvprintw(y1, 0, "%c %s  %5.1f   %s   %3d",
 	     (unsigned)index == m_entryPos ? '*' : ' ',
 	     path.c_str(),
 	     (double)e.get_size() / 1000000.0,
