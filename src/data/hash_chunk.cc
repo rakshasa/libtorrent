@@ -28,7 +28,8 @@
 
 namespace torrent {
 
-bool HashChunk::perform(uint32_t length, bool force) {
+bool
+HashChunk::perform(uint32_t length, bool force) {
   if (!m_chunk.is_valid() || !m_chunk->is_valid())
     throw internal_error("HashChunk::perform(...) called on an invalid chunk");
 
@@ -37,53 +38,21 @@ bool HashChunk::perform(uint32_t length, bool force) {
   if (m_position + length > m_chunk->get_size())
     throw internal_error("HashChunk::perhform(...) received length out of range");
   
-  // TODO: Length should really only be an advise, we can optimize here IMO.
+  uint32_t l = force ? length : m_chunk->incore_length(m_position);
 
-  while (length) {
+  bool complete = l == length;
+
+  while (l) {
     StorageChunk::iterator node = m_chunk->at_position(m_position);
 
-    uint32_t l = std::min(length, node->get_length() - (m_position - node->get_position()));
-
-    // Usually we only have one or two files in a chunk, so we don't mind the if statement
-    // inside the loop.
-
-    if (force) {
-      m_hash.update(node->get_chunk().begin() + m_position - node->get_position(), l);
-
-      length     -= l;
-      m_position += l;
-
-    } else {
-      uint32_t incore, size = node->get_chunk().pages_touched(m_position - node->get_position(), l);
-      char buf[size];
-
-      // TODO: We're borking here with NULL node.
-      node->get_chunk().incore(buf, m_position - node->get_position(), l);
-
-      for (incore = 0; incore < size; ++incore)
-	if (!buf[incore])
-	  break;
-
-      if (incore == 0)
-	return false;
-
-      l = std::min(l, incore * node->get_chunk().page_size() - node->get_chunk().page_align(m_position - node->get_position()));
-
-      m_hash.update(node->get_chunk().begin() + m_position - node->get_position(), l);
-
-      length     -= l;
-      m_position += l;
-      
-      if (incore < size)
-	return false;
-    }
+    l -= perform_part(node, l);
   }
 
-  return true;
+  return complete;
 }
 
-// Warning: Can paralyze linux 2.4.20.
-bool HashChunk::willneed(uint32_t length) {
+void
+HashChunk::advise_willneed(uint32_t length) {
   if (!m_chunk.is_valid())
     throw internal_error("HashChunk::willneed(...) called on an invalid chunk");
 
@@ -95,34 +64,31 @@ bool HashChunk::willneed(uint32_t length) {
   while (length) {
     StorageChunk::iterator node = m_chunk->at_position(pos);
 
-    uint32_t l = std::min(length, node->get_length() - (pos - node->get_position()));
+    uint32_t l = std::min(length, remaining_part(node, pos));
 
     node->get_chunk().advise(pos - node->get_position(), l, MemoryChunk::advice_willneed);
 
     pos    += l;
     length -= l;
   }
-
-  return true;
 }
 
-uint32_t HashChunk::remaining() {
+uint32_t
+HashChunk::remaining() {
   if (!m_chunk.is_valid())
     throw internal_error("HashChunk::remaining() called on an invalid chunk");
 
   return m_chunk->get_size() - m_position;
 }
 
-uint32_t HashChunk::remaining_file() {
-  if (!m_chunk.is_valid())
-    throw internal_error("HashChunk::remaining_chunk() called on an invalid chunk");
+uint32_t
+HashChunk::perform_part(StorageChunk::iterator itr, uint32_t length) {
+  length = std::min(length, remaining_part(itr, m_position));
   
-  if (m_position == m_chunk->get_size())
-    return 0;
+  m_hash.update(itr->get_chunk().begin() + m_position - itr->get_position(), length);
+  m_position += length;
 
-  StorageChunk::iterator node = m_chunk->at_position(m_position);
-
-  return node->get_length() - (m_position - node->get_position());
-}    
+  return length;
+}
 
 }

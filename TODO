@@ -117,9 +117,11 @@ disallow for open torrents?
 
 NEXT: Storage/File refactoring
 
-Cleanup HashChunk
+Cleanup HashChunk, use proper iterating of parts.
 
-Cleanup errno in memorychunk.cc and file.cc.
+Cleanup errno in memorychunk.cc and file.cc, use strerror.
+
+Use bool returns for incore and sync.
 
 If we get conflicting prot flags in get_chunk, we might go into cycle
 of re-allocating. Do a union instead.

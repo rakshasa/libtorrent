@@ -83,7 +83,7 @@ bool PeerConnection::writeChunk(int maxBytes) {
   StorageChunk::iterator part = m_up.data->at_position(m_sends.front().get_offset() + m_up.pos);
 
   unsigned int length = std::min(m_sends.front().get_length(),
-				 part->get_position() + part->get_length() - m_sends.front().get_offset());
+				 part->get_position() + part->size() - m_sends.front().get_offset());
 
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 

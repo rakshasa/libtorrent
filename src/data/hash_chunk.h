@@ -41,25 +41,32 @@ public:
   HashChunk()         {}
   HashChunk(Chunk c)  { set_chunk(c); }
   
-  void                set_chunk(Chunk c) { m_position = 0; m_chunk = c; m_hash.init(); }
+  void                set_chunk(Chunk c)                      { m_position = 0; m_chunk = c; m_hash.init(); }
 
-  Chunk               get_chunk()        { return m_chunk; }
-  std::string         get_hash()         { return m_hash.final(); }
+  Chunk               get_chunk()                             { return m_chunk; }
+  std::string         get_hash()                              { return m_hash.final(); }
 
   // If force is true, then the return value is always true.
   bool                perform(uint32_t length, bool force = true);
 
-  bool                willneed(uint32_t length);
+  void                advise_willneed(uint32_t length);
 
   uint32_t            remaining();
-  uint32_t            remaining_file();
 
 private:
+  inline uint32_t     remaining_part(StorageChunk::iterator itr, uint32_t pos);
+  uint32_t            perform_part(StorageChunk::iterator itr, uint32_t length);
+
   uint32_t            m_position;
 
   Chunk               m_chunk;
   Sha1                m_hash;
 };
+
+inline uint32_t
+HashChunk::remaining_part(StorageChunk::iterator itr, uint32_t pos) {
+  return itr->size() - pos + itr->get_position();
+}
 
 }
 

@@ -123,7 +123,7 @@ HashQueue::willneed(int count) {
   for (ChunkList::iterator itr = m_chunks.begin(); itr != m_chunks.end() && count--; ++itr)
     if (!itr->m_willneed) {
       itr->m_willneed = true;
-      itr->m_chunk->willneed(itr->m_chunk->remaining());
+      itr->m_chunk->advise_willneed(itr->m_chunk->remaining());
     }
 }
 

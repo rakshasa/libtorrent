@@ -29,24 +29,24 @@ namespace torrent {
 
 class StorageChunkPart {
 public:
-  StorageChunkPart(const MemoryChunk& c, uint32_t pos, uint32_t len) : m_chunk(c), m_position(pos), m_length(len) {}
+  StorageChunkPart(const MemoryChunk& c, uint32_t pos) : m_chunk(c), m_position(pos) {}
 
   bool                is_valid() const                      { return m_chunk.is_valid(); }
-  bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + m_length; }
+  bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }
 
   bool                has_permissions(int prot) const       { return m_chunk.has_permissions(prot); }
 
   void                clear();
+  uint32_t            size() const                          { return m_chunk.size(); }
 
   MemoryChunk&        get_chunk()                           { return m_chunk; }
   uint32_t            get_position() const                  { return m_position; }
-  uint32_t            get_length() const                    { return m_length; }
+
+  uint32_t            incore_length(uint32_t pos);
 
 private:
   MemoryChunk         m_chunk;
-
   uint32_t            m_position;
-  uint32_t            m_length;
 };
 
 }

@@ -42,15 +42,15 @@ StorageChunk::has_permissions(int prot) const {
 StorageChunk::iterator
 StorageChunk::at_position(uint32_t pos) {
   if (pos >= m_size)
-    throw internal_error("Tried to get StorageChunk position out of range.");
+    throw internal_error("StorageChunk::at_position(...) tried to get StorageChunk position out of range.");
 
   iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageChunkPart::is_contained), pos));
 
   if (itr == end())
-    throw internal_error("StorageChunk might be mangled, get_position failed horribly");
+    throw internal_error("StorageChunk::at_position(...) might be mangled, at_position failed horribly");
 
-  if (itr->get_length() == 0)
-    throw internal_error("StorageChunk::get_position(...) tried to return a node with length 0");
+  if (itr->size() == 0)
+    throw internal_error("StorageChunk::at_position(...) tried to return a node with length 0");
 
   return itr;
 }
@@ -62,7 +62,7 @@ StorageChunk::at_position(uint32_t pos) {
 void
 StorageChunk::push_back(const MemoryChunk& c) {
   Base::reserve(Base::size() + 1);
-  Base::insert(end(), StorageChunkPart(c, m_size, c.size()));
+  Base::insert(end(), StorageChunkPart(c, m_size));
 
   m_size += c.size();
 }
@@ -73,6 +73,22 @@ StorageChunk::clear() {
 
   m_size = 0;
   Base::clear();
+}
+
+uint32_t
+StorageChunk::incore_length(uint32_t pos) {
+  uint32_t lengthIncore = 0;
+  iterator itr = at_position(pos);
+
+  do {
+    uint32_t length = itr->incore_length(pos);
+
+    pos += length;
+    lengthIncore += length;
+
+  } while (pos == itr->get_position() + itr->size() && ++itr != end());
+
+  return lengthIncore;
 }
 
 }

@@ -91,7 +91,7 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
     throw storage_error("System call mincore failed for MemoryChunk");
 }
 
-void
+bool
 MemoryChunk::advise(uint32_t offset, uint32_t length, int advice) {
   if (!is_valid())
     throw internal_error("Called MemoryChunk::advise() on an invalid object");
@@ -102,21 +102,13 @@ MemoryChunk::advise(uint32_t offset, uint32_t length, int advice) {
   align_pair(offset, length);
 
   if (madvise(m_ptr + offset, length, advice) == 0)
-    return;
+    return true;
 
-  // Remove this.
-  else if (errno == EINVAL)
-    throw storage_error("MemoryChunk::advise(...) received invalid input");
-  else if (errno == ENOMEM)
-    throw storage_error("MemoryChunk::advise(...) called on unmapped or out-of-range memory");
-  else if (errno == EBADF)
-    throw storage_error("MemoryChunk::advise(...) memory are not a file");
-  else if (errno == EAGAIN)
-    throw storage_error("MemoryChunk::advise(...) kernel resources temporary unavailable");
-  else if (errno == EIO)
-    throw storage_error("MemoryChunk::advise(...) EIO error");
+  else if (errno == EINVAL || (errno == ENOMEM && advice != advice_willneed) || errno == EBADF)
+    throw internal_error("MemoryChunk::advise(...) " + std::string(strerror(errno)));
+  
   else
-    throw storage_error("MemoryChunk::advise(...) failed");
+    return false;			 
 }
 
 void

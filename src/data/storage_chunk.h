@@ -60,6 +60,9 @@ public:
 
   void                push_back(const MemoryChunk& c);
 
+  // Check how much of the chunk is incore from pos.
+  uint32_t            incore_length(uint32_t pos);
+
 private:
   StorageChunk(const StorageChunk&);
   void operator = (const StorageChunk&);
