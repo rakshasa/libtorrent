@@ -20,8 +20,9 @@ class Settings {
   static int rateQuick;
   static int rateSample;
 
-  static int hashForcedWait;
-  static int hashMadviceWait;
+  static int hashWait;
+  static int hashWillneed;
+  static int hashTries;
 };
 
 class DownloadSettings {

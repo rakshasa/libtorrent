@@ -41,16 +41,20 @@ public:
 private:
   struct Node {
     Node(HashChunk* c, const std::string& i, SlotDone d) :
-      m_chunk(c), m_id(i), m_done(d) {}
+      m_chunk(c), m_id(i), m_done(d), m_willneed(false) {}
 
     uint32_t          get_index();
 
     HashChunk*        m_chunk;
     std::string       m_id;
     SlotDone          m_done;
+
+    bool              m_willneed;
   };
 
   bool                check(bool force);
+
+  void                willneed(int count);
 
   typedef std::list<Node> ChunkList;
 

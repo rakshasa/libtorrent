@@ -26,11 +26,11 @@ HashQueue::add(Chunk c, SlotDone d, const std::string& id) {
       throw internal_error("Empty HashQueue is still in service");
 
     m_tries = 0;
-    hc->willneed(hc->remaining());
     insert_service(Timer::current(), 0);
   }
 
   m_chunks.push_back(Node(hc, id, d));
+  willneed(Settings::hashWillneed);
 }
 
 bool
@@ -66,8 +66,8 @@ HashQueue::clear() {
 void
 HashQueue::service(int type) {
   while (!m_chunks.empty()) {
-    if (!check(++m_tries >= 3))
-      return insert_service(Timer::current() + Settings::hashForcedWait, 0);
+    if (!check(++m_tries >= Settings::hashTries))
+      return insert_service(Timer::current() + Settings::hashWait, 0);
     
     m_tries = 0;
   }
@@ -77,10 +77,7 @@ bool
 HashQueue::check(bool force) {
   HashChunk* chunk = m_chunks.front().m_chunk;
   
-  // TODO: Don't go so far when forcing.
-  chunk->perform(chunk->remaining(), force);
-
-  if (chunk->remaining())
+  if (!chunk->perform(chunk->remaining(), force))
     return false;
 
   m_chunks.front().m_done(chunk->get_chunk(), chunk->get_hash());
@@ -90,9 +87,18 @@ HashQueue::check(bool force) {
 
   // This should be a few chunks ahead.
   if (!m_chunks.empty())
-    m_chunks.front().m_chunk->willneed(m_chunks.front().m_chunk->remaining());
+    willneed(Settings::hashWillneed);
 
   return true;
+}
+
+void
+HashQueue::willneed(int count) {
+  for (ChunkList::iterator itr = m_chunks.begin(); itr != m_chunks.end() && count--; ++itr)
+    if (!itr->m_willneed) {
+      itr->m_willneed = true;
+      itr->m_chunk->willneed(itr->m_chunk->remaining());
+    }
 }
 
 uint32_t
