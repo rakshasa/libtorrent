@@ -30,13 +30,10 @@ namespace torrent {
 
 bool
 HashChunk::perform(uint32_t length, bool force) {
-  if (!m_chunk.is_valid() || !m_chunk->is_valid())
-    throw internal_error("HashChunk::perform(...) called on an invalid chunk");
-
   length = std::min(length, remaining());
 
   if (m_position + length > m_chunk->get_size())
-    throw internal_error("HashChunk::perhform(...) received length out of range");
+    throw internal_error("HashChunk::perform(...) received length out of range");
   
   uint32_t l = force ? length : m_chunk->incore_length(m_position);
 
@@ -53,7 +50,7 @@ HashChunk::perform(uint32_t length, bool force) {
 
 void
 HashChunk::advise_willneed(uint32_t length) {
-  if (!m_chunk.is_valid())
+  if (!m_chunk.is_valid() || !m_chunk->is_valid())
     throw internal_error("HashChunk::willneed(...) called on an invalid chunk");
 
   if (m_position + length > m_chunk->get_size())
@@ -62,21 +59,22 @@ HashChunk::advise_willneed(uint32_t length) {
   uint32_t pos = m_position;
 
   while (length) {
-    StorageChunk::iterator node = m_chunk->at_position(pos);
+    StorageChunk::iterator itr = m_chunk->at_position(pos);
 
-    uint32_t l = std::min(length, remaining_part(node, pos));
+    uint32_t l = std::min(length, remaining_part(itr, pos));
 
-    node->get_chunk().advise(pos - node->get_position(), l, MemoryChunk::advice_willneed);
+    itr->get_chunk().advise(pos - itr->get_position(), l, MemoryChunk::advice_willneed);
 
     pos    += l;
     length -= l;
+    ++itr;
   }
 }
 
 uint32_t
 HashChunk::remaining() {
-  if (!m_chunk.is_valid())
-    throw internal_error("HashChunk::remaining() called on an invalid chunk");
+  if (!m_chunk.is_valid() || !m_chunk->is_valid())
+    throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
 
   return m_chunk->get_size() - m_position;
 }

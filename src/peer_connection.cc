@@ -557,11 +557,14 @@ void PeerConnection::parseReadBuf() {
       // We are interested, send flag if not already set.
       m_sendInterested = !m_up.interested;
       m_up.interested = true;
-      m_tryRequest = true;
-	
+
       insert_write();
     }
 
+    // Make sure m_tryRequest is set even if we were previously
+    // interested. Super-Seeders seem to cause it to stall while we
+    // are interested, but m_tryRequest is cleared.
+    m_tryRequest = true;
     m_ratePeer.insert(m_download->get_content().get_storage().get_chunk_size());
 
     return;

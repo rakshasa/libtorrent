@@ -115,13 +115,16 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
-NEXT: Storage/File refactoring
-
-Cleanup HashChunk, use proper iterating of parts.
-
-Cleanup errno in memorychunk.cc and file.cc, use strerror.
+CURRENT: Storage/File refactoring
 
 Use bool returns for incore and sync.
 
 If we get conflicting prot flags in get_chunk, we might go into cycle
 of re-allocating. Do a union instead.
+
+storage.cc
+
+
+NEXT: BUG
+
+Figure out why it stops requesting from peer.

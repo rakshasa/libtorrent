@@ -26,26 +26,3 @@ SIGC++
 powerful way of reacting to events from the library. The client can
 hook multiple slots on each signal and modify the parameters to suit
 the functions. This avoids lots of unnecessary code in the client.
-
-DOWNLOADING 220mb
-
-  ./rtorrent
-  7.22 user 4.84 system 1:26.69 elapsed 13 %CPU
-
-  ./btdownloadcurses.py
-  44.74 user 20.00 system 2:04.35 elapsed 52 %CPU
-
-UPLOADING 220mb
-
-  ./rtorrent
-  5.98 user 4.59 system 1:38.47 elapsed 10 %CPU
-
-  btdownloadcurses.py
-  21.28 user 11.28 system 1:30.34 elapsed 36 %CPU
-
-MADVISE WILLNEED KERNEL BUG
-
- On the 2.4.20 kernels I've tried, the madvise(..., MADV_WILLNEED)
-system call can look up the kernel. Use the --disable-madvice to
-disable it.
-

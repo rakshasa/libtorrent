@@ -40,9 +40,12 @@ Storage::get_chunk(uint32_t b, int prot) {
   if (b >= m_anchors.size())
     throw internal_error("Chunk out of range in Storage");
 
-  if (m_anchors[b].is_valid() &&
-      m_anchors[b].data()->has_permissions(prot))
+  if (m_anchors[b].is_valid() && m_anchors[b].data()->has_permissions(prot))
     return Chunk(m_anchors[b]);
+
+  // TODO: Remove this.
+  if (m_anchors[b].is_valid() && !m_anchors[b].data()->has_permissions(prot))
+    throw internal_error("Storage::get_chunk(): Bork Bork Bork");
 
   // TODO: We will propably need to store a per StorageChunk prot.
 //   if (m_anchors[b].is_valid())

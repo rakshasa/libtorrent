@@ -88,7 +88,7 @@ File::get_chunk(off_t offset, uint32_t length, int prot, int flags) const {
 
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.
-  if ((off_t)offset + length > get_size())
+  if (offset < 0 || length == 0 || offset + length > get_size())
     return MemoryChunk();
 
   off_t align = offset % getpagesize();
