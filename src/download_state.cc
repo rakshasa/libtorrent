@@ -177,19 +177,10 @@ int DownloadState::countConnections() const {
 void DownloadState::download_stats(uint64_t& down, uint64_t& up, uint64_t& left) {
   up = m_rateUp.total();
   down = m_rateDown.total();
-
-  if (!m_content.get_bitfield()[m_content.get_storage().get_chunkcount() - 1] ||
-      m_content.get_size() % m_content.get_storage().get_chunksize() == 0)
-    // The last chunk is not done, or the last chunk is the same size as the others.
-    left = m_content.get_size() - m_content.get_completed() * m_content.get_storage().get_chunksize();
-
-  else
-    left = m_content.get_size()
-      - (m_content.get_completed() - 1) * m_content.get_storage().get_chunksize()
-      - m_content.get_size() % m_content.get_storage().get_chunksize();
+  left = m_content.get_size() - m_content.get_bytes_completed();
 
   if (left > ((uint64_t)1 << 60) ||
-      (m_content.get_completed() == m_content.get_storage().get_chunkcount() && left != 0))
+      (m_content.get_chunks_completed() == m_content.get_storage().get_chunkcount() && left != 0))
     throw internal_error("DownloadState::download_stats's 'left' has an invalid size"); 
 }
 

@@ -34,7 +34,8 @@ public:
   const std::string&     get_root_dir()                  { return m_rootDir; }
 
   uint64_t               get_size()                      { return m_size; }
-  unsigned int           get_completed()                 { return m_completed; }
+  uint32_t               get_chunks_completed()          { return m_completed; }
+  uint64_t               get_bytes_completed();
 
   const BitField&        get_bitfield()                  { return m_bitfield; }
   FileList&              get_files()                     { return m_files; }
@@ -54,6 +55,8 @@ public:
 
 private:
   
+  bool                   open_file(File* f, Path& p, Path& lastPath);
+
   uint64_t               m_size;
   unsigned int           m_completed;
 

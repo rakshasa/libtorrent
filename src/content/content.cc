@@ -46,6 +46,16 @@ Content::get_hash(unsigned int index) {
   return m_hash.substr(index * 20, 20);
 }
 
+uint64_t
+Content::get_bytes_completed() {
+  if (!m_bitfield[m_storage.get_chunkcount() - 1] || m_size % m_storage.get_chunksize() == 0)
+    // The last chunk is not done, or the last chunk is the same size as the others.
+    return m_completed * m_storage.get_chunksize();
+
+  else
+    return (m_completed - 1) * m_storage.get_chunksize() - m_size % m_storage.get_chunksize();
+}
+
 bool
 Content::is_correct_size() {
   if (!is_open())
@@ -79,23 +89,10 @@ Content::open(bool wr) {
   Path lastPath;
 
   for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    std::string path = m_rootDir + itr->get_path().path();
-
     File* f = new File;
 
     try {
-
-      if (itr->get_path().list().empty())
-	throw internal_error("Tried to open file with empty path");
-
-      Path::mkdir(m_rootDir,
-		  itr->get_path().list().begin(), --itr->get_path().list().end(),
-		  lastPath.list().begin(), lastPath.list().end());
-
-      lastPath = itr->get_path();
-
-      if (!f->open(path, File::in | File::out | File::create | File::largefile))
-	throw storage_error("Could not open file \"" + path + "\"");
+      open_file(f, itr->get_path(), lastPath);
 
     } catch (base_error& e) {
       delete f;
@@ -103,6 +100,8 @@ Content::open(bool wr) {
       
       throw e;
     }
+
+    lastPath = itr->get_path();
 
     m_storage.add_file(f, itr->get_size());
   }
@@ -150,6 +149,18 @@ Content::mark_done(unsigned int index) {
 
   if (m_completed == m_storage.get_chunkcount())
     m_downloadDone.emit();
+}
+
+bool
+Content::open_file(File* f, Path& p, Path& lastPath) {
+  if (p.list().empty())
+    throw internal_error("Tried to open file with empty path");
+
+  Path::mkdir(m_rootDir, p.list().begin(), --p.list().end(),
+	      lastPath.list().begin(), lastPath.list().end());
+
+  if (!f->open(m_rootDir + p.path(), File::in | File::out | File::create | File::largefile))
+    throw storage_error("Could not open file \"" + m_rootDir + p.path() + "\"");
 }
 
 }

@@ -209,7 +209,7 @@ void PeerConnection::read() {
     if (m_download->delegator().interested(m_bitfield)) {
       m_up.interested = m_sendInterested = true;
 
-    } else if (m_download->content().get_completed() == m_download->content().get_storage().get_chunkcount() &&
+    } else if (m_download->content().get_chunks_completed() == m_download->content().get_storage().get_chunkcount() &&
 	       m_bitfield.allSet()) {
       // Both sides are done so we might as well close the connection.
       throw close_connection();
@@ -634,7 +634,7 @@ void PeerConnection::fillWriteBuf() {
 void PeerConnection::sendHave(int index) {
   m_haveQueue.push_back(index);
 
-  if (m_download->content().get_completed() == m_download->content().get_storage().get_chunkcount()) {
+  if (m_download->content().get_chunks_completed() == m_download->content().get_storage().get_chunkcount()) {
     // We're done downloading.
 
     if (m_bitfield.allSet()) {

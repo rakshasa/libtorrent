@@ -88,9 +88,7 @@ Download::get_bytes_done() {
 				  add_ref(a, call_member(call_member(&DelegatorPiece::get_piece),
 							 &Piece::c_length)))));
   
-  return a +
-    ((DownloadMain*)m_ptr)->state().content().get_completed() *
-    ((DownloadMain*)m_ptr)->state().content().get_storage().get_chunksize();
+  return a + ((DownloadMain*)m_ptr)->state().content().get_bytes_completed();
 }
 
 uint64_t
@@ -105,7 +103,7 @@ Download::get_chunks_size() {
 
 uint32_t
 Download::get_chunks_done() {
-  return ((DownloadMain*)m_ptr)->state().content().get_completed();
+  return ((DownloadMain*)m_ptr)->state().content().get_chunks_completed();
 }
 
 uint32_t 
