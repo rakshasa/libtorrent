@@ -30,6 +30,10 @@ public:
   void                 open();
   void                 close();
 
+  // Only call resume_load() on newly open()'ed downloads. 
+  void                 resume_load();
+  void                 resume_save();
+
   // Start/stop the download. The torrent must be open.
   void                 start();
   void                 stop();

@@ -38,12 +38,21 @@ AC_ARG_ENABLE(debug,
     [  --enable-debug          enable debug information [default=yes]],
     [
         if test "$enableval" = "yes"; then
-            CXXFLAGS="$CXXFLAGS -Wall -Werror -g -DDEBUG"
+            CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
         else
             CXXFLAGS="$CXXFLAGS -Wall -DNDEBUG"
         fi
     ],[
-        CXXFLAGS="$CXXFLAGS -Wall -Werror -g -DDEBUG"
+        CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
+    ]
+)
+
+AC_ARG_ENABLE(werror,
+    [  --enable-werror         enable the -Werror flag [default=no]],
+    [
+        if test "$enableval" = "yes"; then
+            CXXFLAGS="$CXXFLAGS -Werror"
+        fi
     ]
 )
 
@@ -57,7 +66,7 @@ TORRENT_MINCORE_SIGNEDNESS()
 TORRENT_OTFD()
 
 AC_ARG_ENABLE(madvise,
-    [  --enable-madvise        enable madvise optimization [default=no]],
+    [  --enable-madvise        enable madvise optimization [default=yes]],
     [
         if test "$enableval" = "yes"; then
             AC_DEFINE(USE_MADVISE_WILLNEED, 1, we can use madvise(... MADV_WILLNEED))

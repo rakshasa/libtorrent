@@ -30,6 +30,27 @@ Bencode::Bencode(const Bencode& b) :
   }
 }
 
+Bencode::Bencode(Type t) :
+  m_type(t)
+{
+  switch (m_type) {
+  case TYPE_VALUE:
+    m_value = 0;
+    break;
+  case TYPE_STRING:
+    m_string = new std::string();
+    break;
+  case TYPE_LIST:
+    m_list = new List();
+    break;
+  case TYPE_MAP:
+    m_map = new Map();
+    break;
+  default:
+    break;
+  }
+}
+
 void
 Bencode::clear() {
   switch (m_type) {
@@ -212,7 +233,29 @@ Bencode::operator [] (const std::string& k) const {
 
 bool
 Bencode::has_key(const std::string& s) const {
+  if (m_type != TYPE_MAP)
+    throw bencode_error("Bencode::has_key(" + s + ") called on wrong type");
+
   return m_map->find(s) != m_map->end();
+}
+
+Bencode&
+Bencode::insert_key(const std::string& s, const Bencode& b) {
+  if (m_type != TYPE_MAP)
+    throw bencode_error("Bencode::insert_key(" + s + ", ...) called on wrong type");
+
+  return (*m_map)[s] = b;
+}
+
+void
+Bencode::erase_key(const std::string& s) {
+  if (m_type != TYPE_MAP)
+    throw bencode_error("Bencode::erase_key(" + s + ") called on wrong type");
+
+  Map::iterator itr = m_map->find(s);
+
+  if (itr != m_map->end())
+    m_map->erase(itr);
 }
 
 bool

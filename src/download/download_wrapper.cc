@@ -37,6 +37,23 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 }
 
 void
+DownloadWrapper::resume_load() {
+}
+
+void
+DownloadWrapper::resume_save() {
+  // Make sure everything is closed, and st_mtime is correct.
+
+  if (!m_main.is_open() || m_main.is_active() || !m_main.is_checked())
+    throw client_error("DownloadWrapper::resume_save() called at the wrong time");
+
+  Bencode& resume = m_bencode->insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
+
+  resume.insert_key("bitfield", std::string((char*)m_main.get_state().get_content().get_bitfield().begin(),
+					    m_main.get_state().get_content().get_bitfield().size_bytes()));
+}
+
+void
 DownloadWrapper::open() {
   if (m_main.is_open())
     return;

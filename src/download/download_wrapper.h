@@ -22,6 +22,10 @@ public:
   // Initialize hash checker and various download stuff.
   void                initialize(const std::string& hash, const std::string& id);
 
+  // Don't load unless the object is newly initialized.
+  void                resume_load();
+  void                resume_save();
+
   void                open();
   void                stop();
 

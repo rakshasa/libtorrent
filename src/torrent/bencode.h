@@ -29,6 +29,8 @@ class Bencode {
   Bencode(const std::string& s) : m_type(TYPE_STRING), m_string(new std::string(s)) {}
   Bencode(const Bencode& b);
 
+  explicit Bencode(Type t);
+  
   ~Bencode()                              { clear(); }
   
   void                clear();
@@ -41,6 +43,8 @@ class Bencode {
   bool                is_map() const      { return m_type == TYPE_MAP; }
 
   bool                has_key(const std::string& s) const;
+  Bencode&            insert_key(const std::string& s, const Bencode& b);
+  void                erase_key(const std::string& s);
 
   int64_t&            as_value();
   std::string&        as_string();

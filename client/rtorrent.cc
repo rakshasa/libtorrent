@@ -457,8 +457,11 @@ int main(int argc, char** argv) {
 	    break;
 
 	  case 'W':
-	    if (curDownload != downloads.end())
+	    if (curDownload != downloads.end() && curDownload->is_open()) {
+	      curDownload->stop();
+	      curDownload->resume_save();
 	      curDownload->close();
+	    }
 
 	    break;
 
@@ -508,6 +511,11 @@ int main(int argc, char** argv) {
     std::cout << "Dump path: \"" << dump_path << '"' << std::endl;
 
     for (torrent::DList::iterator itr = downloads.begin(); itr != downloads.end(); ++itr) {
+      if (itr->is_open()) {
+	itr->stop();
+	itr->resume_save();
+      }
+
       std::fstream f((dump_path + itr->get_name() + ".torrent").c_str(), std::ios::out | std::ios::trunc);
 
       std::cout << "Writing \"" << itr->get_name() << "\": " << std::flush;

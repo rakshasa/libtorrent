@@ -25,11 +25,11 @@ public:
   Content&            get_content()                             { return m_content; }
   BitFieldCounter&    get_bitfield_counter()                    { return m_bfCounter; }
 
+  // Schedules chunk for hash check.
   void                chunk_done(unsigned int index);
 
   uint64_t            bytes_left();
 
-  // Set endgame mode if we're close enough to the end.
   void                update_endgame();
 
   void                receive_hash_done(Storage::Chunk c, std::string hash);

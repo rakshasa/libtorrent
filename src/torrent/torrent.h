@@ -11,36 +11,36 @@ class Bencode;
 
 typedef std::list<Download> DList;
 
-void initialize();
+void      initialize();
 
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
-void cleanup();
+void      cleanup();
 
-bool listen_open(uint16_t begin, uint16_t end);
-void listen_close();  
+bool      listen_open(uint16_t begin, uint16_t end);
+void      listen_close();  
 
 // Set the file descriptors we want to pool for R/W/E events. All
 // fd_set's must be valid pointers.
-void mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
+void      mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
 
 // Do work on the polled file descriptors.
-void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
+void      work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
 
 // Will always return a valid Download. On errors it throws.
-Download download_create(std::istream& s);
+Download  download_create(std::istream& s);
 
 // Add all downloads to dlist. Make sure it's cleared.
-void     download_list(DList& dlist);
+void      download_list(DList& dlist);
 
 // Make sure you check that the returned Download is_valid().
-Download download_find(const std::string& id);
+Download  download_find(const std::string& id);
 
-void     download_remove(const std::string& id);
+void      download_remove(const std::string& id);
 
 // Returns the bencode object, make sure you don't modify stuff you shouldn't
 // touch. Make sure you don't copy the object, since it is very expensive.
-Bencode& download_bencode(const std::string& id);
+Bencode&  download_bencode(const std::string& id);
 
 // Variables, do stuff.
 typedef enum {
@@ -78,8 +78,8 @@ typedef enum {
 int64_t     get(GValue t);
 std::string get(GString t);
 
-void set(GValue t, int64_t v);
-void set(GString t, const std::string& s);
+void        set(GValue t, int64_t v);
+void        set(GString t, const std::string& s);
 
 
 }

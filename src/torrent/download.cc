@@ -39,6 +39,16 @@ Download::stop() {
   m_ptr->stop();
 }
 
+void
+Download::resume_load() {
+  m_ptr->resume_load();
+}
+
+void
+Download::resume_save() {
+  m_ptr->resume_save();
+}
+
 bool
 Download::is_open() {
   return m_ptr->get_main().is_open();
