@@ -7,6 +7,8 @@ libsub_utils_la_SOURCES = \
 	bitfield_ext.h \
 	ranges.cc \
 	ranges.h \
+	rate.cc \
+	rate.h \
 	task.h \
 	task_schedule.cc \
 	task_schedule.h \

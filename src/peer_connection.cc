@@ -250,8 +250,8 @@ void PeerConnection::read() {
     previous = m_down.pos;
     s = readChunk();
 
-    m_throttle.down().add(m_down.pos - previous);
-    m_net->get_rate_down().add(m_down.pos - previous);
+    m_throttle.down().insert(m_down.pos - previous);
+    m_net->get_rate_down().insert(m_down.pos - previous);
     
     if (!s)
       return;
@@ -281,7 +281,7 @@ void PeerConnection::read() {
 		 std::min(m_down.length, BUFFER_SIZE),
 		 m_down.pos);
 
-    m_throttle.down().add(m_down.pos);
+    m_throttle.down().insert(m_down.pos);
 
     m_down.length -= m_down.pos;
     m_down.pos = 0;
@@ -409,10 +409,10 @@ void PeerConnection::write() {
 
     s = writeChunk(maxBytes);
 
-    m_throttle.up().add(m_up.pos - previous);
+    m_throttle.up().insert(m_up.pos - previous);
     m_throttle.spent(m_up.pos - previous);
 
-    m_net->get_rate_up().add(m_up.pos - previous);
+    m_net->get_rate_up().insert(m_up.pos - previous);
 
     if (!s)
       return;
@@ -543,7 +543,7 @@ void PeerConnection::parseReadBuf() {
       insert_write();
     }
 
-    m_ratePeer.add(m_download->get_content().get_storage().get_chunk_size());
+    m_ratePeer.insert(m_download->get_content().get_storage().get_chunk_size());
 
     return;
 

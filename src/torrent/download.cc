@@ -159,12 +159,12 @@ Download::get_chunks_total() {
 // Bytes per second.
 uint32_t
 Download::get_rate_up() {
-  return m_ptr->get_main().get_net().get_rate_up().rate_quick();
+  return m_ptr->get_main().get_net().get_rate_up().rate();
 }
 
 uint32_t
 Download::get_rate_down() {
-  return m_ptr->get_main().get_net().get_rate_down().rate_quick();
+  return m_ptr->get_main().get_net().get_rate_down().rate();
 }
   
 const unsigned char*

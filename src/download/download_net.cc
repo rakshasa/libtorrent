@@ -7,7 +7,7 @@
 
 #include "download_net.h"
 #include "settings.h"
-#include "rate.h"
+#include "utils/rate.h"
 #include "peer_connection.h"
 #include "throttle_control.h"
 

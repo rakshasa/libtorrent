@@ -54,12 +54,12 @@ Peer::get_snubbed() {
 // Bytes per second.
 uint32_t
 Peer::get_rate_down() {
-  return ((PeerConnection*)m_ptr)->throttle().down().rate_quick();
+  return ((PeerConnection*)m_ptr)->throttle().down().rate();
 }
 
 uint32_t
 Peer::get_rate_up() {
-  return ((PeerConnection*)m_ptr)->throttle().up().rate_quick();
+  return ((PeerConnection*)m_ptr)->throttle().up().rate();
 }
 
 uint32_t

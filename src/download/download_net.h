@@ -7,7 +7,7 @@
 #include "content/delegator.h"
 #include "torrent/peer.h"
 
-#include "rate.h"
+#include "utils/rate.h"
 #include "peer_info.h"
 
 namespace torrent {

@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_THROTTLE_H
 #define LIBTORRENT_THROTTLE_H
 
-#include "rate.h"
+#include "utils/rate.h"
 #include <list>
 
 namespace torrent {
