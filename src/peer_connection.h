@@ -81,6 +81,8 @@ public:
 
   Throttle& throttle() { return m_throttle; }
 
+  bool is_up_choked() { return m_up.c_choked(); }
+
   virtual void read();
   virtual void write();
   virtual void except();

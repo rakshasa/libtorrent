@@ -145,22 +145,21 @@ TrackerHttp::receive_done() {
   else if (!b.is_map())
     return receive_failed("Root not a bencoded map");
 
-  int interval = 0;
+  int interval = 0, minInterval = 0;
   PeerList l;
 
   for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
 
     if (itr->first == "peers") {
 
-      if (itr->second.is_list()) {
+      if (itr->second.is_list())
 	parse_peers_normal(l, itr->second.as_list());
 
-      } else if (itr->second.is_string()) {
+      else if (itr->second.is_string())
 	parse_peers_compact(l, itr->second.as_string());
 
-      } else {
+      else
 	return receive_failed("Peers entry is not a bencoded list nor a string");
-      }
 
     } else if (itr->first == "interval") {
 
@@ -169,6 +168,14 @@ TrackerHttp::receive_done() {
 
       if (itr->second.as_value() > 60 && itr->second.as_value() < 6 * 3600)
 	interval = itr->second.as_value();
+
+    } else if (itr->first == "min interval") {
+
+      if (!itr->second.is_value())
+	return receive_failed("Min interval not a number");
+
+      if (itr->second.as_value() > 60 && itr->second.as_value() < 6 * 3600)
+	minInterval = itr->second.as_value();
 
     } else if (itr->first == "failure reason") {
 
@@ -181,7 +188,7 @@ TrackerHttp::receive_done() {
 
   close();
 
-  m_signalDone.emit(l, interval);
+  m_signalDone.emit(l, interval, minInterval);
 }
 
 PeerInfo TrackerHttp::parse_peer(const Bencode& b) {

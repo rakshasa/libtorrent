@@ -63,7 +63,7 @@ class TrackerControl {
   TrackerControl(const TrackerControl& t);
   void                  operator = (const TrackerControl& t);
 
-  void                  receive_done(const PeerList& l, int interval);
+  void                  receive_done(const PeerList& l, int32_t interval, int32_t minInterval);
   void                  receive_failed(std::string msg);
 
   void                  query_current();
@@ -75,12 +75,14 @@ class TrackerControl {
   
   int                   m_tries;
   int                   m_interval;
+
   TrackerState          m_state;
   int16_t               m_numwant;
 
   TrackerList           m_list;
   TrackerList::iterator m_itr;
 
+  Timer                 m_timerMinInterval;
   Task                  m_taskTimeout;
 
   SignalPeers           m_signalPeers;

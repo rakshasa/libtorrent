@@ -36,14 +36,14 @@ public:
   bool               is_downloading()                 { return m_downloading; }
   bool               is_wanted()                      { return m_reservees.front()->is_valid(); }
 
-  bool               has_index(unsigned int i);
-  unsigned int       remove_invalid();
+  bool               has_index(uint32_t i);
+  uint32_t           remove_invalid();
 
-  unsigned int       get_size()                       { return m_reservees.size(); }
+  size_t             get_size()                       { return m_reservees.size(); }
 
   const Piece&       get_piece()                      { return m_piece; }
 
-  Piece              get_queued_piece(unsigned int i) {
+  Piece              get_queued_piece(uint32_t i) {
     // TODO: Make this unnessesary?
     if (m_reservees[i]->is_valid())
       return m_reservees[i]->get_piece();
@@ -62,7 +62,7 @@ private:
   Delegator*         m_delegator;
   const BitField*    m_bitfield;
 
-  int                m_affinity;
+  int32_t            m_affinity;
   bool               m_downloading;
 
   ReserveeList       m_reservees;

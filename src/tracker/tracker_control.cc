@@ -1,13 +1,11 @@
 #include "config.h"
 
+#include <functional>
 #include <sigc++/signal.h>
 
-#include "algo/algo.h"
 #include "torrent/exceptions.h"
 #include "tracker_control.h"
 #include "tracker_http.h"
-
-using namespace algo;
 
 namespace torrent {
 
@@ -71,7 +69,7 @@ void
 TrackerControl::set_me(const PeerInfo* me) {
   m_me = me;
 
-  std::for_each(m_list.begin(), m_list.end(), call_member(&TrackerHttp::set_me, value(me)));
+  std::for_each(m_list.begin(), m_list.end(), std::bind2nd(std::mem_fun(&TrackerHttp::set_me), me));
 }
 
 bool
@@ -90,8 +88,14 @@ TrackerControl::send_state(TrackerState s) {
   m_tries = -1;
   m_state = s;
 
-  query_current();
-  m_taskTimeout.remove();
+  if (s == TRACKER_NONE && Timer::cache() < m_timerMinInterval) {
+    // Tracker min interval has not yet elapsed.
+    m_taskTimeout.insert(m_timerMinInterval);
+
+  } else {
+    query_current();
+    m_taskTimeout.remove();
+  }
 }
 
 void
@@ -103,22 +107,16 @@ TrackerControl::cancel() {
 }
 
 void
-TrackerControl::receive_done(const PeerList& l, int interval) {
+TrackerControl::receive_done(const PeerList& l, int32_t interval, int32_t minInterval) {
+  m_interval         = m_interval > 60 ? interval : 1800;
+  m_timerMinInterval = minInterval > 0 ? (Timer::cache() + (int64_t)minInterval * 1000000) : 0;
+
   if (m_state == TRACKER_STOPPED)
     return;
 
   m_state = TRACKER_NONE;
 
-  if (interval > 0)
-    m_interval = interval;
-  else
-    m_interval = 1800;
-
-  if (m_interval < 60)
-    throw internal_error("TrackerControl m_interval is to small");
-
   m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
-
   m_signalPeers.emit(l);
 }
 

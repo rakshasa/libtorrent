@@ -12,9 +12,6 @@
 #include "peer_connection.h"
 
 #include <limits>
-#include <algo/algo.h>
-
-using namespace algo;
 
 namespace torrent {
 

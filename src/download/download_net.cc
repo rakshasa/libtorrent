@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <functional>
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
@@ -124,8 +125,8 @@ DownloadNet::add_available_peers(const PeerList& p) {
 		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
 	!= m_connections.end() ||
 
-	std::find_if(m_availablePeers.begin(), m_availablePeers.end(),
-		     call_member(&PeerInfo::is_same_host, ref(*itr)))
+	std::find_if(m_availablePeers.begin(), m_availablePeers.end(), call_member(&PeerInfo::is_same_host, ref(*itr)))
+		     
 	!= m_availablePeers.end() ||
 
 	m_slotHasHandshake(*itr))
@@ -142,15 +143,8 @@ DownloadNet::add_available_peers(const PeerList& p) {
 
 int
 DownloadNet::can_unchoke() {
-  int s = 0;
-
-  std::for_each(m_connections.begin(), m_connections.end(),
-		if_on(bool_not(call_member(call_member(&PeerConnection::up),
-					   &PeerConnection::Sub::c_choked)),
-		      
-		      add_ref(s, value(1))));
-
-  return m_settings->maxUploads - s;
+  return m_settings->maxUploads - std::count_if(m_connections.begin(), m_connections.end(),
+						std::not1(std::mem_fun(&PeerConnection::is_up_choked)));
 }
 
 void

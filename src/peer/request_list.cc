@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <functional>
 #include <inttypes.h>
 
 #include "algo/algo.h"
@@ -38,7 +39,7 @@ RequestList::cancel() {
   m_canceled.clear();
 
   std::for_each(m_reservees.begin(), m_reservees.end(),
-		call_member(&DelegatorReservee::set_stalled, value(true)));
+		std::bind2nd(std::mem_fun(&DelegatorReservee::set_stalled), true));
 
   m_canceled.swap(m_reservees);
 }
@@ -46,7 +47,7 @@ RequestList::cancel() {
 void
 RequestList::stall() {
   std::for_each(m_reservees.begin(), m_reservees.end(),
-		call_member(&DelegatorReservee::set_stalled, value(true)));
+		std::bind2nd(std::mem_fun(&DelegatorReservee::set_stalled), true));
 }
 
 bool
@@ -108,11 +109,15 @@ RequestList::skip() {
   m_downloading = false;
 }
 
+struct equals_reservee : public std::binary_function<DelegatorReservee*, int32_t, bool> {
+  bool operator () (DelegatorReservee* r, int32_t index) const {
+    return r->is_valid() && index == r->get_piece().get_index();
+  }
+};
+
 bool
-RequestList::has_index(unsigned int i) {
-  return std::find_if(m_reservees.begin(), m_reservees.end(),
-		      bool_and(call_member(&DelegatorReservee::is_valid),
-			       eq(value((signed int)i), call_member(call_member(&DelegatorReservee::get_piece), &Piece::get_index))))
+RequestList::has_index(uint32_t index) {
+  return std::find_if(m_reservees.begin(), m_reservees.end(), std::bind2nd(equals_reservee(), index))
     != m_reservees.end();
 }
 
@@ -128,12 +133,11 @@ RequestList::cancel_range(ReserveeList::iterator end) {
 
 unsigned int
 RequestList::remove_invalid() {
-  unsigned int count = 0;
+  uint32_t count = 0;
   ReserveeList::iterator itr;
 
   // Could be more efficient, but rarely do we find any.
-  while ((itr = std::find_if(m_reservees.begin(), m_reservees.end(),
-			     bool_not(call_member(&DelegatorReservee::is_valid))))
+  while ((itr = std::find_if(m_reservees.begin(), m_reservees.end(),  std::not1(std::mem_fun(&DelegatorReservee::is_valid))))
 	 != m_reservees.end()) {
     count++;
     delete *itr;
@@ -141,8 +145,7 @@ RequestList::remove_invalid() {
   }
 
   // Don't count m_canceled that are invalid.
-  while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(),
-			     bool_not(call_member(&DelegatorReservee::is_valid))))
+  while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(), std::not1(std::mem_fun(&DelegatorReservee::is_valid))))
 	 != m_canceled.end()) {
     delete *itr;
     m_canceled.erase(itr);

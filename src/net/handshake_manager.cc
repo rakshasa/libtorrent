@@ -47,14 +47,7 @@ HandshakeManager::clear() {
 
 uint32_t
 HandshakeManager::get_size_hash(const std::string& hash) {
-  uint32_t s = 0;
-
-  std::for_each(m_handshakes.begin(), m_handshakes.end(),
-		if_on(eq(call_member(&Handshake::get_hash), ref(hash)),
-
-		      add_ref(s, value(1))));
-
-  return s;
+  return std::count_if(m_handshakes.begin(), m_handshakes.end(), eq(call_member(&Handshake::get_hash), ref(hash)));
 }
 
 bool

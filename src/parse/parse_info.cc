@@ -65,8 +65,7 @@ void parse_info(const Bencode& b, Content& c) {
     if (b["files"].as_list().empty())
       throw input_error("Bad torrent file, entry no files");
 
-    std::for_each(b["files"].as_list().begin(), b["files"].as_list().end(),
-		  bencode_to_file(c));
+    std::for_each(b["files"].as_list().begin(), b["files"].as_list().end(), bencode_to_file(c));
 
     c.set_root_dir("./" + b["name"].as_string());
 

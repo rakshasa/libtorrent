@@ -18,9 +18,9 @@ class Http;
 // TODO: Use a base class when we implement UDP tracker support.
 class TrackerHttp {
 public:
-  typedef std::list<PeerInfo>                       PeerList;
-  typedef sigc::signal2<void, const PeerList&, int> SignalDone;
-  typedef sigc::signal1<void, std::string>          SignalFailed;
+  typedef std::list<PeerInfo>                                    PeerList;
+  typedef sigc::signal3<void, const PeerList&, int32_t, int32_t> SignalDone;
+  typedef sigc::signal1<void, std::string>                       SignalFailed;
 
   TrackerHttp();
   ~TrackerHttp();
