@@ -17,6 +17,7 @@
 namespace torrent {
 
 class DownloadState;
+class DownloadNet;
 
 class PeerConnection : public SocketBase, public Service {
 public:
@@ -55,7 +56,7 @@ public:
   PeerConnection();
   ~PeerConnection();
 
-  void set(int fd, const PeerInfo& p, DownloadState* d);
+  void set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   
   void service(int type);
 
@@ -119,6 +120,7 @@ private:
 
   PeerInfo m_peer;
   DownloadState* m_download;
+  DownloadNet*   m_net;
    
   BitField m_bitfield;
    

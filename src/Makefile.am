@@ -48,8 +48,8 @@ libtorrent_la_SOURCES = \
 	data/storage_consolidator.cc \
 	data/storage_consolidator.h \
 	data/storage_file.h \
-	download/pipe_size.cc \
-	download/pipe_size.h \
+	download/download_net.cc \
+	download/download_net.h \
 	net/listen.cc \
 	net/listen.h \
 	parse/parse_info.cc \

@@ -23,12 +23,12 @@ extern std::list<std::string> caughtExceptions;
 HashQueue hashQueue;
 HashTorrent hashTorrent(&hashQueue);
 
-DownloadState::DownloadState() :
+DownloadState::DownloadState(DownloadNet* net) :
   m_bytesUploaded(0),
   m_bytesDownloaded(0),
   m_delegator(this),
-  m_settings(DownloadSettings::global()),
-  m_pipeSize(&this->m_settings)
+  m_net(net),
+  m_settings(DownloadSettings::global())
 {
   m_delegator.signal_chunk_done().connect(sigc::mem_fun(*this, &DownloadState::chunk_done));
 }
@@ -127,7 +127,7 @@ void DownloadState::addConnection(int fd, const PeerInfo& p) {
 
   PeerConnection* c = new PeerConnection();
 
-  c->set(fd, p, this);
+  c->set(fd, p, this, m_net);
 
   c->throttle().set_parent(&ThrottleControl::global().root());
   c->throttle().set_settings(ThrottleControl::global().settings(ThrottleControl::SETTINGS_PEER));

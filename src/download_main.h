@@ -4,6 +4,7 @@
 #include "bencode.h"
 #include "service.h"
 #include "download_state.h"
+#include "download/download_net.h"
 
 namespace torrent {
 
@@ -32,12 +33,13 @@ public:
   std::string& name() { return m_name; }
 
   DownloadState&  state()           { return m_state; }
+  DownloadNet&    net()             { return m_net; }
   TrackerControl& tracker()         { return *m_tracker; }
 
   void add_peers(const Peers& p);
 
   static DownloadMain*  getDownload(const std::string& hash);
-  static Downloads& downloads() { return m_downloads; }
+  static Downloads&     downloads() { return m_downloads; }
 
   // Modifying signals
   typedef sigc::signal0<void>              SignalTrackerSucceded;
@@ -53,6 +55,7 @@ private:
   static Downloads m_downloads;
   
   DownloadState m_state;
+  DownloadNet   m_net;
   TrackerControl* m_tracker;
 
   std::string m_name;

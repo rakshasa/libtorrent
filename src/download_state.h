@@ -20,6 +20,7 @@ extern HashQueue hashQueue;
 extern HashTorrent hashTorrent;
 
 class PeerConnection;
+class DownloadNet;
 
 // Here goes all those things that Peer* and Delegator needs.
 class DownloadState {
@@ -27,7 +28,7 @@ class DownloadState {
   typedef std::list<PeerInfo>        Peers;
   typedef std::list<PeerConnection*> Connections;
 
-  DownloadState();
+  DownloadState(DownloadNet* net);
   ~DownloadState();
 
   PeerInfo&     me()              { return m_me; }
@@ -37,8 +38,6 @@ class DownloadState {
   Connections&  connections()     { return m_connections; }
   Delegator&    delegator()       { return m_delegator; }
   Peers&        available_peers() { return m_availablePeers; }
-
-  PipeSize&     pipe_size()       { return m_pipeSize; }
 
   uint64_t& bytesDownloaded() { return m_bytesDownloaded; }
   uint64_t& bytesUploaded() { return m_bytesUploaded; }
@@ -90,11 +89,10 @@ private:
   Connections m_connections;
   Peers m_availablePeers;
 
+  DownloadNet* m_net;
   DownloadSettings m_settings;
   Rate m_rateUp;
   Rate m_rateDown;
-  
-  PipeSize m_pipeSize;
 
   BitFieldCounter m_bfCounter;
 

@@ -9,6 +9,8 @@
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
+#include "download/download_net.h"
+
 #include "download_state.h"
 #include "peer_connection.h"
 #include "general.h"
@@ -23,7 +25,7 @@ namespace torrent {
 // Find a better way to do this?
 extern std::list<std::string> caughtExceptions;
 
-void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d) {
+void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
 
@@ -35,6 +37,7 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d) {
   m_fd = fd;
   m_peer = p;
   m_download = d;
+  m_net = net;
 
   if (d == NULL ||
       !p.is_valid() ||
@@ -568,7 +571,7 @@ void PeerConnection::fillWriteBuf() {
 
   if (!m_down.choked && m_up.interested && !m_stallCount && m_down.state != READ_SKIP_PIECE) {
 
-    unsigned int ps = m_download->pipe_size().calculate(m_throttle.down());
+    unsigned int ps = m_net->pipe_size(m_throttle.down());
 
     while (m_requests.get_size() < ps && m_up.length + 16 < BUFFER_SIZE && request_piece())
       if (m_requests.get_size() == 1) {

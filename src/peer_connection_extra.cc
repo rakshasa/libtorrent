@@ -28,6 +28,7 @@ PeerConnection::PeerConnection() :
   m_stallCount(0),
 
   m_download(NULL),
+  m_net(NULL),
 
   m_sendChoked(false),
   m_sendInterested(false)

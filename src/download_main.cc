@@ -31,6 +31,7 @@ extern Listen* listen;
 
 DownloadMain::DownloadMain(const bencode& b) :
   m_tracker(NULL),
+  m_state(&this->m_net),
   m_checked(false),
   m_started(false)
 {
