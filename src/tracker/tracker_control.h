@@ -8,7 +8,6 @@
 
 #include "peer_info.h"
 #include "tracker_info.h"
-#include "tracker_state.h"
 
 #include "torrent/bencode.h"
 #include "utils/task.h"
