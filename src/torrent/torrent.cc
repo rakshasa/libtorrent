@@ -100,10 +100,8 @@ void
 cleanup() {
   ThrottleControl::global().remove_service();
 
-  for_each<true>(downloadManager.get_list().begin(), downloadManager.get_list().end(),
-		 delete_on());
-
   handshakes.clear();
+  downloadManager.clear();
 }
 
 bool

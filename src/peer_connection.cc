@@ -256,6 +256,8 @@ void PeerConnection::read() {
       return;
 
     m_down.state = IDLE;
+    m_tryRequest = true;
+
     m_requests.finished();
     
     // TODO: Find a way to avoid this remove/insert cycle.
@@ -286,6 +288,7 @@ void PeerConnection::read() {
     if (m_down.length == 0) {
       // Done with this piece.
       m_down.state = IDLE;
+      m_tryRequest = true;
 
       remove_service(SERVICE_STALL);
 
@@ -464,6 +467,7 @@ void PeerConnection::parseReadBuf() {
 
   case UNCHOKE:
     m_down.choked = false;
+    m_tryRequest = true;
     
     return insert_write();
 
@@ -529,11 +533,12 @@ void PeerConnection::parseReadBuf() {
       m_download->get_bitfield_counter().inc(index);
     }
     
-    if (!m_up.interested && m_net->get_delegator().get_select().interested(index)) {
+    if (m_net->get_delegator().get_select().interested(index)) {
       // We are interested, send flag if not already set.
       m_sendInterested = !m_up.interested;
       m_up.interested = true;
-
+      m_tryRequest = true;
+	
       insert_write();
     }
 
@@ -579,16 +584,23 @@ void PeerConnection::fillWriteBuf() {
     m_sendInterested = false;
   }
 
-  if (!m_down.choked && m_up.interested && m_down.state != READ_SKIP_PIECE &&
-      m_net->should_request(m_stallCount)) {
+  uint32_t pipeSize;
 
-    unsigned int ps = m_net->pipe_size(m_throttle.down());
+  if (m_tryRequest && !m_down.choked && m_up.interested &&
 
-    while (m_requests.get_size() < ps && m_up.length + 16 < BUFFER_SIZE && request_piece())
+      m_down.state != READ_SKIP_PIECE &&
+      m_net->should_request(m_stallCount) &&
+      m_requests.get_size() < (pipeSize = m_net->pipe_size(m_throttle.down()))) {
+
+    m_tryRequest = false;
+
+    while (m_requests.get_size() < pipeSize && m_up.length + 16 < BUFFER_SIZE && request_piece())
+
       if (m_requests.get_size() == 1) {
 	if (in_service(SERVICE_STALL))
 	  throw internal_error("Only one request, but we're already in SERVICE_STALL");
 	
+	m_tryRequest = true;
 	insert_service(Timer::cache() + m_download->get_settings().stallTimeout, SERVICE_STALL);
       }	
   }
@@ -690,6 +702,7 @@ void PeerConnection::service(int type) {
       insert_write();
     }
 
+    m_tryRequest = true;
     insert_service(Timer::cache() + 120 * 1000000, SERVICE_KEEP_ALIVE);
 
     return;

@@ -32,7 +32,8 @@ PeerConnection::PeerConnection() :
   m_net(NULL),
 
   m_sendChoked(false),
-  m_sendInterested(false)
+  m_sendInterested(false),
+  m_tryRequest(true)
 {
 }
 

@@ -17,6 +17,8 @@ extern std::string ip;
 extern uint32_t chunkPassed;
 extern uint32_t chunkFailed;
 
+extern uint32_t selectCount;
+
 Display::Display() {
   initscr();
   cbreak();
@@ -106,12 +108,14 @@ void Display::drawDownloads(const std::string& id) {
 	     "");
   }
 
-  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i IP: %s",
+  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i IP: %s",// Select: %u",
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
 	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000,
 	   curlStack.get_size(),
-	   ip.c_str());
+	   ip.c_str()
+	   //,selectCount
+	   );
 
   refresh();
 }

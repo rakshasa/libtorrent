@@ -126,6 +126,7 @@ private:
    
   bool m_sendChoked;
   bool m_sendInterested;
+  bool m_tryRequest;
 
   SendList    m_sends;
   RequestList m_requests;

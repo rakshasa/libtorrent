@@ -46,6 +46,8 @@ uint16_t port2 = 6999;
 uint32_t chunkPassed = 0;
 uint32_t chunkFailed = 0;
 
+uint32_t selectCount = 0;
+
 Display* display = NULL;
 bool shutdown_progress = false;
 
@@ -292,6 +294,7 @@ int main(int argc, char** argv) {
       else
 	throw torrent::local_error("Error polling sockets");
 
+    selectCount++;
     torrent::work(&rset, &wset, &eset, maxFd);
 
     while (torrent::get(torrent::HAS_EXCEPTION)) {
