@@ -4,6 +4,7 @@
 #include <ncurses.h>
 #include <torrent/torrent.h>
 #include <torrent/exceptions.h>
+#include <torrent/bencode.h>
 #include <algo/algo.h>
 #include <sigc++/bind.h>
 
@@ -39,6 +40,7 @@ torrent::DList downloads;
 bool inputActive = false;
 std::string inputBuf;
 std::string ip;
+std::string dump_path;
 
 uint16_t port1 = 6890;
 uint16_t port2 = 6999;
@@ -90,6 +92,18 @@ bool parse_port(const char* s) {
 
   port1 = a;
   port2 = b;
+
+  return true;
+}
+
+bool parse_dump(const char* s) {
+  if (std::strncmp(s, "--dump=", 7))
+    return false;
+
+  dump_path = std::string(s + 7);
+
+  if (!dump_path.empty() && *dump_path.rbegin() != '/')
+    dump_path.push_back('/');
 
   return true;
 }
@@ -210,7 +224,8 @@ int main(int argc, char** argv) {
       http.add_url(argv[fIndex], false);
 
     } else if (!parse_ip(argv[fIndex]) &&
-	       !parse_port(argv[fIndex])) {
+	       !parse_port(argv[fIndex]) &&
+	       !parse_dump(argv[fIndex])) {
       std::fstream f(argv[fIndex], std::ios::in);
       
       if (!f.is_open())
@@ -488,6 +503,23 @@ int main(int argc, char** argv) {
   }
 
   delete display;
+
+  if (!dump_path.empty()) {
+    std::cout << "Dump path: \"" << dump_path << '"' << std::endl;
+
+    for (torrent::DList::iterator itr = downloads.begin(); itr != downloads.end(); ++itr) {
+      std::fstream f((dump_path + itr->get_name() + ".torrent").c_str(), std::ios::out | std::ios::trunc);
+
+      std::cout << "Writing \"" << itr->get_name() << "\": " << std::flush;
+
+      if (f.is_open()) {
+	f << torrent::download_bencode(itr->get_hash());
+	std::cout << "Success" << std::endl;
+      } else {
+	std::cout << "Could not open file." << std::endl;
+      }
+    }
+  }
 
   torrent::cleanup();
   curlStack.global_cleanup();

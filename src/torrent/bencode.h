@@ -8,6 +8,9 @@
 
 namespace torrent {
 
+// This class should very rarely change, so it doesn't matter that much
+// of the implementation is visible.
+
 class Bencode {
  public:
   typedef std::list<Bencode>             List;

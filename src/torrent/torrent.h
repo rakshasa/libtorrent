@@ -7,6 +7,8 @@
 
 namespace torrent {
 
+class Bencode;
+
 typedef std::list<Download> DList;
 
 void initialize();
@@ -31,10 +33,14 @@ Download download_create(std::istream& s);
 // Add all downloads to dlist. Make sure it's cleared.
 void     download_list(DList& dlist);
 
-// Make sure you check that it's valid.
+// Make sure you check that the returned Download is_valid().
 Download download_find(const std::string& id);
 
 void     download_remove(const std::string& id);
+
+// Returns the bencode object, make sure you don't modify stuff you shouldn't
+// touch. Make sure you don't copy the object, since it is very expensive.
+Bencode& download_bencode(const std::string& id);
 
 // Variables, do stuff.
 typedef enum {

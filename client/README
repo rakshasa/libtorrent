@@ -19,8 +19,9 @@ Enter key.
 
 Switches
 
---ip=a.b.c.d  - Change the ip sent to the tracker.
---port=a-b    - Use port range a to b.
+--ip=[a.b.c.d]        - Change the ip sent to the tracker.
+--port=[a-b]          - Use port range a to b.
+--dump=[path]         - When closing, dump torrents to "path/[torrent_name]".
 
 All:
 

@@ -247,6 +247,16 @@ download_remove(const std::string& id) {
   downloadManager.remove(id);
 }
 
+Bencode&
+download_bencode(const std::string& id) {
+  DownloadWrapper* d = downloadManager.find(id);
+
+  if (d == NULL)
+    throw client_error("Tried to call download_bencode(id) with non-existing download");
+
+  return d->get_bencode();
+}
+
 // Throws a local_error of some sort.
 int64_t
 get(GValue t) {
