@@ -6,10 +6,10 @@
 #include <algo/ref_anchored.h>
 
 #include "service.h"
+#include "storage_chunk.h"
 
 namespace torrent {
 
-class StorageChunk;
 class HashChunk;
 
 // Calculating hash of incore memory is blindingly fast, it's always
