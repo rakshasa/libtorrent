@@ -24,51 +24,46 @@
 #define LIBTORRENT_STORAGE_CHUNK_H
 
 #include <vector>
-#include "memory_chunk.h"
+#include "storage_node.h"
 
 namespace torrent {
 
-class StorageChunk {
+class StorageChunk : private std::vector<StorageNode> {
 public:
-  friend class StorageConsolidator;
+  typedef std::vector<StorageNode> Base;
 
-  struct Node {
-    Node(const MemoryChunk& c, unsigned int pos, unsigned int len) : chunk(c), position(pos), length(len) {}
-    ~Node() { chunk.unmap(); }
+  using Base::value_type;
 
-    MemoryChunk  chunk;
-    unsigned int position;
-    unsigned int length;
-  };
+  using Base::iterator;
+  using Base::reverse_iterator;
+  using Base::size;
 
-  typedef std::vector<Node*> Nodes;
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
 
-  StorageChunk(unsigned int index) : m_index(index), m_size(0) {}
-  ~StorageChunk()                              { clear(); }
+  StorageChunk(uint32_t index) : m_index(index), m_size(0) {}
+  ~StorageChunk()                                           { clear(); }
 
-  bool is_valid();
+  bool                is_valid();
 
-  int          get_index()                     { return m_index; }
-  unsigned int get_size()                      { return m_size; }
-  Nodes&       get_nodes()                     { return m_nodes; }
+  int                 get_index()                           { return m_index; }
+  uint32_t            get_size()                            { return m_size; }
 
   // Get the Node that contains 'pos'.
-  Node&        get_position(unsigned int pos);
+  iterator            at_position(uint32_t pos);
 
-  void clear();
+  void                clear();
 
-protected:
-  // When adding file chunks, make sure you clear this object if *any*
-  // fails.
-  void add_chunk(const MemoryChunk& c);
+  void                push_back(const MemoryChunk& c);
 
 private:
   StorageChunk(const StorageChunk&);
   void operator = (const StorageChunk&);
   
-  unsigned int m_index;
-  unsigned int m_size;
-  Nodes        m_nodes;
+  uint32_t            m_index;
+  uint32_t            m_size;
 };
 
 }

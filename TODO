@@ -1,4 +1,4 @@
-SMALL TODO STUFF I HAVEN'T BOTHERED LOOKING INTO:
+SMALL TODO STUFF I HAVEN'T BOTHERED DOING YET:
 
 After 25 seconds, choke a peer if no requests have been received?
 
@@ -125,16 +125,8 @@ and it must respect and properly handle the permissions.
 Create an independent "memory area" class, which does *not*
 automagically unmap on dtor. StorageChunk can do the unmapping.
 
-Clean up MemoryChunk::is_incore.
-
-Clean up StorageChunk.
-
-Fix MemoryChunk::align_pair, it should calculate page align once.
-
 Cleanup File, make it use flags and prot instead of bools in get_chunk.
 
 Cleanup StorageConsolidator.
 
 Cleanup HashChunk
-
-

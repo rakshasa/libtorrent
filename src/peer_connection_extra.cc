@@ -80,14 +80,14 @@ PeerConnection::~PeerConnection() {
 }
 
 bool PeerConnection::writeChunk(int maxBytes) {
-  StorageChunk::Node& part = m_up.data->get_position(m_sends.front().get_offset() + m_up.pos);
+  StorageChunk::iterator part = m_up.data->at_position(m_sends.front().get_offset() + m_up.pos);
 
   unsigned int length = std::min(m_sends.front().get_length(),
-				 part.position + part.length - m_sends.front().get_offset());
+				 part->get_position() + part->get_length() - m_sends.front().get_offset());
 
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 
-  write_buf(part.chunk.begin() + m_sends.front().get_offset() + m_up.pos - part.position,
+  write_buf(part->get_chunk().begin() + m_sends.front().get_offset() + m_up.pos - part->get_position(),
 	   std::min(length, m_up.pos + maxBytes),
 	   m_up.pos);
 
@@ -100,16 +100,15 @@ bool PeerConnection::readChunk() {
   
   const Piece& p = m_requests.get_piece();
 
-  StorageChunk::Node& part = m_down.data->get_position(p.get_offset() + m_down.pos);
+  StorageChunk::iterator part = m_down.data->at_position(p.get_offset() + m_down.pos);
 
-  unsigned int offset = p.get_offset() + m_down.pos - part.position;
+  unsigned int offset = p.get_offset() + m_down.pos - part->get_position();
   
-  if (!part.chunk.is_valid() ||
-      !part.chunk.is_write())
+  if (!part->get_chunk().is_valid() || !part->get_chunk().is_write())
     throw storage_error("Tried to write piece to file area that isn't valid or can't be written to");
   
-  if (!read_buf(part.chunk.begin() + offset,
-	       std::min(part.position + part.chunk.size() - p.get_offset(), p.get_length()),
+  if (!read_buf(part->get_chunk().begin() + offset,
+	       std::min(part->get_position() + part->get_chunk().size() - p.get_offset(), p.get_length()),
 	       m_down.pos))
     return false; // Did not read the whole part of the piece
   

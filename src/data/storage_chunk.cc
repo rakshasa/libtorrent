@@ -22,44 +22,32 @@
 
 #include "config.h"
 
-#include <algo/algo.h>
 #include <functional>
 
 #include "torrent/exceptions.h"
 #include "storage_chunk.h"
 
-using namespace algo;
-
 namespace torrent {
 
-bool StorageChunk::is_valid() {
-  return !m_nodes.empty() &&
-    std::find_if(m_nodes.begin(), m_nodes.end(),
-		 bool_not(call_member(member(&StorageChunk::Node::chunk),
-				      &MemoryChunk::is_valid)))
-    == m_nodes.end();
+bool
+StorageChunk::is_valid() {
+  return !empty() && std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageNode::is_valid))) == end();
 }
 
-StorageChunk::Node&
-StorageChunk::get_position(unsigned int pos) {
+StorageChunk::iterator
+StorageChunk::at_position(uint32_t pos) {
   if (pos >= m_size)
     throw internal_error("Tried to get StorageChunk position out of range.");
 
-  Nodes::iterator itr = m_nodes.begin();
+  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageNode::is_contained), pos));
 
-  while (itr != m_nodes.end()) {
-    if (pos < (*itr)->position + (*itr)->chunk.size()) {
+  if (itr == end())
+    throw internal_error("StorageChunk might be mangled, get_position failed horribly");
 
-      if ((*itr)->length == 0)
-	throw internal_error("StorageChunk::get_position(...) tried to return a node with length 0");
+  if (itr->get_length() == 0)
+    throw internal_error("StorageChunk::get_position(...) tried to return a node with length 0");
 
-      return **itr;
-    }
-
-    ++itr;
-  }
-  
-  throw internal_error("StorageChunk might be mangled, get_position failed horribly");
+  return itr;
 }
 
 // Each add calls vector's reserve adding 1. This should keep
@@ -67,19 +55,19 @@ StorageChunk::get_position(unsigned int pos) {
 // will require a few more cycles, it won't matter as we only
 // rarely have more than 1 or 2 nodes.
 void
-StorageChunk::add_chunk(const MemoryChunk& c) {
-  m_nodes.reserve(m_nodes.size() + 1);
-  m_nodes.insert(m_nodes.end(), new Node(c, m_size, c.size()));
+StorageChunk::push_back(const MemoryChunk& c) {
+  Base::reserve(Base::size() + 1);
+  Base::insert(end(), StorageNode(c, m_size, c.size()));
 
   m_size += c.size();
 }
 
 void
 StorageChunk::clear() {
-  std::for_each(m_nodes.begin(), m_nodes.end(), delete_on());
+  std::for_each(begin(), end(), std::mem_fun_ref(&StorageNode::clear));
 
   m_size = 0;
-  m_nodes.clear();
+  Base::clear();
 }
 
 }

@@ -23,6 +23,8 @@ libsub_data_la_SOURCES = \
 	storage_consolidator.cc \
 	storage_consolidator.h \
 	storage_file.cc \
-	storage_file.h
+	storage_file.h \
+	storage_node.cc \
+	storage_node.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

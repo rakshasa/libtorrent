@@ -18,4 +18,5 @@ EXTRA_DIST= \
 	algo/use_impl.h \
 	algo/ref_anchored.h \
 	doc/main.xml \
+	doc/http.xml \
 	doc/torrent.xml

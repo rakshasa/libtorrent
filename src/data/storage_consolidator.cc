@@ -117,7 +117,7 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, bool wr, bo
       return false;
     }
 
-    chunk.add_chunk(mc);
+    chunk.push_back(mc);
 
     pos += length;
     ++itr;

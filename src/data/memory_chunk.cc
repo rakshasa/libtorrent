@@ -50,6 +50,9 @@ MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int flags) :
 
   if (page_align() >= m_pagesize)
     throw internal_error("MemoryChunk::MemoryChunk(...) received an page alignment >= page size");
+
+  if ((uint32_t)ptr % m_pagesize)
+    throw internal_error("MemoryChunk::MemoryChunk(...) is not aligned to a page");
 }
 
 void
@@ -124,16 +127,11 @@ MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
 bool
 MemoryChunk::is_incore(uint32_t offset, uint32_t length) {
   uint32_t size = page_touched(offset, length);
-
   char buf[size];
   
   incore(buf, offset, length);
 
-  for (uint32_t i = 0; i < size; ++i)
-    if (!buf[i])
-      return false;
-
-  return true;
+  return std::find(buf, buf + size, 0) == buf + size;
 }
 
 }

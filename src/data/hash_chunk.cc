@@ -40,25 +40,25 @@ bool HashChunk::perform(uint32_t length, bool force) {
   // TODO: Length should really only be an advise, we can optimize here IMO.
 
   while (length) {
-    StorageChunk::Node& node = m_chunk->get_position(m_position);
+    StorageChunk::iterator node = m_chunk->at_position(m_position);
 
-    uint32_t l = std::min(length, node.length - (m_position - node.position));
+    uint32_t l = std::min(length, node->get_length() - (m_position - node->get_position()));
 
     // Usually we only have one or two files in a chunk, so we don't mind the if statement
     // inside the loop.
 
     if (force) {
-      m_hash.update(node.chunk.begin() + m_position - node.position, l);
+      m_hash.update(node->get_chunk().begin() + m_position - node->get_position(), l);
 
       length     -= l;
       m_position += l;
 
     } else {
-      uint32_t incore, size = node.chunk.page_touched(m_position - node.position, l);
+      uint32_t incore, size = node->get_chunk().page_touched(m_position - node->get_position(), l);
       char buf[size];
 
       // TODO: We're borking here with NULL node.
-      node.chunk.incore(buf, m_position - node.position, l);
+      node->get_chunk().incore(buf, m_position - node->get_position(), l);
 
       for (incore = 0; incore < size; ++incore)
 	if (!buf[incore])
@@ -67,9 +67,9 @@ bool HashChunk::perform(uint32_t length, bool force) {
       if (incore == 0)
 	return false;
 
-      l = std::min(l, incore * node.chunk.page_size() - node.chunk.page_align(m_position - node.position));
+      l = std::min(l, incore * node->get_chunk().page_size() - node->get_chunk().page_align(m_position - node->get_position()));
 
-      m_hash.update(node.chunk.begin() + m_position - node.position, l);
+      m_hash.update(node->get_chunk().begin() + m_position - node->get_position(), l);
 
       length     -= l;
       m_position += l;
@@ -93,11 +93,11 @@ bool HashChunk::willneed(uint32_t length) {
   uint32_t pos = m_position;
 
   while (length) {
-    StorageChunk::Node& node = m_chunk->get_position(pos);
+    StorageChunk::iterator node = m_chunk->at_position(pos);
 
-    uint32_t l = std::min(length, node.length - (pos - node.position));
+    uint32_t l = std::min(length, node->get_length() - (pos - node->get_position()));
 
-    node.chunk.advise(pos - node.position, l, MemoryChunk::advice_willneed);
+    node->get_chunk().advise(pos - node->get_position(), l, MemoryChunk::advice_willneed);
 
     pos    += l;
     length -= l;
@@ -120,9 +120,9 @@ uint32_t HashChunk::remaining_file() {
   if (m_position == m_chunk->get_size())
     return 0;
 
-  StorageChunk::Node& node = m_chunk->get_position(m_position);
+  StorageChunk::iterator node = m_chunk->at_position(m_position);
 
-  return node.length - (m_position - node.position);
+  return node->get_length() - (m_position - node->get_position());
 }    
 
 }
