@@ -363,7 +363,7 @@ void Download::drawPeers(int y1, int y2) {
 	     itr->get_incoming_queue_size());
     x += 6;
 
-    mvprintw(i, x, "%i", itr->get_chunks_done());
+    mvprintw(i, x, "%3i", (itr->get_chunks_done() * 100) / m_dItr.get_chunks_total());
     x += 6;
 
     if (itr->get_incoming_queue_size())
@@ -419,6 +419,7 @@ void Download::drawStats(int y1, int y2) {
   mvprintw(y1++, 0, "DNS: %s:%hu", m_pItr->get_dns().c_str(), m_pItr->get_port());
   mvprintw(y1++, 0, "Id: %s" , escape_string(m_pItr->get_id()).c_str());
   mvprintw(y1++, 0, "Snubbed: %s", m_pItr->get_snubbed() ? "Yes" : "No");
+  mvprintw(y1++, 0, "Done: %i", m_pItr->get_chunks_done());
 
   mvprintw(y1++, 0, "Rate: %5.1f/%5.1f KiB Total: %.1f/%.1f MiB",
 	   (double)m_pItr->get_rate_up() / (double)(1 << 10),

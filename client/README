@@ -54,7 +54,7 @@ Download view:
   Up/Down   - Select a peer
   Left      - Back to main
 
-  T         - Request 250 new peers from the tracker. (Don't overuse it)
+  T         - Request 100 new peers from the tracker. (Don't overuse it)
 
   P         - View peers
   O         - Number of chunks seen amongst peers

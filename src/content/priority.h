@@ -1,8 +1,7 @@
 #ifndef LIBTORRENT_PRIORITY_H
 #define LIBTORRENT_PRIORITY_H
 
-#include <inttypes.h>
-#include <vector>
+#include "utils/ranges.h"
 
 namespace torrent {
 
@@ -14,30 +13,25 @@ public:
     HIGH
   } Type;
 
-  typedef std::pair<uint32_t, uint32_t> Range;
-  typedef std::vector<Range>            List;
-  typedef std::pair<uint32_t, Range>    Position;
+  typedef Ranges::List  List;
+  typedef Ranges::Range Range;
 
-  Priority() { clear(); }
+    // Must be added in increasing order.
+  void                add(Type t, uint32_t begin, uint32_t end) { m_ranges[t].add(begin, end); }
 
-  // Must be added in increasing order.
-  void                 add(Type t, uint32_t begin, uint32_t end);
+  void                clear()                                   { for (int i = 0; i < 3; ++i) m_ranges[i].clear(); }
 
-  void                 clear();
+  unsigned int        get_size(Type t)                          { return m_ranges[t].get_size(); }
+  List&               get_list(Type t)                          { return m_ranges[t].get_list(); }
 
-  unsigned int         get_size(Type t) { return m_size[t]; }
-  List&                get_list(Type t) { return m_list[t]; }
+  List::iterator      find(Type t, uint32_t index)              { return m_ranges[t].find(index); }
 
-  List::iterator       find(Type t, uint32_t index);
-
-  bool                 has(Type t, uint32_t index);
+  bool                has(Type t, uint32_t index)               { return m_ranges[t].has(index); }
 
 private:
-  uint32_t m_size[3];
-  List     m_list[3];
+  Ranges    m_ranges[3];
 };
 
 }
 
 #endif
-  
