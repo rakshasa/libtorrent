@@ -9,6 +9,7 @@
 #include "torrent.h"
 #include "throttle_control.h"
 #include "general.h"
+#include "bencode.h"
 
 #include "utils/timer.h"
 #include "net/listen.h"
@@ -31,7 +32,6 @@ HandshakeManager handshakes;
 DownloadManager downloadManager;
 
 HashQueue hashQueue;
-HashTorrent hashTorrent(&hashQueue);
 
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
@@ -192,7 +192,7 @@ download_create(std::istream& s) {
   // TODO: Should we clear failed bits?
   s.clear();
 
-  std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
+  std::auto_ptr<DownloadWrapper> d(new DownloadWrapper(generateId()));
 
   s >> d->get_bencode();
 
@@ -200,7 +200,6 @@ download_create(std::istream& s) {
     // Make it configurable whetever we throw or return .end()?
     throw local_error("Could not parse Bencoded torrent");
   
-  d->get_main().get_me().set_id(generateId());
   d->get_main().set_port(listen->get_port());
 
   parse_main(d->get_bencode(), d->get_main());

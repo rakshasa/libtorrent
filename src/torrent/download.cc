@@ -16,7 +16,6 @@ using namespace algo;
 
 namespace torrent {
 
-extern HashQueue hashQueue;
 extern HashTorrent hashTorrent;
 
 void
@@ -28,9 +27,8 @@ Download::open() {
 
   d.open();
 
-  hashTorrent.add(d.get_hash(), &d.get_state().get_content().get_storage(),
-		  sigc::mem_fun(d, &DownloadMain::receive_initial_hash),
-		  sigc::mem_fun(d.get_state(), &DownloadState::receive_hash_done));
+  // TODO: Remove this hash check.
+  m_ptr->get_hash_checker().start();
 }
 
 void
@@ -48,12 +46,7 @@ Download::start() {
 
 void
 Download::stop() {
-  DownloadMain& d = *(DownloadMain*)m_ptr;
-
-  d.stop();
-
-  hashTorrent.remove(d.get_hash());
-  hashQueue.remove(d.get_hash());
+  m_ptr->stop();
 }
 
 bool

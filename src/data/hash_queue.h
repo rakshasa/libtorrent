@@ -20,14 +20,15 @@ class HashChunk;
 
 class HashQueue : public Service {
 public:
+  // SignalDone: (Return void)
+  // unsigned int - index of chunk
+  // std::string  - chunk hash
+
   typedef algo::RefAnchored<StorageChunk>       Chunk;
   typedef sigc::slot2<void, Chunk, std::string> SlotDone;
 
   ~HashQueue() { clear(); }
 
-  // SignalDone: (Return void)
-  // unsigned int - index of chunk
-  // std::string  - chunk hash
   void                add(Chunk c, SlotDone d, const std::string& id);
 
   bool                has(uint32_t index, const std::string& id);

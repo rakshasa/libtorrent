@@ -2,49 +2,52 @@
 #define LIBTORRENT_HASH_TORRENT_H
 
 #include <string>
-#include "hash_queue.h"
+#include <sigc++/signal.h>
+#include <algo/ref_anchored.h>
+
+#include "storage_chunk.h"
+#include "utils/ranges.h"
 
 namespace torrent {
 
 class Storage;
+class HashQueue;
 
 class HashTorrent {
 public:
-  typedef sigc::slot0<void> SlotDone;
+  typedef algo::RefAnchored<StorageChunk>         Chunk;
+  typedef sigc::signal0<void>                     SignalTorrentDone;
+  typedef sigc::signal2<void, Chunk, std::string> SignalChunkDone;
   
-  HashTorrent(HashQueue* queue) : m_position(0), m_outstanding(0), m_queue(queue) {}
-  ~HashTorrent()                { clear(); }
+  HashTorrent(const std::string& id, Storage* s, HashQueue* queue);
+  ~HashTorrent() { stop(); }
 
-  void add(const std::string& id,
-	   Storage* storage,
-	   SlotDone torrentDone,
-	   HashQueue::SlotDone slotDone);
-  
-  void clear();
-  void remove(const std::string& id);
+  void                start();
+  void                stop();
+
+  bool                is_checking()         { return m_outstanding; }
+
+  Ranges&             get_ranges()          { return m_ranges; }
+
+  SignalTorrentDone   signal_torrent()      { return m_signalTorrent; }
+  SignalChunkDone     signal_chunk()        { return m_signalChunk; }
 
 private:
-  struct Node {
-    Node(const std::string& i, Storage* s, SlotDone t, HashQueue::SlotDone& d) :
-      id(i), storage(s), torrentDone(t), chunkDone(d) {}
+  void                queue();
 
-    std::string         id;
-    Storage*            storage;
-    SlotDone            torrentDone;
-    HashQueue::SlotDone chunkDone;
-  };
+  void                receive_chunkdone(Chunk c, std::string hash);
+  
+  std::string         m_id;
+  
+  unsigned int        m_position;
+  unsigned int        m_outstanding;
+  Ranges              m_ranges;
 
-  typedef std::list<Node> List;
+  Storage*            m_storage;
+  HashQueue*          m_queue;
 
-  void queue(unsigned int s);
-
-  void receive_chunkdone(HashQueue::Chunk c, std::string hash);
-
-  unsigned int m_position;
-  unsigned int m_outstanding;
-
-  List         m_list;
-  HashQueue*   m_queue;
+  SignalTorrentDone   m_signalTorrent;
+  SignalChunkDone     m_signalChunk;
 };
 
 }
