@@ -190,7 +190,8 @@ download_create(std::istream& s) {
     d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
 					      d->state().get_hash()));
 
-    d->state().slot_hash_check_add(sigc::bind(sigc::mem_fun(d->state(), &DownloadState::receive_hash_done),
+    d->state().slot_hash_check_add(sigc::bind(sigc::mem_fun(hashQueue, &HashQueue::add),
+					      sigc::mem_fun(d->state(), &DownloadState::receive_hash_done),
 					      d->state().get_hash()));
 
     d->setup_net();
