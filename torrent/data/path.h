@@ -25,8 +25,10 @@ public:
   static void        mkdir(const std::string& root,
 			   List::const_iterator pathBegin, List::const_iterator pathEnd,
 			   List::const_iterator ignoreBegin, List::const_iterator ignoreEnd,
-			   int umask = 0777);
+			   unsigned int umask = 0777);
   
+  static void        mkdir(const std::string& dir, unsigned int umask = 0777);
+
 private:
   List m_list;
 };

@@ -39,12 +39,11 @@ void Http::add_url(const std::string& s, bool queue) {
 
   } catch (torrent::input_error& e) {
     // do stuff
-    if (itr != m_list.end()) {
-      delete itr->first;
-      delete itr->second;
+    delete itr->first;
+    delete itr->second;
 
+    if (itr != m_list.end())
       m_list.erase(itr);
-    }
 
     log_entries.push_front(e.what());
   }

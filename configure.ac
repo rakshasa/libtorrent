@@ -91,7 +91,7 @@ MY_CURL()
 AC_LANG_PUSH(C++)
 
 dnl **************************************************************
-AC_MSG_CHECKING(has proper overloaded template function disambiguation)
+AC_MSG_CHECKING(for proper overloaded template function disambiguation)
 
 AC_COMPILE_IFELSE(
     [[template <typename T> void f(T&) {}
@@ -107,7 +107,7 @@ AC_COMPILE_IFELSE(
 )
 
 dnl *******************************************
-AC_MSG_CHECKING(signedness of mincore paramter)
+AC_MSG_CHECKING(signedness of mincore parameter)
 
 AC_COMPILE_IFELSE(
     [[#include <sys/types.h>

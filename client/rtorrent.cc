@@ -202,9 +202,23 @@ int main(int argc, char** argv) {
 
       if (inputActive) {
 	if (c == '\n') {
-	  try {
-	    http.add_url(inputBuf, queueNext);
-	  } catch (torrent::input_error& e) {}
+	  if (inputBuf.find("http://") != std::string::npos) {
+	    try {
+	      http.add_url(inputBuf, queueNext);
+	    } catch (torrent::input_error& e) {}
+
+	  } else {
+	    std::ifstream f(inputBuf.c_str());
+
+	    if (f.is_open()) {
+	      torrent::DItr dItr = torrent::create(f);
+
+	      if (queueNext)
+		globalQueue.insert(dItr);
+	      else
+		torrent::start(dItr);
+	    }
+	  }
 
 	  inputActive = false;
 

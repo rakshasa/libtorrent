@@ -37,9 +37,9 @@ Main:
   Up/Down   - Select a download
   Right     - View download
 
-  Enter     - Add torrent url
-  Backspace - Add torrent url as a queued download. Add all torrents
-              with this key to get proper queues.
+  Enter     - Add torrent url or local file
+  Backspace - Add torrent url or local file as a queued download. Add
+              all torrents with this key to get proper queues.
   L         - View Log
   Shift-Q   - Stop download / remove stopped download
   SpaceBar  - Resume torrent
@@ -54,6 +54,7 @@ Download view:
 
   P       - View peers
   O       - Number of chunks seen amongst peers
+  I       - View files in torrent
   B       - Local bitfield
   N       - Peer bitfield
 

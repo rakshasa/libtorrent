@@ -356,6 +356,9 @@ int64_t get(DList::const_iterator d, DValue t) {
   case IS_STOPPED:
     return (*d)->isStopped();
 
+  case ENTRY_COUNT:
+    return (*d)->state().content().get_files().size();
+
   default:
     throw internal_error("get(itr, DValue) received invalid type");
   }
@@ -572,6 +575,13 @@ void set(PList::const_iterator p, PValue t, int64_t v) {
 
 SignalDownloadDone& signalDownloadDone(DList::const_iterator itr) {
   return (*itr)->state().content().signal_download_done();
+}
+
+Entry get_entry(DItr itr, unsigned int index) {
+  if (index >= (*itr)->state().content().get_files().size())
+    throw internal_error("Client tried to access file with index out of bounds");
+
+  return Entry(&(*itr)->state().content().get_files()[index]);
 }
 
 }

@@ -9,6 +9,8 @@
 
 #include <sigc++/signal.h>
 
+#include "entry.h"
+
 namespace torrent {
 
 class Download;
@@ -80,7 +82,9 @@ typedef enum {
 
   UPLOADS_MAX,
 
-  IS_STOPPED
+  IS_STOPPED,
+
+  ENTRY_COUNT
 } DValue;
 
 typedef enum {
@@ -181,6 +185,8 @@ void set(DList::const_iterator d, DString t, const std::string& s);
 typedef sigc::signal0<void>      SignalDownloadDone;
 
 SignalDownloadDone& signalDownloadDone(DList::const_iterator itr);
+
+Entry get_entry(DItr itr, unsigned int index);
 
 }
 

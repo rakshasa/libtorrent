@@ -8,7 +8,7 @@ all: torrent $(OBJECTS)
 
 torrent:
 	mkdir torrent
-	ln -s ../../torrent/{torrent.h,exceptions.h,url/http.h} torrent
+	ln -s ../../torrent/{torrent.h,exceptions.h,entry.h,url/http.h} torrent
 
 %.o: %.cc
 	g++ $(CFLAGS) -c $<

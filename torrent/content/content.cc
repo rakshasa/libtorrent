@@ -69,6 +69,10 @@ void
 Content::open(bool wr) {
   close();
 
+  // Make sure root directory exists, Can't make recursively, so the client must
+  // make sure the parent dir of 'm_rootDir' exists.
+  Path::mkdir(m_rootDir);
+
   Path lastPath;
 
   for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {

@@ -55,6 +55,10 @@ void Download::draw() {
     mvprintw(1, 0, "Bitfield: %s", torrent::get(pItr, torrent::PEER_DNS).c_str());
     drawBitfield(torrent::get(pItr, torrent::PEER_BITFIELD), 2, maxY - 3);
     break;
+
+  case DRAW_ENTRY:
+    drawEntry(1, maxY - 3);
+    break;
   }
 
   if (torrent::get(m_dItr, torrent::CHUNKS_DONE) != torrent::get(m_dItr, torrent::CHUNKS_TOTAL))
@@ -155,6 +159,20 @@ bool Download::key(int c) {
     
     break;
 
+  case DRAW_ENTRY:
+    switch (c) {
+    case KEY_UP:
+      m_entryPos = std::max((signed)m_entryPos - 5, 0);
+      break;
+
+    case KEY_DOWN:
+      m_entryPos += 5;
+      break;
+
+    default:
+      break;
+    }
+
   default:
     break;
   }
@@ -217,6 +235,11 @@ bool Download::key(int c) {
   case 'o':
   case 'O':
     m_state = DRAW_SEEN;
+    break;
+
+  case 'i':
+  case 'I':
+    m_state = DRAW_ENTRY;
     break;
 
   case 'b':
@@ -299,8 +322,8 @@ void Download::drawPeers(int y1, int y2) {
 	     torrent::get(itr, torrent::PEER_CHOKE_DELAYED) ? 'd' : ' ');
     x += 7;
 
-    std::string incoming = torrent::get(itr, torrent::PEER_INCOMING);
     std::string outgoing = torrent::get(itr, torrent::PEER_OUTGOING);
+    std::string incoming = torrent::get(itr, torrent::PEER_INCOMING);
 
     mvprintw(i, x, "%i/%i",
 	     (int)incoming.size() / 4,
@@ -405,3 +428,27 @@ torrent::PItr Download::selectedPeer() {
   return cur;
 }
 
+void Download::drawEntry(int y1, int y2) {
+  int x = 2;
+
+  mvprintw(y1, x += 42, "File");
+  mvprintw(y1, x, " Size");
+
+  int files = torrent::get(m_dItr, torrent::ENTRY_COUNT);
+  int index = std::min<unsigned>(m_entryPos, files - (y2 - y1));
+
+  while (index < files && y1 < y2) {
+    torrent::Entry e = torrent::get_entry(m_dItr, index++);
+
+    std::string path = e.path();
+
+    if (path.length() <= 40)
+      path = path + std::string(40 - path.length(), ' ');
+    else
+      path = path.substr(0, 40);
+
+    mvprintw(++y1, 0, "  %s  %5.1f",
+	     path.c_str(),
+	     (double)e.size() / 1000000.0);
+  }
+}

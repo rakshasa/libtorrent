@@ -68,8 +68,7 @@ void parse_info(const bencode& b, Content& c) {
     std::for_each(b["files"].asList().begin(), b["files"].asList().end(),
 		  bencode_to_file(c));
 
-    for (Content::FileList::iterator itr = c.get_files().begin(); itr != c.get_files().end(); ++itr)
-      itr->path().list().push_front(b["name"].asString());
+    c.set_root_dir("./" + b["name"].asString());
 
   } else {
     throw input_error("Torrent must have either length or files entry");

@@ -8,6 +8,7 @@ class Download {
   Download(torrent::DItr dItr) :
     m_dItr(dItr),
     m_peerPos(0),
+    m_entryPos(0),
     m_state(DRAW_PEERS) {}
 
   void draw();
@@ -19,12 +20,14 @@ class Download {
     DRAW_PEERS,
     DRAW_SEEN,
     DRAW_BITFIELD,
-    DRAW_PEER_BITFIELD
+    DRAW_PEER_BITFIELD,
+    DRAW_ENTRY
   } State;
 
   void drawPeers(int y1, int y2);
   void drawSeen(int y1, int y2);
   void drawBitfield(std::string bf, int y1, int y2);
+  void drawEntry(int y1, int y2);
 
   void clear(int x, int y, int lx, int ly);
 
@@ -35,6 +38,7 @@ class Download {
 
   std::string m_peerCur;
   int m_peerPos;
+  unsigned int m_entryPos;
 
   State m_state;
 };

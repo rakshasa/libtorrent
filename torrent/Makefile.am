@@ -53,6 +53,8 @@ libtorrent_la_SOURCES = \
         download.h \
 	download_state.cc \
 	download_state.h \
+	entry.cc \
+	entry.h \
         general.cc \
         general.h \
         peer.cc \
@@ -84,6 +86,7 @@ libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
 	torrent.h \
 	exceptions.h \
+	entry.h \
 	url/http.h
 
 DISTCLEANFILES = *~ */*~

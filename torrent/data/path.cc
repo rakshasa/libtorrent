@@ -62,7 +62,7 @@ void
 Path::mkdir(const std::string& root,
 	    List::const_iterator pathBegin, List::const_iterator pathEnd,
 	    List::const_iterator ignoreBegin, List::const_iterator ignoreEnd,
-	    int umask) {
+	    unsigned int umask) {
 
   std::string p = root;
 
@@ -84,6 +84,13 @@ Path::mkdir(const std::string& root,
 
     ++pathBegin;
   }
+}
+
+void
+Path::mkdir(const std::string& dir, unsigned int umask) {
+  if (::mkdir(dir.c_str(), umask) &&
+      errno != EEXIST)
+    throw storage_error("Could not create directory '" + dir + "': " + strerror(errno));
 }
 
 }
