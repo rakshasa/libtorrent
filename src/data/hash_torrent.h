@@ -32,8 +32,8 @@ public:
   HashQueue*          get_queue()                   { return m_queue; }
   void                set_queue(HashQueue* q)       { m_queue = q; }
 
-  SignalTorrentDone   signal_torrent()              { return m_signalTorrent; }
-  SignalChunkDone     signal_chunk()                { return m_signalChunk; }
+  SignalTorrentDone&  signal_torrent()              { return m_signalTorrent; }
+  SignalChunkDone&    signal_chunk()                { return m_signalChunk; }
 
 private:
   void                queue();

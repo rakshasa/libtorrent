@@ -37,7 +37,7 @@ void
 Storage::set_chunksize(uint32_t s) {
   m_consolidator->set_chunksize(s);
 
-  m_anchors.resize(get_chunkcount());
+  m_anchors.resize(get_chunk_total());
 }
 
 uint64_t
@@ -46,8 +46,8 @@ Storage::get_size() {
 }
 
 uint32_t
-Storage::get_chunkcount() {
-  return m_consolidator->get_chunkcount();
+Storage::get_chunk_total() {
+  return m_consolidator->get_chunk_total();
 }
 
 uint32_t

@@ -28,6 +28,7 @@ public:
   // Schedules chunk for hash check.
   void                chunk_done(unsigned int index);
 
+  uint32_t            get_chunk_total()                         { return m_content.get_storage().get_chunk_total(); }
   uint64_t            bytes_left();
 
   void                update_endgame();

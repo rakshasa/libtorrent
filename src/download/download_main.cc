@@ -37,9 +37,9 @@ DownloadMain::open() {
     throw internal_error("Tried to open a download that is already open");
 
   m_state.get_content().open();
-  m_state.get_bitfield_counter().create(m_state.get_content().get_storage().get_chunkcount());
+  m_state.get_bitfield_counter().create(m_state.get_chunk_total());
 
-  m_net.get_delegator().get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_content().get_storage().get_chunkcount());
+  m_net.get_delegator().get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_chunk_total());
 }
 
 void
@@ -56,7 +56,10 @@ void DownloadMain::start() {
   if (!m_state.get_content().is_open())
     throw client_error("Tried to start a closed download");
 
-  if (m_started)
+  if (!is_checked())
+    throw client_error("Tried to start an unchecked download");
+
+  if (is_active())
     return;
 
   if (m_checked) {

@@ -11,6 +11,7 @@
 extern std::list<std::string> log_entries;
 extern torrent::DList downloads;
 extern std::string ip;
+extern void receive_hash_done(torrent::Download d);
 
 Queue globalQueue;
 
@@ -60,7 +61,8 @@ void Http::receive_done(List::iterator itr, bool queued) {
       globalQueue.insert(dItr);
     else {
       dItr.open();
-      dItr.start();
+      dItr.signal_hash_done(sigc::bind(sigc::ptr_fun(&receive_hash_done), dItr));
+      dItr.hash_check();
     }
 
     downloads.push_back(dItr);

@@ -35,6 +35,12 @@ public:
       std::memset(m_start, 0, m_pad - m_start);
   }
 
+  // Clear the last byte's padding.
+  void      cleanup(){
+    if (m_start && m_size % 8)
+      *(m_end - 1) &= ~(data_t)0 << 8 - m_size % 8;
+  }
+
   void      set(size_t i, bool s) {
     if (s)
       m_start[i / 8] |= 1 << 7 - i % 8;

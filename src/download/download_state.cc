@@ -17,7 +17,7 @@ namespace torrent {
 void
 DownloadState::update_endgame() {
   if (m_content.get_chunks_completed() + m_slotDelegatedChunks() + m_settings->endgameBorder
-      >= m_content.get_storage().get_chunkcount())
+      >= get_chunk_total())
     m_slotSetEndgame(true);
 }
 
@@ -38,7 +38,7 @@ DownloadState::bytes_left() {
   if (left > ((uint64_t)1 << 60))
     throw internal_error("DownloadState::bytes_left() is too large"); 
 
-  if (m_content.get_chunks_completed() == m_content.get_storage().get_chunkcount() && left != 0)
+  if (m_content.get_chunks_completed() == get_chunk_total() && left != 0)
     throw internal_error("DownloadState::bytes_left() has an invalid size"); 
 
   return left;

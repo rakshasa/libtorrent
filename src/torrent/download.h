@@ -31,8 +31,8 @@ public:
   void                 close();
 
   // Only call resume_load() on newly open()'ed downloads. 
-  void                 resume_load();
-  void                 resume_save();
+  void                 hash_check(bool resume = true);
+  void                 hash_save();
 
   // Start/stop the download. The torrent must be open.
   void                 start();
@@ -118,19 +118,20 @@ public:
   // class does not get copied as the binding only points to the original
   // memory location.
 
-  typedef sigc::slot0<void>                SlotDownloadDone;
-  typedef sigc::slot1<void, Peer>          SlotPeerConnected;
-  typedef sigc::slot1<void, Peer>          SlotPeerDisconnected;
-  typedef sigc::slot0<void>                SlotTrackerSucceded;
+  typedef sigc::slot0<void>                Slot;
+
+  typedef sigc::slot1<void, Peer>          SlotPeer;
+  typedef sigc::slot1<void, Peer>          SlotPeer;
   typedef sigc::slot1<void, std::string>   SlotTrackerFailed;
   typedef sigc::slot1<void, uint32_t>      SlotChunk;
 
-  sigc::connection    signal_download_done(SlotDownloadDone s);
+  sigc::connection    signal_download_done(Slot s);
+  sigc::connection    signal_hash_done(Slot s);
 
-  sigc::connection    signal_peer_connected(SlotPeerConnected s);
-  sigc::connection    signal_peer_disconnected(SlotPeerConnected s);
+  sigc::connection    signal_peer_connected(SlotPeer s);
+  sigc::connection    signal_peer_disconnected(SlotPeer s);
 
-  sigc::connection    signal_tracker_succeded(SlotTrackerSucceded s);
+  sigc::connection    signal_tracker_succeded(Slot s);
   sigc::connection    signal_tracker_failed(SlotTrackerFailed s);
 
   sigc::connection    signal_chunk_passed(SlotChunk s);

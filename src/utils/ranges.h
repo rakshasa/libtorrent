@@ -24,6 +24,7 @@ public:
   void                insert(uint32_t begin, uint32_t end);
   void                erase(uint32_t begin, uint32_t end);
 
+  // Find the first ranges that has an end greater than index.
   iterator            find(uint32_t index);
 
   // Use find with no closest match.

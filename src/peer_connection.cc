@@ -54,7 +54,7 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitFieldExt(d->get_content().get_storage().get_chunkcount());
+  m_bitfield = BitFieldExt(d->get_chunk_total());
 
   if (m_bitfield.begin() == NULL)
     throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
@@ -644,7 +644,7 @@ void PeerConnection::fillWriteBuf() {
     }
       
     if (m_sends.front().get_index() < 0 ||
-	m_sends.front().get_index() >= (signed)m_download->get_content().get_storage().get_chunkcount() ||
+	m_sends.front().get_index() >= (signed)m_download->get_chunk_total() ||
 	!m_download->get_content().get_bitfield()[m_sends.front().get_index()]) {
       std::stringstream s;
 

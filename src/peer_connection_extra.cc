@@ -133,7 +133,7 @@ PeerConnection::load_chunk(int index, Sub& sub) {
   if (sub.data.is_valid() && index == sub.data->get_index())
     return;
 
-  if (index < 0 || index >= (signed)m_download->get_content().get_storage().get_chunkcount())
+  if (index < 0 || index >= (signed)m_download->get_chunk_total())
     throw internal_error("Incoming pieces list contains a bad index value");
   
   sub.data = m_download->get_content().get_storage().get_chunk(index, true);
@@ -153,7 +153,7 @@ PeerConnection::request_piece() {
       p->get_length() == 0 ||
       p->get_length() + p->get_offset() >
       
-      ((unsigned)p->get_index() + 1 != m_download->get_content().get_storage().get_chunkcount() ||
+      ((unsigned)p->get_index() + 1 != m_download->get_chunk_total() ||
        !(m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunksize()) ?
        
        m_download->get_content().get_storage().get_chunksize() :

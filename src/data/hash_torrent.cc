@@ -24,7 +24,7 @@ HashTorrent::start() {
   if (m_queue == NULL || m_storage == NULL)
     throw internal_error("HashTorrent::start() called on an object with invalid m_queue or m_storage");
 
-  if (is_checking() || m_position == m_storage->get_chunkcount())
+  if (is_checking() || m_position == m_storage->get_chunk_total())
     return;
 
   queue();
@@ -49,9 +49,17 @@ HashTorrent::receive_chunkdone(Chunk c, std::string hash) {
 
 void
 HashTorrent::queue() {
-  while (m_position < m_storage->get_chunkcount()) {
+  while (m_position < m_storage->get_chunk_total()) {
     if (m_outstanding >= 30)
       return;
+
+    // Not very efficient, but this is seldomly done.
+    Ranges::iterator itr = m_ranges.find(m_position);
+
+    if (itr == m_ranges.end())
+      break;
+    else if (m_position < itr->first)
+      m_position = itr->first;
 
     Chunk c = m_storage->get_chunk(m_position++);
 

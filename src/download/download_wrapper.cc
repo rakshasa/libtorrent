@@ -37,15 +37,36 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 }
 
 void
-DownloadWrapper::resume_load() {
+DownloadWrapper::hash_load() {
+  if (!m_main.is_open() || m_main.is_active() || m_main.is_checked())
+    throw client_error("DownloadWrapper::resume_load() called with wrong state");
+
+  if (!m_bencode->has_key("libtorrent resume"))
+    return;
+
+  Bencode& b = (*m_bencode)["libtorrent resume"];
+
+  if (!b.has_key("bitfield") ||
+      !b["bitfield"].is_string() ||
+      b["bitfield"].as_string().size() != m_main.get_state().get_content().get_bitfield().size_bytes())
+    return;
+
+  // Clear the hash checking ranges, and add the ones we must do later.
+  m_hash->get_ranges().clear();
+
+  std::memcpy(m_main.get_state().get_content().get_bitfield().begin(),
+	      b["bitfield"].as_string().c_str(),
+	      m_main.get_state().get_content().get_bitfield().size_bytes());
+
+  m_main.get_state().get_content().update_done();
 }
 
 void
-DownloadWrapper::resume_save() {
+DownloadWrapper::hash_save() {
   // Make sure everything is closed, and st_mtime is correct.
 
   if (!m_main.is_open() || m_main.is_active() || !m_main.is_checked())
-    throw client_error("DownloadWrapper::resume_save() called at the wrong time");
+    throw client_error("DownloadWrapper::resume_save() called with wrong state");
 
   Bencode& resume = m_bencode->insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
 
@@ -59,7 +80,9 @@ DownloadWrapper::open() {
     return;
 
   m_main.open();
-  m_hash->start();
+
+  m_hash->get_ranges().clear();
+  m_hash->get_ranges().insert(0, m_main.get_state().get_chunk_total());
 }
 
 void
@@ -68,7 +91,6 @@ DownloadWrapper::stop() {
 
   // TODO: This is just wrong.
   m_hash->stop();
-
   m_hash->get_queue()->remove(get_hash());
 }
 

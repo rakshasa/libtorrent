@@ -39,13 +39,13 @@ public:
 
   uint32_t               get_chunksize(uint32_t index);
 
-  const BitField&        get_bitfield()                  { return m_bitfield; }
+  BitField&              get_bitfield()                  { return m_bitfield; }
   FileList&              get_files()                     { return m_files; }
   Storage&               get_storage()                   { return m_storage; }
 
   bool                   is_open()                       { return m_storage.get_size(); }
   bool                   is_correct_size();
-  bool                   is_done()                       { return m_completed == m_storage.get_chunkcount(); }
+  bool                   is_done()                       { return m_completed == m_storage.get_chunk_total(); }
 
   void                   open(bool wr = false);
   void                   close();
@@ -53,6 +53,7 @@ public:
   void                   resize();
 
   void                   mark_done(uint32_t index);
+  void                   update_done();
 
   SignalDownloadDone&    signal_download_done()          { return m_downloadDone; }
 

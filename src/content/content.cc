@@ -40,7 +40,7 @@ Content::get_hash(unsigned int index) {
   if (!is_open())
     throw internal_error("Tried to get chunk hash from Content that is not open");
 
-  if (index >= m_storage.get_chunkcount())
+  if (index >= m_storage.get_chunk_total())
     throw internal_error("Tried to get chunk hash from Content that is out of range");
 
   return m_hash.substr(index * 20, 20);
@@ -48,10 +48,10 @@ Content::get_hash(unsigned int index) {
 
 uint32_t
 Content::get_chunksize(uint32_t index) {
-  if (m_storage.get_chunksize() == 0 || index >= m_storage.get_chunkcount())
+  if (m_storage.get_chunksize() == 0 || index >= m_storage.get_chunk_total())
     throw internal_error("Content::get_chunksize(...) called but we borked");
 
-  if (index + 1 != m_storage.get_chunkcount() || m_size % m_storage.get_chunksize() == 0)
+  if (index + 1 != m_storage.get_chunk_total() || m_size % m_storage.get_chunksize() == 0)
     return m_storage.get_chunksize();
   else
     return m_size % m_storage.get_chunksize();
@@ -64,7 +64,7 @@ Content::get_bytes_completed() {
 
   uint64_t cs = m_storage.get_chunksize();
 
-  if (!m_bitfield[m_storage.get_chunkcount() - 1] || m_size % cs == 0)
+  if (!m_bitfield[m_storage.get_chunk_total() - 1] || m_size % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
     return m_completed * cs;
 
@@ -122,12 +122,12 @@ Content::open(bool wr) {
     m_storage.add_file(f, itr->get_size());
   }
 
-  m_bitfield = BitField(m_storage.get_chunkcount());
+  m_bitfield = BitField(m_storage.get_chunk_total());
 
   // Update anchor count in m_storage.
   m_storage.set_chunksize(m_storage.get_chunksize());
 
-  if (m_hash.size() / 20 != m_storage.get_chunkcount())
+  if (m_hash.size() / 20 != m_storage.get_chunk_total())
     throw internal_error("Content::open(...): Chunk count does not match hash count");
 
   if (m_size != m_storage.get_size())
@@ -150,14 +150,14 @@ Content::resize() {
 
 void
 Content::mark_done(uint32_t index) {
-  if (index >= m_storage.get_chunkcount())
+  if (index >= m_storage.get_chunk_total())
     throw internal_error("Content::mark_done received index out of range");
     
   if (m_bitfield[index])
     throw internal_error("Content::mark_done received index that has already been marked as done");
   
-  if (m_completed >= m_storage.get_chunkcount())
-    throw internal_error("Content::mark_done called but m_completed >= m_storage.get_chunkcount()");
+  if (m_completed >= m_storage.get_chunk_total())
+    throw internal_error("Content::mark_done called but m_completed >= m_storage.get_chunk_total()");
 
   m_bitfield.set(index, true);
   m_completed++;
@@ -166,8 +166,16 @@ Content::mark_done(uint32_t index) {
     if (index < itr->get_range().second)
       itr->set_completed(itr->get_completed() + 1);
 
-  if (m_completed == m_storage.get_chunkcount())
+  if (m_completed == m_storage.get_chunk_total())
     m_downloadDone.emit();
+}
+
+// Recalculate done pieces, make sure the bitfield padding is properly
+// cleared.
+void
+Content::update_done() {
+  m_bitfield.cleanup();
+  m_completed = m_bitfield.count();
 }
 
 void

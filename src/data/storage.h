@@ -32,7 +32,7 @@ public:
   void         set_chunksize(uint32_t s);
   
   uint64_t     get_size();
-  uint32_t     get_chunkcount();
+  uint32_t     get_chunk_total();
   uint32_t     get_chunksize();
 
   Chunk        get_chunk(unsigned int b, bool wr = false, bool rd = true);

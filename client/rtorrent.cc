@@ -128,6 +128,13 @@ bool is_shutdown() {
     == downloads.end();
 }    
 
+void receive_hash_done(torrent::Download d) {
+  if (!d.is_hash_checked())
+    throw torrent::client_error("client receive_hash_done() called, but download is not checked");
+  
+  d.start();
+}
+
 void signal_handler(int signum) {
   void* stackPtrs[50];
   char** stackStrings;
@@ -234,6 +241,7 @@ int main(int argc, char** argv) {
       torrent::Download d = torrent::download_create(f);
 
       d.set_ip(ip);
+      d.signal_hash_done(sigc::bind(sigc::ptr_fun(&receive_hash_done), d));
 
       downloads.push_back(d);
     }
@@ -247,7 +255,7 @@ int main(int argc, char** argv) {
   }
   
   std::for_each(downloads.begin(), downloads.end(), call_member(&torrent::Download::open));
-  std::for_each(downloads.begin(), downloads.end(), call_member(&torrent::Download::start));
+  std::for_each(downloads.begin(), downloads.end(), call_member(&torrent::Download::hash_check, value(true)));
 
   int64_t lastDraw = torrent::get(torrent::TIME_CURRENT) - (1 << 22);
   int maxY, maxX;
@@ -349,7 +357,8 @@ int main(int argc, char** argv) {
 		globalQueue.insert(d);
 	      else {
 		d.open();
-		d.start();
+		d.signal_hash_done(sigc::bind(sigc::ptr_fun(&receive_hash_done), d));
+		d.hash_check();
 	      }
 
 	      downloads.push_back(d);
@@ -459,7 +468,7 @@ int main(int argc, char** argv) {
 	  case 'W':
 	    if (curDownload != downloads.end() && curDownload->is_open()) {
 	      curDownload->stop();
-	      curDownload->resume_save();
+	      curDownload->hash_save();
 	      curDownload->close();
 	    }
 
@@ -468,7 +477,8 @@ int main(int argc, char** argv) {
 	  case ' ':
 	    if (curDownload != downloads.end()) {
 	      curDownload->open();
-	      curDownload->start();
+	      curDownload->signal_hash_done(sigc::bind(sigc::ptr_fun(&receive_hash_done), *curDownload));
+	      curDownload->hash_check();
 	    }
 
 	    break;
@@ -513,7 +523,7 @@ int main(int argc, char** argv) {
     for (torrent::DList::iterator itr = downloads.begin(); itr != downloads.end(); ++itr) {
       if (itr->is_open()) {
 	itr->stop();
-	itr->resume_save();
+	itr->hash_save();
       }
 
       std::fstream f((dump_path + itr->get_name() + ".torrent").c_str(), std::ios::out | std::ios::trunc);

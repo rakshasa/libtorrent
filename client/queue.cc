@@ -4,10 +4,13 @@
 
 #include "queue.h"
 
+extern void receive_hash_done(torrent::Download d);
+
 void Queue::insert(torrent::Download dItr) {
   if (m_list.empty()) {
     dItr.open();
-    dItr.start();
+    dItr.signal_hash_done(sigc::bind(sigc::ptr_fun(&receive_hash_done), dItr));
+    dItr.hash_check();
   }
 
   dItr.signal_download_done(sigc::bind(sigc::mem_fun(*this, &Queue::receive_done),
@@ -39,7 +42,8 @@ void Queue::receive_done(std::string id) {
     
     if (dItr.is_valid()) {
       dItr.open();
-      dItr.start();
+      dItr.signal_hash_done(sigc::bind(sigc::ptr_fun(&receive_hash_done), dItr));
+      dItr.hash_check();
       return;
     }
       
