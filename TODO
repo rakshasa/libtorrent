@@ -72,8 +72,6 @@ Don't be so aggressive at selecting stalled pieces.
 
 TRACKER STUFF
 
-We can accumulate too many peers, put a limit on it.
-
 
 API REDESIGN:
 
@@ -81,8 +79,6 @@ Exceptions are pushed out with signals, support different groups with
 multiple signals.
 
 Changing the piece length.
-
-!!! Download should return sigc::connection, not iterator
 
 
 AFTER API REDESIGN:

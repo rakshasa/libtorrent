@@ -51,8 +51,8 @@ public:
   static void         close_socket(int fd);
 
 protected:
-  bool read_buf(char* buf, unsigned int length, unsigned int& pos);
-  bool write_buf(const char* buf, unsigned int length, unsigned int& pos);
+  bool read_buf(void* buf, unsigned int length, unsigned int& pos);
+  bool write_buf(const void* buf, unsigned int length, unsigned int& pos);
 
   int                 m_fd;
 

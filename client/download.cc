@@ -294,6 +294,7 @@ void Download::drawPeers(int y1, int y2) {
   mvprintw(y1, x, "DNS");   x += 16;
   mvprintw(y1, x, "UP");    x += 7;
   mvprintw(y1, x, "DOWN");  x += 7;
+  mvprintw(y1, x, "PEER");  x += 7;
   mvprintw(y1, x, "RE/LO"); x += 7;
   mvprintw(y1, x, "QS");    x += 6;
   mvprintw(y1, x, "REQ");   x += 6;
@@ -342,6 +343,10 @@ void Download::drawPeers(int y1, int y2) {
 
     mvprintw(i, x, "%.1f",
 	     (double)itr->get_rate_down() / 1024);
+    x += 7;
+
+    mvprintw(i, x, "%.1f",
+	     (double)itr->get_rate_peer() / 1024);
     x += 7;
 
     mvprintw(i, x, "%c%c/%c%c%c",

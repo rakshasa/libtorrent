@@ -23,7 +23,7 @@ class Sub {
   State state;
   Protocol lastCommand;
 
-  char* buf;
+  uint8_t* buf;
   unsigned int pos;
   unsigned int length;
   unsigned int lengthOrig;

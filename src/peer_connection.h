@@ -76,6 +76,8 @@ public:
   RequestList& get_requests() { return m_requests; }
   SendList&    get_sends()    { return m_sends; }
 
+  Rate&        get_rate_peer() { return m_ratePeer; }
+
   Throttle& throttle() { return m_throttle; }
 
   virtual void read();
@@ -139,6 +141,7 @@ private:
   Sub m_up;
   Sub m_down;
 
+  Rate     m_ratePeer;
   Throttle m_throttle;
 };
 

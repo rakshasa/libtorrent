@@ -7,10 +7,10 @@ namespace torrent {
 
 class BitField {
 public:
-  typedef uint32_t     pad_type;
-  typedef uint32_t     size_type;
-  typedef char*        data_type;
-  typedef const char*  const_data_type;
+  typedef uint32_t       pad_t;
+  typedef uint32_t       size_t;
+  typedef uint8_t        data_t;
+  typedef const uint8_t  c_data_t;
 
   BitField() :
     m_size(0),
@@ -18,57 +18,57 @@ public:
     m_end(NULL),
     m_pad(NULL) {}
 
-  BitField(size_type s);
+  BitField(size_t s);
   BitField(const BitField& bf);
 
   ~BitField() { delete [] m_start; m_start = NULL; }
 
-  size_type           size_bits() const { return m_size; }
-  size_type           size_bytes() const { return m_end - m_start; }
-  size_type           size_ints() const { return (m_pad - m_start) / sizeof(pad_type); }
+  size_t    size_bits() const { return m_size; }
+  size_t    size_bytes() const { return m_end - m_start; }
+  size_t    size_ints() const { return (m_pad - m_start) / sizeof(pad_t); }
 
-  size_type           count() const;
+  size_t    count() const;
 
-  void                clear() {
+  void      clear() {
     if (m_start)
       std::memset(m_start, 0, m_pad - m_start);
   }
 
   //void      clear(int start, int end);
 
-  void                set(size_type i, bool s = true) {
+  void      set(size_t i, bool s = true) {
     if (s)
       m_start[i / 8] |= 1 << 7 - i % 8;
     else
       m_start[i / 8] &= ~(1 << 7 - i % 8);
   }
 
-  bool                get(size_type i) const {
+  bool      get(size_t i) const {
     return m_start[i / 8] & (1 << 7 - i % 8);
   }    
 
   // Mark all in this not in b2.
-  BitField&           not_in(const BitField& bf);
+  BitField& not_in(const BitField& bf);
 
-  bool                all_zero() const;
-  bool                all_set() const;
+  bool      all_zero() const;
+  bool      all_set() const;
 
-  data_type           begin() { return m_start; }
-  const_data_type     begin() const { return m_start; }
-  const_data_type     end() const { return m_end; }
+  data_t*   begin() { return m_start; }
+  c_data_t* begin() const { return m_start; }
+  c_data_t* end() const { return m_end; }
 
-  bool        operator [] (size_type i) const {
+  bool      operator [] (size_t i) const {
     return m_start[i / 8] & (1 << 7 - i % 8);
   }
   
-  BitField&   operator = (const BitField& bf);
+  BitField& operator = (const BitField& bf);
 
 private:
-  size_type   m_size;
+  size_t    m_size;
 
-  data_type   m_start;
-  data_type   m_end;
-  data_type   m_pad;
+  data_t*   m_start;
+  data_t*   m_end;
+  data_t*   m_pad;
 };
 
 }

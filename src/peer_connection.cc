@@ -60,8 +60,8 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
   insert_write();
   insert_except();
 
-  m_up.buf = new char[BUFFER_SIZE];
-  m_down.buf = new char[BUFFER_SIZE];
+  m_up.buf = new uint8_t[BUFFER_SIZE];
+  m_down.buf = new uint8_t[BUFFER_SIZE];
 
   if (!d->get_content().get_bitfield().all_zero()) {
     // Send bitfield to peer.
@@ -541,6 +541,8 @@ void PeerConnection::parseReadBuf() {
 	
       insert_write();
     }
+
+    m_ratePeer.add(m_download->get_content().get_storage().get_chunksize());
 
     return;
 

@@ -124,7 +124,7 @@ SocketBase::close_socket(int fd) {
   ::close(fd);
 }
 
-bool SocketBase::read_buf(char* buf, unsigned int length, unsigned int& pos) {
+bool SocketBase::read_buf(void* buf, unsigned int length, unsigned int& pos) {
   if (length <= pos) {
     std::stringstream s;
     s << "Tried to read socket buffer with wrong length and pos " << length << ' ' << pos;
@@ -148,7 +148,7 @@ bool SocketBase::read_buf(char* buf, unsigned int length, unsigned int& pos) {
   return length == (pos += r);
 }
 
-bool SocketBase::write_buf(const char* buf, unsigned int length, unsigned int& pos) {
+bool SocketBase::write_buf(const void* buf, unsigned int length, unsigned int& pos) {
   if (length <= pos) {
     std::stringstream s;
     s << "Tried to write socket buffer with wrong length and pos " << length << ' ' << pos;
