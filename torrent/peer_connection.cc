@@ -28,7 +28,7 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d) {
     throw internal_error("Tried to re-set PeerConnection");
 
   m_requests.set_delegator(&d->delegator());
-  m_requests.set_bitfield(&d->content().get_bitfield());
+  m_requests.set_bitfield(&m_bitfield);
 
   set_socket_min_cost(m_fd);
 
@@ -185,6 +185,7 @@ void PeerConnection::read() {
 	m_down.state = READ_SKIP_PIECE;
 
       } else {
+	m_down.state = READ_PIECE;
 	load_chunk(m_requests.get_piece().get_index(), m_down);
       }
 
@@ -227,9 +228,8 @@ void PeerConnection::read() {
     m_throttle.down().add(m_down.pos - previous);
     m_download->rateDown().add(m_down.pos - previous);
     
-    if (!s) {
+    if (!s)
       return;
-    }
 
     m_down.state = IDLE;
     m_download->bytesDownloaded() += m_requests.get_piece().get_length();
@@ -240,7 +240,7 @@ void PeerConnection::read() {
     remove_service(SERVICE_INCOMING_PIECE);
     
     if (m_requests.get_size())
-      insert_service(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
+      insert_service(Timer::cache() + 600 * 1000000, SERVICE_INCOMING_PIECE);
 
     // TODO: clear m_down.data?
 
@@ -511,7 +511,8 @@ void PeerConnection::parseReadBuf() {
     return;
 
   default:
-    throw internal_error("peer sendt unsupported command");
+    // TODO: this is a communication error.
+    throw internal_error("peer sent unsupported command");
   };
 }
 
@@ -555,7 +556,7 @@ void PeerConnection::fillWriteBuf() {
 
     while (m_up.length + 16 < BUFFER_SIZE && request_piece()) {
       if (addService) {
-	insert_service(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
+	insert_service(Timer::cache() + 600 * 1000000, SERVICE_INCOMING_PIECE);
 	addService = false;
       }
     }
@@ -636,8 +637,9 @@ void PeerConnection::sendHave(int index) {
 
   // Clear all pieces with this index and if one is being downloaded then
   // skip it.
-  if (m_requests.is_downloading()) {
-    throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading()");
+  if (m_requests.is_downloading() &&
+      m_requests.get_piece().get_index() == index) {
+    throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading() with this index");
 
     if (m_down.state != READ_PIECE)
       throw internal_error("PeerConnection::sendHave(...) got RequestList.is_downloading() but state is not READ_PIECE");
@@ -690,7 +692,18 @@ void PeerConnection::service(int type) {
     
   case SERVICE_INCOMING_PIECE:
     // Clear the incoming queue reservations so we can request from other peers.
+    if (m_down.state != READ_PIECE)
+      return;
+
+    remove_service(SERVICE_INCOMING_PIECE);
+
+    m_down.state = READ_SKIP_PIECE;
+    m_down.length = m_requests.get_piece().get_length() - m_down.pos;
+    m_down.pos = 0;
+
     m_requests.stall();
+
+    caughtExceptions.push_back("Peer stalled");
 
     return;
   default:

@@ -56,6 +56,16 @@ Download::get_hash() {
   return m_ptr ? ((DownloadMain*)m_ptr)->state().hash() : "";
 }
 
+std::string
+Download::get_root_dir() {
+  return ((DownloadMain*)m_ptr)->state().content().get_root_dir();
+}
+
+void
+Download::set_root_dir(const std::string& dir) {
+  ((DownloadMain*)m_ptr)->state().content().set_root_dir(dir);
+}
+
 uint64_t
 Download::get_bytes_up() {
   return ((DownloadMain*)m_ptr)->state().bytesUploaded();

@@ -44,6 +44,10 @@ public:
   std::string          get_name();
   std::string          get_hash();
 
+  // Only set the root directory while the torrent is closed.
+  std::string          get_root_dir();
+  void                 set_root_dir(const std::string& dir);
+
   uint64_t             get_bytes_up();
   uint64_t             get_bytes_down();
   uint64_t             get_bytes_done();

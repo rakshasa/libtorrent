@@ -20,6 +20,8 @@ using namespace algo;
 
 namespace torrent {
 
+extern std::list<std::string> caughtExceptions;
+
 PeerConnection::PeerConnection() :
   m_fd(-1),
   m_shutdown(false),
@@ -147,6 +149,8 @@ bool
 PeerConnection::request_piece() {
   const Piece* p;
 
+  caughtExceptions.push_back("Trying to request a piece");
+
   if (m_requests.get_size() > 5 ||
       (p = m_requests.delegate()) == NULL)
     return false;
@@ -179,6 +183,8 @@ PeerConnection::request_piece() {
   bufW32(p->get_index());
   bufW32(p->get_offset());
   bufW32(p->get_length());
+
+  caughtExceptions.push_back("Requesting a piece");
 
   return true;
 }

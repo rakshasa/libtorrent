@@ -19,6 +19,8 @@ RequestList::delegate() {
 
   if (r) {
     m_reservees.push_back(r);
+    r->set_state(DELEGATOR_QUEUED);
+
     return &r->get_piece();
 
   } else {
@@ -51,8 +53,8 @@ RequestList::downloading(const Piece& p) {
   if (itr == m_reservees.end())
     return false;
 
-  if ((*m_bitfield)[(*itr)->get_piece().get_index()])
-    throw internal_error("RequestList::received(...) called with a piece index we already have");
+  if ((*m_delegator->select().get_bitfield())[p.get_index()])
+    throw internal_error("RequestList::downloading(...) called with a piece index we already have");
 
   if (m_delegator->downloading(**itr)) {
     delete_range(itr);
@@ -64,10 +66,13 @@ RequestList::downloading(const Piece& p) {
 
     return true;
   } else {
+    // TODO: Do something here about the queue.
+
     return false;
   }
 }
 
+// Must clear the downloading piece.
 bool
 RequestList::finished() {
   if (m_downloading == NULL)

@@ -184,17 +184,6 @@ void Delegator::redo(int index) {
 }
 
 DelegatorPiece* Delegator::newChunk(const BitField& bf) {
-  BitField available(bf);
-  available.notIn(m_state->content().get_bitfield());
-
-  // Make sure we don't try downloading a chunk we already got in the list.
-  std::for_each(m_chunks.begin(), m_chunks.end(),
-		call_member(ref(available),
-			    &BitField::set,
-
-			    member(&Chunk::m_index),
-			    value(false)));
-
   int index = m_select.find(bf, random() % bf.sizeBits(), 1024);
 
   if (index == -1)
