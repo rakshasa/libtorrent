@@ -352,7 +352,7 @@ void PeerConnection::read() {
 
     e.set(s.str());
 
-    throw e;
+    throw;
   }
 }
 
@@ -477,7 +477,7 @@ void PeerConnection::write() {
 
     e.set(s.str());
 
-    throw e;
+    throw;
   }
 }
 

@@ -154,11 +154,6 @@ Download::get_tracker_timeout() {
   return ((DownloadMain*)m_ptr)->tracker().get_next().usec();
 }
 
-std::string
-Download::get_tracker_msg() {
-  return "";
-}
-
 void
 Download::set_peers_min(uint32_t v) {
   if (v > 0 && v < 1000) {

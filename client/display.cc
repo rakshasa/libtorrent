@@ -98,9 +98,7 @@ void Display::drawDownloads(const std::string& id) {
 	     first == mark ? '*' : ' ',
 	     first->is_tracker_busy() ? 'C' : ' ',
 	     (int)(first->get_tracker_timeout() / 1000000),
-	     first->get_tracker_msg().length() > 40 ?
-	     "OVERFLOW" :
-	     first->get_tracker_msg().c_str());
+	     "");
   }
 
   mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i",

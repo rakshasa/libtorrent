@@ -5,3 +5,25 @@ Somehow choke delay got stuck:
 0.0    0.0    ci/und 0/16
 
 Fix bencode map, should be list.
+
+0 rtorrent [0x806d2a5]
+1 /lib/tls/libc.so.6 [0x138eb8]
+2 rtorrent [0x806bcff]
+3 rtorrent [0x806c2a1]
+4 rtorrent(_ZN4sigc8internal12signal_emit0IvNS_3nilEE4emitEPNS0_11signal_implE+0xd2) [0x8067c22]
+5 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZNK4sigc7signal0IvNS_3nilEE4emitEv+0x22) [0xb36632]
+6 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZNK4sigc15adaptor_functorINS_24bound_const_mem_functor0IvNS_7signal0IvNS_3nilEEEEEEclEv+0x31) [0xb36df1]
+7 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZN4sigc8internal10slot_call1INS_12hide_functorILin1ENS_24bound_const_mem_functor0IvNS_7signal0IvNS_3nilEEEEEEEvRKSt4listIN7torrent8PeerInfoESaISB_EEE7call_itEPNS0_8slot_repESF_+0x22) [0xb36db2]
+8 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZN4sigc8internal12signal_emit1IvRKSt4listIN7torrent8PeerInfoESaIS4_EENS_3nilEE4emitEPNS0_11signal_implES8_+0xed) [0xb28afd]
+9 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZN7torrent14TrackerControl12receive_doneERKSt4listINS_8PeerInfoESaIS2_EEi+0x155) [0xb286a5]
+10 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZN4sigc8internal10slot_call2INS_18bound_mem_functor2IvN7torrent14TrackerControlERKSt4listINS3_8PeerInfoESaIS6_EEiEEvSA_iE7call_itEPNS0_8slot_repESA_RKi+0x41) [0xb28e51]
+11 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZN4sigc8internal12signal_emit2IvRKSt4listIN7torrent8PeerInfoESaIS4_EEiNS_3nilEE4emitEPNS0_11signal_implES8_RKi+0xf4) [0xb2bd84]
+12 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZN7torrent11TrackerHttp12receive_doneEv+0x505) [0xb2b015]
+13 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZNK4sigc15adaptor_functorINS_18bound_mem_functor0IvN7torrent11TrackerHttpEEEEclEv+0x31) [0xb2bff1]
+14 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.1(_ZN4sigc8internal10slot_call0INS_18bound_mem_functor0IvN7torrent11TrackerHttpEEEvE7call_itEPNS0_8slot_repE+0x22) [0xb2bfb2]
+15 rtorrent(_ZN4sigc8internal12signal_emit0IvNS_3nilEE4emitEPNS0_11signal_implE+0xd2) [0x8067c22]
+16 rtorrent [0x8067892]
+17 rtorrent [0x80681c2]
+18 rtorrent [0x806e0b2]
+19 /lib/tls/libc.so.6(__libc_start_main+0xed) [0x12679d]
+20 rtorrent(_ZNSs6appendEPKcj+0x5d) [0x8065641]

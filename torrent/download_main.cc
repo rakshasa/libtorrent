@@ -80,12 +80,13 @@ DownloadMain::DownloadMain(const bencode& b) :
     delete m_tracker;
 
     throw local_error("Bad torrent file \"" + std::string(e.what()) + "\"");
-  } catch (const local_error& e) {
+
+  } catch (...) {
 
     state().content().close();
     delete m_tracker;
 
-    throw e;
+    throw;
   }
 }
 

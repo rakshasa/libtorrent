@@ -29,7 +29,7 @@ public:
   void                 start();
   void                 stop();
 
-  // Does not check if it has been removed.
+  // Does not check if the download has been removed.
   bool                 is_valid()  { return m_ptr; }
 
   bool                 is_open();
@@ -64,7 +64,6 @@ public:
   uint32_t             get_uploads_max();
   
   uint64_t             get_tracker_timeout();
-  std::string          get_tracker_msg();
 
   void                 set_peers_min(uint32_t v);
   void                 set_peers_max(uint32_t v);
