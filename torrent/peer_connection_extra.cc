@@ -126,9 +126,9 @@ void PeerConnection::discardIncomingQueue() {
     m_download->delegator().cancel(*m_down.list.front());
 
     delete m_down.list.front();
+    m_down.list.pop_front();
   }
 
-  m_down.list.clear();
   m_down.data = Storage::Chunk();
 }
 
@@ -183,7 +183,54 @@ PeerConnection::request_piece() {
   bufW32(r->get_piece().get_offset());
   bufW32(r->get_piece().get_length());
 
+  r->set_state(DELEGATOR_QUEUED);
+
+  m_down.list.push_back(r);
+
   return true;
+}
+
+void
+PeerConnection::received_piece_header(const Piece& p) {
+  PieceList::iterator pItr = std::find_if(m_down.list.begin(), m_down.list.end(),
+					  eq(ref(p), call_member(&DelegatorReservee::get_piece)));
+
+  if (pItr == m_down.list.end()) {
+
+    // Ignore piece. We might want it but it's not in the list
+    m_down.length = p.get_length();
+    m_down.state = READ_SKIP_PIECE;
+
+  } else if (!m_download->delegator().downloading(**pItr)) {
+    // Piece in queue but we don't want it
+
+    delete *pItr;
+    m_down.list.erase(pItr);
+
+    m_down.length = p.get_length();
+    m_down.state = READ_SKIP_PIECE;
+
+  } else {
+    // TODO: Keep around all the requests, and erase all those the peer
+    // skips. This will protect against a peer sending unrequested pieces.
+
+    if (pItr != m_down.list.begin()) {
+      // Sender skipped a few pieces
+
+      while (m_down.list.begin() != pItr) {
+	m_download->delegator().cancel(*m_down.list.front());
+
+	m_down.list.front()->set_state(DELEGATOR_NONE);
+
+	delete m_down.list.front();
+	m_down.list.pop_front();
+      }
+    }
+
+    (*pItr)->set_state(DELEGATOR_DOWNLOADING);
+
+    m_down.state = READ_PIECE;
+  }
 }
 
 

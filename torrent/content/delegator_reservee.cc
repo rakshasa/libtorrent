@@ -24,6 +24,18 @@ DelegatorReservee::~DelegatorReservee() {
 }
 
 void
+DelegatorReservee::clear() {
+  if (m_parent == NULL)
+    return;
+
+  if (m_parent->get_reservee() != this)
+    throw internal_error("DelegatorReservee::clear() received a DelegatorPiece with a parent mismatch");
+
+  m_parent->set_reservee(NULL);
+  m_parent = NULL;
+}
+
+void
 DelegatorReservee::set_state(DelegatorState s) {
   if (m_parent == NULL)
     throw internal_error("DelegatorReservee::set_state(...) called on an invalid object");

@@ -4,11 +4,6 @@ downloaded?
 Randomize the chunks list so we don't start all downloads at the same
 spot.
 
-Setting for pipelining requests.
-
-Make request list keep choked requests, though it needs to be done in
-some other way.
-
 After 25 seconds, choke a peer if no requests have been received?
 
 Add average, max and total to rates. Will this be controlled by
@@ -49,7 +44,15 @@ Sane timeouts on handshakes.
 
 Switch to a proper type for file offset/length and chunk length.
 
+
+
+DELEGATOR STUFF
+
 Different priorities don't properly affect interested/not interested.
+
+* Add a delay between peer choking you and the list getting thrown out.
+
+Add message about pieces being ignored, so i can test the code.
 
 
 TRACKER STUFF

@@ -180,41 +180,7 @@ void PeerConnection::read() {
       
       m_down.pos = 0;
       
-      pItr = std::find_if(m_down.list.begin(), m_down.list.end(),
-			  eq(ref(piece), call_member(&DelegatorReservee::get_piece)));
-
-      if (pItr == m_down.list.end()) {
-
-	// Ignore piece. We might want it but it's not in the list
-	m_down.length = piece.length();
-	m_down.state = READ_SKIP_PIECE;
-
-      } else if (!m_download->delegator().downloading(**pItr)) {
-	// Piece in queue but we don't want it
-
-	delete *pItr;
-	m_down.list.erase(pItr);
-
-	m_down.length = piece.length();
-	m_down.state = READ_SKIP_PIECE;
-
-      } else {
-	// TODO: Keep around all the requests, and erase all those the peer
-	// skips. This will protect against a peer sending unrequested pieces.
-
-	if (pItr != m_down.list.begin()) {
-	  // Sender skipped a few pieces
-
-	  while (m_down.list.begin() != pItr) {
-	    m_download->delegator().cancel(*m_down.list.front());
-
-	    delete m_down.list.front();
-	    m_down.list.pop_front();
-	  }
-	}
-
-	m_down.state = READ_PIECE;
-      }
+      received_piece_header(piece);
       
       // TODO: Need to handle the getChunk stuff in some better place.
       if (m_down.state == READ_PIECE && !m_down.list.empty())
@@ -253,18 +219,8 @@ void PeerConnection::read() {
     if (m_down.list.empty())
       throw internal_error("READ_PIECE on an empty list");
 
-    // TODO: Move this somewhere else
-    if (!m_download->delegator().downloading(*m_down.list.front())) {
-      // Piece finished by someone else, skip.
-      m_down.length = m_down.list.front()->get_piece().c_length() - m_down.pos;
-      m_down.pos = 0;
-      m_down.state = READ_SKIP_PIECE;
-
-      delete m_down.list.front();
-      m_down.list.pop_front();
-
-      goto evil_goto_read;
-    }
+    if (!m_down.list.front()->is_valid() || m_down.list.front()->get_state() != DELEGATOR_DOWNLOADING)
+      throw internal_error("READ_PIECE on a DelegatorReservee with wrong state");
 
     previous = m_down.pos;
     s = readChunk();
@@ -284,6 +240,8 @@ void PeerConnection::read() {
       m_download->chunkDone(m_down.data);
 
     } else {
+      m_down.list.front()->set_state(DELEGATOR_FINISHED);
+
       delete m_down.list.front();
       m_down.list.pop_front();
     }
@@ -606,7 +564,7 @@ void PeerConnection::fillWriteBuf() {
     // Let us request more chunks.
     bool addService = m_down.list.empty();
 
-    while (m_up.length + 13 < BUFFER_SIZE && request_piece()) {
+    while (m_up.length + 16 < BUFFER_SIZE && request_piece()) {
       if (addService) {
 	insert_service(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
 	addService = false;
@@ -708,8 +666,12 @@ void PeerConnection::sendHave(int index) {
 
     if (itr == m_down.list.end())
       break;
-    else
-      itr = m_down.list.erase(itr);
+
+    (*itr)->clear();
+
+    delete *itr;
+    itr = m_down.list.erase(itr);
+
   } while(true);
 
   // TODO: Also send cancel messages!

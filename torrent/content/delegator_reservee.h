@@ -23,6 +23,7 @@ public:
   DelegatorReservee(DelegatorPiece* p = NULL);
   ~DelegatorReservee();
 
+  void              clear();
   bool              is_valid() const   { return m_parent; }
 
   const Piece&      get_piece() const  { return m_piece; }
