@@ -13,7 +13,7 @@ struct sockaddr_in;
 namespace torrent {
 
 class bencode;
-class HttpGet;
+class Http;
 
 // TODO: Use a base class when we implement UDP tracker support.
 class TrackerHttp {
@@ -38,9 +38,7 @@ public:
   // Interval      - 0 if not received or invalid.
   sigc::signal2<void, const PeerList&, int>& signal_done() { return m_done; }
 
-  // Error code    - Http code or errno. 0 if libtorrent specific.
-  // Error message
-  sigc::signal2<void, int, std::string>& signal_failed()   { return m_failed; }
+  sigc::signal1<void, std::string>& signal_failed()        { return m_failed; }
 
 private:
   // Don't allow ctor.
@@ -50,13 +48,11 @@ private:
   void escape_string(const std::string& src, std::ostream& stream);
   
   void receive_done();
-  void receive_failed(int code, std::string msg);
-
-  void emit_error(int code, std::string msg);
+  void receive_failed(std::string msg);
 
   Peer parse_peer(const bencode& b);
 
-  HttpGet* m_get;
+  Http* m_get;
   std::stringstream* m_data;
 
   std::string m_url;
@@ -66,8 +62,8 @@ private:
 
   Peer m_me;
 
-  sigc::signal2<void, const PeerList&, int>    m_done;
-  sigc::signal2<void, int, std::string> m_failed;
+  sigc::signal2<void, const PeerList&, int> m_done;
+  sigc::signal1<void, std::string>          m_failed;
 };
 
 } // namespace torrent

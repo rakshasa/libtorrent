@@ -112,14 +112,14 @@ void TrackerControl::receive_done(const PeerList& l, int interval) {
   m_signalPeers.emit(l);
 }
 
-void TrackerControl::receive_failed(int code, std::string msg) {
+void TrackerControl::receive_failed(std::string msg) {
   if (m_state != TRACKER_STOPPED) {
     // TODO: Add support for multiple trackers. Iterate if m_failed > X.
 
     insertService(Timer::current() + 5 * 1000000, TIMEOUT);
   }
 
-  m_signalFailed.emit(code, msg);
+  m_signalFailed.emit(msg);
 }
 
 void TrackerControl::send_itr(TrackerState s) {

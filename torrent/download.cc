@@ -50,8 +50,8 @@ Download::Download(const bencode& b) :
   m_tracker->signal_peers().connect(sigc::mem_fun(*this, &Download::add_peers));
   m_tracker->signal_stats().connect(sigc::mem_fun(m_state, &DownloadState::download_stats));
 
-  m_tracker->signal_failed().connect(sigc::hide<0>(sigc::mem_fun(caughtExceptions,
-								 &std::list<std::string>::push_back)));
+  m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions,
+						   &std::list<std::string>::push_back));
 
   FilesCheck::check(&state().files(), this, HASH_COMPLETED);
 

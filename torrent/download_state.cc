@@ -162,7 +162,7 @@ int DownloadState::countConnections() const {
 void DownloadState::download_stats(uint64_t& up, uint64_t& down, uint64_t& left) {
   up = m_rateUp.total();
   down = m_rateDown.total();
-  left = m_files.doneSize();
+  left = m_files.totalSize() - m_files.doneSize();
 }
 
 void DownloadState::connect_peers() {

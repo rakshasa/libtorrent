@@ -20,7 +20,7 @@ class Http {
 
  private:
   void receive_done(List::iterator itr);
-  void receive_failed(int code, std::string status, List::iterator itr);
+  void receive_failed(std::string msg, List::iterator itr);
 
   List m_list;
 };

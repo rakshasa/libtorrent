@@ -6,7 +6,7 @@
 
 namespace torrent {
 
-class HttpGet;
+class CurlGet;
 
 class Http {
  public:
@@ -14,6 +14,8 @@ class Http {
   ~Http();
 
   void set_url(const std::string& url);
+
+  // Make sure the output stream does not have any bad/failed bits set.
   void set_out(std::ostream* out);
   
   const std::string& get_url() const;
@@ -22,18 +24,18 @@ class Http {
   void close();
 
   // Use sigc's facilities for modifying slots if nessesary.
-  sigc::signal0<void>&                   signal_done();
+  sigc::signal0<void>&              signal_done();
 
   // Error code - Http code or errno. 0 if libtorrent specific, see msg.
   // Error message
-  sigc::signal2<void, int, std::string>& signal_failed();
+  sigc::signal1<void, std::string>& signal_failed();
 
  private:
   // Disabled ctor. Do we want ref counting instead?
   Http(const Http&);
   void operator = (const Http&);
 
-  HttpGet* m_get;
+  CurlGet* m_get;
 };
 
 }

@@ -66,6 +66,8 @@ data/delegation and such.
 Files class does stuff it isn't supposed to do, like keeping track of
 how much is done and stuff.
 
+libCurl requires attention every second or so for timeouts.
+
 
 API REDESIGN:
 

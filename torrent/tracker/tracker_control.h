@@ -25,7 +25,7 @@ class TrackerControl : public Service {
   typedef std::list<TrackerHttp*> TrackerList;
 
   typedef sigc::signal1<void, const PeerList&>                 SignalPeers;
-  typedef sigc::signal2<void, int, std::string>                SignalFailed;
+  typedef sigc::signal1<void, std::string>                     SignalFailed;
   typedef sigc::signal3<void, uint64_t&, uint64_t&, uint64_t&> SignalStats;
 
   TrackerControl(const Peer& me, const std::string hash);
@@ -57,7 +57,7 @@ class TrackerControl : public Service {
   TrackerControl& operator = (const TrackerControl& t);
 
   void receive_done(const PeerList& l, int interval);
-  void receive_failed(int code, std::string msg);
+  void receive_failed(std::string msg);
 
   void send_itr(TrackerState s);
 

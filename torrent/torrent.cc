@@ -19,6 +19,7 @@
 #include "tracker/tracker_control.h"
 #include "settings.h"
 #include "timer.h"
+#include "url/curl_stack.h"
 #include "torrent.h"
 
 using namespace algo;
@@ -27,6 +28,8 @@ namespace torrent {
 
 int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
+
+extern CurlStack curlStack;
 
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
@@ -63,6 +66,8 @@ void initialize(int beginPort, int endPort) {
   Listen::open(beginPort, endPort);
 
   ThrottleControl::global().insertService(Timer::current(), 0);
+
+  CurlStack::global_init();
 }
 
 void shutdown() {
@@ -85,6 +90,8 @@ void cleanup() {
 
   for_each<true>(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
 		 delete_on());
+
+  CurlStack::global_cleanup();
 }
 
 // Set the file descriptors we want to pool for R/W/E events. All
@@ -103,6 +110,8 @@ int mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   maxFd = std::max(maxFd, std::for_each(SocketBase::exceptSockets().begin(),
 					SocketBase::exceptSockets().end(),
 					add_socket(exceptSet)).fd);
+
+  curlStack.fdset(readSet, writeSet, exceptSet, maxFd);
 
   return maxFd;
 }    
@@ -132,6 +141,9 @@ void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   for_each<true>(SocketBase::writeSockets().begin(), SocketBase::writeSockets().end(),
 		 if_on(check_socket_isset(writeSet),
 		       call_member(&SocketBase::write)));
+
+  if (curlStack.busy())
+    curlStack.perform();
 
   Service::runService();
 }

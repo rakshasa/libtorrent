@@ -65,12 +65,8 @@ void Http::receive_done(List::iterator itr) {
   m_list.erase(itr);
 }
 
-void Http::receive_failed(int code, std::string status, List::iterator itr) {
-  std::stringstream msg;
-
-  msg << "Failed http get " << code << " \"" << status << "\"";
-
-  log_entries.push_front(msg.str());
+void Http::receive_failed(std::string msg, List::iterator itr) {
+  log_entries.push_front("Failed http get \"" + msg + "\"");
 
   delete itr->first;
   delete itr->second;

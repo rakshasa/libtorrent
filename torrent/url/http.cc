@@ -1,13 +1,16 @@
 #include "config.h"
 
 #include "exceptions.h"
-#include "http_get.h"
+#include "curl_get.h"
+#include "curl_stack.h"
 #include "http.h"
 
 namespace torrent {
 
+CurlStack curlStack;
+
 Http::Http() :
-  m_get(new HttpGet()) {
+  m_get(new CurlGet(&curlStack)) {
 }
 
 Http::~Http() {
@@ -37,7 +40,7 @@ sigc::signal0<void>& Http::signal_done() {
 
 // Error code - Http code or errno. 0 if libtorrent specific, see msg.
 // Error message
-sigc::signal2<void, int, std::string>& Http::signal_failed() {
+sigc::signal1<void, std::string>& Http::signal_failed() {
   return m_get->signal_failed();
 }
 

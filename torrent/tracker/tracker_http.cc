@@ -4,12 +4,13 @@
 
 #include <sigc++/signal.h>
 #include <sstream>
+#include <fstream>
 
 #include "bencode.h"
 #include "settings.h"
 #include "exceptions.h"
 #include "tracker_http.h"
-#include "url/http_get.h"
+#include "url/http.h"
 
 // STOPPED is only sent once, if the connections fails then we stop trying.
 // START has a retry of [very short]
@@ -20,7 +21,7 @@
 namespace torrent {
 
 TrackerHttp::TrackerHttp() :
-  m_get(new HttpGet()),
+  m_get(new Http()),
   m_data(NULL),
   m_compact(true) {
 
@@ -119,10 +120,10 @@ void TrackerHttp::receive_done() {
   *m_data >> b;
 
   if (m_data->fail())
-    return emit_error(0, "Could not parse bencoded data");
+    return receive_failed("Could not parse bencoded data");
 
   else if (!b.isMap())
-    return emit_error(0, "Root not a bencoded map");
+    return receive_failed("Root not a bencoded map");
 
   int interval = 0;
   PeerList l;
@@ -162,13 +163,13 @@ void TrackerHttp::receive_done() {
 	}
 
       } else {
-	return emit_error(0, "Peers entry is not a bencoded list nor a string");
+	return receive_failed("Peers entry is not a bencoded list nor a string");
       }
 
     } else if (itr->first == "interval") {
 
       if (!itr->second.isValue())
-	emit_error(0, "Interval not a number");
+	return receive_failed("Interval not a number");
 
       if (itr->second.asValue() > 0 && itr->second.asValue() < 6 * 60 * 60)
 	interval = itr->second.asValue();
@@ -176,15 +177,17 @@ void TrackerHttp::receive_done() {
     } else if (itr->first == "failure reason") {
 
       if (!itr->second.isString())
-	emit_error(0, "Failure reason is not a string");
+	return receive_failed("Failure reason is not a string");
 
-      emit_error(0, "Failure reason \"" + itr->second.asString() + "\"");
+      return receive_failed("Failure reason \"" + itr->second.asString() + "\"");
     }
   }
 
   close();
 
-  m_done.emit(l, interval);
+  sigc::signal2<void, const PeerList&, int> s = m_done;
+
+  s.emit(l, interval);
 }
 
 Peer TrackerHttp::parse_peer(const bencode& b) {
@@ -211,19 +214,16 @@ Peer TrackerHttp::parse_peer(const bencode& b) {
   return p;
 }
 
-void TrackerHttp::receive_failed(int code, std::string msg) {
-  close();
+void TrackerHttp::receive_failed(std::string msg) {
+//   static std::ofstream file("./dump_tracker");
 
-  m_failed.emit(code, msg);
-}
-
-void TrackerHttp::emit_error(int code, std::string msg) {
-  sigc::signal2<void, int, std::string> s = m_failed;
-
-  s.emit(code, msg);
+//   file << m_data->str();
 
   close();
+
+  sigc::signal1<void, std::string> s = m_failed;
+
+  s.emit(msg);
 }
 
-} // namespace torrent
-
+}

@@ -120,6 +120,7 @@ std::istream& operator >> (std::istream& s, bencode& b) {
 
     return s;
 
+  case '0':
   case '1':
   case '2':
   case '3':
