@@ -9,6 +9,8 @@ libsub_download_la_SOURCES = \
 	download_net.h \
 	download_setup.cc \
 	download_state.cc \
-	download_state.h
+	download_state.h \
+	download_wrapper.cc \
+	download_wrapper.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

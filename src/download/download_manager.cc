@@ -3,15 +3,16 @@
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
+
 #include "download_manager.h"
-#include "download_main.h"
+#include "download_wrapper.h"
 
 namespace torrent {
 
 using namespace algo;
 
 void
-DownloadManager::add(DownloadMain* d) {
+DownloadManager::add(DownloadWrapper* d) {
   if (find(d->get_hash()))
     throw internal_error("Tried to add an existing DownloadMain to DownloadManager");
 
@@ -21,7 +22,7 @@ DownloadManager::add(DownloadMain* d) {
 void
 DownloadManager::remove(const std::string& hash) {
   DownloadList::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					    eq(ref(hash), call_member(&DownloadMain::get_hash)));
+					    eq(ref(hash), call_member(&DownloadWrapper::get_hash)));
 
   if (itr == m_downloads.end())
     throw client_error("Tried to remove a DownloadMain that doesn't exist");
@@ -38,10 +39,10 @@ DownloadManager::clear() {
   }
 }
 
-DownloadMain*
+DownloadWrapper*
 DownloadManager::find(const std::string& hash) {
   DownloadList::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					    eq(ref(hash), call_member(&DownloadMain::get_hash)));
+					    eq(ref(hash), call_member(&DownloadWrapper::get_hash)));
 
   return itr != m_downloads.end() ? *itr : NULL;
 }

@@ -14,7 +14,6 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
-// Not a real struct.
 struct DownloadWrapper;
 
 class Download {

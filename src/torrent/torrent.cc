@@ -1,8 +1,15 @@
 #include "config.h"
 
 #include <iostream>
+#include <memory>
 #include <algo/algo.h>
 #include <sigc++/bind.h>
+
+#include "exceptions.h"
+#include "torrent.h"
+#include "throttle_control.h"
+#include "timer.h"
+#include "general.h"
 
 #include "net/listen.h"
 #include "net/handshake_manager.h"
@@ -10,13 +17,7 @@
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/download_manager.h"
-
-#include "torrent.h"
-#include "exceptions.h"
-#include "download/download_main.h"
-#include "throttle_control.h"
-#include "timer.h"
-#include "general.h"
+#include "download/download_wrapper.h"
 
 using namespace algo;
 
@@ -62,19 +63,25 @@ struct check_socket_isset {
   fd_set* fds;
 };
 
-// Find some better way of doing this.
+// Find some better way of doing this, or rather... move it outside.
 std::string
 download_id(const std::string& hash) {
-  DownloadMain* d = downloadManager.find(hash);
+  DownloadWrapper* d = downloadManager.find(hash);
 
-  return d && d->is_active() && d->is_checked() ? d->get_me().get_id() : "";
+  return d &&
+    d->get_main().is_active() &&
+    d->get_main().is_checked() ?
+    d->get_main().get_me().get_id() : "";
 }
 
 void
 receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadMain* d = downloadManager.find(hash);
+  DownloadWrapper* d = downloadManager.find(hash);
   
-  if (!d || !d->is_active() || !d->is_checked() || !d->get_net().add_connection(fd, peer))
+  if (!d ||
+      !d->get_main().is_active() ||
+      !d->get_main().is_checked() ||
+      !d->get_main().get_net().add_connection(fd, peer))
     SocketBase::close_socket(fd);
 }
 
@@ -114,7 +121,9 @@ listen_open(uint16_t begin, uint16_t end) {
     return false;
 
   std::for_each(downloadManager.get_list().begin(), downloadManager.get_list().end(),
-		call_member(&DownloadMain::set_port, value(listen->get_port())));
+		call_member(call_member(&DownloadWrapper::get_main),
+			    &DownloadMain::set_port,
+			    value(listen->get_port())));
 
   return true;
 }
@@ -183,49 +192,40 @@ download_create(std::istream& s) {
   // TODO: Should we clear failed bits?
   s.clear();
 
-  Bencode b;
+  std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
 
-  s >> b;
+  s >> d->get_bencode();
 
   if (s.fail())
     // Make it configurable whetever we throw or return .end()?
     throw local_error("Could not parse Bencoded torrent");
   
-  DownloadMain* d = new DownloadMain();
+  d->get_main().get_me().set_id(generateId());
+  d->get_main().set_port(listen->get_port());
 
-  try {
+  parse_main(d->get_bencode(), d->get_main());
+  parse_info(d->get_bencode()["info"], d->get_main().get_state().get_content());
 
-    d->get_me().set_id(generateId());
-    d->set_port(listen->get_port());
+  // Hash must be calculated before these are connected.
+  d->get_main().get_net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
+  d->get_main().get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
+					       d->get_main().get_hash(), d->get_main().get_me().get_id()));
+  d->get_main().get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
+						d->get_main().get_hash()));
 
-    parse_main(b, *d);
-    parse_info(b["info"], d->get_state().get_content());
+  d->get_main().get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(hashQueue, &HashQueue::add),
+						sigc::mem_fun(d->get_main().get_state(), &DownloadState::receive_hash_done),
+						d->get_main().get_hash()));
 
-    // Hash must be calculated before these are connected.
-    d->get_net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
-    d->get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
-					     d->get_hash(), d->get_me().get_id()));
-    d->get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
-					      d->get_hash()));
+  d->get_main().setup_net();
+  d->get_main().setup_delegator();
+  d->get_main().setup_tracker();
 
-    d->get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(hashQueue, &HashQueue::add),
-					      sigc::mem_fun(d->get_state(), &DownloadState::receive_hash_done),
-					      d->get_hash()));
+  parse_tracker(d->get_bencode(), d->get_main().get_tracker());
 
-    d->setup_net();
-    d->setup_delegator();
-    d->setup_tracker();
+  downloadManager.add(d.get());
 
-    parse_tracker(b, d->get_tracker());
-
-  } catch (...) {
-    delete d;
-    throw;
-  }
-
-  downloadManager.add(d);
-
-  return Download((DownloadWrapper*)d);
+  return Download(d.release());
 }
 
 // Add all downloads to dlist. Make sure it's cleared.
@@ -233,13 +233,13 @@ void
 download_list(DList& dlist) {
   for (DownloadManager::DownloadList::const_iterator itr = downloadManager.get_list().begin();
        itr != downloadManager.get_list().end(); ++itr)
-    dlist.push_back(Download((DownloadWrapper*)*itr));
+    dlist.push_back(Download(*itr));
 }
 
 // Make sure you check that it's valid.
 Download
 download_find(const std::string& id) {
-  return (DownloadWrapper*)downloadManager.find(id);
+  return downloadManager.find(id);
 }
 
 void
@@ -259,7 +259,8 @@ get(GValue t) {
 
   case SHUTDOWN_DONE:
     return std::find_if(downloadManager.get_list().begin(), downloadManager.get_list().end(),
-			bool_not(call_member(&DownloadMain::is_stopped)))
+			bool_not(call_member(call_member(&DownloadWrapper::get_main),
+					     &DownloadMain::is_stopped)))
       == downloadManager.get_list().end();
 
   case FILES_CHECK_WAIT:

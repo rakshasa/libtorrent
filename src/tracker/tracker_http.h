@@ -5,7 +5,7 @@
 #include <iosfwd>
 #include <inttypes.h>
 
-#include "utils/bencode.h"
+#include "torrent/bencode.h"
 #include "peer_info.h"
 #include "tracker_state.h"
 

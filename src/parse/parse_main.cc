@@ -3,7 +3,7 @@
 #include "torrent/exceptions.h"
 #include "download/download_main.h"
 
-#include "utils/bencode.h"
+#include "torrent/bencode.h"
 #include "parse.h"
 #include "general.h"
 

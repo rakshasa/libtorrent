@@ -8,7 +8,7 @@
 #include "utils/bitfield.h"
 #include "torrent/exceptions.h"
 #include "settings.h"
-#include "utils/bencode.h"
+#include "torrent/bencode.h"
 
 #include <stdlib.h>
 #include <iomanip>

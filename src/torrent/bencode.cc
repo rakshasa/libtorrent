@@ -2,9 +2,10 @@
 #include "config.h"
 #endif
 
-#include "bencode.h"
-#include "torrent/exceptions.h"
 #include <iostream>
+
+#include "bencode.h"
+#include "exceptions.h"
 
 namespace torrent {
 
@@ -129,7 +130,7 @@ operator >> (std::istream& s, Bencode& b) {
 
       std::string str;
 
-      if (!Bencode::readString(s, &str))
+      if (!Bencode::read_string(s, str))
 	break;
 
       s >> (*b.m_map)[str];
@@ -141,7 +142,7 @@ operator >> (std::istream& s, Bencode& b) {
       b.m_string = new std::string();
       b.m_type = Bencode::TYPE_STRING;
       
-      if (b.readString(s, b.m_string))
+      if (b.read_string(s, *b.m_string))
 	return s;
     }
 
@@ -215,16 +216,16 @@ Bencode::has_key(const std::string& s) const {
 }
 
 bool
-Bencode::readString(std::istream& s, std::string* str) {
+Bencode::read_string(std::istream& s, std::string& str) {
   int size;
   s >> size;
 
   if (s.fail() || s.get() != ':')
     return false;
   
-  str->resize(size);
+  str.resize(size);
 
-  for (std::string::iterator itr = str->begin(); itr != str->end() && s.good(); ++itr)
+  for (std::string::iterator itr = str.begin(); itr != str.end() && s.good(); ++itr)
     *itr = s.get();
   
   return !s.fail();

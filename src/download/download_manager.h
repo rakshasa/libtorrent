@@ -5,20 +5,20 @@
 
 namespace torrent {
 
-class DownloadMain;
+class DownloadWrapper;
 
 class DownloadManager {
 public:
-  typedef std::list<DownloadMain*> DownloadList;
+  typedef std::list<DownloadWrapper*> DownloadList;
 
   ~DownloadManager() { clear(); }
 
-  void                add(DownloadMain* d);
+  void                add(DownloadWrapper* d);
   void                remove(const std::string& hash);
 
   void                clear();
 
-  DownloadMain*       find(const std::string& hash);
+  DownloadWrapper*    find(const std::string& hash);
 
   const DownloadList& get_list() { return m_downloads; }
 

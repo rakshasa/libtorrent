@@ -28,6 +28,8 @@ class Bencode {
 
   ~Bencode()                              { clear(); }
   
+  void                clear();
+
   Type                get_type() const    { return m_type; }
 
   bool                is_value() const    { return m_type == TYPE_VALUE; }
@@ -61,8 +63,7 @@ class Bencode {
   friend std::ostream& operator << (std::ostream& s, const Bencode& b);
 
  private:
-  void                clear();
-  static bool         readString(std::istream& s, std::string* str);
+  static bool         read_string(std::istream& s, std::string& str);
 
   Type                m_type;
 

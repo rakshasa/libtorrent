@@ -113,6 +113,8 @@ Cache iterators to different borders, and update them as we add/remove?
 
 Use iterators in StorageChunk::get_position instead.
 
+Look into epoll.
+
 
 DUMPING TORRENT FILES
 
