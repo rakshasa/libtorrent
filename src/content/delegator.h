@@ -20,7 +20,7 @@ public:
   typedef sigc::signal1<void, unsigned int>   SignalChunkDone;
   typedef sigc::slot1<uint32_t, unsigned int> SlotChunkSize;
 
-  Delegator() : m_chunksize(0) { }
+  Delegator() : m_aggressive(false) { }
   ~Delegator();
 
   DelegatorReservee* delegate(const BitField& bf, int affinity);
@@ -32,6 +32,9 @@ public:
 
   Chunks&            get_chunks()                         { return m_chunks; }
   DelegatorSelect&   get_select()                         { return m_select; }
+
+  bool               get_aggressive()                     { return m_aggressive; }
+  void               set_aggressive(bool a)               { m_aggressive = a; }
 
   SignalChunkDone&   signal_chunk_done()                  { return m_signalChunkDone; }
 
@@ -46,9 +49,9 @@ private:
   bool               all_finished(int index);
 
   bool               delegate_piece(DelegatorChunk& c, DelegatorPiece*& p);
+  bool               delegate_aggressive(DelegatorChunk& c, DelegatorPiece*& p, uint16_t& overlapped);
 
-  uint64_t           m_totalsize;
-  uint32_t           m_chunksize;
+  bool               m_aggressive;
 
   Chunks             m_chunks;
   DelegatorSelect    m_select;

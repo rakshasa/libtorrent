@@ -75,6 +75,8 @@ Make set endgame take priorities into account.
 
 ! Looks like the choke/unchoke cycle messes up our request pipe size.
 
+Don't be so aggressive at selecting stalled pieces.
+
 
 TRACKER STUFF
 

@@ -2,7 +2,6 @@
 
 #include <inttypes.h>
 #include <algo/algo.h>
-#include <limits>
 
 #include "torrent/exceptions.h"
 #include "content/delegator_reservee.h"
@@ -69,7 +68,45 @@ Delegator::delegate(const BitField& bf, int affinity) {
   if ((target = new_chunk(bf, Priority::NORMAL)))
     return target->create();
 
-  return NULL;
+  else if (!m_aggressive)
+    return NULL;
+
+  // Aggressive mode, look for possible downloads that already have
+  // one or more queued.
+
+  // No more than 4 per piece.
+  uint16_t overlapped = 5;
+
+  // High priority pieces, aggressive style.
+  if (std::find_if(m_chunks.begin(), m_chunks.end(),
+		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::HIGH)),
+			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
+
+				     call_member(ref(*this),
+						 &Delegator::delegate_aggressive,
+						 back_as_ref(),
+						 ref(target),
+						 ref(overlapped)))))
+      != m_chunks.end())
+    return target->create();
+
+  // Normal priority pieces, aggressive style
+  if (std::find_if(m_chunks.begin(), m_chunks.end(),
+		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::NORMAL)),
+			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
+				     
+				     call_member(ref(*this),
+						 &Delegator::delegate_aggressive,
+						 back_as_ref(),
+						 ref(target),
+						 ref(overlapped)))))
+      != m_chunks.end())
+    return target->create();
+
+  if (target)
+    return target->create();
+  else
+    return NULL;
 }
   
 void
@@ -172,5 +209,22 @@ Delegator::delegate_piece(DelegatorChunk& c, DelegatorPiece*& p) {
       
   return p != NULL;
 }
+
+bool
+Delegator::delegate_aggressive(DelegatorChunk& c, DelegatorPiece*& p, uint16_t& overlapped) {
+  for (DelegatorChunk::iterator i = c.begin(); i != c.end(); ++i) {
+    if (i->is_finished() || i->get_not_stalled() >= overlapped)
+      continue;
+
+    p = i;
+    overlapped = i->get_not_stalled();
+
+    if (overlapped == 0)
+      return true;
+  }
+      
+  return false;
+}
+
 
 } // namespace torrent

@@ -29,6 +29,8 @@ DownloadNet::update_endgame() {
   if (!m_endgame)
     m_endgame = (m_slotChunksCompleted() + m_delegator.get_chunks().size() + m_settings->endgameBorder)
       >= m_slotChunksCount();
+
+  m_delegator.set_aggressive(m_endgame);
 }
 
 // High stall count peers should request if we're *not* in endgame, or
