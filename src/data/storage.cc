@@ -3,7 +3,6 @@
 #include "torrent/exceptions.h"
 
 #include "storage.h"
-#include "storage_consolidator.h"
 
 namespace torrent {
 
@@ -18,41 +17,10 @@ Storage::~Storage() {
 }
 
 void
-Storage::add_file(File* file, uint64_t length) {
-  m_consolidator->add_file(file, length);
-}
-
-bool
-Storage::resize() {
-  return m_consolidator->resize();
-}
-
-void
-Storage::close() {
-  m_anchors.clear();
-  m_consolidator->close();
-}
-
-void
 Storage::set_chunksize(uint32_t s) {
   m_consolidator->set_chunksize(s);
 
   m_anchors.resize(get_chunk_total());
-}
-
-uint64_t
-Storage::get_size() {
-  return m_consolidator->get_size();
-}
-
-uint32_t
-Storage::get_chunk_total() {
-  return m_consolidator->get_chunk_total();
-}
-
-uint32_t
-Storage::get_chunk_size() {
-  return m_consolidator->get_chunk_size();
 }
 
 Storage::Chunk

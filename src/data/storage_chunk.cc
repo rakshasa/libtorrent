@@ -25,7 +25,7 @@ StorageChunk::get_position(unsigned int pos) {
   Nodes::iterator itr = m_nodes.begin();
 
   while (itr != m_nodes.end()) {
-    if (pos < (*itr)->position + (*itr)->chunk.length()) {
+    if (pos < (*itr)->position + (*itr)->chunk.size()) {
 
       if ((*itr)->length == 0)
 	throw internal_error("StorageChunk::get_position(...) tried to return a node with length 0");

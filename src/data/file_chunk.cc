@@ -5,30 +5,26 @@
 
 #include <sstream>
 #include <unistd.h>
-#include <sys/mman.h>
 
 namespace torrent {
 
-unsigned int FileChunk::m_pagesize = getpagesize();
+uint32_t FileChunk::m_pagesize = getpagesize();
 
-void FileChunk::clear() {
-  if (m_ptr &&
-      munmap(m_ptr, m_end - m_ptr) == -1)
+void
+FileChunk::clear() {
+  if (m_ptr && munmap(m_ptr, m_end - m_ptr) == -1)
     throw internal_error("FileChunk can't munmap");
 
   m_ptr = m_begin = m_end = NULL;
-
   m_read = m_write = false;
 }
 
-void FileChunk::incore(unsigned char* buf, unsigned int offset, unsigned int len) {
+void
+FileChunk::incore(unsigned char* buf, uint32_t offset, uint32_t length) {
   if (!is_valid())
     throw internal_error("Called FileChunk::is_incore() on an invalid object");
 
-  if (offset >= length() ||
-      len > length() ||
-      offset + len > length() ||
-      buf == NULL) {
+  if (offset >= size() || length > size() || offset + length > size() || buf == NULL) {
     std::stringstream s;
 
     s << "Tried to check incore status in FileChunk with out of range parameters or a NULL buffer ("
@@ -37,77 +33,60 @@ void FileChunk::incore(unsigned char* buf, unsigned int offset, unsigned int len
     throw internal_error(s.str());
   }
 
-  if (len == 0)
+  if (length == 0)
     return;
 
   offset += page_align();
 
-  len    += offset % m_pagesize;
+  length += offset % m_pagesize;
   offset -= offset % m_pagesize;
 
 #if USE_MINCORE_UNSIGNED
-  if (mincore(m_ptr + offset, len, buf))
+  if (mincore(m_ptr + offset, length, buf))
 #else
-  if (mincore(m_ptr + offset, len, (char*)buf))
+  if (mincore(m_ptr + offset, length, (char*)buf))
 #endif
     throw storage_error("System call mincore failed for FileChunk");
 }
 
-void FileChunk::advise(unsigned int offset, unsigned int len, int advice) {
+void
+FileChunk::advise(uint32_t offset, uint32_t length, int advice) {
   if (!is_valid())
-    throw internal_error("Called FileChunk::is_incore() on an invalid object");
+    throw internal_error("Called FileChunk::advise() on an invalid object");
 
-  if (offset >= length() ||
-      len > length() ||
-      offset + len > length()) {
-    std::stringstream s;
+  if (offset >= size() || length > size() || offset + length > size())
+    internal_error("Tried to advise FileChunk with out of range parameters");
 
-    s << "Tried to advise FileChunk with out of range parameters"
-      << std::hex << '(' << m_begin << ',' << m_end << ',' << offset << ',' << len << ')';
-
-    throw internal_error(s.str());
-  }
-
-  if (len == 0)
+  if (length == 0)
     return;
 
   offset += page_align();
 
-  len    += offset % m_pagesize;
+  length += offset % m_pagesize;
   offset -= offset % m_pagesize;
 
-  int t;
-
-  switch (advice) {
-  case advice_normal:
-    t = MADV_NORMAL;
-    break;
-  case advice_random:
-    t = MADV_RANDOM;
-    break;
-  case advice_sequential:
-    t = MADV_SEQUENTIAL;
-    break;
-  case advice_willneed:
-    t = MADV_WILLNEED;
-    break;
-  case advice_dontneed:
-    t = MADV_DONTNEED;
-    break;
-  default:
-    throw internal_error("FileChunk::advise(...) received invalid advise");
-  }
-
-  if (madvise(m_ptr + offset, len, t))
+  if (madvise(m_ptr + offset, length, advice))
     throw storage_error("System call madvise failed in FileChunk");
 }
 
-FileChunk::FileChunk(const FileChunk&) {
-  throw internal_error("FileChunk ctor used, but supposed to be disabled");
-}
+void
+FileChunk::sync(uint32_t offset, uint32_t length, int flags) {
+  if (!is_valid())
+    throw internal_error("Called FileChunk::sync() on an invalid object");
 
-void FileChunk::operator = (const FileChunk&) {
-  throw internal_error("FileChunk copy assignment used, but supposed to be disabled");
-}
+  if (offset >= size() || length > size() || offset + length > size())
+    internal_error("Tried to advise FileChunk with out of range parameters");
+
+  if (length == 0)
+    return;
+
+  offset += page_align();
+
+  length += offset % m_pagesize;
+  offset -= offset % m_pagesize;
+  
+  if (msync(m_ptr + offset, length, flags))
+    throw storage_error("System call msync failed in FileChunk");
+}    
 
 }

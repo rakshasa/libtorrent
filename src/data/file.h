@@ -3,6 +3,7 @@
 
 #include <string>
 #include <inttypes.h>
+#include <sys/stat.h>
 
 #include "file_chunk.h"
 
@@ -34,30 +35,34 @@ class File {
   ~File() { close(); }
 
   // Create only regular files for now.
-  bool     open(const std::string& path,
-		unsigned int flags = in,
-		unsigned int mode = 0666);
+  bool      open(const std::string& path,
+		 unsigned int flags = in,
+		 unsigned int mode = 0666);
 
-  void     close();
+  void      close();
   
-  bool     is_open() const       { return m_fd != -1; }
+  bool      is_open() const       { return m_fd != -1; }
 
-  bool     set_size(uint64_t v);
+  void      update_stats();
 
-  int      get_flags() const     { return m_flags; }
-  int      get_mode() const;
-  int      get_type() const;
-  uint64_t get_size() const;
+  bool      set_size(uint64_t v);
+  uint64_t  get_size() const;
 
-  bool     get_chunk(FileChunk& f,
-		     uint64_t offset,
-		     unsigned int length,
-		     bool wr = false,
-		     bool rd = true);
+  int       get_flags() const     { return m_flags; }
+  int       get_mode() const;
+  int       get_type() const;
+
+  time_t    get_mtime() const     { return m_stat->st_mtime; }
+
+  bool      get_chunk(FileChunk& f,
+		      uint64_t offset,
+		      unsigned int length,
+		      bool wr = false,
+		      bool rd = true);
   
-  int      fd()                  { return m_fd; }
+  int       fd()                  { return m_fd; }
 
-  const std::string& path()      { return m_path; }
+  const std::string& path()       { return m_path; }
 
  private:
   File(const File&);

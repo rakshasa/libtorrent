@@ -62,12 +62,11 @@ void DownloadMain::start() {
   if (is_active())
     return;
 
-  if (m_checked) {
-    m_tracker->send_state(TRACKER_STARTED);
-    setup_start();
-  }
-
   m_started = true;
+  m_tracker->send_state(TRACKER_STARTED);
+
+  setup_start();
+
   insert_service(Timer::current() + m_state.get_settings().chokeCycle * 2, CHOKE_CYCLE);
 }  
 
@@ -97,11 +96,6 @@ void DownloadMain::service(int type) {
   switch (type) {
   case CHOKE_CYCLE:
     insert_service(Timer::cache() + m_state.get_settings().chokeCycle, CHOKE_CYCLE);
-
-    // Clean up the download rate in case the client doesn't read
-    // it regulary.
-    m_net.get_rate_up().rate();
-    m_net.get_rate_down().rate();
 
     s = m_net.can_unchoke();
 
@@ -178,11 +172,6 @@ void DownloadMain::receive_initial_hash() {
 
   m_checked = true;
   m_state.get_content().resize();
-
-  if (m_started) {
-    m_tracker->send_state(TRACKER_STARTED);
-    setup_start();
-  }
 }    
 
 void

@@ -85,8 +85,7 @@ bool PeerConnection::readChunk() {
     throw storage_error("Tried to write piece to file area that isn't valid or can't be written to");
   
   if (!read_buf(part.chunk.begin() + offset,
-	       std::min(part.position + part.chunk.length() - p.get_offset(),
-			p.get_length()),
+	       std::min(part.position + part.chunk.size() - p.get_offset(), p.get_length()),
 	       m_down.pos))
     return false; // Did not read the whole part of the piece
   

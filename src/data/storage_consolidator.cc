@@ -36,6 +36,30 @@ bool StorageConsolidator::resize() {
     == m_files.end();
 }
 					   
+bool
+StorageConsolidator::sync() {
+  bool result = true;
+
+  for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
+    FileChunk f;
+    uint64_t pos = 0;
+
+    while (pos != itr->size()) {
+      uint32_t length = std::min<uint64_t>(itr->size() - pos, (128 << 20));
+
+      if (!itr->file()->get_chunk(f, pos, length, true)) {
+	result = false;
+	break;
+      }
+
+      f.sync(0, length, FileChunk::sync_async);
+      pos += length;
+    }
+  }
+
+  return result;
+}
+
 void StorageConsolidator::close() {
   std::for_each(m_files.begin(), m_files.end(),
 		on(call_member(&StorageFile::file), delete_on()));
@@ -51,7 +75,7 @@ void StorageConsolidator::set_chunksize(uint32_t size) {
   m_chunksize = size;
 }
 
-bool StorageConsolidator::get_chunk(StorageChunk& chunk, unsigned int b, bool wr, bool rd) {
+bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, bool wr, bool rd) {
   chunk.clear();
 
   uint64_t pos = b * (uint64_t)m_chunksize;

@@ -52,6 +52,8 @@ storage_consolidator get_chunk takes to many arguments, use flags instead.
 ! We're blocking during torrent open due to very fast preloading, we're getting
 ahead of the is_incore() calls, thereby not yielding. FIXME
 
+File::get_chunk() needs to have error for improper permission access, and stuff.
+
 
 DELEGATOR STUFF
 

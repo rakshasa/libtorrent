@@ -1,15 +1,16 @@
 #include "config.h"
 
 #include "file.h"
+#include "torrent/exceptions.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 
 namespace torrent {
 
-bool File::open(const std::string& path,
+bool
+File::open(const std::string& path,
 		unsigned int flags,
 		unsigned int mode) {
   close();
@@ -35,16 +36,13 @@ bool File::open(const std::string& path,
   m_path = path;
   m_flags = flags;
 
-  if (fstat(m_fd, m_stat) == -1) {
-    close();
-
-    return false;
-  }
+  update_stats();
 
   return true;
 }
 
-void File::close() {
+void
+File::close() {
   if (!is_open())
     return;
 
@@ -57,23 +55,35 @@ void File::close() {
   m_flags = 0;
   m_path = "";
 }
+
+void
+File::update_stats() {
+  if (!is_open())
+    throw internal_error("Called File::update_stats() on a closed file");
+
+  if (fstat(m_fd, m_stat))
+    throw storage_error("File::update_stats() could not update stats");
+}
   
-bool File::set_size(uint64_t v) {
+bool
+File::set_size(uint64_t v) {
   if (!is_open())
     return false;
 
   int r = ftruncate(m_fd, v);
   
-  fstat(m_fd, m_stat);
+  update_stats();
 
   return r == 0;
 }
 
-int File::get_mode() const {
+int
+File::get_mode() const {
   return is_open() ? m_stat->st_mode & (S_IRWXU | S_IRWXG | S_IRWXO) : 0;
 }
 
-int File::get_type() const {
+int
+File::get_type() const {
   if (!is_open())
     return 0;
 
@@ -102,11 +112,13 @@ int File::get_type() const {
     return 0;
 }
 
-uint64_t File::get_size()  const {
+uint64_t
+File::get_size()  const {
   return is_open() ? m_stat->st_size : 0;
 }
 
-bool File::get_chunk(FileChunk& f,
+bool
+File::get_chunk(FileChunk& f,
 		     uint64_t offset,
 		     unsigned int length,
 		     bool wr,

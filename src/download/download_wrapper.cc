@@ -43,53 +43,80 @@ DownloadWrapper::hash_load() {
   if (!m_bencode.has_key("libtorrent resume"))
     return;
 
-  Bencode& b = m_bencode["libtorrent resume"];
-  Content& c = m_main.get_state().get_content();
+  Content& content = m_main.get_state().get_content();
 
-  if (c.get_files().size() != c.get_storage().get_files().size())
-    throw internal_error("DownloadWrapper::hash_load() size mismatch in file entries");
+  try {
+    Bencode& root = m_bencode["libtorrent resume"];
+    Bencode& files = root["files"];
 
-  if (!b.has_key("bitfield") ||
-      !b["bitfield"].is_string() ||
-      b["bitfield"].as_string().size() != c.get_bitfield().size_bytes())
-    return;
+    // Don't need this.
+    if (content.get_files().size() != content.get_storage().get_files().size())
+      throw internal_error("DownloadWrapper::hash_load() size mismatch in file entries");
 
-  // Clear the hash checking ranges, and add the files ranges we must check.
-  m_hash->get_ranges().clear();
+    if (root["bitfield"].as_string().size() != content.get_bitfield().size_bytes() ||
+	files.as_list().size() != content.get_files().size())
+      return;
 
-  std::memcpy(c.get_bitfield().begin(), b["bitfield"].as_string().c_str(), c.get_bitfield().size_bytes());
+    // Clear the hash checking ranges, and add the files ranges we must check.
+    m_hash->get_ranges().clear();
 
-  Content::FileList::iterator cItr = c.get_files().begin();
-  Storage::FileList::iterator sItr = c.get_storage().get_files().begin();
+    std::memcpy(content.get_bitfield().begin(), root["bitfield"].as_string().c_str(), content.get_bitfield().size_bytes());
 
-  // Check the validity of each file, add to the m_hash's ranges if invalid.
-  while (cItr != c.get_files().end()) {
-    // Check that the size and modified stamp matches.
-    if (sItr->size() != sItr->file()->get_size())
-      m_hash->get_ranges().insert(cItr->get_range().first, cItr->get_range().second);
+    Bencode::List::iterator bItr = files.as_list().begin();
+    Content::FileList::iterator cItr = content.get_files().begin();
+    Storage::FileList::iterator sItr = content.get_storage().get_files().begin();
 
-    ++cItr;
-    ++sItr;
-  }  
+    // Check the validity of each file, add to the m_hash's ranges if invalid.
+    while (cItr != content.get_files().end()) {
+      sItr->file()->update_stats();
+
+      // Check that the size and modified stamp matches.
+      if (sItr->size() != sItr->file()->get_size() ||
+	  (*bItr)["mtime"].as_value() != sItr->file()->get_mtime())
+	m_hash->get_ranges().insert(cItr->get_range().first, cItr->get_range().second);
+
+      ++cItr;
+      ++sItr;
+      ++bItr;
+    }  
+
+  } catch (bencode_error e) {
+    m_hash->get_ranges().insert(0, m_main.get_state().get_chunk_total());
+  }
 
   // Clear bits in invalid regions which will be checked by m_hash.
   for (Ranges::iterator itr = m_hash->get_ranges().begin(); itr != m_hash->get_ranges().end(); ++itr)
-    c.get_bitfield().set(itr->first, itr->second, false);
+    content.get_bitfield().set(itr->first, itr->second, false);
 
-  m_main.get_state().get_content().update_done();
+  content.update_done();
 }
 
 void
 DownloadWrapper::hash_save() {
-  // Make sure everything is closed, and st_mtime is correct.
-
   if (!m_main.is_open() || m_main.is_active() || !m_main.is_checked())
     throw client_error("DownloadWrapper::resume_save() called with wrong state");
 
+  Content& content = m_main.get_state().get_content();
+
+  // Clear the resume data since if the syncing fails we propably don't
+  // want the old resume data.
   Bencode& resume = m_bencode.insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
 
-  resume.insert_key("bitfield", std::string((char*)m_main.get_state().get_content().get_bitfield().begin(),
-					    m_main.get_state().get_content().get_bitfield().size_bytes()));
+  // We're guaranteed that file modification time is correctly updated after this.
+  if (!content.get_storage().sync())
+    return;
+
+  resume.insert_key("bitfield", std::string((char*)content.get_bitfield().begin(), content.get_bitfield().size_bytes()));
+
+  Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
+
+  for (Storage::FileList::iterator itr = content.get_storage().get_files().begin(); itr != content.get_storage().get_files().end(); ++itr) {
+    Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
+
+    itr->file()->update_stats();
+
+    b.insert_key("mtime", itr->file()->get_mtime());
+  }
 }
 
 void
@@ -98,8 +125,6 @@ DownloadWrapper::open() {
     return;
 
   m_main.open();
-
-  m_hash->get_ranges().clear();
   m_hash->get_ranges().insert(0, m_main.get_state().get_chunk_total());
 }
 

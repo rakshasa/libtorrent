@@ -17,6 +17,7 @@ public:
   void            add_file(File* file, uint64_t size);
 
   bool            resize();
+  bool            sync();
   void            close();
 
   void            set_chunksize(uint32_t size);
@@ -25,7 +26,7 @@ public:
   uint32_t        get_chunk_total()              { return (m_size + m_chunksize - 1) / m_chunksize; }
   uint32_t        get_chunk_size()               { return m_chunksize; }
 
-  bool            get_chunk(StorageChunk& chunk, unsigned int b, bool wr = false, bool rd = true);
+  bool            get_chunk(StorageChunk& chunk, uint32_t b, bool wr = false, bool rd = true);
 
   FileList&       get_files()                    { return m_files; }
 
