@@ -103,6 +103,9 @@ void DownloadMain::start() {
 
   m_started = true;
 
+  // TODO: Move this to the proper location.
+  m_net.get_delegator().get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_content().get_storage().get_chunkcount());
+
   insert_service(Timer::current() + state().get_settings().chokeCycle * 2, CHOKE_CYCLE);
 }  
 

@@ -68,6 +68,9 @@ Download::get_root_dir() {
 
 void
 Download::set_root_dir(const std::string& dir) {
+  if (is_open())
+    throw client_error("Tried to call Download::set_root_dir(...) on an open download");
+
   ((DownloadMain*)m_ptr)->state().get_content().set_root_dir(dir);
 }
 
