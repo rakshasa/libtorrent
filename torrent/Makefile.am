@@ -60,8 +60,8 @@ libtorrent_la_SOURCES = \
 	entry.h \
         general.cc \
         general.h \
-        peer.cc \
-        peer.h \
+        peer_info.cc \
+        peer_info.h \
         peer_handshake.cc \
         peer_handshake.h \
         peer_connection.cc \

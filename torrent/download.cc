@@ -42,7 +42,7 @@ Download::Download(const bencode& b) :
 
   m_state.content().open();
 
-  m_state.me() = Peer(generateId(), "", listen->get_port());
+  m_state.me() = PeerInfo(generateId(), "", listen->get_port());
   m_state.hash() = calcHash(b["info"]);
   m_state.bfCounter() = BitFieldCounter(m_state.content().get_storage().get_chunkcount());
 
@@ -212,15 +212,15 @@ void Download::add_peers(const Peers& p) {
     if (itr->dns().length() == 0 || itr->port() == 0 ||
 
 	std::find_if(m_state.connections().begin(), m_state.connections().end(),
-		     call_member(call_member(&PeerConnection::peer), &Peer::is_same_host, ref(*itr)))
+		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
 	!= m_state.connections().end() ||
 
 	std::find_if(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
-		     call_member(call_member(&PeerHandshake::peer), &Peer::is_same_host, ref(*itr)))
+		     call_member(call_member(&PeerHandshake::peer), &PeerInfo::is_same_host, ref(*itr)))
 	!= PeerHandshake::handshakes().end() ||
 
 	std::find_if(m_state.available_peers().begin(), m_state.available_peers().end(),
-		     call_member(&Peer::is_same_host, ref(*itr)))
+		     call_member(&PeerInfo::is_same_host, ref(*itr)))
 	!= m_state.available_peers().end())
       // We already know this peer
       continue;

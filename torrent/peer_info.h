@@ -5,11 +5,11 @@
 
 namespace torrent {
 
-class Peer {
+class PeerInfo {
 public:
-  Peer();
-  Peer(const std::string& id, const std::string& dns, unsigned int port);
-  ~Peer();
+  PeerInfo();
+  PeerInfo(const std::string& id, const std::string& dns, unsigned int port);
+  ~PeerInfo();
 
   const std::string& id() const { return m_id; }
   const std::string& dns() const { return m_dns; }
@@ -20,10 +20,10 @@ public:
 
   bool is_valid() const;
 
-  bool is_same_host(const Peer& p) const { return m_dns == p.m_dns && m_port == p.m_port; }
+  bool is_same_host(const PeerInfo& p) const { return m_dns == p.m_dns && m_port == p.m_port; }
 
-  bool operator < (const Peer& p) const { return m_id < p.m_id; }
-  bool operator == (const Peer& p) const { return m_id == p.m_id; }
+  bool operator < (const PeerInfo& p) const { return m_id < p.m_id; }
+  bool operator == (const PeerInfo& p) const { return m_id == p.m_id; }
 
   // Use only when required.
   std::string&    ref_id() { return m_id; }

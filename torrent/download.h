@@ -11,7 +11,7 @@ class TrackerControl;
 
 class Download : public Service {
 public:
-  typedef std::list<Peer> Peers;
+  typedef std::list<PeerInfo> Peers;
   typedef std::list<Download*> Downloads;
 
   enum ServiceState {

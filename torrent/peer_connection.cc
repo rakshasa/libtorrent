@@ -23,7 +23,7 @@ namespace torrent {
 // Find a better way to do this?
 extern std::list<std::string> caughtExceptions;
 
-void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
+void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d) {
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
 

@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_PEER_HANDSHAKE_H
 #define LIBTORRENT_PEER_HANDSHAKE_H
 
-#include "peer.h"
+#include "peer_info.h"
 #include "socket_base.h"
 #include <sstream>
 #include <list>
@@ -27,7 +27,7 @@ public:
   ~PeerHandshake();
 
   static void connect(int& fdesc, const std::string dns, unsigned short port);
-  static bool connect(const Peer& p, DownloadState* d);
+  static bool connect(const PeerInfo& p, DownloadState* d);
 
   // Only checks for outgoing connections.
   static bool isConnecting(const std::string& id);
@@ -38,14 +38,14 @@ public:
    
   virtual int fd();
 
-  const Peer& peer() const { return m_peer; }
+  const PeerInfo& peer() const { return m_peer; }
   DownloadState* download() const { return m_download; }
 
   static Handshakes& handshakes() { return m_handshakes; }
 
 protected: // Disable private ctor only warning.
   PeerHandshake(int fdesc, const std::string dns, unsigned short port);
-  PeerHandshake(int fdesc, const Peer& p, DownloadState* d);
+  PeerHandshake(int fdesc, const PeerInfo& p, DownloadState* d);
 
 private:
   // Disable
@@ -66,7 +66,7 @@ private:
   int m_fd; // Make sure you set this to below zero if you don't want to close it on dtor
   std::string m_infoHash;
 
-  Peer m_peer;
+  PeerInfo m_peer;
   DownloadState* m_download;
 
   // internal state

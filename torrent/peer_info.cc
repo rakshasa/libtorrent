@@ -1,29 +1,27 @@
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
-#include "peer.h"
+#include "peer_info.h"
 
 namespace torrent {
 
-Peer::Peer() :
+PeerInfo::PeerInfo() :
   m_port(0),
   m_protocol("unknown"),
   m_options(std::string(8, 0))
 {
 }
 
-Peer::Peer(const std::string& id, const std::string& dns, unsigned int port) :
+PeerInfo::PeerInfo(const std::string& id, const std::string& dns, unsigned int port) :
   m_id(id),
   m_dns(dns),
   m_port(port)
 {
 }
 
-Peer::~Peer() {
+PeerInfo::~PeerInfo() {
 }
 
-bool Peer::is_valid() const {
+bool PeerInfo::is_valid() const {
   return m_id.length() == 20 &&
     m_dns.length() &&
     m_port;

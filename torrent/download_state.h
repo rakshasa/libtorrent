@@ -3,7 +3,7 @@
 
 #include "bitfield_counter.h"
 #include "delegator.h"
-#include "peer.h"
+#include "peer_info.h"
 #include "rate.h"
 #include "settings.h"
 #include "content/content.h"
@@ -20,14 +20,14 @@ class PeerConnection;
 // Here goes all those things that Peer* and Delegator needs.
 class DownloadState {
  public:
-  typedef std::list<Peer> Peers;
+  typedef std::list<PeerInfo>        Peers;
   typedef std::list<PeerConnection*> Connections;
 
   DownloadState();
   ~DownloadState();
 
-  Peer& me() { return m_me; }
-  std::string& hash() { return m_hash; }
+  PeerInfo&     me()              { return m_me; }
+  std::string&  hash()            { return m_hash; }
 
   Content&      content()         { return m_content; }
   Connections&  connections()     { return m_connections; }
@@ -54,7 +54,7 @@ class DownloadState {
 
   int countConnections() const; 
 
-  void addConnection(int fd, const Peer& p);
+  void addConnection(int fd, const PeerInfo& p);
 
   void download_stats(uint64_t& up, uint64_t& down, uint64_t& left);
 
@@ -71,7 +71,7 @@ private:
   uint64_t m_bytesUploaded;
   uint64_t m_bytesDownloaded;
 
-  Peer m_me;
+  PeerInfo m_me;
   std::string m_hash;
   
   Content m_content;

@@ -142,7 +142,7 @@ void TrackerHttp::receive_done() {
 
 	for (bencode::List::const_iterator itr2 = itr->second.asList().begin();
 	     itr2 != itr->second.asList().end(); ++itr2) {
-	  Peer p = parse_peer(*itr2);
+	  PeerInfo p = parse_peer(*itr2);
 	  
 	  if (p.is_valid())
 	    l.push_back(p);
@@ -164,7 +164,7 @@ void TrackerHttp::receive_done() {
 	  unsigned short port = (unsigned short)((unsigned char)*itr2++) << 8;
 	  port += (unsigned short)((unsigned char)*itr2++);
 
-	  l.push_back(Peer("", buf.str(), port));
+	  l.push_back(PeerInfo("", buf.str(), port));
 	}
 
       } else {
@@ -202,8 +202,8 @@ void TrackerHttp::receive_done() {
   s.emit(l, interval);
 }
 
-Peer TrackerHttp::parse_peer(const bencode& b) {
-  Peer p;
+PeerInfo TrackerHttp::parse_peer(const bencode& b) {
+  PeerInfo p;
 	
   if (!b.isMap())
     return p;

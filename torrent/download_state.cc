@@ -102,7 +102,7 @@ void DownloadState::chokeBalance() {
   }    
 }
 
-void DownloadState::addConnection(int fd, const Peer& p) {
+void DownloadState::addConnection(int fd, const PeerInfo& p) {
   if (std::find_if(m_connections.begin(), m_connections.end(),
 		   eq(ref(p), call_member(&PeerConnection::peer))) !=
       m_connections.end()) {

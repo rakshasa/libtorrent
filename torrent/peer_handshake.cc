@@ -34,7 +34,7 @@ PeerHandshake::PeerHandshake(int fdesc, const std::string dns, unsigned short po
 }
 
 // Outgoing connections.
-PeerHandshake::PeerHandshake(int fdesc, const Peer& p, DownloadState* d) :
+PeerHandshake::PeerHandshake(int fdesc, const PeerInfo& p, DownloadState* d) :
   m_fd(fdesc),
   m_peer(p),
   m_download(d),
@@ -81,7 +81,7 @@ void PeerHandshake::connect(int& fdesc, const std::string dns, unsigned short po
   fdesc = -1;
 }
 
-bool PeerHandshake::connect(const Peer& p, DownloadState* d) {
+bool PeerHandshake::connect(const PeerInfo& p, DownloadState* d) {
   if (p.dns().length() == 0 ||
       p.port() == 0)
     throw internal_error("Tried to connect with invalid peer information");
@@ -262,7 +262,7 @@ void PeerHandshake::removeConnection(PeerHandshake* p) {
 bool PeerHandshake::isConnecting(const std::string& id) {
   return std::find_if(m_handshakes.begin(), m_handshakes.end(),
 		      eq(ref(id), on<const std::string&>(call_member(&PeerHandshake::peer),
-							 call_member(&Peer::id))))
+							 call_member(&PeerInfo::id))))
     != m_handshakes.end();
 }
 

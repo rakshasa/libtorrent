@@ -5,7 +5,7 @@
 #include "data/storage.h"
 #include "socket_base.h"
 #include "service.h"
-#include "peer.h"
+#include "peer_info.h"
 #include "piece.h"
 #include "rate.h"
 #include "throttle.h"
@@ -53,7 +53,7 @@ public:
   PeerConnection();
   ~PeerConnection();
 
-  void set(int fd, const Peer& p, DownloadState* d);
+  void set(int fd, const PeerInfo& p, DownloadState* d);
   
   void service(int type);
 
@@ -65,7 +65,7 @@ public:
 
   const BitField& bitfield() const { return m_bitfield; }
 
-  const Peer& peer() const { return m_peer; }
+  const PeerInfo& peer() const { return m_peer; }
 
   Sub& up() { return m_up; }
   Sub& down() { return m_down; }
@@ -106,7 +106,7 @@ private:
   int m_fd;
   bool m_shutdown;
 
-  Peer m_peer;
+  PeerInfo m_peer;
   DownloadState* m_download;
    
   BitField m_bitfield;

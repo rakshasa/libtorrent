@@ -4,7 +4,7 @@
 #include <list>
 #include <string>
 
-#include "peer.h"
+#include "peer_info.h"
 #include "service.h"
 #include "tracker_state.h"
 
@@ -21,14 +21,14 @@ class TrackerHttp;
 
 class TrackerControl : public Service {
  public:
-  typedef std::list<Peer> PeerList;
+  typedef std::list<PeerInfo>     PeerList;
   typedef std::list<TrackerHttp*> TrackerList;
 
   typedef sigc::signal1<void, const PeerList&>                 SignalPeers;
   typedef sigc::signal1<void, std::string>                     SignalFailed;
   typedef sigc::signal3<void, uint64_t&, uint64_t&, uint64_t&> SignalStats;
 
-  TrackerControl(const Peer& me, const std::string hash);
+  TrackerControl(const PeerInfo& me, const std::string hash);
   ~TrackerControl();
 
   void  send_state(TrackerState s);
@@ -61,7 +61,7 @@ class TrackerControl : public Service {
 
   void send_itr(TrackerState s);
 
-  Peer         m_me;
+  PeerInfo     m_me;
   std::string  m_hash;
   
   int          m_tries;

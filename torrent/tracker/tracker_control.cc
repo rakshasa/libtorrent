@@ -10,7 +10,7 @@ namespace torrent {
 
 // m_tries is -1 if last connection wasn't successfull or we haven't tried yet.
 
-TrackerControl::TrackerControl(const Peer& me, const std::string hash) :
+TrackerControl::TrackerControl(const PeerInfo& me, const std::string hash) :
   m_me(me),
   m_hash(hash),
   m_tries(-1),
