@@ -156,6 +156,8 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
   if (readSet == NULL || writeSet == NULL || exceptSet == NULL || maxFd == NULL)
     throw client_error("torrent::mark(...) received a NULL pointer");
 
+  *maxFd = 0;
+
   *maxFd = std::max(*maxFd, std::for_each(SocketBase::read_sockets().begin(),
                                           SocketBase::read_sockets().end(),
                                           add_socket(readSet)).fd);
