@@ -51,7 +51,7 @@ private:
 				     uint32_t rarity,
 				     uint32_t& cur_rarity);
 
-  uint32_t               wanted(const BitField& bf,
+  inline uint8_t         wanted(const BitField& bf,
 				uint32_t start,
 				Indexes::const_iterator& indexes);
 

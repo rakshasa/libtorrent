@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <functional>
 #include <algo/algo.h>
 #include <netinet/in.h>
 
@@ -123,6 +124,20 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   return found;
 }
 
+// Start must lie on an 8bit boundary.
+uint8_t
+DelegatorSelect::wanted(const BitField& bf,
+			uint32_t start,
+			Indexes::const_iterator& indexes) {
+
+  uint8_t v = *(bf.begin() + start / 8) & ~*(m_bitfield->begin() + start / 8);
+
+  while (*indexes < start + 8)
+    v &= ~(1 << 7 - (*(indexes++) - start));
+
+  return v;
+}    
+
 int32_t
 DelegatorSelect::check_range(const BitField& bf,
 			     uint32_t start,
@@ -130,8 +145,7 @@ DelegatorSelect::check_range(const BitField& bf,
 			     uint32_t rarity,
 			     uint32_t& cur_rarity) {
 
-  Indexes::const_iterator indexes = std::find_if(m_ignore.begin(), m_ignore.end(),
-						 leq(value(start), back_as_ref()));
+  Indexes::const_iterator indexes = std::find_if(m_ignore.begin(), m_ignore.end(), std::bind2nd(std::greater_equal<uint32_t>(), start));
 
   int32_t found = -1;
   int32_t pos = start % 8;
@@ -139,11 +153,12 @@ DelegatorSelect::check_range(const BitField& bf,
   start -= pos;
 
   while(start < end) {
-    uint32_t v = wanted(bf, start, indexes);
+    uint8_t v = wanted(bf, start, indexes);
 
+    // Bleargh... this is *ugly*, need to fix it.
     if (v) {
-      while (pos < 32) {
-	if (v & (1 << 31 - pos) &&
+      while (pos < 8) {
+	if (v & (1 << 7 - pos) &&
 	    start + pos < end &&
 	    m_seen->field()[start + pos] < cur_rarity) {
 
@@ -161,37 +176,23 @@ DelegatorSelect::check_range(const BitField& bf,
       pos = 0;
     }
 
-    start += 32;
+    start += 8;
   }
 
   return found;
 }
 
-// Start must lie on an 8bit boundary. Returned in network byte order.
-uint32_t
-DelegatorSelect::wanted(const BitField& bf,
-			uint32_t start,
-			Indexes::const_iterator& indexes) {
-
-  uint32_t v = ntohl(*(uint32_t*)(bf.begin() + start / 8) & ~*(uint32_t*)(m_bitfield->begin() + start / 8));
-
-  while (*indexes < start + 32)
-    v &= ~(1 << 31 - (*(indexes++) - start));
-
-  return v;
-}    
-
 bool
 DelegatorSelect::interested_range(const BitField& bf, uint32_t start, uint32_t end) {
-  unsigned char r = start % 8;
+  uint8_t r = start % 8;
 
   if (r && ~(*(m_bitfield->begin() + start / 8) << 8 - r) & (*(bf.begin() + start / 8)) << 8 - r)
     return true;
 
-  uint32_t* i1 = (uint32_t*)(m_bitfield->begin() + (start + 7) / 8);
-  uint32_t* i2 = (uint32_t*)(bf.begin() + (start + 7) / 8);
+  const uint8_t* i1 = m_bitfield->begin() + (start + 7) / 8;
+  const uint8_t* i2 = bf.begin() + (start + 7) / 8;
 
-  uint32_t* e1 = i1 + (end - start) / (8 * sizeof(uint32_t));
+  const uint8_t* e1 = m_bitfield->begin() + (end + 7) / 8;
 
   // At this point start must be aligned to the byte.
   while (i1 != e1) {
@@ -202,9 +203,9 @@ DelegatorSelect::interested_range(const BitField& bf, uint32_t start, uint32_t e
     ++i2;
   }
 
-  // TODO: Invalid read of size 4.
-  return (r = (end - start) / sizeof(uint32_t)) != 0 &&
-    ~(ntohl(*i1) >> sizeof(uint32_t) - r) & (ntohl(*i2) >> sizeof(uint32_t) - r);
+  r = end % 8;
+
+  return r != 0 && ~(*i1 >> 8 - r) & (*i2 >> 8 - r);
 }      
 
 }
