@@ -87,14 +87,15 @@ void DownloadMain::start() {
   if (m_started)
     return;
 
-  if (m_checked)
+  if (m_checked) {
     m_tracker->send_state(TRACKER_STARTED);
+    setup_start();
+  }
 
   m_started = true;
 
   insert_service(Timer::current() + state().settings().chokeCycle * 2, CHOKE_CYCLE);
 }  
-
 
 void DownloadMain::stop() {
   if (!m_started)
@@ -110,6 +111,8 @@ void DownloadMain::stop() {
     delete m_state.connections().front();
     m_state.connections().pop_front();
   }
+
+  setup_stop();
 }
 
 void DownloadMain::service(int type) {
@@ -240,11 +243,16 @@ void DownloadMain::add_peers(const Peers& p) {
 }
 
 void DownloadMain::receive_initial_hash(const std::string& id) {
+  if (m_checked)
+    throw internal_error("DownloadMain::receive_initial_hash called but m_checked == true");
+
   if (id != state().hash())
     throw internal_error("DownloadMain::receive_initial_hash received wrong id");
 
   m_checked = true;
   state().content().resize();
+
+  setup_start();
 
   if (m_state.content().get_chunks_completed() == m_state.content().get_storage().get_chunkcount() &&
       !m_state.content().get_bitfield().allSet())
@@ -278,8 +286,8 @@ DownloadMain::setup_delegator() {
   m_net.get_delegator().signal_chunk_done().connect(sigc::mem_fun(m_state, &DownloadState::chunk_done));
   m_net.get_delegator().slot_chunk_size(sigc::mem_fun(m_state.content(), &Content::get_chunksize));
 
-  m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
-  m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
+  m_slotChunkPassed = sigc::mem_fun(m_net.get_delegator(), &Delegator::done);
+  m_slotChunkFailed = sigc::mem_fun(m_net.get_delegator(), &Delegator::redo);
 }
 
 void
@@ -306,6 +314,18 @@ DownloadMain::setup_tracker(const bencode& b) {
   m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_rate_down(), &Rate::total));
   m_tracker->slot_stat_up(sigc::mem_fun(m_net.get_rate_up(), &Rate::total));
   m_tracker->slot_stat_left(sigc::mem_fun(m_state, &DownloadState::bytes_left));
+}
+
+void
+DownloadMain::setup_start() {
+  m_state.signal_chunk_passed().connect(m_slotChunkPassed);
+  m_state.signal_chunk_failed().connect(m_slotChunkFailed);
+}
+
+void
+DownloadMain::setup_stop() {
+  m_slotChunkPassed.disconnect();
+  m_slotChunkFailed.disconnect();
 }
 
 }

@@ -110,8 +110,7 @@ void Delegator::done(int index) {
 				      eq(call_member(&DelegatorChunk::get_index), value((unsigned int)index)));
 
   if (itr == m_chunks.end())
-    //throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
-    return;
+    throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
 
   m_select.remove_ignore((*itr)->get_index());
 

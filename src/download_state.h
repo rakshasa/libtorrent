@@ -65,13 +65,12 @@ class DownloadState {
 
   typedef sigc::signal1<void, Peer>     SignalPeerConnected;
   typedef sigc::signal1<void, Peer>     SignalPeerDisconnected;
-  typedef sigc::signal1<void, uint32_t> SignalChunkPassed;
-  typedef sigc::signal1<void, uint32_t> SignalChunkFailed;
+  typedef sigc::signal1<void, uint32_t> SignalChunk;
 
   SignalPeerConnected&                  signal_peer_connected()    { return m_signalPeerConnected; }
   SignalPeerConnected&                  signal_peer_disconnected() { return m_signalPeerDisconnected; }
-  SignalChunkPassed&                    signal_chunk_passed()      { return m_signalChunkPassed; }
-  SignalChunkFailed&                    signal_chunk_failed()      { return m_signalChunkFailed; }
+  SignalChunk&                          signal_chunk_passed()      { return m_signalChunkPassed; }
+  SignalChunk&                          signal_chunk_failed()      { return m_signalChunkFailed; }
 
 private:
   // Disable
@@ -95,8 +94,8 @@ private:
 
   SignalPeerConnected    m_signalPeerConnected;
   SignalPeerDisconnected m_signalPeerDisconnected;
-  SignalChunkPassed      m_signalChunkPassed;
-  SignalChunkFailed      m_signalChunkFailed;
+  SignalChunk            m_signalChunkPassed;
+  SignalChunk            m_signalChunkFailed;
 };
 
 }

@@ -6,6 +6,8 @@
 #include "download_state.h"
 #include "download/download_net.h"
 
+#include <sigc++/slot.h>
+
 namespace torrent {
 
 class TrackerControl;
@@ -56,6 +58,9 @@ private:
   void setup_net();
   void setup_tracker(const bencode& b);
 
+  void setup_start();
+  void setup_stop();
+
   static Downloads m_downloads;
   
   DownloadState m_state;
@@ -67,6 +72,11 @@ private:
   bool m_started;
 
   SignalTrackerSucceded m_signalTrackerSucceded;
+
+  typedef sigc::slot1<void, uint32_t> SlotChunk;
+
+  SlotChunk m_slotChunkPassed;
+  SlotChunk m_slotChunkFailed;
 };
 
 } // namespace torrent

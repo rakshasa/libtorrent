@@ -655,6 +655,7 @@ void PeerConnection::sendHave(int index) {
     }
 
   } else if (m_up.interested && !m_net->get_delegator().get_select().interested(m_bitfield)) {
+    // TODO: Optimize?
     m_sendInterested = true;
     m_up.interested = false;
   }
