@@ -1,0 +1,37 @@
+LibTorrent
+
+CONTACT
+
+   Send bug reports, suggestions and patches to <jaris@ifi.uio.no>.
+
+DOWNLOADING 220mb
+
+   rtorrent
+   Kernel 4.43 User 6.13 MajPF 1738 MinPF 54231
+
+   btdownloadcurses.py
+   Kernel 20.85 User 46.92 MajPF 2 MinPF 182264
+
+UPLOADING 220mb
+
+   rtorrent
+   Kernel 4.50 User 5.88 MajPF 3187 MinPF 108170
+
+   btdownloadcurses.py
+   Kernel 11.74 User 22.50 Maj 25 Min 34613
+
+TESTS (PRELIMINARY)
+
+   The higher number of page faults in rtorrent happens since mmap'ed
+   blocks of the file might not be in memory when it tries to
+   read/write. Even though the official BitTorrent client uses python,
+   that shouldn't have this much impact on CPU usage.
+
+LIBRARY SIZE
+
+   Due to extensive use of nested template algorithms the library gets
+   bloated when including debugging information. As of 0.1.8 the library
+   is 2.6Mb and striping reduces it to 250Kb. Obviously stable releases
+   should disable debugging information in 'configure'. The library
+   contains some template functions that are over 1000 character long
+   which c++ mangles into 300+ character names. Strip is your friend ;)

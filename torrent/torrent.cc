@@ -1,0 +1,526 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <algorithm>
+#include <algo/algo.h>
+#include <iostream>
+#include <cassert>
+
+#include "exceptions.h"
+#include "download.h"
+#include "general.h"
+#include "listen.h"
+#include "peer_handshake.h"
+#include "peer_connection.h"
+#include "tracker_query.h"
+#include "service.h"
+#include "settings.h"
+#include "timer.h"
+#include "torrent.h"
+
+using namespace algo;
+
+namespace torrent {
+
+int64_t Timer::m_cache;
+std::list<std::string> caughtExceptions;
+
+struct add_socket {
+  add_socket(fd_set* s) : fd(0), fds(s) {}
+
+  void operator () (SocketBase* s) {
+    if (s->fd() < 0)
+      throw internal_error("Tried to poll a negative file descriptor");
+
+    if (fd < s->fd())
+      fd = s->fd();
+
+    FD_SET(s->fd(), fds);
+  }
+
+  int fd;
+  fd_set* fds;
+};
+
+struct check_socket_isset {
+  check_socket_isset(fd_set* s) : fds(s) {}
+
+  bool operator () (SocketBase* socket) {
+    assert(socket != NULL);
+
+    return FD_ISSET(socket->fd(), fds);
+  }
+
+  fd_set* fds;
+};
+
+void initialize(int beginPort, int endPort) {
+  srandom(Timer::current().usec());
+
+  Listen::open(beginPort, endPort);
+}
+
+void shutdown() {
+  Listen::close();
+
+  std::for_each(Download::downloads().begin(), Download::downloads().end(),
+		call_member(&Download::stop));
+}
+
+// Clean up, close stuff. Calling, and waiting, for shutdown is
+// not required, but highly recommended.
+void cleanup() {
+  // Close again if shutdown wasn't called.
+  Listen::close();
+
+  for_each<true>(Download::downloads().begin(), Download::downloads().end(),
+		 delete_on());
+
+  for_each<true>(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
+		 delete_on());
+}
+
+// Set the file descriptors we want to pool for R/W/E events. All
+// fd_set's must be valid pointers. Returns the highest fd.
+int mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+  int maxFd = 0;
+
+  maxFd = std::max(maxFd, std::for_each(SocketBase::readSockets().begin(), SocketBase::readSockets().end(),
+					add_socket(readSet)).fd);
+  maxFd = std::max(maxFd, std::for_each(SocketBase::writeSockets().begin(), SocketBase::writeSockets().end(),
+					add_socket(writeSet)).fd);
+  maxFd = std::max(maxFd, std::for_each(SocketBase::exceptSockets().begin(), SocketBase::exceptSockets().end(),
+					add_socket(exceptSet)).fd);
+
+  return maxFd;
+}    
+
+// Do work on the file descriptors.
+void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+  // Update the cached time.
+  Timer::update();
+
+  if (readSet == NULL || writeSet == NULL || exceptSet == NULL)
+    throw internal_error("Torrent::work received a NULL pointer to a fs_set");
+
+  // Make sure we don't do read/write on fd's that are in except. This should
+  // not be a problem as any except call should remove it from the m_*Set's.
+
+  caughtExceptions.clear();
+
+  // If except is called, make sure you correctly remove us from the poll.
+  for_each<true>(SocketBase::exceptSockets().begin(), SocketBase::exceptSockets().end(),
+		 if_on(check_socket_isset(exceptSet),
+		       call_member(&SocketBase::except)));
+
+  for_each<true>(SocketBase::readSockets().begin(), SocketBase::readSockets().end(),
+		 if_on(check_socket_isset(readSet),
+		       call_member(&SocketBase::read)));
+
+  for_each<true>(SocketBase::writeSockets().begin(), SocketBase::writeSockets().end(),
+		 if_on(check_socket_isset(writeSet),
+		       call_member(&SocketBase::write)));
+
+  Service::runService();
+
+//   // Splice the write list so we let everyone get a fair share. This should
+//   // use some better scheme, but for now this is enough.
+//   int s = SocketBase::writeSockets().size();
+
+//   if (s < 4)
+//     return;
+
+//   SocketBase::Sockets::iterator itr = SocketBase::writeSockets().begin();
+
+//   for (int i = 0; i < s / 2 - 1; ++i)
+//     ++itr;
+
+//   SocketBase::writeSockets().splice(SocketBase::writeSockets().end(),
+// 				    SocketBase::writeSockets(),
+// 				    SocketBase::writeSockets().begin(), itr);
+}
+
+// It will be parsed through a stream anyway, so no need to supply
+// a function that handles char arrays. Just use std::stringstream.
+DList::const_iterator create(std::istream& s) {
+  // Clear failed bits.
+  s.clear();
+
+  bencode b;
+
+  s >> b;
+
+  if (s.fail())
+    // Make it configurable whetever we throw or return .end()?
+    throw local_error("Could not parse bencoded torrent");
+  
+  Download* download = new Download(b);
+
+  return Download::downloads().insert(Download::downloads().end(), download);
+}
+
+// List container with all the current downloads.
+const DList& downloads() {
+  return Download::downloads();
+}
+
+// List of all connected peers in 'd'.
+const PList& peers(DList::const_iterator d) {
+  return (*d)->connections();
+}
+
+// Call this once you've (preferably though not required) stopped the
+// download. Do not use the iterator after calling this function,
+// pre-increment it or something.
+void remove(DList::const_iterator d) {
+  // Removing downloads happen seldomly and this provides abit more
+  // security. (Besides, i really don't want to cast it to a non-const
+  // iterator since those are two different structs)
+  DList::iterator itr = std::find_if(Download::downloads().begin(), Download::downloads().end(),
+				     eq(call_member(call_member(&Download::tracker), &TrackerQuery::hash),
+					ref((*d)->tracker().hash())));
+
+  if (itr == Download::downloads().end())
+    throw internal_error("Application tried to remove a non-existant download");
+
+  delete *itr;
+
+  Download::downloads().erase(itr);
+}
+
+bool start(DList::const_iterator d) {
+  (*d)->start();
+
+  return true;
+}
+
+bool stop(DList::const_iterator d) {
+  (*d)->stop();
+
+  return true;
+}
+
+// Throws a local_error of some sort.
+int64_t get(GValue t) {
+  switch (t) {
+  case LISTEN_PORT:
+    return Listen::port();
+
+  case HANDSHAKES_TOTAL:
+    return PeerHandshake::handshakes().size();
+
+  case SHUTDOWN_DONE:
+    return std::find_if(Download::downloads().begin(), Download::downloads().end(),
+			call_member(&Download::isStopped))
+      == Download::downloads().end();
+
+  case FILES_CHECK_WAIT:
+    return Settings::filesCheckWait;
+
+  case DEFAULT_PEERS_MIN:
+    return DownloadSettings::global().minPeers;
+
+  case DEFAULT_PEERS_MAX:
+    return DownloadSettings::global().maxPeers;
+
+  case DEFAULT_UPLOADS_MAX:
+    return DownloadSettings::global().maxUploads;
+
+  case DEFAULT_CHOKE_CYCLE:
+    return DownloadSettings::global().chokeCycle;
+
+  case HAS_EXCEPTION:
+    return !caughtExceptions.empty();
+
+  case TIME_CURRENT:
+    return Timer::current().usec();
+
+  case TIME_SELECT:
+    return Service::nextService().usec();
+
+  default:
+    throw internal_error("get(GValue) received invalid type");
+  }
+}
+
+std::string get(GString t) {
+  std::string s;
+
+  switch (t) {
+  case LIBRARY_NAME:
+    return std::string("LibTorrent") + " " VERSION;
+
+  case POP_EXCEPTION:
+    if (caughtExceptions.empty())
+      throw internal_error("get(GString) tried to pop an exception from an empty list");
+
+    s = caughtExceptions.front();
+    caughtExceptions.pop_front();
+
+    return s;
+
+  default:
+    throw internal_error("get(GString) received invalid type");
+  }
+}
+
+int64_t get(DList::const_iterator d, DValue t) {
+//   if (d == Download::downloads().end())
+//     throw internal_error("torrent::get(DList::const_iterator, DValue) called on an invalid iterator");
+  Timer::update();
+  uint64_t a;
+
+  switch (t) {
+  case BYTES_DOWNLOADED:
+    return (*d)->bytesDownloaded();
+
+  case BYTES_UPLOADED:
+    return (*d)->bytesUploaded();
+
+  case BYTES_TOTAL:
+    return (*d)->files().totalSize();
+
+  case BYTES_DONE:
+    a = 0;
+
+    std::for_each((*d)->delegator().chunks().begin(), (*d)->delegator().chunks().end(),
+		  for_each_on(member(&Delegator::Chunk::m_pieces),
+			      add_ref(a, call_member(member(&Delegator::PieceInfo::m_piece),
+						     &Piece::length))));
+
+    return a + (*d)->files().doneSize();
+
+  case CHUNKS_DONE:
+    return (*d)->files().chunkCompleted();
+
+  case CHUNKS_SIZE:
+    return (*d)->files().chunkSize();
+
+  case CHUNKS_TOTAL:
+    return (*d)->files().chunkCount();
+
+  case CHOKE_CYCLE:
+    return (*d)->settings().chokeCycle;
+
+  case RATE_UP:
+    return (*d)->rateUp().rate(true);
+
+  case RATE_DOWN:
+    return (*d)->rateDown().rate(true);
+
+  case PEERS_MIN:
+    return (*d)->settings().minPeers;
+
+  case PEERS_MAX:
+    return (*d)->settings().maxPeers;
+
+  case PEERS_CONNECTED:
+    return (*d)->connections().size();
+
+  case PEERS_NOT_CONNECTED:
+    return (*d)->availablePeers().size();
+
+  case TRACKER_CONNECTING:
+    return (*d)->tracker().busy();
+
+  case TRACKER_TIMEOUT:
+    return (*d)->tracker().inService(0) ? ((*d)->tracker().whenService(0) - Timer::current()).usec() : 0;
+
+  case UPLOADS_MAX:
+    return (*d)->settings().maxUploads;
+
+  default:
+    throw internal_error("get(itr, DValue) received invalid type");
+  }
+}    
+
+std::string get(DList::const_iterator d, DString t) {
+  std::string s;
+
+  switch (t) {
+  case BITFIELD_LOCAL:
+    return std::string((*d)->files().bitfield().data(), (*d)->files().bitfield().sizeBytes());
+
+  case BITFIELD_SEEN:
+    std::for_each((*d)->delegator().bfCounter().field().begin(),
+		  (*d)->delegator().bfCounter().field().end(),
+		  call_member(ref(s), &std::string::push_back,
+
+			      if_on<char>(lt(back_as_ref(), value(256)),
+					  back_as_ref(),
+					  value(255))));
+
+    return s;
+
+  case INFO_NAME:
+    return (*d)->name();
+
+  case TRACKER_MSG:
+    return (*d)->tracker().msg();
+
+  default:
+    throw internal_error("get(itr, DString) received invalid type");
+  }
+}    
+
+int64_t get(PList::const_iterator p, PValue t) {
+  Timer::update();
+
+  switch (t) {
+  case PEER_LOCAL_CHOKED:
+    return (*p)->up().c_choked();
+
+  case PEER_LOCAL_INTERESTED:
+    return (*p)->up().c_interested();
+
+  case PEER_REMOTE_CHOKED:
+    return (*p)->down().c_choked();
+
+  case PEER_REMOTE_INTERESTED:
+    return (*p)->down().c_interested();
+
+  case PEER_CHOKE_DELAYED:
+    return (*p)->chokeDelayed();
+
+  case PEER_RATE_DOWN:
+    return (*p)->down().c_rate().rate(true);
+
+  case PEER_RATE_UP:
+    return (*p)->up().c_rate().rate(true);
+
+  case PEER_PORT:
+    return (*p)->peer().port();
+
+  default:
+    throw internal_error("get(itr, PValue) received invalid type");
+  }
+}    
+
+std::string get(PList::const_iterator p, PString t) {
+  std::string s;
+
+  switch (t) {
+  case PEER_ID:
+    return (*p)->peer().id();
+
+  case PEER_DNS:
+    return (*p)->peer().dns();
+
+  case PEER_BITFIELD:
+    return std::string((*p)->bitfield().data(), (*p)->bitfield().sizeBytes());
+
+  case PEER_INCOMING:
+    std::for_each((*p)->down().c_list().begin(), (*p)->down().c_list().end(),
+		  add_ref(s, call_ctor<std::string>(convert_ptr<char>(call_member(&Piece::index)),
+						    value(4))));
+
+    return s;
+
+  case PEER_OUTGOING:
+    std::for_each((*p)->up().c_list().begin(), (*p)->up().c_list().end(),
+		  add_ref(s, call_ctor<std::string>(convert_ptr<char>(call_member(&Piece::index)),
+						    value(4))));
+
+    return s;
+
+  default:
+    throw internal_error("get(itr, PString) received invalid type");
+  }
+}
+
+void set(GValue t, int64_t v) {
+  switch (t) {
+  case FILES_CHECK_WAIT:
+    if (v >= 0 && v < 60 * 1000000)
+      Settings::filesCheckWait = v;
+    break;
+
+  case DEFAULT_PEERS_MIN:
+    if (v > 0 && v < 1000)
+      DownloadSettings::global().minPeers = v;
+    break;
+
+  case DEFAULT_PEERS_MAX:
+    if (v > 0 && v < 1000)
+      DownloadSettings::global().maxPeers = v;
+    break;
+
+  case DEFAULT_UPLOADS_MAX:
+    if (v >= 0 && v < 1000)
+      DownloadSettings::global().maxUploads = v;
+    break;
+
+  case DEFAULT_CHOKE_CYCLE:
+    if (v > 10 * 1000000 && v < 3600 * 1000000)
+      DownloadSettings::global().chokeCycle = v;
+    break;
+
+  default:
+    throw internal_error("set(GValue, int) received invalid type");
+  }
+}
+
+void set(GString t, const std::string& s) {
+}
+
+void set(DList::const_iterator d, DValue t, int64_t v) {
+  Timer timer;
+
+  switch (t) {
+  case PEERS_MIN:
+    if (v > 0 && v < 1000) {
+      (*d)->settings().minPeers = v;
+      (*d)->connectPeers();
+    }
+
+    break;
+
+  case PEERS_MAX:
+    if (v > 0 && v < 1000) {
+      (*d)->settings().maxPeers = v;
+      // TODO: Do disconnects here if nessesary
+    }
+
+    break;
+
+  case UPLOADS_MAX:
+    if (v > 0 && v < 1000) {
+      (*d)->settings().maxUploads = v;
+      (*d)->chokeBalance();
+    }
+
+    break;
+
+  case CHOKE_CYCLE:
+    if (v < 10 * 1000000 || v >= 3600 * 1000000)
+      break;
+
+    if ((*d)->inService(Download::CHOKE_CYCLE)) {
+      timer = (*d)->whenService(Download::CHOKE_CYCLE);
+
+      (*d)->removeService(Download::CHOKE_CYCLE);
+      (*d)->insertService(timer - (*d)->settings().chokeCycle + v, Download::CHOKE_CYCLE);
+    }
+
+    (*d)->settings().chokeCycle = v;
+
+    break;
+
+  case TRACKER_TIMEOUT:
+    if (v >= 0 && (*d)->tracker().inService(0)) {
+      (*d)->tracker().removeService(0);
+      (*d)->tracker().insertService(Timer::current() + v, 0);
+    }
+
+    break;
+
+  default:
+    throw internal_error("set(GValue, int) received invalid type");
+  }
+}
+
+void set(DList::const_iterator d, DString t, const std::string& s) {
+}
+
+}

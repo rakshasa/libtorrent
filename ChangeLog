@@ -1,0 +1,52 @@
+2004-07-11    <jaris@ifi.uio.no>
+
+	* torrent: Choosing new chunks to download according to how many we see.
+
+2004-07-10    <jaris@ifi.uio.no>
+
+	* torrent: BitField::allSet() now works right, fixes problems with finished peers not being disconnected.
+
+	* client: No longer breaks when it receives resize interrupts during select.
+
+2004-07-08    <jaris@ifi.uio.no>
+
+	* torrent: Fixed mangling of outgoing commands.
+
+2004-07-07    <jaris@ifi.uio.no>
+
+	* torrent: Cleaned up the BitField class.
+
+	* client: Cleaned up the UI.
+
+2004-07-04    <jaris@ifi.uio.no>
+
+	* client: Added scrolling when selecting peers or downloads. View the local bitfield.
+
+	* torrent: Fixed some unchoking bugs and made it better at choosing whom to unchoke.
+
+2004-06-29    <jaris@ifi.uio.no>
+
+	* torrent: Cleaned up PeerConnection::write and made it buffer more commands in one send.
+
+2004-06-27    <jaris@ifi.uio.no>
+
+	* torrent: Added automatic creation of directories.
+
+	* configure: Added tests for OpenSSL's crypto lib.
+
+2004-06-26    <jaris@ifi.uio.no>
+
+	* client: Made the display code more maintainable. Added chunks seen amonst peers
+	
+	* torrent: Added counting of chunks seen amongst the peers.
+
+2004-06-25    <jaris@ifi.uio.no>
+
+	* torrent: Restructed stuff, removed redundancy in up/down stuff.
+
+2004-06-12    <jaris@ifi.uio.no>
+
+	* configure: Added autoconf scripts.
+	
+	* configure: Seperated the test client and library.
+

@@ -1,0 +1,31 @@
+C = Choked
+UC = UnChoked
+I = Interested
+UI = UnInterested
+CC = Download's CHOKE_CYCLE
+BC = Download::balanceChoke
+
+Starts C and UI.
+
+If I is received, call BC. // might hide bugs, only unchoke *this*?
+If UN is received, choke and call BC.
+
+Update the C/UN timer as soon as the command is sent. (reuse of choke wait timer)
+
+Timer for remote C/UN, add to Sub, use for snub.
+
+
+CC is called every 30 seconds:
+
+* Find the worst peer and choke him.
+* Find an untried peer or a good peer and unchoke him.
+
+This should (always?) try out unknown peers.
+
+
+BC
+
+* If peers need to be C: Find the S worst UC peers and C them.
+* If peers need to be UC: Find the S best C and I peers and UC them. (TODO: Check for snub)
+
+We should add some more stuff that checks how many chunks the peer has and stuff like that.

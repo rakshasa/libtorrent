@@ -1,0 +1,3 @@
+SUBDIRS = torrent
+
+DISTCLEANFILES = *~

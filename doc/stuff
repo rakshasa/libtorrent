@@ -1,0 +1,7 @@
+I'm no good at writting documentation, here is some unorganized stuff
+that could be nice to know if your are coding a client.
+
+torrent::start(...)
+
+* The library attempts to create the root directory and any
+directories in the torrent. The permission is set with DIR_UMASK.

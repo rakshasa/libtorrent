@@ -1,0 +1,5 @@
+Select piece that is already downloading but has few seen amongst peers.
+
+To properly delegate a Chunk amonst more than one downloader, start with small pipe that grows.
+
+Finish orphaned chunks as quickly as possible.

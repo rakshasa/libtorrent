@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libtorrent
+Description: A BitTorrent library
+Version: @VERSION@
+Libs: -L${libdir} -ltorrent
+Cflags: -I${includedir}

@@ -1,0 +1,5 @@
+#ifndef LIBTORRENT_DOWNLOAD_STATE_H
+#define LIBTORRENT_DOWNLOAD_STATE_H
+
+namespace torrent {
+

@@ -1,0 +1,65 @@
+Remove cruft from download.h, it needs to be slick since most parts of
+libtorrent do their stuff through it. Perhaps separate out all the
+callback stuff into it's own class.
+
+DownloadChunk::interested should take into consideration chunks being
+downloaded?
+
+Randomize the chunks list so we don't start all downloads at the same spot.
+
+Make peer::connection::read* static?
+
+put stuff in delegator, remove the Download ptr from peer_connection
+delegator should have a pointer to Download's peer list. finished
+chunks are canceled from there. (or just take the list from delegator
+and do stuff in peer_connection)
+
+Rewrite old for loops.
+
+Find out how to make autoconf use big files.
+
+Add the option to not throw non-critical exceptions. This lets the
+client be ignorant of errors while creating stuff. (Make some kind of
+C friendly layer ontop)
+
+Support compact tracker query.
+
+Add support for reading the library version.
+
+Add umask for both dir and file creation.
+
+Let the client retrive the file names in the torrent. (Add support for all in one string, or path broken up)
+
+Setting for pipelining requests.
+
+Make request list keep choked requests, though it needs to be done in some other way.
+
+After 25 seconds, choke a peer if no requests have been received?
+
+Add time to choked/unchoked connections so we know how long ago it was.
+
+Prettify unchoking due to INTERESTED.
+
+Add average, max and total to rates. Will this be controlled by choke/unchoke?
+
+Set IP TOS
+
+Clean up total bytes up/down in download
+
+Optimize Rate::rate()
+
+Choke Cycle shouldn't cycle a peer that was unchoked the last cycle.
+
+Add a snub factor. The more you upload without getting back, the higher it goes. Add a start buffer.
+
+Use BitFieldCounter in delegator to choose a fiting chunk.
+
+Remove stringAsHex stuff
+
+configure does the peer id id thingie
+
+pc::write PIECE with wrong index is not internal error
+
+add unroll loops optimizing(?)
+
+Add config for how often we unchoke unknown peers vs good uploaders
