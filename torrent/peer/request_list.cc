@@ -15,10 +15,12 @@ namespace torrent {
 
 const Piece*
 RequestList::delegate() {
-  DelegatorReservee* r = m_delegator->delegate(*m_bitfield, -1);
+  DelegatorReservee* r = m_delegator->delegate(*m_bitfield, m_affinity);
 
   if (r) {
+    m_affinity = r->get_piece().get_index();
     m_reservees.push_back(r);
+
     r->set_state(DELEGATOR_QUEUED);
 
     return &r->get_piece();

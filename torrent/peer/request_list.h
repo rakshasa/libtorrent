@@ -13,7 +13,12 @@ class RequestList {
 public:
   typedef std::deque<DelegatorReservee*> ReserveeList;
 
-  RequestList() : m_delegator(NULL), m_bitfield(NULL), m_downloading(false) {}
+  RequestList() :
+    m_delegator(NULL),
+    m_bitfield(NULL),
+    m_affinity(-1),
+    m_downloading(false) {}
+
   ~RequestList()                                                            { cancel(); }
 
   // Some parameters here, like how fast we are downloading and stuff
@@ -44,6 +49,7 @@ private:
   Delegator*         m_delegator;
   const BitField*    m_bitfield;
 
+  int                m_affinity;
   bool               m_downloading;
   ReserveeList       m_reservees;
 };

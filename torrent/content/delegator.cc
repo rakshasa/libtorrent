@@ -16,10 +16,7 @@ using namespace algo;
 namespace torrent {
 
 Delegator::~Delegator() {
-  while (!m_chunks.empty()) {
-    delete m_chunks.front();
-    m_chunks.pop_front();
-  }
+  std::for_each(m_chunks.begin(), m_chunks.end(), delete_on());
 }
 
 bool Delegator::interested(const BitField& bf) {
@@ -44,15 +41,26 @@ Delegator::delegate(const BitField& bf, int affinity) {
   
   DelegatorPiece* target = NULL;
 
+  // Find piece with same index as affinity. This affinity should ensure that we
+  // never start another piece while the chunk this peer used to download is still
+  // in progress.
+  if (affinity >= 0) 
+    std::find_if(m_chunks.begin(), m_chunks.end(),
+		 bool_and(eq(value((unsigned)affinity), call_member(&DelegatorChunk::get_index)),
+			  
+			  find_if_on(back_as_ref_t<DelegatorChunk>(),
+				     eq(call_member(&DelegatorPiece::get_state), value(DELEGATOR_NONE)),
+				     assign_ref(target, back_as_ptr()))));
+	       
+  if (target)
+    return new DelegatorReservee(target);
+
   // Find a piece that is not queued by anyone. "" and NONE.
   std::find_if(m_chunks.begin(), m_chunks.end(),
-
 	       bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
 			
 			find_if_on(back_as_ref_t<DelegatorChunk>(),
-				   
 				   eq(call_member(&DelegatorPiece::get_state), value(DELEGATOR_NONE)),
-				   
 				   assign_ref(target, back_as_ptr()))));
   
   if (target)
@@ -63,42 +71,6 @@ Delegator::delegate(const BitField& bf, int affinity) {
   
   if (target)
     return new DelegatorReservee(target);
-
-//   // else find a piece that is queued, but cancelled. "*" and NONE.
-//   std::find_if(m_chunks.begin(), m_chunks.end(),
-
-// 	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
-
-// 			find_if_on(member(&Chunk::m_pieces),
-				   
-// 				   bool_and(eq(member(&PieceInfo::m_state), value(NONE)),
-// 					    bool_not(contained_in(ref(pieces),
-// 								  member(&PieceInfo::m_piece)))),
-				   
-// 				   assign_ref(target, back_as_ptr()))));
-
-//   if (target)
-//     goto DC_designate_return;
-
-//   // TODO: Write this asap
-//   //else if (many chunks left
-
-//   // else find piece that is being downloaded. "*" and DOWNLOADING.
-//   // TODO: This will only happen when there are a few pieces left. FIXME
-//   std::find_if(m_chunks.begin(), m_chunks.end(),
-
-// 	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
-
-// 			find_if_on(member(&Chunk::m_pieces),
-				   
-// 				   bool_and(eq(member(&PieceInfo::m_state), value(DOWNLOADING)),
-// 					    bool_not(contained_in(ref(pieces),
-// 								  member(&PieceInfo::m_piece)))),
-				   
-// 				   assign_ref(target, back_as_ptr()))));
-
-//   if (target)
-//     goto DC_designate_return;
 
   return NULL;
 }

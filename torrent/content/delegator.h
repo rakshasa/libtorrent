@@ -2,7 +2,7 @@
 #define LIBTORRENT_DELEGATOR_H
 
 #include <string>
-#include <list>
+#include <vector>
 #include <sigc++/signal.h>
 
 #include "bitfield.h"
@@ -16,7 +16,7 @@ class DownloadState;
 
 class Delegator {
 public:
-  typedef std::list<DelegatorChunk*>        Chunks;
+  typedef std::vector<DelegatorChunk*>        Chunks;
   typedef sigc::signal1<void, unsigned int> SignalChunkDone;
 
   Delegator() : m_state(NULL) {}
