@@ -30,6 +30,7 @@ class DownloadSettings {
 
   int minPeers;
   int maxPeers;
+  uint32_t maxAvailable;
 
   int maxUploads;
 
@@ -70,9 +71,6 @@ class ThrottleSettings {
   // Min size of chunks to send out.
   static int minChunkMask;
 };
-
-// When pipelining of requests is implemented, add bounds so it can never
-// overflow peer_connection's writeBuf.
 
 }
 

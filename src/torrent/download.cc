@@ -295,7 +295,7 @@ Download::signal_peer_disconnected(Download::SlotPeerConnected s) {
 
 sigc::connection
 Download::signal_tracker_succeded(Download::SlotTrackerSucceded s) {
-  return ((DownloadMain*)m_ptr)->signal_tracker_succeded().connect(s);
+  return ((DownloadMain*)m_ptr)->tracker().signal_peers().connect(sigc::hide(s));
 }
 
 sigc::connection

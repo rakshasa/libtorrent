@@ -14,7 +14,6 @@ class TrackerControl;
 
 class DownloadMain : public Service {
 public:
-  typedef std::list<PeerInfo> Peers;
   typedef std::list<DownloadMain*> Downloads;
 
   enum ServiceState {
@@ -38,19 +37,12 @@ public:
   DownloadNet&    net()             { return m_net; }
   TrackerControl& tracker()         { return *m_tracker; }
 
-  void add_peers(const Peers& p);
-
   static DownloadMain*  getDownload(const std::string& hash);
   static Downloads&     downloads() { return m_downloads; }
 
   static std::string get_download_id(const std::string& hash);
 
   static void receive_connection(int fd, const std::string& hash, const PeerInfo& peer);
-
-  // Modifying signals
-  typedef sigc::signal0<void>              SignalTrackerSucceded;
-
-  SignalTrackerSucceded& signal_tracker_succeded() { return m_signalTrackerSucceded; }
 
 private:
   DownloadMain();
@@ -75,10 +67,9 @@ private:
   bool m_checked;
   bool m_started;
 
-  SignalTrackerSucceded m_signalTrackerSucceded;
-
   sigc::connection m_connectionChunkPassed;
   sigc::connection m_connectionChunkFailed;
+  sigc::connection m_connectionAddAvailablePeers;
 };
 
 } // namespace torrent

@@ -34,6 +34,7 @@ DownloadSettings* DownloadSettings::m_global = new DownloadSettings();
 DownloadSettings::DownloadSettings() :
   minPeers(40),
   maxPeers(100),
+  maxAvailable(500),
   maxUploads(7),
   chokeCycle(30 * 1000000),
   chokeGracePeriod(55 * 1000000),

@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_NET_H
 #define LIBTORRENT_DOWNLOAD_NET_H
 
-#include <vector>
+#include <deque>
 #include <inttypes.h>
 
 #include "content/delegator.h"
@@ -17,7 +17,8 @@ class PeerConnection;
 
 class DownloadNet {
 public:
-  typedef std::list<PeerInfo>          PeerList;
+  typedef std::deque<PeerInfo>       PeerContainer;
+  typedef std::list<PeerInfo>        PeerList;
   typedef std::list<PeerConnection*> ConnectionList;
 
   DownloadNet() : m_settings(NULL), m_endgame(false) {}
@@ -42,10 +43,12 @@ public:
   // Peer connections management:
 
   ConnectionList&   get_connections()                        { return m_connections; }
-  PeerList&         get_available_peers()                    { return m_availablePeers; }
+  PeerContainer&    get_available_peers()                    { return m_availablePeers; }
 
   void              add_connection(int fd, const PeerInfo& p);
   void              remove_connection(PeerConnection* p);
+
+  void              add_available_peers(const PeerList& p);
 
   int               can_unchoke();
   void              choke_balance();
@@ -53,27 +56,21 @@ public:
 
   int               count_connections() const; 
 
-  // Deprecate these
-  typedef sigc::slot0<uint32_t> SlotChunksCompleted;
-  typedef sigc::slot0<uint32_t> SlotChunksCount;
-
-  void slot_chunks_completed(SlotChunksCompleted s)          { m_slotChunksCompleted = s; }
-  void slot_chunks_count(SlotChunksCount s)                  { m_slotChunksCount = s; }
-
   // Signals and slots.
 
-  typedef sigc::signal1<void, Peer>                          SignalPeerConnected;
-  typedef sigc::signal1<void, Peer>                          SignalPeerDisconnected;
+  typedef sigc::signal1<void, Peer>                          SignalPeer;
 
   typedef sigc::slot2<PeerConnection*, int, const PeerInfo&> SlotCreateConnection;
   typedef sigc::slot1<void, const PeerInfo&>                 SlotStartHandshake;
+  typedef sigc::slot1<bool, const PeerInfo&>                 SlotHasHandshake;
   typedef sigc::slot0<uint32_t>                              SlotCountHandshakes;
 
-  SignalPeerConnected& signal_peer_connected()               { return m_signalPeerConnected; }
-  SignalPeerConnected& signal_peer_disconnected()            { return m_signalPeerDisconnected; }
+  SignalPeer& signal_peer_connected()                        { return m_signalPeerConnected; }
+  SignalPeer& signal_peer_disconnected()                     { return m_signalPeerDisconnected; }
 
   void slot_create_connection(SlotCreateConnection s)        { m_slotCreateConnection = s; }
   void slot_start_handshake(SlotStartHandshake s)            { m_slotStartHandshake = s; }
+  void slot_has_handshake(SlotHasHandshake s)                { m_slotHasHandshake = s; }
   void slot_count_handshakes(SlotCountHandshakes s)          { m_slotCountHandshakes = s; }
 
 private:
@@ -83,21 +80,19 @@ private:
   DownloadSettings*      m_settings;
   Delegator              m_delegator;
   ConnectionList         m_connections;
-  PeerList               m_availablePeers;
+  PeerContainer          m_availablePeers;
 
   bool                   m_endgame;
   
   Rate                   m_rateUp;
   Rate                   m_rateDown;
 
-  SlotChunksCompleted    m_slotChunksCompleted;
-  SlotChunksCount        m_slotChunksCount;
-
-  SignalPeerConnected    m_signalPeerConnected;
-  SignalPeerDisconnected m_signalPeerDisconnected;
+  SignalPeer             m_signalPeerConnected;
+  SignalPeer             m_signalPeerDisconnected;
 
   SlotCreateConnection   m_slotCreateConnection;
   SlotStartHandshake     m_slotStartHandshake;
+  SlotHasHandshake       m_slotHasHandshake;
   SlotCountHandshakes    m_slotCountHandshakes;
 };
 

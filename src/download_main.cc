@@ -23,10 +23,7 @@ namespace torrent {
 
 DownloadMain::Downloads DownloadMain::m_downloads;
 
-// Temporary solution untill we get proper error handling.
-extern std::list<std::string> caughtExceptions;
 extern Listen* listen;
-extern HandshakeManager handshakes;
 
 DownloadMain::DownloadMain(const bencode& b) :
   m_tracker(NULL),
@@ -216,33 +213,6 @@ DownloadMain::get_download_id(const std::string& hash) {
   return (d && d->m_started && d->m_checked) ? d->state().me().get_id() : std::string("");
 }
 
-void DownloadMain::add_peers(const Peers& p) {
-  for (Peers::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
-
-    if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||
-
-	std::find_if(m_net.get_connections().begin(), m_net.get_connections().end(),
-		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
-	!= m_net.get_connections().end() ||
-
-	handshakes.has_peer(*itr) ||
-
-	std::find_if(m_net.get_available_peers().begin(), m_net.get_available_peers().end(),
-		     call_member(&PeerInfo::is_same_host, ref(*itr)))
-	!= m_net.get_available_peers().end())
-      // We already know this peer
-      continue;
-
-    // Push to back since we want to connect to old peers since they are more
-    // likely to have more of the file. This also makes sure we don't end up with
-    // lots of old dead peers in the stack.
-    m_net.get_available_peers().push_back(*itr);
-  }
-
-  if (m_started)
-    m_net.connect_peers();
-}
-
 void DownloadMain::receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
   DownloadMain* d = getDownload(hash);
 
@@ -276,14 +246,10 @@ void
 DownloadMain::receive_download_done() {
   // Don't send TRACKER_COMPLETED if we received done due to initial
   // hash check.
-  if (!m_started ||
-      !m_checked ||
-      m_tracker->get_state() == TRACKER_STARTED)
+  if (!m_started || !m_checked || m_tracker->get_state() == TRACKER_STARTED)
     return;
 
   m_tracker->send_state(TRACKER_COMPLETED);
-
-  caughtExceptions.push_back("Sendt completed to tracker");
 }
 
 }

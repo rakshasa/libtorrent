@@ -82,8 +82,7 @@ DownloadNet::add_connection(int fd, const PeerInfo& p) {
 
   m_connections.push_back(c);
 
-  // TODO: This is wrong!
-  PeerList::iterator itr = std::find(m_availablePeers.begin(), m_availablePeers.end(), p);
+  PeerContainer::iterator itr = std::find(m_availablePeers.begin(), m_availablePeers.end(), p);
 
   if (itr != m_availablePeers.end())
     m_availablePeers.erase(itr);
@@ -108,6 +107,36 @@ DownloadNet::remove_connection(PeerConnection* p) {
     throw internal_error("Duplicate PeerConnections in Download");
 
   choke_balance();
+  connect_peers();
+}
+
+void
+DownloadNet::add_available_peers(const PeerList& p) {
+  // Make this a FIFO queue so we keep relatively fresh peers in the
+  // deque. Remove old peers first when we overflow.
+
+  for (PeerList::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
+
+    // Ignore if the peer is invalid or already known.
+    if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||
+
+	std::find_if(m_connections.begin(), m_connections.end(),
+		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
+	!= m_connections.end() ||
+
+	std::find_if(m_availablePeers.begin(), m_availablePeers.end(),
+		     call_member(&PeerInfo::is_same_host, ref(*itr)))
+	!= m_availablePeers.end() ||
+
+	m_slotHasHandshake(*itr))
+      continue;
+
+    m_availablePeers.push_back(*itr);
+  }
+
+  while (m_availablePeers.size() > m_settings->maxAvailable)
+    m_availablePeers.pop_front();
+
   connect_peers();
 }
 

@@ -165,6 +165,7 @@ download_create(std::istream& s) {
   DownloadMain* d = new DownloadMain(b);
   DownloadMain::downloads().insert(DownloadMain::downloads().end(), d);
 
+  d->net().slot_has_handshake(sigc::mem_fun(handshakes, &HandshakeManager::has_peer));
   d->net().slot_start_handshake(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::add_outgoing),
 					   d->state().hash(), d->state().me().get_id()));
   d->net().slot_count_handshakes(sigc::bind(sigc::mem_fun(handshakes, &HandshakeManager::get_size_hash),
