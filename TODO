@@ -68,6 +68,8 @@ stream? Or is the current system the only flexible one we can use?
 Consider making the stringstream input only to allow for lightning
 fast str().c_str(). (Check if it's isstream that does this)
 
+Don't open with largefile unless the torrent requires it.
+
 
 API REDESIGN:
 

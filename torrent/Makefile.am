@@ -2,6 +2,10 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
+	data/file.cc \
+	data/file.h \
+	data/file_chunk.cc \
+	data/file_chunk.h \
 	data/storage.cc \
 	data/storage.h \
 	data/storage_block.cc \
