@@ -2,8 +2,10 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
-	api/peer.cc \
-	api/peer.h \
+	torrent/entry.cc \
+	torrent/entry.h \
+	torrent/peer.cc \
+	torrent/peer.h \
 	content/content.cc \
 	content/content.h \
 	content/content_file.h \
@@ -58,8 +60,6 @@ libtorrent_la_SOURCES = \
         download_main.h \
 	download_state.cc \
 	download_state.h \
-	entry.cc \
-	entry.h \
         general.cc \
         general.h \
         peer_info.cc \
@@ -90,10 +90,10 @@ libtorrent_la_SOURCES = \
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
-	api/peer.h \
+	torrent/entry.h \
+	torrent/peer.h \
 	torrent.h \
 	exceptions.h \
-	entry.h \
 	url/http.h
 
 DISTCLEANFILES = *~ */*~
