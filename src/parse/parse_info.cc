@@ -2,7 +2,7 @@
 
 #include "torrent/exceptions.h"
 #include "parse.h"
-#include "bencode.h"
+#include "utils/bencode.h"
 #include "content/content.h"
 
 #include <algo/algo.h>

@@ -169,7 +169,7 @@ PeerConnection::request_piece() {
   }
 
   if (p->get_index() < 0 ||
-      p->get_index() >= (int)m_bitfield.sizeBits() ||
+      p->get_index() >= (int)m_bitfield.size_bits() ||
       !m_bitfield[p->get_index()])
     throw internal_error("Delegator gave us a piece with invalid range or not in peer");
 

@@ -99,12 +99,12 @@ Peer::get_incoming_index(uint32_t pos) {
 // std::string.
 const unsigned char*
 Peer::get_bitfield_data() {
-  return (const unsigned char*)((PeerConnection*)m_ptr)->bitfield().data();
+  return (const unsigned char*)((PeerConnection*)m_ptr)->bitfield().begin();
 }
 
 uint32_t
 Peer::get_bitfield_size() {
-  return ((PeerConnection*)m_ptr)->bitfield().sizeBits();
+  return ((PeerConnection*)m_ptr)->bitfield().size_bits();
 }
 
 void

@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
-#include "bencode.h"
+#include "utils/bencode.h"
 #include "service.h"
 #include "settings.h"
 #include "peer_info.h"

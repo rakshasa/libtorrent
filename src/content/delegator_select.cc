@@ -30,7 +30,7 @@ DelegatorSelect::interested(const BitField& bf) {
 
 bool
 DelegatorSelect::interested(uint32_t index) {
-  if (index < 0 && index >= m_bitfield->sizeBits())
+  if (index < 0 && index >= m_bitfield->size_bits())
     throw internal_error("Delegator::interested received index out of range");
 
   // TODO: Move the m_priorty up to peer, and make it a function here so we don't need to
@@ -173,7 +173,7 @@ DelegatorSelect::wanted(const BitField& bf,
 			uint32_t start,
 			Indexes::const_iterator& indexes) {
 
-  uint32_t v = ntohl(*(uint32_t*)(bf.data() + start / 8) & ~*(uint32_t*)(m_bitfield->data() + start / 8));
+  uint32_t v = ntohl(*(uint32_t*)(bf.begin() + start / 8) & ~*(uint32_t*)(m_bitfield->begin() + start / 8));
 
   while (*indexes < start + 32)
     v &= ~(1 << 31 - (*(indexes++) - start));
@@ -185,11 +185,11 @@ bool
 DelegatorSelect::interested_range(const BitField& bf, uint32_t start, uint32_t end) {
   unsigned char r = start % 8;
 
-  if (r && ~(*(m_bitfield->data() + start / 8) << 8 - r) & (*(bf.data() + start / 8)) << 8 - r)
+  if (r && ~(*(m_bitfield->begin() + start / 8) << 8 - r) & (*(bf.begin() + start / 8)) << 8 - r)
     return true;
 
-  uint32_t* i1 = (uint32_t*)(m_bitfield->data() + (start + 7) / 8);
-  uint32_t* i2 = (uint32_t*)(bf.data() + (start + 7) / 8);
+  uint32_t* i1 = (uint32_t*)(m_bitfield->begin() + (start + 7) / 8);
+  uint32_t* i2 = (uint32_t*)(bf.begin() + (start + 7) / 8);
 
   uint32_t* e1 = i1 + (end - start) / sizeof(uint32_t);
 

@@ -6,7 +6,8 @@ SUBDIRS = \
 	net \
 	parse \
 	peer \
-	tracker
+	tracker \
+	utils
 
 lib_LTLIBRARIES = libtorrent.la
 
@@ -19,11 +20,10 @@ libtorrent_la_LIBADD = \
 	$(top_srcdir)/src/net/libsub_net.la \
 	$(top_srcdir)/src/parse/libsub_parse.la \
 	$(top_srcdir)/src/peer/libsub_peer.la \
-	$(top_srcdir)/src/tracker/libsub_tracker.la
+	$(top_srcdir)/src/tracker/libsub_tracker.la \
+	$(top_srcdir)/src/utils/libsub_utils.la
 
 libtorrent_la_SOURCES = \
-	bencode.cc \
-	bencode.h \
         bitfield.cc \
         bitfield.h \
 	bitfield_counter.h \

@@ -15,7 +15,7 @@ BitField::BitField(unsigned int s) :
   m_size(s) {
 
   if (s) {
-    int a = ((m_size + 8 * sizeof(Type) - 1) / (8 * sizeof(Type))) * sizeof(Type);
+    int a = ((m_size + 8 * sizeof(pad_type) - 1) / (8 * sizeof(pad_type))) * sizeof(pad_type);
 
     m_start = new char[a];
     m_end = m_start + (m_size + 7) / 8;
@@ -52,7 +52,7 @@ BitField& BitField::operator = (const BitField& bf) {
   if (bf.m_size) {
     m_size = bf.m_size;
     m_start = new char[bf.m_pad - bf.m_start];
-    m_end = m_start + bf.sizeBytes();
+    m_end = m_start + bf.size_bytes();
     m_pad = m_start + (bf.m_pad - bf.m_start);
     
     std::memcpy(m_start, bf.m_start, m_pad - m_start);
@@ -67,46 +67,46 @@ BitField& BitField::operator = (const BitField& bf) {
   return *this;
 }
 
-BitField& BitField::notIn(const BitField& bf) {
+BitField& BitField::not_in(const BitField& bf) {
   if (m_size != bf.m_size)
     throw internal_error("Tried to do operations between different sized bitfields");
 
-  for (Type* i = (Type*)m_start, *i2 = (Type*)bf.m_start;
-       i < (Type*)m_pad; i++, i2++)
+  for (pad_type* i = (pad_type*)m_start, *i2 = (pad_type*)bf.m_start;
+       i < (pad_type*)m_pad; i++, i2++)
     *i &= ~*i2;
 
   return *this;
 }
 
-bool BitField::zero() const {
+bool BitField::all_zero() const {
   if (m_size == 0)
     return true;
 
-  for (Type* i = (Type*)m_start; i < (Type*)m_pad; i++)
+  for (pad_type* i = (pad_type*)m_start; i < (pad_type*)m_pad; i++)
     if (*i)
       return false;
 
   return true;
 }
 
-bool BitField::allSet() const {
+bool BitField::all_set() const {
   if (m_size == 0)
     return false;
 
   char* i = m_start;
-  char* end = m_pad - sizeof(Type);
+  char* end = m_pad - sizeof(pad_type);
 
   while (i < end) {
-    if (*(Type*)i != (Type)-1)
+    if (*(pad_type*)i != (pad_type)-1)
       return false;
 
-    i += sizeof(Type);
+    i += sizeof(pad_type);
   }
 
-  if (m_size % (8 * sizeof(Type)))
-    return *(Type*)i == htonl((Type)-1 << 8 * sizeof(Type) - m_size % (8 * sizeof(Type)));
+  if (m_size % (8 * sizeof(pad_type)))
+    return *(pad_type*)i == htonl((pad_type)-1 << 8 * sizeof(pad_type) - m_size % (8 * sizeof(pad_type)));
   else
-    return *(Type*)i == (Type)-1;
+    return *(pad_type*)i == (pad_type)-1;
 }
 
 unsigned int BitField::count() const {
@@ -117,20 +117,10 @@ unsigned int BitField::count() const {
 
   unsigned int c = 0;
 
-  for (unsigned int i = 0; i < sizeBits(); ++i)
+  for (unsigned int i = 0; i < size_bits(); ++i)
     c += (*this)[i];
 
   return c;
-}
-
-void BitField::clear(int start, int end) {
-  // TODO, optimize
-
-  while (start != end) {
-    set(start, false);
-
-    ++start;
-  }
 }
 
 }

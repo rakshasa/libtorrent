@@ -155,7 +155,7 @@ void Delegator::redo(int index) {
 }
 
 DelegatorPiece* Delegator::new_chunk(const BitField& bf, Priority::Type p) {
-  int index = m_select.find(bf, random() % bf.sizeBits(), 1024, p);
+  int index = m_select.find(bf, random() % bf.size_bits(), 1024, p);
 
   if (index == -1)
     return NULL;

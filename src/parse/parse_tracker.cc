@@ -3,7 +3,7 @@
 #include "torrent/exceptions.h"
 #include "tracker/tracker_control.h"
 
-#include "bencode.h"
+#include "utils/bencode.h"
 #include "parse.h"
 
 namespace torrent {

@@ -92,4 +92,5 @@ AC_OUTPUT([
 	src/parse/Makefile
 	src/peer/Makefile
 	src/tracker/Makefile
+	src/utils/Makefile
 ])

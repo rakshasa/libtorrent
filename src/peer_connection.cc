@@ -63,9 +63,9 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
   m_up.buf = new char[BUFFER_SIZE];
   m_down.buf = new char[BUFFER_SIZE];
 
-  if (!d->get_content().get_bitfield().zero()) {
+  if (!d->get_content().get_bitfield().all_zero()) {
     // Send bitfield to peer.
-    bufCmd(BITFIELD, 1 + m_download->get_content().get_bitfield().sizeBytes(), 1);
+    bufCmd(BITFIELD, 1 + m_download->get_content().get_bitfield().size_bytes(), 1);
     m_up.pos = 0;
     m_up.state = WRITE_MSG;
   }
@@ -141,11 +141,11 @@ void PeerConnection::read() {
       break;
 
     case BITFIELD:
-      if (m_down.length != 1 + m_bitfield.sizeBytes()) {
+      if (m_down.length != 1 + m_bitfield.size_bytes()) {
 	std::stringstream s;
 
 	s << "Recived bitfield message with wrong size " << m_down.length
-	  << ' ' << m_bitfield.sizeBytes() << ' ';
+	  << ' ' << m_bitfield.size_bytes() << ' ';
 
 	throw communication_error(s.str());
 
@@ -214,14 +214,14 @@ void PeerConnection::read() {
     }
 
   case READ_BITFIELD:
-    if (!read_buf(m_bitfield.data() + m_down.pos, m_down.length - 1, m_down.pos))
+    if (!read_buf(m_bitfield.begin() + m_down.pos, m_down.length - 1, m_down.pos))
       return;
 
     if (m_net->get_delegator().get_select().interested(m_bitfield)) {
       m_up.interested = m_sendInterested = true;
       
     } else if (m_download->get_content().get_chunks_completed() == m_download->get_content().get_storage().get_chunkcount() &&
-	       m_bitfield.allSet()) {
+	       m_bitfield.all_set()) {
       // Both sides are done so we might as well close the connection.
       throw close_connection();
     }
@@ -384,8 +384,8 @@ void PeerConnection::write() {
     m_up.pos = 0;
 
   case WRITE_BITFIELD:
-    if (!write_buf(m_download->get_content().get_bitfield().data() + m_up.pos,
-		   m_download->get_content().get_bitfield().sizeBytes(), m_up.pos))
+    if (!write_buf(m_download->get_content().get_bitfield().begin() + m_up.pos,
+		   m_download->get_content().get_bitfield().size_bytes(), m_up.pos))
       return;
 
     m_up.state = IDLE;
@@ -525,7 +525,7 @@ void PeerConnection::parseReadBuf() {
   case HAVE:
     index = bufR32();
 
-    if (index >= m_bitfield.sizeBits())
+    if (index >= m_bitfield.size_bits())
       throw communication_error("Recived HAVE command with invalid value");
 
     if (!m_bitfield[index]) {
@@ -659,7 +659,7 @@ void PeerConnection::sendHave(int index) {
   if (m_download->get_content().get_chunks_completed() == m_download->get_content().get_storage().get_chunkcount()) {
     // We're done downloading.
 
-    if (m_bitfield.allSet()) {
+    if (m_bitfield.all_set()) {
       // Peer is done, close connection.
       m_shutdown = true;
 

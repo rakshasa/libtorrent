@@ -168,12 +168,12 @@ Download::get_rate_down() {
   
 const unsigned char*
 Download::get_bitfield_data() {
-  return (unsigned char*)((DownloadMain*)m_ptr)->get_state().get_content().get_bitfield().data();
+  return (unsigned char*)((DownloadMain*)m_ptr)->get_state().get_content().get_bitfield().begin();
 }
 
 uint32_t
 Download::get_bitfield_size() {
-  return ((DownloadMain*)m_ptr)->get_state().get_content().get_bitfield().sizeBits();
+  return ((DownloadMain*)m_ptr)->get_state().get_content().get_bitfield().size_bits();
 }
 
 uint32_t
