@@ -120,9 +120,9 @@ void TrackerHttp::receive_done() {
   *m_data >> b;
 
   if (m_data->fail()) {
-    std::ofstream f("./tracker_dump");
+//     std::ofstream f("./tracker_dump");
 
-    f << m_data->str();
+//     f << m_data->str();
 
     return receive_failed("Could not parse bencoded data");
   }
@@ -179,12 +179,13 @@ void TrackerHttp::receive_done() {
       if (itr->second.asValue() > 60 && itr->second.asValue() < 6 * 3600)
 	interval = itr->second.asValue();
 
-      else {
-	std::stringstream s;
-	s << "Tracker returned interval " << itr->second.asValue();
+//       else {
+// 	std::stringstream s;
+// 	s << "Tracker returned interval " << itr->second.asValue();
 
-	throw internal_error(s.str());
-      }
+//       throw internal_error(s.str());
+// 	return 
+//       }
 
     } else if (itr->first == "failure reason") {
 

@@ -43,6 +43,7 @@ private:
   DownloadMain();
 
   void receive_initial_hash(const std::string& id);
+  void receive_download_done();
 
   static Downloads m_downloads;
   

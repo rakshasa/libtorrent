@@ -250,4 +250,16 @@ void DownloadMain::receive_initial_hash(const std::string& id) {
     m_tracker->send_state(TRACKER_STARTED);
 }    
 
+void
+DownloadMain::receive_download_done() {
+  // Don't send TRACKER_COMPLETED if we received done due to initial
+  // hash check.
+  if (!m_started ||
+      !m_checked ||
+      m_tracker->get_state() == TRACKER_STARTED)
+    return;
+
+  m_tracker->send_state(TRACKER_COMPLETED);
+}
+
 }
