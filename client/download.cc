@@ -297,6 +297,7 @@ void Download::drawPeers(int y1, int y2) {
   mvprintw(y1, x, "PEER");  x += 7;
   mvprintw(y1, x, "RE/LO"); x += 7;
   mvprintw(y1, x, "QS");    x += 6;
+  mvprintw(y1, x, "DONE");  x += 6;
   mvprintw(y1, x, "REQ");   x += 6;
   mvprintw(y1, x, "SNUB");
 
@@ -360,6 +361,9 @@ void Download::drawPeers(int y1, int y2) {
     mvprintw(i, x, "%i/%i",
 	     itr->get_outgoing_queue_size(),
 	     itr->get_incoming_queue_size());
+    x += 6;
+
+    mvprintw(i, x, "%i", itr->get_chunks_done());
     x += 6;
 
     if (itr->get_incoming_queue_size())

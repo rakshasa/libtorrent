@@ -112,6 +112,11 @@ Peer::get_bitfield_size() {
   return ((PeerConnection*)m_ptr)->bitfield().size_bits();
 }
 
+uint32_t
+Peer::get_chunks_done() {
+  return ((PeerConnection*)m_ptr)->bitfield().count();
+}  
+
 void
 Peer::set_snubbed(bool v) {
   ((PeerConnection*)m_ptr)->throttle().set_snub(v);

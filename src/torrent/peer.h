@@ -50,12 +50,10 @@ public:
   uint32_t             get_incoming_offset(uint32_t pos);
   uint32_t             get_incoming_length(uint32_t pos);
 
-  // Currently needs to copy the data once to a std::string. But 
-  // since gcc does ref counted std::string, you can inexpensively
-  // copy the resulting string. Will consider making BitField use a
-  // std::string.
   const unsigned char* get_bitfield_data();
   uint32_t             get_bitfield_size();
+
+  uint32_t             get_chunks_done();
 
   void                 set_snubbed(bool v);
 
