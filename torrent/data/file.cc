@@ -20,10 +20,12 @@ bool File::open(const std::string& path,
 		   (flags & in  ? O_RDONLY : 0) |
 		   (flags & out ? O_WRONLY : 0)) |
 		  
+#ifdef O_LARGEFILE
+		  (flags & largefile ? O_LARGEFILE : 0) |
+#endif
 		  (flags & create    ? O_CREAT     : 0) |
 		  (flags & truncate  ? O_TRUNC     : 0) |
-		  (flags & nonblock  ? O_NONBLOCK  : 0) |
-		  (flags & largefile ? O_LARGEFILE : 0),
+		  (flags & nonblock  ? O_NONBLOCK  : 0),
 		  
 		  mode);
   

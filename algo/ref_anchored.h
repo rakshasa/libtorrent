@@ -1,6 +1,12 @@
 #ifndef ALGO_REF_ANCHORED_H
 #define ALGO_REF_ANCHORED_H
 
+// These classes implement a generic way of reference counting an object
+// that is shared from a common base. Once all the outstanding references
+// are removed, the object is deleted and the anchor is cleared.
+
+// The interface should be pretty self-explanatory.
+
 namespace algo {
 
 template <typename>
@@ -95,6 +101,9 @@ public:
 
   void  anchor(RefAnchor<Type>& a) { a.set(m_ptr); }
   void  clear()                    { if (m_ptr && --m_ptr->m_ref == 0) delete m_ptr; m_ptr = NULL; }
+
+  // Clear the anchor so this object will die out. Use only if you know it
+  // is safe.
   void  drift()                    { if (m_ptr && m_ptr->m_anchor) m_ptr->m_anchor->clear(); }
 
   Type* data()                     { return m_ptr ? m_ptr->m_data : NULL; }

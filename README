@@ -8,9 +8,9 @@ CONTACT
 SIGC++
 
    The API will use sigc++ signals to give the client a simple, yet
-  powerfull way of reacting to events from the library. The client can
+  powerful way of reacting to events from the library. The client can
   hook multiple slots on each signal and modify the parameters to suit
-  the functions. This avoids lots of unnessesary code in the client.
+  the functions. This avoids lots of unnecessary code in the client.
 
 DOWNLOADING 220mb
 
@@ -46,7 +46,8 @@ LOCAL TRANSFER RATES COMPARED WITH POPULAR CLIENTS
 
 MADVISE WILLNEED KERNEL BUG
 
-   The 2.4.20 kernels i've tried the madvise(..., MADV_WILLNEED)
-  system call on have locked up. It will be disabled on those kernels
-  when i manage to write a configure script. (Or i'm going to make
-  enableing it explicit)
+   On the 2.4.20 kernels I've tried, the madvise(..., MADV_WILLNEED)
+  system call can look up the kernel. It will be disabled on those
+  kernels when i manage to write a configure script. (Or I'm going to
+  make enabling it explicit)
+

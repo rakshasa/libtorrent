@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 
   try {
 
-  torrent::initialize();
+  torrent::initialize(6890);
   torrent::DList::const_iterator curDownload = torrent::downloads().end();
 
   Download download(curDownload);
