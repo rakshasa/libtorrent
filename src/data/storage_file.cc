@@ -22,18 +22,27 @@
 
 #include "config.h"
 
+#include "file.h"
 #include "storage_file.h"
 
 namespace torrent {
 
+void
+StorageFile::clear() {
+  delete m_file;
+
+  m_file = 0;
+  m_position = m_size = 0;
+}
+
 bool
-StorageFile::sync() {
+StorageFile::sync() const {
   off_t pos = 0;
 
   while (pos != m_size) {
     uint32_t length = std::min(m_size - pos, (off_t)(128 << 20));
 
-    MemoryChunk c = m_file->get_chunk(pos, length, true);
+    MemoryChunk c = m_file->get_chunk(pos, length, MemoryChunk::prot_write, MemoryChunk::map_shared);
 
     if (!c.is_valid())
       return false;
@@ -45,6 +54,11 @@ StorageFile::sync() {
   }
 
   return true;
+}
+
+bool
+StorageFile::resize_file() const {
+  return m_size == m_file->get_size() || m_file->set_size(m_size);
 }
 
 }

@@ -61,9 +61,9 @@ public:
   uint32_t  get_chunk_total()                       { return m_consolidator->get_chunk_total(); }
   uint32_t  get_chunk_size()                        { return m_consolidator->get_chunk_size(); }
 
-  Chunk     get_chunk(unsigned int b, bool wr = false, bool rd = true);
+  Chunk     get_chunk(unsigned int b, int prot = MemoryChunk::prot_read | MemoryChunk::prot_write);
 
-  FileList& get_files();
+  StorageConsolidator& get_files();
 
 private:
   StorageConsolidator* m_consolidator;

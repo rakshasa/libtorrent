@@ -26,33 +26,20 @@
 #include "file_stat.h"
 #include "torrent/exceptions.h"
 
-#include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
 
 namespace torrent {
 
 bool
-File::open(const std::string& path,
-		unsigned int flags,
-		unsigned int mode) {
+File::open(const std::string& path, int flags, mode_t mode) {
   close();
 
-  int fd = ::open(path.c_str(), 
-		  
-		  (flags & in && flags & out ? O_RDWR :
-		   (flags & in  ? O_RDONLY : 0) |
-		   (flags & out ? O_WRONLY : 0)) |
-		  
 #ifdef O_LARGEFILE
-		  (flags & largefile ? O_LARGEFILE : 0) |
+  int fd = ::open(path.c_str(), flags | O_LARGEFILE, mode);
+#else
+  int fd = ::open(path.c_str(), flags, mode);
 #endif
-
-		  (flags & create    ? O_CREAT     : 0) |
-		  (flags & truncate  ? O_TRUNC     : 0) |
-		  (flags & nonblock  ? O_NONBLOCK  : 0),
-		  
-		  mode);
   
   if (fd == -1)
     return false;
@@ -83,35 +70,35 @@ File::get_size() const {
 }  
 
 bool
-File::set_size(uint64_t v) {
+File::set_size(off_t s) const {
   if (!is_open())
-    return false;
+    throw internal_error("File::set_size() called on a closed file");
 
-  return ftruncate(m_fd, v) == 0;
+  return ftruncate(m_fd, s) == 0;
 }
 
 MemoryChunk
-File::get_chunk(uint64_t offset, uint32_t length, bool wr, bool rd) {
+File::get_chunk(off_t offset, uint32_t length, int prot, int flags) const {
+  if (!is_open())
+    throw internal_error("File::get_chunk() called on a closed file");
+
+  if ((prot & MemoryChunk::prot_read && !is_readable()) ||
+      (prot & MemoryChunk::prot_write && !is_writable()))
+    throw internal_error("File::get_chunk() permission denied");
+
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.
-  if (!is_open() || (off_t)offset + length > get_size())
+  if ((off_t)offset + length > get_size())
     return MemoryChunk();
 
-  uint64_t align = offset % getpagesize();
+  off_t align = offset % getpagesize();
 
-  char* ptr = (char*)mmap(NULL,
-			  length + align,
-			  (m_flags & in ? PROT_READ : 0) | (m_flags & out ? PROT_WRITE : 0),
-			  MAP_SHARED,
-			  m_fd,
-			  offset - align);
-
+  char* ptr = (char*)mmap(NULL, length + align, prot, flags, m_fd, offset - align);
   
   if (ptr == MAP_FAILED)
     return MemoryChunk();
 
-  return MemoryChunk(ptr, ptr + align, ptr + align + length,
-		     (rd ? MemoryChunk::prot_read : 0) | (wr ? MemoryChunk::prot_write : 0));
+  return MemoryChunk(ptr, ptr + align, ptr + align + length, prot, flags);
 }
 
 }

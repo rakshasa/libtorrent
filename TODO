@@ -117,16 +117,10 @@ disallow for open torrents?
 
 NEXT: Storage/File refactoring
 
-storage_consolidator get_chunk takes to many arguments, use flags instead.
-
-File::get_chunk() needs to have error for improper permission access,
-and it must respect and properly handle the permissions.
-
-Create an independent "memory area" class, which does *not*
-automagically unmap on dtor. StorageChunk can do the unmapping.
-
-Cleanup File, make it use flags and prot instead of bools in get_chunk.
-
+Cleanup StorageFile (get_* ?)
 Cleanup StorageConsolidator.
+Cleanup Storage
 
 Cleanup HashChunk
+
+Cleanup errno in memorychunk.cc and file.cc.

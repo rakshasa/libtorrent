@@ -46,7 +46,7 @@ Storage::set_chunksize(uint32_t s) {
 }
 
 Storage::Chunk
-Storage::get_chunk(unsigned int b, bool wr, bool rd) {
+Storage::get_chunk(unsigned int b, int prot) {
   if (b >= m_anchors.size())
     throw internal_error("Chunk out of range in Storage");
 
@@ -55,7 +55,7 @@ Storage::get_chunk(unsigned int b, bool wr, bool rd) {
 
   Chunk chunk(new StorageChunk(b));
 
-  if (!m_consolidator->get_chunk(*chunk, b, wr, rd))
+  if (!m_consolidator->get_chunk(*chunk, b, prot))
     return Chunk();
   
   chunk.anchor(m_anchors[b]);
@@ -63,9 +63,9 @@ Storage::get_chunk(unsigned int b, bool wr, bool rd) {
   return chunk;
 }
 
-Storage::FileList& 
+StorageConsolidator& 
 Storage::get_files() {
-  return m_consolidator->get_files();
+  return *m_consolidator;
 }
 
 }

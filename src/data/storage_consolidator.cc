@@ -22,16 +22,12 @@
 
 #include "config.h"
 
-#include <algo/algo.h>
-
 #include <algorithm>
 #include <functional>
 
 #include "torrent/exceptions.h"
 #include "file.h"
 #include "storage_consolidator.h"
-
-using namespace algo;
 
 namespace torrent {
 
@@ -49,29 +45,25 @@ void StorageConsolidator::add_file(File* file, uint64_t size) {
   if (file == NULL)
     throw internal_error("StorageConsolidator::add_file received a File NULL pointer");
 
-  m_files.push_back(StorageFile(file, m_size, size));
+  Base::push_back(StorageFile(file, m_size, size));
   m_size += size;
 }
 
 bool StorageConsolidator::resize() {
-  return std::find_if(m_files.begin(), m_files.end(),
-		      bool_not(call_member(call_member(&StorageFile::file),
-					   &File::set_size,
-					   call_member(&StorageFile::size))))
-    == m_files.end();
+  return std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageFile::resize_file)))
+    == end();
 }
 					   
 void StorageConsolidator::close() {
-  std::for_each(m_files.begin(), m_files.end(),
-		on(call_member(&StorageFile::file), delete_on()));
+  std::for_each(begin(), end(), std::mem_fun_ref(&StorageFile::clear));
 
-  m_files.clear();
+  Base::clear();
   m_size = 0;
 }
 
 void
 StorageConsolidator::sync() {
-  std::for_each(m_files.begin(), m_files.end(), std::mem_fun_ref(&StorageFile::sync));
+  std::for_each(begin(), end(), std::mem_fun_ref(&StorageFile::sync));
 }
 
 void StorageConsolidator::set_chunksize(uint32_t size) {
@@ -81,26 +73,23 @@ void StorageConsolidator::set_chunksize(uint32_t size) {
   m_chunksize = size;
 }
 
-bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, bool wr, bool rd) {
+bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, int prot) {
   chunk.clear();
 
   uint64_t pos = b * (uint64_t)m_chunksize;
-  uint64_t end = std::min((b + 1) * (uint64_t)m_chunksize, m_size);
+  uint64_t last = std::min((b + 1) * (uint64_t)m_chunksize, m_size);
 
   if (pos >= m_size)
     throw internal_error("Tried to access chunk out of range in StorageConsolidator");
 
-  FileList::iterator itr = std::find_if(m_files.begin(), m_files.end(),
-					lt(value(pos),
-					   add<uint64_t>(call_member(&StorageFile::position),
-							 call_member(&StorageFile::size))));
+  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageFile::is_valid_position), pos));
 
-  while (pos != end) {
-    if (itr == m_files.end())
+  while (pos != last) {
+    if (itr == end())
       throw internal_error("StorageConsolidator could not find a valid file for chunk");
 
     uint64_t offset = pos - itr->position();
-    uint32_t length = std::min(end - pos, itr->size() - offset);
+    uint32_t length = std::min(last - pos, itr->size() - offset);
 
     if (length == 0)
       throw internal_error("StorageConsolidator::get_chunk caught a piece with 0 lenght");
@@ -108,7 +97,7 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, bool wr, bo
     if (length > m_chunksize)
       throw internal_error("StorageConsolidator::get_chunk caught an excessively large piece");
 
-    MemoryChunk mc = itr->file()->get_chunk(offset, length, wr, rd);
+    MemoryChunk mc = itr->file()->get_chunk(offset, length, prot, MemoryChunk::map_shared);
 
     if (!mc.is_valid()) {
       // Require the caller to clear?
@@ -123,7 +112,7 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, bool wr, bo
     ++itr;
   }
 
-  if (chunk.get_size() != end - b * (uint64_t)m_chunksize)
+  if (chunk.get_size() != last - b * (uint64_t)m_chunksize)
     throw internal_error("StorageConsolidator::get_chunk didn't get a chunk with the correct size");
 
   return true;

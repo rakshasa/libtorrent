@@ -111,7 +111,7 @@ Content::is_correct_size() {
   Storage::FileList::const_iterator sItr = m_storage.get_files().begin();
   
   while (fItr != m_files.end()) {
-    if (fItr->get_size() != FileStat(sItr->c_file()->fd()).get_size())
+    if (fItr->get_size() != FileStat(sItr->file()->fd()).get_size())
       return false;
 
     ++fItr;
@@ -219,7 +219,7 @@ Content::open_file(File* f, Path& p, Path& lastPath) {
   Path::mkdir(m_rootDir, p.list().begin(), --p.list().end(),
 	      lastPath.list().begin(), lastPath.list().end());
 
-  if (!f->open(m_rootDir + p.path(), File::in | File::out | File::create | File::largefile))
+  if (!f->open(m_rootDir + p.path(), File::o_rdwr | File::o_create))
     throw storage_error("Could not open file \"" + m_rootDir + p.path() + "\"");
 }
 

@@ -23,8 +23,6 @@
 #ifndef LIBTORRENT_STORAGE_FILE_H
 #define LIBTORRENT_STORAGE_FILE_H
 
-#include "file.h"
-
 namespace torrent {
 
 class File;
@@ -34,21 +32,30 @@ public:
   StorageFile() : m_file(NULL), m_position(0), m_size(0) {}
   StorageFile(File* f, off_t p, off_t s) : m_file(f), m_position(p), m_size(s) {}
 
-  bool                is_valid()        { return m_file; }
+  bool                is_valid() const                        { return m_file; }
+  inline bool         is_valid_position(off_t p) const;
 
-  File*               file()            { return m_file; }
-  off_t               position()        { return m_position; }
-  off_t               size()            { return m_size; }
+  void                clear();
 
-  const File*         c_file() const    { return m_file; }
+  File*               file()                                  { return m_file; }
+  const File*         file() const                            { return m_file; }
+  off_t               position() const                        { return m_position; }
+  off_t               size() const                            { return m_size; }
 
-  bool                sync();
+  bool                sync() const;
+  bool                resize_file() const;
 
 private:
   File*               m_file;
+
   off_t               m_position;
   off_t               m_size;
 };
+
+inline bool
+StorageFile::is_valid_position(off_t p) const {
+  return p >= m_position && p < m_position + m_size;
+}
 
 }
 

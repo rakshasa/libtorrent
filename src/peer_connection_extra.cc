@@ -104,7 +104,7 @@ bool PeerConnection::readChunk() {
 
   unsigned int offset = p.get_offset() + m_down.pos - part->get_position();
   
-  if (!part->get_chunk().is_valid() || !part->get_chunk().is_write())
+  if (!part->get_chunk().is_valid() || !part->get_chunk().is_writable())
     throw storage_error("Tried to write piece to file area that isn't valid or can't be written to");
   
   if (!read_buf(part->get_chunk().begin() + offset,

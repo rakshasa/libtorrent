@@ -54,7 +54,7 @@ bool HashChunk::perform(uint32_t length, bool force) {
       m_position += l;
 
     } else {
-      uint32_t incore, size = node->get_chunk().page_touched(m_position - node->get_position(), l);
+      uint32_t incore, size = node->get_chunk().pages_touched(m_position - node->get_position(), l);
       char buf[size];
 
       // TODO: We're borking here with NULL node.

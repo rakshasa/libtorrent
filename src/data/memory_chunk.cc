@@ -40,10 +40,11 @@ MemoryChunk::align_pair(uint32_t& offset, uint32_t& length) const {
   offset -= offset % m_pagesize;
 }
 
-MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int flags) :
+MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags) :
   m_ptr(ptr),
   m_begin(begin),
   m_end(end),
+  m_prot(prot),
   m_flags(flags) {
 
   if (ptr == NULL)
@@ -70,7 +71,7 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
   if (!is_valid())
     throw internal_error("Called MemoryChunk::incore(...) on an invalid object");
 
-  if (!valid_range(offset, length))
+  if (!is_valid_range(offset, length))
     throw internal_error("MemoryChunk::incore(...) received out-of-range input");
 
   align_pair(offset, length);
@@ -88,7 +89,7 @@ MemoryChunk::advise(uint32_t offset, uint32_t length, int advice) {
   if (!is_valid())
     throw internal_error("Called MemoryChunk::advise() on an invalid object");
 
-  if (!valid_range(offset, length))
+  if (!is_valid_range(offset, length))
     throw internal_error("MemoryChunk::advise(...) received out-of-range input");
 
   align_pair(offset, length);
@@ -116,7 +117,7 @@ MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
   if (!is_valid())
     throw internal_error("Called MemoryChunk::sync() on an invalid object");
 
-  if (!valid_range(offset, length))
+  if (!is_valid_range(offset, length))
     throw internal_error("MemoryChunk::sync(...) received out-of-range input");
 
   align_pair(offset, length);
@@ -127,7 +128,7 @@ MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
 
 bool
 MemoryChunk::is_incore(uint32_t offset, uint32_t length) {
-  uint32_t size = page_touched(offset, length);
+  uint32_t size = pages_touched(offset, length);
   char buf[size];
   
   incore(buf, offset, length);

@@ -25,45 +25,45 @@
 
 #include <string>
 #include <inttypes.h>
+#include <fcntl.h>
+#include <sys/types.h>
 
 #include "memory_chunk.h"
 
 namespace torrent {
 
-// Defaults to read only and nonblock.
-
 class File {
  public:
-  // Flags, not functions. See iostream
-  static const unsigned int in             = 0x01;
-  static const unsigned int out            = 0x02;
-  static const unsigned int create         = 0x04;
-  static const unsigned int truncate       = 0x08;
-  static const unsigned int nonblock       = 0x10;
-  static const unsigned int largefile      = 0x20;
+  static const int o_rdonly               = O_RDONLY;
+  static const int o_wronly               = O_WRONLY;
+  static const int o_rdwr                 = O_RDWR;
+  static const int o_create               = O_CREAT;
+  static const int o_truncate             = O_TRUNC;
+  static const int o_nonblock             = O_NONBLOCK;
 
   File() : m_fd(-1), m_flags(0) {}
   ~File() { close(); }
 
-  // Create only regular files for now.
-  bool                open(const std::string& path,
-			   unsigned int flags = in,
-			   unsigned int mode = 0666);
+  // TODO: use proper mode type.
+  bool                open(const std::string& path, int flags, mode_t mode = 0666);
 
   void                close();
   
-  bool                is_open() const                 { return m_fd != -1; }
+  bool                is_open() const                                   { return m_fd != -1; }
+  bool                is_readable() const                               { return !(m_flags & o_wronly); }
+  bool                is_writable() const                               { return !(m_flags & o_rdonly); }
+  bool                is_nonblock() const                               { return m_flags & o_nonblock; }
 
   off_t               get_size() const;
-  bool                set_size(uint64_t v);
+  bool                set_size(off_t s) const;
 
-  int                 get_flags() const               { return m_flags; }
-
-  MemoryChunk         get_chunk(uint64_t offset, uint32_t length, bool wr = false, bool rd = true);
+  MemoryChunk         get_chunk(off_t offset, uint32_t length, int prot, int flags) const;
   
-  int                 fd() const                      { return m_fd; }
+  int                 fd() const                                        { return m_fd; }
 
  private:
+  // Use custom flags if stuff like file locking etc is implemented.
+
   File(const File&);
   void operator = (const File&);
 

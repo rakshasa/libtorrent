@@ -28,36 +28,45 @@
 
 namespace torrent {
 
-class StorageConsolidator {
+class StorageConsolidator : private std::vector<StorageFile> {
 public:
-  typedef std::vector<StorageFile> FileList;
+  typedef std::vector<StorageFile> Base;
+
+  using Base::value_type;
+
+  using Base::iterator;
+  using Base::reverse_iterator;
+  using Base::size;
+
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
 
   StorageConsolidator() : m_size(0), m_chunksize(1 << 16) {}
   ~StorageConsolidator();
 
   // We take over ownership of 'file'.
-  void            add_file(File* file, uint64_t size);
+  // TODO: use push_back instead
+  void                add_file(File* file, uint64_t size);
 
-  bool            resize();
-  void            close();
+  bool                resize();
+  void                close();
 
-  void            sync();
+  void                sync();
 
-  void            set_chunksize(uint32_t size);
+  void                set_chunksize(uint32_t size);
 
-  uint64_t        get_size()                     { return m_size; }
-  uint32_t        get_chunk_total()              { return (m_size + m_chunksize - 1) / m_chunksize; }
-  uint32_t        get_chunk_size()               { return m_chunksize; }
+  uint64_t            get_size()                     { return m_size; }
+  uint32_t            get_chunk_total()              { return (m_size + m_chunksize - 1) / m_chunksize; }
+  uint32_t            get_chunk_size()               { return m_chunksize; }
 
-  bool            get_chunk(StorageChunk& chunk, uint32_t b, bool wr = false, bool rd = true);
-
-  FileList&       get_files()                    { return m_files; }
+  bool                get_chunk(StorageChunk& chunk, uint32_t b, int prot);
 
 private:
-  uint64_t        m_size;
-  uint32_t        m_chunksize;
-  
-  FileList        m_files;
+  // TODO: off_t
+  uint64_t            m_size;
+  uint32_t            m_chunksize;
 };
 
 }
