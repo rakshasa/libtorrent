@@ -22,10 +22,11 @@
 
 #include "config.h"
 
+#include <errno.h>
+#include <unistd.h>
+
 #include "torrent/exceptions.h"
 #include "memory_chunk.h"
-
-#include <unistd.h>
 
 namespace torrent {
 

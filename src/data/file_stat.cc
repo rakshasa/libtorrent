@@ -22,8 +22,9 @@
 
 #include "config.h"
 
-#include "torrent/exceptions.h"
+#include <errno.h>
 
+#include "torrent/exceptions.h"
 #include "file_stat.h"
 
 namespace torrent {
