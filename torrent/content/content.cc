@@ -47,10 +47,33 @@ Content::is_correct_size() {
   if (!is_open())
     return false;
 
+  if (m_files.size() != m_storage.files().size())
+    throw internal_error("Content::is_correct_size called on an open object with mismatching FileList and Storage::FileList sizes");
+
+  FileList::const_iterator fItr = m_files.begin();
+  Storage::FileList::const_iterator sItr = m_storage.files().begin();
+  
+  while (fItr != m_files.end()) {
+    if (fItr->size() != sItr->file()->get_size())
+      return false;
+
+    ++fItr;
+    ++sItr;
+  }
+
+  return true;
+}
+
+void
+Content::open(bool wr) {
+  close();
+
   
 
 
-  void                   open(bool wr = false);
+
   void                   close();
 
   void                   resize();
+
+  void                   mark_done(unsigned int index);

@@ -46,6 +46,8 @@ public:
 
   void                   resize();
 
+  void                   mark_done(unsigned int index);
+
   SignalDownloadDone&    signal_download_done()        { return m_downloadDone; }
 
 private:

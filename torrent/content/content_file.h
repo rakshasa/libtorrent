@@ -12,7 +12,7 @@ public:
 
   ContentFile(const Filename& f, uint64_t size) : m_filename(f), m_size(size) {}
 
-  uint64_t  get_size() { return m_size; }
+  uint64_t  size() { return m_size; }
 
   FileName& filename() { return m_filename; }
 
