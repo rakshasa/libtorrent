@@ -112,7 +112,7 @@ uint32_t PeerConnection::bufR32(bool peep) {
   unsigned int pos = m_down.pos;
 
   if (!peep && (m_down.pos += 4) > m_down.length)
-    throw internal_error("PeerConnection tried to read beyond scope of packet");
+    throw communication_error("PeerConnection tried to read beyond scope of packet");
 
   return ntohl(*(uint32_t*)&(m_down.buf[pos]));
 }

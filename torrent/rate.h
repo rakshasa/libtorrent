@@ -2,7 +2,7 @@
 #define LIBTORRENT_RATE_H
 
 #include "timer.h"
-#include <list>
+#include <deque>
 
 namespace torrent {
 
@@ -45,7 +45,7 @@ class Rate {
   bool m_new;
   uint64_t m_bytes;
 
-  std::list<std::pair<Timer, int> > m_entries;
+  std::deque<std::pair<Timer, int> > m_entries;
 };
 
 }

@@ -22,14 +22,6 @@ public:
   unsigned int offsetC() const { return m_offset; }
   unsigned int lengthC() const { return m_length; }
 
-  bool valid(int maxIndex, int size) {
-    return
-      m_index >= 0 &&
-      m_index < maxIndex &&
-      m_offset <= size - m_length &&
-      m_length > 0;
-  }
-
   bool operator == (const Piece& p) const {
     return
       m_index == p.m_index &&

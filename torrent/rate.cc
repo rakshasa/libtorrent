@@ -29,7 +29,7 @@ int Rate::rate(bool quick) {
   int64_t bytes = 0;
 
   // TODO: Keep an up to date count cached.
-  for (std::list<std::pair<Timer, int> >::const_iterator itr = m_entries.begin();
+  for (std::deque<std::pair<Timer, int> >::const_iterator itr = m_entries.begin();
        itr != m_entries.end(); ++itr)
     bytes += itr->second;
 

@@ -124,8 +124,10 @@ void PeerConnection::read() {
     case BITFIELD:
       if (m_down.length != 1 + m_bitfield.sizeBytes()) {
 	std::stringstream s;
+
 	s << "Recived bitfield message with wrong size " << m_down.length
 	  << ' ' << m_bitfield.sizeBytes() << ' ';
+
 	throw communication_error(s.str());
 
       } else if (m_down.lastCommand != NONE) {
@@ -579,16 +581,15 @@ void PeerConnection::fillWriteBuf() {
 
   if (!m_down.choked && m_up.interested) {
     // Let us request more chunks.
+    bool addService = m_down.list.empty();
 
     while (m_down.list.size() < 10 &&
 	   m_download->delegator().delegate(m_peer.id(), m_bitfield, m_down.list)) {
 
-      if (!m_down.list.back().valid(m_download->files().chunkCount(),
-				    m_download->files().chunkSize(m_down.list.back().index())))
-	throw internal_error("We tried to request an invalid piece");
-
-      if (m_down.list.empty())
+      if (addService) {
 	insertService(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
+	addService = false;
+      }
 
       bufCmd(REQUEST, 13);
       bufW32(m_down.list.back().index());
@@ -613,11 +614,29 @@ void PeerConnection::fillWriteBuf() {
       m_up.length + 13 < BUFFER_SIZE) {
     // Sending chunk to peer.
 
+    // This check takes care of all possible errors in lenght and offset.
     if (m_up.list.front().length() > (1 << 17) ||
-	!m_down.list.back().valid(m_download->files().chunkCount(),
-				  m_download->files().chunkSize()) ||
-	!m_download->files().bitfield()[m_up.list.front().index()])
-      throw communication_error("Peer requested a bad piece");
+	m_up.list.front().length() == 0 ||
+	m_up.list.front().length() + m_up.list.front().offset() >
+	m_download->files().chunkSize(m_up.list.front().index())) {
+      std::stringstream s;
+
+      s << "Peer requested a piece with invalid length or offset: "
+	<< m_up.list.front().length() << ' '
+	<< m_up.list.front().offset();
+
+      throw communication_error(s.str());
+    }
+      
+    if (m_up.list.front().index() < 0 ||
+	m_up.list.front().index() >= (signed)m_download->files().chunkCount() ||
+	!m_download->files().bitfield()[m_up.list.front().index()]) {
+      std::stringstream s;
+
+      s << "Peer requested a piece with invalid index: " << m_up.list.front().index();
+
+      throw communication_error(s.str());
+    }
 
     bufCmd(PIECE, 9 + m_up.list.front().length(), 9);
     bufW32(m_up.list.front().index());

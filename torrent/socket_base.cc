@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
-#include <cassert>
+#include <cstring>
 
 #include "socket_base.h"
 #include "exceptions.h"
@@ -29,22 +29,16 @@ SocketBase::~SocketBase() {
 }
 
 void SocketBase::insertRead() {
-  assert(this != NULL);
-
   if (!inRead())
     m_readItr = m_readSockets.insert(m_readSockets.begin(), this);
 }
 
 void SocketBase::insertWrite() {
-  assert(this != NULL);
-
   if (!inWrite())
     m_writeItr = m_writeSockets.insert(m_writeSockets.begin(), this);
 }
 
 void SocketBase::insertExcept() {
-  assert(this != NULL);
-
   if (!inExcept())
     m_exceptItr = m_exceptSockets.insert(m_exceptSockets.begin(), this);
 }
@@ -124,6 +118,7 @@ bool SocketBase::readBuf(char* buf, unsigned int length, unsigned int& pos) {
   if (length <= pos) {
     std::stringstream s;
     s << "Tried to read socket buffer with wrong length and pos " << length << ' ' << pos;
+
     throw internal_error(s.str());
   }
 
@@ -133,11 +128,9 @@ bool SocketBase::readBuf(char* buf, unsigned int length, unsigned int& pos) {
   if (r == 0) {
     throw close_connection();
 
-  } else if (r < 0 && errno != EAGAIN) {
-    std::stringstream s;
-    s << errno;
+  } else if (r < 0 && errno != EAGAIN && errno != EINTR) {
 
-    throw connection_error(s.str());
+    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
   } else if (r < 0) {
     return false;
   }
@@ -158,11 +151,9 @@ bool SocketBase::writeBuf(const char* buf, unsigned int length, unsigned int& po
   if (r == 0) {
     throw close_connection();
 
-  } else if (r < 0 && errno != EAGAIN) {
-    std::stringstream s;
-    s << errno;
+  } else if (r < 0 && errno != EAGAIN && errno != EINTR) {
 
-    throw connection_error(s.str());
+    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
   } else if (r < 0) {
     return false;
   }

@@ -1,3 +1,11 @@
+2004-07-20    <jaris@ifi.uio.no>
+
+	* torrent/rate.h: Using deque instead of list to increase performance.
+
+	* torrent/socket_base.cc: Don't close the connection if errno == EINTR.
+
+	* client: Added view of the exceptions log.
+
 2004-07-11    <jaris@ifi.uio.no>
 
 	* torrent: Choosing new chunks to download according to how many we see.
@@ -36,7 +44,7 @@
 
 2004-06-26    <jaris@ifi.uio.no>
 
-	* client: Made the display code more maintainable. Added chunks seen amonst peers
+	* client: Made the display code more maintainable. Added chunks seen amongst peers
 	
 	* torrent: Added counting of chunks seen amongst the peers.
 
@@ -48,5 +56,5 @@
 
 	* configure: Added autoconf scripts.
 	
-	* configure: Seperated the test client and library.
+	* configure: Separated the test client and library.
 
