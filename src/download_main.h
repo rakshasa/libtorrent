@@ -6,7 +6,6 @@
 #include "download_state.h"
 #include "download/download_net.h"
 
-#include <sigc++/slot.h>
 #include <sigc++/connection.h>
 
 namespace torrent {

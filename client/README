@@ -17,6 +17,9 @@ progress. This includes tracker requests. Check the logs 'l' to see if
 the download of a torrent failed. You can also add torrents with the
 Enter key.
 
+Switches
+
+--ip=a.b.c.d  - Change the ip sent to the tracker.
 
 All:
 
