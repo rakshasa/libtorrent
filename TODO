@@ -63,3 +63,5 @@ pc::write PIECE with wrong index is not internal error
 add unroll loops optimizing(?)
 
 Add config for how often we unchoke unknown peers vs good uploaders
+
+Consider splitting up download_state's peer connection management and choking stuff.

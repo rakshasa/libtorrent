@@ -9,12 +9,11 @@
 #include "piece.h"
 #include "rate.h"
 
-
 #include <vector>
 
 namespace torrent {
 
-class Download;
+class DownloadState;
 
 class PeerConnection : public SocketBase, public Service {
 public:
@@ -43,17 +42,18 @@ public:
     PIECE,
     CANCEL,
     NONE,           // These are not part of the protocol
-    KEEP_ALIVE
+    KEEP_ALIVE      // Last command was a keep alive
   } Protocol;
 
   typedef std::list<Piece> PieceList;
 
+// TODO: This is ugly, make it a seperate class.
 #include "peer_connection_sub.h"
 
   PeerConnection();
   ~PeerConnection();
 
-  void set(int fd, const Peer& p, Download* d);
+  void set(int fd, const Peer& p, DownloadState* d);
   
   void service(int type);
 
@@ -61,6 +61,7 @@ public:
   void choke(bool v);
 
   bool chokeDelayed();
+  Timer lastChoked() { return m_lastChoked; }
 
   const BitField& bitfield() const { return m_bitfield; }
 
@@ -104,13 +105,12 @@ private:
   bool m_shutdown;
 
   Peer m_peer;
-  Download* m_download;
+  DownloadState* m_download;
    
   BitField m_bitfield;
    
   bool m_sendChoked;
   bool m_sendInterested;
-  bool m_sendBitfield;
 
   std::list<int> m_haveQueue;
 

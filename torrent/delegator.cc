@@ -5,6 +5,7 @@
 #include "exceptions.h"
 #include "general.h"
 #include "delegator.h"
+#include "download_state.h"
 
 #include <algo/algo.h>
 #include <iostream>
@@ -31,14 +32,14 @@ bool Delegator::interested(const BitField& bf) {
 
   BitField b(bf);
   
-  return !b.notIn(*m_bitfield).zero();
+  return !b.notIn(m_state->files().bitfield()).zero();
 }
 
 bool Delegator::interested(int index) {
-  if (index < 0 && (unsigned)index >= m_bitfield->sizeBits())
+  if (index < 0 && (unsigned)index >= m_state->files().bitfield().sizeBits())
     throw internal_error("Delegator::interested received index out of range");
 
-  return !(*m_bitfield)[index];
+  return !m_state->files().bitfield()[index];
 }
 
 bool Delegator::delegate(const std::string& id, const BitField& bf, std::list<Piece>& pieces) {
@@ -186,7 +187,7 @@ void Delegator::redo(int index) {
 
 Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
   BitField available(bf);
-  available.notIn(*m_bitfield);
+  available.notIn(m_state->files().bitfield());
 
   // Make sure we don't try downloading a chunk we already got in the list.
   std::for_each(m_chunks.begin(), m_chunks.end(),
@@ -197,16 +198,12 @@ Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
 			    value(false)));
 
 
-  // TODO: Select a chunk based on seen bitfield.
-
   int index = findChunk(available);
 
   if (index == -1)
     return NULL;
 
-  unsigned int size = (unsigned)index == m_bitfield->sizeBits() - 1 ? m_lastSize : m_chunkSize;
-
-  // TODO: Make this use algo
+  unsigned int size = m_state->files().chunkSize(index);
 
   std::list<Chunk>::iterator itr = m_chunks.insert(m_chunks.end(), Chunk(index));
 
@@ -227,7 +224,7 @@ int Delegator::findChunk(const BitField& bf) {
 
   // TODO: Select the target with a fancy algorithm. Have a ceiling
   // setting and a base setting.
-  int target = 3;
+  int target = 1;
 
   const char *cur, *end;
   cur = end = bf.data() + random() % bf.sizeBytes();
@@ -238,10 +235,10 @@ int Delegator::findChunk(const BitField& bf) {
       for (int i = 0; i < 8; ++i)
 
 	if (*cur & ((1 << 7) >> i) &&
-	    std::abs(m_bfCounter.field()[(cur - bf.data()) * 8 + i] - target) < selectedDistance) {
+	    std::abs(m_state->bfCounter().field()[(cur - bf.data()) * 8 + i] - target) < selectedDistance) {
 	  // Found a closer match
 	  selectedIndex = (cur - bf.data()) * 8 + i;
-	  selectedDistance = std::abs(m_bfCounter.field()[selectedIndex] - target);
+	  selectedDistance = std::abs(m_state->bfCounter().field()[selectedIndex] - target);
 
 	  if (!target)
 	    break;

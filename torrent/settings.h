@@ -29,6 +29,7 @@ class DownloadSettings {
   int maxUploads;
 
   int chokeCycle;
+  int chokeGracePeriod;
 
   static DownloadSettings& global() { return *m_global; }
 

@@ -167,7 +167,7 @@ const DList& downloads() {
 
 // List of all connected peers in 'd'.
 const PList& peers(DList::const_iterator d) {
-  return (*d)->connections();
+  return (*d)->state().connections();
 }
 
 // Call this once you've (preferably though not required) stopped the
@@ -273,53 +273,53 @@ int64_t get(DList::const_iterator d, DValue t) {
 
   switch (t) {
   case BYTES_DOWNLOADED:
-    return (*d)->bytesDownloaded();
+    return (*d)->state().bytesDownloaded();
 
   case BYTES_UPLOADED:
-    return (*d)->bytesUploaded();
+    return (*d)->state().bytesUploaded();
 
   case BYTES_TOTAL:
-    return (*d)->files().totalSize();
+    return (*d)->state().files().totalSize();
 
   case BYTES_DONE:
     a = 0;
 
-    std::for_each((*d)->delegator().chunks().begin(), (*d)->delegator().chunks().end(),
+    std::for_each((*d)->state().delegator().chunks().begin(), (*d)->state().delegator().chunks().end(),
 		  for_each_on(member(&Delegator::Chunk::m_pieces),
 			      add_ref(a, call_member(member(&Delegator::PieceInfo::m_piece),
 						     &Piece::length))));
 
-    return a + (*d)->files().doneSize();
+    return a + (*d)->state().files().doneSize();
 
   case CHUNKS_DONE:
-    return (*d)->files().chunkCompleted();
+    return (*d)->state().files().chunkCompleted();
 
   case CHUNKS_SIZE:
-    return (*d)->files().chunkSize();
+    return (*d)->state().files().chunkSize();
 
   case CHUNKS_TOTAL:
-    return (*d)->files().chunkCount();
+    return (*d)->state().files().chunkCount();
 
   case CHOKE_CYCLE:
-    return (*d)->settings().chokeCycle;
+    return (*d)->state().settings().chokeCycle;
 
   case RATE_UP:
-    return (*d)->rateUp().rate(true);
+    return (*d)->state().rateUp().rate(true);
 
   case RATE_DOWN:
-    return (*d)->rateDown().rate(true);
+    return (*d)->state().rateDown().rate(true);
 
   case PEERS_MIN:
-    return (*d)->settings().minPeers;
+    return (*d)->state().settings().minPeers;
 
   case PEERS_MAX:
-    return (*d)->settings().maxPeers;
+    return (*d)->state().settings().maxPeers;
 
   case PEERS_CONNECTED:
-    return (*d)->connections().size();
+    return (*d)->state().connections().size();
 
   case PEERS_NOT_CONNECTED:
-    return (*d)->availablePeers().size();
+    return (*d)->state().availablePeers().size();
 
   case TRACKER_CONNECTING:
     return (*d)->tracker().busy();
@@ -328,7 +328,7 @@ int64_t get(DList::const_iterator d, DValue t) {
     return (*d)->tracker().inService(0) ? ((*d)->tracker().whenService(0) - Timer::current()).usec() : 0;
 
   case UPLOADS_MAX:
-    return (*d)->settings().maxUploads;
+    return (*d)->state().settings().maxUploads;
 
   default:
     throw internal_error("get(itr, DValue) received invalid type");
@@ -340,11 +340,11 @@ std::string get(DList::const_iterator d, DString t) {
 
   switch (t) {
   case BITFIELD_LOCAL:
-    return std::string((*d)->files().bitfield().data(), (*d)->files().bitfield().sizeBytes());
+    return std::string((*d)->state().files().bitfield().data(), (*d)->state().files().bitfield().sizeBytes());
 
   case BITFIELD_SEEN:
-    std::for_each((*d)->delegator().bfCounter().field().begin(),
-		  (*d)->delegator().bfCounter().field().end(),
+    std::for_each((*d)->state().bfCounter().field().begin(),
+		  (*d)->state().bfCounter().field().end(),
 		  call_member(ref(s), &std::string::push_back,
 
 			      if_on<char>(lt(back_as_ref(), value(256)),
@@ -470,15 +470,15 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
   switch (t) {
   case PEERS_MIN:
     if (v > 0 && v < 1000) {
-      (*d)->settings().minPeers = v;
-      (*d)->connectPeers();
+      (*d)->state().settings().minPeers = v;
+      (*d)->state().connectPeers();
     }
 
     break;
 
   case PEERS_MAX:
     if (v > 0 && v < 1000) {
-      (*d)->settings().maxPeers = v;
+      (*d)->state().settings().maxPeers = v;
       // TODO: Do disconnects here if nessesary
     }
 
@@ -486,8 +486,8 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
 
   case UPLOADS_MAX:
     if (v > 0 && v < 1000) {
-      (*d)->settings().maxUploads = v;
-      (*d)->chokeBalance();
+      (*d)->state().settings().maxUploads = v;
+      (*d)->state().chokeBalance();
     }
 
     break;
@@ -500,10 +500,11 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
       timer = (*d)->whenService(Download::CHOKE_CYCLE);
 
       (*d)->removeService(Download::CHOKE_CYCLE);
-      (*d)->insertService(timer - (*d)->settings().chokeCycle + v, Download::CHOKE_CYCLE);
+      (*d)->insertService(timer - (*d)->state().settings().chokeCycle + v,
+			  Download::CHOKE_CYCLE);
     }
 
-    (*d)->settings().chokeCycle = v;
+    (*d)->state().settings().chokeCycle = v;
 
     break;
 

@@ -6,7 +6,6 @@
 #include "exceptions.h"
 #include "download.h"
 #include "peer_handshake.h"
-#include "tracker_query.h"
 
 #include <errno.h>
 #include <unistd.h>
@@ -35,7 +34,7 @@ PeerHandshake::PeerHandshake(int fdesc, const std::string dns, unsigned short po
 }
 
 // Outgoing connections.
-PeerHandshake::PeerHandshake(int fdesc, const Peer& p, Download* d, bool connected) :
+PeerHandshake::PeerHandshake(int fdesc, const Peer& p, DownloadState* d, bool connected) :
   m_fd(fdesc),
   m_peer(p),
   m_peerOrig(p),
@@ -53,7 +52,7 @@ PeerHandshake::PeerHandshake(int fdesc, const Peer& p, Download* d, bool connect
   m_buf[0] = 19;
   std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
   std::memset(&m_buf[20], 0, 8);
-  std::memcpy(&m_buf[28], m_download->tracker().hash().c_str(), 20);
+  std::memcpy(&m_buf[28], m_download->hash().c_str(), 20);
   std::memcpy(&m_buf[48], m_download->me().id().c_str(), 20);
 }
 
@@ -76,7 +75,7 @@ void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short por
   addConnection(new PeerHandshake(fdesc, dns, port));
 }
 
-bool PeerHandshake::connect(const Peer& p, Download* d) {
+bool PeerHandshake::connect(const Peer& p, DownloadState* d) {
   if (!p.valid())
     throw internal_error("Tried to connect with invalid peer information");
 
@@ -116,6 +115,8 @@ bool PeerHandshake::connect(const Peer& p, Download* d) {
 }
 
 void PeerHandshake::read() {
+  Download* d;
+
   try {
 
   switch (m_state) {
@@ -124,14 +125,16 @@ void PeerHandshake::read() {
       return;
 
     if (m_incoming) {
-      if ((m_download = Download::getDownload(m_infoHash)) != NULL) {
+      if ((d = Download::getDownload(m_infoHash)) != NULL) {
+	m_download = &d->state();
+
 	removeRead();
 	insertWrite();
 	
 	m_buf[0] = 19;
 	std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
 	std::memset(&m_buf[20], 0, 8);
-	std::memcpy(&m_buf[28], m_download->tracker().hash().c_str(), 20);
+	std::memcpy(&m_buf[28], m_download->hash().c_str(), 20);
 	std::memcpy(&m_buf[48], m_download->me().id().c_str(), 20);
 	
 	m_state = WRITE_HEADER;
@@ -144,7 +147,7 @@ void PeerHandshake::read() {
       }
 
     } else {
-      if (m_infoHash != m_download->tracker().hash())
+      if (m_infoHash != m_download->hash())
 	throw communication_error("Peer returned bad file hash");
 
       m_state = READ_ID;

@@ -28,8 +28,7 @@ PeerConnection::PeerConnection() :
   m_download(NULL),
 
   m_sendChoked(false),
-  m_sendInterested(false),
-  m_sendBitfield(false)
+  m_sendInterested(false)
 {
 }
 
@@ -38,7 +37,7 @@ PeerConnection::~PeerConnection() {
     discardIncomingQueue();
 
     if (m_down.state != READ_BITFIELD)
-      m_download->delegator().bfCounter().dec(m_bitfield);
+      m_download->bfCounter().dec(m_bitfield);
   }
 
   delete [] m_up.buf;

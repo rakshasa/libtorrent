@@ -23,7 +23,8 @@ DownloadSettings::DownloadSettings() :
   minPeers(30),
   maxPeers(50),
   maxUploads(7),
-  chokeCycle(30 * 1000000)
+  chokeCycle(30 * 1000000),
+  chokeGracePeriod(55 * 1000000)
 {}
 
 }

@@ -2,13 +2,14 @@
 #define LIBTORRENT_DELEGATOR_H
 
 #include "bitfield.h"
-#include "bitfield_counter.h"
 #include "piece.h"
 
 #include <string>
 #include <list>
 
 namespace torrent {
+
+class DownloadState;
 
 class Delegator {
 public:
@@ -36,12 +37,9 @@ public:
   
   typedef std::list<Chunk> Chunks;
 
-  Delegator() : m_bitfield(NULL) {}
-  Delegator(const BitField* bf, unsigned int chunkSize, unsigned int lastSize) :
-    m_bitfield(bf),
-    m_chunkSize(chunkSize),
-    m_lastSize(lastSize),
-    m_bfCounter(bf->sizeBits()) {}
+  Delegator() : m_state(NULL) {}
+  Delegator(DownloadState* ds) :
+    m_state(ds) {}
 
   bool interested(const BitField& bf);
   bool interested(int index);
@@ -55,8 +53,6 @@ public:
   void done(int index);
   void redo(int index);
 
-  BitFieldCounter& bfCounter() { return m_bfCounter; }
-
   Chunks& chunks() { return m_chunks; }
 
 private:
@@ -66,13 +62,8 @@ private:
 
   int findChunk(const BitField& bf);
 
-  const BitField* m_bitfield;
-  unsigned int m_chunkSize;
-  unsigned int m_lastSize;
-
+  DownloadState* m_state;
   Chunks m_chunks;
-  
-  BitFieldCounter m_bfCounter;
 };
 
 } // namespace torrent

@@ -12,6 +12,8 @@ libtorrent_la_SOURCES = \
         delegator.h \
         download.cc \
         download.h \
+	download_state.cc \
+	download_state.h \
         files.cc \
         files.h \
         files_check.cc \

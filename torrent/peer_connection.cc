@@ -20,7 +20,7 @@ namespace torrent {
 // Find a better way to do this?
 extern std::list<std::string> caughtExceptions;
 
-void PeerConnection::set(int fd, const Peer& p, Download* d) {
+void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
   if (m_fd >= 0)
     throw internal_error("Tried to re-set PeerConnection");
 
@@ -52,7 +52,6 @@ void PeerConnection::set(int fd, const Peer& p, Download* d) {
     
   insertService(Timer::current() + 120 * 1000000, SERVICE_KEEP_ALIVE);
 
-  m_lastChoked = Timer::current() - 10 * 1000000; // 10s
   m_lastMsg = Timer::current();
 }
 
@@ -241,7 +240,7 @@ void PeerConnection::read() {
     }
 
     m_down.state = IDLE;
-    m_download->delegator().bfCounter().inc(m_bitfield);
+    m_download->bfCounter().inc(m_bitfield);
 
     insertWrite();
     goto evil_goto_read;
@@ -272,7 +271,7 @@ void PeerConnection::read() {
     }
 
     m_down.state = IDLE;
-    m_download->m_bytesDownloaded += m_down.list.front().length();
+    m_download->bytesDownloaded() += m_down.list.front().length();
 
     if (m_download->delegator().finished(m_peer.id(), m_down.list.front())) {
       // chunkDone pops the m_down.list
@@ -420,7 +419,7 @@ void PeerConnection::write() {
     if (!s)
       return;
     
-    m_download->m_bytesUploaded += m_up.list.front().length();
+    m_download->bytesUploaded() += m_up.list.front().length();
 
     if (m_up.list.empty())
       m_up.data = Chunk();
@@ -535,7 +534,7 @@ void PeerConnection::parseReadBuf() {
 
     if (!m_bitfield[index]) {
       m_bitfield.set(index);
-      m_download->delegator().bfCounter().inc(index);
+      m_download->bfCounter().inc(index);
     }
     
     if (!m_up.interested &&

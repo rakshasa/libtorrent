@@ -8,7 +8,7 @@
 
 namespace torrent {
 
-class Download;
+class DownloadState;
 
 // This class handles the initial handshake and then hands
 // the socket to the downloader.
@@ -27,7 +27,7 @@ public:
   ~PeerHandshake();
 
   static void connect(int fdesc, const std::string dns, unsigned short port);
-  static bool connect(const Peer& p, Download* d);
+  static bool connect(const Peer& p, DownloadState* d);
 
   // Only checks for outgoing connections.
   static bool isConnecting(const std::string& id);
@@ -39,13 +39,13 @@ public:
   virtual int fd();
 
   const Peer& peer() const { return m_peer; }
-  Download* download() const { return m_download; }
+  DownloadState* download() const { return m_download; }
 
   static Handshakes& handshakes() { return m_handshakes; }
 
 protected: // Disable private ctor only warning.
   PeerHandshake(int fdesc, const std::string dns, unsigned short port);
-  PeerHandshake(int fdesc, const Peer& p, Download* d, bool connected);
+  PeerHandshake(int fdesc, const Peer& p, DownloadState* d, bool connected);
 
 private:
   // Disable
@@ -68,7 +68,7 @@ private:
 
   Peer m_peer;
   Peer m_peerOrig;
-  Download* m_download;
+  DownloadState* m_download;
 
   // internal state
   State m_state;

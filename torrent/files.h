@@ -46,9 +46,10 @@ public:
   void checkHash();
 
   // This is ugly...
-  unsigned int chunkSize()  const { return m_chunkSize; }
-  unsigned int chunkSize(unsigned int i) const { return i == chunkCount() - 1 && m_totalSize % m_chunkSize ? 
-						   m_totalSize % m_chunkSize : m_chunkSize; }
+  unsigned int chunkSize() const { return m_chunkSize; }
+  unsigned int chunkSize(unsigned int i) const {
+    return i == chunkCount() - 1 && m_totalSize % m_chunkSize
+      ? m_totalSize % m_chunkSize : m_chunkSize; }
 
   unsigned int chunkCount() const { return m_hashes.size(); }
 

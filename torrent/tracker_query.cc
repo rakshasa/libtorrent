@@ -131,11 +131,11 @@ void TrackerQuery::sendState() {
     s << "&ip=" << m_me.dns();
 
   s << "&port=" << m_me.port()
-    << "&uploaded=" << m_download->m_bytesUploaded
-    << "&downloaded=" << m_download->m_bytesDownloaded
-    << "&left=" << (m_download->files().chunkCount() -
-		    m_download->files().chunkCompleted()) *
-                    m_download->files().chunkSize();
+    << "&uploaded=" << m_download->state().bytesUploaded()
+    << "&downloaded=" << m_download->state().bytesDownloaded()
+    << "&left=" << (m_download->state().files().chunkCount() -
+		    m_download->state().files().chunkCompleted()) *
+                    m_download->state().files().chunkSize();
 
   switch(m_state) {
   case STARTED:
@@ -213,10 +213,10 @@ void TrackerQuery::addPeers(const bencode& b) {
       //throw communication_error("TrackerQuery::addPeers(...) peer not valid");
       continue;
 
-    m_download->addPeer(Peer(id, dns, port));
+    m_download->state().addPeer(Peer(id, dns, port));
   }
   
-  m_download->connectPeers();
+  m_download->state().connectPeers();
 }
 
 void TrackerQuery::read() {
