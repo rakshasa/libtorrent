@@ -78,12 +78,17 @@ Content::open(bool wr) {
 
     try {
 
-      Path::mkdir(m_rootDir, itr->path(), lastPath);
+      if (itr->path().list().empty())
+	throw internal_error("Tried to open file with empty path");
+
+      Path::mkdir(m_rootDir,
+		  itr->path().list().begin(), --itr->path().list().end(),
+		  lastPath.list().begin(), lastPath.list().end());
 
       lastPath = itr->path();
 
       if (!f->open(path, File::in | File::out | File::create | File::largefile))
-	throw storage_error("Coult not open file \"" + path + "\"");
+	throw storage_error("Could not open file \"" + path + "\"");
 
     } catch (base_error& e) {
       delete f;
@@ -128,6 +133,9 @@ Content::mark_done(unsigned int index) {
   
   m_bitfield.set(index);
   m_completed++;
+
+  if (m_completed == m_storage.get_chunkcount())
+    m_downloadDone.emit();
 }
 
 }

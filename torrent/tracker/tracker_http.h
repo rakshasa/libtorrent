@@ -43,7 +43,7 @@ public:
 private:
   // Don't allow ctor.
   TrackerHttp(const TrackerHttp& t);
-  TrackerHttp& operator = (const TrackerHttp& t);
+  void operator = (const TrackerHttp& t);
 
   void escape_string(const std::string& src, std::ostream& stream);
   

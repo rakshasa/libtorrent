@@ -43,7 +43,7 @@ class Timer {
     return *this;
   }
 
-  Timer operator -= (uint64_t t) {
+  Timer operator -= (int64_t t) {
     m_time -= t;
 
     return *this;
@@ -55,7 +55,7 @@ class Timer {
     return *this;
   }
 
-  Timer operator += (uint64_t t) {
+  Timer operator += (int64_t t) {
     m_time += t;
 
     return *this;

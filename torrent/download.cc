@@ -195,6 +195,11 @@ Download* Download::getDownload(const std::string& hash) {
 }
 
 void Download::add_peers(const Peers& p) {
+  std::stringstream ss;
+  ss << "New peers received " << p.size();
+
+  caughtExceptions.push_back(ss.str());
+
   for (Peers::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
 
     if (itr->dns().length() == 0 || itr->port() == 0 ||

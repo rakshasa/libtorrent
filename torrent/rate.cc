@@ -40,7 +40,7 @@ unsigned int Rate::rate_quick() {
   int64_t bytes = 0;
 
   for (std::deque<std::pair<Timer, int> >::const_iterator itr = m_entries.begin();
-       itr->first >= window && itr != m_entries.end(); ++itr)
+       itr != m_entries.end() && itr->first >= window; ++itr)
     bytes += itr->second;
 
   return (bytes * 1000000) / Settings::rateQuick;

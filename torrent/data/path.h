@@ -22,8 +22,11 @@ public:
 
   static std::string escape(const std::string& s);
 
-  static void        mkdir(const std::string& root, const Path& path, const Path& ignore, int umask = 0777);
-
+  static void        mkdir(const std::string& root,
+			   List::const_iterator pathBegin, List::const_iterator pathEnd,
+			   List::const_iterator ignoreBegin, List::const_iterator ignoreEnd,
+			   int umask = 0777);
+  
 private:
   List m_list;
 };

@@ -11,9 +11,9 @@ Storage::Storage() :
 }
 
 Storage::~Storage() {
-  delete m_consolidator;
-
   close();
+
+  delete m_consolidator;
 }
 
 void

@@ -106,7 +106,10 @@ void TrackerControl::receive_done(const PeerList& l, int interval) {
   if (interval > 0)
     m_interval = interval;
 
-  insert_service(Timer::current() + m_interval * 1000000, TIMEOUT);
+  if (m_interval < 60)
+    throw internal_error("TrackerControl m_interval is to small");
+
+  insert_service(Timer::current() + (int64_t)m_interval * 1000000, TIMEOUT);
 
   m_signalPeers.emit(l);
 }

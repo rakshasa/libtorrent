@@ -59,22 +59,30 @@ Path::escape(const std::string& s) {
 }
 
 void
-Path::mkdir(const std::string& root, const Path& path, const Path& ignore, int umask) {
+Path::mkdir(const std::string& root,
+	    List::const_iterator pathBegin, List::const_iterator pathEnd,
+	    List::const_iterator ignoreBegin, List::const_iterator ignoreEnd,
+	    int umask) {
+
   std::string p = root;
 
-  for (List::const_iterator itr = path.m_list.begin(), jtr = ignore.m_list.begin(); itr != path.m_list.end(); ++itr) {
-    p += *itr;
+  while (pathBegin != pathEnd) {
+    p += "/" + *pathBegin;
 
-    if (jtr == ignore.m_list.end() || *itr != *jtr) {
-      jtr = ignore.m_list.end();
+    if (ignoreBegin == ignoreEnd ||
+	*pathBegin != *ignoreBegin) {
+
+      ignoreBegin = ignoreEnd;
 
       if (::mkdir(p.c_str(), umask) &&
 	  errno != EEXIST)
 	throw storage_error("Could not create directory '" + p + "': " + strerror(errno));
 
     } else {
-      ++jtr;
+      ++ignoreBegin;
     }
+
+    ++pathBegin;
   }
 }
 

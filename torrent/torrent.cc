@@ -258,6 +258,9 @@ int64_t get(GValue t) {
   case THROTTLE_ROOT_CONST_RATE:
     return std::max(ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate, 0);
 
+  case HTTP_GETS:
+    return curlStack.get_size();
+
   default:
     throw internal_error("get(GValue) received invalid type");
   }
@@ -547,6 +550,10 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
 }
 
 void set(DList::const_iterator d, DString t, const std::string& s) {
+}
+
+SignalDownloadDone& signalDownloadDone(DList::const_iterator itr) {
+  return (*itr)->state().content().signal_download_done();
 }
 
 }

@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <iosfwd>
 
+#include <sigc++/signal.h>
+
 namespace torrent {
 
 class Download;
@@ -40,8 +42,11 @@ typedef enum {
   RATE_WINDOW,             // Window size used to measure rate. (usec)
   RATE_START,              // Window size to use on new bursts of data. (usec)
 
-  THROTTLE_ROOT_CONST_RATE // Bytes per second, 0 for unlimited.
-                           // (the code supports 0 for none, but not in this API)
+  THROTTLE_ROOT_CONST_RATE, // Bytes per second, 0 for unlimited.
+                            // (the code supports 0 for none, but not in this API)
+  
+  HTTP_GETS
+
 } GValue;
 
 typedef enum {
@@ -168,6 +173,10 @@ void set(DList::const_iterator d, DValue t, int64_t v);
 
 void set(GString t, const std::string& s);
 void set(DList::const_iterator d, DString t, const std::string& s);
+
+typedef sigc::signal0<void>      SignalDownloadDone;
+
+SignalDownloadDone& signalDownloadDone(DList::const_iterator itr);
 
 }
 

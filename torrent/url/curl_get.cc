@@ -19,10 +19,6 @@ CurlGet::CurlGet(CurlStack* s) :
     throw internal_error("Tried to create CurlGet without a valid CurlStack");
 }
 
-CurlGet::~CurlGet() {
-  close();
-}
-
 void CurlGet::set_url(const std::string& url) {
   if (is_busy())
     throw local_error("Tried to call CurlGet::set_url on a busy object");
@@ -70,17 +66,11 @@ void CurlGet::perform(CURLMsg* msg) {
   if (msg->msg != CURLMSG_DONE)
     throw internal_error("CurlGet::process got CURLMSG that isn't done");
 
-  close();
-
   if (msg->data.result == CURLE_OK) {
-    sigc::signal0<void> s = m_done;
-
-    s.emit();
+    m_done.emit();
 
   } else {
-    sigc::signal1<void, std::string> s = m_failed;
-
-    s.emit(curl_easy_strerror(msg->data.result));
+    m_failed.emit(curl_easy_strerror(msg->data.result));
   }
 }
 

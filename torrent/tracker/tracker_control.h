@@ -54,7 +54,7 @@ class TrackerControl : public Service {
   };
 
   TrackerControl(const TrackerControl& t);
-  TrackerControl& operator = (const TrackerControl& t);
+  void operator = (const TrackerControl& t);
 
   void receive_done(const PeerList& l, int interval);
   void receive_failed(std::string msg);

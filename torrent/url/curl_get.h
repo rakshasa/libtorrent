@@ -18,7 +18,7 @@ class CurlGet {
   typedef sigc::signal1<void, std::string> SignalFailed;
 
   CurlGet(CurlStack* s);
-  ~CurlGet();
+  ~CurlGet() { close(); }
 
   void               set_url(const std::string& url);
   void               set_out(std::ostream* out);

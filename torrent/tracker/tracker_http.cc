@@ -176,8 +176,15 @@ void TrackerHttp::receive_done() {
       if (!itr->second.isValue())
 	return receive_failed("Interval not a number");
 
-      if (itr->second.asValue() > 0 && itr->second.asValue() < 6 * 60 * 60)
+      if (itr->second.asValue() > 60 && itr->second.asValue() < 6 * 3600)
 	interval = itr->second.asValue();
+
+      else {
+	std::stringstream s;
+	s << "Tracker returned interval " << itr->second.asValue();
+
+	throw internal_error(s.str());
+      }
 
     } else if (itr->first == "failure reason") {
 
@@ -220,10 +227,6 @@ Peer TrackerHttp::parse_peer(const bencode& b) {
 }
 
 void TrackerHttp::receive_failed(std::string msg) {
-//   static std::ofstream file("./dump_tracker");
-
-//   file << m_data->str();
-
   close();
 
   sigc::signal1<void, std::string> s = m_failed;

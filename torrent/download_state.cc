@@ -173,10 +173,6 @@ void DownloadState::connect_peers() {
 	 (signed)connections().size() < settings().minPeers &&
 	 countConnections() < settings().maxPeers) {
 
-//     std::stringstream s;
-//     s << "Connecting to " << available_peers().front().dns() << ':' << available_peers().front().port();
-//     caughtExceptions.push_front(s.str());
-
     PeerHandshake::connect(available_peers().front(), this);
     available_peers().pop_front();
   }
