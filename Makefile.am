@@ -7,7 +7,7 @@ pkgconfig_DATA = libtorrent.pc
 
 EXTRA_DIST= \
 	autogen.sh \
-	checks.m4 \
+	scripts/checks.m4 \
 	algo/algo.h \
 	algo/common.h \
 	algo/common_impl.h \

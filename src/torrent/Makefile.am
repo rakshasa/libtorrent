@@ -14,3 +14,13 @@ libsub_torrent_la_SOURCES = \
 	torrent.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+
+libtorrentincludedir = $(includedir)/torrent
+libtorrentinclude_HEADERS = \
+	common.h \
+	download.h \
+	exceptions.h \
+	entry.h \
+	http.h \
+	peer.h \
+	torrent.h

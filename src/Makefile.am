@@ -51,13 +51,3 @@ libtorrent_la_SOURCES = \
 	throttle_control.h \
         service.cc \
         service.h
-
-libtorrentincludedir = $(includedir)/torrent
-libtorrentinclude_HEADERS = \
-	torrent/common.h \
-	torrent/download.h \
-	torrent/exceptions.h \
-	torrent/entry.h \
-	torrent/http.h \
-	torrent/peer.h \
-	torrent/torrent.h
