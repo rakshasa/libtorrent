@@ -123,7 +123,6 @@ public:
   typedef sigc::slot0<void>                Slot;
 
   typedef sigc::slot1<void, Peer>          SlotPeer;
-  typedef sigc::slot1<void, Peer>          SlotPeer;
   typedef sigc::slot1<void, std::string>   SlotTrackerFailed;
   typedef sigc::slot1<void, uint32_t>      SlotChunk;
 

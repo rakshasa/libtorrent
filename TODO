@@ -145,3 +145,10 @@ X+#include <sys/select.h>
 RTORRENT RELATED
 
 Cancel tracker requests.
+
+
+DOCUMENTATION
+
+As far as documentation is concerned: a step through example that shows all
+the torren::init calls and sets up a download and doxygen comments in the
+header files would be great.

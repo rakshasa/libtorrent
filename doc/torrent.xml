@@ -1,14 +1,91 @@
 <chapter id="torrent">
   <title>Torrent</title>
 
+<section id="state"><title>State</title>
+
+<section id="closed"><title>Closed</title>
+
+<para>
+This is the initial state of a download. When switching to this mode,
+all tracker requests are closed and the bitfield of completed chunks
+is cleared. File paths can only be changed in this state. Functions
+for getting information on bitfields, chunk count and various others
+will return size 0 in this state. (TODO: Check which)
+</para>
+
+<para>
+<blockquote>
+<programlisting>
+torrent::Download::is_open() == false;
+torrent::Download::is_active() == false;
+torrent::Download::is_tracker_busy() == false;
+</programlisting>
+</blockquote>
+</para>
+
+</section>
+
+<section id="open"> <title>Open</title>
+
+<para>
+This is the state after a successfull call to
+torrent::Download::open(). This function throws torrent::local_error
+if the download could not be opened. All files in the download have
+been created and are open. The initial hash check must be done to get
+a valid bitfield of completed chunks.
+</para>
+
+<para>
+<blockquote>
+<programlisting>
+torrent::Download::is_open() == true;
+torrent::Download::is_active() == false;
+</programlisting>
+</blockquote>
+</para>
+
+</section>
+
+<section id="active"> <title>Active</title>
+
+<para>
+A download is active after calling torrent::Download::start(). Only
+downloads that are in an open state and has a valid bitfield of
+completed chunks can be activated.
+</para>
+
+<para>
+<blockquote>
+<programlisting>
+torrent::Download::is_open() == true;
+torrent::Download::is_active() == true;
+torrent::Download::is_hash_checked() == true;
+</programlisting>
+</blockquote>
+</para>
+
+<para>
+A tracker request will be made when torrent::Download::stop() is
+called on an active download. It is not required to wait for the
+tracker request to finish before calling torrent::Download::close(),
+but it is recommened so the tracker knows this client is not available.
+</para>
+
+</section>
+</section>
+
+
 <section id="file-paths">
 <title>File Paths</title>
 
-<para> The paths of files in a Download consists of two parts, the
+<para>
+The paths of files in a Download consists of two parts, the
 root directory and the paths of each file. The file paths are read
-from the torrent file and the files usually reside on the root
+from the torrent file and the files usually reside in the root
 directory. The root directory is by default "./" for single file
-torrents and "./[torrent_name]/" for multi-file torrents. </para>
+torrents and "./[torrent_name]/" for multi-file torrents.
+</para>
+
 
 <para>
 <blockquote>
@@ -28,13 +105,19 @@ std::string    torrent::Entry::get_path();
 const Path&    torrent::Entry::get_path_list();
 
 void           torrent::Entry::set_path_list(const Path& l);
-
 </programlisting>
 </blockquote>
 </para>
 
-<para> The modifications can only be done while the download is in a
+
+<para>
+The modifications can only be done while the download is in a
 closed state. Modifying the file paths will not change the "info hash"
-part of the in-memory bencode'd torrent. (TODO: When exporting, save
-root dir and file paths to another section of the torrent) </para>
+part of the bencode'd torrent associated with the download. (TODO:
+When exporting, save root directory and file paths to another section
+of the torrent)
+</para>
+
+</section>
+
 
