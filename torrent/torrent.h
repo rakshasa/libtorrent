@@ -188,6 +188,8 @@ SignalDownloadDone& signalDownloadDone(DList::const_iterator itr);
 
 Entry get_entry(DItr itr, unsigned int index);
 
+void update_priorities(DItr itr);
+
 }
 
 #endif // LIBTORRENT_TORRENT_H

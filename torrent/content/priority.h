@@ -8,7 +8,7 @@ namespace torrent {
 class Priority {
 public:
   typedef enum {
-    STOPPED,
+    STOPPED = 0,
     NORMAL,
     HIGH
   } Type;
@@ -20,17 +20,14 @@ public:
   Priority() { clear(); }
 
   // Must be added in increasing order.
-  void                 add(Type t, unsigned int begin, unsigned int end) {
-    m_list[t].push_back(Range(begin, end));
-    m_size[t] += end - begin;
-  }
+  void                 add(Type t, unsigned int begin, unsigned int end);
 
   void                 clear();
 
   unsigned int         get_size(Type t) { return m_size[t]; }
   const List&          get_list(Type t) { return m_list[t]; }
 
-  Position             find(Type t, unsigned int index);
+  List::const_iterator find(Type t, unsigned int index);
 
 private:
   unsigned int m_size[3];

@@ -162,11 +162,33 @@ bool Download::key(int c) {
   case DRAW_ENTRY:
     switch (c) {
     case KEY_UP:
-      m_entryPos = std::max((signed)m_entryPos - 5, 0);
+      m_entryPos = std::max((signed)m_entryPos - 1, 0);
       break;
 
     case KEY_DOWN:
-      m_entryPos += 5;
+      m_entryPos += 1;
+      break;
+
+    case ' ':
+      switch (torrent::get_entry(m_dItr, m_entryPos).get_priority()) {
+      case torrent::Entry::STOPPED:
+	torrent::get_entry(m_dItr, m_entryPos).set_priority(torrent::Entry::NORMAL);
+	break;
+
+      case torrent::Entry::NORMAL:
+	torrent::get_entry(m_dItr, m_entryPos).set_priority(torrent::Entry::HIGH);
+	break;
+
+      case torrent::Entry::HIGH:
+	torrent::get_entry(m_dItr, m_entryPos).set_priority(torrent::Entry::STOPPED);
+	break;
+	
+      default:
+	torrent::get_entry(m_dItr, m_entryPos).set_priority(torrent::Entry::NORMAL);
+	break;
+      };
+
+      torrent::update_priorities(m_dItr);
       break;
 
     default:
@@ -431,24 +453,55 @@ torrent::PItr Download::selectedPeer() {
 void Download::drawEntry(int y1, int y2) {
   int x = 2;
 
-  mvprintw(y1, x += 42, "File");
-  mvprintw(y1, x, " Size");
+  mvprintw(y1, x,       "File");
+  mvprintw(y1, x += 43, "Size");
+  mvprintw(y1, x += 7,  "Pri");
+  mvprintw(y1, x += 4,  "Cmpl");
+
+  ++y1;
 
   int files = torrent::get(m_dItr, torrent::ENTRY_COUNT);
-  int index = std::min<unsigned>(m_entryPos, files - (y2 - y1));
+  int index = std::min<unsigned>(std::max<signed>(m_entryPos - (y2 - y1) / 2, 0), 
+				 files - (y2 - y1));
 
   while (index < files && y1 < y2) {
-    torrent::Entry e = torrent::get_entry(m_dItr, index++);
+    torrent::Entry e = torrent::get_entry(m_dItr, index);
 
-    std::string path = e.path();
+    std::string path = e.get_path();
 
     if (path.length() <= 40)
       path = path + std::string(40 - path.length(), ' ');
     else
       path = path.substr(0, 40);
 
-    mvprintw(++y1, 0, "  %s  %5.1f",
+    std::string priority;
+
+    switch (e.get_priority()) {
+    case torrent::Entry::STOPPED:
+      priority = "off";
+      break;
+
+    case torrent::Entry::NORMAL:
+      priority = "   ";
+      break;
+
+    case torrent::Entry::HIGH:
+      priority = "hig";
+      break;
+
+    default:
+      priority = "BUG";
+      break;
+    };
+
+    mvprintw(y1, 0, "%c %s  %5.1f   %s  %3d",
+	     (unsigned)index == m_entryPos ? '*' : ' ',
 	     path.c_str(),
-	     (double)e.size() / 1000000.0);
+	     (double)e.get_size() / 1000000.0,
+	     priority.c_str(),
+	     e.get_size() ? ((e.get_completed() * 100) / (e.get_range().second - e.get_range().first)) : 100);
+
+    ++index;
+    ++y1;
   }
 }

@@ -76,7 +76,7 @@ DelegatorSelect::check_range(const BitField& bf,
   start -= pos;
 
   do {
-    uint32_t v = ntohl(interested(bf, start, indexes));
+    uint32_t v = interested(bf, start, indexes);
 
     if (v) {
       while (pos < 32) {
@@ -103,16 +103,16 @@ DelegatorSelect::check_range(const BitField& bf,
   return found;
 }
 
-// Start must lie on an 8bit boundary.
+// Start must lie on an 8bit boundary. Returned in network byte order.
 uint32_t
 DelegatorSelect::interested(const BitField& bf,
 			    unsigned int start,
 			    Indexes::const_iterator& indexes) {
 
-  uint32_t v = *(uint32_t*)(bf.data() + start / 8) & ~*(uint32_t*)(m_bitfield->data() + start / 8);
+  uint32_t v = ntohl(*(uint32_t*)(bf.data() + start / 8) & ~*(uint32_t*)(m_bitfield->data() + start / 8));
 
   while (*indexes < start + 32)
-    v &= ~(1 << *(++indexes) - start);
+    v &= ~(1 << 31 - (*(indexes++) - start));
 
   return v;
 }    

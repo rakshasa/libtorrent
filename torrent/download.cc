@@ -12,6 +12,7 @@
 #include "settings.h"
 #include "parse/parse_info.h"
 #include "tracker/tracker_control.h"
+#include "content/delegator_select.h"
 
 #include <sstream>
 #include <limits>
@@ -61,6 +62,12 @@ Download::Download(const bencode& b) :
 
   hashTorrent.add(m_state.hash(), &state().content().get_storage(), sd,
 		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
+
+  m_state.delegator().select().set_bitfield(&m_state.content().get_bitfield());
+  m_state.delegator().select().set_seen(&m_state.bfCounter());
+
+  // TODO: Fix this, just testing get of first file.
+  m_state.delegator().select().get_priority().add(Priority::NORMAL, 0, m_state.content().get_storage().get_chunkcount());
 
   } catch (const bencode_error& e) {
 

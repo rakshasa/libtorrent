@@ -11,7 +11,10 @@ Content::add_file(const Path& path, uint64_t size) {
   if (is_open())
     throw internal_error("Tried to add file to Content that is open");
 
-  m_files.push_back(ContentFile(path, size));
+  m_files.push_back(ContentFile(path, size,
+				ContentFile::Range(m_size / m_storage.get_chunksize(),
+						   size ? ((m_size + size + m_storage.get_chunksize() - 1) / m_storage.get_chunksize())
+						   : (m_size / m_storage.get_chunksize()))));
 
   m_size += size;
 }
@@ -55,7 +58,7 @@ Content::is_correct_size() {
   Storage::FileList::const_iterator sItr = m_storage.files().begin();
   
   while (fItr != m_files.end()) {
-    if (fItr->size() != sItr->c_file()->get_size())
+    if (fItr->get_size() != sItr->c_file()->get_size())
       return false;
 
     ++fItr;
@@ -76,20 +79,20 @@ Content::open(bool wr) {
   Path lastPath;
 
   for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    std::string path = m_rootDir + itr->path().path();
+    std::string path = m_rootDir + itr->get_path().path();
 
     File* f = new File;
 
     try {
 
-      if (itr->path().list().empty())
+      if (itr->get_path().list().empty())
 	throw internal_error("Tried to open file with empty path");
 
       Path::mkdir(m_rootDir,
-		  itr->path().list().begin(), --itr->path().list().end(),
+		  itr->get_path().list().begin(), --itr->get_path().list().end(),
 		  lastPath.list().begin(), lastPath.list().end());
 
-      lastPath = itr->path();
+      lastPath = itr->get_path();
 
       if (!f->open(path, File::in | File::out | File::create | File::largefile))
 	throw storage_error("Could not open file \"" + path + "\"");
@@ -101,7 +104,7 @@ Content::open(bool wr) {
       throw e;
     }
 
-    m_storage.add_file(f, itr->size());
+    m_storage.add_file(f, itr->get_size());
   }
 
   if (m_hash.size() / 20 != m_storage.get_chunkcount())
@@ -137,6 +140,10 @@ Content::mark_done(unsigned int index) {
   
   m_bitfield.set(index);
   m_completed++;
+
+  for (FileList::iterator itr = m_files.begin(); itr != m_files.end() && index >= itr->get_range().first; ++itr)
+    if (index < itr->get_range().second)
+      itr->set_completed(itr->get_completed() + 1);
 
   if (m_completed == m_storage.get_chunkcount())
     m_downloadDone.emit();

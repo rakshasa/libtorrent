@@ -185,8 +185,10 @@ void Delegator::done(int index) {
   std::list<Chunk>::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(),
 						eq(&Chunk::m_index, value(index)));
 
-  if (itr != m_chunks.end())
+  if (itr != m_chunks.end()) {
+    m_select.remove_ignore(itr->m_index);
     m_chunks.erase(itr);
+  }
 }
 
 void Delegator::redo(int index) {
@@ -208,10 +210,12 @@ Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
 			    value(false)));
 
 
-  int index = findChunk(available);
+  int index = m_select.find(bf, random() % bf.sizeBytes(), 3);
 
   if (index == -1)
     return NULL;
+
+  m_select.add_ignore(index);
 
   unsigned int size = (unsigned)index + 1 != m_state->content().get_storage().get_chunkcount() ?
     m_state->content().get_storage().get_chunksize() :
@@ -228,40 +232,6 @@ Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
     itr->m_pieces.push_back(PieceInfo(Piece(index, size - left, left)));
 
   return &itr->m_pieces.front();
-}
-
-int Delegator::findChunk(const BitField& bf) {
-  int selectedIndex = -1;
-  int selectedDistance = std::numeric_limits<int>::max();
-
-  // TODO: Select the target with a fancy algorithm. Have a ceiling
-  // setting and a base setting.
-  int target = 1;
-
-  const char *cur, *end;
-  cur = end = bf.data() + random() % bf.sizeBytes();
-
-  do {
-    if (*cur)
-      // This byte has some interesting chunks.
-      for (int i = 0; i < 8; ++i)
-
-	if (*cur & (1 << 7 - i) &&
-	    std::abs(m_state->bfCounter().field()[(cur - bf.data()) * 8 + i] - target) < selectedDistance) {
-	  // Found a closer match
-	  selectedIndex = (cur - bf.data()) * 8 + i;
-	  selectedDistance = std::abs(m_state->bfCounter().field()[selectedIndex] - target);
-
-	  if (selectedDistance == 0)
-	    break;
-	}
-
-    if (++cur == bf.end())
-      cur = bf.data();
-
-  } while (cur != end);
-  
-  return selectedIndex;
 }
 
 } // namespace torrent

@@ -22,6 +22,7 @@ public:
 
   Content() : m_size(0), m_completed(0), m_rootDir(".") {}
 
+  // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
 
   void                   set_complete_hash(const std::string& hash);

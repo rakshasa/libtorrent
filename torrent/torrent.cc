@@ -584,4 +584,28 @@ Entry get_entry(DItr itr, unsigned int index) {
   return Entry(&(*itr)->state().content().get_files()[index]);
 }
 
+void update_priorities(DItr itr) {
+  Priority& p = (*itr)->state().delegator().select().get_priority();
+
+  p.clear();
+
+  uint64_t pos = 0;
+  unsigned int cs = (*itr)->state().content().get_storage().get_chunksize();
+
+  for (Content::FileList::const_iterator i = (*itr)->state().content().get_files().begin();
+       i != (*itr)->state().content().get_files().end(); ++i) {
+    
+    unsigned int s = pos / cs;
+    unsigned int e = i->get_size() ? (pos + i->get_size() + cs - 1) / cs : s;
+
+    if (s != e)
+      p.add((Priority::Type)i->get_priority(), s, e);
+
+    pos += i->get_size();
+  }
+
+//   if (p.get_list(Priority::NORMAL).empty())
+//     throw internal_error("Empty priorities list after update");
+}
+
 }

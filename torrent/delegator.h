@@ -3,6 +3,7 @@
 
 #include "bitfield.h"
 #include "piece.h"
+#include "content/delegator_select.h"
 
 #include <string>
 #include <list>
@@ -39,7 +40,7 @@ public:
 
   Delegator() : m_state(NULL) {}
   Delegator(DownloadState* ds) :
-    m_state(ds) {}
+    m_state(ds) { }
 
   bool interested(const BitField& bf);
   bool interested(int index);
@@ -55,6 +56,8 @@ public:
 
   Chunks& chunks() { return m_chunks; }
 
+  DelegatorSelect& select() { return m_select; }
+
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
@@ -64,6 +67,7 @@ private:
 
   DownloadState* m_state;
   Chunks m_chunks;
+  DelegatorSelect m_select;
 };
 
 } // namespace torrent
