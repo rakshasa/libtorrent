@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_UTILS_TASK_H
 #define LIBTORRENT_UTILS_TASK_H
 
+#include <functional>
 #include <sigc++/slot.h>
 
 #include "timer.h"
@@ -12,15 +13,15 @@ class Task {
 public:
   typedef sigc::slot<void> Slot;
 
-  Task(Slot s = Slot()) : m_itr(TaskSchedule::end()), m_slot(s) {}
-  ~Task()                 { remove(); }
+  Task(Slot s = Slot()) : m_slot(s) { clear_iterator(); }
+  ~Task()                           { remove(); }
 
-  bool  is_scheduled()    { return m_itr != TaskSchedule::end(); }
+  bool  is_scheduled()              { return m_itr != TaskSchedule::end(); }
 
-  void  set_slot(Slot s)  { m_slot = s; }
-  Slot& get_slot()        { return m_slot; }
+  void  set_slot(Slot s)            { m_slot = s; }
+  Slot& get_slot()                  { return m_slot; }
 
-  Timer get_time()        { return m_time; }
+  Timer get_time()                  { return m_time; }
 
   void  insert(Timer t) {
     remove();
@@ -32,11 +33,15 @@ public:
   void  remove() {
     if (m_itr != TaskSchedule::end()) {
       TaskSchedule::erase(m_itr);
-      m_itr = TaskSchedule::end();
+      clear_iterator();
     }
   }
 
-  TaskSchedule::iterator get_iterator() { return m_itr; }
+protected:
+  friend class TaskSchedule;
+
+  TaskSchedule::iterator get_iterator()   { return m_itr; }
+  void                   clear_iterator() { m_itr = TaskSchedule::end(); }
 
 private:
   Task(const Task&);

@@ -16,18 +16,20 @@ public:
   typedef std::list<Task*>    Container;
   typedef Container::iterator iterator;
 
-  static void      perform(Timer t);
+  static void         perform(Timer t);
 
-  static Timer     get_timeout();
+  static Timer        get_timeout();
 
 protected:
-  static iterator  end()               { return m_container.end(); }
+  static iterator     end()               { return m_container.end(); }
 
-  static iterator  insert(Task* t);
-  static void      erase(iterator itr) { m_container.erase(itr); }
+  static iterator     insert(Task* t);
+  static void         erase(iterator itr) { m_container.erase(itr); }
 
 private:
-  static Container m_container;
+  static inline void  execute_task(Task* t);
+
+  static Container    m_container;
 };
 
 }

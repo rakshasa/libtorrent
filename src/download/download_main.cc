@@ -75,15 +75,13 @@ void DownloadMain::stop() {
   if (!m_started)
     return;
 
+  while (!m_net.get_connections().empty())
+    m_net.remove_connection(m_net.get_connections().front());
+
   m_tracker->send_state(TRACKER_STOPPED);
   m_started = false;
 
   m_taskChokeCycle.remove();
-
-  while (!m_net.get_connections().empty()) {
-    delete m_net.get_connections().front();
-    m_net.get_connections().pop_front();
-  }
 
   setup_stop();
 }

@@ -11,27 +11,6 @@ namespace torrent {
 
 TaskSchedule::Container TaskSchedule::m_container;
 
-void
-TaskSchedule::perform(Timer t) {
-  while (!m_container.empty() && m_container.front()->get_time() <= t) {
-    Task* u = m_container.front();
-
-    if (u->get_iterator() != m_container.begin())
-      throw internal_error("TaskSchedule::perform(...) bork bork bork");
-
-    u->remove();
-    u->get_slot()();
-  }
-}
-
-Timer
-TaskSchedule::get_timeout() {
-  if (!m_container.empty())
-    return std::max(m_container.front()->get_time() - Timer::current(), Timer());
-  else
-    return Timer((int64_t)(1 << 30) * 1000000);
-}
-
 struct task_comp {
   task_comp(Timer t) : m_time(t) {}
 
@@ -41,6 +20,29 @@ struct task_comp {
 
   Timer m_time;
 };
+
+inline void
+TaskSchedule::execute_task(Task* t) {
+  t->clear_iterator();
+  t->get_slot()();
+}
+
+void
+TaskSchedule::perform(Timer t) {
+  Container c;
+
+  c.splice(c.begin(), c, m_container.begin(), std::find_if(m_container.begin(), m_container.end(), task_comp(t)));
+
+  std::for_each(c.begin(), c.end(), std::ptr_fun(&TaskSchedule::execute_task));
+}
+
+Timer
+TaskSchedule::get_timeout() {
+  if (!m_container.empty())
+    return std::max(m_container.front()->get_time() - Timer::current(), Timer());
+  else
+    return Timer((int64_t)(1 << 30) * 1000000);
+}
 
 TaskSchedule::iterator
 TaskSchedule::insert(Task* t) {
