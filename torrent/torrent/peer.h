@@ -53,6 +53,8 @@ public:
   void*                get_ptr()          { return m_ptr; }
   void                 set_ptr(void* ptr) { m_ptr = ptr; }
 
+  bool                 operator == (const Peer& p) { return m_ptr == p.m_ptr; }
+
 private:
   void*                m_ptr;
 };

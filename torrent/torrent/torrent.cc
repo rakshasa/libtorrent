@@ -193,6 +193,20 @@ download_find(const std::string& id) {
   return itr != DownloadMain::downloads().end() ? Download(*itr) : Download(NULL);
 }
 
+void
+download_remove(const std::string& id) {
+  DownloadMain::Downloads::iterator itr = std::find_if(DownloadMain::downloads().begin(),
+                                                       DownloadMain::downloads().end(),
+                                                       eq(ref(id),
+                                                          call_member(call_member(&DownloadMain::state),
+                                                                      &DownloadState::hash)));
+
+  if (itr == DownloadMain::downloads().end())
+    throw client_error("Tried to remove a non-existant download");
+
+  delete *itr;
+}
+
 // Throws a local_error of some sort.
 int64_t
 get(GValue t) {

@@ -34,6 +34,8 @@ void     download_list(DList& dlist);
 // Make sure you check that it's valid.
 Download download_find(const std::string& id);
 
+void     download_remove(const std::string& id);
+
 // Variables, do stuff.
 typedef enum {
   LISTEN_PORT,             // Returns 0 if it isn't listening on any port.
@@ -72,6 +74,10 @@ typedef enum {
 
 int64_t     get(GValue t);
 std::string get(GString t);
+
+void set(GValue t, int64_t v);
+void set(GString t, const std::string& s);
+
 
 }
 

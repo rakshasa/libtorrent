@@ -4,6 +4,7 @@
 #include <ncurses.h>
 #include <torrent/torrent.h>
 #include <torrent/exceptions.h>
+#include <algo/algo.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -20,7 +21,10 @@
 #include <execinfo.h>
 #endif
 
+using namespace algo;
+
 std::list<std::string> log_entries;
+torrent::DList downloads;
 
 bool inputActive = false;
 std::string inputBuf;
@@ -36,6 +40,21 @@ typedef enum {
   DISPLAY_LOG
 } DisplayState;
 
+void do_shutdown() {
+  shutdown = true;
+
+  torrent::listen_close();
+
+  std::for_each(downloads.begin(), downloads.end(),
+		call_member(&torrent::Download::stop));
+}
+
+bool is_shutdown() {
+  return std::find_if(downloads.begin(), downloads.end(),
+		      call_member(&torrent::Download::is_tracker_busy))
+    == downloads.end();
+}    
+
 void signal_handler(int signum) {
   void* stackPtrs[50];
   char** stackStrings;
@@ -46,13 +65,15 @@ void signal_handler(int signum) {
   switch (signum) {
   case SIGINT:
     if (shutdown) {
-      //torrent::cleanup();
+      Display* d = display;
+      display = NULL;
+
+      delete d;
+
       exit(0);
     }
 
-    shutdown = true;
-
-    torrent::shutdown();
+    do_shutdown();
 
     return;
 
@@ -103,10 +124,17 @@ int main(int argc, char** argv) {
 
   try {
 
-  torrent::initialize(6890);
-  torrent::DList::const_iterator curDownload = torrent::downloads().end();
+  torrent::initialize();
 
-  Download download(curDownload);
+  if (!torrent::listen_open(6890, 6999)) {
+    std::cout << "Could not open a port." << std::endl;
+    return -1;
+  }
+  
+  torrent::download_list(downloads);
+  torrent::DList::iterator curDownload = downloads.end();
+
+  Download download(torrent::Download(NULL));
 
   DisplayState displayState = DISPLAY_MAIN;
 
@@ -122,9 +150,10 @@ int main(int argc, char** argv) {
       if (!f.is_open())
 	continue;
       
-      torrent::DList::const_iterator dItr = torrent::create(f);
-      
-      torrent::start(dItr);
+      torrent::Download d = torrent::download_create(f);
+      d.start();
+
+      downloads.push_back(d);
     }
   }
   
@@ -142,7 +171,7 @@ int main(int argc, char** argv) {
       
       switch (displayState) {
       case DISPLAY_MAIN:
-	display->drawDownloads(curDownload);
+	display->drawDownloads(curDownload->get_hash());
 	break;
 	
       case DISPLAY_DOWNLOAD:
@@ -162,7 +191,9 @@ int main(int argc, char** argv) {
     FD_ZERO(&wset);
     FD_ZERO(&eset);
 
-    int n = std::max(0, torrent::mark(&rset, &wset, &eset));
+    int n;
+
+    torrent::mark(&rset, &wset, &eset, &n);
 
     FD_SET(0, &rset);
 
@@ -209,14 +240,16 @@ int main(int argc, char** argv) {
 
 	  } else {
 	    std::ifstream f(inputBuf.c_str());
-
+	    
 	    if (f.is_open()) {
-	      torrent::DItr dItr = torrent::create(f);
+	      torrent::Download d = torrent::download_create(f);
 
 	      if (queueNext)
-		globalQueue.insert(dItr);
+		globalQueue.insert(d);
 	      else
-		torrent::start(dItr);
+		d.start();
+
+	      downloads.push_back(d);
 	    }
 	  }
 
@@ -288,8 +321,8 @@ int main(int argc, char** argv) {
 	    break;
 	
 	  case KEY_RIGHT:
-	    if (curDownload != torrent::downloads().end()) {
-	      download = Download(curDownload);
+	    if (curDownload != downloads.end()) {
+	      download = Download(*curDownload);
 	      displayState = DISPLAY_DOWNLOAD;
 	    }
 
@@ -300,23 +333,27 @@ int main(int argc, char** argv) {
 	    break;
 
 	  case 'Q':
-	    if (curDownload != torrent::downloads().end()) {
-	      if (torrent::get(curDownload, torrent::IS_STOPPED)) {
-		torrent::DItr itr = curDownload++;
-		torrent::remove(itr);
+	    if (curDownload != downloads.end()) {
+	      if (!curDownload->is_active() &&
+		  !curDownload->is_tracker_busy()) {
+
+		torrent::DList::iterator itr = curDownload++;
+		torrent::download_remove(itr->get_hash());
+
+		downloads.erase(itr);
 
 	      } else {
-		globalQueue.receive_done(torrent::get(curDownload, torrent::INFO_HASH));
+		globalQueue.receive_done(curDownload->get_hash());
 
-		torrent::stop(curDownload);
+		curDownload->stop();
 	      }
 	    }
 
 	    break;
 
 	  case ' ':
-	    if (curDownload != torrent::downloads().end())
-	      torrent::start(curDownload);
+	    if (curDownload != downloads.end())
+	      curDownload->start();
 
 	    break;
 

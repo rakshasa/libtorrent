@@ -113,9 +113,9 @@ Download::get_rate_down() {
   return ((DownloadMain*)m_ptr)->state().rateDown().rate_quick();
 }
   
-const char*
+const unsigned char*
 Download::get_bitfield_data() {
-  return ((DownloadMain*)m_ptr)->state().content().get_bitfield().data();
+  return (unsigned char*)((DownloadMain*)m_ptr)->state().content().get_bitfield().data();
 }
 
 uint32_t

@@ -1,6 +1,7 @@
 #include "download.h"
 #include "display.h"
 #include <ncurses.h>
+#include <torrent/exceptions.h>
 
 void Download::draw() {
   int maxX, maxY;
@@ -183,7 +184,7 @@ bool Download::key(int c) {
     break;
 
   case '6':
-    m_dItr.set_uploads_max(m_dItr.get_uploads_min() + 1);
+    m_dItr.set_uploads_max(m_dItr.get_uploads_max() + 1);
     break;
 
   case 'p':
@@ -237,12 +238,12 @@ void Download::drawPeers(int y1, int y2) {
   if (m_peers.empty())
     return;
 
-  torrent::PList::const_iterator itr = m_peers.begin();
-  torrent::PList::const_iterator last = m_peers.end();
-  torrent::PList::const_iterator cur = selectedPeer();
-
-  if (m_peers.size() > (unsigned)(y2 - y1)) {
-    itr = last = cur;
+  torrent::PList::iterator itr = m_peers.begin();
+  torrent::PList::iterator last = m_peers.end();
+  
+  if (m_peers.size() > (unsigned)(y2 - y1) &&
+      m_pItr != m_peers.end()) {
+    itr = last = m_pItr;
 
     for (int i = 0; i < y2 - y1;) {
       if (itr != m_peers.begin()) {
@@ -261,41 +262,38 @@ void Download::drawPeers(int y1, int y2) {
     x = 0;
 
     mvprintw(i, x, "%c %s",
-	     itr == cur ? '*' : ' ',
-	     itr.get_PEER_DNS().c_str());
+	     itr == m_pItr ? '*' : ' ',
+	     itr->get_dns().c_str());
     x += 18;
 
     mvprintw(i, x, "%.1f",
-	     (double)itr.get_PEER_RATE_UP() / 1000);
+	     (double)itr->get_rate_up() / 1000);
     x += 7;
 
     mvprintw(i, x, "%.1f",
-	     (double)itr.get_PEER_RATE_DOWN() / 1000);
+	     (double)itr->get_rate_down() / 1000);
     x += 7;
 
     mvprintw(i, x, "%c%c/%c%c%c",
-	     itr.get_PEER_REMOTE_CHOKED() ? 'c' : 'u',
-	     itr.get_PEER_REMOTE_INTERESTED() ? 'i' : 'n',
-	     itr.get_PEER_LOCAL_CHOKED() ? 'c' : 'u',
-	     itr.get_PEER_LOCAL_INTERESTED() ? 'i' : 'n',
-	     itr.get_PEER_CHOKE_DELAYED() ? 'd' : ' ');
+	     itr->get_remote_choked() ? 'c' : 'u',
+	     itr->get_remote_interested() ? 'i' : 'n',
+	     itr->get_local_choked() ? 'c' : 'u',
+	     itr->get_local_interested() ? 'i' : 'n',
+	     itr->get_choke_delayed() ? 'd' : ' ');
     x += 7;
 
-    std::string outgoing = itr.get_PEER_OUTGOING();
-    std::string incoming = itr.get_PEER_INCOMING();
-
     mvprintw(i, x, "%i/%i",
-	     (int)incoming.size() / 4,
-	     (int)outgoing.size() / 4);
+	     itr->get_incoming_queue_size(),
+	     itr->get_incoming_queue_size());
     x += 6;
 
-    if (incoming.size())
-      mvprintw(i, x, "%i",
-	       *(int*)incoming.c_str());
+//     if (incoming.size())
+//       mvprintw(i, x, "%i",
+// 	       *(int*)incoming.c_str());
 
     x += 6;
 
-    if (itr.get_PEER_SNUB())
+    if (itr->get_snubbed())
       mvprintw(i, x, "*");
   }
 }
@@ -307,23 +305,23 @@ void Download::drawSeen(int y1, int y2) {
 
   mvprintw(y1, 0, "Seen bitfields");
 
-  std::string s = m_dItr.get_BITFIELD_SEEN();
+//   std::string s = m_dItr.get_BITFIELD_SEEN();
 
-  for (std::string::iterator itr = s.begin(); itr != s.end(); ++itr)
-    if (*itr < 10)
-      *itr = '0' + *itr;
-    else if (*itr < 16)
-      *itr = 'A' + *itr - 10;
-    else
-      *itr = 'X';
+//   for (std::string::iterator itr = s.begin(); itr != s.end(); ++itr)
+//     if (*itr < 10)
+//       *itr = '0' + *itr;
+//     else if (*itr < 16)
+//       *itr = 'A' + *itr - 10;
+//     else
+//       *itr = 'X';
   
-  for (int i = y1 + 1, pos = 0; i < y2; ++i, pos += maxX)
-    if ((signed)s.size() - pos > maxX) {
-      mvprintw(i, 0, "%s", s.substr(pos, maxX).c_str());
-    } else {
-      mvprintw(i, 0, "%s", s.substr(pos, s.size() - pos).c_str());
-      break;
-    }
+//   for (int i = y1 + 1, pos = 0; i < y2; ++i, pos += maxX)
+//     if ((signed)s.size() - pos > maxX) {
+//       mvprintw(i, 0, "%s", s.substr(pos, maxX).c_str());
+//     } else {
+//       mvprintw(i, 0, "%s", s.substr(pos, s.size() - pos).c_str());
+//       break;
+//     }
 }
 
 void Download::drawBitfield(const unsigned char* bf, int size, int y1, int y2) {
@@ -358,34 +356,6 @@ void Download::clear(int x, int y, int lx, int ly) {
   }
 }
 
-torrent::PItr Download::selectedPeer() {
-  if (m_peers.empty())
-    return m_peers.end();
-
-  torrent::PList::const_iterator cur = m_peers.begin();
-  
-  int pos = 0;
-
-  while (cur != m_peers.end() &&
-	 cur.get_PEER_ID() != m_peerCur) {
-    ++cur;
-    ++pos;
-  }
-
-  if (cur == m_peers.end()) {
-    cur = m_peers.begin();
-
-    for (pos = 0; pos < m_peerPos; ++pos, ++cur)
-      if (cur == --m_peers.end())
-	break;
-  }
-
-  m_peerPos = pos;
-  m_peerCur = cur.get_PEER_ID();
-
-  return cur;
-}
-
 void Download::drawEntry(int y1, int y2) {
   int x = 2;
 
@@ -396,12 +366,12 @@ void Download::drawEntry(int y1, int y2) {
 
   ++y1;
 
-  int files = m_dItr.get_ENTRY_COUNT();
+  int files = m_dItr.get_entry_size();
   int index = std::min<unsigned>(std::max<signed>(m_entryPos - (y2 - y1) / 2, 0), 
 				 files - (y2 - y1));
 
   while (index < files && y1 < y2) {
-    torrent::Entry e = torrent::get_entry(m_dItr, index);
+    torrent::Entry e = m_dItr.get_entry(index);
 
     std::string path = e.get_path();
 
@@ -441,3 +411,23 @@ void Download::drawEntry(int y1, int y2) {
     ++y1;
   }
 }
+
+void
+Download::receive_peer_connect(torrent::Peer p) {
+  m_peers.push_back(p);
+}
+
+void
+Download::receive_peer_disconnect(torrent::Peer p) {
+  torrent::PList::iterator itr = std::find(m_peers.begin(), m_peers.end(), p);
+
+  if (itr == m_peers.end())
+    throw torrent::client_error("Client: Download tried to remove disconnected non-existant peer");
+
+  if (itr == m_pItr)
+    m_pItr++;
+
+  m_peers.erase(itr);
+}
+
+					      
