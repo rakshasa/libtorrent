@@ -13,7 +13,7 @@ CurlGet::~CurlGet() {
 }
 
 CurlGet::CurlGet(CurlStack* s) :
-  m_useragent("rtorrent_unknow"),
+  m_useragent("rtorrent_unknown"),
   m_out(NULL),
   m_handle(NULL),
   m_stack(s) {

@@ -568,7 +568,9 @@ void PeerConnection::fillWriteBuf() {
 
   if (!m_down.choked && m_up.interested && !m_stallCount && m_down.state != READ_SKIP_PIECE) {
 
-    while (m_up.length + 16 < BUFFER_SIZE && request_piece())
+    unsigned int ps = m_download->pipe_size().calculate(m_throttle.down());
+
+    while (m_requests.get_size() < ps && m_up.length + 16 < BUFFER_SIZE && request_piece())
       if (m_requests.get_size() == 1) {
 	if (in_service(SERVICE_STALL))
 	  throw internal_error("Only one request, but we're already in SERVICE_STALL");

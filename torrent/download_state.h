@@ -8,7 +8,9 @@
 #include "settings.h"
 #include "content/content.h"
 #include "data/hash_torrent.h"
+#include "download/pipe_size.h"
 #include "torrent/peer.h"
+
 #include <list>
 #include <sigc++/signal.h>
 
@@ -35,6 +37,8 @@ class DownloadState {
   Connections&  connections()     { return m_connections; }
   Delegator&    delegator()       { return m_delegator; }
   Peers&        available_peers() { return m_availablePeers; }
+
+  PipeSize&     pipe_size()       { return m_pipeSize; }
 
   uint64_t& bytesDownloaded() { return m_bytesDownloaded; }
   uint64_t& bytesUploaded() { return m_bytesUploaded; }
@@ -90,6 +94,8 @@ private:
   Rate m_rateUp;
   Rate m_rateDown;
   
+  PipeSize m_pipeSize;
+
   BitFieldCounter m_bfCounter;
 
   SignalPeerConnected    m_signalPeerConnected;

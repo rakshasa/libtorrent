@@ -50,6 +50,8 @@ type for chunk index.
 ! Make sure that a peer sending a piece, but being choked throws a
 communication error.
 
+! Why is the client lagging when downloading a http torrent? Check async'ness.
+
 
 DELEGATOR STUFF
 

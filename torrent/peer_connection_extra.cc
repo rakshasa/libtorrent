@@ -144,9 +144,6 @@ bool
 PeerConnection::request_piece() {
   const Piece* p;
 
-  if (m_requests.get_size() > 5)
-    return false;
-    
   if ((p = m_requests.delegate()) == NULL)
     return false;
 

@@ -1,3 +1,7 @@
+2004-11-15  Jari Petter Sundell  <jaris@student.matnat.uio.no>
+
+	* library: Variable pipe size depending on download speed.
+
 2004-10-27    <jaris@ifi.uio.no>
 
 	* client: On 'T' key, retrive 250 peers from tracker.

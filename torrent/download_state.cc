@@ -27,7 +27,8 @@ DownloadState::DownloadState() :
   m_bytesUploaded(0),
   m_bytesDownloaded(0),
   m_delegator(this),
-  m_settings(DownloadSettings::global())
+  m_settings(DownloadSettings::global()),
+  m_pipeSize(&this->m_settings)
 {
 }
 
