@@ -209,16 +209,21 @@ Delegator::PieceInfo* Delegator::newChunk(const BitField& bf) {
 			    member(&Chunk::m_index),
 			    value(false)));
 
-  int index = m_select.find(bf, random() % bf.sizeBytes(), 1024);
+  int index = m_select.find(bf, random() % bf.sizeBits(), 1024);
 
   if (index == -1)
     return NULL;
 
   m_select.add_ignore(index);
 
-  unsigned int size = (unsigned)index + 1 != m_state->content().get_storage().get_chunkcount() ?
-    m_state->content().get_storage().get_chunksize() :
-    m_state->content().get_size() % m_state->content().get_storage().get_chunksize();
+  // If index is the last piece, and the last piece is not divisible by chunk size
+  // then set size to the size of the whole torrent modulo chunk size.
+  unsigned int size =
+    (unsigned)index + 1 == m_state->content().get_storage().get_chunkcount() &&
+    (m_state->content().get_size() % m_state->content().get_storage().get_chunksize()) ?
+
+    (m_state->content().get_size() % m_state->content().get_storage().get_chunksize()) :
+    m_state->content().get_storage().get_chunksize();
 
   std::list<Chunk>::iterator itr = m_chunks.insert(m_chunks.end(), Chunk(index));
 

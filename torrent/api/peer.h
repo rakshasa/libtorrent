@@ -35,14 +35,15 @@ public:
   uint32_t        get_rate_down();
   uint32_t        get_rate_up();
 
-  uint16_t        get_incoming_queue_size();
-  uint16_t        get_outgoing_queue_size();
+  uint32_t        get_incoming_queue_size();
+  uint32_t        get_outgoing_queue_size();
 
   // Currently needs to copy the data once to a std::string. But 
   // since gcc does ref counted std::string, you can inexpensively
   // copy the resulting string. Will consider making BitField use a
   // std::string.
-  std::string     get_bitfield();
+  const char*     get_bitfield_data();
+  uint32_t        get_bitfield_size();
 
   void            set_snubbed(bool v);
 

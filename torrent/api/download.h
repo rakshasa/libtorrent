@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_H
 #define LIBTORRENT_DOWNLOAD_H
 
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
@@ -13,6 +13,9 @@ public:
   bool is_open();
   bool is_active();
   bool is_tracker_busy();
+
+  std::string get_name();
+  std::string get_hash();
 
   uint64_t get_bytes_up();
   uint64_t get_bytes_down();
@@ -27,11 +30,30 @@ public:
   uint32_t get_rate_up();
   uint32_t get_rate_down();
   
+  const char* get_bitfield_data();
+  uint32_t    get_bitfield_size();
+
   uint32_t get_peers_min();
   uint32_t get_peers_max();
   uint32_t get_peers_connected();
   uint32_t get_peers_not_connected();
 
+  uint32_t get_uploads_max();
+  
   uint64_t get_tracker_timeout();
 
-  
+  void     set_peers_min(uint32_t v);
+  void     set_peers_max(uint32_t v);
+
+  void     set_uploads_max(uint32_t v);
+
+  void     set_tracker_timeout(uint64_t v);
+
+private:
+  void* m_ptr;
+};
+
+}
+
+#endif
+
