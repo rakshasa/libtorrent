@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
 
     FD_SET(0, &rset);
 
-    int64_t t = std::min(1000000 + lastDraw - torrent::get(torrent::TIME_CURRENT),
+    int64_t t = std::min(2500000 + lastDraw - torrent::get(torrent::TIME_CURRENT),
 			 torrent::get(torrent::TIME_SELECT));
 
     if (t < 0)
@@ -530,7 +530,7 @@ int main(int argc, char** argv) {
     if (fIndex)
       std::cout << "While opening file \"" << argv[fIndex] << "\":" << std::endl;
 
-    std::cout << "test.cc caught \"" << e.what() << "\"" << std::endl;
+    std::cout << "rtorrent.cc caught \"" << e.what() << "\"" << std::endl;
 
     signal_handler(SIGINT);
   }

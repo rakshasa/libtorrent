@@ -8,7 +8,7 @@ all: tests $(OBJECTS)
 
 tests:
 	@curl-config --version
-	@pkg-config --exists sigc++-2.0 libtorrent
+	pkg-config --exists sigc++-2.0 libtorrent
 
 %.o: %.cc
 	g++ $(CFLAGS) -c $<
