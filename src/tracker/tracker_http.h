@@ -19,14 +19,14 @@ class Http;
 // TODO: Use a base class when we implement UDP tracker support.
 class TrackerHttp {
 public:
-  typedef std::list<PeerInfo>                          PeerList;
-  typedef sigc::signal1<void, Bencode&>                SignalDone;
-  typedef sigc::signal1<void, std::string>             SignalFailed;
+  typedef std::list<PeerInfo>              PeerList;
+  typedef sigc::signal1<void, Bencode&>    SignalDone;
+  typedef sigc::signal1<void, std::string> SignalFailed;
 
   TrackerHttp();
   ~TrackerHttp();
 
-  bool               is_busy()                         { return m_data != NULL; }
+  bool               is_busy()                             { return m_data != NULL; }
 
   void               send_state(TrackerState state,
 				uint64_t down,
@@ -35,16 +35,18 @@ public:
 
   void               close();
 
-  void               set_url(const std::string& url)   { m_url = url; }
-  void               set_hash(const std::string& hash) { m_hash = hash; }
-  void               set_key(const std::string& key)   { m_key = key; }
-  void               set_compact(bool c)               { m_compact = c; }
-  void               set_numwant(int16_t n)            { m_numwant = n; }
-  
-  void               set_me(const PeerInfo* me)        { m_me = me; }
+  void               set_url(const std::string& url)       { m_url = url; }
+  void               set_hash(const std::string& hash)     { m_hash = hash; }
+  void               set_key(const std::string& key)       { m_key = key; }
+  void               set_tracker_id(const std::string& id) { m_trackerId = id; }
 
-  SignalDone&        signal_done()                     { return m_signalDone; }
-  SignalFailed&      signal_failed()                   { return m_signalFailed; }
+  void               set_compact(bool c)                   { m_compact = c; }
+  void               set_numwant(int16_t n)                { m_numwant = n; }
+  
+  void               set_me(const PeerInfo* me)            { m_me = me; }
+
+  SignalDone&        signal_done()                         { return m_signalDone; }
+  SignalFailed&      signal_failed()                       { return m_signalFailed; }
 
 private:
   // Don't allow ctor.
@@ -62,6 +64,7 @@ private:
   std::string        m_url;
   std::string        m_hash;
   std::string        m_key;
+  std::string        m_trackerId;
 
   bool               m_compact;
   int16_t            m_numwant;

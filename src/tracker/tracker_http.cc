@@ -60,8 +60,13 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
 
   escape_string(m_me->get_id(), s);
 
-  if (m_key.length())
+  if (!m_key.empty())
     s << "&key=" << m_key;
+
+  if (!m_trackerId.empty()) {
+    s << "&trackerid=";
+    escape_string(m_trackerId, s);
+  }
 
   if (m_me->get_dns().length())
     s << "&ip=" << m_me->get_dns();

@@ -135,6 +135,9 @@ TrackerControl::receive_done(Bencode& bencode) {
       m_timerMinInterval = Timer::cache() + std::max<int64_t>(0, bencode["min interval"].as_value()) * 1000000;
   }
 
+  if (bencode.has_key("tracker id") && bencode["tracker id"].is_string())
+    (*m_itr)->set_tracker_id(bencode["tracker id"].as_string());
+
   PeerList l;
 
   if (bencode.has_key("peers")) {
