@@ -20,4 +20,6 @@ EXTRA_DIST= \
 	client/display.h \
 	client/download.cc \
 	client/download.h \
+	client/http.cc \
+	client/http.h \
 	client/rtorrent.cc
