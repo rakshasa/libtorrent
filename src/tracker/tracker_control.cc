@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <functional>
+#include <sstream>
 #include <sigc++/signal.h>
 
 #include "torrent/exceptions.h"
@@ -107,17 +108,56 @@ TrackerControl::cancel() {
 }
 
 void
-TrackerControl::receive_done(const PeerList& l, int32_t interval, int32_t minInterval) {
-  m_interval         = m_interval > 60 ? interval : 1800;
-  m_timerMinInterval = minInterval > 0 ? (Timer::cache() + (int64_t)minInterval * 1000000) : 0;
+TrackerControl::receive_done(Bencode& bencode) {
+  m_signalBencode.emit(bencode);
 
-  if (m_state == TRACKER_STOPPED)
-    return;
+  if (!bencode.is_map())
+    return receive_failed("Root not a bencoded map");
 
-  m_state = TRACKER_NONE;
+  if (bencode.has_key("failure reason")) {
+    if (!bencode["failure reason"].is_string())
+      return receive_failed("Failure reason is not a string");
+    else
+      return receive_failed("Failure reason \"" + bencode["failure reason"].as_string() + "\"");
+  }
 
-  m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
-  m_signalPeers.emit(l);
+  if (bencode.has_key("interval")) {
+    if (!bencode["interval"].is_value())
+      return receive_failed("Interval not a number");
+    else
+      m_interval = std::max<int64_t>(60, bencode["interval"].as_value());
+  }
+
+  if (bencode.has_key("min interval")) {
+    if (!bencode["min interval"].is_value())
+      return receive_failed("Min interval not a number");
+    else
+      m_timerMinInterval = Timer::cache() + std::max<int64_t>(0, bencode["min interval"].as_value()) * 1000000;
+  }
+
+  PeerList l;
+
+  if (bencode.has_key("peers")) {
+
+    if (bencode["peers"].is_list())
+      parse_peers_normal(l, bencode["peers"].as_list());
+
+    else if (bencode["peers"].is_string())
+      parse_peers_compact(l, bencode["peers"].as_string());
+    
+    else
+      return receive_failed("Peers entry is not a bencoded list nor a string.");
+
+  } else {
+    return receive_failed("Peers entry not found.");
+  }
+
+  if (m_state != TRACKER_STOPPED) {
+    m_state = TRACKER_NONE;
+    
+    m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
+    m_signalPeers.emit(l);
+  }
 }
 
 void
@@ -138,6 +178,59 @@ TrackerControl::query_current() {
 
   (*m_itr)->set_numwant(m_numwant);
   (*m_itr)->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
+}
+
+PeerInfo
+TrackerControl::parse_peer(const Bencode& b) {
+  PeerInfo p;
+	
+  if (!b.is_map())
+    return p;
+
+  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
+    if (itr->first == "ip" &&
+	itr->second.is_string()) {
+      p.set_dns(itr->second.as_string());
+	    
+    } else if (itr->first == "peer id" &&
+	       itr->second.is_string()) {
+      p.set_id(itr->second.as_string());
+	    
+    } else if (itr->first == "port" &&
+	       itr->second.is_value()) {
+      p.set_port(itr->second.as_value());
+    }
+  }
+	
+  return p;
+}
+
+void
+TrackerControl::parse_peers_normal(PeerList& l, const Bencode::List& b) {
+  for (Bencode::List::const_iterator itr = b.begin(); itr != b.end(); ++itr) {
+    PeerInfo p = parse_peer(*itr);
+	  
+    if (p.is_valid())
+      l.push_back(p);
+  }
+}  
+
+void
+TrackerControl::parse_peers_compact(PeerList& l, const std::string& s) {
+  for (std::string::const_iterator itr = s.begin(); itr + 6 <= s.end();) {
+
+    std::stringstream buf;
+
+    buf << (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++;
+
+    uint16_t port = (unsigned short)((unsigned char)*itr++) << 8;
+    port += (uint16_t)((unsigned char)*itr++);
+
+    l.push_back(PeerInfo("", buf.str(), port));
+  }
 }
 
 }

@@ -9,6 +9,7 @@
 #include "peer_info.h"
 #include "tracker_state.h"
 
+#include "torrent/bencode.h"
 #include "utils/task.h"
 
 namespace torrent {
@@ -28,6 +29,7 @@ class TrackerControl {
   typedef std::list<TrackerHttp*>              TrackerList;
 
   typedef sigc::slot0<uint64_t>                SlotStat;
+  typedef sigc::signal1<void, Bencode&>        SignalBencode;
   typedef sigc::signal1<void, const PeerList&> SignalPeers;
   typedef sigc::signal1<void, std::string>     SignalFailed;
 
@@ -51,6 +53,7 @@ class TrackerControl {
 
   bool                  is_busy();
 
+  SignalBencode         signal_bencode()                        { return m_signalBencode; }
   SignalPeers&          signal_peers()                          { return m_signalPeers; }
   SignalFailed&         signal_failed()                         { return m_signalFailed; }
 
@@ -63,10 +66,15 @@ class TrackerControl {
   TrackerControl(const TrackerControl& t);
   void                  operator = (const TrackerControl& t);
 
-  void                  receive_done(const PeerList& l, int32_t interval, int32_t minInterval);
+  void                  receive_done(Bencode& bencode);
   void                  receive_failed(std::string msg);
 
   void                  query_current();
+
+  void                  parse_peers_normal(PeerList& l, const Bencode::List& b);
+  void                  parse_peers_compact(PeerList& l, const std::string& s);
+
+  static PeerInfo       parse_peer(const Bencode& b);
 
   const PeerInfo*       m_me;
   std::string           m_hash;
@@ -85,8 +93,10 @@ class TrackerControl {
   Timer                 m_timerMinInterval;
   Task                  m_taskTimeout;
 
+  SignalBencode         m_signalBencode;
   SignalPeers           m_signalPeers;
   SignalFailed          m_signalFailed;
+
   SlotStat              m_slotStatDown;
   SlotStat              m_slotStatUp;
   SlotStat              m_slotStatLeft;

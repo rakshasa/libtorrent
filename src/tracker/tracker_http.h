@@ -6,6 +6,7 @@
 #include <inttypes.h>
 
 #include "torrent/bencode.h"
+
 #include "peer_info.h"
 #include "tracker_state.h"
 
@@ -18,20 +19,21 @@ class Http;
 // TODO: Use a base class when we implement UDP tracker support.
 class TrackerHttp {
 public:
-  typedef std::list<PeerInfo>                                    PeerList;
-  typedef sigc::signal3<void, const PeerList&, int32_t, int32_t> SignalDone;
-  typedef sigc::signal1<void, std::string>                       SignalFailed;
+  typedef std::list<PeerInfo>                          PeerList;
+  typedef sigc::signal1<void, Bencode&>                SignalDone;
+  typedef sigc::signal1<void, std::string>             SignalFailed;
 
   TrackerHttp();
   ~TrackerHttp();
 
   bool               is_busy()                         { return m_data != NULL; }
 
-  void               send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left);
+  void               send_state(TrackerState state,
+				uint64_t down,
+				uint64_t up,
+				uint64_t left);
 
   void               close();
-
-  // Add get_* if you need it.
 
   void               set_url(const std::string& url)   { m_url = url; }
   void               set_hash(const std::string& hash) { m_hash = hash; }
@@ -49,13 +51,9 @@ private:
   TrackerHttp(const TrackerHttp& t);
   void operator = (const TrackerHttp& t);
 
-  void               parse_peers_normal(PeerList& l, const Bencode::List& b);
-  void               parse_peers_compact(PeerList& l, const std::string& s);
-
   void               receive_done();
   void               receive_failed(std::string msg);
 
-  static PeerInfo    parse_peer(const Bencode& b);
   static void        escape_string(const std::string& src, std::ostream& stream);
 
   Http*              m_get;

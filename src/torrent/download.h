@@ -5,6 +5,7 @@
 #include <torrent/entry.h>
 #include <torrent/peer.h>
 
+#include <iosfwd>
 #include <list>
 #include <vector>
 #include <sigc++/slot.h>
@@ -14,6 +15,7 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
+class Bencode;
 struct DownloadWrapper;
 
 class Download {
@@ -123,6 +125,7 @@ public:
   typedef sigc::slot0<void>                Slot;
 
   typedef sigc::slot1<void, Peer>          SlotPeer;
+  typedef sigc::slot1<void, Bencode&>      SlotTrackerSucceded;
   typedef sigc::slot1<void, std::string>   SlotTrackerFailed;
   typedef sigc::slot1<void, uint32_t>      SlotChunk;
 
@@ -132,7 +135,7 @@ public:
   sigc::connection    signal_peer_connected(SlotPeer s);
   sigc::connection    signal_peer_disconnected(SlotPeer s);
 
-  sigc::connection    signal_tracker_succeded(Slot s);
+  sigc::connection    signal_tracker_succeded(SlotTrackerSucceded s);
   sigc::connection    signal_tracker_failed(SlotTrackerFailed s);
 
   sigc::connection    signal_chunk_passed(SlotChunk s);

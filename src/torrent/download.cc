@@ -333,8 +333,8 @@ Download::signal_peer_disconnected(Download::SlotPeer s) {
 }
 
 sigc::connection
-Download::signal_tracker_succeded(Download::Slot s) {
-  return m_ptr->get_main().get_tracker().signal_peers().connect(sigc::hide(s));
+Download::signal_tracker_succeded(Download::SlotTrackerSucceded s) {
+  return m_ptr->get_main().get_tracker().signal_bencode().connect(s);
 }
 
 sigc::connection

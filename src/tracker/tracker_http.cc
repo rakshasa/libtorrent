@@ -101,6 +101,9 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
 
 void
 TrackerHttp::close() {
+  if (m_data == NULL)
+    return;
+
   m_get->close();
   m_get->set_stream(NULL);
 
@@ -131,88 +134,14 @@ TrackerHttp::receive_done() {
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
   Bencode b;
-
   *m_data >> b;
 
   if (m_data->fail()) {
-//     std::ofstream f("./tracker_dump");
-
-//     f << m_data->str();
-
     return receive_failed("Could not parse bencoded data");
+  } else {
+    close();
+    m_signalDone.emit(b);
   }
-
-  else if (!b.is_map())
-    return receive_failed("Root not a bencoded map");
-
-  int interval = 0, minInterval = 0;
-  PeerList l;
-
-  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
-
-    if (itr->first == "peers") {
-
-      if (itr->second.is_list())
-	parse_peers_normal(l, itr->second.as_list());
-
-      else if (itr->second.is_string())
-	parse_peers_compact(l, itr->second.as_string());
-
-      else
-	return receive_failed("Peers entry is not a bencoded list nor a string");
-
-    } else if (itr->first == "interval") {
-
-      if (!itr->second.is_value())
-	return receive_failed("Interval not a number");
-
-      if (itr->second.as_value() > 60 && itr->second.as_value() < 6 * 3600)
-	interval = itr->second.as_value();
-
-    } else if (itr->first == "min interval") {
-
-      if (!itr->second.is_value())
-	return receive_failed("Min interval not a number");
-
-      if (itr->second.as_value() > 60 && itr->second.as_value() < 6 * 3600)
-	minInterval = itr->second.as_value();
-
-    } else if (itr->first == "failure reason") {
-
-      if (!itr->second.is_string())
-	return receive_failed("Failure reason is not a string");
-
-      return receive_failed("Failure reason \"" + itr->second.as_string() + "\"");
-    }
-  }
-
-  close();
-
-  m_signalDone.emit(l, interval, minInterval);
-}
-
-PeerInfo TrackerHttp::parse_peer(const Bencode& b) {
-  PeerInfo p;
-	
-  if (!b.is_map())
-    return p;
-
-  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
-    if (itr->first == "ip" &&
-	itr->second.is_string()) {
-      p.set_dns(itr->second.as_string());
-	    
-    } else if (itr->first == "peer id" &&
-	       itr->second.is_string()) {
-      p.set_id(itr->second.as_string());
-	    
-    } else if (itr->first == "port" &&
-	       itr->second.is_value()) {
-      p.set_port(itr->second.as_value());
-    }
-  }
-	
-  return p;
 }
 
 void
@@ -220,34 +149,6 @@ TrackerHttp::receive_failed(std::string msg) {
   close();
 
   m_signalFailed.emit(msg);
-}
-
-void
-TrackerHttp::parse_peers_normal(PeerList& l, const Bencode::List& b) {
-  for (Bencode::List::const_iterator itr = b.begin(); itr != b.end(); ++itr) {
-    PeerInfo p = parse_peer(*itr);
-	  
-    if (p.is_valid())
-      l.push_back(p);
-  }
-}  
-
-void
-TrackerHttp::parse_peers_compact(PeerList& l, const std::string& s) {
-  for (std::string::const_iterator itr = s.begin(); itr + 6 <= s.end();) {
-
-    std::stringstream buf;
-
-    buf << (int)(unsigned char)*itr++ << '.'
-	<< (int)(unsigned char)*itr++ << '.'
-	<< (int)(unsigned char)*itr++ << '.'
-	<< (int)(unsigned char)*itr++;
-
-    uint16_t port = (unsigned short)((unsigned char)*itr++) << 8;
-    port += (uint16_t)((unsigned char)*itr++);
-
-    l.push_back(PeerInfo("", buf.str(), port));
-  }
 }
 
 }

@@ -152,3 +152,8 @@ DOCUMENTATION
 As far as documentation is concerned: a step through example that shows all
 the torren::init calls and sets up a download and doxygen comments in the
 header files would be great.
+
+
+TODO NOW
+
+Refactor tracker code to use a struct with info shared by all.
