@@ -7,7 +7,6 @@ libsub_data_la_SOURCES = \
 	file_chunk.h \
 	hash_chunk.cc \
 	hash_chunk.h \
-	hash_compute.h \
 	hash_queue.cc \
 	hash_queue.h \
 	hash_torrent.cc \
