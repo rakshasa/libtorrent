@@ -33,12 +33,13 @@ All:
 
 Main:
 
-  Up/Down - Select a download
-  Right   - View download
+  Up/Down   - Select a download
+  Right     - View download
 
-  Enter   - Add torrent url
-  L       - View Log
-  Shift-Q - Stop download / remove stopped download
+  Enter     - Add torrent url
+  Backspace - Add torrent url as a queued download. Add all torrents with this key to get proper queues.
+  L         - View Log
+  Shift-Q   - Stop download / remove stopped download
 
 Download view:
 
