@@ -14,29 +14,32 @@ class CurlGet {
  public:
   friend class CurlStack;
 
+  typedef sigc::signal0<void>              SignalDone;
+  typedef sigc::signal1<void, std::string> SignalFailed;
+
   CurlGet(CurlStack* s);
   ~CurlGet();
 
-  void set_url(const std::string& url);
-  void set_out(std::ostream* out);
+  void               set_url(const std::string& url);
+  void               set_out(std::ostream* out);
 
   const std::string& get_url() const { return m_url; }
 
-  void start();
-  void close();
+  void               start();
+  void               close();
 
-  bool is_busy() { return m_handle; }
+  bool               is_busy() { return m_handle; }
 
-  sigc::signal0<void>&              signal_done()   { return m_done; }
+  SignalDone&        signal_done()   { return m_done; }
 
   // Error code - Http code or errno. 0 if libtorrent specific, see msg.
   // Error message
-  sigc::signal1<void, std::string>& signal_failed() { return m_failed; }
+  SignalFailed&      signal_failed() { return m_failed; }
 
  protected:
   CURL* handle() { return m_handle; }
 
-  void perform(CURLMsg* msg);
+  void  perform(CURLMsg* msg);
 
  private:
   friend size_t curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handle);

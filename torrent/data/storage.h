@@ -6,6 +6,7 @@
 #include <algo/ref_anchored.h>
 
 #include "storage_chunk.h"
+#include "storage_file.h"
 
 namespace torrent {
 
@@ -14,6 +15,7 @@ class StorageConsolidator;
 
 class Storage {
 public:
+  typedef std::vector<StorageFile>        FileList;
   typedef algo::RefAnchored<StorageChunk> Chunk;
 
   Storage();
@@ -34,7 +36,7 @@ public:
 
   Chunk get_chunk(unsigned int b, bool wr = false, bool rd = true);
 
-  // TODO: Add way to look through the files.
+  FileList&    files();
 
 private:
   StorageConsolidator*                        m_consolidator;

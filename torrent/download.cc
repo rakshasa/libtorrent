@@ -195,7 +195,7 @@ Download* Download::getDownload(const std::string& hash) {
 void Download::add_peers(const Peers& p) {
   for (Peers::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
 
-    if (!itr->is_valid() ||
+    if (itr->dns().length() == 0 || itr->port() == 0 ||
 
 	std::find_if(m_state.connections().begin(), m_state.connections().end(),
 		     call_member(call_member(&PeerConnection::peer), &Peer::is_same_host, ref(*itr)))

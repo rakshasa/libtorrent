@@ -72,4 +72,9 @@ Storage::get_chunk(unsigned int b, bool wr, bool rd) {
   return chunk;
 }
 
+Storage::FileList& 
+Storage::files() {
+  return m_consolidator->files();
+}
+
 }

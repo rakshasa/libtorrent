@@ -31,7 +31,7 @@ class File {
   static const int type_socket    = 0x40;
 
   File() : m_fd(-1), m_flags(0), m_stat(NULL) {}
-  ~File();
+  ~File() { close(); }
 
   // Create only regular files for now.
   bool     open(const std::string& path,

@@ -9,10 +9,6 @@
 
 namespace torrent {
 
-File::~File() {
-  close();
-}
-
 bool File::open(const std::string& path,
 		int flags,
 		int mode) {

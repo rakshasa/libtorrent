@@ -19,6 +19,7 @@ libtorrent_la_SOURCES = \
 	data/storage_chunk.h \
 	data/storage_consolidator.cc \
 	data/storage_consolidator.h \
+	data/storage_file.h \
 	net/listen.cc \
 	net/listen.h \
 	tracker/tracker_control.cc \
