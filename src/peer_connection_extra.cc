@@ -45,7 +45,7 @@ PeerConnection::~PeerConnection() {
     m_requests.cancel();
 
     if (m_down.state != READ_BITFIELD)
-      m_download->get_bitfield_counter().dec(m_bitfield);
+      m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
   }
 
   delete [] m_up.buf;
@@ -196,7 +196,7 @@ void PeerConnection::choke(bool v) {
 
 void
 PeerConnection::update_interested() {
-  if (m_net->get_delegator().get_select().interested(m_bitfield)) {
+  if (m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
     m_sendInterested = !m_down.interested;
     m_down.interested = true;
   } else {

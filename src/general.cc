@@ -5,7 +5,7 @@
 #include <inttypes.h>
 
 #include "general.h"
-#include "bitfield.h"
+#include "utils/bitfield.h"
 #include "torrent/exceptions.h"
 #include "settings.h"
 #include "utils/bencode.h"

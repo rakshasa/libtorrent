@@ -46,7 +46,7 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
   m_net = net;
 
   m_requests.set_delegator(&m_net->get_delegator());
-  m_requests.set_bitfield(&m_bitfield);
+  m_requests.set_bitfield(&m_bitfield.get_bitfield());
 
   if (d == NULL ||
       !p.is_valid() ||
@@ -54,7 +54,10 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitField(d->get_content().get_storage().get_chunkcount());
+  m_bitfield = BitFieldExt(d->get_content().get_storage().get_chunkcount());
+
+  if (m_bitfield.begin() == NULL)
+    throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
 
   insert_read();
   insert_write();
@@ -217,17 +220,18 @@ void PeerConnection::read() {
     if (!read_buf(m_bitfield.begin() + m_down.pos, m_down.length - 1, m_down.pos))
       return;
 
-    if (m_net->get_delegator().get_select().interested(m_bitfield)) {
+    m_bitfield.update_count();
+
+    if (!m_bitfield.all_zero() && m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
       m_up.interested = m_sendInterested = true;
       
-    } else if (m_download->get_content().get_chunks_completed() == m_download->get_content().get_storage().get_chunkcount() &&
-	       m_bitfield.all_set()) {
+    } else if (m_bitfield.all_set() && m_download->get_content().is_done()) {
       // Both sides are done so we might as well close the connection.
       throw close_connection();
     }
 
     m_down.state = IDLE;
-    m_download->get_bitfield_counter().inc(m_bitfield);
+    m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
     insert_write();
     goto evil_goto_read;
@@ -529,7 +533,7 @@ void PeerConnection::parseReadBuf() {
       throw communication_error("Recived HAVE command with invalid value");
 
     if (!m_bitfield[index]) {
-      m_bitfield.set(index);
+      m_bitfield.set(index, true);
       m_download->get_bitfield_counter().inc(index);
     }
     
@@ -658,7 +662,7 @@ void PeerConnection::fillWriteBuf() {
 void PeerConnection::sendHave(int index) {
   m_haveQueue.push_back(index);
 
-  if (m_download->get_content().get_chunks_completed() == m_download->get_content().get_storage().get_chunkcount()) {
+  if (m_download->get_content().is_done()) {
     // We're done downloading.
 
     if (m_bitfield.all_set()) {
@@ -670,7 +674,7 @@ void PeerConnection::sendHave(int index) {
       m_up.interested = false;
     }
 
-  } else if (m_up.interested && !m_net->get_delegator().get_select().interested(m_bitfield)) {
+  } else if (m_up.interested && !m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
     // TODO: Optimize?
     m_sendInterested = true;
     m_up.interested = false;

@@ -5,7 +5,7 @@
 #include <string>
 #include <sigc++/signal.h>
 
-#include "bitfield.h"
+#include "utils/bitfield.h"
 #include "content_file.h"
 #include "data/storage.h"
 
@@ -45,6 +45,7 @@ public:
 
   bool                   is_open()                       { return m_storage.get_size(); }
   bool                   is_correct_size();
+  bool                   is_done()                       { return m_completed == m_storage.get_chunkcount(); }
 
   void                   open(bool wr = false);
   void                   close();

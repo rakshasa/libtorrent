@@ -159,7 +159,7 @@ Content::mark_done(uint32_t index) {
   if (m_completed >= m_storage.get_chunkcount())
     throw internal_error("Content::mark_done called but m_completed >= m_storage.get_chunkcount()");
 
-  m_bitfield.set(index);
+  m_bitfield.set(index, true);
   m_completed++;
 
   for (FileList::iterator itr = m_files.begin(); itr != m_files.end() && index >= itr->get_range().first; ++itr)

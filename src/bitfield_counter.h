@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_BITFIELD_COUNTER_H
 #define LIBTORRENT_BITFIELD_COUNTER_H
 
-#include "bitfield.h"
+#include "utils/bitfield.h"
 #include <vector>
 
 namespace torrent {

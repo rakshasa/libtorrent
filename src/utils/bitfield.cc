@@ -97,16 +97,16 @@ bool BitField::all_set() const {
   data_t* end = m_pad - sizeof(pad_t);
 
   while (i < end) {
-    if (*(pad_t*)i != (pad_t)-1)
+    if (*(pad_t*)i != ~pad_t())
       return false;
 
     i += sizeof(pad_t);
   }
 
   if (m_size % (8 * sizeof(pad_t)))
-    return *(pad_t*)i == htonl((pad_t)-1 << 8 * sizeof(pad_t) - m_size % (8 * sizeof(pad_t)));
+    return *(pad_t*)i == htonl(~pad_t() << 8 * sizeof(pad_t) - m_size % (8 * sizeof(pad_t)));
   else
-    return *(pad_t*)i == (pad_t)-1;
+    return *(pad_t*)i == ~pad_t();
 }
 
 static const unsigned char bit_count_256[] = 

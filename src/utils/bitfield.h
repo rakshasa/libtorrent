@@ -27,6 +27,7 @@ public:
   size_t    size_bytes() const { return m_end - m_start; }
   size_t    size_ints() const { return (m_pad - m_start) / sizeof(pad_t); }
 
+  // Allow this?
   size_t    count() const;
 
   void      clear() {
@@ -34,9 +35,7 @@ public:
       std::memset(m_start, 0, m_pad - m_start);
   }
 
-  //void      clear(int start, int end);
-
-  void      set(size_t i, bool s = true) {
+  void      set(size_t i, bool s) {
     if (s)
       m_start[i / 8] |= 1 << 7 - i % 8;
     else
@@ -58,7 +57,7 @@ public:
   c_data_t* end() const { return m_end; }
 
   bool      operator [] (size_t i) const {
-    return m_start[i / 8] & (1 << 7 - i % 8);
+    return get(i);
   }
   
   BitField& operator = (const BitField& bf);

@@ -1,7 +1,6 @@
 #ifndef LIBTORRENT_PEER_CONNECTION_H
 #define LIBTORRENT_PEER_CONNECTION_H
 
-#include "bitfield.h"
 #include "service.h"
 #include "peer_info.h"
 #include "piece.h"
@@ -11,6 +10,7 @@
 #include "data/storage.h"
 #include "peer/request_list.h"
 #include "net/socket_base.h"
+#include "utils/bitfield_ext.h"
 
 #include <vector>
 
@@ -66,7 +66,7 @@ public:
   bool chokeDelayed();
   Timer lastChoked() { return m_lastChoked; }
 
-  const BitField& bitfield() const { return m_bitfield; }
+  const BitFieldExt& bitfield() const { return m_bitfield; }
 
   const PeerInfo& peer() const { return m_peer; }
 
@@ -124,7 +124,7 @@ private:
   DownloadState* m_download;
   DownloadNet*   m_net;
    
-  BitField m_bitfield;
+  BitFieldExt    m_bitfield;
    
   bool m_sendChoked;
   bool m_sendInterested;

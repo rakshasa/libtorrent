@@ -5,7 +5,7 @@
 #include <vector>
 #include <sigc++/signal.h>
 
-#include "bitfield.h"
+#include "utils/bitfield.h"
 #include "piece.h"
 #include "content/delegator_select.h"
 #include "content/delegator_chunk.h"
