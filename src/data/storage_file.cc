@@ -29,6 +29,7 @@ namespace torrent {
 
 void
 StorageFile::clear() {
+  m_file->close();
   delete m_file;
 
   m_file = 0;

@@ -42,7 +42,7 @@ class File {
   static const int o_nonblock             = O_NONBLOCK;
 
   File() : m_fd(-1), m_flags(0) {}
-  ~File() { close(); }
+  ~File();
 
   // TODO: use proper mode type.
   bool                open(const std::string& path, int flags, mode_t mode = 0666);

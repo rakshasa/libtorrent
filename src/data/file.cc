@@ -31,6 +31,12 @@
 
 namespace torrent {
 
+File::~File() {
+  // Temporary test case to make sure we close files properly.
+  if (is_open())
+    throw internal_error("Destroyed a File that is open");
+}
+
 bool
 File::open(const std::string& path, int flags, mode_t mode) {
   close();

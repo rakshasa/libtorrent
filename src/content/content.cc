@@ -138,6 +138,7 @@ Content::open(bool wr) {
       open_file(f, itr->get_path(), lastPath);
 
     } catch (base_error& e) {
+      f->close();
       delete f;
       m_storage.clear();
 

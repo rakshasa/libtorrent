@@ -3,6 +3,9 @@ noinst_LTLIBRARIES = libsub_data.la
 libsub_data_la_SOURCES = \
 	file.cc \
 	file.h \
+	file_manager.cc \
+	file_manager.h \
+	file_meta.h \
 	file_stat.cc \
 	file_stat.h \
 	hash_chunk.cc \
