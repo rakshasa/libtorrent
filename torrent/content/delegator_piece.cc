@@ -6,12 +6,9 @@
 
 namespace torrent {
 
-void
-DelegatorPiece::clear() {
+DelegatorPiece::~DelegatorPiece() {
   if (m_reservee)
-    m_reservee->set_parent(NULL);
-
-  m_reservee = NULL;
+    throw internal_error("DelegatorPiece dtor called on an object that still has a reservee");
 }
 
 }

@@ -72,11 +72,11 @@ Download::get_bytes_done() {
  
   std::for_each(((DownloadMain*)m_ptr)->state().delegator().chunks().begin(), ((DownloadMain*)m_ptr)->state().delegator().chunks().end(),
 		for_each_on(member(&Delegator::Chunk::m_pieces),
-			    if_on(eq(value(Delegator::FINISHED),
-				     member(&Delegator::PieceInfo::m_state)),
+			    if_on(eq(value(DELEGATOR_FINISHED),
+				     call_member(&DelegatorPiece::get_state)),
 				  
-				  add_ref(a, call_member(member(&Delegator::PieceInfo::m_piece),
-							 &Piece::length)))));
+				  add_ref(a, call_member(call_member(&DelegatorPiece::get_piece),
+							 &Piece::c_length)))));
   
   return a +
     ((DownloadMain*)m_ptr)->state().content().get_completed() *

@@ -16,10 +16,8 @@ class DelegatorReservee;
 
 class DelegatorPiece {
 public:
-  DelegatorPiece(const Piece& p) : m_piece(p), m_state(DELEGATOR_NONE), m_reservee(NULL) {}
-  ~DelegatorPiece() { clear(); }
-  
-  void               clear();
+  DelegatorPiece() : m_state(DELEGATOR_NONE), m_reservee(NULL) {}
+  ~DelegatorPiece();
 
   const Piece&       get_piece()                        { return m_piece; }
   void               set_piece(const Piece& p)          { m_piece = p; }

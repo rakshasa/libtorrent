@@ -4,6 +4,7 @@
 #include "bitfield.h"
 #include "piece.h"
 #include "content/delegator_select.h"
+#include "content/delegator_piece.h"
 
 #include <string>
 #include <list>
@@ -14,26 +15,12 @@ class DownloadState;
 
 class Delegator {
 public:
-  typedef enum {
-    NONE,
-    DOWNLOADING,
-    FINISHED
-  } PieceState;
-
-  struct PieceInfo {
-    PieceInfo(Piece p) : m_piece(p), m_state(NONE) {}
-
-    Piece m_piece;
-    PieceState m_state;
-    std::string m_id; // Id doing the downloading.
-  };
-
   // Internal, not to be confused with the chunk.h
   struct Chunk {
     Chunk(int index) : m_index(index) {}
 
     int m_index;
-    std::list<PieceInfo> m_pieces;
+    std::list<DelegatorPiece*> m_pieces;
   };
   
   typedef std::list<Chunk> Chunks;
@@ -45,11 +32,11 @@ public:
   bool interested(const BitField& bf);
   bool interested(int index);
 
-  bool delegate(const std::string& id, const BitField& bf, std::list<Piece>& pieces);
-  bool downloading(const std::string& id, const Piece& p);
-  bool finished(const std::string& id, const Piece& p);
+  DelegatorReservee* delegate(const BitField& bf, int affinity);
+  bool downloading(DelegatorReservee& r);
+  bool finished(DelegatorReservee& r);
 
-  void cancel(const std::string& id, const Piece& p, bool clear);
+  void cancel(DelegatorReservee& r, bool clear);
 
   void done(int index);
   void redo(int index);
@@ -61,7 +48,7 @@ public:
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
-  PieceInfo* newChunk(const BitField& bf);
+  DelegatorPiece* newChunk(const BitField& bf);
 
   int findChunk(const BitField& bf);
 
