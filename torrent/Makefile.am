@@ -2,6 +2,8 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
+	torrent/download.cc \
+	torrent/download.h \
 	torrent/entry.cc \
 	torrent/entry.h \
 	torrent/peer.cc \

@@ -2,57 +2,65 @@
 #define LIBTORRENT_DOWNLOAD_H
 
 #include <torrent/common.h>
+#include <torrent/entry.h>
 
 namespace torrent {
 
 class Download {
 public:
-  Download();
-  Download(void* d);
+  Download() : m_ptr(NULL) {}
+  Download(void* d) : m_ptr(d) {}
 
-  bool is_open();
-  bool is_active();
-  bool is_tracker_busy();
+  // Does not check if it has been removed.
+  bool            is_valid()  { return m_ptr; }
 
-  std::string get_name();
-  std::string get_hash();
+  bool            is_open();
+  bool            is_active();
+  bool            is_tracker_busy();
 
-  uint64_t get_bytes_up();
-  uint64_t get_bytes_down();
-  uint64_t get_bytes_done();
-  uint64_t get_bytes_total();
+  std::string     get_name();
+  std::string     get_hash();
 
-  uint32_t get_chunks_size();
-  uint32_t get_chunks_done();
-  uint32_t get_chunks_total();
+  uint64_t        get_bytes_up();
+  uint64_t        get_bytes_down();
+  uint64_t        get_bytes_done();
+  uint64_t        get_bytes_total();
+
+  uint32_t        get_chunks_size();
+  uint32_t        get_chunks_done();
+  uint32_t        get_chunks_total();
 
   // Bytes per second.
-  uint32_t get_rate_up();
-  uint32_t get_rate_down();
+  uint32_t        get_rate_up();
+  uint32_t        get_rate_down();
   
-  const char* get_bitfield_data();
-  uint32_t    get_bitfield_size();
+  const char*     get_bitfield_data();
+  uint32_t        get_bitfield_size();
 
-  uint32_t get_peers_min();
-  uint32_t get_peers_max();
-  uint32_t get_peers_connected();
-  uint32_t get_peers_not_connected();
+  uint32_t        get_peers_min();
+  uint32_t        get_peers_max();
+  uint32_t        get_peers_connected();
+  uint32_t        get_peers_not_connected();
 
-  uint32_t get_uploads_max();
+  uint32_t        get_uploads_max();
   
-  uint64_t get_tracker_timeout();
+  uint64_t        get_tracker_timeout();
 
-  void     set_peers_min(uint32_t v);
-  void     set_peers_max(uint32_t v);
+  void            set_peers_min(uint32_t v);
+  void            set_peers_max(uint32_t v);
 
-  void     set_uploads_max(uint32_t v);
+  void            set_uploads_max(uint32_t v);
 
-  void     set_tracker_timeout(uint64_t v);
+  void            set_tracker_timeout(uint64_t v);
 
-  
+  Entry           get_entry(uint32_t i);
+  uint32_t        get_entry_size();
+
+  void*           get_ptr()          { return m_ptr; }
+  void            set_ptr(void* ptr) { m_ptr = ptr; }
 
 private:
-  void* m_ptr;
+  void*           m_ptr;
 };
 
 }

@@ -15,22 +15,22 @@ public:
     HIGH
   } Priority;
 
-  Entry()        : m_entry(NULL) {}
+  Entry() : m_entry(NULL) {}
   Entry(void* e) : m_entry(e) {}
   
-  uint64_t         get_size();
-  Range            get_range();
-  uint32_t         get_completed();
+  uint64_t        get_size();
+  Range           get_range();
+  uint32_t        get_completed();
 
   // Relative to root of torrent.
-  std::string      get_path();
+  std::string     get_path();
 
-  Priority         get_priority();
+  Priority        get_priority();
 
-  void             set_priority(Priority p);
+  void            set_priority(Priority p);
 
 private:
-  void*            m_entry;
+  void*           m_entry;
 };
 
 }

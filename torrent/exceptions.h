@@ -22,10 +22,20 @@ private:
   std::string m_msg;
 };
 
-// The library or application did some borking it shouldn't have, bug tracking time!
-class internal_error : public base_error {
+class program_error : public base_error {
 public:
-  internal_error(const std::string& msg) : base_error(msg) {}
+  program_error(const std::string& msg) : base_error(msg) {}
+};
+
+// The library or application did some borking it shouldn't have, bug tracking time!
+class internal_error : public program_error {
+public:
+  internal_error(const std::string& msg) : program_error(msg) {}
+};
+
+class client_error : public program_error {
+public:
+  client_error(const std::string& msg) : program_error(msg) {}
 };
 
 // For some reason we couldn't talk with a peer/tracker, migth be a

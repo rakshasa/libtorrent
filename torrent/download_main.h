@@ -24,6 +24,7 @@ public:
   void start();
   void stop();
 
+  bool is_active() { return m_started; }
   bool isStopped();
 
   void service(int type);
