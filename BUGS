@@ -5,3 +5,20 @@ Aborted
 Somehow every peer is marked interested, check if this is a real problem. 
 
 test.cc caught "Connection read fd(67) state(1) "Empty HashQueue is still in service""
+
+Writing "Refrain Blue OVA - 01.avi": Success
+Writing "battlestar.galactica.s01e02.proper.pdtv-sfm.avi": Success
+Exited
+Signal SIGSEGV recived, dumping stack:
+0 rtorrent [0x806f345]
+1 /lib/tls/libc.so.6 [0x20bec8]
+2 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent7Service14remove_serviceEv+0xd8) [0x8e4988]
+3 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2(_ZN7torrent7ServiceD2Ev+0x2a) [0x8e45ba]
+4 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x8ed251]
+5 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x8ef7fa]
+6 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x8d52fb]
+7 /uio/platon/mn-l2/jaris/local/lib/libtorrent.so.2 [0x9262f6]
+8 /lib/ld-linux.so.2 [0x621edd]
+9 /lib/tls/libc.so.6(exit+0x63) [0x20e6d3]
+10 /lib/tls/libc.so.6 [0x1f97ff]
+11 rtorrent(dlopen+0x41) [0x8065f61]

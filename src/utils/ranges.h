@@ -8,27 +8,31 @@ namespace torrent {
 
 class Ranges {
 public:
-  typedef std::pair<uint32_t, uint32_t> Range;
-  typedef std::pair<uint32_t, Range>    Position;
-  typedef std::vector<Range>            List;
+  typedef std::pair<uint32_t, uint32_t>        Range;
+  typedef std::vector<Range>                   List;
 
-  Ranges()                                { clear(); }
+  typedef std::vector<Range>::iterator         iterator;
+  typedef std::vector<Range>::reverse_iterator reverse_iterator;
 
-  // Must be added in increasing order.
-  void                add(uint32_t begin, uint32_t end);
+  void                clear()             { m_list.clear(); }
 
-  void                clear()             { m_size = 0; m_list.clear(); }
+  List::size_type     size()              { return m_list.size(); }
 
+  void                insert(uint32_t begin, uint32_t end);
+  void                erase(uint32_t begin, uint32_t end);
 
-  unsigned int        get_size()          { return m_size; }
-  List&               get_list()          { return m_list; }
+  iterator            begin()             { return m_list.begin(); }
+  iterator            end()               { return m_list.end(); }
 
-  List::iterator      find(uint32_t index);
+  reverse_iterator    rbegin()            { return m_list.rbegin(); }
+  reverse_iterator    rend()              { return m_list.rend(); }
 
+  iterator            find(uint32_t index);
+
+  // Use find with no closest match.
   bool                has(uint32_t index);
 
 private:
-  uint32_t  m_size;
   List      m_list;
 };
 

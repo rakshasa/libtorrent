@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
   while (!shutdown_progress || !torrent::get(torrent::SHUTDOWN_DONE)) {
     loops++;
 
-    if (lastDraw + 1000000 < torrent::get(torrent::TIME_CURRENT)) {
+    if (lastDraw + 2000000 < torrent::get(torrent::TIME_CURRENT)) {
       lastDraw = torrent::get(torrent::TIME_CURRENT);
       
       switch (displayState) {

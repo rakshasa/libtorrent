@@ -15,17 +15,17 @@ namespace torrent {
 bool
 DelegatorSelect::interested(const BitField& bf) {
   return
-    std::find_if(m_priority.get_list(Priority::NORMAL).begin(), m_priority.get_list(Priority::NORMAL).end(),
+    std::find_if(m_priority.begin(Priority::NORMAL), m_priority.end(Priority::NORMAL),
 		      call_member(ref(*this), &DelegatorSelect::interested_range,
 				  ref(bf),
 				  member(&Priority::Range::first), member(&Priority::Range::second)))
-    != m_priority.get_list(Priority::NORMAL).end() ||
+    != m_priority.end(Priority::NORMAL) ||
 
-    std::find_if(m_priority.get_list(Priority::HIGH).begin(), m_priority.get_list(Priority::HIGH).end(),
+    std::find_if(m_priority.begin(Priority::HIGH), m_priority.end(Priority::HIGH),
 		      call_member(ref(*this), &DelegatorSelect::interested_range,
 				  ref(bf),
 				  member(&Priority::Range::first), member(&Priority::Range::second)))
-    != m_priority.get_list(Priority::HIGH).end();
+    != m_priority.end(Priority::HIGH);
 }
 
 bool
@@ -75,7 +75,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   // TODO: Ugly, refactor.
   Priority::List::iterator itr = m_priority.find(p, start);
 
-  if (itr == m_priority.get_list(p).end())
+  if (itr == m_priority.end(p))
     return found;
 
   // Check the range start is contained by.
@@ -96,7 +96,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   // Check ranges above the midpoint.
   Priority::List::iterator fItr = itr;
 
-  while (++fItr != m_priority.get_list(p).end()) {
+  while (++fItr != m_priority.end(p)) {
     f = check_range(bf, fItr->first, fItr->second, rarity, cur_rarity);
 
     if (cur_rarity <= rarity)
@@ -108,10 +108,10 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   // Check ranges below the midpoint.
   Priority::List::reverse_iterator rItr(++itr);
 
-  if (rItr == m_priority.get_list(p).rend())
+  if (rItr == m_priority.rend(p))
     throw internal_error("DelegatorSelect reverse iterator borkage!?");
 
-  while (++rItr != m_priority.get_list(p).rend()) {
+  while (++rItr != m_priority.rend(p)) {
     f = check_range(bf, rItr->first, rItr->second, rarity, cur_rarity);
 
     if (cur_rarity <= rarity)

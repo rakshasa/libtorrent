@@ -16,13 +16,19 @@ public:
   typedef Ranges::List  List;
   typedef Ranges::Range Range;
 
+  typedef Ranges::iterator         iterator;
+  typedef Ranges::reverse_iterator reverse_iterator;
+
     // Must be added in increasing order.
-  void                add(Type t, uint32_t begin, uint32_t end) { m_ranges[t].add(begin, end); }
+  void                add(Type t, uint32_t begin, uint32_t end) { m_ranges[t].insert(begin, end); }
 
   void                clear()                                   { for (int i = 0; i < 3; ++i) m_ranges[i].clear(); }
 
-  unsigned int        get_size(Type t)                          { return m_ranges[t].get_size(); }
-  List&               get_list(Type t)                          { return m_ranges[t].get_list(); }
+  iterator            begin(Type t)                             { return m_ranges[t].begin(); }
+  iterator            end(Type t)                               { return m_ranges[t].end(); }
+
+  reverse_iterator    rbegin(Type t)                            { return m_ranges[t].rbegin(); }
+  reverse_iterator    rend(Type t)                              { return m_ranges[t].rend(); }
 
   List::iterator      find(Type t, uint32_t index)              { return m_ranges[t].find(index); }
 
