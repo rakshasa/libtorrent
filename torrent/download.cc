@@ -131,7 +131,7 @@ void Download::service(int type) {
       if (!(*itr)->up().c_choked() &&
 	  (*itr)->lastChoked() + state().settings().chokeGracePeriod < Timer::cache() &&
 	  
-	  (g = (*itr)->down().c_rate().rate() * 16 + (*itr)->up().c_rate().rate()) <= f) {
+	  (g = (*itr)->throttle().down().rate() * 16 + (*itr)->throttle().up().rate()) <= f) {
 	f = g;
 	p1 = *itr;
       }
@@ -148,7 +148,7 @@ void Download::service(int type) {
       if ((*itr)->up().c_choked() &&
 	  (*itr)->down().c_interested() &&
 	  
-	  (g = (*itr)->down().c_rate().rate()) >= f) {
+	  (g = (*itr)->throttle().down().rate()) >= f) {
 	f = g;
 	p2 = *itr;
       }

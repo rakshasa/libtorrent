@@ -8,6 +8,7 @@
 #include "peer.h"
 #include "piece.h"
 #include "rate.h"
+#include "throttle.h"
 
 #include <vector>
 
@@ -69,6 +70,8 @@ public:
   Sub& up() { return m_up; }
   Sub& down() { return m_down; }
 
+  Throttle& throttle() { return m_throttle; }
+
   virtual void read();
   virtual void write();
   virtual void except();
@@ -85,7 +88,7 @@ private:
     SERVICE_INCOMING_PIECE
   };
 
-  bool writeChunk();
+  bool writeChunk(int maxBytes);
   bool readChunk();
 
   void discardIncomingQueue();
@@ -118,6 +121,8 @@ private:
 
   Sub m_up;
   Sub m_down;
+
+  Throttle m_throttle;
 };
 
 }

@@ -26,8 +26,6 @@ namespace torrent {
 int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
 
-ThrottleControl throttleControl;
-
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
 
@@ -62,7 +60,7 @@ void initialize(int beginPort, int endPort) {
 
   Listen::open(beginPort, endPort);
 
-  throttleControl.insertService(Timer::current(), 0);
+  ThrottleControl::global().insertService(Timer::current(), 0);
 }
 
 void shutdown() {
@@ -78,7 +76,7 @@ void cleanup() {
   // Close again if shutdown wasn't called.
   Listen::close();
 
-  throttleControl.removeService();
+  ThrottleControl::global().removeService();
 
   for_each<true>(Download::downloads().begin(), Download::downloads().end(),
 		 delete_on());
@@ -207,7 +205,7 @@ int64_t get(GValue t) {
 
   case SHUTDOWN_DONE:
     return std::find_if(Download::downloads().begin(), Download::downloads().end(),
-			call_member(&Download::isStopped))
+			bool_not(call_member(&Download::isStopped)))
       == Download::downloads().end();
 
   case FILES_CHECK_WAIT:
@@ -261,8 +259,6 @@ std::string get(GString t) {
 }
 
 int64_t get(DList::const_iterator d, DValue t) {
-//   if (d == Download::downloads().end())
-//     throw internal_error("torrent::get(DList::const_iterator, DValue) called on an invalid iterator");
   Timer::update();
   uint64_t a;
 
@@ -379,10 +375,10 @@ int64_t get(PList::const_iterator p, PValue t) {
     return (*p)->chokeDelayed();
 
   case PEER_RATE_DOWN:
-    return (*p)->down().c_rate().rate(true);
+    return (*p)->throttle().down().rate(true);
 
   case PEER_RATE_UP:
-    return (*p)->up().c_rate().rate(true);
+    return (*p)->throttle().up().rate(true);
 
   case PEER_PORT:
     return (*p)->peer().port();

@@ -6,10 +6,10 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
-#include <errno.h>
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
+#include <cerrno>
 #include <cstring>
 
 #include "socket_base.h"
@@ -66,11 +66,11 @@ void SocketBase::removeExcept() {
 
 void SocketBase::setSocketAsync(int fd) {
   // Set Reuseaddr.
-  int opt = 1;
+  //int opt = 1;
 
   // TODO: this doesn't belong here
-  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
-    throw local_error("Error setting socket to SO_REUSEADDR");
+  //if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
+  //  throw local_error("Error setting socket to SO_REUSEADDR");
 
   // Set async.
   fcntl(fd, F_SETFL, O_NONBLOCK | O_ASYNC);

@@ -1,5 +1,14 @@
 This is the test client for libtorrent. Dog food. Note that decreasing
-max peers does not yet disconnect. Most of the stuff is in KiB.
+max peers does not yet disconnect them.
+
+This client is just something i've been throwing togheter as i
+finished implementing stuff in the library. When i'm finished with the
+important parts of the library the API will be rewritten to something
+more usable. I will also do a complete rewrite of the client.
+
+If your system doesn't have "execinfo.h", uncomment "#define
+USE_EXECINFO" in rtorrent.cc. This will be handled by an autoconf
+script later.
 
 Main:
 

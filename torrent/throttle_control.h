@@ -11,7 +11,8 @@ namespace torrent {
 class ThrottleControl : public Service {
  public:
   typedef enum {
-    SETTINGS_ROOT
+    SETTINGS_ROOT,
+    SETTINGS_PEER
   } SettingsType;
 
   ThrottleControl();
@@ -24,7 +25,11 @@ class ThrottleControl : public Service {
 
   void service(int type);
 
+  static ThrottleControl& global() { return m_global; }
+
  private:
+  static ThrottleControl m_global;
+
   Throttle m_root;
 
   std::vector<ThrottleSettings> m_settings;

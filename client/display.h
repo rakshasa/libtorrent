@@ -3,6 +3,8 @@
 
 #include <torrent/torrent.h>
 
+extern int loops;
+
 class Display {
  public:
   Display();

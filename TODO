@@ -32,10 +32,12 @@ Add a snub factor. The more you upload without getting back, the higher it goes.
 
 Make configure do the peer id thingie automagically
 
-add unroll loops optimizing(?)
-
 Add config for how often we unchoke unknown peers vs good uploaders
 
 Consider splitting up download_state's peer connection management and choking stuff.
 
 fix socketBase setAsync
+
+We're counting bytes we haven't downloaded, fixme.
+
+Recursively update the up/down rates in throttle.

@@ -1,6 +1,8 @@
 #include "display.h"
 #include <ncurses.h>
 
+int loops = 0;
+
 Display::Display() {
   initscr();
   cbreak();
@@ -73,9 +75,10 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
 	     torrent::get(first, torrent::TRACKER_MSG).c_str());
   }
 
-  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i",
+  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Loops: %i",
 	   (int)torrent::get(torrent::LISTEN_PORT),
-	   (int)torrent::get(torrent::HANDSHAKES_TOTAL));
+	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
+	   loops);
 
   refresh();
 }

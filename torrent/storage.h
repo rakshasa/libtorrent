@@ -4,7 +4,7 @@
 #include "storage_block.h"
 #include <vector>
 #include <string>
-#include <stdint.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 
 namespace torrent {

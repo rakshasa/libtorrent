@@ -1,3 +1,11 @@
+2004-07-25    <jaris@ifi.uio.no>
+
+	* torrent: Fixed bug that made it skip sending the stop message to the tracker when quiting.
+
+	* torrent: Changed stdint.h to inttypes.h and made it easy to disable execinfo.h in client.
+
+	* torrent: Added throttle with tree structure. Bandwidth delegation needs work.
+
 2004-07-20    <jaris@ifi.uio.no>
 
 	* torrent/rate.h: Using deque instead of list to increase performance.

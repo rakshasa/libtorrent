@@ -28,7 +28,7 @@ class Throttle {
   Rate& up() { return m_up; }
   Rate& down() { return m_down; }
   
-  int left() { return m_left; }
+  int left();
   
   void spent(unsigned int bytes);
 

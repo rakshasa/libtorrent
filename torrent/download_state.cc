@@ -6,6 +6,7 @@
 #include "download_state.h"
 #include "peer_connection.h"
 #include "peer_handshake.h"
+#include "throttle_control.h"
 #include <algo/algo.h>
 
 using namespace algo;
@@ -24,23 +25,6 @@ DownloadState::~DownloadState() {
   std::for_each(m_connections.begin(), m_connections.end(), delete_on());
 
   m_files.closeAll();
-}
-
-void DownloadState::removeConnection(PeerConnection* p) {
-  Connections::iterator itr = std::find(m_connections.begin(), m_connections.end(), p);
-
-  if (itr == m_connections.end())
-    throw internal_error("Tried to remove peer connection from download that doesn't exist");
-
-  delete *itr;
-  m_connections.erase(itr);
-
-  // TODO: Remove this when we're stable
-  if (std::find(m_connections.begin(), m_connections.end(), p) != m_connections.end())
-    throw internal_error("Duplicate PeerConnections in Download");
-
-  chokeBalance();
-  connectPeers();
 }
 
 void DownloadState::chunkDone(Chunk& c) {
@@ -74,13 +58,10 @@ void DownloadState::chokeBalance() {
 
   // TODO: Optimize, do a single pass with a 's' sized list of (un)chokings.
   if (s > 0) {
-//     while (s && itr != m_connections.end()) {
-//       if (
-
-    m_connections.sort(gt(call_member(call_member(&PeerConnection::down),
-				      &PeerConnection::Sub::c_rate),
-			  call_member(call_member(&PeerConnection::down),
-				      &PeerConnection::Sub::c_rate)));
+    m_connections.sort(gt(call_member(call_member(&PeerConnection::throttle),
+				      &Throttle::down),
+			  call_member(call_member(&PeerConnection::throttle),
+				      &Throttle::down)));
 
     // unchoke peers.
     for (Connections::iterator itr = m_connections.begin();
@@ -96,10 +77,10 @@ void DownloadState::chokeBalance() {
   } else if (s < 0) {
     // Sort so we choke slow uploaders first.
     // TODO: Should we sort by unchoked too?
-    m_connections.sort(lt(call_member(call_member(&PeerConnection::down),
-				      &PeerConnection::Sub::c_rate),
-			  call_member(call_member(&PeerConnection::down),
-				      &PeerConnection::Sub::c_rate)));
+    m_connections.sort(lt(call_member(call_member(&PeerConnection::throttle),
+				      &Throttle::down),
+			  call_member(call_member(&PeerConnection::throttle),
+				      &Throttle::down)));
 
     for (Connections::iterator itr = m_connections.begin();
 	 itr != m_connections.end() && s != 0; ++itr) {
@@ -155,12 +136,34 @@ void DownloadState::addConnection(int fd, const Peer& p) {
   PeerConnection* c = new PeerConnection();
 
   c->set(fd, p, this);
+
+  c->throttle().set_parent(&ThrottleControl::global().root());
+  c->throttle().set_settings(ThrottleControl::global().settings(ThrottleControl::SETTINGS_PEER));
+  c->throttle().set_socket(c);
+
   m_connections.push_back(c);
 
   Peers::iterator itr = std::find(m_availablePeers.begin(), m_availablePeers.end(), p);
 
   if (itr != m_availablePeers.end())
     m_availablePeers.erase(itr);
+}
+
+void DownloadState::removeConnection(PeerConnection* p) {
+  Connections::iterator itr = std::find(m_connections.begin(), m_connections.end(), p);
+
+  if (itr == m_connections.end())
+    throw internal_error("Tried to remove peer connection from download that doesn't exist");
+
+  delete *itr;
+  m_connections.erase(itr);
+
+  // TODO: Remove this when we're stable
+  if (std::find(m_connections.begin(), m_connections.end(), p) != m_connections.end())
+    throw internal_error("Duplicate PeerConnections in Download");
+
+  chokeBalance();
+  connectPeers();
 }
 
 void DownloadState::connectPeers() {

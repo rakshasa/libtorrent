@@ -1,14 +1,22 @@
 #include <iostream>
 #include <fstream>
 #include <signal.h>
-#include <execinfo.h>
 #include <ncurses.h>
-#include <sys/select.h>
 #include <torrent/torrent.h>
 #include <torrent/exceptions.h>
 
+#include <unistd.h>
+//#include <sys/select.h>
+
 #include "display.h"
 #include "download.h"
+
+// Uncomment this if your system doesn't have execinfo.h
+#define USE_EXECINFO
+
+#ifdef USE_EXECINFO
+#include <execinfo.h>
+#endif
 
 std::list<std::string> log_entries;
 
@@ -30,7 +38,10 @@ void signal_handler(int signum) {
 
   switch (signum) {
   case SIGINT:
-    std::cout << "Shuting down" << std::endl;
+    if (shutdown) {
+      torrent::cleanup();
+      exit(0);
+    }
 
     shutdown = true;
 
@@ -45,6 +56,9 @@ void signal_handler(int signum) {
 
     called = true;
 
+    std::cout << "Signal SEGFAULT recived, dumping stack:" << std::endl;
+
+#ifdef USE_EXECINFO
     // Print the stack and exit.
     stackSize = backtrace(stackPtrs, 50);
     stackStrings = backtrace_symbols(stackPtrs, stackSize);
@@ -53,10 +67,9 @@ void signal_handler(int signum) {
     delete display;
     display = NULL;
 
-    std::cout << "Signal SEGFAULT recived, dumping stack:" << std::endl;
-
     for (int i = 0; i < stackSize; ++i)
       std::cout << i << ' ' << stackStrings[i] << std::endl;
+#endif
 
     exit(-1);
 
@@ -70,6 +83,8 @@ int main(int argc, char** argv) {
   fd_set rset, wset, eset;
   struct timeval timeout;
 
+  display = new Display();
+
   signal(SIGINT, signal_handler);
   signal(SIGSEGV, signal_handler);
 
@@ -78,7 +93,6 @@ int main(int argc, char** argv) {
   torrent::initialize();
   torrent::DList::const_iterator curDownload = torrent::downloads().end();
 
-  display = new Display();
   Download download(curDownload);
 
   DisplayState displayState = DISPLAY_MAIN;
@@ -99,7 +113,9 @@ int main(int argc, char** argv) {
   int64_t lastDraw = torrent::get(torrent::TIME_CURRENT) - (1 << 22);
   int maxY, maxX;
 
-  while (!shutdown) {
+  while (!shutdown || !torrent::get(torrent::SHUTDOWN_DONE)) {
+    loops++;
+
     if (lastDraw + 1000000 < torrent::get(torrent::TIME_CURRENT)) {
       lastDraw = torrent::get(torrent::TIME_CURRENT);
       

@@ -51,15 +51,17 @@ int PeerConnection::fd() {
   return m_fd;
 }
 
-bool PeerConnection::writeChunk() {
+bool PeerConnection::writeChunk(int maxBytes) {
   Chunk::Part& part = m_up.data.get(m_up.list.front().offset() + m_up.pos);
 
+  // Length between piece start and the end of the current part of the piece.
+  unsigned int length = std::min(part.first + part.second.length() - m_up.list.front().offset(),
+				 m_up.list.front().length());
+
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
-  if (!writeBuf(part.second.data() + m_up.list.front().offset() + m_up.pos - part.first,
-		std::min(part.first + part.second.length() - m_up.list.front().offset(),
-			 m_up.list.front().length()),
-		m_up.pos))
-    return false;
+  writeBuf(part.second.data() + m_up.list.front().offset() + m_up.pos - part.first,
+	   std::min(length, m_up.pos + maxBytes),
+	   m_up.pos);
 
   return m_up.pos == m_up.list.front().length();
 }

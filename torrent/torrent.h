@@ -3,7 +3,7 @@
 
 #include <list>
 #include <string>
-#include <stdint.h>
+#include <inttypes.h>
 #include <sys/types.h>
 
 namespace torrent {

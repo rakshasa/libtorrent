@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_TIMER_H
 #define LIBTORRENT_TIMER_H
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <sys/time.h>
 
 namespace torrent {

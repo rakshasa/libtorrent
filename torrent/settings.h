@@ -41,8 +41,6 @@ class ThrottleSettings {
  public:
   ThrottleSettings();
 
-  bool unlimited;
-
   int constantRate;
 
   static int minPeriod;

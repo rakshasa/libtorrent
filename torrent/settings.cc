@@ -28,12 +28,11 @@ DownloadSettings::DownloadSettings() :
 {}
 
 int ThrottleSettings::minPeriod = 500000;
-int ThrottleSettings::wakeupPoint = 512;
+int ThrottleSettings::wakeupPoint = 2048;
 int ThrottleSettings::minChunk = 512;
 
 ThrottleSettings::ThrottleSettings() :
-  unlimited(true),
-  constantRate(0)
+  constantRate(-1)
 {}
 
 }

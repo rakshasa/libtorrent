@@ -268,7 +268,7 @@ void PeerConnection::read() {
     previous = m_down.pos;
     s = readChunk();
 
-    m_down.rate.add(m_down.pos - previous);
+    m_throttle.down().add(m_down.pos - previous);
     m_download->rateDown().add(m_down.pos - previous);
     
     if (!s) {
@@ -303,7 +303,7 @@ void PeerConnection::read() {
 		BUFFER_SIZE : m_down.length,
 		m_down.pos);
 
-    m_down.rate.add(m_down.pos - previous);
+    m_throttle.down().add(m_down.pos - previous);
 
     if (!s)
       return;
@@ -341,7 +341,7 @@ void PeerConnection::read() {
 
 void PeerConnection::write() {
   bool s;
-  int previous;
+  int previous, maxBytes;
 
   m_lastMsg = Timer::cache();
 
@@ -409,9 +409,21 @@ void PeerConnection::write() {
       throw internal_error("WRITE_PIECE on an empty list");
 
     previous = m_up.pos;
-    s = writeChunk();
+    maxBytes = m_throttle.left();
+    
+    if (maxBytes == 0) {
+      removeWrite();
+      return;
+    }
 
-    m_up.rate.add(m_up.pos - previous);
+    if (maxBytes < 0)
+      throw internal_error("PeerConnection::write() got maxBytes <= 0");
+
+    s = writeChunk(maxBytes);
+
+    m_throttle.up().add(m_up.pos - previous);
+    m_throttle.spent(m_up.pos - previous);
+
     m_download->rateUp().add(m_up.pos - previous);
 
     if (!s)
@@ -513,6 +525,8 @@ void PeerConnection::parseReadBuf() {
       m_up.list.push_back(Piece(index, offset, length));
       insertWrite();
 
+      m_throttle.activate();
+
     } else if (rItr != m_up.list.end()) {
 
       if (m_up.state != WRITE_MSG || rItr != m_up.list.begin())
@@ -553,6 +567,14 @@ void PeerConnection::fillWriteBuf() {
   if (m_sendChoked) {
     m_sendChoked = false;
 
+    if (m_up.choked) {
+      // Clear the request queue and mmaped chunk.
+      m_up.list.clear();
+      m_up.data = Chunk();
+
+      m_throttle.idle();
+    }
+
     if ((Timer::cache() - m_lastChoked).seconds() < 10) {
       // Wait with the choke message.
       insertService(m_lastChoked + 10 * 1000000,
@@ -563,12 +585,6 @@ void PeerConnection::fillWriteBuf() {
       bufCmd(m_up.choked ? CHOKE : UNCHOKE, 1);
       
       m_lastChoked = Timer::cache();
-      
-      if (m_up.choked) {
-	// Clear the request queue and mmaped chunk.
-	m_up.list.clear();
-	m_up.data = Chunk();
-      }
     }
   }
 

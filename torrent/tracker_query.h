@@ -3,7 +3,7 @@
 
 #include <map>
 #include <iosfwd>
-#include <stdint.h>
+#include <inttypes.h>
 #include "peer.h"
 #include "socket_base.h"
 #include "service.h"

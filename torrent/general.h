@@ -2,7 +2,6 @@
 #define LIBTORRENT_GENERAL_H
 
 #include <string>
-#include <stdint.h>
 #include <vector>
 
 namespace torrent {

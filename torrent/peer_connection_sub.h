@@ -16,8 +16,6 @@ class Sub {
   bool c_choked() const { return choked; }
   bool c_interested() const { return interested; }
 
-  Rate& c_rate() { return rate; }
-
   PieceList& c_list() { return list; }
 
  protected:
@@ -34,6 +32,4 @@ class Sub {
   
   Chunk data;
   PieceList list;
-
-  Rate rate;
 };
