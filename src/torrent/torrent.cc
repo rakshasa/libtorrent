@@ -208,8 +208,8 @@ download_create(std::istream* s) {
   if (s == NULL)
     throw client_error("torrent::download_create(...) received a NULL pointer");
 
-  // TODO: Should we clear failed bits?
-  s->clear();
+  if (!s->good())
+    throw input_error("Could not create download, the input stream is not valid");
 
   std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
 
@@ -217,7 +217,7 @@ download_create(std::istream* s) {
 
   if (s->fail())
     // Make it configurable whetever we throw or return .end()?
-    throw input_error("Could not parse Bencoded torrent");
+    throw input_error("Could not create download, failed to parse the bencoded data");
   
   d->get_main().set_port(listen->get_port());
 

@@ -33,5 +33,6 @@ EXTRA_DIST= \
 	client/http.h \
 	client/rtorrent.cc \
 	client/queue.cc \
-	client/queue.h
-
+	client/queue.h \
+	doc/main.xml \
+	doc/torrent.xml
