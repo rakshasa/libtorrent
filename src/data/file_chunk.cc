@@ -32,7 +32,7 @@ void FileChunk::incore(unsigned char* buf, unsigned int offset, unsigned int len
     std::stringstream s;
 
     s << "Tried to check incore status in FileChunk with out of range parameters or a NULL buffer ("
-      << std::hex << '(' << (unsigned int)m_begin << ',' << (unsigned int)m_end << ')';
+      << std::hex << '(' << m_begin << ',' << m_end << ')';
 
     throw internal_error(s.str());
   }
@@ -63,7 +63,7 @@ void FileChunk::advise(unsigned int offset, unsigned int len, int advice) {
     std::stringstream s;
 
     s << "Tried to advise FileChunk with out of range parameters"
-      << std::hex << '(' << (unsigned int)m_begin << ',' << (unsigned int)m_end << ',' << offset << ',' << len << ')';
+      << std::hex << '(' << m_begin << ',' << m_end << ',' << offset << ',' << len << ')';
 
     throw internal_error(s.str());
   }
