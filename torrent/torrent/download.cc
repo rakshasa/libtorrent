@@ -200,6 +200,11 @@ Download::get_entry_size() {
   return ((DownloadMain*)m_ptr)->state().content().get_files().size();
 }
 
+const Download::SeenVector&
+Download::get_seen() {
+  return ((DownloadMain*)m_ptr)->state().bfCounter().field();
+}
+
 void
 Download::update_priorities() {
   Priority& p = ((DownloadMain*)m_ptr)->state().delegator().select().get_priority();

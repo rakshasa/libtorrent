@@ -77,12 +77,12 @@ void Download::draw() {
 
   case DRAW_BITFIELD:
     mvprintw(1, 0, "Bitfield: Local");
-    drawBitfield(m_dItr.get_bitfield_data(), m_dItr.get_bitfield_size(), 2, maxY - 3);
+    drawBitfield(m_dItr.get_bitfield_data(), m_dItr.get_bitfield_size() / 8, 2, maxY - 3);
     break;
 
   case DRAW_PEER_BITFIELD:
     mvprintw(1, 0, "Bitfield: %s", m_pItr->get_dns().c_str());
-    drawBitfield(m_pItr->get_bitfield_data(), m_pItr->get_bitfield_size(), 2, maxY - 3);
+    drawBitfield(m_pItr->get_bitfield_data(), m_pItr->get_bitfield_size() / 8, 2, maxY - 3);
     break;
 
   case DRAW_ENTRY:
@@ -321,7 +321,7 @@ void Download::drawPeers(int y1, int y2) {
     x += 7;
 
     mvprintw(i, x, "%i/%i",
-	     itr->get_incoming_queue_size(),
+	     itr->get_outgoing_queue_size(),
 	     itr->get_incoming_queue_size());
     x += 6;
 
@@ -337,29 +337,21 @@ void Download::drawPeers(int y1, int y2) {
 }
 
 void Download::drawSeen(int y1, int y2) {
-  int maxX, maxY;
+  unsigned int maxX, maxY;
 
   getmaxyx(stdscr, maxY, maxX);
 
   mvprintw(y1, 0, "Seen bitfields");
 
-//   std::string s = m_dItr.get_BITFIELD_SEEN();
+  const torrent::Download::SeenVector& v = m_dItr.get_seen();
 
-//   for (std::string::iterator itr = s.begin(); itr != s.end(); ++itr)
-//     if (*itr < 10)
-//       *itr = '0' + *itr;
-//     else if (*itr < 16)
-//       *itr = 'A' + *itr - 10;
-//     else
-//       *itr = 'X';
-  
-//   for (int i = y1 + 1, pos = 0; i < y2; ++i, pos += maxX)
-//     if ((signed)s.size() - pos > maxX) {
-//       mvprintw(i, 0, "%s", s.substr(pos, maxX).c_str());
-//     } else {
-//       mvprintw(i, 0, "%s", s.substr(pos, s.size() - pos).c_str());
-//       break;
-//     }
+  for (unsigned int i = 0; i < v.size() && i / maxX < (unsigned)(y2 - y1); ++i)
+    if (v[i] < 10)
+      mvprintw(i / maxX + y1, i % maxX, "%c", '0' + v[i]);
+    else if (v[i] < 16)
+      mvprintw(i / maxX + y1, i % maxX, "%c", 'A' + v[i] - 10);
+    else
+      mvprintw(i / maxX + y1, i % maxX, "%c", 'X');
 }
 
 void Download::drawBitfield(const unsigned char* bf, int size, int y1, int y2) {

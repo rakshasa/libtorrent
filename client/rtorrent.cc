@@ -23,6 +23,12 @@
 
 using namespace algo;
 
+typedef enum {
+  DISPLAY_MAIN,
+  DISPLAY_DOWNLOAD,
+  DISPLAY_LOG
+} DisplayState;
+
 std::list<std::string> log_entries;
 torrent::DList downloads;
 
@@ -32,16 +38,18 @@ std::string inputBuf;
 Display* display = NULL;
 bool shutdown = false;
 
-extern Queue globalQueue;
+Download* download = NULL;
+DisplayState displayState = DISPLAY_MAIN;
 
-typedef enum {
-  DISPLAY_MAIN,
-  DISPLAY_DOWNLOAD,
-  DISPLAY_LOG
-} DisplayState;
+extern Queue globalQueue;
 
 void do_shutdown() {
   shutdown = true;
+
+  delete download;
+
+  download = NULL;
+  displayState = DISPLAY_MAIN;
 
   torrent::listen_close();
 
@@ -133,10 +141,6 @@ int main(int argc, char** argv) {
   
   torrent::download_list(downloads);
   torrent::DList::iterator curDownload = downloads.end();
-
-  Download* download = new Download(torrent::Download(NULL));
-
-  DisplayState displayState = DISPLAY_MAIN;
 
   for (fIndex = 1; fIndex < argc; ++fIndex) {
 
@@ -367,6 +371,12 @@ int main(int argc, char** argv) {
 
 	case DISPLAY_DOWNLOAD:
 	  displayState = download->key(c) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
+
+	  if (displayState != DISPLAY_DOWNLOAD) {
+	    delete download;
+	    download = NULL;
+	  }
+
 	  break;
 
 	case DISPLAY_LOG:

@@ -6,6 +6,7 @@
 #include <torrent/peer.h>
 
 #include <list>
+#include <vector>
 #include <sigc++/signal.h>
 
 namespace torrent {
@@ -16,6 +17,8 @@ typedef std::list<Peer> PList;
 
 class Download {
 public:
+  typedef std::vector<uint16_t> SeenVector;
+
   Download() :        m_ptr(NULL) {}
   Download(void* d) : m_ptr(d) {}
 
@@ -72,6 +75,8 @@ public:
 
   Entry                get_entry(uint32_t i);
   uint32_t             get_entry_size();
+
+  const SeenVector&    get_seen();
 
   // Call this when you want the modifications of the download priorities
   // in the entries to take effect.
