@@ -4,7 +4,7 @@
 
 #include "general.h"
 #include "exceptions.h"
-#include "download.h"
+#include "download_main.h"
 #include "peer_handshake.h"
 
 #include <unistd.h>
@@ -101,7 +101,7 @@ bool PeerHandshake::connect(const PeerInfo& p, DownloadState* d) {
 }
 
 void PeerHandshake::read() {
-  Download* d;
+  DownloadMain* d;
 
   try {
 
@@ -111,7 +111,7 @@ void PeerHandshake::read() {
       return;
 
     if (m_incoming) {
-      if ((d = Download::getDownload(m_infoHash)) != NULL) {
+      if ((d = DownloadMain::getDownload(m_infoHash)) != NULL) {
 	m_download = &d->state();
 
 	removeRead();

@@ -163,7 +163,7 @@ int DownloadState::countConnections() const {
   return s;
 }
 
-void DownloadState::download_stats(uint64_t& up, uint64_t& down, uint64_t& left) {
+void DownloadState::download_stats(uint64_t& down, uint64_t& up, uint64_t& left) {
   up = m_rateUp.total();
   down = m_rateDown.total();
   left = m_content.get_size() - m_content.get_completed() * m_content.get_storage().get_chunksize();

@@ -7,9 +7,9 @@
 #include "general.h"
 #include "bitfield.h"
 #include "exceptions.h"
-#include "download.h"
 #include "peer_handshake.h"
 #include "settings.h"
+#include "bencode.h"
 
 #include <stdlib.h>
 #include <iomanip>

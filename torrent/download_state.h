@@ -56,7 +56,7 @@ class DownloadState {
 
   void addConnection(int fd, const PeerInfo& p);
 
-  void download_stats(uint64_t& up, uint64_t& down, uint64_t& left);
+  void download_stats(uint64_t& down, uint64_t& up, uint64_t& left);
 
   void connect_peers();
 

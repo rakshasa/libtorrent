@@ -8,7 +8,7 @@
 
 #include "peer_connection.h"
 #include "exceptions.h"
-#include "download.h"
+#include "download_state.h"
 
 #define BUFFER_SIZE (1<<9)
 

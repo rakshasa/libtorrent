@@ -10,7 +10,7 @@
 #include <sigc++/signal.h>
 
 #include "exceptions.h"
-#include "download.h"
+#include "download_main.h"
 #include "general.h"
 #include "net/listen.h"
 #include "peer_handshake.h"
@@ -81,8 +81,8 @@ void initialize(int beginPort, int endPort) {
 void shutdown() {
   listen->close();
 
-  std::for_each(Download::downloads().begin(), Download::downloads().end(),
-		call_member(&Download::stop));
+  std::for_each(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
+		call_member(&DownloadMain::stop));
 }
 
 // Clean up, close stuff. Calling, and waiting, for shutdown is
@@ -93,7 +93,7 @@ void cleanup() {
  
   ThrottleControl::global().remove_service();
 
-  for_each<true>(Download::downloads().begin(), Download::downloads().end(),
+  for_each<true>(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
 		 delete_on());
 
   for_each<true>(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
@@ -173,12 +173,12 @@ DList::const_iterator create(std::istream& s) {
   
   Download* download = new Download(b);
 
-  return Download::downloads().insert(Download::downloads().end(), download);
+  return DownloadMain::downloads().insert(DownloadMain::downloads().end(), download);
 }
 
 // List container with all the current downloads.
 const DList& downloads() {
-  return Download::downloads();
+  return DownloadMain::downloads();
 }
 
 // List of all connected peers in 'd'.
@@ -193,16 +193,16 @@ void remove(DList::const_iterator d) {
   // Removing downloads happen seldomly and this provides abit more
   // security. (Besides, i really don't want to cast it to a non-const
   // iterator since those are two different structs)
-  DList::iterator itr = std::find_if(Download::downloads().begin(), Download::downloads().end(),
-				     eq(call_member(call_member(&Download::state), &DownloadState::hash),
+  DList::iterator itr = std::find_if(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
+				     eq(call_member(call_member(&DownloadMain::state), &DownloadState::hash),
 					ref((*d)->state().hash())));
 
-  if (itr == Download::downloads().end())
+  if (itr == DownloadMain::downloads().end())
     throw internal_error("Application tried to remove a non-existant download");
 
   delete *itr;
 
-  //Download::downloads().erase(itr);
+  //DownloadMain::downloads().erase(itr);
 }
 
 bool start(DList::const_iterator d) {
@@ -227,9 +227,9 @@ int64_t get(GValue t) {
     return PeerHandshake::handshakes().size();
 
   case SHUTDOWN_DONE:
-    return std::find_if(Download::downloads().begin(), Download::downloads().end(),
-			bool_not(call_member(&Download::isStopped)))
-      == Download::downloads().end();
+    return std::find_if(DownloadMain::downloads().begin(), DownloadMain::downloads().end(),
+			bool_not(call_member(&DownloadMain::isStopped)))
+      == DownloadMain::downloads().end();
 
   case FILES_CHECK_WAIT:
     return Settings::filesCheckWait;
@@ -536,12 +536,12 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
     if (v < 10 * 1000000 || v >= 3600 * 1000000)
       break;
 
-    if ((*d)->in_service(Download::CHOKE_CYCLE)) {
-      timer = (*d)->when_service(Download::CHOKE_CYCLE);
+    if ((*d)->in_service(DownloadMain::CHOKE_CYCLE)) {
+      timer = (*d)->when_service(DownloadMain::CHOKE_CYCLE);
 
-      (*d)->remove_service(Download::CHOKE_CYCLE);
+      (*d)->remove_service(DownloadMain::CHOKE_CYCLE);
       (*d)->insert_service(timer - (*d)->state().settings().chokeCycle + v,
-			  Download::CHOKE_CYCLE);
+			  DownloadMain::CHOKE_CYCLE);
     }
 
     (*d)->state().settings().chokeCycle = v;
