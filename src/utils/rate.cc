@@ -23,12 +23,10 @@ Rate::data_time_span() const {
 
 uint32_t
 Rate::rate() const {
-  // Do an empty check here since having a non-empty container that
-  // gets emptied in discard_old() is relatively rare.
-  if (m_container.empty())
-    return 0;
-
   discard_old();
+
+  if (m_container.empty() || m_container.front().first < Timer::cache() - 20 * 1000000)
+    return 0;
 
   return m_current / std::max<uint32_t>(10, data_time_span());
 }

@@ -15,7 +15,7 @@ public:
   typedef std::pair<Timer, uint32_t> value_type;
   typedef std::deque<value_type>     Container;
 
-  static const uint32_t timespan = 30;
+  static const uint32_t timespan = 60;
 
   Rate() : m_current(0), m_total(0) {}
 
