@@ -26,3 +26,7 @@ torrent::Delegator::delegate(std::basic_string<char, std::char_traits<char>, std
 Aborted
 
 Removed a download, had deleted it's file first. Restarted it with an url. Another download was going on. No file managed to be created.
+
+
+Torrent finished, quit with ^C
+test.cc caught "Connection write fd(5) state(10) "Throttle::spendt(...) error, used to many bytes""
