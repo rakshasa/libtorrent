@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_HTTP_H
-#define LIBTORRENT_HTTP_H
+#ifndef LIBTORRENT_HTTP_GET_H
+#define LIBTORRENT_HTTP_GET_H
 
 #include <string>
 #include <iosfwd>
@@ -10,10 +10,10 @@ namespace torrent {
 
 class Service;
 
-class Http : public SocketBase {
+class HttpGet : public SocketBase {
  public:
-  Http();
-  ~Http();
+  HttpGet();
+  ~HttpGet();
 
   void set_url(const std::string& url);
   void set_out(std::ostream* out);
@@ -30,7 +30,11 @@ class Http : public SocketBase {
   virtual void write();
   virtual void except();
 
+  virtual int fd();
+
  private:
+  HttpGet(const HttpGet&);
+  void operator = (const HttpGet&);
 
   void parse_header();
 

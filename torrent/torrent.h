@@ -5,6 +5,7 @@
 #include <string>
 #include <inttypes.h>
 #include <sys/types.h>
+#include <iosfwd>
 
 namespace torrent {
 
@@ -162,6 +163,20 @@ void set(DList::const_iterator d, DValue t, int64_t v);
 
 void set(GString t, const std::string& s);
 void set(DList::const_iterator d, DString t, const std::string& s);
+
+// Temporary interface for doing http downloads. Since we need to
+// implement it for the tracker we might as well use it for other stuff.
+
+// Could we perhaps use signature class or something for success/fail?
+
+typedef void (*HttpFunc)(void*);
+
+int http_get(const std::string& url,
+	     std::ostream* output,
+	     HttpFunc success, void* successArg,
+	     HttpFunc failed, void* failedArg);
+
+void http_cancel(int id); 
 
 }
 

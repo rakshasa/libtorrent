@@ -10,6 +10,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "general.h"
+#include "http_list.h"
 #include "listen.h"
 #include "peer_handshake.h"
 #include "peer_connection.h"
@@ -22,6 +23,8 @@
 using namespace algo;
 
 namespace torrent {
+
+HttpList httpList;
 
 int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
@@ -65,6 +68,7 @@ void initialize(int beginPort, int endPort) {
 
 void shutdown() {
   Listen::close();
+  httpList.cleanup();
 
   std::for_each(Download::downloads().begin(), Download::downloads().end(),
 		call_member(&Download::stop));
@@ -75,6 +79,7 @@ void shutdown() {
 void cleanup() {
   // Close again if shutdown wasn't called.
   Listen::close();
+  httpList.cleanup();
  
   ThrottleControl::global().removeService();
 
@@ -524,6 +529,19 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
 }
 
 void set(DList::const_iterator d, DString t, const std::string& s) {
+}
+
+int http_get(const std::string& url,
+	     std::ostream* output,
+	     HttpFunc success, void* successArg,
+	     HttpFunc failed, void* failedArg) {
+  return httpList.get(url, output,
+		      success, successArg,
+		      failed, failedArg);
+}
+
+void http_cancel(int id) {
+  httpList.cancel(id);
 }
 
 }

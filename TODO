@@ -42,6 +42,10 @@ Frobnicate the tracker reconnect timeout.
 
 Add host lookup+connection to SocketBase
 
+Delegator doesn't need to copy the bitfield, do the notIn algorithm as you iterate.
+
+HttpGet should handle urls with only domain name (+port), without the leading '/'.
+
 
 IN/AFTER API REDESIGN:
 

@@ -3,7 +3,7 @@
 #endif
 
 #include "exceptions.h"
-#include "http.h"
+#include "http_get.h"
 #include "service.h"
 #include "settings.h"
 
@@ -14,7 +14,7 @@
 
 namespace torrent {
 
-Http::Http() :
+HttpGet::HttpGet() :
   m_fd(-1),
   m_buf(NULL),
   m_code(0),
@@ -23,11 +23,11 @@ Http::Http() :
   m_failedService(NULL) {
 }
 
-Http::~Http() {
+HttpGet::~HttpGet() {
   close();
 }
 
-void Http::set_url(const std::string& url) {
+void HttpGet::set_url(const std::string& url) {
   // TODO: Don't change in the midle of a request.
 
   int port, s;
@@ -42,34 +42,34 @@ void Http::set_url(const std::string& url) {
 
   if ((s = std::sscanf(url.c_str(), "http://%256[^:]:%i/%1024s", hostBuf, &port, pathBuf)) != 3 &&
       (s = std::sscanf(url.c_str(), "http://%256[^/]/%1024s", hostBuf, pathBuf)) != 2)
-    throw input_error("Http::start() received bad URL");
+    throw input_error("HttpGet::start() received bad URL");
 
   if (s == 2)
     port = 80;
 
   if (port <= 0 || port >= 1 << 16)
-    throw input_error("Http::start() received bad port number");
+    throw input_error("HttpGet::start() received bad port number");
 
   m_host = hostBuf;
   m_path = pathBuf;
   m_port = port;
 }
 
-void Http::set_out(std::ostream* out) {
+void HttpGet::set_out(std::ostream* out) {
   m_out = out;
 }
 
-void Http::set_success(Service* service, int type) {
+void HttpGet::set_success(Service* service, int type) {
   m_successService = service;
   m_successType = type;
 }
 
-void Http::set_failed(Service* service, int type) {
+void HttpGet::set_failed(Service* service, int type) {
   m_failedService = service;
   m_failedType = type;
 }
 
-void Http::start() {
+void HttpGet::start() {
   close();
 
   sockaddr_in sa;
@@ -86,18 +86,19 @@ void Http::start() {
   insertExcept();
 }
 
-void Http::close() {
+void HttpGet::close() {
   if (m_fd < 0)
     return;
 
   ::close(m_fd);
+
   delete m_buf;
 
   m_fd = -1;
   m_buf = NULL;
 }
 
-void Http::read() {
+void HttpGet::read() {
   try {
 
     if (m_bufEnd == -1) {
@@ -108,7 +109,7 @@ void Http::read() {
 
     } else if (m_bufEnd > 0) {
       // Content with a fixed length.
-      readBuf(m_buf, m_bufEnd, m_bufPos = 0);
+      readBuf(m_buf, std::min(m_bufEnd, m_bufSize), m_bufPos = 0);
 
       if (m_out)
 	m_out->write(m_buf, m_bufPos);
@@ -139,7 +140,7 @@ void Http::read() {
   }
 }
 
-void Http::write() {
+void HttpGet::write() {
   try {
 
     if (m_bufEnd == 0) {
@@ -160,7 +161,7 @@ void Http::write() {
 			  Settings::httpName.c_str());
 
       if (m_bufEnd < 0 || m_bufEnd >= m_bufSize)
-	internal_error("Http request snprintf failed, overflow or other error");
+	internal_error("HttpGet request snprintf failed, overflow or other error");
     }
 
     if (!writeBuf(m_buf + m_bufPos, m_bufEnd, m_bufPos))
@@ -177,7 +178,7 @@ void Http::write() {
   }
 }
 
-void Http::except() {
+void HttpGet::except() {
   close();
 
   if (m_failedService)
@@ -185,7 +186,7 @@ void Http::except() {
 }
 
 // ParseHeader throws closeConnection if done
-void Http::parse_header() {
+void HttpGet::parse_header() {
   int a, size = -1;
   std::string buf;
 
@@ -210,28 +211,46 @@ void Http::parse_header() {
 	size = a;
       }
       
+      if (!buf.length())
+	break;
+
       buf.clear();
 
     } else if (*pos != '\r') {
       buf += *pos;
     }
 
-  } while (*(pos++) != '\n' || buf.length());
+    ++pos;
+
+  } while (true);
+
+  ++pos;
 
   if (m_code == 200) {
-    if (m_out)
-      m_out->write(pos, end - pos);
-    
+
     m_bufEnd = 0;
+
+    if (size < 0) {
+      if (m_out)
+	m_out->write(pos, end - pos);
     
-    if (size == 0)
-      throw close_connection();
-    else if (size > 0)
-      m_bufEnd = size;
+    } else {
+      if (m_out)
+	m_out->write(pos, std::min(end - pos, size));
+
+      if (size == std::min(end - pos, size))
+	throw close_connection();
+      else
+	m_bufEnd = size - (end - pos);
+    }
 
   } else {
     throw network_error("Returned bad http code");
   }
+}
+
+int HttpGet::fd() {
+  return m_fd;
 }
 
 }

@@ -1,7 +1,11 @@
 #include "display.h"
+#include "http.h"
 #include <ncurses.h>
 
 int loops = 0;
+
+extern bool inputActive;
+extern std::string inputBuf;
 
 Display::Display() {
   initscr();
@@ -30,9 +34,12 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
 
   unsigned int fit = (maxY - 2) / 3;
 
-  mvprintw(0, std::max(0, (maxX - (signed)torrent::get(torrent::LIBRARY_NAME).size()) / 2 - 4),
-	   "*** %s ***",
-	   torrent::get(torrent::LIBRARY_NAME).c_str());
+  if (!inputActive)
+    mvprintw(0, std::max(0, (maxX - (signed)torrent::get(torrent::LIBRARY_NAME).size()) / 2 - 4),
+	     "*** %s ***",
+	     torrent::get(torrent::LIBRARY_NAME).c_str());
+  else
+    mvprintw(0, 0, "Input: %s", inputBuf.c_str());
 
   torrent::DList::const_iterator first = torrent::downloads().begin();
   torrent::DList::const_iterator last = torrent::downloads().end();
@@ -85,11 +92,11 @@ void Display::drawDownloads(torrent::DList::const_iterator mark) {
 	     torrent::get(first, torrent::TRACKER_MSG).c_str());
   }
 
-  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Loops: %i",
+  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i",
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
 	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000,
-	   loops);
+	   httpList.size());
 
   refresh();
 }

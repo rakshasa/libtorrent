@@ -22,8 +22,10 @@ libtorrent_la_SOURCES = \
         files_check.h \
         general.cc \
         general.h \
-	http.cc \
-	http.h \
+	http_get.cc \
+	http_get.h \
+	http_list.cc \
+	http_list.h \
         listen.cc \
         listen.h \
         peer.cc \

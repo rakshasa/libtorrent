@@ -11,6 +11,12 @@ If your system doesn't have "execinfo.h", uncomment "#define
 USE_EXECINFO" in rtorrent.cc. This will be handled by an autoconf
 script later.
 
+Files that start with "http://" are downloaded. The "Http:" counter on
+the bottom of the main page shows how many downloads are in
+progress. Check the logs 'l' to see if the download of a torrent
+failed. You can also add torrents with the Enter key.
+
+
 All:
 
   Ctrl-C  - Quit
@@ -30,6 +36,7 @@ Main:
   Up/Down - Select a download
   Right   - View download
 
+  Enter   - Add torrent url
   L       - View Log
 
 

@@ -39,6 +39,10 @@ public:
       m_start[i / 8] &= ~(1 << 7 - i % 8);
   }
 
+  bool get(unsigned int i) const {
+    return m_start[i / 8] & (1 << 7 - i % 8);
+  }    
+
   bool operator [] (unsigned int i) const {
     return m_start[i / 8] & (1 << 7 - i % 8);
   }

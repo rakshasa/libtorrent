@@ -10,6 +10,7 @@
 
 #include "display.h"
 #include "download.h"
+#include "http.h"
 
 // Uncomment this if your system doesn't have execinfo.h
 #define USE_EXECINFO
@@ -19,6 +20,9 @@
 #endif
 
 std::list<std::string> log_entries;
+
+bool inputActive = false;
+std::string inputBuf;
 
 Display* display = NULL;
 bool shutdown = false;
@@ -98,14 +102,21 @@ int main(int argc, char** argv) {
   DisplayState displayState = DISPLAY_MAIN;
 
   for (fIndex = 1; fIndex < argc; ++fIndex) {
-    std::fstream f(argv[fIndex], std::ios::in);
-    
-    if (!f.is_open())
-      continue;
 
-    torrent::DList::const_iterator dItr = torrent::create(f);
-    
-    torrent::start(dItr);
+    if (std::strncmp(argv[fIndex], "http://", 7) == 0) {
+      // Found an http url, download.
+      http_get(argv[fIndex]);
+
+    } else {
+      std::fstream f(argv[fIndex], std::ios::in);
+      
+      if (!f.is_open())
+	continue;
+      
+      torrent::DList::const_iterator dItr = torrent::create(f);
+      
+      torrent::start(dItr);
+    }
   }
   
   fIndex = 0;
@@ -175,82 +186,111 @@ int main(int argc, char** argv) {
 
     lastDraw -= (1 << 30);
 
-    int c = getch();
-    int64_t constRate = torrent::get(torrent::THROTTLE_ROOT_CONST_RATE);
+    int c;
 
-    switch (c) {
-    case 'a':
-      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 1000);
-      break;
+    while ((c = getch()) != ERR) {
 
-    case 'z':
-      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 1000);
-      break;
+      if (inputActive) {
+	if (c == '\n') {
+	  try {
+	    http_get(inputBuf);
+	  } catch (torrent::input_error& e) {}
 
-    case 's':
-      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 5000);
-      break;
+	  inputActive = false;
 
-    case 'x':
-      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 5000);
-      break;
+	} else if (c == KEY_BACKSPACE) {
+	  if (inputBuf.length())
+	    inputBuf.resize(inputBuf.length());
 
-    case 'd':
-      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 50000);
-      break;
+	} else if (c >= ' ' && c <= '~') {
+	  inputBuf += (char)c;
+	}
 
-    case 'c':
-      torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 50000);
-      break;
+	continue;
+      }
 
-    default:
-      switch (displayState) {
-      case DISPLAY_MAIN:
-	switch (c) {
-	case KEY_DOWN:
-	  ++curDownload;
+      int64_t constRate = torrent::get(torrent::THROTTLE_ROOT_CONST_RATE);
+
+      switch (c) {
+      case 'a':
+	torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 1000);
+	break;
+
+      case 'z':
+	torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 1000);
+	break;
+
+      case 's':
+	torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 5000);
+	break;
+
+      case 'x':
+	torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 5000);
+	break;
+
+      case 'd':
+	torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate + 50000);
+	break;
+
+      case 'c':
+	torrent::set(torrent::THROTTLE_ROOT_CONST_RATE, constRate - 50000);
+	break;
+
+      default:
+	switch (displayState) {
+	case DISPLAY_MAIN:
+	  switch (c) {
+	  case '\n':
+	  case KEY_ENTER:
+	    inputActive = true;
+	    inputBuf.clear();
+	    break;
+
+	  case KEY_DOWN:
+	    ++curDownload;
 	
-	  break;
+	    break;
 	
-	case KEY_UP:
-	  --curDownload;
+	  case KEY_UP:
+	    --curDownload;
 	
-	  break;
+	    break;
 	
-	case KEY_RIGHT:
-	  if (curDownload != torrent::downloads().end()) {
-	    download = Download(curDownload);
-	    displayState = DISPLAY_DOWNLOAD;
+	  case KEY_RIGHT:
+	    if (curDownload != torrent::downloads().end()) {
+	      download = Download(curDownload);
+	      displayState = DISPLAY_DOWNLOAD;
+	    }
+
+	    break;
+
+	  case 'l':
+	    displayState = DISPLAY_LOG;
+	    break;
+
+	  default:
+	    break;
 	  }
 
 	  break;
 
-	case 'l':
-	  displayState = DISPLAY_LOG;
+	case DISPLAY_DOWNLOAD:
+	  displayState = download.key(c) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
 	  break;
 
-	default:
-	  break;
+	case DISPLAY_LOG:
+	  switch (c) {
+	  case '\n':
+	  case ' ':
+	    displayState = DISPLAY_MAIN;
+	    break;
+	  default:
+	    break;
+	  }
 	}
 
 	break;
-
-      case DISPLAY_DOWNLOAD:
-	displayState = download.key(c) ? DISPLAY_DOWNLOAD : DISPLAY_MAIN;
-	break;
-
-      case DISPLAY_LOG:
-	switch (c) {
-	case '\n':
-	case ' ':
-	  displayState = DISPLAY_MAIN;
-	  break;
-	default:
-	  break;
-	}
       }
-
-      break;
     }
   }
 

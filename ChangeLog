@@ -1,10 +1,16 @@
+2004-08-05    <jaris@ifi.uio.no>
+
+	* client: Added support for http urls.
+
+	* delegator: Fixed a bug that caused us to request pieces the peer didn't have. (DOH!)
+
 2004-08-04    <jaris@ifi.uio.no>
 
 	* bitfield: Clean up bitfield class and opimized .notIn().
 
 	* torrent: Finished http class, testing remains.
 
-2004-08-03  Rakshasa  <jaris@student.matnat.uio.no>
+2004-08-03      <jaris@ifi.uio.no>
 
 	* torrent: Don't throw on zero length piece messages. Why do they send these?
 

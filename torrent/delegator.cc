@@ -52,12 +52,15 @@ bool Delegator::delegate(const std::string& id, const BitField& bf, std::list<Pi
 
   // Find a piece that is not queued by anyone. "" and NONE.
   std::find_if(m_chunks.begin(), m_chunks.end(),
-	       find_if_on(member(&Chunk::m_pieces),
-			  
-			  bool_and(eq(member(&PieceInfo::m_state), value(NONE)),
-				   eq(member(&PieceInfo::m_id), value(""))),
+
+	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
+			
+			find_if_on(member(&Chunk::m_pieces),
 				   
-			  assign_ref(target, back_as_ptr())));
+				   bool_and(eq(member(&PieceInfo::m_state), value(NONE)),
+					    eq(member(&PieceInfo::m_id), value(""))),
+				   
+				   assign_ref(target, back_as_ptr()))));
   
   if (target)
     goto DC_designate_return;
@@ -70,29 +73,36 @@ bool Delegator::delegate(const std::string& id, const BitField& bf, std::list<Pi
 
   // else find a piece that is queued, but cancelled. "*" and NONE.
   std::find_if(m_chunks.begin(), m_chunks.end(),
-	       find_if_on(member(&Chunk::m_pieces),
-			  
-			  bool_and(eq(member(&PieceInfo::m_state), value(NONE)),
-				   bool_not(contained_in(ref(pieces),
-							 member(&PieceInfo::m_piece)))),
 
-			  assign_ref(target, back_as_ptr())));
+	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
+
+			find_if_on(member(&Chunk::m_pieces),
+				   
+				   bool_and(eq(member(&PieceInfo::m_state), value(NONE)),
+					    bool_not(contained_in(ref(pieces),
+								  member(&PieceInfo::m_piece)))),
+				   
+				   assign_ref(target, back_as_ptr()))));
 
   if (target)
     goto DC_designate_return;
+
   // TODO: Write this asap
   //else if (many chunks left
 
   // else find piece that is being downloaded. "*" and DOWNLOADING.
   // TODO: This will only happen when there are a few pieces left. FIXME
   std::find_if(m_chunks.begin(), m_chunks.end(),
-	       find_if_on(member(&Chunk::m_pieces),
-			  
-			  bool_and(eq(member(&PieceInfo::m_state), value(DOWNLOADING)),
-				   bool_not(contained_in(ref(pieces),
-							 member(&PieceInfo::m_piece)))),
 
-			  assign_ref(target, back_as_ptr())));
+	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
+
+			find_if_on(member(&Chunk::m_pieces),
+				   
+				   bool_and(eq(member(&PieceInfo::m_state), value(DOWNLOADING)),
+					    bool_not(contained_in(ref(pieces),
+								  member(&PieceInfo::m_piece)))),
+				   
+				   assign_ref(target, back_as_ptr()))));
 
   if (target)
     goto DC_designate_return;
@@ -236,13 +246,13 @@ int Delegator::findChunk(const BitField& bf) {
       // This byte has some interesting chunks.
       for (int i = 0; i < 8; ++i)
 
-	if (*cur & ((1 << 7) >> i) &&
+	if (*cur & (1 << 7 - i) &&
 	    std::abs(m_state->bfCounter().field()[(cur - bf.data()) * 8 + i] - target) < selectedDistance) {
 	  // Found a closer match
 	  selectedIndex = (cur - bf.data()) * 8 + i;
 	  selectedDistance = std::abs(m_state->bfCounter().field()[selectedIndex] - target);
 
-	  if (!target)
+	  if (selectedDistance == 0)
 	    break;
 	}
 
