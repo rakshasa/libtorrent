@@ -30,3 +30,6 @@ Removed a download, had deleted it's file first. Restarted it with an url. Anoth
 
 Torrent finished, quit with ^C
 test.cc caught "Connection write fd(5) state(10) "Throttle::spendt(...) error, used to many bytes""
+
+
+Seen bitfield is mangled on more than 128 or 256 seen.

@@ -166,7 +166,7 @@ bool Download::key(int c) {
       break;
 
     case KEY_DOWN:
-      m_entryPos = std::max<unsigned int>(m_entryPos + 1, torrent::get(m_dItr, torrent::ENTRY_COUNT) - 1);
+      m_entryPos = std::min<unsigned int>(m_entryPos + 1, torrent::get(m_dItr, torrent::ENTRY_COUNT) - 1);
       break;
 
     case ' ':
