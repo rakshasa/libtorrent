@@ -175,14 +175,15 @@ int DownloadState::countConnections() const {
   return s;
 }
 
-void DownloadState::download_stats(uint64_t& down, uint64_t& up, uint64_t& left) {
-  up = m_rateUp.total();
-  down = m_rateDown.total();
-  left = m_content.get_size() - m_content.get_bytes_completed();
+uint64_t
+DownloadState::bytes_left() {
+  uint64_t left = m_content.get_size() - m_content.get_bytes_completed();
 
   if (left > ((uint64_t)1 << 60) ||
       (m_content.get_chunks_completed() == m_content.get_storage().get_chunkcount() && left != 0))
     throw internal_error("DownloadState::download_stats's 'left' has an invalid size"); 
+
+  return left;
 }
 
 void DownloadState::connect_peers() {

@@ -87,18 +87,14 @@ TrackerControl::is_busy() {
 
 void
 TrackerControl::send_state(TrackerState s) {
-  if ((m_state == TRACKER_STOPPED && s == TRACKER_STOPPED) ||
-      m_itr == m_list.end())
+  if ((m_state == TRACKER_STOPPED && s == TRACKER_STOPPED) || m_itr == m_list.end())
     return;
 
   m_tries = -1;
   m_state = s;
 
   send_itr(m_state);
-
   remove_service(TIMEOUT);
-
-  // TODO: If completed, set num wanted to zero.
 }
 
 void
@@ -140,14 +136,8 @@ TrackerControl::send_itr(TrackerState s) {
   if (m_itr == m_list.end())
     throw internal_error("TrackerControl tried to send with an invalid m_itr");
 
-  uint64_t downloaded = 0;
-  uint64_t uploaded = 0;
-  uint64_t left = 0;
-
-  m_slotStats(downloaded, uploaded, left);
-
   (*m_itr)->set_numwant(m_numwant);
-  (*m_itr)->send_state(m_state, downloaded, uploaded, left);
+  (*m_itr)->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
 }
 
 }

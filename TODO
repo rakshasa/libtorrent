@@ -1,4 +1,5 @@
 '*' Things are stuff that *must* be done by the next release.
+'!' Things are stuff that MUST MUST MUST be done ASAP.
 
 DownloadChunk::interested should take into consideration chunks being
 downloaded?
@@ -68,11 +69,14 @@ If you add SERVICE_CANCEL, modify discardincomingqueue.
 
 Delegator done receives done's when doing initial hash check, do something to enable the exceptions.
 
+* Make sure we don't stall+cancel if we're just *very* slow and not in endgame+fast.
+
+* Make endgameBorder do pieces instead of chunks.
+
 
 TRACKER STUFF
 
 * Make it NAT friendly, add selectable DNS
-
 
 
 API REDESIGN:

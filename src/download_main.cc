@@ -48,18 +48,6 @@ DownloadMain::DownloadMain(const bencode& b) :
   m_state.bfCounter() = BitFieldCounter(m_state.content().get_storage().get_chunkcount());
   m_state.set_net(&m_net);
 
-  m_tracker = new TrackerControl(m_state.me(), m_state.hash(), generateKey());
-
-  m_tracker->add_url(b["announce"].asString());
-
-  m_tracker->signal_peers().connect(sigc::mem_fun(*this, &DownloadMain::add_peers));
-  m_tracker->slot_stats() = sigc::mem_fun(m_state, &DownloadState::download_stats);
-
-  m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions,
-						   (void (std::list<std::string>::*)(const std::string&))&std::list<std::string>::push_back));
-
-  m_tracker->signal_peers().connect(sigc::hide(m_signalTrackerSucceded.make_slot()));
-
   HashTorrent::SignalDone sd;
 
   sd.connect(sigc::mem_fun(*this, &DownloadMain::receive_initial_hash));
@@ -69,6 +57,7 @@ DownloadMain::DownloadMain(const bencode& b) :
 
   m_state.content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 
+  setup_tracker(b);
   setup_net();
   setup_delegator();
 
@@ -135,8 +124,8 @@ void DownloadMain::service(int type) {
 
     // Clean up the download rate in case the client doesn't read
     // it regulary.
-    state().rateUp().rate();
-    state().rateDown().rate();
+    m_net.get_rate_up().rate();
+    m_net.get_rate_down().rate();
 
     s = state().canUnchoke();
 
@@ -301,6 +290,22 @@ DownloadMain::setup_net() {
   m_net.slot_chunks_count(sigc::mem_fun(m_state.content().get_storage(), &Storage::get_chunkcount));
 
   m_state.signal_chunk_passed().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::update_endgame)));
+}
+
+void
+DownloadMain::setup_tracker(const bencode& b) {
+  m_tracker = new TrackerControl(m_state.me(), m_state.hash(), generateKey());
+
+  m_tracker->add_url(b["announce"].asString());
+
+  m_tracker->signal_peers().connect(sigc::mem_fun(*this, &DownloadMain::add_peers));
+  m_tracker->signal_peers().connect(sigc::hide(m_signalTrackerSucceded.make_slot()));
+
+  m_tracker->signal_failed().connect(sigc::mem_fun(caughtExceptions, (void (std::list<std::string>::*)(const std::string&))&std::list<std::string>::push_back));
+
+  m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_rate_down(), &Rate::total));
+  m_tracker->slot_stat_up(sigc::mem_fun(m_net.get_rate_up(), &Rate::total));
+  m_tracker->slot_stat_left(sigc::mem_fun(m_state, &DownloadState::bytes_left));
 }
 
 }

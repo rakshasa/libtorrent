@@ -39,9 +39,6 @@ class DownloadState {
   uint64_t& bytesDownloaded() { return m_bytesDownloaded; }
   uint64_t& bytesUploaded() { return m_bytesUploaded; }
 
-  Rate& rateUp() { return m_rateUp; }
-  Rate& rateDown() { return m_rateDown; }
-
   DownloadSettings& settings() { return m_settings; }
   const DownloadSettings& settings() const { return m_settings; }
 
@@ -57,7 +54,7 @@ class DownloadState {
   void addConnection(int fd, const PeerInfo& p);
   void removeConnection(PeerConnection* p);
 
-  void download_stats(uint64_t& down, uint64_t& up, uint64_t& left);
+  uint64_t bytes_left();
 
   void connect_peers();
 
@@ -93,8 +90,6 @@ private:
 
   DownloadNet* m_net;
   DownloadSettings m_settings;
-  Rate m_rateUp;
-  Rate m_rateDown;
 
   BitFieldCounter m_bfCounter;
 

@@ -21,13 +21,8 @@ class TrackerHttp;
 
 class TrackerControl : public Service {
  public:
-  typedef std::list<PeerInfo>                                  PeerList;
-  typedef std::list<TrackerHttp*>                              TrackerList;
-
-  typedef sigc::signal1<void, const PeerList&>                 SignalPeers;
-  typedef sigc::signal1<void, std::string>                     SignalFailed;
-
-  typedef sigc::slot3<void, uint64_t&, uint64_t&, uint64_t&>   SlotStats;
+  typedef std::list<PeerInfo>                  PeerList;
+  typedef std::list<TrackerHttp*>              TrackerList;
 
   TrackerControl(const PeerInfo& me, const std::string& hash, const std::string& key);
   ~TrackerControl();
@@ -45,10 +40,17 @@ class TrackerControl : public Service {
 
   bool                 is_busy();
 
+  typedef sigc::signal1<void, const PeerList&> SignalPeers;
+  typedef sigc::signal1<void, std::string>     SignalFailed;
+
+  typedef sigc::slot0<uint64_t>                SlotStat;
+
   SignalPeers&         signal_peers()                          { return m_signalPeers; }
   SignalFailed&        signal_failed()                         { return m_signalFailed; }
 
-  SlotStats&           slot_stats()                            { return m_slotStats; }
+  void                 slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
+  void                 slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
+  void                 slot_stat_left(SlotStat s)              { m_slotStatLeft = s; }
 
   virtual void         service(int type);
 
@@ -80,7 +82,9 @@ class TrackerControl : public Service {
 
   SignalPeers           m_signalPeers;
   SignalFailed          m_signalFailed;
-  SlotStats             m_slotStats;
+  SlotStat              m_slotStatDown;
+  SlotStat              m_slotStatUp;
+  SlotStat              m_slotStatLeft;
 };
 
 }

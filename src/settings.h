@@ -2,6 +2,7 @@
 #define LIBTORRENT_SETTINGS_H
 
 #include <string>
+#include <inttypes.h>
 
 namespace torrent {
 
@@ -38,6 +39,7 @@ class DownloadSettings {
   int cancelTimeout;
 
   int32_t endgameBorder;
+  uint32_t endgameRate;
 
   static DownloadSettings& global() { return *m_global; }
 

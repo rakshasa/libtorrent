@@ -1,0 +1,3 @@
+Stop/start/stop/start'ing it, dunno
+
+test.cc caught "DelegatorPiece dtor called on an object that still has a reservee"

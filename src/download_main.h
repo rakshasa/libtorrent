@@ -54,6 +54,7 @@ private:
 
   void setup_delegator();
   void setup_net();
+  void setup_tracker(const bencode& b);
 
   static Downloads m_downloads;
   

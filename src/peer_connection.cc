@@ -236,7 +236,7 @@ void PeerConnection::read() {
     s = readChunk();
 
     m_throttle.down().add(m_down.pos - previous);
-    m_download->rateDown().add(m_down.pos - previous);
+    m_net->get_rate_down().add(m_down.pos - previous);
     
     if (!s)
       return;
@@ -396,7 +396,7 @@ void PeerConnection::write() {
     m_throttle.up().add(m_up.pos - previous);
     m_throttle.spent(m_up.pos - previous);
 
-    m_download->rateUp().add(m_up.pos - previous);
+    m_net->get_rate_up().add(m_up.pos - previous);
 
     if (!s)
       return;
@@ -568,7 +568,8 @@ void PeerConnection::fillWriteBuf() {
     m_sendInterested = false;
   }
 
-  if (!m_down.choked && m_up.interested && !m_stallCount && m_down.state != READ_SKIP_PIECE) {
+  if (!m_down.choked && m_up.interested && m_down.state != READ_SKIP_PIECE &&
+      m_net->should_request(m_stallCount)) {
 
     unsigned int ps = m_net->pipe_size(m_throttle.down());
 
