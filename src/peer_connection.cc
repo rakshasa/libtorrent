@@ -743,7 +743,7 @@ PeerConnection::task_stall() {
   // entries get those new ones stalled if needed.
   m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
 
-  m_net->signal_network_log().emit("Peer stalled " + m_peer.get_dns());
+  //m_net->signal_network_log().emit("Peer stalled " + m_peer.get_dns());
 }
 
 }
