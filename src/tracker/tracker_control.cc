@@ -2,16 +2,19 @@
 
 #include <sigc++/signal.h>
 
+#include "algo/algo.h"
 #include "torrent/exceptions.h"
 #include "tracker_control.h"
 #include "tracker_http.h"
+
+using namespace algo;
 
 namespace torrent {
 
 // m_tries is -1 if last connection wasn't successfull or we haven't tried yet.
 
-TrackerControl::TrackerControl(const PeerInfo& me, const std::string& hash, const std::string& key) :
-  m_me(me),
+TrackerControl::TrackerControl(const std::string& hash, const std::string& key) :
+  m_me(NULL),
   m_hash(hash),
   m_key(key),
   m_tries(-1),
@@ -20,11 +23,6 @@ TrackerControl::TrackerControl(const PeerInfo& me, const std::string& hash, cons
   m_numwant(-1) {
   
   m_itr = m_list.end();
-
-  if (m_me.id().length() != 20 ||
-      m_me.port() == 0 ||
-      m_hash.length() != 20)
-    throw internal_error("Tried to create TrackerControl with bad hash, id or port");
 }
 
 TrackerControl::~TrackerControl() {
@@ -75,6 +73,13 @@ TrackerControl::get_next_time() {
   } else {
     return 0;
   }
+}
+
+void
+TrackerControl::set_me(const PeerInfo* me) {
+  m_me = me;
+
+  std::for_each(m_list.begin(), m_list.end(), call_member(&TrackerHttp::set_me, value(me)));
 }
 
 bool

@@ -19,7 +19,14 @@ int Settings::rateWindow = 60 * 1000000;
 int Settings::rateQuick = 10 * 1000000;
 int Settings::rateSample = 1000000;
 
+// Time to wait before doing the next hash check if madvice WILL_NEED
+// did not successfully retrive the whole chunk after 3 calls. Can be
+// set to any positive number.
 int Settings::hashForcedWait = 10000;
+
+// Time to wait after HashQueue has called madvice telling the kernel
+// to load into memory parts of the chunk. Seeks usually take atleast
+// 6-7 ms. Can stay abit under that, but not to far.
 int Settings::hashMadviceWait = 5000;
 
 DownloadSettings* DownloadSettings::m_global = new DownloadSettings();

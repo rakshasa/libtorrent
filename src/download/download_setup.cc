@@ -35,7 +35,8 @@ DownloadMain::setup_net() {
 
 void
 DownloadMain::setup_tracker(const bencode& b) {
-  m_tracker = new TrackerControl(m_state.me(), m_state.hash(), generateKey());
+  m_tracker = new TrackerControl(m_state.hash(), generateKey());
+  m_tracker->set_me(&m_state.me());
 
   m_tracker->add_url(b["announce"].asString());
 

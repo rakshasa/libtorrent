@@ -57,6 +57,7 @@ Make sure we can handle out of order incoming pieces.
 
 set_socket_nonblock should be explicit, remove from make_socket
 
+Cleanup PeerInfo and it's users.
 
 
 DELEGATOR STUFF

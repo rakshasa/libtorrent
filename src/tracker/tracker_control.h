@@ -24,19 +24,22 @@ class TrackerControl : public Service {
   typedef std::list<PeerInfo>                  PeerList;
   typedef std::list<TrackerHttp*>              TrackerList;
 
-  TrackerControl(const PeerInfo& me, const std::string& hash, const std::string& key);
+  TrackerControl(const std::string& hash, const std::string& key);
   ~TrackerControl();
 
   void                 send_state(TrackerState s);
 
   void                 add_url(const std::string& url);
 
-  Timer                get_next_time();
-  int16_t              get_numwant()                           { return m_numwant; }
   TrackerState         get_state()                             { return m_state; }
 
+  Timer                get_next_time();
   void                 set_next_time(Timer interval);
+
+  int16_t              get_numwant()                           { return m_numwant; }
   void                 set_numwant(int16_t n)                  { m_numwant = n; }
+
+  void                 set_me(const PeerInfo* me);
 
   bool                 is_busy();
 
@@ -68,9 +71,10 @@ class TrackerControl : public Service {
 
   void                  send_itr(TrackerState s);
 
-  PeerInfo              m_me;
+  const PeerInfo*       m_me;
   std::string           m_hash;
   std::string           m_key;
+  std::string           m_ip;
   
   int                   m_tries;
   int                   m_interval;

@@ -16,9 +16,13 @@ public:
   const std::string& dns() const { return m_dns; }
   unsigned short port() const { return m_port; }
 
-  const std::string& get_id() const { return m_id; }
-  const std::string& get_dns() const { return m_dns; }
-  unsigned short get_port() const { return m_port; }
+  const std::string&  get_id() const   { return m_id; }
+  const std::string&  get_dns() const  { return m_dns; }
+  unsigned short      get_port() const { return m_port; }
+
+  void                set_id(const std::string& id)   { m_id = id; }
+  void                set_dns(const std::string& dns) { m_dns = dns; }
+  void                set_port(unsigned short p)      { m_port = p; }
 
   const std::string& protocol() const { return m_protocol; }
   const std::string& options() const { return m_options; }

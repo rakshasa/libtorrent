@@ -9,6 +9,7 @@
 
 #include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "display.h"
 #include "download.h"
@@ -37,6 +38,7 @@ torrent::DList downloads;
 
 bool inputActive = false;
 std::string inputBuf;
+std::string ip;
 
 Display* display = NULL;
 bool shutdown_progress = false;
@@ -46,6 +48,28 @@ DisplayState displayState = DISPLAY_MAIN;
 CurlStack curlStack;
 
 extern Queue globalQueue;
+
+bool parse_ip(const char* s) {
+  unsigned int a, b, c, d;
+
+  if (sscanf(s, "--ip=%i.%i.%i.%i", &a, &b, &c, &d) != 4)
+    return false;
+
+  if (a >= 256 || b >= 256 || c >= 256 || d >= 256)
+    return false;
+
+  std::stringstream str;
+  str << a << '.' << b << '.' << c << '.' << d;
+
+  ip = str.str();
+
+  torrent::DList dlist;
+  torrent::download_list(dlist);
+
+  std::for_each(dlist.begin(), dlist.end(), call_member(&torrent::Download::set_ip, ref(ip)));
+
+  return true;
+}
 
 void do_shutdown() {
   shutdown_progress = true;
@@ -159,13 +183,15 @@ int main(int argc, char** argv) {
       // Found an http url, download.
       http.add_url(argv[fIndex], false);
 
-    } else {
+    } else if (!parse_ip(argv[fIndex])) {
       std::fstream f(argv[fIndex], std::ios::in);
       
       if (!f.is_open())
 	continue;
       
       torrent::Download d = torrent::download_create(f);
+
+      d.set_ip(ip);
       d.start();
 
       downloads.push_back(d);

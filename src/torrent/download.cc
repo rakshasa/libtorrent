@@ -66,6 +66,16 @@ Download::set_root_dir(const std::string& dir) {
   ((DownloadMain*)m_ptr)->state().content().set_root_dir(dir);
 }
 
+std::string
+Download::get_ip() {
+  return ((DownloadMain*)m_ptr)->state().me().get_dns();
+}
+
+void
+Download::set_ip(const std::string& ip) {
+  ((DownloadMain*)m_ptr)->state().me().set_dns(ip);
+}
+
 uint64_t
 Download::get_bytes_up() {
   return ((DownloadMain*)m_ptr)->state().bytesUploaded();

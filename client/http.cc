@@ -10,6 +10,7 @@
 
 extern std::list<std::string> log_entries;
 extern torrent::DList downloads;
+extern std::string ip;
 
 Queue globalQueue;
 
@@ -53,6 +54,7 @@ void Http::add_url(const std::string& s, bool queue) {
 void Http::receive_done(List::iterator itr, bool queued) {
   try {
     torrent::Download dItr = torrent::download_create(*itr->second);
+    dItr.set_ip(ip);
 
     if (queued)
       globalQueue.insert(dItr);

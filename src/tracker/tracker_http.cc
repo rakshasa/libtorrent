@@ -23,7 +23,8 @@ TrackerHttp::TrackerHttp() :
   m_get(Http::call_factory()),
   m_data(NULL),
   m_compact(true),
-  m_numwant(-1) {
+  m_numwant(-1),
+  m_me(NULL) {
 
   m_get->set_user_agent(PACKAGE "/" VERSION);
 
@@ -40,8 +41,9 @@ void
 TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
-  if (m_me.id().length() != 20 ||
-      m_me.port() == 0 ||
+  if (m_me == NULL ||
+      m_me->id().length() != 20 ||
+      m_me->port() == 0 ||
       m_hash.length() != 20)
     throw internal_error("Send state with TrackerHttp with bad hash, id or port");
 
@@ -54,13 +56,13 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
 
   s << "&peer_id=";
 
-  escape_string(m_me.id(), s);
+  escape_string(m_me->id(), s);
 
   if (m_key.length())
     s << "&key=" << m_key;
 
-  if (m_me.dns().length())
-    s << "&ip=" << m_me.dns();
+  if (m_me->dns().length())
+    s << "&ip=" << m_me->dns();
 
   if (m_compact)
     s << "&compact=1";
@@ -68,7 +70,7 @@ TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t
   if (m_numwant >= 0)
     s << "&numwant=" << m_numwant;
 
-  s << "&port=" << m_me.port()
+  s << "&port=" << m_me->port()
     << "&uploaded=" << up
     << "&downloaded=" << down
     << "&left=" << left;

@@ -12,6 +12,8 @@ extern bool inputActive;
 extern std::string inputBuf;
 extern CurlStack curlStack;
 
+extern std::string ip;
+
 Display::Display() {
   initscr();
   cbreak();
@@ -101,11 +103,12 @@ void Display::drawDownloads(const std::string& id) {
 	     "");
   }
 
-  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i",
+  mvprintw(maxY - 1, 0, "Port: %i Handshakes: %i Throttle: %i KiB Http: %i Ip: %s",
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
 	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000,
-	   curlStack.get_size());
+	   curlStack.get_size(),
+	   ip.c_str());
 
   refresh();
 }
