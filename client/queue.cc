@@ -36,6 +36,7 @@ void Queue::receive_done(std::string id) {
     dItr = torrent::download_find(m_list.front());
     
     if (dItr.is_valid()) {
+      dItr.open();
       dItr.start();
       return;
     }

@@ -218,6 +218,7 @@ int main(int argc, char** argv) {
     return -1;
   }
   
+  std::for_each(downloads.begin(), downloads.end(), call_member(&torrent::Download::open));
   std::for_each(downloads.begin(), downloads.end(), call_member(&torrent::Download::start));
 
   int64_t lastDraw = torrent::get(torrent::TIME_CURRENT) - (1 << 22);
@@ -421,6 +422,12 @@ int main(int argc, char** argv) {
 		curDownload->stop();
 	      }
 	    }
+
+	    break;
+
+	  case 'W':
+	    if (curDownload != downloads.end())
+	      curDownload->close();
 
 	    break;
 

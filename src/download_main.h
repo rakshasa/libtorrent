@@ -24,9 +24,13 @@ public:
   DownloadMain(const bencode& b);
   ~DownloadMain();
 
+  void open();
+  void close();
+
   void start();
   void stop();
 
+  bool is_open() { return m_state.get_content().is_open(); }
   bool is_active() { return m_started; }
   bool isStopped();
 

@@ -15,10 +15,15 @@ namespace torrent {
 
 void
 Download::open() {
+  ((DownloadMain*)m_ptr)->open();
 }
 
 void
 Download::close() {
+  if (((DownloadMain*)m_ptr)->is_active())
+    stop();
+
+  ((DownloadMain*)m_ptr)->close();
 }
 
 void
@@ -33,7 +38,7 @@ Download::stop() {
 
 bool
 Download::is_open() {
-  return ((DownloadMain*)m_ptr)->state().get_content().is_open();
+  return ((DownloadMain*)m_ptr)->is_open();
 }
 
 bool

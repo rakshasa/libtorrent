@@ -44,13 +44,6 @@ DownloadMain::DownloadMain(const bencode& b) :
   parse_info(b["info"], m_state.get_content());
   parse_tracker(b, *m_tracker);
 
-  m_state.get_content().open();
-  m_state.get_bitfield_counter() = BitFieldCounter(m_state.get_content().get_storage().get_chunkcount());
-
-  hashTorrent.add(m_state.get_hash(), &state().get_content().get_storage(),
-		  sigc::mem_fun(*this, &DownloadMain::receive_initial_hash),
-		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
-
   m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
 
   setup_net();
@@ -78,7 +71,28 @@ DownloadMain::~DownloadMain() {
   m_downloads.erase(std::find(m_downloads.begin(), m_downloads.end(), this));
 }
 
+void
+DownloadMain::open() {
+  m_state.get_content().open();
+  m_state.get_bitfield_counter() = BitFieldCounter(m_state.get_content().get_storage().get_chunkcount());
+
+  hashTorrent.add(m_state.get_hash(), &state().get_content().get_storage(),
+		  sigc::mem_fun(*this, &DownloadMain::receive_initial_hash),
+		  sigc::mem_fun(m_state, &DownloadState::receive_hashdone));
+}
+
+void
+DownloadMain::close() {
+  m_state.get_content().close();
+
+  hashTorrent.remove(m_state.get_hash());
+  hashQueue.remove(m_state.get_hash());
+}
+
 void DownloadMain::start() {
+  if (!m_state.get_content().is_open())
+    throw client_error("Tried to start a closed download");
+
   if (m_started)
     return;
 

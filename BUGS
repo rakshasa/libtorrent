@@ -3,3 +3,5 @@ test.cc caught "Connection write fd(18) state(10) "Throttle::spendt(...) error, 
 Aborted
 
 Somehow every peer is marked interested, check if this is a real problem. 
+
+test.cc caught "Connection read fd(67) state(1) "Empty HashQueue is still in service""

@@ -78,7 +78,7 @@ void Display::drawDownloads(const std::string& id) {
 	     first == mark ? '*' : ' ',
 	     first->get_name().c_str());
     
-    if (first->get_chunks_done() != first->get_chunks_total())
+    if (first->get_chunks_done() != first->get_chunks_total() && first->is_open())
 
       mvprintw(i + 1, 0, "%c Torrent: %.1f / %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
 	       first == mark ? '*' : ' ',

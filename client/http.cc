@@ -58,8 +58,10 @@ void Http::receive_done(List::iterator itr, bool queued) {
 
     if (queued)
       globalQueue.insert(dItr);
-    else
+    else {
+      dItr.open();
       dItr.start();
+    }
 
     downloads.push_back(dItr);
 
