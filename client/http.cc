@@ -24,7 +24,7 @@ Http::~Http() {
 void Http::add_url(const std::string& s, bool queue) {
   List::iterator itr = m_list.end();
 
-  torrent::Http* http = new torrent::Http();
+  torrent::Http* http = torrent::Http::call_factory();
   std::stringstream* out = new std::stringstream();
 
   try {

@@ -12,6 +12,9 @@ http_null_factory() {
 
 Http::SlotFactory Http::m_factory(sigc::ptr_fun(&http_null_factory));
 
+Http::~Http() {
+}
+
 void
 Http::set_factory(const SlotFactory& f) {
   m_factory = f;

@@ -2,13 +2,15 @@
 
 #include "curl_get.h"
 #include "curl_stack.h"
-#include "torrent/exceptions.h"
+#include <torrent/exceptions.h>
 
 #include <ostream>
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-namespace torrent {
+CurlGet::~CurlGet() {
+  close();
+}
 
 CurlGet::CurlGet(CurlStack* s) :
   m_out(NULL),
@@ -16,29 +18,39 @@ CurlGet::CurlGet(CurlStack* s) :
   m_stack(s) {
 
   if (m_stack == NULL)
-    throw internal_error("Tried to create CurlGet without a valid CurlStack");
+    throw torrent::client_error("Tried to create CurlGet without a valid CurlStack");
 }
 
 void CurlGet::set_url(const std::string& url) {
   if (is_busy())
-    throw local_error("Tried to call CurlGet::set_url on a busy object");
+    throw torrent::local_error("Tried to call CurlGet::set_url on a busy object");
 
   m_url = url;
 }
 
+const std::string&
+CurlGet::get_url() const {
+  return m_url;
+}
+
 void CurlGet::set_out(std::ostream* out) {
   if (is_busy())
-    throw local_error("Tried to call CurlGet::set_url on a busy object");
+    throw torrent::local_error("Tried to call CurlGet::set_url on a busy object");
 
   m_out = out;
 }
 
+std::ostream*
+CurlGet::get_out() {
+  return m_out;
+}
+
 void CurlGet::start() {
   if (is_busy())
-    throw local_error("Tried to call CurlGet::start on a busy object");
+    throw torrent::local_error("Tried to call CurlGet::start on a busy object");
 
   if (m_out == NULL)
-    throw local_error("Tried to call CurlGet::start without a valid output stream");
+    throw torrent::local_error("Tried to call CurlGet::start without a valid output stream");
 
   m_handle = curl_easy_init();
 
@@ -64,7 +76,7 @@ void CurlGet::close() {
 
 void CurlGet::perform(CURLMsg* msg) {
   if (msg->msg != CURLMSG_DONE)
-    throw internal_error("CurlGet::process got CURLMSG that isn't done");
+    throw torrent::client_error("CurlGet::process got CURLMSG that isn't done");
 
   if (msg->data.result == CURLE_OK) {
     m_done.emit();
@@ -78,4 +90,13 @@ size_t curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handl
   return ((CurlGet*)handle)->m_out->write((char*)data, size * nmemb).fail() ? 0 : size * nmemb;
 }
 
+CurlGet::SignalDone&
+CurlGet::signal_done() {
+  return m_done;
 }
+
+CurlGet::SignalFailed&
+CurlGet::signal_failed() {
+  return m_failed;
+}
+

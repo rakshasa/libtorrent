@@ -7,7 +7,6 @@
 #include "timer.h"
 #include "peer_handshake.h"
 #include "net/listen.h"
-#include "url/curl_stack.h"
 
 #include <algo/algo.h>
 
@@ -18,7 +17,6 @@ namespace torrent {
 int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
 
-extern CurlStack curlStack;
 Listen* listen = NULL;
 
 struct add_socket {
@@ -62,8 +60,6 @@ initialize() {
   srandom(Timer::current().usec());
 
   ThrottleControl::global().insert_service(Timer::current(), 0);
-
-  CurlStack::global_init();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -77,8 +73,6 @@ cleanup() {
 
   for_each<true>(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
 		 delete_on());
-
-  CurlStack::global_cleanup();
 }
 
 bool
@@ -102,9 +96,6 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
 
   if (readSet == NULL || writeSet == NULL || exceptSet == NULL || maxFd == NULL)
     throw client_error("torrent::mark(...) received a NULL pointer");
-
-  if (curlStack.is_busy())
-    curlStack.fdset(readSet, writeSet, exceptSet, *maxFd);
 
   *maxFd = std::max(*maxFd, std::for_each(SocketBase::readSockets().begin(),
                                           SocketBase::readSockets().end(),
@@ -145,9 +136,6 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   for_each<true>(SocketBase::writeSockets().begin(), SocketBase::writeSockets().end(),
 		 if_on(check_socket_isset(writeSet),
 		       call_member(&SocketBase::write)));
-
-  if (curlStack.is_busy())
-    curlStack.perform();
 
   // TODO: Consider moving before the r/w/e. libsic++ should remove the use of
   // zero timeout stuff to send signal. Better yet, use on both sides, it's cheap.
@@ -248,9 +236,6 @@ get(GValue t) {
 
   case THROTTLE_ROOT_CONST_RATE:
     return std::max(ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate, 0);
-
-  case HTTP_GETS:
-    return curlStack.get_size();
 
   default:
     throw internal_error("get(GValue) received invalid type");

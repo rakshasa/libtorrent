@@ -13,6 +13,7 @@
 #include "download.h"
 #include "http.h"
 #include "queue.h"
+#include "curl_stack.h"
 
 // Uncomment this if your system doesn't have execinfo.h
 #define USE_EXECINFO
@@ -40,6 +41,7 @@ bool shutdown = false;
 
 Download* download = NULL;
 DisplayState displayState = DISPLAY_MAIN;
+CurlStack curlStack;
 
 extern Queue globalQueue;
 

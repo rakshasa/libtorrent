@@ -3,8 +3,6 @@
 
 #include <list>
 
-namespace torrent {
-
 class CurlStack {
   friend class CurlGet;
 
@@ -34,8 +32,6 @@ class CurlStack {
   int m_size;
   CurlGetList m_getList;
 };
-
-}
 
 #endif
 

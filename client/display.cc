@@ -1,4 +1,5 @@
 #include "display.h"
+#include "curl_stack.h"
 #include <ncurses.h>
 
 #include <algo/algo.h>
@@ -9,6 +10,7 @@ int loops = 0;
 
 extern bool inputActive;
 extern std::string inputBuf;
+extern CurlStack curlStack;
 
 Display::Display() {
   initscr();
@@ -105,7 +107,7 @@ void Display::drawDownloads(const std::string& id) {
 	   (int)torrent::get(torrent::LISTEN_PORT),
 	   (int)torrent::get(torrent::HANDSHAKES_TOTAL),
 	   (int)torrent::get(torrent::THROTTLE_ROOT_CONST_RATE) / 1000,
-	   (int)torrent::get(torrent::HTTP_GETS));
+	   curlStack.get_size());
 
   refresh();
 }

@@ -50,10 +50,6 @@ libtorrent_la_SOURCES = \
 	tracker/tracker_http.cc \
 	tracker/tracker_http.h \
 	tracker/tracker_state.h \
-	url/curl_get.cc \
-	url/curl_get.h \
-	url/curl_stack.cc \
-	url/curl_stack.h \
 	bencode.cc \
 	bencode.h \
         bitfield.cc \

@@ -14,7 +14,8 @@ class Http {
   typedef sigc::signal1<void, std::string> SignalFailed;
   typedef sigc::slot0<Http*>               SlotFactory;
 
-  virtual ~Http() = 0;
+  Http() {}
+  virtual ~Http();
 
   virtual void               start() = 0;
   virtual void               close() = 0;

@@ -2,7 +2,7 @@
 
 #include "curl_get.h"
 #include "curl_stack.h"
-#include "torrent/exceptions.h"
+#include <torrent/exceptions.h>
 
 #include <algo/algo.h>
 #include <curl/multi.h>
@@ -31,7 +31,7 @@ void CurlStack::perform() {
     code = curl_multi_perform((CURLM*)m_handle, &s);
 
     if (code > 0)
-      throw local_error("Error calling curl_multi_perform");
+      throw torrent::local_error("Error calling curl_multi_perform");
 
     if (s != m_size) {
       // Done with some handles.
@@ -45,7 +45,7 @@ void CurlStack::perform() {
 						    value(msg->easy_handle)));
 
 	if (itr == m_getList.end())
-	  throw internal_error("Could not find CurlGet with the right easy_handle");
+	  throw torrent::client_error("Could not find CurlGet with the right easy_handle");
 	
 	(*itr)->perform(msg);
       } while (t);
@@ -58,7 +58,7 @@ void CurlStack::fdset(fd_set* readfds, fd_set* writefds, fd_set* exceptfds, int&
   int f;
 
   if (curl_multi_fdset((CURLM*)m_handle, readfds, writefds, exceptfds, &f) > 0)
-    throw local_error("Error calling curl_multi_fdset");
+    throw torrent::local_error("Error calling curl_multi_fdset");
 
   maxFd = std::max(f, maxFd);
 }
@@ -67,7 +67,7 @@ void CurlStack::add_get(CurlGet* get) {
   CURLMcode code;
 
   if ((code = curl_multi_add_handle((CURLM*)m_handle, get->handle())) > 0)
-    throw local_error("curl_multi_add_handle \"" + std::string(curl_multi_strerror(code)));
+    throw torrent::local_error("curl_multi_add_handle \"" + std::string(curl_multi_strerror(code)));
 
   m_size++;
 
@@ -76,12 +76,12 @@ void CurlStack::add_get(CurlGet* get) {
 
 void CurlStack::remove_get(CurlGet* get) {
   if (curl_multi_remove_handle((CURLM*)m_handle, get->handle()) > 0)
-    throw local_error("Error calling curl_multi_remove_handle");
+    throw torrent::local_error("Error calling curl_multi_remove_handle");
 
   CurlGetList::iterator itr = std::find(m_getList.begin(), m_getList.end(), get);
 
   if (itr == m_getList.end())
-    throw internal_error("Could not find CurlGet when calling CurlStack::remove");
+    throw torrent::client_error("Could not find CurlGet when calling CurlStack::remove");
 
   m_getList.erase(itr);
 

@@ -4,37 +4,31 @@
 #include <iosfwd>
 #include <string>
 #include <curl/curl.h>
+#include <torrent/http.h>
 #include <sigc++/signal.h>
 
 struct CURLMsg;
 
-namespace torrent {
-
-class CurlGet {
+class CurlGet : public torrent::Http {
  public:
   friend class CurlStack;
 
-  typedef sigc::signal0<void>              SignalDone;
-  typedef sigc::signal1<void, std::string> SignalFailed;
-
   CurlGet(CurlStack* s);
-  ~CurlGet() { close(); }
-
-  void               set_url(const std::string& url);
-  void               set_out(std::ostream* out);
-
-  const std::string& get_url() const { return m_url; }
+  virtual ~CurlGet();
 
   void               start();
   void               close();
 
+  void               set_url(const std::string& url);
+  const std::string& get_url() const;
+
+  void               set_out(std::ostream* out);
+  std::ostream*      get_out();
+
   bool               is_busy() { return m_handle; }
 
-  SignalDone&        signal_done()   { return m_done; }
-
-  // Error code - Http code or errno. 0 if libtorrent specific, see msg.
-  // Error message
-  SignalFailed&      signal_failed() { return m_failed; }
+  SignalDone&        signal_done();
+  SignalFailed&      signal_failed();
 
  protected:
   CURL* handle() { return m_handle; }
@@ -53,7 +47,5 @@ class CurlGet {
   sigc::signal0<void>              m_done;
   sigc::signal1<void, std::string> m_failed;
 };
-
-}
 
 #endif

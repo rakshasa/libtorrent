@@ -1,4 +1,4 @@
-OBJECTS = http.o display.o download.o queue.o rtorrent.o
+OBJECTS = http.o curl_get.o curl_stack.o display.o download.o queue.o rtorrent.o
 
 LIBS = -ltorrent -lncurses -lcrypto `pkg-config --libs sigc++-2.0 libtorrent`
 
