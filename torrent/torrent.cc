@@ -7,6 +7,8 @@
 #include <iostream>
 #include <cassert>
 
+#include <sigc++/signal.h>
+
 #include "exceptions.h"
 #include "download.h"
 #include "general.h"
@@ -14,7 +16,7 @@
 #include "peer_handshake.h"
 #include "peer_connection.h"
 #include "throttle_control.h"
-#include "tracker_query.h"
+#include "tracker/tracker_control.h"
 #include "settings.h"
 #include "timer.h"
 #include "torrent.h"
@@ -171,8 +173,8 @@ void remove(DList::const_iterator d) {
   // security. (Besides, i really don't want to cast it to a non-const
   // iterator since those are two different structs)
   DList::iterator itr = std::find_if(Download::downloads().begin(), Download::downloads().end(),
-				     eq(call_member(call_member(&Download::tracker), &TrackerQuery::hash),
-					ref((*d)->tracker().hash())));
+				     eq(call_member(call_member(&Download::state), &DownloadState::hash),
+					ref((*d)->state().hash())));
 
   if (itr == Download::downloads().end())
     throw internal_error("Application tried to remove a non-existant download");
@@ -316,13 +318,13 @@ int64_t get(DList::const_iterator d, DValue t) {
     return (*d)->state().connections().size();
 
   case PEERS_NOT_CONNECTED:
-    return (*d)->state().availablePeers().size();
+    return (*d)->state().available_peers().size();
 
   case TRACKER_CONNECTING:
-    return (*d)->tracker().busy();
+    return (*d)->tracker().is_busy();
 
   case TRACKER_TIMEOUT:
-    return (*d)->tracker().inService(0) ? ((*d)->tracker().whenService(0) - Timer::current()).usec() : 0;
+    return (*d)->tracker().get_next().usec();
 
   case UPLOADS_MAX:
     return (*d)->state().settings().maxUploads;
@@ -354,7 +356,7 @@ std::string get(DList::const_iterator d, DString t) {
     return (*d)->name();
 
   case TRACKER_MSG:
-    return (*d)->tracker().msg();
+    return ""; //(*d)->tracker().msg();
 
   default:
     throw internal_error("get(itr, DString) received invalid type");
@@ -473,7 +475,7 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
   case PEERS_MIN:
     if (v > 0 && v < 1000) {
       (*d)->state().settings().minPeers = v;
-      (*d)->state().connectPeers();
+      (*d)->state().connect_peers();
     }
 
     break;

@@ -9,27 +9,35 @@
 
 namespace torrent {
 
+// TODO: Support remembering the host address if the
+// host name is the same and the last connection was
+// successfull.
+
 class Service;
 
 class HttpGet : public SocketBase {
  public:
-  typedef sigc::signal2<void,int,std::string> Signal;
-
   HttpGet();
   ~HttpGet();
 
   void set_url(const std::string& url);
   void set_out(std::ostream* out)    { m_out = out; }
-  void set_done(Signal* s)           { m_done = s; }
-  void set_failed(Signal* s)         { m_failed = s; }
 
   const std::string& get_url() const { return m_url; }
 
   void start();
   void close();
   
+  bool busy() { return m_fd != -1; }
+
   int  code()                        { return m_code; }
   const std::string& status()        { return m_status; }
+
+  sigc::signal0<void>&                   signal_done()   { return m_done; }
+
+  // Error code - Http code or errno. 0 if libtorrent specific, see msg.
+  // Error message
+  sigc::signal2<void, int, std::string>& signal_failed() { return m_failed; }
 
   virtual void read();
   virtual void write();
@@ -59,8 +67,8 @@ class HttpGet : public SocketBase {
 
   std::ostream* m_out;
 
-  Signal*       m_done;
-  Signal*       m_failed;
+  sigc::signal0<void>                   m_done;
+  sigc::signal2<void, int, std::string> m_failed;
 };
 
 }

@@ -2,6 +2,10 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
+	tracker/tracker_control.cc \
+	tracker/tracker_control.h \
+	tracker/tracker_http.cc \
+	tracker/tracker_http.h \
 	url/http.cc \
 	url/http.h \
 	url/http_get.cc \
@@ -52,8 +56,6 @@ libtorrent_la_SOURCES = \
 	throttle.h \
 	throttle_control.cc \
 	throttle_control.h \
-        tracker_query.cc \
-        tracker_query.h \
         torrent.cc \
         torrent.h \
         service.cc \
@@ -65,4 +67,4 @@ libtorrentinclude_HEADERS = \
 	exceptions.h \
 	url/http.h
 
-DISTCLEANFILES = *~
+DISTCLEANFILES = *~ */*~

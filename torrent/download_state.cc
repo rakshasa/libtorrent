@@ -95,30 +95,6 @@ void DownloadState::chokeBalance() {
   }    
 }
 
-void DownloadState::addPeer(const Peer& p) {
-  if (p == m_me ||
-
-      std::find_if(m_connections.begin(), m_connections.end(),
-		   eq(call_member(&PeerConnection::peer),
-		      ref(p)))
-      != m_connections.end() ||
-
-      std::find_if(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
-		   eq(call_member(&PeerHandshake::peer),
-		      ref(p)))
-      != PeerHandshake::handshakes().end() ||
-
-      std::find(m_availablePeers.begin(), m_availablePeers.end(), p)
-      != m_availablePeers.end())
-    // We already know this peer
-    return;
-
-  // Push to back since we want to connect to old peers since they are more
-  // likely to have more of the file. This also makes sure we don't end up with
-  // lots of old dead peers in the stack.
-  m_availablePeers.push_back(p);
-}
-
 void DownloadState::addConnection(int fd, const Peer& p) {
   if (std::find_if(m_connections.begin(), m_connections.end(),
 		   eq(ref(p), call_member(&PeerConnection::peer))) !=
@@ -165,17 +141,7 @@ void DownloadState::removeConnection(PeerConnection* p) {
     throw internal_error("Duplicate PeerConnections in Download");
 
   chokeBalance();
-  connectPeers();
-}
-
-void DownloadState::connectPeers() {
-  while (!m_availablePeers.empty() &&
-	 (signed)m_connections.size() < m_settings.minPeers &&
-	 countConnections() < m_settings.maxPeers) {
-
-    PeerHandshake::connect(m_availablePeers.front(), this);
-    m_availablePeers.pop_front();
-  }
+  connect_peers();
 }
 
 int DownloadState::countConnections() const {
@@ -188,6 +154,22 @@ int DownloadState::countConnections() const {
 		      add_ref(s, value(1))));
 
   return s;
+}
+
+void DownloadState::download_stats(uint64_t& up, uint64_t& down, uint64_t& left) {
+  up = m_rateUp.total();
+  down = m_rateDown.total();
+  left = m_files.doneSize();
+}
+
+void DownloadState::connect_peers() {
+  while (!available_peers().empty() &&
+	 (signed)connections().size() < settings().minPeers &&
+	 countConnections() < settings().maxPeers) {
+
+    PeerHandshake::connect(available_peers().front(), this);
+    available_peers().pop_front();
+  }
 }
 
 }

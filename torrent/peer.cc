@@ -23,7 +23,7 @@ Peer::Peer(const std::string& id, const std::string& dns, unsigned int port) :
 Peer::~Peer() {
 }
 
-bool Peer::valid() const {
+bool Peer::is_valid() const {
   return m_id.length() == 20 &&
     m_dns.length() &&
     m_port;

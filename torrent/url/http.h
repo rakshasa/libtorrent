@@ -18,18 +18,15 @@ class Http {
   
   const std::string& get_url() const;
 
-  // Use sigc's facilities for modifying slots if nessesary. You
-  // can also bind a boolean value to f.ex true if done, false if
-  // failed. It is safe to delete this class upon receiving the signal.
-  //
-  // Signal:
-  // int         - Http status code.
-  // std::string - Http status message.
-  sigc::signal2<void, int, std::string>& signal_done()   { return m_done; }
-  sigc::signal2<void, int, std::string>& signal_failed() { return m_failed; }
-
   void start();
   void close();
+
+  // Use sigc's facilities for modifying slots if nessesary.
+  sigc::signal0<void>&                   signal_done();
+
+  // Error code - Http code or errno. 0 if libtorrent specific, see msg.
+  // Error message
+  sigc::signal2<void, int, std::string>& signal_failed();
 
  private:
   // Disabled ctor. Do we want ref counting instead?
@@ -37,9 +34,6 @@ class Http {
   void operator = (const Http&);
 
   HttpGet* m_get;
-
-  sigc::signal2<void, int, std::string> m_done;
-  sigc::signal2<void, int, std::string> m_failed;
 };
 
 }

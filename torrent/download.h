@@ -7,10 +7,11 @@
 
 namespace torrent {
 
-class Download : public Service {
-  friend class TrackerQuery;
+class TrackerControl;
 
+class Download : public Service {
 public:
+  typedef std::list<Peer> Peers;
   typedef std::list<Download*> Downloads;
 
   enum ServiceState {
@@ -30,12 +31,13 @@ public:
 
   std::string& name() { return m_name; }
 
-  TrackerQuery& tracker()        { return *m_tracker; }
+  DownloadState&  state()           { return m_state; }
+  TrackerControl& tracker()         { return *m_tracker; }
+
+  void add_peers(const Peers& p);
 
   static Download*  getDownload(const std::string& hash);
   static Downloads& downloads() { return m_downloads; }
-
-  DownloadState& state() { return m_state; }
 
 private:
   Download();
@@ -43,10 +45,11 @@ private:
   static Downloads m_downloads;
   
   DownloadState m_state;
-  TrackerQuery* m_tracker;
+  TrackerControl* m_tracker;
 
   std::string m_name;
   bool m_checked;
+  bool m_started;
 };
 
 } // namespace torrent

@@ -70,7 +70,7 @@ public:
 
 class bencode_error : public input_error {
 public:
-  bencode_error(const std::string& msg) : local_error(msg) {}
+  bencode_error(const std::string& msg) : input_error(msg) {}
 };
 
 } // namespace torrent

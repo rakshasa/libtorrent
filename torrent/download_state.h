@@ -28,7 +28,7 @@ class DownloadState {
   Files&        files()          { return m_files; }
   Connections&  connections()    { return m_connections; }
   Delegator&    delegator()      { return m_delegator; }
-  Peers         availablePeers() { return m_availablePeers; }
+  Peers&          available_peers() { return m_availablePeers; }
 
   uint64_t& bytesDownloaded() { return m_bytesDownloaded; }
   uint64_t& bytesUploaded() { return m_bytesUploaded; }
@@ -50,11 +50,12 @@ class DownloadState {
 
   int countConnections() const; 
 
-  void addPeer(const Peer& p);
   void addConnection(int fd, const Peer& p);
 
-  void connectPeers();
-  
+  void download_stats(uint64_t& up, uint64_t& down, uint64_t& left);
+
+  void connect_peers();
+
 private:
   // Disable
   DownloadState(const DownloadState&);

@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#include <sigc++/signal.h>
+
 #include "exceptions.h"
 #include "download.h"
 #include "files_check.h"
@@ -10,7 +12,7 @@
 #include "peer_handshake.h"
 #include "peer_connection.h"
 #include "settings.h"
-#include "tracker_query.h"
+#include "tracker/tracker_control.h"
 
 #include <sstream>
 #include <limits>
@@ -25,7 +27,8 @@ Download::Downloads Download::m_downloads;
 
 Download::Download(const bencode& b) :
   m_tracker(NULL),
-  m_checked(false)
+  m_checked(false),
+  m_started(false)
 {
   try {
 
@@ -38,11 +41,12 @@ Download::Download(const bencode& b) :
   m_state.hash() = calcHash(b["info"]);
   m_state.bfCounter() = BitFieldCounter(m_state.files().chunkCount());
 
-  m_tracker = new TrackerQuery(this);
+  m_tracker = new TrackerControl(m_state.me(), m_state.hash());
 
-  m_tracker->set(b["announce"].asString(),
-		 m_state.hash(),
-		 m_state.me());
+  m_tracker->add_url(b["announce"].asString());
+
+  m_tracker->signal_peers().connect(sigc::mem_fun(*this, &Download::add_peers));
+  m_tracker->signal_stats().connect(sigc::mem_fun(m_state, &DownloadState::download_stats));
 
   FilesCheck::check(&state().files(), this, HASH_COMPLETED);
 
@@ -68,20 +72,25 @@ Download::~Download() {
 }
 
 void Download::start() {
-  if (m_tracker->state() != TrackerQuery::STOPPED)
+  if (m_started)
     return;
 
-  m_tracker->state(TrackerQuery::STARTED, m_checked);
+  if (m_checked)
+    m_tracker->send_state(TRACKER_STARTED);
+
+  m_started = true;
 
   insertService(Timer::current() + state().settings().chokeCycle * 2, CHOKE_CYCLE);
 }  
 
 
 void Download::stop() {
-  if (m_tracker->state() == TrackerQuery::STOPPED)
+  if (!m_started)
     return;
 
-  m_tracker->state(TrackerQuery::STOPPED);
+  m_tracker->send_state(TRACKER_STOPPED);
+
+  m_started = false;
 
   removeService(CHOKE_CYCLE);
 
@@ -102,8 +111,8 @@ void Download::service(int type) {
 	!m_state.files().bitfield().allSet())
       throw internal_error("Loaded torrent is done but bitfield isn't all set");
     
-    if (m_tracker->state() == TrackerQuery::STARTED)
-      m_tracker->state(TrackerQuery::STARTED);
+    if (m_started)
+      m_tracker->send_state(TRACKER_STARTED);
 
     return;
     
@@ -171,16 +180,45 @@ void Download::service(int type) {
 }
 
 bool Download::isStopped() {
-  return m_tracker->state() == TrackerQuery::STOPPED &&
-    !m_tracker->busy();
+  return !m_started && !m_tracker->is_busy();
 }
 
 Download* Download::getDownload(const std::string& hash) {
   Downloads::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					 eq(ref(hash), call_member(call_member(&Download::tracker),
-								   &TrackerQuery::hash)));
+					 eq(ref(hash),
+					    call_member(member(&Download::m_state),
+							&DownloadState::hash)));
  
   return itr != m_downloads.end() ? *itr : NULL;
+}
+
+void Download::add_peers(const Peers& p) {
+  for (Peers::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
+
+    if (*itr == m_state.me() ||
+
+	std::find_if(m_state.connections().begin(), m_state.connections().end(),
+		     eq(call_member(&PeerConnection::peer),
+			ref(*itr)))
+	!= m_state.connections().end() ||
+
+	std::find_if(PeerHandshake::handshakes().begin(), PeerHandshake::handshakes().end(),
+		     eq(call_member(&PeerHandshake::peer),
+			ref(*itr)))
+	!= PeerHandshake::handshakes().end() ||
+
+	std::find(m_state.available_peers().begin(), m_state.available_peers().end(), *itr)
+	!= m_state.available_peers().end())
+      // We already know this peer
+      return;
+
+    // Push to back since we want to connect to old peers since they are more
+    // likely to have more of the file. This also makes sure we don't end up with
+    // lots of old dead peers in the stack.
+    m_state.available_peers().push_back(*itr);
+  }
+
+  m_state.connect_peers();
 }
 
 }

@@ -72,7 +72,7 @@ void PeerHandshake::connect(int fdesc, const std::string dns, unsigned short por
 }
 
 bool PeerHandshake::connect(const Peer& p, DownloadState* d) {
-  if (!p.valid())
+  if (!p.is_valid())
     throw internal_error("Tried to connect with invalid peer information");
 
   try {
@@ -211,9 +211,9 @@ bool PeerHandshake::recv1() {
   if (!readBuf(m_buf + m_pos, l + 29, m_pos))
     return false;
 
-  m_peer.refProtocol() = std::string(&m_buf[1], l);
-  m_peer.refOptions()  = std::string(&m_buf[1+l], 8);
-  m_infoHash           = std::string(&m_buf[9+l], 20);
+  m_peer.ref_protocol() = std::string(&m_buf[1], l);
+  m_peer.ref_options()  = std::string(&m_buf[1+l], 8);
+  m_infoHash            = std::string(&m_buf[9+l], 20);
 
   if (m_peer.protocol() != "BitTorrent protocol") {
     throw communication_error("Peer returned wrong protocol identifier");
@@ -226,7 +226,7 @@ bool PeerHandshake::recv2() {
   if (!readBuf(m_buf + m_pos, 20, m_pos))
     return false;
 
-  m_peer.refId() = std::string(m_buf, 20);
+  m_peer.ref_id() = std::string(m_buf, 20);
 
   return true;
 }  

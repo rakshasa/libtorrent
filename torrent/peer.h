@@ -18,15 +18,17 @@ public:
   const std::string& protocol() const { return m_protocol; }
   const std::string& options() const { return m_options; }
 
-  bool valid() const;
+  bool is_valid() const;
 
   bool operator < (const Peer& p) const { return m_id < p.m_id; }
   bool operator == (const Peer& p) const { return m_id == p.m_id; }
 
   // Use only when required.
-  std::string& refId() { return m_id; }
-  std::string& refProtocol() { return m_protocol; }
-  std::string& refOptions() { return m_options; }
+  std::string&    ref_id() { return m_id; }
+  std::string&    ref_dns() { return m_dns; }
+  unsigned short& ref_port() { return m_port; }
+  std::string&    ref_protocol() { return m_protocol; }
+  std::string&    ref_options() { return m_options; }
 
 private:
   std::string m_id;

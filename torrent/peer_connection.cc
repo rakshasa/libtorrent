@@ -32,7 +32,7 @@ void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
   m_download = d;
 
   if (d == NULL ||
-      !p.valid() ||
+      !p.is_valid() ||
       m_fd < 0)
     throw internal_error("PeerConnection set recived bad input");
 

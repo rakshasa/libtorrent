@@ -17,9 +17,7 @@ HttpGet::HttpGet() :
   m_fd(-1),
   m_buf(NULL),
   m_code(0),
-  m_out(NULL),
-  m_done(NULL),
-  m_failed(NULL) {
+  m_out(NULL) {
 }
 
 HttpGet::~HttpGet() {
@@ -123,13 +121,11 @@ void HttpGet::read() {
 
     close();
 
-    if (m_done) {
-      // Make a shallow copy so it is safe to delete this object inside
-      // the signal.
-      Signal s = *m_done;
-
-      s.emit(m_code, m_status);
-    }
+    // Make a shallow copy so it is safe to delete this object inside
+    // the signal.
+    sigc::signal0<void> s = m_done;
+    
+    s.emit();
 
   } catch (network_error& e) {
     except();
@@ -177,13 +173,11 @@ void HttpGet::write() {
 void HttpGet::except() {
   close();
 
-  if (m_failed) {
-    // Make a shallow copy so it is safe to delete this object inside
-    // the signal.
-    Signal s = *m_failed;
-    
-    s.emit(m_code, m_status);
-  }
+  // Make a shallow copy so it is safe to delete this object inside
+  // the signal.
+  sigc::signal2<void, int, std::string> s = m_failed;
+  
+  s.emit(m_code, m_status);
 }
 
 // ParseHeader throws closeConnection if done

@@ -1,34 +1,39 @@
 DownloadChunk::interested should take into consideration chunks being
 downloaded?
 
-Randomize the chunks list so we don't start all downloads at the same spot.
+Randomize the chunks list so we don't start all downloads at the same
+spot.
 
 Make peer::connection::read* static?
 
 Find out how to make autoconf use big files.
 
-Support compact tracker query and 302 redirects, make a new class that handles
-http gets.
+Support compact tracker query and 302 redirects, make a new class that
+handles http gets.
 
 Setting for pipelining requests.
 
-Make request list keep choked requests, though it needs to be done in some other way.
+Make request list keep choked requests, though it needs to be done in
+some other way.
 
 After 25 seconds, choke a peer if no requests have been received?
 
-Add average, max and total to rates. Will this be controlled by choke/unchoke?
+Add average, max and total to rates. Will this be controlled by
+choke/unchoke?
 
 Set IP TOS
 
 Optimize Rate::rate(), use integer seconds. (or bitshifted)
 
-Add a snub factor. The more you upload without getting back, the higher it goes. Add a start buffer.
+Add a snub factor. The more you upload without getting back, the
+higher it goes. Add a start buffer.
 
 Make configure do the peer id thingie automagically
 
 Add config for how often we unchoke unknown peers vs good uploaders
 
-Consider splitting up download_state's peer connection management and download state stuff.
+Consider splitting up download_state's peer connection management and
+download state stuff.
 
 fix socketBase setAsync
 
@@ -42,16 +47,33 @@ Frobnicate the tracker reconnect timeout.
 
 Add host lookup+connection to SocketBase
 
-Delegator doesn't need to copy the bitfield, do the notIn algorithm as you iterate.
+Delegator doesn't need to copy the bitfield, do the notIn algorithm as
+you iterate.
 
-HttpGet should handle urls with only domain name (+port), without the leading '/'.
+HttpGet should handle urls with only domain name (+port), without the
+leading '/'.
+
+Add compact and numwant.
+
+Fair sharing of bandwidth to peers, sort them in some way? Or does the
+kernel allow each to fill up their buffers, thereby making the order
+in the SocketBase list irrelevant=
+
+Since I'm using these nice sigc++ signals, seperate the download/state
+class into specific functions like peer/choking management,
+data/delegation and such.
+
+Files class does stuff it isn't supposed to do, like keeping track of
+how much is done and stuff.
 
 
 API REDESIGN:
 
-Let the client retrive the file names in the torrent. (Add support for all in one string, or path broken up)
+Let the client retrive the file names in the torrent. (Add support for
+all in one string, or path broken up)
 
-Exceptions are pushed out with signals, support different groups with multiple signals.
+Exceptions are pushed out with signals, support different groups with
+multiple signals.
 
 
 AFTER API REDESIGN:
