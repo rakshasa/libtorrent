@@ -31,7 +31,7 @@ void Http::add_url(const std::string& s, bool queue) {
 
   try {
     http->set_url(s);
-    http->set_out(out);
+    http->set_stream(out);
 
     itr = m_list.insert(m_list.end(), std::make_pair(http, out));
 
@@ -54,7 +54,7 @@ void Http::add_url(const std::string& s, bool queue) {
 
 void Http::receive_done(List::iterator itr, bool queued) {
   try {
-    torrent::Download dItr = torrent::download_create(*itr->second);
+    torrent::Download dItr = torrent::download_create(itr->second);
     dItr.set_ip(ip);
 
     if (queued)

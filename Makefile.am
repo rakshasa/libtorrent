@@ -28,6 +28,7 @@ EXTRA_DIST= \
 	client/display.h \
 	client/download.cc \
 	client/download.h \
+	client/functional.h \
 	client/http.cc \
 	client/http.h \
 	client/rtorrent.cc \

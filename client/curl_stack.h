@@ -1,37 +1,40 @@
-#ifndef LIBTORRENT_CURL_STACK_H
-#define LIBTORRENT_CURL_STACK_H
+#ifndef CURL_STACK_H
+#define CURL_STACK_H
 
 #include <list>
 
 class CurlStack {
+ public:
   friend class CurlGet;
 
- public:
   typedef std::list<CurlGet*> CurlGetList;
 
   CurlStack();
   ~CurlStack();
 
-  int  get_size() const    { return m_size; }
-  bool is_busy() const { return !m_getList.empty(); }
+  int         get_size() const { return m_size; }
+  bool        is_busy() const  { return !m_getList.empty(); }
 
-  void perform();
+  void        perform();
 
-  void fdset(fd_set* readfds, fd_set* writefds, fd_set* exceptfds, int& maxFd);
+  // TODO: Set fd_set's only once?
+  void        fdset(fd_set* readfds, fd_set* writefds, fd_set* exceptfds, int* maxFd);
 
-  static void global_init();
-  static void global_cleanup();
+  static void init();
+  static void cleanup();
 
  protected:
-  void add_get(CurlGet* get);
-  void remove_get(CurlGet* get);
+  void        add_get(CurlGet* get);
+  void        remove_get(CurlGet* get);
 
  private:
-  void* m_handle;
+  CurlStack(const CurlStack&);
+  void operator = (const CurlStack&);
 
-  int m_size;
+  void*       m_handle;
+
+  int         m_size;
   CurlGetList m_getList;
 };
 
 #endif
-

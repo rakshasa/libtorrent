@@ -150,7 +150,7 @@ void signal_handler(int signum) {
 
       delete d;
 
-      curlStack.global_cleanup();
+      curlStack.cleanup();
       torrent::cleanup();
 
       exit(0);
@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
 
   try {
 
-  curlStack.global_init();
+  curlStack.init();
 
   torrent::Http::set_factory(sigc::bind(sigc::ptr_fun(&CurlGet::new_object), &curlStack));
 
@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
       if (!f.is_open())
 	continue;
       
-      torrent::Download d = torrent::download_create(f);
+      torrent::Download d = torrent::download_create(&f);
 
       d.set_ip(ip);
       d.signal_hash_done(sigc::bind(sigc::ptr_fun(&receive_hash_done), d));
@@ -294,7 +294,7 @@ int main(int argc, char** argv) {
     torrent::mark(&rset, &wset, &eset, &n);
 
     if (curlStack.is_busy())
-      curlStack.fdset(&rset, &wset, &eset, m);
+      curlStack.fdset(&rset, &wset, &eset, &m);
 
     n = std::max(n, m);
 
@@ -351,7 +351,7 @@ int main(int argc, char** argv) {
 	    std::ifstream f(inputBuf.c_str());
 	    
 	    if (f.is_open()) {
-	      torrent::Download d = torrent::download_create(f);
+	      torrent::Download d = torrent::download_create(&f);
 
 	      if (queueNext)
 		globalQueue.insert(d);
@@ -540,7 +540,7 @@ int main(int argc, char** argv) {
   }
 
   torrent::cleanup();
-  curlStack.global_cleanup();
+  curlStack.cleanup();
 
   } catch (const std::exception& e) {
     delete display;

@@ -1,13 +1,10 @@
-#include "curl_get.h"
-#include "curl_stack.h"
+#include <algorithm>
+#include <curl/multi.h>
 #include <torrent/exceptions.h>
 
-#include <algo/algo.h>
-#include <curl/multi.h>
-
-using namespace algo;
-
-namespace torrent {
+#include "functional.h"
+#include "curl_get.h"
+#include "curl_stack.h"
 
 CurlStack::CurlStack() :
   m_handle((void*)curl_multi_init()),
@@ -21,7 +18,8 @@ CurlStack::~CurlStack() {
   curl_multi_cleanup((CURLM*)m_handle);
 }
 
-void CurlStack::perform() {
+void
+CurlStack::perform() {
   int s;
   CURLMcode code;
 
@@ -39,8 +37,7 @@ void CurlStack::perform() {
 	CURLMsg* msg = curl_multi_info_read((CURLM*)m_handle, &t);
 
 	CurlGetList::iterator itr = std::find_if(m_getList.begin(), m_getList.end(),
-						 eq(call_member(&CurlGet::handle),
-						    value(msg->easy_handle)));
+						 func::equal(msg->easy_handle, std::mem_fun(&CurlGet::handle)));
 
 	if (itr == m_getList.end())
 	  throw torrent::client_error("Could not find CurlGet with the right easy_handle");
@@ -52,27 +49,29 @@ void CurlStack::perform() {
   } while (code == CURLM_CALL_MULTI_PERFORM);
 }
 
-void CurlStack::fdset(fd_set* readfds, fd_set* writefds, fd_set* exceptfds, int& maxFd) {
+void
+CurlStack::fdset(fd_set* readfds, fd_set* writefds, fd_set* exceptfds, int* maxFd) {
   int f;
 
   if (curl_multi_fdset((CURLM*)m_handle, readfds, writefds, exceptfds, &f) > 0)
     throw torrent::local_error("Error calling curl_multi_fdset");
 
-  maxFd = std::max(f, maxFd);
+  *maxFd = std::max(f, *maxFd);
 }
 
-void CurlStack::add_get(CurlGet* get) {
+void
+CurlStack::add_get(CurlGet* get) {
   CURLMcode code;
 
   if ((code = curl_multi_add_handle((CURLM*)m_handle, get->handle())) > 0)
     throw torrent::local_error("curl_multi_add_handle \"" + std::string(curl_multi_strerror(code)));
 
   m_size++;
-
   m_getList.push_back(get);
 }
 
-void CurlStack::remove_get(CurlGet* get) {
+void
+CurlStack::remove_get(CurlGet* get) {
   if (curl_multi_remove_handle((CURLM*)m_handle, get->handle()) > 0)
     throw torrent::local_error("Error calling curl_multi_remove_handle");
 
@@ -81,17 +80,16 @@ void CurlStack::remove_get(CurlGet* get) {
   if (itr == m_getList.end())
     throw torrent::client_error("Could not find CurlGet when calling CurlStack::remove");
 
-  m_getList.erase(itr);
-
   m_size--;
+  m_getList.erase(itr);
 }
 
-void CurlStack::global_init() {
+void
+CurlStack::init() {
   curl_global_init(CURL_GLOBAL_ALL);
 }
 
-void CurlStack::global_cleanup() {
+void
+CurlStack::cleanup() {
   curl_global_cleanup();
-}
-
 }
