@@ -27,7 +27,7 @@ DownloadSettings::DownloadSettings() :
   maxUploads(7),
   chokeCycle(30 * 1000000),
   chokeGracePeriod(55 * 1000000),
-  stallTimeout(320 * 1000000), // Less than 0.1 kb/s Set back to 160
+  stallTimeout(40 * 1000000), // Less than 0.5 kb/s
   cancelTimeout(10 * 1000000), // choke/unchoke should be in the same packet, especially if the peer is lagged.
   endgameBorder(0),
   endgameRate(10000)           // Only include stalled peers if the endgame mode if we're slow.

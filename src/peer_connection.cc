@@ -718,6 +718,10 @@ void PeerConnection::service(int type) {
     m_stallCount++;
     m_requests.stall();
 
+    // Make sure we regulary call SERVICE_STALL so stalled queues with new
+    // entries get those new ones stalled if needed.
+    insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+
     caughtExceptions.push_back("Peer stalled " + m_peer.dns());
     return;
 

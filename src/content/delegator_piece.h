@@ -33,6 +33,7 @@ public:
 
   unsigned int       get_reservees_size()               { return m_reservees.size(); }
   unsigned int       get_stalled()                      { return m_stalled; }
+  unsigned int       get_not_stalled()                  { return m_reservees.size() - m_stalled; }
 
 protected:
   friend class DelegatorReservee;

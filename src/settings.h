@@ -35,6 +35,7 @@ class DownloadSettings {
 
   // How long before we stall a download.
   int stallTimeout;
+
   // Time to wait after a choke before we consider it final.
   int cancelTimeout;
 
