@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include "file.h"
+#include "file_stat.h"
 #include "torrent/exceptions.h"
 
 #include <fcntl.h>
@@ -73,6 +74,14 @@ File::close() {
   m_flags = 0;
 }
 
+off_t
+File::get_size() const {
+  if (!is_open())
+    throw internal_error("File::get_size() called on a closed file");
+
+  return FileStat(m_fd).get_size();
+}  
+
 bool
 File::set_size(uint64_t v) {
   if (!is_open())
@@ -87,11 +96,10 @@ File::get_chunk(FileChunk& f,
 		uint32_t length,
 		bool wr,
 		bool rd) {
-  if (!is_open()) {
-    f.clear();
-
+  // For some reason mapping beyond the extent of the file does not
+  // cause mmap to complain, so we need to check manually here.
+  if (!is_open() || (off_t)offset + length > get_size())
     return false;
-  }
 
   uint64_t align = offset % getpagesize();
 
@@ -101,11 +109,11 @@ File::get_chunk(FileChunk& f,
 
   
   if (ptr == MAP_FAILED)
-    f.clear();
-  else
-    f.set(ptr, ptr + align, ptr + align + length, m_flags & in, m_flags & out);
+    return false;
 
-  return f.is_valid();
+  f.set(ptr, ptr + align, ptr + align + length, m_flags & in, m_flags & out);
+
+  return true;
 }
 
 }

@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_HASH_TORRENT_H
-#define LIBTORRENT_HASH_TORRENT_H
+#ifndef LIBTORRENT_DATA_HASH_TORRENT_H
+#define LIBTORRENT_DATA_HASH_TORRENT_H
 
 #include <string>
 #include <sigc++/signal.h>
@@ -38,7 +38,7 @@ class HashQueue;
 class HashTorrent {
 public:
   typedef algo::RefAnchored<StorageChunk>           Chunk;
-  typedef sigc::signal0<void>                       SignalTorrentDone;
+  typedef sigc::signal0<void>                       Signal;
   typedef sigc::signal2<void, Chunk, std::string>   SignalChunkDone;
   
   HashTorrent(const std::string& id, Storage* s);
@@ -54,7 +54,7 @@ public:
   HashQueue*          get_queue()                   { return m_queue; }
   void                set_queue(HashQueue* q)       { m_queue = q; }
 
-  SignalTorrentDone&  signal_torrent()              { return m_signalTorrent; }
+  Signal&             signal_torrent()              { return m_signalTorrent; }
   SignalChunkDone&    signal_chunk()                { return m_signalChunk; }
 
 private:
@@ -71,7 +71,7 @@ private:
   Storage*            m_storage;
   HashQueue*          m_queue;
 
-  SignalTorrentDone   m_signalTorrent;
+  Signal              m_signalTorrent;
   SignalChunkDone     m_signalChunk;
 };
 

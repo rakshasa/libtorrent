@@ -111,6 +111,7 @@ bool StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, bool wr, bo
     FileChunk& f = chunk.add_file(length);
 
     if (!itr->file()->get_chunk(f, offset, length, wr, rd)) {
+      // Clear so we don't keep unneeded references to FileChunks.
       chunk.clear();
 
       return false;

@@ -87,8 +87,21 @@ FileChunk::advise(uint32_t offset, uint32_t length, int advice) {
   length += offset % m_pagesize;
   offset -= offset % m_pagesize;
 
-  if (madvise(m_ptr + offset, length, advice))
-    throw storage_error("System call madvise failed in FileChunk");
+  if (madvise(m_ptr + offset, length, advice) == 0)
+    return;
+
+  else if (errno == EINVAL)
+    throw storage_error("FileChunk::advise(...) received invalid input");
+  else if (errno == ENOMEM)
+    throw storage_error("FileChunk::advise(...) called on unmapped or out-of-range memory");
+  else if (errno == EBADF)
+    throw storage_error("FileChunk::advise(...) memory are not a file");
+  else if (errno == EAGAIN)
+    throw storage_error("FileChunk::advise(...) kernel resources temporary unavailable");
+  else if (errno == EIO)
+    throw storage_error("FileChunk::advise(...) EIO error");
+  else
+    throw storage_error("FileChunk::advise(...) failed");
 }
 
 bool

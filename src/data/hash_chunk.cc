@@ -82,7 +82,6 @@ bool HashChunk::perform(uint32_t length, bool force) {
   return true;
 }
 
-
 // Warning: Can paralyze linux 2.4.20.
 bool HashChunk::willneed(uint32_t length) {
   if (!m_chunk.is_valid())

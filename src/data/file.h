@@ -56,8 +56,8 @@ class File {
   
   bool                is_open() const                 { return m_fd != -1; }
 
+  off_t               get_size() const;
   bool                set_size(uint64_t v);
-  //off_t               get_size() const;
 
   int                 get_flags() const               { return m_flags; }
 
