@@ -13,8 +13,8 @@
 #include "listen.h"
 #include "peer_handshake.h"
 #include "peer_connection.h"
+#include "throttle_control.h"
 #include "tracker_query.h"
-#include "service.h"
 #include "settings.h"
 #include "timer.h"
 #include "torrent.h"
@@ -25,6 +25,8 @@ namespace torrent {
 
 int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
+
+ThrottleControl throttleControl;
 
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
@@ -59,6 +61,8 @@ void initialize(int beginPort, int endPort) {
   srandom(Timer::current().usec());
 
   Listen::open(beginPort, endPort);
+
+  throttleControl.insertService(Timer::current(), 0);
 }
 
 void shutdown() {
@@ -74,6 +78,8 @@ void cleanup() {
   // Close again if shutdown wasn't called.
   Listen::close();
 
+  throttleControl.removeService();
+
   for_each<true>(Download::downloads().begin(), Download::downloads().end(),
 		 delete_on());
 
@@ -86,11 +92,16 @@ void cleanup() {
 int mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   int maxFd = 0;
 
-  maxFd = std::max(maxFd, std::for_each(SocketBase::readSockets().begin(), SocketBase::readSockets().end(),
+  maxFd = std::max(maxFd, std::for_each(SocketBase::readSockets().begin(),
+					SocketBase::readSockets().end(),
 					add_socket(readSet)).fd);
-  maxFd = std::max(maxFd, std::for_each(SocketBase::writeSockets().begin(), SocketBase::writeSockets().end(),
+
+  maxFd = std::max(maxFd, std::for_each(SocketBase::writeSockets().begin(),
+					SocketBase::writeSockets().end(),
 					add_socket(writeSet)).fd);
-  maxFd = std::max(maxFd, std::for_each(SocketBase::exceptSockets().begin(), SocketBase::exceptSockets().end(),
+
+  maxFd = std::max(maxFd, std::for_each(SocketBase::exceptSockets().begin(),
+					SocketBase::exceptSockets().end(),
 					add_socket(exceptSet)).fd);
 
   return maxFd;
@@ -123,28 +134,12 @@ void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 		       call_member(&SocketBase::write)));
 
   Service::runService();
-
-//   // Splice the write list so we let everyone get a fair share. This should
-//   // use some better scheme, but for now this is enough.
-//   int s = SocketBase::writeSockets().size();
-
-//   if (s < 4)
-//     return;
-
-//   SocketBase::Sockets::iterator itr = SocketBase::writeSockets().begin();
-
-//   for (int i = 0; i < s / 2 - 1; ++i)
-//     ++itr;
-
-//   SocketBase::writeSockets().splice(SocketBase::writeSockets().end(),
-// 				    SocketBase::writeSockets(),
-// 				    SocketBase::writeSockets().begin(), itr);
 }
 
 // It will be parsed through a stream anyway, so no need to supply
 // a function that handles char arrays. Just use std::stringstream.
 DList::const_iterator create(std::istream& s) {
-  // Clear failed bits.
+  // TODO: Should we clear failed bits?
   s.clear();
 
   bencode b;

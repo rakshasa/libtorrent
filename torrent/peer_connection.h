@@ -47,7 +47,6 @@ public:
 
   typedef std::list<Piece> PieceList;
 
-// TODO: This is ugly, make it a seperate class.
 #include "peer_connection_sub.h"
 
   PeerConnection();

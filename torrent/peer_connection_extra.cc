@@ -135,4 +135,13 @@ bool PeerConnection::chokeDelayed() {
   return m_sendChoked || inService(SERVICE_SEND_CHOKE);
 }
 
+void PeerConnection::choke(bool v) {
+  if (m_up.choked != v) {
+    m_sendChoked = true;
+    m_up.choked = v;
+
+    insertWrite();
+  }
+}
+
 } // namespace torrent

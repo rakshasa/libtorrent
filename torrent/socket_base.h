@@ -36,7 +36,6 @@ public:
   static Sockets& writeSockets() { return m_writeSockets; }
   static Sockets& exceptSockets() { return m_exceptSockets; }
 
-protected:
   void insertRead();
   void insertWrite();
   void insertExcept();
@@ -45,6 +44,7 @@ protected:
   void removeWrite();
   void removeExcept();
 
+protected:
   bool readBuf(char* buf, unsigned int length, unsigned int& pos);
   bool writeBuf(const char* buf, unsigned int length, unsigned int& pos);
 

@@ -90,6 +90,7 @@ void PeerConnection::read() {
     } else if (m_down.length > (1 << 17) + 9) {
       std::stringstream s;
       s << "Recived packet with length 0x" << std::hex << m_down.length;
+
       throw communication_error(s.str());
     }
     
@@ -506,17 +507,15 @@ void PeerConnection::parseReadBuf() {
 		     Piece(index, offset, length));
       
     if (m_down.buf[0] == REQUEST) {
-      // TODO: Is this really an exception? what if we're choking abit?
       if (rItr != m_up.list.end())
-	throw communication_error("Tried to request piece that has already been queued");
+	m_up.list.erase(rItr);
       
       m_up.list.push_back(Piece(index, offset, length));
       insertWrite();
 
     } else if (rItr != m_up.list.end()) {
 
-      // TODO: Cancel if we're not writing it.
-      if (rItr != m_up.list.begin())
+      if (m_up.state != WRITE_MSG || rItr != m_up.list.begin())
 	// Only cancel it if we're not writing it out at the moment.
 	m_up.list.erase(rItr);
     }
@@ -585,6 +584,19 @@ void PeerConnection::fillWriteBuf() {
 
     while (m_down.list.size() < 10 &&
 	   m_download->delegator().delegate(m_peer.id(), m_bitfield, m_down.list)) {
+
+      if (m_down.list.back().length() > (1 << 17) ||
+	  m_down.list.back().length() == 0 ||
+	  m_down.list.back().length() + m_down.list.back().offset() >
+	  m_download->files().chunkSize(m_down.list.back().index())) {
+	std::stringstream s;
+
+	s << "Tried to request a piece with invalid length or offset: "
+	  << m_down.list.back().length() << ' '
+	  << m_down.list.back().offset();
+
+	throw internal_error(s.str());
+      }
 
       if (addService) {
 	insertService(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
@@ -693,15 +705,6 @@ void PeerConnection::sendHave(int index) {
   // TODO: Also send cancel messages!
 
   insertWrite();
-}
-
-void PeerConnection::choke(bool v) {
-  if (m_up.choked != v) {
-    m_sendChoked = true;
-    m_up.choked = v;
-
-    insertWrite();
-  }
 }
 
 void PeerConnection::service(int type) {

@@ -42,6 +42,10 @@ libtorrent_la_SOURCES = \
         storage.h \
         storage_block.cc \
         storage_block.h \
+	throttle.cc \
+	throttle.h \
+	throttle_control.cc \
+	throttle_control.h \
         tracker_query.cc \
         tracker_query.h \
         torrent.cc \

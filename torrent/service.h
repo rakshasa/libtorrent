@@ -2,24 +2,31 @@
 #define LIBTORRENT_SERVICE_H
 
 #include "timer.h"
-#include <list>
+#include <deque>
 
 namespace torrent {
+
+// TODO: Since this list is heavly used and results in
+// many cache misses it should convert to using deque. Removed
+// services should be flagged since we can't yank them out.
 
 class Service {
 public:
   struct Task {
     Task(Timer t, int arg, Service* s) :
       m_time(t),
+      m_service(s),
       m_arg(arg),
-      m_service(s) {}
+      m_ignore(false) {}
 
     Timer m_time;
-    int m_arg;
     Service* m_service;
+
+    int m_arg;
+    bool m_ignore;
   };
 
-  typedef std::list<Task> Tasks;
+  typedef std::deque<Task> Tasks;
 
   virtual ~Service();
 

@@ -37,6 +37,19 @@ class DownloadSettings {
   static DownloadSettings* m_global;
 };
 
+class ThrottleSettings { 
+ public:
+  ThrottleSettings();
+
+  bool unlimited;
+
+  int constantRate;
+
+  static int minPeriod;
+  static int wakeupPoint;
+  static int minChunk;
+};
+
 // When pipelining of requests is implemented, add bounds so it can never
 // overflow peer_connection's writeBuf.
 
