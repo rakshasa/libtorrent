@@ -19,11 +19,11 @@ public:
   bool            resize();
   void            close();
 
-  void            set_chunksize(unsigned int size);
+  void            set_chunksize(uint32_t size);
 
   uint64_t        get_size()                     { return m_size; }
-  unsigned int    get_chunkcount()               { return (m_size + m_chunksize - 1) / m_chunksize; }
-  unsigned int    get_chunksize()                { return m_chunksize; }
+  uint32_t        get_chunkcount()               { return (m_size + m_chunksize - 1) / m_chunksize; }
+  uint32_t        get_chunksize()                { return m_chunksize; }
 
   bool            get_chunk(StorageChunk& chunk, unsigned int b, bool wr = false, bool rd = true);
 
@@ -31,7 +31,7 @@ public:
 
 private:
   uint64_t        m_size;
-  unsigned int    m_chunksize;
+  uint32_t        m_chunksize;
   
   FileList        m_files;
 };

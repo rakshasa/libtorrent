@@ -33,7 +33,7 @@ Storage::close() {
 }
 
 void
-Storage::set_chunksize(unsigned int s) {
+Storage::set_chunksize(uint32_t s) {
   m_consolidator->set_chunksize(s);
 
   m_anchors.resize(get_chunkcount());
@@ -44,12 +44,12 @@ Storage::get_size() {
   return m_consolidator->get_size();
 }
 
-unsigned int
+uint32_t
 Storage::get_chunkcount() {
   return m_consolidator->get_chunkcount();
 }
 
-unsigned int
+uint32_t
 Storage::get_chunksize() {
   return m_consolidator->get_chunksize();
 }

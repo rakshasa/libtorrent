@@ -41,7 +41,7 @@ void StorageConsolidator::close() {
   m_size = 0;
 }
 
-void StorageConsolidator::set_chunksize(unsigned int size) {
+void StorageConsolidator::set_chunksize(uint32_t size) {
   if (size == 0)
     throw internal_error("Tried to set StorageConsolidator's chunksize to zero");
 

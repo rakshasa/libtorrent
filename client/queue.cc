@@ -5,8 +5,10 @@
 #include "queue.h"
 
 void Queue::insert(torrent::Download dItr) {
-  if (m_list.empty())
+  if (m_list.empty()) {
+    dItr.open();
     dItr.start();
+  }
 
   dItr.signal_download_done(sigc::bind(sigc::mem_fun(*this, &Queue::receive_done),
 				       dItr.get_hash()));

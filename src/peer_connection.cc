@@ -612,13 +612,9 @@ void PeerConnection::fillWriteBuf() {
     // This check takes care of all possible errors in lenght and offset.
     if (m_sends.front().length() > (1 << 17) ||
 	m_sends.front().length() == 0 ||
+
 	m_sends.front().length() + m_sends.front().offset() >
-
-	((unsigned)m_sends.front().index() + 1 != m_download->get_content().get_storage().get_chunkcount()  ||
-	 !(m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunksize()) ?
-
-	 m_download->get_content().get_storage().get_chunksize() :
-	 (m_download->get_content().get_storage().get_size() % m_download->get_content().get_storage().get_chunksize()))) {
+	m_download->get_content().get_chunksize(m_sends.front().index())) {
 
       std::stringstream s;
 

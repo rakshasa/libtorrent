@@ -47,9 +47,11 @@ uint64_t
 DownloadState::bytes_left() {
   uint64_t left = m_content.get_size() - m_content.get_bytes_completed();
 
-  if (left > ((uint64_t)1 << 60) ||
-      (m_content.get_chunks_completed() == m_content.get_storage().get_chunkcount() && left != 0))
-    throw internal_error("DownloadState::download_stats's 'left' has an invalid size"); 
+  if (left > ((uint64_t)1 << 60))
+    throw internal_error("DownloadState::bytes_left() is too large"); 
+
+  if (m_content.get_chunks_completed() == m_content.get_storage().get_chunkcount() && left != 0)
+    throw internal_error("DownloadState::bytes_left() has an invalid size"); 
 
   return left;
 }

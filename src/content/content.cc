@@ -59,12 +59,14 @@ Content::get_chunksize(uint32_t index) {
 
 uint64_t
 Content::get_bytes_completed() {
-  if (!m_bitfield[m_storage.get_chunkcount() - 1] || m_size % m_storage.get_chunksize() == 0)
+  uint64_t cs = m_storage.get_chunksize();
+
+  if (!m_bitfield[m_storage.get_chunkcount() - 1] || m_size % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
-    return m_completed * m_storage.get_chunksize();
+    return m_completed * cs;
 
   else
-    return (m_completed - 1) * m_storage.get_chunksize() + m_size % m_storage.get_chunksize();
+    return (m_completed - 1) * cs + m_size % cs;
 }
 
 bool
@@ -151,6 +153,9 @@ Content::mark_done(unsigned int index) {
   if (m_bitfield[index])
     throw internal_error("Content::mark_done received index that has already been marked as done");
   
+  if (m_completed >= m_storage.get_chunkcount())
+    throw internal_error("Content::mark_done called but m_completed >= m_storage.get_chunkcount()");
+
   m_bitfield.set(index);
   m_completed++;
 

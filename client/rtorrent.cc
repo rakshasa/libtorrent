@@ -318,8 +318,10 @@ int main(int argc, char** argv) {
 
 	      if (queueNext)
 		globalQueue.insert(d);
-	      else
+	      else {
+		d.open();
 		d.start();
+	      }
 
 	      downloads.push_back(d);
 	    }

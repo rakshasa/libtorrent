@@ -29,11 +29,11 @@ public:
   void         close();
 
   // Call this when all files have been added.
-  void         set_chunksize(unsigned int s);
+  void         set_chunksize(uint32_t s);
   
   uint64_t     get_size();
-  unsigned int get_chunkcount();
-  unsigned int get_chunksize();
+  uint32_t     get_chunkcount();
+  uint32_t     get_chunksize();
 
   Chunk        get_chunk(unsigned int b, bool wr = false, bool rd = true);
 
