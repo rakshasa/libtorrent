@@ -162,7 +162,7 @@ void DownloadMain::service(int type) {
       }
 
     p2 = NULL;
-    f = 0;
+    f = -1;
 
     foundInterested = false;
 
@@ -172,10 +172,14 @@ void DownloadMain::service(int type) {
     for (DownloadState::Connections::const_iterator itr = state().connections().begin();
 	 itr != state().connections().end(); ++itr)
 
+      // Prioritize those we are interested in, those also have higher
+      // download rates.
+
       if ((*itr)->up().c_choked() &&
 	  (*itr)->down().c_interested() &&
 
-	  ((g = (*itr)->throttle().down().rate()) >= f ||
+	  ((g = (*itr)->throttle().down().rate()) > f ||
+
 	   (!foundInterested && (*itr)->up().c_interested()))) {
 	// Prefer peers we are interested in.
 
