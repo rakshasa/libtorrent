@@ -72,17 +72,6 @@ Delegator::delegate(const BitField& bf, int affinity) {
   return NULL;
 }
   
-bool
-Delegator::downloading(DelegatorReservee& r) {
-  if (!r.is_valid())
-    throw internal_error("Delegator::downloading(...) got an invalid reservee");
-
-  if (r.get_parent()->is_finished())
-    throw internal_error("Delegator::downloading(...) got an reservee that is already finished");
-
-  return true;
-}
-
 void
 Delegator::finished(DelegatorReservee& r) {
   if (!r.is_valid() || r.get_parent()->is_finished())
@@ -93,16 +82,16 @@ Delegator::finished(DelegatorReservee& r) {
   if (p == NULL)
     throw internal_error("Delegator::finished(...) got reservee with parent == NULL");
 
+  // Temporary exception, remove when the code is rock solid. (Hah, like it ever will be;)
+  if (all_finished(p->get_piece().get_index()) ||
+      (*m_select.get_bitfield())[p->get_piece().get_index()])
+    throw internal_error("Delegator::finished(...) called on an index that is already finished");
+
   p->clear();
   p->set_finished(true);
 
   if (all_finished(p->get_piece().get_index()))
     m_signalChunkDone.emit(p->get_piece().get_index());
-}
-
-void
-Delegator::cancel(DelegatorReservee& r) {
-  r.invalidate();
 }
 
 void Delegator::done(int index) {

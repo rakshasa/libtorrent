@@ -113,6 +113,9 @@ void DownloadMain::stop() {
   }
 
   setup_stop();
+
+  if (std::distance(m_state.signal_chunk_failed().slots().begin(), m_state.signal_chunk_failed().slots().end()) != 0)
+    throw internal_error("DownloadMain::stop() did no properly disconnect signals");
 }
 
 void DownloadMain::service(int type) {

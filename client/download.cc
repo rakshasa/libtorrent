@@ -27,10 +27,10 @@ Download::Download(torrent::Download dItr) :
 
 Download::~Download() {
   if (m_dItr.is_valid()) {
-    m_signalCon->disconnect();
-    m_signalDis->disconnect();
-    m_signalTF->disconnect();
-    m_signalTS->disconnect();
+    m_signalCon.disconnect();
+    m_signalDis.disconnect();
+    m_signalTF.disconnect();
+    m_signalTS.disconnect();
 
     m_dItr.set_tracker_numwant(torrent::Download::NUMWANT_DISABLED);
   }

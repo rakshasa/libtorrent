@@ -21,9 +21,6 @@ DownloadMain::setup_delegator() {
 
   m_net.get_delegator().signal_chunk_done().connect(sigc::mem_fun(m_state, &DownloadState::chunk_done));
   m_net.get_delegator().slot_chunk_size(sigc::mem_fun(m_state.content(), &Content::get_chunksize));
-
-  m_slotChunkPassed = sigc::mem_fun(m_net.get_delegator(), &Delegator::done);
-  m_slotChunkFailed = sigc::mem_fun(m_net.get_delegator(), &Delegator::redo);
 }
 
 void
@@ -54,14 +51,14 @@ DownloadMain::setup_tracker(const bencode& b) {
 
 void
 DownloadMain::setup_start() {
-  m_state.signal_chunk_passed().connect(m_slotChunkPassed);
-  m_state.signal_chunk_failed().connect(m_slotChunkFailed);
+  m_connectionChunkPassed = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
+  m_connectionChunkFailed = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
 }
 
 void
 DownloadMain::setup_stop() {
-  m_slotChunkPassed.disconnect();
-  m_slotChunkFailed.disconnect();
+  m_connectionChunkPassed.disconnect();
+  m_connectionChunkFailed.disconnect();
 }
 
 }

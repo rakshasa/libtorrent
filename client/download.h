@@ -1,6 +1,7 @@
 #ifndef RTORRENT_DOWNLOAD_H
 #define RTORRENT_DOWNLOAD_H
 
+#include <sigc++/connection.h>
 #include <torrent/torrent.h>
 
 class Download {
@@ -46,10 +47,10 @@ class Download {
 
   std::string m_msg;
 
-  torrent::Download::SignalPeerConnected::iterator    m_signalCon;
-  torrent::Download::SignalPeerDisconnected::iterator m_signalDis;
-  torrent::Download::SignalTrackerFailed::iterator    m_signalTF;
-  torrent::Download::SignalTrackerSucceded::iterator  m_signalTS;
+  sigc::connection m_signalCon;
+  sigc::connection m_signalDis;
+  sigc::connection m_signalTF;
+  sigc::connection m_signalTS;
 };
 
 #endif

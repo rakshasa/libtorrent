@@ -7,6 +7,7 @@
 #include "download/download_net.h"
 
 #include <sigc++/slot.h>
+#include <sigc++/connection.h>
 
 namespace torrent {
 
@@ -77,10 +78,8 @@ private:
 
   SignalTrackerSucceded m_signalTrackerSucceded;
 
-  typedef sigc::slot1<void, uint32_t> SlotChunk;
-
-  SlotChunk m_slotChunkPassed;
-  SlotChunk m_slotChunkFailed;
+  sigc::connection m_connectionChunkPassed;
+  sigc::connection m_connectionChunkFailed;
 };
 
 } // namespace torrent

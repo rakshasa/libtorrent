@@ -53,7 +53,7 @@ RequestList::downloading(const Piece& p) {
     std::find_if(m_reservees.begin(), m_reservees.end(),
 		 eq(ref(p), call_member(&DelegatorReservee::get_piece)));
   
-  if (itr == m_reservees.end() || !m_delegator->downloading(**itr))
+  if (itr == m_reservees.end())
     return false;
 
   if ((*m_delegator->get_select().get_bitfield())[p.get_index()])
@@ -103,7 +103,7 @@ RequestList::has_index(unsigned int i) {
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
   while (m_reservees.begin() != end) {
-    m_delegator->cancel(*m_reservees.front());
+    m_reservees.front()->invalidate();
     
     delete m_reservees.front();
     m_reservees.pop_front();

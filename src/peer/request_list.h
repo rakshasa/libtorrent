@@ -65,6 +65,7 @@ private:
   int                m_affinity;
   bool               m_downloading;
   ReserveeList       m_reservees;
+
 };
 
 }

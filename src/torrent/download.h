@@ -26,10 +26,11 @@ public:
 
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
-  // Not active atm
+  // Not active atm. Opens and prepares/closes the files.
   void                 open();
   void                 close();
 
+  // Start/stop the download. The torrent must be open.
   void                 start();
   void                 stop();
 
@@ -96,10 +97,15 @@ public:
   // all the peer bitfields to see if we are still interested.
   void                 update_priorities();
 
+  // If you create a peer list, you *must* keep it up to date with the signals
+  // peer_{connected,disconnected}. Otherwise you may experience undefined
+  // behaviour when using invalid peers in the list.
   void                 peer_list(PList& pList);
   Peer                 peer_find(const std::string& id);
 
-  // Signals:
+  // Note on signals: If you bind it to a class member function, make sure the
+  // class does not get copied as the binding only points to the original
+  // memory location.
 
   typedef sigc::signal0<void>              SignalDownloadDone;
   typedef sigc::signal1<void, Peer>        SignalPeerConnected;

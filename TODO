@@ -80,10 +80,14 @@ If you add SERVICE_CANCEL, modify discardincomingqueue.
 
 Make set endgame take priorities into account.
 
+! Looks like the choke/unchoke cycle messes up our request pipe size.
+
 
 TRACKER STUFF
 
 * Make it NAT friendly, add selectable DNS
+
+We can accumulate too many peers, put a limit on it.
 
 
 API REDESIGN:
@@ -92,6 +96,8 @@ Exceptions are pushed out with signals, support different groups with
 multiple signals.
 
 Changing the piece length.
+
+Since i found out about sigc::connections, fix the API.
 
 
 AFTER API REDESIGN:

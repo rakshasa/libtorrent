@@ -25,11 +25,7 @@ public:
 
   DelegatorReservee* delegate(const BitField& bf, int affinity);
 
-  bool               downloading(DelegatorReservee& r);
-
-  void               stall(DelegatorReservee& r);
   void               finished(DelegatorReservee& r);
-  void               cancel(DelegatorReservee& r);
 
   void               done(int index);
   void               redo(int index);
