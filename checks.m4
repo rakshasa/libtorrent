@@ -32,7 +32,7 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL],
 [
   # first, deal with the user option : set places to be 'search' or the prefix
   AC_ARG_WITH(openssl,
-        [  --with-openssl=PATH Find the OpenSSL header and library in
+        [  --with-openssl=PATH     Find the OpenSSL header and library in
                           `PATH/include' and `PATH/lib'. If PATH is of the
                           form `HEADER:LIB', then search for header files in
                           HEADER, and the library in LIB.  If you omit the
@@ -45,7 +45,7 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL],
 	  PKG_CHECK_MODULES(OPENSSL, openssl,
 	 	      	    CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";
                             LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`",
-		            AC_MSG_ERROR(Could not find openssl's crypto library))
+		            AC_MSG_ERROR(Could not find openssl's crypto library, try --with-openssl=PATH))
 
         else
 		CXXFLAGS="$CXXFLAGS -I$withval/include"
@@ -56,6 +56,6 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL],
 	PKG_CHECK_MODULES(OPENSSL, openssl,
 	 	    	  CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";
                           LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`",
-		          AC_MSG_ERROR(Could not find openssl's crypto library))
+		          AC_MSG_ERROR(Could not find openssl's crypto library, try --with-openssl=PATH))
   ])
 ])

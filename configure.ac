@@ -137,9 +137,9 @@ AC_OUTPUT([
 AC_MSG_RESULT()
 
 if test $VAR_USE_MADVISE = "0"; then
-  AC_MSG_RESULT([  ( ) madvise(... MADV_WILLNEED) optimizing. (Known to kill linux 2.4.20)])
+  AC_MSG_RESULT([  ( ) madvise(..., MADV_WILLNEED) optimizing. (Known to kill linux <= 2.4.20)])
 else
-  AC_MSG_RESULT([  (X) madvise(... MADV_WILLNEED) optimizing. (Known to kill linux 2.4.20)])
+  AC_MSG_RESULT([  (X) madvise(..., MADV_WILLNEED) optimizing. (Known to kill linux <= 2.4.20)])
 fi
 
 AC_MSG_RESULT()
