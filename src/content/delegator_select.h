@@ -20,6 +20,10 @@ public:
     m_ignore.push_back((unsigned)-1);
   }
     
+  bool                   interested(const BitField& bf);
+  bool                   interested(uint32_t index);
+  bool                   interested_range(const BitField& bf, uint32_t start, uint32_t end);
+
   Priority&	         get_priority()               { return m_priority; }
   const BitField*        get_bitfield()               { return m_bitfield; }
   const BitFieldCounter* get_seen()                   { return m_seen; }
@@ -41,9 +45,9 @@ private:
 				     unsigned int rarity,
 				     unsigned int& cur_rarity);
 
-  uint32_t               interested(const BitField& bf,
-				    unsigned int start,
-				    Indexes::const_iterator& indexes);
+  uint32_t               wanted(const BitField& bf,
+				unsigned int start,
+				Indexes::const_iterator& indexes);
 
   Indexes                m_ignore;
   Priority               m_priority;

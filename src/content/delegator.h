@@ -23,9 +23,6 @@ public:
   Delegator() : m_chunksize(0) { }
   ~Delegator();
 
-  bool               interested(const BitField& bf);
-  bool               interested(int index);
-
   DelegatorReservee* delegate(const BitField& bf, int affinity);
   bool               downloading(DelegatorReservee& r);
   void               finished(DelegatorReservee& r);

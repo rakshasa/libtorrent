@@ -63,6 +63,8 @@ public:
   void sendHave(int i);
   void choke(bool v);
 
+  void update_interested();
+
   bool chokeDelayed();
   Timer lastChoked() { return m_lastChoked; }
 

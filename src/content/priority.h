@@ -1,6 +1,7 @@
 #ifndef LIBTORRENT_PRIORITY_H
 #define LIBTORRENT_PRIORITY_H
 
+#include <inttypes.h>
 #include <vector>
 
 namespace torrent {
@@ -13,25 +14,27 @@ public:
     HIGH
   } Type;
 
-  typedef std::pair<unsigned int, unsigned int> Range;
-  typedef std::vector<Range>                    List;
-  typedef std::pair<unsigned int, Range>        Position;
+  typedef std::pair<uint32_t, uint32_t> Range;
+  typedef std::vector<Range>            List;
+  typedef std::pair<uint32_t, Range>    Position;
 
   Priority() { clear(); }
 
   // Must be added in increasing order.
-  void                 add(Type t, unsigned int begin, unsigned int end);
+  void                 add(Type t, uint32_t begin, uint32_t end);
 
   void                 clear();
 
   unsigned int         get_size(Type t) { return m_size[t]; }
-  const List&          get_list(Type t) { return m_list[t]; }
+  List&                get_list(Type t) { return m_list[t]; }
 
-  List::const_iterator find(Type t, unsigned int index);
+  List::iterator       find(Type t, uint32_t index);
+
+  bool                 has(Type t, uint32_t index);
 
 private:
-  unsigned int m_size[3];
-  List         m_list[3];
+  uint32_t m_size[3];
+  List     m_list[3];
 };
 
 }

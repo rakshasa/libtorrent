@@ -10,7 +10,7 @@ using namespace algo;
 namespace torrent {
 
 void
-Priority::add(Type t, unsigned int begin, unsigned int end) {
+Priority::add(Type t, uint32_t begin, uint32_t end) {
   if (m_list[t].empty() ||
       m_list[t].back().second < begin) {
 
@@ -31,10 +31,18 @@ Priority::clear() {
   }
 }
 
-Priority::List::const_iterator
-Priority::find(Type t, unsigned int index) {
+Priority::List::iterator
+Priority::find(Type t, uint32_t index) {
   return std::find_if(m_list[t].begin(), m_list[t].end(),
 		      lt(value(index), member(&Range::second)));
+}
+
+bool
+Priority::has(Type t, uint32_t index) {
+  List::const_iterator itr = std::find_if(m_list[t].begin(), m_list[t].end(),
+					  lt(value(index), member(&Range::second)));
+
+  return itr != m_list[t].end() && index >= itr->first;
 }
 
 }

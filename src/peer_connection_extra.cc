@@ -7,9 +7,10 @@
 #include <netinet/in.h>
 #include <sstream>
 
-#include "peer_connection.h"
 #include "torrent/exceptions.h"
+#include "peer_connection.h"
 #include "download_state.h"
+#include "download/download_net.h"
 
 #define BUFFER_SIZE (1<<9)
 
@@ -190,6 +191,17 @@ void PeerConnection::choke(bool v) {
     m_up.choked = v;
 
     insertWrite();
+  }
+}
+
+void
+PeerConnection::update_interested() {
+  if (m_net->get_delegator().get_select().interested(m_bitfield)) {
+    m_sendInterested = !m_down.interested;
+    m_down.interested = true;
+  } else {
+    m_sendInterested = m_down.interested;
+    m_down.interested = false;
   }
 }
 

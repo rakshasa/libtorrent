@@ -240,6 +240,9 @@ Download::update_priorities() {
 
     pos += i->get_size();
   }
+
+  std::for_each(((DownloadMain*)m_ptr)->state().connections().begin(), ((DownloadMain*)m_ptr)->state().connections().end(),
+		call_member(&PeerConnection::update_interested));
 }
 
 void

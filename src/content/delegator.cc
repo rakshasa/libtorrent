@@ -19,21 +19,6 @@ Delegator::~Delegator() {
   std::for_each(m_chunks.begin(), m_chunks.end(), delete_on());
 }
 
-bool Delegator::interested(const BitField& bf) {
-  // TODO: Optimize this.
-
-  BitField b(bf);
-  
-  return !b.notIn(*m_select.get_bitfield()).zero();
-}
-
-bool Delegator::interested(int index) {
-  if (index < 0 && (unsigned)index >= m_select.get_bitfield()->sizeBits())
-    throw internal_error("Delegator::interested received index out of range");
-
-  return !(*m_select.get_bitfield())[index];
-}
-
 DelegatorReservee*
 Delegator::delegate(const BitField& bf, int affinity) {
   // TODO: Make sure we don't queue the same piece several time on the same peer when

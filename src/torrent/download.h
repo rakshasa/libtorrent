@@ -92,7 +92,8 @@ public:
   const SeenVector&    get_seen();
 
   // Call this when you want the modifications of the download priorities
-  // in the entries to take effect.
+  // in the entries to take effect. It is slightly expensive as it rechecks
+  // all the peer bitfields to see if we are still interested.
   void                 update_priorities();
 
   void                 peer_list(PList& pList);
