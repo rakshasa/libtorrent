@@ -16,6 +16,8 @@ class CurlGet : public torrent::Http {
   CurlGet(CurlStack* s);
   virtual ~CurlGet();
 
+  static CurlGet*    new_object(CurlStack* s);
+
   void               start();
   void               close();
 
@@ -24,6 +26,9 @@ class CurlGet : public torrent::Http {
 
   void               set_out(std::ostream* out);
   std::ostream*      get_out();
+
+  void               set_user_agent(const std::string& s);
+  const std::string& get_user_agent();
 
   bool               is_busy() { return m_handle; }
 
@@ -39,6 +44,7 @@ class CurlGet : public torrent::Http {
   friend size_t curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handle);
 
   std::string   m_url;
+  std::string   m_useragent;
   std::ostream* m_out;
   CURL*         m_handle;
 

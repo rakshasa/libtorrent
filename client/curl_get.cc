@@ -13,12 +13,18 @@ CurlGet::~CurlGet() {
 }
 
 CurlGet::CurlGet(CurlStack* s) :
+  m_useragent("rtorrent_unknow"),
   m_out(NULL),
   m_handle(NULL),
   m_stack(s) {
 
   if (m_stack == NULL)
     throw torrent::client_error("Tried to create CurlGet without a valid CurlStack");
+}
+
+CurlGet*
+CurlGet::new_object(CurlStack* s) {
+  return new CurlGet(s);
 }
 
 void CurlGet::set_url(const std::string& url) {
@@ -45,6 +51,18 @@ CurlGet::get_out() {
   return m_out;
 }
 
+void
+CurlGet::set_user_agent(const std::string& s) {
+  curl_easy_setopt(m_handle, CURLOPT_USERAGENT,     PACKAGE "/" VERSION);
+
+  m_useragent = s;
+}
+
+const std::string&
+CurlGet::get_user_agent() {
+  return m_useragent;
+}
+
 void CurlGet::start() {
   if (is_busy())
     throw torrent::local_error("Tried to call CurlGet::start on a busy object");
@@ -57,7 +75,6 @@ void CurlGet::start() {
   curl_easy_setopt(m_handle, CURLOPT_URL,           m_url.c_str());
   curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &curl_get_receive_write);
   curl_easy_setopt(m_handle, CURLOPT_WRITEDATA,     this);
-  curl_easy_setopt(m_handle, CURLOPT_USERAGENT,     PACKAGE "/" VERSION);
   curl_easy_setopt(m_handle, CURLOPT_FORBID_REUSE,  1);
 
   m_stack->add_get(this);

@@ -5,6 +5,7 @@
 #include <torrent/torrent.h>
 #include <torrent/exceptions.h>
 #include <algo/algo.h>
+#include <sigc++/bind.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -14,6 +15,7 @@
 #include "http.h"
 #include "queue.h"
 #include "curl_stack.h"
+#include "curl_get.h"
 
 // Uncomment this if your system doesn't have execinfo.h
 #define USE_EXECINFO
@@ -37,7 +39,7 @@ bool inputActive = false;
 std::string inputBuf;
 
 Display* display = NULL;
-bool shutdown = false;
+bool shutdown_progress = false;
 
 Download* download = NULL;
 DisplayState displayState = DISPLAY_MAIN;
@@ -46,7 +48,7 @@ CurlStack curlStack;
 extern Queue globalQueue;
 
 void do_shutdown() {
-  shutdown = true;
+  shutdown_progress = true;
 
   delete download;
 
@@ -74,11 +76,14 @@ void signal_handler(int signum) {
 
   switch (signum) {
   case SIGINT:
-    if (shutdown) {
+    if (shutdown_progress) {
       Display* d = display;
       display = NULL;
 
       delete d;
+
+      curlStack.global_cleanup();
+      torrent::cleanup();
 
       exit(0);
     }
@@ -134,6 +139,10 @@ int main(int argc, char** argv) {
 
   try {
 
+  curlStack.global_init();
+
+  torrent::Http::set_factory(sigc::bind(sigc::ptr_fun(&CurlGet::new_object), &curlStack));
+
   torrent::initialize();
 
   if (!torrent::listen_open(6890, 6999)) {
@@ -169,7 +178,7 @@ int main(int argc, char** argv) {
   int maxY, maxX;
   bool queueNext = false;
 
-  while (!shutdown || !torrent::get(torrent::SHUTDOWN_DONE)) {
+  while (!shutdown_progress || !torrent::get(torrent::SHUTDOWN_DONE)) {
     loops++;
 
     if (lastDraw + 1000000 < torrent::get(torrent::TIME_CURRENT)) {
@@ -197,9 +206,14 @@ int main(int argc, char** argv) {
     FD_ZERO(&wset);
     FD_ZERO(&eset);
 
-    int n;
+    int n, m = 0;
 
     torrent::mark(&rset, &wset, &eset, &n);
+
+    if (curlStack.is_busy())
+      curlStack.fdset(&rset, &wset, &eset, m);
+
+    n = std::max(n, m);
 
     FD_SET(0, &rset);
 
@@ -226,6 +240,9 @@ int main(int argc, char** argv) {
       if (log_entries.size() > 30)
 	log_entries.pop_back();
     }
+
+    if (curlStack.is_busy())
+      curlStack.perform();
 
     // Interface stuff, this is an ugly hack job.
     if (!FD_ISSET(0, &rset))
@@ -400,6 +417,7 @@ int main(int argc, char** argv) {
   delete display;
 
   torrent::cleanup();
+  curlStack.global_cleanup();
 
   } catch (const std::exception& e) {
     delete display;

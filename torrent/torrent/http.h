@@ -28,7 +28,7 @@ class Http {
   virtual std::ostream*      get_out() = 0;
   
   virtual void               set_user_agent(const std::string& s) = 0;
-  virtual void               get_user_agent() = 0;
+  virtual const std::string& get_user_agent() = 0;
 
   virtual SignalDone&        signal_done() = 0;
   virtual SignalFailed&      signal_failed() = 0;
