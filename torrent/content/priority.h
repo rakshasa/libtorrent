@@ -1,25 +1,40 @@
 #ifndef LIBTORRENT_PRIORITY_H
 #define LIBTORRENT_PRIORITY_H
 
+#include <vector>
+
 namespace torrent {
 
 class Priority {
 public:
-  typedef std::pair<unsigned int, unsigned int> Range;
-
   typedef enum {
     STOPPED,
     NORMAL,
     HIGH
   } Type;
 
-  void  add(unsigned int begin, unsigned int end);
+  typedef std::pair<unsigned int, unsigned int> Range;
+  typedef std::vector<Range>                    List;
+  typedef std::pair<unsigned int, Range>        Position;
 
-  void  set(unsigned int index, Type priority);
+  Priority() { clear(); }
 
-  Range get(unsigned int index, Type priority);
+  // Must be added in increasing order.
+  void                 add(Type t, unsigned int begin, unsigned int end) {
+    m_list[t].push_back(Range(begin, end));
+    m_size[t] += end - begin;
+  }
+
+  void                 clear();
+
+  unsigned int         get_size(Type t) { return m_size[t]; }
+  const List&          get_list(Type t) { return m_list[t]; }
+
+  Position             find(Type t, unsigned int index);
 
 private:
+  unsigned int m_size[3];
+  List         m_list[3];
 };
 
 }

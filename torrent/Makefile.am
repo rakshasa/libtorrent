@@ -5,6 +5,8 @@ libtorrent_la_SOURCES = \
 	content/content.cc \
 	content/content.h \
 	content/content_file.h \
+	content/priority.cc \
+	content/priority.h \
 	data/file.cc \
 	data/file.h \
 	data/file_chunk.cc \
