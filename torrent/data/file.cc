@@ -133,7 +133,7 @@ bool File::get_chunk(FileChunk& f,
   if (ptr == MAP_FAILED)
     f.clear();
   else
-    f.set(ptr, ptr + align, length, m_flags & in, m_flags & out);
+    f.set(ptr, ptr + align, ptr + align + length, m_flags & in, m_flags & out);
 
   return f.is_valid();
 }

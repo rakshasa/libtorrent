@@ -8,57 +8,54 @@
 
 namespace torrent {
 
-// m_ptr is guaranteed to be on the boundary of a page.
-
 void FileChunk::clear() {
   if (m_ptr &&
-      munmap(m_ptr, m_begin - m_ptr + m_length) == -1)
+      munmap(m_ptr, m_end - m_ptr) == -1)
     throw internal_error("FileChunk can't munmap");
 
-  m_ptr = m_begin = NULL;
-  m_length = 0;
+  m_ptr = m_begin = m_end = NULL;
 
   m_read = m_write = false;
 }
 
-void FileChunk::incore(unsigned char* buf, unsigned int offset, unsigned int length) {
+void FileChunk::incore(unsigned char* buf, unsigned int offset, unsigned int len) {
   if (!is_valid())
     throw internal_error("Called FileChunk::is_incore() on an invalid object");
 
-  if (offset >= m_length ||
-      length > m_length ||
-      offset + length > m_length ||
+  if (offset >= length() ||
+      len > length() ||
+      offset + len > length() ||
       buf == NULL)
     throw internal_error("Tried to check incore status in FileChunk with out of range parameters or a NULL buffer");
 
-  if (length == 0)
+  if (len == 0)
     return;
 
-  offset += m_begin - m_ptr;
+  offset += page_align();
 
-  length += offset % getpagesize();
-  offset -= offset % getpagesize();
+  len    += offset % m_pagesize;
+  offset -= offset % m_pagesize;
 
-  if (mincore(m_ptr + offset, length, buf))
+  if (mincore(m_ptr + offset, len, buf))
     throw storage_error("System call mincore failed for FileChunk");
 }
 
-void FileChunk::advise(unsigned int offset, unsigned int length, int advice) {
+void FileChunk::advise(unsigned int offset, unsigned int len, int advice) {
   if (!is_valid())
     throw internal_error("Called FileChunk::is_incore() on an invalid object");
 
-  if (offset >= m_length ||
-      length > m_length ||
-      offset + length > m_length)
+  if (offset >= length() ||
+      len > length() ||
+      offset + len > length())
     throw internal_error("Tried to check incore status in FileChunk with out of range parameters");
 
-  if (length == 0)
+  if (len == 0)
     return;
 
-  offset += m_begin - m_ptr;
+  offset += page_align();
 
-  length += offset % getpagesize();
-  offset -= offset % getpagesize();
+  len    += offset % m_pagesize;
+  offset -= offset % m_pagesize;
 
   int t;
 
@@ -82,13 +79,9 @@ void FileChunk::advise(unsigned int offset, unsigned int length, int advice) {
     throw internal_error("FileChunk::advise(...) received invalid advise");
   }
 
-  if (madvise(m_ptr + offset, length, t))
+  if (madvise(m_ptr + offset, len, t))
     throw storage_error("System call madvise failed in FileChunk");
 }
-
-unsigned int FileChunk::touched_pages(unsigned int offset, unsigned int length) {
-  return (length + (offset + (m_begin - m_ptr)) % getpagesize() + getpagesize() - 1) / getpagesize();
-}  
 
 FileChunk::FileChunk(const FileChunk&) {
   throw internal_error("FileChunk ctor used, but supposed to be disabled");

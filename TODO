@@ -114,3 +114,5 @@ cache hits. (i would assume). find out if you can't use something more
 clever. Sort by fd number? iterate only to that number?
 
 Cache iterators to different borders, and update them as we add/remove?
+
+Use iterators in StorageChunk::get_position instead.
