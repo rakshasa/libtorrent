@@ -56,18 +56,18 @@ PeerConnection::~PeerConnection() {
 }
 
 bool PeerConnection::writeChunk(int maxBytes) {
-  StorageChunk::Node& part = m_up.data->get_position(m_sends.front().offset() + m_up.pos);
+  StorageChunk::Node& part = m_up.data->get_position(m_sends.front().get_offset() + m_up.pos);
 
-  unsigned int length = std::min(m_sends.front().length(),
-				 part.position + part.length - m_sends.front().offset());
+  unsigned int length = std::min(m_sends.front().get_length(),
+				 part.position + part.length - m_sends.front().get_offset());
 
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 
-  write_buf(part.chunk.begin() + m_sends.front().offset() + m_up.pos - part.position,
+  write_buf(part.chunk.begin() + m_sends.front().get_offset() + m_up.pos - part.position,
 	   std::min(length, m_up.pos + maxBytes),
 	   m_up.pos);
 
-  return m_up.pos == m_sends.front().length();
+  return m_up.pos == m_sends.front().get_length();
 }
 
 bool PeerConnection::readChunk() {

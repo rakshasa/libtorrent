@@ -1,7 +1,7 @@
 #ifndef LIBTORRENT_SERVICE_H
 #define LIBTORRENT_SERVICE_H
 
-#include "timer.h"
+#include "utils/timer.h"
 #include <deque>
 
 namespace torrent {

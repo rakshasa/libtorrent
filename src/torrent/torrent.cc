@@ -8,9 +8,9 @@
 #include "exceptions.h"
 #include "torrent.h"
 #include "throttle_control.h"
-#include "timer.h"
 #include "general.h"
 
+#include "utils/timer.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "parse/parse.h"

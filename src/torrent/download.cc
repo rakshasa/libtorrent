@@ -130,7 +130,7 @@ Download::get_bytes_done() {
 			    if_on(call_member(&DelegatorPiece::is_finished),
 				  
 				  add_ref(a, call_member(call_member(&DelegatorPiece::get_piece),
-							 &Piece::c_length)))));
+							 &Piece::get_length)))));
   
   return a + m_ptr->get_main().get_state().get_content().get_bytes_completed();
 }

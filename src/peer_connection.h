@@ -3,7 +3,7 @@
 
 #include "service.h"
 #include "peer_info.h"
-#include "piece.h"
+#include "data/piece.h"
 #include "rate.h"
 #include "throttle.h"
 

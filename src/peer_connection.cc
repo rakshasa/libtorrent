@@ -188,9 +188,9 @@ void PeerConnection::read() {
       }
 
       m_down.pos = 1;
-      piece.index() = bufR32();
-      piece.offset() = bufR32();
-      piece.length() = m_down.lengthOrig - 9;
+      piece.set_index(bufR32());
+      piece.set_offset(bufR32());
+      piece.set_length(m_down.lengthOrig - 9);
       
       m_down.pos = 0;
       
@@ -372,7 +372,7 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().index());
+      m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index());
       m_up.state = WRITE_PIECE;
 
       if (!m_up.data.is_valid())
@@ -628,34 +628,34 @@ void PeerConnection::fillWriteBuf() {
     // Sending chunk to peer.
 
     // This check takes care of all possible errors in lenght and offset.
-    if (m_sends.front().length() > (1 << 17) ||
-	m_sends.front().length() == 0 ||
+    if (m_sends.front().get_length() > (1 << 17) ||
+	m_sends.front().get_length() == 0 ||
 
-	m_sends.front().length() + m_sends.front().offset() >
-	m_download->get_content().get_chunksize(m_sends.front().index())) {
+	m_sends.front().get_length() + m_sends.front().get_offset() >
+	m_download->get_content().get_chunksize(m_sends.front().get_index())) {
 
       std::stringstream s;
 
       s << "Peer requested a piece with invalid length or offset: "
-	<< m_sends.front().length() << ' '
-	<< m_sends.front().offset();
+	<< m_sends.front().get_length() << ' '
+	<< m_sends.front().get_offset();
 
       throw communication_error(s.str());
     }
       
-    if (m_sends.front().index() < 0 ||
-	m_sends.front().index() >= (signed)m_download->get_content().get_storage().get_chunkcount() ||
-	!m_download->get_content().get_bitfield()[m_sends.front().index()]) {
+    if (m_sends.front().get_index() < 0 ||
+	m_sends.front().get_index() >= (signed)m_download->get_content().get_storage().get_chunkcount() ||
+	!m_download->get_content().get_bitfield()[m_sends.front().get_index()]) {
       std::stringstream s;
 
-      s << "Peer requested a piece with invalid index: " << m_sends.front().index();
+      s << "Peer requested a piece with invalid index: " << m_sends.front().get_index();
 
       throw communication_error(s.str());
     }
 
-    bufCmd(PIECE, 9 + m_sends.front().length(), 9);
-    bufW32(m_sends.front().index());
-    bufW32(m_sends.front().offset());
+    bufCmd(PIECE, 9 + m_sends.front().get_length(), 9);
+    bufW32(m_sends.front().get_index());
+    bufW32(m_sends.front().get_offset());
   }
 }
 

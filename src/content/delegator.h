@@ -6,7 +6,7 @@
 #include <sigc++/signal.h>
 
 #include "utils/bitfield.h"
-#include "piece.h"
+#include "data/piece.h"
 #include "content/delegator_select.h"
 #include "content/delegator_chunk.h"
 

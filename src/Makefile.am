@@ -38,7 +38,6 @@ libtorrent_la_SOURCES = \
 	rate.h \
 	settings.cc \
 	settings.h \
-	timer.h \
 	throttle.cc \
 	throttle.h \
 	throttle_control.cc \

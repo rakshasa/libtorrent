@@ -4,7 +4,7 @@
 #include <vector>
 #include <inttypes.h>
 
-#include "piece.h"
+#include "data/piece.h"
 
 namespace torrent {
 
