@@ -138,9 +138,6 @@ void cleanup();
 
 // Set the file descriptors we want to pool for R/W/E events. All
 // fd_set's must be valid pointers. Returns the highest fd.
-//
-// I'm stunned... how could libcurl be so stupid as to clear the
-// fd_set's it receives? Now you need to mark these first.
 int mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
 
 // Do work on the file descriptors.

@@ -2,6 +2,8 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS =
 libtorrent_la_SOURCES = \
+	api/peer.cc \
+	api/peer.h \
 	content/content.cc \
 	content/content.h \
 	content/content_file.h \
@@ -68,6 +70,7 @@ libtorrent_la_SOURCES = \
         peer_connection.h \
         peer_connection_extra.cc \
 	peer_connection_sub.h \
+	peer_wrapper.h \
 	piece.h \
 	rate.cc \
 	rate.h \
@@ -87,6 +90,7 @@ libtorrent_la_SOURCES = \
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
+	api/peer.h \
 	torrent.h \
 	exceptions.h \
 	entry.h \

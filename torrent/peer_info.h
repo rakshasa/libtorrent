@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_PEER_H
-#define LIBTORRENT_PEER_H
+#ifndef LIBTORRENT_PEER_INFO_H
+#define LIBTORRENT_PEER_INFO_H
 
 #include <string>
 
@@ -44,4 +44,4 @@ private:
 
 } // namespace torrent
 
-#endif // LIBTORRENT_PEER_H
+#endif // LIBTORRENT_PEER_INFO_H
