@@ -13,7 +13,7 @@
 
 #include "torrent.h"
 #include "exceptions.h"
-#include "download_main.h"
+#include "download/download_main.h"
 #include "throttle_control.h"
 #include "timer.h"
 

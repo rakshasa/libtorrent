@@ -6,7 +6,7 @@
 
 #include "exceptions.h"
 #include "download.h"
-#include "download_main.h"
+#include "download/download_main.h"
 #include "peer_connection.h"
 
 #include <algo/algo.h>
