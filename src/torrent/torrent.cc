@@ -28,10 +28,9 @@ int64_t Timer::m_cache;
 std::list<std::string> caughtExceptions;
 
 Listen* listen = NULL;
-HandshakeManager handshakes;
-DownloadManager downloadManager;
-
-HashQueue hashQueue;
+HashQueue* hashQueue = NULL;
+HandshakeManager* handshakes = NULL;
+DownloadManager* downloadManager = NULL;
 
 struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
@@ -66,7 +65,7 @@ struct check_socket_isset {
 // Find some better way of doing this, or rather... move it outside.
 std::string
 download_id(const std::string& hash) {
-  DownloadWrapper* d = downloadManager.find(hash);
+  DownloadWrapper* d = downloadManager->find(hash);
 
   return d &&
     d->get_main().is_active() &&
@@ -76,7 +75,7 @@ download_id(const std::string& hash) {
 
 void
 receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadWrapper* d = downloadManager.find(hash);
+  DownloadWrapper* d = downloadManager->find(hash);
   
   if (!d ||
       !d->get_main().is_active() ||
@@ -88,28 +87,45 @@ receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
 // Make sure srandom is properly initialized by the client.
 void
 initialize() {
-  if (listen == NULL) {
-    listen = new Listen;
+  if (listen || hashQueue || handshakes || downloadManager)
+    throw client_error("torrent::initialize() called but the library has already been initialized");
 
-    listen->slot_incoming(sigc::mem_fun(handshakes, &HandshakeManager::add_incoming));
-  }
+  listen = new Listen;
+  hashQueue = new HashQueue;
+  handshakes = new HandshakeManager;
+  downloadManager = new DownloadManager;
+
+  listen->slot_incoming(sigc::mem_fun(*handshakes, &HandshakeManager::add_incoming));
 
   srandom(Timer::current().usec());
 
   ThrottleControl::global().insert_service(Timer::current(), 0);
 
-  handshakes.slot_connected(sigc::ptr_fun3(&receive_connection));
-  handshakes.slot_download_id(sigc::ptr_fun1(download_id));
+  handshakes->slot_connected(sigc::ptr_fun3(&receive_connection));
+  handshakes->slot_download_id(sigc::ptr_fun1(download_id));
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
 void
 cleanup() {
+  if (listen == NULL || hashQueue == NULL || handshakes == NULL || downloadManager == NULL)
+    throw client_error("torrent::cleanup() called but the library is not initialized");
+
   ThrottleControl::global().remove_service();
 
-  handshakes.clear();
-  downloadManager.clear();
+  handshakes->clear();
+  downloadManager->clear();
+
+  delete listen;
+  delete hashQueue;
+  delete handshakes;
+  delete downloadManager;
+
+  listen = NULL;
+  hashQueue = NULL;
+  handshakes = NULL;
+  downloadManager = NULL;
 }
 
 bool
@@ -120,7 +136,7 @@ listen_open(uint16_t begin, uint16_t end) {
   if (!listen->open(begin, end))
     return false;
 
-  std::for_each(downloadManager.get_list().begin(), downloadManager.get_list().end(),
+  std::for_each(downloadManager->get_list().begin(), downloadManager->get_list().end(),
 		call_member(call_member(&DownloadWrapper::get_main),
 			    &DownloadMain::set_port,
 			    value(listen->get_port())));
@@ -212,7 +228,7 @@ download_create(std::istream& s) {
 
   parse_tracker(d->get_bencode(), d->get_main().get_tracker());
 
-  downloadManager.add(d.get());
+  downloadManager->add(d.get());
 
   return Download(d.release());
 }
@@ -220,25 +236,25 @@ download_create(std::istream& s) {
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
-  for (DownloadManager::DownloadList::const_iterator itr = downloadManager.get_list().begin();
-       itr != downloadManager.get_list().end(); ++itr)
+  for (DownloadManager::DownloadList::const_iterator itr = downloadManager->get_list().begin();
+       itr != downloadManager->get_list().end(); ++itr)
     dlist.push_back(Download(*itr));
 }
 
 // Make sure you check that it's valid.
 Download
 download_find(const std::string& id) {
-  return downloadManager.find(id);
+  return downloadManager->find(id);
 }
 
 void
 download_remove(const std::string& id) {
-  downloadManager.remove(id);
+  downloadManager->remove(id);
 }
 
 Bencode&
 download_bencode(const std::string& id) {
-  DownloadWrapper* d = downloadManager.find(id);
+  DownloadWrapper* d = downloadManager->find(id);
 
   if (d == NULL)
     throw client_error("Tried to call download_bencode(id) with non-existing download");
@@ -254,13 +270,13 @@ get(GValue t) {
     return listen->get_port();
 
   case HANDSHAKES_TOTAL:
-    return handshakes.get_size();
+    return handshakes->get_size();
 
   case SHUTDOWN_DONE:
-    return std::find_if(downloadManager.get_list().begin(), downloadManager.get_list().end(),
+    return std::find_if(downloadManager->get_list().begin(), downloadManager->get_list().end(),
 			bool_not(call_member(call_member(&DownloadWrapper::get_main),
 					     &DownloadMain::is_stopped)))
-      == downloadManager.get_list().end();
+      == downloadManager->get_list().end();
 
   case FILES_CHECK_WAIT:
     return Settings::filesCheckWait;

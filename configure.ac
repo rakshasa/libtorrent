@@ -1,12 +1,8 @@
-AC_INIT(src/torrent/torrent.cc)
-
-LIBTORRENT_VERSION=0.4.8
-
-AC_SUBST(LIBTORRENT_VERSION)
+AC_INIT(libtorrent, 0.4.9, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,
-          "-lt0408-",
+          "-lt0409-",
           Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=2
@@ -20,7 +16,7 @@ AC_SUBST(LIBTORRENT_CURRENT)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_INFO)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 
-AM_INIT_AUTOMAKE("libtorrent", $LIBTORRENT_VERSION)
+AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 
 sinclude(scripts/checks.m4)
@@ -28,22 +24,19 @@ sinclude(scripts/checks.m4)
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
 
-CXXFLAGS="-O3"
-
 AC_PROG_CXX
-
 AC_SYS_LARGEFILE
 
 AC_ARG_ENABLE(debug,
     [  --enable-debug          enable debug information [default=yes]],
     [
         if test "$enableval" = "yes"; then
-            CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
+            CXXFLAGS="$CXXFLAGS -O3 -Wall -g -DDEBUG"
         else
-            CXXFLAGS="$CXXFLAGS -Wall -DNDEBUG"
+            CXXFLAGS="$CXXFLAGS -O3 -Wall -DNDEBUG"
         fi
     ],[
-        CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
+        CXXFLAGS="$CXXFLAGS -O3 -Wall -g -DDEBUG"
     ]
 )
 
@@ -58,10 +51,9 @@ AC_ARG_ENABLE(werror,
 
 PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
-		  LIBS="$LIBS $STUFF_liBS")
+		  LIBS="$LIBS $STUFF_LIBS")
 
 TORRENT_CHECK_OPENSSL()
-TORRENT_CHECK_CURL()
 TORRENT_MINCORE_SIGNEDNESS()
 TORRENT_OTFD()
 

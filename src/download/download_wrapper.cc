@@ -138,17 +138,17 @@ DownloadWrapper::stop() {
 }
 
 void
-DownloadWrapper::set_handshake_manager(HandshakeManager& h) {
-  m_main.get_net().slot_has_handshake(sigc::mem_fun(h, &HandshakeManager::has_peer));
-  m_main.get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(h, &HandshakeManager::get_size_hash), get_hash()));
-  m_main.get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(h, &HandshakeManager::add_outgoing), get_hash(), m_main.get_me().get_id()));
+DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
+  m_main.get_net().slot_has_handshake(sigc::mem_fun(*h, &HandshakeManager::has_peer));
+  m_main.get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::get_size_hash), get_hash()));
+  m_main.get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), m_main.get_me().get_id()));
 }
 
 void
-DownloadWrapper::set_hash_queue(HashQueue& h) {
-  m_hash->set_queue(&h);
+DownloadWrapper::set_hash_queue(HashQueue* h) {
+  m_hash->set_queue(h);
 
-  m_main.get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(h, &HashQueue::add),
+  m_main.get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::add),
 						    sigc::mem_fun(m_main.get_state(), &DownloadState::receive_hash_done),
 						    get_hash()));
 }

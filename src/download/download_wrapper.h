@@ -35,8 +35,8 @@ public:
   Bencode&            get_bencode()       { return m_bencode; }
   HashTorrent&        get_hash_checker()  { return *m_hash.get(); }
 
-  void                set_handshake_manager(HandshakeManager& h);
-  void                set_hash_queue(HashQueue& h);
+  void                set_handshake_manager(HandshakeManager* h);
+  void                set_hash_queue(HashQueue* h);
 
   // Various functions for manipulating bencode's data with the
   // download.

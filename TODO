@@ -11,12 +11,7 @@ Set IP TOS
 Add a snub factor. The more you upload without getting back, the
 higher it goes. Add a start buffer.
 
-Make configure do the peer id thingie automagically
-
 Add config for how often we unchoke unknown peers vs good uploaders
-
-Consider splitting up download_state's peer connection management and
-download state stuff.
 
 Recursively update the up/down rates in throttle.
 
@@ -26,11 +21,6 @@ Each throttle can have it's own rules to decide the priority it gets.
 
 Frobnicate the tracker reconnect timeout.
 
-bencode stores position in the stream where they were found? Copy the
-stream? Or is the current system the only flexible one we can use?
-Consider making the stringstream input only to allow for lightning
-fast str().c_str(). (Check if it's isstream that does this)
-
 Switch to a proper type for file offset/length and chunk length. A proper
 type for chunk index.
 
@@ -39,20 +29,15 @@ communication error, not a internal error.
 
 ! Why is the client lagging when downloading a http torrent? Looks like dnsdomainlookup
 
-Cleanup PeerInfo and it's users.
-
 std::isalpha in escape string
 
 Consider not calling insert_write() when filling have list.
 
-Handshake manager must be spread with slots.
-
 storage_consolidator get_chunk takes to many arguments, use flags instead.
 
-! We're blocking during torrent open due to very fast preloading, we're getting
-ahead of the is_incore() calls, thereby not yielding. FIXME
-
 File::get_chunk() needs to have error for improper permission access, and stuff.
+
+Store data on which side inititalized the connection.
 
 
 DELEGATOR STUFF
@@ -69,6 +54,8 @@ Don't be so aggressive at selecting stalled pieces.
 
 
 TRACKER STUFF
+
+Add/change tracker.
 
 
 API REDESIGN:
@@ -138,3 +125,13 @@ make sure handshake gets "" id if the download does not want connections,
 or some other filter system.
 
 Clean up the m_checked flag in DownloadMain::start/stop/foo.
+
+O_LARGEFILE needs to be detected.
+
+src/torrent/torrent.h	
+X+#include <sys/types.h>
+X+#include <sys/select.h>
+
+++++ src/data/file_chunk.cc	
+++#include <sys/types.h>
+
