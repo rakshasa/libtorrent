@@ -93,6 +93,9 @@ Delegator::finished(DelegatorReservee& r) {
 
   DelegatorPiece* p = r.get_parent();
 
+  if (p == NULL)
+    throw internal_error("Delegator::finished(...) got reservee with parent == NULL");
+
   p->clear();
   p->set_finished(true);
 

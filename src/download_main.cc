@@ -252,14 +252,14 @@ void DownloadMain::receive_initial_hash(const std::string& id) {
   m_checked = true;
   state().content().resize();
 
-  setup_start();
-
   if (m_state.content().get_chunks_completed() == m_state.content().get_storage().get_chunkcount() &&
       !m_state.content().get_bitfield().allSet())
     throw internal_error("Loaded torrent is done but bitfield isn't all set");
     
-  if (m_started)
+  if (m_started) {
     m_tracker->send_state(TRACKER_STARTED);
+    setup_start();
+  }
 }    
 
 void

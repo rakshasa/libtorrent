@@ -42,11 +42,11 @@ void DownloadState::chunk_done(unsigned int index) {
     throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrive from storage");
 
   if (std::find_if(hashQueue.chunks().begin(), hashQueue.chunks().end(),
-
 		   bool_and(eq(ref(m_hash), member(&HashQueue::Node::id)),
 			    eq(value(c->get_index()), member(&HashQueue::Node::index))))
+
       != hashQueue.chunks().end())
-    return;
+    throw internal_error("DownloadState::chunk_done(...) found the same index waiting in the hash queue");
 
   HashQueue::SignalDone& s = hashQueue.add(m_hash, c, true);
 

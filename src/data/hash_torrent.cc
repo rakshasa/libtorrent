@@ -97,8 +97,10 @@ HashTorrent::queue(unsigned int s) {
 
     HashQueue::SignalDone& s = m_queue->add(m_list.front().id, c);
 
-    s.connect(sigc::mem_fun(*this, &HashTorrent::receive_chunkdone));
+    // Make sure we call chunkdone before torrentDone has a chance to
+    // trigger.
     s.connect(m_list.front().chunkDone);
+    s.connect(sigc::mem_fun(*this, &HashTorrent::receive_chunkdone));
 
     m_outstanding++;
   }

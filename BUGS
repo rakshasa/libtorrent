@@ -11,3 +11,5 @@
 10 rtorrent(dlopen+0x45) [0x8065931]
 
 Incoming connections connect to hash-checking downloads, fixme
+
+test.cc caught "RequestList::skip() called without a downloading piece"

@@ -47,6 +47,8 @@ RequestList::downloading(const Piece& p) {
   if (m_downloading)
     throw internal_error("RequestList::downloading(...) bug, m_downloaing is already set");
 
+  remove_invalid();
+
   ReserveeList::iterator itr =
     std::find_if(m_reservees.begin(), m_reservees.end(),
 		 eq(ref(p), call_member(&DelegatorReservee::get_piece)));
