@@ -8,21 +8,25 @@ namespace torrent {
 
 class Ranges : private std::vector<std::pair<uint32_t, uint32_t> > {
 public:
-  typedef std::pair<uint32_t, uint32_t>        Range;
-  typedef std::vector<Range>                   List;
+  typedef std::vector<std::pair<uint32_t, uint32_t> > Base;
 
-  using List::iterator;
-  using List::reverse_iterator;
-  using List::clear;
-  using List::size;
+  using Base::value_type;
 
-  using List::begin;
-  using List::end;
-  using List::rbegin;
-  using List::rend;
+  using Base::iterator;
+  using Base::reverse_iterator;
+  using Base::clear;
+  using Base::size;
 
-  void                insert(uint32_t begin, uint32_t end);
-  void                erase(uint32_t begin, uint32_t end);
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
+
+  void                insert(uint32_t first, uint32_t last) { insert(std::make_pair(first, last)); }
+  void                erase(uint32_t first, uint32_t last)  { erase(std::make_pair(first, last)); }
+
+  void                insert(value_type r);
+  void                erase(value_type r);
 
   // Find the first ranges that has an end greater than index.
   iterator            find(uint32_t index);
@@ -37,4 +41,3 @@ public:
 }
 
 #endif
-  

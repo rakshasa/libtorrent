@@ -122,10 +122,10 @@ File::get_size()  const {
 
 bool
 File::get_chunk(FileChunk& f,
-		     uint64_t offset,
-		     unsigned int length,
-		     bool wr,
-		     bool rd) {
+		uint64_t offset,
+		uint32_t length,
+		bool wr,
+		bool rd) {
   if (!is_open() ||
       offset + length > (uint64_t)m_stat->st_size ||
       m_stat->st_size <= 0) {

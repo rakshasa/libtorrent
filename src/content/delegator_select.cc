@@ -19,13 +19,13 @@ DelegatorSelect::interested(const BitField& bf) {
     std::find_if(m_priority.begin(Priority::NORMAL), m_priority.end(Priority::NORMAL),
 		      call_member(ref(*this), &DelegatorSelect::interested_range,
 				  ref(bf),
-				  member(&Priority::Range::first), member(&Priority::Range::second)))
+				  member(&Ranges::value_type::first), member(&Ranges::value_type::second)))
     != m_priority.end(Priority::NORMAL) ||
 
     std::find_if(m_priority.begin(Priority::HIGH), m_priority.end(Priority::HIGH),
 		      call_member(ref(*this), &DelegatorSelect::interested_range,
 				  ref(bf),
-				  member(&Priority::Range::first), member(&Priority::Range::second)))
+				  member(&Ranges::value_type::first), member(&Ranges::value_type::second)))
     != m_priority.end(Priority::HIGH);
 }
 
@@ -74,7 +74,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   uint32_t cur_rarity = (unsigned)-1;
 
   // TODO: Ugly, refactor.
-  Priority::List::iterator itr = m_priority.find(p, start);
+  Ranges::iterator itr = m_priority.find(p, start);
 
   if (itr == m_priority.end(p))
     return found;
@@ -95,7 +95,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
     found = f;
 
   // Check ranges above the midpoint.
-  Priority::List::iterator fItr = itr;
+  Ranges::iterator fItr = itr;
 
   while (++fItr != m_priority.end(p)) {
     f = check_range(bf, fItr->first, fItr->second, rarity, cur_rarity);
@@ -107,7 +107,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   }
 
   // Check ranges below the midpoint.
-  Priority::List::reverse_iterator rItr(++itr);
+  Ranges::reverse_iterator rItr(++itr);
 
   if (rItr == m_priority.rend(p))
     throw internal_error("DelegatorSelect reverse iterator borkage!?");
