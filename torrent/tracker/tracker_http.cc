@@ -8,7 +8,6 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
-#include "bencode.h"
 #include "settings.h"
 #include "tracker_http.h"
 
@@ -36,7 +35,8 @@ TrackerHttp::~TrackerHttp() {
   delete m_data;
 }
 
-void TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left) {
+void
+TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
   if (m_me.id().length() != 20 ||
@@ -88,7 +88,8 @@ void TrackerHttp::send_state(TrackerState state, uint64_t down, uint64_t up, uin
   m_get->start();
 }
 
-void TrackerHttp::close() {
+void
+TrackerHttp::close() {
   m_get->close();
   m_get->set_out(NULL);
 
@@ -97,7 +98,8 @@ void TrackerHttp::close() {
   m_data = NULL;
 }
 
-void TrackerHttp::escape_string(const std::string& src, std::ostream& stream) {
+void
+TrackerHttp::escape_string(const std::string& src, std::ostream& stream) {
   // TODO: Correct would be to save the state.
   stream << std::hex << std::uppercase;
 
@@ -113,7 +115,8 @@ void TrackerHttp::escape_string(const std::string& src, std::ostream& stream) {
   stream << std::dec << std::nouppercase;
 }
 
-void TrackerHttp::receive_done() {
+void
+TrackerHttp::receive_done() {
   if (m_data == NULL)
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
@@ -140,34 +143,10 @@ void TrackerHttp::receive_done() {
     if (itr->first == "peers") {
 
       if (itr->second.isList()) {
-	// Normal list of peers.
-
-	for (bencode::List::const_iterator itr2 = itr->second.asList().begin();
-	     itr2 != itr->second.asList().end(); ++itr2) {
-	  PeerInfo p = parse_peer(*itr2);
-	  
-	  if (p.is_valid())
-	    l.push_back(p);
-	}
+	parse_peers_normal(l, itr->second.asList());
 
       } else if (itr->second.isString()) {
-	// Compact list of peers
-
-	for (std::string::const_iterator itr2 = itr->second.asString().begin();
-	     itr2 + 6 <= itr->second.asString().end();) {
-
-	  std::stringstream buf;
-
-	  buf << (int)(unsigned char)*itr2++ << '.'
-	      << (int)(unsigned char)*itr2++ << '.'
-	      << (int)(unsigned char)*itr2++ << '.'
-	      << (int)(unsigned char)*itr2++;
-
-	  unsigned short port = (unsigned short)((unsigned char)*itr2++) << 8;
-	  port += (unsigned short)((unsigned char)*itr2++);
-
-	  l.push_back(PeerInfo("", buf.str(), port));
-	}
+	parse_peers_compact(l, itr->second.asString());
 
       } else {
 	return receive_failed("Peers entry is not a bencoded list nor a string");
@@ -180,14 +159,6 @@ void TrackerHttp::receive_done() {
 
       if (itr->second.asValue() > 60 && itr->second.asValue() < 6 * 3600)
 	interval = itr->second.asValue();
-
-//       else {
-// 	std::stringstream s;
-// 	s << "Tracker returned interval " << itr->second.asValue();
-
-//       throw internal_error(s.str());
-// 	return 
-//       }
 
     } else if (itr->first == "failure reason") {
 
@@ -229,12 +200,41 @@ PeerInfo TrackerHttp::parse_peer(const bencode& b) {
   return p;
 }
 
-void TrackerHttp::receive_failed(std::string msg) {
+void
+TrackerHttp::receive_failed(std::string msg) {
   close();
 
   sigc::signal1<void, std::string> s = m_failed;
 
   s.emit(msg);
+}
+
+void
+TrackerHttp::parse_peers_normal(PeerList& l, const bencode::List& b) {
+  for (bencode::List::const_iterator itr = b.begin(); itr != b.end(); ++itr) {
+    PeerInfo p = parse_peer(*itr);
+	  
+    if (p.is_valid())
+      l.push_back(p);
+  }
+}  
+
+void
+TrackerHttp::parse_peers_compact(PeerList& l, const std::string& s) {
+  for (std::string::const_iterator itr = s.begin(); itr + 6 <= s.end();) {
+
+    std::stringstream buf;
+
+    buf << (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++;
+
+    unsigned short port = (unsigned short)((unsigned char)*itr++) << 8;
+    port += (unsigned short)((unsigned char)*itr++);
+
+    l.push_back(PeerInfo("", buf.str(), port));
+  }
 }
 
 }
