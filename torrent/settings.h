@@ -32,6 +32,11 @@ class DownloadSettings {
   int chokeCycle;
   int chokeGracePeriod;
 
+  // How long before we stall a download.
+  int stallTimeout;
+  // Time to wait after stall before we cancel the download.
+  int cancelTimeout;
+
   static DownloadSettings& global() { return *m_global; }
 
  private:

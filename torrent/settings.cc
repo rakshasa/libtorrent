@@ -26,7 +26,9 @@ DownloadSettings::DownloadSettings() :
   maxPeers(100),
   maxUploads(7),
   chokeCycle(30 * 1000000),
-  chokeGracePeriod(55 * 1000000)
+  chokeGracePeriod(55 * 1000000),
+  stallTimeout(160 * 10000000), // Less than 0.1 kb/s
+  cancelTimeout(640 * 1000000) // 0.025 kb/s
 {}
 
 int ThrottleSettings::minPeriod = 1000000;

@@ -100,15 +100,15 @@ void Download::draw() {
     mvprintw(maxY - 3, 0, "Torrent: %.1f / %.1f MiB Rate: %5.1f/%5.1f KiB Uploaded: %.1f MiB",
 	     (double)m_dItr.get_bytes_done() / (double)(1 << 20),
 	     (double)m_dItr.get_bytes_total() / (double)(1 << 20),
-	     (double)m_dItr.get_rate_up() / 1000.0,
-	     (double)m_dItr.get_rate_down() / 1000.0,
+	     (double)m_dItr.get_rate_up() / 1024.0,
+	     (double)m_dItr.get_rate_down() / 1024.0,
 	     (double)m_dItr.get_bytes_up() / (double)(1 << 20));
 
   else
     mvprintw(maxY - 3, 0, "Torrent: Done %.1f MiB Rate: %5.1f/%5.1f KiB Uploaded: %.1f MiB",
 	     (double)m_dItr.get_bytes_total() / (double)(1 << 20),
-	     (double)m_dItr.get_rate_up() / 1000.0,
-	     (double)m_dItr.get_rate_down() / 1000.0,
+	     (double)m_dItr.get_rate_up() / 1024.0,
+	     (double)m_dItr.get_rate_down() / 1024.0,
 	     (double)m_dItr.get_bytes_up() / (double)(1 << 20));
 
   mvprintw(maxY - 2, 0, "Peers: %i(%i) Min/Max: %i/%i Uploads: %i Throttle: %i KiB",
@@ -318,11 +318,11 @@ void Download::drawPeers(int y1, int y2) {
     x += 18;
 
     mvprintw(i, x, "%.1f",
-	     (double)itr->get_rate_up() / 1000);
+	     (double)itr->get_rate_up() / 1024);
     x += 7;
 
     mvprintw(i, x, "%.1f",
-	     (double)itr->get_rate_down() / 1000);
+	     (double)itr->get_rate_down() / 1024);
     x += 7;
 
     mvprintw(i, x, "%c%c/%c%c%c",

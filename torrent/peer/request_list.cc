@@ -30,14 +30,9 @@ RequestList::delegate() {
 
 void
 RequestList::cancel() {
-  if (m_downloading) {
-    m_downloading->set_state(DELEGATOR_NONE);
+  m_downloading = false;
 
-    delete m_downloading;
-    m_downloading = NULL;
-  }
-
-  delete_range(m_reservees.end());
+  cancel_range(m_reservees.end());
 }
 
 void
@@ -47,6 +42,12 @@ RequestList::stall() {
 
 bool
 RequestList::downloading(const Piece& p) {
+  if (m_reservees.size() && m_reservees.front()->get_state() == DELEGATOR_DOWNLOADING)
+    throw internal_error("RequestList::downloading(...) called but m_reservees.front() is in state DELEGATOR_DOWNLOADING");
+
+  if (m_downloading)
+    throw internal_error("RequestList::downloading(...) bug, m_downloaing is already set");
+
   ReserveeList::iterator itr = std::find_if(m_reservees.begin(), m_reservees.end(),
 					    eq(ref(p), call_member(&DelegatorReservee::get_piece)));
 
@@ -57,17 +58,14 @@ RequestList::downloading(const Piece& p) {
     throw internal_error("RequestList::downloading(...) called with a piece index we already have");
 
   if (m_delegator->downloading(**itr)) {
-    delete_range(itr);
+    cancel_range(itr);
 
-    m_downloading = m_reservees.front();
-    m_reservees.pop_front();
-
-    m_downloading->set_state(DELEGATOR_DOWNLOADING);
+    m_downloading = true;
+    //m_reservees.front()->set_state(DELEGATOR_DOWNLOADING);
 
     return true;
   } else {
     // TODO: Do something here about the queue.
-
     return false;
   }
 }
@@ -75,13 +73,15 @@ RequestList::downloading(const Piece& p) {
 // Must clear the downloading piece.
 bool
 RequestList::finished() {
-  if (m_downloading == NULL)
+  if (!m_downloading || !m_reservees.size())
     throw internal_error("RequestList::finished() called without a downloading piece");
 
-  bool r = m_delegator->finished(*m_downloading);
+  bool r = m_delegator->finished(*m_reservees.front());
 
-  delete m_downloading;
-  m_downloading = NULL;
+  delete m_reservees.front();;
+  m_reservees.pop_front();
+
+  m_downloading = false;
 
   return r;
 }
@@ -94,7 +94,7 @@ RequestList::has_index(unsigned int i) {
 }
 
 void
-RequestList::delete_range(ReserveeList::iterator end) {
+RequestList::cancel_range(ReserveeList::iterator end) {
   while (m_reservees.begin() != end) {
     m_delegator->cancel(*m_reservees.front());
     

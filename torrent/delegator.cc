@@ -32,9 +32,7 @@ namespace torrent {
 
 Delegator::~Delegator() {
   while (!m_chunks.empty()) {
-    std::for_each(m_chunks.front().m_pieces.begin(), m_chunks.front().m_pieces.end(),
-		  delete_on());
-
+    delete m_chunks.front();
     m_chunks.pop_front();
   }
 }
@@ -64,13 +62,13 @@ Delegator::delegate(const BitField& bf, int affinity) {
   // Find a piece that is not queued by anyone. "" and NONE.
   std::find_if(m_chunks.begin(), m_chunks.end(),
 
-	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
+	       bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
 			
-			find_if_on(member(&Chunk::m_pieces),
+			find_if_on(back_as_ref_t<DelegatorChunk>(),
 				   
 				   eq(call_member(&DelegatorPiece::get_state), value(DELEGATOR_NONE)),
 				   
-				   assign_ref(target, back_as_value()))));
+				   assign_ref(target, back_as_ptr()))));
   
   if (target)
     return new DelegatorReservee(target);
@@ -165,14 +163,13 @@ Delegator::cancel(DelegatorReservee& r) {
 }
 
 void Delegator::done(int index) {
-  std::list<Chunk>::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(),
-						eq(&Chunk::m_index, value(index)));
+  Chunks::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(),
+				      eq(call_member(&DelegatorChunk::get_index), value((unsigned int)index)));
 
   if (itr != m_chunks.end()) {
-    m_select.remove_ignore(itr->m_index);
+    m_select.remove_ignore((*itr)->get_index());
 
-    std::for_each(itr->m_pieces.begin(), itr->m_pieces.end(), delete_on());
-
+    delete *itr;
     m_chunks.erase(itr);
   }
 }
@@ -200,49 +197,37 @@ DelegatorPiece* Delegator::newChunk(const BitField& bf) {
     (m_state->content().get_size() % m_state->content().get_storage().get_chunksize()) :
     m_state->content().get_storage().get_chunksize();
 
-  std::list<Chunk>::iterator itr = m_chunks.insert(m_chunks.end(), Chunk(index));
+  m_chunks.push_back(new DelegatorChunk(index, size, 1 << 16));
 
-  for (int i = 0, e = size; i <= e - (1 << 15); i += 1 << 15) {
-    itr->m_pieces.push_back(new DelegatorPiece);
-    itr->m_pieces.back()->set_piece(Piece(index, i, 1 << 15));
-  }
-
-  unsigned int left = size % (1 << 15);
-
-  if (left) {
-    itr->m_pieces.push_back(new DelegatorPiece);
-    itr->m_pieces.back()->set_piece(Piece(index, size - left, left));
-  }
-
-  return itr->m_pieces.front();
+  return (*m_chunks.rbegin())->begin();
 }
 
 DelegatorPiece*
 Delegator::find_piece(const Piece& p) {
-  std::list<Chunk>::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-					      eq(member(&Chunk::m_index), value(p.c_index())));
+  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
+				    eq(call_member(&DelegatorChunk::get_index), value((unsigned)p.get_index())));
 
   if (c == m_chunks.end())
     return NULL;
 
-  std::list<DelegatorPiece*>::iterator d = std::find_if(c->m_pieces.begin(), c->m_pieces.end(),
-							eq(call_member(&DelegatorPiece::get_piece), ref(p)));
+  DelegatorChunk::iterator d = std::find_if((*c)->begin(), (*c)->end(),
+					    eq(call_member(&DelegatorPiece::get_piece), ref(p)));
 
-  if (d != c->m_pieces.end())
-    return *d;
+  if (d != (*c)->end())
+    return d;
   else
     return NULL;
 }
   
 bool
 Delegator::all_state(int index, DelegatorState s) {
-  std::list<Chunk>::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-					      eq(member(&Chunk::m_index), value(index)));
+  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
+				    eq(call_member(&DelegatorChunk::get_index), value((unsigned)index)));
 
   return c != m_chunks.end() &&
-    std::find_if(c->m_pieces.begin(), c->m_pieces.end(),
+    std::find_if((*c)->begin(), (*c)->end(),
 		 neq(call_member(&DelegatorPiece::get_state), value(s)))
-    == c->m_pieces.end();
+    == (*c)->end();
 }
 
 } // namespace torrent

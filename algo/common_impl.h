@@ -54,6 +54,31 @@ struct back_as_ref {
   }
 };
 
+template<typename Type>
+struct back_as_ref_t {
+  typedef Type BaseType;
+
+  template <typename Arg1>
+  BaseType& operator () (Arg1& a1) {
+    return a1;
+  }
+
+  template <typename Arg1>
+  BaseType& operator () (Arg1* a1) {
+    return *a1;
+  }
+
+  template <typename Ret, typename Arg1>
+  BaseType& operator () (Arg1& a1) {
+    return a1;
+  }
+
+  template <typename Ret, typename Arg1>
+  BaseType& operator () (Arg1* a1) {
+    return *a1;
+  }
+};
+
 struct back_as_ptr {
   template <typename Arg1>
   Arg1* operator () (Arg1& a1) {
@@ -78,6 +103,8 @@ struct back_as_ptr {
 
 template <typename Ret, typename Ftor>
 struct Convert {
+  typedef Ret BaseType;
+
   Convert(Ftor ftor) : m_ftor(ftor) {}
 
   Ret operator () () {
@@ -86,12 +113,12 @@ struct Convert {
 
   template <typename Arg1>
   Ret operator () (Arg1& a1) {
-    return m_ftor.operator()<Ret>(a1);
+    return m_ftor.operator()<Ret, Arg1>(a1);
   }
 
   template <typename RetIgnore, typename Arg1>
   Ret operator () (Arg1& a1) {
-    return m_ftor.operator()<Ret>(a1);
+    return m_ftor.operator()<Ret, Arg1>(a1);
   }
 
   Ftor m_ftor;

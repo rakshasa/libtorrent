@@ -4,7 +4,7 @@
 #include "bitfield.h"
 #include "piece.h"
 #include "content/delegator_select.h"
-#include "content/delegator_piece.h"
+#include "content/delegator_chunk.h"
 
 #include <string>
 #include <list>
@@ -15,15 +15,7 @@ class DownloadState;
 
 class Delegator {
 public:
-  // Internal, not to be confused with the chunk.h
-  struct Chunk {
-    Chunk(int index) : m_index(index) {}
-
-    int m_index;
-    std::list<DelegatorPiece*> m_pieces;
-  };
-  
-  typedef std::list<Chunk> Chunks;
+  typedef std::list<DelegatorChunk*> Chunks;
 
   Delegator() : m_state(NULL) {}
   Delegator(DownloadState* ds) :

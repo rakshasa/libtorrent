@@ -237,10 +237,10 @@ void PeerConnection::read() {
     if (m_requests.finished())
       m_download->chunkDone(m_down.data);
     
-    remove_service(SERVICE_INCOMING_PIECE);
+    remove_service(SERVICE_STALL);
     
     if (m_requests.get_size())
-      insert_service(Timer::cache() + 600 * 1000000, SERVICE_INCOMING_PIECE);
+      insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
 
     // TODO: clear m_down.data?
 
@@ -551,15 +551,14 @@ void PeerConnection::fillWriteBuf() {
   }
 
   if (!m_down.choked && m_up.interested) {
-    // Let us request more chunks.
-    bool addService = !m_requests.get_size();
 
-    while (m_up.length + 16 < BUFFER_SIZE && request_piece()) {
-      if (addService) {
-	insert_service(Timer::cache() + 600 * 1000000, SERVICE_INCOMING_PIECE);
-	addService = false;
-      }
-    }
+    while (m_up.length + 16 < BUFFER_SIZE && request_piece())
+      if (m_requests.get_size() == 1) {
+	if (in_service(SERVICE_STALL) || in_service(SERVICE_CANCEL))
+	  throw internal_error("Only one request, but we're already in SERVICE_STALL or SERVICE_CANCEL");
+	
+	insert_service(Timer::cache() + m_download->settings().stallTimeout, SERVICE_STALL);
+      }	
   }
 
   // Max buf size 17 * 'req pipe' + 10
@@ -690,12 +689,10 @@ void PeerConnection::service(int type) {
     insertWrite();
     return;
     
-  case SERVICE_INCOMING_PIECE:
+  case SERVICE_STALL:
     // Clear the incoming queue reservations so we can request from other peers.
     if (m_down.state != READ_PIECE)
       return;
-
-    remove_service(SERVICE_INCOMING_PIECE);
 
     m_down.state = READ_SKIP_PIECE;
     m_down.length = m_requests.get_piece().get_length() - m_down.pos;

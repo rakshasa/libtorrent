@@ -84,8 +84,7 @@ struct FindIfOn {
       ++itr;
     }
 
-    m_notFound(a);
-
+    m_notFound(*itr);
     return false;
   }
 

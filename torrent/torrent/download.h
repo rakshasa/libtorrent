@@ -48,9 +48,13 @@ public:
   std::string          get_root_dir();
   void                 set_root_dir(const std::string& dir);
 
+  // Bytes uploaded this session.
   uint64_t             get_bytes_up();
+  // Bytes downloaded this session.
   uint64_t             get_bytes_down();
+  // Bytes completed.
   uint64_t             get_bytes_done();
+  // Size of the torrent.
   uint64_t             get_bytes_total();
 
   uint32_t             get_chunks_size();

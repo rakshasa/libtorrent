@@ -44,8 +44,8 @@ fast str().c_str(). (Check if it's isstream that does this)
 
 Sane timeouts on handshakes.
 
-Switch to a proper type for file offset/length and chunk length.
-
+Switch to a proper type for file offset/length and chunk length. A proper
+type for chunk index.
 
 
 DELEGATOR STUFF
@@ -58,9 +58,13 @@ Different priorities don't properly affect interested/not interested.
 
 Proper canceling of pieces in sendHave, unless only one can download a piece.
 
+* Move chunkDone to a signal in delegator.
+
+
 TRACKER STUFF
 
 * Make it NAT friendly, add selectable DNS
+
 
 
 API REDESIGN:
@@ -71,6 +75,8 @@ multiple signals.
 * Add setting for download root.
 
 * Fix the incoming queue/downloading piece thing.
+
+Changing the piece length.
 
 
 AFTER API REDESIGN:

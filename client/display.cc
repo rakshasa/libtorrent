@@ -82,16 +82,16 @@ void Display::drawDownloads(const std::string& id) {
 	       first == mark ? '*' : ' ',
 	       (double)first->get_bytes_done() / (double)(1 << 20),
 	       (double)first->get_bytes_total() / (double)(1 << 20),
-	       (double)first->get_rate_up() / 1000.0,
-	       (double)first->get_rate_down() / 1000.0,
+	       (double)first->get_rate_up() / 1024.0,
+	       (double)first->get_rate_down() / 1024.0,
 	       (double)first->get_bytes_up() / (double)(1 << 20));
 
     else
       mvprintw(i + 1, 0, "%c Torrent: Done %.1f MiB Rate:%5.1f /%5.1f KiB Uploaded: %.1f MiB",
 	       first == mark ? '*' : ' ',
 	       (double)first->get_bytes_total() / (double)(1 << 20),
-	       (double)first->get_rate_up() / 1000.0,
-	       (double)first->get_rate_down() / 1000.0,
+	       (double)first->get_rate_up() / 1024.0,
+	       (double)first->get_rate_down() / 1024.0,
 	       (double)first->get_bytes_up() / (double)(1 << 20));
     
     mvprintw(i + 2, 0, "%c Tracker: [%c:%i] %s",

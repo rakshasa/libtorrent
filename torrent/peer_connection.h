@@ -90,7 +90,8 @@ private:
   enum {
     SERVICE_KEEP_ALIVE = 0x2000,
     SERVICE_SEND_CHOKE,
-    SERVICE_INCOMING_PIECE
+    SERVICE_STALL,
+    SERVICE_CANCEL
   };
 
   bool writeChunk(int maxBytes);

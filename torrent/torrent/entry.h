@@ -19,8 +19,11 @@ public:
   Entry(void* e) : m_entry(e) {}
   
   uint64_t        get_size();
+
+  // Chunks of this file completed.
   uint32_t        get_completed();
 
+  // Chunk index this file spans.
   uint32_t        get_chunk_begin();
   uint32_t        get_chunk_end();
 

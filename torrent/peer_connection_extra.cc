@@ -149,10 +149,12 @@ bool
 PeerConnection::request_piece() {
   const Piece* p;
 
-  caughtExceptions.push_back("Trying to request a piece");
+  if (m_requests.get_size() > 5)
+    return false;
+    
+  caughtExceptions.push_back("Attempting request");
 
-  if (m_requests.get_size() > 5 ||
-      (p = m_requests.delegate()) == NULL)
+  if ((p = m_requests.delegate()) == NULL)
     return false;
 
   if (p->get_length() > (1 << 17) ||
@@ -184,7 +186,7 @@ PeerConnection::request_piece() {
   bufW32(p->get_offset());
   bufW32(p->get_length());
 
-  caughtExceptions.push_back("Requesting a piece");
+  caughtExceptions.push_back("Did request");
 
   return true;
 }

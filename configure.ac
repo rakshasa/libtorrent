@@ -38,9 +38,9 @@ AC_ARG_ENABLE(debug,
     [  --enable-debug          enable debug information [default=yes]],
     [
         if test "$enableval" = "yes"; then
-            CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
+            CXXFLAGS="$CXXFLAGS -Wall -Werror -g -DDEBUG"
         else
-            CXXFLAGS="$CXXFLAGS -Wall -DNDEBUG"
+            CXXFLAGS="$CXXFLAGS -Wall -Werror -DNDEBUG"
         fi
     ],[
         CXXFLAGS="$CXXFLAGS -Wall -g -DDEBUG"
