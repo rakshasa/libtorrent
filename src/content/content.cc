@@ -111,7 +111,7 @@ Content::is_correct_size() {
   Storage::FileList::const_iterator sItr = m_storage.get_files().begin();
   
   while (fItr != m_files.end()) {
-    if (fItr->get_size() != FileStat(sItr->file()->fd()).get_size())
+    if (fItr->get_size() != FileStat(sItr->get_file()->fd()).get_size())
       return false;
 
     ++fItr;
@@ -146,7 +146,7 @@ Content::open(bool wr) {
 
     lastPath = itr->get_path();
 
-    m_storage.add_file(f, itr->get_size());
+    m_storage.get_files().push_back(f, itr->get_size());
   }
 
   m_bitfield = BitField(m_storage.get_chunk_total());

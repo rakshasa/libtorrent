@@ -117,9 +117,9 @@ disallow for open torrents?
 
 NEXT: Storage/File refactoring
 
-Cleanup StorageFile (get_* ?)
 Cleanup StorageConsolidator.
 Cleanup Storage
+Move StorageNode to StorageChunkPart?
 
 Cleanup HashChunk
 

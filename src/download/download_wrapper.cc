@@ -91,10 +91,10 @@ DownloadWrapper::hash_load() {
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
     while (cItr != content.get_files().end()) {
-      FileStat fs(sItr->file()->fd());
+      FileStat fs(sItr->get_file()->fd());
 
       // Check that the size and modified stamp matches.
-      if (sItr->size() != fs.get_size() ||
+      if (sItr->get_size() != fs.get_size() ||
 	  (*bItr)["mtime"].as_value() != fs.get_mtime())
 	m_hash->get_ranges().insert(cItr->get_range().first, cItr->get_range().second);
 
@@ -137,7 +137,7 @@ DownloadWrapper::hash_save() {
   for (Storage::FileList::iterator itr = content.get_storage().get_files().begin(); itr != content.get_storage().get_files().end(); ++itr) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
-    b.insert_key("mtime", FileStat(itr->file()->fd()).get_mtime());
+    b.insert_key("mtime", FileStat(itr->get_file()->fd()).get_mtime());
   }
 }
 

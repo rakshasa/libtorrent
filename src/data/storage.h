@@ -47,9 +47,6 @@ public:
   Storage();
   ~Storage();
 
-  // We take over ownership of 'file'.
-  void      add_file(File* file, uint64_t length)   { m_consolidator->add_file(file, length); }
-
   bool      resize()                                { return m_consolidator->resize(); }
   void      sync()                                  { return m_consolidator->sync(); }
   void      close()                                 { m_anchors.clear(); m_consolidator->close(); }

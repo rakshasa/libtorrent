@@ -47,9 +47,9 @@ public:
   ~StorageConsolidator();
 
   // We take over ownership of 'file'.
-  // TODO: use push_back instead
-  void                add_file(File* file, uint64_t size);
+  void                push_back(File* file, off_t size);
 
+  // TODO: Rename this to something else.
   bool                resize();
   void                close();
 
@@ -57,15 +57,17 @@ public:
 
   void                set_chunksize(uint32_t size);
 
-  uint64_t            get_size()                     { return m_size; }
-  uint32_t            get_chunk_total()              { return (m_size + m_chunksize - 1) / m_chunksize; }
-  uint32_t            get_chunk_size()               { return m_chunksize; }
+  off_t               get_size()                              { return m_size; }
 
   bool                get_chunk(StorageChunk& chunk, uint32_t b, int prot);
 
+  uint32_t            get_chunk_total()                       { return (m_size + m_chunksize - 1) / m_chunksize; }
+  uint32_t            get_chunk_size()                        { return m_chunksize; }
+
+  off_t               get_chunk_position(uint32_t c)          { return c * (off_t)m_chunksize; }
+
 private:
-  // TODO: off_t
-  uint64_t            m_size;
+  off_t               m_size;
   uint32_t            m_chunksize;
 };
 

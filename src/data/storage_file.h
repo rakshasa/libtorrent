@@ -37,10 +37,10 @@ public:
 
   void                clear();
 
-  File*               file()                                  { return m_file; }
-  const File*         file() const                            { return m_file; }
-  off_t               position() const                        { return m_position; }
-  off_t               size() const                            { return m_size; }
+  File*               get_file()                              { return m_file; }
+  const File*         get_file() const                        { return m_file; }
+  off_t               get_position() const                    { return m_position; }
+  off_t               get_size() const                        { return m_size; }
 
   bool                sync() const;
   bool                resize_file() const;
