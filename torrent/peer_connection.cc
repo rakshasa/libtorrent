@@ -120,9 +120,6 @@ void PeerConnection::read() {
       if (m_down.length != m_down.lengthOrig)
 	throw internal_error("PeerConnection::read() READ_TYPE PIECE length != lengthOrig");
 
-      if (m_down.length == 9)
-	throw communication_error("Received piece message with zero length");
-
       if (m_down.length < 9 || m_down.length > 9 + (1 << 17))
 	throw communication_error("Received piece message with bad length");
 
@@ -165,6 +162,13 @@ void PeerConnection::read() {
 
     switch (m_down.buf[0]) {
     case PIECE:
+      if (m_down.lengthOrig == 9) {
+	// TODO: Some clients seem to be sending zero length pieces.
+	// Is this a bug in my program or do they really do that, and why.
+	m_down.state = IDLE;
+	goto evil_goto_read;
+      }
+
       m_down.pos = 1;
       piece.index() = bufR32();
       piece.offset() = bufR32();
