@@ -87,7 +87,7 @@ Peer::get_incoming_index(uint32_t pos) {
   for (PeerConnection::PieceList::const_iterator itr = ((PeerConnection*)m_ptr)->down().c_list().begin();
        itr != ((PeerConnection*)m_ptr)->down().c_list().end(); ++itr, --pos)
     if (!pos)
-      return itr->c_index();
+      return (*itr)->get_piece().c_index();
 
   throw client_error("get_incoming_index(pos) out of range");
 }

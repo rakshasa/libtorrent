@@ -9,6 +9,7 @@
 #include "piece.h"
 #include "rate.h"
 #include "throttle.h"
+#include "content/delegator_reservee.h"
 
 #include <vector>
 
@@ -46,7 +47,7 @@ public:
     KEEP_ALIVE      // Last command was a keep alive
   } Protocol;
 
-  typedef std::list<Piece> PieceList;
+  typedef std::list<DelegatorReservee*> PieceList;
 
 #include "peer_connection_sub.h"
 

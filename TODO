@@ -54,6 +54,8 @@ Different priorities don't properly affect interested/not interested.
 
 TRACKER STUFF
 
+Make it NAT friendly, add selectable DNS
+
 
 API REDESIGN:
 

@@ -30,6 +30,15 @@ using namespace algo;
 
 namespace torrent {
 
+Delegator::~Delegator() {
+  while (!m_chunks.empty()) {
+    std::for_each(m_chunks.front().m_pieces.begin(), m_chunks.front().m_pieces.end(),
+		  delete_on());
+
+    m_chunks.pop_front();
+  }
+}
+
 bool Delegator::interested(const BitField& bf) {
   // TODO: Unmark some of the downloading chunks.
 
@@ -47,31 +56,30 @@ bool Delegator::interested(int index) {
 
 DelegatorReservee*
 Delegator::delegate(const BitField& bf, int affinity) {
-//   // TODO: Make sure we don't queue the same piece several time on the same peer when
-//   // it timeout cancels them.
+  // TODO: Make sure we don't queue the same piece several time on the same peer when
+  // it timeout cancels them.
   
-//   PieceInfo* target = NULL;
+  DelegatorPiece* target = NULL;
 
-//   // Find a piece that is not queued by anyone. "" and NONE.
-//   std::find_if(m_chunks.begin(), m_chunks.end(),
+  // Find a piece that is not queued by anyone. "" and NONE.
+  std::find_if(m_chunks.begin(), m_chunks.end(),
 
-// 	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
+	       bool_and(call_member(ref(bf), &BitField::get, member(&Chunk::m_index)),
 			
-// 			find_if_on(member(&Chunk::m_pieces),
+			find_if_on(member(&Chunk::m_pieces),
 				   
-// 				   bool_and(eq(member(&PieceInfo::m_state), value(NONE)),
-// 					    eq(member(&PieceInfo::m_id), value(""))),
+				   eq(call_member(&DelegatorPiece::get_state), value(DELEGATOR_NONE)),
 				   
-// 				   assign_ref(target, back_as_ptr()))));
+				   assign_ref(target, back_as_value()))));
   
-//   if (target)
-//     goto DC_designate_return;
+  if (target)
+    return new DelegatorReservee(target);
 
-//   // else find a new chunk
-//   target = newChunk(bf);
+  // else find a new chunk
+  target = newChunk(bf);
   
-//   if (target)
-//     goto DC_designate_return;
+  if (target)
+    return new DelegatorReservee(target);
 
 //   // else find a piece that is queued, but cancelled. "*" and NONE.
 //   std::find_if(m_chunks.begin(), m_chunks.end(),
@@ -109,67 +117,43 @@ Delegator::delegate(const BitField& bf, int affinity) {
 //   if (target)
 //     goto DC_designate_return;
 
-//   return false;
-
-//   DC_designate_return:
-
-//   target->m_id = id;
-//   target->m_state = DOWNLOADING;
-  
-//   pieces.push_back(target->m_piece);
-
-//   return true;
   return NULL;
 }
   
 bool
 Delegator::downloading(DelegatorReservee& r) {
-//   PieceInfo* pi = NULL;
-  
-//   std::find_if(m_chunks.begin(), m_chunks.end(),
-// 	       find_if_on(member(&Chunk::m_pieces),
+  if (r.is_valid()) {
+    if (r.get_state() != DELEGATOR_QUEUED && r.get_state() != DELEGATOR_STALLED)
+      throw internal_error("Delegator::downloading(...) got object with wrong state");
+    
+    r.set_state(DELEGATOR_DOWNLOADING);
+    
+    return true;
 
-// 			  eq(ref(piece), member(&PieceInfo::m_piece)),
+  } else {
+    // We are guaranteed that the piece is still not finished.
+    DelegatorPiece* pi = find_piece(r.get_piece());
 
-// 			  assign_ref(pi, back_as_ptr())));
-
-//   if (pi == NULL ||
-//       pi->m_state == FINISHED) {
-//     return false;
-
-//   } else if (pi->m_state == NONE) {
-//     pi->m_state = DOWNLOADING;
-//     pi->m_id = id;
-//   }
-
-  return true;
+    return pi && pi->get_state() != DELEGATOR_FINISHED;
+  }
 }
   
 bool
 Delegator::finished(DelegatorReservee& r) {
-  std::list<Chunk>::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-					      eq(member(&Chunk::m_index), value(r.get_piece().c_index())));
+  DelegatorPiece* p = find_piece(r.get_piece());
 
-  if (c == m_chunks.end())
-    throw internal_error("Delegator::finished called on wrong index");
-
-  std::list<DelegatorPiece*>::iterator p = std::find_if(c->m_pieces.begin(), c->m_pieces.end(),
-							eq(call_member(&DelegatorPiece::get_piece), ref(r.get_piece())));
-
-  if (p == c->m_pieces.end())
-    throw internal_error("Delegator::finished called with bad chunk position");
+  if (p == NULL)
+    throw internal_error("Delegator::finished called with wrong piece");
     
-  if ((*p)->get_state() == DELEGATOR_FINISHED)
+  if (p->get_state() == DELEGATOR_FINISHED)
     throw internal_error("Delegator::finished called on piece that is already marked FINISHED");
 
-  if (*p != r.get_parent())
+  if (p != r.get_parent())
     throw internal_error("Delegator::finished got a mismatched reservee and piece");
 
   r.set_state(DELEGATOR_FINISHED);
 
-  return std::find_if(c->m_pieces.begin(), c->m_pieces.end(),
-		      neq(call_member(&DelegatorPiece::get_state), value(DELEGATOR_FINISHED)))
-    == c->m_pieces.end();
+  return all_state(r.get_piece().c_index(), DELEGATOR_FINISHED);
 }
 
 // If clear is set, clear the id of the piece so it is designated as if it was
@@ -177,17 +161,7 @@ Delegator::finished(DelegatorReservee& r) {
 
 void
 Delegator::cancel(DelegatorReservee& r, bool clear) {
-//   std::find_if(m_chunks.begin(), m_chunks.end(),
-// 	       find_if_on(member(&Chunk::m_pieces),
-			  
-// 			  bool_and(eq(member(&PieceInfo::m_piece), ref(p)),
-// 				   bool_and(eq(member(&PieceInfo::m_id), ref(id)),
-// 					    neq(member(&PieceInfo::m_state), value(FINISHED)))),
-					    
-
-// 			  branch(assign(member(&PieceInfo::m_state), value(NONE)),
-// 				 if_on(value(clear),
-// 				       assign(member(&PieceInfo::m_id), value(""))))));
+  r.set_state(DELEGATOR_NONE);
 }
 
 void Delegator::done(int index) {
@@ -252,6 +226,34 @@ DelegatorPiece* Delegator::newChunk(const BitField& bf) {
   }
 
   return itr->m_pieces.front();
+}
+
+DelegatorPiece*
+Delegator::find_piece(const Piece& p) {
+  std::list<Chunk>::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
+					      eq(member(&Chunk::m_index), value(p.c_index())));
+
+  if (c == m_chunks.end())
+    return NULL;
+
+  std::list<DelegatorPiece*>::iterator d = std::find_if(c->m_pieces.begin(), c->m_pieces.end(),
+							eq(call_member(&DelegatorPiece::get_piece), ref(p)));
+
+  if (d != c->m_pieces.end())
+    return *d;
+  else
+    return NULL;
+}
+  
+bool
+Delegator::all_state(int index, DelegatorState s) {
+  std::list<Chunk>::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
+					      eq(member(&Chunk::m_index), value(index)));
+
+  return c != m_chunks.end() &&
+    std::find_if(c->m_pieces.begin(), c->m_pieces.end(),
+		 neq(call_member(&DelegatorPiece::get_state), value(s)))
+    == c->m_pieces.end();
 }
 
 } // namespace torrent

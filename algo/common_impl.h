@@ -20,6 +20,18 @@ struct empty {
   }
 };
 
+struct back_as_value {
+  template <typename Arg1>
+  Arg1 operator () (Arg1& a1) {
+    return a1;
+  }
+
+  template <typename Ret, typename Arg1>
+  Arg1 operator () (Arg1& a1) {
+    return a1;
+  }
+};
+
 struct back_as_ref {
   template <typename Arg1>
   Arg1& operator () (Arg1& a1) {

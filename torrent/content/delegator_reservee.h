@@ -20,14 +20,14 @@ class DelegatorReservee {
 public:
   friend class DelegatorPiece;
 
-  DelegatorReservee(DelegatorPiece* p = NULL) : m_piece(NULL) {}
+  DelegatorReservee(DelegatorPiece* p = NULL);
   ~DelegatorReservee();
 
-  bool              is_valid()     { return m_piece; }
+  bool              is_valid() const   { return m_parent; }
 
-  const Piece&      get_piece()    { return m_piece->get_piece(); }
-  DelegatorState    get_state()    { return m_piece->get_state(); }
-  DelegatorPiece*   get_parent()   { return m_piece; }
+  const Piece&      get_piece() const  { return m_piece; }
+  DelegatorState    get_state() const  { return m_parent ? m_parent->get_state() : DELEGATOR_NONE; }
+  DelegatorPiece*   get_parent() const { return m_parent; }
 
   void              set_state(DelegatorState s);
 
@@ -35,7 +35,8 @@ private:
   DelegatorReservee(const DelegatorReservee&);
   void operator = (const DelegatorReservee&);
 
-  DelegatorPiece* m_piece;
+  DelegatorPiece* m_parent;
+  Piece           m_piece;
 };
 
 }

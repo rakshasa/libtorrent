@@ -121,16 +121,13 @@ uint32_t PeerConnection::bufR32(bool peep) {
 }
  
 void PeerConnection::discardIncomingQueue() {
-  std::for_each(m_down.list.begin(), m_down.list.end(),
-		call_member(ref(m_download->delegator()),
-			    &Delegator::cancel,
-			    
-			    ref(m_peer.id()),
-			    back_as_ref(),
-			    value(true)));
+  while (!m_down.empty()) {
+    m_download->delegator().cancel(*m_down.list.front(), true);
 
-  // TODO, don't clear list here.(?)
-  m_down.list.clear();
+    delete m_down.list.front();
+    m_down.list.pop_front();
+  }
+
   m_down.data = Storage::Chunk();
 }
 

@@ -28,6 +28,7 @@ public:
   Delegator() : m_state(NULL) {}
   Delegator(DownloadState* ds) :
     m_state(ds) { }
+  ~Delegator();
 
   bool interested(const BitField& bf);
   bool interested(int index);
@@ -51,6 +52,9 @@ private:
   DelegatorPiece* newChunk(const BitField& bf);
 
   int findChunk(const BitField& bf);
+
+  DelegatorPiece* find_piece(const Piece& p);
+  bool all_state(int index, DelegatorState s);
 
   DownloadState* m_state;
   Chunks m_chunks;
