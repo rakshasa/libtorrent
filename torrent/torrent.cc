@@ -65,7 +65,7 @@ void initialize(int beginPort, int endPort) {
 
   Listen::open(beginPort, endPort);
 
-  ThrottleControl::global().insertService(Timer::current(), 0);
+  ThrottleControl::global().insert_service(Timer::current(), 0);
 
   CurlStack::global_init();
 }
@@ -83,7 +83,7 @@ void cleanup() {
   // Close again if shutdown wasn't called.
   Listen::close();
  
-  ThrottleControl::global().removeService();
+  ThrottleControl::global().remove_service();
 
   for_each<true>(Download::downloads().begin(), Download::downloads().end(),
 		 delete_on());
@@ -99,7 +99,7 @@ void cleanup() {
 int mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   int maxFd = 0;
 
-  if (curlStack.busy())
+  if (curlStack.is_busy())
     curlStack.fdset(readSet, writeSet, exceptSet, maxFd);
 
   maxFd = std::max(maxFd, std::for_each(SocketBase::readSockets().begin(),
@@ -143,10 +143,10 @@ void work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 		 if_on(check_socket_isset(writeSet),
 		       call_member(&SocketBase::write)));
 
-  if (curlStack.busy())
+  if (curlStack.is_busy())
     curlStack.perform();
 
-  Service::runService();
+  Service::perform_service();
 }
 
 // It will be parsed through a stream anyway, so no need to supply
@@ -245,7 +245,7 @@ int64_t get(GValue t) {
     return Timer::current().usec();
 
   case TIME_SELECT:
-    return Service::nextService().usec();
+    return Service::next_service().usec();
 
   case THROTTLE_ROOT_CONST_RATE:
     return std::max(ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate, 0);
@@ -513,11 +513,11 @@ void set(DList::const_iterator d, DValue t, int64_t v) {
     if (v < 10 * 1000000 || v >= 3600 * 1000000)
       break;
 
-    if ((*d)->inService(Download::CHOKE_CYCLE)) {
-      timer = (*d)->whenService(Download::CHOKE_CYCLE);
+    if ((*d)->in_service(Download::CHOKE_CYCLE)) {
+      timer = (*d)->when_service(Download::CHOKE_CYCLE);
 
-      (*d)->removeService(Download::CHOKE_CYCLE);
-      (*d)->insertService(timer - (*d)->state().settings().chokeCycle + v,
+      (*d)->remove_service(Download::CHOKE_CYCLE);
+      (*d)->insert_service(timer - (*d)->state().settings().chokeCycle + v,
 			  Download::CHOKE_CYCLE);
     }
 

@@ -34,19 +34,19 @@ public:
   virtual void service(int type);
   
   // Only add if t is before the previous scheduled service.
-  void insertService(Timer t, int type);
+  void insert_service(Timer t, int type);
 
   // This should really only be called when destroying the object.
-  void removeService();
-  void removeService(int type);
+  void remove_service();
+  void remove_service(int type);
 
-  bool inService(int type);
+  bool in_service(int type);
   
   // Don't call this unless you have checked inService first.
-  Timer whenService(int type);
+  Timer when_service(int type);
 
-  static void runService();
-  static Timer nextService();
+  static void perform_service();
+  static Timer next_service();
 
 protected:
   Service() {}

@@ -10,6 +10,7 @@
 #include "files_check.h"
 #include "exceptions.h"
 #include "settings.h"
+#include "data/hash_chunk.h"
 
 using namespace algo;
 
@@ -38,7 +39,7 @@ void FilesCheck::check(Files* f, Service* s, int arg) {
 
   if (m_checks.size() == 1) {
     m_checks.front()->m_tries = 0;
-    m_checks.front()->insertService(Timer::current(), 0);
+    m_checks.front()->insert_service(Timer::current(), 0);
   }
 }
 
@@ -56,7 +57,7 @@ void FilesCheck::cancel(Files* f) {
     itr = m_checks.erase(itr);
 
     if (itr != m_checks.end()) {
-      (*itr)->insertService(Timer::current(), 0);
+      (*itr)->insert_service(Timer::current(), 0);
       (*itr)->m_tries = 0;
     }
 
@@ -84,35 +85,18 @@ void FilesCheck::service(int type) {
     if (!c.is_valid() ||
 	!c->is_valid())
       continue;
-    
-#if USE_MADVISE_WILLNEED == 1
-    bool wait = false;
 
-    for (StorageChunk::Nodes::iterator itr = c->get_nodes().begin(); itr != c->get_nodes().end(); ++itr)
-      
-      if (!(*itr)->chunk.is_incore(0, (*itr)->chunk.length())) {
+    HashChunk hc(c);
+ 
+    hc.perform(hc.remaining_chunk());
 
-	if (m_tries == 0)
-	  (*itr)->chunk.advise(0, (*itr)->chunk.length(), FileChunk::advice_willneed);
-
-	wait = true;
-      }
-
-    if (wait && m_tries++ < 3) {
-      m_position--;
-
-      // 10 ms should give the disk enough time to seek and start reading.
-      return insertService(Timer::current() + 10000, 0);
-    }
-#endif
-
-    m_files->doneChunk(c);
+    m_files->doneChunk(c, hc.get_hash());
     m_tries = 0;
 
-    return insertService(Timer::current() + 5000, 0);
+    return insert_service(Timer::current() + 5000, 0);
   }
 
-  m_service->insertService(Timer::cache(), m_arg);
+  m_service->insert_service(Timer::cache(), m_arg);
   
   delete m_checks.front();
   
@@ -120,7 +104,7 @@ void FilesCheck::service(int type) {
   
   if (!m_checks.empty()) {
     m_checks.front()->m_tries = 0;
-    m_checks.front()->insertService(Timer::cache() + Settings::filesCheckWait, 0);
+    m_checks.front()->insert_service(Timer::cache() + Settings::filesCheckWait, 0);
   }
   
   return;

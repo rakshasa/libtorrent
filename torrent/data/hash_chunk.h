@@ -26,7 +26,7 @@ public:
   std::string  get_hash()         { return m_hash.final(); }
 
   // If force is true, then the return value is always true.
-  bool         process(unsigned int length, bool force = true);
+  bool         perform(unsigned int length, bool force = true);
 
   bool         willneed(unsigned int length);
 

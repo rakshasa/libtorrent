@@ -85,7 +85,7 @@ void Download::start() {
 
   m_started = true;
 
-  insertService(Timer::current() + state().settings().chokeCycle * 2, CHOKE_CYCLE);
+  insert_service(Timer::current() + state().settings().chokeCycle * 2, CHOKE_CYCLE);
 }  
 
 
@@ -97,7 +97,7 @@ void Download::stop() {
 
   m_started = false;
 
-  removeService(CHOKE_CYCLE);
+  remove_service(CHOKE_CYCLE);
 
   // TODO, handle stopping of download correctly.
 }
@@ -122,7 +122,7 @@ void Download::service(int type) {
     return;
     
   case CHOKE_CYCLE:
-    insertService(Timer::cache() + state().settings().chokeCycle, CHOKE_CYCLE);
+    insert_service(Timer::cache() + state().settings().chokeCycle, CHOKE_CYCLE);
 
     // Clean up the download rate in case the client doesn't read
     // it regulary.

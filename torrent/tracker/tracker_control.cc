@@ -55,16 +55,16 @@ void TrackerControl::add_url(const std::string& url) {
 }
 
 void TrackerControl::set_next(Timer interval) {
-  if (!inService(TIMEOUT))
+  if (!in_service(TIMEOUT))
     return;
 
-  removeService(TIMEOUT);
-  insertService(Timer::current() + interval, TIMEOUT);
+  remove_service(TIMEOUT);
+  insert_service(Timer::current() + interval, TIMEOUT);
 }
 
 Timer TrackerControl::get_next() {
-  if (inService(TIMEOUT)) {
-    Timer t = whenService(TIMEOUT);
+  if (in_service(TIMEOUT)) {
+    Timer t = when_service(TIMEOUT);
 
     return t > Timer::current() ? t - Timer::current() : 0;
   } else {
@@ -89,7 +89,7 @@ void TrackerControl::send_state(TrackerState s) {
 
   send_itr(m_state);
 
-  removeService(TIMEOUT);
+  remove_service(TIMEOUT);
 
   // TODO: If completed, set num wanted to zero.
 }
@@ -107,7 +107,7 @@ void TrackerControl::receive_done(const PeerList& l, int interval) {
   if (interval > 0)
     m_interval = interval;
 
-  insertService(Timer::current() + m_interval * 1000000, TIMEOUT);
+  insert_service(Timer::current() + m_interval * 1000000, TIMEOUT);
 
   m_signalPeers.emit(l);
 }
@@ -116,7 +116,7 @@ void TrackerControl::receive_failed(std::string msg) {
   if (m_state != TRACKER_STOPPED) {
     // TODO: Add support for multiple trackers. Iterate if m_failed > X.
 
-    insertService(Timer::current() + 5 * 1000000, TIMEOUT);
+    insert_service(Timer::current() + 20 * 1000000, TIMEOUT);
   }
 
   m_signalFailed.emit(msg);

@@ -16,7 +16,7 @@ namespace torrent {
 Service::Tasks Service::m_tasks;
 
 Service::~Service() {
-  removeService();
+  remove_service();
 }
 
 void Service::service(int type) {
@@ -25,14 +25,14 @@ void Service::service(int type) {
 
 // Don't add an element that has 't' less than Timer::cache during
 // Service::runService. (in torrent::work)
-void Service::insertService(Timer t, int type) {
+void Service::insert_service(Timer t, int type) {
   m_tasks.insert(std::find_if(m_tasks.begin(), m_tasks.end(),
 			      gt(member(&Task::m_time), value(t))),
 		 Task(t, type, this));
 }
 
 // This should really only be called when destroying the object.
-void Service::removeService() {
+void Service::remove_service() {
   std::for_each(m_tasks.begin(), m_tasks.end(),
 		if_on(eq(value(this), member(&Task::m_service)),
 
@@ -40,7 +40,7 @@ void Service::removeService() {
 }
 
 // This should really only be called when destroying the object.
-void Service::removeService(int type) {
+void Service::remove_service(int type) {
   std::for_each(m_tasks.begin(), m_tasks.end(),
 		if_on(bool_and(eq(value(this), member(&Task::m_service)),
 			       eq(value(type), member(&Task::m_arg))),
@@ -48,7 +48,7 @@ void Service::removeService(int type) {
 		      assign(member(&Task::m_ignore), value(true))));
 }
 
-bool Service::inService(int type) {
+bool Service::in_service(int type) {
   return std::find_if(m_tasks.begin(), m_tasks.end(),
 		      bool_and(eq(member(&Task::m_service), value(this)),
 			       bool_and(eq(member(&Task::m_arg), value(type)),
@@ -56,7 +56,7 @@ bool Service::inService(int type) {
     != m_tasks.end();
 }
 
-Timer Service::whenService(int type) {
+Timer Service::when_service(int type) {
   Tasks::iterator itr =
     std::find_if(m_tasks.begin(), m_tasks.end(),
 		 bool_and(eq(member(&Task::m_service), value(this)),
@@ -67,7 +67,7 @@ Timer Service::whenService(int type) {
   return itr != m_tasks.end() ? itr->m_time : Timer();
 }  
 
-void Service::runService() {
+void Service::perform_service() {
   if (Timer::cache().usec() < 0)
     throw internal_error("Service Timer Bork Bork Bork");
 
@@ -84,7 +84,7 @@ void Service::runService() {
   }
 }
 
-Timer Service::nextService() {
+Timer Service::next_service() {
   if (!m_tasks.empty()) {
     Timer t = m_tasks.front().m_time - Timer::current();
 

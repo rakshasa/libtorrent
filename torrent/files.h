@@ -45,15 +45,12 @@ public:
   unsigned int chunkCompleted() const { return m_completed; }
   uint64_t     doneSize() const       { return m_doneSize; }
 
-  // chunks with no Part's automatically fails the hash check.
-  bool doneChunk(Storage::Chunk c);
+  bool doneChunk(Storage::Chunk c, const std::string& hash);
 
   Storage& storage() { return m_storage; }
 
   const HashVector& hashes() const { return m_hashes; }
   const BitField& bitfield() const { return m_bitfield; }
-
-  std::string tmp_calc_hash(Storage::Chunk c);
 
 private:
   void createDirs();

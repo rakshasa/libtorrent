@@ -14,8 +14,8 @@ class CurlStack {
   CurlStack();
   ~CurlStack();
 
-  int  size() const    { return m_size; }
-  bool busy() const { return !m_getList.empty(); }
+  int  get_size() const    { return m_size; }
+  bool is_busy() const { return !m_getList.empty(); }
 
   void perform();
 

@@ -25,7 +25,7 @@ class CurlGet {
   void start();
   void close();
 
-  bool busy() { return m_handle; }
+  bool is_busy() { return m_handle; }
 
   sigc::signal0<void>&              signal_done()   { return m_done; }
 
@@ -36,7 +36,7 @@ class CurlGet {
  protected:
   CURL* handle() { return m_handle; }
 
-  void process(CURLMsg* msg);
+  void perform(CURLMsg* msg);
 
  private:
   friend size_t curl_get_receive_write(void* data, size_t size, size_t nmemb, void* handle);

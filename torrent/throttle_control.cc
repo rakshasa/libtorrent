@@ -22,11 +22,11 @@ void ThrottleControl::service(int type) {
   m_root.update(ThrottleSettings::minPeriod / 1000000.0f, Throttle::UNLIMITED);
 
   // TODO: Remove this later
-  if (inService(0))
+  if (in_service(0))
     throw internal_error("Duplicate ThrottleService in service");
 
   // TODO: we lose some time, adjust.
-  insertService(Timer::cache() + ThrottleSettings::minPeriod, 0);
+  insert_service(Timer::cache() + ThrottleSettings::minPeriod, 0);
 }
 
 }

@@ -47,7 +47,7 @@ void CurlStack::perform() {
 	if (itr == m_getList.end())
 	  throw internal_error("Could not find CurlGet with the right easy_handle");
 	
-	(*itr)->process(msg);
+	(*itr)->perform(msg);
       } while (t);
     }
 

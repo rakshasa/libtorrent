@@ -78,6 +78,8 @@ Can we make FileChunk either ref counted or move owner on copy?
 
 Sane timeouts on handshakes.
 
+Do something about tracker connect fails, they are not handled optimally.
+
 
 API REDESIGN:
 

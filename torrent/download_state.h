@@ -56,6 +56,9 @@ class DownloadState {
 
   void connect_peers();
 
+  // Incoming signals.
+  void receive_hashdone(std::string id, Storage::Chunk c, std::string hash);
+
 private:
   // Disable
   DownloadState(const DownloadState&);

@@ -120,28 +120,24 @@ void Files::resizeAll() {
     throw storage_error("Could not resize files");
 }  
 
-bool Files::doneChunk(Storage::Chunk c) {
+bool Files::doneChunk(Storage::Chunk c, const std::string& hash) {
   if (c->get_index() < 0 ||
       c->get_index() >= (signed)m_storage.get_chunkcount())
     throw internal_error("Files::doneChunk received index out of range");
-  
+   
   if (m_bitfield[c->get_index()])
     throw internal_error("Files::doneChunk received index that has already been marked as done");
-
+ 
   if (!c.is_valid() || !c->is_valid())
     return false;
-
-  HashChunk hc(c);
-
-  hc.process(hc.remaining_chunk());
-
-  if (hc.get_hash() == m_hashes[c->get_index()]) {
-
+ 
+  if (hash == m_hashes[c->get_index()]) {
+ 
     m_bitfield.set(c->get_index(), true);
     m_completed++;
-
+ 
     m_doneSize += c->get_size();
-
+ 
     return true;
   } else {
     return false;

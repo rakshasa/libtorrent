@@ -235,8 +235,8 @@ void PeerHandshake::addConnection(PeerHandshake* p) {
   if (p == NULL)
     throw internal_error("Tried to add bad PeerHandshake to handshake cue");
 
-  if (m_handshakes.size() > 200)
-    throw internal_error("Handshake queue is bigger than 200");
+  if (m_handshakes.size() > 2000)
+    throw internal_error("Handshake queue is bigger than 2000");
 
   m_handshakes.push_back(p);
 }

@@ -6,7 +6,7 @@
 
 namespace torrent {
 
-bool HashChunk::process(unsigned int length, bool force) {
+bool HashChunk::perform(unsigned int length, bool force) {
   if (!m_chunk.is_valid() ||
       !m_chunk->is_valid())
     throw internal_error("HashChunk::process_force(...) called on an invalid chunk");
@@ -14,6 +14,10 @@ bool HashChunk::process(unsigned int length, bool force) {
   if (m_position + length > m_chunk->get_size())
     throw internal_error("HashChunk::process_force(...) received length out of range");
   
+  length = std::min(length, remaining_chunk());
+
+  // TODO: Length should really only be an advise, we can optimize here IMO.
+
   while (length) {
     StorageChunk::Node& node = m_chunk->get_position(m_position);
 

@@ -24,21 +24,21 @@ CurlGet::~CurlGet() {
 }
 
 void CurlGet::set_url(const std::string& url) {
-  if (busy())
+  if (is_busy())
     throw local_error("Tried to call CurlGet::set_url on a busy object");
 
   m_url = url;
 }
 
 void CurlGet::set_out(std::ostream* out) {
-  if (busy())
+  if (is_busy())
     throw local_error("Tried to call CurlGet::set_url on a busy object");
 
   m_out = out;
 }
 
 void CurlGet::start() {
-  if (busy())
+  if (is_busy())
     throw local_error("Tried to call CurlGet::start on a busy object");
 
   if (m_out == NULL)
@@ -56,7 +56,7 @@ void CurlGet::start() {
 }
 
 void CurlGet::close() {
-  if (!busy())
+  if (!is_busy())
     return;
 
   m_stack->remove_get(this);
@@ -66,7 +66,7 @@ void CurlGet::close() {
   m_handle = NULL;
 }
 
-void CurlGet::process(CURLMsg* msg) {
+void CurlGet::perform(CURLMsg* msg) {
   if (msg->msg != CURLMSG_DONE)
     throw internal_error("CurlGet::process got CURLMSG that isn't done");
 

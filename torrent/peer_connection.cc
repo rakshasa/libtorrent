@@ -54,7 +54,7 @@ void PeerConnection::set(int fd, const Peer& p, DownloadState* d) {
     m_up.state = WRITE_MSG;
   }
     
-  insertService(Timer::current() + 120 * 1000000, SERVICE_KEEP_ALIVE);
+  insert_service(Timer::current() + 120 * 1000000, SERVICE_KEEP_ALIVE);
 
   m_lastMsg = Timer::current();
 }
@@ -302,10 +302,10 @@ void PeerConnection::read() {
       m_down.list.pop_front();
     }
     
-    removeService(SERVICE_INCOMING_PIECE);
+    remove_service(SERVICE_INCOMING_PIECE);
     
     if (!m_down.list.empty())
-      insertService(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
+      insert_service(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
 
     // TODO: clear m_down.data?
 
@@ -588,7 +588,7 @@ void PeerConnection::fillWriteBuf() {
 
     if ((Timer::cache() - m_lastChoked).seconds() < 10) {
       // Wait with the choke message.
-      insertService(m_lastChoked + 10 * 1000000,
+      insert_service(m_lastChoked + 10 * 1000000,
 		    SERVICE_SEND_CHOKE);
 
     } else {
@@ -647,7 +647,7 @@ void PeerConnection::fillWriteBuf() {
 	throw internal_error("Delegator gave us a piece with invalid range or not in peer");
 
       if (addService) {
-	insertService(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
+	insert_service(Timer::cache() + 10 * 1000000, SERVICE_INCOMING_PIECE);
 	addService = false;
       }
 
@@ -778,7 +778,7 @@ void PeerConnection::service(int type) {
       insertWrite();
     }
 
-    insertService(Timer::cache() + 120 * 1000000, SERVICE_KEEP_ALIVE);
+    insert_service(Timer::cache() + 120 * 1000000, SERVICE_KEEP_ALIVE);
 
     return;
   

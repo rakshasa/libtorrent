@@ -11,6 +11,7 @@
 #include "peer_connection.h"
 #include "peer_handshake.h"
 #include "throttle_control.h"
+#include "data/hash_queue.h"
 
 using namespace algo;
 
@@ -18,6 +19,8 @@ namespace torrent {
 
 // Temporary solution untill we get proper error handling.
 extern std::list<std::string> caughtExceptions;
+
+HashQueue hashQueue;
 
 DownloadState::DownloadState() :
   m_bytesUploaded(0),
@@ -34,16 +37,16 @@ DownloadState::~DownloadState() {
 }
 
 void DownloadState::chunkDone(Storage::Chunk& c) {
-  if (m_files.doneChunk(c)) {
-    m_delegator.done(c->get_index());
-    
-    std::for_each(m_connections.begin(), m_connections.end(),
-		  call_member(&PeerConnection::sendHave,
-			      value(c->get_index())));
+  if (std::find_if(hashQueue.chunks().begin(), hashQueue.chunks().end(),
 
-  } else {
-    m_delegator.redo(c->get_index());
-  }
+		   bool_and(eq(ref(m_hash), member(&HashQueue::Node::id)),
+			    eq(value(c->get_index()), member(&HashQueue::Node::index))))
+      != hashQueue.chunks().end())
+    return;
+
+  HashQueue::SignalDone& s = hashQueue.add(m_hash, c, true);
+
+  s.connect(sigc::mem_fun(*this, &DownloadState::receive_hashdone));
 }
 
 int DownloadState::canUnchoke() {
@@ -172,14 +175,28 @@ void DownloadState::connect_peers() {
 	 countConnections() < settings().maxPeers) {
 
 //     std::stringstream s;
-    
 //     s << "Connecting to " << available_peers().front().dns() << ':' << available_peers().front().port();
-
 //     caughtExceptions.push_front(s.str());
 
     PeerHandshake::connect(available_peers().front(), this);
     available_peers().pop_front();
   }
 }
+
+void DownloadState::receive_hashdone(std::string id, Storage::Chunk c, std::string hash) {
+  if (id != m_hash)
+    throw internal_error("Download received hash check comeplete signal beloning to another info hash");
+
+  if (m_files.doneChunk(c, hash)) {
+    m_delegator.done(c->get_index());
+    
+    std::for_each(m_connections.begin(), m_connections.end(),
+		  call_member(&PeerConnection::sendHave,
+			      value(c->get_index())));
+
+  } else {
+    m_delegator.redo(c->get_index());
+  }
+}  
 
 }

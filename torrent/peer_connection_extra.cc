@@ -135,7 +135,7 @@ void PeerConnection::discardIncomingQueue() {
 }
 
 bool PeerConnection::chokeDelayed() {
-  return m_sendChoked || inService(SERVICE_SEND_CHOKE);
+  return m_sendChoked || in_service(SERVICE_SEND_CHOKE);
 }
 
 void PeerConnection::choke(bool v) {
