@@ -71,7 +71,6 @@ libtorrent_la_SOURCES = \
         peer_connection.h \
         peer_connection_extra.cc \
 	peer_connection_sub.h \
-	peer_wrapper.h \
 	piece.h \
 	rate.cc \
 	rate.h \

@@ -5,13 +5,16 @@ CONTACT
    Send bug reports, suggestions and patches to <jaris@ifi.uio.no> or
   to the mailinglist.
 
-DEPENDENCIES
+LIBRARY DEPENDENCIES
 
   libsigc++ 2.0 (deb: libsigc++-2.0-dev)
   openssl       (deb: libssl-dev)
+  g++ >= 3.2
+
+CLIENT DEPENDENCIES
+
   libcurl       (deb: libcurl3-dev)
   ncurses       (deb: libncurses5-dev)
-  g++ >= 3.2
 
 SIGC++
 
@@ -21,6 +24,8 @@ SIGC++
   the functions. This avoids lots of unnecessary code in the client.
 
 DOWNLOADING 220mb
+
+These tests are old, redo them:
 
   ./rtorrent
   7.22 user 4.84 system 1:26.69 elapsed 13 %CPU
