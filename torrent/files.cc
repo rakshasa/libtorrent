@@ -11,12 +11,14 @@
 
 using namespace algo;
 
-#include "files.h"
 #include "bencode.h"
 #include "exceptions.h"
 #include "general.h"
 #include "settings.h"
 #include "data/file.h"
+
+#include "files.h"
+#include "files_algo.h"
 
 namespace torrent {
 
@@ -47,22 +49,16 @@ void Files::set(const bencode& b) {
     m_files[0].m_size = b["length"].asValue();
     m_files[0].m_path.push_back(b["name"].asString());
 
-//   } else if (b.hasKey("files")) {
-//     // Multi file torrent
-//     if (b["files"].asList().empty())
-//       throw input_error("Bad torrent file, entry no files");
+  } else if (b.hasKey("files")) {
+    // Multi file torrent
+    if (b["files"].asList().empty())
+      throw input_error("Bad torrent file, entry no files");
 
-//     m_files.resize(b["files"].asList().size());
+    std::for_each(b["files"].asList().begin(), b["files"].asList().end(),
+		  bencode_to_file(m_files));
 
-//     std::for_each(m_files.begin(), m_files.end(),
-// 		  new_on(&File::m_storage));
-
-//     std::for_each(m_files.begin(), m_files.end(),
-// 		  bencode_to_file(b["files"].asList().begin(),
-// 				  b["files"].asList().end()));
-
-//     // Do we want the "name" in the root dir?...
-//     m_rootDir += "/" + b["name"].asString();
+    // Do we want the "name" in the root dir?...
+    m_rootDir += "/" + b["name"].asString();
 
   } else {
     throw input_error("Torrent must have either length or files entry");
@@ -172,24 +168,25 @@ void Files::rootDir(const std::string& s) {
 }
 
 void Files::createDirs() {
-//   makeDir(m_rootDir);
+  makeDir(m_rootDir);
 
-//   Path lastPath;
+  Path lastPath;
 
-//   for (FileVector::iterator fItr = m_files.begin(); fItr != m_files.end(); ++fItr) {
-//     if (fItr->m_path.empty())
-//       throw internal_error("A file with zero path elements slipt through");
+  // TODO: This should propably be optimized alot, do that when you rewrite this shit.
+  for (FileInfos::iterator fItr = m_files.begin(); fItr != m_files.end(); ++fItr) {
+    if (fItr->m_path.empty())
+      throw internal_error("A file with zero path elements slipt through");
 
-//     if (fItr->m_path != lastPath) {
-//       std::string path = m_rootDir;
+    if (fItr->m_path != lastPath) {
+      std::string path = m_rootDir;
 
-//       std::for_each(fItr->m_path.begin(), --fItr->m_path.end(),
-// 		    branch(add_ref(path, add(value("/"), back_as_ref())),
-// 			   call(&Files::makeDir, ref(path))));
+      std::for_each(fItr->m_path.begin(), --fItr->m_path.end(),
+		    branch(add_ref(path, add(value("/"), back_as_ref())),
+			   call(&Files::makeDir, ref(path))));
 
-//       lastPath = fItr->m_path;
-//     }
-//   }
+      lastPath = fItr->m_path;
+    }
+  }
 }
 
 void Files::makeDir(const std::string& dir) {

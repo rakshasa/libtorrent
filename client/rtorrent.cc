@@ -54,6 +54,7 @@ void signal_handler(int signum) {
     return;
 
   case SIGSEGV:
+  case SIGBUS:
     if (called) {
       exit(0);
     }
@@ -90,8 +91,9 @@ int main(int argc, char** argv) {
   display = new Display();
   Http http;
 
-  signal(SIGINT, signal_handler);
+  signal(SIGINT,  signal_handler);
   signal(SIGSEGV, signal_handler);
+  signal(SIGBUS,  signal_handler);
 
   try {
 

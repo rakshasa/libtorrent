@@ -8,49 +8,42 @@ namespace torrent {
 struct bencode_to_file {
   typedef bencode::List::const_iterator Itr;
 
-  bencode_to_file(Itr i, Itr j) : m_itr(i), m_end(j), m_pos(0) {}
+  bencode_to_file(Files::FileInfos& f) : m_files(f) {}
 
-  // Convert from 'm_itr' to 'f'
-
-  void operator () (Files::File& f) {
-    if (m_itr == m_end)
-      throw internal_error("Files algo_bencode_to_file reached end of output list");
-
+  void operator () (const bencode& b) {
     // Make sure we are given a proper file path.
-    if ((*m_itr)["path"].asList().empty() ||
+    if (b["path"].asList().empty() ||
 
-	std::find_if((*m_itr)["path"].asList().begin(),
-		     (*m_itr)["path"].asList().end(),
+	std::find_if(b["path"].asList().begin(),
+		     b["path"].asList().end(),
 
 		     eq(call_member(&bencode::cString),
 			value("")))
 
-	!= (*m_itr)["path"].asList().end())
+	!= b["path"].asList().end())
       throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
 
-    if ((*m_itr)["length"].asValue() < 0 ||
-	(*m_itr)["length"].asValue() > MAX_FILE_LENGTH)
+    if (b["length"].asValue() < 0 ||
+	b["length"].asValue() > MAX_FILE_LENGTH)
       throw input_error("Bad torrent file, invalid length for file given");
 
-    std::for_each((*m_itr)["path"].asList().begin(),
-		  (*m_itr)["path"].asList().end(),
+    Files::FileInfo f;
+
+    std::for_each(b["path"].asList().begin(),
+		  b["path"].asList().end(),
 		  
-		  call_member(on<Files::Path&>(ref(f), member(&Files::File::m_path)),
+		  call_member(on<Files::Path&>(ref(f), member(&Files::FileInfo::m_path)),
 			      &Files::Path::push_back,
 			      call_member(&bencode::cString)));
 
     //algo_call_push_back<Files::Path, const std::string&, const bencode, &bencode::asString>(f.m_path));
 
-    f.m_length = (*m_itr)["length"].asValue();
-    f.m_position = m_pos;
-
-    ++m_itr;
-    m_pos += f.m_length;
+    f.m_size = b["length"].asValue();
+    
+    m_files.push_back(f);
   }
 
-  Itr m_itr;
-  Itr m_end;
-  uint64_t m_pos;
+  Files::FileInfos& m_files;
 };
 
 }

@@ -19,6 +19,8 @@ StorageChunk::get_position(unsigned int pos) {
   while (itr != m_nodes.end()) {
     if (pos < (*itr)->position + (*itr)->chunk.length())
       return **itr;
+
+    ++itr;
   }
   
   throw internal_error("StorageChunk might be mangled, get_position failed horribly");
