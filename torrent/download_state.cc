@@ -170,7 +170,14 @@ int DownloadState::countConnections() const {
 void DownloadState::download_stats(uint64_t& down, uint64_t& up, uint64_t& left) {
   up = m_rateUp.total();
   down = m_rateDown.total();
-  left = m_content.get_size() - m_content.get_completed() * m_content.get_storage().get_chunksize();
+
+  // Check if last chunk is completed, and adjust for it's different size.
+  if (!m_content.get_bitfield()[m_content.get_storage().get_chunkcount() - 1])
+    left = m_content.get_size() - m_content.get_completed() * m_content.get_storage().get_chunksize();
+  else
+    left = m_content.get_size()
+      - (m_content.get_completed() - 1) * m_content.get_storage().get_chunksize()
+      - m_content.get_size() % m_content.get_storage().get_chunksize();
 }
 
 void DownloadState::connect_peers() {
