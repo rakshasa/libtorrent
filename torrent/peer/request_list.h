@@ -2,39 +2,43 @@
 #define LIBTORRENT_REQUEST_LIST_H
 
 #include <deque>
+#include "content/delegator_reservee.h"
 
 namespace torrent {
 
 class BitField;
 class Delegator;
-class DelegatorReservee;
 
 class RequestList {
 public:
   typedef std::deque<DelegatorReservee*> ReserveeList;
 
   RequestList(Delegator* d, BitField* bf);
-  ~RequestList() { cancel(); }
+  ~RequestList()                              { cancel(); }
 
   // Some parameters here, like how fast we are downloading and stuff
   // when we start considering those.
-  bool              delegate();
+  bool               delegate();
 
-  void              cancel();
-  void              stall();
+  void               cancel();
+  //void              stall();
 
-  bool              recieved(const Piece& p);
-  bool              downloading();
-  bool              finished();
+  bool               downloading(const Piece& p);
+  bool               finished();
 
-  unsigned int      get_size()                     { return m_reservees.size(); }
-  const Piece&      get_piece(unsigned int index);
+  bool               is_downloading()         { return m_downloading; }
+
+  unsigned int       get_size()               { return m_reservees.size(); }
+  const Piece&       get_piece()              { return m_downloading->get_piece(); }
 
 private:
-  Delegator*   m_delegator;
-  BitField*    m_bitfield;
+  void               delete_range(ReserveeList::iterator end);
 
-  ReserveeList m_reservees;
+  Delegator*         m_delegator;
+  BitField*          m_bitfield;
+
+  DelegatorReservee* m_downloading;
+  ReserveeList       m_reservees;
 };
 
 }

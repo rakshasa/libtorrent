@@ -16,8 +16,6 @@ class Sub {
   bool c_choked() const { return choked; }
   bool c_interested() const { return interested; }
 
-  PieceList& c_list() { return list; }
-
  protected:
   bool choked;
   bool interested;
@@ -31,5 +29,4 @@ class Sub {
   unsigned int lengthOrig;
   
   Storage::Chunk data;
-  PieceList list;
 };

@@ -48,6 +48,8 @@ libtorrent_la_SOURCES = \
 	net/listen.h \
 	parse/parse_info.cc \
 	parse/parse_info.h \
+	peer/request_list.cc \
+	peer/request_list.h \
 	tracker/tracker_control.cc \
 	tracker/tracker_control.h \
 	tracker/tracker_http.cc \

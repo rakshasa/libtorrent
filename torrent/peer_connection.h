@@ -2,14 +2,15 @@
 #define LIBTORRENT_PEER_CONNECTION_H
 
 #include "bitfield.h"
-#include "data/storage.h"
 #include "socket_base.h"
 #include "service.h"
 #include "peer_info.h"
 #include "piece.h"
 #include "rate.h"
 #include "throttle.h"
-#include "content/delegator_reservee.h"
+
+#include "data/storage.h"
+#include "peer/request_list.h"
 
 #include <vector>
 
@@ -47,8 +48,7 @@ public:
     KEEP_ALIVE      // Last command was a keep alive
   } Protocol;
 
-  typedef std::list<DelegatorReservee*> PieceList;
-  typedef std::list<Piece>              RequestList;
+  typedef std::list<Piece>              SendList;
 
 #include "peer_connection_sub.h"
 
@@ -120,7 +120,9 @@ private:
   bool m_sendChoked;
   bool m_sendInterested;
 
+  SendList    m_sends;
   RequestList m_requests;
+
   std::list<int> m_haveQueue;
 
   Timer m_lastChoked;
