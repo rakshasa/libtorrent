@@ -124,7 +124,14 @@ of re-allocating. Do a union instead.
 
 storage.cc
 
+Allow file path in FileStat, then replace all instead of using FileMeta.
+
 
 NEXT: BUG
 
 Figure out why it stops requesting from peer.
+
+
+NEXT: bind ip
+
+Bind ip.

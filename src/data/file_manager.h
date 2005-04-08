@@ -31,6 +31,9 @@ class FileMeta;
 
 // Note: this list may be rearranged during calls to close_files(...),
 // so don't assume anything about the order.
+//
+// Calling FileMeta::close() will remove the FileMeta from this
+// container.
 
 class FileManager : private std::vector<FileMeta*> {
 public:
@@ -52,20 +55,21 @@ public:
 
   void                clear();
 
-  FileMeta*           insert(const std::string& path);
+  iterator            insert(FileMeta* f);
 
   size_t              open_size() const                  { return m_openSize; }
   size_t              max_size() const                   { return m_maxSize; }
-
-  // Bool or throw? iterator or reference/pointer?
-  bool                open_file(FileMeta* meta, int flags);
-  void                close_file(FileMeta* meta);
 
   void                close_files(size_t count);
 
 private:
   FileManager(const FileManager&);
   void operator = (const FileManager&);
+
+  // Bool or throw? iterator or reference/pointer?
+  bool                prepare_file(FileMeta* meta);
+  void                remove_file(FileMeta* meta);
+  void                close_file(FileMeta* meta);
 
   size_t              m_openSize;
   size_t              m_maxSize;

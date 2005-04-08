@@ -25,20 +25,21 @@
 
 namespace torrent {
 
-class File;
+class FileMeta;
 
 class StorageFile {
 public:
-  StorageFile() : m_file(NULL), m_position(0), m_size(0) {}
-  StorageFile(File* f, off_t p, off_t s) : m_file(f), m_position(p), m_size(s) {}
+  StorageFile() : m_meta(NULL), m_position(0), m_size(0) {}
+  StorageFile(FileMeta* f, off_t p, off_t s) : m_meta(f), m_position(p), m_size(s) {}
 
-  bool                is_valid() const                        { return m_file; }
+  bool                is_valid() const                        { return m_meta; }
   inline bool         is_valid_position(off_t p) const;
 
   void                clear();
 
-  File*               get_file()                              { return m_file; }
-  const File*         get_file() const                        { return m_file; }
+  FileMeta*           get_meta()                              { return m_meta; }
+  const FileMeta*     get_meta() const                        { return m_meta; }
+
   off_t               get_position() const                    { return m_position; }
   off_t               get_size() const                        { return m_size; }
 
@@ -46,7 +47,7 @@ public:
   bool                resize_file() const;
 
 private:
-  File*               m_file;
+  FileMeta*           m_meta;
 
   off_t               m_position;
   off_t               m_size;

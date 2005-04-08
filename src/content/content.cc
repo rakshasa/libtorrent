@@ -26,12 +26,15 @@
 
 #include "torrent/exceptions.h"
 #include "content.h"
-#include "data/file.h"
+#include "data/file_meta.h"
 #include "data/file_stat.h"
 
 using namespace algo;
 
 namespace torrent {
+
+// Very low for the moment.
+FileManager Content::m_fileManager(5);
 
 void
 Content::add_file(const Path& path, uint64_t size) {
@@ -107,11 +110,15 @@ Content::is_correct_size() {
   if (m_files.size() != m_storage.get_consolidator().get_files_size())
     throw internal_error("Content::is_correct_size called on an open object with mismatching FileList and Storage::FileList sizes");
 
-  FileList::const_iterator fItr = m_files.begin();
-  Storage::FileList::const_iterator sItr = m_storage.get_consolidator().begin();
+  FileList::iterator fItr = m_files.begin();
+  Storage::FileList::iterator sItr = m_storage.get_consolidator().begin();
   
   while (fItr != m_files.end()) {
-    if (fItr->get_size() != FileStat(sItr->get_file()->fd()).get_size())
+    // TODO: Throw or return false?
+    if (!sItr->get_meta()->prepare())
+      return false;
+
+    if (fItr->get_size() != FileStat(sItr->get_meta()->get_file().fd()).get_size())
       return false;
 
     ++fItr;
@@ -132,18 +139,20 @@ Content::open(bool wr) {
   Path lastPath;
 
   for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    File* f = new File;
+    FileMeta* f = new FileMeta;
 
     try {
       open_file(f, itr->get_path(), lastPath);
 
     } catch (base_error& e) {
-      f->close();
+      f->get_file().close();
       delete f;
       m_storage.clear();
 
       throw;
     }
+
+    m_fileManager.insert(f);
 
     lastPath = itr->get_path();
 
@@ -213,15 +222,18 @@ Content::update_done() {
 }
 
 void
-Content::open_file(File* f, Path& p, Path& lastPath) {
+Content::open_file(FileMeta* f, Path& p, Path& lastPath) {
   if (p.list().empty())
     throw internal_error("Tried to open file with empty path");
 
   Path::mkdir(m_rootDir, p.list().begin(), --p.list().end(),
 	      lastPath.list().begin(), lastPath.list().end());
 
-  if (!f->open(m_rootDir + p.path(), File::o_rdwr | File::o_create))
+  if (!f->get_file().open(m_rootDir + p.path(), File::o_rdwr | File::o_create))
     throw storage_error("Could not open file \"" + m_rootDir + p.path() + "\"");
+
+  f->set_path(m_rootDir + p.path());
+  f->set_flags(File::o_rdwr | File::o_create);
 }
 
 }

@@ -32,28 +32,42 @@
 
 namespace torrent {
 
-struct FileMetaCloseDelete {
+struct FileMetaRemove {
   void operator() (FileMeta* f) {
     f->get_file().close();
-    delete f;
+    f->slot_prepare() = FileMeta::SlotPrepare();
+    f->slot_disconnect() = FileMeta::SlotDisconnect();
   }
 };
 
 void
 FileManager::clear() {
-  std::for_each(begin(), end(), FileMetaCloseDelete());
+  std::for_each(begin(), end(), FileMetaRemove());
 
   m_openSize = 0;
   Base::clear();
 }
 
-FileMeta*
-FileManager::insert(const std::string& path) {
-  return *Base::insert(end(), new FileMeta(path));
+FileManager::iterator
+FileManager::insert(FileMeta* f) {
+  if (f->is_valid())
+    throw internal_error("FileManager::insert(...) received an already valid FileMeta");
+
+  if (f->is_open())
+    if (m_openSize == m_maxSize)
+      f->get_file().close();
+    else
+      ++m_openSize;
+
+  f->slot_prepare() = sigc::mem_fun(*this, &FileManager::prepare_file);
+  f->slot_disconnect() = sigc::mem_fun(*this, &FileManager::remove_file);
+
+  // Hmm... insert or push_back?
+  return Base::insert(end(), f);
 }
 
 bool
-FileManager::open_file(FileMeta* meta, int flags) {
+FileManager::prepare_file(FileMeta* meta) {
   if (meta->is_open())
     throw internal_error("FileManager::open_file(...) called on an open iterator");
 
@@ -64,7 +78,7 @@ FileManager::open_file(FileMeta* meta, int flags) {
   if (m_openSize == m_maxSize)
     close_files(1);
 
-  if (!meta->get_file().open(meta->get_path(), flags))
+  if (!meta->get_file().open(meta->get_path(), meta->get_flags()))
     return false;
 
   ++m_openSize;
@@ -73,23 +87,46 @@ FileManager::open_file(FileMeta* meta, int flags) {
 }
 
 void
+FileManager::remove_file(FileMeta* meta) {
+  iterator itr = std::find(begin(), end(), meta);
+
+  if (itr == end())
+    throw internal_error("FileManager::close_file(...) could not find FileMeta in container");
+
+  if ((*itr)->is_open())
+    close_file(meta);
+
+  // TODO: Use something else here, like std::remove
+  Base::erase(itr);
+}
+
+void
 FileManager::close_file(FileMeta* meta) {
   if (!meta->is_open())
-    return;
+    throw internal_error("FileManager::close_file(...) called on a closed FileMeta");
 
   meta->get_file().close();
   --m_openSize;
 }
 
+struct FileManagerCompLessActive {
+  bool operator ()(const FileMeta* const f1, const FileMeta* const f2) const {
+    return (f1->get_last_touched() < f2->get_last_touched() && f1->is_open()) || !f2->is_open();
+  }
+};
+
 void
 FileManager::close_files(size_t count) {
   if (count > m_openSize)
-    throw internal_error("FileManager::close_files(...) count > m_size");
+    throw internal_error("FileManager::close_files(...) count > m_openSize");
+
+  if (count > size())
+    throw internal_error("FileManager::close_files(...) count > size()");
 
   iterator nth = begin();
 
   std::advance(nth, count);
-  std::nth_element(begin(), nth, end(), std::mem_fun(&FileMeta::comp_less_active));
+  std::nth_element(begin(), nth, end(), FileManagerCompLessActive());
 
   if (std::find_if(begin(), nth, std::not1(std::mem_fun(&FileMeta::is_open))) != nth)
     throw internal_error("FileManager::close_files(...) Did not have enough open files");

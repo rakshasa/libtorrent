@@ -46,7 +46,7 @@ public:
   ~StorageConsolidator() { clear(); }
 
   // We take over ownership of 'file'.
-  void                push_back(File* file, off_t size);
+  void                push_back(FileMeta* file, off_t size);
 
   // TODO: Rename this to something else.
   bool                resize_files();

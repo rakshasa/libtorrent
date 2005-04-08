@@ -26,13 +26,13 @@
 #include <functional>
 
 #include "torrent/exceptions.h"
-#include "file.h"
+#include "file_meta.h"
 #include "storage_consolidator.h"
 
 namespace torrent {
 
 void
-StorageConsolidator::push_back(File* file, off_t size) {
+StorageConsolidator::push_back(FileMeta* file, off_t size) {
   if (sizeof(off_t) != 8)
     throw internal_error("sizeof(off_t) != 8");
 
@@ -117,7 +117,10 @@ StorageConsolidator::get_chunk_part(iterator itr, off_t offset, uint32_t length,
   if (length > m_chunksize)
     throw internal_error("StorageConsolidator::get_chunk_part(...) caught an excessively large piece");
 
-  return itr->get_file()->get_chunk(offset, length, prot, MemoryChunk::map_shared);
+  if (!itr->get_meta()->prepare())
+    return MemoryChunk();
+
+  return itr->get_meta()->get_file().get_chunk(offset, length, prot, MemoryChunk::map_shared);
 }
 
 }

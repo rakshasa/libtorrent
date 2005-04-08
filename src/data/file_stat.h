@@ -37,9 +37,11 @@ public:
 
   int                 update(int fd)                        { return fstat(fd, &m_stat); }
   int                 update(const char* filename)          { return stat(filename, &m_stat); }
+  int                 update(const std::string& filename)   { return update(filename.c_str()); }
 
   void                update_throws(int fd);
   void                update_throws(const char* filename);
+  void                update_throws(const std::string& f)   { update_throws(f.c_str()); }
 
   bool                is_regular() const                    { return S_ISREG(m_stat.st_mode); }
   bool                is_directory() const                  { return S_ISDIR(m_stat.st_mode); }

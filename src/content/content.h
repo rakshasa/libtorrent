@@ -30,6 +30,7 @@
 #include "utils/bitfield.h"
 #include "content_file.h"
 #include "data/storage.h"
+#include "data/file_manager.h"
 
 namespace torrent {
 
@@ -86,7 +87,7 @@ public:
 
 private:
   
-  void                   open_file(File* f, Path& p, Path& lastPath);
+  void                   open_file(FileMeta* f, Path& p, Path& lastPath);
 
   FileList::iterator     mark_done_file(FileList::iterator itr, uint32_t index) {
     while (index >= itr->get_range().second) ++itr;
@@ -97,6 +98,8 @@ private:
 
     return itr;
   }
+
+  static FileManager     m_fileManager;
 
   off_t                  m_size;
   uint32_t               m_completed;
