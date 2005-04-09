@@ -57,17 +57,21 @@ public:
 
   void                receive_hash_done(Storage::Chunk c, std::string hash);
 
-  typedef sigc::signal1<void, uint32_t>   SignalChunk;
+  typedef sigc::signal1<void, uint32_t>           SignalChunk;
+  typedef sigc::signal1<void, const std::string&> SignalString;
+
   typedef sigc::slot1<void, bool>         SlotSetEndgame;
   typedef sigc::slot0<uint32_t>           SlotDelegatedChunks;
   typedef sigc::slot1<void, Chunk>        SlotHashCheckAdd;
 
-  SignalChunk&                            signal_chunk_passed() { return m_signalChunkPassed; }
-  SignalChunk&                            signal_chunk_failed() { return m_signalChunkFailed; }
+  SignalChunk&                            signal_chunk_passed()  { return m_signalChunkPassed; }
+  SignalChunk&                            signal_chunk_failed()  { return m_signalChunkFailed; }
 
-  void slot_set_endgame(SlotSetEndgame s)                       { m_slotSetEndgame = s; }
-  void slot_delegated_chunks(SlotDelegatedChunks s)             { m_slotDelegatedChunks = s; }
-  void slot_hash_check_add(SlotHashCheckAdd s)                  { m_slotHashCheckAdd = s; }
+  SignalString&                           signal_storage_error() { return m_signalStorageError; }
+
+  void slot_set_endgame(SlotSetEndgame s)                        { m_slotSetEndgame = s; }
+  void slot_delegated_chunks(SlotDelegatedChunks s)              { m_slotDelegatedChunks = s; }
+  void slot_hash_check_add(SlotHashCheckAdd s)                   { m_slotHashCheckAdd = s; }
 
 private:
   // Disable copy ctor and assignment
@@ -80,6 +84,7 @@ private:
 
   SignalChunk         m_signalChunkPassed;
   SignalChunk         m_signalChunkFailed;
+  SignalString        m_signalStorageError;
 
   SlotSetEndgame      m_slotSetEndgame;
   SlotDelegatedChunks m_slotDelegatedChunks;

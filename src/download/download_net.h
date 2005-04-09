@@ -46,37 +46,37 @@ public:
   DownloadNet() : m_settings(NULL), m_endgame(false) {}
   ~DownloadNet();
 
-  uint32_t          pipe_size(const Rate& r);
+  uint32_t            pipe_size(const Rate& r);
 
-  bool              should_request(uint32_t stall);
+  bool                should_request(uint32_t stall);
 
-  bool              get_endgame()                            { return m_endgame; }
-  void              set_endgame(bool b);
+  bool                get_endgame()                            { return m_endgame; }
+  void                set_endgame(bool b);
 
-  void              set_settings(DownloadSettings* s)        { m_settings = s; }
+  void                set_settings(DownloadSettings* s)        { m_settings = s; }
 
-  Delegator&        get_delegator()                          { return m_delegator; }
+  Delegator&          get_delegator()                          { return m_delegator; }
 
-  Rate&             get_rate_up()                            { return m_rateUp; }
-  Rate&             get_rate_down()                          { return m_rateDown; }
+  Rate&               get_rate_up()                            { return m_rateUp; }
+  Rate&               get_rate_down()                          { return m_rateDown; }
 
-  void              send_have_chunk(uint32_t index);
+  void                send_have_chunk(uint32_t index);
 
   // Peer connections management:
 
-  ConnectionList&   get_connections()                        { return m_connections; }
-  PeerContainer&    get_available_peers()                    { return m_availablePeers; }
+  ConnectionList&     get_connections()                        { return m_connections; }
+  PeerContainer&      get_available_peers()                    { return m_availablePeers; }
 
-  bool              add_connection(int fd, const PeerInfo& p);
-  void              remove_connection(PeerConnection* p);
+  bool                add_connection(int fd, const PeerInfo& p);
+  void                remove_connection(PeerConnection* p);
 
-  void              add_available_peers(const PeerList& p);
+  void                add_available_peers(const PeerList& p);
 
-  int               can_unchoke();
-  void              choke_balance();
-  void              connect_peers();
+  int                 can_unchoke();
+  void                choke_balance();
+  void                connect_peers();
 
-  int               count_connections() const; 
+  int                 count_connections() const; 
 
   // Signals and slots.
 

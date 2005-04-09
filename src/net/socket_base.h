@@ -70,6 +70,8 @@ public:
   static void         make_sockaddr(const std::string& host, int port, sockaddr_in& sa);
   static int          make_socket(sockaddr_in& sa);
 
+  static bool         set_sin_addr(sockaddr_in& sa, const std::string& addr);
+
   static void         close_socket(int fd);
 
 protected:

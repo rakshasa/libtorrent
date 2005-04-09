@@ -193,4 +193,15 @@ bool SocketBase::write_buf(const void* buf, unsigned int length, unsigned int& p
   return length == (pos += r);
 }
 
+bool
+SocketBase::set_sin_addr(sockaddr_in& sa, const std::string& addr) {
+  if (!addr.empty()) {
+    return inet_aton(addr.c_str(), &sa.sin_addr);
+
+  } else {
+    sa.sin_addr.s_addr = htonl(INADDR_ANY);
+    return true;
+  }
+}
+
 } // namespace torrent

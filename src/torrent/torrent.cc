@@ -149,11 +149,11 @@ cleanup() {
 }
 
 bool
-listen_open(uint16_t begin, uint16_t end) {
+listen_open(uint16_t begin, uint16_t end, const std::string& addr) {
   if (listen == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
-  if (!listen->open(begin, end))
+  if (!listen->open(begin, end, addr))
     return false;
 
   std::for_each(downloadManager->get_list().begin(), downloadManager->get_list().end(),

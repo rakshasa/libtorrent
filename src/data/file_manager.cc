@@ -63,7 +63,9 @@ FileManager::insert(FileMeta* f) {
   f->slot_disconnect() = sigc::mem_fun(*this, &FileManager::remove_file);
 
   // Hmm... insert or push_back?
-  return Base::insert(end(), f);
+  Base::push_back(f);
+
+  return --end();
 }
 
 bool
@@ -76,7 +78,7 @@ FileManager::prepare_file(FileMeta* meta) {
 
   // Close any files if nessesary.
   if (m_openSize == m_maxSize)
-    close_files(1);
+    close_least_active();
 
   if (!meta->get_file().open(meta->get_path(), meta->get_flags()))
     return false;
@@ -102,6 +104,9 @@ FileManager::remove_file(FileMeta* meta) {
 
 void
 FileManager::close_file(FileMeta* meta) {
+  if (meta == NULL)
+    throw internal_error("FileManager::close_file(...) called on with a NULL argument");
+
   if (!meta->is_open())
     throw internal_error("FileManager::close_file(...) called on a closed FileMeta");
 
@@ -109,29 +114,23 @@ FileManager::close_file(FileMeta* meta) {
   --m_openSize;
 }
 
-struct FileManagerCompLessActive {
-  bool operator ()(const FileMeta* const f1, const FileMeta* const f2) const {
-    return (f1->get_last_touched() < f2->get_last_touched() && f1->is_open()) || !f2->is_open();
+struct FileManagerActivity {
+  FileManagerActivity() : m_last(Timer::cache()), m_meta(NULL) {}
+
+  void operator ()(FileMeta* f) {
+    if (f->is_open() && f->get_last_touched() <= m_last) {
+      m_last = f->get_last_touched();
+      m_meta = f;
+    }
   }
+
+  Timer     m_last;
+  FileMeta* m_meta;
 };
 
 void
-FileManager::close_files(size_t count) {
-  if (count > m_openSize)
-    throw internal_error("FileManager::close_files(...) count > m_openSize");
-
-  if (count > size())
-    throw internal_error("FileManager::close_files(...) count > size()");
-
-  iterator nth = begin();
-
-  std::advance(nth, count);
-  std::nth_element(begin(), nth, end(), FileManagerCompLessActive());
-
-  if (std::find_if(begin(), nth, std::not1(std::mem_fun(&FileMeta::is_open))) != nth)
-    throw internal_error("FileManager::close_files(...) Did not have enough open files");
-
-  std::for_each(begin(), nth, std::bind1st(std::mem_fun(&FileManager::close_file), this));
+FileManager::close_least_active() {
+  close_file(std::for_each(begin(), end(), FileManagerActivity()).m_meta);
 }
 
 }

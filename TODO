@@ -33,6 +33,10 @@ Store data on which side inititalized the connection.
 
 torrent::Http::call_cleanup to delete the factory created object?
 
+If we get conflicting prot flags in get_chunk, we might go into cycle
+of re-allocating. Do a union instead.
+
+
 TIMER RELATED
 
 Throttle update needs to be off when no throttle is on. Make sure it
@@ -115,23 +119,23 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
-CURRENT: Storage/File refactoring
-
-Use bool returns for incore and sync.
-
-If we get conflicting prot flags in get_chunk, we might go into cycle
-of re-allocating. Do a union instead.
-
-storage.cc
-
-Allow file path in FileStat, then replace all instead of using FileMeta.
-
-
-NEXT: BUG
+BUG:
 
 Figure out why it stops requesting from peer.
 
 
-NEXT: bind ip
+CURRENT: bind ip
 
 Bind ip.
+
+
+RELEASE:
+
+Set correct number of max files, propably 1-200 or so.
+
+
+NEXT:
+
+Make sockaddr_in a class etc.
+
+Show the bound listening ip.

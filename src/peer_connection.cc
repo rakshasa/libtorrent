@@ -335,6 +335,10 @@ void PeerConnection::read() {
 
     m_net->remove_connection(this);
 
+  } catch (storage_error& e) {
+    m_download->signal_storage_error().emit(e.what());
+    m_net->remove_connection(this);
+
   } catch (base_error& e) {
     std::stringstream s;
     s << "Connection read fd(" << m_fd << ") state(" << m_down.state << ") \"" << e.what() << '"';
@@ -392,7 +396,7 @@ void PeerConnection::write() {
       m_up.state = WRITE_PIECE;
 
       if (!m_up.data.is_valid())
-	throw local_error("Failed to get a chunk to read from");
+	throw storage_error("Could not create a valid chunk");
 
       goto evil_goto_write;
       
@@ -453,7 +457,10 @@ void PeerConnection::write() {
 
   } catch (network_error& e) {
     m_net->signal_network_log().emit(e.what());
+    m_net->remove_connection(this);
 
+  } catch (storage_error& e) {
+    m_download->signal_storage_error().emit(e.what());
     m_net->remove_connection(this);
 
   } catch (base_error& e) {

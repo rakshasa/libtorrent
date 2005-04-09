@@ -34,7 +34,7 @@
 
 namespace torrent {
 
-bool Listen::open(uint16_t first, uint16_t last) {
+bool Listen::open(uint16_t first, uint16_t last, const std::string& addr) {
   close();
 
   if (first == 0 || last == 0 || first > last)
@@ -49,7 +49,9 @@ bool Listen::open(uint16_t first, uint16_t last) {
   std::memset(&sa, 0, sizeof(sockaddr_in));
 
   sa.sin_family = AF_INET;
-  sa.sin_addr.s_addr = htonl(INADDR_ANY);
+
+  if (!set_sin_addr(sa, addr))
+    throw local_error("Could not parse the ip to bind the listening socket to");
 
   for (uint16_t i = first; i <= last; ++i) {
     sa.sin_port = htons(i);

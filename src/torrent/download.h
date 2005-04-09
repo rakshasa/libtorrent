@@ -171,8 +171,14 @@ public:
   sigc::connection    signal_chunk_passed(SlotChunk s);
   sigc::connection    signal_chunk_failed(SlotChunk s);
 
-  // Various log message signals.
+  // Various network log message signals.
   sigc::connection    signal_network_log(SlotString s);
+
+  // Emits error messages if there are problems opening files for
+  // read/write when the download is active. The client should stop
+  // the download if it receive any of these as it will not be able to
+  // continue.
+  sigc::connection    signal_storage_error(SlotString s);
 
 private:
   DownloadWrapper*      m_ptr;

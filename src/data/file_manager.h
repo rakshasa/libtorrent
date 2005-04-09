@@ -60,8 +60,6 @@ public:
   size_t              open_size() const                  { return m_openSize; }
   size_t              max_size() const                   { return m_maxSize; }
 
-  void                close_files(size_t count);
-
 private:
   FileManager(const FileManager&);
   void operator = (const FileManager&);
@@ -70,6 +68,8 @@ private:
   bool                prepare_file(FileMeta* meta);
   void                remove_file(FileMeta* meta);
   void                close_file(FileMeta* meta);
+
+  void                close_least_active();
 
   size_t              m_openSize;
   size_t              m_maxSize;

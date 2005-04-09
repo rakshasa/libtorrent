@@ -34,7 +34,7 @@ using namespace algo;
 namespace torrent {
 
 // Very low for the moment.
-FileManager Content::m_fileManager(5);
+FileManager Content::m_fileManager(3);
 
 void
 Content::add_file(const Path& path, uint64_t size) {
@@ -232,8 +232,10 @@ Content::open_file(FileMeta* f, Path& p, Path& lastPath) {
   if (!f->get_file().open(m_rootDir + p.path(), File::o_rdwr | File::o_create))
     throw storage_error("Could not open file \"" + m_rootDir + p.path() + "\"");
 
+  // Do not use File::o_create here, since we want an error if we
+  // can't reopen the file during the torrent download/upload.
+  f->set_flags(File::o_rdwr);
   f->set_path(m_rootDir + p.path());
-  f->set_flags(File::o_rdwr | File::o_create);
 }
 
 }

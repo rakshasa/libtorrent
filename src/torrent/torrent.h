@@ -43,7 +43,7 @@ void      initialize();
 // them to finish is not required, but recommended.
 void      cleanup();
 
-bool      listen_open(uint16_t begin, uint16_t end);
+bool      listen_open(uint16_t begin, uint16_t end, const std::string& addr = "");
 void      listen_close();  
 
 // Set the file descriptors we want to pool for R/W/E events. All

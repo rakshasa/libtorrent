@@ -402,4 +402,9 @@ Download::signal_network_log(SlotString s) {
   return m_ptr->get_main().get_net().signal_network_log().connect(s);
 }
 
+sigc::connection
+Download::signal_storage_error(SlotString s) {
+  return m_ptr->get_main().get_state().signal_storage_error().connect(s);
+}
+
 }

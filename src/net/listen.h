@@ -37,7 +37,7 @@ public:
   Listen() : SocketBase(-1), m_port(0) {}
   ~Listen() { close(); }
 
-  bool            open(uint16_t first, uint16_t last);
+  bool            open(uint16_t first, uint16_t last, const std::string& addr);
   void            close();
 
   bool            is_open()                            { return m_fd >= 0; }
