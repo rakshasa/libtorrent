@@ -30,6 +30,7 @@
 #include "handshake_incoming.h"
 #include "handshake_outgoing.h"
 #include "peer_info.h"
+#include "socket_address.h"
 
 using namespace algo;
 
@@ -47,10 +48,12 @@ void
 HandshakeManager::add_outgoing(const PeerInfo& p,
 			       const std::string& infoHash,
 			       const std::string& ourId) {
-  try {
-    sockaddr_in sa;
-    SocketBase::make_sockaddr(p.get_dns(), p.get_port(), sa);
+  SocketAddress sa;
 
+  if (!sa.create(p.get_dns(), p.get_port()))
+    return;
+
+  try {
     m_handshakes.push_back(new HandshakeOutgoing(SocketBase::make_socket(sa), this, p, infoHash, ourId));
     m_size++;
 

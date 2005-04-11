@@ -119,23 +119,14 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
-BUG:
+CURRENT:
 
-Figure out why it stops requesting from peer.
+Make sockaddr_in a class etc.
 
-
-CURRENT: bind ip
-
-Bind ip.
-
-
-RELEASE:
-
-Set correct number of max files, propably 1-200 or so.
+Clean up SocketBase, make making fd's do errors cleanly, without
+throws if you don't want them.
 
 
 NEXT:
-
-Make sockaddr_in a class etc.
 
 Show the bound listening ip.

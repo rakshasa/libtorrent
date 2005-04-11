@@ -34,7 +34,7 @@ using namespace algo;
 namespace torrent {
 
 // Very low for the moment.
-FileManager Content::m_fileManager(3);
+FileManager Content::m_fileManager(100);
 
 void
 Content::add_file(const Path& path, uint64_t size) {

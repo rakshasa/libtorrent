@@ -34,6 +34,7 @@
 #include <cstring>
 #include <unistd.h>
 
+#include "socket_address.h"
 #include "socket_base.h"
 #include "torrent/exceptions.h"
 #include "poll.h"
@@ -107,24 +108,8 @@ int SocketBase::get_socket_error(int fd) {
   return err;
 }
 
-void SocketBase::make_sockaddr(const std::string& host, int port, sockaddr_in& sa) {
-  if (!host.length() ||
-      port <= 0 || port >= (1 << 16))
-    throw input_error("Tried connecting with invalid hostname or port");
-
-  hostent* he = gethostbyname(host.c_str());
-
-  if (he == NULL)
-    throw input_error("Could not lookup host \"" + host + "\"");
-
-  std::memset(&sa, 0, sizeof(sockaddr_in));
-  std::memcpy(&sa.sin_addr, he->h_addr_list[0], sizeof(in_addr));
-
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons(port);
-}
-
-int SocketBase::make_socket(sockaddr_in& sa) {
+int
+SocketBase::make_socket(SocketAddress& sa) {
   int f = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (f < 0)
@@ -132,7 +117,7 @@ int SocketBase::make_socket(sockaddr_in& sa) {
 
   set_socket_nonblock(f);
 
-  if (connect(f, (sockaddr*)&sa, sizeof(sockaddr_in)) != 0 &&
+  if (connect(f, &sa.get_addr(), sa.get_sizeof()) != 0 &&
       errno != EINPROGRESS) {
     close(f);
     throw network_error("Could not connect to remote host");

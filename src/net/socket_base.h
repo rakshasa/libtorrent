@@ -20,14 +20,16 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_SOCKET_BASE_H
-#define LIBTORRENT_SOCKET_BASE_H
+#ifndef LIBTORRENT_NET_SOCKET_BASE_H
+#define LIBTORRENT_NET_SOCKET_BASE_H
 
 #include <list>
 
 struct sockaddr_in;
 
 namespace torrent {
+
+class SocketAddress;
 
 class SocketBase {
 public:
@@ -67,8 +69,7 @@ public:
   virtual void        write() = 0;
   virtual void        except() = 0;
 
-  static void         make_sockaddr(const std::string& host, int port, sockaddr_in& sa);
-  static int          make_socket(sockaddr_in& sa);
+  static int          make_socket(SocketAddress& sa);
 
   static bool         set_sin_addr(sockaddr_in& sa, const std::string& addr);
 
