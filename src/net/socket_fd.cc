@@ -22,55 +22,36 @@
 
 #include "config.h"
 
-#include <numeric>
-#include <netdb.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/ip.h>
 
 #include "torrent/exceptions.h"
 #include "socket_address.h"
+#include "socket_fd.h"
 
 namespace torrent {
 
 bool
-SocketAddress::set_hostname(const std::string& hostname) {
-  hostent* he = gethostbyname(hostname.c_str());
-
-  if (he == NULL)
-    return false;
-
-  std::memcpy(&m_sockaddr.sin_addr, he->h_addr_list[0], sizeof(in_addr));
-
-  return true;
-}
-
-void
-SocketAddress::set_port(int port) {
-  if (port < 0 || port >= (1 << 16))
-    throw internal_error("SocketAddress::set_port(...) received an invalid port");
-
-  m_sockaddr.sin_port = htons(port);
+SocketFd::open() {
+  return (m_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) != -1;
 }
 
 bool
-SocketAddress::set_address(const std::string& addr) {
-  if (!addr.empty()) {
-    return inet_aton(addr.c_str(), &m_sockaddr.sin_addr);
+SocketFd::connect(const SocketAddress& sa) {
+  if (!is_valid())
+    throw internal_error("SocketFd::connect(...) called on a closed fd");
 
-  } else {
-    m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    return true;
-  }
+  return !::connect(m_fd, &sa.get_addr(), sa.get_sizeof()) || errno == EINPROGRESS;
 }
 
 bool
-SocketAddress::create(const std::string& addr, int port) {
-  if (port < 0 || port >= (1 << 16))
-    return false;
+SocketFd::bind(const SocketAddress& sa) {
+  if (!is_valid())
+    throw internal_error("SocketFd::bind(...) called on a closed fd");
 
-  m_sockaddr.sin_port = htons(port);
-  
-  return set_address(addr);
-}  
+  return !::bind(m_fd, &sa.get_addr(), sa.get_sizeof());
+}
 
 }

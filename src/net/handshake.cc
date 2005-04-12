@@ -29,7 +29,7 @@
 namespace torrent {
 
 Handshake::~Handshake() {
-  if (m_fd >= 0)
+  if (m_fd.is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open");
 
   delete [] m_buf;
@@ -37,11 +37,11 @@ Handshake::~Handshake() {
 
 void
 Handshake::close() {
-  if (m_fd < 0)
+  if (!m_fd.is_valid())
     return;
 
-  close_socket(m_fd);
-  m_fd = -1;
+  m_fd.close();
+  m_fd.clear();
 }
 
 void

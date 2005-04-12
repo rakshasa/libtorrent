@@ -40,7 +40,7 @@ public:
   bool            open(uint16_t first, uint16_t last, const std::string& addr);
   void            close();
 
-  bool            is_open()                            { return m_fd >= 0; }
+  bool            is_open()                            { return m_fd.is_valid(); }
 
   uint16_t        get_port()                           { return m_port; }
 

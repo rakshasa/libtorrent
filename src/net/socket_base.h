@@ -25,7 +25,7 @@
 
 #include <list>
 
-struct sockaddr_in;
+#include "socket_fd.h"
 
 namespace torrent {
 
@@ -48,7 +48,7 @@ public:
   bool                in_except()         { return m_exceptItr != m_exceptSockets.end(); }
 
   static void         set_socket_nonblock(int fd);
-  static void         set_socket_min_cost(int fd);
+  static void         set_socket_throughput(int fd);
   static int          get_socket_error(int fd);
 
   static Sockets&     read_sockets()      { return m_readSockets; }
@@ -63,7 +63,7 @@ public:
   void                remove_write();
   void                remove_except();
 
-  int                 fd()                { return m_fd; }
+  int                 fd()                { return m_fd.get_fd(); }
 
   virtual void        read() = 0;
   virtual void        write() = 0;
@@ -71,15 +71,13 @@ public:
 
   static int          make_socket(SocketAddress& sa);
 
-  static bool         set_sin_addr(sockaddr_in& sa, const std::string& addr);
-
   static void         close_socket(int fd);
 
 protected:
   bool read_buf(void* buf, unsigned int length, unsigned int& pos);
   bool write_buf(const void* buf, unsigned int length, unsigned int& pos);
 
-  int                 m_fd;
+  SocketFd            m_fd;
 
 private:
   // Disable copying

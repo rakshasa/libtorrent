@@ -24,11 +24,13 @@
 #include "config.h"
 #endif
 
+#include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/ip.h>
 #include <sstream>
 #include <cerrno>
 #include <cstring>
@@ -92,12 +94,11 @@ void SocketBase::set_socket_nonblock(int fd) {
   fcntl(fd, F_SETFL, O_NONBLOCK);
 }
 
-void SocketBase::set_socket_min_cost(int fd) {
-  // TODO: What of priorities?
-//   char opt = ;
+void SocketBase::set_socket_throughput(int fd) {
+  int opt = IPTOS_THROUGHPUT;
 
-//   if (setsockopt(fd, SOL_SOCKET, SO_PRIORITY, &opt, sizeof(opt)))
-//     throw local_error("Error setting socket to IPTOS_MINCOST");
+  if (setsockopt(fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)))
+    throw local_error(std::string("setsockopt throughput failed ") + strerror(errno));
 }
 
 int SocketBase::get_socket_error(int fd) {
@@ -176,17 +177,6 @@ bool SocketBase::write_buf(const void* buf, unsigned int length, unsigned int& p
   }
 
   return length == (pos += r);
-}
-
-bool
-SocketBase::set_sin_addr(sockaddr_in& sa, const std::string& addr) {
-  if (!addr.empty()) {
-    return inet_aton(addr.c_str(), &sa.sin_addr);
-
-  } else {
-    sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    return true;
-  }
 }
 
 } // namespace torrent

@@ -51,22 +51,20 @@ PeerConnection::create(int fd, const PeerInfo& p, DownloadState* d, DownloadNet*
 }
 
 void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
-  if (m_fd >= 0)
+  if (m_fd.is_valid())
     throw internal_error("Tried to re-set PeerConnection");
-
-  set_socket_min_cost(m_fd);
 
   m_fd = fd;
   m_peer = p;
   m_download = d;
   m_net = net;
 
+  set_socket_throughput(m_fd.get_fd());
+
   m_requests.set_delegator(&m_net->get_delegator());
   m_requests.set_bitfield(&m_bitfield.get_bitfield());
 
-  if (d == NULL ||
-      !p.is_valid() ||
-      m_fd < 0)
+  if (d == NULL || !p.is_valid() || !m_fd.is_valid())
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
@@ -341,7 +339,7 @@ void PeerConnection::read() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection read fd(" << m_fd << ") state(" << m_down.state << ") \"" << e.what() << '"';
+    s << "Connection read fd(" << m_fd.get_fd() << ") state(" << m_down.state << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
@@ -465,7 +463,7 @@ void PeerConnection::write() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection write fd(" << m_fd << ") state(" << m_up.state << ") \"" << e.what() << '"';
+    s << "Connection write fd(" << m_fd.get_fd() << ") state(" << m_up.state << ") \"" << e.what() << '"';
 
     e.set(s.str());
 

@@ -23,12 +23,6 @@ type for chunk index.
 
 std::isalpha in escape string
 
-Consider not calling insert_write() when filling have list.
-
-storage_consolidator get_chunk takes to many arguments, use flags instead.
-
-File::get_chunk() needs to have error for improper permission access, and stuff.
-
 Store data on which side inititalized the connection.
 
 torrent::Http::call_cleanup to delete the factory created object?
@@ -41,14 +35,6 @@ TIMER RELATED
 
 Throttle update needs to be off when no throttle is on. Make sure it
 doesn't bork with using up allocated bytes.
-
-
-FUTURE
-
-Enable torrents with hugh number of files by doing dynamic
-open/closing of files as needed. This would require refactoring the
-file chunk code and propably need lazy unmapping and bulk mapping of
-file chunks to avoid inefficiency of repeated opening of files.
 
 
 DELEGATOR STUFF
@@ -121,7 +107,7 @@ disallow for open torrents?
 
 CURRENT:
 
-Make sockaddr_in a class etc.
+Make fd for socket a seperate class.
 
 Clean up SocketBase, make making fd's do errors cleanly, without
 throws if you don't want them.

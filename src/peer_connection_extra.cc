@@ -75,8 +75,8 @@ PeerConnection::~PeerConnection() {
   delete [] m_up.buf;
   delete [] m_down.buf;
 
-  if (m_fd >= 0)
-    close(m_fd);
+  if (m_fd.is_valid())
+    m_fd.close();
 }
 
 bool PeerConnection::writeChunk(int maxBytes) {

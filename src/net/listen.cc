@@ -30,6 +30,7 @@
 #include <netinet/in.h>
 
 #include "listen.h"
+#include "socket_address.h"
 #include "torrent/exceptions.h"
 
 namespace torrent {
@@ -45,23 +46,20 @@ bool Listen::open(uint16_t first, uint16_t last, const std::string& addr) {
   if (fdesc < 0)
     throw local_error("Could not allocate socket for listening");
 
-  sockaddr_in sa;
-  std::memset(&sa, 0, sizeof(sockaddr_in));
+  SocketAddress sa;
 
-  sa.sin_family = AF_INET;
-
-  if (!set_sin_addr(sa, addr))
+  if (!sa.set_address(addr))
     throw local_error("Could not parse the ip to bind the listening socket to");
 
   for (uint16_t i = first; i <= last; ++i) {
-    sa.sin_port = htons(i);
+    sa.set_port(i);
 
-    if (bind(fdesc, (sockaddr*)&sa, sizeof(sockaddr_in)) == 0) {
+    if (bind(fdesc, &sa.get_addr(), sa.get_sizeof()) == 0) {
       // Opened a port, rejoice.
       m_fd = fdesc;
       m_port = i;
 
-      set_socket_nonblock(m_fd);
+      set_socket_nonblock(m_fd.get_fd());
 
       insert_read();
       insert_except();
@@ -77,12 +75,12 @@ bool Listen::open(uint16_t first, uint16_t last, const std::string& addr) {
 }
 
 void Listen::close() {
-  if (m_fd < 0)
+  if (!m_fd.is_valid())
     return;
 
-  ::close(m_fd);
+  m_fd.close();
+  m_fd.clear();
   
-  m_fd = -1;
   m_port = 0;
 
   remove_read();
@@ -95,7 +93,7 @@ void Listen::read() {
 
   int fd;
 
-  while ((fd = accept(m_fd, (sockaddr*)&sa, &sl)) >= 0) {
+  while ((fd = accept(m_fd.get_fd(), (sockaddr*)&sa, &sl)) >= 0) {
     m_slotIncoming(fd, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
   }
 }

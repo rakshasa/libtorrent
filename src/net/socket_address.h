@@ -23,25 +23,34 @@
 #ifndef LIBTORRENT_NET_SOCKET_ADDRESS_H
 #define LIBTORRENT_NET_SOCKET_ADDRESS_H
 
+#include <string>
 #include <cstring>
 #include <sys/socket.h>
 
 namespace torrent {
+
+// SocketAddress is by default AF_INET.
 
 class SocketAddress {
 public:
   SocketAddress();
   explicit SocketAddress(const sockaddr_in& sa);
 
-  size_t              get_sizeof()                            { return sizeof(sockaddr_in); }
+  size_t              get_sizeof() const                      { return sizeof(sockaddr_in); }
 
-  sockaddr_in&        get_addr_in()                           { return m_sockaddr; }
   sockaddr&           get_addr()                              { return (sockaddr&)m_sockaddr; }
+  const sockaddr&     get_addr() const                        { return (sockaddr&)m_sockaddr; }
+  sockaddr_in&        get_addr_in()                           { return m_sockaddr; }
+  const sockaddr_in&  get_addr_in() const                     { return m_sockaddr; }
 
-  bool                set_host(const std::string& hostname);
+  bool                set_hostname(const std::string& hostname);
   void                set_port(int port);
 
-  bool                create(const std::string& hostname, int port);
+  // Set address, use an empty string for INADDR_ANY.
+  bool                set_address(const std::string& addr);
+
+  // Uses set_address, so only ip addresses and empty strings are allowed.
+  bool                create(const std::string& addr, int port);
 
 private:
   sockaddr_in         m_sockaddr;
