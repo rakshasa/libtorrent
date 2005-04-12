@@ -36,7 +36,7 @@ public:
     READ_HEADER2
   } State;
 
-  HandshakeIncoming(int fd, HandshakeManager* m, const PeerInfo& p);
+  HandshakeIncoming(SocketFd fd, HandshakeManager* m, const PeerInfo& p);
   
   virtual void        read();
   virtual void        write();

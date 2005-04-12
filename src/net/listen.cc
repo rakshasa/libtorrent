@@ -35,41 +35,36 @@
 
 namespace torrent {
 
-bool Listen::open(uint16_t first, uint16_t last, const std::string& addr) {
+bool
+Listen::open(uint16_t first, uint16_t last, const std::string& addr) {
   close();
 
   if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range");
-
-  int fdesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  if (fdesc < 0)
-    throw local_error("Could not allocate socket for listening");
 
   SocketAddress sa;
 
   if (!sa.set_address(addr))
     throw local_error("Could not parse the ip to bind the listening socket to");
 
+  if (!m_fd.open() || !m_fd.set_nonblock())
+    throw local_error("Could not allocate socket for listening");
+
   for (uint16_t i = first; i <= last; ++i) {
     sa.set_port(i);
 
-    if (bind(fdesc, &sa.get_addr(), sa.get_sizeof()) == 0) {
-      // Opened a port, rejoice.
-      m_fd = fdesc;
+    if (m_fd.bind(sa) && m_fd.listen(50)) {
       m_port = i;
-
-      set_socket_nonblock(m_fd.get_fd());
 
       insert_read();
       insert_except();
 
-      // Create cue.
-      return ::listen(fdesc, 50) == 0;
+      return true;
     }
   }
 
-  ::close(fdesc);
+  m_fd.close();
+  m_fd.clear();
 
   return false;
 }

@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -34,8 +35,48 @@
 namespace torrent {
 
 bool
+SocketFd::set_nonblock() {
+  if (!is_valid())
+    throw internal_error("SocketFd::set_nonblock() called on a closed fd");
+
+  return fcntl(m_fd, F_SETFL, O_NONBLOCK) == 0;
+}
+
+bool
+SocketFd::set_throughput() {
+  if (!is_valid())
+    throw internal_error("SocketFd::set_throughput() called on a closed fd");
+
+  int opt = IPTOS_THROUGHPUT;
+
+  return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
+}
+
+int
+SocketFd::get_error() const {
+  if (!is_valid())
+    throw internal_error("SocketFd::get_error() called on a closed fd");
+
+  int err = 0;
+  socklen_t length = sizeof(err);
+
+  if (getsockopt(m_fd, SOL_SOCKET, SO_ERROR, &err, &length) == -1)
+    throw internal_error("SocketFd::get_error() could not get error");
+
+  return err;
+}
+
+bool
 SocketFd::open() {
   return (m_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) != -1;
+}
+
+bool
+SocketFd::bind(const SocketAddress& sa) {
+  if (!is_valid())
+    throw internal_error("SocketFd::bind(...) called on a closed fd");
+
+  return !::bind(m_fd, &sa.get_addr(), sa.get_sizeof());
 }
 
 bool
@@ -47,11 +88,11 @@ SocketFd::connect(const SocketAddress& sa) {
 }
 
 bool
-SocketFd::bind(const SocketAddress& sa) {
+SocketFd::listen(int size) {
   if (!is_valid())
-    throw internal_error("SocketFd::bind(...) called on a closed fd");
+    throw internal_error("SocketFd::listen(...) called on a closed fd");
 
-  return !::bind(m_fd, &sa.get_addr(), sa.get_sizeof());
+  return !::listen(m_fd, size);
 }
 
 }

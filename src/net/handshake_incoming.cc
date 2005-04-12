@@ -29,13 +29,13 @@
 
 namespace torrent {
 
-HandshakeIncoming::HandshakeIncoming(int fd, HandshakeManager* m, const PeerInfo& p) :
+HandshakeIncoming::HandshakeIncoming(SocketFd fd, HandshakeManager* m, const PeerInfo& p) :
   Handshake(fd, m),
   m_state(READ_HEADER1) {
 
   m_peer = p;
 
-  set_socket_nonblock(fd);
+  m_fd.set_nonblock();
 
   insert_read();
   insert_except();

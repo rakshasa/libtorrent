@@ -35,7 +35,7 @@ class SocketBase {
 public:
   typedef std::list<SocketBase*> Sockets;
 
-  SocketBase(int fd = -1) :
+  SocketBase(SocketFd fd = SocketFd()) :
     m_fd(fd),
     m_readItr(m_readSockets.end()),
     m_writeItr(m_writeSockets.end()),
@@ -46,10 +46,6 @@ public:
   bool                in_read()           { return m_readItr != m_readSockets.end(); }
   bool                in_write()          { return m_writeItr != m_writeSockets.end(); }
   bool                in_except()         { return m_exceptItr != m_exceptSockets.end(); }
-
-  static void         set_socket_nonblock(int fd);
-  static void         set_socket_throughput(int fd);
-  static int          get_socket_error(int fd);
 
   static Sockets&     read_sockets()      { return m_readSockets; }
   static Sockets&     write_sockets()     { return m_writeSockets; }
@@ -69,9 +65,7 @@ public:
   virtual void        write() = 0;
   virtual void        except() = 0;
 
-  static int          make_socket(SocketAddress& sa);
-
-  static void         close_socket(int fd);
+  static SocketFd     make_socket(SocketAddress& sa);
 
 protected:
   bool read_buf(void* buf, unsigned int length, unsigned int& pos);

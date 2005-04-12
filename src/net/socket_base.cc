@@ -89,47 +89,19 @@ void SocketBase::remove_except() {
   }
 }
 
-void SocketBase::set_socket_nonblock(int fd) {
-  // Set non-blocking.
-  fcntl(fd, F_SETFL, O_NONBLOCK);
-}
-
-void SocketBase::set_socket_throughput(int fd) {
-  int opt = IPTOS_THROUGHPUT;
-
-  if (setsockopt(fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)))
-    throw local_error(std::string("setsockopt throughput failed ") + strerror(errno));
-}
-
-int SocketBase::get_socket_error(int fd) {
-  int err = 0;
-  socklen_t length = sizeof(err);
-  getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &length);
-
-  return err;
-}
-
-int
+SocketFd
 SocketBase::make_socket(SocketAddress& sa) {
-  int f = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  SocketFd fd;
 
-  if (f < 0)
+  if (!fd.open() || !fd.set_nonblock())
     throw local_error("Could not open socket");
 
-  set_socket_nonblock(f);
-
-  if (connect(f, &sa.get_addr(), sa.get_sizeof()) != 0 &&
-      errno != EINPROGRESS) {
-    close(f);
+  if (!fd.connect(sa)) {
+    fd.close();
     throw network_error("Could not connect to remote host");
   }
 
-  return f;
-}
-
-void
-SocketBase::close_socket(int fd) {
-  ::close(fd);
+  return fd;
 }
 
 bool SocketBase::read_buf(void* buf, unsigned int length, unsigned int& pos) {

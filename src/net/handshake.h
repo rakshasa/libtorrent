@@ -34,7 +34,7 @@ class HandshakeManager;
 
 class Handshake : public SocketBase {
 public:
-  Handshake(int fd, HandshakeManager* m) :
+  Handshake(SocketFd fd, HandshakeManager* m) :
     SocketBase(fd),
     m_manager(m),
     m_buf(new char[256 + 48]),

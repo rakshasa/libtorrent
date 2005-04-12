@@ -59,7 +59,7 @@ void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNe
   m_download = d;
   m_net = net;
 
-  set_socket_throughput(m_fd.get_fd());
+  m_fd.set_throughput();
 
   m_requests.set_delegator(&m_net->get_delegator());
   m_requests.set_bitfield(&m_bitfield.get_bitfield());

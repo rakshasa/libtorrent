@@ -104,7 +104,7 @@ receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
       !d->get_main().is_active() ||
       !d->get_main().is_checked() ||
       !d->get_main().get_net().add_connection(fd, peer))
-    SocketBase::close_socket(fd);
+    SocketFd(fd).close();
 }
 
 void

@@ -42,9 +42,15 @@ public:
   int                 get_fd() const                          { return m_fd; }
   void                set_fd(int fd)                          { m_fd = fd; }
 
+  bool                set_nonblock();
+  bool                set_throughput();
+
+  int                 get_error() const;
+
   bool                open();
-  bool                connect(const SocketAddress& sa);
   bool                bind(const SocketAddress& sa);
+  bool                connect(const SocketAddress& sa);
+  bool                listen(int size);
 
   void                clear()                                 { m_fd = -1; }
   void                close()                                 { ::close(m_fd); }

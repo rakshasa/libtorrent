@@ -30,7 +30,7 @@
 
 namespace torrent {
 
-HandshakeOutgoing::HandshakeOutgoing(int fd,
+HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
 				     HandshakeManager* m,
 				     const PeerInfo& p,
 				     const std::string& infoHash,
@@ -92,7 +92,7 @@ HandshakeOutgoing::write() {
 
   switch (m_state) {
   case CONNECTING:
-    error = get_socket_error(m_fd.get_fd());
+    error = m_fd.get_error();
  
     if (error)
       throw connection_error("Could not connect to client");

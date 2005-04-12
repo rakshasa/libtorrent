@@ -37,7 +37,7 @@ public:
     READ_HEADER2
   } State;
 
-  HandshakeOutgoing(int fd,
+  HandshakeOutgoing(SocketFd fd,
 		    HandshakeManager* m,
 		    const PeerInfo& p,
 		    const std::string& infoHash,
