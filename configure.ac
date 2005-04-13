@@ -37,9 +37,6 @@ AC_ARG_ENABLE(debug,
     ]
 )
 
-AC_PROG_CXX
-AC_SYS_LARGEFILE
-
 AC_ARG_ENABLE(werror,
     [  --enable-werror         enable the -Werror flag [default=no]],
     [
@@ -49,11 +46,20 @@ AC_ARG_ENABLE(werror,
     ]
 )
 
+AC_PROG_CXX
+AC_SYS_LARGEFILE
+
+AC_C_BIGENDIAN(
+    AC_DEFINE(IS_BIG_ENDIAN, 1, Big endian),
+    AC_DEFINE(IS_LITTLE_ENDIAN, 1, Little endian),
+    AC_MSG_ERROR([Could not determine endianness])
+)
+
 PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
 		  LIBS="$LIBS $STUFF_LIBS")
 
-TORRENT_CHECK_OPENSSL()
+dnl TORRENT_CHECK_OPENSSL()
 TORRENT_MINCORE_SIGNEDNESS()
 TORRENT_OTFD()
 

@@ -78,6 +78,9 @@ Use iterators in StorageChunk::get_position instead.
 
 Look into epoll.
 
+Willneed hash checking queue does not work optimally on large files
+with very small chunks.
+
 
 DUMPING TORRENT FILES
 
@@ -105,7 +108,7 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
-CURRENT:
+NEXT:
 
 Make fd for socket a seperate class.
 

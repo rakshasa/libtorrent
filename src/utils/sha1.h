@@ -24,27 +24,28 @@
 #define LIBTORRENT_HASH_COMPUTE_H
 
 #include <string>
-#include <openssl/sha.h>
+#include "sha_fast.h"
 
 namespace torrent {
 
 class Sha1 {
 public:
-  void        init()                      { SHA1_Init(&m_ctx); }
+  void        init()                      { SHA1_Begin(&m_ctx); }
 
   void        update(const void* data,
-		     unsigned int length) { SHA1_Update(&m_ctx, data, length); }
+		     unsigned int length) { SHA1_Update(&m_ctx, (unsigned char*)data, length); }
 
   std::string final() {
+    unsigned int len;
     unsigned char buf[20];
 
-    SHA1_Final(buf, &m_ctx);
-
+    SHA1_End(&m_ctx, buf, &len, 20);
+    
     return std::string((char*)buf, 20);
   }
 
 private:
-  SHA_CTX m_ctx;
+  SHA1Context m_ctx;
 };
 
 }

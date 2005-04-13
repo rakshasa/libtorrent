@@ -65,7 +65,7 @@ private:
 
 inline uint32_t
 HashChunk::remaining_part(StorageChunk::iterator itr, uint32_t pos) {
-  return itr->size() - pos + itr->get_position();
+  return itr->size() - (pos - itr->get_position());
 }
 
 }

@@ -42,7 +42,7 @@ int Settings::rateQuick = 10 * 1000000;
 int Settings::rateSample = 1000000;
 
 int Settings::hashWait = 100000;
-int Settings::hashWillneed = 5;
+int Settings::hashWillneed = 10;
 int Settings::hashTries = 5;
 
 DownloadSettings* DownloadSettings::m_global = new DownloadSettings();

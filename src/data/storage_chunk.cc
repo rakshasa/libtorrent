@@ -80,6 +80,9 @@ StorageChunk::incore_length(uint32_t pos) {
   uint32_t lengthIncore = 0;
   iterator itr = at_position(pos);
 
+  if (itr == end())
+    throw internal_error("StorageChunk::incore_length(...) at end()");
+
   do {
     uint32_t length = itr->incore_length(pos);
 

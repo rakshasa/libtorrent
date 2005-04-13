@@ -12,6 +12,8 @@ libsub_utils_la_SOURCES = \
 	string_manip.cc \
 	string_manip.h \
 	sha1.h \
+	sha_fast.cc \
+	sha_fast.h \
 	task.h \
 	task_schedule.cc \
 	task_schedule.h \
