@@ -25,6 +25,7 @@
 
 #include <string>
 #include <cstring>
+#include <inttypes.h>
 #include <sys/socket.h>
 
 namespace torrent {
@@ -44,9 +45,12 @@ public:
   const sockaddr_in&  get_addr_in() const                     { return m_sockaddr; }
 
   bool                set_hostname(const std::string& hostname);
+
+  uint16_t            get_port() const;
   void                set_port(int port);
 
-  // Set address, use an empty string for INADDR_ANY.
+  // Use an empty string for setting INADDR_ANY.
+  std::string         get_address() const;
   bool                set_address(const std::string& addr);
 
   // Uses set_address, so only ip addresses and empty strings are allowed.

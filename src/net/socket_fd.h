@@ -48,9 +48,12 @@ public:
   int                 get_error() const;
 
   bool                open();
+
   bool                bind(const SocketAddress& sa);
   bool                connect(const SocketAddress& sa);
+
   bool                listen(int size);
+  SocketFd            accept(SocketAddress& sa);
 
   void                clear()                                 { m_fd = -1; }
   void                close()                                 { ::close(m_fd); }

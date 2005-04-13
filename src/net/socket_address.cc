@@ -44,12 +44,22 @@ SocketAddress::set_hostname(const std::string& hostname) {
   return true;
 }
 
+uint16_t
+SocketAddress::get_port() const {
+  return ntohs(m_sockaddr.sin_port);
+}
+
 void
 SocketAddress::set_port(int port) {
   if (port < 0 || port >= (1 << 16))
     throw internal_error("SocketAddress::set_port(...) received an invalid port");
 
   m_sockaddr.sin_port = htons(port);
+}
+
+std::string
+SocketAddress::get_address() const {
+  return inet_ntoa(m_sockaddr.sin_addr);
 }
 
 bool

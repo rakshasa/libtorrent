@@ -95,4 +95,14 @@ SocketFd::listen(int size) {
   return !::listen(m_fd, size);
 }
 
+SocketFd
+SocketFd::accept(SocketAddress& sa) {
+  if (!is_valid())
+    throw internal_error("SocketFd::accept(...) called on a closed fd");
+
+  socklen_t len = sa.get_sizeof();
+
+  return ::accept(m_fd, &sa.get_addr(), &len);
+}
+
 }

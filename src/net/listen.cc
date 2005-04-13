@@ -83,14 +83,11 @@ void Listen::close() {
 }
   
 void Listen::read() {
-  sockaddr_in sa;
-  socklen_t sl = sizeof(sockaddr_in);
+  SocketAddress sa;
+  SocketFd fd;
 
-  int fd;
-
-  while ((fd = accept(m_fd.get_fd(), (sockaddr*)&sa, &sl)) >= 0) {
-    m_slotIncoming(fd, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
-  }
+  while ((fd = m_fd.accept(sa)).is_valid())
+    m_slotIncoming(fd.get_fd(), sa.get_address(), sa.get_port());
 }
 
 void Listen::write() {
