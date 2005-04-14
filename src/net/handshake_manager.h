@@ -28,10 +28,13 @@
 #include <inttypes.h>
 #include <sigc++/slot.h>
 
+#include "socket_fd.h"
+
 namespace torrent {
 
 class PeerInfo;
 class Handshake;
+class SocketAddress;
 
 class HandshakeManager {
 public:
@@ -58,8 +61,8 @@ public:
   // File descriptor
   // Info hash
   // Peer info
-  typedef sigc::slot3<void, int, const std::string&, const PeerInfo&> SlotConnected;
-  typedef sigc::slot1<std::string, const std::string&>                SlotDownloadId;
+  typedef sigc::slot3<void, SocketFd, const std::string&, const PeerInfo&> SlotConnected;
+  typedef sigc::slot1<std::string, const std::string&>                     SlotDownloadId;
 
   void                slot_connected(SlotConnected s)          { m_slotConnected = s; }
   void                slot_download_id(SlotDownloadId s)       { m_slotDownloadId = s; }
@@ -73,6 +76,8 @@ private:
 
   void                remove(Handshake* h);
 
+  static SocketFd     make_socket(SocketAddress& sa);
+
   HandshakeList       m_handshakes;
   uint32_t            m_size;
 
@@ -83,5 +88,3 @@ private:
 }
 
 #endif
-
-  

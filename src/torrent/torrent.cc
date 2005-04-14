@@ -59,16 +59,16 @@ struct add_socket {
   add_socket(fd_set* s) : fd(0), fds(s) {}
 
   void operator () (SocketBase* s) {
-    if (s->fd() < 0)
+    if (s->get_fd().get_fd() < 0)
       throw internal_error("Tried to poll a negative file descriptor");
 
-    if (fd < s->fd())
-      fd = s->fd();
+    if (fd < s->get_fd().get_fd())
+      fd = s->get_fd().get_fd();
 
-    FD_SET(s->fd(), fds);
+    FD_SET(s->get_fd().get_fd(), fds);
   }
 
-  int fd;
+  int     fd;
   fd_set* fds;
 };
 
@@ -79,7 +79,7 @@ struct check_socket_isset {
     if (socket == NULL)
       throw internal_error("Polled socket is NULL");
 
-    return FD_ISSET(socket->fd(), fds);
+    return FD_ISSET(socket->get_fd().get_fd(), fds);
   }
 
   fd_set* fds;
@@ -97,14 +97,14 @@ download_id(const std::string& hash) {
 }
 
 void
-receive_connection(int fd, const std::string& hash, const PeerInfo& peer) {
+receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
   DownloadWrapper* d = downloadManager->find(hash);
   
   if (!d ||
       !d->get_main().is_active() ||
       !d->get_main().is_checked() ||
       !d->get_main().get_net().add_connection(fd, peer))
-    SocketFd(fd).close();
+    fd.close();
 }
 
 void

@@ -47,7 +47,7 @@ public:
   const std::string&  get_id()   { return m_id; }
 
   void                set_manager(HandshakeManager* m) { m_manager = m; }
-  void                set_fd(int fd)                   { m_fd = fd; }
+  void                set_fd(SocketFd fd)              { m_fd = fd; }
 
   void                close();
 

@@ -83,7 +83,7 @@ HashTorrent::queue() {
     else if (m_position < itr->first)
       m_position = itr->first;
 
-    Chunk c = m_storage->get_chunk(m_position++);
+    Chunk c = m_storage->get_chunk(m_position++, MemoryChunk::prot_read);
 
     if (!c.is_valid() || !c->is_valid())
       continue;

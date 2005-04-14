@@ -59,17 +59,15 @@ public:
   void                remove_write();
   void                remove_except();
 
-  int                 fd()                { return m_fd.get_fd(); }
+  SocketFd            get_fd()            { return m_fd; }
 
   virtual void        read() = 0;
   virtual void        write() = 0;
   virtual void        except() = 0;
 
-  static SocketFd     make_socket(SocketAddress& sa);
-
 protected:
-  bool read_buf(void* buf, unsigned int length, unsigned int& pos);
-  bool write_buf(const void* buf, unsigned int length, unsigned int& pos);
+  bool                read_buf(void* buf, unsigned int length, unsigned int& pos);
+  bool                write_buf(const void* buf, unsigned int length, unsigned int& pos);
 
   SocketFd            m_fd;
 

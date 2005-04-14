@@ -117,7 +117,7 @@ StorageConsolidator::get_chunk_part(iterator itr, off_t offset, uint32_t length,
   if (length > m_chunksize)
     throw internal_error("StorageConsolidator::get_chunk_part(...) caught an excessively large piece");
 
-  if (!itr->get_meta()->prepare())
+  if (!itr->get_meta()->prepare(prot))
     return MemoryChunk();
 
   return itr->get_meta()->get_file().get_chunk(offset, length, prot, MemoryChunk::map_shared);

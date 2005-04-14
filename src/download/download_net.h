@@ -27,9 +27,10 @@
 #include <inttypes.h>
 
 #include "content/delegator.h"
+#include "net/socket_fd.h"
 #include "torrent/peer.h"
-
 #include "utils/rate.h"
+
 #include "peer_info.h"
 
 namespace torrent {
@@ -67,7 +68,7 @@ public:
   ConnectionList&     get_connections()                        { return m_connections; }
   PeerContainer&      get_available_peers()                    { return m_availablePeers; }
 
-  bool                add_connection(int fd, const PeerInfo& p);
+  bool                add_connection(SocketFd fd, const PeerInfo& p);
   void                remove_connection(PeerConnection* p);
 
   void                add_available_peers(const PeerList& p);
@@ -80,13 +81,13 @@ public:
 
   // Signals and slots.
 
-  typedef sigc::signal1<void, Peer>                            SignalPeer;
-  typedef sigc::signal1<void, const std::string&>              SignalString;
+  typedef sigc::signal1<void, Peer>                               SignalPeer;
+  typedef sigc::signal1<void, const std::string&>                 SignalString;
 
-  typedef sigc::slot2<PeerConnection*, int, const PeerInfo&>   SlotCreateConnection;
-  typedef sigc::slot1<void, const PeerInfo&>                   SlotStartHandshake;
-  typedef sigc::slot1<bool, const PeerInfo&>                   SlotHasHandshake;
-  typedef sigc::slot0<uint32_t>                                SlotCountHandshakes;
+  typedef sigc::slot2<PeerConnection*, SocketFd, const PeerInfo&> SlotCreateConnection;
+  typedef sigc::slot1<void, const PeerInfo&>                      SlotStartHandshake;
+  typedef sigc::slot1<bool, const PeerInfo&>                      SlotHasHandshake;
+  typedef sigc::slot0<uint32_t>                                   SlotCountHandshakes;
 
   SignalPeer&   signal_peer_connected()                        { return m_signalPeerConnected; }
   SignalPeer&   signal_peer_disconnected()                     { return m_signalPeerDisconnected; }

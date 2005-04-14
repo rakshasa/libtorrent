@@ -2,7 +2,8 @@ LibTorrent
 
 LICENSE
 
- GNU GPL, see COPYING.
+ GNU GPL, see COPYING. "usr/utils/sha_fast.{cc,h}" is originally from
+the Mozilla NSS and is under a triple license; MPL, LGPL and GPL.
 
 CONTACT
 
@@ -12,7 +13,6 @@ to the mailinglist.
 LIBRARY DEPENDENCIES
 
   libsigc++ 2.0 (deb: libsigc++-2.0-dev)
-  openssl       (deb: libssl-dev)
   g++ >= 3.3
 
 CLIENT DEPENDENCIES

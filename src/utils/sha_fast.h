@@ -40,12 +40,6 @@
 
 namespace torrent {
 
-typedef enum _SECStatus {
-    SECWouldBlock = -2,
-    SECFailure = -1,
-    SECSuccess = 0
-} SECStatus;
-
 struct SHA1ContextStr {
   union {
     uint32_t w[80];		/* input buffer, plus 64 words */
@@ -61,30 +55,6 @@ typedef SHA1ContextStr SHA1Context;
 /*
 ** SHA-1 secure hash function
 */
-
-/*
-** Hash a null terminated string "src" into "dest" using SHA-1
-*/
-extern SECStatus SHA1_Hash(unsigned char *dest, const char *src);
-
-/*
-** Hash a non-null terminated string "src" into "dest" using SHA-1
-*/
-extern SECStatus SHA1_HashBuf(unsigned char *dest, const unsigned char *src,
-			      uint32_t src_length);
-
-/*
-** Create a new SHA-1 context
-*/
-extern SHA1Context *SHA1_NewContext(void);
-
-
-/*
-** Destroy a SHA-1 secure hash context.
-**	"cx" the context
-**	"freeit" if PR_TRUE then free the object as well as its sub-objects
-*/
-extern void SHA1_DestroyContext(SHA1Context *cx, bool freeit);
 
 /*
 ** Reset a SHA-1 context, preparing it for a fresh round of hashing
@@ -110,34 +80,6 @@ extern void SHA1_Update(SHA1Context *cx, const unsigned char *input,
 */
 extern void SHA1_End(SHA1Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
-
-/*
-** trace the intermediate state info of the SHA1 hash.
-*/
-extern void SHA1_TraceState(SHA1Context *cx);
-
-/*
- * Return the the size of a buffer needed to flatten the SHA-1 Context into
- *    "cx" the context
- *  returns size;
- */
-extern unsigned int SHA1_FlattenSize(SHA1Context *cx);
-
-/*
- * Flatten the SHA-1 Context into a buffer:
- *    "cx" the context
- *    "space" the buffer to flatten to
- *  returns status;
- */
-extern SECStatus SHA1_Flatten(SHA1Context *cx,unsigned char *space);
-
-/*
- * Resurrect a flattened context into a SHA-1 Context
- *    "space" the buffer of the flattend buffer
- *    "arg" ptr to void used by cryptographic resurrect
- *  returns resurected context;
- */
-extern SHA1Context * SHA1_Resurrect(unsigned char *space, void *arg);
 
 }
 

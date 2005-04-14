@@ -43,14 +43,14 @@ using namespace algo;
 namespace torrent {
 
 PeerConnection*
-PeerConnection::create(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
+PeerConnection::create(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
   PeerConnection* pc = new PeerConnection;
   pc->set(fd, p, d, net);
 
   return pc;
 }
 
-void PeerConnection::set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
+void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
   if (m_fd.is_valid())
     throw internal_error("Tried to re-set PeerConnection");
 
@@ -390,7 +390,7 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index());
+      m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read);
       m_up.state = WRITE_PIECE;
 
       if (!m_up.data.is_valid())

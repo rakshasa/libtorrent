@@ -57,13 +57,6 @@ MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags)
     throw internal_error("MemoryChunk::MemoryChunk(...) is not aligned to a page");
 }
 
-bool
-MemoryChunk::has_permissions(int prot) const {
-  return !( (prot & PROT_READ && !is_readable()) ||
-	    (prot & PROT_WRITE && !is_writable()) ||
-	    (prot & PROT_EXEC && !is_exec()));
-}
-
 void
 MemoryChunk::unmap() {
   if (!is_valid())

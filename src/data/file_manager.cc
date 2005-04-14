@@ -69,9 +69,9 @@ FileManager::insert(FileMeta* f) {
 }
 
 bool
-FileManager::prepare_file(FileMeta* meta) {
+FileManager::prepare_file(FileMeta* meta, int prot) {
   if (meta->is_open())
-    throw internal_error("FileManager::open_file(...) called on an open iterator");
+    close_file(meta);
 
   if (m_openSize > m_maxSize)
     throw internal_error("FileManager::open_file(...) m_openSize > m_maxSize");
@@ -80,9 +80,10 @@ FileManager::prepare_file(FileMeta* meta) {
   if (m_openSize == m_maxSize)
     close_least_active();
 
-  if (!meta->get_file().open(meta->get_path(), meta->get_flags()))
+  if (!meta->get_file().open(meta->get_path(), prot))
     return false;
 
+  meta->set_prot2(prot);
   ++m_openSize;
 
   return true;

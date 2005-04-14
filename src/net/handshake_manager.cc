@@ -48,18 +48,15 @@ void
 HandshakeManager::add_outgoing(const PeerInfo& p,
 			       const std::string& infoHash,
 			       const std::string& ourId) {
+  SocketFd fd;
   SocketAddress sa;
 
-  if (!sa.create(p.get_dns(), p.get_port()))
+  if (!sa.create(p.get_dns(), p.get_port()) ||
+      !(fd = make_socket(sa)).is_valid())
     return;
 
-  try {
-    m_handshakes.push_back(new HandshakeOutgoing(SocketBase::make_socket(sa), this, p, infoHash, ourId));
-    m_size++;
-
-  } catch (network_error e) {
-  } catch (local_error e) {
-  }
+  m_handshakes.push_back(new HandshakeOutgoing(fd, this, p, infoHash, ourId));
+  m_size++;
 }
 
 void
@@ -86,7 +83,7 @@ void
 HandshakeManager::receive_connected(Handshake* h) {
   remove(h);
 
-  m_slotConnected(h->fd(), h->get_hash(), h->get_peer());
+  m_slotConnected(h->get_fd(), h->get_hash(), h->get_peer());
 
   h->set_fd(-1);
   delete h;
@@ -109,6 +106,18 @@ HandshakeManager::remove(Handshake* h) {
 
   m_handshakes.erase(itr);
   m_size--;
+}
+
+SocketFd
+HandshakeManager::make_socket(SocketAddress& sa) {
+  SocketFd fd;
+
+  if (fd.open() && (!fd.set_nonblock()) || !fd.connect(sa)) {
+    fd.close();
+    fd.clear();
+  }
+
+  return fd;
 }
 
 }

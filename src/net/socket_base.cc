@@ -25,12 +25,6 @@
 #endif
 
 #include <errno.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
 #include <sstream>
 #include <cerrno>
 #include <cstring>
@@ -89,21 +83,6 @@ void SocketBase::remove_except() {
   }
 }
 
-SocketFd
-SocketBase::make_socket(SocketAddress& sa) {
-  SocketFd fd;
-
-  if (!fd.open() || !fd.set_nonblock())
-    throw local_error("Could not open socket");
-
-  if (!fd.connect(sa)) {
-    fd.close();
-    throw network_error("Could not connect to remote host");
-  }
-
-  return fd;
-}
-
 bool SocketBase::read_buf(void* buf, unsigned int length, unsigned int& pos) {
   if (length <= pos) {
     std::stringstream s;
@@ -113,7 +92,7 @@ bool SocketBase::read_buf(void* buf, unsigned int length, unsigned int& pos) {
   }
 
   errno = 0;
-  int r = ::read(fd(), buf, length - pos);
+  int r = ::read(m_fd.get_fd(), buf, length - pos);
 
   if (r == 0) {
     throw close_connection();
@@ -136,7 +115,7 @@ bool SocketBase::write_buf(const void* buf, unsigned int length, unsigned int& p
   }
 
   errno = 0;
-  int r = ::write(fd(), buf, length - pos);
+  int r = ::write(m_fd.get_fd(), buf, length - pos);
 
   if (r == 0) {
     throw close_connection();

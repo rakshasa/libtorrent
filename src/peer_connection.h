@@ -109,13 +109,13 @@ public:
   virtual void write();
   virtual void except();
 
-  static PeerConnection* create(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
+  static PeerConnection* create(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
 
 private:
   PeerConnection(const PeerConnection&);
   PeerConnection& operator = (const PeerConnection&);
 
-  void set(int fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
+  void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   
   bool writeChunk(int maxBytes);
   bool readChunk();

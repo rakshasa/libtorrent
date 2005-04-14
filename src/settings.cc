@@ -50,7 +50,7 @@ DownloadSettings* DownloadSettings::m_global = new DownloadSettings();
 DownloadSettings::DownloadSettings() :
   minPeers(40),
   maxPeers(100),
-  maxAvailable(500),
+  maxAvailable(1000),          // Max number of unconnected peers to keep that it has received from the tracker.
   maxUploads(7),
   chokeCycle(30 * 1000000),
   chokeGracePeriod(55 * 1000000),

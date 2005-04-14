@@ -65,7 +65,7 @@ private:
   void operator = (const FileManager&);
 
   // Bool or throw? iterator or reference/pointer?
-  bool                prepare_file(FileMeta* meta);
+  bool                prepare_file(FileMeta* meta, int prot);
   void                remove_file(FileMeta* meta);
   void                close_file(FileMeta* meta);
 

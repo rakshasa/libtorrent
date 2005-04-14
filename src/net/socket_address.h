@@ -26,6 +26,7 @@
 #include <string>
 #include <cstring>
 #include <inttypes.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 
 namespace torrent {

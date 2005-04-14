@@ -161,7 +161,7 @@ PeerConnection::load_chunk(int index, Sub& sub) {
   if (index < 0 || index >= (signed)m_download->get_chunk_total())
     throw internal_error("Incoming pieces list contains a bad index value");
   
-  sub.data = m_download->get_content().get_storage().get_chunk(index);
+  sub.data = m_download->get_content().get_storage().get_chunk(index, MemoryChunk::prot_read | MemoryChunk::prot_write);
   
   if (!sub.data.is_valid())
     throw storage_error("Could not create a valid chunk");

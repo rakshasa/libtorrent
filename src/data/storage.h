@@ -53,7 +53,10 @@ public:
   uint32_t             get_chunk_total()                       { return m_consolidator.get_chunk_total(); }
   uint32_t             get_chunk_size()                        { return m_consolidator.get_chunk_size(); }
 
-  Chunk                get_chunk(uint32_t b, int prot = MemoryChunk::prot_read | MemoryChunk::prot_write);
+  // Make sure the protection includes read even if you only want
+  // write, this ensure that we don't get a reallocation cycle if
+  // others want just read.
+  Chunk                get_chunk(uint32_t b, int prot);
 
   StorageConsolidator& get_consolidator()                      { return m_consolidator; }
 

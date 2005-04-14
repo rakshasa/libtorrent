@@ -108,12 +108,18 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
-NEXT:
+CURRENT:
 
-Make fd for socket a seperate class.
+Properly handle invalid chunks in hash_torrent due to unable to open
+files.
+
+
+NEXT:
 
 Clean up SocketBase, make making fd's do errors cleanly, without
 throws if you don't want them.
+
+Seperate out the list of sockets being pooled from SocketBase.
 
 
 NEXT:

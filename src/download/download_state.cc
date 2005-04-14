@@ -45,7 +45,7 @@ DownloadState::update_endgame() {
 
 void
 DownloadState::chunk_done(unsigned int index) {
-  Storage::Chunk c = m_content.get_storage().get_chunk(index);
+  Storage::Chunk c = m_content.get_storage().get_chunk(index, MemoryChunk::prot_read);
 
   if (!c.is_valid())
     throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrive from storage");

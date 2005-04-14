@@ -37,7 +37,7 @@ StorageFile::clear() {
 
 bool
 StorageFile::sync() const {
-  if (!m_meta->prepare())
+  if (!m_meta->prepare(MemoryChunk::prot_read))
     return false;
 
   off_t pos = 0;
@@ -61,10 +61,15 @@ StorageFile::sync() const {
 
 bool
 StorageFile::resize_file() const {
-  if (!m_meta->prepare())
+  if (!m_meta->prepare(MemoryChunk::prot_read))
     return false;
 
-  return m_size == m_meta->get_file().get_size() || m_meta->get_file().set_size(m_size);
+  if (m_size == m_meta->get_file().get_size())
+    return true;
+  else
+    return
+      m_meta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) &&
+      m_meta->get_file().set_size(m_size);
 }
 
 }

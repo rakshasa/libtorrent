@@ -85,7 +85,7 @@ DownloadNet::send_have_chunk(uint32_t index) {
 }
 
 bool
-DownloadNet::add_connection(int fd, const PeerInfo& p) {
+DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
   if (std::find_if(m_connections.begin(), m_connections.end(),
 		   eq(ref(p), call_member(&PeerConnection::peer))) != m_connections.end()) {
     return false;

@@ -115,7 +115,7 @@ Content::is_correct_size() {
   
   while (fItr != m_files.end()) {
     // TODO: Throw or return false?
-    if (!sItr->get_meta()->prepare())
+    if (!sItr->get_meta()->prepare(MemoryChunk::prot_read))
       return false;
 
     if (fItr->get_size() != FileStat(sItr->get_meta()->get_file().fd()).get_size())
@@ -229,12 +229,15 @@ Content::open_file(FileMeta* f, Path& p, Path& lastPath) {
   Path::mkdir(m_rootDir, p.list().begin(), --p.list().end(),
 	      lastPath.list().begin(), lastPath.list().end());
 
-  if (!f->get_file().open(m_rootDir + p.path(), File::o_rdwr | File::o_create))
+  if (f->get_file().open(m_rootDir + p.path(), File::o_rdwr | File::o_create))
+    f->set_prot2(MemoryChunk::prot_read | MemoryChunk::prot_write);
+
+  else if (f->get_file().open(m_rootDir + p.path(), File::o_rdonly | File::o_create))
+    f->set_prot2(MemoryChunk::prot_read);
+
+  else
     throw storage_error("Could not open file \"" + m_rootDir + p.path() + "\"");
 
-  // Do not use File::o_create here, since we want an error if we
-  // can't reopen the file during the torrent download/upload.
-  f->set_flags(File::o_rdwr);
   f->set_path(m_rootDir + p.path());
 }
 

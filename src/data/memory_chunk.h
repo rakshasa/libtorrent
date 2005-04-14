@@ -61,7 +61,7 @@ class MemoryChunk {
 
   inline bool         is_valid_range(uint32_t offset, uint32_t length) const;
 
-  bool                has_permissions(int prot) const;
+  bool                has_permissions(int prot) const                      { return !(prot & ~m_prot); }
 
   char*               ptr()                                                { return m_ptr; }
   char*               begin()                                              { return m_begin; }

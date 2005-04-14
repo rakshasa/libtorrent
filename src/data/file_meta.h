@@ -32,17 +32,19 @@ namespace torrent {
 
 class FileMeta {
 public:
-  typedef sigc::slot1<bool, FileMeta*> SlotPrepare;
-  typedef sigc::slot1<void, FileMeta*> SlotDisconnect;
+  typedef sigc::slot2<bool, FileMeta*, int> SlotPrepare;
+  typedef sigc::slot1<void, FileMeta*>      SlotDisconnect;
 
-  FileMeta() : m_flags(0) {}
-  FileMeta(const std::string& path, int flags) : m_path(path), m_flags(flags) {}
+  FileMeta() : m_prot(0) {}
+  FileMeta(const std::string& path) : m_path(path), m_prot(0) {}
   ~FileMeta() { disconnect(); }
 
   bool                is_valid() const                           { return !m_slotPrepare.empty(); }
   bool                is_open() const                            { return m_file.is_open(); }
 
-  inline bool         prepare();
+  bool                has_permissions(int prot) const            { return !(prot & ~m_prot); }
+
+  inline bool         prepare(int prot);
   inline void         disconnect();
 
   File&               get_file()                                 { return m_file; }
@@ -51,8 +53,8 @@ public:
   const std::string&  get_path() const                           { return m_path; }
   void                set_path(const std::string& path)          { m_path = path; }
 
-  int                 get_flags() const                          { return m_flags; }
-  void                set_flags(int flags)                       { m_flags = flags; }
+  int                 get_prot() const                           { return m_prot; }
+  void                set_prot2(int prot)                         { m_prot = prot; }
 
   Timer               get_last_touched() const                   { return m_lastTouched; }
   void                set_last_touched(Timer t = Timer::cache()) { m_lastTouched = t; }
@@ -63,7 +65,7 @@ public:
 private:
   File                m_file;
   std::string         m_path;
-  int                 m_flags;
+  int                 m_prot;
 
   Timer               m_lastTouched;
 
@@ -72,10 +74,10 @@ private:
 };
 
 inline bool
-FileMeta::prepare() {
+FileMeta::prepare(int prot) {
   m_lastTouched = Timer::cache();
 
-  return !is_open() ? m_slotPrepare(this) : true;
+  return (is_open() && has_permissions(prot)) ? true : m_slotPrepare(this, prot);
 }
 
 inline void
