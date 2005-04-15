@@ -89,7 +89,7 @@ HandshakeIncoming::write() {
   try {
   switch (m_state) {
   case WRITE_HEADER:
-    if (!write_buf(m_buf + m_pos, 68, m_pos))
+    if (!write_buf2(m_buf + m_pos, 68, m_pos))
       return;
  
     remove_write();

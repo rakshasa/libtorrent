@@ -30,6 +30,7 @@
 
 #include "data/storage.h"
 #include "peer/request_list.h"
+#include "net/protocol_buffer.h"
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
 #include "utils/task.h"
@@ -117,7 +118,7 @@ private:
 
   void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   
-  bool writeChunk(int maxBytes);
+  bool writeChunk(unsigned int maxBytes);
   bool readChunk();
 
   void load_chunk(int index, Sub& sub);
@@ -126,7 +127,7 @@ private:
   void skip_piece();
 
   // Send a msg to the buffer.
-  void bufCmd(Protocol cmd, unsigned int length, unsigned int send = 0);
+  void bufCmd(Protocol cmd, unsigned int length);
   void bufW32(uint32_t v);
   uint32_t bufR32(bool peep = false);
 

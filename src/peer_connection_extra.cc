@@ -35,8 +35,6 @@
 
 #include "peer_connection.h"
 
-#define BUFFER_SIZE (1<<9)
-
 using namespace algo;
 
 // This file is for functions that does not directly relate to the
@@ -72,37 +70,33 @@ PeerConnection::~PeerConnection() {
       m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
   }
 
-  delete [] m_up.buf;
-  delete [] m_down.buf;
-
   if (m_fd.is_valid())
     m_fd.close();
 }
 
-bool PeerConnection::writeChunk(int maxBytes) {
-  StorageChunk::iterator part = m_up.data->at_position(m_sends.front().get_offset() + m_up.pos);
+bool PeerConnection::writeChunk(unsigned int maxBytes) {
+  StorageChunk::iterator part = m_up.data->at_position(m_sends.front().get_offset() + m_up.m_pos2);
 
   unsigned int length = std::min(m_sends.front().get_length(),
 				 part->get_position() + part->size() - m_sends.front().get_offset());
 
   // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 
-  write_buf(part->get_chunk().begin() + m_sends.front().get_offset() + m_up.pos - part->get_position(),
-	   std::min(length, m_up.pos + maxBytes),
-	   m_up.pos);
+  m_up.m_pos2 += write_buf(part->get_chunk().begin() + m_sends.front().get_offset() + m_up.m_pos2 - part->get_position(),
+			   std::min(length - m_up.m_pos2, maxBytes));
 
-  return m_up.pos == m_sends.front().get_length();
+  return m_up.m_pos2 == m_sends.front().get_length();
 }
 
+// TODO: Handle file boundaries better.
 bool PeerConnection::readChunk() {
-  if (m_down.pos > (1 << 17) + 9)
+  if (m_down.m_pos2 > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
   const Piece& p = m_requests.get_piece();
+  StorageChunk::iterator part = m_down.data->at_position(p.get_offset() + m_down.m_pos2);
 
-  StorageChunk::iterator part = m_down.data->at_position(p.get_offset() + m_down.pos);
-
-  unsigned int offset = p.get_offset() + m_down.pos - part->get_position();
+  unsigned int offset = p.get_offset() + m_down.m_pos2 - part->get_position();
   
   if (!part->get_chunk().is_valid())
     throw internal_error("PeerConnection::readChunk() did not get a valid chunk");
@@ -110,47 +104,34 @@ bool PeerConnection::readChunk() {
   if (!part->get_chunk().is_writable())
     throw internal_error("PeerConnection::readChunk() chunk not writable, permission denided");
   
-  if (!read_buf(part->get_chunk().begin() + offset,
-	       std::min(part->get_position() + part->get_chunk().size() - p.get_offset(), p.get_length()),
-	       m_down.pos))
-    return false; // Did not read the whole part of the piece
-  
-  if (m_down.pos != p.get_length())
-    return false; // We still got parts of the piece to read
+  m_down.m_pos2 += read_buf(part->get_chunk().begin() + offset,
+			    std::min(p.get_length() - m_down.m_pos2, part->size() - offset));
 
-  return true;
+  return m_down.m_pos2 == p.get_length();
 }
   
-void PeerConnection::bufCmd(Protocol cmd, unsigned int length, unsigned int send) {
-  m_up.pos = m_up.length;
-  m_up.length += (send ? send : length) + 4;
+void PeerConnection::bufCmd(Protocol cmd, unsigned int length) {
+  m_up.m_buf.write_uint32(length);
+  m_up.m_buf.write_uint8(cmd);
 
-  if (m_up.length > BUFFER_SIZE)
+  if (m_up.m_buf.size() > m_up.m_buf.reserved())
     throw internal_error("PeerConnection write buffer to small");
 
-  *(uint32_t*)(m_up.buf + m_up.pos) = htonl(length);
-
-  m_up.buf[(m_up.pos += 4)++] = cmd;
   m_up.lastCommand = cmd;
 }
 
 void PeerConnection::bufW32(uint32_t v) {
-  // TODO: Clean up when stable.
-  if (m_up.pos + 4 > m_up.length)
+  m_up.m_buf.write_uint32(v);
+
+  if (m_up.m_buf.size() > m_up.m_buf.reserved())
     throw internal_error("PeerConnection tried to write beyond scope of packet");
-
-  *(uint32_t*)&(m_up.buf[m_up.pos]) = htonl(v);
-
-  m_up.pos += 4;
 }
 
 uint32_t PeerConnection::bufR32(bool peep) {
-  unsigned int pos = m_down.pos;
+  if (m_down.m_buf.size() + 4 > m_down.m_buf.reserved())
+    throw internal_error("PeerConnection tried to read beyond scope of packet");
 
-  if (!peep && (m_down.pos += 4) > m_down.length)
-    throw communication_error("PeerConnection tried to read beyond scope of packet");
-
-  return ntohl(*(uint32_t*)&(m_down.buf[pos]));
+  return peep ? m_down.m_buf.peek_uint32() : m_down.m_buf.read_uint32();
 }
  
 void

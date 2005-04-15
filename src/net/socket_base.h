@@ -66,8 +66,11 @@ public:
   virtual void        except() = 0;
 
 protected:
-  bool                read_buf(void* buf, unsigned int length, unsigned int& pos);
-  bool                write_buf(const void* buf, unsigned int length, unsigned int& pos);
+  bool                read_buf2(void* buf, unsigned int length, unsigned int& pos);
+  bool                write_buf2(const void* buf, unsigned int length, unsigned int& pos);
+
+  unsigned int        read_buf(void* buf, unsigned int length);
+  unsigned int        write_buf(const void* buf, unsigned int length);
 
   SocketFd            m_fd;
 

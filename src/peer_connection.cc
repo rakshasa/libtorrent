@@ -35,9 +35,6 @@
 #include "peer_connection.h"
 #include "settings.h"
 
-// TODO: Put this somewhere better, make adjustable?
-#define BUFFER_SIZE ((unsigned int)(1<<9))
-
 using namespace algo;
 
 namespace torrent {
@@ -77,13 +74,15 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   insert_write();
   insert_except();
 
-  m_up.buf = new uint8_t[BUFFER_SIZE];
-  m_down.buf = new uint8_t[BUFFER_SIZE];
+  m_up.m_buf.reset_end();
+  m_down.m_buf.reset_end();
 
   if (!d->get_content().get_bitfield().all_zero()) {
     // Send bitfield to peer.
-    bufCmd(BITFIELD, 1 + m_download->get_content().get_bitfield().size_bytes(), 1);
-    m_up.pos = 0;
+    bufCmd(BITFIELD, 1 + m_download->get_content().get_bitfield().size_bytes());
+    m_up.length = m_up.m_buf.size();
+    m_up.m_buf.reset_end();
+
     m_up.state = WRITE_MSG;
   }
     
@@ -105,15 +104,17 @@ void PeerConnection::read() {
     
   switch (m_down.state) {
   case IDLE:
-    m_down.pos = 0;
+    m_down.m_buf.reset_end();
     m_down.state = READ_LENGTH;
 
   case READ_LENGTH:
-    if (!read_buf(m_down.buf + m_down.pos, 4, m_down.pos))
+    m_down.m_buf.move_end(read_buf(m_down.m_buf.end(), 4 - m_down.m_buf.size()));
+
+    if (m_down.m_buf.size() != 4)
       return;
 
-    m_down.pos = 0;
-    m_down.lengthOrig = m_down.length = bufR32(true);
+    m_down.m_buf.reset_end();
+    m_down.lengthOrig = m_down.length = bufR32(true); // Peek so we don't need to reset again.
 
     if (m_down.length == 0) {
       // Received ping.
@@ -132,12 +133,20 @@ void PeerConnection::read() {
     
     m_down.state = READ_TYPE;
 
+    // TMP
+    if (m_down.m_buf.size() != 0)
+      throw internal_error("Length bork bork bork1");
+
     // TODO: Read up to 9 or something.
   case READ_TYPE:
-    if (!read_buf(m_down.buf, 1, m_down.pos))
+    m_down.m_buf.move_end(read_buf(m_down.m_buf.end(), 1));
+
+    if (m_down.m_buf.size() != 1)
       return;
 
-    switch (m_down.buf[0]) {
+    m_down.m_buf.reset_end();
+
+    switch (m_down.m_buf.peek_uint8()) {
     case REQUEST:
     case CANCEL:
       if (m_down.length != 13)
@@ -172,27 +181,39 @@ void PeerConnection::read() {
 	throw communication_error("BitField received after other commands");
       }
 
-      m_down.pos = 0;
+      m_net->signal_network_log().emit("Receiving bitfield");
+
+      //m_down.m_buf.reset_end();
+      m_down.m_pos2 = 0;
       m_down.state = READ_BITFIELD;
 
       goto evil_goto_read;
 
     default:
-      if ((unsigned char)m_down.buf[0] > CANCEL)
+      if (m_down.m_buf.peek_uint8() > CANCEL)
 	throw communication_error("Received unknown protocol command");
+
+      // Handle 1 byte long messages here.
+      //m_net->signal_network_log().emit("Receiving some commmand");
 
       break;
     };
 
+    // Keep the command byte in the buffer.
     m_down.state = READ_MSG;
-    m_down.lastCommand = (Protocol)m_down.buf[0];
+    // Read here so the next writes are at the right position.
+    m_down.lastCommand = (Protocol)m_down.m_buf.read_uint8();
 
   case READ_MSG:
-    if (m_down.length > 1 &&
-	!read_buf(m_down.buf + m_down.pos, m_down.length, m_down.pos))
+    if (m_down.length > 1)
+      m_down.m_buf.move_end(read_buf(m_down.m_buf.end(), m_down.length - m_down.m_buf.size()));
+
+    if (m_down.m_buf.size() != m_down.length)
       return;
 
-    switch (m_down.buf[0]) {
+    m_down.m_buf.reset_end();
+
+    switch (m_down.m_buf.peek_uint8()) {
     case PIECE:
       if (m_down.lengthOrig == 9) {
 	// Some clients send zero length messages when we request pieces
@@ -203,12 +224,12 @@ void PeerConnection::read() {
 	goto evil_goto_read;
       }
 
-      m_down.pos = 1;
+      m_down.m_buf.read_uint8();
       piece.set_index(bufR32());
       piece.set_offset(bufR32());
       piece.set_length(m_down.lengthOrig - 9);
       
-      m_down.pos = 0;
+      m_down.m_pos2 = 0;
       
       if (m_requests.downloading(piece)) {
 	m_down.state = READ_PIECE;
@@ -225,7 +246,7 @@ void PeerConnection::read() {
       goto evil_goto_read;
 
     default:
-      m_down.pos = 1;
+      // parseReadBuf() will read the cmd.
       parseReadBuf();
       
       m_down.state = IDLE;
@@ -233,7 +254,7 @@ void PeerConnection::read() {
     }
 
   case READ_BITFIELD:
-    if (!read_buf(m_bitfield.begin() + m_down.pos, m_down.length - 1, m_down.pos))
+    if (!read_buf2(m_bitfield.begin() + m_down.m_pos2, m_down.length - 1, m_down.m_pos2))
       return;
 
     m_bitfield.update_count();
@@ -258,19 +279,19 @@ void PeerConnection::read() {
 
     if (!m_requests.is_wanted()) {
       m_down.state = READ_SKIP_PIECE;
-      m_down.length = m_requests.get_piece().get_length() - m_down.pos;
-      m_down.pos = 0;
+      m_down.length = m_requests.get_piece().get_length() - m_down.m_pos2;
+      m_down.m_pos2 = 0;
 
       m_requests.skip();
 
       goto evil_goto_read;
     }
 
-    previous = m_down.pos;
+    previous = m_down.m_pos2;
     s = readChunk();
 
-    m_throttle.down().insert(m_down.pos - previous);
-    m_net->get_rate_down().insert(m_down.pos - previous);
+    m_throttle.down().insert(m_down.m_pos2 - previous);
+    m_net->get_rate_down().insert(m_down.m_pos2 - previous);
     
     if (!s)
       return;
@@ -293,17 +314,17 @@ void PeerConnection::read() {
     goto evil_goto_read;
 
   case READ_SKIP_PIECE:
-    if (m_down.pos != 0)
+    if (m_down.m_pos2 != 0)
       throw internal_error("READ_SKIP_PIECE m_down.pos != 0");
 
-    s = read_buf(m_down.buf,
-		 std::min(m_down.length, BUFFER_SIZE),
-		 m_down.pos);
+    s = read_buf2(m_down.m_buf.begin(),
+		  std::min<int>(m_down.length, m_down.m_buf.reserved()),
+		  m_down.m_pos2);
 
-    m_throttle.down().insert(m_down.pos);
+    m_throttle.down().insert(m_down.m_pos2);
 
-    m_down.length -= m_down.pos;
-    m_down.pos = 0;
+    m_down.length -= m_down.m_pos2;
+    m_down.m_pos2 = 0;
 
     if (m_down.length == 0) {
       // Done with this piece.
@@ -357,8 +378,7 @@ void PeerConnection::write() {
 
   switch (m_up.state) {
   case IDLE:
-    m_up.pos = 0;
-    m_up.length = 0;
+    m_up.m_buf.reset_end();
 
     // Keep alives must set the 5th bit to something IDLE
 
@@ -367,21 +387,23 @@ void PeerConnection::write() {
 
     fillWriteBuf();
 
-    if (m_up.length == 0)
+    if (m_up.m_buf.size() == 0)
       return remove_write();
 
     m_up.state = WRITE_MSG;
-    m_up.pos = 0;
+    m_up.length = m_up.m_buf.size();
+    m_up.m_buf.reset_end();
 
   case WRITE_MSG:
-    if (!write_buf(m_up.buf + m_up.pos, m_up.length, m_up.pos))
-      return;
+    m_up.m_buf.move_end(write_buf(m_up.m_buf.end(), m_up.length - m_up.m_buf.size()));
 
-    m_up.pos = 0;
+    if (m_up.m_buf.size() != m_up.length)
+      return;
 
     switch (m_up.lastCommand) {
     case BITFIELD:
       m_up.state = WRITE_BITFIELD;
+      m_up.m_pos2 = 0;
 
       goto evil_goto_write;
 
@@ -392,6 +414,7 @@ void PeerConnection::write() {
 	
       m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read);
       m_up.state = WRITE_PIECE;
+      m_up.m_pos2 = 0;
 
       if (!m_up.data.is_valid())
 	throw storage_error("Could not create a valid chunk");
@@ -399,15 +422,15 @@ void PeerConnection::write() {
       goto evil_goto_write;
       
     default:
+      m_net->signal_network_log().emit("Wrote message to peer");
+
       m_up.state = IDLE;
       return;
     }
 
-    m_up.pos = 0;
-
   case WRITE_BITFIELD:
-    if (!write_buf(m_download->get_content().get_bitfield().begin() + m_up.pos,
-		   m_download->get_content().get_bitfield().size_bytes(), m_up.pos))
+    if (!write_buf2(m_download->get_content().get_bitfield().begin() + m_up.m_pos2,
+		    m_download->get_content().get_bitfield().size_bytes(), m_up.m_pos2))
       return;
 
     m_up.state = IDLE;
@@ -417,7 +440,7 @@ void PeerConnection::write() {
     if (m_sends.empty())
       throw internal_error("WRITE_PIECE on an empty list");
 
-    previous = m_up.pos;
+    previous = m_up.m_pos2;
     maxBytes = m_throttle.left();
     
     if (maxBytes == 0) {
@@ -430,10 +453,10 @@ void PeerConnection::write() {
 
     s = writeChunk(maxBytes);
 
-    m_throttle.up().insert(m_up.pos - previous);
-    m_throttle.spent(m_up.pos - previous);
+    m_throttle.up().insert(m_up.m_pos2 - previous);
+    m_throttle.spent(m_up.m_pos2 - previous);
 
-    m_net->get_rate_up().insert(m_up.pos - previous);
+    m_net->get_rate_up().insert(m_up.m_pos2 - previous);
 
     if (!s)
       return;
@@ -480,8 +503,11 @@ void PeerConnection::except() {
 void PeerConnection::parseReadBuf() {
   uint32_t index, offset, length;
   SendList::iterator rItr;
+  std::stringstream str;
 
-  switch (m_down.buf[0]) {
+  Protocol curCmd = (Protocol)m_down.m_buf.read_uint8();
+
+  switch (curCmd) {
   case CHOKE:
     m_down.choked = true;
     m_requests.cancel();
@@ -531,7 +557,7 @@ void PeerConnection::parseReadBuf() {
     rItr = std::find(m_sends.begin(), m_sends.end(),
 		     Piece(index, offset, length));
       
-    if (m_down.buf[0] == REQUEST) {
+    if (curCmd == REQUEST) {
       if (rItr != m_sends.end())
 	m_sends.erase(rItr);
       
@@ -575,11 +601,14 @@ void PeerConnection::parseReadBuf() {
     return;
 
   default:
+    str << "Peer sent unsupported command " << curCmd;
+
     // TODO: this is a communication error.
-    throw communication_error("peer sent unsupported command");
+    throw communication_error(str.str());
   };
 }
 
+// Don't depend on m_up.length!
 void PeerConnection::fillWriteBuf() {
   if (m_sendChoked) {
     m_sendChoked = false;
@@ -623,7 +652,7 @@ void PeerConnection::fillWriteBuf() {
 
     m_tryRequest = false;
 
-    while (m_requests.get_size() < pipeSize && m_up.length + 16 < BUFFER_SIZE && request_piece())
+    while (m_requests.get_size() < pipeSize && m_up.m_buf.reserved_left() >= 16 && request_piece())
 
       if (m_requests.get_size() == 1) {
 	if (m_taskStall.is_scheduled())
@@ -637,7 +666,7 @@ void PeerConnection::fillWriteBuf() {
   // Max buf size 17 * 'req pipe' + 10
 
   while (!m_haveQueue.empty() &&
-	 m_up.length + 9 < BUFFER_SIZE) {
+	 m_up.m_buf.reserved_left() >= 9) {
     bufCmd(HAVE, 5);
     bufW32(m_haveQueue.front());
 
@@ -647,7 +676,7 @@ void PeerConnection::fillWriteBuf() {
   if (!m_up.choked &&
       !m_sendChoked &&
       !m_sends.empty() &&
-      m_up.length + 13 < BUFFER_SIZE) {
+      m_up.m_buf.reserved_left() >= 13) {
     // Sending chunk to peer.
 
     // This check takes care of all possible errors in lenght and offset.
@@ -676,7 +705,7 @@ void PeerConnection::fillWriteBuf() {
       throw communication_error(s.str());
     }
 
-    bufCmd(PIECE, 9 + m_sends.front().get_length(), 9);
+    bufCmd(PIECE, 9 + m_sends.front().get_length());
     bufW32(m_sends.front().get_index());
     bufW32(m_sends.front().get_offset());
   }
@@ -721,12 +750,13 @@ PeerConnection::task_keep_alive() {
   }
 
   if (m_up.state == IDLE) {
-    m_up.length = 0;
-
-    bufCmd(KEEP_ALIVE, 0);
+    // TODO: don't use bufCmd
+    m_up.m_buf.reset_end();
+    m_up.m_buf.write_uint32(0);
+    m_up.length = m_up.m_buf.size();
+    m_up.m_buf.reset_end();
 
     m_up.state = WRITE_MSG;
-    m_up.pos = 0;
 
     insert_write();
   }

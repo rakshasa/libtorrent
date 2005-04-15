@@ -29,8 +29,6 @@ class Sub {
     interested(false),
     state(IDLE),
     lastCommand(NONE),
-    buf(NULL),
-    pos(0),
     length(0),
     lengthOrig(0)
     {}
@@ -45,8 +43,11 @@ class Sub {
   State state;
   Protocol lastCommand;
 
-  uint8_t* buf;
-  unsigned int pos;
+  ProtocolBuffer<512> m_buf;
+  //ProtocolBuffer<512>::iterator m_pos;
+
+  unsigned int m_pos2;
+
   unsigned int length;
   unsigned int lengthOrig;
   

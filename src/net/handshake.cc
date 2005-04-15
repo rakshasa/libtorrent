@@ -56,12 +56,12 @@ Handshake::send_failed() {
 
 bool
 Handshake::recv1() {
-  if (m_pos == 0 && !read_buf(m_buf, 1, m_pos))
+  if (m_pos == 0 && !read_buf2(m_buf, 1, m_pos))
     return false;
 
   int l = (unsigned char)m_buf[0];
 
-  if (!read_buf(m_buf + m_pos, l + 29, m_pos))
+  if (!read_buf2(m_buf + m_pos, l + 29, m_pos))
     return false;
 
   m_peer.set_options(std::string(m_buf + 1 + l, 8));
@@ -76,7 +76,7 @@ Handshake::recv1() {
 
 bool
 Handshake::recv2() {
-  if (!read_buf(m_buf + m_pos, 20, m_pos))
+  if (!read_buf2(m_buf + m_pos, 20, m_pos))
     return false;
 
   m_peer.set_id(std::string(m_buf, 20));
