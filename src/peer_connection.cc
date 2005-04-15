@@ -181,7 +181,7 @@ void PeerConnection::read() {
 	throw communication_error("BitField received after other commands");
       }
 
-      m_net->signal_network_log().emit("Receiving bitfield");
+      //m_net->signal_network_log().emit("Receiving bitfield");
 
       //m_down.m_buf.reset_end();
       m_down.m_pos2 = 0;
@@ -422,7 +422,7 @@ void PeerConnection::write() {
       goto evil_goto_write;
       
     default:
-      m_net->signal_network_log().emit("Wrote message to peer");
+      //m_net->signal_network_log().emit("Wrote message to peer");
 
       m_up.state = IDLE;
       return;
@@ -756,6 +756,7 @@ PeerConnection::task_keep_alive() {
     m_up.length = m_up.m_buf.size();
     m_up.m_buf.reset_end();
 
+    m_up.lastCommand = KEEP_ALIVE;
     m_up.state = WRITE_MSG;
 
     insert_write();

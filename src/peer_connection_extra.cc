@@ -74,22 +74,36 @@ PeerConnection::~PeerConnection() {
     m_fd.close();
 }
 
-bool PeerConnection::writeChunk(unsigned int maxBytes) {
-  StorageChunk::iterator part = m_up.data->at_position(m_sends.front().get_offset() + m_up.m_pos2);
+// TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
+bool
+PeerConnection::writeChunk(unsigned int maxBytes) {
+  if (m_up.m_pos2 >= (1 << 17))
+    throw internal_error("PeerConnection::writeChunk(...) m_pos2 bork");
 
-  unsigned int length = std::min(m_sends.front().get_length(),
-				 part->get_position() + part->size() - m_sends.front().get_offset());
+  uint32_t offset = m_sends.front().get_offset() + m_up.m_pos2;
+  StorageChunk::iterator part = m_up.data->at_position(offset);
 
-  // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
+  offset -= part->get_position();
 
-  m_up.m_pos2 += write_buf(part->get_chunk().begin() + m_sends.front().get_offset() + m_up.m_pos2 - part->get_position(),
-			   std::min(length - m_up.m_pos2, maxBytes));
+  uint32_t length = std::min(m_sends.front().get_length() - m_up.m_pos2, part->size() - offset);
+
+  if (length > (1 << 17) || length == 0 )
+    throw internal_error("PeerConnection::writeChunk(...) length bork");
+
+  if (offset > part->size())
+    throw internal_error("PeerConnection::writeChunk(...) offset bork");
+
+  if ((offset + length) > part->size())
+    throw internal_error("PeerConnection::writeChunk(...) offset+length bork");
+
+  m_up.m_pos2 += write_buf(part->get_chunk().begin() + offset, std::min(length, maxBytes));
 
   return m_up.m_pos2 == m_sends.front().get_length();
 }
 
 // TODO: Handle file boundaries better.
-bool PeerConnection::readChunk() {
+bool
+PeerConnection::readChunk() {
   if (m_down.m_pos2 > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
