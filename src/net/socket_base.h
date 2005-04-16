@@ -25,6 +25,7 @@
 
 #include <list>
 
+#include "poll.h"
 #include "socket_fd.h"
 
 namespace torrent {
@@ -35,29 +36,21 @@ class SocketBase {
 public:
   typedef std::list<SocketBase*> Sockets;
 
-  SocketBase(SocketFd fd = SocketFd()) :
-    m_fd(fd),
-    m_readItr(m_readSockets.end()),
-    m_writeItr(m_writeSockets.end()),
-    m_exceptItr(m_exceptSockets.end()) {}
+  SocketBase(SocketFd fd = SocketFd()) : m_fd(fd) {}
 
   virtual ~SocketBase();
 
-  bool                in_read()           { return m_readItr != m_readSockets.end(); }
-  bool                in_write()          { return m_writeItr != m_writeSockets.end(); }
-  bool                in_except()         { return m_exceptItr != m_exceptSockets.end(); }
+  bool                in_read()           { return Poll::read_set().has(this); }
+  bool                in_write()          { return Poll::write_set().has(this); }
+  bool                in_except()         { return Poll::except_set().has(this); }
 
-  static Sockets&     read_sockets()      { return m_readSockets; }
-  static Sockets&     write_sockets()     { return m_writeSockets; }
-  static Sockets&     except_sockets()    { return m_exceptSockets; }
+  void                insert_read()       { Poll::read_set().insert(this); }
+  void                insert_write()      { Poll::write_set().insert(this); }
+  void                insert_except()     { Poll::except_set().insert(this); }
 
-  void                insert_read();
-  void                insert_write();
-  void                insert_except();
-
-  void                remove_read();
-  void                remove_write();
-  void                remove_except();
+  void                remove_read()       { Poll::read_set().erase(this); }
+  void                remove_write()      { Poll::write_set().erase(this); }
+  void                remove_except()     { Poll::except_set().erase(this); }
 
   SocketFd            get_fd()            { return m_fd; }
 
@@ -78,14 +71,6 @@ private:
   // Disable copying
   SocketBase(const SocketBase&);
   void operator = (const SocketBase&);
-
-  Sockets::iterator   m_readItr;
-  Sockets::iterator   m_writeItr;
-  Sockets::iterator   m_exceptItr;
-
-  static Sockets      m_readSockets;
-  static Sockets      m_writeSockets;
-  static Sockets      m_exceptSockets;
 };
 
 }

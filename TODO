@@ -125,3 +125,14 @@ Seperate out the list of sockets being pooled from SocketBase.
 NEXT:
 
 Show the bound listening ip.
+
+
+RELEASE:
+
+Remove debug checks in SocketSet.
+
+
+POLLING:
+
+Consider sorting SocketSet so we can get maxFd cheaper. Epoll might
+not need this, so consider the value.

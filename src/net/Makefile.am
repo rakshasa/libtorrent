@@ -11,6 +11,9 @@ libsub_net_la_SOURCES = \
         handshake_outgoing.h \
 	listen.cc \
 	listen.h \
+	poll.cc \
+	poll.h \
+	poll_select.h \
 	protocol_buffer.h \
 	socket_address.cc \
 	socket_address.h \
@@ -18,6 +21,7 @@ libsub_net_la_SOURCES = \
         socket_base.h \
 	socket_fd.cc \
 	socket_fd.h \
+	socket_set.cc \
 	socket_set.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

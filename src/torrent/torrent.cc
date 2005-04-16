@@ -25,6 +25,7 @@
 #include <iostream>
 #include <sstream>
 #include <memory>
+#include <unistd.h>
 #include <algo/algo.h>
 #include <sigc++/bind.h>
 
@@ -38,6 +39,8 @@
 #include "utils/task_schedule.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
+#include "net/poll.h"
+#include "net/poll_select.h"
 #include "parse/parse.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
@@ -54,36 +57,6 @@ Listen* listen = NULL;
 HashQueue* hashQueue = NULL;
 HandshakeManager* handshakes = NULL;
 DownloadManager* downloadManager = NULL;
-
-struct add_socket {
-  add_socket(fd_set* s) : fd(0), fds(s) {}
-
-  void operator () (SocketBase* s) {
-    if (s->get_fd().get_fd() < 0)
-      throw internal_error("Tried to poll a negative file descriptor");
-
-    if (fd < s->get_fd().get_fd())
-      fd = s->get_fd().get_fd();
-
-    FD_SET(s->get_fd().get_fd(), fds);
-  }
-
-  int     fd;
-  fd_set* fds;
-};
-
-struct check_socket_isset {
-  check_socket_isset(fd_set* s) : fds(s) {}
-
-  bool operator () (SocketBase* socket) {
-    if (socket == NULL)
-      throw internal_error("Polled socket is NULL");
-
-    return FD_ISSET(socket->get_fd().get_fd(), fds);
-  }
-
-  fd_set* fds;
-};
 
 // Find some better way of doing this, or rather... move it outside.
 std::string
@@ -123,6 +96,8 @@ initialize() {
 
   handshakes->slot_connected(sigc::ptr_fun3(&receive_connection));
   handshakes->slot_download_id(sigc::ptr_fun1(download_id));
+
+  Poll::set_open_max(sysconf(_SC_OPEN_MAX));
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -178,17 +153,20 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
 
   *maxFd = 0;
 
-  *maxFd = std::max(*maxFd, std::for_each(SocketBase::read_sockets().begin(),
-                                          SocketBase::read_sockets().end(),
-                                          add_socket(readSet)).fd);
+  Poll::read_set().prepare();
+  *maxFd = std::max(*maxFd, std::for_each(Poll::read_set().begin(),
+                                          Poll::read_set().end(),
+                                          poll_mark(readSet)).m_max);
 
-  *maxFd = std::max(*maxFd, std::for_each(SocketBase::write_sockets().begin(),
-                                          SocketBase::write_sockets().end(),
-                                          add_socket(writeSet)).fd);
+  Poll::write_set().prepare();
+  *maxFd = std::max(*maxFd, std::for_each(Poll::write_set().begin(),
+                                          Poll::write_set().end(),
+                                          poll_mark(writeSet)).m_max);
   
-  *maxFd = std::max(*maxFd, std::for_each(SocketBase::except_sockets().begin(),
-                                          SocketBase::except_sockets().end(),
-                                          add_socket(exceptSet)).fd);
+  Poll::except_set().prepare();
+  *maxFd = std::max(*maxFd, std::for_each(Poll::except_set().begin(),
+                                          Poll::except_set().end(),
+                                          poll_mark(exceptSet)).m_max);
 }
 
 // Do work on the polled file descriptors.
@@ -203,18 +181,17 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
 
-  // If except is called, make sure you correctly remove us from the poll.
-  for_each<true>(SocketBase::except_sockets().begin(), SocketBase::except_sockets().end(),
-		 if_on(check_socket_isset(exceptSet),
-		       call_member(&SocketBase::except)));
+  Poll::except_set().prepare();
+  std::for_each(Poll::except_set().begin(), Poll::except_set().end(),
+		poll_check(exceptSet, std::mem_fun(&SocketBase::except)));
 
-  for_each<true>(SocketBase::read_sockets().begin(), SocketBase::read_sockets().end(),
-		 if_on(check_socket_isset(readSet),
-		       call_member(&SocketBase::read)));
+  Poll::read_set().prepare();
+  std::for_each(Poll::read_set().begin(), Poll::read_set().end(),
+		poll_check(readSet, std::mem_fun(&SocketBase::read)));
 
-  for_each<true>(SocketBase::write_sockets().begin(), SocketBase::write_sockets().end(),
-		 if_on(check_socket_isset(writeSet),
-		       call_member(&SocketBase::write)));
+  Poll::write_set().prepare();
+  std::for_each(Poll::write_set().begin(), Poll::write_set().end(),
+		poll_check(writeSet, std::mem_fun(&SocketBase::write)));
 
   // TODO: Consider moving before the r/w/e. libsic++ should remove the use of
   // zero timeout stuff to send signal. Better yet, use on both sides, it's cheap.
