@@ -33,6 +33,7 @@
 
 #include "download/download_state.h"
 #include "peer_connection.h"
+#include "net/poll.h"
 #include "settings.h"
 
 using namespace algo;
@@ -70,9 +71,9 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   if (m_bitfield.begin() == NULL)
     throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
 
-  insert_read();
-  insert_write();
-  insert_except();
+  Poll::read_set().insert(this);
+  Poll::write_set().insert(this);
+  Poll::except_set().insert(this);
 
   m_up.m_buf.reset_end();
   m_down.m_buf.reset_end();
@@ -270,7 +271,7 @@ void PeerConnection::read() {
     m_down.state = IDLE;
     m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
-    insert_write();
+    Poll::write_set().insert(this);
     goto evil_goto_read;
 
   case READ_PIECE:
@@ -309,7 +310,7 @@ void PeerConnection::read() {
 
     // TODO: clear m_down.data?
 
-    insert_write();
+    Poll::write_set().insert(this);
 
     goto evil_goto_read;
 
@@ -388,7 +389,7 @@ void PeerConnection::write() {
     fillWriteBuf();
 
     if (m_up.m_buf.size() == 0)
-      return remove_write();
+      return Poll::write_set().erase(this);
 
     m_up.state = WRITE_MSG;
     m_up.length = m_up.m_buf.size();
@@ -444,7 +445,7 @@ void PeerConnection::write() {
     maxBytes = m_throttle.left();
     
     if (maxBytes == 0) {
-      remove_write();
+      Poll::write_set().erase(this);
       return;
     }
 
@@ -520,7 +521,7 @@ void PeerConnection::parseReadBuf() {
     m_down.choked = false;
     m_tryRequest = true;
     
-    return insert_write();
+    return Poll::write_set().insert(this);
 
   case INTERESTED:
     m_down.interested = true;
@@ -562,7 +563,7 @@ void PeerConnection::parseReadBuf() {
 	m_sends.erase(rItr);
       
       m_sends.push_back(Piece(index, offset, length));
-      insert_write();
+      Poll::write_set().insert(this);
 
     } else if (rItr != m_sends.end()) {
 
@@ -571,7 +572,7 @@ void PeerConnection::parseReadBuf() {
 	m_sends.erase(rItr);
     }
 
-    return insert_write();
+    return Poll::write_set().insert(this);
 
   case HAVE:
     index = bufR32();
@@ -589,7 +590,7 @@ void PeerConnection::parseReadBuf() {
       m_sendInterested = !m_up.interested;
       m_up.interested = true;
 
-      insert_write();
+      Poll::write_set().insert(this);
     }
 
     // Make sure m_tryRequest is set even if we were previously
@@ -738,7 +739,7 @@ void PeerConnection::sendHave(int index) {
   // TODO: Also send cancel messages!
 
   // TODO: Remove this so we group the have messages with other stuff.
-  insert_write();
+  Poll::write_set().insert(this);
 }
 
 void
@@ -759,7 +760,7 @@ PeerConnection::task_keep_alive() {
     m_up.lastCommand = KEEP_ALIVE;
     m_up.state = WRITE_MSG;
 
-    insert_write();
+    Poll::write_set().insert(this);
   }
 
   m_tryRequest = true;
@@ -770,7 +771,7 @@ void
 PeerConnection::task_send_choke() {
   m_sendChoked = true;
 
-  insert_write();
+  Poll::write_set().insert(this);
 }
 
 void

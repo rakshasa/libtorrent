@@ -25,7 +25,6 @@
 
 #include <list>
 
-#include "poll.h"
 #include "socket_fd.h"
 
 namespace torrent {
@@ -39,18 +38,6 @@ public:
   SocketBase(SocketFd fd = SocketFd()) : m_fd(fd) {}
 
   virtual ~SocketBase();
-
-  bool                in_read()           { return Poll::read_set().has(this); }
-  bool                in_write()          { return Poll::write_set().has(this); }
-  bool                in_except()         { return Poll::except_set().has(this); }
-
-  void                insert_read()       { Poll::read_set().insert(this); }
-  void                insert_write()      { Poll::write_set().insert(this); }
-  void                insert_except()     { Poll::except_set().insert(this); }
-
-  void                remove_read()       { Poll::read_set().erase(this); }
-  void                remove_write()      { Poll::write_set().erase(this); }
-  void                remove_except()     { Poll::except_set().erase(this); }
 
   SocketFd            get_fd()            { return m_fd; }
 

@@ -83,6 +83,8 @@ void
 HandshakeManager::receive_connected(Handshake* h) {
   remove(h);
 
+  h->clear_poll();
+
   m_slotConnected(h->get_fd(), h->get_hash(), h->get_peer());
 
   h->set_fd(-1);

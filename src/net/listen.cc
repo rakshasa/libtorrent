@@ -29,9 +29,11 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "listen.h"
-#include "socket_address.h"
 #include "torrent/exceptions.h"
+
+#include "listen.h"
+#include "poll.h"
+#include "socket_address.h"
 
 namespace torrent {
 
@@ -56,8 +58,8 @@ Listen::open(uint16_t first, uint16_t last, const std::string& addr) {
     if (m_fd.bind(sa) && m_fd.listen(50)) {
       m_port = i;
 
-      insert_read();
-      insert_except();
+      Poll::read_set().insert(this);
+      Poll::except_set().insert(this);
 
       return true;
     }
@@ -73,13 +75,13 @@ void Listen::close() {
   if (!m_fd.is_valid())
     return;
 
+  Poll::read_set().erase(this);
+  Poll::except_set().erase(this);
+
   m_fd.close();
   m_fd.clear();
   
   m_port = 0;
-
-  remove_read();
-  remove_except();
 }
   
 void Listen::read() {

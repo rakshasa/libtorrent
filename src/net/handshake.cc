@@ -23,8 +23,10 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
+
 #include "handshake.h"
 #include "handshake_manager.h"
+#include "poll.h"
 
 namespace torrent {
 
@@ -36,10 +38,19 @@ Handshake::~Handshake() {
 }
 
 void
+Handshake::clear_poll() {
+  Poll::read_set().erase(this);
+  Poll::write_set().erase(this);
+  Poll::except_set().erase(this);
+}
+
+void
 Handshake::close() {
   if (!m_fd.is_valid())
     return;
 
+  clear_poll();
+  
   m_fd.close();
   m_fd.clear();
 }

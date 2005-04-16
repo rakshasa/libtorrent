@@ -29,6 +29,7 @@
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
+#include "net/poll.h"
 #include "net/socket_base.h"
 
 #include "settings.h"
@@ -140,7 +141,7 @@ int Throttle::update(float period, int bytes) {
 
   if (m_socket &&
       (m_left >= ThrottleSettings::wakeupPoint || m_left == UNLIMITED))
-    m_socket->insert_write();
+    Poll::write_set().insert(m_socket);
 
   // TODO: This needs to be alot more intelligent.
 

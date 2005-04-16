@@ -37,50 +37,9 @@
 
 namespace torrent {
 
-SocketBase::Sockets SocketBase::m_readSockets;
-SocketBase::Sockets SocketBase::m_writeSockets;
-SocketBase::Sockets SocketBase::m_exceptSockets;
-
 SocketBase::~SocketBase() {
-  remove_read();
-  remove_write();
-  remove_except();
-}
-
-void SocketBase::insert_read() {
-  if (!in_read())
-    m_readItr = m_readSockets.insert(m_readSockets.begin(), this);
-}
-
-void SocketBase::insert_write() {
-  if (!in_write())
-    m_writeItr = m_writeSockets.insert(m_writeSockets.begin(), this);
-}
-
-void SocketBase::insert_except() {
-  if (!in_except())
-    m_exceptItr = m_exceptSockets.insert(m_exceptSockets.begin(), this);
-}
-
-void SocketBase::remove_read() {
-  if (in_read()) {
-    m_readSockets.erase(m_readItr);
-    m_readItr = m_readSockets.end();
-  }
-}
-
-void SocketBase::remove_write() {
-  if (in_write()) {
-    m_writeSockets.erase(m_writeItr);
-    m_writeItr = m_writeSockets.end();
-  }
-}
-
-void SocketBase::remove_except() {
-  if (in_except()) {
-    m_exceptSockets.erase(m_exceptItr);
-    m_exceptItr = m_exceptSockets.end();
-  }
+  if (m_fd.is_valid())
+    throw internal_error("SocketBase::~SocketBase() called but m_fd is still valid");
 }
 
 bool SocketBase::read_buf2(void* buf, unsigned int length, unsigned int& pos) {

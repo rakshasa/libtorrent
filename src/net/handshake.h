@@ -49,6 +49,7 @@ public:
   void                set_manager(HandshakeManager* m) { m_manager = m; }
   void                set_fd(SocketFd fd)              { m_fd = fd; }
 
+  void                clear_poll();
   void                close();
 
 protected:

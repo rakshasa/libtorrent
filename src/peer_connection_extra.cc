@@ -32,6 +32,7 @@
 #include "torrent/exceptions.h"
 #include "download/download_state.h"
 #include "download/download_net.h"
+#include "net/poll.h"
 
 #include "peer_connection.h"
 
@@ -70,8 +71,15 @@ PeerConnection::~PeerConnection() {
       m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
   }
 
-  if (m_fd.is_valid())
-    m_fd.close();
+  if (!m_fd.is_valid())
+    return;
+
+  Poll::read_set().erase(this);
+  Poll::write_set().erase(this);
+  Poll::except_set().erase(this);
+  
+  m_fd.close();
+  m_fd.clear();
 }
 
 // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
@@ -210,7 +218,7 @@ void PeerConnection::choke(bool v) {
     m_sendChoked = true;
     m_up.choked = v;
 
-    insert_write();
+    Poll::write_set().insert(this);
   }
 }
 

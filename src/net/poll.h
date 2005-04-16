@@ -27,6 +27,11 @@
 
 namespace torrent {
 
+// Note that when you move file descriptors between SocketBase
+// objects, you must remove the SocketBase object from the
+// Poll::*_set()'s before adding the target SocketBase to the set's or
+// clearing the source SocketBase's fd.
+
 class Poll {
 public:
   

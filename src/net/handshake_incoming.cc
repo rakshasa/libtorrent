@@ -26,6 +26,7 @@
 
 #include "handshake_incoming.h"
 #include "handshake_manager.h"
+#include "poll.h"
 
 namespace torrent {
 
@@ -37,8 +38,8 @@ HandshakeIncoming::HandshakeIncoming(SocketFd fd, HandshakeManager* m, const Pee
 
   m_fd.set_nonblock();
 
-  insert_read();
-  insert_except();
+  Poll::read_set().insert(this);
+  Poll::except_set().insert(this);
 }
 
 void
@@ -62,8 +63,8 @@ HandshakeIncoming::read() {
     m_pos = 0;
     m_state = WRITE_HEADER;
 
-    remove_read();
-    insert_write();
+    Poll::read_set().erase(this);
+    Poll::write_set().insert(this);
 
     return;
 
@@ -92,8 +93,8 @@ HandshakeIncoming::write() {
     if (!write_buf2(m_buf + m_pos, 68, m_pos))
       return;
  
-    remove_write();
-    insert_read();
+    Poll::write_set().erase(this);
+    Poll::read_set().insert(this);
  
     m_pos = 0;
     m_state = READ_HEADER2;
