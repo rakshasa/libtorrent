@@ -94,8 +94,6 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 
 void PeerConnection::read() {
   Piece piece;
-  int previous;
-  bool s;
 
   m_lastMsg = Timer::cache();
 
@@ -255,7 +253,9 @@ void PeerConnection::read() {
     }
 
   case READ_BITFIELD:
-    if (!read_buf2(m_bitfield.begin() + m_down.m_pos2, m_down.length - 1, m_down.m_pos2))
+    m_down.m_pos2 += read_buf(m_bitfield.begin() + m_down.m_pos2, m_bitfield.size_bytes() - m_down.m_pos2);
+
+    if (m_down.m_pos2 != m_bitfield.size_bytes())
       return;
 
     m_bitfield.update_count();
@@ -288,13 +288,7 @@ void PeerConnection::read() {
       goto evil_goto_read;
     }
 
-    previous = m_down.m_pos2;
-    s = readChunk();
-
-    m_throttle.down().insert(m_down.m_pos2 - previous);
-    m_net->get_rate_down().insert(m_down.m_pos2 - previous);
-    
-    if (!s)
+    if (!readChunk())
       return;
 
     m_down.state = IDLE;
@@ -318,9 +312,11 @@ void PeerConnection::read() {
     if (m_down.m_pos2 != 0)
       throw internal_error("READ_SKIP_PIECE m_down.pos != 0");
 
-    s = read_buf2(m_down.m_buf.begin(),
-		  std::min<int>(m_down.length, m_down.m_buf.reserved()),
-		  m_down.m_pos2);
+    m_down.m_pos2 = read_buf(m_down.m_buf.begin(),
+			     std::min<int>(m_down.length, m_down.m_buf.reserved()));
+
+    if (m_down.m_pos2 == 0)
+      return;
 
     m_throttle.down().insert(m_down.m_pos2);
 
@@ -338,10 +334,7 @@ void PeerConnection::read() {
 	m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
     }
 
-    if (s)
-      goto evil_goto_read;
-    else
-      return;
+    goto evil_goto_read;
 
   default:
     throw internal_error("peer_connectino::read() called on object in wrong state");
@@ -430,11 +423,12 @@ void PeerConnection::write() {
     }
 
   case WRITE_BITFIELD:
-    if (!write_buf2(m_download->get_content().get_bitfield().begin() + m_up.m_pos2,
-		    m_download->get_content().get_bitfield().size_bytes(), m_up.m_pos2))
-      return;
+    m_up.m_pos2 += write_buf(m_download->get_content().get_bitfield().begin() + m_up.m_pos2,
+			     m_download->get_content().get_bitfield().size_bytes() - m_up.m_pos2);
 
-    m_up.state = IDLE;
+    if (m_up.m_pos2 == m_download->get_content().get_bitfield().size_bytes())
+      m_up.state = IDLE;
+
     return;
 
   case WRITE_PIECE:

@@ -114,22 +114,9 @@ Properly handle invalid chunks in hash_torrent due to unable to open
 files.
 
 
-NEXT:
-
-Clean up SocketBase, make making fd's do errors cleanly, without
-throws if you don't want them.
-
-Seperate out the list of sockets being pooled from SocketBase.
-
-
-NEXT:
-
-Show the bound listening ip.
-
-
 RELEASE:
 
-Remove debug checks in SocketSet.
+Remove debug checks in SocketSet. (Next release)
 
 
 POLLING:

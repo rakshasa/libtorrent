@@ -42,54 +42,8 @@ SocketBase::~SocketBase() {
     throw internal_error("SocketBase::~SocketBase() called but m_fd is still valid");
 }
 
-bool SocketBase::read_buf2(void* buf, unsigned int length, unsigned int& pos) {
-  if (length <= pos) {
-    std::stringstream s;
-    s << "Tried to read socket buffer with wrong length and pos " << length << ' ' << pos;
-
-    throw internal_error(s.str());
-  }
-
-  errno = 0;
-  int r = ::read(m_fd.get_fd(), buf, length - pos);
-
-  if (r == 0) {
-    throw close_connection();
-
-  } else if (r < 0 && errno != EAGAIN && errno != EINTR) {
-
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
-  } else if (r < 0) {
-    return false;
-  }
-
-  return length == (pos += r);
-}
-
-bool SocketBase::write_buf2(const void* buf, unsigned int length, unsigned int& pos) {
-  if (length <= pos) {
-    std::stringstream s;
-    s << "Tried to write socket buffer with wrong length and pos " << length << ' ' << pos;
-    throw internal_error(s.str());
-  }
-
-  errno = 0;
-  int r = ::write(m_fd.get_fd(), buf, length - pos);
-
-  if (r == 0) {
-    throw close_connection();
-
-  } else if (r < 0 && errno != EAGAIN && errno != EINTR) {
-
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
-  } else if (r < 0) {
-    return false;
-  }
-
-  return length == (pos += r);
-}
-
-unsigned int SocketBase::read_buf(void* buf, unsigned int length) {
+unsigned int
+SocketBase::read_buf(void* buf, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to read buffer length 0");
 
@@ -100,13 +54,13 @@ unsigned int SocketBase::read_buf(void* buf, unsigned int length) {
     throw close_connection();
 
   else if (r < 0 && errno != EAGAIN && errno != EINTR)
-
     throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
 
   return std::max(r, 0);
 }
 
-unsigned int SocketBase::write_buf(const void* buf, unsigned int length) {
+unsigned int
+SocketBase::write_buf(const void* buf, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to write buffer length 0");
 
@@ -117,7 +71,6 @@ unsigned int SocketBase::write_buf(const void* buf, unsigned int length) {
     throw close_connection();
 
   else if (r < 0 && errno != EAGAIN && errno != EINTR)
-
     throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
 
   return std::max(r, 0);

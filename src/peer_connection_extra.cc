@@ -112,6 +112,8 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
 // TODO: Handle file boundaries better.
 bool
 PeerConnection::readChunk() {
+  int previous = m_down.m_pos2;
+
   if (m_down.m_pos2 > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
@@ -128,6 +130,9 @@ PeerConnection::readChunk() {
   
   m_down.m_pos2 += read_buf(part->get_chunk().begin() + offset,
 			    std::min(p.get_length() - m_down.m_pos2, part->size() - offset));
+
+  m_throttle.down().insert(m_down.m_pos2 - previous);
+  m_net->get_rate_down().insert(m_down.m_pos2 - previous);
 
   return m_down.m_pos2 == p.get_length();
 }

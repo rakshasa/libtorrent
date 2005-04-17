@@ -66,7 +66,7 @@ class TrackerControl {
 
   // Use set_next_time(...) to do tracker rerequests.
   Timer                 get_next_time();
-  void                  set_next_time(Timer interval);
+  void                  set_next_time(Timer interval, bool force);
 
   bool                  is_busy();
 

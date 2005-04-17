@@ -264,8 +264,8 @@ Download::set_uploads_max(uint32_t v) {
 }
 
 void
-Download::set_tracker_timeout(uint64_t v) {
-  m_ptr->get_main().get_tracker().set_next_time(v);
+Download::set_tracker_timeout(uint64_t v, bool force) {
+  m_ptr->get_main().get_tracker().set_next_time(v, force);
 }
 
 void
