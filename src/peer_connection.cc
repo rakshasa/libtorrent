@@ -674,6 +674,17 @@ void PeerConnection::fillWriteBuf() {
       m_up.m_buf.reserved_left() >= 13) {
     // Sending chunk to peer.
 
+    // Move these checks somewhere else.
+    if (m_sends.front().get_index() < 0 ||
+	m_sends.front().get_index() >= (signed)m_download->get_chunk_total() ||
+	!m_download->get_content().get_bitfield()[m_sends.front().get_index()]) {
+      std::stringstream s;
+
+      s << "Peer requested a piece with invalid index: " << m_sends.front().get_index();
+
+      throw communication_error(s.str());
+    }
+
     // This check takes care of all possible errors in lenght and offset.
     if (m_sends.front().get_length() > (1 << 17) ||
 	m_sends.front().get_length() == 0 ||
@@ -690,16 +701,6 @@ void PeerConnection::fillWriteBuf() {
       throw communication_error(s.str());
     }
       
-    if (m_sends.front().get_index() < 0 ||
-	m_sends.front().get_index() >= (signed)m_download->get_chunk_total() ||
-	!m_download->get_content().get_bitfield()[m_sends.front().get_index()]) {
-      std::stringstream s;
-
-      s << "Peer requested a piece with invalid index: " << m_sends.front().get_index();
-
-      throw communication_error(s.str());
-    }
-
     bufCmd(PIECE, 9 + m_sends.front().get_length());
     bufW32(m_sends.front().get_index());
     bufW32(m_sends.front().get_offset());
