@@ -56,16 +56,16 @@ public:
 
   void                set_chunk_size(uint32_t size);
 
-  size_t              get_files_size()                        { return Base::size(); }
-  off_t               get_bytes_size()                        { return m_size; }
+  size_t              get_files_size() const                  { return Base::size(); }
+  off_t               get_bytes_size() const                  { return m_size; }
 
   // If this call returns false, the chunk might only be partially valid.
   bool                get_chunk(StorageChunk& chunk, uint32_t b, int prot);
 
-  uint32_t            get_chunk_total()                       { return (m_size + m_chunksize - 1) / m_chunksize; }
-  uint32_t            get_chunk_size()                        { return m_chunksize; }
+  uint32_t            get_chunk_total() const                 { return (m_size + m_chunksize - 1) / m_chunksize; }
+  uint32_t            get_chunk_size() const                  { return m_chunksize; }
 
-  off_t               get_chunk_position(uint32_t c)          { return c * (off_t)m_chunksize; }
+  off_t               get_chunk_position(uint32_t c) const    { return c * (off_t)m_chunksize; }
 
 private:
   MemoryChunk         get_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);

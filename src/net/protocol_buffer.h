@@ -26,6 +26,8 @@
 #include <inttypes.h>
 #include <netinet/in.h>
 
+#include "torrent/exceptions.h"
+
 namespace torrent {
 
 template <uint16_t tmpl_size>
@@ -39,13 +41,13 @@ public:
   void                reset_end()                             { m_end = m_buffer; }
   void                move_end(size_type v)                   { m_end += v; }
 
-  uint8_t             read_uint8();
-  uint8_t             peek_uint8();
-  uint32_t            read_uint32();
-  uint32_t            peek_uint32();
+  uint8_t             read8();
+  uint8_t             peek8();
+  uint32_t            read32();
+  uint32_t            peek32();
 
-  void                write_uint8(uint8_t v);
-  void                write_uint32(uint32_t v);
+  void                write8(uint8_t v);
+  void                write32(uint32_t v);
 
   iterator            begin()                                 { return m_buffer; }
   iterator            end()                                   { return m_end; }
@@ -61,19 +63,19 @@ private:
 
 template <uint16_t tmpl_size>
 inline uint8_t
-ProtocolBuffer<tmpl_size>::read_uint8() {
+ProtocolBuffer<tmpl_size>::read8() {
   return *(m_end++);
 }
 
 template <uint16_t tmpl_size>
 inline uint8_t
-ProtocolBuffer<tmpl_size>::peek_uint8() {
+ProtocolBuffer<tmpl_size>::peek8() {
   return *m_end;
 }
 
 template <uint16_t tmpl_size>
 inline uint32_t
-ProtocolBuffer<tmpl_size>::read_uint32() {
+ProtocolBuffer<tmpl_size>::read32() {
   uint32_t t = ntohl(*(uint32_t*)m_end);
   m_end += sizeof(uint32_t);
 
@@ -82,22 +84,27 @@ ProtocolBuffer<tmpl_size>::read_uint32() {
 
 template <uint16_t tmpl_size>
 inline uint32_t
-ProtocolBuffer<tmpl_size>::peek_uint32() {
+ProtocolBuffer<tmpl_size>::peek32() {
   return ntohl(*(uint32_t*)m_end);
 }
 
 template <uint16_t tmpl_size>
 inline void
-ProtocolBuffer<tmpl_size>::write_uint8(uint8_t v) {
+ProtocolBuffer<tmpl_size>::write8(uint8_t v) {
   *(m_end++) = v;
+
+  if (m_end > m_buffer + tmpl_size)
+    throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
 }
 
 template <uint16_t tmpl_size>
 inline void
-ProtocolBuffer<tmpl_size>::write_uint32(uint32_t v) {
+ProtocolBuffer<tmpl_size>::write32(uint32_t v) {
   *(uint32_t*)m_end = htonl(v);
-
   m_end += sizeof(uint32_t);
+
+  if (m_end > m_buffer + tmpl_size)
+    throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
 }
 
 }

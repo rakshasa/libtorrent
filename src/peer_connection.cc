@@ -75,16 +75,16 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   Poll::write_set().insert(this);
   Poll::except_set().insert(this);
 
-  m_up.m_buf.reset_end();
-  m_down.m_buf.reset_end();
+  m_write.get_buffer().reset_end();
+  m_read.get_buffer().reset_end();
 
   if (!d->get_content().get_bitfield().all_zero()) {
     // Send bitfield to peer.
     bufCmd(BITFIELD, 1 + m_download->get_content().get_bitfield().size_bytes());
-    m_up.length = m_up.m_buf.size();
-    m_up.m_buf.reset_end();
+    m_up.length = m_write.get_buffer().size();
+    m_write.get_buffer().reset_end();
 
-    m_up.state = WRITE_MSG;
+    m_write.set_state(ProtocolWrite::MSG);
   }
     
   m_taskKeepAlive.insert(Timer::current() + 120 * 1000000);
@@ -101,24 +101,24 @@ void PeerConnection::read() {
     
   evil_goto_read:
     
-  switch (m_down.state) {
-  case IDLE:
-    m_down.m_buf.reset_end();
-    m_down.state = READ_LENGTH;
+  switch (m_read.get_state()) {
+  case ProtocolRead::IDLE:
+    m_read.get_buffer().reset_end();
+    m_read.set_state(ProtocolRead::LENGTH);
 
-  case READ_LENGTH:
-    m_down.m_buf.move_end(read_buf(m_down.m_buf.end(), 4 - m_down.m_buf.size()));
+  case ProtocolRead::LENGTH:
+    m_read.get_buffer().move_end(read_buf(m_read.get_buffer().end(), 4 - m_read.get_buffer().size()));
 
-    if (m_down.m_buf.size() != 4)
+    if (m_read.get_buffer().size() != 4)
       return;
 
-    m_down.m_buf.reset_end();
-    m_down.lengthOrig = m_down.length = bufR32(true); // Peek so we don't need to reset again.
+    m_read.get_buffer().reset_end();
+    m_down.lengthOrig = m_down.length = m_read.get_buffer().peek32();
 
     if (m_down.length == 0) {
       // Received ping.
 
-      m_down.state = IDLE;
+      m_read.set_state(ProtocolRead::IDLE);
       m_down.lastCommand = KEEP_ALIVE;
 
       return;
@@ -130,22 +130,22 @@ void PeerConnection::read() {
       throw communication_error(s.str());
     }
     
-    m_down.state = READ_TYPE;
+    m_read.set_state(ProtocolRead::TYPE);
 
     // TMP
-    if (m_down.m_buf.size() != 0)
+    if (m_read.get_buffer().size() != 0)
       throw internal_error("Length bork bork bork1");
 
     // TODO: Read up to 9 or something.
-  case READ_TYPE:
-    m_down.m_buf.move_end(read_buf(m_down.m_buf.end(), 1));
+  case ProtocolRead::TYPE:
+    m_read.get_buffer().move_end(read_buf(m_read.get_buffer().end(), 1));
 
-    if (m_down.m_buf.size() != 1)
+    if (m_read.get_buffer().size() != 1)
       return;
 
-    m_down.m_buf.reset_end();
+    m_read.get_buffer().reset_end();
 
-    switch (m_down.m_buf.peek_uint8()) {
+    switch (m_read.get_buffer().peek8()) {
     case REQUEST:
     case CANCEL:
       if (m_down.length != 13)
@@ -182,14 +182,14 @@ void PeerConnection::read() {
 
       //m_net->signal_network_log().emit("Receiving bitfield");
 
-      //m_down.m_buf.reset_end();
+      //m_read.get_buffer().reset_end();
       m_down.m_pos2 = 0;
-      m_down.state = READ_BITFIELD;
+      m_read.set_state(ProtocolRead::BITFIELD);
 
       goto evil_goto_read;
 
     default:
-      if (m_down.m_buf.peek_uint8() > CANCEL)
+      if (m_read.get_buffer().peek8() > CANCEL)
 	throw communication_error("Received unknown protocol command");
 
       // Handle 1 byte long messages here.
@@ -199,45 +199,45 @@ void PeerConnection::read() {
     };
 
     // Keep the command byte in the buffer.
-    m_down.state = READ_MSG;
+    m_read.set_state(ProtocolRead::MSG);
     // Read here so the next writes are at the right position.
-    m_down.lastCommand = (Protocol)m_down.m_buf.read_uint8();
+    m_down.lastCommand = (Protocol)m_read.get_buffer().read8();
 
-  case READ_MSG:
+  case ProtocolRead::MSG:
     if (m_down.length > 1)
-      m_down.m_buf.move_end(read_buf(m_down.m_buf.end(), m_down.length - m_down.m_buf.size()));
+      m_read.get_buffer().move_end(read_buf(m_read.get_buffer().end(), m_down.length - m_read.get_buffer().size()));
 
-    if (m_down.m_buf.size() != m_down.length)
+    if (m_read.get_buffer().size() != m_down.length)
       return;
 
-    m_down.m_buf.reset_end();
+    m_read.get_buffer().reset_end();
 
-    switch (m_down.m_buf.peek_uint8()) {
+    switch (m_read.get_buffer().peek8()) {
     case PIECE:
       if (m_down.lengthOrig == 9) {
 	// Some clients send zero length messages when we request pieces
 	// they don't have.
 	m_net->signal_network_log().emit("Received piece with length zero");
 
-	m_down.state = IDLE;
+	m_read.set_state(ProtocolRead::IDLE);
 	goto evil_goto_read;
       }
 
-      m_down.m_buf.read_uint8();
-      piece.set_index(bufR32());
-      piece.set_offset(bufR32());
+      m_read.get_buffer().read8();
+      piece.set_index(m_read.get_buffer().read32());
+      piece.set_offset(m_read.get_buffer().read32());
       piece.set_length(m_down.lengthOrig - 9);
       
       m_down.m_pos2 = 0;
       
       if (m_requests.downloading(piece)) {
-	m_down.state = READ_PIECE;
+	m_read.set_state(ProtocolRead::PIECE);
 	load_chunk(m_requests.get_piece().get_index(), m_down);
 
       } else {
 	// We don't want the piece,
 	m_down.length = piece.get_length();
-	m_down.state = READ_SKIP_PIECE;
+	m_read.set_state(ProtocolRead::SKIP_PIECE);
 
 	m_net->signal_network_log().emit("Receiving piece we don't want from " + m_peer.get_dns());
       }
@@ -248,14 +248,17 @@ void PeerConnection::read() {
       // parseReadBuf() will read the cmd.
       parseReadBuf();
       
-      m_down.state = IDLE;
+      m_read.set_state(ProtocolRead::IDLE);
       goto evil_goto_read;
     }
 
-  case READ_BITFIELD:
-    m_down.m_pos2 += read_buf(m_bitfield.begin() + m_down.m_pos2, m_bitfield.size_bytes() - m_down.m_pos2);
+  case ProtocolRead::BITFIELD:
+//     m_down.m_pos2 += read_buf(m_bitfield.begin() + m_down.m_pos2, m_bitfield.size_bytes() - m_down.m_pos2);
 
-    if (m_down.m_pos2 != m_bitfield.size_bytes())
+//     if (m_down.m_pos2 != m_bitfield.size_bytes())
+//       return;
+
+    if (!read_buffer(m_bitfield.begin() + m_down.m_pos2, m_bitfield.size_bytes(), m_down.m_pos2))
       return;
 
     m_bitfield.update_count();
@@ -268,18 +271,18 @@ void PeerConnection::read() {
       throw close_connection();
     }
 
-    m_down.state = IDLE;
+    m_read.set_state(ProtocolRead::IDLE);
     m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
     Poll::write_set().insert(this);
     goto evil_goto_read;
 
-  case READ_PIECE:
+  case ProtocolRead::PIECE:
     if (!m_requests.is_downloading())
-      throw internal_error("READ_PIECE state but RequestList is not downloading");
+      throw internal_error("ProtocolRead::PIECE state but RequestList is not downloading");
 
     if (!m_requests.is_wanted()) {
-      m_down.state = READ_SKIP_PIECE;
+      m_read.set_state(ProtocolRead::SKIP_PIECE);
       m_down.length = m_requests.get_piece().get_length() - m_down.m_pos2;
       m_down.m_pos2 = 0;
 
@@ -291,7 +294,7 @@ void PeerConnection::read() {
     if (!readChunk())
       return;
 
-    m_down.state = IDLE;
+    m_read.set_state(ProtocolRead::IDLE);
     m_tryRequest = true;
 
     m_requests.finished();
@@ -308,12 +311,12 @@ void PeerConnection::read() {
 
     goto evil_goto_read;
 
-  case READ_SKIP_PIECE:
+  case ProtocolRead::SKIP_PIECE:
     if (m_down.m_pos2 != 0)
-      throw internal_error("READ_SKIP_PIECE m_down.pos != 0");
+      throw internal_error("ProtocolRead::SKIP_PIECE m_down.pos != 0");
 
-    m_down.m_pos2 = read_buf(m_down.m_buf.begin(),
-			     std::min<int>(m_down.length, m_down.m_buf.reserved()));
+    m_down.m_pos2 = read_buf(m_read.get_buffer().begin(),
+			     std::min<int>(m_down.length, m_read.get_buffer().reserved()));
 
     if (m_down.m_pos2 == 0)
       return;
@@ -325,7 +328,7 @@ void PeerConnection::read() {
 
     if (m_down.length == 0) {
       // Done with this piece.
-      m_down.state = IDLE;
+      m_read.set_state(ProtocolRead::IDLE);
       m_tryRequest = true;
 
       m_taskStall.remove();
@@ -354,7 +357,7 @@ void PeerConnection::read() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection read fd(" << m_fd.get_fd() << ") state(" << m_down.state << ") \"" << e.what() << '"';
+    s << "Connection read fd(" << m_fd.get_fd() << ") state(" << m_read.get_state() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
@@ -370,9 +373,9 @@ void PeerConnection::write() {
 
   evil_goto_write:
 
-  switch (m_up.state) {
-  case IDLE:
-    m_up.m_buf.reset_end();
+  switch (m_write.get_state()) {
+  case ProtocolWrite::IDLE:
+    m_write.get_buffer().reset_end();
 
     // Keep alives must set the 5th bit to something IDLE
 
@@ -381,22 +384,22 @@ void PeerConnection::write() {
 
     fillWriteBuf();
 
-    if (m_up.m_buf.size() == 0)
+    if (m_write.get_buffer().size() == 0)
       return Poll::write_set().erase(this);
 
-    m_up.state = WRITE_MSG;
-    m_up.length = m_up.m_buf.size();
-    m_up.m_buf.reset_end();
+    m_write.set_state(ProtocolWrite::MSG);
+    m_up.length = m_write.get_buffer().size();
+    m_write.get_buffer().reset_end();
 
-  case WRITE_MSG:
-    m_up.m_buf.move_end(write_buf(m_up.m_buf.end(), m_up.length - m_up.m_buf.size()));
+  case ProtocolWrite::MSG:
+    m_write.get_buffer().move_end(write_buf(m_write.get_buffer().end(), m_up.length - m_write.get_buffer().size()));
 
-    if (m_up.m_buf.size() != m_up.length)
+    if (m_write.get_buffer().size() != m_up.length)
       return;
 
     switch (m_up.lastCommand) {
     case BITFIELD:
-      m_up.state = WRITE_BITFIELD;
+      m_write.set_state(ProtocolWrite::BITFIELD);
       m_up.m_pos2 = 0;
 
       goto evil_goto_write;
@@ -407,7 +410,7 @@ void PeerConnection::write() {
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
       m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read);
-      m_up.state = WRITE_PIECE;
+      m_write.set_state(ProtocolWrite::PIECE);
       m_up.m_pos2 = 0;
 
       if (!m_up.data.is_valid())
@@ -418,22 +421,22 @@ void PeerConnection::write() {
     default:
       //m_net->signal_network_log().emit("Wrote message to peer");
 
-      m_up.state = IDLE;
+      m_write.set_state(ProtocolWrite::IDLE);
       return;
     }
 
-  case WRITE_BITFIELD:
+  case ProtocolWrite::BITFIELD:
     m_up.m_pos2 += write_buf(m_download->get_content().get_bitfield().begin() + m_up.m_pos2,
 			     m_download->get_content().get_bitfield().size_bytes() - m_up.m_pos2);
 
     if (m_up.m_pos2 == m_download->get_content().get_bitfield().size_bytes())
-      m_up.state = IDLE;
+      m_write.set_state(ProtocolWrite::IDLE);
 
     return;
 
-  case WRITE_PIECE:
+  case ProtocolWrite::PIECE:
     if (m_sends.empty())
-      throw internal_error("WRITE_PIECE on an empty list");
+      throw internal_error("ProtocolWrite::PIECE on an empty list");
 
     previous = m_up.m_pos2;
     maxBytes = m_throttle.left();
@@ -461,7 +464,7 @@ void PeerConnection::write() {
 
     m_sends.pop_front();
 
-    m_up.state = IDLE;
+    m_write.set_state(ProtocolWrite::IDLE);
     return;
 
   default:
@@ -481,7 +484,7 @@ void PeerConnection::write() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection write fd(" << m_fd.get_fd() << ") state(" << m_up.state << ") \"" << e.what() << '"';
+    s << "Connection write fd(" << m_fd.get_fd() << ") state(" << m_write.get_state() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
@@ -500,7 +503,7 @@ void PeerConnection::parseReadBuf() {
   SendList::iterator rItr;
   std::stringstream str;
 
-  Protocol curCmd = (Protocol)m_down.m_buf.read_uint8();
+  Protocol curCmd = (Protocol)m_read.get_buffer().read8();
 
   switch (curCmd) {
   case CHOKE:
@@ -545,9 +548,9 @@ void PeerConnection::parseReadBuf() {
     if (m_up.choked)
       return;
 
-    index = bufR32();
-    offset = bufR32();
-    length = bufR32();
+    index = m_read.get_buffer().read32();
+    offset = m_read.get_buffer().read32();
+    length = m_read.get_buffer().read32();
 
     rItr = std::find(m_sends.begin(), m_sends.end(),
 		     Piece(index, offset, length));
@@ -562,14 +565,14 @@ void PeerConnection::parseReadBuf() {
     } else if (rItr != m_sends.end()) {
 
       // Only cancel if we're not writing it.
-      if (rItr != m_sends.begin() || m_up.lastCommand != PIECE || m_up.state == IDLE)
+      if (rItr != m_sends.begin() || m_up.lastCommand != PIECE || m_write.get_state() == ProtocolWrite::IDLE)
 	m_sends.erase(rItr);
     }
 
     return Poll::write_set().insert(this);
 
   case HAVE:
-    index = bufR32();
+    index = m_read.get_buffer().read32();
 
     if (index >= m_bitfield.size_bits())
       throw communication_error("Recived HAVE command with invalid value");
@@ -641,13 +644,13 @@ void PeerConnection::fillWriteBuf() {
 
   if (m_tryRequest && !m_down.choked && m_up.interested &&
 
-      m_down.state != READ_SKIP_PIECE &&
+      m_read.get_state() != ProtocolRead::SKIP_PIECE &&
       m_net->should_request(m_stallCount) &&
       m_requests.get_size() < (pipeSize = m_net->pipe_size(m_throttle.down()))) {
 
     m_tryRequest = false;
 
-    while (m_requests.get_size() < pipeSize && m_up.m_buf.reserved_left() >= 16 && request_piece())
+    while (m_requests.get_size() < pipeSize && m_write.get_buffer().reserved_left() >= 16 && request_piece())
 
       if (m_requests.get_size() == 1) {
 	if (m_taskStall.is_scheduled())
@@ -661,37 +664,21 @@ void PeerConnection::fillWriteBuf() {
   // Max buf size 17 * 'req pipe' + 10
 
   while (!m_haveQueue.empty() &&
-	 m_up.m_buf.reserved_left() >= 9) {
+	 m_write.get_buffer().reserved_left() >= 9) {
     bufCmd(HAVE, 5);
-    bufW32(m_haveQueue.front());
+    m_write.get_buffer().write32(m_haveQueue.front());
 
     m_haveQueue.pop_front();
   }
 
+  // Should we send a piece to the peer?
   if (!m_up.choked &&
       !m_sendChoked &&
       !m_sends.empty() &&
-      m_up.m_buf.reserved_left() >= 13) {
-    // Sending chunk to peer.
+      m_write.get_buffer().reserved_left() >= 13) {
 
-    // Move these checks somewhere else.
-    if (m_sends.front().get_index() < 0 ||
-	m_sends.front().get_index() >= (signed)m_download->get_chunk_total() ||
-	!m_download->get_content().get_bitfield()[m_sends.front().get_index()]) {
-      std::stringstream s;
-
-      s << "Peer requested a piece with invalid index: " << m_sends.front().get_index();
-
-      throw communication_error(s.str());
-    }
-
-    // This check takes care of all possible errors in lenght and offset.
-    if (m_sends.front().get_length() > (1 << 17) ||
-	m_sends.front().get_length() == 0 ||
-
-	m_sends.front().get_length() + m_sends.front().get_offset() >
-	m_download->get_content().get_chunksize(m_sends.front().get_index())) {
-
+    // Move these checks somewhere else?
+    if (!m_download->get_content().is_valid_piece(m_sends.front())) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid length or offset: "
@@ -701,9 +688,17 @@ void PeerConnection::fillWriteBuf() {
       throw communication_error(s.str());
     }
       
+    if (!m_download->get_content().has_chunk(m_sends.front().get_index())) {
+      std::stringstream s;
+      s << "Peer requested a piece with invalid index: " << m_sends.front().get_index();
+
+      throw communication_error(s.str());
+    }
+
+    // This check takes care of all possible errors in lenght and offset.
     bufCmd(PIECE, 9 + m_sends.front().get_length());
-    bufW32(m_sends.front().get_index());
-    bufW32(m_sends.front().get_offset());
+    m_write.get_buffer().write32(m_sends.front().get_index());
+    m_write.get_buffer().write32(m_sends.front().get_offset());
   }
 }
 
@@ -745,15 +740,20 @@ PeerConnection::task_keep_alive() {
     return;
   }
 
-  if (m_up.state == IDLE) {
+  // Send keep-alive only if we arn't already transmitting. There's no
+  // point to send it if there is data being sendt, and we don't
+  // bother with a timer for the last sendt message since it is
+  // cleaner just to send this message.
+
+  if (m_write.get_state() == ProtocolWrite::IDLE) {
     // TODO: don't use bufCmd
-    m_up.m_buf.reset_end();
-    m_up.m_buf.write_uint32(0);
-    m_up.length = m_up.m_buf.size();
-    m_up.m_buf.reset_end();
+    m_write.get_buffer().reset_end();
+    m_write.get_buffer().write32(0);
+    m_up.length = m_write.get_buffer().size();
+    m_write.get_buffer().reset_end();
 
     m_up.lastCommand = KEEP_ALIVE;
-    m_up.state = WRITE_MSG;
+    m_write.set_state(ProtocolWrite::MSG);
 
     Poll::write_set().insert(this);
   }

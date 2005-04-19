@@ -90,14 +90,9 @@ HandshakeIncoming::write() {
   try {
   switch (m_state) {
   case WRITE_HEADER:
-//     if (!write_buf2(m_buf + m_pos, 68, m_pos))
-//       return;
- 
-    m_pos += write_buf(m_buf + m_pos, 68 - m_pos);
-
-    if (m_pos != 68)
+    if (!write_buffer(m_buf + m_pos, 68, m_pos))
       return;
-
+ 
     Poll::write_set().erase(this);
     Poll::read_set().insert(this);
  

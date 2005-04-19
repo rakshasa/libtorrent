@@ -155,7 +155,7 @@ public:
   typedef sigc::slot1<void, const std::string&> SlotString;
 
   typedef sigc::slot1<void, Peer>               SlotPeer;
-  typedef sigc::slot1<void, Bencode&>           SlotBencode;
+  typedef sigc::slot1<void, std::istream*>      SlotIStream;
   typedef sigc::slot1<void, uint32_t>           SlotChunk;
 
   sigc::connection    signal_download_done(SlotVoid s);
@@ -166,7 +166,7 @@ public:
 
   sigc::connection    signal_tracker_succeded(SlotVoid s);
   sigc::connection    signal_tracker_failed(SlotString s);
-  sigc::connection    signal_tracker_dump(SlotBencode s);
+  sigc::connection    signal_tracker_dump(SlotIStream s);
 
   sigc::connection    signal_chunk_passed(SlotChunk s);
   sigc::connection    signal_chunk_failed(SlotChunk s);

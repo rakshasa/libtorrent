@@ -77,7 +77,7 @@ Content::get_hash(unsigned int index) {
 }
 
 uint32_t
-Content::get_chunksize(uint32_t index) {
+Content::get_chunksize(uint32_t index) const {
   if (m_storage.get_chunk_size() == 0 || index >= m_storage.get_chunk_total())
     throw internal_error("Content::get_chunksize(...) called but we borked");
 
@@ -126,6 +126,19 @@ Content::is_correct_size() {
   }
 
   return true;
+}
+
+bool
+Content::is_valid_piece(const Piece& p) const {
+  return
+    (uint32_t)p.get_index() < m_storage.get_chunk_total() &&
+
+    p.get_length() != 0 &&
+    p.get_length() < (1 << 17) &&
+
+    // Make sure offset does not overflow 32 bits.
+    p.get_offset() < (1 << 30) &&
+    p.get_offset() + p.get_length() <= get_chunksize(p.get_index());
 }
 
 void

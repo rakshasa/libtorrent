@@ -114,19 +114,19 @@ TrackerControl::cancel() {
 
 void
 TrackerControl::receive_done(Bencode& bencode) {
+  if (m_itr->second->get_data() != NULL)
+    m_signalDump.emit(m_itr->second->get_data());
+
   PeerList l;
 
-  m_signalBencode.emit(bencode);
-
   try {
+    parse_check_failure(bencode);
+    parse_fields(bencode);
 
-  parse_check_failure(bencode);
-  parse_fields(bencode);
-
-  if (bencode["peers"].is_string())
-    parse_peers_compact(l, bencode["peers"].as_string());
-  else
-    parse_peers_normal(l, bencode["peers"].as_list());
+    if (bencode["peers"].is_string())
+      parse_peers_compact(l, bencode["peers"].as_string());
+    else
+      parse_peers_normal(l, bencode["peers"].as_list());
 
   } catch (bencode_error& e) {
     return receive_failed(e.what());
@@ -147,15 +147,16 @@ TrackerControl::receive_done(Bencode& bencode) {
 
 void
 TrackerControl::receive_failed(const std::string& msg) {
+  if (m_itr->second->get_data() != NULL)
+    m_signalDump.emit(m_itr->second->get_data());
+
   ++m_itr;
 
   if (m_itr == m_list.end())
     m_itr = m_list.begin();
 
-  if (m_state != TrackerInfo::STOPPED) {
-    // TODO: Add support for multiple trackers. Iterate if m_failed > X.
+  if (m_state != TrackerInfo::STOPPED)
     m_taskTimeout.insert(Timer::cache() + 20 * 1000000);
-  }
 
   m_signalFailed.emit(msg);
 }

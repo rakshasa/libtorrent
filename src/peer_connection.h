@@ -31,6 +31,8 @@
 #include "data/storage.h"
 #include "peer/request_list.h"
 #include "net/protocol_buffer.h"
+#include "net/protocol_read.h"
+#include "net/protocol_write.h"
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
 #include "utils/task.h"
@@ -47,20 +49,6 @@ class DownloadNet;
 
 class PeerConnection : public SocketBase {
 public:
-  typedef enum {
-    IDLE = 1,
-    READ_LENGTH,
-    READ_TYPE,
-    READ_MSG,
-    READ_BITFIELD,
-    READ_PIECE,
-    READ_SKIP_PIECE,
-    WRITE_MSG,
-    WRITE_BITFIELD,
-    WRITE_PIECE,
-    SHUTDOWN
-  } State;
-
   typedef enum {
     CHOKE = 0,
     UNCHOKE,
@@ -128,8 +116,6 @@ private:
 
   // Send a msg to the buffer.
   void bufCmd(Protocol cmd, unsigned int length);
-  void bufW32(uint32_t v);
-  uint32_t bufR32(bool peep = false);
 
   // Parse packet in read buffer, must be of correct type.
   void parseReadBuf();
@@ -164,6 +150,9 @@ private:
 
   Sub            m_up;
   Sub            m_down;
+
+  ProtocolRead   m_read;
+  ProtocolWrite  m_write;
 
   Rate           m_ratePeer;
   Throttle       m_throttle;

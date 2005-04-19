@@ -31,6 +31,7 @@
 #include "content_file.h"
 #include "data/storage.h"
 #include "data/file_manager.h"
+#include "data/piece.h"
 
 namespace torrent {
 
@@ -65,7 +66,7 @@ public:
   uint32_t               get_chunks_completed()          { return m_completed; }
   uint64_t               get_bytes_completed();
 
-  uint32_t               get_chunksize(uint32_t index);
+  uint32_t               get_chunksize(uint32_t index) const;
 
   BitField&              get_bitfield()                  { return m_bitfield; }
   FileList&              get_files()                     { return m_files; }
@@ -74,6 +75,10 @@ public:
   bool                   is_open()                       { return m_storage.get_bytes_size(); }
   bool                   is_correct_size();
   bool                   is_done()                       { return m_completed == m_storage.get_chunk_total(); }
+
+  bool                   is_valid_piece(const Piece& p) const;
+
+  bool                   has_chunk(uint32_t index) const { return m_bitfield[index]; }
 
   void                   open(bool wr = false);
   void                   close();

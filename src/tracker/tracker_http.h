@@ -59,6 +59,7 @@ public:
   void               close();
 
   TrackerInfo*       get_info()                            { return m_info; }
+  std::stringstream* get_data()                            { return m_data; }
 
   const std::string& get_url()                             { return m_url; }
   void               set_url(const std::string& url)       { m_url = url; }

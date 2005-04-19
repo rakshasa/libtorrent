@@ -49,9 +49,9 @@ public:
   // Call this when all files have been added.
   void                 set_chunk_size(uint32_t s);
   
-  off_t                get_bytes_size()                        { return m_consolidator.get_bytes_size(); }
-  uint32_t             get_chunk_total()                       { return m_consolidator.get_chunk_total(); }
-  uint32_t             get_chunk_size()                        { return m_consolidator.get_chunk_size(); }
+  off_t                get_bytes_size() const                  { return m_consolidator.get_bytes_size(); }
+  uint32_t             get_chunk_total() const                 { return m_consolidator.get_chunk_total(); }
+  uint32_t             get_chunk_size() const                  { return m_consolidator.get_chunk_size(); }
 
   // Make sure the protection includes read even if you only want
   // write, this ensure that we don't get a reallocation cycle if

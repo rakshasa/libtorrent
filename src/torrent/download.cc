@@ -383,8 +383,8 @@ Download::signal_tracker_failed(Download::SlotString s) {
 }
 
 sigc::connection
-Download::signal_tracker_dump(Download::SlotBencode s) {
-  return m_ptr->get_main().get_tracker().signal_bencode().connect(s);
+Download::signal_tracker_dump(Download::SlotIStream s) {
+  return m_ptr->get_main().get_tracker().signal_dump().connect(s);
 }
 
 sigc::connection

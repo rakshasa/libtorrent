@@ -20,31 +20,39 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-class Sub {
- public:
-  friend class PeerConnection;
+#ifndef LIBTORRENT_NET_PROTOCOL_READ_H
+#define LIBTORRENT_NET_PROTOCOL_READ_H
 
-  Sub() :
-    choked(true),
-    interested(false),
-    lastCommand(NONE),
-    length(0),
-    lengthOrig(0)
-    {}
+#include "protocol_buffer.h"
 
-  bool c_choked() const { return choked; }
-  bool c_interested() const { return interested; }
+namespace torrent {
 
- protected:
-  bool choked;
-  bool interested;
-  
-  Protocol lastCommand;
+class ProtocolRead {
+public:
+  typedef ProtocolBuffer<512> Buffer;
 
-  unsigned int m_pos2;
+  typedef enum {
+    IDLE,
+    LENGTH,
+    TYPE,
+    MSG,
+    BITFIELD,
+    PIECE,
+    SKIP_PIECE
+  } State;
 
-  unsigned int length;
-  unsigned int lengthOrig;
-  
-  Storage::Chunk data;
+  ProtocolRead() : m_state(IDLE) {}
+
+  State               get_state() const             { return m_state; }
+  void                set_state(State s)            { m_state = s; }
+
+  Buffer&             get_buffer()                  { return m_buffer; }
+
+private:
+  State               m_state;
+  Buffer              m_buffer;
 };
+
+}
+
+#endif

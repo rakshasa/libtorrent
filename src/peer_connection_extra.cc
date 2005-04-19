@@ -67,7 +67,7 @@ PeerConnection::~PeerConnection() {
 
     m_requests.cancel();
 
-    if (m_down.state != READ_BITFIELD)
+    if (m_read.get_state() != ProtocolRead::BITFIELD)
       m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
   }
 
@@ -138,27 +138,13 @@ PeerConnection::readChunk() {
 }
   
 void PeerConnection::bufCmd(Protocol cmd, unsigned int length) {
-  m_up.m_buf.write_uint32(length);
-  m_up.m_buf.write_uint8(cmd);
+  m_write.get_buffer().write32(length);
+  m_write.get_buffer().write8(cmd);
 
-  if (m_up.m_buf.size() > m_up.m_buf.reserved())
+  if (m_write.get_buffer().size() > m_write.get_buffer().reserved())
     throw internal_error("PeerConnection write buffer to small");
 
   m_up.lastCommand = cmd;
-}
-
-void PeerConnection::bufW32(uint32_t v) {
-  m_up.m_buf.write_uint32(v);
-
-  if (m_up.m_buf.size() > m_up.m_buf.reserved())
-    throw internal_error("PeerConnection tried to write beyond scope of packet");
-}
-
-uint32_t PeerConnection::bufR32(bool peep) {
-  if (m_down.m_buf.size() + 4 > m_down.m_buf.reserved())
-    throw internal_error("PeerConnection tried to read beyond scope of packet");
-
-  return peep ? m_down.m_buf.peek_uint32() : m_down.m_buf.read_uint32();
 }
  
 void
@@ -207,9 +193,9 @@ PeerConnection::request_piece() {
     throw internal_error("Delegator gave us a piece with invalid range or not in peer");
 
   bufCmd(REQUEST, 13);
-  bufW32(p->get_index());
-  bufW32(p->get_offset());
-  bufW32(p->get_length());
+  m_write.get_buffer().write32(p->get_index());
+  m_write.get_buffer().write32(p->get_offset());
+  m_write.get_buffer().write32(p->get_length());
 
   return true;
 }

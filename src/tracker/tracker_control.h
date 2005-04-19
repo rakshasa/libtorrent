@@ -49,7 +49,7 @@ class TrackerControl {
   typedef std::list<PeerInfo>                     PeerList;
 
   typedef sigc::slot0<uint64_t>                   SlotStat;
-  typedef sigc::signal1<void, Bencode&>           SignalBencode;
+  typedef sigc::signal1<void, std::istream*>      SignalDump;
   typedef sigc::signal1<void, const PeerList&>    SignalPeers;
   typedef sigc::signal1<void, const std::string&> SignalString;
 
@@ -70,7 +70,7 @@ class TrackerControl {
 
   bool                  is_busy();
 
-  SignalBencode         signal_bencode()                        { return m_signalBencode; }
+  SignalDump&           signal_dump()                           { return m_signalDump; }
   SignalPeers&          signal_peers()                          { return m_signalPeers; }
   SignalString&         signal_failed()                         { return m_signalFailed; }
 
@@ -108,7 +108,7 @@ class TrackerControl {
   Timer                 m_timerMinInterval;
   Task                  m_taskTimeout;
 
-  SignalBencode         m_signalBencode;
+  SignalDump            m_signalDump;
   SignalPeers           m_signalPeers;
   SignalString          m_signalFailed;
 

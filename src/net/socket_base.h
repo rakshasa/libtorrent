@@ -24,6 +24,7 @@
 #define LIBTORRENT_NET_SOCKET_BASE_H
 
 #include <list>
+#include <inttypes.h>
 
 #include "socket_fd.h"
 
@@ -49,6 +50,9 @@ protected:
   unsigned int        read_buf(void* buf, unsigned int length);
   unsigned int        write_buf(const void* buf, unsigned int length);
 
+  bool                read_buffer(void* buf, uint32_t length, uint32_t& pos);
+  bool                write_buffer(const void* buf, uint32_t length, uint32_t& pos);
+
   SocketFd            m_fd;
 
 private:
@@ -56,6 +60,20 @@ private:
   SocketBase(const SocketBase&);
   void operator = (const SocketBase&);
 };
+
+inline bool
+SocketBase::read_buffer(void* buf, uint32_t length, uint32_t& pos) {
+  pos += read_buf(buf, length - pos);
+
+  return pos == length;
+}
+
+inline bool
+SocketBase::write_buffer(const void* buf, uint32_t length, uint32_t& pos) {
+  pos += write_buf(buf, length - pos);
+
+  return pos == length;
+}
 
 }
 

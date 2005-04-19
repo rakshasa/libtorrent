@@ -160,19 +160,18 @@ TrackerHttp::receive_done() {
   Bencode b;
   *m_data >> b;
 
-  if (m_data->fail()) {
+  if (m_data->fail())
     return receive_failed("Could not parse bencoded data");
-  } else {
-    close();
-    m_signalDone.emit(b);
-  }
+
+  m_signalDone.emit(b);
+  close();
 }
 
 void
 TrackerHttp::receive_failed(std::string msg) {
-  close();
-
+  // Does the order matter?
   m_signalFailed.emit(msg);
+  close();
 }
 
 }
