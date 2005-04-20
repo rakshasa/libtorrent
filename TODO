@@ -110,6 +110,8 @@ disallow for open torrents?
 
 CURRENT:
 
+Make sure last command is correctly updated with the new read/write
+classes.
 
 
 NEXT:

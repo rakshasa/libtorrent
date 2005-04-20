@@ -20,32 +20,39 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_PROTOCOL_READ_H
-#define LIBTORRENT_NET_PROTOCOL_READ_H
+#ifndef LIBTORRENT_NET_PROTOCOL_BASE_H
+#define LIBTORRENT_NET_PROTOCOL_BASE_H
 
-#include "protocol_base.h"
+#include "protocol_buffer.h"
 
 namespace torrent {
 
-class ProtocolRead : public ProtocolBase {
+class ProtocolBase {
 public:
+  typedef ProtocolBuffer<512>     Buffer;
+
   typedef enum {
-    IDLE,
-    LENGTH,
-    TYPE,
-    MSG,
+    CHOKE = 0,
+    UNCHOKE,
+    INTERESTED,
+    NOT_INTERESTED,
+    HAVE,
     BITFIELD,
-    READ_PIECE,
-    SKIP_PIECE
-  } State;
+    REQUEST,
+    PIECE,
+    CANCEL,
+    NONE,           // These are not part of the protocol
+    KEEP_ALIVE      // Last command was a keep alive
+  } Protocol;
 
-  ProtocolRead() : m_state(IDLE) {}
+  ProtocolBase() : m_lastCommand(NONE) {}
 
-  State               get_state() const             { return m_state; }
-  void                set_state(State s)            { m_state = s; }
+  Protocol            get_last_command() const      { return m_lastCommand; }
+  Buffer&             get_buffer()                  { return m_buffer; }
 
-private:
-  State               m_state;
+protected:
+  Protocol            m_lastCommand;
+  Buffer              m_buffer;
 };
 
 }

@@ -27,7 +27,7 @@ class Sub {
   Sub() :
     choked(true),
     interested(false),
-    lastCommand(NONE),
+    lastCommand(ProtocolBase::NONE),
     length(0),
     lengthOrig(0)
     {}
@@ -39,7 +39,7 @@ class Sub {
   bool choked;
   bool interested;
   
-  Protocol lastCommand;
+  ProtocolBase::Protocol lastCommand;
 
   unsigned int m_pos2;
 

@@ -49,20 +49,6 @@ class DownloadNet;
 
 class PeerConnection : public SocketBase {
 public:
-  typedef enum {
-    CHOKE = 0,
-    UNCHOKE,
-    INTERESTED,
-    NOT_INTERESTED,
-    HAVE,
-    BITFIELD,
-    REQUEST,
-    PIECE,
-    CANCEL,
-    NONE,           // These are not part of the protocol
-    KEEP_ALIVE      // Last command was a keep alive
-  } Protocol;
-
   typedef std::list<Piece>              SendList;
 
 #include "peer_connection_sub.h"
@@ -113,9 +99,6 @@ private:
 
   bool request_piece();
   void skip_piece();
-
-  // Send a msg to the buffer.
-  void bufCmd(Protocol cmd, unsigned int length);
 
   // Parse packet in read buffer, must be of correct type.
   void parseReadBuf();

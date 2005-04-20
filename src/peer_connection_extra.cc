@@ -137,16 +137,6 @@ PeerConnection::readChunk() {
   return m_down.m_pos2 == p.get_length();
 }
   
-void PeerConnection::bufCmd(Protocol cmd, unsigned int length) {
-  m_write.get_buffer().write32(length);
-  m_write.get_buffer().write8(cmd);
-
-  if (m_write.get_buffer().size() > m_write.get_buffer().reserved())
-    throw internal_error("PeerConnection write buffer to small");
-
-  m_up.lastCommand = cmd;
-}
- 
 void
 PeerConnection::load_chunk(int index, Sub& sub) {
   if (sub.data.is_valid() && index == sub.data->get_index())
@@ -192,10 +182,7 @@ PeerConnection::request_piece() {
       !m_bitfield[p->get_index()])
     throw internal_error("Delegator gave us a piece with invalid range or not in peer");
 
-  bufCmd(REQUEST, 13);
-  m_write.get_buffer().write32(p->get_index());
-  m_write.get_buffer().write32(p->get_offset());
-  m_write.get_buffer().write32(p->get_length());
+  m_write.write_request(*p);
 
   return true;
 }
