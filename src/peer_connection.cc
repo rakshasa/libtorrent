@@ -80,7 +80,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 
   if (!d->get_content().get_bitfield().all_zero()) {
     m_write.write_bitfield(m_download->get_content().get_bitfield().size_bytes());
-    m_up.length = m_write.get_buffer().size();
+    m_upLength = m_write.get_buffer().size();
     m_write.get_buffer().reset_end();
 
     m_write.set_state(ProtocolWrite::MSG);
@@ -231,7 +231,7 @@ void PeerConnection::read() {
       
       if (m_requests.downloading(piece)) {
 	m_read.set_state(ProtocolRead::READ_PIECE);
-	load_chunk(m_requests.get_piece().get_index(), m_down);
+	load_down_chunk(m_requests.get_piece().get_index());
 
       } else {
 	// We don't want the piece,
@@ -252,18 +252,13 @@ void PeerConnection::read() {
     }
 
   case ProtocolRead::BITFIELD:
-//     m_down.m_pos2 += read_buf(m_bitfield.begin() + m_down.m_pos2, m_bitfield.size_bytes() - m_down.m_pos2);
-
-//     if (m_down.m_pos2 != m_bitfield.size_bytes())
-//       return;
-
     if (!read_buffer(m_bitfield.begin() + m_down.m_pos2, m_bitfield.size_bytes(), m_down.m_pos2))
       return;
 
     m_bitfield.update_count();
 
     if (!m_bitfield.all_zero() && m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
-      m_up.interested = m_sendInterested = true;
+      m_write.set_interested(m_sendInterested = true);
       
     } else if (m_bitfield.all_set() && m_download->get_content().is_done()) {
       // Both sides are done so we might as well close the connection.
@@ -387,19 +382,19 @@ void PeerConnection::write() {
       return Poll::write_set().erase(this);
 
     m_write.set_state(ProtocolWrite::MSG);
-    m_up.length = m_write.get_buffer().size();
+    m_upLength = m_write.get_buffer().size();
     m_write.get_buffer().reset_end();
 
   case ProtocolWrite::MSG:
-    m_write.get_buffer().move_end(write_buf(m_write.get_buffer().end(), m_up.length - m_write.get_buffer().size()));
+    m_write.get_buffer().move_end(write_buf(m_write.get_buffer().end(), m_upLength - m_write.get_buffer().size()));
 
-    if (m_write.get_buffer().size() != m_up.length)
+    if (m_write.get_buffer().size() != m_upLength)
       return;
 
     switch (m_write.get_last_command()) {
     case ProtocolBase::BITFIELD:
       m_write.set_state(ProtocolWrite::WRITE_BITFIELD);
-      m_up.m_pos2 = 0;
+      m_upPos = 0;
 
       goto evil_goto_write;
 
@@ -408,11 +403,11 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_up.data = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read);
+      m_upData = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read);
       m_write.set_state(ProtocolWrite::WRITE_PIECE);
-      m_up.m_pos2 = 0;
+      m_upPos = 0;
 
-      if (!m_up.data.is_valid())
+      if (!m_upData.is_valid())
 	throw storage_error("Could not create a valid chunk");
 
       goto evil_goto_write;
@@ -425,10 +420,10 @@ void PeerConnection::write() {
     }
 
   case ProtocolWrite::WRITE_BITFIELD:
-    m_up.m_pos2 += write_buf(m_download->get_content().get_bitfield().begin() + m_up.m_pos2,
-			     m_download->get_content().get_bitfield().size_bytes() - m_up.m_pos2);
+    m_upPos += write_buf(m_download->get_content().get_bitfield().begin() + m_upPos,
+			     m_download->get_content().get_bitfield().size_bytes() - m_upPos);
 
-    if (m_up.m_pos2 == m_download->get_content().get_bitfield().size_bytes())
+    if (m_upPos == m_download->get_content().get_bitfield().size_bytes())
       m_write.set_state(ProtocolWrite::IDLE);
 
     return;
@@ -437,7 +432,7 @@ void PeerConnection::write() {
     if (m_sends.empty())
       throw internal_error("ProtocolWrite::WRITE_PIECE on an empty list");
 
-    previous = m_up.m_pos2;
+    previous = m_upPos;
     maxBytes = m_throttle.left();
     
     if (maxBytes == 0) {
@@ -450,16 +445,16 @@ void PeerConnection::write() {
 
     s = writeChunk(maxBytes);
 
-    m_throttle.up().insert(m_up.m_pos2 - previous);
-    m_throttle.spent(m_up.m_pos2 - previous);
+    m_throttle.up().insert(m_upPos - previous);
+    m_throttle.spent(m_upPos - previous);
 
-    m_net->get_rate_up().insert(m_up.m_pos2 - previous);
+    m_net->get_rate_up().insert(m_upPos - previous);
 
     if (!s)
       return;
 
     if (m_sends.empty())
-      m_up.data = Storage::Chunk();
+      m_upData = Storage::Chunk();
 
     m_sends.pop_front();
 
@@ -506,7 +501,7 @@ void PeerConnection::parseReadBuf() {
 
   switch (curCmd) {
   case ProtocolBase::CHOKE:
-    m_down.choked = true;
+    m_read.set_choked(true);
     m_requests.cancel();
 
     m_taskStall.remove();
@@ -514,16 +509,16 @@ void PeerConnection::parseReadBuf() {
     return;
 
   case ProtocolBase::UNCHOKE:
-    m_down.choked = false;
+    m_read.set_choked(false);
     m_tryRequest = true;
     
     return Poll::write_set().insert(this);
 
   case ProtocolBase::INTERESTED:
-    m_down.interested = true;
+    m_read.set_interested(true);
 
     // If we want to send stuff.
-    if (m_up.choked &&
+    if (m_write.get_choked() &&
 	m_net->can_unchoke() > 0) {
       choke(false);
     }
@@ -531,10 +526,10 @@ void PeerConnection::parseReadBuf() {
     return;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_down.interested = false;
+    m_read.set_interested(false);
 
     // Choke this uninterested peer and unchoke someone else.
-    if (!m_up.choked) {
+    if (!m_write.get_choked()) {
       choke(true);
 
       m_net->choke_balance();
@@ -544,7 +539,7 @@ void PeerConnection::parseReadBuf() {
 
   case ProtocolBase::REQUEST:
   case ProtocolBase::CANCEL:
-    if (m_up.choked)
+    if (m_write.get_choked())
       return;
 
     index = m_read.get_buffer().read32();
@@ -581,10 +576,10 @@ void PeerConnection::parseReadBuf() {
       m_download->get_bitfield_counter().inc(index);
     }
     
-    if (!m_up.interested && m_net->get_delegator().get_select().interested(index)) {
+    if (!m_write.get_interested() && m_net->get_delegator().get_select().interested(index)) {
       // We are interested, send flag if not already set.
-      m_sendInterested = !m_up.interested;
-      m_up.interested = true;
+      m_sendInterested = !m_write.get_interested();
+      m_write.set_interested(true);
 
       Poll::write_set().insert(this);
     }
@@ -605,7 +600,7 @@ void PeerConnection::parseReadBuf() {
   };
 }
 
-// Don't depend on m_up.length!
+// Don't depend on m_upLength!
 void PeerConnection::fillWriteBuf() {
   if (m_sendChoked) {
     m_sendChoked = false;
@@ -616,13 +611,13 @@ void PeerConnection::fillWriteBuf() {
 
     } else {
       // CHOKE ME
-      m_write.write_choke(m_up.choked);
+      m_write.write_choke(m_write.get_choked());
       m_lastChoked = Timer::cache();
 
-      if (m_up.choked) {
+      if (m_write.get_choked()) {
 	// Clear the request queue and mmaped chunk.
 	m_sends.clear();
-	m_up.data = Storage::Chunk();
+	m_upData = Storage::Chunk();
 	
 	m_throttle.idle();
 	
@@ -633,13 +628,13 @@ void PeerConnection::fillWriteBuf() {
   }
 
   if (m_sendInterested) {
-    m_write.write_interested(m_up.interested);
+    m_write.write_interested(m_write.get_interested());
     m_sendInterested = false;
   }
 
   uint32_t pipeSize;
 
-  if (m_tryRequest && !m_down.choked && m_up.interested &&
+  if (m_tryRequest && !m_read.get_choked() && m_write.get_interested() &&
 
       m_read.get_state() != ProtocolRead::SKIP_PIECE &&
       m_net->should_request(m_stallCount) &&
@@ -666,7 +661,7 @@ void PeerConnection::fillWriteBuf() {
   }
 
   // Should we send a piece to the peer?
-  if (!m_up.choked &&
+  if (!m_write.get_choked() &&
       !m_sendChoked &&
       !m_sends.empty() &&
       m_write.can_write_piece()) {
@@ -704,14 +699,14 @@ void PeerConnection::sendHave(int index) {
       m_shutdown = true;
 
     } else {
-      m_sendInterested = m_up.interested;
-      m_up.interested = false;
+      m_sendInterested = m_write.get_interested();
+      m_write.set_interested(false);
     }
 
-  } else if (m_up.interested && !m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
+  } else if (m_write.get_interested() && !m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
     // TODO: Optimize?
     m_sendInterested = true;
-    m_up.interested = false;
+    m_write.set_interested(false);
   }
 
   if (m_requests.has_index(index))
@@ -741,7 +736,7 @@ PeerConnection::task_keep_alive() {
     m_write.get_buffer().reset_end();
     m_write.write_keepalive();
 
-    m_up.length = m_write.get_buffer().size();
+    m_upLength = m_write.get_buffer().size();
     m_write.get_buffer().reset_end();
 
     m_write.set_state(ProtocolWrite::MSG);

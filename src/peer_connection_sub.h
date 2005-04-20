@@ -25,26 +25,16 @@ class Sub {
   friend class PeerConnection;
 
   Sub() :
-    choked(true),
-    interested(false),
     lastCommand(ProtocolBase::NONE),
     length(0),
     lengthOrig(0)
     {}
 
-  bool c_choked() const { return choked; }
-  bool c_interested() const { return interested; }
-
  protected:
-  bool choked;
-  bool interested;
-  
   ProtocolBase::Protocol lastCommand;
 
   unsigned int m_pos2;
 
   unsigned int length;
   unsigned int lengthOrig;
-  
-  Storage::Chunk data;
 };

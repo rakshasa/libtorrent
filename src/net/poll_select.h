@@ -53,18 +53,18 @@ poll_check(fd_set* s, _Operation op) {
 }
 
 struct poll_mark {
-  poll_mark(fd_set* s) : m_set(s) {}
+  poll_mark(fd_set* s, int* m) : m_max(m), m_set(s) {}
 
   void operator () (SocketBase* s) {
     if (s == NULL)
       throw internal_error("poll_mark: s == NULL");
 
-    m_max = std::max(m_max, s->get_fd().get_fd());
+    *m_max = std::max(*m_max, s->get_fd().get_fd());
 
     FD_SET(s->get_fd().get_fd(), m_set);
   }
 
-  int     m_max;
+  int*    m_max;
   fd_set* m_set;
 };
 

@@ -68,7 +68,7 @@ public:
 
   const PeerInfo& peer() const { return m_peer; }
 
-  Sub& up() { return m_up; }
+//   Sub& up() { return m_up; }
   Sub& down() { return m_down; }
 
   RequestList& get_requests() { return m_requests; }
@@ -78,7 +78,11 @@ public:
 
   Throttle& throttle() { return m_throttle; }
 
-  bool is_up_choked() { return m_up.c_choked(); }
+  // Rename to is_write_*
+  bool                is_up_choked()                { return m_write.get_choked(); }
+  bool                is_up_interested()            { return m_write.get_interested(); }
+  bool                is_down_choked()              { return m_write.get_choked(); }
+  bool                is_down_interested()          { return m_write.get_interested(); }
 
   virtual void read();
   virtual void write();
@@ -95,7 +99,7 @@ private:
   bool writeChunk(unsigned int maxBytes);
   bool readChunk();
 
-  void load_chunk(int index, Sub& sub);
+  void load_down_chunk(int index);
 
   bool request_piece();
   void skip_piece();
@@ -131,7 +135,6 @@ private:
   Timer          m_lastChoked;
   Timer          m_lastMsg;
 
-  Sub            m_up;
   Sub            m_down;
 
   ProtocolRead   m_read;
@@ -143,6 +146,15 @@ private:
   Task           m_taskKeepAlive;
   Task           m_taskSendChoke;
   Task           m_taskStall;
+
+  // Temporary thingies untill i get a better place to stuff them.
+  unsigned int m_upPos;
+
+  unsigned int m_upLength;
+  //unsigned int lengthOrig;
+  
+  Storage::Chunk m_upData;
+  Storage::Chunk m_downData;
 };
 
 }

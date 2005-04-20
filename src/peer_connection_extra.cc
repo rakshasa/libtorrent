@@ -85,15 +85,15 @@ PeerConnection::~PeerConnection() {
 // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 bool
 PeerConnection::writeChunk(unsigned int maxBytes) {
-  if (m_up.m_pos2 >= (1 << 17))
+  if (m_upPos >= (1 << 17))
     throw internal_error("PeerConnection::writeChunk(...) m_pos2 bork");
 
-  uint32_t offset = m_sends.front().get_offset() + m_up.m_pos2;
-  StorageChunk::iterator part = m_up.data->at_position(offset);
+  uint32_t offset = m_sends.front().get_offset() + m_upPos;
+  StorageChunk::iterator part = m_upData->at_position(offset);
 
   offset -= part->get_position();
 
-  uint32_t length = std::min(m_sends.front().get_length() - m_up.m_pos2, part->size() - offset);
+  uint32_t length = std::min(m_sends.front().get_length() - m_upPos, part->size() - offset);
 
   if (length > (1 << 17) || length == 0 )
     throw internal_error("PeerConnection::writeChunk(...) length bork");
@@ -104,9 +104,9 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
   if ((offset + length) > part->size())
     throw internal_error("PeerConnection::writeChunk(...) offset+length bork");
 
-  m_up.m_pos2 += write_buf(part->get_chunk().begin() + offset, std::min(length, maxBytes));
+  m_upPos += write_buf(part->get_chunk().begin() + offset, std::min(length, maxBytes));
 
-  return m_up.m_pos2 == m_sends.front().get_length();
+  return m_upPos == m_sends.front().get_length();
 }
 
 // TODO: Handle file boundaries better.
@@ -118,7 +118,7 @@ PeerConnection::readChunk() {
     throw internal_error("Really bad read position for buffer");
   
   const Piece& p = m_requests.get_piece();
-  StorageChunk::iterator part = m_down.data->at_position(p.get_offset() + m_down.m_pos2);
+  StorageChunk::iterator part = m_downData->at_position(p.get_offset() + m_down.m_pos2);
 
   unsigned int offset = p.get_offset() + m_down.m_pos2 - part->get_position();
   
@@ -138,16 +138,16 @@ PeerConnection::readChunk() {
 }
   
 void
-PeerConnection::load_chunk(int index, Sub& sub) {
-  if (sub.data.is_valid() && index == sub.data->get_index())
+PeerConnection::load_down_chunk(int index) {
+  if (m_downData.is_valid() && index == m_downData->get_index())
     return;
 
   if (index < 0 || index >= (signed)m_download->get_chunk_total())
     throw internal_error("Incoming pieces list contains a bad index value");
   
-  sub.data = m_download->get_content().get_storage().get_chunk(index, MemoryChunk::prot_read | MemoryChunk::prot_write);
+  m_downData = m_download->get_content().get_storage().get_chunk(index, MemoryChunk::prot_read | MemoryChunk::prot_write);
   
-  if (!sub.data.is_valid())
+  if (!m_downData.is_valid())
     throw storage_error("Could not create a valid chunk");
 }
 
@@ -192,9 +192,9 @@ bool PeerConnection::chokeDelayed() {
 }
 
 void PeerConnection::choke(bool v) {
-  if (m_up.choked != v) {
+  if (m_write.get_choked() != v) {
     m_sendChoked = true;
-    m_up.choked = v;
+    m_write.set_choked(v);
 
     Poll::write_set().insert(this);
   }
@@ -203,11 +203,11 @@ void PeerConnection::choke(bool v) {
 void
 PeerConnection::update_interested() {
   if (m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
-    m_sendInterested = !m_down.interested;
-    m_down.interested = true;
+    m_sendInterested = !m_read.get_interested();
+    m_read.set_interested(true);
   } else {
-    m_sendInterested = m_down.interested;
-    m_down.interested = false;
+    m_sendInterested = m_read.get_interested();
+    m_read.set_interested(false);
   }
 }
 

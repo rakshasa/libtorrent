@@ -188,8 +188,8 @@ DownloadNet::choke_balance() {
     for (ConnectionList::iterator itr = m_connections.begin();
 	 itr != m_connections.end() && s != 0; ++itr) {
       
-      if ((*itr)->up().c_choked() &&
-	  (*itr)->down().c_interested() &&
+      if ((*itr)->is_up_choked() &&
+	  (*itr)->is_down_interested() &&
 	  !(*itr)->throttle().get_snub()) {
 	(*itr)->choke(false);
 	--s;
@@ -207,7 +207,7 @@ DownloadNet::choke_balance() {
     for (ConnectionList::iterator itr = m_connections.begin();
 	 itr != m_connections.end() && s != 0; ++itr) {
       
-      if (!(*itr)->up().c_choked()) {
+      if (!(*itr)->is_up_choked()) {
 	(*itr)->choke(true);
 	++s;
       }

@@ -154,19 +154,13 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
   *maxFd = 0;
 
   Poll::read_set().prepare();
-  *maxFd = std::max(*maxFd, std::for_each(Poll::read_set().begin(),
-                                          Poll::read_set().end(),
-                                          poll_mark(readSet)).m_max);
+  std::for_each(Poll::read_set().begin(), Poll::read_set().end(), poll_mark(readSet, maxFd));
 
   Poll::write_set().prepare();
-  *maxFd = std::max(*maxFd, std::for_each(Poll::write_set().begin(),
-                                          Poll::write_set().end(),
-                                          poll_mark(writeSet)).m_max);
+  std::for_each(Poll::write_set().begin(), Poll::write_set().end(), poll_mark(writeSet, maxFd));
   
   Poll::except_set().prepare();
-  *maxFd = std::max(*maxFd, std::for_each(Poll::except_set().begin(),
-                                          Poll::except_set().end(),
-                                          poll_mark(exceptSet)).m_max);
+  std::for_each(Poll::except_set().begin(), Poll::except_set().end(), poll_mark(exceptSet, maxFd));
 }
 
 // Do work on the polled file descriptors.

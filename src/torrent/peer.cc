@@ -45,22 +45,22 @@ Peer::get_port() {
 
 bool
 Peer::get_local_choked() {
-  return ((PeerConnection*)m_ptr)->up().c_choked();
+  return ((PeerConnection*)m_ptr)->is_up_choked();
 }
 
 bool
 Peer::get_local_interested() {
-  return ((PeerConnection*)m_ptr)->up().c_interested();
+  return ((PeerConnection*)m_ptr)->is_up_interested();
 }
 
 bool
 Peer::get_remote_choked() {
-  return ((PeerConnection*)m_ptr)->down().c_choked();
+  return ((PeerConnection*)m_ptr)->is_down_choked();
 }
 
 bool
 Peer::get_remote_interested() {
-  return ((PeerConnection*)m_ptr)->down().c_interested();
+  return ((PeerConnection*)m_ptr)->is_down_interested();
 }
 
 bool

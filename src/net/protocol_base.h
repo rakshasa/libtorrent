@@ -45,12 +45,24 @@ public:
     KEEP_ALIVE      // Last command was a keep alive
   } Protocol;
 
-  ProtocolBase() : m_lastCommand(NONE) {}
+  ProtocolBase() :
+    m_choked(true),
+    m_interested(false),
+    m_lastCommand(NONE) {}
+
+  bool                get_choked() const            { return m_choked; }
+  bool                get_interested() const        { return m_interested; }
+
+  void                set_choked(bool s)            { m_choked = s; }
+  void                set_interested(bool s)        { m_interested = s; }
 
   Protocol            get_last_command() const      { return m_lastCommand; }
   Buffer&             get_buffer()                  { return m_buffer; }
 
 protected:
+  bool                m_choked;
+  bool                m_interested;
+
   Protocol            m_lastCommand;
   Buffer              m_buffer;
 };
