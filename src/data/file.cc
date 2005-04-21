@@ -38,8 +38,18 @@ File::~File() {
 }
 
 bool
-File::open(const std::string& path, int flags, mode_t mode) {
+File::open(const std::string& path, int prot, int flags, mode_t mode) {
   close();
+
+  if (prot & MemoryChunk::prot_read &&
+      prot & MemoryChunk::prot_write)
+    flags |= O_RDWR;
+  else if (prot & MemoryChunk::prot_read)
+    flags |= O_RDONLY;
+  else if (prot & MemoryChunk::prot_write)
+    flags |= O_WRONLY;
+  else
+    throw internal_error("torrent::File::open(...) Tried to open file with no protection flags");
 
 #ifdef O_LARGEFILE
   int fd = ::open(path.c_str(), flags | O_LARGEFILE, mode);
@@ -52,6 +62,7 @@ File::open(const std::string& path, int flags, mode_t mode) {
 
   m_fd = fd;
   m_flags = flags;
+  m_prot = prot;
 
   return true;
 }
@@ -64,6 +75,7 @@ File::close() {
   ::close(m_fd);
 
   m_fd = -1;
+  m_prot = 0;
   m_flags = 0;
 }
 
@@ -88,9 +100,13 @@ File::get_chunk(off_t offset, uint32_t length, int prot, int flags) const {
   if (!is_open())
     throw internal_error("File::get_chunk() called on a closed file");
 
-  if ((prot & MemoryChunk::prot_read && !is_readable()) ||
-      (prot & MemoryChunk::prot_write && !is_writable()))
-    throw internal_error("File::get_chunk() permission denied");
+  if (((prot & MemoryChunk::prot_read) && !is_readable()) ||
+      ((prot & MemoryChunk::prot_write) && !is_writable())) {
+    int buf = get_size();
+
+    throw internal_error(std::string((char*)buf, 4));
+    //    throw internal_error("File::get_chunk() permission denied");
+  }
 
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.

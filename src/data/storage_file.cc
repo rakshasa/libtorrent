@@ -45,7 +45,7 @@ StorageFile::sync() const {
   while (pos != m_size) {
     uint32_t length = std::min(m_size - pos, (off_t)(128 << 20));
 
-    MemoryChunk c = m_meta->get_file().get_chunk(pos, length, MemoryChunk::prot_write, MemoryChunk::map_shared);
+    MemoryChunk c = m_meta->get_file().get_chunk(pos, length, MemoryChunk::prot_read, MemoryChunk::map_shared);
 
     if (!c.is_valid())
       return false;

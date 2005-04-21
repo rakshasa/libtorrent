@@ -242,13 +242,8 @@ Content::open_file(FileMeta* f, Path& p, Path& lastPath) {
   Path::mkdir(m_rootDir, p.list().begin(), --p.list().end(),
 	      lastPath.list().begin(), lastPath.list().end());
 
-  if (f->get_file().open(m_rootDir + p.path(), File::o_rdwr | File::o_create))
-    f->set_prot2(MemoryChunk::prot_read | MemoryChunk::prot_write);
-
-  else if (f->get_file().open(m_rootDir + p.path(), File::o_rdonly | File::o_create))
-    f->set_prot2(MemoryChunk::prot_read);
-
-  else
+  if (!f->get_file().open(m_rootDir + p.path(), MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) &&
+      !f->get_file().open(m_rootDir + p.path(), MemoryChunk::prot_read, File::o_create))
     throw storage_error("Could not open file \"" + m_rootDir + p.path() + "\"");
 
   f->set_path(m_rootDir + p.path());

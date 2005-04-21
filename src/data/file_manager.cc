@@ -80,10 +80,9 @@ FileManager::prepare_file(FileMeta* meta, int prot) {
   if (m_openSize == m_maxSize)
     close_least_active();
 
-  if (!meta->get_file().open(meta->get_path(), prot))
+  if (!meta->get_file().open(meta->get_path(), prot, 0))
     return false;
 
-  meta->set_prot2(prot);
   ++m_openSize;
 
   return true;

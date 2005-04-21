@@ -34,28 +34,27 @@ namespace torrent {
 
 class File {
  public:
-  static const int o_rdonly               = O_RDONLY;
-  static const int o_wronly               = O_WRONLY;
-  static const int o_rdwr                 = O_RDWR;
   static const int o_create               = O_CREAT;
   static const int o_truncate             = O_TRUNC;
   static const int o_nonblock             = O_NONBLOCK;
 
-  File() : m_fd(-1), m_flags(0) {}
+  File() : m_fd(-1), m_prot(0), m_flags(0) {}
   ~File();
 
   // TODO: use proper mode type.
-  bool                open(const std::string& path, int flags, mode_t mode = 0666);
+  bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
 
   void                close();
   
   bool                is_open() const                                   { return m_fd != -1; }
-  bool                is_readable() const                               { return !(m_flags & o_wronly); }
-  bool                is_writable() const                               { return !(m_flags & o_rdonly); }
+  bool                is_readable() const                               { return m_prot & MemoryChunk::prot_read; }
+  bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }
   bool                is_nonblock() const                               { return m_flags & o_nonblock; }
 
   off_t               get_size() const;
   bool                set_size(off_t s) const;
+
+  int                 get_prot() const                                  { return m_prot; }
 
   MemoryChunk         get_chunk(off_t offset, uint32_t length, int prot, int flags) const;
   
@@ -68,6 +67,7 @@ class File {
   void operator = (const File&);
 
   int                 m_fd;
+  int                 m_prot;
   int                 m_flags;
 };
 
