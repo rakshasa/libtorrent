@@ -82,19 +82,20 @@ StorageConsolidator::get_chunk(StorageChunk& chunk, uint32_t b, int prot) {
   if (first >= m_size)
     throw internal_error("Tried to access chunk out of range in StorageConsolidator");
 
-  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageFile::is_valid_position), first));
+  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageFile::is_valid_position), first));
+       first != last; ++itr) {
 
-  while (first != last) {
     if (itr == end())
       throw internal_error("StorageConsolidator could not find a valid file for chunk");
+
+    if (itr->get_size() == 0)
+      continue;
 
     if (!(mc = get_chunk_part(itr, first, last - first, prot)).is_valid())
       return false;
 
     chunk.push_back(mc);
-
     first += mc.size();
-    ++itr;
   }
 
   if (chunk.get_size() != last - get_chunk_position(b))

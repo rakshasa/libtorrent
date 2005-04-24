@@ -23,6 +23,7 @@
 #ifndef LIBTORRENT_NET_PROTOCOL_BASE_H
 #define LIBTORRENT_NET_PROTOCOL_BASE_H
 
+#include "data/storage.h"
 #include "protocol_buffer.h"
 
 namespace torrent {
@@ -51,28 +52,33 @@ public:
     m_interested(false),
     m_lastCommand(NONE) {}
 
-  bool                get_choked() const            { return m_choked; }
-  bool                get_interested() const        { return m_interested; }
+  bool                get_choked() const                      { return m_choked; }
+  bool                get_interested() const                  { return m_interested; }
 
-  void                set_choked(bool s)            { m_choked = s; }
-  void                set_interested(bool s)        { m_interested = s; }
+  void                set_choked(bool s)                      { m_choked = s; }
+  void                set_interested(bool s)                  { m_interested = s; }
 
-  Protocol            get_last_command() const      { return m_lastCommand; }
-  void                set_last_command(Protocol p)  { m_lastCommand = p; }
+  Protocol            get_last_command() const                { return m_lastCommand; }
+  void                set_last_command(Protocol p)            { m_lastCommand = p; }
 
-  Buffer&             get_buffer()                  { return m_buffer; }
+  Storage::Chunk&     get_chunk()                             { return m_chunk; }
+  void                set_chunk(const Storage::Chunk& c)      { m_chunk = c; }
 
-  uint32_t&           get_position()                { return m_position; }
-  const uint32_t&     get_position() const          { return m_position; }
-  void                set_position(uint32_t p)      { m_position = p; }
-  void                adjust_position(uint32_t p)   { m_position += p; }
+  Buffer&             get_buffer()                            { return m_buffer; }
+
+  uint32_t&           get_position()                          { return m_position; }
+  const uint32_t&     get_position() const                    { return m_position; }
+  void                set_position(uint32_t p)                { m_position = p; }
+  void                adjust_position(uint32_t p)             { m_position += p; }
 
 protected:
   uint32_t            m_position;
+
   bool                m_choked;
   bool                m_interested;
 
   Protocol            m_lastCommand;
+  Storage::Chunk      m_chunk;
   Buffer              m_buffer;
 };
 

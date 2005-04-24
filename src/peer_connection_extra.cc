@@ -89,7 +89,7 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
     throw internal_error("PeerConnection::writeChunk(...) m_write.get_position() bork");
 
   uint32_t offset = m_sends.front().get_offset() + m_write.get_position();
-  StorageChunk::iterator part = m_upData->at_position(offset);
+  StorageChunk::iterator part = m_write.get_chunk()->at_position(offset);
 
   offset -= part->get_position();
 
@@ -118,7 +118,7 @@ PeerConnection::readChunk() {
     throw internal_error("Really bad read position for buffer");
   
   const Piece& p = m_requests.get_piece();
-  StorageChunk::iterator part = m_downData->at_position(p.get_offset() + m_read.get_position());
+  StorageChunk::iterator part = m_read.get_chunk()->at_position(p.get_offset() + m_read.get_position());
 
   unsigned int offset = p.get_offset() + m_read.get_position() - part->get_position();
   
@@ -139,15 +139,15 @@ PeerConnection::readChunk() {
   
 void
 PeerConnection::load_down_chunk(int index) {
-  if (m_downData.is_valid() && index == m_downData->get_index())
+  if (m_read.get_chunk().is_valid() && index == m_read.get_chunk()->get_index())
     return;
 
   if (index < 0 || index >= (signed)m_download->get_chunk_total())
     throw internal_error("Incoming pieces list contains a bad index value");
   
-  m_downData = m_download->get_content().get_storage().get_chunk(index, MemoryChunk::prot_read | MemoryChunk::prot_write);
+  m_read.get_chunk() = m_download->get_content().get_storage().get_chunk(index, MemoryChunk::prot_read | MemoryChunk::prot_write);
   
-  if (!m_downData.is_valid())
+  if (!m_read.get_chunk().is_valid())
     throw storage_error("Could not create a valid chunk");
 }
 
@@ -158,29 +158,17 @@ PeerConnection::request_piece() {
   if ((p = m_requests.delegate()) == NULL)
     return false;
 
-  if (p->get_length() > (1 << 17) ||
-      p->get_length() == 0 ||
-      p->get_length() + p->get_offset() >
-      
-      ((unsigned)p->get_index() + 1 != m_download->get_chunk_total() ||
-       !(m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunk_size()) ?
-       
-       m_download->get_content().get_storage().get_chunk_size() :
-       (m_download->get_content().get_size() % m_download->get_content().get_storage().get_chunk_size()))) {
-    
+  if (!m_download->get_content().is_valid_piece(*p) ||
+      !m_bitfield[p->get_index()]) {
     std::stringstream s;
     
-    s << "Tried to request a piece with invalid length or offset: "
+    s << "Tried to request an invalid piece: "
+      << p->get_index() << ' '
       << p->get_length() << ' '
       << p->get_offset();
     
     throw internal_error(s.str());
   }
-
-  if (p->get_index() < 0 ||
-      p->get_index() >= (int)m_bitfield.size_bits() ||
-      !m_bitfield[p->get_index()])
-    throw internal_error("Delegator gave us a piece with invalid range or not in peer");
 
   m_write.write_request(*p);
 

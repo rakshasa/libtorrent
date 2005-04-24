@@ -4,6 +4,10 @@ Caught exception: "System call msync failed in FileChunk"
 
 Removed the underlying file while it was open, then closed the torrent.
 
+In a torrent with a file size 0, set to high priority.
+"Connection read fd(108) state(5) "StorageConsolidator::get_chunk_part(...) caught a piece with 0 lenght""
+
+
 
 FIXME LATER:
 

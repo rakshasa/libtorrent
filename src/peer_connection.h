@@ -28,7 +28,6 @@
 #include "utils/rate.h"
 #include "throttle.h"
 
-#include "data/storage.h"
 #include "peer/request_list.h"
 #include "net/protocol_buffer.h"
 #include "net/protocol_read.h"
@@ -51,8 +50,6 @@ class PeerConnection : public SocketBase {
 public:
   typedef std::list<Piece>              SendList;
 
-#include "peer_connection_sub.h"
-
   PeerConnection();
   ~PeerConnection();
 
@@ -68,9 +65,6 @@ public:
 
   const PeerInfo& peer() const { return m_peer; }
 
-//   Sub& up() { return m_up; }
-  Sub& down() { return m_down; }
-
   RequestList& get_requests() { return m_requests; }
   SendList&    get_sends()    { return m_sends; }
 
@@ -84,9 +78,9 @@ public:
   bool                is_down_choked()              { return m_write.get_choked(); }
   bool                is_down_interested()          { return m_write.get_interested(); }
 
-  virtual void read();
-  virtual void write();
-  virtual void except();
+  virtual void        read();
+  virtual void        write();
+  virtual void        except();
 
   static PeerConnection* create(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
 
@@ -135,8 +129,6 @@ private:
   Timer          m_lastChoked;
   Timer          m_lastMsg;
 
-  Sub            m_down;
-
   ProtocolRead   m_read;
   ProtocolWrite  m_write;
 
@@ -146,13 +138,6 @@ private:
   Task           m_taskKeepAlive;
   Task           m_taskSendChoke;
   Task           m_taskStall;
-
-  // Temporary thingies untill i get a better place to stuff them.
-  unsigned int m_upLength;
-  //unsigned int lengthOrig;
-  
-  Storage::Chunk m_upData;
-  Storage::Chunk m_downData;
 };
 
 }

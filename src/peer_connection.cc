@@ -80,9 +80,8 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 
   if (!d->get_content().get_bitfield().all_zero()) {
     m_write.write_bitfield(m_download->get_content().get_bitfield().size_bytes());
-    m_upLength = m_write.get_buffer().size_position();
-    m_write.get_buffer().reset_position();
 
+    m_write.get_buffer().prepare_end();
     m_write.set_state(ProtocolWrite::MSG);
   }
     
@@ -387,13 +386,13 @@ void PeerConnection::write() {
       return Poll::write_set().erase(this);
 
     m_write.set_state(ProtocolWrite::MSG);
-    m_upLength = m_write.get_buffer().size_position();
-    m_write.get_buffer().reset_position();
+    m_write.get_buffer().prepare_end();
 
   case ProtocolWrite::MSG:
-    m_write.get_buffer().move_position(write_buf(m_write.get_buffer().position(), m_upLength - m_write.get_buffer().size_position()));
+    m_write.get_buffer().move_position(write_buf(m_write.get_buffer().position(),
+						 m_write.get_buffer().remaining()));
 
-    if (m_write.get_buffer().size_position() != m_upLength)
+    if (m_write.get_buffer().remaining())
       return;
 
     switch (m_write.get_last_command()) {
@@ -408,11 +407,11 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_upData = m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read);
+      m_write.set_chunk(m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read));
       m_write.set_state(ProtocolWrite::WRITE_PIECE);
       m_write.set_position(0);
 
-      if (!m_upData.is_valid())
+      if (!m_write.get_chunk().is_valid())
 	throw storage_error("Could not create a valid chunk");
 
       goto evil_goto_write;
@@ -459,7 +458,7 @@ void PeerConnection::write() {
       return;
 
     if (m_sends.empty())
-      m_upData = Storage::Chunk();
+      m_write.get_chunk().clear();
 
     m_sends.pop_front();
 
@@ -605,7 +604,6 @@ void PeerConnection::parseReadBuf() {
   };
 }
 
-// Don't depend on m_upLength!
 void PeerConnection::fillWriteBuf() {
   if (m_sendChoked) {
     m_sendChoked = false;
@@ -622,7 +620,7 @@ void PeerConnection::fillWriteBuf() {
       if (m_write.get_choked()) {
 	// Clear the request queue and mmaped chunk.
 	m_sends.clear();
-	m_upData = Storage::Chunk();
+	m_write.get_chunk().clear();
 	
 	m_throttle.idle();
 	
@@ -737,13 +735,10 @@ PeerConnection::task_keep_alive() {
   // cleaner just to send this message.
 
   if (m_write.get_state() == ProtocolWrite::IDLE) {
-    // TODO: don't use bufCmd
     m_write.get_buffer().reset_position();
     m_write.write_keepalive();
 
-    m_upLength = m_write.get_buffer().size_position();
-    m_write.get_buffer().reset_position();
-
+    m_write.get_buffer().prepare_end();
     m_write.set_state(ProtocolWrite::MSG);
 
     Poll::write_set().insert(this);

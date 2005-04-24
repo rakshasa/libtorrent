@@ -41,6 +41,7 @@ public:
   void                reset_position()                        { m_position = m_buffer; }
   void                move_position(size_type v)              { m_position += v; }
 
+  void                prepare_end()                           { m_end = m_position; reset_position(); }
   void                set_end(size_type v)                    { m_end = m_buffer + v; }
 
   uint8_t             read8();
