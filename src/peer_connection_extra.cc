@@ -85,15 +85,15 @@ PeerConnection::~PeerConnection() {
 // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 bool
 PeerConnection::writeChunk(unsigned int maxBytes) {
-  if (m_upPos >= (1 << 17))
-    throw internal_error("PeerConnection::writeChunk(...) m_pos2 bork");
+  if (m_write.get_position() >= (1 << 17))
+    throw internal_error("PeerConnection::writeChunk(...) m_write.get_position() bork");
 
-  uint32_t offset = m_sends.front().get_offset() + m_upPos;
+  uint32_t offset = m_sends.front().get_offset() + m_write.get_position();
   StorageChunk::iterator part = m_upData->at_position(offset);
 
   offset -= part->get_position();
 
-  uint32_t length = std::min(m_sends.front().get_length() - m_upPos, part->size() - offset);
+  uint32_t length = std::min(m_sends.front().get_length() - m_write.get_position(), part->size() - offset);
 
   if (length > (1 << 17) || length == 0 )
     throw internal_error("PeerConnection::writeChunk(...) length bork");
@@ -104,23 +104,23 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
   if ((offset + length) > part->size())
     throw internal_error("PeerConnection::writeChunk(...) offset+length bork");
 
-  m_upPos += write_buf(part->get_chunk().begin() + offset, std::min(length, maxBytes));
+  m_write.adjust_position(write_buf(part->get_chunk().begin() + offset, std::min(length, maxBytes)));
 
-  return m_upPos == m_sends.front().get_length();
+  return m_write.get_position() == m_sends.front().get_length();
 }
 
 // TODO: Handle file boundaries better.
 bool
 PeerConnection::readChunk() {
-  int previous = m_down.m_pos2;
+  int previous = m_read.get_position();
 
-  if (m_down.m_pos2 > (1 << 17) + 9)
+  if (m_read.get_position() > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
   const Piece& p = m_requests.get_piece();
-  StorageChunk::iterator part = m_downData->at_position(p.get_offset() + m_down.m_pos2);
+  StorageChunk::iterator part = m_downData->at_position(p.get_offset() + m_read.get_position());
 
-  unsigned int offset = p.get_offset() + m_down.m_pos2 - part->get_position();
+  unsigned int offset = p.get_offset() + m_read.get_position() - part->get_position();
   
   if (!part->get_chunk().is_valid())
     throw internal_error("PeerConnection::readChunk() did not get a valid chunk");
@@ -128,13 +128,13 @@ PeerConnection::readChunk() {
   if (!part->get_chunk().is_writable())
     throw internal_error("PeerConnection::readChunk() chunk not writable, permission denided");
   
-  m_down.m_pos2 += read_buf(part->get_chunk().begin() + offset,
-			    std::min(p.get_length() - m_down.m_pos2, part->size() - offset));
+  m_read.adjust_position(read_buf(part->get_chunk().begin() + offset,
+				  std::min(p.get_length() - m_read.get_position(), part->size() - offset)));
 
-  m_throttle.down().insert(m_down.m_pos2 - previous);
-  m_net->get_rate_down().insert(m_down.m_pos2 - previous);
+  m_throttle.down().insert(m_read.get_position() - previous);
+  m_net->get_rate_down().insert(m_read.get_position() - previous);
 
-  return m_down.m_pos2 == p.get_length();
+  return m_read.get_position() == p.get_length();
 }
   
 void

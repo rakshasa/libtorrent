@@ -148,8 +148,6 @@ private:
   Task           m_taskStall;
 
   // Temporary thingies untill i get a better place to stuff them.
-  unsigned int m_upPos;
-
   unsigned int m_upLength;
   //unsigned int lengthOrig;
   

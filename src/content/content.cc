@@ -41,11 +41,7 @@ Content::add_file(const Path& path, uint64_t size) {
   if (is_open())
     throw internal_error("Tried to add file to Content that is open");
 
-  m_files.push_back(ContentFile(path, size,
-				ContentFile::Range(m_size / m_storage.get_chunk_size(),
-						   size ? ((m_size + size + m_storage.get_chunk_size() - 1) / m_storage.get_chunk_size())
-						   : (m_size / m_storage.get_chunk_size()))));
-
+  m_files.push_back(ContentFile(path, size, make_index_range(m_size, size)));
   m_size += size;
 }
 

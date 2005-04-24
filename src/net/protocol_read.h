@@ -39,13 +39,17 @@ public:
     SKIP_PIECE
   } State;
 
-  ProtocolRead() : m_state(IDLE) {}
+  ProtocolRead() : m_state(IDLE), m_length(0) {}
 
   State               get_state() const             { return m_state; }
   void                set_state(State s)            { m_state = s; }
 
+  uint32_t            get_length() const            { return m_length; }
+  void                set_length(uint32_t l)        { m_length = l; }
+
 private:
   State               m_state;
+  uint32_t            m_length;
 };
 
 }

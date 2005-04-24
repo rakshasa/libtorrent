@@ -119,6 +119,8 @@ NEXT:
 Properly handle invalid chunks in hash_torrent due to unable to open
 files.
 
+Limit on open file-descriptors.
+
 
 RELEASE:
 

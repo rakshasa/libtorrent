@@ -20,32 +20,38 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_HANDSHAKE_INCOMING_H
-#define LIBTORRENT_NET_HANDSHAKE_INCOMING_H
+#include "config.h"
 
-#include "handshake.h"
+#include "socket_address.h"
+#include "socket_manager.h"
 
 namespace torrent {
 
-class HandshakeIncoming : public Handshake {
-public:
-  typedef enum {
-    INACTIVE,
-    WRITE_HEADER,
-    READ_HEADER1,
-    READ_HEADER2
-  } State;
+SocketFd
+SocketManager::open(const SocketAddress& sa) {
+  SocketFd fd;
 
-  HandshakeIncoming(SocketFd fd, HandshakeManager* m, const PeerInfo& p);
-  
-  virtual void        read();
-  virtual void        write();
-  virtual void        except();
+  // TODO: Check if there's too many open sockets.
+  if (m_size >= m_max || !fd.open())
+    return SocketFd();
 
-private:
-  State               m_state;
-};
+  if (!fd.set_nonblock() || !fd.connect(sa)) {
+    fd.close();
+    return SocketFd();
+  }
 
+  m_size++;
+
+  return fd;
 }
 
-#endif
+void
+SocketManager::close(SocketFd fd) {
+  if (!fd.is_valid())
+    throw internal_error("SocketManager::close(...) received an invalid file descriptor");
+
+  fd.close();
+  m_size--;
+}
+
+}

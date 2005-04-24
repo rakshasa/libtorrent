@@ -85,6 +85,7 @@ HandshakeManager::receive_connected(Handshake* h) {
 
   h->clear_poll();
 
+  // TODO: Check that m_slotConnected actually points somewhere.
   m_slotConnected(h->get_fd(), h->get_hash(), h->get_peer());
 
   h->set_fd(-1);
@@ -114,9 +115,12 @@ SocketFd
 HandshakeManager::make_socket(SocketAddress& sa) {
   SocketFd fd;
 
-  if (fd.open() && (!fd.set_nonblock()) || !fd.connect(sa)) {
+  if (!fd.open())
+    return SocketFd();
+
+  if (!fd.set_nonblock() || !fd.connect(sa)) {
     fd.close();
-    fd.clear();
+    return SocketFd();
   }
 
   return fd;

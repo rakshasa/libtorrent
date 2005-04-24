@@ -94,15 +94,8 @@ private:
   
   void                   open_file(FileMeta* f, Path& p, Path& lastPath);
 
-  FileList::iterator     mark_done_file(FileList::iterator itr, uint32_t index) {
-    while (index >= itr->get_range().second) ++itr;
-
-    do {
-      itr->set_completed(itr->get_completed() + 1);
-    } while (index + 1 == itr->get_range().second && ++itr != m_files.end());
-
-    return itr;
-  }
+  FileList::iterator     mark_done_file(FileList::iterator itr, uint32_t index);
+  ContentFile::Range     make_index_range(uint64_t pos, uint64_t size) const;
 
   static FileManager     m_fileManager;
 
@@ -119,6 +112,23 @@ private:
 
   SignalDownloadDone     m_downloadDone;
 };
+
+inline Content::FileList::iterator
+Content::mark_done_file(FileList::iterator itr, uint32_t index) {
+  while (index >= itr->get_range().second) ++itr;
+  
+  do {
+    itr->set_completed(itr->get_completed() + 1);
+  } while (index + 1 == itr->get_range().second && ++itr != m_files.end());
+
+  return itr;
+}
+
+inline ContentFile::Range
+Content::make_index_range(uint64_t pos, uint64_t size) const {
+  return ContentFile::Range(pos / m_storage.get_chunk_size(),
+			    (pos + size + m_storage.get_chunk_size() - 1) / m_storage.get_chunk_size());
+}
 
 }
 

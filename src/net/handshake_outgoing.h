@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_HANDSHAKE_OUTGOING_H
-#define LIBTORRENT_HANDSHAKE_OUTGOING_H
+#ifndef LIBTORRENT_NET_HANDSHAKE_OUTGOING_H
+#define LIBTORRENT_NET_HANDSHAKE_OUTGOING_H
 
 #include "handshake.h"
 

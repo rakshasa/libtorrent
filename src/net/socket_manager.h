@@ -20,32 +20,33 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_HANDSHAKE_INCOMING_H
-#define LIBTORRENT_NET_HANDSHAKE_INCOMING_H
+#ifndef LIBTORRENT_NET_SOCKET_MANAGER_H
+#define LIBTORRENT_NET_SOCKET_MANAGER_H
 
-#include "handshake.h"
+#include "socket_fd.h"
 
 namespace torrent {
 
-class HandshakeIncoming : public Handshake {
-public:
-  typedef enum {
-    INACTIVE,
-    WRITE_HEADER,
-    READ_HEADER1,
-    READ_HEADER2
-  } State;
+class SocketAddress;
 
-  HandshakeIncoming(SocketFd fd, HandshakeManager* m, const PeerInfo& p);
+class SocketManager {
+public:
+  SocketManager() : m_size(0), m_max(0) {}
   
-  virtual void        read();
-  virtual void        write();
-  virtual void        except();
+  SocketFd            open(const SocketAddress& sa);
+  void                close(SocketFd fd);
+
+  uint32_t            get_size() const              { return m_size; }
+
+  uint32_t            get_max() const               { return m_max; }
+  void                set_max(uint32_t s)           { m_max = s; }
 
 private:
-  State               m_state;
+  uint32_t            m_size;
+  uint32_t            m_max;
 };
 
 }
 
 #endif
+

@@ -73,6 +73,12 @@ SocketFd::open() {
   return (m_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) != -1;
 }
 
+void
+SocketFd::close() {
+  if (::close(m_fd) && errno == EBADF)
+    throw internal_error("SocketFd::close() called on an invalid file descriptor");
+}
+
 bool
 SocketFd::bind(const SocketAddress& sa) {
   if (!is_valid())

@@ -25,16 +25,9 @@ class Sub {
   friend class PeerConnection;
 
   Sub() :
-    lastCommand(ProtocolBase::NONE),
-    length(0),
-    lengthOrig(0)
+    length(0)
     {}
 
  protected:
-  ProtocolBase::Protocol lastCommand;
-
-  unsigned int m_pos2;
-
   unsigned int length;
-  unsigned int lengthOrig;
 };

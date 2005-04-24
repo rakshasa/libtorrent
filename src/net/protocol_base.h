@@ -46,6 +46,7 @@ public:
   } Protocol;
 
   ProtocolBase() :
+    m_position(0),
     m_choked(true),
     m_interested(false),
     m_lastCommand(NONE) {}
@@ -57,9 +58,17 @@ public:
   void                set_interested(bool s)        { m_interested = s; }
 
   Protocol            get_last_command() const      { return m_lastCommand; }
+  void                set_last_command(Protocol p)  { m_lastCommand = p; }
+
   Buffer&             get_buffer()                  { return m_buffer; }
 
+  uint32_t&           get_position()                { return m_position; }
+  const uint32_t&     get_position() const          { return m_position; }
+  void                set_position(uint32_t p)      { m_position = p; }
+  void                adjust_position(uint32_t p)   { m_position += p; }
+
 protected:
+  uint32_t            m_position;
   bool                m_choked;
   bool                m_interested;
 

@@ -38,8 +38,8 @@ public:
   typedef uint16_t    size_type;
   typedef size_type   difference_type;
 
-  void                reset_end()                             { m_end = m_buffer; }
-  void                move_end(size_type v)                   { m_end += v; }
+  void                reset_position()                        { m_position = m_buffer; }
+  void                move_position(size_type v)              { m_position += v; }
 
   uint8_t             read8();
   uint8_t             peek8();
@@ -50,13 +50,17 @@ public:
   void                write32(uint32_t v);
 
   iterator            begin()                                 { return m_buffer; }
+  iterator            position()                              { return m_position; }
   iterator            end()                                   { return m_end; }
 
-  size_type           size() const                            { return m_end - m_buffer; }
+  size_type           size_position() const                   { return m_position - m_buffer; }
+  size_type           size_end() const                        { return m_end - m_buffer; }
+  size_type           size_left() const                       { return m_end - m_position; }
   size_type           reserved() const                        { return tmpl_size; }
-  difference_type     reserved_left() const                   { return reserved() - size(); }
+  difference_type     reserved_left() const                   { return reserved() - size_position(); }
 
 private:
+  iterator            m_position;
   iterator            m_end;
   value_type          m_buffer[tmpl_size];
 };
@@ -64,20 +68,20 @@ private:
 template <uint16_t tmpl_size>
 inline uint8_t
 ProtocolBuffer<tmpl_size>::read8() {
-  return *(m_end++);
+  return *(m_position++);
 }
 
 template <uint16_t tmpl_size>
 inline uint8_t
 ProtocolBuffer<tmpl_size>::peek8() {
-  return *m_end;
+  return *m_position;
 }
 
 template <uint16_t tmpl_size>
 inline uint32_t
 ProtocolBuffer<tmpl_size>::read32() {
-  uint32_t t = ntohl(*(uint32_t*)m_end);
-  m_end += sizeof(uint32_t);
+  uint32_t t = ntohl(*(uint32_t*)m_position);
+  m_position += sizeof(uint32_t);
 
   return t;
 }
@@ -85,25 +89,25 @@ ProtocolBuffer<tmpl_size>::read32() {
 template <uint16_t tmpl_size>
 inline uint32_t
 ProtocolBuffer<tmpl_size>::peek32() {
-  return ntohl(*(uint32_t*)m_end);
+  return ntohl(*(uint32_t*)m_position);
 }
 
 template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write8(uint8_t v) {
-  *(m_end++) = v;
+  *(m_position++) = v;
 
-  if (m_end > m_buffer + tmpl_size)
+  if (m_position > m_buffer + tmpl_size)
     throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
 }
 
 template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write32(uint32_t v) {
-  *(uint32_t*)m_end = htonl(v);
-  m_end += sizeof(uint32_t);
+  *(uint32_t*)m_position = htonl(v);
+  m_position += sizeof(uint32_t);
 
-  if (m_end > m_buffer + tmpl_size)
+  if (m_position > m_buffer + tmpl_size)
     throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
 }
 
