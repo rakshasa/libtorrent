@@ -24,10 +24,5 @@ class Sub {
  public:
   friend class PeerConnection;
 
-  Sub() :
-    length(0)
-    {}
-
  protected:
-  unsigned int length;
 };

@@ -104,6 +104,7 @@ void PeerConnection::read() {
   case ProtocolRead::IDLE:
     m_read.get_buffer().reset_position();
     m_read.set_state(ProtocolRead::LENGTH);
+    // Reset end when needed
 
   case ProtocolRead::LENGTH:
     m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(), 4 - m_read.get_buffer().size_position()));
@@ -114,19 +115,18 @@ void PeerConnection::read() {
     m_read.get_buffer().reset_position();
     m_read.set_length(m_read.get_buffer().peek32());
 
-    m_down.length = m_read.get_buffer().peek32();
+    m_read.get_buffer().set_end(1);
 
-    if (m_down.length == 0) {
+    if (m_read.get_length() == 0) {
       // Received ping.
 
       m_read.set_state(ProtocolRead::IDLE);
       m_read.set_last_command(ProtocolBase::KEEP_ALIVE);
-
       return;
 
-    } else if (m_down.length > (1 << 17) + 9) {
+    } else if (m_read.get_length() > (1 << 17) + 9) {
       std::stringstream s;
-      s << "Recived packet with length 0x" << std::hex << m_down.length;
+      s << "Recived packet with length 0x" << std::hex << m_read.get_length();
 
       throw communication_error(s.str());
     }
@@ -137,11 +137,11 @@ void PeerConnection::read() {
     if (m_read.get_buffer().size_position() != 0)
       throw internal_error("Length bork bork bork1");
 
-    // TODO: Read up to 9 or something.
+  // TODO: Read up to 9 bytes or something.
   case ProtocolRead::TYPE:
-    m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(), 1));
+    m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(), m_read.get_buffer().remaining()));
 
-    if (m_read.get_buffer().size_position() != 1)
+    if (m_read.get_buffer().remaining())
       return;
 
     m_read.get_buffer().reset_position();
@@ -149,30 +149,31 @@ void PeerConnection::read() {
     switch (m_read.get_buffer().peek8()) {
     case ProtocolBase::REQUEST:
     case ProtocolBase::CANCEL:
-      if (m_down.length != 13)
+      if (m_read.get_length() != 13)
 	throw communication_error("Recived request/cancel command with wrong size");
 
+      m_read.get_buffer().set_end(13);
       break;
 
     case ProtocolBase::HAVE:
-      if (m_down.length != 5)
+      if (m_read.get_length() != 5)
 	throw communication_error("Recived have command with wrong size");
       
+      m_read.get_buffer().set_end(5);
       break;
 
     case ProtocolBase::PIECE:
-      if (m_down.length < 9 || m_down.length > 9 + (1 << 17))
+      if (m_read.get_length() < 9 || m_read.get_length() > 9 + (1 << 17))
 	throw communication_error("Received piece message with bad length");
 
-      m_down.length = 9;
-
+      m_read.get_buffer().set_end(9);
       break;
 
     case ProtocolBase::BITFIELD:
-      if (m_down.length != 1 + m_bitfield.size_bytes()) {
+      if (m_read.get_length() != 1 + m_bitfield.size_bytes()) {
 	std::stringstream s;
 
-	s << "Recived bitfield message with wrong size " << m_down.length
+	s << "Recived bitfield message with wrong size " << m_read.get_length()
 	  << ' ' << m_bitfield.size_bytes() << ' ';
 
 	throw communication_error(s.str());
@@ -196,6 +197,7 @@ void PeerConnection::read() {
       // Handle 1 byte long messages here.
       //m_net->signal_network_log().emit("Receiving some commmand");
 
+      m_read.get_buffer().set_end(1);
       break;
     };
 
@@ -205,10 +207,10 @@ void PeerConnection::read() {
     m_read.set_last_command((ProtocolBase::Protocol)m_read.get_buffer().read8());
 
   case ProtocolRead::MSG:
-    if (m_down.length > 1)
-      m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(), m_down.length - m_read.get_buffer().size_position()));
+    if (m_read.get_buffer().remaining())
+      m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(), m_read.get_buffer().remaining()));
 
-    if (m_read.get_buffer().size_position() != m_down.length)
+    if (m_read.get_buffer().remaining())
       return;
 
     m_read.get_buffer().reset_position();
@@ -237,10 +239,11 @@ void PeerConnection::read() {
 
       } else {
 	// We don't want the piece,
-	m_down.length = piece.get_length();
+	m_read.set_length(piece.get_length());
+	m_read.set_position(0);
 	m_read.set_state(ProtocolRead::SKIP_PIECE);
 
-	m_net->signal_network_log().emit("Receiving piece we don't want from " + m_peer.get_dns());
+	//m_net->signal_network_log().emit("Receiving piece we don't want from " + m_peer.get_dns());
       }
 
       goto evil_goto_read;
@@ -279,7 +282,7 @@ void PeerConnection::read() {
 
     if (!m_requests.is_wanted()) {
       m_read.set_state(ProtocolRead::SKIP_PIECE);
-      m_down.length = m_requests.get_piece().get_length() - m_read.get_position();
+      m_read.set_length(m_requests.get_piece().get_length() - m_read.get_position());
       m_read.set_position(0);
 
       m_requests.skip();
@@ -309,20 +312,20 @@ void PeerConnection::read() {
 
   case ProtocolRead::SKIP_PIECE:
     if (m_read.get_position() != 0)
-      throw internal_error("ProtocolRead::SKIP_PIECE m_down.pos != 0");
+      throw internal_error("ProtocolRead::SKIP_PIECE m_down.pos == 0");
 
     m_read.set_position(read_buf(m_read.get_buffer().begin(),
-				 std::min<int>(m_down.length, m_read.get_buffer().reserved())));
+				 std::min<int>(m_read.get_length(), m_read.get_buffer().reserved())));
 
     if (m_read.get_position() == 0)
       return;
 
     m_throttle.down().insert(m_read.get_position());
 
-    m_down.length -= m_read.get_position();
+    m_read.set_length(m_read.get_length() - m_read.get_position());
     m_read.set_position(0);
 
-    if (m_down.length == 0) {
+    if (m_read.get_length() == 0) {
       // Done with this piece.
       m_read.set_state(ProtocolRead::IDLE);
       m_tryRequest = true;

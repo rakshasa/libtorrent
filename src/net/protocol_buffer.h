@@ -41,6 +41,8 @@ public:
   void                reset_position()                        { m_position = m_buffer; }
   void                move_position(size_type v)              { m_position += v; }
 
+  void                set_end(size_type v)                    { m_end = m_buffer + v; }
+
   uint8_t             read8();
   uint8_t             peek8();
   uint32_t            read32();
@@ -55,7 +57,7 @@ public:
 
   size_type           size_position() const                   { return m_position - m_buffer; }
   size_type           size_end() const                        { return m_end - m_buffer; }
-  size_type           size_left() const                       { return m_end - m_position; }
+  size_type           remaining() const                       { return m_end - m_position; }
   size_type           reserved() const                        { return tmpl_size; }
   difference_type     reserved_left() const                   { return reserved() - size_position(); }
 
