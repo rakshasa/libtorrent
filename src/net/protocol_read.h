@@ -47,10 +47,21 @@ public:
   uint32_t            get_length() const            { return m_length; }
   void                set_length(uint32_t l)        { m_length = l; }
 
+  Piece               read_request();
+
 private:
   State               m_state;
   uint32_t            m_length;
 };
+
+inline Piece
+ProtocolRead::read_request() {
+  uint32_t index = m_buffer.read32();
+  uint32_t offset = m_buffer.read32();
+  uint32_t length = m_buffer.read32();
+  
+  return Piece(index, offset, length);
+}
 
 }
 

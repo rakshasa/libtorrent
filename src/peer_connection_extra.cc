@@ -88,12 +88,12 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
   if (m_write.get_position() >= (1 << 17))
     throw internal_error("PeerConnection::writeChunk(...) m_write.get_position() bork");
 
-  uint32_t offset = m_sends.front().get_offset() + m_write.get_position();
-  StorageChunk::iterator part = m_write.get_chunk()->at_position(offset);
+  const Piece& p = m_sends.front();
 
-  offset -= part->get_position();
+  StorageChunk::iterator part = m_write.chunk_part(p);
 
-  uint32_t length = std::min(m_sends.front().get_length() - m_write.get_position(), part->size() - offset);
+  uint32_t offset = m_write.chunk_offset(p, part);
+  uint32_t length = m_write.chunk_length(p, part, offset);
 
   if (length > (1 << 17) || length == 0 )
     throw internal_error("PeerConnection::writeChunk(...) length bork");
@@ -104,35 +104,42 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
   if ((offset + length) > part->size())
     throw internal_error("PeerConnection::writeChunk(...) offset+length bork");
 
-  m_write.adjust_position(write_buf(part->get_chunk().begin() + offset, std::min(length, maxBytes)));
+  uint32_t bytes = write_buf(part->get_chunk().begin() + offset, std::min(length, maxBytes));
 
-  return m_write.get_position() == m_sends.front().get_length();
+  m_write.adjust_position(bytes);
+
+  m_throttle.up().insert(bytes);
+  m_throttle.spent(bytes);
+
+  m_net->get_rate_up().insert(bytes);
+
+  return m_write.get_position() == p.get_length();
 }
 
 // TODO: Handle file boundaries better.
 bool
 PeerConnection::readChunk() {
-  int previous = m_read.get_position();
-
   if (m_read.get_position() > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
   const Piece& p = m_requests.get_piece();
-  StorageChunk::iterator part = m_read.get_chunk()->at_position(p.get_offset() + m_read.get_position());
+  StorageChunk::iterator part = m_read.chunk_part(p);
 
-  unsigned int offset = p.get_offset() + m_read.get_position() - part->get_position();
-  
   if (!part->get_chunk().is_valid())
     throw internal_error("PeerConnection::readChunk() did not get a valid chunk");
   
   if (!part->get_chunk().is_writable())
     throw internal_error("PeerConnection::readChunk() chunk not writable, permission denided");
   
-  m_read.adjust_position(read_buf(part->get_chunk().begin() + offset,
-				  std::min(p.get_length() - m_read.get_position(), part->size() - offset)));
+  uint32_t offset = m_read.chunk_offset(p, part);
+  uint32_t length = m_read.chunk_length(p, part, offset);
 
-  m_throttle.down().insert(m_read.get_position() - previous);
-  m_net->get_rate_down().insert(m_read.get_position() - previous);
+  uint32_t bytes = read_buf(part->get_chunk().begin() + offset, length);
+
+  m_read.adjust_position(bytes);
+
+  m_throttle.down().insert(bytes);
+  m_net->get_rate_down().insert(bytes);
 
   return m_read.get_position() == p.get_length();
 }
@@ -152,7 +159,7 @@ PeerConnection::load_down_chunk(int index) {
 }
 
 bool
-PeerConnection::request_piece() {
+PeerConnection::send_request_piece() {
   const Piece* p;
 
   if ((p = m_requests.delegate()) == NULL)
@@ -173,6 +180,49 @@ PeerConnection::request_piece() {
   m_write.write_request(*p);
 
   return true;
+}
+
+void
+PeerConnection::receive_request_piece(Piece p) {
+  SendList::iterator itr = std::find(m_sends.begin(), m_sends.end(), p);
+  
+  if (itr == m_sends.end())
+    m_sends.push_back(p);
+
+  Poll::write_set().insert(this);
+}
+
+void
+PeerConnection::receive_cancel_piece(Piece p) {
+  SendList::iterator itr = std::find(m_sends.begin(), m_sends.end(), p);
+  
+  if (itr != m_sends.begin() && m_write.get_state() == ProtocolWrite::IDLE)
+    m_sends.erase(itr);
+}  
+
+void
+PeerConnection::receive_have(uint32_t index) {
+  if (index >= m_bitfield.size_bits())
+    throw communication_error("Recived HAVE command with invalid value");
+
+  if (!m_bitfield[index]) {
+    m_bitfield.set(index, true);
+    m_download->get_bitfield_counter().inc(index);
+  }
+    
+  if (!m_write.get_interested() && m_net->get_delegator().get_select().interested(index)) {
+    // We are interested, send flag if not already set.
+    m_sendInterested = true;
+    m_write.set_interested(true);
+
+    Poll::write_set().insert(this);
+  }
+
+  // Make sure m_tryRequest is set even if we were previously
+  // interested. Super-Seeders seem to cause it to stall while we
+  // are interested, but m_tryRequest is cleared.
+  m_tryRequest = true;
+  m_ratePeer.insert(m_download->get_content().get_storage().get_chunk_size());
 }
 
 bool PeerConnection::chokeDelayed() {

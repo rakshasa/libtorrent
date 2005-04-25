@@ -75,8 +75,8 @@ public:
   // Rename to is_write_*
   bool                is_up_choked()                { return m_write.get_choked(); }
   bool                is_up_interested()            { return m_write.get_interested(); }
-  bool                is_down_choked()              { return m_write.get_choked(); }
-  bool                is_down_interested()          { return m_write.get_interested(); }
+  bool                is_down_choked()              { return m_read.get_choked(); }
+  bool                is_down_interested()          { return m_read.get_interested(); }
 
   virtual void        read();
   virtual void        write();
@@ -95,17 +95,20 @@ private:
 
   void load_down_chunk(int index);
 
-  bool request_piece();
-  void skip_piece();
+  bool                send_request_piece();
+
+  void                receive_request_piece(Piece p);
+  void                receive_cancel_piece(Piece p);
+  void                receive_have(uint32_t index);
 
   // Parse packet in read buffer, must be of correct type.
   void parseReadBuf();
 
   void fillWriteBuf();
 
-  void task_keep_alive();
-  void task_send_choke();
-  void task_stall();
+  void                task_keep_alive();
+  void                task_send_choke();
+  void                task_stall();
 
   bool           m_shutdown;
 
@@ -129,15 +132,15 @@ private:
   Timer          m_lastChoked;
   Timer          m_lastMsg;
 
-  ProtocolRead   m_read;
-  ProtocolWrite  m_write;
-
   Rate           m_ratePeer;
   Throttle       m_throttle;
 
-  Task           m_taskKeepAlive;
-  Task           m_taskSendChoke;
-  Task           m_taskStall;
+  ProtocolRead        m_read;
+  ProtocolWrite       m_write;
+
+  Task                m_taskKeepAlive;
+  Task                m_taskSendChoke;
+  Task                m_taskStall;
 };
 
 }

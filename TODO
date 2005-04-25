@@ -110,16 +110,6 @@ disallow for open torrents?
 
 CURRENT:
 
-Make sure last command is correctly updated with the new read/write
-classes.
-
-
-NEXT:
-
-Properly handle invalid chunks in hash_torrent due to unable to open
-files.
-
-Limit on open file-descriptors.
 
 
 RELEASE:

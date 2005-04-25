@@ -28,9 +28,12 @@
 
 namespace torrent {
 
+class Piece;
+
 class ProtocolBase {
 public:
-  typedef ProtocolBuffer<512>     Buffer;
+  typedef ProtocolBuffer<512>           Buffer;
+  typedef StorageChunk::iterator        ChunkPart;
 
   typedef enum {
     CHOKE = 0,
@@ -71,6 +74,10 @@ public:
   void                set_position(uint32_t p)                { m_position = p; }
   void                adjust_position(uint32_t p)             { m_position += p; }
 
+  ChunkPart           chunk_part(const Piece& p);
+  uint32_t            chunk_offset(const Piece& p, const ChunkPart& c);
+  uint32_t            chunk_length(const Piece& p, const ChunkPart& c, uint32_t offset);
+
 protected:
   uint32_t            m_position;
 
@@ -81,6 +88,21 @@ protected:
   Storage::Chunk      m_chunk;
   Buffer              m_buffer;
 };
+
+inline ProtocolBase::ChunkPart
+ProtocolBase::chunk_part(const Piece& p) {
+  return m_chunk->at_position(p.get_offset() + m_position);
+}  
+
+inline uint32_t
+ProtocolBase::chunk_offset(const Piece& p, const ChunkPart& c) {
+  return p.get_offset() + m_position - c->get_position();
+}
+
+inline uint32_t
+ProtocolBase::chunk_length(const Piece& p, const ChunkPart& c, uint32_t offset) {
+  return std::min(p.get_length() - m_position, c->size() - offset);
+}
 
 }
 

@@ -364,8 +364,7 @@ void PeerConnection::read() {
 }
 
 void PeerConnection::write() {
-  bool s;
-  int previous, maxBytes;
+  int maxBytes;
 
   try {
 
@@ -436,7 +435,6 @@ void PeerConnection::write() {
     if (m_sends.empty())
       throw internal_error("ProtocolWrite::WRITE_PIECE on an empty list");
 
-    previous = m_write.get_position();
     maxBytes = m_throttle.left();
     
     if (maxBytes == 0) {
@@ -447,14 +445,7 @@ void PeerConnection::write() {
     if (maxBytes < 0)
       throw internal_error("PeerConnection::write() got maxBytes <= 0");
 
-    s = writeChunk(maxBytes);
-
-    m_throttle.up().insert(m_write.get_position() - previous);
-    m_throttle.spent(m_write.get_position() - previous);
-
-    m_net->get_rate_up().insert(m_write.get_position() - previous);
-
-    if (!s)
+    if (!writeChunk(maxBytes))
       return;
 
     if (m_sends.empty())
@@ -497,10 +488,6 @@ void PeerConnection::except() {
 }
 
 void PeerConnection::parseReadBuf() {
-  uint32_t index, offset, length;
-  SendList::iterator rItr;
-  std::stringstream str;
-
   ProtocolBase::Protocol curCmd = (ProtocolBase::Protocol)m_read.get_buffer().read8();
 
   switch (curCmd) {
@@ -542,65 +529,23 @@ void PeerConnection::parseReadBuf() {
     return;
 
   case ProtocolBase::REQUEST:
-  case ProtocolBase::CANCEL:
-    if (m_write.get_choked())
-      return;
-
-    index = m_read.get_buffer().read32();
-    offset = m_read.get_buffer().read32();
-    length = m_read.get_buffer().read32();
-
-    rItr = std::find(m_sends.begin(), m_sends.end(),
-		     Piece(index, offset, length));
-      
-    if (curCmd == ProtocolBase::REQUEST) {
-      if (rItr != m_sends.end())
-	m_sends.erase(rItr);
-      
-      m_sends.push_back(Piece(index, offset, length));
-      Poll::write_set().insert(this);
-
-    } else if (rItr != m_sends.end()) {
-
-      // Only cancel if we're not writing it.
-      if (rItr != m_sends.begin() || m_write.get_last_command() != ProtocolBase::PIECE || m_write.get_state() == ProtocolWrite::IDLE)
-	m_sends.erase(rItr);
-    }
-
-    return Poll::write_set().insert(this);
-
-  case ProtocolBase::HAVE:
-    index = m_read.get_buffer().read32();
-
-    if (index >= m_bitfield.size_bits())
-      throw communication_error("Recived HAVE command with invalid value");
-
-    if (!m_bitfield[index]) {
-      m_bitfield.set(index, true);
-      m_download->get_bitfield_counter().inc(index);
-    }
-    
-    if (!m_write.get_interested() && m_net->get_delegator().get_select().interested(index)) {
-      // We are interested, send flag if not already set.
-      m_sendInterested = !m_write.get_interested();
-      m_write.set_interested(true);
-
+    if (!m_write.get_choked()) {
+      receive_request_piece(m_read.read_request());
       Poll::write_set().insert(this);
     }
-
-    // Make sure m_tryRequest is set even if we were previously
-    // interested. Super-Seeders seem to cause it to stall while we
-    // are interested, but m_tryRequest is cleared.
-    m_tryRequest = true;
-    m_ratePeer.insert(m_download->get_content().get_storage().get_chunk_size());
 
     return;
 
-  default:
-    str << "Peer sent unsupported command " << curCmd;
+  case ProtocolBase::CANCEL:
+    receive_request_piece(m_read.read_request());
+    return;
 
-    // TODO: this is a communication error.
-    throw communication_error(str.str());
+  case ProtocolBase::HAVE:
+    receive_have(m_read.get_buffer().read32());
+    return;
+
+  default:
+    throw communication_error("Peer sendt unsupported command");
   };
 }
 
@@ -645,7 +590,7 @@ void PeerConnection::fillWriteBuf() {
 
     m_tryRequest = false;
 
-    while (m_requests.get_size() < pipeSize && m_write.can_write_request() && request_piece())
+    while (m_requests.get_size() < pipeSize && m_write.can_write_request() && send_request_piece())
 
       if (m_requests.get_size() == 1) {
 	if (m_taskStall.is_scheduled())
@@ -670,23 +615,18 @@ void PeerConnection::fillWriteBuf() {
       m_write.can_write_piece()) {
 
     // Move these checks somewhere else?
-    if (!m_download->get_content().is_valid_piece(m_sends.front())) {
+    if (!m_download->get_content().is_valid_piece(m_sends.front()) ||
+	!m_download->get_content().has_chunk(m_sends.front().get_index())) {
       std::stringstream s;
 
-      s << "Peer requested a piece with invalid length or offset: "
+      s << "Peer requested a piece with invalid index or length/offset: "
+	<< m_sends.front().get_index() << ' '
 	<< m_sends.front().get_length() << ' '
 	<< m_sends.front().get_offset();
 
       throw communication_error(s.str());
     }
       
-    if (!m_download->get_content().has_chunk(m_sends.front().get_index())) {
-      std::stringstream s;
-      s << "Peer requested a piece with invalid index: " << m_sends.front().get_index();
-
-      throw communication_error(s.str());
-    }
-
     m_write.write_piece(m_sends.front());
   }
 }
