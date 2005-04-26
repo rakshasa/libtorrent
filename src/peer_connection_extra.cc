@@ -88,12 +88,10 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
   if (m_write.get_position() >= (1 << 17))
     throw internal_error("PeerConnection::writeChunk(...) m_write.get_position() bork");
 
-  const Piece& p = m_sends.front();
+  StorageChunk::iterator part = m_write.chunk_part(m_writePiece);
 
-  StorageChunk::iterator part = m_write.chunk_part(p);
-
-  uint32_t offset = m_write.chunk_offset(p, part);
-  uint32_t length = m_write.chunk_length(p, part, offset);
+  uint32_t offset = m_write.chunk_offset(m_writePiece, part);
+  uint32_t length = m_write.chunk_length(m_writePiece, part, offset);
 
   if (length > (1 << 17) || length == 0 )
     throw internal_error("PeerConnection::writeChunk(...) length bork");
@@ -113,7 +111,7 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
 
   m_net->get_rate_up().insert(bytes);
 
-  return m_write.get_position() == p.get_length();
+  return m_write.get_position() == m_writePiece.get_length();
 }
 
 // TODO: Handle file boundaries better.
@@ -122,8 +120,7 @@ PeerConnection::readChunk() {
   if (m_read.get_position() > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
-  const Piece& p = m_requests.get_piece();
-  StorageChunk::iterator part = m_read.chunk_part(p);
+  StorageChunk::iterator part = m_read.chunk_part(m_readPiece);
 
   if (!part->get_chunk().is_valid())
     throw internal_error("PeerConnection::readChunk() did not get a valid chunk");
@@ -131,8 +128,8 @@ PeerConnection::readChunk() {
   if (!part->get_chunk().is_writable())
     throw internal_error("PeerConnection::readChunk() chunk not writable, permission denided");
   
-  uint32_t offset = m_read.chunk_offset(p, part);
-  uint32_t length = m_read.chunk_length(p, part, offset);
+  uint32_t offset = m_read.chunk_offset(m_readPiece, part);
+  uint32_t length = m_read.chunk_length(m_readPiece, part, offset);
 
   uint32_t bytes = read_buf(part->get_chunk().begin() + offset, length);
 
@@ -141,7 +138,7 @@ PeerConnection::readChunk() {
   m_throttle.down().insert(bytes);
   m_net->get_rate_down().insert(bytes);
 
-  return m_read.get_position() == p.get_length();
+  return m_read.get_position() == m_readPiece.get_length();
 }
   
 void

@@ -28,7 +28,9 @@
 
 namespace torrent {
 
-// == and = operators works.
+class PeerConnection;
+
+// == and = operators works as expected.
 
 // The Peer class is a wrapper around the internal peer class. This
 // peer class may be invalidated during a torrent::work call. So if
@@ -37,8 +39,8 @@ namespace torrent {
 // date. 
 class Peer {
 public:
-  Peer()        : m_ptr(NULL) {}
-  Peer(void* p) : m_ptr(p) {}
+  Peer()                  : m_ptr(NULL) {}
+  Peer(PeerConnection* p) : m_ptr(p) {}
 
   // Does not check if it has been removed from the download.
   bool                 is_valid()  { return m_ptr; }
@@ -79,13 +81,13 @@ public:
 
   void                 set_snubbed(bool v);
 
-  void*                get_ptr()          { return m_ptr; }
-  void                 set_ptr(void* ptr) { m_ptr = ptr; }
+  PeerConnection*      get_ptr()                    { return m_ptr; }
+  void                 set_ptr(PeerConnection* ptr) { m_ptr = ptr; }
 
-  bool                 operator == (const Peer& p) { return m_ptr == p.m_ptr; }
+  bool                 operator == (const Peer& p)  { return m_ptr == p.m_ptr; }
 
 private:
-  void*                m_ptr;
+  PeerConnection*      m_ptr;
 };
 
 }

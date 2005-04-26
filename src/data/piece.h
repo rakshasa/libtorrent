@@ -42,9 +42,8 @@ public:
   void      set_offset(uint32_t v)        { m_offset = v; }
   void      set_length(uint32_t v)        { m_length = v; }
 
-  bool operator == (const Piece& p) const {
-    return m_index == p.m_index && m_offset == p.m_offset && m_length == p.m_length;
-  }
+  bool operator == (const Piece& p) const { return m_index == p.m_index && m_offset == p.m_offset && m_length == p.m_length; }
+  bool operator != (const Piece& p) const { return !(*this == p); }
 
 private:
   int32_t   m_index;

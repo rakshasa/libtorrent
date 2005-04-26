@@ -98,7 +98,9 @@ RequestList::downloading(const Piece& p) {
   }
   
   m_downloading = true;
-  m_piece = m_reservees.front()->get_piece();
+
+  if (p != m_reservees.front()->get_piece())
+    throw internal_error("RequestList::downloading(...) did not add the new piece to the front of the list");
   
   if ((*m_delegator->get_select().get_bitfield())[p.get_index()])
     throw internal_error("RequestList::downloading(...) called with a piece index we already have");

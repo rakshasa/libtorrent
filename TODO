@@ -110,7 +110,11 @@ disallow for open torrents?
 
 CURRENT:
 
+Make a base class for PeerConnection, move read/write_remaining etc.
 
+NEXT:
+
+Make hash checking queue based on MB's, not chunks.
 
 RELEASE:
 

@@ -132,8 +132,8 @@ DownloadMain::choke_cycle() {
   for (DownloadNet::ConnectionList::const_iterator itr = m_net.get_connections().begin();
        itr != m_net.get_connections().end(); ++itr)
 
-    if (!(*itr)->is_up_choked() &&
-	(*itr)->lastChoked() + m_state.get_settings().chokeGracePeriod < Timer::cache() &&
+    if (!(*itr)->is_write_choked() &&
+	(*itr)->get_last_choked() + m_state.get_settings().chokeGracePeriod < Timer::cache() &&
 	  
 	(g = (*itr)->throttle().down().rate() * 16 + (*itr)->throttle().up().rate()) <= f) {
       f = g;
@@ -154,15 +154,15 @@ DownloadMain::choke_cycle() {
     // Prioritize those we are interested in, those also have higher
     // download rates.
 
-    if ((*itr)->is_up_choked() &&
-	(*itr)->is_down_interested() &&
+    if ((*itr)->is_write_choked() &&
+	(*itr)->is_read_interested() &&
 
 	((g = (*itr)->throttle().down().rate()) > f ||
 
-	 (!foundInterested && (*itr)->is_up_interested()))) {
+	 (!foundInterested && (*itr)->is_write_interested()))) {
       // Prefer peers we are interested in.
 
-      foundInterested = (*itr)->is_up_interested();
+      foundInterested = (*itr)->is_write_interested();
       f = g;
       p2 = *itr;
     }

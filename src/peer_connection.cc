@@ -138,9 +138,7 @@ void PeerConnection::read() {
 
   // TODO: Read up to 9 bytes or something.
   case ProtocolRead::TYPE:
-    m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(), m_read.get_buffer().remaining()));
-
-    if (m_read.get_buffer().remaining())
+    if (!read_remaining())
       return;
 
     m_read.get_buffer().reset_position();
@@ -206,10 +204,7 @@ void PeerConnection::read() {
     m_read.set_last_command((ProtocolBase::Protocol)m_read.get_buffer().read8());
 
   case ProtocolRead::MSG:
-    if (m_read.get_buffer().remaining())
-      m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(), m_read.get_buffer().remaining()));
-
-    if (m_read.get_buffer().remaining())
+    if (m_read.get_buffer().remaining() && !read_remaining())
       return;
 
     m_read.get_buffer().reset_position();
@@ -234,7 +229,9 @@ void PeerConnection::read() {
       
       if (m_requests.downloading(piece)) {
 	m_read.set_state(ProtocolRead::READ_PIECE);
-	load_down_chunk(m_requests.get_piece().get_index());
+	m_readPiece = piece;
+
+	load_down_chunk(m_readPiece.get_index());
 
       } else {
 	// We don't want the piece,
@@ -281,7 +278,7 @@ void PeerConnection::read() {
 
     if (!m_requests.is_wanted()) {
       m_read.set_state(ProtocolRead::SKIP_PIECE);
-      m_read.set_length(m_requests.get_piece().get_length() - m_read.get_position());
+      m_read.set_length(m_readPiece.get_length() - m_read.get_position());
       m_read.set_position(0);
 
       m_requests.skip();
@@ -388,10 +385,7 @@ void PeerConnection::write() {
     m_write.get_buffer().prepare_end();
 
   case ProtocolWrite::MSG:
-    m_write.get_buffer().move_position(write_buf(m_write.get_buffer().position(),
-						 m_write.get_buffer().remaining()));
-
-    if (m_write.get_buffer().remaining())
+    if (!write_remaining())
       return;
 
     switch (m_write.get_last_command()) {
@@ -406,7 +400,7 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_write.set_chunk(m_download->get_content().get_storage().get_chunk(m_sends.front().get_index(), MemoryChunk::prot_read));
+      m_write.set_chunk(m_download->get_content().get_storage().get_chunk(m_writePiece.get_index(), MemoryChunk::prot_read));
       m_write.set_state(ProtocolWrite::WRITE_PIECE);
       m_write.set_position(0);
 
@@ -614,20 +608,22 @@ void PeerConnection::fillWriteBuf() {
       !m_sends.empty() &&
       m_write.can_write_piece()) {
 
+    m_writePiece = m_sends.front();
+
     // Move these checks somewhere else?
-    if (!m_download->get_content().is_valid_piece(m_sends.front()) ||
-	!m_download->get_content().has_chunk(m_sends.front().get_index())) {
+    if (!m_download->get_content().is_valid_piece(m_writePiece) ||
+	!m_download->get_content().has_chunk(m_writePiece.get_index())) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index or length/offset: "
-	<< m_sends.front().get_index() << ' '
-	<< m_sends.front().get_length() << ' '
-	<< m_sends.front().get_offset();
+	<< m_writePiece.get_index() << ' '
+	<< m_writePiece.get_length() << ' '
+	<< m_writePiece.get_offset();
 
       throw communication_error(s.str());
     }
       
-    m_write.write_piece(m_sends.front());
+    m_write.write_piece(m_writePiece);
   }
 }
 

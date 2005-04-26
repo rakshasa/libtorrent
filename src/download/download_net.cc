@@ -169,7 +169,7 @@ DownloadNet::add_available_peers(const PeerList& p) {
 int
 DownloadNet::can_unchoke() {
   return m_settings->maxUploads - std::count_if(m_connections.begin(), m_connections.end(),
-						std::not1(std::mem_fun(&PeerConnection::is_up_choked)));
+						std::not1(std::mem_fun(&PeerConnection::is_write_choked)));
 }
 
 void
@@ -188,8 +188,8 @@ DownloadNet::choke_balance() {
     for (ConnectionList::iterator itr = m_connections.begin();
 	 itr != m_connections.end() && s != 0; ++itr) {
       
-      if ((*itr)->is_up_choked() &&
-	  (*itr)->is_down_interested() &&
+      if ((*itr)->is_write_choked() &&
+	  (*itr)->is_read_interested() &&
 	  !(*itr)->throttle().get_snub()) {
 	(*itr)->choke(false);
 	--s;
@@ -207,7 +207,7 @@ DownloadNet::choke_balance() {
     for (ConnectionList::iterator itr = m_connections.begin();
 	 itr != m_connections.end() && s != 0; ++itr) {
       
-      if (!(*itr)->is_up_choked()) {
+      if (!(*itr)->is_write_choked()) {
 	(*itr)->choke(true);
 	++s;
       }

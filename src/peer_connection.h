@@ -24,16 +24,11 @@
 #define LIBTORRENT_PEER_CONNECTION_H
 
 #include "peer_info.h"
-#include "data/piece.h"
 #include "utils/rate.h"
 #include "throttle.h"
 
+#include "peer/peer_connection_base.h"
 #include "peer/request_list.h"
-#include "net/protocol_buffer.h"
-#include "net/protocol_read.h"
-#include "net/protocol_write.h"
-#include "net/socket_base.h"
-#include "utils/bitfield_ext.h"
 #include "utils/task.h"
 
 #include <vector>
@@ -46,7 +41,7 @@ namespace torrent {
 class DownloadState;
 class DownloadNet;
 
-class PeerConnection : public SocketBase {
+class PeerConnection : public PeerConnectionBase {
 public:
   typedef std::list<Piece>              SendList;
 
@@ -59,24 +54,13 @@ public:
   void update_interested();
 
   bool chokeDelayed();
-  Timer lastChoked() { return m_lastChoked; }
-
-  const BitFieldExt& bitfield() const { return m_bitfield; }
 
   const PeerInfo& peer() const { return m_peer; }
 
   RequestList& get_requests() { return m_requests; }
   SendList&    get_sends()    { return m_sends; }
 
-  Rate&        get_rate_peer() { return m_ratePeer; }
-
   Throttle& throttle() { return m_throttle; }
-
-  // Rename to is_write_*
-  bool                is_up_choked()                { return m_write.get_choked(); }
-  bool                is_up_interested()            { return m_write.get_interested(); }
-  bool                is_down_choked()              { return m_read.get_choked(); }
-  bool                is_down_interested()          { return m_read.get_interested(); }
 
   virtual void        read();
   virtual void        write();
@@ -118,8 +102,6 @@ private:
   DownloadState* m_download;
   DownloadNet*   m_net;
    
-  BitFieldExt    m_bitfield;
-   
   bool           m_sendChoked;
   bool           m_sendInterested;
   bool           m_tryRequest;
@@ -129,14 +111,9 @@ private:
 
   std::list<int> m_haveQueue;
 
-  Timer          m_lastChoked;
   Timer          m_lastMsg;
 
-  Rate           m_ratePeer;
   Throttle       m_throttle;
-
-  ProtocolRead        m_read;
-  ProtocolWrite       m_write;
 
   Task                m_taskKeepAlive;
   Task                m_taskSendChoke;

@@ -63,8 +63,6 @@ public:
 
   size_t             get_size()                       { return m_reservees.size(); }
 
-  const Piece&       get_piece()                      { return m_piece; }
-
   Piece              get_queued_piece(uint32_t i) {
     // TODO: Make this unnessesary?
     if (m_reservees[i]->is_valid())
@@ -78,8 +76,6 @@ public:
 
 private:
   void               cancel_range(ReserveeList::iterator end);
-
-  Piece              m_piece;
 
   Delegator*         m_delegator;
   const BitField*    m_bitfield;
