@@ -78,7 +78,7 @@ private:
 
   bool                check(bool force);
 
-  void                willneed(int count);
+  void                willneed(int bytes);
 
   typedef std::list<Node> ChunkList;
 

@@ -24,7 +24,6 @@
 #define LIBTORRENT_PEER_CONNECTION_H
 
 #include "peer_info.h"
-#include "utils/rate.h"
 #include "throttle.h"
 
 #include "peer/peer_connection_base.h"
@@ -37,9 +36,6 @@
 // start refactoring until i finish the other stuff i need to do.
 
 namespace torrent {
-
-class DownloadState;
-class DownloadNet;
 
 class PeerConnection : public PeerConnectionBase {
 public:
@@ -77,8 +73,6 @@ private:
   bool writeChunk(unsigned int maxBytes);
   bool readChunk();
 
-  void load_down_chunk(int index);
-
   bool                send_request_piece();
 
   void                receive_request_piece(Piece p);
@@ -99,8 +93,6 @@ private:
   int            m_stallCount;
 
   PeerInfo       m_peer;
-  DownloadState* m_download;
-  DownloadNet*   m_net;
    
   bool           m_sendChoked;
   bool           m_sendInterested;

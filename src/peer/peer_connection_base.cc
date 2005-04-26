@@ -22,8 +22,34 @@
 
 #include "config.h"
 
+#include "torrent/exceptions.h"
+#include "download/download_net.h"
+#include "download/download_state.h"
 #include "net/socket_base.h"
 
+#include "peer_connection_base.h"
+
 namespace torrent {
+
+PeerConnectionBase::PeerConnectionBase() :
+  m_state(NULL),
+  m_net(NULL) {
+}
+
+void
+PeerConnectionBase::load_read_chunk(const Piece& p) {
+  m_readPiece = p;
+
+  if (m_read.get_chunk().is_valid() && p.get_index() == m_read.get_chunk()->get_index())
+    return;
+
+  if (!m_state->get_content().is_valid_piece(p))
+    throw internal_error("Incoming pieces list contains a bad piece");
+  
+  m_read.get_chunk() = m_state->get_content().get_storage().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write);
+  
+  if (!m_read.get_chunk().is_valid())
+    throw storage_error("Could not create a valid chunk");
+}
 
 }

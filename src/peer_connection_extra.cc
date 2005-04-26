@@ -25,7 +25,6 @@
 #endif
 
 #include <unistd.h>
-#include <algo/algo.h>
 #include <netinet/in.h>
 #include <sstream>
 
@@ -36,8 +35,6 @@
 
 #include "peer_connection.h"
 
-using namespace algo;
-
 // This file is for functions that does not directly relate to the
 // protocol logic. Or the split might be completely arbitary...
 
@@ -46,9 +43,6 @@ namespace torrent {
 PeerConnection::PeerConnection() :
   m_shutdown(false),
   m_stallCount(0),
-
-  m_download(NULL),
-  m_net(NULL),
 
   m_sendChoked(false),
   m_sendInterested(false),
@@ -61,14 +55,14 @@ PeerConnection::PeerConnection() :
 }
 
 PeerConnection::~PeerConnection() {
-  if (m_download) {
+  if (m_state) {
     if (m_requests.is_downloading())
       m_requests.skip();
 
     m_requests.cancel();
 
     if (m_read.get_state() != ProtocolRead::BITFIELD)
-      m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
+      m_state->get_bitfield_counter().dec(m_bitfield.get_bitfield());
   }
 
   if (!m_fd.is_valid())
@@ -141,20 +135,6 @@ PeerConnection::readChunk() {
   return m_read.get_position() == m_readPiece.get_length();
 }
   
-void
-PeerConnection::load_down_chunk(int index) {
-  if (m_read.get_chunk().is_valid() && index == m_read.get_chunk()->get_index())
-    return;
-
-  if (index < 0 || index >= (signed)m_download->get_chunk_total())
-    throw internal_error("Incoming pieces list contains a bad index value");
-  
-  m_read.get_chunk() = m_download->get_content().get_storage().get_chunk(index, MemoryChunk::prot_read | MemoryChunk::prot_write);
-  
-  if (!m_read.get_chunk().is_valid())
-    throw storage_error("Could not create a valid chunk");
-}
-
 bool
 PeerConnection::send_request_piece() {
   const Piece* p;
@@ -162,7 +142,7 @@ PeerConnection::send_request_piece() {
   if ((p = m_requests.delegate()) == NULL)
     return false;
 
-  if (!m_download->get_content().is_valid_piece(*p) ||
+  if (!m_state->get_content().is_valid_piece(*p) ||
       !m_bitfield[p->get_index()]) {
     std::stringstream s;
     
@@ -204,7 +184,7 @@ PeerConnection::receive_have(uint32_t index) {
 
   if (!m_bitfield[index]) {
     m_bitfield.set(index, true);
-    m_download->get_bitfield_counter().inc(index);
+    m_state->get_bitfield_counter().inc(index);
   }
     
   if (!m_write.get_interested() && m_net->get_delegator().get_select().interested(index)) {
@@ -219,7 +199,7 @@ PeerConnection::receive_have(uint32_t index) {
   // interested. Super-Seeders seem to cause it to stall while we
   // are interested, but m_tryRequest is cleared.
   m_tryRequest = true;
-  m_ratePeer.insert(m_download->get_content().get_storage().get_chunk_size());
+  m_ratePeer.insert(m_state->get_content().get_storage().get_chunk_size());
 }
 
 bool PeerConnection::chokeDelayed() {

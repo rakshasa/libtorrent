@@ -88,15 +88,18 @@ HashQueue::clear() {
   }
 }
 
-// TODO: Clean up this code, it's ugly.
+// TODO: Clean up this code, it's ugly. Use a loop that check X bytes,
+// instead of one chunk.
 void
 HashQueue::work() {
-  while (!m_chunks.empty()) {
-    if (!check(++m_tries >= Settings::hashTries))
-      return m_taskWork.insert(Timer::current() + Settings::hashWait);
-    
-    m_tries = 0;
-  }
+  if (m_chunks.empty())
+    return;
+
+  if (!check(++m_tries >= Settings::hashTries))
+    return m_taskWork.insert(Timer::cache() + Settings::hashWait);
+
+  m_taskWork.insert(Timer::cache());
+  m_tries = 0;
 }
 
 bool
@@ -119,12 +122,15 @@ HashQueue::check(bool force) {
 }
 
 void
-HashQueue::willneed(int count) {
-  for (ChunkList::iterator itr = m_chunks.begin(); itr != m_chunks.end() && count--; ++itr)
+HashQueue::willneed(int bytes) {
+  for (ChunkList::iterator itr = m_chunks.begin(); itr != m_chunks.end() && bytes > 0; ++itr) {
     if (!itr->m_willneed) {
       itr->m_willneed = true;
       itr->m_chunk->advise_willneed(itr->m_chunk->remaining());
     }
+
+    bytes -= itr->m_chunk->remaining();
+  }
 }
 
 uint32_t

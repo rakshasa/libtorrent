@@ -29,14 +29,19 @@
 #include "net/protocol_write.h"
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
+#include "utils/rate.h"
 
 namespace torrent {
 
 // Base class for peer connection classes. Rename to PeerConnection
 // when the migration is complete.
 
+class DownloadState;
+class DownloadNet;
+
 class PeerConnectionBase : public SocketBase {
 public:
+  PeerConnectionBase();
   
   bool                is_write_choked()             { return m_write.get_choked(); }
   bool                is_write_interested()         { return m_write.get_interested(); }
@@ -52,6 +57,11 @@ public:
 protected:
   inline bool         read_remaining();
   inline bool         write_remaining();
+
+  void                load_read_chunk(const Piece& p);
+
+  DownloadState*      m_state;
+  DownloadNet*        m_net;
 
   Rate                m_ratePeer;
 

@@ -112,9 +112,19 @@ CURRENT:
 
 Make a base class for PeerConnection, move read/write_remaining etc.
 
+Make m_read{Piece,Chunk} placement consistent.
+
+Add buffer read of piece.
+
+
 NEXT:
 
-Make hash checking queue based on MB's, not chunks.
+Don't hash check more than X bytes at a time, add to timeout.
+
+Cleanup HashQueue, seperate out nodes etc.
+
+Make HashChunk::remaining inline.
+
 
 RELEASE:
 

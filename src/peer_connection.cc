@@ -26,7 +26,6 @@
 #include <sstream>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <algo/algo.h>
 
 #include "torrent/exceptions.h"
 #include "download/download_net.h"
@@ -35,8 +34,6 @@
 #include "peer_connection.h"
 #include "net/poll.h"
 #include "settings.h"
-
-using namespace algo;
 
 namespace torrent {
 
@@ -54,7 +51,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 
   m_fd = fd;
   m_peer = p;
-  m_download = d;
+  m_state = d;
   m_net = net;
 
   m_fd.set_throughput();
@@ -79,7 +76,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   m_read.get_buffer().reset_position();
 
   if (!d->get_content().get_bitfield().all_zero()) {
-    m_write.write_bitfield(m_download->get_content().get_bitfield().size_bytes());
+    m_write.write_bitfield(m_state->get_content().get_bitfield().size_bytes());
 
     m_write.get_buffer().prepare_end();
     m_write.set_state(ProtocolWrite::MSG);
@@ -229,9 +226,8 @@ void PeerConnection::read() {
       
       if (m_requests.downloading(piece)) {
 	m_read.set_state(ProtocolRead::READ_PIECE);
-	m_readPiece = piece;
 
-	load_down_chunk(m_readPiece.get_index());
+	load_read_chunk(piece);
 
       } else {
 	// We don't want the piece,
@@ -261,13 +257,13 @@ void PeerConnection::read() {
     if (!m_bitfield.all_zero() && m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
       m_write.set_interested(m_sendInterested = true);
       
-    } else if (m_bitfield.all_set() && m_download->get_content().is_done()) {
+    } else if (m_bitfield.all_set() && m_state->get_content().is_done()) {
       // Both sides are done so we might as well close the connection.
       throw close_connection();
     }
 
     m_read.set_state(ProtocolRead::IDLE);
-    m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
+    m_state->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
     Poll::write_set().insert(this);
     goto evil_goto_read;
@@ -298,7 +294,7 @@ void PeerConnection::read() {
     m_taskStall.remove();
     
     if (m_requests.get_size())
-      m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
+      m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
 
     // TODO: clear m_down.data?
 
@@ -329,7 +325,7 @@ void PeerConnection::read() {
       m_taskStall.remove();
 
       if (m_requests.get_size())
-	m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
+	m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
     }
 
     goto evil_goto_read;
@@ -347,7 +343,7 @@ void PeerConnection::read() {
     m_net->remove_connection(this);
 
   } catch (storage_error& e) {
-    m_download->signal_storage_error().emit(e.what());
+    m_state->signal_storage_error().emit(e.what());
     m_net->remove_connection(this);
 
   } catch (base_error& e) {
@@ -400,7 +396,7 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_write.set_chunk(m_download->get_content().get_storage().get_chunk(m_writePiece.get_index(), MemoryChunk::prot_read));
+      m_write.set_chunk(m_state->get_content().get_storage().get_chunk(m_writePiece.get_index(), MemoryChunk::prot_read));
       m_write.set_state(ProtocolWrite::WRITE_PIECE);
       m_write.set_position(0);
 
@@ -417,10 +413,10 @@ void PeerConnection::write() {
     }
 
   case ProtocolWrite::WRITE_BITFIELD:
-    m_write.adjust_position(write_buf(m_download->get_content().get_bitfield().begin() + m_write.get_position(),
-				      m_download->get_content().get_bitfield().size_bytes() - m_write.get_position()));
+    m_write.adjust_position(write_buf(m_state->get_content().get_bitfield().begin() + m_write.get_position(),
+				      m_state->get_content().get_bitfield().size_bytes() - m_write.get_position()));
 
-    if (m_write.get_position() == m_download->get_content().get_bitfield().size_bytes())
+    if (m_write.get_position() == m_state->get_content().get_bitfield().size_bytes())
       m_write.set_state(ProtocolWrite::IDLE);
 
     return;
@@ -462,7 +458,7 @@ void PeerConnection::write() {
     m_net->remove_connection(this);
 
   } catch (storage_error& e) {
-    m_download->signal_storage_error().emit(e.what());
+    m_state->signal_storage_error().emit(e.what());
     m_net->remove_connection(this);
 
   } catch (base_error& e) {
@@ -591,7 +587,7 @@ void PeerConnection::fillWriteBuf() {
 	  throw internal_error("Only one request, but we're already in task stall");
 	
 	m_tryRequest = true;
-	m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
+	m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
       }	
   }
 
@@ -611,8 +607,8 @@ void PeerConnection::fillWriteBuf() {
     m_writePiece = m_sends.front();
 
     // Move these checks somewhere else?
-    if (!m_download->get_content().is_valid_piece(m_writePiece) ||
-	!m_download->get_content().has_chunk(m_writePiece.get_index())) {
+    if (!m_state->get_content().is_valid_piece(m_writePiece) ||
+	!m_state->get_content().has_chunk(m_writePiece.get_index())) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index or length/offset: "
@@ -630,7 +626,7 @@ void PeerConnection::fillWriteBuf() {
 void PeerConnection::sendHave(int index) {
   m_haveQueue.push_back(index);
 
-  if (m_download->get_content().is_done()) {
+  if (m_state->get_content().is_done()) {
     // We're done downloading.
 
     if (m_bitfield.all_set()) {
@@ -698,7 +694,7 @@ PeerConnection::task_stall() {
 
   // Make sure we regulary call task_stall() so stalled queues with new
   // entries get those new ones stalled if needed.
-  m_taskStall.insert(Timer::cache() + m_download->get_settings().stallTimeout);
+  m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
 
   //m_net->signal_network_log().emit("Peer stalled " + m_peer.get_dns());
 }
