@@ -48,6 +48,7 @@ public:
   void                set_length(uint32_t l)        { m_length = l; }
 
   Piece               read_request();
+  Piece               read_piece();
 
 private:
   State               m_state;
@@ -61,6 +62,14 @@ ProtocolRead::read_request() {
   uint32_t length = m_buffer.read32();
   
   return Piece(index, offset, length);
+}
+
+inline Piece
+ProtocolRead::read_piece() {
+  uint32_t index = m_buffer.read32();
+  uint32_t offset = m_buffer.read32();
+
+  return Piece(index, offset, get_length() - 9);
 }
 
 }

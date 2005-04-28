@@ -98,6 +98,9 @@ HashQueue::work() {
   if (!check(++m_tries >= Settings::hashTries))
     return m_taskWork.insert(Timer::cache() + Settings::hashWait);
 
+  if (m_chunks.empty())
+    return;
+
   m_taskWork.insert(Timer::cache());
   m_tries = 0;
 }

@@ -30,6 +30,7 @@
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
 #include "utils/rate.h"
+#include "utils/task.h"
 
 namespace torrent {
 
@@ -65,12 +66,12 @@ protected:
 
   Rate                m_ratePeer;
 
-  Timer               m_lastChoked;
-
   BitFieldExt         m_bitfield;
    
   Piece               m_readPiece;
   Piece               m_writePiece;
+
+  Timer               m_lastChoked;
 
   ProtocolRead        m_read;
   ProtocolWrite       m_write;

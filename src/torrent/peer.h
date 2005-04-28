@@ -55,7 +55,6 @@ public:
   bool                 get_remote_choked();
   bool                 get_remote_interested();
 
-  bool                 get_choke_delayed();
   bool                 get_snubbed();
 
   // Bytes per second.

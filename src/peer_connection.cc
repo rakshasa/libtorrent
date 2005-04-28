@@ -88,8 +88,6 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 }
 
 void PeerConnection::read() {
-  Piece piece;
-
   m_lastMsg = Timer::cache();
 
   try {
@@ -206,47 +204,16 @@ void PeerConnection::read() {
 
     m_read.get_buffer().reset_position();
 
-    switch (m_read.get_buffer().peek8()) {
-    case ProtocolBase::PIECE:
-      if (m_read.get_length() == 9) {
-	// Some clients send zero length messages when we request pieces
-	// they don't have.
-	m_net->signal_network_log().emit("Received piece with length zero");
-
-	m_read.set_state(ProtocolRead::IDLE);
-	goto evil_goto_read;
-      }
-
+    if (m_read.get_buffer().peek8() == ProtocolBase::PIECE) {
       m_read.get_buffer().read8();
-      piece.set_index(m_read.get_buffer().read32());
-      piece.set_offset(m_read.get_buffer().read32());
-      piece.set_length(m_read.get_length() - 9);
-      
-      m_read.set_position(0);
-      
-      if (m_requests.downloading(piece)) {
-	m_read.set_state(ProtocolRead::READ_PIECE);
+      receive_piece_header(m_read.read_piece());
 
-	load_read_chunk(piece);
-
-      } else {
-	// We don't want the piece,
-	m_read.set_length(piece.get_length());
-	m_read.set_position(0);
-	m_read.set_state(ProtocolRead::SKIP_PIECE);
-
-	//m_net->signal_network_log().emit("Receiving piece we don't want from " + m_peer.get_dns());
-      }
-
-      goto evil_goto_read;
-
-    default:
-      // parseReadBuf() will read the cmd.
+    } else {
       parseReadBuf();
-      
       m_read.set_state(ProtocolRead::IDLE);
-      goto evil_goto_read;
     }
+
+    goto evil_goto_read;
 
   case ProtocolRead::BITFIELD:
     if (!read_buffer(m_bitfield.begin() + m_read.get_position(), m_bitfield.size_bytes(), m_read.get_position()))
@@ -652,6 +619,32 @@ void PeerConnection::sendHave(int index) {
   // TODO: Remove this so we group the have messages with other stuff.
   Poll::write_set().insert(this);
 }
+
+void
+PeerConnection::receive_piece_header(Piece p) {
+  if (m_read.get_length() == 9) {
+    // Some clients send zero length messages when we request pieces
+    // they don't have.
+    m_net->signal_network_log().emit("Received piece with length zero");
+    m_read.set_state(ProtocolRead::IDLE);
+
+    return;
+  }
+
+  m_read.set_position(0);
+      
+  if (m_requests.downloading(p)) {
+    m_read.set_state(ProtocolRead::READ_PIECE);
+    load_read_chunk(p);
+
+  } else {
+    // We don't want this piece,
+    m_read.set_state(ProtocolRead::SKIP_PIECE);
+    m_read.set_length(p.get_length());
+
+    //m_net->signal_network_log().emit("Receiving piece we don't want from " + m_peer.get_dns());
+  }
+}  
 
 void
 PeerConnection::task_keep_alive() {

@@ -64,11 +64,6 @@ Peer::get_remote_interested() {
 }
 
 bool
-Peer::get_choke_delayed() {
-  return m_ptr->chokeDelayed();
-}
-
-bool
 Peer::get_snubbed() {
   return m_ptr->throttle().get_snub();
 }

@@ -28,7 +28,6 @@
 
 #include "peer/peer_connection_base.h"
 #include "peer/request_list.h"
-#include "utils/task.h"
 
 #include <vector>
 
@@ -44,12 +43,12 @@ public:
   PeerConnection();
   ~PeerConnection();
 
+  bool                is_choke_delayed()            { return m_sendChoked || m_taskSendChoke.is_scheduled(); }
+
   void sendHave(int i);
   void choke(bool v);
 
   void update_interested();
-
-  bool chokeDelayed();
 
   const PeerInfo& peer() const { return m_peer; }
 
@@ -79,6 +78,8 @@ private:
   void                receive_cancel_piece(Piece p);
   void                receive_have(uint32_t index);
 
+  void                receive_piece_header(Piece p);
+
   // Parse packet in read buffer, must be of correct type.
   void parseReadBuf();
 
@@ -105,11 +106,11 @@ private:
 
   Timer          m_lastMsg;
 
-  Throttle       m_throttle;
-
   Task                m_taskKeepAlive;
   Task                m_taskSendChoke;
   Task                m_taskStall;
+
+  Throttle       m_throttle;
 };
 
 }

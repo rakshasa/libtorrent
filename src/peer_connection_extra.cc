@@ -202,10 +202,6 @@ PeerConnection::receive_have(uint32_t index) {
   m_ratePeer.insert(m_state->get_content().get_storage().get_chunk_size());
 }
 
-bool PeerConnection::chokeDelayed() {
-  return m_sendChoked || m_taskSendChoke.is_scheduled();
-}
-
 void PeerConnection::choke(bool v) {
   if (m_write.get_choked() != v) {
     m_sendChoked = true;
