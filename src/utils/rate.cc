@@ -27,7 +27,15 @@
 #include "rate.h"
 #include "settings.h"
 
+// Test
+#include "throttle.h"
+#include "throttle_node.h"
+#include <functional>
+
 namespace torrent {
+
+template Throttle<std::mem_fun_t<uint32_t, Rate> >;
+template ThrottleNode<std::mem_fun_t<uint32_t, Rate> >;
 
 inline void
 Rate::discard_old() const {

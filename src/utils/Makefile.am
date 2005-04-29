@@ -17,6 +17,8 @@ libsub_utils_la_SOURCES = \
 	task.h \
 	task_schedule.cc \
 	task_schedule.h \
+	throttle.h \
+	throttle_node.h \
 	timer.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
