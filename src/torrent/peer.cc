@@ -65,18 +65,19 @@ Peer::get_remote_interested() {
 
 bool
 Peer::get_snubbed() {
-  return m_ptr->throttle().get_snub();
+//   return m_ptr->throttle().get_snub();
+  return false;
 }
 
 // Bytes per second.
 uint32_t
 Peer::get_rate_down() {
-  return m_ptr->throttle().down().rate();
+  return m_ptr->get_rate_down().rate();
 }
 
 uint32_t
 Peer::get_rate_up() {
-  return m_ptr->throttle().up().rate();
+  return m_ptr->get_rate_up().rate();
 }
 
 uint32_t
@@ -86,12 +87,12 @@ Peer::get_rate_peer() {
 
 uint64_t
 Peer::get_transfered_down() {
-  return m_ptr->throttle().down().total();
+  return m_ptr->get_rate_down().total();
 }  
 
 uint64_t
 Peer::get_transfered_up() {
-  return m_ptr->throttle().up().total();
+  return m_ptr->get_rate_up().total();
 }  
 
 uint32_t
@@ -136,10 +137,10 @@ Peer::get_chunks_done() {
 
 void
 Peer::set_snubbed(bool v) {
-  m_ptr->throttle().set_snub(v);
+//   m_ptr->throttle().set_snub(v);
 
-  if (v)
-    m_ptr->choke(true);
+//   if (v)
+//     m_ptr->choke(true);
 }
 
 }

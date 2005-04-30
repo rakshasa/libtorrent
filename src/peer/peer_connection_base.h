@@ -50,6 +50,8 @@ public:
   bool                is_read_interested()          { return m_read.get_interested(); }
 
   Rate&               get_rate_peer()               { return m_ratePeer; }
+  Rate&               get_rate_up()                 { return m_rateUp; }
+  Rate&               get_rate_down()               { return m_rateDown; }
 
   Timer               get_last_choked()             { return m_lastChoked; }
 
@@ -65,6 +67,8 @@ protected:
   DownloadNet*        m_net;
 
   Rate                m_ratePeer;
+  Rate                m_rateUp;
+  Rate                m_rateDown;
 
   BitFieldExt         m_bitfield;
    

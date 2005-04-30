@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_THROTTLE_NODE_H
-#define LIBTORRENT_NET_THROTTLE_NODE_H
+#ifndef LIBTORRENT_UTILS_THROTTLE_NODE_H
+#define LIBTORRENT_UTILS_THROTTLE_NODE_H
 
 #include <inttypes.h>
 
@@ -30,21 +30,28 @@ namespace torrent {
 template <typename _Op>
 class ThrottleNode {
 public:
-  ThrottleNode(const _Op& o) : m_quota(0), m_used(0), m_op(o) {}
+  enum {
+    UNLIMITED = -1
+  };
+
+  ThrottleNode(const _Op& o) : m_quota(UNLIMITED), m_used(0), m_op(o) {}
   
-  uint32_t            get_quota() const                       { return m_quota; }
-  uint32_t            get_quota_left() const                  { return m_quota - m_used; }
+  bool                is_unlimited() const          { return m_quota == UNLIMITED; }
 
-  void                set_quota(uint32_t v)                   { m_quota = v; }
-  void                use_quota(uint32_t v)                   { m_quota -= v; }
+  int                 get_quota() const             { return m_quota; }
+  void                set_quota(int v)              { m_quota = v; }
 
-  void                set_used(uint32_t v)                    { m_used = v; }
+  int                 get_used() const              { return m_used; }
+  void                set_used(int v)               { m_used = v; }
 
-  void                set_op_activate(const _Op& op)          { m_op = op; }
+  void                set_op(const _Op& op)         { m_op = op; }
+
+  void                used(int v)                   { m_used += v; if (!is_unlimited()) m_quota -= v; }
+  void                activate()                    { m_op(); }
 
 private:
-  uint32_t            m_quota;
-  uint32_t            m_used;
+  int                 m_quota;
+  int                 m_used;
 
   _Op                 m_op;
 };

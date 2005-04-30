@@ -24,10 +24,10 @@
 #define LIBTORRENT_PEER_CONNECTION_H
 
 #include "peer_info.h"
-#include "throttle.h"
 
 #include "peer/peer_connection_base.h"
 #include "peer/request_list.h"
+#include "utils/throttle_control.h"
 
 #include <vector>
 
@@ -54,8 +54,6 @@ public:
 
   RequestList& get_requests() { return m_requests; }
   SendList&    get_sends()    { return m_sends; }
-
-  Throttle& throttle() { return m_throttle; }
 
   virtual void        read();
   virtual void        write();
@@ -109,8 +107,8 @@ private:
   Task                m_taskKeepAlive;
   Task                m_taskSendChoke;
   Task                m_taskStall;
-
-  Throttle       m_throttle;
+  
+  ThrottlePeer   m_throttle;
 };
 
 }

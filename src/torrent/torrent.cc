@@ -31,12 +31,12 @@
 
 #include "exceptions.h"
 #include "torrent.h"
-#include "throttle_control.h"
 #include "bencode.h"
 
 #include "utils/sha1.h"
 #include "utils/string_manip.h"
 #include "utils/task_schedule.h"
+#include "utils/throttle_control.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "net/poll.h"
@@ -46,6 +46,22 @@
 #include "data/hash_torrent.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
+
+// Put this somewhere:
+// class PeerConnection;
+
+// struct PeerConnectionThrottle {
+//   PeerConnectionThrottle(PeerConnection* p, void (PeerConnection::*f)()) : m_peer(p), m_f(f) {}
+
+//   inline void operator () () { (m_peer->*m_f)(); }
+
+//   PeerConnection* m_peer;
+//   void (PeerConnection::*m_f)();
+// };
+
+// typedef ThrottleNode<PeerConnectionThrottle> ThrottlePeer;
+
+// extern Throttle<ThrottlePeer> throttleWrite;
 
 using namespace algo;
 

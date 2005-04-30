@@ -20,9 +20,10 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_THROTTLE_H
-#define LIBTORRENT_NET_THROTTLE_H
+#ifndef LIBTORRENT_UTILS_THROTTLE_H
+#define LIBTORRENT_UTILS_THROTTLE_H
 
+#include <algorithm>
 #include <list>
 #include "throttle_node.h"
 
@@ -52,12 +53,13 @@ class Throttle : private std::list<T> {
 public:
   typedef typename std::list<T> Base;
 
-  using Base::value_type;
-  using Base::reference;
-  using Base::const_reference;
+  typedef typename Base::iterator         iterator;
+  typedef typename Base::reverse_iterator reverse_iterator;
+  typedef typename Base::value_type       value_type;
+  typedef typename Base::reference        reference;
+  typedef typename Base::const_reference  const_reference;
+  typedef typename Base::size_type        size_type;
 
-  using Base::iterator;
-  using Base::reverse_iterator;
   using Base::clear;
   using Base::size;
 
@@ -69,26 +71,67 @@ public:
   Throttle();
   ~Throttle();
 
-  void                sort()                                  { Base::sort(ThrottleCompUsed()); }
+  void                sort()                        { Base::sort(ThrottleCompUsed()); }
   void                quota(uint32_t v);
 
-  typename iterator   insert();//typename const_reference t)      { return Base::insert(t, begin()); }
-  void                erase(typename iterator itr)            { Base::erase(itr); }
+  iterator            insert(const_reference t)     { m_size++; return Base::insert(begin(), t); }
+  void                erase(iterator itr)           { m_size--; Base::erase(itr); }
 
 private:
+  size_type           m_size;
   uint32_t            m_quota;
 };
 
-struct ThrottleStats {
-  ThrottleStats() : m_used(0) {}
+struct ThrottlePrepare {
+  ThrottlePrepare() : m_used(0) {}
 
-  template <typename T> void operator (const T& n) { m_used += n.get_used(); }
+  template <typename T> void operator () (const T& n) { m_used += n.get_used(); }
 
   uint32_t m_used;
 };  
 
-template <typename _Op> inline void
-Throttle::quota(uint32_t v) {
+template <typename T>
+struct ThrottleSet {
+  ThrottleSet(int quota, int size) : m_quota(quota), m_size(size) {}
+
+  void operator () (T& t) {
+    // Check if we're low on nibbles.
+
+    if (t.get_quota() > 0)
+      m_quota -= quota_stable(t, m_quota / m_size);
+    else
+      m_quota -= quota_starving(t, m_quota / m_size);
+
+    t.set_used(0);
+    m_size--;
+
+    if (t.get_quota() >= 1000)
+      t.activate();
+  }
+
+  int quota_starving(T& t, int quota) {
+    t.set_quota(quota);
+
+    return quota;
+  }
+
+  int quota_stable(T& t, int quota) {
+    int v = std::min(t.get_used() + 1000 - t.get_quota(), quota);
+
+    if (v <= 0)
+      return 0;
+
+    t.set_quota(t.get_quota() + v);
+    return v;
+  }
+
+  int m_quota;  
+  int m_size;  
+};  
+
+template <typename T> inline void
+Throttle<T>::quota(uint32_t v) {
+  std::for_each(begin(), end(), ThrottleSet<T>(v, m_size));
 }
 
 }
