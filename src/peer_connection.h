@@ -27,7 +27,7 @@
 
 #include "peer/peer_connection_base.h"
 #include "peer/request_list.h"
-#include "utils/throttle_control.h"
+#include "utils/throttle.h"
 
 #include <vector>
 
@@ -87,6 +87,8 @@ private:
   void                task_send_choke();
   void                task_stall();
 
+  void                receive_throttle_activate();
+
   bool           m_shutdown;
 
   int            m_stallCount;
@@ -108,7 +110,7 @@ private:
   Task                m_taskSendChoke;
   Task                m_taskStall;
   
-  ThrottlePeer   m_throttle;
+  ThrottlePeer::iterator m_throttle;
 };
 
 }

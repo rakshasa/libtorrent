@@ -135,7 +135,7 @@ DownloadMain::choke_cycle() {
     if (!(*itr)->is_write_choked() &&
 	(*itr)->get_last_choked() + m_state.get_settings().chokeGracePeriod < Timer::cache() &&
 	  
-	(g = (*itr)->throttle().down().rate() * 16 + (*itr)->throttle().up().rate()) <= f) {
+	(g = (*itr)->get_rate_down().rate() * 16 + (*itr)->get_rate_up().rate()) <= f) {
       f = g;
       p1 = *itr;
     }
@@ -157,7 +157,7 @@ DownloadMain::choke_cycle() {
     if ((*itr)->is_write_choked() &&
 	(*itr)->is_read_interested() &&
 
-	((g = (*itr)->throttle().down().rate()) > f ||
+	((g = (*itr)->get_rate_down().rate()) > f ||
 
 	 (!foundInterested && (*itr)->is_write_interested()))) {
       // Prefer peers we are interested in.

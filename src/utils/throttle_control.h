@@ -23,12 +23,65 @@
 #ifndef LIBTORRENT_UTILS_THROTTLE_CONTROL_H
 #define LIBTORRENT_UTILS_THROTTLE_CONTROL_H
 
-#include "throttle.h"
+#include "task.h"
+#include "throttle_list.h"
 
 namespace torrent {
 
 template <typename T>
-class ThrottleControl
+class ThrottleControl : private ThrottleList<T> {
+public:
+  enum {
+    UNLIMITED = -1
+  };
+
+  typedef ThrottleList<T> Base;
+
+  typedef typename Base::iterator         iterator;
+  typedef typename Base::reverse_iterator reverse_iterator;
+  typedef typename Base::value_type       value_type;
+  typedef typename Base::reference        reference;
+  typedef typename Base::const_reference  const_reference;
+  typedef typename Base::size_type        size_type;
+
+  using Base::clear;
+  using Base::size;
+  using Base::insert;
+  using Base::erase;
+
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
+
+  ThrottleControl();
+
+  int                 get_interval() const          { return m_interval; }
+  void                set_interval(int v)           { m_interval = v; }
+
+  int                 get_quota() const             { return m_quota; }
+  void                set_quota(int v)              { m_quota = v; }
+
+  void                start()                       { m_task.insert(Timer::cache()); }
+  void                stop()                        { m_task.remove(); }
+
+private:
+  ThrottleControl(const ThrottleControl&);
+  void operator = (const ThrottleControl&);
+
+  void                receive_tick()                { Base::quota(m_quota); m_task.insert(Timer::cache() + m_interval); }
+
+  int                 m_interval;
+  int                 m_quota;
+  Task                m_task;
+};
+
+template <typename T>
+ThrottleControl<T>::ThrottleControl() :
+  m_interval(1000000),
+  m_quota(UNLIMITED),
+  m_task(sigc::mem_fun(*this, &ThrottleControl::receive_tick)) {
+}
 
 }
 

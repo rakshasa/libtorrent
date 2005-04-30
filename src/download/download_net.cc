@@ -31,7 +31,6 @@
 #include "settings.h"
 #include "utils/rate.h"
 #include "peer_connection.h"
-#include "throttle_control.h"
 
 using namespace algo;
 
@@ -100,9 +99,9 @@ DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
   if (c == NULL)
     throw internal_error("DownloadNet::add_connection(...) received a NULL pointer from m_slotCreateConnection");
 
-  c->throttle().set_parent(&ThrottleControl::global().root());
-  c->throttle().set_settings(ThrottleControl::global().settings(ThrottleControl::SETTINGS_PEER));
-  c->throttle().set_socket(c);
+//   c->throttle().set_parent(&ThrottleControl::global().root());
+//   c->throttle().set_settings(ThrottleControl::global().settings(ThrottleControl::SETTINGS_PEER));
+//   c->throttle().set_socket(c);
 
   m_connections.push_back(c);
 
@@ -179,18 +178,24 @@ DownloadNet::choke_balance() {
 
   // TODO: Optimize, do a single pass with a 's' sized list of (un)chokings.
   if (s > 0) {
-    m_connections.sort(gt(call_member(call_member(&PeerConnection::throttle),
-				      &Throttle::down),
-			  call_member(call_member(&PeerConnection::throttle),
-				      &Throttle::down)));
+//     m_connections.sort(gt(call_member(call_member(&PeerConnection::throttle),
+// 				      &Throttle::down),
+// 			  call_member(call_member(&PeerConnection::throttle),
+// 				      &Throttle::down)));
+
+    m_connections.sort(gt(call_member(call_member(&PeerConnection::get_rate_down),
+				      &Rate::rate),
+			  call_member(call_member(&PeerConnection::get_rate_down),
+				      &Rate::rate)));
 
     // unchoke peers.
     for (ConnectionList::iterator itr = m_connections.begin();
 	 itr != m_connections.end() && s != 0; ++itr) {
       
       if ((*itr)->is_write_choked() &&
-	  (*itr)->is_read_interested() &&
-	  !(*itr)->throttle().get_snub()) {
+	  (*itr)->is_read_interested() //&&
+// 	  !(*itr)->throttle().get_snub()
+	  ) {
 	(*itr)->choke(false);
 	--s;
       }
@@ -199,10 +204,15 @@ DownloadNet::choke_balance() {
   } else if (s < 0) {
     // Sort so we choke slow uploaders first.
     // TODO: Should we sort by unchoked too?
-    m_connections.sort(lt(call_member(call_member(&PeerConnection::throttle),
-				      &Throttle::down),
-			  call_member(call_member(&PeerConnection::throttle),
-				      &Throttle::down)));
+//     m_connections.sort(lt(call_member(call_member(&PeerConnection::throttle),
+// 				      &Throttle::down),
+// 			  call_member(call_member(&PeerConnection::throttle),
+// 				      &Throttle::down)));
+
+    m_connections.sort(lt(call_member(call_member(&PeerConnection::get_rate_down),
+				      &Rate::rate),
+			  call_member(call_member(&PeerConnection::get_rate_down),
+				      &Rate::rate)));
 
     for (ConnectionList::iterator itr = m_connections.begin();
 	 itr != m_connections.end() && s != 0; ++itr) {

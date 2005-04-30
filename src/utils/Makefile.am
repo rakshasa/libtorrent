@@ -19,6 +19,7 @@ libsub_utils_la_SOURCES = \
 	task_schedule.h \
 	throttle.h \
 	throttle_control.h \
+	throttle_list.h \
 	throttle_node.h \
 	timer.h
 

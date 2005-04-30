@@ -36,7 +36,7 @@
 #include "utils/sha1.h"
 #include "utils/string_manip.h"
 #include "utils/task_schedule.h"
-#include "utils/throttle_control.h"
+#include "utils/throttle.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "net/poll.h"
@@ -46,22 +46,6 @@
 #include "data/hash_torrent.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-
-// Put this somewhere:
-// class PeerConnection;
-
-// struct PeerConnectionThrottle {
-//   PeerConnectionThrottle(PeerConnection* p, void (PeerConnection::*f)()) : m_peer(p), m_f(f) {}
-
-//   inline void operator () () { (m_peer->*m_f)(); }
-
-//   PeerConnection* m_peer;
-//   void (PeerConnection::*m_f)();
-// };
-
-// typedef ThrottleNode<PeerConnectionThrottle> ThrottlePeer;
-
-// extern Throttle<ThrottlePeer> throttleWrite;
 
 using namespace algo;
 
@@ -73,6 +57,8 @@ Listen* listen = NULL;
 HashQueue* hashQueue = NULL;
 HandshakeManager* handshakes = NULL;
 DownloadManager* downloadManager = NULL;
+
+ThrottlePeer throttleWrite;
 
 // Find some better way of doing this, or rather... move it outside.
 std::string
@@ -101,6 +87,8 @@ initialize() {
   if (listen || hashQueue || handshakes || downloadManager)
     throw client_error("torrent::initialize() called but the library has already been initialized");
 
+  Timer::update();
+
   listen = new Listen;
   hashQueue = new HashQueue;
   handshakes = new HandshakeManager;
@@ -108,7 +96,8 @@ initialize() {
 
   listen->slot_incoming(sigc::mem_fun(*handshakes, &HandshakeManager::add_incoming));
 
-  ThrottleControl::global().get_task_update().insert(Timer::current());
+//   ThrottleControl::global().get_task_update().insert(Timer::current());
+  throttleWrite.start();
 
   handshakes->slot_connected(sigc::ptr_fun3(&receive_connection));
   handshakes->slot_download_id(sigc::ptr_fun1(download_id));
@@ -123,7 +112,8 @@ cleanup() {
   if (listen == NULL || hashQueue == NULL || handshakes == NULL || downloadManager == NULL)
     throw client_error("torrent::cleanup() called but the library is not initialized");
 
-  ThrottleControl::global().get_task_update().remove();
+//   ThrottleControl::global().get_task_update().remove();
+  throttleWrite.stop();
 
   handshakes->clear();
   downloadManager->clear();
@@ -326,7 +316,7 @@ get(GValue t) {
     return TaskSchedule::get_timeout().usec();
 
   case THROTTLE_ROOT_CONST_RATE:
-    return std::max(ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate, 0);
+    return std::max(throttleWrite.get_quota(), 0);
 
   default:
     throw internal_error("get(GValue) received invalid type");
@@ -375,8 +365,9 @@ set(GValue t, int64_t v) {
     break;
 
   case THROTTLE_ROOT_CONST_RATE:
-    ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate =
-      v > 0 ? v : Throttle::UNLIMITED;
+//     ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate =
+//       v > 0 ? v : Throttle::UNLIMITED;
+    throttleWrite.set_quota(v > 0 ? v : ThrottlePeer::UNLIMITED);
     break;
 
   default:

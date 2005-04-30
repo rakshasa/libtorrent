@@ -39,15 +39,17 @@ public:
   bool                is_unlimited() const          { return m_quota == UNLIMITED; }
 
   int                 get_quota() const             { return m_quota; }
-  void                set_quota(int v)              { m_quota = v; }
+//   void                set_quota(int v)              { m_quota = v; }
 
   int                 get_used() const              { return m_used; }
-  void                set_used(int v)               { m_used = v; }
+//   void                set_used(int v)               { m_used = v; }
 
   void                set_op(const _Op& op)         { m_op = op; }
 
   void                used(int v)                   { m_used += v; if (!is_unlimited()) m_quota -= v; }
   void                activate()                    { m_op(); }
+
+  void                update_quota(int v)           { m_quota = v; m_used = 0; }
 
 private:
   int                 m_quota;

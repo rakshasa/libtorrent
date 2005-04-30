@@ -23,117 +23,25 @@
 #ifndef LIBTORRENT_UTILS_THROTTLE_H
 #define LIBTORRENT_UTILS_THROTTLE_H
 
-#include <algorithm>
-#include <list>
-#include "throttle_node.h"
+#include "throttle_control.h"
 
 namespace torrent {
 
-// I'm using a list since i want to give the user an iterator that is
-// permanent. When (unless i find find a non-sorting algorithm) the
-// list is sorted, the iterators stay valid.
+class PeerConnection;
 
-// How does the algorithm work? We seperate out those who spendt their
-// quota and those that did not. Those that did not spend their entire
-// quota try to get their current rate plus a small buffer. If a node
-// used up the entire quota then we add to its requested quota
-// depending on how much quota we got left.
-//
-// Sort the list by used quota in an increasing order. (Consider
-// modifying depending on whetever the node used up its buffer or not)
-// If we add upon seeing starving nodes, do it in a seperate loop and
-// not while sorting.
+struct PeerConnectionThrottle {
+  PeerConnectionThrottle(PeerConnection* p, void (PeerConnection::*f)()) : m_peer(p), m_f(f) {}
 
-struct ThrottleCompUsed {
-  template <typename T> bool operator () (const T& t1, const T& t2) const { return t1.get_used() < t2.get_used(); }
+  inline void operator () () { (m_peer->*m_f)(); }
+
+  PeerConnection* m_peer;
+  void (PeerConnection::*m_f)();
 };
 
-template <typename T>
-class Throttle : private std::list<T> {
-public:
-  typedef typename std::list<T> Base;
+typedef ThrottleControl<ThrottleNode<PeerConnectionThrottle> > ThrottlePeer;
 
-  typedef typename Base::iterator         iterator;
-  typedef typename Base::reverse_iterator reverse_iterator;
-  typedef typename Base::value_type       value_type;
-  typedef typename Base::reference        reference;
-  typedef typename Base::const_reference  const_reference;
-  typedef typename Base::size_type        size_type;
-
-  using Base::clear;
-  using Base::size;
-
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
-
-  Throttle();
-  ~Throttle();
-
-  void                sort()                        { Base::sort(ThrottleCompUsed()); }
-  void                quota(uint32_t v);
-
-  iterator            insert(const_reference t)     { m_size++; return Base::insert(begin(), t); }
-  void                erase(iterator itr)           { m_size--; Base::erase(itr); }
-
-private:
-  size_type           m_size;
-  uint32_t            m_quota;
-};
-
-struct ThrottlePrepare {
-  ThrottlePrepare() : m_used(0) {}
-
-  template <typename T> void operator () (const T& n) { m_used += n.get_used(); }
-
-  uint32_t m_used;
-};  
-
-template <typename T>
-struct ThrottleSet {
-  ThrottleSet(int quota, int size) : m_quota(quota), m_size(size) {}
-
-  void operator () (T& t) {
-    // Check if we're low on nibbles.
-
-    if (t.get_quota() > 0)
-      m_quota -= quota_stable(t, m_quota / m_size);
-    else
-      m_quota -= quota_starving(t, m_quota / m_size);
-
-    t.set_used(0);
-    m_size--;
-
-    if (t.get_quota() >= 1000)
-      t.activate();
-  }
-
-  int quota_starving(T& t, int quota) {
-    t.set_quota(quota);
-
-    return quota;
-  }
-
-  int quota_stable(T& t, int quota) {
-    int v = std::min(t.get_used() + 1000 - t.get_quota(), quota);
-
-    if (v <= 0)
-      return 0;
-
-    t.set_quota(t.get_quota() + v);
-    return v;
-  }
-
-  int m_quota;  
-  int m_size;  
-};  
-
-template <typename T> inline void
-Throttle<T>::quota(uint32_t v) {
-  std::for_each(begin(), end(), ThrottleSet<T>(v, m_size));
-}
+extern ThrottlePeer throttleWrite;
 
 }
 
-#endif  
+#endif

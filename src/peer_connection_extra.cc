@@ -50,7 +50,9 @@ PeerConnection::PeerConnection() :
   
   m_taskKeepAlive(sigc::mem_fun(*this, &PeerConnection::task_keep_alive)),
   m_taskSendChoke(sigc::mem_fun(*this, &PeerConnection::task_send_choke)),
-  m_taskStall(sigc::mem_fun(*this, &PeerConnection::task_stall))
+  m_taskStall(sigc::mem_fun(*this, &PeerConnection::task_stall)),
+
+  m_throttle(throttleWrite.end())
 {
 }
 
@@ -72,6 +74,9 @@ PeerConnection::~PeerConnection() {
   Poll::write_set().erase(this);
   Poll::except_set().erase(this);
   
+  if (m_throttle != throttleWrite.end())
+    throttleWrite.erase(m_throttle);
+
   m_fd.close();
   m_fd.clear();
 }
@@ -100,8 +105,8 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
 
   m_write.adjust_position(bytes);
 
-  m_throttle.up().insert(bytes);
-  m_throttle.spent(bytes);
+  m_rateUp.insert(bytes);
+  m_throttle->used(bytes);
 
   m_net->get_rate_up().insert(bytes);
 
@@ -129,7 +134,7 @@ PeerConnection::readChunk() {
 
   m_read.adjust_position(bytes);
 
-  m_throttle.down().insert(bytes);
+  m_rateDown.insert(bytes);
   m_net->get_rate_down().insert(bytes);
 
   return m_read.get_position() == m_readPiece.get_length();

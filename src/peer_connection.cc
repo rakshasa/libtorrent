@@ -279,7 +279,8 @@ void PeerConnection::read() {
     if (m_read.get_position() == 0)
       return;
 
-    m_throttle.down().insert(m_read.get_position());
+//     m_throttle.down().insert(m_read.get_position());
+    m_rateDown.insert(m_read.get_position());
 
     m_read.set_length(m_read.get_length() - m_read.get_position());
     m_read.set_position(0);
@@ -392,15 +393,18 @@ void PeerConnection::write() {
     if (m_sends.empty())
       throw internal_error("ProtocolWrite::WRITE_PIECE on an empty list");
 
-    maxBytes = m_throttle.left();
+    if (m_throttle == throttleWrite.end())
+      throw internal_error("PeerConnection::write() tried to write a piece but is not in throttle list");
+
+    if (m_throttle->is_unlimited())
+      maxBytes = 1 << 30;
+    else
+      maxBytes = m_throttle->get_quota();
     
-    if (maxBytes == 0) {
+    if (maxBytes < 512) {
       Poll::write_set().erase(this);
       return;
     }
-
-    if (maxBytes < 0)
-      throw internal_error("PeerConnection::write() got maxBytes <= 0");
 
     if (!writeChunk(maxBytes))
       return;
@@ -524,10 +528,17 @@ void PeerConnection::fillWriteBuf() {
 	m_sends.clear();
 	m_write.get_chunk().clear();
 	
-	m_throttle.idle();
+	if (m_throttle == throttleWrite.end())
+	  throw internal_error("PeerConnection::fillWriteBuf() tried to choke a peer that is not in throttle list");
+
+	throttleWrite.erase(m_throttle);
+	m_throttle = throttleWrite.end();
 	
       } else {
-	m_throttle.activate();
+	if (m_throttle != throttleWrite.end())
+	  throw internal_error("PeerConnection::fillWriteBuf() tried to unchoke a peer that is in throttle list");
+
+	m_throttle = throttleWrite.insert(PeerConnectionThrottle(this, &PeerConnection::receive_throttle_activate));
       }
     }
   }
@@ -543,7 +554,7 @@ void PeerConnection::fillWriteBuf() {
 
       m_read.get_state() != ProtocolRead::SKIP_PIECE &&
       m_net->should_request(m_stallCount) &&
-      m_requests.get_size() < (pipeSize = m_net->pipe_size(m_throttle.down()))) {
+      m_requests.get_size() < (pipeSize = m_net->pipe_size(m_rateDown))) {
 
     m_tryRequest = false;
 
@@ -690,6 +701,11 @@ PeerConnection::task_stall() {
   m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
 
   //m_net->signal_network_log().emit("Peer stalled " + m_peer.get_dns());
+}
+
+void
+PeerConnection::receive_throttle_activate() {
+  Poll::write_set().insert(this);
 }
 
 }

@@ -115,6 +115,8 @@ Make the throttle update once a second, not twice.
 Fix snub
 
 
+NEXT:
+
 Make a base class for PeerConnection, move read/write_remaining etc.
 
 Make m_read{Piece,Chunk} placement consistent.
