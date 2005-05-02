@@ -50,9 +50,7 @@ PeerConnection::PeerConnection() :
   
   m_taskKeepAlive(sigc::mem_fun(*this, &PeerConnection::task_keep_alive)),
   m_taskSendChoke(sigc::mem_fun(*this, &PeerConnection::task_send_choke)),
-  m_taskStall(sigc::mem_fun(*this, &PeerConnection::task_stall)),
-
-  m_throttle(throttleWrite.end())
+  m_taskStall(sigc::mem_fun(*this, &PeerConnection::task_stall))
 {
 }
 
@@ -74,16 +72,13 @@ PeerConnection::~PeerConnection() {
   Poll::write_set().erase(this);
   Poll::except_set().erase(this);
   
-  if (m_throttle != throttleWrite.end())
-    throttleWrite.erase(m_throttle);
-
   m_fd.close();
   m_fd.clear();
 }
 
 // TODO: Make this a while loop so we spit out as much of the piece as we can this work cycle.
 bool
-PeerConnection::writeChunk(unsigned int maxBytes) {
+PeerConnection::writeChunk(uint32_t maxBytes) {
   if (m_write.get_position() >= (1 << 17))
     throw internal_error("PeerConnection::writeChunk(...) m_write.get_position() bork");
 
@@ -106,7 +101,7 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
   m_write.adjust_position(bytes);
 
   m_rateUp.insert(bytes);
-  m_throttle->used(bytes);
+  m_writeThrottle->used(bytes);
 
   m_net->get_rate_up().insert(bytes);
 
@@ -115,7 +110,7 @@ PeerConnection::writeChunk(unsigned int maxBytes) {
 
 // TODO: Handle file boundaries better.
 bool
-PeerConnection::readChunk() {
+PeerConnection::readChunk(uint32_t maxBytes) {
   if (m_read.get_position() > (1 << 17) + 9)
     throw internal_error("Really bad read position for buffer");
   
@@ -128,13 +123,14 @@ PeerConnection::readChunk() {
     throw internal_error("PeerConnection::readChunk() chunk not writable, permission denided");
   
   uint32_t offset = m_read.chunk_offset(m_readPiece, part);
-  uint32_t length = m_read.chunk_length(m_readPiece, part, offset);
+  uint32_t length = std::min(m_read.chunk_length(m_readPiece, part, offset), maxBytes);
 
   uint32_t bytes = read_buf(part->get_chunk().begin() + offset, length);
 
   m_read.adjust_position(bytes);
 
   m_rateDown.insert(bytes);
+  m_readThrottle->used(bytes);
   m_net->get_rate_down().insert(bytes);
 
   return m_read.get_position() == m_readPiece.get_length();
@@ -208,12 +204,13 @@ PeerConnection::receive_have(uint32_t index) {
 }
 
 void PeerConnection::choke(bool v) {
-  if (m_write.get_choked() != v) {
-    m_sendChoked = true;
-    m_write.set_choked(v);
+  if (m_write.get_choked() == v)
+    return;
 
-    Poll::write_set().insert(this);
-  }
+  m_sendChoked = true;
+  m_write.set_choked(v);
+  
+  Poll::write_set().insert(this);
 }
 
 void

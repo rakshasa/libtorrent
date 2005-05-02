@@ -58,6 +58,7 @@ HashQueue* hashQueue = NULL;
 HandshakeManager* handshakes = NULL;
 DownloadManager* downloadManager = NULL;
 
+ThrottlePeer throttleRead;
 ThrottlePeer throttleWrite;
 
 // Find some better way of doing this, or rather... move it outside.
@@ -96,7 +97,7 @@ initialize() {
 
   listen->slot_incoming(sigc::mem_fun(*handshakes, &HandshakeManager::add_incoming));
 
-//   ThrottleControl::global().get_task_update().insert(Timer::current());
+  throttleRead.start();
   throttleWrite.start();
 
   handshakes->slot_connected(sigc::ptr_fun3(&receive_connection));
@@ -112,7 +113,7 @@ cleanup() {
   if (listen == NULL || hashQueue == NULL || handshakes == NULL || downloadManager == NULL)
     throw client_error("torrent::cleanup() called but the library is not initialized");
 
-//   ThrottleControl::global().get_task_update().remove();
+  throttleRead.stop();
   throttleWrite.stop();
 
   handshakes->clear();
@@ -318,6 +319,9 @@ get(GValue t) {
   case THROTTLE_ROOT_CONST_RATE:
     return std::max(throttleWrite.get_quota(), 0);
 
+  case THROTTLE_READ_CONST_RATE:
+    return std::max(throttleRead.get_quota(), 0);
+
   default:
     throw internal_error("get(GValue) received invalid type");
   }
@@ -365,9 +369,11 @@ set(GValue t, int64_t v) {
     break;
 
   case THROTTLE_ROOT_CONST_RATE:
-//     ThrottleControl::global().settings(ThrottleControl::SETTINGS_ROOT)->constantRate =
-//       v > 0 ? v : Throttle::UNLIMITED;
     throttleWrite.set_quota(v > 0 ? v : ThrottlePeer::UNLIMITED);
+    break;
+
+  case THROTTLE_READ_CONST_RATE:
+    throttleRead.set_quota(v > 0 ? v : ThrottlePeer::UNLIMITED);
     break;
 
   default:

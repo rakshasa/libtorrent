@@ -89,8 +89,10 @@ typedef enum {
   RATE_WINDOW,             // Window size used to measure rate. (usec)
   RATE_START,              // Window size to use on new bursts of data. (usec)
 
-  THROTTLE_ROOT_CONST_RATE  // Bytes per second, 0 for unlimited.
-                            // (the code supports 0 for none, but not in this API)
+  THROTTLE_ROOT_CONST_RATE,  // Bytes per second, 0 for unlimited.
+                             // (the code supports 0 for none, but not in this API)
+  THROTTLE_READ_CONST_RATE   // Bytes per second, 0 for unlimited.
+                             // (the code supports 0 for none, but not in this API)
 } GValue;
 
 typedef enum {

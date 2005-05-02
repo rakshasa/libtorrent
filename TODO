@@ -110,9 +110,13 @@ disallow for open torrents?
 
 CURRENT:
 
-Make the throttle update once a second, not twice.
+Fix low rates
 
 Fix snub
+
+Use m_writeThrottle to be consistent?
+
+Throttle skipped pieces too.
 
 
 NEXT:

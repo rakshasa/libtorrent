@@ -27,19 +27,24 @@
 
 namespace torrent {
 
-class PeerConnection;
+// Not as pretty as i would want, and it doesn't really belong in
+// utils.
+
+class PeerConnectionBase;
 
 struct PeerConnectionThrottle {
-  PeerConnectionThrottle(PeerConnection* p, void (PeerConnection::*f)()) : m_peer(p), m_f(f) {}
+  PeerConnectionThrottle(PeerConnectionBase* p, void (PeerConnectionBase::*f)()) : m_peer(p), m_f(f) {}
 
   inline void operator () () { (m_peer->*m_f)(); }
 
-  PeerConnection* m_peer;
-  void (PeerConnection::*m_f)();
+  PeerConnectionBase* m_peer;
+  void (PeerConnectionBase::*m_f)();
 };
 
 typedef ThrottleControl<ThrottleNode<PeerConnectionThrottle> > ThrottlePeer;
+typedef ThrottlePeer::iterator                                 ThrottlePeerNode;
 
+extern ThrottlePeer throttleRead;
 extern ThrottlePeer throttleWrite;
 
 }

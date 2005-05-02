@@ -88,6 +88,8 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 }
 
 void PeerConnection::read() {
+  uint32_t maxBytes;
+
   m_lastMsg = Timer::cache();
 
   try {
@@ -249,7 +251,20 @@ void PeerConnection::read() {
       goto evil_goto_read;
     }
 
-    if (!readChunk())
+    if (!is_read_throttled())
+      throw internal_error("PeerConnection::read() tried to read a piece but is not in throttle list");
+
+    if (m_readThrottle->is_unlimited())
+      maxBytes = 1 << 30;
+    else
+      maxBytes = m_readThrottle->get_quota();
+
+    if (maxBytes < 512) {
+      Poll::read_set().erase(this);
+      return;
+    }
+
+    if (!readChunk(maxBytes))
       return;
 
     m_read.set_state(ProtocolRead::IDLE);
@@ -279,7 +294,6 @@ void PeerConnection::read() {
     if (m_read.get_position() == 0)
       return;
 
-//     m_throttle.down().insert(m_read.get_position());
     m_rateDown.insert(m_read.get_position());
 
     m_read.set_length(m_read.get_length() - m_read.get_position());
@@ -393,13 +407,13 @@ void PeerConnection::write() {
     if (m_sends.empty())
       throw internal_error("ProtocolWrite::WRITE_PIECE on an empty list");
 
-    if (m_throttle == throttleWrite.end())
+    if (!is_write_throttled())
       throw internal_error("PeerConnection::write() tried to write a piece but is not in throttle list");
 
-    if (m_throttle->is_unlimited())
+    if (m_writeThrottle->is_unlimited())
       maxBytes = 1 << 30;
     else
-      maxBytes = m_throttle->get_quota();
+      maxBytes = m_writeThrottle->get_quota();
     
     if (maxBytes < 512) {
       Poll::write_set().erase(this);
@@ -453,17 +467,26 @@ void PeerConnection::parseReadBuf() {
 
   switch (curCmd) {
   case ProtocolBase::CHOKE:
+    if (is_read_choked())
+      return;
+
     m_read.set_choked(true);
     m_requests.cancel();
 
+    remove_read_throttle();
     m_taskStall.remove();
 
     return;
 
   case ProtocolBase::UNCHOKE:
+    if (!is_read_choked())
+      return;
+
     m_read.set_choked(false);
     m_tryRequest = true;
     
+    insert_read_throttle();
+
     return Poll::write_set().insert(this);
 
   case ProtocolBase::INTERESTED:
@@ -524,21 +547,19 @@ void PeerConnection::fillWriteBuf() {
       m_lastChoked = Timer::cache();
 
       if (m_write.get_choked()) {
-	// Clear the request queue and mmaped chunk.
-	m_sends.clear();
-	m_write.get_chunk().clear();
-	
-	if (m_throttle == throttleWrite.end())
+	if (!is_write_throttled())
 	  throw internal_error("PeerConnection::fillWriteBuf() tried to choke a peer that is not in throttle list");
 
-	throttleWrite.erase(m_throttle);
-	m_throttle = throttleWrite.end();
+	remove_write_throttle();
 	
+	m_sends.clear();
+	m_write.get_chunk().clear();
+
       } else {
-	if (m_throttle != throttleWrite.end())
+	if (is_write_throttled())
 	  throw internal_error("PeerConnection::fillWriteBuf() tried to unchoke a peer that is in throttle list");
 
-	m_throttle = throttleWrite.insert(PeerConnectionThrottle(this, &PeerConnection::receive_throttle_activate));
+	insert_write_throttle();
       }
     }
   }
@@ -579,6 +600,7 @@ void PeerConnection::fillWriteBuf() {
   // Should we send a piece to the peer?
   if (!m_write.get_choked() &&
       !m_sendChoked &&
+      !m_taskSendChoke.is_scheduled() && // Urgh... find a nicer way to do the delayed choke.
       !m_sends.empty() &&
       m_write.can_write_piece()) {
 
@@ -701,11 +723,6 @@ PeerConnection::task_stall() {
   m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
 
   //m_net->signal_network_log().emit("Peer stalled " + m_peer.get_dns());
-}
-
-void
-PeerConnection::receive_throttle_activate() {
-  Poll::write_set().insert(this);
 }
 
 }

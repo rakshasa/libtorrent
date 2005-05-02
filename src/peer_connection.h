@@ -67,8 +67,8 @@ private:
 
   void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   
-  bool writeChunk(unsigned int maxBytes);
-  bool readChunk();
+  bool writeChunk(uint32_t maxBytes);
+  bool readChunk(uint32_t maxBytes);
 
   bool                send_request_piece();
 
@@ -86,8 +86,6 @@ private:
   void                task_keep_alive();
   void                task_send_choke();
   void                task_stall();
-
-  void                receive_throttle_activate();
 
   bool           m_shutdown;
 
@@ -109,8 +107,6 @@ private:
   Task                m_taskKeepAlive;
   Task                m_taskSendChoke;
   Task                m_taskStall;
-  
-  ThrottlePeer::iterator m_throttle;
 };
 
 }

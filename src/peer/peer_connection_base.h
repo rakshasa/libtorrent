@@ -24,6 +24,7 @@
 #define LIBTORRENT_NEW_PEER_CONNECTION_BASE_H
 
 #include "data/piece.h"
+#include "net/poll.h"
 #include "net/protocol_buffer.h"
 #include "net/protocol_read.h"
 #include "net/protocol_write.h"
@@ -31,6 +32,7 @@
 #include "utils/bitfield_ext.h"
 #include "utils/rate.h"
 #include "utils/task.h"
+#include "utils/throttle.h"
 
 namespace torrent {
 
@@ -43,11 +45,15 @@ class DownloadNet;
 class PeerConnectionBase : public SocketBase {
 public:
   PeerConnectionBase();
+  ~PeerConnectionBase();
   
   bool                is_write_choked()             { return m_write.get_choked(); }
   bool                is_write_interested()         { return m_write.get_interested(); }
   bool                is_read_choked()              { return m_read.get_choked(); }
   bool                is_read_interested()          { return m_read.get_interested(); }
+
+  bool                is_read_throttled()           { return m_readThrottle != throttleRead.end(); }
+  bool                is_write_throttled()          { return m_writeThrottle != throttleWrite.end(); }
 
   Rate&               get_rate_peer()               { return m_ratePeer; }
   Rate&               get_rate_up()                 { return m_rateUp; }
@@ -57,11 +63,20 @@ public:
 
   const BitFieldExt&  get_bitfield() const          { return m_bitfield; }
 
+  void                insert_read_throttle();
+  void                remove_read_throttle();
+
+  void                insert_write_throttle();
+  void                remove_write_throttle();
+
 protected:
   inline bool         read_remaining();
   inline bool         write_remaining();
 
   void                load_read_chunk(const Piece& p);
+
+  void                receive_throttle_read_activate();
+  void                receive_throttle_write_activate();
 
   DownloadState*      m_state;
   DownloadNet*        m_net;
@@ -69,6 +84,9 @@ protected:
   Rate                m_ratePeer;
   Rate                m_rateUp;
   Rate                m_rateDown;
+
+  ThrottlePeerNode    m_readThrottle;
+  ThrottlePeerNode    m_writeThrottle;
 
   BitFieldExt         m_bitfield;
    
@@ -80,6 +98,34 @@ protected:
   ProtocolRead        m_read;
   ProtocolWrite       m_write;
 };
+
+inline void
+PeerConnectionBase::insert_read_throttle() {
+  if (!is_read_throttled())
+    m_readThrottle = throttleRead.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_read_activate));
+}
+
+inline void
+PeerConnectionBase::remove_read_throttle() {
+  if (is_read_throttled()) {
+    throttleRead.erase(m_readThrottle);
+    m_readThrottle = throttleRead.end();
+  }
+}
+
+inline void
+PeerConnectionBase::insert_write_throttle() {
+  if (!is_write_throttled())
+    m_writeThrottle = throttleWrite.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_write_activate));
+}
+
+inline void
+PeerConnectionBase::remove_write_throttle() {
+  if (is_write_throttled()) {
+    throttleWrite.erase(m_writeThrottle);
+    m_writeThrottle = throttleWrite.end();
+  }
+}
 
 inline bool
 PeerConnectionBase::read_remaining() {

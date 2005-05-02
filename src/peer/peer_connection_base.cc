@@ -33,7 +33,15 @@ namespace torrent {
 
 PeerConnectionBase::PeerConnectionBase() :
   m_state(NULL),
-  m_net(NULL) {
+  m_net(NULL),
+  
+  m_readThrottle(throttleRead.end()),
+  m_writeThrottle(throttleWrite.end()) {
+}
+
+PeerConnectionBase::~PeerConnectionBase() {
+  remove_read_throttle();
+  remove_write_throttle();
 }
 
 void
@@ -50,6 +58,16 @@ PeerConnectionBase::load_read_chunk(const Piece& p) {
   
   if (!m_read.get_chunk().is_valid())
     throw storage_error("Could not create a valid chunk");
+}
+
+void
+PeerConnectionBase::receive_throttle_read_activate() {
+  Poll::read_set().insert(this);
+}
+
+void
+PeerConnectionBase::receive_throttle_write_activate() {
+  Poll::write_set().insert(this);
 }
 
 }
