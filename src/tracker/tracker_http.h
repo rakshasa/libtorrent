@@ -28,9 +28,9 @@
 #include <inttypes.h>
 #include <sigc++/signal.h>
 
+#include "peer/peer_info.h"
 #include "torrent/bencode.h"
 
-#include "peer_info.h"
 #include "tracker_info.h"
 
 struct sockaddr_in;

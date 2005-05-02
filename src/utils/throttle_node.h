@@ -39,10 +39,9 @@ public:
   bool                is_unlimited() const          { return m_quota == UNLIMITED; }
 
   int                 get_quota() const             { return m_quota; }
-//   void                set_quota(int v)              { m_quota = v; }
+  void                set_quota(int v)              { m_quota = v; }
 
   int                 get_used() const              { return m_used; }
-//   void                set_used(int v)               { m_used = v; }
 
   void                set_op(const _Op& op)         { m_op = op; }
 

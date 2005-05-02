@@ -86,7 +86,7 @@ DownloadNet::send_have_chunk(uint32_t index) {
 bool
 DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
   if (std::find_if(m_connections.begin(), m_connections.end(),
-		   eq(ref(p), call_member(&PeerConnection::peer))) != m_connections.end()) {
+		   eq(ref(p), call_member(&PeerConnectionBase::get_peer))) != m_connections.end()) {
     return false;
   }
 
@@ -146,7 +146,7 @@ DownloadNet::add_available_peers(const PeerList& p) {
     if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||
 
 	std::find_if(m_connections.begin(), m_connections.end(),
-		     call_member(call_member(&PeerConnection::peer), &PeerInfo::is_same_host, ref(*itr)))
+		     call_member(call_member(&PeerConnectionBase::get_peer), &PeerInfo::is_same_host, ref(*itr)))
 	!= m_connections.end() ||
 
 	std::find_if(m_availablePeers.begin(), m_availablePeers.end(), call_member(&PeerInfo::is_same_host, ref(*itr)))

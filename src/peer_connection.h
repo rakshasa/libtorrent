@@ -23,8 +23,6 @@
 #ifndef LIBTORRENT_PEER_CONNECTION_H
 #define LIBTORRENT_PEER_CONNECTION_H
 
-#include "peer_info.h"
-
 #include "peer/peer_connection_base.h"
 #include "peer/request_list.h"
 #include "utils/throttle.h"
@@ -49,8 +47,6 @@ public:
   void choke(bool v);
 
   void update_interested();
-
-  const PeerInfo& peer() const { return m_peer; }
 
   RequestList& get_requests() { return m_requests; }
   SendList&    get_sends()    { return m_sends; }
@@ -91,8 +87,6 @@ private:
 
   int            m_stallCount;
 
-  PeerInfo       m_peer;
-   
   bool           m_sendChoked;
   bool           m_sendInterested;
   bool           m_tryRequest;

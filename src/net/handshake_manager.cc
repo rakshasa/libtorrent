@@ -29,7 +29,8 @@
 #include "handshake_manager.h"
 #include "handshake_incoming.h"
 #include "handshake_outgoing.h"
-#include "peer_info.h"
+#include "peer/peer_info.h"
+
 #include "socket_address.h"
 
 using namespace algo;

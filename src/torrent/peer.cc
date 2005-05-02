@@ -30,17 +30,17 @@ namespace torrent {
 
 std::string
 Peer::get_id() {
-  return m_ptr->peer().get_id();
+  return m_ptr->get_peer().get_id();
 }
 
 std::string
 Peer::get_dns() {
-  return m_ptr->peer().get_dns();
+  return m_ptr->get_peer().get_dns();
 }
 
 uint16_t
 Peer::get_port() {
-  return m_ptr->peer().get_port();
+  return m_ptr->get_peer().get_port();
 }
 
 bool

@@ -28,10 +28,9 @@
 
 #include "content/delegator.h"
 #include "net/socket_fd.h"
+#include "peer/peer_info.h"
 #include "torrent/peer.h"
 #include "utils/rate.h"
-
-#include "peer_info.h"
 
 namespace torrent {
 

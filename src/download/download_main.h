@@ -24,10 +24,10 @@
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
 #include "settings.h"
-#include "peer_info.h"
 #include "download_state.h"
 #include "download_net.h"
 
+#include "peer/peer_info.h"
 #include "utils/task.h"
 
 #include <sigc++/connection.h>

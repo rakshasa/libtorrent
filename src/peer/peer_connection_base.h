@@ -34,6 +34,8 @@
 #include "utils/task.h"
 #include "utils/throttle.h"
 
+#include "peer_info.h"
+
 namespace torrent {
 
 // Base class for peer connection classes. Rename to PeerConnection
@@ -54,6 +56,8 @@ public:
 
   bool                is_read_throttled()           { return m_readThrottle != throttleRead.end(); }
   bool                is_write_throttled()          { return m_writeThrottle != throttleWrite.end(); }
+
+  const PeerInfo&     get_peer() const              { return m_peer; }
 
   Rate&               get_rate_peer()               { return m_ratePeer; }
   Rate&               get_rate_up()                 { return m_rateUp; }
@@ -81,6 +85,8 @@ protected:
   DownloadState*      m_state;
   DownloadNet*        m_net;
 
+  PeerInfo            m_peer;
+   
   Rate                m_ratePeer;
   Rate                m_rateUp;
   Rate                m_rateDown;

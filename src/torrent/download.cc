@@ -345,7 +345,7 @@ Download::peer_find(const std::string& id) {
 		 m_ptr->get_main().get_net().get_connections().end(),
 		 
 		 eq(ref(id),
-		    call_member(call_member(&PeerConnection::peer),
+		    call_member(call_member(&PeerConnectionBase::get_peer),
 				&PeerInfo::get_id)));
 
   return itr != m_ptr->get_main().get_net().get_connections().end() ?

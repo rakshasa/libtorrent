@@ -547,18 +547,12 @@ void PeerConnection::fillWriteBuf() {
       m_lastChoked = Timer::cache();
 
       if (m_write.get_choked()) {
-	if (!is_write_throttled())
-	  throw internal_error("PeerConnection::fillWriteBuf() tried to choke a peer that is not in throttle list");
-
 	remove_write_throttle();
 	
 	m_sends.clear();
 	m_write.get_chunk().clear();
 
       } else {
-	if (is_write_throttled())
-	  throw internal_error("PeerConnection::fillWriteBuf() tried to unchoke a peer that is in throttle list");
-
 	insert_write_throttle();
       }
     }

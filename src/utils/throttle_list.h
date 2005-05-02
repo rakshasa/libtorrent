@@ -34,17 +34,6 @@ namespace torrent {
 // permanent. When (unless i find find a non-sorting algorithm) the
 // list is sorted, the iterators stay valid.
 
-// How does the algorithm work? We seperate out those who spendt their
-// quota and those that did not. Those that did not spend their entire
-// quota try to get their current rate plus a small buffer. If a node
-// used up the entire quota then we add to its requested quota
-// depending on how much quota we got left.
-//
-// Sort the list by used quota in an increasing order. (Consider
-// modifying depending on whetever the node used up its buffer or not)
-// If we add upon seeing starving nodes, do it in a seperate loop and
-// not while sorting.
-
 struct ThrottleListCompUsed {
   template <typename T> bool operator () (const T& t1, const T& t2) const { return t1.get_used() < t2.get_used(); }
 };
@@ -73,7 +62,6 @@ public:
   using Base::rend;
 
   ThrottleList() : m_size(0), m_quota(UNLIMITED) {}
-//   ThrottleList() : m_size(0), m_quota(0) {}
 
   void                sort()                        { Base::sort(ThrottleListCompUsed()); }
   void                quota(int v);
@@ -88,12 +76,12 @@ private:
   int                 m_quota;
 };
 
-struct ThrottleListPrepare {
-  ThrottleListPrepare() : m_used(0) {}
-
-  template <typename T> void operator () (const T& n) { m_used += n.get_used(); }
-
-  int m_used;
+template <typename T> 
+struct ThrottleListSetUnlimited {
+  void operator () (T& n) {
+    n.set_quota(T::UNLIMITED);
+    n.activate();
+  }
 };  
 
 template <typename T>
@@ -110,7 +98,7 @@ struct ThrottleListSet {
 
     m_size--;
 
-    if (t.get_quota() >= 1000)
+    if (t.get_quota() >= 1024)
       t.activate();
   }
 
@@ -120,8 +108,11 @@ struct ThrottleListSet {
     return quota;
   }
 
+  // We set a target of 'used' + 1000 bytes, which will guarantee that
+  // the node gradually builds up to 1000 when given very low quotas
+  // each tick.
   int quota_stable(T& t, int quota) {
-    int v = std::min(t.get_used() + 1000 - t.get_quota(), quota);
+    int v = std::min(t.get_used() + 1024 - t.get_quota(), quota);
 
     if (v <= 0)
       return 0;
@@ -138,8 +129,9 @@ template <typename T> inline void
 ThrottleList<T>::quota(int v) {
   if (v != UNLIMITED)
     std::for_each(begin(), end(), ThrottleListSet<T>(v, m_size));
+
   else if (m_quota != UNLIMITED)
-    std::for_each(begin(), end(), std::bind2nd(std::mem_fun_ref(&value_type::update_quota), UNLIMITED));
+    std::for_each(begin(), end(), ThrottleListSetUnlimited<T>());
 
   m_quota = v;
 }

@@ -26,7 +26,7 @@
 #include <inttypes.h>
 
 #include "socket_base.h"
-#include "peer_info.h"
+#include "peer/peer_info.h"
 
 namespace torrent {
 

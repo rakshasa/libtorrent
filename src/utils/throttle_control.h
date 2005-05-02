@@ -62,25 +62,25 @@ public:
   int                 get_quota() const             { return m_quota; }
   void                set_quota(int v)              { m_quota = v; }
 
-  void                start()                       { m_task.insert(Timer::cache()); }
-  void                stop()                        { m_task.remove(); }
+  void                start()                       { m_taskTick.insert(Timer::cache()); }
+  void                stop()                        { m_taskTick.remove(); }
 
 private:
   ThrottleControl(const ThrottleControl&);
   void operator = (const ThrottleControl&);
 
-  void                receive_tick()                { Base::quota(m_quota); m_task.insert(Timer::cache() + m_interval); }
+  void                receive_tick()                { Base::quota(m_quota); m_taskTick.insert(Timer::cache() + m_interval); }
 
   int                 m_interval;
   int                 m_quota;
-  Task                m_task;
+  Task                m_taskTick;
 };
 
 template <typename T>
 ThrottleControl<T>::ThrottleControl() :
   m_interval(1000000),
   m_quota(UNLIMITED),
-  m_task(sigc::mem_fun(*this, &ThrottleControl::receive_tick)) {
+  m_taskTick(sigc::mem_fun(*this, &ThrottleControl::receive_tick)) {
 }
 
 }

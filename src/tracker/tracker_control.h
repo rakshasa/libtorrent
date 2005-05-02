@@ -28,10 +28,10 @@
 #include <sigc++/signal.h>
 #include <sigc++/slot.h>
 
-#include "peer_info.h"
 #include "tracker_info.h"
 #include "tracker_list.h"
 
+#include "peer/peer_info.h"
 #include "torrent/bencode.h"
 #include "utils/task.h"
 
