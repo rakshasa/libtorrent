@@ -36,7 +36,8 @@ PeerConnectionBase::PeerConnectionBase() :
   m_net(NULL),
   
   m_readThrottle(throttleRead.end()),
-  m_writeThrottle(throttleWrite.end()) {
+  m_writeThrottle(throttleWrite.end()),
+  m_snubbed(false) {
 }
 
 PeerConnectionBase::~PeerConnectionBase() {

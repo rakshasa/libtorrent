@@ -193,9 +193,8 @@ DownloadNet::choke_balance() {
 	 itr != m_connections.end() && s != 0; ++itr) {
       
       if ((*itr)->is_write_choked() &&
-	  (*itr)->is_read_interested() //&&
-// 	  !(*itr)->throttle().get_snub()
-	  ) {
+	  (*itr)->is_read_interested() &&
+	  !(*itr)->is_snubbed()) {
 	(*itr)->choke(false);
 	--s;
       }

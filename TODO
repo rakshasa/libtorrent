@@ -5,16 +5,10 @@ After 25 seconds, choke a peer if no requests have been received?
 Add average, max and total to rates. Will this be controlled by
 choke/unchoke?
 
-Set IP TOS
-
 Add a snub factor. The more you upload without getting back, the
 higher it goes. Add a start buffer.
 
 Add config for how often we unchoke unknown peers vs good uploaders
-
-Recursively update the up/down rates in throttle.
-
-Make a seperate class for doing read and write to buffer in PC.
 
 Each throttle can have it's own rules to decide the priority it gets.
 
@@ -64,22 +58,7 @@ set shouldn't change ever... And do a count on number of set bits?
 
 OPTIMIZING
 
-SocketBase should use a stl::vector instead. This would require a
-function that iterates through the vector and set new valid iterators
-after a reserve/erase.
-
-Using lists for the sockets we're waiting on does provide for many
-cache misses. (i would assume). find out if you can't use something more
-clever. Sort by fd number? iterate only to that number?
-
-Cache iterators to different borders, and update them as we add/remove?
-
-Use iterators in StorageChunk::get_position instead.
-
-Look into epoll.
-
-Willneed hash checking queue does not work optimally on large files
-with very small chunks.
+Look into epoll and sendfile.
 
 
 DUMPING TORRENT FILES
@@ -110,11 +89,9 @@ disallow for open torrents?
 
 CURRENT:
 
-Fix low rates
-
 Fix snub
 
-Use m_writeThrottle to be consistent?
+Make the stable buffer in throttle be more dynamic depending on the current rate.
 
 
 NEXT:
@@ -146,6 +123,7 @@ Consider sorting SocketSet so we can get maxFd cheaper. Epoll might
 not need this, so consider the value.
 
 Rename poll.h.
+
 
 CLEANUP:
 

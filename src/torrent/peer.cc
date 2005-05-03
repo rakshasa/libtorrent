@@ -65,8 +65,7 @@ Peer::get_remote_interested() {
 
 bool
 Peer::get_snubbed() {
-//   return m_ptr->throttle().get_snub();
-  return false;
+  return m_ptr->is_snubbed();
 }
 
 // Bytes per second.
@@ -137,10 +136,10 @@ Peer::get_chunks_done() {
 
 void
 Peer::set_snubbed(bool v) {
-//   m_ptr->throttle().set_snub(v);
+  m_ptr->set_snubbed(v);
 
-//   if (v)
-//     m_ptr->choke(true);
+  if (v)
+    m_ptr->choke(true);
 }
 
 }

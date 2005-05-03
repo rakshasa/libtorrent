@@ -649,7 +649,7 @@ void PeerConnection::sendHave(int index) {
 
 void
 PeerConnection::receive_piece_header(Piece p) {
-  if (m_read.get_length() == 9) {
+  if (p.get_length() == 0) {
     // Some clients send zero length messages when we request pieces
     // they don't have.
     m_net->signal_network_log().emit("Received piece with length zero");

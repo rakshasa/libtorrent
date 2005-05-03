@@ -112,7 +112,7 @@ struct ThrottleListSet {
   // the node gradually builds up to 1000 when given very low quotas
   // each tick.
   int quota_stable(T& t, int quota) {
-    int v = std::min(t.get_used() + 1024 - t.get_quota(), quota);
+    int v = std::min(t.get_used() + 2 * 1024 - t.get_quota(), quota);
 
     if (v <= 0)
       return 0;

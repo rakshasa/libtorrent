@@ -57,6 +57,8 @@ public:
   bool                is_read_throttled()           { return m_readThrottle != throttleRead.end(); }
   bool                is_write_throttled()          { return m_writeThrottle != throttleWrite.end(); }
 
+  bool                is_snubbed() const            { return m_snubbed; }
+
   const PeerInfo&     get_peer() const              { return m_peer; }
 
   Rate&               get_rate_peer()               { return m_ratePeer; }
@@ -66,6 +68,10 @@ public:
   Timer               get_last_choked()             { return m_lastChoked; }
 
   const BitFieldExt&  get_bitfield() const          { return m_bitfield; }
+
+  // Make sure you choke the peer when snubbing. Snubbing a peer will
+  // only cause it not to be unchoked.
+  void                set_snubbed(bool v)           { m_snubbed = v; }
 
   void                insert_read_throttle();
   void                remove_read_throttle();
@@ -93,6 +99,8 @@ protected:
 
   ThrottlePeerNode    m_readThrottle;
   ThrottlePeerNode    m_writeThrottle;
+
+  bool                m_snubbed;
 
   BitFieldExt         m_bitfield;
    
