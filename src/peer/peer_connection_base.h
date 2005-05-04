@@ -26,6 +26,7 @@
 #include "data/piece.h"
 #include "net/poll.h"
 #include "net/protocol_buffer.h"
+#include "net/protocol_chunk.h"
 #include "net/protocol_read.h"
 #include "net/protocol_write.h"
 #include "net/socket_base.h"
@@ -100,13 +101,13 @@ protected:
   ThrottlePeerNode    m_readThrottle;
   ThrottlePeerNode    m_writeThrottle;
 
+  ProtocolChunk       m_readChunk;
+  ProtocolChunk       m_writeChunk;
+
   bool                m_snubbed;
 
   BitFieldExt         m_bitfield;
    
-  Piece               m_readPiece;
-  Piece               m_writePiece;
-
   Timer               m_lastChoked;
 
   ProtocolRead        m_read;

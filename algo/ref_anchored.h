@@ -119,7 +119,7 @@ public:
     return *this;
   }
 
-  bool  is_valid()                 { return m_ptr && m_ptr->m_data; }
+  bool  is_valid() const           { return m_ptr && m_ptr->m_data; }
 
   void  anchor(RefAnchor<Type>& a) { a.set(m_ptr); }
   void  clear()                    { if (m_ptr && --m_ptr->m_ref == 0) delete m_ptr; m_ptr = NULL; }
@@ -129,9 +129,12 @@ public:
   void  drift()                    { if (m_ptr && m_ptr->m_anchor) m_ptr->m_anchor->clear(); }
 
   Type* data()                     { return m_ptr ? m_ptr->m_data : NULL; }
+  const Type* data() const         { return m_ptr ? m_ptr->m_data : NULL; }
 
   Type& operator * ()              { return *m_ptr->m_data; }
+  const Type& operator * () const  { return *m_ptr->m_data; }
   Type* operator -> ()             { return m_ptr->m_data; }
+  const Type* operator -> () const { return m_ptr->m_data; }
 
 private:
   RefAnchorData<Type>* m_ptr;

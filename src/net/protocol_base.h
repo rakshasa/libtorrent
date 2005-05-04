@@ -64,19 +64,13 @@ public:
   Protocol            get_last_command() const                { return m_lastCommand; }
   void                set_last_command(Protocol p)            { m_lastCommand = p; }
 
-  Storage::Chunk&     get_chunk()                             { return m_chunk; }
-  void                set_chunk(const Storage::Chunk& c)      { m_chunk = c; }
-
   Buffer&             get_buffer()                            { return m_buffer; }
 
-  uint32_t&           get_position()                          { return m_position; }
-  const uint32_t&     get_position() const                    { return m_position; }
+  // Position should perhaps be in a different place, like a dedicated
+  // chunk writing class.
+  uint32_t            get_position() const                    { return m_position; }
   void                set_position(uint32_t p)                { m_position = p; }
   void                adjust_position(uint32_t p)             { m_position += p; }
-
-  ChunkPart           chunk_part(const Piece& p);
-  uint32_t            chunk_offset(const Piece& p, const ChunkPart& c);
-  uint32_t            chunk_length(const Piece& p, const ChunkPart& c, uint32_t offset);
 
 protected:
   uint32_t            m_position;
@@ -85,24 +79,8 @@ protected:
   bool                m_interested;
 
   Protocol            m_lastCommand;
-  Storage::Chunk      m_chunk;
   Buffer              m_buffer;
 };
-
-inline ProtocolBase::ChunkPart
-ProtocolBase::chunk_part(const Piece& p) {
-  return m_chunk->at_position(p.get_offset() + m_position);
-}  
-
-inline uint32_t
-ProtocolBase::chunk_offset(const Piece& p, const ChunkPart& c) {
-  return p.get_offset() + m_position - c->get_position();
-}
-
-inline uint32_t
-ProtocolBase::chunk_length(const Piece& p, const ChunkPart& c, uint32_t offset) {
-  return std::min(p.get_length() - m_position, c->size() - offset);
-}
 
 }
 

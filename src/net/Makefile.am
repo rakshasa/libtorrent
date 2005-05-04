@@ -15,6 +15,8 @@ libsub_net_la_SOURCES = \
 	poll.h \
 	poll_select.h \
 	protocol_base.h \
+	protocol_chunk.cc \
+	protocol_chunk.h \
 	protocol_buffer.h \
 	protocol_read.h \
 	protocol_write.h \

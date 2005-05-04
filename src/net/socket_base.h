@@ -46,13 +46,13 @@ public:
   virtual void        write() = 0;
   virtual void        except() = 0;
 
-protected:
   unsigned int        read_buf(void* buf, unsigned int length);
   unsigned int        write_buf(const void* buf, unsigned int length);
 
   bool                read_buffer(void* buf, uint32_t length, uint32_t& pos);
   bool                write_buffer(const void* buf, uint32_t length, uint32_t& pos);
 
+protected:
   SocketFd            m_fd;
 
 private:

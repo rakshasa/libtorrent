@@ -47,17 +47,17 @@ PeerConnectionBase::~PeerConnectionBase() {
 
 void
 PeerConnectionBase::load_read_chunk(const Piece& p) {
-  m_readPiece = p;
+  m_readChunk.set_piece(p);
 
-  if (m_read.get_chunk().is_valid() && p.get_index() == m_read.get_chunk()->get_index())
+  if (m_readChunk.get_chunk().is_valid() && p.get_index() == m_readChunk.get_chunk()->get_index())
     return;
 
   if (!m_state->get_content().is_valid_piece(p))
     throw internal_error("Incoming pieces list contains a bad piece");
   
-  m_read.get_chunk() = m_state->get_content().get_storage().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write);
+  m_readChunk.set_chunk(m_state->get_content().get_storage().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
   
-  if (!m_read.get_chunk().is_valid())
+  if (!m_readChunk.get_chunk().is_valid())
     throw storage_error("Could not create a valid chunk");
 }
 

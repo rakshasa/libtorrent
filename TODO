@@ -89,7 +89,7 @@ disallow for open torrents?
 
 CURRENT:
 
-Fix snub
+Use ProtocolBuffer for skip piece too.
 
 Make the stable buffer in throttle be more dynamic depending on the current rate.
 
@@ -102,10 +102,10 @@ Make m_read{Piece,Chunk} placement consistent.
 
 Add buffer read of piece.
 
+Make ProtocolBase's in PC pointers.
+
 
 NEXT:
-
-Don't hash check more than X bytes at a time, add to timeout.
 
 Cleanup HashQueue, seperate out nodes etc.
 

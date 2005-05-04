@@ -218,7 +218,9 @@ void PeerConnection::read() {
     goto evil_goto_read;
 
   case ProtocolRead::BITFIELD:
-    if (!read_buffer(m_bitfield.begin() + m_read.get_position(), m_bitfield.size_bytes(), m_read.get_position()))
+    m_read.adjust_position(read_buf(m_bitfield.begin() + m_read.get_position(), m_bitfield.size_bytes() - m_read.get_position()));
+
+    if (m_read.get_position() != m_bitfield.size_bytes())
       return;
 
     m_bitfield.update_count();
@@ -243,7 +245,7 @@ void PeerConnection::read() {
 
     if (!m_requests.is_wanted()) {
       m_read.set_state(ProtocolRead::SKIP_PIECE);
-      m_read.set_length(m_readPiece.get_length() - m_read.get_position());
+      m_read.set_length(m_readChunk.get_bytes_left());
       m_read.set_position(0);
 
       m_requests.skip();
@@ -378,11 +380,11 @@ void PeerConnection::write() {
       if (m_sends.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_write.set_chunk(m_state->get_content().get_storage().get_chunk(m_writePiece.get_index(), MemoryChunk::prot_read));
+      m_writeChunk.set_chunk(m_state->get_content().get_storage().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
+      m_writeChunk.set_position(0);
       m_write.set_state(ProtocolWrite::WRITE_PIECE);
-      m_write.set_position(0);
 
-      if (!m_write.get_chunk().is_valid())
+      if (!m_writeChunk.get_chunk().is_valid())
 	throw storage_error("Could not create a valid chunk");
 
       goto evil_goto_write;
@@ -424,7 +426,7 @@ void PeerConnection::write() {
       return;
 
     if (m_sends.empty())
-      m_write.get_chunk().clear();
+      m_writeChunk.get_chunk().clear();
 
     m_sends.pop_front();
 
@@ -550,7 +552,7 @@ void PeerConnection::fillWriteBuf() {
 	remove_write_throttle();
 	
 	m_sends.clear();
-	m_write.get_chunk().clear();
+	m_writeChunk.get_chunk().clear();
 
       } else {
 	insert_write_throttle();
@@ -598,22 +600,22 @@ void PeerConnection::fillWriteBuf() {
       !m_sends.empty() &&
       m_write.can_write_piece()) {
 
-    m_writePiece = m_sends.front();
+    m_writeChunk.set_piece(m_sends.front());
 
     // Move these checks somewhere else?
-    if (!m_state->get_content().is_valid_piece(m_writePiece) ||
-	!m_state->get_content().has_chunk(m_writePiece.get_index())) {
+    if (!m_state->get_content().is_valid_piece(m_writeChunk.get_piece()) ||
+	!m_state->get_content().has_chunk(m_writeChunk.get_piece().get_index())) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index or length/offset: "
-	<< m_writePiece.get_index() << ' '
-	<< m_writePiece.get_length() << ' '
-	<< m_writePiece.get_offset();
+	<< m_writeChunk.get_piece().get_index() << ' '
+	<< m_writeChunk.get_piece().get_length() << ' '
+	<< m_writeChunk.get_piece().get_offset();
 
       throw communication_error(s.str());
     }
       
-    m_write.write_piece(m_writePiece);
+    m_write.write_piece(m_writeChunk.get_piece());
   }
 }
 
@@ -658,7 +660,7 @@ PeerConnection::receive_piece_header(Piece p) {
     return;
   }
 
-  m_read.set_position(0);
+  m_readChunk.set_position(0);
       
   if (m_requests.downloading(p)) {
     m_read.set_state(ProtocolRead::READ_PIECE);
