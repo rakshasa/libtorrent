@@ -22,6 +22,8 @@
 
 #include "config.h"
 
+#include <limits>
+
 #include "torrent/exceptions.h"
 #include "download/download_net.h"
 #include "download/download_state.h"
@@ -59,6 +61,48 @@ PeerConnectionBase::load_read_chunk(const Piece& p) {
   
   if (!m_readChunk.get_chunk().is_valid())
     throw storage_error("Could not create a valid chunk");
+}
+
+bool
+PeerConnectionBase::write_chunk() {
+  if (!is_write_throttled())
+    throw internal_error("PeerConnectionBase::write_chunk() tried to write a piece but is not in throttle list");
+
+  int quota = m_writeThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_writeThrottle->get_quota();
+
+  if (quota < 512) {
+    Poll::write_set().erase(this);
+    return false;
+  }
+
+  uint32_t bytes = m_writeChunk.write(this, quota);
+
+  m_writeRate.insert(bytes);
+  m_writeThrottle->used(bytes);
+  m_net->get_write_rate().insert(bytes);
+
+  return m_writeChunk.is_done();
+}
+
+bool
+PeerConnectionBase::read_chunk() {
+  if (!is_read_throttled())
+    throw internal_error("PeerConnectionBase::read_chunk() tried to read a piece but is not in throttle list");
+
+  int quota = m_readThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_readThrottle->get_quota();
+
+  if (quota < 512) {
+    Poll::read_set().erase(this);
+    return false;
+  }
+
+  uint32_t bytes = m_readChunk.read(this, quota);
+
+  m_readRate.insert(bytes);
+  m_readThrottle->used(bytes);
+  m_net->get_read_rate().insert(bytes);
+
+  return m_readChunk.is_done();
 }
 
 void

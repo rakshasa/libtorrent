@@ -108,70 +108,8 @@ void DownloadMain::stop() {
 
 void
 DownloadMain::choke_cycle() {
-  bool foundInterested;
-  int s;
-  PeerConnection *p1, *p2;
-  float f = 0, g = 0;
-
   m_taskChokeCycle.insert(Timer::cache() + m_state.get_settings().chokeCycle);
-
-  s = m_net.can_unchoke();
-
-  if (s > 0)
-    // If we haven't filled up out chokes then we shouldn't do cycle.
-    return;
-
-  // TODO: Include the Snub factor, allow untried snubless peers to download too.
-
-  // TODO: Prefer peers we are interested in, unless we are being helpfull to newcomers.
-
-  p1 = NULL;
-  f = std::numeric_limits<float>::max();
-
-  // Candidates for choking.
-  for (DownloadNet::ConnectionList::const_iterator itr = m_net.get_connections().begin();
-       itr != m_net.get_connections().end(); ++itr)
-
-    if (!(*itr)->is_write_choked() &&
-	(*itr)->get_last_choked() + m_state.get_settings().chokeGracePeriod < Timer::cache() &&
-	  
-	(g = (*itr)->get_rate_down().rate() * 16 + (*itr)->get_rate_up().rate()) <= f) {
-      f = g;
-      p1 = *itr;
-    }
-
-  p2 = NULL;
-  f = -1;
-
-  foundInterested = false;
-
-  // Candidates for unchoking. Don't give a grace period since we want
-  // to be quick to unchoke good peers. Use the snub to avoid unchoking
-  // bad peers. Try untried peers first.
-  for (DownloadNet::ConnectionList::const_iterator itr = m_net.get_connections().begin();
-       itr != m_net.get_connections().end(); ++itr)
-      
-    // Prioritize those we are interested in, those also have higher
-    // download rates.
-
-    if ((*itr)->is_write_choked() &&
-	(*itr)->is_read_interested() &&
-
-	((g = (*itr)->get_rate_down().rate()) > f ||
-
-	 (!foundInterested && (*itr)->is_write_interested()))) {
-      // Prefer peers we are interested in.
-
-      foundInterested = (*itr)->is_write_interested();
-      f = g;
-      p2 = *itr;
-    }
-
-  if (p1 == NULL || p2 == NULL)
-    return;
-
-  p1->choke(true);
-  p2->choke(false);
+  m_net.choke_cycle();
 }
 
 bool DownloadMain::is_stopped() {

@@ -55,8 +55,6 @@ class DownloadSettings {
   int maxPeers;
   uint32_t maxAvailable;
 
-  int maxUploads;
-
   int chokeCycle;
   int chokeGracePeriod;
 

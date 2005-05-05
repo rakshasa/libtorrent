@@ -88,8 +88,6 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 }
 
 void PeerConnection::read() {
-  uint32_t maxBytes;
-
   m_lastMsg = Timer::cache();
 
   try {
@@ -253,20 +251,7 @@ void PeerConnection::read() {
       goto evil_goto_read;
     }
 
-    if (!is_read_throttled())
-      throw internal_error("PeerConnection::read() tried to read a piece but is not in throttle list");
-
-    if (m_readThrottle->is_unlimited())
-      maxBytes = 1 << 30;
-    else
-      maxBytes = m_readThrottle->get_quota();
-
-    if (maxBytes < 512) {
-      Poll::read_set().erase(this);
-      return;
-    }
-
-    if (!readChunk(maxBytes))
+    if (!read_chunk())
       return;
 
     m_read.set_state(ProtocolRead::IDLE);
@@ -296,7 +281,7 @@ void PeerConnection::read() {
     if (m_read.get_position() == 0)
       return;
 
-    m_rateDown.insert(m_read.get_position());
+    m_readRate.insert(m_read.get_position());
 
     m_read.set_length(m_read.get_length() - m_read.get_position());
     m_read.set_position(0);
@@ -341,8 +326,6 @@ void PeerConnection::read() {
 }
 
 void PeerConnection::write() {
-  int maxBytes;
-
   try {
 
   evil_goto_write:
@@ -409,20 +392,7 @@ void PeerConnection::write() {
     if (m_sends.empty())
       throw internal_error("ProtocolWrite::WRITE_PIECE on an empty list");
 
-    if (!is_write_throttled())
-      throw internal_error("PeerConnection::write() tried to write a piece but is not in throttle list");
-
-    if (m_writeThrottle->is_unlimited())
-      maxBytes = 1 << 30;
-    else
-      maxBytes = m_writeThrottle->get_quota();
-    
-    if (maxBytes < 512) {
-      Poll::write_set().erase(this);
-      return;
-    }
-
-    if (!writeChunk(maxBytes))
+    if (!write_chunk())
       return;
 
     if (m_sends.empty())
@@ -496,7 +466,7 @@ void PeerConnection::parseReadBuf() {
 
     // If we want to send stuff.
     if (m_write.get_choked() &&
-	m_net->can_unchoke() > 0) {
+	m_net->get_choke_manager().get_max_unchoked() - m_net->get_unchoked() > 0) {
       choke(false);
     }
     
@@ -571,7 +541,7 @@ void PeerConnection::fillWriteBuf() {
 
       m_read.get_state() != ProtocolRead::SKIP_PIECE &&
       m_net->should_request(m_stallCount) &&
-      m_requests.get_size() < (pipeSize = m_net->pipe_size(m_rateDown))) {
+      m_requests.get_size() < (pipeSize = m_net->pipe_size(m_readRate))) {
 
     m_tryRequest = false;
 

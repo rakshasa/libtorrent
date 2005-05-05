@@ -71,27 +71,27 @@ Peer::get_snubbed() {
 // Bytes per second.
 uint32_t
 Peer::get_rate_down() {
-  return m_ptr->get_rate_down().rate();
+  return m_ptr->get_read_rate().rate();
 }
 
 uint32_t
 Peer::get_rate_up() {
-  return m_ptr->get_rate_up().rate();
+  return m_ptr->get_write_rate().rate();
 }
 
 uint32_t
 Peer::get_rate_peer() {
-  return m_ptr->get_rate_peer().rate();
+  return m_ptr->get_peer_rate().rate();
 }
 
 uint64_t
 Peer::get_transfered_down() {
-  return m_ptr->get_rate_down().total();
+  return m_ptr->get_read_rate().total();
 }  
 
 uint64_t
 Peer::get_transfered_up() {
-  return m_ptr->get_rate_up().total();
+  return m_ptr->get_write_rate().total();
 }  
 
 uint32_t

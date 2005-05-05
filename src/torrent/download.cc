@@ -139,12 +139,12 @@ Download::set_ip(const std::string& ip) {
 
 uint64_t
 Download::get_bytes_up() {
-  return m_ptr->get_main().get_net().get_rate_up().total();
+  return m_ptr->get_main().get_net().get_write_rate().total();
 }
 
 uint64_t
 Download::get_bytes_down() {
-  return m_ptr->get_main().get_net().get_rate_down().total();
+  return m_ptr->get_main().get_net().get_read_rate().total();
 }
 
 uint64_t
@@ -186,12 +186,12 @@ Download::get_chunks_total() {
 // Bytes per second.
 uint32_t
 Download::get_rate_up() {
-  return m_ptr->get_main().get_net().get_rate_up().rate();
+  return m_ptr->get_main().get_net().get_write_rate().rate();
 }
 
 uint32_t
 Download::get_rate_down() {
-  return m_ptr->get_main().get_net().get_rate_down().rate();
+  return m_ptr->get_main().get_net().get_read_rate().rate();
 }
   
 const unsigned char*
@@ -226,7 +226,7 @@ Download::get_peers_not_connected() {
 
 uint32_t
 Download::get_uploads_max() {
-  return m_ptr->get_main().get_state().get_settings().maxUploads;
+  return m_ptr->get_main().get_net().get_choke_manager().get_max_unchoked();
 }
   
 uint64_t
@@ -258,7 +258,7 @@ Download::set_peers_max(uint32_t v) {
 void
 Download::set_uploads_max(uint32_t v) {
   if (v > 0 && v < 1000) {
-    m_ptr->get_main().get_state().get_settings().maxUploads = v;
+    m_ptr->get_main().get_net().get_choke_manager().set_max_unchoked(v);
     m_ptr->get_main().get_net().choke_balance();
   }
 }

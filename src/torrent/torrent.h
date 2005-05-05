@@ -79,8 +79,6 @@ typedef enum {
   DEFAULT_PEERS_MIN,
   DEFAULT_PEERS_MAX,
 
-  DEFAULT_UPLOADS_MAX,
-
   DEFAULT_CHOKE_CYCLE,
 
   TIME_CURRENT,            // Unix time. (usec)

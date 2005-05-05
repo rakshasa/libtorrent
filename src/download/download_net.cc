@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <functional>
+#include <algorithm>
 #include <algo/algo.h>
 
 #include "torrent/exceptions.h"
@@ -74,7 +75,7 @@ DownloadNet::should_request(uint32_t stall) {
     // We check if the peer is stalled, if it is not then we should
     // request. If the peer is stalled then we only request if the
     // download rate is below a certain value.
-    return !stall || m_rateDown.rate() < m_settings->endgameRate;
+    return !stall || m_readRate.rate() < m_settings->endgameRate;
 }
 
 void
@@ -163,65 +164,6 @@ DownloadNet::add_available_peers(const PeerList& p) {
     m_availablePeers.pop_front();
 
   connect_peers();
-}
-
-int
-DownloadNet::can_unchoke() {
-  return m_settings->maxUploads - std::count_if(m_connections.begin(), m_connections.end(),
-						std::not1(std::mem_fun(&PeerConnection::is_write_choked)));
-}
-
-void
-DownloadNet::choke_balance() {
-  //  Connections::iterator itr;
-  int s = can_unchoke();
-
-  // TODO: Optimize, do a single pass with a 's' sized list of (un)chokings.
-  if (s > 0) {
-//     m_connections.sort(gt(call_member(call_member(&PeerConnection::throttle),
-// 				      &Throttle::down),
-// 			  call_member(call_member(&PeerConnection::throttle),
-// 				      &Throttle::down)));
-
-    m_connections.sort(gt(call_member(call_member(&PeerConnection::get_rate_down),
-				      &Rate::rate),
-			  call_member(call_member(&PeerConnection::get_rate_down),
-				      &Rate::rate)));
-
-    // unchoke peers.
-    for (ConnectionList::iterator itr = m_connections.begin();
-	 itr != m_connections.end() && s != 0; ++itr) {
-      
-      if ((*itr)->is_write_choked() &&
-	  (*itr)->is_read_interested() &&
-	  !(*itr)->is_snubbed()) {
-	(*itr)->choke(false);
-	--s;
-      }
-    }
-
-  } else if (s < 0) {
-    // Sort so we choke slow uploaders first.
-    // TODO: Should we sort by unchoked too?
-//     m_connections.sort(lt(call_member(call_member(&PeerConnection::throttle),
-// 				      &Throttle::down),
-// 			  call_member(call_member(&PeerConnection::throttle),
-// 				      &Throttle::down)));
-
-    m_connections.sort(lt(call_member(call_member(&PeerConnection::get_rate_down),
-				      &Rate::rate),
-			  call_member(call_member(&PeerConnection::get_rate_down),
-				      &Rate::rate)));
-
-    for (ConnectionList::iterator itr = m_connections.begin();
-	 itr != m_connections.end() && s != 0; ++itr) {
-      
-      if (!(*itr)->is_write_choked()) {
-	(*itr)->choke(true);
-	++s;
-      }
-    }
-  }    
 }
 
 void

@@ -64,8 +64,8 @@ DownloadMain::setup_tracker() {
   m_tracker = new TrackerControl(m_hash, random_string_hex(8));
   m_tracker->get_info().set_me(&m_me);
 
-  m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_rate_down(), &Rate::total));
-  m_tracker->slot_stat_up(sigc::mem_fun(m_net.get_rate_up(), &Rate::total));
+  m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_read_rate(), &Rate::total));
+  m_tracker->slot_stat_up(sigc::mem_fun(m_net.get_write_rate(), &Rate::total));
   m_tracker->slot_stat_left(sigc::mem_fun(m_state, &DownloadState::bytes_left));
 }
 

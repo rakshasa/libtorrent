@@ -62,9 +62,9 @@ public:
 
   const PeerInfo&     get_peer() const              { return m_peer; }
 
-  Rate&               get_rate_peer()               { return m_ratePeer; }
-  Rate&               get_rate_up()                 { return m_rateUp; }
-  Rate&               get_rate_down()               { return m_rateDown; }
+  Rate&               get_peer_rate()               { return m_peerRate; }
+  Rate&               get_write_rate()              { return m_writeRate; }
+  Rate&               get_read_rate()               { return m_readRate; }
 
   Timer               get_last_choked()             { return m_lastChoked; }
 
@@ -84,6 +84,9 @@ protected:
   inline bool         read_remaining();
   inline bool         write_remaining();
 
+  bool                write_chunk();
+  bool                read_chunk();
+
   void                load_read_chunk(const Piece& p);
 
   void                receive_throttle_read_activate();
@@ -93,21 +96,18 @@ protected:
   DownloadNet*        m_net;
 
   PeerInfo            m_peer;
-   
-  Rate                m_ratePeer;
-  Rate                m_rateUp;
-  Rate                m_rateDown;
+  Rate                m_peerRate;
 
+  Rate                m_readRate;
   ThrottlePeerNode    m_readThrottle;
-  ThrottlePeerNode    m_writeThrottle;
-
   ProtocolChunk       m_readChunk;
+
+  Rate                m_writeRate;
+  ThrottlePeerNode    m_writeThrottle;
   ProtocolChunk       m_writeChunk;
 
   bool                m_snubbed;
-
   BitFieldExt         m_bitfield;
-   
   Timer               m_lastChoked;
 
   ProtocolRead        m_read;

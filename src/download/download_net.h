@@ -31,6 +31,9 @@
 #include "peer/peer_info.h"
 #include "torrent/peer.h"
 #include "utils/rate.h"
+#include "utils/unordered_vector.h"
+
+#include "choke_manager.h"
 
 namespace torrent {
 
@@ -41,7 +44,7 @@ class DownloadNet {
 public:
   typedef std::deque<PeerInfo>                    PeerContainer;
   typedef std::list<PeerInfo>                     PeerList;
-  typedef std::list<PeerConnection*>              ConnectionList;
+  typedef unordered_vector<PeerConnection*>       ConnectionList;
 
   DownloadNet() : m_settings(NULL), m_endgame(false) {}
   ~DownloadNet();
@@ -56,9 +59,10 @@ public:
   void                set_settings(DownloadSettings* s)        { m_settings = s; }
 
   Delegator&          get_delegator()                          { return m_delegator; }
+  ChokeManager&       get_choke_manager()                      { return m_chokeManager; }
 
-  Rate&               get_rate_up()                            { return m_rateUp; }
-  Rate&               get_rate_down()                          { return m_rateDown; }
+  Rate&               get_write_rate()                         { return m_writeRate; }
+  Rate&               get_read_rate()                          { return m_readRate; }
 
   void                send_have_chunk(uint32_t index);
 
@@ -72,11 +76,13 @@ public:
 
   void                add_available_peers(const PeerList& p);
 
-  int                 can_unchoke();
-  void                choke_balance();
   void                connect_peers();
 
   int                 count_connections() const; 
+
+  void                choke_balance()                          { m_chokeManager.balance(m_connections.begin(), m_connections.end()); }
+  void                choke_cycle()                            { m_chokeManager.cycle(m_connections.begin(), m_connections.end()); }
+  int                 get_unchoked()                           { return m_chokeManager.get_unchoked(m_connections.begin(), m_connections.end()); }
 
   // Signals and slots.
 
@@ -107,10 +113,12 @@ private:
   ConnectionList         m_connections;
   PeerContainer          m_availablePeers;
 
+  ChokeManager           m_chokeManager;
+
   bool                   m_endgame;
   
-  Rate                   m_rateUp;
-  Rate                   m_rateDown;
+  Rate                   m_writeRate;
+  Rate                   m_readRate;
 
   SignalPeer             m_signalPeerConnected;
   SignalPeer             m_signalPeerDisconnected;

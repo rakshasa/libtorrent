@@ -63,9 +63,6 @@ private:
 
   void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   
-  bool writeChunk(uint32_t maxBytes);
-  bool readChunk(uint32_t maxBytes);
-
   bool                send_request_piece();
 
   void                receive_request_piece(Piece p);

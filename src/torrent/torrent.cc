@@ -304,9 +304,6 @@ get(GValue t) {
   case DEFAULT_PEERS_MAX:
     return DownloadSettings::global().maxPeers;
 
-  case DEFAULT_UPLOADS_MAX:
-    return DownloadSettings::global().maxUploads;
-
   case DEFAULT_CHOKE_CYCLE:
     return DownloadSettings::global().chokeCycle;
 
@@ -356,11 +353,6 @@ set(GValue t, int64_t v) {
   case DEFAULT_PEERS_MAX:
     if (v > 0 && v < 1000)
       DownloadSettings::global().maxPeers = v;
-    break;
-
-  case DEFAULT_UPLOADS_MAX:
-    if (v >= 0 && v < 1000)
-      DownloadSettings::global().maxUploads = v;
     break;
 
   case DEFAULT_CHOKE_CYCLE:

@@ -25,6 +25,11 @@ If we get conflicting prot flags in get_chunk, we might go into cycle
 of re-allocating. Do a union instead.
 
 
+LONG TERM:
+
+Make a collection of stuff in utils that can be shared between apps.
+
+
 TIMER RELATED
 
 Throttle update needs to be off when no throttle is on. Make sure it
@@ -89,10 +94,13 @@ disallow for open torrents?
 
 CURRENT:
 
+Make choke manager support choke cycle.
+
 Use ProtocolBuffer for skip piece too.
 
 Make the stable buffer in throttle be more dynamic depending on the current rate.
 
+Optimize ChokeManager::get_unchoked.
 
 NEXT:
 
