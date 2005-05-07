@@ -37,6 +37,9 @@ PeerConnectionBase::PeerConnectionBase() :
   m_state(NULL),
   m_net(NULL),
   
+  m_read(new ProtocolRead()),
+  m_write(new ProtocolWrite()),
+
   m_readThrottle(throttleRead.end()),
   m_writeThrottle(throttleWrite.end()),
   m_snubbed(false) {

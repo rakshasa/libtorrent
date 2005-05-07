@@ -182,7 +182,7 @@ void
 DownloadWrapper::set_hash_queue(HashQueue* h) {
   m_hash->set_queue(h);
 
-  m_main.get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::add),
+  m_main.get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::push_back),
 						    sigc::mem_fun(m_main.get_state(), &DownloadState::receive_hash_done),
 						    get_hash()));
 }

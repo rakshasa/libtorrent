@@ -88,7 +88,7 @@ HashTorrent::queue() {
     if (!c.is_valid() || !c->is_valid())
       continue;
 
-    m_queue->add(c, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
+    m_queue->push_back(c, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
     m_outstanding++;
   }
 

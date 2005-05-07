@@ -33,15 +33,14 @@
 namespace torrent {
 
 struct ChokeManagerReadRate {
-  // TODO: Add graze period here.
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return p1->get_read_rate().rate() >= p2->get_read_rate().rate();
+    return p1->get_read_rate().rate() > p2->get_read_rate().rate();
   }
 };
 
 inline ChokeManager::iterator
 ChokeManager::seperate_interested(iterator first, iterator last) {
-  return std::partition(first, last, std::mem_fun(&PeerConnectionBase::is_write_interested));
+  return std::partition(first, last, std::mem_fun(&PeerConnectionBase::is_read_interested));
 }
 
 inline ChokeManager::iterator
@@ -75,20 +74,28 @@ ChokeManager::balance(iterator first, iterator last) {
 
 void
 ChokeManager::cycle(iterator first, iterator last) {
-  // TMP
-//   balance(first, last);
-
   iterator beginUninterested = seperate_interested(first, last);
   iterator beginChoked       = seperate_unchoked(first, beginUninterested);
 
-  int unchoked = std::distance(first, beginChoked);
+  // Partition away the connections we shall not choke.
 
-  
+  int size = std::min<int>(std::min(std::distance(first, beginChoked),
+				    std::distance(beginChoked, beginUninterested)),
+			   m_cycleSize);
+
+  if (size == 0)
+    return;
+
+  choke(first, beginChoked, size);
+  unchoke(beginChoked, beginUninterested, size);
 }
 
 void
 ChokeManager::choke(iterator first, iterator last, int count) {
-  count = std::min(count, std::distance(first, last));
+  count = std::min<int>(count, std::distance(first, last));
+
+  if (count < 0)
+    throw internal_error("ChokeManager::choke(...) got count < 0");
 
   sort_read_rate(first, last);
 
@@ -98,7 +105,10 @@ ChokeManager::choke(iterator first, iterator last, int count) {
 
 void
 ChokeManager::unchoke(iterator first, iterator last, int count) {
-  count = std::min(count, std::distance(first, last));
+  count = std::min<int>(count, std::distance(first, last));
+
+  if (count < 0)
+    throw internal_error("ChokeManager::unchoke(...) got count < 0");
 
   sort_read_rate(first, last);
 

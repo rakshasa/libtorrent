@@ -77,10 +77,10 @@ ProtocolChunk::read_part(SocketBase* sock, ChunkPart c, uint32_t& left) {
 inline bool
 ProtocolChunk::write_part(SocketBase* sock, ChunkPart c, uint32_t& left) {
   if (!c->get_chunk().is_valid())
-    throw internal_error("ProtocolChunk::read_part() did not get a valid chunk");
+    throw internal_error("ProtocolChunk::write_part() did not get a valid chunk");
   
-  if (!c->get_chunk().is_writable())
-    throw internal_error("ProtocolChunk::read_part() chunk not writable, permission denided");
+  if (!c->get_chunk().is_readable())
+    throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
 
   uint32_t offset = chunk_offset(c);
   uint32_t length = std::min(chunk_length(c, offset), left);

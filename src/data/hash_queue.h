@@ -20,13 +20,12 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_HASH_QUEUE_H
-#define LIBTORRENT_HASH_QUEUE_H
+#ifndef LIBTORRENT_DATA_HASH_QUEUE_H
+#define LIBTORRENT_DATA_HASH_QUEUE_H
 
 #include <string>
-#include <sigc++/signal.h>
-#include <algo/ref_anchored.h>
 
+#include "hash_queue_node.h"
 #include "storage_chunk.h"
 
 #include "utils/task.h"
@@ -41,21 +40,26 @@ class HashChunk;
 // helps us in getting as much done as possible while the pages are in
 // memory.
 
-class HashQueue {
+class HashQueue : private std::list<HashQueueNode> {
 public:
-  // SignalDone: (Return void)
-  // unsigned int - index of chunk
-  // std::string  - chunk hash
+  typedef std::list<HashQueueNode> Base;
 
-  typedef algo::RefAnchored<StorageChunk>       Chunk;
-  typedef sigc::slot2<void, Chunk, std::string> SlotDone;
+  typedef HashQueueNode::Chunk     Chunk;
+  typedef HashQueueNode::SlotDone  SlotDone;
 
-  HashQueue();
+  using Base::iterator;
+
+  using Base::empty;
+
+  using Base::begin;
+  using Base::end;
+
+  HashQueue() : m_taskWork(sigc::mem_fun(*this, &HashQueue::work)) {}
   ~HashQueue() { clear(); }
 
-  void                add(Chunk c, SlotDone d, const std::string& id);
+  void                push_back(Chunk c, SlotDone d, const std::string& id);
 
-  bool                has(uint32_t index, const std::string& id);
+  bool                has(const std::string& id, uint32_t index);
 
   void                remove(const std::string& id);
   void                clear();
@@ -63,28 +67,13 @@ public:
   void                work();
 
 private:
-  struct Node {
-    Node(HashChunk* c, const std::string& i, SlotDone d) :
-      m_chunk(c), m_id(i), m_done(d), m_willneed(false) {}
-
-    uint32_t          get_index();
-
-    HashChunk*        m_chunk;
-    std::string       m_id;
-    SlotDone          m_done;
-
-    bool              m_willneed;
-  };
-
   bool                check(bool force);
 
-  void                willneed(int bytes);
+  inline void         willneed(int bytes);
 
-  typedef std::list<Node> ChunkList;
+  void                pop_front()                   { Base::front().clear(); Base::pop_front(); }
 
   uint16_t            m_tries;
-  ChunkList           m_chunks;
-
   Task                m_taskWork;
 };
 

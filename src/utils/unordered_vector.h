@@ -80,13 +80,10 @@ unordered_vector<_Tp>::insert(iterator position, const value_type& x) {
 template <typename _Tp>
 typename unordered_vector<_Tp>::iterator
 unordered_vector<_Tp>::erase(iterator position) {
-  if (position + 1 == end()) {
-    erase(position);
-
-  } else {
-    *position = *(--end());
-    erase(--end());
-  }
+  // We don't need to check if position == end - 1 since we then copy
+  // to the position we pop later.
+  *position = Base::back();
+  Base::pop_back();
 
   return position;
 }    

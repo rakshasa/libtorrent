@@ -28,26 +28,40 @@
 #include "storage_chunk.h"
 #include "settings.h"
 
-#include <algo/algo.h>
-
-using namespace algo;
-
 namespace torrent {
 
-HashQueue::HashQueue() :
-  m_taskWork(sigc::mem_fun(*this, &HashQueue::work)) {
+struct HashQueueEqual {
+  HashQueueEqual(const std::string& id, uint32_t index) : m_id(id), m_index(index) {}
+
+  bool operator () (const HashQueueNode& q) const { return m_id == q.get_id() && m_index == q.get_index(); }
+
+  const std::string&  m_id;
+  uint32_t            m_index;
+};
+
+struct HashQueueWillneed {
+  HashQueueWillneed(int bytes) : m_bytes(bytes) {}
+
+  bool operator () (HashQueueNode& q) { return (m_bytes -= q.call_willneed()) <= 0; }
+
+  int m_bytes;
+};
+
+inline void
+HashQueue::willneed(int bytes) {
+  std::find_if(begin(), end(), HashQueueWillneed(bytes));
 }
 
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
-HashQueue::add(Chunk c, SlotDone d, const std::string& id) {
+HashQueue::push_back(Chunk c, SlotDone d, const std::string& id) {
   if (!c.is_valid() || !c->is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
   HashChunk* hc = new HashChunk(c);
 
-  if (m_chunks.empty()) {
+  if (empty()) {
     if (m_taskWork.is_scheduled())
       throw internal_error("Empty HashQueue is still in task schedule");
 
@@ -55,50 +69,41 @@ HashQueue::add(Chunk c, SlotDone d, const std::string& id) {
     m_taskWork.insert(Timer::current());
   }
 
-  m_chunks.push_back(Node(hc, id, d));
+  Base::push_back(HashQueueNode(hc, id, d));
   willneed(Settings::hashWillneed);
 }
 
 bool
-HashQueue::has(uint32_t index, const std::string& id) {
-  return std::find_if(m_chunks.begin(), m_chunks.end(),
-		      bool_and(eq(ref(id), member(&HashQueue::Node::m_id)),
-			       eq(value(index), call_member(&HashQueue::Node::get_index))))
-    != m_chunks.end();
+HashQueue::has(const std::string& id, uint32_t index) {
+  return std::find_if(begin(), end(), HashQueueEqual(id, index)) != end();
 }
 
 void
 HashQueue::remove(const std::string& id) {
-  ChunkList::iterator itr = m_chunks.begin();
+  iterator itr = begin();
   
-  while ((itr = std::find_if(itr, m_chunks.end(), eq(ref(id), member(&Node::m_id))))
-	 != m_chunks.end()) {
-    delete itr->m_chunk;
+  while ((itr = std::find(itr, end(), id)) != end()) {
+    itr->clear();
     
-    itr = m_chunks.erase(itr);
+    itr = erase(itr);
   }
 }
 
 void
 HashQueue::clear() {
-  while (!m_chunks.empty()) {
-    delete m_chunks.front().m_chunk;
-
-    m_chunks.pop_front();
-  }
+  std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
+  Base::clear();
 }
 
-// TODO: Clean up this code, it's ugly. Use a loop that check X bytes,
-// instead of one chunk.
 void
 HashQueue::work() {
-  if (m_chunks.empty())
+  if (empty())
     return;
 
   if (!check(++m_tries >= Settings::hashTries))
     return m_taskWork.insert(Timer::cache() + Settings::hashWait);
 
-  if (m_chunks.empty())
+  if (empty())
     return;
 
   m_taskWork.insert(Timer::cache());
@@ -107,38 +112,18 @@ HashQueue::work() {
 
 bool
 HashQueue::check(bool force) {
-  HashChunk* chunk = m_chunks.front().m_chunk;
-  
-  if (!chunk->perform(chunk->remaining(), force))
+  if (!Base::front().perform(force)) {
+    willneed(Settings::hashWillneed);
     return false;
+  }
 
-  m_chunks.front().m_done(chunk->get_chunk(), chunk->get_hash());
-
-  delete chunk;
-  m_chunks.pop_front();
+  pop_front();
 
   // This should be a few chunks ahead.
-  if (!m_chunks.empty())
+  if (!empty())
     willneed(Settings::hashWillneed);
 
   return true;
-}
-
-void
-HashQueue::willneed(int bytes) {
-  for (ChunkList::iterator itr = m_chunks.begin(); itr != m_chunks.end() && bytes > 0; ++itr) {
-    if (!itr->m_willneed) {
-      itr->m_willneed = true;
-      itr->m_chunk->advise_willneed(itr->m_chunk->remaining());
-    }
-
-    bytes -= itr->m_chunk->remaining();
-  }
-}
-
-uint32_t
-HashQueue::Node::get_index() {
-  return m_chunk->get_chunk()->get_index();
 }
 
 }

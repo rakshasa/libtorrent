@@ -12,6 +12,8 @@ libsub_data_la_SOURCES = \
 	hash_chunk.h \
 	hash_queue.cc \
 	hash_queue.h \
+	hash_queue_node.cc \
+	hash_queue_node.h \
 	hash_torrent.cc \
 	hash_torrent.h \
 	memory_chunk.cc \

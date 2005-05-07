@@ -63,6 +63,11 @@ private:
 
   void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   
+  // Parse packet in read buffer, must be of correct type.
+  void parseReadBuf();
+
+  void fillWriteBuf();
+
   bool                send_request_piece();
 
   void                receive_request_piece(Piece p);
@@ -70,11 +75,6 @@ private:
   void                receive_have(uint32_t index);
 
   void                receive_piece_header(Piece p);
-
-  // Parse packet in read buffer, must be of correct type.
-  void parseReadBuf();
-
-  void fillWriteBuf();
 
   void                task_keep_alive();
   void                task_send_choke();

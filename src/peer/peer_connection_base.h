@@ -50,10 +50,10 @@ public:
   PeerConnectionBase();
   ~PeerConnectionBase();
   
-  bool                is_write_choked()             { return m_write.get_choked(); }
-  bool                is_write_interested()         { return m_write.get_interested(); }
-  bool                is_read_choked()              { return m_read.get_choked(); }
-  bool                is_read_interested()          { return m_read.get_interested(); }
+  bool                is_write_choked()             { return m_write->get_choked(); }
+  bool                is_write_interested()         { return m_write->get_interested(); }
+  bool                is_read_choked()              { return m_read->get_choked(); }
+  bool                is_read_interested()          { return m_read->get_interested(); }
 
   bool                is_read_throttled()           { return m_readThrottle != throttleRead.end(); }
   bool                is_write_throttled()          { return m_writeThrottle != throttleWrite.end(); }
@@ -95,6 +95,9 @@ protected:
   DownloadState*      m_state;
   DownloadNet*        m_net;
 
+  ProtocolRead*       m_read;
+  ProtocolWrite*      m_write;
+
   PeerInfo            m_peer;
   Rate                m_peerRate;
 
@@ -109,9 +112,6 @@ protected:
   bool                m_snubbed;
   BitFieldExt         m_bitfield;
   Timer               m_lastChoked;
-
-  ProtocolRead        m_read;
-  ProtocolWrite       m_write;
 };
 
 inline void
@@ -144,18 +144,18 @@ PeerConnectionBase::remove_write_throttle() {
 
 inline bool
 PeerConnectionBase::read_remaining() {
-  m_read.get_buffer().move_position(read_buf(m_read.get_buffer().position(),
-					     m_read.get_buffer().remaining()));
+  m_read->get_buffer().move_position(read_buf(m_read->get_buffer().position(),
+					      m_read->get_buffer().remaining()));
 
-  return !m_read.get_buffer().remaining();
+  return !m_read->get_buffer().remaining();
 }
 
 inline bool
 PeerConnectionBase::write_remaining() {
-  m_write.get_buffer().move_position(write_buf(m_write.get_buffer().position(),
-					       m_write.get_buffer().remaining()));
+  m_write->get_buffer().move_position(write_buf(m_write->get_buffer().position(),
+						m_write->get_buffer().remaining()));
 
-  return !m_write.get_buffer().remaining();
+  return !m_write->get_buffer().remaining();
 }
 
 }

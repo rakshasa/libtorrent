@@ -21,6 +21,7 @@ libsub_utils_la_SOURCES = \
 	throttle_control.h \
 	throttle_list.h \
 	throttle_node.h \
-	timer.h
+	timer.h \
+	unordered_vector.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
