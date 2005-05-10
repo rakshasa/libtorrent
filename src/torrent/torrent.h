@@ -50,7 +50,8 @@ void      listen_close();
 // fd_set's must be valid pointers.
 void      mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
 
-// Do work on the polled file descriptors.
+// Do work on the polled file descriptors. Make sure this is called
+// every time TIME_SELECT timeout has passed.
 void      work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
 
 // Will always return a valid Download. On errors it throws.

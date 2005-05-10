@@ -116,6 +116,8 @@ Make a base class for PeerConnection, move read/write_remaining etc.
 
 Add buffer read of piece.
 
+Fix tracker so it checks regulary when too few peers are connected.
+
 
 RELEASE:
 

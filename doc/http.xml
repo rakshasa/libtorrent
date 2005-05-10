@@ -48,6 +48,26 @@ http handler must not change any of the flags on the stream.
 </section>
 
 
+<section id="start"><title>Start</title>
+
+<para>
+Http::start is called by the library when it wishes to initiate a http
+download. Your Http derived class must implement this function. It
+must be non-blocking and thread-safe. This means that if a seperate
+thread is used for downloading then it must not emit any signal while
+the main thread is inside the library.
+</para>
+
+
+<section id="close"><title>close</title>
+
+<para>
+Http::close is used bu the library to stop and close a download. No
+signals may be emited after this. Http::m_data should not be
+cleared. The library may clear the Http::m_data pointer after this.
+</para>
+
+
 <section id="signals"><title>Signals</title>
 
 <para>
@@ -58,6 +78,7 @@ the complete data. Or if the download was unsuccessful for some
 reason, then torrent::Http::m_signalFailed is called with an error
 message.
 </para>
+
 
 </section>
 

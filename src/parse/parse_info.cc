@@ -33,38 +33,44 @@ using namespace algo;
 
 namespace torrent {
 
-#define MAX_FILE_LENGTH ((int64_t)1 << 35)
+#define MAX_FILE_LENGTH ((int64_t)1 << 45)
 
 struct bencode_to_file {
   bencode_to_file(Content& c) : m_content(c) {}
 
   void operator () (const Bencode& b) {
-    // Make sure we are given a proper file path.
-    if (b["path"].as_list().empty() ||
+    int64_t length = b["length"].as_value();
+    const Bencode::List& plist = b["path"].as_list();
 
-	std::find_if(b["path"].as_list().begin(),
-		     b["path"].as_list().end(),
+    // Make sure we are given a proper file path.
+    if (plist.empty())
+      throw input_error("Bad torrent file, \"path\" has zero entries");
+
+    // Ignore entries with empty filename with file size 0, some
+    // torrent makers are being stupid.
+    if (plist.back().as_string().empty() && length == 0)
+      return;
+
+    if (std::find_if(plist.begin(), plist.end(),
 
 		     eq(call_member(&Bencode::c_string),
 			value("")))
 
-	!= b["path"].as_list().end())
+	!= plist.end())
       throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
 
-    if (b["length"].as_value() < 0 ||
-	b["length"].as_value() > MAX_FILE_LENGTH)
+    if (length < 0 || length > MAX_FILE_LENGTH)
       throw input_error("Bad torrent file, invalid length for file given");
 
     Path p;
 
-    std::for_each(b["path"].as_list().begin(),
-		  b["path"].as_list().end(),
+    std::for_each(plist.begin(), plist.end(),
 		  
 		  call_member(call_member(ref(p), &Path::list),
 			      &Path::List::push_back,
 			      call_member(&Bencode::c_string)));
 
-    m_content.add_file(p, b["length"].as_value());
+    m_content.add_file(p, length);
   }
 
   Content& m_content;
