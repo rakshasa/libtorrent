@@ -24,66 +24,47 @@
 
 #include <errno.h>
 #include <sys/stat.h>
-#include <algo/algo.h>
 
 #include "torrent/exceptions.h"
 #include "path.h"
 
-using namespace algo;
-
 namespace torrent {
 
-Path::Path(const std::string& p, bool literal) {
-  if (literal) {
-    m_list.push_back(p);
+void
+Path::insert_path(iterator pos, const std::string& path) {
+  std::string::const_iterator first = path.begin();
+  std::string::const_iterator last;
 
-  } else {
+  while (first != path.end()) {
+    pos = insert(pos, std::string(first, (last = std::find(first, path.end(), '/'))));
 
-    std::string::size_type cur, last = 0;
+    if (last == path.end())
+      return;
 
-    do {
-      m_list.push_back(p.substr(last, (cur = p.find('/', last))));
-
-    } while ((last = cur) != std::string::npos);
+    first = last;
+    first++;
   }
 }
 
 std::string
-Path::path(bool escaped) {
-  std::string p;
+Path::as_string() {
+  if (empty())
+    return std::string();
 
-  if (m_list.empty())
-    return p;
+  std::string s;
 
-  if (escaped)
-    std::for_each(m_list.begin(), m_list.end(),
-		  add_ref(p, add(value("/"), call(&Path::escape, back_as_ref()))));
-  else
-    std::for_each(m_list.begin(), m_list.end(),
-		  add_ref(p, add(value("/"), back_as_ref())));
-
-  return p;
-}
-
-std::string
-Path::escape(const std::string& s) {
-  std::string d;
-
-  for (std::string::const_iterator itr = s.begin(); itr != s.end(); ++itr) {
-    if (*itr == '/' ||
-	*itr == '\\')
-      d.push_back('\\');
-
-    d.push_back(*itr);
+  for (iterator itr = begin(); itr != end(); ++itr) {
+    s += '/';
+    s += *itr;
   }
 
-  return d;
+  return s;
 }
 
 void
 Path::mkdir(const std::string& root,
-	    List::const_iterator pathBegin, List::const_iterator pathEnd,
-	    List::const_iterator ignoreBegin, List::const_iterator ignoreEnd,
+	    Base::const_iterator pathBegin, Base::const_iterator pathEnd,
+	    Base::const_iterator ignoreBegin, Base::const_iterator ignoreEnd,
 	    unsigned int umask) {
 
   std::string p = root;

@@ -28,31 +28,61 @@
 
 namespace torrent {
 
-// Tip of the century, use a blank first path to get root and "." to get current dir.
+// Use a blank first path to get root and "." to get current dir.
 
-class Path {
+// Consider using std::vector.
+
+class Path : private std::list<std::string> {
 public:
-  typedef std::list<std::string> List;
+  typedef std::list<std::string> Base;
+
+  typedef Base::value_type value_type;
+  typedef Base::pointer pointer;
+  typedef Base::const_pointer const_pointer;
+  typedef Base::reference reference;
+  typedef Base::const_reference const_reference;
+  typedef Base::size_type size_type;
+  typedef Base::difference_type difference_type;
+  typedef Base::allocator_type allocator_type;
+
+  typedef Base::iterator iterator;
+  typedef Base::reverse_iterator reverse_iterator;
+  typedef Base::const_iterator const_iterator;
+  typedef Base::const_reverse_iterator const_reverse_iterator;
+
+  using Base::clear;
+  using Base::empty;
+  using Base::size;
+  //using Base::reserve;
+
+  using Base::front;
+  using Base::back;
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
+
+  using Base::push_front;
+  using Base::push_back;
 
   Path() {}
-  Path(const std::string& p, bool literal = false);
-  Path(const List& l) : m_list(l) {}
+  Path(const std::string& path) { insert_path(end(), path); }
 
-  List&              list() { return m_list; }
+  void               insert_path(iterator pos, const std::string& path);
 
-  std::string        path(bool escaped = true);
+  // Return the path as a string with '/' deliminator. The deliminator
+  // is only inserted between path elements.
+  std::string        as_string();
 
-  static std::string escape(const std::string& s);
+  Base&              get_base()           { return *this; }
 
+  // Somewhere else...
   static void        mkdir(const std::string& root,
-			   List::const_iterator pathBegin, List::const_iterator pathEnd,
-			   List::const_iterator ignoreBegin, List::const_iterator ignoreEnd,
+			   Base::const_iterator pathBegin, Base::const_iterator pathEnd,
+			   Base::const_iterator ignoreBegin, Base::const_iterator ignoreEnd,
 			   unsigned int umask = 0777);
   
   static void        mkdir(const std::string& dir, unsigned int umask = 0777);
-
-private:
-  List m_list;
 };
 
 }

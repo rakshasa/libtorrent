@@ -52,11 +52,7 @@ struct bencode_to_file {
       return;
 
     if (std::find_if(plist.begin(), plist.end(),
-
-		     eq(call_member(&Bencode::c_string),
-			value("")))
-
-	!= plist.end())
+		     std::ptr_fun(&bencode_to_file::is_invalid_path_element)) != plist.end())
       throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
 
     if (length < 0 || length > MAX_FILE_LENGTH)
@@ -64,14 +60,24 @@ struct bencode_to_file {
 
     Path p;
 
-    std::for_each(plist.begin(), plist.end(),
-		  
-		  call_member(call_member(ref(p), &Path::list),
-			      &Path::List::push_back,
-			      call_member(&Bencode::c_string)));
+    std::transform(plist.begin(), plist.end(), std::back_inserter(p),
+		   std::mem_fun_ref(&Bencode::c_string));
 
     m_content.add_file(p, length);
   }
+
+  static bool is_valid_path_element(const Bencode& b) {
+    return
+      b.is_string() &&
+      !b.as_string().empty() &&
+      b.as_string() != "." &&
+      b.as_string() != ".." &&
+      std::find(b.as_string().begin(), b.as_string().end(), '/') == b.as_string().end();
+  }
+
+  static bool is_invalid_path_element(const Bencode& b) { return !is_valid_path_element(b); }
+
+//   static void add_path_element(Path& p, const Bencode& b) {
 
   Content& m_content;
 };
@@ -86,7 +92,7 @@ void parse_info(const Bencode& b, Content& c) {
 
   if (b.has_key("length")) {
     // Single file torrent
-    c.add_file(Path(b["name"].as_string(), true), b["length"].as_value());
+    c.add_file(Path(b["name"].as_string()), b["length"].as_value());
 
   } else if (b.has_key("files")) {
     // Multi file torrent

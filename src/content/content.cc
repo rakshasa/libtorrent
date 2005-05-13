@@ -232,17 +232,17 @@ Content::update_done() {
 
 void
 Content::open_file(FileMeta* f, Path& p, Path& lastPath) {
-  if (p.list().empty())
+  if (p.empty())
     throw internal_error("Tried to open file with empty path");
 
-  Path::mkdir(m_rootDir, p.list().begin(), --p.list().end(),
-	      lastPath.list().begin(), lastPath.list().end());
+  Path::mkdir(m_rootDir, p.begin(), --p.end(),
+	      lastPath.begin(), lastPath.end());
 
-  if (!f->get_file().open(m_rootDir + p.path(), MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) &&
-      !f->get_file().open(m_rootDir + p.path(), MemoryChunk::prot_read, File::o_create))
-    throw storage_error("Could not open file \"" + m_rootDir + p.path() + "\"");
+  if (!f->get_file().open(m_rootDir + p.as_string(), MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) &&
+      !f->get_file().open(m_rootDir + p.as_string(), MemoryChunk::prot_read, File::o_create))
+    throw storage_error("Could not open file \"" + m_rootDir + p.as_string() + "\"");
 
-  f->set_path(m_rootDir + p.path());
+  f->set_path(m_rootDir + p.as_string());
 }
 
 }

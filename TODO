@@ -94,6 +94,8 @@ disallow for open torrents?
 
 CURRENT:
 
+Move mkdir stuff out of Path?
+
 Cleanup HashQueue, seperate out nodes etc.
 * Make it a private list.
 * Don't pass Chunk in SlotDone.

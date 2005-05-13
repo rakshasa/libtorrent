@@ -35,8 +35,8 @@ struct poll_check_t {
   poll_check_t(fd_set* s, _Operation op) : m_set(s), m_op(op) {}
 
   void operator () (SocketBase* s) {
-    if (s == NULL)
-      throw internal_error("poll_mark: s == NULL");
+//     if (s == NULL)
+//       throw internal_error("poll_mark: s == NULL");
 
     if (FD_ISSET(s->get_fd().get_fd(), m_set))
       m_op(s);
@@ -56,8 +56,8 @@ struct poll_mark {
   poll_mark(fd_set* s, int* m) : m_max(m), m_set(s) {}
 
   void operator () (SocketBase* s) {
-    if (s == NULL)
-      throw internal_error("poll_mark: s == NULL");
+//     if (s == NULL)
+//       throw internal_error("poll_mark: s == NULL");
 
     *m_max = std::max(*m_max, s->get_fd().get_fd());
 

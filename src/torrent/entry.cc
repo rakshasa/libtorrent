@@ -56,12 +56,12 @@ Entry::get_priority() {
 // Relative to root of torrent.
 std::string
 Entry::get_path() {
-  return m_entry->get_path().path(false);
+  return m_entry->get_path().as_string();
 }
 
 const Entry::Path&
 Entry::get_path_list() {
-  return m_entry->get_path().list();
+  return m_entry->get_path().get_base();
 }
 
 void
@@ -69,7 +69,7 @@ Entry::set_path_list(const Path& l) {
   if (l.empty())
     throw client_error("Tried to set empty path list for Entry");
 
-  m_entry->get_path().list() = l;
+  m_entry->get_path().get_base() = l;
 }
 
 void
