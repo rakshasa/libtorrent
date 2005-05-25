@@ -92,6 +92,14 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
+BUGS:
+
+SigPipe, make a signal handler that dumps stack.
+
+Check if CXXFLAGS is set.
+
+Snubing seems borked... why?
+
 CURRENT:
 
 Move mkdir stuff out of Path?
@@ -101,6 +109,8 @@ Cleanup HashQueue, seperate out nodes etc.
 * Don't pass Chunk in SlotDone.
 
 Make HashChunk::remaining inline.
+
+SocketManager must be enabled.
 
 
 NEXT:
@@ -137,3 +147,27 @@ Rename poll.h.
 CLEANUP:
 
 ref_anchored... urgh...
+
+
+FIFO QUEUE:
+
+#CXXFLAGS
+
+signal(SIGPIPE, SIG_IGN);
+
+Bind socket
+bind different local ip in rtorrent
+
+segfault when starting with the -s option - 1400 anonymous calls.
+rtorrent -s /tmp -p 11080-11090 a.torrent b.torrent
+
+Program received signal SIGABRT, Aborted.
+
+Hash checking queue in client must support deleting of torrents.
+
+Caught exception: "Connection read fd(51) state(5) "Peerconnection::read()
+tried to read a piece but is not in throttle list""
+
+display bug - end of filelist
+
+reenable checks in SocketSet, ponder the possibility it can overflow.

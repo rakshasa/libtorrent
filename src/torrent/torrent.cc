@@ -135,8 +135,15 @@ listen_open(uint16_t begin, uint16_t end, const std::string& addr) {
   if (listen == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
-  if (!listen->open(begin, end, addr))
+  SocketAddress sa;
+
+  if (!addr.empty() && !sa.set_address(addr))
+    throw local_error("Could not parse the ip address to bind");
+
+  if (!listen->open(begin, end, sa))
     return false;
+
+  handshakes->set_bind_address(sa);
 
   std::for_each(downloadManager->get_list().begin(), downloadManager->get_list().end(),
 		call_member(call_member(&DownloadWrapper::get_main),

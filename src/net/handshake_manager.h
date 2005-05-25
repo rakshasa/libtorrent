@@ -28,19 +28,19 @@
 #include <inttypes.h>
 #include <sigc++/slot.h>
 
+#include "socket_address.h"
 #include "socket_fd.h"
 
 namespace torrent {
 
 class PeerInfo;
 class Handshake;
-class SocketAddress;
 
 class HandshakeManager {
 public:
   typedef std::list<Handshake*> HandshakeList;
 
-  HandshakeManager() : m_size(0) {}
+  HandshakeManager() : m_size(0) { m_bindAddress.set_address_any(); }
   ~HandshakeManager() { clear(); }
 
   void                add_incoming(int fd,
@@ -55,6 +55,8 @@ public:
 
   uint32_t            get_size()                               { return m_size; }
   uint32_t            get_size_hash(const std::string& hash);
+
+  void                set_bind_address(const SocketAddress& sa) { m_bindAddress = sa; }
 
   bool                has_peer(const PeerInfo& p);
 
@@ -76,13 +78,15 @@ private:
 
   void                remove(Handshake* h);
 
-  static SocketFd     make_socket(SocketAddress& sa);
+  SocketFd            make_socket(SocketAddress& sa);
 
   HandshakeList       m_handshakes;
   uint32_t            m_size;
 
   SlotConnected       m_slotConnected;
   SlotDownloadId      m_slotDownloadId;
+
+  SocketAddress       m_bindAddress;
 };
 
 }

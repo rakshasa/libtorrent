@@ -38,16 +38,11 @@
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, const std::string& addr) {
+Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
   close();
 
   if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range");
-
-  SocketAddress sa;
-
-  if (!sa.set_address(addr))
-    throw local_error("Could not parse the ip to bind the listening socket to");
 
   if (!m_fd.open() || !m_fd.set_nonblock())
     throw local_error("Could not allocate socket for listening");

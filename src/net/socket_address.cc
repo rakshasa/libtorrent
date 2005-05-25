@@ -25,7 +25,6 @@
 #include <numeric>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
 
 #include "torrent/exceptions.h"
 #include "socket_address.h"

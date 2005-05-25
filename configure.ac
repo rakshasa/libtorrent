@@ -24,27 +24,9 @@ sinclude(scripts/checks.m4)
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
 
-AC_ARG_ENABLE(debug,
-    [  --enable-debug          enable debug information [default=yes]],
-    [
-        if test "$enableval" = "yes"; then
-            CXXFLAGS="$CXXFLAGS -O3 -Wall -g -DDEBUG"
-        else
-            CXXFLAGS="$CXXFLAGS -O3 -Wall -DNDEBUG"
-        fi
-    ],[
-        CXXFLAGS="$CXXFLAGS -O3 -Wall -g -DDEBUG"
-    ]
-)
-
-AC_ARG_ENABLE(werror,
-    [  --enable-werror         enable the -Werror flag [default=no]],
-    [
-        if test "$enableval" = "yes"; then
-            CXXFLAGS="$CXXFLAGS -Werror"
-        fi
-    ]
-)
+TORRENT_CHECK_CXXFLAGS
+TORRENT_ENABLE_DEBUG
+TORRENT_ENABLE_WERROR
 
 AC_PROG_CXX
 AC_SYS_LARGEFILE

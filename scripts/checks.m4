@@ -1,3 +1,44 @@
+AC_DEFUN([TORRENT_CHECK_CXXFLAGS], [
+
+  AC_MSG_CHECKING([for user-defined CXXFLAGS])
+
+  if test !$CXXFLAGS; then
+    CXXFLAGS="-O3 -Wall"
+    AC_MSG_RESULT([default "$CXXFLAGS"])
+  else
+    AC_MSG_RESULT([user-defined "$CXXFLAGS"])
+  fi
+])
+
+
+AC_DEFUN([TORRENT_ENABLE_DEBUG], [
+
+  AC_ARG_ENABLE(debug,
+    [  --enable-debug          enable debug information [default=yes]],
+    [
+        if test "$enableval" = "yes"; then
+            CXXFLAGS="$CXXFLAGS -g -DDEBUG"
+        else
+            CXXFLAGS="$CXXFLAGS -DNDEBUG"
+        fi
+    ],[
+        CXXFLAGS="$CXXFLAGS -g -DDEBUG"
+  ])
+])
+
+
+AC_DEFUN([TORRENT_ENABLE_WERROR], [
+
+  AC_ARG_ENABLE(werror,
+    [  --enable-werror         enable the -Werror flag [default=no]],
+    [
+        if test "$enableval" = "yes"; then
+            CXXFLAGS="$CXXFLAGS -Werror"
+        fi
+  ])
+])
+
+
 AC_DEFUN([TORRENT_CHECK_CURL], [
 
   AC_CACHE_VAL(my_cv_curl_vers, [

@@ -38,6 +38,8 @@ public:
   SocketAddress();
   explicit SocketAddress(const sockaddr_in& sa);
 
+  bool                is_address_any() const                  { return m_sockaddr.sin_addr.s_addr == htonl(INADDR_ANY); }
+
   size_t              get_sizeof() const                      { return sizeof(sockaddr_in); }
 
   sockaddr&           get_addr()                              { return (sockaddr&)m_sockaddr; }
@@ -54,6 +56,8 @@ public:
   std::string         get_address() const;
   bool                set_address(const std::string& addr);
 
+  void                set_address_any()                       { m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY); }
+
   // Uses set_address, so only ip addresses and empty strings are allowed.
   bool                create(const std::string& addr, int port);
 
@@ -64,6 +68,7 @@ private:
 inline SocketAddress::SocketAddress() {
   std::memset(&m_sockaddr, 0, sizeof(sockaddr_in));
   m_sockaddr.sin_family = AF_INET;
+  set_address_any();
 }
 
 inline SocketAddress::SocketAddress(const sockaddr_in& sa) {

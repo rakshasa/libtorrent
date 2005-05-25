@@ -1,0 +1,13 @@
+Just some personal notes on what needs to be done when making a
+release.
+
+* Download a couple torrents using Valgrind.
+
+* Check both client and library version number.
+* Commit any changes.
+* Package releases.
+* Upload to host.
+
+* Download, compile and test.
+* Tag the release in SVN.
+* Update frontpage, send mail to the ML, update ChangeLog page.

@@ -30,6 +30,8 @@
 
 namespace torrent {
 
+class SocketAddress;
+
 class Listen : public SocketBase {
 public:
   typedef sigc::slot3<void, int, std::string, uint16_t> SlotIncoming;
@@ -37,7 +39,7 @@ public:
   Listen() : SocketBase(-1), m_port(0) {}
   ~Listen() { close(); }
 
-  bool            open(uint16_t first, uint16_t last, const std::string& addr);
+  bool            open(uint16_t first, uint16_t last, SocketAddress sa);
   void            close();
 
   bool            is_open()                            { return m_fd.is_valid(); }

@@ -119,7 +119,11 @@ HandshakeManager::make_socket(SocketAddress& sa) {
   if (!fd.open())
     return SocketFd();
 
-  if (!fd.set_nonblock() || !fd.connect(sa)) {
+  if (!fd.set_nonblock() ||
+      //(!m_bindAddress.is_address_any() && !fd.bind(m_bindAddress)) ||
+      !fd.connect(sa)) {
+    //throw internal_error(fd.get_error());
+    
     fd.close();
     return SocketFd();
   }
