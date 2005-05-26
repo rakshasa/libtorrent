@@ -47,7 +47,7 @@ public:
   void                start();
   void                stop();
 
-  bool                is_checking()                 { return m_outstanding; }
+  bool                is_checking()                 { return m_outstanding >= 0; }
 
   Ranges&             get_ranges()                  { return m_ranges; }
 
@@ -65,7 +65,7 @@ private:
   std::string         m_id;
   
   unsigned int        m_position;
-  unsigned int        m_outstanding;
+  int                 m_outstanding;
   Ranges              m_ranges;
 
   Storage*            m_storage;

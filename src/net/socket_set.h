@@ -31,8 +31,9 @@
 
 namespace torrent {
 
-// Note that this class assume we don't overflow SocketSet::Index,
-// which is in this case 2^15.
+// SocketSet's Base is a vector of active SocketBase
+// instances. 'm_table' is a vector with the size 'openMax', each
+// element of which points to an active instance in the Base vector.
 
 class SocketSet : private std::vector<SocketBase*> {
 public:
@@ -62,7 +63,7 @@ public:
   // Remove all erased elements from the container.
   void                prepare();
 
-  void                reserve(size_t base, size_t openMax);
+  void                reserve(size_t openMax)                { m_table.resize(openMax, -1); }
 
 private:
   Index&              _index(SocketBase* s)                  { return m_table[s->get_fd().get_fd()]; }
@@ -85,8 +86,9 @@ SocketSet::find(SocketBase* s) {
 
 inline void
 SocketSet::insert(SocketBase* s) {
-  if (s->get_fd().get_fd() < 0)
-    throw internal_error("Tried to insert a negative file descriptor from SocketSet");
+  if (s->get_fd().get_fd() < 0 ||
+      s->get_fd().get_fd() >= (int)m_table.size())
+    throw internal_error("Tried to insert an out-of-bounds file descriptor to SocketSet");
 
   if (_index(s) >= 0)
     return;
@@ -97,8 +99,9 @@ SocketSet::insert(SocketBase* s) {
 
 inline void
 SocketSet::erase(SocketBase* s) {
-  if (s->get_fd().get_fd() < 0)
-    throw internal_error("Tried to erase a negative file descriptor from SocketSet");
+  if (s->get_fd().get_fd() < 0 ||
+      s->get_fd().get_fd() >= (int)m_table.size())
+    throw internal_error("Tried to erase an out-of-bounds file descriptor from SocketSet");
 
   Index idx = _index(s);
 
@@ -109,12 +112,6 @@ SocketSet::erase(SocketBase* s) {
 
   *(begin() + idx) = NULL;
   m_erased.push_back(idx);
-}
-
-inline void
-SocketSet::reserve(size_t base, size_t openMax) {
-  Base::reserve(base);
-  m_table.resize(openMax, -1);
 }
 
 }

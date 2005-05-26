@@ -32,9 +32,9 @@ SocketSet Poll::m_exceptSet;
 
 void
 Poll::set_open_max(int s) {
-  m_readSet.reserve(s, s);
-  m_writeSet.reserve(s, s);
-  m_exceptSet.reserve(s, s);
+  m_readSet.reserve(s);
+  m_writeSet.reserve(s);
+  m_exceptSet.reserve(s);
 }
 
 }

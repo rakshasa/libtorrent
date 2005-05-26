@@ -36,7 +36,7 @@ namespace torrent {
 HashTorrent::HashTorrent(const std::string& id, Storage* s) :
   m_id(id),
   m_position(0),
-  m_outstanding(0),
+  m_outstanding(-1),
   m_storage(s),
   m_queue(NULL) {
 }
@@ -49,6 +49,7 @@ HashTorrent::start() {
   if (is_checking() || m_position == m_storage->get_chunk_total())
     return;
 
+  m_outstanding = 0;
   queue();
 }
 
@@ -56,7 +57,7 @@ void
 HashTorrent::stop() {
   // TODO: Don't allow stops atm, just clean up.
   m_queue->remove(m_id);
-  m_outstanding = 0;
+  m_outstanding = -1;
 }
   
 void
@@ -78,10 +79,12 @@ HashTorrent::queue() {
     // Not very efficient, but this is seldomly done.
     Ranges::iterator itr = m_ranges.find(m_position);
 
-    if (itr == m_ranges.end())
+    if (itr == m_ranges.end()) {
+      m_position = m_storage->get_chunk_total();
       break;
-    else if (m_position < itr->first)
+    } else if (m_position < itr->first) {
       m_position = itr->first;
+    }
 
     Chunk c = m_storage->get_chunk(m_position++, MemoryChunk::prot_read);
 
@@ -92,8 +95,10 @@ HashTorrent::queue() {
     m_outstanding++;
   }
 
-  if (!m_outstanding)
+  if (m_outstanding == 0) {
+    m_outstanding = -1;
     m_signalTorrent();
+  }
 }
 
 }

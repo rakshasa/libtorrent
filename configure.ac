@@ -20,6 +20,7 @@ AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 
 sinclude(scripts/checks.m4)
+sinclude(scripts/common.m4)
 
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL

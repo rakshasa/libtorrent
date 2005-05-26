@@ -151,23 +151,19 @@ ref_anchored... urgh...
 
 FIFO QUEUE:
 
-#CXXFLAGS
-
-signal(SIGPIPE, SIG_IGN);
-
-Bind socket
-bind different local ip in rtorrent
+# reenable checks in SocketSet, ponder the possibility it can overflow.
 
 segfault when starting with the -s option - 1400 anonymous calls.
 rtorrent -s /tmp -p 11080-11090 a.torrent b.torrent
 
-Program received signal SIGABRT, Aborted.
+Propably because of hash torrent immidiately signaling.
 
-Hash checking queue in client must support deleting of torrents.
+
+Bind socket
+bind different local ip in rtorrent
+is bind connected?
+
+Program received signal SIGABRT, Aborted. ( See mail May-25)
 
 Caught exception: "Connection read fd(51) state(5) "Peerconnection::read()
 tried to read a piece but is not in throttle list""
-
-display bug - end of filelist
-
-reenable checks in SocketSet, ponder the possibility it can overflow.
