@@ -265,6 +265,7 @@ void PeerConnection::read() {
 
     if (m_read->get_buffer().peek8() == ProtocolBase::PIECE) {
       m_read->get_buffer().read8();
+      insert_read_throttle();
       receive_piece_header(m_read->read_piece());
 
     } else {
@@ -325,6 +326,7 @@ void PeerConnection::read() {
       m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
 
     // TODO: clear m_down.data?
+    // TODO: remove throttle if choked? Rarely happens though.
 
     Poll::write_set().insert(this);
 
@@ -519,7 +521,8 @@ void PeerConnection::parseReadBuf() {
     m_read->set_choked(false);
     m_tryRequest = true;
     
-    insert_read_throttle();
+    // We're inserting in read throttle when we receive a piece.
+    //insert_read_throttle();
 
     return Poll::write_set().insert(this);
 
@@ -666,7 +669,8 @@ void PeerConnection::sendHave(int index) {
       m_write->set_interested(false);
     }
 
-  } else if (m_write->get_interested() && !m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
+  } else if (m_write->get_interested() &&
+	     !m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
     // TODO: Optimize?
     m_sendInterested = true;
     m_write->set_interested(false);
