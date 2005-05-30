@@ -94,11 +94,8 @@ disallow for open torrents?
 
 BUGS:
 
-SigPipe, make a signal handler that dumps stack.
-
-Check if CXXFLAGS is set.
-
 Snubing seems borked... why?
+
 
 CURRENT:
 
@@ -151,20 +148,5 @@ ref_anchored... urgh...
 
 FIFO QUEUE:
 
-# segfault when starting with the -s option - 1400 anonymous calls.
-# rtorrent -s /tmp -p 11080-11090 a.torrent b.torrent
-# Propably because of hash torrent immidiately signaling.
-
-
-Bind socket
-bind different local ip in rtorrent
-is bind connected?
-
 Program received signal SIGABRT, Aborted. ( See mail May-25)
-*Propably solved*
-
-
-# Caught exception: "Connection read fd(51) state(5) "Peerconnection::read()
-# tried to read a piece but is not in throttle list""
-
-# We don't ensure that the peer has unchoked us when reading a piece.
+?Propably solved?

@@ -120,7 +120,7 @@ HandshakeManager::make_socket(SocketAddress& sa) {
     return SocketFd();
 
   if (!fd.set_nonblock() ||
-      //(!m_bindAddress.is_address_any() && !fd.bind(m_bindAddress)) ||
+      (!m_bindAddress.is_address_any() && !fd.bind(m_bindAddress)) ||
       !fd.connect(sa)) {
     //throw internal_error(fd.get_error());
     

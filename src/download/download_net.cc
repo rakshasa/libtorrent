@@ -100,10 +100,6 @@ DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
   if (c == NULL)
     throw internal_error("DownloadNet::add_connection(...) received a NULL pointer from m_slotCreateConnection");
 
-//   c->throttle().set_parent(&ThrottleControl::global().root());
-//   c->throttle().set_settings(ThrottleControl::global().settings(ThrottleControl::SETTINGS_PEER));
-//   c->throttle().set_socket(c);
-
   m_connections.push_back(c);
 
   PeerContainer::iterator itr = std::find(m_availablePeers.begin(), m_availablePeers.end(), p);
