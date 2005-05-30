@@ -37,10 +37,11 @@ namespace torrent {
 
 class SocketSet : private std::vector<SocketBase*> {
 public:
-
-  typedef int32_t                  Index;
+  typedef uint32_t                 size_type;
   typedef std::vector<SocketBase*> Base;
-  typedef std::vector<Index>       Table;
+  typedef std::vector<size_type>   Table;
+
+  static const size_type npos = static_cast<size_type>(-1);
 
   using Base::value_type;
 
@@ -54,7 +55,7 @@ public:
   using Base::rbegin;
   using Base::rend;
 
-  bool                has(SocketBase* s) const               { return _index(s) >= 0; }
+  bool                has(SocketBase* s) const               { return _index(s) != npos; }
 
   iterator            find(SocketBase* s);
   void                insert(SocketBase* s);
@@ -62,14 +63,14 @@ public:
 
   // Remove all erased elements from the container.
   void                prepare();
-
-  void                reserve(size_t openMax)                { m_table.resize(openMax, -1); }
+  // Allocate storage for fd's with up to 'openMax' value. TODO: Remove reserve
+  void                reserve(size_t openMax)                { m_table.resize(openMax, npos); Base::reserve(openMax); }
 
 private:
-  Index&              _index(SocketBase* s)                  { return m_table[s->get_fd().get_fd()]; }
-  const Index&        _index(SocketBase* s) const            { return m_table[s->get_fd().get_fd()]; }
+  size_type&          _index(SocketBase* s)                  { return m_table[s->get_fd().get_fd()]; }
+  const size_type&    _index(SocketBase* s) const            { return m_table[s->get_fd().get_fd()]; }
 
-  inline void         _replace_with_last(Index idx);
+  inline void         _replace_with_last(size_type idx);
 
   // TODO: Table of indexes or iterators?
   Table               m_table;
@@ -78,7 +79,7 @@ private:
 
 inline SocketSet::iterator
 SocketSet::find(SocketBase* s) {
-  if (_index(s) < 0)
+  if (_index(s) == npos)
     return end();
 
   return begin() + _index(s);
@@ -86,11 +87,10 @@ SocketSet::find(SocketBase* s) {
 
 inline void
 SocketSet::insert(SocketBase* s) {
-  if (s->get_fd().get_fd() < 0 ||
-      s->get_fd().get_fd() >= (int)m_table.size())
+  if (static_cast<size_type>(s->get_fd().get_fd()) >= m_table.size())
     throw internal_error("Tried to insert an out-of-bounds file descriptor to SocketSet");
 
-  if (_index(s) >= 0)
+  if (_index(s) != npos)
     return;
   
   _index(s) = size();
@@ -99,16 +99,15 @@ SocketSet::insert(SocketBase* s) {
 
 inline void
 SocketSet::erase(SocketBase* s) {
-  if (s->get_fd().get_fd() < 0 ||
-      s->get_fd().get_fd() >= (int)m_table.size())
+  if (static_cast<size_type>(s->get_fd().get_fd()) >= m_table.size())
     throw internal_error("Tried to erase an out-of-bounds file descriptor from SocketSet");
 
-  Index idx = _index(s);
+  size_type idx = _index(s);
 
-  if (idx < 0)
+  if (idx == npos)
     return;
 
-  _index(s) = -1;
+  _index(s) = npos;
 
   *(begin() + idx) = NULL;
   m_erased.push_back(idx);

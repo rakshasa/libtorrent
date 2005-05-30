@@ -101,12 +101,8 @@ File::get_chunk(off_t offset, uint32_t length, int prot, int flags) const {
     throw internal_error("File::get_chunk() called on a closed file");
 
   if (((prot & MemoryChunk::prot_read) && !is_readable()) ||
-      ((prot & MemoryChunk::prot_write) && !is_writable())) {
-    int buf = get_size();
-
-    throw internal_error(std::string((char*)buf, 4));
-    //    throw internal_error("File::get_chunk() permission denied");
-  }
+      ((prot & MemoryChunk::prot_write) && !is_writable()))
+    throw storage_error("File::get_chunk() permission denied");
 
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.

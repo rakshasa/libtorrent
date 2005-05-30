@@ -29,20 +29,17 @@
 
 namespace torrent {
 
-void
-SocketSet::prepare() {
-  std::for_each(m_erased.begin(), m_erased.end(),
-		std::bind1st(std::mem_fun(&SocketSet::_replace_with_last), this));
-
-  m_erased.clear();
-}
+const SocketSet::size_type SocketSet::npos;
 
 inline void
-SocketSet::_replace_with_last(Index idx) {
+SocketSet::_replace_with_last(size_type idx) {
   while (!Base::empty() && Base::back() == NULL)
     Base::pop_back();
 
-  if ((size_t)idx >= size())
+  if (idx >= m_table.size())
+    throw internal_error("SocketSet::_replace_with_last(...) input out-of-bounds");
+
+  if (idx >= size())
     return;
 
   *(begin() + idx) = Base::back();
@@ -51,4 +48,11 @@ SocketSet::_replace_with_last(Index idx) {
   Base::pop_back();
 }
 
+void
+SocketSet::prepare() {
+  std::for_each(m_erased.begin(), m_erased.end(),
+		std::bind1st(std::mem_fun(&SocketSet::_replace_with_last), this));
+
+  m_erased.clear();
+}
 }

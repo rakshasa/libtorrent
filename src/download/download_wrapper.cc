@@ -25,7 +25,6 @@
 #include <sigc++/bind.h>
 
 #include "torrent/exceptions.h"
-#include "data/hash_torrent.h"
 #include "data/hash_queue.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
@@ -34,12 +33,6 @@
 #include "download_wrapper.h"
 
 namespace torrent {
-
-DownloadWrapper::DownloadWrapper() {
-}
-
-DownloadWrapper::~DownloadWrapper() {
-}
 
 void
 DownloadWrapper::initialize(const std::string& hash, const std::string& id) {

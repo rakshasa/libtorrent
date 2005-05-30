@@ -25,6 +25,7 @@
 
 #include <memory>
 
+#include "data/hash_torrent.h"
 #include "torrent/bencode.h"
 #include "download_main.h"
 
@@ -32,14 +33,12 @@ namespace torrent {
 
 // Remember to clean up the pointers, DownloadWrapper won't do it.
 
-class HashTorrent;
 class HashQueue;
 class HandshakeManager;
 
 class DownloadWrapper {
 public:
-  DownloadWrapper();
-  ~DownloadWrapper();
+  DownloadWrapper() {}
 
   // Initialize hash checker and various download stuff.
   void                initialize(const std::string& hash, const std::string& id);

@@ -164,7 +164,7 @@ Program received signal SIGABRT, Aborted. ( See mail May-25)
 *Propably solved*
 
 
-Caught exception: "Connection read fd(51) state(5) "Peerconnection::read()
-tried to read a piece but is not in throttle list""
+# Caught exception: "Connection read fd(51) state(5) "Peerconnection::read()
+# tried to read a piece but is not in throttle list""
 
-We don't ensure that the peer has unchoked us when reading a piece.
+# We don't ensure that the peer has unchoked us when reading a piece.
