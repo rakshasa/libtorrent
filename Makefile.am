@@ -6,6 +6,7 @@ pkgconfig_DATA = libtorrent.pc
 EXTRA_DIST= \
 	autogen.sh \
 	scripts/checks.m4 \
+	scripts/common.m4 \
 	algo/algo.h \
 	algo/common.h \
 	algo/common_impl.h \
@@ -19,4 +20,7 @@ EXTRA_DIST= \
 	algo/ref_anchored.h \
 	doc/main.xml \
 	doc/http.xml \
-	doc/torrent.xml
+	doc/torrent.xml \
+        rak/algorithm.h \
+        rak/functional.h
+

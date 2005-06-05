@@ -23,7 +23,7 @@
 #include "config.h"
 
 #include <inttypes.h>
-#include <algo/algo.h>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "content/delegator_reservee.h"
@@ -31,12 +31,60 @@
 
 #include "delegator.h"
 
-using namespace algo;
-
 namespace torrent {
 
+struct DelegatorCheckAffinity {
+  DelegatorCheckAffinity(Delegator* delegator, DelegatorPiece** target, unsigned int index) :
+    m_delegator(delegator), m_target(target), m_index(index) {}
+
+  bool operator () (DelegatorChunk* d) {
+    return
+      m_index == d->get_index() &&
+      m_delegator->delegate_piece(d) &&
+      (*m_target = m_delegator->delegate_piece(d)) != NULL;
+  }
+
+  Delegator*          m_delegator;
+  DelegatorPiece**    m_target;
+  unsigned int        m_index;
+};
+
+struct DelegatorCheckPriority {
+  DelegatorCheckPriority(Delegator* delegator, DelegatorPiece** target, Priority::Type p, const BitField* bf) :
+    m_delegator(delegator), m_target(target), m_priority(p), m_bitfield(bf) {}
+
+  bool operator () (DelegatorChunk* d) {
+    return
+      m_priority == d->get_priority() &&
+      m_bitfield->get(d->get_index()) &&
+      (*m_target = m_delegator->delegate_piece(d)) != NULL;
+  }
+
+  Delegator*          m_delegator;
+  DelegatorPiece**    m_target;
+  Priority::Type      m_priority;
+  const BitField*     m_bitfield;
+};
+
+struct DelegatorCheckAggressive {
+  DelegatorCheckAggressive(Delegator* delegator, DelegatorPiece** target, uint16_t* o, const BitField* bf) :
+    m_delegator(delegator), m_target(target), m_overlapp(o), m_bitfield(bf) {}
+
+  bool operator () (DelegatorChunk* d) {
+    return
+      m_bitfield->get(d->get_index()) &&
+      (*m_target = m_delegator->delegate_aggressive(d, m_overlapp)) != NULL &&
+      m_overlapp == 0;
+  }
+
+  Delegator*          m_delegator;
+  DelegatorPiece**    m_target;
+  uint16_t*           m_overlapp;
+  const BitField*     m_bitfield;
+};
+
 void Delegator::clear() {
-  std::for_each(m_chunks.begin(), m_chunks.end(), delete_on());
+  std::for_each(m_chunks.begin(), m_chunks.end(), rak::call_delete<DelegatorChunk>());
 
   m_chunks.clear();
   m_select.clear();
@@ -52,25 +100,17 @@ Delegator::delegate(const BitField& bf, int affinity) {
   // Find piece with same index as affinity. This affinity should ensure that we
   // never start another piece while the chunk this peer used to download is still
   // in progress.
+  //
+  // TODO: What if the hash failed? Don't want data from that peer again.
   if (affinity >= 0 && 
       std::find_if(m_chunks.begin(), m_chunks.end(),
-		   bool_and(eq(value((unsigned)affinity), call_member(&DelegatorChunk::get_index)),
-			    call_member(ref(*this),
-					&Delegator::delegate_piece,
-					back_as_ref(),
-					ref(target))))
+		   DelegatorCheckAffinity(this, &target, affinity))		   
       != m_chunks.end())
     return target->create();
 
   // High priority pieces.
   if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::HIGH)),
-			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
-
-				     call_member(ref(*this),
-						 &Delegator::delegate_piece,
-						 back_as_ref(),
-						 ref(target)))))
+		   DelegatorCheckPriority(this, &target, Priority::HIGH, &bf))
       != m_chunks.end())
     return target->create();
 
@@ -80,20 +120,14 @@ Delegator::delegate(const BitField& bf, int affinity) {
 
   // Normal priority pieces.
   if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::NORMAL)),
-			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
-				     
-				     call_member(ref(*this),
-						 &Delegator::delegate_piece,
-						 back_as_ref(),
-						 ref(target)))))
+		   DelegatorCheckPriority(this, &target, Priority::NORMAL, &bf))
       != m_chunks.end())
     return target->create();
 
   if ((target = new_chunk(bf, Priority::NORMAL)))
     return target->create();
 
-  else if (!m_aggressive)
+  if (!m_aggressive)
     return NULL;
 
   // Aggressive mode, look for possible downloads that already have
@@ -102,36 +136,10 @@ Delegator::delegate(const BitField& bf, int affinity) {
   // No more than 4 per piece.
   uint16_t overlapped = 5;
 
-  // High priority pieces, aggressive style.
-  if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::HIGH)),
-			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
+  std::find_if(m_chunks.begin(), m_chunks.end(),
+	       DelegatorCheckAggressive(this, &target, &overlapped, &bf));
 
-				     call_member(ref(*this),
-						 &Delegator::delegate_aggressive,
-						 back_as_ref(),
-						 ref(target),
-						 ref(overlapped)))))
-      != m_chunks.end())
-    return target->create();
-
-  // Normal priority pieces, aggressive style
-  if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   bool_and(eq(call_member(&DelegatorChunk::get_priority), value(Priority::NORMAL)),
-			    bool_and(call_member(ref(bf), &BitField::get, call_member(&DelegatorChunk::get_index)),
-				     
-				     call_member(ref(*this),
-						 &Delegator::delegate_aggressive,
-						 back_as_ref(),
-						 ref(target),
-						 ref(overlapped)))))
-      != m_chunks.end())
-    return target->create();
-
-  if (target)
-    return target->create();
-  else
-    return NULL;
+  return target ? target->create() : NULL;
 }
   
 void
@@ -156,9 +164,10 @@ Delegator::finished(DelegatorReservee& r) {
     m_signalChunkDone.emit(p->get_piece().get_index());
 }
 
-void Delegator::done(int index) {
+void
+Delegator::done(unsigned int index) {
   Chunks::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(),
-				      eq(call_member(&DelegatorChunk::get_index), value((unsigned int)index)));
+				      rak::equal(index, std::mem_fun(&DelegatorChunk::get_index)));
 
   if (itr == m_chunks.end())
     throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
@@ -169,13 +178,15 @@ void Delegator::done(int index) {
   m_chunks.erase(itr);
 }
 
-void Delegator::redo(int index) {
+void
+Delegator::redo(unsigned int index) {
   // TODO: Download pieces from the other clients and try again. Swap out pieces
   // from one id at the time.
   done(index);
 }
 
-DelegatorPiece* Delegator::new_chunk(const BitField& bf, Priority::Type p) {
+DelegatorPiece*
+Delegator::new_chunk(const BitField& bf, Priority::Type p) {
   int index = m_select.find(bf, random() % bf.size_bits(), 1024, p);
 
   if (index == -1)
@@ -190,66 +201,63 @@ DelegatorPiece* Delegator::new_chunk(const BitField& bf, Priority::Type p) {
 DelegatorPiece*
 Delegator::find_piece(const Piece& p) {
   Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-				    eq(call_member(&DelegatorChunk::get_index), value((unsigned)p.get_index())));
-
+				    rak::equal((unsigned int)p.get_index(), std::mem_fun(&DelegatorChunk::get_index)));
+  
   if (c == m_chunks.end())
     return NULL;
 
   DelegatorChunk::iterator d = std::find_if((*c)->begin(), (*c)->end(),
-					    eq(call_member(&DelegatorPiece::get_piece), ref(p)));
+					    rak::equal(p, std::mem_fun_ref(&DelegatorPiece::get_piece)));
 
-  if (d != (*c)->end())
-    return d;
-  else
-    return NULL;
+  return d != (*c)->end() ? d : NULL;
 }
   
 bool
 Delegator::all_finished(int index) {
   Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-				    eq(call_member(&DelegatorChunk::get_index), value((unsigned)index)));
+				    rak::equal((unsigned int)index, std::mem_fun(&DelegatorChunk::get_index)));
 
-  return c != m_chunks.end() &&
+  return
+    c != m_chunks.end() &&
     std::find_if((*c)->begin(), (*c)->end(),
-		 bool_not(call_member(&DelegatorPiece::is_finished)))
+		 std::not1(std::mem_fun_ref(&DelegatorPiece::is_finished)))
     == (*c)->end();
 }
 
-bool
-Delegator::delegate_piece(DelegatorChunk& c, DelegatorPiece*& p) {
-  for (DelegatorChunk::iterator i = c.begin(); i != c.end(); ++i) {
+DelegatorPiece*
+Delegator::delegate_piece(DelegatorChunk* c) {
+  DelegatorPiece* p = NULL;
+
+  for (DelegatorChunk::iterator i = c->begin(); i != c->end(); ++i) {
     if (i->is_finished() || i->get_not_stalled())
       continue;
 
     if (i->get_reservees_size() == 0) {
       // Noone is downloading this, assign.
-      p = i;
-      return true;
+      return &*i;
 
     } else if (true) {
       // Stalled but we really want to finish this piece.
-      p = i;
+      p = &*i;
     }
   }
       
-  return p != NULL;
+  return p;
 }
 
-bool
-Delegator::delegate_aggressive(DelegatorChunk& c, DelegatorPiece*& p, uint16_t& overlapped) {
-  for (DelegatorChunk::iterator i = c.begin(); i != c.end(); ++i) {
-    if (i->is_finished() || i->get_not_stalled() >= overlapped)
+DelegatorPiece*
+Delegator::delegate_aggressive(DelegatorChunk* c, uint16_t* overlapped) {
+  DelegatorPiece* p = NULL;
+
+  for (DelegatorChunk::iterator i = c->begin(); i != c->end() && *overlapped != 0; ++i) {
+    if (i->is_finished() || i->get_not_stalled() >= *overlapped)
       continue;
 
-    p = i;
-    overlapped = i->get_not_stalled();
-
-    if (overlapped == 0)
-      return true;
+    p = &*i;
+    *overlapped = i->get_not_stalled();
   }
       
-  return false;
+  return p;
 }
-
 
 } // namespace torrent

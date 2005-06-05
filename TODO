@@ -97,15 +97,13 @@ BUGS:
 Snubing seems borked... why?
 
 
-CURRENT:
+THINGS:
 
 Move mkdir stuff out of Path?
 
 Cleanup HashQueue, seperate out nodes etc.
 * Make it a private list.
 * Don't pass Chunk in SlotDone.
-
-Make HashChunk::remaining inline.
 
 SocketManager must be enabled.
 
@@ -128,11 +126,6 @@ Add buffer read of piece.
 Fix tracker so it checks regulary when too few peers are connected.
 
 
-RELEASE:
-
-Remove debug checks in SocketSet. (Next release)
-
-
 POLLING:
 
 Consider sorting SocketSet so we can get maxFd cheaper. Epoll might
@@ -140,13 +133,17 @@ not need this, so consider the value.
 
 Rename poll.h.
 
+Do we need seperate ip for each torrent?
+
+Resync upon loading a torrent, to reset it's timestamp?
+
 
 CLEANUP:
 
 ref_anchored... urgh...
 
 
-FIFO QUEUE:
+CURRENT:
 
-Program received signal SIGABRT, Aborted. ( See mail May-25)
-?Propably solved?
+Make sure setting stuff in torrent::Download does not restrict more
+thatn it should. 1000 is too low.

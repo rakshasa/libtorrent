@@ -8,6 +8,7 @@ release.
 * Package releases.
 * Upload to host.
 
+* Update frontpage.
 * Download, compile and test.
 * Tag the release in SVN.
-* Update frontpage, send mail to the ML, update ChangeLog page.
+* Send mail to the ML, update ChangeLog page.

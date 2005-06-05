@@ -49,15 +49,15 @@ public:
 
   void               clear();
 
-  bool               is_finished()                      { return m_finished; }
+  bool               is_finished() const                { return m_finished; }
   void               set_finished(bool f)               { m_finished = f; }
 
-  const Piece&       get_piece()                        { return m_piece; }
+  const Piece&       get_piece() const                  { return m_piece; }
   void               set_piece(const Piece& p)          { m_piece = p; }
 
-  uint32_t           get_reservees_size()               { return m_reservees.size(); }
-  uint16_t           get_stalled()                      { return m_stalled; }
-  uint16_t           get_not_stalled()                  { return m_reservees.size() - m_stalled; }
+  uint32_t           get_reservees_size() const         { return m_reservees.size(); }
+  uint16_t           get_stalled() const                { return m_stalled; }
+  uint16_t           get_not_stalled() const            { return m_reservees.size() - m_stalled; }
 
 protected:
   friend class DelegatorReservee;

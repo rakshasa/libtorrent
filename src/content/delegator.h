@@ -51,8 +51,8 @@ public:
 
   void               finished(DelegatorReservee& r);
 
-  void               done(int index);
-  void               redo(int index);
+  void               done(unsigned int index);
+  void               redo(unsigned int index);
 
   Chunks&            get_chunks()                         { return m_chunks; }
   DelegatorSelect&   get_select()                         { return m_select; }
@@ -64,6 +64,10 @@ public:
 
   void               slot_chunk_size(SlotChunkSize s)     { m_slotChunkSize = s; }
 
+  // Don't call this from the outside.
+  DelegatorPiece*    delegate_piece(DelegatorChunk* c);
+  DelegatorPiece*    delegate_aggressive(DelegatorChunk* c, uint16_t* overlapped);
+
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
@@ -71,9 +75,6 @@ private:
   DelegatorPiece*    find_piece(const Piece& p);
 
   bool               all_finished(int index);
-
-  bool               delegate_piece(DelegatorChunk& c, DelegatorPiece*& p);
-  bool               delegate_aggressive(DelegatorChunk& c, DelegatorPiece*& p, uint16_t& overlapped);
 
   bool               m_aggressive;
 
