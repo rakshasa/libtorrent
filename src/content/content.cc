@@ -22,14 +22,10 @@
 
 #include "config.h"
 
-#include <algo/algo.h>
-
 #include "torrent/exceptions.h"
 #include "content.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
-
-using namespace algo;
 
 namespace torrent {
 
@@ -187,7 +183,7 @@ Content::close() {
   m_completed = 0;
   m_bitfield = BitField();
 
-  std::for_each(m_files.begin(), m_files.end(), call_member(&ContentFile::set_completed, value(0)));
+  std::for_each(m_files.begin(), m_files.end(), std::mem_fun_ref(&ContentFile::reset));
 }
 
 void

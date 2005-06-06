@@ -23,7 +23,6 @@
 #include "config.h"
 
 #include <functional>
-#include <algo/algo.h>
 #include <netinet/in.h>
 
 #include "torrent/exceptions.h"
@@ -31,23 +30,29 @@
 #include "utils/bitfield.h"
 #include "utils/bitfield_counter.h"
 
-using namespace algo;
-
 namespace torrent {
+
+struct DelegatorSelectInterestedRange {
+  DelegatorSelectInterestedRange(DelegatorSelect* s, const BitField* bf) :
+    m_select(s), m_bitfield(bf) {}
+
+  bool operator () (Priority::reference r) {
+    return m_select->interested_range(m_bitfield, r.first, r.second);
+  }
+
+  DelegatorSelect*    m_select;
+  const BitField*     m_bitfield;
+};
 
 bool
 DelegatorSelect::interested(const BitField& bf) {
   return
     std::find_if(m_priority.begin(Priority::NORMAL), m_priority.end(Priority::NORMAL),
-		      call_member(ref(*this), &DelegatorSelect::interested_range,
-				  ref(bf),
-				  member(&Ranges::value_type::first), member(&Ranges::value_type::second)))
+		 DelegatorSelectInterestedRange(this, &bf))
     != m_priority.end(Priority::NORMAL) ||
 
     std::find_if(m_priority.begin(Priority::HIGH), m_priority.end(Priority::HIGH),
-		      call_member(ref(*this), &DelegatorSelect::interested_range,
-				  ref(bf),
-				  member(&Ranges::value_type::first), member(&Ranges::value_type::second)))
+		 DelegatorSelectInterestedRange(this, &bf))
     != m_priority.end(Priority::HIGH);
 }
 
@@ -65,7 +70,7 @@ DelegatorSelect::interested(uint32_t index) {
 void
 DelegatorSelect::add_ignore(uint32_t index) {
   Indexes::iterator itr = std::find_if(m_ignore.begin(), m_ignore.end(),
-				       leq(value(index), back_as_ref()));
+				       std::bind2nd(std::greater<uint32_t>(), index));
   
   if (itr == m_ignore.end())
     throw internal_error("DelegatorSelect::add_ignore(...) received an index out of range");
@@ -167,7 +172,8 @@ DelegatorSelect::check_range(const BitField& bf,
 			     uint32_t rarity,
 			     uint32_t& cur_rarity) {
 
-  Indexes::const_iterator indexes = std::find_if(m_ignore.begin(), m_ignore.end(), std::bind2nd(std::greater_equal<uint32_t>(), start));
+  Indexes::const_iterator indexes = std::find_if(m_ignore.begin(), m_ignore.end(),
+						 std::bind2nd(std::greater_equal<uint32_t>(), start));
 
   int32_t found = -1;
   int32_t pos = start % 8;
@@ -205,14 +211,14 @@ DelegatorSelect::check_range(const BitField& bf,
 }
 
 bool
-DelegatorSelect::interested_range(const BitField& bf, uint32_t start, uint32_t end) {
+DelegatorSelect::interested_range(const BitField* bf, uint32_t start, uint32_t end) {
   uint8_t r = start % 8;
 
-  if (r && ~(*(m_bitfield->begin() + start / 8) << 8 - r) & (*(bf.begin() + start / 8)) << 8 - r)
+  if (r && ~(*(m_bitfield->begin() + start / 8) << 8 - r) & (*(bf->begin() + start / 8)) << 8 - r)
     return true;
 
   const uint8_t* i1 = m_bitfield->begin() + (start + 7) / 8;
-  const uint8_t* i2 = bf.begin() + (start + 7) / 8;
+  const uint8_t* i2 = bf->begin() + (start + 7) / 8;
 
   const uint8_t* e1 = m_bitfield->begin() + (end + 7) / 8;
 

@@ -22,7 +22,7 @@
 
 #include "config.h"
 
-#include <algo/algo.h>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 
@@ -47,7 +47,8 @@ TrackerList::randomize() {
 
 void
 TrackerList::clear() {
-  std::for_each(begin(), end(), algo::delete_on(&value_type::second));
+  std::for_each(begin(), end(),
+		rak::on(rak::mem_ptr_ref(&value_type::second), rak::call_delete<TrackerHttp>()));
 
   Base::clear();
 }
@@ -69,7 +70,8 @@ TrackerList::promote(iterator itr) {
 
 TrackerList::iterator
 TrackerList::begin_group(int group) {
-  return std::find_if(begin(), end(), algo::leq(algo::value(group), algo::member(&value_type::first)));
+  return std::find_if(begin(), end(),
+		      rak::less_equal(group, rak::mem_ptr_ref(&value_type::first)));
 }
 
 }

@@ -28,6 +28,7 @@
 #include "download_net.h"
 
 #include "peer/peer_info.h"
+#include "tracker/tracker_control.h"
 #include "utils/task.h"
 
 #include <sigc++/connection.h>
@@ -47,10 +48,10 @@ public:
   void                start();
   void                stop();
 
-  bool                is_open()                                { return m_state.get_content().is_open(); }
-  bool                is_active()                              { return m_started; }
-  bool                is_checked()                             { return m_checked; }
-  bool                is_stopped();
+  bool                is_open() const                          { return m_state.get_content().is_open(); }
+  bool                is_active() const                        { return m_started; }
+  bool                is_checked() const                       { return m_checked; }
+  bool                is_stopped() const                       { return !m_started && !m_tracker->is_busy(); }
 
   const std::string&  get_name() const                         { return m_name; }
   void                set_name(const std::string& s)           { m_name = s; }

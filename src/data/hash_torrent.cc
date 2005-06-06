@@ -27,10 +27,6 @@
 #include "hash_torrent.h"
 #include "hash_queue.h"
 
-#include <algo/algo.h>
-
-using namespace algo;
-
 namespace torrent {
 
 HashTorrent::HashTorrent(const std::string& id, Storage* s) :

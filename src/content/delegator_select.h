@@ -44,10 +44,11 @@ public:
     
   bool                   interested(const BitField& bf);
   bool                   interested(uint32_t index);
-  bool                   interested_range(const BitField& bf, uint32_t start, uint32_t end);
+  bool                   interested_range(const BitField* bf, uint32_t start, uint32_t end);
 
   Priority&	         get_priority()               { return m_priority; }
   const BitField*        get_bitfield()               { return m_bitfield; }
+
   const BitFieldCounter* get_seen()                   { return m_seen; }
 
   void		         set_bitfield(const BitField* bf)   { m_bitfield = bf; }

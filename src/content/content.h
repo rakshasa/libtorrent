@@ -72,9 +72,9 @@ public:
   FileList&              get_files()                     { return m_files; }
   Storage&               get_storage()                   { return m_storage; }
 
-  bool                   is_open()                       { return m_storage.get_bytes_size(); }
+  bool                   is_open() const                 { return m_storage.get_bytes_size(); }
   bool                   is_correct_size();
-  bool                   is_done()                       { return m_completed == m_storage.get_chunk_total(); }
+  bool                   is_done() const                 { return m_completed == m_storage.get_chunk_total(); }
 
   bool                   is_valid_piece(const Piece& p) const;
 

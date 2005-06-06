@@ -23,9 +23,8 @@
 #ifndef LIBTORRENT_HASH_CHUNK_H
 #define LIBTORRENT_HASH_CHUNK_H
 
-#include <algo/ref_anchored.h>
-
 #include "utils/sha1.h"
+#include "utils/ref_anchored.h"
 #include "storage_chunk.h"
 
 namespace torrent {
@@ -36,7 +35,7 @@ namespace torrent {
 
 class HashChunk {
 public:
-  typedef algo::RefAnchored<StorageChunk> Chunk;
+  typedef RefAnchored<StorageChunk> Chunk;
 
   HashChunk()         {}
   HashChunk(Chunk c)  { set_chunk(c); }

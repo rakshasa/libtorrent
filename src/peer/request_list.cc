@@ -22,17 +22,14 @@
 
 #include "config.h"
 
-#include <functional>
 #include <inttypes.h>
+#include <rak/functional.h>
 
-#include "algo/algo.h"
 #include "torrent/exceptions.h"
 #include "content/delegator.h"
 #include "content/delegator_reservee.h"
 
 #include "request_list.h"
-
-using namespace algo;
 
 namespace torrent {
 
@@ -57,7 +54,7 @@ RequestList::cancel() {
   if (m_downloading)
     throw internal_error("RequestList::cancel(...) called while is_downloading() == true");
 
-  std::for_each(m_canceled.begin(), m_canceled.end(), delete_on());
+  std::for_each(m_canceled.begin(), m_canceled.end(), rak::call_delete<DelegatorReservee>());
   m_canceled.clear();
 
   std::for_each(m_reservees.begin(), m_reservees.end(),
@@ -81,11 +78,11 @@ RequestList::downloading(const Piece& p) {
 
   ReserveeList::iterator itr =
     std::find_if(m_reservees.begin(), m_reservees.end(),
-		 eq(ref(p), call_member(&DelegatorReservee::get_piece)));
+		 rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
   
   if (itr == m_reservees.end()) {
     itr = std::find_if(m_canceled.begin(), m_canceled.end(),
-		       eq(ref(p), call_member(&DelegatorReservee::get_piece)));
+		       rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
 
     if (itr == m_canceled.end())
       return false;

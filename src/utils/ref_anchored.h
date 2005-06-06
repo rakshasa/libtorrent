@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef ALGO_REF_ANCHORED_H
-#define ALGO_REF_ANCHORED_H
+#ifndef LIBTORRENT_UTILS_REF_ANCHORED_H
+#define LIBTORRENT_UTILS_REF_ANCHORED_H
 
 // These classes implement a generic way of reference counting an object
 // that is shared from a common base. Once all the outstanding references
@@ -29,7 +29,7 @@
 
 // The interface should be pretty self-explanatory.
 
-namespace algo {
+namespace torrent {
 
 template <typename>
 class RefAnchor;

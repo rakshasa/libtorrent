@@ -79,7 +79,7 @@ TrackerControl::get_next_time() {
 }
 
 bool
-TrackerControl::is_busy() {
+TrackerControl::is_busy() const {
   if (m_itr == m_list.end())
     return false;
   else

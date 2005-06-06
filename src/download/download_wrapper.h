@@ -50,8 +50,11 @@ public:
   void                open();
   void                stop();
 
+  bool                is_stopped()        { return m_main.is_stopped(); }
+
   const std::string&  get_hash()          { return m_main.get_hash(); }
   DownloadMain&       get_main()          { return m_main; }
+  const DownloadMain& get_main() const    { return m_main; }
 
   Bencode&            get_bencode()       { return m_bencode; }
   HashTorrent&        get_hash_checker()  { return *m_hash.get(); }

@@ -37,6 +37,7 @@ public:
 
   typedef Ranges::iterator         iterator;
   typedef Ranges::reverse_iterator reverse_iterator;
+  typedef Ranges::reference        reference;
 
   // Must be added in increasing order.
   void                add(Type t, uint32_t begin, uint32_t end) { m_ranges[t].insert(begin, end); }

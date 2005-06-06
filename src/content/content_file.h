@@ -41,6 +41,8 @@ public:
     m_completed(0),
     m_priority(1) {}
 
+  void           reset()                        { m_completed = 0; }
+
   off_t          get_size() const               { return m_size; }
   unsigned char  get_priority() const           { return m_priority; }
 

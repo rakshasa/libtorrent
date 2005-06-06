@@ -42,9 +42,9 @@ public:
 
   virtual ~Handshake();
 
-  const PeerInfo&     get_peer() { return m_peer; }
-  const std::string&  get_hash() { return m_hash; }
-  const std::string&  get_id()   { return m_id; }
+  const PeerInfo&     get_peer()                       { return m_peer; }
+  const std::string&  get_hash()                       { return m_hash; }
+  const std::string&  get_id()                         { return m_id; }
 
   void                set_manager(HandshakeManager* m) { m_manager = m; }
   void                set_fd(SocketFd fd)              { m_fd = fd; }

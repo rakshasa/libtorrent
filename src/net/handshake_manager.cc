@@ -22,8 +22,8 @@
 
 #include "config.h"
 
-#include <algo/algo.h>
 #include <netinet/in.h>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "handshake_manager.h"
@@ -32,8 +32,6 @@
 #include "peer/peer_info.h"
 
 #include "socket_address.h"
-
-using namespace algo;
 
 namespace torrent {
 
@@ -62,21 +60,23 @@ HandshakeManager::add_outgoing(const PeerInfo& p,
 
 void
 HandshakeManager::clear() {
-  std::for_each(m_handshakes.begin(), m_handshakes.end(),
-		branch(call_member(&Handshake::close), delete_on()));
+  std::for_each(m_handshakes.begin(), m_handshakes.end(), std::mem_fun(&Handshake::close));
+  std::for_each(m_handshakes.begin(), m_handshakes.end(), rak::call_delete<Handshake>());
 
   m_handshakes.clear();
 }
 
 uint32_t
 HandshakeManager::get_size_hash(const std::string& hash) {
-  return std::count_if(m_handshakes.begin(), m_handshakes.end(), eq(call_member(&Handshake::get_hash), ref(hash)));
+  return std::count_if(m_handshakes.begin(), m_handshakes.end(),
+		       rak::equal(hash, std::mem_fun(&Handshake::get_hash)));
 }
 
 bool
 HandshakeManager::has_peer(const PeerInfo& p) {
   return std::find_if(m_handshakes.begin(), m_handshakes.end(),
-		      call_member(call_member(&Handshake::get_peer), &PeerInfo::is_same_host, ref(p)))
+		      rak::on(std::mem_fun(&Handshake::get_peer),
+			      std::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host_value), p)))
     != m_handshakes.end();
 }
 

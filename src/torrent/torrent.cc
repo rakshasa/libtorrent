@@ -26,8 +26,8 @@
 #include <sstream>
 #include <memory>
 #include <unistd.h>
-#include <algo/algo.h>
 #include <sigc++/bind.h>
+#include <rak/functional.h>
 
 #include "exceptions.h"
 #include "torrent.h"
@@ -46,8 +46,6 @@
 #include "data/hash_torrent.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-
-using namespace algo;
 
 namespace torrent {
 
@@ -145,10 +143,9 @@ listen_open(uint16_t begin, uint16_t end, const std::string& addr) {
 
   handshakes->set_bind_address(sa);
 
-  std::for_each(downloadManager->get_list().begin(), downloadManager->get_list().end(),
-		call_member(call_member(&DownloadWrapper::get_main),
-			    &DownloadMain::set_port,
-			    value(listen->get_port())));
+  for (DownloadManager::DownloadList::const_iterator itr = downloadManager->get_list().begin(), last = downloadManager->get_list().end();
+       itr != last; ++itr)
+    (*itr)->get_main().set_port(listen->get_port());
 
   return true;
 }
@@ -298,8 +295,7 @@ get(GValue t) {
 
   case SHUTDOWN_DONE:
     return std::find_if(downloadManager->get_list().begin(), downloadManager->get_list().end(),
-			bool_not(call_member(call_member(&DownloadWrapper::get_main),
-					     &DownloadMain::is_stopped)))
+			std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
       == downloadManager->get_list().end();
 
   case FILES_CHECK_WAIT:

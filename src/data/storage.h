@@ -25,11 +25,11 @@
 
 #include <vector>
 #include <inttypes.h>
-#include <algo/ref_anchored.h>
 
 #include "storage_chunk.h"
 #include "storage_consolidator.h"
 #include "storage_file.h"
+#include "utils/ref_anchored.h"
 
 namespace torrent {
 
@@ -37,9 +37,9 @@ namespace torrent {
 
 class Storage {
 public:
-  typedef std::vector<StorageFile>        FileList;
-  typedef algo::RefAnchored<StorageChunk> Chunk;
-  typedef algo::RefAnchor<StorageChunk>   Anchor;
+  typedef std::vector<StorageFile>  FileList;
+  typedef RefAnchored<StorageChunk> Chunk;
+  typedef RefAnchor<StorageChunk>   Anchor;
 
   ~Storage() { clear(); }
 

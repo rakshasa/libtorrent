@@ -46,6 +46,7 @@ public:
 
   bool                is_valid() const;
   bool                is_same_host(const PeerInfo& p) const { return m_dns == p.m_dns && m_port == p.m_port; }
+  bool                is_same_host_value(PeerInfo p) const  { return m_dns == p.m_dns && m_port == p.m_port; }
 
   bool                operator < (const PeerInfo& p) const  { return m_id < p.m_id; }
   bool                operator == (const PeerInfo& p) const { return m_id == p.m_id; }

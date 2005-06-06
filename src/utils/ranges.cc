@@ -22,25 +22,20 @@
 
 #include "config.h"
 
-#include <functional>
-#include <algo/algo.h>
+#include <algorithm>
+#include <rak/functional.h>
 
 #include "ranges.h"
-
-using namespace algo;
 
 namespace torrent {
 
 void
 Ranges::insert(value_type r) {
-  // A = Find the last iterator with "first" <= begin. Points one after.
   iterator a = std::find_if(Base::rbegin(), Base::rend(),
-			    leq(member(&value_type::first), value(r.first))).base();
-			    
+			    rak::greater_equal(r.first, rak::mem_ptr_ref(&value_type::first))).base();
 
-  // B = Find the first iterator with "last" >= end.
   iterator b = std::find_if(Base::begin(), Base::end(),
-			    geq(member(&value_type::second), value(r.second)));
+			    rak::less_equal(r.second, rak::mem_ptr_ref(&value_type::second)));
 
   // Check if the range is contained inside a single preexisting range.
   if (a != Base::rend().base() && b != Base::end() && --iterator(a) == b)
@@ -85,13 +80,11 @@ Ranges::insert(value_type r) {
 
 void
 Ranges::erase(value_type r) {
-  // A = Find the last iterator with "first" <= begin. Points one after.
   iterator a = std::find_if(Base::rbegin(), Base::rend(),
-			    lt(member(&value_type::first), value(r.first))).base();
+			    rak::greater(r.first, rak::mem_ptr_ref(&value_type::first))).base();
 
-  // B = Find the first iterator with "last" >= end.
   iterator b = std::find_if(Base::begin(), Base::end(),
-			    gt(member(&value_type::second), value(r.second)));
+			    rak::less(r.second, rak::mem_ptr_ref(&value_type::second)));
 
   // Erase elements in between begin and end, then update iterator a and b.
   b = Base::erase(a, b);
@@ -106,13 +99,13 @@ Ranges::erase(value_type r) {
 Ranges::Base::iterator
 Ranges::find(uint32_t index) {
   return std::find_if(Base::begin(), Base::end(),
-		      lt(value(index), member(&value_type::second)));
+		      rak::less(index, rak::mem_ptr_ref(&value_type::second)));
 }
 
 bool
 Ranges::has(uint32_t index) {
   Base::const_iterator itr = std::find_if(Base::begin(), Base::end(),
-					  lt(value(index), member(&value_type::second)));
+					  rak::less(index, rak::mem_ptr_ref(&value_type::second)));
 
   return itr != Base::end() && index >= itr->first;
 }

@@ -68,7 +68,7 @@ class TrackerControl {
   Timer                 get_next_time();
   void                  set_next_time(Timer interval, bool force);
 
-  bool                  is_busy();
+  bool                  is_busy() const;
 
   SignalDump&           signal_dump()                           { return m_signalDump; }
   SignalPeers&          signal_peers()                          { return m_signalPeers; }

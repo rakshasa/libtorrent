@@ -22,9 +22,8 @@
 
 #include "config.h"
 
-#include <functional>
 #include <algorithm>
-#include <algo/algo.h>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 
@@ -33,12 +32,10 @@
 #include "utils/rate.h"
 #include "peer_connection.h"
 
-using namespace algo;
-
 namespace torrent {
 
 DownloadNet::~DownloadNet() {
-  std::for_each(m_connections.begin(), m_connections.end(), delete_on());
+  std::for_each(m_connections.begin(), m_connections.end(), rak::call_delete<PeerConnection>());
 }  
 
 void
@@ -81,13 +78,14 @@ DownloadNet::should_request(uint32_t stall) {
 void
 DownloadNet::send_have_chunk(uint32_t index) {
   std::for_each(m_connections.begin(), m_connections.end(),
-		call_member(&PeerConnection::sendHave, value(index)));
+		std::bind2nd(std::mem_fun(&PeerConnection::sendHave), index));
 }
 
 bool
 DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
   if (std::find_if(m_connections.begin(), m_connections.end(),
-		   eq(ref(p), call_member(&PeerConnectionBase::get_peer))) != m_connections.end()) {
+		   rak::equal(p, std::mem_fun(&PeerConnectionBase::get_peer)))
+      != m_connections.end()) {
     return false;
   }
 
@@ -143,11 +141,12 @@ DownloadNet::add_available_peers(const PeerList& p) {
     if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||
 
 	std::find_if(m_connections.begin(), m_connections.end(),
-		     call_member(call_member(&PeerConnectionBase::get_peer), &PeerInfo::is_same_host, ref(*itr)))
+		     rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
+			     std::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host_value), *itr)))
 	!= m_connections.end() ||
 
-	std::find_if(m_availablePeers.begin(), m_availablePeers.end(), call_member(&PeerInfo::is_same_host, ref(*itr)))
-		     
+	std::find_if(m_availablePeers.begin(), m_availablePeers.end(),
+		     std::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host_value), *itr))
 	!= m_availablePeers.end() ||
 
 	m_slotHasHandshake(*itr))

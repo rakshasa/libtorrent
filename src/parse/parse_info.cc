@@ -27,10 +27,6 @@
 #include "torrent/bencode.h"
 #include "content/content.h"
 
-#include <algo/algo.h>
-
-using namespace algo;
-
 namespace torrent {
 
 #define MAX_FILE_LENGTH ((int64_t)1 << 45)

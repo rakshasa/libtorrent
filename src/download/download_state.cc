@@ -25,14 +25,11 @@
 #endif
 
 #include <cstring>
-#include <algo/algo.h>
 
 #include "torrent/exceptions.h"
 #include "download/download_state.h"
 
 #include "settings.h"
-
-using namespace algo;
 
 namespace torrent {
 

@@ -24,11 +24,11 @@
 #define LIBTORRENT_DOWNLOAD_STATE_H
 
 #include <sigc++/signal.h>
-#include <algo/ref_anchored.h>
 
 #include "data/storage_chunk.h"
 #include "content/content.h"
 #include "utils/bitfield_counter.h"
+#include "utils/ref_anchored.h"
 
 namespace torrent {
 
@@ -37,7 +37,7 @@ class DownloadSettings;
 // Here goes all those things that Peer* and Delegator needs.
 class DownloadState {
 public:
-  typedef algo::RefAnchored<StorageChunk> Chunk;
+  typedef RefAnchored<StorageChunk> Chunk;
   
   DownloadState() : m_settings(NULL) {}
 
@@ -45,6 +45,7 @@ public:
   void                set_settings(DownloadSettings* s)         { m_settings = s; }
 
   Content&            get_content()                             { return m_content; }
+  const Content&      get_content() const                       { return m_content; }
   BitFieldCounter&    get_bitfield_counter()                    { return m_bfCounter; }
 
   // Schedules chunk for hash check.

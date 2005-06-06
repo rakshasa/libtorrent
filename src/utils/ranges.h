@@ -33,6 +33,7 @@ public:
   typedef std::vector<std::pair<uint32_t, uint32_t> > Base;
 
   using Base::value_type;
+  using Base::reference;
 
   using Base::iterator;
   using Base::reverse_iterator;

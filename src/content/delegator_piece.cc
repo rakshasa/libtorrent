@@ -26,10 +26,6 @@
 #include "delegator_piece.h"
 #include "delegator_reservee.h"
 
-#include <algo/algo.h>
-
-using namespace algo;
-
 namespace torrent {
 
 DelegatorPiece::~DelegatorPiece() {

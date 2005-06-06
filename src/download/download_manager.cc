@@ -22,7 +22,7 @@
 
 #include "config.h"
 
-#include <algo/algo.h>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 
@@ -30,8 +30,6 @@
 #include "download_wrapper.h"
 
 namespace torrent {
-
-using namespace algo;
 
 void
 DownloadManager::add(DownloadWrapper* d) {
@@ -44,7 +42,7 @@ DownloadManager::add(DownloadWrapper* d) {
 void
 DownloadManager::remove(const std::string& hash) {
   DownloadList::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					    eq(ref(hash), call_member(&DownloadWrapper::get_hash)));
+					    rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
 
   if (itr == m_downloads.end())
     throw client_error("Tried to remove a DownloadMain that doesn't exist");
@@ -64,7 +62,7 @@ DownloadManager::clear() {
 DownloadWrapper*
 DownloadManager::find(const std::string& hash) {
   DownloadList::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					    eq(ref(hash), call_member(&DownloadWrapper::get_hash)));
+					    rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
 
   return itr != m_downloads.end() ? *itr : NULL;
 }

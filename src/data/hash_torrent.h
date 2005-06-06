@@ -25,10 +25,10 @@
 
 #include <string>
 #include <sigc++/signal.h>
-#include <algo/ref_anchored.h>
 
 #include "storage_chunk.h"
 #include "utils/ranges.h"
+#include "utils/ref_anchored.h"
 
 namespace torrent {
 
@@ -37,7 +37,7 @@ class HashQueue;
 
 class HashTorrent {
 public:
-  typedef algo::RefAnchored<StorageChunk>           Chunk;
+  typedef RefAnchored<StorageChunk>                 Chunk;
   typedef sigc::signal0<void>                       Signal;
   typedef sigc::signal2<void, Chunk, std::string>   SignalChunkDone;
   

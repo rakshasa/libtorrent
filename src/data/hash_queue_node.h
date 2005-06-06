@@ -25,9 +25,9 @@
 
 #include <string>
 #include <sigc++/signal.h>
-#include <algo/ref_anchored.h>
 
 #include "hash_chunk.h"
+#include "utils/ref_anchored.h"
 
 namespace torrent {
 
@@ -37,7 +37,7 @@ public:
   // unsigned int - index of chunk
   // std::string  - chunk hash
 
-  typedef algo::RefAnchored<StorageChunk>       Chunk;
+  typedef RefAnchored<StorageChunk>             Chunk;
   typedef sigc::slot2<void, Chunk, std::string> SlotDone;
 
   HashQueueNode(HashChunk* c, const std::string& i, SlotDone d) :

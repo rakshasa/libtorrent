@@ -31,10 +31,8 @@
 #include "data/hash_torrent.h"
 #include "download/download_wrapper.h"
 
-#include <algo/algo.h>
+#include <rak/functional.h>
 #include <sigc++/hide.h>
-
-using namespace algo;
 
 namespace torrent {
 
@@ -153,12 +151,10 @@ Download::get_bytes_done() {
  
   Delegator& d = m_ptr->get_main().get_net().get_delegator();
 
-  std::for_each(d.get_chunks().begin(), d.get_chunks().end(),
-		for_each_on(back_as_ref(),
-			    if_on(call_member(&DelegatorPiece::is_finished),
-				  
-				  add_ref(a, call_member(call_member(&DelegatorPiece::get_piece),
-							 &Piece::get_length)))));
+  for (Delegator::Chunks::iterator itr1 = d.get_chunks().begin(), last1 = d.get_chunks().end(); itr1 != last1; ++itr1)
+    for (DelegatorChunk::iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
+      if (itr2->is_finished())
+	a += itr2->get_piece().get_length();
   
   return a + m_ptr->get_main().get_state().get_content().get_bytes_completed();
 }
@@ -324,18 +320,16 @@ Download::update_priorities() {
     pos += i->get_size();
   }
 
-  std::for_each(m_ptr->get_main().get_net().get_connections().begin(), m_ptr->get_main().get_net().get_connections().end(),
-		call_member(&PeerConnection::update_interested));
+  std::for_each(m_ptr->get_main().get_net().get_connections().begin(),
+		m_ptr->get_main().get_net().get_connections().end(),
+		std::mem_fun(&PeerConnection::update_interested));
 }
 
 void
 Download::peer_list(PList& pList) {
   std::for_each(m_ptr->get_main().get_net().get_connections().begin(),
 		m_ptr->get_main().get_net().get_connections().end(),
-
-		call_member(ref(pList),
-			    &PList::push_back,
-			    back_as_ptr()));
+		rak::bind1st(std::mem_fun(&PList::push_back), &pList));
 }
 
 Peer
@@ -344,9 +338,8 @@ Download::peer_find(const std::string& id) {
     std::find_if(m_ptr->get_main().get_net().get_connections().begin(),
 		 m_ptr->get_main().get_net().get_connections().end(),
 		 
-		 eq(ref(id),
-		    call_member(call_member(&PeerConnectionBase::get_peer),
-				&PeerInfo::get_id)));
+		 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
+					std::mem_fun_ref(&PeerInfo::get_id))));
 
   return itr != m_ptr->get_main().get_net().get_connections().end() ?
     *itr : NULL;

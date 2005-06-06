@@ -27,7 +27,6 @@
 #include "torrent/exceptions.h"
 #include "net/handshake_manager.h"
 #include "parse/parse.h"
-#include "tracker/tracker_control.h"
 #include "content/delegator_select.h"
 
 #include "download_main.h"
@@ -110,10 +109,6 @@ void
 DownloadMain::choke_cycle() {
   m_taskChokeCycle.insert(Timer::cache() + m_state.get_settings().chokeCycle);
   m_net.choke_cycle();
-}
-
-bool DownloadMain::is_stopped() {
-  return !m_started && !m_tracker->is_busy();
 }
 
 void DownloadMain::receive_initial_hash() {
