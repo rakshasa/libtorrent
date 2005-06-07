@@ -119,8 +119,6 @@ Optimize ChokeManager::get_unchoked.
 
 NEXT:
 
-Make a base class for PeerConnection, move read/write_remaining etc.
-
 Add buffer read of piece.
 
 Fix tracker so it checks regulary when too few peers are connected.
@@ -133,19 +131,9 @@ not need this, so consider the value.
 
 Rename poll.h.
 
-Do we need seperate ip for each torrent?
-
-Resync upon loading a torrent, to reset it's timestamp?
+Resync upon loading a torrent, to reset it's timestamp? Use ftruncate.
 
 
 CLEANUP:
 
 ref_anchored... urgh...
-
-
-CURRENT:
-
-Make sure setting stuff in torrent::Download does not restrict more
-thatn it should. 1000 is too low.
-
-rename *_listen_ip to something else.

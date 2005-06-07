@@ -29,25 +29,38 @@ namespace torrent {
 
 class DownloadWrapper;
 
-class DownloadManager {
+class DownloadManager : private std::list<DownloadWrapper*>{
 public:
-  typedef std::list<DownloadWrapper*>  DownloadList;
-  typedef DownloadList::iterator       iterator;
-  typedef DownloadList::const_iterator const_iterator;
+  typedef std::list<DownloadWrapper*> Base;
+
+  typedef Base::value_type value_type;
+  typedef Base::pointer pointer;
+  typedef Base::const_pointer const_pointer;
+  typedef Base::reference reference;
+  typedef Base::const_reference const_reference;
+  typedef Base::size_type size_type;
+
+  typedef Base::iterator iterator;
+  typedef Base::reverse_iterator reverse_iterator;
+  typedef Base::const_iterator const_iterator;
+  typedef Base::const_reverse_iterator const_reverse_iterator;
+
+  using Base::empty;
+  using Base::size;
+
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
 
   ~DownloadManager() { clear(); }
 
-  void                add(DownloadWrapper* d);
-  void                remove(const std::string& hash);
+  void                 add(DownloadWrapper* d);
+  void                 remove(const std::string& hash);
 
-  void                clear();
+  void                 clear();
 
-  DownloadWrapper*    find(const std::string& hash);
-
-  DownloadList&       get_list() { return m_downloads; }
-
-private:
-  DownloadList        m_downloads;
+  DownloadWrapper*     find(const std::string& hash);
 };
 
 }

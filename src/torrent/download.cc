@@ -227,7 +227,7 @@ Download::get_tracker_numwant() {
 
 void
 Download::set_peers_min(uint32_t v) {
-  if (v > 0 && v < 1000) {
+  if (v >= 0 && v < (1 << 16)) {
     m_ptr->get_main().get_state().get_settings().minPeers = v;
     m_ptr->get_main().get_net().connect_peers();
   }
@@ -235,7 +235,7 @@ Download::set_peers_min(uint32_t v) {
 
 void
 Download::set_peers_max(uint32_t v) {
-  if (v > 0 && v < 1000) {
+  if (v >= 0 && v < (1 << 16)) {
     m_ptr->get_main().get_state().get_settings().maxPeers = v;
     // TODO: Do disconnects here if nessesary
   }
@@ -243,7 +243,7 @@ Download::set_peers_max(uint32_t v) {
 
 void
 Download::set_uploads_max(uint32_t v) {
-  if (v > 0 && v < 1000) {
+  if (v >= 0 && v < (1 << 16)) {
     m_ptr->get_main().get_net().get_choke_manager().set_max_unchoked(v);
     m_ptr->get_main().get_net().choke_balance();
   }

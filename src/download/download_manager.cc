@@ -36,35 +36,34 @@ DownloadManager::add(DownloadWrapper* d) {
   if (find(d->get_hash()))
     throw input_error("Could not add download, info-hash already exists.");
 
-  m_downloads.push_back(d);
+  Base::push_back(d);
 }
 
 void
 DownloadManager::remove(const std::string& hash) {
-  DownloadList::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					    rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
+  iterator itr = std::find_if(begin(), end(),
+			      rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
 
-  if (itr == m_downloads.end())
+  if (itr == end())
     throw client_error("Tried to remove a DownloadMain that doesn't exist");
     
   delete *itr;
-  m_downloads.erase(itr);
+  Base::erase(itr);
 }
 
 void
 DownloadManager::clear() {
-  while (!m_downloads.empty()) {
-    delete m_downloads.front();
-    m_downloads.pop_front();
-  }
+  std::for_each(begin(), end(), rak::call_delete<DownloadWrapper>());
+
+  Base::clear();
 }
 
 DownloadWrapper*
 DownloadManager::find(const std::string& hash) {
-  DownloadList::iterator itr = std::find_if(m_downloads.begin(), m_downloads.end(),
-					    rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
+  iterator itr = std::find_if(begin(), end(),
+			      rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
 
-  return itr != m_downloads.end() ? *itr : NULL;
+  return itr != end() ? *itr : NULL;
 }
 
 }

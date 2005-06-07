@@ -68,39 +68,6 @@ public:
 
 Torrent* torrent = NULL;
 
-const std::string&
-get_ip() {
-  return torrent->m_ip;
-}
-
-void
-set_ip(const std::string& addr) {
-  if (addr == torrent->m_ip)
-    return;
-
-  torrent->m_ip = addr;
-
-  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.get_list().begin(),
-	 last = torrent->m_downloadManager.get_list().begin(); itr != last; ++itr)
-    (*itr)->get_main().get_me().set_dns(torrent->m_ip);
-}
-
-const std::string&
-get_bind() {
-  return torrent->m_bind;
-}
-
-void
-set_bind(const std::string& addr) {
-  if (addr == torrent->m_bind)
-    return;
-
-  if (torrent->m_listen.is_open())
-    throw client_error("torrent::set_bind(...) called, but listening socket is open");
-
-  torrent->m_bind = addr;
-}
-
 // Find some better way of doing this, or rather... move it outside.
 std::string
 download_id(const std::string& hash) {
@@ -122,6 +89,23 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
       !d->get_main().get_net().add_connection(fd, peer))
     fd.close();
 }
+
+std::string
+bencode_hash(Bencode& b) {
+  std::stringstream str;
+  str << b;
+
+  if (str.fail())
+    throw bencode_error("Could not write bencode to stream");
+
+  std::string s = str.str();
+  Sha1 sha1;
+
+  sha1.init();
+  sha1.update(s.c_str(), s.size());
+
+  return sha1.final();
+}  
 
 void
 initialize() {
@@ -161,7 +145,7 @@ cleanup() {
 
 bool
 listen_open(uint16_t begin, uint16_t end) {
-  if (listen == NULL)
+  if (torrent == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
   SocketAddress sa;
@@ -174,7 +158,7 @@ listen_open(uint16_t begin, uint16_t end) {
 
   torrent->m_handshakeManager.set_bind_address(sa);
 
-  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.get_list().begin(), last = torrent->m_downloadManager.get_list().end();
+  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.end();
        itr != last; ++itr)
     (*itr)->get_main().set_port(torrent->m_listen.get_port());
 
@@ -234,22 +218,102 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   TaskSchedule::perform(Timer::current());
 }
 
+bool
+is_inactive() {
+  return torrent == NULL ||
+    std::find_if(torrent->m_downloadManager.begin(), torrent->m_downloadManager.end(),
+		      std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
+    == torrent->m_downloadManager.end();
+}
+
+const std::string&
+get_ip() {
+  return torrent->m_ip;
+}
+
+void
+set_ip(const std::string& addr) {
+  if (addr == torrent->m_ip)
+    return;
+
+  torrent->m_ip = addr;
+
+  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.begin();
+       itr != last; ++itr)
+    (*itr)->get_main().get_me().set_dns(torrent->m_ip);
+}
+
+const std::string&
+get_bind() {
+  return torrent->m_bind;
+}
+
+void
+set_bind(const std::string& addr) {
+  if (addr == torrent->m_bind)
+    return;
+
+  if (torrent->m_listen.is_open())
+    throw client_error("torrent::set_bind(...) called, but listening socket is open");
+
+  torrent->m_bind = addr;
+}
+
+uint16_t
+get_listen_port() {
+  return torrent->m_listen.get_port();
+}
+
+unsigned int
+get_total_handshakes() {
+  return torrent->m_handshakeManager.get_size();
+}
+
+int64_t
+get_current_time() {
+  return Timer::current().usec();
+}
+
+int64_t
+get_next_timeout() {
+  return TaskSchedule::get_timeout().usec();
+}
+
+unsigned int
+get_read_throttle() {
+  return std::max(throttleRead.get_quota(), 0);
+}
+
+void
+set_read_throttle(unsigned int bytes) {
+  throttleRead.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
+}
+
+unsigned int
+get_write_throttle() {
+  return std::max(throttleWrite.get_quota(), 0);
+}
+
+void
+set_write_throttle(unsigned int bytes) {
+  throttleWrite.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
+}
+
 std::string
-bencode_hash(Bencode& b) {
-  std::stringstream str;
-  str << b;
+get_version() {
+  return VERSION;
+}
 
-  if (str.fail())
-    throw bencode_error("Could not write bencode to stream");
+unsigned int
+get_hash_read_ahead() {
+  return Settings::hashWillneed;
+}
 
-  std::string s = str.str();
-  Sha1 sha1;
-
-  sha1.init();
-  sha1.update(s.c_str(), s.size());
-
-  return sha1.final();
-}  
+void
+set_hash_read_ahead(unsigned int bytes) {
+  if (bytes < 64 << 20)
+    Settings::hashWillneed = bytes;
+}
 
 Download
 download_create(std::istream* s) {
@@ -289,8 +353,8 @@ download_create(std::istream* s) {
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
-  for (DownloadManager::DownloadList::const_iterator itr = torrent->m_downloadManager.get_list().begin();
-       itr != torrent->m_downloadManager.get_list().end(); ++itr)
+  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin();
+       itr != torrent->m_downloadManager.end(); ++itr)
     dlist.push_back(Download(*itr));
 }
 
@@ -313,84 +377,6 @@ download_bencode(const std::string& id) {
     throw client_error("Tried to call download_bencode(id) with non-existing download");
 
   return d->get_bencode();
-}
-
-// Throws a local_error of some sort.
-int64_t
-get(GValue t) {
-  switch (t) {
-  case LISTEN_PORT:
-    return torrent->m_listen.get_port();
-
-  case HANDSHAKES_TOTAL:
-    return torrent->m_handshakeManager.get_size();
-
-  case SHUTDOWN_DONE:
-    return std::find_if(torrent->m_downloadManager.get_list().begin(), torrent->m_downloadManager.get_list().end(),
-			std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
-      == torrent->m_downloadManager.get_list().end();
-
-  case FILES_CHECK_WAIT:
-    return Settings::filesCheckWait;
-
-  case TIME_CURRENT:
-    return Timer::current().usec();
-
-  case TIME_SELECT:
-    return TaskSchedule::get_timeout().usec();
-
-  case THROTTLE_ROOT_CONST_RATE:
-    return std::max(throttleWrite.get_quota(), 0);
-
-  case THROTTLE_READ_CONST_RATE:
-    return std::max(throttleRead.get_quota(), 0);
-
-  default:
-    throw internal_error("get(GValue) received invalid type");
-  }
-}
-
-std::string
-get(GString t) {
-  std::string s;
-
-  switch (t) {
-  case LIBRARY_NAME:
-    return std::string("libtorrent") + " " VERSION;
-
-  default:
-    throw internal_error("get(GString) received invalid type");
-  }
-}
-
-void
-set(GValue t, int64_t v) {
-  switch (t) {
-  case FILES_CHECK_WAIT:
-    if (v >= 0 && v < 60 * 1000000)
-      Settings::filesCheckWait = v;
-    break;
-
-  case DEFAULT_CHOKE_CYCLE:
-    if (v > 10 * 1000000 && v < 3600 * 1000000)
-      DownloadSettings::global().chokeCycle = v;
-    break;
-
-  case THROTTLE_ROOT_CONST_RATE:
-    throttleWrite.set_quota(v > 0 ? v : ThrottlePeer::UNLIMITED);
-    break;
-
-  case THROTTLE_READ_CONST_RATE:
-    throttleRead.set_quota(v > 0 ? v : ThrottlePeer::UNLIMITED);
-    break;
-
-  default:
-    throw internal_error("set(GValue, int) received invalid type");
-  }
-}
-
-void
-set(GString t, const std::string& s) {
 }
 
 }

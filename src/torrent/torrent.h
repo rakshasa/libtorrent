@@ -44,22 +44,46 @@ void                initialize();
 // them to finish is not required, but recommended.
 void                cleanup();
 
+bool                listen_open(uint16_t begin, uint16_t end);
+void                listen_close();  
+
+// Set the file descriptors we want to pool for R/W/E events. All
+// fd_set's must be valid pointers.
+void                mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
+
+// Do work on the polled file descriptors. Make sure this is called
+// every time TIME_SELECT timeout has passed.
+void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
+
+bool                is_inactive();
+
 const std::string&  get_ip();
 void                set_ip(const std::string& addr);
 
 const std::string&  get_bind();
 void                set_bind(const std::string& addr);
 
-bool      listen_open(uint16_t begin, uint16_t end);
-void      listen_close();  
+uint16_t            get_listen_port();
 
-// Set the file descriptors we want to pool for R/W/E events. All
-// fd_set's must be valid pointers.
-void      mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
+unsigned int        get_total_handshakes();
 
-// Do work on the polled file descriptors. Make sure this is called
-// every time TIME_SELECT timeout has passed.
-void      work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
+int64_t             get_current_time();
+int64_t             get_next_timeout();
+
+// 0 == UNLIMITED.
+unsigned int        get_read_throttle();
+void                set_read_throttle(unsigned int bytes);
+
+unsigned int        get_write_throttle();
+void                set_write_throttle(unsigned int bytes);
+
+std::string         get_version();
+
+// Disk access tuning.
+unsigned int        get_hash_read_ahead();
+void                set_hash_read_ahead(unsigned int bytes);
+
+// The below API might/might not be cleaned up.
 
 // Will always return a valid Download. On errors it throws.
 Download  download_create(std::istream* s);
@@ -75,38 +99,6 @@ void      download_remove(const std::string& id);
 // Returns the bencode object, make sure you don't modify stuff you shouldn't
 // touch. Make sure you don't copy the object, since it is very expensive.
 Bencode&  download_bencode(const std::string& id);
-
-// Variables, do stuff.
-typedef enum {
-  LISTEN_PORT,             // Returns 0 if it isn't listening on any port.
-  HANDSHAKES_TOTAL,        // Number of handshakes currently being performed.
-  SHUTDOWN_DONE,           // Returns 1 if all downloads have stopped.
-
-  FILES_CHECK_WAIT,        // Wait between checks during torrent init. (usec)
-
-  DEFAULT_CHOKE_CYCLE,
-
-  TIME_CURRENT,            // Unix time. (usec)
-  TIME_SELECT,             // Timeout for the next select call. (usec)
-
-  RATE_WINDOW,             // Window size used to measure rate. (usec)
-  RATE_START,              // Window size to use on new bursts of data. (usec)
-
-  THROTTLE_ROOT_CONST_RATE,  // Bytes per second, 0 for unlimited.
-                             // (the code supports 0 for none, but not in this API)
-  THROTTLE_READ_CONST_RATE   // Bytes per second, 0 for unlimited.
-                             // (the code supports 0 for none, but not in this API)
-} GValue;
-
-typedef enum {
-  LIBRARY_NAME
-} GString;
-
-int64_t     get(GValue t);
-std::string get(GString t);
-
-void        set(GValue t, int64_t v);
-void        set(GString t, const std::string& s);
 
 }
 
