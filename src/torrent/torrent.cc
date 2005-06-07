@@ -51,18 +51,60 @@ namespace torrent {
 
 int64_t Timer::m_cache;
 
-Listen* listen = NULL;
-HashQueue* hashQueue = NULL;
-HandshakeManager* handshakes = NULL;
-DownloadManager* downloadManager = NULL;
-
 ThrottlePeer throttleRead;
 ThrottlePeer throttleWrite;
+
+// New API.
+class Torrent {
+public:
+  std::string         m_ip;
+  std::string         m_bind;
+
+  Listen              m_listen;
+  HashQueue           m_hashQueue;
+  HandshakeManager    m_handshakeManager;
+  DownloadManager     m_downloadManager;
+};
+
+Torrent* torrent = NULL;
+
+const std::string&
+get_ip() {
+  return torrent->m_ip;
+}
+
+void
+set_ip(const std::string& addr) {
+  if (addr == torrent->m_ip)
+    return;
+
+  torrent->m_ip = addr;
+
+  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.get_list().begin(),
+	 last = torrent->m_downloadManager.get_list().begin(); itr != last; ++itr)
+    (*itr)->get_main().get_me().set_dns(torrent->m_ip);
+}
+
+const std::string&
+get_bind() {
+  return torrent->m_bind;
+}
+
+void
+set_bind(const std::string& addr) {
+  if (addr == torrent->m_bind)
+    return;
+
+  if (torrent->m_listen.is_open())
+    throw client_error("torrent::set_bind(...) called, but listening socket is open");
+
+  torrent->m_bind = addr;
+}
 
 // Find some better way of doing this, or rather... move it outside.
 std::string
 download_id(const std::string& hash) {
-  DownloadWrapper* d = downloadManager->find(hash);
+  DownloadWrapper* d = torrent->m_downloadManager.find(hash);
 
   return d &&
     d->get_main().is_active() &&
@@ -72,7 +114,7 @@ download_id(const std::string& hash) {
 
 void
 receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadWrapper* d = downloadManager->find(hash);
+  DownloadWrapper* d = torrent->m_downloadManager.find(hash);
   
   if (!d ||
       !d->get_main().is_active() ||
@@ -83,23 +125,19 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
 
 void
 initialize() {
-  if (listen || hashQueue || handshakes || downloadManager)
+  if (torrent != NULL)
     throw client_error("torrent::initialize() called but the library has already been initialized");
 
   Timer::update();
 
-  listen = new Listen;
-  hashQueue = new HashQueue;
-  handshakes = new HandshakeManager;
-  downloadManager = new DownloadManager;
-
-  listen->slot_incoming(sigc::mem_fun(*handshakes, &HandshakeManager::add_incoming));
+  torrent = new Torrent;
+  torrent->m_listen.slot_incoming(sigc::mem_fun(torrent->m_handshakeManager, &HandshakeManager::add_incoming));
 
   throttleRead.start();
   throttleWrite.start();
 
-  handshakes->slot_connected(sigc::ptr_fun3(&receive_connection));
-  handshakes->slot_download_id(sigc::ptr_fun1(download_id));
+  torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
+  torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
 
   Poll::set_open_max(sysconf(_SC_OPEN_MAX));
 }
@@ -108,51 +146,44 @@ initialize() {
 // them to finish is not required, but recommended.
 void
 cleanup() {
-  if (listen == NULL || hashQueue == NULL || handshakes == NULL || downloadManager == NULL)
+  if (torrent == NULL)
     throw client_error("torrent::cleanup() called but the library is not initialized");
 
   throttleRead.stop();
   throttleWrite.stop();
 
-  handshakes->clear();
-  downloadManager->clear();
+  torrent->m_handshakeManager.clear();
+  torrent->m_downloadManager.clear();
 
-  delete listen;
-  delete hashQueue;
-  delete handshakes;
-  delete downloadManager;
-
-  listen = NULL;
-  hashQueue = NULL;
-  handshakes = NULL;
-  downloadManager = NULL;
+  delete torrent;
+  torrent = NULL;
 }
 
 bool
-listen_open(uint16_t begin, uint16_t end, const std::string& addr) {
+listen_open(uint16_t begin, uint16_t end) {
   if (listen == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
   SocketAddress sa;
 
-  if (!addr.empty() && !sa.set_address(addr))
+  if (!torrent->m_bind.empty() && !sa.set_address(torrent->m_bind))
     throw local_error("Could not parse the ip address to bind");
 
-  if (!listen->open(begin, end, sa))
+  if (!torrent->m_listen.open(begin, end, sa))
     return false;
 
-  handshakes->set_bind_address(sa);
+  torrent->m_handshakeManager.set_bind_address(sa);
 
-  for (DownloadManager::DownloadList::const_iterator itr = downloadManager->get_list().begin(), last = downloadManager->get_list().end();
+  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.get_list().begin(), last = torrent->m_downloadManager.get_list().end();
        itr != last; ++itr)
-    (*itr)->get_main().set_port(listen->get_port());
+    (*itr)->get_main().set_port(torrent->m_listen.get_port());
 
   return true;
 }
 
 void
 listen_close() {
-  listen->close();
+  torrent->m_listen.close();
 }
 
 // Set the file descriptors we want to pool for R/W/E events. All
@@ -236,7 +267,8 @@ download_create(std::istream* s) {
     // Make it configurable whetever we throw or return .end()?
     throw input_error("Could not create download, failed to parse the bencoded data");
   
-  d->get_main().set_port(listen->get_port());
+  d->get_main().get_me().set_dns(torrent->m_ip);
+  d->get_main().get_me().set_port(torrent->m_listen.get_port());
 
   parse_main(d->get_bencode(), d->get_main());
   parse_info(d->get_bencode()["info"], d->get_main().get_state().get_content());
@@ -244,12 +276,12 @@ download_create(std::istream* s) {
   d->initialize(bencode_hash(d->get_bencode()["info"]),
 		Settings::peerName + random_string(20 - Settings::peerName.size()));
 
-  d->set_handshake_manager(handshakes);
-  d->set_hash_queue(hashQueue);
+  d->set_handshake_manager(&torrent->m_handshakeManager);
+  d->set_hash_queue(&torrent->m_hashQueue);
 
   parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
 
-  downloadManager->add(d.get());
+  torrent->m_downloadManager.add(d.get());
 
   return Download(d.release());
 }
@@ -257,25 +289,25 @@ download_create(std::istream* s) {
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
-  for (DownloadManager::DownloadList::const_iterator itr = downloadManager->get_list().begin();
-       itr != downloadManager->get_list().end(); ++itr)
+  for (DownloadManager::DownloadList::const_iterator itr = torrent->m_downloadManager.get_list().begin();
+       itr != torrent->m_downloadManager.get_list().end(); ++itr)
     dlist.push_back(Download(*itr));
 }
 
 // Make sure you check that it's valid.
 Download
 download_find(const std::string& id) {
-  return downloadManager->find(id);
+  return torrent->m_downloadManager.find(id);
 }
 
 void
 download_remove(const std::string& id) {
-  downloadManager->remove(id);
+  torrent->m_downloadManager.remove(id);
 }
 
 Bencode&
 download_bencode(const std::string& id) {
-  DownloadWrapper* d = downloadManager->find(id);
+  DownloadWrapper* d = torrent->m_downloadManager.find(id);
 
   if (d == NULL)
     throw client_error("Tried to call download_bencode(id) with non-existing download");
@@ -288,27 +320,18 @@ int64_t
 get(GValue t) {
   switch (t) {
   case LISTEN_PORT:
-    return listen->get_port();
+    return torrent->m_listen.get_port();
 
   case HANDSHAKES_TOTAL:
-    return handshakes->get_size();
+    return torrent->m_handshakeManager.get_size();
 
   case SHUTDOWN_DONE:
-    return std::find_if(downloadManager->get_list().begin(), downloadManager->get_list().end(),
+    return std::find_if(torrent->m_downloadManager.get_list().begin(), torrent->m_downloadManager.get_list().end(),
 			std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
-      == downloadManager->get_list().end();
+      == torrent->m_downloadManager.get_list().end();
 
   case FILES_CHECK_WAIT:
     return Settings::filesCheckWait;
-
-  case DEFAULT_PEERS_MIN:
-    return DownloadSettings::global().minPeers;
-
-  case DEFAULT_PEERS_MAX:
-    return DownloadSettings::global().maxPeers;
-
-  case DEFAULT_CHOKE_CYCLE:
-    return DownloadSettings::global().chokeCycle;
 
   case TIME_CURRENT:
     return Timer::current().usec();
@@ -346,16 +369,6 @@ set(GValue t, int64_t v) {
   case FILES_CHECK_WAIT:
     if (v >= 0 && v < 60 * 1000000)
       Settings::filesCheckWait = v;
-    break;
-
-  case DEFAULT_PEERS_MIN:
-    if (v > 0 && v < 1000)
-      DownloadSettings::global().minPeers = v;
-    break;
-
-  case DEFAULT_PEERS_MAX:
-    if (v > 0 && v < 1000)
-      DownloadSettings::global().maxPeers = v;
     break;
 
   case DEFAULT_CHOKE_CYCLE:

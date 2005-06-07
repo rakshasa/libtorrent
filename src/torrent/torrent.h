@@ -33,17 +33,24 @@
 namespace torrent {
 
 class Bencode;
+class Torrent;
 
 typedef std::list<Download> DList;
 
 // Make sure you seed srandom and srand48 if available.
-void      initialize();
+void                initialize();
 
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
-void      cleanup();
+void                cleanup();
 
-bool      listen_open(uint16_t begin, uint16_t end, const std::string& addr = "");
+const std::string&  get_ip();
+void                set_ip(const std::string& addr);
+
+const std::string&  get_bind();
+void                set_bind(const std::string& addr);
+
+bool      listen_open(uint16_t begin, uint16_t end);
 void      listen_close();  
 
 // Set the file descriptors we want to pool for R/W/E events. All
@@ -77,9 +84,6 @@ typedef enum {
 
   FILES_CHECK_WAIT,        // Wait between checks during torrent init. (usec)
 
-  DEFAULT_PEERS_MIN,
-  DEFAULT_PEERS_MAX,
-
   DEFAULT_CHOKE_CYCLE,
 
   TIME_CURRENT,            // Unix time. (usec)
@@ -103,7 +107,6 @@ std::string get(GString t);
 
 void        set(GValue t, int64_t v);
 void        set(GString t, const std::string& s);
-
 
 }
 

@@ -82,12 +82,6 @@ public:
   std::string          get_root_dir();
   void                 set_root_dir(const std::string& dir);
 
-  // String to send to the tracker in the "ip" field. An empty string
-  // means that nothing gets sent. The client is responsible for setting
-  // a vaild ip address.
-  std::string          get_ip();
-  void                 set_ip(const std::string& ip);
-
   // Bytes uploaded this session.
   uint64_t             get_bytes_up();
   // Bytes downloaded this session.

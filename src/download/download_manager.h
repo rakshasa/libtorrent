@@ -31,7 +31,9 @@ class DownloadWrapper;
 
 class DownloadManager {
 public:
-  typedef std::list<DownloadWrapper*> DownloadList;
+  typedef std::list<DownloadWrapper*>  DownloadList;
+  typedef DownloadList::iterator       iterator;
+  typedef DownloadList::const_iterator const_iterator;
 
   ~DownloadManager() { clear(); }
 
@@ -42,7 +44,7 @@ public:
 
   DownloadWrapper*    find(const std::string& hash);
 
-  const DownloadList& get_list() { return m_downloads; }
+  DownloadList&       get_list() { return m_downloads; }
 
 private:
   DownloadList        m_downloads;

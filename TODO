@@ -147,3 +147,5 @@ CURRENT:
 
 Make sure setting stuff in torrent::Download does not restrict more
 thatn it should. 1000 is too low.
+
+rename *_listen_ip to something else.
