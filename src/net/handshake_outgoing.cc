@@ -28,7 +28,7 @@
 
 #include "handshake_outgoing.h"
 #include "handshake_manager.h"
-#include "poll.h"
+#include "poll_manager.h"
 
 namespace torrent {
 
@@ -44,8 +44,8 @@ HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
   m_id = ourId;
   m_local = infoHash;
 
-  Poll::write_set().insert(this);
-  Poll::except_set().insert(this);
+  PollManager::write_set().insert(this);
+  PollManager::except_set().insert(this);
  
   m_buf[0] = 19;
   std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
@@ -105,8 +105,8 @@ HandshakeOutgoing::write() {
     if (!write_buffer(m_buf + m_pos, 68, m_pos))
       return;
  
-    Poll::write_set().erase(this);
-    Poll::read_set().insert(this);
+    PollManager::write_set().erase(this);
+    PollManager::read_set().insert(this);
  
     m_pos = 0;
     m_state = READ_HEADER1;

@@ -26,7 +26,7 @@
 
 #include "handshake.h"
 #include "handshake_manager.h"
-#include "poll.h"
+#include "poll_manager.h"
 
 namespace torrent {
 
@@ -39,9 +39,9 @@ Handshake::~Handshake() {
 
 void
 Handshake::clear_poll() {
-  Poll::read_set().erase(this);
-  Poll::write_set().erase(this);
-  Poll::except_set().erase(this);
+  PollManager::read_set().erase(this);
+  PollManager::write_set().erase(this);
+  PollManager::except_set().erase(this);
 }
 
 void

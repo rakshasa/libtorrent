@@ -55,10 +55,13 @@ public:
 
   void                clear();
 
-  iterator            insert(FileMeta* f);
+  void                insert(FileMeta* f);
 
   size_t              open_size() const                  { return m_openSize; }
   size_t              max_size() const                   { return m_maxSize; }
+
+  // Rename to get/set_max_open?
+  void                set_max_size(size_t s);
 
 private:
   FileManager(const FileManager&);

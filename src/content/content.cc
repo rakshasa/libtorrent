@@ -22,15 +22,14 @@
 
 #include "config.h"
 
+#include <memory>
+
 #include "torrent/exceptions.h"
 #include "content.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
 
 namespace torrent {
-
-// Very low for the moment.
-FileManager Content::m_fileManager(100);
 
 void
 Content::add_file(const Path& path, uint64_t size) {
@@ -140,28 +139,25 @@ Content::open(bool wr) {
   // Make sure root directory exists, Can't make recursively, so the client must
   // make sure the parent dir of 'm_rootDir' exists.
   Path::mkdir(m_rootDir);
-
   Path lastPath;
 
   for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    FileMeta* f = new FileMeta;
+    std::auto_ptr<FileMeta> f(new FileMeta);
 
     try {
-      open_file(f, itr->get_path(), lastPath);
+      open_file(f.get(), itr->get_path(), lastPath);
+      m_slotOpenedFile(f.get());
 
     } catch (base_error& e) {
       f->get_file().close();
-      delete f;
       m_storage.clear();
 
       throw;
     }
 
-    m_fileManager.insert(f);
+    m_storage.get_consolidator().push_back(f.release(), itr->get_size());
 
     lastPath = itr->get_path();
-
-    m_storage.get_consolidator().push_back(f, itr->get_size());
   }
 
   m_bitfield = BitField(m_storage.get_chunk_total());

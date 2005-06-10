@@ -32,7 +32,7 @@
 
 #include "download/download_state.h"
 #include "peer_connection.h"
-#include "net/poll.h"
+#include "net/poll_manager.h"
 #include "settings.h"
 
 namespace torrent {
@@ -66,9 +66,9 @@ PeerConnection::~PeerConnection() {
   if (m_read->get_state() != ProtocolRead::BITFIELD)
     m_state->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
-  Poll::read_set().erase(this);
-  Poll::write_set().erase(this);
-  Poll::except_set().erase(this);
+  PollManager::read_set().erase(this);
+  PollManager::write_set().erase(this);
+  PollManager::except_set().erase(this);
   
   m_fd.close();
   m_fd.clear();
@@ -82,7 +82,7 @@ PeerConnection::choke(bool v) {
   m_sendChoked = true;
   m_write->set_choked(v);
   
-  Poll::write_set().insert(this);
+  PollManager::write_set().insert(this);
 }
 
 void
@@ -127,9 +127,9 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   if (m_bitfield.begin() == NULL)
     throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
 
-  Poll::read_set().insert(this);
-  Poll::write_set().insert(this);
-  Poll::except_set().insert(this);
+  PollManager::read_set().insert(this);
+  PollManager::write_set().insert(this);
+  PollManager::except_set().insert(this);
 
   m_write->get_buffer().reset_position();
   m_read->get_buffer().reset_position();
@@ -294,7 +294,7 @@ void PeerConnection::read() {
     m_read->set_state(ProtocolRead::IDLE);
     m_state->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
-    Poll::write_set().insert(this);
+    PollManager::write_set().insert(this);
     goto evil_goto_read;
 
   case ProtocolRead::READ_PIECE:
@@ -328,7 +328,7 @@ void PeerConnection::read() {
     // TODO: clear m_down.data?
     // TODO: remove throttle if choked? Rarely happens though.
 
-    Poll::write_set().insert(this);
+    PollManager::write_set().insert(this);
 
     goto evil_goto_read;
 
@@ -406,7 +406,7 @@ void PeerConnection::write() {
     fillWriteBuf();
 
     if (m_write->get_buffer().size_position() == 0)
-      return Poll::write_set().erase(this);
+      return PollManager::write_set().erase(this);
 
     m_write->set_state(ProtocolWrite::MSG);
     m_write->get_buffer().prepare_end();
@@ -524,7 +524,7 @@ void PeerConnection::parseReadBuf() {
     // We're inserting in read throttle when we receive a piece.
     //insert_read_throttle();
 
-    return Poll::write_set().insert(this);
+    return PollManager::write_set().insert(this);
 
   case ProtocolBase::INTERESTED:
     m_read->set_interested(true);
@@ -552,7 +552,7 @@ void PeerConnection::parseReadBuf() {
   case ProtocolBase::REQUEST:
     if (!m_write->get_choked()) {
       receive_request_piece(m_read->read_request());
-      Poll::write_set().insert(this);
+      PollManager::write_set().insert(this);
     }
 
     return;
@@ -682,7 +682,7 @@ void PeerConnection::sendHave(int index) {
   // TODO: Also send cancel messages!
 
   // TODO: Remove this so we group the have messages with other stuff.
-  Poll::write_set().insert(this);
+  PollManager::write_set().insert(this);
 }
 
 bool
@@ -707,7 +707,7 @@ PeerConnection::receive_request_piece(Piece p) {
   if (itr == m_sends.end())
     m_sends.push_back(p);
 
-  Poll::write_set().insert(this);
+  PollManager::write_set().insert(this);
 }
 
 void
@@ -738,7 +738,7 @@ PeerConnection::receive_have(uint32_t index) {
     m_sendInterested = true;
     m_write->set_interested(true);
 
-    Poll::write_set().insert(this);
+    PollManager::write_set().insert(this);
   }
 
   // Make sure m_tryRequest is set even if we were previously
@@ -790,7 +790,7 @@ PeerConnection::task_keep_alive() {
     m_write->get_buffer().prepare_end();
     m_write->set_state(ProtocolWrite::MSG);
 
-    Poll::write_set().insert(this);
+    PollManager::write_set().insert(this);
   }
 
   m_tryRequest = true;
@@ -801,7 +801,7 @@ void
 PeerConnection::task_send_choke() {
   m_sendChoked = true;
 
-  Poll::write_set().insert(this);
+  PollManager::write_set().insert(this);
 }
 
 void

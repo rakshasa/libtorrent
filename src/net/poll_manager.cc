@@ -22,16 +22,16 @@
 
 #include "config.h"
 
-#include "poll.h"
+#include "poll_manager.h"
 
 namespace torrent {
 
-SocketSet Poll::m_readSet;
-SocketSet Poll::m_writeSet;
-SocketSet Poll::m_exceptSet;
+SocketSet PollManager::m_readSet;
+SocketSet PollManager::m_writeSet;
+SocketSet PollManager::m_exceptSet;
 
 void
-Poll::set_open_max(int s) {
+PollManager::set_open_max(int s) {
   m_readSet.reserve(s);
   m_writeSet.reserve(s);
   m_exceptSet.reserve(s);

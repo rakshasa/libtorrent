@@ -35,8 +35,7 @@
 
 #include "config.h"
 
-#include <malloc.h>
-#include <memory.h>
+#include <string.h>
 #include "sha_fast.h"
 
 namespace torrent {

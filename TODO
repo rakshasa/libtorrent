@@ -123,6 +123,8 @@ Add buffer read of piece.
 
 Fix tracker so it checks regulary when too few peers are connected.
 
+Lock file in session directory.
+
 
 POLLING:
 
@@ -137,3 +139,10 @@ Resync upon loading a torrent, to reset it's timestamp? Use ftruncate.
 CLEANUP:
 
 ref_anchored... urgh...
+
+
+BUG:
+
+Doesn't start uploading, when unchoked/throttled to zero or something.
+
+Possible bug when doing sync on torrents > 4.2GB.

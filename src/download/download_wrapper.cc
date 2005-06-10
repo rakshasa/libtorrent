@@ -26,6 +26,7 @@
 
 #include "torrent/exceptions.h"
 #include "data/hash_queue.h"
+#include "data/file_manager.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
 #include "net/handshake_manager.h"
@@ -162,6 +163,11 @@ DownloadWrapper::stop() {
   // TODO: This is just wrong.
   m_hash->stop();
   m_hash->get_queue()->remove(get_hash());
+}
+
+void
+DownloadWrapper::set_file_manager(FileManager* f) {
+  m_main.get_state().get_content().slot_opened_file(sigc::mem_fun(*f, &FileManager::insert));
 }
 
 void

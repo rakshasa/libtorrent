@@ -30,7 +30,6 @@
 #include "utils/bitfield.h"
 #include "content_file.h"
 #include "data/storage.h"
-#include "data/file_manager.h"
 #include "data/piece.h"
 
 namespace torrent {
@@ -45,8 +44,10 @@ namespace torrent {
 
 class Content {
 public:
-  typedef std::vector<ContentFile> FileList;
-  typedef sigc::signal0<void>      SignalDownloadDone;
+  typedef std::vector<ContentFile>     FileList;
+  typedef sigc::slot1<void, FileMeta*> SlotFileMeta;
+  typedef sigc::signal0<void>          SignalDownloadDone;
+
   // Hash done signal, hash failed signal++
 
   Content() : m_size(0), m_completed(0), m_rootDir(".") {}
@@ -58,27 +59,27 @@ public:
   void                   set_root_dir(const std::string& path);
 
   std::string            get_hash(unsigned int index);
-  const char*            get_hash_c(unsigned int index)  { return m_hash.c_str() + 20 * index; }
-  const std::string&     get_complete_hash()             { return m_hash; }
-  const std::string&     get_root_dir()                  { return m_rootDir; }
+  const char*            get_hash_c(unsigned int index)       { return m_hash.c_str() + 20 * index; }
+  const std::string&     get_complete_hash()                  { return m_hash; }
+  const std::string&     get_root_dir()                       { return m_rootDir; }
 
-  uint64_t               get_size()                      { return m_size; }
-  uint32_t               get_chunks_completed()          { return m_completed; }
+  uint64_t               get_size()                           { return m_size; }
+  uint32_t               get_chunks_completed()               { return m_completed; }
   uint64_t               get_bytes_completed();
 
   uint32_t               get_chunksize(uint32_t index) const;
 
-  BitField&              get_bitfield()                  { return m_bitfield; }
-  FileList&              get_files()                     { return m_files; }
-  Storage&               get_storage()                   { return m_storage; }
+  BitField&              get_bitfield()                       { return m_bitfield; }
+  FileList&              get_files()                          { return m_files; }
+  Storage&               get_storage()                        { return m_storage; }
 
-  bool                   is_open() const                 { return m_storage.get_bytes_size(); }
+  bool                   is_open() const                      { return m_storage.get_bytes_size(); }
   bool                   is_correct_size();
-  bool                   is_done() const                 { return m_completed == m_storage.get_chunk_total(); }
+  bool                   is_done() const                      { return m_completed == m_storage.get_chunk_total(); }
 
   bool                   is_valid_piece(const Piece& p) const;
 
-  bool                   has_chunk(uint32_t index) const { return m_bitfield[index]; }
+  bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
 
   void                   open(bool wr = false);
   void                   close();
@@ -88,7 +89,9 @@ public:
   void                   mark_done(uint32_t index);
   void                   update_done();
 
-  SignalDownloadDone&    signal_download_done()          { return m_downloadDone; }
+  void                   slot_opened_file(SlotFileMeta s)     { m_slotOpenedFile = s; }
+
+  SignalDownloadDone&    signal_download_done()               { return m_downloadDone; }
 
 private:
   
@@ -96,8 +99,6 @@ private:
 
   FileList::iterator     mark_done_file(FileList::iterator itr, uint32_t index);
   ContentFile::Range     make_index_range(uint64_t pos, uint64_t size) const;
-
-  static FileManager     m_fileManager;
 
   off_t                  m_size;
   uint32_t               m_completed;
@@ -110,6 +111,7 @@ private:
   std::string            m_rootDir;
   std::string            m_hash;
 
+  SlotFileMeta           m_slotOpenedFile;
   SignalDownloadDone     m_downloadDone;
 };
 

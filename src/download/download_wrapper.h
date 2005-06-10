@@ -33,6 +33,7 @@ namespace torrent {
 
 // Remember to clean up the pointers, DownloadWrapper won't do it.
 
+  class FileManager;
 class HashQueue;
 class HandshakeManager;
 
@@ -59,6 +60,7 @@ public:
   Bencode&            get_bencode()       { return m_bencode; }
   HashTorrent&        get_hash_checker()  { return *m_hash.get(); }
 
+  void                set_file_manager(FileManager* f);
   void                set_handshake_manager(HandshakeManager* h);
   void                set_hash_queue(HashQueue* h);
 

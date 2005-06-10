@@ -24,7 +24,7 @@
 #define LIBTORRENT_NEW_PEER_CONNECTION_BASE_H
 
 #include "data/piece.h"
-#include "net/poll.h"
+#include "net/poll_manager.h"
 #include "net/protocol_buffer.h"
 #include "net/protocol_chunk.h"
 #include "net/protocol_read.h"

@@ -48,7 +48,7 @@ FileManager::clear() {
   Base::clear();
 }
 
-FileManager::iterator
+void
 FileManager::insert(FileMeta* f) {
   if (f->is_valid())
     throw internal_error("FileManager::insert(...) received an already valid FileMeta");
@@ -64,8 +64,14 @@ FileManager::insert(FileMeta* f) {
 
   // Hmm... insert or push_back?
   Base::push_back(f);
+}
 
-  return --end();
+void
+FileManager::set_max_size(size_t s) {
+  m_maxSize = s;
+
+  while (m_openSize > m_maxSize)
+    close_least_active();
 }
 
 bool
@@ -98,7 +104,7 @@ FileManager::remove_file(FileMeta* meta) {
   if ((*itr)->is_open())
     close_file(meta);
 
-  // TODO: Use something else here, like std::remove
+  // TODO: Use something else here, like swap with last.
   Base::erase(itr);
 }
 

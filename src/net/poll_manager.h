@@ -20,8 +20,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_POLL_H
-#define LIBTORRENT_NET_POLL_H
+#ifndef LIBTORRENT_NET_POLL_MANAGER_H
+#define LIBTORRENT_NET_POLL_MANAGER_H
 
 #include "socket_set.h"
 
@@ -32,7 +32,7 @@ namespace torrent {
 // Poll::*_set()'s before adding the target SocketBase to the set's or
 // clearing the source SocketBase's fd.
 
-class Poll {
+class PollManager {
 public:
   
   static void         set_open_max(int s);

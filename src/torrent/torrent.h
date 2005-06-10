@@ -33,7 +33,6 @@
 namespace torrent {
 
 class Bencode;
-class Torrent;
 
 typedef std::list<Download> DList;
 
@@ -60,6 +59,7 @@ bool                is_inactive();
 const std::string&  get_ip();
 void                set_ip(const std::string& addr);
 
+// Bind the sockets to a specific network device.
 const std::string&  get_bind();
 void                set_bind(const std::string& addr);
 
@@ -82,6 +82,9 @@ std::string         get_version();
 // Disk access tuning.
 unsigned int        get_hash_read_ahead();
 void                set_hash_read_ahead(unsigned int bytes);
+
+unsigned int        get_max_open_files();
+void                set_max_open_files(unsigned int size);
 
 // The below API might/might not be cleaned up.
 

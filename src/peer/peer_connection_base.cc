@@ -74,7 +74,7 @@ PeerConnectionBase::write_chunk() {
   int quota = m_writeThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_writeThrottle->get_quota();
 
   if (quota < 512) {
-    Poll::write_set().erase(this);
+    PollManager::write_set().erase(this);
     return false;
   }
 
@@ -95,7 +95,7 @@ PeerConnectionBase::read_chunk() {
   int quota = m_readThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_readThrottle->get_quota();
 
   if (quota < 512) {
-    Poll::read_set().erase(this);
+    PollManager::read_set().erase(this);
     return false;
   }
 
@@ -110,12 +110,12 @@ PeerConnectionBase::read_chunk() {
 
 void
 PeerConnectionBase::receive_throttle_read_activate() {
-  Poll::read_set().insert(this);
+  PollManager::read_set().insert(this);
 }
 
 void
 PeerConnectionBase::receive_throttle_write_activate() {
-  Poll::write_set().insert(this);
+  PollManager::write_set().insert(this);
 }
 
 }

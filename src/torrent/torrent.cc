@@ -39,9 +39,10 @@
 #include "utils/throttle.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
-#include "net/poll.h"
+#include "net/poll_manager.h"
 #include "net/poll_select.h"
 #include "parse/parse.h"
+#include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/download_manager.h"
@@ -57,6 +58,8 @@ ThrottlePeer throttleWrite;
 // New API.
 class Torrent {
 public:
+  Torrent() : m_fileManager(100) {}
+
   std::string         m_ip;
   std::string         m_bind;
 
@@ -64,6 +67,8 @@ public:
   HashQueue           m_hashQueue;
   HandshakeManager    m_handshakeManager;
   DownloadManager     m_downloadManager;
+
+  FileManager         m_fileManager;
 };
 
 Torrent* torrent = NULL;
@@ -123,7 +128,7 @@ initialize() {
   torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
   torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
 
-  Poll::set_open_max(sysconf(_SC_OPEN_MAX));
+  PollManager::set_open_max(sysconf(_SC_OPEN_MAX));
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -179,14 +184,14 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
 
   *maxFd = 0;
 
-  Poll::read_set().prepare();
-  std::for_each(Poll::read_set().begin(), Poll::read_set().end(), poll_mark(readSet, maxFd));
+  PollManager::read_set().prepare();
+  std::for_each(PollManager::read_set().begin(), PollManager::read_set().end(), poll_mark(readSet, maxFd));
 
-  Poll::write_set().prepare();
-  std::for_each(Poll::write_set().begin(), Poll::write_set().end(), poll_mark(writeSet, maxFd));
+  PollManager::write_set().prepare();
+  std::for_each(PollManager::write_set().begin(), PollManager::write_set().end(), poll_mark(writeSet, maxFd));
   
-  Poll::except_set().prepare();
-  std::for_each(Poll::except_set().begin(), Poll::except_set().end(), poll_mark(exceptSet, maxFd));
+  PollManager::except_set().prepare();
+  std::for_each(PollManager::except_set().begin(), PollManager::except_set().end(), poll_mark(exceptSet, maxFd));
 }
 
 // Do work on the polled file descriptors.
@@ -201,16 +206,16 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
 
-  Poll::except_set().prepare();
-  std::for_each(Poll::except_set().begin(), Poll::except_set().end(),
+  PollManager::except_set().prepare();
+  std::for_each(PollManager::except_set().begin(), PollManager::except_set().end(),
 		poll_check(exceptSet, std::mem_fun(&SocketBase::except)));
 
-  Poll::read_set().prepare();
-  std::for_each(Poll::read_set().begin(), Poll::read_set().end(),
+  PollManager::read_set().prepare();
+  std::for_each(PollManager::read_set().begin(), PollManager::read_set().end(),
 		poll_check(readSet, std::mem_fun(&SocketBase::read)));
 
-  Poll::write_set().prepare();
-  std::for_each(Poll::write_set().begin(), Poll::write_set().end(),
+  PollManager::write_set().prepare();
+  std::for_each(PollManager::write_set().begin(), PollManager::write_set().end(),
 		poll_check(writeSet, std::mem_fun(&SocketBase::write)));
 
   // TODO: Consider moving before the r/w/e. libsic++ should remove the use of
@@ -315,6 +320,16 @@ set_hash_read_ahead(unsigned int bytes) {
     Settings::hashWillneed = bytes;
 }
 
+unsigned int
+get_max_open_files() {
+  return torrent->m_fileManager.max_size();
+}
+
+void
+set_max_open_files(unsigned int size) {
+  torrent->m_fileManager.set_max_size(size);
+}
+
 Download
 download_create(std::istream* s) {
   if (s == NULL)
@@ -342,6 +357,7 @@ download_create(std::istream* s) {
 
   d->set_handshake_manager(&torrent->m_handshakeManager);
   d->set_hash_queue(&torrent->m_hashQueue);
+  d->set_file_manager(&torrent->m_fileManager);
 
   parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
 
