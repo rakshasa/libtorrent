@@ -71,10 +71,14 @@ struct DelegatorCheckAggressive {
     m_delegator(delegator), m_target(target), m_overlapp(o), m_bitfield(bf) {}
 
   bool operator () (DelegatorChunk* d) {
-    return
-      m_bitfield->get(d->get_index()) &&
-      (*m_target = m_delegator->delegate_aggressive(d, m_overlapp)) != NULL &&
-      m_overlapp == 0;
+    DelegatorPiece* tmp;
+
+    if (!m_bitfield->get(d->get_index()) ||
+	(tmp = m_delegator->delegate_aggressive(d, m_overlapp)) == NULL)
+      return false;
+
+    *m_target = tmp;
+    return m_overlapp == 0;
   }
 
   Delegator*          m_delegator;
@@ -249,13 +253,11 @@ DelegatorPiece*
 Delegator::delegate_aggressive(DelegatorChunk* c, uint16_t* overlapped) {
   DelegatorPiece* p = NULL;
 
-  for (DelegatorChunk::iterator i = c->begin(); i != c->end() && *overlapped != 0; ++i) {
-    if (i->is_finished() || i->get_not_stalled() >= *overlapped)
-      continue;
-
-    p = &*i;
-    *overlapped = i->get_not_stalled();
-  }
+  for (DelegatorChunk::iterator i = c->begin(); i != c->end() && *overlapped != 0; ++i)
+    if (!i->is_finished() && i->get_not_stalled() < *overlapped) {
+      p = &*i;
+      *overlapped = i->get_not_stalled();
+    }
       
   return p;
 }

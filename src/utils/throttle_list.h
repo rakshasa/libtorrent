@@ -34,10 +34,6 @@ namespace torrent {
 // permanent. When (unless i find find a non-sorting algorithm) the
 // list is sorted, the iterators stay valid.
 
-struct ThrottleListCompUsed {
-  template <typename T> bool operator () (const T& t1, const T& t2) const { return t1.get_used() < t2.get_used(); }
-};
-
 template <typename T>
 class ThrottleList : private std::list<T> {
 public:
@@ -63,7 +59,7 @@ public:
 
   ThrottleList() : m_size(0), m_quota(UNLIMITED) {}
 
-  void                sort()                        { Base::sort(ThrottleListCompUsed()); }
+//   void                sort()                        { Base::sort(ThrottleListCompUsed()); }
   void                quota(int v);
 
   iterator            insert(const_reference t);
@@ -79,7 +75,7 @@ private:
 template <typename T> 
 struct ThrottleListSetUnlimited {
   void operator () (T& n) {
-    n.set_quota(T::UNLIMITED);
+    n.update_quota(T::UNLIMITED);
     n.activate();
   }
 };  
@@ -108,30 +104,36 @@ struct ThrottleListSet {
     return quota;
   }
 
-  // We set a target of 'used' + 1000 bytes, which will guarantee that
-  // the node gradually builds up to 1000 when given very low quotas
-  // each tick.
   int quota_stable(T& t, int quota) {
-    int v = std::min(t.get_used() + 2 * 1024 - t.get_quota(), quota);
+    int base = std::max(0, t.get_quota() - t.get_used());
+    int target = std::max(2048, t.get_used() * 2);
+    int delegate = std::min(quota, std::max(0, target - base));
 
-    if (v <= 0)
-      return 0;
-
-    t.update_quota(t.get_quota() + v);
-    return v;
+    t.update_quota(base + delegate);
+    return delegate;
   }
 
   int m_quota;  
   int m_size;  
 };  
 
+// struct ThrottleListNotStarved {
+//   template <typename T> bool operator () (const T& t1, const T& t2) const {
+//     return t1.get_quota() && !t2.get_quota();
+//   }
+// };
+
 template <typename T> inline void
 ThrottleList<T>::quota(int v) {
-  if (v != UNLIMITED)
+  if (v != UNLIMITED) {
+    // Stable partition on starved nodes will put hungry nodes last in
+    // the list over time.
+//     Base::sort(ThrottleListNotStarved());
     std::for_each(begin(), end(), ThrottleListSet<T>(v, m_size));
 
-  else if (m_quota != UNLIMITED)
+  } else if (m_quota != UNLIMITED) {
     std::for_each(begin(), end(), ThrottleListSetUnlimited<T>());
+  }
 
   m_quota = v;
 }
