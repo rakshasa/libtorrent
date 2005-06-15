@@ -57,6 +57,8 @@ public:
 
   ThrottleControl();
 
+  bool                is_unlimited() const          { return m_quota == UNLIMITED; }
+
   int                 get_interval() const          { return m_interval; }
   void                set_interval(int v)           { m_interval = v; }
 
@@ -90,7 +92,10 @@ ThrottleControl<T>::ThrottleControl() :
 
 template <typename T> void
 ThrottleControl<T>::receive_tick() {
-  Base::quota(m_quota);
+  if (!is_unlimited())
+    Base::quota(m_quota + std::max<int>(0, m_quota - m_rate.rate()) * 30);
+  else
+    Base::quota(m_quota);
 
   m_taskTick.insert(Timer::cache() + m_interval);
 }

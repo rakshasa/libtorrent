@@ -143,10 +143,13 @@ ref_anchored... urgh...
 
 BUG:
 
-* Doesn't start uploading, when unchoked/throttled to zero or something.
+[FIXED?] Doesn't start uploading, when unchoked/throttled to zero or something.
 
 Possible bug when doing sync on torrents > 4.2GB, over NFS.
 
 Don't use function pointers in throttle, templates should work as well.
 
-throttle used bytes is not being reset when doing unlimited.
+
+RELEASE:
+
+Remove read/write_chunk exceptions.
