@@ -24,8 +24,9 @@
 #define LIBTORRENT_UTILS_THROTTLE_LIST_H
 
 #include <algorithm>
-#include <functional>
 #include <list>
+
+#include "rak/functional.h"
 #include "throttle_node.h"
 
 namespace torrent {
@@ -66,6 +67,8 @@ public:
   void                erase(iterator itr)           { m_size--; Base::erase(itr); }
 
   size_type           size() const                  { return m_size; }
+  
+  int                 get_used() const;
 
 private:
   size_type           m_size;
@@ -81,27 +84,18 @@ struct ThrottleListSetUnlimited {
 };  
 
 template <typename T>
-struct ThrottleListSet {
-  ThrottleListSet(int quota, int size) : m_quota(quota), m_size(size) {}
+struct ThrottleListSetStable {
+  ThrottleListSetStable(int quota, int size) : m_quota(quota), m_size(size) {}
 
   void operator () (T& t) {
-    // Check if we're low on nibbles.
+    if (t.get_quota() <= 0)
+      return;
 
-    if (t.get_quota() > 0)
-      m_quota -= quota_stable(t, m_quota / m_size);
-    else
-      m_quota -= quota_starving(t, m_quota / m_size);
-
+    m_quota -= quota_stable(t, m_quota / m_size);
     m_size--;
 
     if (t.get_quota() >= 1024)
       t.activate();
-  }
-
-  int quota_starving(T& t, int quota) {
-    t.update_quota(quota);
-
-    return quota;
   }
 
   int quota_stable(T& t, int quota) {
@@ -117,21 +111,35 @@ struct ThrottleListSet {
   int m_size;  
 };  
 
-// struct ThrottleListNotStarved {
-//   template <typename T> bool operator () (const T& t1, const T& t2) const {
-//     return t1.get_quota() && !t2.get_quota();
-//   }
-// };
+template <typename T>
+struct ThrottleListSetStarving {
+  ThrottleListSetStarving(int quota, int size) : m_quota(quota), m_size(size) {}
 
-template <typename T> inline void
+  void operator () (T& t) {
+    if (t.get_quota() > 0)
+      return;
+
+    t.update_quota(m_quota / m_size);
+
+    if (t.get_quota() >= 1024)
+      t.activate();
+  }
+
+  int m_quota;  
+  int m_size;  
+};  
+
+template <typename T> void
 ThrottleList<T>::quota(int v) {
   if (v != UNLIMITED) {
     // Stable partition on starved nodes will put hungry nodes last in
-    // the list over time.
-//     Base::sort(ThrottleListNotStarved());
-    std::for_each(begin(), end(), ThrottleListSet<T>(v, m_size));
+    // the list over time. TODO?
+    ThrottleListSetStable<T> stable(v, m_size);
 
-  } else if (m_quota != UNLIMITED) {
+    std::for_each(begin(), end(), stable);
+    std::for_each(begin(), end(), ThrottleListSetStarving<T>(stable.m_quota, stable.m_size));
+
+  } else {// if (m_quota != UNLIMITED) { // Some bug somewhere... find it please
     std::for_each(begin(), end(), ThrottleListSetUnlimited<T>());
   }
 
@@ -146,6 +154,13 @@ ThrottleList<T>::insert(const_reference t) {
   itr->update_quota(m_quota != UNLIMITED ? m_quota / m_size : UNLIMITED);
 
   return itr;
+}
+
+template <typename T> inline int
+ThrottleList<T>::get_used() const {
+  int used = 0;
+  std::for_each(begin(), end(), rak::accumulate(used, std::mem_fun_ref(&ThrottleNode<T>::get_used)));
+  return used;
 }
 
 }

@@ -23,7 +23,6 @@
 #include "config.h"
 
 #include <functional>
-#include <netinet/in.h>
 
 #include "torrent/exceptions.h"
 #include "delegator_select.h"

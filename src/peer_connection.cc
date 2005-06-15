@@ -346,6 +346,7 @@ void PeerConnection::read() {
       return;
 
     m_readRate.insert(m_read->get_position());
+    throttleRead.get_rate().insert(m_read->get_position());
 
     m_read->set_length(m_read->get_length() - m_read->get_position());
     m_read->set_position(0);

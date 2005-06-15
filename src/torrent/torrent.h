@@ -71,11 +71,14 @@ int64_t             get_current_time();
 int64_t             get_next_timeout();
 
 // 0 == UNLIMITED.
-unsigned int        get_read_throttle();
-void                set_read_throttle(unsigned int bytes);
+int                 get_read_throttle();
+void                set_read_throttle(int bytes);
 
-unsigned int        get_write_throttle();
-void                set_write_throttle(unsigned int bytes);
+int                 get_write_throttle();
+void                set_write_throttle(int bytes);
+
+int                 get_read_rate();
+int                 get_write_rate();
 
 std::string         get_version();
 

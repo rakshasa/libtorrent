@@ -23,6 +23,7 @@
 #ifndef LIBTORRENT_UTILS_THROTTLE_CONTROL_H
 #define LIBTORRENT_UTILS_THROTTLE_CONTROL_H
 
+#include "rate.h"
 #include "task.h"
 #include "throttle_list.h"
 
@@ -61,6 +62,8 @@ public:
 
   int                 get_quota() const             { return m_quota; }
   void                set_quota(int v)              { m_quota = v; }
+  
+  Rate&               get_rate()                    { return m_rate; }
 
   void                start()                       { m_taskTick.insert(Timer::cache()); }
   void                stop()                        { m_taskTick.remove(); }
@@ -69,11 +72,13 @@ private:
   ThrottleControl(const ThrottleControl&);
   void operator = (const ThrottleControl&);
 
-  void                receive_tick()                { Base::quota(m_quota); m_taskTick.insert(Timer::cache() + m_interval); }
+  void                receive_tick();
 
   int                 m_interval;
   int                 m_quota;
+
   Task                m_taskTick;
+  Rate                m_rate;
 };
 
 template <typename T>
@@ -81,6 +86,13 @@ ThrottleControl<T>::ThrottleControl() :
   m_interval(1000000),
   m_quota(UNLIMITED),
   m_taskTick(sigc::mem_fun(*this, &ThrottleControl::receive_tick)) {
+}
+
+template <typename T> void
+ThrottleControl<T>::receive_tick() {
+  Base::quota(m_quota);
+
+  m_taskTick.insert(Timer::cache() + m_interval);
 }
 
 }

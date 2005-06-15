@@ -319,7 +319,7 @@ void
 Download::peer_list(PList& pList) {
   std::for_each(m_ptr->get_main().get_net().get_connections().begin(),
 		m_ptr->get_main().get_net().get_connections().end(),
-		rak::bind1st(std::mem_fun(&PList::push_back), &pList));
+		rak::bind1st(std::mem_fun<void,PList>(&PList::push_back), &pList));
 }
 
 Peer

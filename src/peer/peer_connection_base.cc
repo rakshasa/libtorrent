@@ -73,6 +73,12 @@ PeerConnectionBase::write_chunk() {
 
   int quota = m_writeThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_writeThrottle->get_quota();
 
+//   if (quota == 0)
+//     throw internal_error("PeerConnectionBase::write_chunk() zero quota");
+
+  if (quota < 0)
+    throw internal_error("PeerConnectionBase::write_chunk() less-than zero quota");
+
   if (quota < 512) {
     PollManager::write_set().erase(this);
     return false;
@@ -82,6 +88,7 @@ PeerConnectionBase::write_chunk() {
 
   m_writeRate.insert(bytes);
   m_writeThrottle->used(bytes);
+  throttleWrite.get_rate().insert(bytes);
   m_net->get_write_rate().insert(bytes);
 
   return m_writeChunk.is_done();
@@ -94,6 +101,12 @@ PeerConnectionBase::read_chunk() {
 
   int quota = m_readThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_readThrottle->get_quota();
 
+//   if (quota == 0)
+//     throw internal_error("PeerConnectionBase::read_chunk() zero quota");
+
+  if (quota < 0)
+    throw internal_error("PeerConnectionBase::read_chunk() less-than zero quota");
+
   if (quota < 512) {
     PollManager::read_set().erase(this);
     return false;
@@ -103,6 +116,7 @@ PeerConnectionBase::read_chunk() {
 
   m_readRate.insert(bytes);
   m_readThrottle->used(bytes);
+  throttleRead.get_rate().insert(bytes);
   m_net->get_read_rate().insert(bytes);
 
   return m_readChunk.is_done();

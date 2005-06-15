@@ -22,7 +22,6 @@
 
 #include "config.h"
 
-#include <netinet/in.h>
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"

@@ -284,24 +284,34 @@ get_next_timeout() {
   return TaskSchedule::get_timeout().usec();
 }
 
-unsigned int
+int
 get_read_throttle() {
   return std::max(throttleRead.get_quota(), 0);
 }
 
 void
-set_read_throttle(unsigned int bytes) {
+set_read_throttle(int bytes) {
   throttleRead.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 
-unsigned int
+int
 get_write_throttle() {
   return std::max(throttleWrite.get_quota(), 0);
 }
 
 void
-set_write_throttle(unsigned int bytes) {
+set_write_throttle(int bytes) {
   throttleWrite.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
+}
+
+int
+get_read_rate() {
+  return throttleRead.get_rate().rate();
+}
+
+int
+get_write_rate() {
+  return throttleWrite.get_rate().rate();
 }
 
 std::string
