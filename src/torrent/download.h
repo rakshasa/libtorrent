@@ -78,6 +78,9 @@ public:
   std::string          get_hash();
   std::string          get_id();
 
+  // Unix epoche, 0 == unknown.
+  uint32_t             get_creation_date();
+
   // Only set the root directory while the torrent is closed.
   std::string          get_root_dir();
   void                 set_root_dir(const std::string& dir);
@@ -123,6 +126,8 @@ public:
   // Access the trackers in the torrent.
   Tracker              get_tracker(uint32_t index);
   uint32_t             get_tracker_size();
+
+  void                 cycle_tracker_group(int group);
 
   // Access the files in the torrent.
   Entry                get_entry(uint32_t index);

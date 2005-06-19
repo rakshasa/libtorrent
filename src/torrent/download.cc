@@ -112,6 +112,12 @@ Download::get_id() {
   return m_ptr ? m_ptr->get_main().get_me().get_id() : "";
 }
 
+uint32_t
+Download::get_creation_date() {
+  return m_ptr->get_bencode().has_key("creation date") && m_ptr->get_bencode()["creation date"].is_value() ?
+    m_ptr->get_bencode()["creation date"].as_value() : 0;
+}
+
 std::string
 Download::get_root_dir() {
   return m_ptr->get_main().get_state().get_content().get_root_dir();
@@ -270,6 +276,11 @@ Download::get_tracker(uint32_t index) {
 uint32_t
 Download::get_tracker_size() {
   return m_ptr->get_main().get_tracker().get_list().size();
+}
+
+void
+Download::cycle_tracker_group(int group) {
+  m_ptr->get_main().get_tracker().cycle_group(group);
 }
 
 Entry

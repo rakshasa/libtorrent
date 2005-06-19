@@ -29,6 +29,8 @@ namespace torrent {
 
 class TrackerHttp;
 
+// Consider changing into a Download + tracker id.
+
 class Tracker {
 public:
   typedef std::pair<int, TrackerHttp*> value_type;

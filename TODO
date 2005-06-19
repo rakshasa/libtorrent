@@ -154,12 +154,22 @@ Throttle might not give correct size when for_each'ing each, since zero byte quo
 
 RELEASE:
 
-Save state information.
+Move download management out of core::Manager, use slots to do stuff
+upon torrent open/close, start/stop etc.
 
 Recheck hash key and option to check after download.
+
+Save state information.
 
 Do sync on all stopped downloads.
 
 Remove read/write_chunk exceptions.
 
 Create a man page.
+
+Possibly do sync before/after checking hash. Don't sync complete
+chunks as they were synced at the time of hash checking? Read the list
+of dirty chunks from the delegator. Need to fix the problem of corrupt
+downloads due to lack of diskspace.
+
+Fix TaskSchedule's static init sequence problem.

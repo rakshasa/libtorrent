@@ -74,4 +74,21 @@ TrackerList::begin_group(int group) {
 		      rak::less_equal(group, rak::mem_ptr_ref(&value_type::first)));
 }
 
+void
+TrackerList::cycle_group(int group) {
+  iterator itr = begin_group(group);
+  iterator prev = itr;
+
+  if (itr == end() || itr->first != group)
+    return;
+
+  while (++itr != end() && itr->first == group) {
+    value_type tmp = *itr;
+    *itr = *prev;
+    *prev = tmp;
+
+    prev = itr;
+  }
+}
+
 }

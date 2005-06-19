@@ -55,16 +55,22 @@ public:
 
   ~TrackerList() { clear(); }
 
-  void     randomize();
-  void     clear();
+  void                randomize();
+  void                clear();
 
-  iterator insert(int group, TrackerHttp* t) { return Base::insert(end_group(group), value_type(group, t)); }
+  iterator            insert(int group, TrackerHttp* t);
 
-  void     promote(iterator itr);
+  void                promote(iterator itr);
 
-  iterator begin_group(int group);
-  iterator end_group(int group)              { return begin_group(group + 1); }
+  iterator            begin_group(int group);
+  iterator            end_group(int group)                    { return begin_group(group + 1); }
+  void                cycle_group(int group);
 };
+
+inline TrackerList::iterator
+TrackerList::insert(int group, TrackerHttp* t) {
+  return Base::insert(end_group(group), value_type(group, t));
+}
 
 }
 

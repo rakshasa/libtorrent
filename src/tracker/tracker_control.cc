@@ -48,7 +48,7 @@ TrackerControl::TrackerControl(const std::string& hash, const std::string& key) 
 
 void
 TrackerControl::add_url(int group, const std::string& url) {
-  if (m_itr != m_list.end() && m_itr->second->is_busy())
+  if (is_busy())
     throw internal_error("Added tracker url while the current tracker is busy");
 
   if (url.empty())
@@ -60,10 +60,17 @@ TrackerControl::add_url(int group, const std::string& url) {
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
 
   m_list.insert(group, t);
-
-  // Set to the first element since we can't be certain the last one
-  // wasn't invalidated. Don't allow when busy?
   m_itr = m_list.begin();
+}
+
+void
+TrackerControl::cycle_group(int group) {
+  // We need to insure that there is no busy requests since changing
+  // m_itr will mess up the received success/failed signal.
+  if (is_busy())
+    return;
+
+  m_list.cycle_group(group);
 }
 
 void
@@ -80,10 +87,7 @@ TrackerControl::get_next_time() {
 
 bool
 TrackerControl::is_busy() const {
-  if (m_itr == m_list.end())
-    return false;
-  else
-    return m_itr->second->is_busy();
+  return m_itr != m_list.end() && m_itr->second->is_busy();
 }
 
 void
@@ -96,10 +100,9 @@ TrackerControl::send_state(TrackerInfo::State s) {
   m_timerMinInterval = 0;
 
   // Reset the target tracker since we're doing a new request.
-  m_itr->second->close();
-  m_itr = m_list.begin();
-
+  cancel();
   query_current();
+
   m_taskTimeout.remove();
 }
 
@@ -142,6 +145,7 @@ TrackerControl::receive_done(Bencode& bencode) {
     m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
   }
 
+  // TODO: Close before emiting.
   m_signalPeers.emit(l);
 }
 
@@ -150,14 +154,13 @@ TrackerControl::receive_failed(const std::string& msg) {
   if (m_itr->second->get_data() != NULL)
     m_signalDump.emit(m_itr->second->get_data());
 
-  ++m_itr;
-
-  if (m_itr == m_list.end())
+  if (++m_itr == m_list.end())
     m_itr = m_list.begin();
 
   if (m_state != TrackerInfo::STOPPED)
     m_taskTimeout.insert(Timer::cache() + 20 * 1000000);
 
+  // TODO: Close before emiting.
   m_signalFailed.emit(msg);
 }
 
