@@ -84,9 +84,11 @@ HashQueue::remove(const std::string& id) {
   
   while ((itr = std::find(itr, end(), id)) != end()) {
     itr->clear();
-    
     itr = erase(itr);
   }
+
+  if (empty())
+    m_taskWork.remove();
 }
 
 void

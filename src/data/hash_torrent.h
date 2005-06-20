@@ -42,10 +42,12 @@ public:
   typedef sigc::signal2<void, Chunk, std::string>   SignalChunkDone;
   
   HashTorrent(const std::string& id, Storage* s);
-  ~HashTorrent() { stop(); }
+  ~HashTorrent() { clear(); }
 
   void                start();
   void                stop();
+
+  void                clear();
 
   bool                is_checking()                 { return m_outstanding >= 0; }
 

@@ -53,7 +53,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 }
 
 void
-DownloadWrapper::hash_load() {
+DownloadWrapper::hash_resume_load() {
   if (!m_main.is_open() || m_main.is_active() || m_main.is_checked())
     throw client_error("DownloadWrapper::resume_load() called with wrong state");
 
@@ -112,9 +112,14 @@ DownloadWrapper::hash_load() {
 }
 
 void
-DownloadWrapper::hash_save() {
-  if (!m_main.is_open() || m_main.is_active() || !m_main.is_checked())
+DownloadWrapper::hash_resume_save() {
+  if (!m_main.is_open() || m_main.is_active())
     throw client_error("DownloadWrapper::resume_save() called with wrong state");
+
+  if (!m_main.is_checked())
+    // We don't remove the old hash data since it might still be
+    // valid, just that the client didn't finish the check this time.
+    return;
 
   Content& content = m_main.get_state().get_content();
 

@@ -45,8 +45,8 @@ public:
   void                initialize(const std::string& hash, const std::string& id);
 
   // Don't load unless the object is newly initialized.
-  void                hash_load();
-  void                hash_save();
+  void                hash_resume_load();
+  void                hash_resume_save();
 
   void                open();
   void                stop();

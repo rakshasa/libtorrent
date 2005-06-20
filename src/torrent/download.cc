@@ -46,6 +46,7 @@ Download::close() {
   if (m_ptr->get_main().is_active())
     stop();
 
+  m_ptr->get_hash_checker().clear();
   m_ptr->get_main().close();
 }
 
@@ -62,14 +63,19 @@ Download::stop() {
 void
 Download::hash_check(bool resume) {
   if (resume)
-    m_ptr->hash_load();
+    m_ptr->hash_resume_load();
 
   m_ptr->get_hash_checker().start();
 }
 
 void
-Download::hash_save() {
-  m_ptr->hash_save();
+Download::hash_resume_save() {
+  m_ptr->hash_resume_save();
+}
+
+void
+Download::hash_resume_clear() {
+  m_ptr->get_bencode().erase_key("libtorrent resume");
 }
 
 bool
@@ -330,7 +336,7 @@ void
 Download::peer_list(PList& pList) {
   std::for_each(m_ptr->get_main().get_net().get_connections().begin(),
 		m_ptr->get_main().get_net().get_connections().end(),
-		rak::bind1st(std::mem_fun<void,PList>(&PList::push_back), &pList));
+		rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
 }
 
 Peer

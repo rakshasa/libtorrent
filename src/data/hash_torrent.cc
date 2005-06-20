@@ -57,6 +57,12 @@ HashTorrent::stop() {
 }
   
 void
+HashTorrent::clear() {
+  stop();
+  m_position = 0;
+}
+
+void
 HashTorrent::receive_chunkdone(Chunk c, std::string hash) {
   // Make sure we call chunkdone before torrentDone has a chance to
   // trigger.

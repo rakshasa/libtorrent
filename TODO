@@ -66,15 +66,10 @@ OPTIMIZING
 Look into epoll and sendfile.
 
 
-DUMPING TORRENT FILES
-
 Does it make sense to have *.bt_part or similar suffixes on partially
 downloaded files? This would be uncompatible with other clients, but
 make it configurable? This is fully client side, though need to
 support a way to move files.
-
-
-IMPORTANT
 
 make sure handshake gets "" id if the download does not want connections,
 or some other filter system.
@@ -92,13 +87,6 @@ Make sure adding trackers doesn't invalidate current requests,
 disallow for open torrents?
 
 
-BUGS:
-
-Snubing seems borked... why?
-
-
-THINGS:
-
 Move mkdir stuff out of Path?
 
 Cleanup HashQueue, seperate out nodes etc.
@@ -107,17 +95,11 @@ Cleanup HashQueue, seperate out nodes etc.
 
 SocketManager must be enabled.
 
-
-NEXT:
-
 Use ProtocolBuffer for skip piece too.
 
 Make the stable buffer in throttle be more dynamic depending on the current rate.
 
 Optimize ChokeManager::get_unchoked.
-
-
-NEXT:
 
 Add buffer read of piece.
 
@@ -133,17 +115,15 @@ not need this, so consider the value.
 
 Rename poll.h.
 
-Resync upon loading a torrent, to reset it's timestamp? Use ftruncate.
-
 
 CLEANUP:
 
 ref_anchored... urgh...
 
 
-BUG:
+BUGS:
 
-[FIXED?] Doesn't start uploading, when unchoked/throttled to zero or something.
+Snubing seems borked... why?
 
 Possible bug when doing sync on torrents > 4.2GB, over NFS.
 
@@ -154,22 +134,31 @@ Throttle might not give correct size when for_each'ing each, since zero byte quo
 
 RELEASE:
 
-Move download management out of core::Manager, use slots to do stuff
+[CHECK] Move download management out of core::Manager, use slots to do stuff
 upon torrent open/close, start/stop etc.
 
-Recheck hash key and option to check after download.
+Consider adding is_active/is_open checks to DownloadList.
+
+Option to check hash after download.
 
 Save state information.
 
-Do sync on all stopped downloads.
-
 Remove read/write_chunk exceptions.
-
-Create a man page.
 
 Possibly do sync before/after checking hash. Don't sync complete
 chunks as they were synced at the time of hash checking? Read the list
 of dirty chunks from the delegator. Need to fix the problem of corrupt
 downloads due to lack of diskspace.
 
+Do truncate to update the timestamp, so we know he filestamp is updated.
+
+Do sync on all stopped downloads. Ftruncate a torrent upon load to set its timestamp.
+
 Fix TaskSchedule's static init sequence problem.
+
+Create a man page.
+
+
+NEXT RELEASE:
+
+Clear the screen after shutdown.

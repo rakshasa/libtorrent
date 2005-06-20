@@ -55,9 +55,12 @@ public:
   void                 open();
   void                 close();
 
-  // Only call resume_load() on newly open()'ed downloads. 
+  // Torrent must be open for calls to hash_check(bool) and
+  // hash_resume_save(). hash_resume_clear() removes resume data from
+  // the bencode'ed torrent.
   void                 hash_check(bool resume = true);
-  void                 hash_save();
+  void                 hash_resume_save();
+  void                 hash_resume_clear();
 
   // Start/stop the download. The torrent must be open.
   void                 start();
