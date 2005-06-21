@@ -28,6 +28,7 @@
 #include <sigc++/signal.h>
 
 #include "utils/bitfield.h"
+#include "utils/task.h"
 #include "content_file.h"
 #include "data/storage.h"
 #include "data/piece.h"
@@ -46,11 +47,11 @@ class Content {
 public:
   typedef std::vector<ContentFile>     FileList;
   typedef sigc::slot1<void, FileMeta*> SlotFileMeta;
-  typedef sigc::signal0<void>          SignalDownloadDone;
+  typedef sigc::signal0<void>          Signal;
 
   // Hash done signal, hash failed signal++
-
-  Content() : m_size(0), m_completed(0), m_rootDir(".") {}
+  
+  Content();
 
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
@@ -91,7 +92,8 @@ public:
 
   void                   slot_opened_file(SlotFileMeta s)     { m_slotOpenedFile = s; }
 
-  SignalDownloadDone&    signal_download_done()               { return m_downloadDone; }
+  Signal&                signal_download_done()               { return m_signalDownloadDone; }
+  void                   block_download_done(bool v)          { m_delayDownloadDone.get_slot().block(v); }
 
 private:
   
@@ -112,7 +114,8 @@ private:
   std::string            m_hash;
 
   SlotFileMeta           m_slotOpenedFile;
-  SignalDownloadDone     m_downloadDone;
+  Signal                 m_signalDownloadDone;
+  Task                   m_delayDownloadDone;
 };
 
 inline Content::FileList::iterator

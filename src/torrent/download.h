@@ -160,6 +160,9 @@ public:
   typedef sigc::slot1<void, std::istream*>      SlotIStream;
   typedef sigc::slot1<void, uint32_t>           SlotChunk;
 
+  // signal_download_done is a delayed signal so it is safe to
+  // stop/close the torrent when received. The signal is only emitted
+  // when the torrent is active, so hash checking will not trigger it.
   sigc::connection    signal_download_done(SlotVoid s);
   sigc::connection    signal_hash_done(SlotVoid s);
 

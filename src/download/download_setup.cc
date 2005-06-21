@@ -74,6 +74,9 @@ DownloadMain::setup_start() {
   m_connectionChunkPassed       = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
   m_connectionChunkFailed       = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
   m_connectionAddAvailablePeers = m_tracker->signal_peers().connect(sigc::mem_fun(m_net, &DownloadNet::add_available_peers));
+
+  m_taskChokeCycle.insert(Timer::current() + m_state.get_settings().chokeCycle * 2);
+  m_state.get_content().block_download_done(false);
 }
 
 void
@@ -81,6 +84,9 @@ DownloadMain::setup_stop() {
   m_connectionChunkPassed.disconnect();
   m_connectionChunkFailed.disconnect();
   m_connectionAddAvailablePeers.disconnect();
+
+  m_taskChokeCycle.remove();
+  m_state.get_content().block_download_done(true);
 }
 
 }

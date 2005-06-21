@@ -12,8 +12,8 @@ Add config for how often we unchoke unknown peers vs good uploaders
 
 Each throttle can have it's own rules to decide the priority it gets.
 
-Switch to a proper type for file offset/length and chunk length. A proper
-type for chunk index.
+Switch to a proper type for file offset/length and chunk length. A
+proper type for chunk index.
 
 std::isalpha in escape string
 
@@ -71,14 +71,14 @@ downloaded files? This would be uncompatible with other clients, but
 make it configurable? This is fully client side, though need to
 support a way to move files.
 
-make sure handshake gets "" id if the download does not want connections,
-or some other filter system.
+make sure handshake gets "" id if the download does not want
+connections, or some other filter system.
 
 DOCUMENTATION
 
-As far as documentation is concerned: a step through example that shows all
-the torren::init calls and sets up a download and doxygen comments in the
-header files would be great.
+As far as documentation is concerned: a step through example that
+shows all the torren::init calls and sets up a download and doxygen
+comments in the header files would be great.
 
 
 TRACKER STUFF
@@ -89,15 +89,15 @@ disallow for open torrents?
 
 Move mkdir stuff out of Path?
 
-Cleanup HashQueue, seperate out nodes etc.
-* Make it a private list.
+Cleanup HashQueue, seperate out nodes etc.  * Make it a private list.
 * Don't pass Chunk in SlotDone.
 
 SocketManager must be enabled.
 
 Use ProtocolBuffer for skip piece too.
 
-Make the stable buffer in throttle be more dynamic depending on the current rate.
+Make the stable buffer in throttle be more dynamic depending on the
+current rate.
 
 Optimize ChokeManager::get_unchoked.
 
@@ -129,17 +129,14 @@ Possible bug when doing sync on torrents > 4.2GB, over NFS.
 
 Don't use function pointers in throttle, templates should work as well.
 
-Throttle might not give correct size when for_each'ing each, since zero byte quotas might accure.
+Throttle might not give correct size when for_each'ing each, since
+zero byte quotas might accure.
 
 
 RELEASE:
 
-[CHECK] Move download management out of core::Manager, use slots to do stuff
-upon torrent open/close, start/stop etc.
-
-Consider adding is_active/is_open checks to DownloadList.
-
-Option to check hash after download.
+Use a special function for checking the hash status when doing
+download starts.
 
 Save state information.
 
@@ -150,15 +147,22 @@ chunks as they were synced at the time of hash checking? Read the list
 of dirty chunks from the delegator. Need to fix the problem of corrupt
 downloads due to lack of diskspace.
 
-Do truncate to update the timestamp, so we know he filestamp is updated.
+Do truncate to update the timestamp, so we know he filestamp is
+updated.
 
-Do sync on all stopped downloads. Ftruncate a torrent upon load to set its timestamp.
-
-Fix TaskSchedule's static init sequence problem.
+Do sync on all stopped downloads. Ftruncate a torrent upon load to set
+its timestamp.
 
 Create a man page.
+
+Make sure we send completed after hash rechecking.
 
 
 NEXT RELEASE:
 
-Clear the screen after shutdown.
+Rewrite the read buffering in PeerConnection, don't do so many small
+reads.
+
+Fix TaskSchedule's static init sequence problem. This will involve
+rewriting task to be non-static.
+

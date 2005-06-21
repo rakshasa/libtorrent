@@ -197,11 +197,11 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
 // Do work on the polled file descriptors.
 void
 work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
-  // Update the cached time.
-  Timer::update();
-
   if (readSet == NULL || writeSet == NULL || exceptSet == NULL)
     throw client_error("Torrent::work(...) received a NULL pointer");
+
+  Timer::update();
+  TaskSchedule::perform(Timer::current());
 
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
@@ -218,8 +218,7 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   std::for_each(PollManager::write_set().begin(), PollManager::write_set().end(),
 		poll_check(writeSet, std::mem_fun(&SocketBase::write)));
 
-  // TODO: Consider moving before the r/w/e. libsic++ should remove the use of
-  // zero timeout stuff to send signal. Better yet, use on both sides, it's cheap.
+  Timer::update();
   TaskSchedule::perform(Timer::current());
 }
 

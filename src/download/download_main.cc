@@ -44,6 +44,7 @@ DownloadMain::DownloadMain() :
   m_taskChokeCycle(sigc::mem_fun(*this, &DownloadMain::choke_cycle))
 {
   m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
+  m_state.get_content().block_download_done(true);
 }
 
 DownloadMain::~DownloadMain() {
@@ -86,8 +87,6 @@ void DownloadMain::start() {
   m_tracker->send_state(TrackerInfo::STARTED);
 
   setup_start();
-
-  m_taskChokeCycle.insert(Timer::current() + m_state.get_settings().chokeCycle * 2);
 }  
 
 void DownloadMain::stop() {
@@ -100,8 +99,6 @@ void DownloadMain::stop() {
   m_tracker->send_state(TrackerInfo::STOPPED);
   m_started = false;
 
-  m_taskChokeCycle.remove();
-
   setup_stop();
 }
 
@@ -113,7 +110,7 @@ DownloadMain::choke_cycle() {
 
 void DownloadMain::receive_initial_hash() {
   if (m_checked)
-    throw internal_error("DownloadMain::receive_initial_hash called but m_checked == true");
+    throw internal_error("DownloadMain::receive_initial_hash() called but m_checked == true");
 
   m_checked = true;
   m_state.get_content().resize();
@@ -121,9 +118,8 @@ void DownloadMain::receive_initial_hash() {
 
 void
 DownloadMain::receive_download_done() {
-  // Don't send TRACKER_COMPLETED if we received done due to initial hash check.
   if (!m_started || !m_checked || m_tracker->get_state() == TrackerInfo::STARTED)
-    return;
+    throw internal_error("DownloadMain::receive_download_done() called on a download in an invalid state");
 
   m_tracker->send_state(TrackerInfo::COMPLETED);
 }

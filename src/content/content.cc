@@ -31,6 +31,13 @@
 
 namespace torrent {
 
+Content::Content() :
+  m_size(0),
+  m_completed(0),
+  m_rootDir(".") {
+  m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
+}
+
 void
 Content::add_file(const Path& path, uint64_t size) {
   if (is_open())
@@ -204,8 +211,13 @@ Content::mark_done(uint32_t index) {
 
   mark_done_file(m_files.begin(), index);
 
-  if (m_completed == m_storage.get_chunk_total())
-    m_downloadDone.emit();
+  if (m_completed == m_storage.get_chunk_total() &&
+      !m_delayDownloadDone.get_slot().blocked())
+    // We delay emitting the signal to allow the delegator to clean
+    // up. If we do a straight call it would cause problems for
+    // clients that wish to close and reopen the torrent, as
+    // HashQueue, Delegator etc shouldn't be cleaned up at this point.
+    m_delayDownloadDone.insert(Timer::cache());
 }
 
 // Recalculate done pieces, this function clears the padding bits on the
