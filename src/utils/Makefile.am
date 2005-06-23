@@ -16,8 +16,9 @@ libsub_utils_la_SOURCES = \
 	sha_fast.cc \
 	sha_fast.h \
 	task.h \
-	task_schedule.cc \
-	task_schedule.h \
+	task_item.h \
+	task_scheduler.cc \
+	task_scheduler.h \
 	throttle.h \
 	throttle_control.h \
 	throttle_list.h \

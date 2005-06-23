@@ -35,7 +35,7 @@
 
 #include "utils/sha1.h"
 #include "utils/string_manip.h"
-#include "utils/task_schedule.h"
+#include "utils/task_scheduler.h"
 #include "utils/throttle.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
@@ -52,8 +52,9 @@ namespace torrent {
 
 int64_t Timer::m_cache;
 
-ThrottlePeer throttleRead;
-ThrottlePeer throttleWrite;
+TaskScheduler taskScheduler;
+ThrottlePeer  throttleRead;
+ThrottlePeer  throttleWrite;
 
 // New API.
 class Torrent {
@@ -201,7 +202,7 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
     throw client_error("Torrent::work(...) received a NULL pointer");
 
   Timer::update();
-  TaskSchedule::perform(Timer::current());
+  taskScheduler.execute(Timer::current());
 
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
@@ -219,7 +220,7 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
 		poll_check(writeSet, std::mem_fun(&SocketBase::write)));
 
   Timer::update();
-  TaskSchedule::perform(Timer::current());
+  taskScheduler.execute(Timer::current());
 }
 
 bool
@@ -280,7 +281,9 @@ get_current_time() {
 
 int64_t
 get_next_timeout() {
-  return TaskSchedule::get_timeout().usec();
+  return !taskScheduler.empty() ?
+    std::max(taskScheduler.get_next_timeout() - Timer::current(), Timer()).usec() :
+    60 * 1000000;
 }
 
 int

@@ -157,6 +157,10 @@ Create a man page.
 
 Make sure we send completed after hash rechecking.
 
+Check for bugs in the priority code.
+
+Change priority of all files in a torrent.
+
 
 NEXT RELEASE:
 
@@ -166,3 +170,4 @@ reads.
 Fix TaskSchedule's static init sequence problem. This will involve
 rewriting task to be non-static.
 
+If the new task scheduler is stable, convert rtorrent.

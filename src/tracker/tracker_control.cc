@@ -37,13 +37,15 @@ namespace torrent {
 TrackerControl::TrackerControl(const std::string& hash, const std::string& key) :
   m_tries(-1),
   m_interval(1800),
-  m_state(TrackerInfo::STOPPED),
-  m_taskTimeout(sigc::mem_fun(*this, &TrackerControl::query_current)) {
+  m_state(TrackerInfo::STOPPED) {
   
   m_info.set_hash(hash);
   m_info.set_key(key);
 
   m_itr = m_list.end();
+
+  m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerControl::query_current));
+  m_taskTimeout.set_iterator(taskScheduler.end());
 }
 
 void
@@ -75,14 +77,18 @@ TrackerControl::cycle_group(int group) {
 
 void
 TrackerControl::set_next_time(Timer interval, bool force) {
-  if (m_taskTimeout.is_scheduled())
-    m_taskTimeout.insert(std::max(Timer::cache() + interval,
-				  force ? Timer::cache() : m_timerMinInterval));
+  if (!taskScheduler.is_scheduled(&m_taskTimeout))
+    return;
+
+  taskScheduler.erase(&m_taskTimeout);
+  taskScheduler.insert(&m_taskTimeout,
+		       std::max(Timer::cache() + interval,
+				force ? Timer::cache() : m_timerMinInterval));
 }
 
 Timer
 TrackerControl::get_next_time() {
-  return m_taskTimeout.is_scheduled() ? std::max(m_taskTimeout.get_time() - Timer::cache(), Timer(0)) : 0;
+  return taskScheduler.is_scheduled(&m_taskTimeout) ? std::max(m_taskTimeout.get_time() - Timer::cache(), Timer(0)) : 0;
 }
 
 bool
@@ -103,7 +109,7 @@ TrackerControl::send_state(TrackerInfo::State s) {
   cancel();
   query_current();
 
-  m_taskTimeout.remove();
+  taskScheduler.erase(&m_taskTimeout);
 }
 
 void
@@ -142,7 +148,7 @@ TrackerControl::receive_done(Bencode& bencode) {
   if (m_state != TrackerInfo::STOPPED) {
     m_state = TrackerInfo::NONE;
     
-    m_taskTimeout.insert(Timer::cache() + (int64_t)m_interval * 1000000);
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + (int64_t)m_interval * 1000000);
   }
 
   // TODO: Close before emiting.
@@ -158,7 +164,7 @@ TrackerControl::receive_failed(const std::string& msg) {
     m_itr = m_list.begin();
 
   if (m_state != TrackerInfo::STOPPED)
-    m_taskTimeout.insert(Timer::cache() + 20 * 1000000);
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 20 * 1000000);
 
   // TODO: Close before emiting.
   m_signalFailed.emit(msg);

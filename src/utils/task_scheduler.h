@@ -20,38 +20,41 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_UTILS_TASK_SCHEDULE_H
-#define LIBTORRENT_UTILS_TASK_SCHEDULE_H
+#ifndef LIBTORRENT_UTILS_TASK_SCHEDULER_H
+#define LIBTORRENT_UTILS_TASK_SCHEDULER_H
 
-#include <list>
-
-#include "timer.h"
+#include "task_item.h"
 
 namespace torrent {
 
-class Task;
-
-class TaskSchedule {
+class TaskScheduler : private std::list<std::pair<Timer, TaskItem*> > {
 public:
-  friend class Task;
+  typedef std::list<std::pair<Timer, TaskItem*> > Base;
 
-  typedef std::list<Task*>    Container;
-  typedef Container::iterator iterator;
+  using Base::value_type;
+  using Base::reference;
 
-  static void         perform(Timer t);
+  using Base::iterator;
+  using Base::reverse_iterator;
+  using Base::size;
+  using Base::empty;
 
-  static Timer        get_timeout();
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
 
-protected:
-  static iterator     end()               { return m_container.end(); }
+  void                insert(TaskItem* task, Timer time);
+  void                erase(TaskItem* task);
 
-  static iterator     insert(Task* t);
-  static void         erase(iterator itr) { m_container.erase(itr); }
+  void                execute(Timer time);
+
+  bool                is_scheduled(TaskItem* task)        { return task->get_iterator() != end(); }
+
+  Timer               get_next_timeout() const            { return begin()->first; }
 
 private:
-  static inline void  execute_task(Task* t);
-
-  static Container    m_container;
+  inline void         execute_task(const value_type& v);
 };
 
 }

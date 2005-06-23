@@ -67,8 +67,8 @@ public:
   
   Rate&               get_rate()                    { return m_rate; }
 
-  void                start()                       { m_taskTick.insert(Timer::cache()); }
-  void                stop()                        { m_taskTick.remove(); }
+  void                start()                       { taskScheduler.insert(&m_taskTick, Timer::cache()); }
+  void                stop()                        { taskScheduler.erase(&m_taskTick); }
 
 private:
   ThrottleControl(const ThrottleControl&);
@@ -79,15 +79,17 @@ private:
   int                 m_interval;
   int                 m_quota;
 
-  Task                m_taskTick;
+  TaskItem            m_taskTick;
   Rate                m_rate;
 };
 
 template <typename T>
 ThrottleControl<T>::ThrottleControl() :
   m_interval(1000000),
-  m_quota(UNLIMITED),
-  m_taskTick(sigc::mem_fun(*this, &ThrottleControl::receive_tick)) {
+  m_quota(UNLIMITED) {
+
+  m_taskTick.set_iterator(taskScheduler.end());
+  m_taskTick.set_slot(sigc::mem_fun(*this, &ThrottleControl::receive_tick));
 }
 
 template <typename T> void
@@ -97,7 +99,7 @@ ThrottleControl<T>::receive_tick() {
   else
     Base::quota(m_quota);
 
-  m_taskTick.insert(Timer::cache() + m_interval);
+  taskScheduler.insert(&m_taskTick, Timer::cache() + m_interval);
 }
 
 }

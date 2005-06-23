@@ -35,7 +35,9 @@ Content::Content() :
   m_size(0),
   m_completed(0),
   m_rootDir(".") {
+
   m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
+  m_delayDownloadDone.set_iterator(taskScheduler.end());
 }
 
 void
@@ -185,6 +187,7 @@ Content::close() {
 
   m_completed = 0;
   m_bitfield = BitField();
+  taskScheduler.erase(&m_delayDownloadDone);
 
   std::for_each(m_files.begin(), m_files.end(), std::mem_fun_ref(&ContentFile::reset));
 }
@@ -211,13 +214,14 @@ Content::mark_done(uint32_t index) {
 
   mark_done_file(m_files.begin(), index);
 
+  // We delay emitting the signal to allow the delegator to clean
+  // up. If we do a straight call it would cause problems for
+  // clients that wish to close and reopen the torrent, as
+  // HashQueue, Delegator etc shouldn't be cleaned up at this point.
   if (m_completed == m_storage.get_chunk_total() &&
-      !m_delayDownloadDone.get_slot().blocked())
-    // We delay emitting the signal to allow the delegator to clean
-    // up. If we do a straight call it would cause problems for
-    // clients that wish to close and reopen the torrent, as
-    // HashQueue, Delegator etc shouldn't be cleaned up at this point.
-    m_delayDownloadDone.insert(Timer::cache());
+      !m_delayDownloadDone.get_slot().blocked() &&
+      !taskScheduler.is_scheduled(&m_delayDownloadDone))
+    taskScheduler.insert(&m_delayDownloadDone, Timer::cache());
 }
 
 // Recalculate done pieces, this function clears the padding bits on the

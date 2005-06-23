@@ -47,6 +47,12 @@ struct HashQueueWillneed {
   int m_bytes;
 };
 
+HashQueue::HashQueue() {
+  m_taskWork.set_slot(sigc::mem_fun(*this, &HashQueue::work));
+  m_taskWork.set_iterator(taskScheduler.end());
+}
+
+
 inline void
 HashQueue::willneed(int bytes) {
   std::find_if(begin(), end(), HashQueueWillneed(bytes));
@@ -62,11 +68,11 @@ HashQueue::push_back(Chunk c, SlotDone d, const std::string& id) {
   HashChunk* hc = new HashChunk(c);
 
   if (empty()) {
-    if (m_taskWork.is_scheduled())
+    if (taskScheduler.is_scheduled(&m_taskWork))
       throw internal_error("Empty HashQueue is still in task schedule");
 
     m_tries = 0;
-    m_taskWork.insert(Timer::current());
+    taskScheduler.insert(&m_taskWork, Timer::cache());
   }
 
   Base::push_back(HashQueueNode(hc, id, d));
@@ -88,13 +94,14 @@ HashQueue::remove(const std::string& id) {
   }
 
   if (empty())
-    m_taskWork.remove();
+    taskScheduler.erase(&m_taskWork);
 }
 
 void
 HashQueue::clear() {
   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
   Base::clear();
+  taskScheduler.erase(&m_taskWork);
 }
 
 void
@@ -103,12 +110,11 @@ HashQueue::work() {
     return;
 
   if (!check(++m_tries >= Settings::hashTries))
-    return m_taskWork.insert(Timer::cache() + Settings::hashWait);
+    return taskScheduler.insert(&m_taskWork, Timer::cache() + Settings::hashWait);
 
-  if (empty())
-    return;
+  if (!empty())
+    taskScheduler.insert(&m_taskWork, Timer::cache());
 
-  m_taskWork.insert(Timer::cache());
   m_tries = 0;
 }
 

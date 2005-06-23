@@ -107,7 +107,7 @@ class TrackerControl {
   TrackerList::iterator m_itr;
 
   Timer                 m_timerMinInterval;
-  Task                  m_taskTimeout;
+  TaskItem              m_taskTimeout;
 
   SignalDump            m_signalDump;
   SignalPeers           m_signalPeers;

@@ -115,7 +115,7 @@ private:
 
   SlotFileMeta           m_slotOpenedFile;
   Signal                 m_signalDownloadDone;
-  Task                   m_delayDownloadDone;
+  TaskItem               m_delayDownloadDone;
 };
 
 inline Content::FileList::iterator

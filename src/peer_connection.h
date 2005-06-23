@@ -41,7 +41,7 @@ public:
   PeerConnection();
   ~PeerConnection();
 
-  bool                is_choke_delayed()            { return m_sendChoked || m_taskSendChoke.is_scheduled(); }
+  inline bool                is_choke_delayed();
 
   void sendHave(int i);
   void choke(bool v);
@@ -95,10 +95,15 @@ private:
 
   Timer          m_lastMsg;
 
-  Task                m_taskKeepAlive;
-  Task                m_taskSendChoke;
-  Task                m_taskStall;
+  TaskItem            m_taskKeepAlive;
+  TaskItem            m_taskSendChoke;
+  TaskItem            m_taskStall;
 };
+
+inline bool
+PeerConnection::is_choke_delayed() {
+  return m_sendChoked || taskScheduler.is_scheduled(&m_taskSendChoke);
+}
 
 }
 

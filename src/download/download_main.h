@@ -102,7 +102,7 @@ private:
   sigc::connection    m_connectionChunkFailed;
   sigc::connection    m_connectionAddAvailablePeers;
 
-  Task                m_taskChokeCycle;
+  TaskItem            m_taskChokeCycle;
 };
 
 } // namespace torrent

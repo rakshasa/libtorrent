@@ -40,14 +40,19 @@ DownloadMain::DownloadMain() :
   m_settings(DownloadSettings::global()),
   m_tracker(NULL),
   m_checked(false),
-  m_started(false),
-  m_taskChokeCycle(sigc::mem_fun(*this, &DownloadMain::choke_cycle))
+  m_started(false)
 {
   m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
   m_state.get_content().block_download_done(true);
+
+  m_taskChokeCycle.set_slot(sigc::mem_fun(*this, &DownloadMain::choke_cycle));
+  m_taskChokeCycle.set_iterator(taskScheduler.end());
 }
 
 DownloadMain::~DownloadMain() {
+  if (taskScheduler.is_scheduled(&m_taskChokeCycle))
+    throw internal_error("DownloadMain::~DownloadMain(): m_taskChokeCycle is scheduled");
+
   delete m_tracker;
 }
 
@@ -104,7 +109,7 @@ void DownloadMain::stop() {
 
 void
 DownloadMain::choke_cycle() {
-  m_taskChokeCycle.insert(Timer::cache() + m_state.get_settings().chokeCycle);
+  taskScheduler.insert(&m_taskChokeCycle, Timer::cache() + m_state.get_settings().chokeCycle);
   m_net.choke_cycle();
 }
 

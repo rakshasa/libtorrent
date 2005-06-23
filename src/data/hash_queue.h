@@ -54,7 +54,7 @@ public:
   using Base::begin;
   using Base::end;
 
-  HashQueue() : m_taskWork(sigc::mem_fun(*this, &HashQueue::work)) {}
+  HashQueue();
   ~HashQueue() { clear(); }
 
   void                push_back(Chunk c, SlotDone d, const std::string& id);
@@ -74,7 +74,7 @@ private:
   void                pop_front()                   { Base::front().clear(); Base::pop_front(); }
 
   uint16_t            m_tries;
-  Task                m_taskWork;
+  TaskItem            m_taskWork;
 };
 
 }

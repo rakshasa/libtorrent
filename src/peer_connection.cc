@@ -43,12 +43,15 @@ PeerConnection::PeerConnection() :
 
   m_sendChoked(false),
   m_sendInterested(false),
-  m_tryRequest(true),
-  
-  m_taskKeepAlive(sigc::mem_fun(*this, &PeerConnection::task_keep_alive)),
-  m_taskSendChoke(sigc::mem_fun(*this, &PeerConnection::task_send_choke)),
-  m_taskStall(sigc::mem_fun(*this, &PeerConnection::task_stall))
+  m_tryRequest(true)
 {
+  m_taskKeepAlive.set_slot(sigc::mem_fun(*this, &PeerConnection::task_keep_alive));
+  m_taskSendChoke.set_slot(sigc::mem_fun(*this, &PeerConnection::task_send_choke));
+  m_taskStall.set_slot(sigc::mem_fun(*this, &PeerConnection::task_stall));
+
+  m_taskKeepAlive.set_iterator(taskScheduler.end());
+  m_taskSendChoke.set_iterator(taskScheduler.end());
+  m_taskStall.set_iterator(taskScheduler.end());
 }
 
 PeerConnection::~PeerConnection() {
@@ -65,6 +68,10 @@ PeerConnection::~PeerConnection() {
 
   if (m_read->get_state() != ProtocolRead::BITFIELD)
     m_state->get_bitfield_counter().dec(m_bitfield.get_bitfield());
+
+  taskScheduler.erase(&m_taskKeepAlive);
+  taskScheduler.erase(&m_taskSendChoke);
+  taskScheduler.erase(&m_taskStall);
 
   PollManager::read_set().erase(this);
   PollManager::write_set().erase(this);
@@ -141,8 +148,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
     m_write->set_state(ProtocolWrite::MSG);
   }
     
-  m_taskKeepAlive.insert(Timer::current() + 120 * 1000000);
-
+  taskScheduler.insert(&m_taskKeepAlive, Timer::current() + 120 * 1000000);
   m_lastMsg = Timer::current();
 }
 
@@ -320,10 +326,10 @@ void PeerConnection::read() {
     m_requests.finished();
     
     // TODO: Find a way to avoid this remove/insert cycle.
-    m_taskStall.remove();
+    taskScheduler.erase(&m_taskStall);
     
     if (m_requests.get_size())
-      m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
+      taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
 
     // TODO: clear m_down.data?
     // TODO: remove throttle if choked? Rarely happens though.
@@ -356,10 +362,10 @@ void PeerConnection::read() {
       m_read->set_state(ProtocolRead::IDLE);
       m_tryRequest = true;
 
-      m_taskStall.remove();
+      taskScheduler.erase(&m_taskStall);
 
       if (m_requests.get_size())
-	m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
+	taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
     }
 
     goto evil_goto_read;
@@ -511,7 +517,7 @@ void PeerConnection::parseReadBuf() {
     m_requests.cancel();
 
     remove_read_throttle();
-    m_taskStall.remove();
+    taskScheduler.erase(&m_taskStall);
 
     return;
 
@@ -575,12 +581,8 @@ void PeerConnection::fillWriteBuf() {
   if (m_sendChoked) {
     m_sendChoked = false;
 
-    if ((Timer::cache() - m_lastChoked).usec() < 10 * 1000000) {
-      // Wait with the choke message.
-      m_taskSendChoke.insert(m_lastChoked + 10 * 1000000);
-
-    } else {
-      // CHOKE ME
+    if (Timer::cache() - m_lastChoked > 10 * 1000000) {
+      // Send choke message immidiately.
       m_write->write_choke(m_write->get_choked());
       m_lastChoked = Timer::cache();
 
@@ -593,6 +595,10 @@ void PeerConnection::fillWriteBuf() {
       } else {
 	insert_write_throttle();
       }
+
+    } else if (!taskScheduler.is_scheduled(&m_taskSendChoke)) {
+      // Wait with the choke message to avoid oscillation.
+      taskScheduler.insert(&m_taskSendChoke, m_lastChoked + 10 * 1000000);
     }
   }
 
@@ -614,11 +620,11 @@ void PeerConnection::fillWriteBuf() {
     while (m_requests.get_size() < pipeSize && m_write->can_write_request() && send_request_piece())
 
       if (m_requests.get_size() == 1) {
-	if (m_taskStall.is_scheduled())
+	if (taskScheduler.is_scheduled(&m_taskStall))
 	  throw internal_error("Only one request, but we're already in task stall");
 	
+	taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
 	m_tryRequest = true;
-	m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
       }	
   }
 
@@ -632,7 +638,7 @@ void PeerConnection::fillWriteBuf() {
   // Should we send a piece to the peer?
   if (!m_write->get_choked() &&
       !m_sendChoked &&
-      !m_taskSendChoke.is_scheduled() && // Urgh... find a nicer way to do the delayed choke.
+      !taskScheduler.is_scheduled(&m_taskSendChoke) && // Urgh... find a nicer way to do the delayed choke.
       !m_sends.empty() &&
       m_write->can_write_piece()) {
 
@@ -795,7 +801,7 @@ PeerConnection::task_keep_alive() {
   }
 
   m_tryRequest = true;
-  m_taskKeepAlive.insert(Timer::cache() + 120 * 1000000);
+  taskScheduler.insert(&m_taskKeepAlive, Timer::cache() + 120 * 1000000);
 }
 
 void
@@ -812,7 +818,7 @@ PeerConnection::task_stall() {
 
   // Make sure we regulary call task_stall() so stalled queues with new
   // entries get those new ones stalled if needed.
-  m_taskStall.insert(Timer::cache() + m_state->get_settings().stallTimeout);
+  taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
 }
 
 }
