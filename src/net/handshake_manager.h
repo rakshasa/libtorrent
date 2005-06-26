@@ -53,7 +53,7 @@ public:
 
   void                clear();
 
-  uint32_t            get_size()                               { return m_size; }
+  uint32_t            get_size()                                { return m_size; }
   uint32_t            get_size_hash(const std::string& hash);
 
   void                set_bind_address(const SocketAddress& sa) { m_bindAddress = sa; }
@@ -66,13 +66,13 @@ public:
   typedef sigc::slot3<void, SocketFd, const std::string&, const PeerInfo&> SlotConnected;
   typedef sigc::slot1<std::string, const std::string&>                     SlotDownloadId;
 
-  void                slot_connected(SlotConnected s)          { m_slotConnected = s; }
-  void                slot_download_id(SlotDownloadId s)       { m_slotDownloadId = s; }
+  void                slot_connected(SlotConnected s)           { m_slotConnected = s; }
+  void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
 
   void                receive_connected(Handshake* h);
   void                receive_failed(Handshake* h);
 
-  std::string         get_download_id(const std::string& hash) { return m_slotDownloadId(hash); }
+  std::string         get_download_id(const std::string& hash)  { return m_slotDownloadId(hash); }
 
 private:
 

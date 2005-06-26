@@ -91,7 +91,6 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
   
   if (!d ||
       !d->get_main().is_active() ||
-      !d->get_main().is_checked() ||
       !d->get_main().get_net().add_connection(fd, peer))
     fd.close();
 }

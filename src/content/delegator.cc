@@ -40,7 +40,6 @@ struct DelegatorCheckAffinity {
   bool operator () (DelegatorChunk* d) {
     return
       m_index == d->get_index() &&
-      m_delegator->delegate_piece(d) &&
       (*m_target = m_delegator->delegate_piece(d)) != NULL;
   }
 
@@ -66,6 +65,7 @@ struct DelegatorCheckPriority {
   const BitField*     m_bitfield;
 };
 
+// TODO: Should this ensure we don't download pieces that are priority off?
 struct DelegatorCheckAggressive {
   DelegatorCheckAggressive(Delegator* delegator, DelegatorPiece** target, uint16_t* o, const BitField* bf) :
     m_delegator(delegator), m_target(target), m_overlapp(o), m_bitfield(bf) {}
@@ -74,6 +74,7 @@ struct DelegatorCheckAggressive {
     DelegatorPiece* tmp;
 
     if (!m_bitfield->get(d->get_index()) ||
+	d->get_priority() == Priority::STOPPED ||
 	(tmp = m_delegator->delegate_aggressive(d, m_overlapp)) == NULL)
       return false;
 
