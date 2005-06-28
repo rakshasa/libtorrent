@@ -130,7 +130,9 @@ public:
   Tracker              get_tracker(uint32_t index);
   uint32_t             get_tracker_size();
 
-  void                 cycle_tracker_group(int group);
+  // Perhaps make tracker_cycle_group part of Tracker?
+  void                 tracker_send_completed();
+  void                 tracker_cycle_group(int group);
 
   // Access the files in the torrent.
   Entry                get_entry(uint32_t index);

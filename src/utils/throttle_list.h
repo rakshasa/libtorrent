@@ -60,7 +60,6 @@ public:
 
   ThrottleList() : m_size(0), m_quota(UNLIMITED) {}
 
-//   void                sort()                        { Base::sort(ThrottleListCompUsed()); }
   void                quota(int v);
 
   iterator            insert(const_reference t);

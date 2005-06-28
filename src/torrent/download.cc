@@ -285,7 +285,12 @@ Download::get_tracker_size() {
 }
 
 void
-Download::cycle_tracker_group(int group) {
+Download::tracker_send_completed() {
+  m_ptr->get_main().get_tracker().send_state(TrackerInfo::COMPLETED);
+}
+
+void
+Download::tracker_cycle_group(int group) {
   m_ptr->get_main().get_tracker().cycle_group(group);
 }
 

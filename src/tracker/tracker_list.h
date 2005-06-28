@@ -45,6 +45,7 @@ public:
   using Base::iterator;
   using Base::reverse_iterator;
   using Base::size;
+  using Base::empty;
 
   using Base::begin;
   using Base::end;

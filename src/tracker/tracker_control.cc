@@ -53,10 +53,18 @@ TrackerControl::add_url(int group, const std::string& url) {
   if (is_busy())
     throw internal_error("Added tracker url while the current tracker is busy");
 
-  if (url.empty())
-    throw input_error("Tried to add an empty tracker url");
+  std::string::size_type pos;
+  TrackerHttp* t;
 
-  TrackerHttp* t = new TrackerHttp(&m_info, url);
+  if ((pos = url.find("http://")) != std::string::npos)
+    t = new TrackerHttp(&m_info, url.substr(pos));
+
+  else if ((pos = url.find("udp://")) != std::string::npos)
+    t = new TrackerHttp(&m_info, url.substr(pos));
+
+  else
+    // TODO: Error message here?... not really...
+    return;
   
   t->signal_done().connect(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->signal_failed().connect(sigc::mem_fun(*this, &TrackerControl::receive_failed));
@@ -98,6 +106,11 @@ TrackerControl::is_busy() const {
 
 void
 TrackerControl::send_state(TrackerInfo::State s) {
+  if (m_list.empty()) {
+    m_signalFailed.emit("No valid trackers found");
+    return;
+  }
+
   if ((m_state == TrackerInfo::STOPPED && s == TrackerInfo::STOPPED) || m_itr == m_list.end())
     return;
 

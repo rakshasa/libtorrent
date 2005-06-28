@@ -135,19 +135,45 @@ zero byte quotas might accure.
 
 NEXT RELEASE:
 
-Fix the OpenSSL licenseing issue.
-
-Renable read/write_chunk exceptions.
-
-Make sure we send completed after hash rechecking. Perhaps allow us to
+[DONE] Make sure we send completed after hash rechecking. Perhaps allow us to
 skip start/stop messages or tell it to send complete?
+
+[DONE] Allow random port opening, start from a random port and iterate? Make
+port opening a client side issue, so we don't give libtorrent a range.
+
+[DONT FIX] Make sure we set the unresponsive tracker last in the list? Might not
+be wanted, depends on whetever we've had any connections?
+
+[DONE] Make throttle adjusting keys root/global?
+
+[DONE] Timeout of handshakes.
+
+[DONE] Fix tracker-less torrents, send_state should give an error.
+
+[DONE] Add a way of ignoring keys, set an empty sigc::slot?
+
+[DONE] Rate must be configurable.
+
+[DONE] Use different Rate object for displayed download rate and throttle
+rate.
+
+[PARTLY] Fix throttle, it is allocating too much, causing oscillation.
+
+ Rate deque or list? We only deal with the ends, might be faster with
+list?
+
+Copy modifications of timer.h to rtorrent.
+
+Fix rtorrent input and statusbar dirty marking.
+
+Save state information.
+
+Fix the OpenSSL licenseing issue.
 
 Check if BT 4.0.2 has problems with libtorrent.
 
 Use a seperate function for checking the hash status when doing
 download starts.
-
-Save state information.
 
 Possibly do sync before/after checking hash. Don't sync complete
 chunks as they were synced at the time of hash checking? Read the list
@@ -163,20 +189,13 @@ its timestamp.
 Rewrite the read buffering in PeerConnection, don't do so many small
 reads.
 
-Fix TaskSchedule's static init sequence problem. This will involve
-rewriting task to be non-static.
-
-If the new task scheduler is stable, convert rtorrent.
-
 Ponder race condition on lazy hash checking, do new data get written
 before we start checking?
-
-Make sure we set the unresponsive tracker last in the list?
-
-Allow random port opening, start from a random port and iterate.
-
-Make throttle adjusting keys root/global?
 
 The handling of hash fails isn't good enough...
 
 Directory validation needs to be lazy?
+
+Disable read/write_chunk exceptions.
+
+Don't allow many handshakes from the same ip?

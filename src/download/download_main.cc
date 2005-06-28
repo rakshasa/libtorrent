@@ -42,7 +42,6 @@ DownloadMain::DownloadMain() :
   m_checked(false),
   m_started(false)
 {
-  m_state.get_content().signal_download_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_download_done));
   m_state.get_content().block_download_done(true);
 
   m_taskChokeCycle.set_slot(sigc::mem_fun(*this, &DownloadMain::choke_cycle));
@@ -120,13 +119,5 @@ void DownloadMain::receive_initial_hash() {
   m_checked = true;
   m_state.get_content().resize();
 }    
-
-void
-DownloadMain::receive_download_done() {
-  if (!m_started || !m_checked || m_tracker->get_state() == TrackerInfo::STARTED)
-    throw internal_error("DownloadMain::receive_download_done() called on a download in an invalid state");
-
-  m_tracker->send_state(TrackerInfo::COMPLETED);
-}
 
 }

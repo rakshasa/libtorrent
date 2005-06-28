@@ -30,7 +30,21 @@
 
 namespace torrent {
 
+Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
+  SocketBase(fd),
+  m_manager(m),
+  m_buf(new char[256 + 48]),
+  m_pos(0) {
+
+  m_taskTimeout.set_iterator(taskScheduler.end());
+  m_taskTimeout.set_slot(sigc::mem_fun(*this, &Handshake::send_failed));
+
+  taskScheduler.insert(&m_taskTimeout, Timer::cache() + 60 * 1000000);
+}
+
 Handshake::~Handshake() {
+  taskScheduler.erase(&m_taskTimeout);
+
   if (m_fd.is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open");
 

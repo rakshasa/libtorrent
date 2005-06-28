@@ -65,7 +65,8 @@ public:
   int                 get_quota() const             { return m_quota; }
   void                set_quota(int v)              { m_quota = v; }
   
-  Rate&               get_rate()                    { return m_rate; }
+  Rate&               get_rate_slow()               { return m_rateSlow; }
+  Rate&               get_rate_quick()              { return m_rateQuick; }
 
   void                start()                       { taskScheduler.insert(&m_taskTick, Timer::cache()); }
   void                stop()                        { taskScheduler.erase(&m_taskTick); }
@@ -80,13 +81,16 @@ private:
   int                 m_quota;
 
   TaskItem            m_taskTick;
-  Rate                m_rate;
+  Rate                m_rateSlow;
+  Rate                m_rateQuick;
 };
 
 template <typename T>
 ThrottleControl<T>::ThrottleControl() :
   m_interval(1000000),
-  m_quota(UNLIMITED) {
+  m_quota(UNLIMITED),
+  m_rateSlow(60),
+  m_rateQuick(5) {
 
   m_taskTick.set_iterator(taskScheduler.end());
   m_taskTick.set_slot(sigc::mem_fun(*this, &ThrottleControl::receive_tick));
@@ -95,7 +99,13 @@ ThrottleControl<T>::ThrottleControl() :
 template <typename T> void
 ThrottleControl<T>::receive_tick() {
   if (!is_unlimited())
-    Base::quota(m_quota + std::max<int>(0, m_quota - m_rate.rate()) * 30);
+
+    // We need to over-adjust to get closer to the desired rate. The
+    // problem that we risk getting spikes of activity. Maybe we can
+    // estimate an ideal quota that we can use, that will give us the
+    // desired rate?
+
+    Base::quota(m_quota + std::min(m_quota, std::max<int>(0, m_quota - m_rateQuick.rate()) * 20));
   else
     Base::quota(m_quota);
 

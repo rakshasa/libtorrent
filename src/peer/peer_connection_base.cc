@@ -88,7 +88,9 @@ PeerConnectionBase::write_chunk() {
 
   m_writeRate.insert(bytes);
   m_writeThrottle->used(bytes);
-  throttleWrite.get_rate().insert(bytes);
+
+  throttleWrite.get_rate_slow().insert(bytes);
+  throttleWrite.get_rate_quick().insert(bytes);
   m_net->get_write_rate().insert(bytes);
 
   return m_writeChunk.is_done();
@@ -116,7 +118,9 @@ PeerConnectionBase::read_chunk() {
 
   m_readRate.insert(bytes);
   m_readThrottle->used(bytes);
-  throttleRead.get_rate().insert(bytes);
+
+  throttleRead.get_rate_slow().insert(bytes);
+  throttleRead.get_rate_quick().insert(bytes);
   m_net->get_read_rate().insert(bytes);
 
   return m_readChunk.is_done();

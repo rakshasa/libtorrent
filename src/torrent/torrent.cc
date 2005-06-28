@@ -307,12 +307,12 @@ set_write_throttle(int bytes) {
 
 int
 get_read_rate() {
-  return throttleRead.get_rate().rate();
+  return throttleRead.get_rate_slow().rate();
 }
 
 int
 get_write_rate() {
-  return throttleWrite.get_rate().rate();
+  return throttleWrite.get_rate_slow().rate();
 }
 
 std::string

@@ -34,12 +34,11 @@ namespace torrent {
 
 class Rate {
 public:
-  typedef std::pair<Timer, uint32_t> value_type;
-  typedef std::deque<value_type>     Container;
+  // std::pair<seconds, bytes>
+  typedef std::pair<int32_t, uint32_t> value_type;
+  typedef std::deque<value_type>       Container;
 
-  static const uint32_t timespan = 60;
-
-  Rate() : m_current(0), m_total(0) {}
+  Rate(int32_t span = 30) : m_current(0), m_total(0), m_span(span) {}
 
   uint32_t            rate() const;
   uint64_t            total() const                         { return m_total; }
@@ -51,11 +50,12 @@ public:
 
 private:
   inline void         discard_old() const;
-  inline uint32_t     data_time_span() const;
 
   mutable Container   m_container;
   mutable uint32_t    m_current;
   uint64_t            m_total;
+
+  int32_t             m_span;
 };
 
 }

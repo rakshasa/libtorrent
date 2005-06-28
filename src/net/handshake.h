@@ -27,6 +27,7 @@
 
 #include "socket_base.h"
 #include "peer/peer_info.h"
+#include "utils/task.h"
 
 namespace torrent {
 
@@ -34,12 +35,7 @@ class HandshakeManager;
 
 class Handshake : public SocketBase {
 public:
-  Handshake(SocketFd fd, HandshakeManager* m) :
-    SocketBase(fd),
-    m_manager(m),
-    m_buf(new char[256 + 48]),
-    m_pos(0) {}
-
+  Handshake(SocketFd fd, HandshakeManager* m);
   virtual ~Handshake();
 
   const PeerInfo&     get_peer()                       { return m_peer; }
@@ -53,23 +49,27 @@ public:
   void                close();
 
 protected:
+  Handshake(const Handshake&);
+  void operator = (const Handshake&);
   
   // Make sure you don't touch anything in the class after calling these,
   // return immidiately.
-  void send_connected();
-  void send_failed();
+  void                send_connected();
+  void                send_failed();
 
-  bool recv1();
-  bool recv2();
+  bool                recv1();
+  bool                recv2();
 
-  PeerInfo          m_peer;
-  std::string       m_hash;
-  std::string       m_id;
+  PeerInfo            m_peer;
+  std::string         m_hash;
+  std::string         m_id;
 
-  HandshakeManager* m_manager;
+  HandshakeManager*   m_manager;
 
-  char*             m_buf;
-  uint32_t          m_pos;
+  char*               m_buf;
+  uint32_t            m_pos;
+
+  TaskItem            m_taskTimeout;
 };
 
 }

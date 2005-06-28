@@ -73,7 +73,6 @@ public:
   void                setup_tracker();
 
   void                receive_initial_hash();
-  void                receive_download_done();
 
 private:
   // Disable copy ctor and assignment.
