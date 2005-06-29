@@ -77,6 +77,8 @@ void                set_read_throttle(int bytes);
 int                 get_write_throttle();
 void                set_write_throttle(int bytes);
 
+void                set_throttle_interval(int usec);
+
 int                 get_read_rate();
 int                 get_write_rate();
 

@@ -98,16 +98,21 @@ ThrottleControl<T>::ThrottleControl() :
 
 template <typename T> void
 ThrottleControl<T>::receive_tick() {
-  if (!is_unlimited())
+  if (!is_unlimited()) {
 
     // We need to over-adjust to get closer to the desired rate. The
     // problem that we risk getting spikes of activity. Maybe we can
     // estimate an ideal quota that we can use, that will give us the
     // desired rate?
+    int quota = (int)((m_quota + std::min(m_quota * 5, std::max<int>(0, m_quota - m_rateQuick.rate()) * 20))
+		      * (m_interval / 1000000.0f));
 
-    Base::quota(m_quota + std::min(m_quota, std::max<int>(0, m_quota - m_rateQuick.rate()) * 20));
-  else
+    Base::quota(quota);
+    //Base::quota(m_quota + std::min(m_quota, std::max<int>(0, m_quota - m_rateQuick.rate()) * 20));
+
+  } else {
     Base::quota(m_quota);
+  }
 
   taskScheduler.insert(&m_taskTick, Timer::cache() + m_interval);
 }

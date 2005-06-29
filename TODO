@@ -125,8 +125,6 @@ BUGS:
 
 Snubing seems borked... why?
 
-Possible bug when doing sync on torrents > 4.2GB, over NFS.
-
 Don't use function pointers in throttle, templates should work as well.
 
 Throttle might not give correct size when for_each'ing each, since
@@ -135,38 +133,14 @@ zero byte quotas might accure.
 
 NEXT RELEASE:
 
-[DONE] Make sure we send completed after hash rechecking. Perhaps allow us to
-skip start/stop messages or tell it to send complete?
-
-[DONE] Allow random port opening, start from a random port and iterate? Make
-port opening a client side issue, so we don't give libtorrent a range.
-
-[DONT FIX] Make sure we set the unresponsive tracker last in the list? Might not
-be wanted, depends on whetever we've had any connections?
-
-[DONE] Make throttle adjusting keys root/global?
-
-[DONE] Timeout of handshakes.
-
-[DONE] Fix tracker-less torrents, send_state should give an error.
-
-[DONE] Add a way of ignoring keys, set an empty sigc::slot?
-
-[DONE] Rate must be configurable.
-
-[DONE] Use different Rate object for displayed download rate and throttle
-rate.
-
 [PARTLY] Fix throttle, it is allocating too much, causing oscillation.
 
- Rate deque or list? We only deal with the ends, might be faster with
+[DONT FIX] Rate deque or list? We only deal with the ends, might be faster with
 list?
 
-Copy modifications of timer.h to rtorrent.
-
-Fix rtorrent input and statusbar dirty marking.
-
 Save state information.
+
+Fix rtorrent input and statusbar dirty marking, and statusbar hiding when doing input.
 
 Fix the OpenSSL licenseing issue.
 
@@ -199,3 +173,6 @@ Directory validation needs to be lazy?
 Disable read/write_chunk exceptions.
 
 Don't allow many handshakes from the same ip?
+
+Copy modifications of timer.h to rtorrent. Wait... first from rtorrent to libtorrent.
+

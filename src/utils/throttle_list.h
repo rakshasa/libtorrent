@@ -35,6 +35,13 @@ namespace torrent {
 // permanent. When (unless i find find a non-sorting algorithm) the
 // list is sorted, the iterators stay valid.
 
+// When the ThrottleList is given a quota it is distributed amongst
+// the nodes in the list. First all stable nodes are given a chunk of
+// the quota, which must be less than quota / size but somewhat more
+// than what it used the last tick. A node is stable if it didn't
+// spend its entire quota.  What is left of the quota is then
+// distributed amongst the starving nodes.
+
 template <typename T>
 class ThrottleList : private std::list<T> {
 public:

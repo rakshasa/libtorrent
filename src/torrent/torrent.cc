@@ -305,6 +305,15 @@ set_write_throttle(int bytes) {
   throttleWrite.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 
+void
+set_throttle_interval(int usec) {
+  if (usec <= 0 || usec > 5 * 1000000)
+    throw input_error("torrent::set_throttle_interval(...) received an invalid value");
+
+  throttleRead.set_interval(usec);
+  throttleWrite.set_interval(usec);
+}
+
 int
 get_read_rate() {
   return throttleRead.get_rate_slow().rate();
