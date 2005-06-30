@@ -135,12 +135,19 @@ NEXT RELEASE:
 
 [PARTLY] Fix throttle, it is allocating too much, causing oscillation.
 
-[DONT FIX] Rate deque or list? We only deal with the ends, might be faster with
-list?
+[PARTLY] Move over to a task scheduler based display updateing. Make
+sure peer list doesn't poke the scheduler too often.
 
-Save state information.
+[PARTLY] Save state information. Consider clearing "rtorrent" from bencodes
+loaded from outside of DownloadStore.
 
-Fix rtorrent input and statusbar dirty marking, and statusbar hiding when doing input.
+Doesn't force in some cases when the system is overloaded and you got
+small hash chunks.
+
+Fix hash checking slowness on overworked boxens. Possibly mark the
+mmap'ed area as sequential. Add options to the man page.
+
+Save file priorities?
 
 Fix the OpenSSL licenseing issue.
 

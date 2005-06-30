@@ -48,6 +48,7 @@ class Bencode {
 
   Bencode()                     : m_type(TYPE_NONE) {}
   Bencode(const int64_t v)      : m_type(TYPE_VALUE), m_value(v) {}
+  Bencode(const char* s)        : m_type(TYPE_STRING), m_string(new std::string(s)) {}
   Bencode(const std::string& s) : m_type(TYPE_STRING), m_string(new std::string(s)) {}
   Bencode(const Bencode& b);
 

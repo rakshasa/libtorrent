@@ -88,6 +88,12 @@ std::string         get_version();
 unsigned int        get_hash_read_ahead();
 void                set_hash_read_ahead(unsigned int bytes);
 
+unsigned int        get_hash_interval();
+void                set_hash_interval(unsigned int usec);
+
+unsigned int        get_hash_max_tries();
+void                set_hash_max_tries(unsigned int tries);
+
 unsigned int        get_max_open_files();
 void                set_max_open_files(unsigned int size);
 

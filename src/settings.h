@@ -41,10 +41,6 @@ class Settings {
   static int rateWindow;
   static int rateQuick;
   static int rateSample;
-
-  static int hashWait;
-  static int hashWillneed;
-  static int hashTries;
 };
 
 class DownloadSettings {

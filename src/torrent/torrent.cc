@@ -331,14 +331,36 @@ get_version() {
 
 unsigned int
 get_hash_read_ahead() {
-  return Settings::hashWillneed;
+  return torrent->m_hashQueue.get_read_ahead();
 }
 
 void
 set_hash_read_ahead(unsigned int bytes) {
   if (bytes < 64 << 20)
-    Settings::hashWillneed = bytes;
+    torrent->m_hashQueue.set_read_ahead(bytes);
 }
+
+unsigned int
+get_hash_interval() {
+  return torrent->m_hashQueue.get_interval();
+}
+
+void
+set_hash_interval(unsigned int usec) {
+  if (usec < 1000000)
+    torrent->m_hashQueue.set_interval(usec);
+}
+
+unsigned int
+get_hash_max_tries() {
+  return torrent->m_hashQueue.get_max_tries();
+}
+
+void
+set_hash_max_tries(unsigned int tries) {
+  if (tries < 100)
+    torrent->m_hashQueue.set_max_tries(tries);
+}  
 
 unsigned int
 get_max_open_files() {

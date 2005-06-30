@@ -26,7 +26,6 @@
 #include "hash_queue.h"
 #include "hash_chunk.h"
 #include "storage_chunk.h"
-#include "settings.h"
 
 namespace torrent {
 
@@ -47,7 +46,11 @@ struct HashQueueWillneed {
   int m_bytes;
 };
 
-HashQueue::HashQueue() {
+HashQueue::HashQueue() :
+  m_readAhead(10 << 20),
+  m_interval(100000),
+  m_maxTries(10) {
+
   m_taskWork.set_slot(sigc::mem_fun(*this, &HashQueue::work));
   m_taskWork.set_iterator(taskScheduler.end());
 }
@@ -76,7 +79,7 @@ HashQueue::push_back(Chunk c, SlotDone d, const std::string& id) {
   }
 
   Base::push_back(HashQueueNode(hc, id, d));
-  willneed(Settings::hashWillneed);
+  willneed(m_readAhead);
 }
 
 bool
@@ -109,8 +112,8 @@ HashQueue::work() {
   if (empty())
     return;
 
-  if (!check(++m_tries >= Settings::hashTries))
-    return taskScheduler.insert(&m_taskWork, Timer::cache() + Settings::hashWait);
+  if (!check(++m_tries >= m_maxTries))
+    return taskScheduler.insert(&m_taskWork, Timer::cache() + m_interval);
 
   if (!empty())
     taskScheduler.insert(&m_taskWork, Timer::cache());
@@ -121,7 +124,7 @@ HashQueue::work() {
 bool
 HashQueue::check(bool force) {
   if (!Base::front().perform(force)) {
-    willneed(Settings::hashWillneed);
+    willneed(m_readAhead);
     return false;
   }
 
@@ -129,7 +132,7 @@ HashQueue::check(bool force) {
 
   // This should be a few chunks ahead.
   if (!empty())
-    willneed(Settings::hashWillneed);
+    willneed(m_readAhead);
 
   return true;
 }

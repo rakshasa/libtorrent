@@ -66,6 +66,15 @@ public:
 
   void                work();
 
+  uint32_t            get_read_ahead() const         { return m_readAhead; }
+  void                set_read_ahead(uint32_t bytes) { m_readAhead = bytes; }
+
+  uint32_t            get_interval() const           { return m_interval; }
+  void                set_interval(uint32_t usec)    { m_interval = usec; }
+
+  uint32_t            get_max_tries() const          { return m_maxTries; }
+  void                set_max_tries(uint32_t tries)  { m_maxTries = tries; }
+
 private:
   bool                check(bool force);
 
@@ -75,6 +84,10 @@ private:
 
   uint16_t            m_tries;
   TaskItem            m_taskWork;
+
+  uint32_t            m_readAhead;
+  uint32_t            m_interval;
+  uint32_t            m_maxTries;
 };
 
 }
