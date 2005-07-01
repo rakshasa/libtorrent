@@ -22,10 +22,10 @@
 
 #include "config.h"
 
+#include "net/socket_base.h"
 #include "torrent/exceptions.h"
 
 #include "protocol_chunk.h"
-#include "socket_base.h"
 
 namespace torrent {
 

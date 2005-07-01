@@ -38,13 +38,13 @@
 namespace torrent {
 
 class DownloadSettings;
-class PeerConnection;
+class PeerConnectionBase;
 
 class DownloadNet {
 public:
   typedef std::deque<PeerInfo>                    PeerContainer;
   typedef std::list<PeerInfo>                     PeerList;
-  typedef unordered_vector<PeerConnection*>       ConnectionList;
+  typedef unordered_vector<PeerConnectionBase*>   ConnectionList;
 
   DownloadNet() : m_settings(NULL), m_endgame(false) {}
   ~DownloadNet();
@@ -72,7 +72,7 @@ public:
   PeerContainer&      get_available_peers()                    { return m_availablePeers; }
 
   bool                add_connection(SocketFd fd, const PeerInfo& p);
-  void                remove_connection(PeerConnection* p);
+  void                remove_connection(PeerConnectionBase* p);
 
   void                add_available_peers(const PeerList& p);
 
@@ -80,29 +80,29 @@ public:
 
   int                 count_connections() const; 
 
-  void                choke_balance()                          { m_chokeManager.balance(m_connections.begin(), m_connections.end()); }
-  void                choke_cycle()                            { m_chokeManager.cycle(m_connections.begin(), m_connections.end()); }
-  int                 get_unchoked()                           { return m_chokeManager.get_unchoked(m_connections.begin(), m_connections.end()); }
+  void                choke_balance();
+  void                choke_cycle();
+  int                 get_unchoked();
 
   // Signals and slots.
 
-  typedef sigc::signal1<void, Peer>                               SignalPeer;
-  typedef sigc::signal1<void, const std::string&>                 SignalString;
+  typedef sigc::signal1<void, Peer>                                    SignalPeer;
+  typedef sigc::signal1<void, const std::string&>                      SignalString;
 
-  typedef sigc::slot2<PeerConnection*, SocketFd, const PeerInfo&> SlotCreateConnection;
-  typedef sigc::slot1<void, const PeerInfo&>                      SlotStartHandshake;
-  typedef sigc::slot1<bool, const PeerInfo&>                      SlotHasHandshake;
-  typedef sigc::slot0<uint32_t>                                   SlotCountHandshakes;
+  typedef sigc::slot2<PeerConnectionBase*, SocketFd, const PeerInfo&>  SlotCreateConnection;
+  typedef sigc::slot1<void, const PeerInfo&>                           SlotStartHandshake;
+  typedef sigc::slot1<bool, const PeerInfo&>                           SlotHasHandshake;
+  typedef sigc::slot0<uint32_t>                                        SlotCountHandshakes;
 
-  SignalPeer&   signal_peer_connected()                        { return m_signalPeerConnected; }
-  SignalPeer&   signal_peer_disconnected()                     { return m_signalPeerDisconnected; }
+  SignalPeer&   signal_peer_connected()                                { return m_signalPeerConnected; }
+  SignalPeer&   signal_peer_disconnected()                             { return m_signalPeerDisconnected; }
 
-  SignalString& signal_network_log()                           { return m_signalNetworkLog; }
+  SignalString& signal_network_log()                                   { return m_signalNetworkLog; }
 
-  void          slot_create_connection(SlotCreateConnection s) { m_slotCreateConnection = s; }
-  void          slot_start_handshake(SlotStartHandshake s)     { m_slotStartHandshake = s; }
-  void          slot_has_handshake(SlotHasHandshake s)         { m_slotHasHandshake = s; }
-  void          slot_count_handshakes(SlotCountHandshakes s)   { m_slotCountHandshakes = s; }
+  void          slot_create_connection(SlotCreateConnection s)         { m_slotCreateConnection = s; }
+  void          slot_start_handshake(SlotStartHandshake s)             { m_slotStartHandshake = s; }
+  void          slot_has_handshake(SlotHasHandshake s)                 { m_slotHasHandshake = s; }
+  void          slot_count_handshakes(SlotCountHandshakes s)           { m_slotCountHandshakes = s; }
 
 private:
   DownloadNet(const DownloadNet&);
@@ -129,6 +129,21 @@ private:
   SlotHasHandshake       m_slotHasHandshake;
   SlotCountHandshakes    m_slotCountHandshakes;
 };
+
+inline void
+DownloadNet::choke_balance() {
+  m_chokeManager.balance(m_connections.begin(), m_connections.end());
+}
+
+inline void
+DownloadNet::choke_cycle() {
+  m_chokeManager.cycle(m_connections.begin(), m_connections.end());
+}
+
+inline int
+DownloadNet::get_unchoked() {
+  return m_chokeManager.get_unchoked(m_connections.begin(), m_connections.end());
+}
 
 }
 

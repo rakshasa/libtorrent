@@ -25,10 +25,6 @@
 
 #include "data/piece.h"
 #include "net/poll_manager.h"
-#include "net/protocol_buffer.h"
-#include "net/protocol_chunk.h"
-#include "net/protocol_read.h"
-#include "net/protocol_write.h"
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
 #include "utils/rate.h"
@@ -36,6 +32,11 @@
 #include "utils/throttle.h"
 
 #include "peer_info.h"
+#include "protocol_buffer.h"
+#include "protocol_chunk.h"
+#include "protocol_read.h"
+#include "protocol_write.h"
+#include "request_list.h"
 
 namespace torrent {
 
@@ -47,8 +48,10 @@ class DownloadNet;
 
 class PeerConnectionBase : public SocketBase {
 public:
+  typedef std::list<Piece> PieceList;
+
   PeerConnectionBase();
-  ~PeerConnectionBase();
+  virtual ~PeerConnectionBase();
   
   bool                is_write_choked()             { return m_write->get_choked(); }
   bool                is_write_interested()         { return m_write->get_interested(); }
@@ -68,17 +71,24 @@ public:
 
   Timer               get_last_choked()             { return m_lastChoked; }
 
+  RequestList&        get_request_list()            { return m_requestList; }
+  PieceList&          get_send_list()               { return m_sendList; }
+
   const BitFieldExt&  get_bitfield() const          { return m_bitfield; }
 
   // Make sure you choke the peer when snubbing. Snubbing a peer will
   // only cause it not to be unchoked.
   void                set_snubbed(bool v)           { m_snubbed = v; }
+  virtual void        set_choke(bool v) = 0;
 
   void                insert_read_throttle();
   void                remove_read_throttle();
 
   void                insert_write_throttle();
   void                remove_write_throttle();
+
+  virtual void        update_interested() = 0;
+  virtual void        receive_have_chunk(int32_t i) = 0;
 
 protected:
   inline bool         read_remaining();
@@ -108,6 +118,9 @@ protected:
   Rate                m_writeRate;
   ThrottlePeerNode    m_writeThrottle;
   ProtocolChunk       m_writeChunk;
+
+  RequestList         m_requestList;
+  PieceList           m_sendList;
 
   bool                m_snubbed;
   BitFieldExt         m_bitfield;

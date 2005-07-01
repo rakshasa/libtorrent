@@ -31,7 +31,6 @@
 #include "utils/string_manip.h"
 
 #include "download_main.h"
-#include "peer_connection.h"
 
 namespace torrent {
 
@@ -48,8 +47,6 @@ void
 DownloadMain::setup_net() {
   m_net.set_settings(&m_settings);
   m_state.set_settings(&m_settings);
-
-  m_net.slot_create_connection(sigc::bind(sigc::ptr_fun(PeerConnection::create), &m_state, &m_net));
 
   // TODO: Consider disabling these during hash check.
   m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net, &DownloadNet::send_have_chunk));

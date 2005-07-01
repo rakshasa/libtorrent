@@ -24,7 +24,6 @@
 #define LIBTORRENT_PEER_CONNECTION_H
 
 #include "peer/peer_connection_base.h"
-#include "peer/request_list.h"
 #include "utils/throttle.h"
 
 #include <vector>
@@ -36,33 +35,27 @@ namespace torrent {
 
 class PeerConnection : public PeerConnectionBase {
 public:
-  typedef std::list<Piece>              SendList;
-
   PeerConnection();
-  ~PeerConnection();
+  virtual ~PeerConnection();
 
-  inline bool                is_choke_delayed();
+  inline bool         is_choke_delayed();
 
-  void sendHave(int i);
-  void choke(bool v);
+  virtual void        set_choke(bool v);
 
-  void update_interested();
+  virtual void        update_interested();
 
-  RequestList& get_requests() { return m_requests; }
-  SendList&    get_sends()    { return m_sends; }
+  virtual void        receive_have_chunk(int32_t i);
 
   virtual void        read();
   virtual void        write();
   virtual void        except();
 
-  static PeerConnection* create(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
-
+  void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
+  
 private:
   PeerConnection(const PeerConnection&);
   PeerConnection& operator = (const PeerConnection&);
 
-  void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
-  
   // Parse packet in read buffer, must be of correct type.
   void parseReadBuf();
 
@@ -87,9 +80,6 @@ private:
   bool           m_sendChoked;
   bool           m_sendInterested;
   bool           m_tryRequest;
-
-  SendList       m_sends;
-  RequestList    m_requests;
 
   std::list<int> m_haveQueue;
 

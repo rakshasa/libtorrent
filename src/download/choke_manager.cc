@@ -100,7 +100,7 @@ ChokeManager::choke(iterator first, iterator last, int count) {
   sort_read_rate(first, last);
 
   std::for_each(last - count, last,
-		std::bind2nd(std::mem_fun(&PeerConnection::choke), true));
+		std::bind2nd(std::mem_fun(&PeerConnectionBase::set_choke), true));
 }
 
 void
@@ -113,7 +113,7 @@ ChokeManager::unchoke(iterator first, iterator last, int count) {
   sort_read_rate(first, last);
 
   std::for_each(first, first + count,
-		std::bind2nd(std::mem_fun(&PeerConnection::choke), false));
+		std::bind2nd(std::mem_fun(&PeerConnectionBase::set_choke), false));
 }
 
 }

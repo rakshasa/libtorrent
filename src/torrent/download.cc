@@ -30,8 +30,10 @@
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/download_wrapper.h"
+#include "peer/peer_factory.h"
 
 #include <rak/functional.h>
+#include <sigc++/bind.h>
 #include <sigc++/hide.h>
 
 namespace torrent {
@@ -313,6 +315,16 @@ Download::get_seen() {
 }
 
 void
+Download::set_connection_type(const std::string& name) {
+  if (name == "default")
+    m_ptr->get_main().get_net().slot_create_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault),
+								  &m_ptr->get_main().get_state(),
+								  &m_ptr->get_main().get_net()));
+  else
+    throw input_error("set_peer_connection_type(...) received invalid type name");
+}
+
+void
 Download::update_priorities() {
   Priority& p = m_ptr->get_main().get_net().get_delegator().get_select().get_priority();
   Content& content = m_ptr->get_main().get_state().get_content();
@@ -334,7 +346,7 @@ Download::update_priorities() {
 
   std::for_each(m_ptr->get_main().get_net().get_connections().begin(),
 		m_ptr->get_main().get_net().get_connections().end(),
-		std::mem_fun(&PeerConnection::update_interested));
+		std::mem_fun(&PeerConnectionBase::update_interested));
 }
 
 void

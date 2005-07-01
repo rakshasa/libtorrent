@@ -29,12 +29,12 @@
 
 namespace torrent {
 
-class PeerConnection;
+class PeerConnectionBase;
 
 class ChokeManager {
 public:
-  typedef unordered_vector<PeerConnection*> Container;
-  typedef Container::iterator               iterator;
+  typedef unordered_vector<PeerConnectionBase*> Container;
+  typedef Container::iterator                   iterator;
 
   ChokeManager() : m_maxUnchoked(15), m_minGenerous(2), m_cycleSize(2) {}
   

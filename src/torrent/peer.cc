@@ -96,20 +96,20 @@ Peer::get_transfered_up() {
 
 uint32_t
 Peer::get_incoming_queue_size() {
-  return m_ptr->get_requests().get_size();
+  return m_ptr->get_request_list().get_size();
 }
 
 uint32_t
 Peer::get_outgoing_queue_size() {
-  return m_ptr->get_sends().size();
+  return m_ptr->get_send_list().size();
 }  
 
 uint32_t
 Peer::get_incoming_index(uint32_t pos) {
-  if (pos >= m_ptr->get_requests().get_size())
+  if (pos >= m_ptr->get_request_list().get_size())
     throw client_error("get_incoming_index(pos) out of range");
 
-  return m_ptr->get_requests().get_queued_piece(pos).get_index();
+  return m_ptr->get_request_list().get_queued_piece(pos).get_index();
 }
 
   uint32_t             get_incoming_offset(uint32_t pos);
@@ -139,7 +139,7 @@ Peer::set_snubbed(bool v) {
   m_ptr->set_snubbed(v);
 
   if (v)
-    m_ptr->choke(true);
+    m_ptr->set_choke(true);
 }
 
 }

@@ -140,6 +140,8 @@ public:
 
   const SeenVector&    get_seen();
 
+  void                 set_connection_type(const std::string& name);
+
   // Call this when you want the modifications of the download priorities
   // in the entries to take effect. It is slightly expensive as it rechecks
   // all the peer bitfields to see if we are still interested.
@@ -188,7 +190,7 @@ public:
   sigc::connection    signal_storage_error(SlotString s);
 
 private:
-  DownloadWrapper*      m_ptr;
+  DownloadWrapper*    m_ptr;
 };
 
 }

@@ -28,7 +28,7 @@
 
 namespace torrent {
 
-class PeerConnection;
+class PeerConnectionBase;
 
 // == and = operators works as expected.
 
@@ -39,8 +39,8 @@ class PeerConnection;
 // date. 
 class Peer {
 public:
-  Peer()                  : m_ptr(NULL) {}
-  Peer(PeerConnection* p) : m_ptr(p) {}
+  Peer()                      : m_ptr(NULL) {}
+  Peer(PeerConnectionBase* p) : m_ptr(p) {}
 
   // Does not check if it has been removed from the download.
   bool                 is_valid()  { return m_ptr; }
@@ -80,13 +80,13 @@ public:
 
   void                 set_snubbed(bool v);
 
-  PeerConnection*      get_ptr()                    { return m_ptr; }
-  void                 set_ptr(PeerConnection* ptr) { m_ptr = ptr; }
+  PeerConnectionBase*  get_ptr()                        { return m_ptr; }
+  void                 set_ptr(PeerConnectionBase* ptr) { m_ptr = ptr; }
 
-  bool                 operator == (const Peer& p)  { return m_ptr == p.m_ptr; }
+  bool                 operator == (const Peer& p)      { return m_ptr == p.m_ptr; }
 
 private:
-  PeerConnection*      m_ptr;
+  PeerConnectionBase*  m_ptr;
 };
 
 }

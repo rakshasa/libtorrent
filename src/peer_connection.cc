@@ -61,11 +61,6 @@ PeerConnection::~PeerConnection() {
   if (m_state == NULL || m_net == NULL)
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
-  if (m_requests.is_downloading())
-    m_requests.skip();
-
-  m_requests.cancel();
-
   if (m_read->get_state() != ProtocolRead::BITFIELD)
     m_state->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
@@ -82,7 +77,7 @@ PeerConnection::~PeerConnection() {
 }
   
 void
-PeerConnection::choke(bool v) {
+PeerConnection::set_choke(bool v) {
   if (m_write->get_choked() == v)
     return;
 
@@ -103,14 +98,6 @@ PeerConnection::update_interested() {
   }
 }
 
-PeerConnection*
-PeerConnection::create(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
-  PeerConnection* pc = new PeerConnection;
-  pc->set(fd, p, d, net);
-
-  return pc;
-}
-
 void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
   if (m_fd.is_valid())
     throw internal_error("Tried to re-set PeerConnection");
@@ -122,8 +109,8 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
 
   m_fd.set_throughput();
 
-  m_requests.set_delegator(&m_net->get_delegator());
-  m_requests.set_bitfield(&m_bitfield.get_bitfield());
+  m_requestList.set_delegator(&m_net->get_delegator());
+  m_requestList.set_bitfield(&m_bitfield.get_bitfield());
 
   if (d == NULL || !p.is_valid() || !m_fd.is_valid())
     throw internal_error("PeerConnection set recived bad input");
@@ -304,15 +291,15 @@ void PeerConnection::read() {
     goto evil_goto_read;
 
   case ProtocolRead::READ_PIECE:
-    if (!m_requests.is_downloading())
+    if (!m_requestList.is_downloading())
       throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading");
 
-    if (!m_requests.is_wanted()) {
+    if (!m_requestList.is_wanted()) {
       m_read->set_state(ProtocolRead::SKIP_PIECE);
       m_read->set_length(m_readChunk.get_bytes_left());
       m_read->set_position(0);
 
-      m_requests.skip();
+      m_requestList.skip();
 
       goto evil_goto_read;
     }
@@ -323,12 +310,12 @@ void PeerConnection::read() {
     m_read->set_state(ProtocolRead::IDLE);
     m_tryRequest = true;
 
-    m_requests.finished();
+    m_requestList.finished();
     
     // TODO: Find a way to avoid this remove/insert cycle.
     taskScheduler.erase(&m_taskStall);
     
-    if (m_requests.get_size())
+    if (m_requestList.get_size())
       taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
 
     // TODO: clear m_down.data?
@@ -366,7 +353,7 @@ void PeerConnection::read() {
 
       taskScheduler.erase(&m_taskStall);
 
-      if (m_requests.get_size())
+      if (m_requestList.get_size())
 	taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
     }
 
@@ -433,7 +420,7 @@ void PeerConnection::write() {
 
     case ProtocolBase::PIECE:
       // TODO: Do this somewhere else, and check to see if we are already using the right chunk
-      if (m_sends.empty())
+      if (m_sendList.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
       m_writeChunk.set_chunk(m_state->get_content().get_storage().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
@@ -462,16 +449,16 @@ void PeerConnection::write() {
     return;
 
   case ProtocolWrite::WRITE_PIECE:
-    if (m_sends.empty())
+    if (m_sendList.empty())
       throw internal_error("ProtocolWrite::WRITE_PIECE on an empty list");
 
     if (!write_chunk())
       return;
 
-    if (m_sends.empty())
+    if (m_sendList.empty())
       m_writeChunk.get_chunk().clear();
 
-    m_sends.pop_front();
+    m_sendList.pop_front();
 
     m_write->set_state(ProtocolWrite::IDLE);
     return;
@@ -516,7 +503,7 @@ void PeerConnection::parseReadBuf() {
       return;
 
     m_read->set_choked(true);
-    m_requests.cancel();
+    m_requestList.cancel();
 
     remove_read_throttle();
     taskScheduler.erase(&m_taskStall);
@@ -541,7 +528,7 @@ void PeerConnection::parseReadBuf() {
     // If we want to send stuff.
     if (m_write->get_choked() &&
 	m_net->get_choke_manager().get_max_unchoked() - m_net->get_unchoked() > 0) {
-      choke(false);
+      set_choke(false);
     }
     
     return;
@@ -551,7 +538,7 @@ void PeerConnection::parseReadBuf() {
 
     // Choke this uninterested peer and unchoke someone else.
     if (!m_write->get_choked()) {
-      choke(true);
+      set_choke(true);
 
       m_net->choke_balance();
     }
@@ -591,7 +578,7 @@ void PeerConnection::fillWriteBuf() {
       if (m_write->get_choked()) {
 	remove_write_throttle();
 	
-	m_sends.clear();
+	m_sendList.clear();
 	m_writeChunk.get_chunk().clear();
 
       } else {
@@ -615,13 +602,13 @@ void PeerConnection::fillWriteBuf() {
 
       m_read->get_state() != ProtocolRead::SKIP_PIECE &&
       m_net->should_request(m_stallCount) &&
-      m_requests.get_size() < (pipeSize = m_net->pipe_size(m_readRate))) {
+      m_requestList.get_size() < (pipeSize = m_net->pipe_size(m_readRate))) {
 
     m_tryRequest = false;
 
-    while (m_requests.get_size() < pipeSize && m_write->can_write_request() && send_request_piece())
+    while (m_requestList.get_size() < pipeSize && m_write->can_write_request() && send_request_piece())
 
-      if (m_requests.get_size() == 1) {
+      if (m_requestList.get_size() == 1) {
 	if (taskScheduler.is_scheduled(&m_taskStall))
 	  throw internal_error("Only one request, but we're already in task stall");
 	
@@ -641,10 +628,10 @@ void PeerConnection::fillWriteBuf() {
   if (!m_write->get_choked() &&
       !m_sendChoked &&
       !taskScheduler.is_scheduled(&m_taskSendChoke) && // Urgh... find a nicer way to do the delayed choke.
-      !m_sends.empty() &&
+      !m_sendList.empty() &&
       m_write->can_write_piece()) {
 
-    m_writeChunk.set_piece(m_sends.front());
+    m_writeChunk.set_piece(m_sendList.front());
 
     // Move these checks somewhere else?
     if (!m_state->get_content().is_valid_piece(m_writeChunk.get_piece()) ||
@@ -663,7 +650,8 @@ void PeerConnection::fillWriteBuf() {
   }
 }
 
-void PeerConnection::sendHave(int index) {
+void
+PeerConnection::receive_have_chunk(int32_t index) {
   m_haveQueue.push_back(index);
 
   if (m_state->get_content().is_done()) {
@@ -685,7 +673,7 @@ void PeerConnection::sendHave(int index) {
     m_write->set_interested(false);
   }
 
-  if (m_requests.has_index(index))
+  if (m_requestList.has_index(index))
     throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
 
   // TODO: Also send cancel messages!
@@ -696,7 +684,7 @@ void PeerConnection::sendHave(int index) {
 
 bool
 PeerConnection::send_request_piece() {
-  const Piece* p = m_requests.delegate();
+  const Piece* p = m_requestList.delegate();
 
   if (p == NULL)
     return false;
@@ -711,26 +699,26 @@ PeerConnection::send_request_piece() {
 
 void
 PeerConnection::receive_request_piece(Piece p) {
-  SendList::iterator itr = std::find(m_sends.begin(), m_sends.end(), p);
+  PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
-  if (itr == m_sends.end())
-    m_sends.push_back(p);
+  if (itr == m_sendList.end())
+    m_sendList.push_back(p);
 
   PollManager::write_set().insert(this);
 }
 
 void
 PeerConnection::receive_cancel_piece(Piece p) {
-  SendList::iterator itr = std::find(m_sends.begin(), m_sends.end(), p);
+  PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
-  if (itr != m_sends.begin() && m_write->get_state() == ProtocolWrite::IDLE)
-    m_sends.erase(itr);
+  if (itr != m_sendList.begin() && m_write->get_state() == ProtocolWrite::IDLE)
+    m_sendList.erase(itr);
 }  
 
 void
 PeerConnection::receive_have(uint32_t index) {
   if (index >= m_bitfield.size_bits())
-    throw communication_error("Recived HAVE command with invalid value");
+    throw communication_error("Recieved HAVE command with invalid value");
 
   if (m_bitfield[index])
     return;
@@ -767,7 +755,7 @@ PeerConnection::receive_piece_header(Piece p) {
     return;
   }
 
-  if (m_requests.downloading(p)) {
+  if (m_requestList.downloading(p)) {
     m_read->set_state(ProtocolRead::READ_PIECE);
     m_readChunk.set_position(0);
     load_read_chunk(p);
@@ -816,7 +804,7 @@ PeerConnection::task_send_choke() {
 void
 PeerConnection::task_stall() {
   m_stallCount++;
-  m_requests.stall();
+  m_requestList.stall();
 
   // Make sure we regulary call task_stall() so stalled queues with new
   // entries get those new ones stalled if needed.

@@ -42,6 +42,7 @@
 #include "net/poll_manager.h"
 #include "net/poll_select.h"
 #include "parse/parse.h"
+#include "peer/peer_factory.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
@@ -400,6 +401,11 @@ download_create(std::istream* s) {
   d->set_handshake_manager(&torrent->m_handshakeManager);
   d->set_hash_queue(&torrent->m_hashQueue);
   d->set_file_manager(&torrent->m_fileManager);
+
+  // Default PeerConnection factory functios.
+  d->get_main().get_net().slot_create_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault),
+							    &d->get_main().get_state(),
+							    &d->get_main().get_net()));
 
   parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
 

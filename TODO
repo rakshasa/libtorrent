@@ -1,3 +1,74 @@
+NEXT RELEASE:
+
+[PARTLY] Fix throttle, it is allocating too much, causing oscillation.
+
+[PARTLY] Move over to a task scheduler based display updateing. Make
+sure peer list doesn't poke the scheduler too often.
+
+[PARTLY] Save state information. Consider clearing "rtorrent" from bencodes
+loaded from outside of DownloadStore.
+
+---
+
+[DONE] Fix memory leak.
+
+[DONE] Move Protocol* to peer.
+
+[DONE] Use PeerConnectionBase.
+
+[DONE] Create PeerConnection factory. Make sure we set seeders for complete downloads.
+
+Enable socket manager.
+
+Doesn't force in some cases when the system is overloaded and you got
+small hash chunks.
+
+Fix hash checking slowness on overworked boxens. Possibly mark the
+mmap'ed area as sequential. Add options to the man page.
+
+Save file priorities?
+
+Fix the OpenSSL licenseing issue.
+
+Check if BT 4.0.2 has problems with libtorrent.
+
+Use a seperate function for checking the hash status when doing
+download starts.
+
+Possibly do sync before/after checking hash. Don't sync complete
+chunks as they were synced at the time of hash checking? Read the list
+of dirty chunks from the delegator. Need to fix the problem of corrupt
+downloads due to lack of diskspace.
+
+Do truncate to update the timestamp, so we know he filestamp is
+updated.
+
+Do sync on all stopped downloads. Ftruncate a torrent upon load to set
+its timestamp.
+
+Rewrite the read buffering in PeerConnection, don't do so many small
+reads.
+
+Ponder race condition on lazy hash checking, do new data get written
+before we start checking?
+
+The handling of hash fails isn't good enough...
+
+Directory validation needs to be lazy?
+
+Disable read/write_chunk exceptions.
+
+Don't allow many handshakes from the same ip?
+
+Copy modifications of timer.h to rtorrent. Wait... first from rtorrent to libtorrent.
+
+Create a std::list'ish thing that contains the current downloads, and
+expose it to the client. Will make DownloadManager 'redundant'.
+
+
+
+*** STUFF I MIGHT DO SOME DAY ***
+
 SMALL TODO STUFF I HAVEN'T BOTHERED DOING YET:
 
 After 25 seconds, choke a peer if no requests have been received?
@@ -129,57 +200,3 @@ Don't use function pointers in throttle, templates should work as well.
 
 Throttle might not give correct size when for_each'ing each, since
 zero byte quotas might accure.
-
-
-NEXT RELEASE:
-
-[PARTLY] Fix throttle, it is allocating too much, causing oscillation.
-
-[PARTLY] Move over to a task scheduler based display updateing. Make
-sure peer list doesn't poke the scheduler too often.
-
-[PARTLY] Save state information. Consider clearing "rtorrent" from bencodes
-loaded from outside of DownloadStore.
-
-Doesn't force in some cases when the system is overloaded and you got
-small hash chunks.
-
-Fix hash checking slowness on overworked boxens. Possibly mark the
-mmap'ed area as sequential. Add options to the man page.
-
-Save file priorities?
-
-Fix the OpenSSL licenseing issue.
-
-Check if BT 4.0.2 has problems with libtorrent.
-
-Use a seperate function for checking the hash status when doing
-download starts.
-
-Possibly do sync before/after checking hash. Don't sync complete
-chunks as they were synced at the time of hash checking? Read the list
-of dirty chunks from the delegator. Need to fix the problem of corrupt
-downloads due to lack of diskspace.
-
-Do truncate to update the timestamp, so we know he filestamp is
-updated.
-
-Do sync on all stopped downloads. Ftruncate a torrent upon load to set
-its timestamp.
-
-Rewrite the read buffering in PeerConnection, don't do so many small
-reads.
-
-Ponder race condition on lazy hash checking, do new data get written
-before we start checking?
-
-The handling of hash fails isn't good enough...
-
-Directory validation needs to be lazy?
-
-Disable read/write_chunk exceptions.
-
-Don't allow many handshakes from the same ip?
-
-Copy modifications of timer.h to rtorrent. Wait... first from rtorrent to libtorrent.
-

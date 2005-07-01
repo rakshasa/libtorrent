@@ -15,11 +15,6 @@ LIBRARY DEPENDENCIES
   libsigc++ 2.0 (deb: libsigc++-2.0-dev)
   g++ >= 3.3
 
-CLIENT DEPENDENCIES
-
-  libcurl       (deb: libcurl3-dev)
-  ncurses       (deb: libncurses5-dev)
-
 SIGC++
 
  The API will use sigc++ signals to give the client a simple, yet

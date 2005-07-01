@@ -35,7 +35,7 @@
 namespace torrent {
 
 DownloadNet::~DownloadNet() {
-  std::for_each(m_connections.begin(), m_connections.end(), rak::call_delete<PeerConnection>());
+  std::for_each(m_connections.begin(), m_connections.end(), rak::call_delete<PeerConnectionBase>());
 }  
 
 void
@@ -78,7 +78,7 @@ DownloadNet::should_request(uint32_t stall) {
 void
 DownloadNet::send_have_chunk(uint32_t index) {
   std::for_each(m_connections.begin(), m_connections.end(),
-		std::bind2nd(std::mem_fun(&PeerConnection::sendHave), index));
+		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_have_chunk), index));
 }
 
 bool
@@ -93,7 +93,7 @@ DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
     return false;
   }
 
-  PeerConnection* c = m_slotCreateConnection(fd, p);
+  PeerConnectionBase* c = m_slotCreateConnection(fd, p);
 
   if (c == NULL)
     throw internal_error("DownloadNet::add_connection(...) received a NULL pointer from m_slotCreateConnection");
@@ -111,7 +111,7 @@ DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
 }
 
 void
-DownloadNet::remove_connection(PeerConnection* p) {
+DownloadNet::remove_connection(PeerConnectionBase* p) {
   ConnectionList::iterator itr = std::find(m_connections.begin(), m_connections.end(), p);
 
   if (itr == m_connections.end())

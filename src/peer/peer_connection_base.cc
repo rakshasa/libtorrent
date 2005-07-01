@@ -46,8 +46,16 @@ PeerConnectionBase::PeerConnectionBase() :
 }
 
 PeerConnectionBase::~PeerConnectionBase() {
+  if (m_requestList.is_downloading())
+    m_requestList.skip();
+
+  m_requestList.cancel();
+
   remove_read_throttle();
   remove_write_throttle();
+
+  delete m_read;
+  delete m_write;
 }
 
 void
