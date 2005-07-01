@@ -38,6 +38,9 @@ AC_C_BIGENDIAN(
     AC_MSG_ERROR([Could not determine endianness])
 )
 
+TORRENT_CHECK_OPENSSL
+AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
+
 PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
 		  LIBS="$LIBS $STUFF_LIBS")

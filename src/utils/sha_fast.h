@@ -1,3 +1,8 @@
+// The OpenSSL library exception does not cover the program if you
+// compile the code below.
+
+#ifdef USE_NSS_SHA
+
 /* 
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
@@ -84,3 +89,5 @@ extern void SHA1_End(SHA1Context *cx, unsigned char *digest,
 }
 
 #endif /* _SHA_FAST_H_ */
+
+#endif // USE_NSS_SHA

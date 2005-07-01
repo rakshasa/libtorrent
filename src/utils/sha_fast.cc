@@ -1,3 +1,10 @@
+// The OpenSSL library exception does not cover the program if you
+// compile the code below.
+
+#include "config.h"
+
+#ifdef USE_NSS_SHA
+
 /* 
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
@@ -32,8 +39,6 @@
  * may use your version of this file under either the MPL or the
  * GPL.
  */
-
-#include "config.h"
 
 #include <string.h>
 #include "sha_fast.h"
@@ -332,3 +337,5 @@ shaCompress(SHA1Context *ctx)
 }
 
 }
+
+#endif // USE_NSS_SHA
