@@ -34,9 +34,7 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -97,8 +95,8 @@ void Listen::read() {
   SocketAddress sa;
   SocketFd fd;
 
-  while ((fd = m_fd.accept(sa)).is_valid())
-    m_slotIncoming(fd.get_fd(), sa.get_address(), sa.get_port());
+  while ((fd = m_fd.accept(&sa)).is_valid())
+    m_slotIncoming(fd, sa);
 }
 
 void Listen::write() {

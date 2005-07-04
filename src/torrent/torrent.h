@@ -85,31 +85,35 @@ int64_t             get_current_time();
 int64_t             get_next_timeout();
 
 // 0 == UNLIMITED.
-int                 get_read_throttle();
-void                set_read_throttle(int bytes);
+uint32_t            get_read_throttle();
+void                set_read_throttle(uint32_t bytes);
 
-int                 get_write_throttle();
-void                set_write_throttle(int bytes);
+uint32_t            get_write_throttle();
+void                set_write_throttle(uint32_t bytes);
 
-void                set_throttle_interval(int usec);
+void                set_throttle_interval(uint32_t usec);
 
-int                 get_read_rate();
-int                 get_write_rate();
+uint32_t            get_read_rate();
+uint32_t            get_write_rate();
 
 std::string         get_version();
 
 // Disk access tuning.
-unsigned int        get_hash_read_ahead();
-void                set_hash_read_ahead(unsigned int bytes);
+uint32_t            get_hash_read_ahead();
+void                set_hash_read_ahead(uint32_t bytes);
 
-unsigned int        get_hash_interval();
-void                set_hash_interval(unsigned int usec);
+uint32_t            get_hash_interval();
+void                set_hash_interval(uint32_t usec);
 
-unsigned int        get_hash_max_tries();
-void                set_hash_max_tries(unsigned int tries);
+uint32_t            get_hash_max_tries();
+void                set_hash_max_tries(uint32_t tries);
 
-unsigned int        get_max_open_files();
-void                set_max_open_files(unsigned int size);
+uint32_t            get_max_open_files();
+void                set_max_open_files(uint32_t size);
+
+uint32_t            get_open_sockets();
+uint32_t            get_max_open_sockets();
+void                set_max_open_sockets(uint32_t size);
 
 // The below API might/might not be cleaned up.
 

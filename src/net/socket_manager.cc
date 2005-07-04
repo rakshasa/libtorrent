@@ -36,26 +36,45 @@
 
 #include "config.h"
 
+#include "torrent/exceptions.h"
+
 #include "socket_address.h"
 #include "socket_manager.h"
 
 namespace torrent {
 
+SocketManager socketManager;
+
 SocketFd
-SocketManager::open(const SocketAddress& sa) {
+SocketManager::open(const SocketAddress& sa, const SocketAddress& b) {
   SocketFd fd;
 
-  // TODO: Check if there's too many open sockets.
   if (m_size >= m_max || !fd.open())
     return SocketFd();
 
-  if (!fd.set_nonblock() || !fd.connect(sa)) {
+  if (!fd.set_nonblock() ||
+      (!b.is_address_any() && !fd.bind(b)) ||
+      !fd.connect(sa)) {
     fd.close();
     return SocketFd();
   }
 
   m_size++;
+  return fd;
+}
 
+SocketFd
+SocketManager::received(SocketFd fd, const SocketAddress& sa) {
+  if (!fd.is_valid())
+    throw internal_error("SocketManager::received(...) received an invalid file descriptor");
+
+  if (m_size >= m_max ||
+      !fd.set_nonblock()) {
+    fd.close();
+    return SocketFd();
+  }
+
+  m_size++;
   return fd;
 }
 

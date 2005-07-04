@@ -2,17 +2,23 @@ NEXT RELEASE:
 
 [PARTLY] Fix throttle, it is allocating too much, causing oscillation.
 
-[PARTLY] Move over to a task scheduler based display updateing. Make
-sure peer list doesn't poke the scheduler too often.
-
 [PARTLY] Save state information. Consider clearing "rtorrent" from bencodes
 loaded from outside of DownloadStore.
 
 ---
 
-[DONE] Fix the OpenSSL licenseing issue.
+Make the tries adjuster into a setting.
 
-Enable socket manager.
+The hash checking options should be per byte, so they work for all sized
+chunks.
+
+Change PollManager to a non-static thingie?
+
+Use typedef for port?
+
+Add filter for ip address, and peer id. These must be seperate as ip
+happens before handshake, but peer id is done after handshake or
+before connecting.
 
 Doesn't force in some cases when the system is overloaded and you got
 small hash chunks.
@@ -21,6 +27,9 @@ Fix hash checking slowness on overworked boxens. Possibly mark the
 mmap'ed area as sequential. Add options to the man page.
 
 Save file priorities?
+
+Add a slot in core::DownloadList that makes it safe to delete
+downloads at all times.
 
 Check if BT 4.0.2 has problems with libtorrent.
 

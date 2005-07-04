@@ -64,7 +64,7 @@ public:
   using Base::rbegin;
   using Base::rend;
 
-  FileManager(size_t max) : m_openSize(0), m_maxSize(max) {}
+  FileManager() : m_openSize(0), m_maxSize(0) {}
   ~FileManager() { clear(); }
 
   void                clear();

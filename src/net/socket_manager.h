@@ -43,22 +43,32 @@ namespace torrent {
 
 class SocketAddress;
 
+// Socket manager keeps tabs on how many open sockets we got and helps
+// with opening addresses. It will also make sure ip address filtering
+// gets handled.
+//
+// It closes the received socket if the connection is unwanted.
+
 class SocketManager {
 public:
   SocketManager() : m_size(0), m_max(0) {}
   
-  SocketFd            open(const SocketAddress& sa);
+  SocketFd            open(const SocketAddress& sa, const SocketAddress& b);
+  SocketFd            received(SocketFd fd, const SocketAddress& sa);
   void                close(SocketFd fd);
 
-  uint32_t            get_size() const              { return m_size; }
+  uint32_t            size() const                  { return m_size; }
 
-  uint32_t            get_max() const               { return m_max; }
-  void                set_max(uint32_t s)           { m_max = s; }
+  uint32_t            max_size() const              { return m_max; }
+  void                set_max_size(uint32_t s)      { m_max = s; }
 
 private:
   uint32_t            m_size;
   uint32_t            m_max;
 };
+
+// Temporary, move somewhere else.
+extern SocketManager socketManager;
 
 }
 

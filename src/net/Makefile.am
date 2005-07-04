@@ -20,6 +20,8 @@ libsub_net_la_SOURCES = \
         socket_base.h \
 	socket_fd.cc \
 	socket_fd.h \
+	socket_manager.cc \
+	socket_manager.h \
 	socket_set.cc \
 	socket_set.h
 

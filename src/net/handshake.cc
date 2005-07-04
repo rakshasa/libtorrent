@@ -41,6 +41,7 @@
 #include "handshake.h"
 #include "handshake_manager.h"
 #include "poll_manager.h"
+#include "socket_manager.h"
 
 namespace torrent {
 
@@ -72,6 +73,7 @@ Handshake::clear_poll() {
   PollManager::except_set().erase(this);
 }
 
+// TODO: Move the management of the socketfd to handshake_manager?
 void
 Handshake::close() {
   if (!m_fd.is_valid())
@@ -79,7 +81,7 @@ Handshake::close() {
 
   clear_poll();
   
-  m_fd.close();
+  socketManager.close(m_fd);
   m_fd.clear();
 }
 

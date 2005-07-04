@@ -40,42 +40,35 @@
 #include <inttypes.h>
 #include <sigc++/signal.h>
 
+#include "socket_address.h"
 #include "socket_base.h"
+#include "socket_fd.h"
 
 namespace torrent {
 
-class SocketAddress;
-
 class Listen : public SocketBase {
 public:
-  typedef sigc::slot3<void, int, std::string, uint16_t> SlotIncoming;
+  typedef sigc::slot2<void, SocketFd, const SocketAddress&> SlotIncoming;
 
-  Listen() : SocketBase(-1), m_port(0) {}
+  Listen() : m_port(0) {}
   ~Listen() { close(); }
 
-  bool            open(uint16_t first, uint16_t last, SocketAddress sa);
-  void            close();
+  bool                open(uint16_t first, uint16_t last, SocketAddress sa);
+  void                close();
 
-  bool            is_open()                            { return m_fd.is_valid(); }
+  bool                is_open()                            { return m_fd.is_valid(); }
 
-  uint16_t        get_port()                           { return m_port; }
+  uint16_t            get_port()                           { return m_port; }
 
-  // int         file descriptor
-  // std::string address
-  // uint16_t    port
-  void            slot_incoming(const SlotIncoming& s) { m_slotIncoming = s; }
+  void                slot_incoming(const SlotIncoming& s) { m_slotIncoming = s; }
 
-  virtual void    read();
-  virtual void    write();
-  virtual void    except();
+  virtual void        read();
+  virtual void        write();
+  virtual void        except();
 
 private:
-  Listen(const Listen&);
-  void operator = (const Listen&);
-
-  uint64_t        m_port;
-
-  SlotIncoming    m_slotIncoming;
+  uint64_t            m_port;
+  SlotIncoming        m_slotIncoming;
 };
 
 } // namespace torrent

@@ -57,9 +57,7 @@ public:
   HandshakeManager() : m_size(0) { m_bindAddress.set_address_any(); }
   ~HandshakeManager() { clear(); }
 
-  void                add_incoming(int fd,
-				   const std::string& dns,
-				   uint16_t port);
+  void                add_incoming(SocketFd fd, const SocketAddress& sa);
 
   void                add_outgoing(const PeerInfo& p,
 				   const std::string& infoHash,
@@ -91,8 +89,6 @@ public:
 private:
 
   void                remove(Handshake* h);
-
-  SocketFd            make_socket(SocketAddress& sa);
 
   HandshakeList       m_handshakes;
   uint32_t            m_size;

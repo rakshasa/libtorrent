@@ -49,7 +49,7 @@ class SocketAddress;
 class SocketFd {
 public:
   SocketFd() : m_fd(-1) {}
-  SocketFd(int fd) : m_fd(fd) {}
+  explicit SocketFd(int fd) : m_fd(fd) {}
 
   bool                is_valid() const                        { return m_fd >= 0; }
   
@@ -70,7 +70,7 @@ public:
   bool                connect(const SocketAddress& sa);
 
   bool                listen(int size);
-  SocketFd            accept(SocketAddress& sa);
+  SocketFd            accept(SocketAddress* sa);
 
 private:
   int                 m_fd;

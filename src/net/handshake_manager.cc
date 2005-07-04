@@ -45,14 +45,16 @@
 #include "peer/peer_info.h"
 
 #include "socket_address.h"
+#include "socket_manager.h"
 
 namespace torrent {
 
 void
-HandshakeManager::add_incoming(int fd,
-			       const std::string& dns,
-			       uint16_t port) {
-  m_handshakes.push_back(new HandshakeIncoming(fd, this, PeerInfo("", dns, port)));
+HandshakeManager::add_incoming(SocketFd fd, const SocketAddress& sa) {
+  if (!socketManager.received(fd, sa).is_valid())
+    return;
+
+  m_handshakes.push_back(new HandshakeIncoming(fd, PeerInfo("", sa.get_address(), sa.get_port()), this));
   m_size++;
 }
   
@@ -64,7 +66,7 @@ HandshakeManager::add_outgoing(const PeerInfo& p,
   SocketAddress sa;
 
   if (!sa.create(p.get_dns(), p.get_port()) ||
-      !(fd = make_socket(sa)).is_valid())
+      !(fd = socketManager.open(sa, m_bindAddress)).is_valid())
     return;
 
   m_handshakes.push_back(new HandshakeOutgoing(fd, this, p, infoHash, ourId));
@@ -102,7 +104,7 @@ HandshakeManager::receive_connected(Handshake* h) {
   // TODO: Check that m_slotConnected actually points somewhere.
   m_slotConnected(h->get_fd(), h->get_hash(), h->get_peer());
 
-  h->set_fd(-1);
+  h->set_fd(SocketFd());
   delete h;
 }
 
@@ -110,6 +112,7 @@ void
 HandshakeManager::receive_failed(Handshake* h) {
   remove(h);
 
+  h->clear_poll(); // This should be here, might need to remove to debug.
   h->close();
   delete h;
 }
@@ -123,25 +126,6 @@ HandshakeManager::remove(Handshake* h) {
 
   m_handshakes.erase(itr);
   m_size--;
-}
-
-SocketFd
-HandshakeManager::make_socket(SocketAddress& sa) {
-  SocketFd fd;
-
-  if (!fd.open())
-    return SocketFd();
-
-  if (!fd.set_nonblock() ||
-      (!m_bindAddress.is_address_any() && !fd.bind(m_bindAddress)) ||
-      !fd.connect(sa)) {
-    //throw internal_error(fd.get_error());
-    
-    fd.close();
-    return SocketFd();
-  }
-
-  return fd;
 }
 
 }

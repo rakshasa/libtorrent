@@ -44,7 +44,7 @@
 
 namespace torrent {
 
-HandshakeIncoming::HandshakeIncoming(SocketFd fd, HandshakeManager* m, const PeerInfo& p) :
+HandshakeIncoming::HandshakeIncoming(SocketFd fd, const PeerInfo& p, HandshakeManager* m) :
   Handshake(fd, m),
   m_state(READ_HEADER1) {
 

@@ -47,6 +47,7 @@
 #include "download/download_state.h"
 #include "peer_connection.h"
 #include "net/poll_manager.h"
+#include "net/socket_manager.h"
 #include "settings.h"
 
 namespace torrent {
@@ -86,7 +87,7 @@ PeerConnection::~PeerConnection() {
   PollManager::write_set().erase(this);
   PollManager::except_set().erase(this);
   
-  m_fd.close();
+  socketManager.close(m_fd);
   m_fd.clear();
 }
   

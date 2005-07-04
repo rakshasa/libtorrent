@@ -55,6 +55,7 @@
 #include "net/handshake_manager.h"
 #include "net/poll_manager.h"
 #include "net/poll_select.h"
+#include "net/socket_manager.h"
 #include "parse/parse.h"
 #include "peer/peer_factory.h"
 #include "data/file_manager.h"
@@ -74,7 +75,7 @@ ThrottlePeer  throttleWrite;
 // New API.
 class Torrent {
 public:
-  Torrent() : m_fileManager(100) {}
+  Torrent() {}
 
   std::string         m_ip;
   std::string         m_bind;
@@ -107,7 +108,7 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
   if (!d ||
       !d->get_main().is_active() ||
       !d->get_main().get_net().add_connection(fd, peer))
-    fd.close();
+    socketManager.close(fd);
 }
 
 std::string
@@ -143,7 +144,10 @@ initialize() {
   torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
   torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
 
+  // By default we reserve 128 fd's for the client.
   PollManager::set_open_max(sysconf(_SC_OPEN_MAX));
+  socketManager.set_max_size(sysconf(_SC_OPEN_MAX) - 256);
+  torrent->m_fileManager.set_max_size(128);
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -283,7 +287,7 @@ get_listen_port() {
   return torrent->m_listen.get_port();
 }
 
-unsigned int
+uint32_t
 get_total_handshakes() {
   return torrent->m_handshakeManager.get_size();
 }
@@ -300,28 +304,28 @@ get_next_timeout() {
     60 * 1000000;
 }
 
-int
+uint32_t
 get_read_throttle() {
   return std::max(throttleRead.get_quota(), 0);
 }
 
 void
-set_read_throttle(int bytes) {
+set_read_throttle(uint32_t bytes) {
   throttleRead.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 
-int
+uint32_t
 get_write_throttle() {
   return std::max(throttleWrite.get_quota(), 0);
 }
 
 void
-set_write_throttle(int bytes) {
+set_write_throttle(uint32_t bytes) {
   throttleWrite.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 
 void
-set_throttle_interval(int usec) {
+set_throttle_interval(uint32_t usec) {
   if (usec <= 0 || usec > 5 * 1000000)
     throw input_error("torrent::set_throttle_interval(...) received an invalid value");
 
@@ -329,12 +333,12 @@ set_throttle_interval(int usec) {
   throttleWrite.set_interval(usec);
 }
 
-int
+uint32_t
 get_read_rate() {
   return throttleRead.get_rate_slow().rate();
 }
 
-int
+uint32_t
 get_write_rate() {
   return throttleWrite.get_rate_slow().rate();
 }
@@ -344,47 +348,62 @@ get_version() {
   return VERSION;
 }
 
-unsigned int
+uint32_t
 get_hash_read_ahead() {
   return torrent->m_hashQueue.get_read_ahead();
 }
 
 void
-set_hash_read_ahead(unsigned int bytes) {
+set_hash_read_ahead(uint32_t bytes) {
   if (bytes < 64 << 20)
     torrent->m_hashQueue.set_read_ahead(bytes);
 }
 
-unsigned int
+uint32_t
 get_hash_interval() {
   return torrent->m_hashQueue.get_interval();
 }
 
 void
-set_hash_interval(unsigned int usec) {
+set_hash_interval(uint32_t usec) {
   if (usec < 1000000)
     torrent->m_hashQueue.set_interval(usec);
 }
 
-unsigned int
+uint32_t
 get_hash_max_tries() {
   return torrent->m_hashQueue.get_max_tries();
 }
 
 void
-set_hash_max_tries(unsigned int tries) {
+set_hash_max_tries(uint32_t tries) {
   if (tries < 100)
     torrent->m_hashQueue.set_max_tries(tries);
 }  
 
-unsigned int
+uint32_t
 get_max_open_files() {
   return torrent->m_fileManager.max_size();
 }
 
 void
-set_max_open_files(unsigned int size) {
+set_max_open_files(uint32_t size) {
   torrent->m_fileManager.set_max_size(size);
+}
+
+uint32_t
+get_open_sockets() {
+  return socketManager.size();
+}
+
+uint32_t
+get_max_open_sockets() {
+  return socketManager.max_size();
+}
+
+void
+set_max_open_sockets(uint32_t size) {
+  socketManager.set_max_size(size);
 }
 
 Download
