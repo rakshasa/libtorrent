@@ -304,23 +304,23 @@ get_next_timeout() {
     60 * 1000000;
 }
 
-uint32_t
+int
 get_read_throttle() {
   return std::max(throttleRead.get_quota(), 0);
 }
 
 void
-set_read_throttle(uint32_t bytes) {
+set_read_throttle(int bytes) {
   throttleRead.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 
-uint32_t
+int
 get_write_throttle() {
   return std::max(throttleWrite.get_quota(), 0);
 }
 
 void
-set_write_throttle(uint32_t bytes) {
+set_write_throttle(int bytes) {
   throttleWrite.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 

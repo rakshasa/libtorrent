@@ -52,14 +52,14 @@ public:
   
   bool                is_unlimited() const          { return m_quota == UNLIMITED; }
 
-  int                 get_quota() const             { return m_quota; }
-  void                set_quota(int v)              { m_quota = v; }
-
+  // Rename to something else?
+  int                 get_quota() const             { return is_unlimited() ? m_quota : (m_quota - m_used); }
+  int                 get_total() const             { return m_quota; }
   int                 get_used() const              { return m_used; }
 
   void                set_op(const _Op& op)         { m_op = op; }
 
-  void                used(int v)                   { m_used += v; if (!is_unlimited()) m_quota -= v; }
+  void                used(int v)                   { m_used += v; }
   void                activate()                    { m_op(); }
 
   void                update_quota(int v)           { m_quota = v; m_used = 0; }

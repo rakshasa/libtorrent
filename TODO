@@ -12,6 +12,14 @@ Make the tries adjuster into a setting.
 The hash checking options should be per byte, so they work for all sized
 chunks.
 
+Doesn't force in some cases when the system is overloaded and you got
+small hash chunks.
+
+Fix hash checking slowness on overworked boxens. Possibly mark the
+mmap'ed area as sequential. Add options to the man page.
+
+Expand ~/ in input.
+
 Change PollManager to a non-static thingie?
 
 Use typedef for port?
@@ -20,11 +28,10 @@ Add filter for ip address, and peer id. These must be seperate as ip
 happens before handshake, but peer id is done after handshake or
 before connecting.
 
-Doesn't force in some cases when the system is overloaded and you got
-small hash chunks.
-
-Fix hash checking slowness on overworked boxens. Possibly mark the
-mmap'ed area as sequential. Add options to the man page.
+Rewrite the chunk handler, use a vector that msyncs continious chunks
+when it feels like it. Use a task to check periodically, or when
+receiving chunks. Try to make sure we do sequential download of
+chunks, instead of completely random.
 
 Save file priorities?
 

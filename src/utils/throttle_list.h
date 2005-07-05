@@ -41,6 +41,7 @@
 #include <list>
 
 #include "rak/functional.h"
+#include "torrent/exceptions.h"
 #include "throttle_node.h"
 
 namespace torrent {
@@ -114,16 +115,21 @@ struct ThrottleListSetStable {
     m_quota -= quota_stable(t, m_quota / m_size);
     m_size--;
 
-    if (t.get_quota() >= 1024)
+    if (t.get_total() >= 1024)
       t.activate();
   }
 
+  // Keeps the left-over quota from last tick and tries to allocate
+  // enough to not starve. Currently sets the target at 2x what was
+  // used last tick.
+  //
+  // The quota must be set to >0 as not to trigger the starving
+  // functor.
   int quota_stable(T& t, int quota) {
-    int base = std::max(0, t.get_quota() - t.get_used());
     int target = std::max(2048, t.get_used() * 2);
-    int delegate = std::min(quota, std::max(0, target - base));
+    int delegate = std::min(quota, std::max(0, target - t.get_quota()));
 
-    t.update_quota(base + delegate);
+    t.update_quota(t.get_quota() + delegate);
     return delegate;
   }
 
@@ -133,31 +139,31 @@ struct ThrottleListSetStable {
 
 template <typename T>
 struct ThrottleListSetStarving {
-  ThrottleListSetStarving(int quota, int size) : m_quota(quota), m_size(size) {}
+  ThrottleListSetStarving(int quota, int size) :
+    m_quota(std::max(1, quota / size)) {}
 
   void operator () (T& t) {
     if (t.get_quota() > 0)
       return;
 
-    t.update_quota(m_quota / m_size);
+    t.update_quota(m_quota);
 
     if (t.get_quota() >= 1024)
       t.activate();
   }
 
   int m_quota;  
-  int m_size;  
 };  
 
 template <typename T> void
 ThrottleList<T>::quota(int v) {
   if (v != UNLIMITED) {
-    // Stable partition on starved nodes will put hungry nodes last in
-    // the list over time. TODO?
     ThrottleListSetStable<T> stable(v, m_size);
 
     std::for_each(begin(), end(), stable);
-    std::for_each(begin(), end(), ThrottleListSetStarving<T>(stable.m_quota, stable.m_size));
+
+    if (stable.m_size != 0)
+      std::for_each(begin(), end(), ThrottleListSetStarving<T>(stable.m_quota, stable.m_size));
 
   } else {// if (m_quota != UNLIMITED) { // Some bug somewhere... find it please
     std::for_each(begin(), end(), ThrottleListSetUnlimited<T>());
@@ -166,7 +172,7 @@ ThrottleList<T>::quota(int v) {
   m_quota = v;
 }
 
-template <typename T> inline typename ThrottleList<T>::iterator
+template <typename T> typename ThrottleList<T>::iterator
 ThrottleList<T>::insert(const_reference t) {
   m_size++;
   
@@ -176,7 +182,7 @@ ThrottleList<T>::insert(const_reference t) {
   return itr;
 }
 
-template <typename T> inline int
+template <typename T> int
 ThrottleList<T>::get_used() const {
   int used = 0;
   std::for_each(begin(), end(), rak::accumulate(used, std::mem_fun_ref(&ThrottleNode<T>::get_used)));

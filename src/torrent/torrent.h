@@ -85,11 +85,11 @@ int64_t             get_current_time();
 int64_t             get_next_timeout();
 
 // 0 == UNLIMITED.
-uint32_t            get_read_throttle();
-void                set_read_throttle(uint32_t bytes);
+int32_t             get_read_throttle();
+void                set_read_throttle(int32_t bytes);
 
-uint32_t            get_write_throttle();
-void                set_write_throttle(uint32_t bytes);
+int32_t             get_write_throttle();
+void                set_write_throttle(int32_t bytes);
 
 void                set_throttle_interval(uint32_t usec);
 
