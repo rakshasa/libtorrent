@@ -134,7 +134,7 @@ Delegator::delegate(const BitField& bf, int affinity) {
     return target->create();
 
   // Find normal priority pieces.
-  if ((target = new_chunk(bf, Priority::HIGH)))
+  if ((target = new_chunk(bf, Priority::HIGH, affinity)))
     return target->create();
 
   // Normal priority pieces.
@@ -143,7 +143,7 @@ Delegator::delegate(const BitField& bf, int affinity) {
       != m_chunks.end())
     return target->create();
 
-  if ((target = new_chunk(bf, Priority::NORMAL)))
+  if ((target = new_chunk(bf, Priority::NORMAL, affinity)))
     return target->create();
 
   if (!m_aggressive)
@@ -205,8 +205,11 @@ Delegator::redo(unsigned int index) {
 }
 
 DelegatorPiece*
-Delegator::new_chunk(const BitField& bf, Priority::Type p) {
-  int index = m_select.find(bf, random() % bf.size_bits(), 1024, p);
+Delegator::new_chunk(const BitField& bf, Priority::Type p, int affinity) {
+  int index = m_select.find(bf,
+			    (affinity >= 0 ? ++affinity : random()) % bf.size_bits(),
+			    1024,
+			    p);
 
   if (index == -1)
     return NULL;

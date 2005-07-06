@@ -132,7 +132,7 @@ HashQueue::work() {
   if (!empty())
     taskScheduler.insert(&m_taskWork, Timer::cache());
 
-  m_tries = std::min(0, m_tries - 3);
+  m_tries = std::min(0, m_tries - 2);
 }
 
 bool

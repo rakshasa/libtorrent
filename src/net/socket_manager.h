@@ -67,9 +67,6 @@ private:
   uint32_t            m_max;
 };
 
-// Temporary, move somewhere else.
-extern SocketManager socketManager;
-
 }
 
 #endif

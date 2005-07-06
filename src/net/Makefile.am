@@ -11,6 +11,8 @@ libsub_net_la_SOURCES = \
         handshake_outgoing.h \
 	listen.cc \
 	listen.h \
+	manager.cc \
+	manager.h \
 	poll_manager.cc \
 	poll_manager.h \
 	poll_select.h \

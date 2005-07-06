@@ -43,8 +43,6 @@
 
 namespace torrent {
 
-SocketManager socketManager;
-
 SocketFd
 SocketManager::open(const SocketAddress& sa, const SocketAddress& b) {
   SocketFd fd;

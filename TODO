@@ -1,11 +1,11 @@
 NEXT RELEASE:
 
-[PARTLY] Fix throttle, it is allocating too much, causing oscillation.
-
 [PARTLY] Save state information. Consider clearing "rtorrent" from bencodes
 loaded from outside of DownloadStore.
 
 ---
+
+Use typedef for port?
 
 Make the tries adjuster into a setting.
 
@@ -19,10 +19,6 @@ Fix hash checking slowness on overworked boxens. Possibly mark the
 mmap'ed area as sequential. Add options to the man page.
 
 Expand ~/ in input.
-
-Change PollManager to a non-static thingie?
-
-Use typedef for port?
 
 Add filter for ip address, and peer id. These must be seperate as ip
 happens before handshake, but peer id is done after handshake or

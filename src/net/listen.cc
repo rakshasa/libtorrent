@@ -44,7 +44,7 @@
 #include "torrent/exceptions.h"
 
 #include "listen.h"
-#include "poll_manager.h"
+#include "manager.h"
 #include "socket_address.h"
 
 namespace torrent {
@@ -65,8 +65,8 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
     if (m_fd.bind(sa) && m_fd.listen(50)) {
       m_port = i;
 
-      PollManager::read_set().insert(this);
-      PollManager::except_set().insert(this);
+      pollManager.read_set().insert(this);
+      pollManager.except_set().insert(this);
 
       return true;
     }
@@ -82,8 +82,8 @@ void Listen::close() {
   if (!m_fd.is_valid())
     return;
 
-  PollManager::read_set().erase(this);
-  PollManager::except_set().erase(this);
+  pollManager.read_set().erase(this);
+  pollManager.except_set().erase(this);
 
   m_fd.close();
   m_fd.clear();

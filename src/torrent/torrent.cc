@@ -53,9 +53,7 @@
 #include "utils/throttle.h"
 #include "net/listen.h"
 #include "net/handshake_manager.h"
-#include "net/poll_manager.h"
-#include "net/poll_select.h"
-#include "net/socket_manager.h"
+#include "net/manager.h"
 #include "parse/parse.h"
 #include "peer/peer_factory.h"
 #include "data/file_manager.h"
@@ -145,7 +143,7 @@ initialize() {
   torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
 
   // By default we reserve 128 fd's for the client.
-  PollManager::set_open_max(sysconf(_SC_OPEN_MAX));
+  pollManager.set_open_max(sysconf(_SC_OPEN_MAX));
   socketManager.set_max_size(sysconf(_SC_OPEN_MAX) - 256);
   torrent->m_fileManager.set_max_size(128);
 }
@@ -201,16 +199,7 @@ mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
   if (readSet == NULL || writeSet == NULL || exceptSet == NULL || maxFd == NULL)
     throw client_error("torrent::mark(...) received a NULL pointer");
 
-  *maxFd = 0;
-
-  PollManager::read_set().prepare();
-  std::for_each(PollManager::read_set().begin(), PollManager::read_set().end(), poll_mark(readSet, maxFd));
-
-  PollManager::write_set().prepare();
-  std::for_each(PollManager::write_set().begin(), PollManager::write_set().end(), poll_mark(writeSet, maxFd));
-  
-  PollManager::except_set().prepare();
-  std::for_each(PollManager::except_set().begin(), PollManager::except_set().end(), poll_mark(exceptSet, maxFd));
+  *maxFd = pollManager.mark(readSet, writeSet, exceptSet);
 }
 
 // Do work on the polled file descriptors.
@@ -220,25 +209,12 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
     throw client_error("Torrent::work(...) received a NULL pointer");
 
   Timer::update();
-  taskScheduler.execute(Timer::current());
+  taskScheduler.execute(Timer::cache());
 
-  // Make sure we don't do read/write on fd's that are in except. This should
-  // not be a problem as any except call should remove it from the m_*Set's.
-
-  PollManager::except_set().prepare();
-  std::for_each(PollManager::except_set().begin(), PollManager::except_set().end(),
-		poll_check(exceptSet, std::mem_fun(&SocketBase::except)));
-
-  PollManager::read_set().prepare();
-  std::for_each(PollManager::read_set().begin(), PollManager::read_set().end(),
-		poll_check(readSet, std::mem_fun(&SocketBase::read)));
-
-  PollManager::write_set().prepare();
-  std::for_each(PollManager::write_set().begin(), PollManager::write_set().end(),
-		poll_check(writeSet, std::mem_fun(&SocketBase::write)));
+  pollManager.work(readSet, writeSet, exceptSet, maxFd);
 
   Timer::update();
-  taskScheduler.execute(Timer::current());
+  taskScheduler.execute(Timer::cache());
 }
 
 bool

@@ -38,7 +38,7 @@
 #define LIBTORRENT_NEW_PEER_CONNECTION_BASE_H
 
 #include "data/piece.h"
-#include "net/poll_manager.h"
+#include "net/manager.h"
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
 #include "utils/rate.h"

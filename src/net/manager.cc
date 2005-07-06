@@ -34,39 +34,13 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_POLL_MANAGER_H
-#define LIBTORRENT_NET_POLL_MANAGER_H
+#include "config.h"
 
-#include <sys/types.h>
-#include <sys/select.h>
-
-#include "socket_set.h"
+#include "manager.h"
 
 namespace torrent {
 
-// Note that when you move file descriptors between SocketBase
-// objects, you must remove the SocketBase object from the
-// Poll::*_set()'s before adding the target SocketBase to the set's or
-// clearing the source SocketBase's fd.
-
-class PollManager {
-public:
-  
-  void                set_open_max(int s);
-
-  int                 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
-  int                 work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
-
-  SocketSet&          read_set() { return m_readSet; }
-  SocketSet&          write_set() { return m_writeSet; }
-  SocketSet&          except_set() { return m_exceptSet; }
-
-private:
-  SocketSet           m_readSet;
-  SocketSet           m_writeSet;
-  SocketSet           m_exceptSet;
-};
+PollManager pollManager;
+SocketManager socketManager;
 
 }
-
-#endif

@@ -40,7 +40,7 @@
 
 #include "handshake_incoming.h"
 #include "handshake_manager.h"
-#include "poll_manager.h"
+#include "manager.h"
 
 namespace torrent {
 
@@ -52,8 +52,8 @@ HandshakeIncoming::HandshakeIncoming(SocketFd fd, const PeerInfo& p, HandshakeMa
 
   m_fd.set_nonblock();
 
-  PollManager::read_set().insert(this);
-  PollManager::except_set().insert(this);
+  pollManager.read_set().insert(this);
+  pollManager.except_set().insert(this);
 }
 
 void
@@ -77,8 +77,8 @@ HandshakeIncoming::read() {
     m_pos = 0;
     m_state = WRITE_HEADER;
 
-    PollManager::read_set().erase(this);
-    PollManager::write_set().insert(this);
+    pollManager.read_set().erase(this);
+    pollManager.write_set().insert(this);
 
     return;
 
@@ -107,8 +107,8 @@ HandshakeIncoming::write() {
     if (!write_buffer(m_buf + m_pos, 68, m_pos))
       return;
  
-    PollManager::write_set().erase(this);
-    PollManager::read_set().insert(this);
+    pollManager.write_set().erase(this);
+    pollManager.read_set().insert(this);
  
     m_pos = 0;
     m_state = READ_HEADER2;

@@ -85,7 +85,7 @@ public:
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
-  DelegatorPiece*    new_chunk(const BitField& bf, Priority::Type p);
+  DelegatorPiece*    new_chunk(const BitField& bf, Priority::Type p, int affinity);
   DelegatorPiece*    find_piece(const Piece& p);
 
   bool               all_finished(int index);

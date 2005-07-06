@@ -36,19 +36,49 @@
 
 #include "config.h"
 
-#include "poll_manager.h"
+#include "manager.h"
+#include "poll_select.h"
 
 namespace torrent {
-
-SocketSet PollManager::m_readSet;
-SocketSet PollManager::m_writeSet;
-SocketSet PollManager::m_exceptSet;
 
 void
 PollManager::set_open_max(int s) {
   m_readSet.reserve(s);
   m_writeSet.reserve(s);
   m_exceptSet.reserve(s);
+}
+
+int
+PollManager::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+  int maxFd = 0;
+
+  m_readSet.prepare();
+  std::for_each(m_readSet.begin(), m_readSet.end(), poll_mark(readSet, &maxFd));
+
+  m_writeSet.prepare();
+  std::for_each(m_writeSet.begin(), m_writeSet.end(), poll_mark(writeSet, &maxFd));
+  
+  m_exceptSet.prepare();
+  std::for_each(m_exceptSet.begin(), m_exceptSet.end(), poll_mark(exceptSet, &maxFd));
+
+  return maxFd;
+}
+
+int
+PollManager::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
+  // Make sure we don't do read/write on fd's that are in except. This should
+  // not be a problem as any except call should remove it from the m_*Set's.
+  m_exceptSet.prepare();
+  std::for_each(m_exceptSet.begin(), m_exceptSet.end(),
+		poll_check(exceptSet, std::mem_fun(&SocketBase::except)));
+
+  m_readSet.prepare();
+  std::for_each(m_readSet.begin(), m_readSet.end(),
+		poll_check(readSet, std::mem_fun(&SocketBase::read)));
+
+  m_writeSet.prepare();
+  std::for_each(m_writeSet.begin(), m_writeSet.end(),
+		poll_check(writeSet, std::mem_fun(&SocketBase::write)));
 }
 
 }

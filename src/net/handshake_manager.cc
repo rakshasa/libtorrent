@@ -44,8 +44,8 @@
 #include "handshake_outgoing.h"
 #include "peer/peer_info.h"
 
+#include "manager.h"
 #include "socket_address.h"
-#include "socket_manager.h"
 
 namespace torrent {
 
