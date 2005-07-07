@@ -64,7 +64,7 @@ PollManager::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   return maxFd;
 }
 
-int
+void
 PollManager::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.

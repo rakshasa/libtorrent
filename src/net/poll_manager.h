@@ -55,7 +55,7 @@ public:
   void                set_open_max(int s);
 
   int                 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
-  int                 work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
+  void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
 
   SocketSet&          read_set() { return m_readSet; }
   SocketSet&          write_set() { return m_writeSet; }
