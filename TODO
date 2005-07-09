@@ -1,22 +1,28 @@
 NEXT RELEASE:
 
-[PARTLY] Save state information. Consider clearing "rtorrent" from bencodes
-loaded from outside of DownloadStore.
+Swap emit and close order in TrackerHttp?
 
----
+Use pointer to PeerList.
 
-Test socket manager by setting a low open max and connecting to a busy
-torrent.
+Get UDP tracker to test with, implement.
 
-Finish cleaning up the API before the next release, it will then be
-"frozen", kinda.
-
-Save file priorities?
+Add filter for ip address, and peer id. These must be seperate as ip
+happens before handshake, but peer id is done after handshake or
+before connecting.
 
 The hash checking options should be per byte, so they work for all sized
 chunks.
 
 Use typedef for port?
+
+* Finish cleaning up the API before the next release, it will then be
+"frozen", kinda.
+
+* Disable UDP tracker with a return or trigger receive_error in
+send_state.
+
+* Test socket manager by setting a low open max and connecting to a
+busy torrent.
 
 Make the tries adjuster into a setting.
 
@@ -27,12 +33,6 @@ Fix hash checking slowness on overworked boxens. Possibly mark the
 mmap'ed area as sequential. Add options to the man page.
 
 Expand ~/ in input.
-
-Make shutdown in the main look into a task.
-
-Add filter for ip address, and peer id. These must be seperate as ip
-happens before handshake, but peer id is done after handshake or
-before connecting.
 
 Rewrite the chunk handler, use a vector that msyncs continious chunks
 when it feels like it. Use a task to check periodically, or when

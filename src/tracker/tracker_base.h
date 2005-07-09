@@ -34,46 +34,64 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_HTTP_H
-#define LIBTORRENT_TRACKER_TRACKER_HTTP_H
+#ifndef LIBTORRENT_TRACKER_TRACKER_BASE_H
+#define LIBTORRENT_TRACKER_TRACKER_BASE_H
 
-#include <iosfwd>
+#include <list>
+#include <inttypes.h>
+#include <sigc++/slot.h>
 
-#include "torrent/bencode.h"
-
-#include "tracker_base.h"
+#include "peer/peer_info.h"
+#include "tracker_info.h"
 
 namespace torrent {
 
-class Http;
-
-class TrackerHttp : public TrackerBase {
+class TrackerBase {
 public:
-  TrackerHttp(TrackerInfo* info, const std::string& url);
-  ~TrackerHttp();
-  
-  virtual bool        is_busy() const;
+  typedef std::list<PeerInfo>                PeerList;
+  typedef sigc::slot1<void, const PeerList&> SlotPeerList;
+  typedef sigc::slot1<void, std::string>     SlotString;
+  typedef sigc::slot1<void, int>             SlotInt;
+
+  TrackerBase(TrackerInfo* info, const std::string& url) :
+    m_info(info), m_url(url) {}
+  virtual ~TrackerBase() {}
+
+  virtual bool        is_busy() const = 0;
 
   virtual void        send_state(TrackerInfo::State state,
 				 uint64_t down,
 				 uint64_t up,
-				 uint64_t left);
+				 uint64_t left) = 0;
 
-  virtual void        close();
+  virtual void        close() = 0;
 
-private:
-  void                receive_done();
-  void                receive_failed(std::string msg);
+  TrackerInfo*        get_info()                            { return m_info; }
 
-  static void         escape_string(const std::string& src, std::ostream& stream);
+  const std::string&  get_url()                             { return m_url; }
+  void                set_url(const std::string& url)       { m_url = url; }
 
-  static PeerInfo     parse_peer(const Bencode& b);
+  const std::string&  get_tracker_id()                      { return m_trackerId; }
+  void                set_tracker_id(const std::string& id) { m_trackerId = id; }
 
-  void                parse_peers_normal(PeerList& l, const Bencode::List& b);
-  void                parse_peers_compact(PeerList& l, const std::string& s);
+  void                slot_success(SlotPeerList s)          { m_slotSuccess = s; }
+  void                slot_failed(SlotString s)             { m_slotFailed = s; }
+  void                slot_set_interval(SlotInt s)          { m_slotSetInterval = s; }
+  void                slot_set_min_interval(SlotInt s)      { m_slotSetMinInterval = s; }
 
-  Http*               m_get;
-  std::stringstream*  m_data;
+protected:
+  TrackerBase(const TrackerBase& t);
+  void operator = (const TrackerBase& t);
+
+  TrackerInfo*        m_info;
+  std::string         m_url;
+
+  std::string         m_trackerId;
+
+  SlotPeerList        m_slotSuccess;
+  SlotString          m_slotFailed;
+  SlotInt             m_slotSetInterval;
+  SlotInt             m_slotSetMinInterval;
 };
 
 }

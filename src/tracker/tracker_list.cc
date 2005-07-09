@@ -62,7 +62,7 @@ TrackerList::randomize() {
 void
 TrackerList::clear() {
   std::for_each(begin(), end(),
-		rak::on(rak::mem_ptr_ref(&value_type::second), rak::call_delete<TrackerHttp>()));
+		rak::on(rak::mem_ptr_ref(&value_type::second), rak::call_delete<TrackerBase>()));
 
   Base::clear();
 }

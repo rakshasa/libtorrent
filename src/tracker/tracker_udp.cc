@@ -34,48 +34,49 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_HTTP_H
-#define LIBTORRENT_TRACKER_TRACKER_HTTP_H
+#include "config.h"
 
-#include <iosfwd>
+#include <sigc++/bind.h>
 
-#include "torrent/bencode.h"
+#include "torrent/exceptions.h"
 
-#include "tracker_base.h"
+#include "tracker_udp.h"
 
 namespace torrent {
 
-class Http;
+TrackerUdp::TrackerUdp(TrackerInfo* info, const std::string& url) :
+  TrackerBase(info, url) {
 
-class TrackerHttp : public TrackerBase {
-public:
-  TrackerHttp(TrackerInfo* info, const std::string& url);
-  ~TrackerHttp();
-  
-  virtual bool        is_busy() const;
-
-  virtual void        send_state(TrackerInfo::State state,
-				 uint64_t down,
-				 uint64_t up,
-				 uint64_t left);
-
-  virtual void        close();
-
-private:
-  void                receive_done();
-  void                receive_failed(std::string msg);
-
-  static void         escape_string(const std::string& src, std::ostream& stream);
-
-  static PeerInfo     parse_peer(const Bencode& b);
-
-  void                parse_peers_normal(PeerList& l, const Bencode::List& b);
-  void                parse_peers_compact(PeerList& l, const std::string& s);
-
-  Http*               m_get;
-  std::stringstream*  m_data;
-};
-
+  m_taskDelay.set_iterator(taskScheduler.end());
+  m_taskDelay.set_slot(sigc::bind(sigc::mem_fun(*this, &TrackerUdp::receive_failed),
+				  "UDP tracker support not available"));
 }
 
-#endif
+TrackerUdp::~TrackerUdp() {
+  taskScheduler.erase(&m_taskDelay);
+}
+  
+bool
+TrackerUdp::is_busy() const {
+  return false;
+}
+
+void
+TrackerUdp::send_state(TrackerInfo::State state,
+		       uint64_t down,
+		       uint64_t up,
+		       uint64_t left) {
+  if (!taskScheduler.is_scheduled(&m_taskDelay))
+    taskScheduler.insert(&m_taskDelay, Timer::cache());
+}
+
+void
+TrackerUdp::close() {
+}
+
+void
+TrackerUdp::receive_failed(const std::string& msg) {
+  m_slotFailed(msg);
+}
+
+}

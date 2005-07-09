@@ -34,17 +34,13 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
-#include <sigc++/signal.h>
 #include <sstream>
 #include <fstream>
 
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
-#include "settings.h"
 #include "tracker_http.h"
 #include "tracker_info.h"
 
@@ -57,10 +53,10 @@
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
+  TrackerBase(info, url),
+
   m_get(Http::call_factory()),
-  m_data(NULL),
-  m_info(info),
-  m_url(url) {
+  m_data(NULL) {
 
   m_get->set_user_agent(PACKAGE "/" VERSION);
 
@@ -71,6 +67,11 @@ TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
 TrackerHttp::~TrackerHttp() {
   delete m_get;
   delete m_data;
+}
+
+bool
+TrackerHttp::is_busy() const {
+  return m_data != NULL;
 }
 
 void
@@ -177,15 +178,99 @@ TrackerHttp::receive_done() {
   if (m_data->fail())
     return receive_failed("Could not parse bencoded data");
 
-  m_signalDone.emit(b);
+  if (!b.is_map())
+    return receive_failed("Root not a bencoded map");
+
+  if (b.has_key("failure reason"))
+    return receive_failed("Failure reason \"" +
+			 (b["failure reason"].is_string() ?
+			  b["failure reason"].as_string() :
+			  std::string("failure reason not a string"))
+			 + "\"");
+
+  if (b.has_key("interval") && b["interval"].is_value())
+    m_slotSetInterval(b["interval"].as_value());
+  
+  if (b.has_key("min interval") && b["min interval"].is_value())
+    m_slotSetMinInterval(b["min interval"].as_value());
+
+  if (b.has_key("tracker id") && b["tracker id"].is_string())
+    m_trackerId = b["tracker id"].as_string();
+
+  PeerList l;
+
+  try {
+    if (b["peers"].is_string())
+      parse_peers_compact(l, b["peers"].as_string());
+    else
+      parse_peers_normal(l, b["peers"].as_list());
+
+  } catch (bencode_error& e) {
+    return receive_failed(e.what());
+  }
+
+  m_slotSuccess(l);
   close();
 }
 
 void
 TrackerHttp::receive_failed(std::string msg) {
   // Does the order matter?
-  m_signalFailed.emit(msg);
+  m_slotFailed(msg);
   close();
+}
+
+PeerInfo
+TrackerHttp::parse_peer(const Bencode& b) {
+  PeerInfo p;
+	
+  if (!b.is_map())
+    return p;
+
+  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
+    if (itr->first == "ip" &&
+	itr->second.is_string()) {
+      p.set_dns(itr->second.as_string());
+	    
+    } else if (itr->first == "peer id" &&
+	       itr->second.is_string()) {
+      p.set_id(itr->second.as_string());
+	    
+    } else if (itr->first == "port" &&
+	       itr->second.is_value()) {
+      p.set_port(itr->second.as_value());
+    }
+  }
+	
+  return p;
+}
+
+void
+TrackerHttp::parse_peers_normal(PeerList& l, const Bencode::List& b) {
+  for (Bencode::List::const_iterator itr = b.begin(); itr != b.end(); ++itr) {
+    PeerInfo p = parse_peer(*itr);
+	  
+    if (p.is_valid())
+      l.push_back(p);
+  }
+}  
+
+void
+TrackerHttp::parse_peers_compact(PeerList& l, const std::string& s) {
+  for (std::string::const_iterator itr = s.begin(); itr + 6 <= s.end();) {
+
+    std::stringstream buf;
+
+    buf << (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++ << '.'
+	<< (int)(unsigned char)*itr++;
+
+    uint16_t port = (unsigned short)((unsigned char)*itr++) << 8;
+    port += (uint16_t)((unsigned char)*itr++);
+
+    l.push_back(PeerInfo("", buf.str(), port));
+  }
 }
 
 }

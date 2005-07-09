@@ -34,23 +34,18 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_HTTP_H
-#define LIBTORRENT_TRACKER_TRACKER_HTTP_H
+#ifndef LIBTORRENT_TRACKER_TRACKER_UDP_H
+#define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
-#include <iosfwd>
-
-#include "torrent/bencode.h"
-
+#include "utils/task.h"
 #include "tracker_base.h"
 
 namespace torrent {
 
-class Http;
-
-class TrackerHttp : public TrackerBase {
+class TrackerUdp : public TrackerBase {
 public:
-  TrackerHttp(TrackerInfo* info, const std::string& url);
-  ~TrackerHttp();
+  TrackerUdp(TrackerInfo* info, const std::string& url);
+  ~TrackerUdp();
   
   virtual bool        is_busy() const;
 
@@ -62,18 +57,9 @@ public:
   virtual void        close();
 
 private:
-  void                receive_done();
-  void                receive_failed(std::string msg);
+  void                receive_failed(const std::string& msg);
 
-  static void         escape_string(const std::string& src, std::ostream& stream);
-
-  static PeerInfo     parse_peer(const Bencode& b);
-
-  void                parse_peers_normal(PeerList& l, const Bencode::List& b);
-  void                parse_peers_compact(PeerList& l, const std::string& s);
-
-  Http*               m_get;
-  std::stringstream*  m_data;
+  TaskItem            m_taskDelay;
 };
 
 }

@@ -41,18 +41,18 @@
 
 namespace torrent {
 
-class TrackerHttp;
+class TrackerBase;
 
 // Consider changing into a Download + tracker id.
 
 class Tracker {
 public:
-  typedef std::pair<int, TrackerHttp*> value_type;
+  typedef std::pair<int, TrackerBase*> value_type;
 
   Tracker()             : m_tracker(value_type(0, NULL)) {}
   Tracker(value_type v) : m_tracker(v) {}
   
-  uint32_t            get_group()                        { return m_tracker.first; }
+  uint32_t            get_group()         { return m_tracker.first; }
   const std::string&  get_url();
 
   // The "tracker id" string returned by the tracker.

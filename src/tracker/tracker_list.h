@@ -41,7 +41,7 @@
 
 namespace torrent {
 
-class TrackerHttp;
+class TrackerBase;
 
 // The tracker list will contain a list of tracker, divided into
 // subgroups. Each group must be randomized before we start. When
@@ -50,9 +50,9 @@ class TrackerHttp;
 // tracker to the beginning of the subgroup and start from the
 // beginning of the whole list.
 
-class TrackerList : private std::vector<std::pair<int, TrackerHttp*> > {
+class TrackerList : private std::vector<std::pair<int, TrackerBase*> > {
 public:
-  typedef std::vector<std::pair<int, TrackerHttp*> > Base;
+  typedef std::vector<std::pair<int, TrackerBase*> > Base;
 
   using Base::value_type;
 
@@ -73,7 +73,7 @@ public:
   void                randomize();
   void                clear();
 
-  iterator            insert(int group, TrackerHttp* t);
+  iterator            insert(int group, TrackerBase* t);
 
   void                promote(iterator itr);
 
@@ -83,7 +83,7 @@ public:
 };
 
 inline TrackerList::iterator
-TrackerList::insert(int group, TrackerHttp* t) {
+TrackerList::insert(int group, TrackerBase* t) {
   return Base::insert(end_group(group), value_type(group, t));
 }
 

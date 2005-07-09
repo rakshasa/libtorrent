@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_CONTROL_H
-#define LIBTORRENT_TRACKER_CONTROL_H
+#ifndef LIBTORRENT_TRACKER_TRACKER_CONTROL_H
+#define LIBTORRENT_TRACKER_TRACKER_CONTROL_H
 
 #include <list>
 #include <string>
@@ -59,12 +59,12 @@ namespace torrent {
 // started download.
 
 class TrackerControl {
- public:
+public:
   typedef std::list<PeerInfo>                     PeerList;
 
   typedef sigc::slot0<uint64_t>                   SlotStat;
   typedef sigc::signal1<void, std::istream*>      SignalDump;
-  typedef sigc::signal1<void, const PeerList&>    SignalPeers;
+  typedef sigc::signal1<void, const PeerList&>    SignalPeerList;
   typedef sigc::signal1<void, const std::string&> SignalString;
 
   TrackerControl(const std::string& hash, const std::string& key);
@@ -86,30 +86,25 @@ class TrackerControl {
   bool                  is_busy() const;
 
   SignalDump&           signal_dump()                           { return m_signalDump; }
-  SignalPeers&          signal_peers()                          { return m_signalPeers; }
+  SignalPeerList&       signal_peers()                          { return m_signalPeerList; }
   SignalString&         signal_failed()                         { return m_signalFailed; }
 
   void                  slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
   void                  slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
   void                  slot_stat_left(SlotStat s)              { m_slotStatLeft = s; }
 
- private:
+private:
 
   TrackerControl(const TrackerControl& t);
   void                  operator = (const TrackerControl& t);
 
-  void                  receive_done(Bencode& bencode);
+  void                  receive_done(const PeerList& l);
   void                  receive_failed(const std::string& msg);
 
+  void                  receive_set_interval(int v);
+  void                  receive_set_min_interval(int v);
+
   void                  query_current();
-
-  void                  parse_check_failure(const Bencode& b);
-  void                  parse_fields(const Bencode& b);
-
-  static PeerInfo       parse_peer(const Bencode& b);
-
-  void                  parse_peers_normal(PeerList& l, const Bencode::List& b);
-  void                  parse_peers_compact(PeerList& l, const std::string& s);
 
   int                   m_tries;
   int                   m_interval;
@@ -124,7 +119,7 @@ class TrackerControl {
   TaskItem              m_taskTimeout;
 
   SignalDump            m_signalDump;
-  SignalPeers           m_signalPeers;
+  SignalPeerList        m_signalPeerList;
   SignalString          m_signalFailed;
 
   SlotStat              m_slotStatDown;

@@ -106,8 +106,17 @@ DownloadWrapper::hash_resume_load() {
 
       if (fs.update(sItr->get_meta()->get_path()) ||
 	  sItr->get_size() != fs.get_size() ||
+	  !bItr->has_key("mtime") ||
+	  !(*bItr)["mtime"].is_value() ||
 	  (*bItr)["mtime"].as_value() != fs.get_mtime())
 	m_hash->get_ranges().insert(cItr->get_range().first, cItr->get_range().second);
+
+      // Update the priority from the fast resume data.
+      if (bItr->has_key("priority") &&
+	  (*bItr)["priority"].is_value() &&
+	  (*bItr)["priority"].as_value() >= 0 &&
+	  (*bItr)["priority"].as_value() < 3)
+	cItr->set_priority((*bItr)["priority"].as_value());
 
       ++cItr;
       ++sItr;
@@ -135,11 +144,10 @@ DownloadWrapper::hash_resume_save() {
     // valid, just that the client didn't finish the check this time.
     return;
 
-  Content& content = m_main.get_state().get_content();
-
   // Clear the resume data since if the syncing fails we propably don't
   // want the old resume data.
   Bencode& resume = m_bencode.insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
+  Content& content = m_main.get_state().get_content();
 
   // We're guaranteed that file modification time is correctly updated
   // after this. Though won't help if the files have been delete while
@@ -150,19 +158,26 @@ DownloadWrapper::hash_resume_save() {
 
   Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
 
-  for (StorageConsolidator::iterator itr = content.get_storage().get_consolidator().begin();
-       itr != content.get_storage().get_consolidator().end(); ++itr) {
+  Content::FileList::iterator cItr = content.get_files().begin();
+  StorageConsolidator::iterator sItr = content.get_storage().get_consolidator().begin();
+  
+  // Check the validity of each file, add to the m_hash's ranges if invalid.
+  while (cItr != content.get_files().end()) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
     FileStat fs;
 
-    if (fs.update(itr->get_meta()->get_path())) {
+    if (fs.update(sItr->get_meta()->get_path())) {
       l.clear();
 
       return;
     }
 
     b.insert_key("mtime", fs.get_mtime());
+    b.insert_key("priority", (int)cItr->get_priority());
+
+    ++cItr;
+    ++sItr;
   }
 }
 
