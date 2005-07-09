@@ -44,7 +44,7 @@
 #include "net/socket_fd.h"
 #include "peer/peer_info.h"
 #include "torrent/peer.h"
-#include "utils/rate.h"
+#include "torrent/rate.h"
 #include "utils/unordered_vector.h"
 
 #include "choke_manager.h"
@@ -60,7 +60,7 @@ public:
   typedef std::list<PeerInfo>                     PeerList;
   typedef unordered_vector<PeerConnectionBase*>   ConnectionList;
 
-  DownloadNet() : m_settings(NULL), m_endgame(false) {}
+  DownloadNet();
   ~DownloadNet();
 
   uint32_t            pipe_size(const Rate& r);

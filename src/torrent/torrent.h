@@ -47,6 +47,7 @@
 namespace torrent {
 
 class Bencode;
+class Rate;
 
 typedef std::list<Download> DList;
 
@@ -93,8 +94,8 @@ void                set_write_throttle(int32_t bytes);
 
 void                set_throttle_interval(uint32_t usec);
 
-uint32_t            get_read_rate();
-uint32_t            get_write_rate();
+const Rate&         get_read_rate();
+const Rate&         get_write_rate();
 
 std::string         get_version();
 
@@ -115,22 +116,21 @@ uint32_t            get_open_sockets();
 uint32_t            get_max_open_sockets();
 void                set_max_open_sockets(uint32_t size);
 
-// The below API might/might not be cleaned up.
-
 // Will always return a valid Download. On errors it throws.
-Download  download_create(std::istream* s);
+Download            download_add(std::istream* s);
+void                download_remove(const std::string& infohash);
+
+// The below API might/might not be cleaned up.
 
 // Add all downloads to dlist. Make sure it's cleared.
 void      download_list(DList& dlist);
 
 // Make sure you check that the returned Download is_valid().
-Download  download_find(const std::string& id);
-
-void      download_remove(const std::string& id);
+Download  download_find(const std::string& infohash);
 
 // Returns the bencode object, make sure you don't modify stuff you shouldn't
 // touch. Make sure you don't copy the object, since it is very expensive.
-Bencode&  download_bencode(const std::string& id);
+Bencode&  download_bencode(const std::string& infohash);
 
 }
 

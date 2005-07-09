@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_UTILS_THROTTLE_CONTROL_H
 #define LIBTORRENT_UTILS_THROTTLE_CONTROL_H
 
-#include "rate.h"
+#include "torrent/rate.h"
 #include "task.h"
 #include "throttle_list.h"
 

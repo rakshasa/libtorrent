@@ -41,9 +41,9 @@
 #include "net/manager.h"
 #include "net/socket_base.h"
 #include "utils/bitfield_ext.h"
-#include "utils/rate.h"
 #include "utils/task.h"
 #include "utils/throttle.h"
+#include "torrent/rate.h"
 
 #include "peer_info.h"
 #include "protocol_buffer.h"

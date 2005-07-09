@@ -54,8 +54,14 @@ PeerConnectionBase::PeerConnectionBase() :
   m_read(new ProtocolRead()),
   m_write(new ProtocolWrite()),
 
+  m_peerRate(600),
+
+  m_readRate(30),
   m_readThrottle(throttleRead.end()),
+
+  m_writeRate(30),
   m_writeThrottle(throttleWrite.end()),
+
   m_snubbed(false) {
 }
 

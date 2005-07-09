@@ -53,7 +53,11 @@ namespace torrent {
 typedef std::list<Peer> PList;
 
 class Bencode;
+class Rate;
 struct DownloadWrapper;
+
+// Download is safe to copy and destory as it is just a pointer to an
+// internal class.
 
 class Download {
 public:
@@ -102,10 +106,9 @@ public:
   std::string          get_root_dir();
   void                 set_root_dir(const std::string& dir);
 
-  // Bytes uploaded this session.
-  uint64_t             get_bytes_up();
-  // Bytes downloaded this session.
-  uint64_t             get_bytes_down();
+  const Rate&          get_read_rate();
+  const Rate&          get_write_rate();
+
   // Bytes completed.
   uint64_t             get_bytes_done();
   // Size of the torrent.
@@ -115,10 +118,6 @@ public:
   uint32_t             get_chunks_done();
   uint32_t             get_chunks_total();
 
-  // Bytes per second.
-  uint32_t             get_rate_up();
-  uint32_t             get_rate_down();
-  
   const unsigned char* get_bitfield_data();
   uint32_t             get_bitfield_size();
 

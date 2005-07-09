@@ -5,12 +5,20 @@ loaded from outside of DownloadStore.
 
 ---
 
-Use typedef for port?
+Test socket manager by setting a low open max and connecting to a busy
+torrent.
 
-Make the tries adjuster into a setting.
+Finish cleaning up the API before the next release, it will then be
+"frozen", kinda.
+
+Save file priorities?
 
 The hash checking options should be per byte, so they work for all sized
 chunks.
+
+Use typedef for port?
+
+Make the tries adjuster into a setting.
 
 Doesn't force in some cases when the system is overloaded and you got
 small hash chunks.
@@ -20,6 +28,8 @@ mmap'ed area as sequential. Add options to the man page.
 
 Expand ~/ in input.
 
+Make shutdown in the main look into a task.
+
 Add filter for ip address, and peer id. These must be seperate as ip
 happens before handshake, but peer id is done after handshake or
 before connecting.
@@ -28,8 +38,6 @@ Rewrite the chunk handler, use a vector that msyncs continious chunks
 when it feels like it. Use a task to check periodically, or when
 receiving chunks. Try to make sure we do sequential download of
 chunks, instead of completely random.
-
-Save file priorities?
 
 Add a slot in core::DownloadList that makes it safe to delete
 downloads at all times.

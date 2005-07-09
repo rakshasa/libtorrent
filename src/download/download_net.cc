@@ -43,10 +43,17 @@
 
 #include "download_net.h"
 #include "settings.h"
-#include "utils/rate.h"
 #include "peer_connection.h"
 
 namespace torrent {
+
+DownloadNet::DownloadNet() :
+  m_settings(NULL),
+  m_endgame(false),
+
+  m_writeRate(60),
+  m_readRate(60) {
+}
 
 DownloadNet::~DownloadNet() {
   std::for_each(m_connections.begin(), m_connections.end(), rak::call_delete<PeerConnectionBase>());

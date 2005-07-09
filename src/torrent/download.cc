@@ -153,14 +153,14 @@ Download::set_root_dir(const std::string& dir) {
   m_ptr->get_main().get_state().get_content().set_root_dir(dir);
 }
 
-uint64_t
-Download::get_bytes_up() {
-  return m_ptr->get_main().get_net().get_write_rate().total();
+const Rate&
+Download::get_read_rate() {
+  return m_ptr->get_main().get_net().get_read_rate();
 }
 
-uint64_t
-Download::get_bytes_down() {
-  return m_ptr->get_main().get_net().get_read_rate().total();
+const Rate&
+Download::get_write_rate() {
+  return m_ptr->get_main().get_net().get_write_rate();
 }
 
 uint64_t
@@ -197,17 +197,6 @@ Download::get_chunks_total() {
   return m_ptr->get_main().get_state().get_chunk_total();
 }
 
-// Bytes per second.
-uint32_t
-Download::get_rate_up() {
-  return m_ptr->get_main().get_net().get_write_rate().rate();
-}
-
-uint32_t
-Download::get_rate_down() {
-  return m_ptr->get_main().get_net().get_read_rate().rate();
-}
-  
 const unsigned char*
 Download::get_bitfield_data() {
   return (unsigned char*)m_ptr->get_main().get_state().get_content().get_bitfield().begin();

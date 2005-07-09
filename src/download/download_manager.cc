@@ -45,24 +45,21 @@
 
 namespace torrent {
 
-void
-DownloadManager::add(DownloadWrapper* d) {
-  if (find(d->get_hash()))
-    throw input_error("Could not add download, info-hash already exists.");
+DownloadManager::iterator
+DownloadManager::insert(DownloadWrapper* d) {
+  if (find(d->get_hash()) != end())
+    throw input_error("Could not add torrent as it already exists");
 
-  Base::push_back(d);
+  return Base::insert(end(), d);
 }
 
-void
-DownloadManager::remove(const std::string& hash) {
-  iterator itr = std::find_if(begin(), end(),
-			      rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
-
+DownloadManager::iterator
+DownloadManager::erase(iterator itr) {
   if (itr == end())
-    throw client_error("Tried to remove a DownloadMain that doesn't exist");
+    throw client_error("Tried to remove a torrent that doesn't exist");
     
   delete *itr;
-  Base::erase(itr);
+  return Base::erase(itr);
 }
 
 void
@@ -72,12 +69,10 @@ DownloadManager::clear() {
   Base::clear();
 }
 
-DownloadWrapper*
+DownloadManager::iterator
 DownloadManager::find(const std::string& hash) {
-  iterator itr = std::find_if(begin(), end(),
-			      rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
-
-  return itr != end() ? *itr : NULL;
+  return std::find_if(begin(), end(),
+		      rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
 }
 
 }

@@ -69,12 +69,12 @@ public:
 
   ~DownloadManager() { clear(); }
 
-  void                 add(DownloadWrapper* d);
-  void                 remove(const std::string& hash);
+  iterator            insert(DownloadWrapper* d);
+  iterator            erase(iterator itr);
 
-  void                 clear();
+  void                clear();
 
-  DownloadWrapper*     find(const std::string& hash);
+  iterator            find(const std::string& hash);
 };
 
 }

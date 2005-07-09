@@ -12,6 +12,8 @@ libsub_torrent_la_SOURCES = \
 	http.h \
 	peer.cc \
 	peer.h \
+	rate.cc \
+	rate.h \
 	torrent.cc \
 	torrent.h \
 	tracker.cc \
@@ -28,5 +30,6 @@ libtorrentinclude_HEADERS = \
 	entry.h \
 	http.h \
 	peer.h \
+	rate.h \
 	torrent.h \
 	tracker.h

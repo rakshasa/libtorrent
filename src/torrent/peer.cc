@@ -38,6 +38,7 @@
 
 #include "exceptions.h"
 #include "peer.h"
+#include "rate.h"
 #include "peer_connection.h"
 
 namespace torrent {
@@ -82,31 +83,20 @@ Peer::get_snubbed() {
   return m_ptr->is_snubbed();
 }
 
-// Bytes per second.
-uint32_t
-Peer::get_rate_down() {
-  return m_ptr->get_read_rate().rate();
-}
+const Rate&
+Peer::get_read_rate() {
+  return m_ptr->get_read_rate();
+} 
 
-uint32_t
-Peer::get_rate_up() {
-  return m_ptr->get_write_rate().rate();
-}
+const Rate&
+Peer::get_write_rate() {
+  return m_ptr->get_write_rate();
+} 
 
-uint32_t
-Peer::get_rate_peer() {
-  return m_ptr->get_peer_rate().rate();
-}
-
-uint64_t
-Peer::get_transfered_down() {
-  return m_ptr->get_read_rate().total();
-}  
-
-uint64_t
-Peer::get_transfered_up() {
-  return m_ptr->get_write_rate().total();
-}  
+const Rate&
+Peer::get_peer_rate() {
+  return m_ptr->get_peer_rate();
+} 
 
 uint32_t
 Peer::get_incoming_queue_size() {

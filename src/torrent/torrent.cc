@@ -91,21 +91,21 @@ Torrent* torrent = NULL;
 // Find some better way of doing this, or rather... move it outside.
 std::string
 download_id(const std::string& hash) {
-  DownloadWrapper* d = torrent->m_downloadManager.find(hash);
+  DownloadManager::iterator itr = torrent->m_downloadManager.find(hash);
 
-  return d &&
-    d->get_main().is_active() &&
-    d->get_main().is_checked() ?
-    d->get_main().get_me().get_id() : "";
+  return itr != torrent->m_downloadManager.end() &&
+    (*itr)->get_main().is_active() &&
+    (*itr)->get_main().is_checked() ?
+    (*itr)->get_main().get_me().get_id() : "";
 }
 
 void
 receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadWrapper* d = torrent->m_downloadManager.find(hash);
+  DownloadManager::iterator itr = torrent->m_downloadManager.find(hash);
   
-  if (!d ||
-      !d->get_main().is_active() ||
-      !d->get_main().get_net().add_connection(fd, peer))
+  if (itr == torrent->m_downloadManager.end() ||
+      !(*itr)->get_main().is_active() ||
+      !(*itr)->get_main().get_net().add_connection(fd, peer))
     socketManager.close(fd);
 }
 
@@ -309,14 +309,14 @@ set_throttle_interval(uint32_t usec) {
   throttleWrite.set_interval(usec);
 }
 
-uint32_t
+const Rate&
 get_read_rate() {
-  return throttleRead.get_rate_slow().rate();
+  return throttleRead.get_rate_slow();
 }
 
-uint32_t
+const Rate&
 get_write_rate() {
-  return throttleWrite.get_rate_slow().rate();
+  return throttleWrite.get_rate_slow();
 }
 
 std::string
@@ -383,7 +383,7 @@ set_max_open_sockets(uint32_t size) {
 }
 
 Download
-download_create(std::istream* s) {
+download_add(std::istream* s) {
   if (s == NULL)
     throw client_error("torrent::download_create(...) received a NULL pointer");
 
@@ -418,9 +418,14 @@ download_create(std::istream* s) {
 
   parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
 
-  torrent->m_downloadManager.add(d.get());
+  torrent->m_downloadManager.insert(d.get());
 
   return Download(d.release());
+}
+
+void
+download_remove(const std::string& infohash) {
+  torrent->m_downloadManager.erase(torrent->m_downloadManager.find(infohash));
 }
 
 // Add all downloads to dlist. Make sure it's cleared.
@@ -433,23 +438,18 @@ download_list(DList& dlist) {
 
 // Make sure you check that it's valid.
 Download
-download_find(const std::string& id) {
-  return torrent->m_downloadManager.find(id);
-}
-
-void
-download_remove(const std::string& id) {
-  torrent->m_downloadManager.remove(id);
+download_find(const std::string& infohash) {
+  return *torrent->m_downloadManager.find(infohash);
 }
 
 Bencode&
-download_bencode(const std::string& id) {
-  DownloadWrapper* d = torrent->m_downloadManager.find(id);
+download_bencode(const std::string& infohash) {
+  DownloadManager::iterator itr = torrent->m_downloadManager.find(infohash);
 
-  if (d == NULL)
+  if (itr == torrent->m_downloadManager.end())
     throw client_error("Tried to call download_bencode(id) with non-existing download");
 
-  return d->get_bencode();
+  return (*itr)->get_bencode();
 }
 
 }

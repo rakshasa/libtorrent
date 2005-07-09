@@ -34,18 +34,17 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include "rate.h"
-#include "settings.h"
+#include "utils/timer.h"
 
 namespace torrent {
 
 inline void
 Rate::discard_old() const {
-  while (!m_container.empty() && m_container.back().first < Timer::cache().seconds() - m_span) {
+  while (!m_container.empty() &&
+	 m_container.back().first < Timer::cache().seconds() - m_span) {
     m_current -= m_container.back().second;
     m_container.pop_back();
   }
@@ -63,7 +62,8 @@ void
 Rate::insert(uint32_t bytes) {
   discard_old();
 
-  if (m_container.empty() || m_container.front().first != Timer::cache().seconds())
+  if (m_container.empty() ||
+      m_container.front().first != Timer::cache().seconds())
     m_container.push_front(value_type(Timer::cache().seconds(), bytes));
   else
     m_container.front().second += bytes;
