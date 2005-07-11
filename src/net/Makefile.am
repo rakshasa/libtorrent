@@ -16,6 +16,7 @@ libsub_net_la_SOURCES = \
 	poll_manager.cc \
 	poll_manager.h \
 	poll_select.h \
+	protocol_buffer.h \
 	socket_address.cc \
 	socket_address.h \
 	socket_base.cc \

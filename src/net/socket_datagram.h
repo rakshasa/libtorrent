@@ -44,8 +44,8 @@ namespace torrent {
 class SocketDatagram : public SocketBase {
 public:
 
-  int                 send(const char* buffer, unsigned int length, SocketAddress* sa = NULL);
-  int                 receive(char* buffer, unsigned int length, SocketAddress* sa = NULL);
+  int                 send(const void* buffer, unsigned int length, SocketAddress* sa = NULL);
+  int                 receive(void* buffer, unsigned int length, SocketAddress* sa = NULL);
 
   // Some functions that check what kind of error was returned, it it
   // was important, if we can ignore it or perhaps the other side

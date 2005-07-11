@@ -38,7 +38,7 @@
 #define LIBTORRENT_NET_PROTOCOL_BASE_H
 
 #include "data/storage.h"
-#include "protocol_buffer.h"
+#include "net/protocol_buffer.h"
 
 namespace torrent {
 

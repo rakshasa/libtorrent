@@ -46,7 +46,6 @@
 #include "torrent/rate.h"
 
 #include "peer_info.h"
-#include "protocol_buffer.h"
 #include "protocol_chunk.h"
 #include "protocol_read.h"
 #include "protocol_write.h"

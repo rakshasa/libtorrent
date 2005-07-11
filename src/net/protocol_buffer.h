@@ -65,6 +65,7 @@ public:
 
   void                write8(uint8_t v);
   void                write32(uint32_t v);
+  void                write64(uint64_t v);
 
   iterator            begin()                                 { return m_buffer; }
   iterator            position()                              { return m_position; }
@@ -123,6 +124,31 @@ inline void
 ProtocolBuffer<tmpl_size>::write32(uint32_t v) {
   *(uint32_t*)m_position = htonl(v);
   m_position += sizeof(uint32_t);
+
+  if (m_position > m_buffer + tmpl_size)
+    throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
+}
+
+template <uint16_t tmpl_size>
+inline void
+ProtocolBuffer<tmpl_size>::write64(uint64_t v) {
+
+// #if defined IS_BIG_ENDIAN
+//   *(uint64_t*)m_position = v;
+// #elif defined IS_LITTLE_ENDIAN
+//   *(uint32_t*)m_position = htonl(v >> 32);
+//   m_position += sizeof(uint32_t);
+
+//   *(uint32_t*)m_position = htonl(v);
+//   m_position += sizeof(uint32_t);
+// #else
+// #error Neither IS_BIG_ENDIAN nor IS_LITTLE_ENDIAN defined.
+// #endif
+
+  for (iterator itr = m_position + sizeof(uint64_t); itr != m_position; v >>= 8)
+    *(--itr) = v;
+
+  m_position += sizeof(uint64_t);
 
   if (m_position > m_buffer + tmpl_size)
     throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");

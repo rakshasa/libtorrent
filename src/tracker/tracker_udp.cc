@@ -37,6 +37,8 @@
 #include "config.h"
 
 #include <cerrno>
+#include <stdlib.h>
+#include <sstream>
 #include <sigc++/bind.h>
 
 #include "net/manager.h"
@@ -46,8 +48,22 @@
 
 namespace torrent {
 
+std::string
+_string_to_hex(const std::string& src) {
+  std::stringstream stream;
+
+  stream << std::hex << std::uppercase;
+
+  for (std::string::const_iterator itr = src.begin(); itr != src.end(); ++itr)
+    stream << ((unsigned char)*itr >> 4) << ((unsigned char)*itr & 0xf);
+
+  return stream.str();
+}
+
 TrackerUdp::TrackerUdp(TrackerInfo* info, const std::string& url) :
-  TrackerBase(info, url) {
+  TrackerBase(info, url),
+  m_readBuffer(NULL),
+  m_writeBuffer(NULL) {
 
   m_taskDelay.set_iterator(taskScheduler.end());
 }
@@ -74,29 +90,19 @@ TrackerUdp::send_state(TrackerInfo::State state,
   if (!parse_url())
     return receive_failed("Could not parse UDP hostname or port");
 
-  // Debug
-  if (m_connectAddress.get_port() % 2)
-    m_bindAddress.set_port(m_connectAddress.get_port() + 1);
-  else
-    //m_bindAddress.set_port(m_connectAddress.get_port() - 1);
-    //connectAddress = SocketAddress();
-    ;
-
   if (!m_fd.open_datagram() ||
       !m_fd.set_nonblock() ||
-      (!m_bindAddress.is_any() && !m_fd.bind(m_bindAddress))// ||
-      //!m_fd.bind(m_bindAddress) ||
-      //!m_fd.connect(connectAddress)
-      )
+      //(!m_bindAddress.is_any() && !m_fd.bind(m_bindAddress)))
+      !m_fd.bind(m_bindAddress))
     return receive_failed("Could not open UDP socket");
 
-  pollManager.read_set().insert(this);
+  m_readBuffer = new ReadBuffer;
+  m_writeBuffer = new WriteBuffer;
+
+  prepare_connect_input();
+
   pollManager.write_set().insert(this);
   pollManager.except_set().insert(this);
-
-  m_readBuffer = new char[512];
-  m_writeBuffer = new char[512];
-  
 }
 
 void
@@ -106,6 +112,9 @@ TrackerUdp::close() {
 
   delete m_readBuffer;
   delete m_writeBuffer;
+
+  m_readBuffer = NULL;
+  m_writeBuffer = NULL;
 
   pollManager.read_set().erase(this);
   pollManager.write_set().erase(this);
@@ -125,27 +134,37 @@ void
 TrackerUdp::read() {
   SocketAddress sa;
 
-  int m_readLength = receive(m_readBuffer, 512, &sa);
+  int s = receive(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
 
-  if (m_readLength < 0)
+  if (s < 0)
     m_slotLog("UDP read() got error " + std::string(std::strerror(get_errno())));
-  else if (m_readLength > 0)
+  else if (s > 0)
     m_slotLog("UDP read() got message from " + sa.get_address());
+  else
+    m_slotLog("UDP read() got zero");
 
-  m_connectAddress = sa;
-  pollManager.write_set().insert(this);
+  m_readBuffer->reset_position();
+  m_readBuffer->set_end(s);
+
+  //m_connectAddress = sa;
+  //pollManager.write_set().insert(this);
 }
 
 void
 TrackerUdp::write() {
+  if (m_writeBuffer->size_end() == 0)
+    throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
+
+  int s = send(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
+
+  if (s != m_writeBuffer->size_end())
+    m_slotLog("UDP write failed");
+  else
+    m_slotLog("UDP write \"" + _string_to_hex(std::string((char*)m_writeBuffer->begin(), m_writeBuffer->size_end())));
+
+  m_writeBuffer->prepare_end();
   pollManager.write_set().erase(this);
-
-  m_writeBuffer[0] = 1;
-  
-  int s = send(m_writeBuffer, 1, &m_connectAddress);
-
-  if (s != 1)
-    m_slotLog("UDP send failed");
+  pollManager.read_set().insert(this); // Propably insert into read set immidiately.
 }
 
 void
@@ -167,6 +186,17 @@ TrackerUdp::parse_url() {
   m_connectAddress.set_port(port);
 
   return !m_connectAddress.is_port_any() && !m_connectAddress.is_address_any();
+}
+
+void
+TrackerUdp::prepare_connect_input() {
+  // Fill structure.
+  m_writeBuffer->reset_position();
+  m_writeBuffer->write64(m_connectionId = magic_connection_id);
+  m_writeBuffer->write32(m_action = 0);
+  m_writeBuffer->write32(m_transactionId = random());
+
+  m_writeBuffer->prepare_end();
 }
 
 }

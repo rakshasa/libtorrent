@@ -48,7 +48,7 @@
 namespace torrent {
 
 int
-SocketDatagram::send(const char* buffer, unsigned int length, SocketAddress* sa) {
+SocketDatagram::send(const void* buffer, unsigned int length, SocketAddress* sa) {
   if (length == 0)
     throw internal_error("Tried to send buffer length 0");
 
@@ -67,7 +67,7 @@ SocketDatagram::send(const char* buffer, unsigned int length, SocketAddress* sa)
 }
 
 int
-SocketDatagram::receive(char* buffer, unsigned int length, SocketAddress* sa) {
+SocketDatagram::receive(void* buffer, unsigned int length, SocketAddress* sa) {
   if (length == 0)
     throw internal_error("Tried to receive buffer length 0");
 

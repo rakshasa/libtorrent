@@ -9,7 +9,6 @@ libsub_peer_la_SOURCES = \
 	protocol_base.h \
 	protocol_chunk.cc \
 	protocol_chunk.h \
-	protocol_buffer.h \
 	protocol_read.h \
 	protocol_write.h \
 	request_list.cc \
