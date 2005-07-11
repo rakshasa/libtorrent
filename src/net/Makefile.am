@@ -20,11 +20,15 @@ libsub_net_la_SOURCES = \
 	socket_address.h \
 	socket_base.cc \
         socket_base.h \
+	socket_datagram.cc \
+	socket_datagram.h \
 	socket_fd.cc \
 	socket_fd.h \
 	socket_manager.cc \
 	socket_manager.h \
 	socket_set.cc \
-	socket_set.h
+	socket_set.h \
+	socket_stream.cc \
+	socket_stream.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

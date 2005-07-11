@@ -38,6 +38,7 @@
 #define LIBTORRENT_UTILS_RATE_H
 
 #include <deque>
+#include <inttypes.h>
 
 namespace torrent {
 
@@ -48,10 +49,10 @@ namespace torrent {
 class Rate {
 public:
   // std::pair<seconds, bytes>
-  typedef std::pair<uint32_t, uint32_t> value_type;
-  typedef std::deque<value_type>        Container;
+  typedef std::pair<int32_t, uint32_t> value_type;
+  typedef std::deque<value_type>       Container;
 
-  Rate(uint32_t span) : m_current(0), m_total(0), m_span(span) {}
+  Rate(int32_t span) : m_current(0), m_total(0), m_span(span) {}
 
   uint32_t            rate() const;
   uint64_t            total() const                         { return m_total; }

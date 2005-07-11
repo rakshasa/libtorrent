@@ -39,7 +39,7 @@
 
 #include <inttypes.h>
 
-#include "socket_base.h"
+#include "socket_stream.h"
 #include "peer/peer_info.h"
 #include "utils/task.h"
 
@@ -47,7 +47,7 @@ namespace torrent {
 
 class HandshakeManager;
 
-class Handshake : public SocketBase {
+class Handshake : public SocketStream {
 public:
   Handshake(SocketFd fd, HandshakeManager* m);
   virtual ~Handshake();

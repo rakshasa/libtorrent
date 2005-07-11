@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -74,7 +75,7 @@ SocketFd::get_error() const {
   if (!is_valid())
     throw internal_error("SocketFd::get_error() called on a closed fd");
 
-  int err = 0;
+  int err;
   socklen_t length = sizeof(err);
 
   if (getsockopt(m_fd, SOL_SOCKET, SO_ERROR, &err, &length) == -1)
@@ -84,8 +85,13 @@ SocketFd::get_error() const {
 }
 
 bool
-SocketFd::open() {
+SocketFd::open_stream() {
   return (m_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) != -1;
+}
+
+bool
+SocketFd::open_datagram() {
+  return (m_fd = socket(PF_INET, SOCK_DGRAM, 0)) != -1;
 }
 
 void
@@ -127,5 +133,25 @@ SocketFd::accept(SocketAddress* sa) {
 
   return SocketFd(::accept(m_fd, sa != NULL ? &sa->get_addr() : NULL, &len));
 }
+
+// unsigned int
+// SocketFd::get_read_queue_size() const {
+//   unsigned int v;
+
+//   if (!is_valid() || ioctl(m_fd, SIOCINQ, &v) < 0)
+//     throw internal_error("SocketFd::get_read_queue_size() could not be performed");
+
+//   return v;
+// }
+
+// unsigned int
+// SocketFd::get_write_queue_size() const {
+//   unsigned int v;
+
+//   if (!is_valid() || ioctl(m_fd, SIOCOUTQ, &v) < 0)
+//     throw internal_error("SocketFd::get_write_queue_size() could not be performed");
+
+//   return v;
+// }
 
 }

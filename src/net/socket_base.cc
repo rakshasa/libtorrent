@@ -34,60 +34,17 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
-#include <errno.h>
-#include <sstream>
-#include <cerrno>
-#include <cstring>
-#include <unistd.h>
-
-#include "socket_address.h"
-#include "socket_base.h"
 #include "torrent/exceptions.h"
-#include "poll.h"
+
+#include "socket_base.h"
 
 namespace torrent {
 
 SocketBase::~SocketBase() {
   if (m_fd.is_valid())
     throw internal_error("SocketBase::~SocketBase() called but m_fd is still valid");
-}
-
-unsigned int
-SocketBase::read_buf(void* buf, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to read buffer length 0");
-
-  errno = 0;
-  int r = ::read(m_fd.get_fd(), buf, length);
-
-  if (r == 0)
-    throw close_connection();
-
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
-
-  return std::max(r, 0);
-}
-
-unsigned int
-SocketBase::write_buf(const void* buf, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to write buffer length 0");
-
-  errno = 0;
-  int r = ::write(m_fd.get_fd(), buf, length);
-
-  if (r == 0)
-    throw close_connection();
-
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
-
-  return std::max(r, 0);
 }
 
 } // namespace torrent

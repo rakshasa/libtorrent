@@ -52,6 +52,8 @@ public:
   SocketAddress();
   explicit SocketAddress(const sockaddr_in& sa);
 
+  bool                is_any() const                          { return is_port_any() && is_address_any(); }
+  bool                is_port_any() const                     { return m_sockaddr.sin_port == 0; }
   bool                is_address_any() const                  { return m_sockaddr.sin_addr.s_addr == htonl(INADDR_ANY); }
 
   size_t              get_sizeof() const                      { return sizeof(sockaddr_in); }
@@ -64,7 +66,7 @@ public:
   bool                set_hostname(const std::string& hostname);
 
   uint16_t            get_port() const;
-  void                set_port(int port);
+  void                set_port(uint16_t port);
 
   // Use an empty string for setting INADDR_ANY.
   std::string         get_address() const;
@@ -73,19 +75,21 @@ public:
   void                set_address_any()                       { m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY); }
 
   // Uses set_address, so only ip addresses and empty strings are allowed.
-  bool                create(const std::string& addr, int port);
+  bool                create(const std::string& addr, uint16_t port);
 
 private:
   sockaddr_in         m_sockaddr;
 };
 
-inline SocketAddress::SocketAddress() {
+inline
+SocketAddress::SocketAddress() {
   std::memset(&m_sockaddr, 0, sizeof(sockaddr_in));
   m_sockaddr.sin_family = AF_INET;
   set_address_any();
 }
 
-inline SocketAddress::SocketAddress(const sockaddr_in& sa) {
+inline
+SocketAddress::SocketAddress(const sockaddr_in& sa) {
   std::memcpy(&m_sockaddr, &sa, sizeof(sockaddr_in));
 }
 

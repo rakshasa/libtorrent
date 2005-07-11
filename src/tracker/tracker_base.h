@@ -76,6 +76,7 @@ public:
 
   void                slot_success(SlotPeerList s)          { m_slotSuccess = s; }
   void                slot_failed(SlotString s)             { m_slotFailed = s; }
+  void                slot_log(SlotString s)                { m_slotLog = s; }
   void                slot_set_interval(SlotInt s)          { m_slotSetInterval = s; }
   void                slot_set_min_interval(SlotInt s)      { m_slotSetMinInterval = s; }
 
@@ -90,6 +91,7 @@ protected:
 
   SlotPeerList        m_slotSuccess;
   SlotString          m_slotFailed;
+  SlotString          m_slotLog;
   SlotInt             m_slotSetInterval;
   SlotInt             m_slotSetMinInterval;
 };

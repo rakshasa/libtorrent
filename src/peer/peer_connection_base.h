@@ -39,7 +39,7 @@
 
 #include "data/piece.h"
 #include "net/manager.h"
-#include "net/socket_base.h"
+#include "net/socket_stream.h"
 #include "utils/bitfield_ext.h"
 #include "utils/task.h"
 #include "utils/throttle.h"
@@ -60,7 +60,7 @@ namespace torrent {
 class DownloadState;
 class DownloadNet;
 
-class PeerConnectionBase : public SocketBase {
+class PeerConnectionBase : public SocketStream {
 public:
   typedef std::list<Piece> PieceList;
 

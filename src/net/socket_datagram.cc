@@ -36,58 +36,55 @@
 
 #include "config.h"
 
-#include <numeric>
-#include <netdb.h>
-#include <arpa/inet.h>
+#include <cerrno>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 #include "socket_address.h"
 
+#include "socket_datagram.h"
+
 namespace torrent {
 
-bool
-SocketAddress::set_hostname(const std::string& hostname) {
-  hostent* he = gethostbyname(hostname.c_str());
+int
+SocketDatagram::send(const char* buffer, unsigned int length, SocketAddress* sa) {
+  if (length == 0)
+    throw internal_error("Tried to send buffer length 0");
 
-  if (he == NULL)
-    return false;
+  int r;
 
-  std::memcpy(&m_sockaddr.sin_addr, he->h_addr_list[0], sizeof(in_addr));
-
-  return true;
-}
-
-uint16_t
-SocketAddress::get_port() const {
-  return ntohs(m_sockaddr.sin_port);
-}
-
-void
-SocketAddress::set_port(uint16_t port) {
-  m_sockaddr.sin_port = htons(port);
-}
-
-std::string
-SocketAddress::get_address() const {
-  return inet_ntoa(m_sockaddr.sin_addr);
-}
-
-bool
-SocketAddress::set_address(const std::string& addr) {
-  if (!addr.empty()) {
-    return inet_aton(addr.c_str(), &m_sockaddr.sin_addr);
-
+  if (sa != NULL) {
+    r = ::sendto(m_fd.get_fd(), buffer, length, 0, &sa->get_addr(), sa->get_sizeof());
   } else {
-    m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    return true;
+    r = ::send(m_fd.get_fd(), buffer, length, 0);
   }
+
+  if (r < 0)
+    m_errno = errno;
+
+  return r;
 }
 
-bool
-SocketAddress::create(const std::string& addr, uint16_t port) {
-  m_sockaddr.sin_port = htons(port);
-  
-  return set_address(addr);
-}  
+int
+SocketDatagram::receive(char* buffer, unsigned int length, SocketAddress* sa) {
+  if (length == 0)
+    throw internal_error("Tried to receive buffer length 0");
+
+  int r;
+  socklen_t fromlen;
+
+  if (sa != NULL) {
+    fromlen = sa->get_sizeof();
+    r = ::recvfrom(m_fd.get_fd(), buffer, length, 0, &sa->get_addr(), &fromlen);
+  } else {
+    r = ::recv(m_fd.get_fd(), buffer, length, 0);
+  }
+
+  if (r < 0)
+    m_errno = errno;
+
+  return r;
+}
 
 }

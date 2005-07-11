@@ -36,58 +36,47 @@
 
 #include "config.h"
 
-#include <numeric>
-#include <netdb.h>
-#include <arpa/inet.h>
+#include "socket_stream.h"
+
+#include <errno.h>
+#include <cerrno>
+#include <cstring>
+#include <unistd.h>
 
 #include "torrent/exceptions.h"
-#include "socket_address.h"
 
 namespace torrent {
 
-bool
-SocketAddress::set_hostname(const std::string& hostname) {
-  hostent* he = gethostbyname(hostname.c_str());
+unsigned int
+SocketStream::read_buf(void* buf, unsigned int length) {
+  if (length == 0)
+    throw internal_error("Tried to read buffer length 0");
 
-  if (he == NULL)
-    return false;
+  int r = ::read(m_fd.get_fd(), buf, length);
 
-  std::memcpy(&m_sockaddr.sin_addr, he->h_addr_list[0], sizeof(in_addr));
+  if (r == 0)
+    throw close_connection();
 
-  return true;
+  else if (r < 0 && errno != EAGAIN && errno != EINTR)
+    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
+
+  return std::max(r, 0);
 }
 
-uint16_t
-SocketAddress::get_port() const {
-  return ntohs(m_sockaddr.sin_port);
+unsigned int
+SocketStream::write_buf(const void* buf, unsigned int length) {
+  if (length == 0)
+    throw internal_error("Tried to write buffer length 0");
+
+  int r = ::write(m_fd.get_fd(), buf, length);
+
+  if (r == 0)
+    throw close_connection();
+
+  else if (r < 0 && errno != EAGAIN && errno != EINTR)
+    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
+
+  return std::max(r, 0);
 }
-
-void
-SocketAddress::set_port(uint16_t port) {
-  m_sockaddr.sin_port = htons(port);
-}
-
-std::string
-SocketAddress::get_address() const {
-  return inet_ntoa(m_sockaddr.sin_addr);
-}
-
-bool
-SocketAddress::set_address(const std::string& addr) {
-  if (!addr.empty()) {
-    return inet_aton(addr.c_str(), &m_sockaddr.sin_addr);
-
-  } else {
-    m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    return true;
-  }
-}
-
-bool
-SocketAddress::create(const std::string& addr, uint16_t port) {
-  m_sockaddr.sin_port = htons(port);
-  
-  return set_address(addr);
-}  
 
 }

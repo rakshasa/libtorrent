@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include "net/socket_base.h"
+#include "net/socket_stream.h"
 #include "torrent/exceptions.h"
 
 #include "protocol_chunk.h"
@@ -44,7 +44,7 @@
 namespace torrent {
 
 uint32_t
-ProtocolChunk::read(SocketBase* sock, uint32_t maxBytes) {
+ProtocolChunk::read(SocketStream* sock, uint32_t maxBytes) {
   uint32_t left = maxBytes = std::min(maxBytes, m_piece.get_length() - m_position);
 
   ChunkPart c = chunk_part();
@@ -57,7 +57,7 @@ ProtocolChunk::read(SocketBase* sock, uint32_t maxBytes) {
 }
 
 uint32_t
-ProtocolChunk::write(SocketBase* sock, uint32_t maxBytes) {
+ProtocolChunk::write(SocketStream* sock, uint32_t maxBytes) {
   uint32_t left = maxBytes = std::min(maxBytes, m_piece.get_length() - m_position);
 
   ChunkPart c = chunk_part();
@@ -70,7 +70,7 @@ ProtocolChunk::write(SocketBase* sock, uint32_t maxBytes) {
 }
 
 inline bool
-ProtocolChunk::read_part(SocketBase* sock, ChunkPart c, uint32_t& left) {
+ProtocolChunk::read_part(SocketStream* sock, ChunkPart c, uint32_t& left) {
   if (!c->get_chunk().is_valid())
     throw internal_error("ProtocolChunk::read_part() did not get a valid chunk");
   
@@ -89,7 +89,7 @@ ProtocolChunk::read_part(SocketBase* sock, ChunkPart c, uint32_t& left) {
 }
 
 inline bool
-ProtocolChunk::write_part(SocketBase* sock, ChunkPart c, uint32_t& left) {
+ProtocolChunk::write_part(SocketStream* sock, ChunkPart c, uint32_t& left) {
   if (!c->get_chunk().is_valid())
     throw internal_error("ProtocolChunk::write_part() did not get a valid chunk");
   

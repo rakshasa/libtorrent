@@ -83,6 +83,7 @@ TrackerControl::add_url(int group, const std::string& url) {
   
   t->slot_success(sigc::mem_fun(*this, &TrackerControl::receive_done));
   t->slot_failed(sigc::mem_fun(*this, &TrackerControl::receive_failed));
+  t->slot_log(m_signalFailed.make_slot());
   t->slot_set_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_interval));
   t->slot_set_min_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_min_interval));
 

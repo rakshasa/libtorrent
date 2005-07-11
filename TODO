@@ -4,6 +4,8 @@ Swap emit and close order in TrackerHttp?
 
 Use pointer to PeerList.
 
+Seperate out stream specific stuff from SocketBase, make SocketStream.
+
 Get UDP tracker to test with, implement.
 
 Add filter for ip address, and peer id. These must be seperate as ip

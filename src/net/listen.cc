@@ -56,7 +56,7 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
   if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range");
 
-  if (!m_fd.open() || !m_fd.set_nonblock())
+  if (!m_fd.open_stream() || !m_fd.set_nonblock())
     throw local_error("Could not allocate socket for listening");
 
   for (uint16_t i = first; i <= last; ++i) {

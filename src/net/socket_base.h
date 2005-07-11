@@ -44,27 +44,17 @@
 
 namespace torrent {
 
-class SocketAddress;
-
 class SocketBase {
 public:
-  typedef std::list<SocketBase*> Sockets;
-
-  SocketBase(SocketFd fd = SocketFd()) : m_fd(fd) {}
-
+  SocketBase() {}
   virtual ~SocketBase();
 
   SocketFd            get_fd()            { return m_fd; }
+  void                set_fd(SocketFd fd) { m_fd = fd; }
 
   virtual void        read() = 0;
   virtual void        write() = 0;
   virtual void        except() = 0;
-
-  unsigned int        read_buf(void* buf, unsigned int length);
-  unsigned int        write_buf(const void* buf, unsigned int length);
-
-  bool                read_buffer(void* buf, uint32_t length, uint32_t& pos);
-  bool                write_buffer(const void* buf, uint32_t length, uint32_t& pos);
 
 protected:
   SocketFd            m_fd;
@@ -74,20 +64,6 @@ private:
   SocketBase(const SocketBase&);
   void operator = (const SocketBase&);
 };
-
-inline bool
-SocketBase::read_buffer(void* buf, uint32_t length, uint32_t& pos) {
-  pos += read_buf(buf, length - pos);
-
-  return pos == length;
-}
-
-inline bool
-SocketBase::write_buffer(const void* buf, uint32_t length, uint32_t& pos) {
-  pos += write_buf(buf, length - pos);
-
-  return pos == length;
-}
 
 }
 

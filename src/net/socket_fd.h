@@ -43,9 +43,6 @@ namespace torrent {
 
 class SocketAddress;
 
-// By default only allow sockets streams of type AF_INET for the
-// moment.
-
 class SocketFd {
 public:
   SocketFd() : m_fd(-1) {}
@@ -61,7 +58,8 @@ public:
 
   int                 get_error() const;
 
-  bool                open();
+  bool                open_stream();
+  bool                open_datagram();
   void                close();
 
   void                clear()                                 { m_fd = -1; }
@@ -71,6 +69,9 @@ public:
 
   bool                listen(int size);
   SocketFd            accept(SocketAddress* sa);
+
+//   unsigned int        get_read_queue_size() const;
+//   unsigned int        get_write_queue_size() const;
 
 private:
   int                 m_fd;

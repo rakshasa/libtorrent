@@ -47,7 +47,7 @@ SocketFd
 SocketManager::open(const SocketAddress& sa, const SocketAddress& b) {
   SocketFd fd;
 
-  if (m_size >= m_max || !fd.open())
+  if (m_size >= m_max || !fd.open_stream())
     return SocketFd();
 
   if (!fd.set_nonblock() ||

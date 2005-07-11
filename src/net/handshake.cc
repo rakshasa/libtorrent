@@ -45,10 +45,11 @@
 namespace torrent {
 
 Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
-  SocketBase(fd),
   m_manager(m),
   m_buf(new char[256 + 48]),
   m_pos(0) {
+
+  set_fd(fd);
 
   m_taskTimeout.set_iterator(taskScheduler.end());
   m_taskTimeout.set_slot(sigc::mem_fun(*this, &Handshake::send_failed));

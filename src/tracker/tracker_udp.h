@@ -37,12 +37,14 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_UDP_H
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
+#include "net/socket_address.h"
+#include "net/socket_datagram.h"
 #include "utils/task.h"
 #include "tracker_base.h"
 
 namespace torrent {
 
-class TrackerUdp : public TrackerBase {
+class TrackerUdp : public SocketDatagram, public TrackerBase {
 public:
   TrackerUdp(TrackerInfo* info, const std::string& url);
   ~TrackerUdp();
@@ -56,8 +58,23 @@ public:
 
   virtual void        close();
 
+  virtual void        read();
+  virtual void        write();
+  virtual void        except();
+
 private:
   void                receive_failed(const std::string& msg);
+
+  bool                parse_url();
+
+  SocketAddress       m_connectAddress;
+  SocketAddress       m_bindAddress;
+
+  char*               m_readBuffer;
+  int                 m_readLength;
+  
+  char*               m_writeBuffer;
+  int                 m_writeLength;
 
   TaskItem            m_taskDelay;
 };

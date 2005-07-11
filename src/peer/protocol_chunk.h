@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-class SocketBase;
+class SocketStream;
 
 // TODO: Consider making this a template class that takes a functor.
 class ProtocolChunk {
@@ -63,13 +63,13 @@ public:
   const ChunkPtr&     get_chunk() const                                 { return m_chunk; }
   void                set_chunk(const Storage::Chunk& c)                { m_chunk = c; }
 
-  uint32_t            read(SocketBase* sock, uint32_t maxBytes);
-  uint32_t            write(SocketBase* sock, uint32_t maxBytes);
+  uint32_t            read(SocketStream* sock, uint32_t maxBytes);
+  uint32_t            write(SocketStream* sock, uint32_t maxBytes);
 
 private:
   // Returns true if we read 'length' bytes or finished the chunk part.
-  inline bool         read_part(SocketBase* sock, ChunkPart c, uint32_t& left);
-  inline bool         write_part(SocketBase* sock, ChunkPart c, uint32_t& left);
+  inline bool         read_part(SocketStream* sock, ChunkPart c, uint32_t& left);
+  inline bool         write_part(SocketStream* sock, ChunkPart c, uint32_t& left);
 
   ChunkPart           chunk_part();
   uint32_t            chunk_offset(ChunkPart c);

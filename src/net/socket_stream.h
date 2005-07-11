@@ -34,60 +34,36 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_NET_SOCKET_STREAM_H
+#define LIBTORRENT_NET_SOCKET_STREAM_H
 
-#include <numeric>
-#include <netdb.h>
-#include <arpa/inet.h>
-
-#include "torrent/exceptions.h"
-#include "socket_address.h"
+#include "socket_base.h"
 
 namespace torrent {
 
-bool
-SocketAddress::set_hostname(const std::string& hostname) {
-  hostent* he = gethostbyname(hostname.c_str());
+class SocketStream : public SocketBase {
+public:
+  unsigned int        read_buf(void* buf, unsigned int length);
+  unsigned int        write_buf(const void* buf, unsigned int length);
 
-  if (he == NULL)
-    return false;
+  bool                read_buffer(void* buf, uint32_t length, uint32_t& pos);
+  bool                write_buffer(const void* buf, uint32_t length, uint32_t& pos);
+};
 
-  std::memcpy(&m_sockaddr.sin_addr, he->h_addr_list[0], sizeof(in_addr));
+inline bool
+SocketStream::read_buffer(void* buf, uint32_t length, uint32_t& pos) {
+  pos += read_buf(buf, length - pos);
 
-  return true;
+  return pos == length;
 }
 
-uint16_t
-SocketAddress::get_port() const {
-  return ntohs(m_sockaddr.sin_port);
+inline bool
+SocketStream::write_buffer(const void* buf, uint32_t length, uint32_t& pos) {
+  pos += write_buf(buf, length - pos);
+
+  return pos == length;
 }
 
-void
-SocketAddress::set_port(uint16_t port) {
-  m_sockaddr.sin_port = htons(port);
 }
 
-std::string
-SocketAddress::get_address() const {
-  return inet_ntoa(m_sockaddr.sin_addr);
-}
-
-bool
-SocketAddress::set_address(const std::string& addr) {
-  if (!addr.empty()) {
-    return inet_aton(addr.c_str(), &m_sockaddr.sin_addr);
-
-  } else {
-    m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    return true;
-  }
-}
-
-bool
-SocketAddress::create(const std::string& addr, uint16_t port) {
-  m_sockaddr.sin_port = htons(port);
-  
-  return set_address(addr);
-}  
-
-}
+#endif
