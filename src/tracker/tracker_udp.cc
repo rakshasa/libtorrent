@@ -158,12 +158,12 @@ TrackerUdp::read() {
 
   int s = receive(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
 
-  if (s < 0)
-    m_slotLog("UDP read() got error " + std::string(std::strerror(get_errno())));
-  else if (s >= 4)
-    m_slotLog("UDP read() got message from " + sa.get_address());
-  else
-    m_slotLog("UDP read() got zero or less than 4");
+//   if (s < 0)
+//     m_slotLog("UDP read() got error " + std::string(std::strerror(get_errno())));
+//   else if (s >= 4)
+//     m_slotLog("UDP read() got message from " + sa.get_address());
+//   else
+//     m_slotLog("UDP read() got zero or less than 4");
 
   if (s < 4)
     return;
@@ -179,7 +179,7 @@ TrackerUdp::read() {
     if (m_action != 0 || !process_connect_output())
       return;
 
-    m_slotLog("UDP read() received connect action.");
+//     m_slotLog("UDP read() received connect action.");
 
     prepare_announce_input();
 
@@ -194,18 +194,18 @@ TrackerUdp::read() {
     if (m_action != 1 || !process_announce_output())
       return;
 
-    m_slotLog("UDP read() received announce action.");
+//     m_slotLog("UDP read() received announce action.");
     return close();
 
   case 3:
     if (!process_error_output())
       return;
 
-    m_slotLog("UDP read() received error action.");
+//     m_slotLog("UDP read() received error action.");
     return;
 
   default:
-    m_slotLog("UDP read() received unknown action.");
+//     m_slotLog("UDP read() received unknown action.");
     return;
   };
 }
@@ -217,17 +217,17 @@ TrackerUdp::write() {
 
   int s = send(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
 
-  if (s != m_writeBuffer->size_end())
-    m_slotLog("UDP write failed");
-  else
-    m_slotLog("UDP write \"" + _string_to_hex(std::string((char*)m_writeBuffer->begin(), m_writeBuffer->size_end())));
+//   if (s != m_writeBuffer->size_end())
+//     m_slotLog("UDP write failed");
+//   else
+//     m_slotLog("UDP write \"" + _string_to_hex(std::string((char*)m_writeBuffer->begin(), m_writeBuffer->size_end())));
 
   pollManager.write_set().erase(this);
 }
 
 void
 TrackerUdp::except() {
-  m_slotLog("UDP except() called");
+  m_slotLog("TrackerUdp::except() called");
 }
 
 bool
