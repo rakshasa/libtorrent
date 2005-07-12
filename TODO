@@ -1,5 +1,8 @@
 NEXT RELEASE:
 
+Test out if you can do post-increment in ProtocolBuffer, and add '_'
+to the function names.
+
 Swap emit and close order in TrackerHttp?
 
 Use pointer to PeerList.

@@ -272,7 +272,7 @@ Download::set_tracker_timeout(uint64_t v, bool force) {
 }
 
 void
-Download::set_tracker_numwant(int16_t n) {
+Download::set_tracker_numwant(int32_t n) {
   m_ptr->get_main().get_tracker().get_info().set_numwant(n);
 }
 

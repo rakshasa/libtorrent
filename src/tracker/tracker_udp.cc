@@ -65,11 +65,11 @@ TrackerUdp::TrackerUdp(TrackerInfo* info, const std::string& url) :
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
 
-  m_taskDelay.set_iterator(taskScheduler.end());
+  m_taskTimeout.set_iterator(taskScheduler.end());
+  m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerUdp::receive_timeout));
 }
 
 TrackerUdp::~TrackerUdp() {
-  taskScheduler.erase(&m_taskDelay);
   close();
 }
   
@@ -85,7 +85,7 @@ TrackerUdp::send_state(TrackerInfo::State state,
 		       uint64_t left) {
   close();
 
-  return receive_failed("UDP tracker support not yet implemented");
+  //return receive_failed("UDP tracker support not enabled");
 
   if (!parse_url())
     return receive_failed("Could not parse UDP hostname or port");
@@ -99,8 +99,17 @@ TrackerUdp::send_state(TrackerInfo::State state,
   m_readBuffer = new ReadBuffer;
   m_writeBuffer = new WriteBuffer;
 
+  m_sendState = state;
+  m_sendDown = down;
+  m_sendUp = up;
+  m_sendLeft = left;
+
   prepare_connect_input();
 
+  taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_info->get_udp_timeout() * 1000000);
+  m_tries = m_info->get_udp_tries();
+
+  pollManager.read_set().insert(this);
   pollManager.write_set().insert(this);
   pollManager.except_set().insert(this);
 }
@@ -115,6 +124,8 @@ TrackerUdp::close() {
 
   m_readBuffer = NULL;
   m_writeBuffer = NULL;
+
+  taskScheduler.erase(&m_taskTimeout);
 
   pollManager.read_set().erase(this);
   pollManager.write_set().erase(this);
@@ -131,6 +142,17 @@ TrackerUdp::receive_failed(const std::string& msg) {
 }
 
 void
+TrackerUdp::receive_timeout() {
+  if (--m_tries == 0) {
+    receive_failed("Unable to connect to UDP tracker.");
+  } else {
+    m_slotLog("Unable to connect to UDP tracker, trying again.");
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_info->get_udp_timeout() * 1000000);
+    pollManager.write_set().insert(this);
+  }
+}
+
+void
 TrackerUdp::read() {
   SocketAddress sa;
 
@@ -138,16 +160,54 @@ TrackerUdp::read() {
 
   if (s < 0)
     m_slotLog("UDP read() got error " + std::string(std::strerror(get_errno())));
-  else if (s > 0)
+  else if (s >= 4)
     m_slotLog("UDP read() got message from " + sa.get_address());
   else
-    m_slotLog("UDP read() got zero");
+    m_slotLog("UDP read() got zero or less than 4");
+
+  if (s < 4)
+    return;
 
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
 
-  //m_connectAddress = sa;
-  //pollManager.write_set().insert(this);
+  // Make sure sa is from the source we expected?
+
+  // Do something with the content here.
+  switch (m_readBuffer->read32()) {
+  case 0:
+    if (m_action != 0 || !process_connect_output())
+      return;
+
+    m_slotLog("UDP read() received connect action.");
+
+    prepare_announce_input();
+
+    taskScheduler.erase(&m_taskTimeout);
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_info->get_udp_timeout() * 1000000);
+
+    m_tries = m_info->get_udp_tries();
+    pollManager.write_set().insert(this);
+    return;
+
+  case 1:
+    if (m_action != 1 || !process_announce_output())
+      return;
+
+    m_slotLog("UDP read() received announce action.");
+    return close();
+
+  case 3:
+    if (!process_error_output())
+      return;
+
+    m_slotLog("UDP read() received error action.");
+    return;
+
+  default:
+    m_slotLog("UDP read() received unknown action.");
+    return;
+  };
 }
 
 void
@@ -162,9 +222,7 @@ TrackerUdp::write() {
   else
     m_slotLog("UDP write \"" + _string_to_hex(std::string((char*)m_writeBuffer->begin(), m_writeBuffer->size_end())));
 
-  m_writeBuffer->prepare_end();
   pollManager.write_set().erase(this);
-  pollManager.read_set().insert(this); // Propably insert into read set immidiately.
 }
 
 void
@@ -190,13 +248,90 @@ TrackerUdp::parse_url() {
 
 void
 TrackerUdp::prepare_connect_input() {
-  // Fill structure.
   m_writeBuffer->reset_position();
   m_writeBuffer->write64(m_connectionId = magic_connection_id);
   m_writeBuffer->write32(m_action = 0);
   m_writeBuffer->write32(m_transactionId = random());
 
   m_writeBuffer->prepare_end();
+}
+
+void
+TrackerUdp::prepare_announce_input() {
+  m_writeBuffer->reset_position();
+
+  m_writeBuffer->write64(m_connectionId);
+  m_writeBuffer->write32(m_action = 1);
+  m_writeBuffer->write32(m_transactionId = random());
+
+  m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
+  m_writeBuffer->write_range(m_info->get_me()->get_id().begin(), m_info->get_me()->get_id().end());
+
+  m_writeBuffer->write64(m_sendDown);
+  m_writeBuffer->write64(m_sendLeft);
+  m_writeBuffer->write64(m_sendUp);
+  m_writeBuffer->write32(m_sendState);
+
+  m_writeBuffer->write32(0); // Set IP address if available.
+  m_writeBuffer->write32(0xfefefefe); // Set the key.
+  m_writeBuffer->write32(m_info->get_numwant());
+  m_writeBuffer->write_16(m_info->get_me()->get_port());
+
+  m_writeBuffer->prepare_end();
+
+  if (m_writeBuffer->size_end() != 98)
+    throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
+}
+
+bool
+TrackerUdp::process_connect_output() {
+  if (m_readBuffer->size_end() < 16 ||
+      m_readBuffer->read32() != m_transactionId)
+    return false;
+
+  m_connectionId = m_readBuffer->read64();
+
+  return true;
+}
+
+bool
+TrackerUdp::process_announce_output() {
+  if (m_readBuffer->size_end() < 20 ||
+      m_readBuffer->read32() != m_transactionId)
+    return false;
+
+  m_slotSetInterval(m_readBuffer->read32());
+
+  uint32_t leechers = m_readBuffer->read32();
+  uint32_t seeders = m_readBuffer->read32();
+
+  PeerList plist;
+
+  while (m_readBuffer->position() + 6 <= m_readBuffer->end()) {
+    // Hmm... consider representing ip addresses as SocketAddress
+    // internally. This is just... bad...
+    std::stringstream buf;
+
+    buf << (int)m_readBuffer->read8() << '.'
+	<< (int)m_readBuffer->read8() << '.'
+	<< (int)m_readBuffer->read8() << '.'
+	<< (int)m_readBuffer->read8();
+
+    plist.push_back(PeerInfo("", buf.str(), m_readBuffer->read_16()));
+  }
+
+  m_slotSuccess(plist);
+  return true;
+}
+  
+bool
+TrackerUdp::process_error_output() {
+  if (m_readBuffer->size_end() < 8 ||
+      m_readBuffer->read32() != m_transactionId)
+    return false;
+
+  receive_failed("Received error message: " + std::string(m_readBuffer->position(), m_readBuffer->end()));
+  return true;
 }
 
 }

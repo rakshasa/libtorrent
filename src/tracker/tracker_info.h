@@ -48,9 +48,9 @@ class TrackerInfo {
 public:
   enum State {
     NONE,
+    COMPLETED,
     STARTED,
-    STOPPED,
-    COMPLETED
+    STOPPED
   };
 
   TrackerInfo() : m_compact(true), m_numwant(-1), m_me(NULL) {}
@@ -62,20 +62,23 @@ public:
   void               set_key(const std::string& key)   { m_key = key; }
 
   bool               get_compact()                     { return m_compact; }
-  int16_t            get_numwant()                     { return m_numwant; }
+  int32_t            get_numwant()                     { return m_numwant; }
 
   void               set_compact(bool c)               { m_compact = c; }
-  void               set_numwant(int16_t n)            { m_numwant = n; }
+  void               set_numwant(int32_t n)            { m_numwant = n; }
   
   const PeerInfo*    get_me()                          { return m_me; }
   void               set_me(const PeerInfo* me)        { m_me = me; }
+
+  uint32_t           get_udp_timeout() const           { return 30; }
+  uint32_t           get_udp_tries() const             { return 2; }
 
 private:
   std::string        m_hash;
   std::string        m_key;
 
   bool               m_compact;
-  int16_t            m_numwant;
+  int32_t            m_numwant;
 
   const PeerInfo*    m_me;
 };

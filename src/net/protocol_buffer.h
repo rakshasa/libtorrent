@@ -52,6 +52,7 @@ public:
   typedef uint16_t    size_type;
   typedef size_type   difference_type;
 
+  void                reset()                                 { m_position = m_end = begin(); }
   void                reset_position()                        { m_position = m_buffer; }
   void                move_position(size_type v)              { m_position += v; }
 
@@ -60,12 +61,19 @@ public:
 
   uint8_t             read8();
   uint8_t             peek8();
+  uint16_t            read_16();
   uint32_t            read32();
   uint32_t            peek32();
+  uint64_t            read64();
+  uint64_t            peek64();
 
   void                write8(uint8_t v);
+  void                write_16(uint16_t v);
   void                write32(uint32_t v);
   void                write64(uint64_t v);
+
+  template <typename In>
+  void                write_range(In first, In last);
 
   iterator            begin()                                 { return m_buffer; }
   iterator            position()                              { return m_position; }
@@ -96,6 +104,15 @@ ProtocolBuffer<tmpl_size>::peek8() {
 }
 
 template <uint16_t tmpl_size>
+inline uint16_t
+ProtocolBuffer<tmpl_size>::read_16() {
+  uint16_t t = ntohs(*(uint16_t*)m_position);
+  m_position += sizeof(uint16_t);
+
+  return t;
+}
+
+template <uint16_t tmpl_size>
 inline uint32_t
 ProtocolBuffer<tmpl_size>::read32() {
   uint32_t t = ntohl(*(uint32_t*)m_position);
@@ -111,9 +128,41 @@ ProtocolBuffer<tmpl_size>::peek32() {
 }
 
 template <uint16_t tmpl_size>
+inline uint64_t
+ProtocolBuffer<tmpl_size>::read64() {
+  uint64_t t = 0;
+
+  for (iterator last = m_position + sizeof(uint64_t); m_position != last; ++m_position)
+    t = (t << 8) + *m_position;
+
+  return t;
+}
+
+template <uint16_t tmpl_size>
+inline uint64_t
+ProtocolBuffer<tmpl_size>::peek64() {
+  uint64_t t = 0;
+
+  for (iterator itr = m_position, last = m_position + sizeof(uint64_t); itr != last; ++itr)
+    t = (t << 8) + *itr;
+
+  return t;
+}
+
+template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write8(uint8_t v) {
   *(m_position++) = v;
+
+  if (m_position > m_buffer + tmpl_size)
+    throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
+}
+
+template <uint16_t tmpl_size>
+inline void
+ProtocolBuffer<tmpl_size>::write_16(uint16_t v) {
+  *(uint16_t*)m_position = htons(v);
+  m_position += sizeof(uint16_t);
 
   if (m_position > m_buffer + tmpl_size)
     throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
@@ -149,6 +198,17 @@ ProtocolBuffer<tmpl_size>::write64(uint64_t v) {
     *(--itr) = v;
 
   m_position += sizeof(uint64_t);
+
+  if (m_position > m_buffer + tmpl_size)
+    throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
+}
+
+template <uint16_t tmpl_size>
+template <typename In>
+void
+ProtocolBuffer<tmpl_size>::write_range(In first, In last) {
+  for ( ; first != last; ++m_position, ++first)
+    *m_position = *first;
 
   if (m_position > m_buffer + tmpl_size)
     throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");

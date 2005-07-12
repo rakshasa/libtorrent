@@ -70,13 +70,24 @@ public:
 
 private:
   void                receive_failed(const std::string& msg);
+  void                receive_timeout();
 
   bool                parse_url();
 
   void                prepare_connect_input();
+  void                prepare_announce_input();
+
+  bool                process_connect_output();
+  bool                process_announce_output();
+  bool                process_error_output();
 
   SocketAddress       m_connectAddress;
   SocketAddress       m_bindAddress;
+
+  TrackerInfo::State  m_sendState;
+  uint64_t            m_sendUp;
+  uint64_t            m_sendDown;
+  uint64_t            m_sendLeft;
 
   uint32_t            m_action;
   uint64_t            m_connectionId;
@@ -85,7 +96,9 @@ private:
   ReadBuffer*         m_readBuffer;
   WriteBuffer*        m_writeBuffer;
 
-  TaskItem            m_taskDelay;
+  uint32_t            m_tries;
+
+  TaskItem            m_taskTimeout;
 };
 
 }

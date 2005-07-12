@@ -137,7 +137,7 @@ public:
   void                 set_uploads_max(uint32_t v);
 
   void                 set_tracker_timeout(uint64_t v, bool force = false);
-  void                 set_tracker_numwant(int16_t n);
+  void                 set_tracker_numwant(int32_t n);
 
   // Access the trackers in the torrent.
   Tracker              get_tracker(uint32_t index);
