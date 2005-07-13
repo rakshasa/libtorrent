@@ -1,14 +1,16 @@
 NEXT RELEASE:
 
-Test out if you can do post-increment in ProtocolBuffer, and add '_'
-to the function names.
+Enable sending the client ip for UDP trackers.
+
+Add failure if no trackers were connected to in a cycle.
+
+Update displaying of trackers, add key for disabling/enabling them.
+
+Add a way of retriveing the current tracker?
+
+Clean up the settings code by moving the validation to the apply'er.
 
 Swap emit and close order in TrackerHttp?
-
-Use pointer to PeerList.
-
-Add enums to torrent::Tracker to allow the client to check whetever it
-is UDP or HTTP tracker.
 
 Add filter for ip address, and peer id. These must be seperate as ip
 happens before handshake, but peer id is done after handshake or

@@ -37,18 +37,32 @@
 #include "config.h"
 
 #include "tracker/tracker_http.h"
-
 #include "tracker.h"
 
 namespace torrent {
 
+bool
+Tracker::is_enabled() const {
+  return m_tracker.second->is_enabled();
+}
+
+void
+Tracker::enable(bool state) {
+  m_tracker.second->enable(state);
+}
+
+Tracker::Type
+Tracker::get_type() const {
+  return static_cast<Type>(m_tracker.second->get_type());
+}
+
 const std::string&
-Tracker::get_url() {
+Tracker::get_url() const {
   return m_tracker.second->get_url();
 }
 
 const std::string&
-Tracker::get_tracker_id() {
+Tracker::get_tracker_id() const {
   return m_tracker.second->get_tracker_id();
 }
 

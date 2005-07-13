@@ -124,36 +124,35 @@ TrackerControl::is_busy() const {
 
 void
 TrackerControl::send_state(TrackerInfo::State s) {
-  if (m_list.empty()) {
-    m_signalFailed.emit("No valid trackers found");
-    return;
-  }
+//   if (!m_list.has_enabled()) {
+//     m_signalFailed.emit("No enabled trackers found");
+//     return;
+//   }
 
-  if ((m_state == TrackerInfo::STOPPED && s == TrackerInfo::STOPPED) || m_itr == m_list.end())
+  if ((m_state == TrackerInfo::STOPPED && s == TrackerInfo::STOPPED)) //??? || m_itr == m_list.end())
     return;
 
   m_tries = -1;
   m_state = s;
   m_timerMinInterval = 0;
 
+  taskScheduler.erase(&m_taskTimeout);
+
   // Reset the target tracker since we're doing a new request.
   cancel();
   query_current();
-
-  taskScheduler.erase(&m_taskTimeout);
 }
 
 void
 TrackerControl::cancel() {
-  if (m_itr == m_list.end())
-    return;
+  if (m_itr != m_list.end())
+    m_itr->second->close();
 
-  m_itr->second->close();
   m_itr = m_list.begin();
 }
 
 void
-TrackerControl::receive_done(const PeerList& l) {
+TrackerControl::receive_done(const PeerList* l) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
@@ -174,8 +173,10 @@ TrackerControl::receive_failed(const std::string& msg) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
-  if (++m_itr == m_list.end())
-    m_itr = m_list.begin();
+  if (m_itr == m_list.end())
+    throw internal_error("TrackerControl::receive_failed(...) called but m_itr is invalid");
+
+  m_itr++;
 
   if (m_state != TrackerInfo::STOPPED)
     taskScheduler.insert(&m_taskTimeout, Timer::cache() + 20 * 1000000);
@@ -196,10 +197,12 @@ TrackerControl::receive_set_min_interval(int v) {
 
 void
 TrackerControl::query_current() {
-  if (m_itr == m_list.end())
-    throw internal_error("TrackerControl tried to send with an invalid m_itr");
+  m_itr = m_list.find_enabled(m_itr != m_list.end() ? m_itr : m_list.begin());
 
-  m_itr->second->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
+  if (m_itr != m_list.end())
+    m_itr->second->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
+  else
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 10 * 1000000);
 }
 
 }

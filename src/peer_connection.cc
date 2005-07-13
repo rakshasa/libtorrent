@@ -173,7 +173,7 @@ void PeerConnection::read() {
       return;
 
     m_read->get_buffer().reset_position();
-    m_read->set_length(m_read->get_buffer().peek32());
+    m_read->set_length(m_read->get_buffer().peek_32());
 
     m_read->get_buffer().set_end(1);
 
@@ -204,7 +204,7 @@ void PeerConnection::read() {
 
     m_read->get_buffer().reset_position();
 
-    switch (m_read->get_buffer().peek8()) {
+    switch (m_read->get_buffer().peek_8()) {
     case ProtocolBase::REQUEST:
     case ProtocolBase::CANCEL:
       if (m_read->get_length() != 13)
@@ -249,7 +249,7 @@ void PeerConnection::read() {
       goto evil_goto_read;
 
     default:
-      if (m_read->get_buffer().peek8() > ProtocolBase::CANCEL)
+      if (m_read->get_buffer().peek_8() > ProtocolBase::CANCEL)
 	throw communication_error("Received unknown protocol command");
 
       // Handle 1 byte long messages here.
@@ -262,7 +262,7 @@ void PeerConnection::read() {
     // Keep the command byte in the buffer.
     m_read->set_state(ProtocolRead::MSG);
     // Read here so the next writes are at the right position.
-    m_read->set_last_command((ProtocolBase::Protocol)m_read->get_buffer().read8());
+    m_read->set_last_command((ProtocolBase::Protocol)m_read->get_buffer().read_8());
 
   case ProtocolRead::MSG:
     if (m_read->get_buffer().remaining() && !read_remaining())
@@ -270,8 +270,8 @@ void PeerConnection::read() {
 
     m_read->get_buffer().reset_position();
 
-    if (m_read->get_buffer().peek8() == ProtocolBase::PIECE) {
-      m_read->get_buffer().read8();
+    if (m_read->get_buffer().peek_8() == ProtocolBase::PIECE) {
+      m_read->get_buffer().read_8();
       insert_read_throttle();
       receive_piece_header(m_read->read_piece());
 
@@ -509,7 +509,7 @@ void PeerConnection::except() {
 }
 
 void PeerConnection::parseReadBuf() {
-  ProtocolBase::Protocol curCmd = (ProtocolBase::Protocol)m_read->get_buffer().read8();
+  ProtocolBase::Protocol curCmd = (ProtocolBase::Protocol)m_read->get_buffer().read_8();
 
   switch (curCmd) {
   case ProtocolBase::CHOKE:
@@ -572,7 +572,7 @@ void PeerConnection::parseReadBuf() {
     return;
 
   case ProtocolBase::HAVE:
-    receive_have(m_read->get_buffer().read32());
+    receive_have(m_read->get_buffer().read_32());
     return;
 
   default:

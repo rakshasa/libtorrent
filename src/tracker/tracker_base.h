@@ -49,15 +49,24 @@ namespace torrent {
 class TrackerBase {
 public:
   typedef std::list<PeerInfo>                PeerList;
-  typedef sigc::slot1<void, const PeerList&> SlotPeerList;
+  typedef sigc::slot1<void, const PeerList*> SlotPeerList;
   typedef sigc::slot1<void, std::string>     SlotString;
   typedef sigc::slot1<void, int>             SlotInt;
 
+  typedef enum {
+    TRACKER_NONE,
+    TRACKER_HTTP,
+    TRACKER_UDP
+  } Type;
+
   TrackerBase(TrackerInfo* info, const std::string& url) :
-    m_info(info), m_url(url) {}
+    m_enabled(true), m_info(info), m_url(url) {}
   virtual ~TrackerBase() {}
 
   virtual bool        is_busy() const = 0;
+  bool                is_enabled() const                    { return m_enabled; }
+
+  void                enable(bool state)                    { m_enabled = state; }
 
   virtual void        send_state(TrackerInfo::State state,
 				 uint64_t down,
@@ -67,6 +76,7 @@ public:
   virtual void        close() = 0;
 
   TrackerInfo*        get_info()                            { return m_info; }
+  virtual Type        get_type() const = 0;
 
   const std::string&  get_url()                             { return m_url; }
   void                set_url(const std::string& url)       { m_url = url; }
@@ -83,6 +93,8 @@ public:
 protected:
   TrackerBase(const TrackerBase& t);
   void operator = (const TrackerBase& t);
+
+  bool                m_enabled;
 
   TrackerInfo*        m_info;
   std::string         m_url;

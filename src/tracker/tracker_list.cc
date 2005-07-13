@@ -40,10 +40,17 @@
 
 #include "torrent/exceptions.h"
 
-#include "tracker_http.h"
+#include "tracker_base.h"
 #include "tracker_list.h"
 
 namespace torrent {
+
+bool
+TrackerList::has_enabled() const {
+  return std::find_if(begin(), end(),
+		      rak::on(rak::mem_ptr_ref(&value_type::second), std::mem_fun(&TrackerBase::is_enabled)))
+    != end();
+}
 
 void
 TrackerList::randomize() {
@@ -80,6 +87,14 @@ TrackerList::promote(iterator itr) {
   value_type tmp = *beg;
   *beg = *itr;
   *itr = tmp;
+}
+
+TrackerList::iterator
+TrackerList::find_enabled(iterator itr) {
+  while (itr != end() && !itr->second->is_enabled())
+    ++itr;
+
+  return itr;
 }
 
 TrackerList::iterator

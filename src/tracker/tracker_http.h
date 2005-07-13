@@ -61,6 +61,8 @@ public:
 
   virtual void        close();
 
+  virtual Type        get_type() const;
+
 private:
   void                receive_done();
   void                receive_failed(std::string msg);

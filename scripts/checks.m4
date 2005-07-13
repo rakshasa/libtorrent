@@ -36,13 +36,13 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL], [
   # first, deal with the user option : set places to be 'search' or the prefix
   AC_ARG_WITH(openssl,
     [  --with-openssl=PATH     Find the OpenSSL header and library in
-                      `PATH/include' and `PATH/lib'. If PATH is of the
-                      form `HEADER:LIB', then search for header files in
-                      HEADER, and the library in LIB.  If you omit the
-                      option completely, the configure script will
-                      search for OpenSSL in a number of standard
-                      places.
-    ], [
+                          `PATH/include' and `PATH/lib'. If PATH is of the
+                          form `HEADER:LIB', then search for header files in
+                          HEADER, and the library in LIB.  If you omit the
+                          option completely, the configure script will
+                          search for OpenSSL in a number of standard
+                          places.],
+    [
       if test "$withval" = "yes"; then
 	PKG_CHECK_MODULES(OPENSSL, openssl,
 	                  CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";

@@ -49,14 +49,25 @@ class Tracker {
 public:
   typedef std::pair<int, TrackerBase*> value_type;
 
+  typedef enum {
+    TRACKER_NONE,
+    TRACKER_HTTP,
+    TRACKER_UDP
+  } Type;
+
   Tracker()             : m_tracker(value_type(0, NULL)) {}
   Tracker(value_type v) : m_tracker(v) {}
   
-  uint32_t            get_group()         { return m_tracker.first; }
-  const std::string&  get_url();
+  bool                is_enabled() const;
+
+  void                enable(bool state);
+
+  uint32_t            get_group() const { return m_tracker.first; }
+  Type                get_type() const;
+  const std::string&  get_url() const;
 
   // The "tracker id" string returned by the tracker.
-  const std::string&  get_tracker_id();
+  const std::string&  get_tracker_id() const;
 
 private:
   value_type          m_tracker;

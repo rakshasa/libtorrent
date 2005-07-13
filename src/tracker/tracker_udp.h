@@ -64,6 +64,8 @@ public:
 
   virtual void        close();
 
+  virtual Type        get_type() const;
+
   virtual void        read();
   virtual void        write();
   virtual void        except();

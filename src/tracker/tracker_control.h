@@ -64,7 +64,7 @@ public:
 
   typedef sigc::slot0<uint64_t>                   SlotStat;
   typedef sigc::signal1<void, std::istream*>      SignalDump;
-  typedef sigc::signal1<void, const PeerList&>    SignalPeerList;
+  typedef sigc::signal1<void, const PeerList*>    SignalPeerList;
   typedef sigc::signal1<void, const std::string&> SignalString;
 
   TrackerControl(const std::string& hash, const std::string& key);
@@ -98,7 +98,7 @@ private:
   TrackerControl(const TrackerControl& t);
   void                  operator = (const TrackerControl& t);
 
-  void                  receive_done(const PeerList& l);
+  void                  receive_done(const PeerList* l);
   void                  receive_failed(const std::string& msg);
 
   void                  receive_set_interval(int v);

@@ -150,6 +150,11 @@ TrackerHttp::close() {
   m_data = NULL;
 }
 
+TrackerHttp::Type
+TrackerHttp::get_type() const {
+  return TRACKER_HTTP;
+}
+
 void
 TrackerHttp::escape_string(const std::string& src, std::ostream& stream) {
   // TODO: Correct would be to save the state.
@@ -197,19 +202,19 @@ TrackerHttp::receive_done() {
   if (b.has_key("tracker id") && b["tracker id"].is_string())
     m_trackerId = b["tracker id"].as_string();
 
-  PeerList l;
+  PeerList plist;
 
   try {
     if (b["peers"].is_string())
-      parse_peers_compact(l, b["peers"].as_string());
+      parse_peers_compact(plist, b["peers"].as_string());
     else
-      parse_peers_normal(l, b["peers"].as_list());
+      parse_peers_normal(plist, b["peers"].as_list());
 
   } catch (bencode_error& e) {
     return receive_failed(e.what());
   }
 
-  m_slotSuccess(l);
+  m_slotSuccess(&plist);
   close();
 }
 

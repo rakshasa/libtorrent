@@ -135,6 +135,11 @@ TrackerUdp::close() {
   m_fd.clear();
 }
 
+TrackerUdp::Type
+TrackerUdp::get_type() const {
+  return TRACKER_UDP;
+}
+
 void
 TrackerUdp::receive_failed(const std::string& msg) {
   close();
@@ -174,7 +179,7 @@ TrackerUdp::read() {
   // Make sure sa is from the source we expected?
 
   // Do something with the content here.
-  switch (m_readBuffer->read32()) {
+  switch (m_readBuffer->read_32()) {
   case 0:
     if (m_action != 0 || !process_connect_output())
       return;
@@ -253,9 +258,9 @@ TrackerUdp::parse_url() {
 void
 TrackerUdp::prepare_connect_input() {
   m_writeBuffer->reset_position();
-  m_writeBuffer->write64(m_connectionId = magic_connection_id);
-  m_writeBuffer->write32(m_action = 0);
-  m_writeBuffer->write32(m_transactionId = random());
+  m_writeBuffer->write_64(m_connectionId = magic_connection_id);
+  m_writeBuffer->write_32(m_action = 0);
+  m_writeBuffer->write_32(m_transactionId = random());
 
   m_writeBuffer->prepare_end();
 }
@@ -264,21 +269,21 @@ void
 TrackerUdp::prepare_announce_input() {
   m_writeBuffer->reset_position();
 
-  m_writeBuffer->write64(m_connectionId);
-  m_writeBuffer->write32(m_action = 1);
-  m_writeBuffer->write32(m_transactionId = random());
+  m_writeBuffer->write_64(m_connectionId);
+  m_writeBuffer->write_32(m_action = 1);
+  m_writeBuffer->write_32(m_transactionId = random());
 
   m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
   m_writeBuffer->write_range(m_info->get_me()->get_id().begin(), m_info->get_me()->get_id().end());
 
-  m_writeBuffer->write64(m_sendDown);
-  m_writeBuffer->write64(m_sendLeft);
-  m_writeBuffer->write64(m_sendUp);
-  m_writeBuffer->write32(m_sendState);
+  m_writeBuffer->write_64(m_sendDown);
+  m_writeBuffer->write_64(m_sendLeft);
+  m_writeBuffer->write_64(m_sendUp);
+  m_writeBuffer->write_32(m_sendState);
 
-  m_writeBuffer->write32(0); // Set IP address if available.
-  m_writeBuffer->write32(0xfefefefe); // Set the key.
-  m_writeBuffer->write32(m_info->get_numwant());
+  m_writeBuffer->write_32(0); // Set IP address if available.
+  m_writeBuffer->write_32(0xfefefefe); // Set the key.
+  m_writeBuffer->write_32(m_info->get_numwant());
   m_writeBuffer->write_16(m_info->get_me()->get_port());
 
   m_writeBuffer->prepare_end();
@@ -290,10 +295,10 @@ TrackerUdp::prepare_announce_input() {
 bool
 TrackerUdp::process_connect_output() {
   if (m_readBuffer->size_end() < 16 ||
-      m_readBuffer->read32() != m_transactionId)
+      m_readBuffer->read_32() != m_transactionId)
     return false;
 
-  m_connectionId = m_readBuffer->read64();
+  m_connectionId = m_readBuffer->read_64();
 
   return true;
 }
@@ -301,13 +306,13 @@ TrackerUdp::process_connect_output() {
 bool
 TrackerUdp::process_announce_output() {
   if (m_readBuffer->size_end() < 20 ||
-      m_readBuffer->read32() != m_transactionId)
+      m_readBuffer->read_32() != m_transactionId)
     return false;
 
-  m_slotSetInterval(m_readBuffer->read32());
+  m_slotSetInterval(m_readBuffer->read_32());
 
-  m_readBuffer->read32(); // leechers
-  m_readBuffer->read32(); // seeders
+  m_readBuffer->read_32(); // leechers
+  m_readBuffer->read_32(); // seeders
 
   PeerList plist;
 
@@ -316,22 +321,22 @@ TrackerUdp::process_announce_output() {
     // internally. This is just... bad...
     std::stringstream buf;
 
-    buf << (int)m_readBuffer->read8() << '.'
-	<< (int)m_readBuffer->read8() << '.'
-	<< (int)m_readBuffer->read8() << '.'
-	<< (int)m_readBuffer->read8();
+    buf << (int)m_readBuffer->read_8() << '.'
+	<< (int)m_readBuffer->read_8() << '.'
+	<< (int)m_readBuffer->read_8() << '.'
+	<< (int)m_readBuffer->read_8();
 
     plist.push_back(PeerInfo("", buf.str(), m_readBuffer->read_16()));
   }
 
-  m_slotSuccess(plist);
+  m_slotSuccess(&plist);
   return true;
 }
   
 bool
 TrackerUdp::process_error_output() {
   if (m_readBuffer->size_end() < 8 ||
-      m_readBuffer->read32() != m_transactionId)
+      m_readBuffer->read_32() != m_transactionId)
     return false;
 
   receive_failed("Received error message: " + std::string(m_readBuffer->position(), m_readBuffer->end()));

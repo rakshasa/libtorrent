@@ -70,12 +70,15 @@ public:
 
   ~TrackerList() { clear(); }
 
+  bool                has_enabled() const;
+
   void                randomize();
   void                clear();
 
   iterator            insert(int group, TrackerBase* t);
 
   void                promote(iterator itr);
+  iterator            find_enabled(iterator itr);
 
   iterator            begin_group(int group);
   iterator            end_group(int group)                    { return begin_group(group + 1); }

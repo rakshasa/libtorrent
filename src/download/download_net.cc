@@ -152,11 +152,11 @@ DownloadNet::remove_connection(PeerConnectionBase* p) {
 }
 
 void
-DownloadNet::add_available_peers(const PeerList& p) {
+DownloadNet::add_available_peers(const PeerList* p) {
   // Make this a FIFO queue so we keep relatively fresh peers in the
   // deque. Remove old peers first when we overflow.
 
-  for (PeerList::const_iterator itr = p.begin(); itr != p.end(); ++itr) {
+  for (PeerList::const_iterator itr = p->begin(); itr != p->end(); ++itr) {
 
     // Ignore if the peer is invalid or already known.
     if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||

@@ -71,17 +71,17 @@ private:
 
 inline Piece
 ProtocolRead::read_request() {
-  uint32_t index = m_buffer.read32();
-  uint32_t offset = m_buffer.read32();
-  uint32_t length = m_buffer.read32();
+  uint32_t index = m_buffer.read_32();
+  uint32_t offset = m_buffer.read_32();
+  uint32_t length = m_buffer.read_32();
   
   return Piece(index, offset, length);
 }
 
 inline Piece
 ProtocolRead::read_piece() {
-  uint32_t index = m_buffer.read32();
-  uint32_t offset = m_buffer.read32();
+  uint32_t index = m_buffer.read_32();
+  uint32_t offset = m_buffer.read_32();
 
   return Piece(index, offset, get_length() - 9);
 }

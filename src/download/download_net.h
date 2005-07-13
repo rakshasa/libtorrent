@@ -88,7 +88,7 @@ public:
   bool                add_connection(SocketFd fd, const PeerInfo& p);
   void                remove_connection(PeerConnectionBase* p);
 
-  void                add_available_peers(const PeerList& p);
+  void                add_available_peers(const PeerList* p);
 
   void                connect_peers();
 

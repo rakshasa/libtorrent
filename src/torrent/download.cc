@@ -284,6 +284,14 @@ Download::get_tracker(uint32_t index) {
   return m_ptr->get_main().get_tracker().get_list()[index];
 }
 
+const Tracker
+Download::get_tracker(uint32_t index) const {
+  if (index >= m_ptr->get_main().get_tracker().get_list().size())
+    throw client_error("Client called Download::get_tracker(...) with out of range index");
+
+  return m_ptr->get_main().get_tracker().get_list()[index];
+}
+
 uint32_t
 Download::get_tracker_size() const {
   return m_ptr->get_main().get_tracker().get_list().size();
