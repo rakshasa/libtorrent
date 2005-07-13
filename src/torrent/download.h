@@ -85,51 +85,51 @@ public:
   void                 stop();
 
   // Does not check if the download has been removed.
-  bool                 is_valid()  { return m_ptr; }
+  bool                 is_valid() const { return m_ptr; }
 
-  bool                 is_open();
-  bool                 is_active();
-  bool                 is_tracker_busy();
+  bool                 is_open() const;
+  bool                 is_active() const;
+  bool                 is_tracker_busy() const;
 
-  bool                 is_hash_checked();
-  bool                 is_hash_checking();
+  bool                 is_hash_checked() const;
+  bool                 is_hash_checking() const;
 
   // Returns "" if the object is not valid.
-  std::string          get_name();
-  std::string          get_hash();
-  std::string          get_id();
+  std::string          get_name() const;
+  std::string          get_hash() const;
+  std::string          get_id() const;
 
   // Unix epoche, 0 == unknown.
-  uint32_t             get_creation_date();
+  uint32_t             get_creation_date() const;
 
   // Only set the root directory while the torrent is closed.
-  std::string          get_root_dir();
+  std::string          get_root_dir() const;
   void                 set_root_dir(const std::string& dir);
 
-  const Rate&          get_read_rate();
-  const Rate&          get_write_rate();
+  const Rate&          get_read_rate() const;
+  const Rate&          get_write_rate() const;
 
   // Bytes completed.
-  uint64_t             get_bytes_done();
+  uint64_t             get_bytes_done() const;
   // Size of the torrent.
-  uint64_t             get_bytes_total();
+  uint64_t             get_bytes_total() const;
 
-  uint32_t             get_chunks_size();
-  uint32_t             get_chunks_done();
-  uint32_t             get_chunks_total();
+  uint32_t             get_chunks_size() const;
+  uint32_t             get_chunks_done() const;
+  uint32_t             get_chunks_total() const;
 
-  const unsigned char* get_bitfield_data();
-  uint32_t             get_bitfield_size();
+  const unsigned char* get_bitfield_data() const;
+  uint32_t             get_bitfield_size() const;
 
-  uint32_t             get_peers_min();
-  uint32_t             get_peers_max();
-  uint32_t             get_peers_connected();
-  uint32_t             get_peers_not_connected();
+  uint32_t             get_peers_min() const;
+  uint32_t             get_peers_max() const;
+  uint32_t             get_peers_connected() const;
+  uint32_t             get_peers_not_connected() const;
 
-  uint32_t             get_uploads_max();
+  uint32_t             get_uploads_max() const;
   
-  uint64_t             get_tracker_timeout();
-  int16_t              get_tracker_numwant();
+  uint64_t             get_tracker_timeout() const;
+  int16_t              get_tracker_numwant() const;
 
   void                 set_peers_min(uint32_t v);
   void                 set_peers_max(uint32_t v);
@@ -141,7 +141,7 @@ public:
 
   // Access the trackers in the torrent.
   Tracker              get_tracker(uint32_t index);
-  uint32_t             get_tracker_size();
+  uint32_t             get_tracker_size() const;
 
   // Perhaps make tracker_cycle_group part of Tracker?
   void                 tracker_send_completed();
@@ -149,9 +149,9 @@ public:
 
   // Access the files in the torrent.
   Entry                get_entry(uint32_t index);
-  uint32_t             get_entry_size();
+  uint32_t             get_entry_size() const;
 
-  const SeenVector&    get_seen();
+  const SeenVector&    get_seen() const;
 
   void                 set_connection_type(const std::string& name);
 

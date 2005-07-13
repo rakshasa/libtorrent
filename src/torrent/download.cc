@@ -95,53 +95,53 @@ Download::hash_resume_clear() {
 }
 
 bool
-Download::is_open() {
+Download::is_open() const {
   return m_ptr->get_main().is_open();
 }
 
 bool
-Download::is_active() {
+Download::is_active() const {
   return m_ptr->get_main().is_active();
 }
 
 bool
-Download::is_tracker_busy() {
+Download::is_tracker_busy() const {
   return m_ptr->get_main().get_tracker().is_busy();
 }
 
 bool
-Download::is_hash_checked() {
+Download::is_hash_checked() const {
   return m_ptr->get_main().is_checked();
 }
 
 bool
-Download::is_hash_checking() {
+Download::is_hash_checking() const {
   return m_ptr->get_hash_checker().is_checking();
 }
 
 std::string
-Download::get_name() {
+Download::get_name() const {
   return m_ptr ? m_ptr->get_main().get_name() : "";
 }
 
 std::string
-Download::get_hash() {
+Download::get_hash() const {
   return m_ptr ? m_ptr->get_main().get_hash() : "";
 }
 
 std::string
-Download::get_id() {
+Download::get_id() const {
   return m_ptr ? m_ptr->get_main().get_me().get_id() : "";
 }
 
 uint32_t
-Download::get_creation_date() {
+Download::get_creation_date() const {
   return m_ptr->get_bencode().has_key("creation date") && m_ptr->get_bencode()["creation date"].is_value() ?
     m_ptr->get_bencode()["creation date"].as_value() : 0;
 }
 
 std::string
-Download::get_root_dir() {
+Download::get_root_dir() const {
   return m_ptr->get_main().get_state().get_content().get_root_dir();
 }
 
@@ -154,17 +154,17 @@ Download::set_root_dir(const std::string& dir) {
 }
 
 const Rate&
-Download::get_read_rate() {
+Download::get_read_rate() const {
   return m_ptr->get_main().get_net().get_read_rate();
 }
 
 const Rate&
-Download::get_write_rate() {
+Download::get_write_rate() const {
   return m_ptr->get_main().get_net().get_write_rate();
 }
 
 uint64_t
-Download::get_bytes_done() {
+Download::get_bytes_done() const {
   uint64_t a = 0;
  
   Delegator& d = m_ptr->get_main().get_net().get_delegator();
@@ -178,67 +178,67 @@ Download::get_bytes_done() {
 }
 
 uint64_t
-Download::get_bytes_total() {
+Download::get_bytes_total() const {
   return m_ptr->get_main().get_state().get_content().get_size();
 }
 
 uint32_t
-Download::get_chunks_size() {
+Download::get_chunks_size() const {
   return m_ptr->get_main().get_state().get_content().get_storage().get_chunk_size();
 }
 
 uint32_t
-Download::get_chunks_done() {
+Download::get_chunks_done() const {
   return m_ptr->get_main().get_state().get_content().get_chunks_completed();
 }
 
 uint32_t 
-Download::get_chunks_total() {
+Download::get_chunks_total() const {
   return m_ptr->get_main().get_state().get_chunk_total();
 }
 
 const unsigned char*
-Download::get_bitfield_data() {
+Download::get_bitfield_data() const {
   return (unsigned char*)m_ptr->get_main().get_state().get_content().get_bitfield().begin();
 }
 
 uint32_t
-Download::get_bitfield_size() {
+Download::get_bitfield_size() const {
   return m_ptr->get_main().get_state().get_content().get_bitfield().size_bits();
 }
 
 uint32_t
-Download::get_peers_min() {
+Download::get_peers_min() const {
   return m_ptr->get_main().get_state().get_settings().minPeers;
 }
 
 uint32_t
-Download::get_peers_max() {
+Download::get_peers_max() const {
   return m_ptr->get_main().get_state().get_settings().maxPeers;
 }
 
 uint32_t
-Download::get_peers_connected() {
+Download::get_peers_connected() const {
   return m_ptr->get_main().get_net().get_connections().size();
 }
 
 uint32_t
-Download::get_peers_not_connected() {
+Download::get_peers_not_connected() const {
   return m_ptr->get_main().get_net().get_available_peers().size();
 }
 
 uint32_t
-Download::get_uploads_max() {
+Download::get_uploads_max() const {
   return m_ptr->get_main().get_net().get_choke_manager().get_max_unchoked();
 }
   
 uint64_t
-Download::get_tracker_timeout() {
+Download::get_tracker_timeout() const {
   return m_ptr->get_main().get_tracker().get_next_time().usec();
 }
 
 int16_t
-Download::get_tracker_numwant() {
+Download::get_tracker_numwant() const {
   return m_ptr->get_main().get_tracker().get_info().get_numwant();
 }
 
@@ -285,7 +285,7 @@ Download::get_tracker(uint32_t index) {
 }
 
 uint32_t
-Download::get_tracker_size() {
+Download::get_tracker_size() const {
   return m_ptr->get_main().get_tracker().get_list().size();
 }
 
@@ -308,12 +308,12 @@ Download::get_entry(uint32_t index) {
 }
 
 uint32_t
-Download::get_entry_size() {
+Download::get_entry_size() const {
   return m_ptr->get_main().get_state().get_content().get_files().size();
 }
 
 const Download::SeenVector&
-Download::get_seen() {
+Download::get_seen() const {
   return m_ptr->get_main().get_state().get_bitfield_counter().field();
 }
 

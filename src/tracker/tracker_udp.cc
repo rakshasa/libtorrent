@@ -222,6 +222,10 @@ TrackerUdp::write() {
 //   else
 //     m_slotLog("UDP write \"" + _string_to_hex(std::string((char*)m_writeBuffer->begin(), m_writeBuffer->size_end())));
 
+  // TODO: If send failed, retry shortly or do i call receive_failed?
+  if (s != m_writeBuffer->size_end())
+    ;
+
   pollManager.write_set().erase(this);
 }
 
@@ -302,8 +306,8 @@ TrackerUdp::process_announce_output() {
 
   m_slotSetInterval(m_readBuffer->read32());
 
-  uint32_t leechers = m_readBuffer->read32();
-  uint32_t seeders = m_readBuffer->read32();
+  m_readBuffer->read32(); // leechers
+  m_readBuffer->read32(); // seeders
 
   PeerList plist;
 
