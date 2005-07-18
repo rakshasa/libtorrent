@@ -36,8 +36,8 @@
 
 #include "config.h"
 
+#include <iomanip>
 #include <sstream>
-#include <fstream>
 
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
@@ -94,16 +94,15 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   s << "&peer_id=";
   escape_string(m_info->get_me()->get_id(), s);
 
-  if (!m_info->get_key().empty())
-    s << "&key=" << m_info->get_key();
+  s << "&key=" << std::hex << std::setw(8) << m_info->get_key() << std::dec;
 
   if (!m_trackerId.empty()) {
     s << "&trackerid=";
     escape_string(m_trackerId, s);
   }
 
-  if (m_info->get_me()->get_dns().length())
-    s << "&ip=" << m_info->get_me()->get_dns();
+  if (!m_info->get_me()->get_socket_address().is_address_any())
+    s << "&ip=" << m_info->get_me()->get_address();
 
   if (m_info->get_compact())
     s << "&compact=1";
@@ -214,15 +213,15 @@ TrackerHttp::receive_done() {
     return receive_failed(e.what());
   }
 
-  m_slotSuccess(&plist);
   close();
+  m_slotSuccess(&plist);
 }
 
 void
 TrackerHttp::receive_failed(std::string msg) {
   // Does the order matter?
-  m_slotFailed(msg);
   close();
+  m_slotFailed(msg);
 }
 
 PeerInfo
@@ -235,7 +234,7 @@ TrackerHttp::parse_peer(const Bencode& b) {
   for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
     if (itr->first == "ip" &&
 	itr->second.is_string()) {
-      p.set_dns(itr->second.as_string());
+      p.get_socket_address().set_address(itr->second.as_string());
 	    
     } else if (itr->first == "peer id" &&
 	       itr->second.is_string()) {
@@ -243,7 +242,7 @@ TrackerHttp::parse_peer(const Bencode& b) {
 	    
     } else if (itr->first == "port" &&
 	       itr->second.is_value()) {
-      p.set_port(itr->second.as_value());
+      p.get_socket_address().set_port(itr->second.as_value());
     }
   }
 	
@@ -255,7 +254,7 @@ TrackerHttp::parse_peers_normal(PeerList& l, const Bencode::List& b) {
   for (Bencode::List::const_iterator itr = b.begin(); itr != b.end(); ++itr) {
     PeerInfo p = parse_peer(*itr);
 	  
-    if (p.is_valid())
+    if (p.get_socket_address().is_valid())
       l.push_back(p);
   }
 }  
@@ -263,18 +262,14 @@ TrackerHttp::parse_peers_normal(PeerList& l, const Bencode::List& b) {
 void
 TrackerHttp::parse_peers_compact(PeerList& l, const std::string& s) {
   for (std::string::const_iterator itr = s.begin(); itr + 6 <= s.end();) {
+    SocketAddress sa;
 
-    std::stringstream buf;
+    std::copy(itr, itr + sa.sizeof_address(), sa.begin_address());
+    itr += sa.sizeof_address();
+    std::copy(itr, itr + sa.sizeof_port(), sa.begin_port());
+    itr += sa.sizeof_port();
 
-    buf << (int)(unsigned char)*itr++ << '.'
-	<< (int)(unsigned char)*itr++ << '.'
-	<< (int)(unsigned char)*itr++ << '.'
-	<< (int)(unsigned char)*itr++;
-
-    uint16_t port = (unsigned short)((unsigned char)*itr++) << 8;
-    port += (uint16_t)((unsigned char)*itr++);
-
-    l.push_back(PeerInfo("", buf.str(), port));
+    l.push_back(PeerInfo("", sa));
   }
 }
 

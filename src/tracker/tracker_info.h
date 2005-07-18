@@ -53,21 +53,21 @@ public:
     STOPPED
   };
 
-  TrackerInfo() : m_compact(true), m_numwant(-1), m_me(NULL) {}
+  TrackerInfo() : m_key(0), m_compact(true), m_numwant(-1), m_me(NULL) {}
 
-  const std::string& get_hash()                        { return m_hash; }
-  const std::string& get_key()                         { return m_key; }
-
+  const std::string& get_hash() const                  { return m_hash; }
   void               set_hash(const std::string& hash) { m_hash = hash; }
-  void               set_key(const std::string& key)   { m_key = key; }
 
-  bool               get_compact()                     { return m_compact; }
-  int32_t            get_numwant()                     { return m_numwant; }
+  uint32_t           get_key() const                   { return m_key; }
+  void               set_key(uint32_t key)             { m_key = key; }
+
+  bool               get_compact() const               { return m_compact; }
+  int32_t            get_numwant() const               { return m_numwant; }
 
   void               set_compact(bool c)               { m_compact = c; }
   void               set_numwant(int32_t n)            { m_numwant = n; }
   
-  const PeerInfo*    get_me()                          { return m_me; }
+  const PeerInfo*    get_me() const                    { return m_me; }
   void               set_me(const PeerInfo* me)        { m_me = me; }
 
   uint32_t           get_udp_timeout() const           { return 30; }
@@ -75,7 +75,7 @@ public:
 
 private:
   std::string        m_hash;
-  std::string        m_key;
+  uint32_t           m_key;
 
   bool               m_compact;
   int32_t            m_numwant;

@@ -51,6 +51,11 @@ Tracker::enable(bool state) {
   m_tracker.second->enable(state);
 }
 
+bool
+Tracker::is_open() const {
+  return m_tracker.second->is_busy();
+}
+
 Tracker::Type
 Tracker::get_type() const {
   return static_cast<Type>(m_tracker.second->get_type());

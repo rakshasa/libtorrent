@@ -159,15 +159,15 @@ DownloadNet::add_available_peers(const PeerList* p) {
   for (PeerList::const_iterator itr = p->begin(); itr != p->end(); ++itr) {
 
     // Ignore if the peer is invalid or already known.
-    if (itr->get_dns().length() == 0 || itr->get_port() == 0 ||
+    if (!itr->get_socket_address().is_valid() ||
 
 	std::find_if(m_connections.begin(), m_connections.end(),
 		     rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
-			     std::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host_value), *itr)))
+			     rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), *itr)))
 	!= m_connections.end() ||
 
 	std::find_if(m_availablePeers.begin(), m_availablePeers.end(),
-		     std::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host_value), *itr))
+		     rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), *itr))
 	!= m_availablePeers.end() ||
 
 	m_slotHasHandshake(*itr))

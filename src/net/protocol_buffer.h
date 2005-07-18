@@ -67,6 +67,9 @@ public:
   uint64_t            read_64();
   uint64_t            peek_64();
 
+  template <typename Out>
+  void                read_range(Out first, Out last);
+
   void                write_8(uint8_t v)            { *m_position++ = v; validate_position(); }
   void                write_16(uint16_t v);
   void                write_32(uint32_t v);
@@ -138,6 +141,16 @@ inline void
 ProtocolBuffer<tmpl_size>::write_32(uint32_t v) {
   *reinterpret_cast<uint32_t*>(m_position) = htonl(v);
   m_position += sizeof(uint32_t);
+
+  validate_position();
+}
+
+template <uint16_t tmpl_size>
+template <typename Out>
+void
+ProtocolBuffer<tmpl_size>::read_range(Out first, Out last) {
+  for ( ; first != last; ++m_position, ++first)
+    *first = *m_position;
 
   validate_position();
 }

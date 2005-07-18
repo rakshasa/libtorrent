@@ -59,6 +59,7 @@ public:
   Tracker(value_type v) : m_tracker(v) {}
   
   bool                is_enabled() const;
+  bool                is_open() const;
 
   void                enable(bool state);
 

@@ -38,7 +38,6 @@
 
 #include <cerrno>
 #include <stdlib.h>
-#include <sstream>
 #include <sigc++/bind.h>
 
 #include "net/manager.h"
@@ -47,18 +46,6 @@
 #include "tracker_udp.h"
 
 namespace torrent {
-
-std::string
-_string_to_hex(const std::string& src) {
-  std::stringstream stream;
-
-  stream << std::hex << std::uppercase;
-
-  for (std::string::const_iterator itr = src.begin(); itr != src.end(); ++itr)
-    stream << ((unsigned char)*itr >> 4) << ((unsigned char)*itr & 0xf);
-
-  return stream.str();
-}
 
 TrackerUdp::TrackerUdp(TrackerInfo* info, const std::string& url) :
   TrackerBase(info, url),
@@ -92,7 +79,6 @@ TrackerUdp::send_state(TrackerInfo::State state,
 
   if (!m_fd.open_datagram() ||
       !m_fd.set_nonblock() ||
-      //(!m_bindAddress.is_any() && !m_fd.bind(m_bindAddress)))
       !m_fd.bind(m_bindAddress))
     return receive_failed("Could not open UDP socket");
 
@@ -281,8 +267,8 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_64(m_sendUp);
   m_writeBuffer->write_32(m_sendState);
 
-  m_writeBuffer->write_32(0); // Set IP address if available.
-  m_writeBuffer->write_32(0xfefefefe); // Set the key.
+  m_writeBuffer->write_32(m_info->get_me()->get_socket_address().get_addr_in_addr());
+  m_writeBuffer->write_32(m_info->get_key());
   m_writeBuffer->write_32(m_info->get_numwant());
   m_writeBuffer->write_16(m_info->get_me()->get_port());
 
@@ -317,16 +303,12 @@ TrackerUdp::process_announce_output() {
   PeerList plist;
 
   while (m_readBuffer->position() + 6 <= m_readBuffer->end()) {
-    // Hmm... consider representing ip addresses as SocketAddress
-    // internally. This is just... bad...
-    std::stringstream buf;
+    SocketAddress sa;
 
-    buf << (int)m_readBuffer->read_8() << '.'
-	<< (int)m_readBuffer->read_8() << '.'
-	<< (int)m_readBuffer->read_8() << '.'
-	<< (int)m_readBuffer->read_8();
+    m_readBuffer->read_range(sa.begin_address(), sa.end_address());
+    m_readBuffer->read_range(sa.begin_port(), sa.end_port());
 
-    plist.push_back(PeerInfo("", buf.str(), m_readBuffer->read_16()));
+    plist.push_back(PeerInfo("", sa));
   }
 
   m_slotSuccess(&plist);

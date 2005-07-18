@@ -49,8 +49,6 @@ namespace torrent {
 class Bencode;
 class Rate;
 
-typedef std::list<Download> DList;
-
 // Make sure you seed srandom and srand48 if available.
 void                initialize();
 
@@ -71,12 +69,13 @@ void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, i
 
 bool                is_inactive();
 
-const std::string&  get_ip();
-void                set_ip(const std::string& addr);
+// Change the address reported to the tracker.
+const std::string&  get_address();
+void                set_address(const std::string& addr);
 
 // Bind the sockets to a specific network device.
-const std::string&  get_bind();
-void                set_bind(const std::string& addr);
+const std::string&  get_bind_address();
+void                set_bind_address(const std::string& addr);
 
 uint16_t            get_listen_port();
 
@@ -97,7 +96,7 @@ void                set_throttle_interval(uint32_t usec);
 const Rate&         get_read_rate();
 const Rate&         get_write_rate();
 
-std::string         get_version();
+char*               get_version();
 
 // Disk access tuning.
 uint32_t            get_hash_read_ahead();
@@ -120,17 +119,14 @@ void                set_max_open_sockets(uint32_t size);
 Download            download_add(std::istream* s);
 void                download_remove(const std::string& infohash);
 
-// The below API might/might not be cleaned up.
+typedef std::list<Download> DList;
 
-// Add all downloads to dlist. Make sure it's cleared.
-void      download_list(DList& dlist);
+// Add all downloads to dlist. The client is responsible for clearing
+// it before the call.
+void                download_list(DList& dlist);
 
-// Make sure you check that the returned Download is_valid().
-Download  download_find(const std::string& infohash);
-
-// Returns the bencode object, make sure you don't modify stuff you shouldn't
-// touch. Make sure you don't copy the object, since it is very expensive.
-Bencode&  download_bencode(const std::string& infohash);
+// Make sure you check the returned Download's is_valid().
+Download            download_find(const std::string& infohash);
 
 }
 

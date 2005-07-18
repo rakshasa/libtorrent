@@ -54,7 +54,7 @@ typedef std::list<Peer> PList;
 
 class Bencode;
 class Rate;
-struct DownloadWrapper;
+class DownloadWrapper;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
@@ -101,6 +101,9 @@ public:
 
   // Unix epoche, 0 == unknown.
   uint32_t             get_creation_date() const;
+
+  Bencode&             get_bencode();
+  const Bencode&       get_bencode() const;
 
   // Only set the root directory while the torrent is closed.
   std::string          get_root_dir() const;

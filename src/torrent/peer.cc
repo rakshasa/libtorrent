@@ -50,7 +50,7 @@ Peer::get_id() {
 
 std::string
 Peer::get_dns() {
-  return m_ptr->get_peer().get_dns();
+  return m_ptr->get_peer().get_address();
 }
 
 uint16_t

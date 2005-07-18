@@ -54,7 +54,7 @@ HandshakeManager::add_incoming(SocketFd fd, const SocketAddress& sa) {
   if (!socketManager.received(fd, sa).is_valid())
     return;
 
-  m_handshakes.push_back(new HandshakeIncoming(fd, PeerInfo("", sa.get_address(), sa.get_port()), this));
+  m_handshakes.push_back(new HandshakeIncoming(fd, PeerInfo("", sa), this));
   m_size++;
 }
   
@@ -63,10 +63,8 @@ HandshakeManager::add_outgoing(const PeerInfo& p,
 			       const std::string& infoHash,
 			       const std::string& ourId) {
   SocketFd fd;
-  SocketAddress sa;
 
-  if (!sa.create(p.get_dns(), p.get_port()) ||
-      !(fd = socketManager.open(sa, m_bindAddress)).is_valid())
+  if (!(fd = socketManager.open(p.get_socket_address(), m_bindAddress)).is_valid())
     return;
 
   m_handshakes.push_back(new HandshakeOutgoing(fd, this, p, infoHash, ourId));
@@ -91,7 +89,7 @@ bool
 HandshakeManager::has_peer(const PeerInfo& p) {
   return std::find_if(m_handshakes.begin(), m_handshakes.end(),
 		      rak::on(std::mem_fun(&Handshake::get_peer),
-			      std::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host_value), p)))
+			      rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), p)))
     != m_handshakes.end();
 }
 

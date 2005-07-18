@@ -75,8 +75,8 @@ class Torrent {
 public:
   Torrent() {}
 
-  std::string         m_ip;
-  std::string         m_bind;
+  std::string         m_address;
+  std::string         m_bindAddress;
 
   Listen              m_listen;
   HashQueue           m_hashQueue;
@@ -172,7 +172,7 @@ listen_open(uint16_t begin, uint16_t end) {
 
   SocketAddress sa;
 
-  if (!torrent->m_bind.empty() && !sa.set_address(torrent->m_bind))
+  if (!torrent->m_bindAddress.empty() && !sa.set_address(torrent->m_bindAddress))
     throw local_error("Could not parse the ip address to bind");
 
   if (!torrent->m_listen.open(begin, end, sa))
@@ -182,7 +182,7 @@ listen_open(uint16_t begin, uint16_t end) {
 
   for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.end();
        itr != last; ++itr)
-    (*itr)->get_main().set_port(torrent->m_listen.get_port());
+    (*itr)->get_main().get_me().get_socket_address().set_port(torrent->m_listen.get_port());
 
   return true;
 }
@@ -226,36 +226,36 @@ is_inactive() {
 }
 
 const std::string&
-get_ip() {
-  return torrent->m_ip;
+get_address() {
+  return torrent->m_address;
 }
 
 void
-set_ip(const std::string& addr) {
-  if (addr == torrent->m_ip)
+set_address(const std::string& addr) {
+  if (addr == torrent->m_address)
     return;
 
-  torrent->m_ip = addr;
+  torrent->m_address = addr;
 
   for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.begin();
        itr != last; ++itr)
-    (*itr)->get_main().get_me().set_dns(torrent->m_ip);
+    (*itr)->get_main().get_me().get_socket_address().set_address(torrent->m_address);
 }
 
 const std::string&
-get_bind() {
-  return torrent->m_bind;
+get_bind_address() {
+  return torrent->m_bindAddress;
 }
 
 void
-set_bind(const std::string& addr) {
-  if (addr == torrent->m_bind)
+set_bind_address(const std::string& addr) {
+  if (addr == torrent->m_bindAddress)
     return;
 
   if (torrent->m_listen.is_open())
     throw client_error("torrent::set_bind(...) called, but listening socket is open");
 
-  torrent->m_bind = addr;
+  torrent->m_bindAddress = addr;
 }
 
 uint16_t
@@ -319,7 +319,7 @@ get_write_rate() {
   return throttleWrite.get_rate_slow();
 }
 
-std::string
+char*
 get_version() {
   return VERSION;
 }
@@ -398,8 +398,8 @@ download_add(std::istream* s) {
     // Make it configurable whetever we throw or return .end()?
     throw input_error("Could not create download, failed to parse the bencoded data");
   
-  d->get_main().get_me().set_dns(torrent->m_ip);
-  d->get_main().get_me().set_port(torrent->m_listen.get_port());
+  d->get_main().get_me().get_socket_address().set_address(torrent->m_address);
+  d->get_main().get_me().get_socket_address().set_port(torrent->m_listen.get_port());
 
   parse_main(d->get_bencode(), d->get_main());
   parse_info(d->get_bencode()["info"], d->get_main().get_state().get_content());
@@ -440,16 +440,6 @@ download_list(DList& dlist) {
 Download
 download_find(const std::string& infohash) {
   return *torrent->m_downloadManager.find(infohash);
-}
-
-Bencode&
-download_bencode(const std::string& infohash) {
-  DownloadManager::iterator itr = torrent->m_downloadManager.find(infohash);
-
-  if (itr == torrent->m_downloadManager.end())
-    throw client_error("Tried to call download_bencode(id) with non-existing download");
-
-  return (*itr)->get_bencode();
 }
 
 }

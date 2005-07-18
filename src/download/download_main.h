@@ -75,8 +75,6 @@ public:
 
   PeerInfo&           get_me()                                 { return m_me; }
 
-  void                set_port(uint16_t p)                     { m_me.set_port(p); }
-
   DownloadState&      get_state()                              { return m_state; }
   DownloadNet&        get_net()                                { return m_net; }
   TrackerControl&     get_tracker()                            { return *m_tracker; }

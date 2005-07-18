@@ -1,34 +1,26 @@
 NEXT RELEASE:
 
-Enable sending the client ip for UDP trackers.
+XFS reserve and autoconf check.
+
+* Test socket manager by setting a low open max and connecting to a
+busy torrent.
+
+The hash checking options should be per byte, so they work for all sized
+chunks.
 
 Add failure if no trackers were connected to in a cycle.
 
 Update displaying of trackers, add key for disabling/enabling them.
 
-Add a way of retriveing the current tracker?
-
 Clean up the settings code by moving the validation to the apply'er.
 
-Swap emit and close order in TrackerHttp?
+Use typedef for port?
 
 Add filter for ip address, and peer id. These must be seperate as ip
 happens before handshake, but peer id is done after handshake or
 before connecting.
 
-The hash checking options should be per byte, so they work for all sized
-chunks.
-
-Use typedef for port?
-
-* Finish cleaning up the API before the next release, it will then be
-"frozen", kinda.
-
-* Disable UDP tracker with a return or trigger receive_error in
-send_state.
-
-* Test socket manager by setting a low open max and connecting to a
-busy torrent.
+Move utilities into rak/.
 
 Make the tries adjuster into a setting.
 
@@ -81,7 +73,7 @@ Don't allow many handshakes from the same ip?
 Copy modifications of timer.h to rtorrent. Wait... first from rtorrent to libtorrent.
 
 Create a std::list'ish thing that contains the current downloads, and
-expose it to the client. Will make DownloadManager 'redundant'.
+expose it to the client. Will make DownloadManager 'redundant'. Don't fix?
 
 
 

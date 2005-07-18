@@ -49,7 +49,7 @@ namespace torrent {
 
 // m_tries is -1 if last connection wasn't successfull or we haven't tried yet.
 
-TrackerControl::TrackerControl(const std::string& hash, const std::string& key) :
+TrackerControl::TrackerControl(const std::string& hash, uint32_t key) :
   m_tries(-1),
   m_interval(1800),
   m_state(TrackerInfo::STOPPED) {

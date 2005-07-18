@@ -140,6 +140,16 @@ Download::get_creation_date() const {
     m_ptr->get_bencode()["creation date"].as_value() : 0;
 }
 
+Bencode&
+Download::get_bencode() {
+  return m_ptr->get_bencode();
+}
+
+const Bencode&
+Download::get_bencode() const {
+  return m_ptr->get_bencode();
+}
+
 std::string
 Download::get_root_dir() const {
   return m_ptr->get_main().get_state().get_content().get_root_dir();

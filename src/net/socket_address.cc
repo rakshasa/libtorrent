@@ -74,13 +74,17 @@ SocketAddress::get_address() const {
 
 bool
 SocketAddress::set_address(const std::string& addr) {
-  if (!addr.empty()) {
-    return inet_aton(addr.c_str(), &m_sockaddr.sin_addr);
+  if (addr.empty()) {
+    m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    return true;
+
+  } else if (inet_aton(addr.c_str(), &m_sockaddr.sin_addr)) {
+    return true;
 
   } else {
     m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    return true;
-  }
+    return false;
+  }    
 }
 
 bool

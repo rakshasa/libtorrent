@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <stdlib.h>
 #include <sigc++/signal.h>
 #include <sigc++/hide.h>
 #include <sigc++/bind.h>
@@ -72,7 +73,7 @@ DownloadMain::setup_net() {
 
 void
 DownloadMain::setup_tracker() {
-  m_tracker = new TrackerControl(m_hash, random_string_hex(8));
+  m_tracker = new TrackerControl(m_hash, random());
   m_tracker->get_info().set_me(&m_me);
 
   m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_read_rate(), &Rate::total));
@@ -82,8 +83,8 @@ DownloadMain::setup_tracker() {
 
 void
 DownloadMain::setup_start() {
-  m_connectionChunkPassed       = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
-  m_connectionChunkFailed       = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
+  m_connectionChunkPassed = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
+  m_connectionChunkFailed = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
   m_connectionAddAvailablePeers = m_tracker->signal_peers().connect(sigc::mem_fun(m_net, &DownloadNet::add_available_peers));
 
   taskScheduler.insert(&m_taskChokeCycle, Timer::cache() + m_state.get_settings().chokeCycle * 2);

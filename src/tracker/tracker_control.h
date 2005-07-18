@@ -67,7 +67,7 @@ public:
   typedef sigc::signal1<void, const PeerList*>    SignalPeerList;
   typedef sigc::signal1<void, const std::string&> SignalString;
 
-  TrackerControl(const std::string& hash, const std::string& key);
+  TrackerControl(const std::string& hash, uint32_t key);
 
   void                  send_state(TrackerInfo::State s);
   void                  cancel();
