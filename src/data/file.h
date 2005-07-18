@@ -60,6 +60,10 @@ class File {
 
   void                close();
   
+  // Reserve the space on disk if a system call is defined. 'length'
+  // of zero indicates to the end of the file.
+  bool                reserve(off_t offset = 0, off_t length = 0);
+
   bool                is_open() const                                   { return m_fd != -1; }
   bool                is_readable() const                               { return m_prot & MemoryChunk::prot_read; }
   bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }

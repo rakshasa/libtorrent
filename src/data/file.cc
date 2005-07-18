@@ -40,8 +40,12 @@
 #include "file_stat.h"
 #include "torrent/exceptions.h"
 
-#include <unistd.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
+
+#if HAS_XFS == 1
+#include <xfs/libxfs.h>
+#endif
 
 namespace torrent {
 
@@ -91,6 +95,24 @@ File::close() {
   m_fd = -1;
   m_prot = 0;
   m_flags = 0;
+}
+
+// Reserve the space on disk if a system call is defined. 'length'
+// of zero indicates to the end of the file.
+bool
+File::reserve(off_t offset, off_t length) {
+#if HAS_XFS == 1
+  struct xfs_flock64 flock;
+
+  flock.l_whence = SEEK_SET;
+  flock.l_start = offset;
+  flock.l_len = length;
+
+  if (ioctl(m_fd, XFS_IOC_RESVSP64, &flock) >= 0)
+    return true;
+#endif
+
+  return false;
 }
 
 off_t

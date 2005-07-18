@@ -60,3 +60,37 @@ AC_DEFUN([TORRENT_CHECK_OPENSSL], [
       AC_MSG_ERROR(Could not find openssl's crypto library, try --with-openssl=PATH))
     ])
 ])
+
+
+AC_DEFUN([TORRENT_CHECK_XFS], [
+  AC_MSG_CHECKING(for XFS support)
+
+  AC_COMPILE_IFELSE(
+    [[#include <xfs/libxfs.h>
+      #include <sys/ioctl.h>
+      int main() {
+        struct xfs_flock64 l;
+        ioctl(0, XFS_IOC_RESVSP64, &l);
+        return 0;
+      }
+    ]],
+    [
+      AC_DEFINE(HAS_XFS, 1, XFS filesystem supported.)
+      AC_MSG_RESULT(yes)
+    ], [
+      AC_MSG_RESULT(no)
+    ])
+])
+
+
+AC_DEFUN([TORRENT_WITH_XFS], [
+  AC_ARG_WITH(xfs,
+    [  --without-xfs           Do not check for XFS filesystem support],
+    [
+      if test "$withval" = "yes"; then
+        TORRENT_CHECK_XFS        
+      fi
+    ], [
+        TORRENT_CHECK_XFS        
+    ])
+])

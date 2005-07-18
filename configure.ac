@@ -19,8 +19,9 @@ AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 
-sinclude(scripts/checks.m4)
-sinclude(scripts/common.m4)
+dnl sinclude(scripts/checks.m4)
+dnl sinclude(scripts/common.m4)
+sinclude(scripts)
 
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
@@ -39,6 +40,7 @@ AC_C_BIGENDIAN(
     AC_MSG_ERROR([Could not determine endianness])
 )
 
+TORRENT_CHECK_XFS
 TORRENT_CHECK_OPENSSL
 AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
 

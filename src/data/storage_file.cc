@@ -80,10 +80,13 @@ StorageFile::resize_file() const {
 
   if (m_size == m_meta->get_file().get_size())
     return true;
-  else
-    return
-      m_meta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) &&
-      m_meta->get_file().set_size(m_size);
+
+  if (!m_meta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
+      !m_meta->get_file().set_size(m_size))
+    return false;
+  
+  m_meta->get_file().reserve();
+  return true;
 }
 
 }
