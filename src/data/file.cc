@@ -40,6 +40,7 @@
 #include "file_stat.h"
 #include "torrent/exceptions.h"
 
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
@@ -112,7 +113,11 @@ File::reserve(off_t offset, off_t length) {
     return true;
 #endif
 
-  return false;
+#if HAS_POSIX_FALLOCATE == 1
+  return !posix_fallocate(m_fd, offset, length);
+#else
+  return true;
+#endif
 }
 
 off_t

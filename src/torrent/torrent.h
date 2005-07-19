@@ -59,6 +59,10 @@ void                cleanup();
 bool                listen_open(uint16_t begin, uint16_t end);
 void                listen_close();  
 
+// mark and work might change when the current polling method is
+// changed into a more modular one that will support both select and
+// epoll.
+
 // Set the file descriptors we want to pool for R/W/E events. All
 // fd_set's must be valid pointers.
 void                mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);

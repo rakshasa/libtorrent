@@ -83,14 +83,44 @@ AC_DEFUN([TORRENT_CHECK_XFS], [
 ])
 
 
-AC_DEFUN([TORRENT_WITH_XFS], [
+AC_DEFUN([TORRENT_WITHOUT_XFS], [
   AC_ARG_WITH(xfs,
     [  --without-xfs           Do not check for XFS filesystem support],
     [
       if test "$withval" = "yes"; then
-        TORRENT_CHECK_XFS        
+        TORRENT_CHECK_XFS
       fi
     ], [
-        TORRENT_CHECK_XFS        
+        TORRENT_CHECK_XFS
+    ])
+])
+
+
+AC_DEFUN([TORRENT_CHECK_POSIX_FALLOCATE], [
+  AC_MSG_CHECKING(for posix_fallocate)
+
+  AC_COMPILE_IFELSE(
+    [[#include <fcntl.h>
+      int main() {
+	posix_fallocate(0, 0, 0);
+        return 0;
+      }
+    ]],
+    [
+      AC_DEFINE(HAS_POSIX_FALLOCATE, 1, posix_fallocate supported.)
+      AC_MSG_RESULT(yes)
+    ], [
+      AC_MSG_RESULT(no)
+    ])
+])
+
+
+AC_DEFUN([TORRENT_WITH_POSIX_FALLOCATE], [
+  AC_ARG_WITH(posix-fallocate,
+    [  --with-fallocate        Check for posix_fallocate],
+    [
+      if test "$withval" = "no"; then
+        TORRENT_CHECK_POSIX_FALLOCATE
+      fi
     ])
 ])

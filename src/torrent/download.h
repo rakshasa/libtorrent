@@ -170,10 +170,6 @@ public:
   void                 peer_list(PList& pList);
   Peer                 peer_find(const std::string& id);
 
-  // Note on signals: If you bind it to a class member function, make sure the
-  // class does not get copied as the binding only points to the original
-  // memory location.
-
   typedef sigc::slot0<void>                     SlotVoid;
   typedef sigc::slot1<void, const std::string&> SlotString;
 

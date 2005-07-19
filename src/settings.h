@@ -42,21 +42,6 @@
 
 namespace torrent {
 
-class Settings {
- public:
-  static std::string httpName;
-  static std::string peerName;
-
-  static int filesCheckWait;
-  static int filesMode;
-  static int dirMode;
-
-  static int rateStart;
-  static int rateWindow;
-  static int rateQuick;
-  static int rateSample;
-};
-
 class DownloadSettings {
  public:
   DownloadSettings();
@@ -81,26 +66,6 @@ class DownloadSettings {
 
  private:
   static DownloadSettings* m_global;
-};
-
-class ThrottleSettings { 
- public:
-  ThrottleSettings();
-
-  int constantRate;
-
-  static int minPeriod;
-  static int wakeupPoint;
-
-  // If greater than 'starvePoint' bytes was left then limit the amount
-  // allocated.
-  static int starvePoint;
-
-  // Each turn give spent + starveBuffer bytes if not starved.
-  static int starveBuffer;
-
-  // Min size of chunks to send out.
-  static int minChunkMask;
 };
 
 }

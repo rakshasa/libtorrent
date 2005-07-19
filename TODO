@@ -1,9 +1,15 @@
 NEXT RELEASE:
 
-XFS reserve and autoconf check.
+Figure out the ElementStringList already activated bug.
 
 * Test socket manager by setting a low open max and connecting to a
 busy torrent.
+
+Add a setting for controlling whetever allocate is called at torrent
+creation, chunk creation or not at all.
+
+XFS reserve should check for error return code, if it fails due to
+lack of diskspace it should return false, otherwise true.
 
 The hash checking options should be per byte, so they work for all sized
 chunks.

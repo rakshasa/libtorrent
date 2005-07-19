@@ -405,7 +405,7 @@ download_add(std::istream* s) {
   parse_info(d->get_bencode()["info"], d->get_main().get_state().get_content());
 
   d->initialize(bencode_hash(d->get_bencode()["info"]),
-		Settings::peerName + random_string(20 - Settings::peerName.size()));
+		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()));
 
   d->set_handshake_manager(&torrent->m_handshakeManager);
   d->set_hash_queue(&torrent->m_hashQueue);

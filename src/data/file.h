@@ -55,7 +55,6 @@ class File {
   File() : m_fd(-1), m_prot(0), m_flags(0) {}
   ~File();
 
-  // TODO: use proper mode type.
   bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
 
   void                close();
