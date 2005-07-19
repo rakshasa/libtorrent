@@ -19,9 +19,9 @@ AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 
-dnl sinclude(scripts/checks.m4)
-dnl sinclude(scripts/common.m4)
-sinclude(scripts)
+sinclude(scripts/checks.m4)
+sinclude(scripts/common.m4)
+dnl sinclude(scripts)
 
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
