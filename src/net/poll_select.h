@@ -41,45 +41,40 @@
 #include <sys/types.h>
 
 #include "socket_base.h"
+#include "socket_set.h"
+#include "torrent/poll.h"
 
 namespace torrent {
 
-template <typename _Operation>
-struct poll_check_t {
-  poll_check_t(fd_set* s, _Operation op) : m_set(s), m_op(op) {}
+class PollSelect : public Poll {
+public:
+  PollSelect();
+  virtual ~PollSelect();
 
-  void operator () (SocketBase* s) {
-//     if (s == NULL)
-//       throw internal_error("poll_mark: s == NULL");
+  void                set_open_max(int s);
 
-    if (FD_ISSET(s->get_fd().get_fd(), m_set))
-      m_op(s);
-  }
+  int                 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
+  void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
 
-  fd_set*    m_set;
-  _Operation m_op;
-};
+  virtual void        open(Event* event);
+  virtual void        close(Event* event);
 
-template <typename _Operation>
-inline poll_check_t<_Operation>
-poll_check(fd_set* s, _Operation op) {
-  return poll_check_t<_Operation>(s, op);
-}
+  virtual bool        in_read(Event* event);
+  virtual bool        in_write(Event* event);
+  virtual bool        in_error(Event* event);
 
-struct poll_mark {
-  poll_mark(fd_set* s, int* m) : m_max(m), m_set(s) {}
+  virtual void        insert_read(Event* event);
+  virtual void        insert_write(Event* event);
+  virtual void        insert_error(Event* event);
 
-  void operator () (SocketBase* s) {
-//     if (s == NULL)
-//       throw internal_error("poll_mark: s == NULL");
+  virtual void        remove_read(Event* event);
+  virtual void        remove_write(Event* event);
+  virtual void        remove_error(Event* event);
 
-    *m_max = std::max(*m_max, s->get_fd().get_fd());
-
-    FD_SET(s->get_fd().get_fd(), m_set);
-  }
-
-  int*    m_max;
-  fd_set* m_set;
+private:
+  SocketSet           m_readSet;
+  SocketSet           m_writeSet;
+  SocketSet           m_exceptSet;
 };
 
 }

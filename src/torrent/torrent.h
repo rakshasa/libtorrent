@@ -47,6 +47,7 @@
 namespace torrent {
 
 class Bencode;
+class Poll;
 class Rate;
 
 // Make sure you seed srandom and srand48 if available.

@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_NET_SOCKET_MANAGER_H
 #define LIBTORRENT_NET_SOCKET_MANAGER_H
 
+#include <inttypes.h>
 #include "socket_fd.h"
 
 namespace torrent {

@@ -68,9 +68,9 @@ Handshake::~Handshake() {
 
 void
 Handshake::clear_poll() {
-  pollManager.read_set().erase(this);
-  pollManager.write_set().erase(this);
-  pollManager.except_set().erase(this);
+  pollCustom->remove_read(this);
+  pollCustom->remove_write(this);
+  pollCustom->remove_error(this);
 }
 
 // TODO: Move the management of the socketfd to handshake_manager?

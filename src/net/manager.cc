@@ -40,7 +40,7 @@
 
 namespace torrent {
 
-PollManager pollManager;
+Poll* pollCustom = NULL;
 SocketManager socketManager;
 
 }

@@ -1,5 +1,15 @@
 NEXT RELEASE:
 
+Move PollSelect to src/torrent, and make it a part of the interface?
+Sounds good actually...
+
+Add a check to torrent::cleanup() that checks if Poll* is empty?
+Rather, check in ~PollSelect.
+
+Hook up Poll::open/close.
+
+PollSelect::set_max_sockets should be initialized in the ctor.
+
 Figure out the ElementStringList already activated bug.
 
 * Test socket manager by setting a low open max and connecting to a

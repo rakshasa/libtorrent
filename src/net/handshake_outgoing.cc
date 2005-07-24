@@ -58,8 +58,8 @@ HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
   m_id = ourId;
   m_local = infoHash;
 
-  pollManager.write_set().insert(this);
-  pollManager.except_set().insert(this);
+  pollCustom->insert_write(this);
+  pollCustom->insert_error(this);
  
   m_buf[0] = 19;
   std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
@@ -119,8 +119,8 @@ HandshakeOutgoing::event_write() {
     if (!write_buffer(m_buf + m_pos, 68, m_pos))
       return;
  
-    pollManager.write_set().erase(this);
-    pollManager.read_set().insert(this);
+    pollCustom->remove_write(this);
+    pollCustom->insert_read(this);
  
     m_pos = 0;
     m_state = READ_HEADER1;

@@ -41,7 +41,7 @@
 #include <list>
 
 #include "torrent/exceptions.h"
-#include "socket_base.h"
+#include "torrent/event.h"
 
 namespace torrent {
 
@@ -49,11 +49,13 @@ namespace torrent {
 // instances. 'm_table' is a vector with the size 'openMax', each
 // element of which points to an active instance in the Base vector.
 
-class SocketSet : private std::vector<SocketBase*> {
+// Propably should rename to EventSet...
+
+class SocketSet : private std::vector<Event*> {
 public:
-  typedef uint32_t                 size_type;
-  typedef std::vector<SocketBase*> Base;
-  typedef std::vector<size_type>   Table;
+  typedef uint32_t               size_type;
+  typedef std::vector<Event*>    Base;
+  typedef std::vector<size_type> Table;
 
   static const size_type npos = static_cast<size_type>(-1);
 
@@ -69,11 +71,11 @@ public:
   using Base::rbegin;
   using Base::rend;
 
-  bool                has(SocketBase* s) const               { return _index(s) != npos; }
+  bool                has(Event* s) const                    { return _index(s) != npos; }
 
-  iterator            find(SocketBase* s);
-  void                insert(SocketBase* s);
-  void                erase(SocketBase* s);
+  iterator            find(Event* s);
+  void                insert(Event* s);
+  void                erase(Event* s);
 
   // Remove all erased elements from the container.
   void                prepare();
@@ -81,8 +83,8 @@ public:
   void                reserve(size_t openMax)                { m_table.resize(openMax, npos); Base::reserve(openMax); }
 
 private:
-  size_type&          _index(SocketBase* s)                  { return m_table[s->get_fd().get_fd()]; }
-  const size_type&    _index(SocketBase* s) const            { return m_table[s->get_fd().get_fd()]; }
+  size_type&          _index(Event* s)                       { return m_table[s->get_file_desc()]; }
+  const size_type&    _index(Event* s) const                 { return m_table[s->get_file_desc()]; }
 
   inline void         _replace_with_last(size_type idx);
 
@@ -92,7 +94,7 @@ private:
 };
 
 inline SocketSet::iterator
-SocketSet::find(SocketBase* s) {
+SocketSet::find(Event* s) {
   if (_index(s) == npos)
     return end();
 
@@ -100,8 +102,8 @@ SocketSet::find(SocketBase* s) {
 }
 
 inline void
-SocketSet::insert(SocketBase* s) {
-  if (static_cast<size_type>(s->get_fd().get_fd()) >= m_table.size())
+SocketSet::insert(Event* s) {
+  if (static_cast<size_type>(s->get_file_desc()) >= m_table.size())
     throw internal_error("Tried to insert an out-of-bounds file descriptor to SocketSet");
 
   if (_index(s) != npos)
@@ -112,8 +114,8 @@ SocketSet::insert(SocketBase* s) {
 }
 
 inline void
-SocketSet::erase(SocketBase* s) {
-  if (static_cast<size_type>(s->get_fd().get_fd()) >= m_table.size())
+SocketSet::erase(Event* s) {
+  if (static_cast<size_type>(s->get_file_desc()) >= m_table.size())
     throw internal_error("Tried to erase an out-of-bounds file descriptor from SocketSet");
 
   size_type idx = _index(s);

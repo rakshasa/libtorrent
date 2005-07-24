@@ -54,15 +54,18 @@ class Poll {
 public:
   virtual ~Poll() {}
 
+  // Add configuration options for doing stuff like setting max open
+  // sockets etc?
+
   // Event::get_fd() is guaranteed to be valid and remain constant
   // from open(...) is called to close(...) returns.
   virtual void        open(Event* event) = 0;
   virtual void        close(Event* event) = 0;
 
   // Functions for checking whetever the Event is listening to r/w/e?
-  virtual void        in_read(Event* event) = 0;
-  virtual void        in_write(Event* event) = 0;
-  virtual void        in_error(Event* event) = 0;
+  virtual bool        in_read(Event* event) = 0;
+  virtual bool        in_write(Event* event) = 0;
+  virtual bool        in_error(Event* event) = 0;
 
   // insert_*/erase_* will never be called on an already
   // inserted/erased file descriptor? Or do we allow this to simplify

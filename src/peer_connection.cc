@@ -82,9 +82,9 @@ PeerConnection::~PeerConnection() {
   taskScheduler.erase(&m_taskSendChoke);
   taskScheduler.erase(&m_taskStall);
 
-  pollManager.read_set().erase(this);
-  pollManager.write_set().erase(this);
-  pollManager.except_set().erase(this);
+  pollCustom->remove_read(this);
+  pollCustom->remove_write(this);
+  pollCustom->remove_error(this);
   
   socketManager.close(get_fd());
   get_fd().clear();
@@ -98,7 +98,7 @@ PeerConnection::set_choke(bool v) {
   m_sendChoked = true;
   m_write->set_choked(v);
   
-  pollManager.write_set().insert(this);
+  pollCustom->insert_write(this);
 }
 
 void
@@ -135,9 +135,9 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   if (m_bitfield.begin() == NULL)
     throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
 
-  pollManager.read_set().insert(this);
-  pollManager.write_set().insert(this);
-  pollManager.except_set().insert(this);
+  pollCustom->insert_read(this);
+  pollCustom->insert_write(this);
+  pollCustom->insert_error(this);
 
   m_write->get_buffer().reset_position();
   m_read->get_buffer().reset_position();
@@ -301,7 +301,7 @@ void PeerConnection::event_read() {
     m_read->set_state(ProtocolRead::IDLE);
     m_state->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
-    pollManager.write_set().insert(this);
+    pollCustom->insert_write(this);
     goto evil_goto_read;
 
   case ProtocolRead::READ_PIECE:
@@ -335,7 +335,7 @@ void PeerConnection::event_read() {
     // TODO: clear m_down.data?
     // TODO: remove throttle if choked? Rarely happens though.
 
-    pollManager.write_set().insert(this);
+    pollCustom->insert_write(this);
 
     goto evil_goto_read;
 
@@ -416,7 +416,7 @@ void PeerConnection::event_write() {
     fillWriteBuf();
 
     if (m_write->get_buffer().size_position() == 0)
-      return pollManager.write_set().erase(this);
+      return pollCustom->remove_write(this);
 
     m_write->set_state(ProtocolWrite::MSG);
     m_write->get_buffer().prepare_end();
@@ -534,7 +534,7 @@ void PeerConnection::parseReadBuf() {
     // We're inserting in read throttle when we receive a piece.
     //insert_read_throttle();
 
-    return pollManager.write_set().insert(this);
+    return pollCustom->insert_write(this);
 
   case ProtocolBase::INTERESTED:
     m_read->set_interested(true);
@@ -562,7 +562,7 @@ void PeerConnection::parseReadBuf() {
   case ProtocolBase::REQUEST:
     if (!m_write->get_choked()) {
       receive_request_piece(m_read->read_request());
-      pollManager.write_set().insert(this);
+      pollCustom->insert_write(this);
     }
 
     return;
@@ -693,7 +693,7 @@ PeerConnection::receive_have_chunk(int32_t index) {
   // TODO: Also send cancel messages!
 
   // TODO: Remove this so we group the have messages with other stuff.
-  pollManager.write_set().insert(this);
+  pollCustom->insert_write(this);
 }
 
 bool
@@ -718,7 +718,7 @@ PeerConnection::receive_request_piece(Piece p) {
   if (itr == m_sendList.end())
     m_sendList.push_back(p);
 
-  pollManager.write_set().insert(this);
+  pollCustom->insert_write(this);
 }
 
 void
@@ -749,7 +749,7 @@ PeerConnection::receive_have(uint32_t index) {
     m_sendInterested = true;
     m_write->set_interested(true);
 
-    pollManager.write_set().insert(this);
+    pollCustom->insert_write(this);
   }
 
   // Make sure m_tryRequest is set even if we were previously
@@ -801,7 +801,7 @@ PeerConnection::task_keep_alive() {
     m_write->get_buffer().prepare_end();
     m_write->set_state(ProtocolWrite::MSG);
 
-    pollManager.write_set().insert(this);
+    pollCustom->insert_write(this);
   }
 
   m_tryRequest = true;
@@ -812,7 +812,7 @@ void
 PeerConnection::task_send_choke() {
   m_sendChoked = true;
 
-  pollManager.write_set().insert(this);
+  pollCustom->insert_write(this);
 }
 
 void

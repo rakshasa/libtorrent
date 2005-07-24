@@ -108,7 +108,7 @@ PeerConnectionBase::write_chunk() {
     throw internal_error("PeerConnectionBase::write_chunk() less-than zero quota");
 
   if (quota < 512) {
-    pollManager.write_set().erase(this);
+    pollCustom->remove_write(this);
     return false;
   }
 
@@ -138,7 +138,7 @@ PeerConnectionBase::read_chunk() {
     throw internal_error("PeerConnectionBase::read_chunk() less-than zero quota");
 
   if (quota < 512) {
-    pollManager.read_set().erase(this);
+    pollCustom->remove_read(this);
     return false;
   }
 
@@ -156,12 +156,12 @@ PeerConnectionBase::read_chunk() {
 
 void
 PeerConnectionBase::receive_throttle_read_activate() {
-  pollManager.read_set().insert(this);
+  pollCustom->insert_read(this);
 }
 
 void
 PeerConnectionBase::receive_throttle_write_activate() {
-  pollManager.write_set().insert(this);
+  pollCustom->insert_write(this);
 }
 
 }

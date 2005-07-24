@@ -36,20 +36,70 @@
 
 #include "config.h"
 
-#include "manager.h"
+#include <unistd.h>
+
+#include "torrent/exceptions.h"
 #include "poll_select.h"
 
 namespace torrent {
 
+template <typename _Operation>
+struct poll_check_t {
+  poll_check_t(fd_set* s, _Operation op) : m_set(s), m_op(op) {}
+
+  void operator () (Event* s) {
+//     if (s == NULL)
+//       throw internal_error("poll_mark: s == NULL");
+
+    if (FD_ISSET(s->get_file_desc(), m_set))
+      m_op(s);
+  }
+
+  fd_set*    m_set;
+  _Operation m_op;
+};
+
+template <typename _Operation>
+inline poll_check_t<_Operation>
+poll_check(fd_set* s, _Operation op) {
+  return poll_check_t<_Operation>(s, op);
+}
+
+struct poll_mark {
+  poll_mark(fd_set* s, int* m) : m_max(m), m_set(s) {}
+
+  void operator () (Event* s) {
+//     if (s == NULL)
+//       throw internal_error("poll_mark: s == NULL");
+
+    *m_max = std::max(*m_max, s->get_file_desc());
+
+    FD_SET(s->get_file_desc(), m_set);
+  }
+
+  int*    m_max;
+  fd_set* m_set;
+};
+
+PollSelect::PollSelect() {
+  set_open_max(sysconf(_SC_OPEN_MAX));
+}
+
+PollSelect::~PollSelect() {
+}
+
 void
-PollManager::set_open_max(int s) {
+PollSelect::set_open_max(int s) {
+  if (s <= 0)
+    throw internal_error("PollSelect::set_open_max(...) received an invalid value");
+
   m_readSet.reserve(s);
   m_writeSet.reserve(s);
   m_exceptSet.reserve(s);
 }
 
 int
-PollManager::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+PollSelect::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   int maxFd = 0;
 
   m_readSet.prepare();
@@ -65,20 +115,77 @@ PollManager::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 }
 
 void
-PollManager::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
+PollSelect::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
   m_exceptSet.prepare();
   std::for_each(m_exceptSet.begin(), m_exceptSet.end(),
-		poll_check(exceptSet, std::mem_fun(&SocketBase::event_error)));
+		poll_check(exceptSet, std::mem_fun(&Event::event_error)));
 
   m_readSet.prepare();
   std::for_each(m_readSet.begin(), m_readSet.end(),
-		poll_check(readSet, std::mem_fun(&SocketBase::event_read)));
+		poll_check(readSet, std::mem_fun(&Event::event_read)));
 
   m_writeSet.prepare();
   std::for_each(m_writeSet.begin(), m_writeSet.end(),
-		poll_check(writeSet, std::mem_fun(&SocketBase::event_write)));
+		poll_check(writeSet, std::mem_fun(&Event::event_write)));
+}
+
+void
+PollSelect::open(Event* event) {
+  if (event->get_file_desc() < 0)
+    throw internal_error("PollSelect::open(...) called with an invalid file descriptor");
+}
+
+void
+PollSelect::close(Event* event) {
+  if (event->get_file_desc() < 0)
+    throw internal_error("PollSelect::open(...) called with an invalid file descriptor");
+}
+
+bool
+PollSelect::in_read(Event* event) {
+  return m_readSet.find(event) != m_readSet.end();
+}
+
+bool
+PollSelect::in_write(Event* event) {
+  return m_writeSet.find(event) != m_writeSet.end();
+}
+
+bool
+PollSelect::in_error(Event* event) {
+  return m_exceptSet.find(event) != m_exceptSet.end();
+}
+
+void
+PollSelect::insert_read(Event* event) {
+  m_readSet.insert(event);
+}
+
+void
+PollSelect::insert_write(Event* event) {
+  m_writeSet.insert(event);
+}
+
+void
+PollSelect::insert_error(Event* event) {
+  m_exceptSet.insert(event);
+}
+
+void
+PollSelect::remove_read(Event* event) {
+  m_readSet.erase(event);
+}
+
+void
+PollSelect::remove_write(Event* event) {
+  m_writeSet.erase(event);
+}
+
+void
+PollSelect::remove_error(Event* event) {
+  m_exceptSet.erase(event);
 }
 
 }

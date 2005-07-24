@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_UTILS_BITFIELD_EXT_H
 #define LIBTORRENT_UTILS_BITFIELD_EXT_H
 
+#include "torrent/exceptions.h"
 #include "bitfield.h"
 
 // Bitfield with some extra information like bit count.
@@ -45,7 +46,6 @@ namespace torrent {
 
 class BitFieldExt : private BitField {
 public:
-
   using BitField::size_t;
   using BitField::size_bits;
   using BitField::size_bytes;
@@ -67,12 +67,8 @@ public:
     m_count = BitField::count();
   }
 
-  size_t    count() const {
-    return m_count;
-  }
-
+  size_t    count() const    { return m_count; }
   bool      all_zero() const { return m_count == 0; }
-
   bool      all_set() const  { return m_count == size_bits(); }
 
   void      clear() {

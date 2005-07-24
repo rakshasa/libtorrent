@@ -54,6 +54,7 @@
 #include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "net/manager.h"
+#include "net/poll_select.h"
 #include "parse/parse.h"
 #include "peer/peer_factory.h"
 #include "data/file_manager.h"
@@ -142,8 +143,13 @@ initialize() {
   torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
   torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
 
+  if (true) {
+    PollSelect* p = new PollSelect();
+    p->set_open_max(sysconf(_SC_OPEN_MAX));
+    pollCustom = p;
+  }
+
   // By default we reserve 128 fd's for the client.
-  pollManager.set_open_max(sysconf(_SC_OPEN_MAX));
   socketManager.set_max_size(sysconf(_SC_OPEN_MAX) - 256);
   torrent->m_fileManager.set_max_size(128);
 }
@@ -163,6 +169,9 @@ cleanup() {
 
   delete torrent;
   torrent = NULL;
+
+  delete pollCustom;
+  pollCustom = NULL;
 }
 
 bool
@@ -196,7 +205,7 @@ listen_close() {
 // fd_set's must be valid pointers. Returns the highest fd.
 void
 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
-  *maxFd = pollManager.mark(readSet, writeSet, exceptSet);
+  *maxFd = static_cast<PollSelect*>(pollCustom)->mark(readSet, writeSet, exceptSet);
 }
 
 // Do work on the polled file descriptors.
@@ -205,7 +214,7 @@ work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
   Timer::update();
   taskScheduler.execute(Timer::cache());
 
-  pollManager.work(readSet, writeSet, exceptSet, maxFd);
+  static_cast<PollSelect*>(pollCustom)->work(readSet, writeSet, exceptSet, maxFd);
 
   Timer::update();
   taskScheduler.execute(Timer::cache());
@@ -397,7 +406,7 @@ download_add(std::istream* s) {
   d->set_hash_queue(&torrent->m_hashQueue);
   d->set_file_manager(&torrent->m_fileManager);
 
-  // Default PeerConnection factory functios.
+  // Default PeerConnection factory functions.
   d->get_main().get_net().slot_create_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault),
 							    &d->get_main().get_state(),
 							    &d->get_main().get_net()));

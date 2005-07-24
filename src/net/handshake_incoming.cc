@@ -52,8 +52,8 @@ HandshakeIncoming::HandshakeIncoming(SocketFd fd, const PeerInfo& p, HandshakeMa
 
   get_fd().set_nonblock();
 
-  pollManager.read_set().insert(this);
-  pollManager.except_set().insert(this);
+  pollCustom->insert_read(this);
+  pollCustom->insert_error(this);
 }
 
 void
@@ -77,8 +77,8 @@ HandshakeIncoming::event_read() {
     m_pos = 0;
     m_state = WRITE_HEADER;
 
-    pollManager.read_set().erase(this);
-    pollManager.write_set().insert(this);
+    pollCustom->remove_read(this);
+    pollCustom->insert_write(this);
 
     return;
 
@@ -107,8 +107,8 @@ HandshakeIncoming::event_write() {
     if (!write_buffer(m_buf + m_pos, 68, m_pos))
       return;
  
-    pollManager.write_set().erase(this);
-    pollManager.read_set().insert(this);
+    pollCustom->remove_write(this);
+    pollCustom->insert_read(this);
  
     m_pos = 0;
     m_state = READ_HEADER2;

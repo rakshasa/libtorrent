@@ -37,12 +37,12 @@
 #ifndef LIBTORRENT_NET_MANAGER_H
 #define LIBTORRENT_NET_MANAGER_H
 
-#include "poll_manager.h"
+#include "torrent/poll.h"
 #include "socket_manager.h"
 
 namespace torrent {
 
-extern PollManager pollManager;
+extern Poll* pollCustom;
 extern SocketManager socketManager;
 
 }
