@@ -70,15 +70,15 @@ PollManager::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxF
   // not be a problem as any except call should remove it from the m_*Set's.
   m_exceptSet.prepare();
   std::for_each(m_exceptSet.begin(), m_exceptSet.end(),
-		poll_check(exceptSet, std::mem_fun(&SocketBase::except)));
+		poll_check(exceptSet, std::mem_fun(&SocketBase::event_error)));
 
   m_readSet.prepare();
   std::for_each(m_readSet.begin(), m_readSet.end(),
-		poll_check(readSet, std::mem_fun(&SocketBase::read)));
+		poll_check(readSet, std::mem_fun(&SocketBase::event_read)));
 
   m_writeSet.prepare();
   std::for_each(m_writeSet.begin(), m_writeSet.end(),
-		poll_check(writeSet, std::mem_fun(&SocketBase::write)));
+		poll_check(writeSet, std::mem_fun(&SocketBase::event_write)));
 }
 
 }

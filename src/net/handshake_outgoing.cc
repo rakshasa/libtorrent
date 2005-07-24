@@ -69,7 +69,7 @@ HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
 }
   
 void
-HandshakeOutgoing::read() {
+HandshakeOutgoing::event_read() {
   try {
 
   switch (m_state) {
@@ -101,14 +101,14 @@ HandshakeOutgoing::read() {
 }  
 
 void
-HandshakeOutgoing::write() {
+HandshakeOutgoing::event_write() {
   int error;
 
   try {
 
   switch (m_state) {
   case CONNECTING:
-    error = m_fd.get_error();
+    error = get_fd().get_error();
  
     if (error)
       throw connection_error("Could not connect to client");
@@ -137,7 +137,7 @@ HandshakeOutgoing::write() {
 }
 
 void
-HandshakeOutgoing::except() {
+HandshakeOutgoing::event_error() {
   m_manager->receive_failed(this);
 }
 

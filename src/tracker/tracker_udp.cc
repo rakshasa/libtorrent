@@ -62,7 +62,7 @@ TrackerUdp::~TrackerUdp() {
   
 bool
 TrackerUdp::is_busy() const {
-  return m_fd.is_valid();
+  return get_fd().is_valid();
 }
 
 void
@@ -77,9 +77,9 @@ TrackerUdp::send_state(TrackerInfo::State state,
   if (!parse_url())
     return receive_failed("Could not parse UDP hostname or port");
 
-  if (!m_fd.open_datagram() ||
-      !m_fd.set_nonblock() ||
-      !m_fd.bind(m_bindAddress))
+  if (!get_fd().open_datagram() ||
+      !get_fd().set_nonblock() ||
+      !get_fd().bind(m_bindAddress))
     return receive_failed("Could not open UDP socket");
 
   m_readBuffer = new ReadBuffer;
@@ -102,7 +102,7 @@ TrackerUdp::send_state(TrackerInfo::State state,
 
 void
 TrackerUdp::close() {
-  if (!m_fd.is_valid())
+  if (!get_fd().is_valid())
     return;
 
   delete m_readBuffer;
@@ -117,8 +117,8 @@ TrackerUdp::close() {
   pollManager.write_set().erase(this);
   pollManager.except_set().erase(this);
 
-  m_fd.close();
-  m_fd.clear();
+  get_fd().close();
+  get_fd().clear();
 }
 
 TrackerUdp::Type
@@ -144,7 +144,7 @@ TrackerUdp::receive_timeout() {
 }
 
 void
-TrackerUdp::read() {
+TrackerUdp::event_read() {
   SocketAddress sa;
 
   int s = receive(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
@@ -202,7 +202,7 @@ TrackerUdp::read() {
 }
 
 void
-TrackerUdp::write() {
+TrackerUdp::event_write() {
   if (m_writeBuffer->size_end() == 0)
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
@@ -221,7 +221,7 @@ TrackerUdp::write() {
 }
 
 void
-TrackerUdp::except() {
+TrackerUdp::event_error() {
   m_slotLog("TrackerUdp::except() called");
 }
 

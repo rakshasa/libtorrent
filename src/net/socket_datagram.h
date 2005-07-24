@@ -44,6 +44,8 @@ namespace torrent {
 class SocketDatagram : public SocketBase {
 public:
 
+  // TODO: Make two seperate functions depending on whetever sa is
+  // used.
   int                 send(const void* buffer, unsigned int length, SocketAddress* sa = NULL);
   int                 receive(void* buffer, unsigned int length, SocketAddress* sa = NULL);
 

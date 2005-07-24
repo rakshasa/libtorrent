@@ -56,13 +56,13 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
   if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range");
 
-  if (!m_fd.open_stream() || !m_fd.set_nonblock())
+  if (!get_fd().open_stream() || !get_fd().set_nonblock())
     throw local_error("Could not allocate socket for listening");
 
   for (uint16_t i = first; i <= last; ++i) {
     sa.set_port(i);
 
-    if (m_fd.bind(sa) && m_fd.listen(50)) {
+    if (get_fd().bind(sa) && get_fd().listen(50)) {
       m_port = i;
 
       pollManager.read_set().insert(this);
@@ -72,38 +72,41 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
     }
   }
 
-  m_fd.close();
-  m_fd.clear();
+  get_fd().close();
+  get_fd().clear();
 
   return false;
 }
 
 void Listen::close() {
-  if (!m_fd.is_valid())
+  if (!get_fd().is_valid())
     return;
 
   pollManager.read_set().erase(this);
   pollManager.except_set().erase(this);
 
-  m_fd.close();
-  m_fd.clear();
+  get_fd().close();
+  get_fd().clear();
   
   m_port = 0;
 }
   
-void Listen::read() {
+void
+Listen::event_read() {
   SocketAddress sa;
   SocketFd fd;
 
-  while ((fd = m_fd.accept(&sa)).is_valid())
+  while ((fd = get_fd().accept(&sa)).is_valid())
     m_slotIncoming(fd, sa);
 }
 
-void Listen::write() {
+void
+Listen::event_write() {
   throw internal_error("Listener does not support write()");
 }
 
-void Listen::except() {
+void
+Listen::event_error() {
   throw local_error("Listener port recived exception");
 }
 

@@ -196,18 +196,12 @@ listen_close() {
 // fd_set's must be valid pointers. Returns the highest fd.
 void
 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
-  if (readSet == NULL || writeSet == NULL || exceptSet == NULL || maxFd == NULL)
-    throw client_error("torrent::mark(...) received a NULL pointer");
-
   *maxFd = pollManager.mark(readSet, writeSet, exceptSet);
 }
 
 // Do work on the polled file descriptors.
 void
 work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
-  if (readSet == NULL || writeSet == NULL || exceptSet == NULL)
-    throw client_error("Torrent::work(...) received a NULL pointer");
-
   Timer::update();
   taskScheduler.execute(Timer::cache());
 
@@ -266,11 +260,6 @@ get_listen_port() {
 uint32_t
 get_total_handshakes() {
   return torrent->m_handshakeManager.get_size();
-}
-
-int64_t
-get_current_time() {
-  return Timer::current().usec();
 }
 
 int64_t
@@ -384,9 +373,6 @@ set_max_open_sockets(uint32_t size) {
 
 Download
 download_add(std::istream* s) {
-  if (s == NULL)
-    throw client_error("torrent::download_create(...) received a NULL pointer");
-
   if (!s->good())
     throw input_error("Could not create download, the input stream is not valid");
 

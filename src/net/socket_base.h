@@ -40,24 +40,22 @@
 #include <list>
 #include <inttypes.h>
 
+#include "torrent/event.h"
 #include "socket_fd.h"
 
 namespace torrent {
 
-class SocketBase {
+class SocketBase : public Event {
 public:
-  SocketBase() {}
+  SocketBase() { set_fd(SocketFd()); }
   virtual ~SocketBase();
 
-  SocketFd            get_fd()            { return m_fd; }
-  void                set_fd(SocketFd fd) { m_fd = fd; }
-
-  virtual void        read() = 0;
-  virtual void        write() = 0;
-  virtual void        except() = 0;
-
-protected:
-  SocketFd            m_fd;
+  // Ugly hack... But the alternative is to include SocketFd as part
+  // of the library API or make SocketFd::m_fd into an non-modifiable
+  // value.
+  SocketFd&           get_fd()            { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
+  const SocketFd&     get_fd() const      { return *reinterpret_cast<const SocketFd*>(&m_fileDesc); }
+  void                set_fd(SocketFd fd) { m_fileDesc = fd.get_fd(); }
 
 private:
   // Disable copying

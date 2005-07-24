@@ -66,9 +66,9 @@ public:
 
   virtual Type        get_type() const;
 
-  virtual void        read();
-  virtual void        write();
-  virtual void        except();
+  virtual void        event_read();
+  virtual void        event_write();
+  virtual void        event_error();
 
 private:
   void                receive_failed(const std::string& msg);

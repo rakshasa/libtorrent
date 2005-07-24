@@ -55,9 +55,9 @@ SocketDatagram::send(const void* buffer, unsigned int length, SocketAddress* sa)
   int r;
 
   if (sa != NULL) {
-    r = ::sendto(m_fd.get_fd(), buffer, length, 0, &sa->get_addr(), sa->get_sizeof());
+    r = ::sendto(m_fileDesc, buffer, length, 0, &sa->get_addr(), sa->get_sizeof());
   } else {
-    r = ::send(m_fd.get_fd(), buffer, length, 0);
+    r = ::send(m_fileDesc, buffer, length, 0);
   }
 
   if (r < 0)
@@ -76,9 +76,9 @@ SocketDatagram::receive(void* buffer, unsigned int length, SocketAddress* sa) {
 
   if (sa != NULL) {
     fromlen = sa->get_sizeof();
-    r = ::recvfrom(m_fd.get_fd(), buffer, length, 0, &sa->get_addr(), &fromlen);
+    r = ::recvfrom(m_fileDesc, buffer, length, 0, &sa->get_addr(), &fromlen);
   } else {
-    r = ::recv(m_fd.get_fd(), buffer, length, 0);
+    r = ::recv(m_fileDesc, buffer, length, 0);
   }
 
   if (r < 0)

@@ -60,7 +60,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
 Handshake::~Handshake() {
   taskScheduler.erase(&m_taskTimeout);
 
-  if (m_fd.is_valid())
+  if (get_fd().is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open");
 
   delete [] m_buf;
@@ -76,13 +76,13 @@ Handshake::clear_poll() {
 // TODO: Move the management of the socketfd to handshake_manager?
 void
 Handshake::close() {
-  if (!m_fd.is_valid())
+  if (!get_fd().is_valid())
     return;
 
   clear_poll();
   
-  socketManager.close(m_fd);
-  m_fd.clear();
+  socketManager.close(get_fd());
+  get_fd().clear();
 }
 
 void

@@ -57,9 +57,9 @@ public:
 		    const std::string& infoHash,
 		    const std::string& ourId);
   
-  virtual void        read();
-  virtual void        write();
-  virtual void        except();
+  virtual void        event_read();
+  virtual void        event_write();
+  virtual void        event_error();
 
 private:
   State               m_state;

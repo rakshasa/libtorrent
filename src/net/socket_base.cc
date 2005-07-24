@@ -43,7 +43,7 @@
 namespace torrent {
 
 SocketBase::~SocketBase() {
-  if (m_fd.is_valid())
+  if (get_fd().is_valid())
     throw internal_error("SocketBase::~SocketBase() called but m_fd is still valid");
 }
 

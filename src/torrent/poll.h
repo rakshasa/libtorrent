@@ -34,49 +34,50 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
-
-#include "socket_stream.h"
-
-#include <errno.h>
-#include <cerrno>
-#include <cstring>
-#include <unistd.h>
-
-#include "torrent/exceptions.h"
+#ifndef LIBTORRENT_TORRENT_POLL_H
+#define LIBTORRENT_TORRENT_POLL_H
 
 namespace torrent {
 
-unsigned int
-SocketStream::read_buf(void* buf, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to read buffer length 0");
+// Do we use normal functions implemented by the client, class without
+// virtual functinons or a base class?
+//
+// The client would in any case need the epoll fd, or a list of fd's
+// to add to the fd_sets. So a class it is.
+//
+// Virtual or not? Can't really be non-virtual, as that precludes the
+// client implementing additional helper member functions.
 
-  int r = ::read(m_fileDesc, buf, length);
+class Event;
 
-  if (r == 0)
-    throw close_connection();
+class Poll {
+public:
+  virtual ~Poll() {}
 
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
+  // Event::get_fd() is guaranteed to be valid and remain constant
+  // from open(...) is called to close(...) returns.
+  virtual void        open(Event* event) = 0;
+  virtual void        close(Event* event) = 0;
 
-  return std::max(r, 0);
+  // Functions for checking whetever the Event is listening to r/w/e?
+  virtual void        in_read(Event* event) = 0;
+  virtual void        in_write(Event* event) = 0;
+  virtual void        in_error(Event* event) = 0;
+
+  // insert_*/erase_* will never be called on an already
+  // inserted/erased file descriptor? Or do we allow this to simplify
+  // the user code and avoid an extra virtual call just to check?
+  virtual void        insert_read(Event* event) = 0;
+  virtual void        insert_write(Event* event) = 0;
+  virtual void        insert_error(Event* event) = 0;
+
+  virtual void        remove_read(Event* event) = 0;
+  virtual void        remove_write(Event* event) = 0;
+  virtual void        remove_error(Event* event) = 0;
+
+  // Add one for HUP? Or would that be in event?
+};
+
 }
 
-unsigned int
-SocketStream::write_buf(const void* buf, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to write buffer length 0");
-
-  int r = ::write(m_fileDesc, buf, length);
-
-  if (r == 0)
-    throw close_connection();
-
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
-
-  return std::max(r, 0);
-}
-
-}
+#endif

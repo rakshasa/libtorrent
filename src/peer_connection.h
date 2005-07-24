@@ -60,9 +60,9 @@ public:
 
   virtual void        receive_have_chunk(int32_t i);
 
-  virtual void        read();
-  virtual void        write();
-  virtual void        except();
+  virtual void        event_read();
+  virtual void        event_write();
+  virtual void        event_error();
 
   void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
   

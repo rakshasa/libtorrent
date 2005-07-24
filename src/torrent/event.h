@@ -34,49 +34,29 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
-
-#include "socket_stream.h"
-
-#include <errno.h>
-#include <cerrno>
-#include <cstring>
-#include <unistd.h>
-
-#include "torrent/exceptions.h"
+#ifndef LIBTORRENT_TORRENT_EVENT_H
+#define LIBTORRENT_TORRENT_EVENT_H
 
 namespace torrent {
 
-unsigned int
-SocketStream::read_buf(void* buf, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to read buffer length 0");
+class Event {
+public:
+  virtual ~Event() {}
 
-  int r = ::read(m_fileDesc, buf, length);
+  // These are not virtual as the fd is heavily used in select based
+  // polling, thus fast access is critical to performance.
+  int                 get_file_desc()       { return m_fileDesc; }
 
-  if (r == 0)
-    throw close_connection();
+  virtual void        event_read() = 0;
+  virtual void        event_write() = 0;
+  virtual void        event_error() = 0;
 
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
+  // Event closed?
 
-  return std::max(r, 0);
-}
-
-unsigned int
-SocketStream::write_buf(const void* buf, unsigned int length) {
-  if (length == 0)
-    throw internal_error("Tried to write buffer length 0");
-
-  int r = ::write(m_fileDesc, buf, length);
-
-  if (r == 0)
-    throw close_connection();
-
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
-
-  return std::max(r, 0);
-}
+protected:
+  int                 m_fileDesc;
+};
 
 }
+
+#endif

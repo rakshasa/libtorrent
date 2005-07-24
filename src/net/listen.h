@@ -56,15 +56,15 @@ public:
   bool                open(uint16_t first, uint16_t last, SocketAddress sa);
   void                close();
 
-  bool                is_open()                            { return m_fd.is_valid(); }
+  bool                is_open()                            { return get_fd().is_valid(); }
 
   uint16_t            get_port()                           { return m_port; }
 
   void                slot_incoming(const SlotIncoming& s) { m_slotIncoming = s; }
 
-  virtual void        read();
-  virtual void        write();
-  virtual void        except();
+  virtual void        event_read();
+  virtual void        event_write();
+  virtual void        event_error();
 
 private:
   uint64_t            m_port;

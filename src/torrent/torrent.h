@@ -68,7 +68,7 @@ void                listen_close();
 void                mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
 
 // Do work on the polled file descriptors. Make sure this is called
-// every time TIME_SELECT timeout has passed.
+// when get_next_timeout() == 0.
 void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
 
 bool                is_inactive();
@@ -85,9 +85,11 @@ uint16_t            get_listen_port();
 
 unsigned int        get_total_handshakes();
 
-int64_t             get_current_time();
 int64_t             get_next_timeout();
 
+// These should really be unsigned, but there was a bug in the
+// client. ;( Fix this later.
+//
 // 0 == UNLIMITED.
 int32_t             get_read_throttle();
 void                set_read_throttle(int32_t bytes);

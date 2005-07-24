@@ -69,7 +69,7 @@ PeerConnection::PeerConnection() :
 }
 
 PeerConnection::~PeerConnection() {
-  if (!m_fd.is_valid())
+  if (!get_fd().is_valid())
     return;
 
   if (m_state == NULL || m_net == NULL)
@@ -86,8 +86,8 @@ PeerConnection::~PeerConnection() {
   pollManager.write_set().erase(this);
   pollManager.except_set().erase(this);
   
-  socketManager.close(m_fd);
-  m_fd.clear();
+  socketManager.close(get_fd());
+  get_fd().clear();
 }
   
 void
@@ -113,20 +113,20 @@ PeerConnection::update_interested() {
 }
 
 void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
-  if (m_fd.is_valid())
+  if (get_fd().is_valid())
     throw internal_error("Tried to re-set PeerConnection");
 
-  m_fd = fd;
+  set_fd(fd);
   m_peer = p;
   m_state = d;
   m_net = net;
 
-  m_fd.set_throughput();
+  get_fd().set_throughput();
 
   m_requestList.set_delegator(&m_net->get_delegator());
   m_requestList.set_bitfield(&m_bitfield.get_bitfield());
 
-  if (d == NULL || !p.is_valid() || !m_fd.is_valid())
+  if (d == NULL || !p.is_valid() || !get_fd().is_valid())
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
@@ -153,7 +153,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   m_lastMsg = Timer::cache();
 }
 
-void PeerConnection::read() {
+void PeerConnection::event_read() {
   m_lastMsg = Timer::cache();
 
   try {
@@ -391,7 +391,7 @@ void PeerConnection::read() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection read fd(" << m_fd.get_fd() << ") state(" << m_read->get_state() << ") \"" << e.what() << '"';
+    s << "Connection read fd(" << get_fd().get_fd() << ") state(" << m_read->get_state() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
@@ -399,7 +399,7 @@ void PeerConnection::read() {
   }
 }
 
-void PeerConnection::write() {
+void PeerConnection::event_write() {
   try {
 
   evil_goto_write:
@@ -494,7 +494,7 @@ void PeerConnection::write() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection write fd(" << m_fd.get_fd() << ") state(" << m_write->get_state() << ") \"" << e.what() << '"';
+    s << "Connection write fd(" << get_fd().get_fd() << ") state(" << m_write->get_state() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
@@ -502,7 +502,7 @@ void PeerConnection::write() {
   }
 }
 
-void PeerConnection::except() {
+void PeerConnection::event_error() {
   m_net->signal_network_log().emit("Connection exception: " + std::string(strerror(errno)));
 
   m_net->remove_connection(this);

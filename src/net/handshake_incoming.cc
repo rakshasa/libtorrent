@@ -50,14 +50,14 @@ HandshakeIncoming::HandshakeIncoming(SocketFd fd, const PeerInfo& p, HandshakeMa
 
   m_peer = p;
 
-  m_fd.set_nonblock();
+  get_fd().set_nonblock();
 
   pollManager.read_set().insert(this);
   pollManager.except_set().insert(this);
 }
 
 void
-HandshakeIncoming::read() {
+HandshakeIncoming::event_read() {
   try {
 
   switch (m_state) {
@@ -100,7 +100,7 @@ HandshakeIncoming::read() {
 }
 
 void
-HandshakeIncoming::write() {
+HandshakeIncoming::event_write() {
   try {
   switch (m_state) {
   case WRITE_HEADER:
@@ -125,7 +125,7 @@ HandshakeIncoming::write() {
 }
 
 void
-HandshakeIncoming::except() {
+HandshakeIncoming::event_error() {
   m_manager->receive_failed(this);
 }
 
