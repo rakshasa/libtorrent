@@ -65,6 +65,7 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
     if (get_fd().bind(sa) && get_fd().listen(50)) {
       m_port = i;
 
+      pollCustom->open(this);
       pollCustom->insert_read(this);
       pollCustom->insert_error(this);
 
@@ -84,6 +85,7 @@ void Listen::close() {
 
   pollCustom->remove_read(this);
   pollCustom->remove_error(this);
+  pollCustom->close(this);
 
   get_fd().close();
   get_fd().clear();

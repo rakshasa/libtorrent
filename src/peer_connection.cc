@@ -85,6 +85,7 @@ PeerConnection::~PeerConnection() {
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
   pollCustom->remove_error(this);
+  pollCustom->close(this);
   
   socketManager.close(get_fd());
   get_fd().clear();
@@ -135,6 +136,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   if (m_bitfield.begin() == NULL)
     throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
 
+  pollCustom->open(this);
   pollCustom->insert_read(this);
   pollCustom->insert_write(this);
   pollCustom->insert_error(this);

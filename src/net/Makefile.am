@@ -13,8 +13,6 @@ libsub_net_la_SOURCES = \
 	listen.h \
 	manager.cc \
 	manager.h \
-	poll_select.h \
-	poll_select.cc \
 	protocol_buffer.h \
 	socket_address.cc \
 	socket_address.h \

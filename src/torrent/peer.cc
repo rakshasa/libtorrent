@@ -58,6 +58,11 @@ Peer::get_port() {
   return m_ptr->get_peer().get_port();
 }
 
+const char*
+Peer::get_options() {
+  return m_ptr->get_peer().get_options();
+}
+
 bool
 Peer::get_local_choked() {
   return m_ptr->is_write_choked();

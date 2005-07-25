@@ -94,7 +94,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   s << "&peer_id=";
   escape_string(m_info->get_me()->get_id(), s);
 
-  s << "&key=" << std::hex << std::setw(8) << m_info->get_key() << std::dec;
+  s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->get_key() << std::dec;
 
   if (!m_trackerId.empty()) {
     s << "&trackerid=";

@@ -63,6 +63,7 @@ public:
   std::string          get_id();
   std::string          get_dns();
   uint16_t             get_port();
+  const char*          get_options();
 
   bool                 get_local_choked();
   bool                 get_local_interested();

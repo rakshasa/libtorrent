@@ -95,6 +95,7 @@ TrackerUdp::send_state(TrackerInfo::State state,
   taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_info->get_udp_timeout() * 1000000);
   m_tries = m_info->get_udp_tries();
 
+  pollCustom->open(this);
   pollCustom->insert_read(this);
   pollCustom->insert_write(this);
   pollCustom->insert_error(this);
@@ -116,6 +117,7 @@ TrackerUdp::close() {
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
   pollCustom->remove_error(this);
+  pollCustom->close(this);
 
   get_fd().close();
   get_fd().clear();

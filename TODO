@@ -1,16 +1,12 @@
 NEXT RELEASE:
 
-Is CurlGet causing problems? Add logging of the GET string etc?
+[PART] Hook up Poll::open/close. Add checks in PollSelect to make sure we
+don't close fd's that are in the sets.
 
-Move PollSelect to src/torrent, and make it a part of the interface?
-Sounds good actually...
+Add an epoll class, make an empty Event class to handle closed
+Event's. Preliminary use select on the epoll fd.
 
-Add a check to torrent::cleanup() that checks if Poll* is empty?
-Rather, check in ~PollSelect.
-
-Hook up Poll::open/close.
-
-PollSelect::set_max_sockets should be initialized in the ctor.
+Consider renaming Poll::open/close.
 
 Figure out the ElementStringList already activated bug.
 

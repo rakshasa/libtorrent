@@ -51,7 +51,7 @@ class Poll;
 class Rate;
 
 // Make sure you seed srandom and srand48 if available.
-void                initialize();
+void                initialize(Poll* poll);
 
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
@@ -60,17 +60,14 @@ void                cleanup();
 bool                listen_open(uint16_t begin, uint16_t end);
 void                listen_close();  
 
-// mark and work might change when the current polling method is
-// changed into a more modular one that will support both select and
-// epoll.
+int64_t             get_next_timeout();
 
-// Set the file descriptors we want to pool for R/W/E events. All
-// fd_set's must be valid pointers.
-void                mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd);
-
-// Do work on the polled file descriptors. Make sure this is called
-// when get_next_timeout() == 0.
-void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
+// Calls this function when get_next_timeout() is zero or at
+// semi-regular intervals when socket events accure. It updates the
+// cached time and performs scheduled tasks.
+//
+// Bad name, find something better.
+void                perform();
 
 bool                is_inactive();
 
@@ -85,8 +82,6 @@ void                set_bind_address(const std::string& addr);
 uint16_t            get_listen_port();
 
 unsigned int        get_total_handshakes();
-
-int64_t             get_next_timeout();
 
 // These should really be unsigned, but there was a bug in the
 // client. ;( Fix this later.

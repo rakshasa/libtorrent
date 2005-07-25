@@ -52,6 +52,7 @@ HandshakeIncoming::HandshakeIncoming(SocketFd fd, const PeerInfo& p, HandshakeMa
 
   get_fd().set_nonblock();
 
+  pollCustom->open(this);
   pollCustom->insert_read(this);
   pollCustom->insert_error(this);
 }

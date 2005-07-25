@@ -38,7 +38,10 @@
 
 #include <unistd.h>
 
-#include "torrent/exceptions.h"
+#include "net/socket_set.h"
+
+#include "event.h"
+#include "exceptions.h"
 #include "poll_select.h"
 
 namespace torrent {
@@ -81,11 +84,20 @@ struct poll_mark {
   fd_set* m_set;
 };
 
-PollSelect::PollSelect() {
+PollSelect::PollSelect() :
+  m_readSet(new SocketSet),
+  m_writeSet(new SocketSet),
+  m_exceptSet(new SocketSet) {
   set_open_max(sysconf(_SC_OPEN_MAX));
 }
 
 PollSelect::~PollSelect() {
+//   if (m_readSet->empty() || !m_writeSet->empty() || !m_exceptSet->empty())
+//     throw internal_error("PollSelect::~PollSelect() called but the sets are not empty");
+
+  delete m_readSet;
+  delete m_writeSet;
+  delete m_exceptSet;
 }
 
 void
@@ -93,41 +105,41 @@ PollSelect::set_open_max(int s) {
   if (s <= 0)
     throw internal_error("PollSelect::set_open_max(...) received an invalid value");
 
-  m_readSet.reserve(s);
-  m_writeSet.reserve(s);
-  m_exceptSet.reserve(s);
+  m_readSet->reserve(s);
+  m_writeSet->reserve(s);
+  m_exceptSet->reserve(s);
 }
 
 int
 PollSelect::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   int maxFd = 0;
 
-  m_readSet.prepare();
-  std::for_each(m_readSet.begin(), m_readSet.end(), poll_mark(readSet, &maxFd));
+  m_readSet->prepare();
+  std::for_each(m_readSet->begin(), m_readSet->end(), poll_mark(readSet, &maxFd));
 
-  m_writeSet.prepare();
-  std::for_each(m_writeSet.begin(), m_writeSet.end(), poll_mark(writeSet, &maxFd));
+  m_writeSet->prepare();
+  std::for_each(m_writeSet->begin(), m_writeSet->end(), poll_mark(writeSet, &maxFd));
   
-  m_exceptSet.prepare();
-  std::for_each(m_exceptSet.begin(), m_exceptSet.end(), poll_mark(exceptSet, &maxFd));
+  m_exceptSet->prepare();
+  std::for_each(m_exceptSet->begin(), m_exceptSet->end(), poll_mark(exceptSet, &maxFd));
 
   return maxFd;
 }
 
 void
-PollSelect::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
+PollSelect::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
-  m_exceptSet.prepare();
-  std::for_each(m_exceptSet.begin(), m_exceptSet.end(),
+  m_exceptSet->prepare();
+  std::for_each(m_exceptSet->begin(), m_exceptSet->end(),
 		poll_check(exceptSet, std::mem_fun(&Event::event_error)));
 
-  m_readSet.prepare();
-  std::for_each(m_readSet.begin(), m_readSet.end(),
+  m_readSet->prepare();
+  std::for_each(m_readSet->begin(), m_readSet->end(),
 		poll_check(readSet, std::mem_fun(&Event::event_read)));
 
-  m_writeSet.prepare();
-  std::for_each(m_writeSet.begin(), m_writeSet.end(),
+  m_writeSet->prepare();
+  std::for_each(m_writeSet->begin(), m_writeSet->end(),
 		poll_check(writeSet, std::mem_fun(&Event::event_write)));
 }
 
@@ -135,57 +147,63 @@ void
 PollSelect::open(Event* event) {
   if (event->get_file_desc() < 0)
     throw internal_error("PollSelect::open(...) called with an invalid file descriptor");
+
+  if (in_read(event) || in_write(event) || in_error(event))
+    throw internal_error("PollSelect::open(...) called on an inserted event");
 }
 
 void
 PollSelect::close(Event* event) {
   if (event->get_file_desc() < 0)
-    throw internal_error("PollSelect::open(...) called with an invalid file descriptor");
+    throw internal_error("PollSelect::close(...) called with an invalid file descriptor");
+
+  if (in_read(event) || in_write(event) || in_error(event))
+    throw internal_error("PollSelect::close(...) called on an inserted event");
 }
 
 bool
 PollSelect::in_read(Event* event) {
-  return m_readSet.find(event) != m_readSet.end();
+  return m_readSet->find(event) != m_readSet->end();
 }
 
 bool
 PollSelect::in_write(Event* event) {
-  return m_writeSet.find(event) != m_writeSet.end();
+  return m_writeSet->find(event) != m_writeSet->end();
 }
 
 bool
 PollSelect::in_error(Event* event) {
-  return m_exceptSet.find(event) != m_exceptSet.end();
+  return m_exceptSet->find(event) != m_exceptSet->end();
 }
 
 void
 PollSelect::insert_read(Event* event) {
-  m_readSet.insert(event);
+  m_readSet->insert(event);
 }
 
 void
 PollSelect::insert_write(Event* event) {
-  m_writeSet.insert(event);
+  m_writeSet->insert(event);
 }
 
 void
 PollSelect::insert_error(Event* event) {
-  m_exceptSet.insert(event);
+  m_exceptSet->insert(event);
 }
 
 void
 PollSelect::remove_read(Event* event) {
-  m_readSet.erase(event);
+  m_readSet->erase(event);
 }
 
 void
 PollSelect::remove_write(Event* event) {
-  m_writeSet.erase(event);
+  m_writeSet->erase(event);
 }
 
 void
 PollSelect::remove_error(Event* event) {
-  m_exceptSet.erase(event);
+  m_exceptSet->erase(event);
 }
 
 }

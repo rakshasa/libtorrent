@@ -54,7 +54,6 @@
 #include "net/listen.h"
 #include "net/handshake_manager.h"
 #include "net/manager.h"
-#include "net/poll_select.h"
 #include "parse/parse.h"
 #include "peer/peer_factory.h"
 #include "data/file_manager.h"
@@ -128,7 +127,7 @@ bencode_hash(Bencode& b) {
 }  
 
 void
-initialize() {
+initialize(Poll* poll) {
   if (torrent != NULL)
     throw client_error("torrent::initialize() called but the library has already been initialized");
 
@@ -143,11 +142,7 @@ initialize() {
   torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
   torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
 
-  if (true) {
-    PollSelect* p = new PollSelect();
-    p->set_open_max(sysconf(_SC_OPEN_MAX));
-    pollCustom = p;
-  }
+  pollCustom = poll;
 
   // By default we reserve 128 fd's for the client.
   socketManager.set_max_size(sysconf(_SC_OPEN_MAX) - 256);
@@ -170,7 +165,6 @@ cleanup() {
   delete torrent;
   torrent = NULL;
 
-  delete pollCustom;
   pollCustom = NULL;
 }
 
@@ -201,21 +195,8 @@ listen_close() {
   torrent->m_listen.close();
 }
 
-// Set the file descriptors we want to pool for R/W/E events. All
-// fd_set's must be valid pointers. Returns the highest fd.
 void
-mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int* maxFd) {
-  *maxFd = static_cast<PollSelect*>(pollCustom)->mark(readSet, writeSet, exceptSet);
-}
-
-// Do work on the polled file descriptors.
-void
-work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd) {
-  Timer::update();
-  taskScheduler.execute(Timer::cache());
-
-  static_cast<PollSelect*>(pollCustom)->work(readSet, writeSet, exceptSet, maxFd);
-
+perform() {
   Timer::update();
   taskScheduler.execute(Timer::cache());
 }
@@ -273,8 +254,10 @@ get_total_handshakes() {
 
 int64_t
 get_next_timeout() {
+  Timer::update();
+
   return !taskScheduler.empty() ?
-    std::max(taskScheduler.get_next_timeout() - Timer::current(), Timer()).usec() :
+    std::max(taskScheduler.get_next_timeout() - Timer::cache(), Timer()).usec() :
     60 * 1000000;
 }
 

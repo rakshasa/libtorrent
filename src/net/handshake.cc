@@ -71,6 +71,7 @@ Handshake::clear_poll() {
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
   pollCustom->remove_error(this);
+  pollCustom->close(this);
 }
 
 // TODO: Move the management of the socketfd to handshake_manager?
@@ -105,7 +106,8 @@ Handshake::recv1() {
   if (!read_buffer(m_buf + m_pos, len + 29, m_pos))
     return false;
 
-  m_peer.set_options(std::string(m_buf + 1 + len, 8));
+  std::memcpy(m_peer.get_options(), m_buf + 1 + len, 8);
+
   m_hash = std::string(m_buf + 9 + len, 20);
 
   if (std::string(m_buf + 1, len) != "BitTorrent protocol")

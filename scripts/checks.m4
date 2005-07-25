@@ -96,6 +96,38 @@ AC_DEFUN([TORRENT_WITHOUT_XFS], [
 ])
 
 
+AC_DEFUN([TORRENT_CHECK_EPOLL], [
+  AC_MSG_CHECKING(for epoll support)
+
+  AC_COMPILE_IFELSE(
+    [[#include <sys/epoll.h>
+      int main() {
+        int fd = epoll_create(100);
+        return 0;
+      }
+    ]],
+    [
+      AC_DEFINE(HAS_EPOLL, 1, epoll supported.)
+      AC_MSG_RESULT(yes)
+    ], [
+      AC_MSG_RESULT(no)
+    ])
+])
+
+
+AC_DEFUN([TORRENT_WITHOUT_EPOLL], [
+  AC_ARG_WITH(epoll,
+    [  --without-epoll         Do not check for epoll support],
+    [
+      if test "$withval" = "yes"; then
+        TORRENT_CHECK_EPOLL
+      fi
+    ], [
+        TORRENT_CHECK_EPOLL
+    ])
+])
+
+
 AC_DEFUN([TORRENT_CHECK_POSIX_FALLOCATE], [
   AC_MSG_CHECKING(for posix_fallocate)
 

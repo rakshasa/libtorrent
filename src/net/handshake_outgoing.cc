@@ -58,6 +58,7 @@ HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
   m_id = ourId;
   m_local = infoHash;
 
+  pollCustom->open(this);
   pollCustom->insert_write(this);
   pollCustom->insert_error(this);
  

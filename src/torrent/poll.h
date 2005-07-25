@@ -67,9 +67,8 @@ public:
   virtual bool        in_write(Event* event) = 0;
   virtual bool        in_error(Event* event) = 0;
 
-  // insert_*/erase_* will never be called on an already
-  // inserted/erased file descriptor? Or do we allow this to simplify
-  // the user code and avoid an extra virtual call just to check?
+  // These functions may be called on 'event's that might, or might
+  // not, already be in the set.
   virtual void        insert_read(Event* event) = 0;
   virtual void        insert_write(Event* event) = 0;
   virtual void        insert_error(Event* event) = 0;

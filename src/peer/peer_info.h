@@ -38,6 +38,7 @@
 #define LIBTORRENT_PEER_PEER_INFO_H
 
 #include <string>
+#include <cstring>
 #include <inttypes.h>
 
 #include "net/socket_address.h"
@@ -46,8 +47,8 @@ namespace torrent {
 
 class PeerInfo {
 public:
-  PeerInfo() : m_options(std::string(8, 0)) {}
-  PeerInfo(const std::string& id, const SocketAddress& sa) : m_id(id), m_sa(sa) {}
+  PeerInfo() { std::memset(m_options, 0, 8); }
+  PeerInfo(const std::string& id, const SocketAddress& sa);
 
   bool                is_valid() const                      { return m_id.length() == 20 && m_sa.is_valid(); }
   bool                is_same_host(const PeerInfo& p) const { return m_sa == p.m_sa; }
@@ -55,13 +56,13 @@ public:
   const std::string&  get_id() const                        { return m_id; }
   std::string         get_address() const                   { return m_sa.get_address(); }
   uint16_t            get_port() const                      { return m_sa.get_port(); }
-  const std::string&  get_options() const                   { return m_options; }
+  char*               get_options()                         { return m_options; }
+  const char*         get_options() const                   { return m_options; }
 
   SocketAddress&       get_socket_address()                 { return m_sa; }
   const SocketAddress& get_socket_address() const           { return m_sa; }
 
   void                set_id(const std::string& id)         { m_id = id; }
-  void                set_options(const std::string& o)     { m_options = o; }
 
   bool                operator < (const PeerInfo& p) const  { return m_id < p.m_id; }
   bool                operator == (const PeerInfo& p) const { return m_id == p.m_id; }
@@ -69,8 +70,15 @@ public:
 private:
   std::string         m_id;
   SocketAddress       m_sa;
-  std::string         m_options;
+  char                m_options[8];
 };
+
+inline
+PeerInfo::PeerInfo(const std::string& id, const SocketAddress& sa) :
+  m_id(id),
+  m_sa(sa) {
+  std::memset(m_options, 0, 8);
+}
 
 } // namespace torrent
 

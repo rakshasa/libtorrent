@@ -40,11 +40,17 @@
 #include <sys/select.h>
 #include <sys/types.h>
 
-#include "socket_base.h"
-#include "socket_set.h"
-#include "torrent/poll.h"
+#include "poll.h"
 
 namespace torrent {
+
+// The default Poll implementation using fd_set's.
+//
+// You should call torrent::perform() (or whatever the function will
+// be called) immidiately before and after the call to work(...). This
+// ensures we dealt with scheduled tasks and updated the cache'ed time.
+
+class SocketSet;
 
 class PollSelect : public Poll {
 public:
@@ -53,8 +59,9 @@ public:
 
   void                set_open_max(int s);
 
+  // Returns the largest fd marked.
   int                 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
-  void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet, int maxFd);
+  void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
 
   virtual void        open(Event* event);
   virtual void        close(Event* event);
@@ -72,9 +79,12 @@ public:
   virtual void        remove_error(Event* event);
 
 private:
-  SocketSet           m_readSet;
-  SocketSet           m_writeSet;
-  SocketSet           m_exceptSet;
+  PollSelect(const PollSelect&);
+  void operator = (const PollSelect&);
+
+  SocketSet*          m_readSet;
+  SocketSet*          m_writeSet;
+  SocketSet*          m_exceptSet;
 };
 
 }
