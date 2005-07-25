@@ -56,6 +56,7 @@ public:
   std::string         get_address() const                   { return m_sa.get_address(); }
   uint16_t            get_port() const                      { return m_sa.get_port(); }
   const std::string&  get_options() const                   { return m_options; }
+
   SocketAddress&       get_socket_address()                 { return m_sa; }
   const SocketAddress& get_socket_address() const           { return m_sa; }
 

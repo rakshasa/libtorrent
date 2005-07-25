@@ -1,5 +1,7 @@
 NEXT RELEASE:
 
+Is CurlGet causing problems? Add logging of the GET string etc?
+
 Move PollSelect to src/torrent, and make it a part of the interface?
 Sounds good actually...
 

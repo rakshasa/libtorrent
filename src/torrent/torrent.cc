@@ -240,7 +240,7 @@ set_address(const std::string& addr) {
 
   torrent->m_address = addr;
 
-  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.begin();
+  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.end();
        itr != last; ++itr)
     (*itr)->get_main().get_me().get_socket_address().set_address(torrent->m_address);
 }

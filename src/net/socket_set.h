@@ -37,8 +37,9 @@
 #ifndef LIBTORRENT_NET_SOCKET_SET_H
 #define LIBTORRENT_NET_SOCKET_SET_H
 
-#include <vector>
 #include <list>
+#include <vector>
+#include <inttypes.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
