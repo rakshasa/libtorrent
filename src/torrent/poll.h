@@ -39,15 +39,6 @@
 
 namespace torrent {
 
-// Do we use normal functions implemented by the client, class without
-// virtual functinons or a base class?
-//
-// The client would in any case need the epoll fd, or a list of fd's
-// to add to the fd_sets. So a class it is.
-//
-// Virtual or not? Can't really be non-virtual, as that precludes the
-// client implementing additional helper member functions.
-
 class Event;
 
 class Poll {

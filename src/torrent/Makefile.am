@@ -14,6 +14,8 @@ libsub_torrent_la_SOURCES = \
 	peer.cc \
 	peer.h \
 	poll.h \
+	poll_epoll.cc \
+	poll_epoll.h \
 	poll_select.h \
 	poll_select.cc \
 	rate.cc \
@@ -36,6 +38,7 @@ libtorrentinclude_HEADERS = \
 	http.h \
 	peer.h \
 	poll.h \
+	poll_epoll.h \
 	poll_select.h \
 	rate.h \
 	torrent.h \

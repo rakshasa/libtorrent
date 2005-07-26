@@ -6,7 +6,12 @@ don't close fd's that are in the sets.
 Add an epoll class, make an empty Event class to handle closed
 Event's. Preliminary use select on the epoll fd.
 
+Use a seperate function for handling epoll_ctl calls? With event and
+op as args?
+
 Consider renaming Poll::open/close.
+
+Add more checks to PollEPoll, like < -1 and > max_socket.
 
 Figure out the ElementStringList already activated bug.
 

@@ -34,56 +34,63 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_POLL_SELECT_H
-#define LIBTORRENT_NET_POLL_SELECT_H
+#ifndef LIBTORRENT_TORRENT_POLL_EPOLL_H
+#define LIBTORRENT_TORRENT_POLL_EPOLL_H
 
-#include <sys/select.h>
-#include <sys/types.h>
+#include <inttypes.h>
+#include <vector>
 #include <torrent/poll.h>
 
 namespace torrent {
 
-// The default Poll implementation using fd_set's.
-//
-// You should call torrent::perform() (or whatever the function will
-// be called) immidiately before and after the call to work(...). This
-// ensures we dealt with scheduled tasks and updated the cache'ed time.
-
-class SocketSet;
-
-class PollSelect : public Poll {
+class PollEPoll : public torrent::Poll {
 public:
-  PollSelect();
-  virtual ~PollSelect();
+  typedef std::vector<uint32_t> Table;
 
-  void                set_open_max(int s);
+  static PollEPoll*   create();
 
-  // Returns the largest fd marked.
-  int                 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
-  void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
+  virtual ~PollEPoll();
 
-  virtual void        open(Event* event);
-  virtual void        close(Event* event);
+  int                 wait(int msec);
+  void                work();
 
-  virtual bool        in_read(Event* event);
-  virtual bool        in_write(Event* event);
-  virtual bool        in_error(Event* event);
+  int                 get_fd() { return m_fd; }
 
-  virtual void        insert_read(Event* event);
-  virtual void        insert_write(Event* event);
-  virtual void        insert_error(Event* event);
+  // torrent::Event::get_fd() is guaranteed to be valid and remain constant
+  // from open(...) is called to close(...) returns.
+  virtual void        open(torrent::Event* event);
+  virtual void        close(torrent::Event* event);
 
-  virtual void        remove_read(Event* event);
-  virtual void        remove_write(Event* event);
-  virtual void        remove_error(Event* event);
+  // Functions for checking whetever the torrent::Event is listening to r/w/e?
+  virtual bool        in_read(torrent::Event* event);
+  virtual bool        in_write(torrent::Event* event);
+  virtual bool        in_error(torrent::Event* event);
+
+  // These functions may be called on 'event's that might, or might
+  // not, already be in the set.
+  virtual void        insert_read(torrent::Event* event);
+  virtual void        insert_write(torrent::Event* event);
+  virtual void        insert_error(torrent::Event* event);
+
+  virtual void        remove_read(torrent::Event* event);
+  virtual void        remove_write(torrent::Event* event);
+  virtual void        remove_error(torrent::Event* event);
 
 private:
-  PollSelect(const PollSelect&);
-  void operator = (const PollSelect&);
+  PollEPoll(int fd, int maxEvents, int maxSockets);
 
-  SocketSet*          m_readSet;
-  SocketSet*          m_writeSet;
-  SocketSet*          m_exceptSet;
+  inline uint32_t     get_mask(Event* e);
+  inline void         set_mask(Event* e, uint32_t m);
+
+  inline void         modify(torrent::Event* event, int op, uint32_t mask);
+
+  int                 m_fd;
+
+  int                 m_maxEvents;
+  int                 m_waitingEvents;
+
+  Table               m_table;
+  void*               m_events;
 };
 
 }

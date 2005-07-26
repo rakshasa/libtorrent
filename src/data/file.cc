@@ -45,7 +45,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-#if HAS_XFS == 1
+#ifdef USE_XFS
 #include <xfs/libxfs.h>
 #endif
 
@@ -103,7 +103,7 @@ File::close() {
 // of zero indicates to the end of the file.
 bool
 File::reserve(off_t offset, off_t length) {
-#if HAS_XFS == 1
+#ifdef USE_XFS
   struct xfs_flock64 flock;
 
   flock.l_whence = SEEK_SET;
@@ -114,7 +114,7 @@ File::reserve(off_t offset, off_t length) {
     return true;
 #endif
 
-#if HAS_POSIX_FALLOCATE == 1
+#ifdef USE_POSIX_FALLOCATE
   return !posix_fallocate(m_fd, offset, length);
 #else
   return true;
