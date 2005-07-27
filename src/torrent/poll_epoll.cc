@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <cerrno>
-#include <unistd.h>
 #include <sys/epoll.h>
 
 #include <torrent/exceptions.h>
@@ -73,27 +72,26 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
 }
 
 PollEPoll*
-PollEPoll::create() {
+PollEPoll::create(int maxOpenSockets) {
 #ifdef USE_EPOLL
-  int maxSockets = sysconf(_SC_OPEN_MAX);
-  int fd = epoll_create(maxSockets);
+  int fd = epoll_create(maxOpenSockets);
 
   if (fd == -1)
     return NULL;
 
-  return new PollEPoll(fd, 1024, maxSockets);
+  return new PollEPoll(fd, 1024, maxOpenSockets);
 #else
   return NULL;
 #endif
 }
 
-PollEPoll::PollEPoll(int fd, int maxEvents, int maxSockets) :
+PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) :
   m_fd(fd),
   m_maxEvents(maxEvents),
   m_waitingEvents(0),
   m_events(new epoll_event[m_maxEvents]) {
 
-  m_table.resize(maxSockets);
+  m_table.resize(maxOpenSockets);
 }
 
 PollEPoll::~PollEPoll() {
@@ -104,20 +102,14 @@ PollEPoll::~PollEPoll() {
 }
 
 int
-PollEPoll::wait(int msec) {
+PollEPoll::poll(int msec) {
 #ifdef USE_EPOLL
-  m_waitingEvents = epoll_wait(m_fd, (epoll_event*)m_events, m_maxEvents, msec);
+  int nfds = epoll_wait(m_fd, (epoll_event*)m_events, m_maxEvents, msec);
 
-  if (m_waitingEvents == -1) {
-    m_waitingEvents = 0;
+  if (nfds == -1)
+    return -1;
 
-    if (errno != EINTR)
-      throw internal_error("PollEPoll::perform(...) could not poll events");
-    else
-      return 0;
-  }
-
-  return m_waitingEvents;
+  return m_waitingEvents = nfds;
 #else
   return 0;
 #endif
@@ -129,7 +121,7 @@ PollEPoll::wait(int msec) {
 // TODO: Do we want to guarantee if the Event has been removed from
 // some event but not closed, it won't call that event? Think so...
 void
-PollEPoll::work() {
+PollEPoll::perform() {
 #ifdef USE_EPOLL
   for (epoll_event *itr = (epoll_event*)m_events, *last = (epoll_event*)m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->events & EPOLLERR && itr->data.ptr != NULL)

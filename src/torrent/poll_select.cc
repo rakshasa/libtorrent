@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <unistd.h>
+#include <sys/select.h>
 
 #include "net/socket_set.h"
 
@@ -69,26 +69,37 @@ poll_check(fd_set* s, _Operation op) {
 }
 
 struct poll_mark {
-  poll_mark(fd_set* s, int* m) : m_max(m), m_set(s) {}
+  poll_mark(fd_set* s, unsigned int* m) : m_max(m), m_set(s) {}
 
   void operator () (Event* s) {
 //     if (s == NULL)
 //       throw internal_error("poll_mark: s == NULL");
 
-    *m_max = std::max(*m_max, s->get_file_desc());
+    *m_max = std::max(*m_max, (unsigned int)s->get_file_desc());
 
     FD_SET(s->get_file_desc(), m_set);
   }
 
-  int*    m_max;
-  fd_set* m_set;
+  unsigned int*       m_max;
+  fd_set*             m_set;
 };
 
-PollSelect::PollSelect() :
-  m_readSet(new SocketSet),
-  m_writeSet(new SocketSet),
-  m_exceptSet(new SocketSet) {
-  set_open_max(sysconf(_SC_OPEN_MAX));
+PollSelect*
+PollSelect::create(int maxOpenSockets) {
+  if (maxOpenSockets <= 0)
+    throw internal_error("PollSelect::set_open_max(...) received an invalid value");
+
+  PollSelect* p = new PollSelect;
+
+  p->m_readSet = new SocketSet;
+  p->m_writeSet = new SocketSet;
+  p->m_exceptSet = new SocketSet;
+
+  p->m_readSet->reserve(maxOpenSockets);
+  p->m_writeSet->reserve(maxOpenSockets);
+  p->m_exceptSet->reserve(maxOpenSockets);
+
+  return p;
 }
 
 PollSelect::~PollSelect() {
@@ -100,19 +111,9 @@ PollSelect::~PollSelect() {
   delete m_exceptSet;
 }
 
-void
-PollSelect::set_open_max(int s) {
-  if (s <= 0)
-    throw internal_error("PollSelect::set_open_max(...) received an invalid value");
-
-  m_readSet->reserve(s);
-  m_writeSet->reserve(s);
-  m_exceptSet->reserve(s);
-}
-
-int
-PollSelect::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
-  int maxFd = 0;
+unsigned int
+PollSelect::fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+  unsigned int maxFd = 0;
 
   m_readSet->prepare();
   std::for_each(m_readSet->begin(), m_readSet->end(), poll_mark(readSet, &maxFd));
@@ -127,7 +128,7 @@ PollSelect::mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 }
 
 void
-PollSelect::work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
   m_exceptSet->prepare();

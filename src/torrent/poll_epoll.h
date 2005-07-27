@@ -47,12 +47,11 @@ class PollEPoll : public torrent::Poll {
 public:
   typedef std::vector<uint32_t> Table;
 
-  static PollEPoll*   create();
-
+  static PollEPoll*   create(int maxOpenSockets);
   virtual ~PollEPoll();
 
-  int                 wait(int msec);
-  void                work();
+  int                 poll(int msec);
+  void                perform();
 
   int                 get_fd() { return m_fd; }
 
@@ -77,7 +76,7 @@ public:
   virtual void        remove_error(torrent::Event* event);
 
 private:
-  PollEPoll(int fd, int maxEvents, int maxSockets);
+  PollEPoll(int fd, int maxEvents, int maxOpenSockets);
 
   inline uint32_t     get_mask(Event* e);
   inline void         set_mask(Event* e, uint32_t m);

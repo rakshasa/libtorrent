@@ -53,14 +53,12 @@ class SocketSet;
 
 class PollSelect : public Poll {
 public:
-  PollSelect();
+  static PollSelect*  create(int maxOpenSockets);
   virtual ~PollSelect();
 
-  void                set_open_max(int s);
-
   // Returns the largest fd marked.
-  int                 mark(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
-  void                work(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
+  unsigned int        fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
+  void                perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
 
   virtual void        open(Event* event);
   virtual void        close(Event* event);
@@ -78,6 +76,7 @@ public:
   virtual void        remove_error(Event* event);
 
 private:
+  PollSelect() {}
   PollSelect(const PollSelect&);
   void operator = (const PollSelect&);
 

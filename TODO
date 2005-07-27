@@ -3,8 +3,11 @@ NEXT RELEASE:
 [PART] Hook up Poll::open/close. Add checks in PollSelect to make sure we
 don't close fd's that are in the sets.
 
-Add an epoll class, make an empty Event class to handle closed
-Event's. Preliminary use select on the epoll fd.
+Move ui::Control to src/, make the initialization functions part of it.
+
+Use arbitrarily sized fd_set's. Remember to zero with memcpy.
+
+Look over the max open sockets settings etc, it should be consistent.
 
 Use a seperate function for handling epoll_ctl calls? With event and
 op as args?
