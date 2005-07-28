@@ -3,8 +3,6 @@ NEXT RELEASE:
 [PART] Hook up Poll::open/close. Add checks in PollSelect to make sure we
 don't close fd's that are in the sets.
 
-Move ui::Control to src/, make the initialization functions part of it.
-
 Use arbitrarily sized fd_set's. Remember to zero with memcpy.
 
 Look over the max open sockets settings etc, it should be consistent.
@@ -15,6 +13,8 @@ op as args?
 Consider renaming Poll::open/close.
 
 Add more checks to PollEPoll, like < -1 and > max_socket.
+
+Move ui::Control to src/, make the initialization functions part of it.
 
 Figure out the ElementStringList already activated bug.
 

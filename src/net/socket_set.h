@@ -109,7 +109,7 @@ SocketSet::insert(Event* s) {
 
   if (_index(s) != npos)
     return;
-  
+
   _index(s) = size();
   Base::push_back(s);
 }

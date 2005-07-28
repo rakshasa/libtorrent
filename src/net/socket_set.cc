@@ -53,6 +53,8 @@ SocketSet::_replace_with_last(size_type idx) {
   if (idx >= m_table.size())
     throw internal_error("SocketSet::_replace_with_last(...) input out-of-bounds");
 
+  // This should handle both npos and those that have already been
+  // removed with the above while loop.
   if (idx >= size())
     return;
 

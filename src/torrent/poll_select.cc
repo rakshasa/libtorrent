@@ -51,8 +51,14 @@ struct poll_check_t {
   poll_check_t(fd_set* s, _Operation op) : m_set(s), m_op(op) {}
 
   void operator () (Event* s) {
-//     if (s == NULL)
-//       throw internal_error("poll_mark: s == NULL");
+    // This check is nessesary as other events may remove a socket
+    // from the set.
+    if (s == NULL)
+      return;
+
+    // This check is not nessesary, just for debugging.
+    if (s->get_file_desc() < 0)
+      throw internal_error("poll_check: s->fd < 0");
 
     if (FD_ISSET(s->get_file_desc(), m_set))
       m_op(s);
@@ -72,8 +78,12 @@ struct poll_mark {
   poll_mark(fd_set* s, unsigned int* m) : m_max(m), m_set(s) {}
 
   void operator () (Event* s) {
-//     if (s == NULL)
-//       throw internal_error("poll_mark: s == NULL");
+    // Neither of these checks are nessesary, just for debugging.
+    if (s == NULL)
+      throw internal_error("poll_mark: s == NULL");
+
+    if (s->get_file_desc() < 0)
+      throw internal_error("poll_mark: s->fd < 0");
 
     *m_max = std::max(*m_max, (unsigned int)s->get_file_desc());
 
@@ -103,12 +113,19 @@ PollSelect::create(int maxOpenSockets) {
 }
 
 PollSelect::~PollSelect() {
-//   if (m_readSet->empty() || !m_writeSet->empty() || !m_exceptSet->empty())
-//     throw internal_error("PollSelect::~PollSelect() called but the sets are not empty");
+  m_readSet->prepare();
+  m_writeSet->prepare();
+  m_exceptSet->prepare();
+
+  // Re-add this check when you've cleaned up the client shutdown procedure.
+  if (!m_readSet->empty() || !m_writeSet->empty() || !m_exceptSet->empty())
+    throw internal_error("PollSelect::~PollSelect() called but the sets are not empty");
 
   delete m_readSet;
   delete m_writeSet;
   delete m_exceptSet;
+
+  m_readSet = m_writeSet = m_exceptSet = NULL;
 }
 
 unsigned int
