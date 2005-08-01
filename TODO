@@ -1,11 +1,12 @@
-NEXT RELEASE:
+NOTE: These are personal TODO items that might, or might not be
+implemented. They are just notes to keep me from forgetting ideas i
+get while coding.
 
-[PART] Hook up Poll::open/close. Add checks in PollSelect to make sure we
-don't close fd's that are in the sets.
+[DONE] Use arbitrarily sized fd_set's. Remember to zero with memcpy.
 
-Use arbitrarily sized fd_set's. Remember to zero with memcpy.
+Send mail to OpenBSD to see how they handle madvise.
 
-Look over the max open sockets settings etc, it should be consistent.
+Write a guide to USE_VARIABLE_FDSET etc.
 
 Use a seperate function for handling epoll_ctl calls? With event and
 op as args?
@@ -16,10 +17,18 @@ Add more checks to PollEPoll, like < -1 and > max_socket.
 
 Move ui::Control to src/, make the initialization functions part of it.
 
+Improve the settings code, it should read all settings before
+initialization. Make some seperate settings class that holds all the
+settings, that the user can view during runtime.
+
+Look over the max open sockets settings etc, it should be
+consistent. One should have a choice between using a setting that
+changes sysconf(_SC_OPEN_MAX), or get the max value from this variable.
+
 Figure out the ElementStringList already activated bug.
 
 * Test socket manager by setting a low open max and connecting to a
-busy torrent.
+busy torrent. Consider testing ulimit -n too.
 
 Add a setting for controlling whetever allocate is called at torrent
 creation, chunk creation or not at all.

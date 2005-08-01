@@ -128,6 +128,11 @@ PollSelect::~PollSelect() {
   m_readSet = m_writeSet = m_exceptSet = NULL;
 }
 
+uint32_t
+PollSelect::max_open_sockets() const {
+  return m_readSet->max_size();
+}
+
 unsigned int
 PollSelect::fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   unsigned int maxFd = 0;
@@ -165,6 +170,9 @@ void
 PollSelect::open(Event* event) {
   if (event->get_file_desc() < 0)
     throw internal_error("PollSelect::open(...) called with an invalid file descriptor");
+
+  if (event->get_file_desc() >= m_readSet->max_size())
+    throw client_error("Tried to add a socket to PollSelect that is larger than PollSelect::max_open_sockets()");
 
   if (in_read(event) || in_write(event) || in_error(event))
     throw internal_error("PollSelect::open(...) called on an inserted event");

@@ -55,6 +55,8 @@ public:
 
   int                 get_fd() { return m_fd; }
 
+  virtual uint32_t    max_open_sockets() const;
+
   // torrent::Event::get_fd() is guaranteed to be valid and remain constant
   // from open(...) is called to close(...) returns.
   virtual void        open(torrent::Event* event);

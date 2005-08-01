@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_TORRENT_POLL_H
 #define LIBTORRENT_TORRENT_POLL_H
 
+#include <inttypes.h>
+
 namespace torrent {
 
 class Event;
@@ -47,6 +49,8 @@ public:
 
   // Add configuration options for doing stuff like setting max open
   // sockets etc?
+
+  virtual uint32_t    max_open_sockets() const = 0;
 
   // Event::get_fd() is guaranteed to be valid and remain constant
   // from open(...) is called to close(...) returns.

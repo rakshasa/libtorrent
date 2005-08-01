@@ -129,7 +129,7 @@ bencode_hash(Bencode& b) {
 void
 initialize(Poll* poll) {
   if (torrent != NULL)
-    throw client_error("torrent::initialize() called but the library has already been initialized");
+    throw client_error("torrent::initialize(...) called but the library has already been initialized");
 
   Timer::update();
 
@@ -141,6 +141,9 @@ initialize(Poll* poll) {
 
   torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
   torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
+
+  if ((int32_t)poll->max_open_sockets() < 256 + 32)
+    throw client_error("Could not initialize libtorrent, poll has too low max_open_sockets");
 
   pollCustom = poll;
 

@@ -138,6 +138,11 @@ PollEPoll::perform() {
 #endif
 }
 
+uint32_t
+PollEPoll::max_open_sockets() const {
+  return m_table.size();
+}
+
 void
 PollEPoll::open(Event* event) {
   if (get_mask(event) != 0)
