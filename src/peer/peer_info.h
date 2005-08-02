@@ -47,9 +47,10 @@ namespace torrent {
 
 class PeerInfo {
 public:
-  PeerInfo() { std::memset(m_options, 0, 8); }
-  PeerInfo(const std::string& id, const SocketAddress& sa);
+  PeerInfo() : m_incoming(false) { std::memset(m_options, 0, 8); }
+  PeerInfo(const std::string& id, const SocketAddress& sa, bool incoming = false);
 
+  bool                is_incoming() const                   { return m_incoming; }
   bool                is_valid() const                      { return m_id.length() == 20 && m_sa.is_valid(); }
   bool                is_same_host(const PeerInfo& p) const { return m_sa == p.m_sa; }
 
@@ -71,12 +72,15 @@ private:
   std::string         m_id;
   SocketAddress       m_sa;
   char                m_options[8];
+
+  bool                m_incoming;
 };
 
 inline
-PeerInfo::PeerInfo(const std::string& id, const SocketAddress& sa) :
+PeerInfo::PeerInfo(const std::string& id, const SocketAddress& sa, bool incoming) :
   m_id(id),
-  m_sa(sa) {
+  m_sa(sa),
+  m_incoming(incoming) {
   std::memset(m_options, 0, 8);
 }
 

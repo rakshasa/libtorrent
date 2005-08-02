@@ -56,7 +56,6 @@ DownloadNet::DownloadNet() :
 }
 
 DownloadNet::~DownloadNet() {
-  std::for_each(m_connections.begin(), m_connections.end(), rak::call_delete<PeerConnectionBase>());
 }  
 
 void
@@ -98,57 +97,8 @@ DownloadNet::should_request(uint32_t stall) {
 
 void
 DownloadNet::send_have_chunk(uint32_t index) {
-  std::for_each(m_connections.begin(), m_connections.end(),
+  std::for_each(m_connectionList.begin(), m_connectionList.end(),
 		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_have_chunk), index));
-}
-
-bool
-DownloadNet::add_connection(SocketFd fd, const PeerInfo& p) {
-  if (std::find_if(m_connections.begin(), m_connections.end(),
-		   rak::equal(p, std::mem_fun(&PeerConnectionBase::get_peer)))
-      != m_connections.end()) {
-    return false;
-  }
-
-  if (count_connections() >= m_settings->maxPeers) {
-    return false;
-  }
-
-  PeerConnectionBase* c = m_slotCreateConnection(fd, p);
-
-  if (c == NULL)
-    throw internal_error("DownloadNet::add_connection(...) received a NULL pointer from m_slotCreateConnection");
-
-  m_connections.push_back(c);
-
-  PeerContainer::iterator itr = std::find(m_availablePeers.begin(), m_availablePeers.end(), p);
-
-  if (itr != m_availablePeers.end())
-    m_availablePeers.erase(itr);
-
-  m_signalPeerConnected.emit(Peer(c));
-
-  return true;
-}
-
-void
-DownloadNet::remove_connection(PeerConnectionBase* p) {
-  ConnectionList::iterator itr = std::find(m_connections.begin(), m_connections.end(), p);
-
-  if (itr == m_connections.end())
-    throw internal_error("Tried to remove peer connection from download that doesn't exist");
-
-  m_signalPeerDisconnected.emit(Peer(*itr));
-
-  delete *itr;
-  m_connections.erase(itr);
-
-  // TODO: Remove this when we're stable
-  if (std::find(m_connections.begin(), m_connections.end(), p) != m_connections.end())
-    throw internal_error("Duplicate PeerConnections in Download");
-
-  choke_balance();
-  connect_peers();
 }
 
 void
@@ -161,10 +111,10 @@ DownloadNet::add_available_peers(const PeerList* p) {
     // Ignore if the peer is invalid or already known.
     if (!itr->get_socket_address().is_valid() ||
 
-	std::find_if(m_connections.begin(), m_connections.end(),
+	std::find_if(m_connectionList.begin(), m_connectionList.end(),
 		     rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
 			     rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), *itr)))
-	!= m_connections.end() ||
+	!= m_connectionList.end() ||
 
 	std::find_if(m_availablePeers.begin(), m_availablePeers.end(),
 		     rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), *itr))
@@ -185,8 +135,8 @@ DownloadNet::add_available_peers(const PeerList* p) {
 void
 DownloadNet::connect_peers() {
   while (!m_availablePeers.empty() &&
-	 (signed)m_connections.size() < m_settings->minPeers &&
-	 count_connections() < m_settings->maxPeers) {
+	 m_connectionList.size() < (size_t)m_settings->minPeers &&
+	 count_connections() < m_connectionList.get_max_connections()) {
 
     m_slotStartHandshake(m_availablePeers.front());
     m_availablePeers.pop_front();
@@ -195,6 +145,15 @@ DownloadNet::connect_peers() {
 
 int
 DownloadNet::count_connections() const {
-  return m_connections.size() + m_slotCountHandshakes();
+  return m_connectionList.size() + m_slotCountHandshakes();
 }
+
+void
+DownloadNet::receive_remove_available(Peer p) {
+  PeerContainer::iterator itr = std::find(m_availablePeers.begin(), m_availablePeers.end(), p.get_ptr()->get_peer());
+
+  if (itr != m_availablePeers.end())
+    m_availablePeers.erase(itr);
+}
+
 }

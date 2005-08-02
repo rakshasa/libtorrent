@@ -43,6 +43,11 @@
 
 namespace torrent {
 
+bool
+Peer::is_incoming() const {
+  return m_ptr->get_peer().is_incoming();
+}
+
 std::string
 Peer::get_id() {
   return m_ptr->get_peer().get_id();

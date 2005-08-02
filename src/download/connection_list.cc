@@ -34,39 +34,53 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_SETTINGS_H
-#define LIBTORRENT_SETTINGS_H
+#include "config.h"
 
-#include <string>
-#include <inttypes.h>
+#include <algorithm>
+#include <rak/functional.h>
+
+#include "peer/peer_info.h"
+#include "peer/peer_connection_base.h"
+#include "torrent/exceptions.h"
+
+#include "connection_list.h"
 
 namespace torrent {
 
-class DownloadSettings {
- public:
-  DownloadSettings();
-
-  int minPeers;
-  uint32_t maxAvailable;
-
-  int chokeCycle;
-  int chokeGracePeriod;
-
-  // How long before we stall a download.
-  int stallTimeout;
-
-  // Time to wait after a choke before we consider it final.
-  int cancelTimeout;
-
-  int32_t endgameBorder;
-  uint32_t endgameRate;
-
-  static DownloadSettings& global() { return *m_global; }
-
- private:
-  static DownloadSettings* m_global;
-};
-
+void
+ConnectionList::clear() {
+  std::for_each(begin(), end(), rak::call_delete<PeerConnectionBase>());
+  Base::clear();
 }
 
-#endif // LIBTORRENT_SETTINGS_H
+bool
+ConnectionList::insert(SocketFd fd, const PeerInfo& p) {
+  if (std::find_if(begin(), end(), rak::equal(p, std::mem_fun(&PeerConnectionBase::get_peer))) != end() ||
+      size() >= m_maxConnections)
+    return false;
+
+  PeerConnectionBase* c = m_slotNewConnection(fd, p);
+
+  if (c == NULL)
+    throw internal_error("ConnectionList::insert(...) received a NULL pointer from m_slotNewConnection");
+
+  Base::push_back(c);
+  m_signalPeerConnected.emit(Peer(c));
+
+  return true;
+}
+
+void
+ConnectionList::erase(PeerConnectionBase* p) {
+  iterator itr = std::find(begin(), end(), p);
+
+  if (itr == end())
+    throw internal_error("Tried to remove peer connection from download that doesn't exist");
+
+  m_signalPeerDisconnected.emit(Peer(*itr));
+
+  delete *itr;
+  Base::erase(itr);
+}
+
+}

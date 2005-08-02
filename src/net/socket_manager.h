@@ -48,7 +48,9 @@ class SocketAddress;
 // with opening addresses. It will also make sure ip address filtering
 // gets handled.
 //
-// It closes the received socket if the connection is unwanted.
+// It closes the opened/received socket if the connection is unwanted.
+//
+// TODO: Rename received to receive.
 
 class SocketManager {
 public:

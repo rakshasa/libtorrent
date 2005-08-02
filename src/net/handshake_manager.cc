@@ -54,7 +54,7 @@ HandshakeManager::add_incoming(SocketFd fd, const SocketAddress& sa) {
   if (!socketManager.received(fd, sa).is_valid())
     return;
 
-  m_handshakes.push_back(new HandshakeIncoming(fd, PeerInfo("", sa), this));
+  m_handshakes.push_back(new HandshakeIncoming(fd, PeerInfo("", sa, true), this));
   m_size++;
 }
   

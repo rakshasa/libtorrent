@@ -111,8 +111,8 @@ void DownloadMain::stop() {
   if (!m_started)
     return;
 
-  while (!m_net.get_connections().empty())
-    m_net.remove_connection(m_net.get_connections().front());
+  while (!m_net.get_connection_list().empty())
+    m_net.get_connection_list().erase(m_net.get_connection_list().front());
 
   m_tracker->send_state(TrackerInfo::STOPPED);
   m_started = false;

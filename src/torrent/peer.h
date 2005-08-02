@@ -58,7 +58,8 @@ public:
   Peer(PeerConnectionBase* p) : m_ptr(p) {}
 
   // Does not check if it has been removed from the download.
-  bool                 is_valid()  { return m_ptr; }
+  bool                 is_valid() const { return m_ptr; }
+  bool                 is_incoming() const;
 
   std::string          get_id();
   std::string          get_dns();

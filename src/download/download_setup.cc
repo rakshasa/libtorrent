@@ -69,6 +69,10 @@ DownloadMain::setup_net() {
   // This is really _state stuff:
   m_state.slot_set_endgame(sigc::mem_fun(m_net, &DownloadNet::set_endgame));
   m_state.slot_delegated_chunks(sigc::mem_fun(m_net.get_delegator().get_chunks(), &Delegator::Chunks::size));
+
+  m_net.get_connection_list().signal_peer_connected().connect(sigc::mem_fun(m_net, &DownloadNet::receive_remove_available));
+  m_net.get_connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::choke_balance)));
+  m_net.get_connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::connect_peers)));
 }
 
 void

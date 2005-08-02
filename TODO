@@ -2,11 +2,10 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Use arbitrarily sized fd_set's. Remember to zero with memcpy.
+Make a seperate Download tracker class thing that handles re-requests
+etc. Move control logic from TrackerControl.
 
 Send mail to OpenBSD to see how they handle madvise.
-
-Write a guide to USE_VARIABLE_FDSET etc.
 
 Use a seperate function for handling epoll_ctl calls? With event and
 op as args?

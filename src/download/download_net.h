@@ -45,9 +45,9 @@
 #include "peer/peer_info.h"
 #include "torrent/peer.h"
 #include "torrent/rate.h"
-#include "utils/unordered_vector.h"
 
 #include "choke_manager.h"
+#include "connection_list.h"
 
 namespace torrent {
 
@@ -58,7 +58,6 @@ class DownloadNet {
 public:
   typedef std::deque<PeerInfo>                    PeerContainer;
   typedef std::list<PeerInfo>                     PeerList;
-  typedef unordered_vector<PeerConnectionBase*>   ConnectionList;
 
   DownloadNet();
   ~DownloadNet();
@@ -74,6 +73,7 @@ public:
 
   Delegator&          get_delegator()                          { return m_delegator; }
   ChokeManager&       get_choke_manager()                      { return m_chokeManager; }
+  ConnectionList&     get_connection_list()                    { return m_connectionList; }
 
   Rate&               get_write_rate()                         { return m_writeRate; }
   Rate&               get_read_rate()                          { return m_readRate; }
@@ -82,11 +82,7 @@ public:
 
   // Peer connections management:
 
-  ConnectionList&     get_connections()                        { return m_connections; }
   PeerContainer&      get_available_peers()                    { return m_availablePeers; }
-
-  bool                add_connection(SocketFd fd, const PeerInfo& p);
-  void                remove_connection(PeerConnectionBase* p);
 
   void                add_available_peers(const PeerList* p);
 
@@ -98,22 +94,18 @@ public:
   void                choke_cycle();
   int                 get_unchoked();
 
+  void                receive_remove_available(Peer p);
+
   // Signals and slots.
 
-  typedef sigc::signal1<void, Peer>                                    SignalPeer;
   typedef sigc::signal1<void, const std::string&>                      SignalString;
 
-  typedef sigc::slot2<PeerConnectionBase*, SocketFd, const PeerInfo&>  SlotCreateConnection;
   typedef sigc::slot1<void, const PeerInfo&>                           SlotStartHandshake;
   typedef sigc::slot1<bool, const PeerInfo&>                           SlotHasHandshake;
   typedef sigc::slot0<uint32_t>                                        SlotCountHandshakes;
 
-  SignalPeer&   signal_peer_connected()                                { return m_signalPeerConnected; }
-  SignalPeer&   signal_peer_disconnected()                             { return m_signalPeerDisconnected; }
-
   SignalString& signal_network_log()                                   { return m_signalNetworkLog; }
 
-  void          slot_create_connection(SlotCreateConnection s)         { m_slotCreateConnection = s; }
   void          slot_start_handshake(SlotStartHandshake s)             { m_slotStartHandshake = s; }
   void          slot_has_handshake(SlotHasHandshake s)                 { m_slotHasHandshake = s; }
   void          slot_count_handshakes(SlotCountHandshakes s)           { m_slotCountHandshakes = s; }
@@ -124,7 +116,7 @@ private:
 
   DownloadSettings*      m_settings;
   Delegator              m_delegator;
-  ConnectionList         m_connections;
+  ConnectionList         m_connectionList;
   PeerContainer          m_availablePeers;
 
   ChokeManager           m_chokeManager;
@@ -134,11 +126,8 @@ private:
   Rate                   m_writeRate;
   Rate                   m_readRate;
 
-  SignalPeer             m_signalPeerConnected;
-  SignalPeer             m_signalPeerDisconnected;
   SignalString           m_signalNetworkLog;
 
-  SlotCreateConnection   m_slotCreateConnection;
   SlotStartHandshake     m_slotStartHandshake;
   SlotHasHandshake       m_slotHasHandshake;
   SlotCountHandshakes    m_slotCountHandshakes;
@@ -146,17 +135,17 @@ private:
 
 inline void
 DownloadNet::choke_balance() {
-  m_chokeManager.balance(m_connections.begin(), m_connections.end());
+  m_chokeManager.balance(m_connectionList.begin(), m_connectionList.end());
 }
 
 inline void
 DownloadNet::choke_cycle() {
-  m_chokeManager.cycle(m_connections.begin(), m_connections.end());
+  m_chokeManager.cycle(m_connectionList.begin(), m_connectionList.end());
 }
 
 inline int
 DownloadNet::get_unchoked() {
-  return m_chokeManager.get_unchoked(m_connections.begin(), m_connections.end());
+  return m_chokeManager.get_unchoked(m_connectionList.begin(), m_connectionList.end());
 }
 
 }

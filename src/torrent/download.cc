@@ -224,12 +224,12 @@ Download::get_peers_min() const {
 
 uint32_t
 Download::get_peers_max() const {
-  return m_ptr->get_main().get_state().get_settings().maxPeers;
+  return m_ptr->get_main().get_net().get_connection_list().get_max_connections();
 }
 
 uint32_t
 Download::get_peers_connected() const {
-  return m_ptr->get_main().get_net().get_connections().size();
+  return m_ptr->get_main().get_net().get_connection_list().size();
 }
 
 uint32_t
@@ -262,10 +262,8 @@ Download::set_peers_min(uint32_t v) {
 
 void
 Download::set_peers_max(uint32_t v) {
-  if (v >= 0 && v < (1 << 16)) {
-    m_ptr->get_main().get_state().get_settings().maxPeers = v;
-    // TODO: Do disconnects here if nessesary
-  }
+  if (v >= 0 && v < (1 << 16))
+    m_ptr->get_main().get_net().get_connection_list().set_max_connections(v);
 }
 
 void
@@ -338,9 +336,7 @@ Download::get_seen() const {
 void
 Download::set_connection_type(const std::string& name) {
   if (name == "default")
-    m_ptr->get_main().get_net().slot_create_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault),
-								  &m_ptr->get_main().get_state(),
-								  &m_ptr->get_main().get_net()));
+    m_ptr->get_main().get_net().get_connection_list().slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &m_ptr->get_main().get_state(), &m_ptr->get_main().get_net()));
   else
     throw input_error("set_peer_connection_type(...) received invalid type name");
 }
@@ -365,29 +361,28 @@ Download::update_priorities() {
     pos += i->get_size();
   }
 
-  std::for_each(m_ptr->get_main().get_net().get_connections().begin(),
-		m_ptr->get_main().get_net().get_connections().end(),
+  std::for_each(m_ptr->get_main().get_net().get_connection_list().begin(),
+		m_ptr->get_main().get_net().get_connection_list().end(),
 		std::mem_fun(&PeerConnectionBase::update_interested));
 }
 
 void
 Download::peer_list(PList& pList) {
-  std::for_each(m_ptr->get_main().get_net().get_connections().begin(),
-		m_ptr->get_main().get_net().get_connections().end(),
+  std::for_each(m_ptr->get_main().get_net().get_connection_list().begin(),
+		m_ptr->get_main().get_net().get_connection_list().end(),
 		rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
 }
 
 Peer
 Download::peer_find(const std::string& id) {
-  DownloadNet::ConnectionList::iterator itr =
-    std::find_if(m_ptr->get_main().get_net().get_connections().begin(),
-		 m_ptr->get_main().get_net().get_connections().end(),
+  ConnectionList::iterator itr =
+    std::find_if(m_ptr->get_main().get_net().get_connection_list().begin(),
+		 m_ptr->get_main().get_net().get_connection_list().end(),
 		 
 		 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
 					std::mem_fun_ref(&PeerInfo::get_id))));
 
-  return itr != m_ptr->get_main().get_net().get_connections().end() ?
-    *itr : NULL;
+  return itr != m_ptr->get_main().get_net().get_connection_list().end() ? *itr : NULL;
 }
 
 sigc::connection
@@ -402,12 +397,12 @@ Download::signal_hash_done(Download::SlotVoid s) {
 
 sigc::connection
 Download::signal_peer_connected(Download::SlotPeer s) {
-  return m_ptr->get_main().get_net().signal_peer_connected().connect(s);
+  return m_ptr->get_main().get_net().get_connection_list().signal_peer_connected().connect(s);
 }
 
 sigc::connection
 Download::signal_peer_disconnected(Download::SlotPeer s) {
-  return m_ptr->get_main().get_net().signal_peer_disconnected().connect(s);
+  return m_ptr->get_main().get_net().get_connection_list().signal_peer_disconnected().connect(s);
 }
 
 sigc::connection
