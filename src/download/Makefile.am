@@ -1,6 +1,8 @@
 noinst_LTLIBRARIES = libsub_download.la
 
 libsub_download_la_SOURCES = \
+	available_list.cc \
+	available_list.h \
 	choke_manager.cc \
 	choke_manager.h \
 	connection_list.cc \

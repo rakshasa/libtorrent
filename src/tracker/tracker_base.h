@@ -41,17 +41,17 @@
 #include <inttypes.h>
 #include <sigc++/slot.h>
 
-#include "peer/peer_info.h"
+#include "net/socket_address.h"
 #include "tracker_info.h"
 
 namespace torrent {
 
 class TrackerBase {
 public:
-  typedef std::list<PeerInfo>                PeerList;
-  typedef sigc::slot1<void, const PeerList*> SlotPeerList;
-  typedef sigc::slot1<void, std::string>     SlotString;
-  typedef sigc::slot1<void, int>             SlotInt;
+  typedef std::list<SocketAddress>        AddressList;
+  typedef sigc::slot1<void, AddressList*> SlotAddressList;
+  typedef sigc::slot1<void, std::string>  SlotString;
+  typedef sigc::slot1<void, int>          SlotInt;
 
   typedef enum {
     TRACKER_NONE,
@@ -84,7 +84,7 @@ public:
   const std::string&  get_tracker_id()                      { return m_trackerId; }
   void                set_tracker_id(const std::string& id) { m_trackerId = id; }
 
-  void                slot_success(SlotPeerList s)          { m_slotSuccess = s; }
+  void                slot_success(SlotAddressList s)       { m_slotSuccess = s; }
   void                slot_failed(SlotString s)             { m_slotFailed = s; }
   void                slot_log(SlotString s)                { m_slotLog = s; }
   void                slot_set_interval(SlotInt s)          { m_slotSetInterval = s; }
@@ -101,7 +101,7 @@ protected:
 
   std::string         m_trackerId;
 
-  SlotPeerList        m_slotSuccess;
+  SlotAddressList     m_slotSuccess;
   SlotString          m_slotFailed;
   SlotString          m_slotLog;
   SlotInt             m_slotSetInterval;

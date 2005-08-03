@@ -55,9 +55,6 @@ DownloadNet::DownloadNet() :
   m_readRate(60) {
 }
 
-DownloadNet::~DownloadNet() {
-}  
-
 void
 DownloadNet::set_endgame(bool b) {
   m_endgame = b;
@@ -102,44 +99,13 @@ DownloadNet::send_have_chunk(uint32_t index) {
 }
 
 void
-DownloadNet::add_available_peers(const PeerList* p) {
-  // Make this a FIFO queue so we keep relatively fresh peers in the
-  // deque. Remove old peers first when we overflow.
-
-  for (PeerList::const_iterator itr = p->begin(); itr != p->end(); ++itr) {
-
-    // Ignore if the peer is invalid or already known.
-    if (!itr->get_socket_address().is_valid() ||
-
-	std::find_if(m_connectionList.begin(), m_connectionList.end(),
-		     rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
-			     rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), *itr)))
-	!= m_connectionList.end() ||
-
-	std::find_if(m_availablePeers.begin(), m_availablePeers.end(),
-		     rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), *itr))
-	!= m_availablePeers.end() ||
-
-	m_slotHasHandshake(*itr))
-      continue;
-
-    m_availablePeers.push_back(*itr);
-  }
-
-  while (m_availablePeers.size() > m_settings->maxAvailable)
-    m_availablePeers.pop_front();
-
-  connect_peers();
-}
-
-void
 DownloadNet::connect_peers() {
-  while (!m_availablePeers.empty() &&
+  while (!m_availableList.empty() &&
 	 m_connectionList.size() < (size_t)m_settings->minPeers &&
 	 count_connections() < m_connectionList.get_max_connections()) {
 
-    m_slotStartHandshake(m_availablePeers.front());
-    m_availablePeers.pop_front();
+    m_slotStartHandshake(m_availableList.front());
+    m_availableList.pop_front();
   }
 }
 
@@ -150,10 +116,11 @@ DownloadNet::count_connections() const {
 
 void
 DownloadNet::receive_remove_available(Peer p) {
-  PeerContainer::iterator itr = std::find(m_availablePeers.begin(), m_availablePeers.end(), p.get_ptr()->get_peer());
+  AvailableList::iterator itr = std::find(m_availableList.begin(), m_availableList.end(),
+					  p.get_ptr()->get_peer().get_socket_address());
 
-  if (itr != m_availablePeers.end())
-    m_availablePeers.erase(itr);
+  if (itr != m_availableList.end())
+    m_availableList.erase(itr);
 }
 
 }

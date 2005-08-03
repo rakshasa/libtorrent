@@ -83,4 +83,31 @@ ConnectionList::erase(PeerConnectionBase* p) {
   Base::erase(itr);
 }
 
+struct _ConnectionListSort {
+  bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
+    return p1->get_peer().get_socket_address() < p2->get_peer().get_socket_address();
+  }
+};
+
+void
+ConnectionList::remove_connected(AddressList* l) {
+  // It would be more efficient if we sorted both lists according to
+  // address, then iterated the lesser iterator while removing from
+  // 'l' upon finding matches.
+
+  std::sort(begin(), end(), _ConnectionListSort());
+  l->sort();
+
+  iterator itr1 = begin();
+  AddressList::iterator itr2 = l->begin();
+
+  while (itr1 != end() && itr2 != l->end())
+    if ((*itr1)->get_peer().get_socket_address() < *itr2)
+      ++itr1;
+    else if (*itr2 < (*itr1)->get_peer().get_socket_address())
+      ++itr2;
+    else
+      itr2 = l->erase(itr2);
+}
+
 }

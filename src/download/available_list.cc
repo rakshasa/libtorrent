@@ -34,50 +34,36 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_HTTP_H
-#define LIBTORRENT_TRACKER_TRACKER_HTTP_H
+#include "config.h"
 
-#include <iosfwd>
+#include <algorithm>
+#include <iterator>
 
-#include "torrent/bencode.h"
-
-#include "tracker_base.h"
+#include "available_list.h"
 
 namespace torrent {
 
-class Http;
+// Consider the possiblity of sorting this list, and retreiving a
+// random address?
 
-class TrackerHttp : public TrackerBase {
-public:
-  TrackerHttp(TrackerInfo* info, const std::string& url);
-  ~TrackerHttp();
-  
-  virtual bool        is_busy() const;
+void
+AvailableList::push_back(const SocketAddress& sa) {
+  if (std::find(begin(), end(), sa) != end())
+    return;
 
-  virtual void        send_state(TrackerInfo::State state,
-				 uint64_t down,
-				 uint64_t up,
-				 uint64_t left);
-
-  virtual void        close();
-
-  virtual Type        get_type() const;
-
-private:
-  void                receive_done();
-  void                receive_failed(std::string msg);
-
-  static void         escape_string(const std::string& src, std::ostream& stream);
-
-  static void         parse_address(const Bencode& b, SocketAddress* sa);
-
-  void                parse_address_normal(AddressList& l, const Bencode::List& b);
-  void                parse_address_compact(AddressList& l, const std::string& s);
-
-  Http*               m_get;
-  std::stringstream*  m_data;
-};
-
+  Base::push_back(sa);
 }
 
-#endif
+void
+AvailableList::insert(AddressList* l) {
+  if (size() > m_maxSize)
+    return;
+
+  // We don't want to sort this list, so are we forced to use this
+  // inefficient way of avoiding duplicates?
+  l->sort();
+
+  std::unique_copy(l->begin(), l->end(), std::back_inserter(*this));
+}
+
+}

@@ -34,82 +34,58 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
-#define LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
+#ifndef LIBTORRENT_DOWNLOAD_AVAILABLE_LIST_H
+#define LIBTORRENT_DOWNLOAD_AVAILABLE_LIST_H
 
+#include <deque>
 #include <list>
 #include <sigc++/signal.h>
 #include <sigc++/slot.h>
 
 #include "net/socket_address.h"
-#include "net/socket_fd.h"
-#include "torrent/peer.h"
-#include "utils/unordered_vector.h"
 
 namespace torrent {
 
-class PeerConnectionBase;
-class PeerInfo;
-
-class ConnectionList : private unordered_vector<PeerConnectionBase*> {
+class AvailableList : private std::deque<SocketAddress> {
 public:
-  typedef unordered_vector<PeerConnectionBase*> Base;
-  typedef std::list<SocketAddress>              AddressList;
+  typedef std::deque<SocketAddress> Base;
+  typedef std::list<SocketAddress>  AddressList;
 
   using Base::value_type;
   using Base::reference;
+  using Base::const_reference;
 
   using Base::iterator;
+  using Base::const_iterator;
   using Base::reverse_iterator;
   using Base::size;
   using Base::empty;
+  using Base::clear;
+  using Base::erase;
 
   using Base::front;
   using Base::back;
+  using Base::pop_front;
+  using Base::pop_back;
   using Base::begin;
   using Base::end;
   using Base::rbegin;
   using Base::rend;
-  
-  ConnectionList() : m_maxConnections(100) {}
-  ~ConnectionList() { clear(); }
 
-  // Does not do the usual cleanup done by 'erase'.
-  void                clear();
+  AvailableList() : m_maxSize(1000) {}
 
-  // Returns false if the connection was not added, the caller is then
-  // responsible for cleaning up 'fd'.
-  bool                insert(SocketFd fd, const PeerInfo& p);
-  void                erase(PeerConnectionBase* p);
+  // Fuzzy size limit.
+  uint32_t            get_max_size() const     { return m_maxSize; }
+  void                set_max_size(uint32_t s) { m_maxSize = s; }
 
-  uint32_t            get_max_connections() const                      { return m_maxConnections; }
-  void                set_max_connections(uint32_t v)                  { m_maxConnections = v; }
+  // This push is somewhat inefficient as it iterates through the
+  // whole container to see if the address already exists.
+  void                push_back(const SocketAddress& sa);
 
-  void                remove_connected(AddressList* l);
-
-  typedef sigc::signal1<void, Peer>                                    SignalPeer;
-  typedef sigc::slot2<PeerConnectionBase*, SocketFd, const PeerInfo&>  SlotNewConnection;
-
-  // When a peer is connected it should be removed from the list of
-  // available peers.
-  SignalPeer&         signal_peer_connected()                          { return m_signalPeerConnected; }
-
-  // When a peer is disconnected the torrent should rebalance the
-  // choked peers and connect to new ones if possible.
-  SignalPeer&         signal_peer_disconnected()                       { return m_signalPeerDisconnected; }
-
-  void                slot_new_connection(SlotNewConnection s)         { m_slotNewConnection = s; }
+  void                insert(AddressList* l);
 
 private:
-  ConnectionList(const ConnectionList&);
-  void operator = (const ConnectionList&);
-
-  uint32_t            m_maxConnections;
-
-  SignalPeer          m_signalPeerConnected;
-  SignalPeer          m_signalPeerDisconnected;
-
-  SlotNewConnection   m_slotNewConnection;
+  uint32_t            m_maxSize;
 };
 
 }

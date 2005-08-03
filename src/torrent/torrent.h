@@ -71,12 +71,11 @@ void                perform();
 
 bool                is_inactive();
 
-// Change the address reported to the tracker.
-const std::string&  get_address();
-void                set_address(const std::string& addr);
+std::string         get_local_address();
+void                set_local_address(const std::string& addr);
 
 // Bind the sockets to a specific network device.
-const std::string&  get_bind_address();
+std::string         get_bind_address();
 void                set_bind_address(const std::string& addr);
 
 uint16_t            get_listen_port();

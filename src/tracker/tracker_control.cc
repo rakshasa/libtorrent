@@ -49,14 +49,11 @@ namespace torrent {
 
 // m_tries is -1 if last connection wasn't successfull or we haven't tried yet.
 
-TrackerControl::TrackerControl(const std::string& hash, uint32_t key) :
+TrackerControl::TrackerControl() :
   m_tries(-1),
   m_interval(1800),
   m_state(TrackerInfo::STOPPED) {
   
-  m_info.set_hash(hash);
-  m_info.set_key(key);
-
   m_itr = m_list.end();
 
   m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerControl::query_current));
@@ -152,7 +149,7 @@ TrackerControl::cancel() {
 }
 
 void
-TrackerControl::receive_done(const PeerList* l) {
+TrackerControl::receive_done(AddressList* l) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
@@ -165,7 +162,7 @@ TrackerControl::receive_done(const PeerList* l) {
     taskScheduler.insert(&m_taskTimeout, Timer::cache() + (int64_t)m_interval * 1000000);
   }
 
-  m_signalPeerList.emit(l);
+  m_signalSuccess.emit(l);
 }
 
 void

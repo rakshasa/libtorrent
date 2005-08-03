@@ -47,8 +47,8 @@
 
 namespace torrent {
 
-class PeerInfo;
 class Handshake;
+class PeerInfo;
 
 class HandshakeManager {
 public:
@@ -59,7 +59,7 @@ public:
 
   void                add_incoming(SocketFd fd, const SocketAddress& sa);
 
-  void                add_outgoing(const PeerInfo& p,
+  void                add_outgoing(const SocketAddress& sa,
 				   const std::string& infoHash,
 				   const std::string& ourId);
 
@@ -70,7 +70,7 @@ public:
 
   void                set_bind_address(const SocketAddress& sa) { m_bindAddress = sa; }
 
-  bool                has_peer(const PeerInfo& p);
+  bool                has_address(const SocketAddress& sa);
 
   // File descriptor
   // Info hash

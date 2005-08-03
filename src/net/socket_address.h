@@ -92,6 +92,7 @@ public:
   size_t              sizeof_port() const                     { return sizeof(uint16_t); }
 
   bool                operator == (const SocketAddress& sa) const;
+  bool                operator < (const SocketAddress& sa) const;
 
 private:
   sockaddr_in         m_sockaddr;
@@ -112,8 +113,15 @@ SocketAddress::SocketAddress(const sockaddr_in& sa) {
 inline bool
 SocketAddress::operator == (const SocketAddress& sa) const {
   return
-    m_sockaddr.sin_port == sa.m_sockaddr.sin_port &&
-    m_sockaddr.sin_addr.s_addr == sa.m_sockaddr.sin_addr.s_addr;
+    m_sockaddr.sin_addr.s_addr == sa.m_sockaddr.sin_addr.s_addr &&
+    m_sockaddr.sin_port == sa.m_sockaddr.sin_port;
+}
+
+inline bool
+SocketAddress::operator < (const SocketAddress& sa) const {
+  return
+    m_sockaddr.sin_addr.s_addr < sa.m_sockaddr.sin_addr.s_addr &&
+    m_sockaddr.sin_port < sa.m_sockaddr.sin_port;
 }
 
 }

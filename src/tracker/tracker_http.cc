@@ -78,11 +78,11 @@ void
 TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
-  if (m_info == NULL || m_info->get_me() == NULL)
-    throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info or m_me");
+  if (m_info == NULL)
+    throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info");
 
-  if (m_info->get_me()->get_id().length() != 20 ||
-      m_info->get_me()->get_port() == 0 ||
+  if (m_info->get_local_id().length() != 20 ||
+      m_info->get_local_address().get_port() == 0 ||
       m_info->get_hash().length() != 20)
     throw internal_error("Send state with TrackerHttp with bad hash, id or port");
 
@@ -92,7 +92,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   escape_string(m_info->get_hash(), s);
 
   s << "&peer_id=";
-  escape_string(m_info->get_me()->get_id(), s);
+  escape_string(m_info->get_local_id(), s);
 
   s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->get_key() << std::dec;
 
@@ -101,8 +101,8 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
     escape_string(m_trackerId, s);
   }
 
-  if (!m_info->get_me()->get_socket_address().is_address_any())
-    s << "&ip=" << m_info->get_me()->get_address();
+  if (!m_info->get_local_address().is_address_any())
+    s << "&ip=" << m_info->get_local_address().get_address();
 
   if (m_info->get_compact())
     s << "&compact=1";
@@ -110,7 +110,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   if (m_info->get_numwant() >= 0)
     s << "&numwant=" << m_info->get_numwant();
 
-  s << "&port=" << m_info->get_me()->get_port()
+  s << "&port=" << m_info->get_local_address().get_port()
     << "&uploaded=" << up
     << "&downloaded=" << down
     << "&left=" << left;
@@ -201,20 +201,20 @@ TrackerHttp::receive_done() {
   if (b.has_key("tracker id") && b["tracker id"].is_string())
     m_trackerId = b["tracker id"].as_string();
 
-  PeerList plist;
+  AddressList l;
 
   try {
     if (b["peers"].is_string())
-      parse_peers_compact(plist, b["peers"].as_string());
+      parse_address_compact(l, b["peers"].as_string());
     else
-      parse_peers_normal(plist, b["peers"].as_list());
+      parse_address_normal(l, b["peers"].as_list());
 
   } catch (bencode_error& e) {
     return receive_failed(e.what());
   }
 
   close();
-  m_slotSuccess(&plist);
+  m_slotSuccess(&l);
 }
 
 void
@@ -224,44 +224,34 @@ TrackerHttp::receive_failed(std::string msg) {
   m_slotFailed(msg);
 }
 
-PeerInfo
-TrackerHttp::parse_peer(const Bencode& b) {
-  PeerInfo p;
-	
+inline void
+TrackerHttp::parse_address(const Bencode& b, SocketAddress* sa) {
   if (!b.is_map())
-    return p;
+    return;
 
-  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
-    if (itr->first == "ip" &&
-	itr->second.is_string()) {
-      p.get_socket_address().set_address(itr->second.as_string());
-	    
-    } else if (itr->first == "peer id" &&
-	       itr->second.is_string()) {
-      p.set_id(itr->second.as_string());
-	    
-    } else if (itr->first == "port" &&
-	       itr->second.is_value()) {
-      p.get_socket_address().set_port(itr->second.as_value());
-    }
-  }
-	
-  return p;
+  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr)
+    // We ignore the "peer id" field, we don't need it.
+    if (itr->first == "ip" && itr->second.is_string())
+      sa->set_address(itr->second.as_string());
+
+    else if (itr->first == "port" && itr->second.is_value())
+      sa->set_port(itr->second.as_value());
 }
 
 void
-TrackerHttp::parse_peers_normal(PeerList& l, const Bencode::List& b) {
+TrackerHttp::parse_address_normal(AddressList& l, const Bencode::List& b) {
   for (Bencode::List::const_iterator itr = b.begin(); itr != b.end(); ++itr) {
-    PeerInfo p = parse_peer(*itr);
+    SocketAddress sa;
+    parse_address(*itr, &sa);
 	  
-    if (p.get_socket_address().is_valid())
-      l.push_back(p);
+    if (sa.is_valid())
+      l.push_back(sa);
   }
 }  
 
 void
-TrackerHttp::parse_peers_compact(PeerList& l, const std::string& s) {
-  for (std::string::const_iterator itr = s.begin(); itr + 6 <= s.end();) {
+TrackerHttp::parse_address_compact(AddressList& l, const std::string& s) {
+  for (std::string::const_iterator itr = s.begin(), last = s.end(); itr + 6 <= last; ) {
     SocketAddress sa;
 
     std::copy(itr, itr + sa.sizeof_address(), sa.begin_address());
@@ -269,7 +259,8 @@ TrackerHttp::parse_peers_compact(PeerList& l, const std::string& s) {
     std::copy(itr, itr + sa.sizeof_port(), sa.begin_port());
     itr += sa.sizeof_port();
 
-    l.push_back(PeerInfo("", sa));
+    if (sa.is_valid())
+      l.push_back(sa);
   }
 }
 

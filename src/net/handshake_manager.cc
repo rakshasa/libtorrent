@@ -59,15 +59,15 @@ HandshakeManager::add_incoming(SocketFd fd, const SocketAddress& sa) {
 }
   
 void
-HandshakeManager::add_outgoing(const PeerInfo& p,
+HandshakeManager::add_outgoing(const SocketAddress& sa,
 			       const std::string& infoHash,
 			       const std::string& ourId) {
-  SocketFd fd;
+  SocketFd fd = socketManager.open(sa, m_bindAddress);
 
-  if (!(fd = socketManager.open(p.get_socket_address(), m_bindAddress)).is_valid())
+  if (!fd.is_valid())
     return;
 
-  m_handshakes.push_back(new HandshakeOutgoing(fd, this, p, infoHash, ourId));
+  m_handshakes.push_back(new HandshakeOutgoing(fd, this, PeerInfo("", sa, false), infoHash, ourId));
   m_size++;
 }
 
@@ -86,10 +86,10 @@ HandshakeManager::get_size_hash(const std::string& hash) {
 }
 
 bool
-HandshakeManager::has_peer(const PeerInfo& p) {
+HandshakeManager::has_address(const SocketAddress& sa) {
   return std::find_if(m_handshakes.begin(), m_handshakes.end(),
-		      rak::on(std::mem_fun(&Handshake::get_peer),
-			      rak::bind2nd(std::mem_fun_ref(&PeerInfo::is_same_host), p)))
+		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::get_peer),
+					     std::mem_fun_ref(&PeerInfo::get_socket_address))))
     != m_handshakes.end();
 }
 

@@ -40,9 +40,9 @@
 #include <string>
 #include <inttypes.h>
 
-namespace torrent {
+#include "net/socket_address.h"
 
-class PeerInfo;
+namespace torrent {
 
 class TrackerInfo {
 public:
@@ -53,34 +53,37 @@ public:
     STOPPED
   };
 
-  TrackerInfo() : m_key(0), m_compact(true), m_numwant(-1), m_me(NULL) {}
+  TrackerInfo() : m_key(0), m_compact(true), m_numwant(-1) {}
 
-  const std::string& get_hash() const                  { return m_hash; }
-  void               set_hash(const std::string& hash) { m_hash = hash; }
+  const std::string&  get_hash() const                             { return m_hash; }
+  void                set_hash(const std::string& hash)            { m_hash = hash; }
 
-  uint32_t           get_key() const                   { return m_key; }
-  void               set_key(uint32_t key)             { m_key = key; }
+  const std::string&  get_local_id() const                         { return m_localId; }
+  void                set_local_id(const std::string& id)          { m_localId = id; }
 
-  bool               get_compact() const               { return m_compact; }
-  int32_t            get_numwant() const               { return m_numwant; }
+  SocketAddress&      get_local_address()                          { return m_localAddress; }
+  void                set_local_address(const SocketAddress& sa)   { m_localAddress = sa; }
 
-  void               set_compact(bool c)               { m_compact = c; }
-  void               set_numwant(int32_t n)            { m_numwant = n; }
+  uint32_t            get_key() const                              { return m_key; }
+  void                set_key(uint32_t key)                        { m_key = key; }
+
+  bool                get_compact() const                          { return m_compact; }
+  int32_t             get_numwant() const                          { return m_numwant; }
+
+  void                set_compact(bool c)                          { m_compact = c; }
+  void                set_numwant(int32_t n)                       { m_numwant = n; }
   
-  const PeerInfo*    get_me() const                    { return m_me; }
-  void               set_me(const PeerInfo* me)        { m_me = me; }
-
-  uint32_t           get_udp_timeout() const           { return 30; }
-  uint32_t           get_udp_tries() const             { return 2; }
+  uint32_t            get_udp_timeout() const                      { return 30; }
+  uint32_t            get_udp_tries() const                        { return 2; }
 
 private:
-  std::string        m_hash;
-  uint32_t           m_key;
+  std::string         m_hash;
+  std::string         m_localId;
+  SocketAddress       m_localAddress;
 
-  bool               m_compact;
-  int32_t            m_numwant;
-
-  const PeerInfo*    m_me;
+  uint32_t            m_key;
+  bool                m_compact;
+  int32_t             m_numwant;
 };
 
 }

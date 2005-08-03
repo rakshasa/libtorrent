@@ -36,7 +36,6 @@
 
 #include "config.h"
 
-#include <stdlib.h>
 #include <sigc++/signal.h>
 #include <sigc++/hide.h>
 #include <sigc++/bind.h>
@@ -77,8 +76,12 @@ DownloadMain::setup_net() {
 
 void
 DownloadMain::setup_tracker() {
-  m_tracker = new TrackerControl(m_hash, random());
-  m_tracker->get_info().set_me(&m_me);
+  m_tracker = new TrackerControl();
+
+  // This must be done before adding to available addresses.
+  m_tracker->signal_success().connect(sigc::mem_fun(m_net.get_connection_list(), &ConnectionList::remove_connected));
+  m_tracker->signal_success().connect(sigc::mem_fun(m_net.get_available_list(), &AvailableList::insert));
+  m_tracker->signal_success().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::connect_peers)));
 
   m_tracker->slot_stat_down(sigc::mem_fun(m_net.get_read_rate(), &Rate::total));
   m_tracker->slot_stat_up(sigc::mem_fun(m_net.get_write_rate(), &Rate::total));
@@ -89,7 +92,6 @@ void
 DownloadMain::setup_start() {
   m_connectionChunkPassed = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
   m_connectionChunkFailed = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
-  m_connectionAddAvailablePeers = m_tracker->signal_peers().connect(sigc::mem_fun(m_net, &DownloadNet::add_available_peers));
 
   taskScheduler.insert(&m_taskChokeCycle, Timer::cache() + m_state.get_settings().chokeCycle * 2);
   m_state.get_content().block_download_done(false);
@@ -99,7 +101,6 @@ void
 DownloadMain::setup_stop() {
   m_connectionChunkPassed.disconnect();
   m_connectionChunkFailed.disconnect();
-  m_connectionAddAvailablePeers.disconnect();
 
   taskScheduler.erase(&m_taskChokeCycle);
   m_state.get_content().block_download_done(true);

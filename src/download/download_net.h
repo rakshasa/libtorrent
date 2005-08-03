@@ -41,11 +41,12 @@
 #include <inttypes.h>
 
 #include "content/delegator.h"
+#include "net/socket_address.h"
 #include "net/socket_fd.h"
-#include "peer/peer_info.h"
 #include "torrent/peer.h"
 #include "torrent/rate.h"
 
+#include "available_list.h"
 #include "choke_manager.h"
 #include "connection_list.h"
 
@@ -56,11 +57,7 @@ class PeerConnectionBase;
 
 class DownloadNet {
 public:
-  typedef std::deque<PeerInfo>                    PeerContainer;
-  typedef std::list<PeerInfo>                     PeerList;
-
   DownloadNet();
-  ~DownloadNet();
 
   uint32_t            pipe_size(const Rate& r);
 
@@ -73,18 +70,14 @@ public:
 
   Delegator&          get_delegator()                          { return m_delegator; }
   ChokeManager&       get_choke_manager()                      { return m_chokeManager; }
+
+  AvailableList&      get_available_list()                     { return m_availableList; }
   ConnectionList&     get_connection_list()                    { return m_connectionList; }
 
   Rate&               get_write_rate()                         { return m_writeRate; }
   Rate&               get_read_rate()                          { return m_readRate; }
 
   void                send_have_chunk(uint32_t index);
-
-  // Peer connections management:
-
-  PeerContainer&      get_available_peers()                    { return m_availablePeers; }
-
-  void                add_available_peers(const PeerList* p);
 
   void                connect_peers();
 
@@ -100,8 +93,8 @@ public:
 
   typedef sigc::signal1<void, const std::string&>                      SignalString;
 
-  typedef sigc::slot1<void, const PeerInfo&>                           SlotStartHandshake;
-  typedef sigc::slot1<bool, const PeerInfo&>                           SlotHasHandshake;
+  typedef sigc::slot1<void, const SocketAddress&>                      SlotStartHandshake;
+  typedef sigc::slot1<bool, const SocketAddress&>                      SlotHasHandshake;
   typedef sigc::slot0<uint32_t>                                        SlotCountHandshakes;
 
   SignalString& signal_network_log()                                   { return m_signalNetworkLog; }
@@ -116,8 +109,9 @@ private:
 
   DownloadSettings*      m_settings;
   Delegator              m_delegator;
+
+  AvailableList          m_availableList;
   ConnectionList         m_connectionList;
-  PeerContainer          m_availablePeers;
 
   ChokeManager           m_chokeManager;
 

@@ -70,10 +70,8 @@ public:
   const std::string&  get_name() const                         { return m_name; }
   void                set_name(const std::string& s)           { m_name = s; }
 
-  const std::string&  get_hash() const                         { return m_hash; }
-  void                set_hash(const std::string& s)           { m_hash = s; }
-
-  PeerInfo&           get_me()                                 { return m_me; }
+//   const std::string&  get_hash() const                         { return m_hash; }
+//   void                set_hash(const std::string& s)           { m_hash = s; }
 
   DownloadState&      get_state()                              { return m_state; }
   DownloadNet&        get_net()                                { return m_net; }
@@ -102,10 +100,7 @@ private:
   TrackerControl*     m_tracker;
 
   std::string         m_name;
-  std::string         m_hash;
 
-  PeerInfo            m_me;
-  
   bool                m_checked;
   bool                m_started;
 

@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <stdlib.h>
 #include <sigc++/bind.h>
 
 #include "torrent/exceptions.h"
@@ -50,9 +51,15 @@
 namespace torrent {
 
 void
-DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
-  m_main.get_me().set_id(id);
-  m_main.set_hash(hash);
+DownloadWrapper::initialize(const std::string& hash, const std::string& id, const SocketAddress& sa) {
+  m_main.setup_net();
+  m_main.setup_delegator();
+  m_main.setup_tracker();
+
+  m_main.get_tracker().get_info().set_hash(hash);
+  m_main.get_tracker().get_info().set_local_id(id);
+  m_main.get_tracker().get_info().set_local_address(sa);
+  m_main.get_tracker().get_info().set_key(random());
 
   // Info hash must be calculate from here on.
   m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.get_state().get_content().get_storage()));
@@ -60,10 +67,6 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   // Connect various signals and slots.
   m_hash->signal_chunk().connect(sigc::mem_fun(m_main.get_state(), &DownloadState::receive_hash_done));
   m_hash->signal_torrent().connect(sigc::mem_fun(m_main, &DownloadMain::receive_initial_hash));
-
-  m_main.setup_net();
-  m_main.setup_delegator();
-  m_main.setup_tracker();
 }
 
 void
@@ -206,9 +209,9 @@ DownloadWrapper::set_file_manager(FileManager* f) {
 
 void
 DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
-  m_main.get_net().slot_has_handshake(sigc::mem_fun(*h, &HandshakeManager::has_peer));
+  m_main.get_net().slot_has_handshake(sigc::mem_fun(*h, &HandshakeManager::has_address));
   m_main.get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::get_size_hash), get_hash()));
-  m_main.get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), m_main.get_me().get_id()));
+  m_main.get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), get_local_id()));
 }
 
 void

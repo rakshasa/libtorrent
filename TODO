@@ -2,6 +2,10 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Move Hanshake* to peer/
+
+Add an intersection version off HandshakeManager::has_address()?
+
 Make a seperate Download tracker class thing that handles re-requests
 etc. Move control logic from TrackerControl.
 

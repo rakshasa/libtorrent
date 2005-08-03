@@ -262,17 +262,17 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_32(m_transactionId = random());
 
   m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
-  m_writeBuffer->write_range(m_info->get_me()->get_id().begin(), m_info->get_me()->get_id().end());
+  m_writeBuffer->write_range(m_info->get_local_id().begin(), m_info->get_local_id().end());
 
   m_writeBuffer->write_64(m_sendDown);
   m_writeBuffer->write_64(m_sendLeft);
   m_writeBuffer->write_64(m_sendUp);
   m_writeBuffer->write_32(m_sendState);
 
-  m_writeBuffer->write_32(m_info->get_me()->get_socket_address().get_addr_in_addr());
+  m_writeBuffer->write_32(m_info->get_local_address().get_addr_in_addr());
   m_writeBuffer->write_32(m_info->get_key());
   m_writeBuffer->write_32(m_info->get_numwant());
-  m_writeBuffer->write_16(m_info->get_me()->get_port());
+  m_writeBuffer->write_16(m_info->get_local_address().get_port());
 
   m_writeBuffer->prepare_end();
 
@@ -302,7 +302,7 @@ TrackerUdp::process_announce_output() {
   m_readBuffer->read_32(); // leechers
   m_readBuffer->read_32(); // seeders
 
-  PeerList plist;
+  AddressList l;
 
   while (m_readBuffer->position() + 6 <= m_readBuffer->end()) {
     SocketAddress sa;
@@ -310,10 +310,10 @@ TrackerUdp::process_announce_output() {
     m_readBuffer->read_range(sa.begin_address(), sa.end_address());
     m_readBuffer->read_range(sa.begin_port(), sa.end_port());
 
-    plist.push_back(PeerInfo("", sa));
+    l.push_back(sa);
   }
 
-  m_slotSuccess(&plist);
+  m_slotSuccess(&l);
   return true;
 }
   

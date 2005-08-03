@@ -126,12 +126,12 @@ Download::get_name() const {
 
 std::string
 Download::get_hash() const {
-  return m_ptr ? m_ptr->get_main().get_hash() : "";
+  return m_ptr ? m_ptr->get_hash() : "";
 }
 
 std::string
 Download::get_id() const {
-  return m_ptr ? m_ptr->get_main().get_me().get_id() : "";
+  return m_ptr ? m_ptr->get_main().get_tracker().get_info().get_local_id() : "";
 }
 
 uint32_t
@@ -234,7 +234,7 @@ Download::get_peers_connected() const {
 
 uint32_t
 Download::get_peers_not_connected() const {
-  return m_ptr->get_main().get_net().get_available_peers().size();
+  return m_ptr->get_main().get_net().get_available_list().size();
 }
 
 uint32_t
@@ -407,7 +407,7 @@ Download::signal_peer_disconnected(Download::SlotPeer s) {
 
 sigc::connection
 Download::signal_tracker_succeded(Download::SlotVoid s) {
-  return m_ptr->get_main().get_tracker().signal_peers().connect(sigc::hide(s));
+  return m_ptr->get_main().get_tracker().signal_success().connect(sigc::hide(s));
 }
 
 sigc::connection

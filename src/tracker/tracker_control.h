@@ -45,8 +45,8 @@
 #include "tracker_info.h"
 #include "tracker_list.h"
 
-#include "peer/peer_info.h"
 #include "torrent/bencode.h"
+#include "net/socket_address.h"
 #include "utils/task.h"
 
 namespace torrent {
@@ -60,14 +60,14 @@ namespace torrent {
 
 class TrackerControl {
 public:
-  typedef std::list<PeerInfo>                     PeerList;
+  typedef std::list<SocketAddress>                AddressList;
 
   typedef sigc::slot0<uint64_t>                   SlotStat;
   typedef sigc::signal1<void, std::istream*>      SignalDump;
-  typedef sigc::signal1<void, const PeerList*>    SignalPeerList;
+  typedef sigc::signal1<void, AddressList*>       SignalAddressList;
   typedef sigc::signal1<void, const std::string&> SignalString;
 
-  TrackerControl(const std::string& hash, uint32_t key);
+  TrackerControl();
 
   void                  send_state(TrackerInfo::State s);
   void                  cancel();
@@ -86,7 +86,7 @@ public:
   bool                  is_busy() const;
 
   SignalDump&           signal_dump()                           { return m_signalDump; }
-  SignalPeerList&       signal_peers()                          { return m_signalPeerList; }
+  SignalAddressList&    signal_success()                        { return m_signalSuccess; }
   SignalString&         signal_failed()                         { return m_signalFailed; }
 
   void                  slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
@@ -98,7 +98,8 @@ private:
   TrackerControl(const TrackerControl& t);
   void                  operator = (const TrackerControl& t);
 
-  void                  receive_done(const PeerList* l);
+  // Rename to receive_addresses or something?
+  void                  receive_done(AddressList* l);
   void                  receive_failed(const std::string& msg);
 
   void                  receive_set_interval(int v);
@@ -119,7 +120,7 @@ private:
   TaskItem              m_taskTimeout;
 
   SignalDump            m_signalDump;
-  SignalPeerList        m_signalPeerList;
+  SignalAddressList     m_signalSuccess;
   SignalString          m_signalFailed;
 
   SlotStat              m_slotStatDown;

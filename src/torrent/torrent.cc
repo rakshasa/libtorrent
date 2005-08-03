@@ -75,7 +75,7 @@ class Torrent {
 public:
   Torrent() {}
 
-  std::string         m_address;
+  SocketAddress       m_localAddress;
   std::string         m_bindAddress;
 
   Listen              m_listen;
@@ -96,7 +96,7 @@ download_id(const std::string& hash) {
   return itr != torrent->m_downloadManager.end() &&
     (*itr)->get_main().is_active() &&
     (*itr)->get_main().is_checked() ?
-    (*itr)->get_main().get_me().get_id() : "";
+    (*itr)->get_local_id() : "";
 }
 
 void
@@ -184,11 +184,12 @@ listen_open(uint16_t begin, uint16_t end) {
   if (!torrent->m_listen.open(begin, end, sa))
     return false;
 
+  torrent->m_localAddress.set_port(torrent->m_listen.get_port());
   torrent->m_handshakeManager.set_bind_address(sa);
 
   for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.end();
        itr != last; ++itr)
-    (*itr)->get_main().get_me().get_socket_address().set_port(torrent->m_listen.get_port());
+    (*itr)->get_local_address().set_port(torrent->m_listen.get_port());
 
   return true;
 }
@@ -212,24 +213,23 @@ is_inactive() {
     == torrent->m_downloadManager.end();
 }
 
-const std::string&
-get_address() {
-  return torrent->m_address;
+std::string
+get_local_address() {
+  return !torrent->m_localAddress.is_address_any() ? torrent->m_localAddress.get_address() : "";
 }
 
 void
-set_address(const std::string& addr) {
-  if (addr == torrent->m_address)
+set_local_address(const std::string& addr) {
+  if (addr == torrent->m_localAddress.get_address() ||
+      !torrent->m_localAddress.set_address(addr))
     return;
-
-  torrent->m_address = addr;
 
   for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.end();
        itr != last; ++itr)
-    (*itr)->get_main().get_me().get_socket_address().set_address(torrent->m_address);
+    (*itr)->get_local_address().set_address(addr);
 }
 
-const std::string&
+std::string
 get_bind_address() {
   return torrent->m_bindAddress;
 }
@@ -379,14 +379,12 @@ download_add(std::istream* s) {
     // Make it configurable whetever we throw or return .end()?
     throw input_error("Could not create download, failed to parse the bencoded data");
   
-  d->get_main().get_me().get_socket_address().set_address(torrent->m_address);
-  d->get_main().get_me().get_socket_address().set_port(torrent->m_listen.get_port());
-
   parse_main(d->get_bencode(), d->get_main());
   parse_info(d->get_bencode()["info"], d->get_main().get_state().get_content());
 
   d->initialize(bencode_hash(d->get_bencode()["info"]),
-		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()));
+		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
+		torrent->m_localAddress);
 
   d->set_handshake_manager(&torrent->m_handshakeManager);
   d->set_hash_queue(&torrent->m_hashQueue);
