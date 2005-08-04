@@ -81,7 +81,7 @@ public:
 
   void                connect_peers();
 
-  int                 count_connections() const; 
+  uint32_t            count_connections() const; 
 
   void                choke_balance();
   void                choke_cycle();

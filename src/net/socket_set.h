@@ -83,7 +83,7 @@ public:
   // Allocate storage for fd's with up to 'openMax' value. TODO: Remove reserve
   void                reserve(size_t openMax)                { m_table.resize(openMax, npos); Base::reserve(openMax); }
 
-  size_t              max_size() const                       { m_table.size(); }
+  size_t              max_size() const                       { return m_table.size(); }
 
 private:
   size_type&          _index(Event* s)                       { return m_table[s->get_file_desc()]; }

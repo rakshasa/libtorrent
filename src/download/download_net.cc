@@ -109,7 +109,7 @@ DownloadNet::connect_peers() {
   }
 }
 
-int
+uint32_t
 DownloadNet::count_connections() const {
   return m_connectionList.size() + m_slotCountHandshakes();
 }

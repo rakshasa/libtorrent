@@ -6,6 +6,9 @@ Move Hanshake* to peer/
 
 Add an intersection version off HandshakeManager::has_address()?
 
+Allow for easier configuration for very low/very high open max. Add
+notes to wiki.
+
 Make a seperate Download tracker class thing that handles re-requests
 etc. Move control logic from TrackerControl.
 
