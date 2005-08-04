@@ -36,15 +36,29 @@
 
 #include "config.h"
 
+#include <stdlib.h>
 #include <algorithm>
 #include <iterator>
 
+#include "torrent/exceptions.h"
 #include "available_list.h"
 
 namespace torrent {
 
-// Consider the possiblity of sorting this list, and retreiving a
-// random address?
+AvailableList::value_type
+AvailableList::pop_random() {
+  if (empty())
+    throw internal_error("AvailableList::pop_random() called on an empty container");
+
+  size_type idx = random() % size();
+
+  value_type tmp = *(begin() + idx);
+  *(begin() + idx) = back();
+
+  pop_back();
+
+  return tmp;
+}
 
 void
 AvailableList::push_back(const SocketAddress& sa) {
@@ -59,11 +73,14 @@ AvailableList::insert(AddressList* l) {
   if (size() > m_maxSize)
     return;
 
-  // We don't want to sort this list, so are we forced to use this
-  // inefficient way of avoiding duplicates?
-  l->sort();
+  std::sort(begin(), end());
+  std::set_difference(l->begin(), l->end(), begin(), end(), std::back_inserter(*static_cast<Base*>(this)));
+}
 
-  std::unique_copy(l->begin(), l->end(), std::back_inserter(*this));
+void
+AvailableList::erase(iterator itr) {
+  *itr = back();
+  pop_back();
 }
 
 }

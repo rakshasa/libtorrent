@@ -74,6 +74,9 @@ PeerConnectionBase::~PeerConnectionBase() {
   remove_read_throttle();
   remove_write_throttle();
 
+  m_read->set_state(ProtocolRead::INTERNAL_ERROR);
+  m_write->set_state(ProtocolWrite::INTERNAL_ERROR);
+
   delete m_read;
   delete m_write;
 }

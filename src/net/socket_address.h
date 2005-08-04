@@ -120,8 +120,9 @@ SocketAddress::operator == (const SocketAddress& sa) const {
 inline bool
 SocketAddress::operator < (const SocketAddress& sa) const {
   return
-    m_sockaddr.sin_addr.s_addr < sa.m_sockaddr.sin_addr.s_addr &&
-    m_sockaddr.sin_port < sa.m_sockaddr.sin_port;
+    m_sockaddr.sin_addr.s_addr < sa.m_sockaddr.sin_addr.s_addr ||
+    (m_sockaddr.sin_addr.s_addr == sa.m_sockaddr.sin_addr.s_addr &&
+     m_sockaddr.sin_port < sa.m_sockaddr.sin_port);
 }
 
 }

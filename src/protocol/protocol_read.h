@@ -50,7 +50,8 @@ public:
     MSG,
     BITFIELD,
     READ_PIECE,
-    SKIP_PIECE
+    SKIP_PIECE,
+    INTERNAL_ERROR
   } State;
 
   ProtocolRead() : m_state(IDLE), m_length(0) {}

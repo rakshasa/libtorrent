@@ -297,6 +297,8 @@ void PeerConnection::event_read() {
       
     } else if (m_bitfield.all_set() && m_state->get_content().is_done()) {
       // Both sides are done so we might as well close the connection.
+      m_read->set_state(ProtocolRead::INTERNAL_ERROR);
+      m_write->set_state(ProtocolWrite::INTERNAL_ERROR);
       throw close_connection();
     }
 

@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_AVAILABLE_LIST_H
 #define LIBTORRENT_DOWNLOAD_AVAILABLE_LIST_H
 
-#include <deque>
+#include <vector>
 #include <list>
 #include <sigc++/signal.h>
 #include <sigc++/slot.h>
@@ -46,10 +46,11 @@
 
 namespace torrent {
 
-class AvailableList : private std::deque<SocketAddress> {
+class AvailableList : private std::vector<SocketAddress> {
 public:
-  typedef std::deque<SocketAddress> Base;
-  typedef std::list<SocketAddress>  AddressList;
+  typedef std::vector<SocketAddress> Base;
+  typedef std::list<SocketAddress>   AddressList;
+  typedef uint32_t                   size_type;
 
   using Base::value_type;
   using Base::reference;
@@ -61,11 +62,10 @@ public:
   using Base::size;
   using Base::empty;
   using Base::clear;
-  using Base::erase;
 
-  using Base::front;
+//   using Base::front;
   using Base::back;
-  using Base::pop_front;
+//   using Base::pop_front;
   using Base::pop_back;
   using Base::begin;
   using Base::end;
@@ -74,18 +74,21 @@ public:
 
   AvailableList() : m_maxSize(1000) {}
 
+  value_type          pop_random();
+
   // Fuzzy size limit.
-  uint32_t            get_max_size() const     { return m_maxSize; }
-  void                set_max_size(uint32_t s) { m_maxSize = s; }
+  size_type           get_max_size() const      { return m_maxSize; }
+  void                set_max_size(size_type s) { m_maxSize = s; }
 
   // This push is somewhat inefficient as it iterates through the
   // whole container to see if the address already exists.
   void                push_back(const SocketAddress& sa);
 
   void                insert(AddressList* l);
+  void                erase(iterator itr);
 
 private:
-  uint32_t            m_maxSize;
+  size_type           m_maxSize;
 };
 
 }

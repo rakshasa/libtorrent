@@ -85,6 +85,8 @@ public:
   uint32_t            get_max_connections() const                      { return m_maxConnections; }
   void                set_max_connections(uint32_t v)                  { m_maxConnections = v; }
 
+  // Removes from 'l' addresses that are already connected to. Assumes
+  // 'l' is sorted and unique.
   void                remove_connected(AddressList* l);
 
   typedef sigc::signal1<void, Peer>                                    SignalPeer;

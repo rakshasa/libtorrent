@@ -88,9 +88,10 @@ public:
 
   bool                  is_busy() const;
 
-  SignalDump&           signal_dump()                           { return m_signalDump; }
+  // The list of addresses is guaranteed to be sorted and unique.
   SignalAddressList&    signal_success()                        { return m_signalSuccess; }
   SignalString&         signal_failed()                         { return m_signalFailed; }
+  SignalDump&           signal_dump()                           { return m_signalDump; }
 
   void                  slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
   void                  slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
@@ -102,7 +103,7 @@ private:
   void                  operator = (const TrackerControl& t);
 
   // Rename to receive_addresses or something?
-  void                  receive_done(TrackerBase* tb, AddressList* l);
+  void                  receive_success(TrackerBase* tb, AddressList* l);
   void                  receive_failed(TrackerBase* tb, const std::string& msg);
 
   void                  receive_set_interval(int v);

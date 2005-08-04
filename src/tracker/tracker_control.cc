@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <functional>
 #include <sstream>
 #include <sigc++/signal.h>
@@ -78,7 +79,7 @@ TrackerControl::add_url(int group, const std::string& url) {
     // TODO: Error message here?... not really...
     return;
   
-  t->slot_success(sigc::mem_fun(*this, &TrackerControl::receive_done));
+  t->slot_success(sigc::mem_fun(*this, &TrackerControl::receive_success));
   t->slot_failed(sigc::mem_fun(*this, &TrackerControl::receive_failed));
   t->slot_log(m_signalFailed.make_slot());
   t->slot_set_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_interval));
@@ -164,7 +165,7 @@ TrackerControl::set_focus_index(uint32_t v) {
 }
 
 void
-TrackerControl::receive_done(TrackerBase* tb, AddressList* l) {
+TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
@@ -181,6 +182,9 @@ TrackerControl::receive_done(TrackerBase* tb, AddressList* l) {
     m_state = TrackerInfo::NONE;
     taskScheduler.insert(&m_taskTimeout, Timer::cache() + (int64_t)m_interval * 1000000);
   }
+
+  l->sort();
+  l->erase(std::unique(l->begin(), l->end()), l->end());
 
   m_signalSuccess.emit(l);
 

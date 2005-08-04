@@ -102,11 +102,8 @@ void
 DownloadNet::connect_peers() {
   while (!m_availableList.empty() &&
 	 m_connectionList.size() < (size_t)m_settings->minPeers &&
-	 count_connections() < m_connectionList.get_max_connections()) {
-
-    m_slotStartHandshake(m_availableList.front());
-    m_availableList.pop_front();
-  }
+	 count_connections() < m_connectionList.get_max_connections())
+    m_slotStartHandshake(m_availableList.pop_random());
 }
 
 uint32_t

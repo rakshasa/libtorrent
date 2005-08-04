@@ -50,7 +50,8 @@ public:
     MSG,
     WRITE_BITFIELD,
     WRITE_PIECE,
-    SHUTDOWN
+    SHUTDOWN,
+    INTERNAL_ERROR
   } State;
 
   ProtocolWrite() : m_state(IDLE) {}

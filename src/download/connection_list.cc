@@ -77,37 +77,37 @@ ConnectionList::erase(PeerConnectionBase* p) {
   if (itr == end())
     throw internal_error("Tried to remove peer connection from download that doesn't exist");
 
-  m_signalPeerDisconnected.emit(Peer(*itr));
-
-  delete *itr;
+  // The connection must be erased from the list before the signal is
+  // emited otherwise some listeners might do stuff with the
+  // assumption that the connection will remain in the list.
   Base::erase(itr);
+  m_signalPeerDisconnected.emit(Peer(p));
+
+  // Delete after the erase to ensure the connection doesn't get added
+  // to the poll after PeerConnectionBase's dtor has been called.
+  delete p;
 }
 
-struct _ConnectionListSort {
+struct _ConnectionListComp {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
     return p1->get_peer().get_socket_address() < p2->get_peer().get_socket_address();
+  }
+
+  bool operator () (const SocketAddress& sa1, PeerConnectionBase* p2) const {
+    return sa1 < p2->get_peer().get_socket_address();
+  }
+
+  bool operator () (PeerConnectionBase* p1, const SocketAddress& sa2) const {
+    return p1->get_peer().get_socket_address() < sa2;
   }
 };
 
 void
 ConnectionList::remove_connected(AddressList* l) {
-  // It would be more efficient if we sorted both lists according to
-  // address, then iterated the lesser iterator while removing from
-  // 'l' upon finding matches.
+  std::sort(begin(), end(), _ConnectionListComp());
 
-  std::sort(begin(), end(), _ConnectionListSort());
-  l->sort();
-
-  iterator itr1 = begin();
-  AddressList::iterator itr2 = l->begin();
-
-  while (itr1 != end() && itr2 != l->end())
-    if ((*itr1)->get_peer().get_socket_address() < *itr2)
-      ++itr1;
-    else if (*itr2 < (*itr1)->get_peer().get_socket_address())
-      ++itr2;
-    else
-      itr2 = l->erase(itr2);
+  l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->end(), _ConnectionListComp()),
+	   l->end());
 }
 
 }
