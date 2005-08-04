@@ -39,12 +39,12 @@
 #include <stdlib.h>
 #include <sigc++/bind.h>
 
-#include "torrent/exceptions.h"
 #include "data/hash_queue.h"
 #include "data/file_manager.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
-#include "net/handshake_manager.h"
+#include "protocol/handshake_manager.h"
+#include "torrent/exceptions.h"
 
 #include "download_wrapper.h"
 

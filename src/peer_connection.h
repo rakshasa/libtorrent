@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_PEER_CONNECTION_H
 #define LIBTORRENT_PEER_CONNECTION_H
 
-#include "peer/peer_connection_base.h"
+#include "protocol/peer_connection_base.h"
 #include "utils/throttle.h"
 
 #include <vector>

@@ -44,7 +44,7 @@
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/download_wrapper.h"
-#include "peer/peer_factory.h"
+#include "protocol/peer_factory.h"
 
 #include <rak/functional.h>
 #include <sigc++/bind.h>
@@ -303,6 +303,11 @@ Download::get_tracker(uint32_t index) const {
 uint32_t
 Download::get_tracker_size() const {
   return m_ptr->get_main().get_tracker().get_list().size();
+}
+
+uint32_t
+Download::get_tracker_focus() const {
+  return m_ptr->get_main().get_tracker().get_focus_index();
 }
 
 void

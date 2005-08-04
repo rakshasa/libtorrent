@@ -41,7 +41,7 @@
 #include "download_state.h"
 #include "download_net.h"
 
-#include "peer/peer_info.h"
+#include "protocol/peer_info.h"
 #include "tracker/tracker_control.h"
 #include "utils/task.h"
 

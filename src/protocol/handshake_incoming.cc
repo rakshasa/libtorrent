@@ -36,94 +36,99 @@
 
 #include "config.h"
 
+#include "net/manager.h"
 #include "torrent/exceptions.h"
 
-#include "handshake.h"
+#include "handshake_incoming.h"
 #include "handshake_manager.h"
-#include "manager.h"
 
 namespace torrent {
 
-Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
-  m_manager(m),
-  m_buf(new char[256 + 48]),
-  m_pos(0) {
+HandshakeIncoming::HandshakeIncoming(SocketFd fd, const PeerInfo& p, HandshakeManager* m) :
+  Handshake(fd, m),
+  m_state(READ_HEADER1) {
 
-  set_fd(fd);
+  m_peer = p;
 
-  m_taskTimeout.set_iterator(taskScheduler.end());
-  m_taskTimeout.set_slot(sigc::mem_fun(*this, &Handshake::send_failed));
+  get_fd().set_nonblock();
 
-  taskScheduler.insert(&m_taskTimeout, Timer::cache() + 60 * 1000000);
-}
-
-Handshake::~Handshake() {
-  taskScheduler.erase(&m_taskTimeout);
-
-  if (get_fd().is_valid())
-    throw internal_error("Handshake dtor called but m_fd is still open");
-
-  delete [] m_buf;
+  pollCustom->open(this);
+  pollCustom->insert_read(this);
+  pollCustom->insert_error(this);
 }
 
 void
-Handshake::clear_poll() {
-  pollCustom->remove_read(this);
-  pollCustom->remove_write(this);
-  pollCustom->remove_error(this);
-  pollCustom->close(this);
-}
+HandshakeIncoming::event_read() {
+  try {
 
-// TODO: Move the management of the socketfd to handshake_manager?
-void
-Handshake::close() {
-  if (!get_fd().is_valid())
+  switch (m_state) {
+  case READ_HEADER1:
+    if (!recv1())
+      return;
+
+    if ((m_id = m_manager->get_download_id(m_hash)).length() == 0)
+      throw close_connection();
+    
+    m_buf[0] = 19;
+    std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
+    std::memset(&m_buf[20], 0, 8);
+    std::memcpy(&m_buf[28], m_hash.c_str(), 20);
+    std::memcpy(&m_buf[48], m_id.c_str(), 20);
+
+    m_pos = 0;
+    m_state = WRITE_HEADER;
+
+    pollCustom->remove_read(this);
+    pollCustom->insert_write(this);
+
     return;
 
-  clear_poll();
-  
-  socketManager.close(get_fd());
-  get_fd().clear();
+  case READ_HEADER2:
+    if (!recv2())
+      return;
+
+    m_manager->receive_connected(this);
+
+    return;
+
+  default:
+    throw internal_error("HandshakeOutgoing::read() called in wrong state");
+  }
+
+  } catch (network_error e) {
+    m_manager->receive_failed(this);
+  }
 }
 
 void
-Handshake::send_connected() {
-  m_manager->receive_connected(this);
+HandshakeIncoming::event_write() {
+  try {
+  switch (m_state) {
+  case WRITE_HEADER:
+    if (!write_buffer(m_buf + m_pos, 68, m_pos))
+      return;
+ 
+    pollCustom->remove_write(this);
+    pollCustom->insert_read(this);
+ 
+    m_pos = 0;
+    m_state = READ_HEADER2;
+ 
+    return;
+
+  default:
+    throw internal_error("HandshakeOutgoing::write() called in wrong state");
+  }
+
+  } catch (network_error e) {
+    m_manager->receive_failed(this);
+  }
 }
 
 void
-Handshake::send_failed() {
+HandshakeIncoming::event_error() {
   m_manager->receive_failed(this);
 }
 
-bool
-Handshake::recv1() {
-  if (m_pos == 0 && !read_buffer(m_buf, 1, m_pos))
-    return false;
-
-  unsigned int len = (unsigned char)m_buf[0];
-
-  if (!read_buffer(m_buf + m_pos, len + 29, m_pos))
-    return false;
-
-  std::memcpy(m_peer.get_options(), m_buf + 1 + len, 8);
-
-  m_hash = std::string(m_buf + 9 + len, 20);
-
-  if (std::string(m_buf + 1, len) != "BitTorrent protocol")
-    throw communication_error("Peer returned wrong protocol identifier");
-
-  return true;
 }
 
-bool
-Handshake::recv2() {
-  if (!read_buffer(m_buf + m_pos, 20, m_pos))
-    return false;
-
-  m_peer.set_id(std::string(m_buf, 20));
-
-  return true;
-}  
-
-}

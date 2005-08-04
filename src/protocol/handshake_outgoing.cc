@@ -38,11 +38,11 @@
 
 #include <cstring>
 
+#include "net/manager.h"
 #include "torrent/exceptions.h"
 
 #include "handshake_outgoing.h"
 #include "handshake_manager.h"
-#include "manager.h"
 
 namespace torrent {
 

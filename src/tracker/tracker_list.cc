@@ -74,7 +74,7 @@ TrackerList::clear() {
   Base::clear();
 }
 
-void
+TrackerList::iterator
 TrackerList::promote(iterator itr) {
   iterator beg = begin_group(itr->first);
 
@@ -87,6 +87,13 @@ TrackerList::promote(iterator itr) {
   value_type tmp = *beg;
   *beg = *itr;
   *itr = tmp;
+
+  return beg;
+}
+
+TrackerList::iterator
+TrackerList::find(TrackerBase* tb) {
+  return std::find_if(begin(), end(), rak::equal(tb, rak::mem_ptr_ref(&value_type::second)));
 }
 
 TrackerList::iterator

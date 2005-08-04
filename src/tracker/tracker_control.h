@@ -83,6 +83,9 @@ public:
   Timer                 get_next_time();
   void                  set_next_time(Timer interval, bool force);
 
+  uint32_t              get_focus_index() const                 { return m_itr - m_list.begin(); }
+  void                  set_focus_index(uint32_t v);
+
   bool                  is_busy() const;
 
   SignalDump&           signal_dump()                           { return m_signalDump; }
@@ -99,8 +102,8 @@ private:
   void                  operator = (const TrackerControl& t);
 
   // Rename to receive_addresses or something?
-  void                  receive_done(AddressList* l);
-  void                  receive_failed(const std::string& msg);
+  void                  receive_done(TrackerBase* tb, AddressList* l);
+  void                  receive_failed(TrackerBase* tb, const std::string& msg);
 
   void                  receive_set_interval(int v);
   void                  receive_set_min_interval(int v);

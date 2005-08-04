@@ -146,6 +146,7 @@ public:
   Tracker              get_tracker(uint32_t index);
   const Tracker        get_tracker(uint32_t index) const;
   uint32_t             get_tracker_size() const;
+  uint32_t             get_tracker_focus() const;
 
   // Perhaps make tracker_cycle_group part of Tracker?
   void                 tracker_send_completed();

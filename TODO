@@ -2,7 +2,10 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Move Hanshake* to peer/
+TrackerControl's slots should have the caller TrackerBase* in their
+argument.
+
+send_state should do the iterator reseting, except for stopped.
 
 Add an intersection version off HandshakeManager::has_address()?
 

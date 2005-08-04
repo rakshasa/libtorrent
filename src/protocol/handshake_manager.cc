@@ -38,14 +38,14 @@
 
 #include <rak/functional.h>
 
+#include "net/manager.h"
+#include "net/socket_address.h"
 #include "torrent/exceptions.h"
+
+#include "peer_info.h"
 #include "handshake_manager.h"
 #include "handshake_incoming.h"
 #include "handshake_outgoing.h"
-#include "peer/peer_info.h"
-
-#include "manager.h"
-#include "socket_address.h"
 
 namespace torrent {
 

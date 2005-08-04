@@ -131,7 +131,7 @@ TrackerUdp::get_type() const {
 void
 TrackerUdp::receive_failed(const std::string& msg) {
   close();
-  m_slotFailed(msg);
+  m_slotFailed(this, msg);
 }
 
 void
@@ -313,7 +313,7 @@ TrackerUdp::process_announce_output() {
     l.push_back(sa);
   }
 
-  m_slotSuccess(&l);
+  m_slotSuccess(this, &l);
   return true;
 }
   

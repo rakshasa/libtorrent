@@ -42,8 +42,8 @@
 #include <inttypes.h>
 #include <sigc++/slot.h>
 
-#include "socket_address.h"
-#include "socket_fd.h"
+#include "net/socket_address.h"
+#include "net/socket_fd.h"
 
 namespace torrent {
 

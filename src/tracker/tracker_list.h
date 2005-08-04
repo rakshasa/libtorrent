@@ -77,7 +77,9 @@ public:
 
   iterator            insert(int group, TrackerBase* t);
 
-  void                promote(iterator itr);
+  iterator            promote(iterator itr);
+
+  iterator            find(TrackerBase* tb);
   iterator            find_enabled(iterator itr);
 
   iterator            begin_group(int group);

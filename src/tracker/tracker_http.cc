@@ -214,14 +214,14 @@ TrackerHttp::receive_done() {
   }
 
   close();
-  m_slotSuccess(&l);
+  m_slotSuccess(this, &l);
 }
 
 void
 TrackerHttp::receive_failed(std::string msg) {
   // Does the order matter?
   close();
-  m_slotFailed(msg);
+  m_slotFailed(this, msg);
 }
 
 inline void

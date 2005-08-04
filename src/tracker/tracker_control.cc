@@ -137,6 +137,11 @@ TrackerControl::send_state(TrackerInfo::State s) {
 
   // Reset the target tracker since we're doing a new request.
   cancel();
+
+  // Move this logic outside?
+  if (m_itr == m_list.end() || m_state != TrackerInfo::STOPPED)
+    m_itr = m_list.begin();
+
   query_current();
 }
 
@@ -144,18 +149,33 @@ void
 TrackerControl::cancel() {
   if (m_itr != m_list.end())
     m_itr->second->close();
-
-  m_itr = m_list.begin();
 }
 
 void
-TrackerControl::receive_done(AddressList* l) {
+TrackerControl::set_focus_index(uint32_t v) {
+  if (v > m_list.size())
+    throw internal_error("TrackerControl::set_focus_index(...) received an out-of-bounds value.");
+
+  // Don't allow change of focus while busy for the moment.
+  if (m_itr != m_list.end() && m_itr->second->is_busy())
+    throw internal_error("TrackerControl::set_focus_index(...) called but m_itr is busy.");
+
+  m_itr = m_list.begin() + v;
+}
+
+void
+TrackerControl::receive_done(TrackerBase* tb, AddressList* l) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
-  // Successful tracker request, rearrange the list.
-  m_list.promote(m_itr);
-  m_itr = m_list.begin();
+  TrackerList::iterator itr = m_list.find(tb);
+
+  if (itr != m_itr || m_itr == m_list.end())
+    throw internal_error("TrackerControl::receive_done(...) called but the iterator is wrong");
+
+  // Promote the tracker to the front of the group since it was
+  // successfull.
+  m_itr = m_list.promote(m_itr);
 
   if (m_state != TrackerInfo::STOPPED) {
     m_state = TrackerInfo::NONE;
@@ -163,15 +183,20 @@ TrackerControl::receive_done(AddressList* l) {
   }
 
   m_signalSuccess.emit(l);
+
+  // Temporary, this should be moved outside.
+  //set_focus_index(0);
 }
 
 void
-TrackerControl::receive_failed(const std::string& msg) {
+TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
-  if (m_itr == m_list.end())
-    throw internal_error("TrackerControl::receive_failed(...) called but m_itr is invalid");
+  TrackerList::iterator itr = m_list.find(tb);
+
+  if (itr != m_itr || m_itr == m_list.end())
+    throw internal_error("TrackerControl::receive_done(...) called but the iterator is wrong");
 
   m_itr++;
 

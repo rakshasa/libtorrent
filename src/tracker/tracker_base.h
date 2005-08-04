@@ -48,10 +48,11 @@ namespace torrent {
 
 class TrackerBase {
 public:
-  typedef std::list<SocketAddress>        AddressList;
-  typedef sigc::slot1<void, AddressList*> SlotAddressList;
-  typedef sigc::slot1<void, std::string>  SlotString;
-  typedef sigc::slot1<void, int>          SlotInt;
+  typedef std::list<SocketAddress>                      AddressList;
+  typedef sigc::slot1<void, int>                        SlotInt;
+  typedef sigc::slot1<void, std::string>                SlotString;
+  typedef sigc::slot2<void, TrackerBase*, AddressList*> SlotTbAddressList;
+  typedef sigc::slot2<void, TrackerBase*, std::string>  SlotTbString;
 
   typedef enum {
     TRACKER_NONE,
@@ -84,8 +85,8 @@ public:
   const std::string&  get_tracker_id()                      { return m_trackerId; }
   void                set_tracker_id(const std::string& id) { m_trackerId = id; }
 
-  void                slot_success(SlotAddressList s)       { m_slotSuccess = s; }
-  void                slot_failed(SlotString s)             { m_slotFailed = s; }
+  void                slot_success(SlotTbAddressList s)     { m_slotSuccess = s; }
+  void                slot_failed(SlotTbString s)           { m_slotFailed = s; }
   void                slot_log(SlotString s)                { m_slotLog = s; }
   void                slot_set_interval(SlotInt s)          { m_slotSetInterval = s; }
   void                slot_set_min_interval(SlotInt s)      { m_slotSetMinInterval = s; }
@@ -101,8 +102,8 @@ protected:
 
   std::string         m_trackerId;
 
-  SlotAddressList     m_slotSuccess;
-  SlotString          m_slotFailed;
+  SlotTbAddressList   m_slotSuccess;
+  SlotTbString        m_slotFailed;
   SlotString          m_slotLog;
   SlotInt             m_slotSetInterval;
   SlotInt             m_slotSetMinInterval;

@@ -74,7 +74,7 @@ public:
   client_error(const std::string& msg) : program_error(msg) {}
 };
 
-// For some reason we couldn't talk with a peer/tracker, migth be a
+// For some reason we couldn't talk with a protocol/tracker, migth be a
 // library bug, connection problem or bad input.
 class network_error : public base_error {
 public:

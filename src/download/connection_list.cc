@@ -39,8 +39,8 @@
 #include <algorithm>
 #include <rak/functional.h>
 
-#include "peer/peer_info.h"
-#include "peer/peer_connection_base.h"
+#include "protocol/peer_info.h"
+#include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
 
 #include "connection_list.h"

@@ -36,17 +36,16 @@
 
 #include "config.h"
 
+#include <limits>
 #include <sigc++/signal.h>
 
-#include "torrent/exceptions.h"
-#include "net/handshake_manager.h"
-#include "parse/parse.h"
 #include "content/delegator_select.h"
+#include "parse/parse.h"
+#include "protocol/handshake_manager.h"
+#include "torrent/exceptions.h"
 
 #include "download_main.h"
 #include "peer_connection.h"
-
-#include <limits>
 
 namespace torrent {
 

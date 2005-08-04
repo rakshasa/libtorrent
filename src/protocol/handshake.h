@@ -39,8 +39,8 @@
 
 #include <inttypes.h>
 
-#include "socket_stream.h"
-#include "peer/peer_info.h"
+#include "net/socket_stream.h"
+#include "protocol/peer_info.h"
 #include "utils/task.h"
 
 namespace torrent {
