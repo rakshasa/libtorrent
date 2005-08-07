@@ -37,14 +37,19 @@
 #include "config.h"
 
 #include <cerrno>
-#include <sys/epoll.h>
 
 #include <torrent/exceptions.h>
 #include <torrent/event.h>
 
 #include "poll_epoll.h"
 
+#ifdef USE_EPOLL
+#include <sys/epoll.h>
+#endif
+
 namespace torrent {
+
+#ifdef USE_EPOLL
 
 inline uint32_t
 PollEPoll::get_mask(Event* e) {
@@ -73,16 +78,12 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
 
 PollEPoll*
 PollEPoll::create(int maxOpenSockets) {
-#ifdef USE_EPOLL
   int fd = epoll_create(maxOpenSockets);
 
   if (fd == -1)
     return NULL;
 
   return new PollEPoll(fd, 1024, maxOpenSockets);
-#else
-  return NULL;
-#endif
 }
 
 PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) :
@@ -103,16 +104,12 @@ PollEPoll::~PollEPoll() {
 
 int
 PollEPoll::poll(int msec) {
-#ifdef USE_EPOLL
   int nfds = epoll_wait(m_fd, (epoll_event*)m_events, m_maxEvents, msec);
 
   if (nfds == -1)
     return -1;
 
   return m_waitingEvents = nfds;
-#else
-  return 0;
-#endif
 }
 
 // We check m_table to make sure the Event is still listening to the
@@ -122,7 +119,6 @@ PollEPoll::poll(int msec) {
 // some event but not closed, it won't call that event? Think so...
 void
 PollEPoll::perform() {
-#ifdef USE_EPOLL
   for (epoll_event *itr = (epoll_event*)m_events, *last = (epoll_event*)m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->events & EPOLLERR && itr->data.ptr != NULL)
       ((Event*)itr->data.ptr)->event_error();
@@ -135,7 +131,6 @@ PollEPoll::perform() {
   }
 
   m_waitingEvents = 0;
-#endif
 }
 
 uint32_t
@@ -217,5 +212,83 @@ PollEPoll::remove_error(Event* event) {
 
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
+
+#else // USE_EPOLL
+
+PollEPoll*
+PollEPoll::create(int maxOpenSockets) {
+  return NULL;
+}
+
+PollEPoll::~PollEPoll() {
+}
+
+int
+PollEPoll::poll(int msec) {
+  throw internal_error("An PollEPoll function was called, but it is disabled.");
+}
+
+void
+PollEPoll::perform() {
+  throw internal_error("An PollEPoll function was called, but it is disabled.");
+}
+
+uint32_t
+PollEPoll::max_open_sockets() const {
+  throw internal_error("An PollEPoll function was called, but it is disabled.");
+}
+
+void
+PollEPoll::open(torrent::Event* event) {
+}
+
+void
+PollEPoll::close(torrent::Event* event) {
+}
+
+bool
+PollEPoll::in_read(torrent::Event* event) {
+  throw internal_error("An PollEPoll function was called, but it is disabled.");
+}
+
+bool
+PollEPoll::in_write(torrent::Event* event) {
+  throw internal_error("An PollEPoll function was called, but it is disabled.");
+}
+
+bool
+PollEPoll::in_error(torrent::Event* event) {
+  throw internal_error("An PollEPoll function was called, but it is disabled.");
+}
+
+void
+PollEPoll::insert_read(torrent::Event* event) {
+}
+
+void
+PollEPoll::insert_write(torrent::Event* event) {
+}
+
+void
+PollEPoll::insert_error(torrent::Event* event) {
+}
+
+void
+PollEPoll::remove_read(torrent::Event* event) {
+}
+
+void
+PollEPoll::remove_write(torrent::Event* event) {
+}
+
+void
+PollEPoll::remove_error(torrent::Event* event) {
+}
+
+PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) {
+  throw internal_error("An PollEPoll function was called, but it is disabled.");
+}
+
+#endif // USE_EPOLL
 
 }
