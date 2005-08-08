@@ -69,67 +69,69 @@ public:
 
   TrackerControl();
 
-  void                  send_state(TrackerInfo::State s);
-  void                  cancel();
+  void                send_state(TrackerInfo::State s);
+  void                cancel();
 
-  void                  add_url(int group, const std::string& url);
-  void                  cycle_group(int group);
+  void                add_url(int group, const std::string& url);
+  void                cycle_group(int group);
 
-  TrackerInfo::State    get_state()                             { return m_state; }
-  TrackerInfo&          get_info()                              { return m_info; }
-  TrackerList&          get_list()                              { return m_list; }
+  TrackerInfo::State  get_state()                             { return m_state; }
+  TrackerInfo&        get_info()                              { return m_info; }
+  TrackerList&        get_list()                              { return m_list; }
+
+  uint32_t            get_interval() const                    { return m_interval; }
 
   // Use set_next_time(...) to do tracker rerequests.
-  Timer                 get_next_time();
-  void                  set_next_time(Timer interval, bool force);
+  Timer               get_next_time();
+  void                set_next_time(Timer interval, bool force);
 
-  uint32_t              get_focus_index() const                 { return m_itr - m_list.begin(); }
-  void                  set_focus_index(uint32_t v);
+  uint32_t            get_focus_index() const                 { return m_itr - m_list.begin(); }
+  void                set_focus_index(uint32_t v);
 
-  bool                  is_busy() const;
+  bool                is_busy() const;
 
   // The list of addresses is guaranteed to be sorted and unique.
-  SignalAddressList&    signal_success()                        { return m_signalSuccess; }
-  SignalString&         signal_failed()                         { return m_signalFailed; }
-  SignalDump&           signal_dump()                           { return m_signalDump; }
+  SignalAddressList&  signal_success()                        { return m_signalSuccess; }
+  SignalString&       signal_failed()                         { return m_signalFailed; }
+  SignalDump&         signal_dump()                           { return m_signalDump; }
 
-  void                  slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
-  void                  slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
-  void                  slot_stat_left(SlotStat s)              { m_slotStatLeft = s; }
+  void                slot_stat_down(SlotStat s)              { m_slotStatDown = s; }
+  void                slot_stat_up(SlotStat s)                { m_slotStatUp = s; }
+  void                slot_stat_left(SlotStat s)              { m_slotStatLeft = s; }
 
 private:
 
   TrackerControl(const TrackerControl& t);
-  void                  operator = (const TrackerControl& t);
+  void                operator = (const TrackerControl& t);
 
   // Rename to receive_addresses or something?
-  void                  receive_success(TrackerBase* tb, AddressList* l);
-  void                  receive_failed(TrackerBase* tb, const std::string& msg);
+  void                receive_success(TrackerBase* tb, AddressList* l);
+  void                receive_failed(TrackerBase* tb, const std::string& msg);
 
-  void                  receive_set_interval(int v);
-  void                  receive_set_min_interval(int v);
+  void                receive_set_interval(int v);
+  void                receive_set_min_interval(int v);
 
-  void                  query_current();
+  void                query_current();
 
-  int                   m_tries;
-  int                   m_interval;
+  int                 m_tries;
+  int                 m_interval;
 
-  TrackerInfo           m_info;
-  TrackerInfo::State    m_state;
+  TrackerInfo         m_info;
+  TrackerInfo::State  m_state;
 
   TrackerList           m_list;
   TrackerList::iterator m_itr;
 
-  Timer                 m_timerMinInterval;
-  TaskItem              m_taskTimeout;
+  Timer               m_timerMinInterval;
+  TaskItem            m_taskTimeout;
 
-  SignalDump            m_signalDump;
-  SignalAddressList     m_signalSuccess;
-  SignalString          m_signalFailed;
+  SignalDump          m_signalDump;
+  SignalAddressList   m_signalSuccess;
+  SignalString        m_signalFailed;
 
-  SlotStat              m_slotStatDown;
-  SlotStat              m_slotStatUp;
-  SlotStat              m_slotStatLeft;
+  SlotStat            m_slotStatDown;
+  SlotStat            m_slotStatUp;
+  SlotStat            m_slotStatLeft;
 };
 
 }

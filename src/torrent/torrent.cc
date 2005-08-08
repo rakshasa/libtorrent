@@ -393,7 +393,7 @@ download_add(std::istream* s) {
   // Default PeerConnection factory functions.
   d->get_main().get_net().get_connection_list().slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &d->get_main().get_state(), &d->get_main().get_net()));
 
-  parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
+  parse_tracker(d->get_bencode(), d->get_main().get_tracker().tracker_control());
 
   torrent->m_downloadManager.insert(d.get());
 

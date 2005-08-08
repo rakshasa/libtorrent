@@ -51,7 +51,6 @@ namespace torrent {
 
 DownloadMain::DownloadMain() :
   m_settings(DownloadSettings::global()),
-  m_tracker(NULL),
   m_checked(false),
   m_started(false)
 {
@@ -64,8 +63,6 @@ DownloadMain::DownloadMain() :
 DownloadMain::~DownloadMain() {
   if (taskScheduler.is_scheduled(&m_taskChokeCycle))
     throw internal_error("DownloadMain::~DownloadMain(): m_taskChokeCycle is scheduled");
-
-  delete m_tracker;
 }
 
 void
@@ -85,9 +82,10 @@ DownloadMain::close() {
     throw internal_error("Tried to close an active download");
 
   m_checked = false;
+
+  m_tracker.stop();
   m_state.get_content().close();
   m_net.get_delegator().clear();
-  m_tracker->cancel();
 }
 
 void DownloadMain::start() {
@@ -101,9 +99,9 @@ void DownloadMain::start() {
     return;
 
   m_started = true;
-  m_tracker->send_state(TrackerInfo::STARTED);
 
   setup_start();
+  m_tracker.start();
 }  
 
 void DownloadMain::stop() {
@@ -113,9 +111,9 @@ void DownloadMain::stop() {
   while (!m_net.get_connection_list().empty())
     m_net.get_connection_list().erase(m_net.get_connection_list().front());
 
-  m_tracker->send_state(TrackerInfo::STOPPED);
   m_started = false;
 
+  m_tracker.stop();
   setup_stop();
 }
 

@@ -41,6 +41,7 @@
 
 #include "data/hash_torrent.h"
 #include "torrent/bencode.h"
+#include "tracker/tracker_control.h"
 #include "download_main.h"
 
 namespace torrent {
@@ -67,9 +68,9 @@ public:
 
   bool                is_stopped()          { return m_main.is_stopped(); }
 
-  const std::string&  get_hash()            { return m_main.get_tracker().get_info().get_hash(); }
-  const std::string&  get_local_id()        { return m_main.get_tracker().get_info().get_local_id(); }
-  SocketAddress&      get_local_address()   { return m_main.get_tracker().get_info().get_local_address(); }
+  const std::string&  get_hash()            { return m_main.get_tracker().tracker_control()->get_info().get_hash(); }
+  const std::string&  get_local_id()        { return m_main.get_tracker().tracker_control()->get_info().get_local_id(); }
+  SocketAddress&      get_local_address()   { return m_main.get_tracker().tracker_control()->get_info().get_local_address(); }
   DownloadMain&       get_main()            { return m_main; }
   const DownloadMain& get_main() const      { return m_main; }
 

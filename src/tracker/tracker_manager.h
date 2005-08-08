@@ -34,40 +34,45 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_UTILS_TASK_ITEM_H
-#define LIBTORRENT_UTILS_TASK_ITEM_H
+#ifndef LIBTORRENT_TRACKER_TRACKER_MANAGER_H
+#define LIBTORRENT_TRACKER_TRACKER_MANAGER_H
 
-#include <list>
-#include <sigc++/slot.h>
-
-#include "utils/timer.h"
+#include "utils/task.h"
 
 namespace torrent {
 
-// The user is responsible for removing TaskItem from the TaskScheduler.
+class TrackerControl;
 
-class TaskItem {
+class TrackerManager {
 public:
-  typedef sigc::slot<void>                                  Slot;
-  typedef std::list<std::pair<Timer, TaskItem*> >::iterator iterator;
+  TrackerManager();
+  ~TrackerManager();
 
-  TaskItem(Slot s = Slot()) : m_slot(s) {}
+  bool                is_active() const;
 
-  Slot&               get_slot()                    { return m_slot; }
-  void                set_slot(Slot s)              { m_slot = s; }
+  void                start();
+  void                stop();
+  void                completed();
 
-  iterator            get_iterator()                { return m_iterator; }
-  const iterator      get_iterator() const          { return m_iterator; }
-  void                set_iterator(iterator itr)    { m_iterator = itr; }
+  // Keep requesting more peers when state is set to true.
+  void                request_more(bool state);
+  void                manual_request(bool force);
 
-  const Timer&        get_time() const              { return m_iterator->first; }
+  // Be carefull what you do with this.
+  TrackerControl*     tracker_control() { return m_control; }
+
+  Timer               get_next_timeout() const;
 
 private:
-  TaskItem(const TaskItem& t);
-  TaskItem&           operator = (const TaskItem& t);
+  TrackerManager(const TrackerManager&);
+  void operator = (const TrackerManager&);
 
-  iterator            m_iterator;
-  Slot                m_slot;
+  void                receive_timeout();
+  void                receive_success();
+
+  TrackerControl*     m_control;
+
+  TaskItem            m_taskTimeout;
 };
 
 }

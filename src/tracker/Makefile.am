@@ -9,6 +9,8 @@ libsub_tracker_la_SOURCES = \
 	tracker_info.h \
 	tracker_list.cc \
 	tracker_list.h \
+	tracker_manager.cc \
+	tracker_manager.h \
 	tracker_udp.cc \
 	tracker_udp.h
 

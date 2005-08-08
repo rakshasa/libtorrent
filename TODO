@@ -2,10 +2,18 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-TrackerControl's slots should have the caller TrackerBase* in their
-argument.
+Remove cancel from TrackerControl, TrackerManager can handle that.
 
-send_state should do the iterator reseting, except for stopped.
+Download::tracker_send_completed() {
+Download::tracker_cycle_group(int group) {
+Download::set_tracker_timeout(
+
+Add a get TrackerInfo function to DownloadMain. Move outside access
+from using TrackerControl to TrackerManager.
+
+Rename TrackerControl?
+
+Display tracker url, group and index when connecting.
 
 Add an intersection version off HandshakeManager::has_address()?
 

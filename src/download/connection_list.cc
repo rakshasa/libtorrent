@@ -106,7 +106,7 @@ void
 ConnectionList::remove_connected(AddressList* l) {
   std::sort(begin(), end(), _ConnectionListComp());
 
-  l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->end(), _ConnectionListComp()),
+  l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->begin(), _ConnectionListComp()),
 	   l->end());
 }
 

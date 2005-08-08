@@ -73,6 +73,9 @@ AvailableList::insert(AddressList* l) {
   if (size() > m_maxSize)
     return;
 
+//   if (l->size() > 0)
+//     throw internal_error("Got some peers");
+
   std::sort(begin(), end());
   std::set_difference(l->begin(), l->end(), begin(), end(), std::back_inserter(*static_cast<Base*>(this)));
 }

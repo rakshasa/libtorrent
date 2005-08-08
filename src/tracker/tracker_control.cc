@@ -91,12 +91,10 @@ TrackerControl::add_url(int group, const std::string& url) {
 
 void
 TrackerControl::cycle_group(int group) {
-  // We need to insure that there is no busy requests since changing
-  // m_itr will mess up the received success/failed signal.
-  if (is_busy())
-    return;
+  TrackerBase* tb = (m_itr != m_list.end()) ? m_itr->second : NULL;
 
   m_list.cycle_group(group);
+  m_itr = m_list.find(tb);
 }
 
 void
@@ -112,12 +110,12 @@ TrackerControl::set_next_time(Timer interval, bool force) {
 
 Timer
 TrackerControl::get_next_time() {
-  return taskScheduler.is_scheduled(&m_taskTimeout) ? std::max(m_taskTimeout.get_time() - Timer::cache(), Timer(0)) : 0;
+  return taskScheduler.is_scheduled(&m_taskTimeout) ? m_taskTimeout.get_time() : 0;
 }
 
 bool
 TrackerControl::is_busy() const {
-  return m_itr != m_list.end() && m_itr->second->is_busy();
+  return taskScheduler.is_scheduled(&m_taskTimeout) || (m_itr != m_list.end() && m_itr->second->is_busy());
 }
 
 void
@@ -127,8 +125,8 @@ TrackerControl::send_state(TrackerInfo::State s) {
 //     return;
 //   }
 
-  if ((m_state == TrackerInfo::STOPPED && s == TrackerInfo::STOPPED)) //??? || m_itr == m_list.end())
-    return;
+//   if ((m_state == TrackerInfo::STOPPED && s == TrackerInfo::STOPPED)) //??? || m_itr == m_list.end())
+//     return;
 
   m_tries = -1;
   m_state = s;
@@ -140,8 +138,8 @@ TrackerControl::send_state(TrackerInfo::State s) {
   cancel();
 
   // Move this logic outside?
-  if (m_itr == m_list.end() || m_state != TrackerInfo::STOPPED)
-    m_itr = m_list.begin();
+//   if (m_itr == m_list.end() || m_state != TrackerInfo::STOPPED)
+//     m_itr = m_list.begin();
 
   query_current();
 }
@@ -178,10 +176,10 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
   // successfull.
   m_itr = m_list.promote(m_itr);
 
-  if (m_state != TrackerInfo::STOPPED) {
-    m_state = TrackerInfo::NONE;
-    taskScheduler.insert(&m_taskTimeout, Timer::cache() + (int64_t)m_interval * 1000000);
-  }
+//   if (m_state != TrackerInfo::STOPPED) {
+//     m_state = TrackerInfo::NONE;
+//     taskScheduler.insert(&m_taskTimeout, Timer::cache() + (int64_t)m_interval * 1000000);
+//   }
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
@@ -227,8 +225,10 @@ TrackerControl::query_current() {
 
   if (m_itr != m_list.end())
     m_itr->second->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
-  else
+  else if (m_state != TrackerInfo::STOPPED)
     taskScheduler.insert(&m_taskTimeout, Timer::cache() + 10 * 1000000);
+  else
+    m_signalFailed.emit("Could not find any trackers to connect to.");
 }
 
 }

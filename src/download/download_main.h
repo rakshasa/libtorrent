@@ -42,8 +42,8 @@
 #include "download_net.h"
 
 #include "protocol/peer_info.h"
-#include "tracker/tracker_control.h"
 #include "utils/task.h"
+#include "tracker/tracker_manager.h"
 
 #include <sigc++/connection.h>
 
@@ -65,7 +65,7 @@ public:
   bool                is_open() const                          { return m_state.get_content().is_open(); }
   bool                is_active() const                        { return m_started; }
   bool                is_checked() const                       { return m_checked; }
-  bool                is_stopped() const                       { return !m_started && !m_tracker->is_busy(); }
+  bool                is_stopped() const                       { return !m_tracker.is_active(); }
 
   const std::string&  get_name() const                         { return m_name; }
   void                set_name(const std::string& s)           { m_name = s; }
@@ -75,7 +75,7 @@ public:
 
   DownloadState&      get_state()                              { return m_state; }
   DownloadNet&        get_net()                                { return m_net; }
-  TrackerControl&     get_tracker()                            { return *m_tracker; }
+  TrackerManager&     get_tracker()                            { return m_tracker; }
 
   // Carefull with these.
   void                setup_delegator();
@@ -97,7 +97,7 @@ private:
   DownloadState       m_state;
   DownloadNet         m_net;
   DownloadSettings    m_settings;
-  TrackerControl*     m_tracker;
+  TrackerManager      m_tracker;
 
   std::string         m_name;
 

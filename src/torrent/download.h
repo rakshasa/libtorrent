@@ -139,7 +139,6 @@ public:
 
   void                 set_uploads_max(uint32_t v);
 
-  void                 set_tracker_timeout(uint64_t v, bool force = false);
   void                 set_tracker_numwant(int32_t n);
 
   // Access the trackers in the torrent.
@@ -151,6 +150,7 @@ public:
   // Perhaps make tracker_cycle_group part of Tracker?
   void                 tracker_send_completed();
   void                 tracker_cycle_group(int group);
+  void                 tracker_manual_request(bool force);
 
   // Access the files in the torrent.
   Entry                get_entry(uint32_t index);
