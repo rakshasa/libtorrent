@@ -52,8 +52,10 @@ namespace torrent {
 
 TrackerControl::TrackerControl() :
   m_tries(-1),
-  m_interval(1800),
-  m_state(TrackerInfo::STOPPED) {
+  m_normalInterval(1800),
+  m_minInterval(0),
+  m_state(TrackerInfo::STOPPED),
+  m_timeLastConnection(Timer::cache()) {
   
   m_itr = m_list.end();
 
@@ -82,7 +84,7 @@ TrackerControl::add_url(int group, const std::string& url) {
   t->slot_success(sigc::mem_fun(*this, &TrackerControl::receive_success));
   t->slot_failed(sigc::mem_fun(*this, &TrackerControl::receive_failed));
   t->slot_log(m_signalFailed.make_slot());
-  t->slot_set_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_interval));
+  t->slot_set_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_normal_interval));
   t->slot_set_min_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_min_interval));
 
   m_list.insert(group, t);
@@ -98,14 +100,12 @@ TrackerControl::cycle_group(int group) {
 }
 
 void
-TrackerControl::set_next_time(Timer interval, bool force) {
+TrackerControl::set_next_time(Timer interval) {
   if (!taskScheduler.is_scheduled(&m_taskTimeout))
     return;
 
   taskScheduler.erase(&m_taskTimeout);
-  taskScheduler.insert(&m_taskTimeout,
-		       std::max(Timer::cache() + interval,
-				force ? Timer::cache() : m_timerMinInterval));
+  taskScheduler.insert(&m_taskTimeout, Timer::cache() + interval);
 }
 
 Timer
@@ -113,34 +113,16 @@ TrackerControl::get_next_time() {
   return taskScheduler.is_scheduled(&m_taskTimeout) ? m_taskTimeout.get_time() : 0;
 }
 
-bool
-TrackerControl::is_busy() const {
-  return taskScheduler.is_scheduled(&m_taskTimeout) || (m_itr != m_list.end() && m_itr->second->is_busy());
-}
-
 void
 TrackerControl::send_state(TrackerInfo::State s) {
-//   if (!m_list.has_enabled()) {
-//     m_signalFailed.emit("No enabled trackers found");
-//     return;
-//   }
-
-//   if ((m_state == TrackerInfo::STOPPED && s == TrackerInfo::STOPPED)) //??? || m_itr == m_list.end())
-//     return;
+  // Reset the target tracker since we're doing a new request.
+  if (m_itr != m_list.end())
+    m_itr->second->close();
 
   m_tries = -1;
   m_state = s;
-  m_timerMinInterval = 0;
 
   taskScheduler.erase(&m_taskTimeout);
-
-  // Reset the target tracker since we're doing a new request.
-  cancel();
-
-  // Move this logic outside?
-//   if (m_itr == m_list.end() || m_state != TrackerInfo::STOPPED)
-//     m_itr = m_list.begin();
-
   query_current();
 }
 
@@ -176,18 +158,11 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
   // successfull.
   m_itr = m_list.promote(m_itr);
 
-//   if (m_state != TrackerInfo::STOPPED) {
-//     m_state = TrackerInfo::NONE;
-//     taskScheduler.insert(&m_taskTimeout, Timer::cache() + (int64_t)m_interval * 1000000);
-//   }
-
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
+  m_timeLastConnection = Timer::cache();
   m_signalSuccess.emit(l);
-
-  // Temporary, this should be moved outside.
-  //set_focus_index(0);
 }
 
 void
@@ -210,13 +185,15 @@ TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
 }
 
 void
-TrackerControl::receive_set_interval(int v) {
-  m_interval = std::max(60, v);
+TrackerControl::receive_set_normal_interval(int v) {
+  if (v >= 60 && v <= 3600)
+    m_normalInterval = v;
 }
 
 void
 TrackerControl::receive_set_min_interval(int v) {
-  m_timerMinInterval = Timer::cache() + std::max(0, v) * 1000000;
+  if (v >= 0 && v <= 600)
+    m_minInterval = v;
 }
 
 void

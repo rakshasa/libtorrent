@@ -58,10 +58,14 @@ DownloadMain::DownloadMain() :
 
   m_taskChokeCycle.set_slot(sigc::mem_fun(*this, &DownloadMain::choke_cycle));
   m_taskChokeCycle.set_iterator(taskScheduler.end());
+
+  m_taskTrackerRequest.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tracker_request));
+  m_taskTrackerRequest.set_iterator(taskScheduler.end());
 }
 
 DownloadMain::~DownloadMain() {
-  if (taskScheduler.is_scheduled(&m_taskChokeCycle))
+  if (taskScheduler.is_scheduled(&m_taskChokeCycle) ||
+      taskScheduler.is_scheduled(&m_taskTrackerRequest))
     throw internal_error("DownloadMain::~DownloadMain(): m_taskChokeCycle is scheduled");
 }
 
@@ -83,7 +87,7 @@ DownloadMain::close() {
 
   m_checked = false;
 
-  m_tracker.stop();
+  m_tracker.send_stop();
   m_state.get_content().close();
   m_net.get_delegator().clear();
 }
@@ -99,9 +103,10 @@ void DownloadMain::start() {
     return;
 
   m_started = true;
+  m_lastConnectedSize = 0;
 
   setup_start();
-  m_tracker.start();
+  m_tracker.send_start();
 }  
 
 void DownloadMain::stop() {
@@ -113,7 +118,7 @@ void DownloadMain::stop() {
 
   m_started = false;
 
-  m_tracker.stop();
+  m_tracker.send_stop();
   setup_stop();
 }
 
@@ -130,5 +135,27 @@ void DownloadMain::receive_initial_hash() {
   m_checked = true;
   m_state.get_content().resize();
 }    
+
+void
+DownloadMain::receive_tracker_success() {
+  if (!m_started)
+    return;
+
+  taskScheduler.erase(&m_taskTrackerRequest);
+  taskScheduler.insert(&m_taskTrackerRequest, Timer::cache() + 30 * 1000000);
+}
+
+void
+DownloadMain::receive_tracker_request() {
+  if (m_net.get_connection_list().size() >= m_net.get_connection_list().get_min_connections())
+    return;
+
+  if (m_net.get_connection_list().size() >= m_lastConnectedSize + 10)
+    m_tracker.request_current();
+  else // Check to make sure we don't query after every connection to the primary tracker?
+    m_tracker.request_next();
+
+  m_lastConnectedSize = m_net.get_connection_list().size();
+}
 
 }

@@ -80,6 +80,7 @@ DownloadMain::setup_tracker() {
   m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.get_connection_list(), &ConnectionList::remove_connected));
   m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.get_available_list(), &AvailableList::insert));
   m_tracker.tracker_control()->signal_success().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::connect_peers)));
+  m_tracker.tracker_control()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
 
   m_tracker.tracker_control()->slot_stat_down(sigc::mem_fun(m_net.get_read_rate(), &Rate::total));
   m_tracker.tracker_control()->slot_stat_up(sigc::mem_fun(m_net.get_write_rate(), &Rate::total));
@@ -101,6 +102,7 @@ DownloadMain::setup_stop() {
   m_connectionChunkFailed.disconnect();
 
   taskScheduler.erase(&m_taskChokeCycle);
+  taskScheduler.erase(&m_taskTrackerRequest);
   m_state.get_content().block_download_done(true);
 }
 

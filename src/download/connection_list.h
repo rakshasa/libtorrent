@@ -55,6 +55,7 @@ class ConnectionList : private unordered_vector<PeerConnectionBase*> {
 public:
   typedef unordered_vector<PeerConnectionBase*> Base;
   typedef std::list<SocketAddress>              AddressList;
+  typedef uint32_t                              size_type;
 
   using Base::value_type;
   using Base::reference;
@@ -71,7 +72,7 @@ public:
   using Base::rbegin;
   using Base::rend;
   
-  ConnectionList() : m_maxConnections(100) {}
+  ConnectionList() : m_minConnections(50), m_maxConnections(100) {}
   ~ConnectionList() { clear(); }
 
   // Does not do the usual cleanup done by 'erase'.
@@ -82,8 +83,11 @@ public:
   bool                insert(SocketFd fd, const PeerInfo& p);
   void                erase(PeerConnectionBase* p);
 
-  uint32_t            get_max_connections() const                      { return m_maxConnections; }
-  void                set_max_connections(uint32_t v)                  { m_maxConnections = v; }
+  size_type           get_min_connections() const                      { return m_minConnections; }
+  void                set_min_connections(size_type v)                 { m_minConnections = v; }
+
+  size_type           get_max_connections() const                      { return m_maxConnections; }
+  void                set_max_connections(size_type v)                 { m_maxConnections = v; }
 
   // Removes from 'l' addresses that are already connected to. Assumes
   // 'l' is sorted and unique.
@@ -106,7 +110,8 @@ private:
   ConnectionList(const ConnectionList&);
   void operator = (const ConnectionList&);
 
-  uint32_t            m_maxConnections;
+  size_type           m_minConnections;
+  size_type           m_maxConnections;
 
   SignalPeer          m_signalPeerConnected;
   SignalPeer          m_signalPeerDisconnected;

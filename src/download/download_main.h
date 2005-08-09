@@ -43,6 +43,7 @@
 
 #include "protocol/peer_info.h"
 #include "utils/task.h"
+#include "tracker/tracker_control.h"
 #include "tracker/tracker_manager.h"
 
 #include <sigc++/connection.h>
@@ -76,6 +77,7 @@ public:
   DownloadState&      get_state()                              { return m_state; }
   DownloadNet&        get_net()                                { return m_net; }
   TrackerManager&     get_tracker()                            { return m_tracker; }
+  TrackerInfo*        get_info()                               { return m_tracker.tracker_control()->get_info(); }
 
   // Carefull with these.
   void                setup_delegator();
@@ -94,6 +96,9 @@ private:
 
   void                choke_cycle();
 
+  void                receive_tracker_success();
+  void                receive_tracker_request();
+
   DownloadState       m_state;
   DownloadNet         m_net;
   DownloadSettings    m_settings;
@@ -103,12 +108,14 @@ private:
 
   bool                m_checked;
   bool                m_started;
+  uint32_t            m_lastConnectedSize;
 
   sigc::connection    m_connectionChunkPassed;
   sigc::connection    m_connectionChunkFailed;
   sigc::connection    m_connectionAddAvailablePeers;
 
   TaskItem            m_taskChokeCycle;
+  TaskItem            m_taskTrackerRequest;
 };
 
 } // namespace torrent

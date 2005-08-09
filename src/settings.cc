@@ -46,8 +46,6 @@ namespace torrent {
 DownloadSettings* DownloadSettings::m_global = new DownloadSettings();
 
 DownloadSettings::DownloadSettings() :
-  minPeers(40),
-  maxAvailable(1000),          // Max number of unconnected peers to keep that it has received from the tracker.
   chokeCycle(30 * 1000000),
   chokeGracePeriod(55 * 1000000),
   stallTimeout(160 * 1000000), // Less than 0.1 kb/s

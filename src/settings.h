@@ -42,12 +42,13 @@
 
 namespace torrent {
 
+// You hear a voice urging you on; *kill* *kill* *kill*
+//
+// > kill setting.h
+
 class DownloadSettings {
  public:
   DownloadSettings();
-
-  int minPeers;
-  uint32_t maxAvailable;
 
   int chokeCycle;
   int chokeGracePeriod;

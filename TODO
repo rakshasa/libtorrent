@@ -2,18 +2,25 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Remove cancel from TrackerControl, TrackerManager can handle that.
+[DONE] Move minInterval logic outside of TrackerControl. Add a timer that
+tells us when last we made a connection.
 
-Download::tracker_send_completed() {
-Download::tracker_cycle_group(int group) {
-Download::set_tracker_timeout(
-
-Add a get TrackerInfo function to DownloadMain. Move outside access
+[DONE] Add a get TrackerInfo function to DownloadMain. Move outside access
 from using TrackerControl to TrackerManager.
+
+Download::tracker_cycle_group(int group) {
 
 Rename TrackerControl?
 
 Display tracker url, group and index when connecting.
+
+Rename peers_min/max to max_connections or similar.
+
+Remove redundant _connections() in ConnectionList.
+
+Remove get_ for certain class of accesses, also make them pointers to
+put emphasis on the fact that they arn't logically behaving like
+return-by-value types.
 
 Add an intersection version off HandshakeManager::has_address()?
 

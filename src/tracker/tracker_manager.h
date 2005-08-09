@@ -50,12 +50,17 @@ public:
 
   bool                is_active() const;
 
-  void                start();
-  void                stop();
-  void                completed();
+  void                send_start();
+  void                send_stop();
+  void                send_completed();
 
-  // Keep requesting more peers when state is set to true.
-  void                request_more(bool state);
+  // Request more peers from current, or the next tracker on the
+  // list. These functions will start from the current focus and
+  // iterate to the next if it is unable to connect. Once the end is
+  // reached it will stop.
+  void                request_current();
+  bool                request_next();
+
   void                manual_request(bool force);
 
   // Be carefull what you do with this.
@@ -69,6 +74,7 @@ private:
 
   void                receive_timeout();
   void                receive_success();
+  void                receive_failed();
 
   TrackerControl*     m_control;
 

@@ -131,7 +131,7 @@ Download::get_hash() const {
 
 std::string
 Download::get_id() const {
-  return m_ptr ? m_ptr->get_main().get_tracker().tracker_control()->get_info().get_local_id() : "";
+  return m_ptr ? m_ptr->get_main().get_info()->get_local_id() : "";
 }
 
 uint32_t
@@ -219,7 +219,7 @@ Download::get_bitfield_size() const {
 
 uint32_t
 Download::get_peers_min() const {
-  return m_ptr->get_main().get_state().get_settings().minPeers;
+  return m_ptr->get_main().get_net().get_connection_list().get_min_connections();
 }
 
 uint32_t
@@ -249,13 +249,13 @@ Download::get_tracker_timeout() const {
 
 int16_t
 Download::get_tracker_numwant() const {
-  return m_ptr->get_main().get_tracker().tracker_control()->get_info().get_numwant();
+  return m_ptr->get_main().get_info()->get_numwant();
 }
 
 void
 Download::set_peers_min(uint32_t v) {
   if (v >= 0 && v < (1 << 16)) {
-    m_ptr->get_main().get_state().get_settings().minPeers = v;
+    m_ptr->get_main().get_net().get_connection_list().set_min_connections(v);
     m_ptr->get_main().get_net().connect_peers();
   }
 }
@@ -276,7 +276,7 @@ Download::set_uploads_max(uint32_t v) {
 
 void
 Download::set_tracker_numwant(int32_t n) {
-  m_ptr->get_main().get_tracker().tracker_control()->get_info().set_numwant(n);
+  m_ptr->get_main().get_info()->set_numwant(n);
 }
 
 Tracker
@@ -307,7 +307,7 @@ Download::get_tracker_focus() const {
 
 void
 Download::tracker_send_completed() {
-//   m_ptr->get_main().get_tracker().send_state(TrackerInfo::COMPLETED);
+  m_ptr->get_main().get_tracker().send_completed();
 }
 
 void

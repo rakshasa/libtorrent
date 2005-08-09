@@ -42,6 +42,7 @@
 #include <sigc++/signal.h>
 #include <sigc++/slot.h>
 
+#include "tracker_base.h"
 #include "tracker_info.h"
 #include "tracker_list.h"
 
@@ -69,6 +70,8 @@ public:
 
   TrackerControl();
 
+  bool                is_busy() const;
+
   void                send_state(TrackerInfo::State s);
   void                cancel();
 
@@ -76,22 +79,26 @@ public:
   void                cycle_group(int group);
 
   TrackerInfo::State  get_state()                             { return m_state; }
-  TrackerInfo&        get_info()                              { return m_info; }
+  TrackerInfo*        get_info()                              { return &m_info; }
   TrackerList&        get_list()                              { return m_list; }
 
-  uint32_t            get_interval() const                    { return m_interval; }
+  uint32_t            get_normal_interval() const             { return m_normalInterval; }
+  uint32_t            get_min_interval() const                { return m_minInterval; }
 
   // Use set_next_time(...) to do tracker rerequests.
   Timer               get_next_time();
-  void                set_next_time(Timer interval, bool force);
+  void                set_next_time(Timer interval);
 
   uint32_t            get_focus_index() const                 { return m_itr - m_list.begin(); }
   void                set_focus_index(uint32_t v);
 
-  bool                is_busy() const;
+  Timer               time_last_connection() const            { return m_timeLastConnection; }
 
   // The list of addresses is guaranteed to be sorted and unique.
   SignalAddressList&  signal_success()                        { return m_signalSuccess; }
+
+  // Before the failed signal emits, get_focus_index() is pointing to
+  // the next tracker.
   SignalString&       signal_failed()                         { return m_signalFailed; }
   SignalDump&         signal_dump()                           { return m_signalDump; }
 
@@ -108,13 +115,14 @@ private:
   void                receive_success(TrackerBase* tb, AddressList* l);
   void                receive_failed(TrackerBase* tb, const std::string& msg);
 
-  void                receive_set_interval(int v);
+  void                receive_set_normal_interval(int v);
   void                receive_set_min_interval(int v);
 
   void                query_current();
 
   int                 m_tries;
-  int                 m_interval;
+  int                 m_normalInterval;
+  int                 m_minInterval;
 
   TrackerInfo         m_info;
   TrackerInfo::State  m_state;
@@ -122,7 +130,7 @@ private:
   TrackerList           m_list;
   TrackerList::iterator m_itr;
 
-  Timer               m_timerMinInterval;
+  Timer               m_timeLastConnection;
   TaskItem            m_taskTimeout;
 
   SignalDump          m_signalDump;
@@ -133,6 +141,13 @@ private:
   SlotStat            m_slotStatUp;
   SlotStat            m_slotStatLeft;
 };
+
+inline bool
+TrackerControl::is_busy() const {
+  return
+    taskScheduler.is_scheduled(&m_taskTimeout) ||
+    (m_itr != m_list.end() && m_itr->second->is_busy());
+}
 
 }
 
