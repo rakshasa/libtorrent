@@ -78,19 +78,21 @@ public:
   void                add_url(int group, const std::string& url);
   void                cycle_group(int group);
 
+  uint32_t            size() const                            { return m_list.size(); }
+
   TrackerInfo::State  get_state()                             { return m_state; }
+  void                set_state(TrackerInfo::State s)         { m_state = s; }
+
   TrackerInfo*        get_info()                              { return &m_info; }
   TrackerList&        get_list()                              { return m_list; }
 
   uint32_t            get_normal_interval() const             { return m_normalInterval; }
   uint32_t            get_min_interval() const                { return m_minInterval; }
 
-  // Use set_next_time(...) to do tracker rerequests.
-  Timer               get_next_time();
-  void                set_next_time(Timer interval);
-
   uint32_t            get_focus_index() const                 { return m_itr - m_list.begin(); }
   void                set_focus_index(uint32_t v);
+
+  bool                focus_next_group();
 
   Timer               time_last_connection() const            { return m_timeLastConnection; }
 
@@ -131,7 +133,6 @@ private:
   TrackerList::iterator m_itr;
 
   Timer               m_timeLastConnection;
-  TaskItem            m_taskTimeout;
 
   SignalDump          m_signalDump;
   SignalAddressList   m_signalSuccess;
@@ -144,9 +145,7 @@ private:
 
 inline bool
 TrackerControl::is_busy() const {
-  return
-    taskScheduler.is_scheduled(&m_taskTimeout) ||
-    (m_itr != m_list.end() && m_itr->second->is_busy());
+  return m_itr != m_list.end() && m_itr->second->is_busy();
 }
 
 }

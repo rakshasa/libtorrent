@@ -56,7 +56,7 @@ ConnectionList::clear() {
 bool
 ConnectionList::insert(SocketFd fd, const PeerInfo& p) {
   if (std::find_if(begin(), end(), rak::equal(p, std::mem_fun(&PeerConnectionBase::get_peer))) != end() ||
-      size() >= m_maxConnections)
+      size() >= m_maxSize)
     return false;
 
   PeerConnectionBase* c = m_slotNewConnection(fd, p);

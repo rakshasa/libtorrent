@@ -59,7 +59,7 @@ public:
   // iterate to the next if it is unable to connect. Once the end is
   // reached it will stop.
   void                request_current();
-  bool                request_next();
+  void                request_next();
 
   void                manual_request(bool force);
 
@@ -77,9 +77,15 @@ private:
   void                receive_failed();
 
   TrackerControl*     m_control;
+  bool                m_isRequesting;
 
   TaskItem            m_taskTimeout;
 };
+
+inline Timer
+TrackerManager::get_next_timeout() const {
+  return taskScheduler.is_scheduled(&m_taskTimeout) ? m_taskTimeout.get_time() : Timer();
+}
 
 }
 

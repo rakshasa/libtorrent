@@ -188,7 +188,7 @@ TrackerUdp::event_read() {
       return;
 
 //     m_slotLog("UDP read() received announce action.");
-    return close();
+    return;
 
   case 3:
     if (!process_error_output())
@@ -313,6 +313,9 @@ TrackerUdp::process_announce_output() {
     l.push_back(sa);
   }
 
+  // Some logic here to decided on whetever we're going to close the
+  // connection or not?
+  close();
   m_slotSuccess(this, &l);
   return true;
 }

@@ -45,13 +45,9 @@
 
 namespace torrent {
 
-// When m_taskTimeout is scheduled then TrackerManager is active and
-// m_control is not trying to connect to any tracker. Only if both
-// m_taskTimout is unscheduled and m_control is not busy, is
-// TrackerManager inactive.
-
 TrackerManager::TrackerManager() :
-  m_control(new TrackerControl) {
+  m_control(new TrackerControl),
+  m_isRequesting(false) {
 
   m_control->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_success)));
   m_control->signal_failed().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_failed)));
@@ -74,6 +70,8 @@ void
 TrackerManager::send_start() {
   taskScheduler.erase(&m_taskTimeout);
 
+  m_isRequesting = false;
+
   m_control->cancel();
   m_control->set_focus_index(0);
   m_control->send_state(TrackerInfo::STARTED);
@@ -93,21 +91,39 @@ TrackerManager::send_completed() {
   if (!is_active() || m_control->get_state() == TrackerInfo::STOPPED)
     return;
 
+  m_isRequesting = false;
+
   taskScheduler.erase(&m_taskTimeout);
   m_control->send_state(TrackerInfo::COMPLETED);
 }
 
+// When request_{current,next} is called, m_isRequesting is set to
+// true. This ensures that if none of the remaining trackers can be
+// reached or if a connection is successfull, it will not reset the
+// focus to the first tracker.
+//
+// The client can therefor call these functions after
+// TrackerControl::signal_success is emited and know it won't cause
+// looping if there are unreachable trackers.
 void
 TrackerManager::request_current() {
+  if (m_control->is_busy())
+    return;
+
   // Keep track of how many times we've requested from the current
   // tracker without waiting for some minimum interval.
+  m_isRequesting = true;
   manual_request(true);
 }
 
-bool
+void
 TrackerManager::request_next() {
   // Check next against last successfull connection?
-  return false;
+  if (m_control->is_busy() || !m_control->focus_next_group())
+    return;
+
+  m_isRequesting = true;
+  manual_request(true);
 }
 
 void
@@ -124,35 +140,50 @@ TrackerManager::manual_request(bool force) {
   taskScheduler.insert(&m_taskTimeout, t);
 }
 
-Timer
-TrackerManager::get_next_timeout() const {
-  if (taskScheduler.is_scheduled(&m_taskTimeout))
-    return m_taskTimeout.get_time();
-  else
-    return m_control->get_next_time();
-}
-
 void
 TrackerManager::receive_timeout() {
   if (m_control->is_busy())
     throw internal_error("TrackerManager::receive_timeout() called but m_control->is_busy() == true.");
 
   m_control->cancel();
-  m_control->set_focus_index(0);
-  m_control->send_state(TrackerInfo::NONE);
+  m_control->send_state(m_control->get_state());
 }
 
 void
 TrackerManager::receive_success() {
-  if (m_control->get_state() != TrackerInfo::STOPPED)
-    taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_control->get_normal_interval() * 1000000);
+  if (m_control->get_state() == TrackerInfo::STOPPED)
+    return;
 
-  m_control->set_focus_index(0);
+  if (!m_isRequesting)
+    m_control->set_focus_index(0);
+
+  m_isRequesting = false;
+
+  m_control->set_state(TrackerInfo::NONE);
+  taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_control->get_normal_interval() * 1000000);
 }
 
 void
 TrackerManager::receive_failed() {
-  // Check if focus == end to see if we've gone through all trackers.
+  if (m_control->get_state() == TrackerInfo::STOPPED)
+    return;
+
+  if (m_isRequesting) {
+    if (m_control->get_focus_index() == m_control->get_list().size()) {
+      m_isRequesting = false;
+      taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_control->get_normal_interval() * 1000000);
+    } else {
+      taskScheduler.insert(&m_taskTimeout, Timer::cache() + 20 * 1000000);
+    }
+
+  } else {
+    // Check if focus == end to see if we've gone through all trackers.
+    if (m_control->get_focus_index() == m_control->get_list().size())
+      m_control->set_focus_index(0);
+    
+    // Normal retry.
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 20 * 1000000);
+  }
 }
 
 }

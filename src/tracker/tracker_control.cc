@@ -58,9 +58,6 @@ TrackerControl::TrackerControl() :
   m_timeLastConnection(Timer::cache()) {
   
   m_itr = m_list.end();
-
-  m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerControl::query_current));
-  m_taskTimeout.set_iterator(taskScheduler.end());
 }
 
 void
@@ -100,20 +97,6 @@ TrackerControl::cycle_group(int group) {
 }
 
 void
-TrackerControl::set_next_time(Timer interval) {
-  if (!taskScheduler.is_scheduled(&m_taskTimeout))
-    return;
-
-  taskScheduler.erase(&m_taskTimeout);
-  taskScheduler.insert(&m_taskTimeout, Timer::cache() + interval);
-}
-
-Timer
-TrackerControl::get_next_time() {
-  return taskScheduler.is_scheduled(&m_taskTimeout) ? m_taskTimeout.get_time() : 0;
-}
-
-void
 TrackerControl::send_state(TrackerInfo::State s) {
   // Reset the target tracker since we're doing a new request.
   if (m_itr != m_list.end())
@@ -122,7 +105,6 @@ TrackerControl::send_state(TrackerInfo::State s) {
   m_tries = -1;
   m_state = s;
 
-  taskScheduler.erase(&m_taskTimeout);
   query_current();
 }
 
@@ -142,6 +124,20 @@ TrackerControl::set_focus_index(uint32_t v) {
     throw internal_error("TrackerControl::set_focus_index(...) called but m_itr is busy.");
 
   m_itr = m_list.begin() + v;
+}
+
+bool
+TrackerControl::focus_next_group() {
+  if (m_itr == m_list.end())
+    return false;
+
+  // Don't allow change of focus while busy for the moment.
+  if (m_itr->second->is_busy())
+    throw internal_error("TrackerControl::focus_next_group(...) called but m_itr is busy.");
+
+  m_itr = m_list.begin_group(m_itr->first + 1);
+
+  return m_itr != m_list.end();
 }
 
 void
@@ -177,10 +173,6 @@ TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
 
   m_itr++;
 
-  if (m_state != TrackerInfo::STOPPED)
-    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 20 * 1000000);
-
-  // TODO: Close before emiting.
   m_signalFailed.emit(msg);
 }
 
@@ -198,14 +190,12 @@ TrackerControl::receive_set_min_interval(int v) {
 
 void
 TrackerControl::query_current() {
-  m_itr = m_list.find_enabled(m_itr != m_list.end() ? m_itr : m_list.begin());
+  m_itr = m_list.find_enabled(m_itr);
 
   if (m_itr != m_list.end())
     m_itr->second->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
-  else if (m_state != TrackerInfo::STOPPED)
-    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 10 * 1000000);
   else
-    m_signalFailed.emit("Could not find any trackers to connect to.");
+    m_signalFailed.emit("Tried all trackers.");
 }
 
 }

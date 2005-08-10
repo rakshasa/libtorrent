@@ -219,12 +219,12 @@ Download::get_bitfield_size() const {
 
 uint32_t
 Download::get_peers_min() const {
-  return m_ptr->get_main().get_net().get_connection_list().get_min_connections();
+  return m_ptr->get_main().get_net().get_connection_list().get_min_size();
 }
 
 uint32_t
 Download::get_peers_max() const {
-  return m_ptr->get_main().get_net().get_connection_list().get_max_connections();
+  return m_ptr->get_main().get_net().get_connection_list().get_max_size();
 }
 
 uint32_t
@@ -255,7 +255,7 @@ Download::get_tracker_numwant() const {
 void
 Download::set_peers_min(uint32_t v) {
   if (v >= 0 && v < (1 << 16)) {
-    m_ptr->get_main().get_net().get_connection_list().set_min_connections(v);
+    m_ptr->get_main().get_net().get_connection_list().set_min_size(v);
     m_ptr->get_main().get_net().connect_peers();
   }
 }
@@ -263,7 +263,7 @@ Download::set_peers_min(uint32_t v) {
 void
 Download::set_peers_max(uint32_t v) {
   if (v >= 0 && v < (1 << 16))
-    m_ptr->get_main().get_net().get_connection_list().set_max_connections(v);
+    m_ptr->get_main().get_net().get_connection_list().set_max_size(v);
 }
 
 void

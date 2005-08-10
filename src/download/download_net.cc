@@ -101,8 +101,8 @@ DownloadNet::send_have_chunk(uint32_t index) {
 void
 DownloadNet::connect_peers() {
   while (!m_availableList.empty() &&
-	 m_connectionList.size() < m_connectionList.get_min_connections() &&
-	 count_connections() < m_connectionList.get_max_connections()) // Might not need this...
+	 m_connectionList.size() < m_connectionList.get_min_size() &&
+	 count_connections() < m_connectionList.get_max_size()) // Might not need this...
     m_slotStartHandshake(m_availableList.pop_random());
 }
 

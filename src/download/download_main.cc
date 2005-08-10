@@ -147,7 +147,7 @@ DownloadMain::receive_tracker_success() {
 
 void
 DownloadMain::receive_tracker_request() {
-  if (m_net.get_connection_list().size() >= m_net.get_connection_list().get_min_connections())
+  if (m_net.get_connection_list().size() >= m_net.get_connection_list().get_min_size())
     return;
 
   if (m_net.get_connection_list().size() >= m_lastConnectedSize + 10)

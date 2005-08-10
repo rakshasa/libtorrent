@@ -2,19 +2,18 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Add a counter for the number of times we've requested, don't allow
+more than a certain number of times withing a timeframe.
+
 Download::tracker_cycle_group(int group) {
 
 Rename TrackerControl?
 
-Display tracker url, group and index when connecting.
-
-Rename peers_min/max to max_connections or similar.
-
-Remove redundant _connections() in ConnectionList.
-
 Remove get_ for certain class of accesses, also make them pointers to
 put emphasis on the fact that they arn't logically behaving like
 return-by-value types.
+
+Consider fuzzy task schedule timers. round_seconds.
 
 Add an intersection version off HandshakeManager::has_address()?
 
