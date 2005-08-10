@@ -41,14 +41,14 @@
 
 #include "data/hash_torrent.h"
 #include "torrent/bencode.h"
-#include "tracker/tracker_control.h"
+#include "tracker/tracker_info.h"
 #include "download_main.h"
 
 namespace torrent {
 
 // Remember to clean up the pointers, DownloadWrapper won't do it.
 
-  class FileManager;
+class FileManager;
 class HashQueue;
 class HandshakeManager;
 

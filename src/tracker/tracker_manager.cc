@@ -107,6 +107,7 @@ TrackerManager::request_current() {
 bool
 TrackerManager::request_next() {
   // Check next against last successfull connection?
+  return false;
 }
 
 void

@@ -2,12 +2,6 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Move minInterval logic outside of TrackerControl. Add a timer that
-tells us when last we made a connection.
-
-[DONE] Add a get TrackerInfo function to DownloadMain. Move outside access
-from using TrackerControl to TrackerManager.
-
 Download::tracker_cycle_group(int group) {
 
 Rename TrackerControl?
@@ -26,6 +20,9 @@ Add an intersection version off HandshakeManager::has_address()?
 
 Allow for easier configuration for very low/very high open max. Add
 notes to wiki.
+
+Clean up the header includes around the codebase, need to reduce the
+amount of memory required to compile libtorrent.
 
 Make a seperate Download tracker class thing that handles re-requests
 etc. Move control logic from TrackerControl.
