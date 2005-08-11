@@ -69,7 +69,7 @@ private:
 
   static void         escape_string(const std::string& src, std::ostream& stream);
 
-  static void         parse_address(const Bencode& b, SocketAddress* sa);
+  static SocketAddress parse_address(const Bencode& b);
 
   void                parse_address_normal(AddressList& l, const Bencode::List& b);
   void                parse_address_compact(AddressList& l, const std::string& s);

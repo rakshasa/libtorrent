@@ -103,7 +103,7 @@ struct _ConnectionListComp {
 };
 
 void
-ConnectionList::remove_connected(AddressList* l) {
+ConnectionList::set_difference(AddressList* l) {
   std::sort(begin(), end(), _ConnectionListComp());
 
   l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->begin(), _ConnectionListComp()),

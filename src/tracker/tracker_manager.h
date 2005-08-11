@@ -77,7 +77,11 @@ private:
   void                receive_failed();
 
   TrackerControl*     m_control;
+
   bool                m_isRequesting;
+
+  uint32_t            m_numRequests;
+  uint32_t            m_maxRequests;
 
   TaskItem            m_taskTimeout;
 };

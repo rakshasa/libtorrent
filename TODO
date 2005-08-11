@@ -2,8 +2,7 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Add a counter for the number of times we've requested, don't allow
-more than a certain number of times withing a timeframe.
+Different min peers for seeding and leeching modes?
 
 Download::tracker_cycle_group(int group) {
 

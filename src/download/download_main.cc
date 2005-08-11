@@ -107,16 +107,33 @@ void DownloadMain::start() {
 
   setup_start();
   m_tracker.send_start();
+
+  receive_connect_peers();
 }  
 
-void DownloadMain::stop() {
+void
+DownloadMain::stop() {
   if (!m_started)
     return;
 
-  while (!m_net.get_connection_list().empty())
-    m_net.get_connection_list().erase(m_net.get_connection_list().front());
-
+  // Set this early so functions like receive_connect_peers() knows
+  // not to eat available peers.
   m_started = false;
+
+  // Save the addresses we are connected to, so we don't need to
+  // perform alot of requests to the tracker when restarting the
+  // torrent. Consider saving these in the torrent file when dumping
+  // it.
+  std::list<SocketAddress> addressList;
+
+  std::transform(m_net.connection_list().begin(), m_net.connection_list().end(), std::back_inserter(addressList),
+		 rak::on(std::mem_fun(&PeerConnection::get_peer), std::mem_fun_ref(&PeerInfo::get_socket_address)));
+
+  addressList.sort();
+  m_net.available_list().insert(&addressList);
+
+  while (!m_net.connection_list().empty())
+    m_net.connection_list().erase(m_net.connection_list().front());
 
   m_tracker.send_stop();
   setup_stop();
@@ -128,7 +145,19 @@ DownloadMain::choke_cycle() {
   m_net.choke_cycle();
 }
 
-void DownloadMain::receive_initial_hash() {
+void
+DownloadMain::receive_connect_peers() {
+  if (!m_started)
+    return;
+
+  while (!m_net.available_list().empty() &&
+	 m_net.connection_list().size() < m_net.connection_list().get_min_size() &&
+	 m_net.count_connections() < m_net.connection_list().get_max_size()) // Might not need this...
+    m_slotStartHandshake(m_net.available_list().pop_random());
+}
+
+void
+DownloadMain::receive_initial_hash() {
   if (m_checked)
     throw internal_error("DownloadMain::receive_initial_hash() called but m_checked == true");
 
@@ -147,15 +176,15 @@ DownloadMain::receive_tracker_success() {
 
 void
 DownloadMain::receive_tracker_request() {
-  if (m_net.get_connection_list().size() >= m_net.get_connection_list().get_min_size())
+  if (m_net.connection_list().size() >= m_net.connection_list().get_min_size())
     return;
 
-  if (m_net.get_connection_list().size() >= m_lastConnectedSize + 10)
+  if (m_net.connection_list().size() >= m_lastConnectedSize + 10)
     m_tracker.request_current();
   else // Check to make sure we don't query after every connection to the primary tracker?
     m_tracker.request_next();
 
-  m_lastConnectedSize = m_net.get_connection_list().size();
+  m_lastConnectedSize = m_net.connection_list().size();
 }
 
 }

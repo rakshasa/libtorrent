@@ -91,7 +91,7 @@ public:
 
   // Removes from 'l' addresses that are already connected to. Assumes
   // 'l' is sorted and unique.
-  void                remove_connected(AddressList* l);
+  void                set_difference(AddressList* l);
 
   typedef sigc::signal1<void, Peer>                                    SignalPeer;
   typedef sigc::slot2<PeerConnectionBase*, SocketFd, const PeerInfo&>  SlotNewConnection;

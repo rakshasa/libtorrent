@@ -71,15 +71,13 @@ public:
   Delegator&          get_delegator()                          { return m_delegator; }
   ChokeManager&       get_choke_manager()                      { return m_chokeManager; }
 
-  AvailableList&      get_available_list()                     { return m_availableList; }
-  ConnectionList&     get_connection_list()                    { return m_connectionList; }
+  AvailableList&      available_list()                         { return m_availableList; }
+  ConnectionList&     connection_list()                        { return m_connectionList; }
 
   Rate&               get_write_rate()                         { return m_writeRate; }
   Rate&               get_read_rate()                          { return m_readRate; }
 
   void                send_have_chunk(uint32_t index);
-
-  void                connect_peers();
 
   uint32_t            count_connections() const; 
 
@@ -93,13 +91,11 @@ public:
 
   typedef sigc::signal1<void, const std::string&>                      SignalString;
 
-  typedef sigc::slot1<void, const SocketAddress&>                      SlotStartHandshake;
   typedef sigc::slot1<bool, const SocketAddress&>                      SlotHasHandshake;
   typedef sigc::slot0<uint32_t>                                        SlotCountHandshakes;
 
   SignalString& signal_network_log()                                   { return m_signalNetworkLog; }
 
-  void          slot_start_handshake(SlotStartHandshake s)             { m_slotStartHandshake = s; }
   void          slot_has_handshake(SlotHasHandshake s)                 { m_slotHasHandshake = s; }
   void          slot_count_handshakes(SlotCountHandshakes s)           { m_slotCountHandshakes = s; }
 
@@ -122,7 +118,6 @@ private:
 
   SignalString           m_signalNetworkLog;
 
-  SlotStartHandshake     m_slotStartHandshake;
   SlotHasHandshake       m_slotHasHandshake;
   SlotCountHandshakes    m_slotCountHandshakes;
 };

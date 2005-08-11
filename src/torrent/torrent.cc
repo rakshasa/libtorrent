@@ -105,7 +105,7 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
   
   if (itr == torrent->m_downloadManager.end() ||
       !(*itr)->get_main().is_active() ||
-      !(*itr)->get_main().get_net().get_connection_list().insert(fd, peer))
+      !(*itr)->get_main().get_net().connection_list().insert(fd, peer))
     socketManager.close(fd);
 }
 
@@ -391,7 +391,7 @@ download_add(std::istream* s) {
   d->set_file_manager(&torrent->m_fileManager);
 
   // Default PeerConnection factory functions.
-  d->get_main().get_net().get_connection_list().slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &d->get_main().get_state(), &d->get_main().get_net()));
+  d->get_main().get_net().connection_list().slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &d->get_main().get_state(), &d->get_main().get_net()));
 
   parse_tracker(d->get_bencode(), d->get_main().get_tracker().tracker_control());
 

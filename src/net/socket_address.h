@@ -45,11 +45,22 @@
 
 namespace torrent {
 
+struct SocketAddressCompact {
+  SocketAddressCompact() {}
+  SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
+
+  uint32_t addr;
+  uint16_t port;
+
+  const char*         c_str() const { return reinterpret_cast<const char*>(this); }
+} __attribute__ ((packed));
+
 // SocketAddress is by default AF_INET.
 
 class SocketAddress {
 public:
   SocketAddress();
+  SocketAddress(const SocketAddressCompact& sac);
   explicit SocketAddress(const sockaddr_in& sa);
 
   bool                is_any() const                          { return is_port_any() && is_address_any(); }
@@ -67,6 +78,9 @@ public:
   bool                set_address(const std::string& addr);
 
   void                set_address_any()                       { m_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY); }
+
+  SocketAddressCompact get_address_compact() const;
+  void                 set_address_compact(const SocketAddressCompact& sac);
 
   // Uses set_address, so only ip addresses and empty strings are allowed.
   bool                create(const std::string& addr, uint16_t port);
@@ -88,8 +102,9 @@ public:
   char*               end_address()                           { return begin_address() + sizeof_address(); }
   char*               end_port()                              { return begin_port() + sizeof_port(); }
 
-  size_t              sizeof_address() const                  { return sizeof(uint32_t); }
-  size_t              sizeof_port() const                     { return sizeof(uint16_t); }
+  static size_t       sizeof_raw()                            { return sizeof(uint32_t) + sizeof(uint16_t); }
+  static size_t       sizeof_address()                        { return sizeof(uint32_t); }
+  static size_t       sizeof_port()                           { return sizeof(uint16_t); }
 
   bool                operator == (const SocketAddress& sa) const;
   bool                operator < (const SocketAddress& sa) const;
@@ -106,8 +121,27 @@ SocketAddress::SocketAddress() {
 }
 
 inline
+SocketAddress::SocketAddress(const SocketAddressCompact& sac) {
+  std::memset(&m_sockaddr, 0, sizeof(sockaddr_in));
+  m_sockaddr.sin_family      = AF_INET;
+  m_sockaddr.sin_addr.s_addr = sac.addr;
+  m_sockaddr.sin_port        = sac.port;
+}
+
+inline
 SocketAddress::SocketAddress(const sockaddr_in& sa) {
   std::memcpy(&m_sockaddr, &sa, sizeof(sockaddr_in));
+}
+
+inline SocketAddressCompact
+SocketAddress::get_address_compact() const {
+  return SocketAddressCompact(m_sockaddr.sin_addr.s_addr, m_sockaddr.sin_port);
+}
+
+inline void
+SocketAddress::set_address_compact(const SocketAddressCompact& sac) {
+  m_sockaddr.sin_addr.s_addr = sac.addr;
+  m_sockaddr.sin_port        = sac.port;
 }
 
 inline bool

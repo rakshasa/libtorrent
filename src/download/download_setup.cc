@@ -69,17 +69,17 @@ DownloadMain::setup_net() {
   m_state.slot_set_endgame(sigc::mem_fun(m_net, &DownloadNet::set_endgame));
   m_state.slot_delegated_chunks(sigc::mem_fun(m_net.get_delegator().get_chunks(), &Delegator::Chunks::size));
 
-  m_net.get_connection_list().signal_peer_connected().connect(sigc::mem_fun(m_net, &DownloadNet::receive_remove_available));
-  m_net.get_connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::choke_balance)));
-  m_net.get_connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::connect_peers)));
+  m_net.connection_list().signal_peer_connected().connect(sigc::mem_fun(m_net, &DownloadNet::receive_remove_available));
+  m_net.connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::choke_balance)));
+  m_net.connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
 }
 
 void
 DownloadMain::setup_tracker() {
   // This must be done before adding to available addresses.
-  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.get_connection_list(), &ConnectionList::remove_connected));
-  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.get_available_list(), &AvailableList::insert));
-  m_tracker.tracker_control()->signal_success().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::connect_peers)));
+  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.connection_list(), &ConnectionList::set_difference));
+  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.available_list(), &AvailableList::insert));
+  m_tracker.tracker_control()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
   m_tracker.tracker_control()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
 
   m_tracker.tracker_control()->slot_stat_down(sigc::mem_fun(m_net.get_read_rate(), &Rate::total));

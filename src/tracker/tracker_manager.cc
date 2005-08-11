@@ -47,7 +47,9 @@ namespace torrent {
 
 TrackerManager::TrackerManager() :
   m_control(new TrackerControl),
-  m_isRequesting(false) {
+  m_isRequesting(false),
+  m_numRequests(0),
+  m_maxRequests(5) {
 
   m_control->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_success)));
   m_control->signal_failed().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_failed)));
@@ -105,9 +107,15 @@ TrackerManager::send_completed() {
 // The client can therefor call these functions after
 // TrackerControl::signal_success is emited and know it won't cause
 // looping if there are unreachable trackers.
+//
+// When the number of consequtive requests from the same tracker
+// through this function has reached a certain limit, it will stop the
+// request. 'm_maxRequests' thus makes sure that a client with a very
+// high "min peers" setting will not cause too much traffic.
 void
 TrackerManager::request_current() {
-  if (m_control->is_busy())
+  if (m_control->is_busy() ||
+      m_numRequests >= m_maxRequests)
     return;
 
   // Keep track of how many times we've requested from the current
@@ -154,8 +162,15 @@ TrackerManager::receive_success() {
   if (m_control->get_state() == TrackerInfo::STOPPED)
     return;
 
-  if (!m_isRequesting)
+  // Don't reset the focus when we're requesting more peers. If we
+  // want to query the next tracker in the list we need to remember
+  // the current focus.
+  if (m_isRequesting) {
+    m_numRequests++;
+  } else {
+    m_numRequests = 1;
     m_control->set_focus_index(0);
+  }
 
   m_isRequesting = false;
 
@@ -170,6 +185,8 @@ TrackerManager::receive_failed() {
 
   if (m_isRequesting) {
     if (m_control->get_focus_index() == m_control->get_list().size()) {
+      // Don't start from the beginning of the list if we've gone
+      // through the whole list. Return to normal timeout.
       m_isRequesting = false;
       taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_control->get_normal_interval() * 1000000);
     } else {
@@ -177,11 +194,10 @@ TrackerManager::receive_failed() {
     }
 
   } else {
-    // Check if focus == end to see if we've gone through all trackers.
+    // Normal retry.
     if (m_control->get_focus_index() == m_control->get_list().size())
       m_control->set_focus_index(0);
     
-    // Normal retry.
     taskScheduler.insert(&m_taskTimeout, Timer::cache() + 20 * 1000000);
   }
 }

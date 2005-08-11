@@ -382,16 +382,16 @@ void PeerConnection::event_read() {
   }
 
   } catch (close_connection& e) {
-    m_net->get_connection_list().erase(this);
+    m_net->connection_list().erase(this);
 
   } catch (network_error& e) {
     m_net->signal_network_log().emit(e.what());
 
-    m_net->get_connection_list().erase(this);
+    m_net->connection_list().erase(this);
 
   } catch (storage_error& e) {
     m_state->signal_storage_error().emit(e.what());
-    m_net->get_connection_list().erase(this);
+    m_net->connection_list().erase(this);
 
   } catch (base_error& e) {
     std::stringstream s;
@@ -486,15 +486,15 @@ void PeerConnection::event_write() {
   }
 
   } catch (close_connection& e) {
-    m_net->get_connection_list().erase(this);
+    m_net->connection_list().erase(this);
 
   } catch (network_error& e) {
     m_net->signal_network_log().emit(e.what());
-    m_net->get_connection_list().erase(this);
+    m_net->connection_list().erase(this);
 
   } catch (storage_error& e) {
     m_state->signal_storage_error().emit(e.what());
-    m_net->get_connection_list().erase(this);
+    m_net->connection_list().erase(this);
 
   } catch (base_error& e) {
     std::stringstream s;
@@ -509,7 +509,7 @@ void PeerConnection::event_write() {
 void PeerConnection::event_error() {
   m_net->signal_network_log().emit("Connection exception: " + std::string(strerror(errno)));
 
-  m_net->get_connection_list().erase(this);
+  m_net->connection_list().erase(this);
 }
 
 void PeerConnection::parseReadBuf() {
@@ -789,7 +789,7 @@ void
 PeerConnection::task_keep_alive() {
   // Check if remote peer is dead.
   if (Timer::cache() - m_lastMsg > 240 * 1000000) {
-    m_net->get_connection_list().erase(this);
+    m_net->connection_list().erase(this);
     return;
   }
 

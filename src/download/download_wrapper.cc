@@ -80,21 +80,33 @@ DownloadWrapper::hash_resume_load() {
   Content& content = m_main.get_state().get_content();
 
   try {
-    Bencode& root = m_bencode["libtorrent resume"];
-    Bencode& files = root["files"];
+    Bencode& resume  = m_bencode["libtorrent resume"];
+
+    // Load peer addresses.
+    if (resume.has_key("peers") && resume["peers"].is_string()) {
+      const std::string& peers = resume["peers"].as_string();
+
+      std::list<SocketAddress> l(reinterpret_cast<const SocketAddressCompact*>(peers.c_str()),
+				 reinterpret_cast<const SocketAddressCompact*>(peers.c_str() + peers.size() - peers.size() % sizeof(SocketAddressCompact)));
+
+      l.sort();
+      m_main.get_net().available_list().insert(&l);
+    }
+
+    Bencode& files = resume["files"];
 
     // Don't need this.
     if (content.get_files().size() != content.get_storage().get_consolidator().get_files_size())
       throw internal_error("DownloadWrapper::hash_load() size mismatch in file entries");
 
-    if (root["bitfield"].as_string().size() != content.get_bitfield().size_bytes() ||
+    if (resume["bitfield"].as_string().size() != content.get_bitfield().size_bytes() ||
 	files.as_list().size() != content.get_files().size())
       return;
 
     // Clear the hash checking ranges, and add the files ranges we must check.
     m_hash->get_ranges().clear();
 
-    std::memcpy(content.get_bitfield().begin(), root["bitfield"].as_string().c_str(), content.get_bitfield().size_bytes());
+    std::memcpy(content.get_bitfield().begin(), resume["bitfield"].as_string().c_str(), content.get_bitfield().size_bytes());
 
     Bencode::List::iterator bItr = files.as_list().begin();
     Content::FileList::iterator cItr = content.get_files().begin();
@@ -137,6 +149,8 @@ DownloadWrapper::hash_resume_load() {
   content.update_done();
 }
 
+// Break this function up into several smaller functions to make it
+// easier to read.
 void
 DownloadWrapper::hash_resume_save() {
   if (!m_main.is_open() || m_main.is_active())
@@ -172,8 +186,7 @@ DownloadWrapper::hash_resume_save() {
 
     if (fs.update(sItr->get_meta()->get_path())) {
       l.clear();
-
-      return;
+      break;
     }
 
     b.insert_key("mtime", fs.get_mtime());
@@ -182,6 +195,20 @@ DownloadWrapper::hash_resume_save() {
     ++cItr;
     ++sItr;
   }
+
+  // Save the available peer list. Since this function is called when
+  // the download is stopped, we know that all the previously
+  // connected peers have been copied to the available list.
+  std::string peers;
+  peers.reserve(m_main.get_net().available_list().size() * sizeof(SocketAddressCompact));
+  
+  for (AvailableList::const_iterator
+	 itr = m_main.get_net().available_list().begin(),
+	 last = m_main.get_net().available_list().end();
+       itr != last; ++itr)
+    peers.append(itr->get_address_compact().c_str(), sizeof(SocketAddressCompact));
+
+  resume.insert_key("peers", peers);
 }
 
 void
@@ -211,7 +238,7 @@ void
 DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
   m_main.get_net().slot_has_handshake(sigc::mem_fun(*h, &HandshakeManager::has_address));
   m_main.get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::get_size_hash), get_hash()));
-  m_main.get_net().slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), get_local_id()));
+  m_main.slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), get_local_id()));
 }
 
 void

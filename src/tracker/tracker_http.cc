@@ -224,44 +224,37 @@ TrackerHttp::receive_failed(std::string msg) {
   m_slotFailed(this, msg);
 }
 
-inline void
-TrackerHttp::parse_address(const Bencode& b, SocketAddress* sa) {
+inline SocketAddress
+TrackerHttp::parse_address(const Bencode& b) {
+  SocketAddress sa;
+
   if (!b.is_map())
-    return;
+    return SocketAddress();
 
   for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr)
     // We ignore the "peer id" field, we don't need it.
     if (itr->first == "ip" && itr->second.is_string())
-      sa->set_address(itr->second.as_string());
+      sa.set_address(itr->second.as_string());
 
     else if (itr->first == "port" && itr->second.is_value())
-      sa->set_port(itr->second.as_value());
+      sa.set_port(itr->second.as_value());
+
+  return sa.is_valid() ? sa : SocketAddress();
 }
 
 void
 TrackerHttp::parse_address_normal(AddressList& l, const Bencode::List& b) {
-  for (Bencode::List::const_iterator itr = b.begin(); itr != b.end(); ++itr) {
-    SocketAddress sa;
-    parse_address(*itr, &sa);
-	  
-    if (sa.is_valid())
-      l.push_back(sa);
-  }
+  std::transform(b.begin(), b.end(), std::back_inserter(l), std::ptr_fun(&TrackerHttp::parse_address));
 }  
 
 void
 TrackerHttp::parse_address_compact(AddressList& l, const std::string& s) {
-  for (std::string::const_iterator itr = s.begin(), last = s.end(); itr + 6 <= last; ) {
-    SocketAddress sa;
+  if (sizeof(const SocketAddressCompact) != 6)
+    throw internal_error("TrackerHttp::parse_address_compact(...) bad struct size.");
 
-    std::copy(itr, itr + sa.sizeof_address(), sa.begin_address());
-    itr += sa.sizeof_address();
-    std::copy(itr, itr + sa.sizeof_port(), sa.begin_port());
-    itr += sa.sizeof_port();
-
-    if (sa.is_valid())
-      l.push_back(sa);
-  }
+  std::copy(reinterpret_cast<const SocketAddressCompact*>(s.c_str()),
+	    reinterpret_cast<const SocketAddressCompact*>(s.c_str() + s.size() - s.size() % sizeof(SocketAddressCompact)),
+	    std::back_inserter(l));
 }
 
 }

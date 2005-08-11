@@ -304,14 +304,9 @@ TrackerUdp::process_announce_output() {
 
   AddressList l;
 
-  while (m_readBuffer->position() + 6 <= m_readBuffer->end()) {
-    SocketAddress sa;
-
-    m_readBuffer->read_range(sa.begin_address(), sa.end_address());
-    m_readBuffer->read_range(sa.begin_port(), sa.end_port());
-
-    l.push_back(sa);
-  }
+  std::copy(reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->position()),
+	    reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->end() - m_readBuffer->remaining() % sizeof(SocketAddressCompact)),
+	    std::back_inserter(l));
 
   // Some logic here to decided on whetever we're going to close the
   // connection or not?

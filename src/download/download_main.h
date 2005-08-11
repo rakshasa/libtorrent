@@ -63,28 +63,30 @@ public:
   void                start();
   void                stop();
 
-  bool                is_open() const                          { return m_state.get_content().is_open(); }
-  bool                is_active() const                        { return m_started; }
-  bool                is_checked() const                       { return m_checked; }
-  bool                is_stopped() const                       { return !m_tracker.is_active(); }
+  bool                is_open() const                            { return m_state.get_content().is_open(); }
+  bool                is_active() const                          { return m_started; }
+  bool                is_checked() const                         { return m_checked; }
+  bool                is_stopped() const                         { return !m_tracker.is_active(); }
 
-  const std::string&  get_name() const                         { return m_name; }
-  void                set_name(const std::string& s)           { m_name = s; }
+  const std::string&  get_name() const                           { return m_name; }
+  void                set_name(const std::string& s)             { m_name = s; }
 
-//   const std::string&  get_hash() const                         { return m_hash; }
-//   void                set_hash(const std::string& s)           { m_hash = s; }
-
-  DownloadState&      get_state()                              { return m_state; }
-  DownloadNet&        get_net()                                { return m_net; }
-  TrackerManager&     get_tracker()                            { return m_tracker; }
-  TrackerInfo*        get_info()                               { return m_tracker.tracker_control()->get_info(); }
+  DownloadState&      get_state()                                { return m_state; }
+  DownloadNet&        get_net()                                  { return m_net; }
+  TrackerManager&     get_tracker()                              { return m_tracker; }
+  TrackerInfo*        get_info()                                 { return m_tracker.tracker_control()->get_info(); }
 
   // Carefull with these.
   void                setup_delegator();
   void                setup_net();
   void                setup_tracker();
 
+  void                receive_connect_peers();
   void                receive_initial_hash();
+
+  typedef sigc::slot1<void, const SocketAddress&>                SlotStartHandshake;
+
+  void                slot_start_handshake(SlotStartHandshake s) { m_slotStartHandshake = s; }
 
 private:
   // Disable copy ctor and assignment.
@@ -113,6 +115,8 @@ private:
   sigc::connection    m_connectionChunkPassed;
   sigc::connection    m_connectionChunkFailed;
   sigc::connection    m_connectionAddAvailablePeers;
+
+  SlotStartHandshake  m_slotStartHandshake;
 
   TaskItem            m_taskChokeCycle;
   TaskItem            m_taskTrackerRequest;
