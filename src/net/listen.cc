@@ -59,6 +59,8 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
   if (!get_fd().open_stream() || !get_fd().set_nonblock())
     throw local_error("Could not allocate socket for listening");
 
+  socketManager.local(get_fd());
+
   for (uint16_t i = first; i <= last; ++i) {
     sa.set_port(i);
 
@@ -73,7 +75,7 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
     }
   }
 
-  get_fd().close();
+  socketManager.close(get_fd());
   get_fd().clear();
 
   return false;
@@ -87,7 +89,7 @@ void Listen::close() {
   pollCustom->remove_error(this);
   pollCustom->close(this);
 
-  get_fd().close();
+  socketManager.close(get_fd());
   get_fd().clear();
   
   m_port = 0;

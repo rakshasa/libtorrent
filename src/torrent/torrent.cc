@@ -126,6 +126,34 @@ bencode_hash(Bencode& b) {
   return sha1.final();
 }  
 
+uint32_t
+calculate_max_open_files(uint32_t openMax) {
+  if (openMax >= 8096)
+    return 256;
+  else if (openMax >= 1024)
+    return 128;
+  else if (openMax >= 512)
+    return 64;
+  else if (openMax >= 128)
+    return 16;
+  else // Assumes we don't try less than 64.
+    return 4;
+}
+
+uint32_t
+calculate_reserved(uint32_t openMax) {
+  if (openMax >= 8096)
+    return 256;
+  else if (openMax >= 1024)
+    return 128;
+  else if (openMax >= 512)
+    return 64;
+  else if (openMax >= 128)
+    return 32;
+  else // Assumes we don't try less than 64.
+    return 16;
+}    
+
 void
 initialize(Poll* poll) {
   if (torrent != NULL)
@@ -142,14 +170,15 @@ initialize(Poll* poll) {
   torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
   torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
 
-  if ((int32_t)poll->max_open_sockets() < 256 + 32)
-    throw client_error("Could not initialize libtorrent, poll has too low max_open_sockets");
-
   pollCustom = poll;
 
-  // By default we reserve 128 fd's for the client.
-  socketManager.set_max_size(sysconf(_SC_OPEN_MAX) - 256);
-  torrent->m_fileManager.set_max_size(128);
+  if (poll->get_open_max() < 64)
+    throw client_error("Could not initialize libtorrent, Poll::get_open_max() < 64.");
+
+  uint32_t maxFiles = calculate_max_open_files(poll->get_open_max());
+
+  socketManager.set_max_size(poll->get_open_max() - maxFiles - calculate_reserved(poll->get_open_max()));
+  torrent->m_fileManager.set_max_size(maxFiles);
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -342,8 +371,13 @@ set_hash_max_tries(uint32_t tries) {
 }  
 
 uint32_t
+get_open_files() {
+  return torrent->m_fileManager.open_size();
+}
+
+uint32_t
 get_max_open_files() {
-  return torrent->m_fileManager.max_size();
+  return torrent->m_fileManager.get_max_size();
 }
 
 void

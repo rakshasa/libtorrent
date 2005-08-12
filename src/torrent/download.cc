@@ -312,7 +312,7 @@ Download::tracker_send_completed() {
 
 void
 Download::tracker_cycle_group(int group) {
-//   m_ptr->get_main().get_tracker().cycle_group(group);
+  m_ptr->get_main().get_tracker().tracker_control()->cycle_group(group);
 }
 
 void

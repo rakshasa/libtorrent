@@ -58,6 +58,8 @@ public:
   
   SocketFd            open(const SocketAddress& sa, const SocketAddress& b);
   SocketFd            received(SocketFd fd, const SocketAddress& sa);
+  void                local(SocketFd fd)            { m_size++; }
+
   void                close(SocketFd fd);
 
   uint32_t            size() const                  { return m_size; }

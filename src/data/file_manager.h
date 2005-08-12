@@ -72,9 +72,8 @@ public:
   void                insert(FileMeta* f);
 
   size_t              open_size() const                  { return m_openSize; }
-  size_t              max_size() const                   { return m_maxSize; }
 
-  // Rename to get/set_max_open?
+  size_t              get_max_size() const               { return m_maxSize; }
   void                set_max_size(size_t s);
 
 private:

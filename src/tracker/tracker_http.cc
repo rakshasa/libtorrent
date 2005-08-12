@@ -38,6 +38,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <sigc++/bind.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
@@ -62,6 +63,9 @@ TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
 
   m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
   m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
+
+  m_taskTimeout.set_iterator(taskScheduler.end());
+  m_taskTimeout.set_slot(sigc::bind(sigc::mem_fun(*this, &TrackerHttp::receive_failed), "Connection stalled"));
 }
 
 TrackerHttp::~TrackerHttp() {
@@ -135,6 +139,8 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   m_get->set_stream(m_data);
 
   m_get->start();
+
+  taskScheduler.insert(&m_taskTimeout, Timer::cache() + 60 * 1000000);
 }
 
 void
@@ -147,6 +153,8 @@ TrackerHttp::close() {
 
   delete m_data;
   m_data = NULL;
+
+  taskScheduler.erase(&m_taskTimeout);
 }
 
 TrackerHttp::Type

@@ -29,3 +29,9 @@ SIGC++
 powerful way of reacting to events from the library. The client can
 hook multiple slots on each signal and modify the parameters to suit
 the functions. This avoids lots of unnecessary code in the client.
+
+POLLING
+
+ "libtorrent/src/torrent/poll.h" provides an abstract class for
+implementing any kind of polling the client wishes to use. Currently
+epoll and select based polling is included.

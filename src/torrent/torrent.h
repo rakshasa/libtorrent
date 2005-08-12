@@ -109,6 +109,7 @@ void                set_hash_interval(uint32_t usec);
 uint32_t            get_hash_max_tries();
 void                set_hash_max_tries(uint32_t tries);
 
+uint32_t            get_open_files();
 uint32_t            get_max_open_files();
 void                set_max_open_files(uint32_t size);
 

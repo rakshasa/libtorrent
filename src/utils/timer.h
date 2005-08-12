@@ -52,6 +52,8 @@ class Timer {
   int32_t             seconds() const                    { return m_time / 1000000; }
   int64_t             usec() const                       { return m_time; }
 
+  Timer               round_seconds() const              { return (m_time / 1000000) * 1000000; }
+
   timeval             tval() const                       { return (timeval) { m_time / 1000000, m_time % 1000000}; }
 
   static Timer        current();
@@ -93,4 +95,4 @@ Timer::current() {
 
 }
 
-#endif // LIBTORRENT_TIMER_H
+#endif

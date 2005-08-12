@@ -134,7 +134,7 @@ PollEPoll::perform() {
 }
 
 uint32_t
-PollEPoll::max_open_sockets() const {
+PollEPoll::get_open_max() const {
   return m_table.size();
 }
 
@@ -234,7 +234,7 @@ PollEPoll::perform() {
 }
 
 uint32_t
-PollEPoll::max_open_sockets() const {
+PollEPoll::get_open_max() const {
   throw internal_error("An PollEPoll function was called, but it is disabled.");
 }
 
