@@ -87,7 +87,7 @@ DownloadMain::close() {
 
   m_checked = false;
 
-  m_tracker.send_stop();
+  m_tracker.close();
   m_state.get_content().close();
   m_net.get_delegator().clear();
 }

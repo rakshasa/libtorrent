@@ -69,6 +69,12 @@ TrackerManager::is_active() const {
 }
 
 void
+TrackerManager::close() {
+  m_control->cancel();
+  taskScheduler.erase(&m_taskTimeout);
+}
+
+void
 TrackerManager::send_start() {
   taskScheduler.erase(&m_taskTimeout);
 

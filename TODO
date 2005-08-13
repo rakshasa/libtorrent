@@ -5,6 +5,8 @@ get while coding.
 [PARTLY] Allow for easier configuration for very low/very high open
 max. Add notes to wiki.
 
+Shorter timeout when sending stopped to tracker.
+
 Add a setting for overridding open max, only less than. Remove the
 other settings?
 

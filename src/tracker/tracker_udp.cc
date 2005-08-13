@@ -92,13 +92,18 @@ TrackerUdp::send_state(TrackerInfo::State state,
 
   prepare_connect_input();
 
-  taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_info->get_udp_timeout() * 1000000);
-  m_tries = m_info->get_udp_tries();
-
   pollCustom->open(this);
   pollCustom->insert_read(this);
   pollCustom->insert_write(this);
   pollCustom->insert_error(this);
+
+  if (state == TrackerInfo::STOPPED) {
+    m_tries = 1;
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 5 * 1000000);
+  } else {
+    m_tries = m_info->get_udp_tries();
+    taskScheduler.insert(&m_taskTimeout, Timer::cache() + m_info->get_udp_timeout() * 1000000);
+  }
 }
 
 void

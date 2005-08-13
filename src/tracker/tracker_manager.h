@@ -50,6 +50,8 @@ public:
 
   bool                is_active() const;
 
+  void                close();
+
   void                send_start();
   void                send_stop();
   void                send_completed();
