@@ -42,12 +42,9 @@
 #include <netinet/in.h>
 
 #include "torrent/exceptions.h"
-#include "download/download_net.h"
-
-#include "download/download_state.h"
+#include "download/download_main.h"
 #include "peer_connection.h"
 #include "net/manager.h"
-#include "settings.h"
 
 namespace torrent {
 
@@ -72,11 +69,11 @@ PeerConnection::~PeerConnection() {
   if (!get_fd().is_valid())
     return;
 
-  if (m_state == NULL || m_net == NULL)
+  if (m_download == NULL)
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
   if (m_read->get_state() != ProtocolRead::BITFIELD)
-    m_state->get_bitfield_counter().dec(m_bitfield.get_bitfield());
+    m_download->state()->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
   taskScheduler.erase(&m_taskKeepAlive);
   taskScheduler.erase(&m_taskSendChoke);
@@ -104,7 +101,7 @@ PeerConnection::set_choke(bool v) {
 
 void
 PeerConnection::update_interested() {
-  if (m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
+  if (m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
     m_sendInterested = !m_read->get_interested();
     m_read->set_interested(true);
   } else {
@@ -113,25 +110,24 @@ PeerConnection::update_interested() {
   }
 }
 
-void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net) {
+void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadMain* download) {
   if (get_fd().is_valid())
     throw internal_error("Tried to re-set PeerConnection");
 
   set_fd(fd);
   m_peer = p;
-  m_state = d;
-  m_net = net;
+  m_download = download;
 
   get_fd().set_throughput();
 
-  m_requestList.set_delegator(&m_net->get_delegator());
+  m_requestList.set_delegator(m_download->delegator());
   m_requestList.set_bitfield(&m_bitfield.get_bitfield());
 
-  if (d == NULL || !p.is_valid() || !get_fd().is_valid())
+  if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitFieldExt(d->get_chunk_total());
+  m_bitfield = BitFieldExt(m_download->state()->get_chunk_total());
 
   if (m_bitfield.begin() == NULL)
     throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
@@ -144,14 +140,14 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadState* d, Downl
   m_write->get_buffer().reset_position();
   m_read->get_buffer().reset_position();
 
-  if (!d->get_content().get_bitfield().all_zero()) {
-    m_write->write_bitfield(m_state->get_content().get_bitfield().size_bytes());
+  if (!m_download->state()->get_content().get_bitfield().all_zero()) {
+    m_write->write_bitfield(m_download->state()->get_content().get_bitfield().size_bytes());
 
     m_write->get_buffer().prepare_end();
     m_write->set_state(ProtocolWrite::MSG);
   }
     
-  taskScheduler.insert(&m_taskKeepAlive, Timer::cache() + 120 * 1000000);
+  taskScheduler.insert(&m_taskKeepAlive, Timer::cache().round_seconds() + 120 * 1000000);
   m_lastMsg = Timer::cache();
 }
 
@@ -242,7 +238,7 @@ void PeerConnection::event_read() {
 	throw communication_error("BitField received after other commands");
       }
 
-      //m_net->signal_network_log().emit("Receiving bitfield");
+      //m_download->net()->signal_network_log().emit("Receiving bitfield");
 
       //m_read->get_buffer().reset_position();
       m_read->set_position(0);
@@ -255,7 +251,7 @@ void PeerConnection::event_read() {
 	throw communication_error("Received unknown protocol command");
 
       // Handle 1 byte long messages here.
-      //m_net->signal_network_log().emit("Receiving some commmand");
+      //m_download->net()->signal_network_log().emit("Receiving some commmand");
 
       m_read->get_buffer().set_end(1);
       break;
@@ -292,10 +288,10 @@ void PeerConnection::event_read() {
 
     m_bitfield.update_count();
 
-    if (!m_bitfield.all_zero() && m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
+    if (!m_bitfield.all_zero() && m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
       m_write->set_interested(m_sendInterested = true);
       
-    } else if (m_bitfield.all_set() && m_state->get_content().is_done()) {
+    } else if (m_bitfield.all_set() && m_download->state()->get_content().is_done()) {
       // Both sides are done so we might as well close the connection.
       m_read->set_state(ProtocolRead::INTERNAL_ERROR);
       m_write->set_state(ProtocolWrite::INTERNAL_ERROR);
@@ -303,7 +299,7 @@ void PeerConnection::event_read() {
     }
 
     m_read->set_state(ProtocolRead::IDLE);
-    m_state->get_bitfield_counter().inc(m_bitfield.get_bitfield());
+    m_download->state()->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
     pollCustom->insert_write(this);
     goto evil_goto_read;
@@ -334,7 +330,7 @@ void PeerConnection::event_read() {
     taskScheduler.erase(&m_taskStall);
     
     if (m_requestList.get_size())
-      taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
+      taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
 
     // TODO: clear m_down.data?
     // TODO: remove throttle if choked? Rarely happens though.
@@ -372,7 +368,7 @@ void PeerConnection::event_read() {
       taskScheduler.erase(&m_taskStall);
 
       if (m_requestList.get_size())
-	taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
+	taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
     }
 
     goto evil_goto_read;
@@ -382,16 +378,16 @@ void PeerConnection::event_read() {
   }
 
   } catch (close_connection& e) {
-    m_net->connection_list().erase(this);
+    m_download->connection_list()->erase(this);
 
   } catch (network_error& e) {
-    m_net->signal_network_log().emit(e.what());
+    m_download->signal_network_log().emit(e.what());
 
-    m_net->connection_list().erase(this);
+    m_download->connection_list()->erase(this);
 
   } catch (storage_error& e) {
-    m_state->signal_storage_error().emit(e.what());
-    m_net->connection_list().erase(this);
+    m_download->state()->signal_storage_error().emit(e.what());
+    m_download->connection_list()->erase(this);
 
   } catch (base_error& e) {
     std::stringstream s;
@@ -441,7 +437,7 @@ void PeerConnection::event_write() {
       if (m_sendList.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_writeChunk.set_chunk(m_state->get_content().get_storage().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
+      m_writeChunk.set_chunk(m_download->state()->get_content().get_storage().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
       m_writeChunk.set_position(0);
       m_write->set_state(ProtocolWrite::WRITE_PIECE);
 
@@ -451,17 +447,17 @@ void PeerConnection::event_write() {
       goto evil_goto_write;
       
     default:
-      //m_net->signal_network_log().emit("Wrote message to peer");
+      //m_download->net()->signal_network_log().emit("Wrote message to peer");
 
       m_write->set_state(ProtocolWrite::IDLE);
       return;
     }
 
   case ProtocolWrite::WRITE_BITFIELD:
-    m_write->adjust_position(write_buf(m_state->get_content().get_bitfield().begin() + m_write->get_position(),
-				      m_state->get_content().get_bitfield().size_bytes() - m_write->get_position()));
+    m_write->adjust_position(write_buf(m_download->state()->get_content().get_bitfield().begin() + m_write->get_position(),
+				      m_download->state()->get_content().get_bitfield().size_bytes() - m_write->get_position()));
 
-    if (m_write->get_position() == m_state->get_content().get_bitfield().size_bytes())
+    if (m_write->get_position() == m_download->state()->get_content().get_bitfield().size_bytes())
       m_write->set_state(ProtocolWrite::IDLE);
 
     return;
@@ -486,15 +482,15 @@ void PeerConnection::event_write() {
   }
 
   } catch (close_connection& e) {
-    m_net->connection_list().erase(this);
+    m_download->connection_list()->erase(this);
 
   } catch (network_error& e) {
-    m_net->signal_network_log().emit(e.what());
-    m_net->connection_list().erase(this);
+    m_download->signal_network_log().emit(e.what());
+    m_download->connection_list()->erase(this);
 
   } catch (storage_error& e) {
-    m_state->signal_storage_error().emit(e.what());
-    m_net->connection_list().erase(this);
+    m_download->state()->signal_storage_error().emit(e.what());
+    m_download->connection_list()->erase(this);
 
   } catch (base_error& e) {
     std::stringstream s;
@@ -507,9 +503,9 @@ void PeerConnection::event_write() {
 }
 
 void PeerConnection::event_error() {
-  m_net->signal_network_log().emit("Connection exception: " + std::string(strerror(errno)));
+  m_download->signal_network_log().emit("Connection exception: " + std::string(strerror(errno)));
 
-  m_net->connection_list().erase(this);
+  m_download->connection_list()->erase(this);
 }
 
 void PeerConnection::parseReadBuf() {
@@ -545,7 +541,7 @@ void PeerConnection::parseReadBuf() {
 
     // If we want to send stuff.
     if (m_write->get_choked() &&
-	m_net->get_choke_manager().get_max_unchoked() - m_net->get_unchoked() > 0) {
+	(int)m_download->choke_manager()->get_max_unchoked() - m_download->size_unchoked() > 0) {
       set_choke(false);
     }
     
@@ -558,7 +554,7 @@ void PeerConnection::parseReadBuf() {
     if (!m_write->get_choked()) {
       set_choke(true);
 
-      m_net->choke_balance();
+      m_download->choke_balance();
     }
 
     return;
@@ -605,7 +601,7 @@ void PeerConnection::fillWriteBuf() {
 
     } else if (!taskScheduler.is_scheduled(&m_taskSendChoke)) {
       // Wait with the choke message to avoid oscillation.
-      taskScheduler.insert(&m_taskSendChoke, m_lastChoked + 10 * 1000000);
+      taskScheduler.insert(&m_taskSendChoke, m_lastChoked.round_seconds() + 10 * 1000000);
     }
   }
 
@@ -619,8 +615,8 @@ void PeerConnection::fillWriteBuf() {
   if (m_tryRequest && !m_read->get_choked() && m_write->get_interested() &&
 
       m_read->get_state() != ProtocolRead::SKIP_PIECE &&
-      m_net->should_request(m_stallCount) &&
-      m_requestList.get_size() < (pipeSize = m_net->pipe_size(m_readRate))) {
+      should_request(m_stallCount) &&
+      m_requestList.get_size() < (pipeSize = pipe_size())) {
 
     m_tryRequest = false;
 
@@ -630,7 +626,7 @@ void PeerConnection::fillWriteBuf() {
 	if (taskScheduler.is_scheduled(&m_taskStall))
 	  throw internal_error("Only one request, but we're already in task stall");
 	
-	taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
+	taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
 	m_tryRequest = true;
       }	
   }
@@ -652,8 +648,8 @@ void PeerConnection::fillWriteBuf() {
     m_writeChunk.set_piece(m_sendList.front());
 
     // Move these checks somewhere else?
-    if (!m_state->get_content().is_valid_piece(m_writeChunk.get_piece()) ||
-	!m_state->get_content().has_chunk(m_writeChunk.get_piece().get_index())) {
+    if (!m_download->state()->get_content().is_valid_piece(m_writeChunk.get_piece()) ||
+	!m_download->state()->get_content().has_chunk(m_writeChunk.get_piece().get_index())) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index or length/offset: "
@@ -672,7 +668,7 @@ void
 PeerConnection::receive_have_chunk(int32_t index) {
   m_haveQueue.push_back(index);
 
-  if (m_state->get_content().is_done()) {
+  if (m_download->state()->get_content().is_done()) {
     // We're done downloading.
 
     if (m_bitfield.all_set()) {
@@ -685,7 +681,7 @@ PeerConnection::receive_have_chunk(int32_t index) {
     }
 
   } else if (m_write->get_interested() &&
-	     !m_net->get_delegator().get_select().interested(m_bitfield.get_bitfield())) {
+	     !m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
     // TODO: Optimize?
     m_sendInterested = true;
     m_write->set_interested(false);
@@ -707,7 +703,7 @@ PeerConnection::send_request_piece() {
   if (p == NULL)
     return false;
 
-  if (!m_state->get_content().is_valid_piece(*p) || !m_bitfield[p->get_index()])
+  if (!m_download->state()->get_content().is_valid_piece(*p) || !m_bitfield[p->get_index()])
     throw internal_error("PeerConnection::send_request_piece() tried to use an invalid piece");
 
   m_write->write_request(*p);
@@ -742,14 +738,14 @@ PeerConnection::receive_have(uint32_t index) {
     return;
 
   m_bitfield.set(index, true);
-  m_state->get_bitfield_counter().inc(index);
+  m_download->state()->get_bitfield_counter().inc(index);
 
-  m_peerRate.insert(m_state->get_content().get_storage().get_chunk_size());
+  m_peerRate.insert(m_download->state()->get_content().get_storage().get_chunk_size());
     
-  if (m_state->get_content().is_done())
+  if (m_download->state()->get_content().is_done())
     return;
 
-  if (!m_write->get_interested() && m_net->get_delegator().get_select().interested(index)) {
+  if (!m_write->get_interested() && m_download->delegator()->get_select().interested(index)) {
     m_sendInterested = true;
     m_write->set_interested(true);
 
@@ -767,7 +763,7 @@ PeerConnection::receive_piece_header(Piece p) {
   if (p.get_length() == 0) {
     // Some clients send zero length messages when we request pieces
     // they don't have.
-    m_net->signal_network_log().emit("Received piece with length zero");
+    m_download->signal_network_log().emit("Received piece with length zero");
     m_read->set_state(ProtocolRead::IDLE);
 
     return;
@@ -789,7 +785,7 @@ void
 PeerConnection::task_keep_alive() {
   // Check if remote peer is dead.
   if (Timer::cache() - m_lastMsg > 240 * 1000000) {
-    m_net->connection_list().erase(this);
+    m_download->connection_list()->erase(this);
     return;
   }
 
@@ -809,7 +805,7 @@ PeerConnection::task_keep_alive() {
   }
 
   m_tryRequest = true;
-  taskScheduler.insert(&m_taskKeepAlive, Timer::cache() + 120 * 1000000);
+  taskScheduler.insert(&m_taskKeepAlive, Timer::cache().round_seconds() + 120 * 1000000);
 }
 
 void
@@ -826,7 +822,7 @@ PeerConnection::task_stall() {
 
   // Make sure we regulary call task_stall() so stalled queues with new
   // entries get those new ones stalled if needed.
-  taskScheduler.insert(&m_taskStall, Timer::cache() + m_state->get_settings().stallTimeout);
+  taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
 }
 
 }

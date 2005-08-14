@@ -41,14 +41,11 @@
 #include "torrent/exceptions.h"
 #include "download/download_state.h"
 
-#include "settings.h"
-
 namespace torrent {
 
 void
 DownloadState::update_endgame() {
-  if (m_content.get_chunks_completed() + m_slotDelegatedChunks() + m_settings->endgameBorder
-      >= get_chunk_total())
+  if (m_content.get_chunks_completed() + m_slotDelegatedChunks() + 0 >= get_chunk_total())
     m_slotSetEndgame(true);
 }
 

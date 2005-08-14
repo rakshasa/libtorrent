@@ -83,6 +83,8 @@ public:
   bool                insert(SocketFd fd, const PeerInfo& p);
   void                erase(PeerConnectionBase* p);
 
+  iterator            find(const SocketAddress& sa);
+
   size_type           get_min_size() const                              { return m_minSize; }
   void                set_min_size(size_type v)                         { m_minSize = v; }
 
@@ -93,16 +95,18 @@ public:
   // 'l' is sorted and unique.
   void                set_difference(AddressList* l);
 
+  void                send_have_chunk(uint32_t index);
+
   typedef sigc::signal1<void, Peer>                                    SignalPeer;
   typedef sigc::slot2<PeerConnectionBase*, SocketFd, const PeerInfo&>  SlotNewConnection;
 
   // When a peer is connected it should be removed from the list of
   // available peers.
-  SignalPeer&         signal_peer_connected()                          { return m_signalPeerConnected; }
+  SignalPeer&         signal_connected()                               { return m_signalConnected; }
 
   // When a peer is disconnected the torrent should rebalance the
   // choked peers and connect to new ones if possible.
-  SignalPeer&         signal_peer_disconnected()                       { return m_signalPeerDisconnected; }
+  SignalPeer&         signal_disconnected()                            { return m_signalDisconnected; }
 
   void                slot_new_connection(SlotNewConnection s)         { m_slotNewConnection = s; }
 
@@ -113,8 +117,8 @@ private:
   size_type           m_minSize;
   size_type           m_maxSize;
 
-  SignalPeer          m_signalPeerConnected;
-  SignalPeer          m_signalPeerDisconnected;
+  SignalPeer          m_signalConnected;
+  SignalPeer          m_signalDisconnected;
 
   SlotNewConnection   m_slotNewConnection;
 };

@@ -46,17 +46,12 @@
 
 namespace torrent {
 
-class DownloadSettings;
-
 // Here goes all those things that Peer* and Delegator needs.
 class DownloadState {
 public:
   typedef RefAnchored<StorageChunk> Chunk;
   
-  DownloadState() : m_settings(NULL) {}
-
-  DownloadSettings&   get_settings()                            { return *m_settings; }
-  void                set_settings(DownloadSettings* s)         { m_settings = s; }
+  DownloadState() {}
 
   Content&            get_content()                             { return m_content; }
   const Content&      get_content() const                       { return m_content; }
@@ -93,7 +88,6 @@ private:
   DownloadState(const DownloadState&);
   void operator = (const DownloadState&);
 
-  DownloadSettings*   m_settings;
   Content             m_content;
   BitFieldCounter     m_bfCounter;
 

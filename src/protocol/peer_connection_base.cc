@@ -39,8 +39,7 @@
 #include <limits>
 
 #include "torrent/exceptions.h"
-#include "download/download_net.h"
-#include "download/download_state.h"
+#include "download/download_main.h"
 #include "net/socket_base.h"
 
 #include "peer_connection_base.h"
@@ -48,8 +47,7 @@
 namespace torrent {
 
 PeerConnectionBase::PeerConnectionBase() :
-  m_state(NULL),
-  m_net(NULL),
+  m_download(NULL),
   
   m_read(new ProtocolRead()),
   m_write(new ProtocolWrite()),
@@ -88,10 +86,10 @@ PeerConnectionBase::load_read_chunk(const Piece& p) {
   if (m_readChunk.get_chunk().is_valid() && p.get_index() == m_readChunk.get_chunk()->get_index())
     return;
 
-  if (!m_state->get_content().is_valid_piece(p))
+  if (!m_download->state()->get_content().is_valid_piece(p))
     throw internal_error("Incoming pieces list contains a bad piece");
   
-  m_readChunk.set_chunk(m_state->get_content().get_storage().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
+  m_readChunk.set_chunk(m_download->state()->get_content().get_storage().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
   
   if (!m_readChunk.get_chunk().is_valid())
     throw storage_error("Could not create a valid chunk");
@@ -122,7 +120,7 @@ PeerConnectionBase::write_chunk() {
 
   throttleWrite.get_rate_slow().insert(bytes);
   throttleWrite.get_rate_quick().insert(bytes);
-  m_net->get_write_rate().insert(bytes);
+  m_download->get_write_rate().insert(bytes);
 
   return m_writeChunk.is_done();
 }
@@ -152,9 +150,40 @@ PeerConnectionBase::read_chunk() {
 
   throttleRead.get_rate_slow().insert(bytes);
   throttleRead.get_rate_quick().insert(bytes);
-  m_net->get_read_rate().insert(bytes);
+  m_download->get_read_rate().insert(bytes);
 
   return m_readChunk.is_done();
+}
+
+uint32_t
+PeerConnectionBase::pipe_size() const {
+  uint32_t s = m_readRate.rate();
+
+  if (!m_download->get_endgame())
+    if (s < 50000)
+      return std::max((uint32_t)2, (s + 2000) / 2000);
+    else
+      return std::min((uint32_t)200, (s + 160000) / 4000);
+
+  else
+    if (s < 4000)
+      return 1;
+    else
+      return std::min((uint32_t)80, (s + 32000) / 8000);
+}
+
+// High stall count peers should request if we're *not* in endgame, or
+// if we're in endgame and the download is too slow. Prefere not to request
+// from high stall counts when we are doing decent speeds.
+bool
+PeerConnectionBase::should_request(uint32_t stall) {
+  if (!m_download->get_endgame())
+    return true;
+  else
+    // We check if the peer is stalled, if it is not then we should
+    // request. If the peer is stalled then we only request if the
+    // download rate is below a certain value.
+    return !stall || m_download->get_read_rate().rate() < (10 << 10);
 }
 
 void

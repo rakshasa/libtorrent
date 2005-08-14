@@ -69,6 +69,9 @@ TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
 }
 
 TrackerHttp::~TrackerHttp() {
+  if (taskScheduler.is_scheduled(&m_taskTimeout))
+    throw internal_error("TrackerHttp::~TrackerHttp() called but m_taskTimeout still scheduled.");
+
   delete m_get;
   delete m_data;
 }
@@ -144,9 +147,9 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   // as important that the connection is successful. Ensuring the
   // client can shut down within a short timeframe is more important.
   if (state == TrackerInfo::STOPPED)
-    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 5 * 1000000);
+    taskScheduler.insert(&m_taskTimeout, Timer::cache().round_seconds() + 5 * 1000000);
   else
-    taskScheduler.insert(&m_taskTimeout, Timer::cache() + 60 * 1000000);
+    taskScheduler.insert(&m_taskTimeout, Timer::cache().round_seconds() + 60 * 1000000);
 }
 
 void

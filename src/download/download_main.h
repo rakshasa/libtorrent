@@ -37,12 +37,15 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
-#include "settings.h"
+#include "available_list.h"
+#include "choke_manager.h"
+#include "connection_list.h"
 #include "download_state.h"
-#include "download_net.h"
 
+#include "content/delegator.h"
 #include "protocol/peer_info.h"
 #include "utils/task.h"
+#include "torrent/rate.h"
 #include "tracker/tracker_control.h"
 #include "tracker/tracker_manager.h"
 
@@ -68,25 +71,43 @@ public:
   bool                is_checked() const                         { return m_checked; }
   bool                is_stopped() const                         { return !m_tracker.is_active(); }
 
-  const std::string&  get_name() const                           { return m_name; }
-  void                set_name(const std::string& s)             { m_name = s; }
+  DownloadState*      state()                                    { return &m_state; }
 
-  DownloadState&      get_state()                                { return m_state; }
-  DownloadNet&        get_net()                                  { return m_net; }
+  ChokeManager*       choke_manager()                            { return &m_chokeManager; }
+  Delegator*          delegator()                                { return &m_delegator; }
+
+  AvailableList*      available_list()                           { return &m_availableList; }
+  ConnectionList*     connection_list()                          { return &m_connectionList; }
+
   TrackerManager&     get_tracker()                              { return m_tracker; }
   TrackerInfo*        get_info()                                 { return m_tracker.tracker_control()->get_info(); }
+
+  bool                get_endgame() const                        { return m_endgame; }
+  void                set_endgame(bool b);
+
+  Rate&               get_write_rate()                           { return m_writeRate; }
+  Rate&               get_read_rate()                            { return m_readRate; }
 
   // Carefull with these.
   void                setup_delegator();
   void                setup_net();
   void                setup_tracker();
 
+  void                choke_balance();
+  void                choke_cycle();
+  int                 size_unchoked();
+
   void                receive_connect_peers();
   void                receive_initial_hash();
 
+  typedef sigc::signal1<void, const std::string&>                SignalString;
   typedef sigc::slot1<void, const SocketAddress&>                SlotStartHandshake;
+  typedef sigc::slot0<uint32_t>                                  SlotCountHandshakes;
 
-  void                slot_start_handshake(SlotStartHandshake s) { m_slotStartHandshake = s; }
+  SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
+
+  void                slot_start_handshake(SlotStartHandshake s)   { m_slotStartHandshake = s; }
+  void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
 
 private:
   // Disable copy ctor and assignment.
@@ -96,32 +117,55 @@ private:
   void                setup_start();
   void                setup_stop();
 
-  void                choke_cycle();
+  void                receive_choke_cycle();
 
   void                receive_tracker_success();
   void                receive_tracker_request();
 
   DownloadState       m_state;
-  DownloadNet         m_net;
-  DownloadSettings    m_settings;
-  TrackerManager      m_tracker;
 
-  std::string         m_name;
+  TrackerManager      m_tracker;
+  ChokeManager        m_chokeManager;
+  Delegator           m_delegator;
+
+  AvailableList       m_availableList;
+  ConnectionList      m_connectionList;
 
   bool                m_checked;
   bool                m_started;
+  bool                m_endgame;
   uint32_t            m_lastConnectedSize;
+
+  Rate                m_writeRate;
+  Rate                m_readRate;
 
   sigc::connection    m_connectionChunkPassed;
   sigc::connection    m_connectionChunkFailed;
   sigc::connection    m_connectionAddAvailablePeers;
 
+  SignalString        m_signalNetworkLog;
   SlotStartHandshake  m_slotStartHandshake;
+  SlotCountHandshakes m_slotCountHandshakes;
 
   TaskItem            m_taskChokeCycle;
   TaskItem            m_taskTrackerRequest;
 };
 
-} // namespace torrent
+inline void
+DownloadMain::choke_balance() {
+  m_chokeManager.balance(connection_list()->begin(), connection_list()->end());
+}
 
-#endif // LIBTORRENT_DOWNLOAD_H
+inline void
+DownloadMain::choke_cycle() {
+  m_chokeManager.cycle(connection_list()->begin(), connection_list()->end());
+}
+
+inline int
+DownloadMain::size_unchoked() {
+  return m_chokeManager.get_unchoked(connection_list()->begin(), connection_list()->end());
+}
+
+}
+
+#endif

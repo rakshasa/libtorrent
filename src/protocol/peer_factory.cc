@@ -44,9 +44,9 @@
 namespace torrent {
 
 PeerConnectionBase*
-createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadState* d, DownloadNet* net) {
+createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadMain* download) {
   PeerConnection* pc = new PeerConnection;
-  pc->set(fd, info, d, net);
+  pc->set(fd, info, download);
 
   return pc;
 }

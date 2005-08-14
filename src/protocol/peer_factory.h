@@ -41,12 +41,11 @@
 
 namespace torrent {
 
-class DownloadNet;
-class DownloadState;
+class DownloadMain;
 class PeerConnectionBase;
 class PeerInfo;
 
-PeerConnectionBase* createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadState* d, DownloadNet* net);
+PeerConnectionBase* createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadMain* download);
 
 }
 

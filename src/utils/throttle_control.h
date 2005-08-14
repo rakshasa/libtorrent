@@ -128,7 +128,7 @@ ThrottleControl<T>::receive_tick() {
     Base::quota(m_quota);
   }
 
-  taskScheduler.insert(&m_taskTick, Timer::cache() + m_interval);
+  taskScheduler.insert(&m_taskTick, Timer::cache().round_seconds() + m_interval);
 }
 
 }

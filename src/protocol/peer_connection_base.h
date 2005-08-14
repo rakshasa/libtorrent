@@ -56,8 +56,7 @@ namespace torrent {
 // Base class for peer connection classes. Rename to PeerConnection
 // when the migration is complete.
 
-class DownloadState;
-class DownloadNet;
+class DownloadMain;
 
 class PeerConnectionBase : public SocketStream {
 public:
@@ -94,6 +93,9 @@ public:
   void                set_snubbed(bool v)           { m_snubbed = v; }
   virtual void        set_choke(bool v) = 0;
 
+  uint32_t            pipe_size() const;
+  bool                should_request(uint32_t stall);
+
   void                insert_read_throttle();
   void                remove_read_throttle();
 
@@ -115,8 +117,7 @@ protected:
   void                receive_throttle_read_activate();
   void                receive_throttle_write_activate();
 
-  DownloadState*      m_state;
-  DownloadNet*        m_net;
+  DownloadMain*       m_download;
 
   ProtocolRead*       m_read;
   ProtocolWrite*      m_write;

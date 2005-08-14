@@ -25,6 +25,4 @@ libtorrent_la_LIBADD = \
 
 libtorrent_la_SOURCES = \
         peer_connection.cc \
-        peer_connection.h \
-	settings.cc \
-	settings.h
+        peer_connection.h

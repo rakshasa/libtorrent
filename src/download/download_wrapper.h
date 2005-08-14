@@ -64,18 +64,24 @@ public:
   void                hash_resume_save();
 
   void                open();
+  void                close()                        { m_main.close(); }
+
+  void                start()                        { m_main.start(); }
   void                stop();
 
-  bool                is_stopped()          { return m_main.is_stopped(); }
+  bool                is_stopped()                   { return m_main.is_stopped(); }
 
-  const std::string&  get_hash()            { return m_main.get_info()->get_hash(); }
-  const std::string&  get_local_id()        { return m_main.get_info()->get_local_id(); }
-  SocketAddress&      get_local_address()   { return m_main.get_info()->get_local_address(); }
-  DownloadMain&       get_main()            { return m_main; }
-  const DownloadMain& get_main() const      { return m_main; }
+  const std::string&  get_hash()                     { return m_main.get_info()->get_hash(); }
+  const std::string&  get_local_id()                 { return m_main.get_info()->get_local_id(); }
+  SocketAddress&      get_local_address()            { return m_main.get_info()->get_local_address(); }
+  DownloadMain&       get_main()                     { return m_main; }
+  const DownloadMain& get_main() const               { return m_main; }
 
-  Bencode&            get_bencode()         { return m_bencode; }
-  HashTorrent&        get_hash_checker()    { return *m_hash.get(); }
+  Bencode&            get_bencode()                  { return m_bencode; }
+  HashTorrent&        get_hash_checker()             { return *m_hash.get(); }
+
+  const std::string&  get_name() const               { return m_name; }
+  void                set_name(const std::string& s) { m_name = s; }
 
   void                set_file_manager(FileManager* f);
   void                set_handshake_manager(HandshakeManager* h);
@@ -91,6 +97,8 @@ private:
   DownloadMain               m_main;
   Bencode                    m_bencode;
   std::auto_ptr<HashTorrent> m_hash;
+
+  std::string         m_name;
 };
 
 }

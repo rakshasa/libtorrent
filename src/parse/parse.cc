@@ -37,15 +37,16 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
-#include "download/download_main.h"
+#include "download/download_wrapper.h"
 
 #include "torrent/bencode.h"
 #include "parse.h"
 
 namespace torrent {
 
-void parse_main(const Bencode& b, DownloadMain& download) {
-  download.set_name(b["info"]["name"].as_string());
+void
+parse_main(const Bencode& b, DownloadWrapper* download) {
+  download->set_name(b["info"]["name"].as_string());
 }
 
 }

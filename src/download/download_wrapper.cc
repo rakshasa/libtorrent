@@ -62,10 +62,10 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.get_info()->set_key(random());
 
   // Info hash must be calculate from here on.
-  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.get_state().get_content().get_storage()));
+  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.state()->get_content().get_storage()));
 
   // Connect various signals and slots.
-  m_hash->signal_chunk().connect(sigc::mem_fun(m_main.get_state(), &DownloadState::receive_hash_done));
+  m_hash->signal_chunk().connect(sigc::mem_fun(*m_main.state(), &DownloadState::receive_hash_done));
   m_hash->signal_torrent().connect(sigc::mem_fun(m_main, &DownloadMain::receive_initial_hash));
 }
 
@@ -77,7 +77,7 @@ DownloadWrapper::hash_resume_load() {
   if (!m_bencode.has_key("libtorrent resume"))
     return;
 
-  Content& content = m_main.get_state().get_content();
+  Content& content = m_main.state()->get_content();
 
   try {
     Bencode& resume  = m_bencode["libtorrent resume"];
@@ -90,7 +90,7 @@ DownloadWrapper::hash_resume_load() {
 				 reinterpret_cast<const SocketAddressCompact*>(peers.c_str() + peers.size() - peers.size() % sizeof(SocketAddressCompact)));
 
       l.sort();
-      m_main.get_net().available_list().insert(&l);
+      m_main.available_list()->insert(&l);
     }
 
     Bencode& files = resume["files"];
@@ -139,7 +139,7 @@ DownloadWrapper::hash_resume_load() {
     }  
 
   } catch (bencode_error e) {
-    m_hash->get_ranges().insert(0, m_main.get_state().get_chunk_total());
+    m_hash->get_ranges().insert(0, m_main.state()->get_chunk_total());
   }
 
   // Clear bits in invalid regions which will be checked by m_hash.
@@ -164,7 +164,7 @@ DownloadWrapper::hash_resume_save() {
   // Clear the resume data since if the syncing fails we propably don't
   // want the old resume data.
   Bencode& resume = m_bencode.insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
-  Content& content = m_main.get_state().get_content();
+  Content& content = m_main.state()->get_content();
 
   // We're guaranteed that file modification time is correctly updated
   // after this. Though won't help if the files have been delete while
@@ -200,11 +200,11 @@ DownloadWrapper::hash_resume_save() {
   // the download is stopped, we know that all the previously
   // connected peers have been copied to the available list.
   std::string peers;
-  peers.reserve(m_main.get_net().available_list().size() * sizeof(SocketAddressCompact));
+  peers.reserve(m_main.available_list()->size() * sizeof(SocketAddressCompact));
   
   for (AvailableList::const_iterator
-	 itr = m_main.get_net().available_list().begin(),
-	 last = m_main.get_net().available_list().end();
+	 itr = m_main.available_list()->begin(),
+	 last = m_main.available_list()->end();
        itr != last; ++itr)
     peers.append(itr->get_address_compact().c_str(), sizeof(SocketAddressCompact));
 
@@ -217,7 +217,7 @@ DownloadWrapper::open() {
     return;
 
   m_main.open();
-  m_hash->get_ranges().insert(0, m_main.get_state().get_chunk_total());
+  m_hash->get_ranges().insert(0, m_main.state()->get_chunk_total());
 }
 
 void
@@ -231,13 +231,12 @@ DownloadWrapper::stop() {
 
 void
 DownloadWrapper::set_file_manager(FileManager* f) {
-  m_main.get_state().get_content().slot_opened_file(sigc::mem_fun(*f, &FileManager::insert));
+  m_main.state()->get_content().slot_opened_file(sigc::mem_fun(*f, &FileManager::insert));
 }
 
 void
 DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
-  m_main.get_net().slot_has_handshake(sigc::mem_fun(*h, &HandshakeManager::has_address));
-  m_main.get_net().slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::get_size_hash), get_hash()));
+  m_main.slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::get_size_hash), get_hash()));
   m_main.slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), get_local_id()));
 }
 
@@ -245,8 +244,8 @@ void
 DownloadWrapper::set_hash_queue(HashQueue* h) {
   m_hash->set_queue(h);
 
-  m_main.get_state().slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::push_back),
-						    sigc::mem_fun(m_main.get_state(), &DownloadState::receive_hash_done),
+  m_main.state()->slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::push_back),
+						    sigc::mem_fun(*m_main.state(), &DownloadState::receive_hash_done),
 						    get_hash()));
 }
 

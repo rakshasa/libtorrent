@@ -77,15 +77,16 @@ public:
   value_type          pop_random();
 
   // Fuzzy size limit.
-  size_type           get_max_size() const      { return m_maxSize; }
-  void                set_max_size(size_type s) { m_maxSize = s; }
+  size_type           get_max_size() const               { return m_maxSize; }
+  void                set_max_size(size_type s)          { m_maxSize = s; }
 
   // This push is somewhat inefficient as it iterates through the
   // whole container to see if the address already exists.
   void                push_back(const SocketAddress& sa);
 
   void                insert(AddressList* l);
-  void                erase(iterator itr);
+  void                erase(const SocketAddress& sa);
+  void                erase(iterator itr)                 { *itr = back(); pop_back(); }
 
 private:
   size_type           m_maxSize;

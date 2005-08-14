@@ -50,49 +50,45 @@ namespace torrent {
 
 void
 DownloadMain::setup_delegator() {
-  m_net.get_delegator().get_select().set_bitfield(&m_state.get_content().get_bitfield());
-  m_net.get_delegator().get_select().set_seen(&m_state.get_bitfield_counter());
+  m_delegator.get_select().set_bitfield(&m_state.get_content().get_bitfield());
+  m_delegator.get_select().set_seen(&m_state.get_bitfield_counter());
 
-  m_net.get_delegator().signal_chunk_done().connect(sigc::mem_fun(m_state, &DownloadState::chunk_done));
-  m_net.get_delegator().slot_chunk_size(sigc::mem_fun(m_state.get_content(), &Content::get_chunksize));
+  m_delegator.signal_chunk_done().connect(sigc::mem_fun(m_state, &DownloadState::chunk_done));
+  m_delegator.slot_chunk_size(sigc::mem_fun(m_state.get_content(), &Content::get_chunksize));
 }
 
 void
 DownloadMain::setup_net() {
-  m_net.set_settings(&m_settings);
-  m_state.set_settings(&m_settings);
-
   // TODO: Consider disabling these during hash check.
-  m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net, &DownloadNet::send_have_chunk));
+  m_state.signal_chunk_passed().connect(sigc::mem_fun(*connection_list(), &ConnectionList::send_have_chunk));
 
   // This is really _state stuff:
-  m_state.slot_set_endgame(sigc::mem_fun(m_net, &DownloadNet::set_endgame));
-  m_state.slot_delegated_chunks(sigc::mem_fun(m_net.get_delegator().get_chunks(), &Delegator::Chunks::size));
+  m_state.slot_set_endgame(sigc::mem_fun(*this, &DownloadMain::set_endgame));
+  m_state.slot_delegated_chunks(sigc::mem_fun(m_delegator.get_chunks(), &Delegator::Chunks::size));
 
-  m_net.connection_list().signal_peer_connected().connect(sigc::mem_fun(m_net, &DownloadNet::receive_remove_available));
-  m_net.connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(m_net, &DownloadNet::choke_balance)));
-  m_net.connection_list().signal_peer_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
+  connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::choke_balance)));
+  connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
 }
 
 void
 DownloadMain::setup_tracker() {
   // This must be done before adding to available addresses.
-  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.connection_list(), &ConnectionList::set_difference));
-  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(m_net.available_list(), &AvailableList::insert));
+  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(*connection_list(), &ConnectionList::set_difference));
+  m_tracker.tracker_control()->signal_success().connect(sigc::mem_fun(*available_list(), &AvailableList::insert));
   m_tracker.tracker_control()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
   m_tracker.tracker_control()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
 
-  m_tracker.tracker_control()->slot_stat_down(sigc::mem_fun(m_net.get_read_rate(), &Rate::total));
-  m_tracker.tracker_control()->slot_stat_up(sigc::mem_fun(m_net.get_write_rate(), &Rate::total));
+  m_tracker.tracker_control()->slot_stat_down(sigc::mem_fun(m_readRate, &Rate::total));
+  m_tracker.tracker_control()->slot_stat_up(sigc::mem_fun(m_writeRate, &Rate::total));
   m_tracker.tracker_control()->slot_stat_left(sigc::mem_fun(m_state, &DownloadState::bytes_left));
 }
 
 void
 DownloadMain::setup_start() {
-  m_connectionChunkPassed = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::done));
-  m_connectionChunkFailed = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_net.get_delegator(), &Delegator::redo));
+  m_connectionChunkPassed = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
+  m_connectionChunkFailed = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
 
-  taskScheduler.insert(&m_taskChokeCycle, Timer::cache() + m_state.get_settings().chokeCycle * 2);
+  taskScheduler.insert(&m_taskChokeCycle, Timer::cache().round_seconds() + 2 * 30 * 1000000);
   m_state.get_content().block_download_done(false);
 }
 

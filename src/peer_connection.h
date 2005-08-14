@@ -64,7 +64,7 @@ public:
   virtual void        event_write();
   virtual void        event_error();
 
-  void set(SocketFd fd, const PeerInfo& p, DownloadState* d, DownloadNet* net);
+  void set(SocketFd fd, const PeerInfo& p, DownloadMain* download);
   
 private:
   PeerConnection(const PeerConnection&);

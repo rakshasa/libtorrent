@@ -81,9 +81,11 @@ AvailableList::insert(AddressList* l) {
 }
 
 void
-AvailableList::erase(iterator itr) {
-  *itr = back();
-  pop_back();
+AvailableList::erase(const SocketAddress& sa) {
+  iterator itr = std::find(begin(), end(), sa);
+
+  if (itr != end())
+    erase(itr);
 }
 
 }

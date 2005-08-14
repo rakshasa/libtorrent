@@ -5,6 +5,22 @@ get while coding.
 [PARTLY] Allow for easier configuration for very low/very high open
 max. Add notes to wiki.
 
+Slot in torrent/Peer for incoming, so we can use SocketAddress
+internally?
+
+Re-add slot for removing incoming connections from available list? If
+so, remove the check in connect_peers.
+
+Move stall count to PCBase.
+
+Move endgame detection to delegator?
+
+_peer_ is redundant in connectionlist
+
+Get rid of DownloadNet and DownloadState, use only DownloadMain.
+
+Move DownloadMain::get_name to DownloadWrapper?
+
 Shorter timeout when sending stopped to tracker.
 
 Add a setting for overridding open max, only less than. Remove the
@@ -19,8 +35,6 @@ Rename TrackerControl?
 Remove get_ for certain class of accesses, also make them pointers to
 put emphasis on the fact that they arn't logically behaving like
 return-by-value types.
-
-Consider fuzzy task schedule timers. round_seconds.
 
 Add an intersection version off HandshakeManager::has_address()?
 

@@ -50,13 +50,16 @@
 namespace torrent {
 
 DownloadMain::DownloadMain() :
-  m_settings(DownloadSettings::global()),
   m_checked(false),
-  m_started(false)
-{
+  m_started(false),
+  m_endgame(false),
+
+  m_writeRate(60),
+  m_readRate(60) {
+
   m_state.get_content().block_download_done(true);
 
-  m_taskChokeCycle.set_slot(sigc::mem_fun(*this, &DownloadMain::choke_cycle));
+  m_taskChokeCycle.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_choke_cycle));
   m_taskChokeCycle.set_iterator(taskScheduler.end());
 
   m_taskTrackerRequest.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tracker_request));
@@ -77,7 +80,7 @@ DownloadMain::open() {
   m_state.get_content().open();
   m_state.get_bitfield_counter().create(m_state.get_chunk_total());
 
-  m_net.get_delegator().get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_chunk_total());
+  m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_chunk_total());
 }
 
 void
@@ -89,7 +92,7 @@ DownloadMain::close() {
 
   m_tracker.close();
   m_state.get_content().close();
-  m_net.get_delegator().clear();
+  m_delegator.clear();
 }
 
 void DownloadMain::start() {
@@ -126,23 +129,29 @@ DownloadMain::stop() {
   // it.
   std::list<SocketAddress> addressList;
 
-  std::transform(m_net.connection_list().begin(), m_net.connection_list().end(), std::back_inserter(addressList),
+  std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList),
 		 rak::on(std::mem_fun(&PeerConnection::get_peer), std::mem_fun_ref(&PeerInfo::get_socket_address)));
 
   addressList.sort();
-  m_net.available_list().insert(&addressList);
+  available_list()->insert(&addressList);
 
-  while (!m_net.connection_list().empty())
-    m_net.connection_list().erase(m_net.connection_list().front());
+  while (!connection_list()->empty())
+    connection_list()->erase(connection_list()->front());
 
   m_tracker.send_stop();
   setup_stop();
 }
 
 void
-DownloadMain::choke_cycle() {
-  taskScheduler.insert(&m_taskChokeCycle, Timer::cache() + m_state.get_settings().chokeCycle);
-  m_net.choke_cycle();
+DownloadMain::set_endgame(bool b) {
+  m_endgame = b;
+  m_delegator.set_aggressive(b);
+}
+
+void
+DownloadMain::receive_choke_cycle() {
+  taskScheduler.insert(&m_taskChokeCycle, Timer::cache().round_seconds() + 30 * 1000000);
+  choke_cycle();
 }
 
 void
@@ -150,10 +159,14 @@ DownloadMain::receive_connect_peers() {
   if (!m_started)
     return;
 
-  while (!m_net.available_list().empty() &&
-	 m_net.connection_list().size() < m_net.connection_list().get_min_size() &&
-	 m_net.count_connections() < m_net.connection_list().get_max_size()) // Might not need this...
-    m_slotStartHandshake(m_net.available_list().pop_random());
+  while (!available_list()->empty() &&
+	 connection_list()->size() < connection_list()->get_min_size() &&
+	 connection_list()->size() + m_slotCountHandshakes() < connection_list()->get_max_size()) {
+    SocketAddress sa = available_list()->pop_random();
+
+    if (connection_list()->find(sa) == connection_list()->end())
+      m_slotStartHandshake(sa);
+  }
 }
 
 void
@@ -171,20 +184,20 @@ DownloadMain::receive_tracker_success() {
     return;
 
   taskScheduler.erase(&m_taskTrackerRequest);
-  taskScheduler.insert(&m_taskTrackerRequest, Timer::cache() + 30 * 1000000);
+  taskScheduler.insert(&m_taskTrackerRequest, Timer::cache().round_seconds() + 30 * 1000000);
 }
 
 void
 DownloadMain::receive_tracker_request() {
-  if (m_net.connection_list().size() >= m_net.connection_list().get_min_size())
+  if (connection_list()->size() >= connection_list()->get_min_size())
     return;
 
-  if (m_net.connection_list().size() >= m_lastConnectedSize + 10)
+  if (connection_list()->size() >= m_lastConnectedSize + 10)
     m_tracker.request_current();
   else // Check to make sure we don't query after every connection to the primary tracker?
     m_tracker.request_next();
 
-  m_lastConnectedSize = m_net.connection_list().size();
+  m_lastConnectedSize = connection_list()->size();
 }
 
 }

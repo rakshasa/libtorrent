@@ -63,12 +63,12 @@ Download::close() {
     stop();
 
   m_ptr->get_hash_checker().clear();
-  m_ptr->get_main().close();
+  m_ptr->close();
 }
 
 void
 Download::start() {
-  m_ptr->get_main().start();
+  m_ptr->start();
 }
 
 void
@@ -121,7 +121,7 @@ Download::is_hash_checking() const {
 
 std::string
 Download::get_name() const {
-  return m_ptr ? m_ptr->get_main().get_name() : "";
+  return m_ptr ? m_ptr->get_name() : "";
 }
 
 std::string
@@ -152,7 +152,7 @@ Download::get_bencode() const {
 
 std::string
 Download::get_root_dir() const {
-  return m_ptr->get_main().get_state().get_content().get_root_dir();
+  return m_ptr->get_main().state()->get_content().get_root_dir();
 }
 
 void
@@ -160,86 +160,86 @@ Download::set_root_dir(const std::string& dir) {
   if (is_open())
     throw client_error("Tried to call Download::set_root_dir(...) on an open download");
 
-  m_ptr->get_main().get_state().get_content().set_root_dir(dir);
+  m_ptr->get_main().state()->get_content().set_root_dir(dir);
 }
 
 const Rate&
 Download::get_read_rate() const {
-  return m_ptr->get_main().get_net().get_read_rate();
+  return m_ptr->get_main().get_read_rate();
 }
 
 const Rate&
 Download::get_write_rate() const {
-  return m_ptr->get_main().get_net().get_write_rate();
+  return m_ptr->get_main().get_write_rate();
 }
 
 uint64_t
 Download::get_bytes_done() const {
   uint64_t a = 0;
  
-  Delegator& d = m_ptr->get_main().get_net().get_delegator();
+  Delegator* d = m_ptr->get_main().delegator();
 
-  for (Delegator::Chunks::iterator itr1 = d.get_chunks().begin(), last1 = d.get_chunks().end(); itr1 != last1; ++itr1)
+  for (Delegator::Chunks::iterator itr1 = d->get_chunks().begin(), last1 = d->get_chunks().end(); itr1 != last1; ++itr1)
     for (DelegatorChunk::iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
       if (itr2->is_finished())
 	a += itr2->get_piece().get_length();
   
-  return a + m_ptr->get_main().get_state().get_content().get_bytes_completed();
+  return a + m_ptr->get_main().state()->get_content().get_bytes_completed();
 }
 
 uint64_t
 Download::get_bytes_total() const {
-  return m_ptr->get_main().get_state().get_content().get_size();
+  return m_ptr->get_main().state()->get_content().get_size();
 }
 
 uint32_t
 Download::get_chunks_size() const {
-  return m_ptr->get_main().get_state().get_content().get_storage().get_chunk_size();
+  return m_ptr->get_main().state()->get_content().get_storage().get_chunk_size();
 }
 
 uint32_t
 Download::get_chunks_done() const {
-  return m_ptr->get_main().get_state().get_content().get_chunks_completed();
+  return m_ptr->get_main().state()->get_content().get_chunks_completed();
 }
 
 uint32_t 
 Download::get_chunks_total() const {
-  return m_ptr->get_main().get_state().get_chunk_total();
+  return m_ptr->get_main().state()->get_chunk_total();
 }
 
 const unsigned char*
 Download::get_bitfield_data() const {
-  return (unsigned char*)m_ptr->get_main().get_state().get_content().get_bitfield().begin();
+  return (unsigned char*)m_ptr->get_main().state()->get_content().get_bitfield().begin();
 }
 
 uint32_t
 Download::get_bitfield_size() const {
-  return m_ptr->get_main().get_state().get_content().get_bitfield().size_bits();
+  return m_ptr->get_main().state()->get_content().get_bitfield().size_bits();
 }
 
 uint32_t
 Download::get_peers_min() const {
-  return m_ptr->get_main().get_net().connection_list().get_min_size();
+  return m_ptr->get_main().connection_list()->get_min_size();
 }
 
 uint32_t
 Download::get_peers_max() const {
-  return m_ptr->get_main().get_net().connection_list().get_max_size();
+  return m_ptr->get_main().connection_list()->get_max_size();
 }
 
 uint32_t
 Download::get_peers_connected() const {
-  return m_ptr->get_main().get_net().connection_list().size();
+  return m_ptr->get_main().connection_list()->size();
 }
 
 uint32_t
 Download::get_peers_not_connected() const {
-  return m_ptr->get_main().get_net().available_list().size();
+  return m_ptr->get_main().available_list()->size();
 }
 
 uint32_t
 Download::get_uploads_max() const {
-  return m_ptr->get_main().get_net().get_choke_manager().get_max_unchoked();
+  return m_ptr->get_main().choke_manager()->get_max_unchoked();
 }
   
 uint64_t
@@ -255,7 +255,7 @@ Download::get_tracker_numwant() const {
 void
 Download::set_peers_min(uint32_t v) {
   if (v >= 0 && v < (1 << 16)) {
-    m_ptr->get_main().get_net().connection_list().set_min_size(v);
+    m_ptr->get_main().connection_list()->set_min_size(v);
     m_ptr->get_main().receive_connect_peers();
   }
 }
@@ -263,14 +263,14 @@ Download::set_peers_min(uint32_t v) {
 void
 Download::set_peers_max(uint32_t v) {
   if (v >= 0 && v < (1 << 16))
-    m_ptr->get_main().get_net().connection_list().set_max_size(v);
+    m_ptr->get_main().connection_list()->set_max_size(v);
 }
 
 void
 Download::set_uploads_max(uint32_t v) {
   if (v >= 0 && v < (1 << 16)) {
-    m_ptr->get_main().get_net().get_choke_manager().set_max_unchoked(v);
-    m_ptr->get_main().get_net().choke_balance();
+    m_ptr->get_main().choke_manager()->set_max_unchoked(v);
+    m_ptr->get_main().choke_balance();
   }
 }
 
@@ -322,34 +322,34 @@ Download::tracker_manual_request(bool force) {
 
 Entry
 Download::get_entry(uint32_t index) {
-  if (index >= m_ptr->get_main().get_state().get_content().get_files().size())
+  if (index >= m_ptr->get_main().state()->get_content().get_files().size())
     throw client_error("Client called Download::get_entry(...) with out of range index");
 
-  return &m_ptr->get_main().get_state().get_content().get_files()[index];
+  return &m_ptr->get_main().state()->get_content().get_files()[index];
 }
 
 uint32_t
 Download::get_entry_size() const {
-  return m_ptr->get_main().get_state().get_content().get_files().size();
+  return m_ptr->get_main().state()->get_content().get_files().size();
 }
 
 const Download::SeenVector&
 Download::get_seen() const {
-  return m_ptr->get_main().get_state().get_bitfield_counter().field();
+  return m_ptr->get_main().state()->get_bitfield_counter().field();
 }
 
 void
 Download::set_connection_type(const std::string& name) {
   if (name == "default")
-    m_ptr->get_main().get_net().connection_list().slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &m_ptr->get_main().get_state(), &m_ptr->get_main().get_net()));
+    m_ptr->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &m_ptr->get_main()));
   else
     throw input_error("set_peer_connection_type(...) received invalid type name");
 }
 
 void
 Download::update_priorities() {
-  Priority& p = m_ptr->get_main().get_net().get_delegator().get_select().get_priority();
-  Content& content = m_ptr->get_main().get_state().get_content();
+  Priority& p = m_ptr->get_main().delegator()->get_select().get_priority();
+  Content& content = m_ptr->get_main().state()->get_content();
 
   p.clear();
 
@@ -366,33 +366,33 @@ Download::update_priorities() {
     pos += i->get_size();
   }
 
-  std::for_each(m_ptr->get_main().get_net().connection_list().begin(),
-		m_ptr->get_main().get_net().connection_list().end(),
+  std::for_each(m_ptr->get_main().connection_list()->begin(),
+		m_ptr->get_main().connection_list()->end(),
 		std::mem_fun(&PeerConnectionBase::update_interested));
 }
 
 void
 Download::peer_list(PList& pList) {
-  std::for_each(m_ptr->get_main().get_net().connection_list().begin(),
-		m_ptr->get_main().get_net().connection_list().end(),
+  std::for_each(m_ptr->get_main().connection_list()->begin(),
+		m_ptr->get_main().connection_list()->end(),
 		rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
 }
 
 Peer
 Download::peer_find(const std::string& id) {
   ConnectionList::iterator itr =
-    std::find_if(m_ptr->get_main().get_net().connection_list().begin(),
-		 m_ptr->get_main().get_net().connection_list().end(),
+    std::find_if(m_ptr->get_main().connection_list()->begin(),
+		 m_ptr->get_main().connection_list()->end(),
 		 
 		 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
 					std::mem_fun_ref(&PeerInfo::get_id))));
 
-  return itr != m_ptr->get_main().get_net().connection_list().end() ? *itr : NULL;
+  return itr != m_ptr->get_main().connection_list()->end() ? *itr : NULL;
 }
 
 sigc::connection
 Download::signal_download_done(Download::SlotVoid s) {
-  return m_ptr->get_main().get_state().get_content().signal_download_done().connect(s);
+  return m_ptr->get_main().state()->get_content().signal_download_done().connect(s);
 }
 
 sigc::connection
@@ -402,12 +402,12 @@ Download::signal_hash_done(Download::SlotVoid s) {
 
 sigc::connection
 Download::signal_peer_connected(Download::SlotPeer s) {
-  return m_ptr->get_main().get_net().connection_list().signal_peer_connected().connect(s);
+  return m_ptr->get_main().connection_list()->signal_connected().connect(s);
 }
 
 sigc::connection
 Download::signal_peer_disconnected(Download::SlotPeer s) {
-  return m_ptr->get_main().get_net().connection_list().signal_peer_disconnected().connect(s);
+  return m_ptr->get_main().connection_list()->signal_disconnected().connect(s);
 }
 
 sigc::connection
@@ -427,22 +427,22 @@ Download::signal_tracker_dump(Download::SlotIStream s) {
 
 sigc::connection
 Download::signal_chunk_passed(Download::SlotChunk s) {
-  return m_ptr->get_main().get_state().signal_chunk_passed().connect(s);
+  return m_ptr->get_main().state()->signal_chunk_passed().connect(s);
 }
 
 sigc::connection
 Download::signal_chunk_failed(Download::SlotChunk s) {
-  return m_ptr->get_main().get_state().signal_chunk_failed().connect(s);
+  return m_ptr->get_main().state()->signal_chunk_failed().connect(s);
 }
 
 sigc::connection
 Download::signal_network_log(SlotString s) {
-  return m_ptr->get_main().get_net().signal_network_log().connect(s);
+  return m_ptr->get_main().signal_network_log().connect(s);
 }
 
 sigc::connection
 Download::signal_storage_error(SlotString s) {
-  return m_ptr->get_main().get_state().signal_storage_error().connect(s);
+  return m_ptr->get_main().state()->signal_storage_error().connect(s);
 }
 
 }

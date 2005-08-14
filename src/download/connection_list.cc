@@ -65,7 +65,7 @@ ConnectionList::insert(SocketFd fd, const PeerInfo& p) {
     throw internal_error("ConnectionList::insert(...) received a NULL pointer from m_slotNewConnection");
 
   Base::push_back(c);
-  m_signalPeerConnected.emit(Peer(c));
+  m_signalConnected.emit(Peer(c));
 
   return true;
 }
@@ -81,33 +81,45 @@ ConnectionList::erase(PeerConnectionBase* p) {
   // emited otherwise some listeners might do stuff with the
   // assumption that the connection will remain in the list.
   Base::erase(itr);
-  m_signalPeerDisconnected.emit(Peer(p));
+  m_signalDisconnected.emit(Peer(p));
 
   // Delete after the erase to ensure the connection doesn't get added
   // to the poll after PeerConnectionBase's dtor has been called.
   delete p;
 }
 
-struct _ConnectionListComp {
-  bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
+struct _ConnectionListCompLess {
+  bool operator () (const PeerConnectionBase* p1, const PeerConnectionBase* p2) const {
     return p1->get_peer().get_socket_address() < p2->get_peer().get_socket_address();
   }
 
-  bool operator () (const SocketAddress& sa1, PeerConnectionBase* p2) const {
+  bool operator () (const SocketAddress& sa1, const PeerConnectionBase* p2) const {
     return sa1 < p2->get_peer().get_socket_address();
   }
 
-  bool operator () (PeerConnectionBase* p1, const SocketAddress& sa2) const {
+  bool operator () (const PeerConnectionBase* p1, const SocketAddress& sa2) const {
     return p1->get_peer().get_socket_address() < sa2;
   }
 };
 
+ConnectionList::iterator
+ConnectionList::find(const SocketAddress& sa) {
+  return std::find_if(begin(), end(),
+		      rak::equal(sa, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
+					     std::mem_fun_ref(&PeerInfo::get_socket_address))));
+}
+
 void
 ConnectionList::set_difference(AddressList* l) {
-  std::sort(begin(), end(), _ConnectionListComp());
+  std::sort(begin(), end(), _ConnectionListCompLess());
 
-  l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->begin(), _ConnectionListComp()),
+  l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->begin(), _ConnectionListCompLess()),
 	   l->end());
+}
+
+void
+ConnectionList::send_have_chunk(uint32_t index) {
+  std::for_each(begin(), end(), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_have_chunk), index));
 }
 
 }
