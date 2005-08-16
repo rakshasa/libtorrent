@@ -44,6 +44,7 @@
 #include "data/file_meta.h"
 #include "data/file_stat.h"
 #include "protocol/handshake_manager.h"
+#include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
 
 #include "download_wrapper.h"
@@ -247,6 +248,15 @@ DownloadWrapper::set_hash_queue(HashQueue* h) {
   m_main.state()->slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::push_back),
 						    sigc::mem_fun(*m_main.state(), &DownloadState::receive_hash_done),
 						    get_hash()));
+}
+
+void
+DownloadWrapper::receive_keepalive() {
+  for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); )
+    if (!(*itr)->receive_keepalive())
+      itr = m_main.connection_list()->erase(itr);
+    else
+      itr++;
 }
 
 }

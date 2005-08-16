@@ -70,6 +70,20 @@ ConnectionList::insert(SocketFd fd, const PeerInfo& p) {
   return true;
 }
 
+ConnectionList::iterator
+ConnectionList::erase(iterator pos) {
+  value_type v = *pos;
+
+  pos = Base::erase(pos);
+  m_signalDisconnected.emit(Peer(v));
+
+  // Delete after the erase to ensure the connection doesn't get added
+  // to the poll after PeerConnectionBase's dtor has been called.
+  delete v;
+
+  return pos;
+}
+
 void
 ConnectionList::erase(PeerConnectionBase* p) {
   iterator itr = std::find(begin(), end(), p);
@@ -86,6 +100,18 @@ ConnectionList::erase(PeerConnectionBase* p) {
   // Delete after the erase to ensure the connection doesn't get added
   // to the poll after PeerConnectionBase's dtor has been called.
   delete p;
+}
+
+void
+ConnectionList::erase_remaining(iterator pos) {
+  while (end() != pos) {
+    value_type v = Base::back();
+
+    Base::pop_back();
+
+    m_signalDisconnected.emit(Peer(v));
+    delete v;
+  }
 }
 
 struct _ConnectionListCompLess {

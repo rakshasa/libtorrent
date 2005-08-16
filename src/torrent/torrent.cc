@@ -73,7 +73,10 @@ ThrottlePeer  throttleWrite;
 // New API.
 class Torrent {
 public:
-  Torrent() {}
+  Torrent();
+  ~Torrent();
+
+  void                receive_keepalive();
 
   SocketAddress       m_localAddress;
   std::string         m_bindAddress;
@@ -84,7 +87,28 @@ public:
   DownloadManager     m_downloadManager;
 
   FileManager         m_fileManager;
+
+private:
+  TaskItem            m_taskKeepalive;
 };
+
+Torrent::Torrent() {
+  m_taskKeepalive.set_iterator(taskScheduler.end());
+  m_taskKeepalive.set_slot(sigc::mem_fun(*this, &Torrent::receive_keepalive));
+
+  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 160 * 1000000).round_seconds());
+}
+
+Torrent::~Torrent() {
+  taskScheduler.erase(&m_taskKeepalive);
+}
+
+void
+Torrent::receive_keepalive() {
+  std::for_each(m_downloadManager.begin(), m_downloadManager.begin(), std::mem_fun(&DownloadWrapper::receive_keepalive));
+
+  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 160 * 1000000).round_seconds());
+}
 
 Torrent* torrent = NULL;
 

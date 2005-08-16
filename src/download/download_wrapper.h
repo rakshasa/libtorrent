@@ -87,8 +87,7 @@ public:
   void                set_handshake_manager(HandshakeManager* h);
   void                set_hash_queue(HashQueue* h);
 
-  // Various functions for manipulating bencode's data with the
-  // download.
+  void                receive_keepalive();
   
 private:
   DownloadWrapper(const DownloadWrapper&);

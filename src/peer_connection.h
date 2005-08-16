@@ -59,6 +59,7 @@ public:
   virtual void        update_interested();
 
   virtual void        receive_have_chunk(int32_t i);
+  virtual bool        receive_keepalive();
 
   virtual void        event_read();
   virtual void        event_write();
@@ -83,7 +84,6 @@ private:
 
   void                receive_piece_header(Piece p);
 
-  void                task_keep_alive();
   void                task_send_choke();
   void                task_stall();
 
@@ -99,7 +99,6 @@ private:
 
   Timer          m_lastMsg;
 
-  TaskItem            m_taskKeepAlive;
   TaskItem            m_taskSendChoke;
   TaskItem            m_taskStall;
 };

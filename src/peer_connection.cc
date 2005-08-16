@@ -81,11 +81,9 @@ PeerConnection::PeerConnection() :
   m_sendInterested(false),
   m_tryRequest(true)
 {
-  m_taskKeepAlive.set_slot(sigc::mem_fun(*this, &PeerConnection::task_keep_alive));
   m_taskSendChoke.set_slot(sigc::mem_fun(*this, &PeerConnection::task_send_choke));
   m_taskStall.set_slot(sigc::mem_fun(*this, &PeerConnection::task_stall));
 
-  m_taskKeepAlive.set_iterator(taskScheduler.end());
   m_taskSendChoke.set_iterator(taskScheduler.end());
   m_taskStall.set_iterator(taskScheduler.end());
 }
@@ -100,7 +98,6 @@ PeerConnection::~PeerConnection() {
   if (m_read->get_state() != ProtocolRead::BITFIELD)
     m_download->state()->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
-  taskScheduler.erase(&m_taskKeepAlive);
   taskScheduler.erase(&m_taskSendChoke);
   taskScheduler.erase(&m_taskStall);
 
@@ -172,7 +169,6 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadMain* download)
     m_write->set_state(ProtocolWrite::MSG);
   }
     
-  taskScheduler.insert(&m_taskKeepAlive, (Timer::cache() + 120 * 1000000).round_seconds());
   m_lastMsg = Timer::cache();
 }
 
@@ -806,12 +802,13 @@ PeerConnection::receive_piece_header(Piece p) {
   }
 }  
 
-void
-PeerConnection::task_keep_alive() {
+// Returns false for connections that should be closed.
+bool
+PeerConnection::receive_keepalive() {
   // Check if remote peer is dead.
   if (Timer::cache() - m_lastMsg > 240 * 1000000) {
-    m_download->connection_list()->erase(this);
-    return;
+    //m_download->connection_list()->erase(this);
+    return false;
   }
 
   // Send keep-alive only if we arn't already transmitting. There's no
@@ -830,7 +827,7 @@ PeerConnection::task_keep_alive() {
   }
 
   m_tryRequest = true;
-  taskScheduler.insert(&m_taskKeepAlive, (Timer::cache() + 120 * 1000000).round_seconds());
+  return true;
 }
 
 void

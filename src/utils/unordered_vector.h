@@ -76,6 +76,7 @@ public:
   using Base::rend;
 
   using Base::push_back;
+  using Base::pop_back;
 
   iterator            insert(iterator position, const value_type& x);
   iterator            erase(iterator position);  

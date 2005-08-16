@@ -7,6 +7,8 @@ max. Add notes to wiki.
 
 Make keep-alive a single task, which pokes all peers.
 
+Make stall part of keepalive?
+
 Slot in torrent/Peer for incoming, so we can use SocketAddress
 internally?
 

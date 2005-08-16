@@ -103,7 +103,9 @@ public:
   void                remove_write_throttle();
 
   virtual void        update_interested() = 0;
+
   virtual void        receive_have_chunk(int32_t i) = 0;
+  virtual bool        receive_keepalive() = 0;
 
 protected:
   inline bool         read_remaining();
