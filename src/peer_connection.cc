@@ -48,6 +48,31 @@
 
 namespace torrent {
 
+// Temporary optimization test functions.
+uint16_t test_buffer_read16(ProtocolBuffer<512>* pb) {
+  return pb->read_16();
+}
+
+uint32_t test_buffer_read32(ProtocolBuffer<512>* pb) {
+  return pb->read_32();
+}
+
+uint64_t test_buffer_read64(ProtocolBuffer<512>* pb) {
+  return pb->read_64();
+}
+
+void test_buffer_write16(ProtocolBuffer<512>* pb, uint16_t v) {
+  return pb->write_16(v);
+}
+
+void test_buffer_write32(ProtocolBuffer<512>* pb, uint32_t v) {
+  return pb->write_32(v);
+}
+
+void test_buffer_write64(ProtocolBuffer<512>* pb, uint64_t v) {
+  return pb->write_64(v);
+}
+
 PeerConnection::PeerConnection() :
   m_shutdown(false),
   m_stallCount(0),
@@ -147,7 +172,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadMain* download)
     m_write->set_state(ProtocolWrite::MSG);
   }
     
-  taskScheduler.insert(&m_taskKeepAlive, Timer::cache().round_seconds() + 120 * 1000000);
+  taskScheduler.insert(&m_taskKeepAlive, (Timer::cache() + 120 * 1000000).round_seconds());
   m_lastMsg = Timer::cache();
 }
 
@@ -330,7 +355,7 @@ void PeerConnection::event_read() {
     taskScheduler.erase(&m_taskStall);
     
     if (m_requestList.get_size())
-      taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
+      taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
 
     // TODO: clear m_down.data?
     // TODO: remove throttle if choked? Rarely happens though.
@@ -368,7 +393,7 @@ void PeerConnection::event_read() {
       taskScheduler.erase(&m_taskStall);
 
       if (m_requestList.get_size())
-	taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
+	taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
     }
 
     goto evil_goto_read;
@@ -601,7 +626,7 @@ void PeerConnection::fillWriteBuf() {
 
     } else if (!taskScheduler.is_scheduled(&m_taskSendChoke)) {
       // Wait with the choke message to avoid oscillation.
-      taskScheduler.insert(&m_taskSendChoke, m_lastChoked.round_seconds() + 10 * 1000000);
+      taskScheduler.insert(&m_taskSendChoke, (m_lastChoked + 10 * 1000000).round_seconds());
     }
   }
 
@@ -626,7 +651,7 @@ void PeerConnection::fillWriteBuf() {
 	if (taskScheduler.is_scheduled(&m_taskStall))
 	  throw internal_error("Only one request, but we're already in task stall");
 	
-	taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
+	taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
 	m_tryRequest = true;
       }	
   }
@@ -805,7 +830,7 @@ PeerConnection::task_keep_alive() {
   }
 
   m_tryRequest = true;
-  taskScheduler.insert(&m_taskKeepAlive, Timer::cache().round_seconds() + 120 * 1000000);
+  taskScheduler.insert(&m_taskKeepAlive, (Timer::cache() + 120 * 1000000).round_seconds());
 }
 
 void
@@ -822,7 +847,7 @@ PeerConnection::task_stall() {
 
   // Make sure we regulary call task_stall() so stalled queues with new
   // entries get those new ones stalled if needed.
-  taskScheduler.insert(&m_taskStall, Timer::cache().round_seconds() + 160 * 1000000);
+  taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
 }
 
 }

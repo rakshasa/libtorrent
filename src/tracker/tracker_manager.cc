@@ -145,13 +145,13 @@ TrackerManager::manual_request(bool force) {
   if (!taskScheduler.is_scheduled(&m_taskTimeout))
     return;
 
-  Timer t(Timer::cache().round_seconds() + 2 * 1000000);
+  Timer t(Timer::cache() + 2 * 1000000);
   
   if (!force)
     t = std::max(t, m_control->time_last_connection() + m_control->get_min_interval() * 1000000);
 
   taskScheduler.erase(&m_taskTimeout);
-  taskScheduler.insert(&m_taskTimeout, t);
+  taskScheduler.insert(&m_taskTimeout, t.round_seconds());
 }
 
 void
@@ -181,7 +181,7 @@ TrackerManager::receive_success() {
   m_isRequesting = false;
 
   m_control->set_state(TrackerInfo::NONE);
-  taskScheduler.insert(&m_taskTimeout, Timer::cache().round_seconds() + m_control->get_normal_interval() * 1000000);
+  taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_control->get_normal_interval() * 1000000).round_seconds());
 }
 
 void
@@ -194,9 +194,9 @@ TrackerManager::receive_failed() {
       // Don't start from the beginning of the list if we've gone
       // through the whole list. Return to normal timeout.
       m_isRequesting = false;
-      taskScheduler.insert(&m_taskTimeout, Timer::cache().round_seconds() + m_control->get_normal_interval() * 1000000);
+      taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_control->get_normal_interval() * 1000000).round_seconds());
     } else {
-      taskScheduler.insert(&m_taskTimeout, Timer::cache().round_seconds() + 20 * 1000000);
+      taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 20 * 1000000).round_seconds());
     }
 
   } else {
@@ -204,7 +204,7 @@ TrackerManager::receive_failed() {
     if (m_control->get_focus_index() == m_control->get_list().size())
       m_control->set_focus_index(0);
     
-    taskScheduler.insert(&m_taskTimeout, Timer::cache().round_seconds() + 20 * 1000000);
+    taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 20 * 1000000).round_seconds());
   }
 }
 

@@ -106,31 +106,57 @@ private:
 template <uint16_t tmpl_size>
 inline uint16_t
 ProtocolBuffer<tmpl_size>::read_16() {
+#ifndef USE_ALIGNED
   uint16_t t = ntohs(*reinterpret_cast<uint16_t*>(m_position));
   m_position += sizeof(uint16_t);
 
   return t;
+#else
+  return (*m_position++ << 8) + *m_position++;
+#endif
 }
 
 template <uint16_t tmpl_size>
 inline uint32_t
 ProtocolBuffer<tmpl_size>::read_32() {
+#ifndef USE_ALIGNED
   uint32_t t = ntohl(*reinterpret_cast<uint32_t*>(m_position));
   m_position += sizeof(uint32_t);
 
   return t;
+#else
+  return
+    (*m_position++ << 24) +
+    (*m_position++ << 16) +
+    (*m_position++ << 8) +
+    *m_position++;
+#endif
 }
 
 template <uint16_t tmpl_size>
 inline uint32_t
 ProtocolBuffer<tmpl_size>::peek_32() {
+#ifndef USE_ALIGNED
   return ntohl(*reinterpret_cast<uint32_t*>(m_position));
+#else
+  return
+    (*m_position++ << 24) +
+    (*m_position++ << 16) +
+    (*m_position++ << 8) +
+    *m_position++;
+#endif
 }
 
 template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write_16(uint16_t v) {
+#ifndef USE_ALIGNED
   *reinterpret_cast<uint16_t*>(m_position) = htons(v);
+#else
+  for (iterator itr = m_position + sizeof(uint16_t); itr != m_position; v >>= 8)
+    *(--itr) = v;
+#endif
+
   m_position += sizeof(uint16_t);
 
   validate_position();
@@ -139,7 +165,13 @@ ProtocolBuffer<tmpl_size>::write_16(uint16_t v) {
 template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write_32(uint32_t v) {
+#ifndef USE_ALIGNED
   *reinterpret_cast<uint32_t*>(m_position) = htonl(v);
+#else
+  for (iterator itr = m_position + sizeof(uint32_t); itr != m_position; v >>= 8)
+    *(--itr) = v;
+#endif
+
   m_position += sizeof(uint32_t);
 
   validate_position();

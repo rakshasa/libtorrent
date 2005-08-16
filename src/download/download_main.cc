@@ -150,7 +150,7 @@ DownloadMain::set_endgame(bool b) {
 
 void
 DownloadMain::receive_choke_cycle() {
-  taskScheduler.insert(&m_taskChokeCycle, Timer::cache().round_seconds() + 30 * 1000000);
+  taskScheduler.insert(&m_taskChokeCycle, (Timer::cache() + 30 * 1000000).round_seconds());
   choke_cycle();
 }
 
@@ -184,7 +184,7 @@ DownloadMain::receive_tracker_success() {
     return;
 
   taskScheduler.erase(&m_taskTrackerRequest);
-  taskScheduler.insert(&m_taskTrackerRequest, Timer::cache().round_seconds() + 30 * 1000000);
+  taskScheduler.insert(&m_taskTrackerRequest, (Timer::cache() + 30 * 1000000).round_seconds());
 }
 
 void

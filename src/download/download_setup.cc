@@ -88,7 +88,7 @@ DownloadMain::setup_start() {
   m_connectionChunkPassed = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
   m_connectionChunkFailed = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
 
-  taskScheduler.insert(&m_taskChokeCycle, Timer::cache().round_seconds() + 2 * 30 * 1000000);
+  taskScheduler.insert(&m_taskChokeCycle, (Timer::cache() + 2 * 30 * 1000000).round_seconds());
   m_state.get_content().block_download_done(false);
 }
 

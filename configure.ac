@@ -1,12 +1,12 @@
-AC_INIT(libtorrent, 0.7.1, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.7.2, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,
-          "-lt0701-",
+          "-lt0702-",
           Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=4
-LIBTORRENT_REVISION=1
+LIBTORRENT_REVISION=2
 LIBTORRENT_AGE=0
 
 LIBTORRENT_INTERFACE_VERSION_INFO=$LIBTORRENT_CURRENT:$LIBTORRENT_REVISION:$LIBTORRENT_AGE
@@ -32,6 +32,7 @@ AC_C_BIGENDIAN(
     AC_MSG_ERROR([Could not determine endianness])
 )
 
+TORRENT_CHECK_ALIGN
 TORRENT_CHECK_CXXFLAGS
 TORRENT_ENABLE_DEBUG
 TORRENT_ENABLE_WERROR

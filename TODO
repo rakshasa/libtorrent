@@ -5,6 +5,8 @@ get while coding.
 [PARTLY] Allow for easier configuration for very low/very high open
 max. Add notes to wiki.
 
+Make keep-alive a single task, which pokes all peers.
+
 Slot in torrent/Peer for incoming, so we can use SocketAddress
 internally?
 
