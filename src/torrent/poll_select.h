@@ -37,7 +37,6 @@
 #ifndef LIBTORRENT_NET_POLL_SELECT_H
 #define LIBTORRENT_NET_POLL_SELECT_H
 
-#include <sys/select.h>
 #include <sys/types.h>
 #include <torrent/poll.h>
 

@@ -36,7 +36,8 @@
 
 #include "config.h"
 
-#include <sys/select.h>
+#include <unistd.h>
+#include <sys/time.h>
 
 #include "net/socket_set.h"
 
