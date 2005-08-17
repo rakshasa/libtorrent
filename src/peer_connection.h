@@ -100,7 +100,6 @@ private:
   Timer          m_lastMsg;
 
   TaskItem            m_taskSendChoke;
-  TaskItem            m_taskStall;
 };
 
 inline bool

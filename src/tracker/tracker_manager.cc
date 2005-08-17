@@ -168,6 +168,9 @@ TrackerManager::receive_success() {
   if (m_control->get_state() == TrackerInfo::STOPPED)
     return;
 
+  if (taskScheduler.is_scheduled(&m_taskTimeout))
+    throw internal_error("TrackerManager::receive_success() called but m_taskTimeout is scheduled.");
+
   // Don't reset the focus when we're requesting more peers. If we
   // want to query the next tracker in the list we need to remember
   // the current focus.
@@ -188,6 +191,9 @@ void
 TrackerManager::receive_failed() {
   if (m_control->get_state() == TrackerInfo::STOPPED)
     return;
+
+  if (taskScheduler.is_scheduled(&m_taskTimeout))
+    throw internal_error("TrackerManager::receive_failed() called but m_taskTimeout is scheduled.");
 
   if (m_isRequesting) {
     if (m_control->get_focus_index() == m_control->get_list().size()) {

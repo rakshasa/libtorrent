@@ -7,6 +7,10 @@ max. Add notes to wiki.
 
 Make stall part of keepalive?
 
+Consider whetever un/choke needs to reset m_stallCount
+
+Modify should_request to ignore stall < 2
+
 Slot in torrent/Peer for incoming, so we can use SocketAddress
 internally?
 

@@ -75,6 +75,7 @@ public:
   bool               has_index(uint32_t i);
   uint32_t           remove_invalid();
 
+  bool               empty() const                    { return m_reservees.empty(); }
   size_t             get_size()                       { return m_reservees.size(); }
 
   Piece              get_queued_piece(uint32_t i) {

@@ -81,11 +81,8 @@ PeerConnection::PeerConnection() :
   m_sendInterested(false),
   m_tryRequest(true)
 {
-  m_taskSendChoke.set_slot(sigc::mem_fun(*this, &PeerConnection::task_send_choke));
-  m_taskStall.set_slot(sigc::mem_fun(*this, &PeerConnection::task_stall));
-
   m_taskSendChoke.set_iterator(taskScheduler.end());
-  m_taskStall.set_iterator(taskScheduler.end());
+  m_taskSendChoke.set_slot(sigc::mem_fun(*this, &PeerConnection::task_send_choke));
 }
 
 PeerConnection::~PeerConnection() {
@@ -99,7 +96,6 @@ PeerConnection::~PeerConnection() {
     m_download->state()->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
   taskScheduler.erase(&m_taskSendChoke);
-  taskScheduler.erase(&m_taskStall);
 
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
@@ -347,12 +343,9 @@ void PeerConnection::event_read() {
 
     m_requestList.finished();
     
-    // TODO: Find a way to avoid this remove/insert cycle.
-    taskScheduler.erase(&m_taskStall);
+    if (m_stallCount > 0)
+      m_stallCount--;
     
-    if (m_requestList.get_size())
-      taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
-
     // TODO: clear m_down.data?
     // TODO: remove throttle if choked? Rarely happens though.
 
@@ -386,10 +379,8 @@ void PeerConnection::event_read() {
       m_read->set_state(ProtocolRead::IDLE);
       m_tryRequest = true;
 
-      taskScheduler.erase(&m_taskStall);
-
-      if (m_requestList.get_size())
-	taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
+      if (m_stallCount > 0)
+	m_stallCount--;
     }
 
     goto evil_goto_read;
@@ -541,8 +532,6 @@ void PeerConnection::parseReadBuf() {
     m_requestList.cancel();
 
     remove_read_throttle();
-    taskScheduler.erase(&m_taskStall);
-
     return;
 
   case ProtocolBase::UNCHOKE:
@@ -551,11 +540,9 @@ void PeerConnection::parseReadBuf() {
 
     m_read->set_choked(false);
     m_tryRequest = true;
-    
-    // We're inserting in read throttle when we receive a piece.
-    //insert_read_throttle();
 
-    return pollCustom->insert_write(this);
+    pollCustom->insert_write(this);
+    return;
 
   case ProtocolBase::INTERESTED:
     m_read->set_interested(true);
@@ -641,15 +628,13 @@ void PeerConnection::fillWriteBuf() {
 
     m_tryRequest = false;
 
-    while (m_requestList.get_size() < pipeSize && m_write->can_write_request() && send_request_piece())
+    while (m_requestList.get_size() < pipeSize && m_write->can_write_request() && send_request_piece()) {
 
       if (m_requestList.get_size() == 1) {
-	if (taskScheduler.is_scheduled(&m_taskStall))
-	  throw internal_error("Only one request, but we're already in task stall");
-	
-	taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
+	m_stallCount = 0;
 	m_tryRequest = true;
       }	
+    }
   }
 
   // Max buf size 17 * 'req pipe' + 10
@@ -827,6 +812,17 @@ PeerConnection::receive_keepalive() {
   }
 
   m_tryRequest = true;
+
+  // Stall pieces when more than one receive_keepalive() has been
+  // called while a single piece is downloading.
+  //
+  // m_stallCount is decremented for every successfull download, so it
+  // should stay at zero or one when downloading at an acceptable
+  // speed. Thus only when m_stallCount >= 2 is the download actually
+  // stalling.
+  if (!m_requestList.empty() && m_stallCount++ > 0)
+    m_requestList.stall();
+
   return true;
 }
 
@@ -835,16 +831,6 @@ PeerConnection::task_send_choke() {
   m_sendChoked = true;
 
   pollCustom->insert_write(this);
-}
-
-void
-PeerConnection::task_stall() {
-  m_stallCount++;
-  m_requestList.stall();
-
-  // Make sure we regulary call task_stall() so stalled queues with new
-  // entries get those new ones stalled if needed.
-  taskScheduler.insert(&m_taskStall, (Timer::cache() + 160 * 1000000).round_seconds());
 }
 
 }

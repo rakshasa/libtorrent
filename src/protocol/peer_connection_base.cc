@@ -183,7 +183,7 @@ PeerConnectionBase::should_request(uint32_t stall) {
     // We check if the peer is stalled, if it is not then we should
     // request. If the peer is stalled then we only request if the
     // download rate is below a certain value.
-    return !stall || m_download->get_read_rate().rate() < (10 << 10);
+    return stall <= 1 || m_download->get_read_rate().rate() < (10 << 10);
 }
 
 void

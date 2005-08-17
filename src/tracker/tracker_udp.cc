@@ -72,8 +72,6 @@ TrackerUdp::send_state(TrackerInfo::State state,
 		       uint64_t left) {
   close();
 
-  //return receive_failed("UDP tracker support not enabled");
-
   if (!parse_url())
     return receive_failed("Could not parse UDP hostname or port");
 
@@ -141,11 +139,15 @@ TrackerUdp::receive_failed(const std::string& msg) {
 
 void
 TrackerUdp::receive_timeout() {
+  if (taskScheduler.is_scheduled(&m_taskTimeout))
+    throw internal_error("TrackerUdp::receive_timeout() called but m_taskTimeout is still scheduled.");
+
   if (--m_tries == 0) {
     receive_failed("Unable to connect to UDP tracker.");
   } else {
     m_slotLog("Unable to connect to UDP tracker, trying again.");
     taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_info->get_udp_timeout() * 1000000).round_seconds());
+
     pollCustom->insert_write(this);
   }
 }
@@ -155,13 +157,6 @@ TrackerUdp::event_read() {
   SocketAddress sa;
 
   int s = receive(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
-
-//   if (s < 0)
-//     m_slotLog("UDP read() got error " + std::string(std::strerror(get_errno())));
-//   else if (s >= 4)
-//     m_slotLog("UDP read() got message from " + sa.get_address());
-//   else
-//     m_slotLog("UDP read() got zero or less than 4");
 
   if (s < 4)
     return;
@@ -177,8 +172,6 @@ TrackerUdp::event_read() {
     if (m_action != 0 || !process_connect_output())
       return;
 
-//     m_slotLog("UDP read() received connect action.");
-
     prepare_announce_input();
 
     taskScheduler.erase(&m_taskTimeout);
@@ -192,18 +185,15 @@ TrackerUdp::event_read() {
     if (m_action != 1 || !process_announce_output())
       return;
 
-//     m_slotLog("UDP read() received announce action.");
     return;
 
   case 3:
     if (!process_error_output())
       return;
 
-//     m_slotLog("UDP read() received error action.");
     return;
 
   default:
-//     m_slotLog("UDP read() received unknown action.");
     return;
   };
 }
@@ -214,11 +204,6 @@ TrackerUdp::event_write() {
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
   int s = send(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
-
-//   if (s != m_writeBuffer->size_end())
-//     m_slotLog("UDP write failed");
-//   else
-//     m_slotLog("UDP write \"" + _string_to_hex(std::string((char*)m_writeBuffer->begin(), m_writeBuffer->size_end())));
 
   // TODO: If send failed, retry shortly or do i call receive_failed?
   if (s != m_writeBuffer->size_end())
