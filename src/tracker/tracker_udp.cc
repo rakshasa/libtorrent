@@ -145,7 +145,6 @@ TrackerUdp::receive_timeout() {
   if (--m_tries == 0) {
     receive_failed("Unable to connect to UDP tracker.");
   } else {
-    m_slotLog("Unable to connect to UDP tracker, trying again.");
     taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_info->get_udp_timeout() * 1000000).round_seconds());
 
     pollCustom->insert_write(this);
@@ -214,7 +213,6 @@ TrackerUdp::event_write() {
 
 void
 TrackerUdp::event_error() {
-  m_slotLog("TrackerUdp::except() called");
 }
 
 bool

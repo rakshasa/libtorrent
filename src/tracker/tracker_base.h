@@ -50,7 +50,6 @@ class TrackerBase {
 public:
   typedef std::list<SocketAddress>                      AddressList;
   typedef sigc::slot1<void, int>                        SlotInt;
-  typedef sigc::slot1<void, std::string>                SlotString;
   typedef sigc::slot2<void, TrackerBase*, AddressList*> SlotTbAddressList;
   typedef sigc::slot2<void, TrackerBase*, std::string>  SlotTbString;
 
@@ -87,7 +86,6 @@ public:
 
   void                slot_success(SlotTbAddressList s)     { m_slotSuccess = s; }
   void                slot_failed(SlotTbString s)           { m_slotFailed = s; }
-  void                slot_log(SlotString s)                { m_slotLog = s; }
   void                slot_set_interval(SlotInt s)          { m_slotSetInterval = s; }
   void                slot_set_min_interval(SlotInt s)      { m_slotSetMinInterval = s; }
 
@@ -104,7 +102,6 @@ protected:
 
   SlotTbAddressList   m_slotSuccess;
   SlotTbString        m_slotFailed;
-  SlotString          m_slotLog;
   SlotInt             m_slotSetInterval;
   SlotInt             m_slotSetMinInterval;
 };

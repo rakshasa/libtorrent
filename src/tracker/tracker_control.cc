@@ -80,7 +80,6 @@ TrackerControl::add_url(int group, const std::string& url) {
   
   t->slot_success(sigc::mem_fun(*this, &TrackerControl::receive_success));
   t->slot_failed(sigc::mem_fun(*this, &TrackerControl::receive_failed));
-  t->slot_log(m_signalFailed.make_slot());
   t->slot_set_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_normal_interval));
   t->slot_set_min_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_min_interval));
 
@@ -148,7 +147,10 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
   TrackerList::iterator itr = m_list.find(tb);
 
   if (itr != m_itr || m_itr == m_list.end())
-    throw internal_error("TrackerControl::receive_done(...) called but the iterator is wrong");
+    throw internal_error("TrackerControl::receive_success(...) called but the iterator is wrong");
+
+  if (m_itr->second->is_busy())
+    throw internal_error("TrackerControl::receive_success(...) called but m_itr is busy.");
 
   // Promote the tracker to the front of the group since it was
   // successfull.
@@ -169,7 +171,10 @@ TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
   TrackerList::iterator itr = m_list.find(tb);
 
   if (itr != m_itr || m_itr == m_list.end())
-    throw internal_error("TrackerControl::receive_done(...) called but the iterator is wrong");
+    throw internal_error("TrackerControl::receive_failed(...) called but the iterator is wrong");
+
+  if (m_itr->second->is_busy())
+    throw internal_error("TrackerControl::receive_failed(...) called but m_itr is busy.");
 
   m_itr++;
 

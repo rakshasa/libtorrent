@@ -145,6 +145,9 @@ TrackerManager::manual_request(bool force) {
   if (!taskScheduler.is_scheduled(&m_taskTimeout))
     return;
 
+  if (m_control->is_busy())
+    throw internal_error("TrackerManager::manual_request() called but m_control->is_busy() == true.");
+
   Timer t(Timer::cache() + 2 * 1000000);
   
   if (!force)
@@ -159,17 +162,16 @@ TrackerManager::receive_timeout() {
   if (m_control->is_busy())
     throw internal_error("TrackerManager::receive_timeout() called but m_control->is_busy() == true.");
 
-  m_control->cancel();
   m_control->send_state(m_control->get_state());
 }
 
 void
 TrackerManager::receive_success() {
-  if (m_control->get_state() == TrackerInfo::STOPPED)
-    return;
-
   if (taskScheduler.is_scheduled(&m_taskTimeout))
     throw internal_error("TrackerManager::receive_success() called but m_taskTimeout is scheduled.");
+
+  if (m_control->get_state() == TrackerInfo::STOPPED)
+    return;
 
   // Don't reset the focus when we're requesting more peers. If we
   // want to query the next tracker in the list we need to remember
@@ -189,11 +191,11 @@ TrackerManager::receive_success() {
 
 void
 TrackerManager::receive_failed() {
-  if (m_control->get_state() == TrackerInfo::STOPPED)
-    return;
-
   if (taskScheduler.is_scheduled(&m_taskTimeout))
     throw internal_error("TrackerManager::receive_failed() called but m_taskTimeout is scheduled.");
+
+  if (m_control->get_state() == TrackerInfo::STOPPED)
+    return;
 
   if (m_isRequesting) {
     if (m_control->get_focus_index() == m_control->get_list().size()) {
