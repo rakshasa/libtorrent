@@ -64,16 +64,25 @@ public:
   uint16_t            read_16();
   uint32_t            read_32();
   uint32_t            peek_32();
-  uint64_t            read_64();
-  uint64_t            peek_64();
+  uint64_t            read_64()                     { return read_int<uint64_t>(); }
+  uint64_t            peek_64()                     { return peek_int<uint64_t>(); }
 
   template <typename Out>
   void                read_range(Out first, Out last);
 
+  template <typename T>
+  inline T            read_int();
+
+  template <typename T>
+  inline T            peek_int();
+
   void                write_8(uint8_t v)            { *m_position++ = v; validate_position(); }
   void                write_16(uint16_t v);
   void                write_32(uint32_t v);
-  void                write_64(uint64_t v);
+  void                write_64(uint64_t v)          { write_int<uint64_t>(v); }
+
+  template <typename T>
+  inline void         write_int(T t);
 
   template <typename In>
   void                write_range(In first, In last);
@@ -112,7 +121,7 @@ ProtocolBuffer<tmpl_size>::read_16() {
 
   return t;
 #else
-  return (*m_position++ << 8) + *m_position++;
+  return read_int<uint16_t>();
 #endif
 }
 
@@ -125,11 +134,7 @@ ProtocolBuffer<tmpl_size>::read_32() {
 
   return t;
 #else
-  return
-    (*m_position++ << 24) +
-    (*m_position++ << 16) +
-    (*m_position++ << 8) +
-    *m_position++;
+  return read_int<uint32_t>();
 #endif
 }
 
@@ -139,12 +144,32 @@ ProtocolBuffer<tmpl_size>::peek_32() {
 #ifndef USE_ALIGNED
   return ntohl(*reinterpret_cast<uint32_t*>(m_position));
 #else
-  return
-    (*m_position++ << 24) +
-    (*m_position++ << 16) +
-    (*m_position++ << 8) +
-    *m_position++;
+  return peek_int<uint32_t>();
 #endif
+}
+
+template <uint16_t tmpl_size>
+template <typename T>
+inline T
+ProtocolBuffer<tmpl_size>::read_int() {
+  T t = T();
+
+  for (iterator last = m_position + sizeof(T); m_position != last; ++m_position)
+    t = (t << 8) + *m_position;
+
+  return t;
+}
+
+template <uint16_t tmpl_size>
+template <typename T>
+inline T
+ProtocolBuffer<tmpl_size>::peek_int() {
+  T t = T();
+
+  for (iterator itr = m_position, last = m_position + sizeof(T); itr != last; ++itr)
+    t = (t << 8) + *itr;
+
+  return t;
 }
 
 template <uint16_t tmpl_size>
@@ -152,14 +177,12 @@ inline void
 ProtocolBuffer<tmpl_size>::write_16(uint16_t v) {
 #ifndef USE_ALIGNED
   *reinterpret_cast<uint16_t*>(m_position) = htons(v);
-#else
-  for (iterator itr = m_position + sizeof(uint16_t); itr != m_position; v >>= 8)
-    *(--itr) = v;
-#endif
-
   m_position += sizeof(uint16_t);
 
   validate_position();
+#else
+  write_int<uint16_t>(v);
+#endif
 }
 
 template <uint16_t tmpl_size>
@@ -167,14 +190,12 @@ inline void
 ProtocolBuffer<tmpl_size>::write_32(uint32_t v) {
 #ifndef USE_ALIGNED
   *reinterpret_cast<uint32_t*>(m_position) = htonl(v);
-#else
-  for (iterator itr = m_position + sizeof(uint32_t); itr != m_position; v >>= 8)
-    *(--itr) = v;
-#endif
-
   m_position += sizeof(uint32_t);
 
   validate_position();
+#else
+  write_int<uint32_t>(v);
+#endif
 }
 
 template <uint16_t tmpl_size>
@@ -188,34 +209,13 @@ ProtocolBuffer<tmpl_size>::read_range(Out first, Out last) {
 }
 
 template <uint16_t tmpl_size>
-inline uint64_t
-ProtocolBuffer<tmpl_size>::read_64() {
-  uint64_t t = 0;
-
-  for (iterator last = m_position + sizeof(uint64_t); m_position != last; ++m_position)
-    t = (t << 8) + *m_position;
-
-  return t;
-}
-
-template <uint16_t tmpl_size>
-inline uint64_t
-ProtocolBuffer<tmpl_size>::peek_64() {
-  uint64_t t = 0;
-
-  for (iterator itr = m_position, last = m_position + sizeof(uint64_t); itr != last; ++itr)
-    t = (t << 8) + *itr;
-
-  return t;
-}
-
-template <uint16_t tmpl_size>
+template <typename T>
 inline void
-ProtocolBuffer<tmpl_size>::write_64(uint64_t v) {
-  for (iterator itr = m_position + sizeof(uint64_t); itr != m_position; v >>= 8)
+ProtocolBuffer<tmpl_size>::write_int(T v) {
+  for (iterator itr = m_position + sizeof(T); itr != m_position; v >>= 8)
     *(--itr) = v;
 
-  m_position += sizeof(uint64_t);
+  m_position += sizeof(T);
   validate_position();
 }
 
