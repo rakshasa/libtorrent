@@ -34,60 +34,55 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_MANAGER_H
+#define LIBTORRENT_MANAGER_H
 
-#include "torrent/exceptions.h"
-#include "rak/functional.h"
+#include <string>
 
-#include "task_scheduler.h"
+#include "net/socket_address.h"
+#include "utils/task_item.h"
 
 namespace torrent {
 
-void
-TaskScheduler::insert(TaskItem* task, Timer time) {
-  if (is_scheduled(task))
-    throw internal_error("TaskScheduler::insert(...) tried to insert an already inserted or invalid TaskItem");
+class Listen;
+class HashQueue;
+class HandshakeManager;
+class DownloadManager;
+class FileManager;
 
-  // Only insert at or after m_entry because if we might be in
-  // execute(...).
-  iterator itr = std::find_if(m_entry, end(), rak::less_equal(time, rak::mem_ptr_ref(&value_type::first)));
+class Manager {
+public:
+  Manager();
+  ~Manager();
 
-  task->set_iterator(Base::insert(itr, value_type(time, task)));
+  DownloadManager*    download_manager()                        { return m_downloadManager; }
+  FileManager*        file_manager()                            { return m_fileManager; }
+  HandshakeManager*   handshake_manager()                       { return m_handshakeManager; }
+  HashQueue*          hash_queue()                              { return m_hashQueue; }
+  Listen*             listen()                                  { return m_listen; }
 
-  // Make sure m_entry points to the right node if we try inserting
-  // before m_entry.
-  if (itr == m_entry)
-    m_entry = task->get_iterator();
-}
+  SocketAddress&      get_local_address()                       { return m_localAddress; }
+  
+  const std::string&  get_bind_address()                        { return m_bindAddress; }
+  void                set_bind_address(const std::string& addr) { m_bindAddress = addr; }
 
-void
-TaskScheduler::erase(TaskItem* task) {
-  if (!is_scheduled(task))
-    return;
+  void                receive_keepalive();
 
-  iterator itr = Base::erase(task->get_iterator());
+private:
+  SocketAddress       m_localAddress;
+  std::string         m_bindAddress;
 
-  if (task->get_iterator() == m_entry)
-    m_entry = itr;
+  DownloadManager*    m_downloadManager;
+  FileManager*        m_fileManager;
+  HandshakeManager*   m_handshakeManager;
+  HashQueue*          m_hashQueue;
+  Listen*             m_listen;
 
-  task->set_iterator(end());
-}
+  TaskItem            m_taskKeepalive;
+};
 
-void
-TaskScheduler::execute(Timer time) {
-  m_entry = std::find_if(begin(), end(), rak::less_equal(time, rak::mem_ptr_ref(&value_type::first)));
-
-  // Since we are always using the front rather than a splice of the
-  // due tasks, it is safe to erase them from within other tasks.
-  while (begin() != m_entry) {
-    if (!is_scheduled(Base::front().second))
-      throw internal_error("TaskScheduler::execute_task(iterator) received an invalid iterator");
-    
-    Base::front().second->set_iterator(end());
-    Base::front().second->get_slot()();
-
-    Base::pop_front();
-  }
-}
+extern Manager* manager;
 
 }
+
+#endif

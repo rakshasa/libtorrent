@@ -24,5 +24,7 @@ libtorrent_la_LIBADD = \
 	$(top_srcdir)/src/utils/libsub_utils.la
 
 libtorrent_la_SOURCES = \
+	manager.cc \
+	manager.h \
         peer_connection.cc \
         peer_connection.h

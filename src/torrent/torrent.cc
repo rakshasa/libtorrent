@@ -36,10 +36,7 @@
 
 #include "config.h"
 
-#include <iostream>
 #include <sstream>
-#include <memory>
-#include <unistd.h>
 #include <sigc++/bind.h>
 #include <rak/functional.h>
 
@@ -47,9 +44,8 @@
 #include "torrent.h"
 #include "bencode.h"
 
-#include "utils/sha1.h"
+#include "manager.h"
 #include "utils/string_manip.h"
-#include "utils/task_scheduler.h"
 #include "utils/throttle.h"
 #include "net/listen.h"
 #include "net/manager.h"
@@ -70,54 +66,12 @@ TaskScheduler taskScheduler;
 ThrottlePeer  throttleRead;
 ThrottlePeer  throttleWrite;
 
-// New API.
-class Torrent {
-public:
-  Torrent();
-  ~Torrent();
-
-  void                receive_keepalive();
-
-  SocketAddress       m_localAddress;
-  std::string         m_bindAddress;
-
-  Listen              m_listen;
-  HashQueue           m_hashQueue;
-  HandshakeManager    m_handshakeManager;
-  DownloadManager     m_downloadManager;
-
-  FileManager         m_fileManager;
-
-private:
-  TaskItem            m_taskKeepalive;
-};
-
-Torrent::Torrent() {
-  m_taskKeepalive.set_iterator(taskScheduler.end());
-  m_taskKeepalive.set_slot(sigc::mem_fun(*this, &Torrent::receive_keepalive));
-
-  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 160 * 1000000).round_seconds());
-}
-
-Torrent::~Torrent() {
-  taskScheduler.erase(&m_taskKeepalive);
-}
-
-void
-Torrent::receive_keepalive() {
-  std::for_each(m_downloadManager.begin(), m_downloadManager.begin(), std::mem_fun(&DownloadWrapper::receive_keepalive));
-
-  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 160 * 1000000).round_seconds());
-}
-
-Torrent* torrent = NULL;
-
 // Find some better way of doing this, or rather... move it outside.
 std::string
 download_id(const std::string& hash) {
-  DownloadManager::iterator itr = torrent->m_downloadManager.find(hash);
+  DownloadManager::iterator itr = manager->download_manager()->find(hash);
 
-  return itr != torrent->m_downloadManager.end() &&
+  return itr != manager->download_manager()->end() &&
     (*itr)->get_main().is_active() &&
     (*itr)->get_main().is_checked() ?
     (*itr)->get_local_id() : "";
@@ -125,9 +79,9 @@ download_id(const std::string& hash) {
 
 void
 receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadManager::iterator itr = torrent->m_downloadManager.find(hash);
+  DownloadManager::iterator itr = manager->download_manager()->find(hash);
   
-  if (itr == torrent->m_downloadManager.end() ||
+  if (itr == manager->download_manager()->end() ||
       !(*itr)->get_main().is_active() ||
       !(*itr)->get_main().connection_list()->insert(fd, peer))
     socketManager.close(fd);
@@ -180,19 +134,19 @@ calculate_reserved(uint32_t openMax) {
 
 void
 initialize(Poll* poll) {
-  if (torrent != NULL)
+  if (manager != NULL)
     throw client_error("torrent::initialize(...) called but the library has already been initialized");
 
   Timer::update();
 
-  torrent = new Torrent;
-  torrent->m_listen.slot_incoming(sigc::mem_fun(torrent->m_handshakeManager, &HandshakeManager::add_incoming));
+  manager = new Manager;
+  manager->listen()->slot_incoming(sigc::mem_fun(manager->handshake_manager(), &HandshakeManager::add_incoming));
 
   throttleRead.start();
   throttleWrite.start();
 
-  torrent->m_handshakeManager.slot_connected(sigc::ptr_fun3(&receive_connection));
-  torrent->m_handshakeManager.slot_download_id(sigc::ptr_fun1(download_id));
+  manager->handshake_manager()->slot_connected(sigc::ptr_fun3(&receive_connection));
+  manager->handshake_manager()->slot_download_id(sigc::ptr_fun1(download_id));
 
   pollCustom = poll;
 
@@ -202,54 +156,54 @@ initialize(Poll* poll) {
   uint32_t maxFiles = calculate_max_open_files(poll->get_open_max());
 
   socketManager.set_max_size(poll->get_open_max() - maxFiles - calculate_reserved(poll->get_open_max()));
-  torrent->m_fileManager.set_max_size(maxFiles);
+  manager->file_manager()->set_max_size(maxFiles);
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
 void
 cleanup() {
-  if (torrent == NULL)
+  if (manager == NULL)
     throw client_error("torrent::cleanup() called but the library is not initialized");
 
   throttleRead.stop();
   throttleWrite.stop();
 
-  torrent->m_handshakeManager.clear();
-  torrent->m_downloadManager.clear();
+  manager->handshake_manager()->clear();
+  manager->download_manager()->clear();
 
-  delete torrent;
-  torrent = NULL;
+  delete manager;
+  manager = NULL;
 
   pollCustom = NULL;
 }
 
 bool
 listen_open(uint16_t begin, uint16_t end) {
-  if (torrent == NULL)
+  if (manager == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
   SocketAddress sa;
 
-  if (!torrent->m_bindAddress.empty() && !sa.set_address(torrent->m_bindAddress))
+  if (!manager->get_bind_address().empty() && !sa.set_address(manager->get_bind_address()))
     throw local_error("Could not parse the ip address to bind");
 
-  if (!torrent->m_listen.open(begin, end, sa))
+  if (!manager->listen()->open(begin, end, sa))
     return false;
 
-  torrent->m_localAddress.set_port(torrent->m_listen.get_port());
-  torrent->m_handshakeManager.set_bind_address(sa);
+  manager->get_local_address().set_port(manager->listen()->get_port());
+  manager->handshake_manager()->set_bind_address(sa);
 
-  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.end();
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end();
        itr != last; ++itr)
-    (*itr)->get_local_address().set_port(torrent->m_listen.get_port());
+    (*itr)->get_local_address().set_port(manager->listen()->get_port());
 
   return true;
 }
 
 void
 listen_close() {
-  torrent->m_listen.close();
+  manager->listen()->close();
 }
 
 void
@@ -260,52 +214,52 @@ perform() {
 
 bool
 is_inactive() {
-  return torrent == NULL ||
-    std::find_if(torrent->m_downloadManager.begin(), torrent->m_downloadManager.end(),
+  return manager == NULL ||
+    std::find_if(manager->download_manager()->begin(), manager->download_manager()->end(),
 		      std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
-    == torrent->m_downloadManager.end();
+    == manager->download_manager()->end();
 }
 
 std::string
 get_local_address() {
-  return !torrent->m_localAddress.is_address_any() ? torrent->m_localAddress.get_address() : "";
+  return !manager->get_local_address().is_address_any() ? manager->get_local_address().get_address() : "";
 }
 
 void
 set_local_address(const std::string& addr) {
-  if (addr == torrent->m_localAddress.get_address() ||
-      !torrent->m_localAddress.set_address(addr))
+  if (addr == manager->get_local_address().get_address() ||
+      !manager->get_local_address().set_address(addr))
     return;
 
-  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin(), last = torrent->m_downloadManager.end();
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end();
        itr != last; ++itr)
     (*itr)->get_local_address().set_address(addr);
 }
 
 std::string
 get_bind_address() {
-  return torrent->m_bindAddress;
+  return manager->get_bind_address();
 }
 
 void
 set_bind_address(const std::string& addr) {
-  if (addr == torrent->m_bindAddress)
+  if (addr == manager->get_bind_address())
     return;
 
-  if (torrent->m_listen.is_open())
+  if (manager->listen()->is_open())
     throw client_error("torrent::set_bind(...) called, but listening socket is open");
 
-  torrent->m_bindAddress = addr;
+  manager->set_bind_address(addr);
 }
 
 uint16_t
 get_listen_port() {
-  return torrent->m_listen.get_port();
+  return manager->listen()->get_port();
 }
 
 uint32_t
 get_total_handshakes() {
-  return torrent->m_handshakeManager.get_size();
+  return manager->handshake_manager()->get_size();
 }
 
 int64_t
@@ -363,50 +317,50 @@ get_version() {
 
 uint32_t
 get_hash_read_ahead() {
-  return torrent->m_hashQueue.get_read_ahead();
+  return manager->hash_queue()->get_read_ahead();
 }
 
 void
 set_hash_read_ahead(uint32_t bytes) {
   if (bytes < 64 << 20)
-    torrent->m_hashQueue.set_read_ahead(bytes);
+    manager->hash_queue()->set_read_ahead(bytes);
 }
 
 uint32_t
 get_hash_interval() {
-  return torrent->m_hashQueue.get_interval();
+  return manager->hash_queue()->get_interval();
 }
 
 void
 set_hash_interval(uint32_t usec) {
   if (usec < 1000000)
-    torrent->m_hashQueue.set_interval(usec);
+    manager->hash_queue()->set_interval(usec);
 }
 
 uint32_t
 get_hash_max_tries() {
-  return torrent->m_hashQueue.get_max_tries();
+  return manager->hash_queue()->get_max_tries();
 }
 
 void
 set_hash_max_tries(uint32_t tries) {
   if (tries < 100)
-    torrent->m_hashQueue.set_max_tries(tries);
+    manager->hash_queue()->set_max_tries(tries);
 }  
 
 uint32_t
 get_open_files() {
-  return torrent->m_fileManager.open_size();
+  return manager->file_manager()->open_size();
 }
 
 uint32_t
 get_max_open_files() {
-  return torrent->m_fileManager.get_max_size();
+  return manager->file_manager()->get_max_size();
 }
 
 void
 set_max_open_files(uint32_t size) {
-  torrent->m_fileManager.set_max_size(size);
+  manager->file_manager()->set_max_size(size);
 }
 
 uint32_t
@@ -442,39 +396,39 @@ download_add(std::istream* s) {
 
   d->initialize(bencode_hash(d->get_bencode()["info"]),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
-		torrent->m_localAddress);
+		manager->get_local_address());
 
-  d->set_handshake_manager(&torrent->m_handshakeManager);
-  d->set_hash_queue(&torrent->m_hashQueue);
-  d->set_file_manager(&torrent->m_fileManager);
+  d->set_handshake_manager(manager->handshake_manager());
+  d->set_hash_queue(manager->hash_queue());
+  d->set_file_manager(manager->file_manager());
 
   // Default PeerConnection factory functions.
   d->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &d->get_main()));
 
   parse_tracker(d->get_bencode(), d->get_main().get_tracker().tracker_control());
 
-  torrent->m_downloadManager.insert(d.get());
+  manager->download_manager()->insert(d.get());
 
   return Download(d.release());
 }
 
 void
 download_remove(const std::string& infohash) {
-  torrent->m_downloadManager.erase(torrent->m_downloadManager.find(infohash));
+  manager->download_manager()->erase(manager->download_manager()->find(infohash));
 }
 
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
-  for (DownloadManager::const_iterator itr = torrent->m_downloadManager.begin();
-       itr != torrent->m_downloadManager.end(); ++itr)
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin();
+       itr != manager->download_manager()->end(); ++itr)
     dlist.push_back(Download(*itr));
 }
 
 // Make sure you check that it's valid.
 Download
 download_find(const std::string& infohash) {
-  return *torrent->m_downloadManager.find(infohash);
+  return *manager->download_manager()->find(infohash);
 }
 
 }

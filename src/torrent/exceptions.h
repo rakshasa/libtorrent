@@ -66,12 +66,12 @@ public:
 // The library or application did some borking it shouldn't have, bug tracking time!
 class internal_error : public program_error {
 public:
-  internal_error(const std::string& msg) : program_error(msg) {}
+  internal_error(const std::string& msg);
 };
 
 class client_error : public program_error {
 public:
-  client_error(const std::string& msg) : program_error(msg) {}
+  client_error(const std::string& msg);
 };
 
 // For some reason we couldn't talk with a protocol/tracker, migth be a
@@ -106,7 +106,7 @@ public:
 
 class storage_error : public local_error {
 public:
-  storage_error(const std::string& msg) : local_error(msg) {}
+  storage_error(const std::string& msg);
 };
 
 class input_error : public local_error {

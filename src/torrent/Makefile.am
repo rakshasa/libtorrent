@@ -8,6 +8,7 @@ libsub_torrent_la_SOURCES = \
 	entry.cc \
 	entry.h \
 	event.h \
+	exceptions.cc \
 	exceptions.h \
 	http.cc \
 	http.h \

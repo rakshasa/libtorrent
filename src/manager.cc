@@ -37,57 +37,48 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
-#include "rak/functional.h"
 
-#include "task_scheduler.h"
+#include "download/download_manager.h"
+#include "download/download_wrapper.h"
+#include "data/file_manager.h"
+#include "protocol/handshake_manager.h"
+#include "data/hash_queue.h"
+#include "net/listen.h"
+
+#include "manager.h"
 
 namespace torrent {
 
-void
-TaskScheduler::insert(TaskItem* task, Timer time) {
-  if (is_scheduled(task))
-    throw internal_error("TaskScheduler::insert(...) tried to insert an already inserted or invalid TaskItem");
+Manager* manager = NULL;
 
-  // Only insert at or after m_entry because if we might be in
-  // execute(...).
-  iterator itr = std::find_if(m_entry, end(), rak::less_equal(time, rak::mem_ptr_ref(&value_type::first)));
+Manager::Manager() :
+  m_downloadManager(new DownloadManager),
+  m_fileManager(new FileManager),
+  m_handshakeManager(new HandshakeManager),
+  m_hashQueue(new HashQueue),
+  m_listen(new Listen) {
 
-  task->set_iterator(Base::insert(itr, value_type(time, task)));
+  m_taskKeepalive.set_iterator(taskScheduler.end());
+  m_taskKeepalive.set_slot(sigc::mem_fun(*this, &Manager::receive_keepalive));
 
-  // Make sure m_entry points to the right node if we try inserting
-  // before m_entry.
-  if (itr == m_entry)
-    m_entry = task->get_iterator();
+  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 160 * 1000000).round_seconds());
+}
+
+Manager::~Manager() {
+  taskScheduler.erase(&m_taskKeepalive);
+
+  delete m_downloadManager;
+  delete m_fileManager;
+  delete m_handshakeManager;
+  delete m_hashQueue;
+  delete m_listen;
 }
 
 void
-TaskScheduler::erase(TaskItem* task) {
-  if (!is_scheduled(task))
-    return;
+Manager::receive_keepalive() {
+  std::for_each(m_downloadManager->begin(), m_downloadManager->begin(), std::mem_fun(&DownloadWrapper::receive_keepalive));
 
-  iterator itr = Base::erase(task->get_iterator());
-
-  if (task->get_iterator() == m_entry)
-    m_entry = itr;
-
-  task->set_iterator(end());
-}
-
-void
-TaskScheduler::execute(Timer time) {
-  m_entry = std::find_if(begin(), end(), rak::less_equal(time, rak::mem_ptr_ref(&value_type::first)));
-
-  // Since we are always using the front rather than a splice of the
-  // due tasks, it is safe to erase them from within other tasks.
-  while (begin() != m_entry) {
-    if (!is_scheduled(Base::front().second))
-      throw internal_error("TaskScheduler::execute_task(iterator) received an invalid iterator");
-    
-    Base::front().second->set_iterator(end());
-    Base::front().second->get_slot()();
-
-    Base::pop_front();
-  }
+  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 160 * 1000000).round_seconds());
 }
 
 }

@@ -36,58 +36,24 @@
 
 #include "config.h"
 
-#include "torrent/exceptions.h"
-#include "rak/functional.h"
-
-#include "task_scheduler.h"
+#include "exceptions.h"
 
 namespace torrent {
 
-void
-TaskScheduler::insert(TaskItem* task, Timer time) {
-  if (is_scheduled(task))
-    throw internal_error("TaskScheduler::insert(...) tried to insert an already inserted or invalid TaskItem");
+// Use actual functions, instead of inlined, for the ctor of
+// exceptions. This allows us to create breakpoints at throws. This is
+// limited to rarely thrown exceptions.
 
-  // Only insert at or after m_entry because if we might be in
-  // execute(...).
-  iterator itr = std::find_if(m_entry, end(), rak::less_equal(time, rak::mem_ptr_ref(&value_type::first)));
-
-  task->set_iterator(Base::insert(itr, value_type(time, task)));
-
-  // Make sure m_entry points to the right node if we try inserting
-  // before m_entry.
-  if (itr == m_entry)
-    m_entry = task->get_iterator();
+internal_error::internal_error(const std::string& msg) :
+  program_error(msg) {
 }
 
-void
-TaskScheduler::erase(TaskItem* task) {
-  if (!is_scheduled(task))
-    return;
-
-  iterator itr = Base::erase(task->get_iterator());
-
-  if (task->get_iterator() == m_entry)
-    m_entry = itr;
-
-  task->set_iterator(end());
+client_error::client_error(const std::string& msg) :
+  program_error(msg) {
 }
 
-void
-TaskScheduler::execute(Timer time) {
-  m_entry = std::find_if(begin(), end(), rak::less_equal(time, rak::mem_ptr_ref(&value_type::first)));
-
-  // Since we are always using the front rather than a splice of the
-  // due tasks, it is safe to erase them from within other tasks.
-  while (begin() != m_entry) {
-    if (!is_scheduled(Base::front().second))
-      throw internal_error("TaskScheduler::execute_task(iterator) received an invalid iterator");
-    
-    Base::front().second->set_iterator(end());
-    Base::front().second->get_slot()();
-
-    Base::pop_front();
-  }
+storage_error::storage_error(const std::string& msg) :
+  local_error(msg) {
 }
 
 }
