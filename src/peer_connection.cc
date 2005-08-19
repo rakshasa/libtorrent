@@ -75,7 +75,6 @@ void test_buffer_write64(ProtocolBuffer<512>* pb, uint64_t v) {
 
 PeerConnection::PeerConnection() :
   m_shutdown(false),
-  m_stallCount(0),
 
   m_sendChoked(false),
   m_sendInterested(false),
@@ -343,8 +342,8 @@ void PeerConnection::event_read() {
 
     m_requestList.finished();
     
-    if (m_stallCount > 0)
-      m_stallCount--;
+    if (m_readStall > 0)
+      m_readStall--;
     
     // TODO: clear m_down.data?
     // TODO: remove throttle if choked? Rarely happens though.
@@ -379,8 +378,8 @@ void PeerConnection::event_read() {
       m_read->set_state(ProtocolRead::IDLE);
       m_tryRequest = true;
 
-      if (m_stallCount > 0)
-	m_stallCount--;
+      if (m_readStall > 0)
+	m_readStall--;
     }
 
     goto evil_goto_read;
@@ -623,7 +622,7 @@ void PeerConnection::fillWriteBuf() {
   if (m_tryRequest && !m_read->get_choked() && m_write->get_interested() &&
 
       m_read->get_state() != ProtocolRead::SKIP_PIECE &&
-      should_request(m_stallCount) &&
+      should_request() &&
       m_requestList.get_size() < (pipeSize = pipe_size())) {
 
     m_tryRequest = false;
@@ -631,7 +630,7 @@ void PeerConnection::fillWriteBuf() {
     while (m_requestList.get_size() < pipeSize && m_write->can_write_request() && send_request_piece()) {
 
       if (m_requestList.get_size() == 1) {
-	m_stallCount = 0;
+	m_readStall = 0;
 	m_tryRequest = true;
       }	
     }
@@ -816,11 +815,11 @@ PeerConnection::receive_keepalive() {
   // Stall pieces when more than one receive_keepalive() has been
   // called while a single piece is downloading.
   //
-  // m_stallCount is decremented for every successfull download, so it
+  // m_readStall is decremented for every successfull download, so it
   // should stay at zero or one when downloading at an acceptable
-  // speed. Thus only when m_stallCount >= 2 is the download actually
+  // speed. Thus only when m_readStall >= 2 is the download actually
   // stalling.
-  if (!m_requestList.empty() && m_stallCount++ > 0)
+  if (!m_requestList.empty() && m_readStall++ > 0)
     m_requestList.stall();
 
   return true;

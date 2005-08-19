@@ -89,8 +89,6 @@ private:
 
   bool           m_shutdown;
 
-  int            m_stallCount;
-
   bool           m_sendChoked;
   bool           m_sendInterested;
   bool           m_tryRequest;

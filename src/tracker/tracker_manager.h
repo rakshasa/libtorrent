@@ -42,13 +42,19 @@
 namespace torrent {
 
 class TrackerControl;
+class TrackerInfo;
+class TrackerBase;
 
 class TrackerManager {
 public:
+  typedef uint32_t                     size_type;
+  typedef std::pair<int, TrackerBase*> value_type;
+
   TrackerManager();
   ~TrackerManager();
 
   bool                is_active() const;
+  bool                is_busy() const;
 
   void                close();
 
@@ -65,8 +71,17 @@ public:
 
   void                manual_request(bool force);
 
-  // Be carefull what you do with this.
-  TrackerControl*     tracker_control() { return m_control; }
+  void                cycle_group(int group);
+  void                randomize();
+
+  size_type           size() const;
+
+  value_type          get_index(size_type idx) const;
+  size_type           get_focus_index() const;
+
+  void                insert(int group, const std::string& url);
+
+  TrackerInfo*        tracker_info();
 
   Timer               get_next_timeout() const;
 

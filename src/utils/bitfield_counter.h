@@ -59,8 +59,8 @@ class BitFieldCounter {
   uint16_t  dec(int index) { return --m_field[index]; }
 
   void      inc(const BitField& bf) {
-    if (bf.size_bits() != m_field.size())
-      throw internal_error("BitFieldCounter::inc called on fields with mismatching size");
+//     if (bf.size_bits() != m_field.size())
+//       throw internal_error("BitFieldCounter::inc called on fields with mismatching size");
 
     int a = 0;
     char* c = (char*)bf.begin();
@@ -77,8 +77,8 @@ class BitFieldCounter {
   }
 
   void      dec(const BitField& bf) {
-    if (bf.size_bits() != m_field.size())
-      throw internal_error("BitFieldCounter::dec called on fields with mismatching size");
+//     if (bf.size_bits() != m_field.size())
+//       throw internal_error("BitFieldCounter::dec called on fields with mismatching size");
 
     int a = 0;
     char* c = (char*)bf.begin();

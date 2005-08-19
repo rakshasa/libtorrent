@@ -56,6 +56,7 @@ PeerConnectionBase::PeerConnectionBase() :
 
   m_readRate(30),
   m_readThrottle(throttleRead.end()),
+  m_readStall(0),
 
   m_writeRate(30),
   m_writeThrottle(throttleWrite.end()),
@@ -176,14 +177,14 @@ PeerConnectionBase::pipe_size() const {
 // if we're in endgame and the download is too slow. Prefere not to request
 // from high stall counts when we are doing decent speeds.
 bool
-PeerConnectionBase::should_request(uint32_t stall) {
+PeerConnectionBase::should_request() {
   if (!m_download->get_endgame())
     return true;
   else
     // We check if the peer is stalled, if it is not then we should
     // request. If the peer is stalled then we only request if the
     // download rate is below a certain value.
-    return stall <= 1 || m_download->get_read_rate().rate() < (10 << 10);
+    return m_readStall <= 1 || m_download->get_read_rate().rate() < (10 << 10);
 }
 
 void

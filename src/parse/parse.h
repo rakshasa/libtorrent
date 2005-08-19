@@ -42,10 +42,10 @@ namespace torrent {
 class Bencode;
 class Content;
 class DownloadWrapper;
-class TrackerControl;
+class TrackerManager;
 
 void parse_main(const Bencode& b, DownloadWrapper* download);
-void parse_tracker(const Bencode& b, TrackerControl* tracker);
+void parse_tracker(const Bencode& b, TrackerManager* tracker);
 void parse_info(const Bencode& b, Content& content);
 
 }

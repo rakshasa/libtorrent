@@ -7,8 +7,6 @@ max. Add notes to wiki.
 
 Move stuff into rak.
 
-Use seperate files for the Torrent class.
-
 Slot in torrent/Peer for incoming, so we can use SocketAddress
 internally?
 
@@ -18,8 +16,6 @@ so, remove the check in connect_peers.
 Move stall count to PCBase.
 
 Move endgame detection to delegator?
-
-_peer_ is redundant in connectionlist
 
 Get rid of DownloadNet and DownloadState, use only DownloadMain.
 

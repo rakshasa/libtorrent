@@ -39,7 +39,6 @@
 #include <algorithm>
 #include <functional>
 #include <sstream>
-#include <sigc++/signal.h>
 
 #include "torrent/exceptions.h"
 #include "tracker_control.h"
@@ -61,7 +60,7 @@ TrackerControl::TrackerControl() :
 }
 
 void
-TrackerControl::add_url(int group, const std::string& url) {
+TrackerControl::insert(int group, const std::string& url) {
   if (is_busy())
     throw internal_error("Added tracker url while the current tracker is busy");
 
@@ -104,13 +103,12 @@ TrackerControl::send_state(TrackerInfo::State s) {
   m_tries = -1;
   m_state = s;
 
-  query_current();
-}
+  m_itr = m_list.find_enabled(m_itr);
 
-void
-TrackerControl::cancel() {
   if (m_itr != m_list.end())
-    m_itr->second->close();
+    m_itr->second->send_state(m_state, m_info.slot_stat_down()(), m_info.slot_stat_up()(), m_info.slot_stat_left()());
+  else
+    m_info.signal_failed().emit("Tried all trackers.");
 }
 
 void
@@ -146,11 +144,8 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
 
   TrackerList::iterator itr = m_list.find(tb);
 
-  if (itr != m_itr || m_itr == m_list.end())
-    throw internal_error("TrackerControl::receive_success(...) called but the iterator is wrong");
-
-  if (m_itr->second->is_busy())
-    throw internal_error("TrackerControl::receive_success(...) called but m_itr is busy.");
+  if (itr != m_itr || m_itr == m_list.end() || m_itr->second->is_busy())
+    throw internal_error("TrackerControl::receive_success(...) called but the iterator is invalid.");
 
   // Promote the tracker to the front of the group since it was
   // successfull.
@@ -160,7 +155,7 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
   m_timeLastConnection = Timer::cache();
-  m_signalSuccess.emit(l);
+  m_info.signal_success().emit(l);
 }
 
 void
@@ -170,15 +165,11 @@ TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
 
   TrackerList::iterator itr = m_list.find(tb);
 
-  if (itr != m_itr || m_itr == m_list.end())
-    throw internal_error("TrackerControl::receive_failed(...) called but the iterator is wrong");
-
-  if (m_itr->second->is_busy())
-    throw internal_error("TrackerControl::receive_failed(...) called but m_itr is busy.");
+  if (itr != m_itr || m_itr == m_list.end() || m_itr->second->is_busy())
+    throw internal_error("TrackerControl::receive_failed(...) called but the iterator is invalid.");
 
   m_itr++;
-
-  m_signalFailed.emit(msg);
+  m_info.signal_failed().emit(msg);
 }
 
 void
@@ -191,16 +182,6 @@ void
 TrackerControl::receive_set_min_interval(int v) {
   if (v >= 0 && v <= 600)
     m_minInterval = v;
-}
-
-void
-TrackerControl::query_current() {
-  m_itr = m_list.find_enabled(m_itr);
-
-  if (m_itr != m_list.end())
-    m_itr->second->send_state(m_state, m_slotStatDown(), m_slotStatUp(), m_slotStatLeft());
-  else
-    m_signalFailed.emit("Tried all trackers.");
 }
 
 }

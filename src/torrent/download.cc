@@ -40,11 +40,11 @@
 #include "download.h"
 #include "peer_connection.h"
 
-#include "tracker/tracker_control.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_factory.h"
+#include "tracker/tracker_info.h"
 
 #include <rak/functional.h>
 #include <sigc++/bind.h>
@@ -106,7 +106,7 @@ Download::is_active() const {
 
 bool
 Download::is_tracker_busy() const {
-  return m_ptr->get_main().get_tracker().tracker_control()->is_busy();
+  return m_ptr->get_main().get_tracker().is_busy();
 }
 
 bool
@@ -131,7 +131,7 @@ Download::get_hash() const {
 
 std::string
 Download::get_id() const {
-  return m_ptr ? m_ptr->get_main().get_info()->get_local_id() : "";
+  return m_ptr ? m_ptr->tracker_info()->get_local_id() : "";
 }
 
 uint32_t
@@ -249,7 +249,7 @@ Download::get_tracker_timeout() const {
 
 int16_t
 Download::get_tracker_numwant() const {
-  return m_ptr->get_main().get_info()->get_numwant();
+  return m_ptr->tracker_info()->get_numwant();
 }
 
 void
@@ -276,33 +276,33 @@ Download::set_uploads_max(uint32_t v) {
 
 void
 Download::set_tracker_numwant(int32_t n) {
-  m_ptr->get_main().get_info()->set_numwant(n);
+  m_ptr->tracker_info()->set_numwant(n);
 }
 
 Tracker
 Download::get_tracker(uint32_t index) {
-  if (index >= m_ptr->get_main().get_tracker().tracker_control()->get_list().size())
+  if (index >= m_ptr->get_main().get_tracker().size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
-  return m_ptr->get_main().get_tracker().tracker_control()->get_list()[index];
+  return m_ptr->get_main().get_tracker().get_index(index);
 }
 
 const Tracker
 Download::get_tracker(uint32_t index) const {
-  if (index >= m_ptr->get_main().get_tracker().tracker_control()->get_list().size())
+  if (index >= m_ptr->get_main().get_tracker().size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
-  return m_ptr->get_main().get_tracker().tracker_control()->get_list()[index];
+  return m_ptr->get_main().get_tracker().get_index(index);
 }
 
 uint32_t
 Download::get_tracker_size() const {
-  return m_ptr->get_main().get_tracker().tracker_control()->get_list().size();
+  return m_ptr->get_main().get_tracker().size();
 }
 
 uint32_t
 Download::get_tracker_focus() const {
-  return m_ptr->get_main().get_tracker().tracker_control()->get_focus_index();
+  return m_ptr->get_main().get_tracker().get_focus_index();
 }
 
 void
@@ -312,7 +312,7 @@ Download::tracker_send_completed() {
 
 void
 Download::tracker_cycle_group(int group) {
-  m_ptr->get_main().get_tracker().tracker_control()->cycle_group(group);
+  m_ptr->get_main().get_tracker().cycle_group(group);
 }
 
 void
@@ -412,17 +412,17 @@ Download::signal_peer_disconnected(Download::SlotPeer s) {
 
 sigc::connection
 Download::signal_tracker_succeded(Download::SlotVoid s) {
-  return m_ptr->get_main().get_tracker().tracker_control()->signal_success().connect(sigc::hide(s));
+  return m_ptr->get_main().get_tracker().tracker_info()->signal_success().connect(sigc::hide(s));
 }
 
 sigc::connection
 Download::signal_tracker_failed(Download::SlotString s) {
-  return m_ptr->get_main().get_tracker().tracker_control()->signal_failed().connect(s);
+  return m_ptr->get_main().get_tracker().tracker_info()->signal_failed().connect(s);
 }
 
 sigc::connection
 Download::signal_tracker_dump(Download::SlotIStream s) {
-  return m_ptr->get_main().get_tracker().tracker_control()->signal_dump().connect(s);
+  return m_ptr->get_main().get_tracker().tracker_info()->signal_dump().connect(s);
 }
 
 sigc::connection

@@ -57,10 +57,10 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.setup_delegator();
   m_main.setup_tracker();
 
-  m_main.get_info()->set_hash(hash);
-  m_main.get_info()->set_local_id(id);
-  m_main.get_info()->set_local_address(sa);
-  m_main.get_info()->set_key(random());
+  tracker_info()->set_hash(hash);
+  tracker_info()->set_local_id(id);
+  tracker_info()->set_local_address(sa);
+  tracker_info()->set_key(random());
 
   // Info hash must be calculate from here on.
   m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.state()->get_content().get_storage()));

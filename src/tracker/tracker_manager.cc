@@ -51,15 +51,17 @@ TrackerManager::TrackerManager() :
   m_numRequests(0),
   m_maxRequests(5) {
 
-  m_control->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_success)));
-  m_control->signal_failed().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_failed)));
+  m_control->get_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_success)));
+  m_control->get_info()->signal_failed().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_failed)));
 
   m_taskTimeout.set_iterator(taskScheduler.end());
   m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerManager::receive_timeout));
 }
 
 TrackerManager::~TrackerManager() {
-  taskScheduler.erase(&m_taskTimeout);
+  if (is_active())
+    throw internal_error("TrackerManager::~TrackerManager() called but is_active() != false.");
+
   delete m_control;
 }
 
@@ -68,19 +70,23 @@ TrackerManager::is_active() const {
   return taskScheduler.is_scheduled(&m_taskTimeout) || m_control->is_busy();
 }
 
+bool
+TrackerManager::is_busy() const {
+  return m_control->is_busy();
+}
+
 void
 TrackerManager::close() {
-  m_control->cancel();
+  m_isRequesting = false;
+
+  m_control->close();
   taskScheduler.erase(&m_taskTimeout);
 }
 
 void
 TrackerManager::send_start() {
-  taskScheduler.erase(&m_taskTimeout);
+  close();
 
-  m_isRequesting = false;
-
-  m_control->cancel();
   m_control->set_focus_index(0);
   m_control->send_state(TrackerInfo::STARTED);
 }
@@ -90,7 +96,7 @@ TrackerManager::send_stop() {
   if (!is_active())
     return;
 
-  taskScheduler.erase(&m_taskTimeout);
+  close();
   m_control->send_state(TrackerInfo::STOPPED);
 }
 
@@ -99,9 +105,7 @@ TrackerManager::send_completed() {
   if (!is_active() || m_control->get_state() == TrackerInfo::STOPPED)
     return;
 
-  m_isRequesting = false;
-
-  taskScheduler.erase(&m_taskTimeout);
+  close();
   m_control->send_state(TrackerInfo::COMPLETED);
 }
 
@@ -140,13 +144,13 @@ TrackerManager::request_next() {
   manual_request(true);
 }
 
+// Manual requests do not change the status of m_isRequesting, so if
+// it is trying to retrive more peers only the current timeout will be
+// affected.
 void
 TrackerManager::manual_request(bool force) {
   if (!taskScheduler.is_scheduled(&m_taskTimeout))
     return;
-
-  if (m_control->is_busy())
-    throw internal_error("TrackerManager::manual_request() called but m_control->is_busy() == true.");
 
   Timer t(Timer::cache() + 2 * 1000000);
   
@@ -155,6 +159,41 @@ TrackerManager::manual_request(bool force) {
 
   taskScheduler.erase(&m_taskTimeout);
   taskScheduler.insert(&m_taskTimeout, t.round_seconds());
+}
+
+void
+TrackerManager::cycle_group(int group) {
+  m_control->cycle_group(group);
+}
+
+void
+TrackerManager::randomize() {
+  m_control->get_list().randomize();
+}
+
+TrackerManager::size_type
+TrackerManager::size() const {
+  return m_control->get_list().size();
+}
+
+TrackerManager::value_type
+TrackerManager::get_index(size_type idx) const {
+  return m_control->get_list()[idx];
+}
+
+TrackerManager::size_type
+TrackerManager::get_focus_index() const {
+  return m_control->get_focus_index();
+}
+
+void
+TrackerManager::insert(int group, const std::string& url) {
+  m_control->insert(group, url);
+}
+
+TrackerInfo*
+TrackerManager::tracker_info() {
+  return m_control->get_info();
 }
 
 void
@@ -167,9 +206,6 @@ TrackerManager::receive_timeout() {
 
 void
 TrackerManager::receive_success() {
-  if (taskScheduler.is_scheduled(&m_taskTimeout))
-    throw internal_error("TrackerManager::receive_success() called but m_taskTimeout is scheduled.");
-
   if (m_control->get_state() == TrackerInfo::STOPPED)
     return;
 
@@ -183,6 +219,9 @@ TrackerManager::receive_success() {
     m_control->set_focus_index(0);
   }
 
+  // Reset m_isRequesting so a new call to request_*() is needed to
+  // try from the rest of the trackers in the list. If not called, the
+  // next tracker request will reset the focus to the first tracker.
   m_isRequesting = false;
 
   m_control->set_state(TrackerInfo::NONE);
@@ -191,9 +230,6 @@ TrackerManager::receive_success() {
 
 void
 TrackerManager::receive_failed() {
-  if (taskScheduler.is_scheduled(&m_taskTimeout))
-    throw internal_error("TrackerManager::receive_failed() called but m_taskTimeout is scheduled.");
-
   if (m_control->get_state() == TrackerInfo::STOPPED)
     return;
 

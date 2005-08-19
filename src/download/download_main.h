@@ -46,7 +46,6 @@
 #include "protocol/peer_info.h"
 #include "utils/task.h"
 #include "torrent/rate.h"
-#include "tracker/tracker_control.h"
 #include "tracker/tracker_manager.h"
 
 #include <sigc++/connection.h>
@@ -80,7 +79,6 @@ public:
   ConnectionList*     connection_list()                          { return &m_connectionList; }
 
   TrackerManager&     get_tracker()                              { return m_tracker; }
-  TrackerInfo*        get_info()                                 { return m_tracker.tracker_control()->get_info(); }
 
   bool                get_endgame() const                        { return m_endgame; }
   void                set_endgame(bool b);

@@ -94,7 +94,7 @@ public:
   virtual void        set_choke(bool v) = 0;
 
   uint32_t            pipe_size() const;
-  bool                should_request(uint32_t stall);
+  bool                should_request();
 
   void                insert_read_throttle();
   void                remove_read_throttle();
@@ -130,6 +130,7 @@ protected:
   Rate                m_readRate;
   ThrottlePeerNode    m_readThrottle;
   ProtocolChunk       m_readChunk;
+  uint32_t            m_readStall;
 
   Rate                m_writeRate;
   ThrottlePeerNode    m_writeThrottle;

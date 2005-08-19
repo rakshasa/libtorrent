@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
-#include "tracker/tracker_control.h"
+#include "tracker/tracker_manager.h"
 
 #include "torrent/bencode.h"
 #include "parse.h"
@@ -45,45 +45,46 @@
 namespace torrent {
 
 struct _add_tracker {
-  _add_tracker(int group, TrackerControl* control) : m_group(group), m_control(control) {}
+  _add_tracker(int group, TrackerManager* tracker) : m_group(group), m_tracker(tracker) {}
 
   void operator () (const Bencode& b) {
     if (!b.is_string())
       throw bencode_error("Tracker entry not a string");
     
-    m_control->add_url(m_group, b.as_string());
+    m_tracker->insert(m_group, b.as_string());
   }
 
   int             m_group;
-  TrackerControl* m_control;
+  TrackerManager* m_tracker;
 };
 
 struct _add_tracker_group {
-  _add_tracker_group(TrackerControl* control) : m_group(0), m_control(control) {}
+  _add_tracker_group(TrackerManager* tracker) : m_group(0), m_tracker(tracker) {}
 
   void operator () (const Bencode& b) {
     if (!b.is_list())
       throw bencode_error("Tracker group list not a list");
 
-    std::for_each(b.as_list().begin(), b.as_list().end(), _add_tracker(m_group++, m_control));
+    std::for_each(b.as_list().begin(), b.as_list().end(), _add_tracker(m_group++, m_tracker));
   }
 
   int             m_group;
-  TrackerControl* m_control;
+  TrackerManager* m_tracker;
 };
 
-void parse_tracker(const Bencode& b, TrackerControl* control) {
+void
+parse_tracker(const Bencode& b, TrackerManager* tracker) {
   if (b.has_key("announce-list") && b["announce-list"].is_list())
     std::for_each(b["announce-list"].as_list().begin(), b["announce-list"].as_list().end(),
-		  _add_tracker_group(control));
+		  _add_tracker_group(tracker));
 
   else if (b.has_key("announce"))
-    _add_tracker(0, control)(b["announce"]);
+    _add_tracker(0, tracker)(b["announce"]);
 
   else
     throw bencode_error("Could not find any trackers");
 
-  control->get_list().randomize();
+  tracker->randomize();
 }
 
 }

@@ -405,7 +405,7 @@ download_add(std::istream* s) {
   // Default PeerConnection factory functions.
   d->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &d->get_main()));
 
-  parse_tracker(d->get_bencode(), d->get_main().get_tracker().tracker_control());
+  parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
 
   manager->download_manager()->insert(d.get());
 

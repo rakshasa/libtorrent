@@ -37,8 +37,11 @@
 #ifndef LIBTORRENT_TRACKER_INFO_H
 #define LIBTORRENT_TRACKER_INFO_H
 
+#include <list>
 #include <string>
 #include <inttypes.h>
+#include <sigc++/signal.h>
+#include <sigc++/slot.h>
 
 #include "net/socket_address.h"
 
@@ -46,6 +49,13 @@ namespace torrent {
 
 class TrackerInfo {
 public:
+  typedef std::list<SocketAddress>                AddressList;
+
+  typedef sigc::slot0<uint64_t>                   SlotStat;
+  typedef sigc::signal1<void, std::istream*>      SignalDump;
+  typedef sigc::signal1<void, AddressList*>       SignalAddressList;
+  typedef sigc::signal1<void, const std::string&> SignalString;
+
   enum State {
     NONE,
     COMPLETED,
@@ -76,6 +86,18 @@ public:
   uint32_t            get_udp_timeout() const                      { return 30; }
   uint32_t            get_udp_tries() const                        { return 2; }
 
+  // The list of addresses is guaranteed to be sorted and unique.
+  SignalAddressList&  signal_success()                        { return m_signalSuccess; }
+
+  // Before the failed signal emits, get_focus_index() is pointing to
+  // the next tracker.
+  SignalString&       signal_failed()                         { return m_signalFailed; }
+  SignalDump&         signal_dump()                           { return m_signalDump; }
+
+  SlotStat&           slot_stat_down()                             { return m_slotStatDown; }
+  SlotStat&           slot_stat_up()                               { return m_slotStatUp; }
+  SlotStat&           slot_stat_left()                             { return m_slotStatLeft; }
+
 private:
   std::string         m_hash;
   std::string         m_localId;
@@ -84,6 +106,14 @@ private:
   uint32_t            m_key;
   bool                m_compact;
   int32_t             m_numwant;
+
+  SlotStat            m_slotStatDown;
+  SlotStat            m_slotStatUp;
+  SlotStat            m_slotStatLeft;
+
+  SignalDump          m_signalDump;
+  SignalAddressList   m_signalSuccess;
+  SignalString        m_signalFailed;
 };
 
 }
