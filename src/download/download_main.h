@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
+#include <sigc++/connection.h>
+
 #include "available_list.h"
 #include "choke_manager.h"
 #include "connection_list.h"
@@ -46,13 +48,10 @@
 #include "protocol/peer_info.h"
 #include "utils/task.h"
 #include "torrent/rate.h"
-#include "tracker/tracker_manager.h"
-
-#include <sigc++/connection.h>
 
 namespace torrent {
 
-class TrackerControl;
+class TrackerManager;
 
 class DownloadMain {
 public:
@@ -68,17 +67,17 @@ public:
   bool                is_open() const                            { return m_state.get_content().is_open(); }
   bool                is_active() const                          { return m_started; }
   bool                is_checked() const                         { return m_checked; }
-  bool                is_stopped() const                         { return !m_tracker.is_active(); }
 
   DownloadState*      state()                                    { return &m_state; }
 
   ChokeManager*       choke_manager()                            { return &m_chokeManager; }
+  TrackerManager*     tracker_manager()                          { return m_trackerManager; }
+  TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
+
   Delegator*          delegator()                                { return &m_delegator; }
 
   AvailableList*      available_list()                           { return &m_availableList; }
   ConnectionList*     connection_list()                          { return &m_connectionList; }
-
-  TrackerManager&     get_tracker()                              { return m_tracker; }
 
   bool                get_endgame() const                        { return m_endgame; }
   void                set_endgame(bool b);
@@ -122,7 +121,7 @@ private:
 
   DownloadState       m_state;
 
-  TrackerManager      m_tracker;
+  TrackerManager*     m_trackerManager;
   ChokeManager        m_chokeManager;
   Delegator           m_delegator;
 

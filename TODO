@@ -5,6 +5,12 @@ get while coding.
 [PARTLY] Allow for easier configuration for very low/very high open
 max. Add notes to wiki.
 
+Make a new file_list or something like that. It should not care about
+chunk size etc, only hold the list of whatever replaces StorageFile's.
+
+Make it possible to disable certain files, not causing an error when
+they don't give rw perm or resize?
+
 Move stuff into rak.
 
 Slot in torrent/Peer for incoming, so we can use SocketAddress
@@ -13,15 +19,11 @@ internally?
 Re-add slot for removing incoming connections from available list? If
 so, remove the check in connect_peers.
 
-Move stall count to PCBase.
-
 Move endgame detection to delegator?
 
 Get rid of DownloadNet and DownloadState, use only DownloadMain.
 
 Move DownloadMain::get_name to DownloadWrapper?
-
-Shorter timeout when sending stopped to tracker.
 
 Add a setting for overridding open max, only less than. Remove the
 other settings?

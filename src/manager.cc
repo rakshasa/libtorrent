@@ -62,10 +62,15 @@ Manager::Manager() :
   m_taskKeepalive.set_slot(sigc::mem_fun(*this, &Manager::receive_keepalive));
 
   taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 160 * 1000000).round_seconds());
+
+  m_listen->slot_incoming(sigc::mem_fun(*m_handshakeManager, &HandshakeManager::add_incoming));
 }
 
 Manager::~Manager() {
   taskScheduler.erase(&m_taskKeepalive);
+
+  m_handshakeManager->clear();
+  m_downloadManager->clear();
 
   delete m_downloadManager;
   delete m_fileManager;

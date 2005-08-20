@@ -43,6 +43,7 @@
 #include "parse/parse.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/exceptions.h"
+#include "tracker/tracker_manager.h"
 
 #include "download_main.h"
 #include "peer_connection.h"
@@ -50,6 +51,8 @@
 namespace torrent {
 
 DownloadMain::DownloadMain() :
+  m_trackerManager(new TrackerManager()),
+
   m_checked(false),
   m_started(false),
   m_endgame(false),
@@ -70,6 +73,8 @@ DownloadMain::~DownloadMain() {
   if (taskScheduler.is_scheduled(&m_taskChokeCycle) ||
       taskScheduler.is_scheduled(&m_taskTrackerRequest))
     throw internal_error("DownloadMain::~DownloadMain(): m_taskChokeCycle is scheduled");
+
+  delete m_trackerManager;
 }
 
 void
@@ -90,7 +95,7 @@ DownloadMain::close() {
 
   m_checked = false;
 
-  m_tracker.close();
+  m_trackerManager->close();
   m_state.get_content().close();
   m_delegator.clear();
 }
@@ -109,7 +114,7 @@ void DownloadMain::start() {
   m_lastConnectedSize = 0;
 
   setup_start();
-  m_tracker.send_start();
+  m_trackerManager->send_start();
 
   receive_connect_peers();
 }  
@@ -138,7 +143,7 @@ DownloadMain::stop() {
   while (!connection_list()->empty())
     connection_list()->erase(connection_list()->front());
 
-  m_tracker.send_stop();
+  m_trackerManager->send_stop();
   setup_stop();
 }
 
@@ -193,9 +198,9 @@ DownloadMain::receive_tracker_request() {
     return;
 
   if (connection_list()->size() >= m_lastConnectedSize + 10)
-    m_tracker.request_current();
+    m_trackerManager->request_current();
   else // Check to make sure we don't query after every connection to the primary tracker?
-    m_tracker.request_next();
+    m_trackerManager->request_next();
 
   m_lastConnectedSize = connection_list()->size();
 }

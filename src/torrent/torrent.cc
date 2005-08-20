@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <sstream>
+#include <iostream>
 #include <sigc++/bind.h>
 #include <rak/functional.h>
 
@@ -87,23 +87,6 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
     socketManager.close(fd);
 }
 
-std::string
-bencode_hash(Bencode& b) {
-  std::stringstream str;
-  str << b;
-
-  if (str.fail())
-    throw bencode_error("Could not write bencode to stream");
-
-  std::string s = str.str();
-  Sha1 sha1;
-
-  sha1.init();
-  sha1.update(s.c_str(), s.size());
-
-  return sha1.final();
-}  
-
 uint32_t
 calculate_max_open_files(uint32_t openMax) {
   if (openMax >= 8096)
@@ -140,7 +123,6 @@ initialize(Poll* poll) {
   Timer::update();
 
   manager = new Manager;
-  manager->listen()->slot_incoming(sigc::mem_fun(manager->handshake_manager(), &HandshakeManager::add_incoming));
 
   throttleRead.start();
   throttleWrite.start();
@@ -168,9 +150,6 @@ cleanup() {
 
   throttleRead.stop();
   throttleWrite.stop();
-
-  manager->handshake_manager()->clear();
-  manager->download_manager()->clear();
 
   delete manager;
   manager = NULL;
@@ -394,7 +373,7 @@ download_add(std::istream* s) {
   parse_main(d->get_bencode(), d.get());
   parse_info(d->get_bencode()["info"], d->get_main().state()->get_content());
 
-  d->initialize(bencode_hash(d->get_bencode()["info"]),
+  d->initialize(d->get_bencode()["info"].compute_sha1(),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
 		manager->get_local_address());
 
@@ -405,7 +384,7 @@ download_add(std::istream* s) {
   // Default PeerConnection factory functions.
   d->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &d->get_main()));
 
-  parse_tracker(d->get_bencode(), &d->get_main().get_tracker());
+  parse_tracker(d->get_bencode(), d->get_main().tracker_manager());
 
   manager->download_manager()->insert(d.get());
 

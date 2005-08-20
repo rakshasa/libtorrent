@@ -39,9 +39,11 @@
 #endif
 
 #include <iostream>
+#include <sstream>
 
 #include "bencode.h"
 #include "exceptions.h"
+#include "utils/sha1.h"
 
 namespace torrent {
 
@@ -372,6 +374,24 @@ Bencode::as_map() const {
     throw bencode_error("Bencode is not type map");
 
   return *m_map;
+}
+
+// Would be nice to have a straigth stream to hash conversion.
+std::string
+Bencode::compute_sha1() const {
+  std::stringstream str;
+  str << *this;
+
+  if (str.fail())
+    throw bencode_error("Could not write bencode to stream");
+
+  std::string s = str.str();
+  Sha1 sha1;
+
+  sha1.init();
+  sha1.update(s.c_str(), s.size());
+
+  return sha1.final();
 }
 
 } // namespace Torrent

@@ -46,6 +46,7 @@
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "tracker/tracker_manager.h"
 
 #include "download_wrapper.h"
 
@@ -57,10 +58,10 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.setup_delegator();
   m_main.setup_tracker();
 
-  tracker_info()->set_hash(hash);
-  tracker_info()->set_local_id(id);
-  tracker_info()->set_local_address(sa);
-  tracker_info()->set_key(random());
+  m_main.tracker_manager()->tracker_info()->set_hash(hash);
+  m_main.tracker_manager()->tracker_info()->set_local_id(id);
+  m_main.tracker_manager()->tracker_info()->set_local_address(sa);
+  m_main.tracker_manager()->tracker_info()->set_key(random());
 
   // Info hash must be calculate from here on.
   m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.state()->get_content().get_storage()));
@@ -228,6 +229,26 @@ DownloadWrapper::stop() {
   // TODO: This is just wrong.
   m_hash->stop();
   m_hash->get_queue()->remove(get_hash());
+}
+
+bool
+DownloadWrapper::is_stopped() const {
+  return !m_main.tracker_manager()->is_active();
+}
+
+const std::string&
+DownloadWrapper::get_hash() const {
+  return m_main.tracker_manager()->tracker_info()->get_hash();
+}
+
+const std::string&
+DownloadWrapper::get_local_id() const {
+  return m_main.tracker_manager()->tracker_info()->get_local_id();
+}
+
+SocketAddress&
+DownloadWrapper::get_local_address() {
+  return m_main.tracker_manager()->tracker_info()->get_local_address();
 }
 
 void

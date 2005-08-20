@@ -41,6 +41,7 @@
 #include <sigc++/bind.h>
 
 #include "tracker/tracker_info.h"
+#include "tracker/tracker_manager.h"
 
 #include "download_main.h"
 
@@ -71,14 +72,14 @@ DownloadMain::setup_net() {
 void
 DownloadMain::setup_tracker() {
   // This must be done before adding to available addresses.
-  m_tracker.tracker_info()->signal_success().connect(sigc::mem_fun(*connection_list(), &ConnectionList::set_difference));
-  m_tracker.tracker_info()->signal_success().connect(sigc::mem_fun(*available_list(), &AvailableList::insert));
-  m_tracker.tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
-  m_tracker.tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
+  m_trackerManager->tracker_info()->signal_success().connect(sigc::mem_fun(*connection_list(), &ConnectionList::set_difference));
+  m_trackerManager->tracker_info()->signal_success().connect(sigc::mem_fun(*available_list(), &AvailableList::insert));
+  m_trackerManager->tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
+  m_trackerManager->tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
 
-  m_tracker.tracker_info()->slot_stat_down() = sigc::mem_fun(m_readRate, &Rate::total);
-  m_tracker.tracker_info()->slot_stat_up()   = sigc::mem_fun(m_writeRate, &Rate::total);
-  m_tracker.tracker_info()->slot_stat_left() = sigc::mem_fun(m_state, &DownloadState::bytes_left);
+  m_trackerManager->tracker_info()->slot_stat_down() = sigc::mem_fun(m_readRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_up()   = sigc::mem_fun(m_writeRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_left() = sigc::mem_fun(m_state, &DownloadState::bytes_left);
 }
 
 void

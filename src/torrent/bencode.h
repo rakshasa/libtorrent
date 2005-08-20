@@ -44,8 +44,9 @@
 
 namespace torrent {
 
-// This class should very rarely change, so it doesn't matter that much
-// of the implementation is visible.
+// This class should very rarely change, so it doesn't matter that
+// much of the implementation is visible. Though it really needs to be
+// cleaned up.
 
 class Bencode {
  public:
@@ -105,6 +106,8 @@ class Bencode {
 
   friend std::istream& operator >> (std::istream& s, Bencode& b);
   friend std::ostream& operator << (std::ostream& s, const Bencode& b);
+
+  std::string         compute_sha1() const;
 
  private:
   static bool         read_string(std::istream& s, std::string& str);
