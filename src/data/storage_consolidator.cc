@@ -46,29 +46,30 @@
 namespace torrent {
 
 void
-StorageConsolidator::push_back(FileMeta* file, off_t size) {
+StorageConsolidator::push_back(off_t size) {
   if (sizeof(off_t) != 8)
     throw internal_error("sizeof(off_t) != 8");
 
   if (size + m_size < m_size)
     throw internal_error("Sum of files added to StorageConsolidator overflowed 64bit");
 
-  if (file == NULL)
-    throw internal_error("StorageConsolidator::add_file received a File NULL pointer");
+  Base::push_back(StorageFile());
+  Base::back().set_position(m_size);
+  Base::back().set_size(size);
 
-  Base::push_back(StorageFile(file, m_size, size));
   m_size += size;
 }
 
 bool
 StorageConsolidator::resize_files() {
-  return std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageFile::resize_file))) == end();
+//   return std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageFile::resize_file))) == end();
+  std::for_each(begin(), end(), std::mem_fun_ref(&StorageFile::resize_file));
+
+  return true;
 }
 					   
 void
 StorageConsolidator::clear() {
-  std::for_each(begin(), end(), std::mem_fun_ref(&StorageFile::clear));
-
   Base::clear();
   m_size = 0;
 }

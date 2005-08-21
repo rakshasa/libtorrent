@@ -38,7 +38,7 @@
 
 #include "exceptions.h"
 #include "entry.h"
-#include "content/content_file.h"
+#include "data/storage_file.h"
 
 namespace torrent {
 

@@ -37,34 +37,64 @@
 #ifndef LIBTORRENT_STORAGE_FILE_H
 #define LIBTORRENT_STORAGE_FILE_H
 
+#include "data/path.h"
+
+#include "file_meta.h"
+
 namespace torrent {
 
 class FileMeta;
 
 class StorageFile {
 public:
-  StorageFile() : m_meta(NULL), m_position(0), m_size(0) {}
-  StorageFile(FileMeta* f, off_t p, off_t s) : m_meta(f), m_position(p), m_size(s) {}
+  typedef std::pair<uint32_t, uint32_t> Range;
+
+  StorageFile();
 
   bool                is_valid() const                        { return m_meta; }
   inline bool         is_valid_position(off_t p) const;
-
-  void                clear();
 
   FileMeta*           get_meta()                              { return m_meta; }
   const FileMeta*     get_meta() const                        { return m_meta; }
 
   off_t               get_position() const                    { return m_position; }
-  off_t               get_size() const                        { return m_size; }
+  void                set_position(off_t pos)                 { m_position = pos; }
 
-  bool                sync() const;
-  bool                resize_file() const;
+  off_t               get_size() const                        { return m_size; }
+  void                set_size(off_t s)                       { m_size = s; }
+
+  // Temporarily use set_*, it's going to be owned by this object
+  // later.
+  void                set_filemeta(FileMeta* c)               { m_meta = c; }
+
+  bool                sync();
+  bool                resize_file();
+
+  void           reset()                        { m_completed = 0; }
+
+  unsigned char  get_priority() const           { return m_priority; }
+
+  Range          get_range() const              { return m_range; }
+  uint32_t       get_completed() const          { return m_completed; }
+
+  Path&          get_path()                     { return m_path; }
+  const Path&    get_path() const               { return m_path; }
+
+  void           set_priority(unsigned char t)  { m_priority = t; }
+  void           set_completed(uint32_t v)      { m_completed = v; }
+  void           set_range(const Range& r)      { m_range = r; }
 
 private:
   FileMeta*           m_meta;
 
   off_t               m_position;
   off_t               m_size;
+
+  Path                m_path;
+  Range               m_range;
+
+  uint32_t            m_completed;
+  unsigned char       m_priority;
 };
 
 inline bool

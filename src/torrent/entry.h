@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-class ContentFile;
+class StorageFile;
 
 class Entry {
 public:
@@ -56,34 +56,34 @@ public:
   } Priority;
 
   Entry() : m_entry(NULL) {}
-  Entry(ContentFile* e) : m_entry(e) {}
+  Entry(StorageFile* e) : m_entry(e) {}
   
-  uint64_t        get_size();
+  uint64_t            get_size();
 
   // Chunks of this file completed.
-  uint32_t        get_completed();
+  uint32_t            get_completed();
 
   // Chunk index this file spans.
-  uint32_t        get_chunk_begin();
-  uint32_t        get_chunk_end();
+  uint32_t            get_chunk_begin();
+  uint32_t            get_chunk_end();
 
   // Need this?
-  //uint64_t        get_byte_begin();
-  //uint64_t        get_byte_end();
+  //uint64_t            get_byte_begin();
+  //uint64_t            get_byte_end();
 
   // Relative to root of the torrent.
-  std::string     get_path();
-  const Path&     get_path_list();
+  std::string         get_path();
+  const Path&         get_path_list();
 
-  void            set_path_list(const Path& l);
+  void                set_path_list(const Path& l);
 
-  Priority        get_priority();
+  Priority            get_priority();
 
   // Remember to call update_priorities
-  void            set_priority(Priority p);
+  void                set_priority(Priority p);
 
 private:
-  ContentFile*    m_entry;
+  StorageFile*        m_entry;
 };
 
 }

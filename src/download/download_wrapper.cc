@@ -97,12 +97,8 @@ DownloadWrapper::hash_resume_load() {
 
     Bencode& files = resume["files"];
 
-    // Don't need this.
-    if (content.get_files().size() != content.get_storage().get_consolidator().get_files_size())
-      throw internal_error("DownloadWrapper::hash_load() size mismatch in file entries");
-
     if (resume["bitfield"].as_string().size() != content.get_bitfield().size_bytes() ||
-	files.as_list().size() != content.get_files().size())
+	files.as_list().size() != content.get_storage().get_consolidator().get_files_size())
       return;
 
     // Clear the hash checking ranges, and add the files ranges we must check.
@@ -111,11 +107,10 @@ DownloadWrapper::hash_resume_load() {
     std::memcpy(content.get_bitfield().begin(), resume["bitfield"].as_string().c_str(), content.get_bitfield().size_bytes());
 
     Bencode::List::iterator bItr = files.as_list().begin();
-    Content::FileList::iterator cItr = content.get_files().begin();
     StorageConsolidator::iterator sItr = content.get_storage().get_consolidator().begin();
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
-    while (cItr != content.get_files().end()) {
+    while (sItr != content.get_storage().get_consolidator().end()) {
       FileStat fs;
 
       // Check that the size and modified stamp matches. If not, then
@@ -126,16 +121,15 @@ DownloadWrapper::hash_resume_load() {
 	  !bItr->has_key("mtime") ||
 	  !(*bItr)["mtime"].is_value() ||
 	  (*bItr)["mtime"].as_value() != fs.get_mtime())
-	m_hash->get_ranges().insert(cItr->get_range().first, cItr->get_range().second);
+	m_hash->get_ranges().insert(sItr->get_range().first, sItr->get_range().second);
 
       // Update the priority from the fast resume data.
       if (bItr->has_key("priority") &&
 	  (*bItr)["priority"].is_value() &&
 	  (*bItr)["priority"].as_value() >= 0 &&
 	  (*bItr)["priority"].as_value() < 3)
-	cItr->set_priority((*bItr)["priority"].as_value());
+	sItr->set_priority((*bItr)["priority"].as_value());
 
-      ++cItr;
       ++sItr;
       ++bItr;
     }  
@@ -177,11 +171,10 @@ DownloadWrapper::hash_resume_save() {
 
   Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
 
-  Content::FileList::iterator cItr = content.get_files().begin();
   StorageConsolidator::iterator sItr = content.get_storage().get_consolidator().begin();
   
   // Check the validity of each file, add to the m_hash's ranges if invalid.
-  while (cItr != content.get_files().end()) {
+  while (sItr != content.get_storage().get_consolidator().end()) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
     FileStat fs;
@@ -192,9 +185,8 @@ DownloadWrapper::hash_resume_save() {
     }
 
     b.insert_key("mtime", fs.get_mtime());
-    b.insert_key("priority", (int)cItr->get_priority());
+    b.insert_key("priority", (int)sItr->get_priority());
 
-    ++cItr;
     ++sItr;
   }
 
@@ -253,7 +245,8 @@ DownloadWrapper::get_local_address() {
 
 void
 DownloadWrapper::set_file_manager(FileManager* f) {
-  m_main.state()->get_content().slot_opened_file(sigc::mem_fun(*f, &FileManager::insert));
+  m_main.state()->get_content().slot_insert_filemeta(sigc::mem_fun(*f, &FileManager::insert));
+  m_main.state()->get_content().slot_erase_filemeta(sigc::mem_fun(*f, &FileManager::erase));
 }
 
 void

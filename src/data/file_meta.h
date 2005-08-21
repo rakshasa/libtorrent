@@ -46,20 +46,15 @@ namespace torrent {
 
 class FileMeta {
 public:
-  typedef sigc::slot2<bool, FileMeta*, int> SlotPrepare;
-  typedef sigc::slot1<void, FileMeta*>      SlotDisconnect;
+  typedef sigc::slot3<bool, FileMeta*, int, int> SlotPrepare;
 
-  FileMeta() {}
-  FileMeta(const std::string& path) : m_path(path) {}
-  ~FileMeta() { disconnect(); }
+  FileMeta() : m_lastTouched(Timer::cache()) {}
 
-  bool                is_valid() const                           { return !m_slotPrepare.empty(); }
   bool                is_open() const                            { return m_file.is_open(); }
-
   bool                has_permissions(int prot) const            { return !(prot & ~get_prot()); }
 
-  inline bool         prepare(int prot);
-  inline void         disconnect();
+  // Consider prot == 0 to close?
+  inline bool         prepare(int prot, int flags = 0);
 
   File&               get_file()                                 { return m_file; }
   const File&         get_file() const                           { return m_file; }
@@ -72,29 +67,21 @@ public:
   Timer               get_last_touched() const                   { return m_lastTouched; }
   void                set_last_touched(Timer t = Timer::cache()) { m_lastTouched = t; }
 
-  SlotPrepare&        slot_prepare()                             { return m_slotPrepare; }
-  SlotDisconnect&     slot_disconnect()                          { return m_slotDisconnect; }
+  void                slot_prepare(SlotPrepare s)                { m_slotPrepare = s; }
 
 private:
   File                m_file;
   std::string         m_path;
 
   Timer               m_lastTouched;
-
   SlotPrepare         m_slotPrepare;
-  SlotDisconnect      m_slotDisconnect;
 };
 
 inline bool
-FileMeta::prepare(int prot) {
+FileMeta::prepare(int prot, int flags) {
   m_lastTouched = Timer::cache();
 
-  return (is_open() && has_permissions(prot)) ? true : m_slotPrepare(this, prot);
-}
-
-inline void
-FileMeta::disconnect() {
-  m_slotDisconnect(this);
+  return (is_open() && has_permissions(prot)) || m_slotPrepare(this, prot, flags);
 }
 
 }

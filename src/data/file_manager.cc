@@ -46,38 +46,34 @@
 
 namespace torrent {
 
-struct FileMetaRemove {
-  void operator() (FileMeta* f) {
-    f->get_file().close();
-    f->slot_prepare() = FileMeta::SlotPrepare();
-    f->slot_disconnect() = FileMeta::SlotDisconnect();
-  }
-};
+FileManager::~FileManager() {
+  if (!empty())
+    throw internal_error("FileManager::~FileManager() called but empty() != true.");
+}
 
-void
-FileManager::clear() {
-  std::for_each(begin(), end(), FileMetaRemove());
+FileMeta*
+FileManager::insert(const std::string& path) {
+  FileMeta* f = new FileMeta;
 
-  m_openSize = 0;
-  Base::clear();
+  f->set_path(path);
+  f->slot_prepare(sigc::mem_fun(*this, &FileManager::prepare_file));
+
+  Base::push_back(f);
+
+  return f;
 }
 
 void
-FileManager::insert(FileMeta* f) {
-  if (f->is_valid())
-    throw internal_error("FileManager::insert(...) received an already valid FileMeta");
+FileManager::erase(FileMeta* f) {
+  iterator itr = std::find(begin(), end(), f);
+
+  if (itr == end())
+    throw internal_error("FileManager::erase(...) could not find FileMeta in container.");
 
   if (f->is_open())
-    if (m_openSize == m_maxSize)
-      f->get_file().close();
-    else
-      ++m_openSize;
+    close_file(f);
 
-  f->slot_prepare() = sigc::mem_fun(*this, &FileManager::prepare_file);
-  f->slot_disconnect() = sigc::mem_fun(*this, &FileManager::remove_file);
-
-  // Hmm... insert or push_back?
-  Base::push_back(f);
+  Base::erase(itr);
 }
 
 void
@@ -89,18 +85,17 @@ FileManager::set_max_size(size_t s) {
 }
 
 bool
-FileManager::prepare_file(FileMeta* meta, int prot) {
+FileManager::prepare_file(FileMeta* meta, int prot, int flags) {
   if (meta->is_open())
     close_file(meta);
 
   if (m_openSize > m_maxSize)
     throw internal_error("FileManager::open_file(...) m_openSize > m_maxSize");
 
-  // Close any files if nessesary.
   if (m_openSize == m_maxSize)
     close_least_active();
 
-  if (!meta->get_file().open(meta->get_path(), prot, 0))
+  if (!meta->get_file().open(meta->get_path(), prot, flags))
     return false;
 
   ++m_openSize;
@@ -109,24 +104,7 @@ FileManager::prepare_file(FileMeta* meta, int prot) {
 }
 
 void
-FileManager::remove_file(FileMeta* meta) {
-  iterator itr = std::find(begin(), end(), meta);
-
-  if (itr == end())
-    throw internal_error("FileManager::close_file(...) could not find FileMeta in container");
-
-  if ((*itr)->is_open())
-    close_file(meta);
-
-  // TODO: Use something else here, like swap with last.
-  Base::erase(itr);
-}
-
-void
 FileManager::close_file(FileMeta* meta) {
-  if (meta == NULL)
-    throw internal_error("FileManager::close_file(...) called on with a NULL argument");
-
   if (!meta->is_open())
     throw internal_error("FileManager::close_file(...) called on a closed FileMeta");
 

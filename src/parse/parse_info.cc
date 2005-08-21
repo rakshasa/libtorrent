@@ -92,12 +92,12 @@ struct bencode_to_file {
   Content& m_content;
 };
 
-void parse_info(const Bencode& b, Content& c) {
-  if (!c.get_files().empty())
+void
+parse_info(const Bencode& b, Content& c) {
+  if (!c.get_storage().get_consolidator().empty())
     throw internal_error("parse_info received an already initialized Content object");
 
   c.get_storage().set_chunk_size(b["piece length"].as_value());
-
   c.set_complete_hash(b["pieces"].as_string());
 
   if (b.has_key("length")) {

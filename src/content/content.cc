@@ -46,6 +46,7 @@
 namespace torrent {
 
 Content::Content() :
+  m_isOpen(false),
   m_size(0),
   m_completed(0),
   m_rootDir(".") {
@@ -59,7 +60,9 @@ Content::add_file(const Path& path, uint64_t size) {
   if (is_open())
     throw internal_error("Tried to add file to Content that is open");
 
-  m_files.push_back(ContentFile(path, size, make_index_range(m_size, size)));
+  m_storage.get_consolidator().push_back(size);
+  m_storage.get_consolidator().back().get_path() = path;
+  m_storage.get_consolidator().back().set_range(make_index_range(m_size, size));
   m_size += size;
 }
 
@@ -121,21 +124,16 @@ Content::is_correct_size() {
   if (!is_open())
     return false;
 
-  if (m_files.size() != m_storage.get_consolidator().get_files_size())
-    throw internal_error("Content::is_correct_size called on an open object with mismatching FileList and Storage::FileList sizes");
-
-  FileList::iterator fItr = m_files.begin();
-  Storage::FileList::iterator sItr = m_storage.get_consolidator().begin();
+  StorageConsolidator::iterator sItr = m_storage.get_consolidator().begin();
   
-  while (fItr != m_files.end()) {
+  while (sItr != m_storage.get_consolidator().end()) {
     // TODO: Throw or return false?
     if (!sItr->get_meta()->prepare(MemoryChunk::prot_read))
       return false;
 
-    if (fItr->get_size() != FileStat(sItr->get_meta()->get_file().fd()).get_size())
+    if (sItr->get_size() != FileStat(sItr->get_meta()->get_file().fd()).get_size())
       return false;
 
-    ++fItr;
     ++sItr;
   }
 
@@ -157,28 +155,24 @@ Content::is_valid_piece(const Piece& p) const {
 
 void
 Content::open(bool wr) {
-  close();
-
   // Make sure root directory exists, Can't make recursively, so the client must
   // make sure the parent dir of 'm_rootDir' exists.
   Path::mkdir(m_rootDir);
   Path lastPath;
 
-  for (FileList::iterator itr = m_files.begin(); itr != m_files.end(); ++itr) {
-    std::auto_ptr<FileMeta> f(new FileMeta);
-
+  for (StorageConsolidator::iterator itr = m_storage.get_consolidator().begin(); itr != m_storage.get_consolidator().end(); ++itr) {
     try {
-      open_file(f.get(), itr->get_path(), lastPath);
-      m_slotOpenedFile(f.get());
+      itr->set_filemeta(m_slotInsertFileMeta(m_rootDir + itr->get_path().as_string()));
+
+      open_file(itr->get_meta(), itr->get_path(), lastPath);
 
     } catch (base_error& e) {
-      f->get_file().close();
-      m_storage.clear();
+      //m_storage.clear();
+      // Need to clean up properly.
+      throw internal_error("Bork during Content::open. " + std::string(e.what()));
 
-      throw;
+//       throw;
     }
-
-    m_storage.get_consolidator().push_back(f.release(), itr->get_size());
 
     lastPath = itr->get_path();
   }
@@ -193,23 +187,32 @@ Content::open(bool wr) {
 
   if (m_size != m_storage.get_bytes_size())
     throw internal_error("Content::open(...): m_size != m_storage.get_size()");
+
+  m_isOpen = true;
 }
 
 void
 Content::close() {
-  m_storage.clear();
+  m_isOpen = false;
+
+  for (StorageConsolidator::iterator itr = m_storage.get_consolidator().begin(); itr != m_storage.get_consolidator().end(); ++itr) {
+    m_slotEraseFileMeta(itr->get_meta());
+    itr->set_filemeta(NULL);
+  }
 
   m_completed = 0;
   m_bitfield = BitField();
   taskScheduler.erase(&m_delayDownloadDone);
 
-  std::for_each(m_files.begin(), m_files.end(), std::mem_fun_ref(&ContentFile::reset));
+  std::for_each(m_storage.get_consolidator().begin(), m_storage.get_consolidator().end(), std::mem_fun_ref(&StorageFile::reset));
 }
 
 void
 Content::resize() {
-  if (!m_storage.get_consolidator().resize_files())
-    throw storage_error("Could not resize files");
+  if (!is_open())
+    return;
+
+  m_storage.get_consolidator().resize_files();
 }
 
 void
@@ -226,7 +229,7 @@ Content::mark_done(uint32_t index) {
   m_bitfield.set(index, true);
   m_completed++;
 
-  mark_done_file(m_files.begin(), index);
+  mark_done_file(m_storage.get_consolidator().begin(), index);
 
   // We delay emitting the signal to allow the delegator to clean
   // up. If we do a straight call it would cause problems for
@@ -245,7 +248,7 @@ Content::update_done() {
   m_bitfield.cleanup();
   m_completed = m_bitfield.count();
 
-  FileList::iterator itr = m_files.begin();
+  StorageConsolidator::iterator itr = m_storage.get_consolidator().begin();
 
   for (BitField::size_t i = 0; i < m_bitfield.size_bits(); ++i)
     if (m_bitfield[i])
@@ -260,11 +263,9 @@ Content::open_file(FileMeta* f, Path& p, Path& lastPath) {
   Path::mkdir(m_rootDir, p.begin(), --p.end(),
 	      lastPath.begin(), lastPath.end());
 
-  if (!f->get_file().open(m_rootDir + p.as_string(), MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) &&
-      !f->get_file().open(m_rootDir + p.as_string(), MemoryChunk::prot_read, File::o_create))
+  if (!f->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) &&
+      !f->prepare(MemoryChunk::prot_read, File::o_create))
     throw storage_error("Could not open file \"" + m_rootDir + p.as_string() + "\"");
-
-  f->set_path(m_rootDir + p.as_string());
 }
 
 }

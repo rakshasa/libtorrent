@@ -43,7 +43,6 @@
 
 #include "utils/bitfield.h"
 #include "utils/task.h"
-#include "content_file.h"
 #include "data/storage.h"
 #include "data/piece.h"
 
@@ -59,9 +58,9 @@ namespace torrent {
 
 class Content {
 public:
-  typedef std::vector<ContentFile>     FileList;
-  typedef sigc::slot1<void, FileMeta*> SlotFileMeta;
-  typedef sigc::signal0<void>          Signal;
+  typedef sigc::slot1<FileMeta*, const std::string&> SlotFileMetaString;
+  typedef sigc::slot1<void, FileMeta*>               SlotFileMeta;
+  typedef sigc::signal0<void>                        Signal;
 
   // Hash done signal, hash failed signal++
   
@@ -85,10 +84,9 @@ public:
   uint32_t               get_chunksize(uint32_t index) const;
 
   BitField&              get_bitfield()                       { return m_bitfield; }
-  FileList&              get_files()                          { return m_files; }
   Storage&               get_storage()                        { return m_storage; }
 
-  bool                   is_open() const                      { return m_storage.get_bytes_size(); }
+  bool                   is_open() const                      { return m_isOpen; }
   bool                   is_correct_size();
   bool                   is_done() const                      { return m_completed == m_storage.get_chunk_total(); }
 
@@ -104,7 +102,8 @@ public:
   void                   mark_done(uint32_t index);
   void                   update_done();
 
-  void                   slot_opened_file(SlotFileMeta s)     { m_slotOpenedFile = s; }
+  void                   slot_insert_filemeta(SlotFileMetaString s) { m_slotInsertFileMeta = s; }
+  void                   slot_erase_filemeta(SlotFileMeta s)        { m_slotEraseFileMeta = s; }
 
   Signal&                signal_download_done()               { return m_signalDownloadDone; }
   void                   block_download_done(bool v)          { m_delayDownloadDone.get_slot().block(v); }
@@ -113,13 +112,13 @@ private:
   
   void                   open_file(FileMeta* f, Path& p, Path& lastPath);
 
-  FileList::iterator     mark_done_file(FileList::iterator itr, uint32_t index);
-  ContentFile::Range     make_index_range(uint64_t pos, uint64_t size) const;
+  StorageConsolidator::iterator mark_done_file(StorageConsolidator::iterator itr, uint32_t index);
+  StorageFile::Range     make_index_range(uint64_t pos, uint64_t size) const;
 
+  bool                   m_isOpen;
   off_t                  m_size;
   uint32_t               m_completed;
 
-  FileList               m_files;
   Storage                m_storage;
 
   BitField               m_bitfield;
@@ -127,25 +126,27 @@ private:
   std::string            m_rootDir;
   std::string            m_hash;
 
-  SlotFileMeta           m_slotOpenedFile;
+  SlotFileMetaString     m_slotInsertFileMeta;
+  SlotFileMeta           m_slotEraseFileMeta;
+
   Signal                 m_signalDownloadDone;
   TaskItem               m_delayDownloadDone;
 };
 
-inline Content::FileList::iterator
-Content::mark_done_file(FileList::iterator itr, uint32_t index) {
+inline StorageConsolidator::iterator
+Content::mark_done_file(StorageConsolidator::iterator itr, uint32_t index) {
   while (index >= itr->get_range().second) ++itr;
   
   do {
     itr->set_completed(itr->get_completed() + 1);
-  } while (index + 1 == itr->get_range().second && ++itr != m_files.end());
+  } while (index + 1 == itr->get_range().second && ++itr != m_storage.get_consolidator().end());
 
   return itr;
 }
 
-inline ContentFile::Range
+inline StorageFile::Range
 Content::make_index_range(uint64_t pos, uint64_t size) const {
-  return ContentFile::Range(pos / m_storage.get_chunk_size(),
+  return StorageFile::Range(pos / m_storage.get_chunk_size(),
 			    (pos + size + m_storage.get_chunk_size() - 1) / m_storage.get_chunk_size());
 }
 

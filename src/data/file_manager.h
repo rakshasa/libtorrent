@@ -43,11 +43,7 @@ namespace torrent {
 
 class FileMeta;
 
-// Note: this list may be rearranged during calls to close_files(...),
-// so don't assume anything about the order.
-//
-// Calling FileMeta::close() will remove the FileMeta from this
-// container.
+// Use unordered_vector instead.
 
 class FileManager : private std::vector<FileMeta*> {
 public:
@@ -58,6 +54,7 @@ public:
   using Base::iterator;
   using Base::reverse_iterator;
   using Base::size;
+  using Base::empty;
 
   using Base::begin;
   using Base::end;
@@ -65,11 +62,10 @@ public:
   using Base::rend;
 
   FileManager() : m_openSize(0), m_maxSize(0) {}
-  ~FileManager() { clear(); }
+  ~FileManager();
 
-  void                clear();
-
-  void                insert(FileMeta* f);
+  FileMeta*           insert(const std::string& path);
+  void                erase(FileMeta* f);
 
   size_t              open_size() const                  { return m_openSize; }
 
@@ -81,8 +77,7 @@ private:
   void operator = (const FileManager&);
 
   // Bool or throw? iterator or reference/pointer?
-  bool                prepare_file(FileMeta* meta, int prot);
-  void                remove_file(FileMeta* meta);
+  bool                prepare_file(FileMeta* meta, int prot, int flags);
   void                close_file(FileMeta* meta);
 
   void                close_least_active();

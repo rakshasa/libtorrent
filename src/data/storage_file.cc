@@ -36,21 +36,23 @@
 
 #include "config.h"
 
-#include "file_meta.h"
+#include "torrent/exceptions.h"
+
 #include "storage_file.h"
 
 namespace torrent {
 
-void
-StorageFile::clear() {
-  delete m_meta;
-
-  m_meta = NULL;
-  m_position = m_size = 0;
+StorageFile::StorageFile() :
+  m_meta(NULL),
+  m_position(0),
+  m_size(0),
+  m_completed(0),
+  m_priority(1)
+{
 }
 
 bool
-StorageFile::sync() const {
+StorageFile::sync() {
   if (!m_meta->prepare(MemoryChunk::prot_read))
     return false;
 
@@ -74,7 +76,7 @@ StorageFile::sync() const {
 }
 
 bool
-StorageFile::resize_file() const {
+StorageFile::resize_file() {
   if (!m_meta->prepare(MemoryChunk::prot_read))
     return false;
 

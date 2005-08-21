@@ -323,15 +323,15 @@ Download::tracker_manual_request(bool force) {
 
 Entry
 Download::get_entry(uint32_t index) {
-  if (index >= m_ptr->get_main().state()->get_content().get_files().size())
+  if (index >= m_ptr->get_main().state()->get_content().get_storage().get_consolidator().get_files_size())
     throw client_error("Client called Download::get_entry(...) with out of range index");
 
-  return &m_ptr->get_main().state()->get_content().get_files()[index];
+  return m_ptr->get_main().state()->get_content().get_storage().get_consolidator().get_storage_file(index);
 }
 
 uint32_t
 Download::get_entry_size() const {
-  return m_ptr->get_main().state()->get_content().get_files().size();
+  return m_ptr->get_main().state()->get_content().get_storage().get_consolidator().get_files_size();
 }
 
 const Download::SeenVector&
@@ -357,14 +357,15 @@ Download::update_priorities() {
   uint64_t pos = 0;
   unsigned int cs = content.get_storage().get_chunk_size();
 
-  for (Content::FileList::const_iterator i = content.get_files().begin(); i != content.get_files().end(); ++i) {
+  for (StorageConsolidator::iterator itr = content.get_storage().get_consolidator().begin();
+       itr != content.get_storage().get_consolidator().end(); ++itr) {
     unsigned int s = pos / cs;
-    unsigned int e = i->get_size() ? (pos + i->get_size() + cs - 1) / cs : s;
+    unsigned int e = itr->get_size() ? (pos + itr->get_size() + cs - 1) / cs : s;
 
     if (s != e)
-      p.add((Priority::Type)i->get_priority(), s, e);
+      p.add((Priority::Type)itr->get_priority(), s, e);
 
-    pos += i->get_size();
+    pos += itr->get_size();
   }
 
   std::for_each(m_ptr->get_main().connection_list()->begin(),

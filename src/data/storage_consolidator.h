@@ -56,15 +56,22 @@ public:
   using Base::rbegin;
   using Base::rend;
 
+  using Base::back;
+  using Base::empty;
+
   StorageConsolidator() : m_size(0), m_chunksize(1 << 16) {}
   ~StorageConsolidator() { clear(); }
 
   // We take over ownership of 'file'.
-  void                push_back(FileMeta* file, off_t size);
+  void                push_back(off_t size);
 
   // TODO: Rename this to something else.
   bool                resize_files();
+
   void                clear();
+
+  // Only closes the files.
+  void                close();
 
   void                sync();
 
@@ -80,6 +87,8 @@ public:
   uint32_t            get_chunk_size() const                  { return m_chunksize; }
 
   off_t               get_chunk_position(uint32_t c) const    { return c * (off_t)m_chunksize; }
+
+  StorageFile*        get_storage_file(uint32_t idx)          { return &Base::front() + idx; }
 
 private:
   MemoryChunk         get_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);
