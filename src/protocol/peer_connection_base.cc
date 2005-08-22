@@ -90,7 +90,7 @@ PeerConnectionBase::load_read_chunk(const Piece& p) {
   if (!m_download->state()->get_content().is_valid_piece(p))
     throw internal_error("Incoming pieces list contains a bad piece");
   
-  m_readChunk.set_chunk(m_download->state()->get_content().get_storage().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
+  m_readChunk.set_chunk(m_download->state()->get_content().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
   
   if (!m_readChunk.get_chunk().is_valid())
     throw storage_error("Could not create a valid chunk");

@@ -51,7 +51,7 @@ DownloadState::update_endgame() {
 
 void
 DownloadState::chunk_done(unsigned int index) {
-  Storage::Chunk c = m_content.get_storage().get_chunk(index, MemoryChunk::prot_read);
+  Storage::Chunk c = m_content.get_chunk(index, MemoryChunk::prot_read);
 
   if (!c.is_valid())
     throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrive from storage");
@@ -61,7 +61,7 @@ DownloadState::chunk_done(unsigned int index) {
 
 uint64_t
 DownloadState::bytes_left() {
-  uint64_t left = m_content.get_size() - m_content.get_bytes_completed();
+  uint64_t left = m_content.get_bytes_size() - m_content.get_bytes_completed();
 
   if (left > ((uint64_t)1 << 60))
     throw internal_error("DownloadState::bytes_left() is too large"); 

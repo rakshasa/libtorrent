@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <sigc++/bind.h>
 
+#include "content/content.h"
 #include "data/hash_queue.h"
 #include "data/file_manager.h"
 #include "data/file_meta.h"
@@ -64,7 +65,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.tracker_manager()->tracker_info()->set_key(random());
 
   // Info hash must be calculate from here on.
-  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.state()->get_content().get_storage()));
+  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.state()->get_content()));
 
   // Connect various signals and slots.
   m_hash->signal_chunk().connect(sigc::mem_fun(*m_main.state(), &DownloadState::receive_hash_done));
@@ -98,7 +99,7 @@ DownloadWrapper::hash_resume_load() {
     Bencode& files = resume["files"];
 
     if (resume["bitfield"].as_string().size() != content.get_bitfield().size_bytes() ||
-	files.as_list().size() != content.get_storage().get_consolidator().get_files_size())
+	files.as_list().size() != content.entry_list()->get_files_size())
       return;
 
     // Clear the hash checking ranges, and add the files ranges we must check.
@@ -107,16 +108,16 @@ DownloadWrapper::hash_resume_load() {
     std::memcpy(content.get_bitfield().begin(), resume["bitfield"].as_string().c_str(), content.get_bitfield().size_bytes());
 
     Bencode::List::iterator bItr = files.as_list().begin();
-    StorageConsolidator::iterator sItr = content.get_storage().get_consolidator().begin();
+    EntryList::iterator sItr = content.entry_list()->begin();
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
-    while (sItr != content.get_storage().get_consolidator().end()) {
+    while (sItr != content.entry_list()->end()) {
       FileStat fs;
 
       // Check that the size and modified stamp matches. If not, then
       // add to the hashes to check.
 
-      if (fs.update(sItr->get_meta()->get_path()) ||
+      if (fs.update(sItr->file_meta()->get_path()) ||
 	  sItr->get_size() != fs.get_size() ||
 	  !bItr->has_key("mtime") ||
 	  !(*bItr)["mtime"].is_value() ||
@@ -165,21 +166,21 @@ DownloadWrapper::hash_resume_save() {
   // We're guaranteed that file modification time is correctly updated
   // after this. Though won't help if the files have been delete while
   // we had them open.
-  content.get_storage().sync();
+  content.entry_list()->sync_all();
 
   resume.insert_key("bitfield", std::string((char*)content.get_bitfield().begin(), content.get_bitfield().size_bytes()));
 
   Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
 
-  StorageConsolidator::iterator sItr = content.get_storage().get_consolidator().begin();
+  EntryList::iterator sItr = content.entry_list()->begin();
   
   // Check the validity of each file, add to the m_hash's ranges if invalid.
-  while (sItr != content.get_storage().get_consolidator().end()) {
+  while (sItr != content.entry_list()->end()) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
     FileStat fs;
 
-    if (fs.update(sItr->get_meta()->get_path())) {
+    if (fs.update(sItr->file_meta()->get_path())) {
       l.clear();
       break;
     }
@@ -245,8 +246,8 @@ DownloadWrapper::get_local_address() {
 
 void
 DownloadWrapper::set_file_manager(FileManager* f) {
-  m_main.state()->get_content().slot_insert_filemeta(sigc::mem_fun(*f, &FileManager::insert));
-  m_main.state()->get_content().slot_erase_filemeta(sigc::mem_fun(*f, &FileManager::erase));
+  m_main.state()->get_content().entry_list()->slot_insert_filemeta(sigc::mem_fun(*f, &FileManager::insert));
+  m_main.state()->get_content().entry_list()->slot_erase_filemeta(sigc::mem_fun(*f, &FileManager::erase));
 }
 
 void

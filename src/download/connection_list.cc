@@ -132,7 +132,7 @@ ConnectionList::iterator
 ConnectionList::find(const SocketAddress& sa) {
   return std::find_if(begin(), end(),
 		      rak::equal(sa, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
-					     std::mem_fun_ref(&PeerInfo::get_socket_address))));
+					     std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address))));
 }
 
 void

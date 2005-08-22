@@ -47,7 +47,6 @@ namespace torrent {
 
 Content::Content() :
   m_isOpen(false),
-  m_size(0),
   m_completed(0),
   m_rootDir(".") {
 
@@ -60,10 +59,7 @@ Content::add_file(const Path& path, uint64_t size) {
   if (is_open())
     throw internal_error("Tried to add file to Content that is open");
 
-  m_storage.get_consolidator().push_back(size);
-  m_storage.get_consolidator().back().get_path() = path;
-  m_storage.get_consolidator().back().set_range(make_index_range(m_size, size));
-  m_size += size;
+  m_entryList.push_back(path, make_index_range(get_bytes_size(), size), size);
 }
 
 void
@@ -87,21 +83,21 @@ Content::get_hash(unsigned int index) {
   if (!is_open())
     throw internal_error("Tried to get chunk hash from Content that is not open");
 
-  if (index >= m_storage.get_chunk_total())
+  if (index >= get_chunk_total())
     throw internal_error("Tried to get chunk hash from Content that is out of range");
 
   return m_hash.substr(index * 20, 20);
 }
 
 uint32_t
-Content::get_chunksize(uint32_t index) const {
-  if (m_storage.get_chunk_size() == 0 || index >= m_storage.get_chunk_total())
+Content::get_chunk_index_size(uint32_t index) const {
+  if (get_chunk_size() == 0 || index >= get_chunk_total())
     throw internal_error("Content::get_chunksize(...) called but we borked");
 
-  if (index + 1 != m_storage.get_chunk_total() || m_size % m_storage.get_chunk_size() == 0)
-    return m_storage.get_chunk_size();
+  if (index + 1 != get_chunk_total() || get_bytes_size() % get_chunk_size() == 0)
+    return get_chunk_size();
   else
-    return m_size % m_storage.get_chunk_size();
+    return get_bytes_size() % get_chunk_size();
 }
 
 uint64_t
@@ -109,14 +105,14 @@ Content::get_bytes_completed() {
   if (!is_open())
     return 0;
 
-  uint64_t cs = m_storage.get_chunk_size();
+  uint64_t cs = get_chunk_size();
 
-  if (!m_bitfield[m_storage.get_chunk_total() - 1] || m_size % cs == 0)
+  if (!m_bitfield[get_chunk_total() - 1] || get_bytes_size() % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
     return m_completed * cs;
 
   else
-    return (m_completed - 1) * cs + m_size % cs;
+    return (m_completed - 1) * cs + get_bytes_size() % cs;
 }
 
 bool
@@ -124,14 +120,14 @@ Content::is_correct_size() {
   if (!is_open())
     return false;
 
-  StorageConsolidator::iterator sItr = m_storage.get_consolidator().begin();
+  EntryList::iterator sItr = m_entryList.begin();
   
-  while (sItr != m_storage.get_consolidator().end()) {
+  while (sItr != m_entryList.end()) {
     // TODO: Throw or return false?
-    if (!sItr->get_meta()->prepare(MemoryChunk::prot_read))
+    if (!sItr->file_meta()->prepare(MemoryChunk::prot_read))
       return false;
 
-    if (sItr->get_size() != FileStat(sItr->get_meta()->get_file().fd()).get_size())
+    if (sItr->get_size() != FileStat(sItr->file_meta()->get_file().fd()).get_size())
       return false;
 
     ++sItr;
@@ -143,50 +139,35 @@ Content::is_correct_size() {
 bool
 Content::is_valid_piece(const Piece& p) const {
   return
-    (uint32_t)p.get_index() < m_storage.get_chunk_total() &&
+    (uint32_t)p.get_index() < get_chunk_total() &&
 
     p.get_length() != 0 &&
     p.get_length() < (1 << 17) &&
 
     // Make sure offset does not overflow 32 bits.
     p.get_offset() < (1 << 30) &&
-    p.get_offset() + p.get_length() <= get_chunksize(p.get_index());
+    p.get_offset() + p.get_length() <= get_chunk_index_size(p.get_index());
+}
+
+Storage::Chunk
+Content::get_chunk(uint32_t index, int prot) {
+  if (m_storage.has_anchor(index, prot))
+    return m_storage.get_anchor(index);
+
+  return m_storage.make_anchor(get_storage_chunk(index, prot));
 }
 
 void
-Content::open(bool wr) {
-  // Make sure root directory exists, Can't make recursively, so the client must
-  // make sure the parent dir of 'm_rootDir' exists.
-  Path::mkdir(m_rootDir);
-  Path lastPath;
+Content::open() {
+  m_entryList.open(m_rootDir);
 
-  for (StorageConsolidator::iterator itr = m_storage.get_consolidator().begin(); itr != m_storage.get_consolidator().end(); ++itr) {
-    try {
-      itr->set_filemeta(m_slotInsertFileMeta(m_rootDir + itr->get_path().as_string()));
-
-      open_file(itr->get_meta(), itr->get_path(), lastPath);
-
-    } catch (base_error& e) {
-      //m_storage.clear();
-      // Need to clean up properly.
-      throw internal_error("Bork during Content::open. " + std::string(e.what()));
-
-//       throw;
-    }
-
-    lastPath = itr->get_path();
-  }
-
-  m_bitfield = BitField(m_storage.get_chunk_total());
+  m_bitfield = BitField(get_chunk_total());
 
   // Update anchor count in m_storage.
-  m_storage.set_chunk_size(m_storage.get_chunk_size());
+  m_storage.set_size(get_chunk_total());
 
-  if (m_hash.size() / 20 != m_storage.get_chunk_total())
+  if (m_hash.size() / 20 != get_chunk_total())
     throw internal_error("Content::open(...): Chunk count does not match hash count");
-
-  if (m_size != m_storage.get_bytes_size())
-    throw internal_error("Content::open(...): m_size != m_storage.get_size()");
 
   m_isOpen = true;
 }
@@ -195,16 +176,10 @@ void
 Content::close() {
   m_isOpen = false;
 
-  for (StorageConsolidator::iterator itr = m_storage.get_consolidator().begin(); itr != m_storage.get_consolidator().end(); ++itr) {
-    m_slotEraseFileMeta(itr->get_meta());
-    itr->set_filemeta(NULL);
-  }
-
+  m_entryList.close();
   m_completed = 0;
   m_bitfield = BitField();
   taskScheduler.erase(&m_delayDownloadDone);
-
-  std::for_each(m_storage.get_consolidator().begin(), m_storage.get_consolidator().end(), std::mem_fun_ref(&StorageFile::reset));
 }
 
 void
@@ -212,30 +187,30 @@ Content::resize() {
   if (!is_open())
     return;
 
-  m_storage.get_consolidator().resize_files();
+  m_entryList.resize_all();
 }
 
 void
 Content::mark_done(uint32_t index) {
-  if (index >= m_storage.get_chunk_total())
+  if (index >= get_chunk_total())
     throw internal_error("Content::mark_done received index out of range");
     
   if (m_bitfield[index])
     throw internal_error("Content::mark_done received index that has already been marked as done");
   
-  if (m_completed >= m_storage.get_chunk_total())
-    throw internal_error("Content::mark_done called but m_completed >= m_storage.get_chunk_total()");
+  if (m_completed >= get_chunk_total())
+    throw internal_error("Content::mark_done called but m_completed >= get_chunk_total()");
 
   m_bitfield.set(index, true);
   m_completed++;
 
-  mark_done_file(m_storage.get_consolidator().begin(), index);
+  mark_done_file(m_entryList.begin(), index);
 
   // We delay emitting the signal to allow the delegator to clean
   // up. If we do a straight call it would cause problems for
   // clients that wish to close and reopen the torrent, as
   // HashQueue, Delegator etc shouldn't be cleaned up at this point.
-  if (m_completed == m_storage.get_chunk_total() &&
+  if (m_completed == get_chunk_total() &&
       !m_delayDownloadDone.get_slot().blocked() &&
       !taskScheduler.is_scheduled(&m_delayDownloadDone))
     taskScheduler.insert(&m_delayDownloadDone, Timer::cache());
@@ -248,24 +223,65 @@ Content::update_done() {
   m_bitfield.cleanup();
   m_completed = m_bitfield.count();
 
-  StorageConsolidator::iterator itr = m_storage.get_consolidator().begin();
+  EntryList::iterator itr = m_entryList.begin();
 
   for (BitField::size_t i = 0; i < m_bitfield.size_bits(); ++i)
     if (m_bitfield[i])
       itr = mark_done_file(itr, i);
 }
 
-void
-Content::open_file(FileMeta* f, Path& p, Path& lastPath) {
-  if (p.empty())
-    throw internal_error("Tried to open file with empty path");
+StorageChunk*
+Content::get_storage_chunk(uint32_t b, int prot) {
+  MemoryChunk mc;
 
-  Path::mkdir(m_rootDir, p.begin(), --p.end(),
-	      lastPath.begin(), lastPath.end());
+  off_t first = get_chunk_position(b);
+  off_t last = std::min(get_chunk_position(b + 1), get_bytes_size());
 
-  if (!f->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) &&
-      !f->prepare(MemoryChunk::prot_read, File::o_create))
-    throw storage_error("Could not open file \"" + m_rootDir + p.as_string() + "\"");
+  if (first >= get_bytes_size())
+    throw internal_error("Tried to access chunk out of range in EntryList");
+
+  std::auto_ptr<StorageChunk> chunk(new StorageChunk(b));
+
+  for (EntryList::iterator itr = std::find_if(m_entryList.begin(), m_entryList.end(), std::bind2nd(std::mem_fun_ref(&EntryListNode::is_valid_position), first));
+       first != last; ++itr) {
+
+    if (itr == m_entryList.end())
+      throw internal_error("EntryList could not find a valid file for chunk");
+
+    if (itr->get_size() == 0)
+      continue;
+
+    if (!(mc = get_storage_chunk_part(itr, first, last - first, prot)).is_valid())
+      return NULL;
+
+    chunk->push_back(mc);
+    first += mc.size();
+  }
+
+  if (chunk->get_size() != last - get_chunk_position(b))
+    throw internal_error("EntryList::get_chunk didn't get a chunk with the correct size");
+
+  return chunk.release();
+}
+
+MemoryChunk
+Content::get_storage_chunk_part(EntryList::iterator itr, off_t offset, uint32_t length, int prot) {
+  offset -= itr->get_position();
+  length = std::min<off_t>(length, itr->get_size() - offset);
+
+  if (offset < 0)
+    throw internal_error("EntryList::get_chunk_part(...) caught a negative offset");
+
+  if (length == 0)
+    throw internal_error("EntryList::get_chunk_part(...) caught a piece with 0 lenght");
+
+  if (length > get_chunk_size())
+    throw internal_error("EntryList::get_chunk_part(...) caught an excessively large piece");
+
+  if (!itr->file_meta()->prepare(prot))
+    return MemoryChunk();
+
+  return itr->file_meta()->get_file().get_chunk(offset, length, prot, MemoryChunk::map_shared);
 }
 
 }

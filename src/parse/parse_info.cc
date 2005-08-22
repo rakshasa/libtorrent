@@ -94,9 +94,11 @@ struct bencode_to_file {
 
 void
 parse_info(const Bencode& b, Content& c) {
-  if (!c.get_storage().get_consolidator().empty())
+  if (!c.entry_list()->empty())
     throw internal_error("parse_info received an already initialized Content object");
 
+  // Set chunksize before adding files to make sure the index range is
+  // correct.
   c.get_storage().set_chunk_size(b["piece length"].as_value());
   c.set_complete_hash(b["pieces"].as_string());
 
@@ -108,6 +110,8 @@ parse_info(const Bencode& b, Content& c) {
     // Multi file torrent
     if (b["files"].as_list().empty())
       throw input_error("Bad torrent file, entry no files");
+
+    c.entry_list()->reserve(b["files"].as_list().size());
 
     std::for_each(b["files"].as_list().begin(), b["files"].as_list().end(), bencode_to_file(c));
 

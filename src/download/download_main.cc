@@ -135,7 +135,7 @@ DownloadMain::stop() {
   std::list<SocketAddress> addressList;
 
   std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList),
-		 rak::on(std::mem_fun(&PeerConnection::get_peer), std::mem_fun_ref(&PeerInfo::get_socket_address)));
+		 rak::on(std::mem_fun(&PeerConnection::get_peer), std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address)));
 
   addressList.sort();
   available_list()->insert(&addressList);

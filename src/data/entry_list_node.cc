@@ -38,12 +38,13 @@
 
 #include "torrent/exceptions.h"
 
-#include "storage_file.h"
+#include "file_meta.h"
+#include "entry_list_node.h"
 
 namespace torrent {
 
-StorageFile::StorageFile() :
-  m_meta(NULL),
+EntryListNode::EntryListNode() :
+  m_fileMeta(NULL),
   m_position(0),
   m_size(0),
   m_completed(0),
@@ -52,8 +53,8 @@ StorageFile::StorageFile() :
 }
 
 bool
-StorageFile::sync() {
-  if (!m_meta->prepare(MemoryChunk::prot_read))
+EntryListNode::sync_file() {
+  if (!m_fileMeta->prepare(MemoryChunk::prot_read))
     return false;
 
   off_t pos = 0;
@@ -61,7 +62,7 @@ StorageFile::sync() {
   while (pos != m_size) {
     uint32_t length = std::min(m_size - pos, (off_t)(128 << 20));
 
-    MemoryChunk c = m_meta->get_file().get_chunk(pos, length, MemoryChunk::prot_read, MemoryChunk::map_shared);
+    MemoryChunk c = m_fileMeta->get_file().get_chunk(pos, length, MemoryChunk::prot_read, MemoryChunk::map_shared);
 
     if (!c.is_valid())
       return false;
@@ -76,18 +77,23 @@ StorageFile::sync() {
 }
 
 bool
-StorageFile::resize_file() {
-  if (!m_meta->prepare(MemoryChunk::prot_read))
+EntryListNode::resize_file() const {
+  if (m_fileMeta == NULL)
+    throw internal_error("EntryListNode::resize_file() called but m_fileMeta == NULL.");
+
+  if (!m_fileMeta->prepare(MemoryChunk::prot_read))
     return false;
 
-  if (m_size == m_meta->get_file().get_size())
+  if (m_size == m_fileMeta->get_file().get_size())
     return true;
 
-  if (!m_meta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
-      !m_meta->get_file().set_size(m_size))
+  if (!m_fileMeta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
+      !m_fileMeta->get_file().set_size(m_size))
     return false;
   
-  m_meta->get_file().reserve();
+  // Not here... make it a setting of sorts?
+  //m_fileMeta->get_file().reserve();
+
   return true;
 }
 

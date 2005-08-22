@@ -89,7 +89,7 @@ bool
 HandshakeManager::has_address(const SocketAddress& sa) {
   return std::find_if(m_handshakes.begin(), m_handshakes.end(),
 		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::get_peer),
-					     std::mem_fun_ref(&PeerInfo::get_socket_address))))
+					     std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address))))
     != m_handshakes.end();
 }
 

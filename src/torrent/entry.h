@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-class StorageFile;
+class EntryListNode;
 
 class Entry {
 public:
@@ -56,7 +56,7 @@ public:
   } Priority;
 
   Entry() : m_entry(NULL) {}
-  Entry(StorageFile* e) : m_entry(e) {}
+  Entry(EntryListNode* e) : m_entry(e) {}
   
   uint64_t            get_size();
 
@@ -83,7 +83,7 @@ public:
   void                set_priority(Priority p);
 
 private:
-  StorageFile*        m_entry;
+  EntryListNode*        m_entry;
 };
 
 }

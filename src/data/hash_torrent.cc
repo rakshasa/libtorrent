@@ -37,26 +37,26 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
-#include "storage.h"
+#include "content/content.h"
 #include "hash_torrent.h"
 #include "hash_queue.h"
 
 namespace torrent {
 
-HashTorrent::HashTorrent(const std::string& id, Storage* s) :
+HashTorrent::HashTorrent(const std::string& id, Content* c) :
   m_id(id),
   m_position(0),
   m_outstanding(-1),
-  m_storage(s),
+  m_content(c),
   m_queue(NULL) {
 }
 
 void
 HashTorrent::start() {
-  if (m_queue == NULL || m_storage == NULL)
+  if (m_queue == NULL || m_content == NULL)
     throw internal_error("HashTorrent::start() called on an object with invalid m_queue or m_storage");
 
-  if (is_checking() || m_position == m_storage->get_chunk_total())
+  if (is_checking() || m_position == m_content->get_chunk_total())
     return;
 
   m_outstanding = 0;
@@ -88,7 +88,7 @@ HashTorrent::receive_chunkdone(Chunk c, std::string hash) {
 
 void
 HashTorrent::queue() {
-  while (m_position < m_storage->get_chunk_total()) {
+  while (m_position < m_content->get_chunk_total()) {
     if (m_outstanding >= 30)
       return;
 
@@ -96,13 +96,13 @@ HashTorrent::queue() {
     Ranges::iterator itr = m_ranges.find(m_position);
 
     if (itr == m_ranges.end()) {
-      m_position = m_storage->get_chunk_total();
+      m_position = m_content->get_chunk_total();
       break;
     } else if (m_position < itr->first) {
       m_position = itr->first;
     }
 
-    Chunk c = m_storage->get_chunk(m_position++, MemoryChunk::prot_read);
+    Chunk c = m_content->get_chunk(m_position++, MemoryChunk::prot_read);
 
     if (!c.is_valid() || !c->is_valid())
       continue;

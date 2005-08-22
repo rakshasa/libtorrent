@@ -53,7 +53,7 @@ DownloadMain::setup_delegator() {
   m_delegator.get_select().set_seen(&m_state.get_bitfield_counter());
 
   m_delegator.signal_chunk_done().connect(sigc::mem_fun(m_state, &DownloadState::chunk_done));
-  m_delegator.slot_chunk_size(sigc::mem_fun(m_state.get_content(), &Content::get_chunksize));
+  m_delegator.slot_chunk_size(sigc::mem_fun(m_state.get_content(), &Content::get_chunk_index_size));
 }
 
 void

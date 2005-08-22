@@ -34,28 +34,30 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_STORAGE_FILE_H
-#define LIBTORRENT_STORAGE_FILE_H
+#ifndef LIBTORRENT_DATA_ENTRY_LIST_NODE_H
+#define LIBTORRENT_DATA_ENTRY_LIST_NODE_H
 
 #include "data/path.h"
-
-#include "file_meta.h"
 
 namespace torrent {
 
 class FileMeta;
 
-class StorageFile {
+class EntryListNode {
 public:
   typedef std::pair<uint32_t, uint32_t> Range;
 
-  StorageFile();
+  EntryListNode();
 
-  bool                is_valid() const                        { return m_meta; }
+  bool                is_valid() const                        { return m_fileMeta; }
   inline bool         is_valid_position(off_t p) const;
 
-  FileMeta*           get_meta()                              { return m_meta; }
-  const FileMeta*     get_meta() const                        { return m_meta; }
+  FileMeta*           file_meta()                             { return m_fileMeta; }
+  const FileMeta*     file_meta() const                       { return m_fileMeta; }
+  void                set_file_meta(FileMeta* fm)             { m_fileMeta = fm; }
+
+  Path*               path()                                  { return &m_path; }
+  const Path*         path() const                            { return &m_path; }
 
   off_t               get_position() const                    { return m_position; }
   void                set_position(off_t pos)                 { m_position = pos; }
@@ -63,29 +65,21 @@ public:
   off_t               get_size() const                        { return m_size; }
   void                set_size(off_t s)                       { m_size = s; }
 
-  // Temporarily use set_*, it's going to be owned by this object
-  // later.
-  void                set_filemeta(FileMeta* c)               { m_meta = c; }
+  const Range&        get_range() const                       { return m_range; }
+  void                set_range(const Range& r)               { m_range = r; }
 
-  bool                sync();
-  bool                resize_file();
+  // Chunks completed.
+  uint32_t            get_completed() const                   { return m_completed; }
+  void                set_completed(uint32_t v)               { m_completed = v; }
 
-  void           reset()                        { m_completed = 0; }
+  unsigned char       get_priority() const                    { return m_priority; }
+  void                set_priority(unsigned char t)           { m_priority = t; }
 
-  unsigned char  get_priority() const           { return m_priority; }
-
-  Range          get_range() const              { return m_range; }
-  uint32_t       get_completed() const          { return m_completed; }
-
-  Path&          get_path()                     { return m_path; }
-  const Path&    get_path() const               { return m_path; }
-
-  void           set_priority(unsigned char t)  { m_priority = t; }
-  void           set_completed(uint32_t v)      { m_completed = v; }
-  void           set_range(const Range& r)      { m_range = r; }
+  bool                sync_file();
+  bool                resize_file() const;
 
 private:
-  FileMeta*           m_meta;
+  FileMeta*           m_fileMeta;
 
   off_t               m_position;
   off_t               m_size;
@@ -98,7 +92,7 @@ private:
 };
 
 inline bool
-StorageFile::is_valid_position(off_t p) const {
+EntryListNode::is_valid_position(off_t p) const {
   return p >= m_position && p < m_position + m_size;
 }
 

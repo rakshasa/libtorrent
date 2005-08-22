@@ -43,36 +43,27 @@
 namespace torrent {
 
 void
-Storage::set_chunk_size(uint32_t s) {
-  m_consolidator.set_chunk_size(s);
+Storage::set_size(uint32_t s) {
+  m_anchors.resize(s);
+}
 
-  m_anchors.resize(get_chunk_total());
+bool
+Storage::has_anchor(uint32_t index, int prot) {
+  if (index >= m_anchors.size())
+    throw internal_error("Chunk out of range in Storage");
+
+  return m_anchors[index].is_valid() && m_anchors[index].data()->has_permissions(prot);
 }
 
 Storage::Chunk
-Storage::get_chunk(uint32_t b, int prot) {
-  if (b >= m_anchors.size())
-    throw internal_error("Chunk out of range in Storage");
-
-  if (m_anchors[b].is_valid() && m_anchors[b].data()->has_permissions(prot))
-    return Chunk(m_anchors[b]);
-
-  // TODO: Remove this.
-  if (m_anchors[b].is_valid() && !m_anchors[b].data()->has_permissions(prot))
-    throw internal_error("Storage::get_chunk(): Bork Bork Bork");
-
-  // TODO: We will propably need to store a per StorageChunk prot.
-//   if (m_anchors[b].is_valid())
-//     prot |= m_anchors[b].data()->get_prot();
-
-  Chunk chunk(new StorageChunk(b));
-
-  if (!m_consolidator.get_chunk(*chunk, b, prot))
+Storage::make_anchor(StorageChunk* chunk) {
+  if (chunk == NULL)
     return Chunk();
-  
-  chunk.anchor(m_anchors[b]);
 
-  return chunk;
+  Chunk c(chunk);
+  c.anchor(m_anchors[chunk->get_index()]);
+
+  return c;
 }
 
 }

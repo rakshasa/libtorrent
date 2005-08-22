@@ -41,8 +41,7 @@
 #include <inttypes.h>
 
 #include "storage_chunk.h"
-#include "storage_consolidator.h"
-#include "storage_file.h"
+#include "entry_list_node.h"
 #include "utils/ref_anchored.h"
 
 namespace torrent {
@@ -51,32 +50,32 @@ namespace torrent {
 
 class Storage {
 public:
-  typedef std::vector<StorageFile>  FileList;
+  typedef std::vector<EntryListNode>  FileList;
   typedef RefAnchored<StorageChunk> Chunk;
   typedef RefAnchor<StorageChunk>   Anchor;
 
+  Storage() : m_chunkSize(1 << 16) {}
   ~Storage() { clear(); }
 
-  void                 sync()                                  { return m_consolidator.sync(); }
-  void                 clear()                                 { m_anchors.clear(); m_consolidator.clear(); }
+  void                clear()                                 { m_anchors.clear(); }
+
+  uint32_t            size() const { return m_anchors.size(); }
 
   // Call this when all files have been added.
-  void                 set_chunk_size(uint32_t s);
+  void                set_size(uint32_t s);
   
-  off_t                get_bytes_size() const                  { return m_consolidator.get_bytes_size(); }
-  uint32_t             get_chunk_total() const                 { return m_consolidator.get_chunk_total(); }
-  uint32_t             get_chunk_size() const                  { return m_consolidator.get_chunk_size(); }
+  uint32_t            get_chunk_size() const                  { return m_chunkSize; }
+  void                set_chunk_size(uint32_t cs)             { m_chunkSize = cs; }
 
-  // Make sure the protection includes read even if you only want
-  // write, this ensure that we don't get a reallocation cycle if
-  // others want just read.
-  Chunk                get_chunk(uint32_t b, int prot);
+  bool                has_anchor(uint32_t index, int prot);
 
-  StorageConsolidator& get_consolidator()                      { return m_consolidator; }
+  Chunk               get_anchor(uint32_t index) { return Chunk(m_anchors[index]); }
+  Chunk               make_anchor(StorageChunk* chunk);
 
 private:
-  StorageConsolidator  m_consolidator;
-  std::vector<Anchor>  m_anchors;
+  std::vector<Anchor> m_anchors;
+
+  uint32_t            m_chunkSize;
 };
 
 }

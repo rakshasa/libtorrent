@@ -34,17 +34,21 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_STORAGE_CONSOLIDATOR_H
-#define LIBTORRENT_STORAGE_CONSOLIDATOR_H
+#ifndef LIBTORRENT_ENTRY_LIST_H
+#define LIBTORRENT_ENTRY_LIST_H
 
-#include "storage_file.h"
-#include "storage_chunk.h"
+#include <vector>
+#include <sigc++/slot.h>
+
+#include "entry_list_node.h"
 
 namespace torrent {
 
-class StorageConsolidator : private std::vector<StorageFile> {
+class EntryList : private std::vector<EntryListNode> {
 public:
-  typedef std::vector<StorageFile> Base;
+  typedef std::vector<EntryListNode>                 Base;
+  typedef sigc::slot1<FileMeta*, const std::string&> SlotFileMetaString;
+  typedef sigc::slot1<void, FileMeta*>               SlotFileMeta;
 
   using Base::value_type;
 
@@ -58,43 +62,38 @@ public:
 
   using Base::back;
   using Base::empty;
+  using Base::reserve;
 
-  StorageConsolidator() : m_size(0), m_chunksize(1 << 16) {}
-  ~StorageConsolidator() { clear(); }
+  EntryList() : m_size(0) {}
+  ~EntryList() { clear(); }
 
   // We take over ownership of 'file'.
-  void                push_back(off_t size);
-
-  // TODO: Rename this to something else.
-  bool                resize_files();
+  void                push_back(const Path& path, const EntryListNode::Range& range, off_t size);
 
   void                clear();
 
   // Only closes the files.
+  void                open(const std::string& root);
   void                close();
 
-  void                sync();
+  void                sync_all();
+  bool                resize_all();
 
-  void                set_chunk_size(uint32_t size);
+  size_t              get_files_size() const                     { return Base::size(); }
+  off_t               get_bytes_size() const                     { return m_size; }
 
-  size_t              get_files_size() const                  { return Base::size(); }
-  off_t               get_bytes_size() const                  { return m_size; }
+  EntryListNode*      get_node(uint32_t idx)                     { return &Base::front() + idx; }
 
-  // If this call returns false, the chunk might only be partially valid.
-  bool                get_chunk(StorageChunk& chunk, uint32_t b, int prot);
-
-  uint32_t            get_chunk_total() const                 { return (m_size + m_chunksize - 1) / m_chunksize; }
-  uint32_t            get_chunk_size() const                  { return m_chunksize; }
-
-  off_t               get_chunk_position(uint32_t c) const    { return c * (off_t)m_chunksize; }
-
-  StorageFile*        get_storage_file(uint32_t idx)          { return &Base::front() + idx; }
+  void                slot_insert_filemeta(SlotFileMetaString s) { m_slotInsertFileMeta = s; }
+  void                slot_erase_filemeta(SlotFileMeta s)        { m_slotEraseFileMeta = s; }
 
 private:
-  MemoryChunk         get_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);
+  static bool         open_file(const std::string& root, FileMeta* f, const Path& p, const Path& lastPath);
 
   off_t               m_size;
-  uint32_t            m_chunksize;
+
+  SlotFileMetaString  m_slotInsertFileMeta;
+  SlotFileMeta        m_slotEraseFileMeta;
 };
 
 }

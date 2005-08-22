@@ -44,6 +44,7 @@
 #include "utils/bitfield.h"
 #include "utils/task.h"
 #include "data/storage.h"
+#include "data/entry_list.h"
 #include "data/piece.h"
 
 namespace torrent {
@@ -58,8 +59,6 @@ namespace torrent {
 
 class Content {
 public:
-  typedef sigc::slot1<FileMeta*, const std::string&> SlotFileMetaString;
-  typedef sigc::slot1<void, FileMeta*>               SlotFileMeta;
   typedef sigc::signal0<void>                        Signal;
 
   // Hash done signal, hash failed signal++
@@ -77,24 +76,34 @@ public:
   const std::string&     get_complete_hash()                  { return m_hash; }
   const std::string&     get_root_dir()                       { return m_rootDir; }
 
-  uint64_t               get_size()                           { return m_size; }
   uint32_t               get_chunks_completed()               { return m_completed; }
-  uint64_t               get_bytes_completed();
 
-  uint32_t               get_chunksize(uint32_t index) const;
+  off_t                  get_bytes_size() const               { return m_entryList.get_bytes_size(); }
+  uint64_t               get_bytes_completed();
+  
+  uint32_t               get_chunk_total() const              { return (get_bytes_size() + get_chunk_size() - 1) / get_chunk_size(); }
+
+  uint32_t               get_chunk_size() const               { return m_storage.get_chunk_size(); }
+  uint32_t               get_chunk_index_size(uint32_t index) const;
+
+  off_t                  get_chunk_position(uint32_t c) const { return c * (off_t)get_chunk_size(); }
 
   BitField&              get_bitfield()                       { return m_bitfield; }
   Storage&               get_storage()                        { return m_storage; }
 
+  EntryList*             entry_list()                         { return &m_entryList; }
+  const EntryList*       entry_list() const                   { return &m_entryList; }
+
   bool                   is_open() const                      { return m_isOpen; }
   bool                   is_correct_size();
-  bool                   is_done() const                      { return m_completed == m_storage.get_chunk_total(); }
+  bool                   is_done() const                      { return m_completed == get_chunk_total(); }
 
   bool                   is_valid_piece(const Piece& p) const;
 
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
+  Storage::Chunk         get_chunk(uint32_t index, int prot);
 
-  void                   open(bool wr = false);
+  void                   open();
   void                   close();
 
   void                   resize();
@@ -102,52 +111,45 @@ public:
   void                   mark_done(uint32_t index);
   void                   update_done();
 
-  void                   slot_insert_filemeta(SlotFileMetaString s) { m_slotInsertFileMeta = s; }
-  void                   slot_erase_filemeta(SlotFileMeta s)        { m_slotEraseFileMeta = s; }
-
   Signal&                signal_download_done()               { return m_signalDownloadDone; }
   void                   block_download_done(bool v)          { m_delayDownloadDone.get_slot().block(v); }
 
 private:
+  StorageChunk*       get_storage_chunk(uint32_t b, int prot);
+  MemoryChunk         get_storage_chunk_part(EntryList::iterator itr, off_t offset, uint32_t length, int prot);
   
-  void                   open_file(FileMeta* f, Path& p, Path& lastPath);
-
-  StorageConsolidator::iterator mark_done_file(StorageConsolidator::iterator itr, uint32_t index);
-  StorageFile::Range     make_index_range(uint64_t pos, uint64_t size) const;
+  EntryList::iterator    mark_done_file(EntryList::iterator itr, uint32_t index);
+  EntryListNode::Range     make_index_range(uint64_t pos, uint64_t size) const;
 
   bool                   m_isOpen;
-  off_t                  m_size;
   uint32_t               m_completed;
 
   Storage                m_storage;
+  EntryList              m_entryList;
 
   BitField               m_bitfield;
 
   std::string            m_rootDir;
   std::string            m_hash;
 
-  SlotFileMetaString     m_slotInsertFileMeta;
-  SlotFileMeta           m_slotEraseFileMeta;
-
   Signal                 m_signalDownloadDone;
   TaskItem               m_delayDownloadDone;
 };
 
-inline StorageConsolidator::iterator
-Content::mark_done_file(StorageConsolidator::iterator itr, uint32_t index) {
+inline EntryList::iterator
+Content::mark_done_file(EntryList::iterator itr, uint32_t index) {
   while (index >= itr->get_range().second) ++itr;
   
   do {
     itr->set_completed(itr->get_completed() + 1);
-  } while (index + 1 == itr->get_range().second && ++itr != m_storage.get_consolidator().end());
+  } while (index + 1 == itr->get_range().second && ++itr != m_entryList.end());
 
   return itr;
 }
 
-inline StorageFile::Range
+inline EntryListNode::Range
 Content::make_index_range(uint64_t pos, uint64_t size) const {
-  return StorageFile::Range(pos / m_storage.get_chunk_size(),
-			    (pos + size + m_storage.get_chunk_size() - 1) / m_storage.get_chunk_size());
+  return EntryListNode::Range(pos / get_chunk_size(), (pos + size + get_chunk_size() - 1) / get_chunk_size());
 }
 
 }

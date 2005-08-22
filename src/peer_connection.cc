@@ -448,7 +448,7 @@ void PeerConnection::event_write() {
       if (m_sendList.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      m_writeChunk.set_chunk(m_download->state()->get_content().get_storage().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
+      m_writeChunk.set_chunk(m_download->state()->get_content().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
       m_writeChunk.set_position(0);
       m_write->set_state(ProtocolWrite::WRITE_PIECE);
 
@@ -745,7 +745,7 @@ PeerConnection::receive_have(uint32_t index) {
   m_bitfield.set(index, true);
   m_download->state()->get_bitfield_counter().inc(index);
 
-  m_peerRate.insert(m_download->state()->get_content().get_storage().get_chunk_size());
+  m_peerRate.insert(m_download->state()->get_content().get_chunk_size());
     
   if (m_download->state()->get_content().is_done())
     return;

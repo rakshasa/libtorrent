@@ -46,7 +46,7 @@
 
 namespace torrent {
 
-class Storage;
+class Content;
 class HashQueue;
 
 class HashTorrent {
@@ -55,7 +55,7 @@ public:
   typedef sigc::signal0<void>                       Signal;
   typedef sigc::signal2<void, Chunk, std::string>   SignalChunkDone;
   
-  HashTorrent(const std::string& id, Storage* s);
+  HashTorrent(const std::string& id, Content* c);
   ~HashTorrent() { clear(); }
 
   void                start();
@@ -84,7 +84,7 @@ private:
   int                 m_outstanding;
   Ranges              m_ranges;
 
-  Storage*            m_storage;
+  Content*            m_content;
   HashQueue*          m_queue;
 
   Signal              m_signalTorrent;
