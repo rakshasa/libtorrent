@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include "data/storage_chunk.h"
 #include "net/socket_stream.h"
 #include "torrent/exceptions.h"
 
@@ -50,7 +51,7 @@ ProtocolChunk::read(SocketStream* sock, uint32_t maxBytes) {
   ChunkPart c = chunk_part();
 
   while (read_part(sock, c++, left) && left != 0)
-    if (c == m_chunk->end())
+    if (c == m_chunk->chunk()->end())
       throw internal_error("ProtocolChunk::read() reached end of chunk part list");
 
   return maxBytes - left;
@@ -63,7 +64,7 @@ ProtocolChunk::write(SocketStream* sock, uint32_t maxBytes) {
   ChunkPart c = chunk_part();
 
   while (write_part(sock, c++, left) && left != 0)
-    if (c == m_chunk->end())
+    if (c == m_chunk->chunk()->end())
       throw internal_error("ProtocolChunk::read() reached end of chunk part list");
 
   return maxBytes - left;

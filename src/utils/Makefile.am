@@ -7,7 +7,6 @@ libsub_utils_la_SOURCES = \
 	bitfield_ext.h \
 	ranges.cc \
 	ranges.h \
-	ref_anchored.h \
 	string_manip.cc \
 	string_manip.h \
 	sha1.h \

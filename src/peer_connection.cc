@@ -452,7 +452,7 @@ void PeerConnection::event_write() {
       m_writeChunk.set_position(0);
       m_write->set_state(ProtocolWrite::WRITE_PIECE);
 
-      if (!m_writeChunk.get_chunk().is_valid())
+      if (!m_writeChunk.get_chunk()->is_valid())
 	throw storage_error("Could not create a valid chunk");
 
       goto evil_goto_write;
@@ -480,8 +480,10 @@ void PeerConnection::event_write() {
     if (!write_chunk())
       return;
 
-    if (m_sendList.empty())
-      m_writeChunk.get_chunk().clear();
+    if (m_sendList.empty()) {
+      m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+      m_writeChunk.set_chunk(NULL);
+    }
 
     m_sendList.pop_front();
 
@@ -600,7 +602,9 @@ void PeerConnection::fillWriteBuf() {
 	remove_write_throttle();
 	
 	m_sendList.clear();
-	m_writeChunk.get_chunk().clear();
+
+	m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+	m_writeChunk.set_chunk(NULL);
 
       } else {
 	insert_write_throttle();

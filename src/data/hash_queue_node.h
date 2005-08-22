@@ -38,32 +38,28 @@
 #define LIBTORRENT_DATA_HASH_QUEUE_NODE_H
 
 #include <string>
+#include <inttypes.h>
 #include <sigc++/signal.h>
-
-#include "hash_chunk.h"
-#include "utils/ref_anchored.h"
 
 namespace torrent {
 
+class ChunkListNode;
+class HashChunk;
+
 class HashQueueNode {
 public:
-  // SignalDone: (Return void)
-  // unsigned int - index of chunk
-  // std::string  - chunk hash
-
-  typedef RefAnchored<StorageChunk>             Chunk;
-  typedef sigc::slot2<void, Chunk, std::string> SlotDone;
+  typedef sigc::slot2<void, ChunkListNode*, std::string> SlotDone;
 
   HashQueueNode(HashChunk* c, const std::string& i, SlotDone d) :
     m_chunk(c), m_id(i), m_willneed(false), m_slotDone(d) {}
 
-  uint32_t            get_index() const             { return m_chunk->get_chunk()->get_index(); }
+  uint32_t            get_index() const;
   const std::string&  get_id() const                { return m_id; }
 
   HashChunk*          get_chunk()                   { return m_chunk; }
   bool                get_willneed() const          { return m_willneed; }
 
-  inline void         clear();
+  void                clear();
 
   bool                perform(bool force);
 
@@ -82,12 +78,6 @@ private:
 
   SlotDone            m_slotDone;
 };
-
-inline void
-HashQueueNode::clear() {
-  delete m_chunk;
-  m_chunk = NULL;
-}
 
 }
 

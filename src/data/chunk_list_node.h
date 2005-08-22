@@ -34,59 +34,39 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_HASH_TORRENT_H
-#define LIBTORRENT_DATA_HASH_TORRENT_H
+#ifndef LIBTORRENT_DATA_CHUNK_LIST_NODE_H
+#define LIBTORRENT_DATA_CHUNK_LIST_NODE_H
 
-#include <string>
-#include <sigc++/signal.h>
-
-#include "utils/ranges.h"
+#include <inttypes.h>
 
 namespace torrent {
 
-class ChunkListNode;
-class Content;
-class HashQueue;
+class StorageChunk;
 
-class HashTorrent {
+// ChunkNode can contain information like how long since it was last
+// used, last synced, last checked with mincore and how many
+// references there are to it.
+//
+// ChunkList will make sure all the nodes are cleaned up properly, so
+// no dtor is needed.
+
+class ChunkListNode {
 public:
-  typedef sigc::signal0<void>                              Signal;
-  typedef sigc::signal2<void, ChunkListNode*, std::string> SignalChunkDone;
-  
-  HashTorrent(const std::string& id, Content* c);
-  ~HashTorrent() { clear(); }
+  ChunkListNode() : m_chunk(NULL), m_references(0) {}
 
-  void                start();
-  void                stop();
+  bool                is_valid() const               { return m_chunk; }
 
-  void                clear();
+  StorageChunk*       chunk() const                  { return m_chunk; }
+  void                set_chunk(StorageChunk* c)     { m_chunk = c; }
 
-  bool                is_checking()                 { return m_outstanding >= 0; }
-
-  Ranges&             get_ranges()                  { return m_ranges; }
-
-  HashQueue*          get_queue()                   { return m_queue; }
-  void                set_queue(HashQueue* q)       { m_queue = q; }
-
-  Signal&             signal_torrent()              { return m_signalTorrent; }
-  SignalChunkDone&    signal_chunk()                { return m_signalChunk; }
+  int                 references() const             { return m_references; }
+  void                dec_references()               { m_references--; }
+  void                inc_references()               { m_references++; }
 
 private:
-  void                queue();
+  StorageChunk*       m_chunk;
 
-  void                receive_chunkdone(ChunkListNode* node, std::string hash);
-  
-  std::string         m_id;
-  
-  unsigned int        m_position;
-  int                 m_outstanding;
-  Ranges              m_ranges;
-
-  Content*            m_content;
-  HashQueue*          m_queue;
-
-  Signal              m_signalTorrent;
-  SignalChunkDone     m_signalChunk;
+  int                 m_references;
 };
 
 }

@@ -37,7 +37,6 @@
 #ifndef LIBTORRENT_NET_PROTOCOL_BASE_H
 #define LIBTORRENT_NET_PROTOCOL_BASE_H
 
-#include "data/storage.h"
 #include "net/protocol_buffer.h"
 
 namespace torrent {
@@ -47,7 +46,6 @@ class Piece;
 class ProtocolBase {
 public:
   typedef ProtocolBuffer<512>           Buffer;
-  typedef StorageChunk::iterator        ChunkPart;
 
   typedef enum {
     CHOKE = 0,

@@ -36,9 +36,22 @@
 
 #include "config.h"
 
+#include "hash_chunk.h"
 #include "hash_queue_node.h"
+#include "chunk_list_node.h"
 
 namespace torrent {
+
+uint32_t
+HashQueueNode::get_index() const {
+  return m_chunk->get_chunk()->chunk()->get_index();
+}
+
+void
+HashQueueNode::clear() {
+  delete m_chunk;
+  m_chunk = NULL;
+}
 
 bool
 HashQueueNode::perform(bool force) {

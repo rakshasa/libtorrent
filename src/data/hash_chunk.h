@@ -38,7 +38,6 @@
 #define LIBTORRENT_HASH_CHUNK_H
 
 #include "utils/sha1.h"
-#include "utils/ref_anchored.h"
 #include "storage_chunk.h"
 
 namespace torrent {
@@ -47,16 +46,16 @@ namespace torrent {
 // chunk. All we need is control of the (non-)blocking nature, and other
 // stuff related to performance and responsiveness.
 
+class ChunkListNode;
+
 class HashChunk {
 public:
-  typedef RefAnchored<StorageChunk> Chunk;
-
   HashChunk()         {}
-  HashChunk(Chunk c)  { set_chunk(c); }
+  HashChunk(ChunkListNode* c)  { set_chunk(c); }
   
-  void                set_chunk(Chunk c)                      { m_position = 0; m_chunk = c; m_hash.init(); }
+  void                set_chunk(ChunkListNode* c)             { m_position = 0; m_chunk = c; m_hash.init(); }
 
-  Chunk               get_chunk()                             { return m_chunk; }
+  ChunkListNode*      get_chunk()                             { return m_chunk; }
   std::string         get_hash()                              { return m_hash.final(); }
 
   // If force is true, then the return value is always true.
@@ -72,7 +71,7 @@ private:
 
   uint32_t            m_position;
 
-  Chunk               m_chunk;
+  ChunkListNode*      m_chunk;
   Sha1                m_hash;
 };
 

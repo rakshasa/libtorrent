@@ -38,7 +38,8 @@
 #define LIBTORRENT_NET_PROTOCOL_CHUNK_H
 
 #include "data/piece.h"
-#include "data/storage.h"
+#include "data/storage_chunk.h"
+#include "data/chunk_list_node.h"
 
 namespace torrent {
 
@@ -47,9 +48,10 @@ class SocketStream;
 // TODO: Consider making this a template class that takes a functor.
 class ProtocolChunk {
 public:
-  typedef Storage::Chunk         ChunkPtr;
   typedef StorageChunk::iterator ChunkPart;
   
+  ProtocolChunk() : m_chunk(NULL) {}
+
   bool                is_done() const                                   { return m_position == m_piece.get_length(); }
 
   uint32_t            get_bytes_left() const                            { return m_piece.get_length() - m_position; }
@@ -59,9 +61,9 @@ public:
   const Piece&        get_piece() const                                 { return m_piece; }
   void                set_piece(const Piece& p)                         { m_piece = p; }
 
-  ChunkPtr&           get_chunk()                                       { return m_chunk; }
-  const ChunkPtr&     get_chunk() const                                 { return m_chunk; }
-  void                set_chunk(const Storage::Chunk& c)                { m_chunk = c; }
+  ChunkListNode*      get_chunk()                                       { return m_chunk; }
+  ChunkListNode*      get_chunk() const                                 { return m_chunk; }
+  void                set_chunk(ChunkListNode* node)                    { m_chunk = node; }
 
   uint32_t            read(SocketStream* sock, uint32_t maxBytes);
   uint32_t            write(SocketStream* sock, uint32_t maxBytes);
@@ -77,12 +79,12 @@ private:
 
   uint32_t            m_position;
   Piece               m_piece;
-  ChunkPtr            m_chunk;
+  ChunkListNode*      m_chunk;
 };
 
 inline ProtocolChunk::ChunkPart
 ProtocolChunk::chunk_part() {
-  return m_chunk->at_position(m_piece.get_offset() + m_position);
+  return m_chunk->chunk()->at_position(m_piece.get_offset() + m_position);
 }  
 
 inline uint32_t

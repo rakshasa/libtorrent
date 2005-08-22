@@ -43,8 +43,10 @@
 
 #include "utils/bitfield.h"
 #include "utils/task.h"
-#include "data/storage.h"
+
+#include "data/chunk_list.h"
 #include "data/entry_list.h"
+#include "data/memory_chunk.h"
 #include "data/piece.h"
 
 namespace torrent {
@@ -81,15 +83,19 @@ public:
   off_t                  get_bytes_size() const               { return m_entryList.get_bytes_size(); }
   uint64_t               get_bytes_completed();
   
-  uint32_t               get_chunk_total() const              { return (get_bytes_size() + get_chunk_size() - 1) / get_chunk_size(); }
+  uint32_t               get_chunk_total() const              { return (get_bytes_size() + m_chunkSize - 1) / m_chunkSize; }
 
-  uint32_t               get_chunk_size() const               { return m_storage.get_chunk_size(); }
+  uint32_t               get_chunk_size() const               { return m_chunkSize; }
+  void                   set_chunk_size(uint32_t s)           { m_chunkSize = s; }
+
   uint32_t               get_chunk_index_size(uint32_t index) const;
 
-  off_t                  get_chunk_position(uint32_t c) const { return c * (off_t)get_chunk_size(); }
+  off_t                  get_chunk_position(uint32_t c) const { return c * (off_t)m_chunkSize; }
 
   BitField&              get_bitfield()                       { return m_bitfield; }
-  Storage&               get_storage()                        { return m_storage; }
+
+  ChunkList*             chunk_list()                         { return &m_chunkList; }
+  const ChunkList*       chunk_list() const                   { return &m_chunkList; }
 
   EntryList*             entry_list()                         { return &m_entryList; }
   const EntryList*       entry_list() const                   { return &m_entryList; }
@@ -101,7 +107,9 @@ public:
   bool                   is_valid_piece(const Piece& p) const;
 
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
-  Storage::Chunk         get_chunk(uint32_t index, int prot);
+
+  ChunkListNode*         get_chunk(uint32_t index, int prot);
+  void                   release_chunk(ChunkListNode* node)   { m_chunkList.release(node); }
 
   void                   open();
   void                   close();
@@ -123,8 +131,9 @@ private:
 
   bool                   m_isOpen;
   uint32_t               m_completed;
+  uint32_t               m_chunkSize;
 
-  Storage                m_storage;
+  ChunkList              m_chunkList;
   EntryList              m_entryList;
 
   BitField               m_bitfield;
@@ -149,7 +158,7 @@ Content::mark_done_file(EntryList::iterator itr, uint32_t index) {
 
 inline EntryListNode::Range
 Content::make_index_range(uint64_t pos, uint64_t size) const {
-  return EntryListNode::Range(pos / get_chunk_size(), (pos + size + get_chunk_size() - 1) / get_chunk_size());
+  return EntryListNode::Range(pos / m_chunkSize, (pos + size + m_chunkSize - 1) / m_chunkSize);
 }
 
 }

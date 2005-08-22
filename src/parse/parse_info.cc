@@ -99,7 +99,7 @@ parse_info(const Bencode& b, Content& c) {
 
   // Set chunksize before adding files to make sure the index range is
   // correct.
-  c.get_storage().set_chunk_size(b["piece length"].as_value());
+  c.set_chunk_size(b["piece length"].as_value());
   c.set_complete_hash(b["pieces"].as_string());
 
   if (b.has_key("length")) {

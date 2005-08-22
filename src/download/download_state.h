@@ -39,18 +39,16 @@
 
 #include <sigc++/signal.h>
 
-#include "data/storage_chunk.h"
 #include "content/content.h"
 #include "utils/bitfield_counter.h"
-#include "utils/ref_anchored.h"
 
 namespace torrent {
+
+class ChunkListNode;
 
 // Here goes all those things that Peer* and Delegator needs.
 class DownloadState {
 public:
-  typedef RefAnchored<StorageChunk> Chunk;
-  
   DownloadState() {}
 
   Content&            get_content()                             { return m_content; }
@@ -65,14 +63,14 @@ public:
 
   void                update_endgame();
 
-  void                receive_hash_done(Storage::Chunk c, std::string hash);
+  void                receive_hash_done(ChunkListNode* node, std::string hash);
 
   typedef sigc::signal1<void, uint32_t>           SignalChunk;
   typedef sigc::signal1<void, const std::string&> SignalString;
 
   typedef sigc::slot1<void, bool>         SlotSetEndgame;
   typedef sigc::slot0<uint32_t>           SlotDelegatedChunks;
-  typedef sigc::slot1<void, Chunk>        SlotHashCheckAdd;
+  typedef sigc::slot1<void, ChunkListNode*>        SlotHashCheckAdd;
 
   SignalChunk&                            signal_chunk_passed()  { return m_signalChunkPassed; }
   SignalChunk&                            signal_chunk_failed()  { return m_signalChunkFailed; }

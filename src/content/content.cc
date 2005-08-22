@@ -42,12 +42,14 @@
 #include "content.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
+#include "data/storage_chunk.h"
 
 namespace torrent {
 
 Content::Content() :
   m_isOpen(false),
   m_completed(0),
+  m_chunkSize(1 << 16),
   m_rootDir(".") {
 
   m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
@@ -91,13 +93,13 @@ Content::get_hash(unsigned int index) {
 
 uint32_t
 Content::get_chunk_index_size(uint32_t index) const {
-  if (get_chunk_size() == 0 || index >= get_chunk_total())
+  if (m_chunkSize == 0 || index >= get_chunk_total())
     throw internal_error("Content::get_chunksize(...) called but we borked");
 
-  if (index + 1 != get_chunk_total() || get_bytes_size() % get_chunk_size() == 0)
-    return get_chunk_size();
+  if (index + 1 != get_chunk_total() || get_bytes_size() % m_chunkSize == 0)
+    return m_chunkSize;
   else
-    return get_bytes_size() % get_chunk_size();
+    return get_bytes_size() % m_chunkSize;
 }
 
 uint64_t
@@ -105,7 +107,7 @@ Content::get_bytes_completed() {
   if (!is_open())
     return 0;
 
-  uint64_t cs = get_chunk_size();
+  uint64_t cs = m_chunkSize;
 
   if (!m_bitfield[get_chunk_total() - 1] || get_bytes_size() % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
@@ -149,22 +151,23 @@ Content::is_valid_piece(const Piece& p) const {
     p.get_offset() + p.get_length() <= get_chunk_index_size(p.get_index());
 }
 
-Storage::Chunk
+ChunkListNode*
 Content::get_chunk(uint32_t index, int prot) {
-  if (m_storage.has_anchor(index, prot))
-    return m_storage.get_anchor(index);
+  StorageChunk* node;
 
-  return m_storage.make_anchor(get_storage_chunk(index, prot));
+  if (!m_chunkList.has_chunk(index, prot) &&
+      (node = get_storage_chunk(index, prot)))
+    m_chunkList.insert(index, node);
+    
+  return m_chunkList.bind(index);
 }
 
 void
 Content::open() {
   m_entryList.open(m_rootDir);
+  m_chunkList.resize(get_chunk_total());
 
   m_bitfield = BitField(get_chunk_total());
-
-  // Update anchor count in m_storage.
-  m_storage.set_size(get_chunk_total());
 
   if (m_hash.size() / 20 != get_chunk_total())
     throw internal_error("Content::open(...): Chunk count does not match hash count");
@@ -177,6 +180,8 @@ Content::close() {
   m_isOpen = false;
 
   m_entryList.close();
+  m_chunkList.clear();
+
   m_completed = 0;
   m_bitfield = BitField();
   taskScheduler.erase(&m_delayDownloadDone);
@@ -275,7 +280,7 @@ Content::get_storage_chunk_part(EntryList::iterator itr, off_t offset, uint32_t 
   if (length == 0)
     throw internal_error("EntryList::get_chunk_part(...) caught a piece with 0 lenght");
 
-  if (length > get_chunk_size())
+  if (length > m_chunkSize)
     throw internal_error("EntryList::get_chunk_part(...) caught an excessively large piece");
 
   if (!itr->file_meta()->prepare(prot))

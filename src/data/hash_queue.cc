@@ -40,6 +40,7 @@
 #include "hash_queue.h"
 #include "hash_chunk.h"
 #include "storage_chunk.h"
+#include "chunk_list_node.h"
 
 namespace torrent {
 
@@ -78,11 +79,11 @@ HashQueue::willneed(int bytes) {
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
-HashQueue::push_back(Chunk c, SlotDone d, const std::string& id) {
-  if (!c.is_valid() || !c->is_valid())
+HashQueue::push_back(ChunkListNode* node, SlotDone d, const std::string& id) {
+  if (!node->is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
-  HashChunk* hc = new HashChunk(c);
+  HashChunk* hc = new HashChunk(node);
 
   if (empty()) {
     if (taskScheduler.is_scheduled(&m_taskWork))

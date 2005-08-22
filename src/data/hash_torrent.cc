@@ -77,10 +77,10 @@ HashTorrent::clear() {
 }
 
 void
-HashTorrent::receive_chunkdone(Chunk c, std::string hash) {
+HashTorrent::receive_chunkdone(ChunkListNode* node, std::string hash) {
   // Make sure we call chunkdone before torrentDone has a chance to
   // trigger.
-  m_signalChunk(c, hash);
+  m_signalChunk(node, hash);
   m_outstanding--;
 
   queue();
@@ -102,12 +102,12 @@ HashTorrent::queue() {
       m_position = itr->first;
     }
 
-    Chunk c = m_content->get_chunk(m_position++, MemoryChunk::prot_read);
+    ChunkListNode* node = m_content->get_chunk(m_position++, MemoryChunk::prot_read);
 
-    if (!c.is_valid() || !c->is_valid())
+    if (node == NULL)
       continue;
 
-    m_queue->push_back(c, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
+    m_queue->push_back(node, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
     m_outstanding++;
   }
 

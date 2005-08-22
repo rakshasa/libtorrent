@@ -34,36 +34,46 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_DATA_CHUNK_LIST_H
+#define LIBTORRENT_DATA_CHUNK_LIST_H
 
-#include "torrent/exceptions.h"
+#include <vector>
 
-#include "storage.h"
+#include "chunk_list_node.h"
 
 namespace torrent {
 
-void
-Storage::set_size(uint32_t s) {
-  m_anchors.resize(s);
+class ChunkList : private std::vector<ChunkListNode> {
+public:
+  typedef std::vector<ChunkListNode> Base;
+  typedef uint32_t                   size_type;
+
+  using Base::value_type;
+  using Base::reference;
+
+  using Base::iterator;
+  using Base::reverse_iterator;
+  using Base::size;
+  using Base::empty;
+
+  ~ChunkList() { clear(); }
+
+  bool                has_chunk(size_type index, int prot) const;
+
+  void                resize(size_type s);
+  void                clear();
+
+  // Don't use iterator here since we'd like to keep header
+  // dependencies as low as possible.
+  void                insert(size_type index, StorageChunk* chunk);
+
+  ChunkListNode*      bind(size_type index);
+  void                release(ChunkListNode* node);
+
+private:
+  
+};
+
 }
 
-bool
-Storage::has_anchor(uint32_t index, int prot) {
-  if (index >= m_anchors.size())
-    throw internal_error("Chunk out of range in Storage");
-
-  return m_anchors[index].is_valid() && m_anchors[index].data()->has_permissions(prot);
-}
-
-Storage::Chunk
-Storage::make_anchor(StorageChunk* chunk) {
-  if (chunk == NULL)
-    return Chunk();
-
-  Chunk c(chunk);
-  c.anchor(m_anchors[chunk->get_index()]);
-
-  return c;
-}
-
-}
+#endif
