@@ -34,59 +34,40 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_STORAGE_CHUNK_H
-#define LIBTORRENT_STORAGE_CHUNK_H
+#include "config.h"
 
-#include <vector>
-#include "storage_chunk_part.h"
+#include <algorithm>
+#include <unistd.h>
+
+#include "torrent/exceptions.h"
+#include "chunk_part.h"
 
 namespace torrent {
 
-class StorageChunk : private std::vector<StorageChunkPart> {
-public:
-  typedef std::vector<StorageChunkPart> Base;
-
-  using Base::value_type;
-
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
-
-  StorageChunk(uint32_t index) : m_index(index), m_size(0) {}
-  ~StorageChunk()                                           { clear(); }
-
-  bool                is_valid() const;
-
-  bool                has_permissions(int prot) const;
-
-  int                 get_index()                           { return m_index; }
-  uint32_t            get_size()                            { return m_size; }
-
-  // Get the Node that contains 'pos'.
-  iterator            at_position(uint32_t pos);
-
-  void                clear();
-
-  void                push_back(const MemoryChunk& c);
-
-  // Check how much of the chunk is incore from pos.
-  uint32_t            incore_length(uint32_t pos);
-
-private:
-  StorageChunk(const StorageChunk&);
-  void operator = (const StorageChunk&);
-  
-  uint32_t            m_index;
-  uint32_t            m_size;
-};
-
+void
+ChunkPart::clear() {
+  m_chunk.unmap();
+  m_chunk.clear();
 }
 
-#endif
+uint32_t
+ChunkPart::incore_length(uint32_t pos) {
+  // Do we want to use this?
+  pos -= m_position;
 
-  
+  if (pos >= size())
+    throw internal_error("ChunkPart::incore_length(...) got invalid position");
+
+  int length = size() - pos;
+  int touched = m_chunk.pages_touched(pos, length);
+  char buf[touched];
+
+  m_chunk.incore(buf, pos, length);
+
+  int dist = std::distance(buf, std::find(buf, buf + touched, 0));
+
+  return std::min(dist ? (dist * m_chunk.page_size() - m_chunk.page_align()) : 0,
+		  size() - pos);
+}
+
+}

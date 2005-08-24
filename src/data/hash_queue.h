@@ -40,7 +40,7 @@
 #include <string>
 
 #include "hash_queue_node.h"
-#include "storage_chunk.h"
+#include "chunk.h"
 
 #include "utils/task.h"
 
@@ -91,8 +91,6 @@ private:
   bool                check(bool force);
 
   inline void         willneed(int bytes);
-
-  void                pop_front()                   { Base::front().clear(); Base::pop_front(); }
 
   uint16_t            m_tries;
   TaskItem            m_taskWork;

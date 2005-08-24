@@ -38,7 +38,7 @@
 
 #include "torrent/exceptions.h"
 #include "hash_chunk.h"
-#include "storage_chunk.h"
+#include "chunk.h"
 #include "chunk_list_node.h"
 
 namespace torrent {
@@ -47,7 +47,7 @@ bool
 HashChunk::perform(uint32_t length, bool force) {
   length = std::min(length, remaining());
 
-  if (m_position + length > m_chunk->chunk()->get_size())
+  if (m_position + length > m_chunk->chunk()->size())
     throw internal_error("HashChunk::perform(...) received length out of range");
   
   uint32_t l = force ? length : m_chunk->chunk()->incore_length(m_position);
@@ -55,7 +55,7 @@ HashChunk::perform(uint32_t length, bool force) {
   bool complete = l == length;
 
   while (l) {
-    StorageChunk::iterator node = m_chunk->chunk()->at_position(m_position);
+    Chunk::iterator node = m_chunk->chunk()->at_position(m_position);
 
     l -= perform_part(node, l);
   }
@@ -68,17 +68,17 @@ HashChunk::advise_willneed(uint32_t length) {
   if (!m_chunk->is_valid())
     throw internal_error("HashChunk::willneed(...) called on an invalid chunk");
 
-  if (m_position + length > m_chunk->chunk()->get_size())
+  if (m_position + length > m_chunk->chunk()->size())
     throw internal_error("HashChunk::willneed(...) received length out of range");
 
   uint32_t pos = m_position;
 
   while (length) {
-    StorageChunk::iterator itr = m_chunk->chunk()->at_position(pos);
+    Chunk::iterator itr = m_chunk->chunk()->at_position(pos);
 
     uint32_t l = std::min(length, remaining_part(itr, pos));
 
-    itr->get_chunk().advise(pos - itr->get_position(), l, MemoryChunk::advice_willneed);
+    itr->chunk().advise(pos - itr->position(), l, MemoryChunk::advice_willneed);
 
     pos    += l;
     length -= l;
@@ -91,14 +91,14 @@ HashChunk::remaining() {
   if (!m_chunk->is_valid())
     throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
 
-  return m_chunk->chunk()->get_size() - m_position;
+  return m_chunk->chunk()->size() - m_position;
 }
 
 uint32_t
-HashChunk::perform_part(StorageChunk::iterator itr, uint32_t length) {
+HashChunk::perform_part(Chunk::iterator itr, uint32_t length) {
   length = std::min(length, remaining_part(itr, m_position));
   
-  m_hash.update(itr->get_chunk().begin() + m_position - itr->get_position(), length);
+  m_hash.update(itr->chunk().begin() + m_position - itr->position(), length);
   m_position += length;
 
   return length;

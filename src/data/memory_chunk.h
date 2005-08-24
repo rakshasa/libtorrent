@@ -81,7 +81,7 @@ class MemoryChunk {
   char*               begin()                                              { return m_begin; }
   char*               end()                                                { return m_end; }
 
-  int                 get_prot()                                           { return m_prot; }
+  int                 get_prot() const                                     { return m_prot; }
 
   uint32_t            size() const                                         { return m_end - m_begin; }
   inline void         clear();

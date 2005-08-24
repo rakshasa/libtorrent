@@ -42,7 +42,10 @@
 #include "content.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
-#include "data/storage_chunk.h"
+#include "data/chunk.h"
+#include "data/chunk_list.h"
+#include "data/entry_list.h"
+#include "data/piece.h"
 
 namespace torrent {
 
@@ -50,10 +53,18 @@ Content::Content() :
   m_isOpen(false),
   m_completed(0),
   m_chunkSize(1 << 16),
+
+  m_chunkList(new ChunkList),
+  m_entryList(new EntryList),
   m_rootDir(".") {
 
   m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
   m_delayDownloadDone.set_iterator(taskScheduler.end());
+}
+
+Content::~Content() {
+  delete m_chunkList;
+  delete m_entryList;
 }
 
 void
@@ -61,7 +72,7 @@ Content::add_file(const Path& path, uint64_t size) {
   if (is_open())
     throw internal_error("Tried to add file to Content that is open");
 
-  m_entryList.push_back(path, make_index_range(get_bytes_size(), size), size);
+  m_entryList->push_back(path, make_index_range(get_bytes_size(), size), size);
 }
 
 void
@@ -122,9 +133,9 @@ Content::is_correct_size() {
   if (!is_open())
     return false;
 
-  EntryList::iterator sItr = m_entryList.begin();
+  EntryList::iterator sItr = m_entryList->begin();
   
-  while (sItr != m_entryList.end()) {
+  while (sItr != m_entryList->end()) {
     // TODO: Throw or return false?
     if (!sItr->file_meta()->prepare(MemoryChunk::prot_read))
       return false;
@@ -153,19 +164,29 @@ Content::is_valid_piece(const Piece& p) const {
 
 ChunkListNode*
 Content::get_chunk(uint32_t index, int prot) {
-  StorageChunk* node;
+  if (m_chunkList->has_chunk(index, prot))
+    return m_chunkList->bind(index);
 
-  if (!m_chunkList.has_chunk(index, prot) &&
-      (node = get_storage_chunk(index, prot)))
-    m_chunkList.insert(index, node);
-    
-  return m_chunkList.bind(index);
+  Chunk* node = m_entryList->create_chunk(get_chunk_position(index), get_chunk_index_size(index), prot);
+
+  if (node == NULL) {
+    return NULL;
+
+  } else {
+    m_chunkList->insert(index, node);
+    return m_chunkList->bind(index);
+  }
+}
+
+void
+Content::release_chunk(ChunkListNode* node) {
+  m_chunkList->release(node);
 }
 
 void
 Content::open() {
-  m_entryList.open(m_rootDir);
-  m_chunkList.resize(get_chunk_total());
+  m_entryList->open(m_rootDir);
+  m_chunkList->resize(get_chunk_total());
 
   m_bitfield = BitField(get_chunk_total());
 
@@ -179,8 +200,8 @@ void
 Content::close() {
   m_isOpen = false;
 
-  m_entryList.close();
-  m_chunkList.clear();
+  m_entryList->close();
+  m_chunkList->clear();
 
   m_completed = 0;
   m_bitfield = BitField();
@@ -192,7 +213,7 @@ Content::resize() {
   if (!is_open())
     return;
 
-  m_entryList.resize_all();
+  m_entryList->resize_all();
 }
 
 void
@@ -209,7 +230,10 @@ Content::mark_done(uint32_t index) {
   m_bitfield.set(index, true);
   m_completed++;
 
-  mark_done_file(m_entryList.begin(), index);
+  EntryList::iterator first = m_entryList->at_position(m_entryList->begin(), index * (off_t)m_chunkSize);
+  EntryList::iterator last  = m_entryList->at_position(first, (index + 1) * (off_t)m_chunkSize);
+
+  std::for_each(first, last, std::mem_fun_ref(&EntryListNode::inc_completed));
 
   // We delay emitting the signal to allow the delegator to clean
   // up. If we do a straight call it would cause problems for
@@ -228,65 +252,16 @@ Content::update_done() {
   m_bitfield.cleanup();
   m_completed = m_bitfield.count();
 
-  EntryList::iterator itr = m_entryList.begin();
+  EntryList::iterator itr;
+  EntryList::iterator next = m_entryList->begin();
 
   for (BitField::size_t i = 0; i < m_bitfield.size_bits(); ++i)
-    if (m_bitfield[i])
-      itr = mark_done_file(itr, i);
-}
+    if (m_bitfield[i]) {
+      itr  = m_entryList->at_position(next, i * (off_t)m_chunkSize);
+      next = m_entryList->at_position(itr, (i + 1) * (off_t)m_chunkSize);
 
-StorageChunk*
-Content::get_storage_chunk(uint32_t b, int prot) {
-  MemoryChunk mc;
-
-  off_t first = get_chunk_position(b);
-  off_t last = std::min(get_chunk_position(b + 1), get_bytes_size());
-
-  if (first >= get_bytes_size())
-    throw internal_error("Tried to access chunk out of range in EntryList");
-
-  std::auto_ptr<StorageChunk> chunk(new StorageChunk(b));
-
-  for (EntryList::iterator itr = std::find_if(m_entryList.begin(), m_entryList.end(), std::bind2nd(std::mem_fun_ref(&EntryListNode::is_valid_position), first));
-       first != last; ++itr) {
-
-    if (itr == m_entryList.end())
-      throw internal_error("EntryList could not find a valid file for chunk");
-
-    if (itr->get_size() == 0)
-      continue;
-
-    if (!(mc = get_storage_chunk_part(itr, first, last - first, prot)).is_valid())
-      return NULL;
-
-    chunk->push_back(mc);
-    first += mc.size();
-  }
-
-  if (chunk->get_size() != last - get_chunk_position(b))
-    throw internal_error("EntryList::get_chunk didn't get a chunk with the correct size");
-
-  return chunk.release();
-}
-
-MemoryChunk
-Content::get_storage_chunk_part(EntryList::iterator itr, off_t offset, uint32_t length, int prot) {
-  offset -= itr->get_position();
-  length = std::min<off_t>(length, itr->get_size() - offset);
-
-  if (offset < 0)
-    throw internal_error("EntryList::get_chunk_part(...) caught a negative offset");
-
-  if (length == 0)
-    throw internal_error("EntryList::get_chunk_part(...) caught a piece with 0 lenght");
-
-  if (length > m_chunkSize)
-    throw internal_error("EntryList::get_chunk_part(...) caught an excessively large piece");
-
-  if (!itr->file_meta()->prepare(prot))
-    return MemoryChunk();
-
-  return itr->file_meta()->get_file().get_chunk(offset, length, prot, MemoryChunk::map_shared);
+      std::for_each(itr, next, std::mem_fun_ref(&EntryListNode::inc_completed));
+    }
 }
 
 }

@@ -1,6 +1,8 @@
 noinst_LTLIBRARIES = libsub_data.la
 
 libsub_data_la_SOURCES = \
+	chunk.cc \
+	chunk.h \
 	chunk_list.cc \
 	chunk_list.h \
 	chunk_list_node.h \
@@ -8,6 +10,8 @@ libsub_data_la_SOURCES = \
 	entry_list.h \
 	entry_list_node.cc \
 	entry_list_node.h \
+	chunk_part.cc \
+	chunk_part.h \
 	file.cc \
 	file.h \
 	file_manager.cc \
@@ -27,10 +31,6 @@ libsub_data_la_SOURCES = \
 	memory_chunk.h \
 	path.cc \
 	path.h \
-	piece.h \
-	storage_chunk.cc \
-	storage_chunk.h \
-	storage_chunk_part.cc \
-	storage_chunk_part.h
+	piece.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

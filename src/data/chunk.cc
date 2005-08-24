@@ -39,32 +39,36 @@
 #include <functional>
 
 #include "torrent/exceptions.h"
-#include "storage_chunk.h"
+#include "chunk.h"
 
 namespace torrent {
 
 bool
-StorageChunk::is_valid() const {
-  return !empty() && std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&StorageChunkPart::is_valid))) == end();
+Chunk::is_all_valid() const {
+  return !empty() && std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&ChunkPart::is_valid))) == end();
 }
 
-bool
-StorageChunk::has_permissions(int prot) const {
-  return std::find_if(begin(), end(), std::not1(std::bind2nd(std::mem_fun_ref(&StorageChunkPart::has_permissions), prot))) == end();
+void
+Chunk::clear() {
+  std::for_each(begin(), end(), std::mem_fun_ref(&ChunkPart::clear));
+
+  m_size = 0;
+  m_prot = 0;
+  Base::clear();
 }
 
-StorageChunk::iterator
-StorageChunk::at_position(uint32_t pos) {
+Chunk::iterator
+Chunk::at_position(uint32_t pos) {
   if (pos >= m_size)
-    throw internal_error("StorageChunk::at_position(...) tried to get StorageChunk position out of range.");
+    throw internal_error("Chunk::at_position(...) tried to get Chunk position out of range.");
 
-  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&StorageChunkPart::is_contained), pos));
+  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&ChunkPart::is_contained), pos));
 
   if (itr == end())
-    throw internal_error("StorageChunk::at_position(...) might be mangled, at_position failed horribly");
+    throw internal_error("Chunk::at_position(...) might be mangled, at_position failed horribly");
 
   if (itr->size() == 0)
-    throw internal_error("StorageChunk::at_position(...) tried to return a node with length 0");
+    throw internal_error("Chunk::at_position(...) tried to return a node with length 0");
 
   return itr;
 }
@@ -74,28 +78,25 @@ StorageChunk::at_position(uint32_t pos) {
 // will require a few more cycles, it won't matter as we only
 // rarely have more than 1 or 2 nodes.
 void
-StorageChunk::push_back(const MemoryChunk& c) {
-  Base::reserve(Base::size() + 1);
-  Base::insert(end(), StorageChunkPart(c, m_size));
+Chunk::push_back(const MemoryChunk& c) {
+  if (empty())
+    m_prot = c.get_prot();
+  else
+    m_prot &= c.get_prot();
+
+  //Base::reserve(Base::size() + 1);
+  Base::insert(end(), ChunkPart(c, m_size));
 
   m_size += c.size();
 }
 
-void
-StorageChunk::clear() {
-  std::for_each(begin(), end(), std::mem_fun_ref(&StorageChunkPart::clear));
-
-  m_size = 0;
-  Base::clear();
-}
-
 uint32_t
-StorageChunk::incore_length(uint32_t pos) {
+Chunk::incore_length(uint32_t pos) {
   uint32_t lengthIncore = 0;
   iterator itr = at_position(pos);
 
   if (itr == end())
-    throw internal_error("StorageChunk::incore_length(...) at end()");
+    throw internal_error("Chunk::incore_length(...) at end()");
 
   do {
     uint32_t length = itr->incore_length(pos);
@@ -103,7 +104,7 @@ StorageChunk::incore_length(uint32_t pos) {
     pos += length;
     lengthIncore += length;
 
-  } while (pos == itr->get_position() + itr->size() && ++itr != end());
+  } while (pos == itr->position() + itr->size() && ++itr != end());
 
   return lengthIncore;
 }

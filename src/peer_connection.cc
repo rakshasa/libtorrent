@@ -448,6 +448,9 @@ void PeerConnection::event_write() {
       if (m_sendList.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
+      if (m_writeChunk.is_valid())
+	m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+
       m_writeChunk.set_chunk(m_download->state()->get_content().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
       m_writeChunk.set_position(0);
       m_write->set_state(ProtocolWrite::WRITE_PIECE);
@@ -603,8 +606,10 @@ void PeerConnection::fillWriteBuf() {
 	
 	m_sendList.clear();
 
-	m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
-	m_writeChunk.set_chunk(NULL);
+	if (m_writeChunk.is_valid()) {
+	  m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+	  m_writeChunk.set_chunk(NULL);
+	}
 
       } else {
 	insert_write_throttle();

@@ -71,6 +71,7 @@ public:
   // Chunks completed.
   uint32_t            get_completed() const                   { return m_completed; }
   void                set_completed(uint32_t v)               { m_completed = v; }
+  void                inc_completed()                         { m_completed++; }
 
   unsigned char       get_priority() const                    { return m_priority; }
   void                set_priority(unsigned char t)           { m_priority = t; }

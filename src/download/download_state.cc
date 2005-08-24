@@ -40,7 +40,7 @@
 
 #include "torrent/exceptions.h"
 #include "data/chunk_list_node.h"
-#include "data/storage_chunk.h"
+#include "data/chunk.h"
 #include "download/download_state.h"
 
 namespace torrent {
@@ -56,7 +56,7 @@ DownloadState::chunk_done(unsigned int index) {
   ChunkListNode* node = m_content.get_chunk(index, MemoryChunk::prot_read);
 
   if (node == NULL)
-    throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrive from storage");
+    throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");
 
   m_slotHashCheckAdd(node);
 }
@@ -76,15 +76,18 @@ DownloadState::bytes_left() {
 
 void
 DownloadState::receive_hash_done(ChunkListNode* node, std::string hash) {
-  if (!hash.empty() && std::memcmp(hash.c_str(), m_content.get_hash_c(node->chunk()->get_index()), 20) == 0) {
+  if (!node->is_valid())
+    throw internal_error("DownloadState::receive_hash_done(...) called on an invalid chunk.");
 
-    m_content.mark_done(node->chunk()->get_index());
-    m_signalChunkPassed.emit(node->chunk()->get_index());
+  if (!hash.empty() && std::memcmp(hash.c_str(), m_content.get_hash_c(node->index()), 20) == 0) {
+
+    m_content.mark_done(node->index());
+    m_signalChunkPassed.emit(node->index());
 
     update_endgame();
 
   } else {
-    m_signalChunkFailed.emit(node->chunk()->get_index());
+    m_signalChunkFailed.emit(node->index());
   }
 
   m_content.release_chunk(node);

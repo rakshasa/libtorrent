@@ -38,7 +38,7 @@
 #define LIBTORRENT_NET_PROTOCOL_CHUNK_H
 
 #include "data/piece.h"
-#include "data/storage_chunk.h"
+#include "data/chunk.h"
 #include "data/chunk_list_node.h"
 
 namespace torrent {
@@ -48,11 +48,12 @@ class SocketStream;
 // TODO: Consider making this a template class that takes a functor.
 class ProtocolChunk {
 public:
-  typedef StorageChunk::iterator ChunkPart;
+  typedef Chunk::iterator ChunkPart;
   
   ProtocolChunk() : m_chunk(NULL) {}
 
   bool                is_done() const                                   { return m_position == m_piece.get_length(); }
+  bool                is_valid() const                                  { return m_chunk != NULL && m_chunk->is_valid(); }
 
   uint32_t            get_bytes_left() const                            { return m_piece.get_length() - m_position; }
 
@@ -89,7 +90,7 @@ ProtocolChunk::chunk_part() {
 
 inline uint32_t
 ProtocolChunk::chunk_offset(ChunkPart c) {
-  return m_piece.get_offset() + m_position - c->get_position();
+  return m_piece.get_offset() + m_position - c->position();
 }
 
 inline uint32_t

@@ -41,10 +41,11 @@
 #include <inttypes.h>
 #include <sigc++/signal.h>
 
+#include "hash_chunk.h"
+
 namespace torrent {
 
 class ChunkListNode;
-class HashChunk;
 
 class HashQueueNode {
 public:
@@ -59,9 +60,9 @@ public:
   HashChunk*          get_chunk()                   { return m_chunk; }
   bool                get_willneed() const          { return m_willneed; }
 
-  void                clear();
+  bool                perform(bool force)           { return m_chunk->perform(m_chunk->remaining(), force); }
 
-  bool                perform(bool force);
+  void                clear();
 
   // Does not call multiple times on the same chunk. Returns the
   // number of bytes not checked in this chunk.

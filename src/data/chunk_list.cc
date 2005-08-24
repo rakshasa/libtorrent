@@ -39,7 +39,7 @@
 #include "torrent/exceptions.h"
 
 #include "chunk_list.h"
-#include "storage_chunk.h"
+#include "chunk.h"
 
 namespace torrent {
 
@@ -56,6 +56,11 @@ ChunkList::resize(size_type s) {
     throw internal_error("ChunkList::resize(...) called on an non-empty object.");
 
   Base::resize(s);
+
+  int index = 0;
+
+  for (iterator itr = begin(), last = end(); itr != last; ++itr, ++index)
+    itr->set_index(index);
 }
 
 void
@@ -66,10 +71,8 @@ ChunkList::clear() {
   Base::clear();
 }
 
-// Don't use iterator here since we'd like to keep header
-// dependencies as low as possible.
 void
-ChunkList::insert(size_type index, StorageChunk* chunk) {
+ChunkList::insert(size_type index, Chunk* chunk) {
   ChunkListNode* node = &Base::at(index);
 
   if (node->is_valid())

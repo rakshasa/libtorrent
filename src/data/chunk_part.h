@@ -34,40 +34,34 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
+#define LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
 
-#include <algorithm>
-#include <unistd.h>
-
-#include "torrent/exceptions.h"
-#include "storage_chunk_part.h"
+#include "memory_chunk.h"
 
 namespace torrent {
 
-void
-StorageChunkPart::clear() {
-  m_chunk.unmap();
-  m_chunk.clear();
-}
+class ChunkPart {
+public:
+  ChunkPart(const MemoryChunk& c, uint32_t pos) : m_chunk(c), m_position(pos) {}
 
-uint32_t
-StorageChunkPart::incore_length(uint32_t pos) {
-  // Do we want to use this?
-  pos -= m_position;
+  bool                is_valid() const                      { return m_chunk.is_valid(); }
+  bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }
 
-  if (pos >= size())
-    throw internal_error("StorageChunkPart::incore_length(...) got invalid position");
+  void                clear();
 
-  int length = size() - pos;
-  int touched = m_chunk.pages_touched(pos, length);
-  char buf[touched];
+  MemoryChunk&        chunk()                               { return m_chunk; }
 
-  m_chunk.incore(buf, pos, length);
+  uint32_t            size() const                          { return m_chunk.size(); }
+  uint32_t            position() const                      { return m_position; }
 
-  int dist = std::distance(buf, std::find(buf, buf + touched, 0));
+  uint32_t            incore_length(uint32_t pos);
 
-  return std::min(dist ? (dist * m_chunk.page_size() - m_chunk.page_align()) : 0,
-		  size() - pos);
-}
+private:
+  MemoryChunk         m_chunk;
+  uint32_t            m_position;
+};
 
 }
+
+#endif

@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include "data/storage_chunk.h"
+#include "data/chunk.h"
 #include "net/socket_stream.h"
 #include "torrent/exceptions.h"
 
@@ -44,8 +44,43 @@
 
 namespace torrent {
 
+inline bool
+ProtocolChunk::read_part(SocketStream* sock, ChunkPart c, uint32_t& left) {
+  if (!c->chunk().is_valid())
+    throw internal_error("ProtocolChunk::read_part() did not get a valid chunk");
+  
+  uint32_t offset = chunk_offset(c);
+  uint32_t length = std::min(chunk_length(c, offset), left);
+
+  uint32_t done = sock->read_buf(c->chunk().begin() + offset, length);
+
+  m_position += done;
+  left -= done;
+
+  return done == length;
+}
+
+inline bool
+ProtocolChunk::write_part(SocketStream* sock, ChunkPart c, uint32_t& left) {
+  if (!c->chunk().is_valid())
+    throw internal_error("ProtocolChunk::write_part() did not get a valid chunk");
+  
+  uint32_t offset = chunk_offset(c);
+  uint32_t length = std::min(chunk_length(c, offset), left);
+
+  uint32_t done = sock->write_buf(c->chunk().begin() + offset, length);
+
+  m_position += done;
+  left -= done;
+
+  return done == length;
+}
+
 uint32_t
 ProtocolChunk::read(SocketStream* sock, uint32_t maxBytes) {
+  if (!m_chunk->chunk()->is_writable())
+    throw internal_error("ProtocolChunk::read_part() chunk not writable, permission denided");
+
   uint32_t left = maxBytes = std::min(maxBytes, m_piece.get_length() - m_position);
 
   ChunkPart c = chunk_part();
@@ -59,6 +94,9 @@ ProtocolChunk::read(SocketStream* sock, uint32_t maxBytes) {
 
 uint32_t
 ProtocolChunk::write(SocketStream* sock, uint32_t maxBytes) {
+  if (!m_chunk->chunk()->is_readable())
+    throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
+
   uint32_t left = maxBytes = std::min(maxBytes, m_piece.get_length() - m_position);
 
   ChunkPart c = chunk_part();
@@ -68,44 +106,6 @@ ProtocolChunk::write(SocketStream* sock, uint32_t maxBytes) {
       throw internal_error("ProtocolChunk::read() reached end of chunk part list");
 
   return maxBytes - left;
-}
-
-inline bool
-ProtocolChunk::read_part(SocketStream* sock, ChunkPart c, uint32_t& left) {
-  if (!c->get_chunk().is_valid())
-    throw internal_error("ProtocolChunk::read_part() did not get a valid chunk");
-  
-  if (!c->get_chunk().is_writable())
-    throw internal_error("ProtocolChunk::read_part() chunk not writable, permission denided");
-
-  uint32_t offset = chunk_offset(c);
-  uint32_t length = std::min(chunk_length(c, offset), left);
-
-  uint32_t done = sock->read_buf(c->get_chunk().begin() + offset, length);
-
-  m_position += done;
-  left -= done;
-
-  return done == length;
-}
-
-inline bool
-ProtocolChunk::write_part(SocketStream* sock, ChunkPart c, uint32_t& left) {
-  if (!c->get_chunk().is_valid())
-    throw internal_error("ProtocolChunk::write_part() did not get a valid chunk");
-  
-  if (!c->get_chunk().is_readable())
-    throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
-
-  uint32_t offset = chunk_offset(c);
-  uint32_t length = std::min(chunk_length(c, offset), left);
-
-  uint32_t done = sock->write_buf(c->get_chunk().begin() + offset, length);
-
-  m_position += done;
-  left -= done;
-
-  return done == length;
 }
 
 }

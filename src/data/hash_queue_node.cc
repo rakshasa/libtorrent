@@ -44,23 +44,13 @@ namespace torrent {
 
 uint32_t
 HashQueueNode::get_index() const {
-  return m_chunk->get_chunk()->chunk()->get_index();
+  return m_chunk->get_chunk()->index();
 }
 
 void
 HashQueueNode::clear() {
   delete m_chunk;
   m_chunk = NULL;
-}
-
-bool
-HashQueueNode::perform(bool force) {
-  if (!m_chunk->perform(m_chunk->remaining(), force))
-    return false;
-
-  m_slotDone(m_chunk->get_chunk(), m_chunk->get_hash());
-
-  return true;
 }
 
 uint32_t

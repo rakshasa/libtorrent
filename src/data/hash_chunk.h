@@ -38,7 +38,7 @@
 #define LIBTORRENT_HASH_CHUNK_H
 
 #include "utils/sha1.h"
-#include "storage_chunk.h"
+#include "chunk.h"
 
 namespace torrent {
 
@@ -66,8 +66,8 @@ public:
   uint32_t            remaining();
 
 private:
-  inline uint32_t     remaining_part(StorageChunk::iterator itr, uint32_t pos);
-  uint32_t            perform_part(StorageChunk::iterator itr, uint32_t length);
+  inline uint32_t     remaining_part(Chunk::iterator itr, uint32_t pos);
+  uint32_t            perform_part(Chunk::iterator itr, uint32_t length);
 
   uint32_t            m_position;
 
@@ -76,8 +76,8 @@ private:
 };
 
 inline uint32_t
-HashChunk::remaining_part(StorageChunk::iterator itr, uint32_t pos) {
-  return itr->size() - (pos - itr->get_position());
+HashChunk::remaining_part(Chunk::iterator itr, uint32_t pos) {
+  return itr->size() - (pos - itr->position());
 }
 
 }

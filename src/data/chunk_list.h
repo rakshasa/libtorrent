@@ -65,7 +65,7 @@ public:
 
   // Don't use iterator here since we'd like to keep header
   // dependencies as low as possible.
-  void                insert(size_type index, StorageChunk* chunk);
+  void                insert(size_type index, Chunk* chunk);
 
   ChunkListNode*      bind(size_type index);
   void                release(ChunkListNode* node);

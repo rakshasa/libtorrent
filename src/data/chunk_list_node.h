@@ -41,7 +41,7 @@
 
 namespace torrent {
 
-class StorageChunk;
+class Chunk;
 
 // ChunkNode can contain information like how long since it was last
 // used, last synced, last checked with mincore and how many
@@ -56,15 +56,19 @@ public:
 
   bool                is_valid() const               { return m_chunk; }
 
-  StorageChunk*       chunk() const                  { return m_chunk; }
-  void                set_chunk(StorageChunk* c)     { m_chunk = c; }
+  int                 index() const                  { return m_index; }
+  void                set_index(uint32_t idx)        { m_index = idx; }
+
+  Chunk*              chunk() const                  { return m_chunk; }
+  void                set_chunk(Chunk* c)     { m_chunk = c; }
 
   int                 references() const             { return m_references; }
   void                dec_references()               { m_references--; }
   void                inc_references()               { m_references++; }
 
 private:
-  StorageChunk*       m_chunk;
+  uint32_t            m_index;
+  Chunk*       m_chunk;
 
   int                 m_references;
 };

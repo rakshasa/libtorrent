@@ -44,6 +44,9 @@
 
 namespace torrent {
 
+class Chunk;
+class MemoryChunk;
+
 class EntryList : private std::vector<EntryListNode> {
 public:
   typedef std::vector<EntryListNode>                 Base;
@@ -84,11 +87,17 @@ public:
 
   EntryListNode*      get_node(uint32_t idx)                     { return &Base::front() + idx; }
 
+  Chunk*              create_chunk(off_t offset, uint32_t length, int prot);
+
+  iterator            at_position(iterator itr, off_t offset);
+
   void                slot_insert_filemeta(SlotFileMetaString s) { m_slotInsertFileMeta = s; }
   void                slot_erase_filemeta(SlotFileMeta s)        { m_slotEraseFileMeta = s; }
 
 private:
   static bool         open_file(const std::string& root, FileMeta* f, const Path& p, const Path& lastPath);
+
+  inline void         create_chunk_part(MemoryChunk& chunk, iterator itr, off_t offset, uint32_t length, int prot);
 
   off_t               m_size;
 

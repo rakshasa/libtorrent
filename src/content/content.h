@@ -44,10 +44,7 @@
 #include "utils/bitfield.h"
 #include "utils/task.h"
 
-#include "data/chunk_list.h"
 #include "data/entry_list.h"
-#include "data/memory_chunk.h"
-#include "data/piece.h"
 
 namespace torrent {
 
@@ -59,13 +56,21 @@ namespace torrent {
 // minus one of one file can be the start of one or more other file
 // ranges.
 
+class ChunkList;
+class ChunkListNode;
+class EntryList;
+class Path;
+class Piece;
+
 class Content {
 public:
-  typedef sigc::signal0<void>                        Signal;
+  typedef std::pair<uint32_t, uint32_t> Range;
+  typedef sigc::signal0<void>           Signal;
 
   // Hash done signal, hash failed signal++
   
   Content();
+  ~Content();
 
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
@@ -80,7 +85,7 @@ public:
 
   uint32_t               get_chunks_completed()               { return m_completed; }
 
-  off_t                  get_bytes_size() const               { return m_entryList.get_bytes_size(); }
+  off_t                  get_bytes_size() const               { return m_entryList->get_bytes_size(); }
   uint64_t               get_bytes_completed();
   
   uint32_t               get_chunk_total() const              { return (get_bytes_size() + m_chunkSize - 1) / m_chunkSize; }
@@ -94,11 +99,11 @@ public:
 
   BitField&              get_bitfield()                       { return m_bitfield; }
 
-  ChunkList*             chunk_list()                         { return &m_chunkList; }
-  const ChunkList*       chunk_list() const                   { return &m_chunkList; }
+  ChunkList*             chunk_list()                         { return m_chunkList; }
+  const ChunkList*       chunk_list() const                   { return m_chunkList; }
 
-  EntryList*             entry_list()                         { return &m_entryList; }
-  const EntryList*       entry_list() const                   { return &m_entryList; }
+  EntryList*             entry_list()                         { return m_entryList; }
+  const EntryList*       entry_list() const                   { return m_entryList; }
 
   bool                   is_open() const                      { return m_isOpen; }
   bool                   is_correct_size();
@@ -109,7 +114,7 @@ public:
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
 
   ChunkListNode*         get_chunk(uint32_t index, int prot);
-  void                   release_chunk(ChunkListNode* node)   { m_chunkList.release(node); }
+  void                   release_chunk(ChunkListNode* node);
 
   void                   open();
   void                   close();
@@ -123,18 +128,14 @@ public:
   void                   block_download_done(bool v)          { m_delayDownloadDone.get_slot().block(v); }
 
 private:
-  StorageChunk*       get_storage_chunk(uint32_t b, int prot);
-  MemoryChunk         get_storage_chunk_part(EntryList::iterator itr, off_t offset, uint32_t length, int prot);
-  
-  EntryList::iterator    mark_done_file(EntryList::iterator itr, uint32_t index);
-  EntryListNode::Range     make_index_range(uint64_t pos, uint64_t size) const;
+  Range                  make_index_range(uint64_t pos, uint64_t size) const;
 
   bool                   m_isOpen;
   uint32_t               m_completed;
   uint32_t               m_chunkSize;
 
-  ChunkList              m_chunkList;
-  EntryList              m_entryList;
+  ChunkList*             m_chunkList;
+  EntryList*             m_entryList;
 
   BitField               m_bitfield;
 
@@ -145,20 +146,9 @@ private:
   TaskItem               m_delayDownloadDone;
 };
 
-inline EntryList::iterator
-Content::mark_done_file(EntryList::iterator itr, uint32_t index) {
-  while (index >= itr->get_range().second) ++itr;
-  
-  do {
-    itr->set_completed(itr->get_completed() + 1);
-  } while (index + 1 == itr->get_range().second && ++itr != m_entryList.end());
-
-  return itr;
-}
-
-inline EntryListNode::Range
+inline Content::Range
 Content::make_index_range(uint64_t pos, uint64_t size) const {
-  return EntryListNode::Range(pos / m_chunkSize, (pos + size + m_chunkSize - 1) / m_chunkSize);
+  return Range(pos / m_chunkSize, (pos + size + m_chunkSize - 1) / m_chunkSize);
 }
 
 }

@@ -42,8 +42,10 @@
 
 #include "torrent/exceptions.h"
 
+#include "chunk.h"
 #include "file_meta.h"
 #include "entry_list.h"
+#include "memory_chunk.h"
 #include "path.h"
 
 namespace torrent {
@@ -122,6 +124,14 @@ EntryList::resize_all() {
   return true;
 }
 					   
+EntryList::iterator
+EntryList::at_position(iterator itr, off_t offset) {
+  while (itr != end() && offset >= itr->get_position() + itr->get_size())
+    ++itr;
+
+  return itr;
+}
+
 bool
 EntryList::open_file(const std::string& root, FileMeta* f, const Path& p, const Path& lastPath) {
   if (p.empty())
@@ -135,5 +145,48 @@ EntryList::open_file(const std::string& root, FileMeta* f, const Path& p, const 
     f->prepare(MemoryChunk::prot_read, File::o_create);
 }
 
+inline void
+EntryList::create_chunk_part(MemoryChunk& chunk, iterator itr, off_t offset, uint32_t length, int prot) {
+  offset -= itr->get_position();
+  length = std::min<off_t>(length, itr->get_size() - offset);
+
+  if (offset < 0)
+    throw internal_error("EntryList::get_chunk_part(...) caught a negative offset");
+
+  if (itr->file_meta()->prepare(prot))
+    chunk = itr->file_meta()->get_file().get_chunk(offset, length, prot, MemoryChunk::map_shared);
+  else
+    chunk.clear();
 }
 
+Chunk*
+EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
+  MemoryChunk mc;
+
+  if (offset + length > get_bytes_size())
+    throw internal_error("Tried to access chunk out of range in EntryList");
+
+  std::auto_ptr<Chunk> chunk(new Chunk);
+
+  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&EntryListNode::is_valid_position), offset)); length != 0; ++itr) {
+
+    if (itr == end())
+      throw internal_error("EntryList could not find a valid file for chunk");
+
+    if (itr->get_size() == 0)
+      continue;
+
+    create_chunk_part(mc, itr, offset, length, prot);
+
+    if (!mc.is_valid())
+      return NULL;
+
+    chunk->push_back(mc);
+    offset += mc.size();
+    length -= mc.size();
+  }
+
+  return !chunk->empty() ? chunk.release() : NULL;
+}
+
+}

@@ -34,35 +34,60 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
-#define LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
+#ifndef LIBTORRENT_STORAGE_CHUNK_H
+#define LIBTORRENT_STORAGE_CHUNK_H
 
-#include "memory_chunk.h"
+#include <vector>
+#include "chunk_part.h"
 
 namespace torrent {
 
-class StorageChunkPart {
+class Chunk : private std::vector<ChunkPart> {
 public:
-  StorageChunkPart(const MemoryChunk& c, uint32_t pos) : m_chunk(c), m_position(pos) {}
+  typedef std::vector<ChunkPart> Base;
 
-  bool                is_valid() const                      { return m_chunk.is_valid(); }
-  bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }
+  using Base::value_type;
 
-  bool                has_permissions(int prot) const       { return m_chunk.has_permissions(prot); }
+  using Base::iterator;
+  using Base::reverse_iterator;
+  using Base::size;
+  using Base::empty;
+
+  using Base::begin;
+  using Base::end;
+  using Base::rbegin;
+  using Base::rend;
+
+  Chunk() : m_size(0), m_prot(0) {}
+  ~Chunk() { clear(); }
+
+  bool                is_all_valid() const;
+
+  bool                is_readable() const             { return m_prot & MemoryChunk::prot_read; }
+  bool                is_writable() const             { return m_prot & MemoryChunk::prot_write; }
+  bool                has_permissions(int prot) const { return !(prot & ~m_prot); }
+
+  uint32_t            size()                          { return m_size; }
 
   void                clear();
-  uint32_t            size() const                          { return m_chunk.size(); }
 
-  MemoryChunk&        get_chunk()                           { return m_chunk; }
-  uint32_t            get_position() const                  { return m_position; }
+  iterator            at_position(uint32_t pos);
 
+  void                push_back(const MemoryChunk& c);
+
+  // Check how much of the chunk is incore from pos.
   uint32_t            incore_length(uint32_t pos);
 
 private:
-  MemoryChunk         m_chunk;
-  uint32_t            m_position;
+  Chunk(const Chunk&);
+  void operator = (const Chunk&);
+  
+  uint32_t            m_size;
+  int                 m_prot;
 };
 
 }
 
 #endif
+
+  

@@ -93,12 +93,15 @@ void
 PeerConnectionBase::load_read_chunk(const Piece& p) {
   m_readChunk.set_piece(p);
 
-  if (m_readChunk.get_chunk()->is_valid() && p.get_index() == m_readChunk.get_chunk()->chunk()->get_index())
-    return;
-
   if (!m_download->state()->get_content().is_valid_piece(p))
     throw internal_error("Incoming pieces list contains a bad piece");
   
+  if (m_readChunk.is_valid() && p.get_index() == m_readChunk.get_chunk()->index())
+    return;
+
+  if (m_readChunk.is_valid())
+    m_download->state()->get_content().release_chunk(m_readChunk.get_chunk());
+
   m_readChunk.set_chunk(m_download->state()->get_content().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
   
   if (!m_readChunk.get_chunk()->is_valid())

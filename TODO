@@ -8,6 +8,10 @@ max. Add notes to wiki.
 Don't store index etc in StorageChunk, ChunkListNode should be used
 all over the place.
 
+Move get_storage_chunk to entry_list.
+
+Confusing read/write chunk in PCB, use in/out?
+
 Remember to do proper cleanup when removing hashing's from the queue.
 
 Change all get_chunk(...)'s to check for only is_valid, not NULL?

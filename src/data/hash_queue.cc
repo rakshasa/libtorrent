@@ -39,7 +39,7 @@
 #include "torrent/exceptions.h"
 #include "hash_queue.h"
 #include "hash_chunk.h"
-#include "storage_chunk.h"
+#include "chunk.h"
 #include "chunk_list_node.h"
 
 namespace torrent {
@@ -130,7 +130,7 @@ HashQueue::work() {
   if (!check(++m_tries >= m_maxTries))
     return taskScheduler.insert(&m_taskWork, Timer::cache() + m_interval);
 
-  if (!empty())
+  if (!empty() && !taskScheduler.is_scheduled(&m_taskWork))
     taskScheduler.insert(&m_taskWork, Timer::cache());
 
   m_tries = std::min(0, m_tries - 2);
@@ -143,7 +143,13 @@ HashQueue::check(bool force) {
     return false;
   }
 
-  pop_front();
+  HashChunk* chunk                 = Base::front().get_chunk();
+  HashQueueNode::SlotDone slotDone = Base::front().slot_done();
+
+  Base::pop_front();
+
+  slotDone(chunk->get_chunk(), chunk->get_hash());
+  delete chunk;
 
   // This should be a few chunks ahead.
   if (!empty())
