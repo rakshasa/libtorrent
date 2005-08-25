@@ -48,8 +48,6 @@
 
 namespace torrent {
 
-class DownloadState;
-
 class Delegator {
 public:
   typedef std::vector<DelegatorChunk*>        Chunks;

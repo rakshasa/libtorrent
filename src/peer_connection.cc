@@ -92,7 +92,7 @@ PeerConnection::~PeerConnection() {
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
   if (m_read->get_state() != ProtocolRead::BITFIELD)
-    m_download->state()->get_bitfield_counter().dec(m_bitfield.get_bitfield());
+    m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
   taskScheduler.erase(&m_taskSendChoke);
 
@@ -144,7 +144,7 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadMain* download)
     throw internal_error("PeerConnection set recived bad input");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitFieldExt(m_download->state()->get_chunk_total());
+  m_bitfield = BitFieldExt(m_download->content()->get_chunk_total());
 
   if (m_bitfield.begin() == NULL)
     throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
@@ -157,8 +157,8 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadMain* download)
   m_write->get_buffer().reset_position();
   m_read->get_buffer().reset_position();
 
-  if (!m_download->state()->get_content().get_bitfield().all_zero()) {
-    m_write->write_bitfield(m_download->state()->get_content().get_bitfield().size_bytes());
+  if (!m_download->content()->get_bitfield().all_zero()) {
+    m_write->write_bitfield(m_download->content()->get_bitfield().size_bytes());
 
     m_write->get_buffer().prepare_end();
     m_write->set_state(ProtocolWrite::MSG);
@@ -307,7 +307,7 @@ void PeerConnection::event_read() {
     if (!m_bitfield.all_zero() && m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
       m_write->set_interested(m_sendInterested = true);
       
-    } else if (m_bitfield.all_set() && m_download->state()->get_content().is_done()) {
+    } else if (m_bitfield.all_set() && m_download->content()->is_done()) {
       // Both sides are done so we might as well close the connection.
       m_read->set_state(ProtocolRead::INTERNAL_ERROR);
       m_write->set_state(ProtocolWrite::INTERNAL_ERROR);
@@ -315,7 +315,7 @@ void PeerConnection::event_read() {
     }
 
     m_read->set_state(ProtocolRead::IDLE);
-    m_download->state()->get_bitfield_counter().inc(m_bitfield.get_bitfield());
+    m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
     pollCustom->insert_write(this);
     goto evil_goto_read;
@@ -397,7 +397,7 @@ void PeerConnection::event_read() {
     m_download->connection_list()->erase(this);
 
   } catch (storage_error& e) {
-    m_download->state()->signal_storage_error().emit(e.what());
+    m_download->signal_storage_error().emit(e.what());
     m_download->connection_list()->erase(this);
 
   } catch (base_error& e) {
@@ -449,9 +449,9 @@ void PeerConnection::event_write() {
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
       if (m_writeChunk.is_valid())
-	m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+	m_download->content()->release_chunk(m_writeChunk.get_chunk());
 
-      m_writeChunk.set_chunk(m_download->state()->get_content().get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
+      m_writeChunk.set_chunk(m_download->content()->get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
       m_writeChunk.set_position(0);
       m_write->set_state(ProtocolWrite::WRITE_PIECE);
 
@@ -468,10 +468,10 @@ void PeerConnection::event_write() {
     }
 
   case ProtocolWrite::WRITE_BITFIELD:
-    m_write->adjust_position(write_buf(m_download->state()->get_content().get_bitfield().begin() + m_write->get_position(),
-				      m_download->state()->get_content().get_bitfield().size_bytes() - m_write->get_position()));
+    m_write->adjust_position(write_buf(m_download->content()->get_bitfield().begin() + m_write->get_position(),
+				      m_download->content()->get_bitfield().size_bytes() - m_write->get_position()));
 
-    if (m_write->get_position() == m_download->state()->get_content().get_bitfield().size_bytes())
+    if (m_write->get_position() == m_download->content()->get_bitfield().size_bytes())
       m_write->set_state(ProtocolWrite::IDLE);
 
     return;
@@ -484,7 +484,7 @@ void PeerConnection::event_write() {
       return;
 
     if (m_sendList.empty()) {
-      m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+      m_download->content()->release_chunk(m_writeChunk.get_chunk());
       m_writeChunk.set_chunk(NULL);
     }
 
@@ -505,7 +505,7 @@ void PeerConnection::event_write() {
     m_download->connection_list()->erase(this);
 
   } catch (storage_error& e) {
-    m_download->state()->signal_storage_error().emit(e.what());
+    m_download->signal_storage_error().emit(e.what());
     m_download->connection_list()->erase(this);
 
   } catch (base_error& e) {
@@ -607,7 +607,7 @@ void PeerConnection::fillWriteBuf() {
 	m_sendList.clear();
 
 	if (m_writeChunk.is_valid()) {
-	  m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+	  m_download->content()->release_chunk(m_writeChunk.get_chunk());
 	  m_writeChunk.set_chunk(NULL);
 	}
 
@@ -662,8 +662,8 @@ void PeerConnection::fillWriteBuf() {
     m_writeChunk.set_piece(m_sendList.front());
 
     // Move these checks somewhere else?
-    if (!m_download->state()->get_content().is_valid_piece(m_writeChunk.get_piece()) ||
-	!m_download->state()->get_content().has_chunk(m_writeChunk.get_piece().get_index())) {
+    if (!m_download->content()->is_valid_piece(m_writeChunk.get_piece()) ||
+	!m_download->content()->has_chunk(m_writeChunk.get_piece().get_index())) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index or length/offset: "
@@ -682,7 +682,7 @@ void
 PeerConnection::receive_have_chunk(int32_t index) {
   m_haveQueue.push_back(index);
 
-  if (m_download->state()->get_content().is_done()) {
+  if (m_download->content()->is_done()) {
     // We're done downloading.
 
     if (m_bitfield.all_set()) {
@@ -717,7 +717,7 @@ PeerConnection::send_request_piece() {
   if (p == NULL)
     return false;
 
-  if (!m_download->state()->get_content().is_valid_piece(*p) || !m_bitfield[p->get_index()])
+  if (!m_download->content()->is_valid_piece(*p) || !m_bitfield[p->get_index()])
     throw internal_error("PeerConnection::send_request_piece() tried to use an invalid piece");
 
   m_write->write_request(*p);
@@ -752,11 +752,11 @@ PeerConnection::receive_have(uint32_t index) {
     return;
 
   m_bitfield.set(index, true);
-  m_download->state()->get_bitfield_counter().inc(index);
+  m_download->get_bitfield_counter().inc(index);
 
-  m_peerRate.insert(m_download->state()->get_content().get_chunk_size());
+  m_peerRate.insert(m_download->content()->get_chunk_size());
     
-  if (m_download->state()->get_content().is_done())
+  if (m_download->content()->is_done())
     return;
 
   if (!m_write->get_interested() && m_download->delegator()->get_select().interested(index)) {

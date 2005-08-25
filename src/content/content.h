@@ -85,10 +85,10 @@ public:
 
   uint32_t               get_chunks_completed()               { return m_completed; }
 
-  off_t                  get_bytes_size() const               { return m_entryList->get_bytes_size(); }
+//   off_t                  get_bytes_size() const               { return m_entryList->get_bytes_size(); }
   uint64_t               get_bytes_completed();
   
-  uint32_t               get_chunk_total() const              { return (get_bytes_size() + m_chunkSize - 1) / m_chunkSize; }
+  uint32_t               get_chunk_total() const              { return (m_entryList->get_bytes_size() + m_chunkSize - 1) / m_chunkSize; }
 
   uint32_t               get_chunk_size() const               { return m_chunkSize; }
   void                   set_chunk_size(uint32_t s)           { m_chunkSize = s; }

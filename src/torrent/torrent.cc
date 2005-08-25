@@ -371,7 +371,7 @@ download_add(std::istream* s) {
     throw input_error("Could not create download, failed to parse the bencoded data");
   
   parse_main(d->get_bencode(), d.get());
-  parse_info(d->get_bencode()["info"], d->get_main().state()->get_content());
+  parse_info(d->get_bencode()["info"], *d->get_main().content());
 
   d->initialize(d->get_bencode()["info"].compute_sha1(),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),

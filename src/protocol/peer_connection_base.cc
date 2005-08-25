@@ -69,10 +69,10 @@ PeerConnectionBase::~PeerConnectionBase() {
     m_requestList.skip();
 
   if (m_readChunk.get_chunk() != NULL)
-    m_download->state()->get_content().release_chunk(m_readChunk.get_chunk());
+    m_download->content()->release_chunk(m_readChunk.get_chunk());
 
   if (m_writeChunk.get_chunk() != NULL)
-    m_download->state()->get_content().release_chunk(m_writeChunk.get_chunk());
+    m_download->content()->release_chunk(m_writeChunk.get_chunk());
 
   m_readChunk.set_chunk(NULL);
   m_writeChunk.set_chunk(NULL);
@@ -93,16 +93,16 @@ void
 PeerConnectionBase::load_read_chunk(const Piece& p) {
   m_readChunk.set_piece(p);
 
-  if (!m_download->state()->get_content().is_valid_piece(p))
+  if (!m_download->content()->is_valid_piece(p))
     throw internal_error("Incoming pieces list contains a bad piece");
   
   if (m_readChunk.is_valid() && p.get_index() == m_readChunk.get_chunk()->index())
     return;
 
   if (m_readChunk.is_valid())
-    m_download->state()->get_content().release_chunk(m_readChunk.get_chunk());
+    m_download->content()->release_chunk(m_readChunk.get_chunk());
 
-  m_readChunk.set_chunk(m_download->state()->get_content().get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
+  m_readChunk.set_chunk(m_download->content()->get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write));
   
   if (!m_readChunk.get_chunk()->is_valid())
     throw storage_error("Could not create a valid chunk");

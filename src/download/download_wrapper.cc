@@ -65,10 +65,10 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.tracker_manager()->tracker_info()->set_key(random());
 
   // Info hash must be calculate from here on.
-  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), &m_main.state()->get_content()));
+  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), m_main.content()));
 
   // Connect various signals and slots.
-  m_hash->signal_chunk().connect(sigc::mem_fun(*m_main.state(), &DownloadState::receive_hash_done));
+  m_hash->signal_chunk().connect(sigc::mem_fun(m_main, &DownloadMain::receive_hash_done));
   m_hash->signal_torrent().connect(sigc::mem_fun(m_main, &DownloadMain::receive_initial_hash));
 }
 
@@ -79,8 +79,6 @@ DownloadWrapper::hash_resume_load() {
 
   if (!m_bencode.has_key("libtorrent resume"))
     return;
-
-  Content& content = m_main.state()->get_content();
 
   try {
     Bencode& resume  = m_bencode["libtorrent resume"];
@@ -98,20 +96,20 @@ DownloadWrapper::hash_resume_load() {
 
     Bencode& files = resume["files"];
 
-    if (resume["bitfield"].as_string().size() != content.get_bitfield().size_bytes() ||
-	files.as_list().size() != content.entry_list()->get_files_size())
+    if (resume["bitfield"].as_string().size() != m_main.content()->get_bitfield().size_bytes() ||
+	files.as_list().size() != m_main.content()->entry_list()->get_files_size())
       return;
 
     // Clear the hash checking ranges, and add the files ranges we must check.
     m_hash->get_ranges().clear();
 
-    std::memcpy(content.get_bitfield().begin(), resume["bitfield"].as_string().c_str(), content.get_bitfield().size_bytes());
+    std::memcpy(m_main.content()->get_bitfield().begin(), resume["bitfield"].as_string().c_str(), m_main.content()->get_bitfield().size_bytes());
 
     Bencode::List::iterator bItr = files.as_list().begin();
-    EntryList::iterator sItr = content.entry_list()->begin();
+    EntryList::iterator sItr = m_main.content()->entry_list()->begin();
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
-    while (sItr != content.entry_list()->end()) {
+    while (sItr != m_main.content()->entry_list()->end()) {
       FileStat fs;
 
       // Check that the size and modified stamp matches. If not, then
@@ -136,14 +134,14 @@ DownloadWrapper::hash_resume_load() {
     }  
 
   } catch (bencode_error e) {
-    m_hash->get_ranges().insert(0, m_main.state()->get_chunk_total());
+    m_hash->get_ranges().insert(0, m_main.content()->get_chunk_total());
   }
 
   // Clear bits in invalid regions which will be checked by m_hash.
   for (Ranges::iterator itr = m_hash->get_ranges().begin(); itr != m_hash->get_ranges().end(); ++itr)
-    content.get_bitfield().set(itr->first, itr->second, false);
+    m_main.content()->get_bitfield().set(itr->first, itr->second, false);
 
-  content.update_done();
+  m_main.content()->update_done();
 }
 
 // Break this function up into several smaller functions to make it
@@ -161,21 +159,20 @@ DownloadWrapper::hash_resume_save() {
   // Clear the resume data since if the syncing fails we propably don't
   // want the old resume data.
   Bencode& resume = m_bencode.insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
-  Content& content = m_main.state()->get_content();
 
   // We're guaranteed that file modification time is correctly updated
   // after this. Though won't help if the files have been delete while
   // we had them open.
-  content.entry_list()->sync_all();
+  m_main.content()->entry_list()->sync_all();
 
-  resume.insert_key("bitfield", std::string((char*)content.get_bitfield().begin(), content.get_bitfield().size_bytes()));
+  resume.insert_key("bitfield", std::string((char*)m_main.content()->get_bitfield().begin(), m_main.content()->get_bitfield().size_bytes()));
 
   Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
 
-  EntryList::iterator sItr = content.entry_list()->begin();
+  EntryList::iterator sItr = m_main.content()->entry_list()->begin();
   
   // Check the validity of each file, add to the m_hash's ranges if invalid.
-  while (sItr != content.entry_list()->end()) {
+  while (sItr != m_main.content()->entry_list()->end()) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
     FileStat fs;
@@ -212,7 +209,7 @@ DownloadWrapper::open() {
     return;
 
   m_main.open();
-  m_hash->get_ranges().insert(0, m_main.state()->get_chunk_total());
+  m_hash->get_ranges().insert(0, m_main.content()->get_chunk_total());
 }
 
 void
@@ -246,8 +243,8 @@ DownloadWrapper::get_local_address() {
 
 void
 DownloadWrapper::set_file_manager(FileManager* f) {
-  m_main.state()->get_content().entry_list()->slot_insert_filemeta(sigc::mem_fun(*f, &FileManager::insert));
-  m_main.state()->get_content().entry_list()->slot_erase_filemeta(sigc::mem_fun(*f, &FileManager::erase));
+  m_main.content()->entry_list()->slot_insert_filemeta(sigc::mem_fun(*f, &FileManager::insert));
+  m_main.content()->entry_list()->slot_erase_filemeta(sigc::mem_fun(*f, &FileManager::erase));
 }
 
 void
@@ -260,9 +257,9 @@ void
 DownloadWrapper::set_hash_queue(HashQueue* h) {
   m_hash->set_queue(h);
 
-  m_main.state()->slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::push_back),
-						    sigc::mem_fun(*m_main.state(), &DownloadState::receive_hash_done),
-						    get_hash()));
+  m_main.slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::push_back),
+					sigc::mem_fun(m_main, &DownloadMain::receive_hash_done),
+					get_hash()));
 }
 
 void

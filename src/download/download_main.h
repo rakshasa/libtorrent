@@ -42,15 +42,17 @@
 #include "available_list.h"
 #include "choke_manager.h"
 #include "connection_list.h"
-#include "download_state.h"
 
+#include "content/content.h"
 #include "content/delegator.h"
 #include "protocol/peer_info.h"
+#include "utils/bitfield_counter.h"
 #include "utils/task.h"
 #include "torrent/rate.h"
 
 namespace torrent {
 
+class ChunkListNode;
 class TrackerManager;
 
 class DownloadMain {
@@ -64,26 +66,27 @@ public:
   void                start();
   void                stop();
 
-  bool                is_open() const                            { return m_state.get_content().is_open(); }
+  bool                is_open() const                            { return m_content.is_open(); }
   bool                is_active() const                          { return m_started; }
   bool                is_checked() const                         { return m_checked; }
-
-  DownloadState*      state()                                    { return &m_state; }
 
   ChokeManager*       choke_manager()                            { return &m_chokeManager; }
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
+  Content*            content()                                  { return &m_content; }
   Delegator*          delegator()                                { return &m_delegator; }
 
   AvailableList*      available_list()                           { return &m_availableList; }
   ConnectionList*     connection_list()                          { return &m_connectionList; }
 
   bool                get_endgame() const                        { return m_endgame; }
-  void                set_endgame(bool b);
+  uint64_t            get_bytes_left();
 
   Rate&               get_write_rate()                           { return m_writeRate; }
   Rate&               get_read_rate()                            { return m_readRate; }
+
+  BitFieldCounter&    get_bitfield_counter()                     { return m_bitfieldCounter; }
 
   // Carefull with these.
   void                setup_delegator();
@@ -94,17 +97,31 @@ public:
   void                choke_cycle();
   int                 size_unchoked();
 
-  void                receive_connect_peers();
-  void                receive_initial_hash();
-
   typedef sigc::signal1<void, const std::string&>                SignalString;
+  typedef sigc::signal1<void, uint32_t>                          SignalChunk;
   typedef sigc::slot1<void, const SocketAddress&>                SlotStartHandshake;
   typedef sigc::slot0<uint32_t>                                  SlotCountHandshakes;
+  typedef sigc::slot1<void, ChunkListNode*>                      SlotHashCheckAdd;
 
   SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
+  SignalString&       signal_storage_error()                     { return m_signalStorageError; }
+
+  SignalChunk&        signal_chunk_passed()                      { return m_signalChunkPassed; }
+  SignalChunk&        signal_chunk_failed()                      { return m_signalChunkFailed; }
 
   void                slot_start_handshake(SlotStartHandshake s)   { m_slotStartHandshake = s; }
   void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
+  void                slot_hash_check_add(SlotHashCheckAdd s)      { m_slotHashCheckAdd = s; }
+
+  void                receive_connect_peers();
+  void                receive_initial_hash();
+
+  void                receive_choke_cycle();
+  void                receive_chunk_done(unsigned int index);
+  void                receive_hash_done(ChunkListNode* node, std::string h);
+
+  void                receive_tracker_success();
+  void                receive_tracker_request();
 
 private:
   // Disable copy ctor and assignment.
@@ -114,15 +131,12 @@ private:
   void                setup_start();
   void                setup_stop();
 
-  void                receive_choke_cycle();
-
-  void                receive_tracker_success();
-  void                receive_tracker_request();
-
-  DownloadState       m_state;
+  void                update_endgame();
 
   TrackerManager*     m_trackerManager;
   ChokeManager        m_chokeManager;
+
+  Content             m_content;
   Delegator           m_delegator;
 
   AvailableList       m_availableList;
@@ -136,13 +150,21 @@ private:
   Rate                m_writeRate;
   Rate                m_readRate;
 
+  BitFieldCounter     m_bitfieldCounter;
+
   sigc::connection    m_connectionChunkPassed;
   sigc::connection    m_connectionChunkFailed;
   sigc::connection    m_connectionAddAvailablePeers;
 
   SignalString        m_signalNetworkLog;
+  SignalString        m_signalStorageError;
+
+  SignalChunk         m_signalChunkPassed;
+  SignalChunk         m_signalChunkFailed;
+
   SlotStartHandshake  m_slotStartHandshake;
   SlotCountHandshakes m_slotCountHandshakes;
+  SlotHashCheckAdd    m_slotHashCheckAdd;
 
   TaskItem            m_taskChokeCycle;
   TaskItem            m_taskTrackerRequest;

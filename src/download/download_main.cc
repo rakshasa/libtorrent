@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <cstring>
 #include <limits>
 #include <sigc++/signal.h>
 
@@ -60,7 +61,7 @@ DownloadMain::DownloadMain() :
   m_writeRate(60),
   m_readRate(60) {
 
-  m_state.get_content().block_download_done(true);
+  m_content.block_download_done(true);
 
   m_taskChokeCycle.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_choke_cycle));
   m_taskChokeCycle.set_iterator(taskScheduler.end());
@@ -82,10 +83,10 @@ DownloadMain::open() {
   if (is_open())
     throw internal_error("Tried to open a download that is already open");
 
-  m_state.get_content().open();
-  m_state.get_bitfield_counter().create(m_state.get_chunk_total());
+  m_content.open();
+  m_bitfieldCounter.create(m_content.get_chunk_total());
 
-  m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_state.get_chunk_total());
+  m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_content.get_chunk_total());
 }
 
 void
@@ -96,12 +97,12 @@ DownloadMain::close() {
   m_checked = false;
 
   m_trackerManager->close();
-  m_state.get_content().close();
+  m_content.close();
   m_delegator.clear();
 }
 
 void DownloadMain::start() {
-  if (!m_state.get_content().is_open())
+  if (!m_content.is_open())
     throw client_error("Tried to start a closed download");
 
   if (!is_checked())
@@ -147,10 +148,26 @@ DownloadMain::stop() {
   setup_stop();
 }
 
+uint64_t
+DownloadMain::get_bytes_left() {
+  uint64_t left = m_content.entry_list()->get_bytes_size() - m_content.get_bytes_completed();
+
+  if (left > ((uint64_t)1 << 60))
+    throw internal_error("DownloadMain::get_bytes_left() is too large"); 
+
+  if (m_content.get_chunks_completed() == m_content.get_chunk_total() && left != 0)
+    throw internal_error("DownloadMain::get_bytes_left() has an invalid size"); 
+
+  return left;
+}
+
 void
-DownloadMain::set_endgame(bool b) {
-  m_endgame = b;
-  m_delegator.set_aggressive(b);
+DownloadMain::update_endgame() {
+  if (!m_endgame &&
+      m_content.get_chunks_completed() + m_delegator.get_chunks().size() + 0 >= m_content.get_chunk_total()) {
+    m_endgame = true;
+    m_delegator.set_aggressive(true);
+  }
 }
 
 void
@@ -158,6 +175,35 @@ DownloadMain::receive_choke_cycle() {
   taskScheduler.insert(&m_taskChokeCycle, (Timer::cache() + 30 * 1000000).round_seconds());
   choke_cycle();
 }
+
+void
+DownloadMain::receive_chunk_done(unsigned int index) {
+  ChunkListNode* node = m_content.get_chunk(index, MemoryChunk::prot_read);
+
+  if (node == NULL)
+    throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");
+
+  m_slotHashCheckAdd(node);
+}
+
+void
+DownloadMain::receive_hash_done(ChunkListNode* node, std::string h) {
+  if (!node->is_valid())
+    throw internal_error("DownloadMain::receive_hash_done(...) called on an invalid chunk.");
+
+  if (!h.empty() && std::memcmp(h.c_str(), m_content.get_hash_c(node->index()), 20) == 0) {
+
+    m_content.mark_done(node->index());
+    m_signalChunkPassed.emit(node->index());
+
+    update_endgame();
+
+  } else {
+    m_signalChunkFailed.emit(node->index());
+  }
+
+  m_content.release_chunk(node);
+}  
 
 void
 DownloadMain::receive_connect_peers() {
@@ -180,7 +226,7 @@ DownloadMain::receive_initial_hash() {
     throw internal_error("DownloadMain::receive_initial_hash() called but m_checked == true");
 
   m_checked = true;
-  m_state.get_content().resize();
+  m_content.resize();
 }    
 
 void

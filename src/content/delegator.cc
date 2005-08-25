@@ -41,7 +41,6 @@
 
 #include "torrent/exceptions.h"
 #include "content/delegator_reservee.h"
-#include "download/download_state.h"
 
 #include "delegator.h"
 

@@ -72,7 +72,7 @@ Content::add_file(const Path& path, uint64_t size) {
   if (is_open())
     throw internal_error("Tried to add file to Content that is open");
 
-  m_entryList->push_back(path, make_index_range(get_bytes_size(), size), size);
+  m_entryList->push_back(path, make_index_range(m_entryList->get_bytes_size(), size), size);
 }
 
 void
@@ -107,10 +107,10 @@ Content::get_chunk_index_size(uint32_t index) const {
   if (m_chunkSize == 0 || index >= get_chunk_total())
     throw internal_error("Content::get_chunksize(...) called but we borked");
 
-  if (index + 1 != get_chunk_total() || get_bytes_size() % m_chunkSize == 0)
+  if (index + 1 != get_chunk_total() || m_entryList->get_bytes_size() % m_chunkSize == 0)
     return m_chunkSize;
   else
-    return get_bytes_size() % m_chunkSize;
+    return m_entryList->get_bytes_size() % m_chunkSize;
 }
 
 uint64_t
@@ -120,12 +120,12 @@ Content::get_bytes_completed() {
 
   uint64_t cs = m_chunkSize;
 
-  if (!m_bitfield[get_chunk_total() - 1] || get_bytes_size() % cs == 0)
+  if (!m_bitfield[get_chunk_total() - 1] || m_entryList->get_bytes_size() % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
     return m_completed * cs;
 
   else
-    return (m_completed - 1) * cs + get_bytes_size() % cs;
+    return (m_completed - 1) * cs + m_entryList->get_bytes_size() % cs;
 }
 
 bool

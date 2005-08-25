@@ -55,17 +55,17 @@ EntryList::push_back(const Path& path, const EntryListNode::Range& range, off_t 
   if (sizeof(off_t) != 8)
     throw internal_error("sizeof(off_t) != 8");
 
-  if (size + m_size < m_size)
+  if (size + m_bytesSize < m_bytesSize)
     throw internal_error("Sum of files added to EntryList overflowed 64bit");
 
   Base::push_back(EntryListNode());
-  back().set_position(m_size);
+  back().set_position(m_bytesSize);
   back().set_size(size);
   back().set_range(range);
 
   *back().path() = path;
 
-  m_size += size;
+  m_bytesSize += size;
 }
 
 void
@@ -73,7 +73,7 @@ EntryList::clear() {
   close();
 
   Base::clear();
-  m_size = 0;
+  m_bytesSize = 0;
 }
 
 void
@@ -163,7 +163,7 @@ Chunk*
 EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
   MemoryChunk mc;
 
-  if (offset + length > get_bytes_size())
+  if (offset + length > m_bytesSize)
     throw internal_error("Tried to access chunk out of range in EntryList");
 
   std::auto_ptr<Chunk> chunk(new Chunk);

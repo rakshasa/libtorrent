@@ -12,8 +12,6 @@ libsub_download_la_SOURCES = \
 	download_manager.cc \
 	download_manager.h \
 	download_setup.cc \
-	download_state.cc \
-	download_state.h \
 	download_wrapper.cc \
 	download_wrapper.h
 

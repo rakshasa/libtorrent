@@ -153,7 +153,7 @@ Download::get_bencode() const {
 
 std::string
 Download::get_root_dir() const {
-  return m_ptr->get_main().state()->get_content().get_root_dir();
+  return m_ptr->get_main().content()->get_root_dir();
 }
 
 void
@@ -161,7 +161,7 @@ Download::set_root_dir(const std::string& dir) {
   if (is_open())
     throw client_error("Tried to call Download::set_root_dir(...) on an open download");
 
-  m_ptr->get_main().state()->get_content().set_root_dir(dir);
+  m_ptr->get_main().content()->set_root_dir(dir);
 }
 
 const Rate&
@@ -185,37 +185,37 @@ Download::get_bytes_done() const {
       if (itr2->is_finished())
 	a += itr2->get_piece().get_length();
   
-  return a + m_ptr->get_main().state()->get_content().get_bytes_completed();
+  return a + m_ptr->get_main().content()->get_bytes_completed();
 }
 
 uint64_t
 Download::get_bytes_total() const {
-  return m_ptr->get_main().state()->get_content().get_bytes_size();
+  return m_ptr->get_main().content()->entry_list()->get_bytes_size();
 }
 
 uint32_t
 Download::get_chunks_size() const {
-  return m_ptr->get_main().state()->get_content().get_chunk_size();
+  return m_ptr->get_main().content()->get_chunk_size();
 }
 
 uint32_t
 Download::get_chunks_done() const {
-  return m_ptr->get_main().state()->get_content().get_chunks_completed();
+  return m_ptr->get_main().content()->get_chunks_completed();
 }
 
 uint32_t 
 Download::get_chunks_total() const {
-  return m_ptr->get_main().state()->get_chunk_total();
+  return m_ptr->get_main().content()->get_chunk_total();
 }
 
 const unsigned char*
 Download::get_bitfield_data() const {
-  return (unsigned char*)m_ptr->get_main().state()->get_content().get_bitfield().begin();
+  return (unsigned char*)m_ptr->get_main().content()->get_bitfield().begin();
 }
 
 uint32_t
 Download::get_bitfield_size() const {
-  return m_ptr->get_main().state()->get_content().get_bitfield().size_bits();
+  return m_ptr->get_main().content()->get_bitfield().size_bits();
 }
 
 uint32_t
@@ -323,20 +323,20 @@ Download::tracker_manual_request(bool force) {
 
 Entry
 Download::get_entry(uint32_t index) {
-  if (index >= m_ptr->get_main().state()->get_content().entry_list()->get_files_size())
+  if (index >= m_ptr->get_main().content()->entry_list()->get_files_size())
     throw client_error("Client called Download::get_entry(...) with out of range index");
 
-  return m_ptr->get_main().state()->get_content().entry_list()->get_node(index);
+  return m_ptr->get_main().content()->entry_list()->get_node(index);
 }
 
 uint32_t
 Download::get_entry_size() const {
-  return m_ptr->get_main().state()->get_content().entry_list()->get_files_size();
+  return m_ptr->get_main().content()->entry_list()->get_files_size();
 }
 
 const Download::SeenVector&
 Download::get_seen() const {
-  return m_ptr->get_main().state()->get_bitfield_counter().field();
+  return m_ptr->get_main().get_bitfield_counter().field();
 }
 
 void
@@ -350,15 +350,15 @@ Download::set_connection_type(const std::string& name) {
 void
 Download::update_priorities() {
   Priority& p = m_ptr->get_main().delegator()->get_select().get_priority();
-  Content& content = m_ptr->get_main().state()->get_content();
+  Content* content = m_ptr->get_main().content();
 
   p.clear();
 
   uint64_t pos = 0;
-  unsigned int cs = content.get_chunk_size();
+  unsigned int cs = content->get_chunk_size();
 
-  for (EntryList::iterator itr = content.entry_list()->begin();
-       itr != content.entry_list()->end(); ++itr) {
+  for (EntryList::iterator itr = content->entry_list()->begin();
+       itr != content->entry_list()->end(); ++itr) {
     unsigned int s = pos / cs;
     unsigned int e = itr->get_size() ? (pos + itr->get_size() + cs - 1) / cs : s;
 
@@ -394,7 +394,7 @@ Download::peer_find(const std::string& id) {
 
 sigc::connection
 Download::signal_download_done(Download::SlotVoid s) {
-  return m_ptr->get_main().state()->get_content().signal_download_done().connect(s);
+  return m_ptr->get_main().content()->signal_download_done().connect(s);
 }
 
 sigc::connection
@@ -429,12 +429,12 @@ Download::signal_tracker_dump(Download::SlotIStream s) {
 
 sigc::connection
 Download::signal_chunk_passed(Download::SlotChunk s) {
-  return m_ptr->get_main().state()->signal_chunk_passed().connect(s);
+  return m_ptr->get_main().signal_chunk_passed().connect(s);
 }
 
 sigc::connection
 Download::signal_chunk_failed(Download::SlotChunk s) {
-  return m_ptr->get_main().state()->signal_chunk_failed().connect(s);
+  return m_ptr->get_main().signal_chunk_failed().connect(s);
 }
 
 sigc::connection
@@ -444,7 +444,7 @@ Download::signal_network_log(SlotString s) {
 
 sigc::connection
 Download::signal_storage_error(SlotString s) {
-  return m_ptr->get_main().state()->signal_storage_error().connect(s);
+  return m_ptr->get_main().signal_storage_error().connect(s);
 }
 
 }

@@ -67,7 +67,7 @@ public:
   using Base::empty;
   using Base::reserve;
 
-  EntryList() : m_size(0) {}
+  EntryList() : m_bytesSize(0) {}
   ~EntryList() { clear(); }
 
   // We take over ownership of 'file'.
@@ -83,7 +83,7 @@ public:
   bool                resize_all();
 
   size_t              get_files_size() const                     { return Base::size(); }
-  off_t               get_bytes_size() const                     { return m_size; }
+  off_t               get_bytes_size() const                     { return m_bytesSize; }
 
   EntryListNode*      get_node(uint32_t idx)                     { return &Base::front() + idx; }
 
@@ -99,7 +99,7 @@ private:
 
   inline void         create_chunk_part(MemoryChunk& chunk, iterator itr, off_t offset, uint32_t length, int prot);
 
-  off_t               m_size;
+  off_t               m_bytesSize;
 
   SlotFileMetaString  m_slotInsertFileMeta;
   SlotFileMeta        m_slotEraseFileMeta;

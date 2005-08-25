@@ -49,21 +49,17 @@ namespace torrent {
 
 void
 DownloadMain::setup_delegator() {
-  m_delegator.get_select().set_bitfield(&m_state.get_content().get_bitfield());
-  m_delegator.get_select().set_seen(&m_state.get_bitfield_counter());
+  m_delegator.get_select().set_bitfield(&m_content.get_bitfield());
+  m_delegator.get_select().set_seen(&m_bitfieldCounter);
 
-  m_delegator.signal_chunk_done().connect(sigc::mem_fun(m_state, &DownloadState::chunk_done));
-  m_delegator.slot_chunk_size(sigc::mem_fun(m_state.get_content(), &Content::get_chunk_index_size));
+  m_delegator.signal_chunk_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_chunk_done));
+  m_delegator.slot_chunk_size(sigc::mem_fun(m_content, &Content::get_chunk_index_size));
 }
 
 void
 DownloadMain::setup_net() {
   // TODO: Consider disabling these during hash check.
-  m_state.signal_chunk_passed().connect(sigc::mem_fun(*connection_list(), &ConnectionList::send_have_chunk));
-
-  // This is really _state stuff:
-  m_state.slot_set_endgame(sigc::mem_fun(*this, &DownloadMain::set_endgame));
-  m_state.slot_delegated_chunks(sigc::mem_fun(m_delegator.get_chunks(), &Delegator::Chunks::size));
+  signal_chunk_passed().connect(sigc::mem_fun(*connection_list(), &ConnectionList::send_have_chunk));
 
   connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::choke_balance)));
   connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
@@ -79,16 +75,16 @@ DownloadMain::setup_tracker() {
 
   m_trackerManager->tracker_info()->slot_stat_down() = sigc::mem_fun(m_readRate, &Rate::total);
   m_trackerManager->tracker_info()->slot_stat_up()   = sigc::mem_fun(m_writeRate, &Rate::total);
-  m_trackerManager->tracker_info()->slot_stat_left() = sigc::mem_fun(m_state, &DownloadState::bytes_left);
+  m_trackerManager->tracker_info()->slot_stat_left() = sigc::mem_fun(*this, &DownloadMain::get_bytes_left);
 }
 
 void
 DownloadMain::setup_start() {
-  m_connectionChunkPassed = m_state.signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
-  m_connectionChunkFailed = m_state.signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
+  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
+  m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
 
   taskScheduler.insert(&m_taskChokeCycle, (Timer::cache() + 2 * 30 * 1000000).round_seconds());
-  m_state.get_content().block_download_done(false);
+  m_content.block_download_done(false);
 }
 
 void
@@ -98,7 +94,7 @@ DownloadMain::setup_stop() {
 
   taskScheduler.erase(&m_taskChokeCycle);
   taskScheduler.erase(&m_taskTrackerRequest);
-  m_state.get_content().block_download_done(true);
+  m_content.block_download_done(true);
 }
 
 }
