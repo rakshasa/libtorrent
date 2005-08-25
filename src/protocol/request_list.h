@@ -38,7 +38,7 @@
 #define LIBTORRENT_REQUEST_LIST_H
 
 #include <deque>
-#include "content/delegator_reservee.h"
+#include "download/delegator_reservee.h"
 
 namespace torrent {
 

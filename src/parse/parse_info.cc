@@ -39,7 +39,7 @@
 #include "torrent/exceptions.h"
 #include "parse.h"
 #include "torrent/bencode.h"
-#include "content/content.h"
+#include "data/content.h"
 
 namespace torrent {
 

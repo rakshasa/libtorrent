@@ -40,12 +40,12 @@
 #include <limits>
 #include <sigc++/signal.h>
 
-#include "content/delegator_select.h"
 #include "parse/parse.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/exceptions.h"
 #include "tracker/tracker_manager.h"
 
+#include "delegator_select.h"
 #include "download_main.h"
 #include "peer_connection.h"
 

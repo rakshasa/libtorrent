@@ -42,9 +42,9 @@
 #include "available_list.h"
 #include "choke_manager.h"
 #include "connection_list.h"
+#include "delegator.h"
 
-#include "content/content.h"
-#include "content/delegator.h"
+#include "data/content.h"
 #include "protocol/peer_info.h"
 #include "utils/bitfield_counter.h"
 #include "utils/task.h"

@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <sigc++/bind.h>
 
-#include "content/content.h"
+#include "data/content.h"
 #include "data/hash_queue.h"
 #include "data/file_manager.h"
 #include "data/file_meta.h"

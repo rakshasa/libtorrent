@@ -41,12 +41,15 @@
 #include <vector>
 #include <sigc++/signal.h>
 
-#include "utils/bitfield.h"
-#include "data/piece.h"
-#include "content/delegator_select.h"
-#include "content/delegator_chunk.h"
+#include "delegator_select.h"
 
 namespace torrent {
+
+class BitField;
+class DelegatorChunk;
+class DelegatorReservee;
+class DelegatorPiece;
+class Piece;
 
 class Delegator {
 public:

@@ -6,6 +6,8 @@ libsub_data_la_SOURCES = \
 	chunk_list.cc \
 	chunk_list.h \
 	chunk_list_node.h \
+	content.cc \
+	content.h \
 	entry_list.cc \
 	entry_list.h \
 	entry_list_node.cc \

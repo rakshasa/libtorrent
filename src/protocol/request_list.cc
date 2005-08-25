@@ -40,8 +40,9 @@
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
-#include "content/delegator.h"
-#include "content/delegator_reservee.h"
+#include "download/delegator.h"
+#include "download/delegator_reservee.h"
+#include "utils/bitfield.h"
 
 #include "request_list.h"
 

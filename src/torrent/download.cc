@@ -42,6 +42,7 @@
 
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
+#include "download/delegator_chunk.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_factory.h"
 #include "tracker/tracker_info.h"

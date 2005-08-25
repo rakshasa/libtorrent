@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
-#include "content/content.h"
+#include "data/content.h"
 #include "hash_torrent.h"
 #include "hash_queue.h"
 

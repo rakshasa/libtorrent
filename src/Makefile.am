@@ -1,6 +1,5 @@
 SUBDIRS = \
 	torrent \
-	content \
 	data \
 	download \
 	net \
@@ -14,7 +13,6 @@ lib_LTLIBRARIES = libtorrent.la
 libtorrent_la_LDFLAGS = -version-info $(LIBTORRENT_INTERFACE_VERSION_INFO)
 libtorrent_la_LIBADD = \
 	$(top_srcdir)/src/torrent/libsub_torrent.la \
-	$(top_srcdir)/src/content/libsub_content.la \
 	$(top_srcdir)/src/data/libsub_data.la \
 	$(top_srcdir)/src/download/libsub_download.la \
 	$(top_srcdir)/src/net/libsub_net.la \
