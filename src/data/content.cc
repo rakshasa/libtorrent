@@ -231,7 +231,11 @@ Content::mark_done(uint32_t index) {
   m_completed++;
 
   EntryList::iterator first = m_entryList->at_position(m_entryList->begin(), index * (off_t)m_chunkSize);
-  EntryList::iterator last  = m_entryList->at_position(first, (index + 1) * (off_t)m_chunkSize);
+
+  if (first == m_entryList->end())
+    throw internal_error("Content::mark_done got first == m_entryList->end().");
+
+  EntryList::iterator last  = m_entryList->at_position(first + 1, (index + 1) * (off_t)m_chunkSize);
 
   std::for_each(first, last, std::mem_fun_ref(&EntryListNode::inc_completed));
 

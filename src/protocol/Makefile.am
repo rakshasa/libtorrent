@@ -15,8 +15,6 @@ libsub_protocol_la_SOURCES = \
 	peer_factory.h \
         peer_info.h \
 	protocol_base.h \
-	protocol_chunk.cc \
-	protocol_chunk.h \
 	protocol_read.h \
 	protocol_write.h \
 	request_list.cc \

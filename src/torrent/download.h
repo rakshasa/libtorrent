@@ -158,7 +158,11 @@ public:
 
   const SeenVector&    get_seen() const;
 
-  void                 set_connection_type(const std::string& name);
+  typedef enum {
+    CONNECTION_DEFAULT
+  } ConnectionType;
+
+  void                 set_connection_type(ConnectionType t);
 
   // Call this when you want the modifications of the download priorities
   // in the entries to take effect. It is slightly expensive as it rechecks

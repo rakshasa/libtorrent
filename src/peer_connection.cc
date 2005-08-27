@@ -326,7 +326,7 @@ void PeerConnection::event_read() {
 
     if (!m_requestList.is_wanted()) {
       m_read->set_state(ProtocolRead::SKIP_PIECE);
-      m_read->set_length(m_readChunk.get_bytes_left());
+      m_read->set_length(m_downPiece.get_length() - m_downChunkPosition);
       m_read->set_position(0);
 
       m_requestList.skip();
@@ -448,15 +448,16 @@ void PeerConnection::event_write() {
       if (m_sendList.empty())
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
-      if (m_writeChunk.is_valid())
-	m_download->content()->release_chunk(m_writeChunk.get_chunk());
-
-      m_writeChunk.set_chunk(m_download->content()->get_chunk(m_writeChunk.get_piece().get_index(), MemoryChunk::prot_read));
-      m_writeChunk.set_position(0);
       m_write->set_state(ProtocolWrite::WRITE_PIECE);
 
-      if (!m_writeChunk.get_chunk()->is_valid())
-	throw storage_error("Could not create a valid chunk");
+      if (m_upChunk != NULL)
+	m_download->content()->release_chunk(m_upChunk);
+
+      m_upChunk = m_download->content()->get_chunk(m_upPiece.get_index(), MemoryChunk::prot_read);
+      m_upChunkPosition = 0;
+
+      if (m_upChunk == NULL)
+	throw storage_error("Could not create a valid chunk for uploading.");
 
       goto evil_goto_write;
       
@@ -484,8 +485,8 @@ void PeerConnection::event_write() {
       return;
 
     if (m_sendList.empty()) {
-      m_download->content()->release_chunk(m_writeChunk.get_chunk());
-      m_writeChunk.set_chunk(NULL);
+      m_download->content()->release_chunk(m_upChunk);
+      m_upChunk = NULL;
     }
 
     m_sendList.pop_front();
@@ -606,9 +607,9 @@ void PeerConnection::fillWriteBuf() {
 	
 	m_sendList.clear();
 
-	if (m_writeChunk.is_valid()) {
-	  m_download->content()->release_chunk(m_writeChunk.get_chunk());
-	  m_writeChunk.set_chunk(NULL);
+	if (m_upChunk != NULL) {
+	  m_download->content()->release_chunk(m_upChunk);
+	  m_upChunk = NULL;
 	}
 
       } else {
@@ -659,22 +660,22 @@ void PeerConnection::fillWriteBuf() {
       !m_sendList.empty() &&
       m_write->can_write_piece()) {
 
-    m_writeChunk.set_piece(m_sendList.front());
+    m_upPiece = m_sendList.front();
 
     // Move these checks somewhere else?
-    if (!m_download->content()->is_valid_piece(m_writeChunk.get_piece()) ||
-	!m_download->content()->has_chunk(m_writeChunk.get_piece().get_index())) {
+    if (!m_download->content()->is_valid_piece(m_upPiece) ||
+	!m_download->content()->has_chunk(m_upPiece.get_index())) {
       std::stringstream s;
 
       s << "Peer requested a piece with invalid index or length/offset: "
-	<< m_writeChunk.get_piece().get_index() << ' '
-	<< m_writeChunk.get_piece().get_length() << ' '
-	<< m_writeChunk.get_piece().get_offset();
+	<< m_upPiece.get_index() << ' '
+	<< m_upPiece.get_length() << ' '
+	<< m_upPiece.get_offset();
 
       throw communication_error(s.str());
     }
       
-    m_write->write_piece(m_writeChunk.get_piece());
+    m_write->write_piece(m_upPiece);
   }
 }
 
@@ -785,7 +786,8 @@ PeerConnection::receive_piece_header(Piece p) {
 
   if (m_requestList.downloading(p)) {
     m_read->set_state(ProtocolRead::READ_PIECE);
-    m_readChunk.set_position(0);
+    m_downChunkPosition = 0,
+
     load_read_chunk(p);
   } else {
     // We don't want this piece,

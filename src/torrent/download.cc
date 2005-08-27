@@ -341,11 +341,14 @@ Download::get_seen() const {
 }
 
 void
-Download::set_connection_type(const std::string& name) {
-  if (name == "default")
+Download::set_connection_type(ConnectionType t) {
+  switch (t) {
+  case CONNECTION_DEFAULT:
     m_ptr->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &m_ptr->get_main()));
-  else
-    throw input_error("set_peer_connection_type(...) received invalid type name");
+    break;
+  default:
+    throw client_error("torrent::Download::set_connection_type(...) received invalid type.");
+  };
 }
 
 void

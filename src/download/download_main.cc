@@ -40,6 +40,7 @@
 #include <limits>
 #include <sigc++/signal.h>
 
+#include "data/chunk_list_node.h"
 #include "parse/parse.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/exceptions.h"

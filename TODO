@@ -5,13 +5,23 @@ get while coding.
 [PARTLY] Allow for easier configuration for very low/very high open
 max. Add notes to wiki.
 
-Completed does not show progress anymore.
+[DONE] Completed does not show progress anymore.
 
-Confusing read/write chunk in PCB, use in/out?
+[DONE] Get rid of ProtocolChunk, add functions to PCB.
+
+Rename all stuff from read/write to Up/Down?
 
 Remember to do proper cleanup when removing hashing's from the queue.
 
 Change all get_chunk(...)'s to check for only is_valid, not NULL?
+
+Unaligned 58.6.0.92     0.0
+
+Properly handle "Connection exception: Resource temporarily
+unavailable", should wait a short while instead of disconnecting.
+
+Do move of session torrent so we don't end up with incomplete torrent
+files in case of crashes.
 
 Remember to release chunk in PCB dtor etc.
 

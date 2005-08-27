@@ -60,7 +60,7 @@ public:
   void                set_index(uint32_t idx)        { m_index = idx; }
 
   Chunk*              chunk() const                  { return m_chunk; }
-  void                set_chunk(Chunk* c)     { m_chunk = c; }
+  void                set_chunk(Chunk* c)            { m_chunk = c; }
 
   int                 references() const             { return m_references; }
   void                dec_references()               { m_references--; }

@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_NET_PEER_CONNECTION_BASE_H
 #define LIBTORRENT_NEW_PEER_CONNECTION_BASE_H
 
+#include "data/chunk.h"
 #include "data/piece.h"
 #include "net/manager.h"
 #include "net/socket_stream.h"
@@ -46,7 +47,6 @@
 #include "torrent/rate.h"
 
 #include "peer_info.h"
-#include "protocol_chunk.h"
 #include "protocol_read.h"
 #include "protocol_write.h"
 #include "request_list.h"
@@ -56,6 +56,7 @@ namespace torrent {
 // Base class for peer connection classes. Rename to PeerConnection
 // when the migration is complete.
 
+class ChunkListNode;
 class DownloadMain;
 
 class PeerConnectionBase : public SocketStream {
@@ -129,12 +130,10 @@ protected:
 
   Rate                m_readRate;
   ThrottlePeerNode    m_readThrottle;
-  ProtocolChunk       m_readChunk;
   uint32_t            m_readStall;
 
   Rate                m_writeRate;
   ThrottlePeerNode    m_writeThrottle;
-  ProtocolChunk       m_writeChunk;
 
   RequestList         m_requestList;
   PieceList           m_sendList;
@@ -142,6 +141,24 @@ protected:
   bool                m_snubbed;
   BitFieldExt         m_bitfield;
   Timer               m_lastChoked;
+
+  typedef Chunk::iterator ChunkPart;
+
+  // Read chunk de-abstracting.
+  uint32_t            down_chunk(uint32_t maxBytes);
+  inline bool         down_chunk_part(ChunkPart c, uint32_t& left);
+
+  uint32_t            m_downChunkPosition;
+  Piece               m_downPiece;
+  ChunkListNode*      m_downChunk;
+
+  // Write chunk de-abstracting.
+  uint32_t            up_chunk(uint32_t maxBytes);
+  inline bool         up_chunk_part(ChunkPart c, uint32_t& left);
+
+  uint32_t            m_upChunkPosition;
+  Piece               m_upPiece;
+  ChunkListNode*      m_upChunk;
 };
 
 inline void
