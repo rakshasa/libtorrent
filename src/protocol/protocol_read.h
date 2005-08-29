@@ -48,7 +48,7 @@ public:
     LENGTH,
     TYPE,
     MSG,
-    BITFIELD,
+    READ_BITFIELD,
     READ_PIECE,
     SKIP_PIECE,
     INTERNAL_ERROR

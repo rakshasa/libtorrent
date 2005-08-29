@@ -59,8 +59,8 @@ DownloadMain::DownloadMain() :
   m_started(false),
   m_endgame(false),
 
-  m_writeRate(60),
-  m_readRate(60) {
+  m_upRate(60),
+  m_downRate(60) {
 
   m_content.block_download_done(true);
 

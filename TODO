@@ -5,9 +5,9 @@ get while coding.
 [PARTLY] Allow for easier configuration for very low/very high open
 max. Add notes to wiki.
 
-[DONE] Completed does not show progress anymore.
+Cache the number of unchoked peers.
 
-[DONE] Get rid of ProtocolChunk, add functions to PCB.
+Remember to verify the length of messages.
 
 Rename all stuff from read/write to Up/Down?
 
@@ -30,6 +30,9 @@ chunk size etc, only hold the list of whatever replaces StorageFile's.
 
 Make it possible to disable certain files, not causing an error when
 they don't give rw perm or resize?
+
+Clearer display of which torrents are stopped, make it into a seperate
+column.
 
 Move stuff into rak.
 

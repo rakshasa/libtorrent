@@ -68,9 +68,6 @@ public:
   void set(SocketFd fd, const PeerInfo& p, DownloadMain* download);
   
 private:
-  PeerConnection(const PeerConnection&);
-  PeerConnection& operator = (const PeerConnection&);
-
   // Parse packet in read buffer, must be of correct type.
   void parseReadBuf();
 
@@ -78,8 +75,6 @@ private:
 
   bool                send_request_piece();
 
-  void                receive_request_piece(Piece p);
-  void                receive_cancel_piece(Piece p);
   void                receive_have(uint32_t index);
 
   void                receive_piece_header(Piece p);
@@ -89,13 +84,10 @@ private:
 
   bool           m_shutdown;
 
-  bool           m_sendChoked;
   bool           m_sendInterested;
   bool           m_tryRequest;
 
   std::list<int> m_haveQueue;
-
-  Timer          m_lastMsg;
 
   TaskItem            m_taskSendChoke;
 };

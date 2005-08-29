@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_PEER_CONNECTION_BASE_H
-#define LIBTORRENT_NEW_PEER_CONNECTION_BASE_H
+#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
+#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
 #include "data/chunk.h"
 #include "data/piece.h"
@@ -63,24 +63,27 @@ class PeerConnectionBase : public SocketStream {
 public:
   typedef std::list<Piece> PieceList;
 
+  // Find an optimal number for this.
+  static const uint32_t read_size = 64;
+
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
-  bool                is_write_choked()             { return m_write->get_choked(); }
-  bool                is_write_interested()         { return m_write->get_interested(); }
-  bool                is_read_choked()              { return m_read->get_choked(); }
-  bool                is_read_interested()          { return m_read->get_interested(); }
+  bool                is_up_choked()             { return m_up->get_choked(); }
+  bool                is_up_interested()         { return m_up->get_interested(); }
+  bool                is_down_choked()              { return m_down->get_choked(); }
+  bool                is_down_interested()          { return m_down->get_interested(); }
 
-  bool                is_read_throttled()           { return m_readThrottle != throttleRead.end(); }
-  bool                is_write_throttled()          { return m_writeThrottle != throttleWrite.end(); }
+  bool                is_down_throttled()           { return m_downThrottle != throttleRead.end(); }
+  bool                is_up_throttled()          { return m_upThrottle != throttleWrite.end(); }
 
   bool                is_snubbed() const            { return m_snubbed; }
 
   const PeerInfo&     get_peer() const              { return m_peer; }
 
   Rate&               get_peer_rate()               { return m_peerRate; }
-  Rate&               get_write_rate()              { return m_writeRate; }
-  Rate&               get_read_rate()               { return m_readRate; }
+  Rate&               get_up_rate()              { return m_upRate; }
+  Rate&               get_down_rate()               { return m_downRate; }
 
   Timer               get_last_choked()             { return m_lastChoked; }
 
@@ -97,11 +100,11 @@ public:
   uint32_t            pipe_size() const;
   bool                should_request();
 
-  void                insert_read_throttle();
-  void                remove_read_throttle();
+  void                insert_down_throttle();
+  void                remove_down_throttle();
 
-  void                insert_write_throttle();
-  void                remove_write_throttle();
+  void                insert_up_throttle();
+  void                remove_up_throttle();
 
   virtual void        update_interested() = 0;
 
@@ -109,100 +112,102 @@ public:
   virtual bool        receive_keepalive() = 0;
 
 protected:
+  typedef Chunk::iterator ChunkPart;
+
   inline bool         read_remaining();
   inline bool         write_remaining();
 
-  bool                write_chunk();
-  bool                read_chunk();
+  void                load_down_chunk(const Piece& p);
 
-  void                load_read_chunk(const Piece& p);
+  void                receive_throttle_down_activate();
+  void                receive_throttle_up_activate();
 
-  void                receive_throttle_read_activate();
-  void                receive_throttle_write_activate();
+  void                read_request_piece(const Piece& p);
+  void                read_cancel_piece(const Piece& p);
+
+  bool                is_down_chunk_valid() const { return m_downChunk != NULL; }
+  bool                is_up_chunk_valid() const   { return m_upChunk != NULL; }
+
+  bool                down_chunk();
+  inline bool         down_chunk_part(ChunkPart c, uint32_t& left);
+
+  bool                up_chunk();
+  inline bool         up_chunk_part(ChunkPart c, uint32_t& left);
 
   DownloadMain*       m_download;
 
-  ProtocolRead*       m_read;
-  ProtocolWrite*      m_write;
+  ProtocolRead*       m_down;
+  ProtocolWrite*      m_up;
 
   PeerInfo            m_peer;
   Rate                m_peerRate;
 
-  Rate                m_readRate;
-  ThrottlePeerNode    m_readThrottle;
-  uint32_t            m_readStall;
+  Rate                m_downRate;
+  ThrottlePeerNode    m_downThrottle;
+  Piece               m_downPiece;
+  ChunkListNode*      m_downChunk;
 
-  Rate                m_writeRate;
-  ThrottlePeerNode    m_writeThrottle;
+  uint32_t            m_downStall;
+
+  Rate                m_upRate;
+  ThrottlePeerNode    m_upThrottle;
+  Piece               m_upPiece;
+  ChunkListNode*      m_upChunk;
 
   RequestList         m_requestList;
+
   PieceList           m_sendList;
+  bool                m_sendChoked;
 
   bool                m_snubbed;
   BitFieldExt         m_bitfield;
   Timer               m_lastChoked;
 
-  typedef Chunk::iterator ChunkPart;
-
-  // Read chunk de-abstracting.
-  uint32_t            down_chunk(uint32_t maxBytes);
-  inline bool         down_chunk_part(ChunkPart c, uint32_t& left);
-
-  uint32_t            m_downChunkPosition;
-  Piece               m_downPiece;
-  ChunkListNode*      m_downChunk;
-
-  // Write chunk de-abstracting.
-  uint32_t            up_chunk(uint32_t maxBytes);
-  inline bool         up_chunk_part(ChunkPart c, uint32_t& left);
-
-  uint32_t            m_upChunkPosition;
-  Piece               m_upPiece;
-  ChunkListNode*      m_upChunk;
+  Timer               m_timeLastMessage;
 };
 
 inline void
-PeerConnectionBase::insert_read_throttle() {
-  if (!is_read_throttled())
-    m_readThrottle = throttleRead.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_read_activate));
+PeerConnectionBase::insert_down_throttle() {
+  if (!is_down_throttled())
+    m_downThrottle = throttleRead.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_down_activate));
 }
 
 inline void
-PeerConnectionBase::remove_read_throttle() {
-  if (is_read_throttled()) {
-    throttleRead.erase(m_readThrottle);
-    m_readThrottle = throttleRead.end();
+PeerConnectionBase::remove_down_throttle() {
+  if (is_down_throttled()) {
+    throttleRead.erase(m_downThrottle);
+    m_downThrottle = throttleRead.end();
   }
 }
 
 inline void
-PeerConnectionBase::insert_write_throttle() {
-  if (!is_write_throttled())
-    m_writeThrottle = throttleWrite.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_write_activate));
+PeerConnectionBase::insert_up_throttle() {
+  if (!is_up_throttled())
+    m_upThrottle = throttleWrite.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_up_activate));
 }
 
 inline void
-PeerConnectionBase::remove_write_throttle() {
-  if (is_write_throttled()) {
-    throttleWrite.erase(m_writeThrottle);
-    m_writeThrottle = throttleWrite.end();
+PeerConnectionBase::remove_up_throttle() {
+  if (is_up_throttled()) {
+    throttleWrite.erase(m_upThrottle);
+    m_upThrottle = throttleWrite.end();
   }
 }
 
 inline bool
 PeerConnectionBase::read_remaining() {
-  m_read->get_buffer().move_position(read_buf(m_read->get_buffer().position(),
-					      m_read->get_buffer().remaining()));
+  m_down->get_buffer().move_position(read_buf(m_down->get_buffer().position(),
+					      m_down->get_buffer().remaining()));
 
-  return !m_read->get_buffer().remaining();
+  return !m_down->get_buffer().remaining();
 }
 
 inline bool
 PeerConnectionBase::write_remaining() {
-  m_write->get_buffer().move_position(write_buf(m_write->get_buffer().position(),
-						m_write->get_buffer().remaining()));
+  m_up->get_buffer().move_position(write_buf(m_up->get_buffer().position(),
+						m_up->get_buffer().remaining()));
 
-  return !m_write->get_buffer().remaining();
+  return !m_up->get_buffer().remaining();
 }
 
 }

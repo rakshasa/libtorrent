@@ -251,22 +251,22 @@ get_next_timeout() {
 }
 
 int
-get_read_throttle() {
+get_down_throttle() {
   return std::max(throttleRead.get_quota(), 0);
 }
 
 void
-set_read_throttle(int bytes) {
+set_down_throttle(int bytes) {
   throttleRead.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 
 int
-get_write_throttle() {
+get_up_throttle() {
   return std::max(throttleWrite.get_quota(), 0);
 }
 
 void
-set_write_throttle(int bytes) {
+set_up_throttle(int bytes) {
   throttleWrite.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
 }
 
@@ -280,12 +280,12 @@ set_throttle_interval(uint32_t usec) {
 }
 
 const Rate&
-get_read_rate() {
+get_down_rate() {
   return throttleRead.get_rate_slow();
 }
 
 const Rate&
-get_write_rate() {
+get_up_rate() {
   return throttleWrite.get_rate_slow();
 }
 

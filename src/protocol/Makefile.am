@@ -11,6 +11,8 @@ libsub_protocol_la_SOURCES = \
         handshake_outgoing.h \
 	peer_connection_base.cc \
 	peer_connection_base.h \
+	peer_connection_seed.cc \
+	peer_connection_seed.h \
 	peer_factory.cc \
 	peer_factory.h \
         peer_info.h \

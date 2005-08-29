@@ -67,6 +67,7 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
     return;
 
   epoll_event e;
+  e.data.u64 = 0; // Make valgrind happy? Remove please.
   e.data.ptr = event;
   e.events = mask;
 

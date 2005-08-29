@@ -46,6 +46,7 @@ class PeerConnectionBase;
 class PeerInfo;
 
 PeerConnectionBase* createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadMain* download);
+PeerConnectionBase* createPeerConnectionSeed(SocketFd fd, const PeerInfo& info, DownloadMain* download);
 
 }
 

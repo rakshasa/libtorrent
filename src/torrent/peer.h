@@ -74,8 +74,8 @@ public:
 
   bool                 get_snubbed();
 
-  const Rate&          get_read_rate();
-  const Rate&          get_write_rate();
+  const Rate&          get_down_rate();
+  const Rate&          get_up_rate();
   const Rate&          get_peer_rate();
 
   uint32_t             get_incoming_queue_size();

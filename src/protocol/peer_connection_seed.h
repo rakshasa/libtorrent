@@ -34,50 +34,38 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_H
-#define LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_H
+#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_SEED_H
+#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_SEED_H
 
-#include <list>
-
-#include "utils/unordered_vector.h"
+#include "peer_connection_base.h"
 
 namespace torrent {
 
-class PeerConnectionBase;
-
-class ChokeManager {
+class PeerConnectionSeed : public PeerConnectionBase {
 public:
-  typedef unordered_vector<PeerConnectionBase*> Container;
-  typedef Container::iterator                   iterator;
+  PeerConnectionSeed();
+  ~PeerConnectionSeed();
 
-  ChokeManager() : m_maxUnchoked(15), m_minGenerous(2), m_cycleSize(2) {}
-  
-  int                 get_max_unchoked() const                { return m_maxUnchoked; }
-  void                set_max_unchoked(int v)                 { m_maxUnchoked = v; }
+  void                set(SocketFd fd, const PeerInfo& p, DownloadMain* download);
 
-  int                 get_min_generous() const                { return m_minGenerous; }
-  void                set_min_generous(int v)                 { m_minGenerous = v; }
+  virtual void        set_choke(bool v);
 
-  int                 get_cycle_size() const                  { return m_cycleSize; }
-  void                set_cycle_size(int v)                   { m_cycleSize = v; }
+  virtual void        update_interested();
 
-  int                 get_unchoked(iterator first, iterator last) const;
+  virtual void        receive_have_chunk(int32_t i);
+  virtual bool        receive_keepalive();
 
-  void                balance(iterator first, iterator last);
-  void                cycle(iterator first, iterator last);
-
-  void                choke(iterator first, iterator last, int count);
-  void                unchoke(iterator first, iterator last, int count);
+  virtual void        event_read();
+  virtual void        event_write();
+  virtual void        event_error();
 
 private:
-  static iterator     seperate_interested(iterator first, iterator last);
-  static iterator     seperate_unchoked(iterator first, iterator last);
+  inline bool         read_message();
+  void                read_have_chunk(uint32_t index);
 
-  static void         sort_down_rate(iterator first, iterator last);
+  inline void         fill_write_buffer();
 
-  int                 m_maxUnchoked;
-  int                 m_minGenerous;
-  int                 m_cycleSize;
+  void                finish_bitfield();
 };
 
 }

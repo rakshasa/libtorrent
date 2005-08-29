@@ -48,7 +48,9 @@ public:
   typedef enum {
     IDLE,
     MSG,
+    WRITE_BITFIELD_HEADER,
     WRITE_BITFIELD,
+    WRITE_PIECE_HEADER,
     WRITE_PIECE,
     SHUTDOWN,
     INTERNAL_ERROR

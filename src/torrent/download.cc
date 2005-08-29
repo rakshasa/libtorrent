@@ -166,13 +166,13 @@ Download::set_root_dir(const std::string& dir) {
 }
 
 const Rate&
-Download::get_read_rate() const {
-  return m_ptr->get_main().get_read_rate();
+Download::get_down_rate() const {
+  return m_ptr->get_main().get_down_rate();
 }
 
 const Rate&
-Download::get_write_rate() const {
-  return m_ptr->get_main().get_write_rate();
+Download::get_up_rate() const {
+  return m_ptr->get_main().get_up_rate();
 }
 
 uint64_t
@@ -345,6 +345,9 @@ Download::set_connection_type(ConnectionType t) {
   switch (t) {
   case CONNECTION_DEFAULT:
     m_ptr->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &m_ptr->get_main()));
+    break;
+  case CONNECTION_SEED:
+    m_ptr->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionSeed), &m_ptr->get_main()));
     break;
   default:
     throw client_error("torrent::Download::set_connection_type(...) received invalid type.");

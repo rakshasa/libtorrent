@@ -70,22 +70,22 @@ Peer::get_options() {
 
 bool
 Peer::get_local_choked() {
-  return m_ptr->is_write_choked();
+  return m_ptr->is_up_choked();
 }
 
 bool
 Peer::get_local_interested() {
-  return m_ptr->is_write_interested();
+  return m_ptr->is_up_interested();
 }
 
 bool
 Peer::get_remote_choked() {
-  return m_ptr->is_read_choked();
+  return m_ptr->is_down_choked();
 }
 
 bool
 Peer::get_remote_interested() {
-  return m_ptr->is_read_interested();
+  return m_ptr->is_down_interested();
 }
 
 bool
@@ -94,13 +94,13 @@ Peer::get_snubbed() {
 }
 
 const Rate&
-Peer::get_read_rate() {
-  return m_ptr->get_read_rate();
+Peer::get_down_rate() {
+  return m_ptr->get_down_rate();
 } 
 
 const Rate&
-Peer::get_write_rate() {
-  return m_ptr->get_write_rate();
+Peer::get_up_rate() {
+  return m_ptr->get_up_rate();
 } 
 
 const Rate&

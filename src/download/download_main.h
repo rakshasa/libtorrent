@@ -83,8 +83,8 @@ public:
   bool                get_endgame() const                        { return m_endgame; }
   uint64_t            get_bytes_left();
 
-  Rate&               get_write_rate()                           { return m_writeRate; }
-  Rate&               get_read_rate()                            { return m_readRate; }
+  Rate&               get_up_rate()                           { return m_upRate; }
+  Rate&               get_down_rate()                            { return m_downRate; }
 
   BitFieldCounter&    get_bitfield_counter()                     { return m_bitfieldCounter; }
 
@@ -147,8 +147,8 @@ private:
   bool                m_endgame;
   uint32_t            m_lastConnectedSize;
 
-  Rate                m_writeRate;
-  Rate                m_readRate;
+  Rate                m_upRate;
+  Rate                m_downRate;
 
   BitFieldCounter     m_bitfieldCounter;
 

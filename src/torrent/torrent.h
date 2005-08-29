@@ -86,16 +86,16 @@ unsigned int        get_total_handshakes();
 // client. ;( Fix this later.
 //
 // 0 == UNLIMITED.
-int32_t             get_read_throttle();
-void                set_read_throttle(int32_t bytes);
+int32_t             get_down_throttle();
+void                set_down_throttle(int32_t bytes);
 
-int32_t             get_write_throttle();
-void                set_write_throttle(int32_t bytes);
+int32_t             get_up_throttle();
+void                set_up_throttle(int32_t bytes);
 
 void                set_throttle_interval(uint32_t usec);
 
-const Rate&         get_read_rate();
-const Rate&         get_write_rate();
+const Rate&         get_down_rate();
+const Rate&         get_up_rate();
 
 char*               get_version();
 

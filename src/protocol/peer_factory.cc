@@ -39,6 +39,7 @@
 #include "peer_factory.h"
 
 #include "peer_connection.h"
+#include "peer_connection_seed.h"
 #include "peer_info.h"
 
 namespace torrent {
@@ -46,6 +47,14 @@ namespace torrent {
 PeerConnectionBase*
 createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadMain* download) {
   PeerConnection* pc = new PeerConnection;
+  pc->set(fd, info, download);
+
+  return pc;
+}
+
+PeerConnectionBase*
+createPeerConnectionSeed(SocketFd fd, const PeerInfo& info, DownloadMain* download) {
+  PeerConnectionSeed* pc = new PeerConnectionSeed;
   pc->set(fd, info, download);
 
   return pc;

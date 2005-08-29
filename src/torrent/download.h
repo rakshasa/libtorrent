@@ -109,8 +109,8 @@ public:
   std::string          get_root_dir() const;
   void                 set_root_dir(const std::string& dir);
 
-  const Rate&          get_read_rate() const;
-  const Rate&          get_write_rate() const;
+  const Rate&          get_down_rate() const;
+  const Rate&          get_up_rate() const;
 
   // Bytes completed.
   uint64_t             get_bytes_done() const;
@@ -159,7 +159,8 @@ public:
   const SeenVector&    get_seen() const;
 
   typedef enum {
-    CONNECTION_DEFAULT
+    CONNECTION_DEFAULT,
+    CONNECTION_SEED
   } ConnectionType;
 
   void                 set_connection_type(ConnectionType t);

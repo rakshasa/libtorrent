@@ -48,22 +48,22 @@ namespace torrent {
 
 struct ChokeManagerReadRate {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return p1->get_read_rate().rate() > p2->get_read_rate().rate();
+    return p1->get_down_rate().rate() > p2->get_down_rate().rate();
   }
 };
 
 inline ChokeManager::iterator
 ChokeManager::seperate_interested(iterator first, iterator last) {
-  return std::partition(first, last, std::mem_fun(&PeerConnectionBase::is_read_interested));
+  return std::partition(first, last, std::mem_fun(&PeerConnectionBase::is_down_interested));
 }
 
 inline ChokeManager::iterator
 ChokeManager::seperate_unchoked(iterator first, iterator last) {
-  return std::partition(first, last, std::not1(std::mem_fun(&PeerConnectionBase::is_write_choked)));
+  return std::partition(first, last, std::not1(std::mem_fun(&PeerConnectionBase::is_up_choked)));
 }
 
 inline void
-ChokeManager::sort_read_rate(iterator first, iterator last) {
+ChokeManager::sort_down_rate(iterator first, iterator last) {
   std::sort(first, last, ChokeManagerReadRate());
 }
 
@@ -111,7 +111,7 @@ ChokeManager::choke(iterator first, iterator last, int count) {
   if (count < 0)
     throw internal_error("ChokeManager::choke(...) got count < 0");
 
-  sort_read_rate(first, last);
+  sort_down_rate(first, last);
 
   std::for_each(last - count, last,
 		std::bind2nd(std::mem_fun(&PeerConnectionBase::set_choke), true));
@@ -124,7 +124,7 @@ ChokeManager::unchoke(iterator first, iterator last, int count) {
   if (count < 0)
     throw internal_error("ChokeManager::unchoke(...) got count < 0");
 
-  sort_read_rate(first, last);
+  sort_down_rate(first, last);
 
   std::for_each(first, first + count,
 		std::bind2nd(std::mem_fun(&PeerConnectionBase::set_choke), false));

@@ -56,8 +56,11 @@ public:
   void                reset_position()              { m_position = m_buffer; }
   void                move_position(size_type v)    { m_position += v; }
 
+  void                set_position_itr(iterator itr) { m_position = itr; }
+
   void                prepare_end()                 { m_end = m_position; reset_position(); }
   void                set_end(size_type v)          { m_end = m_buffer + v; }
+  void                move_end(size_type v)         { m_end += v; }
 
   uint8_t             read_8()                      { return *m_position++; }
   uint8_t             peek_8()                      { return *m_position; }
@@ -99,11 +102,9 @@ public:
 
 private:
   void                validate_position() const {
-#if USE_UNSAFE_OPTIMIZATION == 1
+#ifdef USE_EXTRA_DEBUG
     if (m_position > m_buffer + tmpl_size)
       throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
-#elif !defined USE_UNSAFE_OPTIMIZATION
-#error USE_UNSAFE_OPTIMIZATION not defined to a value
 #endif
   }
 
