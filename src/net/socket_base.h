@@ -57,6 +57,9 @@ public:
   const SocketFd&     get_fd() const      { return *reinterpret_cast<const SocketFd*>(&m_fileDesc); }
   void                set_fd(SocketFd fd) { m_fileDesc = fd.get_fd(); }
 
+  bool                read_oob(void* buffer);
+  bool                write_oob(const void* buffer);
+
 private:
   // Disable copying
   SocketBase(const SocketBase&);

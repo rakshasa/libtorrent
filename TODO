@@ -5,17 +5,28 @@ get while coding.
 [PARTLY] Allow for easier configuration for very low/very high open
 max. Add notes to wiki.
 
+Allow display of a peer's connection type.
+
+Add keepalive, make sure write::idle does correct checking.
+
+Use correctly sized read/write buffers.
+
 Cache the number of unchoked peers.
 
 Remember to verify the length of messages.
-
-Rename all stuff from read/write to Up/Down?
 
 Remember to do proper cleanup when removing hashing's from the queue.
 
 Change all get_chunk(...)'s to check for only is_valid, not NULL?
 
 Unaligned 58.6.0.92     0.0
+
+*** After PeerConnection is killed ***
+
+PeerConnectionBase::read_cancel_piece should only check for
+WRITE_PIECE when doing cancel or something.
+
+***
 
 Properly handle "Connection exception: Resource temporarily
 unavailable", should wait a short while instead of disconnecting.

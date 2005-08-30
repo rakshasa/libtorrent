@@ -448,16 +448,9 @@ void PeerConnection::event_write() {
 	throw internal_error("Tried writing piece without any requests in list");	  
 	
       m_up->set_state(ProtocolWrite::WRITE_PIECE);
-
-      if (m_upChunk != NULL)
-	m_download->content()->release_chunk(m_upChunk);
-
-      m_upChunk = m_download->content()->get_chunk(m_upPiece.get_index(), MemoryChunk::prot_read);
       m_up->set_position(0);
 
-      if (m_upChunk == NULL)
-	throw storage_error("Could not create a valid chunk for uploading.");
-
+      load_up_chunk();
       goto evil_goto_write;
       
     default:

@@ -41,7 +41,8 @@
 #include <errno.h>
 #include <cerrno>
 #include <cstring>
-#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 
@@ -52,7 +53,7 @@ SocketStream::read_buf(void* buf, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to read buffer length 0");
 
-  int r = ::read(m_fileDesc, buf, length);
+  int r = ::recv(m_fileDesc, buf, length, 0);
 
   if (r == 0)
     throw close_connection();
@@ -68,7 +69,7 @@ SocketStream::write_buf(const void* buf, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to write buffer length 0");
 
-  int r = ::write(m_fileDesc, buf, length);
+  int r = ::send(m_fileDesc, buf, length, 0);
 
   if (r == 0)
     throw close_connection();

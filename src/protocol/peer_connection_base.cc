@@ -113,6 +113,20 @@ PeerConnectionBase::load_down_chunk(const Piece& p) {
     throw storage_error("Could not create a valid chunk");
 }
 
+void
+PeerConnectionBase::load_up_chunk() {
+  if (m_upChunk != NULL && m_upChunk->index() == m_upPiece.get_index())
+    return;
+
+  if (m_upChunk != NULL)
+    m_download->content()->release_chunk(m_upChunk);
+  
+  m_upChunk = m_download->content()->get_chunk(m_upPiece.get_index(), MemoryChunk::prot_read);
+  
+  if (m_upChunk == NULL)
+    throw storage_error("Could not map a chunk for reading.");
+}
+
 uint32_t
 PeerConnectionBase::pipe_size() const {
   uint32_t s = m_downRate.rate();
@@ -287,8 +301,40 @@ void
 PeerConnectionBase::read_cancel_piece(const Piece& p) {
   PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
-  if (itr != m_sendList.begin() && m_up->get_state() == ProtocolWrite::IDLE)
+  if (itr != m_sendList.end() &&
+      (itr != m_sendList.begin() || // Temporary, fix this.
+       m_up->get_state() == ProtocolWrite::IDLE))
     m_sendList.erase(itr);
 }  
+
+void
+PeerConnectionBase::read_buffer_move_unused() {
+  uint32_t remaining = m_down->get_buffer().remaining();
+	
+  std::memmove(m_down->get_buffer().begin(), m_down->get_buffer().position(), remaining);
+	
+  m_down->get_buffer().reset_position();
+  m_down->get_buffer().set_end(remaining);
+}
+
+void
+PeerConnectionBase::write_prepare_piece() {
+  m_upPiece = m_sendList.front();
+
+  // Move these checks somewhere else?
+  if (!m_download->content()->is_valid_piece(m_upPiece) ||
+      !m_download->content()->has_chunk(m_upPiece.get_index())) {
+//     std::stringstream s;
+
+//     s << "Peer requested a piece with invalid index or length/offset: "
+//       << m_upPiece.get_index() << ' '
+//       << m_upPiece.get_length() << ' '
+//       << m_upPiece.get_offset();
+
+    throw communication_error("Peer requested a piece with invalid index or length/offset.");
+  }
+      
+  m_up->write_piece(m_upPiece);
+}
 
 }

@@ -118,12 +118,17 @@ protected:
   inline bool         write_remaining();
 
   void                load_down_chunk(const Piece& p);
+  void                load_up_chunk();
 
   void                receive_throttle_down_activate();
   void                receive_throttle_up_activate();
 
   void                read_request_piece(const Piece& p);
   void                read_cancel_piece(const Piece& p);
+
+  void                read_buffer_move_unused();
+
+  void                write_prepare_piece();
 
   bool                is_down_chunk_valid() const { return m_downChunk != NULL; }
   bool                is_up_chunk_valid() const   { return m_upChunk != NULL; }

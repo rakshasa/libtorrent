@@ -36,8 +36,11 @@
 
 #include "config.h"
 
-#include "torrent/exceptions.h"
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
+#include "torrent/exceptions.h"
 #include "socket_base.h"
 
 namespace torrent {
@@ -45,6 +48,26 @@ namespace torrent {
 SocketBase::~SocketBase() {
   if (get_fd().is_valid())
     throw internal_error("SocketBase::~SocketBase() called but m_fd is still valid");
+}
+
+bool
+SocketBase::read_oob(void* buffer) {
+  int r = ::recv(m_fileDesc, buffer, 1, MSG_OOB);
+
+//   if (r < 0)
+//     m_errno = errno;
+
+  return r == 1;
+}
+
+bool
+SocketBase::write_oob(const void* buffer) {
+  int r = ::send(m_fileDesc, buffer, 1, MSG_OOB);
+
+//   if (r < 0)
+//     m_errno = errno;
+
+  return r == 1;
 }
 
 } // namespace torrent

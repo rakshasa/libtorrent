@@ -55,8 +55,8 @@ PeerConnectionSeed::~PeerConnectionSeed() {
   if (!get_fd().is_valid())
     return;
 
-  if (m_down->get_state() != ProtocolRead::READ_BITFIELD)
-    m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
+//   if (m_down->get_state() != ProtocolRead::READ_BITFIELD)
+//     m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
 //   taskScheduler.erase(&m_taskSendChoke);
 
@@ -81,8 +81,8 @@ PeerConnectionSeed::set(SocketFd fd, const PeerInfo& p, DownloadMain* download) 
 
   get_fd().set_throughput();
 
-//   m_requestList.set_delegator(m_download->delegator());
-//   m_requestList.set_bitfield(&m_bitfield.get_bitfield());
+  m_requestList.set_delegator(m_download->delegator());
+  m_requestList.set_bitfield(&m_bitfield.get_bitfield());
 
   if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
     throw internal_error("PeerConnectionSeed::set(...) recived bad input.");
@@ -135,15 +135,18 @@ bool
 PeerConnectionSeed::receive_keepalive() {
 }
 
+// We keep the message in the buffer if it is incomplete instead of
+// keeping the state and remembering the read information. This
+// shouldn't happen very often compared to full reads.
 inline bool
 PeerConnectionSeed::read_message() {
-  // Temporary until we move stuff around.
   ProtocolBuffer<512>* buf = &m_down->get_buffer();
 
   if (buf->remaining() < 4)
     return false;
 
-  // Change to an iterator.
+  // Remember the start of the message so we may reset it if we don't
+  // have the whole message.
   ProtocolBuffer<512>::iterator beginning = buf->position();
 
   uint32_t length = buf->read_32();
@@ -155,8 +158,20 @@ PeerConnectionSeed::read_message() {
   } else if (buf->remaining() < 1) {
     buf->set_position_itr(beginning);
     return false;
+
+  } else if (length > (1 << 20)) {
+    throw network_error("PeerConnectionSeed::read_message() got an invalid message length.");
   }
     
+  // We do not verify the message length of those with static
+  // length. A bug in the remote client causing the message start to
+  // be unsyncronized would in practically all cases be caught with
+  // the above test.
+  //
+  // Those that do in some weird way manage to produce a valid
+  // command, will not be able to do any damage as malicious
+  // peer. Those cases should be caught elsewhere in the code.
+
   switch (buf->read_8()) {
   case ProtocolBase::CHOKE:
     m_down->set_choked(true);
@@ -197,15 +212,20 @@ PeerConnectionSeed::read_message() {
 
     if (buf->remaining() >= m_bitfield.size_bytes()) {
       buf->move_position(m_bitfield.size_bytes());
-
       finish_bitfield();
+
+      return true;
+
     } else {
       m_down->set_position(buf->remaining());
       m_down->set_state(ProtocolRead::READ_BITFIELD);
-      buf->move_position(buf->remaining());
-    }
 
-    return false;
+      // Move the position so we don't copy 'unread' bytes to the
+      // start of the buffer.
+      buf->move_position(buf->remaining());
+
+      return false;
+    }
 
   case ProtocolBase::REQUEST:
     if (buf->remaining() < 13)
@@ -214,6 +234,9 @@ PeerConnectionSeed::read_message() {
     if (!m_up->get_choked()) {
       read_request_piece(m_down->read_request());
       pollCustom->insert_write(this);
+
+    } else {
+      m_down->read_piece();
     }
 
     return true;
@@ -258,10 +281,8 @@ PeerConnectionSeed::event_read() {
     // Only loop when end hits 64.
 
     bool shouldLoop;
-    uint32_t remaining;
 
     do {
-      // Need to do the choosing of msg/piece/bitfield reading inside the loop.
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
@@ -269,20 +290,14 @@ PeerConnectionSeed::event_read() {
 	
 	while (read_message());
 	
-	remaining = m_down->get_buffer().remaining();
-	
-	std::memmove(m_down->get_buffer().begin(), m_down->get_buffer().position(), remaining);
-	
 	shouldLoop = m_down->get_buffer().size_end() == read_size;
-	
-	m_down->get_buffer().reset_position();
-	m_down->get_buffer().set_end(remaining);
+	read_buffer_move_unused();
 
 	break;
 
       case ProtocolRead::READ_BITFIELD:
 	// We're guaranteed that we still got bytes remaining to be
-	// read.
+	// read of the bitfield.
 	m_down->adjust_position(read_buf(m_bitfield.begin() + m_down->get_position(),
 					 m_bitfield.size_bytes() - m_down->get_position()));
 	
@@ -298,7 +313,7 @@ PeerConnectionSeed::event_read() {
 	break;
 
       default:
-	break;
+	throw internal_error("PeerConnectionSeed::event_read() wrong state.");
       }
 
       // Figure out how to get rid of the shouldLoop boolean.
@@ -330,7 +345,7 @@ PeerConnectionSeed::event_read() {
 
 inline void
 PeerConnectionSeed::fill_write_buffer() {
-  // No need to use delayed choke as we are a seeder only.
+  // No need to use delayed choke as we are a seeder.
   if (m_sendChoked) {
     m_sendChoked = false;
 
@@ -352,29 +367,10 @@ PeerConnectionSeed::fill_write_buffer() {
     }
   }
 
-//   if (!m_up->get_choked() &&
-//       !m_sendChoked && // Why sendchoked here?
-//       !taskScheduler.is_scheduled(&m_taskSendChoke) && // Urgh... find a nicer way to do the delayed choke.
-//       !m_sendList.empty() &&
-//       m_up->can_write_piece()) {
-
-//     m_upPiece = m_sendList.front();
-
-//     // Move these checks somewhere else?
-//     if (!m_download->content()->is_valid_piece(m_upPiece) ||
-// 	!m_download->content()->has_chunk(m_upPiece.get_index())) {
-//       std::stringstream s;
-
-//       s << "Peer requested a piece with invalid index or length/offset: "
-// 	<< m_upPiece.get_index() << ' '
-// 	<< m_upPiece.get_length() << ' '
-// 	<< m_upPiece.get_offset();
-
-//       throw communication_error(s.str());
-//     }
-      
-//     m_up->write_piece(m_upPiece);
-//   }
+  if (!m_up->get_choked() &&
+      !m_sendList.empty() &&
+      m_up->can_write_piece())
+    write_prepare_piece();
 }
 
 void
@@ -410,14 +406,37 @@ PeerConnectionSeed::event_write() {
 
 	m_up->get_buffer().reset();
 
-	if (m_up->get_last_command() == ProtocolBase::PIECE) {
-	  
-	} else {
+	if (m_up->get_last_command() != ProtocolBase::PIECE) {
+	  // Break or loop? Might do an ifelse based on size of the
+	  // write buffer. Also the write buffer is relatively large.
 	  m_up->set_state(ProtocolWrite::IDLE);
-	  return;
+	  break;
 	}
 
-	// These should be below write piece.
+	// We're uploading a piece.
+	load_up_chunk();
+
+	m_up->set_state(ProtocolWrite::WRITE_PIECE);
+	m_up->set_position(0);
+
+      case ProtocolWrite::WRITE_PIECE:
+	if (!up_chunk())
+	  return;
+
+	if (m_sendList.empty() || m_sendList.front() != m_upPiece)
+	  throw internal_error("ProtocolWrite::WRITE_PIECE found the wrong piece in the send queue.");
+
+	// Do we need to check that this is the right piece?
+	m_sendList.pop_front();
+	
+	if (m_sendList.empty()) {
+	  m_download->content()->release_chunk(m_upChunk);
+	  m_upChunk = NULL;
+	}
+	
+	m_up->set_state(ProtocolWrite::IDLE);
+	break;
+
       case ProtocolWrite::WRITE_BITFIELD_HEADER:
 	m_up->get_buffer().move_position(write_buf(m_up->get_buffer().position(), m_up->get_buffer().remaining()));
 
@@ -438,7 +457,7 @@ PeerConnectionSeed::event_write() {
 	break;
 
       default:
-	break;
+	throw internal_error("PeerConnectionSeed::event_write() wrong state.");
       }
 
     } while (true);
@@ -466,8 +485,17 @@ PeerConnectionSeed::event_write() {
 
 void
 PeerConnectionSeed::event_error() {
-  m_download->signal_network_log().emit("PeerConnectionSeed::event_error() received.");
-  m_download->connection_list()->erase(this);
+  uint8_t oob;
+
+  if (!read_oob(&oob)) {
+    m_download->signal_network_log().emit("PeerConnectionSeed::event_error() received but could not read it.");
+    return;
+  }
+
+  std::stringstream str;
+  str << "PeerConnectionSeed::event_error() received: " << (uint32_t)oob << '.';
+
+  m_download->signal_network_log().emit(str.str());
 }
 
 void
@@ -476,17 +504,17 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
     throw network_error("Peer sent HAVE message with out-of-range index.");
 
   m_bitfield.set(index, true);
+  m_peerRate.insert(m_download->content()->get_chunk_size());
 }
 
 void
 PeerConnectionSeed::finish_bitfield() {
   m_bitfield.update_count();
 
-  // Temporarily disable disconnect.
-//   if (m_bitfield.all_set())
-//     throw close_connection();
+  if (m_bitfield.all_set())
+    throw close_connection();
 
-  m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
+//   m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
   pollCustom->insert_write(this);
 }
