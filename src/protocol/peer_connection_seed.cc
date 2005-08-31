@@ -109,7 +109,7 @@ PeerConnectionSeed::set(SocketFd fd, const PeerInfo& p, DownloadMain* download) 
     m_up->set_state(ProtocolWrite::WRITE_BITFIELD_HEADER);
   }
     
-  m_timeLastMessage = Timer::cache();
+  m_timeLastRead = Timer::cache();
 }
 
 void
@@ -133,6 +133,20 @@ PeerConnectionSeed::receive_have_chunk(int32_t i) {
 
 bool
 PeerConnectionSeed::receive_keepalive() {
+  if (Timer::cache() - m_timeLastRead > 240 * 1000000)
+    return false;
+
+  if (m_up->get_state() == ProtocolWrite::IDLE) {
+    // Remove this check if ever we add other tasks that inject
+    // messages into the buffer.
+    if (m_up->get_buffer().size_position() != 0)
+      throw internal_error("PeerConnectionSeed::receive_keepalive() called but m_up->get_buffer().size_position() != 0.");
+
+    m_up->write_keepalive();
+    pollCustom->insert_write(this);
+  }
+
+  return true;
 }
 
 // We keep the message in the buffer if it is incomplete instead of
@@ -262,7 +276,7 @@ PeerConnectionSeed::read_message() {
 
 void
 PeerConnectionSeed::event_read() {
-  m_timeLastMessage = Timer::cache();
+  m_timeLastRead = Timer::cache();
 
   // Need to make sure ProtocolBuffer::end() is pointing to the end of
   // the unread data, and that the unread data starts from the
@@ -383,7 +397,7 @@ PeerConnectionSeed::event_write() {
       case ProtocolWrite::IDLE:
 
 	// We might have buffered keepalive message or similar, but
-	// end should remain at the start until we've prepared it.
+	// 'end' should remain at the start of the buffer.
 	if (m_up->get_buffer().size_end() != 0)
 	  throw internal_error("PeerConnectionSeed::event_write() ProtocolWrite::IDLE in a wrong state.");
 

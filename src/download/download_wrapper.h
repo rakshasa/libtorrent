@@ -54,7 +54,8 @@ class HandshakeManager;
 
 class DownloadWrapper {
 public:
-  DownloadWrapper() {}
+  DownloadWrapper() : m_connectionType(0) {}
+  ~DownloadWrapper();
 
   // Initialize hash checker and various download stuff.
   void                initialize(const std::string& hash, const std::string& id, const SocketAddress& sa);
@@ -64,11 +65,12 @@ public:
   void                hash_resume_save();
 
   void                open();
-  void                close()                        { m_main.close(); }
+  void                close();
 
   void                start()                        { m_main.start(); }
   void                stop();
 
+  bool                is_open() const                { return m_main.is_open(); }
   bool                is_stopped() const;
 
   DownloadMain&       get_main()                     { return m_main; }
@@ -88,6 +90,9 @@ public:
   void                set_handshake_manager(HandshakeManager* h);
   void                set_hash_queue(HashQueue* h);
 
+  int                 get_connection_type() const    { return m_connectionType; }
+  void                set_connection_type(int t)     { m_connectionType = t; }
+
   void                receive_keepalive();
   
 private:
@@ -99,6 +104,7 @@ private:
   std::auto_ptr<HashTorrent> m_hash;
 
   std::string         m_name;
+  int                 m_connectionType;
 };
 
 }

@@ -95,11 +95,14 @@ DownloadMain::close() {
   if (is_active())
     throw internal_error("Tried to close an active download");
 
+  if (!is_open())
+    return;
+
   m_checked = false;
 
   m_trackerManager->close();
-  m_content.close();
   m_delegator.clear();
+  m_content.close();
 }
 
 void DownloadMain::start() {
@@ -192,7 +195,9 @@ DownloadMain::receive_hash_done(ChunkListNode* node, std::string h) {
   if (!node->is_valid())
     throw internal_error("DownloadMain::receive_hash_done(...) called on an invalid chunk.");
 
-  if (!h.empty() && std::memcmp(h.c_str(), m_content.get_hash_c(node->index()), 20) == 0) {
+  if (h.empty() || !is_open()) {
+
+  } else if (std::memcmp(h.c_str(), m_content.get_hash_c(node->index()), 20) == 0) {
 
     m_content.mark_done(node->index());
     m_signalChunkPassed.emit(node->index());

@@ -64,7 +64,6 @@ Download::close() {
   if (m_ptr->get_main().is_active())
     stop();
 
-  m_ptr->get_hash_checker().clear();
   m_ptr->close();
 }
 
@@ -340,10 +339,15 @@ Download::get_seen() const {
   return m_ptr->get_main().get_bitfield_counter().field();
 }
 
+Download::ConnectionType
+Download::get_connection_type() const {
+  return (ConnectionType)m_ptr->get_connection_type();
+}
+
 void
 Download::set_connection_type(ConnectionType t) {
   switch (t) {
-  case CONNECTION_DEFAULT:
+  case CONNECTION_LEECH:
     m_ptr->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &m_ptr->get_main()));
     break;
   case CONNECTION_SEED:
@@ -352,6 +356,8 @@ Download::set_connection_type(ConnectionType t) {
   default:
     throw client_error("torrent::Download::set_connection_type(...) received invalid type.");
   };
+
+  m_ptr->set_connection_type(t);
 }
 
 void

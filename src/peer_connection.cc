@@ -163,11 +163,11 @@ void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadMain* download)
     m_up->set_state(ProtocolWrite::MSG);
   }
     
-  m_timeLastMessage = Timer::cache();
+  m_timeLastRead = Timer::cache();
 }
 
 void PeerConnection::event_read() {
-  m_timeLastMessage = Timer::cache();
+  m_timeLastRead = Timer::cache();
 
   try {
     
@@ -775,7 +775,7 @@ PeerConnection::receive_piece_header(Piece p) {
 bool
 PeerConnection::receive_keepalive() {
   // Check if remote peer is dead.
-  if (Timer::cache() - m_timeLastMessage > 240 * 1000000) {
+  if (Timer::cache() - m_timeLastRead > 240 * 1000000) {
     //m_download->connection_list()->erase(this);
     return false;
   }

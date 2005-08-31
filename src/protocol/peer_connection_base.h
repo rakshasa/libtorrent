@@ -168,7 +168,7 @@ protected:
   BitFieldExt         m_bitfield;
   Timer               m_lastChoked;
 
-  Timer               m_timeLastMessage;
+  Timer               m_timeLastRead;
 };
 
 inline void

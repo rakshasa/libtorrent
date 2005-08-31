@@ -159,10 +159,11 @@ public:
   const SeenVector&    get_seen() const;
 
   typedef enum {
-    CONNECTION_DEFAULT,
+    CONNECTION_LEECH,
     CONNECTION_SEED
   } ConnectionType;
 
+  ConnectionType       get_connection_type() const;
   void                 set_connection_type(ConnectionType t);
 
   // Call this when you want the modifications of the download priorities

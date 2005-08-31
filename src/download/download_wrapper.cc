@@ -53,6 +53,11 @@
 
 namespace torrent {
 
+DownloadWrapper::~DownloadWrapper() {
+  stop();
+  close();
+}
+
 void
 DownloadWrapper::initialize(const std::string& hash, const std::string& id, const SocketAddress& sa) {
   m_main.setup_net();
@@ -213,12 +218,17 @@ DownloadWrapper::open() {
 }
 
 void
+DownloadWrapper::close() {
+  // Stop the hashing first as we need to make sure all chunks are
+  // released when DownloadMain::close() is called.
+  m_hash->clear();
+
+  m_main.close();
+}
+
+void
 DownloadWrapper::stop() {
   m_main.stop();
-
-  // TODO: This is just wrong.
-  m_hash->stop();
-  m_hash->get_queue()->remove(get_hash());
 }
 
 bool

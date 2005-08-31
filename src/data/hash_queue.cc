@@ -107,6 +107,8 @@ HashQueue::remove(const std::string& id) {
   iterator itr = begin();
   
   while ((itr = std::find(itr, end(), id)) != end()) {
+    itr->slot_done()(itr->get_chunk()->get_chunk(), "");
+
     itr->clear();
     itr = erase(itr);
   }
@@ -117,9 +119,13 @@ HashQueue::remove(const std::string& id) {
 
 void
 HashQueue::clear() {
-  std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
-  Base::clear();
-  taskScheduler.erase(&m_taskWork);
+  if (!empty())
+    throw internal_error("HashQueue::clear() called but valid nodes were found.");
+
+  // Replace with a dtor check to ensure it is empty?
+//   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
+//   Base::clear();
+//   taskScheduler.erase(&m_taskWork);
 }
 
 void

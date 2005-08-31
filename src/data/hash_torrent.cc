@@ -65,9 +65,9 @@ HashTorrent::start() {
 
 void
 HashTorrent::stop() {
-  // TODO: Don't allow stops atm, just clean up.
-  m_queue->remove(m_id);
+  // Make sure we disable hashing before removing the chunks.
   m_outstanding = -1;
+  m_queue->remove(m_id);
 }
   
 void
@@ -78,12 +78,19 @@ HashTorrent::clear() {
 
 void
 HashTorrent::receive_chunkdone(ChunkListNode* node, std::string hash) {
+  // m_signalChunk will always point to
+  // DownloadMain::receive_hash_done, so it will take care of cleanup.
+  //
   // Make sure we call chunkdone before torrentDone has a chance to
   // trigger.
   m_signalChunk(node, hash);
   m_outstanding--;
 
-  queue();
+  // Don't add more when we've stopped. Use some better condition than
+  // m_outstanding. This code is ugly... needs a refactoring, a
+  // seperate flag for active and allow pause or clearing the state.
+  if (m_outstanding >= 0)
+    queue();
 }
 
 void

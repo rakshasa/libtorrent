@@ -67,9 +67,10 @@ DownloadManager::erase(iterator itr) {
 
 void
 DownloadManager::clear() {
-  std::for_each(begin(), end(), rak::call_delete<DownloadWrapper>());
-
-  Base::clear();
+  while (!empty()) {
+    delete Base::front();
+    Base::pop_front();
+  }
 }
 
 DownloadManager::iterator

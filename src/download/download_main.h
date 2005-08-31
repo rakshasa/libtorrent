@@ -83,7 +83,7 @@ public:
   bool                get_endgame() const                        { return m_endgame; }
   uint64_t            get_bytes_left();
 
-  Rate&               get_up_rate()                           { return m_upRate; }
+  Rate&               get_up_rate()                              { return m_upRate; }
   Rate&               get_down_rate()                            { return m_downRate; }
 
   BitFieldCounter&    get_bitfield_counter()                     { return m_bitfieldCounter; }
