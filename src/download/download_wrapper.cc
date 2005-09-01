@@ -54,8 +54,11 @@
 namespace torrent {
 
 DownloadWrapper::~DownloadWrapper() {
-  stop();
-  close();
+  if (m_main.is_active())
+    stop();
+
+  if (m_main.is_open())
+    close();
 }
 
 void
@@ -73,7 +76,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), m_main.content()));
 
   // Connect various signals and slots.
-  m_hash->signal_chunk().connect(sigc::mem_fun(m_main, &DownloadMain::receive_hash_done));
+  m_hash->slot_chunk_done(sigc::mem_fun(m_main, &DownloadMain::receive_hash_done));
   m_hash->signal_torrent().connect(sigc::mem_fun(m_main, &DownloadMain::receive_initial_hash));
 }
 

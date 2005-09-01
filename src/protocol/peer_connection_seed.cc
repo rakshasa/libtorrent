@@ -43,8 +43,6 @@
 #include "download/download_main.h"
 
 #include "peer_connection_seed.h"
-#include "protocol_read.h"
-#include "protocol_write.h"
 
 namespace torrent {
 
@@ -125,10 +123,12 @@ PeerConnectionSeed::set_choke(bool v) {
 
 void
 PeerConnectionSeed::update_interested() {
+  // We assume this won't be called.
 }
 
 void
 PeerConnectionSeed::receive_have_chunk(int32_t i) {
+  // We assume this won't be called.
 }
 
 bool
@@ -219,25 +219,12 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::BITFIELD:
-    if (length != m_bitfield.size_bytes() + 1)
-      throw network_error("Received invalid bitfield size.");
-
-    std::memcpy(m_bitfield.begin(), buf->position(), std::min<uint32_t>(buf->remaining(), m_bitfield.size_bytes()));
-
-    if (buf->remaining() >= m_bitfield.size_bytes()) {
-      buf->move_position(m_bitfield.size_bytes());
+    if (read_bitfield_from_buffer(length - 1)) {
       finish_bitfield();
-
       return true;
 
     } else {
-      m_down->set_position(buf->remaining());
       m_down->set_state(ProtocolRead::READ_BITFIELD);
-
-      // Move the position so we don't copy 'unread' bytes to the
-      // start of the buffer.
-      buf->move_position(buf->remaining());
-
       return false;
     }
 
@@ -310,12 +297,7 @@ PeerConnectionSeed::event_read() {
 	break;
 
       case ProtocolRead::READ_BITFIELD:
-	// We're guaranteed that we still got bytes remaining to be
-	// read of the bitfield.
-	m_down->adjust_position(read_buf(m_bitfield.begin() + m_down->get_position(),
-					 m_bitfield.size_bytes() - m_down->get_position()));
-	
-	if (m_down->get_position() != m_bitfield.size_bytes())
+	if (!read_bitfield_body())
 	  return;
 
 	m_down->set_state(ProtocolRead::IDLE);
@@ -437,18 +419,9 @@ PeerConnectionSeed::event_write() {
 	if (!up_chunk())
 	  return;
 
-	if (m_sendList.empty() || m_sendList.front() != m_upPiece)
-	  throw internal_error("ProtocolWrite::WRITE_PIECE found the wrong piece in the send queue.");
-
-	// Do we need to check that this is the right piece?
-	m_sendList.pop_front();
-	
-	if (m_sendList.empty()) {
-	  m_download->content()->release_chunk(m_upChunk);
-	  m_upChunk = NULL;
-	}
-	
+	write_finished_piece();
 	m_up->set_state(ProtocolWrite::IDLE);
+
 	break;
 
       case ProtocolWrite::WRITE_BITFIELD_HEADER:
@@ -461,10 +434,7 @@ PeerConnectionSeed::event_write() {
 	m_up->set_state(ProtocolWrite::WRITE_BITFIELD);
 
       case ProtocolWrite::WRITE_BITFIELD:
-	m_up->adjust_position(write_buf(m_download->content()->get_bitfield().begin() + m_up->get_position(),
-					m_download->content()->get_bitfield().size_bytes() - m_up->get_position()));
-
-	if (m_up->get_position() != m_bitfield.size_bytes())
+	if (!write_bitfield_body())
 	  return;
 
 	m_up->set_state(ProtocolWrite::IDLE);

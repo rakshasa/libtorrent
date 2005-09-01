@@ -2,27 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[PARTLY] Allow for easier configuration for very low/very high open
-max. Add notes to wiki.
-
-[DONE] Add keepalive, make sure write::idle does correct checking. Also fixed
-a bug that caused keepalives not to be sent.
-
-[DONE] Use connection enum not string in core::Download,
-
-[DONE] Allow display of a peer's connection type.
-
-Make HashTorrent::signal_chunk into a slot.
-
-Alignemnt config needs to be manual for some archs.
-
 Use correctly sized read/write buffers.
 
 Cache the number of unchoked peers.
-
-Remember to verify the length of messages.
-
-Remember to do proper cleanup when removing hashing's from the queue.
 
 Change all get_chunk(...)'s to check for only is_valid, not NULL?
 

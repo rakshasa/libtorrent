@@ -83,7 +83,7 @@ HashTorrent::receive_chunkdone(ChunkListNode* node, std::string hash) {
   //
   // Make sure we call chunkdone before torrentDone has a chance to
   // trigger.
-  m_signalChunk(node, hash);
+  m_slotChunkDone(node, hash);
   m_outstanding--;
 
   // Don't add more when we've stopped. Use some better condition than

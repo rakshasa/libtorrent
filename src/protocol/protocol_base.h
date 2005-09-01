@@ -61,11 +61,29 @@ public:
     KEEP_ALIVE      // Last command was a keep alive
   } Protocol;
 
+  typedef enum {
+    IDLE,
+    LENGTH,
+    TYPE,
+    MSG,
+    READ_BITFIELD,
+    READ_PIECE,
+    WRITE_BITFIELD_HEADER,
+    WRITE_BITFIELD,
+    WRITE_PIECE_HEADER,
+    WRITE_PIECE,
+    SKIP_PIECE,
+    INTERNAL_ERROR
+  } State;
+
   ProtocolBase() :
     m_position(0),
     m_choked(true),
     m_interested(false),
-    m_lastCommand(NONE) {}
+    m_lastCommand(NONE),
+    m_state(IDLE),
+    m_length(0) {
+  }
 
   bool                get_choked() const                      { return m_choked; }
   bool                get_interested() const                  { return m_interested; }
@@ -84,15 +102,110 @@ public:
   void                set_position(uint32_t p)                { m_position = p; }
   void                adjust_position(uint32_t p)             { m_position += p; }
 
+  State               get_state() const                       { return m_state; }
+  void                set_state(State s)                      { m_state = s; }
+
+  uint32_t            get_length() const                      { return m_length; }
+  void                set_length(uint32_t l)                  { m_length = l; }
+
+  Piece               read_request();
+  Piece               read_piece();
+
+  void                write_command(Protocol c)               { m_buffer.write_8(m_lastCommand = c); }
+
+  void                write_keepalive();
+  void                write_choke(bool s);
+  void                write_interested(bool s);
+  void                write_have(uint32_t index);
+  void                write_bitfield(uint32_t length);
+  void                write_request(const Piece& p, bool s = true);
+  void                write_piece(const Piece& p);
+
+  bool                can_write_keepalive() const             { return m_buffer.reserved_left() >= 4; }
+  bool                can_write_choke() const                 { return m_buffer.reserved_left() >= 5; }
+  bool                can_write_interested() const            { return m_buffer.reserved_left() >= 5; }
+  bool                can_write_have() const                  { return m_buffer.reserved_left() >= 9; }
+  bool                can_write_bitfield() const              { return m_buffer.reserved_left() >= 5; }
+  bool                can_write_request() const               { return m_buffer.reserved_left() >= 17; }
+  bool                can_write_piece() const                 { return m_buffer.reserved_left() >= 13; }
+
 protected:
   uint32_t            m_position;
 
   bool                m_choked;
   bool                m_interested;
 
+  State               m_state;
+  uint32_t            m_length;
+
   Protocol            m_lastCommand;
   Buffer              m_buffer;
 };
+
+inline Piece
+ProtocolBase::read_request() {
+  uint32_t index = m_buffer.read_32();
+  uint32_t offset = m_buffer.read_32();
+  uint32_t length = m_buffer.read_32();
+  
+  return Piece(index, offset, length);
+}
+
+inline Piece
+ProtocolBase::read_piece() {
+  uint32_t index = m_buffer.read_32();
+  uint32_t offset = m_buffer.read_32();
+
+  return Piece(index, offset, get_length() - 9);
+}
+
+inline void
+ProtocolBase::write_keepalive() {
+  m_buffer.write_32(0);
+  m_lastCommand = KEEP_ALIVE;
+}
+
+inline void
+ProtocolBase::write_choke(bool s) {
+  m_buffer.write_32(1);
+  write_command(s ? CHOKE : UNCHOKE);
+}
+
+inline void
+ProtocolBase::write_interested(bool s) {
+  m_buffer.write_32(1);
+  write_command(s ? INTERESTED : NOT_INTERESTED);
+}
+
+inline void
+ProtocolBase::write_have(uint32_t index) {
+  m_buffer.write_32(5);
+  write_command(HAVE);
+  m_buffer.write_32(index);
+}
+
+inline void
+ProtocolBase::write_bitfield(uint32_t length) {
+  m_buffer.write_32(1 + length);
+  write_command(BITFIELD);
+}
+
+inline void
+ProtocolBase::write_request(const Piece& p, bool s) {
+  m_buffer.write_32(13);
+  write_command(s ? REQUEST : CANCEL);
+  m_buffer.write_32(p.get_index());
+  m_buffer.write_32(p.get_offset());
+  m_buffer.write_32(p.get_length());
+}
+
+inline void
+ProtocolBase::write_piece(const Piece& p) {
+  m_buffer.write_32(9 + p.get_length());
+  write_command(PIECE);
+  m_buffer.write_32(p.get_index());
+  m_buffer.write_32(p.get_offset());
+}
 
 }
 

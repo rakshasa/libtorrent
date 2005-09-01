@@ -47,8 +47,7 @@
 #include "torrent/rate.h"
 
 #include "peer_info.h"
-#include "protocol_read.h"
-#include "protocol_write.h"
+#include "protocol_base.h"
 #include "request_list.h"
 
 namespace torrent {
@@ -62,6 +61,8 @@ class DownloadMain;
 class PeerConnectionBase : public SocketStream {
 public:
   typedef std::list<Piece> PieceList;
+  typedef ProtocolBase     ProtocolRead;
+  typedef ProtocolBase     ProtocolWrite;
 
   // Find an optimal number for this.
   static const uint32_t read_size = 64;
@@ -129,6 +130,12 @@ protected:
   void                read_buffer_move_unused();
 
   void                write_prepare_piece();
+  void                write_finished_piece();
+
+  bool                read_bitfield_body();
+  bool                read_bitfield_from_buffer(uint32_t msgLength);
+
+  bool                write_bitfield_body();
 
   bool                is_down_chunk_valid() const { return m_downChunk != NULL; }
   bool                is_up_chunk_valid() const   { return m_upChunk != NULL; }

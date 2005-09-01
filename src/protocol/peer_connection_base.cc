@@ -337,4 +337,53 @@ PeerConnectionBase::write_prepare_piece() {
   m_up->write_piece(m_upPiece);
 }
 
+void
+PeerConnectionBase::write_finished_piece() {
+  if (m_sendList.empty() || m_sendList.front() != m_upPiece)
+    throw internal_error("ProtocolWrite::WRITE_PIECE found the wrong piece in the send queue.");
+
+  // Do we need to check that this is the right piece?
+  m_sendList.pop_front();
+	
+  if (m_sendList.empty()) {
+    m_download->content()->release_chunk(m_upChunk);
+    m_upChunk = NULL;
+  }
+}
+
+bool
+PeerConnectionBase::read_bitfield_body() {
+  // We're guaranteed that we still got bytes remaining to be
+  // read of the bitfield.
+  m_down->adjust_position(read_buf(m_bitfield.begin() + m_down->get_position(),
+				   m_bitfield.size_bytes() - m_down->get_position()));
+	
+  return m_down->get_position() == m_bitfield.size_bytes();
+}
+
+// 'msgLength' is the length of the message, not how much we got in
+// the buffer.
+bool
+PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
+  if (msgLength != m_bitfield.size_bytes())
+    throw network_error("Received invalid bitfield size.");
+
+  uint32_t copyLength = std::min((uint32_t)m_down->get_buffer().remaining(), msgLength);
+
+  std::memcpy(m_bitfield.begin(), m_down->get_buffer().position(), copyLength);
+
+  m_down->get_buffer().move_position(copyLength);
+  m_down->set_position(copyLength);
+
+  return copyLength == msgLength;
+}
+
+bool
+PeerConnectionBase::write_bitfield_body() {
+  m_up->adjust_position(write_buf(m_download->content()->get_bitfield().begin() + m_up->get_position(),
+				  m_download->content()->get_bitfield().size_bytes() - m_up->get_position()));
+
+  return m_up->get_position() == m_bitfield.size_bytes();
+}
+
 }

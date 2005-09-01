@@ -50,8 +50,8 @@ class HashQueue;
 
 class HashTorrent {
 public:
-  typedef sigc::signal0<void>                              Signal;
-  typedef sigc::signal2<void, ChunkListNode*, std::string> SignalChunkDone;
+  typedef sigc::signal0<void>                            Signal;
+  typedef sigc::slot2<void, ChunkListNode*, std::string> SlotChunkDone;
   
   HashTorrent(const std::string& id, Content* c);
   ~HashTorrent() { clear(); }
@@ -69,7 +69,8 @@ public:
   void                set_queue(HashQueue* q)       { m_queue = q; }
 
   Signal&             signal_torrent()              { return m_signalTorrent; }
-  SignalChunkDone&    signal_chunk()                { return m_signalChunk; }
+
+  void                slot_chunk_done(SlotChunkDone s) { m_slotChunkDone = s; }
 
 private:
   void                queue();
@@ -86,7 +87,7 @@ private:
   HashQueue*          m_queue;
 
   Signal              m_signalTorrent;
-  SignalChunkDone     m_signalChunk;
+  SlotChunkDone       m_slotChunkDone;
 };
 
 }
