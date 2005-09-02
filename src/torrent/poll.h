@@ -52,7 +52,8 @@ public:
   virtual uint32_t    get_open_max() const = 0;
 
   // Event::get_fd() is guaranteed to be valid and remain constant
-  // from open(...) is called to close(...) returns.
+  // from open(...) is called to close(...) returns. The implementor
+  // of this class should not open nor close the file descriptor.
   virtual void        open(Event* event) = 0;
   virtual void        close(Event* event) = 0;
 

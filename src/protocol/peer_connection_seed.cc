@@ -136,11 +136,10 @@ PeerConnectionSeed::receive_keepalive() {
   if (Timer::cache() - m_timeLastRead > 240 * 1000000)
     return false;
 
-  if (m_up->get_state() == ProtocolWrite::IDLE) {
-    // Remove this check if ever we add other tasks that inject
-    // messages into the buffer.
-    if (m_up->get_buffer().size_position() != 0)
-      throw internal_error("PeerConnectionSeed::receive_keepalive() called but m_up->get_buffer().size_position() != 0.");
+  // There's no point in adding ourselves to the write poll if the
+  // buffer is full, as that will already have been taken care of.
+  if (m_up->get_state() == ProtocolWrite::IDLE &&
+      m_up->can_write_keepalive()) {
 
     m_up->write_keepalive();
     pollCustom->insert_write(this);

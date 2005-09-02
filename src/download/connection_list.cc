@@ -72,6 +72,9 @@ ConnectionList::insert(SocketFd fd, const PeerInfo& p) {
 
 ConnectionList::iterator
 ConnectionList::erase(iterator pos) {
+  if (pos < begin() || pos >= end())
+    throw internal_error("ConnectionList::erase(...) iterator out or range.");
+
   value_type v = *pos;
 
   pos = Base::erase(pos);

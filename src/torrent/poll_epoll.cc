@@ -38,6 +38,7 @@
 
 #include <cerrno>
 
+#include <unistd.h>
 #include <torrent/exceptions.h>
 #include <torrent/event.h>
 
