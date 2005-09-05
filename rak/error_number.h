@@ -1,4 +1,4 @@
-// libTorrent - BitTorrent library
+// rak - Rakshasa's toolbox
 // Copyright (C) 2005, Jari Sundell
 //
 // This program is free software; you can redistribute it and/or modify
@@ -34,43 +34,32 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_SOCKET_STREAM_H
-#define LIBTORRENT_NET_SOCKET_STREAM_H
+#ifndef RAK_ERROR_NUMBER_H
+#define RAK_ERROR_NUMBER_H
 
-#include "socket_base.h"
+#include <cerrno>
+#include <cstring>
 
-namespace torrent {
+namespace rak {
 
-class SocketStream : public SocketBase {
+class error_number {
 public:
-  int                 read_stream(void* buf, uint32_t length);
-  int                 write_stream(const void* buf, uint32_t length);
+  error_number() : m_errno(0) {}
+  error_number(int e) : m_errno(e) {}
 
-  // Returns the number of bytes read, or zero if the socket is
-  // blocking. On errors or closed sockets it will throw an
-  // appropriate exception.
-  uint32_t            read_stream_throws(void* buf, uint32_t length);
-  uint32_t            write_stream_throws(const void* buf, uint32_t length);
+  int                 value() const                { return m_errno; }
+  const char*         c_str() const                { return strerror(m_errno); }
 
-  // Handles all the error catching etc. Returns true if the buffer is
-  // finished reading/writing.
-  bool                read_buffer(void* buf, uint32_t length, uint32_t& pos);
-  bool                write_buffer(const void* buf, uint32_t length, uint32_t& pos);
+  bool                is_blocked_momentary() const { return m_errno == EAGAIN || m_errno == EINTR; }
+  bool                is_blocked_prolonged() const { return m_errno == EDEADLK; }
+
+  bool                is_closed() const            { return m_errno == ECONNRESET || m_errno == ECONNABORTED; }
+
+  static error_number current()                    { return errno; }
+
+private:
+  int                 m_errno;
 };
-
-inline bool
-SocketStream::read_buffer(void* buf, uint32_t length, uint32_t& pos) {
-  pos += read_stream_throws(buf, length - pos);
-
-  return pos == length;
-}
-
-inline bool
-SocketStream::write_buffer(const void* buf, uint32_t length, uint32_t& pos) {
-  pos += write_stream_throws(buf, length - pos);
-
-  return pos == length;
-}
 
 }
 

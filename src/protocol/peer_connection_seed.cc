@@ -166,6 +166,8 @@ PeerConnectionSeed::read_message() {
 
   if (length == 0) {
     // Keepalive message.
+    m_down->set_last_command(ProtocolBase::KEEP_ALIVE);
+
     return true;
 
   } else if (buf->remaining() < 1) {
@@ -184,6 +186,9 @@ PeerConnectionSeed::read_message() {
   // Those that do in some weird way manage to produce a valid
   // command, will not be able to do any damage as malicious
   // peer. Those cases should be caught elsewhere in the code.
+
+  // Temporary.
+  m_down->set_last_command((ProtocolBase::Protocol)buf->peek_8());
 
   switch (buf->read_8()) {
   case ProtocolBase::CHOKE:
@@ -236,7 +241,7 @@ PeerConnectionSeed::read_message() {
       pollCustom->insert_write(this);
 
     } else {
-      m_down->read_piece();
+      m_down->read_request();
     }
 
     return true;
@@ -286,7 +291,7 @@ PeerConnectionSeed::event_read() {
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
-	m_down->get_buffer().move_end(read_buf(m_down->get_buffer().end(), read_size - m_down->get_buffer().size_end()));
+	m_down->get_buffer().move_end(read_stream_throws(m_down->get_buffer().end(), read_size - m_down->get_buffer().size_end()));
 	
 	while (read_message());
 	
@@ -319,6 +324,9 @@ PeerConnectionSeed::event_read() {
   } catch (close_connection& e) {
     m_download->connection_list()->erase(this);
 
+  } catch (blocked_connection& e) {
+    m_download->signal_network_log().emit("Momentarily blocked read connection.");
+
   } catch (network_error& e) {
     m_download->signal_network_log().emit(e.what());
 
@@ -330,7 +338,7 @@ PeerConnectionSeed::event_read() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection read fd(" << get_fd().get_fd() << ") state(" << m_down->get_state() << ") \"" << e.what() << '"';
+    s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->get_last_command() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
@@ -394,7 +402,7 @@ PeerConnectionSeed::event_write() {
 	m_up->get_buffer().prepare_end();
 
       case ProtocolWrite::MSG:
-	m_up->get_buffer().move_position(write_buf(m_up->get_buffer().position(), m_up->get_buffer().remaining()));
+	m_up->get_buffer().move_position(write_stream_throws(m_up->get_buffer().position(), m_up->get_buffer().remaining()));
 
 	if (m_up->get_buffer().remaining())
 	  return;
@@ -424,7 +432,7 @@ PeerConnectionSeed::event_write() {
 	break;
 
       case ProtocolWrite::WRITE_BITFIELD_HEADER:
-	m_up->get_buffer().move_position(write_buf(m_up->get_buffer().position(), m_up->get_buffer().remaining()));
+	m_up->get_buffer().move_position(write_stream_throws(m_up->get_buffer().position(), m_up->get_buffer().remaining()));
 
 	if (m_up->get_buffer().remaining())
 	  return;
@@ -448,6 +456,9 @@ PeerConnectionSeed::event_write() {
   } catch (close_connection& e) {
     m_download->connection_list()->erase(this);
 
+  } catch (blocked_connection& e) {
+    m_download->signal_network_log().emit("Momentarily blocked write connection.");
+
   } catch (network_error& e) {
     m_download->signal_network_log().emit(e.what());
     m_download->connection_list()->erase(this);
@@ -458,27 +469,12 @@ PeerConnectionSeed::event_write() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection write fd(" << get_fd().get_fd() << ") state(" << m_up->get_state() << ") \"" << e.what() << '"';
+    s << "Connection write fd(" << get_fd().get_fd() << ',' << m_up->get_state() << ',' << m_up->get_last_command() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
     throw;
   }
-}
-
-void
-PeerConnectionSeed::event_error() {
-  uint8_t oob;
-
-  if (!read_oob(&oob)) {
-    m_download->signal_network_log().emit("PeerConnectionSeed::event_error() received but could not read it.");
-    return;
-  }
-
-  std::stringstream str;
-  str << "PeerConnectionSeed::event_error() received: " << (uint32_t)oob << '.';
-
-  m_download->signal_network_log().emit(str.str());
 }
 
 void

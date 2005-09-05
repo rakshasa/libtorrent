@@ -98,6 +98,11 @@ public:
   close_connection(const std::string& msg) : network_error(msg) {}
 };
 
+class blocked_connection : public network_error {
+public:
+  blocked_connection() : network_error("") {}
+};
+
 // Stuff like bad torrent file, disk space and permissions.
 class local_error : public base_error {
 public:

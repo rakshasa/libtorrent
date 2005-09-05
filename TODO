@@ -2,6 +2,14 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Wait when receiving resource tmp unavailable.
+
+PeerConnectionSeed::read_message() got an invalid message length.
+
+File priority might not like sequential requesting.
+
+Add note on disabling udp trackers.
+
 Use correctly sized read/write buffers.
 
 Cache the number of unchoked peers.

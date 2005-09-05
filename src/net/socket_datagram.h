@@ -46,18 +46,8 @@ public:
 
   // TODO: Make two seperate functions depending on whetever sa is
   // used.
-  int                 send(const void* buffer, unsigned int length, SocketAddress* sa = NULL);
-  int                 receive(void* buffer, unsigned int length, SocketAddress* sa = NULL);
-
-  // Some functions that check what kind of error was returned, it it
-  // was important, if we can ignore it or perhaps the other side
-  // rejected us etc.
-  int                 get_errno() const { return m_errno; }
-
-  //void is_error_borkborkbork();
-
-private:
-  int                 m_errno;
+  int                 read_datagram(void* buffer, unsigned int length, SocketAddress* sa = NULL);
+  int                 write_datagram(const void* buffer, unsigned int length, SocketAddress* sa = NULL);
 };
 
 }

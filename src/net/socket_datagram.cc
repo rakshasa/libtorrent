@@ -48,26 +48,7 @@
 namespace torrent {
 
 int
-SocketDatagram::send(const void* buffer, unsigned int length, SocketAddress* sa) {
-  if (length == 0)
-    throw internal_error("Tried to send buffer length 0");
-
-  int r;
-
-  if (sa != NULL) {
-    r = ::sendto(m_fileDesc, buffer, length, 0, &sa->get_addr(), sa->get_sizeof());
-  } else {
-    r = ::send(m_fileDesc, buffer, length, 0);
-  }
-
-  if (r < 0)
-    m_errno = errno;
-
-  return r;
-}
-
-int
-SocketDatagram::receive(void* buffer, unsigned int length, SocketAddress* sa) {
+SocketDatagram::read_datagram(void* buffer, unsigned int length, SocketAddress* sa) {
   if (length == 0)
     throw internal_error("Tried to receive buffer length 0");
 
@@ -81,8 +62,21 @@ SocketDatagram::receive(void* buffer, unsigned int length, SocketAddress* sa) {
     r = ::recv(m_fileDesc, buffer, length, 0);
   }
 
-  if (r < 0)
-    m_errno = errno;
+  return r;
+}
+
+int
+SocketDatagram::write_datagram(const void* buffer, unsigned int length, SocketAddress* sa) {
+  if (length == 0)
+    throw internal_error("Tried to send buffer length 0");
+
+  int r;
+
+  if (sa != NULL) {
+    r = ::sendto(m_fileDesc, buffer, length, 0, &sa->get_addr(), sa->get_sizeof());
+  } else {
+    r = ::send(m_fileDesc, buffer, length, 0);
+  }
 
   return r;
 }

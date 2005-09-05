@@ -38,46 +38,86 @@
 
 #include "socket_stream.h"
 
-#include <errno.h>
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
 
 namespace torrent {
 
-unsigned int
-SocketStream::read_buf(void* buf, unsigned int length) {
+std::string
+int_to_string(int v) {
+  char buf[20];
+
+  std::sprintf(buf, "%i", v);
+
+  return buf;
+}
+
+inline int
+SocketStream::read_stream(void* buf, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to read buffer length 0");
 
-  int r = ::recv(m_fileDesc, buf, length, 0);
-
-  if (r == 0)
-    throw close_connection();
-
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
-
-  return std::max(r, 0);
+  return ::recv(m_fileDesc, buf, length, 0);
 }
 
-unsigned int
-SocketStream::write_buf(const void* buf, unsigned int length) {
+inline int
+SocketStream::write_stream(const void* buf, unsigned int length) {
   if (length == 0)
     throw internal_error("Tried to write buffer length 0");
 
-  int r = ::send(m_fileDesc, buf, length, 0);
+  return ::send(m_fileDesc, buf, length, 0);
+}
+
+uint32_t
+SocketStream::read_stream_throws(void* buf, uint32_t length) {
+  int r = read_stream(buf, length);
 
   if (r == 0)
     throw close_connection();
 
-  else if (r < 0 && errno != EAGAIN && errno != EINTR)
-    throw connection_error(std::string("Connection closed due to ") + std::strerror(errno));
+  if (r < 0)
+    if (rak::error_number::current().is_blocked_momentary())
+      return 0;
+    else if (rak::error_number::current().is_closed())
+      throw close_connection();
+    else if (rak::error_number::current().is_blocked_prolonged())
+      throw blocked_connection();
+    else
+      throw connection_error("Connection closed due to (errno: " +
+			     int_to_string(rak::error_number::current().value()) +
+			     ") " +
+			     std::string(rak::error_number::current().c_str()));
 
-  return std::max(r, 0);
+  return r;
+}
+
+uint32_t
+SocketStream::write_stream_throws(const void* buf, uint32_t length) {
+  int r = write_stream(buf, length);
+
+  if (r == 0)
+    throw close_connection();
+
+  if (r < 0)
+    if (rak::error_number::current().is_blocked_momentary())
+      return 0;
+    else if (rak::error_number::current().is_closed())
+      throw close_connection();
+    else if (rak::error_number::current().is_blocked_prolonged())
+      throw blocked_connection();
+    else
+      throw connection_error("Connection closed due to (errno: " +
+			     int_to_string(rak::error_number::current().value()) +
+			     ") " +
+			     std::string(rak::error_number::current().c_str()));
+
+  return r;
 }
 
 }

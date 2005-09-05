@@ -36,9 +36,9 @@
 
 #include "config.h"
 
-#include <cerrno>
 #include <stdlib.h>
 #include <sigc++/bind.h>
+#include <rak/error_number.h>
 
 #include "net/manager.h"
 #include "torrent/exceptions.h"
@@ -155,7 +155,7 @@ void
 TrackerUdp::event_read() {
   SocketAddress sa;
 
-  int s = receive(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
+  int s = read_datagram(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
 
   if (s < 4)
     return;
@@ -202,7 +202,7 @@ TrackerUdp::event_write() {
   if (m_writeBuffer->size_end() == 0)
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
-  int s = send(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
+  int s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
 
   // TODO: If send failed, retry shortly or do i call receive_failed?
   if (s != m_writeBuffer->size_end())

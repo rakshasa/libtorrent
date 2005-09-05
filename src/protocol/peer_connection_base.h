@@ -112,6 +112,8 @@ public:
   virtual void        receive_have_chunk(int32_t i) = 0;
   virtual bool        receive_keepalive() = 0;
 
+  virtual void        event_error();
+
 protected:
   typedef Chunk::iterator ChunkPart;
 
@@ -208,7 +210,7 @@ PeerConnectionBase::remove_up_throttle() {
 
 inline bool
 PeerConnectionBase::read_remaining() {
-  m_down->get_buffer().move_position(read_buf(m_down->get_buffer().position(),
+  m_down->get_buffer().move_position(read_stream_throws(m_down->get_buffer().position(),
 					      m_down->get_buffer().remaining()));
 
   return !m_down->get_buffer().remaining();
@@ -216,7 +218,7 @@ PeerConnectionBase::read_remaining() {
 
 inline bool
 PeerConnectionBase::write_remaining() {
-  m_up->get_buffer().move_position(write_buf(m_up->get_buffer().position(),
+  m_up->get_buffer().move_position(write_stream_throws(m_up->get_buffer().position(),
 						m_up->get_buffer().remaining()));
 
   return !m_up->get_buffer().remaining();

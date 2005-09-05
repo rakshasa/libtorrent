@@ -63,7 +63,6 @@ public:
 
   virtual void        event_read();
   virtual void        event_write();
-  virtual void        event_error();
 
   void set(SocketFd fd, const PeerInfo& p, DownloadMain* download);
   

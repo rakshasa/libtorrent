@@ -180,7 +180,7 @@ void PeerConnection::event_read() {
     // Reset end when needed
 
   case ProtocolRead::LENGTH:
-    m_down->get_buffer().move_position(read_buf(m_down->get_buffer().position(), 4 - m_down->get_buffer().size_position()));
+    m_down->get_buffer().move_position(read_stream_throws(m_down->get_buffer().position(), 4 - m_down->get_buffer().size_position()));
 
     if (m_down->get_buffer().size_position() != 4)
       return;
@@ -296,7 +296,7 @@ void PeerConnection::event_read() {
     goto evil_goto_read;
 
   case ProtocolRead::READ_BITFIELD:
-    m_down->adjust_position(read_buf(m_bitfield.begin() + m_down->get_position(), m_bitfield.size_bytes() - m_down->get_position()));
+    m_down->adjust_position(read_stream_throws(m_bitfield.begin() + m_down->get_position(), m_bitfield.size_bytes() - m_down->get_position()));
 
     if (m_down->get_position() != m_bitfield.size_bytes())
       return;
@@ -358,7 +358,7 @@ void PeerConnection::event_read() {
     if (m_down->get_length() == 0)
       throw internal_error("ProtocolRead::SKIP_PIECE m_down->get_length() == 0");
 
-    m_down->set_position(read_buf(m_down->get_buffer().begin(),
+    m_down->set_position(read_stream_throws(m_down->get_buffer().begin(),
 				 std::min<int>(m_down->get_length(), m_down->get_buffer().reserved())));
 
     if (m_down->get_position() == 0)
@@ -461,7 +461,7 @@ void PeerConnection::event_write() {
     }
 
   case ProtocolWrite::WRITE_BITFIELD:
-    m_up->adjust_position(write_buf(m_download->content()->get_bitfield().begin() + m_up->get_position(),
+    m_up->adjust_position(write_stream_throws(m_download->content()->get_bitfield().begin() + m_up->get_position(),
 				      m_download->content()->get_bitfield().size_bytes() - m_up->get_position()));
 
     if (m_up->get_position() == m_download->content()->get_bitfield().size_bytes())
@@ -509,12 +509,6 @@ void PeerConnection::event_write() {
 
     throw;
   }
-}
-
-void PeerConnection::event_error() {
-  m_download->signal_network_log().emit("Connection exception: " + std::string(strerror(errno)));
-
-  m_download->connection_list()->erase(this);
 }
 
 void PeerConnection::parseReadBuf() {

@@ -168,6 +168,11 @@ PeerConnectionBase::receive_throttle_up_activate() {
   pollCustom->insert_write(this);
 }
 
+void
+PeerConnectionBase::event_error() {
+  m_download->connection_list()->erase(this);
+}
+
 inline bool
 PeerConnectionBase::down_chunk_part(ChunkPart c, uint32_t& left) {
   if (!c->chunk().is_valid())
@@ -178,7 +183,7 @@ PeerConnectionBase::down_chunk_part(ChunkPart c, uint32_t& left) {
 				      c->size() - offset),
 			     left);
 
-  uint32_t done = read_buf(c->chunk().begin() + offset, length);
+  uint32_t done = read_stream_throws(c->chunk().begin() + offset, length);
 
   m_down->adjust_position(done);
   left -= done;
@@ -237,7 +242,7 @@ PeerConnectionBase::up_chunk_part(ChunkPart c, uint32_t& left) {
 				      c->size() - offset),
 			     left);
 
-  uint32_t done = write_buf(c->chunk().begin() + offset, length);
+  uint32_t done = write_stream_throws(c->chunk().begin() + offset, length);
 
   m_up->adjust_position(done);
   left -= done;
@@ -355,8 +360,8 @@ bool
 PeerConnectionBase::read_bitfield_body() {
   // We're guaranteed that we still got bytes remaining to be
   // read of the bitfield.
-  m_down->adjust_position(read_buf(m_bitfield.begin() + m_down->get_position(),
-				   m_bitfield.size_bytes() - m_down->get_position()));
+  m_down->adjust_position(read_stream_throws(m_bitfield.begin() + m_down->get_position(),
+					     m_bitfield.size_bytes() - m_down->get_position()));
 	
   return m_down->get_position() == m_bitfield.size_bytes();
 }
@@ -380,8 +385,8 @@ PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
 
 bool
 PeerConnectionBase::write_bitfield_body() {
-  m_up->adjust_position(write_buf(m_download->content()->get_bitfield().begin() + m_up->get_position(),
-				  m_download->content()->get_bitfield().size_bytes() - m_up->get_position()));
+  m_up->adjust_position(write_stream_throws(m_download->content()->get_bitfield().begin() + m_up->get_position(),
+					    m_download->content()->get_bitfield().size_bytes() - m_up->get_position()));
 
   return m_up->get_position() == m_bitfield.size_bytes();
 }

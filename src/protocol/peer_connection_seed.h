@@ -57,7 +57,6 @@ public:
 
   virtual void        event_read();
   virtual void        event_write();
-  virtual void        event_error();
 
 private:
   inline bool         read_message();
