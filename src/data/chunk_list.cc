@@ -71,23 +71,23 @@ ChunkList::clear() {
   Base::clear();
 }
 
-void
-ChunkList::insert(size_type index, Chunk* chunk) {
-  ChunkListNode* node = &Base::at(index);
-
-  if (node->is_valid())
-    // Explicitly clear here?
-    delete node->chunk();
-
-  node->set_chunk(chunk);
-  //node->set_index(index);
-}
-
 ChunkListNode*
-ChunkList::bind(size_type index) {
+ChunkList::get(size_type index, bool writable) {
   ChunkListNode* node = &Base::at(index);
-  node->inc_references();
 
+  if (!node->is_valid() || (writable && !node->chunk()->is_writable())) {
+    Chunk* chunk = m_slotCreateChunk(index, writable);
+
+    if (chunk == NULL)
+      return NULL;
+
+    if (node->is_valid())
+      delete node->chunk();
+
+    node->set_chunk(chunk);
+  }
+
+  node->inc_references();
   return node;
 }
 

@@ -42,20 +42,23 @@
 #include <sigc++/slot.h>
 
 #include "net/socket_address.h"
-#include "net/socket_fd.h"
 #include "torrent/peer.h"
 #include "utils/unordered_vector.h"
 
 namespace torrent {
 
+class DownloadMain;
 class PeerConnectionBase;
 class PeerInfo;
+class SocketFd;
 
 class ConnectionList : private unordered_vector<PeerConnectionBase*> {
 public:
   typedef unordered_vector<PeerConnectionBase*> Base;
   typedef std::list<SocketAddress>              AddressList;
   typedef uint32_t                              size_type;
+  typedef sigc::signal1<void, Peer>             SignalPeer;
+  typedef sigc::slot0<PeerConnectionBase*>      SlotNewConnection;
 
   using Base::value_type;
   using Base::reference;
@@ -80,7 +83,7 @@ public:
 
   // Returns false if the connection was not added, the caller is then
   // responsible for cleaning up 'fd'.
-  bool                insert(SocketFd fd, const PeerInfo& p);
+  bool                insert(DownloadMain* d, const PeerInfo& p, const SocketFd& fd);
 
   iterator            erase(iterator pos);
   void                erase(PeerConnectionBase* p);
@@ -99,9 +102,6 @@ public:
   void                set_difference(AddressList* l);
 
   void                send_have_chunk(uint32_t index);
-
-  typedef sigc::signal1<void, Peer>                                    SignalPeer;
-  typedef sigc::slot2<PeerConnectionBase*, SocketFd, const PeerInfo&>  SlotNewConnection;
 
   // When a peer is connected it should be removed from the list of
   // available peers.

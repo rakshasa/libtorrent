@@ -46,59 +46,15 @@
 
 namespace torrent {
 
-PeerConnectionSeed::PeerConnectionSeed() {
-}
-
 PeerConnectionSeed::~PeerConnectionSeed() {
-  if (!get_fd().is_valid())
-    return;
-
-//   if (m_down->get_state() != ProtocolRead::READ_BITFIELD)
+//   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
 //     m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
 //   taskScheduler.erase(&m_taskSendChoke);
-
-  pollCustom->remove_read(this);
-  pollCustom->remove_write(this);
-  pollCustom->remove_error(this);
-  pollCustom->close(this);
-  
-  socketManager.close(get_fd());
-  get_fd().clear();
 }
 
 void
-PeerConnectionSeed::set(SocketFd fd, const PeerInfo& p, DownloadMain* download) {
-  if (get_fd().is_valid())
-    throw internal_error("Tried to re-set PeerConnection");
-
-  set_fd(fd);
-
-  m_peer = p;
-  m_download = download;
-
-  get_fd().set_throughput();
-
-  m_requestList.set_delegator(m_download->delegator());
-  m_requestList.set_bitfield(&m_bitfield.get_bitfield());
-
-  if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
-    throw internal_error("PeerConnectionSeed::set(...) recived bad input.");
-
-  // Set the bitfield size and zero it
-  m_bitfield = BitFieldExt(m_download->content()->get_chunk_total());
-
-  pollCustom->open(this);
-  pollCustom->insert_read(this);
-  pollCustom->insert_write(this);
-  pollCustom->insert_error(this);
-
-  m_up->get_buffer().reset();
-  m_down->get_buffer().reset();
-
-  m_down->set_state(ProtocolRead::IDLE);
-  m_up->set_state(ProtocolWrite::IDLE);
-
+PeerConnectionSeed::initialize_custom() {
   if (m_download->content()->get_chunks_completed() != 0) {
     m_up->write_bitfield(m_download->content()->get_bitfield().size_bytes());
 
@@ -106,8 +62,6 @@ PeerConnectionSeed::set(SocketFd fd, const PeerInfo& p, DownloadMain* download) 
     m_up->set_position(0);
     m_up->set_state(ProtocolWrite::WRITE_BITFIELD_HEADER);
   }
-    
-  m_timeLastRead = Timer::cache();
 }
 
 void
@@ -357,13 +311,9 @@ PeerConnectionSeed::fill_write_buffer() {
 
     if (m_up->get_choked()) {
       remove_up_throttle();
+      up_chunk_release();
 	
       m_sendList.clear();
-
-      if (m_upChunk != NULL) {
-	m_download->content()->release_chunk(m_upChunk);
-	m_upChunk = NULL;
-      }
 
     } else {
       insert_up_throttle();

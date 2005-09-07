@@ -45,17 +45,15 @@
 namespace torrent {
 
 PeerConnectionBase*
-createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadMain* download) {
+createPeerConnectionDefault() {
   PeerConnection* pc = new PeerConnection;
-  pc->set(fd, info, download);
 
   return pc;
 }
 
 PeerConnectionBase*
-createPeerConnectionSeed(SocketFd fd, const PeerInfo& info, DownloadMain* download) {
+createPeerConnectionSeed() {
   PeerConnectionSeed* pc = new PeerConnectionSeed;
-  pc->set(fd, info, download);
 
   return pc;
 }

@@ -38,15 +38,17 @@
 #define LIBTORRENT_DATA_CHUNK_LIST_H
 
 #include <vector>
+#include <sigc++/slot.h>
 
-#include "chunk_list_node.h"
+#include "chunk_handle.h"
 
 namespace torrent {
 
 class ChunkList : private std::vector<ChunkListNode> {
 public:
-  typedef std::vector<ChunkListNode> Base;
-  typedef uint32_t                   size_type;
+  typedef uint32_t                            size_type;
+  typedef std::vector<ChunkListNode>          Base;
+  typedef sigc::slot2<Chunk*, uint32_t, bool> SlotCreateChunk;
 
   using Base::value_type;
   using Base::reference;
@@ -63,15 +65,13 @@ public:
   void                resize(size_type s);
   void                clear();
 
-  // Don't use iterator here since we'd like to keep header
-  // dependencies as low as possible.
-  void                insert(size_type index, Chunk* chunk);
-
-  ChunkListNode*      bind(size_type index);
+  ChunkListNode*      get(size_type index, bool writable);
   void                release(ChunkListNode* node);
 
+  void                slot_create_chunk(SlotCreateChunk s) { m_slotCreateChunk = s; }
+
 private:
-  
+  SlotCreateChunk     m_slotCreateChunk;
 };
 
 }

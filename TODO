@@ -2,13 +2,13 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Seperate ro/rw chunk functions in Content, add is_ro/rw to
+ChunkListNode, seperate write counter, possibly a wrapper class for
+ChunkListNode.
+
 Wait when receiving resource tmp unavailable.
 
-PeerConnectionSeed::read_message() got an invalid message length.
-
 File priority might not like sequential requesting.
-
-Add note on disabling udp trackers.
 
 Use correctly sized read/write buffers.
 
@@ -25,16 +25,8 @@ WRITE_PIECE when doing cancel or something.
 
 ***
 
-Properly handle "Connection exception: Resource temporarily
-unavailable", should wait a short while instead of disconnecting.
-
 Do move of session torrent so we don't end up with incomplete torrent
 files in case of crashes.
-
-Remember to release chunk in PCB dtor etc.
-
-Make a new file_list or something like that. It should not care about
-chunk size etc, only hold the list of whatever replaces StorageFile's.
 
 Make it possible to disable certain files, not causing an error when
 they don't give rw perm or resize?
@@ -51,13 +43,6 @@ Re-add slot for removing incoming connections from available list? If
 so, remove the check in connect_peers.
 
 Move endgame detection to delegator?
-
-Get rid of DownloadNet and DownloadState, use only DownloadMain.
-
-Move DownloadMain::get_name to DownloadWrapper?
-
-Add a setting for overridding open max, only less than. Remove the
-other settings?
 
 Make sure rtorrent's http downloading times out.
 
@@ -84,8 +69,6 @@ op as args?
 
 Consider renaming Poll::open/close.
 
-Add more checks to PollEPoll, like < -1 and > max_socket.
-
 Move ui::Control to src/, make the initialization functions part of it.
 
 Improve the settings code, it should read all settings before
@@ -96,23 +79,11 @@ Look over the max open sockets settings etc, it should be
 consistent. One should have a choice between using a setting that
 changes sysconf(_SC_OPEN_MAX), or get the max value from this variable.
 
-Figure out the ElementStringList already activated bug.
-
-* Test socket manager by setting a low open max and connecting to a
-busy torrent. Consider testing ulimit -n too.
-
 Add a setting for controlling whetever allocate is called at torrent
 creation, chunk creation or not at all.
 
 XFS reserve should check for error return code, if it fails due to
 lack of diskspace it should return false, otherwise true.
-
-The hash checking options should be per byte, so they work for all sized
-chunks.
-
-Add failure if no trackers were connected to in a cycle.
-
-Update displaying of trackers, add key for disabling/enabling them.
 
 Clean up the settings code by moving the validation to the apply'er.
 
@@ -121,8 +92,6 @@ Use typedef for port?
 Add filter for ip address, and peer id. These must be seperate as ip
 happens before handshake, but peer id is done after handshake or
 before connecting.
-
-Move utilities into rak/.
 
 Make the tries adjuster into a setting.
 
@@ -289,19 +258,6 @@ Add buffer read of piece.
 Fix tracker so it checks regulary when too few peers are connected.
 
 Lock file in session directory.
-
-
-POLLING:
-
-Consider sorting SocketSet so we can get maxFd cheaper. Epoll might
-not need this, so consider the value.
-
-Rename poll.h.
-
-
-CLEANUP:
-
-ref_anchored... urgh...
 
 
 BUGS:

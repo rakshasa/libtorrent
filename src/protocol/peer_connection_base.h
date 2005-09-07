@@ -70,6 +70,8 @@ public:
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
+  bool                initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd);
+
   bool                is_up_choked()             { return m_up->get_choked(); }
   bool                is_up_interested()         { return m_up->get_interested(); }
   bool                is_down_choked()              { return m_down->get_choked(); }
@@ -107,6 +109,9 @@ public:
   void                insert_up_throttle();
   void                remove_up_throttle();
 
+  // These must be implemented by the child class.
+  virtual void        initialize_custom() = 0;
+
   virtual void        update_interested() = 0;
 
   virtual void        receive_have_chunk(int32_t i) = 0;
@@ -143,10 +148,13 @@ protected:
   bool                is_up_chunk_valid() const   { return m_upChunk != NULL; }
 
   bool                down_chunk();
-  inline bool         down_chunk_part(ChunkPart c, uint32_t& left);
-
   bool                up_chunk();
+
+  inline bool         down_chunk_part(ChunkPart c, uint32_t& left);
   inline bool         up_chunk_part(ChunkPart c, uint32_t& left);
+
+  void                down_chunk_release();
+  void                up_chunk_release();
 
   DownloadMain*       m_download;
 

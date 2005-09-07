@@ -39,7 +39,7 @@
 #include <limits>
 
 #include "torrent/exceptions.h"
-#include "data/chunk_list_node.h"
+#include "data/chunk_list.h"
 #include "download/download_main.h"
 #include "net/socket_base.h"
 
@@ -70,17 +70,25 @@ PeerConnectionBase::PeerConnectionBase() :
 }
 
 PeerConnectionBase::~PeerConnectionBase() {
+  if (!get_fd().is_valid())
+    return;
+
+  if (m_download == NULL)
+    throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
+
+  pollCustom->remove_read(this);
+  pollCustom->remove_write(this);
+  pollCustom->remove_error(this);
+  pollCustom->close(this);
+  
+  socketManager.close(get_fd());
+  get_fd().clear();
+
   if (m_requestList.is_downloading())
     m_requestList.skip();
 
-  if (m_downChunk != NULL)
-    m_download->content()->release_chunk(m_downChunk);
-
-  if (m_upChunk != NULL)
-    m_download->content()->release_chunk(m_upChunk);
-
-  m_downChunk = NULL;
-  m_upChunk = NULL;
+  down_chunk_release();
+  up_chunk_release();
 
   m_requestList.cancel();
 
@@ -94,6 +102,44 @@ PeerConnectionBase::~PeerConnectionBase() {
   delete m_up;
 }
 
+bool
+PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd) {
+  if (get_fd().is_valid())
+    throw internal_error("Tried to re-set PeerConnection");
+
+  set_fd(fd);
+
+  m_peer = p;
+  m_download = download;
+
+  get_fd().set_throughput();
+
+  m_requestList.set_delegator(m_download->delegator());
+  m_requestList.set_bitfield(&m_bitfield.get_bitfield());
+
+  if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
+    throw internal_error("PeerConnectionSeed::set(...) recived bad input.");
+
+  // Set the bitfield size and zero it
+  m_bitfield = BitFieldExt(m_download->content()->get_chunk_total());
+
+  pollCustom->open(this);
+  pollCustom->insert_read(this);
+  pollCustom->insert_write(this);
+  pollCustom->insert_error(this);
+
+  // Do this elsewhere.
+  m_up->get_buffer().reset();
+  m_down->get_buffer().reset();
+
+  m_down->set_state(ProtocolRead::IDLE);
+  m_up->set_state(ProtocolWrite::IDLE);
+    
+  m_timeLastRead = Timer::cache();
+
+  initialize_custom();
+}
+
 void
 PeerConnectionBase::load_down_chunk(const Piece& p) {
   m_downPiece = p;
@@ -104,10 +150,9 @@ PeerConnectionBase::load_down_chunk(const Piece& p) {
   if (m_downChunk != NULL && p.get_index() == m_downChunk->index())
     return;
 
-  if (m_downChunk != NULL)
-    m_download->content()->release_chunk(m_downChunk);
+  down_chunk_release();
 
-  m_downChunk = m_download->content()->get_chunk(p.get_index(), MemoryChunk::prot_read | MemoryChunk::prot_write);
+  m_downChunk = m_download->content()->chunk_list()->get(p.get_index(), true);
   
   if (m_downChunk == NULL)
     throw storage_error("Could not create a valid chunk");
@@ -118,10 +163,9 @@ PeerConnectionBase::load_up_chunk() {
   if (m_upChunk != NULL && m_upChunk->index() == m_upPiece.get_index())
     return;
 
-  if (m_upChunk != NULL)
-    m_download->content()->release_chunk(m_upChunk);
+  up_chunk_release();
   
-  m_upChunk = m_download->content()->get_chunk(m_upPiece.get_index(), MemoryChunk::prot_read);
+  m_upChunk = m_download->content()->chunk_list()->get(m_upPiece.get_index(), false);
   
   if (m_upChunk == NULL)
     throw storage_error("Could not map a chunk for reading.");
@@ -191,6 +235,24 @@ PeerConnectionBase::down_chunk_part(ChunkPart c, uint32_t& left) {
   return done == length;
 }
 
+inline bool
+PeerConnectionBase::up_chunk_part(ChunkPart c, uint32_t& left) {
+  if (!c->chunk().is_valid())
+    throw internal_error("ProtocolChunk::write_part() did not get a valid chunk");
+  
+  uint32_t offset = m_upPiece.get_offset() + m_up->get_position() - c->position();
+  uint32_t length = std::min(std::min(m_upPiece.get_length() - m_up->get_position(),
+				      c->size() - offset),
+			     left);
+
+  uint32_t done = write_stream_throws(c->chunk().begin() + offset, length);
+
+  m_up->adjust_position(done);
+  left -= done;
+
+  return done == length;
+}
+
 bool
 PeerConnectionBase::down_chunk() {
   if (!is_down_throttled())
@@ -232,24 +294,6 @@ PeerConnectionBase::down_chunk() {
   return m_down->get_position() == m_downPiece.get_length();
 }
 
-inline bool
-PeerConnectionBase::up_chunk_part(ChunkPart c, uint32_t& left) {
-  if (!c->chunk().is_valid())
-    throw internal_error("ProtocolChunk::write_part() did not get a valid chunk");
-  
-  uint32_t offset = m_upPiece.get_offset() + m_up->get_position() - c->position();
-  uint32_t length = std::min(std::min(m_upPiece.get_length() - m_up->get_position(),
-				      c->size() - offset),
-			     left);
-
-  uint32_t done = write_stream_throws(c->chunk().begin() + offset, length);
-
-  m_up->adjust_position(done);
-  left -= done;
-
-  return done == length;
-}
-
 bool
 PeerConnectionBase::up_chunk() {
   if (!is_up_throttled())
@@ -289,6 +333,22 @@ PeerConnectionBase::up_chunk() {
   m_download->get_up_rate().insert(bytes);
 
   return m_up->get_position() == m_upPiece.get_length();
+}
+
+void
+PeerConnectionBase::down_chunk_release() {
+  if (m_downChunk != NULL) {
+    m_download->content()->chunk_list()->release(m_downChunk);
+    m_downChunk = NULL;
+  }
+}
+
+void
+PeerConnectionBase::up_chunk_release() {
+  if (m_upChunk != NULL) {
+    m_download->content()->chunk_list()->release(m_upChunk);
+    m_upChunk = NULL;
+  }
 }
 
 void
@@ -350,10 +410,8 @@ PeerConnectionBase::write_finished_piece() {
   // Do we need to check that this is the right piece?
   m_sendList.pop_front();
 	
-  if (m_sendList.empty()) {
-    m_download->content()->release_chunk(m_upChunk);
-    m_upChunk = NULL;
-  }
+  if (m_sendList.empty())
+    up_chunk_release();
 }
 
 bool

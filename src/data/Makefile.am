@@ -3,6 +3,7 @@ noinst_LTLIBRARIES = libsub_data.la
 libsub_data_la_SOURCES = \
 	chunk.cc \
 	chunk.h \
+	chunk_handle.h \
 	chunk_list.cc \
 	chunk_list.h \
 	chunk_list_node.h \

@@ -40,7 +40,7 @@
 #include <limits>
 #include <sigc++/signal.h>
 
-#include "data/chunk_list_node.h"
+#include "data/chunk_list.h"
 #include "parse/parse.h"
 #include "protocol/handshake_manager.h"
 #include "torrent/exceptions.h"
@@ -182,7 +182,7 @@ DownloadMain::receive_choke_cycle() {
 
 void
 DownloadMain::receive_chunk_done(unsigned int index) {
-  ChunkListNode* node = m_content.get_chunk(index, MemoryChunk::prot_read);
+  ChunkListNode* node = m_content.chunk_list()->get(index, false);
 
   if (node == NULL)
     throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");
@@ -208,7 +208,7 @@ DownloadMain::receive_hash_done(ChunkListNode* node, std::string h) {
     m_signalChunkFailed.emit(node->index());
   }
 
-  m_content.release_chunk(node);
+  m_content.chunk_list()->release(node);
 }  
 
 void

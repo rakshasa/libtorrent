@@ -83,7 +83,7 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
   
   if (itr == manager->download_manager()->end() ||
       !(*itr)->get_main().is_active() ||
-      !(*itr)->get_main().connection_list()->insert(fd, peer))
+      !(*itr)->get_main().connection_list()->insert(&(*itr)->get_main(), peer, fd))
     socketManager.close(fd);
 }
 
@@ -382,7 +382,7 @@ download_add(std::istream* s) {
   d->set_file_manager(manager->file_manager());
 
   // Default PeerConnection factory functions.
-  d->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &d->get_main()));
+  d->get_main().connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionDefault));
 
   parse_tracker(d->get_bencode(), d->get_main().tracker_manager());
 

@@ -113,9 +113,6 @@ public:
 
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
 
-  ChunkListNode*         get_chunk(uint32_t index, int prot);
-  void                   release_chunk(ChunkListNode* node);
-
   void                   open();
   void                   close();
 
@@ -129,6 +126,8 @@ public:
 
 private:
   Range                  make_index_range(uint64_t pos, uint64_t size) const;
+
+  Chunk*                 create_chunk(uint32_t index, bool writable);
 
   bool                   m_isOpen;
   uint32_t               m_completed;

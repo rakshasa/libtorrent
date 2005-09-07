@@ -54,6 +54,8 @@ public:
 
   inline bool         is_choke_delayed();
 
+  virtual void        initialize_custom();
+
   virtual void        set_choke(bool v);
 
   virtual void        update_interested();

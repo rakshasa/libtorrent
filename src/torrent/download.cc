@@ -348,10 +348,10 @@ void
 Download::set_connection_type(ConnectionType t) {
   switch (t) {
   case CONNECTION_LEECH:
-    m_ptr->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionDefault), &m_ptr->get_main()));
+    m_ptr->get_main().connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionDefault));
     break;
   case CONNECTION_SEED:
-    m_ptr->get_main().connection_list()->slot_new_connection(sigc::bind(sigc::ptr_fun(createPeerConnectionSeed), &m_ptr->get_main()));
+    m_ptr->get_main().connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionSeed));
     break;
   default:
     throw client_error("torrent::Download::set_connection_type(...) received invalid type.");

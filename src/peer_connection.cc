@@ -84,24 +84,10 @@ PeerConnection::PeerConnection() :
 }
 
 PeerConnection::~PeerConnection() {
-  if (!get_fd().is_valid())
-    return;
-
-  if (m_download == NULL)
-    throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
-
-  if (m_down->get_state() != ProtocolRead::READ_BITFIELD)
+  if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
     m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
   taskScheduler.erase(&m_taskSendChoke);
-
-  pollCustom->remove_read(this);
-  pollCustom->remove_write(this);
-  pollCustom->remove_error(this);
-  pollCustom->close(this);
-  
-  socketManager.close(get_fd());
-  get_fd().clear();
 }
   
 void
@@ -126,44 +112,14 @@ PeerConnection::update_interested() {
   }
 }
 
-void PeerConnection::set(SocketFd fd, const PeerInfo& p, DownloadMain* download) {
-  if (get_fd().is_valid())
-    throw internal_error("Tried to re-set PeerConnection");
-
-  set_fd(fd);
-  m_peer = p;
-  m_download = download;
-
-  get_fd().set_throughput();
-
-  m_requestList.set_delegator(m_download->delegator());
-  m_requestList.set_bitfield(&m_bitfield.get_bitfield());
-
-  if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
-    throw internal_error("PeerConnection set recived bad input");
-
-  // Set the bitfield size and zero it
-  m_bitfield = BitFieldExt(m_download->content()->get_chunk_total());
-
-  if (m_bitfield.begin() == NULL)
-    throw internal_error("PeerConnection::set(...) did not properly initialize m_bitfield"); 
-
-  pollCustom->open(this);
-  pollCustom->insert_read(this);
-  pollCustom->insert_write(this);
-  pollCustom->insert_error(this);
-
-  m_up->get_buffer().reset_position();
-  m_down->get_buffer().reset_position();
-
+void
+PeerConnection::initialize_custom() {
   if (m_download->content()->get_chunks_completed() != 0) {
     m_up->write_bitfield(m_download->content()->get_bitfield().size_bytes());
 
     m_up->get_buffer().prepare_end();
     m_up->set_state(ProtocolWrite::MSG);
   }
-    
-  m_timeLastRead = Timer::cache();
 }
 
 void PeerConnection::event_read() {
@@ -476,11 +432,7 @@ void PeerConnection::event_write() {
     if (!up_chunk())
       return;
 
-    if (m_sendList.empty()) {
-      m_download->content()->release_chunk(m_upChunk);
-      m_upChunk = NULL;
-    }
-
+    up_chunk_release();
     m_sendList.pop_front();
 
     m_up->set_state(ProtocolWrite::IDLE);
@@ -590,13 +542,9 @@ void PeerConnection::fillWriteBuf() {
 
       if (m_up->get_choked()) {
 	remove_up_throttle();
-	
-	m_sendList.clear();
+	up_chunk_release();
 
-	if (m_upChunk != NULL) {
-	  m_download->content()->release_chunk(m_upChunk);
-	  m_upChunk = NULL;
-	}
+	m_sendList.clear();
 
       } else {
 	insert_up_throttle();

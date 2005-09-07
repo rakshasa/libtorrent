@@ -38,6 +38,7 @@
 
 #include "torrent/exceptions.h"
 #include "data/content.h"
+#include "data/chunk_list.h"
 #include "hash_torrent.h"
 #include "hash_queue.h"
 
@@ -109,7 +110,7 @@ HashTorrent::queue() {
       m_position = itr->first;
     }
 
-    ChunkListNode* node = m_content->get_chunk(m_position++, MemoryChunk::prot_read);
+    ChunkListNode* node = m_content->chunk_list()->get(m_position++, false);
 
     if (node == NULL)
       continue;

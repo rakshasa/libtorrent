@@ -43,10 +43,10 @@ namespace torrent {
 
 class PeerConnectionSeed : public PeerConnectionBase {
 public:
-  PeerConnectionSeed();
+  PeerConnectionSeed() {}
   ~PeerConnectionSeed();
 
-  void                set(SocketFd fd, const PeerInfo& p, DownloadMain* download);
+  virtual void        initialize_custom();
 
   virtual void        set_choke(bool v);
 

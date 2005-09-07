@@ -60,6 +60,8 @@ Content::Content() :
 
   m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
   m_delayDownloadDone.set_iterator(taskScheduler.end());
+
+  m_chunkList->slot_create_chunk(sigc::mem_fun(*this, &Content::create_chunk));
 }
 
 Content::~Content() {
@@ -162,27 +164,6 @@ Content::is_valid_piece(const Piece& p) const {
     p.get_offset() + p.get_length() <= get_chunk_index_size(p.get_index());
 }
 
-ChunkListNode*
-Content::get_chunk(uint32_t index, int prot) {
-  if (m_chunkList->has_chunk(index, prot))
-    return m_chunkList->bind(index);
-
-  Chunk* node = m_entryList->create_chunk(get_chunk_position(index), get_chunk_index_size(index), prot);
-
-  if (node == NULL) {
-    return NULL;
-
-  } else {
-    m_chunkList->insert(index, node);
-    return m_chunkList->bind(index);
-  }
-}
-
-void
-Content::release_chunk(ChunkListNode* node) {
-  m_chunkList->release(node);
-}
-
 void
 Content::open() {
   m_entryList->open(m_rootDir);
@@ -266,6 +247,12 @@ Content::update_done() {
 
       std::for_each(itr, next, std::mem_fun_ref(&EntryListNode::inc_completed));
     }
+}
+
+Chunk*
+Content::create_chunk(uint32_t index, bool writable) {
+  return m_entryList->create_chunk(get_chunk_position(index), get_chunk_index_size(index),
+				   MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 }
 
 }

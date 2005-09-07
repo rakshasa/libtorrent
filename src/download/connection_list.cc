@@ -54,15 +54,17 @@ ConnectionList::clear() {
 }
 
 bool
-ConnectionList::insert(SocketFd fd, const PeerInfo& p) {
+ConnectionList::insert(DownloadMain* d, const PeerInfo& p, const SocketFd& fd) {
   if (std::find_if(begin(), end(), rak::equal(p, std::mem_fun(&PeerConnectionBase::get_peer))) != end() ||
       size() >= m_maxSize)
     return false;
 
-  PeerConnectionBase* c = m_slotNewConnection(fd, p);
+  PeerConnectionBase* c = m_slotNewConnection();
 
   if (c == NULL)
     throw internal_error("ConnectionList::insert(...) received a NULL pointer from m_slotNewConnection");
+
+  c->initialize(d, p, fd);
 
   Base::push_back(c);
   m_signalConnected.emit(Peer(c));

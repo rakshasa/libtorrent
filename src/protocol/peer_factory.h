@@ -37,16 +37,12 @@
 #ifndef LIBTORRENT_PEER_PEER_FACTORY_H
 #define LIBTORRENT_PEER_PEER_FACTORY_H
 
-#include "net/socket_fd.h"
-
 namespace torrent {
 
-class DownloadMain;
 class PeerConnectionBase;
-class PeerInfo;
 
-PeerConnectionBase* createPeerConnectionDefault(SocketFd fd, const PeerInfo& info, DownloadMain* download);
-PeerConnectionBase* createPeerConnectionSeed(SocketFd fd, const PeerInfo& info, DownloadMain* download);
+PeerConnectionBase* createPeerConnectionDefault();
+PeerConnectionBase* createPeerConnectionSeed();
 
 }
 
