@@ -73,7 +73,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.tracker_manager()->tracker_info()->set_key(random());
 
   // Info hash must be calculate from here on.
-  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), m_main.content()));
+  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), m_main.chunk_list()));
 
   // Connect various signals and slots.
   m_hash->slot_chunk_done(sigc::mem_fun(m_main, &DownloadMain::receive_hash_done));

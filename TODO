@@ -2,9 +2,11 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Seperate ro/rw chunk functions in Content, add is_ro/rw to
-ChunkListNode, seperate write counter, possibly a wrapper class for
-ChunkListNode.
+Move ChunkList to DownloadMain.
+
+* Tracker: [Could not create a valid chunk] Wrong prefix.
+
+Rename hash_resume_save/load, it should be generic.
 
 Wait when receiving resource tmp unavailable.
 

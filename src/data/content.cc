@@ -43,7 +43,6 @@
 #include "data/file_meta.h"
 #include "data/file_stat.h"
 #include "data/chunk.h"
-#include "data/chunk_list.h"
 #include "data/entry_list.h"
 #include "data/piece.h"
 
@@ -54,18 +53,14 @@ Content::Content() :
   m_completed(0),
   m_chunkSize(1 << 16),
 
-  m_chunkList(new ChunkList),
   m_entryList(new EntryList),
   m_rootDir(".") {
 
   m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
   m_delayDownloadDone.set_iterator(taskScheduler.end());
-
-  m_chunkList->slot_create_chunk(sigc::mem_fun(*this, &Content::create_chunk));
 }
 
 Content::~Content() {
-  delete m_chunkList;
   delete m_entryList;
 }
 
@@ -167,7 +162,6 @@ Content::is_valid_piece(const Piece& p) const {
 void
 Content::open() {
   m_entryList->open(m_rootDir);
-  m_chunkList->resize(get_chunk_total());
 
   m_bitfield = BitField(get_chunk_total());
 
@@ -182,7 +176,6 @@ Content::close() {
   m_isOpen = false;
 
   m_entryList->close();
-  m_chunkList->clear();
 
   m_completed = 0;
   m_bitfield = BitField();

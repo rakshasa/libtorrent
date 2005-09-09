@@ -37,27 +37,26 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
-#include "data/content.h"
 #include "data/chunk_list.h"
 #include "hash_torrent.h"
 #include "hash_queue.h"
 
 namespace torrent {
 
-HashTorrent::HashTorrent(const std::string& id, Content* c) :
+HashTorrent::HashTorrent(const std::string& id, ChunkList* c) :
   m_id(id),
   m_position(0),
   m_outstanding(-1),
-  m_content(c),
+  m_chunkList(c),
   m_queue(NULL) {
 }
 
 void
 HashTorrent::start() {
-  if (m_queue == NULL || m_content == NULL)
+  if (m_queue == NULL || m_chunkList == NULL || m_chunkList->empty())
     throw internal_error("HashTorrent::start() called on an object with invalid m_queue or m_storage");
 
-  if (is_checking() || m_position == m_content->get_chunk_total())
+  if (is_checking() || m_position == m_chunkList->size())
     return;
 
   m_outstanding = 0;
@@ -78,13 +77,13 @@ HashTorrent::clear() {
 }
 
 void
-HashTorrent::receive_chunkdone(ChunkListNode* node, std::string hash) {
+HashTorrent::receive_chunkdone(ChunkHandle handle, std::string hash) {
   // m_signalChunk will always point to
   // DownloadMain::receive_hash_done, so it will take care of cleanup.
   //
   // Make sure we call chunkdone before torrentDone has a chance to
   // trigger.
-  m_slotChunkDone(node, hash);
+  m_slotChunkDone(handle, hash);
   m_outstanding--;
 
   // Don't add more when we've stopped. Use some better condition than
@@ -96,7 +95,7 @@ HashTorrent::receive_chunkdone(ChunkListNode* node, std::string hash) {
 
 void
 HashTorrent::queue() {
-  while (m_position < m_content->get_chunk_total()) {
+  while (m_position < m_chunkList->size()) {
     if (m_outstanding >= 30)
       return;
 
@@ -104,18 +103,18 @@ HashTorrent::queue() {
     Ranges::iterator itr = m_ranges.find(m_position);
 
     if (itr == m_ranges.end()) {
-      m_position = m_content->get_chunk_total();
+      m_position = m_chunkList->size();
       break;
     } else if (m_position < itr->first) {
       m_position = itr->first;
     }
 
-    ChunkListNode* node = m_content->chunk_list()->get(m_position++, false);
+    ChunkHandle handle = m_chunkList->get(m_position++, false);
 
-    if (node == NULL)
+    if (!handle.is_valid())
       continue;
 
-    m_queue->push_back(node, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
+    m_queue->push_back(handle, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
     m_outstanding++;
   }
 

@@ -40,7 +40,7 @@
 #include <string>
 
 #include "hash_queue_node.h"
-#include "chunk.h"
+#include "chunk_handle.h"
 
 #include "utils/task.h"
 
@@ -69,7 +69,7 @@ public:
   HashQueue();
   ~HashQueue() { clear(); }
 
-  void                push_back(ChunkListNode* c, SlotDone d, const std::string& id);
+  void                push_back(ChunkHandle handle, SlotDone d, const std::string& id);
 
   bool                has(const std::string& id, uint32_t index);
 

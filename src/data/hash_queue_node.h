@@ -41,15 +41,14 @@
 #include <inttypes.h>
 #include <sigc++/signal.h>
 
+#include "chunk_handle.h"
 #include "hash_chunk.h"
 
 namespace torrent {
 
-class ChunkListNode;
-
 class HashQueueNode {
 public:
-  typedef sigc::slot2<void, ChunkListNode*, std::string> SlotDone;
+  typedef sigc::slot2<void, ChunkHandle, std::string> SlotDone;
 
   HashQueueNode(HashChunk* c, const std::string& i, SlotDone d) :
     m_chunk(c), m_id(i), m_willneed(false), m_slotDone(d) {}

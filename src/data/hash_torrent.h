@@ -40,20 +40,20 @@
 #include <string>
 #include <sigc++/signal.h>
 
+#include "data/chunk_handle.h"
 #include "utils/ranges.h"
 
 namespace torrent {
 
-class ChunkListNode;
-class Content;
+class ChunkList;
 class HashQueue;
 
 class HashTorrent {
 public:
-  typedef sigc::signal0<void>                            Signal;
-  typedef sigc::slot2<void, ChunkListNode*, std::string> SlotChunkDone;
+  typedef sigc::signal0<void>                         Signal;
+  typedef sigc::slot2<void, ChunkHandle, std::string> SlotChunkDone;
   
-  HashTorrent(const std::string& id, Content* c);
+  HashTorrent(const std::string& id, ChunkList* c);
   ~HashTorrent() { clear(); }
 
   void                start();
@@ -75,7 +75,7 @@ public:
 private:
   void                queue();
 
-  void                receive_chunkdone(ChunkListNode* node, std::string hash);
+  void                receive_chunkdone(ChunkHandle handle, std::string hash);
   
   std::string         m_id;
   
@@ -83,7 +83,7 @@ private:
   int                 m_outstanding;
   Ranges              m_ranges;
 
-  Content*            m_content;
+  ChunkList*          m_chunkList;
   HashQueue*          m_queue;
 
   Signal              m_signalTorrent;

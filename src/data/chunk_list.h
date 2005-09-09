@@ -65,8 +65,8 @@ public:
   void                resize(size_type s);
   void                clear();
 
-  ChunkListNode*      get(size_type index, bool writable);
-  void                release(ChunkListNode* node);
+  ChunkHandle         get(size_type index, bool writable);
+  void                release(ChunkHandle handle);
 
   void                slot_create_chunk(SlotCreateChunk s) { m_slotCreateChunk = s; }
 

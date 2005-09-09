@@ -52,7 +52,7 @@ class Chunk;
 
 class ChunkListNode {
 public:
-  ChunkListNode() : m_chunk(NULL), m_references(0) {}
+  ChunkListNode() : m_chunk(NULL), m_references(0), m_writable(0) {}
 
   bool                is_valid() const               { return m_chunk; }
 
@@ -66,11 +66,16 @@ public:
   void                dec_references()               { m_references--; }
   void                inc_references()               { m_references++; }
 
+  int                 writable() const               { return m_writable; }
+  void                dec_writable()                 { m_writable--; }
+  void                inc_writable()                 { m_writable++; }
+
 private:
   uint32_t            m_index;
-  Chunk*       m_chunk;
+  Chunk*              m_chunk;
 
   int                 m_references;
+  int                 m_writable;
 };
 
 }

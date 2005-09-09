@@ -71,7 +71,7 @@ ChunkList::clear() {
   Base::clear();
 }
 
-ChunkListNode*
+ChunkHandle
 ChunkList::get(size_type index, bool writable) {
   ChunkListNode* node = &Base::at(index);
 
@@ -79,7 +79,7 @@ ChunkList::get(size_type index, bool writable) {
     Chunk* chunk = m_slotCreateChunk(index, writable);
 
     if (chunk == NULL)
-      return NULL;
+      return ChunkHandle();
 
     if (node->is_valid())
       delete node->chunk();
@@ -88,26 +88,34 @@ ChunkList::get(size_type index, bool writable) {
   }
 
   node->inc_references();
-  return node;
+
+  if (writable)
+    node->inc_writable();
+
+  return ChunkHandle(node, writable);
 }
 
 void
-ChunkList::release(ChunkListNode* node) {
-  if (node == NULL)
+ChunkList::release(ChunkHandle handle) {
+  if (!handle.is_valid())
     throw internal_error("ChunkList::release(...) received a node == NULL.");
 
-  if (node->references() <= 0)
+  handle->dec_references();
+
+  if (handle.is_writable())
+    handle->dec_writable();
+
+  if (handle->references() < 0 ||
+      handle->writable() < 0)
     throw internal_error("ChunkList::release(...) received a node with bad reference count.");
 
-  node->dec_references();
-
-  if (node->references() == 0) {
+  if (handle->references() == 0) {
     // Don't delete if we've modified it etc... Consider using a r/w
     // reference count, and remove the write privledge and queue for
     // syncing.
 
-    delete node->chunk();
-    node->set_chunk(NULL);
+    delete handle->chunk();
+    handle->set_chunk(NULL);
   }
 }
 

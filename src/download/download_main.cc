@@ -54,6 +54,7 @@ namespace torrent {
 
 DownloadMain::DownloadMain() :
   m_trackerManager(new TrackerManager()),
+  m_chunkList(new ChunkList),
 
   m_checked(false),
   m_started(false),
@@ -69,6 +70,8 @@ DownloadMain::DownloadMain() :
 
   m_taskTrackerRequest.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tracker_request));
   m_taskTrackerRequest.set_iterator(taskScheduler.end());
+
+  m_chunkList->slot_create_chunk(sigc::mem_fun(m_content, &Content::create_chunk));
 }
 
 DownloadMain::~DownloadMain() {
@@ -77,6 +80,7 @@ DownloadMain::~DownloadMain() {
     throw internal_error("DownloadMain::~DownloadMain(): m_taskChokeCycle is scheduled");
 
   delete m_trackerManager;
+  delete m_chunkList;
 }
 
 void
@@ -85,6 +89,7 @@ DownloadMain::open() {
     throw internal_error("Tried to open a download that is already open");
 
   m_content.open();
+  m_chunkList->resize(m_content.get_chunk_total());
   m_bitfieldCounter.create(m_content.get_chunk_total());
 
   m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_content.get_chunk_total());
@@ -103,6 +108,7 @@ DownloadMain::close() {
   m_trackerManager->close();
   m_delegator.clear();
   m_content.close();
+  m_chunkList->clear();
 }
 
 void DownloadMain::start() {
@@ -182,33 +188,33 @@ DownloadMain::receive_choke_cycle() {
 
 void
 DownloadMain::receive_chunk_done(unsigned int index) {
-  ChunkListNode* node = m_content.chunk_list()->get(index, false);
+  ChunkHandle handle = m_chunkList->get(index, false);
 
-  if (node == NULL)
-    throw internal_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");
+  if (!handle.is_valid())
+    throw storage_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");
 
-  m_slotHashCheckAdd(node);
+  m_slotHashCheckAdd(handle);
 }
 
 void
-DownloadMain::receive_hash_done(ChunkListNode* node, std::string h) {
-  if (!node->is_valid())
+DownloadMain::receive_hash_done(ChunkHandle handle, std::string h) {
+  if (!handle.is_valid())
     throw internal_error("DownloadMain::receive_hash_done(...) called on an invalid chunk.");
 
   if (h.empty() || !is_open()) {
 
-  } else if (std::memcmp(h.c_str(), m_content.get_hash_c(node->index()), 20) == 0) {
+  } else if (std::memcmp(h.c_str(), m_content.get_hash_c(handle->index()), 20) == 0) {
 
-    m_content.mark_done(node->index());
-    m_signalChunkPassed.emit(node->index());
+    m_content.mark_done(handle->index());
+    m_signalChunkPassed.emit(handle->index());
 
     update_endgame();
 
   } else {
-    m_signalChunkFailed.emit(node->index());
+    m_signalChunkFailed.emit(handle->index());
   }
 
-  m_content.chunk_list()->release(node);
+  m_chunkList->release(handle);
 }  
 
 void

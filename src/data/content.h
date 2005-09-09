@@ -56,7 +56,6 @@ namespace torrent {
 // minus one of one file can be the start of one or more other file
 // ranges.
 
-class ChunkList;
 class ChunkListNode;
 class EntryList;
 class Path;
@@ -99,9 +98,6 @@ public:
 
   BitField&              get_bitfield()                       { return m_bitfield; }
 
-  ChunkList*             chunk_list()                         { return m_chunkList; }
-  const ChunkList*       chunk_list() const                   { return m_chunkList; }
-
   EntryList*             entry_list()                         { return m_entryList; }
   const EntryList*       entry_list() const                   { return m_entryList; }
 
@@ -112,6 +108,7 @@ public:
   bool                   is_valid_piece(const Piece& p) const;
 
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
+  Chunk*                 create_chunk(uint32_t index, bool writable);
 
   void                   open();
   void                   close();
@@ -127,13 +124,10 @@ public:
 private:
   Range                  make_index_range(uint64_t pos, uint64_t size) const;
 
-  Chunk*                 create_chunk(uint32_t index, bool writable);
-
   bool                   m_isOpen;
   uint32_t               m_completed;
   uint32_t               m_chunkSize;
 
-  ChunkList*             m_chunkList;
   EntryList*             m_entryList;
 
   BitField               m_bitfield;

@@ -45,6 +45,7 @@
 #include "delegator.h"
 
 #include "data/content.h"
+#include "data/chunk_handle.h"
 #include "protocol/peer_info.h"
 #include "utils/bitfield_counter.h"
 #include "utils/task.h"
@@ -52,7 +53,7 @@
 
 namespace torrent {
 
-class ChunkListNode;
+class ChunkList;
 class TrackerManager;
 
 class DownloadMain {
@@ -74,6 +75,7 @@ public:
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
+  ChunkList*          chunk_list()                               { return m_chunkList; }
   Content*            content()                                  { return &m_content; }
   Delegator*          delegator()                                { return &m_delegator; }
 
@@ -101,7 +103,7 @@ public:
   typedef sigc::signal1<void, uint32_t>                          SignalChunk;
   typedef sigc::slot1<void, const SocketAddress&>                SlotStartHandshake;
   typedef sigc::slot0<uint32_t>                                  SlotCountHandshakes;
-  typedef sigc::slot1<void, ChunkListNode*>                      SlotHashCheckAdd;
+  typedef sigc::slot1<void, ChunkHandle>                         SlotHashCheckAdd;
 
   SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
   SignalString&       signal_storage_error()                     { return m_signalStorageError; }
@@ -118,7 +120,7 @@ public:
 
   void                receive_choke_cycle();
   void                receive_chunk_done(unsigned int index);
-  void                receive_hash_done(ChunkListNode* node, std::string h);
+  void                receive_hash_done(ChunkHandle handle, std::string h);
 
   void                receive_tracker_success();
   void                receive_tracker_request();
@@ -136,6 +138,7 @@ private:
   TrackerManager*     m_trackerManager;
   ChokeManager        m_chokeManager;
 
+  ChunkList*          m_chunkList;
   Content             m_content;
   Delegator           m_delegator;
 

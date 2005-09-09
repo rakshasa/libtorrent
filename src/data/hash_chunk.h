@@ -38,7 +38,9 @@
 #define LIBTORRENT_HASH_CHUNK_H
 
 #include "utils/sha1.h"
+
 #include "chunk.h"
+#include "chunk_handle.h"
 
 namespace torrent {
 
@@ -51,11 +53,11 @@ class ChunkListNode;
 class HashChunk {
 public:
   HashChunk()         {}
-  HashChunk(ChunkListNode* c)  { set_chunk(c); }
+  HashChunk(ChunkHandle h)  { set_chunk(h); }
   
-  void                set_chunk(ChunkListNode* c)             { m_position = 0; m_chunk = c; m_hash.init(); }
+  void                set_chunk(ChunkHandle h)                { m_position = 0; m_chunk = h; m_hash.init(); }
 
-  ChunkListNode*      get_chunk()                             { return m_chunk; }
+  const ChunkHandle&  get_chunk()                             { return m_chunk; }
   std::string         get_hash()                              { return m_hash.final(); }
 
   // If force is true, then the return value is always true.
@@ -71,7 +73,7 @@ private:
 
   uint32_t            m_position;
 
-  ChunkListNode*      m_chunk;
+  ChunkHandle         m_chunk;
   Sha1                m_hash;
 };
 

@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <limits>
+#include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
 #include "data/chunk_list.h"
@@ -58,11 +59,9 @@ PeerConnectionBase::PeerConnectionBase() :
   m_downRate(30),
   m_downThrottle(throttleRead.end()),
   m_downStall(0),
-  m_downChunk(NULL),
 
   m_upRate(30),
   m_upThrottle(throttleWrite.end()),
-  m_upChunk(NULL),
 
   m_sendChoked(false),
 
@@ -147,28 +146,28 @@ PeerConnectionBase::load_down_chunk(const Piece& p) {
   if (!m_download->content()->is_valid_piece(p))
     throw internal_error("Incoming pieces list contains a bad piece");
   
-  if (m_downChunk != NULL && p.get_index() == m_downChunk->index())
+  if (m_downChunk.is_valid() && p.get_index() == m_downChunk->index())
     return;
 
   down_chunk_release();
 
-  m_downChunk = m_download->content()->chunk_list()->get(p.get_index(), true);
+  m_downChunk = m_download->chunk_list()->get(p.get_index(), true);
   
-  if (m_downChunk == NULL)
-    throw storage_error("Could not create a valid chunk");
+  if (!m_downChunk.is_valid())
+    throw storage_error("File chunk write error: " + std::string(rak::error_number::current().c_str()));
 }
 
 void
 PeerConnectionBase::load_up_chunk() {
-  if (m_upChunk != NULL && m_upChunk->index() == m_upPiece.get_index())
+  if (m_upChunk.is_valid() && m_upChunk->index() == m_upPiece.get_index())
     return;
 
   up_chunk_release();
   
-  m_upChunk = m_download->content()->chunk_list()->get(m_upPiece.get_index(), false);
+  m_upChunk = m_download->chunk_list()->get(m_upPiece.get_index(), false);
   
-  if (m_upChunk == NULL)
-    throw storage_error("Could not map a chunk for reading.");
+  if (!m_upChunk.is_valid())
+    throw storage_error("File chunk read error: " + std::string(rak::error_number::current().c_str()));
 }
 
 uint32_t
@@ -337,17 +336,17 @@ PeerConnectionBase::up_chunk() {
 
 void
 PeerConnectionBase::down_chunk_release() {
-  if (m_downChunk != NULL) {
-    m_download->content()->chunk_list()->release(m_downChunk);
-    m_downChunk = NULL;
+  if (m_downChunk.is_valid()) {
+    m_download->chunk_list()->release(m_downChunk);
+    m_downChunk.clear();
   }
 }
 
 void
 PeerConnectionBase::up_chunk_release() {
-  if (m_upChunk != NULL) {
-    m_download->content()->chunk_list()->release(m_upChunk);
-    m_upChunk = NULL;
+  if (m_upChunk.is_valid()) {
+    m_download->chunk_list()->release(m_upChunk);
+    m_upChunk.clear();
   }
 }
 

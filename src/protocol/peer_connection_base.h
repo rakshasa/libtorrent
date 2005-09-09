@@ -38,6 +38,7 @@
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
 #include "data/chunk.h"
+#include "data/chunk_handle.h"
 #include "data/piece.h"
 #include "net/manager.h"
 #include "net/socket_stream.h"
@@ -55,7 +56,6 @@ namespace torrent {
 // Base class for peer connection classes. Rename to PeerConnection
 // when the migration is complete.
 
-class ChunkListNode;
 class DownloadMain;
 
 class PeerConnectionBase : public SocketStream {
@@ -144,9 +144,6 @@ protected:
 
   bool                write_bitfield_body();
 
-  bool                is_down_chunk_valid() const { return m_downChunk != NULL; }
-  bool                is_up_chunk_valid() const   { return m_upChunk != NULL; }
-
   bool                down_chunk();
   bool                up_chunk();
 
@@ -167,14 +164,14 @@ protected:
   Rate                m_downRate;
   ThrottlePeerNode    m_downThrottle;
   Piece               m_downPiece;
-  ChunkListNode*      m_downChunk;
+  ChunkHandle         m_downChunk;
 
   uint32_t            m_downStall;
 
   Rate                m_upRate;
   ThrottlePeerNode    m_upThrottle;
   Piece               m_upPiece;
-  ChunkListNode*      m_upChunk;
+  ChunkHandle         m_upChunk;
 
   RequestList         m_requestList;
 
