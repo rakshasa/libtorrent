@@ -108,6 +108,9 @@ DownloadMain::close() {
   m_trackerManager->close();
   m_delegator.clear();
   m_content.close();
+
+  // Clear the chunklist last as it requires all referenced chunks to
+  // be released.
   m_chunkList->clear();
 }
 
@@ -156,6 +159,8 @@ DownloadMain::stop() {
 
   m_trackerManager->send_stop();
   setup_stop();
+
+  m_chunkList->sync_all();
 }
 
 uint64_t
@@ -184,6 +189,8 @@ void
 DownloadMain::receive_choke_cycle() {
   taskScheduler.insert(&m_taskChokeCycle, (Timer::cache() + 30 * 1000000).round_seconds());
   choke_cycle();
+
+  m_chunkList->sync_periodic();
 }
 
 void

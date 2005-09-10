@@ -75,6 +75,7 @@ public:
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
+  // Only retrive writable chunks when the download is active.
   ChunkList*          chunk_list()                               { return m_chunkList; }
   Content*            content()                                  { return &m_content; }
   Delegator*          delegator()                                { return &m_delegator; }

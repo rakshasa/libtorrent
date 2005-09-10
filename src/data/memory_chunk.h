@@ -90,7 +90,7 @@ class MemoryChunk {
   // Use errno and strerror if you want to know why these failed.
   void                incore(char* buf, uint32_t offset, uint32_t length);
   bool                advise(uint32_t offset, uint32_t length, int advice);
-  void                sync(uint32_t offset, uint32_t length, int flags);
+  bool                sync(uint32_t offset, uint32_t length, int flags);
 
   bool                is_incore(uint32_t offset, uint32_t length);
 

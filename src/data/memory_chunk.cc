@@ -118,7 +118,7 @@ MemoryChunk::advise(uint32_t offset, uint32_t length, int advice) {
     return false;			 
 }
 
-void
+bool
 MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
   if (!is_valid())
     throw internal_error("Called MemoryChunk::sync() on an invalid object");
@@ -130,6 +130,8 @@ MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
   
   if (msync(m_ptr + offset, length, flags))
     throw internal_error("MemoryChunk::sync(...) failed call to msync");
+
+  return true;
 }    
 
 bool

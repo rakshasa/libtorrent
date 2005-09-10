@@ -36,12 +36,19 @@
 
 #include "config.h"
 
+#include <rak/functional.h>
+
 #include "torrent/exceptions.h"
 
 #include "chunk_list.h"
 #include "chunk.h"
 
 namespace torrent {
+
+inline bool
+ChunkList::is_queued(ChunkListNode* node) {
+  return std::find(m_queue.begin(), m_queue.end(), node) != m_queue.end();
+}
 
 bool
 ChunkList::has_chunk(size_type index, int prot) const {
@@ -65,7 +72,10 @@ ChunkList::resize(size_type s) {
 
 void
 ChunkList::clear() {
-  if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::is_valid)) != end())
+  if (!m_queue.empty())
+    throw internal_error("ChunkList::clear() m_queue could not be clear.");
+
+  if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::references)) != end())
     throw internal_error("ChunkList::clear() called but a valid node was found.");
 
   Base::clear();
@@ -95,28 +105,79 @@ ChunkList::get(size_type index, bool writable) {
   return ChunkHandle(node, writable);
 }
 
+// The chunks in 'm_queue' have been modified and need to be synced
+// when appropriate. Hopefully keeping the chunks mmap'ed for a while
+// will allow us to schedule writes at more resonable intervals.
+
 void
 ChunkList::release(ChunkHandle handle) {
   if (!handle.is_valid())
-    throw internal_error("ChunkList::release(...) received a node == NULL.");
+    throw internal_error("ChunkList::release(...) received an invalid handle.");
 
-  handle->dec_references();
+  if (handle.node() < &*begin() || handle.node() >= &*end())
+    throw internal_error("ChunkList::release(...) received an unknown handle.");
 
-  if (handle.is_writable())
-    handle->dec_writable();
-
-  if (handle->references() < 0 ||
-      handle->writable() < 0)
+  if (handle->references() <= 0 || (handle.is_writable() && handle->writable() <= 0))
     throw internal_error("ChunkList::release(...) received a node with bad reference count.");
 
-  if (handle->references() == 0) {
-    // Don't delete if we've modified it etc... Consider using a r/w
-    // reference count, and remove the write privledge and queue for
-    // syncing.
+  if (handle.is_writable()) {
 
-    delete handle->chunk();
-    handle->set_chunk(NULL);
+    if (handle->writable() == 1) {
+      if (is_queued(handle.node()))
+	throw internal_error("ChunkList::release(...) tried to queue an already queued chunk.");
+
+      m_queue.push_back(handle.node());
+
+    } else {
+      handle->dec_references();
+      handle->dec_writable();
+    }
+
+  } else {
+    if (handle->references() == 1) {
+      if (is_queued(handle.node()))
+	throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
+
+      delete handle->chunk();
+      handle->set_chunk(NULL);
+      
+    }
+
+    handle->dec_references();
   }
+}
+
+inline void
+ChunkList::sync_chunk(ChunkListNode* node) {
+  // Check return value?
+  node->chunk()->sync(MemoryChunk::sync_async);
+
+  node->dec_writable();
+  node->dec_references();
+ 
+  if (node->references() == 0) {
+    delete node->chunk();
+    node->set_chunk(NULL);
+  }
+}
+
+void
+ChunkList::sync_all() {
+  Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
+					 rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+
+  std::for_each(split, m_queue.end(), std::ptr_fun(&ChunkList::sync_chunk));
+  m_queue.erase(split, m_queue.end());
+}
+
+void
+ChunkList::sync_periodic() {
+//   Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
+// 					 rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+
+//   std::for_each(split, m_queue.end(), std::ptr_fun(&ChunkList::sync_chunk));
+//   m_queue.erase(split, m_queue.end());
+  sync_all();
 }
 
 }

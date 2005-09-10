@@ -171,7 +171,10 @@ DownloadWrapper::hash_resume_save() {
   // We're guaranteed that file modification time is correctly updated
   // after this. Though won't help if the files have been delete while
   // we had them open.
-  m_main.content()->entry_list()->sync_all();
+  //m_main.content()->entry_list()->sync_all();
+
+  // We sync all chunks in DownloadMain::stop(), so we are guaranteed
+  // that it has been called when we arrive here.
 
   resume.insert_key("bitfield", std::string((char*)m_main.content()->get_bitfield().begin(), m_main.content()->get_bitfield().size_bytes()));
 

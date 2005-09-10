@@ -78,6 +78,8 @@ public:
   // Check how much of the chunk is incore from pos.
   uint32_t            incore_length(uint32_t pos);
 
+  bool                sync(int flags);
+
 private:
   Chunk(const Chunk&);
   void operator = (const Chunk&);

@@ -34,56 +34,28 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_CHUNK_LIST_H
-#define LIBTORRENT_DATA_CHUNK_LIST_H
+#ifndef LIBTORRENT_DATA_CHUNK_HANDLE_H
+#define LIBTORRENT_DATA_CHUNK_HANDLE_H
 
-#include <vector>
-#include <sigc++/slot.h>
-
-#include "chunk_handle.h"
+#include "chunk_list_node.h"
 
 namespace torrent {
 
-class ChunkList : private std::vector<ChunkListNode> {
+class ChunkHandle {
 public:
-  typedef uint32_t                            size_type;
-  typedef std::vector<ChunkListNode>          Base;
-  typedef std::vector<ChunkListNode*>         Queue;
-  typedef sigc::slot2<Chunk*, uint32_t, bool> SlotCreateChunk;
+  ChunkHandle(ChunkListNode* c = NULL, bool wr = false) : m_chunk(c), m_writable(wr) {}
 
-  using Base::value_type;
-  using Base::reference;
+  bool                is_valid() const     { return m_chunk != NULL; }
+  bool                is_writable() const  { return m_writable; }
+  
+  void                clear()              { m_chunk = NULL; }
 
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-  using Base::empty;
-
-  ~ChunkList() { clear(); }
-
-  bool                has_chunk(size_type index, int prot) const;
-
-  void                resize(size_type s);
-  void                clear();
-
-  ChunkHandle         get(size_type index, bool writable);
-  void                release(ChunkHandle handle);
-
-  // Possibly have multiple version, some that do syncing of
-  // sequential chunks only etc. Pretty much depends on the time of
-  // dereferencing etc.
-  void                sync_all();
-  void                sync_periodic();
-
-  void                slot_create_chunk(SlotCreateChunk s) { m_slotCreateChunk = s; }
+  ChunkListNode*      node() const         { return m_chunk; }
+  ChunkListNode*      operator -> () const { return m_chunk; }
 
 private:
-  inline bool         is_queued(ChunkListNode* node);
-
-  static inline void  sync_chunk(ChunkListNode* node);
-
-  SlotCreateChunk     m_slotCreateChunk;
-  Queue               m_queue;
+  ChunkListNode*      m_chunk;
+  bool                m_writable;
 };
 
 }

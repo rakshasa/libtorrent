@@ -2,9 +2,17 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Move ChunkList to DownloadMain.
+Change sync to return bool, change other code.
+
+Rename choke_cycle.
+
+Not properly counting done chunks when doing resume?
+
+Consider adding sync to resume save.
 
 * Tracker: [Could not create a valid chunk] Wrong prefix.
+
+Consider asking for read-ahead for fast peers.
 
 Rename hash_resume_save/load, it should be generic.
 
