@@ -51,6 +51,21 @@ struct reference_fix<Type&> {
   typedef Type type;
 };
 
+template <typename Type>
+struct value_t {
+  value_t(Type v) : m_v(v) {}
+
+  Type operator () () const { return m_v; }
+
+  Type m_v;
+};
+
+template <typename Type>
+inline value_t<Type>
+value(Type v) {
+  return value_t<Type>(v);
+}
+
 template <typename Type, typename Ftor>
 struct accumulate_t {
   accumulate_t(Type& t, Ftor f) : m_t(t), m_f(f) {}

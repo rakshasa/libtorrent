@@ -66,10 +66,10 @@ public:
   typedef std::pair<uint32_t, uint32_t> Range;
   typedef sigc::signal0<void>           Signal;
 
-  // Hash done signal, hash failed signal++
-  
   Content();
   ~Content();
+
+  void                   initialize(uint32_t chunkSize);
 
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
@@ -83,17 +83,12 @@ public:
   const std::string&     get_root_dir()                       { return m_rootDir; }
 
   uint32_t               get_chunks_completed()               { return m_completed; }
-
-//   off_t                  get_bytes_size() const               { return m_entryList->get_bytes_size(); }
   uint64_t               get_bytes_completed();
   
-  uint32_t               get_chunk_total() const              { return (m_entryList->get_bytes_size() + m_chunkSize - 1) / m_chunkSize; }
-
-  uint32_t               get_chunk_size() const               { return m_chunkSize; }
-  void                   set_chunk_size(uint32_t s)           { m_chunkSize = s; }
+  uint32_t               chunk_total() const                  { return m_chunkTotal; }
+  uint32_t               chunk_size() const                   { return m_chunkSize; }
 
   uint32_t               get_chunk_index_size(uint32_t index) const;
-
   off_t                  get_chunk_position(uint32_t c) const { return c * (off_t)m_chunkSize; }
 
   BitField&              get_bitfield()                       { return m_bitfield; }
@@ -101,10 +96,7 @@ public:
   EntryList*             entry_list()                         { return m_entryList; }
   const EntryList*       entry_list() const                   { return m_entryList; }
 
-  bool                   is_open() const                      { return m_isOpen; }
-  bool                   is_correct_size();
-  bool                   is_done() const                      { return m_completed == get_chunk_total(); }
-
+  bool                   is_done() const                      { return m_completed == chunk_total(); }
   bool                   is_valid_piece(const Piece& p) const;
 
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
@@ -112,7 +104,6 @@ public:
 
   void                   open();
   void                   close();
-
   void                   resize();
 
   void                   mark_done(uint32_t index);
@@ -124,12 +115,11 @@ public:
 private:
   Range                  make_index_range(uint64_t pos, uint64_t size) const;
 
-  bool                   m_isOpen;
   uint32_t               m_completed;
   uint32_t               m_chunkSize;
+  uint32_t               m_chunkTotal;
 
   EntryList*             m_entryList;
-
   BitField               m_bitfield;
 
   std::string            m_rootDir;

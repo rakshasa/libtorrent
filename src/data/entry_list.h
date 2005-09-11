@@ -79,7 +79,6 @@ public:
   void                open(const std::string& root);
   void                close();
 
-  void                sync_all();
   bool                resize_all();
 
   size_t              get_files_size() const                     { return Base::size(); }

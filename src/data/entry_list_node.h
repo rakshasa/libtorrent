@@ -76,7 +76,6 @@ public:
   unsigned char       get_priority() const                    { return m_priority; }
   void                set_priority(unsigned char t)           { m_priority = t; }
 
-  bool                sync_file();
   bool                resize_file() const;
 
 private:

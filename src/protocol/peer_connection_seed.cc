@@ -433,7 +433,7 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
     throw network_error("Peer sent HAVE message with out-of-range index.");
 
   m_bitfield.set(index, true);
-  m_peerRate.insert(m_download->content()->get_chunk_size());
+  m_peerRate.insert(m_download->content()->chunk_size());
 }
 
 void

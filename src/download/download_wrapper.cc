@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <sigc++/bind.h>
 
+#include "data/chunk_list.h"
 #include "data/content.h"
 #include "data/hash_queue.h"
 #include "data/file_manager.h"
@@ -71,6 +72,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.tracker_manager()->tracker_info()->set_local_id(id);
   m_main.tracker_manager()->tracker_info()->set_local_address(sa);
   m_main.tracker_manager()->tracker_info()->set_key(random());
+
+  m_main.chunk_list()->set_max_queue_size((32 << 20) / m_main.content()->chunk_size());
 
   // Info hash must be calculate from here on.
   m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), m_main.chunk_list()));
@@ -142,7 +145,7 @@ DownloadWrapper::hash_resume_load() {
     }  
 
   } catch (bencode_error e) {
-    m_hash->get_ranges().insert(0, m_main.content()->get_chunk_total());
+    m_hash->get_ranges().insert(0, m_main.content()->chunk_total());
   }
 
   // Clear bits in invalid regions which will be checked by m_hash.
@@ -220,7 +223,7 @@ DownloadWrapper::open() {
     return;
 
   m_main.open();
-  m_hash->get_ranges().insert(0, m_main.content()->get_chunk_total());
+  m_hash->get_ranges().insert(0, m_main.content()->chunk_total());
 }
 
 void

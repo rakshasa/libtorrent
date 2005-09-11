@@ -49,9 +49,9 @@
 namespace torrent {
 
 Content::Content() :
-  m_isOpen(false),
   m_completed(0),
   m_chunkSize(1 << 16),
+  m_chunkTotal(0),
 
   m_entryList(new EntryList),
   m_rootDir(".") {
@@ -65,16 +65,27 @@ Content::~Content() {
 }
 
 void
+Content::initialize(uint32_t chunkSize) {
+  m_chunkSize = chunkSize;
+  m_chunkTotal = (m_entryList->get_bytes_size() + chunkSize - 1) / chunkSize;
+
+  m_bitfield = BitField(m_chunkTotal);
+
+  for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
+    itr->set_range(make_index_range(itr->get_position(), itr->get_size()));
+}
+
+void
 Content::add_file(const Path& path, uint64_t size) {
-  if (is_open())
+  if (m_chunkTotal)
     throw internal_error("Tried to add file to Content that is open");
 
-  m_entryList->push_back(path, make_index_range(m_entryList->get_bytes_size(), size), size);
+  m_entryList->push_back(path, EntryListNode::Range(), size);
 }
 
 void
 Content::set_complete_hash(const std::string& hash) {
-  if (is_open())
+  if (m_chunkTotal)
     throw internal_error("Tried to set complete hash on Content that is open");
 
   m_hash = hash;
@@ -82,18 +93,15 @@ Content::set_complete_hash(const std::string& hash) {
 
 void
 Content::set_root_dir(const std::string& dir) {
-  if (is_open())
-    throw internal_error("Tried to set root directory on Content that is open");
+//   if (m_chunkTotal)
+//     throw internal_error("Tried to set root directory on Content that is open");
 
   m_rootDir = dir;
 }
 
 std::string
 Content::get_hash(unsigned int index) {
-  if (!is_open())
-    throw internal_error("Tried to get chunk hash from Content that is not open");
-
-  if (index >= get_chunk_total())
+  if (index >= m_chunkTotal)
     throw internal_error("Tried to get chunk hash from Content that is out of range");
 
   return m_hash.substr(index * 20, 20);
@@ -101,10 +109,7 @@ Content::get_hash(unsigned int index) {
 
 uint32_t
 Content::get_chunk_index_size(uint32_t index) const {
-  if (m_chunkSize == 0 || index >= get_chunk_total())
-    throw internal_error("Content::get_chunksize(...) called but we borked");
-
-  if (index + 1 != get_chunk_total() || m_entryList->get_bytes_size() % m_chunkSize == 0)
+  if (index + 1 != m_chunkTotal || m_entryList->get_bytes_size() % m_chunkSize == 0)
     return m_chunkSize;
   else
     return m_entryList->get_bytes_size() % m_chunkSize;
@@ -112,12 +117,9 @@ Content::get_chunk_index_size(uint32_t index) const {
 
 uint64_t
 Content::get_bytes_completed() {
-  if (!is_open())
-    return 0;
-
   uint64_t cs = m_chunkSize;
 
-  if (!m_bitfield[get_chunk_total() - 1] || m_entryList->get_bytes_size() % cs == 0)
+  if (!m_bitfield[m_chunkTotal - 1] || m_entryList->get_bytes_size() % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
     return m_completed * cs;
 
@@ -126,30 +128,9 @@ Content::get_bytes_completed() {
 }
 
 bool
-Content::is_correct_size() {
-  if (!is_open())
-    return false;
-
-  EntryList::iterator sItr = m_entryList->begin();
-  
-  while (sItr != m_entryList->end()) {
-    // TODO: Throw or return false?
-    if (!sItr->file_meta()->prepare(MemoryChunk::prot_read))
-      return false;
-
-    if (sItr->get_size() != FileStat(sItr->file_meta()->get_file().fd()).get_size())
-      return false;
-
-    ++sItr;
-  }
-
-  return true;
-}
-
-bool
 Content::is_valid_piece(const Piece& p) const {
   return
-    (uint32_t)p.get_index() < get_chunk_total() &&
+    (uint32_t)p.get_index() < m_chunkTotal &&
 
     p.get_length() != 0 &&
     p.get_length() < (1 << 17) &&
@@ -163,43 +144,35 @@ void
 Content::open() {
   m_entryList->open(m_rootDir);
 
-  m_bitfield = BitField(get_chunk_total());
-
-  if (m_hash.size() / 20 != get_chunk_total())
+  if (m_hash.size() / 20 != m_chunkTotal)
     throw internal_error("Content::open(...): Chunk count does not match hash count");
-
-  m_isOpen = true;
 }
 
 void
 Content::close() {
-  m_isOpen = false;
-
   m_entryList->close();
 
   m_completed = 0;
-  m_bitfield = BitField();
+  m_bitfield = BitField(m_chunkTotal);
+
   taskScheduler.erase(&m_delayDownloadDone);
 }
 
 void
 Content::resize() {
-  if (!is_open())
-    return;
-
   m_entryList->resize_all();
 }
 
 void
 Content::mark_done(uint32_t index) {
-  if (index >= get_chunk_total())
+  if (index >= m_chunkTotal)
     throw internal_error("Content::mark_done received index out of range");
     
   if (m_bitfield[index])
     throw internal_error("Content::mark_done received index that has already been marked as done");
   
-  if (m_completed >= get_chunk_total())
-    throw internal_error("Content::mark_done called but m_completed >= get_chunk_total()");
+  if (m_completed >= m_chunkTotal)
+    throw internal_error("Content::mark_done called but m_completed >= m_chunkTotal");
 
   m_bitfield.set(index, true);
   m_completed++;
@@ -217,7 +190,7 @@ Content::mark_done(uint32_t index) {
   // up. If we do a straight call it would cause problems for
   // clients that wish to close and reopen the torrent, as
   // HashQueue, Delegator etc shouldn't be cleaned up at this point.
-  if (m_completed == get_chunk_total() &&
+  if (m_completed == m_chunkTotal &&
       !m_delayDownloadDone.get_slot().blocked() &&
       !taskScheduler.is_scheduled(&m_delayDownloadDone))
     taskScheduler.insert(&m_delayDownloadDone, Timer::cache());
@@ -230,15 +203,17 @@ Content::update_done() {
   m_bitfield.cleanup();
   m_completed = m_bitfield.count();
 
-  EntryList::iterator itr;
-  EntryList::iterator next = m_entryList->begin();
+  EntryList::iterator previous = m_entryList->begin();
 
   for (BitField::size_t i = 0; i < m_bitfield.size_bits(); ++i)
     if (m_bitfield[i]) {
-      itr  = m_entryList->at_position(next, i * (off_t)m_chunkSize);
-      next = m_entryList->at_position(itr, (i + 1) * (off_t)m_chunkSize);
+      previous = m_entryList->at_position(previous, i * (off_t)m_chunkSize);
 
-      std::for_each(itr, next, std::mem_fun_ref(&EntryListNode::inc_completed));
+      if (previous == m_entryList->end())
+	throw internal_error("Content::update_done() reached m_entryList->end().");
+
+      std::for_each(previous, m_entryList->at_position(previous + 1, (i + 1) * (off_t)m_chunkSize),
+		    std::mem_fun_ref(&EntryListNode::inc_completed));
     }
 }
 

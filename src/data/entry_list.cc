@@ -107,11 +107,6 @@ EntryList::close() {
     }
 }
 
-void
-EntryList::sync_all() {
-  std::for_each(begin(), end(), std::mem_fun_ref(&EntryListNode::sync_file));
-}
-
 bool
 EntryList::resize_all() {
   iterator itr = std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&EntryListNode::resize_file)));
@@ -126,8 +121,11 @@ EntryList::resize_all() {
 					   
 EntryList::iterator
 EntryList::at_position(iterator itr, off_t offset) {
-  while (itr != end() && offset >= itr->get_position() + itr->get_size())
-    ++itr;
+  while (itr != end())
+    if (offset >= itr->get_position() + itr->get_size())
+      ++itr;
+    else
+      return itr;
 
   return itr;
 }

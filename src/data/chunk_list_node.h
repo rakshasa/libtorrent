@@ -39,6 +39,8 @@
 
 #include <inttypes.h>
 
+#include "utils/timer.h"
+
 namespace torrent {
 
 class Chunk;
@@ -62,6 +64,9 @@ public:
   Chunk*              chunk() const                  { return m_chunk; }
   void                set_chunk(Chunk* c)            { m_chunk = c; }
 
+  const Timer&        time_modified() const          { return m_timeModified; }
+  void                set_time_modified(Timer t)     { m_timeModified = t; }
+
   int                 references() const             { return m_references; }
   void                dec_references()               { m_references--; }
   void                inc_references()               { m_references++; }
@@ -76,6 +81,8 @@ private:
 
   int                 m_references;
   int                 m_writable;
+
+  Timer               m_timeModified;
 };
 
 }

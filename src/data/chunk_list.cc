@@ -95,6 +95,7 @@ ChunkList::get(size_type index, bool writable) {
       delete node->chunk();
 
     node->set_chunk(chunk);
+    node->set_time_modified(Timer());
   }
 
   node->inc_references();
@@ -126,6 +127,7 @@ ChunkList::release(ChunkHandle handle) {
       if (is_queued(handle.node()))
 	throw internal_error("ChunkList::release(...) tried to queue an already queued chunk.");
 
+      // Only add those that have a modification time set?
       m_queue.push_back(handle.node());
 
     } else {
@@ -147,6 +149,17 @@ ChunkList::release(ChunkHandle handle) {
   }
 }
 
+struct chunk_list_last_modified {
+  chunk_list_last_modified() : m_time(Timer::cache()) {}
+
+  void operator () (ChunkListNode* node) {
+    if (node->time_modified() < m_time && node->time_modified() != Timer())
+      m_time = node->time_modified();
+  }
+
+  Timer m_time;
+};
+
 inline void
 ChunkList::sync_chunk(ChunkListNode* node) {
   // Check return value?
@@ -161,6 +174,11 @@ ChunkList::sync_chunk(ChunkListNode* node) {
   }
 }
 
+inline bool
+ChunkList::less_chunk_index(ChunkListNode* node1, ChunkListNode* node2) {
+  return node1->index() < node2->index();
+}
+
 void
 ChunkList::sync_all() {
   Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
@@ -172,12 +190,26 @@ ChunkList::sync_all() {
 
 void
 ChunkList::sync_periodic() {
-//   Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
-// 					 rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+  Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
+					 rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
 
-//   std::for_each(split, m_queue.end(), std::ptr_fun(&ChunkList::sync_chunk));
-//   m_queue.erase(split, m_queue.end());
-  sync_all();
+  // Do various partitioning before sorting by index, so that when we
+  // call sync we always increase the index of the chunk.
+  //
+  // Some times when we sync there are users holding write references
+  // to chunks in the queue. These won't explicitly be synced, but the
+  // kernel might do so anyway if it lies in its path, so we don't
+  // sync those chunks.
+
+  // Sort by index?
+  std::sort(m_queue.begin(), split, std::ptr_fun(&ChunkList::less_chunk_index));
+
+  if (std::distance(m_queue.begin(), split) < m_maxQueueSize &&
+      std::for_each(m_queue.begin(), split, chunk_list_last_modified()).m_time >= Timer::cache() - m_maxTimeQueued * 1000000)
+    return;
+
+  std::for_each(split, m_queue.end(), std::ptr_fun(&ChunkList::sync_chunk));
+  m_queue.erase(split, m_queue.end());
 }
 
 }

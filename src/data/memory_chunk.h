@@ -105,7 +105,7 @@ class MemoryChunk {
   static uint32_t     page_size()                                          { return m_pagesize; }
 
 private:
-  inline void         align_pair(uint32_t& offset, uint32_t& length) const;
+  inline void         align_pair(uint32_t* offset, uint32_t* length) const;
 
   static uint32_t     m_pagesize;
 

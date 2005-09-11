@@ -58,6 +58,7 @@ DownloadMain::DownloadMain() :
 
   m_checked(false),
   m_started(false),
+  m_isOpen(false),
   m_endgame(false),
 
   m_upRate(60),
@@ -89,10 +90,12 @@ DownloadMain::open() {
     throw internal_error("Tried to open a download that is already open");
 
   m_content.open();
-  m_chunkList->resize(m_content.get_chunk_total());
-  m_bitfieldCounter.create(m_content.get_chunk_total());
+  m_chunkList->resize(m_content.chunk_total());
+  m_bitfieldCounter.create(m_content.chunk_total());
 
-  m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_content.get_chunk_total());
+  m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_content.chunk_total());
+
+  m_isOpen = true;
 }
 
 void
@@ -104,6 +107,7 @@ DownloadMain::close() {
     return;
 
   m_checked = false;
+  m_isOpen = false;
 
   m_trackerManager->close();
   m_delegator.clear();
@@ -115,7 +119,7 @@ DownloadMain::close() {
 }
 
 void DownloadMain::start() {
-  if (!m_content.is_open())
+  if (!is_open())
     throw client_error("Tried to start a closed download");
 
   if (!is_checked())
@@ -170,7 +174,7 @@ DownloadMain::get_bytes_left() {
   if (left > ((uint64_t)1 << 60))
     throw internal_error("DownloadMain::get_bytes_left() is too large"); 
 
-  if (m_content.get_chunks_completed() == m_content.get_chunk_total() && left != 0)
+  if (m_content.get_chunks_completed() == m_content.chunk_total() && left != 0)
     throw internal_error("DownloadMain::get_bytes_left() has an invalid size"); 
 
   return left;
@@ -179,7 +183,7 @@ DownloadMain::get_bytes_left() {
 void
 DownloadMain::update_endgame() {
   if (!m_endgame &&
-      m_content.get_chunks_completed() + m_delegator.get_chunks().size() + 0 >= m_content.get_chunk_total()) {
+      m_content.get_chunks_completed() + m_delegator.get_chunks().size() + 0 >= m_content.chunk_total()) {
     m_endgame = true;
     m_delegator.set_aggressive(true);
   }

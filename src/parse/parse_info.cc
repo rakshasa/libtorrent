@@ -97,11 +97,6 @@ parse_info(const Bencode& b, Content& c) {
   if (!c.entry_list()->empty())
     throw internal_error("parse_info received an already initialized Content object");
 
-  // Set chunksize before adding files to make sure the index range is
-  // correct.
-  c.set_chunk_size(b["piece length"].as_value());
-  c.set_complete_hash(b["pieces"].as_string());
-
   if (b.has_key("length")) {
     // Single file torrent
     c.add_file(Path(b["name"].as_string()), b["length"].as_value());
@@ -120,6 +115,17 @@ parse_info(const Bencode& b, Content& c) {
   } else {
     throw input_error("Torrent must have either length or files entry");
   }
+
+  if (c.entry_list()->get_bytes_size() == 0)
+    throw input_error("Torrent has zero length.");
+
+  if (b["piece length"].as_value() <= (1 << 10) || b["piece length"].as_value() > (128 << 20))
+    throw input_error("Torrent has an invalid \"piece length\".");
+
+  // Set chunksize before adding files to make sure the index range is
+  // correct.
+  c.set_complete_hash(b["pieces"].as_string());
+  c.initialize(b["piece length"].as_value());
 }
 
 }

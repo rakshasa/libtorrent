@@ -295,6 +295,7 @@ void PeerConnection::event_read() {
     m_down->set_state(ProtocolRead::IDLE);
     m_tryRequest = true;
 
+    m_downChunk->set_time_modified(Timer::cache());
     m_requestList.finished();
     
     if (m_downStall > 0)
@@ -671,7 +672,7 @@ PeerConnection::receive_have(uint32_t index) {
   m_bitfield.set(index, true);
   m_download->get_bitfield_counter().inc(index);
 
-  m_peerRate.insert(m_download->content()->get_chunk_size());
+  m_peerRate.insert(m_download->content()->chunk_size());
     
   if (m_download->content()->is_done())
     return;

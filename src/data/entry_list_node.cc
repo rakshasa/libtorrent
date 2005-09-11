@@ -53,30 +53,6 @@ EntryListNode::EntryListNode() :
 }
 
 bool
-EntryListNode::sync_file() {
-  if (!m_fileMeta->prepare(MemoryChunk::prot_read))
-    return false;
-
-  off_t pos = 0;
-
-  while (pos != m_size) {
-    uint32_t length = std::min(m_size - pos, (off_t)(128 << 20));
-
-    MemoryChunk c = m_fileMeta->get_file().get_chunk(pos, length, MemoryChunk::prot_read, MemoryChunk::map_shared);
-
-    if (!c.is_valid())
-      return false;
-
-    c.sync(0, length, MemoryChunk::sync_async);
-    c.unmap();
-
-    pos += length;
-  }
-
-  return true;
-}
-
-bool
 EntryListNode::resize_file() const {
   if (m_fileMeta == NULL)
     throw internal_error("EntryListNode::resize_file() called but m_fileMeta == NULL.");

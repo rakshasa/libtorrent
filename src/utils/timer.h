@@ -68,6 +68,8 @@ class Timer {
   bool                operator >  (const Timer& t) const { return m_time > t.m_time; }
   bool                operator <= (const Timer& t) const { return m_time <= t.m_time; }
   bool                operator >= (const Timer& t) const { return m_time >= t.m_time; }
+  bool                operator == (const Timer& t) const { return m_time == t.m_time; }
+  bool                operator != (const Timer& t) const { return m_time != t.m_time; }
 
   Timer               operator - (const Timer& t) const  { return Timer(m_time - t.m_time); }
   Timer               operator + (const Timer& t) const  { return Timer(m_time + t.m_time); }

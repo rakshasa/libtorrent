@@ -67,7 +67,7 @@ public:
   void                start();
   void                stop();
 
-  bool                is_open() const                            { return m_content.is_open(); }
+  bool                is_open() const                            { return m_isOpen; }
   bool                is_active() const                          { return m_started; }
   bool                is_checked() const                         { return m_checked; }
 
@@ -148,6 +148,7 @@ private:
 
   bool                m_checked;
   bool                m_started;
+  bool                m_isOpen;
   bool                m_endgame;
   uint32_t            m_lastConnectedSize;
 

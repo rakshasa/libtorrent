@@ -47,11 +47,11 @@ namespace torrent {
 uint32_t MemoryChunk::m_pagesize = getpagesize();
 
 inline void
-MemoryChunk::align_pair(uint32_t& offset, uint32_t& length) const {
-  offset += page_align();
-
-  length += offset % m_pagesize;
-  offset -= offset % m_pagesize;
+MemoryChunk::align_pair(uint32_t* offset, uint32_t* length) const {
+  *offset += page_align();
+  
+  *length += *offset % m_pagesize;
+  *offset -= *offset % m_pagesize;
 }
 
 MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags) :
@@ -88,7 +88,7 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
   if (!is_valid_range(offset, length))
     throw internal_error("MemoryChunk::incore(...) received out-of-range input");
 
-  align_pair(offset, length);
+  align_pair(&offset, &length);
 
 #if USE_MINCORE_UNSIGNED
   if (mincore(m_ptr + offset, length, (unsigned char*)buf))
@@ -106,7 +106,7 @@ MemoryChunk::advise(uint32_t offset, uint32_t length, int advice) {
   if (!is_valid_range(offset, length))
     throw internal_error("MemoryChunk::advise(...) received out-of-range input");
 
-  align_pair(offset, length);
+  align_pair(&offset, &length);
 
   if (madvise(m_ptr + offset, length, advice) == 0)
     return true;
@@ -126,12 +126,9 @@ MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
   if (!is_valid_range(offset, length))
     throw internal_error("MemoryChunk::sync(...) received out-of-range input");
 
-  align_pair(offset, length);
+  align_pair(&offset, &length);
   
-  if (msync(m_ptr + offset, length, flags))
-    throw internal_error("MemoryChunk::sync(...) failed call to msync");
-
-  return true;
+  return msync(m_ptr + offset, length, flags) == 0;
 }    
 
 bool

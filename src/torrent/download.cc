@@ -195,7 +195,7 @@ Download::get_bytes_total() const {
 
 uint32_t
 Download::get_chunks_size() const {
-  return m_ptr->get_main().content()->get_chunk_size();
+  return m_ptr->get_main().content()->chunk_size();
 }
 
 uint32_t
@@ -205,7 +205,7 @@ Download::get_chunks_done() const {
 
 uint32_t 
 Download::get_chunks_total() const {
-  return m_ptr->get_main().content()->get_chunk_total();
+  return m_ptr->get_main().content()->chunk_total();
 }
 
 const unsigned char*
@@ -368,7 +368,7 @@ Download::update_priorities() {
   p.clear();
 
   uint64_t pos = 0;
-  unsigned int cs = content->get_chunk_size();
+  unsigned int cs = content->chunk_size();
 
   for (EntryList::iterator itr = content->entry_list()->begin();
        itr != content->entry_list()->end(); ++itr) {

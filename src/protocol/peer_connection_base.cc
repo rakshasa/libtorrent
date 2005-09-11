@@ -120,7 +120,7 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
     throw internal_error("PeerConnectionSeed::set(...) recived bad input.");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitFieldExt(m_download->content()->get_chunk_total());
+  m_bitfield = BitFieldExt(m_download->content()->chunk_total());
 
   pollCustom->open(this);
   pollCustom->insert_read(this);

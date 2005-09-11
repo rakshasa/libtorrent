@@ -2,9 +2,13 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+cache chunk count, use that to check for open/closed.
+
 Change sync to return bool, change other code.
 
 Rename choke_cycle.
+
+delegator's priorities are reset on DownloadMain::open?
 
 Not properly counting done chunks when doing resume?
 

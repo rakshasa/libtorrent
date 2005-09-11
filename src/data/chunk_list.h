@@ -59,6 +59,7 @@ public:
   using Base::size;
   using Base::empty;
 
+  ChunkList() : m_maxQueueSize(0), m_maxTimeQueued(300) {}
   ~ChunkList() { clear(); }
 
   bool                has_chunk(size_type index, int prot) const;
@@ -68,6 +69,9 @@ public:
 
   ChunkHandle         get(size_type index, bool writable);
   void                release(ChunkHandle handle);
+
+  uint32_t            get_max_queue_size() const           { return m_maxQueueSize; }
+  void                set_max_queue_size(uint32_t v)       { m_maxQueueSize = v; }
 
   // Possibly have multiple version, some that do syncing of
   // sequential chunks only etc. Pretty much depends on the time of
@@ -81,9 +85,13 @@ private:
   inline bool         is_queued(ChunkListNode* node);
 
   static inline void  sync_chunk(ChunkListNode* node);
+  static inline bool  less_chunk_index(ChunkListNode* node1, ChunkListNode* node2);
+
+  Queue               m_queue;
+  uint32_t            m_maxQueueSize;
+  uint32_t            m_maxTimeQueued;
 
   SlotCreateChunk     m_slotCreateChunk;
-  Queue               m_queue;
 };
 
 }
