@@ -39,6 +39,7 @@
 #include "peer_factory.h"
 
 #include "peer_connection.h"
+#include "peer_connection_leech.h"
 #include "peer_connection_seed.h"
 #include "peer_info.h"
 
@@ -46,14 +47,15 @@ namespace torrent {
 
 PeerConnectionBase*
 createPeerConnectionDefault() {
-  PeerConnection* pc = new PeerConnection;
+//   PeerConnection* pc = new PeerConnectionLeech;
+  PeerConnectionBase* pc = new PeerConnection;
 
   return pc;
 }
 
 PeerConnectionBase*
 createPeerConnectionSeed() {
-  PeerConnectionSeed* pc = new PeerConnectionSeed;
+  PeerConnectionBase* pc = new PeerConnectionLeech;
 
   return pc;
 }

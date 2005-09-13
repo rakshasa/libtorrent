@@ -57,6 +57,9 @@ namespace torrent {
 void
 Download::open() {
   m_ptr->open();
+
+  // Temporary until we fix stuff.
+  update_priorities();
 }
 
 void

@@ -66,8 +66,8 @@ DownloadMain::DownloadMain() :
 
   m_content.block_download_done(true);
 
-  m_taskChokeCycle.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_choke_cycle));
-  m_taskChokeCycle.set_iterator(taskScheduler.end());
+  m_taskTick.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tick));
+  m_taskTick.set_iterator(taskScheduler.end());
 
   m_taskTrackerRequest.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tracker_request));
   m_taskTrackerRequest.set_iterator(taskScheduler.end());
@@ -76,9 +76,9 @@ DownloadMain::DownloadMain() :
 }
 
 DownloadMain::~DownloadMain() {
-  if (taskScheduler.is_scheduled(&m_taskChokeCycle) ||
+  if (taskScheduler.is_scheduled(&m_taskTick) ||
       taskScheduler.is_scheduled(&m_taskTrackerRequest))
-    throw internal_error("DownloadMain::~DownloadMain(): m_taskChokeCycle is scheduled");
+    throw internal_error("DownloadMain::~DownloadMain(): m_taskTick is scheduled");
 
   delete m_trackerManager;
   delete m_chunkList;
@@ -93,7 +93,7 @@ DownloadMain::open() {
   m_chunkList->resize(m_content.chunk_total());
   m_bitfieldCounter.create(m_content.chunk_total());
 
-  m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_content.chunk_total());
+//   m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_content.chunk_total());
 
   m_isOpen = true;
 }
@@ -190,8 +190,8 @@ DownloadMain::update_endgame() {
 }
 
 void
-DownloadMain::receive_choke_cycle() {
-  taskScheduler.insert(&m_taskChokeCycle, (Timer::cache() + 30 * 1000000).round_seconds());
+DownloadMain::receive_tick() {
+  taskScheduler.insert(&m_taskTick, (Timer::cache() + 30 * 1000000).round_seconds());
   choke_cycle();
 
   m_chunkList->sync_periodic();
@@ -213,16 +213,21 @@ DownloadMain::receive_hash_done(ChunkHandle handle, std::string h) {
     throw internal_error("DownloadMain::receive_hash_done(...) called on an invalid chunk.");
 
   if (h.empty() || !is_open()) {
+    // Ignore.
 
-  } else if (std::memcmp(h.c_str(), m_content.get_hash_c(handle->index()), 20) == 0) {
+  } else if (std::memcmp(h.c_str(), m_content.get_hash_c(handle->index()), 20) != 0) {
+    m_signalChunkFailed.emit(handle->index());
 
+  } else {
     m_content.mark_done(handle->index());
     m_signalChunkPassed.emit(handle->index());
 
     update_endgame();
 
-  } else {
-    m_signalChunkFailed.emit(handle->index());
+    if (m_content.is_done())
+      m_connectionList.erase_seeders();
+    
+    m_connectionList.send_have_chunk(handle->index());
   }
 
   m_chunkList->release(handle);

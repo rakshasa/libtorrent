@@ -34,25 +34,17 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PEER_CONNECTION_H
-#define LIBTORRENT_PEER_CONNECTION_H
+#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
+#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
 
-#include "protocol/peer_connection_base.h"
-#include "utils/throttle.h"
-
-#include <vector>
-
-// Yes, this source is a horrible mess. But its stable enough so i won't
-// start refactoring until i finish the other stuff i need to do.
+#include "peer_connection_base.h"
 
 namespace torrent {
 
-class PeerConnection : public PeerConnectionBase {
+class PeerConnectionLeech : public PeerConnectionBase {
 public:
-  PeerConnection();
-  virtual ~PeerConnection();
-
-  inline bool         is_choke_delayed();
+  PeerConnectionLeech() : m_tryRequest(true) {}
+  ~PeerConnectionLeech();
 
   virtual void        initialize_custom();
 
@@ -60,39 +52,25 @@ public:
 
   virtual void        update_interested();
 
-  virtual void        receive_have_chunk(int32_t i);
+  virtual void        receive_have_chunk(int32_t index);
   virtual bool        receive_keepalive();
 
   virtual void        event_read();
   virtual void        event_write();
 
-  void set(SocketFd fd, const PeerInfo& p, DownloadMain* download);
-  
 private:
-  // Parse packet in read buffer, must be of correct type.
-  void parseReadBuf();
+  inline bool         read_message();
+  void                read_have_chunk(uint32_t index);
 
-  void fillWriteBuf();
+  inline void         fill_write_buffer();
 
-  void                receive_have(uint32_t index);
+  void                finish_bitfield();
 
-  void                receive_piece_header(Piece p);
+  bool                receive_piece_header(const Piece& p);
 
-  void                task_send_choke();
-  void                task_stall();
-
-  bool           m_shutdown;
-
-  bool           m_tryRequest;
-
-  TaskItem            m_taskSendChoke;
+  bool                m_tryRequest;
 };
 
-inline bool
-PeerConnection::is_choke_delayed() {
-  return m_sendChoked || taskScheduler.is_scheduled(&m_taskSendChoke);
 }
 
-}
-
-#endif // LIBTORRENT_PEER_CONNECTION_H
+#endif

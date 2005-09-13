@@ -63,6 +63,7 @@ PeerConnectionBase::PeerConnectionBase() :
   m_upRate(30),
   m_upThrottle(throttleWrite.end()),
 
+  m_sendInterested(false),
   m_sendChoked(false),
 
   m_snubbed(false) {
@@ -187,20 +188,6 @@ PeerConnectionBase::pipe_size() const {
       return std::min((uint32_t)80, (s + 32000) / 8000);
 }
 
-// High stall count peers should request if we're *not* in endgame, or
-// if we're in endgame and the download is too slow. Prefere not to request
-// from high stall counts when we are doing decent speeds.
-bool
-PeerConnectionBase::should_request() {
-  if (!m_download->get_endgame())
-    return true;
-  else
-    // We check if the peer is stalled, if it is not then we should
-    // request. If the peer is stalled then we only request if the
-    // download rate is below a certain value.
-    return m_downStall <= 1 || m_download->get_down_rate().rate() < (10 << 10);
-}
-
 void
 PeerConnectionBase::receive_throttle_down_activate() {
   pollCustom->insert_read(this);
@@ -291,6 +278,29 @@ PeerConnectionBase::down_chunk() {
   m_download->get_down_rate().insert(bytes);
 
   return m_down->get_position() == m_downPiece.get_length();
+}
+
+bool
+PeerConnectionBase::down_chunk_from_buffer() {
+//   uint32_t left = m_downPiece.get_length() - m_down->get_position();
+
+//   ChunkPart c = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->get_position());
+
+// //   while (down_chunk_part(c++, left) && left != 0)
+// //     if (c == m_downChunk->chunk()->end())
+// //       throw internal_error("PeerConnectionBase::down() reached end of chunk part list");
+
+//   uint32_t bytes = quota - left;
+
+//   m_downRate.insert(bytes);
+//   m_downThrottle->used(bytes);
+
+//   throttleRead.get_rate_slow().insert(bytes);
+//   throttleRead.get_rate_quick().insert(bytes);
+//   m_download->get_down_rate().insert(bytes);
+
+//   return m_down->get_position() == m_downPiece.get_length();
+  return false;
 }
 
 bool
@@ -446,6 +456,50 @@ PeerConnectionBase::write_bitfield_body() {
 					    m_download->content()->get_bitfield().size_bytes() - m_up->get_position()));
 
   return m_up->get_position() == m_bitfield.size_bytes();
+}
+
+// High stall count peers should request if we're *not* in endgame, or
+// if we're in endgame and the download is too slow. Prefere not to request
+// from high stall counts when we are doing decent speeds.
+bool
+PeerConnectionBase::should_request() {
+  if (m_down->get_choked() ||
+      !m_up->get_interested() ||
+      m_down->get_state() == ProtocolRead::SKIP_PIECE)
+    return false;
+
+  else if (!m_download->get_endgame())
+    return true;
+  else
+    // We check if the peer is stalled, if it is not then we should
+    // request. If the peer is stalled then we only request if the
+    // download rate is below a certain value.
+    return m_downStall <= 1 || m_download->get_down_rate().rate() < (10 << 10);
+}
+
+bool
+PeerConnectionBase::try_request_pieces() {
+  if (m_requestList.empty())
+    m_downStall = 0;
+
+  int pipeSize = pipe_size();
+  bool success = false;
+
+  while (m_requestList.get_size() < pipeSize && m_up->can_write_request()) {
+    const Piece* p = m_requestList.delegate();
+
+    if (p == NULL)
+      break;
+
+    if (!m_download->content()->is_valid_piece(*p) || !m_bitfield[p->get_index()])
+      throw internal_error("PeerConnectionBase::try_request_pieces() tried to use an invalid piece");
+
+    m_up->write_request(*p);
+
+    success = true;
+  }
+
+  return success;
 }
 
 }

@@ -58,9 +58,6 @@ DownloadMain::setup_delegator() {
 
 void
 DownloadMain::setup_net() {
-  // TODO: Consider disabling these during hash check.
-  signal_chunk_passed().connect(sigc::mem_fun(*connection_list(), &ConnectionList::send_have_chunk));
-
   connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::choke_balance)));
   connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
 }
@@ -83,7 +80,7 @@ DownloadMain::setup_start() {
   m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
   m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
 
-  taskScheduler.insert(&m_taskChokeCycle, (Timer::cache() + 2 * 30 * 1000000).round_seconds());
+  taskScheduler.insert(&m_taskTick, (Timer::cache() + 2 * 30 * 1000000).round_seconds());
   m_content.block_download_done(false);
 }
 
@@ -92,7 +89,7 @@ DownloadMain::setup_stop() {
   m_connectionChunkPassed.disconnect();
   m_connectionChunkFailed.disconnect();
 
-  taskScheduler.erase(&m_taskChokeCycle);
+  taskScheduler.erase(&m_taskTick);
   taskScheduler.erase(&m_taskTrackerRequest);
   m_content.block_download_done(true);
 }

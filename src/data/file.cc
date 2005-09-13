@@ -151,7 +151,7 @@ File::get_chunk(off_t offset, uint32_t length, int prot, int flags) const {
   if (offset < 0 || length == 0 || offset + length > get_size())
     return MemoryChunk();
 
-  off_t align = offset % getpagesize();
+  off_t align = offset % MemoryChunk::page_size();
 
   char* ptr = (char*)mmap(NULL, length + align, prot, flags, m_fd, offset - align);
   

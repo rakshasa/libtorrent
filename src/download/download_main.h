@@ -119,7 +119,7 @@ public:
   void                receive_connect_peers();
   void                receive_initial_hash();
 
-  void                receive_choke_cycle();
+  void                receive_tick();
   void                receive_chunk_done(unsigned int index);
   void                receive_hash_done(ChunkHandle handle, std::string h);
 
@@ -171,7 +171,7 @@ private:
   SlotCountHandshakes m_slotCountHandshakes;
   SlotHashCheckAdd    m_slotHashCheckAdd;
 
-  TaskItem            m_taskChokeCycle;
+  TaskItem            m_taskTick;
   TaskItem            m_taskTrackerRequest;
 };
 

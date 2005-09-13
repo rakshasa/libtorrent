@@ -88,6 +88,7 @@ public:
   iterator            erase(iterator pos);
   void                erase(PeerConnectionBase* p);
   void                erase_remaining(iterator pos);
+  void                erase_seeders();
 
   iterator            find(const SocketAddress& sa);
 

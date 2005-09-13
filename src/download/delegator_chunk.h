@@ -55,7 +55,7 @@ public:
 		 Priority::Type p);
   ~DelegatorChunk()                                   { delete [] m_pieces; }
 
-  unsigned int        get_index()                     { return m_index; }
+  unsigned int        get_index() const               { return m_index; }
   unsigned int        get_piece_count()               { return m_count; }
   Priority::Type      get_priority()                  { return m_priority; }
 

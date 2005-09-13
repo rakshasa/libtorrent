@@ -76,7 +76,6 @@ void test_buffer_write64(ProtocolBuffer<512>* pb, uint64_t v) {
 PeerConnection::PeerConnection() :
   m_shutdown(false),
 
-  m_sendInterested(false),
   m_tryRequest(true)
 {
   m_taskSendChoke.set_iterator(taskScheduler.end());
@@ -557,28 +556,45 @@ void PeerConnection::fillWriteBuf() {
     }
   }
 
+//   uint32_t pipeSize;
+
+//   if (m_tryRequest && !m_down->get_choked() && m_up->get_interested() &&
+
+//       m_down->get_state() != ProtocolRead::SKIP_PIECE &&
+//       should_request() &&
+//       m_requestList.get_size() < (pipeSize = pipe_size())) {
+
+//     m_tryRequest = false;
+
+//     while (m_requestList.get_size() < pipeSize && m_up->can_write_request() && send_request_piece()) {
+
+//       if (m_requestList.get_size() == 1) {
+// 	m_downStall = 0;
+// 	m_tryRequest = true;
+//       }	
+//     }
+
+//     if (m_requestList.empty() &&
+// 	!m_requestList.is_interested_in_active()) {
+//       m_sendInterested = true;
+//       m_up->set_interested(false);
+//     }
+//   }
+
+  // New request loop...
+  if (m_tryRequest &&
+
+      !(m_tryRequest = !should_request()) &&
+      !(m_tryRequest = try_request_pieces()) &&
+
+      !m_requestList.is_interested_in_active()) {
+    m_sendInterested = true;
+    m_up->set_interested(false);
+  }
+
   if (m_sendInterested) {
     m_up->write_interested(m_up->get_interested());
     m_sendInterested = false;
-  }
-
-  uint32_t pipeSize;
-
-  if (m_tryRequest && !m_down->get_choked() && m_up->get_interested() &&
-
-      m_down->get_state() != ProtocolRead::SKIP_PIECE &&
-      should_request() &&
-      m_requestList.get_size() < (pipeSize = pipe_size())) {
-
-    m_tryRequest = false;
-
-    while (m_requestList.get_size() < pipeSize && m_up->can_write_request() && send_request_piece()) {
-
-      if (m_requestList.get_size() == 1) {
-	m_downStall = 0;
-	m_tryRequest = true;
-      }	
-    }
   }
 
   // Max buf size 17 * 'req pipe' + 10
@@ -618,47 +634,32 @@ void
 PeerConnection::receive_have_chunk(int32_t index) {
   m_haveQueue.push_back(index);
 
-  if (m_download->content()->is_done()) {
-    // We're done downloading.
+//   if (m_download->content()->is_done()) {
+//     // We're done downloading.
 
-    if (m_bitfield.all_set()) {
-      // Peer is done, close connection.
-      m_shutdown = true;
+// //     if (m_bitfield.all_set()) {
+// //       // Peer is done, close connection.
+// //       m_shutdown = true;
 
-    } else {
-      m_sendInterested = m_up->get_interested();
-      m_up->set_interested(false);
-    }
+// //     } else {
+// //       m_sendInterested = m_up->get_interested();
+// //       m_up->set_interested(false);
+// //     }
 
-  } else if (m_up->get_interested() &&
-	     !m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
-    // TODO: Optimize?
-    m_sendInterested = true;
-    m_up->set_interested(false);
-  }
+//   } else if (m_up->get_interested() &&
+// 	     !m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
+//     // TODO: Optimize?
+//     m_sendInterested = true;
+//     m_up->set_interested(false);
+//   }
 
   if (m_requestList.has_index(index))
     throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
 
   // TODO: Also send cancel messages!
 
-  // TODO: Remove this so we group the have messages with other stuff.
-  pollCustom->insert_write(this);
-}
-
-bool
-PeerConnection::send_request_piece() {
-  const Piece* p = m_requestList.delegate();
-
-  if (p == NULL)
-    return false;
-
-  if (!m_download->content()->is_valid_piece(*p) || !m_bitfield[p->get_index()])
-    throw internal_error("PeerConnection::send_request_piece() tried to use an invalid piece");
-
-  m_up->write_request(*p);
-
-  return true;
+  // TODO: Remove this so we group the have messages with other stuff. Don't really, 
+  //pollCustom->insert_write(this);
 }
 
 void

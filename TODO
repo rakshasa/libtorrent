@@ -2,25 +2,45 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-cache chunk count, use that to check for open/closed.
+[DONE] Get rid of all redundant getpagesize calls, use cached value.
 
-Change sync to return bool, change other code.
+[DONE] Rename choke_cycle.
 
-Rename choke_cycle.
+[DONE] Change sync to return bool, change other code.
 
-delegator's priorities are reset on DownloadMain::open?
+[DONE] snubbing doesn't survive a choke cycle.
 
-Not properly counting done chunks when doing resume?
+Change the chunk read/write functions, should retrive pointer and
+length for the next r/w.
 
-Consider adding sync to resume save.
+Use last choked time when receiving not/interested, this avoids the
+task delay. We already have a 30 second cycle at work. Need to modify
+choke cycle being called when receiving not-interested etc?
 
-* Tracker: [Could not create a valid chunk] Wrong prefix.
+Make unchoking of peers when receiving interested go through the choke
+manager. This will be used to avoid oscillation of choke status.
+
+Make sure you create correct seed/leech connections in factory.
+
+Make closing of seeding peers at torrent completion a part of the done
+signal.
+
+Optimize interested, seperate return values for requesting where we
+are still interested downloading from others and when we're not
+interested anymore.
+
+Would be nice to refactor requester, it should own the bitfield in some way?
+
+Rename receive_have_chunk.
+
+Wait when receiving resource tmp unavailable. Currently need to close
+the connection.
+
+delegator's priorities are reset on DownloadMain::open? Make the
+priority thing work right, don't use a seperate function for updating
+them.
 
 Consider asking for read-ahead for fast peers.
-
-Rename hash_resume_save/load, it should be generic.
-
-Wait when receiving resource tmp unavailable.
 
 File priority might not like sequential requesting.
 
@@ -36,6 +56,10 @@ Unaligned 58.6.0.92     0.0
 
 PeerConnectionBase::read_cancel_piece should only check for
 WRITE_PIECE when doing cancel or something.
+
+*** For the next API change ***
+
+Rename hash_resume_save/load, it should be generic.
 
 ***
 

@@ -71,6 +71,7 @@ public:
 
   bool               is_downloading()                 { return m_downloading; }
   bool               is_wanted()                      { return m_reservees.front()->is_valid(); }
+  bool               is_interested_in_active() const;
 
   bool               has_index(uint32_t i);
   uint32_t           remove_invalid();

@@ -41,6 +41,7 @@
 
 #include "torrent/exceptions.h"
 #include "download/delegator.h"
+#include "download/delegator_chunk.h"
 #include "download/delegator_reservee.h"
 #include "utils/bitfield.h"
 
@@ -150,6 +151,15 @@ struct equals_reservee : public std::binary_function<DelegatorReservee*, int32_t
     return r->is_valid() && index == r->get_piece().get_index();
   }
 };
+
+bool
+RequestList::is_interested_in_active() const {
+  for (Delegator::Chunks::const_iterator itr = m_delegator->get_chunks().begin(), last = m_delegator->get_chunks().end(); itr != last; ++itr)
+    if ((*m_bitfield)[(*itr)->get_index()])
+      return true;
+
+  return false;
+}
 
 bool
 RequestList::has_index(uint32_t index) {

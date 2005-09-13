@@ -60,9 +60,10 @@ class DownloadMain;
 
 class PeerConnectionBase : public SocketStream {
 public:
-  typedef std::list<Piece> PieceList;
-  typedef ProtocolBase     ProtocolRead;
-  typedef ProtocolBase     ProtocolWrite;
+  typedef std::list<Piece>    PieceList;
+  typedef std::list<uint32_t> HaveQueue;
+  typedef ProtocolBase        ProtocolRead;
+  typedef ProtocolBase        ProtocolWrite;
 
   // Find an optimal number for this.
   static const uint32_t read_size = 64;
@@ -72,20 +73,21 @@ public:
   
   bool                initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd);
 
-  bool                is_up_choked()             { return m_up->get_choked(); }
-  bool                is_up_interested()         { return m_up->get_interested(); }
+  bool                is_up_choked()                { return m_up->get_choked(); }
+  bool                is_up_interested()            { return m_up->get_interested(); }
   bool                is_down_choked()              { return m_down->get_choked(); }
   bool                is_down_interested()          { return m_down->get_interested(); }
 
   bool                is_down_throttled()           { return m_downThrottle != throttleRead.end(); }
-  bool                is_up_throttled()          { return m_upThrottle != throttleWrite.end(); }
+  bool                is_up_throttled()             { return m_upThrottle != throttleWrite.end(); }
 
   bool                is_snubbed() const            { return m_snubbed; }
+  bool                is_seeder() const             { return m_bitfield.all_set(); }
 
   const PeerInfo&     get_peer() const              { return m_peer; }
 
   Rate&               get_peer_rate()               { return m_peerRate; }
-  Rate&               get_up_rate()              { return m_upRate; }
+  Rate&               get_up_rate()                 { return m_upRate; }
   Rate&               get_down_rate()               { return m_downRate; }
 
   Timer               get_last_choked()             { return m_lastChoked; }
@@ -101,7 +103,6 @@ public:
   virtual void        set_choke(bool v) = 0;
 
   uint32_t            pipe_size() const;
-  bool                should_request();
 
   void                insert_down_throttle();
   void                remove_down_throttle();
@@ -145,13 +146,19 @@ protected:
   bool                write_bitfield_body();
 
   bool                down_chunk();
+  bool                down_chunk_from_buffer();
   bool                up_chunk();
+
+  // Function for getting the next chunk of memory to read/write from.
 
   inline bool         down_chunk_part(ChunkPart c, uint32_t& left);
   inline bool         up_chunk_part(ChunkPart c, uint32_t& left);
 
   void                down_chunk_release();
   void                up_chunk_release();
+
+  bool                should_request();
+  bool                try_request_pieces();
 
   DownloadMain*       m_download;
 
@@ -174,9 +181,11 @@ protected:
   ChunkHandle         m_upChunk;
 
   RequestList         m_requestList;
+  HaveQueue           m_haveQueue;
 
   PieceList           m_sendList;
   bool                m_sendChoked;
+  bool                m_sendInterested;
 
   bool                m_snubbed;
   BitFieldExt         m_bitfield;

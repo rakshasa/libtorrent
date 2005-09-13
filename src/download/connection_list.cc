@@ -109,7 +109,9 @@ ConnectionList::erase(PeerConnectionBase* p) {
 
 void
 ConnectionList::erase_remaining(iterator pos) {
-  while (end() != pos) {
+  // Need to do it one connection at the time to ensure that when the
+  // signal is emited everything is in a valid state.
+  while (pos != end()) {
     value_type v = Base::back();
 
     Base::pop_back();
@@ -117,6 +119,11 @@ ConnectionList::erase_remaining(iterator pos) {
     m_signalDisconnected.emit(Peer(v));
     delete v;
   }
+}
+
+void
+ConnectionList::erase_seeders() {
+  erase_remaining(std::partition(begin(), end(), std::not1(std::mem_fun(&PeerConnectionBase::is_seeder))));
 }
 
 struct _ConnectionListCompLess {

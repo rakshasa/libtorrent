@@ -110,6 +110,7 @@ public:
 
   Piece               read_request();
   Piece               read_piece();
+  Piece               read_piece(uint32_t length);
 
   void                write_command(Protocol c)               { m_buffer.write_8(m_lastCommand = c); }
 
@@ -157,6 +158,14 @@ ProtocolBase::read_piece() {
   uint32_t offset = m_buffer.read_32();
 
   return Piece(index, offset, get_length() - 9);
+}
+
+inline Piece
+ProtocolBase::read_piece(uint32_t length) {
+  uint32_t index = m_buffer.read_32();
+  uint32_t offset = m_buffer.read_32();
+
+  return Piece(index, offset, length);
 }
 
 inline void

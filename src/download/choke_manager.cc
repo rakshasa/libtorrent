@@ -52,9 +52,15 @@ struct ChokeManagerReadRate {
   }
 };
 
+struct choke_manager_is_interested {
+  bool operator () (PeerConnectionBase* p) const {
+    return p->is_down_interested() && !p->is_snubbed();
+  }
+};
+
 inline ChokeManager::iterator
 ChokeManager::seperate_interested(iterator first, iterator last) {
-  return std::partition(first, last, std::mem_fun(&PeerConnectionBase::is_down_interested));
+  return std::partition(first, last, choke_manager_is_interested());
 }
 
 inline ChokeManager::iterator

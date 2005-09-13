@@ -42,11 +42,11 @@
 #include "data/content.h"
 #include "download/download_main.h"
 
-#include "peer_connection_seed.h"
+#include "peer_connection_leech.h"
 
 namespace torrent {
 
-PeerConnectionSeed::~PeerConnectionSeed() {
+PeerConnectionLeech::~PeerConnectionLeech() {
 //   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
 //     m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
 
@@ -54,7 +54,7 @@ PeerConnectionSeed::~PeerConnectionSeed() {
 }
 
 void
-PeerConnectionSeed::initialize_custom() {
+PeerConnectionLeech::initialize_custom() {
   if (m_download->content()->get_chunks_completed() != 0) {
     m_up->write_bitfield(m_download->content()->get_bitfield().size_bytes());
 
@@ -65,7 +65,7 @@ PeerConnectionSeed::initialize_custom() {
 }
 
 void
-PeerConnectionSeed::set_choke(bool v) {
+PeerConnectionLeech::set_choke(bool v) {
   if (v == m_up->get_choked())
     return;
 
@@ -76,17 +76,26 @@ PeerConnectionSeed::set_choke(bool v) {
 }
 
 void
-PeerConnectionSeed::update_interested() {
-  // We assume this won't be called.
+PeerConnectionLeech::update_interested() {
+  if (m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
+    m_sendInterested = !m_down->get_interested();
+    m_down->set_interested(true);
+  } else {
+    m_sendInterested = m_down->get_interested();
+    m_down->set_interested(false);
+  }
 }
 
 void
-PeerConnectionSeed::receive_have_chunk(int32_t i) {
-  // We assume this won't be called.
+PeerConnectionLeech::receive_have_chunk(int32_t index) {
+  m_haveQueue.push_back(index);
+
+  if (m_requestList.has_index(index))
+    throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
 }
 
 bool
-PeerConnectionSeed::receive_keepalive() {
+PeerConnectionLeech::receive_keepalive() {
   if (Timer::cache() - m_timeLastRead > 240 * 1000000)
     return false;
 
@@ -99,6 +108,18 @@ PeerConnectionSeed::receive_keepalive() {
     pollCustom->insert_write(this);
   }
 
+  m_tryRequest = true;
+
+  // Stall pieces when more than one receive_keepalive() has been
+  // called while a single piece is downloading.
+  //
+  // m_downStall is decremented for every successfull download, so it
+  // should stay at zero or one when downloading at an acceptable
+  // speed. Thus only when m_downStall >= 2 is the download actually
+  // stalling.
+  if (!m_requestList.empty() && m_downStall++ > 0)
+    m_requestList.stall();
+
   return true;
 }
 
@@ -106,7 +127,7 @@ PeerConnectionSeed::receive_keepalive() {
 // keeping the state and remembering the read information. This
 // shouldn't happen very often compared to full reads.
 inline bool
-PeerConnectionSeed::read_message() {
+PeerConnectionLeech::read_message() {
   ProtocolBuffer<512>* buf = &m_down->get_buffer();
 
   if (buf->remaining() < 4)
@@ -129,7 +150,7 @@ PeerConnectionSeed::read_message() {
     return false;
 
   } else if (length > (1 << 20)) {
-    throw network_error("PeerConnectionSeed::read_message() got an invalid message length.");
+    throw network_error("PeerConnectionLeech::read_message() got an invalid message length.");
   }
     
   // We do not verify the message length of those with static
@@ -147,10 +168,20 @@ PeerConnectionSeed::read_message() {
   switch (buf->read_8()) {
   case ProtocolBase::CHOKE:
     m_down->set_choked(true);
+
+    m_requestList.cancel();
+    remove_down_throttle();
+
     return true;
 
   case ProtocolBase::UNCHOKE:
-    m_down->set_choked(false);
+    if (is_down_choked()) {
+      m_down->set_choked(false);
+      m_tryRequest = true;
+
+      pollCustom->insert_write(this);
+    }
+
     return true;
 
   case ProtocolBase::INTERESTED:
@@ -201,7 +232,21 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::PIECE:
-    throw network_error("Received a piece but the connection is strictly for seeding.");
+    if (buf->remaining() < 9)
+      break;
+
+    m_down->set_position(0);
+
+    if (receive_piece_header(m_down->read_piece(length - 9))) {
+      // Read piece here, do stuff if not done etc.
+      m_down->set_state(ProtocolRead::READ_PIECE);
+
+    } else {
+      // Don't handle skipped pieces yet.
+      throw network_error("Received an unwanted piece but we haven't implemented skipping yet .");
+    }
+
+    return true;
 
   case ProtocolBase::CANCEL:
     if (buf->remaining() < 13)
@@ -220,7 +265,7 @@ PeerConnectionSeed::read_message() {
 }
 
 void
-PeerConnectionSeed::event_read() {
+PeerConnectionLeech::event_read() {
   m_timeLastRead = Timer::cache();
 
   // Need to make sure ProtocolBuffer::end() is pointing to the end of
@@ -267,7 +312,7 @@ PeerConnectionSeed::event_read() {
 	break;
 
       default:
-	throw internal_error("PeerConnectionSeed::event_read() wrong state.");
+	throw internal_error("PeerConnectionLeech::event_read() wrong state.");
       }
 
       // Figure out how to get rid of the shouldLoop boolean.
@@ -302,8 +347,8 @@ PeerConnectionSeed::event_read() {
 }
 
 inline void
-PeerConnectionSeed::fill_write_buffer() {
-  // No need to use delayed choke as we are a seeder.
+PeerConnectionLeech::fill_write_buffer() {
+  // No need to use delayed choke as we are a leecher.
   if (m_sendChoked) {
     m_sendChoked = false;
 
@@ -321,6 +366,26 @@ PeerConnectionSeed::fill_write_buffer() {
     }
   }
 
+  if (m_tryRequest &&
+
+      !(m_tryRequest = !should_request()) &&
+      !(m_tryRequest = try_request_pieces()) &&
+
+      !m_requestList.is_interested_in_active()) {
+    m_sendInterested = true;
+    m_up->set_interested(false);
+  }
+
+  if (m_sendInterested) {
+    m_up->write_interested(m_up->get_interested());
+    m_sendInterested = false;
+  }
+
+  while (!m_haveQueue.empty() && m_up->can_write_have()) {
+    m_up->write_have(m_haveQueue.front());
+    m_haveQueue.pop_front();
+  }
+
   if (!m_up->get_choked() &&
       !m_sendList.empty() &&
       m_up->can_write_piece())
@@ -328,7 +393,7 @@ PeerConnectionSeed::fill_write_buffer() {
 }
 
 void
-PeerConnectionSeed::event_write() {
+PeerConnectionLeech::event_write() {
   try {
   
     do {
@@ -339,7 +404,7 @@ PeerConnectionSeed::event_write() {
 	// We might have buffered keepalive message or similar, but
 	// 'end' should remain at the start of the buffer.
 	if (m_up->get_buffer().size_end() != 0)
-	  throw internal_error("PeerConnectionSeed::event_write() ProtocolWrite::IDLE in a wrong state.");
+	  throw internal_error("PeerConnectionLeech::event_write() ProtocolWrite::IDLE in a wrong state.");
 
 	// Fill up buffer.
 	fill_write_buffer();
@@ -399,7 +464,7 @@ PeerConnectionSeed::event_write() {
 	break;
 
       default:
-	throw internal_error("PeerConnectionSeed::event_write() wrong state.");
+	throw internal_error("PeerConnectionLeech::event_write() wrong state.");
       }
 
     } while (true);
@@ -430,7 +495,7 @@ PeerConnectionSeed::event_write() {
 }
 
 void
-PeerConnectionSeed::read_have_chunk(uint32_t index) {
+PeerConnectionLeech::read_have_chunk(uint32_t index) {
   if (index >= m_bitfield.size_bits())
     throw network_error("Peer sent HAVE message with out-of-range index.");
 
@@ -439,15 +504,39 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
 }
 
 void
-PeerConnectionSeed::finish_bitfield() {
+PeerConnectionLeech::finish_bitfield() {
   m_bitfield.update_count();
 
-  if (m_bitfield.all_set())
+  // Check if we're done. Should we just put ourselves in interested
+  // state from the beginning? We should then make sure we send not
+  // interested, we already do?
+  if (!m_download->content()->is_done()) {
+    m_tryRequest = true;
+    m_sendInterested = true;
+    m_up->set_interested(true);
+    
+  } else if (m_bitfield.all_set()) {
     throw close_connection();
+  }
 
 //   m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
 
   pollCustom->insert_write(this);
+}
+
+bool
+PeerConnectionLeech::receive_piece_header(const Piece& p) {
+  if (m_requestList.downloading(p)) {
+
+    load_down_chunk(p);
+    return true;
+
+  } else {
+    if (p.get_length() == 0)
+      m_download->signal_network_log().emit("Received piece with length zero");
+
+    return false;
+  }
 }
 
 }
