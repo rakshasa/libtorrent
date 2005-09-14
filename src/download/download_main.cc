@@ -43,12 +43,12 @@
 #include "data/chunk_list.h"
 #include "parse/parse.h"
 #include "protocol/handshake_manager.h"
+#include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
 #include "tracker/tracker_manager.h"
 
 #include "delegator_select.h"
 #include "download_main.h"
-#include "peer_connection.h"
 
 namespace torrent {
 
@@ -153,7 +153,7 @@ DownloadMain::stop() {
   std::list<SocketAddress> addressList;
 
   std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList),
-		 rak::on(std::mem_fun(&PeerConnection::get_peer), std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address)));
+		 rak::on(std::mem_fun(&PeerConnectionBase::get_peer), std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address)));
 
   addressList.sort();
   available_list()->insert(&addressList);

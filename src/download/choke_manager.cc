@@ -39,7 +39,7 @@
 #include <algorithm>
 #include <functional>
 
-#include "peer_connection.h"
+#include "protocol/peer_connection_base.h"
 #include "utils/unordered_vector.h"
 
 #include "choke_manager.h"

@@ -236,17 +236,42 @@ PeerConnectionLeech::read_message() {
       break;
 
     m_down->set_position(0);
+    m_downPiece = m_down->read_piece(length - 9);
 
-    if (receive_piece_header(m_down->read_piece(length - 9))) {
-      // Read piece here, do stuff if not done etc.
-      m_down->set_state(ProtocolRead::READ_PIECE);
+    if (!receive_piece_header()) {
+
+      // We're skipping this piece.
+      m_down->set_position(std::min<uint32_t>(buf->remaining(), m_downPiece.get_length()));
+      buf->move_position(m_down->get_position());
+
+      if (m_down->get_position() != m_downPiece.get_length()) {
+	m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+	return false;
+
+      } else {
+	return true;
+      }
+      
+    } else if (down_chunk_from_buffer()) {
+      // Done with chunk.
+      m_downChunk->set_time_modified(Timer::cache());
+      m_requestList.finished();
+    
+      if (m_downStall > 0)
+	m_downStall--;
+    
+      // TODO: clear m_down.data?
+      // TODO: remove throttle if choked? Rarely happens though.
+      m_tryRequest = true;
+      pollCustom->insert_write(this);
+
+      return true;
 
     } else {
-      // Don't handle skipped pieces yet.
-      throw network_error("Received an unwanted piece but we haven't implemented skipping yet .");
+      m_down->set_state(ProtocolRead::READ_PIECE);
+      insert_down_throttle();
+      return false;
     }
-
-    return true;
 
   case ProtocolBase::CANCEL:
     if (buf->remaining() < 13)
@@ -284,8 +309,6 @@ PeerConnectionLeech::event_read() {
     //
     // Only loop when end hits 64.
 
-    bool shouldLoop;
-
     do {
 
       switch (m_down->get_state()) {
@@ -294,9 +317,51 @@ PeerConnectionLeech::event_read() {
 	
 	while (read_message());
 	
-	shouldLoop = m_down->get_buffer().size_end() == read_size;
-	read_buffer_move_unused();
+	if (m_down->get_buffer().size_end() == read_size) {
+	  read_buffer_move_unused();
+	  break;
+	} else {
+	  read_buffer_move_unused();
+	  return;
+	}
 
+      case ProtocolRead::READ_PIECE:
+	if (!m_requestList.is_downloading())
+	  throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading");
+
+	if (!m_requestList.is_wanted()) {
+	  m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+	  m_requestList.skip();
+
+	  break;
+	}
+
+	if (!down_chunk())
+	  return;
+
+	m_downChunk->set_time_modified(Timer::cache());
+	m_requestList.finished();
+	
+	if (m_downStall > 0)
+	  m_downStall--;
+	
+	// TODO: clear m_down.data?
+	// TODO: remove throttle if choked? Rarely happens though.
+	m_tryRequest = true;
+	m_down->set_state(ProtocolRead::IDLE);
+	pollCustom->insert_write(this);
+	
+	break;
+
+      case ProtocolRead::READ_SKIP_PIECE:
+	m_down->adjust_position(ignore_stream_throws(m_downPiece.get_length() - m_down->get_position()));
+
+	if (m_down->get_position() != m_downPiece.get_length())
+	  return;
+
+	m_down->set_state(ProtocolRead::IDLE);
+	m_down->get_buffer().reset();
+	
 	break;
 
       case ProtocolRead::READ_BITFIELD:
@@ -307,8 +372,6 @@ PeerConnectionLeech::event_read() {
 	m_down->get_buffer().reset();
 
 	finish_bitfield();
-
-	shouldLoop = true;
 	break;
 
       default:
@@ -316,7 +379,7 @@ PeerConnectionLeech::event_read() {
       }
 
       // Figure out how to get rid of the shouldLoop boolean.
-    } while (shouldLoop);
+    } while (true);
 
   // Exception handlers:
 
@@ -525,14 +588,14 @@ PeerConnectionLeech::finish_bitfield() {
 }
 
 bool
-PeerConnectionLeech::receive_piece_header(const Piece& p) {
-  if (m_requestList.downloading(p)) {
+PeerConnectionLeech::receive_piece_header() {
+  if (m_requestList.downloading(m_downPiece)) {
 
-    load_down_chunk(p);
+    load_down_chunk(m_downPiece);
     return true;
 
   } else {
-    if (p.get_length() == 0)
+    if (m_downPiece.get_length() == 0)
       m_download->signal_network_log().emit("Received piece with length zero");
 
     return false;

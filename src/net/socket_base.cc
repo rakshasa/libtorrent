@@ -45,6 +45,8 @@
 
 namespace torrent {
 
+char* SocketBase::m_nullBuffer = new char[1 << 17];
+
 SocketBase::~SocketBase() {
   if (get_fd().is_valid())
     throw internal_error("SocketBase::~SocketBase() called but m_fd is still valid");

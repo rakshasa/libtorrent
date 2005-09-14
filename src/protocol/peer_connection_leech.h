@@ -66,7 +66,7 @@ private:
 
   void                finish_bitfield();
 
-  bool                receive_piece_header(const Piece& p);
+  bool                receive_piece_header();
 
   bool                m_tryRequest;
 };

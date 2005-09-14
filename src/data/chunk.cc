@@ -73,6 +73,22 @@ Chunk::at_position(uint32_t pos) {
   return itr;
 }
 
+Chunk::MemoryArea
+Chunk::at_memory(uint32_t offset, iterator part) {
+  if (part == end())
+    throw internal_error("Chunk::at_memory(...) reached end.");
+
+  if (!part->chunk().is_valid())
+    throw internal_error("Chunk::at_memory(...) chunk part isn't valid.");
+
+  if (offset < part->position() || offset >= part->position() + part->size())
+    throw internal_error("Chunk::at_memory(...) out of range.");
+
+  offset -= part->position();
+
+  return MemoryArea(part->chunk().begin() + offset, part->size() - offset);
+}
+
 // Each add calls vector's reserve adding 1. This should keep
 // the size of the vector at exactly what we need. Though it
 // will require a few more cycles, it won't matter as we only

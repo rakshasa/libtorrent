@@ -63,16 +63,13 @@ public:
 
   typedef enum {
     IDLE,
-    LENGTH,
-    TYPE,
     MSG,
-    READ_BITFIELD,
     READ_PIECE,
+    READ_SKIP_PIECE,
+    READ_BITFIELD,
     WRITE_BITFIELD_HEADER,
     WRITE_BITFIELD,
-    WRITE_PIECE_HEADER,
     WRITE_PIECE,
-    SKIP_PIECE,
     INTERNAL_ERROR
   } State;
 

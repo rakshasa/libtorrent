@@ -56,6 +56,8 @@ public:
   // finished reading/writing.
   bool                read_buffer(void* buf, uint32_t length, uint32_t& pos);
   bool                write_buffer(const void* buf, uint32_t length, uint32_t& pos);
+
+  uint32_t            ignore_stream_throws(uint32_t length) { return read_stream_throws(m_nullBuffer, length); }
 };
 
 inline bool

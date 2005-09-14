@@ -23,6 +23,4 @@ libtorrent_la_LIBADD = \
 
 libtorrent_la_SOURCES = \
 	manager.cc \
-	manager.h \
-        peer_connection.cc \
-        peer_connection.h
+	manager.h

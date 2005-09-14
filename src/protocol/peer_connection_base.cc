@@ -203,42 +203,6 @@ PeerConnectionBase::event_error() {
   m_download->connection_list()->erase(this);
 }
 
-inline bool
-PeerConnectionBase::down_chunk_part(ChunkPart c, uint32_t& left) {
-  if (!c->chunk().is_valid())
-    throw internal_error("PeerConnectionBase::down_part() did not get a valid chunk");
-  
-  uint32_t offset = m_downPiece.get_offset() + m_down->get_position() - c->position();
-  uint32_t length = std::min(std::min(m_downPiece.get_length() - m_down->get_position(),
-				      c->size() - offset),
-			     left);
-
-  uint32_t done = read_stream_throws(c->chunk().begin() + offset, length);
-
-  m_down->adjust_position(done);
-  left -= done;
-
-  return done == length;
-}
-
-inline bool
-PeerConnectionBase::up_chunk_part(ChunkPart c, uint32_t& left) {
-  if (!c->chunk().is_valid())
-    throw internal_error("ProtocolChunk::write_part() did not get a valid chunk");
-  
-  uint32_t offset = m_upPiece.get_offset() + m_up->get_position() - c->position();
-  uint32_t length = std::min(std::min(m_upPiece.get_length() - m_up->get_position(),
-				      c->size() - offset),
-			     left);
-
-  uint32_t done = write_stream_throws(c->chunk().begin() + offset, length);
-
-  m_up->adjust_position(done);
-  left -= done;
-
-  return done == length;
-}
-
 bool
 PeerConnectionBase::down_chunk() {
   if (!is_down_throttled())
@@ -260,13 +224,20 @@ PeerConnectionBase::down_chunk() {
     return false;
   }
 
+  uint32_t count;
   uint32_t left = quota = std::min((uint32_t)quota, m_downPiece.get_length() - m_down->get_position());
 
-  ChunkPart c = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->get_position());
+  Chunk::MemoryArea memory;
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->get_position());
 
-  while (down_chunk_part(c++, left) && left != 0)
-    if (c == m_downChunk->chunk()->end())
-      throw internal_error("PeerConnectionBase::down() reached end of chunk part list");
+  do {
+    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->get_position(), part++);
+    count = read_stream_throws(memory.first, std::min(left, memory.second));
+
+    m_down->adjust_position(count);
+    left -= count;
+
+  } while (count == memory.second && left != 0);
 
   uint32_t bytes = quota - left;
 
@@ -282,25 +253,35 @@ PeerConnectionBase::down_chunk() {
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
-//   uint32_t left = m_downPiece.get_length() - m_down->get_position();
+  uint32_t count, quota;
+  uint32_t left = quota = std::min<uint32_t>(m_down->get_buffer().remaining(),
+					     m_downPiece.get_length() - m_down->get_position());
 
-//   ChunkPart c = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->get_position());
+  Chunk::MemoryArea memory;
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->get_position());
 
-// //   while (down_chunk_part(c++, left) && left != 0)
-// //     if (c == m_downChunk->chunk()->end())
-// //       throw internal_error("PeerConnectionBase::down() reached end of chunk part list");
+  do {
+    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->get_position(), part++);
+    count = std::min(left, memory.second);
 
-//   uint32_t bytes = quota - left;
+    std::memcpy(memory.first, m_down->get_buffer().position(), count);
 
-//   m_downRate.insert(bytes);
-//   m_downThrottle->used(bytes);
+    m_down->adjust_position(count);
+    m_down->get_buffer().move_position(count);
+    left -= count;
 
-//   throttleRead.get_rate_slow().insert(bytes);
-//   throttleRead.get_rate_quick().insert(bytes);
-//   m_download->get_down_rate().insert(bytes);
+  } while (left != 0);
 
-//   return m_down->get_position() == m_downPiece.get_length();
-  return false;
+  uint32_t bytes = quota - left;
+
+  m_downRate.insert(bytes);
+  m_downThrottle->used(bytes);
+
+  throttleRead.get_rate_slow().insert(bytes);
+  throttleRead.get_rate_quick().insert(bytes);
+  m_download->get_down_rate().insert(bytes);
+
+  return m_down->get_position() == m_downPiece.get_length();
 }
 
 bool
@@ -324,13 +305,20 @@ PeerConnectionBase::up_chunk() {
     return false;
   }
 
+  uint32_t count;
   uint32_t left = quota = std::min((uint32_t)quota, m_upPiece.get_length() - m_up->get_position());
 
-  ChunkPart c = m_upChunk->chunk()->at_position(m_upPiece.get_offset() + m_up->get_position());
+  Chunk::MemoryArea memory;
+  ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.get_offset() + m_up->get_position());
 
-  while (up_chunk_part(c++, left) && left != 0)
-    if (c == m_upChunk->chunk()->end())
-      throw internal_error("PeerConnectionBase::up_chunk(...) reached end of chunk part list.");
+  do {
+    memory = m_upChunk->chunk()->at_memory(m_upPiece.get_offset() + m_up->get_position(), part++);
+    count = write_stream_throws(memory.first, std::min(left, memory.second));
+
+    m_up->adjust_position(count);
+    left -= count;
+
+  } while (count == memory.second && left != 0);
 
   uint32_t bytes = quota - left;
 
@@ -465,7 +453,7 @@ bool
 PeerConnectionBase::should_request() {
   if (m_down->get_choked() ||
       !m_up->get_interested() ||
-      m_down->get_state() == ProtocolRead::SKIP_PIECE)
+      m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
   else if (!m_download->get_endgame())

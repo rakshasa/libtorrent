@@ -36,10 +36,11 @@
 
 #include "config.h"
 
+#include "protocol/peer_connection_base.h"
+
 #include "exceptions.h"
 #include "peer.h"
 #include "rate.h"
-#include "peer_connection.h"
 
 namespace torrent {
 

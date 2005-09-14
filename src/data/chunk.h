@@ -44,7 +44,8 @@ namespace torrent {
 
 class Chunk : private std::vector<ChunkPart> {
 public:
-  typedef std::vector<ChunkPart> Base;
+  typedef std::vector<ChunkPart>    Base;
+  typedef std::pair<void*,uint32_t> MemoryArea;
 
   using Base::value_type;
 
@@ -72,6 +73,7 @@ public:
   void                clear();
 
   iterator            at_position(uint32_t pos);
+  MemoryArea          at_memory(uint32_t offset, iterator part);
 
   void                push_back(const MemoryChunk& c);
 

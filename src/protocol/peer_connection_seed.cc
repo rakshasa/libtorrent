@@ -239,8 +239,6 @@ PeerConnectionSeed::event_read() {
     //
     // Only loop when end hits 64.
 
-    bool shouldLoop;
-
     do {
 
       switch (m_down->get_state()) {
@@ -249,10 +247,13 @@ PeerConnectionSeed::event_read() {
 	
 	while (read_message());
 	
-	shouldLoop = m_down->get_buffer().size_end() == read_size;
-	read_buffer_move_unused();
-
-	break;
+	if (m_down->get_buffer().size_end() == read_size) {
+	  read_buffer_move_unused();
+	  break;
+	} else {
+	  read_buffer_move_unused();
+	  return;
+	}
 
       case ProtocolRead::READ_BITFIELD:
 	if (!read_bitfield_body())
@@ -262,8 +263,6 @@ PeerConnectionSeed::event_read() {
 	m_down->get_buffer().reset();
 
 	finish_bitfield();
-
-	shouldLoop = true;
 	break;
 
       default:
@@ -271,7 +270,7 @@ PeerConnectionSeed::event_read() {
       }
 
       // Figure out how to get rid of the shouldLoop boolean.
-    } while (shouldLoop);
+    } while (true);
 
   // Exception handlers:
 

@@ -60,10 +60,12 @@ public:
   bool                read_oob(void* buffer);
   bool                write_oob(const void* buffer);
 
-private:
+protected:
   // Disable copying
   SocketBase(const SocketBase&);
   void operator = (const SocketBase&);
+
+  static char*        m_nullBuffer;
 };
 
 }

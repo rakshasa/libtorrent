@@ -149,11 +149,6 @@ protected:
   bool                down_chunk_from_buffer();
   bool                up_chunk();
 
-  // Function for getting the next chunk of memory to read/write from.
-
-  inline bool         down_chunk_part(ChunkPart c, uint32_t& left);
-  inline bool         up_chunk_part(ChunkPart c, uint32_t& left);
-
   void                down_chunk_release();
   void                up_chunk_release();
 

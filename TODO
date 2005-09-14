@@ -2,16 +2,12 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Get rid of all redundant getpagesize calls, use cached value.
+Replace shoudlLoop with return?
 
-[DONE] Rename choke_cycle.
+  /a-l.gits.remastered.r2.cd1.divx52.mkv               700.3   hig   100
+* /a-l.gits.remastered.r2.cd2.divx52.mkv               699.0          99
+  /a-l.gits.remastered.r2.sfv                            0.0         100
 
-[DONE] Change sync to return bool, change other code.
-
-[DONE] snubbing doesn't survive a choke cycle.
-
-Change the chunk read/write functions, should retrive pointer and
-length for the next r/w.
 
 Use last choked time when receiving not/interested, this avoids the
 task delay. We already have a 30 second cycle at work. Need to modify
