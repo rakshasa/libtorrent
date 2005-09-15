@@ -78,8 +78,7 @@ public:
     m_choked(true),
     m_interested(false),
     m_lastCommand(NONE),
-    m_state(IDLE),
-    m_length(0) {
+    m_state(IDLE) {
   }
 
   bool                get_choked() const                      { return m_choked; }
@@ -101,9 +100,6 @@ public:
 
   State               get_state() const                       { return m_state; }
   void                set_state(State s)                      { m_state = s; }
-
-  uint32_t            get_length() const                      { return m_length; }
-  void                set_length(uint32_t l)                  { m_length = l; }
 
   Piece               read_request();
   Piece               read_piece();
@@ -134,7 +130,6 @@ protected:
   bool                m_interested;
 
   State               m_state;
-  uint32_t            m_length;
 
   Protocol            m_lastCommand;
   Buffer              m_buffer;
@@ -147,14 +142,6 @@ ProtocolBase::read_request() {
   uint32_t length = m_buffer.read_32();
   
   return Piece(index, offset, length);
-}
-
-inline Piece
-ProtocolBase::read_piece() {
-  uint32_t index = m_buffer.read_32();
-  uint32_t offset = m_buffer.read_32();
-
-  return Piece(index, offset, get_length() - 9);
 }
 
 inline Piece

@@ -47,6 +47,7 @@
 #include "torrent/exceptions.h"
 #include "tracker/tracker_manager.h"
 
+#include "choke_manager.h"
 #include "delegator_select.h"
 #include "download_main.h"
 
@@ -54,6 +55,7 @@ namespace torrent {
 
 DownloadMain::DownloadMain() :
   m_trackerManager(new TrackerManager()),
+  m_chokeManager(new ChokeManager(&this->m_connectionList)),
   m_chunkList(new ChunkList),
 
   m_checked(false),
@@ -192,7 +194,7 @@ DownloadMain::update_endgame() {
 void
 DownloadMain::receive_tick() {
   taskScheduler.insert(&m_taskTick, (Timer::cache() + 30 * 1000000).round_seconds());
-  choke_cycle();
+  m_chokeManager->cycle();
 
   m_chunkList->sync_periodic();
 }

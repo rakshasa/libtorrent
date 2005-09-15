@@ -178,11 +178,10 @@ Content::mark_done(uint32_t index) {
   m_completed++;
 
   EntryList::iterator first = m_entryList->at_position(m_entryList->begin(), index * (off_t)m_chunkSize);
+  EntryList::iterator last  = m_entryList->at_position(first, (index + 1) * (off_t)m_chunkSize - 1) + 1;
 
   if (first == m_entryList->end())
     throw internal_error("Content::mark_done got first == m_entryList->end().");
-
-  EntryList::iterator last  = m_entryList->at_position(first + 1, (index + 1) * (off_t)m_chunkSize);
 
   std::for_each(first, last, std::mem_fun_ref(&EntryListNode::inc_completed));
 
@@ -212,7 +211,7 @@ Content::update_done() {
       if (previous == m_entryList->end())
 	throw internal_error("Content::update_done() reached m_entryList->end().");
 
-      std::for_each(previous, m_entryList->at_position(previous + 1, (i + 1) * (off_t)m_chunkSize),
+      std::for_each(previous, m_entryList->at_position(previous, (i + 1) * (off_t)m_chunkSize - 1) + 1,
 		    std::mem_fun_ref(&EntryListNode::inc_completed));
     }
 }

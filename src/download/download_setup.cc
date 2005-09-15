@@ -44,6 +44,7 @@
 #include "tracker/tracker_manager.h"
 
 #include "download_main.h"
+#include "choke_manager.h"
 
 namespace torrent {
 
@@ -58,7 +59,7 @@ DownloadMain::setup_delegator() {
 
 void
 DownloadMain::setup_net() {
-  connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::choke_balance)));
+  //connection_list()->signal_disconnected().connect(sigc::mem_fun(*m_chokeManager, &ChokeManager::choke));
   connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
 }
 

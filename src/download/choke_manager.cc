@@ -73,45 +73,77 @@ ChokeManager::sort_down_rate(iterator first, iterator last) {
   std::sort(first, last, ChokeManagerReadRate());
 }
 
-int
-ChokeManager::get_unchoked(iterator first, iterator last) const {
-  return std::distance(first, seperate_unchoked(first, last));
-}
+// int
+// ChokeManager::get_unchoked(iterator first, iterator last) const {
+//   return std::distance(first, seperate_unchoked(first, last));
+// }
 
 void
-ChokeManager::balance(iterator first, iterator last) {
-  iterator beginUninterested = seperate_interested(first, last);
-  iterator beginChoked       = seperate_unchoked(first, beginUninterested);
+ChokeManager::balance() {
+  iterator beginUninterested = seperate_interested(m_connectionList->begin(), m_connectionList->end());
+  iterator beginChoked       = seperate_unchoked(m_connectionList->begin(), beginUninterested);
 
-  int unchoked = std::distance(first, beginChoked);
+  int unchoked = std::distance(m_connectionList->begin(), beginChoked);
 
   if (unchoked < m_maxUnchoked)
-    unchoke(beginChoked, beginUninterested, m_maxUnchoked - unchoked);
+    unchoke_range(beginChoked, beginUninterested, m_maxUnchoked - unchoked);
 
   else if (unchoked > m_maxUnchoked)
-    choke(first, beginChoked, unchoked - m_maxUnchoked);
+    choke_range(m_connectionList->begin(), beginChoked, unchoked - m_maxUnchoked);
 }
 
 void
-ChokeManager::cycle(iterator first, iterator last) {
-  iterator beginUninterested = seperate_interested(first, last);
-  iterator beginChoked       = seperate_unchoked(first, beginUninterested);
+ChokeManager::cycle() {
+  iterator beginUninterested = seperate_interested(m_connectionList->begin(), m_connectionList->end());
+  iterator beginChoked       = seperate_unchoked(m_connectionList->begin(), beginUninterested);
 
   // Partition away the connections we shall not choke.
 
-  int size = std::min<int>(std::min(std::distance(first, beginChoked),
+  int size = std::min<int>(std::min(std::distance(m_connectionList->begin(), beginChoked),
 				    std::distance(beginChoked, beginUninterested)),
 			   m_cycleSize);
 
   if (size == 0)
     return;
 
-  choke(first, beginChoked, size);
-  unchoke(beginChoked, beginUninterested, size);
+  choke_range(m_connectionList->begin(), beginChoked, size);
+  unchoke_range(beginChoked, beginUninterested, size);
 }
 
 void
-ChokeManager::choke(iterator first, iterator last, int count) {
+ChokeManager::choke(PeerConnectionBase* pc) {
+  if (!pc->is_up_choked())
+    return;
+
+  pc->set_choke(true);
+
+  balance();
+}
+
+void
+ChokeManager::try_unchoke(PeerConnectionBase* pc) {
+  if (!pc->is_up_choked())
+    return;
+
+  int unchoked = std::distance(m_connectionList->begin(), seperate_unchoked(m_connectionList->begin(), m_connectionList->end()));
+  
+  if (unchoked >= m_maxUnchoked)
+    return;
+
+  pc->set_choke(false);
+}
+
+// We might no longer be in m_connectionList.
+void
+ChokeManager::disconnected(PeerConnectionBase* pc) {
+  if (pc->is_up_choked())
+    return;
+
+  balance();
+}
+
+void
+ChokeManager::choke_range(iterator first, iterator last, int count) {
   count = std::min<int>(count, std::distance(first, last));
 
   if (count < 0)
@@ -124,7 +156,7 @@ ChokeManager::choke(iterator first, iterator last, int count) {
 }
 
 void
-ChokeManager::unchoke(iterator first, iterator last, int count) {
+ChokeManager::unchoke_range(iterator first, iterator last, int count) {
   count = std::min<int>(count, std::distance(first, last));
 
   if (count < 0)

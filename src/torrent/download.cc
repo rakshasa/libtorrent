@@ -41,6 +41,7 @@
 
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
+#include "download/choke_manager.h"
 #include "download/delegator_chunk.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"
@@ -274,7 +275,7 @@ void
 Download::set_uploads_max(uint32_t v) {
   if (v >= 0 && v < (1 << 16)) {
     m_ptr->get_main().choke_manager()->set_max_unchoked(v);
-    m_ptr->get_main().choke_balance();
+    m_ptr->get_main().choke_manager()->balance();
   }
 }
 

@@ -41,16 +41,21 @@
 
 #include "utils/unordered_vector.h"
 
+#include "connection_list.h"
+
 namespace torrent {
 
 class PeerConnectionBase;
 
 class ChokeManager {
 public:
-  typedef unordered_vector<PeerConnectionBase*> Container;
-  typedef Container::iterator                   iterator;
+  typedef ConnectionList::iterator iterator;
 
-  ChokeManager() : m_maxUnchoked(15), m_minGenerous(2), m_cycleSize(2) {}
+  ChokeManager(ConnectionList* cl) :
+    m_connectionList(cl),
+    m_maxUnchoked(15),
+    m_minGenerous(2),
+    m_cycleSize(2) {}
   
   int                 get_max_unchoked() const                { return m_maxUnchoked; }
   void                set_max_unchoked(int v)                 { m_maxUnchoked = v; }
@@ -61,19 +66,24 @@ public:
   int                 get_cycle_size() const                  { return m_cycleSize; }
   void                set_cycle_size(int v)                   { m_cycleSize = v; }
 
-  int                 get_unchoked(iterator first, iterator last) const;
+  void                balance();
+  void                cycle();
 
-  void                balance(iterator first, iterator last);
-  void                cycle(iterator first, iterator last);
+  void                choke(PeerConnectionBase* pc);
+  void                try_unchoke(PeerConnectionBase* pc);
 
-  void                choke(iterator first, iterator last, int count);
-  void                unchoke(iterator first, iterator last, int count);
+  void                disconnected(PeerConnectionBase* pc);
 
 private:
+  void                choke_range(iterator first, iterator last, int count);
+  void                unchoke_range(iterator first, iterator last, int count);
+
   static iterator     seperate_interested(iterator first, iterator last);
   static iterator     seperate_unchoked(iterator first, iterator last);
 
   static void         sort_down_rate(iterator first, iterator last);
+
+  ConnectionList*     m_connectionList;
 
   int                 m_maxUnchoked;
   int                 m_minGenerous;

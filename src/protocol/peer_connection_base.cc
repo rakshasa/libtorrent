@@ -41,6 +41,7 @@
 
 #include "torrent/exceptions.h"
 #include "data/chunk_list.h"
+#include "download/choke_manager.h"
 #include "download/download_main.h"
 #include "net/socket_base.h"
 
@@ -75,6 +76,9 @@ PeerConnectionBase::~PeerConnectionBase() {
 
   if (m_download == NULL)
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
+
+  m_up->set_choked(false);
+  m_download->choke_manager()->disconnected(this);
 
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);

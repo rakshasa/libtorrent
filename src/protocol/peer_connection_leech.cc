@@ -40,6 +40,7 @@
 #include <sstream>
 
 #include "data/content.h"
+#include "download/choke_manager.h"
 #include "download/download_main.h"
 
 #include "peer_connection_leech.h"
@@ -185,19 +186,15 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    if (m_up->get_choked() && m_download->size_unchoked() < m_download->choke_manager()->get_max_unchoked())
-      set_choke(false);
-
+    m_download->choke_manager()->try_unchoke(this);
     m_down->set_interested(true);
+
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    if (!m_up->get_choked()) {
-      set_choke(true);
-      m_download->choke_balance();
-    }
-
+    m_download->choke_manager()->choke(this);
     m_down->set_interested(false);
+
     return true;
 
   case ProtocolBase::HAVE:

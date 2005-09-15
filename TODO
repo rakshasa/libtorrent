@@ -2,12 +2,21 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Replace shoudlLoop with return?
+Do unchoke on client connection close...
+
+Crash on viewing files during hash check or something?
+
+(Delete, up)
+4 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent7ContentD1Ev+0x19b) [0xb7f81f3b]
+5 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent12DownloadMainD1Ev+0xc8b) [0xb7f9663b]
+6 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent15DownloadWrapperD1Ev+0x6e) [0xb7f9c9b2]
+7 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent15DownloadManager5eraseESt14_List_iteratorIPNS_15DownloadWrapperEE+0xc9) [0xb7f99f9d]
+8 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent15download_removeERKSs+0x3f) [0xb7f7a98f]
+
 
   /a-l.gits.remastered.r2.cd1.divx52.mkv               700.3   hig   100
 * /a-l.gits.remastered.r2.cd2.divx52.mkv               699.0          99
   /a-l.gits.remastered.r2.sfv                            0.0         100
-
 
 Use last choked time when receiving not/interested, this avoids the
 task delay. We already have a 30 second cycle at work. Need to modify
@@ -15,8 +24,6 @@ choke cycle being called when receiving not-interested etc?
 
 Make unchoking of peers when receiving interested go through the choke
 manager. This will be used to avoid oscillation of choke status.
-
-Make sure you create correct seed/leech connections in factory.
 
 Make closing of seeding peers at torrent completion a part of the done
 signal.

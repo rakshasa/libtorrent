@@ -40,7 +40,6 @@
 #include <sigc++/connection.h>
 
 #include "available_list.h"
-#include "choke_manager.h"
 #include "connection_list.h"
 #include "delegator.h"
 
@@ -54,6 +53,7 @@
 namespace torrent {
 
 class ChunkList;
+class ChokeManager;
 class TrackerManager;
 
 class DownloadMain {
@@ -71,7 +71,7 @@ public:
   bool                is_active() const                          { return m_started; }
   bool                is_checked() const                         { return m_checked; }
 
-  ChokeManager*       choke_manager()                            { return &m_chokeManager; }
+  ChokeManager*       choke_manager()                            { return m_chokeManager; }
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
@@ -95,10 +95,6 @@ public:
   void                setup_delegator();
   void                setup_net();
   void                setup_tracker();
-
-  void                choke_balance();
-  void                choke_cycle();
-  int                 size_unchoked();
 
   typedef sigc::signal1<void, const std::string&>                SignalString;
   typedef sigc::signal1<void, uint32_t>                          SignalChunk;
@@ -137,7 +133,7 @@ private:
   void                update_endgame();
 
   TrackerManager*     m_trackerManager;
-  ChokeManager        m_chokeManager;
+  ChokeManager*       m_chokeManager;
 
   ChunkList*          m_chunkList;
   Content             m_content;
@@ -174,21 +170,6 @@ private:
   TaskItem            m_taskTick;
   TaskItem            m_taskTrackerRequest;
 };
-
-inline void
-DownloadMain::choke_balance() {
-  m_chokeManager.balance(connection_list()->begin(), connection_list()->end());
-}
-
-inline void
-DownloadMain::choke_cycle() {
-  m_chokeManager.cycle(connection_list()->begin(), connection_list()->end());
-}
-
-inline int
-DownloadMain::size_unchoked() {
-  return m_chokeManager.get_unchoked(connection_list()->begin(), connection_list()->end());
-}
 
 }
 
