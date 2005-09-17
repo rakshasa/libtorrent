@@ -156,8 +156,8 @@ ConnectionList::set_difference(AddressList* l) {
 }
 
 void
-ConnectionList::send_have_chunk(uint32_t index) {
-  std::for_each(begin(), end(), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_have_chunk), index));
+ConnectionList::send_finished_chunk(uint32_t index) {
+  std::for_each(begin(), end(), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_finished_chunk), index));
 }
 
 }

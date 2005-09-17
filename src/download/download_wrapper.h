@@ -37,9 +37,6 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
-#include <memory>
-
-#include "data/hash_torrent.h"
 #include "torrent/bencode.h"
 #include "tracker/tracker_info.h"
 #include "download_main.h"
@@ -50,11 +47,12 @@ namespace torrent {
 
 class FileManager;
 class HashQueue;
+class HashTorrent;
 class HandshakeManager;
 
 class DownloadWrapper {
 public:
-  DownloadWrapper() : m_connectionType(0) {}
+  DownloadWrapper();
   ~DownloadWrapper();
 
   // Initialize hash checker and various download stuff.
@@ -73,11 +71,11 @@ public:
   bool                is_open() const                { return m_main.is_open(); }
   bool                is_stopped() const;
 
-  DownloadMain&       get_main()                     { return m_main; }
-  const DownloadMain& get_main() const               { return m_main; }
+  DownloadMain*       main()                         { return &m_main; }
+  const DownloadMain* main() const                   { return &m_main; }
+  HashTorrent*        hash_checker()                 { return m_hash; }
 
   Bencode&            get_bencode()                  { return m_bencode; }
-  HashTorrent&        get_hash_checker()             { return *m_hash.get(); }
 
   const std::string&  get_hash() const;
   const std::string&  get_local_id() const;
@@ -99,9 +97,9 @@ private:
   DownloadWrapper(const DownloadWrapper&);
   void operator = (const DownloadWrapper&);
 
-  DownloadMain               m_main;
-  Bencode                    m_bencode;
-  std::auto_ptr<HashTorrent> m_hash;
+  DownloadMain        m_main;
+  Bencode             m_bencode;
+  HashTorrent*        m_hash;
 
   std::string         m_name;
   int                 m_connectionType;

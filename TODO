@@ -2,34 +2,15 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Crash on viewing files during hash check or something?
+Consider MAP_NOSYNC.
 
-(Delete, up)
-4 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent7ContentD1Ev+0x19b) [0xb7f81f3b]
-5 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent12DownloadMainD1Ev+0xc8b) [0xb7f9663b]
-6 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent15DownloadWrapperD1Ev+0x6e) [0xb7f9c9b2]
-7 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent15DownloadManager5eraseESt14_List_iteratorIPNS_15DownloadWrapperEE+0xc9) [0xb7f99f9d]
-8 /uio/hegel/s02/jaris/local/lib/libtorrent.so.5(_ZN7torrent15download_removeERKSs+0x3f) [0xb7f7a98f]
-
-"TaskScheduler::insert(...) tried to insert an already inserted or invalid TaskItem"
-
-Use last choked time when receiving not/interested, this avoids the
-task delay. We already have a 30 second cycle at work. Need to modify
-choke cycle being called when receiving not-interested etc?
-
-Make unchoking of peers when receiving interested go through the choke
-manager. This will be used to avoid oscillation of choke status.
-
-Make closing of seeding peers at torrent completion a part of the done
-signal.
+FileManager is a std::vector...
 
 Optimize interested, seperate return values for requesting where we
 are still interested downloading from others and when we're not
 interested anymore.
 
 Would be nice to refactor requester, it should own the bitfield in some way?
-
-Rename receive_have_chunk.
 
 Wait when receiving resource tmp unavailable. Currently need to close
 the connection.
@@ -45,8 +26,6 @@ File priority might not like sequential requesting.
 Use correctly sized read/write buffers.
 
 Cache the number of unchoked peers.
-
-Change all get_chunk(...)'s to check for only is_valid, not NULL?
 
 Unaligned 58.6.0.92     0.0
 

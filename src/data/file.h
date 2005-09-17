@@ -73,7 +73,7 @@ class File {
 
   int                 get_prot() const                                  { return m_prot; }
 
-  MemoryChunk         get_chunk(off_t offset, uint32_t length, int prot, int flags) const;
+  MemoryChunk         create_chunk(off_t offset, uint32_t length, int prot, int flags) const;
   
   int                 fd() const                                        { return m_fd; }
 

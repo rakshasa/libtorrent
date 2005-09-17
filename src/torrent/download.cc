@@ -65,7 +65,7 @@ Download::open() {
 
 void
 Download::close() {
-  if (m_ptr->get_main().is_active())
+  if (m_ptr->main()->is_active())
     stop();
 
   m_ptr->close();
@@ -86,7 +86,7 @@ Download::hash_check(bool resume) {
   if (resume)
     m_ptr->hash_resume_load();
 
-  m_ptr->get_hash_checker().start();
+  m_ptr->hash_checker()->start();
 }
 
 void
@@ -101,27 +101,27 @@ Download::hash_resume_clear() {
 
 bool
 Download::is_open() const {
-  return m_ptr->get_main().is_open();
+  return m_ptr->main()->is_open();
 }
 
 bool
 Download::is_active() const {
-  return m_ptr->get_main().is_active();
+  return m_ptr->main()->is_active();
 }
 
 bool
 Download::is_tracker_busy() const {
-  return m_ptr->get_main().tracker_manager()->is_busy();
+  return m_ptr->main()->tracker_manager()->is_busy();
 }
 
 bool
 Download::is_hash_checked() const {
-  return m_ptr->get_main().is_checked();
+  return m_ptr->main()->is_checked();
 }
 
 bool
 Download::is_hash_checking() const {
-  return m_ptr->get_hash_checker().is_checking();
+  return m_ptr->hash_checker()->is_checking();
 }
 
 std::string
@@ -157,7 +157,7 @@ Download::get_bencode() const {
 
 std::string
 Download::get_root_dir() const {
-  return m_ptr->get_main().content()->get_root_dir();
+  return m_ptr->main()->content()->get_root_dir();
 }
 
 void
@@ -165,182 +165,182 @@ Download::set_root_dir(const std::string& dir) {
   if (is_open())
     throw client_error("Tried to call Download::set_root_dir(...) on an open download");
 
-  m_ptr->get_main().content()->set_root_dir(dir);
+  m_ptr->main()->content()->set_root_dir(dir);
 }
 
 const Rate&
 Download::get_down_rate() const {
-  return m_ptr->get_main().get_down_rate();
+  return m_ptr->main()->get_down_rate();
 }
 
 const Rate&
 Download::get_up_rate() const {
-  return m_ptr->get_main().get_up_rate();
+  return m_ptr->main()->get_up_rate();
 }
 
 uint64_t
 Download::get_bytes_done() const {
   uint64_t a = 0;
  
-  Delegator* d = m_ptr->get_main().delegator();
+  Delegator* d = m_ptr->main()->delegator();
 
   for (Delegator::Chunks::iterator itr1 = d->get_chunks().begin(), last1 = d->get_chunks().end(); itr1 != last1; ++itr1)
     for (DelegatorChunk::iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
       if (itr2->is_finished())
 	a += itr2->get_piece().get_length();
   
-  return a + m_ptr->get_main().content()->get_bytes_completed();
+  return a + m_ptr->main()->content()->get_bytes_completed();
 }
 
 uint64_t
 Download::get_bytes_total() const {
-  return m_ptr->get_main().content()->entry_list()->get_bytes_size();
+  return m_ptr->main()->content()->entry_list()->get_bytes_size();
 }
 
 uint32_t
 Download::get_chunks_size() const {
-  return m_ptr->get_main().content()->chunk_size();
+  return m_ptr->main()->content()->chunk_size();
 }
 
 uint32_t
 Download::get_chunks_done() const {
-  return m_ptr->get_main().content()->get_chunks_completed();
+  return m_ptr->main()->content()->get_chunks_completed();
 }
 
 uint32_t 
 Download::get_chunks_total() const {
-  return m_ptr->get_main().content()->chunk_total();
+  return m_ptr->main()->content()->chunk_total();
 }
 
 const unsigned char*
 Download::get_bitfield_data() const {
-  return (unsigned char*)m_ptr->get_main().content()->get_bitfield().begin();
+  return (unsigned char*)m_ptr->main()->content()->get_bitfield().begin();
 }
 
 uint32_t
 Download::get_bitfield_size() const {
-  return m_ptr->get_main().content()->get_bitfield().size_bits();
+  return m_ptr->main()->content()->get_bitfield().size_bits();
 }
 
 uint32_t
 Download::get_peers_min() const {
-  return m_ptr->get_main().connection_list()->get_min_size();
+  return m_ptr->main()->connection_list()->get_min_size();
 }
 
 uint32_t
 Download::get_peers_max() const {
-  return m_ptr->get_main().connection_list()->get_max_size();
+  return m_ptr->main()->connection_list()->get_max_size();
 }
 
 uint32_t
 Download::get_peers_connected() const {
-  return m_ptr->get_main().connection_list()->size();
+  return m_ptr->main()->connection_list()->size();
 }
 
 uint32_t
 Download::get_peers_not_connected() const {
-  return m_ptr->get_main().available_list()->size();
+  return m_ptr->main()->available_list()->size();
 }
 
 uint32_t
 Download::get_uploads_max() const {
-  return m_ptr->get_main().choke_manager()->get_max_unchoked();
+  return m_ptr->main()->choke_manager()->get_max_unchoked();
 }
   
 uint64_t
 Download::get_tracker_timeout() const {
-  return std::max(m_ptr->get_main().tracker_manager()->get_next_timeout() - Timer::cache(), Timer()).usec();
+  return std::max(m_ptr->main()->tracker_manager()->get_next_timeout() - Timer::cache(), Timer()).usec();
 }
 
 int16_t
 Download::get_tracker_numwant() const {
-  return m_ptr->get_main().tracker_manager()->tracker_info()->get_numwant();
+  return m_ptr->main()->tracker_manager()->tracker_info()->get_numwant();
 }
 
 void
 Download::set_peers_min(uint32_t v) {
   if (v >= 0 && v < (1 << 16)) {
-    m_ptr->get_main().connection_list()->set_min_size(v);
-    m_ptr->get_main().receive_connect_peers();
+    m_ptr->main()->connection_list()->set_min_size(v);
+    m_ptr->main()->receive_connect_peers();
   }
 }
 
 void
 Download::set_peers_max(uint32_t v) {
   if (v >= 0 && v < (1 << 16))
-    m_ptr->get_main().connection_list()->set_max_size(v);
+    m_ptr->main()->connection_list()->set_max_size(v);
 }
 
 void
 Download::set_uploads_max(uint32_t v) {
   if (v >= 0 && v < (1 << 16)) {
-    m_ptr->get_main().choke_manager()->set_max_unchoked(v);
-    m_ptr->get_main().choke_manager()->balance();
+    m_ptr->main()->choke_manager()->set_max_unchoked(v);
+    m_ptr->main()->choke_manager()->balance();
   }
 }
 
 void
 Download::set_tracker_numwant(int32_t n) {
-  m_ptr->get_main().tracker_manager()->tracker_info()->set_numwant(n);
+  m_ptr->main()->tracker_manager()->tracker_info()->set_numwant(n);
 }
 
 Tracker
 Download::get_tracker(uint32_t index) {
-  if (index >= m_ptr->get_main().tracker_manager()->size())
+  if (index >= m_ptr->main()->tracker_manager()->size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
-  return m_ptr->get_main().tracker_manager()->get_index(index);
+  return m_ptr->main()->tracker_manager()->get_index(index);
 }
 
 const Tracker
 Download::get_tracker(uint32_t index) const {
-  if (index >= m_ptr->get_main().tracker_manager()->size())
+  if (index >= m_ptr->main()->tracker_manager()->size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
-  return m_ptr->get_main().tracker_manager()->get_index(index);
+  return m_ptr->main()->tracker_manager()->get_index(index);
 }
 
 uint32_t
 Download::get_tracker_size() const {
-  return m_ptr->get_main().tracker_manager()->size();
+  return m_ptr->main()->tracker_manager()->size();
 }
 
 uint32_t
 Download::get_tracker_focus() const {
-  return m_ptr->get_main().tracker_manager()->get_focus_index();
+  return m_ptr->main()->tracker_manager()->get_focus_index();
 }
 
 void
 Download::tracker_send_completed() {
-  m_ptr->get_main().tracker_manager()->send_completed();
+  m_ptr->main()->tracker_manager()->send_completed();
 }
 
 void
 Download::tracker_cycle_group(int group) {
-  m_ptr->get_main().tracker_manager()->cycle_group(group);
+  m_ptr->main()->tracker_manager()->cycle_group(group);
 }
 
 void
 Download::tracker_manual_request(bool force) {
-  m_ptr->get_main().tracker_manager()->manual_request(force);
+  m_ptr->main()->tracker_manager()->manual_request(force);
 }
 
 Entry
 Download::get_entry(uint32_t index) {
-  if (index >= m_ptr->get_main().content()->entry_list()->get_files_size())
+  if (index >= m_ptr->main()->content()->entry_list()->get_files_size())
     throw client_error("Client called Download::get_entry(...) with out of range index");
 
-  return m_ptr->get_main().content()->entry_list()->get_node(index);
+  return m_ptr->main()->content()->entry_list()->get_node(index);
 }
 
 uint32_t
 Download::get_entry_size() const {
-  return m_ptr->get_main().content()->entry_list()->get_files_size();
+  return m_ptr->main()->content()->entry_list()->get_files_size();
 }
 
 const Download::SeenVector&
 Download::get_seen() const {
-  return m_ptr->get_main().get_bitfield_counter().field();
+  return m_ptr->main()->get_bitfield_counter().field();
 }
 
 Download::ConnectionType
@@ -352,10 +352,10 @@ void
 Download::set_connection_type(ConnectionType t) {
   switch (t) {
   case CONNECTION_LEECH:
-    m_ptr->get_main().connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionDefault));
+    m_ptr->main()->connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionDefault));
     break;
   case CONNECTION_SEED:
-    m_ptr->get_main().connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionSeed));
+    m_ptr->main()->connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionSeed));
     break;
   default:
     throw client_error("torrent::Download::set_connection_type(...) received invalid type.");
@@ -366,8 +366,8 @@ Download::set_connection_type(ConnectionType t) {
 
 void
 Download::update_priorities() {
-  Priority& p = m_ptr->get_main().delegator()->get_select().get_priority();
-  Content* content = m_ptr->get_main().content();
+  Priority& p = m_ptr->main()->delegator()->get_select().get_priority();
+  Content* content = m_ptr->main()->content();
 
   p.clear();
 
@@ -385,83 +385,83 @@ Download::update_priorities() {
     pos += itr->get_size();
   }
 
-  std::for_each(m_ptr->get_main().connection_list()->begin(),
-		m_ptr->get_main().connection_list()->end(),
+  std::for_each(m_ptr->main()->connection_list()->begin(),
+		m_ptr->main()->connection_list()->end(),
 		std::mem_fun(&PeerConnectionBase::update_interested));
 }
 
 void
 Download::peer_list(PList& pList) {
-  std::for_each(m_ptr->get_main().connection_list()->begin(),
-		m_ptr->get_main().connection_list()->end(),
+  std::for_each(m_ptr->main()->connection_list()->begin(),
+		m_ptr->main()->connection_list()->end(),
 		rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
 }
 
 Peer
 Download::peer_find(const std::string& id) {
   ConnectionList::iterator itr =
-    std::find_if(m_ptr->get_main().connection_list()->begin(),
-		 m_ptr->get_main().connection_list()->end(),
+    std::find_if(m_ptr->main()->connection_list()->begin(),
+		 m_ptr->main()->connection_list()->end(),
 		 
 		 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
 					std::mem_fun_ref(&PeerInfo::get_id))));
 
-  return itr != m_ptr->get_main().connection_list()->end() ? *itr : NULL;
+  return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
 }
 
 sigc::connection
 Download::signal_download_done(Download::SlotVoid s) {
-  return m_ptr->get_main().content()->signal_download_done().connect(s);
+  return m_ptr->main()->content()->signal_download_done().connect(s);
 }
 
 sigc::connection
 Download::signal_hash_done(Download::SlotVoid s) {
-  return m_ptr->get_hash_checker().signal_torrent().connect(s);
+  return m_ptr->hash_checker()->signal_torrent().connect(s);
 }
 
 sigc::connection
 Download::signal_peer_connected(Download::SlotPeer s) {
-  return m_ptr->get_main().connection_list()->signal_connected().connect(s);
+  return m_ptr->main()->connection_list()->signal_connected().connect(s);
 }
 
 sigc::connection
 Download::signal_peer_disconnected(Download::SlotPeer s) {
-  return m_ptr->get_main().connection_list()->signal_disconnected().connect(s);
+  return m_ptr->main()->connection_list()->signal_disconnected().connect(s);
 }
 
 sigc::connection
 Download::signal_tracker_succeded(Download::SlotVoid s) {
-  return m_ptr->get_main().tracker_manager()->tracker_info()->signal_success().connect(sigc::hide(s));
+  return m_ptr->main()->tracker_manager()->tracker_info()->signal_success().connect(sigc::hide(s));
 }
 
 sigc::connection
 Download::signal_tracker_failed(Download::SlotString s) {
-  return m_ptr->get_main().tracker_manager()->tracker_info()->signal_failed().connect(s);
+  return m_ptr->main()->tracker_manager()->tracker_info()->signal_failed().connect(s);
 }
 
 sigc::connection
 Download::signal_tracker_dump(Download::SlotIStream s) {
-  return m_ptr->get_main().tracker_manager()->tracker_info()->signal_dump().connect(s);
+  return m_ptr->main()->tracker_manager()->tracker_info()->signal_dump().connect(s);
 }
 
 sigc::connection
 Download::signal_chunk_passed(Download::SlotChunk s) {
-  return m_ptr->get_main().signal_chunk_passed().connect(s);
+  return m_ptr->main()->signal_chunk_passed().connect(s);
 }
 
 sigc::connection
 Download::signal_chunk_failed(Download::SlotChunk s) {
-  return m_ptr->get_main().signal_chunk_failed().connect(s);
+  return m_ptr->main()->signal_chunk_failed().connect(s);
 }
 
 sigc::connection
 Download::signal_network_log(SlotString s) {
-  return m_ptr->get_main().signal_network_log().connect(s);
+  return m_ptr->main()->signal_network_log().connect(s);
 }
 
 sigc::connection
 Download::signal_storage_error(SlotString s) {
-  return m_ptr->get_main().signal_storage_error().connect(s);
+  return m_ptr->main()->signal_storage_error().connect(s);
 }
 
 }

@@ -76,8 +76,10 @@ PeerConnectionLeech::update_interested() {
   }
 }
 
+// Disconnecting connections where both are seeders should be done by
+// DownloadMain when it finishes the last chunk.
 void
-PeerConnectionLeech::receive_have_chunk(int32_t index) {
+PeerConnectionLeech::receive_finished_chunk(int32_t index) {
   m_haveQueue.push_back(index);
 
   if (m_requestList.has_index(index))

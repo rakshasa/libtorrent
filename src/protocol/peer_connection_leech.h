@@ -50,7 +50,7 @@ public:
 
   virtual void        update_interested();
 
-  virtual void        receive_have_chunk(int32_t index);
+  virtual void        receive_finished_chunk(int32_t index);
   virtual bool        receive_keepalive();
 
   virtual void        event_read();

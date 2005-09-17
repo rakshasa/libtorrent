@@ -138,7 +138,7 @@ File::set_size(off_t s) const {
 }
 
 MemoryChunk
-File::get_chunk(off_t offset, uint32_t length, int prot, int flags) const {
+File::create_chunk(off_t offset, uint32_t length, int prot, int flags) const {
   if (!is_open())
     throw internal_error("File::get_chunk() called on a closed file");
 

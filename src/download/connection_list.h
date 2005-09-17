@@ -102,7 +102,7 @@ public:
   // 'l' is sorted and unique.
   void                set_difference(AddressList* l);
 
-  void                send_have_chunk(uint32_t index);
+  void                send_finished_chunk(uint32_t index);
 
   // When a peer is connected it should be removed from the list of
   // available peers.

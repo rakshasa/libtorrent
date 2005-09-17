@@ -152,7 +152,7 @@ EntryList::create_chunk_part(MemoryChunk& chunk, iterator itr, off_t offset, uin
     throw internal_error("EntryList::get_chunk_part(...) caught a negative offset");
 
   if (itr->file_meta()->prepare(prot))
-    chunk = itr->file_meta()->get_file().get_chunk(offset, length, prot, MemoryChunk::map_shared);
+    chunk = itr->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
   else
     chunk.clear();
 }

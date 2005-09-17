@@ -42,6 +42,7 @@
 #include "data/chunk_list.h"
 #include "data/content.h"
 #include "data/hash_queue.h"
+#include "data/hash_torrent.h"
 #include "data/file_manager.h"
 #include "data/file_meta.h"
 #include "data/file_stat.h"
@@ -54,12 +55,20 @@
 
 namespace torrent {
 
+DownloadWrapper::DownloadWrapper() :
+  m_hash(NULL),
+
+  m_connectionType(0) {
+}
+
 DownloadWrapper::~DownloadWrapper() {
   if (m_main.is_active())
     stop();
 
   if (m_main.is_open())
     close();
+
+  delete m_hash;
 }
 
 void
@@ -76,7 +85,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.chunk_list()->set_max_queue_size((32 << 20) / m_main.content()->chunk_size());
 
   // Info hash must be calculate from here on.
-  m_hash = std::auto_ptr<HashTorrent>(new HashTorrent(get_hash(), m_main.chunk_list()));
+  m_hash = new HashTorrent(get_hash(), m_main.chunk_list());
 
   // Connect various signals and slots.
   m_hash->slot_chunk_done(sigc::mem_fun(m_main, &DownloadMain::receive_hash_done));

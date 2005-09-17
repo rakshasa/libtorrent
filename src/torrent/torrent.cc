@@ -72,8 +72,8 @@ download_id(const std::string& hash) {
   DownloadManager::iterator itr = manager->download_manager()->find(hash);
 
   return itr != manager->download_manager()->end() &&
-    (*itr)->get_main().is_active() &&
-    (*itr)->get_main().is_checked() ?
+    (*itr)->main()->is_active() &&
+    (*itr)->main()->is_checked() ?
     (*itr)->get_local_id() : "";
 }
 
@@ -82,8 +82,8 @@ receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
   DownloadManager::iterator itr = manager->download_manager()->find(hash);
   
   if (itr == manager->download_manager()->end() ||
-      !(*itr)->get_main().is_active() ||
-      !(*itr)->get_main().connection_list()->insert(&(*itr)->get_main(), peer, fd))
+      !(*itr)->main()->is_active() ||
+      !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd))
     socketManager.close(fd);
 }
 
@@ -371,7 +371,7 @@ download_add(std::istream* s) {
     throw input_error("Could not create download, failed to parse the bencoded data");
   
   parse_main(d->get_bencode(), d.get());
-  parse_info(d->get_bencode()["info"], *d->get_main().content());
+  parse_info(d->get_bencode()["info"], *d->main()->content());
 
   d->initialize(d->get_bencode()["info"].compute_sha1(),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
@@ -382,9 +382,9 @@ download_add(std::istream* s) {
   d->set_file_manager(manager->file_manager());
 
   // Default PeerConnection factory functions.
-  d->get_main().connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionDefault));
+  d->main()->connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionDefault));
 
-  parse_tracker(d->get_bencode(), d->get_main().tracker_manager());
+  parse_tracker(d->get_bencode(), d->main()->tracker_manager());
 
   manager->download_manager()->insert(d.get());
 

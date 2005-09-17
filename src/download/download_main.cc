@@ -230,7 +230,7 @@ DownloadMain::receive_hash_done(ChunkHandle handle, std::string h) {
     if (m_content.is_done())
       m_connectionList.erase_seeders();
     
-    m_connectionList.send_have_chunk(handle->index());
+    m_connectionList.send_finished_chunk(handle->index());
   }
 
   m_chunkList->release(handle);

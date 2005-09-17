@@ -71,7 +71,7 @@ PeerConnectionSeed::update_interested() {
 }
 
 void
-PeerConnectionSeed::receive_have_chunk(int32_t i) {
+PeerConnectionSeed::receive_finished_chunk(int32_t i) {
   // We assume this won't be called.
 }
 
