@@ -178,7 +178,10 @@ Content::mark_done(uint32_t index) {
   m_completed++;
 
   EntryList::iterator first = m_entryList->at_position(m_entryList->begin(), index * (off_t)m_chunkSize);
-  EntryList::iterator last  = m_entryList->at_position(first, (index + 1) * (off_t)m_chunkSize - 1) + 1;
+  EntryList::iterator last  = m_entryList->at_position(first, (index + 1) * (off_t)m_chunkSize - 1);
+
+  if (last != m_entryList->end())
+    last++;
 
   if (first == m_entryList->end())
     throw internal_error("Content::mark_done got first == m_entryList->end().");
@@ -202,17 +205,21 @@ Content::update_done() {
   m_bitfield.cleanup();
   m_completed = m_bitfield.count();
 
-  EntryList::iterator previous = m_entryList->begin();
+  EntryList::iterator first = m_entryList->begin();
+  EntryList::iterator last;
 
   for (BitField::size_t i = 0; i < m_bitfield.size_bits(); ++i)
     if (m_bitfield[i]) {
-      previous = m_entryList->at_position(previous, i * (off_t)m_chunkSize);
+      first = m_entryList->at_position(first, i * (off_t)m_chunkSize);
+      last = m_entryList->at_position(first, (i + 1) * (off_t)m_chunkSize - 1);
 
-      if (previous == m_entryList->end())
+      if (last != m_entryList->end())
+	last++;
+
+      if (first == m_entryList->end())
 	throw internal_error("Content::update_done() reached m_entryList->end().");
 
-      std::for_each(previous, m_entryList->at_position(previous, (i + 1) * (off_t)m_chunkSize - 1) + 1,
-		    std::mem_fun_ref(&EntryListNode::inc_completed));
+      std::for_each(first, last, std::mem_fun_ref(&EntryListNode::inc_completed));
     }
 }
 

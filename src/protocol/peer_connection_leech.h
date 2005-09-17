@@ -48,8 +48,6 @@ public:
 
   virtual void        initialize_custom();
 
-  virtual void        set_choke(bool v);
-
   virtual void        update_interested();
 
   virtual void        receive_have_chunk(int32_t index);

@@ -83,6 +83,7 @@ DownloadMain::~DownloadMain() {
     throw internal_error("DownloadMain::~DownloadMain(): m_taskTick is scheduled");
 
   delete m_trackerManager;
+  delete m_chokeManager;
   delete m_chunkList;
 }
 

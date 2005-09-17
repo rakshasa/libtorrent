@@ -66,17 +66,6 @@ PeerConnectionSeed::initialize_custom() {
 }
 
 void
-PeerConnectionSeed::set_choke(bool v) {
-  if (v == m_up->get_choked())
-    return;
-
-  m_up->set_choked(v);
-  m_sendChoked = true;
-
-  pollCustom->insert_write(this);
-}
-
-void
 PeerConnectionSeed::update_interested() {
   // We assume this won't be called.
 }
@@ -302,9 +291,7 @@ PeerConnectionSeed::fill_write_buffer() {
   // No need to use delayed choke as we are a seeder.
   if (m_sendChoked) {
     m_sendChoked = false;
-
     m_up->write_choke(m_up->get_choked());
-    m_lastChoked = Timer::cache();
 
     if (m_up->get_choked()) {
       remove_up_throttle();

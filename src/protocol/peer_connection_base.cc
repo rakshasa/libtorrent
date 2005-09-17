@@ -175,6 +175,14 @@ PeerConnectionBase::load_up_chunk() {
     throw storage_error("File chunk read error: " + std::string(rak::error_number::current().c_str()));
 }
 
+void
+PeerConnectionBase::set_snubbed(bool v) {
+  m_snubbed = v;
+
+  if (v)
+    m_download->choke_manager()->choke(this);
+}
+
 uint32_t
 PeerConnectionBase::pipe_size() const {
   uint32_t s = m_downRate.rate();
@@ -190,6 +198,18 @@ PeerConnectionBase::pipe_size() const {
       return 1;
     else
       return std::min((uint32_t)80, (s + 32000) / 8000);
+}
+
+void
+PeerConnectionBase::receive_choke(bool v) {
+  if (v == m_up->get_choked())
+    return;
+
+  m_sendChoked = true;
+  m_up->set_choked(v);
+  m_timeLastChoked = Timer::cache();
+
+  pollCustom->insert_write(this);
 }
 
 void
@@ -368,8 +388,7 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
   PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
   if (itr != m_sendList.end() &&
-      (itr != m_sendList.begin() || // Temporary, fix this.
-       m_up->get_state() == ProtocolWrite::IDLE))
+      (itr != m_sendList.begin() || m_up->get_state() == ProtocolWrite::IDLE))
     m_sendList.erase(itr);
 }  
 

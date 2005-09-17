@@ -90,8 +90,6 @@ public:
   Rate&               get_up_rate()                 { return m_upRate; }
   Rate&               get_down_rate()               { return m_downRate; }
 
-  Timer               get_last_choked()             { return m_lastChoked; }
-
   RequestList&        get_request_list()            { return m_requestList; }
   PieceList&          get_send_list()               { return m_sendList; }
 
@@ -99,10 +97,11 @@ public:
 
   // Make sure you choke the peer when snubbing. Snubbing a peer will
   // only cause it not to be unchoked.
-  void                set_snubbed(bool v)           { m_snubbed = v; }
-  virtual void        set_choke(bool v) = 0;
+  void                set_snubbed(bool v);
 
   uint32_t            pipe_size() const;
+
+  Timer               time_last_choked() const      { return m_timeLastChoked; }
 
   void                insert_down_throttle();
   void                remove_down_throttle();
@@ -117,6 +116,7 @@ public:
 
   virtual void        receive_have_chunk(int32_t i) = 0;
   virtual bool        receive_keepalive() = 0;
+  void                receive_choke(bool v);
 
   virtual void        event_error();
 
@@ -184,7 +184,7 @@ protected:
 
   bool                m_snubbed;
   BitFieldExt         m_bitfield;
-  Timer               m_lastChoked;
+  Timer               m_timeLastChoked;
 
   Timer               m_timeLastRead;
 };

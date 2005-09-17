@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <unistd.h>
+#include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
 #include "memory_chunk.h"
@@ -76,8 +77,8 @@ MemoryChunk::unmap() {
   if (!is_valid())
     throw internal_error("MemoryChunk::unmap() called on an invalid object");
 
-  if (munmap(m_ptr, m_end - m_ptr))
-    throw internal_error("MemoryChunk::unmap() system call failed");
+  if (munmap(m_ptr, m_end - m_ptr) != 0)
+    throw internal_error("MemoryChunk::unmap() system call failed: " + std::string(rak::error_number::current().c_str()));
 }  
 
 void

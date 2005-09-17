@@ -152,9 +152,6 @@ Peer::get_chunks_done() {
 void
 Peer::set_snubbed(bool v) {
   m_ptr->set_snubbed(v);
-
-  if (v)
-    m_ptr->set_choke(true);
 }
 
 }

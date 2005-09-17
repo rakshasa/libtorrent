@@ -74,6 +74,7 @@ FileManager::erase(FileMeta* f) {
     close_file(f);
 
   Base::erase(itr);
+  delete f;
 }
 
 void

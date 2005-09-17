@@ -66,17 +66,6 @@ PeerConnectionLeech::initialize_custom() {
 }
 
 void
-PeerConnectionLeech::set_choke(bool v) {
-  if (v == m_up->get_choked())
-    return;
-
-  m_up->set_choked(v);
-  m_sendChoked = true;
-
-  pollCustom->insert_write(this);
-}
-
-void
 PeerConnectionLeech::update_interested() {
   if (m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
     m_sendInterested = !m_down->get_interested();
@@ -411,9 +400,7 @@ PeerConnectionLeech::fill_write_buffer() {
   // No need to use delayed choke as we are a leecher.
   if (m_sendChoked) {
     m_sendChoked = false;
-
     m_up->write_choke(m_up->get_choked());
-    m_lastChoked = Timer::cache();
 
     if (m_up->get_choked()) {
       remove_up_throttle();

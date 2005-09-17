@@ -73,11 +73,6 @@ ChokeManager::sort_down_rate(iterator first, iterator last) {
   std::sort(first, last, ChokeManagerReadRate());
 }
 
-// int
-// ChokeManager::get_unchoked(iterator first, iterator last) const {
-//   return std::distance(first, seperate_unchoked(first, last));
-// }
-
 void
 ChokeManager::balance() {
   iterator beginUninterested = seperate_interested(m_connectionList->begin(), m_connectionList->end());
@@ -115,7 +110,7 @@ ChokeManager::choke(PeerConnectionBase* pc) {
   if (!pc->is_up_choked())
     return;
 
-  pc->set_choke(true);
+  pc->receive_choke(true);
 
   balance();
 }
@@ -125,12 +120,14 @@ ChokeManager::try_unchoke(PeerConnectionBase* pc) {
   if (!pc->is_up_choked())
     return;
 
-  int unchoked = std::distance(m_connectionList->begin(), seperate_unchoked(m_connectionList->begin(), m_connectionList->end()));
+  int unchoked = std::distance(m_connectionList->begin(),
+			       seperate_unchoked(m_connectionList->begin(), m_connectionList->end()));
   
-  if (unchoked >= m_maxUnchoked)
+  if (unchoked >= m_maxUnchoked ||
+      pc->time_last_choked() + 10 * 1000000 > Timer::cache())
     return;
 
-  pc->set_choke(false);
+  pc->receive_choke(false);
 }
 
 // We might no longer be in m_connectionList.
@@ -152,7 +149,7 @@ ChokeManager::choke_range(iterator first, iterator last, int count) {
   sort_down_rate(first, last);
 
   std::for_each(last - count, last,
-		std::bind2nd(std::mem_fun(&PeerConnectionBase::set_choke), true));
+		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true));
 }
 
 void
@@ -165,7 +162,7 @@ ChokeManager::unchoke_range(iterator first, iterator last, int count) {
   sort_down_rate(first, last);
 
   std::for_each(first, first + count,
-		std::bind2nd(std::mem_fun(&PeerConnectionBase::set_choke), false));
+		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false));
 }
 
 }
