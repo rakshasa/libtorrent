@@ -2,12 +2,12 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Use correctly sized read/write buffers.
+
 Rewrite throttle code, consider not updating when unlimited. Do an
 update when putting them into unlimited mode.
 
 Consider MAP_NOSYNC.
-
-FileManager is a std::vector...
 
 Optimize interested, seperate return values for requesting where we
 are still interested downloading from others and when we're not
@@ -26,16 +26,9 @@ Consider asking for read-ahead for fast peers.
 
 File priority might not like sequential requesting.
 
-Use correctly sized read/write buffers.
-
 Cache the number of unchoked peers.
 
 Unaligned 58.6.0.92     0.0
-
-*** After PeerConnection is killed ***
-
-PeerConnectionBase::read_cancel_piece should only check for
-WRITE_PIECE when doing cancel or something.
 
 *** For the next API change ***
 
@@ -76,9 +69,6 @@ Add an intersection version off HandshakeManager::has_address()?
 
 Clean up the header includes around the codebase, need to reduce the
 amount of memory required to compile libtorrent.
-
-Make a seperate Download tracker class thing that handles re-requests
-etc. Move control logic from TrackerControl.
 
 Send mail to OpenBSD to see how they handle madvise.
 
@@ -139,15 +129,6 @@ chunks as they were synced at the time of hash checking? Read the list
 of dirty chunks from the delegator. Need to fix the problem of corrupt
 downloads due to lack of diskspace.
 
-Do truncate to update the timestamp, so we know he filestamp is
-updated.
-
-Do sync on all stopped downloads. Ftruncate a torrent upon load to set
-its timestamp.
-
-Rewrite the read buffering in PeerConnection, don't do so many small
-reads.
-
 Ponder race condition on lazy hash checking, do new data get written
 before we start checking?
 
@@ -158,8 +139,6 @@ Directory validation needs to be lazy?
 Disable read/write_chunk exceptions.
 
 Don't allow many handshakes from the same ip?
-
-Copy modifications of timer.h to rtorrent. Wait... first from rtorrent to libtorrent.
 
 Create a std::list'ish thing that contains the current downloads, and
 expose it to the client. Will make DownloadManager 'redundant'. Don't fix?
@@ -233,9 +212,6 @@ set shouldn't change ever... And do a count on number of set bits?
 
 OPTIMIZING
 
-Look into epoll and sendfile.
-
-
 Does it make sense to have *.bt_part or similar suffixes on partially
 downloaded files? This would be uncompatible with other clients, but
 make it configurable? This is fully client side, though need to
@@ -243,6 +219,7 @@ support a way to move files.
 
 make sure handshake gets "" id if the download does not want
 connections, or some other filter system.
+
 
 DOCUMENTATION
 
@@ -262,27 +239,4 @@ Move mkdir stuff out of Path?
 Cleanup HashQueue, seperate out nodes etc.  * Make it a private list.
 * Don't pass Chunk in SlotDone.
 
-SocketManager must be enabled.
-
-Use ProtocolBuffer for skip piece too.
-
-Make the stable buffer in throttle be more dynamic depending on the
-current rate.
-
-Optimize ChokeManager::get_unchoked.
-
-Add buffer read of piece.
-
-Fix tracker so it checks regulary when too few peers are connected.
-
 Lock file in session directory.
-
-
-BUGS:
-
-Snubing seems borked... why?
-
-Don't use function pointers in throttle, templates should work as well.
-
-Throttle might not give correct size when for_each'ing each, since
-zero byte quotas might accure.

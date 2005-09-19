@@ -40,7 +40,6 @@
 #include <functional>
 
 #include "protocol/peer_connection_base.h"
-#include "utils/unordered_vector.h"
 
 #include "choke_manager.h"
 

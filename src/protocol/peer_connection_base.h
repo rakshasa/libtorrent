@@ -73,10 +73,10 @@ public:
   
   bool                initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd);
 
-  bool                is_up_choked()                { return m_up->get_choked(); }
-  bool                is_up_interested()            { return m_up->get_interested(); }
-  bool                is_down_choked()              { return m_down->get_choked(); }
-  bool                is_down_interested()          { return m_down->get_interested(); }
+  bool                is_up_choked()                { return m_up->choked(); }
+  bool                is_up_interested()            { return m_up->interested(); }
+  bool                is_down_choked()              { return m_down->choked(); }
+  bool                is_down_interested()          { return m_down->interested(); }
 
   bool                is_down_throttled()           { return m_downThrottle != throttleRead.end(); }
   bool                is_up_throttled()             { return m_upThrottle != throttleWrite.end(); }
@@ -219,18 +219,18 @@ PeerConnectionBase::remove_up_throttle() {
 
 inline bool
 PeerConnectionBase::read_remaining() {
-  m_down->get_buffer().move_position(read_stream_throws(m_down->get_buffer().position(),
-					      m_down->get_buffer().remaining()));
+  m_down->buffer()->move_position(read_stream_throws(m_down->buffer()->position(),
+						     m_down->buffer()->remaining()));
 
-  return !m_down->get_buffer().remaining();
+  return !m_down->buffer()->remaining();
 }
 
 inline bool
 PeerConnectionBase::write_remaining() {
-  m_up->get_buffer().move_position(write_stream_throws(m_up->get_buffer().position(),
-						m_up->get_buffer().remaining()));
+  m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(),
+						m_up->buffer()->remaining()));
 
-  return !m_up->get_buffer().remaining();
+  return !m_up->buffer()->remaining();
 }
 
 }

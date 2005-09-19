@@ -81,16 +81,16 @@ public:
     m_state(IDLE) {
   }
 
-  bool                get_choked() const                      { return m_choked; }
-  bool                get_interested() const                  { return m_interested; }
-
+  bool                choked() const                          { return m_choked; }
   void                set_choked(bool s)                      { m_choked = s; }
+
+  bool                interested() const                      { return m_interested; }
   void                set_interested(bool s)                  { m_interested = s; }
 
-  Protocol            get_last_command() const                { return m_lastCommand; }
+  Protocol            last_command() const                    { return m_lastCommand; }
   void                set_last_command(Protocol p)            { m_lastCommand = p; }
 
-  Buffer&             get_buffer()                            { return m_buffer; }
+  Buffer*             buffer()                                { return &m_buffer; }
 
   // Position should perhaps be in a different place, like a dedicated
   // chunk writing class.
@@ -102,7 +102,6 @@ public:
   void                set_state(State s)                      { m_state = s; }
 
   Piece               read_request();
-  Piece               read_piece();
   Piece               read_piece(uint32_t length);
 
   void                write_command(Protocol c)               { m_buffer.write_8(m_lastCommand = c); }

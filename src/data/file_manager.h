@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_DATA_FILE_MANAGER_H
 #define LIBTORRENT_DATA_FILE_MANAGER_H
 
-#include <vector>
+#include <rak/unordered_vector.h>
 
 namespace torrent {
 
@@ -45,9 +45,9 @@ class FileMeta;
 
 // Use unordered_vector instead.
 
-class FileManager : private std::vector<FileMeta*> {
+class FileManager : private rak::unordered_vector<FileMeta*> {
 public:
-  typedef std::vector<FileMeta*> Base;
+  typedef rak::unordered_vector<FileMeta*> Base;
 
   using Base::value_type;
 

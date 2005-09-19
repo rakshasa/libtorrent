@@ -38,12 +38,12 @@
 #define LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
 
 #include <list>
+#include <rak/unordered_vector.h>
 #include <sigc++/signal.h>
 #include <sigc++/slot.h>
 
 #include "net/socket_address.h"
 #include "torrent/peer.h"
-#include "utils/unordered_vector.h"
 
 namespace torrent {
 
@@ -52,13 +52,13 @@ class PeerConnectionBase;
 class PeerInfo;
 class SocketFd;
 
-class ConnectionList : private unordered_vector<PeerConnectionBase*> {
+class ConnectionList : private rak::unordered_vector<PeerConnectionBase*> {
 public:
-  typedef unordered_vector<PeerConnectionBase*> Base;
-  typedef std::list<SocketAddress>              AddressList;
-  typedef uint32_t                              size_type;
-  typedef sigc::signal1<void, Peer>             SignalPeer;
-  typedef sigc::slot0<PeerConnectionBase*>      SlotNewConnection;
+  typedef rak::unordered_vector<PeerConnectionBase*> Base;
+  typedef std::list<SocketAddress>                   AddressList;
+  typedef uint32_t                                   size_type;
+  typedef sigc::signal1<void, Peer>                  SignalPeer;
+  typedef sigc::slot0<PeerConnectionBase*>           SlotNewConnection;
 
   using Base::value_type;
   using Base::reference;

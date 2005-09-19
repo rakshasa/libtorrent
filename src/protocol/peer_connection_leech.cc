@@ -59,7 +59,7 @@ PeerConnectionLeech::initialize_custom() {
   if (m_download->content()->get_chunks_completed() != 0) {
     m_up->write_bitfield(m_download->content()->get_bitfield().size_bytes());
 
-    m_up->get_buffer().prepare_end();
+    m_up->buffer()->prepare_end();
     m_up->set_position(0);
     m_up->set_state(ProtocolWrite::WRITE_BITFIELD_HEADER);
   }
@@ -68,10 +68,10 @@ PeerConnectionLeech::initialize_custom() {
 void
 PeerConnectionLeech::update_interested() {
   if (m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
-    m_sendInterested = !m_down->get_interested();
+    m_sendInterested = !m_down->interested();
     m_down->set_interested(true);
   } else {
-    m_sendInterested = m_down->get_interested();
+    m_sendInterested = m_down->interested();
     m_down->set_interested(false);
   }
 }
@@ -120,7 +120,7 @@ PeerConnectionLeech::receive_keepalive() {
 // shouldn't happen very often compared to full reads.
 inline bool
 PeerConnectionLeech::read_message() {
-  ProtocolBuffer<512>* buf = &m_down->get_buffer();
+  ProtocolBuffer<512>* buf = m_down->buffer();
 
   if (buf->remaining() < 4)
     return false;
@@ -209,7 +209,7 @@ PeerConnectionLeech::read_message() {
     if (buf->remaining() < 13)
       break;
 
-    if (!m_up->get_choked()) {
+    if (!m_up->choked()) {
       read_request_piece(m_down->read_request());
       pollCustom->insert_write(this);
 
@@ -301,11 +301,11 @@ PeerConnectionLeech::event_read() {
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
-	m_down->get_buffer().move_end(read_stream_throws(m_down->get_buffer().end(), read_size - m_down->get_buffer().size_end()));
+	m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
 	
 	while (read_message());
 	
-	if (m_down->get_buffer().size_end() == read_size) {
+	if (m_down->buffer()->size_end() == read_size) {
 	  read_buffer_move_unused();
 	  break;
 	} else {
@@ -348,7 +348,7 @@ PeerConnectionLeech::event_read() {
 	  return;
 
 	m_down->set_state(ProtocolRead::IDLE);
-	m_down->get_buffer().reset();
+	m_down->buffer()->reset();
 	
 	break;
 
@@ -357,7 +357,7 @@ PeerConnectionLeech::event_read() {
 	  return;
 
 	m_down->set_state(ProtocolRead::IDLE);
-	m_down->get_buffer().reset();
+	m_down->buffer()->reset();
 
 	finish_bitfield();
 	break;
@@ -389,7 +389,7 @@ PeerConnectionLeech::event_read() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->get_last_command() << ") \"" << e.what() << '"';
+    s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 
@@ -402,9 +402,9 @@ PeerConnectionLeech::fill_write_buffer() {
   // No need to use delayed choke as we are a leecher.
   if (m_sendChoked) {
     m_sendChoked = false;
-    m_up->write_choke(m_up->get_choked());
+    m_up->write_choke(m_up->choked());
 
-    if (m_up->get_choked()) {
+    if (m_up->choked()) {
       remove_up_throttle();
       up_chunk_release();
 	
@@ -426,7 +426,7 @@ PeerConnectionLeech::fill_write_buffer() {
   }
 
   if (m_sendInterested) {
-    m_up->write_interested(m_up->get_interested());
+    m_up->write_interested(m_up->interested());
     m_sendInterested = false;
   }
 
@@ -435,7 +435,7 @@ PeerConnectionLeech::fill_write_buffer() {
     m_haveQueue.pop_front();
   }
 
-  if (!m_up->get_choked() &&
+  if (!m_up->choked() &&
       !m_sendList.empty() &&
       m_up->can_write_piece())
     write_prepare_piece();
@@ -452,29 +452,29 @@ PeerConnectionLeech::event_write() {
 
 	// We might have buffered keepalive message or similar, but
 	// 'end' should remain at the start of the buffer.
-	if (m_up->get_buffer().size_end() != 0)
+	if (m_up->buffer()->size_end() != 0)
 	  throw internal_error("PeerConnectionLeech::event_write() ProtocolWrite::IDLE in a wrong state.");
 
 	// Fill up buffer.
 	fill_write_buffer();
 
-	if (m_up->get_buffer().size_position() == 0) {
+	if (m_up->buffer()->size_position() == 0) {
 	  pollCustom->remove_write(this);
 	  return;
 	}
 
 	m_up->set_state(ProtocolWrite::MSG);
-	m_up->get_buffer().prepare_end();
+	m_up->buffer()->prepare_end();
 
       case ProtocolWrite::MSG:
-	m_up->get_buffer().move_position(write_stream_throws(m_up->get_buffer().position(), m_up->get_buffer().remaining()));
+	m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
 
-	if (m_up->get_buffer().remaining())
+	if (m_up->buffer()->remaining())
 	  return;
 
-	m_up->get_buffer().reset();
+	m_up->buffer()->reset();
 
-	if (m_up->get_last_command() != ProtocolBase::PIECE) {
+	if (m_up->last_command() != ProtocolBase::PIECE) {
 	  // Break or loop? Might do an ifelse based on size of the
 	  // write buffer. Also the write buffer is relatively large.
 	  m_up->set_state(ProtocolWrite::IDLE);
@@ -497,12 +497,12 @@ PeerConnectionLeech::event_write() {
 	break;
 
       case ProtocolWrite::WRITE_BITFIELD_HEADER:
-	m_up->get_buffer().move_position(write_stream_throws(m_up->get_buffer().position(), m_up->get_buffer().remaining()));
+	m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
 
-	if (m_up->get_buffer().remaining())
+	if (m_up->buffer()->remaining())
 	  return;
 
-	m_up->get_buffer().reset();
+	m_up->buffer()->reset();
 	m_up->set_state(ProtocolWrite::WRITE_BITFIELD);
 
       case ProtocolWrite::WRITE_BITFIELD:
@@ -535,7 +535,7 @@ PeerConnectionLeech::event_write() {
 
   } catch (base_error& e) {
     std::stringstream s;
-    s << "Connection write fd(" << get_fd().get_fd() << ',' << m_up->get_state() << ',' << m_up->get_last_command() << ") \"" << e.what() << '"';
+    s << "Connection write fd(" << get_fd().get_fd() << ',' << m_up->get_state() << ',' << m_up->last_command() << ") \"" << e.what() << '"';
 
     e.set(s.str());
 

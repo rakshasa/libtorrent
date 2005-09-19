@@ -39,8 +39,6 @@
 
 #include <list>
 
-#include "utils/unordered_vector.h"
-
 #include "connection_list.h"
 
 namespace torrent {

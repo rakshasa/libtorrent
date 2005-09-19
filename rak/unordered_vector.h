@@ -1,4 +1,4 @@
-// libTorrent - BitTorrent library
+// rak - Rakshasa's toolbox
 // Copyright (C) 2005, Jari Sundell
 //
 // This program is free software; you can redistribute it and/or modify
@@ -34,15 +34,12 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_UTILS_UNORDERED_VECTOR_H
-#define LIBTORRENT_UTILS_UNORDERED_VECTOR_H
+#ifndef RAK_UNORDERED_VECTOR_H
+#define RAK_UNORDERED_VECTOR_H
 
 #include <vector>
 
-namespace torrent {
-
-// Consider renaming to unordered_vector when making a seperate
-// utilities package.
+namespace rak {
 
 template <typename _Tp>
 class unordered_vector : private std::vector<_Tp> {

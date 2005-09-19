@@ -133,8 +133,8 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   pollCustom->insert_error(this);
 
   // Do this elsewhere.
-  m_up->get_buffer().reset();
-  m_down->get_buffer().reset();
+  m_up->buffer()->reset();
+  m_down->buffer()->reset();
 
   m_down->set_state(ProtocolRead::IDLE);
   m_up->set_state(ProtocolWrite::IDLE);
@@ -202,7 +202,7 @@ PeerConnectionBase::pipe_size() const {
 
 void
 PeerConnectionBase::receive_choke(bool v) {
-  if (v == m_up->get_choked())
+  if (v == m_up->choked())
     throw internal_error("PeerConnectionBase::receive_choke(...) already set to the same state.");
 
   m_sendChoked = true;
@@ -278,7 +278,7 @@ PeerConnectionBase::down_chunk() {
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t count, quota;
-  uint32_t left = quota = std::min<uint32_t>(m_down->get_buffer().remaining(),
+  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(),
 					     m_downPiece.get_length() - m_down->get_position());
 
   Chunk::MemoryArea memory;
@@ -288,10 +288,10 @@ PeerConnectionBase::down_chunk_from_buffer() {
     memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->get_position(), part++);
     count = std::min(left, memory.second);
 
-    std::memcpy(memory.first, m_down->get_buffer().position(), count);
+    std::memcpy(memory.first, m_down->buffer()->position(), count);
 
     m_down->adjust_position(count);
-    m_down->get_buffer().move_position(count);
+    m_down->buffer()->move_position(count);
     left -= count;
 
   } while (left != 0);
@@ -396,12 +396,12 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
 
 void
 PeerConnectionBase::read_buffer_move_unused() {
-  uint32_t remaining = m_down->get_buffer().remaining();
+  uint32_t remaining = m_down->buffer()->remaining();
 	
-  std::memmove(m_down->get_buffer().begin(), m_down->get_buffer().position(), remaining);
+  std::memmove(m_down->buffer()->begin(), m_down->buffer()->position(), remaining);
 	
-  m_down->get_buffer().reset_position();
-  m_down->get_buffer().set_end(remaining);
+  m_down->buffer()->reset_position();
+  m_down->buffer()->set_end(remaining);
 }
 
 void
@@ -453,11 +453,11 @@ PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
   if (msgLength != m_bitfield.size_bytes())
     throw network_error("Received invalid bitfield size.");
 
-  uint32_t copyLength = std::min((uint32_t)m_down->get_buffer().remaining(), msgLength);
+  uint32_t copyLength = std::min((uint32_t)m_down->buffer()->remaining(), msgLength);
 
-  std::memcpy(m_bitfield.begin(), m_down->get_buffer().position(), copyLength);
+  std::memcpy(m_bitfield.begin(), m_down->buffer()->position(), copyLength);
 
-  m_down->get_buffer().move_position(copyLength);
+  m_down->buffer()->move_position(copyLength);
   m_down->set_position(copyLength);
 
   return copyLength == msgLength;
@@ -476,8 +476,8 @@ PeerConnectionBase::write_bitfield_body() {
 // from high stall counts when we are doing decent speeds.
 bool
 PeerConnectionBase::should_request() {
-  if (m_down->get_choked() ||
-      !m_up->get_interested() ||
+  if (m_down->choked() ||
+      !m_up->interested() ||
       m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
