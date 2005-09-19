@@ -144,14 +144,14 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    m_download->choke_manager()->try_unchoke(this);
     m_down->set_interested(true);
+    m_download->choke_manager()->try_unchoke(this);
 
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_download->choke_manager()->choke(this);
     m_down->set_interested(false);
+    m_download->choke_manager()->choke(this);
 
     return true;
 

@@ -77,8 +77,8 @@ PeerConnectionBase::~PeerConnectionBase() {
   if (m_download == NULL)
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
-  m_up->set_choked(false);
   m_download->choke_manager()->disconnected(this);
+  m_up->set_choked(true);
 
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
@@ -203,7 +203,7 @@ PeerConnectionBase::pipe_size() const {
 void
 PeerConnectionBase::receive_choke(bool v) {
   if (v == m_up->get_choked())
-    return;
+    throw internal_error("PeerConnectionBase::receive_choke(...) already set to the same state.");
 
   m_sendChoked = true;
   m_up->set_choked(v);
@@ -299,7 +299,9 @@ PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t bytes = quota - left;
 
   m_downRate.insert(bytes);
-  m_downThrottle->used(bytes);
+
+  if (is_down_throttled() && !m_downThrottle->is_unlimited())
+    m_downThrottle->used(std::min<uint32_t>(bytes, m_downThrottle->get_quota()));
 
   throttleRead.get_rate_slow().insert(bytes);
   throttleRead.get_rate_quick().insert(bytes);

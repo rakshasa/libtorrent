@@ -2,6 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Rewrite throttle code, consider not updating when unlimited. Do an
+update when putting them into unlimited mode.
+
 Consider MAP_NOSYNC.
 
 FileManager is a std::vector...

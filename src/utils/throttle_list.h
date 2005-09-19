@@ -130,6 +130,10 @@ struct ThrottleListSetStable {
     int delegate = std::min(quota, std::max(0, target - t.get_quota()));
 
     t.update_quota(t.get_quota() + delegate);
+
+    if (t.get_quota() < 0)
+      throw internal_error("ThrottleList::quota_stable(...) less than zero quota.");
+
     return delegate;
   }
 
@@ -147,6 +151,9 @@ struct ThrottleListSetStarving {
       return;
 
     t.update_quota(m_quota);
+
+    if (t.get_quota() < 0)
+      throw internal_error("ThrottleList starving: less than zero quota.");
 
     if (t.get_quota() >= 1024)
       t.activate();

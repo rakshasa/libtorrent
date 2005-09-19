@@ -244,7 +244,7 @@ Download::get_peers_not_connected() const {
 
 uint32_t
 Download::get_uploads_max() const {
-  return m_ptr->main()->choke_manager()->get_max_unchoked();
+  return m_ptr->main()->choke_manager()->max_unchoked();
 }
   
 uint64_t

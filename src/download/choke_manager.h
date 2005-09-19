@@ -53,18 +53,22 @@ public:
 
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
+    m_currentlyUnchoked(0),
     m_maxUnchoked(15),
     m_minGenerous(2),
     m_cycleSize(2) {}
+  ~ChokeManager();
   
-  int                 get_max_unchoked() const                { return m_maxUnchoked; }
-  void                set_max_unchoked(int v)                 { m_maxUnchoked = v; }
+  unsigned int        currently_unchoked() const              { return m_currentlyUnchoked; }
 
-  int                 get_min_generous() const                { return m_minGenerous; }
-  void                set_min_generous(int v)                 { m_minGenerous = v; }
+  unsigned int        max_unchoked() const                    { return m_maxUnchoked; }
+  void                set_max_unchoked(unsigned int v)        { m_maxUnchoked = v; }
 
-  int                 get_cycle_size() const                  { return m_cycleSize; }
-  void                set_cycle_size(int v)                   { m_cycleSize = v; }
+  unsigned int        min_generous() const                    { return m_minGenerous; }
+  void                set_min_generous(unsigned int v)        { m_minGenerous = v; }
+
+  unsigned int        cycle_size() const                      { return m_cycleSize; }
+  void                set_cycle_size(unsigned int v)          { m_cycleSize = v; }
 
   void                balance();
   void                cycle();
@@ -75,8 +79,8 @@ public:
   void                disconnected(PeerConnectionBase* pc);
 
 private:
-  void                choke_range(iterator first, iterator last, int count);
-  void                unchoke_range(iterator first, iterator last, int count);
+  unsigned int        choke_range(iterator first, iterator last, unsigned int count);
+  unsigned int        unchoke_range(iterator first, iterator last, unsigned int count);
 
   static iterator     seperate_interested(iterator first, iterator last);
   static iterator     seperate_unchoked(iterator first, iterator last);
@@ -85,9 +89,11 @@ private:
 
   ConnectionList*     m_connectionList;
 
-  int                 m_maxUnchoked;
-  int                 m_minGenerous;
-  int                 m_cycleSize;
+  unsigned int        m_currentlyUnchoked;
+  unsigned int        m_maxUnchoked;
+
+  unsigned int        m_minGenerous;
+  unsigned int        m_cycleSize;
 };
 
 }
