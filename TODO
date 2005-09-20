@@ -2,6 +2,8 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Consider moving ResourceManager to src/
+
 Use correctly sized read/write buffers.
 
 Rewrite throttle code, consider not updating when unlimited. Do an

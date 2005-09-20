@@ -191,9 +191,7 @@ ThrottleList<T>::insert(const_reference t) {
 
 template <typename T> int
 ThrottleList<T>::get_used() const {
-  int used = 0;
-  std::for_each(begin(), end(), rak::accumulate(used, std::mem_fun_ref(&ThrottleNode<T>::get_used)));
-  return used;
+  return std::for_each(begin(), end(), rak::accumulate(0, std::mem_fun_ref(&ThrottleNode<T>::get_used))).result;
 }
 
 }

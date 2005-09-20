@@ -24,6 +24,8 @@ libsub_download_la_SOURCES = \
 	download_setup.cc \
 	download_wrapper.cc \
 	download_wrapper.h \
+	resource_manager.cc \
+	resource_manager.h \
 	priority.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

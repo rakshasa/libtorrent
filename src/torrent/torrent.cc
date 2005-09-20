@@ -57,6 +57,7 @@
 #include "data/hash_torrent.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
+#include "download/resource_manager.h"
 
 namespace torrent {
 
@@ -387,13 +388,17 @@ download_add(std::istream* s) {
   parse_tracker(d->get_bencode(), d->main()->tracker_manager());
 
   manager->download_manager()->insert(d.get());
+  manager->resource_manager()->insert(1, d.get()->main());
 
   return Download(d.release());
 }
 
 void
 download_remove(const std::string& infohash) {
-  manager->download_manager()->erase(manager->download_manager()->find(infohash));
+  DownloadManager::iterator itr = manager->download_manager()->find(infohash);
+
+  manager->resource_manager()->erase((*itr)->main());
+  manager->download_manager()->erase(itr);
 }
 
 // Add all downloads to dlist. Make sure it's cleared.

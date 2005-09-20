@@ -40,6 +40,7 @@
 
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
+#include "download/resource_manager.h"
 #include "data/file_manager.h"
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
@@ -56,7 +57,8 @@ Manager::Manager() :
   m_fileManager(new FileManager),
   m_handshakeManager(new HandshakeManager),
   m_hashQueue(new HashQueue),
-  m_listen(new Listen) {
+  m_listen(new Listen),
+  m_resourceManager(new ResourceManager) {
 
   m_taskKeepalive.set_iterator(taskScheduler.end());
   m_taskKeepalive.set_slot(sigc::mem_fun(*this, &Manager::receive_keepalive));
@@ -77,6 +79,7 @@ Manager::~Manager() {
   delete m_handshakeManager;
   delete m_hashQueue;
   delete m_listen;
+  delete m_resourceManager;
 }
 
 void

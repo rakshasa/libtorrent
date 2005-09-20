@@ -34,57 +34,40 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_MANAGER_H
-#define LIBTORRENT_MANAGER_H
+#ifndef LIBTORRENT_DOWNLOAD_RESOURCE_MANAGER_H
+#define LIBTORRENT_DOWNLOAD_RESOURCE_MANAGER_H
 
-#include <string>
-
-#include "net/socket_address.h"
-#include "utils/task_item.h"
+#include <vector>
 
 namespace torrent {
 
-class Listen;
-class HashQueue;
-class HandshakeManager;
-class DownloadManager;
-class FileManager;
-class ResourceManager;
+// This class will handle the division of various resources like
+// uploads. For now the weight is equal to the value of the priority.
+//
+// Add unlimited handling later.
 
-class Manager {
+class DownloadMain;
+
+class ResourceManager : public std::vector<std::pair<int, DownloadMain*> > {
 public:
-  Manager();
-  ~Manager();
+  typedef std::vector<std::pair<int, DownloadMain*> > Base;
 
-  DownloadManager*    download_manager()                        { return m_downloadManager; }
-  FileManager*        file_manager()                            { return m_fileManager; }
-  HandshakeManager*   handshake_manager()                       { return m_handshakeManager; }
-  HashQueue*          hash_queue()                              { return m_hashQueue; }
-  Listen*             listen()                                  { return m_listen; }
-  ResourceManager*    resource_manager()                        { return m_resourceManager; }
+  ResourceManager() : m_maxUnchoked(100) {}
 
-  SocketAddress&      get_local_address()                       { return m_localAddress; }
-  
-  const std::string&  get_bind_address()                        { return m_bindAddress; }
-  void                set_bind_address(const std::string& addr) { m_bindAddress = addr; }
+  void                insert(int priority, DownloadMain* d);
+  void                erase(DownloadMain* d);
 
-  void                receive_keepalive();
+  unsigned int        max_unchoked() const             { return m_maxUnchoked; }
+  void                set_max_unchoked(unsigned int m) { m_maxUnchoked = m; }
 
 private:
-  SocketAddress       m_localAddress;
-  std::string         m_bindAddress;
+  // Randomize the order of elements within each priority group.
+  //void                randomize();
 
-  DownloadManager*    m_downloadManager;
-  FileManager*        m_fileManager;
-  HandshakeManager*   m_handshakeManager;
-  HashQueue*          m_hashQueue;
-  Listen*             m_listen;
-  ResourceManager*    m_resourceManager;
+  unsigned int        total_weight() const;
 
-  TaskItem            m_taskKeepalive;
+  unsigned int        m_maxUnchoked;
 };
-
-extern Manager* manager;
 
 }
 

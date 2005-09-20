@@ -34,58 +34,33 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_MANAGER_H
-#define LIBTORRENT_MANAGER_H
+#include "config.h"
 
-#include <string>
+#include <algorithm>
+#include <rak/functional.h>
 
-#include "net/socket_address.h"
-#include "utils/task_item.h"
+#include "resource_manager.h"
 
 namespace torrent {
 
-class Listen;
-class HashQueue;
-class HandshakeManager;
-class DownloadManager;
-class FileManager;
-class ResourceManager;
+void
+ResourceManager::insert(int priority, DownloadMain* d) {
+  iterator itr = std::find_if(begin(), end(), rak::less(priority, rak::mem_ptr_ref(&value_type::first)));
 
-class Manager {
-public:
-  Manager();
-  ~Manager();
-
-  DownloadManager*    download_manager()                        { return m_downloadManager; }
-  FileManager*        file_manager()                            { return m_fileManager; }
-  HandshakeManager*   handshake_manager()                       { return m_handshakeManager; }
-  HashQueue*          hash_queue()                              { return m_hashQueue; }
-  Listen*             listen()                                  { return m_listen; }
-  ResourceManager*    resource_manager()                        { return m_resourceManager; }
-
-  SocketAddress&      get_local_address()                       { return m_localAddress; }
-  
-  const std::string&  get_bind_address()                        { return m_bindAddress; }
-  void                set_bind_address(const std::string& addr) { m_bindAddress = addr; }
-
-  void                receive_keepalive();
-
-private:
-  SocketAddress       m_localAddress;
-  std::string         m_bindAddress;
-
-  DownloadManager*    m_downloadManager;
-  FileManager*        m_fileManager;
-  HandshakeManager*   m_handshakeManager;
-  HashQueue*          m_hashQueue;
-  Listen*             m_listen;
-  ResourceManager*    m_resourceManager;
-
-  TaskItem            m_taskKeepalive;
-};
-
-extern Manager* manager;
-
+  Base::insert(itr, value_type(priority, d));
 }
 
-#endif
+void
+ResourceManager::erase(DownloadMain* d) {
+  iterator itr = std::find_if(begin(), end(), rak::equal(d, rak::mem_ptr_ref(&value_type::second)));
+
+  if (itr != end())
+    Base::erase(itr);
+}
+
+unsigned int
+ResourceManager::total_weight() const {
+  return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, rak::mem_ptr_ref(&value_type::first))).result;
+}
+
+}
