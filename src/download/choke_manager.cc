@@ -48,6 +48,9 @@ namespace torrent {
 ChokeManager::~ChokeManager() {
   if (m_currentlyUnchoked != 0)
     throw internal_error("ChokeManager::~ChokeManager() called but m_currentlyUnchoked != 0.");
+
+  if (m_currentlyUnchoked != 0)
+    throw internal_error("ChokeManager::~ChokeManager() called but m_currentlyInterested != 0.");
 }
 
 struct ChokeManagerReadRate {
@@ -85,21 +88,43 @@ ChokeManager::sort_down_rate(iterator first, iterator last) {
 
 void
 ChokeManager::balance() {
-  if (m_currentlyUnchoked == m_maxUnchoked)
-    return;
+  // Return if no balance is needed.
 
   iterator beginUninterested = seperate_interested(m_connectionList->begin(), m_connectionList->end());
   iterator beginChoked       = seperate_unchoked(m_connectionList->begin(), beginUninterested);
 
-  if (m_currentlyUnchoked < m_maxUnchoked)
-    m_currentlyUnchoked += unchoke_range(beginChoked, beginUninterested, m_maxUnchoked - m_currentlyUnchoked);
+  int adjust = std::min(m_maxUnchoked, m_quota) - m_currentlyUnchoked;
 
-  else if (m_currentlyUnchoked > m_maxUnchoked)
-    m_currentlyUnchoked -= choke_range(m_connectionList->begin(), beginChoked, m_currentlyUnchoked - m_maxUnchoked);
+  if (adjust > 0) {
+    // Can unchoke peers.
+
+    // Sort.
+
+    while (beginUninterested != beginChoked &&
+	   adjust-- &&
+	   m_slotUnchoke()) {
+      (*--beginUninterested)->receive_choke(false);
+
+      m_currentlyUnchoked++;
+    }
+
+  } else {
+    unsigned int size = std::min<unsigned int>(-adjust, std::distance(m_connectionList->begin(), beginChoked));
+
+    // Sort.
+
+    // We do the signaling to the ResourceManager before choking so
+    // that it won't try to unchoke the same connections.
+    for (int i = 0; i < size; ++i)
+      m_slotChoke();
+
+    choke_range(m_connectionList->begin(), beginChoked, size);
+    m_currentlyUnchoked -= size;
+  }
 }
 
-void
-ChokeManager::cycle() {
+int
+ChokeManager::cycle(unsigned int quota) {
   iterator beginUninterested = seperate_interested(m_connectionList->begin(), m_connectionList->end());
   iterator beginChoked       = seperate_unchoked(m_connectionList->begin(), beginUninterested);
 
@@ -108,79 +133,121 @@ ChokeManager::cycle() {
   if (std::distance(m_connectionList->begin(), beginChoked) != m_currentlyUnchoked)
     throw internal_error("ChokeManager::cycle() std::distance(m_connectionList->begin(), beginChoked) != m_currentlyUnchoked.");
 
-  unsigned int size = std::min(std::min(m_currentlyUnchoked, (unsigned int)std::distance(beginChoked, beginUninterested)),
-			       m_cycleSize);
+  if (std::distance(m_connectionList->begin(), beginUninterested) != m_currentlyInterested)
+    throw internal_error("ChokeManager::cycle() std::distance(m_connectionList->begin(), beginChoked) != m_currentlyUnchoked.");
 
-  if (size == 0)
-    return;
+  // Sort ranges.
 
-  m_currentlyUnchoked -= choke_range(m_connectionList->begin(), beginChoked, size);
-  m_currentlyUnchoked += unchoke_range(beginChoked, beginUninterested, size);
+  iterator beginUnchoked = m_connectionList->begin();
+
+  int cycled = 0;
+  int adjust = std::min(quota, m_maxUnchoked) - m_currentlyUnchoked;
+
+  // We don't call the resource manager slots, the number of un/choked
+  // connections is returned.
+
+  if (adjust > 0) {
+    // Unchoke peers.
+    while (beginUninterested != beginChoked &&
+	   adjust-- &&
+	   m_slotUnchoke()) {
+
+      (*--beginUninterested)->receive_choke(false);
+      cycled++;
+    }
+
+  } else if (adjust < 0) {
+    // Choke peers.
+    while (beginUnchoked != beginChoked &&
+	   adjust++) {
+
+      m_slotChoke();
+      (*beginUnchoked++)->receive_choke(true);
+      cycled--;
+    }
+  }
+
+  // Make sure beginUnchoked starts with the least desirable
+  // connections.
+
+  adjust = m_cycleSize - std::abs(cycled);
+
+  // Disable this for the time being.
+  if (false &&
+      adjust > 0) {
+    unsigned int size = std::min(std::min(std::distance(beginUnchoked, beginChoked),
+					  std::distance(beginChoked, beginUninterested)),
+				 adjust);
+
+    choke_range(beginUnchoked, beginChoked, size);
+    unchoke_range(beginChoked, beginUninterested, size);
+  }
+
+  // Returned unchoked this cycle.
+  return cycled;
 }
 
 void
-ChokeManager::choke(PeerConnectionBase* pc) {
+ChokeManager::set_interested(PeerConnectionBase* pc) {
+  m_currentlyInterested++;
+
+  if (!pc->is_up_choked())
+    return;
+
+  if (m_currentlyUnchoked < m_maxUnchoked &&
+      pc->time_last_choked() + 10 * 1000000 < Timer::cache() &&
+      m_slotUnchoke()) {
+    pc->receive_choke(false);
+    m_currentlyUnchoked++;
+  }
+}
+
+void
+ChokeManager::set_not_interested(PeerConnectionBase* pc) {
+  m_currentlyInterested--;
+
   if (pc->is_up_choked())
     return;
 
   pc->receive_choke(true);
 
   m_currentlyUnchoked--;
-  balance();
-}
-
-void
-ChokeManager::try_unchoke(PeerConnectionBase* pc) {
-  if (!pc->is_up_choked())
-    return;
-
-  if (m_currentlyUnchoked >= m_maxUnchoked ||
-      pc->time_last_choked() + 10 * 1000000 > Timer::cache())
-    return;
-
-  pc->receive_choke(false);
-  m_currentlyUnchoked++;
+  m_slotChoke();
 }
 
 // We might no longer be in m_connectionList.
 void
 ChokeManager::disconnected(PeerConnectionBase* pc) {
-  if (pc->is_up_choked())
-    return;
+  if (pc->is_down_interested())
+    m_currentlyInterested--;
 
-  m_currentlyUnchoked--;
-  balance();
+  if (!pc->is_up_choked()) {
+    m_currentlyUnchoked--;
+    m_slotChoke();
+  }
 }
 
-unsigned int
+void
 ChokeManager::choke_range(iterator first, iterator last, unsigned int count) {
-  count = std::min(count, (unsigned int)std::distance(first, last));
-
-  if ((int)count < 0)
-    throw internal_error("ChokeManager::choke(...) got count < 0");
+  if (count > std::distance(first, last))
+    throw internal_error("ChokeManager::choke_range(...) got count > std::distance(first, last).");
 
   // Use more complex sorting, use nth_element.
   sort_down_rate(first, last);
 
   std::for_each(last - count, last,
 		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true));
-
-  return count;
 }
   
-unsigned int
+void
 ChokeManager::unchoke_range(iterator first, iterator last, unsigned int count) {
-  count = std::min(count, (unsigned int)std::distance(first, last));
-
-  if ((int)count < 0)
-    throw internal_error("ChokeManager::unchoke(...) got count < 0");
+  if (count > std::distance(first, last))
+    throw internal_error("ChokeManager::unchoke_range(...) got count > std::distance(first, last).");
 
   sort_down_rate(first, last);
 
   std::for_each(first, first + count,
 		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false));
-
-  return count;
 }
 
 }

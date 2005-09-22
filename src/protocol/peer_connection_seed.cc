@@ -144,15 +144,17 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    m_down->set_interested(true);
-    m_download->choke_manager()->try_unchoke(this);
-
+    if (!m_down->interested()) {
+      m_down->set_interested(true);
+      m_download->choke_manager()->set_interested(this);
+    }
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_down->set_interested(false);
-    m_download->choke_manager()->choke(this);
-
+    if (m_down->interested()) {
+      m_down->set_interested(false);
+      m_download->choke_manager()->set_not_interested(this);
+    }
     return true;
 
   case ProtocolBase::HAVE:

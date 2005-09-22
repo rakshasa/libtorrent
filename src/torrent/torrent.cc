@@ -58,6 +58,7 @@
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
 #include "download/resource_manager.h"
+#include "download/choke_manager.h"
 
 namespace torrent {
 
@@ -383,12 +384,17 @@ download_add(std::istream* s) {
   d->set_file_manager(manager->file_manager());
 
   // Default PeerConnection factory functions.
-  d->main()->connection_list()->slot_new_connection(sigc::ptr_fun(createPeerConnectionDefault));
+  d->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
 
   parse_tracker(d->get_bencode(), d->main()->tracker_manager());
 
+  // Do resource manager related stuff, these should really be done in
+  // the manager...
   manager->download_manager()->insert(d.get());
   manager->resource_manager()->insert(1, d.get()->main());
+
+  d->main()->choke_manager()->slot_choke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_choke));
+  d->main()->choke_manager()->slot_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_unchoke));
 
   return Download(d.release());
 }

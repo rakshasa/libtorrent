@@ -52,7 +52,10 @@ class ResourceManager : public std::vector<std::pair<int, DownloadMain*> > {
 public:
   typedef std::vector<std::pair<int, DownloadMain*> > Base;
 
-  ResourceManager() : m_maxUnchoked(100) {}
+  ResourceManager() :
+    m_maxUnchoked(0),
+    m_currentlyUnchoked(0) {}
+  ~ResourceManager();
 
   void                insert(int priority, DownloadMain* d);
   void                erase(DownloadMain* d);
@@ -60,12 +63,16 @@ public:
   unsigned int        max_unchoked() const             { return m_maxUnchoked; }
   void                set_max_unchoked(unsigned int m) { m_maxUnchoked = m; }
 
+  void                receive_choke();
+  bool                receive_unchoke();
+
+  void                receive_tick();
+
 private:
-  // Randomize the order of elements within each priority group.
-  //void                randomize();
-
   unsigned int        total_weight() const;
+  void                balance_unchoked(unsigned int weight);
 
+  unsigned int        m_currentlyUnchoked;
   unsigned int        m_maxUnchoked;
 };
 

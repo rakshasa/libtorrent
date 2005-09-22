@@ -195,7 +195,8 @@ DownloadMain::update_endgame() {
 void
 DownloadMain::receive_tick() {
   taskScheduler.insert(&m_taskTick, (Timer::cache() + 30 * 1000000).round_seconds());
-  m_chokeManager->cycle();
+  // Now done by the resource manager.
+  //m_chokeManager->cycle();
 
   m_chunkList->sync_periodic();
 }

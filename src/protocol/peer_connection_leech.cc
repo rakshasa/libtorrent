@@ -68,11 +68,11 @@ PeerConnectionLeech::initialize_custom() {
 void
 PeerConnectionLeech::update_interested() {
   if (m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
-    m_sendInterested = !m_down->interested();
-    m_down->set_interested(true);
+    m_sendInterested = !m_up->interested();
+    m_up->set_interested(true);
   } else {
-    m_sendInterested = m_down->interested();
-    m_down->set_interested(false);
+    m_sendInterested = m_up->interested();
+    m_up->set_interested(false);
   }
 }
 
@@ -177,15 +177,17 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    m_down->set_interested(true);
-    m_download->choke_manager()->try_unchoke(this);
-
+    if (!m_down->interested()) {
+      m_down->set_interested(true);
+      m_download->choke_manager()->set_interested(this);
+    }
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_down->set_interested(false);
-    m_download->choke_manager()->choke(this);
-
+    if (m_down->interested()) {
+      m_down->set_interested(false);
+      m_download->choke_manager()->set_not_interested(this);
+    }
     return true;
 
   case ProtocolBase::HAVE:

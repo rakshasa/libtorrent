@@ -177,10 +177,13 @@ PeerConnectionBase::load_up_chunk() {
 
 void
 PeerConnectionBase::set_snubbed(bool v) {
-  m_snubbed = v;
+//   m_snubbed = v;
 
-  if (v)
-    m_download->choke_manager()->choke(this);
+//   if (v)
+//     m_download->choke_manager()->set_not_interested(this);
+//   else
+//  if (
+//     m_download->choke_manager()->set_interested(this);
 }
 
 uint32_t

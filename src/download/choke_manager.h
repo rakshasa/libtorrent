@@ -38,26 +38,34 @@
 #define LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_H
 
 #include <list>
+#include <rak/functional.h>
 
 #include "connection_list.h"
 
 namespace torrent {
 
+class ResourceManager;
 class PeerConnectionBase;
 
 class ChokeManager {
 public:
-  typedef ConnectionList::iterator iterator;
+  typedef ConnectionList::iterator           iterator;
+  typedef rak::mem_fn<ResourceManager, void> SlotVoid;
+  typedef rak::mem_fn<ResourceManager, bool> SlotBool;
 
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
     m_currentlyUnchoked(0),
+    m_currentlyInterested(0),
     m_maxUnchoked(15),
     m_minGenerous(2),
-    m_cycleSize(2) {}
+
+    m_quota(0),
+    m_cycleSize(4) {}
   ~ChokeManager();
   
   unsigned int        currently_unchoked() const              { return m_currentlyUnchoked; }
+  unsigned int        currently_interested() const            { return m_currentlyInterested; }
 
   unsigned int        max_unchoked() const                    { return m_maxUnchoked; }
   void                set_max_unchoked(unsigned int v)        { m_maxUnchoked = v; }
@@ -68,17 +76,25 @@ public:
   unsigned int        cycle_size() const                      { return m_cycleSize; }
   void                set_cycle_size(unsigned int v)          { m_cycleSize = v; }
 
-  void                balance();
-  void                cycle();
+  unsigned int        quota() const                           { return m_quota; }
+  void                set_quota(unsigned int v)               { m_quota = v; }
 
-  void                choke(PeerConnectionBase* pc);
-  void                try_unchoke(PeerConnectionBase* pc);
+  void                balance();
+  int                 cycle(unsigned int quota);
+
+  // Assume interested state is already updated for the PCB and that
+  // this gets called once every time the status changes.
+  void                set_interested(PeerConnectionBase* pc);
+  void                set_not_interested(PeerConnectionBase* pc);
 
   void                disconnected(PeerConnectionBase* pc);
 
+  void                slot_choke(SlotVoid s)                   { m_slotChoke = s; }
+  void                slot_unchoke(SlotBool s)                 { m_slotUnchoke = s; }
+
 private:
-  unsigned int        choke_range(iterator first, iterator last, unsigned int count);
-  unsigned int        unchoke_range(iterator first, iterator last, unsigned int count);
+  void                choke_range(iterator first, iterator last, unsigned int count);
+  void                unchoke_range(iterator first, iterator last, unsigned int count);
 
   static iterator     seperate_interested(iterator first, iterator last);
   static iterator     seperate_unchoked(iterator first, iterator last);
@@ -88,10 +104,16 @@ private:
   ConnectionList*     m_connectionList;
 
   unsigned int        m_currentlyUnchoked;
-  unsigned int        m_maxUnchoked;
+  unsigned int        m_currentlyInterested;
 
+  unsigned int        m_maxUnchoked;
   unsigned int        m_minGenerous;
+
+  unsigned int        m_quota;
   unsigned int        m_cycleSize;
+
+  SlotVoid            m_slotChoke;
+  SlotBool            m_slotUnchoke;
 };
 
 }

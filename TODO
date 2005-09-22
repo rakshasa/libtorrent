@@ -2,7 +2,25 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Make sure you sort the right order, make all use from beginUnchoked
+and beginUninterested.
+
+Rename most things to remote/local or something. up/down is too
+confusing. Atleast add it to some of the function names.
+
+Make the ticks part of Manager. Rename Manager::*keepalive.
+
+Make sure that when we stop a torrent and disconnects, that those
+don't cause unchokes of soon to be disconnected peers.
+
+Don't put in the resource manager unless we are running?
+
+Balance will be reserved for when we change the max unchoked.
+
 Consider moving ResourceManager to src/
+
+Figure out if snubbing fscks up interested. Also a connection might be
+(un)choked while setting (not)interested. urgh... think.
 
 Use correctly sized read/write buffers.
 

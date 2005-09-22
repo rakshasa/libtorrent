@@ -58,7 +58,7 @@ public:
   typedef std::list<SocketAddress>                   AddressList;
   typedef uint32_t                                   size_type;
   typedef sigc::signal1<void, Peer>                  SignalPeer;
-  typedef sigc::slot0<PeerConnectionBase*>           SlotNewConnection;
+  typedef PeerConnectionBase* (*SlotNewConnection)();
 
   using Base::value_type;
   using Base::reference;

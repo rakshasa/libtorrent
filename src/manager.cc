@@ -58,7 +58,9 @@ Manager::Manager() :
   m_handshakeManager(new HandshakeManager),
   m_hashQueue(new HashQueue),
   m_listen(new Listen),
-  m_resourceManager(new ResourceManager) {
+  m_resourceManager(new ResourceManager),
+
+  m_ticks(0) {
 
   m_taskKeepalive.set_iterator(taskScheduler.end());
   m_taskKeepalive.set_slot(sigc::mem_fun(*this, &Manager::receive_keepalive));
@@ -84,9 +86,14 @@ Manager::~Manager() {
 
 void
 Manager::receive_keepalive() {
-  std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::mem_fun(&DownloadWrapper::receive_keepalive));
+  m_ticks++;
 
-  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 120 * 1000000).round_seconds());
+  if (m_ticks % 4 == 0)
+    std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::mem_fun(&DownloadWrapper::receive_keepalive));
+
+  m_resourceManager->receive_tick();
+
+  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 30 * 1000000).round_seconds());
 }
 
 }

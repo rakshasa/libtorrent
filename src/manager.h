@@ -81,6 +81,7 @@ private:
   Listen*             m_listen;
   ResourceManager*    m_resourceManager;
 
+  unsigned int        m_ticks;
   TaskItem            m_taskKeepalive;
 };
 
