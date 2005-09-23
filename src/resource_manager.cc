@@ -58,13 +58,6 @@ ResourceManager::insert(int priority, DownloadMain* d) {
   iterator itr = std::find_if(begin(), end(), rak::less(priority, rak::mem_ptr_ref(&value_type::first)));
 
   Base::insert(itr, value_type(priority, d));
-
-  // Set unchoke quota etc. Based on what is remaining, calculate it
-  // from the list.
-  if (m_maxUnchoked == 0)
-    d->choke_manager()->set_quota(std::numeric_limits<unsigned int>::max());
-  else
-    d->choke_manager()->set_quota(m_maxUnchoked - m_currentlyUnchoked);
 }
 
 void
@@ -84,9 +77,12 @@ ResourceManager::receive_choke() {
 
 bool
 ResourceManager::receive_unchoke() {
-  m_currentlyUnchoked++;
-
-  return true;
+  if (m_maxUnchoked == 0 || m_currentlyUnchoked < m_maxUnchoked) {
+    m_currentlyUnchoked++;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void
@@ -101,22 +97,33 @@ ResourceManager::total_weight() const {
   return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, rak::mem_ptr_ref(&value_type::first))).result;
 }
 
+struct resource_manager_interested_increasing {
+  bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) const {
+    return v1.second->choke_manager()->currently_interested() < v2.second->choke_manager()->currently_interested();
+  }
+};
+
 void
 ResourceManager::balance_unchoked(unsigned int weight) {
   if (m_maxUnchoked != 0) {
     unsigned int quota = m_maxUnchoked;
 
-    // Sort by interested, lowest first. Consider skipping those that
-    // want zero.
+    // We put the downloads with fewest interested first so that those
+    // with more interested will gain any unused slots from the
+    // preceding downloads. Consider multiplying with priority.
+    //
+    // Consider skipping the leading zero interested downloads.
+    sort(begin(), end(), resource_manager_interested_increasing());
 
     for (iterator itr = begin(); itr != end(); ++itr) {
       m_currentlyUnchoked += itr->second->choke_manager()->cycle((quota * itr->first) / weight);
       quota -= itr->second->choke_manager()->currently_unchoked();
+      weight -= itr->first;
     }
 
   } else {
     for (iterator itr = begin(); itr != end(); ++itr)
-      itr->second->choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
+      m_currentlyUnchoked += itr->second->choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
   }
 }
 

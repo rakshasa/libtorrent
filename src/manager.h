@@ -48,6 +48,7 @@ class Listen;
 class HashQueue;
 class HandshakeManager;
 class DownloadManager;
+class DownloadWrapper;
 class FileManager;
 class ResourceManager;
 
@@ -68,7 +69,10 @@ public:
   const std::string&  get_bind_address()                        { return m_bindAddress; }
   void                set_bind_address(const std::string& addr) { m_bindAddress = addr; }
 
-  void                receive_keepalive();
+  void                initialize_download(DownloadWrapper* d);
+  void                cleanup_download(DownloadWrapper* d);
+
+  void                receive_tick();
 
 private:
   SocketAddress       m_localAddress;
@@ -82,7 +86,7 @@ private:
   ResourceManager*    m_resourceManager;
 
   unsigned int        m_ticks;
-  TaskItem            m_taskKeepalive;
+  TaskItem            m_taskTick;
 };
 
 extern Manager* manager;

@@ -51,6 +51,10 @@ class DownloadMain;
 class ResourceManager : public std::vector<std::pair<int, DownloadMain*> > {
 public:
   typedef std::vector<std::pair<int, DownloadMain*> > Base;
+  typedef Base::value_type                            value_type;
+
+  using Base::begin;
+  using Base::end;
 
   ResourceManager() :
     m_maxUnchoked(0),

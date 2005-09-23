@@ -70,7 +70,7 @@ public:
   ~DownloadManager() { clear(); }
 
   iterator            insert(DownloadWrapper* d);
-  iterator            erase(iterator itr);
+  iterator            erase(DownloadWrapper* d);
 
   void                clear();
 

@@ -45,6 +45,8 @@
 #include "bencode.h"
 
 #include "manager.h"
+#include "resource_manager.h"
+
 #include "utils/string_manip.h"
 #include "utils/throttle.h"
 #include "net/listen.h"
@@ -57,8 +59,6 @@
 #include "data/hash_torrent.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-#include "download/resource_manager.h"
-#include "download/choke_manager.h"
 
 namespace torrent {
 
@@ -388,13 +388,10 @@ download_add(std::istream* s) {
 
   parse_tracker(d->get_bencode(), d->main()->tracker_manager());
 
-  // Do resource manager related stuff, these should really be done in
-  // the manager...
-  manager->download_manager()->insert(d.get());
-  manager->resource_manager()->insert(1, d.get()->main());
-
-  d->main()->choke_manager()->slot_choke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_choke));
-  d->main()->choke_manager()->slot_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_unchoke));
+  // Consider move as much as possible into this function
+  // call. Anything that won't cause possible torrent creation errors
+  // go in there.
+  manager->initialize_download(d.get());
 
   return Download(d.release());
 }
@@ -403,8 +400,7 @@ void
 download_remove(const std::string& infohash) {
   DownloadManager::iterator itr = manager->download_manager()->find(infohash);
 
-  manager->resource_manager()->erase((*itr)->main());
-  manager->download_manager()->erase(itr);
+  manager->cleanup_download(*itr);
 }
 
 // Add all downloads to dlist. Make sure it's cleared.

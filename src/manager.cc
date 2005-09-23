@@ -38,15 +38,17 @@
 
 #include "torrent/exceptions.h"
 
+#include "download/choke_manager.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
-#include "download/resource_manager.h"
+#include "download/download_main.h"
 #include "data/file_manager.h"
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
 #include "net/listen.h"
 
 #include "manager.h"
+#include "resource_manager.h"
 
 namespace torrent {
 
@@ -62,16 +64,16 @@ Manager::Manager() :
 
   m_ticks(0) {
 
-  m_taskKeepalive.set_iterator(taskScheduler.end());
-  m_taskKeepalive.set_slot(sigc::mem_fun(*this, &Manager::receive_keepalive));
+  m_taskTick.set_iterator(taskScheduler.end());
+  m_taskTick.set_slot(sigc::mem_fun(*this, &Manager::receive_tick));
 
-  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 120 * 1000000).round_seconds());
+  taskScheduler.insert(&m_taskTick, (Timer::cache()).round_seconds());
 
   m_listen->slot_incoming(sigc::mem_fun(*m_handshakeManager, &HandshakeManager::add_incoming));
 }
 
 Manager::~Manager() {
-  taskScheduler.erase(&m_taskKeepalive);
+  taskScheduler.erase(&m_taskTick);
 
   m_handshakeManager->clear();
   m_downloadManager->clear();
@@ -85,7 +87,22 @@ Manager::~Manager() {
 }
 
 void
-Manager::receive_keepalive() {
+Manager::initialize_download(DownloadWrapper* d) {
+  m_downloadManager->insert(d);
+  m_resourceManager->insert(1, d->main());
+
+  d->main()->choke_manager()->slot_choke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_choke));
+  d->main()->choke_manager()->slot_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_unchoke));
+}
+
+void
+Manager::cleanup_download(DownloadWrapper* d) {
+  m_resourceManager->erase(d->main());
+  m_downloadManager->erase(d);
+}
+
+void
+Manager::receive_tick() {
   m_ticks++;
 
   if (m_ticks % 4 == 0)
@@ -93,7 +110,9 @@ Manager::receive_keepalive() {
 
   m_resourceManager->receive_tick();
 
-  taskScheduler.insert(&m_taskKeepalive, (Timer::cache() + 30 * 1000000).round_seconds());
+  // If you change the interval, make sure the above keepalive gets
+  // triggered every 120 seconds.
+  taskScheduler.insert(&m_taskTick, (Timer::cache() + 30 * 1000000).round_seconds());
 }
 
 }

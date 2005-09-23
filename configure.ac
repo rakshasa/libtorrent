@@ -1,8 +1,8 @@
-AC_INIT(libtorrent, 0.7.4, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.7.5, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,
-          "-lt0704-",
+          "-lt0705-",
           Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=5

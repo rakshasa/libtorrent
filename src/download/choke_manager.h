@@ -58,10 +58,7 @@ public:
     m_currentlyUnchoked(0),
     m_currentlyInterested(0),
     m_maxUnchoked(15),
-    m_minGenerous(2),
-
-    m_quota(0),
-    m_cycleSize(4) {}
+    m_minGenerous(2) {}
   ~ChokeManager();
   
   unsigned int        currently_unchoked() const              { return m_currentlyUnchoked; }
@@ -72,12 +69,6 @@ public:
 
   unsigned int        min_generous() const                    { return m_minGenerous; }
   void                set_min_generous(unsigned int v)        { m_minGenerous = v; }
-
-  unsigned int        cycle_size() const                      { return m_cycleSize; }
-  void                set_cycle_size(unsigned int v)          { m_cycleSize = v; }
-
-  unsigned int        quota() const                           { return m_quota; }
-  void                set_quota(unsigned int v)               { m_quota = v; }
 
   void                balance();
   int                 cycle(unsigned int quota);
@@ -93,13 +84,17 @@ public:
   void                slot_unchoke(SlotBool s)                 { m_slotUnchoke = s; }
 
 private:
-  void                choke_range(iterator first, iterator last, unsigned int count);
-  void                unchoke_range(iterator first, iterator last, unsigned int count);
-
   static iterator     seperate_interested(iterator first, iterator last);
   static iterator     seperate_unchoked(iterator first, iterator last);
 
-  static void         sort_down_rate(iterator first, iterator last);
+  inline unsigned int max_alternate() const;
+
+  unsigned int        choke_range(iterator first, iterator last, unsigned int count);
+  unsigned int        unchoke_range(iterator first, iterator last, unsigned int count);
+
+  inline void         alternate_ranges(iterator firstUnchoked, iterator lastUnchoked,
+				       iterator firstChoked, iterator lastChoked,
+				       unsigned int max);
 
   ConnectionList*     m_connectionList;
 
@@ -108,9 +103,6 @@ private:
 
   unsigned int        m_maxUnchoked;
   unsigned int        m_minGenerous;
-
-  unsigned int        m_quota;
-  unsigned int        m_cycleSize;
 
   SlotVoid            m_slotChoke;
   SlotBool            m_slotUnchoke;
