@@ -64,11 +64,14 @@ public:
   void                insert(int priority, DownloadMain* d);
   void                erase(DownloadMain* d);
 
+  // When setting this, make sure you choke peers, else change
+  // receive_can_unchoke.
   unsigned int        max_unchoked() const             { return m_maxUnchoked; }
   void                set_max_unchoked(unsigned int m) { m_maxUnchoked = m; }
 
-  void                receive_choke();
-  bool                receive_unchoke();
+  void                receive_choke(unsigned int num);
+  void                receive_unchoke(unsigned int num);
+  unsigned int        retrieve_can_unchoke();
 
   void                receive_tick();
 

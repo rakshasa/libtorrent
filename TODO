@@ -2,7 +2,7 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Reconsider using 30 second choke cycle.
+[DONE] Make sure flushing happens...
 
 Move download initializiation stuff into Manager.
 

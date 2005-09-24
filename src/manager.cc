@@ -93,6 +93,7 @@ Manager::initialize_download(DownloadWrapper* d) {
 
   d->main()->choke_manager()->slot_choke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_choke));
   d->main()->choke_manager()->slot_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_unchoke));
+  d->main()->choke_manager()->slot_can_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::retrieve_can_unchoke));
 }
 
 void

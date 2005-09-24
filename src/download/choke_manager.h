@@ -49,9 +49,10 @@ class PeerConnectionBase;
 
 class ChokeManager {
 public:
-  typedef ConnectionList::iterator           iterator;
-  typedef rak::mem_fn<ResourceManager, void> SlotVoid;
-  typedef rak::mem_fn<ResourceManager, bool> SlotBool;
+  typedef ConnectionList::iterator                          iterator;
+  typedef rak::mem_fn1<ResourceManager, void, unsigned int> SlotChoke;
+  typedef rak::mem_fn1<ResourceManager, void, unsigned int> SlotUnchoke;
+  typedef rak::mem_fn0<ResourceManager, unsigned int>       SlotCanUnchoke;
 
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
@@ -80,8 +81,9 @@ public:
 
   void                disconnected(PeerConnectionBase* pc);
 
-  void                slot_choke(SlotVoid s)                   { m_slotChoke = s; }
-  void                slot_unchoke(SlotBool s)                 { m_slotUnchoke = s; }
+  void                slot_choke(SlotChoke s)                  { m_slotChoke = s; }
+  void                slot_unchoke(SlotUnchoke s)              { m_slotUnchoke = s; }
+  void                slot_can_unchoke(SlotCanUnchoke s)       { m_slotCanUnchoke = s; }
 
 private:
   static iterator     seperate_interested(iterator first, iterator last);
@@ -104,8 +106,9 @@ private:
   unsigned int        m_maxUnchoked;
   unsigned int        m_minGenerous;
 
-  SlotVoid            m_slotChoke;
-  SlotBool            m_slotUnchoke;
+  SlotChoke           m_slotChoke;
+  SlotUnchoke         m_slotUnchoke;
+  SlotCanUnchoke      m_slotCanUnchoke;
 };
 
 }

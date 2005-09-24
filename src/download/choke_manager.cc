@@ -81,12 +81,6 @@ ChokeManager::seperate_unchoked(iterator first, iterator last) {
   return std::partition(first, last, std::not1(std::mem_fun(&PeerConnectionBase::is_up_choked)));
 }
 
-// Since we're doing the cycle only every 60 seconds, we need to
-// alternate more connections. With only 1 unchoked we cannot expect
-// to keep the fastest unchoked.
-//
-// Possible values:
-//
 // 1  > 1
 // 9  > 2
 // 17 > 3 < 21
@@ -125,6 +119,8 @@ ChokeManager::alternate_ranges(iterator firstUnchoked, iterator lastUnchoked,
 void
 ChokeManager::balance() {
   // Return if no balance is needed.
+  if (m_currentlyUnchoked == m_maxUnchoked)
+    return;
 
   iterator beginUninterested = seperate_interested(m_connectionList->begin(), m_connectionList->end());
   iterator beginChoked       = seperate_unchoked(m_connectionList->begin(), beginUninterested);
@@ -132,28 +128,18 @@ ChokeManager::balance() {
   int adjust = m_maxUnchoked - m_currentlyUnchoked;
 
   if (adjust > 0) {
-    // Can unchoke peers.
-    std::sort(beginChoked, beginUninterested, choke_manager_read_rate_increasing());
+    adjust = unchoke_range(beginChoked, beginUninterested,
+			   std::min((unsigned int)adjust, m_slotCanUnchoke()));
 
-    while (beginUninterested != beginChoked &&
-	   adjust-- &&
-	   m_slotUnchoke()) {
-      (*--beginUninterested)->receive_choke(false);
-
-      m_currentlyUnchoked++;
-    }
+    m_slotUnchoke(adjust);
 
   } else if (adjust < 0)  {
-    unsigned int size = std::min<unsigned int>(-adjust, std::distance(m_connectionList->begin(), beginChoked));
+    // We can do the choking before the slot is called as this
+    // ChokeManager won't be unchoking the same peers due to the
+    // call-back.
+    adjust = choke_range(m_connectionList->begin(), beginChoked, -adjust);
 
-    //std::sort(m_connectionList->begin(), beginChoked, choke_manager_read_rate_increasing());
-
-    // We do the signaling to the ResourceManager before choking so
-    // that it won't try to unchoke the same connections.
-    for (int i = 0; i < size; ++i)
-      m_slotChoke();
-
-    choke_range(m_connectionList->begin(), beginChoked, size);
+    m_slotChoke(adjust);
   }
 }
 
@@ -205,9 +191,11 @@ ChokeManager::set_interested(PeerConnectionBase* pc) {
 
   if (m_currentlyUnchoked < m_maxUnchoked &&
       pc->time_last_choked() + 10 * 1000000 < Timer::cache() &&
-      m_slotUnchoke()) {
+      m_slotCanUnchoke()) {
     pc->receive_choke(false);
+
     m_currentlyUnchoked++;
+    m_slotUnchoke(1);
   }
 }
 
@@ -221,7 +209,7 @@ ChokeManager::set_not_interested(PeerConnectionBase* pc) {
   pc->receive_choke(true);
 
   m_currentlyUnchoked--;
-  m_slotChoke();
+  m_slotChoke(1);
 }
 
 // We might no longer be in m_connectionList.
@@ -232,7 +220,7 @@ ChokeManager::disconnected(PeerConnectionBase* pc) {
 
   if (!pc->is_up_choked()) {
     m_currentlyUnchoked--;
-    m_slotChoke();
+    m_slotChoke(1);
   }
 }
 

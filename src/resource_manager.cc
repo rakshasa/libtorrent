@@ -71,18 +71,29 @@ ResourceManager::erase(DownloadMain* d) {
 // The choking choke manager won't updated it's count until after
 // possibly multiple calls of this function.
 void
-ResourceManager::receive_choke() {
-  m_currentlyUnchoked--;
+ResourceManager::receive_choke(unsigned int num) {
+  if (num > m_currentlyUnchoked)
+    throw internal_error("ResourceManager::receive_choke(...) received an invalid value.");
+
+  m_currentlyUnchoked -= num;
+
+  // Do unchoking of other peers.
 }
 
-bool
-ResourceManager::receive_unchoke() {
-  if (m_maxUnchoked == 0 || m_currentlyUnchoked < m_maxUnchoked) {
-    m_currentlyUnchoked++;
-    return true;
-  } else {
-    return false;
-  }
+void
+ResourceManager::receive_unchoke(unsigned int num) {
+  m_currentlyUnchoked += num;
+
+  if (num > m_maxUnchoked || m_currentlyUnchoked > m_maxUnchoked)
+    throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
+}
+
+unsigned int
+ResourceManager::retrieve_can_unchoke() {
+  if (m_maxUnchoked != 0)
+    return std::min(m_maxUnchoked - m_currentlyUnchoked, 0u);
+  else
+    return std::numeric_limits<unsigned int>::max();
 }
 
 void

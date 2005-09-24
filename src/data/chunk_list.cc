@@ -78,6 +78,9 @@ ChunkList::clear() {
   if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::references)) != end())
     throw internal_error("ChunkList::clear() called but a valid node was found.");
 
+  if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::writable)) != end())
+    throw internal_error("ChunkList::clear() called but a valid node was found.");
+
   Base::clear();
 }
 
@@ -162,6 +165,9 @@ struct chunk_list_last_modified {
 
 inline void
 ChunkList::sync_chunk(ChunkListNode* node) {
+  if (node->references() <= 0 || node->writable() <= 0)
+    throw internal_error("ChunkList::sync_chunk(...) got a node with invalid reference count.");
+
   // Check return value?
   node->chunk()->sync(MemoryChunk::sync_async);
 
@@ -190,6 +196,11 @@ ChunkList::sync_all() {
 
 void
 ChunkList::sync_periodic() {
+  if (std::find_if(m_queue.begin(), m_queue.end(), rak::equal(0, std::mem_fun(&ChunkListNode::writable)))
+      != m_queue.end())
+    throw internal_error("ChunkList::sync_periodic() found a chunk with writable == 0.");
+
+  // Chunks that still have writers are moved infront of split.
   Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
 					 rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
 
@@ -201,12 +212,11 @@ ChunkList::sync_periodic() {
   // kernel might do so anyway if it lies in its path, so we don't
   // sync those chunks.
 
-  // Sort by index?
-  std::sort(m_queue.begin(), split, std::ptr_fun(&ChunkList::less_chunk_index));
-
-  if (std::distance(m_queue.begin(), split) < m_maxQueueSize &&
-      std::for_each(m_queue.begin(), split, chunk_list_last_modified()).m_time >= Timer::cache() - m_maxTimeQueued * 1000000)
+  if (std::distance(split, m_queue.end()) < m_maxQueueSize &&
+      std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + m_maxTimeQueued * 1000000 < Timer::cache())
     return;
+
+  std::sort(split, m_queue.end(), std::ptr_fun(&ChunkList::less_chunk_index));
 
   std::for_each(split, m_queue.end(), std::ptr_fun(&ChunkList::sync_chunk));
   m_queue.erase(split, m_queue.end());
