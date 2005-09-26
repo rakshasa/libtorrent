@@ -91,12 +91,14 @@ private:
 
   inline unsigned int max_alternate() const;
 
-  unsigned int        choke_range(iterator first, iterator last, unsigned int count);
-  unsigned int        unchoke_range(iterator first, iterator last, unsigned int count);
+  unsigned int        choke_range(iterator first, iterator last, unsigned int max);
+  unsigned int        unchoke_range(iterator first, iterator last, unsigned int max);
 
   inline void         alternate_ranges(iterator firstUnchoked, iterator lastUnchoked,
 				       iterator firstChoked, iterator lastChoked,
 				       unsigned int max);
+
+  inline static void  swap_with_shift(iterator first, iterator source);
 
   ConnectionList*     m_connectionList;
 

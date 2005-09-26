@@ -421,6 +421,9 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
 
   m_bitfield.set(index, true);
   m_peerRate.insert(m_download->content()->chunk_size());
+
+  if (m_bitfield.all_set())
+    throw close_connection();
 }
 
 void

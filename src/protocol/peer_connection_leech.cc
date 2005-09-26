@@ -177,7 +177,7 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    if (!m_down->interested()) {
+    if (!m_bitfield.all_set() && !m_down->interested()) {
       m_down->set_interested(true);
       m_download->choke_manager()->set_interested(this);
     }
@@ -552,6 +552,14 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
   m_bitfield.set(index, true);
   m_peerRate.insert(m_download->content()->chunk_size());
+
+  if (m_bitfield.all_set() && m_download->content()->is_done())
+    throw close_connection();
+
+  if (m_bitfield.all_set() && m_down->interested()) {
+    m_down->set_interested(false);
+    m_download->choke_manager()->set_not_interested(this);
+  }
 }
 
 void

@@ -96,17 +96,17 @@ Peer::get_snubbed() {
 
 const Rate&
 Peer::get_down_rate() {
-  return m_ptr->get_down_rate();
+  return m_ptr->down_rate();
 } 
 
 const Rate&
 Peer::get_up_rate() {
-  return m_ptr->get_up_rate();
+  return m_ptr->up_rate();
 } 
 
 const Rate&
 Peer::get_peer_rate() {
-  return m_ptr->get_peer_rate();
+  return m_ptr->peer_rate();
 } 
 
 uint32_t

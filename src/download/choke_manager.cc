@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <cstdlib>
 
 #include "protocol/peer_connection_base.h"
 
@@ -55,19 +56,31 @@ ChokeManager::~ChokeManager() {
 
 struct choke_manager_read_rate_increasing {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return p1->get_down_rate().rate() < p2->get_down_rate().rate();
+    return p1->down_rate().rate() < p2->down_rate().rate();
   }
 };
 
 struct choke_manager_read_rate_decreasing {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return p1->get_down_rate().rate() > p2->get_down_rate().rate();
+    return p1->down_rate().rate() > p2->down_rate().rate();
+  }
+};
+
+struct choke_manager_is_remote_not_uploading {
+  bool operator () (PeerConnectionBase* p1) const {
+    return p1->down_rate().rate() == 0;
   }
 };
 
 struct choke_manager_is_interested {
   bool operator () (PeerConnectionBase* p) const {
     return p->is_down_interested() && !p->is_snubbed();
+  }
+};
+
+struct choke_manager_not_recently_unchoked {
+  bool operator () (PeerConnectionBase* p) const {
+    return p->time_last_choked() + 10 * 1000000 < Timer::cache();
   }
 };
 
@@ -104,10 +117,19 @@ ChokeManager::alternate_ranges(iterator firstUnchoked, iterator lastUnchoked,
 					std::distance(firstChoked, lastChoked)),
 		 max);
 
-  // Do some prioritizing, and randomizing of the unchoked peers.
+  // Do unchoke first, then choke. Take the return value of the first
+  // unchoke and use it for choking. Don't need the above min call.
 
   choke_range(firstUnchoked, lastUnchoked, max);
   unchoke_range(firstChoked, lastChoked, max);
+}
+
+inline void
+ChokeManager::swap_with_shift(iterator first, iterator source) {
+  while (first != source) {
+    iterator tmp = source;
+    std::iter_swap(tmp, --source);
+  }
 }
 
 // Would propably replace maxUnchoked with whatever max the global
@@ -212,7 +234,7 @@ ChokeManager::set_not_interested(PeerConnectionBase* pc) {
   m_slotChoke(1);
 }
 
-// We might no longer be in m_connectionList.
+// We are no longer be in m_connectionList.
 void
 ChokeManager::disconnected(PeerConnectionBase* pc) {
   if (pc->is_down_interested())
@@ -225,32 +247,36 @@ ChokeManager::disconnected(PeerConnectionBase* pc) {
 }
 
 unsigned int
-ChokeManager::choke_range(iterator first, iterator last, unsigned int count) {
-  count = std::min(count, (unsigned int)distance(first, last));
-
-  // Consider paritioning away connections that have been unchoked the
-  // last < 60 (45) seconds.
+ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
+  max = std::min(max, (unsigned int)distance(first, last));
 
   std::sort(first, last, choke_manager_read_rate_increasing());
+  std::stable_partition(first, last, choke_manager_not_recently_unchoked());
 
-  std::for_each(first, first + count,
-		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true));
+  std::for_each(first, first + max, std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true));
 
-  m_currentlyUnchoked -= count;
-  return count;
+  m_currentlyUnchoked -= max;
+  return max;
 }
   
 unsigned int
-ChokeManager::unchoke_range(iterator first, iterator last, unsigned int count) {
-  count = std::min(count, (unsigned int)distance(first, last));
-
+ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
   std::sort(first, last, choke_manager_read_rate_decreasing());
 
-  // Check if first is zero, if so then do random unchokes. On second
-  // thought, do random unchokes for some ratio of unchokes.
+  unsigned int count = 0;
+  iterator split = std::find_if(first, last, choke_manager_is_remote_not_uploading());
 
-  std::for_each(first, first + count,
-		std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false));
+  for ( ; count != max && first != last; count++, first++) {
+
+    if (split != last &&
+	((*first)->down_rate().rate() < 500 || std::rand() % 3 == 0)) {
+      // Use a random connection that is not uploading to us.
+      std::iter_swap(split, split + std::rand() % std::distance(split, last));
+      swap_with_shift(first, split++);
+    }
+    
+    (*first)->receive_choke(false);
+  }
 
   m_currentlyUnchoked += count;
   return count;

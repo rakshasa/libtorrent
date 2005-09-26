@@ -170,12 +170,12 @@ Download::set_root_dir(const std::string& dir) {
 
 const Rate&
 Download::get_down_rate() const {
-  return m_ptr->main()->get_down_rate();
+  return m_ptr->main()->down_rate();
 }
 
 const Rate&
 Download::get_up_rate() const {
-  return m_ptr->main()->get_up_rate();
+  return m_ptr->main()->up_rate();
 }
 
 uint64_t

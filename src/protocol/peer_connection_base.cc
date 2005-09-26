@@ -273,7 +273,7 @@ PeerConnectionBase::down_chunk() {
 
   throttleRead.get_rate_slow().insert(bytes);
   throttleRead.get_rate_quick().insert(bytes);
-  m_download->get_down_rate().insert(bytes);
+  m_download->down_rate().insert(bytes);
 
   return m_down->get_position() == m_downPiece.get_length();
 }
@@ -308,7 +308,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
 
   throttleRead.get_rate_slow().insert(bytes);
   throttleRead.get_rate_quick().insert(bytes);
-  m_download->get_down_rate().insert(bytes);
+  m_download->down_rate().insert(bytes);
 
   return m_down->get_position() == m_downPiece.get_length();
 }
@@ -356,7 +356,7 @@ PeerConnectionBase::up_chunk() {
 
   throttleWrite.get_rate_slow().insert(bytes);
   throttleWrite.get_rate_quick().insert(bytes);
-  m_download->get_up_rate().insert(bytes);
+  m_download->up_rate().insert(bytes);
 
   return m_up->get_position() == m_upPiece.get_length();
 }
@@ -490,7 +490,7 @@ PeerConnectionBase::should_request() {
     // We check if the peer is stalled, if it is not then we should
     // request. If the peer is stalled then we only request if the
     // download rate is below a certain value.
-    return m_downStall <= 1 || m_download->get_down_rate().rate() < (10 << 10);
+    return m_downStall <= 1 || m_download->down_rate().rate() < (10 << 10);
 }
 
 bool

@@ -86,9 +86,9 @@ public:
 
   const PeerInfo&     get_peer() const              { return m_peer; }
 
-  Rate&               get_peer_rate()               { return m_peerRate; }
-  Rate&               get_up_rate()                 { return m_upRate; }
-  Rate&               get_down_rate()               { return m_downRate; }
+  Rate&               peer_rate()                   { return m_peerRate; }
+  Rate&               up_rate()                     { return m_upRate; }
+  Rate&               down_rate()                   { return m_downRate; }
 
   RequestList&        get_request_list()            { return m_requestList; }
   PieceList&          get_send_list()               { return m_sendList; }

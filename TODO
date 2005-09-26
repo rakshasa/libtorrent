@@ -2,17 +2,16 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Make sure flushing happens...
+[DONE] Choke on complete, don't unchoke peers that are complete. Ignore
+interested from completed, and set uninterested for completed.
+
+Some http download errors don't give error messages.
 
 Move download initializiation stuff into Manager.
 
 Replace download_remove's info_hash thingie with Download.
 
 Use partial sort, or nth_element.
-
-Take upload speed into account when sorting.
-
-Adjust cycle size according to unchoked size.
 
 Uploading too fast?
 

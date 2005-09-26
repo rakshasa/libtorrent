@@ -84,7 +84,7 @@ void
 ResourceManager::receive_unchoke(unsigned int num) {
   m_currentlyUnchoked += num;
 
-  if (num > m_maxUnchoked || m_currentlyUnchoked > m_maxUnchoked)
+  if (m_maxUnchoked != 0 && (num > m_maxUnchoked || m_currentlyUnchoked > m_maxUnchoked))
     throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
 }
 
