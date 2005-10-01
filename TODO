@@ -2,8 +2,18 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Choke on complete, don't unchoke peers that are complete. Ignore
-interested from completed, and set uninterested for completed.
+Look into excess resource usage, posssibly multi-tracker/udp related.
+
+* Re-enable snubbing *
+
+Figure out if snubbing fscks up interested. Also a connection might be
+(un)choked while setting (not)interested. urgh... think.
+
+***
+
+Make sure that when we stop a torrent and disconnects, that those
+don't cause unchokes of soon to be disconnected peers. Create a
+function that chokes all and doesn't allow new unchokes.
 
 Some http download errors don't give error messages.
 
@@ -15,17 +25,11 @@ Use partial sort, or nth_element.
 
 Uploading too fast?
 
-Figure out if snubbing fscks up interested. Also a connection might be
-(un)choked while setting (not)interested. urgh... think.
-
 Consider balancing when adding downloads. Actually, won't do much good
 as new downloads have no peers. Use a buffer of available unchokes?
 
 Rename most things to remote/local or something. up/down is too
 confusing. Atleast add it to some of the function names.
-
-Make sure that when we stop a torrent and disconnects, that those
-don't cause unchokes of soon to be disconnected peers.
 
 Balance will be reserved for when we change the max unchoked.
 

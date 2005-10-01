@@ -60,6 +60,12 @@ struct choke_manager_read_rate_increasing {
   }
 };
 
+struct choke_manager_write_rate_increasing {
+  bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
+    return p1->up_rate().rate() < p2->up_rate().rate();
+  }
+};
+
 struct choke_manager_read_rate_decreasing {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
     return p1->down_rate().rate() > p2->down_rate().rate();
@@ -72,9 +78,15 @@ struct choke_manager_is_remote_not_uploading {
   }
 };
 
+struct choke_manager_is_remote_uploading {
+  bool operator () (PeerConnectionBase* p1) const {
+    return p1->down_rate().rate() != 0;
+  }
+};
+
 struct choke_manager_is_interested {
   bool operator () (PeerConnectionBase* p) const {
-    return p->is_down_interested() && !p->is_snubbed();
+    return p->is_upload_wanted();
   }
 };
 
@@ -237,7 +249,7 @@ ChokeManager::set_not_interested(PeerConnectionBase* pc) {
 // We are no longer be in m_connectionList.
 void
 ChokeManager::disconnected(PeerConnectionBase* pc) {
-  if (pc->is_down_interested())
+  if (pc->is_upload_wanted())
     m_currentlyInterested--;
 
   if (!pc->is_up_choked()) {
@@ -251,7 +263,12 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
   max = std::min(max, (unsigned int)distance(first, last));
 
   std::sort(first, last, choke_manager_read_rate_increasing());
-  std::stable_partition(first, last, choke_manager_not_recently_unchoked());
+
+  iterator split;
+  split = std::stable_partition(first, last, choke_manager_not_recently_unchoked());
+  split = std::find_if(first, split, choke_manager_is_remote_uploading());
+
+  std::sort(first, split, choke_manager_write_rate_increasing());
 
   std::for_each(first, first + max, std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true));
 
@@ -264,6 +281,13 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
   std::sort(first, last, choke_manager_read_rate_decreasing());
 
   unsigned int count = 0;
+
+  // Find the split between the ones that are uploading to us, and
+  // those that arn't. When unchoking, circa every third unchoke is of
+  // a connection in the list of those not uploading to us.
+  //
+  // Perhaps we should prefer those we are interested in?
+
   iterator split = std::find_if(first, last, choke_manager_is_remote_not_uploading());
 
   for ( ; count != max && first != last; count++, first++) {

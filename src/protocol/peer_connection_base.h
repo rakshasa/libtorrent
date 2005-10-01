@@ -78,6 +78,8 @@ public:
   bool                is_down_choked()              { return m_down->choked(); }
   bool                is_down_interested()          { return m_down->interested(); }
 
+  bool                is_upload_wanted() const      { return m_down->interested() && !m_snubbed; }
+
   bool                is_down_throttled()           { return m_downThrottle != throttleRead.end(); }
   bool                is_up_throttled()             { return m_upThrottle != throttleWrite.end(); }
 
@@ -154,6 +156,9 @@ protected:
 
   bool                should_request();
   bool                try_request_pieces();
+
+  void                set_remote_interested();
+  void                set_remote_not_interested();
 
   DownloadMain*       m_download;
 

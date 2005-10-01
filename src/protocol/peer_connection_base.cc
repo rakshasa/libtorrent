@@ -78,7 +78,6 @@ PeerConnectionBase::~PeerConnectionBase() {
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
   m_download->choke_manager()->disconnected(this);
-  m_up->set_choked(true);
 
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
@@ -104,6 +103,7 @@ PeerConnectionBase::~PeerConnectionBase() {
 
   delete m_down;
   delete m_up;
+  m_download = NULL;
 }
 
 bool
@@ -177,13 +177,20 @@ PeerConnectionBase::load_up_chunk() {
 
 void
 PeerConnectionBase::set_snubbed(bool v) {
-//   m_snubbed = v;
+  if (v == m_snubbed)
+    return;
 
-//   if (v)
-//     m_download->choke_manager()->set_not_interested(this);
-//   else
-//  if (
-//     m_download->choke_manager()->set_interested(this);
+  bool wasUploadWanted = is_upload_wanted();
+  m_snubbed = v;
+
+  if (v) {
+    if (wasUploadWanted)
+      m_download->choke_manager()->set_not_interested(this);
+
+  } else {
+    if (is_upload_wanted())
+      m_download->choke_manager()->set_interested(this);
+  }
 }
 
 uint32_t
@@ -516,6 +523,30 @@ PeerConnectionBase::try_request_pieces() {
   }
 
   return success;
+}
+
+void
+PeerConnectionBase::set_remote_interested() {
+  if (m_down->interested() || m_bitfield.all_set())
+    return;
+
+  m_down->set_interested(true);
+
+  if (is_upload_wanted())
+    m_download->choke_manager()->set_interested(this);
+}
+
+void
+PeerConnectionBase::set_remote_not_interested() {
+  if (!m_down->interested())
+    return;
+
+  bool wasUploadWanted = is_upload_wanted();
+
+  m_down->set_interested(false);
+
+  if (wasUploadWanted)
+    m_download->choke_manager()->set_not_interested(this);
 }
 
 }

@@ -40,7 +40,6 @@
 #include <sstream>
 
 #include "data/content.h"
-#include "download/choke_manager.h"
 #include "download/download_main.h"
 
 #include "peer_connection_seed.h"
@@ -144,17 +143,11 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    if (!m_down->interested()) {
-      m_down->set_interested(true);
-      m_download->choke_manager()->set_interested(this);
-    }
+    set_remote_interested();
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    if (m_down->interested()) {
-      m_down->set_interested(false);
-      m_download->choke_manager()->set_not_interested(this);
-    }
+    set_remote_not_interested();
     return true;
 
   case ProtocolBase::HAVE:

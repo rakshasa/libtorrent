@@ -40,7 +40,6 @@
 #include <sstream>
 
 #include "data/content.h"
-#include "download/choke_manager.h"
 #include "download/download_main.h"
 
 #include "peer_connection_leech.h"
@@ -177,17 +176,11 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    if (!m_bitfield.all_set() && !m_down->interested()) {
-      m_down->set_interested(true);
-      m_download->choke_manager()->set_interested(this);
-    }
+    set_remote_interested();
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    if (m_down->interested()) {
-      m_down->set_interested(false);
-      m_download->choke_manager()->set_not_interested(this);
-    }
+    set_remote_not_interested();
     return true;
 
   case ProtocolBase::HAVE:
@@ -553,13 +546,11 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
   m_bitfield.set(index, true);
   m_peerRate.insert(m_download->content()->chunk_size());
 
-  if (m_bitfield.all_set() && m_download->content()->is_done())
-    throw close_connection();
-
-  if (m_bitfield.all_set() && m_down->interested()) {
-    m_down->set_interested(false);
-    m_download->choke_manager()->set_not_interested(this);
-  }
+  if (m_bitfield.all_set())
+    if (m_download->content()->is_done())
+      throw close_connection();
+    else
+      set_remote_not_interested();
 }
 
 void
