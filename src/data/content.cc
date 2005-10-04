@@ -116,7 +116,7 @@ Content::get_chunk_index_size(uint32_t index) const {
 }
 
 uint64_t
-Content::get_bytes_completed() {
+Content::get_bytes_completed() const {
   uint64_t cs = m_chunkSize;
 
   if (!m_bitfield[m_chunkTotal - 1] || m_entryList->get_bytes_size() % cs == 0)

@@ -39,19 +39,21 @@
 
 #include <list>
 #include <inttypes.h>
-#include <sigc++/slot.h>
+#include <rak/functional.h>
 
 #include "net/socket_address.h"
 #include "tracker_info.h"
 
 namespace torrent {
 
+class TrackerControl;
+
 class TrackerBase {
 public:
-  typedef std::list<SocketAddress>                      AddressList;
-  typedef sigc::slot1<void, int>                        SlotInt;
-  typedef sigc::slot2<void, TrackerBase*, AddressList*> SlotTbAddressList;
-  typedef sigc::slot2<void, TrackerBase*, std::string>  SlotTbString;
+  typedef std::list<SocketAddress>                                             AddressList;
+  typedef rak::mem_fn1<TrackerControl, void, int>                              SlotInt;
+  typedef rak::mem_fn2<TrackerControl, void, TrackerBase*, AddressList*>       SlotTbAddressList;
+  typedef rak::mem_fn2<TrackerControl, void, TrackerBase*, const std::string&> SlotTbString;
 
   typedef enum {
     TRACKER_NONE,

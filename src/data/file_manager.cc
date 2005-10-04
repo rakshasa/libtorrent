@@ -56,7 +56,7 @@ FileManager::insert(const std::string& path) {
   FileMeta* f = new FileMeta;
 
   f->set_path(path);
-  f->slot_prepare(sigc::mem_fun(*this, &FileManager::prepare_file));
+  f->slot_prepare(rak::make_mem_fn(this, &FileManager::prepare_file));
 
   Base::push_back(f);
 

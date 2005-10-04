@@ -82,8 +82,8 @@ public:
   const std::string&     get_complete_hash()                  { return m_hash; }
   const std::string&     get_root_dir()                       { return m_rootDir; }
 
-  uint32_t               get_chunks_completed()               { return m_completed; }
-  uint64_t               get_bytes_completed();
+  uint32_t               get_chunks_completed() const         { return m_completed; }
+  uint64_t               get_bytes_completed() const;
   
   uint32_t               chunk_total() const                  { return m_chunkTotal; }
   uint32_t               chunk_size() const                   { return m_chunkSize; }

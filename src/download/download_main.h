@@ -84,7 +84,7 @@ public:
   ConnectionList*     connection_list()                          { return &m_connectionList; }
 
   bool                get_endgame() const                        { return m_endgame; }
-  uint64_t            get_bytes_left();
+  uint64_t            get_bytes_left() const;
 
   Rate&               up_rate()                              { return m_upRate; }
   Rate&               down_rate()                            { return m_downRate; }

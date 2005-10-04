@@ -71,9 +71,9 @@ DownloadMain::setup_tracker() {
   m_trackerManager->tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
   m_trackerManager->tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
 
-  m_trackerManager->tracker_info()->slot_stat_down() = sigc::mem_fun(m_downRate, &Rate::total);
-  m_trackerManager->tracker_info()->slot_stat_up()   = sigc::mem_fun(m_upRate, &Rate::total);
-  m_trackerManager->tracker_info()->slot_stat_left() = sigc::mem_fun(*this, &DownloadMain::get_bytes_left);
+  m_trackerManager->tracker_info()->slot_stat_down() = rak::make_mem_fn(&m_downRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_up()   = rak::make_mem_fn(&m_upRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_left() = rak::make_mem_fn(this, &DownloadMain::get_bytes_left);
 }
 
 void

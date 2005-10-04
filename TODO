@@ -2,6 +2,8 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+[R] I would like to request refreshing the screen on SIGWINCH and when you press Ctrl-L
+
 Look into excess resource usage, posssibly multi-tracker/udp related.
 
 * Re-enable snubbing *

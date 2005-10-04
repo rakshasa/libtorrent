@@ -88,6 +88,10 @@ Manager::~Manager() {
 
 void
 Manager::initialize_download(DownloadWrapper* d) {
+  d->set_handshake_manager(m_handshakeManager);
+  d->set_hash_queue(m_hashQueue);
+  d->set_file_manager(m_fileManager);
+
   m_downloadManager->insert(d);
   m_resourceManager->insert(1, d->main());
 

@@ -38,18 +38,20 @@
 #define LIBTORRENT_DATA_CHUNK_LIST_H
 
 #include <vector>
-#include <sigc++/slot.h>
+#include <rak/functional.h>
 
 #include "chunk_handle.h"
 
 namespace torrent {
 
+class Content;
+
 class ChunkList : private std::vector<ChunkListNode> {
 public:
-  typedef uint32_t                            size_type;
-  typedef std::vector<ChunkListNode>          Base;
-  typedef std::vector<ChunkListNode*>         Queue;
-  typedef sigc::slot2<Chunk*, uint32_t, bool> SlotCreateChunk;
+  typedef uint32_t                                      size_type;
+  typedef std::vector<ChunkListNode>                    Base;
+  typedef std::vector<ChunkListNode*>                   Queue;
+  typedef rak::mem_fn2<Content, Chunk*, uint32_t, bool> SlotCreateChunk;
 
   using Base::value_type;
   using Base::reference;

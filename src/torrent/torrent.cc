@@ -379,10 +379,6 @@ download_add(std::istream* s) {
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
 		manager->get_local_address());
 
-  d->set_handshake_manager(manager->handshake_manager());
-  d->set_hash_queue(manager->hash_queue());
-  d->set_file_manager(manager->file_manager());
-
   // Default PeerConnection factory functions.
   d->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
 

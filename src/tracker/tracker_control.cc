@@ -77,10 +77,10 @@ TrackerControl::insert(int group, const std::string& url) {
     // TODO: Error message here?... not really...
     return;
   
-  t->slot_success(sigc::mem_fun(*this, &TrackerControl::receive_success));
-  t->slot_failed(sigc::mem_fun(*this, &TrackerControl::receive_failed));
-  t->slot_set_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_normal_interval));
-  t->slot_set_min_interval(sigc::mem_fun(*this, &TrackerControl::receive_set_min_interval));
+  t->slot_success(rak::make_mem_fn(this, &TrackerControl::receive_success));
+  t->slot_failed(rak::make_mem_fn(this, &TrackerControl::receive_failed));
+  t->slot_set_interval(rak::make_mem_fn(this, &TrackerControl::receive_set_normal_interval));
+  t->slot_set_min_interval(rak::make_mem_fn(this, &TrackerControl::receive_set_min_interval));
 
   m_list.insert(group, t);
   m_itr = m_list.begin();

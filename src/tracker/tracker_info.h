@@ -41,17 +41,21 @@
 #include <string>
 #include <inttypes.h>
 #include <sigc++/signal.h>
-#include <sigc++/slot.h>
+#include <rak/functional.h>
 
 #include "net/socket_address.h"
 
 namespace torrent {
 
+class DownloadMain;
+class Rate;
+
 class TrackerInfo {
 public:
   typedef std::list<SocketAddress>                AddressList;
 
-  typedef sigc::slot0<uint64_t>                   SlotStat;
+  typedef rak::const_mem_fn0<DownloadMain, uint64_t>    SlotStat;
+  typedef rak::const_mem_fn0<Rate, uint64_t>            SlotStatRate;
   typedef sigc::signal1<void, std::istream*>      SignalDump;
   typedef sigc::signal1<void, AddressList*>       SignalAddressList;
   typedef sigc::signal1<void, const std::string&> SignalString;
@@ -94,8 +98,8 @@ public:
   SignalString&       signal_failed()                         { return m_signalFailed; }
   SignalDump&         signal_dump()                           { return m_signalDump; }
 
-  SlotStat&           slot_stat_down()                             { return m_slotStatDown; }
-  SlotStat&           slot_stat_up()                               { return m_slotStatUp; }
+  SlotStatRate&       slot_stat_down()                             { return m_slotStatDown; }
+  SlotStatRate&       slot_stat_up()                               { return m_slotStatUp; }
   SlotStat&           slot_stat_left()                             { return m_slotStatLeft; }
 
 private:
@@ -107,8 +111,8 @@ private:
   bool                m_compact;
   int32_t             m_numwant;
 
-  SlotStat            m_slotStatDown;
-  SlotStat            m_slotStatUp;
+  SlotStatRate        m_slotStatDown;
+  SlotStatRate        m_slotStatUp;
   SlotStat            m_slotStatLeft;
 
   SignalDump          m_signalDump;

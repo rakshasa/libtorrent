@@ -74,7 +74,7 @@ DownloadMain::DownloadMain() :
   m_taskTrackerRequest.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tracker_request));
   m_taskTrackerRequest.set_iterator(taskScheduler.end());
 
-  m_chunkList->slot_create_chunk(sigc::mem_fun(m_content, &Content::create_chunk));
+  m_chunkList->slot_create_chunk(rak::make_mem_fn(&m_content, &Content::create_chunk));
 }
 
 DownloadMain::~DownloadMain() {
@@ -171,7 +171,7 @@ DownloadMain::stop() {
 }
 
 uint64_t
-DownloadMain::get_bytes_left() {
+DownloadMain::get_bytes_left() const {
   uint64_t left = m_content.entry_list()->get_bytes_size() - m_content.get_bytes_completed();
 
   if (left > ((uint64_t)1 << 60))

@@ -37,16 +37,18 @@
 #ifndef LIBTORRENT_DATA_FILE_META_H
 #define LIBTORRENT_DATA_FILE_META_H
 
-#include <sigc++/slot.h>
+#include <rak/functional.h>
 
 #include "utils/timer.h"
 #include "file.h"
 
 namespace torrent {
 
+class FileManager;
+
 class FileMeta {
 public:
-  typedef sigc::slot3<bool, FileMeta*, int, int> SlotPrepare;
+  typedef rak::mem_fn3<FileManager, bool, FileMeta*, int, int> SlotPrepare;
 
   FileMeta() : m_lastTouched(Timer::cache()) {}
 

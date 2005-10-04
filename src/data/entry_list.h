@@ -38,20 +38,21 @@
 #define LIBTORRENT_ENTRY_LIST_H
 
 #include <vector>
-#include <sigc++/slot.h>
+#include <rak/functional.h>
 
 #include "entry_list_node.h"
 
 namespace torrent {
 
 class Chunk;
+class FileManager;
 class MemoryChunk;
 
 class EntryList : private std::vector<EntryListNode> {
 public:
-  typedef std::vector<EntryListNode>                 Base;
-  typedef sigc::slot1<FileMeta*, const std::string&> SlotFileMetaString;
-  typedef sigc::slot1<void, FileMeta*>               SlotFileMeta;
+  typedef std::vector<EntryListNode>                               Base;
+  typedef rak::mem_fn1<FileManager, FileMeta*, const std::string&> SlotFileMetaString;
+  typedef rak::mem_fn1<FileManager, void, FileMeta*>               SlotFileMeta;
 
   using Base::value_type;
 

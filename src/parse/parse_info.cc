@@ -109,7 +109,6 @@ parse_info(const Bencode& b, Content& c) {
     c.entry_list()->reserve(b["files"].as_list().size());
 
     std::for_each(b["files"].as_list().begin(), b["files"].as_list().end(), bencode_to_file(c));
-
     c.set_root_dir("./" + b["name"].as_string());
 
   } else {

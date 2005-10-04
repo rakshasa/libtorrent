@@ -271,8 +271,8 @@ DownloadWrapper::get_local_address() {
 
 void
 DownloadWrapper::set_file_manager(FileManager* f) {
-  m_main.content()->entry_list()->slot_insert_filemeta(sigc::mem_fun(*f, &FileManager::insert));
-  m_main.content()->entry_list()->slot_erase_filemeta(sigc::mem_fun(*f, &FileManager::erase));
+  m_main.content()->entry_list()->slot_insert_filemeta(rak::make_mem_fn(f, &FileManager::insert));
+  m_main.content()->entry_list()->slot_erase_filemeta(rak::make_mem_fn(f, &FileManager::erase));
 }
 
 void
