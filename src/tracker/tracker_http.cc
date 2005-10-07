@@ -143,13 +143,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
 
   m_get->start();
 
-  // When sending stopped we use a really short timeout since it's not
-  // as important that the connection is successful. Ensuring the
-  // client can shut down within a short timeframe is more important.
-  if (state == TrackerInfo::STOPPED)
-    taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 5 * 1000000).round_seconds());
-  else
-    taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 60 * 1000000).round_seconds());
+  taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_info->http_timeout() * 1000000).round_seconds());
 }
 
 void

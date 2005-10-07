@@ -543,6 +543,9 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
   if (index >= m_bitfield.size_bits())
     throw network_error("Peer sent HAVE message with out-of-range index.");
 
+  if (m_bitfield.get(index))
+    return;
+
   m_bitfield.set(index, true);
   m_peerRate.insert(m_download->content()->chunk_size());
 
@@ -551,22 +554,41 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
       throw close_connection();
     else
       set_remote_not_interested();
+
+  if (m_download->content()->is_done())
+    return;
+
+  if (is_up_interested()) {
+
+    if (!m_tryRequest && m_download->delegator()->get_select().interested(index)) {
+      m_tryRequest = true;
+      pollCustom->insert_write(this);
+    }
+
+  } else {
+
+    if (m_download->delegator()->get_select().interested(index)) {
+      m_sendInterested = true;
+      m_up->set_interested(true);
+      
+      // Is it enough to insert into write here? Make the interested
+      // check branch to include insert_write, even when not sending
+      // interested.
+      pollCustom->insert_write(this);
+    }
+  }
 }
 
 void
 PeerConnectionLeech::finish_bitfield() {
   m_bitfield.update_count();
 
-  // Check if we're done. Should we just put ourselves in interested
-  // state from the beginning? We should then make sure we send not
-  // interested, we already do?
-  if (!m_download->content()->is_done()) {
-    m_tryRequest = true;
+  if (m_download->content()->is_done() && m_bitfield.all_set())
+    throw close_connection();
+
+  if (!m_download->content()->is_done() && m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
     m_sendInterested = true;
     m_up->set_interested(true);
-    
-  } else if (m_bitfield.all_set()) {
-    throw close_connection();
   }
 
 //   m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());

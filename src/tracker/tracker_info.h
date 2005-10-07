@@ -87,8 +87,9 @@ public:
   void                set_compact(bool c)                          { m_compact = c; }
   void                set_numwant(int32_t n)                       { m_numwant = n; }
   
-  uint32_t            get_udp_timeout() const                      { return 30; }
-  uint32_t            get_udp_tries() const                        { return 2; }
+  uint32_t            http_timeout() const                         { return 60; }
+  uint32_t            udp_timeout() const                          { return 30; }
+  uint32_t            udp_tries() const                            { return 2; }
 
   // The list of addresses is guaranteed to be sorted and unique.
   SignalAddressList&  signal_success()                        { return m_signalSuccess; }

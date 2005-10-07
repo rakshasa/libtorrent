@@ -63,7 +63,7 @@ struct HashQueueWillneed {
 
 HashQueue::HashQueue() :
   m_readAhead(10 << 20),
-  m_interval(20000),
+  m_interval(10000),
   m_maxTries(20) {
 
   m_taskWork.set_slot(sigc::mem_fun(*this, &HashQueue::work));

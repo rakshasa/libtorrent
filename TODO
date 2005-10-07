@@ -4,6 +4,17 @@ get while coding.
 
 [R] I would like to request refreshing the screen on SIGWINCH and when you press Ctrl-L
 
+[B] "completed torrent drops to 0%", might HashTorrent forget to be
+reset upon close/open?
+
+Make a more robust HashTorrent, it should have a specific flag for
+saying we've done the checking etc.
+
+Consider adding a check to make sure info_hash matches the session
+torrent's file name?
+
+Do chokes on long time unchoked peers when seeding to spread the upload more.
+
 Look into excess resource usage, posssibly multi-tracker/udp related.
 
 * Re-enable snubbing *
