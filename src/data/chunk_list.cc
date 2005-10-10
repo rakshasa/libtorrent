@@ -87,15 +87,19 @@ ChunkList::get(size_type index, bool writable) {
   ChunkListNode* node = &Base::at(index);
 
   if (!node->is_valid() || (writable && !node->chunk()->is_writable())) {
-    Chunk* chunk = m_slotCreateChunk(index, writable);
+    CreateChunk chunk = m_slotCreateChunk(index, writable);
 
-    if (chunk == NULL)
-      return ChunkHandle();
+    if (chunk.first == NULL) {
+      ChunkHandle c;
+      c.set_error_number(chunk.second);
+      
+      return c;
+    }
 
     if (node->is_valid())
       delete node->chunk();
 
-    node->set_chunk(chunk);
+    node->set_chunk(chunk.first);
     node->set_time_modified(Timer());
   }
 

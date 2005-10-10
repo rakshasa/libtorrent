@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_DATA_CHUNK_HANDLE_H
 #define LIBTORRENT_DATA_CHUNK_HANDLE_H
 
+#include <rak/error_number.h>
+
 #include "chunk_list_node.h"
 
 namespace torrent {
@@ -50,12 +52,17 @@ public:
   
   void                clear()              { m_chunk = NULL; }
 
+  rak::error_number   error_number() const                  { return m_errorNumber; }
+  void                set_error_number(rak::error_number e) { m_errorNumber = e; }
+
   ChunkListNode*      node() const         { return m_chunk; }
   ChunkListNode*      operator -> () const { return m_chunk; }
 
 private:
   ChunkListNode*      m_chunk;
   bool                m_writable;
+
+  rak::error_number   m_errorNumber;
 };
 
 }

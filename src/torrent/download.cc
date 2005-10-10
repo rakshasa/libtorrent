@@ -83,6 +83,10 @@ Download::stop() {
 
 void
 Download::hash_check(bool resume) {
+  if (m_ptr->hash_checker()->is_checked() ||
+      m_ptr->hash_checker()->is_checking())
+    throw client_error("Download::hash_check(...) called but already checking or complete.");
+
   if (resume)
     m_ptr->hash_resume_load();
 
@@ -116,7 +120,7 @@ Download::is_tracker_busy() const {
 
 bool
 Download::is_hash_checked() const {
-  return m_ptr->main()->is_checked();
+  return m_ptr->hash_checker()->is_checked();
 }
 
 bool

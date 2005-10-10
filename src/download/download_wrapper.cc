@@ -89,12 +89,13 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
 
   // Connect various signals and slots.
   m_hash->slot_chunk_done(sigc::mem_fun(m_main, &DownloadMain::receive_hash_done));
-  m_hash->signal_torrent().connect(sigc::mem_fun(m_main, &DownloadMain::receive_initial_hash));
+  m_hash->slot_storage_error(rak::make_mem_fn(this, &DownloadWrapper::receive_storage_error));
+  m_hash->signal_torrent().connect(sigc::mem_fun(*this, &DownloadWrapper::receive_initial_hash));
 }
 
 void
 DownloadWrapper::hash_resume_load() {
-  if (!m_main.is_open() || m_main.is_active() || m_main.is_checked())
+  if (!m_main.is_open() || m_main.is_active() || m_hash->is_checked())
     throw client_error("DownloadWrapper::resume_load() called with wrong state");
 
   if (!m_bencode.has_key("libtorrent resume"))
@@ -171,7 +172,7 @@ DownloadWrapper::hash_resume_save() {
   if (!m_main.is_open() || m_main.is_active())
     throw client_error("DownloadWrapper::resume_save() called with wrong state");
 
-  if (!m_main.is_checked())
+  if (!m_hash->is_checked())
     // We don't remove the old hash data since it might still be
     // valid, just that the client didn't finish the check this time.
     return;
@@ -245,6 +246,14 @@ DownloadWrapper::close() {
 }
 
 void
+DownloadWrapper::start() {
+  if (!m_hash->is_checked())
+    throw client_error("Tried to start an unchecked download");
+
+  m_main.start();
+}
+
+void
 DownloadWrapper::stop() {
   m_main.stop();
 }
@@ -297,6 +306,25 @@ DownloadWrapper::receive_keepalive() {
       itr = m_main.connection_list()->erase(itr);
     else
       itr++;
+}
+
+void
+DownloadWrapper::receive_initial_hash() {
+  if (m_main.is_active())
+    throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
+
+  if (m_hash->is_checked()) {
+    m_main.content()->resize();
+
+  } else {
+    m_hash->clear();
+    m_main.content()->clear();
+  }
+}    
+
+void
+DownloadWrapper::receive_storage_error(const std::string& str) {
+  m_main.signal_storage_error().emit(str);
 }
 
 }

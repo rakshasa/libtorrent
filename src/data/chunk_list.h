@@ -38,6 +38,7 @@
 #define LIBTORRENT_DATA_CHUNK_LIST_H
 
 #include <vector>
+#include <rak/error_number.h>
 #include <rak/functional.h>
 
 #include "chunk_handle.h"
@@ -49,9 +50,10 @@ class Content;
 class ChunkList : private std::vector<ChunkListNode> {
 public:
   typedef uint32_t                                      size_type;
+  typedef std::pair<Chunk*,rak::error_number>           CreateChunk;
   typedef std::vector<ChunkListNode>                    Base;
   typedef std::vector<ChunkListNode*>                   Queue;
-  typedef rak::mem_fn2<Content, Chunk*, uint32_t, bool> SlotCreateChunk;
+  typedef rak::mem_fn2<Content, CreateChunk, uint32_t, bool> SlotCreateChunk;
 
   using Base::value_type;
   using Base::reference;

@@ -75,7 +75,7 @@ download_id(const std::string& hash) {
 
   return itr != manager->download_manager()->end() &&
     (*itr)->main()->is_active() &&
-    (*itr)->main()->is_checked() ?
+    (*itr)->hash_checker()->is_checked() ?
     (*itr)->get_local_id() : "";
 }
 

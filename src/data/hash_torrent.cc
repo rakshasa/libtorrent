@@ -53,27 +53,27 @@ HashTorrent::HashTorrent(const std::string& id, ChunkList* c) :
 
 void
 HashTorrent::start() {
-  if (m_queue == NULL || m_chunkList == NULL || m_chunkList->empty())
-    throw internal_error("HashTorrent::start() called on an object with invalid m_queue or m_storage");
-
-  if (is_checking() || m_position == m_chunkList->size())
-    return;
+  if (is_checking() ||
+      m_position > 0 ||
+      m_queue == NULL ||
+      m_chunkList == NULL ||
+      m_chunkList->empty())
+    throw internal_error("HashTorrent::start() call failed.");
 
   m_outstanding = 0;
   queue();
 }
 
 void
-HashTorrent::stop() {
-  // Make sure we disable hashing before removing the chunks.
+HashTorrent::clear() {
   m_outstanding = -1;
   m_queue->remove(m_id);
-}
-  
-void
-HashTorrent::clear() {
-  stop();
   m_position = 0;
+}
+
+bool
+HashTorrent::is_checked() {
+  return m_position == m_chunkList->size();
 }
 
 void
@@ -95,6 +95,9 @@ HashTorrent::receive_chunkdone(ChunkHandle handle, std::string hash) {
 
 void
 HashTorrent::queue() {
+  if (!is_checking())
+    throw internal_error("HashTorrent::queue() called but it's not running.");
+
   while (m_position < m_chunkList->size()) {
     if (m_outstanding >= 30)
       return;
@@ -111,11 +114,19 @@ HashTorrent::queue() {
 
     ChunkHandle handle = m_chunkList->get(m_position++, false);
 
-    if (!handle.is_valid())
-      continue;
+    if (handle.is_valid()) {
+      m_queue->push_back(handle, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
+      m_outstanding++;
 
-    m_queue->push_back(handle, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
-    m_outstanding++;
+    } else if (handle.error_number().is_valid()) {
+      // If the error number is not valid, then we've just encountered
+      // a file that hasn't be created/resized. Which means we ignore
+      // it when doing initial hashing.
+      m_signalTorrent();
+      m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
+
+      return;
+    }
   }
 
   if (m_outstanding == 0) {

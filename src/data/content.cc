@@ -150,12 +150,16 @@ Content::open() {
 
 void
 Content::close() {
-  m_entryList->close();
+  clear();
 
+  m_entryList->close();
+  taskScheduler.erase(&m_delayDownloadDone);
+}
+
+void
+Content::clear() {
   m_completed = 0;
   m_bitfield = BitField(m_chunkTotal);
-
-  taskScheduler.erase(&m_delayDownloadDone);
 }
 
 void
@@ -223,10 +227,19 @@ Content::update_done() {
     }
 }
 
-Chunk*
+// bool
+// Content::is_chunk_allocated(uint32_t index) const {
+  
+// }
+
+std::pair<Chunk*,rak::error_number>
 Content::create_chunk(uint32_t index, bool writable) {
-  return m_entryList->create_chunk(get_chunk_position(index), get_chunk_index_size(index),
-				   MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
+  rak::error_number::clear_global();
+
+  Chunk* c = m_entryList->create_chunk(get_chunk_position(index), get_chunk_index_size(index),
+				       MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
+
+  return std::pair<Chunk*,rak::error_number>(c, c == NULL ? rak::error_number::current() : rak::error_number());
 }
 
 }

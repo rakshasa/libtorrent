@@ -65,7 +65,7 @@ public:
   void                open();
   void                close();
 
-  void                start()                        { m_main.start(); }
+  void                start();
   void                stop();
 
   bool                is_open() const                { return m_main.is_open(); }
@@ -92,7 +92,10 @@ public:
   void                set_connection_type(int t)     { m_connectionType = t; }
 
   void                receive_keepalive();
+  void                receive_initial_hash();
   
+  void                receive_storage_error(const std::string& str);
+
 private:
   DownloadWrapper(const DownloadWrapper&);
   void operator = (const DownloadWrapper&);

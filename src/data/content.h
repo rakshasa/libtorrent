@@ -40,6 +40,7 @@
 #include <inttypes.h>
 #include <string>
 #include <sigc++/signal.h>
+#include <rak/error_number.h>
 
 #include "utils/bitfield.h"
 #include "utils/task.h"
@@ -63,8 +64,9 @@ class Piece;
 
 class Content {
 public:
-  typedef std::pair<uint32_t, uint32_t> Range;
-  typedef sigc::signal0<void>           Signal;
+  typedef std::pair<uint32_t, uint32_t>       Range;
+  typedef std::pair<Chunk*,rak::error_number> CreateChunk;
+  typedef sigc::signal0<void>                 Signal;
 
   Content();
   ~Content();
@@ -100,10 +102,12 @@ public:
   bool                   is_valid_piece(const Piece& p) const;
 
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
-  Chunk*                 create_chunk(uint32_t index, bool writable);
+  //bool                   is_chunk_allocated(uint32_t index) const;
+  CreateChunk            create_chunk(uint32_t index, bool writable);
 
   void                   open();
   void                   close();
+  void                   clear();
   void                   resize();
 
   void                   mark_done(uint32_t index);

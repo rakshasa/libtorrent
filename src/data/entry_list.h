@@ -97,7 +97,7 @@ public:
 private:
   static bool         open_file(const std::string& root, FileMeta* f, const Path& p, const Path& lastPath);
 
-  inline void         create_chunk_part(MemoryChunk& chunk, iterator itr, off_t offset, uint32_t length, int prot);
+  inline MemoryChunk  create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);
 
   off_t               m_bytesSize;
 

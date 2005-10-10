@@ -69,7 +69,6 @@ public:
 
   bool                is_open() const                            { return m_isOpen; }
   bool                is_active() const                          { return m_started; }
-  bool                is_checked() const                         { return m_checked; }
 
   ChokeManager*       choke_manager()                            { return m_chokeManager; }
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
@@ -113,7 +112,6 @@ public:
   void                slot_hash_check_add(SlotHashCheckAdd s)      { m_slotHashCheckAdd = s; }
 
   void                receive_connect_peers();
-  void                receive_initial_hash();
 
   void                receive_tick();
   void                receive_chunk_done(unsigned int index);
@@ -142,7 +140,6 @@ private:
   AvailableList       m_availableList;
   ConnectionList      m_connectionList;
 
-  bool                m_checked;
   bool                m_started;
   bool                m_isOpen;
   bool                m_endgame;

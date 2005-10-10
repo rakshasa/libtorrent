@@ -143,8 +143,10 @@ EntryList::open_file(const std::string& root, FileMeta* f, const Path& p, const 
     f->prepare(MemoryChunk::prot_read, File::o_create);
 }
 
-inline void
-EntryList::create_chunk_part(MemoryChunk& chunk, iterator itr, off_t offset, uint32_t length, int prot) {
+inline MemoryChunk
+EntryList::create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot) {
+  MemoryChunk chunk;
+
   offset -= itr->get_position();
   length = std::min<off_t>(length, itr->get_size() - offset);
 
@@ -155,12 +157,12 @@ EntryList::create_chunk_part(MemoryChunk& chunk, iterator itr, off_t offset, uin
     chunk = itr->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
   else
     chunk.clear();
+
+  return chunk;
 }
 
 Chunk*
 EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
-  MemoryChunk mc;
-
   if (offset + length > m_bytesSize)
     throw internal_error("Tried to access chunk out of range in EntryList");
 
@@ -174,7 +176,7 @@ EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
     if (itr->get_size() == 0)
       continue;
 
-    create_chunk_part(mc, itr, offset, length, prot);
+    MemoryChunk mc = create_chunk_part(itr, offset, length, prot);
 
     if (!mc.is_valid())
       return NULL;

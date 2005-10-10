@@ -57,7 +57,7 @@ public:
   using Base::end;
 
   ResourceManager() :
-    m_maxUnchoked(0),
+    m_maxUnchoked(50),
     m_currentlyUnchoked(0) {}
   ~ResourceManager();
 

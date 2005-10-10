@@ -58,7 +58,6 @@ DownloadMain::DownloadMain() :
   m_chokeManager(new ChokeManager(&this->m_connectionList)),
   m_chunkList(new ChunkList),
 
-  m_checked(false),
   m_started(false),
   m_isOpen(false),
   m_endgame(false),
@@ -109,7 +108,6 @@ DownloadMain::close() {
   if (!is_open())
     return;
 
-  m_checked = false;
   m_isOpen = false;
 
   m_trackerManager->close();
@@ -124,9 +122,6 @@ DownloadMain::close() {
 void DownloadMain::start() {
   if (!is_open())
     throw client_error("Tried to start a closed download");
-
-  if (!is_checked())
-    throw client_error("Tried to start an unchecked download");
 
   if (is_active())
     return;
@@ -251,15 +246,6 @@ DownloadMain::receive_connect_peers() {
       m_slotStartHandshake(sa);
   }
 }
-
-void
-DownloadMain::receive_initial_hash() {
-  if (m_checked)
-    throw internal_error("DownloadMain::receive_initial_hash() called but m_checked == true");
-
-  m_checked = true;
-  m_content.resize();
-}    
 
 void
 DownloadMain::receive_tracker_success() {

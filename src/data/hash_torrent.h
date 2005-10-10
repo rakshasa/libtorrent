@@ -38,6 +38,7 @@
 #define LIBTORRENT_DATA_HASH_TORRENT_H
 
 #include <string>
+#include <rak/functional.h>
 #include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
@@ -47,21 +48,22 @@ namespace torrent {
 
 class ChunkList;
 class HashQueue;
+class DownloadWrapper;
 
 class HashTorrent {
 public:
   typedef sigc::signal0<void>                         Signal;
   typedef sigc::slot2<void, ChunkHandle, std::string> SlotChunkDone;
+  typedef rak::mem_fn1<DownloadWrapper, void, const std::string&> SlotStorageError;
   
   HashTorrent(const std::string& id, ChunkList* c);
   ~HashTorrent() { clear(); }
 
   void                start();
-  void                stop();
-
   void                clear();
 
   bool                is_checking()                 { return m_outstanding >= 0; }
+  bool                is_checked();
 
   Ranges&             get_ranges()                  { return m_ranges; }
 
@@ -70,7 +72,8 @@ public:
 
   Signal&             signal_torrent()              { return m_signalTorrent; }
 
-  void                slot_chunk_done(SlotChunkDone s) { m_slotChunkDone = s; }
+  void                slot_chunk_done(SlotChunkDone s)       { m_slotChunkDone = s; }
+  void                slot_storage_error(SlotStorageError s) { m_slotStorageError = s; }
 
 private:
   void                queue();
@@ -88,6 +91,7 @@ private:
 
   Signal              m_signalTorrent;
   SlotChunkDone       m_slotChunkDone;
+  SlotStorageError    m_slotStorageError;
 };
 
 }
