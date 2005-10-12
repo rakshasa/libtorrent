@@ -111,7 +111,7 @@ Peer::get_peer_rate() {
 
 uint32_t
 Peer::get_incoming_queue_size() {
-  return m_ptr->get_request_list().get_size();
+  return m_ptr->get_request_list().size();
 }
 
 uint32_t
@@ -121,7 +121,7 @@ Peer::get_outgoing_queue_size() {
 
 uint32_t
 Peer::get_incoming_index(uint32_t pos) {
-  if (pos >= m_ptr->get_request_list().get_size())
+  if (pos >= m_ptr->get_request_list().size())
     throw client_error("get_incoming_index(pos) out of range");
 
   return m_ptr->get_request_list().get_queued_piece(pos).get_index();
@@ -136,17 +136,17 @@ Peer::get_incoming_index(uint32_t pos) {
 // std::string.
 const unsigned char*
 Peer::get_bitfield_data() {
-  return (const unsigned char*)m_ptr->get_bitfield().begin();
+  return (const unsigned char*)m_ptr->bitfield().begin();
 }
 
 uint32_t
 Peer::get_bitfield_size() {
-  return m_ptr->get_bitfield().size_bits();
+  return m_ptr->bitfield().size_bits();
 }
 
 uint32_t
 Peer::get_chunks_done() {
-  return m_ptr->get_bitfield().count();
+  return m_ptr->bitfield().count();
 }  
 
 void

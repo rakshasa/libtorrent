@@ -95,7 +95,7 @@ public:
   RequestList&        get_request_list()            { return m_requestList; }
   PieceList&          get_send_list()               { return m_sendList; }
 
-  const BitFieldExt&  get_bitfield() const          { return m_bitfield; }
+  const BitFieldExt&  bitfield() const          { return m_bitfield; }
 
   // Make sure you choke the peer when snubbing. Snubbing a peer will
   // only cause it not to be unchoked.

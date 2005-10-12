@@ -161,7 +161,7 @@ Download::get_bencode() const {
 
 std::string
 Download::get_root_dir() const {
-  return m_ptr->main()->content()->get_root_dir();
+  return m_ptr->main()->content()->root_dir();
 }
 
 void
@@ -193,12 +193,12 @@ Download::get_bytes_done() const {
       if (itr2->is_finished())
 	a += itr2->get_piece().get_length();
   
-  return a + m_ptr->main()->content()->get_bytes_completed();
+  return a + m_ptr->main()->content()->bytes_completed();
 }
 
 uint64_t
 Download::get_bytes_total() const {
-  return m_ptr->main()->content()->entry_list()->get_bytes_size();
+  return m_ptr->main()->content()->entry_list()->bytes_size();
 }
 
 uint32_t
@@ -208,7 +208,7 @@ Download::get_chunks_size() const {
 
 uint32_t
 Download::get_chunks_done() const {
-  return m_ptr->main()->content()->get_chunks_completed();
+  return m_ptr->main()->content()->chunks_completed();
 }
 
 uint32_t 
@@ -218,12 +218,12 @@ Download::get_chunks_total() const {
 
 const unsigned char*
 Download::get_bitfield_data() const {
-  return (unsigned char*)m_ptr->main()->content()->get_bitfield().begin();
+  return (unsigned char*)m_ptr->main()->content()->bitfield().begin();
 }
 
 uint32_t
 Download::get_bitfield_size() const {
-  return m_ptr->main()->content()->get_bitfield().size_bits();
+  return m_ptr->main()->content()->bitfield().size_bits();
 }
 
 uint32_t
@@ -293,7 +293,7 @@ Download::get_tracker(uint32_t index) {
   if (index >= m_ptr->main()->tracker_manager()->size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
-  return m_ptr->main()->tracker_manager()->get_index(index);
+  return m_ptr->main()->tracker_manager()->get(index);
 }
 
 const Tracker
@@ -301,7 +301,7 @@ Download::get_tracker(uint32_t index) const {
   if (index >= m_ptr->main()->tracker_manager()->size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
-  return m_ptr->main()->tracker_manager()->get_index(index);
+  return m_ptr->main()->tracker_manager()->get(index);
 }
 
 uint32_t
@@ -311,7 +311,7 @@ Download::get_tracker_size() const {
 
 uint32_t
 Download::get_tracker_focus() const {
-  return m_ptr->main()->tracker_manager()->get_focus_index();
+  return m_ptr->main()->tracker_manager()->focus_index();
 }
 
 void
@@ -331,7 +331,7 @@ Download::tracker_manual_request(bool force) {
 
 Entry
 Download::get_entry(uint32_t index) {
-  if (index >= m_ptr->main()->content()->entry_list()->get_files_size())
+  if (index >= m_ptr->main()->content()->entry_list()->files_size())
     throw client_error("Client called Download::get_entry(...) with out of range index");
 
   return m_ptr->main()->content()->entry_list()->get_node(index);
@@ -339,12 +339,12 @@ Download::get_entry(uint32_t index) {
 
 uint32_t
 Download::get_entry_size() const {
-  return m_ptr->main()->content()->entry_list()->get_files_size();
+  return m_ptr->main()->content()->entry_list()->files_size();
 }
 
 const Download::SeenVector&
 Download::get_seen() const {
-  return m_ptr->main()->get_bitfield_counter().field();
+  return m_ptr->main()->bitfield_counter().field();
 }
 
 Download::ConnectionType
@@ -370,7 +370,7 @@ Download::set_connection_type(ConnectionType t) {
 
 void
 Download::update_priorities() {
-  Priority& p = m_ptr->main()->delegator()->get_select().get_priority();
+  Priority& p = m_ptr->main()->delegator()->get_select().priority();
   Content* content = m_ptr->main()->content();
 
   p.clear();
@@ -381,12 +381,12 @@ Download::update_priorities() {
   for (EntryList::iterator itr = content->entry_list()->begin();
        itr != content->entry_list()->end(); ++itr) {
     unsigned int s = pos / cs;
-    unsigned int e = itr->get_size() ? (pos + itr->get_size() + cs - 1) / cs : s;
+    unsigned int e = itr->size() ? (pos + itr->size() + cs - 1) / cs : s;
 
     if (s != e)
-      p.add((Priority::Type)itr->get_priority(), s, e);
+      p.add((Priority::Type)itr->priority(), s, e);
 
-    pos += itr->get_size();
+    pos += itr->size();
   }
 
   std::for_each(m_ptr->main()->connection_list()->begin(),

@@ -117,14 +117,14 @@ DownloadWrapper::hash_resume_load() {
 
     Bencode& files = resume["files"];
 
-    if (resume["bitfield"].as_string().size() != m_main.content()->get_bitfield().size_bytes() ||
-	files.as_list().size() != m_main.content()->entry_list()->get_files_size())
+    if (resume["bitfield"].as_string().size() != m_main.content()->bitfield().size_bytes() ||
+	files.as_list().size() != m_main.content()->entry_list()->files_size())
       return;
 
     // Clear the hash checking ranges, and add the files ranges we must check.
-    m_hash->get_ranges().clear();
+    m_hash->ranges().clear();
 
-    std::memcpy(m_main.content()->get_bitfield().begin(), resume["bitfield"].as_string().c_str(), m_main.content()->get_bitfield().size_bytes());
+    std::memcpy(m_main.content()->bitfield().begin(), resume["bitfield"].as_string().c_str(), m_main.content()->bitfield().size_bytes());
 
     Bencode::List::iterator bItr = files.as_list().begin();
     EntryList::iterator sItr = m_main.content()->entry_list()->begin();
@@ -137,11 +137,11 @@ DownloadWrapper::hash_resume_load() {
       // add to the hashes to check.
 
       if (fs.update(sItr->file_meta()->get_path()) ||
-	  sItr->get_size() != fs.get_size() ||
+	  sItr->size() != fs.size() ||
 	  !bItr->has_key("mtime") ||
 	  !(*bItr)["mtime"].is_value() ||
 	  (*bItr)["mtime"].as_value() != fs.get_mtime())
-	m_hash->get_ranges().insert(sItr->get_range().first, sItr->get_range().second);
+	m_hash->ranges().insert(sItr->range().first, sItr->range().second);
 
       // Update the priority from the fast resume data.
       if (bItr->has_key("priority") &&
@@ -155,12 +155,12 @@ DownloadWrapper::hash_resume_load() {
     }  
 
   } catch (bencode_error e) {
-    m_hash->get_ranges().insert(0, m_main.content()->chunk_total());
+    m_hash->ranges().insert(0, m_main.content()->chunk_total());
   }
 
   // Clear bits in invalid regions which will be checked by m_hash.
-  for (Ranges::iterator itr = m_hash->get_ranges().begin(); itr != m_hash->get_ranges().end(); ++itr)
-    m_main.content()->get_bitfield().set(itr->first, itr->second, false);
+  for (Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
+    m_main.content()->bitfield().set(itr->first, itr->second, false);
 
   m_main.content()->update_done();
 }
@@ -189,7 +189,7 @@ DownloadWrapper::hash_resume_save() {
   // We sync all chunks in DownloadMain::stop(), so we are guaranteed
   // that it has been called when we arrive here.
 
-  resume.insert_key("bitfield", std::string((char*)m_main.content()->get_bitfield().begin(), m_main.content()->get_bitfield().size_bytes()));
+  resume.insert_key("bitfield", std::string((char*)m_main.content()->bitfield().begin(), m_main.content()->bitfield().size_bytes()));
 
   Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
 
@@ -207,7 +207,7 @@ DownloadWrapper::hash_resume_save() {
     }
 
     b.insert_key("mtime", fs.get_mtime());
-    b.insert_key("priority", (int)sItr->get_priority());
+    b.insert_key("priority", (int)sItr->priority());
 
     ++sItr;
   }
@@ -233,7 +233,7 @@ DownloadWrapper::open() {
     return;
 
   m_main.open();
-  m_hash->get_ranges().insert(0, m_main.content()->chunk_total());
+  m_hash->ranges().insert(0, m_main.content()->chunk_total());
 }
 
 void
@@ -286,7 +286,7 @@ DownloadWrapper::set_file_manager(FileManager* f) {
 
 void
 DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
-  m_main.slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::get_size_hash), get_hash()));
+  m_main.slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::size_hash), get_hash()));
   m_main.slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), get_local_id()));
 }
 

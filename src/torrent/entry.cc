@@ -44,27 +44,27 @@ namespace torrent {
 
 uint64_t
 Entry::get_size() {
-  return m_entry->get_size();
+  return m_entry->size();
 }
 
 uint32_t
 Entry::get_completed() {
-  return m_entry->get_completed();
+  return m_entry->completed();
 }
 
 uint32_t
 Entry::get_chunk_begin() {
-  return m_entry->get_range().first;
+  return m_entry->range().first;
 }
 
 uint32_t
 Entry::get_chunk_end() {
-  return m_entry->get_range().second;
+  return m_entry->range().second;
 }  
 
 Entry::Priority
 Entry::get_priority() {
-  return (Priority)m_entry->get_priority();
+  return (Priority)m_entry->priority();
 }
 
 // Relative to root of torrent.

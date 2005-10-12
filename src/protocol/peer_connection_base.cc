@@ -119,7 +119,7 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   get_fd().set_throughput();
 
   m_requestList.set_delegator(m_download->delegator());
-  m_requestList.set_bitfield(&m_bitfield.get_bitfield());
+  m_requestList.set_bitfield(&m_bitfield.bitfield());
 
   if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
     throw internal_error("PeerConnectionSeed::set(...) recived bad input.");
@@ -259,13 +259,13 @@ PeerConnectionBase::down_chunk() {
   }
 
   uint32_t count;
-  uint32_t left = quota = std::min((uint32_t)quota, m_downPiece.get_length() - m_down->get_position());
+  uint32_t left = quota = std::min((uint32_t)quota, m_downPiece.get_length() - m_down->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->get_position());
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->get_position(), part++);
+    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->position(), part++);
     count = read_stream_throws(memory.first, std::min(left, memory.second));
 
     m_down->adjust_position(count);
@@ -282,20 +282,20 @@ PeerConnectionBase::down_chunk() {
   throttleRead.get_rate_quick().insert(bytes);
   m_download->down_rate().insert(bytes);
 
-  return m_down->get_position() == m_downPiece.get_length();
+  return m_down->position() == m_downPiece.get_length();
 }
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t count, quota;
   uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(),
-					     m_downPiece.get_length() - m_down->get_position());
+					     m_downPiece.get_length() - m_down->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->get_position());
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->get_position(), part++);
+    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->position(), part++);
     count = std::min(left, memory.second);
 
     std::memcpy(memory.first, m_down->buffer()->position(), count);
@@ -317,7 +317,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
   throttleRead.get_rate_quick().insert(bytes);
   m_download->down_rate().insert(bytes);
 
-  return m_down->get_position() == m_downPiece.get_length();
+  return m_down->position() == m_downPiece.get_length();
 }
 
 bool
@@ -342,13 +342,13 @@ PeerConnectionBase::up_chunk() {
   }
 
   uint32_t count;
-  uint32_t left = quota = std::min((uint32_t)quota, m_upPiece.get_length() - m_up->get_position());
+  uint32_t left = quota = std::min((uint32_t)quota, m_upPiece.get_length() - m_up->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.get_offset() + m_up->get_position());
+  ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.get_offset() + m_up->position());
 
   do {
-    memory = m_upChunk->chunk()->at_memory(m_upPiece.get_offset() + m_up->get_position(), part++);
+    memory = m_upChunk->chunk()->at_memory(m_upPiece.get_offset() + m_up->position(), part++);
     count = write_stream_throws(memory.first, std::min(left, memory.second));
 
     m_up->adjust_position(count);
@@ -365,7 +365,7 @@ PeerConnectionBase::up_chunk() {
   throttleWrite.get_rate_quick().insert(bytes);
   m_download->up_rate().insert(bytes);
 
-  return m_up->get_position() == m_upPiece.get_length();
+  return m_up->position() == m_upPiece.get_length();
 }
 
 void
@@ -450,10 +450,10 @@ bool
 PeerConnectionBase::read_bitfield_body() {
   // We're guaranteed that we still got bytes remaining to be
   // read of the bitfield.
-  m_down->adjust_position(read_stream_throws(m_bitfield.begin() + m_down->get_position(),
-					     m_bitfield.size_bytes() - m_down->get_position()));
+  m_down->adjust_position(read_stream_throws(m_bitfield.begin() + m_down->position(),
+					     m_bitfield.size_bytes() - m_down->position()));
 	
-  return m_down->get_position() == m_bitfield.size_bytes();
+  return m_down->position() == m_bitfield.size_bytes();
 }
 
 // 'msgLength' is the length of the message, not how much we got in
@@ -475,10 +475,10 @@ PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
 
 bool
 PeerConnectionBase::write_bitfield_body() {
-  m_up->adjust_position(write_stream_throws(m_download->content()->get_bitfield().begin() + m_up->get_position(),
-					    m_download->content()->get_bitfield().size_bytes() - m_up->get_position()));
+  m_up->adjust_position(write_stream_throws(m_download->content()->bitfield().begin() + m_up->position(),
+					    m_download->content()->bitfield().size_bytes() - m_up->position()));
 
-  return m_up->get_position() == m_bitfield.size_bytes();
+  return m_up->position() == m_bitfield.size_bytes();
 }
 
 // High stall count peers should request if we're *not* in endgame, or
@@ -508,7 +508,7 @@ PeerConnectionBase::try_request_pieces() {
   int pipeSize = pipe_size();
   bool success = false;
 
-  while (m_requestList.get_size() < pipeSize && m_up->can_write_request()) {
+  while (m_requestList.size() < pipeSize && m_up->can_write_request()) {
     const Piece* p = m_requestList.delegate();
 
     if (p == NULL)

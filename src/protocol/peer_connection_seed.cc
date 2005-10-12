@@ -48,15 +48,15 @@ namespace torrent {
 
 PeerConnectionSeed::~PeerConnectionSeed() {
 //   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
-//     m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
+//     m_download->bitfield_counter().dec(m_bitfield.bitfield());
 
 //   taskScheduler.erase(&m_taskSendChoke);
 }
 
 void
 PeerConnectionSeed::initialize_custom() {
-  if (m_download->content()->get_chunks_completed() != 0) {
-    m_up->write_bitfield(m_download->content()->get_bitfield().size_bytes());
+  if (m_download->content()->chunks_completed() != 0) {
+    m_up->write_bitfield(m_download->content()->bitfield().size_bytes());
 
     m_up->buffer()->prepare_end();
     m_up->set_position(0);
@@ -426,7 +426,7 @@ PeerConnectionSeed::finish_bitfield() {
   if (m_bitfield.all_set())
     throw close_connection();
 
-//   m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
+//   m_download->bitfield_counter().inc(m_bitfield.bitfield());
 
   pollCustom->insert_write(this);
 }

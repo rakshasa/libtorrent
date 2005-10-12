@@ -48,15 +48,15 @@ namespace torrent {
 
 PeerConnectionLeech::~PeerConnectionLeech() {
 //   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
-//     m_download->get_bitfield_counter().dec(m_bitfield.get_bitfield());
+//     m_download->bitfield_counter().dec(m_bitfield.bitfield());
 
 //   taskScheduler.erase(&m_taskSendChoke);
 }
 
 void
 PeerConnectionLeech::initialize_custom() {
-  if (m_download->content()->get_chunks_completed() != 0) {
-    m_up->write_bitfield(m_download->content()->get_bitfield().size_bytes());
+  if (m_download->content()->chunks_completed() != 0) {
+    m_up->write_bitfield(m_download->content()->bitfield().size_bytes());
 
     m_up->buffer()->prepare_end();
     m_up->set_position(0);
@@ -66,7 +66,7 @@ PeerConnectionLeech::initialize_custom() {
 
 void
 PeerConnectionLeech::update_interested() {
-  if (m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
+  if (m_download->delegator()->get_select().interested(m_bitfield.bitfield())) {
     m_sendInterested = !m_up->interested();
     m_up->set_interested(true);
   } else {
@@ -225,9 +225,9 @@ PeerConnectionLeech::read_message() {
 
       // We're skipping this piece.
       m_down->set_position(std::min<uint32_t>(buf->remaining(), m_downPiece.get_length()));
-      buf->move_position(m_down->get_position());
+      buf->move_position(m_down->position());
 
-      if (m_down->get_position() != m_downPiece.get_length()) {
+      if (m_down->position() != m_downPiece.get_length()) {
 	m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
 	return false;
 
@@ -337,9 +337,9 @@ PeerConnectionLeech::event_read() {
 	break;
 
       case ProtocolRead::READ_SKIP_PIECE:
-	m_down->adjust_position(ignore_stream_throws(m_downPiece.get_length() - m_down->get_position()));
+	m_down->adjust_position(ignore_stream_throws(m_downPiece.get_length() - m_down->position()));
 
-	if (m_down->get_position() != m_downPiece.get_length())
+	if (m_down->position() != m_downPiece.get_length())
 	  return;
 
 	m_down->set_state(ProtocolRead::IDLE);
@@ -586,12 +586,12 @@ PeerConnectionLeech::finish_bitfield() {
   if (m_download->content()->is_done() && m_bitfield.all_set())
     throw close_connection();
 
-  if (!m_download->content()->is_done() && m_download->delegator()->get_select().interested(m_bitfield.get_bitfield())) {
+  if (!m_download->content()->is_done() && m_download->delegator()->get_select().interested(m_bitfield.bitfield())) {
     m_sendInterested = true;
     m_up->set_interested(true);
   }
 
-//   m_download->get_bitfield_counter().inc(m_bitfield.get_bitfield());
+//   m_download->bitfield_counter().inc(m_bitfield.bitfield());
 
   pollCustom->insert_write(this);
 }

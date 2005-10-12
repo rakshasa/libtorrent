@@ -94,7 +94,7 @@ public:
   // The list of addresses is guaranteed to be sorted and unique.
   SignalAddressList&  signal_success()                        { return m_signalSuccess; }
 
-  // Before the failed signal emits, get_focus_index() is pointing to
+  // Before the failed signal emits, focus_index() is pointing to
   // the next tracker.
   SignalString&       signal_failed()                         { return m_signalFailed; }
   SignalDump&         signal_dump()                           { return m_signalDump; }

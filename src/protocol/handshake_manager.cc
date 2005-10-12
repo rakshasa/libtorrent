@@ -80,7 +80,7 @@ HandshakeManager::clear() {
 }
 
 uint32_t
-HandshakeManager::get_size_hash(const std::string& hash) {
+HandshakeManager::size_hash(const std::string& hash) {
   return std::count_if(m_handshakes.begin(), m_handshakes.end(),
 		       rak::equal(hash, std::mem_fun(&Handshake::get_hash)));
 }

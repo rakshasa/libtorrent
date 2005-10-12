@@ -95,7 +95,7 @@ DownloadMain::open() {
   m_chunkList->resize(m_content.chunk_total());
   m_bitfieldCounter.create(m_content.chunk_total());
 
-//   m_delegator.get_select().get_priority().add(Priority::NORMAL, 0, m_content.chunk_total());
+//   m_delegator.get_select().priority().add(Priority::NORMAL, 0, m_content.chunk_total());
 
   m_isOpen = true;
 }
@@ -167,12 +167,12 @@ DownloadMain::stop() {
 
 uint64_t
 DownloadMain::get_bytes_left() const {
-  uint64_t left = m_content.entry_list()->get_bytes_size() - m_content.get_bytes_completed();
+  uint64_t left = m_content.entry_list()->bytes_size() - m_content.bytes_completed();
 
   if (left > ((uint64_t)1 << 60))
     throw internal_error("DownloadMain::get_bytes_left() is too large"); 
 
-  if (m_content.get_chunks_completed() == m_content.chunk_total() && left != 0)
+  if (m_content.chunks_completed() == m_content.chunk_total() && left != 0)
     throw internal_error("DownloadMain::get_bytes_left() has an invalid size"); 
 
   return left;
@@ -181,7 +181,7 @@ DownloadMain::get_bytes_left() const {
 void
 DownloadMain::update_endgame() {
   if (!m_endgame &&
-      m_content.get_chunks_completed() + m_delegator.get_chunks().size() + 0 >= m_content.chunk_total()) {
+      m_content.chunks_completed() + m_delegator.get_chunks().size() + 0 >= m_content.chunk_total()) {
     m_endgame = true;
     m_delegator.set_aggressive(true);
   }
@@ -214,7 +214,7 @@ DownloadMain::receive_hash_done(ChunkHandle handle, std::string h) {
   if (h.empty() || !is_open()) {
     // Ignore.
 
-  } else if (std::memcmp(h.c_str(), m_content.get_hash_c(handle->index()), 20) != 0) {
+  } else if (std::memcmp(h.c_str(), m_content.chunk_hash(handle->index()), 20) != 0) {
     m_signalChunkFailed.emit(handle->index());
 
   } else {

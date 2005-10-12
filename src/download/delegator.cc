@@ -69,7 +69,7 @@ struct DelegatorCheckPriority {
 
   bool operator () (DelegatorChunk* d) {
     return
-      m_priority == d->get_priority() &&
+      m_priority == d->priority() &&
       m_bitfield->get(d->get_index()) &&
       (*m_target = m_delegator->delegate_piece(d)) != NULL;
   }
@@ -89,7 +89,7 @@ struct DelegatorCheckAggressive {
     DelegatorPiece* tmp;
 
     if (!m_bitfield->get(d->get_index()) ||
-	d->get_priority() == Priority::STOPPED ||
+	d->priority() == Priority::STOPPED ||
 	(tmp = m_delegator->delegate_aggressive(d, m_overlapp)) == NULL)
       return false;
 
@@ -174,7 +174,7 @@ Delegator::finished(DelegatorReservee& r) {
 
   // Temporary exception, remove when the code is rock solid. (Hah, like it ever will be;)
   if (all_finished(p->get_piece().get_index()) ||
-      (*m_select.get_bitfield())[p->get_piece().get_index()])
+      (*m_select.bitfield())[p->get_piece().get_index()])
     throw internal_error("Delegator::finished(...) called on an index that is already finished");
 
   p->clear();

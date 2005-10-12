@@ -76,24 +76,23 @@ public:
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
 
+  const std::string&     complete_hash()                      { return m_hash; }
   void                   set_complete_hash(const std::string& hash);
+
+  const std::string&     root_dir()                           { return m_rootDir; }
   void                   set_root_dir(const std::string& path);
 
-  std::string            get_hash(unsigned int index);
-  const char*            get_hash_c(unsigned int index)       { return m_hash.c_str() + 20 * index; }
-  const std::string&     get_complete_hash()                  { return m_hash; }
-  const std::string&     get_root_dir()                       { return m_rootDir; }
-
-  uint32_t               get_chunks_completed() const         { return m_completed; }
-  uint64_t               get_bytes_completed() const;
+  uint32_t               chunks_completed() const             { return m_completed; }
+  uint64_t               bytes_completed() const;
   
   uint32_t               chunk_total() const                  { return m_chunkTotal; }
   uint32_t               chunk_size() const                   { return m_chunkSize; }
+  const char*            chunk_hash(unsigned int index)       { return m_hash.c_str() + 20 * index; }
 
-  uint32_t               get_chunk_index_size(uint32_t index) const;
-  off_t                  get_chunk_position(uint32_t c) const { return c * (off_t)m_chunkSize; }
+  uint32_t               chunk_index_size(uint32_t index) const;
+  off_t                  chunk_position(uint32_t c) const     { return c * (off_t)m_chunkSize; }
 
-  BitField&              get_bitfield()                       { return m_bitfield; }
+  BitField&              bitfield()                       { return m_bitfield; }
 
   EntryList*             entry_list()                         { return m_entryList; }
   const EntryList*       entry_list() const                   { return m_entryList; }
@@ -102,7 +101,6 @@ public:
   bool                   is_valid_piece(const Piece& p) const;
 
   bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
-  //bool                   is_chunk_allocated(uint32_t index) const;
   CreateChunk            create_chunk(uint32_t index, bool writable);
 
   void                   open();

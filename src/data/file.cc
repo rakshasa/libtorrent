@@ -122,11 +122,11 @@ File::reserve(off_t offset, off_t length) {
 }
 
 off_t
-File::get_size() const {
+File::size() const {
   if (!is_open())
-    throw internal_error("File::get_size() called on a closed file");
+    throw internal_error("File::size() called on a closed file");
 
-  return FileStat(m_fd).get_size();
+  return FileStat(m_fd).size();
 }  
 
 bool
@@ -148,7 +148,7 @@ File::create_chunk(off_t offset, uint32_t length, int prot, int flags) const {
 
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.
-  if (offset < 0 || length == 0 || offset + length > get_size())
+  if (offset < 0 || length == 0 || offset + length > size())
     return MemoryChunk();
 
   off_t align = offset % MemoryChunk::page_size();

@@ -65,8 +65,8 @@ public:
 
   void                clear();
 
-  uint32_t            get_size()                                { return m_size; }
-  uint32_t            get_size_hash(const std::string& hash);
+  uint32_t            size()                                { return m_size; }
+  uint32_t            size_hash(const std::string& hash);
 
   void                set_bind_address(const SocketAddress& sa) { m_bindAddress = sa; }
 

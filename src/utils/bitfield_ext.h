@@ -93,7 +93,7 @@ public:
     return *this;
   }
 
-  const BitField&     get_bitfield() { return *this; }
+  const BitField&     bitfield() { return *this; }
 
 private:
   size_t m_count;

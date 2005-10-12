@@ -77,8 +77,10 @@ public:
   uint32_t            get_normal_interval() const             { return m_normalInterval; }
   uint32_t            get_min_interval() const                { return m_minInterval; }
 
-  uint32_t            get_focus_index() const                 { return m_itr - m_list.begin(); }
+  uint32_t            focus_index() const                     { return m_itr - m_list.begin(); }
   void                set_focus_index(uint32_t v);
+
+  uint32_t            end_index() const                       { return m_list.size(); }
 
   bool                focus_next_group();
 

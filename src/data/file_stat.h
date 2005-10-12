@@ -65,7 +65,7 @@ public:
   bool                is_link() const                       { return S_ISLNK(m_stat.st_mode); }
   bool                is_sockt() const                      { return S_ISSOCK(m_stat.st_mode); }
 
-  off_t               get_size() const                      { return m_stat.st_size; }
+  off_t               size() const                      { return m_stat.st_size; }
 
   time_t              get_atime() const                     { return m_stat.st_atime; }
   time_t              get_ctime() const                     { return m_stat.st_ctime; }

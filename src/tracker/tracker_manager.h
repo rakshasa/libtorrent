@@ -76,8 +76,8 @@ public:
 
   size_type           size() const;
 
-  value_type          get_index(size_type idx) const;
-  size_type           get_focus_index() const;
+  value_type          get(size_type idx) const;
+  size_type           focus_index() const;
 
   void                insert(int group, const std::string& url);
 
@@ -99,6 +99,8 @@ private:
 
   uint32_t            m_numRequests;
   uint32_t            m_maxRequests;
+
+  uint32_t            m_initialTracker;
 
   TaskItem            m_taskTimeout;
 };

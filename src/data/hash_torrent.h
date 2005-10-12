@@ -65,7 +65,7 @@ public:
   bool                is_checking()                 { return m_outstanding >= 0; }
   bool                is_checked();
 
-  Ranges&             get_ranges()                  { return m_ranges; }
+  Ranges&             ranges()                  { return m_ranges; }
 
   HashQueue*          get_queue()                   { return m_queue; }
   void                set_queue(HashQueue* q)       { m_queue = q; }

@@ -240,7 +240,7 @@ get_listen_port() {
 
 uint32_t
 get_total_handshakes() {
-  return manager->handshake_manager()->get_size();
+  return manager->handshake_manager()->size();
 }
 
 int64_t

@@ -94,7 +94,7 @@ public:
 
   // Position should perhaps be in a different place, like a dedicated
   // chunk writing class.
-  uint32_t            get_position() const                    { return m_position; }
+  uint32_t            position() const                        { return m_position; }
   void                set_position(uint32_t p)                { m_position = p; }
   void                adjust_position(uint32_t p)             { m_position += p; }
 

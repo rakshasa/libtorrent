@@ -59,21 +59,21 @@ public:
   Path*               path()                                  { return &m_path; }
   const Path*         path() const                            { return &m_path; }
 
-  off_t               get_position() const                    { return m_position; }
+  off_t               position() const                        { return m_position; }
   void                set_position(off_t pos)                 { m_position = pos; }
 
-  off_t               get_size() const                        { return m_size; }
+  off_t               size() const                            { return m_size; }
   void                set_size(off_t s)                       { m_size = s; }
 
-  const Range&        get_range() const                       { return m_range; }
+  const Range&        range() const                           { return m_range; }
   void                set_range(const Range& r)               { m_range = r; }
 
   // Chunks completed.
-  uint32_t            get_completed() const                   { return m_completed; }
+  uint32_t            completed() const                       { return m_completed; }
   void                set_completed(uint32_t v)               { m_completed = v; }
   void                inc_completed()                         { m_completed++; }
 
-  unsigned char       get_priority() const                    { return m_priority; }
+  unsigned char       priority() const                        { return m_priority; }
   void                set_priority(unsigned char t)           { m_priority = t; }
 
   bool                resize_file() const;

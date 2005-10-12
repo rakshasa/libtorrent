@@ -68,7 +68,7 @@ class File {
   bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }
   bool                is_nonblock() const                               { return m_flags & o_nonblock; }
 
-  off_t               get_size() const;
+  off_t               size() const;
   bool                set_size(off_t s) const;
 
   int                 get_prot() const                                  { return m_prot; }

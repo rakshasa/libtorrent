@@ -49,7 +49,8 @@ TrackerManager::TrackerManager() :
   m_control(new TrackerControl),
   m_isRequesting(false),
   m_numRequests(0),
-  m_maxRequests(5) {
+  m_maxRequests(5),
+  m_initialTracker(0) {
 
   m_control->get_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_success)));
   m_control->get_info()->signal_failed().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_failed)));
@@ -97,6 +98,8 @@ TrackerManager::send_stop() {
     return;
 
   close();
+
+  m_control->set_focus_index(m_initialTracker);
   m_control->send_state(TrackerInfo::STOPPED);
 }
 
@@ -177,17 +180,19 @@ TrackerManager::size() const {
 }
 
 TrackerManager::value_type
-TrackerManager::get_index(size_type idx) const {
+TrackerManager::get(size_type idx) const {
   return m_control->get_list()[idx];
 }
 
 TrackerManager::size_type
-TrackerManager::get_focus_index() const {
-  return m_control->get_focus_index();
+TrackerManager::focus_index() const {
+  return m_control->focus_index();
 }
 
 void
 TrackerManager::insert(int group, const std::string& url) {
+  // Consider borking m_initialTracker.
+
   m_control->insert(group, url);
 }
 
@@ -208,6 +213,9 @@ void
 TrackerManager::receive_success() {
   if (m_control->get_state() == TrackerInfo::STOPPED)
     return;
+
+  if (m_control->get_state() == TrackerInfo::STARTED)
+    m_initialTracker = m_control->focus_index();
 
   // Don't reset the focus when we're requesting more peers. If we
   // want to query the next tracker in the list we need to remember
@@ -234,7 +242,7 @@ TrackerManager::receive_failed() {
     return;
 
   if (m_isRequesting) {
-    if (m_control->get_focus_index() == m_control->get_list().size()) {
+    if (m_control->focus_index() == m_control->get_list().size()) {
       // Don't start from the beginning of the list if we've gone
       // through the whole list. Return to normal timeout.
       m_isRequesting = false;
@@ -245,7 +253,7 @@ TrackerManager::receive_failed() {
 
   } else {
     // Normal retry.
-    if (m_control->get_focus_index() == m_control->get_list().size())
+    if (m_control->focus_index() == m_control->get_list().size())
       m_control->set_focus_index(0);
     
     taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 20 * 1000000).round_seconds());

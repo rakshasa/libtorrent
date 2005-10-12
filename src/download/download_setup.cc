@@ -50,11 +50,11 @@ namespace torrent {
 
 void
 DownloadMain::setup_delegator() {
-  m_delegator.get_select().set_bitfield(&m_content.get_bitfield());
+  m_delegator.get_select().set_bitfield(&m_content.bitfield());
   m_delegator.get_select().set_seen(&m_bitfieldCounter);
 
   m_delegator.signal_chunk_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_chunk_done));
-  m_delegator.slot_chunk_size(sigc::mem_fun(m_content, &Content::get_chunk_index_size));
+  m_delegator.slot_chunk_size(sigc::mem_fun(m_content, &Content::chunk_index_size));
 }
 
 void

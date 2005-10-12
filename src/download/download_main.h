@@ -88,7 +88,7 @@ public:
   Rate&               up_rate()                              { return m_upRate; }
   Rate&               down_rate()                            { return m_downRate; }
 
-  BitFieldCounter&    get_bitfield_counter()                     { return m_bitfieldCounter; }
+  BitFieldCounter&    bitfield_counter()                     { return m_bitfieldCounter; }
 
   // Carefull with these.
   void                setup_delegator();

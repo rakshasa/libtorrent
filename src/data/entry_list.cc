@@ -122,7 +122,7 @@ EntryList::resize_all() {
 EntryList::iterator
 EntryList::at_position(iterator itr, off_t offset) {
   while (itr != end())
-    if (offset >= itr->get_position() + itr->get_size())
+    if (offset >= itr->position() + itr->size())
       ++itr;
     else
       return itr;
@@ -147,11 +147,11 @@ inline MemoryChunk
 EntryList::create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot) {
   MemoryChunk chunk;
 
-  offset -= itr->get_position();
-  length = std::min<off_t>(length, itr->get_size() - offset);
+  offset -= itr->position();
+  length = std::min<off_t>(length, itr->size() - offset);
 
   if (offset < 0)
-    throw internal_error("EntryList::get_chunk_part(...) caught a negative offset");
+    throw internal_error("EntryList::chunk_part(...) caught a negative offset");
 
   if (itr->file_meta()->prepare(prot))
     chunk = itr->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
@@ -173,7 +173,7 @@ EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
     if (itr == end())
       throw internal_error("EntryList could not find a valid file for chunk");
 
-    if (itr->get_size() == 0)
+    if (itr->size() == 0)
       continue;
 
     MemoryChunk mc = create_chunk_part(itr, offset, length, prot);

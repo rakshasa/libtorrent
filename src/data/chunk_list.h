@@ -74,7 +74,7 @@ public:
   ChunkHandle         get(size_type index, bool writable);
   void                release(ChunkHandle handle);
 
-  uint32_t            get_max_queue_size() const           { return m_maxQueueSize; }
+  uint32_t            max_queue_size() const               { return m_maxQueueSize; }
   void                set_max_queue_size(uint32_t v)       { m_maxQueueSize = v; }
 
   // Possibly have multiple version, some that do syncing of

@@ -82,8 +82,8 @@ public:
 
   bool                resize_all();
 
-  size_t              get_files_size() const                     { return Base::size(); }
-  off_t               get_bytes_size() const                     { return m_bytesSize; }
+  size_t              files_size() const                         { return Base::size(); }
+  off_t               bytes_size() const                         { return m_bytesSize; }
 
   EntryListNode*      get_node(uint32_t idx)                     { return &Base::front() + idx; }
 

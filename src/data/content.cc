@@ -67,12 +67,12 @@ Content::~Content() {
 void
 Content::initialize(uint32_t chunkSize) {
   m_chunkSize = chunkSize;
-  m_chunkTotal = (m_entryList->get_bytes_size() + chunkSize - 1) / chunkSize;
+  m_chunkTotal = (m_entryList->bytes_size() + chunkSize - 1) / chunkSize;
 
   m_bitfield = BitField(m_chunkTotal);
 
   for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
-    itr->set_range(make_index_range(itr->get_position(), itr->get_size()));
+    itr->set_range(make_index_range(itr->position(), itr->size()));
 }
 
 void
@@ -99,32 +99,32 @@ Content::set_root_dir(const std::string& dir) {
   m_rootDir = dir;
 }
 
-std::string
-Content::get_hash(unsigned int index) {
-  if (index >= m_chunkTotal)
-    throw internal_error("Tried to get chunk hash from Content that is out of range");
+// std::string
+// Content::get_hash(unsigned int index) {
+//   if (index >= m_chunkTotal)
+//     throw internal_error("Tried to get chunk hash from Content that is out of range");
 
-  return m_hash.substr(index * 20, 20);
-}
+//   return m_hash.substr(index * 20, 20);
+// }
 
 uint32_t
-Content::get_chunk_index_size(uint32_t index) const {
-  if (index + 1 != m_chunkTotal || m_entryList->get_bytes_size() % m_chunkSize == 0)
+Content::chunk_index_size(uint32_t index) const {
+  if (index + 1 != m_chunkTotal || m_entryList->bytes_size() % m_chunkSize == 0)
     return m_chunkSize;
   else
-    return m_entryList->get_bytes_size() % m_chunkSize;
+    return m_entryList->bytes_size() % m_chunkSize;
 }
 
 uint64_t
-Content::get_bytes_completed() const {
+Content::bytes_completed() const {
   uint64_t cs = m_chunkSize;
 
-  if (!m_bitfield[m_chunkTotal - 1] || m_entryList->get_bytes_size() % cs == 0)
+  if (!m_bitfield[m_chunkTotal - 1] || m_entryList->bytes_size() % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
     return m_completed * cs;
 
   else
-    return (m_completed - 1) * cs + m_entryList->get_bytes_size() % cs;
+    return (m_completed - 1) * cs + m_entryList->bytes_size() % cs;
 }
 
 bool
@@ -137,7 +137,7 @@ Content::is_valid_piece(const Piece& p) const {
 
     // Make sure offset does not overflow 32 bits.
     p.get_offset() < (1 << 30) &&
-    p.get_offset() + p.get_length() <= get_chunk_index_size(p.get_index());
+    p.get_offset() + p.get_length() <= chunk_index_size(p.get_index());
 }
 
 void
@@ -227,16 +227,11 @@ Content::update_done() {
     }
 }
 
-// bool
-// Content::is_chunk_allocated(uint32_t index) const {
-  
-// }
-
 std::pair<Chunk*,rak::error_number>
 Content::create_chunk(uint32_t index, bool writable) {
   rak::error_number::clear_global();
 
-  Chunk* c = m_entryList->create_chunk(get_chunk_position(index), get_chunk_index_size(index),
+  Chunk* c = m_entryList->create_chunk(chunk_position(index), chunk_index_size(index),
 				       MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
   return std::pair<Chunk*,rak::error_number>(c, c == NULL ? rak::error_number::current() : rak::error_number());

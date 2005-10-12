@@ -60,7 +60,7 @@ EntryListNode::resize_file() const {
   if (!m_fileMeta->prepare(MemoryChunk::prot_read))
     return false;
 
-  if (m_size == m_fileMeta->get_file().get_size())
+  if (m_size == m_fileMeta->get_file().size())
     return true;
 
   if (!m_fileMeta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||

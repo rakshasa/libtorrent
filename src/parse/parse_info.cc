@@ -115,7 +115,7 @@ parse_info(const Bencode& b, Content& c) {
     throw input_error("Torrent must have either length or files entry");
   }
 
-  if (c.entry_list()->get_bytes_size() == 0)
+  if (c.entry_list()->bytes_size() == 0)
     throw input_error("Torrent has zero length.");
 
   if (b["piece length"].as_value() <= (1 << 10) || b["piece length"].as_value() > (128 << 20))
