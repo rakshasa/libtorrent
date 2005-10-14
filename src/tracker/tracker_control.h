@@ -39,6 +39,7 @@
 
 #include <list>
 #include <string>
+#include <rak/functional.h>
 
 #include "tracker_base.h"
 #include "tracker_info.h"
@@ -54,9 +55,13 @@ namespace torrent {
 // tracker we can connect to, NONE's should be interpreted as a
 // started download.
 
+class TrackerManager;
+
 class TrackerControl {
 public:
-  typedef std::list<SocketAddress>                AddressList;
+  typedef std::list<SocketAddress>                               AddressList;
+  typedef rak::mem_fn1<TrackerManager, void, AddressList*>       SlotSuccess;
+  typedef rak::mem_fn1<TrackerManager, void, const std::string&> SlotFailed;
 
   TrackerControl();
 
@@ -86,6 +91,9 @@ public:
 
   Timer               time_last_connection() const            { return m_timeLastConnection; }
 
+  void                slot_success(SlotSuccess s)             { m_slotSuccess = s; }
+  void                slot_failed(SlotFailed s)               { m_slotFailed = s; }
+
 private:
 
   TrackerControl(const TrackerControl& t);
@@ -109,6 +117,9 @@ private:
   TrackerList::iterator m_itr;
 
   Timer               m_timeLastConnection;
+
+  SlotSuccess         m_slotSuccess;
+  SlotFailed          m_slotFailed;
 };
 
 inline bool

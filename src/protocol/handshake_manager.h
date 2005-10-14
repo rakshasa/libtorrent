@@ -40,7 +40,7 @@
 #include <list>
 #include <string>
 #include <inttypes.h>
-#include <sigc++/slot.h>
+#include <rak/functional.h>
 
 #include "net/socket_address.h"
 #include "net/socket_fd.h"
@@ -49,10 +49,17 @@ namespace torrent {
 
 class Handshake;
 class PeerInfo;
+class Manager;
 
 class HandshakeManager {
 public:
   typedef std::list<Handshake*> HandshakeList;
+
+  // File descriptor
+  // Info hash
+  // Peer info
+  typedef rak::mem_fn3<Manager, void, SocketFd, const std::string&, const PeerInfo&> SlotConnected;
+  typedef rak::mem_fn1<Manager, std::string, const std::string&>                     SlotDownloadId;
 
   HandshakeManager() : m_size(0) { m_bindAddress.set_address_any(); }
   ~HandshakeManager() { clear(); }
@@ -71,12 +78,6 @@ public:
   void                set_bind_address(const SocketAddress& sa) { m_bindAddress = sa; }
 
   bool                has_address(const SocketAddress& sa);
-
-  // File descriptor
-  // Info hash
-  // Peer info
-  typedef sigc::slot3<void, SocketFd, const std::string&, const PeerInfo&> SlotConnected;
-  typedef sigc::slot1<std::string, const std::string&>                     SlotDownloadId;
 
   void                slot_connected(SlotConnected s)           { m_slotConnected = s; }
   void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }

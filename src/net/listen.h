@@ -38,7 +38,7 @@
 #define LIBTORRENT_LISTEN_H
 
 #include <inttypes.h>
-#include <sigc++/signal.h>
+#include <rak/functional.h>
 
 #include "socket_address.h"
 #include "socket_base.h"
@@ -46,9 +46,11 @@
 
 namespace torrent {
 
+class HandshakeManager;
+
 class Listen : public SocketBase {
 public:
-  typedef sigc::slot2<void, SocketFd, const SocketAddress&> SlotIncoming;
+  typedef rak::mem_fn2<HandshakeManager, void, SocketFd, const SocketAddress&> SlotIncoming;
 
   Listen() : m_port(0) {}
   ~Listen() { close(); }

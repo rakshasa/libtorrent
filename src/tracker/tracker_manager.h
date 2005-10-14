@@ -37,18 +37,27 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_MANAGER_H
 #define LIBTORRENT_TRACKER_TRACKER_MANAGER_H
 
+#include <list>
+#include <rak/functional.h>
+
+#include "net/socket_address.h"
 #include "utils/task.h"
 
 namespace torrent {
 
+class DownloadWrapper;
 class TrackerControl;
 class TrackerInfo;
 class TrackerBase;
 
 class TrackerManager {
 public:
-  typedef uint32_t                     size_type;
-  typedef std::pair<int, TrackerBase*> value_type;
+  typedef uint32_t                                size_type;
+  typedef std::pair<int, TrackerBase*>            value_type;
+  typedef std::list<SocketAddress>                AddressList;
+
+  typedef rak::mem_fn1<DownloadWrapper, void, AddressList*>       SlotSuccess;
+  typedef rak::mem_fn1<DownloadWrapper, void, const std::string&> SlotFailed;
 
   TrackerManager();
   ~TrackerManager();
@@ -85,13 +94,16 @@ public:
 
   Timer               get_next_timeout() const;
 
+  void                slot_success(SlotSuccess s)               { m_slotSuccess = s; }
+  void                slot_failed(SlotFailed s)                 { m_slotFailed = s; }
+
 private:
   TrackerManager(const TrackerManager&);
   void operator = (const TrackerManager&);
 
   void                receive_timeout();
-  void                receive_success();
-  void                receive_failed();
+  void                receive_success(AddressList* l);
+  void                receive_failed(const std::string& msg);
 
   TrackerControl*     m_control;
 
@@ -101,6 +113,9 @@ private:
   uint32_t            m_maxRequests;
 
   uint32_t            m_initialTracker;
+  
+  SlotSuccess         m_slotSuccess;
+  SlotFailed          m_slotFailed;
 
   TaskItem            m_taskTimeout;
 };

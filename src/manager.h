@@ -40,6 +40,7 @@
 #include <string>
 
 #include "net/socket_address.h"
+#include "net/socket_fd.h"
 #include "utils/task_item.h"
 
 namespace torrent {
@@ -51,6 +52,7 @@ class DownloadManager;
 class DownloadWrapper;
 class FileManager;
 class ResourceManager;
+class PeerInfo;
 
 class Manager {
 public:
@@ -73,6 +75,9 @@ public:
   void                cleanup_download(DownloadWrapper* d);
 
   void                receive_tick();
+  void                receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer);
+
+  std::string         retrive_download_id(const std::string& hash);
 
 private:
   SocketAddress       m_localAddress;

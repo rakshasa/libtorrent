@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <algorithm>
-#include <rak/functional.h>
 
 #include "protocol/peer_info.h"
 #include "protocol/peer_connection_base.h"
@@ -67,7 +66,7 @@ ConnectionList::insert(DownloadMain* d, const PeerInfo& p, const SocketFd& fd) {
   c->initialize(d, p, fd);
 
   Base::push_back(c);
-  m_signalConnected.emit(Peer(c));
+  m_slotConnected(c);
 
   return true;
 }
@@ -80,7 +79,7 @@ ConnectionList::erase(iterator pos) {
   value_type v = *pos;
 
   pos = Base::erase(pos);
-  m_signalDisconnected.emit(Peer(v));
+  m_slotDisconnected(v);
 
   // Delete after the erase to ensure the connection doesn't get added
   // to the poll after PeerConnectionBase's dtor has been called.
@@ -100,7 +99,7 @@ ConnectionList::erase(PeerConnectionBase* p) {
   // emited otherwise some listeners might do stuff with the
   // assumption that the connection will remain in the list.
   Base::erase(itr);
-  m_signalDisconnected.emit(Peer(p));
+  m_slotDisconnected(p);
 
   // Delete after the erase to ensure the connection doesn't get added
   // to the poll after PeerConnectionBase's dtor has been called.
@@ -116,7 +115,7 @@ ConnectionList::erase_remaining(iterator pos) {
 
     Base::pop_back();
 
-    m_signalDisconnected.emit(Peer(v));
+    m_slotDisconnected(v);
     delete v;
   }
 }

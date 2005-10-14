@@ -43,9 +43,11 @@
 #include "download/download_wrapper.h"
 #include "download/download_main.h"
 #include "data/file_manager.h"
+#include "data/hash_torrent.h"
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
 #include "net/listen.h"
+#include "net/manager.h"
 
 #include "manager.h"
 #include "resource_manager.h"
@@ -69,7 +71,10 @@ Manager::Manager() :
 
   taskScheduler.insert(&m_taskTick, (Timer::cache()).round_seconds());
 
-  m_listen->slot_incoming(sigc::mem_fun(*m_handshakeManager, &HandshakeManager::add_incoming));
+  m_handshakeManager->slot_connected(rak::make_mem_fn(this, &Manager::receive_connection));
+  m_handshakeManager->slot_download_id(rak::make_mem_fn(this, &Manager::retrive_download_id));
+
+  m_listen->slot_incoming(rak::make_mem_fn(m_handshakeManager, &HandshakeManager::add_incoming));
 }
 
 Manager::~Manager() {
@@ -118,6 +123,26 @@ Manager::receive_tick() {
   // If you change the interval, make sure the above keepalive gets
   // triggered every 120 seconds.
   taskScheduler.insert(&m_taskTick, (Timer::cache() + 30 * 1000000).round_seconds());
+}
+
+void
+Manager::receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
+  DownloadManager::iterator itr = m_downloadManager->find(hash);
+  
+  if (itr == m_downloadManager->end() ||
+      !(*itr)->main()->is_active() ||
+      !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd))
+    socketManager.close(fd);
+}
+
+std::string
+Manager::retrive_download_id(const std::string& hash) {
+  DownloadManager::iterator itr = m_downloadManager->find(hash);
+
+  return itr != m_downloadManager->end() &&
+    (*itr)->main()->is_active() &&
+    (*itr)->hash_checker()->is_checked() ?
+    (*itr)->get_local_id() : "";
 }
 
 }

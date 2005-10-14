@@ -37,8 +37,6 @@
 #include "config.h"
 
 #include <sigc++/signal.h>
-#include <sigc++/hide.h>
-#include <sigc++/bind.h>
 
 #include "tracker/tracker_info.h"
 #include "tracker/tracker_manager.h"
@@ -53,23 +51,17 @@ DownloadMain::setup_delegator() {
   m_delegator.get_select().set_bitfield(&m_content.bitfield());
   m_delegator.get_select().set_seen(&m_bitfieldCounter);
 
-  m_delegator.signal_chunk_done().connect(sigc::mem_fun(*this, &DownloadMain::receive_chunk_done));
-  m_delegator.slot_chunk_size(sigc::mem_fun(m_content, &Content::chunk_index_size));
-}
-
-void
-DownloadMain::setup_net() {
-  //connection_list()->signal_disconnected().connect(sigc::mem_fun(*m_chokeManager, &ChokeManager::choke));
-  connection_list()->signal_disconnected().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
+  m_delegator.slot_chunk_done(rak::make_mem_fn(this, &DownloadMain::receive_chunk_done));
+  m_delegator.slot_chunk_size(rak::make_mem_fn(&m_content, &Content::chunk_index_size));
 }
 
 void
 DownloadMain::setup_tracker() {
   // This must be done before adding to available addresses.
-  m_trackerManager->tracker_info()->signal_success().connect(sigc::mem_fun(*connection_list(), &ConnectionList::set_difference));
-  m_trackerManager->tracker_info()->signal_success().connect(sigc::mem_fun(*available_list(), &AvailableList::insert));
-  m_trackerManager->tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
-  m_trackerManager->tracker_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
+//   m_trackerManager->signal_success().connect(sigc::mem_fun(*connection_list(), &ConnectionList::set_difference));
+//   m_trackerManager->signal_success().connect(sigc::mem_fun(*available_list(), &AvailableList::insert));
+//   m_trackerManager->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
+//   m_trackerManager->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
 
   m_trackerManager->tracker_info()->slot_stat_down() = rak::make_mem_fn(&m_downRate, &Rate::total);
   m_trackerManager->tracker_info()->slot_stat_up()   = rak::make_mem_fn(&m_upRate, &Rate::total);

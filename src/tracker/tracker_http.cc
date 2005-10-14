@@ -45,12 +45,6 @@
 #include "tracker_http.h"
 #include "tracker_info.h"
 
-// STOPPED is only sent once, if the connections fails then we stop trying.
-// START has a retry of [very short]
-// COMPLETED/NONE has a retry of [short]
-
-// START success leads to NONE and [interval]
-
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :

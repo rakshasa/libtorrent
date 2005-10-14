@@ -38,16 +38,15 @@
 #define LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
 
 #include <list>
+#include <rak/functional.h>
 #include <rak/unordered_vector.h>
-#include <sigc++/signal.h>
-#include <sigc++/slot.h>
 
 #include "net/socket_address.h"
-#include "torrent/peer.h"
 
 namespace torrent {
 
 class DownloadMain;
+class DownloadWrapper;
 class PeerConnectionBase;
 class PeerInfo;
 class SocketFd;
@@ -57,7 +56,9 @@ public:
   typedef rak::unordered_vector<PeerConnectionBase*> Base;
   typedef std::list<SocketAddress>                   AddressList;
   typedef uint32_t                                   size_type;
-  typedef sigc::signal1<void, Peer>                  SignalPeer;
+
+  typedef rak::mem_fn1<DownloadWrapper, void, PeerConnectionBase*> SlotPeer;
+
   typedef PeerConnectionBase* (*SlotNewConnection)();
 
   using Base::value_type;
@@ -106,11 +107,11 @@ public:
 
   // When a peer is connected it should be removed from the list of
   // available peers.
-  SignalPeer&         signal_connected()                               { return m_signalConnected; }
+  void                slot_connected(SlotPeer s)                       { m_slotConnected = s; }
 
   // When a peer is disconnected the torrent should rebalance the
   // choked peers and connect to new ones if possible.
-  SignalPeer&         signal_disconnected()                            { return m_signalDisconnected; }
+  void                slot_disconnected(SlotPeer s)                    { m_slotDisconnected = s; }
 
   void                slot_new_connection(SlotNewConnection s)         { m_slotNewConnection = s; }
 
@@ -121,8 +122,8 @@ private:
   size_type           m_minSize;
   size_type           m_maxSize;
 
-  SignalPeer          m_signalConnected;
-  SignalPeer          m_signalDisconnected;
+  SlotPeer            m_slotConnected;
+  SlotPeer            m_slotDisconnected;
 
   SlotNewConnection   m_slotNewConnection;
 };

@@ -420,32 +420,33 @@ Download::signal_download_done(Download::SlotVoid s) {
 
 sigc::connection
 Download::signal_hash_done(Download::SlotVoid s) {
-  return m_ptr->hash_checker()->signal_torrent().connect(s);
+  return m_ptr->signal_initial_hash().connect(s);
 }
 
 sigc::connection
 Download::signal_peer_connected(Download::SlotPeer s) {
-  return m_ptr->main()->connection_list()->signal_connected().connect(s);
+  return m_ptr->signal_peer_connected().connect(s);
 }
 
 sigc::connection
 Download::signal_peer_disconnected(Download::SlotPeer s) {
-  return m_ptr->main()->connection_list()->signal_disconnected().connect(s);
+  return m_ptr->signal_peer_disconnected().connect(s);
 }
 
 sigc::connection
 Download::signal_tracker_succeded(Download::SlotVoid s) {
-  return m_ptr->main()->tracker_manager()->tracker_info()->signal_success().connect(sigc::hide(s));
+  return m_ptr->signal_tracker_success().connect(s);
 }
 
 sigc::connection
 Download::signal_tracker_failed(Download::SlotString s) {
-  return m_ptr->main()->tracker_manager()->tracker_info()->signal_failed().connect(s);
+  return m_ptr->signal_tracker_failed().connect(s);
 }
 
 sigc::connection
 Download::signal_tracker_dump(Download::SlotIStream s) {
-  return m_ptr->main()->tracker_manager()->tracker_info()->signal_dump().connect(s);
+//   return m_ptr->main()->tracker_manager()->signal_dump().connect(s);
+  return sigc::connection();
 }
 
 sigc::connection

@@ -39,13 +39,15 @@
 
 #include <string>
 #include <vector>
-#include <sigc++/signal.h>
+#include <rak/functional.h>
 
 #include "delegator_select.h"
 
 namespace torrent {
 
 class BitField;
+class Content;
+class DownloadMain;
 class DelegatorChunk;
 class DelegatorReservee;
 class DelegatorPiece;
@@ -53,9 +55,9 @@ class Piece;
 
 class Delegator {
 public:
-  typedef std::vector<DelegatorChunk*>        Chunks;
-  typedef sigc::signal1<void, unsigned int>   SignalChunkDone;
-  typedef sigc::slot1<uint32_t, unsigned int> SlotChunkSize;
+  typedef std::vector<DelegatorChunk*>                        Chunks;
+  typedef rak::mem_fn1<DownloadMain, void, unsigned int>      SlotChunkDone;
+  typedef rak::const_mem_fn1<Content, uint32_t, unsigned int> SlotChunkSize;
 
   Delegator() : m_aggressive(false) { }
   ~Delegator() { clear(); }
@@ -75,8 +77,7 @@ public:
   bool               get_aggressive()                     { return m_aggressive; }
   void               set_aggressive(bool a)               { m_aggressive = a; }
 
-  SignalChunkDone&   signal_chunk_done()                  { return m_signalChunkDone; }
-
+  void               slot_chunk_done(SlotChunkDone s)     { m_slotChunkDone = s; }
   void               slot_chunk_size(SlotChunkSize s)     { m_slotChunkSize = s; }
 
   // Don't call this from the outside.
@@ -96,7 +97,7 @@ private:
   Chunks             m_chunks;
   DelegatorSelect    m_select;
 
-  SignalChunkDone    m_signalChunkDone;
+  SlotChunkDone      m_slotChunkDone;
   SlotChunkSize      m_slotChunkSize;
 };
 

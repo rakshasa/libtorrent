@@ -37,8 +37,13 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
+#include <sigc++/signal.h>
+
+#include "net/socket_address.h"
 #include "torrent/bencode.h"
+#include "torrent/peer.h"
 #include "tracker/tracker_info.h"
+
 #include "download_main.h"
 
 namespace torrent {
@@ -52,6 +57,12 @@ class HandshakeManager;
 
 class DownloadWrapper {
 public:
+  typedef std::list<SocketAddress>                AddressList;
+
+  typedef sigc::signal0<void>                     Signal;
+  typedef sigc::signal1<void, const std::string&> SignalString;
+  typedef sigc::signal1<void, Peer>               SignalPeer;
+
   DownloadWrapper();
   ~DownloadWrapper();
 
@@ -93,8 +104,22 @@ public:
 
   void                receive_keepalive();
   void                receive_initial_hash();
-  
   void                receive_storage_error(const std::string& str);
+
+  void                receive_tracker_success(AddressList* l);
+  void                receive_tracker_failed(const std::string& msg);
+
+  void                receive_peer_connected(PeerConnectionBase* peer);
+  void                receive_peer_disconnected(PeerConnectionBase* peer);
+
+  Signal&             signal_initial_hash()          { return m_signalInitialHash; }
+
+  // The list of addresses is guaranteed to be sorted and unique.
+  Signal&             signal_tracker_success()       { return m_signalTrackerSuccess; }
+  SignalString&       signal_tracker_failed()        { return m_signalTrackerFailed; }
+
+  SignalPeer&         signal_peer_connected()        { return m_signalPeerConnected; }
+  SignalPeer&         signal_peer_disconnected()     { return m_signalPeerDisconnected; }
 
 private:
   DownloadWrapper(const DownloadWrapper&);
@@ -106,6 +131,13 @@ private:
 
   std::string         m_name;
   int                 m_connectionType;
+
+  Signal              m_signalInitialHash;
+  Signal              m_signalTrackerSuccess;
+  SignalString        m_signalTrackerFailed;
+
+  SignalPeer          m_signalPeerConnected;
+  SignalPeer          m_signalPeerDisconnected;
 };
 
 }

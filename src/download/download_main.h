@@ -92,7 +92,6 @@ public:
 
   // Carefull with these.
   void                setup_delegator();
-  void                setup_net();
   void                setup_tracker();
 
   typedef sigc::signal1<void, const std::string&>                SignalString;

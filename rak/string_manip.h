@@ -1,4 +1,4 @@
-// libTorrent - BitTorrent library
+// rak - Rakshasa's toolbox
 // Copyright (C) 2005, Jari Sundell
 //
 // This program is free software; you can redistribute it and/or modify
@@ -34,46 +34,45 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DELEGATOR_CHUNK_H
-#define LIBTORRENT_DELEGATOR_CHUNK_H
+#ifndef RAK_STRING_MANIP_H
+#define RAK_STRING_MANIP_H
 
-#include <inttypes.h>
+#include <cctype>
 
-#include "delegator_piece.h"
-#include "priority.h"
+namespace rak {
 
-namespace torrent {
+// Use these trim functions until n1872 is widely supported.
 
-class DelegatorChunk {
-public:
-  typedef DelegatorPiece* iterator;
-  typedef const DelegatorPiece* const_iterator;
+template <typename Sequence>
+Sequence trim_begin(const Sequence& seq) {
+  if (seq.empty() || !std::isspace(*seq.begin()))
+    return seq;
 
-  DelegatorChunk(unsigned int index,
-		 uint32_t size,
-		 uint32_t piece_length,
-		 Priority::Type p);
-  ~DelegatorChunk()                                   { delete [] m_pieces; }
+  typename Sequence::size_type pos = 0;
 
-  unsigned int        get_index() const               { return m_index; }
-  unsigned int        get_piece_count()               { return m_count; }
-  Priority::Type      priority()                      { return m_priority; }
+  while (pos != seq.length() && std::isspace(seq[pos]))
+    pos++;
 
-  DelegatorPiece*     begin()                         { return m_pieces; }
-  DelegatorPiece*     end()                           { return m_pieces + m_count; }
+  return seq.substr(pos, seq.length() - pos);
+}
 
-  DelegatorPiece&     operator[] (unsigned int index) { return m_pieces[index]; }
+template <typename Sequence>
+Sequence trim_end(const Sequence& seq) {
+  if (seq.empty() || !std::isspace(*(--seq.end())))
+    return seq;
 
-private:
-  DelegatorChunk(const DelegatorChunk&);
-  void operator= (const DelegatorChunk&);
+  typename Sequence::size_type pos = seq.size();
 
-  unsigned int    m_index;
-  unsigned int    m_count;
+  while (pos != 0 && std::isspace(seq[pos - 1]))
+    pos--;
 
-  Priority::Type  m_priority;
-  DelegatorPiece* m_pieces;
-};
+  return seq.substr(0, pos);
+}
+
+template <typename Sequence>
+Sequence trim(const Sequence& seq) {
+  return trim_begin(trim_end(seq));
+}
 
 }
 

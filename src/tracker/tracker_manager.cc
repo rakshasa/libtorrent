@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#include <sigc++/hide.h>
-
 #include "torrent/exceptions.h"
 
 #include "tracker_control.h"
@@ -52,8 +50,8 @@ TrackerManager::TrackerManager() :
   m_maxRequests(5),
   m_initialTracker(0) {
 
-  m_control->get_info()->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_success)));
-  m_control->get_info()->signal_failed().connect(sigc::hide(sigc::mem_fun(*this, &TrackerManager::receive_failed)));
+  m_control->slot_success(rak::make_mem_fn(this, &TrackerManager::receive_success));
+  m_control->slot_failed(rak::make_mem_fn(this, &TrackerManager::receive_failed));
 
   m_taskTimeout.set_iterator(taskScheduler.end());
   m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerManager::receive_timeout));
@@ -210,9 +208,11 @@ TrackerManager::receive_timeout() {
 }
 
 void
-TrackerManager::receive_success() {
-  if (m_control->get_state() == TrackerInfo::STOPPED)
+TrackerManager::receive_success(AddressList* l) {
+  if (m_control->get_state() == TrackerInfo::STOPPED) {
+    m_slotSuccess(l);
     return;
+  }
 
   if (m_control->get_state() == TrackerInfo::STARTED)
     m_initialTracker = m_control->focus_index();
@@ -234,12 +234,16 @@ TrackerManager::receive_success() {
 
   m_control->set_state(TrackerInfo::NONE);
   taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_control->get_normal_interval() * 1000000).round_seconds());
+
+  m_slotSuccess(l);
 }
 
 void
-TrackerManager::receive_failed() {
-  if (m_control->get_state() == TrackerInfo::STOPPED)
+TrackerManager::receive_failed(const std::string& msg) {
+  if (m_control->get_state() == TrackerInfo::STOPPED) {
+    m_slotFailed(msg);
     return;
+  }
 
   if (m_isRequesting) {
     if (m_control->focus_index() == m_control->get_list().size()) {
@@ -258,6 +262,8 @@ TrackerManager::receive_failed() {
     
     taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 20 * 1000000).round_seconds());
   }
+
+  m_slotFailed(msg);
 }
 
 }

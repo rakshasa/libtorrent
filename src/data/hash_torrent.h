@@ -39,7 +39,6 @@
 
 #include <string>
 #include <rak/functional.h>
-#include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
 #include "utils/ranges.h"
@@ -49,12 +48,13 @@ namespace torrent {
 class ChunkList;
 class HashQueue;
 class DownloadWrapper;
+class DownloadMain;
 
 class HashTorrent {
 public:
-  typedef sigc::signal0<void>                         Signal;
-  typedef sigc::slot2<void, ChunkHandle, std::string> SlotChunkDone;
-  typedef rak::mem_fn1<DownloadWrapper, void, const std::string&> SlotStorageError;
+  typedef rak::mem_fn2<DownloadMain, void, ChunkHandle, std::string> SlotChunkDone;
+  typedef rak::mem_fn0<DownloadWrapper, void>                        SlotInitialHash;
+  typedef rak::mem_fn1<DownloadWrapper, void, const std::string&>    SlotStorageError;
   
   HashTorrent(const std::string& id, ChunkList* c);
   ~HashTorrent() { clear(); }
@@ -62,17 +62,16 @@ public:
   void                start();
   void                clear();
 
-  bool                is_checking()                 { return m_outstanding >= 0; }
+  bool                is_checking()                          { return m_outstanding >= 0; }
   bool                is_checked();
 
-  Ranges&             ranges()                  { return m_ranges; }
+  Ranges&             ranges()                               { return m_ranges; }
 
-  HashQueue*          get_queue()                   { return m_queue; }
-  void                set_queue(HashQueue* q)       { m_queue = q; }
-
-  Signal&             signal_torrent()              { return m_signalTorrent; }
+  HashQueue*          get_queue()                            { return m_queue; }
+  void                set_queue(HashQueue* q)                { m_queue = q; }
 
   void                slot_chunk_done(SlotChunkDone s)       { m_slotChunkDone = s; }
+  void                slot_initial_hash(SlotInitialHash s)   { m_slotInitialHash = s; }
   void                slot_storage_error(SlotStorageError s) { m_slotStorageError = s; }
 
 private:
@@ -89,8 +88,8 @@ private:
   ChunkList*          m_chunkList;
   HashQueue*          m_queue;
 
-  Signal              m_signalTorrent;
   SlotChunkDone       m_slotChunkDone;
+  SlotInitialHash     m_slotInitialHash;
   SlotStorageError    m_slotStorageError;
 };
 

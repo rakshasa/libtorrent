@@ -39,8 +39,6 @@
 
 #include <vector>
 #include <list>
-#include <sigc++/signal.h>
-#include <sigc++/slot.h>
 
 #include "net/socket_address.h"
 

@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <inttypes.h>
-#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "download/delegator_chunk.h"
@@ -181,7 +180,7 @@ Delegator::finished(DelegatorReservee& r) {
   p->set_finished(true);
 
   if (all_finished(p->get_piece().get_index()))
-    m_signalChunkDone.emit(p->get_piece().get_index());
+    m_slotChunkDone(p->get_piece().get_index());
 }
 
 void

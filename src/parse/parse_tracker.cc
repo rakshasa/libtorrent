@@ -36,10 +36,12 @@
 
 #include "config.h"
 
+#include <rak/string_manip.h>
+
+#include "torrent/bencode.h"
 #include "torrent/exceptions.h"
 #include "tracker/tracker_manager.h"
 
-#include "torrent/bencode.h"
 #include "parse.h"
 
 namespace torrent {
@@ -51,7 +53,7 @@ struct _add_tracker {
     if (!b.is_string())
       throw bencode_error("Tracker entry not a string");
     
-    m_tracker->insert(m_group, b.as_string());
+    m_tracker->insert(m_group, rak::trim(b.as_string()));
   }
 
   int             m_group;

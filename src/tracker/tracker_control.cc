@@ -37,8 +37,8 @@
 #include "config.h"
 
 #include <algorithm>
+#include <cstring>
 #include <functional>
-#include <sstream>
 
 #include "torrent/exceptions.h"
 #include "tracker_control.h"
@@ -64,14 +64,13 @@ TrackerControl::insert(int group, const std::string& url) {
   if (is_busy())
     throw internal_error("Added tracker url while the current tracker is busy");
 
-  std::string::size_type pos;
   TrackerBase* t;
 
-  if ((pos = url.find("http://")) != std::string::npos)
-    t = new TrackerHttp(&m_info, url.substr(pos));
+  if (std::strncmp("http://", url.c_str(), 7) == 0)
+    t = new TrackerHttp(&m_info, url);
 
-  else if ((pos = url.find("udp://")) != std::string::npos)
-    t = new TrackerUdp(&m_info, url.substr(pos));
+  else if (std::strncmp("udp://", url.c_str(), 6) == 0)
+    t = new TrackerUdp(&m_info, url);
 
   else
     // TODO: Error message here?... not really...
@@ -108,7 +107,7 @@ TrackerControl::send_state(TrackerInfo::State s) {
   if (m_itr != m_list.end())
     m_itr->second->send_state(m_state, m_info.slot_stat_down()(), m_info.slot_stat_up()(), m_info.slot_stat_left()());
   else
-    m_info.signal_failed().emit("Tried all trackers.");
+    m_slotFailed("Tried all trackers.");
 }
 
 void
@@ -155,7 +154,7 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
   m_timeLastConnection = Timer::cache();
-  m_info.signal_success().emit(l);
+  m_slotSuccess(l);
 }
 
 void
@@ -169,7 +168,7 @@ TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
     throw internal_error("TrackerControl::receive_failed(...) called but the iterator is invalid.");
 
   m_itr++;
-  m_info.signal_failed().emit(msg);
+  m_slotFailed(msg);
 }
 
 void

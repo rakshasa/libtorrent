@@ -73,7 +73,6 @@ DownloadWrapper::~DownloadWrapper() {
 
 void
 DownloadWrapper::initialize(const std::string& hash, const std::string& id, const SocketAddress& sa) {
-  m_main.setup_net();
   m_main.setup_delegator();
   m_main.setup_tracker();
 
@@ -81,16 +80,21 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.tracker_manager()->tracker_info()->set_local_id(id);
   m_main.tracker_manager()->tracker_info()->set_local_address(sa);
   m_main.tracker_manager()->tracker_info()->set_key(random());
+  m_main.tracker_manager()->slot_success(rak::make_mem_fn(this, &DownloadWrapper::receive_tracker_success));
+  m_main.tracker_manager()->slot_failed(rak::make_mem_fn(this, &DownloadWrapper::receive_tracker_failed));
 
   m_main.chunk_list()->set_max_queue_size((32 << 20) / m_main.content()->chunk_size());
+
+  m_main.connection_list()->slot_connected(rak::make_mem_fn(this, &DownloadWrapper::receive_peer_connected));
+  m_main.connection_list()->slot_disconnected(rak::make_mem_fn(this, &DownloadWrapper::receive_peer_disconnected));
 
   // Info hash must be calculate from here on.
   m_hash = new HashTorrent(get_hash(), m_main.chunk_list());
 
   // Connect various signals and slots.
-  m_hash->slot_chunk_done(sigc::mem_fun(m_main, &DownloadMain::receive_hash_done));
+  m_hash->slot_chunk_done(rak::make_mem_fn(&m_main, &DownloadMain::receive_hash_done));
+  m_hash->slot_initial_hash(rak::make_mem_fn(this, &DownloadWrapper::receive_initial_hash));
   m_hash->slot_storage_error(rak::make_mem_fn(this, &DownloadWrapper::receive_storage_error));
-  m_hash->signal_torrent().connect(sigc::mem_fun(*this, &DownloadWrapper::receive_initial_hash));
 }
 
 void
@@ -320,11 +324,40 @@ DownloadWrapper::receive_initial_hash() {
     m_hash->clear();
     m_main.content()->clear();
   }
+
+  m_signalInitialHash.emit();
 }    
 
 void
 DownloadWrapper::receive_storage_error(const std::string& str) {
   m_main.signal_storage_error().emit(str);
+}
+
+void
+DownloadWrapper::receive_tracker_success(AddressList* l) {
+  m_main.connection_list()->set_difference(l);
+  m_main.available_list()->insert(l);
+  m_main.receive_connect_peers();
+  m_main.receive_tracker_success();
+
+  m_signalTrackerSuccess.emit();
+}
+
+void
+DownloadWrapper::receive_tracker_failed(const std::string& msg) {
+  m_signalTrackerFailed.emit(msg);
+}
+
+void
+DownloadWrapper::receive_peer_connected(PeerConnectionBase* peer) {
+  m_signalPeerConnected.emit(Peer(peer));
+}
+
+void
+DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
+  m_main.receive_connect_peers();
+
+  m_signalPeerDisconnected.emit(Peer(peer));
 }
 
 }

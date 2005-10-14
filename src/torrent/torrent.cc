@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <iostream>
-#include <sigc++/bind.h>
 #include <rak/functional.h>
 
 #include "exceptions.h"
@@ -67,27 +66,6 @@ int64_t Timer::m_cache;
 TaskScheduler taskScheduler;
 ThrottlePeer  throttleRead;
 ThrottlePeer  throttleWrite;
-
-// Find some better way of doing this, or rather... move it outside.
-std::string
-download_id(const std::string& hash) {
-  DownloadManager::iterator itr = manager->download_manager()->find(hash);
-
-  return itr != manager->download_manager()->end() &&
-    (*itr)->main()->is_active() &&
-    (*itr)->hash_checker()->is_checked() ?
-    (*itr)->get_local_id() : "";
-}
-
-void
-receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadManager::iterator itr = manager->download_manager()->find(hash);
-  
-  if (itr == manager->download_manager()->end() ||
-      !(*itr)->main()->is_active() ||
-      !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd))
-    socketManager.close(fd);
-}
 
 uint32_t
 calculate_max_open_files(uint32_t openMax) {
@@ -128,9 +106,6 @@ initialize(Poll* poll) {
 
   throttleRead.start();
   throttleWrite.start();
-
-  manager->handshake_manager()->slot_connected(sigc::ptr_fun3(&receive_connection));
-  manager->handshake_manager()->slot_download_id(sigc::ptr_fun1(download_id));
 
   pollCustom = poll;
 

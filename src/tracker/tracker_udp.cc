@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <stdlib.h>
-#include <sigc++/bind.h>
 #include <rak/error_number.h>
 
 #include "net/manager.h"

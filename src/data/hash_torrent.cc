@@ -122,7 +122,7 @@ HashTorrent::queue() {
       // If the error number is not valid, then we've just encountered
       // a file that hasn't be created/resized. Which means we ignore
       // it when doing initial hashing.
-      m_signalTorrent();
+      m_slotInitialHash();
       m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
 
       return;
@@ -131,7 +131,7 @@ HashTorrent::queue() {
 
   if (m_outstanding == 0) {
     m_outstanding = -1;
-    m_signalTorrent();
+    m_slotInitialHash();
   }
 }
 

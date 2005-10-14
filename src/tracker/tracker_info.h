@@ -40,7 +40,6 @@
 #include <list>
 #include <string>
 #include <inttypes.h>
-#include <sigc++/signal.h>
 #include <rak/functional.h>
 
 #include "net/socket_address.h"
@@ -52,13 +51,10 @@ class Rate;
 
 class TrackerInfo {
 public:
-  typedef std::list<SocketAddress>                AddressList;
+  typedef std::list<SocketAddress>                   AddressList;
 
-  typedef rak::const_mem_fn0<DownloadMain, uint64_t>    SlotStat;
-  typedef rak::const_mem_fn0<Rate, uint64_t>            SlotStatRate;
-  typedef sigc::signal1<void, std::istream*>      SignalDump;
-  typedef sigc::signal1<void, AddressList*>       SignalAddressList;
-  typedef sigc::signal1<void, const std::string&> SignalString;
+  typedef rak::const_mem_fn0<DownloadMain, uint64_t> SlotStat;
+  typedef rak::const_mem_fn0<Rate, uint64_t>         SlotStatRate;
 
   enum State {
     NONE,
@@ -91,14 +87,6 @@ public:
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
-  // The list of addresses is guaranteed to be sorted and unique.
-  SignalAddressList&  signal_success()                        { return m_signalSuccess; }
-
-  // Before the failed signal emits, focus_index() is pointing to
-  // the next tracker.
-  SignalString&       signal_failed()                         { return m_signalFailed; }
-  SignalDump&         signal_dump()                           { return m_signalDump; }
-
   SlotStatRate&       slot_stat_down()                             { return m_slotStatDown; }
   SlotStatRate&       slot_stat_up()                               { return m_slotStatUp; }
   SlotStat&           slot_stat_left()                             { return m_slotStatLeft; }
@@ -115,10 +103,6 @@ private:
   SlotStatRate        m_slotStatDown;
   SlotStatRate        m_slotStatUp;
   SlotStat            m_slotStatLeft;
-
-  SignalDump          m_signalDump;
-  SignalAddressList   m_signalSuccess;
-  SignalString        m_signalFailed;
 };
 
 }
