@@ -108,7 +108,8 @@ public:
   void                   clear();
   void                   resize();
 
-  void                   mark_done(uint32_t index);
+  bool                   receive_chunk_hash(uint32_t index, const std::string& hash);
+
   void                   update_done();
 
   Signal&                signal_download_done()               { return m_signalDownloadDone; }

@@ -451,12 +451,12 @@ Download::signal_tracker_dump(Download::SlotIStream s) {
 
 sigc::connection
 Download::signal_chunk_passed(Download::SlotChunk s) {
-  return m_ptr->main()->signal_chunk_passed().connect(s);
+  return m_ptr->signal_chunk_passed().connect(s);
 }
 
 sigc::connection
 Download::signal_chunk_failed(Download::SlotChunk s) {
-  return m_ptr->main()->signal_chunk_failed().connect(s);
+  return m_ptr->signal_chunk_failed().connect(s);
 }
 
 sigc::connection

@@ -76,6 +76,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.setup_delegator();
   m_main.setup_tracker();
 
+  m_main.slot_hash_check_add(rak::make_mem_fn(this, &DownloadWrapper::check_chunk_hash));
+
   m_main.tracker_manager()->tracker_info()->set_hash(hash);
   m_main.tracker_manager()->tracker_info()->set_local_id(id);
   m_main.tracker_manager()->tracker_info()->set_local_address(sa);
@@ -89,10 +91,10 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.connection_list()->slot_disconnected(rak::make_mem_fn(this, &DownloadWrapper::receive_peer_disconnected));
 
   // Info hash must be calculate from here on.
-  m_hash = new HashTorrent(get_hash(), m_main.chunk_list());
+  m_hash = new HashTorrent(m_main.chunk_list());
 
   // Connect various signals and slots.
-  m_hash->slot_chunk_done(rak::make_mem_fn(&m_main, &DownloadMain::receive_hash_done));
+  m_hash->slot_check_chunk(rak::make_mem_fn(this, &DownloadWrapper::check_chunk_hash));
   m_hash->slot_initial_hash(rak::make_mem_fn(this, &DownloadWrapper::receive_initial_hash));
   m_hash->slot_storage_error(rak::make_mem_fn(this, &DownloadWrapper::receive_storage_error));
 }
@@ -246,6 +248,10 @@ DownloadWrapper::close() {
   // released when DownloadMain::close() is called.
   m_hash->clear();
 
+  // Clear after m_hash to ensure that the empty hash done signal does
+  // not get passed to HashTorrent.
+  m_hash->get_queue()->remove(get_hash());
+
   m_main.close();
 }
 
@@ -254,12 +260,27 @@ DownloadWrapper::start() {
   if (!m_hash->is_checked())
     throw client_error("Tried to start an unchecked download");
 
+  if (!m_main.is_open())
+    throw client_error("Tried to start a closed download");
+
+  if (m_main.is_active())
+    return;
+
+  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(*m_main.delegator(), &Delegator::done));
+  m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_main.delegator(), &Delegator::redo));
+
   m_main.start();
 }
 
 void
 DownloadWrapper::stop() {
+  if (!m_main.is_active())
+    return;
+
   m_main.stop();
+
+  m_connectionChunkPassed.disconnect();
+  m_connectionChunkFailed.disconnect();
 }
 
 bool
@@ -290,17 +311,13 @@ DownloadWrapper::set_file_manager(FileManager* f) {
 
 void
 DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
-  m_main.slot_count_handshakes(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::size_hash), get_hash()));
-  m_main.slot_start_handshake(sigc::bind(sigc::mem_fun(*h, &HandshakeManager::add_outgoing), get_hash(), get_local_id()));
+  m_main.slot_count_handshakes(rak::make_mem_fn(h, &HandshakeManager::size_hash));
+  m_main.slot_start_handshake(rak::make_mem_fn(h, &HandshakeManager::add_outgoing));
 }
 
 void
 DownloadWrapper::set_hash_queue(HashQueue* h) {
   m_hash->set_queue(h);
-
-  m_main.slot_hash_check_add(sigc::bind(sigc::mem_fun(*h, &HashQueue::push_back),
-					sigc::mem_fun(m_main, &DownloadMain::receive_hash_done),
-					get_hash()));
 }
 
 void
@@ -322,11 +339,52 @@ DownloadWrapper::receive_initial_hash() {
 
   } else {
     m_hash->clear();
+
+    // Clear after m_hash to ensure that the empty hash done signal does
+    // not get passed to HashTorrent.
+    m_hash->get_queue()->remove(get_hash());
     m_main.content()->clear();
   }
 
   m_signalInitialHash.emit();
 }    
+
+void
+DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
+  // Using HashTorrent's queue temporarily.
+  m_hash->get_queue()->push_back(handle, rak::make_mem_fn(this, &DownloadWrapper::receive_hash_done), get_hash());
+}
+
+void
+DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
+  if (!handle.is_valid())
+    throw internal_error("DownloadMain::receive_hash_done(...) called on an invalid chunk.");
+
+  if (m_hash->is_checking()) {
+    m_main.content()->receive_chunk_hash(handle->index(), h);
+    m_hash->receive_chunkdone();
+
+  } else if (is_open()) {
+
+    if (m_main.content()->receive_chunk_hash(handle->index(), h)) {
+      signal_chunk_passed().emit(handle->index());
+      m_main.update_endgame();
+
+      if (m_main.content()->is_done())
+	m_main.connection_list()->erase_seeders();
+    
+      m_main.connection_list()->send_finished_chunk(handle->index());
+
+    } else {
+      signal_chunk_failed().emit(handle->index());
+    }
+
+  } else {
+    throw internal_error("DownloadMain::receive_hash_done(...) called but we're not in the right state.");
+  }
+
+  m_main.chunk_list()->release(handle);
+}  
 
 void
 DownloadWrapper::receive_storage_error(const std::string& str) {

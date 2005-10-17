@@ -70,8 +70,8 @@ DownloadMain::setup_tracker() {
 
 void
 DownloadMain::setup_start() {
-  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
-  m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
+//   m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
+//   m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
 
   taskScheduler.insert(&m_taskTick, (Timer::cache() + 2 * 30 * 1000000).round_seconds());
   m_content.block_download_done(false);
@@ -79,8 +79,8 @@ DownloadMain::setup_start() {
 
 void
 DownloadMain::setup_stop() {
-  m_connectionChunkPassed.disconnect();
-  m_connectionChunkFailed.disconnect();
+//   m_connectionChunkPassed.disconnect();
+//   m_connectionChunkFailed.disconnect();
 
   taskScheduler.erase(&m_taskTick);
   taskScheduler.erase(&m_taskTrackerRequest);

@@ -43,8 +43,7 @@
 
 namespace torrent {
 
-HashTorrent::HashTorrent(const std::string& id, ChunkList* c) :
-  m_id(id),
+HashTorrent::HashTorrent(ChunkList* c) :
   m_position(0),
   m_outstanding(-1),
   m_chunkList(c),
@@ -67,7 +66,7 @@ HashTorrent::start() {
 void
 HashTorrent::clear() {
   m_outstanding = -1;
-  m_queue->remove(m_id);
+  //m_queue->remove(m_id);
   m_position = 0;
 }
 
@@ -77,13 +76,13 @@ HashTorrent::is_checked() {
 }
 
 void
-HashTorrent::receive_chunkdone(ChunkHandle handle, std::string hash) {
+HashTorrent::receive_chunkdone() {
   // m_signalChunk will always point to
   // DownloadMain::receive_hash_done, so it will take care of cleanup.
   //
   // Make sure we call chunkdone before torrentDone has a chance to
   // trigger.
-  m_slotChunkDone(handle, hash);
+//   m_slotChunkDone(handle, hash);
   m_outstanding--;
 
   // Don't add more when we've stopped. Use some better condition than
@@ -115,7 +114,9 @@ HashTorrent::queue() {
     ChunkHandle handle = m_chunkList->get(m_position++, false);
 
     if (handle.is_valid()) {
-      m_queue->push_back(handle, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
+//       m_queue->push_back(handle, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
+      m_slotCheckChunk(handle);
+
       m_outstanding++;
 
     } else if (handle.error_number().is_valid()) {

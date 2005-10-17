@@ -39,6 +39,7 @@
 
 #include <sigc++/signal.h>
 
+#include "data/chunk_handle.h"
 #include "net/socket_address.h"
 #include "torrent/bencode.h"
 #include "torrent/peer.h"
@@ -60,6 +61,7 @@ public:
   typedef std::list<SocketAddress>                AddressList;
 
   typedef sigc::signal0<void>                     Signal;
+  typedef sigc::signal1<void, uint32_t>           SignalChunk;
   typedef sigc::signal1<void, const std::string&> SignalString;
   typedef sigc::signal1<void, Peer>               SignalPeer;
 
@@ -104,8 +106,11 @@ public:
 
   void                receive_keepalive();
   void                receive_initial_hash();
-  void                receive_storage_error(const std::string& str);
 
+  void                check_chunk_hash(ChunkHandle handle);
+  void                receive_hash_done(ChunkHandle handle, std::string h);
+
+  void                receive_storage_error(const std::string& str);
   void                receive_tracker_success(AddressList* l);
   void                receive_tracker_failed(const std::string& msg);
 
@@ -117,6 +122,9 @@ public:
   // The list of addresses is guaranteed to be sorted and unique.
   Signal&             signal_tracker_success()       { return m_signalTrackerSuccess; }
   SignalString&       signal_tracker_failed()        { return m_signalTrackerFailed; }
+
+  SignalChunk&        signal_chunk_passed()          { return m_signalChunkPassed; }
+  SignalChunk&        signal_chunk_failed()          { return m_signalChunkFailed; }
 
   SignalPeer&         signal_peer_connected()        { return m_signalPeerConnected; }
   SignalPeer&         signal_peer_disconnected()     { return m_signalPeerDisconnected; }
@@ -135,6 +143,12 @@ private:
   Signal              m_signalInitialHash;
   Signal              m_signalTrackerSuccess;
   SignalString        m_signalTrackerFailed;
+
+  SignalChunk         m_signalChunkPassed;
+  SignalChunk         m_signalChunkFailed;
+
+  sigc::connection    m_connectionChunkPassed;
+  sigc::connection    m_connectionChunkFailed;
 
   SignalPeer          m_signalPeerConnected;
   SignalPeer          m_signalPeerDisconnected;

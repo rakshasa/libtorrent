@@ -45,6 +45,7 @@
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "tracker/tracker_info.h"
 #include "tracker/tracker_manager.h"
 
 #include "choke_manager.h"
@@ -124,7 +125,7 @@ void DownloadMain::start() {
     throw client_error("Tried to start a closed download");
 
   if (is_active())
-    return;
+    throw client_error("Tried to start an active download");
 
   m_started = true;
   m_lastConnectedSize = 0;
@@ -207,43 +208,19 @@ DownloadMain::receive_chunk_done(unsigned int index) {
 }
 
 void
-DownloadMain::receive_hash_done(ChunkHandle handle, std::string h) {
-  if (!handle.is_valid())
-    throw internal_error("DownloadMain::receive_hash_done(...) called on an invalid chunk.");
-
-  if (h.empty() || !is_open()) {
-    // Ignore.
-
-  } else if (std::memcmp(h.c_str(), m_content.chunk_hash(handle->index()), 20) != 0) {
-    m_signalChunkFailed.emit(handle->index());
-
-  } else {
-    m_content.mark_done(handle->index());
-    m_signalChunkPassed.emit(handle->index());
-
-    update_endgame();
-
-    if (m_content.is_done())
-      m_connectionList.erase_seeders();
-    
-    m_connectionList.send_finished_chunk(handle->index());
-  }
-
-  m_chunkList->release(handle);
-}  
-
-void
 DownloadMain::receive_connect_peers() {
   if (!m_started)
     return;
 
   while (!available_list()->empty() &&
 	 connection_list()->size() < connection_list()->get_min_size() &&
-	 connection_list()->size() + m_slotCountHandshakes() < connection_list()->get_max_size()) {
+	 connection_list()->size() + m_slotCountHandshakes(tracker_manager()->tracker_info()->get_hash()) < connection_list()->get_max_size()) {
     SocketAddress sa = available_list()->pop_random();
 
     if (connection_list()->find(sa) == connection_list()->end())
-      m_slotStartHandshake(sa);
+      m_slotStartHandshake(sa,
+			   tracker_manager()->tracker_info()->get_hash(),
+			   tracker_manager()->tracker_info()->get_local_id());
   }
 }
 

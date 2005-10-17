@@ -39,9 +39,9 @@
 
 #include <rak/error_number.h>
 
-#include "chunk_list_node.h"
-
 namespace torrent {
+
+class ChunkListNode;
 
 class ChunkHandle {
 public:

@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
+#include <rak/functional.h>
 #include <sigc++/connection.h>
 
 #include "available_list.h"
@@ -54,6 +55,8 @@ namespace torrent {
 
 class ChunkList;
 class ChokeManager;
+class DownloadWrapper;
+class HandshakeManager;
 class TrackerManager;
 
 class DownloadMain {
@@ -96,15 +99,14 @@ public:
 
   typedef sigc::signal1<void, const std::string&>                SignalString;
   typedef sigc::signal1<void, uint32_t>                          SignalChunk;
-  typedef sigc::slot1<void, const SocketAddress&>                SlotStartHandshake;
-  typedef sigc::slot0<uint32_t>                                  SlotCountHandshakes;
-  typedef sigc::slot1<void, ChunkHandle>                         SlotHashCheckAdd;
+
+  typedef rak::mem_fn3<HandshakeManager, void, const SocketAddress&,
+		       const std::string&, const std::string&>         SlotStartHandshake;
+  typedef rak::mem_fn1<HandshakeManager, uint32_t, const std::string&> SlotCountHandshakes;
+  typedef rak::mem_fn1<DownloadWrapper, void, ChunkHandle>             SlotHashCheckAdd;
 
   SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
   SignalString&       signal_storage_error()                     { return m_signalStorageError; }
-
-  SignalChunk&        signal_chunk_passed()                      { return m_signalChunkPassed; }
-  SignalChunk&        signal_chunk_failed()                      { return m_signalChunkFailed; }
 
   void                slot_start_handshake(SlotStartHandshake s)   { m_slotStartHandshake = s; }
   void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
@@ -114,10 +116,11 @@ public:
 
   void                receive_tick();
   void                receive_chunk_done(unsigned int index);
-  void                receive_hash_done(ChunkHandle handle, std::string h);
 
   void                receive_tracker_success();
   void                receive_tracker_request();
+
+  void                update_endgame();
 
 private:
   // Disable copy ctor and assignment.
@@ -126,8 +129,6 @@ private:
 
   void                setup_start();
   void                setup_stop();
-
-  void                update_endgame();
 
   TrackerManager*     m_trackerManager;
   ChokeManager*       m_chokeManager;
@@ -149,15 +150,10 @@ private:
 
   BitFieldCounter     m_bitfieldCounter;
 
-  sigc::connection    m_connectionChunkPassed;
-  sigc::connection    m_connectionChunkFailed;
   sigc::connection    m_connectionAddAvailablePeers;
 
   SignalString        m_signalNetworkLog;
   SignalString        m_signalStorageError;
-
-  SignalChunk         m_signalChunkPassed;
-  SignalChunk         m_signalChunkFailed;
 
   SlotStartHandshake  m_slotStartHandshake;
   SlotCountHandshakes m_slotCountHandshakes;

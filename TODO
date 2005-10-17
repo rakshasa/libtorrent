@@ -2,13 +2,6 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Move url cleanup out of TrackerControl and TrackerHttp etc.
-
-[DONE] Move hash finished signal to DownloadWrapper.
-
-Get rid of the signal in tracker success, put the outgoing signal in
-DownloadWrapper and use a slot in manager and control.
-
 Consider ways of avoid use of Delegator::slotChunkSize.
 
 Make versions of the time->date functions that write to a buffer.

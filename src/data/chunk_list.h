@@ -42,6 +42,7 @@
 #include <rak/functional.h>
 
 #include "chunk_handle.h"
+#include "chunk_list_node.h"
 
 namespace torrent {
 

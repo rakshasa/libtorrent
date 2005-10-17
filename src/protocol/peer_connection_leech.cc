@@ -40,6 +40,7 @@
 #include <sstream>
 
 #include "data/content.h"
+#include "data/chunk_list_node.h"
 #include "download/download_main.h"
 
 #include "peer_connection_leech.h"

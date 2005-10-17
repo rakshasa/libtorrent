@@ -48,15 +48,14 @@ namespace torrent {
 class ChunkList;
 class HashQueue;
 class DownloadWrapper;
-class DownloadMain;
 
 class HashTorrent {
 public:
-  typedef rak::mem_fn2<DownloadMain, void, ChunkHandle, std::string> SlotChunkDone;
+  typedef rak::mem_fn1<DownloadWrapper, void, ChunkHandle>           SlotCheckChunk;
   typedef rak::mem_fn0<DownloadWrapper, void>                        SlotInitialHash;
   typedef rak::mem_fn1<DownloadWrapper, void, const std::string&>    SlotStorageError;
   
-  HashTorrent(const std::string& id, ChunkList* c);
+  HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }
 
   void                start();
@@ -70,17 +69,15 @@ public:
   HashQueue*          get_queue()                            { return m_queue; }
   void                set_queue(HashQueue* q)                { m_queue = q; }
 
-  void                slot_chunk_done(SlotChunkDone s)       { m_slotChunkDone = s; }
+  void                slot_check_chunk(SlotCheckChunk s)     { m_slotCheckChunk = s; }
   void                slot_initial_hash(SlotInitialHash s)   { m_slotInitialHash = s; }
   void                slot_storage_error(SlotStorageError s) { m_slotStorageError = s; }
 
+  void                receive_chunkdone();
+  
 private:
   void                queue();
 
-  void                receive_chunkdone(ChunkHandle handle, std::string hash);
-  
-  std::string         m_id;
-  
   unsigned int        m_position;
   int                 m_outstanding;
   Ranges              m_ranges;
@@ -88,7 +85,7 @@ private:
   ChunkList*          m_chunkList;
   HashQueue*          m_queue;
 
-  SlotChunkDone       m_slotChunkDone;
+  SlotCheckChunk      m_slotCheckChunk;
   SlotInitialHash     m_slotInitialHash;
   SlotStorageError    m_slotStorageError;
 };

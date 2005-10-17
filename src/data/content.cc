@@ -167,16 +167,13 @@ Content::resize() {
   m_entryList->resize_all();
 }
 
-void
-Content::mark_done(uint32_t index) {
-  if (index >= m_chunkTotal)
-    throw internal_error("Content::mark_done received index out of range");
-    
-  if (m_bitfield[index])
-    throw internal_error("Content::mark_done received index that has already been marked as done");
-  
-  if (m_completed >= m_chunkTotal)
-    throw internal_error("Content::mark_done called but m_completed >= m_chunkTotal");
+bool
+Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
+  if (index >= m_chunkTotal || m_bitfield[index] || m_completed >= m_chunkTotal)
+    throw internal_error("Content::receive_chunk_hash(...) received an invalid index.");
+
+  if (hash.empty() || std::memcmp(hash.c_str(), chunk_hash(index), 20) != 0)
+    return false;
 
   m_bitfield.set(index, true);
   m_completed++;
@@ -200,6 +197,8 @@ Content::mark_done(uint32_t index) {
       !m_delayDownloadDone.get_slot().blocked() &&
       !taskScheduler.is_scheduled(&m_delayDownloadDone))
     taskScheduler.insert(&m_delayDownloadDone, Timer::cache());
+
+  return true;
 }
 
 // Recalculate done pieces, this function clears the padding bits on the
