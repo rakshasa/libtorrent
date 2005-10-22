@@ -41,7 +41,6 @@
 #include <sigc++/signal.h>
 
 #include "data/chunk_list.h"
-#include "parse/parse.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"

@@ -50,7 +50,7 @@
 #include "utils/throttle.h"
 #include "net/listen.h"
 #include "net/manager.h"
-#include "parse/parse.h"
+#include "parse/download_constructor.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
 #include "data/file_manager.h"
@@ -256,6 +256,21 @@ set_throttle_interval(uint32_t usec) {
   throttleWrite.set_interval(usec);
 }
 
+uint32_t
+currently_unchoked() {
+  return manager->resource_manager()->currently_unchoked();
+}
+
+uint32_t
+max_unchoked() {
+  return manager->resource_manager()->max_unchoked();
+}
+
+void
+set_max_unchoked(uint32_t count) {
+  manager->resource_manager()->set_max_unchoked(count);
+}
+
 const Rate&
 get_down_rate() {
   return throttleRead.get_rate_slow();
@@ -347,8 +362,9 @@ download_add(std::istream* s) {
     // Make it configurable whetever we throw or return .end()?
     throw input_error("Could not create download, failed to parse the bencoded data");
   
-  parse_main(d->get_bencode(), d.get());
-  parse_info(d->get_bencode()["info"], *d->main()->content());
+  DownloadConstructor ctor(d.get());
+
+  ctor.initialize(d->get_bencode());
 
   d->initialize(d->get_bencode()["info"].compute_sha1(),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
@@ -356,8 +372,6 @@ download_add(std::istream* s) {
 
   // Default PeerConnection factory functions.
   d->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
-
-  parse_tracker(d->get_bencode(), d->main()->tracker_manager());
 
   // Consider move as much as possible into this function
   // call. Anything that won't cause possible torrent creation errors

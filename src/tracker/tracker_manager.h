@@ -84,6 +84,7 @@ public:
   void                randomize();
 
   size_type           size() const;
+  size_type           group_size() const;
 
   value_type          get(size_type idx) const;
   size_type           focus_index() const;

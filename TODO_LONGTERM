@@ -1,0 +1,13 @@
+== Sockets ==
+
+Look into increasing the socket buffers. This would allow us to queue
+more data for each poll event. But make sure we only get polled when
+the buffer can take a nice amount of data.
+
+
+== Disk worker thread ==
+
+A worker thread that gets activated to do stuff like hashing and
+syncing to disk. This would have the benefit of avoiding SIGBUS due to
+full disk as msync can be called blockingly.
+

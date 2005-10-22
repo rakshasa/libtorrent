@@ -133,7 +133,6 @@ Content::is_valid_piece(const Piece& p) const {
     (uint32_t)p.get_index() < m_chunkTotal &&
 
     p.get_length() != 0 &&
-    p.get_length() < (1 << 17) &&
 
     // Make sure offset does not overflow 32 bits.
     p.get_offset() < (1 << 30) &&

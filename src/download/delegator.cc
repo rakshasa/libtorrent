@@ -215,7 +215,7 @@ Delegator::new_chunk(const BitField& bf, Priority::Type p, int affinity) {
     return NULL;
 
   m_select.add_ignore(index);
-  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), 1 << 16, p));
+  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), block_size, p));
 
   return (*m_chunks.rbegin())->begin();
 }

@@ -203,7 +203,7 @@ ChokeManager::cycle(unsigned int quota) {
   if (adjust > 0)
     firstChoked += (cycled = unchoke_range(firstChoked, lastChoked, adjust));
   else if (adjust < 0)
-    firstUnchoked -= (cycled = -choke_range(firstUnchoked, lastUnchoked, adjust));
+    firstUnchoked -= (cycled = -choke_range(firstUnchoked, lastUnchoked, -adjust));
   else
     cycled = 0;
 
@@ -212,6 +212,9 @@ ChokeManager::cycle(unsigned int quota) {
   // Consider rolling this into the above calls.
   if (adjust > 0)
     alternate_ranges(firstUnchoked, lastUnchoked, firstChoked, lastChoked, adjust);
+
+  if (m_currentlyUnchoked > quota)
+    throw internal_error("ChokeManager::cycle() m_currentlyUnchoked > quota.");
 
   return cycled;
 }

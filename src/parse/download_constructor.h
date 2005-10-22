@@ -34,8 +34,10 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_H
-#define LIBTORRENT_PARSE_H
+#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+
+#include <inttypes.h>
 
 namespace torrent {
 
@@ -44,9 +46,29 @@ class Content;
 class DownloadWrapper;
 class TrackerManager;
 
-void parse_main(const Bencode& b, DownloadWrapper* download);
-void parse_tracker(const Bencode& b, TrackerManager* tracker);
-void parse_info(const Bencode& b, Content& content);
+class DownloadConstructor {
+public:
+  
+  static const uint64_t max_file_length = ((uint64_t)1 << 45);
+
+  DownloadConstructor(DownloadWrapper* d) : m_download(d) {}
+
+  void                initialize(const Bencode& b);
+
+private:  
+  void                parse_tracker(const Bencode& b);
+  void                parse_info(const Bencode& b);
+
+  void                add_tracker_group(const Bencode& b);
+  void                add_tracker_single(const Bencode& b, int group);
+
+  static bool         is_valid_path_element(const Bencode& b);
+  static bool         is_invalid_path_element(const Bencode& b) { return !is_valid_path_element(b); }
+
+  void                add_file(const Bencode& b);
+
+  DownloadWrapper*    m_download;
+};
 
 }
 

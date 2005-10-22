@@ -59,6 +59,8 @@ public:
   typedef rak::mem_fn1<DownloadMain, void, unsigned int>      SlotChunkDone;
   typedef rak::const_mem_fn1<Content, uint32_t, unsigned int> SlotChunkSize;
 
+  static const unsigned int block_size = 1 << 14;
+
   Delegator() : m_aggressive(false) { }
   ~Delegator() { clear(); }
 

@@ -90,6 +90,8 @@ public:
   void               set_delegator(Delegator* d)      { m_delegator = d; }
   void               set_bitfield(const BitField* b)  { m_bitfield = b; }
 
+  uint32_t           calculate_pipe_size(uint32_t rate);
+
 private:
   void               cancel_range(ReserveeList::iterator end);
 

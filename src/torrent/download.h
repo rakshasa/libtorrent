@@ -129,6 +129,9 @@ public:
   uint32_t             get_peers_connected() const;
   uint32_t             get_peers_not_connected() const;
 
+  uint32_t             peers_currently_unchoked() const;
+  uint32_t             peers_currently_interested() const;
+
   uint32_t             get_uploads_max() const;
   
   uint64_t             get_tracker_timeout() const;

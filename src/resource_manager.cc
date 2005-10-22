@@ -90,10 +90,14 @@ ResourceManager::receive_unchoke(unsigned int num) {
 
 unsigned int
 ResourceManager::retrieve_can_unchoke() {
-  if (m_maxUnchoked != 0)
-    return std::min(m_maxUnchoked - m_currentlyUnchoked, 0u);
-  else
+  if (m_maxUnchoked == 0)
     return std::numeric_limits<unsigned int>::max();
+
+  else if (m_currentlyUnchoked < m_maxUnchoked)
+    return m_maxUnchoked - m_currentlyUnchoked;
+
+  else
+    return 0;
 }
 
 void
@@ -131,6 +135,9 @@ ResourceManager::balance_unchoked(unsigned int weight) {
       quota -= itr->second->choke_manager()->currently_unchoked();
       weight -= itr->first;
     }
+
+    if (weight != 0)
+      throw internal_error("ResourceManager::balance_unchoked(...) weight did not reach zero.");
 
   } else {
     for (iterator itr = begin(); itr != end(); ++itr)

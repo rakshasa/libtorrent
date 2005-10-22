@@ -94,6 +94,10 @@ void                set_up_throttle(int32_t bytes);
 
 void                set_throttle_interval(uint32_t usec);
 
+uint32_t            currently_unchoked();
+uint32_t            max_unchoked();
+void                set_max_unchoked(uint32_t count);
+
 const Rate&         get_down_rate();
 const Rate&         get_up_rate();
 

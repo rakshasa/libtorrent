@@ -177,6 +177,14 @@ TrackerManager::size() const {
   return m_control->get_list().size();
 }
 
+TrackerManager::size_type
+TrackerManager::group_size() const {
+  if (m_control->get_list().rbegin() == m_control->get_list().rend())
+    return 0;
+  else
+    return m_control->get_list().rbegin()->first + 1;
+}
+
 TrackerManager::value_type
 TrackerManager::get(size_type idx) const {
   return m_control->get_list()[idx];

@@ -200,4 +200,38 @@ RequestList::remove_invalid() {
   return count;
 }
 
+uint32_t
+RequestList::calculate_pipe_size(uint32_t rate) {
+  // Change into KB.
+  rate /= 1024;
+
+  // Request enough to have enough for 16 seconds at fast rates.
+
+  if (!m_delegator->get_aggressive()) {
+    uint32_t queueKB = std::min(rate * 30, (uint32_t)16 << 10);
+  
+    return (queueKB / (Delegator::block_size / 1024)) + 2;
+
+  } else {
+    uint32_t queueKB = std::min(rate * 16, (uint32_t)16 << 10);
+  
+    return (queueKB / (Delegator::block_size / 1024)) + 1;
+  }
+}
+
+
+//   if ()
+//     if (s < 50000)
+//       return std::max((uint32_t)2, (s + 2000) / 2000);
+//     else
+//       return std::min((uint32_t)200, (s + 160000) / 4000);
+
+//   else
+//     if (s < 4000)
+//       return 1;
+//     else
+//       return std::min((uint32_t)80, (s + 32000) / 8000);
+
+// }
+
 }

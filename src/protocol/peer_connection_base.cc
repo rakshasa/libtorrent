@@ -193,23 +193,6 @@ PeerConnectionBase::set_snubbed(bool v) {
   }
 }
 
-uint32_t
-PeerConnectionBase::pipe_size() const {
-  uint32_t s = m_downRate.rate();
-
-  if (!m_download->get_endgame())
-    if (s < 50000)
-      return std::max((uint32_t)2, (s + 2000) / 2000);
-    else
-      return std::min((uint32_t)200, (s + 160000) / 4000);
-
-  else
-    if (s < 4000)
-      return 1;
-    else
-      return std::min((uint32_t)80, (s + 32000) / 8000);
-}
-
 void
 PeerConnectionBase::receive_choke(bool v) {
   if (v == m_up->choked())
@@ -388,7 +371,8 @@ void
 PeerConnectionBase::read_request_piece(const Piece& p) {
   PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
-  if (itr != m_sendList.end())
+  if (itr != m_sendList.end() ||
+      p.get_length() > (1 << 17))
     return;
 
   m_sendList.push_back(p);
@@ -505,7 +489,7 @@ PeerConnectionBase::try_request_pieces() {
   if (m_requestList.empty())
     m_downStall = 0;
 
-  int pipeSize = pipe_size();
+  int pipeSize = m_requestList.calculate_pipe_size(m_downRate.rate());
   bool success = false;
 
   while (m_requestList.size() < pipeSize && m_up->can_write_request()) {

@@ -66,6 +66,7 @@ public:
 
   // When setting this, make sure you choke peers, else change
   // receive_can_unchoke.
+  unsigned int        currently_unchoked() const       { return m_currentlyUnchoked; }
   unsigned int        max_unchoked() const             { return m_maxUnchoked; }
   void                set_max_unchoked(unsigned int m) { m_maxUnchoked = m; }
 

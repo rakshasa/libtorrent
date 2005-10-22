@@ -247,6 +247,16 @@ Download::get_peers_not_connected() const {
 }
 
 uint32_t
+Download::peers_currently_unchoked() const {
+  return m_ptr->main()->choke_manager()->currently_unchoked();
+}
+
+uint32_t
+Download::peers_currently_interested() const {
+  return m_ptr->main()->choke_manager()->currently_interested();
+}
+
+uint32_t
 Download::get_uploads_max() const {
   return m_ptr->main()->choke_manager()->max_unchoked();
 }

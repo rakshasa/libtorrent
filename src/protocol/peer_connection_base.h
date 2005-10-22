@@ -101,8 +101,6 @@ public:
   // only cause it not to be unchoked.
   void                set_snubbed(bool v);
 
-  uint32_t            pipe_size() const;
-
   Timer               time_last_choked() const      { return m_timeLastChoked; }
 
   void                insert_down_throttle();
