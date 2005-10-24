@@ -214,7 +214,7 @@ ChunkList::sync_periodic() {
   // kernel might do so anyway if it lies in its path, so we don't
   // sync those chunks.
 
-  if (std::distance(split, m_queue.end()) < m_maxQueueSize &&
+  if (std::distance(split, m_queue.end()) < (difference_type)m_maxQueueSize &&
       std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + m_maxTimeQueued * 1000000 < Timer::cache())
     return;
 

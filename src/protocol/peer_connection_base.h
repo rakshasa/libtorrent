@@ -71,7 +71,7 @@ public:
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
-  bool                initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd);
+  void                initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd);
 
   bool                is_up_choked()                { return m_up->choked(); }
   bool                is_up_interested()            { return m_up->interested(); }

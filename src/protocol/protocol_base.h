@@ -77,8 +77,8 @@ public:
     m_position(0),
     m_choked(true),
     m_interested(false),
-    m_lastCommand(NONE),
-    m_state(IDLE) {
+    m_state(IDLE),
+    m_lastCommand(NONE) {
   }
 
   bool                choked() const                          { return m_choked; }
@@ -129,8 +129,8 @@ protected:
   bool                m_interested;
 
   State               m_state;
-
   Protocol            m_lastCommand;
+
   Buffer              m_buffer;
 };
 

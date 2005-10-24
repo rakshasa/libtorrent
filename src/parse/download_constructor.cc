@@ -146,6 +146,8 @@ DownloadConstructor::is_valid_path_element(const Bencode& b) {
 
 void
 DownloadConstructor::add_file(const Bencode& b) {
+  // Do a read first checking that we're above zero, then move to a
+  // uint64_t.
   int64_t length = b["length"].as_value();
   const Bencode::List& plist = b["path"].as_list();
 
@@ -162,7 +164,7 @@ DownloadConstructor::add_file(const Bencode& b) {
 		   std::ptr_fun(&DownloadConstructor::is_invalid_path_element)) != plist.end())
     throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
 
-  if (length < 0 || length > DownloadConstructor::max_file_length)
+  if (length < 0 || length > (int64_t)DownloadConstructor::max_file_length)
     throw input_error("Bad torrent file, invalid length for file given");
 
   Path p;

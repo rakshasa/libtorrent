@@ -57,8 +57,8 @@ public:
   using Base::end;
 
   ResourceManager() :
-    m_maxUnchoked(50),
-    m_currentlyUnchoked(0) {}
+    m_currentlyUnchoked(0),
+    m_maxUnchoked(50) {}
   ~ResourceManager();
 
   void                insert(int priority, DownloadMain* d);

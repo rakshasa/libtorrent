@@ -63,6 +63,7 @@ public:
 
   using Base::value_type;
   using Base::reference;
+  using Base::difference_type;
 
   using Base::iterator;
   using Base::reverse_iterator;

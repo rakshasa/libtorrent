@@ -64,8 +64,8 @@ PeerConnectionBase::PeerConnectionBase() :
   m_upRate(30),
   m_upThrottle(throttleWrite.end()),
 
-  m_sendInterested(false),
   m_sendChoked(false),
+  m_sendInterested(false),
 
   m_snubbed(false) {
 }
@@ -106,7 +106,7 @@ PeerConnectionBase::~PeerConnectionBase() {
   m_download = NULL;
 }
 
-bool
+void
 PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd) {
   if (get_fd().is_valid())
     throw internal_error("Tried to re-set PeerConnection");
@@ -489,7 +489,7 @@ PeerConnectionBase::try_request_pieces() {
   if (m_requestList.empty())
     m_downStall = 0;
 
-  int pipeSize = m_requestList.calculate_pipe_size(m_downRate.rate());
+  uint32_t pipeSize = m_requestList.calculate_pipe_size(m_downRate.rate());
   bool success = false;
 
   while (m_requestList.size() < pipeSize && m_up->can_write_request()) {

@@ -184,10 +184,10 @@ ChokeManager::cycle(unsigned int quota) {
 
   // Partition away the connections we shall not choke.
 
-  if (std::distance(m_connectionList->begin(), firstChoked) != m_currentlyUnchoked)
+  if (std::distance(m_connectionList->begin(), firstChoked) != (ConnectionList::difference_type)m_currentlyUnchoked)
     throw internal_error("ChokeManager::cycle() std::distance(m_connectionList->begin(), firstChoked) != m_currentlyUnchoked.");
 
-  if (std::distance(m_connectionList->begin(), lastChoked) != m_currentlyInterested)
+  if (std::distance(m_connectionList->begin(), lastChoked) != (ConnectionList::difference_type)m_currentlyInterested)
     throw internal_error("ChokeManager::cycle() std::distance(m_connectionList->begin(), lastChoked) != m_currentlyInterested.");
 
   iterator firstUnchoked = m_connectionList->begin();
