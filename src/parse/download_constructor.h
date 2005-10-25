@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
 #define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
 
+#include <string>
 #include <inttypes.h>
 
 namespace torrent {
@@ -45,6 +46,7 @@ class Bencode;
 class Content;
 class DownloadWrapper;
 class TrackerManager;
+class Path;
 
 class DownloadConstructor {
 public:
@@ -65,9 +67,15 @@ private:
   static bool         is_valid_path_element(const Bencode& b);
   static bool         is_invalid_path_element(const Bencode& b) { return !is_valid_path_element(b); }
 
+  void                parse_single_file(const Bencode& b);
+  void                parse_multi_files(const Bencode& b);
   void                add_file(const Bencode& b);
 
+  inline Path         create_path(const Bencode::List& plist, const std::string enc);
+
   DownloadWrapper*    m_download;
+
+  std::string         m_defaultEncoding;
 };
 
 }

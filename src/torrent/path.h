@@ -80,7 +80,7 @@ public:
   using Base::push_back;
 
   Path() {}
-  Path(const std::string& path) { insert_path(end(), path); }
+  Path(const std::string& path, const std::string& enc) { insert_path(end(), path); m_encoding = enc; }
 
   void               insert_path(iterator pos, const std::string& path);
 
@@ -88,15 +88,13 @@ public:
   // is only inserted between path elements.
   std::string        as_string();
 
-  Base&              get_base()           { return *this; }
+  const std::string  encoding() const                     { return m_encoding; }
+  void               set_encoding(const std::string& enc) { m_encoding = enc; }
 
-  // Somewhere else...
-  static void        mkdir(const std::string& root,
-			   Base::const_iterator pathBegin, Base::const_iterator pathEnd,
-			   Base::const_iterator ignoreBegin, Base::const_iterator ignoreEnd,
-			   unsigned int umask = 0777);
-  
-  static void        mkdir(const std::string& dir, unsigned int umask = 0777);
+  Base&              get_base()                           { return *this; }
+
+private:
+  std::string        m_encoding;
 };
 
 }

@@ -42,6 +42,8 @@
 
 namespace torrent {
 
+class Path;
+
 }
 
 #endif

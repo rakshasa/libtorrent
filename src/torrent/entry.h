@@ -47,7 +47,6 @@ class EntryListNode;
 class Entry {
 public:
   typedef std::pair<uint32_t, uint32_t> Range;
-  typedef std::list<std::string>        Path;
 
   typedef enum {
     STOPPED = 0,
@@ -73,9 +72,9 @@ public:
 
   // Relative to root of the torrent.
   std::string         get_path();
-  const Path&         get_path_list();
 
-  void                set_path_list(const Path& l);
+  Path*               path_list();
+  const Path*         path_list() const;
 
   Priority            get_priority();
 
@@ -83,7 +82,7 @@ public:
   void                set_priority(Priority p);
 
 private:
-  EntryListNode*        m_entry;
+  EntryListNode*      m_entry;
 };
 
 }

@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <cstring>
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
@@ -49,9 +50,28 @@
 
 namespace torrent {
 
+struct download_constructor_is_single_path {
+  bool operator () (Bencode::Map::const_reference v) const {
+    return
+      std::strncmp(v.first.c_str(), "name.", sizeof("name.") - 1) == 0 &&
+      v.second.is_string();
+  }
+};
+
+struct download_constructor_is_multi_path {
+  bool operator () (Bencode::Map::const_reference v) const {
+    return
+      std::strncmp(v.first.c_str(), "path.", sizeof("path.") - 1) == 0 &&
+      v.second.is_list();
+  }
+};
+
 void
 DownloadConstructor::initialize(const Bencode& b) {
   m_download->set_name(b["info"]["name"].as_string());
+
+  if (b.has_key("encoding") && b["encoding"].is_string())
+    m_defaultEncoding = b["encoding"].as_string();
 
   parse_info(b["info"]);
   parse_tracker(b);
@@ -65,22 +85,10 @@ DownloadConstructor::parse_info(const Bencode& b) {
     throw internal_error("parse_info received an already initialized Content object");
 
   if (b.has_key("length")) {
-    if (false)
-      throw input_error("Bad torrent file, \"name\" is an invalid path name.");
-
-    // Single file torrent
-    c->add_file(Path(b["name"].as_string()), b["length"].as_value());
+    parse_single_file(b);
 
   } else if (b.has_key("files")) {
-    // Multi file torrent
-    if (b["files"].as_list().empty())
-      throw input_error("Bad torrent file, entry no files");
-
-    c->entry_list()->reserve(b["files"].as_list().size());
-
-    std::for_each(b["files"].as_list().begin(), b["files"].as_list().end(),
-		  rak::make_mem_fn(this, &DownloadConstructor::add_file));
-
+    parse_multi_files(b["files"]);
     c->set_root_dir("./" + b["name"].as_string());
 
   } else {
@@ -138,10 +146,44 @@ bool
 DownloadConstructor::is_valid_path_element(const Bencode& b) {
   return
     b.is_string() &&
-    !b.as_string().empty() &&
     b.as_string() != "." &&
     b.as_string() != ".." &&
     std::find(b.as_string().begin(), b.as_string().end(), '/') == b.as_string().end();
+}
+
+void
+DownloadConstructor::parse_single_file(const Bencode& b) {
+  if (false)
+    throw input_error("Bad torrent file, \"name\" is an invalid path name.");
+
+  std::list<Path> pathList;
+  pathList.push_back(Path(b["name"].as_string(), m_defaultEncoding));
+
+  Bencode::Map::const_iterator itr = b.as_map().begin();
+  
+  while ((itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path()))
+	 != b.as_map().end()) {
+    pathList.push_back(Path(itr->second.as_string(), itr->first.substr(sizeof("name.") - 1)));			    
+    ++itr;
+  }
+
+  if (pathList.empty())
+    throw input_error("Bad torrent file, an entry has no valid filename.");
+
+  // Single file torrent
+  m_download->main()->content()->add_file(pathList.front(), b["length"].as_value());
+}
+
+void
+DownloadConstructor::parse_multi_files(const Bencode& b) {
+  // Multi file torrent
+  if (b.as_list().empty())
+    throw input_error("Bad torrent file, entry has no files.");
+
+  m_download->main()->content()->entry_list()->reserve(b.as_list().size());
+
+  std::for_each(b.as_list().begin(), b.as_list().end(),
+		rak::make_mem_fn(this, &DownloadConstructor::add_file));
 }
 
 void
@@ -149,30 +191,48 @@ DownloadConstructor::add_file(const Bencode& b) {
   // Do a read first checking that we're above zero, then move to a
   // uint64_t.
   int64_t length = b["length"].as_value();
-  const Bencode::List& plist = b["path"].as_list();
-
-  // Make sure we are given a proper file path.
-  if (plist.empty())
-    throw input_error("Bad torrent file, \"path\" has zero entries");
-
-  // Ignore entries with empty filename with file size 0, some
-  // torrent makers are being stupid.
-  if (plist.back().as_string().empty() && length == 0)
-    return;
-
-  if (std::find_if(plist.begin(), plist.end(),
-		   std::ptr_fun(&DownloadConstructor::is_invalid_path_element)) != plist.end())
-    throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
 
   if (length < 0 || length > (int64_t)DownloadConstructor::max_file_length)
     throw input_error("Bad torrent file, invalid length for file given");
 
+  std::list<Path> pathList;
+
+  if (b.has_key("path") && b["path"].is_list()) {
+    pathList.push_back(create_path(b["path"].as_list(), m_defaultEncoding));
+  }
+
+  Bencode::Map::const_iterator itr = b.as_map().begin();
+  
+  while ((itr = std::find_if(itr, b.as_map().end(), download_constructor_is_multi_path()))
+	 != b.as_map().end()) {
+    pathList.push_back(create_path(itr->second.as_list(), itr->first.substr(sizeof("path.") - 1)));
+    ++itr;
+  }
+
+  if (pathList.empty())
+    throw input_error("Bad torrent file, an entry has no valid filename.");
+
+  m_download->main()->content()->add_file(pathList.front(), length);
+}
+
+inline Path
+DownloadConstructor::create_path(const Bencode::List& plist, const std::string enc) {
+  // Make sure we are given a proper file path.
+  if (plist.empty())
+    throw input_error("Bad torrent file, \"path\" has zero entries");
+
+  // Reneable.
+  if (std::find_if(plist.begin(), plist.end(),
+		   std::ptr_fun(&DownloadConstructor::is_invalid_path_element)) != plist.end())
+    throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
+
   Path p;
+  p.set_encoding(enc);
 
   std::transform(plist.begin(), plist.end(), std::back_inserter(p),
 		 std::mem_fun_ref(&Bencode::c_string));
 
-  m_download->main()->content()->add_file(p, length);
+  return p;
 }
 
 }

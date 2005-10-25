@@ -34,80 +34,23 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_DATA_DIRECTORY_H
+#define LIBTORRENT_DATA_DIRECTORY_H
 
-#include <errno.h>
-#include <sys/stat.h>
-
-#include "torrent/exceptions.h"
-#include "path.h"
+#include <string>
+#include <list>
 
 namespace torrent {
 
 void
-Path::insert_path(iterator pos, const std::string& path) {
-  std::string::const_iterator first = path.begin();
-  std::string::const_iterator last;
-
-  while (first != path.end()) {
-    pos = insert(pos, std::string(first, (last = std::find(first, path.end(), '/'))));
-
-    if (last == path.end())
-      return;
-
-    first = last;
-    first++;
-  }
-}
-
-std::string
-Path::as_string() {
-  if (empty())
-    return std::string();
-
-  std::string s;
-
-  for (iterator itr = begin(); itr != end(); ++itr) {
-    s += '/';
-    s += *itr;
-  }
-
-  return s;
-}
-
+make_directory(const std::string& root,
+	       std::list<std::string>::const_iterator pathBegin, std::list<std::string>::const_iterator pathEnd,
+	       std::list<std::string>::const_iterator ignoreBegin, std::list<std::string>::const_iterator ignoreEnd,
+	       unsigned int umask = 0777);
+  
 void
-Path::mkdir(const std::string& root,
-	    Base::const_iterator pathBegin, Base::const_iterator pathEnd,
-	    Base::const_iterator ignoreBegin, Base::const_iterator ignoreEnd,
-	    unsigned int umask) {
-
-  std::string p = root;
-
-  while (pathBegin != pathEnd) {
-    p += "/" + *pathBegin;
-
-    if (ignoreBegin == ignoreEnd ||
-	*pathBegin != *ignoreBegin) {
-
-      ignoreBegin = ignoreEnd;
-
-      if (::mkdir(p.c_str(), umask) &&
-	  errno != EEXIST)
-	throw storage_error("Could not create directory '" + p + "': " + strerror(errno));
-
-    } else {
-      ++ignoreBegin;
-    }
-
-    ++pathBegin;
-  }
-}
-
-void
-Path::mkdir(const std::string& dir, unsigned int umask) {
-  if (::mkdir(dir.c_str(), umask) &&
-      errno != EEXIST)
-    throw storage_error("Could not create directory '" + dir + "': " + strerror(errno));
-}
+make_directory(const std::string& dir, unsigned int umask = 0777);
 
 }
+
+#endif

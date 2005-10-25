@@ -9,6 +9,8 @@ libsub_data_la_SOURCES = \
 	chunk_list_node.h \
 	content.cc \
 	content.h \
+	directory.cc \
+	directory.h \
 	entry_list.cc \
 	entry_list.h \
 	entry_list_node.cc \
@@ -32,8 +34,6 @@ libsub_data_la_SOURCES = \
 	hash_torrent.h \
 	memory_chunk.cc \
 	memory_chunk.h \
-	path.cc \
-	path.h \
 	piece.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

@@ -41,12 +41,13 @@
 #include <memory>
 
 #include "torrent/exceptions.h"
+#include "torrent/path.h"
 
 #include "chunk.h"
+#include "directory.h"
 #include "file_meta.h"
 #include "entry_list.h"
 #include "memory_chunk.h"
-#include "path.h"
 
 namespace torrent {
 
@@ -78,7 +79,7 @@ EntryList::clear() {
 
 void
 EntryList::open(const std::string& root) {
-  Path::mkdir(root);
+  make_directory(root);
   Path lastPath;
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
@@ -87,9 +88,14 @@ EntryList::open(const std::string& root) {
       
     itr->set_file_meta(m_slotInsertFileMeta(root + itr->path()->as_string()));
       
-    if (!open_file(root, itr->file_meta(), *itr->path(), lastPath)) {
+    if (itr->path()->empty()) {
       close();
-      throw storage_error("Could no open file \"" + root + itr->path()->as_string() + "\"");
+      throw storage_error("Found an empty filename.");
+    }
+
+    if (!open_file(root, &*itr, lastPath)) {
+      close();
+      throw storage_error("Could no open file \"" + root + itr->path()->as_string() + "\".");
     }
       
     lastPath = *itr->path();
@@ -131,16 +137,15 @@ EntryList::at_position(iterator itr, off_t offset) {
 }
 
 bool
-EntryList::open_file(const std::string& root, FileMeta* f, const Path& p, const Path& lastPath) {
-  if (p.empty())
-    return false;
+EntryList::open_file(const std::string& root, EntryListNode* node, const Path& lastPath) {
+  make_directory(root, node->path()->begin(), --node->path()->end(), lastPath.begin(), lastPath.end());
 
-  Path::mkdir(root, p.begin(), --p.end(),
-	      lastPath.begin(), lastPath.end());
+  if (node->path()->back().empty())
+    return node->size() == 0;
 
   return
-    f->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) ||
-    f->prepare(MemoryChunk::prot_read, File::o_create);
+    node->file_meta()->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) ||
+    node->file_meta()->prepare(MemoryChunk::prot_read, File::o_create);
 }
 
 inline MemoryChunk

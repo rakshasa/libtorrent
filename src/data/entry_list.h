@@ -95,7 +95,7 @@ public:
   void                slot_erase_filemeta(SlotFileMeta s)        { m_slotEraseFileMeta = s; }
 
 private:
-  static bool         open_file(const std::string& root, FileMeta* f, const Path& p, const Path& lastPath);
+  static bool         open_file(const std::string& root, EntryListNode* node, const Path& lastPath);
 
   inline MemoryChunk  create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);
 

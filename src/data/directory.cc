@@ -36,56 +36,47 @@
 
 #include "config.h"
 
-#include "exceptions.h"
-#include "entry.h"
-#include "data/entry_list_node.h"
+#include <errno.h>
+#include <sys/stat.h>
+
+#include "torrent/exceptions.h"
+#include "directory.h"
 
 namespace torrent {
 
-uint64_t
-Entry::get_size() {
-  return m_entry->size();
-}
+void
+make_directory(const std::string& root,
+	    std::list<std::string>::const_iterator pathBegin, std::list<std::string>::const_iterator pathEnd,
+	    std::list<std::string>::const_iterator ignoreBegin, std::list<std::string>::const_iterator ignoreEnd,
+	    unsigned int umask) {
 
-uint32_t
-Entry::get_completed() {
-  return m_entry->completed();
-}
+  std::string p = root;
 
-uint32_t
-Entry::get_chunk_begin() {
-  return m_entry->range().first;
-}
+  while (pathBegin != pathEnd) {
+    p += "/" + *pathBegin;
 
-uint32_t
-Entry::get_chunk_end() {
-  return m_entry->range().second;
-}  
+    if (ignoreBegin == ignoreEnd ||
+	*pathBegin != *ignoreBegin) {
 
-Entry::Priority
-Entry::get_priority() {
-  return (Priority)m_entry->priority();
-}
+      ignoreBegin = ignoreEnd;
 
-// Relative to root of torrent.
-std::string
-Entry::get_path() {
-  return m_entry->path()->as_string();
-}
+      if (::mkdir(p.c_str(), umask) &&
+	  errno != EEXIST)
+	throw storage_error("Could not create directory '" + p + "': " + strerror(errno));
 
-Path*
-Entry::path_list() {
-  return m_entry->path();
-}
+    } else {
+      ++ignoreBegin;
+    }
 
-const Path*
-Entry::path_list() const {
-  return m_entry->path();
+    ++pathBegin;
+  }
 }
 
 void
-Entry::set_priority(Priority p) {
-  m_entry->set_priority(p);
+make_directory(const std::string& dir, unsigned int umask) {
+  if (::mkdir(dir.c_str(), umask) &&
+      errno != EEXIST)
+    throw storage_error("Could not create directory '" + dir + "': " + strerror(errno));
 }
 
 }

@@ -37,55 +37,39 @@
 #include "config.h"
 
 #include "exceptions.h"
-#include "entry.h"
-#include "data/entry_list_node.h"
+#include "path.h"
 
 namespace torrent {
 
-uint64_t
-Entry::get_size() {
-  return m_entry->size();
-}
-
-uint32_t
-Entry::get_completed() {
-  return m_entry->completed();
-}
-
-uint32_t
-Entry::get_chunk_begin() {
-  return m_entry->range().first;
-}
-
-uint32_t
-Entry::get_chunk_end() {
-  return m_entry->range().second;
-}  
-
-Entry::Priority
-Entry::get_priority() {
-  return (Priority)m_entry->priority();
-}
-
-// Relative to root of torrent.
-std::string
-Entry::get_path() {
-  return m_entry->path()->as_string();
-}
-
-Path*
-Entry::path_list() {
-  return m_entry->path();
-}
-
-const Path*
-Entry::path_list() const {
-  return m_entry->path();
-}
-
 void
-Entry::set_priority(Priority p) {
-  m_entry->set_priority(p);
+Path::insert_path(iterator pos, const std::string& path) {
+  std::string::const_iterator first = path.begin();
+  std::string::const_iterator last;
+
+  while (first != path.end()) {
+    pos = insert(pos, std::string(first, (last = std::find(first, path.end(), '/'))));
+
+    if (last == path.end())
+      return;
+
+    first = last;
+    first++;
+  }
+}
+
+std::string
+Path::as_string() {
+  if (empty())
+    return std::string();
+
+  std::string s;
+
+  for (iterator itr = begin(); itr != end(); ++itr) {
+    s += '/';
+    s += *itr;
+  }
+
+  return s;
 }
 
 }
