@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
 #define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
 
+#include <list>
 #include <string>
 #include <inttypes.h>
 
@@ -48,14 +49,19 @@ class DownloadWrapper;
 class TrackerManager;
 class Path;
 
+typedef std::list<std::string> EncodingList;
+
 class DownloadConstructor {
 public:
   
   static const uint64_t max_file_length = ((uint64_t)1 << 45);
 
-  DownloadConstructor(DownloadWrapper* d) : m_download(d) {}
+  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
 
   void                initialize(const Bencode& b);
+
+  void                set_download(DownloadWrapper* d)         { m_download = d; }
+  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
 
 private:  
   void                parse_tracker(const Bencode& b);
@@ -72,8 +78,10 @@ private:
   void                add_file(const Bencode& b);
 
   inline Path         create_path(const Bencode::List& plist, const std::string enc);
+  inline Path         choose_path(std::list<Path>* pathList);
 
   DownloadWrapper*    m_download;
+  const EncodingList* m_encodingList;
 
   std::string         m_defaultEncoding;
 };

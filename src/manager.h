@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_MANAGER_H
 #define LIBTORRENT_MANAGER_H
 
+#include <list>
 #include <string>
 
 #include "net/socket_address.h"
@@ -54,6 +55,8 @@ class FileManager;
 class ResourceManager;
 class PeerInfo;
 
+typedef std::list<std::string> EncodingList;
+
 class Manager {
 public:
   Manager();
@@ -70,6 +73,8 @@ public:
   
   const std::string&  get_bind_address()                        { return m_bindAddress; }
   void                set_bind_address(const std::string& addr) { m_bindAddress = addr; }
+
+  EncodingList*       encoding_list()                           { return &m_encodingList; }
 
   void                initialize_download(DownloadWrapper* d);
   void                cleanup_download(DownloadWrapper* d);
@@ -89,6 +94,8 @@ private:
   HashQueue*          m_hashQueue;
   Listen*             m_listen;
   ResourceManager*    m_resourceManager;
+
+  EncodingList        m_encodingList;
 
   unsigned int        m_ticks;
   TaskItem            m_taskTick;

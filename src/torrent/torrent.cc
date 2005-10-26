@@ -349,6 +349,11 @@ set_max_open_sockets(uint32_t size) {
   socketManager.set_max_size(size);
 }
 
+EncodingList*
+encoding_list() {
+  return manager->encoding_list();
+}
+
 Download
 download_add(std::istream* s) {
   if (!s->good())
@@ -362,7 +367,9 @@ download_add(std::istream* s) {
     // Make it configurable whetever we throw or return .end()?
     throw input_error("Could not create download, failed to parse the bencoded data");
   
-  DownloadConstructor ctor(d.get());
+  DownloadConstructor ctor;
+  ctor.set_download(d.get());
+  ctor.set_encoding_list(manager->encoding_list());
 
   ctor.initialize(d->get_bencode());
 

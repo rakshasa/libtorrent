@@ -121,11 +121,16 @@ uint32_t            get_open_sockets();
 uint32_t            get_max_open_sockets();
 void                set_max_open_sockets(uint32_t size);
 
-// Will always return a valid Download. On errors it throws.
+typedef std::list<Download> DList;
+typedef std::list<std::string> EncodingList;
+
+EncodingList*       encoding_list();
+
+// Will always return a valid Download. On errors it
+// throws. 'encodingList' contains a list of prefered encodings to use
+// for file names.
 Download            download_add(std::istream* s);
 void                download_remove(const std::string& infohash);
-
-typedef std::list<Download> DList;
 
 // Add all downloads to dlist. The client is responsible for clearing
 // it before the call.

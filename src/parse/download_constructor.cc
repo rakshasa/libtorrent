@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <cstring>
+#include <strings.h>
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
@@ -153,7 +154,7 @@ DownloadConstructor::is_valid_path_element(const Bencode& b) {
 
 void
 DownloadConstructor::parse_single_file(const Bencode& b) {
-  if (false)
+  if (is_invalid_path_element(b["name"]))
     throw input_error("Bad torrent file, \"name\" is an invalid path name.");
 
   std::list<Path> pathList;
@@ -171,7 +172,7 @@ DownloadConstructor::parse_single_file(const Bencode& b) {
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
   // Single file torrent
-  m_download->main()->content()->add_file(pathList.front(), b["length"].as_value());
+  m_download->main()->content()->add_file(choose_path(&pathList), b["length"].as_value());
 }
 
 void
@@ -212,7 +213,7 @@ DownloadConstructor::add_file(const Bencode& b) {
   if (pathList.empty())
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
-  m_download->main()->content()->add_file(pathList.front(), length);
+  m_download->main()->content()->add_file(choose_path(&pathList), length);
 }
 
 inline Path
@@ -233,6 +234,32 @@ DownloadConstructor::create_path(const Bencode::List& plist, const std::string e
 		 std::mem_fun_ref(&Bencode::c_string));
 
   return p;
+}
+
+struct download_constructor_encoding_match :
+    public std::binary_function<const Path&, const char*, bool> {
+
+  bool operator () (const Path& p, const char* enc) {
+    return strcasecmp(p.encoding().c_str(), enc) == 0;
+  }
+};
+
+inline Path
+DownloadConstructor::choose_path(std::list<Path>* pathList) {
+  std::list<Path>::iterator pathFirst        = pathList->begin();
+  std::list<Path>::iterator pathLast         = pathList->end();
+  EncodingList::const_iterator encodingFirst = m_encodingList->begin();
+  EncodingList::const_iterator encodingLast  = m_encodingList->end();
+  
+  for ( ; encodingFirst != encodingLast; ++encodingFirst) {
+    std::list<Path>::iterator itr = std::find_if(pathFirst, pathLast,
+						 rak::bind2nd(download_constructor_encoding_match(), encodingFirst->c_str()));
+    
+    if (itr != pathLast)
+      pathList->splice(pathFirst, *pathList, itr);
+  }
+
+  return pathList->front();
 }
 
 }
