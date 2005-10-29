@@ -240,15 +240,6 @@ set_up_throttle(int bytes) {
   return manager->upload_throttle()->set_max_rate(bytes);
 }
 
-void
-set_throttle_interval(uint32_t usec) {
-  if (usec <= 0 || usec > 5 * 1000000)
-    throw input_error("torrent::set_throttle_interval(...) received an invalid value");
-
-//   throttleRead.set_interval(usec);
-//   throttleWrite.set_interval(usec);
-}
-
 uint32_t
 currently_unchoked() {
   return manager->resource_manager()->currently_unchoked();

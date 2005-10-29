@@ -58,12 +58,12 @@ public:
   using Base::rbegin;
   using Base::rend;
 
-  ThrottleList() :
-    m_enabled(false),
-    m_outstandingQuota(0),
-    m_unallocatedQuota(0),
-    m_rateSlow(60),
-    m_splitActive(end()) {}
+  static const uint32_t min_trigger_activate = 2048;
+
+  ThrottleList();
+
+  bool                is_active(iterator itr) const;
+  bool                is_inactive(iterator itr) const;
 
   // When disabled all nodes are active at all times.
   void                enable();
@@ -74,11 +74,15 @@ public:
   // Propably some functions for controlling how much we allocate,
   // need to be able to activate etc.
 
-  uint32_t            outstanding_quota() const { return m_outstandingQuota; }
-  uint32_t            unallocated_quota() const { return m_unallocatedQuota; }
+  uint32_t            outstanding_quota() const      { return m_outstandingQuota; }
+  uint32_t            unallocated_quota() const      { return m_unallocatedQuota; }
+
+  uint32_t            min_chunk_size() const         { return m_minChunkSize; }
+  void                set_min_chunk_size(uint32_t v) { m_minChunkSize = v; }
 
   uint32_t            node_quota(iterator itr);
   void                node_used(iterator itr, uint32_t used);
+  void                node_deactivate(iterator itr);
 
   const Rate&         rate_slow() const              { return m_rateSlow; }
 
@@ -98,11 +102,13 @@ private:
   uint32_t            m_outstandingQuota;
   uint32_t            m_unallocatedQuota;
 
+  uint32_t            m_minChunkSize;
+
   Rate                m_rateSlow;
 
   // [m_splitActive,end> contains nodes that are inactive and need
   // more quote, sorted from the most urgent
-  // node. [begin,m_splitActive> holds nodes with a large enough quote
+  // node. [begin,m_splitActive> holds nodes with a large enough quota
   // to transmit, but are blocking. These are sorted from the longest
   // blocking node.
   iterator            m_splitActive;

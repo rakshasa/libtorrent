@@ -198,11 +198,11 @@ PeerConnectionBase::receive_choke(bool v) {
   if (v == m_up->choked())
     throw internal_error("PeerConnectionBase::receive_choke(...) already set to the same state.");
 
+  write_insert_poll_safe();
+
   m_sendChoked = true;
   m_up->set_choked(v);
   m_timeLastChoked = Timer::cache();
-
-  pollCustom->insert_write(this);
 }
 
 inline bool
@@ -268,8 +268,9 @@ PeerConnectionBase::down_chunk() {
 
   uint32_t quota = m_download->download_throttle()->node_quota(m_downThrottle);
 
-  if (quota < 512) {
+  if (quota == 0) {
     pollCustom->remove_read(this);
+    m_download->download_throttle()->node_deactivate(m_downThrottle);
     return false;
   }
 
@@ -337,8 +338,9 @@ PeerConnectionBase::up_chunk() {
 
   uint32_t quota = m_download->upload_throttle()->node_quota(m_upThrottle);
 
-  if (quota < 512) {
+  if (quota == 0) {
     pollCustom->remove_write(this);
+    m_download->upload_throttle()->node_deactivate(m_upThrottle);
     return false;
   }
 
@@ -386,12 +388,11 @@ void
 PeerConnectionBase::read_request_piece(const Piece& p) {
   PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
-  if (itr != m_sendList.end() ||
-      p.get_length() > (1 << 17))
+  if (itr != m_sendList.end() || p.get_length() > (1 << 17))
     return;
 
   m_sendList.push_back(p);
-  pollCustom->insert_write(this);
+  write_insert_poll_safe();
 }
 
 void

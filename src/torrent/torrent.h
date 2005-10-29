@@ -92,8 +92,6 @@ void                set_down_throttle(int32_t bytes);
 int32_t             get_up_throttle();
 void                set_up_throttle(int32_t bytes);
 
-void                set_throttle_interval(uint32_t usec);
-
 uint32_t            currently_unchoked();
 uint32_t            max_unchoked();
 void                set_max_unchoked(uint32_t count);

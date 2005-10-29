@@ -96,8 +96,8 @@ PeerConnectionLeech::receive_keepalive() {
   if (m_up->get_state() == ProtocolWrite::IDLE &&
       m_up->can_write_keepalive()) {
 
+    write_insert_poll_safe();
     m_up->write_keepalive();
-    pollCustom->insert_write(this);
   }
 
   m_tryRequest = true;
@@ -168,10 +168,10 @@ PeerConnectionLeech::read_message() {
 
   case ProtocolBase::UNCHOKE:
     if (is_down_choked()) {
+      write_insert_poll_safe();
+
       m_down->set_choked(false);
       m_tryRequest = true;
-
-      pollCustom->insert_write(this);
     }
 
     return true;
@@ -206,8 +206,8 @@ PeerConnectionLeech::read_message() {
       break;
 
     if (!m_up->choked()) {
+      write_insert_poll_safe();
       read_request_piece(m_down->read_request());
-      pollCustom->insert_write(this);
 
     } else {
       m_down->read_request();
@@ -247,7 +247,7 @@ PeerConnectionLeech::read_message() {
       // TODO: clear m_down.data?
       // TODO: remove throttle if choked? Rarely happens though.
       m_tryRequest = true;
-      pollCustom->insert_write(this);
+      write_insert_poll_safe();
 
       return true;
 
@@ -333,7 +333,7 @@ PeerConnectionLeech::event_read() {
 	// TODO: remove throttle if choked? Rarely happens though.
 	m_tryRequest = true;
 	m_down->set_state(ProtocolRead::IDLE);
-	pollCustom->insert_write(this);
+	write_insert_poll_safe();
 	
 	break;
 
@@ -563,7 +563,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
     if (!m_tryRequest && m_download->delegator()->get_select().interested(index)) {
       m_tryRequest = true;
-      pollCustom->insert_write(this);
+      write_insert_poll_safe();
     }
 
   } else {
@@ -575,7 +575,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
       // Is it enough to insert into write here? Make the interested
       // check branch to include insert_write, even when not sending
       // interested.
-      pollCustom->insert_write(this);
+      write_insert_poll_safe();
     }
   }
 }
@@ -594,7 +594,7 @@ PeerConnectionLeech::finish_bitfield() {
 
 //   m_download->bitfield_counter().inc(m_bitfield.bitfield());
 
-  pollCustom->insert_write(this);
+  write_insert_poll_safe();
 }
 
 bool

@@ -84,8 +84,8 @@ PeerConnectionSeed::receive_keepalive() {
   if (m_up->get_state() == ProtocolWrite::IDLE &&
       m_up->can_write_keepalive()) {
 
+    write_insert_poll_safe();
     m_up->write_keepalive();
-    pollCustom->insert_write(this);
   }
 
   return true;
@@ -172,8 +172,8 @@ PeerConnectionSeed::read_message() {
       break;
 
     if (!m_up->choked()) {
+      write_insert_poll_safe();
       read_request_piece(m_down->read_request());
-      pollCustom->insert_write(this);
 
     } else {
       m_down->read_request();
@@ -428,7 +428,7 @@ PeerConnectionSeed::finish_bitfield() {
 
 //   m_download->bitfield_counter().inc(m_bitfield.bitfield());
 
-  pollCustom->insert_write(this);
+  write_insert_poll_safe();
 }
 
 }

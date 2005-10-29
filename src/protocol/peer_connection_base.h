@@ -54,7 +54,11 @@
 namespace torrent {
 
 // Base class for peer connection classes. Rename to PeerConnection
-// when the migration is complete.
+// when the migration is complete?
+//
+// This should really be modularized abit, there's too much stuff in
+// PeerConnectionBase and its children. Do we use additional layers of
+// inheritance or member instances?
 
 class DownloadMain;
 
@@ -159,6 +163,10 @@ protected:
   void                set_remote_interested();
   void                set_remote_not_interested();
 
+  // Insert into the poll unless we're blocking for throttling etc.
+  void                read_insert_poll_safe();
+  void                write_insert_poll_safe();
+
   DownloadMain*       m_download;
 
   ProtocolRead*       m_down;
@@ -207,6 +215,22 @@ PeerConnectionBase::write_remaining() {
 						m_up->buffer()->remaining()));
 
   return !m_up->buffer()->remaining();
+}
+
+inline void
+PeerConnectionBase::read_insert_poll_safe() {
+  if (m_down->get_state() != ProtocolRead::IDLE)
+    return;
+
+  pollCustom->insert_read(this);
+}
+
+inline void
+PeerConnectionBase::write_insert_poll_safe() {
+  if (m_up->get_state() != ProtocolWrite::IDLE)
+    return;
+
+  pollCustom->insert_write(this);
 }
 
 }

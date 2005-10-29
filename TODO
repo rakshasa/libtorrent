@@ -6,8 +6,6 @@ Testcase for mmap bug? Also look into dns lookup cache.
 
 === Throttle ===
 
-node_used needs to work properly, unallocated etc might overflow due to read_from_buffer.
-
 handle zero tranfered properly
 
 Consider making it mandatory to be in the throttle list when calling
