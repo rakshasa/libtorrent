@@ -42,9 +42,9 @@
 #include "data/piece.h"
 #include "net/manager.h"
 #include "net/socket_stream.h"
+#include "net/throttle_list.h"
 #include "utils/bitfield_ext.h"
 #include "utils/task.h"
-#include "utils/throttle.h"
 #include "torrent/rate.h"
 
 #include "peer_info.h"
@@ -60,10 +60,11 @@ class DownloadMain;
 
 class PeerConnectionBase : public SocketStream {
 public:
-  typedef std::list<Piece>    PieceList;
-  typedef std::list<uint32_t> HaveQueue;
-  typedef ProtocolBase        ProtocolRead;
-  typedef ProtocolBase        ProtocolWrite;
+  typedef std::list<Piece>       PieceList;
+  typedef std::list<uint32_t>    HaveQueue;
+  typedef ProtocolBase           ProtocolRead;
+  typedef ProtocolBase           ProtocolWrite;
+  typedef ThrottleList::iterator ThrottleIterator;
 
   // Find an optimal number for this.
   static const uint32_t read_size = 64;
@@ -79,9 +80,6 @@ public:
   bool                is_down_interested()          { return m_down->interested(); }
 
   bool                is_upload_wanted() const      { return m_down->interested() && !m_snubbed; }
-
-  bool                is_down_throttled()           { return m_downThrottle != throttleRead.end(); }
-  bool                is_up_throttled()             { return m_upThrottle != throttleWrite.end(); }
 
   bool                is_snubbed() const            { return m_snubbed; }
   bool                is_seeder() const             { return m_bitfield.all_set(); }
@@ -103,12 +101,6 @@ public:
 
   Timer               time_last_choked() const      { return m_timeLastChoked; }
 
-  void                insert_down_throttle();
-  void                remove_down_throttle();
-
-  void                insert_up_throttle();
-  void                remove_up_throttle();
-
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
 
@@ -128,6 +120,15 @@ protected:
 
   void                load_down_chunk(const Piece& p);
   void                load_up_chunk();
+
+  inline bool         is_down_throttled() const;
+  inline bool         is_up_throttled() const;
+
+  void                insert_down_throttle();
+  void                remove_down_throttle();
+
+  void                insert_up_throttle();
+  void                remove_up_throttle();
 
   void                receive_throttle_down_activate();
   void                receive_throttle_up_activate();
@@ -167,14 +168,14 @@ protected:
   Rate                m_peerRate;
 
   Rate                m_downRate;
-  ThrottlePeerNode    m_downThrottle;
+  ThrottleIterator    m_downThrottle;
   Piece               m_downPiece;
   ChunkHandle         m_downChunk;
 
   uint32_t            m_downStall;
 
   Rate                m_upRate;
-  ThrottlePeerNode    m_upThrottle;
+  ThrottleIterator    m_upThrottle;
   Piece               m_upPiece;
   ChunkHandle         m_upChunk;
 
@@ -191,34 +192,6 @@ protected:
 
   Timer               m_timeLastRead;
 };
-
-inline void
-PeerConnectionBase::insert_down_throttle() {
-  if (!is_down_throttled())
-    m_downThrottle = throttleRead.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_down_activate));
-}
-
-inline void
-PeerConnectionBase::remove_down_throttle() {
-  if (is_down_throttled()) {
-    throttleRead.erase(m_downThrottle);
-    m_downThrottle = throttleRead.end();
-  }
-}
-
-inline void
-PeerConnectionBase::insert_up_throttle() {
-  if (!is_up_throttled())
-    m_upThrottle = throttleWrite.insert(PeerConnectionThrottle(this, &PeerConnectionBase::receive_throttle_up_activate));
-}
-
-inline void
-PeerConnectionBase::remove_up_throttle() {
-  if (is_up_throttled()) {
-    throttleWrite.erase(m_upThrottle);
-    m_upThrottle = throttleWrite.end();
-  }
-}
 
 inline bool
 PeerConnectionBase::read_remaining() {

@@ -34,41 +34,33 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_UTILS_THROTTLE_NODE_H
-#define LIBTORRENT_UTILS_THROTTLE_NODE_H
+#ifndef LIBTORRENT_NET_THROTTLE_NODE_H
+#define LIBTORRENT_NET_THROTTLE_NODE_H
 
-#include <inttypes.h>
+#include <rak/functional.h>
 
 namespace torrent {
 
-template <typename _Op>
+class PeerConnectionBase;
+
 class ThrottleNode {
 public:
-  enum {
-    UNLIMITED = -1
-  };
+  typedef rak::mem_fn0<PeerConnectionBase, void> SlotActivate;
 
-  ThrottleNode(const _Op& o) : m_quota(UNLIMITED), m_used(0), m_op(o) {}
-  
-  bool                is_unlimited() const          { return m_quota == UNLIMITED; }
+  ThrottleNode() { clear_quota(); }
 
-  // Rename to something else?
-  int                 get_quota() const             { return is_unlimited() ? m_quota : (m_quota - m_used); }
-  int                 get_total() const             { return m_quota; }
-  int                 get_used() const              { return m_used; }
+  uint32_t            quota() const                 { return m_quota; }
+  void                clear_quota()                 { m_quota = 0; }
+  void                set_quota(uint32_t q)         { m_quota = q; }
 
-  void                set_op(const _Op& op)         { m_op = op; }
+  void                activate()                    { m_slotActivate(); }
 
-  void                used(int v)                   { m_used += v; }
-  void                activate()                    { m_op(); }
-
-  void                update_quota(int v)           { m_quota = v; m_used = 0; }
+  void                slot_activate(SlotActivate s) { m_slotActivate = s; }
 
 private:
-  int                 m_quota;
-  int                 m_used;
+  uint32_t            m_quota;
 
-  _Op                 m_op;
+  SlotActivate        m_slotActivate;
 };
 
 }

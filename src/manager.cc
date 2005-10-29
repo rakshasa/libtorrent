@@ -48,6 +48,7 @@
 #include "data/hash_queue.h"
 #include "net/listen.h"
 #include "net/manager.h"
+#include "net/throttle_manager.h"
 
 #include "manager.h"
 #include "resource_manager.h"
@@ -63,6 +64,9 @@ Manager::Manager() :
   m_hashQueue(new HashQueue),
   m_listen(new Listen),
   m_resourceManager(new ResourceManager),
+
+  m_uploadThrottle(new ThrottleManager),
+  m_downloadThrottle(new ThrottleManager),
 
   m_ticks(0) {
 
@@ -89,6 +93,9 @@ Manager::~Manager() {
   delete m_hashQueue;
   delete m_listen;
   delete m_resourceManager;
+
+  delete m_uploadThrottle;
+  delete m_downloadThrottle;
 }
 
 void
@@ -99,6 +106,9 @@ Manager::initialize_download(DownloadWrapper* d) {
 
   m_downloadManager->insert(d);
   m_resourceManager->insert(1, d->main());
+
+  d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
+  d->main()->set_download_throttle(m_downloadThrottle->throttle_list());
 
   d->main()->choke_manager()->slot_choke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_choke));
   d->main()->choke_manager()->slot_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_unchoke));

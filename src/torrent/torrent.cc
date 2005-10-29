@@ -47,9 +47,10 @@
 #include "resource_manager.h"
 
 #include "utils/string_manip.h"
-#include "utils/throttle.h"
 #include "net/listen.h"
 #include "net/manager.h"
+#include "net/throttle_list.h"
+#include "net/throttle_manager.h"
 #include "parse/download_constructor.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
@@ -64,8 +65,6 @@ namespace torrent {
 int64_t Timer::m_cache;
 
 TaskScheduler taskScheduler;
-ThrottlePeer  throttleRead;
-ThrottlePeer  throttleWrite;
 
 uint32_t
 calculate_max_open_files(uint32_t openMax) {
@@ -104,9 +103,6 @@ initialize(Poll* poll) {
 
   manager = new Manager;
 
-  throttleRead.start();
-  throttleWrite.start();
-
   pollCustom = poll;
 
   if (poll->get_open_max() < 64)
@@ -124,9 +120,6 @@ void
 cleanup() {
   if (manager == NULL)
     throw client_error("torrent::cleanup() called but the library is not initialized");
-
-  throttleRead.stop();
-  throttleWrite.stop();
 
   delete manager;
   manager = NULL;
@@ -229,22 +222,22 @@ get_next_timeout() {
 
 int
 get_down_throttle() {
-  return std::max(throttleRead.get_quota(), 0);
+  return manager->download_throttle()->max_rate();
 }
 
 void
 set_down_throttle(int bytes) {
-  throttleRead.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
+  return manager->download_throttle()->set_max_rate(bytes);
 }
 
 int
 get_up_throttle() {
-  return std::max(throttleWrite.get_quota(), 0);
+  return manager->upload_throttle()->max_rate();
 }
 
 void
 set_up_throttle(int bytes) {
-  throttleWrite.set_quota(bytes > 0 ? bytes : ThrottlePeer::UNLIMITED);
+  return manager->upload_throttle()->set_max_rate(bytes);
 }
 
 void
@@ -252,8 +245,8 @@ set_throttle_interval(uint32_t usec) {
   if (usec <= 0 || usec > 5 * 1000000)
     throw input_error("torrent::set_throttle_interval(...) received an invalid value");
 
-  throttleRead.set_interval(usec);
-  throttleWrite.set_interval(usec);
+//   throttleRead.set_interval(usec);
+//   throttleWrite.set_interval(usec);
 }
 
 uint32_t
@@ -273,12 +266,12 @@ set_max_unchoked(uint32_t count) {
 
 const Rate&
 get_down_rate() {
-  return throttleRead.get_rate_slow();
+  return manager->download_throttle()->throttle_list()->rate_slow();
 }
 
 const Rate&
 get_up_rate() {
-  return throttleWrite.get_rate_slow();
+  return manager->upload_throttle()->throttle_list()->rate_slow();
 }
 
 char*

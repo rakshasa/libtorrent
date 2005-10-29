@@ -19,6 +19,11 @@ libsub_net_la_SOURCES = \
 	socket_set.cc \
 	socket_set.h \
 	socket_stream.cc \
-	socket_stream.h
+	socket_stream.h \
+	throttle_list.cc \
+	throttle_list.h \
+	throttle_manager.cc \
+	throttle_manager.h \
+	throttle_node.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

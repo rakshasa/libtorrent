@@ -54,6 +54,7 @@ class DownloadWrapper;
 class FileManager;
 class ResourceManager;
 class PeerInfo;
+class ThrottleManager;
 
 typedef std::list<std::string> EncodingList;
 
@@ -76,6 +77,9 @@ public:
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
 
+  ThrottleManager*    upload_throttle()                         { return m_uploadThrottle; }
+  ThrottleManager*    download_throttle()                       { return m_downloadThrottle; }
+
   void                initialize_download(DownloadWrapper* d);
   void                cleanup_download(DownloadWrapper* d);
 
@@ -96,6 +100,9 @@ private:
   ResourceManager*    m_resourceManager;
 
   EncodingList        m_encodingList;
+
+  ThrottleManager*    m_uploadThrottle;
+  ThrottleManager*    m_downloadThrottle;
 
   unsigned int        m_ticks;
   TaskItem            m_taskTick;

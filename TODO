@@ -2,6 +2,24 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Testcase for mmap bug? Also look into dns lookup cache.
+
+=== Throttle ===
+
+node_used needs to work properly, unallocated etc might overflow due to read_from_buffer.
+
+handle zero tranfered properly
+
+Consider making it mandatory to be in the throttle list when calling
+PCB::read/write_chunk.
+
+Consider moving stuff to resource manager.
+
+Consider redesigning, where throttle_list holds a pointer, this
+contains rates etc.
+
+===
+
 Make sure to verify that the single file torrent gets a valid path,
 also make sure no file can start with "." "..".
 

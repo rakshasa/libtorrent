@@ -36,7 +36,6 @@
 
 #include "config.h"
 
-#include <limits>
 #include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
@@ -58,11 +57,9 @@ PeerConnectionBase::PeerConnectionBase() :
   m_peerRate(600),
 
   m_downRate(30),
-  m_downThrottle(throttleRead.end()),
   m_downStall(0),
 
   m_upRate(30),
-  m_upThrottle(throttleWrite.end()),
 
   m_sendChoked(false),
   m_sendInterested(false),
@@ -115,6 +112,9 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
 
   m_peer = p;
   m_download = download;
+
+  m_downThrottle = m_download->download_throttle()->end();
+  m_upThrottle   = m_download->upload_throttle()->end();
 
   get_fd().set_throughput();
 
@@ -205,6 +205,44 @@ PeerConnectionBase::receive_choke(bool v) {
   pollCustom->insert_write(this);
 }
 
+inline bool
+PeerConnectionBase::is_down_throttled() const {
+  return m_downThrottle != m_download->download_throttle()->end();
+}
+
+inline bool
+PeerConnectionBase::is_up_throttled() const {
+  return m_upThrottle != m_download->upload_throttle()->end();
+}
+
+void
+PeerConnectionBase::insert_down_throttle() {
+  if (!is_down_throttled())
+    m_downThrottle = m_download->download_throttle()->insert(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_down_activate));
+}
+
+void
+PeerConnectionBase::remove_down_throttle() {
+  if (is_down_throttled()) {
+    m_download->download_throttle()->erase(m_downThrottle);
+    m_downThrottle = m_download->download_throttle()->end();
+  }
+}
+
+void
+PeerConnectionBase::insert_up_throttle() {
+  if (!is_up_throttled())
+    m_upThrottle = m_download->upload_throttle()->insert(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_up_activate));
+}
+
+void
+PeerConnectionBase::remove_up_throttle() {
+  if (is_up_throttled()) {
+    m_download->upload_throttle()->erase(m_upThrottle);
+    m_upThrottle = m_download->upload_throttle()->end();
+  }
+}
+
 void
 PeerConnectionBase::receive_throttle_down_activate() {
   pollCustom->insert_read(this);
@@ -228,13 +266,7 @@ PeerConnectionBase::down_chunk() {
   if (!m_downChunk->chunk()->is_writable())
     throw internal_error("PeerConnectionBase::down_part() chunk not writable, permission denided");
 
-  int quota = m_downThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_downThrottle->get_quota();
-
-//   if (quota == 0)
-//     throw internal_error("PeerConnectionBase::down_chunk() zero quota");
-
-  if (quota < 0)
-    throw internal_error("PeerConnectionBase::down_chunk() less-than zero quota");
+  uint32_t quota = m_download->download_throttle()->node_quota(m_downThrottle);
 
   if (quota < 512) {
     pollCustom->remove_read(this);
@@ -242,7 +274,7 @@ PeerConnectionBase::down_chunk() {
   }
 
   uint32_t count;
-  uint32_t left = quota = std::min((uint32_t)quota, m_downPiece.get_length() - m_down->position());
+  uint32_t left = quota = std::min(quota, m_downPiece.get_length() - m_down->position());
 
   Chunk::MemoryArea memory;
   ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->position());
@@ -259,10 +291,7 @@ PeerConnectionBase::down_chunk() {
   uint32_t bytes = quota - left;
 
   m_downRate.insert(bytes);
-  m_downThrottle->used(bytes);
-
-  throttleRead.get_rate_slow().insert(bytes);
-  throttleRead.get_rate_quick().insert(bytes);
+  m_download->download_throttle()->node_used(m_downThrottle, bytes);
   m_download->down_rate().insert(bytes);
 
   return m_down->position() == m_downPiece.get_length();
@@ -292,12 +321,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t bytes = quota - left;
 
   m_downRate.insert(bytes);
-
-  if (is_down_throttled() && !m_downThrottle->is_unlimited())
-    m_downThrottle->used(std::min<uint32_t>(bytes, m_downThrottle->get_quota()));
-
-  throttleRead.get_rate_slow().insert(bytes);
-  throttleRead.get_rate_quick().insert(bytes);
+  m_download->download_throttle()->node_used(m_downThrottle, bytes);
   m_download->down_rate().insert(bytes);
 
   return m_down->position() == m_downPiece.get_length();
@@ -311,13 +335,7 @@ PeerConnectionBase::up_chunk() {
   if (!m_upChunk->chunk()->is_readable())
     throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
 
-  int quota = m_upThrottle->is_unlimited() ? std::numeric_limits<int>::max() : m_upThrottle->get_quota();
-
-//   if (quota == 0)
-//     throw internal_error("PeerConnectionBase::up_chunk() zero quota");
-
-  if (quota < 0)
-    throw internal_error("PeerConnectionBase::up_chunk() less-than zero quota");
+  uint32_t quota = m_download->upload_throttle()->node_quota(m_upThrottle);
 
   if (quota < 512) {
     pollCustom->remove_write(this);
@@ -325,7 +343,7 @@ PeerConnectionBase::up_chunk() {
   }
 
   uint32_t count;
-  uint32_t left = quota = std::min((uint32_t)quota, m_upPiece.get_length() - m_up->position());
+  uint32_t left = quota = std::min(quota, m_upPiece.get_length() - m_up->position());
 
   Chunk::MemoryArea memory;
   ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.get_offset() + m_up->position());
@@ -342,10 +360,7 @@ PeerConnectionBase::up_chunk() {
   uint32_t bytes = quota - left;
 
   m_upRate.insert(bytes);
-  m_upThrottle->used(bytes);
-
-  throttleWrite.get_rate_slow().insert(bytes);
-  throttleWrite.get_rate_quick().insert(bytes);
+  m_download->upload_throttle()->node_used(m_upThrottle, bytes);
   m_download->up_rate().insert(bytes);
 
   return m_up->position() == m_upPiece.get_length();

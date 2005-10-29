@@ -62,6 +62,9 @@ DownloadMain::DownloadMain() :
   m_isOpen(false),
   m_endgame(false),
 
+  m_uploadThrottle(NULL),
+  m_downloadThrottle(NULL),
+
   m_upRate(60),
   m_downRate(60) {
 

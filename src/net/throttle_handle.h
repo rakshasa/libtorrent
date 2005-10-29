@@ -34,33 +34,11 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_UTILS_THROTTLE_H
-#define LIBTORRENT_UTILS_THROTTLE_H
-
-#include "throttle_control.h"
+#ifndef LIBTORRENT_NET_THROTTLE_HANDLE_H
+#define LIBTORRENT_NET_THROTTLE_HANDLE_H
 
 namespace torrent {
 
-// Not as pretty as i would want, and it doesn't really belong in
-// utils.
-
-class PeerConnectionBase;
-
-struct PeerConnectionThrottle {
-  PeerConnectionThrottle(PeerConnectionBase* p, void (PeerConnectionBase::*f)()) : m_peer(p), m_f(f) {}
-
-  inline void operator () () { (m_peer->*m_f)(); }
-
-  PeerConnectionBase* m_peer;
-  void (PeerConnectionBase::*m_f)();
-};
-
-typedef ThrottleControl<ThrottleNode<PeerConnectionThrottle> > ThrottlePeer;
-typedef ThrottlePeer::iterator                                 ThrottlePeerNode;
-
-extern ThrottlePeer throttleRead;
-extern ThrottlePeer throttleWrite;
-
-}
-
-#endif
+class ThrottleHandle {
+public:
+  

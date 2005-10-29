@@ -58,6 +58,7 @@ class ChokeManager;
 class DownloadWrapper;
 class HandshakeManager;
 class TrackerManager;
+class ThrottleList;
 
 class DownloadMain {
 public:
@@ -84,6 +85,12 @@ public:
 
   AvailableList*      available_list()                           { return &m_availableList; }
   ConnectionList*     connection_list()                          { return &m_connectionList; }
+
+  ThrottleList*       upload_throttle()                          { return m_uploadThrottle; }
+  void                set_upload_throttle(ThrottleList* t)       { m_uploadThrottle = t; }
+
+  ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
+  void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
 
   bool                get_endgame() const                        { return m_endgame; }
   uint64_t            get_bytes_left() const;
@@ -144,6 +151,9 @@ private:
   bool                m_isOpen;
   bool                m_endgame;
   uint32_t            m_lastConnectedSize;
+
+  ThrottleList*       m_uploadThrottle;
+  ThrottleList*       m_downloadThrottle;
 
   Rate                m_upRate;
   Rate                m_downRate;
