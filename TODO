@@ -4,9 +4,10 @@ get while coding.
 
 Testcase for mmap bug? Also look into dns lookup cache.
 
-=== Throttle ===
+Having high/med priority seems to somehow have messed up the
+interested state.
 
-handle zero tranfered properly
+=== Throttle ===
 
 Consider making it mandatory to be in the throttle list when calling
 PCB::read/write_chunk.

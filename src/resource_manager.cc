@@ -68,6 +68,17 @@ ResourceManager::erase(DownloadMain* d) {
     Base::erase(itr);
 }
 
+ResourceManager::iterator
+ResourceManager::find(DownloadMain* d) {
+  return std::find_if(begin(), end(), rak::equal(d, rak::mem_ptr_ref(&value_type::second)));
+}
+
+void
+ResourceManager::set_priority(DownloadMain* d, uint32_t pri) {
+  erase(d);
+  insert(pri, d);
+}
+
 // The choking choke manager won't updated it's count until after
 // possibly multiple calls of this function.
 void

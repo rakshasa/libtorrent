@@ -393,4 +393,16 @@ download_find(const std::string& infohash) {
   return *manager->download_manager()->find(infohash);
 }
 
+// uint32_t
+// download_priority(Download d) {
+//   ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr());
+
+//   return itr != manager->resource_manager()->end() ? itr->first : 0;
+// }
+
+// void
+// download_set_priority(Download d, uint32_t pri) {
+  
+// }
+
 }

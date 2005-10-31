@@ -58,11 +58,14 @@ public:
 
   ResourceManager() :
     m_currentlyUnchoked(0),
-    m_maxUnchoked(50) {}
+    m_maxUnchoked(0) {}
   ~ResourceManager();
 
   void                insert(int priority, DownloadMain* d);
   void                erase(DownloadMain* d);
+
+  iterator            find(DownloadMain* d);
+  void                set_priority(DownloadMain* d, uint32_t pri);
 
   // When setting this, make sure you choke peers, else change
   // receive_can_unchoke.

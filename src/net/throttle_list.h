@@ -71,6 +71,8 @@ public:
 
   void                update_quota(uint32_t quota);
 
+  uint32_t            size() const                   { return m_size; }
+
   // Propably some functions for controlling how much we allocate,
   // need to be able to activate etc.
 
@@ -98,6 +100,7 @@ private:
   inline uint32_t     allocate_quota();
 
   bool                m_enabled;
+  uint32_t            m_size;
 
   uint32_t            m_outstandingQuota;
   uint32_t            m_unallocatedQuota;

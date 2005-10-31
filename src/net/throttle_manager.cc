@@ -72,6 +72,7 @@ ThrottleManager::set_max_rate(uint32_t v) {
 
   if (oldRate == 0) {
     m_throttleList->enable();
+    m_throttleList->set_min_chunk_size(calculate_min_chunk_size());
 
     // We need to start the ticks, and make sure we set m_timeLastTick
     // to a value that gives an reasonable initial quota.
@@ -89,6 +90,27 @@ ThrottleManager::receive_tick() {
   m_throttleList->update_quota(m_maxRate);
 
   taskScheduler.insert(&m_taskTick, Timer::cache().round_seconds() + 1000000);
+}
+
+uint32_t
+ThrottleManager::calculate_min_chunk_size() const {
+  if (m_maxRate <= (4 << 10))
+    return (1 << 10);
+
+  else if (m_maxRate <= (16 << 10))
+    return (4 << 10);
+
+  else if (m_maxRate <= (64 << 10))
+    return (8 << 10);
+
+  else if (m_maxRate <= (256 << 10))
+    return (16 << 10);
+
+  else if (m_maxRate <= (1024 << 10))
+    return (32 << 10);
+
+  else
+    return (128 << 10);
 }
 
 }

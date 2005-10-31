@@ -58,6 +58,8 @@ public:
 private:
   void                receive_tick();
 
+  uint32_t            calculate_min_chunk_size() const;
+
   uint32_t            m_maxRate;
   ThrottleList*       m_throttleList;
 

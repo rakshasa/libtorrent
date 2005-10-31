@@ -46,6 +46,7 @@ namespace torrent {
 
 ThrottleList::ThrottleList() :
   m_enabled(false),
+  m_size(0),
   m_outstandingQuota(0),
   m_unallocatedQuota(0),
   m_minChunkSize((1 << 14)),
@@ -118,7 +119,11 @@ ThrottleList::update_quota(uint32_t quota) {
   if (!m_enabled)
     throw internal_error("ThrottleList::update_quota(...) called but the object is not enabled.");
 
-  m_unallocatedQuota = quota;
+  // When distributing, we include the unallocated quota from the
+  // previous turn. This will ensure that quota that was reclaimed
+  // will have a chance of being used, even by those nodes that were
+  // deactivated.
+  m_unallocatedQuota += quota;
 
   while (m_splitActive != end() && can_activate()) {
     iterator itr = m_splitActive++;
@@ -126,6 +131,11 @@ ThrottleList::update_quota(uint32_t quota) {
     itr->set_quota(itr->quota() + allocate_quota());
     itr->activate();
   }
+
+  // Use 'quota' as an upper bound to avoid accumulating unused quota
+  // over time.
+  if (m_unallocatedQuota > quota)
+    m_unallocatedQuota = quota;
 }
 
 uint32_t
@@ -153,18 +163,15 @@ ThrottleList::node_used(iterator itr, uint32_t used) {
   if (used == 0 || !m_enabled || itr == end())
     return;
 
-  // In case we're dealing with bytes transfered that are not part of
-  // the allocated quota.
-  used = std::min(used, itr->quota());
-
-  // Currently check for end and ignore.
-  if (used > m_outstandingQuota)
-    throw internal_error("ThrottleList::node_used(...) 'used' overflow..");
-
-  m_outstandingQuota -= used;
-  itr->set_quota(itr->quota() - used);
+  m_outstandingQuota -= std::min(used, m_outstandingQuota);
+  itr->set_quota(itr->quota() - std::min(used, itr->quota()));
 
   // Add quota if available. Temporary solution. Think about it.
+  //
+  // Each connection has a limited buffer, we propably won't fill it
+  // entirely up when we got lots of unallocated quota. With a large
+  // enough per-tick allocation per connection we shouldn't end up
+  // with unallocated quota unless someone disconnects.
   if (itr->quota() < m_minChunkSize && can_activate())
     itr->set_quota(itr->quota() + allocate_quota());
 }
@@ -184,6 +191,8 @@ ThrottleList::node_deactivate(iterator itr) {
 
 ThrottleList::iterator
 ThrottleList::insert(ThrottleNode::SlotActivate s) {
+  m_size++;
+
   iterator itr;
 
   if (!m_enabled) {
@@ -203,6 +212,11 @@ ThrottleList::insert(ThrottleNode::SlotActivate s) {
 
 void
 ThrottleList::erase(iterator itr) {
+  if (m_size == 0)
+    throw internal_error("ThrottleList::erase(...) m_size == 0.");
+
+  m_size--;
+
   // Do we need an if-statement here?
   if (itr->quota() != 0) {
     if (itr->quota() > m_outstandingQuota)

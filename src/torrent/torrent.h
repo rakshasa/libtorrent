@@ -137,6 +137,9 @@ void                download_list(DList& dlist);
 // Make sure you check the returned Download's is_valid().
 Download            download_find(const std::string& infohash);
 
+uint32_t            download_priority(Download d);
+void                download_set_priority(Download d, uint32_t pri);
+
 }
 
 #endif

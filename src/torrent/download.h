@@ -212,6 +212,8 @@ public:
   // continue.
   sigc::connection    signal_storage_error(SlotString s);
 
+  DownloadWrapper*    ptr() { return m_ptr; }
+
 private:
   DownloadWrapper*    m_ptr;
 };
