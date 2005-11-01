@@ -73,9 +73,6 @@ public:
 
   uint32_t            size() const                   { return m_size; }
 
-  // Propably some functions for controlling how much we allocate,
-  // need to be able to activate etc.
-
   uint32_t            outstanding_quota() const      { return m_outstandingQuota; }
   uint32_t            unallocated_quota() const      { return m_unallocatedQuota; }
 
@@ -95,9 +92,9 @@ public:
   void                erase(iterator itr);
 
 private:
-  inline bool         can_activate() const;
+  inline bool         can_activate(iterator itr) const;
 
-  inline uint32_t     allocate_quota();
+  inline void         allocate_quota(iterator itr);
 
   bool                m_enabled;
   uint32_t            m_size;

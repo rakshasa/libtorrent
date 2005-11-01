@@ -105,7 +105,7 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->set_file_manager(m_fileManager);
 
   m_downloadManager->insert(d);
-  m_resourceManager->insert(1, d->main());
+  m_resourceManager->insert(d->main(), 1);
 
   d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
   d->main()->set_download_throttle(m_downloadThrottle->throttle_list());

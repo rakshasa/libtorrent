@@ -291,7 +291,6 @@ PeerConnectionSeed::fill_write_buffer() {
     if (m_up->choked()) {
       remove_up_throttle();
       up_chunk_release();
-	
       m_sendList.clear();
 
     } else {

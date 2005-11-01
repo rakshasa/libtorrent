@@ -73,18 +73,23 @@ ThrottleList::is_inactive(iterator itr) const {
 }
 
 inline bool
-ThrottleList::can_activate() const {
-  return m_unallocatedQuota >= m_minChunkSize;
+ThrottleList::can_activate(iterator itr) const {
+  return itr->quota() >= m_minChunkSize;
 }
 
-inline uint32_t
-ThrottleList::allocate_quota() {
-  int quota = m_minChunkSize;
+// The quota already present in the node is preserved and unallocated
+// quota is transferred to the node. The node's quota will be less
+// than or equal to 'm_minChunkSize'.
+inline void
+ThrottleList::allocate_quota(iterator itr) {
+  if (itr->quota() >= m_minChunkSize)
+    return;
 
+  int quota = std::min(m_minChunkSize - itr->quota(), m_unallocatedQuota);
+
+  itr->set_quota(itr->quota() + quota);
   m_outstandingQuota += quota;
   m_unallocatedQuota -= quota;
-
-  return quota;
 }
 
 void
@@ -125,11 +130,15 @@ ThrottleList::update_quota(uint32_t quota) {
   // deactivated.
   m_unallocatedQuota += quota;
 
-  while (m_splitActive != end() && can_activate()) {
-    iterator itr = m_splitActive++;
+  // Add remaining to the next, even when less than activate border.
+  while (m_splitActive != end()) {
+    allocate_quota(m_splitActive);
 
-    itr->set_quota(itr->quota() + allocate_quota());
-    itr->activate();
+    if (!can_activate(m_splitActive))
+      break;
+
+    m_splitActive->activate();
+    m_splitActive++;
   }
 
   // Use 'quota' as an upper bound to avoid accumulating unused quota
@@ -148,8 +157,8 @@ ThrottleList::node_quota(iterator itr) {
 			 "ThrottleList::node_quota(...) called on an inactive node." :
 			 "ThrottleList::node_quota(...) could not find node.");
 
-  } else if (itr->quota() >= min_trigger_activate) {
-    return itr->quota();
+  } else if (itr->quota() + m_unallocatedQuota >= min_trigger_activate) {
+    return itr->quota() + m_unallocatedQuota;
 
   } else {
     return 0;
@@ -163,17 +172,14 @@ ThrottleList::node_used(iterator itr, uint32_t used) {
   if (used == 0 || !m_enabled || itr == end())
     return;
 
-  m_outstandingQuota -= std::min(used, m_outstandingQuota);
-  itr->set_quota(itr->quota() - std::min(used, itr->quota()));
+  uint32_t quota = std::min(used, itr->quota());
 
-  // Add quota if available. Temporary solution. Think about it.
-  //
-  // Each connection has a limited buffer, we propably won't fill it
-  // entirely up when we got lots of unallocated quota. With a large
-  // enough per-tick allocation per connection we shouldn't end up
-  // with unallocated quota unless someone disconnects.
-  if (itr->quota() < m_minChunkSize && can_activate())
-    itr->set_quota(itr->quota() + allocate_quota());
+  if (quota > m_outstandingQuota || (used - quota) > m_unallocatedQuota)
+    throw internal_error("ThrottleList::node_used(...) used too much quota.");
+
+  itr->set_quota(itr->quota() - quota);
+  m_outstandingQuota -= quota;
+  m_unallocatedQuota -= used - quota;
 }
 
 void
@@ -203,7 +209,7 @@ ThrottleList::insert(ThrottleNode::SlotActivate s) {
     // Add before the active split, so if we only need to decrement
     // m_splitActive to change the queue it is in.
     itr = Base::insert(m_splitActive, ThrottleNode());
-    itr->set_quota(can_activate() ? allocate_quota() : 0);
+    allocate_quota(itr);
   }
 
   itr->slot_activate(s);

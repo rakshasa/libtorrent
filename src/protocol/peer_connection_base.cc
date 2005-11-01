@@ -388,7 +388,7 @@ void
 PeerConnectionBase::read_request_piece(const Piece& p) {
   PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
-  if (itr != m_sendList.end() || p.get_length() > (1 << 17))
+  if (m_up->choked() || itr != m_sendList.end() || p.get_length() > (1 << 17))
     return;
 
   m_sendList.push_back(p);
@@ -399,8 +399,7 @@ void
 PeerConnectionBase::read_cancel_piece(const Piece& p) {
   PieceList::iterator itr = std::find(m_sendList.begin(), m_sendList.end(), p);
   
-  if (itr != m_sendList.end() &&
-      (itr != m_sendList.begin() || m_up->get_state() == ProtocolWrite::IDLE))
+  if (itr != m_sendList.end())
     m_sendList.erase(itr);
 }  
 
@@ -417,6 +416,7 @@ PeerConnectionBase::read_buffer_move_unused() {
 void
 PeerConnectionBase::write_prepare_piece() {
   m_upPiece = m_sendList.front();
+  m_sendList.pop_front();
 
   // Move these checks somewhere else?
   if (!m_download->content()->is_valid_piece(m_upPiece) ||
@@ -436,14 +436,8 @@ PeerConnectionBase::write_prepare_piece() {
 
 void
 PeerConnectionBase::write_finished_piece() {
-  if (m_sendList.empty() || m_sendList.front() != m_upPiece)
-    throw internal_error("ProtocolWrite::WRITE_PIECE found the wrong piece in the send queue.");
-
-  // Do we need to check that this is the right piece?
-  m_sendList.pop_front();
-	
-  if (m_sendList.empty())
-    up_chunk_release();
+//   if (m_sendList.empty())
+//     up_chunk_release();
 }
 
 bool

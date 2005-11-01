@@ -38,6 +38,7 @@
 #define LIBTORRENT_DOWNLOAD_RESOURCE_MANAGER_H
 
 #include <vector>
+#include <inttypes.h>
 
 namespace torrent {
 
@@ -48,10 +49,10 @@ namespace torrent {
 
 class DownloadMain;
 
-class ResourceManager : public std::vector<std::pair<int, DownloadMain*> > {
+class ResourceManager : public std::vector<std::pair<uint16_t, DownloadMain*> > {
 public:
-  typedef std::vector<std::pair<int, DownloadMain*> > Base;
-  typedef Base::value_type                            value_type;
+  typedef std::vector<std::pair<uint16_t, DownloadMain*> > Base;
+  typedef Base::value_type                                 value_type;
 
   using Base::begin;
   using Base::end;
@@ -61,11 +62,11 @@ public:
     m_maxUnchoked(0) {}
   ~ResourceManager();
 
-  void                insert(int priority, DownloadMain* d);
+  void                insert(DownloadMain* d, uint16_t priority);
   void                erase(DownloadMain* d);
 
   iterator            find(DownloadMain* d);
-  void                set_priority(DownloadMain* d, uint32_t pri);
+  void                set_priority(iterator itr, uint16_t pri);
 
   // When setting this, make sure you choke peers, else change
   // receive_can_unchoke.

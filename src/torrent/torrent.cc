@@ -393,16 +393,27 @@ download_find(const std::string& infohash) {
   return *manager->download_manager()->find(infohash);
 }
 
-// uint32_t
-// download_priority(Download d) {
-//   ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr());
+uint32_t
+download_priority(Download d) {
+  ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr()->main());
 
-//   return itr != manager->resource_manager()->end() ? itr->first : 0;
-// }
+  if (itr == manager->resource_manager()->end())
+    throw client_error("torrent::download_priority(...) could not find the download in the resource manager.");
 
-// void
-// download_set_priority(Download d, uint32_t pri) {
-  
-// }
+  return itr->first;
+}
+
+void
+download_set_priority(Download d, uint32_t pri) {
+  ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr()->main());
+
+  if (itr == manager->resource_manager()->end())
+    throw client_error("torrent::download_set_priority(...) could not find the download in the resource manager.");
+
+  if (pri == 0 || pri > 1024)
+    throw client_error("torrent::download_set_priority(...) received an invalid priority.");
+
+  manager->resource_manager()->set_priority(itr, pri);
+}
 
 }

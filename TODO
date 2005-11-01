@@ -7,17 +7,21 @@ Testcase for mmap bug? Also look into dns lookup cache.
 Having high/med priority seems to somehow have messed up the
 interested state.
 
-=== Throttle ===
+Improve the chunk release in PCB::write_finished_piece().
 
-Consider making it mandatory to be in the throttle list when calling
-PCB::read/write_chunk.
+
+=== Throttle ===
 
 Consider moving stuff to resource manager.
 
 Consider redesigning, where throttle_list holds a pointer, this
 contains rates etc.
 
+Would it be possible to store the used bytes, negative included, so
+that we might balance the amount of unallocated quota.
+
 ===
+
 
 Make sure to verify that the single file torrent gets a valid path,
 also make sure no file can start with "." "..".

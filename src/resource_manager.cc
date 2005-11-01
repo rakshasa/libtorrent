@@ -54,7 +54,7 @@ ResourceManager::~ResourceManager() {
 }
 
 void
-ResourceManager::insert(int priority, DownloadMain* d) {
+ResourceManager::insert(DownloadMain* d, uint16_t priority) {
   iterator itr = std::find_if(begin(), end(), rak::less(priority, rak::mem_ptr_ref(&value_type::first)));
 
   Base::insert(itr, value_type(priority, d));
@@ -74,9 +74,14 @@ ResourceManager::find(DownloadMain* d) {
 }
 
 void
-ResourceManager::set_priority(DownloadMain* d, uint32_t pri) {
-  erase(d);
-  insert(pri, d);
+ResourceManager::set_priority(iterator itr, uint16_t pri) {
+  if (itr->first == pri)
+    return;
+
+  DownloadMain* d = itr->second;
+
+  Base::erase(itr);
+  insert(d, pri);
 }
 
 // The choking choke manager won't updated it's count until after
