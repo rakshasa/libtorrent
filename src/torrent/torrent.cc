@@ -373,10 +373,8 @@ download_add(std::istream* s) {
 }
 
 void
-download_remove(const std::string& infohash) {
-  DownloadManager::iterator itr = manager->download_manager()->find(infohash);
-
-  manager->cleanup_download(*itr);
+download_remove(Download d) {
+  manager->cleanup_download(d.ptr());
 }
 
 // Add all downloads to dlist. Make sure it's cleared.

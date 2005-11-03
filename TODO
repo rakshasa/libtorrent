@@ -7,7 +7,7 @@ Testcase for mmap bug? Also look into dns lookup cache.
 Having high/med priority seems to somehow have messed up the
 interested state.
 
-Improve the chunk release in PCB::write_finished_piece().
+Set an upper limit on the number of send request a peer can queue.
 
 
 === Throttle ===
@@ -26,19 +26,13 @@ that we might balance the amount of unallocated quota.
 Make sure to verify that the single file torrent gets a valid path,
 also make sure no file can start with "." "..".
 
-=== EntryList stuff etc
-
 Look into iconv.
-
-Reserve the required size of EntryList. Consider making path set a
-ctor arg.
-
-===
 
 Add checks to ensure requested pieces are valid. Length etc. Also
 fiddle with max queue length. This all needs to be cleaned up.
 
 Fiddle pipe size.
+
 
 == Delegator refactoring ==
 
@@ -74,8 +68,6 @@ Move download initializiation stuff into Manager.
 Replace download_remove's info_hash thingie with Download.
 
 Use partial sort, or nth_element.
-
-Uploading too fast?
 
 Rename most things to remote/local or something. up/down is too
 confusing. Atleast add it to some of the function names.

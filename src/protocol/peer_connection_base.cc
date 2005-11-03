@@ -434,12 +434,6 @@ PeerConnectionBase::write_prepare_piece() {
   m_up->write_piece(m_upPiece);
 }
 
-void
-PeerConnectionBase::write_finished_piece() {
-//   if (m_sendList.empty())
-//     up_chunk_release();
-}
-
 bool
 PeerConnectionBase::read_bitfield_body() {
   // We're guaranteed that we still got bytes remaining to be

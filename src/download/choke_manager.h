@@ -59,7 +59,7 @@ public:
     m_currentlyUnchoked(0),
     m_currentlyInterested(0),
     m_maxUnchoked(15),
-    m_minGenerous(2) {}
+    m_generousUnchokes(3) {}
   ~ChokeManager();
   
   unsigned int        currently_unchoked() const              { return m_currentlyUnchoked; }
@@ -68,8 +68,8 @@ public:
   unsigned int        max_unchoked() const                    { return m_maxUnchoked; }
   void                set_max_unchoked(unsigned int v)        { m_maxUnchoked = v; }
 
-  unsigned int        min_generous() const                    { return m_minGenerous; }
-  void                set_min_generous(unsigned int v)        { m_minGenerous = v; }
+  unsigned int        generous_unchokes() const               { return m_generousUnchokes; }
+  void                set_generous_unchokes(unsigned int v)   { m_generousUnchokes = v; }
 
   void                balance();
   int                 cycle(unsigned int quota);
@@ -106,7 +106,7 @@ private:
   unsigned int        m_currentlyInterested;
 
   unsigned int        m_maxUnchoked;
-  unsigned int        m_minGenerous;
+  unsigned int        m_generousUnchokes;
 
   SlotChoke           m_slotChoke;
   SlotUnchoke         m_slotUnchoke;

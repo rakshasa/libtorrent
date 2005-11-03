@@ -296,7 +296,7 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
   for ( ; count != max && first != last; count++, first++) {
 
     if (split != last &&
-	((*first)->down_rate().rate() < 500 || std::rand() % 3 == 0)) {
+	((*first)->down_rate().rate() < 500 || std::rand() % m_generousUnchokes == 0)) {
       // Use a random connection that is not uploading to us.
       std::iter_swap(split, split + std::rand() % std::distance(split, last));
       swap_with_shift(first, split++);

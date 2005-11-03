@@ -128,7 +128,7 @@ EncodingList*       encoding_list();
 // throws. 'encodingList' contains a list of prefered encodings to use
 // for file names.
 Download            download_add(std::istream* s);
-void                download_remove(const std::string& infohash);
+void                download_remove(Download d);
 
 // Add all downloads to dlist. The client is responsible for clearing
 // it before the call.

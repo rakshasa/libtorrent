@@ -143,7 +143,6 @@ protected:
   void                read_buffer_move_unused();
 
   void                write_prepare_piece();
-  void                write_finished_piece();
 
   bool                read_bitfield_body();
   bool                read_bitfield_from_buffer(uint32_t msgLength);

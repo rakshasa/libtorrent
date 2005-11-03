@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include "torrent/exceptions.h"
+
 #include "throttle_list.h"
 #include "throttle_manager.h"
 
@@ -70,9 +72,10 @@ ThrottleManager::set_max_rate(uint32_t v) {
   uint32_t oldRate = m_maxRate;
   m_maxRate = v;
 
+  m_throttleList->set_min_chunk_size(calculate_min_chunk_size());
+
   if (oldRate == 0) {
     m_throttleList->enable();
-    m_throttleList->set_min_chunk_size(calculate_min_chunk_size());
 
     // We need to start the ticks, and make sure we set m_timeLastTick
     // to a value that gives an reasonable initial quota.
@@ -87,30 +90,54 @@ ThrottleManager::set_max_rate(uint32_t v) {
 
 void
 ThrottleManager::receive_tick() {
-  m_throttleList->update_quota(m_maxRate);
+  if (Timer::cache() <= m_timeLastTick + 90000)
+    throw internal_error("ThrottleManager::receive_tick() called at a to short interval.");
 
-  taskScheduler.insert(&m_taskTick, Timer::cache().round_seconds() + 1000000);
+  float timeSinceLast = (Timer::cache().usec() - m_timeLastTick.usec()) / 1000000.0f;
+
+  m_throttleList->update_quota((uint32_t)(m_maxRate * timeSinceLast));
+
+  taskScheduler.insert(&m_taskTick, Timer::cache() + calculate_interval());
+  m_timeLastTick = Timer::cache();
 }
 
 uint32_t
 ThrottleManager::calculate_min_chunk_size() const {
-  if (m_maxRate <= (4 << 10))
+  if (m_maxRate <= (8 << 10))
     return (1 << 10);
 
-  else if (m_maxRate <= (16 << 10))
+  else if (m_maxRate <= (32 << 10))
     return (4 << 10);
 
   else if (m_maxRate <= (64 << 10))
-    return (8 << 10);
-
-  else if (m_maxRate <= (256 << 10))
     return (16 << 10);
 
-  else if (m_maxRate <= (1024 << 10))
+  else if (m_maxRate <= (256 << 10))
     return (32 << 10);
+
+  else if (m_maxRate <= (1024 << 10))
+    return (64 << 10);
 
   else
     return (128 << 10);
+}
+
+uint32_t
+ThrottleManager::calculate_interval() const {
+  uint32_t rate = m_throttleList->rate_slow().rate();
+
+  if (rate < 1024)
+    return 10 * 100000;
+
+  // At least two chunks per tick.
+  uint32_t interval = (5 * m_throttleList->min_chunk_size()) / rate;
+
+  if (interval == 0)
+    return 1 * 100000;
+  else if (interval > 10)
+    return 10 * 100000;
+  else
+    return interval * 100000;
 }
 
 }

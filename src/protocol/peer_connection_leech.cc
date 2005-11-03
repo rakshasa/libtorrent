@@ -486,7 +486,6 @@ PeerConnectionLeech::event_write() {
 	if (!up_chunk())
 	  return;
 
-	write_finished_piece();
 	m_up->set_state(ProtocolWrite::IDLE);
 
 	break;
