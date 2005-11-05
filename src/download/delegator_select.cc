@@ -45,6 +45,8 @@
 
 namespace torrent {
 
+// This code... uhm... yeah... refactor time.
+
 struct DelegatorSelectInterestedRange {
   DelegatorSelectInterestedRange(DelegatorSelect* s, const BitField* bf) :
     m_select(s), m_bitfield(bf) {}
@@ -114,7 +116,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   uint32_t cur_rarity = (unsigned)-1;
 
   // TODO: Ugly, refactor.
-  Ranges::iterator itr = m_priority.find(p, start);
+  Priority::Ranges::iterator itr = m_priority.find(p, start);
 
   if (itr == m_priority.end(p))
     return found;
@@ -135,7 +137,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
     found = f;
 
   // Check ranges above the midpoint.
-  Ranges::iterator fItr = itr;
+  Priority::Ranges::iterator fItr = itr;
 
   while (++fItr != m_priority.end(p)) {
     f = check_range(bf, fItr->first, fItr->second, rarity, cur_rarity);
@@ -147,7 +149,7 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   }
 
   // Check ranges below the midpoint.
-  Ranges::reverse_iterator rItr(++itr);
+  Priority::Ranges::reverse_iterator rItr(++itr);
 
   if (rItr == m_priority.rend(p))
     throw internal_error("DelegatorSelect reverse iterator borkage!?");

@@ -49,7 +49,10 @@ ThrottleList::ThrottleList() :
   m_size(0),
   m_outstandingQuota(0),
   m_unallocatedQuota(0),
-  m_minChunkSize((1 << 14)),
+
+  m_minChunkSize(2 << 10),
+  m_maxChunkSize(16 << 10),
+
   m_rateSlow(60),
   m_splitActive(end()) {
 }
@@ -72,11 +75,6 @@ ThrottleList::is_inactive(iterator itr) const {
   return false;
 }
 
-inline bool
-ThrottleList::can_activate(iterator itr) const {
-  return itr->quota() >= m_minChunkSize;
-}
-
 // The quota already present in the node is preserved and unallocated
 // quota is transferred to the node. The node's quota will be less
 // than or equal to 'm_minChunkSize'.
@@ -85,7 +83,7 @@ ThrottleList::allocate_quota(iterator itr) {
   if (itr->quota() >= m_minChunkSize)
     return;
 
-  int quota = std::min(m_minChunkSize - itr->quota(), m_unallocatedQuota);
+  int quota = std::min(m_maxChunkSize - itr->quota(), m_unallocatedQuota);
 
   itr->set_quota(itr->quota() + quota);
   m_outstandingQuota += quota;
@@ -134,7 +132,7 @@ ThrottleList::update_quota(uint32_t quota) {
   while (m_splitActive != end()) {
     allocate_quota(m_splitActive);
 
-    if (!can_activate(m_splitActive))
+    if (m_splitActive->quota() < m_minChunkSize)
       break;
 
     m_splitActive->activate();
@@ -157,7 +155,7 @@ ThrottleList::node_quota(iterator itr) {
 			 "ThrottleList::node_quota(...) called on an inactive node." :
 			 "ThrottleList::node_quota(...) could not find node.");
 
-  } else if (itr->quota() + m_unallocatedQuota >= min_trigger_activate) {
+  } else if (itr->quota() + m_unallocatedQuota >= m_minChunkSize) {
     return itr->quota() + m_unallocatedQuota;
 
   } else {
@@ -174,12 +172,12 @@ ThrottleList::node_used(iterator itr, uint32_t used) {
 
   uint32_t quota = std::min(used, itr->quota());
 
-  if (quota > m_outstandingQuota || (used - quota) > m_unallocatedQuota)
+  if (quota > m_outstandingQuota)
     throw internal_error("ThrottleList::node_used(...) used too much quota.");
 
   itr->set_quota(itr->quota() - quota);
   m_outstandingQuota -= quota;
-  m_unallocatedQuota -= used - quota;
+  m_unallocatedQuota -= std::min(used - quota, m_unallocatedQuota);
 }
 
 void

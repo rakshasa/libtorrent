@@ -165,7 +165,7 @@ DownloadWrapper::hash_resume_load() {
   }
 
   // Clear bits in invalid regions which will be checked by m_hash.
-  for (Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
+  for (Priority::Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
     m_main.content()->bitfield().set(itr->first, itr->second, false);
 
   m_main.content()->update_done();

@@ -73,6 +73,7 @@ ThrottleManager::set_max_rate(uint32_t v) {
   m_maxRate = v;
 
   m_throttleList->set_min_chunk_size(calculate_min_chunk_size());
+  m_throttleList->set_max_chunk_size(calculate_max_chunk_size());
 
   if (oldRate == 0) {
     m_throttleList->enable();
@@ -103,23 +104,34 @@ ThrottleManager::receive_tick() {
 
 uint32_t
 ThrottleManager::calculate_min_chunk_size() const {
+  // Just for each modification, make this into a function, rather
+  // than if-else chain.
   if (m_maxRate <= (8 << 10))
-    return (1 << 10);
+    return (1 << 9);
 
   else if (m_maxRate <= (32 << 10))
-    return (4 << 10);
+    return (2 << 9);
 
   else if (m_maxRate <= (64 << 10))
-    return (16 << 10);
+    return (3 << 9);
 
-  else if (m_maxRate <= (256 << 10))
-    return (32 << 10);
+  else if (m_maxRate <= (128 << 10))
+    return (4 << 9);
 
-  else if (m_maxRate <= (1024 << 10))
-    return (64 << 10);
+  else if (m_maxRate <= (512 << 10))
+    return (8 << 9);
+
+  else if (m_maxRate <= (2048 << 10))
+    return (16 << 9);
 
   else
-    return (128 << 10);
+    return (32 << 9);
+}
+
+uint32_t
+ThrottleManager::calculate_max_chunk_size() const {
+  // Make this return a lower value for very low throttle settings.
+  return calculate_min_chunk_size() * 4;
 }
 
 uint32_t
@@ -129,8 +141,8 @@ ThrottleManager::calculate_interval() const {
   if (rate < 1024)
     return 10 * 100000;
 
-  // At least two chunks per tick.
-  uint32_t interval = (5 * m_throttleList->min_chunk_size()) / rate;
+  // At least two max chunks per tick.
+  uint32_t interval = (5 * m_throttleList->max_chunk_size()) / rate;
 
   if (interval == 0)
     return 1 * 100000;

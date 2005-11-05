@@ -37,12 +37,15 @@
 #ifndef LIBTORRENT_PRIORITY_H
 #define LIBTORRENT_PRIORITY_H
 
-#include "utils/ranges.h"
+#include <inttypes.h>
+#include <rak/ranges.h>
 
 namespace torrent {
 
 class Priority {
 public:
+  typedef rak::ranges<uint32_t> Ranges;
+
   typedef enum {
     STOPPED = 0,
     NORMAL,

@@ -2,6 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+[R] could you add a trigger for Download::hash_resume_save when a torrent 
+finishes?  
+
 Testcase for mmap bug? Also look into dns lookup cache.
 
 Having high/med priority seems to somehow have messed up the
@@ -11,6 +14,9 @@ Set an upper limit on the number of send request a peer can queue.
 
 
 === Throttle ===
+
+Use min_chunk_size when deciding whetever to transmit. Since we now
+got min/max.
 
 Consider moving stuff to resource manager.
 

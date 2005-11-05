@@ -38,10 +38,11 @@
 #define LIBTORRENT_DATA_HASH_TORRENT_H
 
 #include <string>
+#include <inttypes.h>
 #include <rak/functional.h>
+#include <rak/ranges.h>
 
 #include "data/chunk_handle.h"
-#include "utils/ranges.h"
 
 namespace torrent {
 
@@ -51,6 +52,8 @@ class DownloadWrapper;
 
 class HashTorrent {
 public:
+  typedef rak::ranges<uint32_t> Ranges;
+
   typedef rak::mem_fn1<DownloadWrapper, void, ChunkHandle>           SlotCheckChunk;
   typedef rak::mem_fn0<DownloadWrapper, void>                        SlotInitialHash;
   typedef rak::mem_fn1<DownloadWrapper, void, const std::string&>    SlotStorageError;

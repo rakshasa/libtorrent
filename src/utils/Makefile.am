@@ -5,8 +5,6 @@ libsub_utils_la_SOURCES = \
         bitfield.h \
 	bitfield_counter.h \
 	bitfield_ext.h \
-	ranges.cc \
-	ranges.h \
 	string_manip.cc \
 	string_manip.h \
 	sha1.h \

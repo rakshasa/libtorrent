@@ -58,8 +58,6 @@ public:
   using Base::rbegin;
   using Base::rend;
 
-  static const uint32_t min_trigger_activate = 2048;
-
   ThrottleList();
 
   bool                is_active(iterator itr) const;
@@ -79,6 +77,9 @@ public:
   uint32_t            min_chunk_size() const         { return m_minChunkSize; }
   void                set_min_chunk_size(uint32_t v) { m_minChunkSize = v; }
 
+  uint32_t            max_chunk_size() const         { return m_maxChunkSize; }
+  void                set_max_chunk_size(uint32_t v) { m_maxChunkSize = v; }
+
   uint32_t            node_quota(iterator itr);
   void                node_used(iterator itr, uint32_t used);
   void                node_deactivate(iterator itr);
@@ -92,8 +93,6 @@ public:
   void                erase(iterator itr);
 
 private:
-  inline bool         can_activate(iterator itr) const;
-
   inline void         allocate_quota(iterator itr);
 
   bool                m_enabled;
@@ -103,6 +102,7 @@ private:
   uint32_t            m_unallocatedQuota;
 
   uint32_t            m_minChunkSize;
+  uint32_t            m_maxChunkSize;
 
   Rate                m_rateSlow;
 
