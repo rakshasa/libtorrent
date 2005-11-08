@@ -47,7 +47,7 @@ TrackerManager::TrackerManager() :
   m_control(new TrackerControl),
   m_isRequesting(false),
   m_numRequests(0),
-  m_maxRequests(5),
+  m_maxRequests(3),
   m_initialTracker(0) {
 
   m_control->slot_success(rak::make_mem_fn(this, &TrackerManager::receive_success));
@@ -123,16 +123,17 @@ TrackerManager::send_completed() {
 // through this function has reached a certain limit, it will stop the
 // request. 'm_maxRequests' thus makes sure that a client with a very
 // high "min peers" setting will not cause too much traffic.
-void
+bool
 TrackerManager::request_current() {
-  if (m_control->is_busy() ||
-      m_numRequests >= m_maxRequests)
-    return;
+  if (m_control->is_busy() || m_numRequests >= m_maxRequests)
+    return false;
 
   // Keep track of how many times we've requested from the current
   // tracker without waiting for some minimum interval.
   m_isRequesting = true;
   manual_request(true);
+
+  return true;
 }
 
 void
@@ -142,6 +143,7 @@ TrackerManager::request_next() {
     return;
 
   m_isRequesting = true;
+  m_numRequests  = 0;
   manual_request(true);
 }
 

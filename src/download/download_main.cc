@@ -240,9 +240,11 @@ DownloadMain::receive_tracker_request() {
   if (connection_list()->size() >= connection_list()->get_min_size())
     return;
 
-  if (connection_list()->size() >= m_lastConnectedSize + 10)
-    m_trackerManager->request_current();
-  else // Check to make sure we don't query after every connection to the primary tracker?
+  if (connection_list()->size() < m_lastConnectedSize + 10 ||
+      !m_trackerManager->request_current())
+    // Try the next tracker if we couldn't get enough peers from the
+    // current one, or if we have connected more than
+    // TrackerManager::max_num_request times.
     m_trackerManager->request_next();
 
   m_lastConnectedSize = connection_list()->size();

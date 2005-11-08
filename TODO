@@ -12,19 +12,17 @@ interested state.
 
 Set an upper limit on the number of send request a peer can queue.
 
+=== Printing to display ===
+
+Clean this up, especially file list.
+
 
 === Throttle ===
-
-Use min_chunk_size when deciding whetever to transmit. Since we now
-got min/max.
 
 Consider moving stuff to resource manager.
 
 Consider redesigning, where throttle_list holds a pointer, this
 contains rates etc.
-
-Would it be possible to store the used bytes, negative included, so
-that we might balance the amount of unallocated quota.
 
 ===
 

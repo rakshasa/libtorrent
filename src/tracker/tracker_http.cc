@@ -53,8 +53,6 @@ TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
   m_get(Http::call_factory()),
   m_data(NULL) {
 
-  m_get->set_user_agent(PACKAGE "/" VERSION);
-
   m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
   m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
 
@@ -137,7 +135,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
 
   m_get->start();
 
-  taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_info->http_timeout() * 1000000).round_seconds());
+//   taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_info->http_timeout() * 1000000).round_seconds());
 }
 
 void

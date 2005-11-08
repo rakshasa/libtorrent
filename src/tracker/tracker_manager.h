@@ -75,7 +75,7 @@ public:
   // list. These functions will start from the current focus and
   // iterate to the next if it is unable to connect. Once the end is
   // reached it will stop.
-  void                request_current();
+  bool                request_current();
   void                request_next();
 
   void                manual_request(bool force);

@@ -43,6 +43,9 @@
 
 namespace torrent {
 
+// The client should set the user agent to something like
+// "CLIENT_NAME/CLIENT_VERSION/LIBRARY_VERSION".
+
 // Keep in mind that these objects get reused.
 class Http {
  public:
@@ -50,7 +53,7 @@ class Http {
   typedef sigc::signal1<void, const std::string&> SignalString;
   typedef sigc::slot0<Http*>                      SlotFactory;
 
-  Http() : m_userAgent("not_set"), m_stream(NULL) {}
+  Http() : m_stream(NULL) {}
   virtual ~Http();
 
   // Start must never throw on bad input. Calling start/stop on an
@@ -65,9 +68,6 @@ class Http {
   void               set_stream(std::iostream* str)       { m_stream = str; }
   std::iostream*     get_stream()                         { return m_stream; }
   
-  void               set_user_agent(const std::string& s) { m_userAgent = s; }
-  const std::string& get_user_agent()                     { return m_userAgent; }
-
   Signal&            signal_done()                        { return m_signalDone; }
   SignalString&      signal_failed()                      { return m_signalFailed; }
 
@@ -81,7 +81,6 @@ class Http {
 
 protected:
   std::string        m_url;
-  std::string        m_userAgent;
   std::iostream*     m_stream;
 
   Signal             m_signalDone;

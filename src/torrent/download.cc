@@ -385,19 +385,9 @@ Download::update_priorities() {
 
   p.clear();
 
-  uint64_t pos = 0;
-  unsigned int cs = content->chunk_size();
-
-  for (EntryList::iterator itr = content->entry_list()->begin();
-       itr != content->entry_list()->end(); ++itr) {
-    unsigned int s = pos / cs;
-    unsigned int e = itr->size() ? (pos + itr->size() + cs - 1) / cs : s;
-
-    if (s != e)
-      p.add((Priority::Type)itr->priority(), s, e);
-
-    pos += itr->size();
-  }
+  for (EntryList::iterator itr = content->entry_list()->begin(); itr != content->entry_list()->end(); ++itr)
+    if (itr->range().first != itr->range().second)
+      p.add((Priority::Type)itr->priority(), itr->range().first, itr->range().second);
 
   std::for_each(m_ptr->main()->connection_list()->begin(),
 		m_ptr->main()->connection_list()->end(),
