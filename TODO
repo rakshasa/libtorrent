@@ -2,6 +2,16 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+*** Test various things, chunk/byte size etc, with zero sized files in
+a torrent.
+
+*** Tweak http timeouts, make sure it doesn't stop in the middle of
+torrent downloads.
+
+Move task scheduler to rak.
+
+Get rid of src/parse.
+
 [R] could you add a trigger for Download::hash_resume_save when a torrent 
 finishes?  
 
@@ -46,11 +56,13 @@ Allow some client request to span more than (1<<14) bytes.
 
 ====
 
+
 === For the next API change ===
 
 Rename hash_resume_save/load, it should be generic.
 
 ===
+
 
 [R] I would like to request refreshing the screen on SIGWINCH and when you press Ctrl-L
 

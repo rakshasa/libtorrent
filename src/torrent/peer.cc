@@ -49,109 +49,109 @@ Peer::is_incoming() const {
   return m_ptr->get_peer().is_incoming();
 }
 
-std::string
-Peer::get_id() {
-  return m_ptr->get_peer().get_id();
-}
-
-std::string
-Peer::get_dns() {
-  return m_ptr->get_peer().get_address();
-}
-
-uint16_t
-Peer::get_port() {
-  return m_ptr->get_peer().get_port();
-}
-
-const char*
-Peer::get_options() {
-  return m_ptr->get_peer().get_options();
-}
-
 bool
-Peer::get_local_choked() {
+Peer::is_local_choked() {
   return m_ptr->is_up_choked();
 }
 
 bool
-Peer::get_local_interested() {
+Peer::is_local_interested() {
   return m_ptr->is_up_interested();
 }
 
 bool
-Peer::get_remote_choked() {
+Peer::is_remote_choked() {
   return m_ptr->is_down_choked();
 }
 
 bool
-Peer::get_remote_interested() {
+Peer::is_remote_interested() {
   return m_ptr->is_down_interested();
 }
 
 bool
-Peer::get_snubbed() {
+Peer::is_snubbed() {
   return m_ptr->is_snubbed();
 }
 
+void
+Peer::set_snubbed(bool v) {
+  m_ptr->set_snubbed(v);
+}
+
+std::string
+Peer::id() {
+  return m_ptr->get_peer().get_id();
+}
+
+std::string
+Peer::address() {
+  return m_ptr->get_peer().get_address();
+}
+
+uint16_t
+Peer::port() {
+  return m_ptr->get_peer().get_port();
+}
+
+const char*
+Peer::options() {
+  return m_ptr->get_peer().get_options();
+}
+
 const Rate&
-Peer::get_down_rate() {
+Peer::down_rate() {
   return m_ptr->down_rate();
 } 
 
 const Rate&
-Peer::get_up_rate() {
+Peer::up_rate() {
   return m_ptr->up_rate();
 } 
 
 const Rate&
-Peer::get_peer_rate() {
+Peer::peer_rate() {
   return m_ptr->peer_rate();
 } 
 
 uint32_t
-Peer::get_incoming_queue_size() {
+Peer::incoming_queue_size() {
   return m_ptr->get_request_list().size();
 }
 
 uint32_t
-Peer::get_outgoing_queue_size() {
+Peer::outgoing_queue_size() {
   return m_ptr->get_send_list().size();
 }  
 
 uint32_t
-Peer::get_incoming_index(uint32_t pos) {
+Peer::incoming_index(uint32_t pos) {
   if (pos >= m_ptr->get_request_list().size())
     throw client_error("get_incoming_index(pos) out of range");
 
   return m_ptr->get_request_list().get_queued_piece(pos).get_index();
 }
 
-  uint32_t             get_incoming_offset(uint32_t pos);
-  uint32_t             get_incoming_length(uint32_t pos);
+  uint32_t             incoming_offset(uint32_t pos);
+  uint32_t             incoming_length(uint32_t pos);
 
 // Currently needs to copy the data once to a std::string. But 
 // since gcc does ref counted std::string, you can inexpensively
 // copy the resulting string. Will consider making BitField use a
 // std::string.
 const unsigned char*
-Peer::get_bitfield_data() {
+Peer::bitfield_data() {
   return (const unsigned char*)m_ptr->bitfield().begin();
 }
 
 uint32_t
-Peer::get_bitfield_size() {
+Peer::bitfield_size() {
   return m_ptr->bitfield().size_bits();
 }
 
 uint32_t
-Peer::get_chunks_done() {
+Peer::chunks_done() {
   return m_ptr->bitfield().count();
 }  
-
-void
-Peer::set_snubbed(bool v) {
-  m_ptr->set_snubbed(v);
-}
 
 }

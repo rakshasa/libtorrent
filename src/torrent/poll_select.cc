@@ -58,10 +58,10 @@ struct poll_check_t {
       return;
 
     // This check is not nessesary, just for debugging.
-    if (s->get_file_desc() < 0)
+    if (s->file_descriptor() < 0)
       throw internal_error("poll_check: s->fd < 0");
 
-    if (FD_ISSET(s->get_file_desc(), m_set))
+    if (FD_ISSET(s->file_descriptor(), m_set))
       m_op(s);
   }
 
@@ -83,12 +83,12 @@ struct poll_mark {
     if (s == NULL)
       throw internal_error("poll_mark: s == NULL");
 
-    if (s->get_file_desc() < 0)
+    if (s->file_descriptor() < 0)
       throw internal_error("poll_mark: s->fd < 0");
 
-    *m_max = std::max(*m_max, (unsigned int)s->get_file_desc());
+    *m_max = std::max(*m_max, (unsigned int)s->file_descriptor());
 
-    FD_SET(s->get_file_desc(), m_set);
+    FD_SET(s->file_descriptor(), m_set);
   }
 
   unsigned int*       m_max;
@@ -130,7 +130,7 @@ PollSelect::~PollSelect() {
 }
 
 uint32_t
-PollSelect::get_open_max() const {
+PollSelect::open_max() const {
   return m_readSet->max_size();
 }
 
@@ -169,7 +169,7 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 
 void
 PollSelect::open(Event* event) {
-  if ((uint32_t)event->get_file_desc() >= m_readSet->max_size())
+  if ((uint32_t)event->file_descriptor() >= m_readSet->max_size())
     throw client_error("Tried to add a socket to PollSelect that is larger than PollSelect::get_open_max()");
 
   if (in_read(event) || in_write(event) || in_error(event))
@@ -178,7 +178,7 @@ PollSelect::open(Event* event) {
 
 void
 PollSelect::close(Event* event) {
-  if ((uint32_t)event->get_file_desc() >= m_readSet->max_size())
+  if ((uint32_t)event->file_descriptor() >= m_readSet->max_size())
     throw internal_error("PollSelect::close(...) called with an invalid file descriptor");
 
   if (in_read(event) || in_write(event) || in_error(event))

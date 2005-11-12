@@ -47,8 +47,13 @@ Tracker::is_enabled() const {
 }
 
 void
-Tracker::enable(bool state) {
-  m_tracker.second->enable(state);
+Tracker::enable() {
+  m_tracker.second->enable(true);
+}
+
+void
+Tracker::disable() {
+  m_tracker.second->enable(false);
 }
 
 bool
@@ -56,19 +61,19 @@ Tracker::is_open() const {
   return m_tracker.second->is_busy();
 }
 
-Tracker::Type
-Tracker::get_type() const {
-  return static_cast<Type>(m_tracker.second->get_type());
-}
-
 const std::string&
-Tracker::get_url() const {
+Tracker::url() const {
   return m_tracker.second->get_url();
 }
 
 const std::string&
-Tracker::get_tracker_id() const {
+Tracker::tracker_id() const {
   return m_tracker.second->get_tracker_id();
+}
+
+Tracker::Type
+Tracker::tracker_type() const {
+  return static_cast<Type>(m_tracker.second->get_type());
 }
 
 }

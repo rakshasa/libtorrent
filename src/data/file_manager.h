@@ -67,9 +67,9 @@ public:
   FileMeta*           insert(const std::string& path);
   void                erase(FileMeta* f);
 
-  size_t              open_size() const                  { return m_openSize; }
+  size_t              open_size() const               { return m_openSize; }
 
-  size_t              get_max_size() const               { return m_maxSize; }
+  size_t              max_size() const                { return m_maxSize; }
   void                set_max_size(size_t s);
 
 private:

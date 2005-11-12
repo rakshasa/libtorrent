@@ -53,18 +53,18 @@ namespace torrent {
 #ifdef USE_EPOLL
 
 inline uint32_t
-PollEPoll::get_mask(Event* e) {
-  return m_table[e->get_file_desc()];
+PollEPoll::event_mask(Event* e) {
+  return m_table[e->file_descriptor()];
 }
 
 inline void
-PollEPoll::set_mask(Event* e, uint32_t m) {
-  m_table[e->get_file_desc()] = m;
+PollEPoll::set_event_mask(Event* e, uint32_t m) {
+  m_table[e->file_descriptor()] = m;
 }
 
 inline void
 PollEPoll::modify(Event* event, int op, uint32_t mask) {
-  if (get_mask(event) == mask)
+  if (event_mask(event) == mask)
     return;
 
   epoll_event e;
@@ -72,9 +72,9 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
   e.data.ptr = event;
   e.events = mask;
 
-  set_mask(event, mask);
+  set_event_mask(event, mask);
 
-  if (epoll_ctl(m_fd, op, event->get_file_desc(), &e))
+  if (epoll_ctl(m_fd, op, event->file_descriptor(), &e))
     throw internal_error("PollEPoll::insert_read(...) epoll_ctl call failed");
 }
 
@@ -136,19 +136,19 @@ PollEPoll::perform() {
 }
 
 uint32_t
-PollEPoll::get_open_max() const {
+PollEPoll::open_max() const {
   return m_table.size();
 }
 
 void
 PollEPoll::open(Event* event) {
-  if (get_mask(event) != 0)
+  if (event_mask(event) != 0)
     throw internal_error("PollEPoll::open(...) called but the file descriptor is active");
 }
 
 void
 PollEPoll::close(Event* event) {
-  if (get_mask(event) != 0)
+  if (event_mask(event) != 0)
     throw internal_error("PollEPoll::close(...) called but the file descriptor is active");
 
   for (epoll_event *itr = (epoll_event*)m_events, *last = (epoll_event*)m_events + m_waitingEvents; itr != last; ++itr)
@@ -160,57 +160,57 @@ PollEPoll::close(Event* event) {
 // and with epoll.
 bool
 PollEPoll::in_read(Event* event) {
-  return get_mask(event) & EPOLLIN;
+  return event_mask(event) & EPOLLIN;
 }
 
 bool
 PollEPoll::in_write(Event* event) {
-  return get_mask(event) & EPOLLOUT;
+  return event_mask(event) & EPOLLOUT;
 }
 
 bool
 PollEPoll::in_error(Event* event) {
-  return get_mask(event) & EPOLLERR;
+  return event_mask(event) & EPOLLERR;
 }
 
 void
 PollEPoll::insert_read(Event* event) {
   modify(event,
-	 get_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 get_mask(event) | EPOLLIN);
+	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+	 event_mask(event) | EPOLLIN);
 }
 
 void
 PollEPoll::insert_write(Event* event) {
   modify(event,
-	 get_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 get_mask(event) | EPOLLOUT);
+	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+	 event_mask(event) | EPOLLOUT);
 }
 
 void
 PollEPoll::insert_error(Event* event) {
   modify(event,
-	 get_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 get_mask(event) | EPOLLERR);
+	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+	 event_mask(event) | EPOLLERR);
 }
 
 void
 PollEPoll::remove_read(Event* event) {
-  uint32_t mask = get_mask(event) & ~EPOLLIN;
+  uint32_t mask = event_mask(event) & ~EPOLLIN;
 
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
 void
 PollEPoll::remove_write(Event* event) {
-  uint32_t mask = get_mask(event) & ~EPOLLOUT;
+  uint32_t mask = event_mask(event) & ~EPOLLOUT;
 
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
 void
 PollEPoll::remove_error(Event* event) {
-  uint32_t mask = get_mask(event) & ~EPOLLERR;
+  uint32_t mask = event_mask(event) & ~EPOLLERR;
 
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
@@ -236,7 +236,7 @@ PollEPoll::perform() {
 }
 
 uint32_t
-PollEPoll::get_open_max() const {
+PollEPoll::open_max() const {
   throw internal_error("An PollEPoll function was called, but it is disabled.");
 }
 

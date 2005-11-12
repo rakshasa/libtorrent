@@ -100,7 +100,7 @@ Download::hash_resume_save() {
 
 void
 Download::hash_resume_clear() {
-  m_ptr->get_bencode().erase_key("libtorrent resume");
+  m_ptr->bencode().erase_key("libtorrent resume");
 }
 
 bool
@@ -129,38 +129,38 @@ Download::is_hash_checking() const {
 }
 
 std::string
-Download::get_name() const {
+Download::name() const {
   return m_ptr ? m_ptr->get_name() : "";
 }
 
 std::string
-Download::get_hash() const {
+Download::info_hash() const {
   return m_ptr ? m_ptr->get_hash() : "";
 }
 
 std::string
-Download::get_id() const {
+Download::local_id() const {
   return m_ptr ? m_ptr->get_local_id() : "";
 }
 
 uint32_t
-Download::get_creation_date() const {
-  return m_ptr->get_bencode().has_key("creation date") && m_ptr->get_bencode()["creation date"].is_value() ?
-    m_ptr->get_bencode()["creation date"].as_value() : 0;
+Download::creation_date() const {
+  return m_ptr->bencode().has_key("creation date") && m_ptr->bencode()["creation date"].is_value() ?
+    m_ptr->bencode()["creation date"].as_value() : 0;
 }
 
 Bencode&
-Download::get_bencode() {
-  return m_ptr->get_bencode();
+Download::bencode() {
+  return m_ptr->bencode();
 }
 
 const Bencode&
-Download::get_bencode() const {
-  return m_ptr->get_bencode();
+Download::bencode() const {
+  return m_ptr->bencode();
 }
 
 std::string
-Download::get_root_dir() const {
+Download::root_dir() const {
   return m_ptr->main()->content()->root_dir();
 }
 
@@ -173,17 +173,17 @@ Download::set_root_dir(const std::string& dir) {
 }
 
 const Rate&
-Download::get_down_rate() const {
+Download::down_rate() const {
   return m_ptr->main()->down_rate();
 }
 
 const Rate&
-Download::get_up_rate() const {
+Download::up_rate() const {
   return m_ptr->main()->up_rate();
 }
 
 uint64_t
-Download::get_bytes_done() const {
+Download::bytes_done() const {
   uint64_t a = 0;
  
   Delegator* d = m_ptr->main()->delegator();
@@ -197,52 +197,52 @@ Download::get_bytes_done() const {
 }
 
 uint64_t
-Download::get_bytes_total() const {
+Download::bytes_total() const {
   return m_ptr->main()->content()->entry_list()->bytes_size();
 }
 
 uint32_t
-Download::get_chunks_size() const {
+Download::chunks_size() const {
   return m_ptr->main()->content()->chunk_size();
 }
 
 uint32_t
-Download::get_chunks_done() const {
+Download::chunks_done() const {
   return m_ptr->main()->content()->chunks_completed();
 }
 
 uint32_t 
-Download::get_chunks_total() const {
+Download::chunks_total() const {
   return m_ptr->main()->content()->chunk_total();
 }
 
 const unsigned char*
-Download::get_bitfield_data() const {
+Download::bitfield_data() const {
   return (unsigned char*)m_ptr->main()->content()->bitfield().begin();
 }
 
 uint32_t
-Download::get_bitfield_size() const {
+Download::bitfield_size() const {
   return m_ptr->main()->content()->bitfield().size_bits();
 }
 
 uint32_t
-Download::get_peers_min() const {
+Download::peers_min() const {
   return m_ptr->main()->connection_list()->get_min_size();
 }
 
 uint32_t
-Download::get_peers_max() const {
+Download::peers_max() const {
   return m_ptr->main()->connection_list()->get_max_size();
 }
 
 uint32_t
-Download::get_peers_connected() const {
+Download::peers_connected() const {
   return m_ptr->main()->connection_list()->size();
 }
 
 uint32_t
-Download::get_peers_not_connected() const {
+Download::peers_not_connected() const {
   return m_ptr->main()->available_list()->size();
 }
 
@@ -257,17 +257,17 @@ Download::peers_currently_interested() const {
 }
 
 uint32_t
-Download::get_uploads_max() const {
+Download::uploads_max() const {
   return m_ptr->main()->choke_manager()->max_unchoked();
 }
   
 uint64_t
-Download::get_tracker_timeout() const {
+Download::tracker_timeout() const {
   return std::max(m_ptr->main()->tracker_manager()->get_next_timeout() - Timer::cache(), Timer()).usec();
 }
 
 int16_t
-Download::get_tracker_numwant() const {
+Download::tracker_numwant() const {
   return m_ptr->main()->tracker_manager()->tracker_info()->get_numwant();
 }
 
@@ -299,7 +299,7 @@ Download::set_tracker_numwant(int32_t n) {
 }
 
 Tracker
-Download::get_tracker(uint32_t index) {
+Download::tracker(uint32_t index) {
   if (index >= m_ptr->main()->tracker_manager()->size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
@@ -307,7 +307,7 @@ Download::get_tracker(uint32_t index) {
 }
 
 const Tracker
-Download::get_tracker(uint32_t index) const {
+Download::tracker(uint32_t index) const {
   if (index >= m_ptr->main()->tracker_manager()->size())
     throw client_error("Client called Download::get_tracker(...) with out of range index");
 
@@ -315,12 +315,12 @@ Download::get_tracker(uint32_t index) const {
 }
 
 uint32_t
-Download::get_tracker_size() const {
+Download::size_trackers() const {
   return m_ptr->main()->tracker_manager()->size();
 }
 
 uint32_t
-Download::get_tracker_focus() const {
+Download::tracker_focus() const {
   return m_ptr->main()->tracker_manager()->focus_index();
 }
 
@@ -340,7 +340,7 @@ Download::tracker_manual_request(bool force) {
 }
 
 Entry
-Download::get_entry(uint32_t index) {
+Download::file_entry(uint32_t index) {
   if (index >= m_ptr->main()->content()->entry_list()->files_size())
     throw client_error("Client called Download::get_entry(...) with out of range index");
 
@@ -348,17 +348,17 @@ Download::get_entry(uint32_t index) {
 }
 
 uint32_t
-Download::get_entry_size() const {
+Download::size_file_entries() const {
   return m_ptr->main()->content()->entry_list()->files_size();
 }
 
 const Download::SeenVector&
-Download::get_seen() const {
+Download::seen_chunks() const {
   return m_ptr->main()->bitfield_counter().field();
 }
 
 Download::ConnectionType
-Download::get_connection_type() const {
+Download::connection_type() const {
   return (ConnectionType)m_ptr->get_connection_type();
 }
 

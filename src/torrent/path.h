@@ -38,36 +38,34 @@
 #define LIBTORRENT_PATH_H
 
 #include <string>
-#include <list>
+#include <vector>
 
 namespace torrent {
 
 // Use a blank first path to get root and "." to get current dir.
 
-// Consider using std::vector.
-
-class Path : private std::list<std::string> {
+class Path : private std::vector<std::string> {
 public:
-  typedef std::list<std::string> Base;
+  typedef std::vector<std::string>     Base;
 
-  typedef Base::value_type value_type;
-  typedef Base::pointer pointer;
-  typedef Base::const_pointer const_pointer;
-  typedef Base::reference reference;
-  typedef Base::const_reference const_reference;
-  typedef Base::size_type size_type;
-  typedef Base::difference_type difference_type;
-  typedef Base::allocator_type allocator_type;
+  typedef Base::value_type             value_type;
+  typedef Base::pointer                pointer;
+  typedef Base::const_pointer          const_pointer;
+  typedef Base::reference              reference;
+  typedef Base::const_reference        const_reference;
+  typedef Base::size_type              size_type;
+  typedef Base::difference_type        difference_type;
+  typedef Base::allocator_type         allocator_type;
 
-  typedef Base::iterator iterator;
-  typedef Base::reverse_iterator reverse_iterator;
-  typedef Base::const_iterator const_iterator;
+  typedef Base::iterator               iterator;
+  typedef Base::reverse_iterator       reverse_iterator;
+  typedef Base::const_iterator         const_iterator;
   typedef Base::const_reverse_iterator const_reverse_iterator;
 
   using Base::clear;
   using Base::empty;
   using Base::size;
-  //using Base::reserve;
+  using Base::reserve;
 
   using Base::front;
   using Base::back;
@@ -76,11 +74,7 @@ public:
   using Base::rbegin;
   using Base::rend;
 
-  using Base::push_front;
   using Base::push_back;
-
-  Path() {}
-  Path(const std::string& path, const std::string& enc) { insert_path(end(), path); m_encoding = enc; }
 
   void               insert_path(iterator pos, const std::string& path);
 
@@ -91,7 +85,7 @@ public:
   const std::string  encoding() const                     { return m_encoding; }
   void               set_encoding(const std::string& enc) { m_encoding = enc; }
 
-  Base&              get_base()                           { return *this; }
+  Base*              base()                               { return this; }
 
 private:
   std::string        m_encoding;

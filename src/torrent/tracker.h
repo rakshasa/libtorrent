@@ -61,14 +61,15 @@ public:
   bool                is_enabled() const;
   bool                is_open() const;
 
-  void                enable(bool state);
+  void                enable();
+  void                disable();
 
-  uint32_t            get_group() const { return m_tracker.first; }
-  Type                get_type() const;
-  const std::string&  get_url() const;
+  uint32_t            group() const { return m_tracker.first; }
+  const std::string&  url() const;
 
   // The "tracker id" string returned by the tracker.
-  const std::string&  get_tracker_id() const;
+  const std::string&  tracker_id() const;
+  Type                tracker_type() const;
 
 private:
   value_type          m_tracker;

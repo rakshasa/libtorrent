@@ -61,39 +61,37 @@ public:
   bool                 is_valid() const { return m_ptr; }
   bool                 is_incoming() const;
 
-  std::string          get_id();
-  std::string          get_dns();
-  uint16_t             get_port();
-  const char*          get_options();
+  bool                 is_local_choked();
+  bool                 is_local_interested();
+  bool                 is_remote_choked();
+  bool                 is_remote_interested();
 
-  bool                 get_local_choked();
-  bool                 get_local_interested();
-
-  bool                 get_remote_choked();
-  bool                 get_remote_interested();
-
-  bool                 get_snubbed();
-
-  const Rate&          get_down_rate();
-  const Rate&          get_up_rate();
-  const Rate&          get_peer_rate();
-
-  uint32_t             get_incoming_queue_size();
-  uint32_t             get_outgoing_queue_size();
-
-  // index == -1 for incoming pieces that we don't want anymore.
-  uint32_t             get_incoming_index(uint32_t pos);
-  uint32_t             get_incoming_offset(uint32_t pos);
-  uint32_t             get_incoming_length(uint32_t pos);
-
-  const unsigned char* get_bitfield_data();
-  uint32_t             get_bitfield_size();
-
-  uint32_t             get_chunks_done();
-
+  bool                 is_snubbed();
   void                 set_snubbed(bool v);
 
-  PeerConnectionBase*  get_ptr()                        { return m_ptr; }
+  std::string          id();
+  std::string          address();
+  uint16_t             port();
+  const char*          options();
+
+  const Rate&          down_rate();
+  const Rate&          up_rate();
+  const Rate&          peer_rate();
+
+  uint32_t             incoming_queue_size();
+  uint32_t             outgoing_queue_size();
+
+  // index == -1 for incoming pieces that we don't want anymore.
+  uint32_t             incoming_index(uint32_t pos);
+  uint32_t             incoming_offset(uint32_t pos);
+  uint32_t             incoming_length(uint32_t pos);
+
+  const unsigned char* bitfield_data();
+  uint32_t             bitfield_size();
+
+  uint32_t             chunks_done();
+
+  PeerConnectionBase*  ptr()                            { return m_ptr; }
   void                 set_ptr(PeerConnectionBase* ptr) { m_ptr = ptr; }
 
   bool                 operator == (const Peer& p)      { return m_ptr == p.m_ptr; }

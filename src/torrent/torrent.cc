@@ -51,12 +51,12 @@
 #include "net/manager.h"
 #include "net/throttle_list.h"
 #include "net/throttle_manager.h"
-#include "parse/download_constructor.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
 #include "data/file_manager.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
+#include "download/download_constructor.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
 
@@ -105,12 +105,12 @@ initialize(Poll* poll) {
 
   pollCustom = poll;
 
-  if (poll->get_open_max() < 64)
-    throw client_error("Could not initialize libtorrent, Poll::get_open_max() < 64.");
+  if (poll->open_max() < 64)
+    throw client_error("Could not initialize libtorrent, Poll::open_max() < 64.");
 
-  uint32_t maxFiles = calculate_max_open_files(poll->get_open_max());
+  uint32_t maxFiles = calculate_max_open_files(poll->open_max());
 
-  socketManager.set_max_size(poll->get_open_max() - maxFiles - calculate_reserved(poll->get_open_max()));
+  socketManager.set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
   manager->file_manager()->set_max_size(maxFiles);
 }
 
@@ -134,18 +134,18 @@ listen_open(uint16_t begin, uint16_t end) {
 
   SocketAddress sa;
 
-  if (!manager->get_bind_address().empty() && !sa.set_address(manager->get_bind_address()))
+  if (!manager->bind_address().empty() && !sa.set_address(manager->bind_address()))
     throw local_error("Could not parse the ip address to bind");
 
   if (!manager->listen()->open(begin, end, sa))
     return false;
 
-  manager->get_local_address().set_port(manager->listen()->get_port());
+  manager->local_address().set_port(manager->listen()->port());
   manager->handshake_manager()->set_bind_address(sa);
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end();
        itr != last; ++itr)
-    (*itr)->get_local_address().set_port(manager->listen()->get_port());
+    (*itr)->local_address().set_port(manager->listen()->port());
 
   return true;
 }
@@ -170,29 +170,29 @@ is_inactive() {
 }
 
 std::string
-get_local_address() {
-  return !manager->get_local_address().is_address_any() ? manager->get_local_address().get_address() : "";
+local_address() {
+  return !manager->local_address().is_address_any() ? manager->local_address().get_address() : "";
 }
 
 void
 set_local_address(const std::string& addr) {
-  if (addr == manager->get_local_address().get_address() ||
-      !manager->get_local_address().set_address(addr))
+  if (addr == manager->local_address().get_address() ||
+      !manager->local_address().set_address(addr))
     return;
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end();
        itr != last; ++itr)
-    (*itr)->get_local_address().set_address(addr);
+    (*itr)->local_address().set_address(addr);
 }
 
 std::string
-get_bind_address() {
-  return manager->get_bind_address();
+bind_address() {
+  return manager->bind_address();
 }
 
 void
 set_bind_address(const std::string& addr) {
-  if (addr == manager->get_bind_address())
+  if (addr == manager->bind_address())
     return;
 
   if (manager->listen()->is_open())
@@ -202,26 +202,26 @@ set_bind_address(const std::string& addr) {
 }
 
 uint16_t
-get_listen_port() {
-  return manager->listen()->get_port();
+listen_port() {
+  return manager->listen()->port();
 }
 
 uint32_t
-get_total_handshakes() {
+total_handshakes() {
   return manager->handshake_manager()->size();
 }
 
 int64_t
-get_next_timeout() {
+next_timeout() {
   Timer::update();
 
   return !taskScheduler.empty() ?
-    std::max(taskScheduler.get_next_timeout() - Timer::cache(), Timer()).usec() :
+    std::max(taskScheduler.next_timeout() - Timer::cache(), Timer()).usec() :
     60 * 1000000;
 }
 
 int
-get_down_throttle() {
+down_throttle() {
   return manager->download_throttle()->max_rate();
 }
 
@@ -231,7 +231,7 @@ set_down_throttle(int bytes) {
 }
 
 int
-get_up_throttle() {
+up_throttle() {
   return manager->upload_throttle()->max_rate();
 }
 
@@ -256,23 +256,23 @@ set_max_unchoked(uint32_t count) {
 }
 
 const Rate&
-get_down_rate() {
+down_rate() {
   return manager->download_throttle()->throttle_list()->rate_slow();
 }
 
 const Rate&
-get_up_rate() {
+up_rate() {
   return manager->upload_throttle()->throttle_list()->rate_slow();
 }
 
 char*
-get_version() {
+version() {
   return VERSION;
 }
 
 uint32_t
-get_hash_read_ahead() {
-  return manager->hash_queue()->get_read_ahead();
+hash_read_ahead() {
+  return manager->hash_queue()->read_ahead();
 }
 
 void
@@ -282,8 +282,8 @@ set_hash_read_ahead(uint32_t bytes) {
 }
 
 uint32_t
-get_hash_interval() {
-  return manager->hash_queue()->get_interval();
+hash_interval() {
+  return manager->hash_queue()->interval();
 }
 
 void
@@ -293,8 +293,8 @@ set_hash_interval(uint32_t usec) {
 }
 
 uint32_t
-get_hash_max_tries() {
-  return manager->hash_queue()->get_max_tries();
+hash_max_tries() {
+  return manager->hash_queue()->max_tries();
 }
 
 void
@@ -304,13 +304,13 @@ set_hash_max_tries(uint32_t tries) {
 }  
 
 uint32_t
-get_open_files() {
+open_files() {
   return manager->file_manager()->open_size();
 }
 
 uint32_t
-get_max_open_files() {
-  return manager->file_manager()->get_max_size();
+max_open_files() {
+  return manager->file_manager()->max_size();
 }
 
 void
@@ -319,12 +319,12 @@ set_max_open_files(uint32_t size) {
 }
 
 uint32_t
-get_open_sockets() {
+open_sockets() {
   return socketManager.size();
 }
 
 uint32_t
-get_max_open_sockets() {
+max_open_sockets() {
   return socketManager.max_size();
 }
 
@@ -345,7 +345,7 @@ download_add(std::istream* s) {
 
   std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
 
-  *s >> d->get_bencode();
+  *s >> d->bencode();
 
   if (s->fail())
     // Make it configurable whetever we throw or return .end()?
@@ -355,11 +355,11 @@ download_add(std::istream* s) {
   ctor.set_download(d.get());
   ctor.set_encoding_list(manager->encoding_list());
 
-  ctor.initialize(d->get_bencode());
+  ctor.initialize(d->bencode());
 
-  d->initialize(d->get_bencode()["info"].compute_sha1(),
+  d->initialize(d->bencode()["info"].compute_sha1(),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
-		manager->get_local_address());
+		manager->local_address());
 
   // Default PeerConnection factory functions.
   d->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);

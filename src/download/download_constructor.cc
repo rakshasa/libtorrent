@@ -158,14 +158,17 @@ DownloadConstructor::parse_single_file(const Bencode& b) {
     throw input_error("Bad torrent file, \"name\" is an invalid path name.");
 
   std::list<Path> pathList;
-  pathList.push_back(Path(b["name"].as_string(), m_defaultEncoding));
 
-  Bencode::Map::const_iterator itr = b.as_map().begin();
-  
-  while ((itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path()))
-	 != b.as_map().end()) {
-    pathList.push_back(Path(itr->second.as_string(), itr->first.substr(sizeof("name.") - 1)));			    
-    ++itr;
+  pathList.push_back(Path());
+  pathList.back().set_encoding(m_defaultEncoding);
+  pathList.back().push_back(b["name"].as_string());
+
+  for (Bencode::Map::const_iterator itr = b.as_map().begin();
+       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path())) != b.as_map().end();
+       ++itr) {
+    pathList.push_back(Path());
+    pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
+    pathList.back().push_back(itr->second.as_string());
   }
 
   if (pathList.empty())

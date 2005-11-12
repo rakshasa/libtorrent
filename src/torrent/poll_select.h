@@ -55,7 +55,7 @@ public:
   static PollSelect*  create(int maxOpenSockets);
   virtual ~PollSelect();
 
-  virtual uint32_t    get_open_max() const;
+  virtual uint32_t    open_max() const;
 
   // Returns the largest fd marked.
   unsigned int        fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);

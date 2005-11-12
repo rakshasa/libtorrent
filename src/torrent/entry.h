@@ -49,7 +49,7 @@ public:
   typedef std::pair<uint32_t, uint32_t> Range;
 
   typedef enum {
-    STOPPED = 0,
+    OFF = 0,
     NORMAL,
     HIGH
   } Priority;
@@ -57,28 +57,27 @@ public:
   Entry() : m_entry(NULL) {}
   Entry(EntryListNode* e) : m_entry(e) {}
   
-  uint64_t            get_size();
+  uint64_t            size_bytes();
+  uint32_t            size_chunks();
 
-  // Chunks of this file completed.
-  uint32_t            get_completed();
+  uint32_t            completed_chunks();
 
-  // Chunk index this file spans.
-  uint32_t            get_chunk_begin();
-  uint32_t            get_chunk_end();
+  uint32_t            chunk_begin();
+  uint32_t            chunk_end();
 
   // Need this?
-  //uint64_t            get_byte_begin();
-  //uint64_t            get_byte_end();
+  //uint64_t            byte_begin();
+  //uint64_t            byte_end();
+
+  Path*               path();
+  const Path*         path() const;
 
   // Relative to root of the torrent.
-  std::string         get_path();
+  std::string         path_str();
 
-  Path*               path_list();
-  const Path*         path_list() const;
-
-  Priority            get_priority();
-
-  // Remember to call update_priorities
+  // When setting the priority, Download::update_priorities() must be
+  // called for it to take effect.
+  Priority            priority();
   void                set_priority(Priority p);
 
 private:

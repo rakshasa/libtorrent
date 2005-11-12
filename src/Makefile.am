@@ -3,7 +3,6 @@ SUBDIRS = \
 	data \
 	download \
 	net \
-	parse \
 	protocol \
 	tracker \
 	utils
@@ -16,7 +15,6 @@ libtorrent_la_LIBADD = \
 	$(top_srcdir)/src/data/libsub_data.la \
 	$(top_srcdir)/src/download/libsub_download.la \
 	$(top_srcdir)/src/net/libsub_net.la \
-	$(top_srcdir)/src/parse/libsub_parse.la \
 	$(top_srcdir)/src/protocol/libsub_protocol.la \
 	$(top_srcdir)/src/tracker/libsub_tracker.la \
 	$(top_srcdir)/src/utils/libsub_utils.la

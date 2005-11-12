@@ -88,11 +88,11 @@ public:
   const DownloadMain* main() const                   { return &m_main; }
   HashTorrent*        hash_checker()                 { return m_hash; }
 
-  Bencode&            get_bencode()                  { return m_bencode; }
+  Bencode&            bencode()                      { return m_bencode; }
 
   const std::string&  get_hash() const;
   const std::string&  get_local_id() const;
-  SocketAddress&      get_local_address();
+  SocketAddress&      local_address();
 
   const std::string&  get_name() const               { return m_name; }
   void                set_name(const std::string& s) { m_name = s; }

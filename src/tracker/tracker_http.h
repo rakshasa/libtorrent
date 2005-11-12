@@ -40,8 +40,6 @@
 #include <iosfwd>
 
 #include "torrent/bencode.h"
-#include "utils/task.h"
-
 #include "tracker_base.h"
 
 namespace torrent {
@@ -77,8 +75,6 @@ private:
 
   Http*               m_get;
   std::stringstream*  m_data;
-
-  TaskItem            m_taskTimeout;
 };
 
 }

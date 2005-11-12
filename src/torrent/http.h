@@ -61,23 +61,23 @@ class Http {
   virtual void       start() = 0;
   virtual void       close() = 0;
 
+  const std::string& url() const                          { return m_url; }
   void               set_url(const std::string& url)      { m_url = url; }
-  const std::string& get_url() const                      { return m_url; }
 
   // Make sure the output stream does not have any bad/failed bits set.
+  std::iostream*     stream()                             { return m_stream; }
   void               set_stream(std::iostream* str)       { m_stream = str; }
-  std::iostream*     get_stream()                         { return m_stream; }
   
   Signal&            signal_done()                        { return m_signalDone; }
   SignalString&      signal_failed()                      { return m_signalFailed; }
 
   // Set the factory function that constructs and returns a valid Http* object.
-  static  void       set_factory(const SlotFactory& f);
+  static void        set_factory(const SlotFactory& f);
 
   // Guaranteed to return a valid object or throw a client_error. The
   // caller takes ownership of the returned object. Is there any
   // interest in making a destructor slot?
-  static  Http*      call_factory();
+  static Http*       call_factory();
 
 protected:
   std::string        m_url;

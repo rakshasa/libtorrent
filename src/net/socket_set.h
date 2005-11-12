@@ -86,8 +86,8 @@ public:
   size_t              max_size() const                       { return m_table.size(); }
 
 private:
-  size_type&          _index(Event* s)                       { return m_table[s->get_file_desc()]; }
-  const size_type&    _index(Event* s) const                 { return m_table[s->get_file_desc()]; }
+  size_type&          _index(Event* s)                       { return m_table[s->file_descriptor()]; }
+  const size_type&    _index(Event* s) const                 { return m_table[s->file_descriptor()]; }
 
   inline void         _replace_with_last(size_type idx);
 
@@ -106,7 +106,7 @@ SocketSet::find(Event* s) {
 
 inline void
 SocketSet::insert(Event* s) {
-  if (static_cast<size_type>(s->get_file_desc()) >= m_table.size())
+  if (static_cast<size_type>(s->file_descriptor()) >= m_table.size())
     throw internal_error("Tried to insert an out-of-bounds file descriptor to SocketSet");
 
   if (_index(s) != npos)
@@ -118,7 +118,7 @@ SocketSet::insert(Event* s) {
 
 inline void
 SocketSet::erase(Event* s) {
-  if (static_cast<size_type>(s->get_file_desc()) >= m_table.size())
+  if (static_cast<size_type>(s->file_descriptor()) >= m_table.size())
     throw internal_error("Tried to erase an out-of-bounds file descriptor from SocketSet");
 
   size_type idx = _index(s);

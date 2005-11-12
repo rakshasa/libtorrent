@@ -53,9 +53,9 @@ public:
   int                 poll(int msec);
   void                perform();
 
-  int                 get_fd() { return m_fd; }
+  int                 file_descriptor() { return m_fd; }
 
-  virtual uint32_t    get_open_max() const;
+  virtual uint32_t    open_max() const;
 
   // torrent::Event::get_fd() is guaranteed to be valid and remain constant
   // from open(...) is called to close(...) returns.
@@ -80,8 +80,8 @@ public:
 private:
   PollEPoll(int fd, int maxEvents, int maxOpenSockets);
 
-  inline uint32_t     get_mask(Event* e);
-  inline void         set_mask(Event* e, uint32_t m);
+  inline uint32_t     event_mask(Event* e);
+  inline void         set_event_mask(Event* e, uint32_t m);
 
   inline void         modify(torrent::Event* event, int op, uint32_t mask);
 

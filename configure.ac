@@ -71,7 +71,6 @@ AC_OUTPUT([
 	src/data/Makefile
 	src/download/Makefile
 	src/net/Makefile
-	src/parse/Makefile
 	src/protocol/Makefile
 	src/tracker/Makefile
 	src/utils/Makefile

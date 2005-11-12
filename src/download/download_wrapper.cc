@@ -299,7 +299,7 @@ DownloadWrapper::get_local_id() const {
 }
 
 SocketAddress&
-DownloadWrapper::get_local_address() {
+DownloadWrapper::local_address() {
   return m_main.tracker_manager()->tracker_info()->get_local_address();
 }
 

@@ -46,8 +46,8 @@ namespace torrent {
 
 void
 make_directory(const std::string& root,
-	    std::list<std::string>::const_iterator pathBegin, std::list<std::string>::const_iterator pathEnd,
-	    std::list<std::string>::const_iterator ignoreBegin, std::list<std::string>::const_iterator ignoreEnd,
+	    Path::const_iterator pathBegin, Path::const_iterator pathEnd,
+	    Path::const_iterator ignoreBegin, Path::const_iterator ignoreEnd,
 	    unsigned int umask) {
 
   std::string p = root;

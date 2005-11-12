@@ -60,7 +60,7 @@ void                cleanup();
 bool                listen_open(uint16_t begin, uint16_t end);
 void                listen_close();  
 
-int64_t             get_next_timeout();
+int64_t             next_timeout();
 
 // Calls this function when get_next_timeout() is zero or at
 // semi-regular intervals when socket events accure. It updates the
@@ -71,52 +71,52 @@ void                perform();
 
 bool                is_inactive();
 
-std::string         get_local_address();
+std::string         local_address();
 void                set_local_address(const std::string& addr);
 
 // Bind the sockets to a specific network device.
-std::string         get_bind_address();
+std::string         bind_address();
 void                set_bind_address(const std::string& addr);
 
-uint16_t            get_listen_port();
+uint16_t            listen_port();
 
-unsigned int        get_total_handshakes();
+unsigned int        total_handshakes();
 
 // These should really be unsigned, but there was a bug in the
 // client. ;( Fix this later.
 //
 // 0 == UNLIMITED.
-int32_t             get_down_throttle();
+int32_t             down_throttle();
 void                set_down_throttle(int32_t bytes);
 
-int32_t             get_up_throttle();
+int32_t             up_throttle();
 void                set_up_throttle(int32_t bytes);
 
 uint32_t            currently_unchoked();
 uint32_t            max_unchoked();
 void                set_max_unchoked(uint32_t count);
 
-const Rate&         get_down_rate();
-const Rate&         get_up_rate();
+const Rate&         down_rate();
+const Rate&         up_rate();
 
-char*               get_version();
+char*               version();
 
 // Disk access tuning.
-uint32_t            get_hash_read_ahead();
+uint32_t            hash_read_ahead();
 void                set_hash_read_ahead(uint32_t bytes);
 
-uint32_t            get_hash_interval();
+uint32_t            hash_interval();
 void                set_hash_interval(uint32_t usec);
 
-uint32_t            get_hash_max_tries();
+uint32_t            hash_max_tries();
 void                set_hash_max_tries(uint32_t tries);
 
-uint32_t            get_open_files();
-uint32_t            get_max_open_files();
+uint32_t            open_files();
+uint32_t            max_open_files();
 void                set_max_open_files(uint32_t size);
 
-uint32_t            get_open_sockets();
-uint32_t            get_max_open_sockets();
+uint32_t            open_sockets();
+uint32_t            max_open_sockets();
 void                set_max_open_sockets(uint32_t size);
 
 typedef std::list<Download> DList;

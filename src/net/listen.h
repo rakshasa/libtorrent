@@ -60,7 +60,7 @@ public:
 
   bool                is_open()                            { return get_fd().is_valid(); }
 
-  uint16_t            get_port()                           { return m_port; }
+  uint16_t            port() const                         { return m_port; }
 
   void                slot_incoming(const SlotIncoming& s) { m_slotIncoming = s; }
 

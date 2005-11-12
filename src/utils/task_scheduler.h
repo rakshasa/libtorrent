@@ -67,7 +67,7 @@ public:
 
   bool                is_scheduled(const TaskItem* task) const { return task->get_iterator() != end(); }
 
-  Timer               get_next_timeout() const                 { return begin()->first; }
+  Timer               next_timeout() const { return begin()->first; }
 
 private:
   iterator            m_entry;

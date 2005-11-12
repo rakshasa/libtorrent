@@ -95,47 +95,47 @@ public:
   bool                 is_hash_checking() const;
 
   // Returns "" if the object is not valid.
-  std::string          get_name() const;
-  std::string          get_hash() const;
-  std::string          get_id() const;
+  std::string          name() const;
+  std::string          info_hash() const;
+  std::string          local_id() const;
 
   // Unix epoche, 0 == unknown.
-  uint32_t             get_creation_date() const;
+  uint32_t             creation_date() const;
 
-  Bencode&             get_bencode();
-  const Bencode&       get_bencode() const;
+  Bencode&             bencode();
+  const Bencode&       bencode() const;
 
   // Only set the root directory while the torrent is closed.
-  std::string          get_root_dir() const;
+  std::string          root_dir() const;
   void                 set_root_dir(const std::string& dir);
 
-  const Rate&          get_down_rate() const;
-  const Rate&          get_up_rate() const;
+  const Rate&          down_rate() const;
+  const Rate&          up_rate() const;
 
   // Bytes completed.
-  uint64_t             get_bytes_done() const;
+  uint64_t             bytes_done() const;
   // Size of the torrent.
-  uint64_t             get_bytes_total() const;
+  uint64_t             bytes_total() const;
 
-  uint32_t             get_chunks_size() const;
-  uint32_t             get_chunks_done() const;
-  uint32_t             get_chunks_total() const;
+  uint32_t             chunks_size() const;
+  uint32_t             chunks_done() const;
+  uint32_t             chunks_total() const;
 
-  const unsigned char* get_bitfield_data() const;
-  uint32_t             get_bitfield_size() const;
+  const unsigned char* bitfield_data() const;
+  uint32_t             bitfield_size() const;
 
-  uint32_t             get_peers_min() const;
-  uint32_t             get_peers_max() const;
-  uint32_t             get_peers_connected() const;
-  uint32_t             get_peers_not_connected() const;
+  uint32_t             peers_min() const;
+  uint32_t             peers_max() const;
+  uint32_t             peers_connected() const;
+  uint32_t             peers_not_connected() const;
 
   uint32_t             peers_currently_unchoked() const;
   uint32_t             peers_currently_interested() const;
 
-  uint32_t             get_uploads_max() const;
+  uint32_t             uploads_max() const;
   
-  uint64_t             get_tracker_timeout() const;
-  int16_t              get_tracker_numwant() const;
+  uint64_t             tracker_timeout() const;
+  int16_t              tracker_numwant() const;
 
   void                 set_peers_min(uint32_t v);
   void                 set_peers_max(uint32_t v);
@@ -145,10 +145,10 @@ public:
   void                 set_tracker_numwant(int32_t n);
 
   // Access the trackers in the torrent.
-  Tracker              get_tracker(uint32_t index);
-  const Tracker        get_tracker(uint32_t index) const;
-  uint32_t             get_tracker_size() const;
-  uint32_t             get_tracker_focus() const;
+  Tracker              tracker(uint32_t index);
+  const Tracker        tracker(uint32_t index) const;
+  uint32_t             tracker_focus() const;
+  uint32_t             size_trackers() const;
 
   // Perhaps make tracker_cycle_group part of Tracker?
   void                 tracker_send_completed();
@@ -156,17 +156,17 @@ public:
   void                 tracker_manual_request(bool force);
 
   // Access the files in the torrent.
-  Entry                get_entry(uint32_t index);
-  uint32_t             get_entry_size() const;
+  Entry                file_entry(uint32_t index);
+  uint32_t             size_file_entries() const;
 
-  const SeenVector&    get_seen() const;
+  const SeenVector&    seen_chunks() const;
 
   typedef enum {
     CONNECTION_LEECH,
     CONNECTION_SEED
   } ConnectionType;
 
-  ConnectionType       get_connection_type() const;
+  ConnectionType       connection_type() const;
   void                 set_connection_type(ConnectionType t);
 
   // Call this when you want the modifications of the download priorities
