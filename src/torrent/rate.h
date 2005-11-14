@@ -52,15 +52,18 @@ public:
   typedef std::pair<int32_t, uint32_t> value_type;
   typedef std::deque<value_type>       Container;
 
-  Rate(int32_t span) : m_current(0), m_total(0), m_span(span) {}
+  Rate(uint32_t span) : m_current(0), m_total(0), m_span(span) {}
 
   uint32_t            rate() const;
-  uint64_t            total() const                         { return m_total; }
+  uint64_t            total() const          { return m_total; }
+
+  uint32_t            span() const           { return m_span; }
+  void                set_span(uint32_t s)   { m_span = s; }
 
   void                insert(uint32_t bytes);
   
-  bool                operator < (Rate& r)                  { return rate() < r.rate(); }
-  bool                operator > (Rate& r)                  { return rate() > r.rate(); }
+  bool                operator < (Rate& r)   { return rate() < r.rate(); }
+  bool                operator > (Rate& r)   { return rate() > r.rate(); }
 
 private:
   inline void         discard_old() const;
@@ -69,7 +72,7 @@ private:
 
   mutable uint32_t    m_current;
   uint64_t            m_total;
-  int32_t             m_span;
+  uint32_t            m_span;
 };
 
 }

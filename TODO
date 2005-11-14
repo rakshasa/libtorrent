@@ -2,18 +2,29 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-*** Test various things, chunk/byte size etc, with zero sized files in
-a torrent.
+Priorities don't seem to be correctly set after a resume.
+
+=== Delegator refactoring ===
+
+Seperate out DelegatorSelect, rewrite it and use slots.
+
+======
+
+
+=== Hash Resume save ===
+
+[R] could you add a trigger for Download::hash_resume_save when a torrent 
+finishes?  
+
+Would need to make sure all chunks have been flushed.
+
+===
+
 
 *** Tweak http timeouts, make sure it doesn't stop in the middle of
 torrent downloads.
 
 Move task scheduler to rak.
-
-Get rid of src/parse.
-
-[R] could you add a trigger for Download::hash_resume_save when a torrent 
-finishes?  
 
 Testcase for mmap bug? Also look into dns lookup cache.
 
@@ -25,16 +36,6 @@ Set an upper limit on the number of send request a peer can queue.
 === Printing to display ===
 
 Clean this up, especially file list.
-
-
-=== Throttle ===
-
-Consider moving stuff to resource manager.
-
-Consider redesigning, where throttle_list holds a pointer, this
-contains rates etc.
-
-===
 
 
 Make sure to verify that the single file torrent gets a valid path,

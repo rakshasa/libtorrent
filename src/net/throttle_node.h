@@ -39,27 +39,45 @@
 
 #include <rak/functional.h>
 
+#include "torrent/rate.h"
+
+#include "throttle_list.h"
+
 namespace torrent {
 
 class PeerConnectionBase;
 
 class ThrottleNode {
 public:
+  typedef ThrottleList::iterator                 iterator;
+  typedef ThrottleList::const_iterator           const_iterator;
   typedef rak::mem_fn0<PeerConnectionBase, void> SlotActivate;
 
-  ThrottleNode() { clear_quota(); }
+  ThrottleNode(uint32_t rateSpan) : m_rate(rateSpan)  { clear_quota(); }
 
-  uint32_t            quota() const                 { return m_quota; }
-  void                clear_quota()                 { m_quota = 0; }
-  void                set_quota(uint32_t q)         { m_quota = q; }
+  Rate*               rate()                          { return &m_rate; }
+  const Rate*         rate() const                    { return &m_rate; }
 
-  void                activate()                    { m_slotActivate(); }
+  uint32_t            quota() const                   { return m_quota; }
+  void                clear_quota()                   { m_quota = 0; }
+  void                set_quota(uint32_t q)           { m_quota = q; }
 
-  void                slot_activate(SlotActivate s) { m_slotActivate = s; }
+  iterator            list_iterator()                 { return m_listIterator; }
+  const_iterator      list_iterator() const           { return m_listIterator; }
+  void                set_list_iterator(iterator itr) { m_listIterator = itr; }
+
+  void                activate()                      { m_slotActivate(); }
+
+  void                slot_activate(SlotActivate s)   { m_slotActivate = s; }
 
 private:
-  uint32_t            m_quota;
+  ThrottleNode(const ThrottleNode&);
+  void operator = (const ThrottleNode&);
 
+  uint32_t            m_quota;
+  iterator            m_listIterator;
+
+  Rate                m_rate;
   SlotActivate        m_slotActivate;
 };
 

@@ -289,12 +289,12 @@ PeerConnectionSeed::fill_write_buffer() {
     m_up->write_choke(m_up->choked());
 
     if (m_up->choked()) {
-      remove_up_throttle();
+      m_download->upload_throttle()->erase(m_upThrottle);
       up_chunk_release();
       m_sendList.clear();
 
     } else {
-      insert_up_throttle();
+      m_download->upload_throttle()->insert(m_upThrottle);
     }
   }
 

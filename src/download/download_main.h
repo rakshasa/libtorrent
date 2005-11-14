@@ -95,10 +95,10 @@ public:
   bool                get_endgame() const                        { return m_endgame; }
   uint64_t            get_bytes_left() const;
 
-  Rate&               up_rate()                              { return m_upRate; }
-  Rate&               down_rate()                            { return m_downRate; }
+  Rate*               up_rate()                                  { return &m_upRate; }
+  Rate*               down_rate()                                { return &m_downRate; }
 
-  BitFieldCounter&    bitfield_counter()                     { return m_bitfieldCounter; }
+  BitFieldCounter&    bitfield_counter()                         { return m_bitfieldCounter; }
 
   // Carefull with these.
   void                setup_delegator();

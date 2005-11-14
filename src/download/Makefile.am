@@ -11,6 +11,8 @@ libsub_download_la_SOURCES = \
 	delegator.h \
 	delegator_chunk.cc \
 	delegator_chunk.h \
+	download_constructor.cc \
+	download_constructor.h \
 	delegator_piece.h \
 	delegator_piece.cc \
 	delegator_reservee.h \

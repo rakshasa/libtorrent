@@ -42,7 +42,7 @@
 #include "data/piece.h"
 #include "net/manager.h"
 #include "net/socket_stream.h"
-#include "net/throttle_list.h"
+#include "net/throttle_node.h"
 #include "utils/bitfield_ext.h"
 #include "utils/task.h"
 #include "torrent/rate.h"
@@ -68,7 +68,6 @@ public:
   typedef std::list<uint32_t>    HaveQueue;
   typedef ProtocolBase           ProtocolRead;
   typedef ProtocolBase           ProtocolWrite;
-  typedef ThrottleList::iterator ThrottleIterator;
 
   // Find an optimal number for this.
   static const uint32_t read_size = 64;
@@ -90,9 +89,9 @@ public:
 
   const PeerInfo&     get_peer() const              { return m_peer; }
 
-  Rate&               peer_rate()                   { return m_peerRate; }
-  Rate&               up_rate()                     { return m_upRate; }
-  Rate&               down_rate()                   { return m_downRate; }
+  Rate*               peer_rate()                   { return &m_peerRate; }
+  Rate*               up_rate()                     { return m_upThrottle->rate(); }
+  Rate*               down_rate()                   { return m_downThrottle->rate(); }
 
   RequestList&        get_request_list()            { return m_requestList; }
   PieceList&          get_send_list()               { return m_sendList; }
@@ -124,15 +123,6 @@ protected:
 
   void                load_down_chunk(const Piece& p);
   void                load_up_chunk();
-
-  inline bool         is_down_throttled() const;
-  inline bool         is_up_throttled() const;
-
-  void                insert_down_throttle();
-  void                remove_down_throttle();
-
-  void                insert_up_throttle();
-  void                remove_up_throttle();
 
   void                receive_throttle_down_activate();
   void                receive_throttle_up_activate();
@@ -174,15 +164,13 @@ protected:
   PeerInfo            m_peer;
   Rate                m_peerRate;
 
-  Rate                m_downRate;
-  ThrottleIterator    m_downThrottle;
+  ThrottleNode*       m_downThrottle;
   Piece               m_downPiece;
   ChunkHandle         m_downChunk;
 
   uint32_t            m_downStall;
 
-  Rate                m_upRate;
-  ThrottleIterator    m_upThrottle;
+  ThrottleNode*       m_upThrottle;
   Piece               m_upPiece;
   ChunkHandle         m_upChunk;
 

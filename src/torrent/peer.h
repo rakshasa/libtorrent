@@ -74,9 +74,9 @@ public:
   uint16_t             port();
   const char*          options();
 
-  const Rate&          down_rate();
-  const Rate&          up_rate();
-  const Rate&          peer_rate();
+  const Rate*          down_rate();
+  const Rate*          up_rate();
+  const Rate*          peer_rate();
 
   uint32_t             incoming_queue_size();
   uint32_t             outgoing_queue_size();

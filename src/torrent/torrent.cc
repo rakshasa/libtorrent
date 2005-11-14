@@ -255,12 +255,12 @@ set_max_unchoked(uint32_t count) {
   manager->resource_manager()->set_max_unchoked(count);
 }
 
-const Rate&
+const Rate*
 down_rate() {
   return manager->download_throttle()->throttle_list()->rate_slow();
 }
 
-const Rate&
+const Rate*
 up_rate() {
   return manager->upload_throttle()->throttle_list()->rate_slow();
 }

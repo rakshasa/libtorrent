@@ -162,7 +162,7 @@ PeerConnectionLeech::read_message() {
     m_down->set_choked(true);
 
     m_requestList.cancel();
-    remove_down_throttle();
+    m_download->download_throttle()->erase(m_downThrottle);
 
     return true;
 
@@ -253,7 +253,7 @@ PeerConnectionLeech::read_message() {
 
     } else {
       m_down->set_state(ProtocolRead::READ_PIECE);
-      insert_down_throttle();
+      m_download->download_throttle()->insert(m_downThrottle);
       return false;
     }
 
@@ -401,12 +401,12 @@ PeerConnectionLeech::fill_write_buffer() {
     m_up->write_choke(m_up->choked());
 
     if (m_up->choked()) {
-      remove_up_throttle();
+      m_download->upload_throttle()->erase(m_upThrottle);
       up_chunk_release();
       m_sendList.clear();
 
     } else {
-      insert_up_throttle();
+      m_download->upload_throttle()->insert(m_upThrottle);
     }
   }
 

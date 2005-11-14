@@ -136,7 +136,7 @@ ThrottleManager::calculate_max_chunk_size() const {
 
 uint32_t
 ThrottleManager::calculate_interval() const {
-  uint32_t rate = m_throttleList->rate_slow().rate();
+  uint32_t rate = m_throttleList->rate_slow()->rate();
 
   if (rate < 1024)
     return 10 * 100000;

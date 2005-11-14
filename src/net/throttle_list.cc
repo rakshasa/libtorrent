@@ -41,6 +41,7 @@
 #include <torrent/exceptions.h>
 
 #include "throttle_list.h"
+#include "throttle_node.h"
 
 namespace torrent {
 
@@ -58,34 +59,31 @@ ThrottleList::ThrottleList() :
 }
 
 bool
-ThrottleList::is_active(iterator itr) const {
-  for (const_iterator i = begin(); i != m_splitActive; ++i)
-    if (i == itr)
-      return true;
-
-  return false;
+ThrottleList::is_active(const ThrottleNode* node) const {
+  return std::find(begin(), (const_iterator)m_splitActive, node) != m_splitActive;
 }
 
 bool
-ThrottleList::is_inactive(iterator itr) const {
-  for (const_iterator i = m_splitActive; i != end(); ++i)
-    if (i == itr)
-      return true;
+ThrottleList::is_inactive(const ThrottleNode* node) const {
+  return std::find((const_iterator)m_splitActive, end(), node) != end();
+}
 
-  return false;
+bool
+ThrottleList::is_throttled(const ThrottleNode* node) const {
+  return node->list_iterator() != end();
 }
 
 // The quota already present in the node is preserved and unallocated
 // quota is transferred to the node. The node's quota will be less
 // than or equal to 'm_minChunkSize'.
 inline void
-ThrottleList::allocate_quota(iterator itr) {
-  if (itr->quota() >= m_minChunkSize)
+ThrottleList::allocate_quota(ThrottleNode* node) {
+  if (node->quota() >= m_minChunkSize)
     return;
 
-  int quota = std::min(m_maxChunkSize - itr->quota(), m_unallocatedQuota);
+  int quota = std::min(m_maxChunkSize - node->quota(), m_unallocatedQuota);
 
-  itr->set_quota(itr->quota() + quota);
+  node->set_quota(node->quota() + quota);
   m_outstandingQuota += quota;
   m_unallocatedQuota -= quota;
 }
@@ -111,8 +109,8 @@ ThrottleList::disable() {
   m_outstandingQuota = 0;
   m_unallocatedQuota = 0;
 
-  std::for_each(begin(), end(), std::mem_fun_ref(&ThrottleNode::clear_quota));
-  std::for_each(m_splitActive, end(), std::mem_fun_ref(&ThrottleNode::activate));
+  std::for_each(begin(), end(), std::mem_fun(&ThrottleNode::clear_quota));
+  std::for_each(m_splitActive, end(), std::mem_fun(&ThrottleNode::activate));
 
   m_splitActive = end();
 }
@@ -130,12 +128,12 @@ ThrottleList::update_quota(uint32_t quota) {
 
   // Add remaining to the next, even when less than activate border.
   while (m_splitActive != end()) {
-    allocate_quota(m_splitActive);
+    allocate_quota(*m_splitActive);
 
-    if (m_splitActive->quota() < m_minChunkSize)
+    if ((*m_splitActive)->quota() < m_minChunkSize)
       break;
 
-    m_splitActive->activate();
+    (*m_splitActive)->activate();
     m_splitActive++;
   }
 
@@ -146,17 +144,17 @@ ThrottleList::update_quota(uint32_t quota) {
 }
 
 uint32_t
-ThrottleList::node_quota(iterator itr) {
+ThrottleList::node_quota(ThrottleNode* node) {
   if (!m_enabled) {
     return std::numeric_limits<uint32_t>::max();
 
-  } else if (!is_active(itr)) {
-    throw internal_error(is_inactive(itr) ?
+  } else if (!is_active(node)) {
+    throw internal_error(is_inactive(node) ?
 			 "ThrottleList::node_quota(...) called on an inactive node." :
 			 "ThrottleList::node_quota(...) could not find node.");
 
-  } else if (itr->quota() + m_unallocatedQuota >= m_minChunkSize) {
-    return itr->quota() + m_unallocatedQuota;
+  } else if (node->quota() + m_unallocatedQuota >= m_minChunkSize) {
+    return node->quota() + m_unallocatedQuota;
 
   } else {
     return 0;
@@ -164,76 +162,81 @@ ThrottleList::node_quota(iterator itr) {
 }
 
 void
-ThrottleList::node_used(iterator itr, uint32_t used) {
+ThrottleList::node_used(ThrottleNode* node, uint32_t used) {
   m_rateSlow.insert(used);
+  node->rate()->insert(used);
 
-  if (used == 0 || !m_enabled || itr == end())
+  if (used == 0 || !m_enabled || node->list_iterator() == end())
     return;
 
-  uint32_t quota = std::min(used, itr->quota());
+  uint32_t quota = std::min(used, node->quota());
 
   if (quota > m_outstandingQuota)
     throw internal_error("ThrottleList::node_used(...) used too much quota.");
 
-  itr->set_quota(itr->quota() - quota);
+  node->set_quota(node->quota() - quota);
   m_outstandingQuota -= quota;
   m_unallocatedQuota -= std::min(used - quota, m_unallocatedQuota);
 }
 
 void
-ThrottleList::node_deactivate(iterator itr) {
-  if (!is_active(itr))
-    throw internal_error(is_inactive(itr) ?
+ThrottleList::node_deactivate(ThrottleNode* node) {
+  if (!is_active(node))
+    throw internal_error(is_inactive(node) ?
 			 "ThrottleList::node_deactivate(...) called on an inactive node." :
 			 "ThrottleList::node_deactivate(...) could not find node.");
 
-  Base::splice(end(), *this, itr);
+  Base::splice(end(), *this, node->list_iterator());
 
   if (m_splitActive == end())
-    m_splitActive = itr;
+    m_splitActive = node->list_iterator();
 }
 
-ThrottleList::iterator
-ThrottleList::insert(ThrottleNode::SlotActivate s) {
-  m_size++;
-
-  iterator itr;
+void
+ThrottleList::insert(ThrottleNode* node) {
+  if (node->list_iterator() != end())
+    return;
 
   if (!m_enabled) {
     // Add to waiting queue.
-    itr = Base::insert(end(), ThrottleNode());
+    node->set_list_iterator(Base::insert(end(), node));
+    node->clear_quota();
 
   } else {
     // Add before the active split, so if we only need to decrement
     // m_splitActive to change the queue it is in.
-    itr = Base::insert(m_splitActive, ThrottleNode());
-    allocate_quota(itr);
+    node->set_list_iterator(Base::insert(m_splitActive, node));
+    allocate_quota(node);
   }
 
-  itr->slot_activate(s);
-  return itr;
+  m_size++;
 }
 
 void
-ThrottleList::erase(iterator itr) {
-  if (m_size == 0)
-    throw internal_error("ThrottleList::erase(...) m_size == 0.");
+ThrottleList::erase(ThrottleNode* node) {
+  if (node->list_iterator() == end())
+    return;
 
-  m_size--;
+  if (m_size == 0)
+    throw internal_error("ThrottleList::erase(...) called on an empty list.");
 
   // Do we need an if-statement here?
-  if (itr->quota() != 0) {
-    if (itr->quota() > m_outstandingQuota)
-      throw internal_error("ThrottleList::erase(...) itr->quota() > m_outstandingQuota.");
+  if (node->quota() != 0) {
+    if (node->quota() > m_outstandingQuota)
+      throw internal_error("ThrottleList::erase(...) node->quota() > m_outstandingQuota.");
 
-    m_outstandingQuota -= itr->quota();
-    m_unallocatedQuota += itr->quota();
+    m_outstandingQuota -= node->quota();
+    m_unallocatedQuota += node->quota();
   }
 
-  if (itr == m_splitActive)
-    m_splitActive = Base::erase(itr);
+  if (node->list_iterator() == m_splitActive)
+    m_splitActive = Base::erase(node->list_iterator());
   else
-    Base::erase(itr);
+    Base::erase(node->list_iterator());
+
+  node->clear_quota();
+  node->set_list_iterator(end());
+  m_size--;
 }
 
 }

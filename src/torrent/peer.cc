@@ -99,17 +99,17 @@ Peer::options() {
   return m_ptr->get_peer().get_options();
 }
 
-const Rate&
+const Rate*
 Peer::down_rate() {
   return m_ptr->down_rate();
 } 
 
-const Rate&
+const Rate*
 Peer::up_rate() {
   return m_ptr->up_rate();
 } 
 
-const Rate&
+const Rate*
 Peer::peer_rate() {
   return m_ptr->peer_rate();
 } 

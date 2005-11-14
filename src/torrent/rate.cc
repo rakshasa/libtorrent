@@ -44,7 +44,7 @@ namespace torrent {
 inline void
 Rate::discard_old() const {
   while (!m_container.empty() &&
-	 m_container.back().first < Timer::cache().seconds() - m_span) {
+	 m_container.back().first < Timer::cache().seconds() - (int32_t)m_span) {
     m_current -= m_container.back().second;
     m_container.pop_back();
   }

@@ -40,15 +40,17 @@
 #include <list>
 
 #include "torrent/rate.h"
-#include "throttle_node.h"
 
 namespace torrent {
 
-class ThrottleList : private std::list<ThrottleNode> {
+class ThrottleNode;
+
+class ThrottleList : private std::list<ThrottleNode*> {
 public:
-  typedef std::list<ThrottleNode> Base;
+  typedef std::list<ThrottleNode*> Base;
 
   using Base::iterator;
+  using Base::const_iterator;
   using Base::reverse_iterator;
   using Base::clear;
   using Base::size;
@@ -60,8 +62,10 @@ public:
 
   ThrottleList();
 
-  bool                is_active(iterator itr) const;
-  bool                is_inactive(iterator itr) const;
+  bool                is_active(const ThrottleNode* node) const;
+  bool                is_inactive(const ThrottleNode* node) const;
+
+  bool                is_throttled(const ThrottleNode* node) const;
 
   // When disabled all nodes are active at all times.
   void                enable();
@@ -80,20 +84,20 @@ public:
   uint32_t            max_chunk_size() const         { return m_maxChunkSize; }
   void                set_max_chunk_size(uint32_t v) { m_maxChunkSize = v; }
 
-  uint32_t            node_quota(iterator itr);
-  void                node_used(iterator itr, uint32_t used);
-  void                node_deactivate(iterator itr);
+  uint32_t            node_quota(ThrottleNode* node);
+  void                node_used(ThrottleNode* node, uint32_t used);
+  void                node_deactivate(ThrottleNode* node);
 
-  const Rate&         rate_slow() const              { return m_rateSlow; }
+  const Rate*         rate_slow() const              { return &m_rateSlow; }
 
   // It is asumed that inserted nodes are currently active. It won't
   // matter if they do not get any initial quota as a later activation
   // of an active node should be safe.
-  iterator            insert(ThrottleNode::SlotActivate s);
-  void                erase(iterator itr);
+  void                insert(ThrottleNode* node);
+  void                erase(ThrottleNode* node);
 
 private:
-  inline void         allocate_quota(iterator itr);
+  inline void         allocate_quota(ThrottleNode* node);
 
   bool                m_enabled;
   uint32_t            m_size;

@@ -96,8 +96,8 @@ uint32_t            currently_unchoked();
 uint32_t            max_unchoked();
 void                set_max_unchoked(uint32_t count);
 
-const Rate&         down_rate();
-const Rate&         up_rate();
+const Rate*         down_rate();
+const Rate*         up_rate();
 
 char*               version();
 

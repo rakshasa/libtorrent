@@ -56,10 +56,10 @@ PeerConnectionBase::PeerConnectionBase() :
 
   m_peerRate(600),
 
-  m_downRate(30),
+  m_downThrottle(NULL),
   m_downStall(0),
 
-  m_upRate(30),
+  m_upThrottle(NULL),
 
   m_sendChoked(false),
   m_sendInterested(false),
@@ -87,19 +87,23 @@ PeerConnectionBase::~PeerConnectionBase() {
   if (m_requestList.is_downloading())
     m_requestList.skip();
 
-  down_chunk_release();
   up_chunk_release();
+  down_chunk_release();
 
   m_requestList.cancel();
 
-  remove_down_throttle();
-  remove_up_throttle();
+  m_download->upload_throttle()->erase(m_upThrottle);
+  m_download->download_throttle()->erase(m_downThrottle);
 
-  m_down->set_state(ProtocolRead::INTERNAL_ERROR);
   m_up->set_state(ProtocolWrite::INTERNAL_ERROR);
+  m_down->set_state(ProtocolRead::INTERNAL_ERROR);
 
-  delete m_down;
+  delete m_upThrottle;
   delete m_up;
+
+  delete m_downThrottle;
+  delete m_down;
+
   m_download = NULL;
 }
 
@@ -113,8 +117,13 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   m_peer = p;
   m_download = download;
 
-  m_downThrottle = m_download->download_throttle()->end();
-  m_upThrottle   = m_download->upload_throttle()->end();
+  m_upThrottle = new ThrottleNode(30);
+  m_upThrottle->set_list_iterator(m_download->upload_throttle()->end());
+  m_upThrottle->slot_activate(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_up_activate));
+
+  m_downThrottle = new ThrottleNode(30);
+  m_downThrottle->set_list_iterator(m_download->download_throttle()->end());
+  m_downThrottle->slot_activate(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_down_activate));
 
   get_fd().set_throughput();
 
@@ -205,44 +214,6 @@ PeerConnectionBase::receive_choke(bool v) {
   m_timeLastChoked = Timer::cache();
 }
 
-inline bool
-PeerConnectionBase::is_down_throttled() const {
-  return m_downThrottle != m_download->download_throttle()->end();
-}
-
-inline bool
-PeerConnectionBase::is_up_throttled() const {
-  return m_upThrottle != m_download->upload_throttle()->end();
-}
-
-void
-PeerConnectionBase::insert_down_throttle() {
-  if (!is_down_throttled())
-    m_downThrottle = m_download->download_throttle()->insert(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_down_activate));
-}
-
-void
-PeerConnectionBase::remove_down_throttle() {
-  if (is_down_throttled()) {
-    m_download->download_throttle()->erase(m_downThrottle);
-    m_downThrottle = m_download->download_throttle()->end();
-  }
-}
-
-void
-PeerConnectionBase::insert_up_throttle() {
-  if (!is_up_throttled())
-    m_upThrottle = m_download->upload_throttle()->insert(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_up_activate));
-}
-
-void
-PeerConnectionBase::remove_up_throttle() {
-  if (is_up_throttled()) {
-    m_download->upload_throttle()->erase(m_upThrottle);
-    m_upThrottle = m_download->upload_throttle()->end();
-  }
-}
-
 void
 PeerConnectionBase::receive_throttle_down_activate() {
   pollCustom->insert_read(this);
@@ -260,7 +231,7 @@ PeerConnectionBase::event_error() {
 
 bool
 PeerConnectionBase::down_chunk() {
-  if (!is_down_throttled())
+  if (!m_download->download_throttle()->is_throttled(m_downThrottle))
     throw internal_error("PeerConnectionBase::down_chunk() tried to read a piece but is not in throttle list");
 
   if (!m_downChunk->chunk()->is_writable())
@@ -291,9 +262,8 @@ PeerConnectionBase::down_chunk() {
 
   uint32_t bytes = quota - left;
 
-  m_downRate.insert(bytes);
   m_download->download_throttle()->node_used(m_downThrottle, bytes);
-  m_download->down_rate().insert(bytes);
+  m_download->down_rate()->insert(bytes);
 
   return m_down->position() == m_downPiece.get_length();
 }
@@ -321,16 +291,15 @@ PeerConnectionBase::down_chunk_from_buffer() {
 
   uint32_t bytes = quota - left;
 
-  m_downRate.insert(bytes);
   m_download->download_throttle()->node_used(m_downThrottle, bytes);
-  m_download->down_rate().insert(bytes);
+  m_download->down_rate()->insert(bytes);
 
   return m_down->position() == m_downPiece.get_length();
 }
 
 bool
 PeerConnectionBase::up_chunk() {
-  if (!is_up_throttled())
+  if (!m_download->upload_throttle()->is_throttled(m_upThrottle))
     throw internal_error("PeerConnectionBase::up_chunk() tried to write a piece but is not in throttle list");
 
   if (!m_upChunk->chunk()->is_readable())
@@ -361,9 +330,8 @@ PeerConnectionBase::up_chunk() {
 
   uint32_t bytes = quota - left;
 
-  m_upRate.insert(bytes);
   m_download->upload_throttle()->node_used(m_upThrottle, bytes);
-  m_download->up_rate().insert(bytes);
+  m_download->up_rate()->insert(bytes);
 
   return m_up->position() == m_upPiece.get_length();
 }
@@ -485,7 +453,7 @@ PeerConnectionBase::should_request() {
     // We check if the peer is stalled, if it is not then we should
     // request. If the peer is stalled then we only request if the
     // download rate is below a certain value.
-    return m_downStall <= 1 || m_download->down_rate().rate() < (10 << 10);
+    return m_downStall <= 1 || m_download->down_rate()->rate() < (10 << 10);
 }
 
 bool
@@ -493,7 +461,7 @@ PeerConnectionBase::try_request_pieces() {
   if (m_requestList.empty())
     m_downStall = 0;
 
-  uint32_t pipeSize = m_requestList.calculate_pipe_size(m_downRate.rate());
+  uint32_t pipeSize = m_requestList.calculate_pipe_size(m_downThrottle->rate()->rate());
   bool success = false;
 
   while (m_requestList.size() < pipeSize && m_up->can_write_request()) {

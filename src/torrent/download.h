@@ -109,8 +109,8 @@ public:
   std::string          root_dir() const;
   void                 set_root_dir(const std::string& dir);
 
-  const Rate&          down_rate() const;
-  const Rate&          up_rate() const;
+  const Rate*          down_rate() const;
+  const Rate*          up_rate() const;
 
   // Bytes completed.
   uint64_t             bytes_done() const;
