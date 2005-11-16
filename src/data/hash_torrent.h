@@ -69,6 +69,8 @@ public:
 
   Ranges&             ranges()                               { return m_ranges; }
 
+  uint32_t            position() const                       { return m_position; }
+
   HashQueue*          get_queue()                            { return m_queue; }
   void                set_queue(HashQueue* q)                { m_queue = q; }
 

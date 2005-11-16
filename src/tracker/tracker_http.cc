@@ -179,27 +179,27 @@ TrackerHttp::receive_done() {
 
   if (b.has_key("failure reason"))
     return receive_failed("Failure reason \"" +
-			 (b["failure reason"].is_string() ?
-			  b["failure reason"].as_string() :
+			 (b.get_key("failure reason").is_string() ?
+			  b.get_key("failure reason").as_string() :
 			  std::string("failure reason not a string"))
 			 + "\"");
 
-  if (b.has_key("interval") && b["interval"].is_value())
-    m_slotSetInterval(b["interval"].as_value());
+  if (b.has_key("interval") && b.get_key("interval").is_value())
+    m_slotSetInterval(b.get_key("interval").as_value());
   
-  if (b.has_key("min interval") && b["min interval"].is_value())
-    m_slotSetMinInterval(b["min interval"].as_value());
+  if (b.has_key("min interval") && b.get_key("min interval").is_value())
+    m_slotSetMinInterval(b.get_key("min interval").as_value());
 
-  if (b.has_key("tracker id") && b["tracker id"].is_string())
-    m_trackerId = b["tracker id"].as_string();
+  if (b.has_key("tracker id") && b.get_key("tracker id").is_string())
+    m_trackerId = b.get_key("tracker id").as_string();
 
   AddressList l;
 
   try {
-    if (b["peers"].is_string())
-      parse_address_compact(l, b["peers"].as_string());
+    if (b.get_key("peers").is_string())
+      parse_address_compact(l, b.get_key("peers").as_string());
     else
-      parse_address_normal(l, b["peers"].as_list());
+      parse_address_normal(l, b.get_key("peers").as_list());
 
   } catch (bencode_error& e) {
     return receive_failed(e.what());

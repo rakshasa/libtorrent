@@ -242,8 +242,16 @@ operator << (std::ostream& s, const Bencode& b) {
   return s;
 }
     
+bool
+Bencode::has_key(const std::string& s) const {
+  if (m_type != TYPE_MAP)
+    throw bencode_error("Bencode::has_key(" + s + ") called on wrong type");
+
+  return m_map->find(s) != m_map->end();
+}
+
 Bencode&
-Bencode::operator [] (const std::string& k) {
+Bencode::get_key(const std::string& k) {
   if (m_type != TYPE_MAP)
     throw bencode_error("Bencode operator [" + k + "] called on wrong type");
 
@@ -257,7 +265,7 @@ Bencode::operator [] (const std::string& k) {
 
 
 const Bencode&
-Bencode::operator [] (const std::string& k) const {
+Bencode::get_key(const std::string& k) const {
   if (m_type != TYPE_MAP)
     throw bencode_error("Bencode operator [" + k + "] called on wrong type");
 
@@ -267,14 +275,6 @@ Bencode::operator [] (const std::string& k) const {
     throw bencode_error("Bencode operator [" + k + "] could not find element");
 
   return itr->second;
-}
-
-bool
-Bencode::has_key(const std::string& s) const {
-  if (m_type != TYPE_MAP)
-    throw bencode_error("Bencode::has_key(" + s + ") called on wrong type");
-
-  return m_map->find(s) != m_map->end();
 }
 
 Bencode&

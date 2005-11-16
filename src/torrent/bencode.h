@@ -81,6 +81,9 @@ class Bencode {
   bool                is_map() const      { return m_type == TYPE_MAP; }
 
   bool                has_key(const std::string& s) const;
+  Bencode&            get_key(const std::string& k);
+  const Bencode&      get_key(const std::string& k) const;
+
   Bencode&            insert_key(const std::string& s, const Bencode& b);
   void                erase_key(const std::string& s);
 
@@ -101,8 +104,6 @@ class Bencode {
   const Map&          c_map() const       { return as_map(); }
 
   Bencode&            operator = (const Bencode& b);
-  Bencode&            operator [] (const std::string& k);
-  const Bencode&      operator [] (const std::string& k) const;
 
   friend std::istream& operator >> (std::istream& s, Bencode& b);
   friend std::ostream& operator << (std::ostream& s, const Bencode& b);

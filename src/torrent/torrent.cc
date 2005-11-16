@@ -357,7 +357,7 @@ download_add(std::istream* s) {
 
   ctor.initialize(d->bencode());
 
-  d->initialize(d->bencode()["info"].compute_sha1(),
+  d->initialize(d->bencode().get_key("info").compute_sha1(),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
 		manager->local_address());
 

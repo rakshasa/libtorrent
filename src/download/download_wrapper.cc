@@ -108,11 +108,11 @@ DownloadWrapper::hash_resume_load() {
     return;
 
   try {
-    Bencode& resume  = m_bencode["libtorrent resume"];
+    Bencode& resume  = m_bencode.get_key("libtorrent resume");
 
     // Load peer addresses.
-    if (resume.has_key("peers") && resume["peers"].is_string()) {
-      const std::string& peers = resume["peers"].as_string();
+    if (resume.has_key("peers") && resume.get_key("peers").is_string()) {
+      const std::string& peers = resume.get_key("peers").as_string();
 
       std::list<SocketAddress> l(reinterpret_cast<const SocketAddressCompact*>(peers.c_str()),
 				 reinterpret_cast<const SocketAddressCompact*>(peers.c_str() + peers.size() - peers.size() % sizeof(SocketAddressCompact)));
@@ -121,16 +121,16 @@ DownloadWrapper::hash_resume_load() {
       m_main.available_list()->insert(&l);
     }
 
-    Bencode& files = resume["files"];
+    Bencode& files = resume.get_key("files");
 
-    if (resume["bitfield"].as_string().size() != m_main.content()->bitfield().size_bytes() ||
+    if (resume.get_key("bitfield").as_string().size() != m_main.content()->bitfield().size_bytes() ||
 	files.as_list().size() != m_main.content()->entry_list()->files_size())
       return;
 
     // Clear the hash checking ranges, and add the files ranges we must check.
     m_hash->ranges().clear();
 
-    std::memcpy(m_main.content()->bitfield().begin(), resume["bitfield"].as_string().c_str(), m_main.content()->bitfield().size_bytes());
+    std::memcpy(m_main.content()->bitfield().begin(), resume.get_key("bitfield").as_string().c_str(), m_main.content()->bitfield().size_bytes());
 
     Bencode::List::iterator bItr = files.as_list().begin();
     EntryList::iterator sItr = m_main.content()->entry_list()->begin();
@@ -145,16 +145,16 @@ DownloadWrapper::hash_resume_load() {
       if (fs.update(sItr->file_meta()->get_path()) ||
 	  sItr->size() != fs.size() ||
 	  !bItr->has_key("mtime") ||
-	  !(*bItr)["mtime"].is_value() ||
-	  (*bItr)["mtime"].as_value() != fs.get_mtime())
+	  !(*bItr).get_key("mtime").is_value() ||
+	  (*bItr).get_key("mtime").as_value() != fs.get_mtime())
 	m_hash->ranges().insert(sItr->range().first, sItr->range().second);
 
       // Update the priority from the fast resume data.
       if (bItr->has_key("priority") &&
-	  (*bItr)["priority"].is_value() &&
-	  (*bItr)["priority"].as_value() >= 0 &&
-	  (*bItr)["priority"].as_value() < 3)
-	sItr->set_priority((*bItr)["priority"].as_value());
+	  (*bItr).get_key("priority").is_value() &&
+	  (*bItr).get_key("priority").as_value() >= 0 &&
+	  (*bItr).get_key("priority").as_value() < 3)
+	sItr->set_priority((*bItr).get_key("priority").as_value());
 
       ++sItr;
       ++bItr;
@@ -168,6 +168,7 @@ DownloadWrapper::hash_resume_load() {
   for (Priority::Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
     m_main.content()->bitfield().set(itr->first, itr->second, false);
 
+  receive_update_priorities();
   m_main.content()->update_done();
 }
 
@@ -416,6 +417,20 @@ DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
   m_main.receive_connect_peers();
 
   m_signalPeerDisconnected.emit(Peer(peer));
+}
+
+void
+DownloadWrapper::receive_update_priorities() {
+  Priority* p = &m_main.delegator()->get_select().priority();
+
+  p->clear();
+
+  for (EntryList::iterator itr = m_main.content()->entry_list()->begin(); itr != m_main.content()->entry_list()->end(); ++itr)
+    if (itr->range().first != itr->range().second)
+      p->add((Priority::Type)itr->priority(), itr->range().first, itr->range().second);
+
+  std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
+		std::mem_fun(&PeerConnectionBase::update_interested));
 }
 
 }

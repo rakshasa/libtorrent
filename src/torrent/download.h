@@ -120,6 +120,7 @@ public:
   uint32_t             chunks_size() const;
   uint32_t             chunks_done() const;
   uint32_t             chunks_total() const;
+  uint32_t             chunks_hashed() const;
 
   const unsigned char* bitfield_data() const;
   uint32_t             bitfield_size() const;

@@ -145,8 +145,8 @@ Download::local_id() const {
 
 uint32_t
 Download::creation_date() const {
-  return m_ptr->bencode().has_key("creation date") && m_ptr->bencode()["creation date"].is_value() ?
-    m_ptr->bencode()["creation date"].as_value() : 0;
+  return m_ptr->bencode().has_key("creation date") && m_ptr->bencode().get_key("creation date").is_value() ?
+    m_ptr->bencode().get_key("creation date").as_value() : 0;
 }
 
 Bencode&
@@ -214,6 +214,11 @@ Download::chunks_done() const {
 uint32_t 
 Download::chunks_total() const {
   return m_ptr->main()->content()->chunk_total();
+}
+
+uint32_t 
+Download::chunks_hashed() const {
+  return m_ptr->hash_checker()->position();
 }
 
 const unsigned char*
@@ -380,18 +385,7 @@ Download::set_connection_type(ConnectionType t) {
 
 void
 Download::update_priorities() {
-  Priority& p = m_ptr->main()->delegator()->get_select().priority();
-  Content* content = m_ptr->main()->content();
-
-  p.clear();
-
-  for (EntryList::iterator itr = content->entry_list()->begin(); itr != content->entry_list()->end(); ++itr)
-    if (itr->range().first != itr->range().second)
-      p.add((Priority::Type)itr->priority(), itr->range().first, itr->range().second);
-
-  std::for_each(m_ptr->main()->connection_list()->begin(),
-		m_ptr->main()->connection_list()->end(),
-		std::mem_fun(&PeerConnectionBase::update_interested));
+  m_ptr->receive_update_priorities();
 }
 
 void

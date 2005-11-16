@@ -67,14 +67,22 @@ struct download_constructor_is_multi_path {
   }
 };
 
+struct download_constructor_encoding_match :
+    public std::binary_function<const Path&, const char*, bool> {
+
+  bool operator () (const Path& p, const char* enc) {
+    return strcasecmp(p.encoding().c_str(), enc) == 0;
+  }
+};
+
 void
 DownloadConstructor::initialize(const Bencode& b) {
-  m_download->set_name(b["info"]["name"].as_string());
+  m_download->set_name(b.get_key("info").get_key("name").as_string());
 
-  if (b.has_key("encoding") && b["encoding"].is_string())
-    m_defaultEncoding = b["encoding"].as_string();
+  if (b.has_key("encoding") && b.get_key("encoding").is_string())
+    m_defaultEncoding = b.get_key("encoding").as_string();
 
-  parse_info(b["info"]);
+  parse_info(b.get_key("info"));
   parse_tracker(b);
 }
 
@@ -89,8 +97,8 @@ DownloadConstructor::parse_info(const Bencode& b) {
     parse_single_file(b);
 
   } else if (b.has_key("files")) {
-    parse_multi_files(b["files"]);
-    c->set_root_dir("./" + b["name"].as_string());
+    parse_multi_files(b.get_key("files"));
+    c->set_root_dir("./" + b.get_key("name").as_string());
 
   } else {
     throw input_error("Torrent must have either length or files entry");
@@ -99,25 +107,25 @@ DownloadConstructor::parse_info(const Bencode& b) {
   if (c->entry_list()->bytes_size() == 0)
     throw input_error("Torrent has zero length.");
 
-  if (b["piece length"].as_value() <= (1 << 10) || b["piece length"].as_value() > (128 << 20))
+  if (b.get_key("piece length").as_value() <= (1 << 10) || b.get_key("piece length").as_value() > (128 << 20))
     throw input_error("Torrent has an invalid \"piece length\".");
 
   // Set chunksize before adding files to make sure the index range is
   // correct.
-  c->set_complete_hash(b["pieces"].as_string());
-  c->initialize(b["piece length"].as_value());
+  c->set_complete_hash(b.get_key("pieces").as_string());
+  c->initialize(b.get_key("piece length").as_value());
 }
 
 void
 DownloadConstructor::parse_tracker(const Bencode& b) {
   TrackerManager* tracker = m_download->main()->tracker_manager();
 
-  if (b.has_key("announce-list") && b["announce-list"].is_list())
-    std::for_each(b["announce-list"].as_list().begin(), b["announce-list"].as_list().end(),
+  if (b.has_key("announce-list") && b.get_key("announce-list").is_list())
+    std::for_each(b.get_key("announce-list").as_list().begin(), b.get_key("announce-list").as_list().end(),
 		  rak::make_mem_fn(this, &DownloadConstructor::add_tracker_group));
 
   else if (b.has_key("announce"))
-    add_tracker_single(b["announce"], 0);
+    add_tracker_single(b.get_key("announce"), 0);
 
   else
     throw bencode_error("Could not find any trackers");
@@ -149,19 +157,20 @@ DownloadConstructor::is_valid_path_element(const Bencode& b) {
     b.is_string() &&
     b.as_string() != "." &&
     b.as_string() != ".." &&
-    std::find(b.as_string().begin(), b.as_string().end(), '/') == b.as_string().end();
+    std::find(b.as_string().begin(), b.as_string().end(), '/') == b.as_string().end() &&
+    std::find(b.as_string().begin(), b.as_string().end(), '\0') == b.as_string().end();
 }
 
 void
 DownloadConstructor::parse_single_file(const Bencode& b) {
-  if (is_invalid_path_element(b["name"]))
+  if (is_invalid_path_element(b.get_key("name")))
     throw input_error("Bad torrent file, \"name\" is an invalid path name.");
 
   std::list<Path> pathList;
 
   pathList.push_back(Path());
   pathList.back().set_encoding(m_defaultEncoding);
-  pathList.back().push_back(b["name"].as_string());
+  pathList.back().push_back(b.get_key("name").as_string());
 
   for (Bencode::Map::const_iterator itr = b.as_map().begin();
        (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path())) != b.as_map().end();
@@ -175,7 +184,7 @@ DownloadConstructor::parse_single_file(const Bencode& b) {
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
   // Single file torrent
-  m_download->main()->content()->add_file(choose_path(&pathList), b["length"].as_value());
+  m_download->main()->content()->add_file(choose_path(&pathList), b.get_key("length").as_value());
 }
 
 void
@@ -194,15 +203,15 @@ void
 DownloadConstructor::add_file(const Bencode& b) {
   // Do a read first checking that we're above zero, then move to a
   // uint64_t.
-  int64_t length = b["length"].as_value();
+  int64_t length = b.get_key("length").as_value();
 
   if (length < 0 || length > (int64_t)DownloadConstructor::max_file_length)
     throw input_error("Bad torrent file, invalid length for file given");
 
   std::list<Path> pathList;
 
-  if (b.has_key("path") && b["path"].is_list()) {
-    pathList.push_back(create_path(b["path"].as_list(), m_defaultEncoding));
+  if (b.has_key("path") && b.get_key("path").is_list()) {
+    pathList.push_back(create_path(b.get_key("path").as_list(), m_defaultEncoding));
   }
 
   Bencode::Map::const_iterator itr = b.as_map().begin();
@@ -238,14 +247,6 @@ DownloadConstructor::create_path(const Bencode::List& plist, const std::string e
 
   return p;
 }
-
-struct download_constructor_encoding_match :
-    public std::binary_function<const Path&, const char*, bool> {
-
-  bool operator () (const Path& p, const char* enc) {
-    return strcasecmp(p.encoding().c_str(), enc) == 0;
-  }
-};
 
 inline Path
 DownloadConstructor::choose_path(std::list<Path>* pathList) {

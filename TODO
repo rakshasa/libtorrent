@@ -2,7 +2,32 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Priorities don't seem to be correctly set after a resume.
+[FIXED] Priorities don't seem to be correctly set after a resume.
+
+[FIXED] started/stopped state seems borked when loading through <return> key.
+
+[FIXED] Check for \0 in file names.
+
+[FIXED] Clean up bencode. Don't use operator[] etc.
+
+Having high/med priority seems to somehow have messed up the
+interested state.
+
+
+=== For the next API change ===
+
+Rename hash_resume_save/load, it should be generic.
+
+Split the resume interface.
+
+Add API for checking the existance of files before we open stuff. BTW,
+should we perhaps do lazy create on files not currently present? We
+can add stuff to Entry to check this. Shouldn't create files unless
+they are marked for download? But that might bork when we need to map
+those regions.
+
+===
+
 
 === Delegator refactoring ===
 
@@ -20,16 +45,15 @@ Would need to make sure all chunks have been flushed.
 
 ===
 
+<zzorn> if you think .file could be seriously abused, then feel free
+to block (or perhaps warn??) about it
 
-*** Tweak http timeouts, make sure it doesn't stop in the middle of
+Tweak http timeouts, make sure it doesn't stop in the middle of
 torrent downloads.
 
 Move task scheduler to rak.
 
 Testcase for mmap bug? Also look into dns lookup cache.
-
-Having high/med priority seems to somehow have messed up the
-interested state.
 
 Set an upper limit on the number of send request a peer can queue.
 
@@ -56,13 +80,6 @@ Consider ways of avoid use of Delegator::slotChunkSize.
 Allow some client request to span more than (1<<14) bytes. 
 
 ====
-
-
-=== For the next API change ===
-
-Rename hash_resume_save/load, it should be generic.
-
-===
 
 
 [R] I would like to request refreshing the screen on SIGWINCH and when you press Ctrl-L

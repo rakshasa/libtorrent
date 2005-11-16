@@ -117,6 +117,8 @@ public:
   void                receive_peer_connected(PeerConnectionBase* peer);
   void                receive_peer_disconnected(PeerConnectionBase* peer);
 
+  void                receive_update_priorities();
+
   Signal&             signal_initial_hash()          { return m_signalInitialHash; }
 
   // The list of addresses is guaranteed to be sorted and unique.
