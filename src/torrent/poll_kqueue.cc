@@ -42,28 +42,30 @@
 #include <torrent/exceptions.h>
 #include <torrent/event.h>
 
-#include "poll_epoll.h"
+#include "poll_kqueue.h"
 
-#ifdef USE_EPOLL
-#include <sys/epoll.h>
+#ifdef USE_KQUEUE
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
 #endif
 
 namespace torrent {
 
-#ifdef USE_EPOLL
+#ifdef USE_KQUEUE
 
 inline uint32_t
-PollEPoll::event_mask(Event* e) {
+PollKQueue::event_mask(Event* e) {
   return m_table[e->file_descriptor()];
 }
 
 inline void
-PollEPoll::set_event_mask(Event* e, uint32_t m) {
+PollKQueue::set_event_mask(Event* e, uint32_t m) {
   m_table[e->file_descriptor()] = m;
 }
 
 inline void
-PollEPoll::modify(Event* event, int op, uint32_t mask) {
+PollKQueue::modify(Event* event, int op, uint32_t mask) {
   if (event_mask(event) == mask)
     return;
 
@@ -75,20 +77,20 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
   set_event_mask(event, mask);
 
   if (epoll_ctl(m_fd, op, event->file_descriptor(), &e))
-    throw internal_error("PollEPoll::insert_read(...) epoll_ctl call failed");
+    throw internal_error("PollKQueue::insert_read(...) epoll_ctl call failed");
 }
 
-PollEPoll*
-PollEPoll::create(int maxOpenSockets) {
+PollKQueue*
+PollKQueue::create(int maxOpenSockets) {
   int fd = epoll_create(maxOpenSockets);
 
   if (fd == -1)
     return NULL;
 
-  return new PollEPoll(fd, 1024, maxOpenSockets);
+  return new PollKQueue(fd, 1024, maxOpenSockets);
 }
 
-PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) :
+PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) :
   m_fd(fd),
   m_maxEvents(maxEvents),
   m_waitingEvents(0),
@@ -97,16 +99,16 @@ PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) :
   m_table.resize(maxOpenSockets);
 }
 
-PollEPoll::~PollEPoll() {
+PollKQueue::~PollKQueue() {
   m_table.clear();
-  delete [] m_events;
+  delete [] (epoll_event*)m_events;
 
   ::close(m_fd);
 }
 
 int
-PollEPoll::poll(int msec) {
-  int nfds = epoll_wait(m_fd, m_events, m_maxEvents, msec);
+PollKQueue::poll(int msec) {
+  int nfds = epoll_wait(m_fd, (epoll_event*)m_events, m_maxEvents, msec);
 
   if (nfds == -1)
     return -1;
@@ -120,8 +122,8 @@ PollEPoll::poll(int msec) {
 // TODO: Do we want to guarantee if the Event has been removed from
 // some event but not closed, it won't call that event? Think so...
 void
-PollEPoll::perform() {
-  for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+PollKQueue::perform() {
+  for (epoll_event *itr = (epoll_event*)m_events, *last = (epoll_event*)m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->events & EPOLLERR && itr->data.ptr != NULL)
       ((Event*)itr->data.ptr)->event_error();
 
@@ -136,22 +138,22 @@ PollEPoll::perform() {
 }
 
 uint32_t
-PollEPoll::open_max() const {
+PollKQueue::open_max() const {
   return m_table.size();
 }
 
 void
-PollEPoll::open(Event* event) {
+PollKQueue::open(Event* event) {
   if (event_mask(event) != 0)
-    throw internal_error("PollEPoll::open(...) called but the file descriptor is active");
+    throw internal_error("PollKQueue::open(...) called but the file descriptor is active");
 }
 
 void
-PollEPoll::close(Event* event) {
+PollKQueue::close(Event* event) {
   if (event_mask(event) != 0)
-    throw internal_error("PollEPoll::close(...) called but the file descriptor is active");
+    throw internal_error("PollKQueue::close(...) called but the file descriptor is active");
 
-  for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
+  for (epoll_event *itr = (epoll_event*)m_events, *last = (epoll_event*)m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->data.ptr == event)
       itr->data.ptr = NULL;
 }
@@ -159,138 +161,138 @@ PollEPoll::close(Event* event) {
 // Use custom defines for EPOLL* to make the below code compile with
 // and with epoll.
 bool
-PollEPoll::in_read(Event* event) {
+PollKQueue::in_read(Event* event) {
   return event_mask(event) & EPOLLIN;
 }
 
 bool
-PollEPoll::in_write(Event* event) {
+PollKQueue::in_write(Event* event) {
   return event_mask(event) & EPOLLOUT;
 }
 
 bool
-PollEPoll::in_error(Event* event) {
+PollKQueue::in_error(Event* event) {
   return event_mask(event) & EPOLLERR;
 }
 
 void
-PollEPoll::insert_read(Event* event) {
+PollKQueue::insert_read(Event* event) {
   modify(event,
 	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
 	 event_mask(event) | EPOLLIN);
 }
 
 void
-PollEPoll::insert_write(Event* event) {
+PollKQueue::insert_write(Event* event) {
   modify(event,
 	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
 	 event_mask(event) | EPOLLOUT);
 }
 
 void
-PollEPoll::insert_error(Event* event) {
+PollKQueue::insert_error(Event* event) {
   modify(event,
 	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
 	 event_mask(event) | EPOLLERR);
 }
 
 void
-PollEPoll::remove_read(Event* event) {
+PollKQueue::remove_read(Event* event) {
   uint32_t mask = event_mask(event) & ~EPOLLIN;
 
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
 void
-PollEPoll::remove_write(Event* event) {
+PollKQueue::remove_write(Event* event) {
   uint32_t mask = event_mask(event) & ~EPOLLOUT;
 
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
 void
-PollEPoll::remove_error(Event* event) {
+PollKQueue::remove_error(Event* event) {
   uint32_t mask = event_mask(event) & ~EPOLLERR;
 
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
-#else // USE_EPOLL
+#else // USE_QUEUE
 
-PollEPoll*
-PollEPoll::create(int maxOpenSockets) {
+PollKQueue*
+PollKQueue::create(int maxOpenSockets) {
   return NULL;
 }
 
-PollEPoll::~PollEPoll() {
+PollKQueue::~PollKQueue() {
 }
 
 int
-PollEPoll::poll(int msec) {
-  throw internal_error("An PollEPoll function was called, but it is disabled.");
+PollKQueue::poll(int msec) {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 void
-PollEPoll::perform() {
-  throw internal_error("An PollEPoll function was called, but it is disabled.");
+PollKQueue::perform() {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 uint32_t
-PollEPoll::open_max() const {
-  throw internal_error("An PollEPoll function was called, but it is disabled.");
+PollKQueue::open_max() const {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 void
-PollEPoll::open(torrent::Event* event) {
+PollKQueue::open(torrent::Event* event) {
 }
 
 void
-PollEPoll::close(torrent::Event* event) {
+PollKQueue::close(torrent::Event* event) {
 }
 
 bool
-PollEPoll::in_read(torrent::Event* event) {
-  throw internal_error("An PollEPoll function was called, but it is disabled.");
+PollKQueue::in_read(torrent::Event* event) {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 bool
-PollEPoll::in_write(torrent::Event* event) {
-  throw internal_error("An PollEPoll function was called, but it is disabled.");
+PollKQueue::in_write(torrent::Event* event) {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 bool
-PollEPoll::in_error(torrent::Event* event) {
-  throw internal_error("An PollEPoll function was called, but it is disabled.");
+PollKQueue::in_error(torrent::Event* event) {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 void
-PollEPoll::insert_read(torrent::Event* event) {
+PollKQueue::insert_read(torrent::Event* event) {
 }
 
 void
-PollEPoll::insert_write(torrent::Event* event) {
+PollKQueue::insert_write(torrent::Event* event) {
 }
 
 void
-PollEPoll::insert_error(torrent::Event* event) {
+PollKQueue::insert_error(torrent::Event* event) {
 }
 
 void
-PollEPoll::remove_read(torrent::Event* event) {
+PollKQueue::remove_read(torrent::Event* event) {
 }
 
 void
-PollEPoll::remove_write(torrent::Event* event) {
+PollKQueue::remove_write(torrent::Event* event) {
 }
 
 void
-PollEPoll::remove_error(torrent::Event* event) {
+PollKQueue::remove_error(torrent::Event* event) {
 }
 
-PollEPoll::PollEPoll(int fd, int maxEvents, int maxOpenSockets) {
-  throw internal_error("An PollEPoll function was called, but it is disabled.");
+PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
-#endif // USE_EPOLL
+#endif // USE_KQUEUE
 
 }

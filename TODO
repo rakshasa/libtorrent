@@ -2,16 +2,11 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[FIXED] Priorities don't seem to be correctly set after a resume.
-
-[FIXED] started/stopped state seems borked when loading through <return> key.
-
-[FIXED] Check for \0 in file names.
-
-[FIXED] Clean up bencode. Don't use operator[] etc.
-
 Having high/med priority seems to somehow have messed up the
 interested state.
+
+Don't allow multiple connections from the same IP to the same
+torrent. Also do something about incoming connections.
 
 
 === For the next API change ===
@@ -45,17 +40,16 @@ Would need to make sure all chunks have been flushed.
 
 ===
 
+
 <zzorn> if you think .file could be seriously abused, then feel free
 to block (or perhaps warn??) about it
-
-Tweak http timeouts, make sure it doesn't stop in the middle of
-torrent downloads.
 
 Move task scheduler to rak.
 
 Testcase for mmap bug? Also look into dns lookup cache.
 
 Set an upper limit on the number of send request a peer can queue.
+
 
 === Printing to display ===
 

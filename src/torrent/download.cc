@@ -352,6 +352,11 @@ Download::file_entry(uint32_t index) {
   return m_ptr->main()->content()->entry_list()->get_node(index);
 }
 
+bool
+Download::file_entry_created(uint32_t index) {
+  return true;
+}
+
 uint32_t
 Download::size_file_entries() const {
   return m_ptr->main()->content()->entry_list()->files_size();

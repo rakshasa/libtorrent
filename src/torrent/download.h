@@ -158,6 +158,7 @@ public:
 
   // Access the files in the torrent.
   Entry                file_entry(uint32_t index);
+  bool                 file_entry_created(uint32_t index);
   uint32_t             size_file_entries() const;
 
   const SeenVector&    seen_chunks() const;

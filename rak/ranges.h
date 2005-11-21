@@ -121,13 +121,10 @@ ranges<Type>::has(Type index) {
 template <typename Type>
 inline void
 ranges<Type>::unify(iterator first) {
-  // The simple, inefficient and bugfree[tm] way of doing this.
-  iterator next;
+  iterator last = std::find_if((first + 1), end(), rak::less(first->second, rak::mem_ptr_ref(&value_type::first)));
 
-  while (++(next = first) != end() && first->second >= next->first) {
-    first->second = std::max(first->second, next->second);
-    Base::erase(next);
-  }
+  first->second = std::max(first->second, (last - 1)->second);
+  Base::erase((first + 1), last);
 }
 
 }

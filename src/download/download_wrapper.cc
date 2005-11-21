@@ -431,6 +431,25 @@ DownloadWrapper::receive_update_priorities() {
 
   std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
 		std::mem_fun(&PeerConnectionBase::update_interested));
+
+  Priority::iterator itr = p->begin(Priority::NORMAL);
+
+  while (itr != p->end(Priority::NORMAL) && (itr + 1) != p->end(Priority::NORMAL)) {
+    if (itr->second >= (itr + 1)->first)
+      throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (normal).");
+
+    ++itr;
+  }
+
+  itr = p->begin(Priority::HIGH);
+
+  while (itr != p->end(Priority::HIGH) && (itr + 1) != p->end(Priority::HIGH)) {
+    if (itr->second >= (itr + 1)->first)
+      throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (high).");
+
+    ++itr;
+  }
+
 }
 
 }

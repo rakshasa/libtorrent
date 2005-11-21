@@ -34,23 +34,23 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TORRENT_POLL_EPOLL_H
-#define LIBTORRENT_TORRENT_POLL_EPOLL_H
+#ifndef LIBTORRENT_TORRENT_POLL_KQUEUE_H
+#define LIBTORRENT_TORRENT_POLL_KQUEUE_H
 
 #include <inttypes.h>
 #include <vector>
 #include <torrent/poll.h>
 
-struct epoll_event;
+struct kevent;
 
 namespace torrent {
 
-class PollEPoll : public torrent::Poll {
+class PollKQueue : public torrent::Poll {
 public:
   typedef std::vector<uint32_t> Table;
 
-  static PollEPoll*   create(int maxOpenSockets);
-  virtual ~PollEPoll();
+  static PollKQueue*   create(int maxOpenSockets);
+  virtual ~PollKQueue();
 
   int                 poll(int msec);
   void                perform();
@@ -80,7 +80,7 @@ public:
   virtual void        remove_error(torrent::Event* event);
 
 private:
-  PollEPoll(int fd, int maxEvents, int maxOpenSockets);
+  PollKQueue(int fd, int maxEvents, int maxOpenSockets);
 
   inline uint32_t     event_mask(Event* e);
   inline void         set_event_mask(Event* e, uint32_t m);
@@ -91,9 +91,11 @@ private:
 
   int                 m_maxEvents;
   int                 m_waitingEvents;
+  int                 m_changedEvents;
 
   Table               m_table;
-  epoll_event*        m_events;
+  kevent*             m_events;
+  kevent*             m_changes;
 };
 
 }

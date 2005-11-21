@@ -66,8 +66,7 @@ SocketManager::received(SocketFd fd, const SocketAddress& sa) {
   if (!fd.is_valid())
     throw internal_error("SocketManager::received(...) received an invalid file descriptor");
 
-  if (m_size >= m_max ||
-      !fd.set_nonblock()) {
+  if (m_size >= m_max || !fd.set_nonblock()) {
     fd.close();
     return SocketFd();
   }

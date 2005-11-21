@@ -53,7 +53,7 @@ class Http {
   typedef sigc::signal1<void, const std::string&> SignalString;
   typedef sigc::slot0<Http*>                      SlotFactory;
 
-  Http() : m_stream(NULL) {}
+  Http() : m_stream(NULL), m_timeout(0) {}
   virtual ~Http();
 
   // Start must never throw on bad input. Calling start/stop on an
@@ -68,6 +68,9 @@ class Http {
   std::iostream*     stream()                             { return m_stream; }
   void               set_stream(std::iostream* str)       { m_stream = str; }
   
+  uint32_t           timeout() const                      { return m_timeout; }
+  void               set_timeout(uint32_t seconds)        { m_timeout = seconds; }
+
   Signal&            signal_done()                        { return m_signalDone; }
   SignalString&      signal_failed()                      { return m_signalFailed; }
 
@@ -82,12 +85,12 @@ class Http {
 protected:
   std::string        m_url;
   std::iostream*     m_stream;
+  uint32_t           m_timeout;
 
   Signal             m_signalDone;
   SignalString       m_signalFailed;
 
 private:
-  // Disabled ctor. Do we want ref counting instead?
   Http(const Http&);
   void               operator = (const Http&);
 

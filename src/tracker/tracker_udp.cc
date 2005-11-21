@@ -214,7 +214,7 @@ TrackerUdp::parse_url() {
   int port;
   char hostname[256];
       
-  if (std::sscanf(m_url.c_str(), "udp://%256[^:]:%i", hostname, &port) != 2 ||
+  if (std::sscanf(m_url.c_str(), "udp://%255[^:]:%i", hostname, &port) != 2 ||
       hostname[0] == '\0' ||
       port <= 0 || port >= (1 << 16))
     return false;
