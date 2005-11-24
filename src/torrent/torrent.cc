@@ -119,7 +119,7 @@ initialize(Poll* poll) {
 void
 cleanup() {
   if (manager == NULL)
-    throw client_error("torrent::cleanup() called but the library is not initialized");
+    throw client_error("torrent::cleanup() called but the library is not initialized.");
 
   delete manager;
   manager = NULL;
@@ -132,16 +132,11 @@ listen_open(uint16_t begin, uint16_t end) {
   if (manager == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
-  SocketAddress sa;
-
-  if (!manager->bind_address().empty() && !sa.set_address(manager->bind_address()))
-    throw local_error("Could not parse the ip address to bind");
-
-  if (!manager->listen()->open(begin, end, sa))
+  if (!manager->listen()->open(begin, end, *manager->bind_address()))
     return false;
 
-  manager->local_address().set_port(manager->listen()->port());
-  manager->handshake_manager()->set_bind_address(sa);
+  manager->local_address()->set_port(manager->listen()->port());
+  manager->handshake_manager()->set_bind_address(*manager->bind_address());
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end();
        itr != last; ++itr)
@@ -171,34 +166,39 @@ is_inactive() {
 
 std::string
 local_address() {
-  return !manager->local_address().is_address_any() ? manager->local_address().get_address() : "";
+  if (!manager->local_address()->is_address_any())
+    return manager->local_address()->get_address();
+  else
+    return std::string();
 }
 
 void
 set_local_address(const std::string& addr) {
-  if (addr == manager->local_address().get_address() ||
-      !manager->local_address().set_address(addr))
-    return;
+  if (!manager->local_address()->set_hostname(addr))
+    throw input_error("Tried to set an invalid/non-existent local address.");
 
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end();
-       itr != last; ++itr)
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
     (*itr)->local_address().set_address(addr);
 }
 
 std::string
 bind_address() {
-  return manager->bind_address();
+  if (!manager->bind_address()->is_address_any())
+    return manager->bind_address()->get_address();
+  else
+    return std::string();
 }
 
 void
 set_bind_address(const std::string& addr) {
-  if (addr == manager->bind_address())
-    return;
-
   if (manager->listen()->is_open())
-    throw client_error("torrent::set_bind(...) called, but listening socket is open");
+    throw input_error("Tried to set the bind address while the listening socket is open.");
 
-  manager->set_bind_address(addr);
+  if (addr.empty())
+    manager->bind_address()->set_address_any();
+
+  else if (!manager->bind_address()->set_hostname(addr))
+    throw input_error("Tried to set an invalid/non-existent bind address.");
 }
 
 uint16_t
@@ -226,7 +226,10 @@ down_throttle() {
 }
 
 void
-set_down_throttle(int bytes) {
+set_down_throttle(int32_t bytes) {
+  if (bytes < 0 || bytes > (1 << 30))
+    throw input_error("Download throttle must be between 0 and 2^30.");
+
   return manager->download_throttle()->set_max_rate(bytes);
 }
 
@@ -236,7 +239,10 @@ up_throttle() {
 }
 
 void
-set_up_throttle(int bytes) {
+set_up_throttle(int32_t bytes) {
+  if (bytes < 0 || bytes > (1 << 30))
+    throw input_error("Upload throttle must be between 0 and 2^30.");
+
   return manager->upload_throttle()->set_max_rate(bytes);
 }
 
@@ -252,6 +258,9 @@ max_unchoked() {
 
 void
 set_max_unchoked(uint32_t count) {
+  if (count > (1 << 16))
+    throw input_error("Max unchoked must be between 0 and 2^16.");
+
   manager->resource_manager()->set_max_unchoked(count);
 }
 
@@ -265,7 +274,7 @@ up_rate() {
   return manager->upload_throttle()->throttle_list()->rate_slow();
 }
 
-char*
+const char*
 version() {
   return VERSION;
 }
@@ -277,8 +286,10 @@ hash_read_ahead() {
 
 void
 set_hash_read_ahead(uint32_t bytes) {
-  if (bytes < 64 << 20)
-    manager->hash_queue()->set_read_ahead(bytes);
+  if (bytes < (1 << 20) || bytes > (64 << 20))
+    throw input_error("Hash read ahead must be between 1 and 64 MB.");
+
+  manager->hash_queue()->set_read_ahead(bytes);
 }
 
 uint32_t
@@ -288,8 +299,10 @@ hash_interval() {
 
 void
 set_hash_interval(uint32_t usec) {
-  if (usec < 1000000)
-    manager->hash_queue()->set_interval(usec);
+  if (usec < (1 * 1000) || usec > (1000 * 1000))
+    throw input_error("Hash interval must be between 1 and 1000 ms.");
+
+  manager->hash_queue()->set_interval(usec);
 }
 
 uint32_t
@@ -299,8 +312,10 @@ hash_max_tries() {
 
 void
 set_hash_max_tries(uint32_t tries) {
-  if (tries < 100)
-    manager->hash_queue()->set_max_tries(tries);
+  if (tries > 100)
+    throw input_error("Hash max tries must be between 0 and 100.");
+
+  manager->hash_queue()->set_max_tries(tries);
 }  
 
 uint32_t
@@ -315,6 +330,9 @@ max_open_files() {
 
 void
 set_max_open_files(uint32_t size) {
+  if (size < 4 || size > (1 << 16))
+    throw input_error("Max open files must be between 4 and 2^16.");
+
   manager->file_manager()->set_max_size(size);
 }
 
@@ -330,6 +348,9 @@ max_open_sockets() {
 
 void
 set_max_open_sockets(uint32_t size) {
+  if (size < 4 || size > (1 << 16))
+    throw input_error("Max open sockets must be between 4 and 2^16.");
+
   socketManager.set_max_size(size);
 }
 
@@ -341,15 +362,14 @@ encoding_list() {
 Download
 download_add(std::istream* s) {
   if (!s->good())
-    throw input_error("Could not create download, the input stream is not valid");
+    throw input_error("Could not create download, the input stream is not valid.");
 
   std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
 
   *s >> d->bencode();
 
   if (s->fail())
-    // Make it configurable whetever we throw or return .end()?
-    throw input_error("Could not create download, failed to parse the bencoded data");
+    throw input_error("Could not create download, the input is not a valid torrent.");
   
   DownloadConstructor ctor;
   ctor.set_download(d.get());
@@ -359,7 +379,7 @@ download_add(std::istream* s) {
 
   d->initialize(d->bencode().get_key("info").compute_sha1(),
 		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
-		manager->local_address());
+		*manager->local_address());
 
   // Default PeerConnection factory functions.
   d->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);

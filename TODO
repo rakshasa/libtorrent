@@ -8,6 +8,11 @@ interested state.
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections.
 
+Test on vfat with your USB harddrive.
+
+Look into replacing SocketAddress with some kind of thing using
+getaddrinfo.
+
 
 === For the next API change ===
 

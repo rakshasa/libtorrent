@@ -145,8 +145,10 @@ Download::local_id() const {
 
 uint32_t
 Download::creation_date() const {
-  return m_ptr->bencode().has_key("creation date") && m_ptr->bencode().get_key("creation date").is_value() ?
-    m_ptr->bencode().get_key("creation date").as_value() : 0;
+  if (m_ptr->bencode().has_key("creation date") && m_ptr->bencode().get_key("creation date").is_value())
+    return m_ptr->bencode().get_key("creation date").as_value();
+  else
+    return 0;
 }
 
 Bencode&
@@ -167,7 +169,7 @@ Download::root_dir() const {
 void
 Download::set_root_dir(const std::string& dir) {
   if (is_open())
-    throw client_error("Tried to call Download::set_root_dir(...) on an open download");
+    throw input_error("Tried to change the root directory for an open download.");
 
   m_ptr->main()->content()->set_root_dir(dir);
 }
@@ -278,24 +280,28 @@ Download::tracker_numwant() const {
 
 void
 Download::set_peers_min(uint32_t v) {
-  if (v >= 0 && v < (1 << 16)) {
-    m_ptr->main()->connection_list()->set_min_size(v);
-    m_ptr->main()->receive_connect_peers();
-  }
+  if (v > (1 << 16))
+    throw input_error("Min peer connections must be between 0 and 2^16.");
+  
+  m_ptr->main()->connection_list()->set_min_size(v);
+  m_ptr->main()->receive_connect_peers();
 }
 
 void
 Download::set_peers_max(uint32_t v) {
-  if (v >= 0 && v < (1 << 16))
-    m_ptr->main()->connection_list()->set_max_size(v);
+  if (v > (1 << 16))
+    throw input_error("Max peer connections must be between 0 and 2^16.");
+
+  m_ptr->main()->connection_list()->set_max_size(v);
 }
 
 void
 Download::set_uploads_max(uint32_t v) {
-  if (v >= 0 && v < (1 << 16)) {
-    m_ptr->main()->choke_manager()->set_max_unchoked(v);
-    m_ptr->main()->choke_manager()->balance();
-  }
+  if (v > (1 << 16))
+    throw input_error("Max uploads must be between 0 and 2^16.");
+
+  m_ptr->main()->choke_manager()->set_max_unchoked(v);
+  m_ptr->main()->choke_manager()->balance();
 }
 
 void
@@ -382,7 +388,7 @@ Download::set_connection_type(ConnectionType t) {
     m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionSeed);
     break;
   default:
-    throw client_error("torrent::Download::set_connection_type(...) received invalid type.");
+    throw input_error("torrent::Download::set_connection_type(...) received an unknown type.");
   };
 
   m_ptr->set_connection_type(t);

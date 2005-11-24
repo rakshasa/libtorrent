@@ -70,10 +70,8 @@ public:
   Listen*             listen()                                  { return m_listen; }
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
 
-  SocketAddress&      local_address()                           { return m_localAddress; }
-  
-  const std::string&  bind_address()                            { return m_bindAddress; }
-  void                set_bind_address(const std::string& addr) { m_bindAddress = addr; }
+  SocketAddress*      local_address()                           { return &m_localAddress; }
+  SocketAddress*      bind_address()                            { return &m_bindAddress; }
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
 
@@ -90,7 +88,7 @@ public:
 
 private:
   SocketAddress       m_localAddress;
-  std::string         m_bindAddress;
+  SocketAddress       m_bindAddress;
 
   DownloadManager*    m_downloadManager;
   FileManager*        m_fileManager;

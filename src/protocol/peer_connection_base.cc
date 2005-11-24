@@ -443,8 +443,8 @@ PeerConnectionBase::write_bitfield_body() {
 bool
 PeerConnectionBase::should_request() {
   if (m_down->choked() ||
-      !m_up->interested() ||
-      m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
+      !m_up->interested())
+    // || m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
   else if (!m_download->get_endgame())

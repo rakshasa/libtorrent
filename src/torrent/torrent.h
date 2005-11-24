@@ -71,10 +71,14 @@ void                perform();
 
 bool                is_inactive();
 
+// Address sent to the tracker.  Accepts a DNS or IP address which it
+// will look up immediately. The IP address will be returned.
 std::string         local_address();
 void                set_local_address(const std::string& addr);
 
-// Bind the sockets to a specific network device.
+// Bind the sockets to a specific network device.  Accepts a DNS or IP
+// address which it will look up immediately. The IP address will be
+// returned.
 std::string         bind_address();
 void                set_bind_address(const std::string& addr);
 
@@ -99,7 +103,7 @@ void                set_max_unchoked(uint32_t count);
 const Rate*         down_rate();
 const Rate*         up_rate();
 
-char*               version();
+const char*         version();
 
 // Disk access tuning.
 uint32_t            hash_read_ahead();

@@ -39,6 +39,7 @@
 
 #include <string>
 #include <iosfwd>
+#include <inttypes.h>
 #include <sigc++/signal.h>
 
 namespace torrent {

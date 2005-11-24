@@ -106,12 +106,12 @@ Listen::event_read() {
 
 void
 Listen::event_write() {
-  throw internal_error("Listener does not support write()");
+  throw internal_error("Listener does not support write().");
 }
 
 void
 Listen::event_error() {
-  throw local_error("Listener port recived exception");
+  throw local_error("Listener port received an error event.");
 }
 
 }
