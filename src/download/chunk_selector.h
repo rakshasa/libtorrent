@@ -34,76 +34,62 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_UTILS_BITFIELD_H
-#define LIBTORRENT_UTILS_BITFIELD_H
+#ifndef LIBTORRENT_DOWNLOAD_CHUNK_SELECTOR_H
+#define LIBTORRENT_DOWNLOAD_CHUNK_SELECTOR_H
 
-#include <cstring>
 #include <inttypes.h>
+#include <rak/ranges.h>
+
+#include "utils/bitfield.h"
+#include "utils/bitfield_counter.h"
 
 namespace torrent {
 
-class BitField {
+// This class is responsible for deciding on which chunk index to
+// download next based on the peer's bitfield. It keeps its own
+// bitfield which starts out as a copy of Content::bitfield but sets
+// chunks that are being downloaded.
+//
+// When updating Content::bitfield, make sure you update this bitfield
+// and unmark any chunks in Delegator.
+
+class PeerChunks;
+
+class ChunkSelector {
 public:
-  typedef uint32_t       size_t;
-  typedef uint8_t        data_t;
-  typedef const uint8_t  c_data_t;
+  typedef rak::ranges<uint32_t> PriorityRanges;
 
-  BitField() :
-    m_size(0),
-    m_start(NULL),
-    m_end(NULL) {}
+  static const uint32_t invalid_chunk = ~(uint32_t)0;
 
-  BitField(size_t s);
-  BitField(const BitField& bf);
+  BitField*           bitfield()                    { return &m_bitfield; }
+  BitFieldCounter*    bitfield_counter()            { return &m_bitfieldCounter; }
 
-  ~BitField()                             { delete [] m_start; m_start = NULL; }
+  PriorityRanges*     high_priority()               { return &m_highPriority; }
+  PriorityRanges*     normal_priority()             { return &m_normalPriority; }
 
-  void      clear()                       { if (m_start) std::memset(m_start, 0, size_bytes()); }
+  // Call this once you've modified the bitfield or priorities to
+  // update cached information. This must be called once before using
+  // find.
+  void                update();
 
-  size_t    size_bits() const             { return m_size; }
-  size_t    size_bytes() const            { return m_end - m_start; }
+  uint32_t            find(PeerChunks* peerChunks, bool highPriority);
 
-  // Allow this?
-  size_t    count() const;
+  void                enable_index(uint32_t index);
+  void                disable_index(uint32_t index);
 
-  // Clear the last byte's padding.
-  void      cleanup() {
-    if (m_start && m_size % 8)
-      *(m_end - 1) &= ~(data_t)0 << 8 - m_size % 8;
-  }
-
-  void      set(size_t i, bool s) {
-    if (s)
-      m_start[i / 8] |= 1 << 7 - i % 8;
-    else
-      m_start[i / 8] &= ~(1 << 7 - i % 8);
-  }
-
-  void      set(size_t begin, size_t end, bool s);
-
-  bool      get(size_t i) const           { return m_start[i / 8] & (1 << 7 - i % 8); }    
-
-  // Mark all in this not in b2.
-  BitField& not_in(const BitField& bf);
-
-  bool      all_zero() const;
-  bool      all_set() const;
-
-  data_t*   begin()                       { return m_start; }
-  c_data_t* begin() const                 { return m_start; }
-  c_data_t* end() const                   { return m_end; }
-
-  bool      operator [] (size_t i) const  { return get(i); }
-  
-  BitField& operator = (const BitField& bf);
+  void                insert_peer(PeerChunks* peerChunks);
+  void                erase_peer(PeerChunks* peerChunks);
 
 private:
-  size_t    m_size;
+  BitField            m_bitfield;
+  BitFieldCounter     m_bitfieldCounter;
+  
+  PriorityRanges      m_highPriority;
+  PriorityRanges      m_normalPriority;
 
-  data_t*   m_start;
-  data_t*   m_end;
+  uint32_t            m_position;
 };
 
 }
 
-#endif // LIBTORRENT_BITFIELD_H
+#endif  

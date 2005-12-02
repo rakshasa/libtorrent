@@ -9,6 +9,7 @@ libsub_protocol_la_SOURCES = \
         handshake_manager.h \
         handshake_outgoing.cc \
         handshake_outgoing.h \
+	peer_chunks.h \
 	peer_connection_base.cc \
 	peer_connection_base.h \
 	peer_connection_leech.cc \

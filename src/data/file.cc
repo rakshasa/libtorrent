@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/types.h>
 
 #ifdef USE_XFS
 #include <xfs/libxfs.h>
@@ -130,11 +131,22 @@ File::size() const {
 }  
 
 bool
-File::set_size(off_t s) const {
+File::set_size(off_t size) const {
   if (!is_open())
     throw internal_error("File::set_size() called on a closed file");
 
-  return ftruncate(m_fd, s) == 0;
+  if (ftruncate(m_fd, size) == 0)
+    return true;
+
+  // Use workaround to resize files on vfat. It causes the whole
+  // client to block while it is resizing the files, this really
+  // should be in a seperate thread.
+  if (size != 0 &&
+      lseek(m_fd, size - 1, SEEK_SET) == (size - 1) &&
+      write(m_fd, &size, 1) == 1)
+    return true;
+  
+  return false;
 }
 
 MemoryChunk

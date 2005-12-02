@@ -335,16 +335,19 @@ DownloadWrapper::receive_initial_hash() {
   if (m_main.is_active())
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
-  if (m_hash->is_checked()) {
-    m_main.content()->resize();
-
-  } else {
+  if (!m_hash->is_checked()) {
     m_hash->clear();
 
     // Clear after m_hash to ensure that the empty hash done signal does
     // not get passed to HashTorrent.
     m_hash->get_queue()->remove(get_hash());
     m_main.content()->clear();
+
+  } else if (!m_main.content()->entry_list()->resize_all()) {
+    // We couldn't resize the files, tell the client.
+    receive_storage_error("Could not resize files in the torrent.");
+
+    // Do we clear the hash?
   }
 
   m_signalInitialHash.emit();

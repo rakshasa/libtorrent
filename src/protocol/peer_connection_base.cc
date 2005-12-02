@@ -168,7 +168,7 @@ PeerConnectionBase::load_down_chunk(const Piece& p) {
   m_downChunk = m_download->chunk_list()->get(p.get_index(), true);
   
   if (!m_downChunk.is_valid())
-    throw storage_error("File chunk write error: " + std::string(rak::error_number::current().c_str()));
+    throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()));
 }
 
 void
@@ -181,7 +181,7 @@ PeerConnectionBase::load_up_chunk() {
   m_upChunk = m_download->chunk_list()->get(m_upPiece.get_index(), false);
   
   if (!m_upChunk.is_valid())
-    throw storage_error("File chunk read error: " + std::string(rak::error_number::current().c_str()));
+    throw storage_error("File chunk read error: " + std::string(m_downChunk.error_number().c_str()));
 }
 
 void

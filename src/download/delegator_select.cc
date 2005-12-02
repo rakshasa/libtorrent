@@ -115,11 +115,16 @@ DelegatorSelect::find(const BitField& bf, uint32_t start, uint32_t rarity, Prior
   int found = -1, f;
   uint32_t cur_rarity = (unsigned)-1;
 
+  if (m_priority.begin(p) == m_priority.end(p))
+    return found;
+
   // TODO: Ugly, refactor.
   Priority::Ranges::iterator itr = m_priority.find(p, start);
 
-  if (itr == m_priority.end(p))
-    return found;
+  if (itr == m_priority.end(p)) {
+    --itr;
+    start = itr->first;
+  }
 
   // Check the range start is contained by.
   f = check_range(bf, std::max(start, itr->first), itr->second, rarity, cur_rarity);

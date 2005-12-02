@@ -5,6 +5,8 @@ libsub_download_la_SOURCES = \
 	available_list.h \
 	choke_manager.cc \
 	choke_manager.h \
+	chunk_selector.cc \
+	chunk_selector.h \
 	connection_list.cc \
 	connection_list.h \
 	delegator.cc \

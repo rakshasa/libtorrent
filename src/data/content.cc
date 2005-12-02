@@ -161,11 +161,6 @@ Content::clear() {
   m_bitfield = BitField(m_chunkTotal);
 }
 
-void
-Content::resize() {
-  m_entryList->resize_all();
-}
-
 bool
 Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
   if (index >= m_chunkTotal || m_bitfield[index] || m_completed >= m_chunkTotal)

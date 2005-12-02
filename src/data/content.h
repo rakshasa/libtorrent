@@ -106,7 +106,6 @@ public:
   void                   open();
   void                   close();
   void                   clear();
-  void                   resize();
 
   bool                   receive_chunk_hash(uint32_t index, const std::string& hash);
 
