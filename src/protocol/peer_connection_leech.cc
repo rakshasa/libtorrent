@@ -41,6 +41,7 @@
 
 #include "data/content.h"
 #include "data/chunk_list_node.h"
+#include "download/chunk_selector.h"
 #include "download/download_main.h"
 
 #include "peer_connection_leech.h"
@@ -49,7 +50,7 @@ namespace torrent {
 
 PeerConnectionLeech::~PeerConnectionLeech() {
 //   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
-//     m_download->bitfield_counter().dec(m_bitfield.bitfield());
+//     m_download->bitfield_counter().dec(m_peerChunks.bitfield()->bitfield());
 
 //   taskScheduler.erase(&m_taskSendChoke);
 }
@@ -67,7 +68,8 @@ PeerConnectionLeech::initialize_custom() {
 
 void
 PeerConnectionLeech::update_interested() {
-  if (m_download->delegator()->get_select().interested(m_bitfield.bitfield())) {
+// FIXME:   if (m_download->delegator()->get_select().interested(m_peerChunks.bitfield()->bitfield())) {
+  if (true) {
     m_sendInterested = !m_up->interested();
     m_up->set_interested(true);
   } else {
@@ -539,16 +541,16 @@ PeerConnectionLeech::event_write() {
 
 void
 PeerConnectionLeech::read_have_chunk(uint32_t index) {
-  if (index >= m_bitfield.size_bits())
+  if (index >= m_peerChunks.bitfield()->size_bits())
     throw network_error("Peer sent HAVE message with out-of-range index.");
 
-  if (m_bitfield.get(index))
+  if (m_peerChunks.bitfield()->get(index))
     return;
 
-  m_bitfield.set(index, true);
+  m_peerChunks.bitfield()->set(index, true);
   m_peerRate.insert(m_download->content()->chunk_size());
 
-  if (m_bitfield.all_set())
+  if (m_peerChunks.bitfield()->all_set())
     if (m_download->content()->is_done())
       throw close_connection();
     else
@@ -559,14 +561,15 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
   if (is_up_interested()) {
 
-    if (!m_tryRequest && m_download->delegator()->get_select().interested(index)) {
+    if (!m_tryRequest && true) { // FIXME: m_download->delegator()->get_select().interested(index)) {
       m_tryRequest = true;
       write_insert_poll_safe();
     }
 
   } else {
 
-    if (m_download->delegator()->get_select().interested(index)) {
+// FIXME:    if (m_download->delegator()->get_select().interested(index)) {
+    if (true) {
       m_sendInterested = true;
       m_up->set_interested(true);
       
@@ -580,17 +583,17 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
 void
 PeerConnectionLeech::finish_bitfield() {
-  m_bitfield.update_count();
+  m_peerChunks.bitfield()->update_count();
 
-  if (m_download->content()->is_done() && m_bitfield.all_set())
+  if (m_download->content()->is_done() && m_peerChunks.bitfield()->all_set())
     throw close_connection();
 
-  if (!m_download->content()->is_done() && m_download->delegator()->get_select().interested(m_bitfield.bitfield())) {
+  m_download->chunk_selector()->insert_peer_chunks(&m_peerChunks);
+
+  if (!m_download->content()->is_done() && true) { // FIXME: m_download->delegator()->get_select().interested(m_peerChunks.bitfield()->bitfield())) {
     m_sendInterested = true;
     m_up->set_interested(true);
   }
-
-//   m_download->bitfield_counter().inc(m_bitfield.bitfield());
 
   write_insert_poll_safe();
 }

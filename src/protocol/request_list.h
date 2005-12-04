@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-class BitField;
+class PeerChunks;
 class Delegator;
 
 class RequestList {
@@ -51,7 +51,7 @@ public:
 
   RequestList() :
     m_delegator(NULL),
-    m_bitfield(NULL),
+    m_peerChunks(NULL),
     m_affinity(-1),
     m_downloading(false) {}
 
@@ -88,7 +88,7 @@ public:
   }
 
   void               set_delegator(Delegator* d)      { m_delegator = d; }
-  void               set_bitfield(const BitField* b)  { m_bitfield = b; }
+  void               set_peer_chunks(PeerChunks* b)   { m_peerChunks = b; }
 
   uint32_t           calculate_pipe_size(uint32_t rate);
 
@@ -96,7 +96,7 @@ private:
   void               cancel_range(ReserveeList::iterator end);
 
   Delegator*         m_delegator;
-  const BitField*    m_bitfield;
+  PeerChunks*        m_peerChunks;
 
   int32_t            m_affinity;
   bool               m_downloading;

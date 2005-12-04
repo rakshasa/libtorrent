@@ -61,26 +61,37 @@ public:
 
   static const uint32_t invalid_chunk = ~(uint32_t)0;
 
-  BitField*           bitfield()                    { return &m_bitfield; }
+  uint32_t            size() const                  { return m_bitfield.size_bits(); }
+
+  const BitField*     bitfield()                    { return &m_bitfield; }
   BitFieldCounter*    bitfield_counter()            { return &m_bitfieldCounter; }
 
   PriorityRanges*     high_priority()               { return &m_highPriority; }
   PriorityRanges*     normal_priority()             { return &m_normalPriority; }
 
+  // Initialize doesn't update the priority cache, so it is as if it
+  // has empty priority ranges.
+  void                initialize(BitField* bf);
+  void                cleanup();
+
   // Call this once you've modified the bitfield or priorities to
   // update cached information. This must be called once before using
   // find.
-  void                update();
+  void                update_priorities();
 
   uint32_t            find(PeerChunks* peerChunks, bool highPriority);
 
-  void                enable_index(uint32_t index);
-  void                disable_index(uint32_t index);
+  void                select_index(uint32_t index);
+  void                deselect_index(uint32_t index);
 
-  void                insert_peer(PeerChunks* peerChunks);
-  void                erase_peer(PeerChunks* peerChunks);
+  void                insert_peer_chunks(PeerChunks* peerChunks);
+  void                erase_peer_chunks(PeerChunks* peerChunks);
 
 private:
+  inline uint32_t     search(PeerChunks* peerChunks, PriorityRanges* ranges, uint32_t first, uint32_t last);
+  inline uint32_t     search_range(PeerChunks* peerChunks, uint32_t first, uint32_t last);
+  inline uint32_t     search_byte(uint8_t wanted);
+
   BitField            m_bitfield;
   BitFieldCounter     m_bitfieldCounter;
   

@@ -39,10 +39,11 @@
 #include <inttypes.h>
 
 #include "torrent/exceptions.h"
-#include "download/delegator_chunk.h"
-#include "download/delegator_reservee.h"
+#include "protocol/peer_chunks.h"
 #include "utils/bitfield.h"
 
+#include "delegator_chunk.h"
+#include "delegator_reservee.h"
 #include "delegator.h"
 
 namespace torrent {
@@ -103,15 +104,17 @@ struct DelegatorCheckAggressive {
 };
 
 void Delegator::clear() {
-  std::for_each(m_chunks.begin(), m_chunks.end(), rak::call_delete<DelegatorChunk>());
+  for (Chunks::iterator itr = m_chunks.begin(), last = m_chunks.end(); itr != last; ++itr) {
+    m_slotChunkDisable((*itr)->get_index());
+    delete *itr;
+  }
 
   m_chunks.clear();
-  m_select.clear();
   m_aggressive = false;
 }
 
 DelegatorReservee*
-Delegator::delegate(const BitField& bf, int affinity) {
+Delegator::delegate(PeerChunks* peerChunks, int affinity) {
   // TODO: Make sure we don't queue the same piece several time on the same peer when
   // it timeout cancels them.
   DelegatorPiece* target = NULL;
@@ -129,21 +132,21 @@ Delegator::delegate(const BitField& bf, int affinity) {
 
   // High priority pieces.
   if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   DelegatorCheckPriority(this, &target, Priority::HIGH, &bf))
+		   DelegatorCheckPriority(this, &target, Priority::HIGH, peerChunks->bitfield()->base()))
       != m_chunks.end())
     return target->create();
 
   // Find normal priority pieces.
-  if ((target = new_chunk(bf, Priority::HIGH, affinity)))
+  if ((target = new_chunk(peerChunks, true)))
     return target->create();
 
   // Normal priority pieces.
   if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   DelegatorCheckPriority(this, &target, Priority::NORMAL, &bf))
+		   DelegatorCheckPriority(this, &target, Priority::NORMAL, peerChunks->bitfield()->base()))
       != m_chunks.end())
     return target->create();
 
-  if ((target = new_chunk(bf, Priority::NORMAL, affinity)))
+  if ((target = new_chunk(peerChunks, false)))
     return target->create();
 
   if (!m_aggressive)
@@ -156,7 +159,7 @@ Delegator::delegate(const BitField& bf, int affinity) {
   uint16_t overlapped = 5;
 
   std::find_if(m_chunks.begin(), m_chunks.end(),
-	       DelegatorCheckAggressive(this, &target, &overlapped, &bf));
+	       DelegatorCheckAggressive(this, &target, &overlapped, peerChunks->bitfield()->base()));
 
   return target ? target->create() : NULL;
 }
@@ -172,8 +175,7 @@ Delegator::finished(DelegatorReservee& r) {
     throw internal_error("Delegator::finished(...) got reservee with parent == NULL");
 
   // Temporary exception, remove when the code is rock solid. (Hah, like it ever will be;)
-  if (all_finished(p->get_piece().get_index()) ||
-      (*m_select.bitfield())[p->get_piece().get_index()])
+  if (all_finished(p->get_piece().get_index()))
     throw internal_error("Delegator::finished(...) called on an index that is already finished");
 
   p->clear();
@@ -191,7 +193,7 @@ Delegator::done(unsigned int index) {
   if (itr == m_chunks.end())
     throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
 
-  m_select.remove_ignore((*itr)->get_index());
+  //m_select.remove_ignore((*itr)->get_index());
 
   delete *itr;
   m_chunks.erase(itr);
@@ -205,17 +207,18 @@ Delegator::redo(unsigned int index) {
 }
 
 DelegatorPiece*
-Delegator::new_chunk(const BitField& bf, Priority::Type p, int affinity) {
-  int index = m_select.find(bf,
-			    (affinity >= 0 ? ++affinity : random()) % bf.size_bits(),
-			    1024,
-			    p);
+Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
+  uint32_t index = m_slotChunkFind(pc, highPriority);
 
-  if (index == -1)
+  if (index == ~(uint32_t)0)
     return NULL;
 
-  m_select.add_ignore(index);
-  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), block_size, p));
+  if (std::find_if(m_chunks.begin(), m_chunks.end(),
+		   rak::equal(index, std::mem_fun(&DelegatorChunk::get_index))) != m_chunks.end())
+    throw internal_error("Delegator::new_chunk(...) received an index that is already delegated.");
+
+  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), block_size, highPriority ? Priority::HIGH : Priority::NORMAL));
+  m_slotChunkEnable(index);
 
   return (*m_chunks.rbegin())->begin();
 }

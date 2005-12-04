@@ -43,14 +43,17 @@
 
 #include "download_main.h"
 #include "choke_manager.h"
+#include "chunk_selector.h"
 
 namespace torrent {
 
 void
 DownloadMain::setup_delegator() {
-  m_delegator.get_select().set_bitfield(&m_content.bitfield());
-  m_delegator.get_select().set_seen(&m_bitfieldCounter);
+  //m_delegator.get_select().set_bitfield(&m_content.bitfield());
 
+  m_delegator.slot_chunk_enable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::select_index));
+  m_delegator.slot_chunk_disable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::deselect_index));
+  m_delegator.slot_chunk_find(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_done(rak::make_mem_fn(this, &DownloadMain::receive_chunk_done));
   m_delegator.slot_chunk_size(rak::make_mem_fn(&m_content, &Content::chunk_index_size));
 }

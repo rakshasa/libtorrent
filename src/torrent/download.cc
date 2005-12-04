@@ -42,6 +42,7 @@
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/choke_manager.h"
+#include "download/chunk_selector.h"
 #include "download/delegator_chunk.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"
@@ -58,9 +59,6 @@ namespace torrent {
 void
 Download::open() {
   m_ptr->open();
-
-  // Temporary until we fix stuff.
-  update_priorities();
 }
 
 void
@@ -370,7 +368,7 @@ Download::size_file_entries() const {
 
 const Download::SeenVector&
 Download::seen_chunks() const {
-  return m_ptr->main()->bitfield_counter().field();
+  return m_ptr->main()->chunk_selector()->bitfield_counter()->field();
 }
 
 Download::ConnectionType

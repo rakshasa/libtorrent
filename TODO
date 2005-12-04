@@ -2,10 +2,6 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-* Fixed bug in priority code.
-
-* Fixed the vfat resize bug.
-
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections.
 
@@ -14,7 +10,16 @@ getaddrinfo.
 
 Display leechers/seeders.
 
+Make sure storage error is correctly displayed, rather than being
+hidden.
+
 Make the vfat workaround configurable.
+
+Consider moving delegator init to start/stop.
+
+Move block download done to DownloadWrapper.
+
+Move finished delay signal out into downloadwrapper.
 
 
 === For the next API change ===

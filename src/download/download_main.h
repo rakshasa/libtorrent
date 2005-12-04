@@ -47,7 +47,6 @@
 #include "data/content.h"
 #include "data/chunk_handle.h"
 #include "protocol/peer_info.h"
-#include "utils/bitfield_counter.h"
 #include "utils/task.h"
 #include "torrent/rate.h"
 
@@ -55,6 +54,7 @@ namespace torrent {
 
 class ChunkList;
 class ChokeManager;
+class ChunkSelector;
 class DownloadWrapper;
 class HandshakeManager;
 class TrackerManager;
@@ -80,6 +80,7 @@ public:
 
   // Only retrive writable chunks when the download is active.
   ChunkList*          chunk_list()                               { return m_chunkList; }
+  ChunkSelector*      chunk_selector()                           { return m_chunkSelector; }
   Content*            content()                                  { return &m_content; }
   Delegator*          delegator()                                { return &m_delegator; }
 
@@ -97,8 +98,6 @@ public:
 
   Rate*               up_rate()                                  { return &m_upRate; }
   Rate*               down_rate()                                { return &m_downRate; }
-
-  BitFieldCounter&    bitfield_counter()                         { return m_bitfieldCounter; }
 
   // Carefull with these.
   void                setup_delegator();
@@ -141,6 +140,7 @@ private:
   ChokeManager*       m_chokeManager;
 
   ChunkList*          m_chunkList;
+  ChunkSelector*      m_chunkSelector;
   Content             m_content;
   Delegator           m_delegator;
 
@@ -157,8 +157,6 @@ private:
 
   Rate                m_upRate;
   Rate                m_downRate;
-
-  BitFieldCounter     m_bitfieldCounter;
 
   sigc::connection    m_connectionAddAvailablePeers;
 

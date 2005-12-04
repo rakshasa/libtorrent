@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include "protocol/peer_chunks.h"
 #include "protocol/peer_connection_base.h"
 
 #include "exceptions.h"
@@ -141,17 +142,17 @@ Peer::incoming_index(uint32_t pos) {
 // std::string.
 const unsigned char*
 Peer::bitfield_data() {
-  return (const unsigned char*)m_ptr->bitfield().begin();
+  return (const unsigned char*)m_ptr->peer_chunks()->bitfield()->begin();
 }
 
 uint32_t
 Peer::bitfield_size() {
-  return m_ptr->bitfield().size_bits();
+  return m_ptr->peer_chunks()->bitfield()->size_bits();
 }
 
 uint32_t
 Peer::chunks_done() {
-  return m_ptr->bitfield().count();
+  return m_ptr->peer_chunks()->bitfield()->count();
 }  
 
 }

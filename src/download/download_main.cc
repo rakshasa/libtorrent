@@ -48,7 +48,7 @@
 #include "tracker/tracker_manager.h"
 
 #include "choke_manager.h"
-#include "delegator_select.h"
+#include "chunk_selector.h"
 #include "download_main.h"
 
 namespace torrent {
@@ -57,6 +57,7 @@ DownloadMain::DownloadMain() :
   m_trackerManager(new TrackerManager()),
   m_chokeManager(new ChokeManager(&this->m_connectionList)),
   m_chunkList(new ChunkList),
+  m_chunkSelector(new ChunkSelector),
 
   m_started(false),
   m_isOpen(false),
@@ -87,6 +88,7 @@ DownloadMain::~DownloadMain() {
   delete m_trackerManager;
   delete m_chokeManager;
   delete m_chunkList;
+  delete m_chunkSelector;
 }
 
 void
@@ -95,10 +97,8 @@ DownloadMain::open() {
     throw internal_error("Tried to open a download that is already open");
 
   m_content.open();
-  m_chunkList->resize(m_content.chunk_total());
-  m_bitfieldCounter.create(m_content.chunk_total());
 
-//   m_delegator.get_select().priority().add(Priority::NORMAL, 0, m_content.chunk_total());
+  m_chunkList->resize(m_content.chunk_total());
 
   m_isOpen = true;
 }
@@ -120,6 +120,7 @@ DownloadMain::close() {
   // Clear the chunklist last as it requires all referenced chunks to
   // be released.
   m_chunkList->clear();
+  m_chunkSelector->cleanup();
 }
 
 void DownloadMain::start() {

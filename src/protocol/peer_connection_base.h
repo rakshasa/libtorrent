@@ -43,11 +43,11 @@
 #include "net/manager.h"
 #include "net/socket_stream.h"
 #include "net/throttle_node.h"
-#include "utils/bitfield_ext.h"
 #include "utils/task.h"
 #include "torrent/rate.h"
 
 #include "peer_info.h"
+#include "peer_chunks.h"
 #include "protocol_base.h"
 #include "request_list.h"
 
@@ -85,9 +85,10 @@ public:
   bool                is_upload_wanted() const      { return m_down->interested() && !m_snubbed; }
 
   bool                is_snubbed() const            { return m_snubbed; }
-  bool                is_seeder() const             { return m_bitfield.all_set(); }
+  bool                is_seeder() const             { return m_peerChunks.bitfield()->all_set(); }
 
   const PeerInfo&     get_peer() const              { return m_peer; }
+  PeerChunks*         peer_chunks()                 { return &m_peerChunks; }
 
   Rate*               peer_rate()                   { return &m_peerRate; }
   Rate*               up_rate()                     { return m_upThrottle->rate(); }
@@ -95,8 +96,6 @@ public:
 
   RequestList&        get_request_list()            { return m_requestList; }
   PieceList&          get_send_list()               { return m_sendList; }
-
-  const BitFieldExt&  bitfield() const          { return m_bitfield; }
 
   // Make sure you choke the peer when snubbing. Snubbing a peer will
   // only cause it not to be unchoked.
@@ -162,6 +161,7 @@ protected:
   ProtocolWrite*      m_up;
 
   PeerInfo            m_peer;
+  PeerChunks          m_peerChunks;
   Rate                m_peerRate;
 
   ThrottleNode*       m_downThrottle;
@@ -182,7 +182,6 @@ protected:
   bool                m_sendInterested;
 
   bool                m_snubbed;
-  BitFieldExt         m_bitfield;
   Timer               m_timeLastChoked;
 
   Timer               m_timeLastRead;

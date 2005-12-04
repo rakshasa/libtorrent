@@ -36,7 +36,10 @@
 
 #include "config.h"
 
+#include <functional>
+
 #include "torrent/exceptions.h"
+
 #include "hash_queue.h"
 #include "hash_chunk.h"
 #include "chunk.h"
@@ -95,6 +98,11 @@ HashQueue::push_back(ChunkHandle handle, SlotDone d, const std::string& id) {
 
   Base::push_back(HashQueueNode(hc, id, d));
   willneed(m_readAhead);
+}
+
+bool
+HashQueue::has(const std::string& id) {
+  return std::find_if(begin(), end(), rak::equal(id, std::mem_fun_ref(&HashQueueNode::get_id))) != end();
 }
 
 bool

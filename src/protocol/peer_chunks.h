@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CHUNKS_H
 #define LIBTORRENT_PROTOCOL_PEER_CHUNKS_H
 
-#include "utils/bitfield.h"
+#include "utils/bitfield_ext.h"
 
 namespace torrent {
 
@@ -45,13 +45,14 @@ class PeerChunks {
 public:
   PeerChunks() : m_usingCounter(false) {}
 
-  BitField*           bitfield()                    { return &m_bitfield; }
+  BitFieldExt*        bitfield()                    { return &m_bitfield; }
+  const BitFieldExt*  bitfield() const              { return &m_bitfield; }
 
-  bool                using_counter()               { return m_usingCounter; }
+  bool                using_counter() const         { return m_usingCounter; }
   void                set_using_counter(bool state) { m_usingCounter = state; }
 
 private:
-  BitField            m_bitfield;
+  BitFieldExt         m_bitfield;
   
   bool                m_usingCounter;
 };

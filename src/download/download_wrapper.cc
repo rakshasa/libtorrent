@@ -51,6 +51,8 @@
 #include "torrent/exceptions.h"
 #include "tracker/tracker_manager.h"
 
+#include "chunk_selector.h"
+
 #include "download_wrapper.h"
 
 namespace torrent {
@@ -125,7 +127,8 @@ DownloadWrapper::hash_resume_load() {
 
     if (resume.get_key("bitfield").as_string().size() != m_main.content()->bitfield().size_bytes() ||
 	files.as_list().size() != m_main.content()->entry_list()->files_size())
-      return;
+      // FIXME: Better control logic.
+      throw bencode_error("");
 
     // Clear the hash checking ranges, and add the files ranges we must check.
     m_hash->ranges().clear();
@@ -165,10 +168,9 @@ DownloadWrapper::hash_resume_load() {
   }
 
   // Clear bits in invalid regions which will be checked by m_hash.
-  for (Priority::Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
+  for (HashTorrent::Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
     m_main.content()->bitfield().set(itr->first, itr->second, false);
 
-  receive_update_priorities();
   m_main.content()->update_done();
 }
 
@@ -350,6 +352,14 @@ DownloadWrapper::receive_initial_hash() {
     // Do we clear the hash?
   }
 
+  if (m_hash->get_queue()->has(get_hash()))
+    throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
+
+  // Initialize the ChunkSelector here so that no chunks will be
+  // marked by HashTorrent that are not accounted for.
+  m_main.chunk_selector()->initialize(&m_main.content()->bitfield());
+  receive_update_priorities();
+
   m_signalInitialHash.emit();
 }    
 
@@ -369,6 +379,9 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
     m_hash->receive_chunkdone();
 
   } else if (is_open()) {
+
+    if (!m_main.chunk_selector()->bitfield()->get(handle->index()))
+      throw internal_error("DownloadMain::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
     if (m_main.content()->receive_chunk_hash(handle->index(), h)) {
       signal_chunk_passed().emit(handle->index());
@@ -424,35 +437,42 @@ DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
 
 void
 DownloadWrapper::receive_update_priorities() {
-  Priority* p = &m_main.delegator()->get_select().priority();
+  m_main.chunk_selector()->high_priority()->clear();
+  m_main.chunk_selector()->normal_priority()->clear();
 
-  p->clear();
+  for (EntryList::iterator itr = m_main.content()->entry_list()->begin(); itr != m_main.content()->entry_list()->end(); ++itr) {
+    if (itr->range().first == itr->range().second)
+      throw internal_error("DownloadWrapper::receive_update_priorities() found a zero length range.");
 
-  for (EntryList::iterator itr = m_main.content()->entry_list()->begin(); itr != m_main.content()->entry_list()->end(); ++itr)
-    if (itr->range().first != itr->range().second)
-      p->add((Priority::Type)itr->priority(), itr->range().first, itr->range().second);
+    if (itr->priority() == 1)
+      m_main.chunk_selector()->normal_priority()->insert(itr->range().first, itr->range().second);
+
+    else if (itr->priority() == 2)
+      m_main.chunk_selector()->high_priority()->insert(itr->range().first, itr->range().second);
+  }
+
+  m_main.chunk_selector()->update_priorities();
 
   std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
 		std::mem_fun(&PeerConnectionBase::update_interested));
 
-  Priority::iterator itr = p->begin(Priority::NORMAL);
+//   Priority::iterator itr = p->begin(Priority::NORMAL);
 
-  while (itr != p->end(Priority::NORMAL) && (itr + 1) != p->end(Priority::NORMAL)) {
-    if (itr->second >= (itr + 1)->first)
-      throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (normal).");
+//   while (itr != p->end(Priority::NORMAL) && (itr + 1) != p->end(Priority::NORMAL)) {
+//     if (itr->second >= (itr + 1)->first)
+//       throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (normal).");
 
-    ++itr;
-  }
+//     ++itr;
+//   }
 
-  itr = p->begin(Priority::HIGH);
+//   itr = p->begin(Priority::HIGH);
 
-  while (itr != p->end(Priority::HIGH) && (itr + 1) != p->end(Priority::HIGH)) {
-    if (itr->second >= (itr + 1)->first)
-      throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (high).");
+//   while (itr != p->end(Priority::HIGH) && (itr + 1) != p->end(Priority::HIGH)) {
+//     if (itr->second >= (itr + 1)->first)
+//       throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (high).");
 
-    ++itr;
-  }
-
+//     ++itr;
+//   }
 }
 
 }

@@ -46,9 +46,13 @@ namespace torrent {
 
 class BitFieldExt : private BitField {
 public:
+  using BitField::iterator;
+  using BitField::const_iterator;
+  using BitField::data_t;
   using BitField::size_t;
   using BitField::size_bits;
   using BitField::size_bytes;
+  using BitField::position;
   using BitField::get;
   using BitField::begin;
   using BitField::end;
@@ -94,6 +98,7 @@ public:
   }
 
   const BitField&     bitfield() { return *this; }
+  const BitField*     base()     { return this; }
 
 private:
   size_t m_count;

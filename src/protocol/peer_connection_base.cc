@@ -41,6 +41,7 @@
 #include "torrent/exceptions.h"
 #include "data/chunk_list.h"
 #include "download/choke_manager.h"
+#include "download/chunk_selector.h"
 #include "download/download_main.h"
 #include "net/socket_base.h"
 
@@ -91,6 +92,7 @@ PeerConnectionBase::~PeerConnectionBase() {
   down_chunk_release();
 
   m_requestList.cancel();
+  m_download->chunk_selector()->erase_peer_chunks(&m_peerChunks);
 
   m_download->upload_throttle()->erase(m_upThrottle);
   m_download->download_throttle()->erase(m_downThrottle);
@@ -128,13 +130,13 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   get_fd().set_throughput();
 
   m_requestList.set_delegator(m_download->delegator());
-  m_requestList.set_bitfield(&m_bitfield.bitfield());
+  m_requestList.set_peer_chunks(&m_peerChunks);
 
   if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
     throw internal_error("PeerConnectionSeed::set(...) recived bad input.");
 
   // Set the bitfield size and zero it
-  m_bitfield = BitFieldExt(m_download->content()->chunk_total());
+  *m_peerChunks.bitfield() = BitFieldExt(m_download->content()->chunk_total());
 
   pollCustom->open(this);
   pollCustom->insert_read(this);
@@ -406,22 +408,22 @@ bool
 PeerConnectionBase::read_bitfield_body() {
   // We're guaranteed that we still got bytes remaining to be
   // read of the bitfield.
-  m_down->adjust_position(read_stream_throws(m_bitfield.begin() + m_down->position(),
-					     m_bitfield.size_bytes() - m_down->position()));
+  m_down->adjust_position(read_stream_throws(m_peerChunks.bitfield()->begin() + m_down->position(),
+					     m_peerChunks.bitfield()->size_bytes() - m_down->position()));
 	
-  return m_down->position() == m_bitfield.size_bytes();
+  return m_down->position() == m_peerChunks.bitfield()->size_bytes();
 }
 
 // 'msgLength' is the length of the message, not how much we got in
 // the buffer.
 bool
 PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
-  if (msgLength != m_bitfield.size_bytes())
+  if (msgLength != m_peerChunks.bitfield()->size_bytes())
     throw network_error("Received invalid bitfield size.");
 
   uint32_t copyLength = std::min((uint32_t)m_down->buffer()->remaining(), msgLength);
 
-  std::memcpy(m_bitfield.begin(), m_down->buffer()->position(), copyLength);
+  std::memcpy(m_peerChunks.bitfield()->begin(), m_down->buffer()->position(), copyLength);
 
   m_down->buffer()->move_position(copyLength);
   m_down->set_position(copyLength);
@@ -434,7 +436,7 @@ PeerConnectionBase::write_bitfield_body() {
   m_up->adjust_position(write_stream_throws(m_download->content()->bitfield().begin() + m_up->position(),
 					    m_download->content()->bitfield().size_bytes() - m_up->position()));
 
-  return m_up->position() == m_bitfield.size_bytes();
+  return m_up->position() == m_peerChunks.bitfield()->size_bytes();
 }
 
 // High stall count peers should request if we're *not* in endgame, or
@@ -470,7 +472,7 @@ PeerConnectionBase::try_request_pieces() {
     if (p == NULL)
       break;
 
-    if (!m_download->content()->is_valid_piece(*p) || !m_bitfield[p->get_index()])
+    if (!m_download->content()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->get_index()))
       throw internal_error("PeerConnectionBase::try_request_pieces() tried to use an invalid piece");
 
     m_up->write_request(*p);
@@ -483,7 +485,7 @@ PeerConnectionBase::try_request_pieces() {
 
 void
 PeerConnectionBase::set_remote_interested() {
-  if (m_down->interested() || m_bitfield.all_set())
+  if (m_down->interested() || m_peerChunks.bitfield()->all_set())
     return;
 
   m_down->set_interested(true);

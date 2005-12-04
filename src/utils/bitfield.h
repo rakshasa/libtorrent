@@ -47,6 +47,8 @@ public:
   typedef uint32_t       size_t;
   typedef uint8_t        data_t;
   typedef const uint8_t  c_data_t;
+  typedef data_t*        iterator;
+  typedef const data_t*  const_iterator;
 
   BitField() :
     m_size(0),
@@ -62,6 +64,8 @@ public:
 
   size_t    size_bits() const             { return m_size; }
   size_t    size_bytes() const            { return m_end - m_start; }
+
+  size_t    position(const_iterator itr) const { return (itr - m_start) * 8; }
 
   // Allow this?
   size_t    count() const;

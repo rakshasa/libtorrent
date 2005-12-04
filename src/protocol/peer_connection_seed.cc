@@ -48,7 +48,7 @@ namespace torrent {
 
 PeerConnectionSeed::~PeerConnectionSeed() {
 //   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
-//     m_download->bitfield_counter().dec(m_bitfield.bitfield());
+//     m_download->bitfield_counter().dec(m_peerChunks.bitfield()->bitfield());
 
 //   taskScheduler.erase(&m_taskSendChoke);
 }
@@ -407,24 +407,24 @@ PeerConnectionSeed::event_write() {
 
 void
 PeerConnectionSeed::read_have_chunk(uint32_t index) {
-  if (index >= m_bitfield.size_bits())
+  if (index >= m_peerChunks.bitfield()->size_bits())
     throw network_error("Peer sent HAVE message with out-of-range index.");
 
-  m_bitfield.set(index, true);
+  m_peerChunks.bitfield()->set(index, true);
   m_peerRate.insert(m_download->content()->chunk_size());
 
-  if (m_bitfield.all_set())
+  if (m_peerChunks.bitfield()->all_set())
     throw close_connection();
 }
 
 void
 PeerConnectionSeed::finish_bitfield() {
-  m_bitfield.update_count();
+  m_peerChunks.bitfield()->update_count();
 
-  if (m_bitfield.all_set())
+  if (m_peerChunks.bitfield()->all_set())
     throw close_connection();
 
-//   m_download->bitfield_counter().inc(m_bitfield.bitfield());
+//   m_download->bitfield_counter().inc(m_peerChunks.bitfield()->bitfield());
 
   write_insert_poll_safe();
 }

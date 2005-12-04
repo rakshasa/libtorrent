@@ -41,8 +41,6 @@
 #include <vector>
 #include <rak/functional.h>
 
-#include "delegator_select.h"
-
 namespace torrent {
 
 class BitField;
@@ -52,12 +50,16 @@ class DelegatorChunk;
 class DelegatorReservee;
 class DelegatorPiece;
 class Piece;
+class PeerChunks;
+class ChunkSelector;
 
 class Delegator {
 public:
-  typedef std::vector<DelegatorChunk*>                        Chunks;
-  typedef rak::mem_fn1<DownloadMain, void, unsigned int>      SlotChunkDone;
-  typedef rak::const_mem_fn1<Content, uint32_t, unsigned int> SlotChunkSize;
+  typedef std::vector<DelegatorChunk*>                             Chunks;
+  typedef rak::mem_fn1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
+  typedef rak::mem_fn2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
+  typedef rak::mem_fn1<DownloadMain, void, unsigned int>           SlotChunkDone;
+  typedef rak::const_mem_fn1<Content, uint32_t, unsigned int>      SlotChunkSize;
 
   static const unsigned int block_size = 1 << 14;
 
@@ -66,7 +68,7 @@ public:
 
   void               clear();
 
-  DelegatorReservee* delegate(const BitField& bf, int affinity);
+  DelegatorReservee* delegate(PeerChunks* peerChunks, int affinity);
 
   void               finished(DelegatorReservee& r);
 
@@ -74,11 +76,13 @@ public:
   void               redo(unsigned int index);
 
   Chunks&            get_chunks()                         { return m_chunks; }
-  DelegatorSelect&   get_select()                         { return m_select; }
 
   bool               get_aggressive()                     { return m_aggressive; }
   void               set_aggressive(bool a)               { m_aggressive = a; }
 
+  void               slot_chunk_enable(SlotChunkIndex s)  { m_slotChunkEnable = s; }
+  void               slot_chunk_disable(SlotChunkIndex s) { m_slotChunkDisable = s; }
+  void               slot_chunk_find(SlotChunkFind s)     { m_slotChunkFind = s; }
   void               slot_chunk_done(SlotChunkDone s)     { m_slotChunkDone = s; }
   void               slot_chunk_size(SlotChunkSize s)     { m_slotChunkSize = s; }
 
@@ -89,7 +93,7 @@ public:
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
-  DelegatorPiece*    new_chunk(const BitField& bf, Priority::Type p, int affinity);
+  DelegatorPiece*    new_chunk(PeerChunks* pc, bool highPriority);
   DelegatorPiece*    find_piece(const Piece& p);
 
   bool               all_finished(int index);
@@ -97,8 +101,12 @@ private:
   bool               m_aggressive;
 
   Chunks             m_chunks;
-  DelegatorSelect    m_select;
 
+  // Propably should add a m_slotChunkStart thing, which will take
+  // care of enabling etc, and will be possible to listen to.
+  SlotChunkIndex     m_slotChunkEnable;
+  SlotChunkIndex     m_slotChunkDisable;
+  SlotChunkFind      m_slotChunkFind;
   SlotChunkDone      m_slotChunkDone;
   SlotChunkSize      m_slotChunkSize;
 };

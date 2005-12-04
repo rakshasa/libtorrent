@@ -71,6 +71,7 @@ public:
 
   void                push_back(ChunkHandle handle, SlotDone d, const std::string& id);
 
+  bool                has(const std::string& id);
   bool                has(const std::string& id, uint32_t index);
 
   void                remove(const std::string& id);

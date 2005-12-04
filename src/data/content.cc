@@ -163,8 +163,11 @@ Content::clear() {
 
 bool
 Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
-  if (index >= m_chunkTotal || m_bitfield[index] || m_completed >= m_chunkTotal)
+  if (index >= m_chunkTotal || m_completed >= m_chunkTotal)
     throw internal_error("Content::receive_chunk_hash(...) received an invalid index.");
+
+  if (m_bitfield[index])
+    throw internal_error("Content::receive_chunk_hash(...) received a chunk that has already been finished.");
 
   if (hash.empty() || std::memcmp(hash.c_str(), chunk_hash(index), 20) != 0)
     return false;

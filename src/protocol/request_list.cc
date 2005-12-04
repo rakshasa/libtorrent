@@ -43,15 +43,15 @@
 #include "download/delegator.h"
 #include "download/delegator_chunk.h"
 #include "download/delegator_reservee.h"
-#include "utils/bitfield.h"
 
+#include "peer_chunks.h"
 #include "request_list.h"
 
 namespace torrent {
 
 const Piece*
 RequestList::delegate() {
-  DelegatorReservee* r = m_delegator->delegate(*m_bitfield, m_affinity);
+  DelegatorReservee* r = m_delegator->delegate(m_peerChunks, m_affinity);
 
   if (r) {
     m_affinity = r->get_piece().get_index();
@@ -115,8 +115,8 @@ RequestList::downloading(const Piece& p) {
   if (p != m_reservees.front()->get_piece())
     throw internal_error("RequestList::downloading(...) did not add the new piece to the front of the list");
   
-  if ((*m_delegator->get_select().bitfield())[p.get_index()])
-    throw internal_error("RequestList::downloading(...) called with a piece index we already have");
+//   if ((*m_delegator->get_select().bitfield())[p.get_index()])
+//     throw internal_error("RequestList::downloading(...) called with a piece index we already have");
 
   return true;
 }
@@ -155,7 +155,7 @@ struct equals_reservee : public std::binary_function<DelegatorReservee*, int32_t
 bool
 RequestList::is_interested_in_active() const {
   for (Delegator::Chunks::const_iterator itr = m_delegator->get_chunks().begin(), last = m_delegator->get_chunks().end(); itr != last; ++itr)
-    if ((*m_bitfield)[(*itr)->get_index()])
+    if (m_peerChunks->bitfield()->get((*itr)->get_index()))
       return true;
 
   return false;
