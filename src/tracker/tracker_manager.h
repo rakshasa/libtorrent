@@ -41,7 +41,7 @@
 #include <rak/functional.h>
 
 #include "net/socket_address.h"
-#include "utils/task.h"
+#include "globals.h"
 
 namespace torrent {
 
@@ -93,7 +93,7 @@ public:
 
   TrackerInfo*        tracker_info();
 
-  Timer               get_next_timeout() const;
+  rak::timer          get_next_timeout() const;
 
   void                slot_success(SlotSuccess s)               { m_slotSuccess = s; }
   void                slot_failed(SlotFailed s)                 { m_slotFailed = s; }
@@ -121,9 +121,9 @@ private:
   TaskItem            m_taskTimeout;
 };
 
-inline Timer
+inline rak::timer
 TrackerManager::get_next_timeout() const {
-  return taskScheduler.is_scheduled(&m_taskTimeout) ? m_taskTimeout.get_time() : Timer();
+  return taskScheduler.is_scheduled(&m_taskTimeout) ? m_taskTimeout.get_time() : rak::timer();
 }
 
 }

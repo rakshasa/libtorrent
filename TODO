@@ -15,11 +15,9 @@ hidden.
 
 Make the vfat workaround configurable.
 
-Consider moving delegator init to start/stop.
+* Move block download done to DownloadWrapper.
 
-Move block download done to DownloadWrapper.
-
-Move finished delay signal out into downloadwrapper.
+* Move finished delay signal out into downloadwrapper.
 
 
 === For the next API change ===

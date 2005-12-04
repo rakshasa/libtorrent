@@ -55,9 +55,6 @@ Content::Content() :
 
   m_entryList(new EntryList),
   m_rootDir(".") {
-
-  m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
-  m_delayDownloadDone.set_iterator(taskScheduler.end());
 }
 
 Content::~Content() {
@@ -90,22 +87,6 @@ Content::set_complete_hash(const std::string& hash) {
 
   m_hash = hash;
 }
-
-void
-Content::set_root_dir(const std::string& dir) {
-//   if (m_chunkTotal)
-//     throw internal_error("Tried to set root directory on Content that is open");
-
-  m_rootDir = dir;
-}
-
-// std::string
-// Content::get_hash(unsigned int index) {
-//   if (index >= m_chunkTotal)
-//     throw internal_error("Tried to get chunk hash from Content that is out of range");
-
-//   return m_hash.substr(index * 20, 20);
-// }
 
 uint32_t
 Content::chunk_index_size(uint32_t index) const {
@@ -152,7 +133,6 @@ Content::close() {
   clear();
 
   m_entryList->close();
-  taskScheduler.erase(&m_delayDownloadDone);
 }
 
 void
@@ -185,15 +165,6 @@ Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
     throw internal_error("Content::mark_done got first == m_entryList->end().");
 
   std::for_each(first, last, std::mem_fun_ref(&EntryListNode::inc_completed));
-
-  // We delay emitting the signal to allow the delegator to clean
-  // up. If we do a straight call it would cause problems for
-  // clients that wish to close and reopen the torrent, as
-  // HashQueue, Delegator etc shouldn't be cleaned up at this point.
-  if (m_completed == m_chunkTotal &&
-      !m_delayDownloadDone.get_slot().blocked() &&
-      !taskScheduler.is_scheduled(&m_delayDownloadDone))
-    taskScheduler.insert(&m_delayDownloadDone, Timer::cache());
 
   return true;
 }

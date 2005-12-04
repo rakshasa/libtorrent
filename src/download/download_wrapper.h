@@ -120,6 +120,7 @@ public:
   void                receive_update_priorities();
 
   Signal&             signal_initial_hash()          { return m_signalInitialHash; }
+  Signal&             signal_download_done()         { return m_signalDownloadDone; }
 
   // The list of addresses is guaranteed to be sorted and unique.
   Signal&             signal_tracker_success()       { return m_signalTrackerSuccess; }
@@ -143,6 +144,9 @@ private:
   int                 m_connectionType;
 
   Signal              m_signalInitialHash;
+  Signal              m_signalDownloadDone;
+  TaskItem            m_delayDownloadDone;
+
   Signal              m_signalTrackerSuccess;
   SignalString        m_signalTrackerFailed;
 

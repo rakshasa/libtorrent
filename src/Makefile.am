@@ -20,6 +20,8 @@ libtorrent_la_LIBADD = \
 	$(top_srcdir)/src/utils/libsub_utils.la
 
 libtorrent_la_SOURCES = \
+	globals.cc \
+	globals.h \
 	manager.cc \
 	manager.h \
 	resource_manager.cc \

@@ -37,8 +37,9 @@
 #ifndef LIBTORRENT_NET_THROTTLE_MANAGER_H
 #define LIBTORRENT_NET_THROTTLE_MANAGER_H
 
-#include "utils/task.h"
-#include "utils/timer.h"
+#include <rak/timer.h>
+
+#include "globals.h"
 
 namespace torrent {
 
@@ -66,7 +67,7 @@ private:
 
   ThrottleList*       m_throttleList;
 
-  Timer               m_timeLastTick;
+  rak::timer          m_timeLastTick;
   TaskItem            m_taskTick;
 };
 

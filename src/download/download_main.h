@@ -47,7 +47,7 @@
 #include "data/content.h"
 #include "data/chunk_handle.h"
 #include "protocol/peer_info.h"
-#include "utils/task.h"
+#include "globals.h"
 #include "torrent/rate.h"
 
 namespace torrent {

@@ -34,15 +34,18 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_UTILS_TASK_H
-#define LIBTORRENT_UTILS_TASK_H
+#ifndef LIBTORRENT_GLOBALS_H
+#define LIBTORRENT_GLOBALS_H
 
-#include "task_scheduler.h"
+#include <rak/timer.h>
+
+#include "utils/task_scheduler.h"
 
 namespace torrent {
-  
+
 extern TaskScheduler taskScheduler;
-  
+extern rak::timer    cachedTime;
+
 }
 
 #endif

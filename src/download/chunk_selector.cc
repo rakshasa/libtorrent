@@ -36,7 +36,9 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <rak/functional.h>
 
 #include "protocol/peer_chunks.h"
 #include "torrent/exceptions.h"
@@ -47,8 +49,12 @@ namespace torrent {
 
 void
 ChunkSelector::initialize(BitField* bf) {
-  m_bitfield = *bf;
   m_position = invalid_chunk;
+
+  m_bitfield = BitField(bf->size_bits());
+
+  std::transform(bf->begin(), bf->end(), m_bitfield.begin(), rak::invert<BitField::data_t>());
+  m_bitfield.cleanup();
 }
 
 void
@@ -58,9 +64,10 @@ ChunkSelector::cleanup() {
 
 void
 ChunkSelector::update_priorities() {
-  m_position = std::rand() % size();
+  if (m_position == invalid_chunk)
+    m_position = std::rand() % size();
 
-  // Find the next wanted piece.
+  advance_position();
 }
 
 uint32_t
@@ -70,38 +77,43 @@ ChunkSelector::find(PeerChunks* peerChunks, bool highPriority) {
 
   uint32_t position;
 
-  if ((position = search(peerChunks, &m_highPriority, m_position, m_bitfield.size_bits())) == invalid_chunk &&
-      (position = search(peerChunks, &m_highPriority, 0, m_position)) == invalid_chunk &&
-      (position = search(peerChunks, &m_normalPriority, m_position, m_bitfield.size_bits())) == invalid_chunk &&
-      (position = search(peerChunks, &m_normalPriority, 0, m_position)) == invalid_chunk)
+  if ((position = search(peerChunks->bitfield()->base(), &m_highPriority, m_position, size())) == invalid_chunk &&
+      (position = search(peerChunks->bitfield()->base(), &m_highPriority, 0, m_position)) == invalid_chunk &&
+      (position = search(peerChunks->bitfield()->base(), &m_normalPriority, m_position, size())) == invalid_chunk &&
+      (position = search(peerChunks->bitfield()->base(), &m_normalPriority, 0, m_position)) == invalid_chunk)
     return invalid_chunk;
 
-  if (m_bitfield.get(position))
+  if (!m_bitfield.get(position))
     throw internal_error("ChunkSelector::find(...) tried to return an index that is already set.");
 
   return position;
 }
 
 void
-ChunkSelector::select_index(uint32_t index) {
+ChunkSelector::using_index(uint32_t index) {
   if (index >= size())
     throw internal_error("ChunkSelector::select_index(...) index out of range.");
 
-  if (m_bitfield.get(index))
+  if (!m_bitfield.get(index))
     throw internal_error("ChunkSelector::select_index(...) index already set.");
 
-  m_bitfield.set(index, true);
+  m_bitfield.set(index, false);
+
+  // We always know 'm_position' points to a wanted chunk. If it
+  // changes, we need to move m_position to the next one.
+  if (index == m_position)
+    advance_position();
 }
 
 void
-ChunkSelector::deselect_index(uint32_t index) {
+ChunkSelector::not_using_index(uint32_t index) {
   if (index >= size())
     throw internal_error("ChunkSelector::deselect_index(...) index out of range.");
 
-  if (!m_bitfield.get(index))
+  if (m_bitfield.get(index))
     throw internal_error("ChunkSelector::deselect_index(...) index already unset.");
 
-  m_bitfield.set(index, false);
+  m_bitfield.set(index, true);
 }
 
 void
@@ -113,13 +125,13 @@ ChunkSelector::erase_peer_chunks(PeerChunks* peerChunks) {
 }
 
 inline uint32_t
-ChunkSelector::search(PeerChunks* peerChunks, PriorityRanges* ranges, uint32_t first, uint32_t last) {
+ChunkSelector::search(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last) {
   uint32_t position;
-  PriorityRanges::iterator itr = ranges->find(m_position);
+  PriorityRanges::iterator itr = ranges->find(first);
 
   while (itr != ranges->end() && itr->first < last) {
 
-    if ((position = search_range(peerChunks, std::max(first, itr->first), std::min(last, itr->second))) != invalid_chunk)
+    if ((position = search_range(bf, std::max(first, itr->first), std::min(last, itr->second))) != invalid_chunk)
       return position;
     
     ++itr;    
@@ -131,15 +143,15 @@ ChunkSelector::search(PeerChunks* peerChunks, PriorityRanges* ranges, uint32_t f
 // Could propably add another argument for max seen or something, this
 // would be used to find better chunks to request.
 inline uint32_t
-ChunkSelector::search_range(PeerChunks* peerChunks, uint32_t first, uint32_t last) {
+ChunkSelector::search_range(const BitField* bf, uint32_t first, uint32_t last) {
   if (first >= last || last > size())
     throw internal_error("ChunkSelector::find_range(...) received an invalid range.");
 
-  BitFieldExt::const_iterator local  = m_bitfield.begin() + first / 8;
-  BitFieldExt::const_iterator source = peerChunks->bitfield()->begin() + first / 8;
+  BitField::const_iterator local  = m_bitfield.begin() + first / 8;
+  BitField::const_iterator source = bf->begin() + first / 8;
 
   // Unset any bits before 'first'.
-  BitFieldExt::data_t wanted = (*source & ~*local) & (~(BitFieldExt::data_t)0 >> (first % 8));
+  BitField::data_t wanted = (*source & *local) & (~(BitField::data_t)0 >> (first % 8));
 
   while (wanted == 0) {
     ++local;
@@ -148,7 +160,7 @@ ChunkSelector::search_range(PeerChunks* peerChunks, uint32_t first, uint32_t las
     if (m_bitfield.position(local) >= last)
       return invalid_chunk;
 
-    wanted = (*source & ~*local);
+    wanted = (*source & *local);
   }
   
   uint32_t position = m_bitfield.position(local) + search_byte(wanted);
@@ -163,10 +175,22 @@ inline uint32_t
 ChunkSelector::search_byte(uint8_t wanted) {
   uint32_t i = 0;
 
-  while ((wanted & ((BitFieldExt::data_t)1 << (7 - i))) == 0)
+  while ((wanted & ((BitField::data_t)1 << (7 - i))) == 0)
     i++;
   
   return i;
+}
+
+void
+ChunkSelector::advance_position() {
+  int position = m_position;
+
+  // Find the next wanted piece.
+  if ((m_position = search(&m_bitfield, &m_highPriority, position, size())) == invalid_chunk &&
+      (m_position = search(&m_bitfield, &m_highPriority, 0, position)) == invalid_chunk &&
+      (m_position = search(&m_bitfield, &m_normalPriority, position, size())) == invalid_chunk &&
+      (m_position = search(&m_bitfield, &m_normalPriority, 0, position)) == invalid_chunk)
+    ;
 }
 
 }

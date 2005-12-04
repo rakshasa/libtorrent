@@ -62,10 +62,6 @@
 
 namespace torrent {
 
-int64_t Timer::m_cache;
-
-TaskScheduler taskScheduler;
-
 uint32_t
 calculate_max_open_files(uint32_t openMax) {
   if (openMax >= 8096)
@@ -99,7 +95,7 @@ initialize(Poll* poll) {
   if (manager != NULL)
     throw client_error("torrent::initialize(...) called but the library has already been initialized");
 
-  Timer::update();
+  cachedTime = rak::timer::current();
 
   manager = new Manager;
 
@@ -152,8 +148,8 @@ listen_close() {
 
 void
 perform() {
-  Timer::update();
-  taskScheduler.execute(Timer::cache());
+  cachedTime = rak::timer::current();
+  taskScheduler.execute(cachedTime);
 }
 
 bool
@@ -213,10 +209,10 @@ total_handshakes() {
 
 int64_t
 next_timeout() {
-  Timer::update();
+  cachedTime = rak::timer::current();
 
   return !taskScheduler.empty() ?
-    std::max(taskScheduler.next_timeout() - Timer::cache(), Timer()).usec() :
+    std::max(taskScheduler.next_timeout() - cachedTime, rak::timer()).usec() :
     60 * 1000000;
 }
 

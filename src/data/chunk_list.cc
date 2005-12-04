@@ -40,6 +40,7 @@
 
 #include "chunk_list.h"
 #include "chunk.h"
+#include "globals.h"
 
 namespace torrent {
 
@@ -100,7 +101,7 @@ ChunkList::get(size_type index, bool writable) {
       delete node->chunk();
 
     node->set_chunk(chunk.first);
-    node->set_time_modified(Timer());
+    node->set_time_modified(rak::timer());
   }
 
   node->inc_references();
@@ -155,14 +156,14 @@ ChunkList::release(ChunkHandle handle) {
 }
 
 struct chunk_list_last_modified {
-  chunk_list_last_modified() : m_time(Timer::cache()) {}
+  chunk_list_last_modified() : m_time(cachedTime) {}
 
   void operator () (ChunkListNode* node) {
-    if (node->time_modified() < m_time && node->time_modified() != Timer())
+    if (node->time_modified() < m_time && node->time_modified() != rak::timer())
       m_time = node->time_modified();
   }
 
-  Timer m_time;
+  rak::timer m_time;
 };
 
 inline void
@@ -215,7 +216,7 @@ ChunkList::sync_periodic() {
   // sync those chunks.
 
   if (std::distance(split, m_queue.end()) < (difference_type)m_maxQueueSize &&
-      std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + m_maxTimeQueued * 1000000 < Timer::cache())
+      std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + m_maxTimeQueued * 1000000 < cachedTime)
     return;
 
   std::sort(split, m_queue.end(), std::ptr_fun(&ChunkList::less_chunk_index));

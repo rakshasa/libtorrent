@@ -51,8 +51,8 @@ void
 DownloadMain::setup_delegator() {
   //m_delegator.get_select().set_bitfield(&m_content.bitfield());
 
-  m_delegator.slot_chunk_enable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::select_index));
-  m_delegator.slot_chunk_disable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::deselect_index));
+  m_delegator.slot_chunk_enable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::using_index));
+  m_delegator.slot_chunk_disable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::not_using_index));
   m_delegator.slot_chunk_find(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_done(rak::make_mem_fn(this, &DownloadMain::receive_chunk_done));
   m_delegator.slot_chunk_size(rak::make_mem_fn(&m_content, &Content::chunk_index_size));
@@ -76,8 +76,7 @@ DownloadMain::setup_start() {
 //   m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
 //   m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
 
-  taskScheduler.insert(&m_taskTick, (Timer::cache() + 2 * 30 * 1000000).round_seconds());
-  m_content.block_download_done(false);
+  taskScheduler.insert(&m_taskTick, (cachedTime + 2 * 30 * 1000000).round_seconds());
 }
 
 void
@@ -87,7 +86,6 @@ DownloadMain::setup_stop() {
 
   taskScheduler.erase(&m_taskTick);
   taskScheduler.erase(&m_taskTrackerRequest);
-  m_content.block_download_done(true);
 }
 
 }

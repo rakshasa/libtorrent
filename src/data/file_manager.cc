@@ -114,7 +114,7 @@ FileManager::close_file(FileMeta* meta) {
 }
 
 struct FileManagerActivity {
-  FileManagerActivity() : m_last(Timer::cache()), m_meta(NULL) {}
+  FileManagerActivity() : m_last(cachedTime), m_meta(NULL) {}
 
   void operator ()(FileMeta* f) {
     if (f->is_open() && f->get_last_touched() <= m_last) {
@@ -123,8 +123,8 @@ struct FileManagerActivity {
     }
   }
 
-  Timer     m_last;
-  FileMeta* m_meta;
+  rak::timer m_last;
+  FileMeta*  m_meta;
 };
 
 void

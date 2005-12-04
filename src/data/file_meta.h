@@ -39,8 +39,8 @@
 
 #include <rak/functional.h>
 
-#include "utils/timer.h"
 #include "file.h"
+#include "globals.h"
 
 namespace torrent {
 
@@ -50,7 +50,7 @@ class FileMeta {
 public:
   typedef rak::mem_fn3<FileManager, bool, FileMeta*, int, int> SlotPrepare;
 
-  FileMeta() : m_lastTouched(Timer::cache()) {}
+  FileMeta() : m_lastTouched(cachedTime) {}
 
   bool                is_open() const                            { return m_file.is_open(); }
   bool                has_permissions(int prot) const            { return !(prot & ~get_prot()); }
@@ -66,8 +66,8 @@ public:
 
   int                 get_prot() const                           { return m_file.get_prot(); }
 
-  Timer               get_last_touched() const                   { return m_lastTouched; }
-  void                set_last_touched(Timer t = Timer::cache()) { m_lastTouched = t; }
+  rak::timer          get_last_touched() const                   { return m_lastTouched; }
+  void                set_last_touched(rak::timer t = cachedTime) { m_lastTouched = t; }
 
   void                slot_prepare(SlotPrepare s)                { m_slotPrepare = s; }
 
@@ -75,13 +75,13 @@ private:
   File                m_file;
   std::string         m_path;
 
-  Timer               m_lastTouched;
+  rak::timer          m_lastTouched;
   SlotPrepare         m_slotPrepare;
 };
 
 inline bool
 FileMeta::prepare(int prot, int flags) {
-  m_lastTouched = Timer::cache();
+  m_lastTouched = cachedTime;
 
   return (is_open() && has_permissions(prot)) || m_slotPrepare(this, prot, flags);
 }

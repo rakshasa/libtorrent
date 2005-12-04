@@ -39,11 +39,10 @@
 
 #include <inttypes.h>
 #include <string>
-#include <sigc++/signal.h>
 #include <rak/error_number.h>
 
 #include "utils/bitfield.h"
-#include "utils/task.h"
+#include "globals.h"
 
 #include "data/entry_list.h"
 
@@ -66,7 +65,6 @@ class Content {
 public:
   typedef std::pair<uint32_t, uint32_t>       Range;
   typedef std::pair<Chunk*,rak::error_number> CreateChunk;
-  typedef sigc::signal0<void>                 Signal;
 
   Content();
   ~Content();
@@ -76,11 +74,11 @@ public:
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
 
-  const std::string&     complete_hash()                      { return m_hash; }
+  const std::string&     complete_hash()                            { return m_hash; }
   void                   set_complete_hash(const std::string& hash);
 
-  const std::string&     root_dir()                           { return m_rootDir; }
-  void                   set_root_dir(const std::string& path);
+  const std::string&     root_dir() const                           { return m_rootDir; }
+  void                   set_root_dir(const std::string& path)      { m_rootDir = path; }
 
   uint32_t               chunks_completed() const             { return m_completed; }
   uint64_t               bytes_completed() const;
@@ -111,9 +109,6 @@ public:
 
   void                   update_done();
 
-  Signal&                signal_download_done()               { return m_signalDownloadDone; }
-  void                   block_download_done(bool v)          { m_delayDownloadDone.get_slot().block(v); }
-
 private:
   Range                  make_index_range(uint64_t pos, uint64_t size) const;
 
@@ -126,9 +121,6 @@ private:
 
   std::string            m_rootDir;
   std::string            m_hash;
-
-  Signal                 m_signalDownloadDone;
-  TaskItem               m_delayDownloadDone;
 };
 
 inline Content::Range

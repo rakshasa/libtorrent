@@ -54,7 +54,7 @@ TrackerControl::TrackerControl() :
   m_normalInterval(1800),
   m_minInterval(0),
   m_state(TrackerInfo::STOPPED),
-  m_timeLastConnection(Timer::cache()) {
+  m_timeLastConnection(cachedTime) {
   
   m_itr = m_list.end();
 }
@@ -153,7 +153,7 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
-  m_timeLastConnection = Timer::cache();
+  m_timeLastConnection = cachedTime;
   m_slotSuccess(l);
 }
 

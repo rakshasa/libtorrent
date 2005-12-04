@@ -41,7 +41,7 @@
 
 #include "net/socket_stream.h"
 #include "protocol/peer_info.h"
-#include "utils/task.h"
+#include "globals.h"
 
 namespace torrent {
 

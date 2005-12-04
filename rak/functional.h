@@ -211,6 +211,12 @@ greater_equal(Type t, Ftor f) {
   return greater_equal_t<Type, Ftor>(t, f);
 }
 
+template<typename _Tp>
+struct invert : public std::unary_function<_Tp, _Tp> {
+  _Tp
+  operator () (const _Tp& __x) const { return ~__x; }
+};
+
 template <typename Src, typename Dest>
 struct on_t : public std::unary_function<typename Src::argument_type, typename Dest::result_type> {
   typedef typename Dest::result_type result_type;

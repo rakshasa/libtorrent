@@ -42,7 +42,7 @@
 #include "hash_queue_node.h"
 #include "chunk_handle.h"
 
-#include "utils/task.h"
+#include "globals.h"
 
 namespace torrent {
 

@@ -53,7 +53,7 @@ ThrottleManager::ThrottleManager() :
   m_maxRate(0),
   m_throttleList(new ThrottleList()) {
 
-  m_timeLastTick = Timer::cache();
+  m_timeLastTick = cachedTime;
 
   m_taskTick.set_iterator(taskScheduler.end());
   m_taskTick.set_slot(sigc::mem_fun(*this, &ThrottleManager::receive_tick));
@@ -80,7 +80,7 @@ ThrottleManager::set_max_rate(uint32_t v) {
 
     // We need to start the ticks, and make sure we set m_timeLastTick
     // to a value that gives an reasonable initial quota.
-    m_timeLastTick = Timer::cache() - 1000000;
+    m_timeLastTick = cachedTime - 1000000;
     receive_tick();
 
   } else if (m_maxRate == 0) {
@@ -91,15 +91,15 @@ ThrottleManager::set_max_rate(uint32_t v) {
 
 void
 ThrottleManager::receive_tick() {
-  if (Timer::cache() <= m_timeLastTick + 90000)
+  if (cachedTime <= m_timeLastTick + 90000)
     throw internal_error("ThrottleManager::receive_tick() called at a to short interval.");
 
-  float timeSinceLast = (Timer::cache().usec() - m_timeLastTick.usec()) / 1000000.0f;
+  float timeSinceLast = (cachedTime.usec() - m_timeLastTick.usec()) / 1000000.0f;
 
   m_throttleList->update_quota((uint32_t)(m_maxRate * timeSinceLast));
 
-  taskScheduler.insert(&m_taskTick, Timer::cache() + calculate_interval());
-  m_timeLastTick = Timer::cache();
+  taskScheduler.insert(&m_taskTick, cachedTime + calculate_interval());
+  m_timeLastTick = cachedTime;
 }
 
 uint32_t

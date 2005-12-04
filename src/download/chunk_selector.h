@@ -81,16 +81,18 @@ public:
 
   uint32_t            find(PeerChunks* peerChunks, bool highPriority);
 
-  void                select_index(uint32_t index);
-  void                deselect_index(uint32_t index);
+  void                using_index(uint32_t index);
+  void                not_using_index(uint32_t index);
 
   void                insert_peer_chunks(PeerChunks* peerChunks);
   void                erase_peer_chunks(PeerChunks* peerChunks);
 
 private:
-  inline uint32_t     search(PeerChunks* peerChunks, PriorityRanges* ranges, uint32_t first, uint32_t last);
-  inline uint32_t     search_range(PeerChunks* peerChunks, uint32_t first, uint32_t last);
+  inline uint32_t     search(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
+  inline uint32_t     search_range(const BitField* bf, uint32_t first, uint32_t last);
   inline uint32_t     search_byte(uint8_t wanted);
+
+  void                advance_position();
 
   BitField            m_bitfield;
   BitFieldCounter     m_bitfieldCounter;

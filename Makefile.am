@@ -15,4 +15,5 @@ EXTRA_DIST= \
         rak/functional.h \
 	rak/ranges.h \
 	rak/string_manip.h \
+	rak/timer.h \
 	rak/unordered_vector.h

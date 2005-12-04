@@ -40,7 +40,7 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_address.h"
 #include "net/socket_datagram.h"
-#include "utils/task.h"
+#include "globals.h"
 #include "tracker_base.h"
 
 namespace torrent {

@@ -46,7 +46,7 @@
 #include "tracker_list.h"
 
 #include "net/socket_address.h"
-#include "utils/task.h"
+#include "globals.h"
 
 namespace torrent {
 
@@ -89,7 +89,7 @@ public:
 
   bool                focus_next_group();
 
-  Timer               time_last_connection() const            { return m_timeLastConnection; }
+  rak::timer          time_last_connection() const            { return m_timeLastConnection; }
 
   void                slot_success(SlotSuccess s)             { m_slotSuccess = s; }
   void                slot_failed(SlotFailed s)               { m_slotFailed = s; }
@@ -116,7 +116,7 @@ private:
   TrackerList           m_list;
   TrackerList::iterator m_itr;
 
-  Timer               m_timeLastConnection;
+  rak::timer          m_timeLastConnection;
 
   SlotSuccess         m_slotSuccess;
   SlotFailed          m_slotFailed;

@@ -54,7 +54,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
   m_taskTimeout.set_iterator(taskScheduler.end());
   m_taskTimeout.set_slot(sigc::mem_fun(*this, &Handshake::send_failed));
 
-  taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 60 * 1000000).round_seconds());
+  taskScheduler.insert(&m_taskTimeout, (cachedTime + 60 * 1000000).round_seconds());
 }
 
 Handshake::~Handshake() {

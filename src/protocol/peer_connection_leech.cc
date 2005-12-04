@@ -90,7 +90,7 @@ PeerConnectionLeech::receive_finished_chunk(int32_t index) {
 
 bool
 PeerConnectionLeech::receive_keepalive() {
-  if (Timer::cache() - m_timeLastRead > 240 * 1000000)
+  if (cachedTime - m_timeLastRead > 240 * 1000000)
     return false;
 
   // There's no point in adding ourselves to the write poll if the
@@ -240,7 +240,7 @@ PeerConnectionLeech::read_message() {
       
     } else if (down_chunk_from_buffer()) {
       // Done with chunk.
-      m_downChunk->set_time_modified(Timer::cache());
+      m_downChunk->set_time_modified(cachedTime);
       m_requestList.finished();
     
       if (m_downStall > 0)
@@ -277,7 +277,7 @@ PeerConnectionLeech::read_message() {
 
 void
 PeerConnectionLeech::event_read() {
-  m_timeLastRead = Timer::cache();
+  m_timeLastRead = cachedTime;
 
   // Need to make sure ProtocolBuffer::end() is pointing to the end of
   // the unread data, and that the unread data starts from the
@@ -325,7 +325,7 @@ PeerConnectionLeech::event_read() {
 	if (!down_chunk())
 	  return;
 
-	m_downChunk->set_time_modified(Timer::cache());
+	m_downChunk->set_time_modified(cachedTime);
 	m_requestList.finished();
 	
 	if (m_downStall > 0)

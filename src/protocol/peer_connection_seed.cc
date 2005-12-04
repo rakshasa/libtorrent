@@ -76,7 +76,7 @@ PeerConnectionSeed::receive_finished_chunk(int32_t i) {
 
 bool
 PeerConnectionSeed::receive_keepalive() {
-  if (Timer::cache() - m_timeLastRead > 240 * 1000000)
+  if (cachedTime - m_timeLastRead > 240 * 1000000)
     return false;
 
   // There's no point in adding ourselves to the write poll if the
@@ -202,7 +202,7 @@ PeerConnectionSeed::read_message() {
 
 void
 PeerConnectionSeed::event_read() {
-  m_timeLastRead = Timer::cache();
+  m_timeLastRead = cachedTime;
 
   // Need to make sure ProtocolBuffer::end() is pointing to the end of
   // the unread data, and that the unread data starts from the

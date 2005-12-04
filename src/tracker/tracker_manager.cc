@@ -155,7 +155,7 @@ TrackerManager::manual_request(bool force) {
   if (!taskScheduler.is_scheduled(&m_taskTimeout))
     return;
 
-  Timer t(Timer::cache() + 2 * 1000000);
+  rak::timer t(cachedTime + 2 * 1000000);
   
   if (!force)
     t = std::max(t, m_control->time_last_connection() + m_control->get_min_interval() * 1000000);
@@ -243,7 +243,7 @@ TrackerManager::receive_success(AddressList* l) {
   m_isRequesting = false;
 
   m_control->set_state(TrackerInfo::NONE);
-  taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_control->get_normal_interval() * 1000000).round_seconds());
+  taskScheduler.insert(&m_taskTimeout, (cachedTime + m_control->get_normal_interval() * 1000000).round_seconds());
 
   m_slotSuccess(l);
 }
@@ -260,9 +260,9 @@ TrackerManager::receive_failed(const std::string& msg) {
       // Don't start from the beginning of the list if we've gone
       // through the whole list. Return to normal timeout.
       m_isRequesting = false;
-      taskScheduler.insert(&m_taskTimeout, (Timer::cache() + m_control->get_normal_interval() * 1000000).round_seconds());
+      taskScheduler.insert(&m_taskTimeout, (cachedTime + m_control->get_normal_interval() * 1000000).round_seconds());
     } else {
-      taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 20 * 1000000).round_seconds());
+      taskScheduler.insert(&m_taskTimeout, (cachedTime + 20 * 1000000).round_seconds());
     }
 
   } else {
@@ -270,7 +270,7 @@ TrackerManager::receive_failed(const std::string& msg) {
     if (m_control->focus_index() == m_control->get_list().size())
       m_control->set_focus_index(0);
     
-    taskScheduler.insert(&m_taskTimeout, (Timer::cache() + 20 * 1000000).round_seconds());
+    taskScheduler.insert(&m_taskTimeout, (cachedTime + 20 * 1000000).round_seconds());
   }
 
   m_slotFailed(msg);

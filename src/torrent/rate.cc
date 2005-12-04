@@ -36,15 +36,15 @@
 
 #include "config.h"
 
+#include "globals.h"
 #include "rate.h"
-#include "utils/timer.h"
 
 namespace torrent {
 
 inline void
 Rate::discard_old() const {
   while (!m_container.empty() &&
-	 m_container.back().first < Timer::cache().seconds() - (int32_t)m_span) {
+	 m_container.back().first < cachedTime.seconds() - (int32_t)m_span) {
     m_current -= m_container.back().second;
     m_container.pop_back();
   }
@@ -63,8 +63,8 @@ Rate::insert(uint32_t bytes) {
   discard_old();
 
   if (m_container.empty() ||
-      m_container.front().first != Timer::cache().seconds())
-    m_container.push_front(value_type(Timer::cache().seconds(), bytes));
+      m_container.front().first != cachedTime.seconds())
+    m_container.push_front(value_type(cachedTime.seconds(), bytes));
   else
     m_container.front().second += bytes;
 

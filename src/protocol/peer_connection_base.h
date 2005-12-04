@@ -43,7 +43,7 @@
 #include "net/manager.h"
 #include "net/socket_stream.h"
 #include "net/throttle_node.h"
-#include "utils/task.h"
+#include "globals.h"
 #include "torrent/rate.h"
 
 #include "peer_info.h"
@@ -101,7 +101,7 @@ public:
   // only cause it not to be unchoked.
   void                set_snubbed(bool v);
 
-  Timer               time_last_choked() const      { return m_timeLastChoked; }
+  rak::timer          time_last_choked() const      { return m_timeLastChoked; }
 
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
@@ -182,9 +182,9 @@ protected:
   bool                m_sendInterested;
 
   bool                m_snubbed;
-  Timer               m_timeLastChoked;
+  rak::timer          m_timeLastChoked;
 
-  Timer               m_timeLastRead;
+  rak::timer          m_timeLastRead;
 };
 
 inline bool

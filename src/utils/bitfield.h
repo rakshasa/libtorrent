@@ -95,6 +95,7 @@ public:
 
   data_t*   begin()                       { return m_start; }
   c_data_t* begin() const                 { return m_start; }
+  data_t*   end()                         { return m_end; }
   c_data_t* end() const                   { return m_end; }
 
   bool      operator [] (size_t i) const  { return get(i); }

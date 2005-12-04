@@ -8,10 +8,8 @@ libsub_utils_la_SOURCES = \
 	string_manip.cc \
 	string_manip.h \
 	sha1.h \
-	task.h \
 	task_item.h \
 	task_scheduler.cc \
-	task_scheduler.h \
-	timer.h
+	task_scheduler.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

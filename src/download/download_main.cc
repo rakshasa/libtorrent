@@ -69,8 +69,6 @@ DownloadMain::DownloadMain() :
   m_upRate(60),
   m_downRate(60) {
 
-  m_content.block_download_done(true);
-
   m_taskTick.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tick));
   m_taskTick.set_iterator(taskScheduler.end());
 
@@ -193,7 +191,7 @@ DownloadMain::update_endgame() {
 
 void
 DownloadMain::receive_tick() {
-  taskScheduler.insert(&m_taskTick, (Timer::cache() + 30 * 1000000).round_seconds());
+  taskScheduler.insert(&m_taskTick, (cachedTime + 30 * 1000000).round_seconds());
   // Now done by the resource manager.
   //m_chokeManager->cycle();
 
@@ -233,7 +231,7 @@ DownloadMain::receive_tracker_success() {
     return;
 
   taskScheduler.erase(&m_taskTrackerRequest);
-  taskScheduler.insert(&m_taskTrackerRequest, (Timer::cache() + 30 * 1000000).round_seconds());
+  taskScheduler.insert(&m_taskTrackerRequest, (cachedTime + 30 * 1000000).round_seconds());
 }
 
 void

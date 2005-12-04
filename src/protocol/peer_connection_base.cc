@@ -150,7 +150,7 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   m_down->set_state(ProtocolRead::IDLE);
   m_up->set_state(ProtocolWrite::IDLE);
     
-  m_timeLastRead = Timer::cache();
+  m_timeLastRead = cachedTime;
 
   initialize_custom();
 }
@@ -213,7 +213,7 @@ PeerConnectionBase::receive_choke(bool v) {
 
   m_sendChoked = true;
   m_up->set_choked(v);
-  m_timeLastChoked = Timer::cache();
+  m_timeLastChoked = cachedTime;
 }
 
 void

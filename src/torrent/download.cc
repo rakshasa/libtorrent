@@ -268,7 +268,7 @@ Download::uploads_max() const {
   
 uint64_t
 Download::tracker_timeout() const {
-  return std::max(m_ptr->main()->tracker_manager()->get_next_timeout() - Timer::cache(), Timer()).usec();
+  return std::max(m_ptr->main()->tracker_manager()->get_next_timeout() - cachedTime, rak::timer()).usec();
 }
 
 int16_t
@@ -418,7 +418,7 @@ Download::peer_find(const std::string& id) {
 
 sigc::connection
 Download::signal_download_done(Download::SlotVoid s) {
-  return m_ptr->main()->content()->signal_download_done().connect(s);
+  return m_ptr->signal_download_done().connect(s);
 }
 
 sigc::connection
