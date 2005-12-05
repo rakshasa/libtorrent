@@ -55,15 +55,19 @@ public:
   Rate(uint32_t span) : m_current(0), m_total(0), m_span(span) {}
 
   uint32_t            rate() const;
-  uint64_t            total() const          { return m_total; }
 
-  uint32_t            span() const           { return m_span; }
-  void                set_span(uint32_t s)   { m_span = s; }
+  uint64_t            total() const             { return m_total; }
+  void                set_total(uint64_t bytes) { m_total = bytes; }
+
+  uint32_t            span() const              { return m_span; }
+  void                set_span(uint32_t s)      { m_span = s; }
 
   void                insert(uint32_t bytes);
+
+  void                reset_rate()              { m_current = 0; m_container.clear(); }
   
-  bool                operator < (Rate& r)   { return rate() < r.rate(); }
-  bool                operator > (Rate& r)   { return rate() > r.rate(); }
+  bool                operator < (Rate& r)      { return rate() < r.rate(); }
+  bool                operator > (Rate& r)      { return rate() > r.rate(); }
 
 private:
   inline void         discard_old() const;

@@ -104,7 +104,7 @@ private:
   void                validate_position() const {
 #ifdef USE_EXTRA_DEBUG
     if (m_position > m_buffer + tmpl_size)
-      throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer");
+      throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer.");
 #endif
   }
 

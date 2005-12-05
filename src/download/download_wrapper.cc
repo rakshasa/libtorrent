@@ -61,7 +61,7 @@ DownloadWrapper::DownloadWrapper() :
   m_hash(NULL),
   m_connectionType(0) {
 
-  m_delayDownloadDone.set_slot(m_signalDownloadDone.make_slot());
+  m_delayDownloadDone.set_slot(rak::mem_fn(&m_signalDownloadDone, &Signal::operator()));
   m_delayDownloadDone.set_iterator(taskScheduler.end());
 }
 
@@ -80,27 +80,27 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id, cons
   m_main.setup_delegator();
   m_main.setup_tracker();
 
-  m_main.slot_hash_check_add(rak::make_mem_fn(this, &DownloadWrapper::check_chunk_hash));
+  m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
   m_main.tracker_manager()->tracker_info()->set_hash(hash);
   m_main.tracker_manager()->tracker_info()->set_local_id(id);
   m_main.tracker_manager()->tracker_info()->set_local_address(sa);
   m_main.tracker_manager()->tracker_info()->set_key(random());
-  m_main.tracker_manager()->slot_success(rak::make_mem_fn(this, &DownloadWrapper::receive_tracker_success));
-  m_main.tracker_manager()->slot_failed(rak::make_mem_fn(this, &DownloadWrapper::receive_tracker_failed));
+  m_main.tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
+  m_main.tracker_manager()->slot_failed(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_failed));
 
   m_main.chunk_list()->set_max_queue_size((32 << 20) / m_main.content()->chunk_size());
 
-  m_main.connection_list()->slot_connected(rak::make_mem_fn(this, &DownloadWrapper::receive_peer_connected));
-  m_main.connection_list()->slot_disconnected(rak::make_mem_fn(this, &DownloadWrapper::receive_peer_disconnected));
+  m_main.connection_list()->slot_connected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_connected));
+  m_main.connection_list()->slot_disconnected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_disconnected));
 
   // Info hash must be calculate from here on.
   m_hash = new HashTorrent(m_main.chunk_list());
 
   // Connect various signals and slots.
-  m_hash->slot_check_chunk(rak::make_mem_fn(this, &DownloadWrapper::check_chunk_hash));
-  m_hash->slot_initial_hash(rak::make_mem_fn(this, &DownloadWrapper::receive_initial_hash));
-  m_hash->slot_storage_error(rak::make_mem_fn(this, &DownloadWrapper::receive_storage_error));
+  m_hash->slot_check_chunk(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
+  m_hash->slot_initial_hash(rak::make_mem_fun(this, &DownloadWrapper::receive_initial_hash));
+  m_hash->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 }
 
 void
@@ -124,6 +124,9 @@ DownloadWrapper::hash_resume_load() {
       l.sort();
       m_main.available_list()->insert(&l);
     }
+
+    if (resume.has_key("total_uploaded") && resume.get_key("total_uploaded").is_value())
+      m_main.up_rate()->set_total(resume.get_key("total_uploaded").as_value());
 
     Bencode& files = resume.get_key("files");
 
@@ -236,6 +239,7 @@ DownloadWrapper::hash_resume_save() {
     peers.append(itr->get_address_compact().c_str(), sizeof(SocketAddressCompact));
 
   resume.insert_key("peers", peers);
+  resume.insert_key("total_uploaded", m_main.up_rate()->total());
 }
 
 void
@@ -313,14 +317,14 @@ DownloadWrapper::local_address() {
 
 void
 DownloadWrapper::set_file_manager(FileManager* f) {
-  m_main.content()->entry_list()->slot_insert_filemeta(rak::make_mem_fn(f, &FileManager::insert));
-  m_main.content()->entry_list()->slot_erase_filemeta(rak::make_mem_fn(f, &FileManager::erase));
+  m_main.content()->entry_list()->slot_insert_filemeta(rak::make_mem_fun(f, &FileManager::insert));
+  m_main.content()->entry_list()->slot_erase_filemeta(rak::make_mem_fun(f, &FileManager::erase));
 }
 
 void
 DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
-  m_main.slot_count_handshakes(rak::make_mem_fn(h, &HandshakeManager::size_hash));
-  m_main.slot_start_handshake(rak::make_mem_fn(h, &HandshakeManager::add_outgoing));
+  m_main.slot_count_handshakes(rak::make_mem_fun(h, &HandshakeManager::size_hash));
+  m_main.slot_start_handshake(rak::make_mem_fun(h, &HandshakeManager::add_outgoing));
 }
 
 void
@@ -371,7 +375,7 @@ DownloadWrapper::receive_initial_hash() {
 void
 DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
   // Using HashTorrent's queue temporarily.
-  m_hash->get_queue()->push_back(handle, rak::make_mem_fn(this, &DownloadWrapper::receive_hash_done), get_hash());
+  m_hash->get_queue()->push_back(handle, rak::make_mem_fun(this, &DownloadWrapper::receive_hash_done), get_hash());
 }
 
 void

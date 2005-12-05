@@ -106,10 +106,10 @@ public:
   typedef sigc::signal1<void, const std::string&>                SignalString;
   typedef sigc::signal1<void, uint32_t>                          SignalChunk;
 
-  typedef rak::mem_fn3<HandshakeManager, void, const SocketAddress&,
+  typedef rak::mem_fun3<HandshakeManager, void, const SocketAddress&,
 		       const std::string&, const std::string&>         SlotStartHandshake;
-  typedef rak::mem_fn1<HandshakeManager, uint32_t, const std::string&> SlotCountHandshakes;
-  typedef rak::mem_fn1<DownloadWrapper, void, ChunkHandle>             SlotHashCheckAdd;
+  typedef rak::mem_fun1<HandshakeManager, uint32_t, const std::string&> SlotCountHandshakes;
+  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>             SlotHashCheckAdd;
 
   SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
   SignalString&       signal_storage_error()                     { return m_signalStorageError; }

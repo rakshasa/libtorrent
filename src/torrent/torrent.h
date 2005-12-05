@@ -59,6 +59,7 @@ void                cleanup();
 
 bool                listen_open(uint16_t begin, uint16_t end);
 void                listen_close();  
+uint16_t            listen_port();
 
 int64_t             next_timeout();
 
@@ -81,8 +82,6 @@ void                set_local_address(const std::string& addr);
 // returned.
 std::string         bind_address();
 void                set_bind_address(const std::string& addr);
-
-uint16_t            listen_port();
 
 unsigned int        total_handshakes();
 

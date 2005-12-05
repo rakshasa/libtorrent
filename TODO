@@ -13,11 +13,11 @@ Display leechers/seeders.
 Make sure storage error is correctly displayed, rather than being
 hidden.
 
-Make the vfat workaround configurable.
+Make the vfat workaround configurable. Also add note to the wiki.
 
-* Move block download done to DownloadWrapper.
+Different min peers for seeding and leeching modes?
 
-* Move finished delay signal out into downloadwrapper.
+Store data on which side inititalized the connection.
 
 
 === For the next API change ===
@@ -33,13 +33,6 @@ they are marked for download? But that might bork when we need to map
 those regions.
 
 ===
-
-
-=== Delegator refactoring ===
-
-Seperate out DelegatorSelect, rewrite it and use slots.
-
-======
 
 
 === Hash Resume save ===
@@ -104,34 +97,16 @@ function that chokes all and doesn't allow new unchokes.
 
 Move download initializiation stuff into Manager.
 
-Replace download_remove's info_hash thingie with Download.
-
-Use partial sort, or nth_element.
-
 Rename most things to remote/local or something. up/down is too
 confusing. Atleast add it to some of the function names.
 
-Rewrite throttle code, consider not updating when unlimited. Do an
-update when putting them into unlimited mode.
-
-Optimize interested, seperate return values for requesting where we
-are still interested downloading from others and when we're not
-interested anymore.
-
 Would be nice to refactor requester, it should own the bitfield in some way?
-
-Wait when receiving resource tmp unavailable. Currently need to close
-the connection.
 
 delegator's priorities are reset on DownloadMain::open? Make the
 priority thing work right, don't use a seperate function for updating
 them.
 
 Consider asking for read-ahead for fast peers.
-
-File priority might not like sequential requesting.
-
-Cache the number of unchoked peers.
 
 Unaligned 58.6.0.92     0.0
 
@@ -144,19 +119,10 @@ they don't give rw perm or resize?
 Clearer display of which torrents are stopped, make it into a seperate
 column.
 
-Move stuff into rak.
-
-Slot in torrent/Peer for incoming, so we can use SocketAddress
-internally?
-
 Re-add slot for removing incoming connections from available list? If
 so, remove the check in connect_peers.
 
 Move endgame detection to delegator?
-
-Make sure rtorrent's http downloading times out.
-
-Different min peers for seeding and leeching modes?
 
 Rename TrackerControl?
 
@@ -198,11 +164,6 @@ Add filter for ip address, and peer id. These must be seperate as ip
 happens before handshake, but peer id is done after handshake or
 before connecting.
 
-Make the tries adjuster into a setting.
-
-Doesn't force in some cases when the system is overloaded and you got
-small hash chunks.
-
 Fix hash checking slowness on overworked boxens. Possibly mark the
 mmap'ed area as sequential. Add options to the man page.
 
@@ -219,65 +180,22 @@ downloads at all times.
 Use a seperate function for checking the hash status when doing
 download starts.
 
-Possibly do sync before/after checking hash. Don't sync complete
-chunks as they were synced at the time of hash checking? Read the list
-of dirty chunks from the delegator. Need to fix the problem of corrupt
-downloads due to lack of diskspace.
-
-Ponder race condition on lazy hash checking, do new data get written
-before we start checking?
-
-The handling of hash fails isn't good enough...
-
-Directory validation needs to be lazy?
-
-Disable read/write_chunk exceptions.
-
-Don't allow many handshakes from the same ip?
-
-Create a std::list'ish thing that contains the current downloads, and
-expose it to the client. Will make DownloadManager 'redundant'. Don't fix?
-
-
 
 *** STUFF I MIGHT DO SOME DAY ***
 
-SMALL TODO STUFF I HAVEN'T BOTHERED DOING YET:
-
 After 25 seconds, choke a peer if no requests have been received?
-
-Add average, max and total to rates. Will this be controlled by
-choke/unchoke?
 
 Add a snub factor. The more you upload without getting back, the
 higher it goes. Add a start buffer.
 
 Add config for how often we unchoke unknown peers vs good uploaders
 
-Each throttle can have it's own rules to decide the priority it gets.
-
-Switch to a proper type for file offset/length and chunk length. A
-proper type for chunk index.
-
 std::isalpha in escape string
-
-Store data on which side inititalized the connection.
 
 torrent::Http::call_cleanup to delete the factory created object?
 
 If we get conflicting prot flags in get_chunk, we might go into cycle
 of re-allocating. Do a union instead.
-
-
-LONG TERM:
-
-Make a collection of stuff in utils that can be shared between apps.
-
-
-TIMER RELATED
-
-Throttle update needs to be off when no throttle is on. Make sure it
-doesn't bork with using up allocated bytes.
 
 
 DELEGATOR STUFF
@@ -291,10 +209,6 @@ Don't be so aggressive at selecting stalled pieces.
 
 
 AFTER API REDESIGN:
-
-Add the option to not throw non-critical exceptions. This lets the
-client be ignorant of errors while creating stuff. (Make some kind of
-C friendly layer ontop)
 
 Consider ways of optimizing bitfield memory usage. A bitfield with all
 set shouldn't change ever... And do a count on number of set bits?
@@ -325,8 +239,5 @@ disallow for open torrents?
 
 
 Move mkdir stuff out of Path?
-
-Cleanup HashQueue, seperate out nodes etc.  * Make it a private list.
-* Don't pass Chunk in SlotDone.
 
 Lock file in session directory.

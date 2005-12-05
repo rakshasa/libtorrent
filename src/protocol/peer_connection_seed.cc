@@ -284,7 +284,7 @@ PeerConnectionSeed::event_read() {
 inline void
 PeerConnectionSeed::fill_write_buffer() {
   // No need to use delayed choke as we are a seeder.
-  if (m_sendChoked) {
+  if (m_sendChoked && m_up->can_write_choke()) {
     m_sendChoked = false;
     m_up->write_choke(m_up->choked());
 

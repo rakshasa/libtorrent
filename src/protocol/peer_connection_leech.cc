@@ -398,7 +398,7 @@ PeerConnectionLeech::event_read() {
 inline void
 PeerConnectionLeech::fill_write_buffer() {
   // No need to use delayed choke as we are a leecher.
-  if (m_sendChoked) {
+  if (m_sendChoked && m_up->can_write_choke()) {
     m_sendChoked = false;
     m_up->write_choke(m_up->choked());
 
@@ -422,7 +422,7 @@ PeerConnectionLeech::fill_write_buffer() {
     m_up->set_interested(false);
   }
 
-  if (m_sendInterested) {
+  if (m_sendInterested && m_up->can_write_interested()) {
     m_up->write_interested(m_up->interested());
     m_sendInterested = false;
   }

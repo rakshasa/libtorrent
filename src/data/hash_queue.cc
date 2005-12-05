@@ -69,7 +69,7 @@ HashQueue::HashQueue() :
   m_interval(10000),
   m_maxTries(20) {
 
-  m_taskWork.set_slot(sigc::mem_fun(*this, &HashQueue::work));
+  m_taskWork.set_slot(rak::mem_fn(this, &HashQueue::work));
   m_taskWork.set_iterator(taskScheduler.end());
 }
 

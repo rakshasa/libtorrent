@@ -57,7 +57,7 @@ public:
   typedef std::list<SocketAddress>                   AddressList;
   typedef uint32_t                                   size_type;
 
-  typedef rak::mem_fn1<DownloadWrapper, void, PeerConnectionBase*> SlotPeer;
+  typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> SlotPeer;
 
   typedef PeerConnectionBase* (*SlotNewConnection)();
 

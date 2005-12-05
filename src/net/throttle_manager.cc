@@ -56,7 +56,7 @@ ThrottleManager::ThrottleManager() :
   m_timeLastTick = cachedTime;
 
   m_taskTick.set_iterator(taskScheduler.end());
-  m_taskTick.set_slot(sigc::mem_fun(*this, &ThrottleManager::receive_tick));
+  m_taskTick.set_slot(rak::mem_fn(this, &ThrottleManager::receive_tick));
 }
 
 ThrottleManager::~ThrottleManager() {

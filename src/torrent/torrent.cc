@@ -146,6 +146,11 @@ listen_close() {
   manager->listen()->close();
 }
 
+uint16_t
+listen_port() {
+  return manager->listen()->port();
+}
+
 void
 perform() {
   cachedTime = rak::timer::current();
@@ -195,11 +200,6 @@ set_bind_address(const std::string& addr) {
 
   else if (!manager->bind_address()->set_hostname(addr))
     throw input_error("Tried to set an invalid/non-existent bind address.");
-}
-
-uint16_t
-listen_port() {
-  return manager->listen()->port();
 }
 
 uint32_t

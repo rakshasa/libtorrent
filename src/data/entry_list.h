@@ -51,8 +51,8 @@ class MemoryChunk;
 class EntryList : private std::vector<EntryListNode> {
 public:
   typedef std::vector<EntryListNode>                               Base;
-  typedef rak::mem_fn1<FileManager, FileMeta*, const std::string&> SlotFileMetaString;
-  typedef rak::mem_fn1<FileManager, void, FileMeta*>               SlotFileMeta;
+  typedef rak::mem_fun1<FileManager, FileMeta*, const std::string&> SlotFileMetaString;
+  typedef rak::mem_fun1<FileManager, void, FileMeta*>               SlotFileMeta;
 
   using Base::value_type;
 

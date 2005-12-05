@@ -13,6 +13,7 @@ EXTRA_DIST= \
         rak/algorithm.h \
 	rak/error_number.h \
         rak/functional.h \
+        rak/functional_fun.h \
 	rak/ranges.h \
 	rak/string_manip.h \
 	rak/timer.h \

@@ -122,7 +122,7 @@ DownloadConstructor::parse_tracker(const Bencode& b) {
 
   if (b.has_key("announce-list") && b.get_key("announce-list").is_list())
     std::for_each(b.get_key("announce-list").as_list().begin(), b.get_key("announce-list").as_list().end(),
-		  rak::make_mem_fn(this, &DownloadConstructor::add_tracker_group));
+		  rak::make_mem_fun(this, &DownloadConstructor::add_tracker_group));
 
   else if (b.has_key("announce"))
     add_tracker_single(b.get_key("announce"), 0);
@@ -139,7 +139,7 @@ DownloadConstructor::add_tracker_group(const Bencode& b) {
     throw bencode_error("Tracker group list not a list");
 
   std::for_each(b.as_list().begin(), b.as_list().end(),
-		rak::bind2nd(rak::make_mem_fn(this, &DownloadConstructor::add_tracker_single),
+		rak::bind2nd(rak::make_mem_fun(this, &DownloadConstructor::add_tracker_single),
 			     m_download->main()->tracker_manager()->group_size()));
 }
 
@@ -196,7 +196,7 @@ DownloadConstructor::parse_multi_files(const Bencode& b) {
   m_download->main()->content()->entry_list()->reserve(b.as_list().size());
 
   std::for_each(b.as_list().begin(), b.as_list().end(),
-		rak::make_mem_fn(this, &DownloadConstructor::add_file));
+		rak::make_mem_fun(this, &DownloadConstructor::add_file));
 }
 
 void

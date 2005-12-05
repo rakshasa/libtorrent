@@ -121,11 +121,11 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
 
   m_upThrottle = new ThrottleNode(30);
   m_upThrottle->set_list_iterator(m_download->upload_throttle()->end());
-  m_upThrottle->slot_activate(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_up_activate));
+  m_upThrottle->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_up_activate));
 
   m_downThrottle = new ThrottleNode(30);
   m_downThrottle->set_list_iterator(m_download->download_throttle()->end());
-  m_downThrottle->slot_activate(rak::make_mem_fn(this, &PeerConnectionBase::receive_throttle_down_activate));
+  m_downThrottle->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_down_activate));
 
   get_fd().set_throughput();
 
@@ -444,13 +444,13 @@ PeerConnectionBase::write_bitfield_body() {
 // from high stall counts when we are doing decent speeds.
 bool
 PeerConnectionBase::should_request() {
-  if (m_down->choked() ||
-      !m_up->interested())
+  if (m_down->choked() || !m_up->interested())
     // || m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
   else if (!m_download->get_endgame())
     return true;
+
   else
     // We check if the peer is stalled, if it is not then we should
     // request. If the peer is stalled then we only request if the
@@ -473,7 +473,7 @@ PeerConnectionBase::try_request_pieces() {
       break;
 
     if (!m_download->content()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->get_index()))
-      throw internal_error("PeerConnectionBase::try_request_pieces() tried to use an invalid piece");
+      throw internal_error("PeerConnectionBase::try_request_pieces() tried to use an invalid piece.");
 
     m_up->write_request(*p);
 

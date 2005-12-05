@@ -53,8 +53,8 @@ class TrackerInfo {
 public:
   typedef std::list<SocketAddress>                   AddressList;
 
-  typedef rak::const_mem_fn0<DownloadMain, uint64_t> SlotStat;
-  typedef rak::const_mem_fn0<Rate, uint64_t>         SlotStatRate;
+  typedef rak::const_mem_fun0<DownloadMain, uint64_t> SlotStat;
+  typedef rak::const_mem_fun0<Rate, uint64_t>         SlotStatRate;
 
   enum State {
     NONE,

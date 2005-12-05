@@ -38,8 +38,8 @@
 #define LIBTORRENT_UTILS_TASK_ITEM_H
 
 #include <list>
-#include <sigc++/slot.h>
 #include <rak/timer.h>
+#include <rak/functional_fun.h>
 
 namespace torrent {
 
@@ -47,10 +47,10 @@ namespace torrent {
 
 class TaskItem {
 public:
-  typedef sigc::slot<void>                                       Slot;
+  typedef rak::function<void>                                    Slot;
   typedef std::list<std::pair<rak::timer, TaskItem*> >::iterator iterator;
 
-  TaskItem(Slot s = Slot()) : m_slot(s) {}
+  TaskItem() {}
 
   Slot&               get_slot()                    { return m_slot; }
   void                set_slot(Slot s)              { m_slot = s; }

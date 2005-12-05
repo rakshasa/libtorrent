@@ -54,7 +54,7 @@ public:
   typedef std::pair<Chunk*,rak::error_number>           CreateChunk;
   typedef std::vector<ChunkListNode>                    Base;
   typedef std::vector<ChunkListNode*>                   Queue;
-  typedef rak::mem_fn2<Content, CreateChunk, uint32_t, bool> SlotCreateChunk;
+  typedef rak::mem_fun2<Content, CreateChunk, uint32_t, bool> SlotCreateChunk;
 
   using Base::value_type;
   using Base::reference;

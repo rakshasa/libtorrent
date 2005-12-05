@@ -51,9 +51,9 @@ class TrackerControl;
 class TrackerBase {
 public:
   typedef std::list<SocketAddress>                                             AddressList;
-  typedef rak::mem_fn1<TrackerControl, void, int>                              SlotInt;
-  typedef rak::mem_fn2<TrackerControl, void, TrackerBase*, AddressList*>       SlotTbAddressList;
-  typedef rak::mem_fn2<TrackerControl, void, TrackerBase*, const std::string&> SlotTbString;
+  typedef rak::mem_fun1<TrackerControl, void, int>                              SlotInt;
+  typedef rak::mem_fun2<TrackerControl, void, TrackerBase*, AddressList*>       SlotTbAddressList;
+  typedef rak::mem_fun2<TrackerControl, void, TrackerBase*, const std::string&> SlotTbString;
 
   typedef enum {
     TRACKER_NONE,

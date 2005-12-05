@@ -54,9 +54,9 @@ class HashTorrent {
 public:
   typedef rak::ranges<uint32_t> Ranges;
 
-  typedef rak::mem_fn1<DownloadWrapper, void, ChunkHandle>           SlotCheckChunk;
-  typedef rak::mem_fn0<DownloadWrapper, void>                        SlotInitialHash;
-  typedef rak::mem_fn1<DownloadWrapper, void, const std::string&>    SlotStorageError;
+  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>           SlotCheckChunk;
+  typedef rak::mem_fun0<DownloadWrapper, void>                        SlotInitialHash;
+  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&>    SlotStorageError;
   
   HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }

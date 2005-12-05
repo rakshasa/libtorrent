@@ -58,8 +58,8 @@ public:
   // File descriptor
   // Info hash
   // Peer info
-  typedef rak::mem_fn3<Manager, void, SocketFd, const std::string&, const PeerInfo&> SlotConnected;
-  typedef rak::mem_fn1<Manager, std::string, const std::string&>                     SlotDownloadId;
+  typedef rak::mem_fun3<Manager, void, SocketFd, const std::string&, const PeerInfo&> SlotConnected;
+  typedef rak::mem_fun1<Manager, std::string, const std::string&>                     SlotDownloadId;
 
   HandshakeManager() : m_size(0) { m_bindAddress.set_address_any(); }
   ~HandshakeManager() { clear(); }

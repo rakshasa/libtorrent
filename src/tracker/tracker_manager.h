@@ -56,8 +56,8 @@ public:
   typedef std::pair<int, TrackerBase*>            value_type;
   typedef std::list<SocketAddress>                AddressList;
 
-  typedef rak::mem_fn1<DownloadWrapper, void, AddressList*>       SlotSuccess;
-  typedef rak::mem_fn1<DownloadWrapper, void, const std::string&> SlotFailed;
+  typedef rak::mem_fun1<DownloadWrapper, void, AddressList*>       SlotSuccess;
+  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotFailed;
 
   TrackerManager();
   ~TrackerManager();

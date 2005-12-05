@@ -69,13 +69,13 @@ DownloadMain::DownloadMain() :
   m_upRate(60),
   m_downRate(60) {
 
-  m_taskTick.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tick));
+  m_taskTick.set_slot(rak::mem_fn(this, &DownloadMain::receive_tick));
   m_taskTick.set_iterator(taskScheduler.end());
 
-  m_taskTrackerRequest.set_slot(sigc::mem_fun(*this, &DownloadMain::receive_tracker_request));
+  m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
   m_taskTrackerRequest.set_iterator(taskScheduler.end());
 
-  m_chunkList->slot_create_chunk(rak::make_mem_fn(&m_content, &Content::create_chunk));
+  m_chunkList->slot_create_chunk(rak::make_mem_fun(&m_content, &Content::create_chunk));
 }
 
 DownloadMain::~DownloadMain() {

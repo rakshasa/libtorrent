@@ -50,11 +50,11 @@ TrackerManager::TrackerManager() :
   m_maxRequests(3),
   m_initialTracker(0) {
 
-  m_control->slot_success(rak::make_mem_fn(this, &TrackerManager::receive_success));
-  m_control->slot_failed(rak::make_mem_fn(this, &TrackerManager::receive_failed));
+  m_control->slot_success(rak::make_mem_fun(this, &TrackerManager::receive_success));
+  m_control->slot_failed(rak::make_mem_fun(this, &TrackerManager::receive_failed));
 
   m_taskTimeout.set_iterator(taskScheduler.end());
-  m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerManager::receive_timeout));
+  m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerManager::receive_timeout));
 }
 
 TrackerManager::~TrackerManager() {

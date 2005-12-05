@@ -50,7 +50,7 @@ class DownloadWrapper;
 
 class HashQueueNode {
 public:
-  typedef rak::mem_fn2<DownloadWrapper, void, ChunkHandle, std::string> SlotDone;
+  typedef rak::mem_fun2<DownloadWrapper, void, ChunkHandle, std::string> SlotDone;
 
   HashQueueNode(HashChunk* c, const std::string& i, SlotDone d) :
     m_chunk(c), m_id(i), m_willneed(false), m_slotDone(d) {}

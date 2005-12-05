@@ -52,7 +52,7 @@ TrackerUdp::TrackerUdp(TrackerInfo* info, const std::string& url) :
   m_writeBuffer(NULL) {
 
   m_taskTimeout.set_iterator(taskScheduler.end());
-  m_taskTimeout.set_slot(sigc::mem_fun(*this, &TrackerUdp::receive_timeout));
+  m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerUdp::receive_timeout));
 }
 
 TrackerUdp::~TrackerUdp() {

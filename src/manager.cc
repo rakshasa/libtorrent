@@ -71,14 +71,14 @@ Manager::Manager() :
   m_ticks(0) {
 
   m_taskTick.set_iterator(taskScheduler.end());
-  m_taskTick.set_slot(sigc::mem_fun(*this, &Manager::receive_tick));
+  m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
 
   taskScheduler.insert(&m_taskTick, cachedTime.round_seconds());
 
-  m_handshakeManager->slot_connected(rak::make_mem_fn(this, &Manager::receive_connection));
-  m_handshakeManager->slot_download_id(rak::make_mem_fn(this, &Manager::retrive_download_id));
+  m_handshakeManager->slot_connected(rak::make_mem_fun(this, &Manager::receive_connection));
+  m_handshakeManager->slot_download_id(rak::make_mem_fun(this, &Manager::retrive_download_id));
 
-  m_listen->slot_incoming(rak::make_mem_fn(m_handshakeManager, &HandshakeManager::add_incoming));
+  m_listen->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
 }
 
 Manager::~Manager() {
@@ -110,9 +110,9 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
   d->main()->set_download_throttle(m_downloadThrottle->throttle_list());
 
-  d->main()->choke_manager()->slot_choke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_choke));
-  d->main()->choke_manager()->slot_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::receive_unchoke));
-  d->main()->choke_manager()->slot_can_unchoke(rak::make_mem_fn(manager->resource_manager(), &ResourceManager::retrieve_can_unchoke));
+  d->main()->choke_manager()->slot_choke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_choke));
+  d->main()->choke_manager()->slot_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_unchoke));
+  d->main()->choke_manager()->slot_can_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::retrieve_can_unchoke));
 }
 
 void

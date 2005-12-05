@@ -50,7 +50,7 @@ class HandshakeManager;
 
 class Listen : public SocketBase {
 public:
-  typedef rak::mem_fn2<HandshakeManager, void, SocketFd, const SocketAddress&> SlotIncoming;
+  typedef rak::mem_fun2<HandshakeManager, void, SocketFd, const SocketAddress&> SlotIncoming;
 
   Listen() : m_port(0) {}
   ~Listen() { close(); }

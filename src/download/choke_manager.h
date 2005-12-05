@@ -50,9 +50,9 @@ class PeerConnectionBase;
 class ChokeManager {
 public:
   typedef ConnectionList::iterator                          iterator;
-  typedef rak::mem_fn1<ResourceManager, void, unsigned int> SlotChoke;
-  typedef rak::mem_fn1<ResourceManager, void, unsigned int> SlotUnchoke;
-  typedef rak::mem_fn0<ResourceManager, unsigned int>       SlotCanUnchoke;
+  typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotChoke;
+  typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotUnchoke;
+  typedef rak::mem_fun0<ResourceManager, unsigned int>       SlotCanUnchoke;
 
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),

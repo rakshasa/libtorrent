@@ -1,6 +1,3 @@
 FIXME LATER:
 
-Caught exception: "DownloadWrapper::resume_save() called with wrong state"
-
-
-"Connection read fd(40) state(5) "PeerConnectionBase::read_chunk() tried to read a piece but is not in throttle list""
+Caught exception from libtorrent: Connection write fd(68,0,6) "ProtocolBuffer tried to write beyond scope of the buffer"

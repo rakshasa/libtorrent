@@ -56,10 +56,10 @@ class ChunkSelector;
 class Delegator {
 public:
   typedef std::vector<DelegatorChunk*>                             Chunks;
-  typedef rak::mem_fn1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
-  typedef rak::mem_fn2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
-  typedef rak::mem_fn1<DownloadMain, void, unsigned int>           SlotChunkDone;
-  typedef rak::const_mem_fn1<Content, uint32_t, unsigned int>      SlotChunkSize;
+  typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
+  typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
+  typedef rak::mem_fun1<DownloadMain, void, unsigned int>           SlotChunkDone;
+  typedef rak::const_mem_fun1<Content, uint32_t, unsigned int>      SlotChunkSize;
 
   static const unsigned int block_size = 1 << 14;
 

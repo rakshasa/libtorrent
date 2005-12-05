@@ -48,7 +48,7 @@ class FileManager;
 
 class FileMeta {
 public:
-  typedef rak::mem_fn3<FileManager, bool, FileMeta*, int, int> SlotPrepare;
+  typedef rak::mem_fun3<FileManager, bool, FileMeta*, int, int> SlotPrepare;
 
   FileMeta() : m_lastTouched(cachedTime) {}
 

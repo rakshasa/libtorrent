@@ -51,11 +51,11 @@ void
 DownloadMain::setup_delegator() {
   //m_delegator.get_select().set_bitfield(&m_content.bitfield());
 
-  m_delegator.slot_chunk_enable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::using_index));
-  m_delegator.slot_chunk_disable(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::not_using_index));
-  m_delegator.slot_chunk_find(rak::make_mem_fn(m_chunkSelector, &ChunkSelector::find));
-  m_delegator.slot_chunk_done(rak::make_mem_fn(this, &DownloadMain::receive_chunk_done));
-  m_delegator.slot_chunk_size(rak::make_mem_fn(&m_content, &Content::chunk_index_size));
+  m_delegator.slot_chunk_enable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::using_index));
+  m_delegator.slot_chunk_disable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::not_using_index));
+  m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
+  m_delegator.slot_chunk_done(rak::make_mem_fun(this, &DownloadMain::receive_chunk_done));
+  m_delegator.slot_chunk_size(rak::make_mem_fun(&m_content, &Content::chunk_index_size));
 }
 
 void
@@ -66,9 +66,9 @@ DownloadMain::setup_tracker() {
 //   m_trackerManager->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_connect_peers)));
 //   m_trackerManager->signal_success().connect(sigc::hide(sigc::mem_fun(*this, &DownloadMain::receive_tracker_success)));
 
-  m_trackerManager->tracker_info()->slot_stat_down() = rak::make_mem_fn(&m_downRate, &Rate::total);
-  m_trackerManager->tracker_info()->slot_stat_up()   = rak::make_mem_fn(&m_upRate, &Rate::total);
-  m_trackerManager->tracker_info()->slot_stat_left() = rak::make_mem_fn(this, &DownloadMain::get_bytes_left);
+  m_trackerManager->tracker_info()->slot_stat_down() = rak::make_mem_fun(&m_downRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_up()   = rak::make_mem_fun(&m_upRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_left() = rak::make_mem_fun(this, &DownloadMain::get_bytes_left);
 }
 
 void
