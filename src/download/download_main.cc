@@ -70,18 +70,14 @@ DownloadMain::DownloadMain() :
   m_downRate(60) {
 
   m_taskTick.set_slot(rak::mem_fn(this, &DownloadMain::receive_tick));
-  m_taskTick.set_iterator(taskScheduler.end());
-
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
-  m_taskTrackerRequest.set_iterator(taskScheduler.end());
 
   m_chunkList->slot_create_chunk(rak::make_mem_fun(&m_content, &Content::create_chunk));
 }
 
 DownloadMain::~DownloadMain() {
-  if (taskScheduler.is_scheduled(&m_taskTick) ||
-      taskScheduler.is_scheduled(&m_taskTrackerRequest))
-    throw internal_error("DownloadMain::~DownloadMain(): m_taskTick is scheduled");
+  if (m_taskTick.is_queued() || m_taskTrackerRequest.is_queued())
+    throw internal_error("DownloadMain::~DownloadMain(): m_taskTick or m_taskTrackerRequest is queued.");
 
   delete m_trackerManager;
   delete m_chokeManager;
@@ -191,7 +187,7 @@ DownloadMain::update_endgame() {
 
 void
 DownloadMain::receive_tick() {
-  taskScheduler.insert(&m_taskTick, (cachedTime + 30 * 1000000).round_seconds());
+  taskScheduler.push(m_taskTick.prepare((cachedTime + 30 * 1000000).round_seconds()));
   // Now done by the resource manager.
   //m_chokeManager->cycle();
 
@@ -231,7 +227,7 @@ DownloadMain::receive_tracker_success() {
     return;
 
   taskScheduler.erase(&m_taskTrackerRequest);
-  taskScheduler.insert(&m_taskTrackerRequest, (cachedTime + 30 * 1000000).round_seconds());
+  taskScheduler.push(m_taskTrackerRequest.prepare((cachedTime + 30 * 1000000).round_seconds()));
 }
 
 void

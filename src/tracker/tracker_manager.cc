@@ -53,7 +53,6 @@ TrackerManager::TrackerManager() :
   m_control->slot_success(rak::make_mem_fun(this, &TrackerManager::receive_success));
   m_control->slot_failed(rak::make_mem_fun(this, &TrackerManager::receive_failed));
 
-  m_taskTimeout.set_iterator(taskScheduler.end());
   m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerManager::receive_timeout));
 }
 
@@ -66,7 +65,7 @@ TrackerManager::~TrackerManager() {
 
 bool
 TrackerManager::is_active() const {
-  return taskScheduler.is_scheduled(&m_taskTimeout) || m_control->is_busy();
+  return m_taskTimeout.is_queued() || m_control->is_busy();
 }
 
 bool
@@ -152,7 +151,7 @@ TrackerManager::request_next() {
 // affected.
 void
 TrackerManager::manual_request(bool force) {
-  if (!taskScheduler.is_scheduled(&m_taskTimeout))
+  if (!m_taskTimeout.is_queued())
     return;
 
   rak::timer t(cachedTime + 2 * 1000000);
@@ -161,7 +160,7 @@ TrackerManager::manual_request(bool force) {
     t = std::max(t, m_control->time_last_connection() + m_control->get_min_interval() * 1000000);
 
   taskScheduler.erase(&m_taskTimeout);
-  taskScheduler.insert(&m_taskTimeout, t.round_seconds());
+  taskScheduler.push(m_taskTimeout.prepare(t.round_seconds()));
 }
 
 void
@@ -243,7 +242,7 @@ TrackerManager::receive_success(AddressList* l) {
   m_isRequesting = false;
 
   m_control->set_state(TrackerInfo::NONE);
-  taskScheduler.insert(&m_taskTimeout, (cachedTime + m_control->get_normal_interval() * 1000000).round_seconds());
+  taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_control->get_normal_interval() * 1000000).round_seconds()));
 
   m_slotSuccess(l);
 }
@@ -260,9 +259,9 @@ TrackerManager::receive_failed(const std::string& msg) {
       // Don't start from the beginning of the list if we've gone
       // through the whole list. Return to normal timeout.
       m_isRequesting = false;
-      taskScheduler.insert(&m_taskTimeout, (cachedTime + m_control->get_normal_interval() * 1000000).round_seconds());
+      taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_control->get_normal_interval() * 1000000).round_seconds()));
     } else {
-      taskScheduler.insert(&m_taskTimeout, (cachedTime + 20 * 1000000).round_seconds());
+      taskScheduler.push(m_taskTimeout.prepare((cachedTime + 20 * 1000000).round_seconds()));
     }
 
   } else {
@@ -270,7 +269,7 @@ TrackerManager::receive_failed(const std::string& msg) {
     if (m_control->focus_index() == m_control->get_list().size())
       m_control->set_focus_index(0);
     
-    taskScheduler.insert(&m_taskTimeout, (cachedTime + 20 * 1000000).round_seconds());
+    taskScheduler.push(m_taskTimeout.prepare((cachedTime + 20 * 1000000).round_seconds()));
   }
 
   m_slotFailed(msg);

@@ -51,7 +51,6 @@ TrackerUdp::TrackerUdp(TrackerInfo* info, const std::string& url) :
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
 
-  m_taskTimeout.set_iterator(taskScheduler.end());
   m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerUdp::receive_timeout));
 }
 
@@ -95,7 +94,7 @@ TrackerUdp::send_state(TrackerInfo::State state,
   pollCustom->insert_error(this);
 
   m_tries = m_info->udp_tries();
-  taskScheduler.insert(&m_taskTimeout, (cachedTime + m_info->udp_timeout() * 1000000).round_seconds());
+  taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_info->udp_timeout() * 1000000).round_seconds()));
 }
 
 void
@@ -133,13 +132,13 @@ TrackerUdp::receive_failed(const std::string& msg) {
 
 void
 TrackerUdp::receive_timeout() {
-  if (taskScheduler.is_scheduled(&m_taskTimeout))
+  if (m_taskTimeout.is_queued())
     throw internal_error("TrackerUdp::receive_timeout() called but m_taskTimeout is still scheduled.");
 
   if (--m_tries == 0) {
     receive_failed("Unable to connect to UDP tracker.");
   } else {
-    taskScheduler.insert(&m_taskTimeout, (cachedTime + m_info->udp_timeout() * 1000000).round_seconds());
+    taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_info->udp_timeout() * 1000000).round_seconds()));
 
     pollCustom->insert_write(this);
   }
@@ -168,7 +167,7 @@ TrackerUdp::event_read() {
     prepare_announce_input();
 
     taskScheduler.erase(&m_taskTimeout);
-    taskScheduler.insert(&m_taskTimeout, (cachedTime + m_info->udp_timeout() * 1000000).round_seconds());
+    taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_info->udp_timeout() * 1000000).round_seconds()));
 
     m_tries = m_info->udp_tries();
     pollCustom->insert_write(this);

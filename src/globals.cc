@@ -40,7 +40,7 @@
 
 namespace torrent {
 
-TaskScheduler taskScheduler;
-rak::timer    cachedTime;
+rak::priority_queue_default taskScheduler;
+rak::timer                  cachedTime;
 
 }

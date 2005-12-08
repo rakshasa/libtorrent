@@ -70,7 +70,6 @@ HashQueue::HashQueue() :
   m_maxTries(20) {
 
   m_taskWork.set_slot(rak::mem_fn(this, &HashQueue::work));
-  m_taskWork.set_iterator(taskScheduler.end());
 }
 
 
@@ -89,11 +88,11 @@ HashQueue::push_back(ChunkHandle handle, SlotDone d, const std::string& id) {
   HashChunk* hc = new HashChunk(handle);
 
   if (empty()) {
-    if (taskScheduler.is_scheduled(&m_taskWork))
+    if (m_taskWork.is_queued())
       throw internal_error("Empty HashQueue is still in task schedule");
 
     m_tries = 0;
-    taskScheduler.insert(&m_taskWork, cachedTime);
+    taskScheduler.push(m_taskWork.prepare(cachedTime));
   }
 
   Base::push_back(HashQueueNode(hc, id, d));
@@ -142,10 +141,10 @@ HashQueue::work() {
     return;
 
   if (!check(++m_tries >= m_maxTries))
-    return taskScheduler.insert(&m_taskWork, cachedTime + m_interval);
+    return taskScheduler.push(m_taskWork.prepare(cachedTime + m_interval));
 
-  if (!empty() && !taskScheduler.is_scheduled(&m_taskWork))
-    taskScheduler.insert(&m_taskWork, cachedTime);
+  if (!empty() && !m_taskWork.is_queued())
+    taskScheduler.push(m_taskWork.prepare(cachedTime));
 
   m_tries = std::min(0, m_tries - 2);
 }

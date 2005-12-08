@@ -76,7 +76,7 @@ DownloadMain::setup_start() {
 //   m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_delegator, &Delegator::done));
 //   m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_delegator, &Delegator::redo));
 
-  taskScheduler.insert(&m_taskTick, (cachedTime + 2 * 30 * 1000000).round_seconds());
+  taskScheduler.push(m_taskTick.prepare((cachedTime + 2 * 30 * 1000000).round_seconds()));
 }
 
 void

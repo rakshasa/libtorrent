@@ -167,8 +167,8 @@ private:
   SlotCountHandshakes m_slotCountHandshakes;
   SlotHashCheckAdd    m_slotHashCheckAdd;
 
-  TaskItem            m_taskTick;
-  TaskItem            m_taskTrackerRequest;
+  rak::priority_item  m_taskTick;
+  rak::priority_item  m_taskTrackerRequest;
 };
 
 }

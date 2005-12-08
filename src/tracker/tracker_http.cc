@@ -125,7 +125,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
 
   m_get->set_url(s.str());
   m_get->set_stream(m_data);
-  m_get->set_timeout(60);
+  m_get->set_timeout(2 * 60);
 
   m_get->start();
 }

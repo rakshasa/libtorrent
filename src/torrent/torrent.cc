@@ -154,7 +154,12 @@ listen_port() {
 void
 perform() {
   cachedTime = rak::timer::current();
-  taskScheduler.execute(cachedTime);
+
+  std::list<rak::priority_item*> workQueue;
+
+  std::copy(rak::queue_popper(taskScheduler, rak::priority_ready(cachedTime)), rak::queue_popper(), std::back_inserter(workQueue));
+  std::for_each(workQueue.begin(), workQueue.end(), std::mem_fun(&rak::priority_item::clear_time));
+  std::for_each(workQueue.begin(), workQueue.end(), std::mem_fun(&rak::priority_item::call));
 }
 
 bool
@@ -211,9 +216,10 @@ int64_t
 next_timeout() {
   cachedTime = rak::timer::current();
 
-  return !taskScheduler.empty() ?
-    std::max(taskScheduler.next_timeout() - cachedTime, rak::timer()).usec() :
-    60 * 1000000;
+  if (!taskScheduler.empty())
+    return std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
+  else
+    return 60 * 1000000;
 }
 
 int

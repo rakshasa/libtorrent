@@ -93,7 +93,7 @@ public:
 
   TrackerInfo*        tracker_info();
 
-  rak::timer          get_next_timeout() const;
+  rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }
 
   void                slot_success(SlotSuccess s)               { m_slotSuccess = s; }
   void                slot_failed(SlotFailed s)                 { m_slotFailed = s; }
@@ -118,13 +118,8 @@ private:
   SlotSuccess         m_slotSuccess;
   SlotFailed          m_slotFailed;
 
-  TaskItem            m_taskTimeout;
+  rak::priority_item  m_taskTimeout;
 };
-
-inline rak::timer
-TrackerManager::get_next_timeout() const {
-  return taskScheduler.is_scheduled(&m_taskTimeout) ? m_taskTimeout.get_time() : rak::timer();
-}
 
 }
 

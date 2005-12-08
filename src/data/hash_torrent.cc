@@ -65,8 +65,10 @@ HashTorrent::start() {
 
 void
 HashTorrent::clear() {
+//   if (is_checking())
+//     m_queue->remove(m_id);
+
   m_outstanding = -1;
-  //m_queue->remove(m_id);
   m_position = 0;
 }
 

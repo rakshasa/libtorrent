@@ -82,7 +82,7 @@ protected:
   char*               m_buf;
   uint32_t            m_pos;
 
-  TaskItem            m_taskTimeout;
+  rak::priority_item  m_taskTimeout;
 };
 
 }

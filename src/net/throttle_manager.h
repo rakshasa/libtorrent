@@ -68,7 +68,7 @@ private:
   ThrottleList*       m_throttleList;
 
   rak::timer          m_timeLastTick;
-  TaskItem            m_taskTick;
+  rak::priority_item  m_taskTick;
 };
 
 }

@@ -39,10 +39,10 @@
 
 #include <list>
 #include <string>
+#include <rak/priority_queue_default.h>
 
 #include "net/socket_address.h"
 #include "net/socket_fd.h"
-#include "utils/task_item.h"
 
 namespace torrent {
 
@@ -103,7 +103,7 @@ private:
   ThrottleManager*    m_downloadThrottle;
 
   unsigned int        m_ticks;
-  TaskItem            m_taskTick;
+  rak::priority_item  m_taskTick;
 };
 
 extern Manager* manager;

@@ -55,7 +55,6 @@ ThrottleManager::ThrottleManager() :
 
   m_timeLastTick = cachedTime;
 
-  m_taskTick.set_iterator(taskScheduler.end());
   m_taskTick.set_slot(rak::mem_fn(this, &ThrottleManager::receive_tick));
 }
 
@@ -98,7 +97,7 @@ ThrottleManager::receive_tick() {
 
   m_throttleList->update_quota((uint32_t)(m_maxRate * timeSinceLast));
 
-  taskScheduler.insert(&m_taskTick, cachedTime + calculate_interval());
+  taskScheduler.push(m_taskTick.prepare(cachedTime + calculate_interval()));
   m_timeLastTick = cachedTime;
 }
 

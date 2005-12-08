@@ -100,7 +100,7 @@ private:
 
   uint32_t            m_tries;
 
-  TaskItem            m_taskTimeout;
+  rak::priority_item  m_taskTimeout;
 };
 
 }

@@ -38,6 +38,7 @@
 #define LIBTORRENT_DATA_HASH_QUEUE_H
 
 #include <string>
+#include <list>
 
 #include "hash_queue_node.h"
 #include "chunk_handle.h"
@@ -94,7 +95,7 @@ private:
   inline void         willneed(int bytes);
 
   uint16_t            m_tries;
-  TaskItem            m_taskWork;
+  rak::priority_item  m_taskWork;
 
   uint32_t            m_readAhead;
   uint32_t            m_interval;

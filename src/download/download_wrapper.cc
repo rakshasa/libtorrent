@@ -62,7 +62,6 @@ DownloadWrapper::DownloadWrapper() :
   m_connectionType(0) {
 
   m_delayDownloadDone.set_slot(rak::mem_fn(&m_signalDownloadDone, &Signal::operator()));
-  m_delayDownloadDone.set_iterator(taskScheduler.end());
 }
 
 DownloadWrapper::~DownloadWrapper() {
@@ -381,16 +380,19 @@ DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
 void
 DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
   if (!handle.is_valid())
-    throw internal_error("DownloadMain::receive_hash_done(...) called on an invalid chunk.");
+    throw internal_error("DownloadWrapper::receive_hash_done(...) called on an invalid chunk.");
+
+  if (!is_open())
+    throw internal_error("DownloadWrapper::receive_hash_done(...) called but the download is not open.");
 
   if (m_hash->is_checking()) {
     m_main.content()->receive_chunk_hash(handle->index(), h);
     m_hash->receive_chunkdone();
 
-  } else if (is_open()) {
+  } else if (m_hash->is_checked()) {
 
     if (m_main.chunk_selector()->bitfield()->get(handle->index()))
-      throw internal_error("DownloadMain::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
+      throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
     if (m_main.content()->receive_chunk_hash(handle->index(), h)) {
       signal_chunk_passed().emit(handle->index());
@@ -402,8 +404,8 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
 	// for clients that wish to close and reopen the torrent, as
 	// HashQueue, Delegator etc shouldn't be cleaned up at this
 	// point.
-	if (!taskScheduler.is_scheduled(&m_delayDownloadDone))
-	  taskScheduler.insert(&m_delayDownloadDone, cachedTime);
+	if (!m_delayDownloadDone.is_queued())
+	  taskScheduler.push(m_delayDownloadDone.prepare(cachedTime));
 
 	m_main.connection_list()->erase_seeders();
       }
@@ -415,7 +417,11 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
     }
 
   } else {
-    throw internal_error("DownloadMain::receive_hash_done(...) called but we're not in the right state.");
+    // When the HashQueue gets cleared, it will trigger this signal to
+    // do cleanup. As HashTorrent must be cleared before the
+    // HashQueue, we need to ignore the chunks that get triggered.
+
+    //throw internal_error("DownloadWrapper::receive_hash_done(...) called but we're not in the right state.");
   }
 
   m_main.chunk_list()->release(handle);

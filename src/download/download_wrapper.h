@@ -145,7 +145,7 @@ private:
 
   Signal              m_signalInitialHash;
   Signal              m_signalDownloadDone;
-  TaskItem            m_delayDownloadDone;
+  rak::priority_item  m_delayDownloadDone;
 
   Signal              m_signalTrackerSuccess;
   SignalString        m_signalTrackerFailed;

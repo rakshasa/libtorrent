@@ -38,13 +38,12 @@
 #define LIBTORRENT_GLOBALS_H
 
 #include <rak/timer.h>
-
-#include "utils/task_scheduler.h"
+#include <rak/priority_queue_default.h>
 
 namespace torrent {
 
-extern TaskScheduler taskScheduler;
-extern rak::timer    cachedTime;
+extern rak::priority_queue_default taskScheduler;
+extern rak::timer                  cachedTime;
 
 }
 

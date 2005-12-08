@@ -70,10 +70,9 @@ Manager::Manager() :
 
   m_ticks(0) {
 
-  m_taskTick.set_iterator(taskScheduler.end());
   m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
 
-  taskScheduler.insert(&m_taskTick, cachedTime.round_seconds());
+  taskScheduler.push(m_taskTick.prepare(cachedTime.round_seconds()));
 
   m_handshakeManager->slot_connected(rak::make_mem_fun(this, &Manager::receive_connection));
   m_handshakeManager->slot_download_id(rak::make_mem_fun(this, &Manager::retrive_download_id));
@@ -132,7 +131,7 @@ Manager::receive_tick() {
 
   // If you change the interval, make sure the above keepalive gets
   // triggered every 120 seconds.
-  taskScheduler.insert(&m_taskTick, (cachedTime + 30 * 1000000).round_seconds());
+  taskScheduler.push(m_taskTick.prepare((cachedTime + 30 * 1000000).round_seconds()));
 }
 
 void
