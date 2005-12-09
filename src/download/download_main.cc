@@ -38,7 +38,6 @@
 
 #include <cstring>
 #include <limits>
-#include <sigc++/signal.h>
 
 #include "data/chunk_list.h"
 #include "protocol/handshake_manager.h"
@@ -69,15 +68,24 @@ DownloadMain::DownloadMain() :
   m_upRate(60),
   m_downRate(60) {
 
-  m_taskTick.set_slot(rak::mem_fn(this, &DownloadMain::receive_tick));
+  m_delegator.slot_chunk_enable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::using_index));
+  m_delegator.slot_chunk_disable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::not_using_index));
+  m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
+  m_delegator.slot_chunk_done(rak::make_mem_fun(this, &DownloadMain::receive_chunk_done));
+  m_delegator.slot_chunk_size(rak::make_mem_fun(&m_content, &Content::chunk_index_size));
+
+  m_trackerManager->tracker_info()->slot_stat_down() = rak::make_mem_fun(&m_downRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_up()   = rak::make_mem_fun(&m_upRate, &Rate::total);
+  m_trackerManager->tracker_info()->slot_stat_left() = rak::make_mem_fun(this, &DownloadMain::get_bytes_left);
+
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
 
   m_chunkList->slot_create_chunk(rak::make_mem_fun(&m_content, &Content::create_chunk));
 }
 
 DownloadMain::~DownloadMain() {
-  if (m_taskTick.is_queued() || m_taskTrackerRequest.is_queued())
-    throw internal_error("DownloadMain::~DownloadMain(): m_taskTick or m_taskTrackerRequest is queued.");
+  if (m_taskTrackerRequest.is_queued())
+    throw internal_error("DownloadMain::~DownloadMain(): m_taskTrackerRequest is queued.");
 
   delete m_trackerManager;
   delete m_chokeManager;
@@ -127,7 +135,6 @@ void DownloadMain::start() {
   m_started = true;
   m_lastConnectedSize = 0;
 
-  setup_start();
   m_trackerManager->send_start();
 
   receive_connect_peers();
@@ -158,7 +165,7 @@ DownloadMain::stop() {
     connection_list()->erase(connection_list()->front());
 
   m_trackerManager->send_stop();
-  setup_stop();
+  taskScheduler.erase(m_taskTrackerRequest.clear());
 
   m_chunkList->sync_all();
 }
@@ -183,15 +190,6 @@ DownloadMain::update_endgame() {
     m_endgame = true;
     m_delegator.set_aggressive(true);
   }
-}
-
-void
-DownloadMain::receive_tick() {
-  taskScheduler.push(m_taskTick.prepare((cachedTime + 30 * 1000000).round_seconds()));
-  // Now done by the resource manager.
-  //m_chokeManager->cycle();
-
-  m_chunkList->sync_periodic();
 }
 
 void
@@ -226,7 +224,7 @@ DownloadMain::receive_tracker_success() {
   if (!m_started)
     return;
 
-  taskScheduler.erase(&m_taskTrackerRequest);
+  taskScheduler.erase(m_taskTrackerRequest.clear());
   taskScheduler.push(m_taskTrackerRequest.prepare((cachedTime + 30 * 1000000).round_seconds()));
 }
 

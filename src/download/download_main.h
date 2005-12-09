@@ -38,7 +38,7 @@
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
 #include <rak/functional.h>
-#include <sigc++/connection.h>
+#include <sigc++/signal.h>
 
 #include "available_list.h"
 #include "connection_list.h"
@@ -119,8 +119,6 @@ public:
   void                slot_hash_check_add(SlotHashCheckAdd s)      { m_slotHashCheckAdd = s; }
 
   void                receive_connect_peers();
-
-  void                receive_tick();
   void                receive_chunk_done(unsigned int index);
 
   void                receive_tracker_success();
@@ -158,8 +156,6 @@ private:
   Rate                m_upRate;
   Rate                m_downRate;
 
-  sigc::connection    m_connectionAddAvailablePeers;
-
   SignalString        m_signalNetworkLog;
   SignalString        m_signalStorageError;
 
@@ -167,7 +163,6 @@ private:
   SlotCountHandshakes m_slotCountHandshakes;
   SlotHashCheckAdd    m_slotHashCheckAdd;
 
-  rak::priority_item  m_taskTick;
   rak::priority_item  m_taskTrackerRequest;
 };
 

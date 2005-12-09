@@ -76,9 +76,6 @@ DownloadWrapper::~DownloadWrapper() {
 
 void
 DownloadWrapper::initialize(const std::string& hash, const std::string& id, const SocketAddress& sa) {
-  m_main.setup_delegator();
-  m_main.setup_tracker();
-
   m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
   m_main.tracker_manager()->tracker_info()->set_hash(hash);
@@ -263,7 +260,7 @@ DownloadWrapper::close() {
   m_main.close();
 
   // Should this perhaps be in stop?
-  taskScheduler.erase(&m_delayDownloadDone);
+  taskScheduler.erase(m_delayDownloadDone.clear());
 }
 
 void
@@ -457,6 +454,11 @@ DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
   m_main.receive_connect_peers();
 
   m_signalPeerDisconnected.emit(Peer(peer));
+}
+
+void
+DownloadWrapper::receive_tick() {
+  m_main.chunk_list()->sync_periodic();
 }
 
 void

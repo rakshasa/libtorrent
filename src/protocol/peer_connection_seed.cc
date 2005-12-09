@@ -50,7 +50,7 @@ PeerConnectionSeed::~PeerConnectionSeed() {
 //   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
 //     m_download->bitfield_counter().dec(m_peerChunks.bitfield()->bitfield());
 
-//   taskScheduler.erase(&m_taskSendChoke);
+//   taskScheduler.erase(m_taskSendChoke.clear());
 }
 
 void

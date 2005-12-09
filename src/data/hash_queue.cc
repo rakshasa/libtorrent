@@ -121,7 +121,7 @@ HashQueue::remove(const std::string& id) {
   }
 
   if (empty())
-    taskScheduler.erase(&m_taskWork);
+    taskScheduler.erase(m_taskWork.clear());
 }
 
 void
@@ -132,7 +132,7 @@ HashQueue::clear() {
   // Replace with a dtor check to ensure it is empty?
 //   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
 //   Base::clear();
-//   taskScheduler.erase(&m_taskWork);
+//   taskScheduler.erase(m_taskWork.clear());
 }
 
 void

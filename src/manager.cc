@@ -81,7 +81,7 @@ Manager::Manager() :
 }
 
 Manager::~Manager() {
-  taskScheduler.erase(&m_taskTick);
+  taskScheduler.erase(m_taskTick.clear());
 
   m_handshakeManager->clear();
   m_downloadManager->clear();
@@ -124,10 +124,12 @@ void
 Manager::receive_tick() {
   m_ticks++;
 
+  m_resourceManager->receive_tick();
+
   if (m_ticks % 4 == 0)
     std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::mem_fun(&DownloadWrapper::receive_keepalive));
 
-  m_resourceManager->receive_tick();
+  std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::mem_fun(&DownloadWrapper::receive_tick));
 
   // If you change the interval, make sure the above keepalive gets
   // triggered every 120 seconds.

@@ -57,7 +57,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
 }
 
 Handshake::~Handshake() {
-  taskScheduler.erase(&m_taskTimeout);
+  taskScheduler.erase(m_taskTimeout.clear());
 
   if (get_fd().is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open");

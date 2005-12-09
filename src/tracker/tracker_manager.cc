@@ -78,7 +78,7 @@ TrackerManager::close() {
   m_isRequesting = false;
 
   m_control->close();
-  taskScheduler.erase(&m_taskTimeout);
+  taskScheduler.erase(m_taskTimeout.clear());
 }
 
 void
@@ -159,7 +159,7 @@ TrackerManager::manual_request(bool force) {
   if (!force)
     t = std::max(t, m_control->time_last_connection() + m_control->get_min_interval() * 1000000);
 
-  taskScheduler.erase(&m_taskTimeout);
+  taskScheduler.erase(m_taskTimeout.clear());
   taskScheduler.push(m_taskTimeout.prepare(t.round_seconds()));
 }
 

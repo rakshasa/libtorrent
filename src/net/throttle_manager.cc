@@ -59,7 +59,7 @@ ThrottleManager::ThrottleManager() :
 }
 
 ThrottleManager::~ThrottleManager() {
-  taskScheduler.erase(&m_taskTick);
+  taskScheduler.erase(m_taskTick.clear());
   delete m_throttleList;
 }
 
@@ -84,7 +84,7 @@ ThrottleManager::set_max_rate(uint32_t v) {
 
   } else if (m_maxRate == 0) {
     m_throttleList->disable();
-    taskScheduler.erase(&m_taskTick);
+    taskScheduler.erase(m_taskTick.clear());
   }
 }
 

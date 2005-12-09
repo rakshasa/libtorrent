@@ -116,9 +116,7 @@ HashTorrent::queue() {
     ChunkHandle handle = m_chunkList->get(m_position++, false);
 
     if (handle.is_valid()) {
-//       m_queue->push_back(handle, sigc::mem_fun(*this, &HashTorrent::receive_chunkdone), m_id);
       m_slotCheckChunk(handle);
-
       m_outstanding++;
 
     } else if (handle.error_number().is_valid()) {

@@ -2,7 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Get rid of download specific ticks.
+* Get rid of download specific ticks.
+
+Remove download_setup
 
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections.

@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
+#include <sigc++/connection.h>
 #include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
@@ -116,6 +117,8 @@ public:
 
   void                receive_peer_connected(PeerConnectionBase* peer);
   void                receive_peer_disconnected(PeerConnectionBase* peer);
+
+  void                receive_tick();
 
   void                receive_update_priorities();
 
