@@ -28,3 +28,7 @@ leechers.
 
 These would include defines for invalid states etc.
 
+
+== Combine taskScheduler and displayScheduler ==
+
+Use a dirty flag to indicate that we need to redraw.

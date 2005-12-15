@@ -92,7 +92,7 @@ HashQueue::push_back(ChunkHandle handle, SlotDone d, const std::string& id) {
       throw internal_error("Empty HashQueue is still in task schedule");
 
     m_tries = 0;
-    taskScheduler.push(m_taskWork.prepare(cachedTime));
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime);
   }
 
   Base::push_back(HashQueueNode(hc, id, d));
@@ -121,7 +121,7 @@ HashQueue::remove(const std::string& id) {
   }
 
   if (empty())
-    taskScheduler.erase(m_taskWork.clear());
+    priority_queue_erase(&taskScheduler, &m_taskWork);
 }
 
 void
@@ -132,7 +132,7 @@ HashQueue::clear() {
   // Replace with a dtor check to ensure it is empty?
 //   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
 //   Base::clear();
-//   taskScheduler.erase(m_taskWork.clear());
+//   priority_queue_erase(&taskScheduler, &m_taskWork);
 }
 
 void
@@ -141,10 +141,10 @@ HashQueue::work() {
     return;
 
   if (!check(++m_tries >= m_maxTries))
-    return taskScheduler.push(m_taskWork.prepare(cachedTime + m_interval));
+    return priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + m_interval);
 
   if (!empty() && !m_taskWork.is_queued())
-    taskScheduler.push(m_taskWork.prepare(cachedTime));
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime);
 
   m_tries = std::min(0, m_tries - 2);
 }

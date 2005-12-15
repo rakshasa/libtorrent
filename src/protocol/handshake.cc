@@ -53,11 +53,14 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
 
   m_taskTimeout.set_slot(rak::mem_fn(this, &Handshake::send_failed));
 
-  taskScheduler.push(m_taskTimeout.prepare((cachedTime + 60 * 1000000).round_seconds()));
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + 60 * 1000000).round_seconds());
 }
 
 Handshake::~Handshake() {
-  taskScheduler.erase(m_taskTimeout.clear());
+  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+
+  if (m_taskTimeout.is_queued())
+    throw internal_error("Handshake m_taskTimeout bork bork bork.");
 
   if (get_fd().is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open");

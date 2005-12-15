@@ -133,7 +133,7 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   m_requestList.set_peer_chunks(&m_peerChunks);
 
   if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
-    throw internal_error("PeerConnectionSeed::set(...) recived bad input.");
+    throw internal_error("PeerConnectionBase::set(...) recived bad input.");
 
   // Set the bitfield size and zero it
   *m_peerChunks.bitfield() = BitFieldExt(m_download->content()->chunk_total());

@@ -165,7 +165,7 @@ DownloadMain::stop() {
     connection_list()->erase(connection_list()->front());
 
   m_trackerManager->send_stop();
-  taskScheduler.erase(m_taskTrackerRequest.clear());
+  priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
 
   m_chunkList->sync_all();
 }
@@ -224,8 +224,8 @@ DownloadMain::receive_tracker_success() {
   if (!m_started)
     return;
 
-  taskScheduler.erase(m_taskTrackerRequest.clear());
-  taskScheduler.push(m_taskTrackerRequest.prepare((cachedTime + 30 * 1000000).round_seconds()));
+  priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
+  priority_queue_insert(&taskScheduler, &m_taskTrackerRequest, (cachedTime + 30 * 1000000).round_seconds());
 }
 
 void

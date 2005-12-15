@@ -4,7 +4,23 @@ get while coding.
 
 * Get rid of download specific ticks.
 
-Remove download_setup
+Input empty url causes crashes.
+
+Make sure we support removing items that have been grabbed from the
+queue. Also we need to clear them before doing the calling iteration.
+
+Add earlier check on validity of the incoming/outgoing connection's sa.
+
+Also check that erased items really do get erased, and that you don't
+take them from the wrong queue. Make an global function, rather than a
+member, that contains the logic.
+
+Make sure we don't overflow the time remaining counter.
+
+Check for validity of >4gb files.
+
+Check that all priority queue inserts put themselves after cachedTime.
+
 
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections.

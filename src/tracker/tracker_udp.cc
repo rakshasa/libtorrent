@@ -94,7 +94,7 @@ TrackerUdp::send_state(TrackerInfo::State state,
   pollCustom->insert_error(this);
 
   m_tries = m_info->udp_tries();
-  taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_info->udp_timeout() * 1000000).round_seconds()));
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + m_info->udp_timeout() * 1000000).round_seconds());
 }
 
 void
@@ -108,7 +108,7 @@ TrackerUdp::close() {
   m_readBuffer = NULL;
   m_writeBuffer = NULL;
 
-  taskScheduler.erase(m_taskTimeout.clear());
+  priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
@@ -138,7 +138,7 @@ TrackerUdp::receive_timeout() {
   if (--m_tries == 0) {
     receive_failed("Unable to connect to UDP tracker.");
   } else {
-    taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_info->udp_timeout() * 1000000).round_seconds()));
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + m_info->udp_timeout() * 1000000).round_seconds());
 
     pollCustom->insert_write(this);
   }
@@ -166,8 +166,8 @@ TrackerUdp::event_read() {
 
     prepare_announce_input();
 
-    taskScheduler.erase(m_taskTimeout.clear());
-    taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_info->udp_timeout() * 1000000).round_seconds()));
+    priority_queue_erase(&taskScheduler, &m_taskTimeout);
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + m_info->udp_timeout() * 1000000).round_seconds());
 
     m_tries = m_info->udp_tries();
     pollCustom->insert_write(this);

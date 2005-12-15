@@ -260,7 +260,7 @@ DownloadWrapper::close() {
   m_main.close();
 
   // Should this perhaps be in stop?
-  taskScheduler.erase(m_delayDownloadDone.clear());
+  priority_queue_erase(&taskScheduler, &m_delayDownloadDone);
 }
 
 void
@@ -402,7 +402,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
 	// HashQueue, Delegator etc shouldn't be cleaned up at this
 	// point.
 	if (!m_delayDownloadDone.is_queued())
-	  taskScheduler.push(m_delayDownloadDone.prepare(cachedTime));
+	  priority_queue_insert(&taskScheduler, &m_delayDownloadDone, cachedTime);
 
 	m_main.connection_list()->erase_seeders();
       }

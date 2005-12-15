@@ -59,7 +59,7 @@ ThrottleManager::ThrottleManager() :
 }
 
 ThrottleManager::~ThrottleManager() {
-  taskScheduler.erase(m_taskTick.clear());
+  priority_queue_erase(&taskScheduler, &m_taskTick);
   delete m_throttleList;
 }
 
@@ -84,7 +84,7 @@ ThrottleManager::set_max_rate(uint32_t v) {
 
   } else if (m_maxRate == 0) {
     m_throttleList->disable();
-    taskScheduler.erase(m_taskTick.clear());
+    priority_queue_erase(&taskScheduler, &m_taskTick);
   }
 }
 
@@ -97,7 +97,7 @@ ThrottleManager::receive_tick() {
 
   m_throttleList->update_quota((uint32_t)(m_maxRate * timeSinceLast));
 
-  taskScheduler.push(m_taskTick.prepare(cachedTime + calculate_interval()));
+  priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime + calculate_interval());
   m_timeLastTick = cachedTime;
 }
 

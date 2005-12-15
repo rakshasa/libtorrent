@@ -78,7 +78,7 @@ TrackerManager::close() {
   m_isRequesting = false;
 
   m_control->close();
-  taskScheduler.erase(m_taskTimeout.clear());
+  priority_queue_erase(&taskScheduler, &m_taskTimeout);
 }
 
 void
@@ -159,8 +159,8 @@ TrackerManager::manual_request(bool force) {
   if (!force)
     t = std::max(t, m_control->time_last_connection() + m_control->get_min_interval() * 1000000);
 
-  taskScheduler.erase(m_taskTimeout.clear());
-  taskScheduler.push(m_taskTimeout.prepare(t.round_seconds()));
+  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, t.round_seconds());
 }
 
 void
@@ -242,7 +242,7 @@ TrackerManager::receive_success(AddressList* l) {
   m_isRequesting = false;
 
   m_control->set_state(TrackerInfo::NONE);
-  taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_control->get_normal_interval() * 1000000).round_seconds()));
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + m_control->get_normal_interval() * 1000000).round_seconds());
 
   m_slotSuccess(l);
 }
@@ -259,9 +259,9 @@ TrackerManager::receive_failed(const std::string& msg) {
       // Don't start from the beginning of the list if we've gone
       // through the whole list. Return to normal timeout.
       m_isRequesting = false;
-      taskScheduler.push(m_taskTimeout.prepare((cachedTime + m_control->get_normal_interval() * 1000000).round_seconds()));
+      priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + m_control->get_normal_interval() * 1000000).round_seconds());
     } else {
-      taskScheduler.push(m_taskTimeout.prepare((cachedTime + 20 * 1000000).round_seconds()));
+      priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + 20 * 1000000).round_seconds());
     }
 
   } else {
@@ -269,7 +269,7 @@ TrackerManager::receive_failed(const std::string& msg) {
     if (m_control->focus_index() == m_control->get_list().size())
       m_control->set_focus_index(0);
     
-    taskScheduler.push(m_taskTimeout.prepare((cachedTime + 20 * 1000000).round_seconds()));
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + 20 * 1000000).round_seconds());
   }
 
   m_slotFailed(msg);
