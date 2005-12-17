@@ -2,28 +2,39 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-* Get rid of download specific ticks.
-
-Input empty url causes crashes.
-
-Make sure we support removing items that have been grabbed from the
-queue. Also we need to clear them before doing the calling iteration.
-
 Add earlier check on validity of the incoming/outgoing connection's sa.
-
-Also check that erased items really do get erased, and that you don't
-take them from the wrong queue. Make an global function, rather than a
-member, that contains the logic.
 
 Make sure we don't overflow the time remaining counter.
 
 Check for validity of >4gb files.
 
-Check that all priority queue inserts put themselves after cachedTime.
+Check that all priority queue inserts put themselves after
+cachedTime. Look at window::mark_dirty.
 
+Make the vfat workaround configurable. Also add note to the wiki.
 
 Don't allow multiple connections from the same IP to the same
-torrent. Also do something about incoming connections.
+torrent. Also do something about incoming connections. Only let them
+open N handshakes.
+
+Either kill the setting of uninterested state, or fix the code.
+
+Make set_bind_address reopen listen socket?
+
+
+===
+
+Don't use std::make_heap in rak::priority_queue, test that this is
+safe.
+
+When receiving zero length pieces, remove them from the queue.
+
+Clean up the command/option instances, move them to Control.
+
+Implement the generic command system thing.
+
+===
+
 
 Look into replacing SocketAddress with some kind of thing using
 getaddrinfo.
@@ -32,8 +43,6 @@ Display leechers/seeders.
 
 Make sure storage error is correctly displayed, rather than being
 hidden.
-
-Make the vfat workaround configurable. Also add note to the wiki.
 
 Different min peers for seeding and leeching modes?
 

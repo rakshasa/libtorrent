@@ -12,12 +12,6 @@ syncing to disk. This would have the benefit of avoiding SIGBUS due to
 full disk as msync can be called blockingly.
 
 
-== TaskScheduler as a binary priority queue ==
-
-Would propably need to make the node a pointer. Though you wouldn't
-need to return the node pointer to the user.
-
-
 == Tracker scrape ==
 
 Add tracker scraping and display connected/not-connected seeds and
@@ -32,3 +26,8 @@ These would include defines for invalid states etc.
 == Combine taskScheduler and displayScheduler ==
 
 Use a dirty flag to indicate that we need to redraw.
+
+
+== Improve logging ==
+
+...
