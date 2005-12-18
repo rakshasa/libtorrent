@@ -401,10 +401,13 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
 	// for clients that wish to close and reopen the torrent, as
 	// HashQueue, Delegator etc shouldn't be cleaned up at this
 	// point.
+	//
+	// This needs to be seperated into a new function.
 	if (!m_delayDownloadDone.is_queued())
 	  priority_queue_insert(&taskScheduler, &m_delayDownloadDone, cachedTime);
 
 	m_main.connection_list()->erase_seeders();
+	m_main.down_rate()->reset_rate();
       }
     
       m_main.connection_list()->send_finished_chunk(handle->index());
@@ -481,24 +484,6 @@ DownloadWrapper::receive_update_priorities() {
 
   std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
 		std::mem_fun(&PeerConnectionBase::update_interested));
-
-//   Priority::iterator itr = p->begin(Priority::NORMAL);
-
-//   while (itr != p->end(Priority::NORMAL) && (itr + 1) != p->end(Priority::NORMAL)) {
-//     if (itr->second >= (itr + 1)->first)
-//       throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (normal).");
-
-//     ++itr;
-//   }
-
-//   itr = p->begin(Priority::HIGH);
-
-//   while (itr != p->end(Priority::HIGH) && (itr + 1) != p->end(Priority::HIGH)) {
-//     if (itr->second >= (itr + 1)->first)
-//       throw internal_error("DownloadWrapper::receive_update_priorities() internal range error (high).");
-
-//     ++itr;
-//   }
 }
 
 }

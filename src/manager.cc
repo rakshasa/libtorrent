@@ -140,10 +140,23 @@ void
 Manager::receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
   DownloadManager::iterator itr = m_downloadManager->find(hash);
   
-  if (itr == m_downloadManager->end() ||
-      !(*itr)->main()->is_active() ||
-      !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd))
+  if (itr == m_downloadManager->end()) {
     socketManager.close(fd);
+    return;
+  }
+
+  if (!peer.get_socket_address().is_valid()) {
+    (*itr)->main()->signal_network_log().emit("Caught a connection with invalid socket address.");
+
+    socketManager.close(fd);
+    return;
+  }    
+
+  if (!(*itr)->main()->is_active() ||
+      !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd)) {
+    socketManager.close(fd);
+    return;
+  }
 }
 
 std::string

@@ -31,3 +31,13 @@ Use a dirty flag to indicate that we need to redraw.
 == Improve logging ==
 
 ...
+
+
+== Delegator rework ==
+
+Keep multiple downloads of the same block seperate. When done, and
+hash checking fails, compare pieces and merge/mark equal pieces. Those
+would have higher priority when comparing, but not absolute.
+
+The anonymous mmap'ed regions would contain different dtor functor
+than file chunks.

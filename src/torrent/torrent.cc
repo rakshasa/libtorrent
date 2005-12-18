@@ -134,8 +134,7 @@ listen_open(uint16_t begin, uint16_t end) {
   manager->local_address()->set_port(manager->listen()->port());
   manager->handshake_manager()->set_bind_address(*manager->bind_address());
 
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end();
-       itr != last; ++itr)
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
     (*itr)->local_address().set_port(manager->listen()->port());
 
   return true;
@@ -194,7 +193,7 @@ set_local_address(const std::string& addr) {
     throw input_error("Tried to set an invalid/non-existent local address.");
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->local_address().set_address(addr);
+    (*itr)->local_address().set_address(manager->local_address()->get_address());
 }
 
 std::string

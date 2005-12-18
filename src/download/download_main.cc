@@ -186,7 +186,7 @@ DownloadMain::get_bytes_left() const {
 void
 DownloadMain::update_endgame() {
   if (!m_endgame &&
-      m_content.chunks_completed() + m_delegator.get_chunks().size() + 0 >= m_content.chunk_total()) {
+      m_content.chunks_completed() + m_delegator.get_chunks().size() + 5 >= m_content.chunk_total()) {
     m_endgame = true;
     m_delegator.set_aggressive(true);
   }
