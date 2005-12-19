@@ -92,7 +92,7 @@ HashQueue::push_back(ChunkHandle handle, SlotDone d, const std::string& id) {
       throw internal_error("Empty HashQueue is still in task schedule");
 
     m_tries = 0;
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime);
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1);
   }
 
   Base::push_back(HashQueueNode(hc, id, d));
@@ -144,7 +144,7 @@ HashQueue::work() {
     return priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + m_interval);
 
   if (!empty() && !m_taskWork.is_queued())
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime);
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1);
 
   m_tries = std::min(0, m_tries - 2);
 }

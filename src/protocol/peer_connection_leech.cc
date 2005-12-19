@@ -418,8 +418,8 @@ PeerConnectionLeech::fill_write_buffer() {
       !(m_tryRequest = try_request_pieces()) &&
 
       !m_requestList.is_interested_in_active()) {
-    m_sendInterested = true;
-    m_up->set_interested(false);
+//     m_sendInterested = true;
+//     m_up->set_interested(false);
   }
 
   if (m_sendInterested && m_up->can_write_interested()) {

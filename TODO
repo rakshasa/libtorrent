@@ -2,10 +2,12 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+[DONE] Check that all priority queue inserts put themselves after
+cachedTime. Look at window::mark_dirty.
+
 Check for validity of >4gb files.
 
-Check that all priority queue inserts put themselves after
-cachedTime. Look at window::mark_dirty.
+Check everything works when we receive invalid chunks.
 
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections. Only let them
@@ -13,7 +15,7 @@ open N handshakes.
 
 Either kill the setting of uninterested state, or fix the code.
 
-Wildcards.
+Add schedule/schedule_remove to man and doc.
 
 
 ===
@@ -31,6 +33,11 @@ Clean up the client-side handling of listening port open/reopen/close.
 
 Fix the usage of std::min(s, length) in display/utils.cc, it won't
 work correctly if an error is returned.
+
+Wildcards.
+
+Look at PCLeech::fill_write_buffer()'s set uninterested when there is
+nothing to request.
 
 ===
 
