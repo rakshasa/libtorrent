@@ -55,7 +55,7 @@ class ChunkSelector;
 
 class Delegator {
 public:
-  typedef std::vector<DelegatorChunk*>                             Chunks;
+  typedef std::vector<DelegatorChunk*>                              Chunks;
   typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
   typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
   typedef rak::mem_fun1<DownloadMain, void, unsigned int>           SlotChunkDone;

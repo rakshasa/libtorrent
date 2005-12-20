@@ -62,6 +62,8 @@ ChunkSelector::cleanup() {
   m_bitfield = BitField();
 }
 
+// Consider if ChunksSelector::not_using_index(...) needs to be
+// modified.
 void
 ChunkSelector::update_priorities() {
   if (m_position == invalid_chunk)
@@ -114,6 +116,10 @@ ChunkSelector::not_using_index(uint32_t index) {
     throw internal_error("ChunkSelector::deselect_index(...) index already unset.");
 
   m_bitfield.set(index, true);
+
+  // This will make sure that if we enable new chunks, it will work
+  // when 'index == invalid_chunk'.
+  update_priorities();
 }
 
 void

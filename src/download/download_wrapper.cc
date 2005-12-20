@@ -274,7 +274,7 @@ DownloadWrapper::start() {
   if (m_main.is_active())
     return;
 
-  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(*m_main.delegator(), &Delegator::done));
+  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_main.delegator(), &Delegator::done));
   m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_main.delegator(), &Delegator::redo));
 
   m_main.start();
@@ -395,20 +395,8 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
       signal_chunk_passed().emit(handle->index());
       m_main.update_endgame();
 
-      if (m_main.content()->is_done()) {
-	// We delay emitting the signal to allow the delegator to
-	// clean up. If we do a straight call it would cause problems
-	// for clients that wish to close and reopen the torrent, as
-	// HashQueue, Delegator etc shouldn't be cleaned up at this
-	// point.
-	//
-	// This needs to be seperated into a new function.
-	if (!m_delayDownloadDone.is_queued())
-	  priority_queue_insert(&taskScheduler, &m_delayDownloadDone, cachedTime);
-
-	m_main.connection_list()->erase_seeders();
-	m_main.down_rate()->reset_rate();
-      }
+      if (m_main.content()->is_done())
+	finished_download();
     
       m_main.connection_list()->send_finished_chunk(handle->index());
 
@@ -484,6 +472,22 @@ DownloadWrapper::receive_update_priorities() {
 
   std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
 		std::mem_fun(&PeerConnectionBase::update_interested));
+}
+
+void
+DownloadWrapper::finished_download() {
+  // We delay emitting the signal to allow the delegator to
+  // clean up. If we do a straight call it would cause problems
+  // for clients that wish to close and reopen the torrent, as
+  // HashQueue, Delegator etc shouldn't be cleaned up at this
+  // point.
+  //
+  // This needs to be seperated into a new function.
+  if (!m_delayDownloadDone.is_queued())
+    priority_queue_insert(&taskScheduler, &m_delayDownloadDone, cachedTime);
+
+  m_main.connection_list()->erase_seeders();
+  m_main.down_rate()->reset_rate();
 }
 
 }

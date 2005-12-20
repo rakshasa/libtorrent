@@ -204,6 +204,8 @@ Delegator::redo(unsigned int index) {
   // TODO: Download pieces from the other clients and try again. Swap out pieces
   // from one id at the time.
   done(index);
+
+  m_slotChunkDisable(index);
 }
 
 DelegatorPiece*

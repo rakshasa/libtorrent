@@ -2,23 +2,14 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[DONE] Check that all priority queue inserts put themselves after
-cachedTime. Look at window::mark_dirty.
 
-Check for validity of >4gb files.
-
-Check everything works when we receive invalid chunks.
+===
 
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections. Only let them
 open N handshakes.
 
-Either kill the setting of uninterested state, or fix the code.
-
-Add schedule/schedule_remove to man and doc.
-
-
-===
+Check for validity of >4gb files.
 
 Don't use std::make_heap in rak::priority_queue, test that this is
 safe.
@@ -36,8 +27,15 @@ work correctly if an error is returned.
 
 Wildcards.
 
-Look at PCLeech::fill_write_buffer()'s set uninterested when there is
-nothing to request.
+core::Download::release_download is redundant.
+
+A torrent that was added wouldn't start, had to restart rtorrent.
+
+BitTornado 0.3.7/14
+
+<skamp> (18:54:17) Close connection: Connection read fd(5,0,1) ""
+<skamp> (18:54:11) Close connection: Connection read fd(137,0,1) ""
+<skamp> (18:54:10) Close connection: Connection read fd(138,0,9) ""
 
 ===
 

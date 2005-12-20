@@ -139,6 +139,8 @@ private:
   DownloadWrapper(const DownloadWrapper&);
   void operator = (const DownloadWrapper&);
 
+  void                finished_download();
+
   DownloadMain        m_main;
   Bencode             m_bencode;
   HashTorrent*        m_hash;

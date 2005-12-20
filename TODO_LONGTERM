@@ -1,8 +1,33 @@
+== Configurable keybindings ==
+
+...
+
+
+== Combine taskScheduler and displayScheduler ==
+
+Use a dirty flag to indicate that we need to redraw.
+
+
+== Delegator rework ==
+
+Keep multiple downloads of the same block seperate. When done, and
+hash checking fails, compare pieces and merge/mark equal pieces. Those
+would have higher priority when comparing, but not absolute.
+
+The anonymous mmap'ed regions would contain different dtor functor
+than file chunks.
+
+
 == Sockets ==
 
 Look into increasing the socket buffers. This would allow us to queue
 more data for each poll event. But make sure we only get polled when
 the buffer can take a nice amount of data.
+
+
+== Improve logging ==
+
+...
 
 
 == Disk worker thread ==
@@ -17,27 +42,12 @@ full disk as msync can be called blockingly.
 Add tracker scraping and display connected/not-connected seeds and
 leechers.
 
+In the mean time, parse the extra information the official tracker
+transmits on requests.
+
 
 == typedefs or more restrictive types for chunk indices, ports and such ==
 
 These would include defines for invalid states etc.
 
 
-== Combine taskScheduler and displayScheduler ==
-
-Use a dirty flag to indicate that we need to redraw.
-
-
-== Improve logging ==
-
-...
-
-
-== Delegator rework ==
-
-Keep multiple downloads of the same block seperate. When done, and
-hash checking fails, compare pieces and merge/mark equal pieces. Those
-would have higher priority when comparing, but not absolute.
-
-The anonymous mmap'ed regions would contain different dtor functor
-than file chunks.
