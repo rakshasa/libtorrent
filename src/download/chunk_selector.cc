@@ -66,6 +66,9 @@ ChunkSelector::cleanup() {
 // modified.
 void
 ChunkSelector::update_priorities() {
+  if (empty())
+    return;
+
   if (m_position == invalid_chunk)
     m_position = std::rand() % size();
 
@@ -151,7 +154,7 @@ ChunkSelector::search(const BitField* bf, PriorityRanges* ranges, uint32_t first
 inline uint32_t
 ChunkSelector::search_range(const BitField* bf, uint32_t first, uint32_t last) {
   if (first >= last || last > size())
-    throw internal_error("ChunkSelector::find_range(...) received an invalid range.");
+    throw internal_error("ChunkSelector::search_range(...) received an invalid range.");
 
   BitField::const_iterator local  = m_bitfield.begin() + first / 8;
   BitField::const_iterator source = bf->begin() + first / 8;

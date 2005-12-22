@@ -61,6 +61,7 @@ public:
 
   static const uint32_t invalid_chunk = ~(uint32_t)0;
 
+  bool                empty() const                 { return size() == 0; }
   uint32_t            size() const                  { return m_bitfield.size_bits(); }
 
   const BitField*     bitfield()                    { return &m_bitfield; }

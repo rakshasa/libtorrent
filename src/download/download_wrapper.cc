@@ -454,6 +454,9 @@ DownloadWrapper::receive_tick() {
 
 void
 DownloadWrapper::receive_update_priorities() {
+  if (m_main.chunk_selector()->empty())
+    return;
+
   m_main.chunk_selector()->high_priority()->clear();
   m_main.chunk_selector()->normal_priority()->clear();
 
