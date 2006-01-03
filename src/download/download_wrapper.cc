@@ -461,9 +461,6 @@ DownloadWrapper::receive_update_priorities() {
   m_main.chunk_selector()->normal_priority()->clear();
 
   for (EntryList::iterator itr = m_main.content()->entry_list()->begin(); itr != m_main.content()->entry_list()->end(); ++itr) {
-    if (itr->range().first == itr->range().second)
-      throw internal_error("DownloadWrapper::receive_update_priorities() found a zero length range.");
-
     if (itr->priority() == 1)
       m_main.chunk_selector()->normal_priority()->insert(itr->range().first, itr->range().second);
 

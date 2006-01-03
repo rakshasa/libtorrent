@@ -412,6 +412,15 @@ PeerConnectionLeech::fill_write_buffer() {
     }
   }
 
+  // Send the interested state before any requests as some clients,
+  // e.g. BitTornado 0.7.14 and uTorrent 0.3.0, disconnect if a
+  // request has been received while uninterested. The problem arises
+  // as they send unchoke before receiving interested.
+  if (m_sendInterested && m_up->can_write_interested()) {
+    m_up->write_interested(m_up->interested());
+    m_sendInterested = false;
+  }
+
   if (m_tryRequest &&
 
       !(m_tryRequest = !should_request()) &&
@@ -420,11 +429,6 @@ PeerConnectionLeech::fill_write_buffer() {
       !m_requestList.is_interested_in_active()) {
 //     m_sendInterested = true;
 //     m_up->set_interested(false);
-  }
-
-  if (m_sendInterested && m_up->can_write_interested()) {
-    m_up->write_interested(m_up->interested());
-    m_sendInterested = false;
   }
 
   while (!m_haveQueue.empty() && m_up->can_write_have()) {

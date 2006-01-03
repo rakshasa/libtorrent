@@ -79,26 +79,29 @@ EntryList::clear() {
 
 void
 EntryList::open(const std::string& root) {
-  make_directory(root);
   Path lastPath;
 
-  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-    if (itr->file_meta() != NULL)
-      throw internal_error("EntryList::open(...) found an already opened file.");
+  try {
+    make_directory(root);
+
+    for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+      if (itr->file_meta() != NULL)
+	throw internal_error("EntryList::open(...) found an already opened file.");
       
-    itr->set_file_meta(m_slotInsertFileMeta(root + itr->path()->as_string()));
+      itr->set_file_meta(m_slotInsertFileMeta(root + itr->path()->as_string()));
       
-    if (itr->path()->empty()) {
-      close();
-      throw storage_error("Found an empty filename.");
+      if (itr->path()->empty())
+	throw storage_error("Found an empty filename.");
+
+      if (!open_file(root, &*itr, lastPath))
+	throw storage_error("Could no open file \"" + root + itr->path()->as_string() + "\".");
+      
+      lastPath = *itr->path();
     }
 
-    if (!open_file(root, &*itr, lastPath)) {
-      close();
-      throw storage_error("Could no open file \"" + root + itr->path()->as_string() + "\".");
-    }
-      
-    lastPath = *itr->path();
+  } catch (storage_error& e) {
+    close();
+    throw e;
   }
 }
 
@@ -140,6 +143,8 @@ bool
 EntryList::open_file(const std::string& root, EntryListNode* node, const Path& lastPath) {
   make_directory(root, node->path()->begin(), --node->path()->end(), lastPath.begin(), lastPath.end());
 
+  // Some torrents indicate an empty directory by having a path with
+  // an empty last element. This entry must be zero length.
   if (node->path()->back().empty())
     return node->size() == 0;
 

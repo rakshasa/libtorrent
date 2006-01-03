@@ -49,6 +49,18 @@
 
 namespace torrent {
 
+struct request_list_same_piece {
+  request_list_same_piece(const Piece& p) : m_piece(p) {}
+
+  bool operator () (const DelegatorReservee* d) {
+    return
+      m_piece.get_index() == d->get_piece().get_index() &&
+      m_piece.get_offset() == d->get_piece().get_offset();
+  }
+
+  Piece m_piece;
+};
+
 const Piece*
 RequestList::delegate() {
   DelegatorReservee* r = m_delegator->delegate(m_peerChunks, m_affinity);
@@ -88,21 +100,24 @@ RequestList::stall() {
 bool
 RequestList::downloading(const Piece& p) {
   if (m_downloading)
-    throw internal_error("RequestList::downloading(...) bug, m_downloaing is already set");
+    throw internal_error("RequestList::downloading(...) bug, m_downloading is already set");
 
   remove_invalid();
 
   ReserveeList::iterator itr =
     std::find_if(m_reservees.begin(), m_reservees.end(),
-		 rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
+		 //rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
+		 request_list_same_piece(p));
   
   if (itr == m_reservees.end()) {
     itr = std::find_if(m_canceled.begin(), m_canceled.end(),
-		       rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
+		       //rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
+		       request_list_same_piece(p));
 
     if (itr == m_canceled.end())
       return false;
 
+    // The iterator needs to remain valid.
     m_reservees.push_front(*itr);
     m_canceled.erase(itr);
 
@@ -110,6 +125,13 @@ RequestList::downloading(const Piece& p) {
     cancel_range(itr);
   }
   
+  // Make sure pieces are removed from the reservee list if the peer
+  // returns zero length pieces.
+  if (p.get_length() != (*itr)->get_piece().get_length()) {
+    m_reservees.erase(itr);
+    return false;
+  }
+
   m_downloading = true;
 
   if (p != m_reservees.front()->get_piece())

@@ -79,6 +79,8 @@ public:
     m_interested(false),
     m_state(IDLE),
     m_lastCommand(NONE) {
+
+    m_buffer.reset();
   }
 
   bool                choked() const                          { return m_choked; }

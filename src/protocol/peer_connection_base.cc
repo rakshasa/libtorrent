@@ -143,13 +143,6 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   pollCustom->insert_write(this);
   pollCustom->insert_error(this);
 
-  // Do this elsewhere.
-  m_up->buffer()->reset();
-  m_down->buffer()->reset();
-
-  m_down->set_state(ProtocolRead::IDLE);
-  m_up->set_state(ProtocolWrite::IDLE);
-    
   m_timeLastRead = cachedTime;
 
   initialize_custom();

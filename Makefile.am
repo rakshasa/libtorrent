@@ -17,6 +17,7 @@ EXTRA_DIST= \
 	rak/priority_queue.h \
 	rak/priority_queue_default.h \
 	rak/ranges.h \
+	rak/regex.h \
 	rak/string_manip.h \
 	rak/timer.h \
 	rak/unordered_vector.h

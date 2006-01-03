@@ -154,14 +154,6 @@ void
 perform() {
   cachedTime = rak::timer::current();
 
-//   std::list<rak::priority_item*> workQueue;
-
-//   std::copy(rak::queue_popper(taskScheduler, rak::bind2nd(std::mem_fun(&rak::priority_item::compare), cachedTime)),
-// 	    rak::queue_popper(taskScheduler, rak::bind2nd(std::mem_fun(&rak::priority_item::compare), rak::timer())),
-// 	    std::back_inserter(workQueue));
-//   std::for_each(workQueue.begin(), workQueue.end(), std::mem_fun(&rak::priority_item::clear_time));
-//   std::for_each(workQueue.begin(), workQueue.end(), std::mem_fun(&rak::priority_item::call));
-
   while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
     rak::priority_item* v = taskScheduler.top();
     taskScheduler.pop();

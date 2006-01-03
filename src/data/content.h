@@ -125,6 +125,9 @@ private:
 
 inline Content::Range
 Content::make_index_range(uint64_t pos, uint64_t size) const {
+  if (size == 0)
+    return Range(pos / m_chunkSize, pos / m_chunkSize);
+
   return Range(pos / m_chunkSize, (pos + size + m_chunkSize - 1) / m_chunkSize);
 }
 

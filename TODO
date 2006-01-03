@@ -2,35 +2,41 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Make sure it is safe to kill torrents whenever one wants, or make it lazy.
+
+Note about load and load_run.
+
+Consider where Directory's dotHide parameter is needed.
+
+core::DownloadStore::save should return false, or throw storage error.
+
+Doesn't properly update the display when there's no activity besides new log entries.
+
+Look at PCLeech::read_have_chunk FIXME.
+
 Clean up the client-side handling of listening port open/reopen/close.
 
 Clean up the command/option instances, move them to Control.
 
 Implement the generic command system thing.
 
-Wildcards.
-
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections. Only let them
 open N handshakes.
 
-Check for validity of >4gb files.
-
 Don't use std::make_heap in rak::priority_queue, test that this is
 safe.
 
-When receiving zero length pieces, remove them from the queue.
-
 A torrent that was added wouldn't start, had to restart rtorrent.
 
-BitTornado 0.3.7/14
+Replace PCB::m_tryRequest with is_up_interested?
 
-<skamp> (18:54:17) Close connection: Connection read fd(5,0,1) ""
-<skamp> (18:54:11) Close connection: Connection read fd(137,0,1) ""
-<skamp> (18:54:10) Close connection: Connection read fd(138,0,9) ""
+Make the DownloadFactory's copyable/modifiable and stuff so they can
+be used as templates. Consider whetever they should depend on
+variables etc.
+
 
 ===
-
 
 Look into replacing SocketAddress with some kind of thing using
 getaddrinfo.

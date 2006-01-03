@@ -1,3 +1,25 @@
+=== Session management ==
+
+Add a command to tie a torrent to the life-time of a file. When that
+file is deleted, stop or delete the torrent.
+
+To support this, use different states (enum) for each torrent;
+STOPPED, STARTED, DEFUNCT(?), LOADING(?), SCHEDULED. When this is
+available, it should be possible to temporarily stop all torrents and
+remove DEFUNCT when quitting rtorrent. The latter could be used when
+the user deletes the file it is tied to.
+
+
+== Global and Download specific variables ==
+
+There are various things, ties to files, peer connection type etc that
+should be in a generic variable container thingie. In addition there
+should be a template for new downloads, download factory etc. The
+download factory's being given to the new download.
+
+Remember that we currently don't save sessions for inactive torrents.
+
+
 == Configurable keybindings ==
 
 ...
@@ -24,6 +46,9 @@ Look into increasing the socket buffers. This would allow us to queue
 more data for each poll event. But make sure we only get polled when
 the buffer can take a nice amount of data.
 
+The goal would be to push as much data into the buffer per event as
+possible if it is uploading fast.
+
 
 == Improve logging ==
 
@@ -35,6 +60,9 @@ the buffer can take a nice amount of data.
 A worker thread that gets activated to do stuff like hashing and
 syncing to disk. This would have the benefit of avoiding SIGBUS due to
 full disk as msync can be called blockingly.
+
+Before work can start on this, a threading library needs to be
+available. Possibly the TR2 stuff?
 
 
 == Tracker scrape ==
