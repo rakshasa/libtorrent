@@ -2,21 +2,22 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Fix up the spliter.
+
+Make the tick counter a real thing, part of Control.
+
+Make it so that permission problems etc show up on storage error, by
+using the errno.
+
+Make sure removing Window's is safe for the scheduler.
+
 Make sure it is safe to kill torrents whenever one wants, or make it lazy.
 
-Note about load and load_run.
-
 Consider where Directory's dotHide parameter is needed.
-
-core::DownloadStore::save should return false, or throw storage error.
-
-Doesn't properly update the display when there's no activity besides new log entries.
 
 Look at PCLeech::read_have_chunk FIXME.
 
 Clean up the client-side handling of listening port open/reopen/close.
-
-Clean up the command/option instances, move them to Control.
 
 Implement the generic command system thing.
 
@@ -34,6 +35,8 @@ Replace PCB::m_tryRequest with is_up_interested?
 Make the DownloadFactory's copyable/modifiable and stuff so they can
 be used as templates. Consider whetever they should depend on
 variables etc.
+
+Write a script to bump the copyright to 2006 on all source files.
 
 
 ===

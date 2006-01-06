@@ -37,11 +37,11 @@
 #include "config.h"
 
 #include <memory>
+#include <rak/file_stat.h>
 
 #include "torrent/exceptions.h"
 #include "content.h"
 #include "data/file_meta.h"
-#include "data/file_stat.h"
 #include "data/chunk.h"
 #include "data/entry_list.h"
 #include "data/piece.h"

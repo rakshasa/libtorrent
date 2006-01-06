@@ -38,6 +38,7 @@
 
 #include <iostream>
 #include <rak/functional.h>
+#include <rak/string_manip.h>
 
 #include "exceptions.h"
 #include "torrent.h"
@@ -46,7 +47,6 @@
 #include "manager.h"
 #include "resource_manager.h"
 
-#include "utils/string_manip.h"
 #include "net/listen.h"
 #include "net/manager.h"
 #include "net/throttle_list.h"
@@ -381,7 +381,7 @@ download_add(std::istream* s) {
   ctor.initialize(d->bencode());
 
   d->initialize(d->bencode().get_key("info").compute_sha1(),
-		PEER_NAME + random_string(20 - std::string(PEER_NAME).size()),
+		PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()),
 		*manager->local_address());
 
   // Default PeerConnection factory functions.

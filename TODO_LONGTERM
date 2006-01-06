@@ -19,15 +19,20 @@ download factory's being given to the new download.
 
 Remember that we currently don't save sessions for inactive torrents.
 
+Some variables should have custom store/retrive slots. One kind could
+be used to store/retrive values from the bencoded data, with syntax
+like "rtorrent/state" etc.
+
+
+== Cleanup of the display manager ==
+
+Consider taking the tasks out of the Window class, and just use flags
+for those that want to be regulary updated.
+
 
 == Configurable keybindings ==
 
 ...
-
-
-== Combine taskScheduler and displayScheduler ==
-
-Use a dirty flag to indicate that we need to redraw.
 
 
 == Delegator rework ==
@@ -79,3 +84,9 @@ transmits on requests.
 These would include defines for invalid states etc.
 
 
+== Validate the presence of files for session torrents ==
+
+Make sure that when session torrents are opened, it ensures that the
+downloaded/ing files are where we last saw them. Libtorrent shouldn't
+create the files when opened, but perhaps a call can be added for
+trying to make them?

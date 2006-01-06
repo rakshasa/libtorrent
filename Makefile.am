@@ -12,6 +12,7 @@ EXTRA_DIST= \
 	doc/torrent.xml \
         rak/algorithm.h \
 	rak/error_number.h \
+	rak/file_stat.h \
         rak/functional.h \
         rak/functional_fun.h \
 	rak/priority_queue.h \

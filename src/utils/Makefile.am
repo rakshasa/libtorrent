@@ -5,8 +5,6 @@ libsub_utils_la_SOURCES = \
         bitfield.h \
 	bitfield_counter.h \
 	bitfield_ext.h \
-	string_manip.cc \
-	string_manip.h \
 	sha1.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

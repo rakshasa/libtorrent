@@ -38,6 +38,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <rak/string_manip.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
@@ -80,18 +81,13 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
 
   std::stringstream s;
 
-  s << m_url << "?info_hash=";
-  escape_string(m_info->get_hash(), s);
+  s << m_url
+    << "?info_hash=" << rak::copy_escape_html(m_info->get_hash())
+    << "&peer_id=" << rak::copy_escape_html(m_info->get_local_id())
+    << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->get_key() << std::dec;
 
-  s << "&peer_id=";
-  escape_string(m_info->get_local_id(), s);
-
-  s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->get_key() << std::dec;
-
-  if (!m_trackerId.empty()) {
-    s << "&trackerid=";
-    escape_string(m_trackerId, s);
-  }
+  if (!m_trackerId.empty())
+    s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
 
   if (!m_info->get_local_address().is_address_any())
     s << "&ip=" << m_info->get_local_address().get_address();
@@ -145,23 +141,6 @@ TrackerHttp::close() {
 TrackerHttp::Type
 TrackerHttp::get_type() const {
   return TRACKER_HTTP;
-}
-
-void
-TrackerHttp::escape_string(const std::string& src, std::ostream& stream) {
-  // TODO: Correct would be to save the state.
-  stream << std::hex << std::uppercase;
-
-  for (std::string::const_iterator itr = src.begin(); itr != src.end(); ++itr)
-    if ((*itr >= 'A' && *itr <= 'Z') ||
-	(*itr >= 'a' && *itr <= 'z') ||
-	(*itr >= '0' && *itr <= '9') ||
-	*itr == '-')
-      stream << *itr;
-    else
-      stream << '%' << ((unsigned char)*itr >> 4) << ((unsigned char)*itr & 0xf);
-
-  stream << std::dec << std::nouppercase;
 }
 
 void

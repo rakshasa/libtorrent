@@ -22,8 +22,6 @@ libsub_data_la_SOURCES = \
 	file_manager.cc \
 	file_manager.h \
 	file_meta.h \
-	file_stat.cc \
-	file_stat.h \
 	hash_chunk.cc \
 	hash_chunk.h \
 	hash_queue.cc \

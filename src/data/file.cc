@@ -37,11 +37,11 @@
 #include "config.h"
 
 #include "file.h"
-#include "file_stat.h"
 #include "torrent/exceptions.h"
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <rak/file_stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -127,7 +127,9 @@ File::size() const {
   if (!is_open())
     throw internal_error("File::size() called on a closed file");
 
-  return FileStat(m_fd).size();
+  rak::file_stat fs;
+
+  return fs.update(m_fd) ? fs.size() : 0;
 }  
 
 bool

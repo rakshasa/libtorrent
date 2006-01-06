@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <rak/file_stat.h>
 #include <sigc++/bind.h>
 
 #include "data/chunk_list.h"
@@ -45,7 +46,6 @@
 #include "data/hash_torrent.h"
 #include "data/file_manager.h"
 #include "data/file_meta.h"
-#include "data/file_stat.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
@@ -141,16 +141,16 @@ DownloadWrapper::hash_resume_load() {
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
     while (sItr != m_main.content()->entry_list()->end()) {
-      FileStat fs;
+      rak::file_stat fs;
 
       // Check that the size and modified stamp matches. If not, then
       // add to the hashes to check.
 
-      if (fs.update(sItr->file_meta()->get_path()) ||
+      if (!fs.update(sItr->file_meta()->get_path()) ||
 	  sItr->size() != fs.size() ||
 	  !bItr->has_key("mtime") ||
 	  !(*bItr).get_key("mtime").is_value() ||
-	  (*bItr).get_key("mtime").as_value() != fs.get_mtime())
+	  (*bItr).get_key("mtime").as_value() != fs.modified_time())
 	m_hash->ranges().insert(sItr->range().first, sItr->range().second);
 
       // Update the priority from the fast resume data.
@@ -209,14 +209,14 @@ DownloadWrapper::hash_resume_save() {
   while (sItr != m_main.content()->entry_list()->end()) {
     Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
 
-    FileStat fs;
+    rak::file_stat fs;
 
-    if (fs.update(sItr->file_meta()->get_path())) {
+    if (!fs.update(sItr->file_meta()->get_path())) {
       l.clear();
       break;
     }
 
-    b.insert_key("mtime", fs.get_mtime());
+    b.insert_key("mtime", fs.modified_time());
     b.insert_key("priority", (int)sItr->priority());
 
     ++sItr;

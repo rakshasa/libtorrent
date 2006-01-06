@@ -66,8 +66,6 @@ private:
   void                receive_done();
   void                receive_failed(std::string msg);
 
-  static void         escape_string(const std::string& src, std::ostream& stream);
-
   static SocketAddress parse_address(const Bencode& b);
 
   void                parse_address_normal(AddressList& l, const Bencode::List& b);
