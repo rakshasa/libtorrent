@@ -2,18 +2,17 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Better error messages on bad config options?
+
+Consider where Directory's dotHide parameter is needed.
+
+Don't include .. and . when doing wildcard. Need to ensure ".." only gets matched when ".." is used.
+
 Fix up the spliter.
-
-Make the tick counter a real thing, part of Control.
-
-Make it so that permission problems etc show up on storage error, by
-using the errno.
 
 Make sure removing Window's is safe for the scheduler.
 
 Make sure it is safe to kill torrents whenever one wants, or make it lazy.
-
-Consider where Directory's dotHide parameter is needed.
 
 Look at PCLeech::read_have_chunk FIXME.
 

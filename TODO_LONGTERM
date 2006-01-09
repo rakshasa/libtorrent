@@ -44,6 +44,11 @@ would have higher priority when comparing, but not absolute.
 The anonymous mmap'ed regions would contain different dtor functor
 than file chunks.
 
+We need to keep around PeerInfo's after peers disconnect, so we store
+information for longer that the immediate connection. This also eases
+the delegator since we can use pointers to identify the peer we
+downloaded the piece from.
+
 
 == Sockets ==
 
