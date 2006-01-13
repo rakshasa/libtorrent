@@ -23,6 +23,8 @@ Some variables should have custom store/retrive slots. One kind could
 be used to store/retrive values from the bencoded data, with syntax
 like "rtorrent/state" etc.
 
+Stuff about new bencode thingie.
+
 
 == Cleanup of the display manager ==
 

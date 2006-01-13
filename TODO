@@ -2,6 +2,10 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+[FIXED?] Segfault in RequestList::downloading.
+
+Go over all the options/flags, make sure we use correct variablemap set.
+
 Better error messages on bad config options?
 
 Consider where Directory's dotHide parameter is needed.
@@ -35,7 +39,11 @@ Make the DownloadFactory's copyable/modifiable and stuff so they can
 be used as templates. Consider whetever they should depend on
 variables etc.
 
-Write a script to bump the copyright to 2006 on all source files.
+Ponder listen/ip/bind naming, listen should perhaps be bind?
+
+<hnsk> when there's a torrent hashing and another torrent finishes,
+would it be possible for it to say waiting for hash check instead of
+just inactive
 
 
 ===

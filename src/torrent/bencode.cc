@@ -110,6 +110,9 @@ Bencode::clear() {
 
 Bencode&
 Bencode::operator = (const Bencode& b) {
+  if (&b == this)
+    return *this;
+
   clear();
 
   m_type = b.m_type;

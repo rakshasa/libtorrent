@@ -104,22 +104,16 @@ RequestList::downloading(const Piece& p) {
 
   remove_invalid();
 
-  ReserveeList::iterator itr =
-    std::find_if(m_reservees.begin(), m_reservees.end(),
-		 //rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
-		 request_list_same_piece(p));
+  ReserveeList::iterator itr = std::find_if(m_reservees.begin(), m_reservees.end(), request_list_same_piece(p));
   
   if (itr == m_reservees.end()) {
-    itr = std::find_if(m_canceled.begin(), m_canceled.end(),
-		       //rak::equal(p, std::mem_fun(&DelegatorReservee::get_piece)));
-		       request_list_same_piece(p));
+    ReserveeList::iterator canceledItr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(p));
 
-    if (itr == m_canceled.end())
+    if (canceledItr == m_canceled.end())
       return false;
 
-    // The iterator needs to remain valid.
-    m_reservees.push_front(*itr);
-    m_canceled.erase(itr);
+    itr = m_reservees.insert(m_reservees.begin(), *canceledItr);
+    m_canceled.erase(canceledItr);
 
   } else {
     cancel_range(itr);
@@ -137,9 +131,6 @@ RequestList::downloading(const Piece& p) {
   if (p != m_reservees.front()->get_piece())
     throw internal_error("RequestList::downloading(...) did not add the new piece to the front of the list");
   
-//   if ((*m_delegator->get_select().bitfield())[p.get_index()])
-//     throw internal_error("RequestList::downloading(...) called with a piece index we already have");
-
   return true;
 }
 
