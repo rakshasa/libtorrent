@@ -55,7 +55,7 @@ namespace torrent {
 bool
 SocketFd::set_nonblock() {
   if (!is_valid())
-    throw internal_error("SocketFd::set_nonblock() called on a closed fd");
+    throw internal_error("SocketFd::set_nonblock() called on a closed fd.");
 
   return fcntl(m_fd, F_SETFL, O_NONBLOCK) == 0;
 }
@@ -63,12 +63,23 @@ SocketFd::set_nonblock() {
 bool
 SocketFd::set_throughput() {
   if (!is_valid())
-    throw internal_error("SocketFd::set_throughput() called on a closed fd");
+    throw internal_error("SocketFd::set_throughput() called on a closed fd.");
 
   int opt = IPTOS_THROUGHPUT;
 
   return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
 }
+
+bool
+SocketFd::set_reuse_address(bool state) {
+  if (!is_valid())
+    throw internal_error("SocketFd::set_reuse_address(bool) called on a closed fd.");
+
+  int opt = state;
+
+  return setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == 0;
+}
+
 
 int
 SocketFd::get_error() const {

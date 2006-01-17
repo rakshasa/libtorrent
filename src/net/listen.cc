@@ -54,10 +54,13 @@ Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
   close();
 
   if (first == 0 || last == 0 || first > last)
-    throw input_error("Tried to open listening port with an invalid range");
+    throw input_error("Tried to open listening port with an invalid range.");
 
   if (!get_fd().open_stream() || !get_fd().set_nonblock())
-    throw local_error("Could not allocate socket for listening");
+    throw local_error("Could not allocate socket for listening.");
+
+  if (!get_fd().set_reuse_address(true))
+    throw local_error("Could not set listening port to reuse address.");
 
   socketManager.local(get_fd());
 

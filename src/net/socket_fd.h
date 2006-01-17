@@ -55,6 +55,7 @@ public:
 
   bool                set_nonblock();
   bool                set_throughput();
+  bool                set_reuse_address(bool state);
 
   int                 get_error() const;
 

@@ -2,9 +2,17 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[FIXED?] Segfault in RequestList::downloading.
+<hnsk> when there's a torrent hashing and another torrent finishes,
+would it be possible for it to say waiting for hash check instead of
+just inactive
+
+Consider setting POSIX or C locales.
 
 Go over all the options/flags, make sure we use correct variablemap set.
+
+Add VariableSlotValueValue.
+
+Class that restricts input? A yes/no thingie? Would save on space though.
 
 Better error messages on bad config options?
 
@@ -41,10 +49,6 @@ variables etc.
 
 Ponder listen/ip/bind naming, listen should perhaps be bind?
 
-<hnsk> when there's a torrent hashing and another torrent finishes,
-would it be possible for it to say waiting for hash check instead of
-just inactive
-
 
 ===
 
@@ -57,8 +61,6 @@ Make sure storage error is correctly displayed, rather than being
 hidden.
 
 Different min peers for seeding and leeching modes?
-
-Store data on which side inititalized the connection.
 
 
 === For the next API change ===
