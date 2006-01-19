@@ -1,4 +1,4 @@
-AC_INIT(libtorrent, 0.8.2, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.8.3, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,

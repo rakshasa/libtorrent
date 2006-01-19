@@ -66,6 +66,9 @@ Content::initialize(uint32_t chunkSize) {
   m_chunkSize = chunkSize;
   m_chunkTotal = (m_entryList->bytes_size() + chunkSize - 1) / chunkSize;
 
+  if (m_hash.size() / 20 < m_chunkTotal)
+    throw bencode_error("Torrent size and 'info:pieces' length does not match.");
+
   m_bitfield = BitField(m_chunkTotal);
 
   for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
@@ -75,7 +78,7 @@ Content::initialize(uint32_t chunkSize) {
 void
 Content::add_file(const Path& path, uint64_t size) {
   if (m_chunkTotal)
-    throw internal_error("Tried to add file to Content that is open");
+    throw internal_error("Tried to add file to a torrent::Content that is initialized.");
 
   m_entryList->push_back(path, EntryListNode::Range(), size);
 }
@@ -83,7 +86,7 @@ Content::add_file(const Path& path, uint64_t size) {
 void
 Content::set_complete_hash(const std::string& hash) {
   if (m_chunkTotal)
-    throw internal_error("Tried to set complete hash on Content that is open");
+    throw internal_error("Tried to set hash on a torrent::Content that is initialized.");
 
   m_hash = hash;
 }
@@ -123,9 +126,6 @@ Content::is_valid_piece(const Piece& p) const {
 void
 Content::open() {
   m_entryList->open(m_rootDir);
-
-  if (m_hash.size() / 20 != m_chunkTotal)
-    throw internal_error("Content::open(...): Chunk count does not match hash count");
 }
 
 void

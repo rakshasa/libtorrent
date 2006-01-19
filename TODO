@@ -2,9 +2,22 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+[FIXED] Moved hash and torrent size checking to initialize so it will
+be caught when loading a torrent.
+
+bool redraw in display manager.
+
+Make variables safer, so bad torrent files don't mess things up.
+
+Caught exception: DelegatorPiece dtor called on an object that still has reservees
+
+Add a boolean Variable.
+
 <hnsk> when there's a torrent hashing and another torrent finishes,
 would it be possible for it to say waiting for hash check instead of
 just inactive
+
+Move set_root_directory cleanup into libtorrent. Allow empty string for "./"?
 
 Consider setting POSIX or C locales.
 
