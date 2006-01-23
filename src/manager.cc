@@ -99,6 +99,9 @@ Manager::~Manager() {
 
 void
 Manager::initialize_download(DownloadWrapper* d) {
+  d->bind_address() = m_bindAddress;
+  d->local_address() = m_localAddress;
+
   d->set_handshake_manager(m_handshakeManager);
   d->set_hash_queue(m_hashQueue);
   d->set_file_manager(m_fileManager);

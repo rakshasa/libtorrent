@@ -84,7 +84,6 @@ private:
   bool                process_error_output();
 
   SocketAddress       m_connectAddress;
-  SocketAddress       m_bindAddress;
 
   TrackerInfo::State  m_sendState;
   uint64_t            m_sendUp;

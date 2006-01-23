@@ -185,7 +185,7 @@ set_local_address(const std::string& addr) {
     throw input_error("Tried to set an invalid/non-existent local address.");
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->local_address().set_address(manager->local_address()->get_address());
+    (*itr)->local_address() = *manager->local_address();
 }
 
 std::string
@@ -206,6 +206,9 @@ set_bind_address(const std::string& addr) {
 
   else if (!manager->bind_address()->set_hostname(addr))
     throw input_error("Tried to set an invalid/non-existent bind address.");
+
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
+    (*itr)->bind_address() = *manager->bind_address();
 }
 
 uint32_t
@@ -381,8 +384,7 @@ download_add(std::istream* s) {
   ctor.initialize(d->bencode());
 
   d->initialize(d->bencode().get_key("info").compute_sha1(),
-		PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()),
-		*manager->local_address());
+		PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
 
   // Default PeerConnection factory functions.
   d->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
@@ -431,7 +433,7 @@ download_set_priority(Download d, uint32_t pri) {
   if (itr == manager->resource_manager()->end())
     throw client_error("torrent::download_set_priority(...) could not find the download in the resource manager.");
 
-  if (pri == 0 || pri > 1024)
+  if (pri > 1024)
     throw client_error("torrent::download_set_priority(...) received an invalid priority.");
 
   manager->resource_manager()->set_priority(itr, pri);

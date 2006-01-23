@@ -71,12 +71,12 @@ TrackerUdp::send_state(TrackerInfo::State state,
   close();
 
   if (!parse_url())
-    return receive_failed("Could not parse UDP hostname or port");
+    return receive_failed("Could not parse UDP hostname or port.");
 
   if (!get_fd().open_datagram() ||
       !get_fd().set_nonblock() ||
-      !get_fd().bind(m_bindAddress))
-    return receive_failed("Could not open UDP socket");
+      !get_fd().bind(m_info->bind_address()))
+    return receive_failed("Could not open UDP socket.");
 
   m_readBuffer = new ReadBuffer;
   m_writeBuffer = new WriteBuffer;
@@ -250,10 +250,10 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_64(m_sendUp);
   m_writeBuffer->write_32(m_sendState);
 
-  m_writeBuffer->write_32(m_info->get_local_address().get_addr_in_addr());
+  m_writeBuffer->write_32(m_info->local_address().get_addr_in_addr());
   m_writeBuffer->write_32(m_info->get_key());
   m_writeBuffer->write_32(m_info->get_numwant());
-  m_writeBuffer->write_16(m_info->get_local_address().get_port());
+  m_writeBuffer->write_16(m_info->local_address().get_port());
 
   m_writeBuffer->prepare_end();
 

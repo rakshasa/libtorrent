@@ -75,12 +75,11 @@ DownloadWrapper::~DownloadWrapper() {
 }
 
 void
-DownloadWrapper::initialize(const std::string& hash, const std::string& id, const SocketAddress& sa) {
+DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
   m_main.tracker_manager()->tracker_info()->set_hash(hash);
   m_main.tracker_manager()->tracker_info()->set_local_id(id);
-  m_main.tracker_manager()->tracker_info()->set_local_address(sa);
   m_main.tracker_manager()->tracker_info()->set_key(random());
   m_main.tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
   m_main.tracker_manager()->slot_failed(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_failed));
@@ -307,8 +306,13 @@ DownloadWrapper::get_local_id() const {
 }
 
 SocketAddress&
+DownloadWrapper::bind_address() {
+  return m_main.tracker_manager()->tracker_info()->bind_address();
+}
+
+SocketAddress&
 DownloadWrapper::local_address() {
-  return m_main.tracker_manager()->tracker_info()->get_local_address();
+  return m_main.tracker_manager()->tracker_info()->local_address();
 }
 
 void

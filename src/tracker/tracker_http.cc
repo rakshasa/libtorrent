@@ -75,7 +75,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
     throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info");
 
   if (m_info->get_local_id().length() != 20 ||
-      m_info->get_local_address().get_port() == 0 ||
+      m_info->local_address().get_port() == 0 ||
       m_info->get_hash().length() != 20)
     throw internal_error("Send state with TrackerHttp with bad hash, id or port");
 
@@ -89,8 +89,8 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   if (!m_trackerId.empty())
     s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
 
-  if (!m_info->get_local_address().is_address_any())
-    s << "&ip=" << m_info->get_local_address().get_address();
+  if (!m_info->local_address().is_address_any())
+    s << "&ip=" << m_info->local_address().get_address();
 
   if (m_info->get_compact())
     s << "&compact=1";
@@ -98,7 +98,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   if (m_info->get_numwant() >= 0)
     s << "&numwant=" << m_info->get_numwant();
 
-  s << "&port=" << m_info->get_local_address().get_port()
+  s << "&port=" << m_info->local_address().get_port()
     << "&uploaded=" << up
     << "&downloaded=" << down
     << "&left=" << left;

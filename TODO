@@ -2,16 +2,16 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[FIXED] Moved hash and torrent size checking to initialize so it will
-be caught when loading a torrent.
-
-bool redraw in display manager.
+Resize very small, bug.
 
 Make variables safer, so bad torrent files don't mess things up.
 
 Caught exception: DelegatorPiece dtor called on an object that still has reservees
 
 Add a boolean Variable.
+
+Consider not requesting extra peers when seeding? Though if we don't
+find any interested it won't get the 10 peer increase.
 
 <hnsk> when there's a torrent hashing and another torrent finishes,
 would it be possible for it to say waiting for hash check instead of

@@ -146,7 +146,7 @@ ResourceManager::balance_unchoked(unsigned int weight) {
     // Consider skipping the leading zero interested downloads.
     sort(begin(), end(), resource_manager_interested_increasing());
 
-    for (iterator itr = begin(); itr != end(); ++itr) {
+    for (iterator itr = begin(); weight != 0 && itr != end(); ++itr) {
       m_currentlyUnchoked += itr->second->choke_manager()->cycle((quota * itr->first) / weight);
       quota -= itr->second->choke_manager()->currently_unchoked();
       weight -= itr->first;

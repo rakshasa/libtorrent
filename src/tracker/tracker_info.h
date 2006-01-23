@@ -71,8 +71,8 @@ public:
   const std::string&  get_local_id() const                         { return m_localId; }
   void                set_local_id(const std::string& id)          { m_localId = id; }
 
-  SocketAddress&      get_local_address()                          { return m_localAddress; }
-  void                set_local_address(const SocketAddress& sa)   { m_localAddress = sa; }
+  SocketAddress&      bind_address()                               { return m_bindAddress; }
+  SocketAddress&      local_address()                              { return m_localAddress; }
 
   uint32_t            get_key() const                              { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
@@ -94,6 +94,8 @@ public:
 private:
   std::string         m_hash;
   std::string         m_localId;
+
+  SocketAddress       m_bindAddress;
   SocketAddress       m_localAddress;
 
   uint32_t            m_key;

@@ -70,7 +70,7 @@ public:
   ~DownloadWrapper();
 
   // Initialize hash checker and various download stuff.
-  void                initialize(const std::string& hash, const std::string& id, const SocketAddress& sa);
+  void                initialize(const std::string& hash, const std::string& id);
 
   // Don't load unless the object is newly initialized.
   void                hash_resume_load();
@@ -93,6 +93,8 @@ public:
 
   const std::string&  get_hash() const;
   const std::string&  get_local_id() const;
+
+  SocketAddress&      bind_address();
   SocketAddress&      local_address();
 
   const std::string&  get_name() const               { return m_name; }
