@@ -2,6 +2,13 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+[FIXED] ChunkSelector selected from wrong range due to ~(char)0 giving
+an inverted integer.
+
+Print bind.
+
+Fix the seed/leech priority thing.
+
 Resize very small, bug.
 
 Make variables safer, so bad torrent files don't mess things up.

@@ -160,7 +160,7 @@ ChunkSelector::search_range(const BitField* bf, uint32_t first, uint32_t last) {
   BitField::const_iterator source = bf->begin() + first / 8;
 
   // Unset any bits before 'first'.
-  BitField::data_t wanted = (*source & *local) & (~(BitField::data_t)0 >> (first % 8));
+  BitField::data_t wanted = (*source & *local) & (0xff >> (first % 8));
 
   while (wanted == 0) {
     ++local;
@@ -173,6 +173,9 @@ ChunkSelector::search_range(const BitField* bf, uint32_t first, uint32_t last) {
   }
   
   uint32_t position = m_bitfield.position(local) + search_byte(wanted);
+
+  if (position < first)
+    throw internal_error("ChunkSelector::search_range(...) position < first.");
 
   if (position < last)
     return position;
