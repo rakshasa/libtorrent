@@ -25,6 +25,8 @@ like "rtorrent/state" etc.
 
 Stuff about new bencode thingie.
 
+Make it possible to do an validity check on a bencode stream.
+
 
 == Cleanup of the display manager ==
 

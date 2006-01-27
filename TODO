@@ -2,11 +2,24 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+[FIXED] Make DownloadStore::save(...) load the Bencoded data from the
+file to ensure it is valid.
+
+[FIXED] Make it safe to remove torrents being displayed.
+
+[FIXED] Don't allow resume data from non-session torrents.
+
+[DONE] Added ^O to change a torrent's root dir, ^P to set a variable.
+
+Allow finished torrents to be moved.
+
+Make variables safer, so bad torrent files don't mess things up.
+
+Cleanup torrent::Download::set_root_dir
+
 Show seeders?
 
 Fix the seed/leech priority thing.
-
-Make variables safer, so bad torrent files don't mess things up.
 
 Caught exception: DelegatorPiece dtor called on an object that still has reservees
 
