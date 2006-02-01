@@ -2,18 +2,16 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[FIXED] Make DownloadStore::save(...) load the Bencoded data from the
-file to ensure it is valid.
+Consider session directory with empty path. Do we disable when set, etc?
 
-[FIXED] Make it safe to remove torrents being displayed.
+Expand ~.
 
-[FIXED] Don't allow resume data from non-session torrents.
+Backup
 
-[DONE] Added ^O to change a torrent's root dir, ^P to set a variable.
+Option to create session and watch directories.
+
 
 Allow finished torrents to be moved.
-
-Make variables safer, so bad torrent files don't mess things up.
 
 Cleanup torrent::Download::set_root_dir
 
@@ -24,9 +22,6 @@ Fix the seed/leech priority thing.
 Caught exception: DelegatorPiece dtor called on an object that still has reservees
 
 Add a boolean Variable.
-
-Consider not requesting extra peers when seeding? Though if we don't
-find any interested it won't get the 10 peer increase.
 
 <hnsk> when there's a torrent hashing and another torrent finishes,
 would it be possible for it to say waiting for hash check instead of
@@ -50,15 +45,9 @@ Don't include .. and . when doing wildcard. Need to ensure ".." only gets matche
 
 Fix up the spliter.
 
-Make sure removing Window's is safe for the scheduler.
-
-Make sure it is safe to kill torrents whenever one wants, or make it lazy.
-
 Look at PCLeech::read_have_chunk FIXME.
 
 Clean up the client-side handling of listening port open/reopen/close.
-
-Implement the generic command system thing.
 
 Don't allow multiple connections from the same IP to the same
 torrent. Also do something about incoming connections. Only let them
@@ -66,8 +55,6 @@ open N handshakes.
 
 Don't use std::make_heap in rak::priority_queue, test that this is
 safe.
-
-A torrent that was added wouldn't start, had to restart rtorrent.
 
 Replace PCB::m_tryRequest with is_up_interested?
 
@@ -108,9 +95,6 @@ those regions.
 
 === Hash Resume save ===
 
-[R] could you add a trigger for Download::hash_resume_save when a torrent 
-finishes?  
-
 Would need to make sure all chunks have been flushed.
 
 ===
@@ -150,8 +134,6 @@ Allow some client request to span more than (1<<14) bytes.
 
 ====
 
-
-[R] I would like to request refreshing the screen on SIGWINCH and when you press Ctrl-L
 
 Consider moving size checking outside of File::get_chunk.
 

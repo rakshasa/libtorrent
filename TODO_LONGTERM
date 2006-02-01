@@ -1,3 +1,18 @@
+== API changes ==
+
+The seed count and scrape leech/seed.
+
+Check if an entry is present and correctly sized.
+
+Rewrite the torrent::Bencode class.
+
+SO_SNDBUF and friends.
+
+Connection filtering.
+
+Disk cache.
+
+
 === Session management ==
 
 Add a command to tie a torrent to the life-time of a file. When that
