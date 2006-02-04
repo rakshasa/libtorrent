@@ -2,6 +2,12 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Flag for ignoring the filelock?
+
+Check lag issue.
+
+Move path expansion to Directory?
+
 Consider session directory with empty path. Do we disable when set, etc?
 
 Expand ~.
@@ -10,14 +16,29 @@ Backup
 
 Option to create session and watch directories.
 
+Bus error on "print this"?
+
+
+
+Note about:
+
+* Schduling rate change.
+
+- Changing priority +/-, man and user guide.
+
+- Date time in schedule.
+
+- Safe to use untied_remove.
+
+- ^O and ^P.
+
+
 
 Allow finished torrents to be moved.
 
 Cleanup torrent::Download::set_root_dir
 
 Show seeders?
-
-Fix the seed/leech priority thing.
 
 Caught exception: DelegatorPiece dtor called on an object that still has reservees
 

@@ -12,6 +12,10 @@ Connection filtering.
 
 Disk cache.
 
+Make libtorrent locale agnostic.
+
+Make sure we update total rate from the client.
+
 
 === Session management ==
 
@@ -23,6 +27,10 @@ STOPPED, STARTED, DEFUNCT(?), LOADING(?), SCHEDULED. When this is
 available, it should be possible to temporarily stop all torrents and
 remove DEFUNCT when quitting rtorrent. The latter could be used when
 the user deletes the file it is tied to.
+
+Saving session torrents should be lazy, perhaps only for those who are
+not open. Or do session torrent saving as needed, when seeding is
+stopped etc. Perhaps a dirty flag.
 
 
 == Global and Download specific variables ==
