@@ -76,7 +76,7 @@ ChunkSelector::update_priorities() {
 }
 
 uint32_t
-ChunkSelector::find(PeerChunks* peerChunks, bool highPriority) {
+ChunkSelector::find(PeerChunks* peerChunks, __UNUSED bool highPriority) {
   if (m_position == invalid_chunk)
     return m_position;
 
@@ -126,11 +126,11 @@ ChunkSelector::not_using_index(uint32_t index) {
 }
 
 void
-ChunkSelector::insert_peer_chunks(PeerChunks* peerChunks) {
+ChunkSelector::insert_peer_chunks(__UNUSED PeerChunks* peerChunks) {
 }
 
 void
-ChunkSelector::erase_peer_chunks(PeerChunks* peerChunks) {
+ChunkSelector::erase_peer_chunks(__UNUSED PeerChunks* peerChunks) {
 }
 
 inline uint32_t

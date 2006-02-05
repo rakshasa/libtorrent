@@ -1,12 +1,12 @@
-AC_INIT(libtorrent, 0.8.4, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.8.5, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME,
-          "-lt0804-",
+          "-lt0805-",
           Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=6
-LIBTORRENT_REVISION=2
+LIBTORRENT_REVISION=3
 LIBTORRENT_AGE=0
 
 LIBTORRENT_INTERFACE_VERSION_INFO=$LIBTORRENT_CURRENT:$LIBTORRENT_REVISION:$LIBTORRENT_AGE
@@ -19,10 +19,6 @@ AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 AC_DISABLE_STATIC
-
-sinclude(scripts/checks.m4)
-sinclude(scripts/common.m4)
-dnl sinclude(scripts)
 
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
@@ -62,6 +58,11 @@ LIBTORRENT_CFLAGS=""
 AC_SUBST(LIBTORRENT_CFLAGS)
 
 AC_DEFINE(HAVE_CONFIG_H, 1, true if config.h was included)
+
+CC_ATTRIBUTE_UNUSED(
+	AC_DEFINE([__UNUSED], [__attribute__((unused))], [Wrapper around unused attribute]),
+	AC_DEFINE([__UNUSED], [], [Null-wrapper if unused attribute is unsupported])
+)
 
 AC_OUTPUT([
 	libtorrent.pc

@@ -62,7 +62,7 @@ SocketManager::open(const SocketAddress& sa, const SocketAddress& b) {
 }
 
 SocketFd
-SocketManager::received(SocketFd fd, const SocketAddress& sa) {
+SocketManager::received(SocketFd fd, __UNUSED const SocketAddress& sa) {
   if (!fd.is_valid())
     throw internal_error("SocketManager::received(...) received an invalid file descriptor");
 

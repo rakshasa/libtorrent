@@ -16,6 +16,8 @@ Make libtorrent locale agnostic.
 
 Make sure we update total rate from the client.
 
+Kill tracker dump signal.
+
 
 === Session management ==
 

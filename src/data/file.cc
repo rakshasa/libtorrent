@@ -102,8 +102,14 @@ File::close() {
 
 // Reserve the space on disk if a system call is defined. 'length'
 // of zero indicates to the end of the file.
+#if !defined(USE_XFS) && !defined(USE_POSIX_FALLOCATE)
+#define RESERVE_PARAM __UNUSED
+#else
+#define RESERVE_PARAM
+#endif
+
 bool
-File::reserve(off_t offset, off_t length) {
+File::reserve(RESERVE_PARAM off_t offset, RESERVE_PARAM off_t length) {
 #ifdef USE_XFS
   struct xfs_flock64 flock;
 
@@ -121,6 +127,8 @@ File::reserve(off_t offset, off_t length) {
   return true;
 #endif
 }
+
+#undef RESERVE_PARAM
 
 off_t
 File::size() const {

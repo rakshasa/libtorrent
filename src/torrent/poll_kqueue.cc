@@ -220,7 +220,7 @@ PollKQueue::remove_error(Event* event) {
 #else // USE_QUEUE
 
 PollKQueue*
-PollKQueue::create(int maxOpenSockets) {
+PollKQueue::create(__UNUSED int maxOpenSockets) {
   return NULL;
 }
 
@@ -228,7 +228,7 @@ PollKQueue::~PollKQueue() {
 }
 
 int
-PollKQueue::poll(int msec) {
+PollKQueue::poll(__UNUSED int msec) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
@@ -243,53 +243,53 @@ PollKQueue::open_max() const {
 }
 
 void
-PollKQueue::open(torrent::Event* event) {
+PollKQueue::open(__UNUSED torrent::Event* event) {
 }
 
 void
-PollKQueue::close(torrent::Event* event) {
+PollKQueue::close(__UNUSED torrent::Event* event) {
 }
 
 bool
-PollKQueue::in_read(torrent::Event* event) {
+PollKQueue::in_read(__UNUSED torrent::Event* event) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 bool
-PollKQueue::in_write(torrent::Event* event) {
+PollKQueue::in_write(__UNUSED torrent::Event* event) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 bool
-PollKQueue::in_error(torrent::Event* event) {
+PollKQueue::in_error(__UNUSED torrent::Event* event) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
 void
-PollKQueue::insert_read(torrent::Event* event) {
+PollKQueue::insert_read(__UNUSED torrent::Event* event) {
 }
 
 void
-PollKQueue::insert_write(torrent::Event* event) {
+PollKQueue::insert_write(__UNUSED torrent::Event* event) {
 }
 
 void
-PollKQueue::insert_error(torrent::Event* event) {
+PollKQueue::insert_error(__UNUSED torrent::Event* event) {
 }
 
 void
-PollKQueue::remove_read(torrent::Event* event) {
+PollKQueue::remove_read(__UNUSED torrent::Event* event) {
 }
 
 void
-PollKQueue::remove_write(torrent::Event* event) {
+PollKQueue::remove_write(__UNUSED torrent::Event* event) {
 }
 
 void
-PollKQueue::remove_error(torrent::Event* event) {
+PollKQueue::remove_error(__UNUSED torrent::Event* event) {
 }
 
-PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) {
+PollKQueue::PollKQueue(__UNUSED int fd, __UNUSED int maxEvents, __UNUSED int maxOpenSockets) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 

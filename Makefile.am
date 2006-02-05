@@ -7,6 +7,7 @@ EXTRA_DIST= \
 	autogen.sh \
 	scripts/checks.m4 \
 	scripts/common.m4 \
+	scripts/attributes.m4 \
 	doc/main.xml \
 	doc/http.xml \
 	doc/torrent.xml \
@@ -22,3 +23,5 @@ EXTRA_DIST= \
 	rak/string_manip.h \
 	rak/timer.h \
 	rak/unordered_vector.h
+
+ACLOCAL_AMFLAGS = -I scripts

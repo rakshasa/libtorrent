@@ -357,7 +357,7 @@ Download::file_entry(uint32_t index) {
 }
 
 bool
-Download::file_entry_created(uint32_t index) {
+Download::file_entry_created(__UNUSED uint32_t index) {
   return true;
 }
 
@@ -447,7 +447,7 @@ Download::signal_tracker_failed(Download::SlotString s) {
 }
 
 sigc::connection
-Download::signal_tracker_dump(Download::SlotIStream s) {
+Download::signal_tracker_dump(__UNUSED Download::SlotIStream s) {
 //   return m_ptr->main()->tracker_manager()->signal_dump().connect(s);
   return sigc::connection();
 }
