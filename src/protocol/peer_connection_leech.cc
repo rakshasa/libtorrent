@@ -90,7 +90,7 @@ PeerConnectionLeech::receive_finished_chunk(int32_t index) {
 
 bool
 PeerConnectionLeech::receive_keepalive() {
-  if (cachedTime - m_timeLastRead > 240 * 1000000)
+  if (cachedTime - m_timeLastRead > rak::timer::from_seconds(240))
     return false;
 
   // There's no point in adding ourselves to the write poll if the

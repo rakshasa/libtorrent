@@ -216,7 +216,7 @@ ChunkList::sync_periodic() {
   // sync those chunks.
 
   if (std::distance(split, m_queue.end()) < (difference_type)m_maxQueueSize &&
-      std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + m_maxTimeQueued * 1000000 < cachedTime)
+      std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + rak::timer::from_seconds(m_maxTimeQueued) < cachedTime)
     return;
 
   std::sort(split, m_queue.end(), std::ptr_fun(&ChunkList::less_chunk_index));

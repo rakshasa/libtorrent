@@ -53,7 +53,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
 
   m_taskTimeout.set_slot(rak::mem_fn(this, &Handshake::send_failed));
 
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + 60 * 1000000).round_seconds());
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
 }
 
 Handshake::~Handshake() {

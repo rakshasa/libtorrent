@@ -223,7 +223,7 @@ next_timeout() {
   if (!taskScheduler.empty())
     return std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
   else
-    return 60 * 1000000;
+    return rak::timer::from_seconds(60).usec();
 }
 
 int

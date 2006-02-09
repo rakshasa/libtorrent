@@ -2,7 +2,7 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Flag for ignoring the filelock?
+Socks4 patch, look at.
 
 Check lag issue.
 
@@ -15,6 +15,8 @@ Expand ~.
 Option to create session and watch directories.
 
 Bus error on "print this"?
+
+Make selecting the next tracker upon fail explicit.
 
 
 

@@ -57,6 +57,7 @@ class timer {
   timeval             tval() const                       { return (timeval) { m_time / 1000000, m_time % 1000000}; }
 
   static timer        current();
+  static timer        from_seconds(uint32_t seconds)     { return rak::timer((uint64_t)seconds * 1000000); }
 
   bool                operator <  (const timer& t) const { return m_time < t.m_time; }
   bool                operator >  (const timer& t) const { return m_time > t.m_time; }
@@ -67,6 +68,8 @@ class timer {
 
   timer               operator - (const timer& t) const  { return timer(m_time - t.m_time); }
   timer               operator + (const timer& t) const  { return timer(m_time + t.m_time); }
+  timer               operator * (int64_t t) const       { return timer(m_time * t); }
+  timer               operator / (int64_t t) const       { return timer(m_time / t); }
 
   timer               operator -= (int64_t t)            { m_time -= t; return *this; }
   timer               operator -= (const timer& t)       { m_time -= t.m_time; return *this; }

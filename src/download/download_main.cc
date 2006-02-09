@@ -225,7 +225,7 @@ DownloadMain::receive_tracker_success() {
     return;
 
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
-  priority_queue_insert(&taskScheduler, &m_taskTrackerRequest, (cachedTime + 30 * 1000000).round_seconds());
+  priority_queue_insert(&taskScheduler, &m_taskTrackerRequest, (cachedTime + rak::timer::from_seconds(30)).round_seconds());
 }
 
 void

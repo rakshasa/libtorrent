@@ -92,7 +92,7 @@ struct choke_manager_is_interested {
 
 struct choke_manager_not_recently_unchoked {
   bool operator () (PeerConnectionBase* p) const {
-    return p->time_last_choked() + 10 * 1000000 < cachedTime;
+    return p->time_last_choked() + rak::timer::from_seconds(10) < cachedTime;
   }
 };
 
@@ -227,7 +227,7 @@ ChokeManager::set_interested(PeerConnectionBase* pc) {
     return;
 
   if (m_currentlyUnchoked < m_maxUnchoked &&
-      pc->time_last_choked() + 10 * 1000000 < cachedTime &&
+      pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
       m_slotCanUnchoke()) {
     pc->receive_choke(false);
 

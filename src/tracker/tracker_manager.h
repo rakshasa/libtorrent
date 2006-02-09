@@ -112,6 +112,7 @@ private:
 
   uint32_t            m_numRequests;
   uint32_t            m_maxRequests;
+  uint32_t            m_failedRequests;
 
   uint32_t            m_initialTracker;
   

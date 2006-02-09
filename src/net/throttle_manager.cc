@@ -79,7 +79,7 @@ ThrottleManager::set_max_rate(uint32_t v) {
 
     // We need to start the ticks, and make sure we set m_timeLastTick
     // to a value that gives an reasonable initial quota.
-    m_timeLastTick = cachedTime - 1000000;
+    m_timeLastTick = cachedTime - rak::timer::from_seconds(1);
     receive_tick();
 
   } else if (m_maxRate == 0) {

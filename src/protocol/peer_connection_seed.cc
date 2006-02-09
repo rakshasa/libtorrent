@@ -76,7 +76,7 @@ PeerConnectionSeed::receive_finished_chunk(__UNUSED int32_t i) {
 
 bool
 PeerConnectionSeed::receive_keepalive() {
-  if (cachedTime - m_timeLastRead > 240 * 1000000)
+  if (cachedTime - m_timeLastRead > rak::timer::from_seconds(240))
     return false;
 
   // There's no point in adding ourselves to the write poll if the
