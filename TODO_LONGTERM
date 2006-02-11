@@ -34,6 +34,9 @@ Saving session torrents should be lazy, perhaps only for those who are
 not open. Or do session torrent saving as needed, when seeding is
 stopped etc. Perhaps a dirty flag.
 
+Mark files in the session torrent that we know have been created. Thus
+we can bork if we find anything missing.
+
 
 == Global and Download specific variables ==
 

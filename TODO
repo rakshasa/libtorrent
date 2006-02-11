@@ -2,11 +2,13 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Socks4 patch, look at.
+Make a display update before starting torrents.
+
+Check if we properly clear failed downloads.
+
+Socks4 patch, look at it; reply.
 
 Check lag issue.
-
-Move path expansion to Directory?
 
 Consider session directory with empty path. Do we disable when set, etc?
 
