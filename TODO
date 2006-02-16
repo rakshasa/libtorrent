@@ -2,7 +2,11 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Show seeders?
+
 Make a display update before starting torrents.
+
+Bus error in display.
 
 Check if we properly clear failed downloads.
 
@@ -12,13 +16,11 @@ Check lag issue.
 
 Consider session directory with empty path. Do we disable when set, etc?
 
-Expand ~.
-
 Option to create session and watch directories.
 
-Bus error on "print this"?
-
 Make selecting the next tracker upon fail explicit.
+
+Proper lazy signal handling.
 
 
 
@@ -39,8 +41,6 @@ Note about:
 Allow finished torrents to be moved.
 
 Cleanup torrent::Download::set_root_dir
-
-Show seeders?
 
 Caught exception: DelegatorPiece dtor called on an object that still has reservees
 

@@ -83,7 +83,7 @@ void                set_local_address(const std::string& addr);
 std::string         bind_address();
 void                set_bind_address(const std::string& addr);
 
-unsigned int        total_handshakes();
+uint32_t            total_handshakes();
 
 // These should really be unsigned, but there was a bug in the
 // client. ;( Fix this later.

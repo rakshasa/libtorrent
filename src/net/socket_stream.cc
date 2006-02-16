@@ -59,7 +59,7 @@ int_to_string(int v) {
 }
 
 inline int
-SocketStream::read_stream(void* buf, unsigned int length) {
+SocketStream::read_stream(void* buf, uint32_t length) {
   if (length == 0)
     throw internal_error("Tried to read buffer length 0");
 
@@ -67,7 +67,7 @@ SocketStream::read_stream(void* buf, unsigned int length) {
 }
 
 inline int
-SocketStream::write_stream(const void* buf, unsigned int length) {
+SocketStream::write_stream(const void* buf, uint32_t length) {
   if (length == 0)
     throw internal_error("Tried to write buffer length 0");
 

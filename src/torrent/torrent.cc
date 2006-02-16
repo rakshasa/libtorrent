@@ -226,7 +226,7 @@ next_timeout() {
     return rak::timer::from_seconds(60).usec();
 }
 
-int
+int32_t
 down_throttle() {
   return manager->download_throttle()->max_rate();
 }
@@ -239,7 +239,7 @@ set_down_throttle(int32_t bytes) {
   return manager->download_throttle()->set_max_rate(bytes);
 }
 
-int
+int32_t
 up_throttle() {
   return manager->upload_throttle()->max_rate();
 }

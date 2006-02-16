@@ -91,12 +91,20 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
 
   align_pair(&offset, &length);
 
+#if USE_MINCORE
+
 #if USE_MINCORE_UNSIGNED
   if (mincore(m_ptr + offset, length, (unsigned char*)buf))
 #else
   if (mincore(m_ptr + offset, length, (char*)buf))
 #endif
     throw storage_error("System call mincore failed for MemoryChunk");
+
+#else // !USE_MINCORE
+  // Pretend all pages are in memory.
+  memset(buf, 1, length);
+
+#endif
 }
 
 bool
@@ -107,6 +115,7 @@ MemoryChunk::advise(uint32_t offset, uint32_t length, int advice) {
   if (!is_valid_range(offset, length))
     throw internal_error("MemoryChunk::advise(...) received out-of-range input");
 
+#if USE_MADVISE
   align_pair(&offset, &length);
 
   if (madvise(m_ptr + offset, length, advice) == 0)
@@ -117,6 +126,11 @@ MemoryChunk::advise(uint32_t offset, uint32_t length, int advice) {
   
   else
     return false;			 
+
+#else
+  return true;
+
+#endif
 }
 
 bool

@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/path.h"
@@ -94,7 +95,7 @@ EntryList::open(const std::string& root) {
 	throw storage_error("Found an empty filename.");
 
       if (!open_file(root, &*itr, lastPath))
-	throw storage_error("Could no open file \"" + root + itr->path()->as_string() + "\".");
+	throw storage_error("Could not open file \"" + root + itr->path()->as_string() + "\": " + rak::error_number::current().c_str());
       
       lastPath = *itr->path();
     }

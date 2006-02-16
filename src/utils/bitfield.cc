@@ -45,7 +45,7 @@
 
 namespace torrent {
   
-BitField::BitField(unsigned int s) :
+BitField::BitField(uint32_t s) :
   m_size(s) {
 
   if (s) {

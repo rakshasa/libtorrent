@@ -53,11 +53,19 @@ class MemoryChunk {
   static const int prot_none              = PROT_NONE;
   static const int map_shared             = MAP_SHARED;
 
+#ifdef USE_MADVISE
   static const int advice_normal          = MADV_NORMAL;
   static const int advice_random          = MADV_RANDOM;
   static const int advice_sequential      = MADV_SEQUENTIAL;
   static const int advice_willneed        = MADV_WILLNEED;
   static const int advice_dontneed        = MADV_DONTNEED;
+#else
+  static const int advice_normal          = 0;
+  static const int advice_random          = 1;
+  static const int advice_sequential      = 2;
+  static const int advice_willneed        = 3;
+  static const int advice_dontneed        = 4;
+#endif
   static const int sync_sync              = MS_SYNC;
   static const int sync_async             = MS_ASYNC;
   static const int sync_invalidate        = MS_INVALIDATE;

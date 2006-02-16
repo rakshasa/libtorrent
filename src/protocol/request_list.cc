@@ -190,7 +190,7 @@ RequestList::cancel_range(ReserveeList::iterator end) {
   }
 }
 
-unsigned int
+uint32_t
 RequestList::remove_invalid() {
   uint32_t count = 0;
   ReserveeList::iterator itr;

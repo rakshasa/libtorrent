@@ -59,7 +59,7 @@ public:
   typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
   typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
   typedef rak::mem_fun1<DownloadMain, void, unsigned int>           SlotChunkDone;
-  typedef rak::const_mem_fun1<Content, uint32_t, unsigned int>      SlotChunkSize;
+  typedef rak::const_mem_fun1<Content, uint32_t, uint32_t>          SlotChunkSize;
 
   static const unsigned int block_size = 1 << 14;
 

@@ -18,6 +18,8 @@ Make sure we update total rate from the client.
 
 Kill tracker dump signal.
 
+Close a connection.
+
 
 === Session management ==
 

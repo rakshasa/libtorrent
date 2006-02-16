@@ -64,6 +64,11 @@ struct HashQueueWillneed {
   int m_bytes;
 };
 
+// If madvise is not available it will always mark the pages as being
+// in memory, thus we don't need to modify m_maxTries to have full
+// disk usage. But this may cause too much blocking as it will think
+// everything is in memory, thus we need to throttle.
+
 HashQueue::HashQueue() :
   m_readAhead(10 << 20),
   m_interval(10000),
