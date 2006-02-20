@@ -47,6 +47,10 @@ test_map() {
 int
 main(int argc, char** argv) {
   std::cout << "sizeof(torrent::Object): " << sizeof(torrent::Object) << std::endl;
+  std::cout << "sizeof(torrent::Object::value_type): " << sizeof(torrent::Object::value_type) << std::endl;
+  std::cout << "sizeof(torrent::Object::string_type): " << sizeof(torrent::Object::string_type) << std::endl;
+  std::cout << "sizeof(torrent::Object::map_type): " << sizeof(torrent::Object::map_type) << std::endl;
+  std::cout << "sizeof(torrent::Object::list_type): " << sizeof(torrent::Object::list_type) << std::endl;
 
   test_construct_value();
   test_construct_string();

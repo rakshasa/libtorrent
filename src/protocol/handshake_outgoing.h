@@ -54,8 +54,7 @@ public:
   HandshakeOutgoing(SocketFd fd,
 		    HandshakeManager* m,
 		    const PeerInfo& p,
-		    const std::string& infoHash,
-		    const std::string& ourId);
+		    TrackerInfo* info);
   
   virtual void        event_read();
   virtual void        event_write();

@@ -77,8 +77,23 @@ DownloadManager::clear() {
 
 DownloadManager::iterator
 DownloadManager::find(const std::string& hash) {
-  return std::find_if(begin(), end(),
-		      rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
+  return std::find_if(begin(), end(), rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
+}
+
+DownloadManager::iterator
+DownloadManager::find(TrackerInfo* info) {
+  return std::find_if(begin(), end(), rak::equal(info, std::mem_fun(&DownloadWrapper::info)));
+}
+
+TrackerInfo*
+DownloadManager::find_info(const std::string& hash) {
+  iterator itr = std::find_if(begin(), end(), rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
+
+  // TODO: Move these checks somewhere else.
+  if (itr == end() || !(*itr)->main()->is_active())
+    return NULL;
+  else
+    return (*itr)->info();
 }
 
 }

@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#include <rak/functional.h>
-
 #include "net/manager.h"
 #include "net/socket_address.h"
 #include "torrent/exceptions.h"
@@ -49,58 +47,59 @@
 
 namespace torrent {
 
+HandshakeManager::size_type
+HandshakeManager::size_info(TrackerInfo* info) const {
+  return std::count_if(Base::begin(), Base::end(), rak::equal(info, std::mem_fun(&Handshake::info)));
+}
+
+void
+HandshakeManager::clear() {
+  std::for_each(Base::begin(), Base::end(), std::mem_fun(&Handshake::close));
+  std::for_each(Base::begin(), Base::end(), rak::call_delete<Handshake>());
+}
+
+void
+HandshakeManager::erase(Handshake* handshake) {
+  iterator itr = std::find(Base::begin(), Base::end(), handshake);
+
+  if (itr == Base::end())
+    throw internal_error("HandshakeManager::erase(...) could not find handshake.");
+
+  Base::erase(itr);
+}
+
+bool
+HandshakeManager::find(const SocketAddress& sa) {
+  return std::find_if(Base::begin(), Base::end(),
+		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::get_peer),
+					     std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address))))
+    != Base::end();
+}
+
 void
 HandshakeManager::add_incoming(SocketFd fd, const SocketAddress& sa) {
   if (!socketManager.received(fd, sa).is_valid())
     return;
 
-  m_handshakes.push_back(new HandshakeIncoming(fd, PeerInfo("", sa, true), this));
-  m_size++;
+  Base::push_back(new HandshakeIncoming(fd, PeerInfo("", sa, true), this));
 }
   
 void
-HandshakeManager::add_outgoing(const SocketAddress& sa,
-			       const std::string& infoHash,
-			       const std::string& ourId) {
+HandshakeManager::add_outgoing(const SocketAddress& sa, TrackerInfo* info) {
   SocketFd fd = socketManager.open(sa, m_bindAddress);
 
   if (!fd.is_valid())
     return;
 
-  m_handshakes.push_back(new HandshakeOutgoing(fd, this, PeerInfo("", sa, false), infoHash, ourId));
-  m_size++;
-}
-
-void
-HandshakeManager::clear() {
-  std::for_each(m_handshakes.begin(), m_handshakes.end(), std::mem_fun(&Handshake::close));
-  std::for_each(m_handshakes.begin(), m_handshakes.end(), rak::call_delete<Handshake>());
-
-  m_handshakes.clear();
-}
-
-uint32_t
-HandshakeManager::size_hash(const std::string& hash) {
-  return std::count_if(m_handshakes.begin(), m_handshakes.end(),
-		       rak::equal(hash, std::mem_fun(&Handshake::get_hash)));
-}
-
-bool
-HandshakeManager::has_address(const SocketAddress& sa) {
-  return std::find_if(m_handshakes.begin(), m_handshakes.end(),
-		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::get_peer),
-					     std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address))))
-    != m_handshakes.end();
+  Base::push_back(new HandshakeOutgoing(fd, this, PeerInfo("", sa, false), info));
 }
 
 void
 HandshakeManager::receive_connected(Handshake* h) {
-  remove(h);
-
-  h->clear_poll();
+  erase(h);
 
   // TODO: Check that m_slotConnected actually points somewhere.
-  m_slotConnected(h->get_fd(), h->get_hash(), h->get_peer());
+  m_slotConnected(h->get_fd(), h->info(), h->get_peer());
 
   h->set_fd(SocketFd());
   delete h;
@@ -108,22 +107,10 @@ HandshakeManager::receive_connected(Handshake* h) {
 
 void
 HandshakeManager::receive_failed(Handshake* h) {
-  remove(h);
+  erase(h);
 
-  h->clear_poll(); // This should be here, might need to remove to debug.
   h->close();
   delete h;
-}
-
-void
-HandshakeManager::remove(Handshake* h) {
-  HandshakeList::iterator itr = std::find(m_handshakes.begin(), m_handshakes.end(), h);
-
-  if (itr == m_handshakes.end())
-    throw internal_error("HandshakeManager::remove(...) could not find Handshake");
-
-  m_handshakes.erase(itr);
-  m_size--;
 }
 
 }

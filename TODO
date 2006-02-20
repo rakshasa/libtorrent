@@ -2,6 +2,39 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+***
+
+Filter based on SocketAddress and TrackerInfo? It should be a single
+call for both. Modify PeerInfo and make it "persistant"? Would need to
+make it lightweight.
+
+Or perhaps outgoing connections use the PeerInfo they make during the
+initialization of the handshake.
+
+But it seems it needs to be two-stepped anyway. First to filter purely
+on address, second to change settings.
+
+
+Make a class that holds 'static' information about a download, the
+pointer will also be the unique identifier for that download. This
+ofcourse assumes that every user of that pointer as id stop using it
+once the download is erased.
+
+Check incoming connections.
+
+Move the activity checks out of DownloadManager::find_info.
+
+***
+
+Option for saving session torrents. Allow it to save for all, open,
+active or other criteria.
+
+
+Make sure we get the right error message when locking a non-existent
+session directory.
+
+Make mincore a requirement, disable'able with a flag.
+
 Show seeders?
 
 Make a display update before starting torrents.

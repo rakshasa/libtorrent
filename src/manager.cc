@@ -75,7 +75,7 @@ Manager::Manager() :
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 
   m_handshakeManager->slot_connected(rak::make_mem_fun(this, &Manager::receive_connection));
-  m_handshakeManager->slot_download_id(rak::make_mem_fun(this, &Manager::retrive_download_id));
+  m_handshakeManager->slot_download_id(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_info));
 
   m_listen->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
 }
@@ -140,8 +140,8 @@ Manager::receive_tick() {
 }
 
 void
-Manager::receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer) {
-  DownloadManager::iterator itr = m_downloadManager->find(hash);
+Manager::receive_connection(SocketFd fd, TrackerInfo* info, const PeerInfo& peer) {
+  DownloadManager::iterator itr = m_downloadManager->find(info);
   
   if (itr == m_downloadManager->end()) {
     socketManager.close(fd);
@@ -160,16 +160,6 @@ Manager::receive_connection(SocketFd fd, const std::string& hash, const PeerInfo
     socketManager.close(fd);
     return;
   }
-}
-
-std::string
-Manager::retrive_download_id(const std::string& hash) {
-  DownloadManager::iterator itr = m_downloadManager->find(hash);
-
-  return itr != m_downloadManager->end() &&
-    (*itr)->main()->is_active() &&
-    (*itr)->hash_checker()->is_checked() ?
-    (*itr)->get_local_id() : "";
 }
 
 }

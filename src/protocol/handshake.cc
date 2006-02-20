@@ -38,6 +38,7 @@
 
 #include "net/manager.h"
 #include "torrent/exceptions.h"
+#include "tracker/tracker_info.h"
 
 #include "handshake.h"
 #include "handshake_manager.h"
@@ -90,16 +91,20 @@ Handshake::close() {
 
 void
 Handshake::send_connected() {
+  clear_poll();
   m_manager->receive_connected(this);
 }
 
 void
 Handshake::send_failed() {
+  clear_poll();
   m_manager->receive_failed(this);
 }
 
 bool
 Handshake::recv1() {
+  // This is really ugly, should get the whole class rewritten...
+
   if (m_pos == 0 && !read_buffer(m_buf, 1, m_pos))
     return false;
 
@@ -108,12 +113,18 @@ Handshake::recv1() {
   if (!read_buffer(m_buf + m_pos, len + 29, m_pos))
     return false;
 
+  if (std::string(m_buf + 1, len) != "BitTorrent protocol")
+    throw close_connection();
+
   std::memcpy(m_peer.get_options(), m_buf + 1 + len, 8);
 
-  m_hash = std::string(m_buf + 9 + len, 20);
+  std::string hash(m_buf + 9 + len, 20);
 
-  if (std::string(m_buf + 1, len) != "BitTorrent protocol")
-    throw communication_error("Peer returned wrong protocol identifier");
+  if (m_info == NULL)
+    m_info = m_manager->download_info(hash);
+
+  if (m_info == NULL || m_info->get_hash() != hash)
+    throw close_connection();
 
   return true;
 }

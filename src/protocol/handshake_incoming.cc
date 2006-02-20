@@ -38,6 +38,7 @@
 
 #include "net/manager.h"
 #include "torrent/exceptions.h"
+#include "tracker/tracker_info.h"
 
 #include "handshake_incoming.h"
 #include "handshake_manager.h"
@@ -49,6 +50,7 @@ HandshakeIncoming::HandshakeIncoming(SocketFd fd, const PeerInfo& p, HandshakeMa
   m_state(READ_HEADER1) {
 
   m_peer = p;
+  m_info = NULL;
 
   get_fd().set_nonblock();
 
@@ -66,14 +68,14 @@ HandshakeIncoming::event_read() {
     if (!recv1())
       return;
 
-    if ((m_id = m_manager->get_download_id(m_hash)).length() == 0)
-      throw close_connection();
+//     if ((m_id = m_manager->get_download_id(m_hash)).length() == 0)
+//       throw close_connection();
     
     m_buf[0] = 19;
     std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
     std::memset(&m_buf[20], 0, 8);
-    std::memcpy(&m_buf[28], m_hash.c_str(), 20);
-    std::memcpy(&m_buf[48], m_id.c_str(), 20);
+    std::memcpy(&m_buf[28], m_info->get_hash().c_str(), 20);
+    std::memcpy(&m_buf[48], m_info->get_local_id().c_str(), 20);
 
     m_pos = 0;
     m_state = WRITE_HEADER;
@@ -87,7 +89,7 @@ HandshakeIncoming::event_read() {
     if (!recv2())
       return;
 
-    m_manager->receive_connected(this);
+    send_connected();
 
     return;
 
@@ -96,7 +98,7 @@ HandshakeIncoming::event_read() {
   }
 
   } catch (network_error e) {
-    m_manager->receive_failed(this);
+    send_failed();
   }
 }
 
@@ -121,13 +123,13 @@ HandshakeIncoming::event_write() {
   }
 
   } catch (network_error e) {
-    m_manager->receive_failed(this);
+    send_failed();
   }
 }
 
 void
 HandshakeIncoming::event_error() {
-  m_manager->receive_failed(this);
+  send_failed();
 }
 
 }

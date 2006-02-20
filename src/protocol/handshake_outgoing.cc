@@ -40,6 +40,7 @@
 
 #include "net/manager.h"
 #include "torrent/exceptions.h"
+#include "tracker/tracker_info.h"
 
 #include "handshake_outgoing.h"
 #include "handshake_manager.h"
@@ -49,14 +50,12 @@ namespace torrent {
 HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
 				     HandshakeManager* m,
 				     const PeerInfo& p,
-				     const std::string& infoHash,
-				     const std::string& ourId) :
+				     TrackerInfo* info) :
   Handshake(fd, m),
   m_state(CONNECTING) {
   
   m_peer = p;
-  m_id = ourId;
-  m_local = infoHash;
+  m_info = info;
 
   pollCustom->open(this);
   pollCustom->insert_write(this);
@@ -65,8 +64,8 @@ HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
   m_buf[0] = 19;
   std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
   std::memset(&m_buf[20], 0, 8);
-  std::memcpy(&m_buf[28], m_local.c_str(), 20);
-  std::memcpy(&m_buf[48], m_id.c_str(), 20);
+  std::memcpy(&m_buf[28], m_info->get_hash().c_str(), 20);
+  std::memcpy(&m_buf[48], m_info->get_local_id().c_str(), 20);
 }
   
 void
@@ -78,8 +77,8 @@ HandshakeOutgoing::event_read() {
     if (!recv1())
       return;
 
-    if (m_hash != m_local)
-      throw communication_error("Peer returned wrong download hash");
+//     if (m_hash != m_local)
+//       throw communication_error("Peer returned wrong download hash");
 
     m_pos = 0;
     m_state = READ_HEADER2;
@@ -88,7 +87,7 @@ HandshakeOutgoing::event_read() {
     if (!recv2())
       return;
 
-    m_manager->receive_connected(this);
+    send_connected();
 
     return;
 
@@ -97,7 +96,7 @@ HandshakeOutgoing::event_read() {
   }
 
   } catch (network_error e) {
-    m_manager->receive_failed(this);
+    send_failed();
   }
 }  
 
@@ -133,13 +132,13 @@ HandshakeOutgoing::event_write() {
   }
 
   } catch (network_error e) {
-    m_manager->receive_failed(this);
+    send_failed();
   }
 }
 
 void
 HandshakeOutgoing::event_error() {
-  m_manager->receive_failed(this);
+  send_failed();
 }
 
 }

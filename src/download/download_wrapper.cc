@@ -305,6 +305,11 @@ DownloadWrapper::get_local_id() const {
   return m_main.tracker_manager()->tracker_info()->get_local_id();
 }
 
+TrackerInfo*
+DownloadWrapper::info() {
+  return m_main.tracker_manager()->tracker_info();
+}
+
 SocketAddress&
 DownloadWrapper::bind_address() {
   return m_main.tracker_manager()->tracker_info()->bind_address();
@@ -323,7 +328,7 @@ DownloadWrapper::set_file_manager(FileManager* f) {
 
 void
 DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
-  m_main.slot_count_handshakes(rak::make_mem_fun(h, &HandshakeManager::size_hash));
+  m_main.slot_count_handshakes(rak::make_mem_fun(h, &HandshakeManager::size_info));
   m_main.slot_start_handshake(rak::make_mem_fun(h, &HandshakeManager::add_outgoing));
 }
 

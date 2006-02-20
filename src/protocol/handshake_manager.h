@@ -37,10 +37,10 @@
 #ifndef LIBTORRENT_NET_HANDSHAKE_MANAGER_H
 #define LIBTORRENT_NET_HANDSHAKE_MANAGER_H
 
-#include <list>
 #include <string>
 #include <inttypes.h>
 #include <rak/functional.h>
+#include <rak/unordered_vector.h>
 
 #include "net/socket_address.h"
 #include "net/socket_fd.h"
@@ -50,34 +50,34 @@ namespace torrent {
 class Handshake;
 class PeerInfo;
 class Manager;
+class DownloadManager;
+class TrackerInfo;
 
-class HandshakeManager {
+class HandshakeManager : private rak::unordered_vector<Handshake*> {
 public:
-  typedef std::list<Handshake*> HandshakeList;
+  typedef rak::unordered_vector<Handshake*> Base;
+  typedef uint32_t                          size_type;
 
-  // File descriptor
-  // Info hash
-  // Peer info
-  typedef rak::mem_fun3<Manager, void, SocketFd, const std::string&, const PeerInfo&> SlotConnected;
-  typedef rak::mem_fun1<Manager, std::string, const std::string&>                     SlotDownloadId;
+  typedef rak::mem_fun3<Manager, void, SocketFd, TrackerInfo*, const PeerInfo&> SlotConnected;
+  typedef rak::mem_fun1<DownloadManager, TrackerInfo*, const std::string&>      SlotDownloadId;
 
-  HandshakeManager() : m_size(0) { m_bindAddress.set_address_any(); }
+  using Base::empty;
+
+  HandshakeManager() { m_bindAddress.set_address_any(); }
   ~HandshakeManager() { clear(); }
 
-  void                add_incoming(SocketFd fd, const SocketAddress& sa);
-
-  void                add_outgoing(const SocketAddress& sa,
-				   const std::string& infoHash,
-				   const std::string& ourId);
+  size_type           size() const { return Base::size(); }
+  size_type           size_info(TrackerInfo* info) const;
 
   void                clear();
 
-  uint32_t            size()                                { return m_size; }
-  uint32_t            size_hash(const std::string& hash);
+  bool                find(const SocketAddress& sa);
+
+  // Cleanup.
+  void                add_incoming(SocketFd fd, const SocketAddress& sa);
+  void                add_outgoing(const SocketAddress& sa, TrackerInfo* info);
 
   void                set_bind_address(const SocketAddress& sa) { m_bindAddress = sa; }
-
-  bool                has_address(const SocketAddress& sa);
 
   void                slot_connected(SlotConnected s)           { m_slotConnected = s; }
   void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
@@ -85,14 +85,11 @@ public:
   void                receive_connected(Handshake* h);
   void                receive_failed(Handshake* h);
 
-  std::string         get_download_id(const std::string& hash)  { return m_slotDownloadId(hash); }
+  // This needs to be filterable slot.
+  TrackerInfo*        download_info(const std::string& hash)    { return m_slotDownloadId(hash); }
 
 private:
-
-  void                remove(Handshake* h);
-
-  HandshakeList       m_handshakes;
-  uint32_t            m_size;
+  void                erase(Handshake* handshake);
 
   SlotConnected       m_slotConnected;
   SlotDownloadId      m_slotDownloadId;

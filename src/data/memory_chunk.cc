@@ -102,7 +102,7 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
 
 #else // !USE_MINCORE
   // Pretend all pages are in memory.
-  memset(buf, 1, length);
+  memset(buf, 1, pages_touched(offset, length);
 
 #endif
 }

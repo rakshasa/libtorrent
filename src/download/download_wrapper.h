@@ -56,6 +56,7 @@ class FileManager;
 class HashQueue;
 class HashTorrent;
 class HandshakeManager;
+class TrackerInfo;
 
 class DownloadWrapper {
 public:
@@ -93,6 +94,8 @@ public:
 
   const std::string&  get_hash() const;
   const std::string&  get_local_id() const;
+
+  TrackerInfo*        info();
 
   SocketAddress&      bind_address();
   SocketAddress&      local_address();

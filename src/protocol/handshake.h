@@ -46,6 +46,7 @@
 namespace torrent {
 
 class HandshakeManager;
+class TrackerInfo;
 
 class Handshake : public SocketStream {
 public:
@@ -53,8 +54,9 @@ public:
   virtual ~Handshake();
 
   const PeerInfo&     get_peer()                       { return m_peer; }
-  const std::string&  get_hash()                       { return m_hash; }
-  const std::string&  get_id()                         { return m_id; }
+//   const std::string&  get_hash()                       { return m_hash; }
+//   const std::string&  get_id()                         { return m_id; }
+  TrackerInfo*        info()                           { return m_info; }
 
   void                set_manager(HandshakeManager* m) { m_manager = m; }
 
@@ -74,8 +76,9 @@ protected:
   bool                recv2();
 
   PeerInfo            m_peer;
-  std::string         m_hash;
-  std::string         m_id;
+//   std::string         m_hash;
+//   std::string         m_id;
+  TrackerInfo*        m_info;
 
   HandshakeManager*   m_manager;
 

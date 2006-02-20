@@ -55,6 +55,7 @@ class FileManager;
 class ResourceManager;
 class PeerInfo;
 class ThrottleManager;
+class TrackerInfo;
 
 typedef std::list<std::string> EncodingList;
 
@@ -82,9 +83,7 @@ public:
   void                cleanup_download(DownloadWrapper* d);
 
   void                receive_tick();
-  void                receive_connection(SocketFd fd, const std::string& hash, const PeerInfo& peer);
-
-  std::string         retrive_download_id(const std::string& hash);
+  void                receive_connection(SocketFd fd, TrackerInfo* info, const PeerInfo& peer);
 
 private:
   SocketAddress       m_localAddress;

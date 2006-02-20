@@ -58,6 +58,7 @@ class ChunkSelector;
 class DownloadWrapper;
 class HandshakeManager;
 class TrackerManager;
+class TrackerInfo;
 class ThrottleList;
 
 class DownloadMain {
@@ -106,9 +107,8 @@ public:
   typedef sigc::signal1<void, const std::string&>                SignalString;
   typedef sigc::signal1<void, uint32_t>                          SignalChunk;
 
-  typedef rak::mem_fun3<HandshakeManager, void, const SocketAddress&,
-		       const std::string&, const std::string&>         SlotStartHandshake;
-  typedef rak::mem_fun1<HandshakeManager, uint32_t, const std::string&> SlotCountHandshakes;
+  typedef rak::mem_fun2<HandshakeManager, void, const SocketAddress&, TrackerInfo*> SlotStartHandshake;
+  typedef rak::const_mem_fun1<HandshakeManager, uint32_t, TrackerInfo*>       SlotCountHandshakes;
   typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>             SlotHashCheckAdd;
 
   SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
