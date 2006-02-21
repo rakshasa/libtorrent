@@ -93,6 +93,11 @@ DownloadMain::~DownloadMain() {
   delete m_chunkSelector;
 }
 
+TrackerInfo*
+DownloadMain::info() {
+  return m_trackerManager->tracker_info();
+}
+
 void
 DownloadMain::open() {
   if (is_open())
@@ -153,10 +158,10 @@ DownloadMain::stop() {
   // perform alot of requests to the tracker when restarting the
   // torrent. Consider saving these in the torrent file when dumping
   // it.
-  std::list<SocketAddress> addressList;
+  std::list<rak::socket_address> addressList;
 
   std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList),
-		 rak::on(std::mem_fun(&PeerConnectionBase::get_peer), std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address)));
+		 rak::on(std::mem_fun(&PeerConnectionBase::get_peer), std::mem_fun_ref<const rak::socket_address&>(&PeerInfo::get_socket_address)));
 
   addressList.sort();
   available_list()->insert(&addressList);
@@ -210,7 +215,7 @@ DownloadMain::receive_connect_peers() {
   while (!available_list()->empty() &&
 	 connection_list()->size() < connection_list()->get_min_size() &&
 	 connection_list()->size() + m_slotCountHandshakes(tracker_manager()->tracker_info()) < connection_list()->get_max_size()) {
-    SocketAddress sa = available_list()->pop_random();
+    rak::socket_address sa = available_list()->pop_random();
 
     if (connection_list()->find(sa) == connection_list()->end())
       m_slotStartHandshake(sa, tracker_manager()->tracker_info());

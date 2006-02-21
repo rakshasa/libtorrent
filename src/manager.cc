@@ -70,6 +70,12 @@ Manager::Manager() :
 
   m_ticks(0) {
 
+  m_localAddress.clear();
+  m_localAddress.sa_inet()->set_family();
+
+  m_bindAddress.clear();
+  m_bindAddress.sa_inet()->set_family();
+
   m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
 
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
@@ -149,7 +155,7 @@ Manager::receive_connection(SocketFd fd, TrackerInfo* info, const PeerInfo& peer
   }
 
   if (!peer.get_socket_address().is_valid()) {
-    (*itr)->main()->signal_network_log().emit("Caught a connection with invalid socket address.");
+    (*itr)->info()->signal_network_log().emit("Caught a connection with invalid socket address.");
 
     socketManager.close(fd);
     return;

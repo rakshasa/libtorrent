@@ -38,11 +38,11 @@
 #define LIBTORRENT_NET_SOCKET_MANAGER_H
 
 #include <inttypes.h>
+#include <rak/socket_address.h>
+
 #include "socket_fd.h"
 
 namespace torrent {
-
-class SocketAddress;
 
 // Socket manager keeps tabs on how many open sockets we got and helps
 // with opening addresses. It will also make sure ip address filtering
@@ -56,8 +56,9 @@ class SocketManager {
 public:
   SocketManager() : m_size(0), m_max(0) {}
   
-  SocketFd            open(const SocketAddress& sa, const SocketAddress& b);
-  SocketFd            received(SocketFd fd, const SocketAddress& sa);
+  SocketFd            open(const rak::socket_address& sa, const rak::socket_address& b);
+  SocketFd            received(SocketFd fd, const rak::socket_address& sa);
+
   void                local(__UNUSED SocketFd fd)   { m_size++; }
 
   void                close(SocketFd fd);
@@ -71,6 +72,27 @@ private:
   uint32_t            m_size;
   uint32_t            m_max;
 };
+
+// Move somewhere else.
+struct SocketAddressCompact {
+  SocketAddressCompact() {}
+  SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
+
+  operator rak::socket_address () const {
+    rak::socket_address sa;
+    sa.clear();
+    sa.sa_inet()->set_family();
+    sa.sa_inet()->set_port_n(port);
+    sa.sa_inet()->set_address_n(addr);
+
+    return sa;
+  }
+
+  uint32_t addr;
+  uint16_t port;
+
+  const char*         c_str() const { return reinterpret_cast<const char*>(this); }
+} __attribute__ ((packed));
 
 }
 

@@ -41,14 +41,14 @@
 #include <sys/socket.h>
 
 #include "torrent/exceptions.h"
-#include "socket_address.h"
+#include <rak/socket_address.h>
 
 #include "socket_datagram.h"
 
 namespace torrent {
 
 int
-SocketDatagram::read_datagram(void* buffer, unsigned int length, SocketAddress* sa) {
+SocketDatagram::read_datagram(void* buffer, unsigned int length, rak::socket_address* sa) {
   if (length == 0)
     throw internal_error("Tried to receive buffer length 0");
 
@@ -56,8 +56,8 @@ SocketDatagram::read_datagram(void* buffer, unsigned int length, SocketAddress* 
   socklen_t fromlen;
 
   if (sa != NULL) {
-    fromlen = sa->get_sizeof();
-    r = ::recvfrom(m_fileDesc, buffer, length, 0, &sa->get_addr(), &fromlen);
+    fromlen = sizeof(rak::socket_address);
+    r = ::recvfrom(m_fileDesc, buffer, length, 0, sa->c_sockaddr(), &fromlen);
   } else {
     r = ::recv(m_fileDesc, buffer, length, 0);
   }
@@ -66,14 +66,14 @@ SocketDatagram::read_datagram(void* buffer, unsigned int length, SocketAddress* 
 }
 
 int
-SocketDatagram::write_datagram(const void* buffer, unsigned int length, SocketAddress* sa) {
+SocketDatagram::write_datagram(const void* buffer, unsigned int length, rak::socket_address* sa) {
   if (length == 0)
     throw internal_error("Tried to send buffer length 0");
 
   int r;
 
   if (sa != NULL) {
-    r = ::sendto(m_fileDesc, buffer, length, 0, &sa->get_addr(), sa->get_sizeof());
+    r = ::sendto(m_fileDesc, buffer, length, 0, sa->c_sockaddr(), sizeof(rak::socket_address));
   } else {
     r = ::send(m_fileDesc, buffer, length, 0);
   }

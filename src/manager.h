@@ -41,7 +41,7 @@
 #include <string>
 #include <rak/priority_queue_default.h>
 
-#include "net/socket_address.h"
+#include <rak/socket_address.h>
 #include "net/socket_fd.h"
 
 namespace torrent {
@@ -71,8 +71,8 @@ public:
   Listen*             listen()                                  { return m_listen; }
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
 
-  SocketAddress*      local_address()                           { return &m_localAddress; }
-  SocketAddress*      bind_address()                            { return &m_bindAddress; }
+  rak::socket_address* local_address()                          { return &m_localAddress; }
+  rak::socket_address* bind_address()                           { return &m_bindAddress; }
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
 
@@ -86,8 +86,8 @@ public:
   void                receive_connection(SocketFd fd, TrackerInfo* info, const PeerInfo& peer);
 
 private:
-  SocketAddress       m_localAddress;
-  SocketAddress       m_bindAddress;
+  rak::socket_address m_localAddress;
+  rak::socket_address m_bindAddress;
 
   DownloadManager*    m_downloadManager;
   FileManager*        m_fileManager;

@@ -39,9 +39,8 @@
 
 #include <list>
 #include <rak/functional.h>
+#include <rak/socket_address.h>
 #include <rak/unordered_vector.h>
-
-#include "net/socket_address.h"
 
 namespace torrent {
 
@@ -54,7 +53,7 @@ class SocketFd;
 class ConnectionList : private rak::unordered_vector<PeerConnectionBase*> {
 public:
   typedef rak::unordered_vector<PeerConnectionBase*> Base;
-  typedef std::list<SocketAddress>                   AddressList;
+  typedef std::list<rak::socket_address>             AddressList;
   typedef uint32_t                                   size_type;
 
   typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> SlotPeer;
@@ -92,7 +91,7 @@ public:
   void                erase_remaining(iterator pos);
   void                erase_seeders();
 
-  iterator            find(const SocketAddress& sa);
+  iterator            find(const rak::socket_address& sa);
 
   size_type           get_min_size() const                              { return m_minSize; }
   void                set_min_size(size_type v)                         { m_minSize = v; }

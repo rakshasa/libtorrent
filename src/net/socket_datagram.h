@@ -46,8 +46,8 @@ public:
 
   // TODO: Make two seperate functions depending on whetever sa is
   // used.
-  int                 read_datagram(void* buffer, unsigned int length, SocketAddress* sa = NULL);
-  int                 write_datagram(const void* buffer, unsigned int length, SocketAddress* sa = NULL);
+  int                 read_datagram(void* buffer, unsigned int length, rak::socket_address* sa = NULL);
+  int                 write_datagram(const void* buffer, unsigned int length, rak::socket_address* sa = NULL);
 };
 
 }

@@ -38,7 +38,7 @@
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
 #include "net/protocol_buffer.h"
-#include "net/socket_address.h"
+#include <rak/socket_address.h>
 #include "net/socket_datagram.h"
 #include "globals.h"
 #include "tracker_base.h"
@@ -83,7 +83,7 @@ private:
   bool                process_announce_output();
   bool                process_error_output();
 
-  SocketAddress       m_connectAddress;
+  rak::socket_address       m_connectAddress;
 
   TrackerInfo::State  m_sendState;
   uint64_t            m_sendUp;

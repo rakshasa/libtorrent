@@ -40,7 +40,7 @@
 #include <list>
 #include <rak/functional.h>
 
-#include "net/socket_address.h"
+#include <rak/socket_address.h>
 #include "globals.h"
 
 namespace torrent {
@@ -54,7 +54,7 @@ class TrackerManager {
 public:
   typedef uint32_t                                size_type;
   typedef std::pair<int, TrackerBase*>            value_type;
-  typedef std::list<SocketAddress>                AddressList;
+  typedef std::list<rak::socket_address>          AddressList;
 
   typedef rak::mem_fun1<DownloadWrapper, void, AddressList*>       SlotSuccess;
   typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotFailed;

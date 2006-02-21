@@ -6,8 +6,6 @@ libsub_net_la_SOURCES = \
 	manager.cc \
 	manager.h \
 	protocol_buffer.h \
-	socket_address.cc \
-	socket_address.h \
 	socket_base.cc \
         socket_base.h \
 	socket_datagram.cc \

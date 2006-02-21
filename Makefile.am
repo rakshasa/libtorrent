@@ -21,6 +21,7 @@ EXTRA_DIST= \
 	rak/priority_queue_default.h \
 	rak/ranges.h \
 	rak/regex.h \
+	rak/socket_address.h \
 	rak/string_manip.h \
 	rak/timer.h \
 	rak/unordered_vector.h

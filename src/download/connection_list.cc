@@ -125,32 +125,32 @@ ConnectionList::erase_seeders() {
   erase_remaining(std::partition(begin(), end(), std::not1(std::mem_fun(&PeerConnectionBase::is_seeder))));
 }
 
-struct _ConnectionListCompLess {
+struct connection_list_less {
   bool operator () (const PeerConnectionBase* p1, const PeerConnectionBase* p2) const {
     return p1->get_peer().get_socket_address() < p2->get_peer().get_socket_address();
   }
 
-  bool operator () (const SocketAddress& sa1, const PeerConnectionBase* p2) const {
+  bool operator () (const rak::socket_address& sa1, const PeerConnectionBase* p2) const {
     return sa1 < p2->get_peer().get_socket_address();
   }
 
-  bool operator () (const PeerConnectionBase* p1, const SocketAddress& sa2) const {
+  bool operator () (const PeerConnectionBase* p1, const rak::socket_address& sa2) const {
     return p1->get_peer().get_socket_address() < sa2;
   }
 };
 
 ConnectionList::iterator
-ConnectionList::find(const SocketAddress& sa) {
+ConnectionList::find(const rak::socket_address& sa) {
   return std::find_if(begin(), end(),
 		      rak::equal(sa, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
-					     std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address))));
+					     std::mem_fun_ref<const rak::socket_address&>(&PeerInfo::get_socket_address))));
 }
 
 void
 ConnectionList::set_difference(AddressList* l) {
-  std::sort(begin(), end(), _ConnectionListCompLess());
+  std::sort(begin(), end(), connection_list_less());
 
-  l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->begin(), _ConnectionListCompLess()),
+  l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->begin(), connection_list_less()),
 	   l->end());
 }
 

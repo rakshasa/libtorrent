@@ -41,17 +41,19 @@
 #include <string>
 #include <inttypes.h>
 #include <rak/functional.h>
-
-#include "net/socket_address.h"
+#include <rak/socket_address.h>
+#include <sigc++/signal.h>
 
 namespace torrent {
 
 class DownloadMain;
 class Rate;
 
+// This will become a Download 'handle' of kinds.
+
 class TrackerInfo {
 public:
-  typedef std::list<SocketAddress>                   AddressList;
+  typedef std::list<rak::socket_address>              AddressList;
 
   typedef rak::const_mem_fun0<DownloadMain, uint64_t> SlotStat;
   typedef rak::const_mem_fun0<Rate, uint64_t>         SlotStatRate;
@@ -63,7 +65,10 @@ public:
     STOPPED
   };
 
-  TrackerInfo() : m_key(0), m_compact(true), m_numwant(-1) {}
+  TrackerInfo() : m_key(0), m_compact(true), m_numwant(-1) {
+    m_bindAddress.set_family();
+    m_localAddress.set_family();
+  }
 
   const std::string&  get_hash() const                             { return m_hash; }
   void                set_hash(const std::string& hash)            { m_hash = hash; }
@@ -71,8 +76,8 @@ public:
   const std::string&  get_local_id() const                         { return m_localId; }
   void                set_local_id(const std::string& id)          { m_localId = id; }
 
-  SocketAddress&      bind_address()                               { return m_bindAddress; }
-  SocketAddress&      local_address()                              { return m_localAddress; }
+  rak::socket_address& bind_address()                              { return m_bindAddress; }
+  rak::socket_address& local_address()                             { return m_localAddress; }
 
   uint32_t            get_key() const                              { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
@@ -91,12 +96,18 @@ public:
   SlotStatRate&       slot_stat_up()                               { return m_slotStatUp; }
   SlotStat&           slot_stat_left()                             { return m_slotStatLeft; }
 
+  typedef sigc::signal1<void, const std::string&>                SignalString;
+  typedef sigc::signal1<void, uint32_t>                          SignalChunk;
+
+  SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
+  SignalString&       signal_storage_error()                     { return m_signalStorageError; }
+
 private:
   std::string         m_hash;
   std::string         m_localId;
 
-  SocketAddress       m_bindAddress;
-  SocketAddress       m_localAddress;
+  rak::socket_address m_bindAddress;
+  rak::socket_address m_localAddress;
 
   uint32_t            m_key;
   bool                m_compact;
@@ -105,6 +116,9 @@ private:
   SlotStatRate        m_slotStatDown;
   SlotStatRate        m_slotStatUp;
   SlotStat            m_slotStatLeft;
+
+  SignalString        m_signalNetworkLog;
+  SignalString        m_signalStorageError;
 };
 
 }

@@ -2,6 +2,25 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Go through all instances of rak::socket_address, make sure we set the
+right family.
+
+Enable, check:
+
+set_listen/bind
+TrackerUdp::parse_url()
+TrackerUdp::prepare_announce_input()
+TrackerHttp::parse_address
+
+Ahh... SocketManager is supposed to do filtering? Perhaps atleast the
+initial filtering? Does it get used to things other than peer
+connections?
+
+Move SA <-> bencode to parse or somewhere.
+
+* listen_open: Need to fix the storage of the bind, local and listen port.
+
+
 ***
 
 Filter based on SocketAddress and TrackerInfo? It should be a single

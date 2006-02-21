@@ -40,15 +40,15 @@
 #include <vector>
 #include <list>
 
-#include "net/socket_address.h"
+#include <rak/socket_address.h>
 
 namespace torrent {
 
-class AvailableList : private std::vector<SocketAddress> {
+class AvailableList : private std::vector<rak::socket_address> {
 public:
-  typedef std::vector<SocketAddress> Base;
-  typedef std::list<SocketAddress>   AddressList;
-  typedef uint32_t                   size_type;
+  typedef std::vector<rak::socket_address> Base;
+  typedef std::list<rak::socket_address>   AddressList;
+  typedef uint32_t                         size_type;
 
   using Base::value_type;
   using Base::reference;
@@ -80,10 +80,10 @@ public:
 
   // This push is somewhat inefficient as it iterates through the
   // whole container to see if the address already exists.
-  void                push_back(const SocketAddress& sa);
+  void                push_back(const rak::socket_address& sa);
 
   void                insert(AddressList* l);
-  void                erase(const SocketAddress& sa);
+  void                erase(const rak::socket_address& sa);
   void                erase(iterator itr)                 { *itr = back(); pop_back(); }
 
 private:

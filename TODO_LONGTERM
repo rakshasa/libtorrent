@@ -20,6 +20,8 @@ Kill tracker dump signal.
 
 Close a connection.
 
+Use sockaddr in the API, rather than strings.
+
 
 === Session management ==
 

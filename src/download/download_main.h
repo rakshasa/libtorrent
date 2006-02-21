@@ -50,6 +50,8 @@
 #include "globals.h"
 #include "torrent/rate.h"
 
+#include "tracker/tracker_info.h"
+
 namespace torrent {
 
 class ChunkList;
@@ -79,6 +81,8 @@ public:
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
+  TrackerInfo*        info();
+
   // Only retrive writable chunks when the download is active.
   ChunkList*          chunk_list()                               { return m_chunkList; }
   ChunkSelector*      chunk_selector()                           { return m_chunkSelector; }
@@ -104,15 +108,9 @@ public:
   void                setup_delegator();
   void                setup_tracker();
 
-  typedef sigc::signal1<void, const std::string&>                SignalString;
-  typedef sigc::signal1<void, uint32_t>                          SignalChunk;
-
-  typedef rak::mem_fun2<HandshakeManager, void, const SocketAddress&, TrackerInfo*> SlotStartHandshake;
+  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, TrackerInfo*> SlotStartHandshake;
   typedef rak::const_mem_fun1<HandshakeManager, uint32_t, TrackerInfo*>       SlotCountHandshakes;
   typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>             SlotHashCheckAdd;
-
-  SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
-  SignalString&       signal_storage_error()                     { return m_signalStorageError; }
 
   void                slot_start_handshake(SlotStartHandshake s)   { m_slotStartHandshake = s; }
   void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
@@ -155,9 +153,6 @@ private:
 
   Rate                m_upRate;
   Rate                m_downRate;
-
-  SignalString        m_signalNetworkLog;
-  SignalString        m_signalStorageError;
 
   SlotStartHandshake  m_slotStartHandshake;
   SlotCountHandshakes m_slotCountHandshakes;

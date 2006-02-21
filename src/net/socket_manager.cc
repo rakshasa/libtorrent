@@ -38,20 +38,20 @@
 
 #include "torrent/exceptions.h"
 
-#include "socket_address.h"
+#include <rak/socket_address.h>
 #include "socket_manager.h"
 
 namespace torrent {
 
 SocketFd
-SocketManager::open(const SocketAddress& sa, const SocketAddress& b) {
+SocketManager::open(const rak::socket_address& sa, const rak::socket_address& b) {
   SocketFd fd;
 
   if (m_size >= m_max || !fd.open_stream())
     return SocketFd();
 
   if (!fd.set_nonblock() ||
-      (!b.is_address_any() && !fd.bind(b)) ||
+      (b.is_bindable() && !fd.bind(b)) ||
       !fd.connect(sa)) {
     fd.close();
     return SocketFd();
@@ -62,7 +62,7 @@ SocketManager::open(const SocketAddress& sa, const SocketAddress& b) {
 }
 
 SocketFd
-SocketManager::received(SocketFd fd, __UNUSED const SocketAddress& sa) {
+SocketManager::received(SocketFd fd, __UNUSED const rak::socket_address& sa) {
   if (!fd.is_valid())
     throw internal_error("SocketManager::received(...) received an invalid file descriptor");
 

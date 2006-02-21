@@ -373,16 +373,16 @@ PeerConnectionLeech::event_read() {
     m_download->connection_list()->erase(this);
 
   } catch (blocked_connection& e) {
-    m_download->signal_network_log().emit("Momentarily blocked read connection.");
+    m_download->info()->signal_network_log().emit("Momentarily blocked read connection.");
     m_download->connection_list()->erase(this);
 
   } catch (network_error& e) {
-    m_download->signal_network_log().emit(e.what());
+    m_download->info()->signal_network_log().emit(e.what());
 
     m_download->connection_list()->erase(this);
 
   } catch (storage_error& e) {
-    m_download->signal_storage_error().emit(e.what());
+    m_download->info()->signal_storage_error().emit(e.what());
     m_download->connection_list()->erase(this);
 
   } catch (base_error& e) {
@@ -522,15 +522,15 @@ PeerConnectionLeech::event_write() {
     m_download->connection_list()->erase(this);
 
   } catch (blocked_connection& e) {
-    m_download->signal_network_log().emit("Momentarily blocked write connection.");
+    m_download->info()->signal_network_log().emit("Momentarily blocked write connection.");
     m_download->connection_list()->erase(this);
 
   } catch (network_error& e) {
-    m_download->signal_network_log().emit(e.what());
+    m_download->info()->signal_network_log().emit(e.what());
     m_download->connection_list()->erase(this);
 
   } catch (storage_error& e) {
-    m_download->signal_storage_error().emit(e.what());
+    m_download->info()->signal_storage_error().emit(e.what());
     m_download->connection_list()->erase(this);
 
   } catch (base_error& e) {
@@ -611,7 +611,7 @@ PeerConnectionLeech::receive_piece_header() {
 
   } else {
     if (m_downPiece.get_length() == 0)
-      m_download->signal_network_log().emit("Received piece with length zero");
+      m_download->info()->signal_network_log().emit("Received piece with length zero");
 
     return false;
   }

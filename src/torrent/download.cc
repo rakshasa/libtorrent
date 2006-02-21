@@ -464,12 +464,12 @@ Download::signal_chunk_failed(Download::SlotChunk s) {
 
 sigc::connection
 Download::signal_network_log(SlotString s) {
-  return m_ptr->main()->signal_network_log().connect(s);
+  return m_ptr->info()->signal_network_log().connect(s);
 }
 
 sigc::connection
 Download::signal_storage_error(SlotString s) {
-  return m_ptr->main()->signal_storage_error().connect(s);
+  return m_ptr->info()->signal_storage_error().connect(s);
 }
 
 }

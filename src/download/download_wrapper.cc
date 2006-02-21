@@ -113,8 +113,8 @@ DownloadWrapper::hash_resume_load() {
     if (resume.has_key("peers") && resume.get_key("peers").is_string()) {
       const std::string& peers = resume.get_key("peers").as_string();
 
-      std::list<SocketAddress> l(reinterpret_cast<const SocketAddressCompact*>(peers.c_str()),
-				 reinterpret_cast<const SocketAddressCompact*>(peers.c_str() + peers.size() - peers.size() % sizeof(SocketAddressCompact)));
+      std::list<rak::socket_address> l(reinterpret_cast<const SocketAddressCompact*>(peers.c_str()),
+				       reinterpret_cast<const SocketAddressCompact*>(peers.c_str() + peers.size() - peers.size() % sizeof(SocketAddressCompact)));
 
       l.sort();
       m_main.available_list()->insert(&l);
@@ -227,11 +227,12 @@ DownloadWrapper::hash_resume_save() {
   std::string peers;
   peers.reserve(m_main.available_list()->size() * sizeof(SocketAddressCompact));
   
-  for (AvailableList::const_iterator
-	 itr = m_main.available_list()->begin(),
-	 last = m_main.available_list()->end();
-       itr != last; ++itr)
-    peers.append(itr->get_address_compact().c_str(), sizeof(SocketAddressCompact));
+  for (AvailableList::const_iterator itr = m_main.available_list()->begin(), last = m_main.available_list()->end(); itr != last; ++itr)
+    if (itr->family() == rak::socket_address::af_inet) {
+      SocketAddressCompact sac(itr->sa_inet()->address_n(), itr->sa_inet()->port_n());
+
+      peers.append(sac.c_str(), sizeof(SocketAddressCompact));
+    }
 
   resume.insert_key("peers", peers);
   resume.insert_key("total_uploaded", m_main.up_rate()->total());
@@ -310,12 +311,12 @@ DownloadWrapper::info() {
   return m_main.tracker_manager()->tracker_info();
 }
 
-SocketAddress&
+rak::socket_address&
 DownloadWrapper::bind_address() {
   return m_main.tracker_manager()->tracker_info()->bind_address();
 }
 
-SocketAddress&
+rak::socket_address&
 DownloadWrapper::local_address() {
   return m_main.tracker_manager()->tracker_info()->local_address();
 }
@@ -426,7 +427,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
 
 void
 DownloadWrapper::receive_storage_error(const std::string& str) {
-  m_main.signal_storage_error().emit(str);
+  info()->signal_storage_error().emit(str);
 }
 
 void

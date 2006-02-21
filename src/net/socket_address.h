@@ -34,7 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_SOCKET_ADDRESS_H
+// #ifndef LIBTORRENT_NET_SOCKET_ADDRESS_H
+#ifdef BOGUS_SOCKET_ADDRESS_DEFINE
 #define LIBTORRENT_NET_SOCKET_ADDRESS_H
 
 #include <string>

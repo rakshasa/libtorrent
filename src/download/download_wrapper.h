@@ -41,7 +41,7 @@
 #include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
-#include "net/socket_address.h"
+#include <rak/socket_address.h>
 #include "torrent/bencode.h"
 #include "torrent/peer.h"
 #include "tracker/tracker_info.h"
@@ -60,7 +60,7 @@ class TrackerInfo;
 
 class DownloadWrapper {
 public:
-  typedef std::list<SocketAddress>                AddressList;
+  typedef std::list<rak::socket_address>                AddressList;
 
   typedef sigc::signal0<void>                     Signal;
   typedef sigc::signal1<void, uint32_t>           SignalChunk;
@@ -97,8 +97,8 @@ public:
 
   TrackerInfo*        info();
 
-  SocketAddress&      bind_address();
-  SocketAddress&      local_address();
+  rak::socket_address& bind_address();
+  rak::socket_address& local_address();
 
   const std::string&  get_name() const               { return m_name; }
   void                set_name(const std::string& s) { m_name = s; }

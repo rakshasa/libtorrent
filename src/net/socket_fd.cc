@@ -47,7 +47,7 @@
 #include <netinet/ip.h>
 
 #include "torrent/exceptions.h"
-#include "socket_address.h"
+#include <rak/socket_address.h>
 #include "socket_fd.h"
 
 namespace torrent {
@@ -112,19 +112,19 @@ SocketFd::close() {
 }
 
 bool
-SocketFd::bind(const SocketAddress& sa) {
+SocketFd::bind(const rak::socket_address& sa) {
   if (!is_valid())
     throw internal_error("SocketFd::bind(...) called on a closed fd");
 
-  return !::bind(m_fd, &sa.get_addr(), sa.get_sizeof());
+  return !::bind(m_fd, sa.c_sockaddr(), sizeof(rak::socket_address));
 }
 
 bool
-SocketFd::connect(const SocketAddress& sa) {
+SocketFd::connect(const rak::socket_address& sa) {
   if (!is_valid())
     throw internal_error("SocketFd::connect(...) called on a closed fd");
 
-  return !::connect(m_fd, &sa.get_addr(), sa.get_sizeof()) || errno == EINPROGRESS;
+  return !::connect(m_fd, sa.c_sockaddr(), sizeof(rak::socket_address)) || errno == EINPROGRESS;
 }
 
 bool
@@ -136,13 +136,13 @@ SocketFd::listen(int size) {
 }
 
 SocketFd
-SocketFd::accept(SocketAddress* sa) {
+SocketFd::accept(rak::socket_address* sa) {
   if (!is_valid())
     throw internal_error("SocketFd::accept(...) called on a closed fd");
 
-  socklen_t len = sa->get_sizeof();
+  socklen_t len = sizeof(rak::socket_address);
 
-  return SocketFd(::accept(m_fd, sa != NULL ? &sa->get_addr() : NULL, &len));
+  return SocketFd(::accept(m_fd, sa != NULL ? sa->c_sockaddr() : NULL, &len));
 }
 
 // unsigned int

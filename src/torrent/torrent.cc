@@ -173,42 +173,36 @@ is_inactive() {
 
 std::string
 local_address() {
-  if (!manager->local_address()->is_address_any())
-    return manager->local_address()->get_address();
-  else
-    return std::string();
+  return manager->local_address()->address_str();
 }
 
 void
 set_local_address(const std::string& addr) {
-  if (!manager->local_address()->set_hostname(addr))
-    throw input_error("Tried to set an invalid/non-existent local address.");
+//   if (!manager->local_address()->set_hostname(addr))
+//     throw input_error("Tried to set an invalid/non-existent local address.");
 
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->local_address() = *manager->local_address();
+//   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
+//     (*itr)->local_address() = *manager->local_address();
 }
 
 std::string
 bind_address() {
-  if (!manager->bind_address()->is_address_any())
-    return manager->bind_address()->get_address();
-  else
-    return std::string();
+  return manager->bind_address()->address_str();
 }
 
 void
 set_bind_address(const std::string& addr) {
-  if (manager->listen()->is_open())
-    throw input_error("Tried to set the bind address while the listening socket is open.");
+//   if (manager->listen()->is_open())
+//     throw input_error("Tried to set the bind address while the listening socket is open.");
 
-  if (addr.empty())
-    manager->bind_address()->set_address_any();
+//   if (addr.empty())
+//     manager->bind_address()->set_address_any();
 
-  else if (!manager->bind_address()->set_hostname(addr))
-    throw input_error("Tried to set an invalid/non-existent bind address.");
+//   else if (!manager->bind_address()->set_hostname(addr))
+//     throw input_error("Tried to set an invalid/non-existent bind address.");
 
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->bind_address() = *manager->bind_address();
+//   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
+//     (*itr)->bind_address() = *manager->bind_address();
 }
 
 uint32_t

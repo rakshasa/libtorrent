@@ -146,7 +146,7 @@ TrackerUdp::receive_timeout() {
 
 void
 TrackerUdp::event_read() {
-  SocketAddress sa;
+  rak::socket_address sa;
 
   int s = read_datagram(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
 
@@ -218,10 +218,11 @@ TrackerUdp::parse_url() {
       port <= 0 || port >= (1 << 16))
     return false;
 
-  m_connectAddress.set_hostname(hostname);
-  m_connectAddress.set_port(port);
+//   m_connectAddress.set_hostname(hostname);
+//   m_connectAddress.set_port(port);
 
-  return !m_connectAddress.is_port_any() && !m_connectAddress.is_address_any();
+//   return !m_connectAddress.is_port_any() && !m_connectAddress.is_address_any();
+  return false;
 }
 
 void
@@ -236,29 +237,29 @@ TrackerUdp::prepare_connect_input() {
 
 void
 TrackerUdp::prepare_announce_input() {
-  m_writeBuffer->reset_position();
+//   m_writeBuffer->reset_position();
 
-  m_writeBuffer->write_64(m_connectionId);
-  m_writeBuffer->write_32(m_action = 1);
-  m_writeBuffer->write_32(m_transactionId = random());
+//   m_writeBuffer->write_64(m_connectionId);
+//   m_writeBuffer->write_32(m_action = 1);
+//   m_writeBuffer->write_32(m_transactionId = random());
 
-  m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
-  m_writeBuffer->write_range(m_info->get_local_id().begin(), m_info->get_local_id().end());
+//   m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
+//   m_writeBuffer->write_range(m_info->get_local_id().begin(), m_info->get_local_id().end());
 
-  m_writeBuffer->write_64(m_sendDown);
-  m_writeBuffer->write_64(m_sendLeft);
-  m_writeBuffer->write_64(m_sendUp);
-  m_writeBuffer->write_32(m_sendState);
+//   m_writeBuffer->write_64(m_sendDown);
+//   m_writeBuffer->write_64(m_sendLeft);
+//   m_writeBuffer->write_64(m_sendUp);
+//   m_writeBuffer->write_32(m_sendState);
 
-  m_writeBuffer->write_32(m_info->local_address().get_addr_in_addr());
-  m_writeBuffer->write_32(m_info->get_key());
-  m_writeBuffer->write_32(m_info->get_numwant());
-  m_writeBuffer->write_16(m_info->local_address().get_port());
+//   m_writeBuffer->write_32(m_info->local_address().get_addr_in_addr());
+//   m_writeBuffer->write_32(m_info->get_key());
+//   m_writeBuffer->write_32(m_info->get_numwant());
+//   m_writeBuffer->write_16(m_info->local_address().get_port());
 
-  m_writeBuffer->prepare_end();
+//   m_writeBuffer->prepare_end();
 
-  if (m_writeBuffer->size_end() != 98)
-    throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
+//   if (m_writeBuffer->size_end() != 98)
+//     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
 }
 
 bool

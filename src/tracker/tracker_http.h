@@ -66,7 +66,7 @@ private:
   void                receive_done();
   void                receive_failed(std::string msg);
 
-  static SocketAddress parse_address(const Bencode& b);
+  static rak::socket_address parse_address(const Bencode& b);
 
   void                parse_address_normal(AddressList& l, const Bencode::List& b);
   void                parse_address_compact(AddressList& l, const std::string& s);

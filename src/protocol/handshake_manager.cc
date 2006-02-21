@@ -36,9 +36,11 @@
 
 #include "config.h"
 
+#include <rak/socket_address.h>
+
 #include "net/manager.h"
-#include "net/socket_address.h"
 #include "torrent/exceptions.h"
+#include "tracker/tracker_info.h"
 
 #include "peer_info.h"
 #include "handshake_manager.h"
@@ -56,6 +58,8 @@ void
 HandshakeManager::clear() {
   std::for_each(Base::begin(), Base::end(), std::mem_fun(&Handshake::close));
   std::for_each(Base::begin(), Base::end(), rak::call_delete<Handshake>());
+
+  Base::clear();
 }
 
 void
@@ -69,15 +73,15 @@ HandshakeManager::erase(Handshake* handshake) {
 }
 
 bool
-HandshakeManager::find(const SocketAddress& sa) {
+HandshakeManager::find(const rak::socket_address& sa) {
   return std::find_if(Base::begin(), Base::end(),
 		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::get_peer),
-					     std::mem_fun_ref<const torrent::SocketAddress&>(&PeerInfo::get_socket_address))))
+					     std::mem_fun_ref<const rak::socket_address&>(&PeerInfo::get_socket_address))))
     != Base::end();
 }
 
 void
-HandshakeManager::add_incoming(SocketFd fd, const SocketAddress& sa) {
+HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   if (!socketManager.received(fd, sa).is_valid())
     return;
 
@@ -85,7 +89,7 @@ HandshakeManager::add_incoming(SocketFd fd, const SocketAddress& sa) {
 }
   
 void
-HandshakeManager::add_outgoing(const SocketAddress& sa, TrackerInfo* info) {
+HandshakeManager::add_outgoing(const rak::socket_address& sa, TrackerInfo* info) {
   SocketFd fd = socketManager.open(sa, m_bindAddress);
 
   if (!fd.is_valid())
@@ -98,6 +102,8 @@ void
 HandshakeManager::receive_connected(Handshake* h) {
   erase(h);
 
+  h->info()->signal_network_log().emit("Successful handshake: " + h->get_peer().get_address());
+
   // TODO: Check that m_slotConnected actually points somewhere.
   m_slotConnected(h->get_fd(), h->info(), h->get_peer());
 
@@ -108,6 +114,9 @@ HandshakeManager::receive_connected(Handshake* h) {
 void
 HandshakeManager::receive_failed(Handshake* h) {
   erase(h);
+
+  if (h->info() != NULL)
+    h->info()->signal_network_log().emit("Failed handshake: " + h->get_peer().get_address());
 
   h->close();
   delete h;

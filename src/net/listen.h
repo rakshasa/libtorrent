@@ -40,7 +40,7 @@
 #include <inttypes.h>
 #include <rak/functional.h>
 
-#include "socket_address.h"
+#include <rak/socket_address.h>
 #include "socket_base.h"
 #include "socket_fd.h"
 
@@ -50,12 +50,12 @@ class HandshakeManager;
 
 class Listen : public SocketBase {
 public:
-  typedef rak::mem_fun2<HandshakeManager, void, SocketFd, const SocketAddress&> SlotIncoming;
+  typedef rak::mem_fun2<HandshakeManager, void, SocketFd, const rak::socket_address&> SlotIncoming;
 
   Listen() : m_port(0) {}
   ~Listen() { close(); }
 
-  bool                open(uint16_t first, uint16_t last, SocketAddress sa);
+  bool                open(uint16_t first, uint16_t last, rak::socket_address sa);
   void                close();
 
   bool                is_open()                            { return get_fd().is_valid(); }

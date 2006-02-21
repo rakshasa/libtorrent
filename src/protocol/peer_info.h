@@ -41,14 +41,14 @@
 #include <cstring>
 #include <inttypes.h>
 
-#include "net/socket_address.h"
+#include <rak/socket_address.h>
 
 namespace torrent {
 
 class PeerInfo {
 public:
-  PeerInfo() : m_incoming(false) { std::memset(m_options, 0, 8); }
-  PeerInfo(const std::string& id, const SocketAddress& sa, bool incoming);
+  PeerInfo() : m_incoming(false) { m_sa.set_family(); std::memset(m_options, 0, 8); }
+  PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming);
 
   bool                is_incoming() const                   { return m_incoming; }
   bool                is_valid() const                      { return m_id.length() == 20 && m_sa.is_valid(); }
@@ -56,27 +56,27 @@ public:
   const std::string&  get_id() const                        { return m_id; }
   void                set_id(const std::string& id)         { m_id = id; }
 
-  std::string         get_address() const                   { return m_sa.get_address(); }
-  uint16_t            get_port() const                      { return m_sa.get_port(); }
+  std::string         get_address() const                   { return m_sa.address_str(); }
+  uint16_t            get_port() const                      { return m_sa.port(); }
   char*               get_options()                         { return m_options; }
   const char*         get_options() const                   { return m_options; }
 
-  SocketAddress&       get_socket_address()                 { return m_sa; }
-  const SocketAddress& get_socket_address() const           { return m_sa; }
+  rak::socket_address&       get_socket_address()                 { return m_sa; }
+  const rak::socket_address& get_socket_address() const           { return m_sa; }
 
   bool                operator < (const PeerInfo& p) const  { return m_id < p.m_id; }
   bool                operator == (const PeerInfo& p) const { return m_id == p.m_id; }
 
 private:
   std::string         m_id;
-  SocketAddress       m_sa;
+  rak::socket_address m_sa;
   char                m_options[8];
 
   bool                m_incoming;
 };
 
 inline
-PeerInfo::PeerInfo(const std::string& id, const SocketAddress& sa, bool incoming) :
+PeerInfo::PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming) :
   m_id(id),
   m_sa(sa),
   m_incoming(incoming) {

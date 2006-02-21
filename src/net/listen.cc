@@ -37,24 +37,28 @@
 #include "config.h"
 
 #include <unistd.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <rak/socket_address.h>
+#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 
 #include "listen.h"
 #include "manager.h"
-#include "socket_address.h"
 
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, SocketAddress sa) {
+Listen::open(uint16_t first, uint16_t last, rak::socket_address sa) {
   close();
 
   if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
+
+  if (sa.family() != rak::socket_address::af_inet &&
+      sa.family() != rak::socket_address::af_inet6)
+    throw input_error("Listening socket must be bound to an inet or inet6 address.");
 
   if (!get_fd().open_stream() || !get_fd().set_nonblock())
     throw local_error("Could not allocate socket for listening.");
@@ -100,7 +104,7 @@ void Listen::close() {
   
 void
 Listen::event_read() {
-  SocketAddress sa;
+  rak::socket_address sa;
   SocketFd fd;
 
   while ((fd = get_fd().accept(&sa)).is_valid())

@@ -40,6 +40,7 @@
 #include <sstream>
 #include <rak/string_manip.h>
 
+#include "net/socket_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
 #include "tracker_http.h"
@@ -75,7 +76,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
     throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info");
 
   if (m_info->get_local_id().length() != 20 ||
-      m_info->local_address().get_port() == 0 ||
+      m_info->local_address().port() == 0 ||
       m_info->get_hash().length() != 20)
     throw internal_error("Send state with TrackerHttp with bad hash, id or port");
 
@@ -89,8 +90,9 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   if (!m_trackerId.empty())
     s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
 
-  if (!m_info->local_address().is_address_any())
-    s << "&ip=" << m_info->local_address().get_address();
+  if (m_info->local_address().family() == rak::socket_address::af_inet &&
+      !m_info->local_address().sa_inet()->is_address_any())
+    s << "&ip=" << m_info->local_address().address_str();
 
   if (m_info->get_compact())
     s << "&compact=1";
@@ -98,7 +100,7 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   if (m_info->get_numwant() >= 0)
     s << "&numwant=" << m_info->get_numwant();
 
-  s << "&port=" << m_info->local_address().get_port()
+  s << "&port=" << m_info->local_address().port()
     << "&uploaded=" << up
     << "&downloaded=" << down
     << "&left=" << left;
@@ -196,22 +198,30 @@ TrackerHttp::receive_failed(std::string msg) {
   m_slotFailed(this, msg);
 }
 
-inline SocketAddress
+inline rak::socket_address
 TrackerHttp::parse_address(const Bencode& b) {
-  SocketAddress sa;
+  rak::socket_address sa;
 
-  if (!b.is_map())
-    return SocketAddress();
+  if (!b.is_map()) {
+    sa.set_family();
+    return sa;
+  }
 
-  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr)
+  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
     // We ignore the "peer id" field, we don't need it.
     if (itr->first == "ip" && itr->second.is_string())
-      sa.set_address(itr->second.as_string());
+      sa.sa_inet()->set_address_str(itr->second.as_string());
 
     else if (itr->first == "port" && itr->second.is_value())
-      sa.set_port(itr->second.as_value());
+      sa.sa_inet()->set_port(itr->second.as_value());
+  }
 
-  return sa.is_valid() ? sa : SocketAddress();
+  if (sa.is_valid())
+    sa.sa_inet()->set_family();
+  else
+    sa.set_family();
+
+  return sa;
 }
 
 void

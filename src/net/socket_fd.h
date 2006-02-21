@@ -39,9 +39,11 @@
 
 #include <unistd.h>
 
-namespace torrent {
+namespace rak {
+  class socket_address;
+}
 
-class SocketAddress;
+namespace torrent {
 
 class SocketFd {
 public:
@@ -65,11 +67,11 @@ public:
 
   void                clear()                                 { m_fd = -1; }
 
-  bool                bind(const SocketAddress& sa);
-  bool                connect(const SocketAddress& sa);
+  bool                bind(const rak::socket_address& sa);
+  bool                connect(const rak::socket_address& sa);
 
   bool                listen(int size);
-  SocketFd            accept(SocketAddress* sa);
+  SocketFd            accept(rak::socket_address* sa);
 
 //   unsigned int        get_read_queue_size() const;
 //   unsigned int        get_write_queue_size() const;
