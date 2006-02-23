@@ -38,6 +38,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "net/socket_manager.h"
@@ -179,9 +180,9 @@ TrackerHttp::receive_done() {
 
   try {
     if (b.get_key("peers").is_string())
-      parse_address_compact(l, b.get_key("peers").as_string());
+      parse_address_compact(&l, b.get_key("peers").as_string());
     else
-      parse_address_normal(l, b.get_key("peers").as_list());
+      parse_address_normal(&l, b.get_key("peers").as_list());
 
   } catch (bencode_error& e) {
     return receive_failed(e.what());
@@ -201,42 +202,37 @@ TrackerHttp::receive_failed(std::string msg) {
 inline rak::socket_address
 TrackerHttp::parse_address(const Bencode& b) {
   rak::socket_address sa;
+  sa.clear();
 
-  if (!b.is_map()) {
-    sa.set_family();
+  if (!b.is_map())
     return sa;
-  }
 
-  for (Bencode::Map::const_iterator itr = b.as_map().begin(); itr != b.as_map().end(); ++itr) {
-    // We ignore the "peer id" field, we don't need it.
-    if (itr->first == "ip" && itr->second.is_string())
-      sa.sa_inet()->set_address_str(itr->second.as_string());
+  if (!b.has_key("ip") || !b.get_key("ip").is_string() ||
+      !sa.set_address_str(b.get_key("ip").as_string()))
+    return sa;
 
-    else if (itr->first == "port" && itr->second.is_value())
-      sa.sa_inet()->set_port(itr->second.as_value());
-  }
+  if (!b.has_key("port") || !b.get_key("port").is_value() ||
+      b.get_key("port").as_value() <= 0 || b.get_key("port").as_value() >= (1 << 16))
+    return sa;
 
-  if (sa.is_valid())
-    sa.sa_inet()->set_family();
-  else
-    sa.set_family();
+  sa.set_port(b.get_key("port").as_value());
 
   return sa;
 }
 
 void
-TrackerHttp::parse_address_normal(AddressList& l, const Bencode::List& b) {
-  std::transform(b.begin(), b.end(), std::back_inserter(l), std::ptr_fun(&TrackerHttp::parse_address));
-}  
+TrackerHttp::parse_address_normal(AddressList* l, const Bencode::List& b) {
+  std::for_each(b.begin(), b.end(), rak::on(std::ptr_fun(&TrackerHttp::parse_address), address_list_add_address(l)));
+}
 
 void
-TrackerHttp::parse_address_compact(AddressList& l, const std::string& s) {
+TrackerHttp::parse_address_compact(AddressList* l, const std::string& s) {
   if (sizeof(const SocketAddressCompact) != 6)
     throw internal_error("TrackerHttp::parse_address_compact(...) bad struct size.");
 
   std::copy(reinterpret_cast<const SocketAddressCompact*>(s.c_str()),
 	    reinterpret_cast<const SocketAddressCompact*>(s.c_str() + s.size() - s.size() % sizeof(SocketAddressCompact)),
-	    std::back_inserter(l));
+	    std::back_inserter(*l));
 }
 
 }

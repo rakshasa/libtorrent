@@ -173,27 +173,41 @@ is_inactive() {
 
 std::string
 local_address() {
-  return manager->local_address()->address_str();
+  return manager->local_address()->is_address_any() ? std::string() : manager->local_address()->address_str();
 }
 
 void
 set_local_address(const std::string& addr) {
-//   if (!manager->local_address()->set_hostname(addr))
-//     throw input_error("Tried to set an invalid/non-existent local address.");
+//   int err;
+//   rak::address_info* ai;
 
-//   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-//     (*itr)->local_address() = *manager->local_address();
+//   if ((err = rak::address_info::get_address_info(addr.c_str(), PF_INET, SOCK_STREAM, &ai)) != 0)
+//     throw input_error("Could not set local address: " + rak::address_info::strerror(err) + ".");
+  
+//   // Temporary hack.
+//   if (ai->address()->family() == rak::socket_address::af_inet) {
+    
+//   }
+
+  //  rak::address_info::free_address_info(ai);
+
+  // Handle empty strings for address any.
+  if (!manager->local_address()->set_address_str(addr))
+    throw input_error("Could not set local address.");
+
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
+    (*itr)->local_address() = *manager->local_address();
 }
 
 std::string
 bind_address() {
-  return manager->bind_address()->address_str();
+  return manager->bind_address()->is_address_any() ? std::string() : manager->bind_address()->address_str();
 }
 
 void
 set_bind_address(const std::string& addr) {
-//   if (manager->listen()->is_open())
-//     throw input_error("Tried to set the bind address while the listening socket is open.");
+  if (manager->listen()->is_open())
+    throw input_error("Tried to set the bind address while the listening socket is open.");
 
 //   if (addr.empty())
 //     manager->bind_address()->set_address_any();
@@ -201,8 +215,11 @@ set_bind_address(const std::string& addr) {
 //   else if (!manager->bind_address()->set_hostname(addr))
 //     throw input_error("Tried to set an invalid/non-existent bind address.");
 
-//   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-//     (*itr)->bind_address() = *manager->bind_address();
+  if (!manager->bind_address()->set_address_str(addr))
+    throw input_error("Could not set bind address.");
+
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
+    (*itr)->bind_address() = *manager->bind_address();
 }
 
 uint32_t

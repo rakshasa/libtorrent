@@ -23,6 +23,11 @@ Close a connection.
 Use sockaddr in the API, rather than strings.
 
 
+=== torrent::Object ==
+
+Combine has_key and is_*.
+
+
 === Session management ==
 
 Add a command to tie a torrent to the life-time of a file. When that

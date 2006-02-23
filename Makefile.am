@@ -11,6 +11,7 @@ EXTRA_DIST= \
 	doc/main.xml \
 	doc/http.xml \
 	doc/torrent.xml \
+	rak/address_info.h \
         rak/algorithm.h \
 	rak/error_number.h \
 	rak/file_stat.h \

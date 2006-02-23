@@ -68,8 +68,8 @@ private:
 
   static rak::socket_address parse_address(const Bencode& b);
 
-  void                parse_address_normal(AddressList& l, const Bencode::List& b);
-  void                parse_address_compact(AddressList& l, const std::string& s);
+  void                parse_address_normal(AddressList* l, const Bencode::List& b);
+  void                parse_address_compact(AddressList* l, const std::string& s);
 
   Http*               m_get;
   std::stringstream*  m_data;

@@ -10,7 +10,6 @@ Enable, check:
 set_listen/bind
 TrackerUdp::parse_url()
 TrackerUdp::prepare_announce_input()
-TrackerHttp::parse_address
 
 Ahh... SocketManager is supposed to do filtering? Perhaps atleast the
 initial filtering? Does it get used to things other than peer
@@ -18,7 +17,8 @@ connections?
 
 Move SA <-> bencode to parse or somewhere.
 
-* listen_open: Need to fix the storage of the bind, local and listen port.
+* listen_open: Need to fix the storage of the bind, local and listen
+port. Make the listen port seperate from the local address.
 
 
 ***

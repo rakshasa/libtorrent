@@ -108,6 +108,19 @@ protected:
   SlotInt             m_slotSetMinInterval;
 };
 
+struct address_list_add_address : public std::unary_function<rak::socket_address, void> {
+  address_list_add_address(TrackerBase::AddressList* l) : m_list(l) {}
+
+  void operator () (const rak::socket_address& sa) const {
+    if (!sa.is_valid())
+      return;
+
+    m_list->push_back(sa);
+  }
+
+  TrackerBase::AddressList* m_list;
+};
+
 }
 
 #endif

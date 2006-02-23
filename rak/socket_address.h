@@ -71,8 +71,10 @@ public:
 
   bool                is_valid() const;
   bool                is_bindable() const;
+  bool                is_address_any() const;
 
-  void                clear()                                 { std::memset(this, 0, sizeof(socket_address)); }
+  // Should we need to set AF_UNSPEC?
+  void                clear()                                 { std::memset(this, 0, sizeof(socket_address)); set_family(); }
 
   sa_family_t         family() const                          { return m_sa.m_sockaddr.sa_family; }
   void                set_family()                            { m_sa.m_sockaddr.sa_family = af_unspec; }
@@ -82,6 +84,11 @@ public:
 
   std::string         address_str() const;
   bool                address_c_str(char* buf, socklen_t size) const;
+
+  // Attemts to set it as an inet, then an inet6 address. It will
+  // never set anything but net addresses, no local/unix.
+  bool                set_address_str(const std::string& a)   { return set_address_c_str(a.c_str()); }
+  bool                set_address_c_str(const char* a);
 
   socket_address_inet*        sa_inet()                       { return reinterpret_cast<socket_address_inet*>(this); }
   socket_address_inet6*       sa_inet6()                      { return reinterpret_cast<socket_address_inet6*>(this); }
@@ -116,9 +123,6 @@ private:
 
 class socket_address_inet {
 public:
-  socket_address_inet() {}
-  socket_address_inet(const sockaddr_in& src) : m_sockaddr(src) {}
-  
   bool                is_any() const                          { return is_port_any() && is_address_any(); }
   bool                is_valid() const                        { return !is_port_any() && !is_address_any(); }
   bool                is_port_any() const                     { return port() == 0; }
@@ -184,6 +188,16 @@ socket_address::is_bindable() const {
   }
 }
 
+inline bool
+socket_address::is_address_any() const {
+  switch (family()) {
+  case af_inet:
+    return sa_inet()->is_address_any();
+  default:
+    return true;
+  }
+}
+
 inline uint16_t
 socket_address::port() const {
   switch (family()) {
@@ -225,6 +239,19 @@ socket_address::address_c_str(char* buf, socklen_t size) const {
 }
 
 inline bool
+socket_address::set_address_c_str(const char* a) {
+  if (sa_inet()->set_address_c_str(a)) {
+    sa_inet()->set_family();
+    return true;
+
+  } else {
+    return false;
+  }
+}
+
+// Should we be able to compare af_unspec?
+
+inline bool
 socket_address::operator == (const socket_address& rhs) const {
   if (family() != rhs.family())
     return false;
@@ -250,7 +277,7 @@ socket_address::operator < (const socket_address& rhs) const {
 //   case af_inet6:
 //     return *sa_inet6() < *rhs.sa_inet6();
   default:
-    throw std::logic_error("socket_address::operator == (rhs) invalid type comparison.");
+    throw std::logic_error("socket_address::operator < (rhs) invalid type comparison.");
   }
 }
 
