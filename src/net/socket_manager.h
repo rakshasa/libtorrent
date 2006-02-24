@@ -80,8 +80,7 @@ struct SocketAddressCompact {
 
   operator rak::socket_address () const {
     rak::socket_address sa;
-    sa.clear();
-    sa.sa_inet()->set_family();
+    sa.sa_inet()->clear();
     sa.sa_inet()->set_port_n(port);
     sa.sa_inet()->set_address_n(addr);
 

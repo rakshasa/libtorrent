@@ -65,7 +65,7 @@ public:
     STOPPED
   };
 
-  TrackerInfo() : m_key(0), m_compact(true), m_numwant(-1) {
+  TrackerInfo() : m_port(0), m_key(0), m_compact(true), m_numwant(-1) {
     m_bindAddress.set_family();
     m_localAddress.set_family();
   }
@@ -76,8 +76,11 @@ public:
   const std::string&  get_local_id() const                         { return m_localId; }
   void                set_local_id(const std::string& id)          { m_localId = id; }
 
-  rak::socket_address& bind_address()                              { return m_bindAddress; }
-  rak::socket_address& local_address()                             { return m_localAddress; }
+  uint16_t            port() const                                 { return m_port; }
+  void                set_port(uint16_t p)                         { m_port = p; }
+
+  rak::socket_address* bind_address()                              { return &m_bindAddress; }
+  rak::socket_address* local_address()                             { return &m_localAddress; }
 
   uint32_t            get_key() const                              { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
@@ -105,6 +108,8 @@ public:
 private:
   std::string         m_hash;
   std::string         m_localId;
+
+  uint16_t            m_port;
 
   rak::socket_address m_bindAddress;
   rak::socket_address m_localAddress;

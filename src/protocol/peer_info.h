@@ -47,7 +47,7 @@ namespace torrent {
 
 class PeerInfo {
 public:
-  PeerInfo() : m_incoming(false) { m_sa.set_family(); std::memset(m_options, 0, 8); }
+  PeerInfo();
   PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming);
 
   bool                is_incoming() const                   { return m_incoming; }
@@ -74,6 +74,13 @@ private:
 
   bool                m_incoming;
 };
+
+inline
+PeerInfo::PeerInfo() :
+  m_incoming(false) {
+  m_sa.clear();
+  std::memset(m_options, 0, 8);
+}
 
 inline
 PeerInfo::PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming) :

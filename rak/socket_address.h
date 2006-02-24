@@ -104,6 +104,11 @@ public:
   const sockaddr_in*  c_sockaddr_inet() const                 { return &m_sa.m_sockaddrInet; }
   const sockaddr_in6* c_sockaddr_inet6() const                { return &m_sa.m_sockaddrInet6; }
 
+  // Copy a socket address which has the length 'length. Zero out any
+  // extranous bytes and ensure it does not go beyond the size of this
+  // struct.
+  void                copy(const socket_address& src, size_t length);
+
   // The different families will be sorted according to the
   // sa_family_t's numeric value.
   bool                operator == (const socket_address& rhs) const;
@@ -128,7 +133,7 @@ public:
   bool                is_port_any() const                     { return port() == 0; }
   bool                is_address_any() const                  { return m_sockaddr.sin_addr.s_addr == htonl(INADDR_ANY); }
 
-  void                clear()                                 { std::memset(this, 0, sizeof(socket_address_inet)); }
+  void                clear()                                 { std::memset(this, 0, sizeof(socket_address_inet)); set_family(); }
 
   uint16_t            port() const                            { return ntohs(m_sockaddr.sin_port); }
   uint16_t            port_n() const                          { return m_sockaddr.sin_port; }
@@ -247,6 +252,15 @@ socket_address::set_address_c_str(const char* a) {
   } else {
     return false;
   }
+}
+
+inline void
+socket_address::copy(const socket_address& src, size_t length) {
+  length = std::min(length, sizeof(socket_address));
+  
+  // Does this get properly optimized?
+  std::memset(this, 0, sizeof(socket_address));
+  std::memcpy(this, &src, length);
 }
 
 // Should we be able to compare af_unspec?

@@ -60,7 +60,7 @@ class TrackerInfo;
 
 class DownloadWrapper {
 public:
-  typedef std::list<rak::socket_address>                AddressList;
+  typedef std::list<rak::socket_address>          AddressList;
 
   typedef sigc::signal0<void>                     Signal;
   typedef sigc::signal1<void, uint32_t>           SignalChunk;
@@ -97,9 +97,6 @@ public:
 
   TrackerInfo*        info();
 
-  rak::socket_address& bind_address();
-  rak::socket_address& local_address();
-
   const std::string&  get_name() const               { return m_name; }
   void                set_name(const std::string& s) { m_name = s; }
 
@@ -109,6 +106,9 @@ public:
 
   int                 get_connection_type() const    { return m_connectionType; }
   void                set_connection_type(int t)     { m_connectionType = t; }
+
+  void                insert_available_list(const std::string& src);
+  void                extract_available_list(Bencode* dest);
 
   void                receive_keepalive();
   void                receive_initial_hash();

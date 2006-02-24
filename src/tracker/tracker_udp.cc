@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <stdlib.h>
+#include <rak/address_info.h>
 #include <rak/error_number.h>
 
 #include "net/manager.h"
@@ -75,7 +75,7 @@ TrackerUdp::send_state(TrackerInfo::State state,
 
   if (!get_fd().open_datagram() ||
       !get_fd().set_nonblock() ||
-      !get_fd().bind(m_info->bind_address()))
+      !get_fd().bind(*m_info->bind_address()))
     return receive_failed("Could not open UDP socket.");
 
   m_readBuffer = new ReadBuffer;
@@ -211,18 +211,26 @@ TrackerUdp::event_error() {
 bool
 TrackerUdp::parse_url() {
   int port;
-  char hostname[256];
+  char hostname[1024];
       
-  if (std::sscanf(m_url.c_str(), "udp://%255[^:]:%i", hostname, &port) != 2 ||
+  if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname, &port) != 2 ||
       hostname[0] == '\0' ||
       port <= 0 || port >= (1 << 16))
     return false;
 
-//   m_connectAddress.set_hostname(hostname);
-//   m_connectAddress.set_port(port);
+  int err;
+  rak::address_info* ai;
 
-//   return !m_connectAddress.is_port_any() && !m_connectAddress.is_address_any();
-  return false;
+  if ((err = rak::address_info::get_address_info(hostname, PF_INET, SOCK_STREAM, &ai)) != 0)
+    return false;
+  
+  if (ai->address()->family() != rak::socket_address::af_inet)
+    return false;
+
+  m_connectAddress.copy(*ai->address(), ai->length());
+  m_connectAddress.set_port(port);
+
+  return m_connectAddress.is_valid();
 }
 
 void
@@ -237,29 +245,33 @@ TrackerUdp::prepare_connect_input() {
 
 void
 TrackerUdp::prepare_announce_input() {
-//   m_writeBuffer->reset_position();
+  m_writeBuffer->reset_position();
 
-//   m_writeBuffer->write_64(m_connectionId);
-//   m_writeBuffer->write_32(m_action = 1);
-//   m_writeBuffer->write_32(m_transactionId = random());
+  m_writeBuffer->write_64(m_connectionId);
+  m_writeBuffer->write_32(m_action = 1);
+  m_writeBuffer->write_32(m_transactionId = random());
 
-//   m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
-//   m_writeBuffer->write_range(m_info->get_local_id().begin(), m_info->get_local_id().end());
+  m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
+  m_writeBuffer->write_range(m_info->get_local_id().begin(), m_info->get_local_id().end());
 
-//   m_writeBuffer->write_64(m_sendDown);
-//   m_writeBuffer->write_64(m_sendLeft);
-//   m_writeBuffer->write_64(m_sendUp);
-//   m_writeBuffer->write_32(m_sendState);
+  m_writeBuffer->write_64(m_sendDown);
+  m_writeBuffer->write_64(m_sendLeft);
+  m_writeBuffer->write_64(m_sendUp);
+  m_writeBuffer->write_32(m_sendState);
 
-//   m_writeBuffer->write_32(m_info->local_address().get_addr_in_addr());
-//   m_writeBuffer->write_32(m_info->get_key());
-//   m_writeBuffer->write_32(m_info->get_numwant());
-//   m_writeBuffer->write_16(m_info->local_address().get_port());
+  // This code assumes we're have a inet address.
+  if (m_info->local_address()->family() != rak::socket_address::af_inet)
+    throw internal_error("TrackerUdp::prepare_announce_input() m_info->local_address() not of family AF_INET.");
 
-//   m_writeBuffer->prepare_end();
+  m_writeBuffer->write_32_n(m_info->local_address()->sa_inet()->address_n());
+  m_writeBuffer->write_32(m_info->get_key());
+  m_writeBuffer->write_32(m_info->get_numwant());
+  m_writeBuffer->write_16(m_info->port());
 
-//   if (m_writeBuffer->size_end() != 98)
-//     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
+  m_writeBuffer->prepare_end();
+
+  if (m_writeBuffer->size_end() != 98)
+    throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
 }
 
 bool
@@ -294,6 +306,7 @@ TrackerUdp::process_announce_output() {
   // connection or not?
   close();
   m_slotSuccess(this, &l);
+
   return true;
 }
   

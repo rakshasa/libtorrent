@@ -70,11 +70,8 @@ Manager::Manager() :
 
   m_ticks(0) {
 
-  m_localAddress.clear();
-  m_localAddress.sa_inet()->set_family();
-
-  m_bindAddress.clear();
-  m_bindAddress.sa_inet()->set_family();
+  m_localAddress.sa_inet()->clear();
+  m_bindAddress.sa_inet()->clear();
 
   m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
 
@@ -105,8 +102,9 @@ Manager::~Manager() {
 
 void
 Manager::initialize_download(DownloadWrapper* d) {
-  d->bind_address() = m_bindAddress;
-  d->local_address() = m_localAddress;
+  *d->info()->bind_address() = m_bindAddress;
+  *d->info()->local_address() = m_localAddress;
+  d->info()->set_port(m_listen->port());
 
   d->set_handshake_manager(m_handshakeManager);
   d->set_hash_queue(m_hashQueue);

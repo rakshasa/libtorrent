@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <iostream>
+#include <rak/address_info.h>
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
@@ -131,11 +132,8 @@ listen_open(uint16_t begin, uint16_t end) {
   if (!manager->listen()->open(begin, end, *manager->bind_address()))
     return false;
 
-  manager->local_address()->set_port(manager->listen()->port());
-  manager->handshake_manager()->set_bind_address(*manager->bind_address());
-
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->local_address().set_port(manager->listen()->port());
+    (*itr)->info()->set_port(manager->listen()->port());
 
   return true;
 }
@@ -143,6 +141,9 @@ listen_open(uint16_t begin, uint16_t end) {
 void
 listen_close() {
   manager->listen()->close();
+
+  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
+    (*itr)->info()->set_port(manager->listen()->port());
 }
 
 uint16_t
@@ -178,25 +179,21 @@ local_address() {
 
 void
 set_local_address(const std::string& addr) {
-//   int err;
-//   rak::address_info* ai;
+  int err;
+  rak::address_info* ai;
 
-//   if ((err = rak::address_info::get_address_info(addr.c_str(), PF_INET, SOCK_STREAM, &ai)) != 0)
-//     throw input_error("Could not set local address: " + rak::address_info::strerror(err) + ".");
+  if ((err = rak::address_info::get_address_info(addr.c_str(), PF_INET, SOCK_STREAM, &ai)) != 0)
+    throw input_error("Could not set local address: " + std::string(rak::address_info::strerror(err)) + ".");
   
-//   // Temporary hack.
-//   if (ai->address()->family() == rak::socket_address::af_inet) {
-    
-//   }
+  if (ai->address()->family() != rak::socket_address::af_inet)
+    throw input_error("Local address resolved to an unsupported socket address type.");
 
-  //  rak::address_info::free_address_info(ai);
-
-  // Handle empty strings for address any.
-  if (!manager->local_address()->set_address_str(addr))
-    throw input_error("Could not set local address.");
+  // Use the first valid address for now, consider sorting.
+  manager->local_address()->copy(*ai->address(), ai->length());
+  rak::address_info::free_address_info(ai);
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->local_address() = *manager->local_address();
+    *(*itr)->info()->local_address() = *manager->local_address();
 }
 
 std::string
@@ -209,17 +206,23 @@ set_bind_address(const std::string& addr) {
   if (manager->listen()->is_open())
     throw input_error("Tried to set the bind address while the listening socket is open.");
 
-//   if (addr.empty())
-//     manager->bind_address()->set_address_any();
+  int err;
+  rak::address_info* ai;
 
-//   else if (!manager->bind_address()->set_hostname(addr))
-//     throw input_error("Tried to set an invalid/non-existent bind address.");
+  if ((err = rak::address_info::get_address_info(addr.c_str(), PF_INET, SOCK_STREAM, &ai)) != 0)
+    throw input_error("Could not set bind address: " + std::string(rak::address_info::strerror(err)) + ".");
+  
+  if (ai->address()->family() != rak::socket_address::af_inet)
+    throw input_error("Bind address resolved to an unsupported socket address type.");
 
-  if (!manager->bind_address()->set_address_str(addr))
-    throw input_error("Could not set bind address.");
+  // Use the first valid address for now, consider sorting.
+  manager->bind_address()->copy(*ai->address(), ai->length());
+  rak::address_info::free_address_info(ai);
+
+  manager->handshake_manager()->set_bind_address(*manager->bind_address());
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->bind_address() = *manager->bind_address();
+    *(*itr)->info()->bind_address() = *manager->bind_address();
 }
 
 uint32_t

@@ -71,6 +71,7 @@ main(int argc, char** argv) {
 
   lookup_address("www.uio.no");
   lookup_address("www.ipv6.org");
+  lookup_address("lampedusa");
 
   return 0;
 }

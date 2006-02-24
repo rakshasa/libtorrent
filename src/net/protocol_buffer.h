@@ -82,6 +82,7 @@ public:
   void                write_8(uint8_t v)            { *m_position++ = v; validate_position(); }
   void                write_16(uint16_t v);
   void                write_32(uint32_t v);
+  void                write_32_n(uint32_t v);
   void                write_64(uint64_t v)          { write_int<uint64_t>(v); }
 
   template <typename T>
@@ -197,6 +198,15 @@ ProtocolBuffer<tmpl_size>::write_32(uint32_t v) {
 #else
   write_int<uint32_t>(v);
 #endif
+}
+
+template <uint16_t tmpl_size>
+inline void
+ProtocolBuffer<tmpl_size>::write_32_n(uint32_t v) {
+  *reinterpret_cast<uint32_t*>(m_position) = v;
+  m_position += sizeof(uint32_t);
+
+  validate_position();
 }
 
 template <uint16_t tmpl_size>

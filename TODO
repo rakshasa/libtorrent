@@ -5,20 +5,16 @@ get while coding.
 Go through all instances of rak::socket_address, make sure we set the
 right family.
 
-Enable, check:
+Clean up the caught exception when the client exits, use "rtorrent" prefix?
 
-set_listen/bind
-TrackerUdp::parse_url()
-TrackerUdp::prepare_announce_input()
+TrackerUdp::parse_url should happen only once.
+
+Make the TrackerInfo version of the bind and local addresses into
+pointers to manager?
 
 Ahh... SocketManager is supposed to do filtering? Perhaps atleast the
 initial filtering? Does it get used to things other than peer
 connections?
-
-Move SA <-> bencode to parse or somewhere.
-
-* listen_open: Need to fix the storage of the bind, local and listen
-port. Make the listen port seperate from the local address.
 
 
 ***

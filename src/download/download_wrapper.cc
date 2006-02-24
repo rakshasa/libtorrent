@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <iterator>
 #include <stdlib.h>
 #include <rak/file_stat.h>
 #include <sigc++/bind.h>
@@ -110,15 +111,8 @@ DownloadWrapper::hash_resume_load() {
     Bencode& resume  = m_bencode.get_key("libtorrent resume");
 
     // Load peer addresses.
-    if (resume.has_key("peers") && resume.get_key("peers").is_string()) {
-      const std::string& peers = resume.get_key("peers").as_string();
-
-      std::list<rak::socket_address> l(reinterpret_cast<const SocketAddressCompact*>(peers.c_str()),
-				       reinterpret_cast<const SocketAddressCompact*>(peers.c_str() + peers.size() - peers.size() % sizeof(SocketAddressCompact)));
-
-      l.sort();
-      m_main.available_list()->insert(&l);
-    }
+    if (resume.has_key("peers") && resume.get_key("peers").is_string())
+      insert_available_list(resume.get_key("peers").as_string());
 
     if (resume.has_key("total_uploaded") && resume.get_key("total_uploaded").is_value())
       m_main.up_rate()->set_total(resume.get_key("total_uploaded").as_value());
@@ -224,17 +218,11 @@ DownloadWrapper::hash_resume_save() {
   // Save the available peer list. Since this function is called when
   // the download is stopped, we know that all the previously
   // connected peers have been copied to the available list.
-  std::string peers;
-  peers.reserve(m_main.available_list()->size() * sizeof(SocketAddressCompact));
-  
-  for (AvailableList::const_iterator itr = m_main.available_list()->begin(), last = m_main.available_list()->end(); itr != last; ++itr)
-    if (itr->family() == rak::socket_address::af_inet) {
-      SocketAddressCompact sac(itr->sa_inet()->address_n(), itr->sa_inet()->port_n());
+  //
+  // Consider whetever we need to add currently connected too, as we
+  // might save the session while still active.
+  extract_available_list(&resume.insert_key("peers", Bencode()));
 
-      peers.append(sac.c_str(), sizeof(SocketAddressCompact));
-    }
-
-  resume.insert_key("peers", peers);
   resume.insert_key("total_uploaded", m_main.up_rate()->total());
 }
 
@@ -311,16 +299,6 @@ DownloadWrapper::info() {
   return m_main.tracker_manager()->tracker_info();
 }
 
-rak::socket_address&
-DownloadWrapper::bind_address() {
-  return m_main.tracker_manager()->tracker_info()->bind_address();
-}
-
-rak::socket_address&
-DownloadWrapper::local_address() {
-  return m_main.tracker_manager()->tracker_info()->local_address();
-}
-
 void
 DownloadWrapper::set_file_manager(FileManager* f) {
   m_main.content()->entry_list()->slot_insert_filemeta(rak::make_mem_fun(f, &FileManager::insert));
@@ -336,6 +314,34 @@ DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
 void
 DownloadWrapper::set_hash_queue(HashQueue* h) {
   m_hash->set_queue(h);
+}
+
+void
+DownloadWrapper::insert_available_list(const std::string& src) {
+  std::list<rak::socket_address> l;
+
+  std::copy(reinterpret_cast<const SocketAddressCompact*>(src.c_str()),
+	    reinterpret_cast<const SocketAddressCompact*>(src.c_str() + src.size() - src.size() % sizeof(SocketAddressCompact)),
+	    std::back_inserter(l));
+  l.sort();
+
+  m_main.available_list()->insert(&l);
+}
+
+void
+DownloadWrapper::extract_available_list(Bencode* dest) {
+  *dest = std::string();
+  
+  std::string& peers = dest->as_string();
+  peers.reserve(m_main.available_list()->size() * sizeof(SocketAddressCompact));
+  
+  for (AvailableList::const_iterator itr = m_main.available_list()->begin(), last = m_main.available_list()->end(); itr != last; ++itr) {
+    if (itr->family() == rak::socket_address::af_inet) {
+      SocketAddressCompact sac(itr->sa_inet()->address_n(), itr->sa_inet()->port_n());
+
+      peers.append(sac.c_str(), sizeof(SocketAddressCompact));
+    }
+  }  
 }
 
 void
