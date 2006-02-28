@@ -54,6 +54,7 @@ class DownloadWrapper;
 class FileManager;
 class ResourceManager;
 class PeerInfo;
+class SocketManager;
 class ThrottleManager;
 class TrackerInfo;
 
@@ -70,9 +71,9 @@ public:
   HashQueue*          hash_queue()                              { return m_hashQueue; }
   Listen*             listen()                                  { return m_listen; }
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
+  SocketManager*      socket_manager()                          { return m_socketManager; }
 
   rak::socket_address* local_address()                          { return &m_localAddress; }
-  rak::socket_address* bind_address()                           { return &m_bindAddress; }
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
 
@@ -87,7 +88,6 @@ public:
 
 private:
   rak::socket_address m_localAddress;
-  rak::socket_address m_bindAddress;
 
   DownloadManager*    m_downloadManager;
   FileManager*        m_fileManager;
@@ -95,6 +95,7 @@ private:
   HashQueue*          m_hashQueue;
   Listen*             m_listen;
   ResourceManager*    m_resourceManager;
+  SocketManager*      m_socketManager;
 
   EncodingList        m_encodingList;
 

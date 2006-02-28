@@ -243,7 +243,7 @@ DownloadWrapper::close() {
 
   // Clear after m_hash to ensure that the empty hash done signal does
   // not get passed to HashTorrent.
-  m_hash->get_queue()->remove(get_hash());
+  m_hash->get_queue()->remove(info()->hash());
 
   m_main.close();
 
@@ -284,36 +284,9 @@ DownloadWrapper::is_stopped() const {
   return !m_main.tracker_manager()->is_active();
 }
 
-const std::string&
-DownloadWrapper::get_hash() const {
-  return m_main.tracker_manager()->tracker_info()->get_hash();
-}
-
-const std::string&
-DownloadWrapper::get_local_id() const {
-  return m_main.tracker_manager()->tracker_info()->get_local_id();
-}
-
 TrackerInfo*
 DownloadWrapper::info() {
   return m_main.tracker_manager()->tracker_info();
-}
-
-void
-DownloadWrapper::set_file_manager(FileManager* f) {
-  m_main.content()->entry_list()->slot_insert_filemeta(rak::make_mem_fun(f, &FileManager::insert));
-  m_main.content()->entry_list()->slot_erase_filemeta(rak::make_mem_fun(f, &FileManager::erase));
-}
-
-void
-DownloadWrapper::set_handshake_manager(HandshakeManager* h) {
-  m_main.slot_count_handshakes(rak::make_mem_fun(h, &HandshakeManager::size_info));
-  m_main.slot_start_handshake(rak::make_mem_fun(h, &HandshakeManager::add_outgoing));
-}
-
-void
-DownloadWrapper::set_hash_queue(HashQueue* h) {
-  m_hash->set_queue(h);
 }
 
 void
@@ -363,7 +336,7 @@ DownloadWrapper::receive_initial_hash() {
 
     // Clear after m_hash to ensure that the empty hash done signal does
     // not get passed to HashTorrent.
-    m_hash->get_queue()->remove(get_hash());
+    m_hash->get_queue()->remove(info()->hash());
     m_main.content()->clear();
 
   } else if (!m_main.content()->entry_list()->resize_all()) {
@@ -373,7 +346,7 @@ DownloadWrapper::receive_initial_hash() {
     // Do we clear the hash?
   }
 
-  if (m_hash->get_queue()->has(get_hash()))
+  if (m_hash->get_queue()->has(info()->hash()))
     throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
 
   // Initialize the ChunkSelector here so that no chunks will be
@@ -387,7 +360,7 @@ DownloadWrapper::receive_initial_hash() {
 void
 DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
   // Using HashTorrent's queue temporarily.
-  m_hash->get_queue()->push_back(handle, rak::make_mem_fun(this, &DownloadWrapper::receive_hash_done), get_hash());
+  m_hash->get_queue()->push_back(handle, rak::make_mem_fun(this, &DownloadWrapper::receive_hash_done), info()->hash());
 }
 
 void

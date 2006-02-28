@@ -128,17 +128,17 @@ Download::is_hash_checking() const {
 
 std::string
 Download::name() const {
-  return m_ptr ? m_ptr->get_name() : "";
+  return m_ptr ? m_ptr->info()->name() : "";
 }
 
 std::string
 Download::info_hash() const {
-  return m_ptr ? m_ptr->get_hash() : "";
+  return m_ptr ? m_ptr->info()->hash() : "";
 }
 
 std::string
 Download::local_id() const {
-  return m_ptr ? m_ptr->get_local_id() : "";
+  return m_ptr ? m_ptr->info()->local_id() : "";
 }
 
 uint32_t
@@ -273,7 +273,7 @@ Download::tracker_timeout() const {
 
 int16_t
 Download::tracker_numwant() const {
-  return m_ptr->main()->tracker_manager()->tracker_info()->get_numwant();
+  return m_ptr->main()->tracker_manager()->tracker_info()->numwant();
 }
 
 void

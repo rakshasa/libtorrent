@@ -75,7 +75,7 @@ TrackerUdp::send_state(TrackerInfo::State state,
 
   if (!get_fd().open_datagram() ||
       !get_fd().set_nonblock() ||
-      !get_fd().bind(*m_info->bind_address()))
+      !get_fd().bind(*socketManager.bind_address()))
     return receive_failed("Could not open UDP socket.");
 
   m_readBuffer = new ReadBuffer;
@@ -120,7 +120,7 @@ TrackerUdp::close() {
 }
 
 TrackerUdp::Type
-TrackerUdp::get_type() const {
+TrackerUdp::type() const {
   return TRACKER_UDP;
 }
 
@@ -251,8 +251,8 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_32(m_action = 1);
   m_writeBuffer->write_32(m_transactionId = random());
 
-  m_writeBuffer->write_range(m_info->get_hash().begin(), m_info->get_hash().end());
-  m_writeBuffer->write_range(m_info->get_local_id().begin(), m_info->get_local_id().end());
+  m_writeBuffer->write_range(m_info->hash().begin(), m_info->hash().end());
+  m_writeBuffer->write_range(m_info->local_id().begin(), m_info->local_id().end());
 
   m_writeBuffer->write_64(m_sendDown);
   m_writeBuffer->write_64(m_sendLeft);
@@ -264,8 +264,8 @@ TrackerUdp::prepare_announce_input() {
     throw internal_error("TrackerUdp::prepare_announce_input() m_info->local_address() not of family AF_INET.");
 
   m_writeBuffer->write_32_n(m_info->local_address()->sa_inet()->address_n());
-  m_writeBuffer->write_32(m_info->get_key());
-  m_writeBuffer->write_32(m_info->get_numwant());
+  m_writeBuffer->write_32(m_info->key());
+  m_writeBuffer->write_32(m_info->numwant());
   m_writeBuffer->write_16(m_info->port());
 
   m_writeBuffer->prepare_end();

@@ -63,17 +63,37 @@ Tracker::is_open() const {
 
 const std::string&
 Tracker::url() const {
-  return m_tracker.second->get_url();
+  return m_tracker.second->url();
 }
 
 const std::string&
 Tracker::tracker_id() const {
-  return m_tracker.second->get_tracker_id();
+  return m_tracker.second->tracker_id();
 }
 
 Tracker::Type
 Tracker::tracker_type() const {
-  return static_cast<Type>(m_tracker.second->get_type());
+  return static_cast<Type>(m_tracker.second->type());
+}
+
+uint64_t
+Tracker::scrape_time_last() const {
+  return m_tracker.second->scrape_time_last().usec();
+}
+
+uint32_t
+Tracker::scrape_complete() const {
+  return m_tracker.second->scrape_complete();
+}
+
+uint32_t
+Tracker::scrape_incomplete() const {
+  return m_tracker.second->scrape_incomplete();
+}
+
+uint32_t
+Tracker::scrape_downloaded() const {
+  return m_tracker.second->scrape_downloaded();
 }
 
 }

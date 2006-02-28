@@ -92,17 +92,7 @@ public:
 
   Bencode&            bencode()                      { return m_bencode; }
 
-  const std::string&  get_hash() const;
-  const std::string&  get_local_id() const;
-
   TrackerInfo*        info();
-
-  const std::string&  get_name() const               { return m_name; }
-  void                set_name(const std::string& s) { m_name = s; }
-
-  void                set_file_manager(FileManager* f);
-  void                set_handshake_manager(HandshakeManager* h);
-  void                set_hash_queue(HashQueue* h);
 
   int                 get_connection_type() const    { return m_connectionType; }
   void                set_connection_type(int t)     { m_connectionType = t; }
@@ -150,7 +140,6 @@ private:
   Bencode             m_bencode;
   HashTorrent*        m_hash;
 
-  std::string         m_name;
   int                 m_connectionType;
 
   Signal              m_signalInitialHash;

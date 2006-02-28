@@ -74,8 +74,8 @@ HandshakeIncoming::event_read() {
     m_buf[0] = 19;
     std::memcpy(&m_buf[1], "BitTorrent protocol", 19);
     std::memset(&m_buf[20], 0, 8);
-    std::memcpy(&m_buf[28], m_info->get_hash().c_str(), 20);
-    std::memcpy(&m_buf[48], m_info->get_local_id().c_str(), 20);
+    std::memcpy(&m_buf[28], m_info->hash().c_str(), 20);
+    std::memcpy(&m_buf[48], m_info->local_id().c_str(), 20);
 
     m_pos = 0;
     m_state = WRITE_HEADER;

@@ -77,7 +77,7 @@ struct download_constructor_encoding_match :
 
 void
 DownloadConstructor::initialize(const Bencode& b) {
-  m_download->set_name(b.get_key("info").get_key("name").as_string());
+  m_download->info()->set_name(b.get_key("info").get_key("name").as_string());
 
   if (b.has_key("encoding") && b.get_key("encoding").is_string())
     m_defaultEncoding = b.get_key("encoding").as_string();

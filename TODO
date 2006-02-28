@@ -2,10 +2,11 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Go through all instances of rak::socket_address, make sure we set the
-right family.
+Move the info instance to DownloadWrapper.
 
-Clean up the caught exception when the client exits, use "rtorrent" prefix?
+Heuristics for choosing the scrape to show.
+
+Udp needs to go through socketmanager.
 
 TrackerUdp::parse_url should happen only once.
 

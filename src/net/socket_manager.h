@@ -54,23 +54,43 @@ namespace torrent {
 
 class SocketManager {
 public:
-  SocketManager() : m_size(0), m_max(0) {}
+  SocketManager();
   
-  SocketFd            open(const rak::socket_address& sa, const rak::socket_address& b);
+  // Check that we have not surpassed the max number of open sockets
+  // and that we're allowed to connect to the socket address.
+  bool                can_connect(const rak::socket_address& sa);
+
+  // Call this to keep the socket count up to date.
+  void                increment_sockets();
+  void                decrement_sockets();
+
+  //
+  // Old interface.
+  //
+  SocketFd            open(const rak::socket_address& sa);
   SocketFd            received(SocketFd fd, const rak::socket_address& sa);
 
   void                local(__UNUSED SocketFd fd)   { m_size++; }
 
   void                close(SocketFd fd);
+  //
+  //
+  //
 
   uint32_t            size() const                  { return m_size; }
 
   uint32_t            max_size() const              { return m_max; }
   void                set_max_size(uint32_t s)      { m_max = s; }
 
+  // Propably going to have to make m_bindAddress a pointer to make it
+  // safe.
+  rak::socket_address* bind_address()               { return &m_bindAddress; }
+
 private:
   uint32_t            m_size;
   uint32_t            m_max;
+
+  rak::socket_address m_bindAddress;
 };
 
 // Move somewhere else.

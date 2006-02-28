@@ -76,7 +76,7 @@ public:
   TrackerInfo::State  get_state()                             { return m_state; }
   void                set_state(TrackerInfo::State s)         { m_state = s; }
 
-  TrackerInfo*        get_info()                              { return &m_info; }
+  TrackerInfo*        info()                                  { return &m_info; }
   TrackerList&        get_list()                              { return m_list; }
 
   uint32_t            get_normal_interval() const             { return m_normalInterval; }

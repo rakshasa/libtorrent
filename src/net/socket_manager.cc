@@ -43,15 +43,23 @@
 
 namespace torrent {
 
+SocketManager::SocketManager() :
+  m_size(0),
+  m_max(0) {
+
+  m_bindAddress.sa_inet()->set_family();
+}
+
+
 SocketFd
-SocketManager::open(const rak::socket_address& sa, const rak::socket_address& b) {
+SocketManager::open(const rak::socket_address& sa) {
   SocketFd fd;
 
   if (m_size >= m_max || !fd.open_stream())
     return SocketFd();
 
   if (!fd.set_nonblock() ||
-      (b.is_bindable() && !fd.bind(b)) ||
+      (m_bindAddress.is_bindable() && !fd.bind(m_bindAddress)) ||
       !fd.connect(sa)) {
     fd.close();
     return SocketFd();

@@ -64,7 +64,7 @@ public:
 
   virtual void        close();
 
-  virtual Type        get_type() const;
+  virtual Type        type() const;
 
   virtual void        event_read();
   virtual void        event_write();
@@ -83,7 +83,7 @@ private:
   bool                process_announce_output();
   bool                process_error_output();
 
-  rak::socket_address       m_connectAddress;
+  rak::socket_address m_connectAddress;
 
   TrackerInfo::State  m_sendState;
   uint64_t            m_sendUp;

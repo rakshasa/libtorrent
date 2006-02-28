@@ -1,8 +1,8 @@
 == API changes ==
 
-SO_SNDBUF and friends.
-
 The seed count and scrape leech/seed.
+
+SO_SNDBUF and friends.
 
 Check if an entry is present and correctly sized.
 
@@ -22,10 +22,14 @@ Close a connection.
 
 Use sockaddr in the API, rather than strings.
 
+Resume needs to be split.
+
 
 === torrent::Object ==
 
 Combine has_key and is_*.
+
+Ways of checking that they are a value and between a range.
 
 
 === Session management ==

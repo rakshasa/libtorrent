@@ -64,6 +64,7 @@ Manager::Manager() :
   m_hashQueue(new HashQueue),
   m_listen(new Listen),
   m_resourceManager(new ResourceManager),
+  m_socketManager(&socketManager),
 
   m_uploadThrottle(new ThrottleManager),
   m_downloadThrottle(new ThrottleManager),
@@ -71,7 +72,6 @@ Manager::Manager() :
   m_ticks(0) {
 
   m_localAddress.sa_inet()->clear();
-  m_bindAddress.sa_inet()->clear();
 
   m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
 
@@ -102,13 +102,16 @@ Manager::~Manager() {
 
 void
 Manager::initialize_download(DownloadWrapper* d) {
-  *d->info()->bind_address() = m_bindAddress;
   *d->info()->local_address() = m_localAddress;
   d->info()->set_port(m_listen->port());
 
-  d->set_handshake_manager(m_handshakeManager);
-  d->set_hash_queue(m_hashQueue);
-  d->set_file_manager(m_fileManager);
+  d->main()->slot_count_handshakes(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::size_info));
+  d->main()->slot_start_handshake(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_outgoing));
+
+  d->hash_checker()->set_queue(m_hashQueue);
+
+  d->main()->content()->entry_list()->slot_insert_filemeta(rak::make_mem_fun(m_fileManager, &FileManager::insert));
+  d->main()->content()->entry_list()->slot_erase_filemeta(rak::make_mem_fun(m_fileManager, &FileManager::erase));
 
   m_downloadManager->insert(d);
   m_resourceManager->insert(d->main(), 1);
@@ -123,6 +126,8 @@ Manager::initialize_download(DownloadWrapper* d) {
 
 void
 Manager::cleanup_download(DownloadWrapper* d) {
+  m_handshakeManager->erase_info(d->info());
+
   m_resourceManager->erase(d->main());
   m_downloadManager->erase(d);
 }

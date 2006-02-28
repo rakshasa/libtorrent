@@ -47,7 +47,7 @@ namespace torrent {
 
 DownloadManager::iterator
 DownloadManager::insert(DownloadWrapper* d) {
-  if (find(d->get_hash()) != end())
+  if (find(d->info()->hash()) != end())
     throw input_error("Could not add torrent as it already exists");
 
   return Base::insert(end(), d);
@@ -77,7 +77,7 @@ DownloadManager::clear() {
 
 DownloadManager::iterator
 DownloadManager::find(const std::string& hash) {
-  return std::find_if(begin(), end(), rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
+  return std::find_if(begin(), end(), rak::equal(hash, rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&TrackerInfo::hash))));
 }
 
 DownloadManager::iterator
@@ -87,7 +87,7 @@ DownloadManager::find(TrackerInfo* info) {
 
 TrackerInfo*
 DownloadManager::find_info(const std::string& hash) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(hash, std::mem_fun(&DownloadWrapper::get_hash)));
+  iterator itr = std::find_if(begin(), end(), rak::equal(hash, rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&TrackerInfo::hash))));
 
   // TODO: Move these checks somewhere else.
   if (itr == end() || !(*itr)->main()->is_active())

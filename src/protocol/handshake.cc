@@ -123,7 +123,7 @@ Handshake::recv1() {
   if (m_info == NULL)
     m_info = m_manager->download_info(hash);
 
-  if (m_info == NULL || m_info->get_hash() != hash)
+  if (m_info == NULL || m_info->hash() != hash)
     throw close_connection();
 
   return true;

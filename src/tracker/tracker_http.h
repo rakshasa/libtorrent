@@ -60,7 +60,7 @@ public:
 
   virtual void        close();
 
-  virtual Type        get_type() const;
+  virtual Type        type() const;
 
 private:
   void                receive_done();

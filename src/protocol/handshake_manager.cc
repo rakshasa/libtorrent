@@ -81,6 +81,16 @@ HandshakeManager::find(const rak::socket_address& sa) {
 }
 
 void
+HandshakeManager::erase_info(TrackerInfo* info) {
+  iterator split = std::partition(Base::begin(), Base::end(), rak::not_equal(info, std::mem_fun(&Handshake::info)));
+
+  std::for_each(split, Base::end(), std::mem_fun(&Handshake::close));
+  std::for_each(split, Base::end(), rak::call_delete<Handshake>());
+
+  Base::erase(split, Base::end());
+}
+
+void
 HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   if (!socketManager.received(fd, sa).is_valid())
     return;
@@ -90,7 +100,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   
 void
 HandshakeManager::add_outgoing(const rak::socket_address& sa, TrackerInfo* info) {
-  SocketFd fd = socketManager.open(sa, m_bindAddress);
+  SocketFd fd = socketManager.open(sa);
 
   if (!fd.is_valid())
     return;

@@ -129,7 +129,7 @@ listen_open(uint16_t begin, uint16_t end) {
   if (manager == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
-  if (!manager->listen()->open(begin, end, *manager->bind_address()))
+  if (!manager->listen()->open(begin, end, *manager->socket_manager()->bind_address()))
     return false;
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
@@ -198,7 +198,7 @@ set_local_address(const std::string& addr) {
 
 std::string
 bind_address() {
-  return manager->bind_address()->is_address_any() ? std::string() : manager->bind_address()->address_str();
+  return manager->socket_manager()->bind_address()->is_address_any() ? std::string() : manager->socket_manager()->bind_address()->address_str();
 }
 
 void
@@ -216,13 +216,9 @@ set_bind_address(const std::string& addr) {
     throw input_error("Bind address resolved to an unsupported socket address type.");
 
   // Use the first valid address for now, consider sorting.
-  manager->bind_address()->copy(*ai->address(), ai->length());
+  manager->socket_manager()->bind_address()->copy(*ai->address(), ai->length());
+
   rak::address_info::free_address_info(ai);
-
-  manager->handshake_manager()->set_bind_address(*manager->bind_address());
-
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    *(*itr)->info()->bind_address() = *manager->bind_address();
 }
 
 uint32_t

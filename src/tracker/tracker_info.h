@@ -66,29 +66,30 @@ public:
   };
 
   TrackerInfo() : m_port(0), m_key(0), m_compact(true), m_numwant(-1) {
-    m_bindAddress.set_family();
     m_localAddress.set_family();
   }
 
-  const std::string&  get_hash() const                             { return m_hash; }
+  const std::string&  name() const                                 { return m_name; }
+  void                set_name(const std::string& s)               { m_name = s; }
+
+  const std::string&  hash() const                                 { return m_hash; }
   void                set_hash(const std::string& hash)            { m_hash = hash; }
 
-  const std::string&  get_local_id() const                         { return m_localId; }
+  const std::string&  local_id() const                             { return m_localId; }
   void                set_local_id(const std::string& id)          { m_localId = id; }
 
   uint16_t            port() const                                 { return m_port; }
   void                set_port(uint16_t p)                         { m_port = p; }
 
-  rak::socket_address* bind_address()                              { return &m_bindAddress; }
   rak::socket_address* local_address()                             { return &m_localAddress; }
 
-  uint32_t            get_key() const                              { return m_key; }
+  uint32_t            key() const                                  { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
 
-  bool                get_compact() const                          { return m_compact; }
-  int32_t             get_numwant() const                          { return m_numwant; }
-
+  bool                compact() const                              { return m_compact; }
   void                set_compact(bool c)                          { m_compact = c; }
+
+  int32_t             numwant() const                              { return m_numwant; }
   void                set_numwant(int32_t n)                       { m_numwant = n; }
   
   uint32_t            http_timeout() const                         { return 60; }
@@ -102,16 +103,16 @@ public:
   typedef sigc::signal1<void, const std::string&>                SignalString;
   typedef sigc::signal1<void, uint32_t>                          SignalChunk;
 
-  SignalString&       signal_network_log()                       { return m_signalNetworkLog; }
-  SignalString&       signal_storage_error()                     { return m_signalStorageError; }
+  SignalString&       signal_network_log()                         { return m_signalNetworkLog; }
+  SignalString&       signal_storage_error()                       { return m_signalStorageError; }
 
 private:
+  std::string         m_name;
   std::string         m_hash;
   std::string         m_localId;
 
   uint16_t            m_port;
 
-  rak::socket_address m_bindAddress;
   rak::socket_address m_localAddress;
 
   uint32_t            m_key;

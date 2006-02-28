@@ -63,7 +63,7 @@ public:
 
   using Base::empty;
 
-  HandshakeManager() { m_bindAddress.set_family(); }
+  HandshakeManager() { }
   ~HandshakeManager() { clear(); }
 
   size_type           size() const { return Base::size(); }
@@ -73,11 +73,11 @@ public:
 
   bool                find(const rak::socket_address& sa);
 
+  void                erase_info(TrackerInfo* info);
+
   // Cleanup.
   void                add_incoming(SocketFd fd, const rak::socket_address& sa);
   void                add_outgoing(const rak::socket_address& sa, TrackerInfo* info);
-
-  void                set_bind_address(const rak::socket_address& sa) { m_bindAddress = sa; }
 
   void                slot_connected(SlotConnected s)           { m_slotConnected = s; }
   void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
@@ -93,8 +93,6 @@ private:
 
   SlotConnected       m_slotConnected;
   SlotDownloadId      m_slotDownloadId;
-
-  rak::socket_address m_bindAddress;
 };
 
 }

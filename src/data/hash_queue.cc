@@ -166,7 +166,7 @@ HashQueue::check(bool force) {
 
   Base::pop_front();
 
-  slotDone(chunk->get_chunk(), chunk->get_hash());
+  slotDone(chunk->get_chunk(), chunk->hash());
   delete chunk;
 
   // This should be a few chunks ahead.

@@ -207,7 +207,7 @@ TrackerManager::insert(int group, const std::string& url) {
 
 TrackerInfo*
 TrackerManager::tracker_info() {
-  return m_control->get_info();
+  return m_control->info();
 }
 
 void

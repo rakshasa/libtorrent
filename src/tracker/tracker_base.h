@@ -40,8 +40,9 @@
 #include <list>
 #include <inttypes.h>
 #include <rak/functional.h>
-
 #include <rak/socket_address.h>
+#include <rak/timer.h>
+
 #include "tracker_info.h"
 
 namespace torrent {
@@ -62,7 +63,7 @@ public:
   } Type;
 
   TrackerBase(TrackerInfo* info, const std::string& url) :
-    m_enabled(true), m_info(info), m_url(url) {}
+    m_enabled(true), m_info(info), m_url(url), m_scrapeComplete(0), m_scrapeIncomplete(0) {}
   virtual ~TrackerBase() {}
 
   virtual bool        is_busy() const = 0;
@@ -77,14 +78,19 @@ public:
 
   virtual void        close() = 0;
 
-  TrackerInfo*        get_info()                            { return m_info; }
-  virtual Type        get_type() const = 0;
+  TrackerInfo*        info()                                { return m_info; }
+  virtual Type        type() const = 0;
 
-  const std::string&  get_url()                             { return m_url; }
+  const std::string&  url() const                           { return m_url; }
   void                set_url(const std::string& url)       { m_url = url; }
 
-  const std::string&  get_tracker_id()                      { return m_trackerId; }
+  const std::string&  tracker_id() const                    { return m_trackerId; }
   void                set_tracker_id(const std::string& id) { m_trackerId = id; }
+
+  const rak::timer&   scrape_time_last() const              { return m_scrapeTimeLast; }
+  uint32_t            scrape_complete() const               { return m_scrapeComplete; }
+  uint32_t            scrape_incomplete() const             { return m_scrapeIncomplete; }
+  uint32_t            scrape_downloaded() const             { return m_scrapeDownloaded; }
 
   void                slot_success(SlotTbAddressList s)     { m_slotSuccess = s; }
   void                slot_failed(SlotTbString s)           { m_slotFailed = s; }
@@ -101,6 +107,11 @@ protected:
   std::string         m_url;
 
   std::string         m_trackerId;
+
+  rak::timer          m_scrapeTimeLast;
+  uint32_t            m_scrapeComplete;
+  uint32_t            m_scrapeIncomplete;
+  uint32_t            m_scrapeDownloaded;
 
   SlotTbAddressList   m_slotSuccess;
   SlotTbString        m_slotFailed;

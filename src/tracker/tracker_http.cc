@@ -47,6 +47,8 @@
 #include "tracker_http.h"
 #include "tracker_info.h"
 
+#include "globals.h"
+
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
@@ -76,16 +78,16 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
   if (m_info == NULL)
     throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info");
 
-  if (m_info->get_local_id().length() != 20 ||
-      m_info->get_hash().length() != 20)
+  if (m_info->local_id().length() != 20 ||
+      m_info->hash().length() != 20)
     throw internal_error("Send state with TrackerHttp with bad hash or id");
 
   std::stringstream s;
 
   s << m_url
-    << "?info_hash=" << rak::copy_escape_html(m_info->get_hash())
-    << "&peer_id=" << rak::copy_escape_html(m_info->get_local_id())
-    << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->get_key() << std::dec;
+    << "?info_hash=" << rak::copy_escape_html(m_info->hash())
+    << "&peer_id=" << rak::copy_escape_html(m_info->local_id())
+    << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->key() << std::dec;
 
   if (!m_trackerId.empty())
     s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
@@ -94,11 +96,11 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
       !m_info->local_address()->sa_inet()->is_address_any())
     s << "&ip=" << m_info->local_address()->address_str();
 
-  if (m_info->get_compact())
+  if (m_info->compact())
     s << "&compact=1";
 
-  if (m_info->get_numwant() >= 0)
-    s << "&numwant=" << m_info->get_numwant();
+  if (m_info->numwant() >= 0)
+    s << "&numwant=" << m_info->numwant();
 
   s << "&port=" << m_info->port()
     << "&uploaded=" << up
@@ -141,7 +143,7 @@ TrackerHttp::close() {
 }
 
 TrackerHttp::Type
-TrackerHttp::get_type() const {
+TrackerHttp::type() const {
   return TRACKER_HTTP;
 }
 
@@ -174,6 +176,17 @@ TrackerHttp::receive_done() {
 
   if (b.has_key("tracker id") && b.get_key("tracker id").is_string())
     m_trackerId = b.get_key("tracker id").as_string();
+
+  if (b.has_key("complete") && b.get_key("complete").is_value() &&
+      b.has_key("incomplete") && b.get_key("incomplete").is_value()) {
+    m_scrapeComplete   = std::max<int64_t>(b.get_key("complete").as_value(), 0);
+    m_scrapeIncomplete = std::max<int64_t>(b.get_key("incomplete").as_value(), 0);
+
+    m_scrapeTimeLast = cachedTime;
+  }
+
+  if (b.has_key("downloaded") && b.get_key("downloaded").is_value())
+    m_scrapeDownloaded = std::max<int64_t>(b.get_key("downloaded").as_value(), 0);
 
   AddressList l;
 

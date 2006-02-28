@@ -54,7 +54,7 @@ public:
   virtual ~Handshake();
 
   const PeerInfo&     get_peer()                       { return m_peer; }
-//   const std::string&  get_hash()                       { return m_hash; }
+//   const std::string&  hash()                       { return m_hash; }
 //   const std::string&  get_id()                         { return m_id; }
   TrackerInfo*        info()                           { return m_info; }
 
