@@ -88,7 +88,7 @@ TrackerManager::send_start() {
   close();
 
   m_control->set_focus_index(0);
-  m_control->send_state(TrackerInfo::STARTED);
+  m_control->send_state(DownloadInfo::STARTED);
 }
 
 void
@@ -99,16 +99,16 @@ TrackerManager::send_stop() {
   close();
 
   m_control->set_focus_index(m_initialTracker);
-  m_control->send_state(TrackerInfo::STOPPED);
+  m_control->send_state(DownloadInfo::STOPPED);
 }
 
 void
 TrackerManager::send_completed() {
-  if (!is_active() || m_control->get_state() == TrackerInfo::STOPPED)
+  if (!is_active() || m_control->get_state() == DownloadInfo::STOPPED)
     return;
 
   close();
-  m_control->send_state(TrackerInfo::COMPLETED);
+  m_control->send_state(DownloadInfo::COMPLETED);
 }
 
 // When request_{current,next} is called, m_isRequesting is set to
@@ -205,9 +205,9 @@ TrackerManager::insert(int group, const std::string& url) {
   m_control->insert(group, url);
 }
 
-TrackerInfo*
-TrackerManager::tracker_info() {
-  return m_control->info();
+void
+TrackerManager::set_info(DownloadInfo* info) {
+  m_control->set_info(info);
 }
 
 void
@@ -222,12 +222,12 @@ void
 TrackerManager::receive_success(AddressList* l) {
   m_failedRequests = 0;
 
-  if (m_control->get_state() == TrackerInfo::STOPPED) {
+  if (m_control->get_state() == DownloadInfo::STOPPED) {
     m_slotSuccess(l);
     return;
   }
 
-  if (m_control->get_state() == TrackerInfo::STARTED)
+  if (m_control->get_state() == DownloadInfo::STARTED)
     m_initialTracker = m_control->focus_index();
 
   // Don't reset the focus when we're requesting more peers. If we
@@ -245,7 +245,7 @@ TrackerManager::receive_success(AddressList* l) {
   // next tracker request will reset the focus to the first tracker.
   m_isRequesting = false;
 
-  m_control->set_state(TrackerInfo::NONE);
+  m_control->set_state(DownloadInfo::NONE);
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_control->get_normal_interval())).round_seconds());
 
   m_slotSuccess(l);
@@ -253,7 +253,7 @@ TrackerManager::receive_success(AddressList* l) {
 
 void
 TrackerManager::receive_failed(const std::string& msg) {
-  if (m_control->get_state() == TrackerInfo::STOPPED) {
+  if (m_control->get_state() == DownloadInfo::STOPPED) {
     m_slotFailed(msg);
     return;
   }

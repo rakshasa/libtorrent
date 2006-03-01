@@ -45,13 +45,12 @@
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
 #include "tracker_http.h"
-#include "tracker_info.h"
 
 #include "globals.h"
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp(TrackerInfo* info, const std::string& url) :
+TrackerHttp::TrackerHttp(DownloadInfo* info, const std::string& url) :
   TrackerBase(info, url),
 
   m_get(Http::call_factory()),
@@ -72,7 +71,7 @@ TrackerHttp::is_busy() const {
 }
 
 void
-TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, uint64_t left) {
+TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
   if (m_info == NULL)
@@ -108,13 +107,13 @@ TrackerHttp::send_state(TrackerInfo::State state, uint64_t down, uint64_t up, ui
     << "&left=" << left;
 
   switch(state) {
-  case TrackerInfo::STARTED:
+  case DownloadInfo::STARTED:
     s << "&event=started";
     break;
-  case TrackerInfo::STOPPED:
+  case DownloadInfo::STOPPED:
     s << "&event=stopped";
     break;
-  case TrackerInfo::COMPLETED:
+  case DownloadInfo::COMPLETED:
     s << "&event=completed";
     break;
   default:

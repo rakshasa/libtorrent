@@ -40,7 +40,7 @@
 
 #include "net/manager.h"
 #include "torrent/exceptions.h"
-#include "tracker/tracker_info.h"
+#include "download/download_info.h"
 
 #include "peer_info.h"
 #include "handshake_manager.h"
@@ -50,7 +50,7 @@
 namespace torrent {
 
 HandshakeManager::size_type
-HandshakeManager::size_info(TrackerInfo* info) const {
+HandshakeManager::size_info(DownloadInfo* info) const {
   return std::count_if(Base::begin(), Base::end(), rak::equal(info, std::mem_fun(&Handshake::info)));
 }
 
@@ -81,7 +81,7 @@ HandshakeManager::find(const rak::socket_address& sa) {
 }
 
 void
-HandshakeManager::erase_info(TrackerInfo* info) {
+HandshakeManager::erase_info(DownloadInfo* info) {
   iterator split = std::partition(Base::begin(), Base::end(), rak::not_equal(info, std::mem_fun(&Handshake::info)));
 
   std::for_each(split, Base::end(), std::mem_fun(&Handshake::close));
@@ -99,7 +99,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
 }
   
 void
-HandshakeManager::add_outgoing(const rak::socket_address& sa, TrackerInfo* info) {
+HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info) {
   SocketFd fd = socketManager.open(sa);
 
   if (!fd.is_valid())

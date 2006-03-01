@@ -36,9 +36,9 @@
 
 #include "config.h"
 
+#include "download/download_info.h"
 #include "net/manager.h"
 #include "torrent/exceptions.h"
-#include "tracker/tracker_info.h"
 
 #include "handshake_incoming.h"
 #include "handshake_manager.h"

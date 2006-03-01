@@ -63,6 +63,10 @@ DownloadWrapper::DownloadWrapper() :
   m_connectionType(0) {
 
   m_delayDownloadDone.set_slot(rak::mem_fn(&m_signalDownloadDone, &Signal::operator()));
+
+  m_main.tracker_manager()->set_info(info());
+  m_main.tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
+  m_main.tracker_manager()->slot_failed(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_failed));
 }
 
 DownloadWrapper::~DownloadWrapper() {
@@ -79,11 +83,11 @@ void
 DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
-  m_main.tracker_manager()->tracker_info()->set_hash(hash);
-  m_main.tracker_manager()->tracker_info()->set_local_id(id);
-  m_main.tracker_manager()->tracker_info()->set_key(random());
-  m_main.tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
-  m_main.tracker_manager()->slot_failed(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_failed));
+  info()->set_hash(hash);
+  info()->set_local_id(id);
+  info()->set_key(random());
+
+  info()->slot_stat_left() = rak::make_mem_fun(&m_main, &DownloadMain::get_bytes_left);
 
   m_main.chunk_list()->set_max_queue_size((32 << 20) / m_main.content()->chunk_size());
 
@@ -113,9 +117,6 @@ DownloadWrapper::hash_resume_load() {
     // Load peer addresses.
     if (resume.has_key("peers") && resume.get_key("peers").is_string())
       insert_available_list(resume.get_key("peers").as_string());
-
-    if (resume.has_key("total_uploaded") && resume.get_key("total_uploaded").is_value())
-      m_main.up_rate()->set_total(resume.get_key("total_uploaded").as_value());
 
     Bencode& files = resume.get_key("files");
 
@@ -222,8 +223,6 @@ DownloadWrapper::hash_resume_save() {
   // Consider whetever we need to add currently connected too, as we
   // might save the session while still active.
   extract_available_list(&resume.insert_key("peers", Bencode()));
-
-  resume.insert_key("total_uploaded", m_main.up_rate()->total());
 }
 
 void
@@ -282,11 +281,6 @@ DownloadWrapper::stop() {
 bool
 DownloadWrapper::is_stopped() const {
   return !m_main.tracker_manager()->is_active();
-}
-
-TrackerInfo*
-DownloadWrapper::info() {
-  return m_main.tracker_manager()->tracker_info();
 }
 
 void
@@ -476,7 +470,7 @@ DownloadWrapper::finished_download() {
     priority_queue_insert(&taskScheduler, &m_delayDownloadDone, cachedTime);
 
   m_main.connection_list()->erase_seeders();
-  m_main.down_rate()->reset_rate();
+  info()->down_rate()->reset_rate();
 }
 
 }

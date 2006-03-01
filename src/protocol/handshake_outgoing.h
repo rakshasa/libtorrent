@@ -54,7 +54,7 @@ public:
   HandshakeOutgoing(SocketFd fd,
 		    HandshakeManager* m,
 		    const PeerInfo& p,
-		    TrackerInfo* info);
+		    DownloadInfo* info);
   
   virtual void        event_read();
   virtual void        event_write();

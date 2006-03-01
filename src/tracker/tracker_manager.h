@@ -47,7 +47,7 @@ namespace torrent {
 
 class DownloadWrapper;
 class TrackerControl;
-class TrackerInfo;
+class DownloadInfo;
 class TrackerBase;
 
 class TrackerManager {
@@ -91,7 +91,7 @@ public:
 
   void                insert(int group, const std::string& url);
 
-  TrackerInfo*        tracker_info();
+  void                set_info(DownloadInfo* info);
 
   rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }
 

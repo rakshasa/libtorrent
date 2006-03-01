@@ -43,7 +43,7 @@
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
-#include "tracker/tracker_info.h"
+#include "download/download_info.h"
 #include "tracker/tracker_manager.h"
 
 #include "choke_manager.h"
@@ -53,6 +53,8 @@
 namespace torrent {
 
 DownloadMain::DownloadMain() :
+  m_info(new DownloadInfo),
+
   m_trackerManager(new TrackerManager()),
   m_chokeManager(new ChokeManager(&this->m_connectionList)),
   m_chunkList(new ChunkList),
@@ -63,20 +65,13 @@ DownloadMain::DownloadMain() :
   m_endgame(false),
 
   m_uploadThrottle(NULL),
-  m_downloadThrottle(NULL),
-
-  m_upRate(60),
-  m_downRate(60) {
+  m_downloadThrottle(NULL) {
 
   m_delegator.slot_chunk_enable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::using_index));
   m_delegator.slot_chunk_disable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::not_using_index));
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_done(rak::make_mem_fun(this, &DownloadMain::receive_chunk_done));
   m_delegator.slot_chunk_size(rak::make_mem_fun(&m_content, &Content::chunk_index_size));
-
-  m_trackerManager->tracker_info()->slot_stat_down() = rak::make_mem_fun(&m_downRate, &Rate::total);
-  m_trackerManager->tracker_info()->slot_stat_up()   = rak::make_mem_fun(&m_upRate, &Rate::total);
-  m_trackerManager->tracker_info()->slot_stat_left() = rak::make_mem_fun(this, &DownloadMain::get_bytes_left);
 
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
 
@@ -91,11 +86,7 @@ DownloadMain::~DownloadMain() {
   delete m_chokeManager;
   delete m_chunkList;
   delete m_chunkSelector;
-}
-
-TrackerInfo*
-DownloadMain::info() {
-  return m_trackerManager->tracker_info();
+  delete m_info;
 }
 
 void
@@ -214,11 +205,11 @@ DownloadMain::receive_connect_peers() {
 
   while (!available_list()->empty() &&
 	 connection_list()->size() < connection_list()->get_min_size() &&
-	 connection_list()->size() + m_slotCountHandshakes(tracker_manager()->tracker_info()) < connection_list()->get_max_size()) {
+	 connection_list()->size() + m_slotCountHandshakes(m_info) < connection_list()->get_max_size()) {
     rak::socket_address sa = available_list()->pop_random();
 
     if (connection_list()->find(sa) == connection_list()->end())
-      m_slotStartHandshake(sa, tracker_manager()->tracker_info());
+      m_slotStartHandshake(sa, m_info);
   }
 }
 

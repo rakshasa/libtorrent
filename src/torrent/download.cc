@@ -47,7 +47,7 @@
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
-#include "tracker/tracker_info.h"
+#include "download/download_info.h"
 #include "tracker/tracker_manager.h"
 
 #include <rak/functional.h>
@@ -98,7 +98,7 @@ Download::hash_resume_save() {
 
 void
 Download::hash_resume_clear() {
-  m_ptr->bencode().erase_key("libtorrent resume");
+  m_ptr->bencode()->erase_key("libtorrent resume");
 }
 
 bool
@@ -143,20 +143,20 @@ Download::local_id() const {
 
 uint32_t
 Download::creation_date() const {
-  if (m_ptr->bencode().has_key("creation date") && m_ptr->bencode().get_key("creation date").is_value())
-    return m_ptr->bencode().get_key("creation date").as_value();
+  if (m_ptr->bencode()->has_key("creation date") && m_ptr->bencode()->get_key("creation date").is_value())
+    return m_ptr->bencode()->get_key("creation date").as_value();
   else
     return 0;
 }
 
 Bencode&
 Download::bencode() {
-  return m_ptr->bencode();
+  return *m_ptr->bencode();
 }
 
 const Bencode&
 Download::bencode() const {
-  return m_ptr->bencode();
+  return *m_ptr->bencode();
 }
 
 std::string
@@ -172,14 +172,24 @@ Download::set_root_dir(const std::string& dir) {
   m_ptr->main()->content()->set_root_dir(dir);
 }
 
+Rate*
+Download::down_rate() {
+  return m_ptr->info()->down_rate();
+}
+
 const Rate*
 Download::down_rate() const {
-  return m_ptr->main()->down_rate();
+  return m_ptr->info()->down_rate();
+}
+
+Rate*
+Download::up_rate() {
+  return m_ptr->info()->up_rate();
 }
 
 const Rate*
 Download::up_rate() const {
-  return m_ptr->main()->up_rate();
+  return m_ptr->info()->up_rate();
 }
 
 uint64_t
@@ -273,7 +283,7 @@ Download::tracker_timeout() const {
 
 int16_t
 Download::tracker_numwant() const {
-  return m_ptr->main()->tracker_manager()->tracker_info()->numwant();
+  return m_ptr->info()->numwant();
 }
 
 void
@@ -304,7 +314,7 @@ Download::set_uploads_max(uint32_t v) {
 
 void
 Download::set_tracker_numwant(int32_t n) {
-  m_ptr->main()->tracker_manager()->tracker_info()->set_numwant(n);
+  m_ptr->info()->set_numwant(n);
 }
 
 Tracker
@@ -373,7 +383,7 @@ Download::seen_chunks() const {
 
 Download::ConnectionType
 Download::connection_type() const {
-  return (ConnectionType)m_ptr->get_connection_type();
+  return (ConnectionType)m_ptr->connection_type();
 }
 
 void
@@ -444,12 +454,6 @@ Download::signal_tracker_succeded(Download::SlotVoid s) {
 sigc::connection
 Download::signal_tracker_failed(Download::SlotString s) {
   return m_ptr->signal_tracker_failed().connect(s);
-}
-
-sigc::connection
-Download::signal_tracker_dump(__UNUSED Download::SlotIStream s) {
-//   return m_ptr->main()->tracker_manager()->signal_dump().connect(s);
-  return sigc::connection();
 }
 
 sigc::connection

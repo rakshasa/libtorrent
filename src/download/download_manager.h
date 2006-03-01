@@ -42,7 +42,7 @@
 namespace torrent {
 
 class DownloadWrapper;
-class TrackerInfo;
+class DownloadInfo;
 
 class DownloadManager : private std::list<DownloadWrapper*>{
 public:
@@ -76,8 +76,8 @@ public:
   void                clear();
 
   iterator            find(const std::string& hash);
-  iterator            find(TrackerInfo* info);
-  TrackerInfo*        find_info(const std::string& hash);
+  iterator            find(DownloadInfo* info);
+  DownloadInfo*       find_info(const std::string& hash);
 };
 
 }

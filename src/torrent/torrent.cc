@@ -382,7 +382,7 @@ download_add(std::istream* s) {
 
   std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
 
-  *s >> d->bencode();
+  *s >> *d->bencode();
 
   if (s->fail())
     throw input_error("Could not create download, the input is not a valid torrent.");
@@ -391,9 +391,9 @@ download_add(std::istream* s) {
   ctor.set_download(d.get());
   ctor.set_encoding_list(manager->encoding_list());
 
-  ctor.initialize(d->bencode());
+  ctor.initialize(*d->bencode());
 
-  d->initialize(d->bencode().get_key("info").compute_sha1(),
+  d->initialize(d->bencode()->get_key("info").compute_sha1(),
 		PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
 
   // Default PeerConnection factory functions.

@@ -48,9 +48,8 @@
 #include "data/chunk_handle.h"
 #include "protocol/peer_info.h"
 #include "globals.h"
-#include "torrent/rate.h"
 
-#include "tracker/tracker_info.h"
+#include "download/download_info.h"
 
 namespace torrent {
 
@@ -60,7 +59,7 @@ class ChunkSelector;
 class DownloadWrapper;
 class HandshakeManager;
 class TrackerManager;
-class TrackerInfo;
+class DownloadInfo;
 class ThrottleList;
 
 class DownloadMain {
@@ -81,7 +80,7 @@ public:
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
-  TrackerInfo*        info();
+  DownloadInfo*       info()                                     { return m_info; }
 
   // Only retrive writable chunks when the download is active.
   ChunkList*          chunk_list()                               { return m_chunkList; }
@@ -101,16 +100,13 @@ public:
   bool                get_endgame() const                        { return m_endgame; }
   uint64_t            get_bytes_left() const;
 
-  Rate*               up_rate()                                  { return &m_upRate; }
-  Rate*               down_rate()                                { return &m_downRate; }
-
   // Carefull with these.
   void                setup_delegator();
   void                setup_tracker();
 
-  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, TrackerInfo*> SlotStartHandshake;
-  typedef rak::const_mem_fun1<HandshakeManager, uint32_t, TrackerInfo*>       SlotCountHandshakes;
-  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>             SlotHashCheckAdd;
+  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, DownloadInfo*> SlotStartHandshake;
+  typedef rak::const_mem_fun1<HandshakeManager, uint32_t, DownloadInfo*>                   SlotCountHandshakes;
+  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>                                SlotHashCheckAdd;
 
   void                slot_start_handshake(SlotStartHandshake s)   { m_slotStartHandshake = s; }
   void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
@@ -132,6 +128,8 @@ private:
   void                setup_start();
   void                setup_stop();
 
+  DownloadInfo*       m_info;
+
   TrackerManager*     m_trackerManager;
   ChokeManager*       m_chokeManager;
 
@@ -150,9 +148,6 @@ private:
 
   ThrottleList*       m_uploadThrottle;
   ThrottleList*       m_downloadThrottle;
-
-  Rate                m_upRate;
-  Rate                m_downRate;
 
   SlotStartHandshake  m_slotStartHandshake;
   SlotCountHandshakes m_slotCountHandshakes;

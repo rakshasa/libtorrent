@@ -43,7 +43,7 @@
 #include <rak/socket_address.h>
 #include <rak/timer.h>
 
-#include "tracker_info.h"
+#include "download/download_info.h"
 
 namespace torrent {
 
@@ -62,7 +62,7 @@ public:
     TRACKER_UDP
   } Type;
 
-  TrackerBase(TrackerInfo* info, const std::string& url) :
+  TrackerBase(DownloadInfo* info, const std::string& url) :
     m_enabled(true), m_info(info), m_url(url), m_scrapeComplete(0), m_scrapeIncomplete(0) {}
   virtual ~TrackerBase() {}
 
@@ -71,14 +71,10 @@ public:
 
   void                enable(bool state)                    { m_enabled = state; }
 
-  virtual void        send_state(TrackerInfo::State state,
-				 uint64_t down,
-				 uint64_t up,
-				 uint64_t left) = 0;
-
+  virtual void        send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left) = 0;
   virtual void        close() = 0;
 
-  TrackerInfo*        info()                                { return m_info; }
+  DownloadInfo*       info()                                { return m_info; }
   virtual Type        type() const = 0;
 
   const std::string&  url() const                           { return m_url; }
@@ -103,7 +99,7 @@ protected:
 
   bool                m_enabled;
 
-  TrackerInfo*        m_info;
+  DownloadInfo*       m_info;
   std::string         m_url;
 
   std::string         m_trackerId;

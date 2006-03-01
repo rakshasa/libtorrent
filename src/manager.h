@@ -56,7 +56,7 @@ class ResourceManager;
 class PeerInfo;
 class SocketManager;
 class ThrottleManager;
-class TrackerInfo;
+class DownloadInfo;
 
 typedef std::list<std::string> EncodingList;
 
@@ -84,7 +84,7 @@ public:
   void                cleanup_download(DownloadWrapper* d);
 
   void                receive_tick();
-  void                receive_connection(SocketFd fd, TrackerInfo* info, const PeerInfo& peer);
+  void                receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& peer);
 
 private:
   rak::socket_address m_localAddress;

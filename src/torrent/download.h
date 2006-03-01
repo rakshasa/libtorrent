@@ -109,7 +109,10 @@ public:
   std::string          root_dir() const;
   void                 set_root_dir(const std::string& dir);
 
+  Rate*                down_rate();
   const Rate*          down_rate() const;
+
+  Rate*                up_rate();
   const Rate*          up_rate() const;
 
   // Bytes completed.
@@ -200,7 +203,6 @@ public:
 
   sigc::connection    signal_tracker_succeded(SlotVoid s);
   sigc::connection    signal_tracker_failed(SlotString s);
-  sigc::connection    signal_tracker_dump(SlotIStream s);
 
   sigc::connection    signal_chunk_passed(SlotChunk s);
   sigc::connection    signal_chunk_failed(SlotChunk s);

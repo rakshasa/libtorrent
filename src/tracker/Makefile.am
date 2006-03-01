@@ -6,7 +6,6 @@ libsub_tracker_la_SOURCES = \
 	tracker_control.h \
 	tracker_http.cc \
 	tracker_http.h \
-	tracker_info.h \
 	tracker_list.cc \
 	tracker_list.h \
 	tracker_manager.cc \

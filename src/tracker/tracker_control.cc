@@ -53,7 +53,8 @@ TrackerControl::TrackerControl() :
   m_tries(-1),
   m_normalInterval(1800),
   m_minInterval(0),
-  m_state(TrackerInfo::STOPPED),
+  m_info(NULL),
+  m_state(DownloadInfo::STOPPED),
   m_timeLastConnection(cachedTime) {
   
   m_itr = m_list.end();
@@ -67,10 +68,10 @@ TrackerControl::insert(int group, const std::string& url) {
   TrackerBase* t;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0)
-    t = new TrackerHttp(&m_info, url);
+    t = new TrackerHttp(m_info, url);
 
   else if (std::strncmp("udp://", url.c_str(), 6) == 0)
-    t = new TrackerUdp(&m_info, url);
+    t = new TrackerUdp(m_info, url);
 
   else
     // TODO: Error message here?... not really...
@@ -94,7 +95,7 @@ TrackerControl::cycle_group(int group) {
 }
 
 void
-TrackerControl::send_state(TrackerInfo::State s) {
+TrackerControl::send_state(DownloadInfo::State s) {
   // Reset the target tracker since we're doing a new request.
   if (m_itr != m_list.end())
     m_itr->second->close();
@@ -105,7 +106,7 @@ TrackerControl::send_state(TrackerInfo::State s) {
   m_itr = m_list.find_enabled(m_itr);
 
   if (m_itr != m_list.end())
-    m_itr->second->send_state(m_state, m_info.slot_stat_down()(), m_info.slot_stat_up()(), m_info.slot_stat_left()());
+    m_itr->second->send_state(m_state, m_info->down_rate()->total(), m_info->up_rate()->total(), m_info->slot_stat_left()());
   else
     m_slotFailed("Tried all trackers.");
 }

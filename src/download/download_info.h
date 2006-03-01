@@ -44,6 +44,8 @@
 #include <rak/socket_address.h>
 #include <sigc++/signal.h>
 
+#include "torrent/rate.h"
+
 namespace torrent {
 
 class DownloadMain;
@@ -51,7 +53,7 @@ class Rate;
 
 // This will become a Download 'handle' of kinds.
 
-class TrackerInfo {
+class DownloadInfo {
 public:
   typedef std::list<rak::socket_address>              AddressList;
 
@@ -65,7 +67,14 @@ public:
     STOPPED
   };
 
-  TrackerInfo() : m_port(0), m_key(0), m_compact(true), m_numwant(-1) {
+  DownloadInfo() :
+    m_port(0),
+    m_key(0),
+    m_compact(true),
+    m_numwant(-1),
+    m_upRate(60),
+    m_downRate(60) {
+
     m_localAddress.set_family();
   }
 
@@ -92,16 +101,17 @@ public:
   int32_t             numwant() const                              { return m_numwant; }
   void                set_numwant(int32_t n)                       { m_numwant = n; }
   
+  Rate*               up_rate()                                    { return &m_upRate; }
+  Rate*               down_rate()                                  { return &m_downRate; }
+
   uint32_t            http_timeout() const                         { return 60; }
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
-  SlotStatRate&       slot_stat_down()                             { return m_slotStatDown; }
-  SlotStatRate&       slot_stat_up()                               { return m_slotStatUp; }
   SlotStat&           slot_stat_left()                             { return m_slotStatLeft; }
 
-  typedef sigc::signal1<void, const std::string&>                SignalString;
-  typedef sigc::signal1<void, uint32_t>                          SignalChunk;
+  typedef sigc::signal1<void, const std::string&> SignalString;
+  typedef sigc::signal1<void, uint32_t>           SignalChunk;
 
   SignalString&       signal_network_log()                         { return m_signalNetworkLog; }
   SignalString&       signal_storage_error()                       { return m_signalStorageError; }
@@ -119,8 +129,9 @@ private:
   bool                m_compact;
   int32_t             m_numwant;
 
-  SlotStatRate        m_slotStatDown;
-  SlotStatRate        m_slotStatUp;
+  Rate                m_upRate;
+  Rate                m_downRate;
+
   SlotStat            m_slotStatLeft;
 
   SignalString        m_signalNetworkLog;

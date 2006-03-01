@@ -40,7 +40,7 @@
 
 #include "net/manager.h"
 #include "torrent/exceptions.h"
-#include "tracker/tracker_info.h"
+#include "download/download_info.h"
 
 #include "handshake_outgoing.h"
 #include "handshake_manager.h"
@@ -50,7 +50,7 @@ namespace torrent {
 HandshakeOutgoing::HandshakeOutgoing(SocketFd fd,
 				     HandshakeManager* m,
 				     const PeerInfo& p,
-				     TrackerInfo* info) :
+				     DownloadInfo* info) :
   Handshake(fd, m),
   m_state(CONNECTING) {
   

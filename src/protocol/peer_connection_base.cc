@@ -258,7 +258,7 @@ PeerConnectionBase::down_chunk() {
   uint32_t bytes = quota - left;
 
   m_download->download_throttle()->node_used(m_downThrottle, bytes);
-  m_download->down_rate()->insert(bytes);
+  m_download->info()->down_rate()->insert(bytes);
 
   return m_down->position() == m_downPiece.get_length();
 }
@@ -287,7 +287,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t bytes = quota - left;
 
   m_download->download_throttle()->node_used(m_downThrottle, bytes);
-  m_download->down_rate()->insert(bytes);
+  m_download->info()->down_rate()->insert(bytes);
 
   return m_down->position() == m_downPiece.get_length();
 }
@@ -326,7 +326,7 @@ PeerConnectionBase::up_chunk() {
   uint32_t bytes = quota - left;
 
   m_download->upload_throttle()->node_used(m_upThrottle, bytes);
-  m_download->up_rate()->insert(bytes);
+  m_download->info()->up_rate()->insert(bytes);
 
   return m_up->position() == m_upPiece.get_length();
 }
@@ -448,7 +448,7 @@ PeerConnectionBase::should_request() {
     // We check if the peer is stalled, if it is not then we should
     // request. If the peer is stalled then we only request if the
     // download rate is below a certain value.
-    return m_downStall <= 1 || m_download->down_rate()->rate() < (10 << 10);
+    return m_downStall <= 1 || m_download->info()->down_rate()->rate() < (10 << 10);
 }
 
 bool

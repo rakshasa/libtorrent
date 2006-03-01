@@ -149,7 +149,7 @@ Manager::receive_tick() {
 }
 
 void
-Manager::receive_connection(SocketFd fd, TrackerInfo* info, const PeerInfo& peer) {
+Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& peer) {
   DownloadManager::iterator itr = m_downloadManager->find(info);
   
   if (itr == m_downloadManager->end()) {

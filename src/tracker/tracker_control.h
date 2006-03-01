@@ -42,8 +42,9 @@
 #include <rak/functional.h>
 #include <rak/socket_address.h>
 
+#include "download/download_info.h"
+
 #include "tracker_base.h"
-#include "tracker_info.h"
 #include "tracker_list.h"
 
 #include "globals.h"
@@ -67,16 +68,18 @@ public:
 
   bool                is_busy() const;
 
-  void                send_state(TrackerInfo::State s);
+  void                send_state(DownloadInfo::State s);
   inline void         close();
 
   void                insert(int group, const std::string& url);
   void                cycle_group(int group);
 
-  TrackerInfo::State  get_state()                             { return m_state; }
-  void                set_state(TrackerInfo::State s)         { m_state = s; }
+  DownloadInfo::State get_state()                             { return m_state; }
+  void                set_state(DownloadInfo::State s)        { m_state = s; }
 
-  TrackerInfo*        info()                                  { return &m_info; }
+  DownloadInfo*       info()                                  { return m_info; }
+  void                set_info(DownloadInfo* info)            { m_info = info; }
+
   TrackerList&        get_list()                              { return m_list; }
 
   uint32_t            get_normal_interval() const             { return m_normalInterval; }
@@ -110,8 +113,8 @@ private:
   int                 m_normalInterval;
   int                 m_minInterval;
 
-  TrackerInfo         m_info;
-  TrackerInfo::State  m_state;
+  DownloadInfo*       m_info;
+  DownloadInfo::State m_state;
 
   TrackerList           m_list;
   TrackerList::iterator m_itr;

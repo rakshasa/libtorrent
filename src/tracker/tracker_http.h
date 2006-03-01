@@ -48,16 +48,12 @@ class Http;
 
 class TrackerHttp : public TrackerBase {
 public:
-  TrackerHttp(TrackerInfo* info, const std::string& url);
+  TrackerHttp(DownloadInfo* info, const std::string& url);
   ~TrackerHttp();
   
   virtual bool        is_busy() const;
 
-  virtual void        send_state(TrackerInfo::State state,
-				 uint64_t down,
-				 uint64_t up,
-				 uint64_t left);
-
+  virtual void        send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left);
   virtual void        close();
 
   virtual Type        type() const;

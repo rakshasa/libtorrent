@@ -46,7 +46,7 @@
 
 namespace torrent {
 
-TrackerUdp::TrackerUdp(TrackerInfo* info, const std::string& url) :
+TrackerUdp::TrackerUdp(DownloadInfo* info, const std::string& url) :
   TrackerBase(info, url),
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
@@ -64,10 +64,7 @@ TrackerUdp::is_busy() const {
 }
 
 void
-TrackerUdp::send_state(TrackerInfo::State state,
-		       uint64_t down,
-		       uint64_t up,
-		       uint64_t left) {
+TrackerUdp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
   if (!parse_url())

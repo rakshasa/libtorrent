@@ -37,14 +37,14 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
+#include <rak/socket_address.h>
 #include <sigc++/connection.h>
 #include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
-#include <rak/socket_address.h>
 #include "torrent/bencode.h"
 #include "torrent/peer.h"
-#include "tracker/tracker_info.h"
+#include "download/download_info.h"
 
 #include "download_main.h"
 
@@ -56,7 +56,7 @@ class FileManager;
 class HashQueue;
 class HashTorrent;
 class HandshakeManager;
-class TrackerInfo;
+class DownloadInfo;
 
 class DownloadWrapper {
 public:
@@ -83,19 +83,18 @@ public:
   void                start();
   void                stop();
 
-  bool                is_open() const                { return m_main.is_open(); }
+  bool                is_open() const                         { return m_main.is_open(); }
   bool                is_stopped() const;
 
-  DownloadMain*       main()                         { return &m_main; }
-  const DownloadMain* main() const                   { return &m_main; }
-  HashTorrent*        hash_checker()                 { return m_hash; }
+  DownloadMain*       main()                                  { return &m_main; }
+  const DownloadMain* main() const                            { return &m_main; }
+  HashTorrent*        hash_checker()                          { return m_hash; }
 
-  Bencode&            bencode()                      { return m_bencode; }
+  Bencode*            bencode()                               { return &m_bencode; }
+  DownloadInfo*       info()                                  { return m_main.info(); }
 
-  TrackerInfo*        info();
-
-  int                 get_connection_type() const    { return m_connectionType; }
-  void                set_connection_type(int t)     { m_connectionType = t; }
+  int                 connection_type() const                 { return m_connectionType; }
+  void                set_connection_type(int t)              { m_connectionType = t; }
 
   void                insert_available_list(const std::string& src);
   void                extract_available_list(Bencode* dest);

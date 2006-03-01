@@ -52,12 +52,12 @@ public:
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 
-  TrackerUdp(TrackerInfo* info, const std::string& url);
+  TrackerUdp(DownloadInfo* info, const std::string& url);
   ~TrackerUdp();
   
   virtual bool        is_busy() const;
 
-  virtual void        send_state(TrackerInfo::State state,
+  virtual void        send_state(DownloadInfo::State state,
 				 uint64_t down,
 				 uint64_t up,
 				 uint64_t left);
@@ -85,7 +85,7 @@ private:
 
   rak::socket_address m_connectAddress;
 
-  TrackerInfo::State  m_sendState;
+  DownloadInfo::State m_sendState;
   uint64_t            m_sendUp;
   uint64_t            m_sendDown;
   uint64_t            m_sendLeft;
