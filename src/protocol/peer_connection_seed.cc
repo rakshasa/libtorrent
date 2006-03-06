@@ -151,7 +151,7 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::HAVE:
-    if (buf->remaining() < 4)
+    if (!m_down->can_read_have_body())
       break;
 
     read_have_chunk(buf->read_32());
@@ -168,7 +168,7 @@ PeerConnectionSeed::read_message() {
     }
 
   case ProtocolBase::REQUEST:
-    if (buf->remaining() < 13)
+    if (!m_down->can_read_request_body())
       break;
 
     if (!m_up->choked()) {
@@ -185,7 +185,7 @@ PeerConnectionSeed::read_message() {
     throw network_error("Received a piece but the connection is strictly for seeding.");
 
   case ProtocolBase::CANCEL:
-    if (buf->remaining() < 13)
+    if (!m_down->can_read_cancel_body())
       break;
 
     read_cancel_piece(m_down->read_request());

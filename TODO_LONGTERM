@@ -1,5 +1,7 @@
 == API changes ==
 
+Use sockaddr in the API, rather than strings.
+
 The seed count and scrape leech/seed.
 
 SO_SNDBUF and friends.
@@ -13,12 +15,6 @@ Connection filtering.
 Disk cache.
 
 Make libtorrent locale agnostic.
-
-Kill tracker dump signal.
-
-Close a connection.
-
-Use sockaddr in the API, rather than strings.
 
 Resume needs to be split.
 
@@ -138,3 +134,9 @@ Make sure that when session torrents are opened, it ensures that the
 downloaded/ing files are where we last saw them. Libtorrent shouldn't
 create the files when opened, but perhaps a call can be added for
 trying to make them?
+
+
+== Added initialization stuff to sections in the elf file? ==
+
+Stuff like adding stuff to the ClientInfo object could be done from
+with a resource file embedded in the executable.

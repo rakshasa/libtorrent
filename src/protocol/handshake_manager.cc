@@ -112,7 +112,7 @@ void
 HandshakeManager::receive_connected(Handshake* h) {
   erase(h);
 
-  h->info()->signal_network_log().emit("Successful handshake: " + h->get_peer().get_address());
+//   h->info()->signal_network_log().emit("Successful handshake: " + h->get_peer().get_address());
 
   // TODO: Check that m_slotConnected actually points somewhere.
   m_slotConnected(h->get_fd(), h->info(), h->get_peer());
@@ -125,8 +125,8 @@ void
 HandshakeManager::receive_failed(Handshake* h) {
   erase(h);
 
-  if (h->info() != NULL)
-    h->info()->signal_network_log().emit("Failed handshake: " + h->get_peer().get_address());
+//   if (h->info() != NULL)
+//     h->info()->signal_network_log().emit("Failed handshake: " + h->get_peer().get_address());
 
   h->close();
   delete h;

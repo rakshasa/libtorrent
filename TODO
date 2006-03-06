@@ -2,6 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+"Peer requested a piece with invalid index or length/offset." - Enable
+the extra debug information and figure this one out.
+
 sprintf std::min usage might be wrong.
 
 Heuristics for choosing the scrape to show.
@@ -15,6 +18,10 @@ initial filtering? Does it get used to things other than peer
 connections?
 
 Add a function in core::Download to update various resume data.
+
+read request checks choke in two places and adds to write poll.
+
+insert_poll_*_safe might induce non-multithread race conditions?
 
 
 ***

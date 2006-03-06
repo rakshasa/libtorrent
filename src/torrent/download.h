@@ -185,6 +185,8 @@ public:
   void                 peer_list(PList& pList);
   Peer                 peer_find(const std::string& id);
 
+  void                 disconnect_peer(Peer p);
+
   typedef sigc::slot0<void>                     SlotVoid;
   typedef sigc::slot1<void, const std::string&> SlotString;
 

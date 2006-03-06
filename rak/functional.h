@@ -264,7 +264,7 @@ struct if_then_t {
   if_then_t(Cond c, Then t) : m_cond(c), m_then(t) {}
 
   template <typename Arg>
-  void operator () (const Arg& a) const {
+  void operator () (Arg& a) {
     if (m_cond(a))
       m_then(a);
   }

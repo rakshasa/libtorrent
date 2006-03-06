@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <sstream>
 #include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
@@ -384,14 +385,15 @@ PeerConnectionBase::write_prepare_piece() {
   // Move these checks somewhere else?
   if (!m_download->content()->is_valid_piece(m_upPiece) ||
       !m_download->content()->has_chunk(m_upPiece.get_index())) {
-//     std::stringstream s;
+    std::stringstream s;
 
-//     s << "Peer requested a piece with invalid index or length/offset: "
-//       << m_upPiece.get_index() << ' '
-//       << m_upPiece.get_length() << ' '
-//       << m_upPiece.get_offset();
+    s << "Peer requested a piece with invalid index or length/offset: "
+      << m_upPiece.get_index() << ' '
+      << m_upPiece.get_length() << ' '
+      << m_upPiece.get_offset();
 
-    throw communication_error("Peer requested a piece with invalid index or length/offset.");
+    throw communication_error(s.str());
+//     throw communication_error("Peer requested a piece with invalid index or length/offset.");
   }
       
   m_up->write_piece(m_upPiece);

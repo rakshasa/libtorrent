@@ -426,6 +426,11 @@ Download::peer_find(const std::string& id) {
   return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
 }
 
+void
+Download::disconnect_peer(Peer p) {
+  m_ptr->main()->connection_list()->erase(p.ptr());
+}
+
 sigc::connection
 Download::signal_download_done(Download::SlotVoid s) {
   return m_ptr->signal_download_done().connect(s);

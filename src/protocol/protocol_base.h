@@ -45,7 +45,8 @@ class Piece;
 
 class ProtocolBase {
 public:
-  typedef ProtocolBuffer<512>           Buffer;
+  typedef ProtocolBuffer<512> Buffer;
+  typedef uint32_t            size_type;
 
   typedef enum {
     CHOKE = 0,
@@ -97,14 +98,14 @@ public:
   // Position should perhaps be in a different place, like a dedicated
   // chunk writing class.
   uint32_t            position() const                        { return m_position; }
-  void                set_position(uint32_t p)                { m_position = p; }
-  void                adjust_position(uint32_t p)             { m_position += p; }
+  void                set_position(size_type p)               { m_position = p; }
+  void                adjust_position(size_type p)            { m_position += p; }
 
   State               get_state() const                       { return m_state; }
   void                set_state(State s)                      { m_state = s; }
 
   Piece               read_request();
-  Piece               read_piece(uint32_t length);
+  Piece               read_piece(size_type length);
 
   void                write_command(Protocol c)               { m_buffer.write_8(m_lastCommand = c); }
 
@@ -112,17 +113,33 @@ public:
   void                write_choke(bool s);
   void                write_interested(bool s);
   void                write_have(uint32_t index);
-  void                write_bitfield(uint32_t length);
+  void                write_bitfield(size_type length);
   void                write_request(const Piece& p, bool s = true);
   void                write_piece(const Piece& p);
 
-  bool                can_write_keepalive() const             { return m_buffer.reserved_left() >= 4; }
-  bool                can_write_choke() const                 { return m_buffer.reserved_left() >= 5; }
-  bool                can_write_interested() const            { return m_buffer.reserved_left() >= 5; }
-  bool                can_write_have() const                  { return m_buffer.reserved_left() >= 9; }
-  bool                can_write_bitfield() const              { return m_buffer.reserved_left() >= 5; }
-  bool                can_write_request() const               { return m_buffer.reserved_left() >= 17; }
-  bool                can_write_piece() const                 { return m_buffer.reserved_left() >= 13; }
+  static const size_type sizeof_keepalive    = 4;
+  static const size_type sizeof_choke        = 5;
+  static const size_type sizeof_interested   = 5;
+  static const size_type sizeof_have         = 9;
+  static const size_type sizeof_have_body    = 4;
+  static const size_type sizeof_bitfield     = 5;
+  static const size_type sizeof_request      = 17;
+  static const size_type sizeof_request_body = 12;
+  static const size_type sizeof_piece        = 13;
+  static const size_type sizeof_piece_body   = 8;
+
+  bool                can_write_keepalive() const             { return m_buffer.reserved_left() >= sizeof_keepalive; }
+  bool                can_write_choke() const                 { return m_buffer.reserved_left() >= sizeof_choke; }
+  bool                can_write_interested() const            { return m_buffer.reserved_left() >= sizeof_interested; }
+  bool                can_write_have() const                  { return m_buffer.reserved_left() >= sizeof_have; }
+  bool                can_write_bitfield() const              { return m_buffer.reserved_left() >= sizeof_bitfield; }
+  bool                can_write_request() const               { return m_buffer.reserved_left() >= sizeof_request; }
+  bool                can_write_piece() const                 { return m_buffer.reserved_left() >= sizeof_piece; }
+
+  bool                can_read_have_body() const              { return m_buffer.remaining() >= sizeof_have_body; }
+  bool                can_read_request_body() const           { return m_buffer.remaining() >= sizeof_request_body; }
+  bool                can_read_cancel_body() const            { return m_buffer.remaining() >= sizeof_request_body; }
+  bool                can_read_piece_body() const             { return m_buffer.remaining() >= sizeof_piece_body; }
 
 protected:
   uint32_t            m_position;
@@ -146,7 +163,7 @@ ProtocolBase::read_request() {
 }
 
 inline Piece
-ProtocolBase::read_piece(uint32_t length) {
+ProtocolBase::read_piece(size_type length) {
   uint32_t index = m_buffer.read_32();
   uint32_t offset = m_buffer.read_32();
 
@@ -179,7 +196,7 @@ ProtocolBase::write_have(uint32_t index) {
 }
 
 inline void
-ProtocolBase::write_bitfield(uint32_t length) {
+ProtocolBase::write_bitfield(size_type length) {
   m_buffer.write_32(1 + length);
   write_command(BITFIELD);
 }
