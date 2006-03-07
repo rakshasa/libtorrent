@@ -82,7 +82,7 @@ public:
   void                slot_connected(SlotConnected s)           { m_slotConnected = s; }
   void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
 
-  void                receive_connected(Handshake* h);
+  void                receive_succeeded(Handshake* h);
   void                receive_failed(Handshake* h);
 
   // This needs to be filterable slot.
@@ -90,6 +90,8 @@ public:
 
 private:
   void                erase(Handshake* handshake);
+
+  inline void         delete_handshake(Handshake* h);
 
   SlotConnected       m_slotConnected;
   SlotDownloadId      m_slotDownloadId;

@@ -43,22 +43,28 @@
 #include "download/download_info.h"
 
 #include "peer_info.h"
+#include "handshake.h"
 #include "handshake_manager.h"
-#include "handshake_incoming.h"
-#include "handshake_outgoing.h"
 
 namespace torrent {
 
+inline void
+HandshakeManager::delete_handshake(Handshake* h) {
+  h->clear();
+  socketManager.close(h->get_fd());
+  h->set_fd(SocketFd());
+
+  delete h;
+}
+
 HandshakeManager::size_type
 HandshakeManager::size_info(DownloadInfo* info) const {
-  return std::count_if(Base::begin(), Base::end(), rak::equal(info, std::mem_fun(&Handshake::info)));
+  return std::count_if(Base::begin(), Base::end(), rak::equal(info, std::mem_fun(&Handshake::download_info)));
 }
 
 void
 HandshakeManager::clear() {
-  std::for_each(Base::begin(), Base::end(), std::mem_fun(&Handshake::close));
-  std::for_each(Base::begin(), Base::end(), rak::call_delete<Handshake>());
-
+  std::for_each(Base::begin(), Base::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
   Base::clear();
 }
 
@@ -75,18 +81,16 @@ HandshakeManager::erase(Handshake* handshake) {
 bool
 HandshakeManager::find(const rak::socket_address& sa) {
   return std::find_if(Base::begin(), Base::end(),
-		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::get_peer),
-					     std::mem_fun_ref<const rak::socket_address&>(&PeerInfo::get_socket_address))))
+		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::peer_info),
+					     std::mem_fun<const rak::socket_address&>(&PeerInfo::get_socket_address))))
     != Base::end();
 }
 
 void
 HandshakeManager::erase_info(DownloadInfo* info) {
-  iterator split = std::partition(Base::begin(), Base::end(), rak::not_equal(info, std::mem_fun(&Handshake::info)));
+  iterator split = std::partition(Base::begin(), Base::end(), rak::not_equal(info, std::mem_fun(&Handshake::download_info)));
 
-  std::for_each(split, Base::end(), std::mem_fun(&Handshake::close));
-  std::for_each(split, Base::end(), rak::call_delete<Handshake>());
-
+  std::for_each(split, Base::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
   Base::erase(split, Base::end());
 }
 
@@ -95,7 +99,10 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   if (!socketManager.received(fd, sa).is_valid())
     return;
 
-  Base::push_back(new HandshakeIncoming(fd, PeerInfo("", sa, true), this));
+  Handshake* h = new Handshake(fd, this);
+  h->initialize_incoming(sa);
+
+  Base::push_back(h);
 }
   
 void
@@ -105,17 +112,20 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info
   if (!fd.is_valid())
     return;
 
-  Base::push_back(new HandshakeOutgoing(fd, this, PeerInfo("", sa, false), info));
+  Handshake* h = new Handshake(fd, this);
+  h->initialize_outgoing(sa, info);
+
+  Base::push_back(h);
 }
 
 void
-HandshakeManager::receive_connected(Handshake* h) {
+HandshakeManager::receive_succeeded(Handshake* h) {
   erase(h);
+  h->clear();
 
-//   h->info()->signal_network_log().emit("Successful handshake: " + h->get_peer().get_address());
+//   h->download_info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->get_address());
 
-  // TODO: Check that m_slotConnected actually points somewhere.
-  m_slotConnected(h->get_fd(), h->info(), h->get_peer());
+  m_slotConnected(h->get_fd(), h->download_info(), *h->peer_info());
 
   h->set_fd(SocketFd());
   delete h;
@@ -124,11 +134,14 @@ HandshakeManager::receive_connected(Handshake* h) {
 void
 HandshakeManager::receive_failed(Handshake* h) {
   erase(h);
+  h->clear();
 
-//   if (h->info() != NULL)
-//     h->info()->signal_network_log().emit("Failed handshake: " + h->get_peer().get_address());
+//   if (h->download_info() != NULL)
+//     h->download_info()->signal_network_log().emit("Failed handshake: " + h->peer_info()->get_address());
 
-  h->close();
+  socketManager.close(h->get_fd());
+
+  h->set_fd(SocketFd());
   delete h;
 }
 

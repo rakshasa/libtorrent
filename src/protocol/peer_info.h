@@ -48,10 +48,11 @@ namespace torrent {
 class PeerInfo {
 public:
   PeerInfo();
-  PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming);
+
+  bool                is_valid() const                      { return m_id.length() == 20 && m_sa.is_valid(); }
 
   bool                is_incoming() const                   { return m_incoming; }
-  bool                is_valid() const                      { return m_id.length() == 20 && m_sa.is_valid(); }
+  void                set_incoming(bool v)                  { m_incoming = v; }
 
   const std::string&  get_id() const                        { return m_id; }
   void                set_id(const std::string& id)         { m_id = id; }
@@ -63,6 +64,8 @@ public:
 
   rak::socket_address&       get_socket_address()                 { return m_sa; }
   const rak::socket_address& get_socket_address() const           { return m_sa; }
+
+  void                set_socket_address(const rak::socket_address& sa) { m_sa = sa; }
 
   bool                operator < (const PeerInfo& p) const  { return m_id < p.m_id; }
   bool                operator == (const PeerInfo& p) const { return m_id == p.m_id; }
@@ -76,19 +79,18 @@ private:
 };
 
 inline
-PeerInfo::PeerInfo() :
-  m_incoming(false) {
+PeerInfo::PeerInfo() {
   m_sa.clear();
   std::memset(m_options, 0, 8);
 }
 
-inline
-PeerInfo::PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming) :
-  m_id(id),
-  m_sa(sa),
-  m_incoming(incoming) {
-  std::memset(m_options, 0, 8);
-}
+// inline
+// PeerInfo::PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming) :
+//   m_id(id),
+//   m_sa(sa),
+//   m_incoming(incoming) {
+//   std::memset(m_options, 0, 8);
+// }
 
 } // namespace torrent
 

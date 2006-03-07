@@ -37,11 +37,12 @@
 #ifndef LIBTORRENT_HANDSHAKE_H
 #define LIBTORRENT_HANDSHAKE_H
 
-#include <inttypes.h>
+#include <rak/priority_queue_default.h>
 
+#include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
-#include "protocol/peer_info.h"
-#include "globals.h"
+
+#include "peer_info.h"
 
 namespace torrent {
 
@@ -50,42 +51,55 @@ class DownloadInfo;
 
 class Handshake : public SocketStream {
 public:
+  static const uint32_t part1_size     = 20 + 28;
+  static const uint32_t part2_size     = 20;
+  static const uint32_t handshake_size = part1_size + part2_size;
+
+  typedef ProtocolBuffer<handshake_size> Buffer;
+
+  typedef enum {
+    INACTIVE,
+    CONNECTING,
+    WRITE_FILL,
+    WRITE_SEND,
+    READ_INFO,
+    READ_PEER
+  } State;
+
   Handshake(SocketFd fd, HandshakeManager* m);
-  virtual ~Handshake();
+  ~Handshake();
 
-  const PeerInfo&     get_peer()                       { return m_peer; }
-//   const std::string&  hash()                       { return m_hash; }
-//   const std::string&  get_id()                         { return m_id; }
-  DownloadInfo*        info()                           { return m_info; }
+  void                initialize_outgoing(const rak::socket_address& sa, DownloadInfo* d);
+  void                initialize_incoming(const rak::socket_address& sa);
+  
+  PeerInfo*           peer_info()                   { return &m_peerInfo; }
+  DownloadInfo*       download_info()               { return m_downloadInfo; }
 
-  void                set_manager(HandshakeManager* m) { m_manager = m; }
+  // Make sure the fd is valid when this is called. The caller is
+  // responsible for closing the socket if nessesary.
+  void                clear();
 
-  void                clear_poll();
-  void                close();
+  virtual void        event_read();
+  virtual void        event_write();
+  virtual void        event_error();
 
 protected:
   Handshake(const Handshake&);
   void operator = (const Handshake&);
   
-  // Make sure you don't touch anything in the class after calling these,
-  // return immidiately.
-  void                send_connected();
-  void                send_failed();
+  static const char*  m_protocol;
 
-  bool                recv1();
-  bool                recv2();
-
-  PeerInfo            m_peer;
-//   std::string         m_hash;
-//   std::string         m_id;
-  DownloadInfo*       m_info;
+  State               m_state;
 
   HandshakeManager*   m_manager;
 
-  char*               m_buf;
-  uint32_t            m_pos;
+  PeerInfo            m_peerInfo;
+  DownloadInfo*       m_downloadInfo;
 
   rak::priority_item  m_taskTimeout;
+
+  Buffer              m_readBuffer;
+  Buffer              m_writeBuffer;
 };
 
 }

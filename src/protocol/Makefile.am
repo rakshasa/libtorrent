@@ -3,12 +3,8 @@ noinst_LTLIBRARIES = libsub_protocol.la
 libsub_protocol_la_SOURCES = \
         handshake.cc \
         handshake.h \
-        handshake_incoming.cc \
-        handshake_incoming.h \
         handshake_manager.cc \
         handshake_manager.h \
-        handshake_outgoing.cc \
-        handshake_outgoing.h \
 	peer_chunks.h \
 	peer_connection_base.cc \
 	peer_connection_base.h \

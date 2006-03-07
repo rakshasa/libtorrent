@@ -40,103 +40,201 @@
 #include "net/manager.h"
 #include "torrent/exceptions.h"
 
+#include "globals.h"
+
 #include "handshake.h"
 #include "handshake_manager.h"
 
 namespace torrent {
 
+const char* Handshake::m_protocol = "BitTorrent protocol";
+
 Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
+  m_state(INACTIVE),
+
   m_manager(m),
-  m_buf(new char[256 + 48]),
-  m_pos(0) {
+  m_downloadInfo(NULL) {
 
   set_fd(fd);
 
-  m_taskTimeout.set_slot(rak::mem_fn(this, &Handshake::send_failed));
+  m_readBuffer.reset();
+  m_writeBuffer.reset();      
 
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+  m_taskTimeout.set_slot(rak::bind_mem_fn(m, &HandshakeManager::receive_failed, this));
 }
 
 Handshake::~Handshake() {
-  priority_queue_erase(&taskScheduler, &m_taskTimeout);
-
   if (m_taskTimeout.is_queued())
     throw internal_error("Handshake m_taskTimeout bork bork bork.");
 
   if (get_fd().is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open");
-
-  delete [] m_buf;
 }
 
 void
-Handshake::clear_poll() {
+Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadInfo* d) {
+  m_downloadInfo = d;
+
+  m_peerInfo.set_incoming(false);
+  m_peerInfo.set_socket_address(sa);
+
+  m_state = CONNECTING;
+
+  pollCustom->open(this);
+  pollCustom->insert_write(this);
+  pollCustom->insert_error(this);
+
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+}
+
+void
+Handshake::initialize_incoming(const rak::socket_address& sa) {
+  m_peerInfo.set_incoming(true);
+  m_peerInfo.set_socket_address(sa);
+
+  m_state = READ_INFO;
+
+  pollCustom->open(this);
+  pollCustom->insert_read(this);
+  pollCustom->insert_error(this);
+
+  // Use lower timeout here.
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+}
+
+void
+Handshake::clear() {
+  m_state = INACTIVE;
+
+  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+
   pollCustom->remove_read(this);
   pollCustom->remove_write(this);
   pollCustom->remove_error(this);
   pollCustom->close(this);
 }
 
-// TODO: Move the management of the socketfd to handshake_manager?
 void
-Handshake::close() {
-  if (!get_fd().is_valid())
-    return;
+Handshake::event_read() {
+  try {
 
-  clear_poll();
-  
-  socketManager.close(get_fd());
-  get_fd().clear();
+    switch (m_state) {
+    case READ_INFO:
+      m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), handshake_size - m_readBuffer.size_end()));
+
+      // Check the first byte as early as possible so we can
+      // disconnect non-BT connections if they send less than 20 bytes.
+      if (m_readBuffer.size_end() >= 1 && m_readBuffer.peek_8() != 19)
+	throw close_connection();
+
+      if (m_readBuffer.size_end() < part1_size)
+	return;
+
+      if (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0)
+	throw close_connection();
+
+      m_readBuffer.move_position(20);
+
+      // Should do some option field stuff here, for now just copy.
+      m_readBuffer.read_range(m_peerInfo.get_options(), m_peerInfo.get_options() + 8);
+
+      // Check the info hash.
+      if (m_peerInfo.is_incoming()) {
+	m_downloadInfo = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+
+	if (m_downloadInfo == NULL)
+	  throw close_connection();
+
+	m_state = WRITE_FILL;
+	m_readBuffer.move_position(20);
+	
+	pollCustom->remove_read(this);
+	pollCustom->insert_write(this);
+
+	return;
+
+      } else {
+	if (std::memcmp(m_downloadInfo->hash().c_str(), m_readBuffer.position(), 20) != 0)
+	  throw close_connection();
+
+	m_state = READ_PEER;
+	m_readBuffer.move_position(20);
+      }
+
+    case READ_PEER:
+      if (m_readBuffer.size_end() < handshake_size)
+	m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), handshake_size - m_readBuffer.size_end()));
+
+      if (m_readBuffer.size_end() < handshake_size)
+	return;
+
+      m_peerInfo.set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+      m_readBuffer.move_position(20);
+
+      m_manager->receive_succeeded(this);
+
+      return;
+
+    default:
+      throw internal_error("Handshake::event_write() called in invalid state.");
+    }
+
+  } catch (network_error& e) {
+    m_manager->receive_failed(this);
+  }
 }
 
 void
-Handshake::send_connected() {
-  clear_poll();
-  m_manager->receive_connected(this);
+Handshake::event_write() {
+  try {
+
+    switch (m_state) {
+    case CONNECTING:
+      if (get_fd().get_error())
+	throw close_connection();
+ 
+    case WRITE_FILL:
+      m_writeBuffer.write_8(19);
+      m_writeBuffer.write_range(m_protocol, m_protocol + 19);
+      m_writeBuffer.write_range(m_peerInfo.get_options(), m_peerInfo.get_options() + 8);
+      m_writeBuffer.write_range(m_downloadInfo->hash().c_str(), m_downloadInfo->hash().c_str() + 20);
+      m_writeBuffer.write_range(m_downloadInfo->local_id().c_str(), m_downloadInfo->local_id().c_str() + 20);
+
+      m_writeBuffer.prepare_end();
+
+      if (m_writeBuffer.size_end() != handshake_size)
+	throw internal_error("Handshake::event_write() wrong fill size.");
+
+      m_state = WRITE_SEND;
+
+    case WRITE_SEND:
+      m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
+
+      if (m_writeBuffer.remaining())
+	return;
+
+      if (m_peerInfo.is_incoming())
+	m_state = READ_PEER;
+      else
+	m_state = READ_INFO;
+
+      pollCustom->remove_write(this);
+      pollCustom->insert_read(this);
+
+      return;
+
+    default:
+      throw internal_error("Handshake::event_read() called in invalid state.");
+    }
+
+  } catch (network_error& e) {
+    m_manager->receive_failed(this);
+  }
 }
 
 void
-Handshake::send_failed() {
-  clear_poll();
+Handshake::event_error() {
   m_manager->receive_failed(this);
 }
-
-bool
-Handshake::recv1() {
-  // This is really ugly, should get the whole class rewritten...
-
-  if (m_pos == 0 && !read_buffer(m_buf, 1, m_pos))
-    return false;
-
-  unsigned int len = (unsigned char)m_buf[0];
-
-  if (!read_buffer(m_buf + m_pos, len + 29, m_pos))
-    return false;
-
-  if (std::string(m_buf + 1, len) != "BitTorrent protocol")
-    throw close_connection();
-
-  std::memcpy(m_peer.get_options(), m_buf + 1 + len, 8);
-
-  std::string hash(m_buf + 9 + len, 20);
-
-  if (m_info == NULL)
-    m_info = m_manager->download_info(hash);
-
-  if (m_info == NULL || m_info->hash() != hash)
-    throw close_connection();
-
-  return true;
-}
-
-bool
-Handshake::recv2() {
-  if (!read_buffer(m_buf + m_pos, 20, m_pos))
-    return false;
-
-  m_peer.set_id(std::string(m_buf, 20));
-
-  return true;
-}  
 
 }
