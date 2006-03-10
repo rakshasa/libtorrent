@@ -82,6 +82,10 @@ public:
 
   uint32_t            find(PeerChunks* peerChunks, bool highPriority);
 
+  bool                is_wanted(uint32_t index) const;
+
+  // Call this to set the index as being downloaded, finished etc,
+  // thus ignored. Propably should find a better name for this.
   void                using_index(uint32_t index);
   void                not_using_index(uint32_t index);
 

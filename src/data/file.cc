@@ -73,12 +73,12 @@ File::open(const std::string& path, int prot, int flags, mode_t mode) {
     throw internal_error("torrent::File::open(...) Tried to open file with no protection flags");
 
 #ifdef O_LARGEFILE
-  int fd = ::open(path.c_str(), flags | O_LARGEFILE, mode);
+  fd_type fd = ::open(path.c_str(), flags | O_LARGEFILE, mode);
 #else
-  int fd = ::open(path.c_str(), flags, mode);
+  fd_type fd = ::open(path.c_str(), flags, mode);
 #endif
   
-  if (fd == -1)
+  if (fd == invalid_fd)
     return false;
 
   m_fd = fd;
@@ -95,7 +95,7 @@ File::close() {
 
   ::close(m_fd);
 
-  m_fd = -1;
+  m_fd = invalid_fd;
   m_prot = 0;
   m_flags = 0;
 }

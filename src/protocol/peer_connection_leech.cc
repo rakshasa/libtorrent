@@ -427,8 +427,8 @@ PeerConnectionLeech::fill_write_buffer() {
       !(m_tryRequest = try_request_pieces()) &&
 
       !m_requestList.is_interested_in_active()) {
-//     m_sendInterested = true;
-//     m_up->set_interested(false);
+    m_sendInterested = true;
+    m_up->set_interested(false);
   }
 
   while (!m_haveQueue.empty() && m_up->can_write_have()) {
@@ -565,21 +565,21 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
   if (is_up_interested()) {
 
-    if (!m_tryRequest && true) { // FIXME: m_download->delegator()->get_select().interested(index)) {
+    if (!m_tryRequest && m_download->chunk_selector()->is_wanted(index)) {
       m_tryRequest = true;
       write_insert_poll_safe();
     }
 
   } else {
 
-// FIXME:    if (m_download->delegator()->get_select().interested(index)) {
-    if (true) {
+    if (m_download->chunk_selector()->is_wanted(index)) {
       m_sendInterested = true;
       m_up->set_interested(true);
       
       // Is it enough to insert into write here? Make the interested
       // check branch to include insert_write, even when not sending
       // interested.
+      m_tryRequest = true;
       write_insert_poll_safe();
     }
   }

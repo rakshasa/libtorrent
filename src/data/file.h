@@ -47,12 +47,16 @@
 namespace torrent {
 
 class File {
- public:
+public:
+  typedef int fd_type;
+
+  static const fd_type invalid_fd         = -1;
+
   static const int o_create               = O_CREAT;
   static const int o_truncate             = O_TRUNC;
   static const int o_nonblock             = O_NONBLOCK;
 
-  File() : m_fd(-1), m_prot(0), m_flags(0) {}
+  File() : m_fd(invalid_fd), m_prot(0), m_flags(0) {}
   ~File();
 
   bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
@@ -63,7 +67,7 @@ class File {
   // of zero indicates to the end of the file.
   bool                reserve(off_t offset = 0, off_t length = 0);
 
-  bool                is_open() const                                   { return m_fd != -1; }
+  bool                is_open() const                                   { return m_fd != invalid_fd; }
   bool                is_readable() const                               { return m_prot & MemoryChunk::prot_read; }
   bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }
   bool                is_nonblock() const                               { return m_flags & o_nonblock; }
@@ -75,15 +79,15 @@ class File {
 
   MemoryChunk         create_chunk(off_t offset, uint32_t length, int prot, int flags) const;
   
-  int                 fd() const                                        { return m_fd; }
+  fd_type             fd() const                                        { return m_fd; }
 
- private:
+private:
   // Use custom flags if stuff like file locking etc is implemented.
 
   File(const File&);
   void operator = (const File&);
 
-  int                 m_fd;
+  fd_type             m_fd;
   int                 m_prot;
   int                 m_flags;
 };

@@ -94,6 +94,11 @@ ChunkSelector::find(PeerChunks* peerChunks, __UNUSED bool highPriority) {
   return position;
 }
 
+bool
+ChunkSelector::is_wanted(uint32_t index) const {
+  return m_bitfield.get(index) && (m_normalPriority.has(index) || m_highPriority.has(index));
+}
+
 void
 ChunkSelector::using_index(uint32_t index) {
   if (index >= size())

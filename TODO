@@ -2,8 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-src/protocol/peer_connection_leech.cc:430, add function for checking a
-single index.
+Don't ignore lines that end with EOF.
+
+Consider how failed pieces affect interested state.
 
 "Peer requested a piece with invalid index or length/offset." - Enable
 the extra debug information and figure this one out.
@@ -23,10 +24,6 @@ connections?
 Add a function in core::Download to update various resume data.
 
 read request checks choke in two places and adds to write poll.
-
-insert_poll_*_safe might induce non-multithread race conditions?
-
-Don't ignore lines that end with EOF.
 
 Test incoming.
 

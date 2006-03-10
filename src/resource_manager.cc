@@ -143,11 +143,14 @@ ResourceManager::balance_unchoked(unsigned int weight) {
     // with more interested will gain any unused slots from the
     // preceding downloads. Consider multiplying with priority.
     //
-    // Consider skipping the leading zero interested downloads.
+    // Consider skipping the leading zero interested downloads. Though
+    // that won't work as they need to choke peers once their priority
+    // is turned off.
     sort(begin(), end(), resource_manager_interested_increasing());
 
-    for (iterator itr = begin(); weight != 0 && itr != end(); ++itr) {
-      m_currentlyUnchoked += itr->second->choke_manager()->cycle((quota * itr->first) / weight);
+    for (iterator itr = begin(); itr != end(); ++itr) {
+      m_currentlyUnchoked += itr->second->choke_manager()->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
+
       quota -= itr->second->choke_manager()->currently_unchoked();
       weight -= itr->first;
     }
