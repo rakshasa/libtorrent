@@ -41,7 +41,7 @@
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
-#include "net/socket_manager.h"
+#include "net/manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
 #include "tracker_http.h"

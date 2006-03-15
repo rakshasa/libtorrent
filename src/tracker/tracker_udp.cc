@@ -72,7 +72,7 @@ TrackerUdp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, ui
 
   if (!get_fd().open_datagram() ||
       !get_fd().set_nonblock() ||
-      !get_fd().bind(*socketManager.bind_address()))
+      !get_fd().bind(*rak::socket_address::cast_from(socketManager.bind_address())))
     return receive_failed("Could not open UDP socket.");
 
   m_readBuffer = new ReadBuffer;

@@ -36,9 +36,9 @@
 
 #include "config.h"
 
-#include "torrent/exceptions.h"
-
 #include <rak/socket_address.h>
+
+#include "torrent/exceptions.h"
 #include "socket_manager.h"
 
 namespace torrent {
@@ -47,49 +47,27 @@ SocketManager::SocketManager() :
   m_size(0),
   m_max(0) {
 
-  m_bindAddress.sa_inet()->set_family();
+  m_bindAddress = (new rak::socket_address())->c_sockaddr();
+  rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();
 }
 
-
-SocketFd
-SocketManager::open(const rak::socket_address& sa) {
-  SocketFd fd;
-
-  if (m_size >= m_max || !fd.open_stream())
-    return SocketFd();
-
-  if (!fd.set_nonblock() ||
-      (m_bindAddress.is_bindable() && !fd.bind(m_bindAddress)) ||
-      !fd.connect(sa)) {
-    fd.close();
-    return SocketFd();
-  }
-
-  m_size++;
-  return fd;
+SocketManager::~SocketManager() {
+  delete m_bindAddress;
 }
 
-SocketFd
-SocketManager::received(SocketFd fd, __UNUSED const rak::socket_address& sa) {
-  if (!fd.is_valid())
-    throw internal_error("SocketManager::received(...) received an invalid file descriptor");
+bool
+SocketManager::can_connect(__UNUSED const sockaddr* sa) {
+  if (m_size >= m_max)
+    return false;
 
-  if (m_size >= m_max || !fd.set_nonblock()) {
-    fd.close();
-    return SocketFd();
-  }
-
-  m_size++;
-  return fd;
+  return true;
 }
 
 void
-SocketManager::close(SocketFd fd) {
-  if (!fd.is_valid())
-    throw internal_error("SocketManager::close(...) received an invalid file descriptor");
+SocketManager::set_bind_address(const sockaddr* sa) {
+  const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
 
-  fd.close();
-  m_size--;
+  rak::socket_address::cast_from(m_bindAddress)->copy(*rsa, rsa->length());
 }
 
 }

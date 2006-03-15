@@ -80,7 +80,7 @@ public:
 
   // This push is somewhat inefficient as it iterates through the
   // whole container to see if the address already exists.
-  void                push_back(const rak::socket_address& sa);
+  void                push_back(const rak::socket_address* sa);
 
   void                insert(AddressList* l);
   void                erase(const rak::socket_address& sa);

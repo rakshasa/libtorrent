@@ -54,7 +54,7 @@ ConnectionList::clear() {
 
 bool
 ConnectionList::insert(DownloadMain* d, const PeerInfo& p, const SocketFd& fd) {
-  if (std::find_if(begin(), end(), rak::equal(p, std::mem_fun(&PeerConnectionBase::get_peer))) != end() ||
+  if (std::find_if(begin(), end(), rak::equal_ptr(&p, std::mem_fun(&PeerConnectionBase::peer_info))) != end() ||
       size() >= m_maxSize)
     return false;
 
@@ -127,23 +127,22 @@ ConnectionList::erase_seeders() {
 
 struct connection_list_less {
   bool operator () (const PeerConnectionBase* p1, const PeerConnectionBase* p2) const {
-    return p1->get_peer().get_socket_address() < p2->get_peer().get_socket_address();
+    return *p1->peer_info()->socket_address() < *p2->peer_info()->socket_address();
   }
 
   bool operator () (const rak::socket_address& sa1, const PeerConnectionBase* p2) const {
-    return sa1 < p2->get_peer().get_socket_address();
+    return sa1 < *p2->peer_info()->socket_address();
   }
 
   bool operator () (const PeerConnectionBase* p1, const rak::socket_address& sa2) const {
-    return p1->get_peer().get_socket_address() < sa2;
+    return *p1->peer_info()->socket_address() < sa2;
   }
 };
 
 ConnectionList::iterator
 ConnectionList::find(const rak::socket_address& sa) {
-  return std::find_if(begin(), end(),
-		      rak::equal(sa, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
-					     std::mem_fun_ref<const rak::socket_address&>(&PeerInfo::get_socket_address))));
+  return std::find_if(begin(), end(), rak::equal_ptr(&sa, rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
+								  std::mem_fun(&PeerInfo::socket_address))));
 }
 
 void

@@ -2,9 +2,17 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Connecting to yourself, fix.
+
 Don't ignore lines that end with EOF.
 
 Consider how failed pieces affect interested state.
+
+Make a bunch of peer_connection ftor's and put them in a header
+somewhere.
+
+connection_list, handshake_manager. Make a template, and all classes
+have peer_info() function for accessing?
 
 "Peer requested a piece with invalid index or length/offset." - Enable
 the extra debug information and figure this one out.
@@ -26,6 +34,8 @@ Add a function in core::Download to update various resume data.
 read request checks choke in two places and adds to write poll.
 
 Test incoming.
+
+rak/functional, some of those do copy-by-value...
 
 
 ***

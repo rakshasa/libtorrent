@@ -40,6 +40,8 @@
 #include <string>
 #include <inttypes.h>
 
+struct sockaddr;
+
 namespace torrent {
 
 class PeerConnectionBase;
@@ -70,9 +72,9 @@ public:
   void                 set_snubbed(bool v);
 
   std::string          id();
-  std::string          address();
-  uint16_t             port();
   const char*          options();
+
+  const sockaddr*      address() const;
 
   const Rate*          down_rate();
   const Rate*          up_rate();

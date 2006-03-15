@@ -49,7 +49,7 @@ class PeerInfo {
 public:
   PeerInfo();
 
-  bool                is_valid() const                      { return m_id.length() == 20 && m_sa.is_valid(); }
+  bool                is_valid() const                      { return m_id.length() == 20 && m_address.is_valid(); }
 
   bool                is_incoming() const                   { return m_incoming; }
   void                set_incoming(bool v)                  { m_incoming = v; }
@@ -57,22 +57,20 @@ public:
   const std::string&  get_id() const                        { return m_id; }
   void                set_id(const std::string& id)         { m_id = id; }
 
-  std::string         get_address() const                   { return m_sa.address_str(); }
-  uint16_t            get_port() const                      { return m_sa.port(); }
   char*               get_options()                         { return m_options; }
   const char*         get_options() const                   { return m_options; }
 
-  rak::socket_address&       get_socket_address()                 { return m_sa; }
-  const rak::socket_address& get_socket_address() const           { return m_sa; }
+  rak::socket_address*       socket_address()               { return &m_address; }
+  const rak::socket_address* socket_address() const         { return &m_address; }
 
-  void                set_socket_address(const rak::socket_address& sa) { m_sa = sa; }
+  void                set_socket_address(const rak::socket_address* sa) { m_address = *sa; }
 
   bool                operator < (const PeerInfo& p) const  { return m_id < p.m_id; }
   bool                operator == (const PeerInfo& p) const { return m_id == p.m_id; }
 
 private:
   std::string         m_id;
-  rak::socket_address m_sa;
+  rak::socket_address m_address;
   char                m_options[8];
 
   bool                m_incoming;
@@ -80,17 +78,9 @@ private:
 
 inline
 PeerInfo::PeerInfo() {
-  m_sa.clear();
+  m_address.clear();
   std::memset(m_options, 0, 8);
 }
-
-// inline
-// PeerInfo::PeerInfo(const std::string& id, const rak::socket_address& sa, bool incoming) :
-//   m_id(id),
-//   m_sa(sa),
-//   m_incoming(incoming) {
-//   std::memset(m_options, 0, 8);
-// }
 
 } // namespace torrent
 

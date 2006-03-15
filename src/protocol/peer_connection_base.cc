@@ -83,7 +83,9 @@ PeerConnectionBase::~PeerConnectionBase() {
   pollCustom->remove_error(this);
   pollCustom->close(this);
   
-  socketManager.close(get_fd());
+  socketManager.dec_socket_count();
+
+  get_fd().close();
   get_fd().clear();
 
   if (m_requestList.is_downloading())

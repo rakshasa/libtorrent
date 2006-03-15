@@ -73,6 +73,8 @@ public:
   void                initialize_incoming(const rak::socket_address& sa);
   
   PeerInfo*           peer_info()                   { return &m_peerInfo; }
+  const PeerInfo*     peer_info() const             { return &m_peerInfo; }
+
   DownloadInfo*       download_info()               { return m_downloadInfo; }
 
   // Make sure the fd is valid when this is called. The caller is

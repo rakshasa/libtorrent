@@ -34,49 +34,33 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
+// Add some helpfull words here.
+
 #ifndef LIBTORRENT_NET_SOCKET_MANAGER_H
 #define LIBTORRENT_NET_SOCKET_MANAGER_H
 
 #include <inttypes.h>
-#include <rak/socket_address.h>
 
-#include "socket_fd.h"
+class sockaddr;
 
 namespace torrent {
-
-// Socket manager keeps tabs on how many open sockets we got and helps
-// with opening addresses. It will also make sure ip address filtering
-// gets handled.
-//
-// It closes the opened/received socket if the connection is unwanted.
-//
-// TODO: Rename received to receive.
 
 class SocketManager {
 public:
   SocketManager();
+  ~SocketManager();
   
   // Check that we have not surpassed the max number of open sockets
   // and that we're allowed to connect to the socket address.
-  bool                can_connect(const rak::socket_address& sa);
+  //
+  // Consider only checking max number of open sockets.
+  bool                can_connect(const sockaddr* sa);
 
   // Call this to keep the socket count up to date.
-  void                increment_sockets();
-  void                decrement_sockets();
+  void                inc_socket_count()            { m_size++; }
+  void                dec_socket_count()            { m_size--; }
 
-  //
-  // Old interface.
-  //
-  SocketFd            open(const rak::socket_address& sa);
-  SocketFd            received(SocketFd fd, const rak::socket_address& sa);
-
-  void                local(__UNUSED SocketFd fd)   { m_size++; }
-
-  void                close(SocketFd fd);
-  //
-  //
-  //
-
+  // size_type
   uint32_t            size() const                  { return m_size; }
 
   uint32_t            max_size() const              { return m_max; }
@@ -84,34 +68,22 @@ public:
 
   // Propably going to have to make m_bindAddress a pointer to make it
   // safe.
-  rak::socket_address* bind_address()               { return &m_bindAddress; }
+  //
+  // Perhaps add length parameter.
+  //
+  // Setting the bind address makes a copy.
+  const sockaddr*     bind_address()                { return m_bindAddress; }
+  void                set_bind_address(const sockaddr* sa);
 
 private:
+  SocketManager(const SocketManager&);
+  void operator = (const SocketManager&);
+
   uint32_t            m_size;
   uint32_t            m_max;
 
-  rak::socket_address m_bindAddress;
+  sockaddr*           m_bindAddress;
 };
-
-// Move somewhere else.
-struct SocketAddressCompact {
-  SocketAddressCompact() {}
-  SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
-
-  operator rak::socket_address () const {
-    rak::socket_address sa;
-    sa.sa_inet()->clear();
-    sa.sa_inet()->set_port_n(port);
-    sa.sa_inet()->set_address_n(addr);
-
-    return sa;
-  }
-
-  uint32_t addr;
-  uint16_t port;
-
-  const char*         c_str() const { return reinterpret_cast<const char*>(this); }
-} __attribute__ ((packed));
 
 }
 

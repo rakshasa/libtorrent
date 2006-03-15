@@ -47,7 +47,7 @@ namespace torrent {
 
 bool
 Peer::is_incoming() const {
-  return m_ptr->get_peer().is_incoming();
+  return m_ptr->peer_info()->is_incoming();
 }
 
 bool
@@ -82,22 +82,17 @@ Peer::set_snubbed(bool v) {
 
 std::string
 Peer::id() {
-  return m_ptr->get_peer().get_id();
-}
-
-std::string
-Peer::address() {
-  return m_ptr->get_peer().get_address();
-}
-
-uint16_t
-Peer::port() {
-  return m_ptr->get_peer().get_port();
+  return m_ptr->peer_info()->get_id();
 }
 
 const char*
 Peer::options() {
-  return m_ptr->get_peer().get_options();
+  return m_ptr->peer_info()->get_options();
+}
+
+const sockaddr*
+Peer::address() const {
+  return m_ptr->peer_info()->socket_address()->c_sockaddr();
 }
 
 const Rate*

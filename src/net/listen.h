@@ -55,7 +55,7 @@ public:
   Listen() : m_port(0) {}
   ~Listen() { close(); }
 
-  bool                open(uint16_t first, uint16_t last, rak::socket_address sa);
+  bool                open(uint16_t first, uint16_t last, const rak::socket_address* bindAddress);
   void                close();
 
   bool                is_open()                            { return get_fd().is_valid(); }

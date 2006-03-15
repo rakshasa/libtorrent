@@ -420,8 +420,8 @@ Download::peer_find(const std::string& id) {
     std::find_if(m_ptr->main()->connection_list()->begin(),
 		 m_ptr->main()->connection_list()->end(),
 		 
-		 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::get_peer),
-					std::mem_fun_ref(&PeerInfo::get_id))));
+		 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
+					std::mem_fun(&PeerInfo::get_id))));
 
   return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
 }

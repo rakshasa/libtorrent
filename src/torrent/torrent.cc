@@ -129,7 +129,7 @@ listen_open(uint16_t begin, uint16_t end) {
   if (manager == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
-  if (!manager->listen()->open(begin, end, *manager->socket_manager()->bind_address()))
+  if (!manager->listen()->open(begin, end, rak::socket_address::cast_from(manager->socket_manager()->bind_address())))
     return false;
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
@@ -172,53 +172,42 @@ is_inactive() {
     == manager->download_manager()->end();
 }
 
-std::string
+const sockaddr*
 local_address() {
-  return manager->local_address()->is_address_any() ? std::string() : manager->local_address()->address_str();
+  return manager->local_address()->c_sockaddr();
 }
 
 void
-set_local_address(const std::string& addr) {
-  int err;
-  rak::address_info* ai;
+set_local_address(const sockaddr* addr) {
+  const rak::socket_address* sa = rak::socket_address::cast_from(addr);
 
-  if ((err = rak::address_info::get_address_info(addr.c_str(), PF_INET, SOCK_STREAM, &ai)) != 0)
-    throw input_error("Could not set local address: " + std::string(rak::address_info::strerror(err)) + ".");
-  
-  if (ai->address()->family() != rak::socket_address::af_inet)
-    throw input_error("Local address resolved to an unsupported socket address type.");
+  if (sa->family() != rak::socket_address::af_inet)
+    throw input_error("Tried to set a local address that is not an af_inet address.");
 
   // Use the first valid address for now, consider sorting.
-  manager->local_address()->copy(*ai->address(), ai->length());
-  rak::address_info::free_address_info(ai);
+  manager->local_address()->copy(*sa, sa->length());
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
     *(*itr)->info()->local_address() = *manager->local_address();
 }
 
-std::string
+const sockaddr*
 bind_address() {
-  return manager->socket_manager()->bind_address()->is_address_any() ? std::string() : manager->socket_manager()->bind_address()->address_str();
+  return manager->socket_manager()->bind_address();
 }
 
 void
-set_bind_address(const std::string& addr) {
+set_bind_address(const sockaddr* addr) {
   if (manager->listen()->is_open())
     throw input_error("Tried to set the bind address while the listening socket is open.");
 
-  int err;
-  rak::address_info* ai;
+  const rak::socket_address* sa = rak::socket_address::cast_from(addr);
 
-  if ((err = rak::address_info::get_address_info(addr.c_str(), PF_INET, SOCK_STREAM, &ai)) != 0)
-    throw input_error("Could not set bind address: " + std::string(rak::address_info::strerror(err)) + ".");
-  
-  if (ai->address()->family() != rak::socket_address::af_inet)
-    throw input_error("Bind address resolved to an unsupported socket address type.");
+  if (sa->family() != rak::socket_address::af_inet)
+    throw input_error("Tried to set a bind address that is not an af_inet address.");
 
   // Use the first valid address for now, consider sorting.
-  manager->socket_manager()->bind_address()->copy(*ai->address(), ai->length());
-
-  rak::address_info::free_address_info(ai);
+  manager->socket_manager()->set_bind_address(addr);
 }
 
 uint32_t

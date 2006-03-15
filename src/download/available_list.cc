@@ -61,11 +61,11 @@ AvailableList::pop_random() {
 }
 
 void
-AvailableList::push_back(const rak::socket_address& sa) {
-  if (std::find(begin(), end(), sa) != end())
+AvailableList::push_back(const rak::socket_address* sa) {
+  if (std::find(begin(), end(), *sa) != end())
     return;
 
-  Base::push_back(sa);
+  Base::push_back(*sa);
 }
 
 void

@@ -50,14 +50,14 @@
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, rak::socket_address sa) {
+Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddress) {
   close();
 
   if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
-  if (sa.family() != rak::socket_address::af_inet &&
-      sa.family() != rak::socket_address::af_inet6)
+  if (bindAddress->family() != rak::socket_address::af_inet &&
+      bindAddress->family() != rak::socket_address::af_inet6)
     throw input_error("Listening socket must be bound to an inet or inet6 address.");
 
   if (!get_fd().open_stream() || !get_fd().set_nonblock())
@@ -66,13 +66,16 @@ Listen::open(uint16_t first, uint16_t last, rak::socket_address sa) {
   if (!get_fd().set_reuse_address(true))
     throw local_error("Could not set listening port to reuse address.");
 
-  socketManager.local(get_fd());
+  rak::socket_address sa;
+  sa.copy(*bindAddress, bindAddress->length());
 
   for (uint16_t i = first; i <= last; ++i) {
     sa.set_port(i);
 
     if (get_fd().bind(sa) && get_fd().listen(50)) {
       m_port = i;
+
+      socketManager.inc_socket_count();
 
       pollCustom->open(this);
       pollCustom->insert_read(this);
@@ -82,7 +85,8 @@ Listen::open(uint16_t first, uint16_t last, rak::socket_address sa) {
     }
   }
 
-  socketManager.close(get_fd());
+  // This needs to be done if local_error is thrown too...
+  get_fd().close();
   get_fd().clear();
 
   return false;
@@ -96,7 +100,9 @@ void Listen::close() {
   pollCustom->remove_error(this);
   pollCustom->close(this);
 
-  socketManager.close(get_fd());
+  socketManager.dec_socket_count();
+
+  get_fd().close();
   get_fd().clear();
   
   m_port = 0;

@@ -50,9 +50,11 @@ namespace torrent {
 
 inline void
 HandshakeManager::delete_handshake(Handshake* h) {
+  socketManager.dec_socket_count();
+
   h->clear();
-  socketManager.close(h->get_fd());
-  h->set_fd(SocketFd());
+  h->get_fd().close();
+  h->get_fd().clear();
 
   delete h;
 }
@@ -78,12 +80,15 @@ HandshakeManager::erase(Handshake* handshake) {
   Base::erase(itr);
 }
 
+struct handshake_manager_equal : std::binary_function<const rak::socket_address*, const Handshake*, bool> {
+  bool operator () (const rak::socket_address* sa1, const Handshake* p2) const {
+    return *sa1 == *p2->peer_info()->socket_address();
+  }
+};
+
 bool
 HandshakeManager::find(const rak::socket_address& sa) {
-  return std::find_if(Base::begin(), Base::end(),
-		      rak::equal(sa, rak::on(std::mem_fun(&Handshake::peer_info),
-					     std::mem_fun<const rak::socket_address&>(&PeerInfo::get_socket_address))))
-    != Base::end();
+  return std::find_if(Base::begin(), Base::end(), std::bind1st(handshake_manager_equal(), &sa)) != Base::end();
 }
 
 void
@@ -96,8 +101,12 @@ HandshakeManager::erase_info(DownloadInfo* info) {
 
 void
 HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
-  if (!socketManager.received(fd, sa).is_valid())
+  if (!socketManager.can_connect(sa.c_sockaddr()) || !fd.set_nonblock()) {
+    fd.close();
     return;
+  }
+
+  socketManager.inc_socket_count();
 
   Handshake* h = new Handshake(fd, this);
   h->initialize_incoming(sa);
@@ -107,10 +116,24 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   
 void
 HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info) {
-  SocketFd fd = socketManager.open(sa);
-
-  if (!fd.is_valid())
+  if (!socketManager.can_connect(sa.c_sockaddr()))
     return;
+
+  SocketFd fd;
+
+  if (!fd.open_stream())
+    return;
+
+  const rak::socket_address* bindAddress = rak::socket_address::cast_from(socketManager.bind_address());
+
+  if (!fd.set_nonblock() ||
+      (bindAddress->is_bindable() && !fd.bind(*bindAddress)) ||
+      !fd.connect(sa)) {
+    fd.close();
+    return;
+  }
+
+  socketManager.inc_socket_count();
 
   Handshake* h = new Handshake(fd, this);
   h->initialize_outgoing(sa, info);
@@ -134,15 +157,11 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 void
 HandshakeManager::receive_failed(Handshake* h) {
   erase(h);
-  h->clear();
 
 //   if (h->download_info() != NULL)
 //     h->download_info()->signal_network_log().emit("Failed handshake: " + h->peer_info()->get_address());
 
-  socketManager.close(h->get_fd());
-
-  h->set_fd(SocketFd());
-  delete h;
+  delete_handshake(h);
 }
 
 }

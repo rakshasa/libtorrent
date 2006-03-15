@@ -1,7 +1,5 @@
 == API changes ==
 
-Use sockaddr in the API, rather than strings.
-
 The seed count and scrape leech/seed.
 
 SO_SNDBUF and friends.
@@ -17,6 +15,8 @@ Disk cache.
 Make libtorrent locale agnostic.
 
 Resume needs to be split.
+
+Make torrent::Peer interface const friendly.
 
 
 === torrent::Object ==

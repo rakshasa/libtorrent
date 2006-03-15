@@ -76,7 +76,7 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadInfo* d) {
   m_downloadInfo = d;
 
   m_peerInfo.set_incoming(false);
-  m_peerInfo.set_socket_address(sa);
+  m_peerInfo.set_socket_address(&sa);
 
   m_state = CONNECTING;
 
@@ -90,7 +90,7 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadInfo* d) {
 void
 Handshake::initialize_incoming(const rak::socket_address& sa) {
   m_peerInfo.set_incoming(true);
-  m_peerInfo.set_socket_address(sa);
+  m_peerInfo.set_socket_address(&sa);
 
   m_state = READ_INFO;
 

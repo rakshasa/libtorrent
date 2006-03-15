@@ -153,20 +153,24 @@ Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& pee
   DownloadManager::iterator itr = m_downloadManager->find(info);
   
   if (itr == m_downloadManager->end()) {
-    socketManager.close(fd);
+    socketManager.dec_socket_count();
+    fd.close();
+    
     return;
   }
 
-  if (!peer.get_socket_address().is_valid()) {
+  if (!peer.socket_address()->is_valid()) {
     (*itr)->info()->signal_network_log().emit("Caught a connection with invalid socket address.");
 
-    socketManager.close(fd);
+    socketManager.dec_socket_count();
+    fd.close();
     return;
   }    
 
   if (!(*itr)->main()->is_active() ||
       !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd)) {
-    socketManager.close(fd);
+    socketManager.dec_socket_count();
+    fd.close();
     return;
   }
 }

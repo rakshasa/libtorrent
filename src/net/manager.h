@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_NET_MANAGER_H
 #define LIBTORRENT_NET_MANAGER_H
 
+#include <rak/socket_address.h>
+
 #include "torrent/poll.h"
 #include "socket_manager.h"
 
@@ -44,6 +46,26 @@ namespace torrent {
 
 extern Poll* pollCustom;
 extern SocketManager socketManager;
+
+// Move somewhere else.
+struct SocketAddressCompact {
+  SocketAddressCompact() {}
+  SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
+
+  operator rak::socket_address () const {
+    rak::socket_address sa;
+    sa.sa_inet()->clear();
+    sa.sa_inet()->set_port_n(port);
+    sa.sa_inet()->set_address_n(addr);
+
+    return sa;
+  }
+
+  uint32_t addr;
+  uint16_t port;
+
+  const char*         c_str() const { return reinterpret_cast<const char*>(this); }
+} __attribute__ ((packed));
 
 }
 

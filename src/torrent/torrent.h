@@ -44,6 +44,8 @@
 #include <sys/types.h>
 #include <sys/select.h>
 
+struct sockaddr;
+
 namespace torrent {
 
 class Bencode;
@@ -74,14 +76,14 @@ bool                is_inactive();
 
 // Address sent to the tracker.  Accepts a DNS or IP address which it
 // will look up immediately. The IP address will be returned.
-std::string         local_address();
-void                set_local_address(const std::string& addr);
+const sockaddr*     local_address();
+void                set_local_address(const sockaddr* addr);
 
 // Bind the sockets to a specific network device.  Accepts a DNS or IP
 // address which it will look up immediately. The IP address will be
 // returned.
-std::string         bind_address();
-void                set_bind_address(const std::string& addr);
+const sockaddr*     bind_address();
+void                set_bind_address(const sockaddr* addr);
 
 uint32_t            total_handshakes();
 

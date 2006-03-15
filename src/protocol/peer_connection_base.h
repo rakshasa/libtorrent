@@ -87,7 +87,7 @@ public:
   bool                is_snubbed() const            { return m_snubbed; }
   bool                is_seeder() const             { return m_peerChunks.bitfield()->all_set(); }
 
-  const PeerInfo&     get_peer() const              { return m_peer; }
+  const PeerInfo*     peer_info() const             { return &m_peer; }
   PeerChunks*         peer_chunks()                 { return &m_peerChunks; }
 
   Rate*               peer_rate()                   { return &m_peerRate; }
