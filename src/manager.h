@@ -41,10 +41,11 @@
 #include <string>
 #include <rak/priority_queue_default.h>
 
-#include <rak/socket_address.h>
 #include "net/socket_fd.h"
 
 namespace torrent {
+
+class Poll;
 
 class Listen;
 class HashQueue;
@@ -54,7 +55,7 @@ class DownloadWrapper;
 class FileManager;
 class ResourceManager;
 class PeerInfo;
-class SocketManager;
+class ConnectionManager;
 class ThrottleManager;
 class DownloadInfo;
 
@@ -71,9 +72,11 @@ public:
   HashQueue*          hash_queue()                              { return m_hashQueue; }
   Listen*             listen()                                  { return m_listen; }
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
-  SocketManager*      socket_manager()                          { return m_socketManager; }
 
-  rak::socket_address* local_address()                          { return &m_localAddress; }
+  ConnectionManager*  socket_manager()                          { return m_socketManager; }
+  
+  Poll*               poll()                                    { return m_poll; }
+  void                set_poll(Poll* p)                         { m_poll = p; }
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
 
@@ -87,15 +90,15 @@ public:
   void                receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& peer);
 
 private:
-  rak::socket_address m_localAddress;
-
   DownloadManager*    m_downloadManager;
   FileManager*        m_fileManager;
   HandshakeManager*   m_handshakeManager;
   HashQueue*          m_hashQueue;
   Listen*             m_listen;
   ResourceManager*    m_resourceManager;
-  SocketManager*      m_socketManager;
+
+  ConnectionManager*  m_socketManager;
+  Poll*               m_poll;
 
   EncodingList        m_encodingList;
 

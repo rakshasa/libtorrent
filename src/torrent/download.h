@@ -37,7 +37,6 @@
 #ifndef LIBTORRENT_DOWNLOAD_H
 #define LIBTORRENT_DOWNLOAD_H
 
-#include <torrent/common.h>
 #include <torrent/entry.h>
 #include <torrent/peer.h>
 #include <torrent/tracker.h>
@@ -45,6 +44,8 @@
 #include <iosfwd>
 #include <list>
 #include <vector>
+#include <string>
+#include <inttypes.h>
 #include <sigc++/slot.h>
 #include <sigc++/connection.h>
 

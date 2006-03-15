@@ -74,8 +74,6 @@ public:
     m_numwant(-1),
     m_upRate(60),
     m_downRate(60) {
-
-    m_localAddress.set_family();
   }
 
   const std::string&  name() const                                 { return m_name; }
@@ -89,8 +87,6 @@ public:
 
   uint16_t            port() const                                 { return m_port; }
   void                set_port(uint16_t p)                         { m_port = p; }
-
-  rak::socket_address* local_address()                             { return &m_localAddress; }
 
   uint32_t            key() const                                  { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
@@ -123,8 +119,6 @@ private:
 
   uint16_t            m_port;
 
-  rak::socket_address m_localAddress;
-
   uint32_t            m_key;
   bool                m_compact;
   int32_t             m_numwant;
@@ -137,6 +131,26 @@ private:
   SignalString        m_signalNetworkLog;
   SignalString        m_signalStorageError;
 };
+
+// Move somewhere else.
+struct SocketAddressCompact {
+  SocketAddressCompact() {}
+  SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
+
+  operator rak::socket_address () const {
+    rak::socket_address sa;
+    sa.sa_inet()->clear();
+    sa.sa_inet()->set_port_n(port);
+    sa.sa_inet()->set_address_n(addr);
+
+    return sa;
+  }
+
+  uint32_t addr;
+  uint16_t port;
+
+  const char*         c_str() const { return reinterpret_cast<const char*>(this); }
+} __attribute__ ((packed));
 
 }
 

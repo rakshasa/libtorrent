@@ -2,6 +2,12 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Move local_address, make ptr from dwnl.
+
+Remove port thingie from DownloadInfo.
+
+Get rid of globals.h.
+
 Connecting to yourself, fix.
 
 Don't ignore lines that end with EOF.

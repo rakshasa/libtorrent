@@ -38,11 +38,13 @@
 #define LIBTORRENT_ENTRY_H
 
 #include <list>
-#include <torrent/common.h>
+#include <string>
+#include <inttypes.h>
 
 namespace torrent {
 
 class EntryListNode;
+class Path;
 
 class Entry {
 public:

@@ -43,6 +43,8 @@
 #include <sys/socket.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/connection_manager.h"
+#include "torrent/poll.h"
 
 #include "listen.h"
 #include "manager.h"
@@ -75,11 +77,11 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
     if (get_fd().bind(sa) && get_fd().listen(50)) {
       m_port = i;
 
-      socketManager.inc_socket_count();
+      manager->socket_manager()->inc_socket_count();
 
-      pollCustom->open(this);
-      pollCustom->insert_read(this);
-      pollCustom->insert_error(this);
+      manager->poll()->open(this);
+      manager->poll()->insert_read(this);
+      manager->poll()->insert_error(this);
 
       return true;
     }
@@ -96,11 +98,11 @@ void Listen::close() {
   if (!get_fd().is_valid())
     return;
 
-  pollCustom->remove_read(this);
-  pollCustom->remove_error(this);
-  pollCustom->close(this);
+  manager->poll()->remove_read(this);
+  manager->poll()->remove_error(this);
+  manager->poll()->close(this);
 
-  socketManager.dec_socket_count();
+  manager->socket_manager()->dec_socket_count();
 
   get_fd().close();
   get_fd().clear();

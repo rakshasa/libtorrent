@@ -37,10 +37,12 @@
 #include "config.h"
 
 #include "download/download_info.h"
-#include "net/manager.h"
 #include "torrent/exceptions.h"
+#include "torrent/connection_manager.h"
+#include "torrent/poll.h"
 
 #include "globals.h"
+#include "manager.h"
 
 #include "handshake.h"
 #include "handshake_manager.h"
@@ -80,9 +82,9 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadInfo* d) {
 
   m_state = CONNECTING;
 
-  pollCustom->open(this);
-  pollCustom->insert_write(this);
-  pollCustom->insert_error(this);
+  manager->poll()->open(this);
+  manager->poll()->insert_write(this);
+  manager->poll()->insert_error(this);
 
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
 }
@@ -94,9 +96,9 @@ Handshake::initialize_incoming(const rak::socket_address& sa) {
 
   m_state = READ_INFO;
 
-  pollCustom->open(this);
-  pollCustom->insert_read(this);
-  pollCustom->insert_error(this);
+  manager->poll()->open(this);
+  manager->poll()->insert_read(this);
+  manager->poll()->insert_error(this);
 
   // Use lower timeout here.
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
@@ -108,10 +110,10 @@ Handshake::clear() {
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
-  pollCustom->remove_read(this);
-  pollCustom->remove_write(this);
-  pollCustom->remove_error(this);
-  pollCustom->close(this);
+  manager->poll()->remove_read(this);
+  manager->poll()->remove_write(this);
+  manager->poll()->remove_error(this);
+  manager->poll()->close(this);
 }
 
 void
@@ -148,8 +150,8 @@ Handshake::event_read() {
 	m_state = WRITE_FILL;
 	m_readBuffer.move_position(20);
 	
-	pollCustom->remove_read(this);
-	pollCustom->insert_write(this);
+	manager->poll()->remove_read(this);
+	manager->poll()->insert_write(this);
 
 	return;
 
@@ -218,8 +220,8 @@ Handshake::event_write() {
       else
 	m_state = READ_INFO;
 
-      pollCustom->remove_write(this);
-      pollCustom->insert_read(this);
+      manager->poll()->remove_write(this);
+      manager->poll()->insert_read(this);
 
       return;
 

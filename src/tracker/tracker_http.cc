@@ -41,12 +41,13 @@
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
-#include "net/manager.h"
+#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
 #include "tracker_http.h"
 
 #include "globals.h"
+#include "manager.h"
 
 namespace torrent {
 
@@ -91,9 +92,11 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
   if (!m_trackerId.empty())
     s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
 
-  if (m_info->local_address()->family() == rak::socket_address::af_inet &&
-      !m_info->local_address()->sa_inet()->is_address_any())
-    s << "&ip=" << m_info->local_address()->address_str();
+  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->socket_manager()->local_address());
+
+  if (localAddress->family() == rak::socket_address::af_inet &&
+      !localAddress->sa_inet()->is_address_any())
+    s << "&ip=" << localAddress->address_str();
 
   if (m_info->compact())
     s << "&compact=1";

@@ -34,40 +34,62 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+// Add some helpfull words here.
 
-#include <rak/socket_address.h>
+#ifndef LIBTORRENT_CONNECTION_MANAGER_H
+#define LIBTORRENT_CONNECTION_MANAGER_H
 
-#include "torrent/exceptions.h"
-#include "socket_manager.h"
+#include <inttypes.h>
+
+class sockaddr;
 
 namespace torrent {
 
-SocketManager::SocketManager() :
-  m_size(0),
-  m_max(0) {
+class ConnectionManager {
+public:
+  ConnectionManager();
+  ~ConnectionManager();
+  
+  // Check that we have not surpassed the max number of open sockets
+  // and that we're allowed to connect to the socket address.
+  //
+  // Consider only checking max number of open sockets.
+  bool                can_connect(const sockaddr* sa);
 
-  m_bindAddress = (new rak::socket_address())->c_sockaddr();
-  rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();
+  // Call this to keep the socket count up to date.
+  void                inc_socket_count()            { m_size++; }
+  void                dec_socket_count()            { m_size--; }
+
+  // size_type
+  uint32_t            size() const                  { return m_size; }
+
+  uint32_t            max_size() const              { return m_max; }
+  void                set_max_size(uint32_t s)      { m_max = s; }
+
+  // Propably going to have to make m_bindAddress a pointer to make it
+  // safe.
+  //
+  // Perhaps add length parameter.
+  //
+  // Setting the bind address makes a copy.
+  const sockaddr*     bind_address()                { return m_bindAddress; }
+  void                set_bind_address(const sockaddr* sa);
+
+  const sockaddr*     local_address()               { return m_localAddress; }
+  void                set_local_address(const sockaddr* sa);
+
+private:
+  ConnectionManager(const ConnectionManager&);
+  void operator = (const ConnectionManager&);
+
+  uint32_t            m_size;
+  uint32_t            m_max;
+
+  sockaddr*           m_bindAddress;
+  sockaddr*           m_localAddress;
+};
+
 }
 
-SocketManager::~SocketManager() {
-  delete m_bindAddress;
-}
+#endif
 
-bool
-SocketManager::can_connect(__UNUSED const sockaddr* sa) {
-  if (m_size >= m_max)
-    return false;
-
-  return true;
-}
-
-void
-SocketManager::set_bind_address(const sockaddr* sa) {
-  const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
-
-  rak::socket_address::cast_from(m_bindAddress)->copy(*rsa, rsa->length());
-}
-
-}

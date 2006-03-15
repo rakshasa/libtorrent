@@ -39,10 +39,12 @@
 #include <rak/address_info.h>
 #include <rak/error_number.h>
 
-#include "net/manager.h"
 #include "torrent/exceptions.h"
+#include "torrent/connection_manager.h"
+#include "torrent/poll.h"
 
 #include "tracker_udp.h"
+#include "manager.h"
 
 namespace torrent {
 
@@ -72,7 +74,7 @@ TrackerUdp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, ui
 
   if (!get_fd().open_datagram() ||
       !get_fd().set_nonblock() ||
-      !get_fd().bind(*rak::socket_address::cast_from(socketManager.bind_address())))
+      !get_fd().bind(*rak::socket_address::cast_from(manager->socket_manager()->bind_address())))
     return receive_failed("Could not open UDP socket.");
 
   m_readBuffer = new ReadBuffer;
@@ -85,10 +87,10 @@ TrackerUdp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, ui
 
   prepare_connect_input();
 
-  pollCustom->open(this);
-  pollCustom->insert_read(this);
-  pollCustom->insert_write(this);
-  pollCustom->insert_error(this);
+  manager->poll()->open(this);
+  manager->poll()->insert_read(this);
+  manager->poll()->insert_write(this);
+  manager->poll()->insert_error(this);
 
   m_tries = m_info->udp_tries();
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_info->udp_timeout())).round_seconds());
@@ -107,10 +109,10 @@ TrackerUdp::close() {
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
-  pollCustom->remove_read(this);
-  pollCustom->remove_write(this);
-  pollCustom->remove_error(this);
-  pollCustom->close(this);
+  manager->poll()->remove_read(this);
+  manager->poll()->remove_write(this);
+  manager->poll()->remove_error(this);
+  manager->poll()->close(this);
 
   get_fd().close();
   get_fd().clear();
@@ -137,7 +139,7 @@ TrackerUdp::receive_timeout() {
   } else {
     priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_info->udp_timeout())).round_seconds());
 
-    pollCustom->insert_write(this);
+    manager->poll()->insert_write(this);
   }
 }
 
@@ -167,7 +169,7 @@ TrackerUdp::event_read() {
     priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_info->udp_timeout())).round_seconds());
 
     m_tries = m_info->udp_tries();
-    pollCustom->insert_write(this);
+    manager->poll()->insert_write(this);
     return;
 
   case 1:
@@ -198,7 +200,7 @@ TrackerUdp::event_write() {
   if (s != m_writeBuffer->size_end())
     ;
 
-  pollCustom->remove_write(this);
+  manager->poll()->remove_write(this);
 }
 
 void
@@ -256,11 +258,13 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_64(m_sendUp);
   m_writeBuffer->write_32(m_sendState);
 
+  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->socket_manager()->local_address());
+
   // This code assumes we're have a inet address.
-  if (m_info->local_address()->family() != rak::socket_address::af_inet)
+  if (localAddress->family() != rak::socket_address::af_inet)
     throw internal_error("TrackerUdp::prepare_announce_input() m_info->local_address() not of family AF_INET.");
 
-  m_writeBuffer->write_32_n(m_info->local_address()->sa_inet()->address_n());
+  m_writeBuffer->write_32_n(localAddress->sa_inet()->address_n());
   m_writeBuffer->write_32(m_info->key());
   m_writeBuffer->write_32(m_info->numwant());
   m_writeBuffer->write_16(m_info->port());

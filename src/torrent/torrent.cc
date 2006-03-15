@@ -36,7 +36,6 @@
 
 #include "config.h"
 
-#include <iostream>
 #include <rak/address_info.h>
 #include <rak/functional.h>
 #include <rak/string_manip.h>
@@ -44,12 +43,13 @@
 #include "exceptions.h"
 #include "torrent.h"
 #include "bencode.h"
+#include "connection_manager.h"
+#include "poll.h"
 
 #include "manager.h"
 #include "resource_manager.h"
 
 #include "net/listen.h"
-#include "net/manager.h"
 #include "net/throttle_list.h"
 #include "net/throttle_manager.h"
 #include "protocol/handshake_manager.h"
@@ -96,18 +96,17 @@ initialize(Poll* poll) {
   if (manager != NULL)
     throw client_error("torrent::initialize(...) called but the library has already been initialized");
 
-  cachedTime = rak::timer::current();
-
-  manager = new Manager;
-
-  pollCustom = poll;
-
   if (poll->open_max() < 64)
     throw client_error("Could not initialize libtorrent, Poll::open_max() < 64.");
 
+  cachedTime = rak::timer::current();
+
+  manager = new Manager;
+  manager->set_poll(poll);
+
   uint32_t maxFiles = calculate_max_open_files(poll->open_max());
 
-  socketManager.set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
+  manager->socket_manager()->set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
   manager->file_manager()->set_max_size(maxFiles);
 }
 
@@ -120,8 +119,6 @@ cleanup() {
 
   delete manager;
   manager = NULL;
-
-  pollCustom = NULL;
 }
 
 bool
@@ -172,42 +169,9 @@ is_inactive() {
     == manager->download_manager()->end();
 }
 
-const sockaddr*
-local_address() {
-  return manager->local_address()->c_sockaddr();
-}
-
-void
-set_local_address(const sockaddr* addr) {
-  const rak::socket_address* sa = rak::socket_address::cast_from(addr);
-
-  if (sa->family() != rak::socket_address::af_inet)
-    throw input_error("Tried to set a local address that is not an af_inet address.");
-
-  // Use the first valid address for now, consider sorting.
-  manager->local_address()->copy(*sa, sa->length());
-
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    *(*itr)->info()->local_address() = *manager->local_address();
-}
-
-const sockaddr*
-bind_address() {
-  return manager->socket_manager()->bind_address();
-}
-
-void
-set_bind_address(const sockaddr* addr) {
-  if (manager->listen()->is_open())
-    throw input_error("Tried to set the bind address while the listening socket is open.");
-
-  const rak::socket_address* sa = rak::socket_address::cast_from(addr);
-
-  if (sa->family() != rak::socket_address::af_inet)
-    throw input_error("Tried to set a bind address that is not an af_inet address.");
-
-  // Use the first valid address for now, consider sorting.
-  manager->socket_manager()->set_bind_address(addr);
+ConnectionManager*
+connection_manager() {
+  return manager->socket_manager();
 }
 
 uint32_t
@@ -343,12 +307,12 @@ set_max_open_files(uint32_t size) {
 
 uint32_t
 open_sockets() {
-  return socketManager.size();
+  return manager->socket_manager()->size();
 }
 
 uint32_t
 max_open_sockets() {
-  return socketManager.max_size();
+  return manager->socket_manager()->max_size();
 }
 
 void
@@ -356,7 +320,7 @@ set_max_open_sockets(uint32_t size) {
   if (size < 4 || size > (1 << 16))
     throw input_error("Max open sockets must be between 4 and 2^16.");
 
-  socketManager.set_max_size(size);
+  manager->socket_manager()->set_max_size(size);
 }
 
 EncodingList*

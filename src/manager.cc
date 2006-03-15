@@ -47,8 +47,9 @@
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
 #include "net/listen.h"
-#include "net/manager.h"
 #include "net/throttle_manager.h"
+
+#include "torrent/connection_manager.h"
 
 #include "manager.h"
 #include "resource_manager.h"
@@ -64,14 +65,15 @@ Manager::Manager() :
   m_hashQueue(new HashQueue),
   m_listen(new Listen),
   m_resourceManager(new ResourceManager),
-  m_socketManager(&socketManager),
+
+  m_socketManager(new ConnectionManager),
+
+  m_poll(NULL),
 
   m_uploadThrottle(new ThrottleManager),
   m_downloadThrottle(new ThrottleManager),
 
   m_ticks(0) {
-
-  m_localAddress.sa_inet()->clear();
 
   m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
 
@@ -95,6 +97,7 @@ Manager::~Manager() {
   delete m_hashQueue;
   delete m_listen;
   delete m_resourceManager;
+  delete m_socketManager;
 
   delete m_uploadThrottle;
   delete m_downloadThrottle;
@@ -102,7 +105,6 @@ Manager::~Manager() {
 
 void
 Manager::initialize_download(DownloadWrapper* d) {
-  *d->info()->local_address() = m_localAddress;
   d->info()->set_port(m_listen->port());
 
   d->main()->slot_count_handshakes(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::size_info));
@@ -153,7 +155,7 @@ Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& pee
   DownloadManager::iterator itr = m_downloadManager->find(info);
   
   if (itr == m_downloadManager->end()) {
-    socketManager.dec_socket_count();
+    m_socketManager->dec_socket_count();
     fd.close();
     
     return;
@@ -162,14 +164,14 @@ Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& pee
   if (!peer.socket_address()->is_valid()) {
     (*itr)->info()->signal_network_log().emit("Caught a connection with invalid socket address.");
 
-    socketManager.dec_socket_count();
+    m_socketManager->dec_socket_count();
     fd.close();
     return;
   }    
 
   if (!(*itr)->main()->is_active() ||
       !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd)) {
-    socketManager.dec_socket_count();
+    m_socketManager->dec_socket_count();
     fd.close();
     return;
   }

@@ -460,7 +460,7 @@ PeerConnectionLeech::event_write() {
 	fill_write_buffer();
 
 	if (m_up->buffer()->size_position() == 0) {
-	  pollCustom->remove_write(this);
+	  manager->poll()->remove_write(this);
 	  return;
 	}
 

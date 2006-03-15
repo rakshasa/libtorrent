@@ -40,16 +40,19 @@
 #include "data/chunk.h"
 #include "data/chunk_handle.h"
 #include "data/piece.h"
-#include "net/manager.h"
 #include "net/socket_stream.h"
 #include "net/throttle_node.h"
 #include "globals.h"
 #include "torrent/rate.h"
+#include "torrent/connection_manager.h"
+#include "torrent/poll.h"
 
 #include "peer_info.h"
 #include "peer_chunks.h"
 #include "protocol_base.h"
 #include "request_list.h"
+
+#include "manager.h"
 
 namespace torrent {
 
@@ -208,7 +211,7 @@ PeerConnectionBase::read_insert_poll_safe() {
   if (m_down->get_state() != ProtocolRead::IDLE)
     return;
 
-  pollCustom->insert_read(this);
+  manager->poll()->insert_read(this);
 }
 
 inline void
@@ -216,7 +219,7 @@ PeerConnectionBase::write_insert_poll_safe() {
   if (m_up->get_state() != ProtocolWrite::IDLE)
     return;
 
-  pollCustom->insert_write(this);
+  manager->poll()->insert_write(this);
 }
 
 }

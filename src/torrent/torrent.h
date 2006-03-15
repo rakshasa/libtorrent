@@ -38,7 +38,8 @@
 #define LIBTORRENT_TORRENT_H
 
 #include <list>
-#include <torrent/common.h>
+#include <string>
+#include <inttypes.h>
 #include <torrent/download.h>
 
 #include <sys/types.h>
@@ -51,6 +52,7 @@ namespace torrent {
 class Bencode;
 class Poll;
 class Rate;
+class ConnectionManager;
 
 // Make sure you seed srandom and srand48 if available.
 void                initialize(Poll* poll);
@@ -74,16 +76,7 @@ void                perform();
 
 bool                is_inactive();
 
-// Address sent to the tracker.  Accepts a DNS or IP address which it
-// will look up immediately. The IP address will be returned.
-const sockaddr*     local_address();
-void                set_local_address(const sockaddr* addr);
-
-// Bind the sockets to a specific network device.  Accepts a DNS or IP
-// address which it will look up immediately. The IP address will be
-// returned.
-const sockaddr*     bind_address();
-void                set_bind_address(const sockaddr* addr);
+ConnectionManager*  connection_manager();
 
 uint32_t            total_handshakes();
 

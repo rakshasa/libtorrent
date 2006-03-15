@@ -38,7 +38,9 @@
 
 #include <rak/socket_address.h>
 
-#include "net/manager.h"
+#include "torrent/connection_manager.h"
+#include "../manager.h"
+
 #include "torrent/exceptions.h"
 #include "download/download_info.h"
 
@@ -50,7 +52,7 @@ namespace torrent {
 
 inline void
 HandshakeManager::delete_handshake(Handshake* h) {
-  socketManager.dec_socket_count();
+  manager->socket_manager()->dec_socket_count();
 
   h->clear();
   h->get_fd().close();
@@ -101,12 +103,12 @@ HandshakeManager::erase_info(DownloadInfo* info) {
 
 void
 HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
-  if (!socketManager.can_connect(sa.c_sockaddr()) || !fd.set_nonblock()) {
+  if (!manager->socket_manager()->can_connect(sa.c_sockaddr()) || !fd.set_nonblock()) {
     fd.close();
     return;
   }
 
-  socketManager.inc_socket_count();
+  manager->socket_manager()->inc_socket_count();
 
   Handshake* h = new Handshake(fd, this);
   h->initialize_incoming(sa);
@@ -116,7 +118,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   
 void
 HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info) {
-  if (!socketManager.can_connect(sa.c_sockaddr()))
+  if (!manager->socket_manager()->can_connect(sa.c_sockaddr()))
     return;
 
   SocketFd fd;
@@ -124,7 +126,7 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info
   if (!fd.open_stream())
     return;
 
-  const rak::socket_address* bindAddress = rak::socket_address::cast_from(socketManager.bind_address());
+  const rak::socket_address* bindAddress = rak::socket_address::cast_from(manager->socket_manager()->bind_address());
 
   if (!fd.set_nonblock() ||
       (bindAddress->is_bindable() && !fd.bind(*bindAddress)) ||
@@ -133,7 +135,7 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info
     return;
   }
 
-  socketManager.inc_socket_count();
+  manager->socket_manager()->inc_socket_count();
 
   Handshake* h = new Handshake(fd, this);
   h->initialize_outgoing(sa, info);

@@ -5,6 +5,8 @@ libsub_torrent_la_SOURCES = \
 	bencode.h \
 	download.cc \
 	download.h \
+	connection_manager.cc \
+	connection_manager.h \
 	entry.cc \
 	entry.h \
 	event.h \
@@ -35,7 +37,7 @@ INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
 	bencode.h \
-	common.h \
+	connection_manager.h \
 	download.h \
 	exceptions.h \
 	entry.h \

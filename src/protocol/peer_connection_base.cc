@@ -46,6 +46,9 @@
 #include "download/download_main.h"
 #include "net/socket_base.h"
 
+#include "torrent/connection_manager.h"
+#include "../manager.h"
+
 #include "peer_connection_base.h"
 
 namespace torrent {
@@ -78,12 +81,12 @@ PeerConnectionBase::~PeerConnectionBase() {
 
   m_download->choke_manager()->disconnected(this);
 
-  pollCustom->remove_read(this);
-  pollCustom->remove_write(this);
-  pollCustom->remove_error(this);
-  pollCustom->close(this);
+  manager->poll()->remove_read(this);
+  manager->poll()->remove_write(this);
+  manager->poll()->remove_error(this);
+  manager->poll()->close(this);
   
-  socketManager.dec_socket_count();
+  manager->socket_manager()->dec_socket_count();
 
   get_fd().close();
   get_fd().clear();
@@ -141,10 +144,10 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   // Set the bitfield size and zero it
   *m_peerChunks.bitfield() = BitFieldExt(m_download->content()->chunk_total());
 
-  pollCustom->open(this);
-  pollCustom->insert_read(this);
-  pollCustom->insert_write(this);
-  pollCustom->insert_error(this);
+  manager->poll()->open(this);
+  manager->poll()->insert_read(this);
+  manager->poll()->insert_write(this);
+  manager->poll()->insert_error(this);
 
   m_timeLastRead = cachedTime;
 
@@ -214,12 +217,12 @@ PeerConnectionBase::receive_choke(bool v) {
 
 void
 PeerConnectionBase::receive_throttle_down_activate() {
-  pollCustom->insert_read(this);
+  manager->poll()->insert_read(this);
 }
 
 void
 PeerConnectionBase::receive_throttle_up_activate() {
-  pollCustom->insert_write(this);
+  manager->poll()->insert_write(this);
 }
 
 void
@@ -238,7 +241,7 @@ PeerConnectionBase::down_chunk() {
   uint32_t quota = m_download->download_throttle()->node_quota(m_downThrottle);
 
   if (quota == 0) {
-    pollCustom->remove_read(this);
+    manager->poll()->remove_read(this);
     m_download->download_throttle()->node_deactivate(m_downThrottle);
     return false;
   }
@@ -306,7 +309,7 @@ PeerConnectionBase::up_chunk() {
   uint32_t quota = m_download->upload_throttle()->node_quota(m_upThrottle);
 
   if (quota == 0) {
-    pollCustom->remove_write(this);
+    manager->poll()->remove_write(this);
     m_download->upload_throttle()->node_deactivate(m_upThrottle);
     return false;
   }
