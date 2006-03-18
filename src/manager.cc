@@ -66,7 +66,7 @@ Manager::Manager() :
   m_listen(new Listen),
   m_resourceManager(new ResourceManager),
 
-  m_socketManager(new ConnectionManager),
+  m_connectionManager(new ConnectionManager),
 
   m_poll(NULL),
 
@@ -97,7 +97,7 @@ Manager::~Manager() {
   delete m_hashQueue;
   delete m_listen;
   delete m_resourceManager;
-  delete m_socketManager;
+  delete m_connectionManager;
 
   delete m_uploadThrottle;
   delete m_downloadThrottle;
@@ -155,7 +155,7 @@ Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& pee
   DownloadManager::iterator itr = m_downloadManager->find(info);
   
   if (itr == m_downloadManager->end()) {
-    m_socketManager->dec_socket_count();
+    m_connectionManager->dec_socket_count();
     fd.close();
     
     return;
@@ -164,14 +164,14 @@ Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& pee
   if (!peer.socket_address()->is_valid()) {
     (*itr)->info()->signal_network_log().emit("Caught a connection with invalid socket address.");
 
-    m_socketManager->dec_socket_count();
+    m_connectionManager->dec_socket_count();
     fd.close();
     return;
   }    
 
   if (!(*itr)->main()->is_active() ||
       !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd)) {
-    m_socketManager->dec_socket_count();
+    m_connectionManager->dec_socket_count();
     fd.close();
     return;
   }

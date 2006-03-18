@@ -43,32 +43,32 @@
 namespace torrent {
 
 uint64_t
-Entry::size_bytes() {
+Entry::size_bytes() const {
   return m_entry->size();
 }
 
 uint32_t
-Entry::size_chunks() {
+Entry::size_chunks() const {
   return m_entry->range().second - m_entry->range().first;
 }
 
 uint32_t
-Entry::completed_chunks() {
+Entry::completed_chunks() const {
   return m_entry->completed();
 }
 
 uint32_t
-Entry::chunk_begin() {
+Entry::chunk_begin() const {
   return m_entry->range().first;
 }
 
 uint32_t
-Entry::chunk_end() {
+Entry::chunk_end() const {
   return m_entry->range().second;
 }  
 
 Entry::Priority
-Entry::priority() {
+Entry::priority() const {
   return (Priority)m_entry->priority();
 }
 
@@ -89,7 +89,7 @@ Entry::path() const {
 
 // Relative to root of torrent.
 std::string
-Entry::path_str() {
+Entry::path_str() const {
   return m_entry->path()->as_string();
 }
 

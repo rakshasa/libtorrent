@@ -73,7 +73,7 @@ public:
   Listen*             listen()                                  { return m_listen; }
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
 
-  ConnectionManager*  socket_manager()                          { return m_socketManager; }
+  ConnectionManager*  connection_manager()                      { return m_connectionManager; }
   
   Poll*               poll()                                    { return m_poll; }
   void                set_poll(Poll* p)                         { m_poll = p; }
@@ -97,7 +97,7 @@ private:
   Listen*             m_listen;
   ResourceManager*    m_resourceManager;
 
-  ConnectionManager*  m_socketManager;
+  ConnectionManager*  m_connectionManager;
   Poll*               m_poll;
 
   EncodingList        m_encodingList;

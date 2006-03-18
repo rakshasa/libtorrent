@@ -72,8 +72,10 @@ public:
     m_key(0),
     m_compact(true),
     m_numwant(-1),
+
     m_upRate(60),
-    m_downRate(60) {
+    m_downRate(60),
+    m_uploadedBaseline(0) {
   }
 
   const std::string&  name() const                                 { return m_name; }
@@ -100,6 +102,9 @@ public:
   Rate*               up_rate()                                    { return &m_upRate; }
   Rate*               down_rate()                                  { return &m_downRate; }
 
+  uint64_t            uploaded_baseline() const                    { return m_uploadedBaseline; }
+  void                set_uploaded_baseline(uint64_t b)            { m_uploadedBaseline = b; }
+
   uint32_t            http_timeout() const                         { return 60; }
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
@@ -125,6 +130,8 @@ private:
 
   Rate                m_upRate;
   Rate                m_downRate;
+
+  uint64_t            m_uploadedBaseline;
 
   SlotStat            m_slotStatLeft;
 

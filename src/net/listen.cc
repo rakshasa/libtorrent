@@ -77,7 +77,7 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
     if (get_fd().bind(sa) && get_fd().listen(50)) {
       m_port = i;
 
-      manager->socket_manager()->inc_socket_count();
+      manager->connection_manager()->inc_socket_count();
 
       manager->poll()->open(this);
       manager->poll()->insert_read(this);
@@ -102,7 +102,7 @@ void Listen::close() {
   manager->poll()->remove_error(this);
   manager->poll()->close(this);
 
-  manager->socket_manager()->dec_socket_count();
+  manager->connection_manager()->dec_socket_count();
 
   get_fd().close();
   get_fd().clear();

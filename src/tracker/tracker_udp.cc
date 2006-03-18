@@ -74,7 +74,7 @@ TrackerUdp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, ui
 
   if (!get_fd().open_datagram() ||
       !get_fd().set_nonblock() ||
-      !get_fd().bind(*rak::socket_address::cast_from(manager->socket_manager()->bind_address())))
+      !get_fd().bind(*rak::socket_address::cast_from(manager->connection_manager()->bind_address())))
     return receive_failed("Could not open UDP socket.");
 
   m_readBuffer = new ReadBuffer;
@@ -258,7 +258,7 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_64(m_sendUp);
   m_writeBuffer->write_32(m_sendState);
 
-  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->socket_manager()->local_address());
+  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
   // This code assumes we're have a inet address.
   if (localAddress->family() != rak::socket_address::af_inet)

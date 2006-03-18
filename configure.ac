@@ -1,9 +1,7 @@
-AC_INIT(libtorrent, 0.8.6, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.9.0, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME,
-          "-lt0806-",
-          Identifier that is part of the default peer id)
+AC_DEFINE(PEER_NAME, "-lt0900-", Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=7
 LIBTORRENT_REVISION=0
@@ -41,8 +39,21 @@ AC_SYS_LARGEFILE
 TORRENT_WITH_XFS
 TORRENT_WITHOUT_EPOLL
 TORRENT_WITH_POSIX_FALLOCATE
-TORRENT_CHECK_OPENSSL
-AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
+
+AC_ARG_WITH(openssl,
+  [  --without-openssl       Don't use OpenSSL's SHA1 implementation.],
+  [
+    if test "$withval" = "yes"; then
+      TORRENT_CHECK_OPENSSL
+      AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
+    else
+      AC_DEFINE(USE_NSS_SHA, 1, Using Mozilla's SHA1 implementation.)
+    fi
+  ], [
+    TORRENT_CHECK_OPENSSL
+    AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
+  ]
+)
 
 PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";

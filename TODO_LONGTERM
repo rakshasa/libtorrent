@@ -2,13 +2,9 @@
 
 The seed count and scrape leech/seed.
 
-SO_SNDBUF and friends.
-
 Check if an entry is present and correctly sized.
 
 Rewrite the torrent::Bencode class.
-
-Connection filtering.
 
 Disk cache.
 

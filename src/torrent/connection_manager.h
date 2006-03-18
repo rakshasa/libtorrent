@@ -40,6 +40,7 @@
 #define LIBTORRENT_CONNECTION_MANAGER_H
 
 #include <inttypes.h>
+#include <sigc++/slot.h>
 
 class sockaddr;
 
@@ -47,6 +48,8 @@ namespace torrent {
 
 class ConnectionManager {
 public:
+  typedef sigc::slot<uint32_t, const sockaddr*> slot_filter_type;
+
   ConnectionManager();
   ~ConnectionManager();
   
@@ -54,17 +57,23 @@ public:
   // and that we're allowed to connect to the socket address.
   //
   // Consider only checking max number of open sockets.
-  bool                can_connect(const sockaddr* sa);
+  bool                can_connect()                           { return m_size < m_max; }
 
   // Call this to keep the socket count up to date.
-  void                inc_socket_count()            { m_size++; }
-  void                dec_socket_count()            { m_size--; }
+  void                inc_socket_count()                      { m_size++; }
+  void                dec_socket_count()                      { m_size--; }
 
   // size_type
-  uint32_t            size() const                  { return m_size; }
+  uint32_t            size() const                            { return m_size; }
 
-  uint32_t            max_size() const              { return m_max; }
-  void                set_max_size(uint32_t s)      { m_max = s; }
+  uint32_t            max_size() const                        { return m_max; }
+  void                set_max_size(uint32_t s)                { m_max = s; }
+
+  uint32_t            send_buffer_size() const                { return m_sendBufferSize; }
+  void                set_send_buffer_size(uint32_t s);
+
+  uint32_t            receive_buffer_size() const             { return m_receiveBufferSize; }
+  void                set_receive_buffer_size(uint32_t s);
 
   // Propably going to have to make m_bindAddress a pointer to make it
   // safe.
@@ -72,11 +81,14 @@ public:
   // Perhaps add length parameter.
   //
   // Setting the bind address makes a copy.
-  const sockaddr*     bind_address()                { return m_bindAddress; }
+  const sockaddr*     bind_address() const                    { return m_bindAddress; }
   void                set_bind_address(const sockaddr* sa);
 
-  const sockaddr*     local_address()               { return m_localAddress; }
+  const sockaddr*     local_address() const                   { return m_localAddress; }
   void                set_local_address(const sockaddr* sa);
+
+  uint32_t            filter(const sockaddr* sa);
+  void                set_filter(const slot_filter_type& s)   { m_slotFilter = s; }
 
 private:
   ConnectionManager(const ConnectionManager&);
@@ -85,8 +97,13 @@ private:
   uint32_t            m_size;
   uint32_t            m_max;
 
+  uint32_t            m_sendBufferSize;
+  uint32_t            m_receiveBufferSize;
+
   sockaddr*           m_bindAddress;
   sockaddr*           m_localAddress;
+
+  slot_filter_type    m_slotFilter;
 };
 
 }

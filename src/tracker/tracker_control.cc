@@ -67,7 +67,8 @@ TrackerControl::insert(int group, const std::string& url) {
 
   TrackerBase* t;
 
-  if (std::strncmp("http://", url.c_str(), 7) == 0)
+  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
+      std::strncmp("https://", url.c_str(), 8) == 0)
     t = new TrackerHttp(m_info, url);
 
   else if (std::strncmp("udp://", url.c_str(), 6) == 0)
@@ -106,7 +107,10 @@ TrackerControl::send_state(DownloadInfo::State s) {
   m_itr = m_list.find_enabled(m_itr);
 
   if (m_itr != m_list.end())
-    m_itr->second->send_state(m_state, m_info->down_rate()->total(), m_info->up_rate()->total(), m_info->slot_stat_left()());
+    m_itr->second->send_state(m_state,
+			      m_info->down_rate()->total(),
+			      m_info->up_rate()->total() >= m_info->uploaded_baseline() ? (m_info->up_rate()->total() - m_info->uploaded_baseline()) : 0,
+			      m_info->slot_stat_left()());
   else
     m_slotFailed("Tried all trackers.");
 }

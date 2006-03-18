@@ -59,6 +59,9 @@ public:
   bool                set_throughput();
   bool                set_reuse_address(bool state);
 
+  bool                set_send_buffer_size(uint32_t s);
+  bool                set_receive_buffer_size(uint32_t s);
+
   int                 get_error() const;
 
   bool                open_stream();

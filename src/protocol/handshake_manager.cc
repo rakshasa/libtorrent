@@ -52,7 +52,7 @@ namespace torrent {
 
 inline void
 HandshakeManager::delete_handshake(Handshake* h) {
-  manager->socket_manager()->dec_socket_count();
+  manager->connection_manager()->dec_socket_count();
 
   h->clear();
   h->get_fd().close();
@@ -103,12 +103,14 @@ HandshakeManager::erase_info(DownloadInfo* info) {
 
 void
 HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
-  if (!manager->socket_manager()->can_connect(sa.c_sockaddr()) || !fd.set_nonblock()) {
+  if (!manager->connection_manager()->can_connect() ||
+      !manager->connection_manager()->filter(sa.c_sockaddr()) ||
+      !setup_socket(fd)) {
     fd.close();
     return;
   }
 
-  manager->socket_manager()->inc_socket_count();
+  manager->connection_manager()->inc_socket_count();
 
   Handshake* h = new Handshake(fd, this);
   h->initialize_incoming(sa);
@@ -118,7 +120,8 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   
 void
 HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info) {
-  if (!manager->socket_manager()->can_connect(sa.c_sockaddr()))
+  if (!manager->connection_manager()->can_connect() ||
+      !manager->connection_manager()->filter(sa.c_sockaddr()))
     return;
 
   SocketFd fd;
@@ -126,16 +129,16 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info
   if (!fd.open_stream())
     return;
 
-  const rak::socket_address* bindAddress = rak::socket_address::cast_from(manager->socket_manager()->bind_address());
+  const rak::socket_address* bindAddress = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
 
-  if (!fd.set_nonblock() ||
+  if (!setup_socket(fd) ||
       (bindAddress->is_bindable() && !fd.bind(*bindAddress)) ||
       !fd.connect(sa)) {
     fd.close();
     return;
   }
 
-  manager->socket_manager()->inc_socket_count();
+  manager->connection_manager()->inc_socket_count();
 
   Handshake* h = new Handshake(fd, this);
   h->initialize_outgoing(sa, info);
@@ -164,6 +167,22 @@ HandshakeManager::receive_failed(Handshake* h) {
 //     h->download_info()->signal_network_log().emit("Failed handshake: " + h->peer_info()->get_address());
 
   delete_handshake(h);
+}
+
+bool
+HandshakeManager::setup_socket(SocketFd fd) {
+  if (!fd.set_nonblock())
+    return false;
+
+  if (manager->connection_manager()->send_buffer_size() != 0 && !fd.set_send_buffer_size(manager->connection_manager()->send_buffer_size()))
+    return false;
+    
+  if (manager->connection_manager()->receive_buffer_size() != 0 && !fd.set_receive_buffer_size(manager->connection_manager()->receive_buffer_size()))
+    return false;
+
+  //  get_fd().set_throughput();
+
+  return true;
 }
 
 }

@@ -86,7 +86,7 @@ PeerConnectionBase::~PeerConnectionBase() {
   manager->poll()->remove_error(this);
   manager->poll()->close(this);
   
-  manager->socket_manager()->dec_socket_count();
+  manager->connection_manager()->dec_socket_count();
 
   get_fd().close();
   get_fd().clear();
@@ -132,8 +132,6 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   m_downThrottle = new ThrottleNode(30);
   m_downThrottle->set_list_iterator(m_download->download_throttle()->end());
   m_downThrottle->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_down_activate));
-
-  get_fd().set_throughput();
 
   m_requestList.set_delegator(m_download->delegator());
   m_requestList.set_peer_chunks(&m_peerChunks);

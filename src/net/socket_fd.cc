@@ -80,6 +80,25 @@ SocketFd::set_reuse_address(bool state) {
   return setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == 0;
 }
 
+bool
+SocketFd::set_send_buffer_size(uint32_t s) {
+  if (!is_valid())
+    throw internal_error("SocketFd::set_send_buffer_size(uint32_t) called on a closed fd.");
+
+  int opt = s;
+
+  return setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)) == 0;
+}
+
+bool
+SocketFd::set_receive_buffer_size(uint32_t s) {
+  if (!is_valid())
+    throw internal_error("SocketFd::set_receive_buffer_size(uint32_t) called on a closed fd.");
+
+  int opt = s;
+
+  return setsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, &opt, sizeof(opt)) == 0;
+}
 
 int
 SocketFd::get_error() const {

@@ -2,9 +2,17 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Move local_address, make ptr from dwnl.
+Make the download_list handlers into rak::function's.
 
-Remove port thingie from DownloadInfo.
+Add tracker dump to DownloadInfo.
+
+Add option for TOS, enums or similar in CM.
+
+Add messages to the network log for bad settings, or merely ignore them?
+
+Consider adding checks for r/wmem_max if available.
+
+Read about up_dynaddr
 
 Get rid of globals.h.
 

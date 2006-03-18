@@ -59,13 +59,16 @@ public:
   Entry() : m_entry(NULL) {}
   Entry(EntryListNode* e) : m_entry(e) {}
   
-  uint64_t            size_bytes();
-  uint32_t            size_chunks();
+  bool                is_created() const;
+  bool                is_correct_size() const;
 
-  uint32_t            completed_chunks();
+  uint64_t            size_bytes() const;
+  uint32_t            size_chunks() const;
 
-  uint32_t            chunk_begin();
-  uint32_t            chunk_end();
+  uint32_t            completed_chunks() const;
+
+  uint32_t            chunk_begin() const;
+  uint32_t            chunk_end() const;
 
   // Need this?
   //uint64_t            byte_begin();
@@ -75,11 +78,11 @@ public:
   const Path*         path() const;
 
   // Relative to root of the torrent.
-  std::string         path_str();
+  std::string         path_str() const;
 
   // When setting the priority, Download::update_priorities() must be
   // called for it to take effect.
-  Priority            priority();
+  Priority            priority() const;
   void                set_priority(Priority p);
 
 private:

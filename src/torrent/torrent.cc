@@ -106,7 +106,7 @@ initialize(Poll* poll) {
 
   uint32_t maxFiles = calculate_max_open_files(poll->open_max());
 
-  manager->socket_manager()->set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
+  manager->connection_manager()->set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
   manager->file_manager()->set_max_size(maxFiles);
 }
 
@@ -126,7 +126,7 @@ listen_open(uint16_t begin, uint16_t end) {
   if (manager == NULL)
     throw client_error("listen_open called but the library has not been initialized");
 
-  if (!manager->listen()->open(begin, end, rak::socket_address::cast_from(manager->socket_manager()->bind_address())))
+  if (!manager->listen()->open(begin, end, rak::socket_address::cast_from(manager->connection_manager()->bind_address())))
     return false;
 
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
@@ -171,7 +171,7 @@ is_inactive() {
 
 ConnectionManager*
 connection_manager() {
-  return manager->socket_manager();
+  return manager->connection_manager();
 }
 
 uint32_t
@@ -307,12 +307,12 @@ set_max_open_files(uint32_t size) {
 
 uint32_t
 open_sockets() {
-  return manager->socket_manager()->size();
+  return manager->connection_manager()->size();
 }
 
 uint32_t
 max_open_sockets() {
-  return manager->socket_manager()->max_size();
+  return manager->connection_manager()->max_size();
 }
 
 void
@@ -320,7 +320,7 @@ set_max_open_sockets(uint32_t size) {
   if (size < 4 || size > (1 << 16))
     throw input_error("Max open sockets must be between 4 and 2^16.");
 
-  manager->socket_manager()->set_max_size(size);
+  manager->connection_manager()->set_max_size(size);
 }
 
 EncodingList*

@@ -45,7 +45,9 @@ namespace torrent {
 
 ConnectionManager::ConnectionManager() :
   m_size(0),
-  m_max(0) {
+  m_max(0),
+  m_sendBufferSize(0),
+  m_receiveBufferSize(0) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();
@@ -59,22 +61,15 @@ ConnectionManager::~ConnectionManager() {
   delete m_localAddress;
 }
 
-bool
-ConnectionManager::can_connect(__UNUSED const sockaddr* sa) {
-  if (m_size >= m_max)
-    return false;
-
-  return true;
+void
+ConnectionManager::set_send_buffer_size(uint32_t s) {
+  m_sendBufferSize = s;
 }
 
-// // Address sent to the tracker.  Accepts a DNS or IP address which it
-// // will look up immediately. The IP address will be returned.
-// void                set_local_address(const sockaddr* addr);
-
-// // Bind the sockets to a specific network device.  Accepts a DNS or IP
-// // address which it will look up immediately. The IP address will be
-// // returned.
-// void                set_bind_address(const sockaddr* addr);
+void
+ConnectionManager::set_receive_buffer_size(uint32_t s) {
+  m_receiveBufferSize = s;
+}
 
 void
 ConnectionManager::set_bind_address(const sockaddr* sa) {
@@ -94,6 +89,14 @@ ConnectionManager::set_local_address(const sockaddr* sa) {
     throw input_error("Tried to set a local address that is not an af_inet address.");
 
   rak::socket_address::cast_from(m_localAddress)->copy(*rsa, rsa->length());
+}
+
+uint32_t
+ConnectionManager::filter(const sockaddr* sa) {
+  if (m_slotFilter.empty())
+    return 1;
+  else
+    return m_slotFilter(sa);
 }
 
 }

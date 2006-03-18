@@ -92,7 +92,7 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
   if (!m_trackerId.empty())
     s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
 
-  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->socket_manager()->local_address());
+  const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
   if (localAddress->family() == rak::socket_address::af_inet &&
       !localAddress->sa_inet()->is_address_any())

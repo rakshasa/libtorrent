@@ -91,6 +91,8 @@ public:
 private:
   void                erase(Handshake* handshake);
 
+  bool                setup_socket(SocketFd fd);
+
   inline void         delete_handshake(Handshake* h);
 
   SlotConnected       m_slotConnected;
