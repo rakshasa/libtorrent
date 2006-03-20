@@ -34,57 +34,28 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#ifndef LIBTORRENT_OBJECT_STREAM_H
+#define LIBTORRENT_OBJECT_STREAM_H
 
-#include <list>
+#include <ios>
 #include <string>
-#include <inttypes.h>
 
 namespace torrent {
 
 class Object;
-class Content;
-class DownloadWrapper;
-class TrackerManager;
-class Path;
 
-typedef std::list<std::string> EncodingList;
+std::string object_sha1(const Object* object);
 
-class DownloadConstructor {
-public:
-  
-  static const uint64_t max_file_length = ((uint64_t)1 << 45);
+// Assumes the stream's locale has been set to POSIX or C.  Max depth
+// is 1024, this ensures files consisting of only 'l' don't segfault
+// the client.
+void object_read_bencode(std::istream* input, Object* object, uint32_t depth = 0);
 
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
+// Assumes the stream's locale has been set to POSIX or C.
+void object_write_bencode(std::ostream* output, const Object* object);
 
-  void                initialize(const Object& b);
-
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
-
-private:  
-  void                parse_tracker(const Object& b);
-  void                parse_info(const Object& b);
-
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
-
-  void                parse_single_file(const Object& b);
-  void                parse_multi_files(const Object& b);
-  void                add_file(const Object& b);
-
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
-
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
-
-  std::string         m_defaultEncoding;
-};
+std::istream& operator >> (std::istream& input, Object& object);
+std::ostream& operator << (std::ostream& output, const Object& object);
 
 }
 

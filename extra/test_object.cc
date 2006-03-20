@@ -1,5 +1,6 @@
 #include <iostream>
 #include "../src/torrent/object.h"
+#include "../src/torrent/object_stream.h"
 
 int
 test_construct_value() {
@@ -44,6 +45,13 @@ test_map() {
   return o1;
 }
 
+torrent::Object
+create_complex(const std::string& name) {
+  torrent::Object o = torrent::Object::value_type();
+
+  return o;
+}
+
 int
 main(int argc, char** argv) {
   std::cout << "sizeof(torrent::Object): " << sizeof(torrent::Object) << std::endl;
@@ -63,6 +71,9 @@ main(int argc, char** argv) {
   std::cout << o1.as_string() << std::endl;
 
   std::cout << test_map().as_map()["test"].as_string() << std::endl;
+
+  torrent::Object o2 = create_complex("complex1");
+  torrent::object_write_bencode(&std::cout, &o2);
 
   return 0;
 }

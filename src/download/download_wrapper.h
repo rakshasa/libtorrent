@@ -42,7 +42,6 @@
 #include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
-#include "torrent/bencode.h"
 #include "torrent/peer.h"
 #include "download/download_info.h"
 
@@ -57,6 +56,7 @@ class HashQueue;
 class HashTorrent;
 class HandshakeManager;
 class DownloadInfo;
+class Object;
 
 class DownloadWrapper {
 public:
@@ -90,14 +90,16 @@ public:
   const DownloadMain* main() const                            { return &m_main; }
   HashTorrent*        hash_checker()                          { return m_hash; }
 
-  Bencode*            bencode()                               { return &m_bencode; }
+  Object*             bencode()                               { return m_bencode; }
+  void                set_bencode(Object* o)                  { m_bencode = o; }
+
   DownloadInfo*       info()                                  { return m_main.info(); }
 
   int                 connection_type() const                 { return m_connectionType; }
   void                set_connection_type(int t)              { m_connectionType = t; }
 
   void                insert_available_list(const std::string& src);
-  void                extract_available_list(Bencode* dest);
+  void                extract_available_list(Object* dest);
 
   void                receive_keepalive();
   void                receive_initial_hash();
@@ -136,7 +138,7 @@ private:
   void                finished_download();
 
   DownloadMain        m_main;
-  Bencode             m_bencode;
+  Object*             m_bencode;
   HashTorrent*        m_hash;
 
   int                 m_connectionType;

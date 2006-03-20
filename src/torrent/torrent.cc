@@ -42,7 +42,8 @@
 
 #include "exceptions.h"
 #include "torrent.h"
-#include "bencode.h"
+#include "object.h"
+#include "object_stream.h"
 #include "connection_manager.h"
 #include "poll.h"
 
@@ -329,35 +330,28 @@ encoding_list() {
 }
 
 Download
-download_add(std::istream* s) {
-  if (!s->good())
-    throw input_error("Could not create download, the input stream is not valid.");
+download_add(Object* object) {
+  std::auto_ptr<DownloadWrapper> download(new DownloadWrapper);
 
-  std::auto_ptr<DownloadWrapper> d(new DownloadWrapper);
-
-  *s >> *d->bencode();
-
-  if (s->fail())
-    throw input_error("Could not create download, the input is not a valid torrent.");
-  
   DownloadConstructor ctor;
-  ctor.set_download(d.get());
+  ctor.set_download(download.get());
   ctor.set_encoding_list(manager->encoding_list());
 
-  ctor.initialize(*d->bencode());
+  ctor.initialize(*object);
 
-  d->initialize(d->bencode()->get_key("info").compute_sha1(),
-		PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
+  download->initialize(object_sha1(&object->get_key("info")),
+		       PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
 
   // Default PeerConnection factory functions.
-  d->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
+  download->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
 
   // Consider move as much as possible into this function
   // call. Anything that won't cause possible torrent creation errors
   // go in there.
-  manager->initialize_download(d.get());
+  manager->initialize_download(download.get());
 
-  return Download(d.release());
+  download->set_bencode(object);
+  return Download(download.release());
 }
 
 void

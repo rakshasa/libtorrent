@@ -2,6 +2,8 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+ConnectionList::erase_remaining(iterator pos) - Need to save the itr?
+
 Make the download_list handlers into rak::function's.
 
 Add tracker dump to DownloadInfo.

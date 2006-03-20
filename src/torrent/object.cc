@@ -40,81 +40,111 @@
 
 namespace torrent {
 
-void
-BaseObject::copy(const BaseObject& src) {
-  switch (src.m_type) {
-  case TYPE_NONE:       construct_none(); break;
-  case TYPE_VALUE:      copy_value(src.ref_value()); break;
-  case TYPE_STRING:     copy_string(src.ref_string()); break;
-  case TYPE_MAP:        copy_map(src.ref_map()); break;
-  case TYPE_LIST:       copy_list(src.ref_list()); break;
-
-  case TYPE_STRING_REF: copy_string(*src.ref_string_ref()); break;
-  case TYPE_MAP_REF:    copy_map(*src.ref_map_ref()); break;
-  case TYPE_LIST_REF:   copy_list(*src.ref_list_ref()); break;
+Object::Object(const Object& b) :
+  m_type(b.m_type)
+{
+  switch (m_type) {
+  case TYPE_VALUE:
+    m_value = b.m_value;
+    break;
+  case TYPE_STRING:
+    m_string = new string_type(*b.m_string);
+    break;
+  case TYPE_LIST:
+    m_list = new list_type(*b.m_list);
+    break;
+  case TYPE_MAP:
+    m_map = new map_type(*b.m_map);
+    break;
+  default:
+    break;
   }
 }
 
-// This must make weak copies.
 void
-BaseObject::weak_copy(const BaseObject& src) {
-  switch (src.m_type) {
-  case TYPE_NONE:       construct_none(); break;
-  case TYPE_VALUE:      copy_value(src.ref_value()); break;
-  case TYPE_STRING:     copy_string_ref(&src.ref_string()); break;
-  case TYPE_MAP:        copy_map_ref(&src.ref_map()); break;
-  case TYPE_LIST:       copy_list_ref(&src.ref_list()); break;
-
-  case TYPE_STRING_REF: copy_string_ref(src.ref_string_ref()); break;
-  case TYPE_MAP_REF:    copy_map_ref(src.ref_map_ref()); break;
-  case TYPE_LIST_REF:   copy_list_ref(src.ref_list_ref()); break;
-  }
-}
-
-// Might be small enough not to warrent seperate destroy/copy, check
-// when done with map/list.
-void
-BaseObject::destroy() {
+Object::clear() {
   switch (m_type) {
   case TYPE_NONE:
-  case TYPE_VALUE:      break;
-  case TYPE_STRING:     ref_string().~string_type(); break;
-  case TYPE_MAP:        ref_map().~map_type(); break;
-  case TYPE_LIST:       ref_list().~list_type(); break;
-
-  case TYPE_STRING_REF:
-  case TYPE_MAP_REF:
-  case TYPE_LIST_REF:   break;
+  case TYPE_VALUE:
+    break;
+  case TYPE_STRING:
+    delete m_string;
+    break;
+  case TYPE_LIST:
+    delete m_list;
+    break;
+  case TYPE_MAP:
+    delete m_map;
+    break;
+  default:
+    break;
   }
+
+  m_type = TYPE_NONE;
 }
 
-// Add a function to BaseObject for this.
-Object::Object(type_type t) {
-  switch (t) {
-  case TYPE_NONE:       construct_none(); break;
-  case TYPE_VALUE:      construct_value(); break;
-  case TYPE_STRING:     construct_string(); break;
-  case TYPE_MAP:        construct_map(); break;
-  case TYPE_LIST:       construct_list(); break;
-    
-  case TYPE_STRING_REF:
-  case TYPE_MAP_REF:
-  case TYPE_LIST_REF:   throw bencode_error("");
+Object&
+Object::operator = (const Object& b) {
+  if (&b == this)
+    return *this;
+
+  clear();
+
+  m_type = b.m_type;
+
+  switch (m_type) {
+  case TYPE_VALUE:
+    m_value = b.m_value;
+    break;
+  case TYPE_STRING:
+    m_string = new string_type(*b.m_string);
+    break;
+  case TYPE_LIST:
+    m_list = new list_type(*b.m_list);
+    break;
+  case TYPE_MAP:
+    m_map = new map_type(*b.m_map);
+    break;
+  default:
+    break;
   }
+
+  return *this;
 }
 
-WeakObject::WeakObject(type_type t) {
-  switch (t) {
-  case TYPE_NONE:       construct_none(); break;
-  case TYPE_VALUE:      construct_value(); break;
-  case TYPE_STRING:     construct_string(); break;
-  case TYPE_MAP:        construct_map(); break;
-  case TYPE_LIST:       construct_list(); break;
-    
-  case TYPE_STRING_REF: 
-  case TYPE_MAP_REF: 
-  case TYPE_LIST_REF:   throw bencode_error("");
-  }
+Object&
+Object::get_key(const std::string& k) {
+  check_type(TYPE_MAP);
+
+  map_type::iterator itr = m_map->find(k);
+
+  if (itr == m_map->end())
+    throw bencode_error("Object operator [" + k + "] could not find element");
+
+  return itr->second;
+}
+
+
+const Object&
+Object::get_key(const std::string& k) const {
+  check_type(TYPE_MAP);
+
+  map_type::const_iterator itr = m_map->find(k);
+
+  if (itr == m_map->end())
+    throw bencode_error("Object operator [" + k + "] could not find element");
+
+  return itr->second;
+}
+
+void
+Object::erase_key(const std::string& s) {
+  check_type(TYPE_MAP);
+
+  map_type::iterator itr = m_map->find(s);
+
+  if (itr != m_map->end())
+    m_map->erase(itr);
 }
 
 }

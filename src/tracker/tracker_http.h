@@ -39,7 +39,7 @@
 
 #include <iosfwd>
 
-#include "torrent/bencode.h"
+#include "torrent/object.h"
 #include "tracker_base.h"
 
 namespace torrent {
@@ -62,9 +62,9 @@ private:
   void                receive_done();
   void                receive_failed(std::string msg);
 
-  static rak::socket_address parse_address(const Bencode& b);
+  static rak::socket_address parse_address(const Object& b);
 
-  void                parse_address_normal(AddressList* l, const Bencode::List& b);
+  void                parse_address_normal(AddressList* l, const Object::list_type& b);
   void                parse_address_compact(AddressList* l, const std::string& s);
 
   Http*               m_get;

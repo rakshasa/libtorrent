@@ -36,8 +36,9 @@
 
 #include "config.h"
 
-#include "exceptions.h"
-#include "download.h"
+#include <rak/functional.h>
+#include <sigc++/bind.h>
+#include <sigc++/hide.h>
 
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
@@ -50,9 +51,9 @@
 #include "download/download_info.h"
 #include "tracker/tracker_manager.h"
 
-#include <rak/functional.h>
-#include <sigc++/bind.h>
-#include <sigc++/hide.h>
+#include "exceptions.h"
+#include "download.h"
+#include "object.h"
 
 namespace torrent {
 
@@ -149,12 +150,12 @@ Download::creation_date() const {
     return 0;
 }
 
-Bencode&
+Object&
 Download::bencode() {
   return *m_ptr->bencode();
 }
 
-const Bencode&
+const Object&
 Download::bencode() const {
   return *m_ptr->bencode();
 }

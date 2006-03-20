@@ -44,6 +44,8 @@
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
+#include "torrent/object_stream.h"
+
 #include "tracker_http.h"
 
 #include "globals.h"
@@ -154,7 +156,7 @@ TrackerHttp::receive_done() {
   if (m_data == NULL)
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
-  Bencode b;
+  Object b;
   *m_data >> b;
 
   if (m_data->fail())
@@ -214,7 +216,7 @@ TrackerHttp::receive_failed(std::string msg) {
 }
 
 inline rak::socket_address
-TrackerHttp::parse_address(const Bencode& b) {
+TrackerHttp::parse_address(const Object& b) {
   rak::socket_address sa;
   sa.clear();
 
@@ -235,7 +237,7 @@ TrackerHttp::parse_address(const Bencode& b) {
 }
 
 void
-TrackerHttp::parse_address_normal(AddressList* l, const Bencode::List& b) {
+TrackerHttp::parse_address_normal(AddressList* l, const Object::list_type& b) {
   std::for_each(b.begin(), b.end(), rak::on(std::ptr_fun(&TrackerHttp::parse_address), address_list_add_address(l)));
 }
 

@@ -34,217 +34,111 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-// The Object class can hold various kinds of types like integer,
-// string, list and map. By not using pointers to the list and map
-// containers it avoids a layer of indirection. An alternate
-// WeakObject class may contain either a reference or an instance,
-// thus allowing for efficiently passing values in return statements.
-
 #ifndef LIBTORRENT_OBJECT_H
 #define LIBTORRENT_OBJECT_H
 
-#include <inttypes.h>
-#include <list>
-#include <map>
 #include <string>
-
+#include <map>
+#include <list>
 #include <torrent/exceptions.h>
-
-#define USE_OBJECT_INLINE inline
 
 namespace torrent {
 
-class Object;
-class WeakObject;
+// This class should very rarely change, so it doesn't matter that
+// much of the implementation is visible. Though it really needs to be
+// cleaned up.
 
-// Need to mangle this class name.
-class BaseObject {
+class Object {
 public:
-  // Ref, const char*?, etc.
+  typedef int64_t                         value_type;
+  typedef std::string                     string_type;
+  typedef std::map<std::string, Object>   map_type;
+  typedef std::list<Object>               list_type;
+
   enum type_type {
-    TYPE_NONE       = 0x00,
-    TYPE_VALUE      = 0x01,
-    TYPE_STRING     = 0x02,
-    TYPE_MAP        = 0x03,
-    TYPE_LIST       = 0x04,
-
-    TYPE_STRING_REF = 0x12,
-    TYPE_MAP_REF    = 0x13,
-    TYPE_LIST_REF   = 0x14
+    TYPE_NONE,
+    TYPE_VALUE,
+    TYPE_STRING,
+    TYPE_LIST,
+    TYPE_MAP
   };
 
-  typedef int64_t                       value_type;
-  typedef std::string                   string_type;
-  typedef std::map<std::string, Object> map_type;
-  typedef std::list<Object>             list_type;
+  Object()                     : m_type(TYPE_NONE) {}
+  Object(const int64_t v)      : m_type(TYPE_VALUE), m_value(v) {}
+  Object(const char* s)        : m_type(TYPE_STRING), m_string(new string_type(s)) {}
+  Object(const string_type& s) : m_type(TYPE_STRING), m_string(new string_type(s)) {}
+  Object(const Object& b);
 
-  typedef const string_type*            string_ref_type;
-  typedef const map_type*               map_ref_type;
-  typedef const list_type*              list_ref_type;
-
-protected:
+  explicit Object(type_type t);
   
-  BaseObject() {}
+  ~Object() { clear(); }
 
-  void                construct_none()                      { m_type = TYPE_NONE; }
-  void                construct_value()                     { m_type = TYPE_VALUE; new (m_data) value_type(); }
-  void                construct_string()                    { m_type = TYPE_STRING; new (m_data) string_type(); }
-  void                construct_map()                       { m_type = TYPE_MAP; new (m_data) map_type(); }
-  void                construct_list()                      { m_type = TYPE_LIST; new (m_data) list_type(); }
+  void                clear();
 
-  void                copy_value(value_type src)            { m_type = TYPE_VALUE; new (m_data) value_type(src); }
-  void                copy_string(const string_type& src)   { m_type = TYPE_STRING; new (m_data) string_type(src); }
-  void                copy_map(const map_type& src)         { m_type = TYPE_MAP; new (m_data) map_type(src); }
-  void                copy_list(const list_type& src)       { m_type = TYPE_LIST; new (m_data) list_type(src); }
+  type_type           type() const                            { return m_type; }
 
-  void                copy_string_ref(string_ref_type src)  { m_type = TYPE_STRING_REF; ref_string_ref() = src; }
-  void                copy_map_ref(map_ref_type src)        { m_type = TYPE_MAP_REF; ref_map_ref() = src; }
-  void                copy_list_ref(list_ref_type src)      { m_type = TYPE_LIST_REF; ref_list_ref() = src; }
+  bool                is_value() const                        { return m_type == TYPE_VALUE; }
+  bool                is_string() const                       { return m_type == TYPE_STRING; }
+  bool                is_list() const                         { return m_type == TYPE_LIST; }
+  bool                is_map() const                          { return m_type == TYPE_MAP; }
 
-  void                copy(const BaseObject& src);
-  void                weak_copy(const BaseObject& src);
+  value_type&         as_value()                              { check_type(TYPE_VALUE); return m_value; }
+  const value_type&   as_value() const                        { check_type(TYPE_VALUE); return m_value; }
 
-  void                destroy();
-  
-  bool                is_ref() const                        { return m_type > 0x10; }
+  string_type&        as_string()                             { check_type(TYPE_STRING); return *m_string; }
+  const string_type&  as_string() const                       { check_type(TYPE_STRING); return *m_string; }
 
-  // Find a better name.
-  type_type           original_type() const                 { return m_type; }
-  type_type           base_type() const                     { return (type_type)(m_type & 0x0f); }
+  list_type&          as_list()                               { check_type(TYPE_LIST); return *m_list; }
+  const list_type&    as_list() const                         { check_type(TYPE_LIST); return *m_list; }
 
-  // Cast the m_data buffer to the preferred type.
-  value_type&         ref_value()                           { return *reinterpret_cast<value_type*>(m_data); }
-  string_type&        ref_string()                          { return *reinterpret_cast<string_type*>(m_data); }
-  map_type&           ref_map()                             { return *reinterpret_cast<map_type*>(m_data); }
-  list_type&          ref_list()                            { return *reinterpret_cast<list_type*>(m_data); }
+  map_type&           as_map()                                { check_type(TYPE_MAP); return *m_map; }
+  const map_type&     as_map() const                          { check_type(TYPE_MAP); return *m_map; }
 
-  string_ref_type&    ref_string_ref()                      { return *reinterpret_cast<string_ref_type*>(m_data); }
-  map_ref_type&       ref_map_ref()                         { return *reinterpret_cast<map_ref_type*>(m_data); }
-  list_ref_type&      ref_list_ref()                        { return *reinterpret_cast<list_ref_type*>(m_data); }
+  bool                has_key(const std::string& s) const     { check_type(TYPE_MAP); return m_map->find(s) != m_map->end(); }
 
-  const value_type&   ref_value() const                     { return *reinterpret_cast<const value_type*>(m_data); }
-  const string_type&  ref_string() const                    { return *reinterpret_cast<const string_type*>(m_data); }
-  const map_type&     ref_map() const                       { return *reinterpret_cast<const map_type*>(m_data); }
-  const list_type&    ref_list() const                      { return *reinterpret_cast<const list_type*>(m_data); }
+  Object&             get_key(const std::string& k);
+  const Object&       get_key(const std::string& k) const;
 
-  const string_ref_type& ref_string_ref() const             { return *reinterpret_cast<const string_ref_type*>(m_data); }
-  const map_ref_type&    ref_map_ref() const                { return *reinterpret_cast<const map_ref_type*>(m_data); }
-  const list_ref_type&   ref_list_ref() const               { return *reinterpret_cast<const list_ref_type*>(m_data); }
+  Object&             insert_key(const std::string& s, const Object& b) { check_type(TYPE_MAP); return (*m_map)[s] = b; }
+  void                erase_key(const std::string& s);
 
-  void                check_type(type_type t) const         { if (t != m_type) throw torrent::bencode_error("Invalid Object type."); }
+  Object&             operator = (const Object& b);
 
-  // Returns true if the type is a reference.
-  bool                check_weak_type(type_type t) const {
-    if (t + 0x10 == m_type)
-      return true;
-    else if (t != m_type)
-      throw torrent::bencode_error("Invalid Object type.");
-    else
-      return false;
-  }
-
-private:
-  template <typename T, typename Next>
-  struct msof {
-    static const size_t value = sizeof(T) >= Next::value ? sizeof(T) : Next::value;
-  };
-
-  template <typename T>
-  struct msof<T, void> {
-    static const size_t value = sizeof(T);
-  };
-
-  static const size_t max_size = msof<value_type, msof<string_type, msof<map_type, msof<list_type, void> > > >::value;
-
-  BaseObject(const BaseObject& src);
-  BaseObject& operator = (const BaseObject& src);
+ private:
+  inline void         check_type(type_type t) const           { if (t != m_type) throw bencode_error("Wrong object type."); }
 
   type_type           m_type;
-  char                m_data[max_size];
+
+  union {
+    int64_t             m_value;
+    string_type*        m_string;
+    list_type*          m_list;
+    map_type*           m_map;
+  };
 };
 
-// The main Object class, which always stores an instance of the type.
-class Object : public BaseObject {
-public:
-  Object()                       { construct_none(); }
-  Object(const Object& src);
-  Object(const WeakObject& src);
+inline
+Object::Object(type_type t) :
+  m_type(t) {
 
-  Object(value_type src)         { copy_value(src); }
-  Object(const string_type& src) { copy_string(src); }
-  Object(const map_type& src)    { copy_map(src); }
-
-  // This needs to be inlined if we're to guess the type, though maybe
-  // it would be best to not allow this kind of ctor?
-  Object(type_type t);
-  ~Object();
-
-  Object&             operator = (const Object& src);
-  Object&             operator = (const WeakObject& src);
-
-  type_type           type() const         { return base_type(); }
-
-  value_type&         as_value()           { check_type(TYPE_VALUE); return ref_value(); }
-  string_type&        as_string()          { check_type(TYPE_STRING); return ref_string(); }
-  map_type&           as_map()             { check_type(TYPE_MAP); return ref_map(); }
-
-  const value_type&   as_value() const     { check_type(TYPE_VALUE); return ref_value(); }
-  const string_type&  as_string() const    { check_type(TYPE_STRING); return ref_string(); }
-  const map_type&     as_map() const       { check_type(TYPE_MAP); return ref_map(); }
-};
-
-class WeakObject : public BaseObject {
-public:
-  WeakObject()                       { construct_none(); }
-  WeakObject(const Object& src);
-  WeakObject(const WeakObject& src);
-
-  WeakObject(value_type src)         { copy_value(src); }
-  WeakObject(const string_type& src) { copy_string(src); }
-
-  WeakObject(type_type t);
-  ~WeakObject();
-
-  WeakObject&         operator = (const Object& src);
-  WeakObject&         operator = (const WeakObject& src);
-
-  type_type           type() const         { return base_type(); }
-
-  const value_type&   as_value() const     { check_type(TYPE_VALUE); return ref_value(); }
-  const string_type&  as_string() const    { return check_weak_type(TYPE_STRING) ? *ref_string_ref() : ref_string(); }
-};
-
-USE_OBJECT_INLINE
-Object::Object(const Object& src) { copy(src); }
-
-USE_OBJECT_INLINE
-Object::Object(const WeakObject& src) { copy(src); }
-
-USE_OBJECT_INLINE
-Object::~Object() { destroy(); }
-
-USE_OBJECT_INLINE Object&
-Object::operator = (const Object& src) { destroy(); copy(src); return *this; }
-
-USE_OBJECT_INLINE Object&
-Object::operator = (const WeakObject& src) { destroy(); copy(src); return *this; }
-
-USE_OBJECT_INLINE
-WeakObject::WeakObject(const Object& src) { weak_copy(src); }
-
-USE_OBJECT_INLINE
-WeakObject::WeakObject(const WeakObject& src) { weak_copy(src); }
-
-USE_OBJECT_INLINE
-WeakObject::~WeakObject() { destroy(); }
-
-USE_OBJECT_INLINE WeakObject&
-WeakObject::operator = (const Object& src) { destroy(); weak_copy(src); return *this; }
-
-USE_OBJECT_INLINE WeakObject&
-WeakObject::operator = (const WeakObject& src) { destroy(); weak_copy(src); return *this; }
+  switch (m_type) {
+  case TYPE_NONE:
+    break;
+  case TYPE_VALUE:
+    m_value = value_type();
+    break;
+  case TYPE_STRING:
+    m_string = new string_type();
+    break;
+  case TYPE_LIST:
+    m_list = new list_type();
+    break;
+  case TYPE_MAP:
+    m_map = new map_type();
+    break;
+  }
+}
 
 }
 
 #endif
-  

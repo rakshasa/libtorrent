@@ -50,6 +50,7 @@
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "torrent/object.h"
 #include "tracker/tracker_manager.h"
 
 #include "chunk_selector.h"
@@ -59,6 +60,7 @@
 namespace torrent {
 
 DownloadWrapper::DownloadWrapper() :
+  m_bencode(NULL),
   m_hash(NULL),
   m_connectionType(0) {
 
@@ -77,6 +79,7 @@ DownloadWrapper::~DownloadWrapper() {
     close();
 
   delete m_hash;
+  delete m_bencode;
 }
 
 void
@@ -108,17 +111,17 @@ DownloadWrapper::hash_resume_load() {
   if (!m_main.is_open() || m_main.is_active() || m_hash->is_checked())
     throw client_error("DownloadWrapper::resume_load() called with wrong state");
 
-  if (!m_bencode.has_key("libtorrent resume"))
+  if (!m_bencode->has_key("libtorrent resume"))
     return;
 
   try {
-    Bencode& resume  = m_bencode.get_key("libtorrent resume");
+    Object& resume  = m_bencode->get_key("libtorrent resume");
 
     // Load peer addresses.
     if (resume.has_key("peers") && resume.get_key("peers").is_string())
       insert_available_list(resume.get_key("peers").as_string());
 
-    Bencode& files = resume.get_key("files");
+    Object& files = resume.get_key("files");
 
     if (resume.get_key("bitfield").as_string().size() != m_main.content()->bitfield().size_bytes() ||
 	files.as_list().size() != m_main.content()->entry_list()->files_size())
@@ -130,7 +133,7 @@ DownloadWrapper::hash_resume_load() {
 
     std::memcpy(m_main.content()->bitfield().begin(), resume.get_key("bitfield").as_string().c_str(), m_main.content()->bitfield().size_bytes());
 
-    Bencode::List::iterator bItr = files.as_list().begin();
+    Object::list_type::iterator bItr = files.as_list().begin();
     EntryList::iterator sItr = m_main.content()->entry_list()->begin();
 
     // Check the validity of each file, add to the m_hash's ranges if invalid.
@@ -183,7 +186,7 @@ DownloadWrapper::hash_resume_save() {
 
   // Clear the resume data since if the syncing fails we propably don't
   // want the old resume data.
-  Bencode& resume = m_bencode.insert_key("libtorrent resume", Bencode(Bencode::TYPE_MAP));
+  Object& resume = m_bencode->insert_key("libtorrent resume", Object(Object::TYPE_MAP));
 
   // We're guaranteed that file modification time is correctly updated
   // after this. Though won't help if the files have been delete while
@@ -195,13 +198,13 @@ DownloadWrapper::hash_resume_save() {
 
   resume.insert_key("bitfield", std::string((char*)m_main.content()->bitfield().begin(), m_main.content()->bitfield().size_bytes()));
 
-  Bencode::List& l = resume.insert_key("files", Bencode(Bencode::TYPE_LIST)).as_list();
+  Object::list_type& l = resume.insert_key("files", Object(Object::TYPE_LIST)).as_list();
 
   EntryList::iterator sItr = m_main.content()->entry_list()->begin();
   
   // Check the validity of each file, add to the m_hash's ranges if invalid.
   while (sItr != m_main.content()->entry_list()->end()) {
-    Bencode& b = *l.insert(l.end(), Bencode(Bencode::TYPE_MAP));
+    Object& b = *l.insert(l.end(), Object(Object::TYPE_MAP));
 
     rak::file_stat fs;
 
@@ -222,7 +225,7 @@ DownloadWrapper::hash_resume_save() {
   //
   // Consider whetever we need to add currently connected too, as we
   // might save the session while still active.
-  extract_available_list(&resume.insert_key("peers", Bencode()));
+  extract_available_list(&resume.insert_key("peers", Object()));
 }
 
 void
@@ -296,7 +299,7 @@ DownloadWrapper::insert_available_list(const std::string& src) {
 }
 
 void
-DownloadWrapper::extract_available_list(Bencode* dest) {
+DownloadWrapper::extract_available_list(Object* dest) {
   *dest = std::string();
   
   std::string& peers = dest->as_string();

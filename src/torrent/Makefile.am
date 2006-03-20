@@ -1,8 +1,6 @@
 noinst_LTLIBRARIES = libsub_torrent.la
 
 libsub_torrent_la_SOURCES = \
-	bencode.cc \
-	bencode.h \
 	download.cc \
 	download.h \
 	connection_manager.cc \
@@ -14,6 +12,10 @@ libsub_torrent_la_SOURCES = \
 	exceptions.h \
 	http.cc \
 	http.h \
+	object.cc \
+	object.h \
+	object_stream.cc \
+	object_stream.h \
 	peer.cc \
 	peer.h \
 	path.cc \
@@ -36,13 +38,14 @@ INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
-	bencode.h \
 	connection_manager.h \
 	download.h \
 	exceptions.h \
 	entry.h \
 	event.h \
 	http.h \
+	object.h \
+	object_stream.h \
 	peer.h \
 	path.h \
 	poll.h \

@@ -142,7 +142,7 @@ struct connection_list_less {
 ConnectionList::iterator
 ConnectionList::find(const rak::socket_address& sa) {
   return std::find_if(begin(), end(), rak::equal_ptr(&sa, rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
-								  std::mem_fun(&PeerInfo::socket_address))));
+								  std::mem_fun<const rak::socket_address*>(&PeerInfo::socket_address))));
 }
 
 void

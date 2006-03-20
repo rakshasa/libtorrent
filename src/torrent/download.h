@@ -53,7 +53,7 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
-class Bencode;
+class Object;
 class Rate;
 class DownloadWrapper;
 
@@ -103,8 +103,8 @@ public:
   // Unix epoche, 0 == unknown.
   uint32_t             creation_date() const;
 
-  Bencode&             bencode();
-  const Bencode&       bencode() const;
+  Object&              bencode();
+  const Object&        bencode() const;
 
   // Only set the root directory while the torrent is closed.
   std::string          root_dir() const;

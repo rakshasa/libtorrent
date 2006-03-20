@@ -49,10 +49,10 @@ struct sockaddr;
 
 namespace torrent {
 
-class Bencode;
 class Poll;
 class Rate;
 class ConnectionManager;
+class Object;
 
 // Make sure you seed srandom and srand48 if available.
 void                initialize(Poll* poll);
@@ -125,7 +125,13 @@ EncodingList*       encoding_list();
 // Will always return a valid Download. On errors it
 // throws. 'encodingList' contains a list of prefered encodings to use
 // for file names.
-Download            download_add(std::istream* s);
+//
+// The Object must be on the heap allocated with 'new'. If
+// 'download_add' throws the client must handle the deletion, else it
+// is done by 'download_remove'.
+//
+// Might consider redesigning that...
+Download            download_add(Object* s);
 void                download_remove(Download d);
 
 // Add all downloads to dlist. The client is responsible for clearing

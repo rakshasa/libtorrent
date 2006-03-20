@@ -4,8 +4,6 @@ The seed count and scrape leech/seed.
 
 Check if an entry is present and correctly sized.
 
-Rewrite the torrent::Bencode class.
-
 Disk cache.
 
 Make libtorrent locale agnostic.
