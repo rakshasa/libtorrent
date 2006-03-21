@@ -133,6 +133,7 @@ public:
   uint32_t             peers_max() const;
   uint32_t             peers_connected() const;
   uint32_t             peers_not_connected() const;
+  uint32_t             peers_complete() const;
 
   uint32_t             peers_currently_unchoked() const;
   uint32_t             peers_currently_interested() const;

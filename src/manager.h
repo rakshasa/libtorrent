@@ -47,7 +47,6 @@ namespace torrent {
 
 class Poll;
 
-class Listen;
 class HashQueue;
 class HandshakeManager;
 class DownloadManager;
@@ -70,7 +69,6 @@ public:
   FileManager*        file_manager()                            { return m_fileManager; }
   HandshakeManager*   handshake_manager()                       { return m_handshakeManager; }
   HashQueue*          hash_queue()                              { return m_hashQueue; }
-  Listen*             listen()                                  { return m_listen; }
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
 
   ConnectionManager*  connection_manager()                      { return m_connectionManager; }
@@ -94,7 +92,6 @@ private:
   FileManager*        m_fileManager;
   HandshakeManager*   m_handshakeManager;
   HashQueue*          m_hashQueue;
-  Listen*             m_listen;
   ResourceManager*    m_resourceManager;
 
   ConnectionManager*  m_connectionManager;

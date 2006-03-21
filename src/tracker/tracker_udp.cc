@@ -267,7 +267,7 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_32_n(localAddress->sa_inet()->address_n());
   m_writeBuffer->write_32(m_info->key());
   m_writeBuffer->write_32(m_info->numwant());
-  m_writeBuffer->write_16(m_info->port());
+  m_writeBuffer->write_16(manager->connection_manager()->listen_port());
 
   m_writeBuffer->prepare_end();
 

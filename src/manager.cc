@@ -46,8 +46,8 @@
 #include "data/hash_torrent.h"
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
-#include "net/listen.h"
 #include "net/throttle_manager.h"
+#include "net/listen.h"
 
 #include "torrent/connection_manager.h"
 
@@ -63,7 +63,6 @@ Manager::Manager() :
   m_fileManager(new FileManager),
   m_handshakeManager(new HandshakeManager),
   m_hashQueue(new HashQueue),
-  m_listen(new Listen),
   m_resourceManager(new ResourceManager),
 
   m_connectionManager(new ConnectionManager),
@@ -82,7 +81,7 @@ Manager::Manager() :
   m_handshakeManager->slot_connected(rak::make_mem_fun(this, &Manager::receive_connection));
   m_handshakeManager->slot_download_id(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_info));
 
-  m_listen->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
+  m_connectionManager->listen()->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
 }
 
 Manager::~Manager() {
@@ -95,7 +94,6 @@ Manager::~Manager() {
   delete m_fileManager;
   delete m_handshakeManager;
   delete m_hashQueue;
-  delete m_listen;
   delete m_resourceManager;
   delete m_connectionManager;
 
@@ -105,8 +103,6 @@ Manager::~Manager() {
 
 void
 Manager::initialize_download(DownloadWrapper* d) {
-  d->info()->set_port(m_listen->port());
-
   d->main()->slot_count_handshakes(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::size_info));
   d->main()->slot_start_handshake(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_outgoing));
 
@@ -154,20 +150,15 @@ void
 Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& peer) {
   DownloadManager::iterator itr = m_downloadManager->find(info);
   
-  if (itr == m_downloadManager->end()) {
+  if (itr == m_downloadManager->end() ||
+      peer.get_id() == info->local_id() ||
+      !peer.socket_address()->is_valid()) {
+
     m_connectionManager->dec_socket_count();
     fd.close();
     
     return;
   }
-
-  if (!peer.socket_address()->is_valid()) {
-    (*itr)->info()->signal_network_log().emit("Caught a connection with invalid socket address.");
-
-    m_connectionManager->dec_socket_count();
-    fd.close();
-    return;
-  }    
 
   if (!(*itr)->main()->is_active() ||
       !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd)) {

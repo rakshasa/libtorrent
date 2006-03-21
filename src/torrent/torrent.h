@@ -61,10 +61,6 @@ void                initialize(Poll* poll);
 // them to finish is not required, but recommended.
 void                cleanup();
 
-bool                listen_open(uint16_t begin, uint16_t end);
-void                listen_close();  
-uint16_t            listen_port();
-
 int64_t             next_timeout();
 
 // Calls this function when get_next_timeout() is zero or at

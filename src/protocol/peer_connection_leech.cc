@@ -42,6 +42,7 @@
 #include "data/content.h"
 #include "data/chunk_list_node.h"
 #include "download/chunk_selector.h"
+#include "download/chunk_statistics.h"
 #include "download/download_main.h"
 
 #include "peer_connection_leech.h"
@@ -551,7 +552,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
   if (m_peerChunks.bitfield()->get(index))
     return;
 
-  m_peerChunks.bitfield()->set(index, true);
+  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index);
   m_peerRate.insert(m_download->content()->chunk_size());
 
   if (m_peerChunks.bitfield()->all_set())
@@ -592,7 +593,7 @@ PeerConnectionLeech::finish_bitfield() {
   if (m_download->content()->is_done() && m_peerChunks.bitfield()->all_set())
     throw close_connection();
 
-  m_download->chunk_selector()->insert_peer_chunks(&m_peerChunks);
+  m_download->chunk_statistics()->received_connect(&m_peerChunks);
 
   if (!m_download->content()->is_done() && true) { // FIXME: m_download->delegator()->get_select().interested(m_peerChunks.bitfield()->bitfield())) {
     m_sendInterested = true;

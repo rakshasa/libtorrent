@@ -50,7 +50,6 @@
 #include "manager.h"
 #include "resource_manager.h"
 
-#include "net/listen.h"
 #include "net/throttle_list.h"
 #include "net/throttle_manager.h"
 #include "protocol/handshake_manager.h"
@@ -120,33 +119,6 @@ cleanup() {
 
   delete manager;
   manager = NULL;
-}
-
-bool
-listen_open(uint16_t begin, uint16_t end) {
-  if (manager == NULL)
-    throw client_error("listen_open called but the library has not been initialized");
-
-  if (!manager->listen()->open(begin, end, rak::socket_address::cast_from(manager->connection_manager()->bind_address())))
-    return false;
-
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->info()->set_port(manager->listen()->port());
-
-  return true;
-}
-
-void
-listen_close() {
-  manager->listen()->close();
-
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin(), last = manager->download_manager()->end(); itr != last; ++itr)
-    (*itr)->info()->set_port(manager->listen()->port());
-}
-
-uint16_t
-listen_port() {
-  return manager->listen()->port();
 }
 
 void

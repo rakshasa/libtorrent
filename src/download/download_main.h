@@ -54,8 +54,10 @@
 namespace torrent {
 
 class ChunkList;
-class ChokeManager;
 class ChunkSelector;
+class ChunkStatistics;
+
+class ChokeManager;
 class DownloadWrapper;
 class HandshakeManager;
 class TrackerManager;
@@ -82,9 +84,11 @@ public:
 
   DownloadInfo*       info()                                     { return m_info; }
 
-  // Only retrive writable chunks when the download is active.
+  // Only retrieve writable chunks when the download is active.
   ChunkList*          chunk_list()                               { return m_chunkList; }
   ChunkSelector*      chunk_selector()                           { return m_chunkSelector; }
+  ChunkStatistics*    chunk_statistics()                         { return m_chunkStatistics; }
+  
   Content*            content()                                  { return &m_content; }
   Delegator*          delegator()                                { return &m_delegator; }
 
@@ -135,6 +139,8 @@ private:
 
   ChunkList*          m_chunkList;
   ChunkSelector*      m_chunkSelector;
+  ChunkStatistics*    m_chunkStatistics;
+
   Content             m_content;
   Delegator           m_delegator;
 

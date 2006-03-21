@@ -7,6 +7,8 @@ libsub_download_la_SOURCES = \
 	choke_manager.h \
 	chunk_selector.cc \
 	chunk_selector.h \
+	chunk_statistics.cc \
+	chunk_statistics.h \
 	connection_list.cc \
 	connection_list.h \
 	delegator.cc \

@@ -68,7 +68,6 @@ public:
   };
 
   DownloadInfo() :
-    m_port(0),
     m_key(0),
     m_compact(true),
     m_numwant(-1),
@@ -86,9 +85,6 @@ public:
 
   const std::string&  local_id() const                             { return m_localId; }
   void                set_local_id(const std::string& id)          { m_localId = id; }
-
-  uint16_t            port() const                                 { return m_port; }
-  void                set_port(uint16_t p)                         { m_port = p; }
 
   uint32_t            key() const                                  { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
@@ -121,8 +117,6 @@ private:
   std::string         m_name;
   std::string         m_hash;
   std::string         m_localId;
-
-  uint16_t            m_port;
 
   uint32_t            m_key;
   bool                m_compact;

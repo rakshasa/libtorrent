@@ -46,6 +46,9 @@ class sockaddr;
 
 namespace torrent {
 
+// Internal.
+class Listen;
+
 class ConnectionManager {
 public:
   typedef sigc::slot<uint32_t, const sockaddr*> slot_filter_type;
@@ -90,6 +93,18 @@ public:
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slotFilter = s; }
 
+  bool                listen_open(uint16_t begin, uint16_t end);
+  void                listen_close();  
+
+  // Since trackers need our port number, it doesn't get cleared after
+  // 'listen_close()'. The client may change the reported port number,
+  // but do note that it gets overwritten after 'listen_open(...)'.
+  uint16_t            listen_port() const                     { return m_listenPort; }
+  void                set_listen_port(uint16_t p)             { m_listenPort = p; }
+
+  // For internal usage.
+  Listen*             listen()                                { return m_listen; }
+
 private:
   ConnectionManager(const ConnectionManager&);
   void operator = (const ConnectionManager&);
@@ -102,6 +117,9 @@ private:
 
   sockaddr*           m_bindAddress;
   sockaddr*           m_localAddress;
+
+  Listen*             m_listen;
+  uint16_t            m_listenPort;
 
   slot_filter_type    m_slotFilter;
 };

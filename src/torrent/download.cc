@@ -44,6 +44,7 @@
 #include "data/hash_torrent.h"
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
+#include "download/chunk_statistics.h"
 #include "download/delegator_chunk.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"
@@ -260,6 +261,11 @@ Download::peers_connected() const {
 uint32_t
 Download::peers_not_connected() const {
   return m_ptr->main()->available_list()->size();
+}
+
+uint32_t
+Download::peers_complete() const {
+  return m_ptr->main()->chunk_statistics()->complete();
 }
 
 uint32_t

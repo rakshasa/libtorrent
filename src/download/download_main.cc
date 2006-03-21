@@ -40,14 +40,15 @@
 #include <limits>
 
 #include "data/chunk_list.h"
+#include "download/download_info.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
-#include "torrent/exceptions.h"
-#include "download/download_info.h"
 #include "tracker/tracker_manager.h"
+#include "torrent/exceptions.h"
 
 #include "choke_manager.h"
 #include "chunk_selector.h"
+#include "chunk_statistics.h"
 #include "download_main.h"
 
 namespace torrent {
@@ -59,6 +60,7 @@ DownloadMain::DownloadMain() :
   m_chokeManager(new ChokeManager(&this->m_connectionList)),
   m_chunkList(new ChunkList),
   m_chunkSelector(new ChunkSelector),
+  m_chunkStatistics(new ChunkStatistics),
 
   m_started(false),
   m_isOpen(false),
@@ -84,6 +86,8 @@ DownloadMain::~DownloadMain() {
 
   delete m_trackerManager;
   delete m_chokeManager;
+
+  delete m_chunkStatistics;
   delete m_chunkList;
   delete m_chunkSelector;
   delete m_info;
@@ -117,6 +121,7 @@ DownloadMain::close() {
 
   // Clear the chunklist last as it requires all referenced chunks to
   // be released.
+  m_chunkStatistics->clear();
   m_chunkList->clear();
   m_chunkSelector->cleanup();
 }

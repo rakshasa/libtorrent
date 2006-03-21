@@ -43,6 +43,7 @@
 #include "data/chunk_list.h"
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
+#include "download/chunk_statistics.h"
 #include "download/download_main.h"
 #include "net/socket_base.h"
 
@@ -80,6 +81,7 @@ PeerConnectionBase::~PeerConnectionBase() {
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
   m_download->choke_manager()->disconnected(this);
+  m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
   manager->poll()->remove_read(this);
   manager->poll()->remove_write(this);

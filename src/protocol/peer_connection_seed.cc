@@ -40,6 +40,7 @@
 #include <sstream>
 
 #include "data/content.h"
+#include "download/chunk_statistics.h"
 #include "download/download_main.h"
 
 #include "peer_connection_seed.h"
@@ -410,7 +411,10 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
   if (index >= m_peerChunks.bitfield()->size_bits())
     throw network_error("Peer sent HAVE message with out-of-range index.");
 
-  m_peerChunks.bitfield()->set(index, true);
+  if (m_peerChunks.bitfield()->get(index))
+    return;
+
+  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index);
   m_peerRate.insert(m_download->content()->chunk_size());
 
   if (m_peerChunks.bitfield()->all_set())
@@ -425,6 +429,7 @@ PeerConnectionSeed::finish_bitfield() {
     throw close_connection();
 
 //   m_download->bitfield_counter().inc(m_peerChunks.bitfield()->bitfield());
+  m_download->chunk_statistics()->received_connect(&m_peerChunks);
 
   write_insert_poll_safe();
 }

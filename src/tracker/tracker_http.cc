@@ -85,6 +85,7 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
     throw internal_error("Send state with TrackerHttp with bad hash or id");
 
   std::stringstream s;
+  s.imbue(std::locale::classic());
 
   s << m_url
     << "?info_hash=" << rak::copy_escape_html(m_info->hash())
@@ -106,8 +107,10 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
   if (m_info->numwant() >= 0)
     s << "&numwant=" << m_info->numwant();
 
-  s << "&port=" << m_info->port()
-    << "&uploaded=" << up
+  if (manager->connection_manager()->listen_port())
+    s << "&port=" << manager->connection_manager()->listen_port();
+
+  s << "&uploaded=" << up
     << "&downloaded=" << down
     << "&left=" << left;
 

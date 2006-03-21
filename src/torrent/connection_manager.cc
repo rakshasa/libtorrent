@@ -38,8 +38,10 @@
 
 #include <rak/socket_address.h>
 
-#include "torrent/exceptions.h"
+#include "net/listen.h"
+
 #include "connection_manager.h"
+#include "exceptions.h"
 
 namespace torrent {
 
@@ -47,7 +49,9 @@ ConnectionManager::ConnectionManager() :
   m_size(0),
   m_max(0),
   m_sendBufferSize(0),
-  m_receiveBufferSize(0) {
+  m_receiveBufferSize(0),
+
+  m_listen(new Listen) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();
@@ -57,6 +61,8 @@ ConnectionManager::ConnectionManager() :
 }
 
 ConnectionManager::~ConnectionManager() {
+  delete m_listen;
+
   delete m_bindAddress;
   delete m_localAddress;
 }
@@ -97,6 +103,21 @@ ConnectionManager::filter(const sockaddr* sa) {
     return 1;
   else
     return m_slotFilter(sa);
+}
+
+bool
+ConnectionManager::listen_open(uint16_t begin, uint16_t end) {
+  if (!m_listen->open(begin, end, rak::socket_address::cast_from(m_bindAddress)))
+    return false;
+
+  m_listenPort = m_listen->port();
+
+  return true;
+}
+
+void
+ConnectionManager::listen_close() {
+  m_listen->close();
 }
 
 }
