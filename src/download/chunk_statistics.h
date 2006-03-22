@@ -44,9 +44,9 @@ namespace torrent {
 
 class PeerChunks;
 
-class ChunkStatistics : public std::vector<unsigned char> {
+class ChunkStatistics : public std::vector<uint8_t> {
 public:
-  typedef std::vector<unsigned char>      base_type;
+  typedef std::vector<uint8_t>            base_type;
   typedef uint32_t                        size_type;
 
   typedef base_type::value_type           value_type;
@@ -55,20 +55,25 @@ public:
   typedef base_type::const_iterator       const_iterator;
   typedef base_type::reverse_iterator     reverse_iterator;
 
+  using base_type::empty;
   using base_type::size;
+  using base_type::begin;
+  using base_type::end;
 
-  ChunkStatistics() : m_complete(0) {}
+  static const size_type max_accounted = 255;
+
+  ChunkStatistics() : m_complete(0), m_accounted(0) {}
   ~ChunkStatistics() {}
 
-  size_type           complete() const    { return m_complete; }
-  size_type           incomplete() const;
+  size_type           complete() const              { return m_complete; }
+  //size_type           incomplete() const;
 
-  size_type           accounted() const;
+  // Number of non-complete peers whom's bitfield is added to the
+  // statistics.
+  size_type           accounted() const             { return m_accounted; }
   
+  void                initialize(size_type s);
   void                clear();
-
-  // It's propably overkill to use PCB here, need to consolidate
-  // similar concepts into some subclass to put somewhere in PCB.
 
   // When a peer connects and sends a non-empty bitfield and is not a
   // seeder, we can be fairly sure it won't just disconnect
@@ -87,10 +92,13 @@ public:
   void                received_have_chunk(PeerChunks* pc, uint32_t index);
   
 private:
+  inline bool         should_add(PeerChunks* pc);
+
   ChunkStatistics(const ChunkStatistics&);
   void operator = (const ChunkStatistics&);
 
   size_type           m_complete;
+  size_type           m_accounted;
 };
 
 }

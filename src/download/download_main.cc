@@ -101,6 +101,7 @@ DownloadMain::open() {
   m_content.open();
 
   m_chunkList->resize(m_content.chunk_total());
+  m_chunkStatistics->initialize(m_content.chunk_total());
 
   m_isOpen = true;
 }

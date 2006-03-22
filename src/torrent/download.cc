@@ -233,6 +233,11 @@ Download::chunks_hashed() const {
   return m_ptr->hash_checker()->position();
 }
 
+const uint8_t*
+Download::chunks_seen() const {
+  return !m_ptr->main()->chunk_statistics()->empty() ? &*m_ptr->main()->chunk_statistics()->begin() : NULL;
+}
+
 const unsigned char*
 Download::bitfield_data() const {
   return (unsigned char*)m_ptr->main()->content()->bitfield().begin();
@@ -266,6 +271,11 @@ Download::peers_not_connected() const {
 uint32_t
 Download::peers_complete() const {
   return m_ptr->main()->chunk_statistics()->complete();
+}
+
+uint32_t
+Download::peers_accounted() const {
+  return m_ptr->main()->chunk_statistics()->accounted();
 }
 
 uint32_t
@@ -381,11 +391,6 @@ Download::file_entry_created(__UNUSED uint32_t index) {
 uint32_t
 Download::size_file_entries() const {
   return m_ptr->main()->content()->entry_list()->files_size();
-}
-
-const Download::SeenVector&
-Download::seen_chunks() const {
-  return m_ptr->main()->chunk_selector()->bitfield_counter()->field();
 }
 
 Download::ConnectionType

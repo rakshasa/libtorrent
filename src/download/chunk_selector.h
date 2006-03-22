@@ -89,9 +89,6 @@ public:
   void                using_index(uint32_t index);
   void                not_using_index(uint32_t index);
 
-  void                insert_peer_chunks(PeerChunks* peerChunks);
-  void                erase_peer_chunks(PeerChunks* peerChunks);
-
 private:
   inline uint32_t     search(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
   inline uint32_t     search_range(const BitField* bf, uint32_t first, uint32_t last);

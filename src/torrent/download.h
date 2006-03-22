@@ -62,8 +62,6 @@ class DownloadWrapper;
 
 class Download {
 public:
-  typedef std::vector<uint16_t> SeenVector;
-
   enum {
     NUMWANT_DISABLED = -1
   };
@@ -126,6 +124,8 @@ public:
   uint32_t             chunks_total() const;
   uint32_t             chunks_hashed() const;
 
+  const uint8_t*       chunks_seen() const;
+
   const unsigned char* bitfield_data() const;
   uint32_t             bitfield_size() const;
 
@@ -134,6 +134,7 @@ public:
   uint32_t             peers_connected() const;
   uint32_t             peers_not_connected() const;
   uint32_t             peers_complete() const;
+  uint32_t             peers_accounted() const;
 
   uint32_t             peers_currently_unchoked() const;
   uint32_t             peers_currently_interested() const;
@@ -165,8 +166,6 @@ public:
   Entry                file_entry(uint32_t index);
   bool                 file_entry_created(uint32_t index);
   uint32_t             size_file_entries() const;
-
-  const SeenVector&    seen_chunks() const;
 
   typedef enum {
     CONNECTION_LEECH,

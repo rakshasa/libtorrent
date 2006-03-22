@@ -100,7 +100,6 @@ PeerConnectionBase::~PeerConnectionBase() {
   down_chunk_release();
 
   m_requestList.cancel();
-  m_download->chunk_selector()->erase_peer_chunks(&m_peerChunks);
 
   m_download->upload_throttle()->erase(m_upThrottle);
   m_download->download_throttle()->erase(m_downThrottle);

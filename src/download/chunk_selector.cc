@@ -130,14 +130,6 @@ ChunkSelector::not_using_index(uint32_t index) {
   update_priorities();
 }
 
-void
-ChunkSelector::insert_peer_chunks(__UNUSED PeerChunks* peerChunks) {
-}
-
-void
-ChunkSelector::erase_peer_chunks(__UNUSED PeerChunks* peerChunks) {
-}
-
 inline uint32_t
 ChunkSelector::search(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last) {
   uint32_t position;
