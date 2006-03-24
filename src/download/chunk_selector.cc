@@ -47,11 +47,13 @@
 
 namespace torrent {
 
+// Consider making statistics a part of selector.
 void
-ChunkSelector::initialize(BitField* bf) {
+ChunkSelector::initialize(BitField* bf, ChunkStatistics* cs) {
   m_position = invalid_chunk;
 
   m_bitfield = BitField(bf->size_bits());
+  m_statistics = cs;
 
   std::transform(bf->begin(), bf->end(), m_bitfield.begin(), rak::invert<BitField::data_t>());
   m_bitfield.cleanup();
@@ -60,6 +62,7 @@ ChunkSelector::initialize(BitField* bf) {
 void
 ChunkSelector::cleanup() {
   m_bitfield = BitField();
+  m_statistics = NULL;
 }
 
 // Consider if ChunksSelector::not_using_index(...) needs to be
@@ -69,8 +72,12 @@ ChunkSelector::update_priorities() {
   if (empty())
     return;
 
-  if (m_position == invalid_chunk)
-    m_position = std::rand() % size();
+  // FIXME: Re-enable after debugging statistics.
+
+//   if (m_position == invalid_chunk)
+//     m_position = std::rand() % size();
+
+  m_position = 0;
 
   advance_position();
 }
@@ -82,10 +89,10 @@ ChunkSelector::find(PeerChunks* peerChunks, __UNUSED bool highPriority) {
 
   uint32_t position;
 
-  if ((position = search(peerChunks->bitfield()->base(), &m_highPriority, m_position, size())) == invalid_chunk &&
-      (position = search(peerChunks->bitfield()->base(), &m_highPriority, 0, m_position)) == invalid_chunk &&
-      (position = search(peerChunks->bitfield()->base(), &m_normalPriority, m_position, size())) == invalid_chunk &&
-      (position = search(peerChunks->bitfield()->base(), &m_normalPriority, 0, m_position)) == invalid_chunk)
+  if ((position = search_linear(peerChunks->bitfield()->base(), &m_highPriority, m_position, size())) == invalid_chunk &&
+      (position = search_linear(peerChunks->bitfield()->base(), &m_highPriority, 0, m_position)) == invalid_chunk &&
+      (position = search_linear(peerChunks->bitfield()->base(), &m_normalPriority, m_position, size())) == invalid_chunk &&
+      (position = search_linear(peerChunks->bitfield()->base(), &m_normalPriority, 0, m_position)) == invalid_chunk)
     return invalid_chunk;
 
   if (!m_bitfield.get(position))
@@ -131,13 +138,13 @@ ChunkSelector::not_using_index(uint32_t index) {
 }
 
 inline uint32_t
-ChunkSelector::search(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last) {
+ChunkSelector::search_linear(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last) {
   uint32_t position;
   PriorityRanges::iterator itr = ranges->find(first);
 
   while (itr != ranges->end() && itr->first < last) {
 
-    if ((position = search_range(bf, std::max(first, itr->first), std::min(last, itr->second))) != invalid_chunk)
+    if ((position = search_linear_range(bf, std::max(first, itr->first), std::min(last, itr->second))) != invalid_chunk)
       return position;
     
     ++itr;    
@@ -149,9 +156,9 @@ ChunkSelector::search(const BitField* bf, PriorityRanges* ranges, uint32_t first
 // Could propably add another argument for max seen or something, this
 // would be used to find better chunks to request.
 inline uint32_t
-ChunkSelector::search_range(const BitField* bf, uint32_t first, uint32_t last) {
+ChunkSelector::search_linear_range(const BitField* bf, uint32_t first, uint32_t last) {
   if (first >= last || last > size())
-    throw internal_error("ChunkSelector::search_range(...) received an invalid range.");
+    throw internal_error("ChunkSelector::search_linear_range(...) received an invalid range.");
 
   BitField::const_iterator local  = m_bitfield.begin() + first / 8;
   BitField::const_iterator source = bf->begin() + first / 8;
@@ -169,10 +176,10 @@ ChunkSelector::search_range(const BitField* bf, uint32_t first, uint32_t last) {
     wanted = (*source & *local);
   }
   
-  uint32_t position = m_bitfield.position(local) + search_byte(wanted);
+  uint32_t position = m_bitfield.position(local) + search_linear_byte(wanted);
 
   if (position < first)
-    throw internal_error("ChunkSelector::search_range(...) position < first.");
+    throw internal_error("ChunkSelector::search_linear_range(...) position < first.");
 
   if (position < last)
     return position;
@@ -181,7 +188,7 @@ ChunkSelector::search_range(const BitField* bf, uint32_t first, uint32_t last) {
 }
 
 inline uint32_t
-ChunkSelector::search_byte(uint8_t wanted) {
+ChunkSelector::search_linear_byte(uint8_t wanted) {
   uint32_t i = 0;
 
   while ((wanted & ((BitField::data_t)1 << (7 - i))) == 0)
@@ -195,10 +202,10 @@ ChunkSelector::advance_position() {
   int position = m_position;
 
   // Find the next wanted piece.
-  if ((m_position = search(&m_bitfield, &m_highPriority, position, size())) == invalid_chunk &&
-      (m_position = search(&m_bitfield, &m_highPriority, 0, position)) == invalid_chunk &&
-      (m_position = search(&m_bitfield, &m_normalPriority, position, size())) == invalid_chunk &&
-      (m_position = search(&m_bitfield, &m_normalPriority, 0, position)) == invalid_chunk)
+  if ((m_position = search_linear(&m_bitfield, &m_highPriority, position, size())) == invalid_chunk &&
+      (m_position = search_linear(&m_bitfield, &m_highPriority, 0, position)) == invalid_chunk &&
+      (m_position = search_linear(&m_bitfield, &m_normalPriority, position, size())) == invalid_chunk &&
+      (m_position = search_linear(&m_bitfield, &m_normalPriority, 0, position)) == invalid_chunk)
     ;
 }
 

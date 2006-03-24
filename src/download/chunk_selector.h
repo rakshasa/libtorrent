@@ -41,7 +41,6 @@
 #include <rak/ranges.h>
 
 #include "utils/bitfield.h"
-#include "utils/bitfield_counter.h"
 
 namespace torrent {
 
@@ -53,6 +52,7 @@ namespace torrent {
 // When updating Content::bitfield, make sure you update this bitfield
 // and unmark any chunks in Delegator.
 
+class ChunkStatistics;
 class PeerChunks;
 
 class ChunkSelector {
@@ -65,14 +65,13 @@ public:
   uint32_t            size() const                  { return m_bitfield.size_bits(); }
 
   const BitField*     bitfield()                    { return &m_bitfield; }
-  BitFieldCounter*    bitfield_counter()            { return &m_bitfieldCounter; }
 
   PriorityRanges*     high_priority()               { return &m_highPriority; }
   PriorityRanges*     normal_priority()             { return &m_normalPriority; }
 
   // Initialize doesn't update the priority cache, so it is as if it
   // has empty priority ranges.
-  void                initialize(BitField* bf);
+  void                initialize(BitField* bf, ChunkStatistics* cs);
   void                cleanup();
 
   // Call this once you've modified the bitfield or priorities to
@@ -90,14 +89,18 @@ public:
   void                not_using_index(uint32_t index);
 
 private:
-  inline uint32_t     search(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
-  inline uint32_t     search_range(const BitField* bf, uint32_t first, uint32_t last);
-  inline uint32_t     search_byte(uint8_t wanted);
+  inline uint32_t     search_linear(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
+  inline uint32_t     search_linear_range(const BitField* bf, uint32_t first, uint32_t last);
+  inline uint32_t     search_linear_byte(uint8_t wanted);
+
+//   inline uint32_t     search_rarest(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
+//   inline uint32_t     search_rarest_range(const BitField* bf, uint32_t first, uint32_t last);
+//   inline uint32_t     search_rarest_byte(uint8_t wanted);
 
   void                advance_position();
 
   BitField            m_bitfield;
-  BitFieldCounter     m_bitfieldCounter;
+  ChunkStatistics*    m_statistics;
   
   PriorityRanges      m_highPriority;
   PriorityRanges      m_normalPriority;

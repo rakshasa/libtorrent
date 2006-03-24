@@ -348,7 +348,7 @@ DownloadWrapper::receive_initial_hash() {
 
   // Initialize the ChunkSelector here so that no chunks will be
   // marked by HashTorrent that are not accounted for.
-  m_main.chunk_selector()->initialize(&m_main.content()->bitfield());
+  m_main.chunk_selector()->initialize(&m_main.content()->bitfield(), m_main.chunk_statistics());
   receive_update_priorities();
 
   m_signalInitialHash.emit();

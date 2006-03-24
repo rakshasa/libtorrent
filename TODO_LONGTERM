@@ -1,5 +1,7 @@
 == API changes ==
 
+A disk setting manager, allow change of read-ahead etc.
+
 The seed count and scrape leech/seed.
 
 Check if an entry is present and correctly sized.

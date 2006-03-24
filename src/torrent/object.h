@@ -40,6 +40,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <inttypes.h>
 #include <torrent/exceptions.h>
 
 namespace torrent {

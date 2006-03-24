@@ -84,6 +84,9 @@ public:
   // the type of connection shouldn't matter? As f.ex PCSeed will only
   // make sense when seeding, it won't be counted.
 
+  // Might want to prefer to add peers we are interested in, but which
+  // arn't in us.
+
   void                received_connect(PeerChunks* pc);
   void                received_disconnect(PeerChunks* pc);
 

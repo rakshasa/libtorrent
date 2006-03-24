@@ -198,7 +198,11 @@ Handshake::event_write() {
     case WRITE_FILL:
       m_writeBuffer.write_8(19);
       m_writeBuffer.write_range(m_protocol, m_protocol + 19);
-      m_writeBuffer.write_range(m_peerInfo.get_options(), m_peerInfo.get_options() + 8);
+
+//       m_writeBuffer.write_range(m_peerInfo.get_options(), m_peerInfo.get_options() + 8);
+      std::memset(m_writeBuffer.position(), 0, 8);
+      m_writeBuffer.move_position(8);
+
       m_writeBuffer.write_range(m_downloadInfo->hash().c_str(), m_downloadInfo->hash().c_str() + 20);
       m_writeBuffer.write_range(m_downloadInfo->local_id().c_str(), m_downloadInfo->local_id().c_str() + 20);
 
