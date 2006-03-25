@@ -72,7 +72,7 @@ Peer::is_remote_interested() {
 
 bool
 Peer::is_snubbed() {
-  return m_ptr->is_snubbed();
+  return m_ptr->peer_chunks()->is_snubbed();
 }
 
 void
@@ -97,35 +97,35 @@ Peer::address() const {
 
 const Rate*
 Peer::down_rate() {
-  return m_ptr->down_rate();
+  return m_ptr->peer_chunks()->download_throttle()->rate();
 } 
 
 const Rate*
 Peer::up_rate() {
-  return m_ptr->up_rate();
+  return m_ptr->peer_chunks()->upload_throttle()->rate();
 } 
 
 const Rate*
 Peer::peer_rate() {
-  return m_ptr->peer_rate();
+  return m_ptr->peer_chunks()->peer_rate();
 } 
 
 uint32_t
 Peer::incoming_queue_size() {
-  return m_ptr->get_request_list().size();
+  return m_ptr->download_queue()->size();
 }
 
 uint32_t
 Peer::outgoing_queue_size() {
-  return m_ptr->get_send_list().size();
+  return m_ptr->peer_chunks()->upload_queue()->size();
 }  
 
 uint32_t
 Peer::incoming_index(uint32_t pos) {
-  if (pos >= m_ptr->get_request_list().size())
+  if (pos >= m_ptr->download_queue()->size())
     throw client_error("get_incoming_index(pos) out of range");
 
-  return m_ptr->get_request_list().get_queued_piece(pos).get_index();
+  return m_ptr->download_queue()->get_queued_piece(pos).get_index();
 }
 
   uint32_t             incoming_offset(uint32_t pos);

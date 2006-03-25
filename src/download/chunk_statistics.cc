@@ -117,8 +117,7 @@ ChunkStatistics::received_disconnect(PeerChunks* pc) {
 }
 
 void
-ChunkStatistics::received_have_chunk(PeerChunks* pc, uint32_t index) {
-
+ChunkStatistics::received_have_chunk(PeerChunks* pc, uint32_t index, uint32_t length) {
   // When the bitfield is empty, it is very cheap to add the peer to
   // the statistics. It needs to be done here else we need to check if
   // a connection has sent any messages, else it might send a bitfield.
@@ -132,8 +131,7 @@ ChunkStatistics::received_have_chunk(PeerChunks* pc, uint32_t index) {
   }
 
   pc->bitfield()->set(index, true);
-
-  //   pc->peer_rate().insert(m_download->content()->chunk_size());
+  pc->peer_rate()->insert(length);
   
   if (pc->using_counter()) {
 

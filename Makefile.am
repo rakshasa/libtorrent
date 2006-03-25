@@ -18,6 +18,7 @@ EXTRA_DIST= \
         rak/functional.h \
         rak/functional_fun.h \
 	rak/path.h \
+	rak/partial_queue.h \
 	rak/priority_queue.h \
 	rak/priority_queue_default.h \
 	rak/ranges.h \

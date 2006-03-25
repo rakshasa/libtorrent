@@ -64,6 +64,8 @@ public:
   bool                is_full() const                         { return is_layer_full(0); }
   bool                is_layer_full(size_type l) const        { return m_layers[l].second >= m_maxLayerSize; }
 
+  bool                is_enabled() const                      { return m_data != NULL; }
+
   // Add check to see if we can add more. Also make it possible to
   // check how full we are in the lower parts so the caller knows when
   // he can stop searching.
@@ -74,8 +76,10 @@ public:
   size_type           max_size() const                        { return m_maxLayerSize * num_layers; }
   size_type           max_layer_size() const                  { return m_maxLayerSize; }
 
-  // Must be less that or equal to (max size_type) / 8.
-  void                resize(size_type ls);
+  // Must be less that or equal to (max size_type) / num_layers.
+  void                enable(size_type ls);
+  void                disable();
+
   void                clear();
 
   // Safe to call while pop'ing and it will not reuse pop'ed indices
@@ -103,17 +107,19 @@ private:
 };
 
 inline void
-partial_queue::resize(size_type ls) {
-  if (ls == m_maxLayerSize)
-    return;
-
+partial_queue::enable(size_type ls) {
   delete m_data;
+  m_data = new mapped_type[ls * num_layers];
+
   m_maxLayerSize = ls;
+}
 
-  if (m_maxLayerSize == 0)
-    return;
+inline void
+partial_queue::disable() {
+  delete m_data;
+  m_data = NULL;
 
-  m_data = new mapped_type[m_maxLayerSize * num_layers];
+  m_maxLayerSize = 0;
 }
 
 inline void

@@ -56,31 +56,31 @@ ChokeManager::~ChokeManager() {
 
 struct choke_manager_read_rate_increasing {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return p1->down_rate()->rate() < p2->down_rate()->rate();
+    return *p1->peer_chunks()->download_throttle()->rate() < *p2->peer_chunks()->download_throttle()->rate();
   }
 };
 
 struct choke_manager_write_rate_increasing {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return p1->up_rate()->rate() < p2->up_rate()->rate();
+    return *p1->peer_chunks()->upload_throttle()->rate() < *p2->peer_chunks()->upload_throttle()->rate();
   }
 };
 
 struct choke_manager_read_rate_decreasing {
   bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return p1->down_rate()->rate() > p2->down_rate()->rate();
+    return *p1->peer_chunks()->download_throttle()->rate() > *p2->peer_chunks()->download_throttle()->rate();
   }
 };
 
 struct choke_manager_is_remote_not_uploading {
   bool operator () (PeerConnectionBase* p1) const {
-    return p1->down_rate()->rate() == 0;
+    return *p1->peer_chunks()->download_throttle()->rate() == 0;
   }
 };
 
 struct choke_manager_is_remote_uploading {
   bool operator () (PeerConnectionBase* p1) const {
-    return p1->down_rate()->rate() != 0;
+    return *p1->peer_chunks()->download_throttle()->rate() != 0;
   }
 };
 
@@ -296,7 +296,7 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
   for ( ; count != max && first != last; count++, first++) {
 
     if (split != last &&
-	((*first)->down_rate()->rate() < 500 || std::rand() % m_generousUnchokes == 0)) {
+	(*(*first)->peer_chunks()->download_throttle()->rate() < 500 || std::rand() % m_generousUnchokes == 0)) {
       // Use a random connection that is not uploading to us.
       std::iter_swap(split, split + std::rand() % std::distance(split, last));
       swap_with_shift(first, split++);

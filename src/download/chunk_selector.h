@@ -39,6 +39,7 @@
 
 #include <inttypes.h>
 #include <rak/ranges.h>
+#include <rak/partial_queue.h>
 
 #include "utils/bitfield.h"
 
@@ -79,7 +80,7 @@ public:
   // find.
   void                update_priorities();
 
-  uint32_t            find(PeerChunks* peerChunks, bool highPriority);
+  uint32_t            find(PeerChunks* pc, bool highPriority);
 
   bool                is_wanted(uint32_t index) const;
 
@@ -88,10 +89,14 @@ public:
   void                using_index(uint32_t index);
   void                not_using_index(uint32_t index);
 
+  // The caller must ensure that the chunk index is valid and has not
+  // been set already.
+  void                received_have_chunk(PeerChunks* pc, uint32_t index);
+
 private:
-  inline uint32_t     search_linear(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
-  inline uint32_t     search_linear_range(const BitField* bf, uint32_t first, uint32_t last);
-  inline uint32_t     search_linear_byte(uint8_t wanted);
+  bool                search_linear(const BitField* bf, rak::partial_queue* pq, PriorityRanges* ranges, uint32_t first, uint32_t last);
+  inline bool         search_linear_range(const BitField* bf, rak::partial_queue* pq, uint32_t first, uint32_t last);
+  inline bool         search_linear_byte(rak::partial_queue* pq, uint32_t index, BitField::data_t wanted);
 
 //   inline uint32_t     search_rarest(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_range(const BitField* bf, uint32_t first, uint32_t last);
@@ -104,6 +109,8 @@ private:
   
   PriorityRanges      m_highPriority;
   PriorityRanges      m_normalPriority;
+
+  rak::partial_queue  m_sharedQueue;
 
   uint32_t            m_position;
 };

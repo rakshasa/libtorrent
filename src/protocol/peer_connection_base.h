@@ -39,11 +39,8 @@
 
 #include "data/chunk.h"
 #include "data/chunk_handle.h"
-#include "data/piece.h"
 #include "net/socket_stream.h"
-#include "net/throttle_node.h"
 #include "globals.h"
-#include "torrent/rate.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
 
@@ -67,8 +64,6 @@ class DownloadMain;
 
 class PeerConnectionBase : public SocketStream {
 public:
-  typedef std::list<Piece>       PieceList;
-  typedef std::list<uint32_t>    HaveQueue;
   typedef ProtocolBase           ProtocolRead;
   typedef ProtocolBase           ProtocolWrite;
 
@@ -85,23 +80,19 @@ public:
   bool                is_down_choked()              { return m_down->choked(); }
   bool                is_down_interested()          { return m_down->interested(); }
 
-  bool                is_upload_wanted() const      { return m_down->interested() && !m_snubbed; }
+  bool                is_upload_wanted() const      { return m_down->interested() && !m_peerChunks.is_snubbed(); }
 
-  bool                is_snubbed() const            { return m_snubbed; }
   bool                is_seeder() const             { return m_peerChunks.bitfield()->all_set(); }
 
   const PeerInfo*     peer_info() const             { return &m_peer; }
   PeerChunks*         peer_chunks()                 { return &m_peerChunks; }
 
-  Rate*               peer_rate()                   { return &m_peerRate; }
-  Rate*               up_rate()                     { return m_upThrottle->rate(); }
-  Rate*               down_rate()                   { return m_downThrottle->rate(); }
-
-  RequestList&        get_request_list()            { return m_requestList; }
-  PieceList&          get_send_list()               { return m_sendList; }
+  RequestList*        download_queue()              { return &m_downloadQueue; }
 
   // Make sure you choke the peer when snubbing. Snubbing a peer will
   // only cause it not to be unchoked.
+  //
+  // Move this stuff to PeerChunks.
   void                set_snubbed(bool v);
 
   rak::timer          time_last_choked() const      { return m_timeLastChoked; }
@@ -165,28 +156,21 @@ protected:
 
   PeerInfo            m_peer;
   PeerChunks          m_peerChunks;
-  Rate                m_peerRate;
 
-  ThrottleNode*       m_downThrottle;
   Piece               m_downPiece;
   ChunkHandle         m_downChunk;
 
   uint32_t            m_downStall;
 
-  ThrottleNode*       m_upThrottle;
   Piece               m_upPiece;
   ChunkHandle         m_upChunk;
 
-  RequestList         m_requestList;
-  HaveQueue           m_haveQueue;
-
-  PieceList           m_sendList;
   bool                m_sendChoked;
   bool                m_sendInterested;
 
-  bool                m_snubbed;
-  rak::timer          m_timeLastChoked;
+  RequestList         m_downloadQueue;
 
+  rak::timer          m_timeLastChoked;
   rak::timer          m_timeLastRead;
 };
 

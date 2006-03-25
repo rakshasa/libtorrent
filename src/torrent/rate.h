@@ -49,30 +49,39 @@ namespace torrent {
 class Rate {
 public:
   // std::pair<seconds, bytes>
-  typedef std::pair<int32_t, uint32_t> value_type;
-  typedef std::deque<value_type>       Container;
+  typedef int32_t                          timer_type;
+  typedef uint32_t                         rate_type;
+  typedef std::pair<timer_type, rate_type> value_type;
+  typedef std::deque<value_type>           queue_type;
 
   Rate(uint32_t span) : m_current(0), m_total(0), m_span(span) {}
 
   uint32_t            rate() const;
 
-  uint64_t            total() const             { return m_total; }
-  void                set_total(uint64_t bytes) { m_total = bytes; }
+  uint64_t            total() const                           { return m_total; }
+  void                set_total(uint64_t bytes)               { m_total = bytes; }
 
-  uint32_t            span() const              { return m_span; }
-  void                set_span(uint32_t s)      { m_span = s; }
+  uint32_t            span() const                            { return m_span; }
+  void                set_span(uint32_t s)                    { m_span = s; }
 
   void                insert(uint32_t bytes);
 
-  void                reset_rate()              { m_current = 0; m_container.clear(); }
+  void                reset_rate()                            { m_current = 0; m_container.clear(); }
   
-  bool                operator < (Rate& r)      { return rate() < r.rate(); }
-  bool                operator > (Rate& r)      { return rate() > r.rate(); }
+  bool                operator <  (Rate& r) const             { return rate() < r.rate(); }
+  bool                operator >  (Rate& r) const             { return rate() > r.rate(); }
+  bool                operator == (Rate& r) const             { return rate() == r.rate(); }
+  bool                operator != (Rate& r) const             { return rate() != r.rate(); }
+
+  bool                operator <  (rate_type r) const         { return rate() < r; }
+  bool                operator >  (rate_type r) const         { return rate() > r; }
+  bool                operator == (rate_type r) const         { return rate() == r; }
+  bool                operator != (rate_type r) const         { return rate() != r; }
 
 private:
   inline void         discard_old() const;
 
-  mutable Container   m_container;
+  mutable queue_type  m_container;
 
   mutable uint32_t    m_current;
   uint64_t            m_total;

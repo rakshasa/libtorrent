@@ -51,14 +51,13 @@ public:
 
   typedef base_type::value_type           value_type;
   typedef base_type::reference            reference;
+  typedef base_type::const_reference      const_reference;
   typedef base_type::iterator             iterator;
   typedef base_type::const_iterator       const_iterator;
   typedef base_type::reverse_iterator     reverse_iterator;
 
   using base_type::empty;
   using base_type::size;
-  using base_type::begin;
-  using base_type::end;
 
   static const size_type max_accounted = 255;
 
@@ -92,8 +91,15 @@ public:
 
   // The caller must ensure that the chunk index is valid and has not
   // been set already.
-  void                received_have_chunk(PeerChunks* pc, uint32_t index);
+  void                received_have_chunk(PeerChunks* pc, uint32_t index, uint32_t length);
   
+  const_iterator      begin() const                   { return base_type::begin(); }
+  const_iterator      end() const                     { return base_type::end(); }
+
+  const_reference     rarity(size_type n) const       { return base_type::operator[](n); }
+
+  const_reference     operator [] (size_type n) const { return base_type::operator[](n); }
+
 private:
   inline bool         should_add(PeerChunks* pc);
 

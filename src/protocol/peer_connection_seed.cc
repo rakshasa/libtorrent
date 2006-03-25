@@ -290,17 +290,17 @@ PeerConnectionSeed::fill_write_buffer() {
     m_up->write_choke(m_up->choked());
 
     if (m_up->choked()) {
-      m_download->upload_throttle()->erase(m_upThrottle);
+      m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
       up_chunk_release();
-      m_sendList.clear();
+      m_peerChunks.upload_queue()->clear();
 
     } else {
-      m_download->upload_throttle()->insert(m_upThrottle);
+      m_download->upload_throttle()->insert(m_peerChunks.upload_throttle());
     }
   }
 
   if (!m_up->choked() &&
-      !m_sendList.empty() &&
+      !m_peerChunks.upload_queue()->empty() &&
       m_up->can_write_piece())
     write_prepare_piece();
 }
@@ -414,8 +414,8 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
   if (m_peerChunks.bitfield()->get(index))
     return;
 
-  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index);
-  m_peerRate.insert(m_download->content()->chunk_size());
+  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->content()->chunk_size());
+  //m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index);
 
   if (m_peerChunks.bitfield()->all_set())
     throw close_connection();

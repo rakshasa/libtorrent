@@ -37,25 +37,75 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CHUNKS_H
 #define LIBTORRENT_PROTOCOL_PEER_CHUNKS_H
 
+#include <list>
+#include <rak/partial_queue.h>
+
+#include "data/piece.h"
+#include "net/throttle_node.h"
+#include "torrent/rate.h"
 #include "utils/bitfield_ext.h"
 
 namespace torrent {
 
 class PeerChunks {
 public:
-  PeerChunks() : m_usingCounter(false) {}
+  typedef std::list<uint32_t> index_list_type;
+  typedef std::list<Piece>    piece_list_type;
 
-  BitFieldExt*        bitfield()                    { return &m_bitfield; }
-  const BitFieldExt*  bitfield() const              { return &m_bitfield; }
+  PeerChunks();
+
+  bool                is_seeder() const             { return m_bitfield.all_set(); }
+
+  bool                is_snubbed() const            { return m_snubbed; }
+  void                set_snubbed(bool v)           { m_snubbed = v; }
 
   bool                using_counter() const         { return m_usingCounter; }
   void                set_using_counter(bool state) { m_usingCounter = state; }
 
+  BitFieldExt*        bitfield()                    { return &m_bitfield; }
+  const BitFieldExt*  bitfield() const              { return &m_bitfield; }
+
+  rak::partial_queue* download_cache()              { return &m_downloadCache; }
+  //RequestList*        download_queue()              { return &m_downloadQueue; }
+
+  piece_list_type*    upload_queue()                { return &m_uploadQueue; }
+  index_list_type*    have_queue()                  { return &m_haveQueue; }
+
+  Rate*               peer_rate()                   { return &m_peerRate; }
+
+  ThrottleNode*       download_throttle()           { return &m_downloadThrottle; }
+  ThrottleNode*       upload_throttle()             { return &m_uploadThrottle; }
+
 private:
-  BitFieldExt         m_bitfield;
-  
+  bool                m_snubbed;
   bool                m_usingCounter;
+
+  BitFieldExt         m_bitfield;
+
+  rak::partial_queue  m_downloadCache;
+
+  piece_list_type     m_uploadQueue;
+  index_list_type     m_haveQueue;
+
+  Rate                m_peerRate;
+
+  ThrottleNode        m_downloadThrottle;
+  ThrottleNode        m_uploadThrottle;
 };
+
+inline
+PeerChunks::PeerChunks() :
+  m_snubbed(false),
+  m_usingCounter(false),
+
+  m_peerRate(600),
+
+  m_downloadThrottle(30),
+  m_uploadThrottle(30)
+{
+//   m_downloadCache.resize(8);
+//   m_downloadCache.clear();
+}
 
 }
 

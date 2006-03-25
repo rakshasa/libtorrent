@@ -70,6 +70,7 @@ PeerConnectionLeech::initialize_custom() {
 void
 PeerConnectionLeech::update_interested() {
 // FIXME:   if (m_download->delegator()->get_select().interested(m_peerChunks.bitfield()->bitfield())) {
+
   if (true) {
     m_sendInterested = !m_up->interested();
     m_up->set_interested(true);
@@ -77,15 +78,17 @@ PeerConnectionLeech::update_interested() {
     m_sendInterested = m_up->interested();
     m_up->set_interested(false);
   }
+
+  m_peerChunks.download_cache()->clear();
 }
 
 // Disconnecting connections where both are seeders should be done by
 // DownloadMain when it finishes the last chunk.
 void
 PeerConnectionLeech::receive_finished_chunk(int32_t index) {
-  m_haveQueue.push_back(index);
+  m_peerChunks.have_queue()->push_back(index);
 
-  if (m_requestList.has_index(index))
+  if (download_queue()->has_index(index))
     throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
 }
 
@@ -112,8 +115,8 @@ PeerConnectionLeech::receive_keepalive() {
   // should stay at zero or one when downloading at an acceptable
   // speed. Thus only when m_downStall >= 2 is the download actually
   // stalling.
-  if (!m_requestList.empty() && m_downStall++ > 0)
-    m_requestList.stall();
+  if (!download_queue()->empty() && m_downStall++ > 0)
+    download_queue()->stall();
 
   return true;
 }
@@ -164,8 +167,10 @@ PeerConnectionLeech::read_message() {
   case ProtocolBase::CHOKE:
     m_down->set_choked(true);
 
-    m_requestList.cancel();
-    m_download->download_throttle()->erase(m_downThrottle);
+    m_peerChunks.download_cache()->disable();
+
+    download_queue()->cancel();
+    m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
     return true;
 
@@ -242,7 +247,7 @@ PeerConnectionLeech::read_message() {
     } else if (down_chunk_from_buffer()) {
       // Done with chunk.
       m_downChunk->set_time_modified(cachedTime);
-      m_requestList.finished();
+      download_queue()->finished();
     
       if (m_downStall > 0)
 	m_downStall--;
@@ -256,7 +261,7 @@ PeerConnectionLeech::read_message() {
 
     } else {
       m_down->set_state(ProtocolRead::READ_PIECE);
-      m_download->download_throttle()->insert(m_downThrottle);
+      m_download->download_throttle()->insert(m_peerChunks.download_throttle());
       return false;
     }
 
@@ -313,12 +318,12 @@ PeerConnectionLeech::event_read() {
 	}
 
       case ProtocolRead::READ_PIECE:
-	if (!m_requestList.is_downloading())
+	if (!download_queue()->is_downloading())
 	  throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading");
 
-	if (!m_requestList.is_wanted()) {
+	if (!download_queue()->is_wanted()) {
 	  m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
-	  m_requestList.skip();
+	  download_queue()->skip();
 
 	  break;
 	}
@@ -327,7 +332,7 @@ PeerConnectionLeech::event_read() {
 	  return;
 
 	m_downChunk->set_time_modified(cachedTime);
-	m_requestList.finished();
+	download_queue()->finished();
 	
 	if (m_downStall > 0)
 	  m_downStall--;
@@ -404,12 +409,12 @@ PeerConnectionLeech::fill_write_buffer() {
     m_up->write_choke(m_up->choked());
 
     if (m_up->choked()) {
-      m_download->upload_throttle()->erase(m_upThrottle);
+      m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
       up_chunk_release();
-      m_sendList.clear();
+      m_peerChunks.upload_queue()->clear();
 
     } else {
-      m_download->upload_throttle()->insert(m_upThrottle);
+      m_download->upload_throttle()->insert(m_peerChunks.upload_throttle());
     }
   }
 
@@ -427,18 +432,18 @@ PeerConnectionLeech::fill_write_buffer() {
       !(m_tryRequest = !should_request()) &&
       !(m_tryRequest = try_request_pieces()) &&
 
-      !m_requestList.is_interested_in_active()) {
+      !download_queue()->is_interested_in_active()) {
     m_sendInterested = true;
     m_up->set_interested(false);
   }
 
-  while (!m_haveQueue.empty() && m_up->can_write_have()) {
-    m_up->write_have(m_haveQueue.front());
-    m_haveQueue.pop_front();
+  while (!m_peerChunks.have_queue()->empty() && m_up->can_write_have()) {
+    m_up->write_have(m_peerChunks.have_queue()->front());
+    m_peerChunks.have_queue()->pop_front();
   }
 
   if (!m_up->choked() &&
-      !m_sendList.empty() &&
+      !m_peerChunks.upload_queue()->empty() &&
       m_up->can_write_piece())
     write_prepare_piece();
 }
@@ -552,8 +557,8 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
   if (m_peerChunks.bitfield()->get(index))
     return;
 
-  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index);
-  m_peerRate.insert(m_download->content()->chunk_size());
+  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->content()->chunk_size());
+  m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index);
 
   if (m_peerChunks.bitfield()->all_set())
     if (m_download->content()->is_done())
@@ -605,7 +610,7 @@ PeerConnectionLeech::finish_bitfield() {
 
 bool
 PeerConnectionLeech::receive_piece_header() {
-  if (m_requestList.downloading(m_downPiece)) {
+  if (download_queue()->downloading(m_downPiece)) {
 
     load_down_chunk(m_downPiece);
     return true;
