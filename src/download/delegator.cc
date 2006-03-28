@@ -34,6 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
+// Fucked up ugly piece of hack, this code.
+
 #include "config.h"
 
 #include <inttypes.h>
@@ -61,6 +63,18 @@ struct DelegatorCheckAffinity {
   Delegator*          m_delegator;
   DelegatorPiece**    m_target;
   unsigned int        m_index;
+};
+
+struct DelegatorCheckSeeder {
+  DelegatorCheckSeeder(Delegator* delegator, DelegatorPiece** target) :
+    m_delegator(delegator), m_target(target) {}
+
+  bool operator () (DelegatorChunk* d) {
+    return d->by_seeder() && (*m_target = m_delegator->delegate_piece(d)) != NULL;
+  }
+
+  Delegator*          m_delegator;
+  DelegatorPiece**    m_target;
 };
 
 struct DelegatorCheckPriority {
@@ -130,6 +144,9 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
       != m_chunks.end())
     return target->create();
 
+  if (peerChunks->is_seeder() && (target = delegate_seeder(peerChunks)) != NULL)
+    return target->create();
+
   // High priority pieces.
   if (std::find_if(m_chunks.begin(), m_chunks.end(),
 		   DelegatorCheckPriority(this, &target, Priority::HIGH, peerChunks->bitfield()->base()))
@@ -164,6 +181,23 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
   return target ? target->create() : NULL;
 }
   
+DelegatorPiece*
+Delegator::delegate_seeder(PeerChunks* peerChunks) {
+  DelegatorPiece* target = NULL;
+
+  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckSeeder(this, &target))
+      != m_chunks.end())
+    return target;
+
+  if ((target = new_chunk(peerChunks, true)))
+    return target;
+  
+  if ((target = new_chunk(peerChunks, false)))
+    return target;
+
+  return NULL;
+}
+
 void
 Delegator::finished(DelegatorReservee& r) {
   if (!r.is_valid() || r.get_parent()->is_finished())
@@ -219,7 +253,10 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
 		   rak::equal(index, std::mem_fun(&DelegatorChunk::get_index))) != m_chunks.end())
     throw internal_error("Delegator::new_chunk(...) received an index that is already delegated.");
 
-  m_chunks.push_back(new DelegatorChunk(index, m_slotChunkSize(index), block_size, highPriority ? Priority::HIGH : Priority::NORMAL));
+  DelegatorChunk* chunk = new DelegatorChunk(index, m_slotChunkSize(index), block_size, highPriority ? Priority::HIGH : Priority::NORMAL);
+  chunk->set_by_seeder(pc->is_seeder());
+
+  m_chunks.push_back(chunk);
   m_slotChunkEnable(index);
 
   return (*m_chunks.rbegin())->begin();

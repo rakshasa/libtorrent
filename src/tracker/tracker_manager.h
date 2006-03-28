@@ -91,6 +91,8 @@ public:
 
   void                insert(int group, const std::string& url);
 
+  DownloadInfo*       info();
+  const DownloadInfo* info() const;
   void                set_info(DownloadInfo* info);
 
   rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }

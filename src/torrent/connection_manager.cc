@@ -47,7 +47,7 @@ namespace torrent {
 
 ConnectionManager::ConnectionManager() :
   m_size(0),
-  m_max(0),
+  m_maxSize(0),
   m_sendBufferSize(0),
   m_receiveBufferSize(0),
 
@@ -65,6 +65,11 @@ ConnectionManager::~ConnectionManager() {
 
   delete m_bindAddress;
   delete m_localAddress;
+}
+
+bool
+ConnectionManager::can_connect() const {
+  return m_size < m_maxSize;
 }
 
 void
@@ -106,7 +111,7 @@ ConnectionManager::filter(const sockaddr* sa) {
 }
 
 bool
-ConnectionManager::listen_open(uint16_t begin, uint16_t end) {
+ConnectionManager::listen_open(port_type begin, port_type end) {
   if (!m_listen->open(begin, end, rak::socket_address::cast_from(m_bindAddress)))
     return false;
 

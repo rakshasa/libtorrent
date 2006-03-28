@@ -51,6 +51,8 @@ class Listen;
 
 class ConnectionManager {
 public:
+  typedef uint32_t                              size_type;
+  typedef uint16_t                              port_type;
   typedef sigc::slot<uint32_t, const sockaddr*> slot_filter_type;
 
   ConnectionManager();
@@ -60,17 +62,16 @@ public:
   // and that we're allowed to connect to the socket address.
   //
   // Consider only checking max number of open sockets.
-  bool                can_connect()                           { return m_size < m_max; }
+  bool                can_connect() const;
 
   // Call this to keep the socket count up to date.
   void                inc_socket_count()                      { m_size++; }
   void                dec_socket_count()                      { m_size--; }
 
-  // size_type
-  uint32_t            size() const                            { return m_size; }
+  size_type           size() const                            { return m_size; }
 
-  uint32_t            max_size() const                        { return m_max; }
-  void                set_max_size(uint32_t s)                { m_max = s; }
+  size_type           max_size() const                        { return m_maxSize; }
+  void                set_max_size(size_type s)               { m_maxSize = s; }
 
   uint32_t            send_buffer_size() const                { return m_sendBufferSize; }
   void                set_send_buffer_size(uint32_t s);
@@ -93,14 +94,14 @@ public:
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slotFilter = s; }
 
-  bool                listen_open(uint16_t begin, uint16_t end);
+  bool                listen_open(port_type begin, port_type end);
   void                listen_close();  
 
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,
   // but do note that it gets overwritten after 'listen_open(...)'.
-  uint16_t            listen_port() const                     { return m_listenPort; }
-  void                set_listen_port(uint16_t p)             { m_listenPort = p; }
+  port_type           listen_port() const                     { return m_listenPort; }
+  void                set_listen_port(port_type p)            { m_listenPort = p; }
 
   // For internal usage.
   Listen*             listen()                                { return m_listen; }
@@ -109,8 +110,8 @@ private:
   ConnectionManager(const ConnectionManager&);
   void operator = (const ConnectionManager&);
 
-  uint32_t            m_size;
-  uint32_t            m_max;
+  size_type           m_size;
+  size_type           m_maxSize;
 
   uint32_t            m_sendBufferSize;
   uint32_t            m_receiveBufferSize;
@@ -119,7 +120,7 @@ private:
   sockaddr*           m_localAddress;
 
   Listen*             m_listen;
-  uint16_t            m_listenPort;
+  port_type           m_listenPort;
 
   slot_filter_type    m_slotFilter;
 };

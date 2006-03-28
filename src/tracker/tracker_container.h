@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_LIST_H
-#define LIBTORRENT_TRACKER_TRACKER_LIST_H
+#ifndef LIBTORRENT_TRACKER_TRACKER_CONTAINER_H
+#define LIBTORRENT_TRACKER_TRACKER_CONTAINER_H
 
 #include <vector>
 
@@ -50,7 +50,7 @@ class TrackerBase;
 // tracker to the beginning of the subgroup and start from the
 // beginning of the whole list.
 
-class TrackerList : private std::vector<std::pair<int, TrackerBase*> > {
+class TrackerContainer : private std::vector<std::pair<int, TrackerBase*> > {
 public:
   typedef std::vector<std::pair<int, TrackerBase*> > Base;
 
@@ -68,7 +68,7 @@ public:
 
   using Base::operator[];
 
-  ~TrackerList() { clear(); }
+  ~TrackerContainer() { clear(); }
 
   bool                has_enabled() const;
 
@@ -87,8 +87,8 @@ public:
   void                cycle_group(int group);
 };
 
-inline TrackerList::iterator
-TrackerList::insert(int group, TrackerBase* t) {
+inline TrackerContainer::iterator
+TrackerContainer::insert(int group, TrackerBase* t) {
   return Base::insert(end_group(group), value_type(group, t));
 }
 

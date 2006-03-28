@@ -146,7 +146,7 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
-  TrackerList::iterator itr = m_list.find(tb);
+  TrackerContainer::iterator itr = m_list.find(tb);
 
   if (itr != m_itr || m_itr == m_list.end() || m_itr->second->is_busy())
     throw internal_error("TrackerControl::receive_success(...) called but the iterator is invalid.");
@@ -167,7 +167,7 @@ TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
 //   if (m_itr->second->get_data() != NULL)
 //     m_signalDump.emit(m_itr->second->get_data());
 
-  TrackerList::iterator itr = m_list.find(tb);
+  TrackerContainer::iterator itr = m_list.find(tb);
 
   if (itr != m_itr || m_itr == m_list.end() || m_itr->second->is_busy())
     throw internal_error("TrackerControl::receive_failed(...) called but the iterator is invalid.");

@@ -55,6 +55,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "object.h"
+#include "tracker_list.h"
 
 namespace torrent {
 
@@ -159,6 +160,16 @@ Download::bencode() {
 const Object&
 Download::bencode() const {
   return *m_ptr->bencode();
+}
+
+TrackerList
+Download::tracker_list() {
+  return TrackerList(m_ptr->main()->tracker_manager());
+}
+
+const TrackerList
+Download::tracker_list() const {
+  return TrackerList(m_ptr->main()->tracker_manager());
 }
 
 std::string
@@ -293,16 +304,6 @@ Download::uploads_max() const {
   return m_ptr->main()->choke_manager()->max_unchoked();
 }
   
-uint64_t
-Download::tracker_timeout() const {
-  return std::max(m_ptr->main()->tracker_manager()->get_next_timeout() - cachedTime, rak::timer()).usec();
-}
-
-int16_t
-Download::tracker_numwant() const {
-  return m_ptr->info()->numwant();
-}
-
 void
 Download::set_peers_min(uint32_t v) {
   if (v > (1 << 16))
@@ -327,52 +328,6 @@ Download::set_uploads_max(uint32_t v) {
 
   m_ptr->main()->choke_manager()->set_max_unchoked(v);
   m_ptr->main()->choke_manager()->balance();
-}
-
-void
-Download::set_tracker_numwant(int32_t n) {
-  m_ptr->info()->set_numwant(n);
-}
-
-Tracker
-Download::tracker(uint32_t index) {
-  if (index >= m_ptr->main()->tracker_manager()->size())
-    throw client_error("Client called Download::get_tracker(...) with out of range index");
-
-  return m_ptr->main()->tracker_manager()->get(index);
-}
-
-const Tracker
-Download::tracker(uint32_t index) const {
-  if (index >= m_ptr->main()->tracker_manager()->size())
-    throw client_error("Client called Download::get_tracker(...) with out of range index");
-
-  return m_ptr->main()->tracker_manager()->get(index);
-}
-
-uint32_t
-Download::size_trackers() const {
-  return m_ptr->main()->tracker_manager()->size();
-}
-
-uint32_t
-Download::tracker_focus() const {
-  return m_ptr->main()->tracker_manager()->focus_index();
-}
-
-void
-Download::tracker_send_completed() {
-  m_ptr->main()->tracker_manager()->send_completed();
-}
-
-void
-Download::tracker_cycle_group(int group) {
-  m_ptr->main()->tracker_manager()->cycle_group(group);
-}
-
-void
-Download::tracker_manual_request(bool force) {
-  m_ptr->main()->tracker_manager()->manual_request(force);
 }
 
 Entry
@@ -444,52 +399,52 @@ Download::disconnect_peer(Peer p) {
 }
 
 sigc::connection
-Download::signal_download_done(Download::SlotVoid s) {
+Download::signal_download_done(Download::slot_void_type s) {
   return m_ptr->signal_download_done().connect(s);
 }
 
 sigc::connection
-Download::signal_hash_done(Download::SlotVoid s) {
+Download::signal_hash_done(Download::slot_void_type s) {
   return m_ptr->signal_initial_hash().connect(s);
 }
 
 sigc::connection
-Download::signal_peer_connected(Download::SlotPeer s) {
+Download::signal_peer_connected(Download::slot_peer_type s) {
   return m_ptr->signal_peer_connected().connect(s);
 }
 
 sigc::connection
-Download::signal_peer_disconnected(Download::SlotPeer s) {
+Download::signal_peer_disconnected(Download::slot_peer_type s) {
   return m_ptr->signal_peer_disconnected().connect(s);
 }
 
 sigc::connection
-Download::signal_tracker_succeded(Download::SlotVoid s) {
+Download::signal_tracker_succeded(Download::slot_void_type s) {
   return m_ptr->signal_tracker_success().connect(s);
 }
 
 sigc::connection
-Download::signal_tracker_failed(Download::SlotString s) {
+Download::signal_tracker_failed(Download::slot_string_type s) {
   return m_ptr->signal_tracker_failed().connect(s);
 }
 
 sigc::connection
-Download::signal_chunk_passed(Download::SlotChunk s) {
+Download::signal_chunk_passed(Download::slot_chunk_type s) {
   return m_ptr->signal_chunk_passed().connect(s);
 }
 
 sigc::connection
-Download::signal_chunk_failed(Download::SlotChunk s) {
+Download::signal_chunk_failed(Download::slot_chunk_type s) {
   return m_ptr->signal_chunk_failed().connect(s);
 }
 
 sigc::connection
-Download::signal_network_log(SlotString s) {
+Download::signal_network_log(slot_string_type s) {
   return m_ptr->info()->signal_network_log().connect(s);
 }
 
 sigc::connection
-Download::signal_storage_error(SlotString s) {
+Download::signal_storage_error(slot_string_type s) {
   return m_ptr->info()->signal_storage_error().connect(s);
 }
 

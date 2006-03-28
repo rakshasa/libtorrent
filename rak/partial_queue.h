@@ -97,18 +97,22 @@ private:
   partial_queue(const partial_queue&);
   void operator = (const partial_queue&);
 
+  static size_type    ceiling(size_type layer)                { return (2 << layer) - 1; }
+
   void                find_non_empty();
 
   mapped_type*        m_data;
   size_type           m_maxLayerSize;
 
   size_type           m_index;
+  size_type           m_ceiling;
+
   size_pair_type      m_layers[num_layers];
 };
 
 inline void
 partial_queue::enable(size_type ls) {
-  delete m_data;
+  delete [] m_data;
   m_data = new mapped_type[ls * num_layers];
 
   m_maxLayerSize = ls;
@@ -116,7 +120,7 @@ partial_queue::enable(size_type ls) {
 
 inline void
 partial_queue::disable() {
-  delete m_data;
+  delete [] m_data;
   m_data = NULL;
 
   m_maxLayerSize = 0;
@@ -128,25 +132,36 @@ partial_queue::clear() {
     return;
 
   m_index = 0;
+  m_ceiling = ceiling(num_layers - 1);
+
   std::memset(m_layers, 0, num_layers * sizeof(size_pair_type));
 }
 
 inline bool
 partial_queue::insert(key_type key, mapped_type value) {
+  if (key >= m_ceiling)
+    return false;
+
   size_type idx = 0;
 
-  for (; key >= (2 << idx) - 1; ++idx)
-    if (is_layer_full(idx))
-      return false;
+  // Hmm... since we already check the 'm_ceiling' above, we only need
+  // to find the target layer. Could this be calculated directly?
+  for (; key >= ceiling(idx); ++idx)
+//     if (is_layer_full(idx))
+//       return false;
+    ; // Do nothing for now.
 
   m_index = std::min(m_index, idx);
 
   // Currently don't allow overflow.
-  if (is_layer_full(idx))
-    return false;
+//   if (is_layer_full(idx))
+//     return false;
 
   m_data[m_maxLayerSize * idx + m_layers[idx].second] = value;
   m_layers[idx].second++;
+
+  if (is_layer_full(idx) && idx != 0)
+    m_ceiling = ceiling(idx - 1);
 
   return true;
 }

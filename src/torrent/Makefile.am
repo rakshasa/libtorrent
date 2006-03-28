@@ -32,7 +32,9 @@ libsub_torrent_la_SOURCES = \
 	torrent.cc \
 	torrent.h \
 	tracker.cc \
-	tracker.h
+	tracker.h \
+	tracker_list.cc \
+	tracker_list.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
@@ -54,4 +56,5 @@ libtorrentinclude_HEADERS = \
 	poll_select.h \
 	rate.h \
 	torrent.h \
-	tracker.h
+	tracker.h \
+	tracker_list.h

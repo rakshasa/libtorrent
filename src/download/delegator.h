@@ -96,6 +96,8 @@ private:
   DelegatorPiece*    new_chunk(PeerChunks* pc, bool highPriority);
   DelegatorPiece*    find_piece(const Piece& p);
 
+  DelegatorPiece*    delegate_seeder(PeerChunks* peerChunks);
+
   bool               all_finished(int index);
 
   bool               m_aggressive;

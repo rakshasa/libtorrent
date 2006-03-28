@@ -91,7 +91,13 @@ public:
 
   // The caller must ensure that the chunk index is valid and has not
   // been set already.
-  void                received_have_chunk(PeerChunks* pc, uint32_t index);
+  //
+  // The user only needs to call this when it needs to know whetever
+  // it should become interested, or if it is in the process of
+  // downloading.
+  //
+  // Returns whetever we're interested in that piece.
+  bool                received_have_chunk(PeerChunks* pc, uint32_t index);
 
 private:
   bool                search_linear(const BitField* bf, rak::partial_queue* pq, PriorityRanges* ranges, uint32_t first, uint32_t last);

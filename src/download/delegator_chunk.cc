@@ -46,8 +46,9 @@ DelegatorChunk::DelegatorChunk(unsigned int index,
 			       uint32_t piece_length,
 			       Priority::Type p) :
   m_index(index),
-  m_priority(p) {
-
+  m_priority(p),
+  m_bySeeder(false)
+{
   if (size == 0 || piece_length == 0)
     throw internal_error("DelegatorChunk ctor received size or piece_length equal to 0");
 

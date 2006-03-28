@@ -45,7 +45,7 @@
 #include "download/download_info.h"
 
 #include "tracker_base.h"
-#include "tracker_list.h"
+#include "tracker_container.h"
 
 #include "globals.h"
 
@@ -80,7 +80,7 @@ public:
   DownloadInfo*       info()                                  { return m_info; }
   void                set_info(DownloadInfo* info)            { m_info = info; }
 
-  TrackerList&        get_list()                              { return m_list; }
+  TrackerContainer&   get_list()                              { return m_list; }
 
   uint32_t            get_normal_interval() const             { return m_normalInterval; }
   uint32_t            get_min_interval() const                { return m_minInterval; }
@@ -116,8 +116,8 @@ private:
   DownloadInfo*       m_info;
   DownloadInfo::State m_state;
 
-  TrackerList           m_list;
-  TrackerList::iterator m_itr;
+  TrackerContainer           m_list;
+  TrackerContainer::iterator m_itr;
 
   rak::timer          m_timeLastConnection;
 

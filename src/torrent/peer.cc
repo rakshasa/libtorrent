@@ -51,27 +51,27 @@ Peer::is_incoming() const {
 }
 
 bool
-Peer::is_local_choked() {
+Peer::is_local_choked() const {
   return m_ptr->is_up_choked();
 }
 
 bool
-Peer::is_local_interested() {
+Peer::is_local_interested() const {
   return m_ptr->is_up_interested();
 }
 
 bool
-Peer::is_remote_choked() {
+Peer::is_remote_choked() const {
   return m_ptr->is_down_choked();
 }
 
 bool
-Peer::is_remote_interested() {
+Peer::is_remote_interested() const {
   return m_ptr->is_down_interested();
 }
 
 bool
-Peer::is_snubbed() {
+Peer::is_snubbed() const {
   return m_ptr->peer_chunks()->is_snubbed();
 }
 
@@ -80,13 +80,13 @@ Peer::set_snubbed(bool v) {
   m_ptr->set_snubbed(v);
 }
 
-std::string
-Peer::id() {
+const std::string&
+Peer::id() const {
   return m_ptr->peer_info()->get_id();
 }
 
 const char*
-Peer::options() {
+Peer::options() const {
   return m_ptr->peer_info()->get_options();
 }
 
@@ -96,32 +96,32 @@ Peer::address() const {
 }
 
 const Rate*
-Peer::down_rate() {
+Peer::down_rate() const {
   return m_ptr->peer_chunks()->download_throttle()->rate();
 } 
 
 const Rate*
-Peer::up_rate() {
+Peer::up_rate() const {
   return m_ptr->peer_chunks()->upload_throttle()->rate();
 } 
 
 const Rate*
-Peer::peer_rate() {
+Peer::peer_rate() const {
   return m_ptr->peer_chunks()->peer_rate();
 } 
 
 uint32_t
-Peer::incoming_queue_size() {
+Peer::incoming_queue_size() const {
   return m_ptr->download_queue()->size();
 }
 
 uint32_t
-Peer::outgoing_queue_size() {
+Peer::outgoing_queue_size() const {
   return m_ptr->peer_chunks()->upload_queue()->size();
 }  
 
 uint32_t
-Peer::incoming_index(uint32_t pos) {
+Peer::incoming_index(uint32_t pos) const {
   if (pos >= m_ptr->download_queue()->size())
     throw client_error("get_incoming_index(pos) out of range");
 
@@ -136,17 +136,17 @@ Peer::incoming_index(uint32_t pos) {
 // copy the resulting string. Will consider making BitField use a
 // std::string.
 const unsigned char*
-Peer::bitfield_data() {
+Peer::bitfield_data() const {
   return (const unsigned char*)m_ptr->peer_chunks()->bitfield()->begin();
 }
 
 uint32_t
-Peer::bitfield_size() {
+Peer::bitfield_size() const {
   return m_ptr->peer_chunks()->bitfield()->size_bits();
 }
 
 uint32_t
-Peer::chunks_done() {
+Peer::chunks_done() const {
   return m_ptr->peer_chunks()->bitfield()->count();
 }  
 

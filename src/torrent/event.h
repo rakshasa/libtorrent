@@ -45,7 +45,7 @@ public:
 
   // These are not virtual as the fd is heavily used in select based
   // polling, thus fast access is critical to performance.
-  int                 file_descriptor() { return m_fileDesc; }
+  int                 file_descriptor() const { return m_fileDesc; }
 
   virtual void        event_read() = 0;
   virtual void        event_write() = 0;

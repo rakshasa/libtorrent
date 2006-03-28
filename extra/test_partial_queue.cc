@@ -11,7 +11,7 @@ main(int argc, char** argv) {
   std::cout << "sizeof(rak::partial_queue): " << sizeof(rak::partial_queue) << std::endl;
 
   rak::partial_queue queue;
-  queue.resize(8);
+  queue.enable(8);
   queue.clear();
 
   std::cout << "Inserting: " << std::endl;

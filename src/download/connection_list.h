@@ -56,7 +56,7 @@ public:
   typedef std::list<rak::socket_address>             AddressList;
   typedef uint32_t                                   size_type;
 
-  typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> SlotPeer;
+  typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> slot_peer_type;
 
   typedef PeerConnectionBase* (*SlotNewConnection)();
 
@@ -107,11 +107,11 @@ public:
 
   // When a peer is connected it should be removed from the list of
   // available peers.
-  void                slot_connected(SlotPeer s)                       { m_slotConnected = s; }
+  void                slot_connected(slot_peer_type s)                 { m_slotConnected = s; }
 
   // When a peer is disconnected the torrent should rebalance the
   // choked peers and connect to new ones if possible.
-  void                slot_disconnected(SlotPeer s)                    { m_slotDisconnected = s; }
+  void                slot_disconnected(slot_peer_type s)              { m_slotDisconnected = s; }
 
   void                slot_new_connection(SlotNewConnection s)         { m_slotNewConnection = s; }
 
@@ -122,8 +122,8 @@ private:
   size_type           m_minSize;
   size_type           m_maxSize;
 
-  SlotPeer            m_slotConnected;
-  SlotPeer            m_slotDisconnected;
+  slot_peer_type      m_slotConnected;
+  slot_peer_type      m_slotDisconnected;
 
   SlotNewConnection   m_slotNewConnection;
 };

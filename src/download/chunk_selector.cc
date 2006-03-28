@@ -129,6 +129,9 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
   } else {
     // Set that the peer has normal priority pieces cached.
 
+    // Urgh...
+    queue->clear();
+
     (search_linear(pc->bitfield()->base(), queue, &m_normalPriority, m_position, size()) &&
      search_linear(pc->bitfield()->base(), queue, &m_normalPriority, 0, m_position));
 
@@ -180,16 +183,26 @@ ChunkSelector::not_using_index(uint32_t index) {
   update_priorities();
 }
 
-void
+// This could propably be split into two functions, one for checking
+// if it shoul insert into the download_queue(), and the other
+// whetever we are interested in the new piece.
+//
+// Since this gets called whenever a new piece arrives, we can skip
+// the rarity-first/linear etc searches through bitfields and just
+// start downloading.
+bool
 ChunkSelector::received_have_chunk(PeerChunks* pc, uint32_t index) {
-  if (!pc->download_cache()->is_enabled() || !m_bitfield.get(index))
-    return;
+  if (!m_bitfield.get(index))
+    return false;
 
   // Also check if the peer only has high-priority chunks.
   if (!m_highPriority.has(index) && !m_normalPriority.has(index))
-    return;
+    return false;
 
-  pc->download_cache()->insert(m_statistics->rarity(index), index);
+  if (pc->download_cache()->is_enabled())
+    pc->download_cache()->insert(m_statistics->rarity(index), index);
+
+  return true;
 }
 
 bool
@@ -230,7 +243,10 @@ ChunkSelector::search_linear_range(const BitField* bf, rak::partial_queue* pq, u
   // Unset any bits from 'last'.
   wanted &= 0xff << (8 - (last - m_bitfield.position(local)));
 
-  return wanted && !search_linear_byte(pq, m_bitfield.position(local), wanted);
+  if (wanted)
+    return search_linear_byte(pq, m_bitfield.position(local), wanted);
+  else
+    return true;
 }
 
 // Take pointer to partial_queue

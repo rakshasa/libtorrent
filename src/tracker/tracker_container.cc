@@ -41,19 +41,19 @@
 #include "torrent/exceptions.h"
 
 #include "tracker_base.h"
-#include "tracker_list.h"
+#include "tracker_container.h"
 
 namespace torrent {
 
 bool
-TrackerList::has_enabled() const {
+TrackerContainer::has_enabled() const {
   return std::find_if(begin(), end(),
 		      rak::on(rak::mem_ptr_ref(&value_type::second), std::mem_fun(&TrackerBase::is_enabled)))
     != end();
 }
 
 void
-TrackerList::randomize() {
+TrackerContainer::randomize() {
   // Random random random.
   iterator itr = begin();
   
@@ -67,19 +67,19 @@ TrackerList::randomize() {
 }
 
 void
-TrackerList::clear() {
+TrackerContainer::clear() {
   std::for_each(begin(), end(),
 		rak::on(rak::mem_ptr_ref(&value_type::second), rak::call_delete<TrackerBase>()));
 
   Base::clear();
 }
 
-TrackerList::iterator
-TrackerList::promote(iterator itr) {
+TrackerContainer::iterator
+TrackerContainer::promote(iterator itr) {
   iterator beg = begin_group(itr->first);
 
   if (beg == end())
-    throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group");
+    throw internal_error("torrent::TrackerContainer::promote(...) Could not find beginning of group");
 
   // GCC 3.3 bug, don't use yet.
   //std::swap(beg, itr);
@@ -91,27 +91,27 @@ TrackerList::promote(iterator itr) {
   return beg;
 }
 
-TrackerList::iterator
-TrackerList::find(TrackerBase* tb) {
+TrackerContainer::iterator
+TrackerContainer::find(TrackerBase* tb) {
   return std::find_if(begin(), end(), rak::equal(tb, rak::mem_ptr_ref(&value_type::second)));
 }
 
-TrackerList::iterator
-TrackerList::find_enabled(iterator itr) {
+TrackerContainer::iterator
+TrackerContainer::find_enabled(iterator itr) {
   while (itr != end() && !itr->second->is_enabled())
     ++itr;
 
   return itr;
 }
 
-TrackerList::iterator
-TrackerList::begin_group(int group) {
+TrackerContainer::iterator
+TrackerContainer::begin_group(int group) {
   return std::find_if(begin(), end(),
 		      rak::less_equal(group, rak::mem_ptr_ref(&value_type::first)));
 }
 
 void
-TrackerList::cycle_group(int group) {
+TrackerContainer::cycle_group(int group) {
   iterator itr = begin_group(group);
   iterator prev = itr;
 

@@ -12,7 +12,7 @@ Make libtorrent locale agnostic.
 
 Resume needs to be split.
 
-Make torrent::Peer interface const friendly.
+Rename d::bencode()?
 
 
 === torrent::Object ==
@@ -83,6 +83,10 @@ We need to keep around PeerInfo's after peers disconnect, so we store
 information for longer that the immediate connection. This also eases
 the delegator since we can use pointers to identify the peer we
 downloaded the piece from.
+
+Get rid of affinity, perhaps each peer saves the pointer to the
+delegator chunk they are currently using, in addition to the delegator
+piece.
 
 
 == Sockets ==

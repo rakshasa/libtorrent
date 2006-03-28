@@ -56,47 +56,46 @@ class Rate;
 // date. 
 class Peer {
 public:
-  Peer()                      : m_ptr(NULL) {}
-  Peer(PeerConnectionBase* p) : m_ptr(p) {}
+  Peer(PeerConnectionBase* p = NULL) : m_ptr(p) {}
 
   // Does not check if it has been removed from the download.
   bool                 is_valid() const { return m_ptr; }
   bool                 is_incoming() const;
 
-  bool                 is_local_choked();
-  bool                 is_local_interested();
-  bool                 is_remote_choked();
-  bool                 is_remote_interested();
+  bool                 is_local_choked() const;
+  bool                 is_local_interested() const;
+  bool                 is_remote_choked() const;
+  bool                 is_remote_interested() const;
 
-  bool                 is_snubbed();
+  bool                 is_snubbed() const;
   void                 set_snubbed(bool v);
 
-  std::string          id();
-  const char*          options();
+  const std::string&   id() const;
+  const char*          options() const;
 
   const sockaddr*      address() const;
 
-  const Rate*          down_rate();
-  const Rate*          up_rate();
-  const Rate*          peer_rate();
+  const Rate*          down_rate() const;
+  const Rate*          up_rate() const;
+  const Rate*          peer_rate() const;
 
-  uint32_t             incoming_queue_size();
-  uint32_t             outgoing_queue_size();
+  uint32_t             incoming_queue_size() const;
+  uint32_t             outgoing_queue_size() const;
 
   // index == -1 for incoming pieces that we don't want anymore.
-  uint32_t             incoming_index(uint32_t pos);
-  uint32_t             incoming_offset(uint32_t pos);
-  uint32_t             incoming_length(uint32_t pos);
+  uint32_t             incoming_index(uint32_t pos) const;
+  uint32_t             incoming_offset(uint32_t pos) const;
+  uint32_t             incoming_length(uint32_t pos) const;
 
-  const unsigned char* bitfield_data();
-  uint32_t             bitfield_size();
+  const unsigned char* bitfield_data() const;
+  uint32_t             bitfield_size() const;
 
-  uint32_t             chunks_done();
+  uint32_t             chunks_done() const;
 
   PeerConnectionBase*  ptr()                            { return m_ptr; }
   void                 set_ptr(PeerConnectionBase* ptr) { m_ptr = ptr; }
 
-  bool                 operator == (const Peer& p)      { return m_ptr == p.m_ptr; }
+  bool                 operator == (const Peer& p) const { return m_ptr == p.m_ptr; }
 
 private:
   PeerConnectionBase*  m_ptr;

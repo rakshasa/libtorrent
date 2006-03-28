@@ -58,13 +58,13 @@ Path::insert_path(iterator pos, const std::string& path) {
 }
 
 std::string
-Path::as_string() {
+Path::as_string() const {
   if (empty())
     return std::string();
 
   std::string s;
 
-  for (iterator itr = begin(); itr != end(); ++itr) {
+  for (const_iterator itr = begin(); itr != end(); ++itr) {
     s += '/';
     s += *itr;
   }

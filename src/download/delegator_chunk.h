@@ -59,6 +59,10 @@ public:
   unsigned int        get_piece_count()               { return m_count; }
   Priority::Type      priority()                      { return m_priority; }
 
+  // Hack.
+  bool                by_seeder() const               { return m_bySeeder; }
+  void                set_by_seeder(bool state)       { m_bySeeder = state; }
+
   DelegatorPiece*     begin()                         { return m_pieces; }
   DelegatorPiece*     end()                           { return m_pieces + m_count; }
 
@@ -73,6 +77,8 @@ private:
 
   Priority::Type  m_priority;
   DelegatorPiece* m_pieces;
+
+  bool            m_bySeeder;
 };
 
 }

@@ -205,6 +205,16 @@ TrackerManager::insert(int group, const std::string& url) {
   m_control->insert(group, url);
 }
 
+DownloadInfo*
+TrackerManager::info() {
+  return m_control->info();
+}
+
+const DownloadInfo*
+TrackerManager::info() const {
+  return m_control->info();
+}
+
 void
 TrackerManager::set_info(DownloadInfo* info) {
   m_control->set_info(info);

@@ -34,58 +34,71 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_ENTRY_H
-#define LIBTORRENT_ENTRY_H
+#include "config.h"
 
-#include <list>
-#include <string>
-#include <inttypes.h>
+#include "download/download_info.h"
+#include "tracker/tracker_manager.h"
+
+#include "exceptions.h"
+#include "tracker.h"
+#include "tracker_list.h"
 
 namespace torrent {
 
-class EntryListNode;
-class Path;
+Tracker
+TrackerList::get(uint32_t index) {
+  if (index >= m_manager->size())
+    throw client_error("Client called TrackerList::get_tracker(...) with out of range index.");
 
-class Entry {
-public:
-  typedef enum {
-    OFF = 0,
-    NORMAL,
-    HIGH
-  } Priority;
-
-  Entry(EntryListNode* e = NULL) : m_entry(e) {}
-  
-  bool                is_created() const;
-  bool                is_correct_size() const;
-
-  uint64_t            size_bytes() const;
-  uint32_t            size_chunks() const;
-
-  uint32_t            completed_chunks() const;
-
-  uint32_t            chunk_begin() const;
-  uint32_t            chunk_end() const;
-
-  // Need this?
-  //uint64_t            byte_begin();
-  //uint64_t            byte_end();
-
-  Path*               path();
-  const Path*         path() const;
-
-  // Relative to root of the torrent.
-  std::string         path_str() const;
-
-  // When setting the priority, Download::update_priorities() must be
-  // called for it to take effect.
-  Priority            priority() const;
-  void                set_priority(Priority p);
-
-private:
-  EntryListNode*      m_entry;
-};
-
+  return m_manager->get(index);
 }
 
-#endif
+const Tracker
+TrackerList::get(uint32_t index) const {
+  if (index >= m_manager->size())
+    throw client_error("Client called TrackerList::get_tracker(...) with out of range index.");
+
+  return m_manager->get(index);
+}
+
+uint32_t
+TrackerList::size() const {
+  return m_manager->size();
+}
+
+uint32_t
+TrackerList::focus() const {
+  return m_manager->focus_index();
+}
+
+uint64_t
+TrackerList::timeout() const {
+  return std::max(m_manager->get_next_timeout() - cachedTime, rak::timer()).usec();
+}
+
+int16_t
+TrackerList::numwant() const {
+  return m_manager->info()->numwant();
+}
+
+void
+TrackerList::set_numwant(int32_t n) {
+  m_manager->info()->set_numwant(n);
+}
+
+void
+TrackerList::send_completed() {
+  m_manager->send_completed();
+}
+
+void
+TrackerList::cycle_group(int group) {
+  m_manager->cycle_group(group);
+}
+
+void
+TrackerList::manual_request(bool force) {
+  m_manager->manual_request(force);
+}
+
+}

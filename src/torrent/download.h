@@ -56,15 +56,14 @@ typedef std::list<Peer> PList;
 class Object;
 class Rate;
 class DownloadWrapper;
+class TrackerList;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
 
 class Download {
 public:
-  enum {
-    NUMWANT_DISABLED = -1
-  };
+  static const uint32_t numwanted_diabled = ~(uint32_t)0;
 
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
@@ -104,6 +103,9 @@ public:
   Object&              bencode();
   const Object&        bencode() const;
 
+  TrackerList          tracker_list();
+  const TrackerList    tracker_list() const;
+
   // Only set the root directory while the torrent is closed.
   std::string          root_dir() const;
   void                 set_root_dir(const std::string& dir);
@@ -141,26 +143,10 @@ public:
 
   uint32_t             uploads_max() const;
   
-  uint64_t             tracker_timeout() const;
-  int16_t              tracker_numwant() const;
-
   void                 set_peers_min(uint32_t v);
   void                 set_peers_max(uint32_t v);
 
   void                 set_uploads_max(uint32_t v);
-
-  void                 set_tracker_numwant(int32_t n);
-
-  // Access the trackers in the torrent.
-  Tracker              tracker(uint32_t index);
-  const Tracker        tracker(uint32_t index) const;
-  uint32_t             tracker_focus() const;
-  uint32_t             size_trackers() const;
-
-  // Perhaps make tracker_cycle_group part of Tracker?
-  void                 tracker_send_completed();
-  void                 tracker_cycle_group(int group);
-  void                 tracker_manual_request(bool force);
 
   // Access the files in the torrent.
   Entry                file_entry(uint32_t index);
@@ -188,36 +174,36 @@ public:
 
   void                 disconnect_peer(Peer p);
 
-  typedef sigc::slot0<void>                     SlotVoid;
-  typedef sigc::slot1<void, const std::string&> SlotString;
+  typedef sigc::slot0<void>                     slot_void_type;
+  typedef sigc::slot1<void, const std::string&> slot_string_type;
 
-  typedef sigc::slot1<void, Peer>               SlotPeer;
-  typedef sigc::slot1<void, std::istream*>      SlotIStream;
-  typedef sigc::slot1<void, uint32_t>           SlotChunk;
+  typedef sigc::slot1<void, Peer>               slot_peer_type;
+  typedef sigc::slot1<void, std::istream*>      slot_istream_type;
+  typedef sigc::slot1<void, uint32_t>           slot_chunk_type;
 
   // signal_download_done is a delayed signal so it is safe to
   // stop/close the torrent when received. The signal is only emitted
   // when the torrent is active, so hash checking will not trigger it.
-  sigc::connection    signal_download_done(SlotVoid s);
-  sigc::connection    signal_hash_done(SlotVoid s);
+  sigc::connection    signal_download_done(slot_void_type s);
+  sigc::connection    signal_hash_done(slot_void_type s);
 
-  sigc::connection    signal_peer_connected(SlotPeer s);
-  sigc::connection    signal_peer_disconnected(SlotPeer s);
+  sigc::connection    signal_peer_connected(slot_peer_type s);
+  sigc::connection    signal_peer_disconnected(slot_peer_type s);
 
-  sigc::connection    signal_tracker_succeded(SlotVoid s);
-  sigc::connection    signal_tracker_failed(SlotString s);
+  sigc::connection    signal_tracker_succeded(slot_void_type s);
+  sigc::connection    signal_tracker_failed(slot_string_type s);
 
-  sigc::connection    signal_chunk_passed(SlotChunk s);
-  sigc::connection    signal_chunk_failed(SlotChunk s);
+  sigc::connection    signal_chunk_passed(slot_chunk_type s);
+  sigc::connection    signal_chunk_failed(slot_chunk_type s);
 
   // Various network log message signals.
-  sigc::connection    signal_network_log(SlotString s);
+  sigc::connection    signal_network_log(slot_string_type s);
 
   // Emits error messages if there are problems opening files for
   // read/write when the download is active. The client should stop
   // the download if it receive any of these as it will not be able to
   // continue.
-  sigc::connection    signal_storage_error(SlotString s);
+  sigc::connection    signal_storage_error(slot_string_type s);
 
   DownloadWrapper*    ptr() { return m_ptr; }
 

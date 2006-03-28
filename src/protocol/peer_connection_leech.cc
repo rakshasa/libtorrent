@@ -558,7 +558,6 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
     return;
 
   m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->content()->chunk_size());
-  m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index);
 
   if (m_peerChunks.bitfield()->all_set())
     if (m_download->content()->is_done())
@@ -571,14 +570,14 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
   if (is_up_interested()) {
 
-    if (!m_tryRequest && m_download->chunk_selector()->is_wanted(index)) {
+    if (!m_tryRequest && m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
       m_tryRequest = true;
       write_insert_poll_safe();
     }
 
   } else {
 
-    if (m_download->chunk_selector()->is_wanted(index)) {
+    if (m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
       m_sendInterested = true;
       m_up->set_interested(true);
       
