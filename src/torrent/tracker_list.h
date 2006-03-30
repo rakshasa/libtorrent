@@ -49,8 +49,7 @@ public:
   TrackerList(TrackerManager* m = NULL) : m_manager(m) {}
 
   // Access the trackers in the torrent.
-  Tracker             get(uint32_t index);
-  const Tracker       get(uint32_t index) const;
+  Tracker             get(uint32_t index) const;
 
   uint32_t            focus() const;
   uint32_t            size() const;

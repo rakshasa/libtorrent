@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include "file.h"
+#include "socket_file.h"
 #include "torrent/exceptions.h"
 
 #include <fcntl.h>
@@ -52,14 +52,14 @@
 
 namespace torrent {
 
-File::~File() {
+SocketFile::~SocketFile() {
   // Temporary test case to make sure we close files properly.
   if (is_open())
-    throw internal_error("Destroyed a File that is open");
+    throw internal_error("Destroyed a SocketFile that is open");
 }
 
 bool
-File::open(const std::string& path, int prot, int flags, mode_t mode) {
+SocketFile::open(const std::string& path, int prot, int flags, mode_t mode) {
   close();
 
   if (prot & MemoryChunk::prot_read &&
@@ -70,7 +70,7 @@ File::open(const std::string& path, int prot, int flags, mode_t mode) {
   else if (prot & MemoryChunk::prot_write)
     flags |= O_WRONLY;
   else
-    throw internal_error("torrent::File::open(...) Tried to open file with no protection flags");
+    throw internal_error("torrent::SocketFile::open(...) Tried to open file with no protection flags");
 
 #ifdef O_LARGEFILE
   fd_type fd = ::open(path.c_str(), flags | O_LARGEFILE, mode);
@@ -89,7 +89,7 @@ File::open(const std::string& path, int prot, int flags, mode_t mode) {
 }
 
 void
-File::close() {
+SocketFile::close() {
   if (!is_open())
     return;
 
@@ -109,7 +109,7 @@ File::close() {
 #endif
 
 bool
-File::reserve(RESERVE_PARAM off_t offset, RESERVE_PARAM off_t length) {
+SocketFile::reserve(RESERVE_PARAM off_t offset, RESERVE_PARAM off_t length) {
 #ifdef USE_XFS
   struct xfs_flock64 flock;
 
@@ -131,9 +131,9 @@ File::reserve(RESERVE_PARAM off_t offset, RESERVE_PARAM off_t length) {
 #undef RESERVE_PARAM
 
 off_t
-File::size() const {
+SocketFile::size() const {
   if (!is_open())
-    throw internal_error("File::size() called on a closed file");
+    throw internal_error("SocketFile::size() called on a closed file");
 
   rak::file_stat fs;
 
@@ -141,9 +141,9 @@ File::size() const {
 }  
 
 bool
-File::set_size(off_t size) const {
+SocketFile::set_size(off_t size) const {
   if (!is_open())
-    throw internal_error("File::set_size() called on a closed file");
+    throw internal_error("SocketFile::set_size() called on a closed file");
 
   if (ftruncate(m_fd, size) == 0)
     return true;
@@ -160,13 +160,13 @@ File::set_size(off_t size) const {
 }
 
 MemoryChunk
-File::create_chunk(off_t offset, uint32_t length, int prot, int flags) const {
+SocketFile::create_chunk(off_t offset, uint32_t length, int prot, int flags) const {
   if (!is_open())
-    throw internal_error("File::get_chunk() called on a closed file");
+    throw internal_error("SocketFile::get_chunk() called on a closed file");
 
   if (((prot & MemoryChunk::prot_read) && !is_readable()) ||
       ((prot & MemoryChunk::prot_write) && !is_writable()))
-    throw storage_error("File::get_chunk() permission denied");
+    throw storage_error("SocketFile::get_chunk() permission denied");
 
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.

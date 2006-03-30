@@ -79,23 +79,25 @@ EntryList::clear() {
 }
 
 void
-EntryList::open(const std::string& root) {
+EntryList::open() {
   Path lastPath;
 
+  m_isOpen = true;
+
   try {
-    make_directory(root);
+    make_directory(m_rootDir);
 
     for (iterator itr = begin(), last = end(); itr != last; ++itr) {
       if (itr->file_meta() != NULL)
 	throw internal_error("EntryList::open(...) found an already opened file.");
       
-      itr->set_file_meta(m_slotInsertFileMeta(root + itr->path()->as_string()));
+      itr->set_file_meta(m_slotInsertFileMeta(m_rootDir + itr->path()->as_string()));
       
       if (itr->path()->empty())
 	throw storage_error("Found an empty filename.");
 
-      if (!open_file(root, &*itr, lastPath))
-	throw storage_error("Could not open file \"" + root + itr->path()->as_string() + "\": " + rak::error_number::current().c_str());
+      if (!open_file(&*itr, lastPath))
+	throw storage_error("Could not open file \"" + m_rootDir + itr->path()->as_string() + "\": " + rak::error_number::current().c_str());
       
       lastPath = *itr->path();
     }
@@ -108,6 +110,8 @@ EntryList::open(const std::string& root) {
 
 void
 EntryList::close() {
+  // Check m_isOpen?
+
   for (iterator itr = begin(), last = end(); itr != last; ++itr)
     if (itr->is_valid()) {
       m_slotEraseFileMeta(itr->file_meta());
@@ -115,6 +119,8 @@ EntryList::close() {
       itr->set_file_meta(NULL);
       itr->set_completed(0);
     }
+
+  m_isOpen = false;
 }
 
 bool
@@ -141,8 +147,8 @@ EntryList::at_position(iterator itr, off_t offset) {
 }
 
 bool
-EntryList::open_file(const std::string& root, EntryListNode* node, const Path& lastPath) {
-  make_directory(root, node->path()->begin(), --node->path()->end(), lastPath.begin(), lastPath.end());
+EntryList::open_file(EntryListNode* node, const Path& lastPath) {
+  make_directory(m_rootDir, node->path()->begin(), --node->path()->end(), lastPath.begin(), lastPath.end());
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
@@ -150,8 +156,8 @@ EntryList::open_file(const std::string& root, EntryListNode* node, const Path& l
     return node->size() == 0;
 
   return
-    node->file_meta()->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, File::o_create) ||
-    node->file_meta()->prepare(MemoryChunk::prot_read, File::o_create);
+    node->file_meta()->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, SocketFile::o_create) ||
+    node->file_meta()->prepare(MemoryChunk::prot_read, SocketFile::o_create);
 }
 
 inline MemoryChunk

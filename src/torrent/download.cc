@@ -54,6 +54,7 @@
 
 #include "exceptions.h"
 #include "download.h"
+#include "file_list.h"
 #include "object.h"
 #include "tracker_list.h"
 
@@ -162,27 +163,14 @@ Download::bencode() const {
   return *m_ptr->bencode();
 }
 
-TrackerList
-Download::tracker_list() {
-  return TrackerList(m_ptr->main()->tracker_manager());
+FileList
+Download::file_list() const {
+  return FileList(m_ptr->main()->content()->entry_list());
 }
 
-const TrackerList
+TrackerList
 Download::tracker_list() const {
   return TrackerList(m_ptr->main()->tracker_manager());
-}
-
-std::string
-Download::root_dir() const {
-  return m_ptr->main()->content()->root_dir();
-}
-
-void
-Download::set_root_dir(const std::string& dir) {
-  if (is_open())
-    throw input_error("Tried to change the root directory for an open download.");
-
-  m_ptr->main()->content()->set_root_dir(dir);
 }
 
 Rate*
@@ -328,24 +316,6 @@ Download::set_uploads_max(uint32_t v) {
 
   m_ptr->main()->choke_manager()->set_max_unchoked(v);
   m_ptr->main()->choke_manager()->balance();
-}
-
-Entry
-Download::file_entry(uint32_t index) {
-  if (index >= m_ptr->main()->content()->entry_list()->files_size())
-    throw client_error("Client called Download::get_entry(...) with out of range index");
-
-  return m_ptr->main()->content()->entry_list()->get_node(index);
-}
-
-bool
-Download::file_entry_created(__UNUSED uint32_t index) {
-  return true;
-}
-
-uint32_t
-Download::size_file_entries() const {
-  return m_ptr->main()->content()->entry_list()->files_size();
 }
 
 Download::ConnectionType

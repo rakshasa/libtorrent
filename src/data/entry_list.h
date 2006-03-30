@@ -68,8 +68,10 @@ public:
   using Base::empty;
   using Base::reserve;
 
-  EntryList() : m_bytesSize(0) {}
+  EntryList() : m_bytesSize(0), m_rootDir("."), m_isOpen(false) {}
   ~EntryList() { clear(); }
+
+  bool                is_open() const                            { return m_isOpen; }
 
   // We take over ownership of 'file'.
   void                push_back(const Path& path, const EntryListNode::Range& range, off_t size);
@@ -77,8 +79,11 @@ public:
   void                clear();
 
   // Only closes the files.
-  void                open(const std::string& root);
+  void                open();
   void                close();
+
+  const std::string&  root_dir() const                           { return m_rootDir; }
+  void                set_root_dir(const std::string& path)      { m_rootDir = path; }
 
   bool                resize_all();
 
@@ -95,11 +100,14 @@ public:
   void                slot_erase_filemeta(SlotFileMeta s)        { m_slotEraseFileMeta = s; }
 
 private:
-  static bool         open_file(const std::string& root, EntryListNode* node, const Path& lastPath);
+  bool                open_file(EntryListNode* node, const Path& lastPath);
 
   inline MemoryChunk  create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);
 
   off_t               m_bytesSize;
+  std::string         m_rootDir;
+
+  bool                m_isOpen;
 
   SlotFileMetaString  m_slotInsertFileMeta;
   SlotFileMeta        m_slotEraseFileMeta;
@@ -108,4 +116,3 @@ private:
 }
 
 #endif
-

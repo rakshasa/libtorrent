@@ -53,8 +53,7 @@ Content::Content() :
   m_chunkSize(1 << 16),
   m_chunkTotal(0),
 
-  m_entryList(new EntryList),
-  m_rootDir(".") {
+  m_entryList(new EntryList) {
 }
 
 Content::~Content() {
@@ -125,7 +124,7 @@ Content::is_valid_piece(const Piece& p) const {
 
 void
 Content::open() {
-  m_entryList->open(m_rootDir);
+  m_entryList->open();
 }
 
 void

@@ -5,11 +5,13 @@ libsub_torrent_la_SOURCES = \
 	download.h \
 	connection_manager.cc \
 	connection_manager.h \
-	entry.cc \
-	entry.h \
 	event.h \
 	exceptions.cc \
 	exceptions.h \
+	file.cc \
+	file.h \
+	file_list.cc \
+	file_list.h \
 	http.cc \
 	http.h \
 	object.cc \
@@ -43,8 +45,9 @@ libtorrentinclude_HEADERS = \
 	connection_manager.h \
 	download.h \
 	exceptions.h \
-	entry.h \
 	event.h \
+	file.h \
+	file_list.h \
 	http.h \
 	object.h \
 	object_stream.h \

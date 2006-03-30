@@ -34,58 +34,63 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_FILE_META_H
-#define LIBTORRENT_DATA_FILE_META_H
+#include "config.h"
 
-#include <rak/functional.h>
-
-#include "socket_file.h"
-#include "globals.h"
+#include "exceptions.h"
+#include "file.h"
+#include "data/entry_list_node.h"
 
 namespace torrent {
 
-class FileManager;
+uint64_t
+File::size_bytes() const {
+  return m_entry->size();
+}
 
-class FileMeta {
-public:
-  typedef rak::mem_fun3<FileManager, bool, FileMeta*, int, int> SlotPrepare;
+uint32_t
+File::size_chunks() const {
+  return m_entry->range().second - m_entry->range().first;
+}
 
-  FileMeta() : m_lastTouched(cachedTime) {}
+uint32_t
+File::completed_chunks() const {
+  return m_entry->completed();
+}
 
-  bool                is_open() const                            { return m_file.is_open(); }
-  bool                has_permissions(int prot) const            { return !(prot & ~get_prot()); }
+uint32_t
+File::chunk_begin() const {
+  return m_entry->range().first;
+}
 
-  // Consider prot == 0 to close?
-  inline bool         prepare(int prot, int flags = 0);
+uint32_t
+File::chunk_end() const {
+  return m_entry->range().second;
+}  
 
-  SocketFile&         get_file()                                 { return m_file; }
-  const SocketFile&   get_file() const                           { return m_file; }
+File::Priority
+File::priority() const {
+  return (Priority)m_entry->priority();
+}
 
-  const std::string&  get_path() const                           { return m_path; }
-  void                set_path(const std::string& path)          { m_path = path; }
+void
+File::set_priority(Priority p) {
+  m_entry->set_priority(p);
+}
 
-  int                 get_prot() const                           { return m_file.get_prot(); }
+Path*
+File::path() {
+  return m_entry->path();
+}
 
-  rak::timer          get_last_touched() const                   { return m_lastTouched; }
-  void                set_last_touched(rak::timer t = cachedTime) { m_lastTouched = t; }
+const Path*
+File::path() const {
+  return m_entry->path();
+}
 
-  void                slot_prepare(SlotPrepare s)                { m_slotPrepare = s; }
-
-private:
-  SocketFile          m_file;
-  std::string         m_path;
-
-  rak::timer          m_lastTouched;
-  SlotPrepare         m_slotPrepare;
-};
-
-inline bool
-FileMeta::prepare(int prot, int flags) {
-  m_lastTouched = cachedTime;
-
-  return (is_open() && has_permissions(prot)) || m_slotPrepare(this, prot, flags);
+// Relative to root of torrent.
+std::string
+File::path_str() const {
+  return m_entry->path()->as_string();
 }
 
 }
-
-#endif

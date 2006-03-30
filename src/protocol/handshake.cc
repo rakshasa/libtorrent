@@ -240,6 +240,9 @@ Handshake::event_write() {
 
 void
 Handshake::event_error() {
+  if (m_state == INACTIVE)
+    throw internal_error("Handshake::event_error() called on an inactive handshake.");
+
   m_manager->receive_failed(this);
 }
 

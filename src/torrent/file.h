@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_ENTRY_H
-#define LIBTORRENT_ENTRY_H
+#ifndef LIBTORRENT_FILE_H
+#define LIBTORRENT_FILE_H
 
 #include <list>
 #include <string>
@@ -46,7 +46,7 @@ namespace torrent {
 class EntryListNode;
 class Path;
 
-class Entry {
+class File {
 public:
   typedef enum {
     OFF = 0,
@@ -54,7 +54,7 @@ public:
     HIGH
   } Priority;
 
-  Entry(EntryListNode* e = NULL) : m_entry(e) {}
+  File(EntryListNode* e = NULL) : m_entry(e) {}
   
   bool                is_created() const;
   bool                is_correct_size() const;

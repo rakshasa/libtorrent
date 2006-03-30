@@ -37,9 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_H
 #define LIBTORRENT_DOWNLOAD_H
 
-#include <torrent/entry.h>
 #include <torrent/peer.h>
-#include <torrent/tracker.h>
 
 #include <iosfwd>
 #include <list>
@@ -53,9 +51,11 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
-class Object;
-class Rate;
 class DownloadWrapper;
+class FileList;
+class Rate;
+class Object;
+class Peer;
 class TrackerList;
 
 // Download is safe to copy and destory as it is just a pointer to an
@@ -103,12 +103,8 @@ public:
   Object&              bencode();
   const Object&        bencode() const;
 
-  TrackerList          tracker_list();
-  const TrackerList    tracker_list() const;
-
-  // Only set the root directory while the torrent is closed.
-  std::string          root_dir() const;
-  void                 set_root_dir(const std::string& dir);
+  FileList             file_list() const;
+  TrackerList          tracker_list() const;
 
   Rate*                down_rate();
   const Rate*          down_rate() const;
@@ -147,11 +143,6 @@ public:
   void                 set_peers_max(uint32_t v);
 
   void                 set_uploads_max(uint32_t v);
-
-  // Access the files in the torrent.
-  Entry                file_entry(uint32_t index);
-  bool                 file_entry_created(uint32_t index);
-  uint32_t             size_file_entries() const;
 
   typedef enum {
     CONNECTION_LEECH,

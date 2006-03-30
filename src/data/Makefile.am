@@ -17,8 +17,6 @@ libsub_data_la_SOURCES = \
 	entry_list_node.h \
 	chunk_part.cc \
 	chunk_part.h \
-	file.cc \
-	file.h \
 	file_manager.cc \
 	file_manager.h \
 	file_meta.h \
@@ -32,6 +30,8 @@ libsub_data_la_SOURCES = \
 	hash_torrent.h \
 	memory_chunk.cc \
 	memory_chunk.h \
-	piece.h
+	piece.h \
+	socket_file.cc \
+	socket_file.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

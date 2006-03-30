@@ -34,58 +34,45 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_FILE_META_H
-#define LIBTORRENT_DATA_FILE_META_H
+#include "config.h"
 
-#include <rak/functional.h>
+#include "data/entry_list.h"
 
-#include "socket_file.h"
-#include "globals.h"
+#include "exceptions.h"
+#include "file.h"
+#include "file_list.h"
 
 namespace torrent {
 
-class FileManager;
+bool
+FileList::is_open() const {
+  return m_list->is_open();
+}
 
-class FileMeta {
-public:
-  typedef rak::mem_fun3<FileManager, bool, FileMeta*, int, int> SlotPrepare;
+File
+FileList::get(uint32_t index) {
+  if (index >= m_list->files_size())
+    throw client_error("Client called FileList::get(...) with out of range index.");
 
-  FileMeta() : m_lastTouched(cachedTime) {}
+  return m_list->get_node(index);
+}
 
-  bool                is_open() const                            { return m_file.is_open(); }
-  bool                has_permissions(int prot) const            { return !(prot & ~get_prot()); }
+uint32_t
+FileList::size() const {
+  return m_list->files_size();
+}
 
-  // Consider prot == 0 to close?
-  inline bool         prepare(int prot, int flags = 0);
+const std::string&
+FileList::root_dir() const {
+  return m_list->root_dir();
+}
 
-  SocketFile&         get_file()                                 { return m_file; }
-  const SocketFile&   get_file() const                           { return m_file; }
+void
+FileList::set_root_dir(const std::string& path) {
+  if (m_list->is_open())
+    throw input_error("Tried to change the root directory on an open download.");
 
-  const std::string&  get_path() const                           { return m_path; }
-  void                set_path(const std::string& path)          { m_path = path; }
-
-  int                 get_prot() const                           { return m_file.get_prot(); }
-
-  rak::timer          get_last_touched() const                   { return m_lastTouched; }
-  void                set_last_touched(rak::timer t = cachedTime) { m_lastTouched = t; }
-
-  void                slot_prepare(SlotPrepare s)                { m_slotPrepare = s; }
-
-private:
-  SocketFile          m_file;
-  std::string         m_path;
-
-  rak::timer          m_lastTouched;
-  SlotPrepare         m_slotPrepare;
-};
-
-inline bool
-FileMeta::prepare(int prot, int flags) {
-  m_lastTouched = cachedTime;
-
-  return (is_open() && has_permissions(prot)) || m_slotPrepare(this, prot, flags);
+  m_list->set_root_dir(path);
 }
 
 }
-
-#endif

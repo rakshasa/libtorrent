@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_FILE_H
-#define LIBTORRENT_FILE_H
+#ifndef LIBTORRENT_SOCKET_FILE_H
+#define LIBTORRENT_SOCKET_FILE_H
 
 #include <string>
 #include <inttypes.h>
@@ -46,7 +46,9 @@
 
 namespace torrent {
 
-class File {
+// Inherit from SocketBase?
+
+class SocketFile {
 public:
   typedef int fd_type;
 
@@ -56,8 +58,8 @@ public:
   static const int o_truncate             = O_TRUNC;
   static const int o_nonblock             = O_NONBLOCK;
 
-  File() : m_fd(invalid_fd), m_prot(0), m_flags(0) {}
-  ~File();
+  SocketFile() : m_fd(invalid_fd), m_prot(0), m_flags(0) {}
+  ~SocketFile();
 
   bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
 
@@ -84,8 +86,8 @@ public:
 private:
   // Use custom flags if stuff like file locking etc is implemented.
 
-  File(const File&);
-  void operator = (const File&);
+  SocketFile(const SocketFile&);
+  void operator = (const SocketFile&);
 
   fd_type             m_fd;
   int                 m_prot;

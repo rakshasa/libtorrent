@@ -77,9 +77,6 @@ public:
   const std::string&     complete_hash()                            { return m_hash; }
   void                   set_complete_hash(const std::string& hash);
 
-  const std::string&     root_dir() const                           { return m_rootDir; }
-  void                   set_root_dir(const std::string& path)      { m_rootDir = path; }
-
   uint32_t               chunks_completed() const             { return m_completed; }
   uint64_t               bytes_completed() const;
   
@@ -119,7 +116,6 @@ private:
   EntryList*             m_entryList;
   BitField               m_bitfield;
 
-  std::string            m_rootDir;
   std::string            m_hash;
 };
 

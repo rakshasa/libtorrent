@@ -98,7 +98,7 @@ DownloadConstructor::parse_info(const Object& b) {
 
   } else if (b.has_key("files")) {
     parse_multi_files(b.get_key("files"));
-    c->set_root_dir("./" + b.get_key("name").as_string());
+    c->entry_list()->set_root_dir("./" + b.get_key("name").as_string());
 
   } else {
     throw input_error("Torrent must have either length or files entry");

@@ -34,63 +34,38 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_FILE_LIST_H
+#define LIBTORRENT_FILE_LIST_H
 
-#include "exceptions.h"
-#include "entry.h"
-#include "data/entry_list_node.h"
+#include <inttypes.h>
 
 namespace torrent {
 
-uint64_t
-Entry::size_bytes() const {
-  return m_entry->size();
-}
+class EntryList;
+class File;
 
-uint32_t
-Entry::size_chunks() const {
-  return m_entry->range().second - m_entry->range().first;
-}
+class FileList {
+public:
+  FileList(EntryList* e = NULL) : m_list(e) {}
 
-uint32_t
-Entry::completed_chunks() const {
-  return m_entry->completed();
-}
+  bool                is_open() const;
 
-uint32_t
-Entry::chunk_begin() const {
-  return m_entry->range().first;
-}
+  // Access the files in the torrent.
+  File                get(uint32_t index);
 
-uint32_t
-Entry::chunk_end() const {
-  return m_entry->range().second;
-}  
+  uint32_t            size() const;
 
-Entry::Priority
-Entry::priority() const {
-  return (Priority)m_entry->priority();
-}
+  // This can be moved?
+//   bool                file_entry_created(uint32_t index);
 
-void
-Entry::set_priority(Priority p) {
-  m_entry->set_priority(p);
-}
+  // Only set the root directory while the torrent is closed.
+  const std::string&  root_dir() const;
+  void                set_root_dir(const std::string& dir);
 
-Path*
-Entry::path() {
-  return m_entry->path();
-}
-
-const Path*
-Entry::path() const {
-  return m_entry->path();
-}
-
-// Relative to root of torrent.
-std::string
-Entry::path_str() const {
-  return m_entry->path()->as_string();
-}
+private:
+  EntryList*          m_list;
+};
 
 }
+
+#endif
