@@ -33,10 +33,6 @@ Udp needs to go through socketmanager.
 
 TrackerUdp::parse_url should happen only once.
 
-Ahh... SocketManager is supposed to do filtering? Perhaps atleast the
-initial filtering? Does it get used to things other than peer
-connections?
-
 Add a function in core::Download to update various resume data.
 
 read request checks choke in two places and adds to write poll.
@@ -76,8 +72,6 @@ active or other criteria.
 
 Make sure we get the right error message when locking a non-existent
 session directory.
-
-Make mincore a requirement, disable'able with a flag.
 
 Show seeders?
 

@@ -599,7 +599,9 @@ PeerConnectionLeech::finish_bitfield() {
 
   m_download->chunk_statistics()->received_connect(&m_peerChunks);
 
-  if (!m_download->content()->is_done() && true) { // FIXME: m_download->delegator()->get_select().interested(m_peerChunks.bitfield()->bitfield())) {
+  // By default, set interested. When unchoked we'll check if there's
+  // any interesting pieces, then set uninterested.
+  if (!m_download->content()->is_done()) {
     m_sendInterested = true;
     m_up->set_interested(true);
   }

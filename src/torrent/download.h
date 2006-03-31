@@ -87,21 +87,20 @@ public:
 
   bool                 is_open() const;
   bool                 is_active() const;
-  bool                 is_tracker_busy() const;
 
   bool                 is_hash_checked() const;
   bool                 is_hash_checking() const;
 
   // Returns "" if the object is not valid.
-  std::string          name() const;
-  std::string          info_hash() const;
-  std::string          local_id() const;
+  const std::string&   name() const;
+  const std::string&   info_hash() const;
+  const std::string&   local_id() const;
 
   // Unix epoche, 0 == unknown.
   uint32_t             creation_date() const;
 
-  Object&              bencode();
-  const Object&        bencode() const;
+  Object*              bencode();
+  const Object*        bencode() const;
 
   FileList             file_list() const;
   TrackerList          tracker_list() const;

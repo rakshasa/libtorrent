@@ -48,6 +48,8 @@ class TrackerList {
 public:
   TrackerList(TrackerManager* m = NULL) : m_manager(m) {}
 
+  bool                 is_busy() const;
+
   // Access the trackers in the torrent.
   Tracker             get(uint32_t index) const;
 

@@ -56,12 +56,12 @@ public:
   typedef uint16_t                        size_type;
   typedef std::pair<size_type, size_type> size_pair_type;
 
-  static const size_type num_layers = 9;
+  static const size_type num_layers = 8;
 
   partial_queue() : m_data(NULL), m_maxLayerSize(0) {}
-  ~partial_queue() { delete [] m_data; }
+  ~partial_queue() { disable(); }
 
-  bool                is_full() const                         { return is_layer_full(0); }
+  bool                is_full() const                         { return m_ceiling == 0; }
   bool                is_layer_full(size_type l) const        { return m_layers[l].second >= m_maxLayerSize; }
 
   bool                is_enabled() const                      { return m_data != NULL; }
@@ -112,6 +112,9 @@ private:
 
 inline void
 partial_queue::enable(size_type ls) {
+  if (ls == 0)
+    throw std::logic_error("partial_queue::enable(...) ls == 0.");
+
   delete [] m_data;
   m_data = new mapped_type[ls * num_layers];
 
@@ -146,22 +149,23 @@ partial_queue::insert(key_type key, mapped_type value) {
 
   // Hmm... since we already check the 'm_ceiling' above, we only need
   // to find the target layer. Could this be calculated directly?
-  for (; key >= ceiling(idx); ++idx)
-//     if (is_layer_full(idx))
-//       return false;
-    ; // Do nothing for now.
+  while (key >= ceiling(idx))
+    ++idx;
 
   m_index = std::min(m_index, idx);
 
   // Currently don't allow overflow.
-//   if (is_layer_full(idx))
-//     return false;
+  if (is_layer_full(idx))
+    throw std::logic_error("partial_queue::insert(...) layer already full.");
+    //return false;
 
   m_data[m_maxLayerSize * idx + m_layers[idx].second] = value;
   m_layers[idx].second++;
 
-  if (is_layer_full(idx) && idx != 0)
-    m_ceiling = ceiling(idx - 1);
+  if (is_layer_full(idx))
+    // Set the ceiling to 0 when layer 0 is full so no more values can
+    // be inserted.
+    m_ceiling = idx > 0 ? ceiling(idx - 1) : 0;
 
   return true;
 }

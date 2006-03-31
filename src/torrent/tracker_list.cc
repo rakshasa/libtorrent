@@ -45,6 +45,11 @@
 
 namespace torrent {
 
+bool
+TrackerList::is_busy() const {
+  return m_manager->is_busy();
+}
+
 Tracker
 TrackerList::get(uint32_t index) const {
   if (index >= m_manager->size())

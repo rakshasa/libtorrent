@@ -116,11 +116,6 @@ Download::is_active() const {
 }
 
 bool
-Download::is_tracker_busy() const {
-  return m_ptr->main()->tracker_manager()->is_busy();
-}
-
-bool
 Download::is_hash_checked() const {
   return m_ptr->hash_checker()->is_checked();
 }
@@ -130,19 +125,28 @@ Download::is_hash_checking() const {
   return m_ptr->hash_checker()->is_checking();
 }
 
-std::string
+const std::string&
 Download::name() const {
-  return m_ptr ? m_ptr->info()->name() : "";
+  if (m_ptr == NULL)
+    throw internal_error("Download::name() m_ptr == NULL.");
+
+  return m_ptr->info()->name();
 }
 
-std::string
+const std::string&
 Download::info_hash() const {
-  return m_ptr ? m_ptr->info()->hash() : "";
+  if (m_ptr == NULL)
+    throw internal_error("Download::info_hash() m_ptr == NULL.");
+
+  return m_ptr->info()->hash();
 }
 
-std::string
+const std::string&
 Download::local_id() const {
-  return m_ptr ? m_ptr->info()->local_id() : "";
+  if (m_ptr == NULL)
+    throw internal_error("Download::local_id() m_ptr == NULL.");
+
+  return m_ptr->info()->local_id();
 }
 
 uint32_t
@@ -153,14 +157,14 @@ Download::creation_date() const {
     return 0;
 }
 
-Object&
+Object*
 Download::bencode() {
-  return *m_ptr->bencode();
+  return m_ptr->bencode();
 }
 
-const Object&
+const Object*
 Download::bencode() const {
-  return *m_ptr->bencode();
+  return m_ptr->bencode();
 }
 
 FileList

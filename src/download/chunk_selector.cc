@@ -258,7 +258,7 @@ ChunkSelector::search_linear_byte(rak::partial_queue* pq, uint32_t index, BitFie
 
     // Keep the linear name, but make the rarity knob here?
 //     if (!pc->download_cache()->insert(0, index + i))
-    if (!pq->insert(m_statistics->rarity(index + i), index + i))
+    if (!pq->insert(m_statistics->rarity(index + i), index + i) && pq->is_full())
       return false;
   }
 

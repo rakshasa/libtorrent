@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_DATA_ENTRY_LIST_NODE_H
 #define LIBTORRENT_DATA_ENTRY_LIST_NODE_H
 
+#include <inttypes.h>
+
 #include "torrent/path.h"
 
 namespace torrent {
