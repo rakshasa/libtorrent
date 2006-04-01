@@ -114,7 +114,7 @@ Object::operator = (const Object& b) {
 
 Object&
 Object::get_key(const std::string& k) {
-  check_type(TYPE_MAP);
+  check_throw(TYPE_MAP);
 
   map_type::iterator itr = m_map->find(k);
 
@@ -127,7 +127,7 @@ Object::get_key(const std::string& k) {
 
 const Object&
 Object::get_key(const std::string& k) const {
-  check_type(TYPE_MAP);
+  check_throw(TYPE_MAP);
 
   map_type::const_iterator itr = m_map->find(k);
 
@@ -135,16 +135,6 @@ Object::get_key(const std::string& k) const {
     throw bencode_error("Object operator [" + k + "] could not find element");
 
   return itr->second;
-}
-
-void
-Object::erase_key(const std::string& s) {
-  check_type(TYPE_MAP);
-
-  map_type::iterator itr = m_map->find(s);
-
-  if (itr != m_map->end())
-    m_map->erase(itr);
 }
 
 }

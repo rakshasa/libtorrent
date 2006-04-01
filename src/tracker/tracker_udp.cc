@@ -149,11 +149,17 @@ TrackerUdp::event_read() {
 
   int s = read_datagram(m_readBuffer->begin(), m_readBuffer->reserved(), &sa);
 
-  if (s < 4)
+  if (s < 0)
     return;
 
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
+
+  if (!m_info->signal_tracker_dump().empty())
+    m_info->signal_tracker_dump().emit(m_url, (const char*)m_readBuffer->begin(), s);
+
+  if (s < 4)
+    return;
 
   // Make sure sa is from the source we expected?
 

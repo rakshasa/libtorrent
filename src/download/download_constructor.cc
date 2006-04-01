@@ -79,7 +79,7 @@ void
 DownloadConstructor::initialize(const Object& b) {
   m_download->info()->set_name(b.get_key("info").get_key("name").as_string());
 
-  if (b.has_key("encoding") && b.get_key("encoding").is_string())
+  if (b.has_key_string("encoding"))
     m_defaultEncoding = b.get_key("encoding").as_string();
 
   parse_info(b.get_key("info"));
@@ -120,7 +120,7 @@ void
 DownloadConstructor::parse_tracker(const Object& b) {
   TrackerManager* tracker = m_download->main()->tracker_manager();
 
-  if (b.has_key("announce-list") && b.get_key("announce-list").is_list())
+  if (b.has_key_list("announce-list"))
     std::for_each(b.get_key("announce-list").as_list().begin(), b.get_key("announce-list").as_list().end(),
 		  rak::make_mem_fun(this, &DownloadConstructor::add_tracker_group));
 
@@ -210,9 +210,8 @@ DownloadConstructor::add_file(const Object& b) {
 
   std::list<Path> pathList;
 
-  if (b.has_key("path") && b.get_key("path").is_list()) {
+  if (b.has_key_list("path"))
     pathList.push_back(create_path(b.get_key("path").as_list(), m_defaultEncoding));
-  }
 
   Object::map_type::const_iterator itr = b.as_map().begin();
   

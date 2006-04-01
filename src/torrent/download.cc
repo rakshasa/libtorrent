@@ -151,7 +151,7 @@ Download::local_id() const {
 
 uint32_t
 Download::creation_date() const {
-  if (m_ptr->bencode()->has_key("creation date") && m_ptr->bencode()->get_key("creation date").is_value())
+  if (m_ptr->bencode()->has_key_value("creation date"))
     return m_ptr->bencode()->get_key("creation date").as_value();
   else
     return 0;
@@ -400,6 +400,11 @@ Download::signal_tracker_succeded(Download::slot_void_type s) {
 sigc::connection
 Download::signal_tracker_failed(Download::slot_string_type s) {
   return m_ptr->signal_tracker_failed().connect(s);
+}
+
+sigc::connection
+Download::signal_tracker_dump(Download::slot_dump_type s) {
+  return m_ptr->info()->signal_tracker_dump().connect(s);
 }
 
 sigc::connection

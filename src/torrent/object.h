@@ -45,16 +45,16 @@
 
 namespace torrent {
 
-// This class should very rarely change, so it doesn't matter that
-// much of the implementation is visible. Though it really needs to be
-// cleaned up.
+// Look into making a custom comp and allocator classes for the
+// map_type which use a const char* for key_type.
 
 class Object {
 public:
   typedef int64_t                         value_type;
   typedef std::string                     string_type;
-  typedef std::map<std::string, Object>   map_type;
   typedef std::list<Object>               list_type;
+  typedef std::map<std::string, Object>   map_type;
+  typedef map_type::key_type              key_type;
 
   enum type_type {
     TYPE_NONE,
@@ -83,30 +83,38 @@ public:
   bool                is_list() const                         { return m_type == TYPE_LIST; }
   bool                is_map() const                          { return m_type == TYPE_MAP; }
 
-  value_type&         as_value()                              { check_type(TYPE_VALUE); return m_value; }
-  const value_type&   as_value() const                        { check_type(TYPE_VALUE); return m_value; }
+  value_type&         as_value()                              { check_throw(TYPE_VALUE); return m_value; }
+  const value_type&   as_value() const                        { check_throw(TYPE_VALUE); return m_value; }
 
-  string_type&        as_string()                             { check_type(TYPE_STRING); return *m_string; }
-  const string_type&  as_string() const                       { check_type(TYPE_STRING); return *m_string; }
+  string_type&        as_string()                             { check_throw(TYPE_STRING); return *m_string; }
+  const string_type&  as_string() const                       { check_throw(TYPE_STRING); return *m_string; }
 
-  list_type&          as_list()                               { check_type(TYPE_LIST); return *m_list; }
-  const list_type&    as_list() const                         { check_type(TYPE_LIST); return *m_list; }
+  list_type&          as_list()                               { check_throw(TYPE_LIST); return *m_list; }
+  const list_type&    as_list() const                         { check_throw(TYPE_LIST); return *m_list; }
 
-  map_type&           as_map()                                { check_type(TYPE_MAP); return *m_map; }
-  const map_type&     as_map() const                          { check_type(TYPE_MAP); return *m_map; }
+  map_type&           as_map()                                { check_throw(TYPE_MAP); return *m_map; }
+  const map_type&     as_map() const                          { check_throw(TYPE_MAP); return *m_map; }
 
-  bool                has_key(const std::string& s) const     { check_type(TYPE_MAP); return m_map->find(s) != m_map->end(); }
+  bool                has_key(const key_type& k) const        { check_throw(TYPE_MAP); return m_map->find(k) != m_map->end(); }
+  bool                has_key_value(const key_type& k) const  { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_VALUE); }
+  bool                has_key_string(const key_type& k) const { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_STRING); }
+  bool                has_key_list(const key_type& k) const   { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_LIST); }
+  bool                has_key_map(const key_type& k) const    { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_MAP); }
 
-  Object&             get_key(const std::string& k);
-  const Object&       get_key(const std::string& k) const;
+  // Should have an interface for that returns pointer or something,
+  // so we don't need to search twice.
 
-  Object&             insert_key(const std::string& s, const Object& b) { check_type(TYPE_MAP); return (*m_map)[s] = b; }
-  void                erase_key(const std::string& s);
+  Object&             get_key(const key_type& k);
+  const Object&       get_key(const key_type& k) const;
+
+  Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
+  void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); m_map->erase(k); }
 
   Object&             operator = (const Object& b);
 
  private:
-  inline void         check_type(type_type t) const           { if (t != m_type) throw bencode_error("Wrong object type."); }
+  inline bool         check(map_type::const_iterator itr, type_type t) const { return itr != m_map->end() && itr->second.m_type == t; }
+  inline void         check_throw(type_type t) const                         { if (t != m_type) throw bencode_error("Wrong object type."); }
 
   type_type           m_type;
 

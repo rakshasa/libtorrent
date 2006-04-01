@@ -17,8 +17,6 @@ Rename d::bencode()?
 
 === torrent::Object ==
 
-Combine has_key and is_*.
-
 Ways of checking that they are a value and between a range.
 
 
@@ -87,6 +85,11 @@ downloaded the piece from.
 Get rid of affinity, perhaps each peer saves the pointer to the
 delegator chunk they are currently using, in addition to the delegator
 piece.
+
+
+Re-enable randomized selector position.
+
+Do the range-disable and position moving in d selector.
 
 
 == Sockets ==

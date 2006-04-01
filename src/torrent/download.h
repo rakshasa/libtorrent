@@ -39,7 +39,6 @@
 
 #include <torrent/peer.h>
 
-#include <iosfwd>
 #include <list>
 #include <vector>
 #include <string>
@@ -164,12 +163,12 @@ public:
 
   void                 disconnect_peer(Peer p);
 
-  typedef sigc::slot0<void>                     slot_void_type;
-  typedef sigc::slot1<void, const std::string&> slot_string_type;
+  typedef sigc::slot0<void>                                          slot_void_type;
+  typedef sigc::slot1<void, const std::string&>                      slot_string_type;
 
-  typedef sigc::slot1<void, Peer>               slot_peer_type;
-  typedef sigc::slot1<void, std::istream*>      slot_istream_type;
-  typedef sigc::slot1<void, uint32_t>           slot_chunk_type;
+  typedef sigc::slot1<void, Peer>                                    slot_peer_type;
+  typedef sigc::slot1<void, uint32_t>                                slot_chunk_type;
+  typedef sigc::slot3<void, const std::string&, const char*, size_t> slot_dump_type;
 
   // signal_download_done is a delayed signal so it is safe to
   // stop/close the torrent when received. The signal is only emitted
@@ -182,6 +181,7 @@ public:
 
   sigc::connection    signal_tracker_succeded(slot_void_type s);
   sigc::connection    signal_tracker_failed(slot_string_type s);
+  sigc::connection    signal_tracker_dump(slot_dump_type s);
 
   sigc::connection    signal_chunk_passed(slot_chunk_type s);
   sigc::connection    signal_chunk_failed(slot_chunk_type s);
@@ -204,4 +204,3 @@ private:
 }
 
 #endif
-

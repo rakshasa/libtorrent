@@ -2,11 +2,21 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+connection_list, handshake_manager. Make a template, and all classes
+have peer_info() function for accessing?
+
+* Move various timers?
+* Request Queue
+
+element_tracker_list use TrackerList.
+
+Would it be possible to do 8-9 and's and bitshifts faster than for
+loop checking ceiling?
+
+
 ConnectionList::erase_remaining(iterator pos) - Need to save the itr?
 
 Make the download_list handlers into rak::function's.
-
-Add tracker dump to DownloadInfo.
 
 Add option for TOS, enums or similar in CM.
 
@@ -40,6 +50,8 @@ read request checks choke in two places and adds to write poll.
 Test incoming.
 
 rak/functional, some of those do copy-by-value...
+
+echo | openssl s_client -connect some.server.somewhere:443 | grep -A 100 'BEGIN CERTIFICATE' | grep -B 100 'END CERTIFICATE' >> /usr/share/curl/curl-ca-bundle.crt
 
 
 ***

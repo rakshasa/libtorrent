@@ -111,14 +111,14 @@ DownloadWrapper::hash_resume_load() {
   if (!m_main.is_open() || m_main.is_active() || m_hash->is_checked())
     throw client_error("DownloadWrapper::resume_load() called with wrong state");
 
-  if (!m_bencode->has_key("libtorrent resume"))
+  if (!m_bencode->has_key_map("libtorrent resume"))
     return;
 
   try {
     Object& resume  = m_bencode->get_key("libtorrent resume");
 
     // Load peer addresses.
-    if (resume.has_key("peers") && resume.get_key("peers").is_string())
+    if (resume.has_key_string("peers"))
       insert_available_list(resume.get_key("peers").as_string());
 
     Object& files = resume.get_key("files");
@@ -145,16 +145,14 @@ DownloadWrapper::hash_resume_load() {
 
       if (!fs.update(sItr->file_meta()->get_path()) ||
 	  sItr->size() != fs.size() ||
-	  !bItr->has_key("mtime") ||
-	  !(*bItr).get_key("mtime").is_value() ||
-	  (*bItr).get_key("mtime").as_value() != fs.modified_time())
+	  !bItr->has_key_value("mtime") ||
+	  bItr->get_key("mtime").as_value() != fs.modified_time())
 	m_hash->ranges().insert(sItr->range().first, sItr->range().second);
 
       // Update the priority from the fast resume data.
-      if (bItr->has_key("priority") &&
-	  (*bItr).get_key("priority").is_value() &&
-	  (*bItr).get_key("priority").as_value() >= 0 &&
-	  (*bItr).get_key("priority").as_value() < 3)
+      if (bItr->has_key_value("priority") &&
+	  bItr->get_key("priority").as_value() >= 0 &&
+	  bItr->get_key("priority").as_value() < 3)
 	sItr->set_priority((*bItr).get_key("priority").as_value());
 
       ++sItr;

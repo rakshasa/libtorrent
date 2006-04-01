@@ -159,6 +159,12 @@ TrackerHttp::receive_done() {
   if (m_data == NULL)
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
+  if (!m_info->signal_tracker_dump().empty()) {
+    std::string dump = m_data->str();
+
+    m_info->signal_tracker_dump().emit(m_get->url(), dump.c_str(), dump.size());
+  }
+
   Object b;
   *m_data >> b;
 
@@ -175,24 +181,23 @@ TrackerHttp::receive_done() {
 			  std::string("failure reason not a string"))
 			 + "\"");
 
-  if (b.has_key("interval") && b.get_key("interval").is_value())
+  if (b.has_key_value("interval"))
     m_slotSetInterval(b.get_key("interval").as_value());
   
-  if (b.has_key("min interval") && b.get_key("min interval").is_value())
+  if (b.has_key_value("min interval"))
     m_slotSetMinInterval(b.get_key("min interval").as_value());
 
-  if (b.has_key("tracker id") && b.get_key("tracker id").is_string())
+  if (b.has_key_string("tracker id"))
     m_trackerId = b.get_key("tracker id").as_string();
 
-  if (b.has_key("complete") && b.get_key("complete").is_value() &&
-      b.has_key("incomplete") && b.get_key("incomplete").is_value()) {
+  if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
     m_scrapeComplete   = std::max<int64_t>(b.get_key("complete").as_value(), 0);
     m_scrapeIncomplete = std::max<int64_t>(b.get_key("incomplete").as_value(), 0);
 
     m_scrapeTimeLast = cachedTime;
   }
 
-  if (b.has_key("downloaded") && b.get_key("downloaded").is_value())
+  if (b.has_key_value("downloaded"))
     m_scrapeDownloaded = std::max<int64_t>(b.get_key("downloaded").as_value(), 0);
 
   AddressList l;
@@ -226,12 +231,10 @@ TrackerHttp::parse_address(const Object& b) {
   if (!b.is_map())
     return sa;
 
-  if (!b.has_key("ip") || !b.get_key("ip").is_string() ||
-      !sa.set_address_str(b.get_key("ip").as_string()))
+  if (!b.has_key_string("ip") || !sa.set_address_str(b.get_key("ip").as_string()))
     return sa;
 
-  if (!b.has_key("port") || !b.get_key("port").is_value() ||
-      b.get_key("port").as_value() <= 0 || b.get_key("port").as_value() >= (1 << 16))
+  if (!b.has_key_value("port") || b.get_key("port").as_value() <= 0 || b.get_key("port").as_value() >= (1 << 16))
     return sa;
 
   sa.set_port(b.get_key("port").as_value());

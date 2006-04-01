@@ -55,10 +55,11 @@ class Rate;
 
 class DownloadInfo {
 public:
-  typedef std::list<rak::socket_address>              AddressList;
+  typedef rak::const_mem_fun0<DownloadMain, uint64_t>                  slot_stat_type;
 
-  typedef rak::const_mem_fun0<DownloadMain, uint64_t> SlotStat;
-  typedef rak::const_mem_fun0<Rate, uint64_t>         SlotStatRate;
+  typedef sigc::signal1<void, const std::string&>                      signal_string_type;
+  typedef sigc::signal1<void, uint32_t>                                signal_chunk_type;
+  typedef sigc::signal3<void, const std::string&, const char*, size_t> signal_dump_type;
 
   enum State {
     NONE,
@@ -105,13 +106,11 @@ public:
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
-  SlotStat&           slot_stat_left()                             { return m_slotStatLeft; }
+  slot_stat_type&     slot_stat_left()                             { return m_slotStatLeft; }
 
-  typedef sigc::signal1<void, const std::string&> SignalString;
-  typedef sigc::signal1<void, uint32_t>           SignalChunk;
-
-  SignalString&       signal_network_log()                         { return m_signalNetworkLog; }
-  SignalString&       signal_storage_error()                       { return m_signalStorageError; }
+  signal_string_type& signal_network_log()                         { return m_signalNetworkLog; }
+  signal_string_type& signal_storage_error()                       { return m_signalStorageError; }
+  signal_dump_type&   signal_tracker_dump()                        { return m_signalTrackerDump; }
 
 private:
   std::string         m_name;
@@ -127,10 +126,11 @@ private:
 
   uint64_t            m_uploadedBaseline;
 
-  SlotStat            m_slotStatLeft;
+  slot_stat_type      m_slotStatLeft;
 
-  SignalString        m_signalNetworkLog;
-  SignalString        m_signalStorageError;
+  signal_string_type  m_signalNetworkLog;
+  signal_string_type  m_signalStorageError;
+  signal_dump_type    m_signalTrackerDump;
 };
 
 // Move somewhere else.
