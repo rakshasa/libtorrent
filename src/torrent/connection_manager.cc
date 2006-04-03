@@ -48,6 +48,8 @@ namespace torrent {
 ConnectionManager::ConnectionManager() :
   m_size(0),
   m_maxSize(0),
+
+  m_priority(iptos_throughput),
   m_sendBufferSize(0),
   m_receiveBufferSize(0),
 

@@ -41,9 +41,9 @@
 
 #include "torrent/path.h"
 
-namespace torrent {
+#include "file_meta.h"
 
-class FileMeta;
+namespace torrent {
 
 class EntryListNode {
 public:
@@ -51,12 +51,12 @@ public:
 
   EntryListNode();
 
-  bool                is_valid() const                        { return m_fileMeta; }
   inline bool         is_valid_position(off_t p) const;
+  bool                is_created() const;
+  bool                is_correct_size() const;
 
-  FileMeta*           file_meta()                             { return m_fileMeta; }
-  const FileMeta*     file_meta() const                       { return m_fileMeta; }
-  void                set_file_meta(FileMeta* fm)             { m_fileMeta = fm; }
+  FileMeta*           file_meta()                             { return &m_fileMeta; }
+  const FileMeta*     file_meta() const                       { return &m_fileMeta; }
 
   Path*               path()                                  { return &m_path; }
   const Path*         path() const                            { return &m_path; }
@@ -78,10 +78,13 @@ public:
   unsigned char       priority() const                        { return m_priority; }
   void                set_priority(unsigned char t)           { m_priority = t; }
 
-  bool                resize_file() const;
+  bool                resize_file();
 
 private:
-  FileMeta*           m_fileMeta;
+  EntryListNode(const EntryListNode&);
+  void operator = (const EntryListNode&);
+
+  FileMeta            m_fileMeta;
 
   off_t               m_position;
   off_t               m_size;

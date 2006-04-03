@@ -71,7 +71,9 @@ Content::initialize(uint32_t chunkSize) {
   m_bitfield = BitField(m_chunkTotal);
 
   for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
-    itr->set_range(make_index_range(itr->position(), itr->size()));
+    (*itr)->set_range(make_index_range((*itr)->position(), (*itr)->size()));
+
+  m_entryList->set_root_dir(".");
 }
 
 void
@@ -163,7 +165,7 @@ Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
   if (first == m_entryList->end())
     throw internal_error("Content::mark_done got first == m_entryList->end().");
 
-  std::for_each(first, last, std::mem_fun_ref(&EntryListNode::inc_completed));
+  std::for_each(first, last, std::mem_fun(&EntryListNode::inc_completed));
 
   return true;
 }
@@ -189,7 +191,7 @@ Content::update_done() {
       if (first == m_entryList->end())
 	throw internal_error("Content::update_done() reached m_entryList->end().");
 
-      std::for_each(first, last, std::mem_fun_ref(&EntryListNode::inc_completed));
+      std::for_each(first, last, std::mem_fun(&EntryListNode::inc_completed));
     }
 }
 

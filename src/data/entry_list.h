@@ -45,30 +45,30 @@
 namespace torrent {
 
 class Chunk;
+class EntryListNode;
 class FileManager;
 class MemoryChunk;
 
-class EntryList : private std::vector<EntryListNode> {
+class EntryList : private std::vector<EntryListNode*> {
 public:
-  typedef std::vector<EntryListNode>                               Base;
-  typedef rak::mem_fun1<FileManager, FileMeta*, const std::string&> SlotFileMetaString;
-  typedef rak::mem_fun1<FileManager, void, FileMeta*>               SlotFileMeta;
+  typedef std::vector<EntryListNode*>                 base_type;
+  typedef rak::mem_fun1<FileManager, void, FileMeta*> slot_meta_type;
 
-  using Base::value_type;
+  using base_type::value_type;
 
-  using Base::iterator;
-  using Base::reverse_iterator;
+  using base_type::iterator;
+  using base_type::reverse_iterator;
 
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
-  using Base::back;
-  using Base::empty;
-  using Base::reserve;
+  using base_type::back;
+  using base_type::empty;
+  using base_type::reserve;
 
-  EntryList() : m_bytesSize(0), m_rootDir("."), m_isOpen(false) {}
+  EntryList() : m_bytesSize(0), m_isOpen(false) {}
   ~EntryList() { clear(); }
 
   bool                is_open() const                            { return m_isOpen; }
@@ -82,22 +82,23 @@ public:
   void                open();
   void                close();
 
+  // You must call set_root_dir after all nodes have been added.
   const std::string&  root_dir() const                           { return m_rootDir; }
-  void                set_root_dir(const std::string& path)      { m_rootDir = path; }
+  void                set_root_dir(const std::string& path);
 
   bool                resize_all();
 
-  size_t              files_size() const                         { return Base::size(); }
+  size_t              files_size() const                         { return base_type::size(); }
   off_t               bytes_size() const                         { return m_bytesSize; }
 
-  EntryListNode*      get_node(uint32_t idx)                     { return &Base::front() + idx; }
+  EntryListNode*      get_node(uint32_t idx)                     { return base_type::operator[](idx); }
 
   Chunk*              create_chunk(off_t offset, uint32_t length, int prot);
 
   iterator            at_position(iterator itr, off_t offset);
 
-  void                slot_insert_filemeta(SlotFileMetaString s) { m_slotInsertFileMeta = s; }
-  void                slot_erase_filemeta(SlotFileMeta s)        { m_slotEraseFileMeta = s; }
+  void                slot_insert_filemeta(slot_meta_type s)     { m_slotInsertFileMeta = s; }
+  void                slot_erase_filemeta(slot_meta_type s)      { m_slotEraseFileMeta = s; }
 
 private:
   bool                open_file(EntryListNode* node, const Path& lastPath);
@@ -109,8 +110,8 @@ private:
 
   bool                m_isOpen;
 
-  SlotFileMetaString  m_slotInsertFileMeta;
-  SlotFileMeta        m_slotEraseFileMeta;
+  slot_meta_type      m_slotInsertFileMeta;
+  slot_meta_type      m_slotEraseFileMeta;
 };
 
 }

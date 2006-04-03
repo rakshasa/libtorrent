@@ -174,13 +174,16 @@ HandshakeManager::setup_socket(SocketFd fd) {
   if (!fd.set_nonblock())
     return false;
 
-  if (manager->connection_manager()->send_buffer_size() != 0 && !fd.set_send_buffer_size(manager->connection_manager()->send_buffer_size()))
-    return false;
-    
-  if (manager->connection_manager()->receive_buffer_size() != 0 && !fd.set_receive_buffer_size(manager->connection_manager()->receive_buffer_size()))
+  ConnectionManager* m = manager->connection_manager();
+
+  if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(ConnectionManager::iptos_throughput))
     return false;
 
-  //  get_fd().set_throughput();
+  if (m->send_buffer_size() != 0 && !fd.set_send_buffer_size(m->send_buffer_size()))
+    return false;
+    
+  if (m->receive_buffer_size() != 0 && !fd.set_receive_buffer_size(m->receive_buffer_size()))
+    return false;
 
   return true;
 }

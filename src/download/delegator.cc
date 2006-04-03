@@ -120,6 +120,11 @@ struct DelegatorCheckAggressive {
 void Delegator::clear() {
   for (Chunks::iterator itr = m_chunks.begin(), last = m_chunks.end(); itr != last; ++itr) {
     m_slotChunkDisable((*itr)->get_index());
+
+    // Since there seems to be a bug somewhere:
+    for (DelegatorChunk::iterator j = (*itr)->begin(), l = (*itr)->end(); j != l; ++j)
+      j->clear();
+
     delete *itr;
   }
 

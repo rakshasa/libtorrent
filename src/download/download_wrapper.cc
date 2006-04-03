@@ -143,17 +143,17 @@ DownloadWrapper::hash_resume_load() {
       // Check that the size and modified stamp matches. If not, then
       // add to the hashes to check.
 
-      if (!fs.update(sItr->file_meta()->get_path()) ||
-	  sItr->size() != fs.size() ||
+      if (!fs.update((*sItr)->file_meta()->get_path()) ||
+	  (*sItr)->size() != fs.size() ||
 	  !bItr->has_key_value("mtime") ||
 	  bItr->get_key("mtime").as_value() != fs.modified_time())
-	m_hash->ranges().insert(sItr->range().first, sItr->range().second);
+	m_hash->ranges().insert((*sItr)->range().first, (*sItr)->range().second);
 
       // Update the priority from the fast resume data.
       if (bItr->has_key_value("priority") &&
 	  bItr->get_key("priority").as_value() >= 0 &&
 	  bItr->get_key("priority").as_value() < 3)
-	sItr->set_priority((*bItr).get_key("priority").as_value());
+	(*sItr)->set_priority((*bItr).get_key("priority").as_value());
 
       ++sItr;
       ++bItr;
@@ -206,13 +206,13 @@ DownloadWrapper::hash_resume_save() {
 
     rak::file_stat fs;
 
-    if (!fs.update(sItr->file_meta()->get_path())) {
+    if (!fs.update((*sItr)->file_meta()->get_path())) {
       l.clear();
       break;
     }
 
     b.insert_key("mtime", fs.modified_time());
-    b.insert_key("priority", (int)sItr->priority());
+    b.insert_key("priority", (int)(*sItr)->priority());
 
     ++sItr;
   }
@@ -376,6 +376,8 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
       throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
     if (m_main.content()->receive_chunk_hash(handle->index(), h)) {
+
+      // Should this be done here, or after send_finished_chunk?
       signal_chunk_passed().emit(handle->index());
       m_main.update_endgame();
 
@@ -445,11 +447,11 @@ DownloadWrapper::receive_update_priorities() {
   m_main.chunk_selector()->normal_priority()->clear();
 
   for (EntryList::iterator itr = m_main.content()->entry_list()->begin(); itr != m_main.content()->entry_list()->end(); ++itr) {
-    if (itr->priority() == 1)
-      m_main.chunk_selector()->normal_priority()->insert(itr->range().first, itr->range().second);
+    if ((*itr)->priority() == 1)
+      m_main.chunk_selector()->normal_priority()->insert((*itr)->range().first, (*itr)->range().second);
 
-    else if (itr->priority() == 2)
-      m_main.chunk_selector()->high_priority()->insert(itr->range().first, itr->range().second);
+    else if ((*itr)->priority() == 2)
+      m_main.chunk_selector()->high_priority()->insert((*itr)->range().first, (*itr)->range().second);
   }
 
   m_main.chunk_selector()->update_priorities();

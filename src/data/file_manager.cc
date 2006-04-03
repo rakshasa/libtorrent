@@ -51,16 +51,10 @@ FileManager::~FileManager() {
     throw internal_error("FileManager::~FileManager() called but empty() != true.");
 }
 
-FileMeta*
-FileManager::insert(const std::string& path) {
-  FileMeta* f = new FileMeta;
-
-  f->set_path(path);
+void
+FileManager::insert(FileMeta* f) {
   f->slot_prepare(rak::make_mem_fun(this, &FileManager::prepare_file));
-
   Base::push_back(f);
-
-  return f;
 }
 
 void
@@ -74,7 +68,7 @@ FileManager::erase(FileMeta* f) {
     close_file(f);
 
   Base::erase(itr);
-  delete f;
+  f->slot_prepare(FileMeta::slot_prepare_type());
 }
 
 void

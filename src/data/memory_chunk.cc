@@ -36,7 +36,6 @@
 
 #include "config.h"
 
-#include <errno.h>
 #include <unistd.h>
 #include <rak/error_number.h>
 
@@ -98,7 +97,7 @@ MemoryChunk::incore(char* buf, uint32_t offset, uint32_t length) {
 #else
   if (mincore(m_ptr + offset, length, (char*)buf))
 #endif
-    throw storage_error("System call mincore failed for MemoryChunk");
+    throw storage_error("System call mincore failed: " + std::string(rak::error_number::current().c_str()));
 
 #else // !USE_MINCORE
   // Pretend all pages are in memory.

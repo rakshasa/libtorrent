@@ -48,39 +48,46 @@ class FileManager;
 
 class FileMeta {
 public:
-  typedef rak::mem_fun3<FileManager, bool, FileMeta*, int, int> SlotPrepare;
+  typedef rak::mem_fun3<FileManager, bool, FileMeta*, int, int> slot_prepare_type;
 
   FileMeta() : m_lastTouched(cachedTime) {}
 
-  bool                is_open() const                            { return m_file.is_open(); }
-  bool                has_permissions(int prot) const            { return !(prot & ~get_prot()); }
+  bool                is_open() const                             { return m_file.is_open(); }
+
+  bool                has_permissions(int prot) const             { return !(prot & ~get_prot()); }
 
   // Consider prot == 0 to close?
   inline bool         prepare(int prot, int flags = 0);
 
-  SocketFile&         get_file()                                 { return m_file; }
-  const SocketFile&   get_file() const                           { return m_file; }
+  SocketFile&         get_file()                                  { return m_file; }
+  const SocketFile&   get_file() const                            { return m_file; }
 
-  const std::string&  get_path() const                           { return m_path; }
-  void                set_path(const std::string& path)          { m_path = path; }
+  const std::string&  get_path() const                            { return m_path; }
+  void                set_path(const std::string& path)           { m_path = path; }
 
-  int                 get_prot() const                           { return m_file.get_prot(); }
+  int                 get_prot() const                            { return m_file.get_prot(); }
 
-  rak::timer          get_last_touched() const                   { return m_lastTouched; }
+  rak::timer          get_last_touched() const                    { return m_lastTouched; }
   void                set_last_touched(rak::timer t = cachedTime) { m_lastTouched = t; }
 
-  void                slot_prepare(SlotPrepare s)                { m_slotPrepare = s; }
+  void                slot_prepare(slot_prepare_type s)           { m_slotPrepare = s; }
 
 private:
+  FileMeta(const FileMeta&);
+  void operator = (const FileMeta&);
+
   SocketFile          m_file;
   std::string         m_path;
 
   rak::timer          m_lastTouched;
-  SlotPrepare         m_slotPrepare;
+  slot_prepare_type   m_slotPrepare;
 };
 
 inline bool
 FileMeta::prepare(int prot, int flags) {
+  if (!m_slotPrepare.is_valid())
+    return false;
+
   m_lastTouched = cachedTime;
 
   return (is_open() && has_permissions(prot)) || m_slotPrepare(this, prot, flags);

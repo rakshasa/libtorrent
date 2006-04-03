@@ -64,7 +64,7 @@ public:
   FileManager() : m_openSize(0), m_maxSize(0) {}
   ~FileManager();
 
-  FileMeta*           insert(const std::string& path);
+  void                insert(FileMeta* f);
   void                erase(FileMeta* f);
 
   size_t              open_size() const               { return m_openSize; }

@@ -44,7 +44,6 @@
 namespace torrent {
 
 EntryListNode::EntryListNode() :
-  m_fileMeta(NULL),
   m_position(0),
   m_size(0),
   m_completed(0),
@@ -53,18 +52,28 @@ EntryListNode::EntryListNode() :
 }
 
 bool
-EntryListNode::resize_file() const {
-  if (m_fileMeta == NULL)
-    throw internal_error("EntryListNode::resize_file() called but m_fileMeta == NULL.");
+EntryListNode::is_created() const {
+//   SocketFile fd;
 
-  if (!m_fileMeta->prepare(MemoryChunk::prot_read))
+//   if (!fd.open(m_fileMeta->
+  return false;
+}
+
+bool
+EntryListNode::is_correct_size() const {
+  return false;
+}
+
+bool
+EntryListNode::resize_file() {
+  if (!m_fileMeta.prepare(MemoryChunk::prot_read))
     return false;
 
-  if (m_size == m_fileMeta->get_file().size())
+  if (m_size == m_fileMeta.get_file().size())
     return true;
 
-  if (!m_fileMeta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
-      !m_fileMeta->get_file().set_size(m_size))
+  if (!m_fileMeta.prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
+      !m_fileMeta.get_file().set_size(m_size))
     return false;
   
   // Not here... make it a setting of sorts?

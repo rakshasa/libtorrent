@@ -40,6 +40,7 @@
 #include <functional>
 #include <memory>
 #include <rak/error_number.h>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/path.h"
@@ -60,12 +61,15 @@ EntryList::push_back(const Path& path, const EntryListNode::Range& range, off_t 
   if (size + m_bytesSize < m_bytesSize)
     throw internal_error("Sum of files added to EntryList overflowed 64bit");
 
-  Base::push_back(EntryListNode());
-  back().set_position(m_bytesSize);
-  back().set_size(size);
-  back().set_range(range);
+  EntryListNode* e = new EntryListNode();
 
-  *back().path() = path;
+  e->set_position(m_bytesSize);
+  e->set_size(size);
+  e->set_range(range);
+
+  *e->path() = path;
+
+  base_type::push_back(e);
 
   m_bytesSize += size;
 }
@@ -74,12 +78,17 @@ void
 EntryList::clear() {
   close();
 
-  Base::clear();
+  std::for_each(begin(), end(), rak::call_delete<EntryListNode>());
+
+  base_type::clear();
   m_bytesSize = 0;
 }
 
 void
 EntryList::open() {
+  if (m_rootDir.empty())
+    throw internal_error("EntryList::open() m_rootDir.empty().");
+
   Path lastPath;
 
   m_isOpen = true;
@@ -88,18 +97,19 @@ EntryList::open() {
     make_directory(m_rootDir);
 
     for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-      if (itr->file_meta() != NULL)
+      if ((*itr)->file_meta()->is_open())
 	throw internal_error("EntryList::open(...) found an already opened file.");
       
-      itr->set_file_meta(m_slotInsertFileMeta(m_rootDir + itr->path()->as_string()));
+      // Do this somewhere else.
+      m_slotInsertFileMeta((*itr)->file_meta());
       
-      if (itr->path()->empty())
+      if ((*itr)->path()->empty())
 	throw storage_error("Found an empty filename.");
 
-      if (!open_file(&*itr, lastPath))
-	throw storage_error("Could not open file \"" + m_rootDir + itr->path()->as_string() + "\": " + rak::error_number::current().c_str());
+      if (!open_file(&*(*itr), lastPath))
+	throw storage_error("Could not open file \"" + m_rootDir + (*itr)->path()->as_string() + "\": " + rak::error_number::current().c_str());
       
-      lastPath = *itr->path();
+      lastPath = *(*itr)->path();
     }
 
   } catch (storage_error& e) {
@@ -110,25 +120,36 @@ EntryList::open() {
 
 void
 EntryList::close() {
-  // Check m_isOpen?
+  if (!m_isOpen)
+    return;
 
-  for (iterator itr = begin(), last = end(); itr != last; ++itr)
-    if (itr->is_valid()) {
-      m_slotEraseFileMeta(itr->file_meta());
-
-      itr->set_file_meta(NULL);
-      itr->set_completed(0);
-    }
+  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    m_slotEraseFileMeta((*itr)->file_meta());
+    
+    (*itr)->set_completed(0);
+  }
 
   m_isOpen = false;
 }
 
+void
+EntryList::set_root_dir(const std::string& path) {
+  m_rootDir = path;
+
+  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    if ((*itr)->file_meta()->is_open())
+      throw internal_error("EntryList::set_root_dir(...) found an already opened file.");
+    
+    (*itr)->file_meta()->set_path(m_rootDir + (*itr)->path()->as_string());
+  }
+}
+
 bool
 EntryList::resize_all() {
-  iterator itr = std::find_if(begin(), end(), std::not1(std::mem_fun_ref(&EntryListNode::resize_file)));
+  iterator itr = std::find_if(begin(), end(), std::not1(std::mem_fun(&EntryListNode::resize_file)));
 
   if (itr != end()) {
-    std::for_each(++itr, end(), std::mem_fun_ref(&EntryListNode::resize_file));
+    std::for_each(++itr, end(), std::mem_fun(&EntryListNode::resize_file));
     return false;
   }
 
@@ -138,7 +159,7 @@ EntryList::resize_all() {
 EntryList::iterator
 EntryList::at_position(iterator itr, off_t offset) {
   while (itr != end())
-    if (offset >= itr->position() + itr->size())
+    if (offset >= (*itr)->position() + (*itr)->size())
       ++itr;
     else
       return itr;
@@ -164,14 +185,14 @@ inline MemoryChunk
 EntryList::create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot) {
   MemoryChunk chunk;
 
-  offset -= itr->position();
-  length = std::min<off_t>(length, itr->size() - offset);
+  offset -= (*itr)->position();
+  length = std::min<off_t>(length, (*itr)->size() - offset);
 
   if (offset < 0)
     throw internal_error("EntryList::chunk_part(...) caught a negative offset");
 
-  if (itr->file_meta()->prepare(prot))
-    chunk = itr->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
+  if ((*itr)->file_meta()->prepare(prot))
+    chunk = (*itr)->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
   else
     chunk.clear();
 
@@ -185,12 +206,12 @@ EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
 
   std::auto_ptr<Chunk> chunk(new Chunk);
 
-  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&EntryListNode::is_valid_position), offset)); length != 0; ++itr) {
+  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun(&EntryListNode::is_valid_position), offset)); length != 0; ++itr) {
 
     if (itr == end())
       throw internal_error("EntryList could not find a valid file for chunk");
 
-    if (itr->size() == 0)
+    if ((*itr)->size() == 0)
       continue;
 
     MemoryChunk mc = create_chunk_part(itr, offset, length, prot);

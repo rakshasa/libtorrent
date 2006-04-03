@@ -45,9 +45,9 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
+#include <rak/socket_address.h>
 
 #include "torrent/exceptions.h"
-#include <rak/socket_address.h>
 #include "socket_fd.h"
 
 namespace torrent {
@@ -61,13 +61,13 @@ SocketFd::set_nonblock() {
 }
 
 bool
-SocketFd::set_throughput() {
+SocketFd::set_priority(priority_type p) {
   if (!is_valid())
     throw internal_error("SocketFd::set_throughput() called on a closed fd.");
 
-  int opt = IPTOS_THROUGHPUT;
+  //  p = IPTOS(p);
 
-  return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
+  return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &p, sizeof(p)) == 0;
 }
 
 bool
@@ -135,7 +135,7 @@ SocketFd::bind(const rak::socket_address& sa) {
   if (!is_valid())
     throw internal_error("SocketFd::bind(...) called on a closed fd");
 
-  return !::bind(m_fd, sa.c_sockaddr(), sizeof(rak::socket_address));
+  return !::bind(m_fd, sa.c_sockaddr(), sa.length());
 }
 
 bool
@@ -143,7 +143,7 @@ SocketFd::connect(const rak::socket_address& sa) {
   if (!is_valid())
     throw internal_error("SocketFd::connect(...) called on a closed fd");
 
-  return !::connect(m_fd, sa.c_sockaddr(), sizeof(rak::socket_address)) || errno == EINPROGRESS;
+  return !::connect(m_fd, sa.c_sockaddr(), sa.length()) || errno == EINPROGRESS;
 }
 
 bool

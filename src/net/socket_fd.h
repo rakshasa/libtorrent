@@ -47,6 +47,8 @@ namespace torrent {
 
 class SocketFd {
 public:
+  typedef uint8_t priority_type;
+
   SocketFd() : m_fd(-1) {}
   explicit SocketFd(int fd) : m_fd(fd) {}
 
@@ -56,8 +58,9 @@ public:
   void                set_fd(int fd)                          { m_fd = fd; }
 
   bool                set_nonblock();
-  bool                set_throughput();
   bool                set_reuse_address(bool state);
+
+  bool                set_priority(priority_type p);
 
   bool                set_send_buffer_size(uint32_t s);
   bool                set_receive_buffer_size(uint32_t s);

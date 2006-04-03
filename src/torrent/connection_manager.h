@@ -40,6 +40,7 @@
 #define LIBTORRENT_CONNECTION_MANAGER_H
 
 #include <inttypes.h>
+#include <netinet/ip.h>
 #include <sigc++/slot.h>
 
 class sockaddr;
@@ -53,7 +54,14 @@ class ConnectionManager {
 public:
   typedef uint32_t                              size_type;
   typedef uint16_t                              port_type;
+  typedef uint8_t                               priority_type;
   typedef sigc::slot<uint32_t, const sockaddr*> slot_filter_type;
+
+  static const priority_type iptos_default     = 0;
+  static const priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
+  static const priority_type iptos_throughput  = IPTOS_THROUGHPUT;
+  static const priority_type iptos_reliability = IPTOS_RELIABILITY;
+  static const priority_type iptos_mincost     = IPTOS_MINCOST;
 
   ConnectionManager();
   ~ConnectionManager();
@@ -72,6 +80,9 @@ public:
 
   size_type           max_size() const                        { return m_maxSize; }
   void                set_max_size(size_type s)               { m_maxSize = s; }
+
+  priority_type       priority() const                        { return m_priority; }
+  void                set_priority(priority_type p)           { m_priority = p; }
 
   uint32_t            send_buffer_size() const                { return m_sendBufferSize; }
   void                set_send_buffer_size(uint32_t s);
@@ -113,6 +124,7 @@ private:
   size_type           m_size;
   size_type           m_maxSize;
 
+  priority_type       m_priority;
   uint32_t            m_sendBufferSize;
   uint32_t            m_receiveBufferSize;
 
