@@ -36,111 +36,11 @@
 
 #include "config.h"
 
-#include <inttypes.h>
-
 #include "bitfield.h"
-#include "torrent/exceptions.h"
 
 namespace torrent {
-  
-BitField::BitField(uint32_t s) :
-  m_size(s) {
 
-  if (s) {
-    int a = (m_size + 7) / 8;
-
-    m_start = new data_t[a];
-    m_end = m_start + a;
-
-  } else {
-    m_start = m_end = NULL;
-  }
-
-  clear();
-}
-
-BitField::BitField(const BitField& bf) :
-  m_size(bf.m_size) {
-
-  if (m_size) {
-    m_start = new data_t[bf.size_bytes()];
-    m_end = m_start + bf.size_bytes();
-
-    std::memcpy(m_start, bf.m_start, bf.size_bytes());
-
-  } else {
-    m_start = m_end = NULL;
-  }
-}
-
-BitField&
-BitField::operator = (const BitField& bf) {
-  if (this == &bf)
-    return *this;
-
-  delete [] m_start;
-  
-  if (bf.m_size) {
-    m_size = bf.m_size;
-
-    m_start = new data_t[bf.size_bytes()];
-    m_end = m_start + bf.size_bytes();
-    
-    std::memcpy(m_start, bf.m_start, bf.size_bytes());
-    
-  } else {
-    m_size = 0;
-    m_start = NULL;
-    m_end = NULL;
-  }
-  
-  return *this;
-}
-
-BitField&
-BitField::not_in(const BitField& bf) {
-  if (m_size != bf.m_size)
-    throw internal_error("Tried to do operations between different sized bitfields");
-
-  for (data_t* i = m_start, *i2 = bf.m_start; i < m_end; i++, i2++)
-    *i &= ~*i2;
-
-  return *this;
-}
-
-bool
-BitField::all_zero() const {
-  if (m_size == 0)
-    return true;
-
-  for (data_t* i = m_start; i < m_end; i++)
-    if (*i)
-      return false;
-
-  return true;
-}
-
-bool
-BitField::all_set() const {
-  if (m_size == 0)
-    return false;
-
-  data_t* i = m_start;
-  data_t* end = m_end;
-
-  if (m_size % 8)
-    --end;
-
-  while (i != end) {
-    if (*i != (data_t)~0)
-      return false;
-
-    ++i;
-  }
-
-  return m_size % 8 == 0 || *i == ~data_t() << (8 - m_size % 8);
-}
-
+// *sigh*
 static const unsigned char bit_count_256[] = 
 {
   0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 
@@ -161,25 +61,56 @@ static const unsigned char bit_count_256[] =
   4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-uint32_t
-BitField::count() const {
-  // Might be faster since it doesn't touch the memory.
-  // for (n = 0; x; n++)
-  //   x &= x-1;
+void
+Bitfield::update() {
+  if (m_size % 8)
+    *(end() - 1) &= ~value_type() << (8 - m_size % 8);
 
-  size_t c = 0;
+  m_set = 0;
 
-  for (data_t* i = m_start; i != m_end; ++i)
-    c += bit_count_256[*i];
+  for (iterator itr = m_data, last = end(); itr != last; ++itr)
+    m_set += bit_count_256[*itr];
 
-  return c;
 }
 
 void
-BitField::set(size_t begin, size_t end, bool s) {
-  // Quick, dirty and slow.
-  while (begin != end)
-    set(begin++, s);
+Bitfield::resize(size_type s) {
+  m_size = s;
+  m_set = 0;
+
+  delete m_data;
+
+  if (m_size == 0) {
+    m_data = NULL;
+
+  } else {
+    m_data = new value_type[size_bytes()];
+
+    std::memset(m_data, 0, size_bytes());
+  }
+}
+
+// bool
+// Bitfield::is_set(size_type first, size_type last) const {
+//   return false;
+// }
+
+// bool
+// Bitfield::is_unset(size_type first, size_type last) const {
+//   return false;
+// }
+
+// (Not) Quick hack.
+void
+Bitfield::set_range(size_type first, size_type last) {
+  while (first != last)
+    set(first++);
+}
+
+void
+Bitfield::unset_range(size_type first, size_type last) {
+  while (first != last)
+    unset(first++);
 }
 
 }

@@ -41,7 +41,7 @@
 #include <string>
 #include <rak/error_number.h>
 
-#include "utils/bitfield.h"
+#include "torrent/bitfield.h"
 #include "globals.h"
 
 #include "data/entry_list.h"
@@ -70,37 +70,37 @@ public:
   ~Content();
 
   void                   initialize(uint32_t chunkSize);
+  void                   clear()                                        { m_bitfield.resize(m_bitfield.size_bits()); }
+
+  void                   open();
+  void                   close();
 
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
 
-  const std::string&     complete_hash()                            { return m_hash; }
+  const std::string&     complete_hash()                                { return m_hash; }
   void                   set_complete_hash(const std::string& hash);
 
-  uint32_t               chunks_completed() const             { return m_completed; }
+  uint32_t               chunks_completed() const                       { return m_bitfield.size_set(); }
   uint64_t               bytes_completed() const;
   
-  uint32_t               chunk_total() const                  { return m_chunkTotal; }
-  uint32_t               chunk_size() const                   { return m_chunkSize; }
-  const char*            chunk_hash(unsigned int index)       { return m_hash.c_str() + 20 * index; }
+  uint32_t               chunk_total() const                            { return m_chunkTotal; }
+  uint32_t               chunk_size() const                             { return m_chunkSize; }
+  const char*            chunk_hash(unsigned int index)                 { return m_hash.c_str() + 20 * index; }
 
   uint32_t               chunk_index_size(uint32_t index) const;
-  off_t                  chunk_position(uint32_t c) const     { return c * (off_t)m_chunkSize; }
+  off_t                  chunk_position(uint32_t c) const               { return c * (off_t)m_chunkSize; }
 
-  BitField&              bitfield()                       { return m_bitfield; }
+  Bitfield*              bitfield()                                     { return &m_bitfield; }
 
-  EntryList*             entry_list()                         { return m_entryList; }
-  const EntryList*       entry_list() const                   { return m_entryList; }
+  EntryList*             entry_list()                                   { return m_entryList; }
+  const EntryList*       entry_list() const                             { return m_entryList; }
 
-  bool                   is_done() const                      { return m_completed == chunk_total(); }
+  bool                   is_done() const                                { return chunks_completed() == chunk_total(); }
   bool                   is_valid_piece(const Piece& p) const;
 
-  bool                   has_chunk(uint32_t index) const      { return m_bitfield[index]; }
+  bool                   has_chunk(uint32_t index) const                { return m_bitfield.get(index); }
   CreateChunk            create_chunk(uint32_t index, bool writable);
-
-  void                   open();
-  void                   close();
-  void                   clear();
 
   bool                   receive_chunk_hash(uint32_t index, const std::string& hash);
 
@@ -109,12 +109,11 @@ public:
 private:
   Range                  make_index_range(uint64_t pos, uint64_t size) const;
 
-  uint32_t               m_completed;
   uint32_t               m_chunkSize;
   uint32_t               m_chunkTotal;
 
   EntryList*             m_entryList;
-  BitField               m_bitfield;
+  Bitfield               m_bitfield;
 
   std::string            m_hash;
 };

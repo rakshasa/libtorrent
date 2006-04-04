@@ -50,6 +50,7 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
+class Bitfield;
 class DownloadWrapper;
 class FileList;
 class Rate;
@@ -122,8 +123,7 @@ public:
 
   const uint8_t*       chunks_seen() const;
 
-  const unsigned char* bitfield_data() const;
-  uint32_t             bitfield_size() const;
+  const Bitfield*      bitfield() const;
 
   uint32_t             peers_min() const;
   uint32_t             peers_max() const;

@@ -98,7 +98,7 @@ DownloadMain::open() {
   if (is_open())
     throw internal_error("Tried to open a download that is already open");
 
-  m_content.open();
+  m_content.entry_list()->open();
 
   m_chunkList->resize(m_content.chunk_total());
   m_chunkStatistics->initialize(m_content.chunk_total());
@@ -118,7 +118,9 @@ DownloadMain::close() {
 
   m_trackerManager->close();
   m_delegator.clear();
-  m_content.close();
+
+  m_content.clear();
+  m_content.entry_list()->close();
 
   // Clear the chunklist last as it requires all referenced chunks to
   // be released.

@@ -82,7 +82,7 @@ public:
 
   bool                is_upload_wanted() const      { return m_down->interested() && !m_peerChunks.is_snubbed(); }
 
-  bool                is_seeder() const             { return m_peerChunks.bitfield()->all_set(); }
+  bool                is_seeder() const             { return m_peerChunks.is_seeder(); }
 
   const PeerInfo*     peer_info() const             { return &m_peer; }
   PeerChunks*         peer_chunks()                 { return &m_peerChunks; }

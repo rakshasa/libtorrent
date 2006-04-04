@@ -42,8 +42,8 @@
 
 #include "data/piece.h"
 #include "net/throttle_node.h"
+#include "torrent/bitfield.h"
 #include "torrent/rate.h"
-#include "utils/bitfield_ext.h"
 
 namespace torrent {
 
@@ -54,7 +54,7 @@ public:
 
   PeerChunks();
 
-  bool                is_seeder() const             { return m_bitfield.all_set(); }
+  bool                is_seeder() const             { return m_bitfield.is_all_set(); }
 
   bool                is_snubbed() const            { return m_snubbed; }
   void                set_snubbed(bool v)           { m_snubbed = v; }
@@ -62,8 +62,8 @@ public:
   bool                using_counter() const         { return m_usingCounter; }
   void                set_using_counter(bool state) { m_usingCounter = state; }
 
-  BitFieldExt*        bitfield()                    { return &m_bitfield; }
-  const BitFieldExt*  bitfield() const              { return &m_bitfield; }
+  Bitfield*           bitfield()                    { return &m_bitfield; }
+  const Bitfield*     bitfield() const              { return &m_bitfield; }
 
   rak::partial_queue* download_cache()              { return &m_downloadCache; }
   //RequestList*        download_queue()              { return &m_downloadQueue; }
@@ -80,7 +80,7 @@ private:
   bool                m_snubbed;
   bool                m_usingCounter;
 
-  BitFieldExt         m_bitfield;
+  Bitfield            m_bitfield;
 
   rak::partial_queue  m_downloadCache;
 
@@ -103,8 +103,6 @@ PeerChunks::PeerChunks() :
   m_downloadThrottle(30),
   m_uploadThrottle(30)
 {
-//   m_downloadCache.resize(8);
-//   m_downloadCache.clear();
 }
 
 }

@@ -41,7 +41,7 @@
 #include <rak/ranges.h>
 #include <rak/partial_queue.h>
 
-#include "utils/bitfield.h"
+#include "torrent/bitfield.h"
 
 namespace torrent {
 
@@ -65,14 +65,14 @@ public:
   bool                empty() const                 { return size() == 0; }
   uint32_t            size() const                  { return m_bitfield.size_bits(); }
 
-  const BitField*     bitfield()                    { return &m_bitfield; }
+  const Bitfield*     bitfield()                    { return &m_bitfield; }
 
   PriorityRanges*     high_priority()               { return &m_highPriority; }
   PriorityRanges*     normal_priority()             { return &m_normalPriority; }
 
   // Initialize doesn't update the priority cache, so it is as if it
   // has empty priority ranges.
-  void                initialize(BitField* bf, ChunkStatistics* cs);
+  void                initialize(Bitfield* bf, ChunkStatistics* cs);
   void                cleanup();
 
   // Call this once you've modified the bitfield or priorities to
@@ -100,17 +100,17 @@ public:
   bool                received_have_chunk(PeerChunks* pc, uint32_t index);
 
 private:
-  bool                search_linear(const BitField* bf, rak::partial_queue* pq, PriorityRanges* ranges, uint32_t first, uint32_t last);
-  inline bool         search_linear_range(const BitField* bf, rak::partial_queue* pq, uint32_t first, uint32_t last);
-  inline bool         search_linear_byte(rak::partial_queue* pq, uint32_t index, BitField::data_t wanted);
+  bool                search_linear(const Bitfield* bf, rak::partial_queue* pq, PriorityRanges* ranges, uint32_t first, uint32_t last);
+  inline bool         search_linear_range(const Bitfield* bf, rak::partial_queue* pq, uint32_t first, uint32_t last);
+  inline bool         search_linear_byte(rak::partial_queue* pq, uint32_t index, Bitfield::value_type wanted);
 
-//   inline uint32_t     search_rarest(const BitField* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
-//   inline uint32_t     search_rarest_range(const BitField* bf, uint32_t first, uint32_t last);
+//   inline uint32_t     search_rarest(const Bitfield* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
+//   inline uint32_t     search_rarest_range(const Bitfield* bf, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_byte(uint8_t wanted);
 
   void                advance_position();
 
-  BitField            m_bitfield;
+  Bitfield            m_bitfield;
   ChunkStatistics*    m_statistics;
   
   PriorityRanges      m_highPriority;

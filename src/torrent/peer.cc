@@ -147,7 +147,7 @@ Peer::bitfield_size() const {
 
 uint32_t
 Peer::chunks_done() const {
-  return m_ptr->peer_chunks()->bitfield()->count();
+  return m_ptr->peer_chunks()->bitfield()->size_set();
 }  
 
 }

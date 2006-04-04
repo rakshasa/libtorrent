@@ -241,14 +241,9 @@ Download::chunks_seen() const {
   return !m_ptr->main()->chunk_statistics()->empty() ? &*m_ptr->main()->chunk_statistics()->begin() : NULL;
 }
 
-const unsigned char*
-Download::bitfield_data() const {
-  return (unsigned char*)m_ptr->main()->content()->bitfield().begin();
-}
-
-uint32_t
-Download::bitfield_size() const {
-  return m_ptr->main()->content()->bitfield().size_bits();
+const Bitfield*
+Download::bitfield() const {
+  return m_ptr->main()->content()->bitfield();
 }
 
 uint32_t

@@ -4,13 +4,14 @@ A disk setting manager, allow change of read-ahead etc.
 
 The seed count and scrape leech/seed.
 
-Check if an entry is present and correctly sized.
-
 Disk cache.
 
 Make libtorrent locale agnostic.
 
 Resume needs to be split.
+
+Add interface for getting currently downloading chunks. Remove the one
+in Peer?
 
 
 === torrent::Object ==

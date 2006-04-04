@@ -59,7 +59,7 @@ PeerConnectionLeech::~PeerConnectionLeech() {
 void
 PeerConnectionLeech::initialize_custom() {
   if (m_download->content()->chunks_completed() != 0) {
-    m_up->write_bitfield(m_download->content()->bitfield().size_bytes());
+    m_up->write_bitfield(m_download->content()->bitfield()->size_bytes());
 
     m_up->buffer()->prepare_end();
     m_up->set_position(0);
@@ -559,7 +559,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
   m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->content()->chunk_size());
 
-  if (m_peerChunks.bitfield()->all_set())
+  if (m_peerChunks.bitfield()->is_all_set())
     if (m_download->content()->is_done())
       throw close_connection();
     else
@@ -592,9 +592,9 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
 void
 PeerConnectionLeech::finish_bitfield() {
-  m_peerChunks.bitfield()->update_count();
+  m_peerChunks.bitfield()->update();
 
-  if (m_download->content()->is_done() && m_peerChunks.bitfield()->all_set())
+  if (m_download->content()->is_done() && m_peerChunks.bitfield()->is_all_set())
     throw close_connection();
 
   m_download->chunk_statistics()->received_connect(&m_peerChunks);

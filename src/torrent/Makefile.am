@@ -1,6 +1,8 @@
 noinst_LTLIBRARIES = libsub_torrent.la
 
 libsub_torrent_la_SOURCES = \
+	bitfield.cc \
+	bitfield.h \
 	download.cc \
 	download.h \
 	connection_manager.cc \
@@ -42,6 +44,7 @@ INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
+	bitfield.h \
 	connection_manager.h \
 	download.h \
 	exceptions.h \

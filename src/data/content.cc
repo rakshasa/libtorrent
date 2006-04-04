@@ -49,7 +49,6 @@
 namespace torrent {
 
 Content::Content() :
-  m_completed(0),
   m_chunkSize(1 << 16),
   m_chunkTotal(0),
 
@@ -68,7 +67,7 @@ Content::initialize(uint32_t chunkSize) {
   if (m_hash.size() / 20 < m_chunkTotal)
     throw bencode_error("Torrent size and 'info:pieces' length does not match.");
 
-  m_bitfield = BitField(m_chunkTotal);
+  m_bitfield.resize(m_chunkTotal);
 
   for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
     (*itr)->set_range(make_index_range((*itr)->position(), (*itr)->size()));
@@ -104,12 +103,12 @@ uint64_t
 Content::bytes_completed() const {
   uint64_t cs = m_chunkSize;
 
-  if (!m_bitfield[m_chunkTotal - 1] || m_entryList->bytes_size() % cs == 0)
+  if (!m_bitfield.get(m_chunkTotal - 1) || m_entryList->bytes_size() % cs == 0)
     // The last chunk is not done, or the last chunk is the same size as the others.
-    return m_completed * cs;
+    return chunks_completed() * cs;
 
   else
-    return (m_completed - 1) * cs + m_entryList->bytes_size() % cs;
+    return (chunks_completed() - 1) * cs + m_entryList->bytes_size() % cs;
 }
 
 bool
@@ -124,37 +123,18 @@ Content::is_valid_piece(const Piece& p) const {
     p.get_offset() + p.get_length() <= chunk_index_size(p.get_index());
 }
 
-void
-Content::open() {
-  m_entryList->open();
-}
-
-void
-Content::close() {
-  clear();
-
-  m_entryList->close();
-}
-
-void
-Content::clear() {
-  m_completed = 0;
-  m_bitfield = BitField(m_chunkTotal);
-}
-
 bool
 Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
-  if (index >= m_chunkTotal || m_completed >= m_chunkTotal)
+  if (index >= m_chunkTotal || chunks_completed() >= m_chunkTotal)
     throw internal_error("Content::receive_chunk_hash(...) received an invalid index.");
 
-  if (m_bitfield[index])
+  if (m_bitfield.get(index))
     throw internal_error("Content::receive_chunk_hash(...) received a chunk that has already been finished.");
 
   if (hash.empty() || std::memcmp(hash.c_str(), chunk_hash(index), 20) != 0)
     return false;
 
-  m_bitfield.set(index, true);
-  m_completed++;
+  m_bitfield.set(index);
 
   EntryList::iterator first = m_entryList->at_position(m_entryList->begin(), index * (off_t)m_chunkSize);
   EntryList::iterator last  = m_entryList->at_position(first, (index + 1) * (off_t)m_chunkSize - 1);
@@ -174,14 +154,13 @@ Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
 // bitfield.
 void
 Content::update_done() {
-  m_bitfield.cleanup();
-  m_completed = m_bitfield.count();
+  m_bitfield.update();
 
   EntryList::iterator first = m_entryList->begin();
   EntryList::iterator last;
 
-  for (BitField::size_t i = 0; i < m_bitfield.size_bits(); ++i)
-    if (m_bitfield[i]) {
+  for (Bitfield::size_type i = 0; i < m_bitfield.size_bits(); ++i)
+    if (m_bitfield.get(i)) {
       first = m_entryList->at_position(first, i * (off_t)m_chunkSize);
       last = m_entryList->at_position(first, (i + 1) * (off_t)m_chunkSize - 1);
 

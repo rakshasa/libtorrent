@@ -36,6 +36,9 @@
 
 #include "config.h"
 
+#include <rak/error_number.h>
+#include <rak/file_stat.h>
+
 #include "torrent/exceptions.h"
 
 #include "file_meta.h"
@@ -53,15 +56,28 @@ EntryListNode::EntryListNode() :
 
 bool
 EntryListNode::is_created() const {
-//   SocketFile fd;
+  rak::file_stat fs;
 
-//   if (!fd.open(m_fileMeta->
-  return false;
+  // If we can't even get permission to do fstat, we might as well
+  // consider the file as not created. This function is to be used by
+  // the client to check that the torrent files are present and ok,
+  // rather than as a way to find out if it is starting on a blank
+  // slate.
+  if (!fs.update(m_fileMeta.get_path()))
+//     return rak::error_number::current() == rak::error_number::e_access;
+    return false;
+
+  return fs.is_regular();
 }
 
 bool
 EntryListNode::is_correct_size() const {
-  return false;
+  rak::file_stat fs;
+
+  if (!fs.update(m_fileMeta.get_path()))
+    return false;
+
+  return fs.is_regular() && fs.size() == m_size;
 }
 
 bool

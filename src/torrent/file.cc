@@ -42,6 +42,16 @@
 
 namespace torrent {
 
+bool
+File::is_created() const {
+  return m_entry->is_created();
+}
+
+bool
+File::is_correct_size() const {
+  return m_entry->is_correct_size();
+}
+
 uint64_t
 File::size_bytes() const {
   return m_entry->size();

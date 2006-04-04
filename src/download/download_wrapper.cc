@@ -123,7 +123,7 @@ DownloadWrapper::hash_resume_load() {
 
     Object& files = resume.get_key("files");
 
-    if (resume.get_key("bitfield").as_string().size() != m_main.content()->bitfield().size_bytes() ||
+    if (resume.get_key("bitfield").as_string().size() != m_main.content()->bitfield()->size_bytes() ||
 	files.as_list().size() != m_main.content()->entry_list()->files_size())
       // FIXME: Better control logic.
       throw bencode_error("");
@@ -131,7 +131,7 @@ DownloadWrapper::hash_resume_load() {
     // Clear the hash checking ranges, and add the files ranges we must check.
     m_hash->ranges().clear();
 
-    std::memcpy(m_main.content()->bitfield().begin(), resume.get_key("bitfield").as_string().c_str(), m_main.content()->bitfield().size_bytes());
+    std::memcpy(m_main.content()->bitfield()->begin(), resume.get_key("bitfield").as_string().c_str(), m_main.content()->bitfield()->size_bytes());
 
     Object::list_type::iterator bItr = files.as_list().begin();
     EntryList::iterator sItr = m_main.content()->entry_list()->begin();
@@ -165,7 +165,7 @@ DownloadWrapper::hash_resume_load() {
 
   // Clear bits in invalid regions which will be checked by m_hash.
   for (HashTorrent::Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
-    m_main.content()->bitfield().set(itr->first, itr->second, false);
+    m_main.content()->bitfield()->unset_range(itr->first, itr->second);
 
   m_main.content()->update_done();
 }
@@ -194,7 +194,7 @@ DownloadWrapper::hash_resume_save() {
   // We sync all chunks in DownloadMain::stop(), so we are guaranteed
   // that it has been called when we arrive here.
 
-  resume.insert_key("bitfield", std::string((char*)m_main.content()->bitfield().begin(), m_main.content()->bitfield().size_bytes()));
+  resume.insert_key("bitfield", std::string((char*)m_main.content()->bitfield()->begin(), m_main.content()->bitfield()->size_bytes()));
 
   Object::list_type& l = resume.insert_key("files", Object(Object::TYPE_LIST)).as_list();
 
@@ -346,7 +346,7 @@ DownloadWrapper::receive_initial_hash() {
 
   // Initialize the ChunkSelector here so that no chunks will be
   // marked by HashTorrent that are not accounted for.
-  m_main.chunk_selector()->initialize(&m_main.content()->bitfield(), m_main.chunk_statistics());
+  m_main.chunk_selector()->initialize(m_main.content()->bitfield(), m_main.chunk_statistics());
   receive_update_priorities();
 
   m_signalInitialHash.emit();

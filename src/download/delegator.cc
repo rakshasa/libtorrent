@@ -42,7 +42,7 @@
 
 #include "torrent/exceptions.h"
 #include "protocol/peer_chunks.h"
-#include "utils/bitfield.h"
+#include "torrent/bitfield.h"
 
 #include "delegator_chunk.h"
 #include "delegator_reservee.h"
@@ -78,7 +78,7 @@ struct DelegatorCheckSeeder {
 };
 
 struct DelegatorCheckPriority {
-  DelegatorCheckPriority(Delegator* delegator, DelegatorPiece** target, Priority::Type p, const BitField* bf) :
+  DelegatorCheckPriority(Delegator* delegator, DelegatorPiece** target, Priority::Type p, const Bitfield* bf) :
     m_delegator(delegator), m_target(target), m_priority(p), m_bitfield(bf) {}
 
   bool operator () (DelegatorChunk* d) {
@@ -91,12 +91,12 @@ struct DelegatorCheckPriority {
   Delegator*          m_delegator;
   DelegatorPiece**    m_target;
   Priority::Type      m_priority;
-  const BitField*     m_bitfield;
+  const Bitfield*     m_bitfield;
 };
 
 // TODO: Should this ensure we don't download pieces that are priority off?
 struct DelegatorCheckAggressive {
-  DelegatorCheckAggressive(Delegator* delegator, DelegatorPiece** target, uint16_t* o, const BitField* bf) :
+  DelegatorCheckAggressive(Delegator* delegator, DelegatorPiece** target, uint16_t* o, const Bitfield* bf) :
     m_delegator(delegator), m_target(target), m_overlapp(o), m_bitfield(bf) {}
 
   bool operator () (DelegatorChunk* d) {
@@ -114,7 +114,7 @@ struct DelegatorCheckAggressive {
   Delegator*          m_delegator;
   DelegatorPiece**    m_target;
   uint16_t*           m_overlapp;
-  const BitField*     m_bitfield;
+  const Bitfield*     m_bitfield;
 };
 
 void Delegator::clear() {
@@ -154,7 +154,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
 
   // High priority pieces.
   if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   DelegatorCheckPriority(this, &target, Priority::HIGH, peerChunks->bitfield()->base()))
+		   DelegatorCheckPriority(this, &target, Priority::HIGH, peerChunks->bitfield()))
       != m_chunks.end())
     return target->create();
 
@@ -164,7 +164,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
 
   // Normal priority pieces.
   if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   DelegatorCheckPriority(this, &target, Priority::NORMAL, peerChunks->bitfield()->base()))
+		   DelegatorCheckPriority(this, &target, Priority::NORMAL, peerChunks->bitfield()))
       != m_chunks.end())
     return target->create();
 
@@ -181,7 +181,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
   uint16_t overlapped = 5;
 
   std::find_if(m_chunks.begin(), m_chunks.end(),
-	       DelegatorCheckAggressive(this, &target, &overlapped, peerChunks->bitfield()->base()));
+	       DelegatorCheckAggressive(this, &target, &overlapped, peerChunks->bitfield()));
 
   return target ? target->create() : NULL;
 }

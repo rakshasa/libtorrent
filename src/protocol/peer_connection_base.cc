@@ -128,8 +128,7 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
     throw internal_error("PeerConnectionBase::set(...) recived bad input.");
 
-  // Set the bitfield size and zero it
-  *m_peerChunks.bitfield() = BitFieldExt(m_download->content()->chunk_total());
+  m_peerChunks.bitfield()->resize(m_download->content()->chunk_total());
 
   manager->poll()->open(this);
   manager->poll()->insert_read(this);
@@ -420,8 +419,8 @@ PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
 
 bool
 PeerConnectionBase::write_bitfield_body() {
-  m_up->adjust_position(write_stream_throws(m_download->content()->bitfield().begin() + m_up->position(),
-					    m_download->content()->bitfield().size_bytes() - m_up->position()));
+  m_up->adjust_position(write_stream_throws(m_download->content()->bitfield()->begin() + m_up->position(),
+					    m_download->content()->bitfield()->size_bytes() - m_up->position()));
 
   return m_up->position() == m_peerChunks.bitfield()->size_bytes();
 }
@@ -472,7 +471,7 @@ PeerConnectionBase::try_request_pieces() {
 
 void
 PeerConnectionBase::set_remote_interested() {
-  if (m_down->interested() || m_peerChunks.bitfield()->all_set())
+  if (m_down->interested() || m_peerChunks.bitfield()->is_all_set())
     return;
 
   m_down->set_interested(true);
