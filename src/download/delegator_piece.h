@@ -40,7 +40,7 @@
 #include <vector>
 #include <inttypes.h>
 
-#include "data/piece.h"
+#include "torrent/piece.h"
 
 namespace torrent {
 

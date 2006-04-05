@@ -205,17 +205,17 @@ inline void
 ProtocolBase::write_request(const Piece& p, bool s) {
   m_buffer.write_32(13);
   write_command(s ? REQUEST : CANCEL);
-  m_buffer.write_32(p.get_index());
-  m_buffer.write_32(p.get_offset());
-  m_buffer.write_32(p.get_length());
+  m_buffer.write_32(p.index());
+  m_buffer.write_32(p.offset());
+  m_buffer.write_32(p.length());
 }
 
 inline void
 ProtocolBase::write_piece(const Piece& p) {
-  m_buffer.write_32(9 + p.get_length());
+  m_buffer.write_32(9 + p.length());
   write_command(PIECE);
-  m_buffer.write_32(p.get_index());
-  m_buffer.write_32(p.get_offset());
+  m_buffer.write_32(p.index());
+  m_buffer.write_32(p.offset());
 }
 
 }

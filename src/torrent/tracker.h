@@ -72,8 +72,6 @@ public:
   const std::string&  tracker_id() const;
   Type                tracker_type() const;
 
-  // The scrape timer is updated when both complete and incomplete is
-  // updated.
   uint64_t            scrape_time_last() const;
   uint32_t            scrape_complete() const;
   uint32_t            scrape_incomplete() const;

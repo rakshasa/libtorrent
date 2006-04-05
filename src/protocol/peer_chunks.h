@@ -40,9 +40,9 @@
 #include <list>
 #include <rak/partial_queue.h>
 
-#include "data/piece.h"
 #include "net/throttle_node.h"
 #include "torrent/bitfield.h"
+#include "torrent/piece.h"
 #include "torrent/rate.h"
 
 namespace torrent {

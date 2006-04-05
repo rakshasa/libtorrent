@@ -63,7 +63,7 @@ class TrackerList;
 
 class Download {
 public:
-  static const uint32_t numwanted_diabled = ~(uint32_t)0;
+  static const uint32_t numwanted_diabled = ~uint32_t();
 
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 

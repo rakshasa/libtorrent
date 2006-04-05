@@ -46,13 +46,10 @@ namespace torrent {
 
 class DelegatorChunk {
 public:
-  typedef DelegatorPiece* iterator;
+  typedef DelegatorPiece*       iterator;
   typedef const DelegatorPiece* const_iterator;
 
-  DelegatorChunk(unsigned int index,
-		 uint32_t size,
-		 uint32_t piece_length,
-		 Priority::Type p);
+  DelegatorChunk(unsigned int index, uint32_t size, uint32_t piece_length, Priority::Type p);
   ~DelegatorChunk()                                   { delete [] m_pieces; }
 
   unsigned int        get_index() const               { return m_index; }
@@ -72,13 +69,13 @@ private:
   DelegatorChunk(const DelegatorChunk&);
   void operator= (const DelegatorChunk&);
 
-  unsigned int    m_index;
-  unsigned int    m_count;
+  unsigned int        m_index;
+  unsigned int        m_count;
 
-  Priority::Type  m_priority;
-  DelegatorPiece* m_pieces;
+  Priority::Type      m_priority;
+  DelegatorPiece*     m_pieces;
 
-  bool            m_bySeeder;
+  bool                m_bySeeder;
 };
 
 }

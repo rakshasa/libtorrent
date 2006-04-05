@@ -233,10 +233,10 @@ PeerConnectionLeech::read_message() {
     if (!receive_piece_header()) {
 
       // We're skipping this piece.
-      m_down->set_position(std::min<uint32_t>(buf->remaining(), m_downPiece.get_length()));
+      m_down->set_position(std::min<uint32_t>(buf->remaining(), m_downPiece.length()));
       buf->move_position(m_down->position());
 
-      if (m_down->position() != m_downPiece.get_length()) {
+      if (m_down->position() != m_downPiece.length()) {
 	m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
 	return false;
 
@@ -346,9 +346,9 @@ PeerConnectionLeech::event_read() {
 	break;
 
       case ProtocolRead::READ_SKIP_PIECE:
-	m_down->adjust_position(ignore_stream_throws(m_downPiece.get_length() - m_down->position()));
+	m_down->adjust_position(ignore_stream_throws(m_downPiece.length() - m_down->position()));
 
-	if (m_down->position() != m_downPiece.get_length())
+	if (m_down->position() != m_downPiece.length())
 	  return;
 
 	m_down->set_state(ProtocolRead::IDLE);
@@ -617,7 +617,7 @@ PeerConnectionLeech::receive_piece_header() {
     return true;
 
   } else {
-    if (m_downPiece.get_length() == 0)
+    if (m_downPiece.length() == 0)
       m_download->info()->signal_network_log().emit("Received piece with length zero");
 
     return false;

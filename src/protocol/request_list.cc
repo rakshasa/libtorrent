@@ -54,8 +54,8 @@ struct request_list_same_piece {
 
   bool operator () (const DelegatorReservee* d) {
     return
-      m_piece.get_index() == d->get_piece().get_index() &&
-      m_piece.get_offset() == d->get_piece().get_offset();
+      m_piece.index() == d->piece()->index() &&
+      m_piece.offset() == d->piece()->offset();
   }
 
   Piece m_piece;
@@ -66,10 +66,10 @@ RequestList::delegate() {
   DelegatorReservee* r = m_delegator->delegate(m_peerChunks, m_affinity);
 
   if (r) {
-    m_affinity = r->get_piece().get_index();
+    m_affinity = r->piece()->index();
     m_reservees.push_back(r);
 
-    return &r->get_piece();
+    return r->piece();
 
   } else {
     return NULL;
@@ -121,14 +121,14 @@ RequestList::downloading(const Piece& p) {
   
   // Make sure pieces are removed from the reservee list if the peer
   // returns zero length pieces.
-  if (p.get_length() != (*itr)->get_piece().get_length()) {
+  if (p.length() != (*itr)->piece()->length()) {
     m_reservees.erase(itr);
     return false;
   }
 
   m_downloading = true;
 
-  if (p != m_reservees.front()->get_piece())
+  if (p != *m_reservees.front()->piece())
     throw internal_error("RequestList::downloading(...) did not add the new piece to the front of the list");
   
   return true;
@@ -159,9 +159,9 @@ RequestList::skip() {
   m_downloading = false;
 }
 
-struct equals_reservee : public std::binary_function<DelegatorReservee*, int32_t, bool> {
-  bool operator () (DelegatorReservee* r, int32_t index) const {
-    return r->is_valid() && index == r->get_piece().get_index();
+struct equals_reservee : public std::binary_function<DelegatorReservee*, uint32_t, bool> {
+  bool operator () (DelegatorReservee* r, uint32_t index) const {
+    return r->is_valid() && index == r->piece()->index();
   }
 };
 

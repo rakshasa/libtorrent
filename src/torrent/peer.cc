@@ -110,6 +110,19 @@ Peer::peer_rate() const {
   return m_ptr->peer_chunks()->peer_rate();
 } 
 
+const Bitfield*
+Peer::bitfield() const {
+  return m_ptr->peer_chunks()->bitfield();
+}
+
+const Piece*
+Peer::incoming_queue(uint32_t pos) const {
+  if (pos >= m_ptr->download_queue()->size())
+    throw client_error("Peer::incoming_queue(...) out of range.");
+
+  return m_ptr->download_queue()->queued_piece(pos);
+}
+
 uint32_t
 Peer::incoming_queue_size() const {
   return m_ptr->download_queue()->size();
@@ -119,31 +132,6 @@ uint32_t
 Peer::outgoing_queue_size() const {
   return m_ptr->peer_chunks()->upload_queue()->size();
 }  
-
-uint32_t
-Peer::incoming_index(uint32_t pos) const {
-  if (pos >= m_ptr->download_queue()->size())
-    throw client_error("get_incoming_index(pos) out of range");
-
-  return m_ptr->download_queue()->get_queued_piece(pos).get_index();
-}
-
-  uint32_t             incoming_offset(uint32_t pos);
-  uint32_t             incoming_length(uint32_t pos);
-
-// Currently needs to copy the data once to a std::string. But 
-// since gcc does ref counted std::string, you can inexpensively
-// copy the resulting string. Will consider making BitField use a
-// std::string.
-const unsigned char*
-Peer::bitfield_data() const {
-  return (const unsigned char*)m_ptr->peer_chunks()->bitfield()->begin();
-}
-
-uint32_t
-Peer::bitfield_size() const {
-  return m_ptr->peer_chunks()->bitfield()->size_bits();
-}
 
 uint32_t
 Peer::chunks_done() const {

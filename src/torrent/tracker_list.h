@@ -48,7 +48,7 @@ class TrackerList {
 public:
   TrackerList(TrackerManager* m = NULL) : m_manager(m) {}
 
-  bool                 is_busy() const;
+  bool                is_busy() const;
 
   // Access the trackers in the torrent.
   Tracker             get(uint32_t index) const;
@@ -66,6 +66,15 @@ public:
 
   void                cycle_group(int group);
   void                manual_request(bool force);
+
+//   void                scrape();
+
+  // Use some weird and unreliable heuristic to figure out which
+  // tracker's scrape to use?
+//   uint64_t            scrape_time_last() const;
+//   uint32_t            scrape_complete() const;
+//   uint32_t            scrape_incomplete() const;
+//   uint32_t            scrape_downloaded() const;
 
 private:
   TrackerManager*     m_manager;

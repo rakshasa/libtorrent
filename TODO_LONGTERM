@@ -6,12 +6,10 @@ The seed count and scrape leech/seed.
 
 Disk cache.
 
-Make libtorrent locale agnostic.
-
 Resume needs to be split.
 
-Add interface for getting currently downloading chunks. Remove the one
-in Peer?
+Add interface for getting currently downloading chunks. Don't use thin
+wrappers here?
 
 
 === torrent::Object ==

@@ -79,13 +79,7 @@ public:
   bool               empty() const                    { return m_reservees.empty(); }
   size_t             size()                           { return m_reservees.size(); }
 
-  Piece              get_queued_piece(uint32_t i) {
-    // TODO: Make this unnessesary?
-    if (m_reservees[i]->is_valid())
-      return m_reservees[i]->get_piece();
-    else
-      return Piece();
-  }
+  const Piece*       queued_piece(uint32_t i) const   { return m_reservees[i]->piece(); }
 
   void               set_delegator(Delegator* d)      { m_delegator = d; }
   void               set_peer_chunks(PeerChunks* b)   { m_peerChunks = b; }

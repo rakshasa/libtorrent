@@ -38,6 +38,9 @@
 #define LIBTORRENT_DELEGATOR_RESERVEE_H
 
 #include <inttypes.h>
+
+#include "torrent/piece.h"
+
 #include "delegator_piece.h"
 
 namespace torrent {
@@ -53,7 +56,7 @@ public:
 
   void              set_stalled(bool b);
 
-  const Piece&      get_piece() const         { return m_parent->get_piece(); }
+  const Piece*      piece() const             { return &m_piece; }
   DelegatorPiece*   get_parent() const        { return m_parent; }
 
   uint32_t          get_stall_counter() const { return m_stallCounter; }
@@ -61,13 +64,16 @@ public:
 protected:
   friend class DelegatorPiece;
 
-  DelegatorReservee(DelegatorPiece* p = NULL) : m_parent(p), m_stalled(false) {}
+  DelegatorReservee(DelegatorPiece* p = NULL) :
+    m_parent(p), m_stallCounter(0), m_stalled(false) { if (p != NULL) m_piece = p->get_piece(); }
 
 private:
   DelegatorReservee(const DelegatorReservee&);
   void operator = (const DelegatorReservee&);
 
   DelegatorPiece* m_parent;
+  Piece           m_piece;
+
   uint32_t        m_stallCounter;
   bool            m_stalled;
 };

@@ -44,7 +44,9 @@ struct sockaddr;
 
 namespace torrent {
 
+class Bitfield;
 class PeerConnectionBase;
+class Piece;
 class Rate;
 
 // == and = operators works as expected.
@@ -79,21 +81,18 @@ public:
   const Rate*          up_rate() const;
   const Rate*          peer_rate() const;
 
+  const Bitfield*      bitfield() const;
+
+  // 'index == -1' for incoming pieces that we don't want anymore.
+  const Piece*         incoming_queue(uint32_t pos) const;
   uint32_t             incoming_queue_size() const;
+
   uint32_t             outgoing_queue_size() const;
-
-  // index == -1 for incoming pieces that we don't want anymore.
-  uint32_t             incoming_index(uint32_t pos) const;
-  uint32_t             incoming_offset(uint32_t pos) const;
-  uint32_t             incoming_length(uint32_t pos) const;
-
-  const unsigned char* bitfield_data() const;
-  uint32_t             bitfield_size() const;
 
   uint32_t             chunks_done() const;
 
-  PeerConnectionBase*  ptr()                            { return m_ptr; }
-  void                 set_ptr(PeerConnectionBase* ptr) { m_ptr = ptr; }
+  PeerConnectionBase*  ptr()                             { return m_ptr; }
+  void                 set_ptr(PeerConnectionBase* ptr)  { m_ptr = ptr; }
 
   bool                 operator == (const Peer& p) const { return m_ptr == p.m_ptr; }
 

@@ -147,12 +147,12 @@ PeerConnectionBase::load_down_chunk(const Piece& p) {
   if (!m_download->content()->is_valid_piece(p))
     throw internal_error("Incoming pieces list contains a bad piece");
   
-  if (m_downChunk.is_valid() && p.get_index() == m_downChunk->index())
+  if (m_downChunk.is_valid() && p.index() == m_downChunk->index())
     return;
 
   down_chunk_release();
 
-  m_downChunk = m_download->chunk_list()->get(p.get_index(), true);
+  m_downChunk = m_download->chunk_list()->get(p.index(), true);
   
   if (!m_downChunk.is_valid())
     throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()));
@@ -160,12 +160,12 @@ PeerConnectionBase::load_down_chunk(const Piece& p) {
 
 void
 PeerConnectionBase::load_up_chunk() {
-  if (m_upChunk.is_valid() && m_upChunk->index() == m_upPiece.get_index())
+  if (m_upChunk.is_valid() && m_upChunk->index() == m_upPiece.index())
     return;
 
   up_chunk_release();
   
-  m_upChunk = m_download->chunk_list()->get(m_upPiece.get_index(), false);
+  m_upChunk = m_download->chunk_list()->get(m_upPiece.index(), false);
   
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
@@ -233,13 +233,13 @@ PeerConnectionBase::down_chunk() {
   }
 
   uint32_t count;
-  uint32_t left = quota = std::min(quota, m_downPiece.get_length() - m_down->position());
+  uint32_t left = quota = std::min(quota, m_downPiece.length() - m_down->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->position());
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.offset() + m_down->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->position(), part++);
+    memory = m_downChunk->chunk()->at_memory(m_downPiece.offset() + m_down->position(), part++);
     count = read_stream_throws(memory.first, std::min(left, memory.second));
 
     m_down->adjust_position(count);
@@ -252,20 +252,20 @@ PeerConnectionBase::down_chunk() {
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
   m_download->info()->down_rate()->insert(bytes);
 
-  return m_down->position() == m_downPiece.get_length();
+  return m_down->position() == m_downPiece.length();
 }
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t count, quota;
   uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(),
-					     m_downPiece.get_length() - m_down->position());
+					     m_downPiece.length() - m_down->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.get_offset() + m_down->position());
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.offset() + m_down->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downPiece.get_offset() + m_down->position(), part++);
+    memory = m_downChunk->chunk()->at_memory(m_downPiece.offset() + m_down->position(), part++);
     count = std::min(left, memory.second);
 
     std::memcpy(memory.first, m_down->buffer()->position(), count);
@@ -281,7 +281,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
   m_download->info()->down_rate()->insert(bytes);
 
-  return m_down->position() == m_downPiece.get_length();
+  return m_down->position() == m_downPiece.length();
 }
 
 bool
@@ -301,13 +301,13 @@ PeerConnectionBase::up_chunk() {
   }
 
   uint32_t count;
-  uint32_t left = quota = std::min(quota, m_upPiece.get_length() - m_up->position());
+  uint32_t left = quota = std::min(quota, m_upPiece.length() - m_up->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.get_offset() + m_up->position());
+  ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.offset() + m_up->position());
 
   do {
-    memory = m_upChunk->chunk()->at_memory(m_upPiece.get_offset() + m_up->position(), part++);
+    memory = m_upChunk->chunk()->at_memory(m_upPiece.offset() + m_up->position(), part++);
     count = write_stream_throws(memory.first, std::min(left, memory.second));
 
     m_up->adjust_position(count);
@@ -320,7 +320,7 @@ PeerConnectionBase::up_chunk() {
   m_download->upload_throttle()->node_used(m_peerChunks.upload_throttle(), bytes);
   m_download->info()->up_rate()->insert(bytes);
 
-  return m_up->position() == m_upPiece.get_length();
+  return m_up->position() == m_upPiece.length();
 }
 
 void
@@ -343,7 +343,7 @@ void
 PeerConnectionBase::read_request_piece(const Piece& p) {
   PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(), m_peerChunks.upload_queue()->end(), p);
   
-  if (m_up->choked() || itr != m_peerChunks.upload_queue()->end() || p.get_length() > (1 << 17))
+  if (m_up->choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17))
     return;
 
   m_peerChunks.upload_queue()->push_back(p);
@@ -375,13 +375,13 @@ PeerConnectionBase::write_prepare_piece() {
 
   // Move these checks somewhere else?
   if (!m_download->content()->is_valid_piece(m_upPiece) ||
-      !m_download->content()->has_chunk(m_upPiece.get_index())) {
+      !m_download->content()->has_chunk(m_upPiece.index())) {
     std::stringstream s;
 
     s << "Peer requested a piece with invalid index or length/offset: "
-      << m_upPiece.get_index() << ' '
-      << m_upPiece.get_length() << ' '
-      << m_upPiece.get_offset();
+      << m_upPiece.index() << ' '
+      << m_upPiece.length() << ' '
+      << m_upPiece.offset();
 
     throw communication_error(s.str());
 //     throw communication_error("Peer requested a piece with invalid index or length/offset.");
@@ -458,7 +458,7 @@ PeerConnectionBase::try_request_pieces() {
     if (p == NULL)
       break;
 
-    if (!m_download->content()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->get_index()))
+    if (!m_download->content()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->index()))
       throw internal_error("PeerConnectionBase::try_request_pieces() tried to use an invalid piece.");
 
     m_up->write_request(*p);

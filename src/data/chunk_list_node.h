@@ -53,11 +53,13 @@ class Chunk;
 
 class ChunkListNode {
 public:
-  ChunkListNode() : m_chunk(NULL), m_references(0), m_writable(0) {}
+  static const uint32_t invalid_index = ~uint32_t();
+
+  ChunkListNode() : m_index(invalid_index), m_chunk(NULL), m_references(0), m_writable(0) {}
 
   bool                is_valid() const               { return m_chunk; }
 
-  int                 index() const                  { return m_index; }
+  uint32_t            index() const                  { return m_index; }
   void                set_index(uint32_t idx)        { m_index = idx; }
 
   Chunk*              chunk() const                  { return m_chunk; }

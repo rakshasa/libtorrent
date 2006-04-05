@@ -63,7 +63,7 @@ ChunkList::resize(size_type s) {
 
   Base::resize(s);
 
-  int index = 0;
+  uint32_t index = 0;
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr, ++index)
     itr->set_index(index);

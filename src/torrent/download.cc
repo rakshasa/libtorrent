@@ -206,7 +206,7 @@ Download::bytes_done() const {
   for (Delegator::Chunks::iterator itr1 = d->get_chunks().begin(), last1 = d->get_chunks().end(); itr1 != last1; ++itr1)
     for (DelegatorChunk::iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
       if (itr2->is_finished())
-	a += itr2->get_piece().get_length();
+	a += itr2->get_piece().length();
   
   return a + m_ptr->main()->content()->bytes_completed();
 }

@@ -214,14 +214,14 @@ Delegator::finished(DelegatorReservee& r) {
     throw internal_error("Delegator::finished(...) got reservee with parent == NULL");
 
   // Temporary exception, remove when the code is rock solid. (Hah, like it ever will be;)
-  if (all_finished(p->get_piece().get_index()))
+  if (all_finished(p->get_piece().index()))
     throw internal_error("Delegator::finished(...) called on an index that is already finished");
 
   p->clear();
   p->set_finished(true);
 
-  if (all_finished(p->get_piece().get_index()))
-    m_slotChunkDone(p->get_piece().get_index());
+  if (all_finished(p->get_piece().index()))
+    m_slotChunkDone(p->get_piece().index());
 }
 
 void
@@ -270,7 +270,7 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
 DelegatorPiece*
 Delegator::find_piece(const Piece& p) {
   Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-				    rak::equal((unsigned int)p.get_index(), std::mem_fun(&DelegatorChunk::get_index)));
+				    rak::equal(p.index(), std::mem_fun(&DelegatorChunk::get_index)));
   
   if (c == m_chunks.end())
     return NULL;

@@ -51,6 +51,8 @@ DelegatorReservee::invalidate() {
 
   m_parent->remove(this);
   m_parent = NULL;
+
+  m_piece = Piece();
 }
 
 void

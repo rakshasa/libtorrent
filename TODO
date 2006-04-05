@@ -2,6 +2,14 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Show currently downloading..
+
+Seems delegator uses std::vector... urgh...
+
+Do we want to return some of the other bitfields?
+
+Tracker seeding counter etc?
+
 connection_list, handshake_manager. Make a template, and all classes
 have peer_info() function for accessing?
 

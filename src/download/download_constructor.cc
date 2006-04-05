@@ -148,7 +148,7 @@ DownloadConstructor::add_tracker_single(const Object& b, int group) {
   if (!b.is_string())
     throw bencode_error("Tracker entry not a string");
     
-  m_download->main()->tracker_manager()->insert(group, rak::trim(b.as_string()));
+  m_download->main()->tracker_manager()->insert(group, rak::trim_classic(b.as_string()));
 }
 
 bool

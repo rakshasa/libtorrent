@@ -44,7 +44,7 @@
 #include "data/file_meta.h"
 #include "data/chunk.h"
 #include "data/entry_list.h"
-#include "data/piece.h"
+#include "torrent/piece.h"
 
 namespace torrent {
 
@@ -114,13 +114,12 @@ Content::bytes_completed() const {
 bool
 Content::is_valid_piece(const Piece& p) const {
   return
-    (uint32_t)p.get_index() < m_chunkTotal &&
-
-    p.get_length() != 0 &&
+    p.index() < m_chunkTotal &&
+    p.length() != 0 &&
 
     // Make sure offset does not overflow 32 bits.
-    p.get_offset() < (1 << 30) &&
-    p.get_offset() + p.get_length() <= chunk_index_size(p.get_index());
+    p.offset() < (1 << 30) &&
+    p.offset() + p.length() <= chunk_index_size(p.index());
 }
 
 bool

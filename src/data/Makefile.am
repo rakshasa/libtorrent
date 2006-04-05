@@ -30,7 +30,6 @@ libsub_data_la_SOURCES = \
 	hash_torrent.h \
 	memory_chunk.cc \
 	memory_chunk.h \
-	piece.h \
 	socket_file.cc \
 	socket_file.h
 
