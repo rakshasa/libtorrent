@@ -68,100 +68,100 @@ public:
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
   // Not active atm. Opens and prepares/closes the files.
-  void                 open();
-  void                 close();
+  void                open();
+  void                close();
 
   // Torrent must be open for calls to hash_check(bool) and
   // hash_resume_save(). hash_resume_clear() removes resume data from
   // the bencode'ed torrent.
-  void                 hash_check(bool resume = true);
-  void                 hash_resume_save();
-  void                 hash_resume_clear();
+  void                hash_check(bool resume = true);
+  void                hash_resume_save();
+  void                hash_resume_clear();
 
   // Start/stop the download. The torrent must be open.
-  void                 start();
-  void                 stop();
+  void                start();
+  void                stop();
 
   // Does not check if the download has been removed.
-  bool                 is_valid() const { return m_ptr; }
+  bool                is_valid() const { return m_ptr; }
 
-  bool                 is_open() const;
-  bool                 is_active() const;
+  bool                is_open() const;
+  bool                is_active() const;
 
-  bool                 is_hash_checked() const;
-  bool                 is_hash_checking() const;
+  bool                is_hash_checked() const;
+  bool                is_hash_checking() const;
 
   // Returns "" if the object is not valid.
-  const std::string&   name() const;
-  const std::string&   info_hash() const;
-  const std::string&   local_id() const;
+  const std::string&  name() const;
+  const std::string&  info_hash() const;
+  const std::string&  local_id() const;
 
   // Unix epoche, 0 == unknown.
-  uint32_t             creation_date() const;
+  uint32_t            creation_date() const;
 
-  Object*              bencode();
-  const Object*        bencode() const;
+  Object*             bencode();
+  const Object*       bencode() const;
 
-  FileList             file_list() const;
-  TrackerList          tracker_list() const;
+  FileList            file_list() const;
+  TrackerList         tracker_list() const;
 
-  Rate*                down_rate();
-  const Rate*          down_rate() const;
+  Rate*               down_rate();
+  const Rate*         down_rate() const;
 
-  Rate*                up_rate();
-  const Rate*          up_rate() const;
+  Rate*               up_rate();
+  const Rate*         up_rate() const;
 
   // Bytes completed.
-  uint64_t             bytes_done() const;
+  uint64_t            bytes_done() const;
   // Size of the torrent.
-  uint64_t             bytes_total() const;
+  uint64_t            bytes_total() const;
 
-  uint32_t             chunks_size() const;
-  uint32_t             chunks_done() const;
-  uint32_t             chunks_total() const;
-  uint32_t             chunks_hashed() const;
+  uint32_t            chunks_size() const;
+  uint32_t            chunks_done() const;
+  uint32_t            chunks_total() const;
+  uint32_t            chunks_hashed() const;
 
-  const uint8_t*       chunks_seen() const;
+  const uint8_t*      chunks_seen() const;
 
-  const Bitfield*      bitfield() const;
+  const Bitfield*     bitfield() const;
 
-  uint32_t             peers_min() const;
-  uint32_t             peers_max() const;
-  uint32_t             peers_connected() const;
-  uint32_t             peers_not_connected() const;
-  uint32_t             peers_complete() const;
-  uint32_t             peers_accounted() const;
+  uint32_t            peers_min() const;
+  uint32_t            peers_max() const;
+  uint32_t            peers_connected() const;
+  uint32_t            peers_not_connected() const;
+  uint32_t            peers_complete() const;
+  uint32_t            peers_accounted() const;
 
-  uint32_t             peers_currently_unchoked() const;
-  uint32_t             peers_currently_interested() const;
+  uint32_t            peers_currently_unchoked() const;
+  uint32_t            peers_currently_interested() const;
 
-  uint32_t             uploads_max() const;
+  uint32_t            uploads_max() const;
   
-  void                 set_peers_min(uint32_t v);
-  void                 set_peers_max(uint32_t v);
+  void                set_peers_min(uint32_t v);
+  void                set_peers_max(uint32_t v);
 
-  void                 set_uploads_max(uint32_t v);
+  void                set_uploads_max(uint32_t v);
 
   typedef enum {
     CONNECTION_LEECH,
     CONNECTION_SEED
   } ConnectionType;
 
-  ConnectionType       connection_type() const;
-  void                 set_connection_type(ConnectionType t);
+  ConnectionType      connection_type() const;
+  void                set_connection_type(ConnectionType t);
 
   // Call this when you want the modifications of the download priorities
   // in the entries to take effect. It is slightly expensive as it rechecks
   // all the peer bitfields to see if we are still interested.
-  void                 update_priorities();
+  void                update_priorities();
 
   // If you create a peer list, you *must* keep it up to date with the signals
   // peer_{connected,disconnected}. Otherwise you may experience undefined
   // behaviour when using invalid peers in the list.
-  void                 peer_list(PList& pList);
-  Peer                 peer_find(const std::string& id);
+  void                peer_list(PList& pList);
+  Peer                peer_find(const std::string& id);
 
-  void                 disconnect_peer(Peer p);
+  void                disconnect_peer(Peer p);
 
   typedef sigc::slot0<void>                                          slot_void_type;
   typedef sigc::slot1<void, const std::string&>                      slot_string_type;

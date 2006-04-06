@@ -40,6 +40,10 @@
 #define LIBTORRENT_CONNECTION_MANAGER_H
 
 #include <inttypes.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <sigc++/slot.h>
 
@@ -61,7 +65,14 @@ public:
   static const priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
   static const priority_type iptos_throughput  = IPTOS_THROUGHPUT;
   static const priority_type iptos_reliability = IPTOS_RELIABILITY;
+
+#if defined IPTOS_MINCOST
   static const priority_type iptos_mincost     = IPTOS_MINCOST;
+#elif defined IPTOS_LOWCOST
+  static const priority_type iptos_mincost     = IPTOS_LOWCOST;
+#else
+  static const priority_type iptos_mincost     = iptos_throughput;
+#endif
 
   ConnectionManager();
   ~ConnectionManager();

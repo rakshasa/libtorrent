@@ -83,6 +83,16 @@ TrackerList::set_numwant(int32_t n) {
   m_manager->info()->set_numwant(n);
 }
 
+uint32_t
+TrackerList::key() const {
+  return m_manager->info()->key();
+}
+
+void
+TrackerList::set_key(uint32_t k) {
+  m_manager->info()->set_key(k);
+}
+
 void
 TrackerList::send_completed() {
   m_manager->send_completed();

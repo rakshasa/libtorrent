@@ -65,9 +65,9 @@ SocketFd::set_priority(priority_type p) {
   if (!is_valid())
     throw internal_error("SocketFd::set_throughput() called on a closed fd.");
 
-  //  p = IPTOS(p);
+  int opt = p;
 
-  return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &p, sizeof(p)) == 0;
+  return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
 }
 
 bool

@@ -2,7 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Show currently downloading..
+Don't silently drop connections that fail certain setup calls.
+
+Show currently downloading.
 
 Seems delegator uses std::vector... urgh...
 

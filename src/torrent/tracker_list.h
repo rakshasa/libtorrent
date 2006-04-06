@@ -61,6 +61,9 @@ public:
   int16_t             numwant() const;
   void                set_numwant(int32_t n);
 
+  uint32_t            key() const;
+  void                set_key(uint32_t k);
+
   // Perhaps make tracker_cycle_group part of Tracker?
   void                send_completed();
 

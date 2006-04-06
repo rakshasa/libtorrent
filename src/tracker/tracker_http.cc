@@ -89,8 +89,10 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
 
   s << m_url
     << "?info_hash=" << rak::copy_escape_html(m_info->hash())
-    << "&peer_id=" << rak::copy_escape_html(m_info->local_id())
-    << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->key() << std::dec;
+    << "&peer_id=" << rak::copy_escape_html(m_info->local_id());
+
+  if (m_info->key())
+    s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->key() << std::dec;
 
   if (!m_trackerId.empty())
     s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
