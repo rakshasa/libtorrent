@@ -88,7 +88,6 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   info()->set_hash(hash);
   info()->set_local_id(id);
-  info()->set_key(random());
 
   info()->slot_stat_left() = rak::make_mem_fun(&m_main, &DownloadMain::get_bytes_left);
 

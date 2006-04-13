@@ -93,7 +93,7 @@ public:
   Delegator*          delegator()                                { return &m_delegator; }
 
   AvailableList*      available_list()                           { return &m_availableList; }
-  ConnectionList*     connection_list()                          { return &m_connectionList; }
+  ConnectionList*     connection_list()                          { return m_connectionList; }
 
   ThrottleList*       upload_throttle()                          { return m_uploadThrottle; }
   void                set_upload_throttle(ThrottleList* t)       { m_uploadThrottle = t; }
@@ -145,7 +145,7 @@ private:
   Delegator           m_delegator;
 
   AvailableList       m_availableList;
-  ConnectionList      m_connectionList;
+  ConnectionList*     m_connectionList;
 
   bool                m_started;
   bool                m_isOpen;

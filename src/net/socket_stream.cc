@@ -41,11 +41,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <rak/error_number.h>
-
-#include "torrent/exceptions.h"
 
 namespace torrent {
 
@@ -56,22 +52,6 @@ int_to_string(int v) {
   std::sprintf(buf, "%i", v);
 
   return buf;
-}
-
-inline int
-SocketStream::read_stream(void* buf, uint32_t length) {
-  if (length == 0)
-    throw internal_error("Tried to read buffer length 0");
-
-  return ::recv(m_fileDesc, buf, length, 0);
-}
-
-inline int
-SocketStream::write_stream(const void* buf, uint32_t length) {
-  if (length == 0)
-    throw internal_error("Tried to write buffer length 0");
-
-  return ::send(m_fileDesc, buf, length, 0);
 }
 
 uint32_t

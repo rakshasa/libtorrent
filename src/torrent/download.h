@@ -135,6 +135,7 @@ public:
   uint32_t            peers_currently_unchoked() const;
   uint32_t            peers_currently_interested() const;
 
+  bool                accepting_new_peers() const;
   uint32_t            uploads_max() const;
   
   void                set_peers_min(uint32_t v);

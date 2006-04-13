@@ -38,6 +38,7 @@
 
 #include <algorithm>
 
+#include "download/download_info.h"
 #include "protocol/peer_info.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
@@ -66,6 +67,8 @@ ConnectionList::insert(DownloadMain* d, const PeerInfo& p, const SocketFd& fd) {
   c->initialize(d, p, fd);
 
   Base::push_back(c);
+
+  m_info->set_accepting_new_peers(size() < m_maxSize);
   m_slotConnected(c);
 
   return true;
@@ -79,6 +82,8 @@ ConnectionList::erase(iterator pos) {
   value_type v = *pos;
 
   pos = Base::erase(pos);
+
+  m_info->set_accepting_new_peers(size() < m_maxSize);
   m_slotDisconnected(v);
 
   // Delete after the erase to ensure the connection doesn't get added
@@ -99,6 +104,8 @@ ConnectionList::erase(PeerConnectionBase* p) {
   // emited otherwise some listeners might do stuff with the
   // assumption that the connection will remain in the list.
   Base::erase(itr);
+
+  m_info->set_accepting_new_peers(size() < m_maxSize);
   m_slotDisconnected(p);
 
   // Delete after the erase to ensure the connection doesn't get added
@@ -118,6 +125,8 @@ ConnectionList::erase_remaining(iterator pos) {
     m_slotDisconnected(v);
     delete v;
   }
+
+  m_info->set_accepting_new_peers(size() < m_maxSize);
 }
 
 void
@@ -156,6 +165,12 @@ ConnectionList::set_difference(AddressList* l) {
 void
 ConnectionList::send_finished_chunk(uint32_t index) {
   std::for_each(begin(), end(), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_finished_chunk), index));
+}
+
+void
+ConnectionList::set_max_size(size_type v) { 
+  m_maxSize = v;
+  m_info->set_accepting_new_peers(size() < m_maxSize);
 }
 
 }

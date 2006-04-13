@@ -37,6 +37,10 @@
 #ifndef LIBTORRENT_NET_SOCKET_STREAM_H
 #define LIBTORRENT_NET_SOCKET_STREAM_H
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include "torrent/exceptions.h"
 #include "socket_base.h"
 
 namespace torrent {
@@ -72,6 +76,22 @@ SocketStream::write_buffer(const void* buf, uint32_t length, uint32_t& pos) {
   pos += write_stream_throws(buf, length - pos);
 
   return pos == length;
+}
+
+inline int
+SocketStream::read_stream(void* buf, uint32_t length) {
+  if (length == 0)
+    throw internal_error("Tried to read buffer length 0");
+
+  return ::recv(m_fileDesc, buf, length, 0);
+}
+
+inline int
+SocketStream::write_stream(const void* buf, uint32_t length) {
+  if (length == 0)
+    throw internal_error("Tried to write buffer length 0");
+
+  return ::send(m_fileDesc, buf, length, 0);
 }
 
 }

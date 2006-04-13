@@ -72,6 +72,7 @@ public:
     m_key(0),
     m_compact(true),
     m_numwant(-1),
+    m_acceptingNewPeers(true),
 
     m_upRate(60),
     m_downRate(60),
@@ -95,6 +96,9 @@ public:
 
   int32_t             numwant() const                              { return m_numwant; }
   void                set_numwant(int32_t n)                       { m_numwant = n; }
+
+  bool                accepting_new_peers() const                  { return m_acceptingNewPeers; }
+  void                set_accepting_new_peers(bool a)              { m_acceptingNewPeers = a; }
   
   Rate*               up_rate()                                    { return &m_upRate; }
   Rate*               down_rate()                                  { return &m_downRate; }
@@ -120,6 +124,7 @@ private:
   uint32_t            m_key;
   bool                m_compact;
   int32_t             m_numwant;
+  bool                m_acceptingNewPeers;
 
   Rate                m_upRate;
   Rate                m_downRate;

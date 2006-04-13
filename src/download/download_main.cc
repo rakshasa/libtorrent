@@ -57,7 +57,6 @@ DownloadMain::DownloadMain() :
   m_info(new DownloadInfo),
 
   m_trackerManager(new TrackerManager()),
-  m_chokeManager(new ChokeManager(&this->m_connectionList)),
   m_chunkList(new ChunkList),
   m_chunkSelector(new ChunkSelector),
   m_chunkStatistics(new ChunkStatistics),
@@ -68,6 +67,9 @@ DownloadMain::DownloadMain() :
 
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
+
+  m_connectionList = new ConnectionList(m_info);
+  m_chokeManager = new ChokeManager(m_connectionList);
 
   m_delegator.slot_chunk_enable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::using_index));
   m_delegator.slot_chunk_disable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::not_using_index));
@@ -86,6 +88,7 @@ DownloadMain::~DownloadMain() {
 
   delete m_trackerManager;
   delete m_chokeManager;
+  delete m_connectionList;
 
   delete m_chunkStatistics;
   delete m_chunkList;

@@ -147,6 +147,9 @@ Handshake::event_read() {
 	if (m_downloadInfo == NULL)
 	  throw close_connection();
 
+	if (!m_downloadInfo->accepting_new_peers())
+	  throw close_connection();
+
 	m_state = WRITE_FILL;
 	m_readBuffer.move_position(20);
 	

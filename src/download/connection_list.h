@@ -44,6 +44,7 @@
 
 namespace torrent {
 
+class DownloadInfo;
 class DownloadMain;
 class DownloadWrapper;
 class PeerConnectionBase;
@@ -76,7 +77,7 @@ public:
   using Base::rbegin;
   using Base::rend;
   
-  ConnectionList() : m_minSize(50), m_maxSize(100) {}
+  ConnectionList(DownloadInfo* i) : m_minSize(50), m_maxSize(100), m_info(i) {}
   ~ConnectionList() { clear(); }
 
   // Does not do the usual cleanup done by 'erase'.
@@ -97,7 +98,7 @@ public:
   void                set_min_size(size_type v)                         { m_minSize = v; }
 
   size_type           get_max_size() const                              { return m_maxSize; }
-  void                set_max_size(size_type v)                         { m_maxSize = v; }
+  void                set_max_size(size_type v);
 
   // Removes from 'l' addresses that are already connected to. Assumes
   // 'l' is sorted and unique.
@@ -126,6 +127,8 @@ private:
   slot_peer_type      m_slotDisconnected;
 
   SlotNewConnection   m_slotNewConnection;
+
+  DownloadInfo*       m_info;
 };
 
 }

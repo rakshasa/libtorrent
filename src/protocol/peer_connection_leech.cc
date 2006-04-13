@@ -200,6 +200,11 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::BITFIELD:
+    // Bad peer, sending their bitfield after other messages have been
+    // sent.
+    if (m_peerChunks.using_counter() || !m_peerChunks.bitfield()->is_all_unset())
+      throw close_connection();
+
     if (read_bitfield_from_buffer(length - 1)) {
       finish_bitfield();
       return true;

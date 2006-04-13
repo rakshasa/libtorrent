@@ -286,6 +286,11 @@ Download::peers_currently_interested() const {
   return m_ptr->main()->choke_manager()->currently_interested();
 }
 
+bool
+Download::accepting_new_peers() const {
+  return m_ptr->info()->accepting_new_peers();
+}
+
 uint32_t
 Download::uploads_max() const {
   return m_ptr->main()->choke_manager()->max_unchoked();
