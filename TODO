@@ -2,19 +2,19 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-[FIXED] Curl didn't like binding to dns names, generate string with
-the ip.
+Get default values for the option handler initialization from torrent
+functions.
+
+Make ipv6 configurable. Make it default compile with inet6 for a while.
+
+When setting upload_rate, make sure max_unchoked is valid.
 
 Move BITFIELD handling? Put another link between handshake and
 PeerConnection. Make various buffers swappable/movable.
 
-Make ipv6 configurable.
-
 Note send/recv buffer size. Note about how enable_trackers won't be
 possible to cheat with, and that the imaginary DHT will also be
 disabled.
-
-Parse K and M in numeric options thingies.
 
 Save session torrent on hash check complete, if nessesary.
 
