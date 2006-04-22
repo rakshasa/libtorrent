@@ -2,8 +2,7 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Get default values for the option handler initialization from torrent
-functions.
+Use a default scheduled sort by name, insert new after cursor?
 
 Make ipv6 configurable. Make it default compile with inet6 for a while.
 
