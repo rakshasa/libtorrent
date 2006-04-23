@@ -2,9 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Use a default scheduled sort by name, insert new after cursor?
+Add timer to ViewDownloads.
 
-Make ipv6 configurable. Make it default compile with inet6 for a while.
+Use a default scheduled sort by name, insert new after cursor?
 
 When setting upload_rate, make sure max_unchoked is valid.
 
@@ -20,8 +20,6 @@ Save session torrent on hash check complete, if nessesary.
 Don't silently drop connections that fail certain setup calls.
 
 Show currently downloading.
-
-Seems delegator uses std::vector... urgh...
 
 Do we want to return some of the other bitfields?
 
