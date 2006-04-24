@@ -78,7 +78,7 @@ Bitfield::resize(size_type s) {
   m_size = s;
   m_set = 0;
 
-  delete m_data;
+  delete [] m_data;
 
   if (m_size == 0) {
     m_data = NULL;

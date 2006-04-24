@@ -2,6 +2,8 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Man page about view_*.
+
 Add timer to ViewDownloads.
 
 Use a default scheduled sort by name, insert new after cursor?
