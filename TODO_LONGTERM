@@ -11,6 +11,8 @@ Resume needs to be split.
 Add interface for getting currently downloading chunks. Don't use thin
 wrappers here?
 
+Add helpers to Object::get_key
+
 
 === torrent::Object ==
 
