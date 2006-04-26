@@ -2,6 +2,19 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Do proper change of focus during filtering.
+
+Change ViewSort::less to operator().
+
+Consider renaming ViewDownloads to View.
+
+Hmm, should we set all states before inserting into downloadlist to
+get correct filtering?
+
+Add view filter so we only have 'started' torrents in scheduler.
+
+Add a void arg VariableSlot
+
 Man page about view_*.
 
 Add timer to ViewDownloads.
