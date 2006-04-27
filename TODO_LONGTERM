@@ -61,6 +61,8 @@ Make it possible to do an validity check on a bencode stream.
 Consider taking the tasks out of the Window class, and just use flags
 for those that want to be regulary updated.
 
+Get rid of the Element* classes?
+
 
 == Configurable keybindings ==
 

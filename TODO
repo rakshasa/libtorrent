@@ -2,9 +2,11 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Do proper change of focus during filtering.
+Add function for poking viewers.
 
-Change ViewSort::less to operator().
+rtorrent: FileManager::erase(...) could not find FileMeta in container.
+
+Do proper change of focus during filtering.
 
 Consider renaming ViewDownloads to View.
 
@@ -16,8 +18,6 @@ Add view filter so we only have 'started' torrents in scheduler.
 Add a void arg VariableSlot
 
 Man page about view_*.
-
-Add timer to ViewDownloads.
 
 Use a default scheduled sort by name, insert new after cursor?
 
