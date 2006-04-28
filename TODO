@@ -2,8 +2,6 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Add function for poking viewers.
-
 rtorrent: FileManager::erase(...) could not find FileMeta in container.
 
 Do proper change of focus during filtering.
