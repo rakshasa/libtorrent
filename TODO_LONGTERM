@@ -18,6 +18,10 @@ Add helpers to Object::get_key
 
 Ways of checking that they are a value and between a range.
 
+Make an union of two bencode streams. This will allow rtorrent to save
+much smaller files with recent changes, and thus not require
+re-constructing torrent files of ~100KB in some cases.
+
 
 === Session management ==
 
@@ -144,3 +148,9 @@ trying to make them?
 
 Stuff like adding stuff to the ClientInfo object could be done from
 with a resource file embedded in the executable.
+
+
+== Extensions ==
+
+* Send max block size on connection initialization.
+* Don't send the whole bitfield when you're a seeder.

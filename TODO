@@ -2,14 +2,11 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Make sure :rtorrent:finished gets set to zero if the final hash check
-fails, and/or stop the torrent?
+Move the catches outside of DownloadList.
 
-Seperate flag/state for hashing.
+Add an option to set other/what triggers to use for each view sort.
 
-Add an option to set other triggers for view sort.
-
-Add a hash queue view?
+Add a hash queue view and make the hash queue use that view.
 
 Add function for poking viewers.
 
@@ -19,9 +16,7 @@ Do proper change of focus during filtering.
 
 Consider renaming ViewDownloads to View.
 
-Add a void arg VariableSlot
-
-Man page about view_*.
+Man page about view_* and session_save.
 
 When setting upload_rate, make sure max_unchoked is valid.
 
