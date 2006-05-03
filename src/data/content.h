@@ -112,6 +112,8 @@ private:
   uint32_t               m_chunkSize;
   uint32_t               m_chunkTotal;
 
+  uint64_t               m_maxFileSize;
+
   EntryList*             m_entryList;
   Bitfield               m_bitfield;
 

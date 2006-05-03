@@ -13,6 +13,9 @@ wrappers here?
 
 Add helpers to Object::get_key
 
+Split priority etc stuff from "libtorrent resume" so we don't lose
+that information on re-hashing etc.
+
 
 === torrent::Object ==
 

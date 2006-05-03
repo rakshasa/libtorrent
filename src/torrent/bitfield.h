@@ -96,6 +96,8 @@ public:
 
   size_type           position(const_iterator itr) const  { return (itr - m_data) * 8; }
 
+  void                from_c_str(const char* str)   { std::memcpy(m_data, str, size_bytes()); update(); }
+
   Bitfield& operator = (const Bitfield& bf)         { delete [] m_data; copy(bf); return *this; }
 
 private:

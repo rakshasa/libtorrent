@@ -102,7 +102,8 @@ Download::hash_resume_save() {
 
 void
 Download::hash_resume_clear() {
-  m_ptr->bencode()->erase_key("libtorrent resume");
+  if (m_ptr->bencode()->has_key("libtorrent resume"))
+    m_ptr->bencode()->get_key("libtorrent resume").erase_key("bitfield");
 }
 
 bool

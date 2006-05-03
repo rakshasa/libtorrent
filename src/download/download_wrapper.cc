@@ -122,15 +122,19 @@ DownloadWrapper::hash_resume_load() {
 
     Object& files = resume.get_key("files");
 
-    if (resume.get_key("bitfield").as_string().size() != m_main.content()->bitfield()->size_bytes() ||
-	files.as_list().size() != m_main.content()->entry_list()->files_size())
-      // FIXME: Better control logic.
-      throw bencode_error("");
+    if (resume.has_key_string("bitfield") &&
+	resume.get_key("bitfield").as_string().size() == m_main.content()->bitfield()->size_bytes() &&
+	files.as_list().size() == m_main.content()->entry_list()->files_size()) {
 
-    // Clear the hash checking ranges, and add the files ranges we must check.
-    m_hash->ranges().clear();
+      // Clear the hash checking ranges, and add the files ranges we
+      // must check.
+      m_hash->ranges().clear();
+      m_main.content()->bitfield()->from_c_str(resume.get_key("bitfield").as_string().c_str());
 
-    std::memcpy(m_main.content()->bitfield()->begin(), resume.get_key("bitfield").as_string().c_str(), m_main.content()->bitfield()->size_bytes());
+    } else {
+      // No resume bitfield available, check the whole range.
+      m_hash->ranges().insert(0, m_main.content()->chunk_total());
+    }
 
     Object::list_type::iterator bItr = files.as_list().begin();
     EntryList::iterator sItr = m_main.content()->entry_list()->begin();

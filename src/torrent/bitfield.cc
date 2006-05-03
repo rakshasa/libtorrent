@@ -63,14 +63,16 @@ static const unsigned char bit_count_256[] =
 
 void
 Bitfield::update() {
+  // Clears the unused bits.
   if (m_size % 8)
     *(end() - 1) &= ~value_type() << (8 - m_size % 8);
 
   m_set = 0;
 
+  // Some archs have bitcounting instructions, look into writing a
+  // wrapper for those.
   for (iterator itr = m_data, last = end(); itr != last; ++itr)
     m_set += bit_count_256[*itr];
-
 }
 
 void
@@ -100,7 +102,8 @@ Bitfield::resize(size_type s) {
 //   return false;
 // }
 
-// (Not) Quick hack.
+// Quick hack. Speed improvements would require that m_set is kept
+// up-to-date.
 void
 Bitfield::set_range(size_type first, size_type last) {
   while (first != last)

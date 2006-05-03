@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <memory>
+#include <sstream>
 #include <rak/file_stat.h>
 
 #include "torrent/exceptions.h"
@@ -51,6 +52,10 @@ namespace torrent {
 Content::Content() :
   m_chunkSize(1 << 16),
   m_chunkTotal(0),
+
+  // Temporary personal hack.
+//   m_maxFileSize((uint64_t)600 << 20),
+  m_maxFileSize((uint64_t)0),
 
   m_entryList(new EntryList) {
 }
@@ -80,7 +85,23 @@ Content::add_file(const Path& path, uint64_t size) {
   if (m_chunkTotal)
     throw internal_error("Tried to add file to a torrent::Content that is initialized.");
 
-  m_entryList->push_back(path, EntryListNode::Range(), size);
+  if (m_maxFileSize == 0 || size < m_maxFileSize) {
+    m_entryList->push_back(path, EntryListNode::Range(), size);
+
+  } else {
+    Path newPath = path;
+
+    for (int i = 0; size != 0; ++i) {
+      std::stringstream filename;
+      filename << path.back() << ".part" << i;
+      newPath.back() = filename.str();
+
+      uint64_t partSize = std::min(size, m_maxFileSize);
+      size -= partSize;
+
+      m_entryList->push_back(newPath, EntryListNode::Range(), partSize);
+    }
+  }
 }
 
 void

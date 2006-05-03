@@ -2,21 +2,18 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Remove redundant BitField::update calls now that it gets handled
+properly on hash resume.
+
+Do the randomized start position thingie.
+
 Move the catches outside of DownloadList.
 
 Add an option to set other/what triggers to use for each view sort.
 
 Add a hash queue view and make the hash queue use that view.
 
-Add function for poking viewers.
-
-rtorrent: FileManager::erase(...) could not find FileMeta in container.
-
 Do proper change of focus during filtering.
-
-Consider renaming ViewDownloads to View.
-
-Man page about view_* and session_save.
 
 When setting upload_rate, make sure max_unchoked is valid.
 
