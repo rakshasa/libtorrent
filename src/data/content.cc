@@ -54,7 +54,7 @@ Content::Content() :
   m_chunkTotal(0),
 
   // Temporary personal hack.
-//   m_maxFileSize((uint64_t)600 << 20),
+  //  m_maxFileSize((uint64_t)600 << 20),
   m_maxFileSize((uint64_t)0),
 
   m_entryList(new EntryList) {
