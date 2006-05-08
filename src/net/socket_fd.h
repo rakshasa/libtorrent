@@ -83,6 +83,8 @@ public:
 //   unsigned int        get_write_queue_size() const;
 
 private:
+  inline void         check_valid() const;
+
   int                 m_fd;
 };
 

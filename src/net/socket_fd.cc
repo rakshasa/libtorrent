@@ -52,19 +52,22 @@
 
 namespace torrent {
 
+inline void
+SocketFd::check_valid() const {
+  if (!is_valid())
+    throw internal_error("SocketFd function called on an invalid fd.");
+}
+
 bool
 SocketFd::set_nonblock() {
-  if (!is_valid())
-    throw internal_error("SocketFd::set_nonblock() called on a closed fd.");
+  check_valid();
 
   return fcntl(m_fd, F_SETFL, O_NONBLOCK) == 0;
 }
 
 bool
 SocketFd::set_priority(priority_type p) {
-  if (!is_valid())
-    throw internal_error("SocketFd::set_throughput() called on a closed fd.");
-
+  check_valid();
   int opt = p;
 
   return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
@@ -72,9 +75,7 @@ SocketFd::set_priority(priority_type p) {
 
 bool
 SocketFd::set_reuse_address(bool state) {
-  if (!is_valid())
-    throw internal_error("SocketFd::set_reuse_address(bool) called on a closed fd.");
-
+  check_valid();
   int opt = state;
 
   return setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == 0;
@@ -82,9 +83,7 @@ SocketFd::set_reuse_address(bool state) {
 
 bool
 SocketFd::set_send_buffer_size(uint32_t s) {
-  if (!is_valid())
-    throw internal_error("SocketFd::set_send_buffer_size(uint32_t) called on a closed fd.");
-
+  check_valid();
   int opt = s;
 
   return setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)) == 0;
@@ -92,9 +91,7 @@ SocketFd::set_send_buffer_size(uint32_t s) {
 
 bool
 SocketFd::set_receive_buffer_size(uint32_t s) {
-  if (!is_valid())
-    throw internal_error("SocketFd::set_receive_buffer_size(uint32_t) called on a closed fd.");
-
+  check_valid();
   int opt = s;
 
   return setsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, &opt, sizeof(opt)) == 0;
@@ -102,8 +99,7 @@ SocketFd::set_receive_buffer_size(uint32_t s) {
 
 int
 SocketFd::get_error() const {
-  if (!is_valid())
-    throw internal_error("SocketFd::get_error() called on a closed fd");
+  check_valid();
 
   int err;
   socklen_t length = sizeof(err);
@@ -132,33 +128,28 @@ SocketFd::close() {
 
 bool
 SocketFd::bind(const rak::socket_address& sa) {
-  if (!is_valid())
-    throw internal_error("SocketFd::bind(...) called on a closed fd");
+  check_valid();
 
   return !::bind(m_fd, sa.c_sockaddr(), sa.length());
 }
 
 bool
 SocketFd::connect(const rak::socket_address& sa) {
-  if (!is_valid())
-    throw internal_error("SocketFd::connect(...) called on a closed fd");
+  check_valid();
 
   return !::connect(m_fd, sa.c_sockaddr(), sa.length()) || errno == EINPROGRESS;
 }
 
 bool
 SocketFd::listen(int size) {
-  if (!is_valid())
-    throw internal_error("SocketFd::listen(...) called on a closed fd");
+  check_valid();
 
   return !::listen(m_fd, size);
 }
 
 SocketFd
 SocketFd::accept(rak::socket_address* sa) {
-  if (!is_valid())
-    throw internal_error("SocketFd::accept(...) called on a closed fd");
-
+  check_valid();
   socklen_t len = sizeof(rak::socket_address);
 
   return SocketFd(::accept(m_fd, sa != NULL ? sa->c_sockaddr() : NULL, &len));
