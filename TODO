@@ -8,13 +8,7 @@ Need to be able to stop hashing torrents.
 
 Don't properly call hash_remove for currently hashing torrents.
 
-Is re-hash on closed/inactive torrents borked?
-
-Clear before setting filter_on?
-
 Do a single filter/insert thingie for View filter_on.
-
-Properly adjust priority after complete.
 
 Check that all options use K/M/G correctly.
 
