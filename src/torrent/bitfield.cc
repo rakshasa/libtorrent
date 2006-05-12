@@ -64,8 +64,7 @@ static const unsigned char bit_count_256[] =
 void
 Bitfield::update() {
   // Clears the unused bits.
-  if (m_size % 8)
-    *(end() - 1) &= ~value_type() << (8 - m_size % 8);
+  clear_tail();
 
   m_set = 0;
 

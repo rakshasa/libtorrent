@@ -64,10 +64,13 @@ public:
   void                resize(size_type s);
 
   void                clear()                       { delete [] m_data; m_data = NULL, m_size = 0; m_set = 0; }
+  void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= ~value_type() << (8 - m_size % 8); }
 
   // Using m_set.
   bool                is_all_set() const            { return m_set == m_size; }
   bool                is_all_unset() const          { return m_set == 0; }
+
+  bool                is_tail_cleared() const       { return m_size % 8 == 0 || !(value_type)(*(end() - 1) << (m_size % 8)); }
 
   // Consider adding default range.
 //   bool                is_set(size_type first = 0, size_type last = m_size) const;

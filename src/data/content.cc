@@ -174,7 +174,12 @@ Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
 // bitfield.
 void
 Content::update_done() {
-  m_bitfield.update();
+  // No longer needed as the Bitfield is kept up-to-date in
+  // DownloadWrapper::hash_resume_load().
+  //m_bitfield.update();
+
+  if (!m_bitfield.is_tail_cleared())
+    throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
 
   EntryList::iterator first = m_entryList->begin();
   EntryList::iterator last;

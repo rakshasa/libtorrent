@@ -146,6 +146,9 @@ downloaded/ing files are where we last saw them. Libtorrent shouldn't
 create the files when opened, but perhaps a call can be added for
 trying to make them?
 
+Also, when starting torrents, bork on incorrect sizes so as to not
+overwrite files created by other torrents.
+
 
 == Added initialization stuff to sections in the elf file? ==
 

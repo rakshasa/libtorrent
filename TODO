@@ -2,6 +2,8 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Make sure we properly clear bitfield stuff on close.
+
 The ability to compare sort by hash queue position.
 
 Need to be able to stop hashing torrents.
@@ -14,14 +16,9 @@ Check that all options use K/M/G correctly.
 
 Add send/recv_buffer_size to man and wiki.
 
-Remove redundant BitField::update calls now that it gets handled
-properly on hash resume.
-
 Do the randomized start position thingie.
 
 Move the catches outside of DownloadList.
-
-Add an option to set other/what triggers to use for each view sort.
 
 Add a hash queue view and make the hash queue use that view.
 
@@ -125,9 +122,6 @@ Move the activity checks out of DownloadManager::find_info.
 Option for saving session torrents. Allow it to save for all, open,
 active or other criteria.
 
-
-Make sure we get the right error message when locking a non-existent
-session directory.
 
 Show seeders?
 

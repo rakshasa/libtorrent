@@ -167,6 +167,10 @@ DownloadWrapper::hash_resume_load() {
   }
 
   // Clear bits in invalid regions which will be checked by m_hash.
+  //
+  // If this is ever optimized in such a way as not to update the
+  // bitfield's set size, make sure that Content::update_done() calls
+  // Bitfield::update().
   for (HashTorrent::Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
     m_main.content()->bitfield()->unset_range(itr->first, itr->second);
 
