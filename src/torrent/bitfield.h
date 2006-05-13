@@ -90,7 +90,7 @@ public:
   bool                get(size_type idx) const      { return m_data[idx / 8] & (1 << 7 - idx % 8); }
 
   void                set(size_type idx)            { m_set += !get(idx); m_data[idx / 8] |=   1 << 7 - idx % 8; }
-  void                unset(size_type idx)          { m_set +=  get(idx); m_data[idx / 8] &= ~(1 << 7 - idx % 8); }
+  void                unset(size_type idx)          { m_set -=  get(idx); m_data[idx / 8] &= ~(1 << 7 - idx % 8); }
 
   iterator            begin()                       { return m_data; }
   const_iterator      begin() const                 { return m_data; }

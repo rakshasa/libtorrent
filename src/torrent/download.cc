@@ -118,7 +118,7 @@ Download::is_active() const {
 
 bool
 Download::is_hash_checked() const {
-  return m_ptr->hash_checker()->is_checked();
+  return m_ptr->main()->is_open() && m_ptr->hash_checker()->is_checked();
 }
 
 bool

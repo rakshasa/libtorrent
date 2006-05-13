@@ -124,12 +124,16 @@ uint64_t
 Content::bytes_completed() const {
   uint64_t cs = m_chunkSize;
 
-  if (!m_bitfield.get(m_chunkTotal - 1) || m_entryList->bytes_size() % cs == 0)
+  if (!m_bitfield.get(m_chunkTotal - 1) || m_entryList->bytes_size() % cs == 0) {
     // The last chunk is not done, or the last chunk is the same size as the others.
     return chunks_completed() * cs;
 
-  else
+  } else {
+    if (chunks_completed() == 0)
+      throw internal_error("Content::bytes_completed() chunks_completed() == 0.");
+
     return (chunks_completed() - 1) * cs + m_entryList->bytes_size() % cs;
+  }
 }
 
 bool
@@ -145,11 +149,14 @@ Content::is_valid_piece(const Piece& p) const {
 
 bool
 Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
-  if (index >= m_chunkTotal || chunks_completed() >= m_chunkTotal)
-    throw internal_error("Content::receive_chunk_hash(...) received an invalid index.");
-
   if (m_bitfield.get(index))
     throw internal_error("Content::receive_chunk_hash(...) received a chunk that has already been finished.");
+
+  if (m_bitfield.size_set() >= m_bitfield.size_bits())
+    throw internal_error("Content::receive_chunk_hash(...) m_bitfield.size_set() >= m_bitfield.size_bits().");
+
+  if (index >= m_chunkTotal || chunks_completed() >= m_chunkTotal)
+    throw internal_error("Content::receive_chunk_hash(...) received an invalid index.");
 
   if (hash.empty() || std::memcmp(hash.c_str(), chunk_hash(index), 20) != 0)
     return false;

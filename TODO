@@ -2,19 +2,9 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Make sure we properly clear bitfield stuff on close.
-
-The ability to compare sort by hash queue position.
-
-Need to be able to stop hashing torrents.
-
-Don't properly call hash_remove for currently hashing torrents.
-
 Do a single filter/insert thingie for View filter_on.
 
 Check that all options use K/M/G correctly.
-
-Add send/recv_buffer_size to man and wiki.
 
 Do the randomized start position thingie.
 
