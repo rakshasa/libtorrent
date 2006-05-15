@@ -64,20 +64,14 @@ public:
   void                resize(size_type s);
 
   void                clear()                       { delete [] m_data; m_data = NULL, m_size = 0; m_set = 0; }
-  void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= ~value_type() << (8 - m_size % 8); }
+  void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= mask_before(m_size % 8); }
 
   // Using m_set.
   bool                is_all_set() const            { return m_set == m_size; }
   bool                is_all_unset() const          { return m_set == 0; }
 
-  bool                is_tail_cleared() const       { return m_size % 8 == 0 || !(value_type)(*(end() - 1) << (m_size % 8)); }
+  bool                is_tail_cleared() const       { return m_size % 8 == 0 || !((*(end() - 1) & mask_from(m_size % 8))); }
 
-  // Consider adding default range.
-//   bool                is_set(size_type first = 0, size_type last = m_size) const;
-//   bool                is_unset(size_type first = 0, size_type last = m_size) const;
-
-//   void                set_range(size_type first = 0, size_type last = m_size);
-//   void                unset_range(size_type first = 0, size_type last = m_size);
   void                set_range(size_type first, size_type last);
   void                unset_range(size_type first, size_type last);
 
@@ -87,10 +81,10 @@ public:
   size_type           size_set() const              { return m_set; }
   size_type           size_unset() const            { return m_size - m_set; }
 
-  bool                get(size_type idx) const      { return m_data[idx / 8] & (1 << 7 - idx % 8); }
+  bool                get(size_type idx) const      { return m_data[idx / 8] & mask_at(idx % 8); }
 
-  void                set(size_type idx)            { m_set += !get(idx); m_data[idx / 8] |=   1 << 7 - idx % 8; }
-  void                unset(size_type idx)          { m_set -=  get(idx); m_data[idx / 8] &= ~(1 << 7 - idx % 8); }
+  void                set(size_type idx)            { m_set += !get(idx); m_data[idx / 8] |=  mask_at(idx % 8); }
+  void                unset(size_type idx)          { m_set -=  get(idx); m_data[idx / 8] &= ~mask_at(idx % 8); }
 
   iterator            begin()                       { return m_data; }
   const_iterator      begin() const                 { return m_data; }
@@ -100,6 +94,11 @@ public:
   size_type           position(const_iterator itr) const  { return (itr - m_data) * 8; }
 
   void                from_c_str(const char* str)   { std::memcpy(m_data, str, size_bytes()); update(); }
+
+  // Remember to use modulo.
+  static value_type   mask_at(size_type idx)        { return 1 << (7 - idx); }
+  static value_type   mask_before(size_type idx)    { return (value_type)~0 << (8 - idx); }
+  static value_type   mask_from(size_type idx)      { return (value_type)~0 >> idx; }
 
   Bitfield& operator = (const Bitfield& bf)         { delete [] m_data; copy(bf); return *this; }
 

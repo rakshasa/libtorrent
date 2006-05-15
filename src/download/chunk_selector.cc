@@ -77,12 +77,8 @@ ChunkSelector::update_priorities() {
 
   m_sharedQueue.clear();
 
-  // FIXME: Re-enable after debugging statistics.
-
-//   if (m_position == invalid_chunk)
-//     m_position = std::rand() % size();
-
-  m_position = 0;
+  if (m_position == invalid_chunk)
+    m_position = std::rand() % size();
 
   advance_position();
 }
@@ -90,8 +86,8 @@ ChunkSelector::update_priorities() {
 uint32_t
 ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
   // This needs to be re-enabled.
-  //   if (m_position == invalid_chunk)
-  //     return m_position;
+  if (m_position == invalid_chunk)
+    return invalid_chunk;
 
   // When we're a seeder, 'm_sharedQueue' is used. Since the peer's
   // bitfield is guaranteed to be filled we can use the same code as
@@ -178,9 +174,10 @@ ChunkSelector::not_using_index(uint32_t index) {
 
   m_bitfield.set(index);
 
-  // This will make sure that if we enable new chunks, it will work
-  // when 'index == invalid_chunk'.
-  update_priorities();
+  // This will make sure that if we enable new chunks, it will start
+  // downloading them event when 'index == invalid_chunk'.
+  if (m_position == invalid_chunk)
+    m_position = index;
 }
 
 // This could propably be split into two functions, one for checking
@@ -231,7 +228,7 @@ ChunkSelector::search_linear_range(const Bitfield* bf, rak::partial_queue* pq, u
   Bitfield::const_iterator source = bf->begin() + first / 8;
 
   // Unset any bits before 'first'.
-  Bitfield::value_type wanted = (*source & *local) & (0xff >> (first % 8));
+  Bitfield::value_type wanted = (*source & *local) & Bitfield::mask_from(first % 8);
 
   while (m_bitfield.position(local + 1) < last) {
     if (wanted && !search_linear_byte(pq, m_bitfield.position(local), wanted))
@@ -241,7 +238,7 @@ ChunkSelector::search_linear_range(const Bitfield* bf, rak::partial_queue* pq, u
   }
   
   // Unset any bits from 'last'.
-  wanted &= 0xff << (8 - (last - m_bitfield.position(local)));
+  wanted &= Bitfield::mask_before(last - m_bitfield.position(local));
 
   if (wanted)
     return search_linear_byte(pq, m_bitfield.position(local), wanted);
@@ -253,11 +250,9 @@ ChunkSelector::search_linear_range(const Bitfield* bf, rak::partial_queue* pq, u
 inline bool
 ChunkSelector::search_linear_byte(rak::partial_queue* pq, uint32_t index, Bitfield::value_type wanted) {
   for (int i = 0; i < 8; ++i) {
-    if (!(wanted & ((Bitfield::value_type)1 << (7 - i))))
+    if (!(wanted & Bitfield::mask_at(i)))
       continue;
 
-    // Keep the linear name, but make the rarity knob here?
-//     if (!pc->download_cache()->insert(0, index + i))
     if (!pq->insert(m_statistics->rarity(index + i), index + i) && pq->is_full())
       return false;
   }
@@ -267,14 +262,16 @@ ChunkSelector::search_linear_byte(rak::partial_queue* pq, uint32_t index, Bitfie
 
 void
 ChunkSelector::advance_position() {
+
+  // Need to replace with a special-purpose function for finding the
+  // next position.
+
 //   int position = m_position;
 
-  // Find the next wanted piece.
-//   if ((m_position = search_linear(&m_bitfield, &m_highPriority, position, size())) == invalid_chunk &&
-//       (m_position = search_linear(&m_bitfield, &m_highPriority, 0, position)) == invalid_chunk &&
-//       (m_position = search_linear(&m_bitfield, &m_normalPriority, position, size())) == invalid_chunk &&
-//       (m_position = search_linear(&m_bitfield, &m_normalPriority, 0, position)) == invalid_chunk)
-//     ;
+//   ((m_position = search_linear(&m_bitfield, &m_highPriority, position, size())) == invalid_chunk &&
+//    (m_position = search_linear(&m_bitfield, &m_highPriority, 0, position)) == invalid_chunk &&
+//    (m_position = search_linear(&m_bitfield, &m_normalPriority, position, size())) == invalid_chunk &&
+//    (m_position = search_linear(&m_bitfield, &m_normalPriority, 0, position)) == invalid_chunk);
 }
 
 }

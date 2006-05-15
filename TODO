@@ -2,11 +2,13 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
+Strict requirement for open/close on the current state?
+
+Close not working properly, also make closing active download bork.
+
 Do a single filter/insert thingie for View filter_on.
 
 Check that all options use K/M/G correctly.
-
-Do the randomized start position thingie.
 
 Move the catches outside of DownloadList.
 

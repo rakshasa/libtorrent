@@ -171,8 +171,12 @@ ChunkList::sync_chunk(ChunkListNode* node) {
   if (node->references() <= 0 || node->writable() <= 0)
     throw internal_error("ChunkList::sync_chunk(...) got a node with invalid reference count.");
 
-  // Check return value?
-  node->chunk()->sync(MemoryChunk::sync_async);
+  // Stop download?
+//   if (!node->chunk()->sync(MemoryChunk::sync_async))
+//     throw internal_error("ChunkList::sync_chunk() msync async failed.");
+
+  if (!node->chunk()->sync(MemoryChunk::sync_sync))
+    throw internal_error("ChunkList::sync_chunk() msync sync failed.");
 
   node->dec_writable();
   node->dec_references();
