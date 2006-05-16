@@ -80,6 +80,9 @@ Download::start() {
 
 void
 Download::stop() {
+  if (!m_ptr->main()->is_active())
+    return;
+
   m_ptr->stop();
 }
 

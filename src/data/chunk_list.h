@@ -82,15 +82,19 @@ public:
   // Possibly have multiple version, some that do syncing of
   // sequential chunks only etc. Pretty much depends on the time of
   // dereferencing etc.
-  void                sync_all();
-  void                sync_periodic();
+  //
+  // Returns the number of failed syncs.
+  unsigned int        sync_all();
+  unsigned int        sync_periodic();
 
   void                slot_create_chunk(SlotCreateChunk s) { m_slotCreateChunk = s; }
 
 private:
   inline bool         is_queued(ChunkListNode* node);
 
-  static inline void  sync_chunk(ChunkListNode* node);
+  static inline bool  sync_chunk(ChunkListNode* node);
+  static inline bool  async_chunk(ChunkListNode* node);
+
   static inline bool  less_chunk_index(ChunkListNode* node1, ChunkListNode* node2);
 
   Queue               m_queue;

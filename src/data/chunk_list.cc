@@ -166,17 +166,14 @@ struct chunk_list_last_modified {
   rak::timer m_time;
 };
 
-inline void
+inline bool
 ChunkList::sync_chunk(ChunkListNode* node) {
   if (node->references() <= 0 || node->writable() <= 0)
     throw internal_error("ChunkList::sync_chunk(...) got a node with invalid reference count.");
 
-  // Stop download?
-//   if (!node->chunk()->sync(MemoryChunk::sync_async))
-//     throw internal_error("ChunkList::sync_chunk() msync async failed.");
-
+  // Using sync for the time being.
   if (!node->chunk()->sync(MemoryChunk::sync_sync))
-    throw internal_error("ChunkList::sync_chunk() msync sync failed.");
+    return false;
 
   node->dec_writable();
   node->dec_references();
@@ -185,6 +182,8 @@ ChunkList::sync_chunk(ChunkListNode* node) {
     delete node->chunk();
     node->set_chunk(NULL);
   }
+
+  return true;
 }
 
 inline bool
@@ -192,24 +191,41 @@ ChunkList::less_chunk_index(ChunkListNode* node1, ChunkListNode* node2) {
   return node1->index() < node2->index();
 }
 
-void
+unsigned int
 ChunkList::sync_all() {
-  Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
-					 rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+//   Queue::iterator split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+  Queue::iterator split = m_queue.begin();
+  unsigned int failed = 0;
 
-  std::for_each(split, m_queue.end(), std::ptr_fun(&ChunkList::sync_chunk));
+  for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
+
+    // Do first async, then sync at the next call.
+
+    if (!sync_chunk(*itr)) {
+      // Makes sure the failed chunks don't get erased.
+      std::iter_swap(itr, split++);
+      failed++;
+    }
+  }
+
   m_queue.erase(split, m_queue.end());
+  return failed;
 }
 
-void
+unsigned int
 ChunkList::sync_periodic() {
   if (std::find_if(m_queue.begin(), m_queue.end(), rak::equal(0, std::mem_fun(&ChunkListNode::writable)))
       != m_queue.end())
     throw internal_error("ChunkList::sync_periodic() found a chunk with writable == 0.");
 
-  // Chunks that still have writers are moved infront of split.
-  Queue::iterator split = std::partition(m_queue.begin(), m_queue.end(),
-					 rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+  // Chunks that still have writers are moved infront of split. Those
+  // chunks were once released by the last writer, and later grabbed
+  // again. This should be relatively rare and should not cause any
+  // problems.
+  //
+  // Using std::stable_partition to keep the index order relatively
+  // intact for quicker sorting.
+  Queue::iterator split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
 
   // Do various partitioning before sorting by index, so that when we
   // call sync we always increase the index of the chunk.
@@ -221,12 +237,25 @@ ChunkList::sync_periodic() {
 
   if (std::distance(split, m_queue.end()) < (difference_type)m_maxQueueSize &&
       std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + rak::timer::from_seconds(m_maxTimeQueued) < cachedTime)
-    return;
+    return 0;
 
   std::sort(split, m_queue.end(), std::ptr_fun(&ChunkList::less_chunk_index));
 
-  std::for_each(split, m_queue.end(), std::ptr_fun(&ChunkList::sync_chunk));
+  unsigned int failed = 0;
+
+  for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
+
+    // Do first async, then sync at the next call.
+
+    if (!sync_chunk(*itr)) {
+      // Makes sure the failed chunks don't get erased.
+      std::iter_swap(itr, split++);
+      failed++;
+    }
+  }
+
   m_queue.erase(split, m_queue.end());
+  return failed;
 }
 
 }

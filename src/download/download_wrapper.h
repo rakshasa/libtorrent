@@ -143,9 +143,10 @@ private:
 
   int                 m_connectionType;
 
+  rak::priority_item  m_delayDownloadDone;
+
   Signal              m_signalInitialHash;
   Signal              m_signalDownloadDone;
-  rak::priority_item  m_delayDownloadDone;
 
   Signal              m_signalTrackerSuccess;
   SignalString        m_signalTrackerFailed;

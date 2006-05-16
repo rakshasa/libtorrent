@@ -189,17 +189,15 @@ DownloadWrapper::hash_resume_save() {
     // valid, just that the client didn't finish the check this time.
     return;
 
+  // If we can't sync, don't save the resume data.
+  if (m_main.chunk_list()->sync_all() != 0 && m_bencode->has_key("libtorrent resume")) {
+    m_bencode->get_key("libtorrent resume").erase_key("bitfield");
+    return;
+  }
+
   // Clear the resume data since if the syncing fails we propably don't
   // want the old resume data.
   Object& resume = m_bencode->insert_key("libtorrent resume", Object(Object::TYPE_MAP));
-
-  // We're guaranteed that file modification time is correctly updated
-  // after this. Though won't help if the files have been delete while
-  // we had them open.
-  //m_main.content()->entry_list()->sync_all();
-
-  // We sync all chunks in DownloadMain::stop(), so we are guaranteed
-  // that it has been called when we arrive here.
 
   resume.insert_key("bitfield", std::string((char*)m_main.content()->bitfield()->begin(), m_main.content()->bitfield()->size_bytes()));
 
@@ -252,6 +250,11 @@ DownloadWrapper::close() {
   // not get passed to HashTorrent.
   m_hash->get_queue()->remove(info()->hash());
 
+  // This could/should be async as we do not care that much if it
+  // succeeds or not, any chunks not included in that last
+  // hash_resume_save get ignored anyway.
+  m_main.chunk_list()->sync_all();
+
   m_main.close();
 
   // Should this perhaps be in stop?
@@ -275,15 +278,15 @@ DownloadWrapper::start() {
   m_main.start();
 }
 
+// Remember to update receive_tick() when changing stop().
 void
 DownloadWrapper::stop() {
-  if (!m_main.is_active())
-    return;
-
   m_main.stop();
 
   m_connectionChunkPassed.disconnect();
   m_connectionChunkFailed.disconnect();
+
+  m_main.tracker_manager()->send_stop();
 }
 
 bool
@@ -442,7 +445,20 @@ DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
 
 void
 DownloadWrapper::receive_tick() {
-  m_main.chunk_list()->sync_periodic();
+  if (!m_main.is_open())
+    return;
+
+  unsigned int syncFailed = m_main.chunk_list()->sync_periodic();
+
+  if (m_main.is_active() && syncFailed != 0) {
+    // Need to move this stuff into a seperate function.
+    m_main.stop();
+
+    m_connectionChunkPassed.disconnect();
+    m_connectionChunkFailed.disconnect();
+
+    info()->signal_storage_error().emit("Could not sync data to disk, possibly full.");
+  }
 }
 
 void

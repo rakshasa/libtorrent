@@ -178,10 +178,7 @@ DownloadMain::stop() {
   while (!connection_list()->empty())
     connection_list()->erase(connection_list()->front());
 
-  m_trackerManager->send_stop();
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
-
-  m_chunkList->sync_all();
 }
 
 uint64_t
