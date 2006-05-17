@@ -44,6 +44,23 @@
 
 namespace torrent {
 
+struct chunk_list_last_modified {
+  chunk_list_last_modified() : m_time(cachedTime) {}
+
+  void operator () (ChunkListNode* node) {
+    if (node->time_modified() < m_time && node->time_modified() != rak::timer())
+      m_time = node->time_modified();
+  }
+
+  rak::timer m_time;
+};
+
+struct chunk_list_sort_index {
+  bool operator () (ChunkListNode* node1, ChunkListNode* node2) {
+    return node1->index() < node2->index();
+  }
+};
+
 inline bool
 ChunkList::is_queued(ChunkListNode* node) {
   return std::find(m_queue.begin(), m_queue.end(), node) != m_queue.end();
@@ -51,9 +68,7 @@ ChunkList::is_queued(ChunkListNode* node) {
 
 bool
 ChunkList::has_chunk(size_type index, int prot) const {
-  return
-    Base::at(index).is_valid() &&
-    Base::at(index).chunk()->has_permissions(prot);
+  return Base::at(index).is_valid() && Base::at(index).chunk()->has_permissions(prot);
 }
 
 void
@@ -71,13 +86,23 @@ ChunkList::resize(size_type s) {
 
 void
 ChunkList::clear() {
-  if (!m_queue.empty())
-    throw internal_error("ChunkList::clear() m_queue could not be clear.");
+  // Don't do any sync'ing as whomever decided to shut down really
+  // doesn't care, so just de-reference all chunks in queue.
+  for (Queue::iterator itr = m_queue.begin(), last = m_queue.end(); itr != last; ++itr) {
+    if ((*itr)->references() != 1 || (*itr)->writable() != 1)
+      throw internal_error("ChunkList::clear() called but a node in the queue is still referenced.");
+    
+    (*itr)->dec_rw();
 
-  if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::references)) != end())
-    throw internal_error("ChunkList::clear() called but a valid node was found.");
+    delete (*itr)->chunk();
+    (*itr)->set_chunk(NULL);
+  }
 
-  if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::writable)) != end())
+  m_queue.clear();
+
+  if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::chunk)) != end() ||
+      std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::references)) != end() ||
+      std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::writable)) != end())
     throw internal_error("ChunkList::clear() called but a valid node was found.");
 
   Base::clear();
@@ -106,8 +131,13 @@ ChunkList::get(size_type index, bool writable) {
 
   node->inc_references();
 
-  if (writable)
+  if (writable) {
     node->inc_writable();
+
+    // Make sure that periodic syncing uses async on any subsequent
+    // changes even if it was triggered before this get.
+    node->set_sync_triggered(false);
+  }
 
   return ChunkHandle(node, writable);
 }
@@ -137,8 +167,7 @@ ChunkList::release(ChunkHandle handle) {
       m_queue.push_back(handle.node());
 
     } else {
-      handle->dec_references();
-      handle->dec_writable();
+      handle->dec_rw();
     }
 
   } else {
@@ -148,35 +177,27 @@ ChunkList::release(ChunkHandle handle) {
 
       delete handle->chunk();
       handle->set_chunk(NULL);
-      
     }
 
     handle->dec_references();
   }
 }
 
-struct chunk_list_last_modified {
-  chunk_list_last_modified() : m_time(cachedTime) {}
-
-  void operator () (ChunkListNode* node) {
-    if (node->time_modified() < m_time && node->time_modified() != rak::timer())
-      m_time = node->time_modified();
-  }
-
-  rak::timer m_time;
-};
-
 inline bool
-ChunkList::sync_chunk(ChunkListNode* node) {
+ChunkList::sync_chunk(ChunkListNode* node, int flags, bool cleanup) {
   if (node->references() <= 0 || node->writable() <= 0)
     throw internal_error("ChunkList::sync_chunk(...) got a node with invalid reference count.");
 
   // Using sync for the time being.
-  if (!node->chunk()->sync(MemoryChunk::sync_sync))
+  if (!node->chunk()->sync(flags))
     return false;
 
-  node->dec_writable();
-  node->dec_references();
+  node->set_sync_triggered(true);
+
+  if (!cleanup)
+    return true;
+
+  node->dec_rw();
  
   if (node->references() == 0) {
     delete node->chunk();
@@ -186,27 +207,19 @@ ChunkList::sync_chunk(ChunkListNode* node) {
   return true;
 }
 
-inline bool
-ChunkList::less_chunk_index(ChunkListNode* node1, ChunkListNode* node2) {
-  return node1->index() < node2->index();
-}
-
 unsigned int
-ChunkList::sync_all() {
-//   Queue::iterator split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
-  Queue::iterator split = m_queue.begin();
+ChunkList::sync_all(bool async) {
+  std::sort(m_queue.begin(), m_queue.end(), chunk_list_sort_index());
+
   unsigned int failed = 0;
+  Queue::iterator split = m_queue.begin();
 
-  for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
-
-    // Do first async, then sync at the next call.
-
-    if (!sync_chunk(*itr)) {
+  for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr)
+    if (!sync_chunk(*itr, async ? MemoryChunk::sync_async : MemoryChunk::sync_sync, true)) {
       // Makes sure the failed chunks don't get erased.
       std::iter_swap(itr, split++);
       failed++;
     }
-  }
 
   m_queue.erase(split, m_queue.end());
   return failed;
@@ -239,19 +252,22 @@ ChunkList::sync_periodic() {
       std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + rak::timer::from_seconds(m_maxTimeQueued) < cachedTime)
     return 0;
 
-  std::sort(split, m_queue.end(), std::ptr_fun(&ChunkList::less_chunk_index));
+  std::sort(split, m_queue.end(), chunk_list_sort_index());
 
   unsigned int failed = 0;
 
   for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
+    // Do first async on the chunk, then sync at the next periodic
+    // call.
+    bool triggered = (*itr)->sync_triggered();
 
-    // Do first async, then sync at the next call.
-
-    if (!sync_chunk(*itr)) {
-      // Makes sure the failed chunks don't get erased.
-      std::iter_swap(itr, split++);
+    if (!sync_chunk(*itr, !triggered ? MemoryChunk::sync_async : MemoryChunk::sync_sync, triggered))
       failed++;
-    }
+
+    else if (triggered)
+      continue;
+
+    std::iter_swap(itr, split++);
   }
 
   m_queue.erase(split, m_queue.end());

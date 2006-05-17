@@ -84,7 +84,7 @@ public:
   // dereferencing etc.
   //
   // Returns the number of failed syncs.
-  unsigned int        sync_all();
+  unsigned int        sync_all(bool async);
   unsigned int        sync_periodic();
 
   void                slot_create_chunk(SlotCreateChunk s) { m_slotCreateChunk = s; }
@@ -92,10 +92,7 @@ public:
 private:
   inline bool         is_queued(ChunkListNode* node);
 
-  static inline bool  sync_chunk(ChunkListNode* node);
-  static inline bool  async_chunk(ChunkListNode* node);
-
-  static inline bool  less_chunk_index(ChunkListNode* node1, ChunkListNode* node2);
+  static inline bool  sync_chunk(ChunkListNode* node, int flags, bool cleanup);
 
   Queue               m_queue;
   uint32_t            m_maxQueueSize;

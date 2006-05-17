@@ -2,15 +2,6 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Add async version of calls to chunk list.
-
-Add a flag to CLN saying if it was async'ed out. Clear when someone
-else takes a writable.
-
-On close, change to async.
-
-Does this cover all possible paths that might re-use thrown-out chunks?
-
 Check that rtorrent doesn't mind the download stopping.
 
 Add configure flags to use different sync orders.

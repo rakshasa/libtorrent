@@ -55,7 +55,12 @@ class ChunkListNode {
 public:
   static const uint32_t invalid_index = ~uint32_t();
 
-  ChunkListNode() : m_index(invalid_index), m_chunk(NULL), m_references(0), m_writable(0) {}
+  ChunkListNode() :
+    m_index(invalid_index),
+    m_chunk(NULL),
+    m_references(0),
+    m_writable(0),
+    m_asyncTriggered(false) {}
 
   bool                is_valid() const               { return m_chunk; }
 
@@ -68,6 +73,9 @@ public:
   const rak::timer&   time_modified() const           { return m_timeModified; }
   void                set_time_modified(rak::timer t) { m_timeModified = t; }
 
+  bool                sync_triggered() const         { return m_asyncTriggered; }
+  void                set_sync_triggered(bool v)     { m_asyncTriggered = v; }
+
   int                 references() const             { return m_references; }
   void                dec_references()               { m_references--; }
   void                inc_references()               { m_references++; }
@@ -75,6 +83,9 @@ public:
   int                 writable() const               { return m_writable; }
   void                dec_writable()                 { m_writable--; }
   void                inc_writable()                 { m_writable++; }
+
+  void                inc_rw()                       { inc_writable(); inc_references(); }
+  void                dec_rw()                       { dec_writable(); dec_references(); }
 
 private:
   uint32_t            m_index;
@@ -84,6 +95,7 @@ private:
   int                 m_writable;
 
   rak::timer          m_timeModified;
+  bool                m_asyncTriggered;
 };
 
 }
