@@ -2,13 +2,6 @@ NOTE: These are personal TODO items that might, or might not be
 implemented. They are just notes to keep me from forgetting ideas i
 get while coding.
 
-Check that rtorrent doesn't mind the download stopping.
-
-Add configure flags to use different sync orders.
-
-Ensure chunks in queue are unique?
-
-
 Strict requirement for open/close on the current state?
 
 Close not working properly, also make closing active download bork.

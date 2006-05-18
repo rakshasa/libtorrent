@@ -164,6 +164,9 @@ ChunkList::release(ChunkHandle handle) {
 	throw internal_error("ChunkList::release(...) tried to queue an already queued chunk.");
 
       // Only add those that have a modification time set?
+      //
+      // Only chunks that are not already in the queue will execute
+      // this branch.
       m_queue.push_back(handle.node());
 
     } else {
@@ -208,14 +211,14 @@ ChunkList::sync_chunk(ChunkListNode* node, int flags, bool cleanup) {
 }
 
 unsigned int
-ChunkList::sync_all(bool async) {
-  std::sort(m_queue.begin(), m_queue.end(), chunk_list_sort_index());
+ChunkList::sync_all(int flags) {
+  std::sort(m_queue.begin(), m_queue.end());
 
   unsigned int failed = 0;
   Queue::iterator split = m_queue.begin();
 
   for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr)
-    if (!sync_chunk(*itr, async ? MemoryChunk::sync_async : MemoryChunk::sync_sync, true)) {
+    if (!sync_chunk(*itr, flags, true)) {
       // Makes sure the failed chunks don't get erased.
       std::iter_swap(itr, split++);
       failed++;
@@ -252,22 +255,27 @@ ChunkList::sync_periodic() {
       std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + rak::timer::from_seconds(m_maxTimeQueued) < cachedTime)
     return 0;
 
-  std::sort(split, m_queue.end(), chunk_list_sort_index());
+  // The queue contains pointer of objects in a vector, so we can sort
+  // by the pointer value.
+  std::sort(split, m_queue.end());
 
   unsigned int failed = 0;
 
   for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
     // Do first async on the chunk, then sync at the next periodic
     // call.
-    bool triggered = (*itr)->sync_triggered();
+    if (!(*itr)->sync_triggered()) {
+      if (!sync_chunk(*itr, MemoryChunk::sync_async, false))
+	failed++;
 
-    if (!sync_chunk(*itr, !triggered ? MemoryChunk::sync_async : MemoryChunk::sync_sync, triggered))
-      failed++;
+      std::iter_swap(itr, split++);
 
-    else if (triggered)
-      continue;
-
-    std::iter_swap(itr, split++);
+    } else {
+      if (!sync_chunk(*itr, MemoryChunk::sync_sync, true)) {
+	failed++;
+	std::iter_swap(itr, split++);
+      }
+    }
   }
 
   m_queue.erase(split, m_queue.end());

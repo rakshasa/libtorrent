@@ -84,7 +84,7 @@ public:
   // dereferencing etc.
   //
   // Returns the number of failed syncs.
-  unsigned int        sync_all(bool async);
+  unsigned int        sync_all(int flags);
   unsigned int        sync_periodic();
 
   void                slot_create_chunk(SlotCreateChunk s) { m_slotCreateChunk = s; }

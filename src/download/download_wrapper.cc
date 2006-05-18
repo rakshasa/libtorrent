@@ -190,7 +190,7 @@ DownloadWrapper::hash_resume_save() {
     return;
 
   // If we can't sync, don't save the resume data.
-  if (m_main.chunk_list()->sync_all(false) != 0 && m_bencode->has_key("libtorrent resume")) {
+  if (m_main.chunk_list()->sync_all(MemoryChunk::sync_sync) != 0 && m_bencode->has_key("libtorrent resume")) {
     m_bencode->get_key("libtorrent resume").erase_key("bitfield");
     return;
   }
@@ -253,7 +253,7 @@ DownloadWrapper::close() {
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
   // hash_resume_save get ignored anyway.
-  m_main.chunk_list()->sync_all(true);
+  m_main.chunk_list()->sync_all(MemoryChunk::sync_async);
 
   m_main.close();
 
