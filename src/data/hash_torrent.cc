@@ -79,6 +79,10 @@ HashTorrent::is_checked() {
 
 void
 HashTorrent::receive_chunkdone() {
+  if (m_outstanding == -1)
+//     throw internal_error("HashTorrent::receive_chunkdone() m_outstanding < 0.");
+    return;
+
   // m_signalChunk will always point to
   // DownloadMain::receive_hash_done, so it will take care of cleanup.
   //

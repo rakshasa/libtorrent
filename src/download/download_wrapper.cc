@@ -376,28 +376,31 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
   if (!is_open())
     throw internal_error("DownloadWrapper::receive_hash_done(...) called but the download is not open.");
 
+  uint32_t index = handle->index();
+  m_main.chunk_list()->release(handle);
+
   if (m_hash->is_checking()) {
-    m_main.content()->receive_chunk_hash(handle->index(), h);
+    m_main.content()->receive_chunk_hash(index, h);
     m_hash->receive_chunkdone();
 
   } else if (m_hash->is_checked()) {
 
-    if (m_main.chunk_selector()->bitfield()->get(handle->index()))
+    if (m_main.chunk_selector()->bitfield()->get(index))
       throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
-    if (m_main.content()->receive_chunk_hash(handle->index(), h)) {
+    if (m_main.content()->receive_chunk_hash(index, h)) {
 
       // Should this be done here, or after send_finished_chunk?
-      signal_chunk_passed().emit(handle->index());
+      signal_chunk_passed().emit(index);
       m_main.update_endgame();
 
       if (m_main.content()->is_done())
 	finished_download();
     
-      m_main.connection_list()->send_finished_chunk(handle->index());
+      m_main.connection_list()->send_finished_chunk(index);
 
     } else {
-      signal_chunk_failed().emit(handle->index());
+      signal_chunk_failed().emit(index);
     }
 
   } else {
@@ -407,8 +410,6 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
 
     //throw internal_error("DownloadWrapper::receive_hash_done(...) called but we're not in the right state.");
   }
-
-  m_main.chunk_list()->release(handle);
 }  
 
 void
