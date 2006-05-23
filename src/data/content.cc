@@ -51,7 +51,6 @@ namespace torrent {
 
 Content::Content() :
   m_chunkSize(1 << 16),
-  m_chunkTotal(0),
 
   // Temporary personal hack.
   //  m_maxFileSize((uint64_t)600 << 20),
@@ -67,12 +66,13 @@ Content::~Content() {
 void
 Content::initialize(uint32_t chunkSize) {
   m_chunkSize = chunkSize;
-  m_chunkTotal = (m_entryList->bytes_size() + chunkSize - 1) / chunkSize;
 
-  if (m_hash.size() / 20 < m_chunkTotal)
+  m_bitfield.set_size_bits((m_entryList->bytes_size() + chunkSize - 1) / chunkSize);
+  m_bitfield.allocate();
+  m_bitfield.unset_all();
+
+  if (m_hash.size() / 20 < chunk_total())
     throw bencode_error("Torrent size and 'info:pieces' length does not match.");
-
-  m_bitfield.resize(m_chunkTotal);
 
   for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
     (*itr)->set_range(make_index_range((*itr)->position(), (*itr)->size()));
@@ -81,8 +81,13 @@ Content::initialize(uint32_t chunkSize) {
 }
 
 void
+Content::clear() {
+  m_bitfield.unset_all();
+}
+
+void
 Content::add_file(const Path& path, uint64_t size) {
-  if (m_chunkTotal)
+  if (chunk_total())
     throw internal_error("Tried to add file to a torrent::Content that is initialized.");
 
   if (m_maxFileSize == 0 || size < m_maxFileSize) {
@@ -106,7 +111,7 @@ Content::add_file(const Path& path, uint64_t size) {
 
 void
 Content::set_complete_hash(const std::string& hash) {
-  if (m_chunkTotal)
+  if (chunk_total())
     throw internal_error("Tried to set hash on a torrent::Content that is initialized.");
 
   m_hash = hash;
@@ -114,7 +119,7 @@ Content::set_complete_hash(const std::string& hash) {
 
 uint32_t
 Content::chunk_index_size(uint32_t index) const {
-  if (index + 1 != m_chunkTotal || m_entryList->bytes_size() % m_chunkSize == 0)
+  if (index + 1 != chunk_total() || m_entryList->bytes_size() % m_chunkSize == 0)
     return m_chunkSize;
   else
     return m_entryList->bytes_size() % m_chunkSize;
@@ -124,7 +129,7 @@ uint64_t
 Content::bytes_completed() const {
   uint64_t cs = m_chunkSize;
 
-  if (!m_bitfield.get(m_chunkTotal - 1) || m_entryList->bytes_size() % cs == 0) {
+  if (!m_bitfield.get(chunk_total() - 1) || m_entryList->bytes_size() % cs == 0) {
     // The last chunk is not done, or the last chunk is the same size as the others.
     return chunks_completed() * cs;
 
@@ -139,7 +144,7 @@ Content::bytes_completed() const {
 bool
 Content::is_valid_piece(const Piece& p) const {
   return
-    p.index() < m_chunkTotal &&
+    p.index() < chunk_total() &&
     p.length() != 0 &&
 
     // Make sure offset does not overflow 32 bits.
@@ -155,7 +160,7 @@ Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
   if (m_bitfield.size_set() >= m_bitfield.size_bits())
     throw internal_error("Content::receive_chunk_hash(...) m_bitfield.size_set() >= m_bitfield.size_bits().");
 
-  if (index >= m_chunkTotal || chunks_completed() >= m_chunkTotal)
+  if (index >= chunk_total() || chunks_completed() >= chunk_total())
     throw internal_error("Content::receive_chunk_hash(...) received an invalid index.");
 
   if (hash.empty() || std::memcmp(hash.c_str(), chunk_hash(index), 20) != 0)
@@ -181,10 +186,6 @@ Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
 // bitfield.
 void
 Content::update_done() {
-  // No longer needed as the Bitfield is kept up-to-date in
-  // DownloadWrapper::hash_resume_load().
-  //m_bitfield.update();
-
   if (!m_bitfield.is_tail_cleared())
     throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
 

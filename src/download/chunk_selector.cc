@@ -54,7 +54,8 @@ ChunkSelector::initialize(Bitfield* bf, ChunkStatistics* cs) {
   m_position = invalid_chunk;
   m_statistics = cs;
 
-  m_bitfield.resize(bf->size_bits());
+  m_bitfield.set_size_bits(bf->size_bits());
+  m_bitfield.allocate();
   std::transform(bf->begin(), bf->end(), m_bitfield.begin(), rak::invert<Bitfield::value_type>());
   m_bitfield.update();
 

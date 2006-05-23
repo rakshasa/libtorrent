@@ -51,35 +51,43 @@ public:
   typedef const value_type*     const_iterator;
 
   Bitfield() : m_size(0), m_set(0), m_data(NULL)    {}
-  Bitfield(const Bitfield& bf)                      { copy(bf); }
   ~Bitfield()                                       { clear(); }
 
   bool                empty() const                 { return m_data != NULL; }
 
-  // Call update if you've changed the data directly and want to
-  // update the counters and unset the last unused bits.
-  //
-  // Resize clears the data?
-  void                update();
-  void                resize(size_type s);
-
-  void                clear()                       { delete [] m_data; m_data = NULL, m_size = 0; m_set = 0; }
-  void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= mask_before(m_size % 8); }
-
-  // Using m_set.
   bool                is_all_set() const            { return m_set == m_size; }
   bool                is_all_unset() const          { return m_set == 0; }
 
   bool                is_tail_cleared() const       { return m_size % 8 == 0 || !((*(end() - 1) & mask_from(m_size % 8))); }
-
-  void                set_range(size_type first, size_type last);
-  void                unset_range(size_type first, size_type last);
 
   size_type           size_bits() const             { return m_size; }
   size_type           size_bytes() const            { return (m_size + 7) / 8; }
 
   size_type           size_set() const              { return m_set; }
   size_type           size_unset() const            { return m_size - m_set; }
+
+  void                set_size_bits(size_type s);
+  void                set_size_set(size_type s);
+
+  // Call update if you've changed the data directly and want to
+  // update the counters and unset the last unused bits.
+  //
+  // Resize clears the data?
+  void                update();
+
+  void                allocate()                    { if (m_data == NULL) m_data = new value_type[size_bytes()]; }
+  void                unallocate()                  { delete [] m_data; m_data = NULL; }
+
+  void                clear()                       { unallocate(); m_size = 0; m_set = 0; }
+  void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= mask_before(m_size % 8); }
+
+  void                copy(const Bitfield& bf);
+
+  void                set_all();
+  void                set_range(size_type first, size_type last);
+
+  void                unset_all();
+  void                unset_range(size_type first, size_type last);
 
   bool                get(size_type idx) const      { return m_data[idx / 8] & mask_at(idx % 8); }
 
@@ -100,31 +108,15 @@ public:
   static value_type   mask_before(size_type idx)    { return (value_type)~0 << (8 - idx); }
   static value_type   mask_from(size_type idx)      { return (value_type)~0 >> idx; }
 
-  Bitfield& operator = (const Bitfield& bf)         { delete [] m_data; copy(bf); return *this; }
-
 private:
-  void                copy(const Bitfield& bf);
+  Bitfield(const Bitfield& bf);
+  Bitfield& operator = (const Bitfield& bf);
 
   size_type           m_size;
   size_type           m_set;
 
   value_type*         m_data;
 };
-
-inline void
-Bitfield::copy(const Bitfield& bf) {
-  m_size = bf.m_size;
-  m_set = bf.m_set;
-
-  if (bf.m_data == NULL) {
-    m_data = NULL;
-
-  } else {
-    m_data = new value_type[size_bytes()];
-
-    std::memcpy(m_data, bf.m_data, size_bytes());
-  }
-}
 
 }
 

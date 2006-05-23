@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "bitfield.h"
+#include "exceptions.h"
 
 namespace torrent {
 
@@ -62,6 +63,22 @@ static const unsigned char bit_count_256[] =
 };
 
 void
+Bitfield::set_size_bits(size_type s) {
+  if (m_data != NULL)
+    throw internal_error("Bitfield::set_size_bits(size_type s) m_data != NULL.");
+
+  m_size = s;
+}
+
+void
+Bitfield::set_size_set(size_type s) {
+  if (s > m_size)
+    throw internal_error("Bitfield::set_size_set(size_type s) s > m_size.");
+
+  m_set = s;
+}
+
+void
 Bitfield::update() {
   // Clears the unused bits.
   clear_tail();
@@ -75,31 +92,33 @@ Bitfield::update() {
 }
 
 void
-Bitfield::resize(size_type s) {
-  m_size = s;
-  m_set = 0;
+Bitfield::copy(const Bitfield& bf) {
+  m_size = bf.m_size;
+  m_set = bf.m_set;
 
-  delete [] m_data;
-
-  if (m_size == 0) {
+  if (bf.m_data == NULL) {
     m_data = NULL;
 
   } else {
     m_data = new value_type[size_bytes()];
 
-    std::memset(m_data, 0, size_bytes());
+    std::memcpy(m_data, bf.m_data, size_bytes());
   }
 }
 
-// bool
-// Bitfield::is_set(size_type first, size_type last) const {
-//   return false;
-// }
+void
+Bitfield::set_all() {
+  m_set = m_size;
 
-// bool
-// Bitfield::is_unset(size_type first, size_type last) const {
-//   return false;
-// }
+  std::memset(m_data, ~value_type(), size_bytes());
+}
+
+void
+Bitfield::unset_all() {
+  m_set = 0;
+
+  std::memset(m_data, value_type(), size_bytes());
+}
 
 // Quick hack. Speed improvements would require that m_set is kept
 // up-to-date.

@@ -128,7 +128,11 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
   if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
     throw internal_error("PeerConnectionBase::set(...) recived bad input.");
 
-  m_peerChunks.bitfield()->resize(m_download->content()->chunk_total());
+  // Read in at the handshake so we don't need to allocate and clear
+  // the bitfield needlessly.
+  m_peerChunks.bitfield()->set_size_bits(m_download->content()->chunk_total());
+  m_peerChunks.bitfield()->allocate();
+  m_peerChunks.bitfield()->unset_all();
 
   manager->poll()->open(this);
   manager->poll()->insert_read(this);

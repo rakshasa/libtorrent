@@ -119,19 +119,21 @@ HashTorrent::queue() {
 
     ChunkHandle handle = m_chunkList->get(m_position++, false);
 
-    if (handle.is_valid()) {
-      m_slotCheckChunk(handle);
-      m_outstanding++;
+    if (!handle.is_valid())
+      continue;
 
-    } else if (handle.error_number().is_valid()) {
-      // If the error number is not valid, then we've just encountered
-      // a file that hasn't be created/resized. Which means we ignore
-      // it when doing initial hashing.
+    // If the error number is not valid, then we've just encountered a
+    // file that hasn't be created/resized. Which means we ignore it
+    // when doing initial hashing.
+    if (handle.error_number().is_valid()) {
       m_slotInitialHash();
       m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
 
       return;
     }
+    
+    m_slotCheckChunk(handle);
+    m_outstanding++;
   }
 
   if (m_outstanding == 0) {

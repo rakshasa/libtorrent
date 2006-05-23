@@ -70,7 +70,7 @@ public:
   ~Content();
 
   void                   initialize(uint32_t chunkSize);
-  void                   clear()                                        { m_bitfield.resize(m_bitfield.size_bits()); }
+  void                   clear();
 
   void                   open();
   void                   close();
@@ -84,7 +84,7 @@ public:
   uint32_t               chunks_completed() const                       { return m_bitfield.size_set(); }
   uint64_t               bytes_completed() const;
   
-  uint32_t               chunk_total() const                            { return m_chunkTotal; }
+  uint32_t               chunk_total() const                            { return m_bitfield.size_bits(); }
   uint32_t               chunk_size() const                             { return m_chunkSize; }
   const char*            chunk_hash(unsigned int index)                 { return m_hash.c_str() + 20 * index; }
 
@@ -110,8 +110,6 @@ private:
   Range                  make_index_range(uint64_t pos, uint64_t size) const;
 
   uint32_t               m_chunkSize;
-  uint32_t               m_chunkTotal;
-
   uint64_t               m_maxFileSize;
 
   EntryList*             m_entryList;
