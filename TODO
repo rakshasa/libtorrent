@@ -6,26 +6,14 @@ Strict requirement for open/close on the current state?
 
 Close not working properly, also make closing active download bork.
 
-Do a single filter/insert thingie for View filter_on.
-
 Check that all options use K/M/G correctly.
 
 Move the catches outside of DownloadList.
-
-Add a hash queue view and make the hash queue use that view.
-
-Do proper change of focus during filtering.
 
 When setting upload_rate, make sure max_unchoked is valid.
 
 Move BITFIELD handling? Put another link between handshake and
 PeerConnection. Make various buffers swappable/movable.
-
-Note send/recv buffer size. Note about how enable_trackers won't be
-possible to cheat with, and that the imaginary DHT will also be
-disabled.
-
-Save session torrent on hash check complete, if nessesary.
 
 Don't silently drop connections that fail certain setup calls.
 
@@ -50,8 +38,6 @@ loop checking ceiling?
 ConnectionList::erase_remaining(iterator pos) - Need to save the itr?
 
 Make the download_list handlers into rak::function's.
-
-Add option for TOS, enums or similar in CM.
 
 Add messages to the network log for bad settings, or merely ignore them?
 

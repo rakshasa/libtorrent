@@ -205,9 +205,12 @@ TrackerHttp::receive_done() {
   AddressList l;
 
   try {
+    // Due to some trackers sending the wrong type when no peers are
+    // available, don't bork on it.
     if (b.get_key("peers").is_string())
       parse_address_compact(&l, b.get_key("peers").as_string());
-    else
+
+    else if (b.get_key("peers").is_list())
       parse_address_normal(&l, b.get_key("peers").as_list());
 
   } catch (bencode_error& e) {
