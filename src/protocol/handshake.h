@@ -47,7 +47,7 @@
 namespace torrent {
 
 class HandshakeManager;
-class DownloadInfo;
+class DownloadMain;
 
 class Handshake : public SocketStream {
 public:
@@ -63,19 +63,21 @@ public:
     WRITE_FILL,
     WRITE_SEND,
     READ_INFO,
-    READ_PEER
+    READ_PEER,
+
+    BITFIELD
   } State;
 
   Handshake(SocketFd fd, HandshakeManager* m);
   ~Handshake();
 
-  void                initialize_outgoing(const rak::socket_address& sa, DownloadInfo* d);
+  void                initialize_outgoing(const rak::socket_address& sa, DownloadMain* d);
   void                initialize_incoming(const rak::socket_address& sa);
   
   PeerInfo*           peer_info()                   { return &m_peerInfo; }
   const PeerInfo*     peer_info() const             { return &m_peerInfo; }
 
-  DownloadInfo*       download_info()               { return m_downloadInfo; }
+  DownloadMain*       download()                    { return m_download; }
 
   // Make sure the fd is valid when this is called. The caller is
   // responsible for closing the socket if nessesary.
@@ -96,12 +98,14 @@ protected:
   HandshakeManager*   m_manager;
 
   PeerInfo            m_peerInfo;
-  DownloadInfo*       m_downloadInfo;
+  DownloadMain*       m_download;
 
   rak::priority_item  m_taskTimeout;
 
   Buffer              m_readBuffer;
   Buffer              m_writeBuffer;
+
+  uint32_t            m_writePos;
 };
 
 }

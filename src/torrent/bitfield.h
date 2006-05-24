@@ -82,6 +82,7 @@ public:
   void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= mask_before(m_size % 8); }
 
   void                copy(const Bitfield& bf);
+  void                swap(Bitfield& bf);
 
   void                set_all();
   void                set_range(size_type first, size_type last);

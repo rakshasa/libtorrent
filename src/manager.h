@@ -51,12 +51,12 @@ class HashQueue;
 class HandshakeManager;
 class DownloadManager;
 class DownloadWrapper;
+class DownloadMain;
 class FileManager;
 class ResourceManager;
 class PeerInfo;
 class ConnectionManager;
 class ThrottleManager;
-class DownloadInfo;
 
 typedef std::list<std::string> EncodingList;
 
@@ -85,7 +85,7 @@ public:
   void                cleanup_download(DownloadWrapper* d);
 
   void                receive_tick();
-  void                receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& peer);
+  void                receive_connection(SocketFd fd, DownloadMain* download, const PeerInfo& peer);
 
 private:
   DownloadManager*    m_downloadManager;

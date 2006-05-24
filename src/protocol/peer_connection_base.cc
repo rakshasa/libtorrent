@@ -421,14 +421,6 @@ PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
   return copyLength == msgLength;
 }
 
-bool
-PeerConnectionBase::write_bitfield_body() {
-  m_up->adjust_position(write_stream_throws(m_download->content()->bitfield()->begin() + m_up->position(),
-					    m_download->content()->bitfield()->size_bytes() - m_up->position()));
-
-  return m_up->position() == m_peerChunks.bitfield()->size_bytes();
-}
-
 // High stall count peers should request if we're *not* in endgame, or
 // if we're in endgame and the download is too slow. Prefere not to request
 // from high stall counts when we are doing decent speeds.

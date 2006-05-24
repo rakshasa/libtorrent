@@ -36,7 +36,8 @@
 
 #include "config.h"
 
-#include "download/download_info.h"
+#include "data/content.h"
+#include "download/download_main.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
@@ -55,7 +56,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
   m_state(INACTIVE),
 
   m_manager(m),
-  m_downloadInfo(NULL) {
+  m_download(NULL) {
 
   set_fd(fd);
 
@@ -74,8 +75,8 @@ Handshake::~Handshake() {
 }
 
 void
-Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadInfo* d) {
-  m_downloadInfo = d;
+Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
+  m_download = d;
 
   m_peerInfo.set_incoming(false);
   m_peerInfo.set_socket_address(&sa);
@@ -142,12 +143,12 @@ Handshake::event_read() {
 
       // Check the info hash.
       if (m_peerInfo.is_incoming()) {
-	m_downloadInfo = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+	m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
 
-	if (m_downloadInfo == NULL)
+	if (m_download == NULL)
 	  throw close_connection();
 
-	if (!m_downloadInfo->accepting_new_peers())
+	if (!m_download->info()->accepting_new_peers())
 	  throw close_connection();
 
 	m_state = WRITE_FILL;
@@ -159,7 +160,7 @@ Handshake::event_read() {
 	return;
 
       } else {
-	if (std::memcmp(m_downloadInfo->hash().c_str(), m_readBuffer.position(), 20) != 0)
+	if (std::memcmp(m_download->info()->hash().c_str(), m_readBuffer.position(), 20) != 0)
 	  throw close_connection();
 
 	m_state = READ_PEER;
@@ -176,12 +177,30 @@ Handshake::event_read() {
       m_peerInfo.set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
       m_readBuffer.move_position(20);
 
-      m_manager->receive_succeeded(this);
+      // The download is just starting so we're not sending any
+      // bitfield.
+      if (m_download->content()->bitfield()->is_all_unset()) {
+	m_manager->receive_succeeded(this);
+	return;
+      }
 
+      m_writeBuffer.reset();
+      m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
+      m_writeBuffer.write_8(5);
+      m_writeBuffer.prepare_end();
+
+      m_writePos = 0;
+
+      manager->poll()->remove_read(this);
+      manager->poll()->insert_write(this);
+
+      m_state = BITFIELD;
+
+      // Call write directly.
       return;
 
     default:
-      throw internal_error("Handshake::event_write() called in invalid state.");
+      throw internal_error("Handshake::event_read() called in invalid state.");
     }
 
   } catch (network_error& e) {
@@ -206,8 +225,8 @@ Handshake::event_write() {
       std::memset(m_writeBuffer.position(), 0, 8);
       m_writeBuffer.move_position(8);
 
-      m_writeBuffer.write_range(m_downloadInfo->hash().c_str(), m_downloadInfo->hash().c_str() + 20);
-      m_writeBuffer.write_range(m_downloadInfo->local_id().c_str(), m_downloadInfo->local_id().c_str() + 20);
+      m_writeBuffer.write_range(m_download->info()->hash().c_str(), m_download->info()->hash().c_str() + 20);
+      m_writeBuffer.write_range(m_download->info()->local_id().c_str(), m_download->info()->local_id().c_str() + 20);
 
       m_writeBuffer.prepare_end();
 
@@ -232,8 +251,23 @@ Handshake::event_write() {
 
       return;
 
+    case BITFIELD:
+      if (m_writeBuffer.remaining())
+	m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
+      
+      if (m_writeBuffer.remaining())
+	return;
+
+      m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
+					m_download->content()->bitfield()->size_bytes() - m_writePos);
+
+      if (m_writePos == m_download->content()->bitfield()->size_bytes())
+	m_manager->receive_succeeded(this);
+
+      return;
+
     default:
-      throw internal_error("Handshake::event_read() called in invalid state.");
+      throw internal_error("Handshake::event_write() called in invalid state.");
     }
 
   } catch (network_error& e) {

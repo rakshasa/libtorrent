@@ -62,8 +62,8 @@ HandshakeManager::delete_handshake(Handshake* h) {
 }
 
 HandshakeManager::size_type
-HandshakeManager::size_info(DownloadInfo* info) const {
-  return std::count_if(Base::begin(), Base::end(), rak::equal(info, std::mem_fun(&Handshake::download_info)));
+HandshakeManager::size_info(DownloadMain* info) const {
+  return std::count_if(Base::begin(), Base::end(), rak::equal(info, std::mem_fun(&Handshake::download)));
 }
 
 void
@@ -94,8 +94,8 @@ HandshakeManager::find(const rak::socket_address& sa) {
 }
 
 void
-HandshakeManager::erase_info(DownloadInfo* info) {
-  iterator split = std::partition(Base::begin(), Base::end(), rak::not_equal(info, std::mem_fun(&Handshake::download_info)));
+HandshakeManager::erase_info(DownloadMain* info) {
+  iterator split = std::partition(Base::begin(), Base::end(), rak::not_equal(info, std::mem_fun(&Handshake::download)));
 
   std::for_each(split, Base::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
   Base::erase(split, Base::end());
@@ -119,7 +119,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
 }
   
 void
-HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadInfo* info) {
+HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* info) {
   if (!manager->connection_manager()->can_connect() ||
       !manager->connection_manager()->filter(sa.c_sockaddr()))
     return;
@@ -153,7 +153,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
 //   h->download_info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->get_address());
 
-  m_slotConnected(h->get_fd(), h->download_info(), *h->peer_info());
+  m_slotConnected(h->get_fd(), h->download(), *h->peer_info());
 
   h->set_fd(SocketFd());
   delete h;

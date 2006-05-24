@@ -220,11 +220,11 @@ DownloadMain::receive_connect_peers() {
 
   while (!available_list()->empty() &&
 	 connection_list()->size() < connection_list()->get_min_size() &&
-	 connection_list()->size() + m_slotCountHandshakes(m_info) < connection_list()->get_max_size()) {
+	 connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->get_max_size()) {
     rak::socket_address sa = available_list()->pop_random();
 
     if (connection_list()->find(sa) == connection_list()->end())
-      m_slotStartHandshake(sa, m_info);
+      m_slotStartHandshake(sa, this);
   }
 }
 

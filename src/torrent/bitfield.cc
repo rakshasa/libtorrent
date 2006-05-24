@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <algorithm>
+
 #include "bitfield.h"
 #include "exceptions.h"
 
@@ -104,6 +106,13 @@ Bitfield::copy(const Bitfield& bf) {
 
     std::memcpy(m_data, bf.m_data, size_bytes());
   }
+}
+
+void
+Bitfield::swap(Bitfield& bf) {
+  std::swap(m_size, bf.m_size);
+  std::swap(m_set, bf.m_set);
+  std::swap(m_data, bf.m_data);
 }
 
 void

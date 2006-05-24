@@ -130,8 +130,6 @@ protected:
   bool                read_bitfield_body();
   bool                read_bitfield_from_buffer(uint32_t msgLength);
 
-  bool                write_bitfield_body();
-
   bool                down_chunk();
   bool                down_chunk_from_buffer();
   bool                up_chunk();

@@ -56,13 +56,13 @@ PeerConnectionSeed::~PeerConnectionSeed() {
 
 void
 PeerConnectionSeed::initialize_custom() {
-  if (m_download->content()->chunks_completed() != 0) {
-    m_up->write_bitfield(m_download->content()->bitfield()->size_bytes());
+//   if (m_download->content()->chunks_completed() != 0) {
+//     m_up->write_bitfield(m_download->content()->bitfield()->size_bytes());
 
-    m_up->buffer()->prepare_end();
-    m_up->set_position(0);
-    m_up->set_state(ProtocolWrite::WRITE_BITFIELD_HEADER);
-  }
+//     m_up->buffer()->prepare_end();
+//     m_up->set_position(0);
+//     m_up->set_state(ProtocolWrite::WRITE_BITFIELD_HEADER);
+//   }
 }
 
 void
@@ -362,22 +362,6 @@ PeerConnectionSeed::event_write() {
 
 	m_up->set_state(ProtocolWrite::IDLE);
 
-	break;
-
-      case ProtocolWrite::WRITE_BITFIELD_HEADER:
-	m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
-
-	if (m_up->buffer()->remaining())
-	  return;
-
-	m_up->buffer()->reset();
-	m_up->set_state(ProtocolWrite::WRITE_BITFIELD);
-
-      case ProtocolWrite::WRITE_BITFIELD:
-	if (!write_bitfield_body())
-	  return;
-
-	m_up->set_state(ProtocolWrite::IDLE);
 	break;
 
       default:

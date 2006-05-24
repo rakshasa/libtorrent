@@ -108,8 +108,8 @@ public:
   void                setup_delegator();
   void                setup_tracker();
 
-  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, DownloadInfo*> SlotStartHandshake;
-  typedef rak::const_mem_fun1<HandshakeManager, uint32_t, DownloadInfo*>                   SlotCountHandshakes;
+  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, DownloadMain*> SlotStartHandshake;
+  typedef rak::const_mem_fun1<HandshakeManager, uint32_t, DownloadMain*>                   SlotCountHandshakes;
   typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>                                SlotHashCheckAdd;
 
   void                slot_start_handshake(SlotStartHandshake s)   { m_slotStartHandshake = s; }

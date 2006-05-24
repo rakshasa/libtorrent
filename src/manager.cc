@@ -79,7 +79,7 @@ Manager::Manager() :
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 
   m_handshakeManager->slot_connected(rak::make_mem_fun(this, &Manager::receive_connection));
-  m_handshakeManager->slot_download_id(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_info));
+  m_handshakeManager->slot_download_id(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main));
 
   m_connectionManager->listen()->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
 }
@@ -124,7 +124,7 @@ Manager::initialize_download(DownloadWrapper* d) {
 
 void
 Manager::cleanup_download(DownloadWrapper* d) {
-  m_handshakeManager->erase_info(d->info());
+  m_handshakeManager->erase_info(d->main());
 
   m_resourceManager->erase(d->main());
   m_downloadManager->erase(d);
@@ -147,23 +147,18 @@ Manager::receive_tick() {
 }
 
 void
-Manager::receive_connection(SocketFd fd, DownloadInfo* info, const PeerInfo& peer) {
-  DownloadManager::iterator itr = m_downloadManager->find(info);
-  
-  if (itr == m_downloadManager->end() ||
-      peer.get_id() == info->local_id() ||
-      !peer.socket_address()->is_valid()) {
-
+Manager::receive_connection(SocketFd fd, DownloadMain* download, const PeerInfo& peer) {
+  if (peer.get_id() == download->info()->local_id() || !peer.socket_address()->is_valid()) {
     m_connectionManager->dec_socket_count();
     fd.close();
     
     return;
   }
 
-  if (!(*itr)->main()->is_active() ||
-      !(*itr)->main()->connection_list()->insert((*itr)->main(), peer, fd)) {
+  if (!download->is_active() || !download->connection_list()->insert(download, peer, fd)) {
     m_connectionManager->dec_socket_count();
     fd.close();
+
     return;
   }
 }

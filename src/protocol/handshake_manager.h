@@ -51,15 +51,15 @@ class Handshake;
 class PeerInfo;
 class Manager;
 class DownloadManager;
-class DownloadInfo;
+class DownloadMain;
 
 class HandshakeManager : private rak::unordered_vector<Handshake*> {
 public:
   typedef rak::unordered_vector<Handshake*> Base;
   typedef uint32_t                          size_type;
 
-  typedef rak::mem_fun3<Manager, void, SocketFd, DownloadInfo*, const PeerInfo&> SlotConnected;
-  typedef rak::mem_fun1<DownloadManager, DownloadInfo*, const std::string&>      SlotDownloadId;
+  typedef rak::mem_fun3<Manager, void, SocketFd, DownloadMain*, const PeerInfo&> SlotConnected;
+  typedef rak::mem_fun1<DownloadManager, DownloadMain*, const std::string&>      SlotDownloadId;
 
   using Base::empty;
 
@@ -67,17 +67,17 @@ public:
   ~HandshakeManager() { clear(); }
 
   size_type           size() const { return Base::size(); }
-  size_type           size_info(DownloadInfo* info) const;
+  size_type           size_info(DownloadMain* info) const;
 
   void                clear();
 
   bool                find(const rak::socket_address& sa);
 
-  void                erase_info(DownloadInfo* info);
+  void                erase_info(DownloadMain* info);
 
   // Cleanup.
   void                add_incoming(SocketFd fd, const rak::socket_address& sa);
-  void                add_outgoing(const rak::socket_address& sa, DownloadInfo* info);
+  void                add_outgoing(const rak::socket_address& sa, DownloadMain* info);
 
   void                slot_connected(SlotConnected s)           { m_slotConnected = s; }
   void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
@@ -86,7 +86,7 @@ public:
   void                receive_failed(Handshake* h);
 
   // This needs to be filterable slot.
-  DownloadInfo*       download_info(const std::string& hash)    { return m_slotDownloadId(hash); }
+  DownloadMain*       download_info(const std::string& hash)    { return m_slotDownloadId(hash); }
 
 private:
   void                erase(Handshake* handshake);
