@@ -85,7 +85,6 @@ public:
   void                cleanup_download(DownloadWrapper* d);
 
   void                receive_tick();
-  void                receive_connection(SocketFd fd, DownloadMain* download, const PeerInfo& peer);
 
 private:
   DownloadManager*    m_downloadManager;

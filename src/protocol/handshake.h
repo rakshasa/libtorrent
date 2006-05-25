@@ -74,8 +74,10 @@ public:
   void                initialize_outgoing(const rak::socket_address& sa, DownloadMain* d);
   void                initialize_incoming(const rak::socket_address& sa);
   
-  PeerInfo*           peer_info()                   { return &m_peerInfo; }
-  const PeerInfo*     peer_info() const             { return &m_peerInfo; }
+  PeerInfo*           peer_info()                   { return m_peerInfo; }
+  const PeerInfo*     peer_info() const             { return m_peerInfo; }
+
+  void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
 
   DownloadMain*       download()                    { return m_download; }
 
@@ -97,7 +99,7 @@ protected:
 
   HandshakeManager*   m_manager;
 
-  PeerInfo            m_peerInfo;
+  PeerInfo*           m_peerInfo;
   DownloadMain*       m_download;
 
   rak::priority_item  m_taskTimeout;

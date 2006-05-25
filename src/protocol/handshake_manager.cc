@@ -43,6 +43,7 @@
 
 #include "torrent/exceptions.h"
 #include "download/download_info.h"
+#include "download/download_main.h"
 
 #include "peer_info.h"
 #include "handshake.h"
@@ -153,7 +154,14 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
 //   h->download_info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->get_address());
 
-  m_slotConnected(h->get_fd(), h->download(), *h->peer_info());
+  if (h->download()->is_active() &&
+      h->download()->connection_list()->insert(h->download(), h->peer_info(), h->get_fd())) {
+    h->set_peer_info(NULL);
+
+  } else {
+    manager->connection_manager()->dec_socket_count();
+    h->get_fd().close();
+  }
 
   h->set_fd(SocketFd());
   delete h;

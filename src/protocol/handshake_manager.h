@@ -48,8 +48,6 @@
 namespace torrent {
 
 class Handshake;
-class PeerInfo;
-class Manager;
 class DownloadManager;
 class DownloadMain;
 
@@ -58,8 +56,7 @@ public:
   typedef rak::unordered_vector<Handshake*> Base;
   typedef uint32_t                          size_type;
 
-  typedef rak::mem_fun3<Manager, void, SocketFd, DownloadMain*, const PeerInfo&> SlotConnected;
-  typedef rak::mem_fun1<DownloadManager, DownloadMain*, const std::string&>      SlotDownloadId;
+  typedef rak::mem_fun1<DownloadManager, DownloadMain*, const std::string&> SlotDownloadId;
 
   using Base::empty;
 
@@ -79,7 +76,6 @@ public:
   void                add_incoming(SocketFd fd, const rak::socket_address& sa);
   void                add_outgoing(const rak::socket_address& sa, DownloadMain* info);
 
-  void                slot_connected(SlotConnected s)           { m_slotConnected = s; }
   void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
 
   void                receive_succeeded(Handshake* h);
@@ -95,7 +91,6 @@ private:
 
   inline void         delete_handshake(Handshake* h);
 
-  SlotConnected       m_slotConnected;
   SlotDownloadId      m_slotDownloadId;
 };
 

@@ -60,6 +60,8 @@ PeerConnectionBase::PeerConnectionBase() :
   m_down(new ProtocolRead()),
   m_up(new ProtocolWrite()),
 
+  m_peerInfo(NULL),
+
   m_downStall(0),
 
   m_sendChoked(false),
@@ -103,17 +105,23 @@ PeerConnectionBase::~PeerConnectionBase() {
   delete m_up;
   delete m_down;
 
+  // Remove this once we start storing the unconnected PeerInfo's.
+  delete m_peerInfo;
+
   m_download = NULL;
 }
 
 void
-PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd) {
+PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd) {
   if (get_fd().is_valid())
-    throw internal_error("Tried to re-set PeerConnection");
+    throw internal_error("Tried to re-set PeerConnection.");
+
+  if (download == NULL || peerInfo == NULL || !peerInfo->is_valid() || !fd.is_valid())
+    throw internal_error("PeerConnectionBase::set(...) received bad input.");
 
   set_fd(fd);
 
-  m_peer = p;
+  m_peerInfo = peerInfo;
   m_download = download;
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_download->upload_throttle()->end());
@@ -124,9 +132,6 @@ PeerConnectionBase::initialize(DownloadMain* download, const PeerInfo& p, Socket
 
   download_queue()->set_delegator(m_download->delegator());
   download_queue()->set_peer_chunks(&m_peerChunks);
-
-  if (m_download == NULL || !p.is_valid() || !get_fd().is_valid())
-    throw internal_error("PeerConnectionBase::set(...) recived bad input.");
 
   // Read in at the handshake so we don't need to allocate and clear
   // the bitfield needlessly.

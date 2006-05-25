@@ -73,7 +73,7 @@ public:
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
-  void                initialize(DownloadMain* download, const PeerInfo& p, SocketFd fd);
+  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd);
 
   bool                is_up_choked()                { return m_up->choked(); }
   bool                is_up_interested()            { return m_up->interested(); }
@@ -84,7 +84,7 @@ public:
 
   bool                is_seeder() const             { return m_peerChunks.is_seeder(); }
 
-  const PeerInfo*     peer_info() const             { return &m_peer; }
+  const PeerInfo*     peer_info() const             { return m_peerInfo; }
   PeerChunks*         peer_chunks()                 { return &m_peerChunks; }
 
   RequestList*        download_queue()              { return &m_downloadQueue; }
@@ -152,7 +152,7 @@ protected:
   ProtocolRead*       m_down;
   ProtocolWrite*      m_up;
 
-  PeerInfo            m_peer;
+  PeerInfo*           m_peerInfo;
   PeerChunks          m_peerChunks;
 
   Piece               m_downPiece;

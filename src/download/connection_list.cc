@@ -54,9 +54,11 @@ ConnectionList::clear() {
 }
 
 bool
-ConnectionList::insert(DownloadMain* d, const PeerInfo& p, const SocketFd& fd) {
-  if (std::find_if(begin(), end(), rak::equal_ptr(&p, std::mem_fun(&PeerConnectionBase::peer_info))) != end() ||
-      size() >= m_maxSize)
+ConnectionList::insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd) {
+  if (size() >= m_maxSize)
+    return false;
+
+  if (std::find_if(begin(), end(), rak::equal_ptr(p, std::mem_fun(&PeerConnectionBase::peer_info))) != end())
     return false;
 
   PeerConnectionBase* c = m_slotNewConnection();

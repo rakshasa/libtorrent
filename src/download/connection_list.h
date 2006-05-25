@@ -85,7 +85,7 @@ public:
 
   // Returns false if the connection was not added, the caller is then
   // responsible for cleaning up 'fd'.
-  bool                insert(DownloadMain* d, const PeerInfo& p, const SocketFd& fd);
+  bool                insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd);
 
   iterator            erase(iterator pos);
   void                erase(PeerConnectionBase* p);

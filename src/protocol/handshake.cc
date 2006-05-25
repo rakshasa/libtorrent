@@ -56,6 +56,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
   m_state(INACTIVE),
 
   m_manager(m),
+  m_peerInfo(NULL),
   m_download(NULL) {
 
   set_fd(fd);
@@ -71,15 +72,18 @@ Handshake::~Handshake() {
     throw internal_error("Handshake m_taskTimeout bork bork bork.");
 
   if (get_fd().is_valid())
-    throw internal_error("Handshake dtor called but m_fd is still open");
+    throw internal_error("Handshake dtor called but m_fd is still open.");
+
+  delete m_peerInfo;
 }
 
 void
 Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
   m_download = d;
 
-  m_peerInfo.set_incoming(false);
-  m_peerInfo.set_socket_address(&sa);
+  m_peerInfo = new PeerInfo();
+  m_peerInfo->set_incoming(false);
+  m_peerInfo->set_socket_address(&sa);
 
   m_state = CONNECTING;
 
@@ -92,8 +96,9 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
 
 void
 Handshake::initialize_incoming(const rak::socket_address& sa) {
-  m_peerInfo.set_incoming(true);
-  m_peerInfo.set_socket_address(&sa);
+  m_peerInfo = new PeerInfo();
+  m_peerInfo->set_incoming(true);
+  m_peerInfo->set_socket_address(&sa);
 
   m_state = READ_INFO;
 
@@ -128,28 +133,25 @@ Handshake::event_read() {
       // Check the first byte as early as possible so we can
       // disconnect non-BT connections if they send less than 20 bytes.
       if (m_readBuffer.size_end() >= 1 && m_readBuffer.peek_8() != 19)
-	throw close_connection();
+	return m_manager->receive_failed(this);
 
       if (m_readBuffer.size_end() < part1_size)
 	return;
 
       if (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0)
-	throw close_connection();
+	return m_manager->receive_failed(this);
 
       m_readBuffer.move_position(20);
 
       // Should do some option field stuff here, for now just copy.
-      m_readBuffer.read_range(m_peerInfo.get_options(), m_peerInfo.get_options() + 8);
+      m_readBuffer.read_range(m_peerInfo->get_options(), m_peerInfo->get_options() + 8);
 
       // Check the info hash.
-      if (m_peerInfo.is_incoming()) {
+      if (m_peerInfo->is_incoming()) {
 	m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
 
-	if (m_download == NULL)
-	  throw close_connection();
-
-	if (!m_download->info()->accepting_new_peers())
-	  throw close_connection();
+	if (m_download == NULL || !m_download->info()->accepting_new_peers())
+	  return m_manager->receive_failed(this);
 
 	m_state = WRITE_FILL;
 	m_readBuffer.move_position(20);
@@ -161,7 +163,7 @@ Handshake::event_read() {
 
       } else {
 	if (std::memcmp(m_download->info()->hash().c_str(), m_readBuffer.position(), 20) != 0)
-	  throw close_connection();
+	  return m_manager->receive_failed(this);
 
 	m_state = READ_PEER;
 	m_readBuffer.move_position(20);
@@ -174,15 +176,16 @@ Handshake::event_read() {
       if (m_readBuffer.size_end() < handshake_size)
 	return;
 
-      m_peerInfo.set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+      m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
       m_readBuffer.move_position(20);
+
+      if (m_peerInfo->get_id() == m_download->info()->local_id())
+	return m_manager->receive_failed(this);
 
       // The download is just starting so we're not sending any
       // bitfield.
-      if (m_download->content()->bitfield()->is_all_unset()) {
-	m_manager->receive_succeeded(this);
-	return;
-      }
+      if (m_download->content()->bitfield()->is_all_unset())
+	return m_manager->receive_succeeded(this);
 
       m_writeBuffer.reset();
       m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
@@ -215,13 +218,13 @@ Handshake::event_write() {
     switch (m_state) {
     case CONNECTING:
       if (get_fd().get_error())
-	throw close_connection();
+	return m_manager->receive_failed(this);
  
     case WRITE_FILL:
       m_writeBuffer.write_8(19);
       m_writeBuffer.write_range(m_protocol, m_protocol + 19);
 
-//       m_writeBuffer.write_range(m_peerInfo.get_options(), m_peerInfo.get_options() + 8);
+//       m_writeBuffer.write_range(m_peerInfo->get_options(), m_peerInfo->get_options() + 8);
       std::memset(m_writeBuffer.position(), 0, 8);
       m_writeBuffer.move_position(8);
 
@@ -241,7 +244,7 @@ Handshake::event_write() {
       if (m_writeBuffer.remaining())
 	return;
 
-      if (m_peerInfo.is_incoming())
+      if (m_peerInfo->is_incoming())
 	m_state = READ_PEER;
       else
 	m_state = READ_INFO;
