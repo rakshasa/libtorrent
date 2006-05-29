@@ -46,6 +46,7 @@
 #include "download/download_main.h"
 
 #include "peer_info.h"
+#include "peer_connection_base.h"
 #include "handshake.h"
 #include "handshake_manager.h"
 
@@ -152,15 +153,23 @@ HandshakeManager::receive_succeeded(Handshake* h) {
   erase(h);
   h->clear();
 
-//   h->download_info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->get_address());
+  PeerConnectionBase* pcb;
 
   if (h->download()->is_active() &&
-      h->download()->connection_list()->insert(h->download(), h->peer_info(), h->get_fd())) {
+      (pcb = h->download()->connection_list()->insert(h->download(), h->peer_info(), h->get_fd(), h->bitfield())) != NULL) {
+    h->download()->info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->socket_address()->address_str());
     h->set_peer_info(NULL);
+
+    if (h->unread_size() != 0) {
+      pcb->push_unread(h->unread_data(), h->unread_size());
+      pcb->event_read();
+    }
 
   } else {
     manager->connection_manager()->dec_socket_count();
     h->get_fd().close();
+
+    h->download()->info()->signal_network_log().emit("Successful handshake, failed: " + h->peer_info()->socket_address()->address_str());
   }
 
   h->set_fd(SocketFd());
@@ -171,8 +180,8 @@ void
 HandshakeManager::receive_failed(Handshake* h) {
   erase(h);
 
-//   if (h->download_info() != NULL)
-//     h->download_info()->signal_network_log().emit("Failed handshake: " + h->peer_info()->get_address());
+  if (h->download() != NULL && h->peer_info() != NULL)
+    h->download()->info()->signal_network_log().emit("Failed handshake: " + h->peer_info()->socket_address()->address_str());
 
   delete_handshake(h);
 }

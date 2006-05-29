@@ -50,17 +50,17 @@ public:
   typedef uint8_t     value_type;
   typedef value_type* iterator;
   typedef uint16_t    size_type;
-  typedef size_type   difference_type;
+  typedef int16_t     difference_type;
 
   void                reset()                       { m_position = m_end = begin(); }
   void                reset_position()              { m_position = m_buffer; }
-  void                move_position(size_type v)    { m_position += v; }
+  void                move_position(difference_type v) { m_position += v; }
 
   void                set_position_itr(iterator itr) { m_position = itr; }
 
   void                prepare_end()                 { m_end = m_position; reset_position(); }
   void                set_end(size_type v)          { m_end = m_buffer + v; }
-  void                move_end(size_type v)         { m_end += v; }
+  void                move_end(difference_type v)   { m_end += v; }
 
   uint8_t             read_8()                      { return *m_position++; }
   uint8_t             peek_8()                      { return *m_position; }
@@ -99,9 +99,8 @@ public:
   size_type           size_end() const              { return m_end - m_buffer; }
   size_type           remaining() const             { return m_end - m_position; }
   size_type           reserved() const              { return tmpl_size; }
-  difference_type     reserved_left() const         { return reserved() - size_position(); }
+  size_type           reserved_left() const         { return reserved() - size_position(); }
 
-private:
   void                validate_position() const {
 #ifdef USE_EXTRA_DEBUG
     if (m_position > m_buffer + tmpl_size)
@@ -109,6 +108,7 @@ private:
 #endif
   }
 
+private:
   iterator            m_position;
   iterator            m_end;
   value_type          m_buffer[tmpl_size];

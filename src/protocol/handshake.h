@@ -41,6 +41,7 @@
 
 #include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
+#include "torrent/bitfield.h"
 
 #include "peer_info.h"
 
@@ -54,6 +55,8 @@ public:
   static const uint32_t part1_size     = 20 + 28;
   static const uint32_t part2_size     = 20;
   static const uint32_t handshake_size = part1_size + part2_size;
+
+  static const uint32_t protocol_bitfield = 5;
 
   typedef ProtocolBuffer<handshake_size> Buffer;
 
@@ -80,10 +83,14 @@ public:
   void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
 
   DownloadMain*       download()                    { return m_download; }
-
+  Bitfield*           bitfield()                    { return &m_bitfield; }
+  
   // Make sure the fd is valid when this is called. The caller is
   // responsible for closing the socket if nessesary.
   void                clear();
+
+  const void*         unread_data()                 { return m_readBuffer.position(); }
+  uint32_t            unread_size() const           { return m_readBuffer.remaining(); }
 
   virtual void        event_read();
   virtual void        event_write();
@@ -93,6 +100,8 @@ protected:
   Handshake(const Handshake&);
   void operator = (const Handshake&);
   
+  void                read_done();
+
   static const char*  m_protocol;
 
   State               m_state;
@@ -101,13 +110,17 @@ protected:
 
   PeerInfo*           m_peerInfo;
   DownloadMain*       m_download;
+  Bitfield            m_bitfield;
 
   rak::priority_item  m_taskTimeout;
 
+  uint32_t            m_readPos;
   Buffer              m_readBuffer;
-  Buffer              m_writeBuffer;
+  bool                m_readDone;
 
   uint32_t            m_writePos;
+  Buffer              m_writeBuffer;
+  bool                m_writeDone;
 };
 
 }

@@ -53,27 +53,27 @@ ConnectionList::clear() {
   Base::clear();
 }
 
-bool
-ConnectionList::insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd) {
+PeerConnectionBase*
+ConnectionList::insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd, Bitfield* bitfield) {
   if (size() >= m_maxSize)
-    return false;
+    return NULL;
 
   if (std::find_if(begin(), end(), rak::equal_ptr(p, std::mem_fun(&PeerConnectionBase::peer_info))) != end())
-    return false;
+    return NULL;
 
-  PeerConnectionBase* c = m_slotNewConnection();
+  PeerConnectionBase* pcb = m_slotNewConnection();
 
-  if (c == NULL)
-    throw internal_error("ConnectionList::insert(...) received a NULL pointer from m_slotNewConnection");
+  if (pcb == NULL || bitfield == NULL)
+    throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
-  c->initialize(d, p, fd);
+  pcb->initialize(d, p, fd, bitfield);
 
-  Base::push_back(c);
+  Base::push_back(pcb);
 
   m_info->set_accepting_new_peers(size() < m_maxSize);
-  m_slotConnected(c);
+  m_slotConnected(pcb);
 
-  return true;
+  return pcb;
 }
 
 ConnectionList::iterator
@@ -153,7 +153,7 @@ struct connection_list_less {
 ConnectionList::iterator
 ConnectionList::find(const rak::socket_address& sa) {
   return std::find_if(begin(), end(), rak::equal_ptr(&sa, rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
-								  std::mem_fun<const rak::socket_address*>(&PeerInfo::socket_address))));
+                                                                  std::mem_fun<const rak::socket_address*>(&PeerInfo::socket_address))));
 }
 
 void
@@ -161,7 +161,7 @@ ConnectionList::set_difference(AddressList* l) {
   std::sort(begin(), end(), connection_list_less());
 
   l->erase(std::set_difference(l->begin(), l->end(), begin(), end(), l->begin(), connection_list_less()),
-	   l->end());
+           l->end());
 }
 
 void

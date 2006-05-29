@@ -230,30 +230,30 @@ PeerConnectionSeed::event_read() {
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
-	m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
-	
-	while (read_message());
-	
-	if (m_down->buffer()->size_end() == read_size) {
-	  read_buffer_move_unused();
-	  break;
-	} else {
-	  read_buffer_move_unused();
-	  return;
-	}
+        m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
+        
+        while (read_message());
+        
+        if (m_down->buffer()->size_end() == read_size) {
+          read_buffer_move_unused();
+          break;
+        } else {
+          read_buffer_move_unused();
+          return;
+        }
 
       case ProtocolRead::READ_BITFIELD:
-	if (!read_bitfield_body())
-	  return;
+        if (!read_bitfield_body())
+          return;
 
-	m_down->set_state(ProtocolRead::IDLE);
-	m_down->buffer()->reset();
+        m_down->set_state(ProtocolRead::IDLE);
+        m_down->buffer()->reset();
 
-	finish_bitfield();
-	break;
+        finish_bitfield();
+        break;
 
       default:
-	throw internal_error("PeerConnectionSeed::event_read() wrong state.");
+        throw internal_error("PeerConnectionSeed::event_read() wrong state.");
       }
 
       // Figure out how to get rid of the shouldLoop boolean.
@@ -319,53 +319,53 @@ PeerConnectionSeed::event_write() {
       switch (m_up->get_state()) {
       case ProtocolWrite::IDLE:
 
-	// We might have buffered keepalive message or similar, but
-	// 'end' should remain at the start of the buffer.
-	if (m_up->buffer()->size_end() != 0)
-	  throw internal_error("PeerConnectionSeed::event_write() ProtocolWrite::IDLE in a wrong state.");
+        // We might have buffered keepalive message or similar, but
+        // 'end' should remain at the start of the buffer.
+        if (m_up->buffer()->size_end() != 0)
+          throw internal_error("PeerConnectionSeed::event_write() ProtocolWrite::IDLE in a wrong state.");
 
-	// Fill up buffer.
-	fill_write_buffer();
+        // Fill up buffer.
+        fill_write_buffer();
 
-	if (m_up->buffer()->size_position() == 0) {
-	  manager->poll()->remove_write(this);
-	  return;
-	}
+        if (m_up->buffer()->size_position() == 0) {
+          manager->poll()->remove_write(this);
+          return;
+        }
 
-	m_up->set_state(ProtocolWrite::MSG);
-	m_up->buffer()->prepare_end();
+        m_up->set_state(ProtocolWrite::MSG);
+        m_up->buffer()->prepare_end();
 
       case ProtocolWrite::MSG:
-	m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
+        m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
 
-	if (m_up->buffer()->remaining())
-	  return;
+        if (m_up->buffer()->remaining())
+          return;
 
-	m_up->buffer()->reset();
+        m_up->buffer()->reset();
 
-	if (m_up->last_command() != ProtocolBase::PIECE) {
-	  // Break or loop? Might do an ifelse based on size of the
-	  // write buffer. Also the write buffer is relatively large.
-	  m_up->set_state(ProtocolWrite::IDLE);
-	  break;
-	}
+        if (m_up->last_command() != ProtocolBase::PIECE) {
+          // Break or loop? Might do an ifelse based on size of the
+          // write buffer. Also the write buffer is relatively large.
+          m_up->set_state(ProtocolWrite::IDLE);
+          break;
+        }
 
-	// We're uploading a piece.
-	load_up_chunk();
+        // We're uploading a piece.
+        load_up_chunk();
 
-	m_up->set_state(ProtocolWrite::WRITE_PIECE);
-	m_up->set_position(0);
+        m_up->set_state(ProtocolWrite::WRITE_PIECE);
+        m_up->set_position(0);
 
       case ProtocolWrite::WRITE_PIECE:
-	if (!up_chunk())
-	  return;
+        if (!up_chunk())
+          return;
 
-	m_up->set_state(ProtocolWrite::IDLE);
+        m_up->set_state(ProtocolWrite::IDLE);
 
-	break;
+        break;
 
       default:
-	throw internal_error("PeerConnectionSeed::event_write() wrong state.");
+        throw internal_error("PeerConnectionSeed::event_write() wrong state.");
       }
 
     } while (true);

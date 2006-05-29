@@ -57,7 +57,10 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
 
   m_manager(m),
   m_peerInfo(NULL),
-  m_download(NULL) {
+  m_download(NULL),
+
+  m_readDone(false),
+  m_writeDone(false) {
 
   set_fd(fd);
 
@@ -133,13 +136,13 @@ Handshake::event_read() {
       // Check the first byte as early as possible so we can
       // disconnect non-BT connections if they send less than 20 bytes.
       if (m_readBuffer.size_end() >= 1 && m_readBuffer.peek_8() != 19)
-	return m_manager->receive_failed(this);
-
+        return m_manager->receive_failed(this);
+      
       if (m_readBuffer.size_end() < part1_size)
-	return;
+        return;
 
       if (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0)
-	return m_manager->receive_failed(this);
+        return m_manager->receive_failed(this);
 
       m_readBuffer.move_position(20);
 
@@ -148,58 +151,111 @@ Handshake::event_read() {
 
       // Check the info hash.
       if (m_peerInfo->is_incoming()) {
-	m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+        m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
 
-	if (m_download == NULL || !m_download->info()->accepting_new_peers())
-	  return m_manager->receive_failed(this);
+        if (m_download == NULL || !m_download->info()->accepting_new_peers())
+          return m_manager->receive_failed(this);
 
-	m_state = WRITE_FILL;
-	m_readBuffer.move_position(20);
-	
-	manager->poll()->remove_read(this);
-	manager->poll()->insert_write(this);
+        m_state = WRITE_FILL;
+        m_readBuffer.move_position(20);
 
-	return;
+        manager->poll()->remove_read(this);
+        manager->poll()->insert_write(this);
+
+        return;
 
       } else {
-	if (std::memcmp(m_download->info()->hash().c_str(), m_readBuffer.position(), 20) != 0)
-	  return m_manager->receive_failed(this);
+        if (std::memcmp(m_download->info()->hash().c_str(), m_readBuffer.position(), 20) != 0)
+          return m_manager->receive_failed(this);
 
-	m_state = READ_PEER;
-	m_readBuffer.move_position(20);
+        m_state = READ_PEER;
+        m_readBuffer.move_position(20);
       }
 
     case READ_PEER:
       if (m_readBuffer.size_end() < handshake_size)
-	m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), handshake_size - m_readBuffer.size_end()));
+        m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), handshake_size - m_readBuffer.size_end()));
 
       if (m_readBuffer.size_end() < handshake_size)
-	return;
+        return;
 
       m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
       m_readBuffer.move_position(20);
 
       if (m_peerInfo->get_id() == m_download->info()->local_id())
-	return m_manager->receive_failed(this);
+        return m_manager->receive_failed(this);
+
+      m_readBuffer.reset();
+      m_writeBuffer.reset();
 
       // The download is just starting so we're not sending any
       // bitfield.
-      if (m_download->content()->bitfield()->is_all_unset())
-	return m_manager->receive_succeeded(this);
+      if (m_download->content()->bitfield()->is_all_unset()) {
+        // Write a keep-alive message.
+        m_writeBuffer.write_32(0);
+        m_writeBuffer.prepare_end();
 
-      m_writeBuffer.reset();
-      m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
-      m_writeBuffer.write_8(5);
-      m_writeBuffer.prepare_end();
+        // Skip writting the bitfield.
+        m_writePos = m_download->content()->bitfield()->size_bytes();
 
-      m_writePos = 0;
+      } else {
+        m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
+        m_writeBuffer.write_8(protocol_bitfield);
+        m_writeBuffer.prepare_end();
 
-      manager->poll()->remove_read(this);
+        m_writePos = 0;
+      }
+
+      // remove for testing.
       manager->poll()->insert_write(this);
 
       m_state = BITFIELD;
 
-      // Call write directly.
+      // Add write here and then skip straight to read BITFIELD.
+
+    case BITFIELD:
+      if (m_bitfield.empty()) {
+        m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), 5 - m_readBuffer.size_end()));
+
+        // Received a keep-alive message which means we won't be
+        // getting any bitfield.
+        if (m_readBuffer.size_end() >= 4 && m_readBuffer.peek_32() == 0) {
+          m_readBuffer.read_32();
+          return read_done();
+        }
+
+        if (m_readBuffer.size_end() < 5)
+          return;
+
+        uint32_t size = m_readBuffer.read_32();
+
+        // Received a non-bitfield command.
+        if (m_readBuffer.read_8() != protocol_bitfield) {
+          m_readBuffer.move_position(-5);
+          return read_done();
+        }
+
+        if (size != m_download->content()->bitfield()->size_bytes() + 1)
+          return m_manager->receive_failed(this);
+
+        m_readPos = 0;
+
+        m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
+        m_bitfield.allocate();
+
+        if (m_readBuffer.remaining() != 0)
+          throw internal_error("Handshake::event_read() m_readBuffer.remaining() != 0.");
+
+        // Copy any unread data to bitfield here.
+      }
+
+      // We're guaranteed that we still got bytes remaining to be
+      // read of the bitfield.
+      m_readPos += read_stream_throws(m_bitfield.begin() + m_readPos, m_bitfield.size_bytes() - m_readPos);
+      
+      if (m_readPos == m_bitfield.size_bytes())
+        read_done();
+
       return;
 
     default:
@@ -212,19 +268,39 @@ Handshake::event_read() {
 }
 
 void
+Handshake::read_done() {
+  m_readDone = true;
+  manager->poll()->remove_read(this);
+
+  if (m_bitfield.empty()) {
+    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bytes());
+    m_bitfield.allocate();
+    m_bitfield.unset_all();
+
+  } else {
+    m_bitfield.update();
+  }
+
+  // Disconnect if both are seeders.
+
+  if (m_writeDone)
+    m_manager->receive_succeeded(this);
+}
+
+void
 Handshake::event_write() {
   try {
 
     switch (m_state) {
     case CONNECTING:
       if (get_fd().get_error())
-	return m_manager->receive_failed(this);
+        return m_manager->receive_failed(this);
  
     case WRITE_FILL:
       m_writeBuffer.write_8(19);
       m_writeBuffer.write_range(m_protocol, m_protocol + 19);
 
-//       m_writeBuffer.write_range(m_peerInfo->get_options(), m_peerInfo->get_options() + 8);
+      //       m_writeBuffer.write_range(m_peerInfo->get_options(), m_peerInfo->get_options() + 8);
       std::memset(m_writeBuffer.position(), 0, 8);
       m_writeBuffer.move_position(8);
 
@@ -234,7 +310,7 @@ Handshake::event_write() {
       m_writeBuffer.prepare_end();
 
       if (m_writeBuffer.size_end() != handshake_size)
-	throw internal_error("Handshake::event_write() wrong fill size.");
+        throw internal_error("Handshake::event_write() wrong fill size.");
 
       m_state = WRITE_SEND;
 
@@ -242,12 +318,12 @@ Handshake::event_write() {
       m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
 
       if (m_writeBuffer.remaining())
-	return;
+        return;
 
       if (m_peerInfo->is_incoming())
-	m_state = READ_PEER;
+        m_state = READ_PEER;
       else
-	m_state = READ_INFO;
+        m_state = READ_INFO;
 
       manager->poll()->remove_write(this);
       manager->poll()->insert_read(this);
@@ -256,16 +332,22 @@ Handshake::event_write() {
 
     case BITFIELD:
       if (m_writeBuffer.remaining())
-	m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
+        m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
       
       if (m_writeBuffer.remaining())
-	return;
+        return;
 
-      m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
-					m_download->content()->bitfield()->size_bytes() - m_writePos);
+      if (m_writePos != m_download->content()->bitfield()->size_bytes())
+        m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
+                                          m_download->content()->bitfield()->size_bytes() - m_writePos);
 
-      if (m_writePos == m_download->content()->bitfield()->size_bytes())
-	m_manager->receive_succeeded(this);
+      if (m_writePos == m_download->content()->bitfield()->size_bytes()) {
+        m_writeDone = true;
+        manager->poll()->remove_write(this);
+
+        if (m_readDone)
+          m_manager->receive_succeeded(this);
+      }
 
       return;
 

@@ -44,6 +44,7 @@
 
 namespace torrent {
 
+class Bitfield;
 class DownloadInfo;
 class DownloadMain;
 class DownloadWrapper;
@@ -85,7 +86,9 @@ public:
 
   // Returns false if the connection was not added, the caller is then
   // responsible for cleaning up 'fd'.
-  bool                insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd);
+  //
+  // Clean this up, don't use this many arguments.
+  PeerConnectionBase* insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd, Bitfield* bitfield);
 
   iterator            erase(iterator pos);
   void                erase(PeerConnectionBase* p);

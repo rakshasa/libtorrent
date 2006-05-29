@@ -112,17 +112,19 @@ PeerConnectionBase::~PeerConnectionBase() {
 }
 
 void
-PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd) {
+PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield) {
   if (get_fd().is_valid())
     throw internal_error("Tried to re-set PeerConnection.");
 
-  if (download == NULL || peerInfo == NULL || !peerInfo->is_valid() || !fd.is_valid())
+  if (!peerInfo->is_valid() || !fd.is_valid())
     throw internal_error("PeerConnectionBase::set(...) received bad input.");
 
   set_fd(fd);
 
   m_peerInfo = peerInfo;
   m_download = download;
+
+  m_peerChunks.bitfield()->swap(*bitfield);
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_download->upload_throttle()->end());
   m_peerChunks.upload_throttle()->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_up_activate));
@@ -132,12 +134,6 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
 
   download_queue()->set_delegator(m_download->delegator());
   download_queue()->set_peer_chunks(&m_peerChunks);
-
-  // Read in at the handshake so we don't need to allocate and clear
-  // the bitfield needlessly.
-  m_peerChunks.bitfield()->set_size_bits(m_download->content()->chunk_total());
-  m_peerChunks.bitfield()->allocate();
-  m_peerChunks.bitfield()->unset_all();
 
   manager->poll()->open(this);
   manager->poll()->insert_read(this);
@@ -370,9 +366,9 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
 void
 PeerConnectionBase::read_buffer_move_unused() {
   uint32_t remaining = m_down->buffer()->remaining();
-	
+  
   std::memmove(m_down->buffer()->begin(), m_down->buffer()->position(), remaining);
-	
+  
   m_down->buffer()->reset_position();
   m_down->buffer()->set_end(remaining);
 }

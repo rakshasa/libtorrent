@@ -73,7 +73,7 @@ public:
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
-  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd);
+  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield);
 
   bool                is_up_choked()                { return m_up->choked(); }
   bool                is_up_interested()            { return m_up->interested(); }
@@ -107,6 +107,8 @@ public:
   void                receive_choke(bool v);
 
   virtual void        event_error();
+
+  void                push_unread(const void* data, uint32_t size);
 
 protected:
   typedef Chunk::iterator ChunkPart;
@@ -172,18 +174,22 @@ protected:
   rak::timer          m_timeLastRead;
 };
 
+inline void
+PeerConnectionBase::push_unread(const void* data, uint32_t size) {
+  std::memcpy(m_down->buffer()->end(), data, size);
+  m_down->buffer()->move_end(size);
+}
+
 inline bool
 PeerConnectionBase::read_remaining() {
-  m_down->buffer()->move_position(read_stream_throws(m_down->buffer()->position(),
-						     m_down->buffer()->remaining()));
+  m_down->buffer()->move_position(read_stream_throws(m_down->buffer()->position(), m_down->buffer()->remaining()));
 
   return !m_down->buffer()->remaining();
 }
 
 inline bool
 PeerConnectionBase::write_remaining() {
-  m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(),
-						m_up->buffer()->remaining()));
+  m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
 
   return !m_up->buffer()->remaining();
 }
