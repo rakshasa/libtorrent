@@ -50,6 +50,7 @@ namespace torrent {
 class Handshake;
 class DownloadManager;
 class DownloadMain;
+class PeerConnectionBase;
 
 class HandshakeManager : private rak::unordered_vector<Handshake*> {
 public:
@@ -90,6 +91,8 @@ private:
   bool                setup_socket(SocketFd fd);
 
   inline void         delete_handshake(Handshake* h);
+
+  inline void         post_insert(Handshake* h, PeerConnectionBase* pcb);
 
   SlotDownloadId      m_slotDownloadId;
 };

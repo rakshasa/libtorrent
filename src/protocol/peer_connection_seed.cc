@@ -158,21 +158,6 @@ PeerConnectionSeed::read_message() {
     read_have_chunk(buf->read_32());
     return true;
 
-  case ProtocolBase::BITFIELD:
-    // Bad peer, sending their bitfield after other messages have been
-    // sent.
-    if (m_peerChunks.using_counter() || !m_peerChunks.bitfield()->is_all_unset())
-      throw close_connection();
-
-    if (read_bitfield_from_buffer(length - 1)) {
-      finish_bitfield();
-      return true;
-
-    } else {
-      m_down->set_state(ProtocolRead::READ_BITFIELD);
-      return false;
-    }
-
   case ProtocolBase::REQUEST:
     if (!m_down->can_read_request_body())
       break;
@@ -228,32 +213,16 @@ PeerConnectionSeed::event_read() {
 
     do {
 
-      switch (m_down->get_state()) {
-      case ProtocolRead::IDLE:
-        m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
+      m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
         
-        while (read_message());
+      while (read_message());
         
-        if (m_down->buffer()->size_end() == read_size) {
-          read_buffer_move_unused();
-          break;
-        } else {
-          read_buffer_move_unused();
-          return;
-        }
+      if (m_down->buffer()->size_end() == read_size) {
+        read_buffer_move_unused();
 
-      case ProtocolRead::READ_BITFIELD:
-        if (!read_bitfield_body())
-          return;
-
-        m_down->set_state(ProtocolRead::IDLE);
-        m_down->buffer()->reset();
-
-        finish_bitfield();
-        break;
-
-      default:
-        throw internal_error("PeerConnectionSeed::event_read() wrong state.");
+      } else {
+        read_buffer_move_unused();
+        return;
       }
 
       // Figure out how to get rid of the shouldLoop boolean.
@@ -408,18 +377,6 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
 
   if (m_peerChunks.bitfield()->is_all_set())
     throw close_connection();
-}
-
-void
-PeerConnectionSeed::finish_bitfield() {
-  m_peerChunks.bitfield()->update();
-
-  if (m_peerChunks.bitfield()->is_all_set())
-    throw close_connection();
-
-  m_download->chunk_statistics()->received_connect(&m_peerChunks);
-
-  write_insert_poll_safe();
 }
 
 }

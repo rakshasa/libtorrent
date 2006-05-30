@@ -156,14 +156,17 @@ HandshakeManager::receive_succeeded(Handshake* h) {
   PeerConnectionBase* pcb;
 
   if (h->download()->is_active() &&
+
+      // We need to make libtorrent more selective in the clients it
+      // connects to, and to move this somewhere else.
+      (!h->download()->content()->is_done() || !h->bitfield()->is_all_set()) &&
+
       (pcb = h->download()->connection_list()->insert(h->download(), h->peer_info(), h->get_fd(), h->bitfield())) != NULL) {
+
     h->download()->info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->socket_address()->address_str());
     h->set_peer_info(NULL);
 
-    if (h->unread_size() != 0) {
-      pcb->push_unread(h->unread_data(), h->unread_size());
-      pcb->event_read();
-    }
+    post_insert(h, pcb);
 
   } else {
     manager->connection_manager()->dec_socket_count();
@@ -174,6 +177,14 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
   h->set_fd(SocketFd());
   delete h;
+}
+
+inline void
+HandshakeManager::post_insert(Handshake* h, PeerConnectionBase* pcb) {
+  if (h->unread_size() != 0) {
+    pcb->push_unread(h->unread_data(), h->unread_size());
+    pcb->event_read();
+  }
 }
 
 void

@@ -61,8 +61,6 @@ private:
   void                read_have_chunk(uint32_t index);
 
   inline void         fill_write_buffer();
-
-  void                finish_bitfield();
 };
 
 }

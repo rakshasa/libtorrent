@@ -206,12 +206,18 @@ Handshake::event_read() {
         m_writePos = 0;
       }
 
-      // remove for testing.
-      manager->poll()->insert_write(this);
 
       m_state = BITFIELD;
+      manager->poll()->insert_write(this);
 
-      // Add write here and then skip straight to read BITFIELD.
+      // Give some extra time for reading/writing the bitfield.
+      priority_queue_erase(&taskScheduler, &m_taskTimeout);
+      priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(120)).round_seconds());
+
+      // Trigger event_write() directly and then skip straight to read
+      // BITFIELD. This avoids going through polling for the first
+      // write.
+      event_write();
 
     case BITFIELD:
       if (m_bitfield.empty()) {
@@ -227,17 +233,14 @@ Handshake::event_read() {
         if (m_readBuffer.size_end() < 5)
           return;
 
-        uint32_t size = m_readBuffer.read_32();
-
         // Received a non-bitfield command.
-        if (m_readBuffer.read_8() != protocol_bitfield) {
-          m_readBuffer.move_position(-5);
+        if (m_readBuffer.peek_8_at(4) != protocol_bitfield)
           return read_done();
-        }
 
-        if (size != m_download->content()->bitfield()->size_bytes() + 1)
+        if (m_readBuffer.read_32() != m_download->content()->bitfield()->size_bytes() + 1)
           return m_manager->receive_failed(this);
 
+        m_readBuffer.read_8();
         m_readPos = 0;
 
         m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());

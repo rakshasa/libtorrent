@@ -71,6 +71,10 @@ void
 PeerConnectionLeech::update_interested() {
 // FIXME:   if (m_download->delegator()->get_select().interested(m_peerChunks.bitfield()->bitfield())) {
 
+  // Consider just setting to interested without checking the
+  // bitfield. The status might change by the time we get unchoked
+  // anyway.
+
   if (true) {
     m_sendInterested = !m_up->interested();
     m_up->set_interested(true);
@@ -199,21 +203,6 @@ PeerConnectionLeech::read_message() {
     read_have_chunk(buf->read_32());
     return true;
 
-  case ProtocolBase::BITFIELD:
-    // Bad peer, sending their bitfield after other messages have been
-    // sent.
-    if (m_peerChunks.using_counter() || !m_peerChunks.bitfield()->is_all_unset())
-      throw close_connection();
-
-    if (read_bitfield_from_buffer(length - 1)) {
-      finish_bitfield();
-      return true;
-
-    } else {
-      m_down->set_state(ProtocolRead::READ_BITFIELD);
-      return false;
-    }
-
   case ProtocolBase::REQUEST:
     if (!m_down->can_read_request_body())
       break;
@@ -242,11 +231,11 @@ PeerConnectionLeech::read_message() {
       buf->move_position(m_down->position());
 
       if (m_down->position() != m_downPiece.length()) {
-	m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
-	return false;
+        m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+        return false;
 
       } else {
-	return true;
+        return true;
       }
       
     } else if (down_chunk_from_buffer()) {
@@ -255,7 +244,7 @@ PeerConnectionLeech::read_message() {
       download_queue()->finished();
     
       if (m_downStall > 0)
-	m_downStall--;
+        m_downStall--;
     
       // TODO: clear m_down.data?
       // TODO: remove throttle if choked? Rarely happens though.
@@ -310,69 +299,59 @@ PeerConnectionLeech::event_read() {
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
-	m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
-	
-	while (read_message());
-	
-	if (m_down->buffer()->size_end() == read_size) {
-	  read_buffer_move_unused();
-	  break;
-	} else {
-	  read_buffer_move_unused();
-	  return;
-	}
+        m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
+        
+        while (read_message());
+        
+        if (m_down->buffer()->size_end() == read_size) {
+          read_buffer_move_unused();
+          break;
+        } else {
+          read_buffer_move_unused();
+          return;
+        }
 
       case ProtocolRead::READ_PIECE:
-	if (!download_queue()->is_downloading())
-	  throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading");
+        if (!download_queue()->is_downloading())
+          throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading");
 
-	if (!download_queue()->is_wanted()) {
-	  m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
-	  download_queue()->skip();
+        if (!download_queue()->is_wanted()) {
+          m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+          download_queue()->skip();
 
-	  break;
-	}
+          break;
+        }
 
-	if (!down_chunk())
-	  return;
+        if (!down_chunk())
+          return;
 
-	m_downChunk->set_time_modified(cachedTime);
-	download_queue()->finished();
-	
-	if (m_downStall > 0)
-	  m_downStall--;
-	
-	// TODO: clear m_down.data?
-	// TODO: remove throttle if choked? Rarely happens though.
-	m_tryRequest = true;
-	m_down->set_state(ProtocolRead::IDLE);
-	write_insert_poll_safe();
-	
-	break;
+        m_downChunk->set_time_modified(cachedTime);
+        download_queue()->finished();
+        
+        if (m_downStall > 0)
+          m_downStall--;
+        
+        // TODO: clear m_down.data?
+        // TODO: remove throttle if choked? Rarely happens though.
+        m_tryRequest = true;
+        m_down->set_state(ProtocolRead::IDLE);
+        write_insert_poll_safe();
+        
+        break;
 
       case ProtocolRead::READ_SKIP_PIECE:
-	m_down->adjust_position(ignore_stream_throws(m_downPiece.length() - m_down->position()));
+        m_down->adjust_position(ignore_stream_throws(m_downPiece.length() - m_down->position()));
 
-	if (m_down->position() != m_downPiece.length())
-	  return;
+        if (m_down->position() != m_downPiece.length())
+          return;
 
-	m_down->set_state(ProtocolRead::IDLE);
-	m_down->buffer()->reset();
-	
-	break;
-
-      case ProtocolRead::READ_BITFIELD:
-	if (!read_bitfield_body())
-	  return;
-
-	m_down->set_state(ProtocolRead::IDLE);
-	m_down->buffer()->reset();
-
-	finish_bitfield();
-	break;
+        m_down->set_state(ProtocolRead::IDLE);
+        m_down->buffer()->reset();
+        
+        break;
 
       default:
-	throw internal_error("PeerConnectionLeech::event_read() wrong state.");
+        throw internal_error("PeerConnectionLeech::event_read() wrong state.");
       }
 
       // Figure out how to get rid of the shouldLoop boolean.
@@ -462,53 +441,53 @@ PeerConnectionLeech::event_write() {
       switch (m_up->get_state()) {
       case ProtocolWrite::IDLE:
 
-	// We might have buffered keepalive message or similar, but
-	// 'end' should remain at the start of the buffer.
-	if (m_up->buffer()->size_end() != 0)
-	  throw internal_error("PeerConnectionLeech::event_write() ProtocolWrite::IDLE in a wrong state.");
+        // We might have buffered keepalive message or similar, but
+        // 'end' should remain at the start of the buffer.
+        if (m_up->buffer()->size_end() != 0)
+          throw internal_error("PeerConnectionLeech::event_write() ProtocolWrite::IDLE in a wrong state.");
 
-	// Fill up buffer.
-	fill_write_buffer();
+        // Fill up buffer.
+        fill_write_buffer();
 
-	if (m_up->buffer()->size_position() == 0) {
-	  manager->poll()->remove_write(this);
-	  return;
-	}
+        if (m_up->buffer()->size_position() == 0) {
+          manager->poll()->remove_write(this);
+          return;
+        }
 
-	m_up->set_state(ProtocolWrite::MSG);
-	m_up->buffer()->prepare_end();
+        m_up->set_state(ProtocolWrite::MSG);
+        m_up->buffer()->prepare_end();
 
       case ProtocolWrite::MSG:
-	m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
+        m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
 
-	if (m_up->buffer()->remaining())
-	  return;
+        if (m_up->buffer()->remaining())
+          return;
 
-	m_up->buffer()->reset();
+        m_up->buffer()->reset();
 
-	if (m_up->last_command() != ProtocolBase::PIECE) {
-	  // Break or loop? Might do an ifelse based on size of the
-	  // write buffer. Also the write buffer is relatively large.
-	  m_up->set_state(ProtocolWrite::IDLE);
-	  break;
-	}
+        if (m_up->last_command() != ProtocolBase::PIECE) {
+          // Break or loop? Might do an ifelse based on size of the
+          // write buffer. Also the write buffer is relatively large.
+          m_up->set_state(ProtocolWrite::IDLE);
+          break;
+        }
 
-	// We're uploading a piece.
-	load_up_chunk();
+        // We're uploading a piece.
+        load_up_chunk();
 
-	m_up->set_state(ProtocolWrite::WRITE_PIECE);
-	m_up->set_position(0);
+        m_up->set_state(ProtocolWrite::WRITE_PIECE);
+        m_up->set_position(0);
 
       case ProtocolWrite::WRITE_PIECE:
-	if (!up_chunk())
-	  return;
+        if (!up_chunk())
+          return;
 
-	m_up->set_state(ProtocolWrite::IDLE);
+        m_up->set_state(ProtocolWrite::IDLE);
 
-	break;
+        break;
 
       default:
-	throw internal_error("PeerConnectionLeech::event_write() wrong state.");
+        throw internal_error("PeerConnectionLeech::event_write() wrong state.");
       }
 
     } while (true);
@@ -577,25 +556,6 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
       write_insert_poll_safe();
     }
   }
-}
-
-void
-PeerConnectionLeech::finish_bitfield() {
-  m_peerChunks.bitfield()->update();
-
-  if (m_download->content()->is_done() && m_peerChunks.bitfield()->is_all_set())
-    throw close_connection();
-
-  m_download->chunk_statistics()->received_connect(&m_peerChunks);
-
-  // By default, set interested. When unchoked we'll check if there's
-  // any interesting pieces, then set uninterested.
-  if (!m_download->content()->is_done()) {
-    m_sendInterested = true;
-    m_up->set_interested(true);
-  }
-
-  write_insert_poll_safe();
 }
 
 bool

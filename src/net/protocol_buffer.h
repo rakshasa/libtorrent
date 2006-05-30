@@ -70,6 +70,8 @@ public:
   uint64_t            read_64()                     { return read_int<uint64_t>(); }
   uint64_t            peek_64()                     { return peek_int<uint64_t>(); }
 
+  uint8_t             peek_8_at(size_type pos)      { return *(m_position + pos); }
+
   template <typename Out>
   void                read_range(Out first, Out last);
 

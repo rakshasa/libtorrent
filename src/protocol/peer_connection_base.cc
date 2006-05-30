@@ -124,13 +124,13 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   m_peerInfo = peerInfo;
   m_download = download;
 
-  m_peerChunks.bitfield()->swap(*bitfield);
-
   m_peerChunks.upload_throttle()->set_list_iterator(m_download->upload_throttle()->end());
   m_peerChunks.upload_throttle()->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_up_activate));
 
   m_peerChunks.download_throttle()->set_list_iterator(m_download->download_throttle()->end());
   m_peerChunks.download_throttle()->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_down_activate));
+
+  m_peerChunks.bitfield()->swap(*bitfield);
 
   download_queue()->set_delegator(m_download->delegator());
   download_queue()->set_peer_chunks(&m_peerChunks);
@@ -141,6 +141,11 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   manager->poll()->insert_error(this);
 
   m_timeLastRead = cachedTime;
+
+  m_download->chunk_statistics()->received_connect(&m_peerChunks);
+
+  // Hmm... cleanup?
+  update_interested();
 
   initialize_custom();
 }
@@ -263,8 +268,7 @@ PeerConnectionBase::down_chunk() {
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t count, quota;
-  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(),
-					     m_downPiece.length() - m_down->position());
+  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(), m_downPiece.length() - m_down->position());
 
   Chunk::MemoryArea memory;
   ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.offset() + m_down->position());
@@ -393,33 +397,6 @@ PeerConnectionBase::write_prepare_piece() {
   }
       
   m_up->write_piece(m_upPiece);
-}
-
-bool
-PeerConnectionBase::read_bitfield_body() {
-  // We're guaranteed that we still got bytes remaining to be
-  // read of the bitfield.
-  m_down->adjust_position(read_stream_throws(m_peerChunks.bitfield()->begin() + m_down->position(),
-					     m_peerChunks.bitfield()->size_bytes() - m_down->position()));
-	
-  return m_down->position() == m_peerChunks.bitfield()->size_bytes();
-}
-
-// 'msgLength' is the length of the message, not how much we got in
-// the buffer.
-bool
-PeerConnectionBase::read_bitfield_from_buffer(uint32_t msgLength) {
-  if (msgLength != m_peerChunks.bitfield()->size_bytes())
-    throw network_error("Received invalid bitfield size.");
-
-  uint32_t copyLength = std::min((uint32_t)m_down->buffer()->remaining(), msgLength);
-
-  std::memcpy(m_peerChunks.bitfield()->begin(), m_down->buffer()->position(), copyLength);
-
-  m_down->buffer()->move_position(copyLength);
-  m_down->set_position(copyLength);
-
-  return copyLength == msgLength;
 }
 
 // High stall count peers should request if we're *not* in endgame, or
