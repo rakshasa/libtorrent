@@ -78,16 +78,15 @@ Handshake::~Handshake() {
   if (get_fd().is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open.");
 
-  delete m_peerInfo;
+  if (m_peerInfo != NULL) {
+    m_download->peer_list()->disconnected(m_peerInfo);
+    m_peerInfo = NULL;
+  }
 }
 
 void
 Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
   m_download = d;
-
-//   m_peerInfo = new PeerInfo();
-//   m_peerInfo->set_incoming(false);
-//   m_peerInfo->set_socket_address(&sa);
 
   m_incoming = false;
   m_address = sa;
@@ -103,10 +102,6 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
 
 void
 Handshake::initialize_incoming(const rak::socket_address& sa) {
-//   m_peerInfo = new PeerInfo();
-//   m_peerInfo->set_incoming(true);
-//   m_peerInfo->set_socket_address(&sa);
-
   m_incoming = true;
   m_address = sa;
 
@@ -263,12 +258,19 @@ Handshake::event_read() {
 
 inline void
 Handshake::prepare_peer_info() {
-  if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) != 0)
-    return m_manager->receive_failed(this);
+  if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
+    throw close_connection();
 
-  m_peerInfo = new PeerInfo();
+  PeerList::iterator itr = m_download->peer_list()->connected(m_address);
+
+  if (itr == m_download->peer_list()->end())
+    throw close_connection();
+
+  m_peerInfo = itr->second;
+
   m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
   m_peerInfo->set_incoming(m_incoming);
+  //  m_peerInfo->set_socket_address(&m_address);
 
   std::memcpy(m_peerInfo->get_options(), m_options, 8);
 }

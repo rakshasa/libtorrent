@@ -68,6 +68,8 @@ public:
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
   // if no more connections are allowed from that host.
   iterator            connected(const rak::socket_address& sa);
+
+  void                disconnected(PeerInfo* p);
   iterator            disconnected(iterator itr);
 
 private:

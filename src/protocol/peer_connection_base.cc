@@ -96,6 +96,10 @@ PeerConnectionBase::~PeerConnectionBase() {
 
   download_queue()->cancel();
 
+  // Need to move more stuff into download*.
+  m_download->peer_list()->disconnected(m_peerInfo);
+  m_peerInfo = NULL;
+
   m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
   m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
@@ -104,9 +108,6 @@ PeerConnectionBase::~PeerConnectionBase() {
 
   delete m_up;
   delete m_down;
-
-  // Remove this once we start storing the unconnected PeerInfo's.
-  delete m_peerInfo;
 
   m_download = NULL;
 }

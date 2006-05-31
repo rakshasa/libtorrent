@@ -79,6 +79,7 @@ PeerList::connected(const rak::socket_address& sa) {
 
     itr = base_type::insert(range.second, value_type(rak::socket_address_key(sa), new PeerInfo()));
 
+    // Do this in handshake?
     itr->second->set_socket_address(&sa);
 
   } else {
@@ -91,8 +92,23 @@ PeerList::connected(const rak::socket_address& sa) {
   return itr;
 }
 
+void
+PeerList::disconnected(PeerInfo* p) {
+  range_type range = base_type::equal_range(*p->socket_address());
+  
+  iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ptr_ref(&value_type::second)));
+
+  if (itr == range.second)
+    throw internal_error("PeerList::disconnected(...) itr == range.second.");
+  
+  disconnected(itr);
+}
+
 PeerList::iterator
 PeerList::disconnected(iterator itr) {
+  if (itr == end())
+    throw internal_error("PeerList::disconnected(...) itr == end().");
+
   if (!itr->second->is_connected())
     throw internal_error("PeerList::disconnected(...) !itr->is_connected().");
 

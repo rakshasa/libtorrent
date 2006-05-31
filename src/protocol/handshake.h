@@ -82,6 +82,8 @@ public:
 
   void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
 
+  const rak::socket_address* socket_address() const       { return &m_address; }
+
   DownloadMain*       download()                    { return m_download; }
   Bitfield*           bitfield()                    { return &m_bitfield; }
   

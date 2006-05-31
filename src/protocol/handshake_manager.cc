@@ -191,8 +191,7 @@ void
 HandshakeManager::receive_failed(Handshake* h) {
   erase(h);
 
-  if (h->download() != NULL && h->peer_info() != NULL)
-    h->download()->info()->signal_network_log().emit("Failed handshake: " + h->peer_info()->socket_address()->address_str());
+  h->download()->info()->signal_network_log().emit("Failed handshake: " + h->socket_address()->address_str());
 
   delete_handshake(h);
 }
