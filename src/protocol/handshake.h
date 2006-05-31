@@ -102,6 +102,11 @@ protected:
   
   void                read_done();
 
+  inline void         prepare_peer_info();
+
+  inline void         prepare_write_bitfield();
+  inline void         prepare_write_keepalive();
+
   static const char*  m_protocol;
 
   State               m_state;
@@ -121,9 +126,13 @@ protected:
   uint32_t            m_writePos;
   Buffer              m_writeBuffer;
   bool                m_writeDone;
+
+  bool                m_incoming;
+
+  rak::socket_address m_address;
+  char                m_options[8];
 };
 
 }
 
 #endif
-

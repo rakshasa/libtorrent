@@ -34,62 +34,45 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PEER_PEER_INFO_H
-#define LIBTORRENT_PEER_PEER_INFO_H
+#ifndef LIBTORRENT_DOWNLOAD_PEER_LIST_H
+#define LIBTORRENT_DOWNLOAD_PEER_LIST_H
 
-#include <string>
-#include <cstring>
-#include <inttypes.h>
-
+#include <map>
 #include <rak/socket_address.h>
 
 namespace torrent {
 
-class PeerInfo {
+class PeerList : private std::multimap<rak::socket_address_key, PeerInfo*> {
 public:
-  PeerInfo();
+  typedef std::multimap<rak::socket_address_key, PeerInfo*>   base_type;
+  typedef std::pair<base_type::iterator, base_type::iterator> range_type;
 
-  bool                is_valid() const                      { return m_id.length() == 20 && m_address.is_valid(); }
+  using base_type::value_type;
+  using base_type::reference;
+  using base_type::difference_type;
 
-  bool                is_connected() const                  { return m_connected; }
-  void                set_connected(bool v)                 { m_connected = v; }
+  using base_type::iterator;
+  using base_type::reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
 
-  bool                is_incoming() const                   { return m_incoming; }
-  void                set_incoming(bool v)                  { m_incoming = v; }
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
-  const std::string&  get_id() const                        { return m_id; }
-  void                set_id(const std::string& id)         { m_id = id; }
+  ~PeerList() { clear(); }
 
-  char*               get_options()                         { return m_options; }
-  const char*         get_options() const                   { return m_options; }
+  void                clear();
 
-  rak::socket_address*       socket_address()               { return &m_address; }
-  const rak::socket_address* socket_address() const         { return &m_address; }
-
-  void                set_socket_address(const rak::socket_address* sa) { m_address = *sa; }
-
-  bool                operator < (const PeerInfo& p) const  { return m_id < p.m_id; }
-  bool                operator == (const PeerInfo& p) const { return m_id == p.m_id; }
+  // Insert, or find a PeerInfo with socket address 'sa'. Returns end
+  // if no more connections are allowed from that host.
+  iterator            connected(const rak::socket_address& sa);
+  iterator            disconnected(iterator itr);
 
 private:
-  std::string         m_id;
-  rak::socket_address m_address;
-  char                m_options[8];
-
-  bool                m_connected;
-  bool                m_incoming;
 };
 
-inline
-PeerInfo::PeerInfo() : 
-  m_connected(false),
-  m_incoming(false)
-
-{
-  m_address.clear();
-  std::memset(m_options, 0, 8);
 }
 
-} // namespace torrent
-
-#endif // LIBTORRENT_PEER_INFO_H
+#endif

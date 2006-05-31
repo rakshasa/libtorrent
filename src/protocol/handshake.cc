@@ -67,6 +67,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
   m_readBuffer.reset();
   m_writeBuffer.reset();      
 
+  m_taskTimeout.clear_time();
   m_taskTimeout.set_slot(rak::bind_mem_fn(m, &HandshakeManager::receive_failed, this));
 }
 
@@ -84,9 +85,12 @@ void
 Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
   m_download = d;
 
-  m_peerInfo = new PeerInfo();
-  m_peerInfo->set_incoming(false);
-  m_peerInfo->set_socket_address(&sa);
+//   m_peerInfo = new PeerInfo();
+//   m_peerInfo->set_incoming(false);
+//   m_peerInfo->set_socket_address(&sa);
+
+  m_incoming = false;
+  m_address = sa;
 
   m_state = CONNECTING;
 
@@ -99,9 +103,12 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
 
 void
 Handshake::initialize_incoming(const rak::socket_address& sa) {
-  m_peerInfo = new PeerInfo();
-  m_peerInfo->set_incoming(true);
-  m_peerInfo->set_socket_address(&sa);
+//   m_peerInfo = new PeerInfo();
+//   m_peerInfo->set_incoming(true);
+//   m_peerInfo->set_socket_address(&sa);
+
+  m_incoming = true;
+  m_address = sa;
 
   m_state = READ_INFO;
 
@@ -147,17 +154,17 @@ Handshake::event_read() {
       m_readBuffer.move_position(20);
 
       // Should do some option field stuff here, for now just copy.
-      m_readBuffer.read_range(m_peerInfo->get_options(), m_peerInfo->get_options() + 8);
+      m_readBuffer.read_range(m_options, m_options + 8);
 
       // Check the info hash.
-      if (m_peerInfo->is_incoming()) {
+      if (m_incoming) {
         m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+        m_readBuffer.move_position(20);
 
         if (m_download == NULL || !m_download->info()->accepting_new_peers())
           return m_manager->receive_failed(this);
 
         m_state = WRITE_FILL;
-        m_readBuffer.move_position(20);
 
         manager->poll()->remove_read(this);
         manager->poll()->insert_write(this);
@@ -179,33 +186,17 @@ Handshake::event_read() {
       if (m_readBuffer.size_end() < handshake_size)
         return;
 
-      m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
-      m_readBuffer.move_position(20);
-
-      if (m_peerInfo->get_id() == m_download->info()->local_id())
-        return m_manager->receive_failed(this);
-
+      prepare_peer_info();
+      
       m_readBuffer.reset();
       m_writeBuffer.reset();
 
       // The download is just starting so we're not sending any
       // bitfield.
-      if (m_download->content()->bitfield()->is_all_unset()) {
-        // Write a keep-alive message.
-        m_writeBuffer.write_32(0);
-        m_writeBuffer.prepare_end();
-
-        // Skip writting the bitfield.
-        m_writePos = m_download->content()->bitfield()->size_bytes();
-
-      } else {
-        m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
-        m_writeBuffer.write_8(protocol_bitfield);
-        m_writeBuffer.prepare_end();
-
-        m_writePos = 0;
-      }
-
+      if (m_download->content()->bitfield()->is_all_unset())
+        prepare_write_keepalive();
+      else
+        prepare_write_bitfield();
 
       m_state = BITFIELD;
       manager->poll()->insert_write(this);
@@ -270,6 +261,37 @@ Handshake::event_read() {
   }
 }
 
+inline void
+Handshake::prepare_peer_info() {
+  if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) != 0)
+    return m_manager->receive_failed(this);
+
+  m_peerInfo = new PeerInfo();
+  m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+  m_peerInfo->set_incoming(m_incoming);
+
+  std::memcpy(m_peerInfo->get_options(), m_options, 8);
+}
+
+inline void
+Handshake::prepare_write_bitfield() {
+  m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
+  m_writeBuffer.write_8(protocol_bitfield);
+  m_writeBuffer.prepare_end();
+
+  m_writePos = 0;
+}
+
+inline void
+Handshake::prepare_write_keepalive() {
+  // Write a keep-alive message.
+  m_writeBuffer.write_32(0);
+  m_writeBuffer.prepare_end();
+
+  // Skip writting the bitfield.
+  m_writePos = m_download->content()->bitfield()->size_bytes();
+}
+
 void
 Handshake::read_done() {
   m_readDone = true;
@@ -323,7 +345,7 @@ Handshake::event_write() {
       if (m_writeBuffer.remaining())
         return;
 
-      if (m_peerInfo->is_incoming())
+      if (m_incoming)
         m_state = READ_PEER;
       else
         m_state = READ_INFO;

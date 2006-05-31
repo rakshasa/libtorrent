@@ -86,7 +86,7 @@ HandshakeManager::erase(Handshake* handshake) {
 
 struct handshake_manager_equal : std::binary_function<const rak::socket_address*, const Handshake*, bool> {
   bool operator () (const rak::socket_address* sa1, const Handshake* p2) const {
-    return *sa1 == *p2->peer_info()->socket_address();
+    return p2->peer_info() != NULL && *sa1 == *p2->peer_info()->socket_address();
   }
 };
 

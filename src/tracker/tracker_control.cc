@@ -108,9 +108,9 @@ TrackerControl::send_state(DownloadInfo::State s) {
 
   if (m_itr != m_list.end())
     m_itr->second->send_state(m_state,
-			      m_info->down_rate()->total(),
-			      m_info->up_rate()->total() >= m_info->uploaded_baseline() ? (m_info->up_rate()->total() - m_info->uploaded_baseline()) : 0,
-			      m_info->slot_stat_left()());
+                              m_info->down_rate()->total() >= m_info->downloaded_baseline() ? (m_info->down_rate()->total() - m_info->downloaded_baseline()) : 0,
+                              m_info->up_rate()->total() >= m_info->uploaded_baseline() ? (m_info->up_rate()->total() - m_info->uploaded_baseline()) : 0,
+                              m_info->slot_stat_left()());
   else
     m_slotFailed("Tried all trackers.");
 }

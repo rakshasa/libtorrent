@@ -42,6 +42,7 @@
 
 #include "available_list.h"
 #include "connection_list.h"
+#include "peer_list.h"
 #include "delegator.h"
 
 #include "data/content.h"
@@ -94,6 +95,7 @@ public:
 
   AvailableList*      available_list()                           { return &m_availableList; }
   ConnectionList*     connection_list()                          { return m_connectionList; }
+  PeerList*           peer_list()                                { return &m_peerList; }
 
   ThrottleList*       upload_throttle()                          { return m_uploadThrottle; }
   void                set_upload_throttle(ThrottleList* t)       { m_uploadThrottle = t; }
@@ -146,6 +148,7 @@ private:
 
   AvailableList       m_availableList;
   ConnectionList*     m_connectionList;
+  PeerList            m_peerList;
 
   bool                m_started;
   bool                m_isOpen;
