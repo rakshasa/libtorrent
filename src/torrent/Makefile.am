@@ -3,6 +3,11 @@ noinst_LTLIBRARIES = libsub_torrent.la
 libsub_torrent_la_SOURCES = \
 	bitfield.cc \
 	bitfield.h \
+	block.cc \
+	block.h \
+	block_list.cc \
+	block_queued.h \
+	block_transfer.h \
 	download.cc \
 	download.h \
 	connection_manager.cc \

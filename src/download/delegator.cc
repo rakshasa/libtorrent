@@ -226,13 +226,10 @@ Delegator::finished(DelegatorReservee& r) {
 
 void
 Delegator::done(unsigned int index) {
-  Chunks::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(),
-				      rak::equal(index, std::mem_fun(&DelegatorChunk::get_index)));
+  Chunks::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal(index, std::mem_fun(&DelegatorChunk::get_index)));
 
   if (itr == m_chunks.end())
     throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
-
-  //m_select.remove_ignore((*itr)->get_index());
 
   delete *itr;
   m_chunks.erase(itr);
@@ -254,8 +251,7 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
   if (index == ~(uint32_t)0)
     return NULL;
 
-  if (std::find_if(m_chunks.begin(), m_chunks.end(),
-		   rak::equal(index, std::mem_fun(&DelegatorChunk::get_index))) != m_chunks.end())
+  if (std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal(index, std::mem_fun(&DelegatorChunk::get_index))) != m_chunks.end())
     throw internal_error("Delegator::new_chunk(...) received an index that is already delegated.");
 
   DelegatorChunk* chunk = new DelegatorChunk(index, m_slotChunkSize(index), block_size, highPriority ? Priority::HIGH : Priority::NORMAL);
@@ -269,28 +265,23 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
 
 DelegatorPiece*
 Delegator::find_piece(const Piece& p) {
-  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-				    rak::equal(p.index(), std::mem_fun(&DelegatorChunk::get_index)));
+  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal(p.index(), std::mem_fun(&DelegatorChunk::get_index)));
   
   if (c == m_chunks.end())
     return NULL;
 
-  DelegatorChunk::iterator d = std::find_if((*c)->begin(), (*c)->end(),
-					    rak::equal(p, std::mem_fun_ref(&DelegatorPiece::get_piece)));
+  DelegatorChunk::iterator d = std::find_if((*c)->begin(), (*c)->end(), rak::equal(p, std::mem_fun_ref(&DelegatorPiece::get_piece)));
 
   return d != (*c)->end() ? d : NULL;
 }
   
 bool
 Delegator::all_finished(int index) {
-  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(),
-				    rak::equal((unsigned int)index, std::mem_fun(&DelegatorChunk::get_index)));
+  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal((unsigned int)index, std::mem_fun(&DelegatorChunk::get_index)));
 
   return
     c != m_chunks.end() &&
-    std::find_if((*c)->begin(), (*c)->end(),
-		 std::not1(std::mem_fun_ref(&DelegatorPiece::is_finished)))
-    == (*c)->end();
+    std::find_if((*c)->begin(), (*c)->end(), std::not1(std::mem_fun_ref(&DelegatorPiece::is_finished))) == (*c)->end();
 }
 
 DelegatorPiece*
