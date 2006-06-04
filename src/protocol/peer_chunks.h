@@ -47,6 +47,8 @@
 
 namespace torrent {
 
+class PeerInfo;
+
 class PeerChunks {
 public:
   typedef std::list<uint32_t> index_list_type;
@@ -58,6 +60,10 @@ public:
 
   bool                is_snubbed() const            { return m_snubbed; }
   void                set_snubbed(bool v)           { m_snubbed = v; }
+
+  PeerInfo*           peer_info()                   { return m_peerInfo; }
+  const PeerInfo*     peer_info() const             { return m_peerInfo; }
+  void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
 
   bool                using_counter() const         { return m_usingCounter; }
   void                set_using_counter(bool state) { m_usingCounter = state; }
@@ -77,6 +83,8 @@ public:
   ThrottleNode*       upload_throttle()             { return &m_uploadThrottle; }
 
 private:
+  PeerInfo*           m_peerInfo;
+
   bool                m_snubbed;
   bool                m_usingCounter;
 
@@ -95,6 +103,8 @@ private:
 
 inline
 PeerChunks::PeerChunks() :
+  m_peerInfo(NULL),
+
   m_snubbed(false),
   m_usingCounter(false),
 

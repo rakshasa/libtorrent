@@ -44,18 +44,19 @@
 namespace torrent {
 
 class BitField;
+class Block;
+class BlockList;
+class BlockTransfer;
 class Content;
 class DownloadMain;
-class DelegatorChunk;
-class DelegatorReservee;
-class DelegatorPiece;
 class Piece;
 class PeerChunks;
+class PeerInfo;
 class ChunkSelector;
 
 class Delegator {
 public:
-  typedef std::vector<DelegatorChunk*>                              Chunks;
+  typedef std::vector<BlockList*>                              Chunks;
   typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
   typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
   typedef rak::mem_fun1<DownloadMain, void, uint32_t>               SlotChunkDone;
@@ -68,9 +69,9 @@ public:
 
   void               clear();
 
-  DelegatorReservee* delegate(PeerChunks* peerChunks, int affinity);
+  BlockTransfer*     delegate(PeerChunks* peerChunks, int affinity);
 
-  void               finished(DelegatorReservee& r);
+  void               finished(BlockTransfer* r);
 
   void               done(unsigned int index);
   void               redo(unsigned int index);
@@ -87,16 +88,16 @@ public:
   void               slot_chunk_size(SlotChunkSize s)     { m_slotChunkSize = s; }
 
   // Don't call this from the outside.
-  DelegatorPiece*    delegate_piece(DelegatorChunk* c);
-  DelegatorPiece*    delegate_aggressive(DelegatorChunk* c, uint16_t* overlapped);
+  Block*             delegate_piece(BlockList* c, const PeerInfo* peerInfo);
+  Block*             delegate_aggressive(BlockList* c, uint16_t* overlapped, const PeerInfo* peerInfo);
 
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
-  DelegatorPiece*    new_chunk(PeerChunks* pc, bool highPriority);
-  DelegatorPiece*    find_piece(const Piece& p);
+  Block*    new_chunk(PeerChunks* pc, bool highPriority);
+  Block*    find_piece(const Piece& p);
 
-  DelegatorPiece*    delegate_seeder(PeerChunks* peerChunks);
+  Block*             delegate_seeder(PeerChunks* peerChunks);
 
   bool               all_finished(int index);
 

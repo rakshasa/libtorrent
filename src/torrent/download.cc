@@ -45,7 +45,6 @@
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
-#include "download/delegator_chunk.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
@@ -53,6 +52,8 @@
 #include "tracker/tracker_manager.h"
 
 #include "exceptions.h"
+#include "block.h"
+#include "block_list.h"
 #include "download.h"
 #include "file_list.h"
 #include "object.h"
@@ -208,9 +209,9 @@ Download::bytes_done() const {
   Delegator* d = m_ptr->main()->delegator();
 
   for (Delegator::Chunks::iterator itr1 = d->get_chunks().begin(), last1 = d->get_chunks().end(); itr1 != last1; ++itr1)
-    for (DelegatorChunk::iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
+    for (BlockList::iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
       if (itr2->is_finished())
-	a += itr2->get_piece().length();
+        a += itr2->piece().length();
   
   return a + m_ptr->main()->content()->bytes_completed();
 }

@@ -49,6 +49,13 @@ public:
   typedef std::vector<Block> base_type;
   typedef uint32_t           size_type;
 
+  // Consolidate the different priority types into one.
+  typedef enum {
+    STOPPED,
+    NORMAL,
+    HIGH
+  } priority_type;
+
   using base_type::value_type;
   using base_type::reference;
   using base_type::difference_type;
@@ -71,8 +78,26 @@ public:
 
   const Piece&        piece() const                 { return m_piece; }
 
+  uint32_t            index() const                 { return m_piece.index(); }
+
+  // Set when the chunk was initially requested from a seeder. This
+  // allows us to quickly determine if it is a suitable chunk to
+  // request from another seeder, e.g by already knowing it is a rare
+  // piece.
+  bool                by_seeder() const             { return m_bySeeder; }
+  void                set_by_seeder(bool state)     { m_bySeeder = state; }
+
+  priority_type       priority() const              { return m_priority; }
+  void                set_priority(priority_type p) { m_priority = p; }
+
+  // Temp hack.
+  int32_t             priority_int() const          { return static_cast<int32_t>(m_priority); }
+
 private:
   Piece               m_piece;
+  priority_type       m_priority;
+
+  bool                m_bySeeder;
 };
 
 }

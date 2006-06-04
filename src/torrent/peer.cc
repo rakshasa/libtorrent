@@ -40,6 +40,8 @@
 #include "protocol/peer_connection_base.h"
 
 #include "exceptions.h"
+#include "block.h"
+#include "block_transfer.h"
 #include "peer.h"
 #include "rate.h"
 
@@ -120,7 +122,15 @@ Peer::incoming_queue(uint32_t pos) const {
   if (pos >= m_ptr->download_queue()->size())
     throw client_error("Peer::incoming_queue(...) out of range.");
 
-  return m_ptr->download_queue()->queued_piece(pos);
+  // Temporary hack.
+  static const Piece emptyPiece;
+
+  const BlockTransfer* transfer = m_ptr->download_queue()->queued_transfer(pos);
+
+  if (!transfer->is_valid())
+    return &emptyPiece;
+
+  return &transfer->block()->piece();
 }
 
 uint32_t

@@ -38,7 +38,8 @@
 #define LIBTORRENT_REQUEST_LIST_H
 
 #include <deque>
-#include "download/delegator_reservee.h"
+
+#include "torrent/block_transfer.h"
 
 namespace torrent {
 
@@ -47,7 +48,7 @@ class Delegator;
 
 class RequestList {
 public:
-  typedef std::deque<DelegatorReservee*> ReserveeList;
+  typedef std::deque<BlockTransfer*> ReserveeList;
 
   RequestList() :
     m_delegator(NULL),
@@ -79,12 +80,12 @@ public:
   bool               empty() const                    { return m_reservees.empty(); }
   size_t             size()                           { return m_reservees.size(); }
 
-  const Piece*       queued_piece(uint32_t i) const   { return m_reservees[i]->piece(); }
-
   void               set_delegator(Delegator* d)      { m_delegator = d; }
   void               set_peer_chunks(PeerChunks* b)   { m_peerChunks = b; }
 
   uint32_t           calculate_pipe_size(uint32_t rate);
+
+  const BlockTransfer* queued_transfer(uint32_t i) const { return m_reservees[i]; }
 
 private:
   void               cancel_range(ReserveeList::iterator end);
@@ -92,6 +93,7 @@ private:
   Delegator*         m_delegator;
   PeerChunks*        m_peerChunks;
 
+  // Replace m_downloading with a pointer to BlockTransfer.
   int32_t            m_affinity;
   bool               m_downloading;
 

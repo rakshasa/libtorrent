@@ -13,12 +13,6 @@ libsub_download_la_SOURCES = \
 	connection_list.h \
 	delegator.cc \
 	delegator.h \
-	delegator_chunk.cc \
-	delegator_chunk.h \
-	delegator_piece.h \
-	delegator_piece.cc \
-	delegator_reservee.h \
-	delegator_reservee.cc \
 	download_constructor.cc \
 	download_constructor.h \
 	download_info.h \

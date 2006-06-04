@@ -36,26 +36,28 @@
 
 #include "config.h"
 
+#include <functional>
 #include <inttypes.h>
 #include <rak/functional.h>
 
+#include "torrent/block.h"
+#include "torrent/block_list.h"
 #include "torrent/exceptions.h"
 #include "download/delegator.h"
-#include "download/delegator_chunk.h"
-#include "download/delegator_reservee.h"
 
 #include "peer_chunks.h"
 #include "request_list.h"
 
 namespace torrent {
 
+// It is assumed invalid transfers have been removed.
 struct request_list_same_piece {
   request_list_same_piece(const Piece& p) : m_piece(p) {}
 
-  bool operator () (const DelegatorReservee* d) {
+  bool operator () (const BlockTransfer* d) {
     return
-      m_piece.index() == d->piece()->index() &&
-      m_piece.offset() == d->piece()->offset();
+      m_piece.index() == d->block()->piece().index() &&
+      m_piece.offset() == d->block()->piece().offset();
   }
 
   Piece m_piece;
@@ -63,13 +65,13 @@ struct request_list_same_piece {
 
 const Piece*
 RequestList::delegate() {
-  DelegatorReservee* r = m_delegator->delegate(m_peerChunks, m_affinity);
+  BlockTransfer* r = m_delegator->delegate(m_peerChunks, m_affinity);
 
   if (r) {
-    m_affinity = r->piece()->index();
+    m_affinity = r->block()->index();
     m_reservees.push_back(r);
 
-    return r->piece();
+    return &r->block()->piece();
 
   } else {
     return NULL;
@@ -82,19 +84,17 @@ RequestList::cancel() {
   if (m_downloading)
     throw internal_error("RequestList::cancel(...) called while is_downloading() == true");
 
-  std::for_each(m_canceled.begin(), m_canceled.end(), rak::call_delete<DelegatorReservee>());
+  std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::erase));
   m_canceled.clear();
 
-  std::for_each(m_reservees.begin(), m_reservees.end(),
-		std::bind2nd(std::mem_fun(&DelegatorReservee::set_stalled), true));
+  std::for_each(m_reservees.begin(), m_reservees.end(), std::ptr_fun(&Block::stalled));
 
   m_canceled.swap(m_reservees);
 }
 
 void
 RequestList::stall() {
-  std::for_each(m_reservees.begin(), m_reservees.end(),
-		std::bind2nd(std::mem_fun(&DelegatorReservee::set_stalled), true));
+  std::for_each(m_reservees.begin(), m_reservees.end(), std::ptr_fun(&Block::stalled));
 }
 
 bool
@@ -121,14 +121,15 @@ RequestList::downloading(const Piece& p) {
   
   // Make sure pieces are removed from the reservee list if the peer
   // returns zero length pieces.
-  if (p.length() != (*itr)->piece()->length()) {
+  if (p.length() != (*itr)->block()->piece().length()) {
     m_reservees.erase(itr);
     return false;
   }
 
+  Block::transfering(*itr);
   m_downloading = true;
 
-  if (p != *m_reservees.front()->piece())
+  if (p != m_reservees.front()->block()->piece())
     throw internal_error("RequestList::downloading(...) did not add the new piece to the front of the list");
   
   return true;
@@ -140,9 +141,7 @@ RequestList::finished() {
   if (!m_downloading || !m_reservees.size())
     throw internal_error("RequestList::finished() called without a downloading piece");
 
-  m_delegator->finished(*m_reservees.front());
-
-  delete m_reservees.front();;
+  m_delegator->finished(m_reservees.front());
   m_reservees.pop_front();
 
   m_downloading = false;
@@ -153,22 +152,22 @@ RequestList::skip() {
   if (!m_downloading || !m_reservees.size())
     throw internal_error("RequestList::skip() called without a downloading piece");
 
-  delete m_reservees.front();
+  Block::erase(m_reservees.front());
   m_reservees.pop_front();
 
   m_downloading = false;
 }
 
-struct equals_reservee : public std::binary_function<DelegatorReservee*, uint32_t, bool> {
-  bool operator () (DelegatorReservee* r, uint32_t index) const {
-    return r->is_valid() && index == r->piece()->index();
+struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, bool> {
+  bool operator () (BlockTransfer* r, uint32_t index) const {
+    return r->is_valid() && index == r->block()->index();
   }
 };
 
 bool
 RequestList::is_interested_in_active() const {
   for (Delegator::Chunks::const_iterator itr = m_delegator->get_chunks().begin(), last = m_delegator->get_chunks().end(); itr != last; ++itr)
-    if (m_peerChunks->bitfield()->get((*itr)->get_index()))
+    if (m_peerChunks->bitfield()->get((*itr)->index()))
       return true;
 
   return false;
@@ -183,7 +182,7 @@ RequestList::has_index(uint32_t index) {
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
   while (m_reservees.begin() != end) {
-    m_reservees.front()->set_stalled(true);
+    Block::stalled(m_reservees.front());
     
     m_canceled.push_back(m_reservees.front());
     m_reservees.pop_front();
@@ -196,16 +195,14 @@ RequestList::remove_invalid() {
   ReserveeList::iterator itr;
 
   // Could be more efficient, but rarely do we find any.
-  while ((itr = std::find_if(m_reservees.begin(), m_reservees.end(),  std::not1(std::mem_fun(&DelegatorReservee::is_valid))))
-	 != m_reservees.end()) {
+  while ((itr = std::find_if(m_reservees.begin(), m_reservees.end(),  std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_reservees.end()) {
     count++;
     delete *itr;
     m_reservees.erase(itr);
   }
 
   // Don't count m_canceled that are invalid.
-  while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(), std::not1(std::mem_fun(&DelegatorReservee::is_valid))))
-	 != m_canceled.end()) {
+  while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(), std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_canceled.end()) {
     delete *itr;
     m_canceled.erase(itr);
   }

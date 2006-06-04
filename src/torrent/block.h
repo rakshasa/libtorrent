@@ -48,17 +48,27 @@ class PeerInfo;
 
 class Block {
 public:
-
   // Using vectors as they will remain small, thus the cost of erase
   // should be small. Later we can do faster erase by ignoring the
   // ordering.
   typedef std::vector<BlockTransfer*> transfer_list;
+  typedef uint32_t                    size_type;
+
+  Block() : m_notStalled(0), m_finished(false) { }
 
   bool                is_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
   bool                is_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
 
+  bool                is_stalled() const                      { return m_notStalled == 0; }
+  bool                is_finished() const                     { return m_finished; }
+
   const Piece&        piece() const                           { return m_piece; }
   void                set_piece(const Piece& p)               { m_piece = p; }
+
+  uint32_t            index() const                           { return m_piece.index(); }
+
+  size_type           size_all() const                        { return 0; }
+  size_type           size_not_stalled() const                { return 0; }
 
   void                clear();
 
@@ -77,6 +87,9 @@ public:
   const transfer_list* queued() const                         { return &m_queued; }
   const transfer_list* transfers() const                      { return &m_transfers; }
 
+  BlockTransfer*       find(const PeerInfo* p);
+  const BlockTransfer* find(const PeerInfo* p) const;
+
   BlockTransfer*       find_queued(const PeerInfo* p);
   const BlockTransfer* find_queued(const PeerInfo* p) const;
 
@@ -90,10 +103,33 @@ private:
   inline void         invalidate_transfer(BlockTransfer* transfer);
 
   Piece               m_piece;
+  
+  uint32_t            m_notStalled;
+  bool                m_finished;
 
   transfer_list       m_queued;
   transfer_list       m_transfers;
 };
+
+inline BlockTransfer*
+Block::find(const PeerInfo* p) {
+  BlockTransfer* transfer;
+
+  if ((transfer = find_queued(p)) != NULL)
+    return transfer;
+  else
+    return find_transfer(p);
+}
+
+inline const BlockTransfer*
+Block::find(const PeerInfo* p) const {
+  const BlockTransfer* transfer;
+
+  if ((transfer = find_queued(p)) != NULL)
+    return transfer;
+  else
+    return find_transfer(p);
+}
 
 }
 

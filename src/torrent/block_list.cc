@@ -44,15 +44,22 @@
 
 namespace torrent {
 
-BlockList::BlockList(const Piece& piece, uint32_t blockLength) {
-  base_type::resize((piece.length() + blockLength - 1) / blockLength);
+BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
+  m_piece(piece),
+  m_priority(STOPPED),
 
+  m_bySeeder(false) {
+  // Look into optimizing this by using input iterators in the ctor.
+  base_type::resize((m_piece.length() + blockLength - 1) / blockLength);
+
+  // ATM assume offset of 0.
+//   uint32_t offset = m_piece.offset();
   uint32_t offset = 0;
 
   for (iterator itr = begin(), last = end() - 1; itr != last; ++itr, offset += blockLength)
-    itr->set_piece(Piece(piece.index(), offset, blockLength));
+    itr->set_piece(Piece(m_piece.index(), offset, blockLength));
   
-  base_type::back().set_piece(Piece(piece.index(), offset, (piece.length() % blockLength) ? piece.length() % blockLength : blockLength));
+  base_type::back().set_piece(Piece(m_piece.index(), offset, (m_piece.length() % blockLength) ? m_piece.length() % blockLength : blockLength));
 }
 
 BlockList::~BlockList() {

@@ -53,6 +53,8 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
     delete transfer;
 
   } else {
+    m_notStalled -= transfer->stall() == 0;
+
     transfer->set_block(NULL);
   }
 }
@@ -61,12 +63,22 @@ void
 Block::clear() {
   std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
+
+  m_queued.clear();
+  m_transfers.clear();
+
+  m_finished = false;
+
+  if (m_notStalled != 0)
+    throw internal_error("Block::clear() m_stalled != 0.");
 }
 
 BlockTransfer*
 Block::insert(PeerInfo* peerInfo) {
   if (find_queued(peerInfo) || find_queued(peerInfo))
     throw internal_error("Block::insert(...) find_queued(peerInfo) || find_queued(peerInfo).");
+
+  m_notStalled++;
 
   transfer_list::iterator itr = m_queued.insert(m_queued.end(), new BlockTransfer());
 
@@ -86,7 +98,12 @@ Block::erase(BlockTransfer* transfer) {
     return;
   }
 
+  if (transfer->is_erased())
+    throw internal_error("Block::erase(...) transfer already erased.");
+
   Block* block = transfer->block();
+
+  block->m_notStalled -= transfer->stall() == 0;
 
   if (transfer->is_queued()) {
     transfer_list::iterator itr = std::find(block->m_queued.begin(), block->m_queued.end(), transfer);
@@ -103,8 +120,11 @@ Block::erase(BlockTransfer* transfer) {
     if (itr == block->m_transfers.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
 
-    // Need to do something different here for now, i think.
-    transfer->set_stall(BlockTransfer::stall_erased);
+//     // Need to do something different here for now, i think.
+    delete *itr;
+    block->m_transfers.erase(itr);
+
+//     transfer->set_stall(BlockTransfer::stall_erased);
   }
 }
 
@@ -128,8 +148,17 @@ Block::transfering(BlockTransfer* transfer) {
 
 void
 Block::stalled(BlockTransfer* transfer) {
-  if (transfer->block() == NULL)
+  if (!transfer->is_valid())
     return;
+
+  if (transfer->stall() == 0) {
+    if (transfer->block()->m_notStalled == 0)
+      throw internal_error("Block::stalled(...) m_notStalled == 0.");
+
+    transfer->block()->m_notStalled--;
+
+    // Do magic here.
+  }
 
   transfer->set_stall(transfer->stall() + 1);
 }
@@ -137,14 +166,46 @@ Block::stalled(BlockTransfer* transfer) {
 void
 Block::completed(BlockTransfer* transfer) {
   if (transfer->block() == NULL)
-    throw internal_error("Block::transfering(...) transfer->block() == NULL.");
+    throw internal_error("Block::completed(...) transfer->block() == NULL.");
+
+  if (transfer->is_erased())
+    throw internal_error("Block::completed(...) transfer is erased.");
 
   if (transfer->is_queued())
-    throw internal_error("Block::transfering(...) transfer is queued.");
+    throw internal_error("Block::completed(...) transfer is queued.");
 
-//   Block* block = transfer->block();
+  Block* block = transfer->block();
 
-  // Do stuff.
+  block->m_finished = true;
+  block->m_notStalled -= transfer->stall() == 0;
+
+  transfer->set_stall(BlockTransfer::stall_erased);
+
+  // Currently just throw out the queued transfers. In case the hash
+  // check fails, we might consider telling pcb during the call to
+  // Block::transfering(...). But that would propably not be correct
+  // as we want to trigger cancel messages from here, as hash fail is
+  // a rare occurrence.
+  std::for_each(block->m_queued.begin(), block->m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), block));
+  block->m_queued.clear();
+
+  // We need to invalidate those unfinished and keep the one that
+  // finished for later reference.
+
+  // Do a stable partition, accure the transfers that have completed
+  // at the start. Use a 'try' counter that also adjust the sizes.
+
+  // Temporary hack.
+//   for (transfer_list::iterator itr = block->m_transfers.begin(), last = block->m_transfers.end(); itr != last; ) {
+//     if ((*itr)->is_erased()) {
+//       itr++;
+//     } else {
+//       itr = block->m_transfers.erase(itr);
+//     }
+//   }
+
+  std::for_each(block->m_transfers.begin(), block->m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), block));
+  block->m_transfers.clear();
 }
 
 BlockTransfer*
