@@ -94,8 +94,8 @@ public:
 private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
-  Block*    new_chunk(PeerChunks* pc, bool highPriority);
-  Block*    find_piece(const Piece& p);
+  Block*             new_chunk(PeerChunks* pc, bool highPriority);
+  Block*             find_piece(const Piece& p);
 
   Block*             delegate_seeder(PeerChunks* peerChunks);
 

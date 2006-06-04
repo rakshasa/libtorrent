@@ -48,7 +48,6 @@
 #include "protocol/peer_chunks.h"
 
 #include "delegator.h"
-#include "priority.h"
 
 namespace torrent {
 
@@ -80,19 +79,19 @@ struct DelegatorCheckSeeder {
 };
 
 struct DelegatorCheckPriority {
-  DelegatorCheckPriority(Delegator* delegator, Block** target, Priority::Type p, const PeerChunks* peerChunks) :
+  DelegatorCheckPriority(Delegator* delegator, Block** target, priority_t p, const PeerChunks* peerChunks) :
     m_delegator(delegator), m_target(target), m_priority(p), m_peerChunks(peerChunks) {}
 
   bool operator () (BlockList* d) {
     return
-      m_priority == d->priority_int() &&
+      m_priority == d->priority() &&
       m_peerChunks->bitfield()->get(d->index()) &&
       (*m_target = m_delegator->delegate_piece(d, m_peerChunks->peer_info())) != NULL;
   }
 
   Delegator*          m_delegator;
   Block**             m_target;
-  Priority::Type      m_priority;
+  priority_t          m_priority;
   const PeerChunks*   m_peerChunks;
 };
 
@@ -105,7 +104,7 @@ struct DelegatorCheckAggressive {
     Block* tmp;
 
     if (!m_peerChunks->bitfield()->get(d->index()) ||
-        d->priority_int() == Priority::STOPPED ||
+        d->priority() == PRIORITY_OFF ||
         (tmp = m_delegator->delegate_aggressive(d, m_overlapp, m_peerChunks->peer_info())) == NULL)
       return false;
 
@@ -154,7 +153,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
     return target->insert(peerChunks->peer_info());
 
   // High priority pieces.
-  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckPriority(this, &target, Priority::HIGH, peerChunks))
+  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckPriority(this, &target, PRIORITY_HIGH, peerChunks))
       != m_chunks.end())
     return target->insert(peerChunks->peer_info());
 
@@ -163,7 +162,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
     return target->insert(peerChunks->peer_info());
 
   // Normal priority pieces.
-  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckPriority(this, &target, Priority::NORMAL, peerChunks))
+  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckPriority(this, &target, PRIORITY_NORMAL, peerChunks))
       != m_chunks.end())
     return target->insert(peerChunks->peer_info());
 
@@ -251,9 +250,9 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
   blockList->set_by_seeder(pc->is_seeder());
 
   if (highPriority)
-    blockList->set_priority(BlockList::HIGH);
+    blockList->set_priority(PRIORITY_HIGH);
   else
-    blockList->set_priority(BlockList::NORMAL);
+    blockList->set_priority(PRIORITY_NORMAL);
 
   m_chunks.push_back(blockList);
   m_slotChunkEnable(index);

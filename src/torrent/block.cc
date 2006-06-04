@@ -75,8 +75,8 @@ Block::clear() {
 
 BlockTransfer*
 Block::insert(PeerInfo* peerInfo) {
-  if (find_queued(peerInfo) || find_queued(peerInfo))
-    throw internal_error("Block::insert(...) find_queued(peerInfo) || find_queued(peerInfo).");
+  if (find_queued(peerInfo) || find_transfer(peerInfo))
+    throw internal_error("Block::insert(...) find_queued(peerInfo) || find_transfer(peerInfo).");
 
   m_notStalled++;
 
@@ -130,7 +130,7 @@ Block::erase(BlockTransfer* transfer) {
 
 void
 Block::transfering(BlockTransfer* transfer) {
-  if (transfer->block() == NULL)
+  if (!transfer->is_valid())
     throw internal_error("Block::transfering(...) transfer->block() == NULL.");
 
   Block* block = transfer->block();

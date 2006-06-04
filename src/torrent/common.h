@@ -42,38 +42,11 @@
 
 namespace torrent {
 
-class Priority {
-public:
-  typedef rak::ranges<uint32_t> Ranges;
-
-  typedef enum {
-    STOPPED = 0,
-    NORMAL,
-    HIGH
-  } Type;
-
-  typedef Ranges::iterator         iterator;
-  typedef Ranges::reverse_iterator reverse_iterator;
-  typedef Ranges::reference        reference;
-
-  // Must be added in increasing order.
-  void                add(Type t, uint32_t begin, uint32_t end) { m_ranges[t].insert(begin, end); }
-
-  void                clear()                                   { for (int i = 0; i < 3; ++i) m_ranges[i].clear(); }
-
-  iterator            begin(Type t)                             { return m_ranges[t].begin(); }
-  iterator            end(Type t)                               { return m_ranges[t].end(); }
-
-  reverse_iterator    rbegin(Type t)                            { return m_ranges[t].rbegin(); }
-  reverse_iterator    rend(Type t)                              { return m_ranges[t].rend(); }
-
-  iterator            find(Type t, uint32_t index)              { return m_ranges[t].find(index); }
-
-  bool                has(Type t, uint32_t index)               { return m_ranges[t].has(index); }
-
-private:
-  Ranges              m_ranges[3];
-};
+typedef enum {
+  PRIORITY_OFF = 0,
+  PRIORITY_NORMAL,
+  PRIORITY_HIGH
+} priority_t;
 
 }
 

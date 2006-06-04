@@ -50,8 +50,7 @@ EntryListNode::EntryListNode() :
   m_position(0),
   m_size(0),
   m_completed(0),
-  m_priority(1)
-{
+  m_priority(PRIORITY_NORMAL) {
 }
 
 bool

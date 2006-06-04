@@ -58,7 +58,7 @@ class PeerChunks;
 
 class ChunkSelector {
 public:
-  typedef rak::ranges<uint32_t> PriorityRanges;
+  typedef rak::ranges<uint32_t> priority_ranges;
 
   static const uint32_t invalid_chunk = ~(uint32_t)0;
 
@@ -67,8 +67,8 @@ public:
 
   const Bitfield*     bitfield()                    { return &m_bitfield; }
 
-  PriorityRanges*     high_priority()               { return &m_highPriority; }
-  PriorityRanges*     normal_priority()             { return &m_normalPriority; }
+  priority_ranges*    high_priority()               { return &m_highPriority; }
+  priority_ranges*    normal_priority()             { return &m_normalPriority; }
 
   // Initialize doesn't update the priority cache, so it is as if it
   // has empty priority ranges.
@@ -100,11 +100,11 @@ public:
   bool                received_have_chunk(PeerChunks* pc, uint32_t index);
 
 private:
-  bool                search_linear(const Bitfield* bf, rak::partial_queue* pq, PriorityRanges* ranges, uint32_t first, uint32_t last);
+  bool                search_linear(const Bitfield* bf, rak::partial_queue* pq, priority_ranges* ranges, uint32_t first, uint32_t last);
   inline bool         search_linear_range(const Bitfield* bf, rak::partial_queue* pq, uint32_t first, uint32_t last);
   inline bool         search_linear_byte(rak::partial_queue* pq, uint32_t index, Bitfield::value_type wanted);
 
-//   inline uint32_t     search_rarest(const Bitfield* bf, PriorityRanges* ranges, uint32_t first, uint32_t last);
+//   inline uint32_t     search_rarest(const Bitfield* bf, priority_ranges* ranges, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_range(const Bitfield* bf, uint32_t first, uint32_t last);
 //   inline uint32_t     search_rarest_byte(uint8_t wanted);
 
@@ -113,8 +113,8 @@ private:
   Bitfield            m_bitfield;
   ChunkStatistics*    m_statistics;
   
-  PriorityRanges      m_highPriority;
-  PriorityRanges      m_normalPriority;
+  priority_ranges     m_highPriority;
+  priority_ranges     m_normalPriority;
 
   rak::partial_queue  m_sharedQueue;
 

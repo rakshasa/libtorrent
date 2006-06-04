@@ -204,8 +204,8 @@ ChunkSelector::received_have_chunk(PeerChunks* pc, uint32_t index) {
 }
 
 bool
-ChunkSelector::search_linear(const Bitfield* bf, rak::partial_queue* pq, PriorityRanges* ranges, uint32_t first, uint32_t last) {
-  PriorityRanges::iterator itr = ranges->find(first);
+ChunkSelector::search_linear(const Bitfield* bf, rak::partial_queue* pq, priority_ranges* ranges, uint32_t first, uint32_t last) {
+  priority_ranges::iterator itr = ranges->find(first);
 
   while (itr != ranges->end() && itr->first < last) {
 

@@ -289,8 +289,7 @@ TrackerManager::receive_failed(const std::string& msg) {
       m_control->set_focus_index(0);
     }
     
-    priority_queue_insert(&taskScheduler, &m_taskTimeout,
-			  (cachedTime + rak::timer::from_seconds(std::min<uint32_t>(600, 20 + 20 * m_failedRequests))).round_seconds());
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(std::min<uint32_t>(600, 20 + 20 * m_failedRequests))).round_seconds());
   }
 
   m_slotFailed(msg);

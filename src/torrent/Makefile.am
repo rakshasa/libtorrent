@@ -6,12 +6,12 @@ libsub_torrent_la_SOURCES = \
 	block.cc \
 	block.h \
 	block_list.cc \
-	block_queued.h \
 	block_transfer.h \
-	download.cc \
-	download.h \
+	common.h \
 	connection_manager.cc \
 	connection_manager.h \
+	download.cc \
+	download.h \
 	event.h \
 	exceptions.cc \
 	exceptions.h \
@@ -25,10 +25,10 @@ libsub_torrent_la_SOURCES = \
 	object.h \
 	object_stream.cc \
 	object_stream.h \
-	peer.cc \
-	peer.h \
 	path.cc \
 	path.h \
+	peer.cc \
+	peer.h \
 	piece.h \
 	poll.h \
 	poll_epoll.cc \
@@ -51,6 +51,9 @@ INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
 	bitfield.h \
+	block.h \
+	block_transfer.h \
+	common.h \
 	connection_manager.h \
 	download.h \
 	exceptions.h \
@@ -60,8 +63,8 @@ libtorrentinclude_HEADERS = \
 	http.h \
 	object.h \
 	object_stream.h \
-	peer.h \
 	path.h \
+	peer.h \
 	piece.h \
 	poll.h \
 	poll_epoll.h \

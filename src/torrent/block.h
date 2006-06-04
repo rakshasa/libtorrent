@@ -67,8 +67,8 @@ public:
 
   uint32_t            index() const                           { return m_piece.index(); }
 
-  size_type           size_all() const                        { return 0; }
-  size_type           size_not_stalled() const                { return 0; }
+  size_type           size_all() const                        { return m_queued.size() + m_transfers.size(); }
+  size_type           size_not_stalled() const                { return m_notStalled; }
 
   void                clear();
 

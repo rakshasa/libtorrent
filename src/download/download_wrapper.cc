@@ -147,16 +147,16 @@ DownloadWrapper::hash_resume_load() {
       // add to the hashes to check.
 
       if (!fs.update((*sItr)->file_meta()->get_path()) ||
-	  (*sItr)->size() != fs.size() ||
-	  !bItr->has_key_value("mtime") ||
-	  bItr->get_key("mtime").as_value() != fs.modified_time())
-	m_hash->ranges().insert((*sItr)->range().first, (*sItr)->range().second);
+          (*sItr)->size() != fs.size() ||
+          !bItr->has_key_value("mtime") ||
+          bItr->get_key("mtime").as_value() != fs.modified_time())
+        m_hash->ranges().insert((*sItr)->range().first, (*sItr)->range().second);
 
       // Update the priority from the fast resume data.
       if (bItr->has_key_value("priority") &&
-	  bItr->get_key("priority").as_value() >= 0 &&
-	  bItr->get_key("priority").as_value() < 3)
-	(*sItr)->set_priority((*bItr).get_key("priority").as_value());
+          bItr->get_key("priority").as_value() >= 0 &&
+          bItr->get_key("priority").as_value() <= PRIORITY_HIGH)
+        (*sItr)->set_priority((priority_t)(*bItr).get_key("priority").as_value());
 
       ++sItr;
       ++bItr;
@@ -480,8 +480,7 @@ DownloadWrapper::receive_update_priorities() {
 
   m_main.chunk_selector()->update_priorities();
 
-  std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
-		std::mem_fun(&PeerConnectionBase::update_interested));
+  std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(), std::mem_fun(&PeerConnectionBase::update_interested));
 }
 
 void

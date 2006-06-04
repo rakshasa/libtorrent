@@ -77,13 +77,13 @@ File::chunk_end() const {
   return m_entry->range().second;
 }  
 
-File::Priority
+priority_t
 File::priority() const {
-  return (Priority)m_entry->priority();
+  return m_entry->priority();
 }
 
 void
-File::set_priority(Priority p) {
+File::set_priority(priority_t p) {
   m_entry->set_priority(p);
 }
 

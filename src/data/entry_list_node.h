@@ -39,6 +39,7 @@
 
 #include <inttypes.h>
 
+#include "torrent/common.h"
 #include "torrent/path.h"
 
 #include "file_meta.h"
@@ -75,8 +76,8 @@ public:
   void                set_completed(uint32_t v)               { m_completed = v; }
   void                inc_completed()                         { m_completed++; }
 
-  unsigned char       priority() const                        { return m_priority; }
-  void                set_priority(unsigned char t)           { m_priority = t; }
+  priority_t          priority() const                        { return m_priority; }
+  void                set_priority(priority_t t)              { m_priority = t; }
 
   bool                resize_file();
 
@@ -93,7 +94,7 @@ private:
   Range               m_range;
 
   uint32_t            m_completed;
-  unsigned char       m_priority;
+  priority_t          m_priority;
 };
 
 inline bool

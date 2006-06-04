@@ -40,6 +40,7 @@
 #include <list>
 #include <string>
 #include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
@@ -48,12 +49,6 @@ class Path;
 
 class File {
 public:
-  typedef enum {
-    OFF = 0,
-    NORMAL,
-    HIGH
-  } Priority;
-
   File(EntryListNode* e = NULL) : m_entry(e) {}
   
   bool                is_created() const;
@@ -79,8 +74,8 @@ public:
 
   // When setting the priority, Download::update_priorities() must be
   // called for it to take effect.
-  Priority            priority() const;
-  void                set_priority(Priority p);
+  priority_t          priority() const;
+  void                set_priority(priority_t p);
 
 private:
   EntryListNode*      m_entry;

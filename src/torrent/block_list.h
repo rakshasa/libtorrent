@@ -39,6 +39,7 @@
 
 #include <vector>
 #include <inttypes.h>
+#include <torrent/common.h>
 #include <torrent/block.h>
 #include <torrent/piece.h>
 
@@ -48,13 +49,6 @@ class BlockList : public std::vector<Block> {
 public:
   typedef std::vector<Block> base_type;
   typedef uint32_t           size_type;
-
-  // Consolidate the different priority types into one.
-  typedef enum {
-    STOPPED,
-    NORMAL,
-    HIGH
-  } priority_type;
 
   using base_type::value_type;
   using base_type::reference;
@@ -87,15 +81,12 @@ public:
   bool                by_seeder() const             { return m_bySeeder; }
   void                set_by_seeder(bool state)     { m_bySeeder = state; }
 
-  priority_type       priority() const              { return m_priority; }
-  void                set_priority(priority_type p) { m_priority = p; }
-
-  // Temp hack.
-  int32_t             priority_int() const          { return static_cast<int32_t>(m_priority); }
+  priority_t          priority() const              { return m_priority; }
+  void                set_priority(priority_t p)    { m_priority = p; }
 
 private:
   Piece               m_piece;
-  priority_type       m_priority;
+  priority_t          m_priority;
 
   bool                m_bySeeder;
 };
