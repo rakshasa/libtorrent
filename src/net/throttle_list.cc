@@ -150,8 +150,8 @@ ThrottleList::node_quota(ThrottleNode* node) {
 
   } else if (!is_active(node)) {
     throw internal_error(is_inactive(node) ?
-			 "ThrottleList::node_quota(...) called on an inactive node." :
-			 "ThrottleList::node_quota(...) could not find node.");
+                         "ThrottleList::node_quota(...) called on an inactive node." :
+                         "ThrottleList::node_quota(...) could not find node.");
 
   } else if (node->quota() + m_unallocatedQuota >= m_minChunkSize) {
     return node->quota() + m_unallocatedQuota;
@@ -183,8 +183,8 @@ void
 ThrottleList::node_deactivate(ThrottleNode* node) {
   if (!is_active(node))
     throw internal_error(is_inactive(node) ?
-			 "ThrottleList::node_deactivate(...) called on an inactive node." :
-			 "ThrottleList::node_deactivate(...) could not find node.");
+                         "ThrottleList::node_deactivate(...) called on an inactive node." :
+                         "ThrottleList::node_deactivate(...) could not find node.");
 
   Base::splice(end(), *this, node->list_iterator());
 

@@ -300,7 +300,7 @@ Handshake::read_done() {
   manager->poll()->remove_read(this);
 
   if (m_bitfield.empty()) {
-    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bytes());
+    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
     m_bitfield.allocate();
     m_bitfield.unset_all();
 

@@ -131,6 +131,8 @@ protected:
 
   bool                down_chunk();
   bool                down_chunk_from_buffer();
+  bool                down_chunk_skip();
+
   bool                up_chunk();
 
   void                down_chunk_release();

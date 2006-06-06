@@ -43,6 +43,7 @@
 
 namespace torrent {
 
+class BlockList;
 class BlockTransfer;
 class PeerInfo;
 
@@ -62,6 +63,10 @@ public:
   bool                is_stalled() const                      { return m_notStalled == 0; }
   bool                is_finished() const                     { return m_finished; }
 
+  BlockList*          parent()                                { return m_parent; }
+  const BlockList*    parent() const                          { return m_parent; }
+  void                set_parent(BlockList* p)                { m_parent = p; }
+
   const Piece&        piece() const                           { return m_piece; }
   void                set_piece(const Piece& p)               { m_piece = p; }
 
@@ -77,12 +82,12 @@ public:
   // If the queued or transfering is already removed from the block it
   // will just delete the object. Made static so it can be called when
   // block == NULL.
-  static void         erase(BlockTransfer* transfer);
+  void                erase(BlockTransfer* transfer);
 
-  static void         transfering(BlockTransfer* transfer);
-  static void         stalled(BlockTransfer* transfer);
+  void                transfering(BlockTransfer* transfer);
+  void                stalled(BlockTransfer* transfer);
 
-  static void         completed(BlockTransfer* transfer);
+  void                completed(BlockTransfer* transfer);
 
   const transfer_list* queued() const                         { return &m_queued; }
   const transfer_list* transfers() const                      { return &m_transfers; }
@@ -102,6 +107,7 @@ private:
 
   inline void         invalidate_transfer(BlockTransfer* transfer);
 
+  BlockList*          m_parent;
   Piece               m_piece;
   
   uint32_t            m_notStalled;

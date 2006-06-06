@@ -84,17 +84,17 @@ RequestList::cancel() {
   if (m_downloading)
     throw internal_error("RequestList::cancel(...) called while is_downloading() == true");
 
-  std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::erase));
+  std::for_each(m_canceled.begin(), m_canceled.end(), std::mem_fun(&BlockTransfer::erase));
   m_canceled.clear();
 
-  std::for_each(m_reservees.begin(), m_reservees.end(), std::ptr_fun(&Block::stalled));
+  std::for_each(m_reservees.begin(), m_reservees.end(), std::mem_fun(&BlockTransfer::stalled));
 
   m_canceled.swap(m_reservees);
 }
 
 void
 RequestList::stall() {
-  std::for_each(m_reservees.begin(), m_reservees.end(), std::ptr_fun(&Block::stalled));
+  std::for_each(m_reservees.begin(), m_reservees.end(), std::mem_fun(&BlockTransfer::stalled));
 }
 
 bool
@@ -126,7 +126,7 @@ RequestList::downloading(const Piece& p) {
     return false;
   }
 
-  Block::transfering(*itr);
+  (*itr)->transfering();
   m_downloading = true;
 
   if (p != m_reservees.front()->block()->piece())
@@ -152,7 +152,7 @@ RequestList::skip() {
   if (!m_downloading || !m_reservees.size())
     throw internal_error("RequestList::skip() called without a downloading piece");
 
-  Block::erase(m_reservees.front());
+  m_reservees.front()->erase();
   m_reservees.pop_front();
 
   m_downloading = false;
@@ -182,7 +182,7 @@ RequestList::has_index(uint32_t index) {
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
   while (m_reservees.begin() != end) {
-    Block::stalled(m_reservees.front());
+    m_reservees.front()->stalled();
     
     m_canceled.push_back(m_reservees.front());
     m_reservees.pop_front();

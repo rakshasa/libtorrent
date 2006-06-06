@@ -38,11 +38,9 @@
 #define LIBTORRENT_BLOCK_TRANSFER_H
 
 #include <inttypes.h>
+#include <torrent/block.h>
 
 namespace torrent {
-
-class Block;
-class PeerInfo;
 
 class BlockTransfer {
 public:
@@ -63,10 +61,17 @@ public:
   void                set_block(Block* b)           { m_block = b; }
 
   uint32_t            position() const              { return m_position; }
-  void                set_position(uint32_t s)      { m_position = s; }
+  void                set_position(uint32_t p)      { m_position = p; }
+  void                adjust_position(uint32_t p)   { m_position += p; }
 
   uint32_t            stall() const                 { return m_stall; }
   void                set_stall(uint32_t s)         { m_stall = s; }
+
+  void                transfering()                 { m_block->transfering(this); }
+  void                completed()                   { m_block->completed(this); }
+  void                stalled()                     { if (!is_valid()) return; m_block->stalled(this); }
+
+  void                erase();
 
 private:
   BlockTransfer(const BlockTransfer&);
@@ -78,6 +83,15 @@ private:
   uint32_t            m_position;
   uint32_t            m_stall;
 };
+
+inline void
+BlockTransfer::erase() {
+  // Check if the transfer was orphaned, if so just delete it.
+  if (!is_valid())
+    delete this;
+  else
+    m_block->erase(this);
+}
 
 }
 

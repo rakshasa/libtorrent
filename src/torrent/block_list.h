@@ -70,9 +70,23 @@ public:
   BlockList(const Piece& piece, uint32_t blockLength);
   ~BlockList();
 
+  bool                is_all_finished() const       { return m_finished == size(); }
+
   const Piece&        piece() const                 { return m_piece; }
 
   uint32_t            index() const                 { return m_piece.index(); }
+
+  priority_t          priority() const              { return m_priority; }
+  void                set_priority(priority_t p)    { m_priority = p; }
+
+  size_type           finished() const              { return m_finished; }
+  void                inc_finished()                { m_finished++; }
+  void                dec_finished()                { m_finished--; }
+  
+  uint32_t            failed() const                { return m_failed; }
+
+  // Temporary, just increment for now.
+  void                inc_failed()                  { m_failed++; }
 
   // Set when the chunk was initially requested from a seeder. This
   // allows us to quickly determine if it is a suitable chunk to
@@ -81,12 +95,12 @@ public:
   bool                by_seeder() const             { return m_bySeeder; }
   void                set_by_seeder(bool state)     { m_bySeeder = state; }
 
-  priority_t          priority() const              { return m_priority; }
-  void                set_priority(priority_t p)    { m_priority = p; }
-
 private:
   Piece               m_piece;
   priority_t          m_priority;
+
+  size_type           m_finished;
+  uint32_t            m_failed;
 
   bool                m_bySeeder;
 };

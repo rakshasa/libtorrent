@@ -47,6 +47,7 @@ namespace torrent {
 BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
   m_piece(piece),
   m_priority(PRIORITY_OFF),
+  m_finished(0),
 
   m_bySeeder(false) {
   // Look into optimizing this by using input iterators in the ctor.
@@ -56,8 +57,10 @@ BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
 //   uint32_t offset = m_piece.offset();
   uint32_t offset = 0;
 
-  for (iterator itr = begin(), last = end() - 1; itr != last; ++itr, offset += blockLength)
+  for (iterator itr = begin(), last = end() - 1; itr != last; ++itr, offset += blockLength) {
+    itr->set_parent(this);
     itr->set_piece(Piece(m_piece.index(), offset, blockLength));
+  }
   
   base_type::back().set_piece(Piece(m_piece.index(), offset, (m_piece.length() % blockLength) ? m_piece.length() % blockLength : blockLength));
 }

@@ -99,8 +99,6 @@ private:
 
   Block*             delegate_seeder(PeerChunks* peerChunks);
 
-  bool               all_finished(int index);
-
   bool               m_aggressive;
 
   Chunks             m_chunks;

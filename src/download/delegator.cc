@@ -206,14 +206,10 @@ Delegator::finished(BlockTransfer* transfer) {
   if (!transfer->is_valid() || transfer->block()->is_finished())
     throw internal_error("Delegator::finished(...) got object with wrong state.");
 
-  uint32_t index = transfer->block()->index();
+  transfer->completed();
 
-  Block::completed(transfer);
-
-  // This needs to be replaced by a pointer in Block to BlockList.
-
-  if (all_finished(index))
-    m_slotChunkDone(index);
+  if (transfer->block()->parent()->is_all_finished())
+    m_slotChunkDone(transfer->block()->index());
 }
 
 void
@@ -275,15 +271,6 @@ Delegator::find_piece(const Piece& p) {
     return &*d;
 }
   
-bool
-Delegator::all_finished(int index) {
-  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal((unsigned int)index, std::mem_fun(&BlockList::index)));
-
-  return
-    c != m_chunks.end() &&
-    std::find_if((*c)->begin(), (*c)->end(), std::not1(std::mem_fun_ref(&Block::is_finished))) == (*c)->end();
-}
-
 Block*
 Delegator::delegate_piece(BlockList* c, const PeerInfo* peerInfo) {
   Block* p = NULL;

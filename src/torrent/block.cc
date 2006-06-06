@@ -41,6 +41,7 @@
 #include <rak/functional.h>
 
 #include "block.h"
+#include "block_list.h"
 #include "block_transfer.h"
 #include "exceptions.h"
 
@@ -92,37 +93,29 @@ Block::insert(PeerInfo* peerInfo) {
   
 void
 Block::erase(BlockTransfer* transfer) {
-  // Check if the transfer was orphaned, if so just delete it.
-  if (transfer->block() == NULL) {
-    delete transfer;
-    return;
-  }
-
   if (transfer->is_erased())
     throw internal_error("Block::erase(...) transfer already erased.");
 
-  Block* block = transfer->block();
-
-  block->m_notStalled -= transfer->stall() == 0;
+  m_notStalled -= transfer->stall() == 0;
 
   if (transfer->is_queued()) {
-    transfer_list::iterator itr = std::find(block->m_queued.begin(), block->m_queued.end(), transfer);
+    transfer_list::iterator itr = std::find(m_queued.begin(), m_queued.end(), transfer);
 
-    if (itr == block->m_queued.end())
+    if (itr == m_queued.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
 
     delete *itr;
-    block->m_queued.erase(itr);
+    m_queued.erase(itr);
 
   } else {
-    transfer_list::iterator itr = std::find(block->m_transfers.begin(), block->m_transfers.end(), transfer);
+    transfer_list::iterator itr = std::find(m_transfers.begin(), m_transfers.end(), transfer);
 
-    if (itr == block->m_transfers.end())
+    if (itr == m_transfers.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
 
 //     // Need to do something different here for now, i think.
     delete *itr;
-    block->m_transfers.erase(itr);
+    m_transfers.erase(itr);
 
 //     transfer->set_stall(BlockTransfer::stall_erased);
   }
@@ -133,29 +126,24 @@ Block::transfering(BlockTransfer* transfer) {
   if (!transfer->is_valid())
     throw internal_error("Block::transfering(...) transfer->block() == NULL.");
 
-  Block* block = transfer->block();
+  transfer_list::iterator itr = std::find(m_queued.begin(), m_queued.end(), transfer);
 
-  transfer_list::iterator itr = std::find(block->m_queued.begin(), block->m_queued.end(), transfer);
-
-  if (itr == block->m_queued.end())
+  if (itr == m_queued.end())
     throw internal_error("Block::transfering(...) not queued.");
 
   transfer->set_position(0);
 
-  block->m_queued.erase(itr);
-  block->m_transfers.insert(block->m_transfers.end(), transfer);
+  m_queued.erase(itr);
+  m_transfers.insert(m_transfers.end(), transfer);
 }
 
 void
 Block::stalled(BlockTransfer* transfer) {
-  if (!transfer->is_valid())
-    return;
-
   if (transfer->stall() == 0) {
-    if (transfer->block()->m_notStalled == 0)
+    if (m_notStalled == 0)
       throw internal_error("Block::stalled(...) m_notStalled == 0.");
 
-    transfer->block()->m_notStalled--;
+    m_notStalled--;
 
     // Do magic here.
   }
@@ -165,7 +153,7 @@ Block::stalled(BlockTransfer* transfer) {
 
 void
 Block::completed(BlockTransfer* transfer) {
-  if (transfer->block() == NULL)
+  if (!transfer->is_valid())
     throw internal_error("Block::completed(...) transfer->block() == NULL.");
 
   if (transfer->is_erased())
@@ -174,10 +162,12 @@ Block::completed(BlockTransfer* transfer) {
   if (transfer->is_queued())
     throw internal_error("Block::completed(...) transfer is queued.");
 
-  Block* block = transfer->block();
+  if (transfer->block()->is_finished())
+    throw internal_error("Block::completed(...) transfer is already marked as finished.");
 
-  block->m_finished = true;
-  block->m_notStalled -= transfer->stall() == 0;
+  m_finished = true;
+  m_parent->inc_finished();
+  m_notStalled -= transfer->stall() == 0;
 
   transfer->set_stall(BlockTransfer::stall_erased);
 
@@ -186,8 +176,8 @@ Block::completed(BlockTransfer* transfer) {
   // Block::transfering(...). But that would propably not be correct
   // as we want to trigger cancel messages from here, as hash fail is
   // a rare occurrence.
-  std::for_each(block->m_queued.begin(), block->m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), block));
-  block->m_queued.clear();
+  std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
+  m_queued.clear();
 
   // We need to invalidate those unfinished and keep the one that
   // finished for later reference.
@@ -196,16 +186,16 @@ Block::completed(BlockTransfer* transfer) {
   // at the start. Use a 'try' counter that also adjust the sizes.
 
   // Temporary hack.
-//   for (transfer_list::iterator itr = block->m_transfers.begin(), last = block->m_transfers.end(); itr != last; ) {
+//   for (transfer_list::iterator itr = m_transfers.begin(), last = m_transfers.end(); itr != last; ) {
 //     if ((*itr)->is_erased()) {
 //       itr++;
 //     } else {
-//       itr = block->m_transfers.erase(itr);
+//       itr = m_transfers.erase(itr);
 //     }
 //   }
 
-  std::for_each(block->m_transfers.begin(), block->m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), block));
-  block->m_transfers.clear();
+  std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
+  m_transfers.clear();
 }
 
 BlockTransfer*

@@ -296,6 +296,18 @@ PeerConnectionBase::down_chunk_from_buffer() {
 }
 
 bool
+PeerConnectionBase::down_chunk_skip() {
+  uint32_t size = ignore_stream_throws(m_downPiece.length() - m_down->position());
+
+  m_down->adjust_position(size);
+
+  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), size);
+  m_download->info()->down_rate()->insert(size);
+  
+  return m_down->position() == m_downPiece.length();
+}
+
+bool
 PeerConnectionBase::up_chunk() {
   if (!m_download->upload_throttle()->is_throttled(m_peerChunks.upload_throttle()))
     throw internal_error("PeerConnectionBase::up_chunk() tried to write a piece but is not in throttle list");
