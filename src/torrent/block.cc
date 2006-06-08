@@ -50,22 +50,20 @@ namespace torrent {
 inline void
 Block::invalidate_transfer(BlockTransfer* transfer) {
   // FIXME: Various other accounting like position and counters.
-  if (transfer->is_erased()) {
+  if (transfer->is_erased())
     delete transfer;
-
-  } else {
+  else
     m_notStalled -= transfer->stall() == 0;
 
-    transfer->set_block(NULL);
-  }
+  transfer->set_block(NULL);
 }
 
 void
 Block::clear() {
   std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
-  std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
-
   m_queued.clear();
+
+  std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_transfers.clear();
 
   m_finished = false;
@@ -85,6 +83,7 @@ Block::insert(PeerInfo* peerInfo) {
 
   (*itr)->set_peer_info(peerInfo);
   (*itr)->set_block(this);
+  (*itr)->set_piece(m_piece);
   (*itr)->set_position(BlockTransfer::position_invalid);
   (*itr)->set_stall(0);
 
@@ -104,7 +103,6 @@ Block::erase(BlockTransfer* transfer) {
     if (itr == m_queued.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
 
-    delete *itr;
     m_queued.erase(itr);
 
   } else {
@@ -114,11 +112,12 @@ Block::erase(BlockTransfer* transfer) {
       throw internal_error("Block::erase(...) Could not find transfer.");
 
 //     // Need to do something different here for now, i think.
-    delete *itr;
     m_transfers.erase(itr);
 
 //     transfer->set_stall(BlockTransfer::stall_erased);
   }
+
+  delete transfer;
 }
 
 void
@@ -151,7 +150,7 @@ Block::stalled(BlockTransfer* transfer) {
   transfer->set_stall(transfer->stall() + 1);
 }
 
-void
+bool
 Block::completed(BlockTransfer* transfer) {
   if (!transfer->is_valid())
     throw internal_error("Block::completed(...) transfer->block() == NULL.");
@@ -196,6 +195,8 @@ Block::completed(BlockTransfer* transfer) {
 
   std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_transfers.clear();
+
+  return m_parent->is_all_finished();
 }
 
 BlockTransfer*

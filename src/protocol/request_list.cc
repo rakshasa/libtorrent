@@ -69,7 +69,7 @@ RequestList::delegate() {
 
   if (r) {
     m_affinity = r->block()->index();
-    m_reservees.push_back(r);
+    m_queued.push_back(r);
 
     return &r->block()->piece();
 
@@ -78,84 +78,120 @@ RequestList::delegate() {
   }
 }
 
-// Replace m_canceled with m_reservees and set them to stalled.
+// Replace m_canceled with m_queued and set them to stalled.
 void
 RequestList::cancel() {
-  if (m_downloading)
-    throw internal_error("RequestList::cancel(...) called while is_downloading() == true");
-
-  std::for_each(m_canceled.begin(), m_canceled.end(), std::mem_fun(&BlockTransfer::erase));
+  std::for_each(m_canceled.begin(), m_canceled.end(), std::mem_fun(&BlockTransfer::release));
   m_canceled.clear();
 
-  std::for_each(m_reservees.begin(), m_reservees.end(), std::mem_fun(&BlockTransfer::stalled));
+  std::for_each(m_queued.begin(), m_queued.end(), std::mem_fun(&BlockTransfer::stalled));
 
-  m_canceled.swap(m_reservees);
+  m_canceled.swap(m_queued);
 }
 
 void
 RequestList::stall() {
-  std::for_each(m_reservees.begin(), m_reservees.end(), std::mem_fun(&BlockTransfer::stalled));
+  std::for_each(m_queued.begin(), m_queued.end(), std::mem_fun(&BlockTransfer::stalled));
+}
+
+void
+RequestList::clear() {
+  if (is_downloading())
+    skipped();
+
+  std::for_each(m_queued.begin(), m_queued.end(), std::mem_fun(&BlockTransfer::release));
+  m_queued.clear();
+
+  std::for_each(m_canceled.begin(), m_canceled.end(), std::mem_fun(&BlockTransfer::release));
+  m_canceled.clear();
 }
 
 bool
-RequestList::downloading(const Piece& p) {
-  if (m_downloading)
-    throw internal_error("RequestList::downloading(...) bug, m_downloading is already set");
+RequestList::downloading(const Piece& piece) {
+  if (m_transfer != NULL)
+    throw internal_error("RequestList::downloading(...) m_transfer != NULL.");
 
+  // Consider doing this on cancel_range.
   remove_invalid();
 
-  ReserveeList::iterator itr = std::find_if(m_reservees.begin(), m_reservees.end(), request_list_same_piece(p));
-  
-  if (itr == m_reservees.end()) {
-    ReserveeList::iterator canceledItr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(p));
+  ReserveeList::iterator itr = std::find_if(m_queued.begin(), m_queued.end(), request_list_same_piece(piece));
 
-    if (canceledItr == m_canceled.end())
+  if (itr == m_queued.end()) {
+    itr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(piece));
+
+    if (itr == m_canceled.end()) {
+      // Create a dummy BlockTransfer object to hold the piece
+      // information.
+      m_transfer = new BlockTransfer();
+      m_transfer->set_peer_info(m_peerChunks->peer_info());
+      m_transfer->set_block(NULL);
+      m_transfer->set_piece(piece);
+      m_transfer->set_position(0);
+      m_transfer->set_stall(0);
+
       return false;
+    }
 
-    itr = m_reservees.insert(m_reservees.begin(), *canceledItr);
-    m_canceled.erase(canceledItr);
+    // Remove all up to and including itr.
+    m_transfer = *itr;
+    m_canceled.erase(itr);
 
   } else {
+    m_transfer = *itr;
     cancel_range(itr);
+    m_queued.pop_front();
   }
   
-  // Make sure pieces are removed from the reservee list if the peer
-  // returns zero length pieces.
-  if (p.length() != (*itr)->block()->piece().length()) {
-    m_reservees.erase(itr);
+  // We received an invalid piece length, propably zero length due to
+  // the peer not being able to transfer the requested piece.
+  //
+  // We need to replace the current BlockTransfer so Block can keep
+  // the unmodified BlockTransfer.
+  if (piece.length() != m_transfer->piece().length()) {
+    m_transfer->release();
+
+    m_transfer = new BlockTransfer();
+    m_transfer->set_peer_info(m_peerChunks->peer_info());
+    m_transfer->set_block(NULL);
+    m_transfer->set_piece(piece);
+    m_transfer->set_position(0);
+    m_transfer->set_stall(0);
+
     return false;
   }
 
-  (*itr)->transfering();
-  m_downloading = true;
+  // This piece isn't wanted anymore. Do this after the length check
+  // to ensure we return a correct BlockTransfer.
+  if (!m_transfer->is_valid())
+    return false;
 
-  if (p != m_reservees.front()->block()->piece())
-    throw internal_error("RequestList::downloading(...) did not add the new piece to the front of the list");
-  
+  m_transfer->transfering();
+
   return true;
 }
 
 // Must clear the downloading piece.
 void
 RequestList::finished() {
-  if (!m_downloading || !m_reservees.size())
-    throw internal_error("RequestList::finished() called without a downloading piece");
+  if (!is_downloading())
+    throw internal_error("RequestList::finished() called but no transfer is in progress.");
 
-  m_delegator->finished(m_reservees.front());
-  m_reservees.pop_front();
+  if (!m_transfer->is_valid())
+    throw internal_error("RequestList::finished() called transfer is invalid.");
 
-  m_downloading = false;
+  BlockTransfer* transfer = m_transfer;
+  m_transfer = NULL;
+
+  m_delegator->finished(transfer);
 }
 
 void
-RequestList::skip() {
-  if (!m_downloading || !m_reservees.size())
-    throw internal_error("RequestList::skip() called without a downloading piece");
+RequestList::skipped() {
+  if (!is_downloading())
+    throw internal_error("RequestList::skip() called but no transfer is in progress.");
 
-  m_reservees.front()->erase();
-  m_reservees.pop_front();
-
-  m_downloading = false;
+  m_transfer->release();
+  m_transfer = NULL;
 }
 
 struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, bool> {
@@ -175,17 +211,16 @@ RequestList::is_interested_in_active() const {
 
 bool
 RequestList::has_index(uint32_t index) {
-  return std::find_if(m_reservees.begin(), m_reservees.end(), std::bind2nd(equals_reservee(), index))
-    != m_reservees.end();
+  return std::find_if(m_queued.begin(), m_queued.end(), std::bind2nd(equals_reservee(), index)) != m_queued.end();
 }
 
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
-  while (m_reservees.begin() != end) {
-    m_reservees.front()->stalled();
+  while (m_queued.begin() != end) {
+    m_queued.front()->stalled();
     
-    m_canceled.push_back(m_reservees.front());
-    m_reservees.pop_front();
+    m_canceled.push_back(m_queued.front());
+    m_queued.pop_front();
   }
 }
 
@@ -195,15 +230,15 @@ RequestList::remove_invalid() {
   ReserveeList::iterator itr;
 
   // Could be more efficient, but rarely do we find any.
-  while ((itr = std::find_if(m_reservees.begin(), m_reservees.end(),  std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_reservees.end()) {
+  while ((itr = std::find_if(m_queued.begin(), m_queued.end(),  std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_queued.end()) {
     count++;
-    delete *itr;
-    m_reservees.erase(itr);
+    (*itr)->release();
+    m_queued.erase(itr);
   }
 
   // Don't count m_canceled that are invalid.
   while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(), std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_canceled.end()) {
-    delete *itr;
+    (*itr)->release();
     m_canceled.erase(itr);
   }
 
@@ -228,20 +263,5 @@ RequestList::calculate_pipe_size(uint32_t rate) {
     return (queueKB / (Delegator::block_size / 1024)) + 1;
   }
 }
-
-
-//   if ()
-//     if (s < 50000)
-//       return std::max((uint32_t)2, (s + 2000) / 2000);
-//     else
-//       return std::min((uint32_t)200, (s + 160000) / 4000);
-
-//   else
-//     if (s < 4000)
-//       return 1;
-//     else
-//       return std::min((uint32_t)80, (s + 32000) / 8000);
-
-// }
 
 }

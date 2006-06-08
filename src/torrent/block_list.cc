@@ -41,6 +41,7 @@
 
 #include "block_transfer.h"
 #include "block_list.h"
+#include "exceptions.h"
 
 namespace torrent {
 
@@ -50,6 +51,10 @@ BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
   m_finished(0),
 
   m_bySeeder(false) {
+
+  if (piece.length() == 0)
+    throw internal_error("BlockList::BlockList(...) received zero length piece.");
+
   // Look into optimizing this by using input iterators in the ctor.
   base_type::resize((m_piece.length() + blockLength - 1) / blockLength);
 
@@ -62,6 +67,7 @@ BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
     itr->set_piece(Piece(m_piece.index(), offset, blockLength));
   }
   
+  base_type::back().set_parent(this);
   base_type::back().set_piece(Piece(m_piece.index(), offset, (m_piece.length() % blockLength) ? m_piece.length() % blockLength : blockLength));
 }
 

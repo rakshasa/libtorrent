@@ -53,52 +53,57 @@ public:
   RequestList() :
     m_delegator(NULL),
     m_peerChunks(NULL),
-    m_affinity(-1),
-    m_downloading(false) {}
-
-  ~RequestList() { cancel(); }
+    m_transfer(NULL),
+    m_affinity(-1) {}
 
   // Some parameters here, like how fast we are downloading and stuff
   // when we start considering those.
-  const Piece*       delegate();
+  const Piece*         delegate();
 
   // If is downloading, call skip before cancel.
-  void               cancel();
-  void               stall();
-  void               skip();
+  void                 cancel();
+  void                 stall();
 
-  bool               downloading(const Piece& p);
-  void               finished();
+  void                 clear();
 
-  bool               is_downloading()                 { return m_downloading; }
-  bool               is_wanted()                      { return m_reservees.front()->is_valid(); }
-  bool               is_interested_in_active() const;
+  // The returned transfer must still be valid.
+  bool                 downloading(const Piece& piece);
 
-  bool               has_index(uint32_t i);
-  uint32_t           remove_invalid();
+  void                 finished();
+  void                 skipped();
 
-  bool               empty() const                    { return m_reservees.empty(); }
-  size_t             size()                           { return m_reservees.size(); }
+  bool                 is_downloading()                 { return m_transfer != NULL; }
+  bool                 is_interested_in_active() const;
 
-  void               set_delegator(Delegator* d)      { m_delegator = d; }
-  void               set_peer_chunks(PeerChunks* b)   { m_peerChunks = b; }
+  bool                 has_index(uint32_t i);
+  uint32_t             remove_invalid();
 
-  uint32_t           calculate_pipe_size(uint32_t rate);
+  bool                 empty() const                    { return m_queued.empty(); }
+  size_t               size()                           { return m_queued.size(); }
 
-  const BlockTransfer* queued_transfer(uint32_t i) const { return m_reservees[i]; }
+  uint32_t             calculate_pipe_size(uint32_t rate);
+
+  void                 set_delegator(Delegator* d)      { m_delegator = d; }
+  void                 set_peer_chunks(PeerChunks* b)   { m_peerChunks = b; }
+
+  BlockTransfer*       transfer()                        { return m_transfer; }
+  const BlockTransfer* transfer() const                  { return m_transfer; }
+
+  const BlockTransfer* queued_transfer(uint32_t i) const { return m_queued[i]; }
 
 private:
-  void               cancel_range(ReserveeList::iterator end);
+  void                 cancel_range(ReserveeList::iterator end);
 
-  Delegator*         m_delegator;
-  PeerChunks*        m_peerChunks;
+  Delegator*           m_delegator;
+  PeerChunks*          m_peerChunks;
+
+  BlockTransfer*       m_transfer;
 
   // Replace m_downloading with a pointer to BlockTransfer.
-  int32_t            m_affinity;
-  bool               m_downloading;
+  int32_t              m_affinity;
 
-  ReserveeList       m_reservees;
-  ReserveeList       m_canceled;
+  ReserveeList         m_queued;
+  ReserveeList         m_canceled;
 };
 
 }

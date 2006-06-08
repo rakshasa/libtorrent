@@ -116,7 +116,6 @@ protected:
   inline bool         read_remaining();
   inline bool         write_remaining();
 
-  void                load_down_chunk(const Piece& p);
   void                load_up_chunk();
 
   void                receive_throttle_down_activate();
@@ -128,6 +127,8 @@ protected:
   void                read_buffer_move_unused();
 
   void                write_prepare_piece();
+
+  bool                down_chunk_start(const Piece& p);
 
   bool                down_chunk();
   bool                down_chunk_from_buffer();
@@ -156,9 +157,8 @@ protected:
   PeerInfo*           m_peerInfo;
   PeerChunks          m_peerChunks;
 
-  Piece               m_downPiece;
+  RequestList         m_downloadQueue;
   ChunkHandle         m_downChunk;
-
   uint32_t            m_downStall;
 
   Piece               m_upPiece;
@@ -166,8 +166,6 @@ protected:
 
   bool                m_sendChoked;
   bool                m_sendInterested;
-
-  RequestList         m_downloadQueue;
 
   rak::timer          m_timeLastChoked;
   rak::timer          m_timeLastRead;

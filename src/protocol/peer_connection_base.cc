@@ -75,6 +75,11 @@ PeerConnectionBase::~PeerConnectionBase() {
   if (m_download == NULL)
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
+  m_downloadQueue.clear();
+
+  up_chunk_release();
+  down_chunk_release();
+
   m_download->choke_manager()->disconnected(this);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
@@ -87,14 +92,6 @@ PeerConnectionBase::~PeerConnectionBase() {
 
   get_fd().close();
   get_fd().clear();
-
-  if (download_queue()->is_downloading())
-    download_queue()->skip();
-
-  up_chunk_release();
-  down_chunk_release();
-
-  download_queue()->cancel();
 
   // Need to move more stuff into download*.
   m_download->peer_list()->disconnected(m_peerInfo);
@@ -150,24 +147,6 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   update_interested();
 
   initialize_custom();
-}
-
-void
-PeerConnectionBase::load_down_chunk(const Piece& p) {
-  m_downPiece = p;
-
-  if (!m_download->content()->is_valid_piece(p))
-    throw internal_error("Incoming pieces list contains a bad piece");
-  
-  if (m_downChunk.is_valid() && p.index() == m_downChunk->index())
-    return;
-
-  down_chunk_release();
-
-  m_downChunk = m_download->chunk_list()->get(p.index(), true);
-  
-  if (!m_downChunk.is_valid())
-    throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()));
 }
 
 void
@@ -229,6 +208,30 @@ PeerConnectionBase::event_error() {
 }
 
 bool
+PeerConnectionBase::down_chunk_start(const Piece& piece) {
+  if (!download_queue()->downloading(piece)) {
+    if (piece.length() == 0)
+      m_download->info()->signal_network_log().emit("Received piece with length zero.");
+
+    return false;
+  }
+
+  if (!m_download->content()->is_valid_piece(piece))
+    throw internal_error("Incoming pieces list contains a bad piece.");
+  
+  if (m_downChunk.is_valid() && piece.index() == m_downChunk->index())
+    return true;
+
+  down_chunk_release();
+  m_downChunk = m_download->chunk_list()->get(piece.index(), true);
+  
+  if (!m_downChunk.is_valid())
+    throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
+
+  return true;
+}
+
+bool
 PeerConnectionBase::down_chunk() {
   if (!m_download->download_throttle()->is_throttled(m_peerChunks.download_throttle()))
     throw internal_error("PeerConnectionBase::down_chunk() tried to read a piece but is not in throttle list");
@@ -245,13 +248,13 @@ PeerConnectionBase::down_chunk() {
   }
 
   uint32_t count;
-  uint32_t left = quota = std::min(quota, m_downPiece.length() - m_down->position());
+  uint32_t left = quota = std::min(quota, m_downloadQueue.transfer()->piece().length() - m_down->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.offset() + m_down->position());
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downloadQueue.transfer()->piece().offset() + m_down->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downPiece.offset() + m_down->position(), part++);
+    memory = m_downChunk->chunk()->at_memory(m_downloadQueue.transfer()->piece().offset() + m_down->position(), part++);
     count = read_stream_throws(memory.first, std::min(left, memory.second));
 
     m_down->adjust_position(count);
@@ -264,19 +267,19 @@ PeerConnectionBase::down_chunk() {
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
   m_download->info()->down_rate()->insert(bytes);
 
-  return m_down->position() == m_downPiece.length();
+  return m_down->position() == m_downloadQueue.transfer()->piece().length();
 }
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
   uint32_t count, quota;
-  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(), m_downPiece.length() - m_down->position());
+  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(), m_downloadQueue.transfer()->piece().length() - m_down->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downPiece.offset() + m_down->position());
+  ChunkPart part = m_downChunk->chunk()->at_position(m_downloadQueue.transfer()->piece().offset() + m_down->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downPiece.offset() + m_down->position(), part++);
+    memory = m_downChunk->chunk()->at_memory(m_downloadQueue.transfer()->piece().offset() + m_down->position(), part++);
     count = std::min(left, memory.second);
 
     std::memcpy(memory.first, m_down->buffer()->position(), count);
@@ -292,19 +295,19 @@ PeerConnectionBase::down_chunk_from_buffer() {
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
   m_download->info()->down_rate()->insert(bytes);
 
-  return m_down->position() == m_downPiece.length();
+  return m_down->position() == m_downloadQueue.transfer()->piece().length();
 }
 
 bool
 PeerConnectionBase::down_chunk_skip() {
-  uint32_t size = ignore_stream_throws(m_downPiece.length() - m_down->position());
+  uint32_t size = ignore_stream_throws(m_downloadQueue.transfer()->piece().length() - m_down->position());
 
   m_down->adjust_position(size);
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), size);
   m_download->info()->down_rate()->insert(size);
   
-  return m_down->position() == m_downPiece.length();
+  return m_down->position() == m_downloadQueue.transfer()->piece().length();
 }
 
 bool

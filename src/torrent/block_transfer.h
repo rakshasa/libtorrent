@@ -49,7 +49,7 @@ public:
 
   BlockTransfer() {}
 
-  bool                is_valid() const              { return m_block; }
+  bool                is_valid() const              { return m_block != NULL; }
   bool                is_erased() const             { return m_stall == stall_erased; }
   bool                is_queued() const             { return m_position == position_invalid; }
 
@@ -60,6 +60,9 @@ public:
   const Block*        block() const                 { return m_block; }
   void                set_block(Block* b)           { m_block = b; }
 
+  const Piece&        piece() const                 { return m_piece; }
+  void                set_piece(const Piece& p)     { m_piece = p; }
+
   uint32_t            position() const              { return m_position; }
   void                set_position(uint32_t p)      { m_position = p; }
   void                adjust_position(uint32_t p)   { m_position += p; }
@@ -68,10 +71,12 @@ public:
   void                set_stall(uint32_t s)         { m_stall = s; }
 
   void                transfering()                 { m_block->transfering(this); }
-  void                completed()                   { m_block->completed(this); }
   void                stalled()                     { if (!is_valid()) return; m_block->stalled(this); }
 
-  void                erase();
+  // Return true if all blocks in the chunk is finished.
+  bool                completed()                   { return m_block->completed(this); }
+
+  void                release();
 
 private:
   BlockTransfer(const BlockTransfer&);
@@ -79,14 +84,15 @@ private:
 
   PeerInfo*           m_peerInfo;
   Block*              m_block;
+  Piece               m_piece;
 
   uint32_t            m_position;
   uint32_t            m_stall;
 };
 
+// The parent block cleans up when it is done with the BlockTransfer.
 inline void
-BlockTransfer::erase() {
-  // Check if the transfer was orphaned, if so just delete it.
+BlockTransfer::release() {
   if (!is_valid())
     delete this;
   else

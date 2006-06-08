@@ -62,8 +62,6 @@ private:
 
   inline void         fill_write_buffer();
 
-  bool                receive_piece_header();
-
   bool                m_tryRequest;
 };
 

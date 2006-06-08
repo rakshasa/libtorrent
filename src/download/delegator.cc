@@ -206,10 +206,10 @@ Delegator::finished(BlockTransfer* transfer) {
   if (!transfer->is_valid() || transfer->block()->is_finished())
     throw internal_error("Delegator::finished(...) got object with wrong state.");
 
-  transfer->completed();
+  uint32_t index = transfer->block()->index();
 
-  if (transfer->block()->parent()->is_all_finished())
-    m_slotChunkDone(transfer->block()->index());
+  if (transfer->completed())
+    m_slotChunkDone(index);
 }
 
 void

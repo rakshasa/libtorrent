@@ -47,6 +47,9 @@ class BlockList;
 class BlockTransfer;
 class PeerInfo;
 
+// If you start adding slots, make sure the rest of the code creates
+// copies and clears the original variables before calls to erase etc.
+
 class Block {
 public:
   // Using vectors as they will remain small, thus the cost of erase
@@ -87,7 +90,8 @@ public:
   void                transfering(BlockTransfer* transfer);
   void                stalled(BlockTransfer* transfer);
 
-  void                completed(BlockTransfer* transfer);
+  // Return true if all blocks in the chunk is finished.
+  bool                completed(BlockTransfer* transfer);
 
   const transfer_list* queued() const                         { return &m_queued; }
   const transfer_list* transfers() const                      { return &m_transfers; }
