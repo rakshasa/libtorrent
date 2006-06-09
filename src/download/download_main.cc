@@ -199,8 +199,7 @@ DownloadMain::get_bytes_left() const {
 
 void
 DownloadMain::update_endgame() {
-  if (!m_endgame &&
-      m_content.chunks_completed() + m_delegator.get_chunks().size() + 5 >= m_content.chunk_total()) {
+  if (!m_endgame && m_content.chunks_completed() + m_delegator.transfer_list()->size() + 5 >= m_content.chunk_total()) {
     m_endgame = true;
     m_delegator.set_aggressive(true);
   }
@@ -222,8 +221,8 @@ DownloadMain::receive_connect_peers() {
     return;
 
   while (!available_list()->empty() &&
-	 connection_list()->size() < connection_list()->get_min_size() &&
-	 connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->get_max_size()) {
+         connection_list()->size() < connection_list()->get_min_size() &&
+         connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->get_max_size()) {
     rak::socket_address sa = available_list()->pop_random();
 
     if (connection_list()->find(sa) == connection_list()->end())

@@ -247,17 +247,19 @@ PeerConnectionBase::down_chunk() {
     return false;
   }
 
+  BlockTransfer* transfer = m_downloadQueue.transfer();
+
   uint32_t count;
-  uint32_t left = quota = std::min(quota, m_downloadQueue.transfer()->piece().length() - m_down->position());
+  uint32_t left = quota = std::min(quota, transfer->piece().length() - transfer->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downloadQueue.transfer()->piece().offset() + m_down->position());
+  ChunkPart part = m_downChunk->chunk()->at_position(transfer->piece().offset() + transfer->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downloadQueue.transfer()->piece().offset() + m_down->position(), part++);
+    memory = m_downChunk->chunk()->at_memory(transfer->piece().offset() + transfer->position(), part++);
     count = read_stream_throws(memory.first, std::min(left, memory.second));
 
-    m_down->adjust_position(count);
+    transfer->adjust_position(count);
     left -= count;
 
   } while (count == memory.second && left != 0);
@@ -267,24 +269,26 @@ PeerConnectionBase::down_chunk() {
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
   m_download->info()->down_rate()->insert(bytes);
 
-  return m_down->position() == m_downloadQueue.transfer()->piece().length();
+  return transfer->is_finished();
 }
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
+  BlockTransfer* transfer = m_downloadQueue.transfer();
+
   uint32_t count, quota;
-  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(), m_downloadQueue.transfer()->piece().length() - m_down->position());
+  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(), transfer->piece().length() - transfer->position());
 
   Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(m_downloadQueue.transfer()->piece().offset() + m_down->position());
+  ChunkPart part = m_downChunk->chunk()->at_position(transfer->piece().offset() + transfer->position());
 
   do {
-    memory = m_downChunk->chunk()->at_memory(m_downloadQueue.transfer()->piece().offset() + m_down->position(), part++);
+    memory = m_downChunk->chunk()->at_memory(transfer->piece().offset() + transfer->position(), part++);
     count = std::min(left, memory.second);
 
     std::memcpy(memory.first, m_down->buffer()->position(), count);
 
-    m_down->adjust_position(count);
+    transfer->adjust_position(count);
     m_down->buffer()->move_position(count);
     left -= count;
 
@@ -295,19 +299,21 @@ PeerConnectionBase::down_chunk_from_buffer() {
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
   m_download->info()->down_rate()->insert(bytes);
 
-  return m_down->position() == m_downloadQueue.transfer()->piece().length();
+  return transfer->is_finished();
 }
 
 bool
 PeerConnectionBase::down_chunk_skip() {
-  uint32_t size = ignore_stream_throws(m_downloadQueue.transfer()->piece().length() - m_down->position());
+  BlockTransfer* transfer = m_downloadQueue.transfer();
 
-  m_down->adjust_position(size);
+  uint32_t size = ignore_stream_throws(transfer->piece().length() - transfer->position());
+
+  transfer->adjust_position(size);
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), size);
   m_download->info()->down_rate()->insert(size);
   
-  return m_down->position() == m_downloadQueue.transfer()->piece().length();
+  return transfer->is_finished();
 }
 
 bool

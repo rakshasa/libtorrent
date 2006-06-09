@@ -182,6 +182,11 @@ Download::tracker_list() const {
   return TrackerList(m_ptr->main()->tracker_manager());
 }
 
+const TransferList*
+Download::transfer_list() const {
+  return m_ptr->main()->delegator()->transfer_list();
+}
+
 Rate*
 Download::down_rate() {
   return m_ptr->info()->down_rate();
@@ -208,8 +213,8 @@ Download::bytes_done() const {
  
   Delegator* d = m_ptr->main()->delegator();
 
-  for (Delegator::Chunks::iterator itr1 = d->get_chunks().begin(), last1 = d->get_chunks().end(); itr1 != last1; ++itr1)
-    for (BlockList::iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
+  for (TransferList::const_iterator itr1 = d->transfer_list()->begin(), last1 = d->transfer_list()->end(); itr1 != last1; ++itr1)
+    for (BlockList::const_iterator itr2 = (*itr1)->begin(), last2 = (*itr1)->end(); itr2 != last2; ++itr2)
       if (itr2->is_finished())
         a += itr2->piece().length();
   

@@ -202,7 +202,7 @@ struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, b
 
 bool
 RequestList::is_interested_in_active() const {
-  for (Delegator::Chunks::const_iterator itr = m_delegator->get_chunks().begin(), last = m_delegator->get_chunks().end(); itr != last; ++itr)
+  for (TransferList::const_iterator itr = m_delegator->transfer_list()->begin(), last = m_delegator->transfer_list()->end(); itr != last; ++itr)
     if (m_peerChunks->bitfield()->get((*itr)->index()))
       return true;
 

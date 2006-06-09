@@ -221,19 +221,20 @@ PeerConnectionLeech::read_message() {
     if (!m_down->can_read_piece_body())
       break;
 
-    m_down->set_position(0);
-
     if (!down_chunk_start(m_down->read_piece(length - 9))) {
       // We're skipping this piece.
-      m_down->set_position(std::min<uint32_t>(buf->remaining(), m_downloadQueue.transfer()->piece().length()));
-      buf->move_position(m_down->position());
+      uint32_t length = std::min<uint32_t>(buf->remaining(), m_downloadQueue.transfer()->piece().length());
 
-      if (m_down->position() != m_downloadQueue.transfer()->piece().length()) {
-        m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
-        return false;
+      m_downloadQueue.transfer()->set_position(length);
+      buf->move_position(length);
+
+      if (m_downloadQueue.transfer()->is_finished()) {
+        m_downloadQueue.skipped();
+        return true;
 
       } else {
-        return true;
+        m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+        return false;
       }
       
     } else if (down_chunk_from_buffer()) {
@@ -336,9 +337,7 @@ PeerConnectionLeech::event_read() {
         break;
 
       case ProtocolRead::READ_SKIP_PIECE:
-        m_down->adjust_position(ignore_stream_throws(m_downloadQueue.transfer()->piece().length() - m_down->position()));
-
-        if (m_down->position() != m_downloadQueue.transfer()->piece().length())
+        if (!down_chunk_skip())
           return;
 
         download_queue()->skipped();

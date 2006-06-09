@@ -6,6 +6,7 @@ libsub_torrent_la_SOURCES = \
 	block.cc \
 	block.h \
 	block_list.cc \
+	block_list.h \
 	block_transfer.h \
 	common.h \
 	connection_manager.cc \
@@ -44,7 +45,9 @@ libsub_torrent_la_SOURCES = \
 	tracker.cc \
 	tracker.h \
 	tracker_list.cc \
-	tracker_list.h
+	tracker_list.h \
+	transfer_list.cc \
+	transfer_list.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
@@ -52,6 +55,7 @@ libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
 	bitfield.h \
 	block.h \
+	block_list.h \
 	block_transfer.h \
 	common.h \
 	connection_manager.h \
@@ -73,4 +77,5 @@ libtorrentinclude_HEADERS = \
 	rate.h \
 	torrent.h \
 	tracker.h \
-	tracker_list.h
+	tracker_list.h \
+	transfer_list.h

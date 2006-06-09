@@ -41,6 +41,8 @@
 #include <vector>
 #include <rak/functional.h>
 
+#include "torrent/transfer_list.h"
+
 namespace torrent {
 
 class BitField;
@@ -56,7 +58,6 @@ class ChunkSelector;
 
 class Delegator {
 public:
-  typedef std::vector<BlockList*>                              Chunks;
   typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
   typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
   typedef rak::mem_fun1<DownloadMain, void, uint32_t>               SlotChunkDone;
@@ -69,14 +70,15 @@ public:
 
   void               clear();
 
+  TransferList*       transfer_list()                     { return &m_transfers; }
+  const TransferList* transfer_list() const               { return &m_transfers; }
+
   BlockTransfer*     delegate(PeerChunks* peerChunks, int affinity);
 
   void               finished(BlockTransfer* r);
 
   void               done(unsigned int index);
   void               redo(unsigned int index);
-
-  Chunks&            get_chunks()                         { return m_chunks; }
 
   bool               get_aggressive()                     { return m_aggressive; }
   void               set_aggressive(bool a)               { m_aggressive = a; }
@@ -99,9 +101,9 @@ private:
 
   Block*             delegate_seeder(PeerChunks* peerChunks);
 
-  bool               m_aggressive;
+  TransferList       m_transfers;
 
-  Chunks             m_chunks;
+  bool               m_aggressive;
 
   // Propably should add a m_slotChunkStart thing, which will take
   // care of enabling etc, and will be possible to listen to.
@@ -112,6 +114,6 @@ private:
   SlotChunkSize      m_slotChunkSize;
 };
 
-} // namespace torrent
+}
 
-#endif // LIBTORRENT_DELEGATOR_H
+#endif

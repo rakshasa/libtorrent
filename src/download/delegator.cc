@@ -119,17 +119,11 @@ struct DelegatorCheckAggressive {
 };
 
 void Delegator::clear() {
-  for (Chunks::iterator itr = m_chunks.begin(), last = m_chunks.end(); itr != last; ++itr) {
+  for (TransferList::iterator itr = m_transfers.begin(), last = m_transfers.end(); itr != last; ++itr) {
     m_slotChunkDisable((*itr)->index());
-
-    // Since there seems to be a bug somewhere:
-//     for (BlockList::iterator j = (*itr)->begin(), l = (*itr)->end(); j != l; ++j)
-//       j->clear();
-
-    delete *itr;
   }
 
-  m_chunks.clear();
+  m_transfers.clear();
   m_aggressive = false;
 }
 
@@ -145,16 +139,16 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
   //
   // TODO: What if the hash failed? Don't want data from that peer again.
   if (affinity >= 0 && 
-      std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckAffinity(this, &target, affinity, peerChunks->peer_info()))
-      != m_chunks.end())
+      std::find_if(m_transfers.begin(), m_transfers.end(), DelegatorCheckAffinity(this, &target, affinity, peerChunks->peer_info()))
+      != m_transfers.end())
     return target->insert(peerChunks->peer_info());
 
   if (peerChunks->is_seeder() && (target = delegate_seeder(peerChunks)) != NULL)
     return target->insert(peerChunks->peer_info());
 
   // High priority pieces.
-  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckPriority(this, &target, PRIORITY_HIGH, peerChunks))
-      != m_chunks.end())
+  if (std::find_if(m_transfers.begin(), m_transfers.end(), DelegatorCheckPriority(this, &target, PRIORITY_HIGH, peerChunks))
+      != m_transfers.end())
     return target->insert(peerChunks->peer_info());
 
   // Find normal priority pieces.
@@ -162,8 +156,8 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
     return target->insert(peerChunks->peer_info());
 
   // Normal priority pieces.
-  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckPriority(this, &target, PRIORITY_NORMAL, peerChunks))
-      != m_chunks.end())
+  if (std::find_if(m_transfers.begin(), m_transfers.end(), DelegatorCheckPriority(this, &target, PRIORITY_NORMAL, peerChunks))
+      != m_transfers.end())
     return target->insert(peerChunks->peer_info());
 
   if ((target = new_chunk(peerChunks, false)))
@@ -178,7 +172,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
   // No more than 4 per piece.
   uint16_t overlapped = 5;
 
-  std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckAggressive(this, &target, &overlapped, peerChunks));
+  std::find_if(m_transfers.begin(), m_transfers.end(), DelegatorCheckAggressive(this, &target, &overlapped, peerChunks));
 
   return target ? target->insert(peerChunks->peer_info()) : NULL;
 }
@@ -187,8 +181,8 @@ Block*
 Delegator::delegate_seeder(PeerChunks* peerChunks) {
   Block* target = NULL;
 
-  if (std::find_if(m_chunks.begin(), m_chunks.end(), DelegatorCheckSeeder(this, &target, peerChunks->peer_info()))
-      != m_chunks.end())
+  if (std::find_if(m_transfers.begin(), m_transfers.end(), DelegatorCheckSeeder(this, &target, peerChunks->peer_info()))
+      != m_transfers.end())
     return target;
 
   if ((target = new_chunk(peerChunks, true)))
@@ -214,13 +208,7 @@ Delegator::finished(BlockTransfer* transfer) {
 
 void
 Delegator::done(unsigned int index) {
-  Chunks::iterator itr = std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal(index, std::mem_fun(&BlockList::index)));
-
-  if (itr == m_chunks.end())
-    throw internal_error("Called Delegator::done(...) with an index that is not in the Delegator");
-
-  delete *itr;
-  m_chunks.erase(itr);
+  m_transfers.erase(m_transfers.find(index));
 }
 
 void
@@ -239,28 +227,32 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
   if (index == ~(uint32_t)0)
     return NULL;
 
-  if (std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal(index, std::mem_fun(&BlockList::index))) != m_chunks.end())
-    throw internal_error("Delegator::new_chunk(...) received an index that is already delegated.");
+//   if (std::find_if(m_transfers.begin(), m_transfers.end(), rak::equal(index, std::mem_fun(&BlockList::index))) != m_transfers.end())
+//     throw internal_error("Delegator::new_chunk(...) received an index that is already delegated.");
 
-  BlockList* blockList = new BlockList(Piece(index, 0, m_slotChunkSize(index)), block_size);
-  blockList->set_by_seeder(pc->is_seeder());
+//   BlockList* blockList = new BlockList(Piece(index, 0, m_slotChunkSize(index)), block_size);
+
+  TransferList::iterator itr = m_transfers.insert(Piece(index, 0, m_slotChunkSize(index)), block_size);
+
+  (*itr)->set_by_seeder(pc->is_seeder());
 
   if (highPriority)
-    blockList->set_priority(PRIORITY_HIGH);
+    (*itr)->set_priority(PRIORITY_HIGH);
   else
-    blockList->set_priority(PRIORITY_NORMAL);
+    (*itr)->set_priority(PRIORITY_NORMAL);
 
-  m_chunks.push_back(blockList);
+//   m_chunks.push_back(blockList);
+
   m_slotChunkEnable(index);
 
-  return &*blockList->begin();
+  return &*(*itr)->begin();
 }
 
 Block*
 Delegator::find_piece(const Piece& p) {
-  Chunks::iterator c = std::find_if(m_chunks.begin(), m_chunks.end(), rak::equal(p.index(), std::mem_fun(&BlockList::index)));
+  TransferList::iterator c = m_transfers.find(p.index());
   
-  if (c == m_chunks.end())
+  if (c == m_transfers.end())
     return NULL;
 
   BlockList::iterator d = std::find_if((*c)->begin(), (*c)->end(), rak::equal(p, std::mem_fun_ref(&Block::piece)));

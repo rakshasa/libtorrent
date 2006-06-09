@@ -52,6 +52,7 @@ public:
   bool                is_valid() const              { return m_block != NULL; }
   bool                is_erased() const             { return m_stall == stall_erased; }
   bool                is_queued() const             { return m_position == position_invalid; }
+  bool                is_finished() const           { return m_position == m_piece.length(); }
 
   PeerInfo*           peer_info()                   { return m_peerInfo; }
   void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }

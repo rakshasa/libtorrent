@@ -57,6 +57,7 @@ class Rate;
 class Object;
 class Peer;
 class TrackerList;
+class TransferList;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
@@ -104,6 +105,8 @@ public:
 
   FileList            file_list() const;
   TrackerList         tracker_list() const;
+
+  const TransferList* transfer_list() const;
 
   Rate*               down_rate();
   const Rate*         down_rate() const;
