@@ -117,20 +117,16 @@ Peer::bitfield() const {
   return m_ptr->peer_chunks()->bitfield();
 }
 
-const Piece*
-Peer::incoming_queue(uint32_t pos) const {
-  if (pos >= m_ptr->download_queue()->size())
-    throw client_error("Peer::incoming_queue(...) out of range.");
+const BlockTransfer*
+Peer::transfer() const {
+  if (m_ptr->download_queue()->transfer() != NULL)
+    return m_ptr->download_queue()->transfer();
 
-  // Temporary hack.
-  static const Piece emptyPiece;
+  else if (!m_ptr->download_queue()->empty())
+    return m_ptr->download_queue()->queued_transfer(0);
 
-  const BlockTransfer* transfer = m_ptr->download_queue()->queued_transfer(pos);
-
-  if (!transfer->is_valid())
-    return &emptyPiece;
-
-  return &transfer->block()->piece();
+  else
+    return NULL;
 }
 
 uint32_t

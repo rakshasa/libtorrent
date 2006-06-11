@@ -119,7 +119,7 @@ PeerConnectionLeech::receive_keepalive() {
   // should stay at zero or one when downloading at an acceptable
   // speed. Thus only when m_downStall >= 2 is the download actually
   // stalling.
-  if (!download_queue()->empty() && m_downStall++ > 0)
+  if (!download_queue()->empty() && m_downStall++ != 0)
     download_queue()->stall();
 
   return true;

@@ -150,6 +150,9 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* info
 
 void
 HandshakeManager::receive_succeeded(Handshake* h) {
+  if (!h->is_active())
+    throw internal_error("HandshakeManager::receive_succeeded(...) called on an inactive handshake.");
+
   erase(h);
   h->clear();
 
@@ -175,7 +178,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
     h->download()->info()->signal_network_log().emit("Successful handshake, failed: " + h->peer_info()->socket_address()->address_str());
   }
 
-  h->set_fd(SocketFd());
+  h->get_fd().clear();
   delete h;
 }
 
@@ -189,11 +192,13 @@ HandshakeManager::post_insert(Handshake* h, PeerConnectionBase* pcb) {
 
 void
 HandshakeManager::receive_failed(Handshake* h) {
-  erase(h);
+  if (!h->is_active())
+    throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
   if (h->download() != NULL)
     h->download()->info()->signal_network_log().emit("Failed handshake: " + h->socket_address()->address_str());
 
+  erase(h);
   delete_handshake(h);
 }
 

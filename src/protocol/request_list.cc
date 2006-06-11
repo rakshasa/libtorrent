@@ -91,6 +91,9 @@ RequestList::cancel() {
 
 void
 RequestList::stall() {
+  if (m_transfer != NULL)
+    m_transfer->stalled();
+
   std::for_each(m_queued.begin(), m_queued.end(), std::mem_fun(&BlockTransfer::stalled));
 }
 
@@ -182,7 +185,7 @@ RequestList::finished() {
   BlockTransfer* transfer = m_transfer;
   m_transfer = NULL;
 
-  m_delegator->finished(transfer);
+  m_delegator->transfer_list()->finished(transfer);
 }
 
 void

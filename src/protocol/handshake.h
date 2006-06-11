@@ -74,6 +74,8 @@ public:
   Handshake(SocketFd fd, HandshakeManager* m);
   ~Handshake();
 
+  bool                is_active() const             { return m_state != INACTIVE; }
+
   void                initialize_outgoing(const rak::socket_address& sa, DownloadMain* d);
   void                initialize_incoming(const rak::socket_address& sa);
   

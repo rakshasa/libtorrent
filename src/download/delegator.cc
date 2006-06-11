@@ -118,15 +118,6 @@ struct DelegatorCheckAggressive {
   const PeerChunks*   m_peerChunks;
 };
 
-void Delegator::clear() {
-  for (TransferList::iterator itr = m_transfers.begin(), last = m_transfers.end(); itr != last; ++itr) {
-    m_slotChunkDisable((*itr)->index());
-  }
-
-  m_transfers.clear();
-  m_aggressive = false;
-}
-
 BlockTransfer*
 Delegator::delegate(PeerChunks* peerChunks, int affinity) {
   // TODO: Make sure we don't queue the same piece several time on the same peer when
@@ -194,43 +185,12 @@ Delegator::delegate_seeder(PeerChunks* peerChunks) {
   return NULL;
 }
 
-// Erases transfer, don't use it after this call.
-void
-Delegator::finished(BlockTransfer* transfer) {
-  if (!transfer->is_valid() || transfer->block()->is_finished())
-    throw internal_error("Delegator::finished(...) got object with wrong state.");
-
-  uint32_t index = transfer->block()->index();
-
-  if (transfer->completed())
-    m_slotChunkDone(index);
-}
-
-void
-Delegator::done(unsigned int index) {
-  m_transfers.erase(m_transfers.find(index));
-}
-
-void
-Delegator::redo(unsigned int index) {
-  // TODO: Download pieces from the other clients and try again. Swap out pieces
-  // from one id at the time.
-  done(index);
-
-  m_slotChunkDisable(index);
-}
-
 Block*
 Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
   uint32_t index = m_slotChunkFind(pc, highPriority);
 
   if (index == ~(uint32_t)0)
     return NULL;
-
-//   if (std::find_if(m_transfers.begin(), m_transfers.end(), rak::equal(index, std::mem_fun(&BlockList::index))) != m_transfers.end())
-//     throw internal_error("Delegator::new_chunk(...) received an index that is already delegated.");
-
-//   BlockList* blockList = new BlockList(Piece(index, 0, m_slotChunkSize(index)), block_size);
 
   TransferList::iterator itr = m_transfers.insert(Piece(index, 0, m_slotChunkSize(index)), block_size);
 
@@ -241,28 +201,9 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
   else
     (*itr)->set_priority(PRIORITY_NORMAL);
 
-//   m_chunks.push_back(blockList);
-
-  m_slotChunkEnable(index);
-
   return &*(*itr)->begin();
 }
 
-Block*
-Delegator::find_piece(const Piece& p) {
-  TransferList::iterator c = m_transfers.find(p.index());
-  
-  if (c == m_transfers.end())
-    return NULL;
-
-  BlockList::iterator d = std::find_if((*c)->begin(), (*c)->end(), rak::equal(p, std::mem_fun_ref(&Block::piece)));
-
-  if (d == (*c)->end())
-    return NULL;
-  else
-    return &*d;
-}
-  
 Block*
 Delegator::delegate_piece(BlockList* c, const PeerInfo* peerInfo) {
   Block* p = NULL;

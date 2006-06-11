@@ -45,6 +45,7 @@ struct sockaddr;
 namespace torrent {
 
 class Bitfield;
+class BlockTransfer;
 class PeerConnectionBase;
 class Piece;
 class Rate;
@@ -83,10 +84,9 @@ public:
 
   const Bitfield*      bitfield() const;
 
-  // 'index == -1' for incoming pieces that we don't want anymore.
-  const Piece*         incoming_queue(uint32_t pos) const;
-  uint32_t             incoming_queue_size() const;
+  const BlockTransfer* transfer() const;
 
+  uint32_t             incoming_queue_size() const;
   uint32_t             outgoing_queue_size() const;
 
   uint32_t             chunks_done() const;

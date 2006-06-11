@@ -60,33 +60,21 @@ class Delegator {
 public:
   typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
   typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
-  typedef rak::mem_fun1<DownloadMain, void, uint32_t>               SlotChunkDone;
   typedef rak::const_mem_fun1<Content, uint32_t, uint32_t>          SlotChunkSize;
 
   static const unsigned int block_size = 1 << 14;
 
   Delegator() : m_aggressive(false) { }
-  ~Delegator() { clear(); }
-
-  void               clear();
 
   TransferList*       transfer_list()                     { return &m_transfers; }
   const TransferList* transfer_list() const               { return &m_transfers; }
 
   BlockTransfer*     delegate(PeerChunks* peerChunks, int affinity);
 
-  void               finished(BlockTransfer* r);
-
-  void               done(unsigned int index);
-  void               redo(unsigned int index);
-
   bool               get_aggressive()                     { return m_aggressive; }
   void               set_aggressive(bool a)               { m_aggressive = a; }
 
-  void               slot_chunk_enable(SlotChunkIndex s)  { m_slotChunkEnable = s; }
-  void               slot_chunk_disable(SlotChunkIndex s) { m_slotChunkDisable = s; }
   void               slot_chunk_find(SlotChunkFind s)     { m_slotChunkFind = s; }
-  void               slot_chunk_done(SlotChunkDone s)     { m_slotChunkDone = s; }
   void               slot_chunk_size(SlotChunkSize s)     { m_slotChunkSize = s; }
 
   // Don't call this from the outside.
@@ -97,7 +85,6 @@ private:
   // Start on a new chunk, returns .end() if none possible. bf is
   // remote peer's bitfield.
   Block*             new_chunk(PeerChunks* pc, bool highPriority);
-  Block*             find_piece(const Piece& p);
 
   Block*             delegate_seeder(PeerChunks* peerChunks);
 
@@ -107,10 +94,7 @@ private:
 
   // Propably should add a m_slotChunkStart thing, which will take
   // care of enabling etc, and will be possible to listen to.
-  SlotChunkIndex     m_slotChunkEnable;
-  SlotChunkIndex     m_slotChunkDisable;
   SlotChunkFind      m_slotChunkFind;
-  SlotChunkDone      m_slotChunkDone;
   SlotChunkSize      m_slotChunkSize;
 };
 

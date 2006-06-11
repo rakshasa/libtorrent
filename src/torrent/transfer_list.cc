@@ -37,8 +37,10 @@
 #include "config.h"
 
 #include <algorithm>
+#include <functional>
 #include <rak/functional.h>
 
+#include "block_transfer.h"
 #include "block_list.h"
 #include "exceptions.h"
 #include "piece.h"
@@ -59,6 +61,7 @@ TransferList::find(uint32_t index) const {
 
 void
 TransferList::clear() {
+  std::for_each(begin(), end(), rak::on(std::mem_fun(&BlockList::index), m_slotCanceled));
   std::for_each(begin(), end(), rak::call_delete<BlockList>());
 
   base_type::clear();
@@ -71,6 +74,8 @@ TransferList::insert(const Piece& piece, uint32_t blockSize) {
 
   BlockList* blockList = new BlockList(piece, blockSize);
   
+  m_slotQueued(piece.index());
+
   return base_type::insert(end(), blockList);
 }
 
@@ -82,6 +87,31 @@ TransferList::erase(iterator itr) {
   delete *itr;
 
   return base_type::erase(itr);
+}
+
+void
+TransferList::finished(BlockTransfer* transfer) {
+  if (!transfer->is_valid() || transfer->block()->is_finished())
+    throw internal_error("TransferList::finished(...) got transfer with wrong state.");
+
+  uint32_t index = transfer->block()->index();
+
+  // Marks the transfer as complete and erases it.
+  if (transfer->completed())
+    m_slotCompleted(index);
+}
+
+void
+TransferList::index_done(uint32_t index) {
+  erase(find(index));
+}
+
+void
+TransferList::index_retry(uint32_t index) {
+  // Currently just bork the current transfer.
+  erase(find(index));
+
+  m_slotCanceled(index);
 }
 
 }

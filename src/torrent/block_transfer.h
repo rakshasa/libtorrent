@@ -64,6 +64,8 @@ public:
   const Piece&        piece() const                 { return m_piece; }
   void                set_piece(const Piece& p)     { m_piece = p; }
 
+  uint32_t            index() const                 { return m_piece.index(); }
+
   uint32_t            position() const              { return m_position; }
   void                set_position(uint32_t p)      { m_position = p; }
   void                adjust_position(uint32_t p)   { m_position += p; }

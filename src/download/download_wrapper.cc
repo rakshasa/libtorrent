@@ -123,8 +123,8 @@ DownloadWrapper::hash_resume_load() {
     Object& files = resume.get_key("files");
 
     if (resume.has_key_string("bitfield") &&
-	resume.get_key("bitfield").as_string().size() == m_main.content()->bitfield()->size_bytes() &&
-	files.as_list().size() == m_main.content()->entry_list()->files_size()) {
+        resume.get_key("bitfield").as_string().size() == m_main.content()->bitfield()->size_bytes() &&
+        files.as_list().size() == m_main.content()->entry_list()->files_size()) {
 
       // Clear the hash checking ranges, and add the files ranges we
       // must check.
@@ -272,8 +272,8 @@ DownloadWrapper::start() {
   if (m_main.is_active())
     return;
 
-  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_main.delegator(), &Delegator::done));
-  m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_main.delegator(), &Delegator::redo));
+  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_main.delegator()->transfer_list(), &TransferList::index_done));
+  m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_main.delegator()->transfer_list(), &TransferList::index_retry));
 
   m_main.start();
 }

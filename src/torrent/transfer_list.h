@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_TRANSFER_LIST_H
 #define LIBTORRENT_TRANSFER_LIST_H
 
+#include <functional>
 #include <vector>
 #include <inttypes.h>
 #include <torrent/common.h>
@@ -44,12 +45,24 @@
 namespace torrent {
 
 class BlockList;
+class BlockTransfer;
+class ChunkSelector;
+class DownloadMain;
 class Piece;
 
 class TransferList : public std::vector<BlockList*> {
 public:
-  typedef std::vector<BlockList*> base_type;
-//   typedef uint32_t                size_type;
+  typedef std::vector<BlockList*>                        base_type;
+//   typedef uint32_t                                      size_type;
+
+  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_canceled_op;
+  typedef std::binder1st<slot_canceled_op>               slot_canceled_type;
+
+  typedef std::mem_fun1_t<void, DownloadMain, uint32_t>  slot_completed_op;
+  typedef std::binder1st<slot_completed_op>              slot_completed_type;
+
+  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_queued_op;
+  typedef std::binder1st<slot_queued_op>                 slot_queued_type;
 
   using base_type::value_type;
   using base_type::reference;
@@ -67,15 +80,34 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
+  TransferList() :
+    m_slotCanceled(slot_canceled_type(slot_canceled_op(NULL), NULL)),
+    m_slotCompleted(slot_completed_type(slot_completed_op(NULL), NULL)),
+    m_slotQueued(slot_queued_type(slot_queued_op(NULL), NULL)) { }
+
   iterator            find(uint32_t index);
   const_iterator      find(uint32_t index) const;
+
+  // Internal to libTorrent:
 
   void                clear();
 
   iterator            insert(const Piece& piece, uint32_t blockSize);
   iterator            erase(iterator itr);
 
+  void                finished(BlockTransfer* transfer);
+
+  void                index_done(uint32_t index);
+  void                index_retry(uint32_t index);
+
+  void                slot_canceled(slot_canceled_type s)   { m_slotCanceled = s; }
+  void                slot_completed(slot_completed_type s) { m_slotCompleted = s; }
+  void                slot_queued(slot_queued_type s)       { m_slotQueued = s; }
+
 private:
+  slot_canceled_type  m_slotCanceled;
+  slot_completed_type m_slotCompleted;
+  slot_queued_type    m_slotQueued;
 };
 
 }

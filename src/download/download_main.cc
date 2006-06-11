@@ -71,11 +71,12 @@ DownloadMain::DownloadMain() :
   m_connectionList = new ConnectionList(m_info);
   m_chokeManager = new ChokeManager(m_connectionList);
 
-  m_delegator.slot_chunk_enable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::using_index));
-  m_delegator.slot_chunk_disable(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::not_using_index));
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
-  m_delegator.slot_chunk_done(rak::make_mem_fun(this, &DownloadMain::receive_chunk_done));
   m_delegator.slot_chunk_size(rak::make_mem_fun(&m_content, &Content::chunk_index_size));
+
+  m_delegator.transfer_list()->slot_canceled(std::bind1st(std::mem_fun(&ChunkSelector::not_using_index), m_chunkSelector));
+  m_delegator.transfer_list()->slot_queued(std::bind1st(std::mem_fun(&ChunkSelector::using_index), m_chunkSelector));
+  m_delegator.transfer_list()->slot_completed(std::bind1st(std::mem_fun(&DownloadMain::receive_chunk_done), this));
 
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
 
@@ -120,7 +121,7 @@ DownloadMain::close() {
   m_isOpen = false;
 
   m_trackerManager->close();
-  m_delegator.clear();
+  m_delegator.transfer_list()->clear();
 
   m_content.clear();
   m_content.entry_list()->close();
@@ -143,6 +144,10 @@ void DownloadMain::start() {
 
   m_started = true;
   m_lastConnectedSize = 0;
+
+  m_endgame = false;
+  m_delegator.set_aggressive(false);
+  update_endgame();  
 
   // Reset the uploaded baseline every time we restart the download so
   // that broken trackers get the right uploaded ratio.
