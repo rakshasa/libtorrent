@@ -60,23 +60,24 @@ public:
 
   Block() : m_notStalled(0), m_finished(false) { }
 
-  bool                is_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
-  bool                is_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
+  bool                is_stalled() const                           { return m_notStalled == 0; }
+  bool                is_finished() const                          { return m_finished; }
+  bool                is_transfering() const                       { return !m_transfers.empty(); }
 
-  bool                is_stalled() const                      { return m_notStalled == 0; }
-  bool                is_finished() const                     { return m_finished; }
+  bool                is_peer_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
+  bool                is_peer_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
 
-  BlockList*          parent()                                { return m_parent; }
-  const BlockList*    parent() const                          { return m_parent; }
-  void                set_parent(BlockList* p)                { m_parent = p; }
+  BlockList*          parent()                                     { return m_parent; }
+  const BlockList*    parent() const                               { return m_parent; }
+  void                set_parent(BlockList* p)                     { m_parent = p; }
 
-  const Piece&        piece() const                           { return m_piece; }
-  void                set_piece(const Piece& p)               { m_piece = p; }
+  const Piece&        piece() const                                { return m_piece; }
+  void                set_piece(const Piece& p)                    { m_piece = p; }
 
-  uint32_t            index() const                           { return m_piece.index(); }
+  uint32_t            index() const                                { return m_piece.index(); }
 
-  size_type           size_all() const                        { return m_queued.size() + m_transfers.size(); }
-  size_type           size_not_stalled() const                { return m_notStalled; }
+  size_type           size_all() const                             { return m_queued.size() + m_transfers.size(); }
+  size_type           size_not_stalled() const                     { return m_notStalled; }
 
   void                clear();
 
@@ -93,8 +94,8 @@ public:
   // Return true if all blocks in the chunk is finished.
   bool                completed(BlockTransfer* transfer);
 
-  const transfer_list* queued() const                         { return &m_queued; }
-  const transfer_list* transfers() const                      { return &m_transfers; }
+  const transfer_list* queued() const                              { return &m_queued; }
+  const transfer_list* transfers() const                           { return &m_transfers; }
 
   BlockTransfer*       find(const PeerInfo* p);
   const BlockTransfer* find(const PeerInfo* p) const;

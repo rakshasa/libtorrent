@@ -44,6 +44,8 @@ namespace torrent {
 
 class BlockTransfer {
 public:
+  typedef PeerInfo* key_type;
+
   static const uint32_t position_invalid = ~uint32_t();
   static const uint32_t stall_erased = ~uint32_t();
 
@@ -54,11 +56,12 @@ public:
   bool                is_queued() const             { return m_position == position_invalid; }
   bool                is_finished() const           { return m_position == m_piece.length(); }
 
-  PeerInfo*           peer_info()                   { return m_peerInfo; }
-  void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
+  key_type            peer_info()                   { return m_peerInfo; }
+  const key_type      const_peer_info() const       { return m_peerInfo; }
+  void                set_peer_info(key_type p)     { m_peerInfo = p; }
 
   Block*              block()                       { return m_block; }
-  const Block*        block() const                 { return m_block; }
+  const Block*        const_block() const           { return m_block; }
   void                set_block(Block* b)           { m_block = b; }
 
   const Piece&        piece() const                 { return m_piece; }
@@ -85,7 +88,7 @@ private:
   BlockTransfer(const BlockTransfer&);
   void operator = (const BlockTransfer&);
 
-  PeerInfo*           m_peerInfo;
+  key_type            m_peerInfo;
   Block*              m_block;
   Piece               m_piece;
 

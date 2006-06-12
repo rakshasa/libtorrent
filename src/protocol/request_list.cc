@@ -56,8 +56,8 @@ struct request_list_same_piece {
 
   bool operator () (const BlockTransfer* d) {
     return
-      m_piece.index() == d->block()->piece().index() &&
-      m_piece.offset() == d->block()->piece().offset();
+      m_piece.index() == d->const_block()->piece().index() &&
+      m_piece.offset() == d->const_block()->piece().offset();
   }
 
   Piece m_piece;
