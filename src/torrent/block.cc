@@ -49,13 +49,13 @@ namespace torrent {
 
 inline void
 Block::invalidate_transfer(BlockTransfer* transfer) {
+  transfer->set_block(NULL);
+
   // FIXME: Various other accounting like position and counters.
   if (transfer->is_erased())
     delete transfer;
   else
     m_notStalled -= transfer->stall() == 0;
-
-  transfer->set_block(NULL);
 }
 
 void

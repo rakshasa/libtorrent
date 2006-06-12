@@ -203,7 +203,7 @@ Handshake::event_read() {
       // Trigger event_write() directly and then skip straight to read
       // BITFIELD. This avoids going through polling for the first
       // write.
-      event_write();
+      write_bitfield();
 
     case BITFIELD:
       if (m_bitfield.empty()) {
@@ -296,6 +296,9 @@ Handshake::prepare_write_keepalive() {
 
 void
 Handshake::read_done() {
+  if (m_readDone != false)
+    throw internal_error("Handshake::read_done() m_readDone != false.");
+
   m_readDone = true;
   manager->poll()->remove_read(this);
 
@@ -358,23 +361,7 @@ Handshake::event_write() {
       return;
 
     case BITFIELD:
-      if (m_writeBuffer.remaining())
-        m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
-      
-      if (m_writeBuffer.remaining())
-        return;
-
-      if (m_writePos != m_download->content()->bitfield()->size_bytes())
-        m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
-                                          m_download->content()->bitfield()->size_bytes() - m_writePos);
-
-      if (m_writePos == m_download->content()->bitfield()->size_bytes()) {
-        m_writeDone = true;
-        manager->poll()->remove_write(this);
-
-        if (m_readDone)
-          m_manager->receive_succeeded(this);
-      }
+      write_bitfield();
 
       return;
 
@@ -384,6 +371,32 @@ Handshake::event_write() {
 
   } catch (network_error& e) {
     m_manager->receive_failed(this);
+  }
+}
+
+void
+Handshake::write_bitfield() {
+  if (m_writeDone != false)
+    throw internal_error("Handshake::event_write() m_writeDone != false.");
+
+  if (m_writeBuffer.remaining())
+    m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
+      
+  if (m_writeBuffer.remaining())
+    return;
+
+  if (m_writePos != m_download->content()->bitfield()->size_bytes())
+    m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
+                                      m_download->content()->bitfield()->size_bytes() - m_writePos);
+
+  if (m_writePos == m_download->content()->bitfield()->size_bytes()) {
+    m_writeDone = true;
+    manager->poll()->remove_write(this);
+
+    // Ok to just check m_readDone as the call in event_read() won't
+    // set it before the call.
+    if (m_readDone)
+      m_manager->receive_succeeded(this);
   }
 }
 

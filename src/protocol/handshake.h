@@ -111,6 +111,8 @@ protected:
   inline void         prepare_write_bitfield();
   inline void         prepare_write_keepalive();
 
+  void                write_bitfield();
+
   static const char*  m_protocol;
 
   State               m_state;
