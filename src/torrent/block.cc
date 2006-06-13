@@ -66,7 +66,7 @@ Block::clear() {
   std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_transfers.clear();
 
-  m_finished = false;
+  m_position = 0;
 
   if (m_notStalled != 0)
     throw internal_error("Block::clear() m_stalled != 0.");
@@ -120,7 +120,7 @@ Block::erase(BlockTransfer* transfer) {
   delete transfer;
 }
 
-void
+bool
 Block::transfering(BlockTransfer* transfer) {
   if (!transfer->is_valid())
     throw internal_error("Block::transfering(...) transfer->block() == NULL.");
@@ -132,12 +132,21 @@ Block::transfering(BlockTransfer* transfer) {
 
   transfer->set_position(0);
 
+  // If this block already has an active transfer, make this transfer
+  // skip the piece. If this transfer gets ahead of the currently
+  // transfering, it will (a) take over as the leader if the data is
+  // the same or (b) erase itself from this block if the data does not
+  // match.
+  bool isTransfering = is_transfering();
+
   m_queued.erase(itr);
   m_transfers.insert(m_transfers.end(), transfer);
+
+  return isTransfering;
 }
 
 void
-Block::stalled(BlockTransfer* transfer) {
+Block::stalled_transfer(BlockTransfer* transfer) {
   if (transfer->stall() == 0) {
     if (m_notStalled == 0)
       throw internal_error("Block::stalled(...) m_notStalled == 0.");
@@ -161,10 +170,18 @@ Block::completed(BlockTransfer* transfer) {
   if (transfer->is_queued())
     throw internal_error("Block::completed(...) transfer is queued.");
 
-  if (transfer->block()->is_finished())
-    throw internal_error("Block::completed(...) transfer is already marked as finished.");
+  // How does this check work now?
+//   if (transfer->block()->is_finished())
+//     throw internal_error("Block::completed(...) transfer is already marked as finished.");
 
-  m_finished = true;
+  // Special case where another ignored transfer finished before the
+  // leader?
+  //
+  // Perhaps do magic to the transfer, erase it or something.
+  if (!is_finished()) {
+    throw internal_error("Block::completed(...) !is_finished().");
+  }
+
   m_parent->inc_finished();
   m_notStalled -= transfer->stall() == 0;
 
@@ -192,6 +209,8 @@ Block::completed(BlockTransfer* transfer) {
 //       itr = m_transfers.erase(itr);
 //     }
 //   }
+
+  // Remove transfers that did not start (finish?).
 
   std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_transfers.clear();

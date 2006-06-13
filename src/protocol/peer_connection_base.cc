@@ -40,6 +40,7 @@
 #include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/block.h"
 #include "data/chunk_list.h"
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
@@ -264,6 +265,8 @@ PeerConnectionBase::down_chunk() {
 
   } while (count == memory.second && left != 0);
 
+  transfer->block()->set_position(transfer->position());
+
   uint32_t bytes = quota - left;
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
@@ -294,6 +297,8 @@ PeerConnectionBase::down_chunk_from_buffer() {
 
   } while (left != 0);
 
+  transfer->block()->set_position(transfer->position());
+
   uint32_t bytes = quota - left;
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
@@ -308,6 +313,21 @@ PeerConnectionBase::down_chunk_skip() {
 
   uint32_t size = ignore_stream_throws(transfer->piece().length() - transfer->position());
 
+  transfer->adjust_position(size);
+
+  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), size);
+  m_download->info()->down_rate()->insert(size);
+  
+  return transfer->is_finished();
+}
+
+bool
+PeerConnectionBase::down_chunk_skip_from_buffer() {
+  BlockTransfer* transfer = m_downloadQueue.transfer();
+
+  uint32_t size = std::min<uint32_t>(m_down->buffer()->remaining(), transfer->piece().length() - transfer->position());
+
+  m_down->buffer()->move_position(size);
   transfer->adjust_position(size);
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), size);

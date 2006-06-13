@@ -39,12 +39,11 @@
 
 #include <vector>
 #include <inttypes.h>
-#include <torrent/piece.h>
+#include <torrent/block_transfer.h>
 
 namespace torrent {
 
 class BlockList;
-class BlockTransfer;
 class PeerInfo;
 
 // If you start adding slots, make sure the rest of the code creates
@@ -58,11 +57,15 @@ public:
   typedef std::vector<BlockTransfer*> transfer_list;
   typedef uint32_t                    size_type;
 
-  Block() : m_notStalled(0), m_finished(false) { }
+  Block() : m_position(0), m_notStalled(0) { }
 
   bool                is_stalled() const                           { return m_notStalled == 0; }
-  bool                is_finished() const                          { return m_finished; }
-  bool                is_transfering() const                       { return !m_transfers.empty(); }
+  bool                is_finished() const                          { return m_position == m_piece.length(); }
+
+  // Since incomplete transfers are kept in the back, and when
+  // finished the remaining incomplete transfers are removed, we know
+  // that if the back is not finished we're still transfering.
+  bool                is_transfering() const;//                       { return !m_transfers.empty() && !m_transfers.back()->is_finished(); }
 
   bool                is_peer_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
   bool                is_peer_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
@@ -76,6 +79,11 @@ public:
 
   uint32_t            index() const                                { return m_piece.index(); }
 
+  // How much of the block has been downloaded by the leading block
+  // transfer.
+  uint32_t            position() const                             { return m_position; }
+  void                set_position(uint32_t p)                     { m_position = p; }
+
   size_type           size_all() const                             { return m_queued.size() + m_transfers.size(); }
   size_type           size_not_stalled() const                     { return m_notStalled; }
 
@@ -86,13 +94,16 @@ public:
   // If the queued or transfering is already removed from the block it
   // will just delete the object. Made static so it can be called when
   // block == NULL.
+  static inline void  release(BlockTransfer* transfer);
   void                erase(BlockTransfer* transfer);
 
-  void                transfering(BlockTransfer* transfer);
-  void                stalled(BlockTransfer* transfer);
+  bool                transfering(BlockTransfer* transfer);
 
   // Return true if all blocks in the chunk is finished.
   bool                completed(BlockTransfer* transfer);
+
+  static void         stalled(BlockTransfer* transfer)             { if (!transfer->is_valid()) return; transfer->block()->stalled_transfer(transfer); }
+  void                stalled_transfer(BlockTransfer* transfer);
 
   const transfer_list* queued() const                              { return &m_queued; }
   const transfer_list* transfers() const                           { return &m_transfers; }
@@ -115,8 +126,8 @@ private:
   BlockList*          m_parent;
   Piece               m_piece;
   
+  uint32_t            m_position;
   uint32_t            m_notStalled;
-  bool                m_finished;
 
   transfer_list       m_queued;
   transfer_list       m_transfers;
@@ -140,6 +151,14 @@ Block::find(const PeerInfo* p) const {
     return transfer;
   else
     return find_transfer(p);
+}
+
+inline void
+Block::release(BlockTransfer* transfer) {
+  if (!transfer->is_valid())
+    delete transfer;
+  else
+    transfer->block()->erase(transfer);
 }
 
 }

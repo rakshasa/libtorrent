@@ -81,10 +81,10 @@ RequestList::delegate() {
 // Replace m_canceled with m_queued and set them to stalled.
 void
 RequestList::cancel() {
-  std::for_each(m_canceled.begin(), m_canceled.end(), std::mem_fun(&BlockTransfer::release));
+  std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));
   m_canceled.clear();
 
-  std::for_each(m_queued.begin(), m_queued.end(), std::mem_fun(&BlockTransfer::stalled));
+  std::for_each(m_queued.begin(), m_queued.end(), std::ptr_fun(&Block::stalled));
 
   m_canceled.swap(m_queued);
 }
@@ -92,9 +92,9 @@ RequestList::cancel() {
 void
 RequestList::stall() {
   if (m_transfer != NULL)
-    m_transfer->stalled();
+    Block::stalled(m_transfer);
 
-  std::for_each(m_queued.begin(), m_queued.end(), std::mem_fun(&BlockTransfer::stalled));
+  std::for_each(m_queued.begin(), m_queued.end(), std::ptr_fun(&Block::stalled));
 }
 
 void
@@ -102,10 +102,10 @@ RequestList::clear() {
   if (is_downloading())
     skipped();
 
-  std::for_each(m_queued.begin(), m_queued.end(), std::mem_fun(&BlockTransfer::release));
+  std::for_each(m_queued.begin(), m_queued.end(), std::ptr_fun(&Block::release));
   m_queued.clear();
 
-  std::for_each(m_canceled.begin(), m_canceled.end(), std::mem_fun(&BlockTransfer::release));
+  std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));
   m_canceled.clear();
 }
 
@@ -151,7 +151,10 @@ RequestList::downloading(const Piece& piece) {
   // We need to replace the current BlockTransfer so Block can keep
   // the unmodified BlockTransfer.
   if (piece.length() != m_transfer->piece().length()) {
-    m_transfer->release();
+    if (piece.length() != 0)
+      throw network_error("Peer sent a piece with wrong, non-zero, length.");
+
+    Block::release(m_transfer);
 
     m_transfer = new BlockTransfer();
     m_transfer->set_peer_info(m_peerChunks->peer_info());
@@ -168,9 +171,7 @@ RequestList::downloading(const Piece& piece) {
   if (!m_transfer->is_valid())
     return false;
 
-  m_transfer->transfering();
-
-  return true;
+  return m_transfer->block()->transfering(m_transfer);
 }
 
 // Must clear the downloading piece.
@@ -193,7 +194,7 @@ RequestList::skipped() {
   if (!is_downloading())
     throw internal_error("RequestList::skip() called but no transfer is in progress.");
 
-  m_transfer->release();
+  Block::release(m_transfer);
   m_transfer = NULL;
 }
 
@@ -220,7 +221,7 @@ RequestList::has_index(uint32_t index) {
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
   while (m_queued.begin() != end) {
-    m_queued.front()->stalled();
+    Block::stalled(m_queued.front());
     
     m_canceled.push_back(m_queued.front());
     m_queued.pop_front();
@@ -235,13 +236,13 @@ RequestList::remove_invalid() {
   // Could be more efficient, but rarely do we find any.
   while ((itr = std::find_if(m_queued.begin(), m_queued.end(),  std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_queued.end()) {
     count++;
-    (*itr)->release();
+    Block::release(*itr);
     m_queued.erase(itr);
   }
 
   // Don't count m_canceled that are invalid.
   while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(), std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_canceled.end()) {
-    (*itr)->release();
+    Block::release(*itr);
     m_canceled.erase(itr);
   }
 

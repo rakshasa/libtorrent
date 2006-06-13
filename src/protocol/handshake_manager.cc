@@ -166,7 +166,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
       (pcb = h->download()->connection_list()->insert(h->download(), h->peer_info(), h->get_fd(), h->bitfield())) != NULL) {
 
-    h->download()->info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->socket_address()->address_str());
+//     h->download()->info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->socket_address()->address_str());
     h->set_peer_info(NULL);
 
     post_insert(h, pcb);
@@ -175,7 +175,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
     manager->connection_manager()->dec_socket_count();
     h->get_fd().close();
 
-    h->download()->info()->signal_network_log().emit("Successful handshake, failed: " + h->peer_info()->socket_address()->address_str());
+//     h->download()->info()->signal_network_log().emit("Successful handshake, failed: " + h->peer_info()->socket_address()->address_str());
   }
 
   h->get_fd().clear();
@@ -195,8 +195,8 @@ HandshakeManager::receive_failed(Handshake* h) {
   if (!h->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  if (h->download() != NULL)
-    h->download()->info()->signal_network_log().emit("Failed handshake: " + h->socket_address()->address_str());
+//   if (h->download() != NULL)
+//     h->download()->info()->signal_network_log().emit("Failed handshake: " + h->socket_address()->address_str());
 
   erase(h);
   delete_handshake(h);

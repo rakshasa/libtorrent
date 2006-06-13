@@ -91,13 +91,13 @@ TransferList::erase(iterator itr) {
 
 void
 TransferList::finished(BlockTransfer* transfer) {
-  if (!transfer->is_valid() || transfer->block()->is_finished())
+  if (!transfer->is_valid()) // || transfer->block()->is_finished())
     throw internal_error("TransferList::finished(...) got transfer with wrong state.");
 
   uint32_t index = transfer->block()->index();
 
   // Marks the transfer as complete and erases it.
-  if (transfer->completed())
+  if (transfer->block()->completed(transfer))
     m_slotCompleted(index);
 }
 

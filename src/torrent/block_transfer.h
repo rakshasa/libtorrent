@@ -38,9 +38,12 @@
 #define LIBTORRENT_BLOCK_TRANSFER_H
 
 #include <inttypes.h>
-#include <torrent/block.h>
+#include <torrent/piece.h>
 
 namespace torrent {
+
+class Block;
+class PeerInfo;
 
 class BlockTransfer {
 public:
@@ -76,14 +79,6 @@ public:
   uint32_t            stall() const                 { return m_stall; }
   void                set_stall(uint32_t s)         { m_stall = s; }
 
-  void                transfering()                 { m_block->transfering(this); }
-  void                stalled()                     { if (!is_valid()) return; m_block->stalled(this); }
-
-  // Return true if all blocks in the chunk is finished.
-  bool                completed()                   { return m_block->completed(this); }
-
-  void                release();
-
 private:
   BlockTransfer(const BlockTransfer&);
   void operator = (const BlockTransfer&);
@@ -95,15 +90,6 @@ private:
   uint32_t            m_position;
   uint32_t            m_stall;
 };
-
-// The parent block cleans up when it is done with the BlockTransfer.
-inline void
-BlockTransfer::release() {
-  if (!is_valid())
-    delete this;
-  else
-    m_block->erase(this);
-}
 
 }
 

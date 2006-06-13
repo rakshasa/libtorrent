@@ -222,13 +222,8 @@ PeerConnectionLeech::read_message() {
       break;
 
     if (!down_chunk_start(m_down->read_piece(length - 9))) {
-      // We're skipping this piece.
-      uint32_t length = std::min<uint32_t>(buf->remaining(), m_downloadQueue.transfer()->piece().length());
 
-      m_downloadQueue.transfer()->set_position(length);
-      buf->move_position(length);
-
-      if (m_downloadQueue.transfer()->is_finished()) {
+      if (down_chunk_skip_from_buffer()) {
         m_downloadQueue.skipped();
         return true;
 
