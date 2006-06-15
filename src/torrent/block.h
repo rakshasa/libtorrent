@@ -57,7 +57,7 @@ public:
   typedef std::vector<BlockTransfer*> transfer_list;
   typedef uint32_t                    size_type;
 
-  Block() : m_position(0), m_notStalled(0) { }
+  Block() : m_position(0), m_notStalled(0), m_leader(NULL) { }
 
   bool                is_stalled() const                           { return m_notStalled == 0; }
   bool                is_finished() const                          { return m_position == m_piece.length(); }
@@ -65,7 +65,7 @@ public:
   // Since incomplete transfers are kept in the back, and when
   // finished the remaining incomplete transfers are removed, we know
   // that if the back is not finished we're still transfering.
-  bool                is_transfering() const;//                       { return !m_transfers.empty() && !m_transfers.back()->is_finished(); }
+  bool                is_transfering() const                       { return !m_transfers.empty() && !m_transfers.back()->is_finished(); }
 
   bool                is_peer_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
   bool                is_peer_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
@@ -108,6 +108,9 @@ public:
   const transfer_list* queued() const                              { return &m_queued; }
   const transfer_list* transfers() const                           { return &m_transfers; }
 
+  // The leading transfer, whom's data we're currently using.
+  const BlockTransfer* leader() const                              { return m_leader; }
+
   BlockTransfer*       find(const PeerInfo* p);
   const BlockTransfer* find(const PeerInfo* p) const;
 
@@ -131,6 +134,8 @@ private:
 
   transfer_list       m_queued;
   transfer_list       m_transfers;
+
+  BlockTransfer*      m_leader;
 };
 
 inline BlockTransfer*

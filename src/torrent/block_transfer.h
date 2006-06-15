@@ -50,12 +50,14 @@ public:
   typedef PeerInfo* key_type;
 
   static const uint32_t position_invalid = ~uint32_t();
-  static const uint32_t stall_erased = ~uint32_t();
+  static const uint32_t stall_erased     = ~uint32_t(0);
+  static const uint32_t stall_not_leader = ~uint32_t(1);
 
   BlockTransfer() {}
 
   bool                is_valid() const              { return m_block != NULL; }
   bool                is_erased() const             { return m_stall == stall_erased; }
+  bool                is_leader() const             { return m_stall < stall_not_leader; }
   bool                is_queued() const             { return m_position == position_invalid; }
   bool                is_finished() const           { return m_position == m_piece.length(); }
 

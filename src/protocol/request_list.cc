@@ -181,7 +181,7 @@ RequestList::finished() {
     throw internal_error("RequestList::finished() called but no transfer is in progress.");
 
   if (!m_transfer->is_valid())
-    throw internal_error("RequestList::finished() called transfer is invalid.");
+    throw internal_error("RequestList::finished() called but transfer is invalid.");
 
   BlockTransfer* transfer = m_transfer;
   m_transfer = NULL;

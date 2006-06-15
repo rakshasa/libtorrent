@@ -129,11 +129,14 @@ protected:
   void                write_prepare_piece();
 
   bool                down_chunk_start(const Piece& p);
+  void                down_chunk_finished();
 
   bool                down_chunk();
   bool                down_chunk_from_buffer();
   bool                down_chunk_skip();
   bool                down_chunk_skip_from_buffer();
+
+  bool                down_chunk_skip_process(const void* buffer, uint32_t length);
 
   bool                up_chunk();
 

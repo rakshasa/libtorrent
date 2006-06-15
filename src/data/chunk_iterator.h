@@ -34,76 +34,55 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_STORAGE_CHUNK_H
-#define LIBTORRENT_STORAGE_CHUNK_H
+#ifndef LIBTORRENT_DATA_CHUNK_ITERATOR_H
+#define LIBTORRENT_DATA_CHUNK_ITERATOR_H
 
-#include <vector>
-#include "chunk_part.h"
+#include "chunk.h"
 
 namespace torrent {
 
-class Chunk : private std::vector<ChunkPart> {
+class ChunkIterator {
 public:
-  typedef std::vector<ChunkPart>    Base;
-  typedef std::pair<void*,uint32_t> MemoryArea;
+  ChunkIterator(Chunk* chunk, uint32_t first, uint32_t last);
+  
+  Chunk::data_type    data();
 
-  typedef std::pair<void*,uint32_t> data_type;
-
-  using Base::value_type;
-
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-  using Base::empty;
-
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
-
-  Chunk() : m_size(0), m_prot(0) {}
-  ~Chunk() { clear(); }
-
-  bool                is_all_valid() const;
-
-  bool                is_readable() const             { return m_prot & MemoryChunk::prot_read; }
-  bool                is_writable() const             { return m_prot & MemoryChunk::prot_write; }
-  bool                has_permissions(int prot) const { return !(prot & ~m_prot); }
-
-  uint32_t            size()                          { return m_size; }
-
-  void                clear();
-
-  iterator            at_position(uint32_t pos);
-  iterator            at_position(uint32_t pos, iterator itr);
-
-  MemoryArea          at_memory(uint32_t offset, iterator part);
-
-  void                push_back(const MemoryChunk& c);
-
-  // Check how much of the chunk is incore from pos.
-  uint32_t            incore_length(uint32_t pos);
-
-  bool                sync(int flags);
+  bool                used(uint32_t length);
 
 private:
-  Chunk(const Chunk&);
-  void operator = (const Chunk&);
+  Chunk*              m_chunk;
+  Chunk::iterator     m_iterator;
   
-  uint32_t            m_size;
-  int                 m_prot;
+  uint32_t            m_first;
+  uint32_t            m_last;
 };
 
-inline Chunk::iterator
-Chunk::at_position(uint32_t pos, iterator itr) {
-  while (itr != end() && itr->position() + itr->size() <= pos)
-    itr++;
+inline
+ChunkIterator::ChunkIterator(Chunk* chunk, uint32_t first, uint32_t last) :
+  m_chunk(chunk),
+  m_iterator(chunk->at_position(first)),
 
-  return itr;
+  m_first(first),
+  m_last(last) {
+}
+
+inline Chunk::data_type
+ChunkIterator::data() {
+  Chunk::data_type data = m_chunk->at_memory(m_first, m_iterator);
+  data.second = std::min(data.second, m_last - m_first);
+
+  return data;
+}
+
+inline bool
+ChunkIterator::used(uint32_t length) {
+  m_first += length;
+
+  Chunk::iterator itr = m_iterator++;
+
+  return m_first != m_last && m_first == itr->position() + itr->size();
 }
 
 }
 
 #endif
-
-  

@@ -41,6 +41,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/block.h"
+#include "data/chunk_iterator.h"
 #include "data/chunk_list.h"
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
@@ -232,6 +233,19 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
   return true;
 }
 
+void
+PeerConnectionBase::down_chunk_finished() {
+  m_downChunk->set_time_modified(cachedTime);
+  download_queue()->finished();
+        
+  if (m_downStall > 0)
+    m_downStall--;
+        
+  // TODO: clear m_down.data?
+  // TODO: remove throttle if choked? Rarely happens though.
+  write_insert_poll_safe();
+}
+
 bool
 PeerConnectionBase::down_chunk() {
   if (!m_download->download_throttle()->is_throttled(m_peerChunks.download_throttle()))
@@ -248,91 +262,104 @@ PeerConnectionBase::down_chunk() {
     return false;
   }
 
+  uint32_t bytesTransfered = 0;
   BlockTransfer* transfer = m_downloadQueue.transfer();
 
-  uint32_t count;
-  uint32_t left = quota = std::min(quota, transfer->piece().length() - transfer->position());
-
-  Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(transfer->piece().offset() + transfer->position());
+  Chunk::data_type data;
+  ChunkIterator itr(m_downChunk->chunk(),
+                    transfer->piece().offset() + transfer->position(),
+                    transfer->piece().offset() + std::min(transfer->position() + quota, transfer->piece().length()));
 
   do {
-    memory = m_downChunk->chunk()->at_memory(transfer->piece().offset() + transfer->position(), part++);
-    count = read_stream_throws(memory.first, std::min(left, memory.second));
+    data = itr.data();
+    data.second = read_stream_throws(data.first, data.second);
 
-    transfer->adjust_position(count);
-    left -= count;
+    bytesTransfered += data.second;
 
-  } while (count == memory.second && left != 0);
+  } while (itr.used(data.second));
 
+  transfer->adjust_position(bytesTransfered);
   transfer->block()->set_position(transfer->position());
 
-  uint32_t bytes = quota - left;
-
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
-  m_download->info()->down_rate()->insert(bytes);
+  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
+  m_download->info()->down_rate()->insert(bytesTransfered);
 
   return transfer->is_finished();
 }
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
+  if (m_down->buffer()->remaining() == 0)
+    return false;
+
+  uint32_t bytesTransfered = 0;
   BlockTransfer* transfer = m_downloadQueue.transfer();
 
-  uint32_t count, quota;
-  uint32_t left = quota = std::min<uint32_t>(m_down->buffer()->remaining(), transfer->piece().length() - transfer->position());
-
-  Chunk::MemoryArea memory;
-  ChunkPart part = m_downChunk->chunk()->at_position(transfer->piece().offset() + transfer->position());
+  Chunk::data_type data;
+  ChunkIterator itr(m_downChunk->chunk(),
+                    transfer->piece().offset() + transfer->position(),
+                    transfer->piece().offset() + std::min(transfer->position() + m_down->buffer()->remaining(), transfer->piece().length()));
 
   do {
-    memory = m_downChunk->chunk()->at_memory(transfer->piece().offset() + transfer->position(), part++);
-    count = std::min(left, memory.second);
+    data = itr.data();
+    std::memcpy(data.first, m_down->buffer()->position(), data.second);
 
-    std::memcpy(memory.first, m_down->buffer()->position(), count);
+    m_down->buffer()->move_position(data.second);
+    bytesTransfered += data.second;
 
-    transfer->adjust_position(count);
-    m_down->buffer()->move_position(count);
-    left -= count;
+  } while (itr.used(data.second));
 
-  } while (left != 0);
-
+  transfer->adjust_position(bytesTransfered);
   transfer->block()->set_position(transfer->position());
 
-  uint32_t bytes = quota - left;
-
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytes);
-  m_download->info()->down_rate()->insert(bytes);
+  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
+  m_download->info()->down_rate()->insert(bytesTransfered);
 
   return transfer->is_finished();
 }
 
+// When this transfer again becomes the leader, we just return false
+// and wait for the next polling. It is an exceptional case so we
+// don't really care that much about performance.
 bool
 PeerConnectionBase::down_chunk_skip() {
-  BlockTransfer* transfer = m_downloadQueue.transfer();
+  uint32_t length = read_stream_throws(m_nullBuffer, m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position());
 
-  uint32_t size = ignore_stream_throws(transfer->piece().length() - transfer->position());
-
-  transfer->adjust_position(size);
-
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), size);
-  m_download->info()->down_rate()->insert(size);
-  
-  return transfer->is_finished();
+  return down_chunk_skip_process(m_nullBuffer, length);
 }
 
 bool
 PeerConnectionBase::down_chunk_skip_from_buffer() {
+  uint32_t size = std::min<uint32_t>(m_down->buffer()->remaining(), m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position());
+  
+  bool result = down_chunk_skip_process(m_down->buffer()->position(), size);
+  m_down->buffer()->move_position(size);
+
+  return result;
+}
+
+// Process data from non-leading transfer. If this transfer encounters
+// mismatching data with the leader then bork this transfer. If we get
+// ahead of the leader, we switch the leader.
+//
+// Returns true if we changed leader or finished.
+bool
+PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length) {
   BlockTransfer* transfer = m_downloadQueue.transfer();
 
-  uint32_t size = std::min<uint32_t>(m_down->buffer()->remaining(), transfer->piece().length() - transfer->position());
+  // If the transfer is valid, compare the downloaded data to the
+  // leader.
+//   if (transfer->is_valid()) {
+    
+//   }
 
-  m_down->buffer()->move_position(size);
-  transfer->adjust_position(size);
+  transfer->adjust_position(length);
 
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), size);
-  m_download->info()->down_rate()->insert(size);
-  
+  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), length);
+  m_download->info()->down_rate()->insert(length);
+
+//   return false;
+
   return transfer->is_finished();
 }
 

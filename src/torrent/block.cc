@@ -49,24 +49,32 @@ namespace torrent {
 
 inline void
 Block::invalidate_transfer(BlockTransfer* transfer) {
+  if (transfer == m_leader)
+    throw internal_error("Block::invalidate_transfer(...) transfer == m_leader.");
+
   transfer->set_block(NULL);
 
   // FIXME: Various other accounting like position and counters.
-  if (transfer->is_erased())
+  if (transfer->is_erased()) {
     delete transfer;
-  else
+  } else {
     m_notStalled -= transfer->stall() == 0;
+
+    // Not strictly needed.
+    transfer->set_stall(BlockTransfer::stall_erased);
+  }
 }
 
 void
 Block::clear() {
+  m_leader = NULL;
+  m_position = 0;
+
   std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_queued.clear();
 
   std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_transfers.clear();
-
-  m_position = 0;
 
   if (m_notStalled != 0)
     throw internal_error("Block::clear() m_stalled != 0.");
@@ -111,7 +119,14 @@ Block::erase(BlockTransfer* transfer) {
     if (itr == m_transfers.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
 
-//     // Need to do something different here for now, i think.
+    if (transfer == m_leader) {
+      // This needs to be expanded, perhaps change the leader. But it
+      // should work by just clearing it as the new leader takes over
+      // when it passes position. 
+      m_leader = NULL;
+    }
+
+    // Need to do something different here for now, i think.
     m_transfers.erase(itr);
 
 //     transfer->set_stall(BlockTransfer::stall_erased);
@@ -132,21 +147,30 @@ Block::transfering(BlockTransfer* transfer) {
 
   transfer->set_position(0);
 
+  m_queued.erase(itr);
+  m_transfers.insert(m_transfers.end(), transfer);
+
   // If this block already has an active transfer, make this transfer
   // skip the piece. If this transfer gets ahead of the currently
   // transfering, it will (a) take over as the leader if the data is
   // the same or (b) erase itself from this block if the data does not
   // match.
-  bool isTransfering = is_transfering();
+  if (m_leader != NULL) {
+    m_notStalled -= transfer->stall() == 0;
+    transfer->set_stall(BlockTransfer::stall_not_leader);
 
-  m_queued.erase(itr);
-  m_transfers.insert(m_transfers.end(), transfer);
+    return false;
+  }
 
-  return isTransfering;
+  m_leader = transfer;
+  return true;
 }
 
 void
 Block::stalled_transfer(BlockTransfer* transfer) {
+  if (transfer->stall() == BlockTransfer::stall_not_leader)
+    return;
+
   if (transfer->stall() == 0) {
     if (m_notStalled == 0)
       throw internal_error("Block::stalled(...) m_notStalled == 0.");
@@ -166,6 +190,9 @@ Block::completed(BlockTransfer* transfer) {
 
   if (transfer->is_erased())
     throw internal_error("Block::completed(...) transfer is erased.");
+
+  if (!transfer->is_leader())
+    throw internal_error("Block::completed(...) transfer is not the leader.");
 
   if (transfer->is_queued())
     throw internal_error("Block::completed(...) transfer is queued.");
@@ -211,6 +238,8 @@ Block::completed(BlockTransfer* transfer) {
 //   }
 
   // Remove transfers that did not start (finish?).
+
+  m_leader = NULL;
 
   std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_transfers.clear();
