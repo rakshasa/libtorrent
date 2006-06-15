@@ -54,7 +54,7 @@ Chunk::clear() {
 
   m_size = 0;
   m_prot = 0;
-  Base::clear();
+  base_type::clear();
 }
 
 Chunk::iterator
@@ -73,7 +73,7 @@ Chunk::at_position(uint32_t pos) {
   return itr;
 }
 
-Chunk::MemoryArea
+Chunk::data_type
 Chunk::at_memory(uint32_t offset, iterator part) {
   if (part == end())
     throw internal_error("Chunk::at_memory(...) reached end.");
@@ -86,7 +86,7 @@ Chunk::at_memory(uint32_t offset, iterator part) {
 
   offset -= part->position();
 
-  return MemoryArea(part->chunk().begin() + offset, part->size() - offset);
+  return data_type(part->chunk().begin() + offset, part->size() - offset);
 }
 
 // Each add calls vector's reserve adding 1. This should keep
@@ -100,8 +100,8 @@ Chunk::push_back(const MemoryChunk& c) {
   else
     m_prot &= c.get_prot();
 
-  //Base::reserve(Base::size() + 1);
-  Base::insert(end(), ChunkPart(c, m_size));
+  //base_type::reserve(base_type::size() + 1);
+  base_type::insert(end(), ChunkPart(c, m_size));
 
   m_size += c.size();
 }

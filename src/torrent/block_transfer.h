@@ -49,17 +49,27 @@ class BlockTransfer {
 public:
   typedef PeerInfo* key_type;
 
-  static const uint32_t position_invalid = ~uint32_t();
-  static const uint32_t stall_erased     = ~uint32_t(0);
-  static const uint32_t stall_not_leader = ~uint32_t(1);
+  typedef enum {
+    STATE_ERASED,
+    STATE_QUEUED,
+    STATE_LEADER,
+    STATE_NOT_LEADER,
+    STATE_FINISHED // Not using this?
+  } state_type;
 
   BlockTransfer() {}
 
   bool                is_valid() const              { return m_block != NULL; }
-  bool                is_erased() const             { return m_stall == stall_erased; }
-  bool                is_leader() const             { return m_stall < stall_not_leader; }
-  bool                is_queued() const             { return m_position == position_invalid; }
+
+  bool                is_erased() const             { return m_state == STATE_ERASED; }
+  bool                is_queued() const             { return m_state == STATE_QUEUED; }
+  bool                is_leader() const             { return m_state == STATE_LEADER; }
+  bool                is_not_leader() const         { return m_state == STATE_NOT_LEADER; }
+
+  //  bool                is_finished() const           { return m_state == STATE_FINISHED; }
   bool                is_finished() const           { return m_position == m_piece.length(); }
+
+  void                create_dummy(PeerInfo* peerInfo, const Piece& piece);
 
   key_type            peer_info()                   { return m_peerInfo; }
   const key_type      const_peer_info() const       { return m_peerInfo; }
@@ -73,6 +83,9 @@ public:
   void                set_piece(const Piece& p)     { m_piece = p; }
 
   uint32_t            index() const                 { return m_piece.index(); }
+
+  state_type          state() const                 { return m_state; }
+  void                set_state(state_type s)       { m_state = s; }
 
   uint32_t            position() const              { return m_position; }
   void                set_position(uint32_t p)      { m_position = p; }
@@ -89,9 +102,21 @@ private:
   Block*              m_block;
   Piece               m_piece;
 
+  state_type          m_state;
+
   uint32_t            m_position;
   uint32_t            m_stall;
 };
+
+inline void
+BlockTransfer::create_dummy(PeerInfo* peerInfo, const Piece& piece) {
+  m_peerInfo = peerInfo;
+  m_block = NULL;
+  m_piece = piece;
+  m_state = BlockTransfer::STATE_ERASED;
+  m_position = 0;
+  m_stall = 0;
+}
 
 }
 

@@ -126,11 +126,7 @@ RequestList::downloading(const Piece& piece) {
       // Create a dummy BlockTransfer object to hold the piece
       // information.
       m_transfer = new BlockTransfer();
-      m_transfer->set_peer_info(m_peerChunks->peer_info());
-      m_transfer->set_block(NULL);
-      m_transfer->set_piece(piece);
-      m_transfer->set_position(0);
-      m_transfer->set_stall(0);
+      m_transfer->create_dummy(m_peerChunks->peer_info(), piece);
 
       return false;
     }
@@ -157,11 +153,7 @@ RequestList::downloading(const Piece& piece) {
     Block::release(m_transfer);
 
     m_transfer = new BlockTransfer();
-    m_transfer->set_peer_info(m_peerChunks->peer_info());
-    m_transfer->set_block(NULL);
-    m_transfer->set_piece(piece);
-    m_transfer->set_position(0);
-    m_transfer->set_stall(0);
+    m_transfer->create_dummy(m_peerChunks->peer_info(), piece);
 
     return false;
   }

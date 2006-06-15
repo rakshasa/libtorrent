@@ -382,7 +382,7 @@ PeerConnectionBase::up_chunk() {
   uint32_t count;
   uint32_t left = quota = std::min(quota, m_upPiece.length() - m_up->position());
 
-  Chunk::MemoryArea memory;
+  Chunk::data_type memory;
   ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.offset() + m_up->position());
 
   do {

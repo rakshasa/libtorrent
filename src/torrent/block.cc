@@ -60,8 +60,7 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
   } else {
     m_notStalled -= transfer->stall() == 0;
 
-    // Not strictly needed.
-    transfer->set_stall(BlockTransfer::stall_erased);
+    transfer->set_state(BlockTransfer::STATE_ERASED);
   }
 }
 
@@ -92,7 +91,8 @@ Block::insert(PeerInfo* peerInfo) {
   (*itr)->set_peer_info(peerInfo);
   (*itr)->set_block(this);
   (*itr)->set_piece(m_piece);
-  (*itr)->set_position(BlockTransfer::position_invalid);
+  (*itr)->set_state(BlockTransfer::STATE_QUEUED);
+  (*itr)->set_position(0);
   (*itr)->set_stall(0);
 
   return (*itr);
@@ -145,8 +145,6 @@ Block::transfering(BlockTransfer* transfer) {
   if (itr == m_queued.end())
     throw internal_error("Block::transfering(...) not queued.");
 
-  transfer->set_position(0);
-
   m_queued.erase(itr);
   m_transfers.insert(m_transfers.end(), transfer);
 
@@ -156,21 +154,19 @@ Block::transfering(BlockTransfer* transfer) {
   // the same or (b) erase itself from this block if the data does not
   // match.
   if (m_leader != NULL) {
-    m_notStalled -= transfer->stall() == 0;
-    transfer->set_stall(BlockTransfer::stall_not_leader);
-
+    transfer->set_state(BlockTransfer::STATE_NOT_LEADER);
     return false;
-  }
 
-  m_leader = transfer;
-  return true;
+  } else {
+    m_leader = transfer;
+
+    transfer->set_state(BlockTransfer::STATE_LEADER);
+    return true;
+  }
 }
 
 void
 Block::stalled_transfer(BlockTransfer* transfer) {
-  if (transfer->stall() == BlockTransfer::stall_not_leader)
-    return;
-
   if (transfer->stall() == 0) {
     if (m_notStalled == 0)
       throw internal_error("Block::stalled(...) m_notStalled == 0.");
@@ -210,9 +206,13 @@ Block::completed(BlockTransfer* transfer) {
   }
 
   m_parent->inc_finished();
-  m_notStalled -= transfer->stall() == 0;
 
-  transfer->set_stall(BlockTransfer::stall_erased);
+  m_notStalled -= transfer->stall() == 0;
+  transfer->set_stall(~uint32_t());
+
+  // Remember to invalidate the transfer.
+
+//   transfer->set_state(BlockTransfer::STATE_FINISHED);
 
   // Currently just throw out the queued transfers. In case the hash
   // check fails, we might consider telling pcb during the call to
