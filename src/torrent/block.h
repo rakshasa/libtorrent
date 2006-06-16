@@ -110,6 +110,7 @@ public:
 
   // The leading transfer, whom's data we're currently using.
   const BlockTransfer* leader() const                              { return m_leader; }
+  void                 change_leader(BlockTransfer* transfer);
 
   BlockTransfer*       find(const PeerInfo* p);
   const BlockTransfer* find(const PeerInfo* p) const;

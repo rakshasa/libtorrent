@@ -483,9 +483,7 @@ PeerConnectionLeech::event_write() {
 
         // We're uploading a piece.
         load_up_chunk();
-
         m_up->set_state(ProtocolWrite::WRITE_PIECE);
-        m_up->set_position(0);
 
       case ProtocolWrite::WRITE_PIECE:
         if (!up_chunk())

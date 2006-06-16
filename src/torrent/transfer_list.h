@@ -55,15 +55,6 @@ public:
   typedef std::vector<BlockList*>                        base_type;
 //   typedef uint32_t                                      size_type;
 
-  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_canceled_op;
-  typedef std::binder1st<slot_canceled_op>               slot_canceled_type;
-
-  typedef std::mem_fun1_t<void, DownloadMain, uint32_t>  slot_completed_op;
-  typedef std::binder1st<slot_completed_op>              slot_completed_type;
-
-  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_queued_op;
-  typedef std::binder1st<slot_queued_op>                 slot_queued_type;
-
   using base_type::value_type;
   using base_type::reference;
   using base_type::difference_type;
@@ -100,11 +91,23 @@ public:
   void                index_done(uint32_t index);
   void                index_retry(uint32_t index);
 
+  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_canceled_op;
+  typedef std::binder1st<slot_canceled_op>               slot_canceled_type;
+
+  typedef std::mem_fun1_t<void, DownloadMain, uint32_t>  slot_completed_op;
+  typedef std::binder1st<slot_completed_op>              slot_completed_type;
+
+  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_queued_op;
+  typedef std::binder1st<slot_queued_op>                 slot_queued_type;
+
   void                slot_canceled(slot_canceled_type s)   { m_slotCanceled = s; }
   void                slot_completed(slot_completed_type s) { m_slotCompleted = s; }
   void                slot_queued(slot_queued_type s)       { m_slotQueued = s; }
 
 private:
+  TransferList(const TransferList&);
+  void operator = (const TransferList&);
+
   slot_canceled_type  m_slotCanceled;
   slot_completed_type m_slotCompleted;
   slot_queued_type    m_slotQueued;

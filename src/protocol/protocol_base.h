@@ -72,7 +72,6 @@ public:
   } State;
 
   ProtocolBase() :
-    m_position(0),
     m_choked(true),
     m_interested(false),
     m_state(IDLE),
@@ -91,12 +90,6 @@ public:
   void                set_last_command(Protocol p)            { m_lastCommand = p; }
 
   Buffer*             buffer()                                { return &m_buffer; }
-
-  // Position should perhaps be in a different place, like a dedicated
-  // chunk writing class.
-  uint32_t            position() const                        { return m_position; }
-  void                set_position(size_type p)               { m_position = p; }
-  void                adjust_position(size_type p)            { m_position += p; }
 
   State               get_state() const                       { return m_state; }
   void                set_state(State s)                      { m_state = s; }
@@ -139,8 +132,6 @@ public:
   bool                can_read_piece_body() const             { return m_buffer.remaining() >= sizeof_piece_body; }
 
 protected:
-  uint32_t            m_position;
-
   bool                m_choked;
   bool                m_interested;
 

@@ -289,22 +289,54 @@ PeerConnectionBase::down_chunk() {
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
-  if (m_down->buffer()->remaining() == 0)
-    return false;
+  m_down->buffer()->move_position(down_chunk_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
 
+  if (m_downloadQueue.transfer()->is_finished() && m_down->buffer()->remaining() != 0)
+    throw internal_error("PeerConnectionBase::down_chunk_from_buffer() transfer->is_finished() && m_down->buffer()->remaining() != 0.");
+
+  return m_downloadQueue.transfer()->is_finished();
+}  
+
+// When this transfer again becomes the leader, we just return false
+// and wait for the next polling. It is an exceptional case so we
+// don't really care that much about performance.
+bool
+PeerConnectionBase::down_chunk_skip() {
+  uint32_t length = read_stream_throws(m_nullBuffer, m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position());
+
+  if (down_chunk_skip_process(m_nullBuffer, length) != length)
+    throw internal_error("PeerConnectionBase::down_chunk_skip() down_chunk_skip_process(m_nullBuffer, length) != length.");
+
+  return m_downloadQueue.transfer()->is_finished() || m_downloadQueue.transfer()->is_leader();
+}
+
+bool
+PeerConnectionBase::down_chunk_skip_from_buffer() {
+  m_down->buffer()->move_position(down_chunk_skip_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
+  
+  return m_downloadQueue.transfer()->is_finished() || m_downloadQueue.transfer()->is_leader();
+}
+
+// Process data from a leading transfer.
+uint32_t
+PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
   uint32_t bytesTransfered = 0;
+
+  if (length == 0)
+    return bytesTransfered;
+
   BlockTransfer* transfer = m_downloadQueue.transfer();
 
   Chunk::data_type data;
   ChunkIterator itr(m_downChunk->chunk(),
                     transfer->piece().offset() + transfer->position(),
-                    transfer->piece().offset() + std::min(transfer->position() + m_down->buffer()->remaining(), transfer->piece().length()));
+                    transfer->piece().offset() + std::min(transfer->position() + length, transfer->piece().length()));
 
   do {
     data = itr.data();
-    std::memcpy(data.first, m_down->buffer()->position(), data.second);
+    std::memcpy(data.first, buffer, data.second);
 
-    m_down->buffer()->move_position(data.second);
+    buffer = static_cast<const char*>(buffer) + data.second;
     bytesTransfered += data.second;
 
   } while (itr.used(data.second));
@@ -315,52 +347,52 @@ PeerConnectionBase::down_chunk_from_buffer() {
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
   m_download->info()->down_rate()->insert(bytesTransfered);
 
-  return transfer->is_finished();
-}
-
-// When this transfer again becomes the leader, we just return false
-// and wait for the next polling. It is an exceptional case so we
-// don't really care that much about performance.
-bool
-PeerConnectionBase::down_chunk_skip() {
-  uint32_t length = read_stream_throws(m_nullBuffer, m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position());
-
-  return down_chunk_skip_process(m_nullBuffer, length);
-}
-
-bool
-PeerConnectionBase::down_chunk_skip_from_buffer() {
-  uint32_t size = std::min<uint32_t>(m_down->buffer()->remaining(), m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position());
-  
-  bool result = down_chunk_skip_process(m_down->buffer()->position(), size);
-  m_down->buffer()->move_position(size);
-
-  return result;
+  return bytesTransfered;
 }
 
 // Process data from non-leading transfer. If this transfer encounters
 // mismatching data with the leader then bork this transfer. If we get
 // ahead of the leader, we switch the leader.
-//
-// Returns true if we changed leader or finished.
-bool
+uint32_t
 PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length) {
   BlockTransfer* transfer = m_downloadQueue.transfer();
 
-  // If the transfer is valid, compare the downloaded data to the
-  // leader.
-//   if (transfer->is_valid()) {
-    
-//   }
-
-  transfer->adjust_position(length);
+  // Adjust 'length' to be less than or equal to what is remaining of
+  // the block to simplify the rest of the function.
+  length = std::min(length, transfer->piece().length() - transfer->position());
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), length);
   m_download->info()->down_rate()->insert(length);
 
-//   return false;
+  if (!transfer->is_valid()) {
+    transfer->adjust_position(length);
+    return length;
+  }
 
-  return transfer->is_finished();
+  // Temporary test.
+  if (transfer->position() > transfer->block()->position())
+    throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) transfer is past the Block's position.");
+
+  // If the transfer is valid, compare the downloaded data to the
+  // leader.
+  uint32_t compareLength = std::min(length, transfer->block()->position() - transfer->position());
+
+  // Make sure zero-length compare is properly handled.
+
+  transfer->adjust_position(compareLength);
+
+  if (compareLength == length)
+    return length;
+
+  // Add another check here to see if we really want to be the new
+  // leader.
+
+  transfer->block()->change_leader(transfer);
+
+  if (down_chunk_process(static_cast<const char*>(buffer) + compareLength, length - compareLength) != length - compareLength)
+    throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) down_chunk_process(...) returned wrong value.");
+  
+  return length;
 }
 
 bool
@@ -379,27 +411,28 @@ PeerConnectionBase::up_chunk() {
     return false;
   }
 
-  uint32_t count;
-  uint32_t left = quota = std::min(quota, m_upPiece.length() - m_up->position());
+  uint32_t bytesTransfered = 0;
 
-  Chunk::data_type memory;
-  ChunkPart part = m_upChunk->chunk()->at_position(m_upPiece.offset() + m_up->position());
+  Chunk::data_type data;
+  ChunkIterator itr(m_upChunk->chunk(), m_upPiece.offset(), m_upPiece.offset() + std::min(quota, m_upPiece.length()));
 
   do {
-    memory = m_upChunk->chunk()->at_memory(m_upPiece.offset() + m_up->position(), part++);
-    count = write_stream_throws(memory.first, std::min(left, memory.second));
+    data = itr.data();
+    data.second = write_stream_throws(data.first, data.second);
 
-    m_up->adjust_position(count);
-    left -= count;
+    bytesTransfered += data.second;
 
-  } while (count == memory.second && left != 0);
+  } while (itr.used(data.second));
 
-  uint32_t bytes = quota - left;
+  m_download->upload_throttle()->node_used(m_peerChunks.upload_throttle(), bytesTransfered);
+  m_download->info()->up_rate()->insert(bytesTransfered);
 
-  m_download->upload_throttle()->node_used(m_peerChunks.upload_throttle(), bytes);
-  m_download->info()->up_rate()->insert(bytes);
+  // Just modifying the piece to cover the remaining data ends up
+  // being much cleaner and we avoid an unnessesary position variable.
+  m_upPiece.set_offset(m_upPiece.offset() + bytesTransfered);
+  m_upPiece.set_length(m_upPiece.length() - bytesTransfered);
 
-  return m_up->position() == m_upPiece.length();
+  return m_upPiece.length() == 0;
 }
 
 void

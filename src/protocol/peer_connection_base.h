@@ -136,7 +136,8 @@ protected:
   bool                down_chunk_skip();
   bool                down_chunk_skip_from_buffer();
 
-  bool                down_chunk_skip_process(const void* buffer, uint32_t length);
+  uint32_t            down_chunk_process(const void* buffer, uint32_t length);
+  uint32_t            down_chunk_skip_process(const void* buffer, uint32_t length);
 
   bool                up_chunk();
 

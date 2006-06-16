@@ -165,20 +165,6 @@ Block::transfering(BlockTransfer* transfer) {
   }
 }
 
-void
-Block::stalled_transfer(BlockTransfer* transfer) {
-  if (transfer->stall() == 0) {
-    if (m_notStalled == 0)
-      throw internal_error("Block::stalled(...) m_notStalled == 0.");
-
-    m_notStalled--;
-
-    // Do magic here.
-  }
-
-  transfer->set_stall(transfer->stall() + 1);
-}
-
 bool
 Block::completed(BlockTransfer* transfer) {
   if (!transfer->is_valid())
@@ -245,6 +231,32 @@ Block::completed(BlockTransfer* transfer) {
   m_transfers.clear();
 
   return m_parent->is_all_finished();
+}
+
+void
+Block::stalled_transfer(BlockTransfer* transfer) {
+  if (transfer->stall() == 0) {
+    if (m_notStalled == 0)
+      throw internal_error("Block::stalled(...) m_notStalled == 0.");
+
+    m_notStalled--;
+
+    // Do magic here.
+  }
+
+  transfer->set_stall(transfer->stall() + 1);
+}
+
+void
+Block::change_leader(BlockTransfer* transfer) {
+  if (m_leader == transfer)
+    throw internal_error("Block::change_leader(...) m_leader == transfer.");
+
+  if (m_leader != NULL)
+    m_leader->set_state(BlockTransfer::STATE_NOT_LEADER);
+
+  m_leader = transfer;
+  m_leader->set_state(BlockTransfer::STATE_LEADER);
 }
 
 BlockTransfer*

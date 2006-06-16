@@ -49,8 +49,8 @@ class PeerConnectionBase;
 
 class ThrottleNode {
 public:
-  typedef ThrottleList::iterator                 iterator;
-  typedef ThrottleList::const_iterator           const_iterator;
+  typedef ThrottleList::iterator                  iterator;
+  typedef ThrottleList::const_iterator            const_iterator;
   typedef rak::mem_fun0<PeerConnectionBase, void> SlotActivate;
 
   ThrottleNode(uint32_t rateSpan) : m_rate(rateSpan)  { clear_quota(); }

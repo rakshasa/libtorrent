@@ -146,7 +146,9 @@ ThrottleList::update_quota(uint32_t quota) {
 uint32_t
 ThrottleList::node_quota(ThrottleNode* node) {
   if (!m_enabled) {
-    return std::numeric_limits<uint32_t>::max();
+    // Returns max for signed integer to ensure we don't overflow
+    // claculations.
+    return std::numeric_limits<int32_t>::max();
 
   } else if (!is_active(node)) {
     throw internal_error(is_inactive(node) ?
