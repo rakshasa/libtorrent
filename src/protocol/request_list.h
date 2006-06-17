@@ -72,6 +72,8 @@ public:
   void                 finished();
   void                 skipped();
 
+  void                 transfer_dissimilar();
+
   bool                 is_downloading()                 { return m_transfer != NULL; }
   bool                 is_interested_in_active() const;
 

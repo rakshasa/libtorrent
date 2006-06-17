@@ -99,7 +99,10 @@ PeerList::disconnected(PeerInfo* p) {
   iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ptr_ref(&value_type::second)));
 
   if (itr == range.second)
-    throw internal_error("PeerList::disconnected(...) itr == range.second.");
+    if (std::find_if(begin(), end(), rak::equal(p, rak::mem_ptr_ref(&value_type::second))) == end())
+      throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist");
+    else
+      throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");
   
   disconnected(itr);
 }

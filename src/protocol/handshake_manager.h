@@ -71,7 +71,7 @@ public:
 
   bool                find(const rak::socket_address& sa);
 
-  void                erase_info(DownloadMain* info);
+  void                erase_download(DownloadMain* info);
 
   // Cleanup.
   void                add_incoming(SocketFd fd, const rak::socket_address& sa);

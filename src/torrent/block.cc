@@ -233,6 +233,22 @@ Block::completed(BlockTransfer* transfer) {
   return m_parent->is_all_finished();
 }
 
+// Mark a non-leading transfer as having received dissimilar data to
+// the leader. It is then marked as erased so that we know its data
+// was not used, yet keep it in m_transfers so as not to cause a
+// re-download.
+void
+Block::transfer_dissimilar(BlockTransfer* transfer) {
+  if (!transfer->is_not_leader())
+    throw internal_error("Block::transfer_dissimilar(...) !transfer->is_not_leader().");
+
+  m_notStalled -= transfer->stall() == 0;
+  
+  transfer->set_state(BlockTransfer::STATE_ERASED);
+  transfer->set_position(0);
+  transfer->set_block(NULL);
+}
+
 void
 Block::stalled_transfer(BlockTransfer* transfer) {
   if (transfer->stall() == 0) {

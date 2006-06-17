@@ -84,6 +84,8 @@ public:
 
   bool                sync(int flags);
 
+  bool                compare_buffer(uint32_t position, const void* buffer, uint32_t length);
+
 private:
   Chunk(const Chunk&);
   void operator = (const Chunk&);

@@ -158,12 +158,13 @@ RequestList::downloading(const Piece& piece) {
     return false;
   }
 
-  // This piece isn't wanted anymore. Do this after the length check
-  // to ensure we return a correct BlockTransfer.
+  // Check if piece isn't wanted anymore. Do this after the length
+  // check to ensure we return a correct BlockTransfer.
   if (!m_transfer->is_valid())
     return false;
 
-  return m_transfer->block()->transfering(m_transfer);
+  m_transfer->block()->transfering(m_transfer);
+  return true;
 }
 
 // Must clear the downloading piece.
@@ -188,6 +189,21 @@ RequestList::skipped() {
 
   Block::release(m_transfer);
   m_transfer = NULL;
+}
+
+// Data downloaded by this non-leading transfer does not match what we
+// already have.
+void
+RequestList::transfer_dissimilar() {
+  if (!is_downloading())
+    throw internal_error("RequestList::transfer_dissimilar() called but no transfer is in progress.");
+
+  BlockTransfer* dummy = new BlockTransfer();
+  dummy->create_dummy(m_peerChunks->peer_info(), m_transfer->piece());
+  dummy->set_position(m_transfer->position());
+
+  m_transfer->block()->transfer_dissimilar(m_transfer);
+  m_transfer = dummy;
 }
 
 struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, bool> {

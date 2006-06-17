@@ -53,8 +53,7 @@ public:
     STATE_ERASED,
     STATE_QUEUED,
     STATE_LEADER,
-    STATE_NOT_LEADER,
-    STATE_FINISHED // Not using this?
+    STATE_NOT_LEADER
   } state_type;
 
   BlockTransfer() {}
@@ -66,7 +65,6 @@ public:
   bool                is_leader() const             { return m_state == STATE_LEADER; }
   bool                is_not_leader() const         { return m_state == STATE_NOT_LEADER; }
 
-  //  bool                is_finished() const           { return m_state == STATE_FINISHED; }
   bool                is_finished() const           { return m_position == m_piece.length(); }
 
   void                create_dummy(PeerInfo* peerInfo, const Piece& piece);

@@ -110,11 +110,14 @@ public:
   void                setup_delegator();
   void                setup_tracker();
 
-  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, DownloadMain*> SlotStartHandshake;
   typedef rak::const_mem_fun1<HandshakeManager, uint32_t, DownloadMain*>                   SlotCountHandshakes;
   typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>                                SlotHashCheckAdd;
 
-  void                slot_start_handshake(SlotStartHandshake s)   { m_slotStartHandshake = s; }
+  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, DownloadMain*> slot_start_handshake_type;
+  typedef rak::mem_fun1<HandshakeManager, void, DownloadMain*>                             slot_stop_handshakes_type;
+
+  void                slot_start_handshake(slot_start_handshake_type s) { m_slotStartHandshake = s; }
+  void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slotStopHandshakes = s; }
   void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
   void                slot_hash_check_add(SlotHashCheckAdd s)      { m_slotHashCheckAdd = s; }
 
@@ -158,7 +161,9 @@ private:
   ThrottleList*       m_uploadThrottle;
   ThrottleList*       m_downloadThrottle;
 
-  SlotStartHandshake  m_slotStartHandshake;
+  slot_start_handshake_type m_slotStartHandshake;
+  slot_stop_handshakes_type m_slotStopHandshakes;
+
   SlotCountHandshakes m_slotCountHandshakes;
   SlotHashCheckAdd    m_slotHashCheckAdd;
 

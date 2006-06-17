@@ -102,6 +102,8 @@ public:
   // Return true if all blocks in the chunk is finished.
   bool                completed(BlockTransfer* transfer);
 
+  void                transfer_dissimilar(BlockTransfer* transfer);
+
   static void         stalled(BlockTransfer* transfer)             { if (!transfer->is_valid()) return; transfer->block()->stalled_transfer(transfer); }
   void                stalled_transfer(BlockTransfer* transfer);
 

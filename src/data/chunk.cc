@@ -39,7 +39,9 @@
 #include <functional>
 
 #include "torrent/exceptions.h"
+
 #include "chunk.h"
+#include "chunk_iterator.h"
 
 namespace torrent {
 
@@ -134,6 +136,32 @@ Chunk::sync(int flags) {
       success = false;
 
   return success;
+}
+
+// Consider using uint32_t returning first mismatch or length if
+// matching.
+bool
+Chunk::compare_buffer(uint32_t position, const void* buffer, uint32_t length) {
+  if (position + length > m_size)
+    throw internal_error("Chunk::compare_buffer(...) position + length > m_size.");
+
+  if (length == 0)
+    return true;
+
+  Chunk::data_type data;
+  ChunkIterator itr(this, position, position + length);
+
+  do {
+    data = itr.data();
+
+    if (std::memcmp(data.first, buffer, data.second) != 0)
+      return false;
+
+    buffer = static_cast<const char*>(buffer) + data.second;
+
+  } while (itr.used(data.second));
+  
+  return true;
 }
 
 }

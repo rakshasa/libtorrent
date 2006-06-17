@@ -221,16 +221,15 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
   if (!m_download->content()->is_valid_piece(piece))
     throw internal_error("Incoming pieces list contains a bad piece.");
   
-  if (m_downChunk.is_valid() && piece.index() == m_downChunk->index())
-    return true;
-
-  down_chunk_release();
-  m_downChunk = m_download->chunk_list()->get(piece.index(), true);
+  if (!m_downChunk.is_valid() || piece.index() != m_downChunk->index()) {
+    down_chunk_release();
+    m_downChunk = m_download->chunk_list()->get(piece.index(), true);
   
-  if (!m_downChunk.is_valid())
-    throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
+    if (!m_downChunk.is_valid())
+      throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
+  }
 
-  return true;
+  return m_downloadQueue.transfer()->is_leader();
 }
 
 void
@@ -320,6 +319,9 @@ PeerConnectionBase::down_chunk_skip_from_buffer() {
 // Process data from a leading transfer.
 uint32_t
 PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
+  if (!m_downChunk.is_valid() || m_downChunk->index() != m_downloadQueue.transfer()->index())
+    throw internal_error("PeerConnectionBase::down_chunk_process(...) !m_downChunk.is_valid() || m_downChunk.index() != m_downloadQueue.transfer()->index().");
+
   uint32_t bytesTransfered = 0;
 
   if (length == 0)
@@ -377,7 +379,16 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   // leader.
   uint32_t compareLength = std::min(length, transfer->block()->position() - transfer->position());
 
-  // Make sure zero-length compare is properly handled.
+  // The data doesn't match with what has previously been downloaded,
+  // bork this download.
+  if (!m_downChunk->chunk()->compare_buffer(transfer->piece().offset() + transfer->position(), buffer, compareLength)) {
+    m_download->info()->signal_network_log().emit("Data does not match what was previously downloaded.");
+    
+    m_downloadQueue.transfer_dissimilar();
+    m_downloadQueue.transfer()->adjust_position(length);
+
+    return length;
+  }
 
   transfer->adjust_position(compareLength);
 

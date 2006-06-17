@@ -185,6 +185,10 @@ public:
 //   socket_address_host_key() {}
 
   socket_address_key(const socket_address& sa) {
+    *this = sa;
+  }
+
+  socket_address_key& operator = (const socket_address& sa) {
     if (sa.family() == 0) {
       std::memset(this, 0, sizeof(socket_address_key));
 
@@ -192,17 +196,21 @@ public:
       // Using hardware order as we use operator < to compare when
       // using inet only.
       m_addr.s_addr = sa.sa_inet()->address_h();
+
+    } else {
+      // When we implement INET6 handling, embed the ipv4 address in
+      // the ipv6 address.
+      throw std::logic_error("socket_address_key(...) received an unsupported protocol family.");
     }
 
-    // When we implement INET6 handling, embed the ipv4 address in the
-    // ipv6 address.
+    return *this;
   }
 
-  socket_address_key& operator = (const socket_address_key& sa) {
-    return *(new (this) socket_address_key(sa));
-  }
+//   socket_address_key& operator = (const socket_address_key& sa) {
+//   }
 
   bool operator < (const socket_address_key& sa) const {
+    // Compare the memory area instead.
     return m_addr.s_addr < sa.m_addr.s_addr;
   }    
 

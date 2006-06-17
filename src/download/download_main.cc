@@ -173,6 +173,8 @@ DownloadMain::stop() {
   // not to eat available peers.
   m_started = false;
 
+  m_slotStopHandshakes(this);
+
   // Save the addresses we are connected to, so we don't need to
   // perform alot of requests to the tracker when restarting the
   // torrent. Consider saving these in the torrent file when dumping
