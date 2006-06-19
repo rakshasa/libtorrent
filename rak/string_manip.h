@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <iterator>
 #include <locale>
+#include <stdlib.h>
 
 namespace rak {
 
@@ -245,7 +246,7 @@ generate_random(size_t length) {
   Sequence s;
   s.reserve(length);
 
-  std::generate_n(std::back_inserter(s), length, &std::rand);
+  std::generate_n(std::back_inserter(s), length, &::random);
 
   return s;
 }

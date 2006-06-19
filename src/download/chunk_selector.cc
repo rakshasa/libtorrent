@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
-#include <cstdlib>
+#include <stdlib.h>
 #include <rak/functional.h>
 
 #include "protocol/peer_chunks.h"
@@ -79,7 +79,7 @@ ChunkSelector::update_priorities() {
   m_sharedQueue.clear();
 
   if (m_position == invalid_chunk)
-    m_position = std::rand() % size();
+    m_position = random() % size();
 
   advance_position();
 }
