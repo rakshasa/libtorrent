@@ -67,7 +67,6 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
 void
 Block::clear() {
   m_leader = NULL;
-  m_position = 0;
 
   std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_queued.clear();
@@ -119,17 +118,26 @@ Block::erase(BlockTransfer* transfer) {
     if (itr == m_transfers.end())
       throw internal_error("Block::erase(...) Could not find transfer.");
 
-    if (transfer == m_leader) {
-      // This needs to be expanded, perhaps change the leader. But it
-      // should work by just clearing it as the new leader takes over
-      // when it passes position. 
-      m_leader = NULL;
-    }
-
     // Need to do something different here for now, i think.
     m_transfers.erase(itr);
 
-//     transfer->set_stall(BlockTransfer::stall_erased);
+    if (transfer == m_leader) {
+
+      // When the leader is erased then any non-leading transfer must
+      // be promoted. These non-leading transfers are guaranteed to
+      // have the same data up to their position. PeerConnectionBase
+      // assumes that a Block with non-leaders have a leader.
+
+      transfer_list::iterator newLeader = std::max_element(std::find_if(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_finished))),
+                                                           m_transfers.end(),
+                                                           rak::less2(std::mem_fun(&BlockTransfer::position), std::mem_fun(&BlockTransfer::position)));
+      if (newLeader != m_transfers.end()) {
+        m_leader = *newLeader;
+        m_leader->set_state(BlockTransfer::STATE_LEADER);
+      } else {
+        m_leader = NULL;
+      }
+    }
   }
 
   delete transfer;
@@ -187,18 +195,16 @@ Block::completed(BlockTransfer* transfer) {
   // leader?
   //
   // Perhaps do magic to the transfer, erase it or something.
-  if (!is_finished()) {
+  if (!is_finished())
     throw internal_error("Block::completed(...) !is_finished().");
-  }
+
+  if (transfer != m_leader)
+    throw internal_error("Block::completed(...) transfer != m_leader.");
 
   m_parent->inc_finished();
 
   m_notStalled -= transfer->stall() == 0;
   transfer->set_stall(~uint32_t());
-
-  // Remember to invalidate the transfer.
-
-//   transfer->set_state(BlockTransfer::STATE_FINISHED);
 
   // Currently just throw out the queued transfers. In case the hash
   // check fails, we might consider telling pcb during the call to
@@ -211,24 +217,13 @@ Block::completed(BlockTransfer* transfer) {
   // We need to invalidate those unfinished and keep the one that
   // finished for later reference.
 
-  // Do a stable partition, accure the transfers that have completed
-  // at the start. Use a 'try' counter that also adjust the sizes.
+  transfer_list::iterator split = std::stable_partition(m_transfers.begin(), m_transfers.end(), std::mem_fun(&BlockTransfer::is_finished));
 
-  // Temporary hack.
-//   for (transfer_list::iterator itr = m_transfers.begin(), last = m_transfers.end(); itr != last; ) {
-//     if ((*itr)->is_erased()) {
-//       itr++;
-//     } else {
-//       itr = m_transfers.erase(itr);
-//     }
-//   }
-
-  // Remove transfers that did not start (finish?).
-
-  m_leader = NULL;
-
-  std::for_each(m_transfers.begin(), m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
-  m_transfers.clear();
+  std::for_each(split, m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
+  m_transfers.erase(split, m_transfers.end());
+  
+  if (m_transfers.empty() || m_transfers.back() != transfer)
+    throw internal_error("Block::completed(...) m_transfers.empty() || m_transfers.back() != transfer.");
 
   return m_parent->is_all_finished();
 }

@@ -74,7 +74,7 @@ HashTorrent::clear() {
 
 bool
 HashTorrent::is_checked() {
-  return m_position == m_chunkList->size();
+  return !m_chunkList->empty() && m_position == m_chunkList->size();
 }
 
 void

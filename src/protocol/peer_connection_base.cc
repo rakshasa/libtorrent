@@ -278,7 +278,6 @@ PeerConnectionBase::down_chunk() {
   } while (itr.used(data.second));
 
   transfer->adjust_position(bytesTransfered);
-  transfer->block()->set_position(transfer->position());
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
   m_download->info()->down_rate()->insert(bytesTransfered);
@@ -344,7 +343,6 @@ PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
   } while (itr.used(data.second));
 
   transfer->adjust_position(bytesTransfered);
-  transfer->block()->set_position(transfer->position());
 
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
   m_download->info()->down_rate()->insert(bytesTransfered);
@@ -371,16 +369,19 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
     return length;
   }
 
+  if (!transfer->block()->is_transfering())
+    throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) block is not transfering, yet we have non-leaders.");
+
   // Temporary test.
-  if (transfer->position() > transfer->block()->position())
+  if (transfer->position() > transfer->block()->leader()->position())
     throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) transfer is past the Block's position.");
 
   // If the transfer is valid, compare the downloaded data to the
   // leader.
-  uint32_t compareLength = std::min(length, transfer->block()->position() - transfer->position());
+  uint32_t compareLength = std::min(length, transfer->block()->leader()->position() - transfer->position());
 
   // The data doesn't match with what has previously been downloaded,
-  // bork this download.
+  // bork this transfer.
   if (!m_downChunk->chunk()->compare_buffer(transfer->piece().offset() + transfer->position(), buffer, compareLength)) {
     m_download->info()->signal_network_log().emit("Data does not match what was previously downloaded.");
     

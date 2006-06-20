@@ -54,64 +54,40 @@ public:
   // Using vectors as they will remain small, thus the cost of erase
   // should be small. Later we can do faster erase by ignoring the
   // ordering.
-  typedef std::vector<BlockTransfer*> transfer_list;
-  typedef uint32_t                    size_type;
+  typedef std::vector<BlockTransfer*>                  transfer_list;
+  typedef std::vector<std::pair<char*, unsigned int> > failed_list;
+  typedef uint32_t                                     size_type;
 
-  Block() : m_position(0), m_notStalled(0), m_leader(NULL) { }
+  Block() : m_notStalled(0), m_leader(NULL) { }
 
-  bool                is_stalled() const                           { return m_notStalled == 0; }
-  bool                is_finished() const                          { return m_position == m_piece.length(); }
+  bool                 is_stalled() const                           { return m_notStalled == 0; }
+  bool                 is_finished() const                          { return m_leader != NULL && m_leader->is_finished(); }
+  bool                 is_transfering() const                       { return m_leader != NULL && !m_leader->is_finished(); }
 
-  // Since incomplete transfers are kept in the back, and when
-  // finished the remaining incomplete transfers are removed, we know
-  // that if the back is not finished we're still transfering.
-  bool                is_transfering() const                       { return !m_transfers.empty() && !m_transfers.back()->is_finished(); }
+  bool                 is_peer_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
+  bool                 is_peer_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
 
-  bool                is_peer_queued(const PeerInfo* p) const      { return find_queued(p) != NULL; }
-  bool                is_peer_transfering(const PeerInfo* p) const { return find_transfer(p) != NULL; }
+  size_type            size_all() const                             { return m_queued.size() + m_transfers.size(); }
+  size_type            size_not_stalled() const                     { return m_notStalled; }
 
-  BlockList*          parent()                                     { return m_parent; }
-  const BlockList*    parent() const                               { return m_parent; }
-  void                set_parent(BlockList* p)                     { m_parent = p; }
+  BlockList*           parent()                                     { return m_parent; }
+  const BlockList*     parent() const                               { return m_parent; }
+  void                 set_parent(BlockList* p)                     { m_parent = p; }
 
-  const Piece&        piece() const                                { return m_piece; }
-  void                set_piece(const Piece& p)                    { m_piece = p; }
+  const Piece&         piece() const                                { return m_piece; }
+  void                 set_piece(const Piece& p)                    { m_piece = p; }
 
-  uint32_t            index() const                                { return m_piece.index(); }
+  uint32_t             index() const                                { return m_piece.index(); }
 
   // How much of the block has been downloaded by the leading block
   // transfer.
-  uint32_t            position() const                             { return m_position; }
-  void                set_position(uint32_t p)                     { m_position = p; }
+//   uint32_t             position() const                             { return m_leader != NULL ? m_leader->position() : 0; }
 
-  size_type           size_all() const                             { return m_queued.size() + m_transfers.size(); }
-  size_type           size_not_stalled() const                     { return m_notStalled; }
-
-  void                clear();
-
-  BlockTransfer*      insert(PeerInfo* peerInfo);
-
-  // If the queued or transfering is already removed from the block it
-  // will just delete the object. Made static so it can be called when
-  // block == NULL.
-  static inline void  release(BlockTransfer* transfer);
-  void                erase(BlockTransfer* transfer);
-
-  bool                transfering(BlockTransfer* transfer);
-
-  // Return true if all blocks in the chunk is finished.
-  bool                completed(BlockTransfer* transfer);
-
-  void                transfer_dissimilar(BlockTransfer* transfer);
-
-  static void         stalled(BlockTransfer* transfer)             { if (!transfer->is_valid()) return; transfer->block()->stalled_transfer(transfer); }
-  void                stalled_transfer(BlockTransfer* transfer);
-
-  const transfer_list* queued() const                              { return &m_queued; }
-  const transfer_list* transfers() const                           { return &m_transfers; }
+  const transfer_list* queued() const                               { return &m_queued; }
+  const transfer_list* transfers() const                            { return &m_transfers; }
 
   // The leading transfer, whom's data we're currently using.
-  const BlockTransfer* leader() const                              { return m_leader; }
+  const BlockTransfer* leader() const                               { return m_leader; }
   void                 change_leader(BlockTransfer* transfer);
 
   BlockTransfer*       find(const PeerInfo* p);
@@ -123,22 +99,45 @@ public:
   BlockTransfer*       find_transfer(const PeerInfo* p);
   const BlockTransfer* find_transfer(const PeerInfo* p) const;
 
+  // Internal to libTorrent:
+
+  void                 clear();
+
+  BlockTransfer*       insert(PeerInfo* peerInfo);
+
+  // If the queued or transfering is already removed from the block it
+  // will just delete the object. Made static so it can be called when
+  // block == NULL.
+  static inline void   release(BlockTransfer* transfer);
+  void                 erase(BlockTransfer* transfer);
+
+  bool                 transfering(BlockTransfer* transfer);
+
+  // Return true if all blocks in the chunk is finished.
+  bool                 completed(BlockTransfer* transfer);
+
+  void                 transfer_dissimilar(BlockTransfer* transfer);
+
+  static void          stalled(BlockTransfer* transfer)             { if (!transfer->is_valid()) return; transfer->block()->stalled_transfer(transfer); }
+  void                 stalled_transfer(BlockTransfer* transfer);
+
 private:
 //   Block(const Block&);
 //   void operator = (const Block&);
 
-  inline void         invalidate_transfer(BlockTransfer* transfer);
+  inline void          invalidate_transfer(BlockTransfer* transfer);
 
-  BlockList*          m_parent;
-  Piece               m_piece;
+  BlockList*           m_parent;
+  Piece                m_piece;
   
-  uint32_t            m_position;
-  uint32_t            m_notStalled;
+  uint32_t             m_notStalled;
 
-  transfer_list       m_queued;
-  transfer_list       m_transfers;
+  transfer_list        m_queued;
+  transfer_list        m_transfers;
 
-  BlockTransfer*      m_leader;
+  BlockTransfer*       m_leader;
+
+  failed_list          m_failed;
 };
 
 inline BlockTransfer*
