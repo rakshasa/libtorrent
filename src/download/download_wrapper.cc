@@ -395,7 +395,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
       m_main.update_endgame();
 
       if (m_main.content()->is_done())
-	finished_download();
+        finished_download();
     
       m_main.connection_list()->send_finished_chunk(index);
 

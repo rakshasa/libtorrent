@@ -89,8 +89,10 @@ Download::stop() {
 
 void
 Download::hash_check(bool resume) {
-  if (m_ptr->hash_checker()->is_checked() ||
-      m_ptr->hash_checker()->is_checking())
+  if (!m_ptr->main()->is_open() || m_ptr->main()->is_active())
+    throw client_error("Download::hash_check(...) called on a closed or active download.");
+
+  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw client_error("Download::hash_check(...) called but already checking or complete.");
 
   if (resume)

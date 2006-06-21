@@ -74,14 +74,16 @@ HashTorrent::clear() {
 
 bool
 HashTorrent::is_checked() {
-  return !m_chunkList->empty() && m_position == m_chunkList->size();
+  // When closed the chunk list is empty. Position can be equal to
+  // chunk list for a short while as we have outstanding chunks, so
+  // check the latter.
+  return !m_chunkList->empty() && m_position == m_chunkList->size() && m_outstanding == -1;
 }
 
 void
 HashTorrent::receive_chunkdone() {
   if (m_outstanding == -1)
-//     throw internal_error("HashTorrent::receive_chunkdone() m_outstanding < 0.");
-    return;
+    throw internal_error("HashTorrent::receive_chunkdone() m_outstanding < 0.");
 
   // m_signalChunk will always point to
   // DownloadMain::receive_hash_done, so it will take care of cleanup.
@@ -126,6 +128,10 @@ HashTorrent::queue() {
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
     if (handle.error_number().is_valid()) {
+      // The rest of the outstanding chunks get ignored by
+      // DownloadWrapper::receive_hash_done.
+      clear();
+
       m_slotInitialHash();
       m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
 
