@@ -40,6 +40,8 @@
 #include <functional>
 #include <rak/functional.h>
 
+#include "data/chunk.h"
+
 #include "block_transfer.h"
 #include "block_list.h"
 #include "exceptions.h"
@@ -102,16 +104,51 @@ TransferList::finished(BlockTransfer* transfer) {
 }
 
 void
-TransferList::index_done(uint32_t index) {
+TransferList::hash_succeded(uint32_t index) {
   erase(find(index));
 }
 
-void
-TransferList::index_retry(uint32_t index) {
-  // Currently just bork the current transfer.
-  erase(find(index));
+struct transfer_list_compare_data {
+  transfer_list_compare_data(Chunk* chunk, const Piece& p) : m_chunk(chunk), m_piece(p) { }
 
-  m_slotCanceled(index);
+  bool operator () (const Block::failed_list_type::reference failed) {
+    return m_chunk->compare_buffer(failed.first, m_piece.offset(), m_piece.length());
+  }
+
+  Chunk* m_chunk;
+  Piece  m_piece;
+};
+
+void
+TransferList::hash_failed(uint32_t index, Chunk* chunk) {
+  iterator blockListItr = find(index);
+
+  if (blockListItr == end())
+    throw internal_error("TransferList::hash_failed(...) Could not find index.");
+
+  (*blockListItr)->clear_finished();
+
+  for (BlockList::iterator blockItr = (*blockListItr)->begin(), last = (*blockListItr)->end(); blockItr != last; ++blockItr) {
+    
+    Block::failed_list_type::iterator failedItr = std::find_if(blockItr->failed_list()->begin(), blockItr->failed_list()->end(),
+                                                                 transfer_list_compare_data(chunk, blockItr->piece()));
+
+    if (failedItr == blockItr->failed_list()->end()) {
+      // We've never encountered this data before, make a new entry.
+      char* buffer = new char[blockItr->piece().length()];
+
+      chunk->to_buffer(buffer, blockItr->piece().offset(), blockItr->piece().length());
+
+      blockItr->failed_list()->push_back(Block::failed_list_type::value_type(buffer, 1));
+
+      // Count how many new data sets?
+
+    } else {
+      failedItr->second++;
+    }
+
+    blockItr->failed_leader();
+  }
 }
 
 }

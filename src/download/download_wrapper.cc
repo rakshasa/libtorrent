@@ -272,9 +272,6 @@ DownloadWrapper::start() {
   if (m_main.is_active())
     return;
 
-  m_connectionChunkPassed = signal_chunk_passed().connect(sigc::mem_fun(m_main.delegator()->transfer_list(), &TransferList::index_done));
-  m_connectionChunkFailed = signal_chunk_failed().connect(sigc::mem_fun(m_main.delegator()->transfer_list(), &TransferList::index_retry));
-
   m_main.start();
 }
 
@@ -282,10 +279,6 @@ DownloadWrapper::start() {
 void
 DownloadWrapper::stop() {
   m_main.stop();
-
-  m_connectionChunkPassed.disconnect();
-  m_connectionChunkFailed.disconnect();
-
   m_main.tracker_manager()->send_stop();
 }
 
@@ -299,8 +292,8 @@ DownloadWrapper::insert_available_list(const std::string& src) {
   std::list<rak::socket_address> l;
 
   std::copy(reinterpret_cast<const SocketAddressCompact*>(src.c_str()),
-	    reinterpret_cast<const SocketAddressCompact*>(src.c_str() + src.size() - src.size() % sizeof(SocketAddressCompact)),
-	    std::back_inserter(l));
+            reinterpret_cast<const SocketAddressCompact*>(src.c_str() + src.size() - src.size() % sizeof(SocketAddressCompact)),
+            std::back_inserter(l));
   l.sort();
 
   m_main.available_list()->insert(&l);
@@ -376,40 +369,42 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, std::string h) {
   if (!is_open())
     throw internal_error("DownloadWrapper::receive_hash_done(...) called but the download is not open.");
 
-  uint32_t index = handle->index();
-  m_main.chunk_list()->release(handle);
-
   if (m_hash->is_checking()) {
-    m_main.content()->receive_chunk_hash(index, h);
+    m_main.content()->receive_chunk_hash(handle->index(), h);
     m_hash->receive_chunkdone();
 
   } else if (m_hash->is_checked()) {
+    // Receiving chunk hashes after stopping the torrent should be
+    // safe.
 
-    if (m_main.chunk_selector()->bitfield()->get(index))
+    if (m_main.chunk_selector()->bitfield()->get(handle->index()))
       throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
-    if (m_main.content()->receive_chunk_hash(index, h)) {
+    if (m_main.content()->receive_chunk_hash(handle->index(), h)) {
 
-      // Should this be done here, or after send_finished_chunk?
-      signal_chunk_passed().emit(index);
+      m_main.delegator()->transfer_list()->hash_succeded(handle->index());
       m_main.update_endgame();
 
       if (m_main.content()->is_done())
         finished_download();
     
-      m_main.connection_list()->send_finished_chunk(index);
+      m_main.connection_list()->send_finished_chunk(handle->index());
+      signal_chunk_passed().emit(handle->index());
 
     } else {
-      signal_chunk_failed().emit(index);
+      // This needs to ensure the chunk is still valid.
+      m_main.delegator()->transfer_list()->hash_failed(handle->index(), handle->chunk());
+      signal_chunk_failed().emit(handle->index());
     }
 
   } else {
-    // When the HashQueue gets cleared, it will trigger this signal to
-    // do cleanup. As HashTorrent must be cleared before the
-    // HashQueue, we need to ignore the chunks that get triggered.
-
-    //throw internal_error("DownloadWrapper::receive_hash_done(...) called but we're not in the right state.");
+    // When the HashQueue gets cleared, it will trigger this signal
+    // while doing cleanup. As HashTorrent must be cleared before the
+    // HashQueue, we need to ignore the chunks that trigger this
+    // function.
   }
+
+  m_main.chunk_list()->release(handle);
 }  
 
 void

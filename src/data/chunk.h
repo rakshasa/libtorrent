@@ -84,7 +84,9 @@ public:
 
   bool                sync(int flags);
 
-  bool                compare_buffer(uint32_t position, const void* buffer, uint32_t length);
+  bool                to_buffer(void* buffer, uint32_t position, uint32_t length);
+  bool                from_buffer(const void* buffer, uint32_t position, uint32_t length);
+  bool                compare_buffer(const void* buffer, uint32_t position, uint32_t length);
 
 private:
   Chunk(const Chunk&);

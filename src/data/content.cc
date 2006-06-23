@@ -198,10 +198,10 @@ Content::update_done() {
       last = m_entryList->at_position(first, (i + 1) * (off_t)m_chunkSize - 1);
 
       if (last != m_entryList->end())
-	last++;
+        last++;
 
       if (first == m_entryList->end())
-	throw internal_error("Content::update_done() reached m_entryList->end().");
+        throw internal_error("Content::update_done() reached m_entryList->end().");
 
       std::for_each(first, last, std::mem_fun(&EntryListNode::inc_completed));
     }
@@ -212,7 +212,7 @@ Content::create_chunk(uint32_t index, bool writable) {
   rak::error_number::clear_global();
 
   Chunk* c = m_entryList->create_chunk(chunk_position(index), chunk_index_size(index),
-				       MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
+                                       MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
   return std::pair<Chunk*,rak::error_number>(c, c == NULL ? rak::error_number::current() : rak::error_number());
 }

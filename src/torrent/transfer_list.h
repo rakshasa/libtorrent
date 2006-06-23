@@ -46,6 +46,7 @@ namespace torrent {
 
 class BlockList;
 class BlockTransfer;
+class Chunk;
 class ChunkSelector;
 class DownloadMain;
 class Piece;
@@ -88,8 +89,8 @@ public:
 
   void                finished(BlockTransfer* transfer);
 
-  void                index_done(uint32_t index);
-  void                index_retry(uint32_t index);
+  void                hash_succeded(uint32_t index);
+  void                hash_failed(uint32_t index, Chunk* chunk);
 
   typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_canceled_op;
   typedef std::binder1st<slot_canceled_op>               slot_canceled_type;

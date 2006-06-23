@@ -321,33 +321,21 @@ PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
   if (!m_downChunk.is_valid() || m_downChunk->index() != m_downloadQueue.transfer()->index())
     throw internal_error("PeerConnectionBase::down_chunk_process(...) !m_downChunk.is_valid() || m_downChunk.index() != m_downloadQueue.transfer()->index().");
 
-  uint32_t bytesTransfered = 0;
-
   if (length == 0)
-    return bytesTransfered;
+    return length;
 
   BlockTransfer* transfer = m_downloadQueue.transfer();
 
-  Chunk::data_type data;
-  ChunkIterator itr(m_downChunk->chunk(),
-                    transfer->piece().offset() + transfer->position(),
-                    transfer->piece().offset() + std::min(transfer->position() + length, transfer->piece().length()));
+  length = std::min(transfer->piece().length() - transfer->position(), length);
 
-  do {
-    data = itr.data();
-    std::memcpy(data.first, buffer, data.second);
+  m_downChunk->chunk()->from_buffer(buffer, transfer->piece().offset() + transfer->position(), length);
 
-    buffer = static_cast<const char*>(buffer) + data.second;
-    bytesTransfered += data.second;
+  transfer->adjust_position(length);
 
-  } while (itr.used(data.second));
+  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), length);
+  m_download->info()->down_rate()->insert(length);
 
-  transfer->adjust_position(bytesTransfered);
-
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
-  m_download->info()->down_rate()->insert(bytesTransfered);
-
-  return bytesTransfered;
+  return length;
 }
 
 // Process data from non-leading transfer. If this transfer encounters
@@ -382,7 +370,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 
   // The data doesn't match with what has previously been downloaded,
   // bork this transfer.
-  if (!m_downChunk->chunk()->compare_buffer(transfer->piece().offset() + transfer->position(), buffer, compareLength)) {
+  if (!m_downChunk->chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
     m_download->info()->signal_network_log().emit("Data does not match what was previously downloaded.");
     
     m_downloadQueue.transfer_dissimilar();

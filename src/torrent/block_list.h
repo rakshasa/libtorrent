@@ -80,7 +80,7 @@ public:
 
   size_type           finished() const              { return m_finished; }
   void                inc_finished()                { m_finished++; }
-  void                dec_finished()                { m_finished--; }
+  void                clear_finished()              { m_finished = 0; }
   
   uint32_t            failed() const                { return m_failed; }
 
