@@ -46,7 +46,15 @@ namespace torrent {
 
 void
 ChunkPart::clear() {
-  m_chunk.unmap();
+  switch (m_mapped) {
+  case MAPPED_MMAP:
+    m_chunk.unmap();
+    break;
+
+  case MAPPED_STATIC:
+    break;
+  }
+
   m_chunk.clear();
 }
 
@@ -67,7 +75,7 @@ ChunkPart::incore_length(uint32_t pos) {
   int dist = std::distance(buf, std::find(buf, buf + touched, 0));
 
   return std::min(dist ? (dist * m_chunk.page_size() - m_chunk.page_align()) : 0,
-		  size() - pos);
+                  size() - pos);
 }
 
 }

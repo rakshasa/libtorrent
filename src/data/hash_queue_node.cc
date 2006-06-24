@@ -44,7 +44,7 @@ namespace torrent {
 
 uint32_t
 HashQueueNode::get_index() const {
-  return m_chunk->get_chunk()->index();
+  return m_chunk->chunk()->index();
 }
 
 void

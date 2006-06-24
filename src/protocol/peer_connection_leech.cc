@@ -245,7 +245,7 @@ PeerConnectionLeech::read_message() {
       
     } else if (down_chunk_from_buffer()) {
       // Done with chunk.
-      m_downChunk->set_time_modified(cachedTime);
+      m_downChunk.object()->set_time_modified(cachedTime);
       download_queue()->finished();
     
       if (m_downStall > 0)

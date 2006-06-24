@@ -53,7 +53,9 @@ class Sha1 {
 public:
   void                init();
   void                update(const void* data, unsigned int length);
-  std::string         final();
+//   std::string         final();
+
+  void                final_c(char* buffer);
 
 #if defined USE_NSS_SHA
 
@@ -71,14 +73,21 @@ Sha1::update(const void* data, unsigned int length) {
   SHA1_Update(&m_ctx, (unsigned char*)data, length);
 }
 
-inline std::string
-Sha1::final() {
+// inline std::string
+// Sha1::final() {
+//   unsigned int len;
+//   unsigned char buf[20];
+  
+//   SHA1_End(&m_ctx, buf, &len, 20);
+  
+//   return std::string((char*)buf, 20);
+// }
+
+inline void
+Sha1::final_c(char* buffer) {
   unsigned int len;
-  unsigned char buf[20];
   
-  SHA1_End(&m_ctx, buf, &len, 20);
-  
-  return std::string((char*)buf, 20);
+  SHA1_End(&m_ctx, buffer, &len, 20);
 }
 
 #elif defined USE_OPENSSL_SHA
@@ -97,13 +106,9 @@ Sha1::update(const void* data, unsigned int length) {
   SHA1_Update(&m_ctx, (const void*)data, length);
 }
 
-inline std::string
-Sha1::final() {
-  unsigned char buf[20];
-  
-  SHA1_Final(buf, &m_ctx);
-  
-  return std::string((char*)buf, 20);
+inline void
+Sha1::final_c(char* buffer) {
+  SHA1_Final((unsigned char*)buffer, &m_ctx);
 }
 
 #else

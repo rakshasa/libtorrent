@@ -109,6 +109,8 @@ private:
   TransferList(const TransferList&);
   void operator = (const TransferList&);
 
+  void                retry_most_popular(BlockList* blockList, Chunk* chunk);
+
   slot_canceled_type  m_slotCanceled;
   slot_completed_type m_slotCompleted;
   slot_queued_type    m_slotQueued;

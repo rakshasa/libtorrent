@@ -43,12 +43,20 @@ namespace torrent {
 
 class ChunkPart {
 public:
-  ChunkPart(const MemoryChunk& c, uint32_t pos) : m_chunk(c), m_position(pos) {}
+  typedef enum {
+    MAPPED_MMAP,
+    MAPPED_STATIC
+  } mapped_type;
+
+  ChunkPart(mapped_type mapped, const MemoryChunk& c, uint32_t pos) :
+    m_mapped(mapped), m_chunk(c), m_position(pos) {}
 
   bool                is_valid() const                      { return m_chunk.is_valid(); }
   bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }
 
   void                clear();
+
+  mapped_type         mapped() const                        { return m_mapped; }
 
   MemoryChunk&        chunk()                               { return m_chunk; }
 
@@ -58,6 +66,8 @@ public:
   uint32_t            incore_length(uint32_t pos);
 
 private:
+  mapped_type         m_mapped;
+
   MemoryChunk         m_chunk;
   uint32_t            m_position;
 };

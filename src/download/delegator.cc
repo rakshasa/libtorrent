@@ -216,8 +216,9 @@ Delegator::delegate_piece(BlockList* c, const PeerInfo* peerInfo) {
       // No one is downloading this, assign.
       return &*i;
 
-    } else if (i->find(peerInfo) == NULL) {
-      // Stalled but we really want to finish this piece.
+    } else if (p == NULL && i->find(peerInfo) == NULL) {
+      // Stalled but we really want to finish this piece. Check 'p' so
+      // that we don't end up queuing the pieces in reverse.
       p = &*i;
     }
   }

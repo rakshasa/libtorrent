@@ -74,7 +74,7 @@ public:
   void                clear();
 
   ChunkHandle         get(size_type index, bool writable);
-  void                release(ChunkHandle handle);
+  void                release(ChunkHandle* handle);
 
   uint32_t            max_queue_size() const               { return m_maxQueueSize; }
   void                set_max_queue_size(uint32_t v)       { m_maxQueueSize = v; }

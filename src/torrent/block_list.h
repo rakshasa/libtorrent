@@ -87,6 +87,9 @@ public:
   // Temporary, just increment for now.
   void                inc_failed()                  { m_failed++; }
 
+  uint32_t            attempt() const               { return m_attempt; }
+  void                set_attempt(uint32_t a)       { m_attempt = a; }
+
   // Set when the chunk was initially requested from a seeder. This
   // allows us to quickly determine if it is a suitable chunk to
   // request from another seeder, e.g by already knowing it is a rare
@@ -103,6 +106,7 @@ private:
 
   size_type           m_finished;
   uint32_t            m_failed;
+  uint32_t            m_attempt;
 
   bool                m_bySeeder;
 };

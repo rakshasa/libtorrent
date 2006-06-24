@@ -85,6 +85,8 @@ public:
   state_type          state() const                 { return m_state; }
   void                set_state(state_type s)       { m_state = s; }
 
+  // Adjust the position after any actions like erasing it from a
+  // Block, but before if finishing.
   uint32_t            position() const              { return m_position; }
   void                set_position(uint32_t p)      { m_position = p; }
   void                adjust_position(uint32_t p)   { m_position += p; }

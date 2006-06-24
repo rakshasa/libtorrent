@@ -39,27 +39,31 @@
 
 #include <rak/error_number.h>
 
+#include "chunk_list_node.h"
+
 namespace torrent {
 
 class ChunkListNode;
 
 class ChunkHandle {
 public:
-  ChunkHandle(ChunkListNode* c = NULL, bool wr = false) : m_chunk(c), m_writable(wr) {}
+  ChunkHandle(ChunkListNode* c = NULL, bool wr = false) : m_node(c), m_writable(wr) {}
 
-  bool                is_valid() const     { return m_chunk != NULL; }
-  bool                is_writable() const  { return m_writable; }
+  bool                is_valid() const                      { return m_node != NULL; }
+  bool                is_writable() const                   { return m_writable; }
   
-  void                clear()              { m_chunk = NULL; }
+  void                clear()                               { m_node = NULL; }
 
   rak::error_number   error_number() const                  { return m_errorNumber; }
   void                set_error_number(rak::error_number e) { m_errorNumber = e; }
 
-  ChunkListNode*      node() const         { return m_chunk; }
-  ChunkListNode*      operator -> () const { return m_chunk; }
+  ChunkListNode*      object() const                        { return m_node; }
+  Chunk*              chunk() const                         { return m_node->chunk(); }
+
+  uint32_t            index() const                         { return m_node->index(); }
 
 private:
-  ChunkListNode*      m_chunk;
+  ChunkListNode*      m_node;
   bool                m_writable;
 
   rak::error_number   m_errorNumber;

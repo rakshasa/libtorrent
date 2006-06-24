@@ -153,7 +153,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
 
 void
 PeerConnectionBase::load_up_chunk() {
-  if (m_upChunk.is_valid() && m_upChunk->index() == m_upPiece.index())
+  if (m_upChunk.is_valid() && m_upChunk.index() == m_upPiece.index())
     return;
 
   up_chunk_release();
@@ -221,7 +221,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
   if (!m_download->content()->is_valid_piece(piece))
     throw internal_error("Incoming pieces list contains a bad piece.");
   
-  if (!m_downChunk.is_valid() || piece.index() != m_downChunk->index()) {
+  if (!m_downChunk.is_valid() || piece.index() != m_downChunk.index()) {
     down_chunk_release();
     m_downChunk = m_download->chunk_list()->get(piece.index(), true);
   
@@ -234,7 +234,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
 void
 PeerConnectionBase::down_chunk_finished() {
-  m_downChunk->set_time_modified(cachedTime);
+  m_downChunk.object()->set_time_modified(cachedTime);
   download_queue()->finished();
         
   if (m_downStall > 0)
@@ -250,7 +250,7 @@ PeerConnectionBase::down_chunk() {
   if (!m_download->download_throttle()->is_throttled(m_peerChunks.download_throttle()))
     throw internal_error("PeerConnectionBase::down_chunk() tried to read a piece but is not in throttle list");
 
-  if (!m_downChunk->chunk()->is_writable())
+  if (!m_downChunk.chunk()->is_writable())
     throw internal_error("PeerConnectionBase::down_part() chunk not writable, permission denided");
 
   uint32_t quota = m_download->download_throttle()->node_quota(m_peerChunks.download_throttle());
@@ -265,7 +265,7 @@ PeerConnectionBase::down_chunk() {
   BlockTransfer* transfer = m_downloadQueue.transfer();
 
   Chunk::data_type data;
-  ChunkIterator itr(m_downChunk->chunk(),
+  ChunkIterator itr(m_downChunk.chunk(),
                     transfer->piece().offset() + transfer->position(),
                     transfer->piece().offset() + std::min(transfer->position() + quota, transfer->piece().length()));
 
@@ -318,7 +318,7 @@ PeerConnectionBase::down_chunk_skip_from_buffer() {
 // Process data from a leading transfer.
 uint32_t
 PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
-  if (!m_downChunk.is_valid() || m_downChunk->index() != m_downloadQueue.transfer()->index())
+  if (!m_downChunk.is_valid() || m_downChunk.index() != m_downloadQueue.transfer()->index())
     throw internal_error("PeerConnectionBase::down_chunk_process(...) !m_downChunk.is_valid() || m_downChunk.index() != m_downloadQueue.transfer()->index().");
 
   if (length == 0)
@@ -328,7 +328,7 @@ PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
 
   length = std::min(transfer->piece().length() - transfer->position(), length);
 
-  m_downChunk->chunk()->from_buffer(buffer, transfer->piece().offset() + transfer->position(), length);
+  m_downChunk.chunk()->from_buffer(buffer, transfer->piece().offset() + transfer->position(), length);
 
   transfer->adjust_position(length);
 
@@ -370,7 +370,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 
   // The data doesn't match with what has previously been downloaded,
   // bork this transfer.
-  if (!m_downChunk->chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
+  if (!m_downChunk.chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
     m_download->info()->signal_network_log().emit("Data does not match what was previously downloaded.");
     
     m_downloadQueue.transfer_dissimilar();
@@ -400,7 +400,7 @@ PeerConnectionBase::up_chunk() {
   if (!m_download->upload_throttle()->is_throttled(m_peerChunks.upload_throttle()))
     throw internal_error("PeerConnectionBase::up_chunk() tried to write a piece but is not in throttle list");
 
-  if (!m_upChunk->chunk()->is_readable())
+  if (!m_upChunk.chunk()->is_readable())
     throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
 
   uint32_t quota = m_download->upload_throttle()->node_quota(m_peerChunks.upload_throttle());
@@ -414,7 +414,7 @@ PeerConnectionBase::up_chunk() {
   uint32_t bytesTransfered = 0;
 
   Chunk::data_type data;
-  ChunkIterator itr(m_upChunk->chunk(), m_upPiece.offset(), m_upPiece.offset() + std::min(quota, m_upPiece.length()));
+  ChunkIterator itr(m_upChunk.chunk(), m_upPiece.offset(), m_upPiece.offset() + std::min(quota, m_upPiece.length()));
 
   do {
     data = itr.data();
@@ -437,18 +437,14 @@ PeerConnectionBase::up_chunk() {
 
 void
 PeerConnectionBase::down_chunk_release() {
-  if (m_downChunk.is_valid()) {
-    m_download->chunk_list()->release(m_downChunk);
-    m_downChunk.clear();
-  }
+  if (m_downChunk.is_valid())
+    m_download->chunk_list()->release(&m_downChunk);
 }
 
 void
 PeerConnectionBase::up_chunk_release() {
-  if (m_upChunk.is_valid()) {
-    m_download->chunk_list()->release(m_upChunk);
-    m_upChunk.clear();
-  }
+  if (m_upChunk.is_valid())
+    m_download->chunk_list()->release(&m_upChunk);
 }
 
 void

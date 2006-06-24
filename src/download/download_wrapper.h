@@ -105,7 +105,7 @@ public:
   void                receive_initial_hash();
 
   void                check_chunk_hash(ChunkHandle handle);
-  void                receive_hash_done(ChunkHandle handle, std::string h);
+  void                receive_hash_done(ChunkHandle handle, const char* hash);
 
   void                receive_storage_error(const std::string& str);
   void                receive_tracker_success(AddressList* l);

@@ -70,12 +70,12 @@ public:
   HashQueue();
   ~HashQueue() { clear(); }
 
-  void                push_back(ChunkHandle handle, SlotDone d, const std::string& id);
+  void                push_back(ChunkHandle handle, SlotDone d);
 
-  bool                has(const std::string& id);
-  bool                has(const std::string& id, uint32_t index);
+  bool                has(HashQueueNode::id_type id);
+  bool                has(HashQueueNode::id_type id, uint32_t index);
 
-  void                remove(const std::string& id);
+  void                remove(HashQueueNode::id_type id);
   void                clear();
 
   void                work();

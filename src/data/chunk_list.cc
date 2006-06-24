@@ -147,43 +147,45 @@ ChunkList::get(size_type index, bool writable) {
 // will allow us to schedule writes at more resonable intervals.
 
 void
-ChunkList::release(ChunkHandle handle) {
-  if (!handle.is_valid())
+ChunkList::release(ChunkHandle* handle) {
+  if (!handle->is_valid())
     throw internal_error("ChunkList::release(...) received an invalid handle.");
 
-  if (handle.node() < &*begin() || handle.node() >= &*end())
+  if (handle->object() < &*begin() || handle->object() >= &*end())
     throw internal_error("ChunkList::release(...) received an unknown handle.");
 
-  if (handle->references() <= 0 || (handle.is_writable() && handle->writable() <= 0))
+  if (handle->object()->references() <= 0 || (handle->is_writable() && handle->object()->writable() <= 0))
     throw internal_error("ChunkList::release(...) received a node with bad reference count.");
 
-  if (handle.is_writable()) {
+  if (handle->is_writable()) {
 
-    if (handle->writable() == 1) {
-      if (is_queued(handle.node()))
-	throw internal_error("ChunkList::release(...) tried to queue an already queued chunk.");
+    if (handle->object()->writable() == 1) {
+      if (is_queued(handle->object()))
+        throw internal_error("ChunkList::release(...) tried to queue an already queued chunk.");
 
       // Only add those that have a modification time set?
       //
       // Only chunks that are not already in the queue will execute
       // this branch.
-      m_queue.push_back(handle.node());
+      m_queue.push_back(handle->object());
 
     } else {
-      handle->dec_rw();
+      handle->object()->dec_rw();
     }
 
   } else {
-    if (handle->references() == 1) {
-      if (is_queued(handle.node()))
-	throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
+    if (handle->object()->references() == 1) {
+      if (is_queued(handle->object()))
+        throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
 
-      delete handle->chunk();
-      handle->set_chunk(NULL);
+      delete handle->object()->chunk();
+      handle->object()->set_chunk(NULL);
     }
 
-    handle->dec_references();
+    handle->object()->dec_references();
   }
+
+  handle->clear();
 }
 
 inline bool

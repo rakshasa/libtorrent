@@ -117,7 +117,7 @@ Block::erase(BlockTransfer* transfer) {
 
     m_queued.erase(itr);
 
-  } else {
+  } else if (!transfer->is_finished()) {
     transfer_list_type::iterator itr = std::find(m_transfers.begin(), m_transfers.end(), transfer);
 
     if (itr == m_transfers.end())
@@ -134,8 +134,9 @@ Block::erase(BlockTransfer* transfer) {
       // assumes that a Block with non-leaders have a leader.
 
       transfer_list_type::iterator newLeader = std::max_element(std::find_if(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_finished))),
-                                                           m_transfers.end(),
-                                                           rak::less2(std::mem_fun(&BlockTransfer::position), std::mem_fun(&BlockTransfer::position)));
+                                                                m_transfers.end(),
+                                                                rak::less2(std::mem_fun(&BlockTransfer::position), std::mem_fun(&BlockTransfer::position)));
+
       if (newLeader != m_transfers.end()) {
         m_leader = *newLeader;
         m_leader->set_state(BlockTransfer::STATE_LEADER);
@@ -143,8 +144,12 @@ Block::erase(BlockTransfer* transfer) {
         m_leader = NULL;
       }
     }
+
+  } else {
+    throw internal_error("Block::erase(...) Transfer is finished.");
   }
 
+  transfer->set_block(NULL);
   delete transfer;
 }
 
@@ -206,9 +211,14 @@ Block::completed(BlockTransfer* transfer) {
   if (transfer != m_leader)
     throw internal_error("Block::completed(...) transfer != m_leader.");
 
+  if ((Block::size_type)std::count_if(m_parent->begin(), m_parent->end(), std::mem_fun_ref(&Block::is_finished)) >= m_parent->size())
+    throw internal_error("Block::completed(...) Finished blocks too large.");
+
   m_parent->inc_finished();
 
   m_notStalled -= transfer->stall() == 0;
+
+  transfer->set_block(NULL);
   transfer->set_stall(~uint32_t());
 
   // Currently just throw out the queued transfers. In case the hash
@@ -243,6 +253,8 @@ Block::transfer_dissimilar(BlockTransfer* transfer) {
     throw internal_error("Block::transfer_dissimilar(...) !transfer->is_not_leader().");
 
   m_notStalled -= transfer->stall() == 0;
+
+  // Why not just delete?
   
   transfer->set_state(BlockTransfer::STATE_ERASED);
   transfer->set_position(0);
@@ -278,7 +290,7 @@ Block::change_leader(BlockTransfer* transfer) {
 void
 Block::failed_leader() {
   if (m_leader == NULL)
-    throw internal_error("Block::change_leader(...) m_leader == transfer.");
+    throw internal_error("Block::failed_leader(...) m_leader == NULL.");
   
   m_leader->set_state(BlockTransfer::STATE_LEADER);
   m_leader = NULL;

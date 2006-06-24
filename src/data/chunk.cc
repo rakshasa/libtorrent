@@ -55,8 +55,25 @@ Chunk::clear() {
   std::for_each(begin(), end(), std::mem_fun_ref(&ChunkPart::clear));
 
   m_size = 0;
-  m_prot = 0;
+  m_prot = ~0;
   base_type::clear();
+}
+
+// Each add calls vector's reserve adding 1. This should keep
+// the size of the vector at exactly what we need. Though it
+// will require a few more cycles, it won't matter as we only
+// rarely have more than 1 or 2 nodes.
+//
+// If the user knows how many chunk parts he is going to add, then he
+// may call reserve prior to this.
+void
+Chunk::push_back(value_type::mapped_type mapped, const MemoryChunk& c) {
+  m_prot &= c.get_prot();
+
+  reserve(size() + 1);
+  base_type::insert(end(), ChunkPart(mapped, c, m_size));
+
+  m_size += c.size();
 }
 
 Chunk::iterator
@@ -89,23 +106,6 @@ Chunk::at_memory(uint32_t offset, iterator part) {
   offset -= part->position();
 
   return data_type(part->chunk().begin() + offset, part->size() - offset);
-}
-
-// Each add calls vector's reserve adding 1. This should keep
-// the size of the vector at exactly what we need. Though it
-// will require a few more cycles, it won't matter as we only
-// rarely have more than 1 or 2 nodes.
-void
-Chunk::push_back(const MemoryChunk& c) {
-  if (empty())
-    m_prot = c.get_prot();
-  else
-    m_prot &= c.get_prot();
-
-  //base_type::reserve(base_type::size() + 1);
-  base_type::insert(end(), ChunkPart(c, m_size));
-
-  m_size += c.size();
 }
 
 uint32_t

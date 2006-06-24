@@ -98,16 +98,16 @@ EntryList::open() {
 
     for (iterator itr = begin(), last = end(); itr != last; ++itr) {
       if ((*itr)->file_meta()->is_open())
-	throw internal_error("EntryList::open(...) found an already opened file.");
+        throw internal_error("EntryList::open(...) found an already opened file.");
       
       // Do this somewhere else.
       m_slotInsertFileMeta((*itr)->file_meta());
       
       if ((*itr)->path()->empty())
-	throw storage_error("Found an empty filename.");
+        throw storage_error("Found an empty filename.");
 
       if (!open_file(&*(*itr), lastPath))
-	throw storage_error("Could not open file \"" + m_rootDir + (*itr)->path()->as_string() + "\": " + rak::error_number::current().c_str());
+        throw storage_error("Could not open file \"" + m_rootDir + (*itr)->path()->as_string() + "\": " + rak::error_number::current().c_str());
       
       lastPath = *(*itr)->path();
     }
@@ -155,7 +155,7 @@ EntryList::resize_all() {
 
   return true;
 }
-					   
+
 EntryList::iterator
 EntryList::at_position(iterator itr, off_t offset) {
   while (itr != end())
@@ -219,7 +219,8 @@ EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
     if (!mc.is_valid())
       return NULL;
 
-    chunk->push_back(mc);
+    chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
+
     offset += mc.size();
     length -= mc.size();
   }

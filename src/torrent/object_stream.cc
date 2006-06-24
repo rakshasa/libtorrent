@@ -194,7 +194,10 @@ object_sha1(const Object* object) {
   sha1.init();
   sha1.update(s.c_str(), s.size());
 
-  return sha1.final();
+  char buffer[20];
+  sha1.final_c(buffer);
+
+  return std::string(buffer, 20);
 }
 
 std::istream&

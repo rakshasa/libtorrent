@@ -53,17 +53,19 @@ public:
   using base_type::reverse_iterator;
   using base_type::size;
   using base_type::empty;
+  using base_type::reserve;
 
   using base_type::begin;
   using base_type::end;
   using base_type::rbegin;
   using base_type::rend;
 
-  Chunk() : m_size(0), m_prot(0) {}
+  Chunk() : m_size(0), m_prot(~0) {}
   ~Chunk() { clear(); }
 
   bool                is_all_valid() const;
 
+  // All permissions are set for empty chunks.
   bool                is_readable() const             { return m_prot & MemoryChunk::prot_read; }
   bool                is_writable() const             { return m_prot & MemoryChunk::prot_write; }
   bool                has_permissions(int prot) const { return !(prot & ~m_prot); }
@@ -72,12 +74,12 @@ public:
 
   void                clear();
 
+  void                push_back(value_type::mapped_type mapped, const MemoryChunk& c);
+
   iterator            at_position(uint32_t pos);
   iterator            at_position(uint32_t pos, iterator itr);
 
   data_type           at_memory(uint32_t offset, iterator part);
-
-  void                push_back(const MemoryChunk& c);
 
   // Check how much of the chunk is incore from pos.
   uint32_t            incore_length(uint32_t pos);

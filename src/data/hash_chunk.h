@@ -57,8 +57,8 @@ public:
   
   void                set_chunk(ChunkHandle h)                { m_position = 0; m_chunk = h; m_hash.init(); }
 
-  const ChunkHandle&  get_chunk()                             { return m_chunk; }
-  std::string         hash()                              { return m_hash.final(); }
+  ChunkHandle*        chunk()                                 { return &m_chunk; }
+  void                hash_c(char* buffer)                    { m_hash.final_c(buffer); }
 
   // If force is true, then the return value is always true.
   bool                perform(uint32_t length, bool force = true);

@@ -102,7 +102,7 @@ public:
   bool                   has_chunk(uint32_t index) const                { return m_bitfield.get(index); }
   CreateChunk            create_chunk(uint32_t index, bool writable);
 
-  bool                   receive_chunk_hash(uint32_t index, const std::string& hash);
+  bool                   receive_chunk_hash(uint32_t index, const char* hash);
 
   void                   update_done();
 

@@ -153,7 +153,7 @@ Content::is_valid_piece(const Piece& p) const {
 }
 
 bool
-Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
+Content::receive_chunk_hash(uint32_t index, const char* hash) {
   if (m_bitfield.get(index))
     throw internal_error("Content::receive_chunk_hash(...) received a chunk that has already been finished.");
 
@@ -163,7 +163,7 @@ Content::receive_chunk_hash(uint32_t index, const std::string& hash) {
   if (index >= chunk_total() || chunks_completed() >= chunk_total())
     throw internal_error("Content::receive_chunk_hash(...) received an invalid index.");
 
-  if (hash.empty() || std::memcmp(hash.c_str(), chunk_hash(index), 20) != 0)
+  if (std::memcmp(hash, chunk_hash(index), 20) != 0)
     return false;
 
   m_bitfield.set(index);

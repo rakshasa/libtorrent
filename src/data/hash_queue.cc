@@ -48,12 +48,12 @@
 namespace torrent {
 
 struct HashQueueEqual {
-  HashQueueEqual(const std::string& id, uint32_t index) : m_id(id), m_index(index) {}
+  HashQueueEqual(HashQueueNode::id_type id, uint32_t index) : m_id(id), m_index(index) {}
 
-  bool operator () (const HashQueueNode& q) const { return m_id == q.get_id() && m_index == q.get_index(); }
+  bool operator () (const HashQueueNode& q) const { return m_id == q.id() && m_index == q.get_index(); }
 
-  const std::string&  m_id;
-  uint32_t            m_index;
+  HashQueueNode::id_type m_id;
+  uint32_t              m_index;
 };
 
 struct HashQueueWillneed {
@@ -86,7 +86,7 @@ HashQueue::willneed(int bytes) {
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
-HashQueue::push_back(ChunkHandle handle, SlotDone d, const std::string& id) {
+HashQueue::push_back(ChunkHandle handle, SlotDone d) {
   if (!handle.is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
@@ -100,26 +100,26 @@ HashQueue::push_back(ChunkHandle handle, SlotDone d, const std::string& id) {
     priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1);
   }
 
-  Base::push_back(HashQueueNode(hc, id, d));
+  Base::push_back(HashQueueNode(hc, d));
   willneed(m_readAhead);
 }
 
 bool
-HashQueue::has(const std::string& id) {
-  return std::find_if(begin(), end(), rak::equal(id, std::mem_fun_ref(&HashQueueNode::get_id))) != end();
+HashQueue::has(HashQueueNode::id_type id) {
+  return std::find_if(begin(), end(), rak::equal(id, std::mem_fun_ref(&HashQueueNode::id))) != end();
 }
 
 bool
-HashQueue::has(const std::string& id, uint32_t index) {
+HashQueue::has(HashQueueNode::id_type id, uint32_t index) {
   return std::find_if(begin(), end(), HashQueueEqual(id, index)) != end();
 }
 
 void
-HashQueue::remove(const std::string& id) {
+HashQueue::remove(HashQueueNode::id_type id) {
   iterator itr = begin();
   
-  while ((itr = std::find(itr, end(), id)) != end()) {
-    itr->slot_done()(itr->get_chunk()->get_chunk(), "");
+  while ((itr = std::find_if(itr, end(), rak::equal(id, std::mem_fun_ref(&HashQueueNode::id)))) != end()) {
+    itr->slot_done()(*itr->get_chunk()->chunk(), NULL);
 
     itr->clear();
     itr = erase(itr);
@@ -166,7 +166,10 @@ HashQueue::check(bool force) {
 
   Base::pop_front();
 
-  slotDone(chunk->get_chunk(), chunk->hash());
+  char buffer[20];
+  chunk->hash_c(buffer);
+
+  slotDone(*chunk->chunk(), buffer);
   delete chunk;
 
   // This should be a few chunks ahead.

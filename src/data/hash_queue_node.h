@@ -50,13 +50,14 @@ class DownloadWrapper;
 
 class HashQueueNode {
 public:
-  typedef rak::mem_fun2<DownloadWrapper, void, ChunkHandle, std::string> SlotDone;
+  typedef rak::mem_fun2<DownloadWrapper, void, ChunkHandle, const char*> SlotDone;
+  typedef const SlotDone::object_type*                                   id_type;
 
-  HashQueueNode(HashChunk* c, const std::string& i, SlotDone d) :
-    m_chunk(c), m_id(i), m_willneed(false), m_slotDone(d) {}
+  HashQueueNode(HashChunk* c, SlotDone d) : m_chunk(c), m_willneed(false), m_slotDone(d) {}
+
+  id_type             id() const                    { return m_slotDone.object(); }
 
   uint32_t            get_index() const;
-  const std::string&  get_id() const                { return m_id; }
 
   HashChunk*          get_chunk()                   { return m_chunk; }
   bool                get_willneed() const          { return m_willneed; }
@@ -71,11 +72,8 @@ public:
 
   SlotDone&           slot_done()                   { return m_slotDone; }
 
-  bool operator == (const std::string& id) const    { return m_id == id; }
-
 private:
   HashChunk*          m_chunk;
-  std::string         m_id;
   bool                m_willneed;
 
   SlotDone            m_slotDone;

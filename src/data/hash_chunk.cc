@@ -47,15 +47,15 @@ bool
 HashChunk::perform(uint32_t length, bool force) {
   length = std::min(length, remaining());
 
-  if (m_position + length > m_chunk->chunk()->size())
+  if (m_position + length > m_chunk.chunk()->size())
     throw internal_error("HashChunk::perform(...) received length out of range");
   
-  uint32_t l = force ? length : m_chunk->chunk()->incore_length(m_position);
+  uint32_t l = force ? length : m_chunk.chunk()->incore_length(m_position);
 
   bool complete = l == length;
 
   while (l) {
-    Chunk::iterator node = m_chunk->chunk()->at_position(m_position);
+    Chunk::iterator node = m_chunk.chunk()->at_position(m_position);
 
     l -= perform_part(node, l);
   }
@@ -65,16 +65,16 @@ HashChunk::perform(uint32_t length, bool force) {
 
 void
 HashChunk::advise_willneed(uint32_t length) {
-  if (!m_chunk->is_valid())
+  if (!m_chunk.is_valid())
     throw internal_error("HashChunk::willneed(...) called on an invalid chunk");
 
-  if (m_position + length > m_chunk->chunk()->size())
+  if (m_position + length > m_chunk.chunk()->size())
     throw internal_error("HashChunk::willneed(...) received length out of range");
 
   uint32_t pos = m_position;
 
   while (length) {
-    Chunk::iterator itr = m_chunk->chunk()->at_position(pos);
+    Chunk::iterator itr = m_chunk.chunk()->at_position(pos);
 
     uint32_t l = std::min(length, remaining_part(itr, pos));
 
@@ -88,10 +88,10 @@ HashChunk::advise_willneed(uint32_t length) {
 
 uint32_t
 HashChunk::remaining() {
-  if (!m_chunk->is_valid())
+  if (!m_chunk.is_valid())
     throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
 
-  return m_chunk->chunk()->size() - m_position;
+  return m_chunk.chunk()->size() - m_position;
 }
 
 uint32_t
