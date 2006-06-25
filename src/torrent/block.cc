@@ -51,24 +51,6 @@ Block::~Block() {
   std::for_each(m_failedList.begin(), m_failedList.end(), rak::on(rak::mem_ptr_ref(&failed_list_type::value_type::first), rak::call_delete<char>()));
 }
 
-inline void
-Block::invalidate_transfer(BlockTransfer* transfer) {
-  if (transfer == m_leader)
-    throw internal_error("Block::invalidate_transfer(...) transfer == m_leader.");
-
-  transfer->set_block(NULL);
-
-  // FIXME: Various other accounting like position and counters.
-  if (transfer->is_erased()) {
-    delete transfer;
-
-  } else {
-    m_notStalled -= transfer->stall() == 0;
-
-    transfer->set_state(BlockTransfer::STATE_ERASED);
-  }
-}
-
 void
 Block::clear() {
   m_leader = NULL;
@@ -133,7 +115,7 @@ Block::erase(BlockTransfer* transfer) {
       // have the same data up to their position. PeerConnectionBase
       // assumes that a Block with non-leaders have a leader.
 
-      transfer_list_type::iterator newLeader = std::max_element(std::find_if(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_finished))),
+      transfer_list_type::iterator newLeader = std::max_element(std::find_if(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_not_leader))),
                                                                 m_transfers.end(),
                                                                 rak::less2(std::mem_fun(&BlockTransfer::position), std::mem_fun(&BlockTransfer::position)));
 
@@ -142,6 +124,12 @@ Block::erase(BlockTransfer* transfer) {
         m_leader->set_state(BlockTransfer::STATE_LEADER);
       } else {
         m_leader = NULL;
+
+        // If we have no new leader, remove the erased (dissimilar)
+        // transfers so they can get another shot. They cannot be
+        // removed when found dissimilar as that would result in them
+        // being queued immediately.
+        remove_erased_transfers();
       }
     }
 
@@ -188,18 +176,8 @@ Block::completed(BlockTransfer* transfer) {
   if (!transfer->is_valid())
     throw internal_error("Block::completed(...) transfer->block() == NULL.");
 
-  if (transfer->is_erased())
-    throw internal_error("Block::completed(...) transfer is erased.");
-
   if (!transfer->is_leader())
     throw internal_error("Block::completed(...) transfer is not the leader.");
-
-  if (transfer->is_queued())
-    throw internal_error("Block::completed(...) transfer is queued.");
-
-  // How does this check work now?
-//   if (transfer->block()->is_finished())
-//     throw internal_error("Block::completed(...) transfer is already marked as finished.");
 
   // Special case where another ignored transfer finished before the
   // leader?
@@ -211,10 +189,10 @@ Block::completed(BlockTransfer* transfer) {
   if (transfer != m_leader)
     throw internal_error("Block::completed(...) transfer != m_leader.");
 
-  if ((Block::size_type)std::count_if(m_parent->begin(), m_parent->end(), std::mem_fun_ref(&Block::is_finished)) >= m_parent->size())
-    throw internal_error("Block::completed(...) Finished blocks too large.");
-
   m_parent->inc_finished();
+
+  if ((Block::size_type)std::count_if(m_parent->begin(), m_parent->end(), std::mem_fun_ref(&Block::is_finished)) < m_parent->finished())
+    throw internal_error("Block::completed(...) Finished blocks too large.");
 
   m_notStalled -= transfer->stall() == 0;
 
@@ -231,11 +209,7 @@ Block::completed(BlockTransfer* transfer) {
 
   // We need to invalidate those unfinished and keep the one that
   // finished for later reference.
-
-  transfer_list_type::iterator split = std::stable_partition(m_transfers.begin(), m_transfers.end(), std::mem_fun(&BlockTransfer::is_finished));
-
-  std::for_each(split, m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
-  m_transfers.erase(split, m_transfers.end());
+  remove_non_leader_transfers();
   
   if (m_transfers.empty() || m_transfers.back() != transfer)
     throw internal_error("Block::completed(...) m_transfers.empty() || m_transfers.back() != transfer.");
@@ -249,12 +223,14 @@ Block::completed(BlockTransfer* transfer) {
 // re-download.
 void
 Block::transfer_dissimilar(BlockTransfer* transfer) {
-  if (!transfer->is_not_leader())
-    throw internal_error("Block::transfer_dissimilar(...) !transfer->is_not_leader().");
+  if (!transfer->is_not_leader() || m_leader == transfer)
+    throw internal_error("Block::transfer_dissimilar(...) transfer is the leader.");
 
   m_notStalled -= transfer->stall() == 0;
 
-  // Why not just delete?
+  // Why not just delete? Gets done by completed(), though when
+  // erasing the leader we need to remove dissimilar unless we have
+  // another leader.
   
   transfer->set_state(BlockTransfer::STATE_ERASED);
   transfer->set_position(0);
@@ -280,6 +256,9 @@ Block::change_leader(BlockTransfer* transfer) {
   if (m_leader == transfer)
     throw internal_error("Block::change_leader(...) m_leader == transfer.");
 
+  if (is_finished())
+    throw internal_error("Block::change_leader(...) is_finished().");
+
   if (m_leader != NULL)
     m_leader->set_state(BlockTransfer::STATE_NOT_LEADER);
 
@@ -289,11 +268,44 @@ Block::change_leader(BlockTransfer* transfer) {
 
 void
 Block::failed_leader() {
-  if (m_leader == NULL)
-    throw internal_error("Block::failed_leader(...) m_leader == NULL.");
-  
-  m_leader->set_state(BlockTransfer::STATE_LEADER);
+  if (!is_finished())
+    throw internal_error("Block::failed_leader(...) !is_finished().");
+
   m_leader = NULL;
+}
+
+inline void
+Block::invalidate_transfer(BlockTransfer* transfer) {
+  if (transfer == m_leader)
+    throw internal_error("Block::invalidate_transfer(...) transfer == m_leader.");
+
+  transfer->set_block(NULL);
+
+  // FIXME: Various other accounting like position and counters.
+  if (transfer->is_erased()) {
+    delete transfer;
+
+  } else {
+    m_notStalled -= transfer->stall() == 0;
+
+    transfer->set_state(BlockTransfer::STATE_ERASED);
+  }
+}
+
+void
+Block::remove_erased_transfers() {
+  transfer_list_type::iterator split = std::stable_partition(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_erased)));
+
+  std::for_each(split, m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
+  m_transfers.erase(split, m_transfers.end());
+}
+
+void
+Block::remove_non_leader_transfers() {
+  transfer_list_type::iterator split = std::stable_partition(m_transfers.begin(), m_transfers.end(), std::mem_fun(&BlockTransfer::is_leader));
+
+  std::for_each(split, m_transfers.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
+  m_transfers.erase(split, m_transfers.end());
 }
 
 BlockTransfer*

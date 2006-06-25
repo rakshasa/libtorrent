@@ -128,6 +128,9 @@ private:
 
   inline void               invalidate_transfer(BlockTransfer* transfer);
 
+  void                      remove_erased_transfers();
+  void                      remove_non_leader_transfers();
+
   BlockList*                m_parent;
   Piece                     m_piece;
   
