@@ -43,6 +43,7 @@
 
 namespace torrent {
 
+class BlockFailed;
 class BlockList;
 class PeerInfo;
 
@@ -55,10 +56,9 @@ public:
   // should be small. Later we can do faster erase by ignoring the
   // ordering.
   typedef std::vector<BlockTransfer*>              transfer_list_type;
-  typedef std::vector<std::pair<char*, uint32_t> > failed_list_type;
   typedef uint32_t                                 size_type;
 
-  Block() : m_notStalled(0), m_leader(NULL) { }
+  Block() : m_notStalled(0), m_leader(NULL), m_failedList(NULL) { }
   ~Block();
 
   bool                      is_stalled() const                           { return m_notStalled == 0; }
@@ -84,6 +84,7 @@ public:
   const transfer_list_type* transfers() const                            { return &m_transfers; }
 
   // The leading transfer, whom's data we're currently using.
+  BlockTransfer*            leader()                                     { return m_leader; }
   const BlockTransfer*      leader() const                               { return m_leader; }
 
   BlockTransfer*            find(const PeerInfo* p);
@@ -120,7 +121,8 @@ public:
   void                      change_leader(BlockTransfer* transfer);
   void                      failed_leader();
 
-  failed_list_type*         failed_list()                                { return &m_failedList; }
+  BlockFailed*              failed_list()                                { return m_failedList; }
+  void                      set_failed_list(BlockFailed* f)              { m_failedList = f; }
 
 private:
 //   Block(const Block&);
@@ -138,9 +140,10 @@ private:
 
   transfer_list_type        m_queued;
   transfer_list_type        m_transfers;
-  failed_list_type          m_failedList;
 
   BlockTransfer*            m_leader;
+
+  BlockFailed*              m_failedList;
 };
 
 inline BlockTransfer*

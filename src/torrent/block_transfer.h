@@ -47,6 +47,8 @@ class PeerInfo;
 
 class BlockTransfer {
 public:
+  static const uint32_t invalid_index = ~uint32_t();
+
   typedef PeerInfo* key_type;
 
   typedef enum {
@@ -94,6 +96,9 @@ public:
   uint32_t            stall() const                 { return m_stall; }
   void                set_stall(uint32_t s)         { m_stall = s; }
 
+  uint32_t            failed_index() const          { return m_failedIndex; }
+  void                set_failed_index(uint32_t i)  { m_failedIndex = i; }
+
 private:
   BlockTransfer(const BlockTransfer&);
   void operator = (const BlockTransfer&);
@@ -106,6 +111,7 @@ private:
 
   uint32_t            m_position;
   uint32_t            m_stall;
+  uint32_t            m_failedIndex;
 };
 
 inline void
@@ -114,8 +120,10 @@ BlockTransfer::create_dummy(PeerInfo* peerInfo, const Piece& piece) {
   m_block = NULL;
   m_piece = piece;
   m_state = BlockTransfer::STATE_ERASED;
+
   m_position = 0;
   m_stall = 0;
+  m_failedIndex = invalid_index;
 }
 
 }

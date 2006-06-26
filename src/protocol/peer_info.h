@@ -68,8 +68,9 @@ public:
 
   void                set_socket_address(const rak::socket_address* sa) { m_address = *sa; }
 
-  bool                operator < (const PeerInfo& p) const  { return m_id < p.m_id; }
-  bool                operator == (const PeerInfo& p) const { return m_id == p.m_id; }
+  uint32_t            failed_counter() const                { return m_failedCounter; }
+  void                inc_failed_counter()                  { m_failedCounter++; }
+  void                set_failed_counter(uint32_t c)        { m_failedCounter = c; }
 
 private:
   std::string         m_id;
@@ -78,13 +79,15 @@ private:
 
   bool                m_connected;
   bool                m_incoming;
+
+  uint32_t            m_failedCounter;
 };
 
 inline
 PeerInfo::PeerInfo() : 
   m_connected(false),
-  m_incoming(false)
-
+  m_incoming(false),
+  m_failedCounter(0)
 {
   m_address.clear();
   std::memset(m_options, 0, 8);
@@ -92,4 +95,4 @@ PeerInfo::PeerInfo() :
 
 } // namespace torrent
 
-#endif // LIBTORRENT_PEER_INFO_H
+#endif

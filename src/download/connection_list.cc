@@ -58,9 +58,6 @@ ConnectionList::insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd, Bitfiel
   if (size() >= m_maxSize)
     return NULL;
 
-  if (std::find_if(begin(), end(), rak::equal_ptr(p, std::mem_fun(&PeerConnectionBase::peer_info))) != end())
-    return NULL;
-
   PeerConnectionBase* pcb = m_slotNewConnection();
 
   if (pcb == NULL || bitfield == NULL)

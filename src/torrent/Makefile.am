@@ -5,6 +5,7 @@ libsub_torrent_la_SOURCES = \
 	bitfield.h \
 	block.cc \
 	block.h \
+	block_failed.h \
 	block_list.cc \
 	block_list.h \
 	block_transfer.h \

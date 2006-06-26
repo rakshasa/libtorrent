@@ -268,14 +268,14 @@ ChunkList::sync_periodic() {
     // call.
     if (!(*itr)->sync_triggered()) {
       if (!sync_chunk(*itr, MemoryChunk::sync_async, false))
-	failed++;
+        failed++;
 
       std::iter_swap(itr, split++);
 
     } else {
       if (!sync_chunk(*itr, MemoryChunk::sync_sync, true)) {
-	failed++;
-	std::iter_swap(itr, split++);
+        failed++;
+        std::iter_swap(itr, split++);
       }
     }
   }

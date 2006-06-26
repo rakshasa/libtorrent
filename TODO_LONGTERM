@@ -19,6 +19,8 @@ that information on re-hashing etc.
 Allow the client to set the done counter, and read it, when
 closed. This would be in the bitfield.
 
+Allow the client to set the a/sync times and sizes.
+
 
 === torrent::Object ==
 

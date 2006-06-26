@@ -38,10 +38,13 @@
 
 #include <algorithm>
 #include <functional>
+#include <set>
 #include <rak/functional.h>
 
 #include "data/chunk.h"
+#include "protocol/peer_info.h"
 
+#include "block_failed.h"
 #include "block_transfer.h"
 #include "block_list.h"
 #include "exceptions.h"
@@ -110,13 +113,16 @@ TransferList::hash_succeded(uint32_t index) {
   if ((Block::size_type)std::count_if((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::is_finished)) != (*blockListItr)->size())
     throw internal_error("TransferList::hash_succeded(...) Finished blocks does not match size.");
 
+  if ((*blockListItr)->failed() != 0)
+    mark_failed_peers(*blockListItr);
+
   erase(blockListItr);
 }
 
 struct transfer_list_compare_data {
   transfer_list_compare_data(Chunk* chunk, const Piece& p) : m_chunk(chunk), m_piece(p) { }
 
-  bool operator () (const Block::failed_list_type::reference failed) {
+  bool operator () (const BlockFailed::reference failed) {
     return m_chunk->compare_buffer(failed.first, m_piece.offset(), m_piece.length());
   }
 
@@ -134,63 +140,112 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
   if ((Block::size_type)std::count_if((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::is_finished)) != (*blockListItr)->size())
     throw internal_error("TransferList::hash_failed(...) Finished blocks does not match size.");
 
+  // Could propably also check promoted against size of the block
+  // list.
+
   if ((*blockListItr)->attempt() == 0) {
-    // First attempt, account for the new blocks.
+    unsigned int promoted = update_failed(*blockListItr, chunk);
 
-    for (BlockList::iterator blockItr = (*blockListItr)->begin(), last = (*blockListItr)->end(); blockItr != last; ++blockItr) {
+    if (promoted > 0 || promoted < (*blockListItr)->size()) {
+      // Retry with the most popular blocks.
+      (*blockListItr)->set_attempt(1);
+      retry_most_popular(*blockListItr, chunk);
+
+      // Also consider various other schemes, like using blocks from
+      // only/mainly one peer.
+
+      return;
+    }
+  }
+
+  // Should we check if there's any peers whom have sent us bad data
+  // before, and just clear those first?
+
+  // Re-download the blocks.
+  (*blockListItr)->clear_finished();
+  (*blockListItr)->set_attempt(0);
+
+  // Clear leaders when we want to redownload the chunk.
+  std::for_each((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::failed_leader));
+}
+
+// update_failed(...) either increments the reference count of a
+// failed entry, or creates a new one if the data differs.
+unsigned int
+TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
+  unsigned int promoted = 0;
+
+  blockList->inc_failed();
+
+  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr) {
     
-      Block::failed_list_type::iterator failedItr = std::find_if(blockItr->failed_list()->begin(), blockItr->failed_list()->end(),
-                                                                 transfer_list_compare_data(chunk, blockItr->piece()));
+    if (itr->failed_list() == NULL)
+      itr->set_failed_list(new BlockFailed());
 
-      if (failedItr == blockItr->failed_list()->end()) {
-        // We've never encountered this data before, make a new entry.
-        char* buffer = new char[blockItr->piece().length()];
+    BlockFailed::iterator failedItr = std::find_if(itr->failed_list()->begin(), itr->failed_list()->end(),
+                                                               transfer_list_compare_data(chunk, itr->piece()));
 
-        chunk->to_buffer(buffer, blockItr->piece().offset(), blockItr->piece().length());
+    if (failedItr == itr->failed_list()->end()) {
+      // We've never encountered this data before, make a new entry.
+      char* buffer = new char[itr->piece().length()];
 
-        blockItr->failed_list()->push_back(Block::failed_list_type::value_type(buffer, 1));
+      chunk->to_buffer(buffer, itr->piece().offset(), itr->piece().length());
 
-        // Count how many new data sets?
+      itr->failed_list()->push_back(BlockFailed::value_type(buffer, 1));
 
-      } else {
-        failedItr->second++;
-      }
+      // Count how many new data sets?
+
+    } else {
+      // Increment promoted when the entry's reference count becomes
+      // larger than others, but not if it previously was the largest.
+
+      BlockFailed::iterator maxItr = itr->failed_list()->max_element();
+
+      if (maxItr->second == failedItr->second && maxItr != --itr->failed_list()->reverse_max_element().base())
+        promoted++;
+
+      failedItr->second++;
     }
 
-    (*blockListItr)->inc_failed();
-
-    // Retry with the most popular blocks.
-    (*blockListItr)->set_attempt(1);
-    retry_most_popular(*blockListItr, chunk);
-
-    // Also consider various other schemes, like using blocks from
-    // only/mainly one peer.
-
-  } else {
-    // Re-download the blocks.
-    (*blockListItr)->clear_finished();
-    (*blockListItr)->set_attempt(0);
-
-    // Clear leaders when we want to redownload the chunk.
-    std::for_each((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::failed_leader));
+    itr->failed_list()->set_current(failedItr);
+    itr->leader()->set_failed_index(failedItr - itr->failed_list()->begin());
   }
+
+  return promoted;
 }
 
 void
+TransferList::mark_failed_peers(BlockList* blockList) {
+  std::set<PeerInfo*> badPeers;
+
+  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr)
+    for (Block::transfer_list_type::const_iterator itr2 = itr->transfers()->begin(), last2 = itr->transfers()->end(); itr2 != last2; ++itr2)
+      if ((*itr2)->failed_index() != itr->failed_list()->current())
+        badPeers.insert((*itr2)->peer_info());
+
+  std::for_each(badPeers.begin(), badPeers.end(), std::mem_fun(&PeerInfo::inc_failed_counter));
+}
+
+// Copy the stored data to the chunk from the failed entries with
+// largest reference counts.
+void
 TransferList::retry_most_popular(BlockList* blockList, Chunk* chunk) {
-
-  for (BlockList::iterator blockItr = blockList->begin(), last = blockList->end(); blockItr != last; ++blockItr) {
+  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr) {
     
-    Block::failed_list_type::iterator failedItr = std::max_element(blockItr->failed_list()->begin(), blockItr->failed_list()->end(),
-                                                                   rak::less2(rak::mem_ptr_ref(&Block::failed_list_type::value_type::second),
-                                                                              rak::mem_ptr_ref(&Block::failed_list_type::value_type::second)));
+    BlockFailed::reverse_iterator failedItr = itr->failed_list()->reverse_max_element();
 
-    if (failedItr == blockItr->failed_list()->end())
+    if (failedItr == itr->failed_list()->rend())
       throw internal_error("TransferList::retry_most_popular(...) No failed list entry found.");
+
+    // The data is the same, so no need to copy.
+    if (failedItr == itr->failed_list()->current_reverse_iterator())
+      continue;
 
     // Change the leader to the currently held buffer?
 
-    chunk->from_buffer(failedItr->first, blockItr->piece().offset(), blockItr->piece().length());
+    chunk->from_buffer(failedItr->first, itr->piece().offset(), itr->piece().length());
+
+    itr->failed_list()->set_current(failedItr);
   }
 
   m_slotCompleted(blockList->index());

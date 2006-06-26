@@ -109,6 +109,9 @@ private:
   TransferList(const TransferList&);
   void operator = (const TransferList&);
 
+  unsigned int        update_failed(BlockList* blockList, Chunk* chunk);
+  void                mark_failed_peers(BlockList* blockList);
+
   void                retry_most_popular(BlockList* blockList, Chunk* chunk);
 
   slot_canceled_type  m_slotCanceled;

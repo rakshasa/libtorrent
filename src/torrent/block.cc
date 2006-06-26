@@ -41,6 +41,7 @@
 #include <rak/functional.h>
 
 #include "block.h"
+#include "block_failed.h"
 #include "block_list.h"
 #include "block_transfer.h"
 #include "exceptions.h"
@@ -48,7 +49,7 @@
 namespace torrent {
 
 Block::~Block() {
-  std::for_each(m_failedList.begin(), m_failedList.end(), rak::on(rak::mem_ptr_ref(&failed_list_type::value_type::first), rak::call_delete<char>()));
+  delete m_failedList;
 }
 
 void
@@ -272,6 +273,9 @@ Block::failed_leader() {
     throw internal_error("Block::failed_leader(...) !is_finished().");
 
   m_leader = NULL;
+
+  if (m_failedList != NULL)
+    m_failedList->set_current(BlockFailed::invalid_index);
 }
 
 inline void
