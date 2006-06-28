@@ -159,7 +159,7 @@ Download::local_id() const {
 uint32_t
 Download::creation_date() const {
   if (m_ptr->bencode()->has_key_value("creation date"))
-    return m_ptr->bencode()->get_key("creation date").as_value();
+    return m_ptr->bencode()->get_key_value("creation date");
   else
     return 0;
 }

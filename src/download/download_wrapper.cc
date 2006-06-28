@@ -118,18 +118,18 @@ DownloadWrapper::hash_resume_load() {
 
     // Load peer addresses.
     if (resume.has_key_string("peers"))
-      insert_available_list(resume.get_key("peers").as_string());
+      insert_available_list(resume.get_key_string("peers"));
 
     Object& files = resume.get_key("files");
 
     if (resume.has_key_string("bitfield") &&
-        resume.get_key("bitfield").as_string().size() == m_main.content()->bitfield()->size_bytes() &&
+        resume.get_key_string("bitfield").size() == m_main.content()->bitfield()->size_bytes() &&
         files.as_list().size() == m_main.content()->entry_list()->files_size()) {
 
       // Clear the hash checking ranges, and add the files ranges we
       // must check.
       m_hash->ranges().clear();
-      m_main.content()->bitfield()->from_c_str(resume.get_key("bitfield").as_string().c_str());
+      m_main.content()->bitfield()->from_c_str(resume.get_key_string("bitfield").c_str());
 
     } else {
       // No resume bitfield available, check the whole range.
@@ -149,14 +149,14 @@ DownloadWrapper::hash_resume_load() {
       if (!fs.update((*sItr)->file_meta()->get_path()) ||
           (*sItr)->size() != fs.size() ||
           !bItr->has_key_value("mtime") ||
-          bItr->get_key("mtime").as_value() != fs.modified_time())
+          bItr->get_key_value("mtime") != fs.modified_time())
         m_hash->ranges().insert((*sItr)->range().first, (*sItr)->range().second);
 
       // Update the priority from the fast resume data.
       if (bItr->has_key_value("priority") &&
-          bItr->get_key("priority").as_value() >= 0 &&
-          bItr->get_key("priority").as_value() <= PRIORITY_HIGH)
-        (*sItr)->set_priority((priority_t)(*bItr).get_key("priority").as_value());
+          bItr->get_key_value("priority") >= 0 &&
+          bItr->get_key_value("priority") <= PRIORITY_HIGH)
+        (*sItr)->set_priority((priority_t)(*bItr).get_key_value("priority"));
 
       ++sItr;
       ++bItr;

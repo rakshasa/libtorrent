@@ -107,6 +107,18 @@ public:
   Object&             get_key(const key_type& k);
   const Object&       get_key(const key_type& k) const;
 
+  value_type&         get_key_value(const key_type& k)               { return get_key(k).as_value(); }
+  const value_type&   get_key_value(const key_type& k) const         { return get_key(k).as_value(); }
+
+  string_type&        get_key_string(const key_type& k)              { return get_key(k).as_string(); }
+  const string_type&  get_key_string(const key_type& k) const        { return get_key(k).as_string(); }
+
+  list_type&          get_key_list(const key_type& k)                { return get_key(k).as_list(); }
+  const list_type&    get_key_list(const key_type& k) const          { return get_key(k).as_list(); }
+
+  map_type&           get_key_map(const key_type& k)                 { return get_key(k).as_map(); }
+  const map_type&     get_key_map(const key_type& k) const           { return get_key(k).as_map(); }
+
   Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
   void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); m_map->erase(k); }
 

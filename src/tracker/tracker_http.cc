@@ -179,28 +179,28 @@ TrackerHttp::receive_done() {
   if (b.has_key("failure reason"))
     return receive_failed("Failure reason \"" +
 			 (b.get_key("failure reason").is_string() ?
-			  b.get_key("failure reason").as_string() :
+			  b.get_key_string("failure reason") :
 			  std::string("failure reason not a string"))
 			 + "\"");
 
   if (b.has_key_value("interval"))
-    m_slotSetInterval(b.get_key("interval").as_value());
+    m_slotSetInterval(b.get_key_value("interval"));
   
   if (b.has_key_value("min interval"))
-    m_slotSetMinInterval(b.get_key("min interval").as_value());
+    m_slotSetMinInterval(b.get_key_value("min interval"));
 
   if (b.has_key_string("tracker id"))
-    m_trackerId = b.get_key("tracker id").as_string();
+    m_trackerId = b.get_key_string("tracker id");
 
   if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
-    m_scrapeComplete   = std::max<int64_t>(b.get_key("complete").as_value(), 0);
-    m_scrapeIncomplete = std::max<int64_t>(b.get_key("incomplete").as_value(), 0);
+    m_scrapeComplete   = std::max<int64_t>(b.get_key_value("complete"), 0);
+    m_scrapeIncomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
 
     m_scrapeTimeLast = cachedTime;
   }
 
   if (b.has_key_value("downloaded"))
-    m_scrapeDownloaded = std::max<int64_t>(b.get_key("downloaded").as_value(), 0);
+    m_scrapeDownloaded = std::max<int64_t>(b.get_key_value("downloaded"), 0);
 
   AddressList l;
 
@@ -208,10 +208,10 @@ TrackerHttp::receive_done() {
     // Due to some trackers sending the wrong type when no peers are
     // available, don't bork on it.
     if (b.get_key("peers").is_string())
-      parse_address_compact(&l, b.get_key("peers").as_string());
+      parse_address_compact(&l, b.get_key_string("peers"));
 
     else if (b.get_key("peers").is_list())
-      parse_address_normal(&l, b.get_key("peers").as_list());
+      parse_address_normal(&l, b.get_key_list("peers"));
 
   } catch (bencode_error& e) {
     return receive_failed(e.what());
@@ -236,13 +236,13 @@ TrackerHttp::parse_address(const Object& b) {
   if (!b.is_map())
     return sa;
 
-  if (!b.has_key_string("ip") || !sa.set_address_str(b.get_key("ip").as_string()))
+  if (!b.has_key_string("ip") || !sa.set_address_str(b.get_key_string("ip")))
     return sa;
 
-  if (!b.has_key_value("port") || b.get_key("port").as_value() <= 0 || b.get_key("port").as_value() >= (1 << 16))
+  if (!b.has_key_value("port") || b.get_key_value("port") <= 0 || b.get_key_value("port") >= (1 << 16))
     return sa;
 
-  sa.set_port(b.get_key("port").as_value());
+  sa.set_port(b.get_key_value("port"));
 
   return sa;
 }

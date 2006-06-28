@@ -43,28 +43,32 @@
 namespace torrent {
 
 // Keep the current rate count up to date for each call to rate() and
-// insert(...). This requires a mutable since rate() is const, but if
-// justified as we don't need to iterate the deque for each call.
+// insert(...). This requires a mutable since rate() can be const, but
+// is justified as we avoid iterating the deque for each call.
 
 class Rate {
 public:
-  // std::pair<seconds, bytes>
   typedef int32_t                          timer_type;
   typedef uint32_t                         rate_type;
+  typedef uint64_t                         total_type;
+
   typedef std::pair<timer_type, rate_type> value_type;
   typedef std::deque<value_type>           queue_type;
 
-  Rate(uint32_t span) : m_current(0), m_total(0), m_span(span) {}
+  Rate(timer_type span) : m_current(0), m_total(0), m_span(span) {}
 
-  uint32_t            rate() const;
+  // Bytes per second.
+  rate_type           rate() const;
 
-  uint64_t            total() const                           { return m_total; }
-  void                set_total(uint64_t bytes)               { m_total = bytes; }
+  // Total bytes transfered.
+  total_type          total() const                           { return m_total; }
+  void                set_total(total_type bytes)             { m_total = bytes; }
 
-  uint32_t            span() const                            { return m_span; }
-  void                set_span(uint32_t s)                    { m_span = s; }
+  // Interval in seconds used to calculate the rate.
+  timer_type          span() const                            { return m_span; }
+  void                set_span(timer_type s)                  { m_span = s; }
 
-  void                insert(uint32_t bytes);
+  void                insert(rate_type bytes);
 
   void                reset_rate()                            { m_current = 0; m_container.clear(); }
   
@@ -83,9 +87,9 @@ private:
 
   mutable queue_type  m_container;
 
-  mutable uint32_t    m_current;
-  uint64_t            m_total;
-  uint32_t            m_span;
+  mutable rate_type   m_current;
+  total_type          m_total;
+  timer_type          m_span;
 };
 
 }

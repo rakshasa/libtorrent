@@ -43,27 +43,24 @@ namespace torrent {
 
 inline void
 Rate::discard_old() const {
-  while (!m_container.empty() &&
-	 m_container.back().first < cachedTime.seconds() - (int32_t)m_span) {
+  while (!m_container.empty() && m_container.back().first < cachedTime.seconds() - m_span) {
     m_current -= m_container.back().second;
     m_container.pop_back();
   }
 }
 
-uint32_t
+Rate::rate_type
 Rate::rate() const {
   discard_old();
 
-  //  return m_current / std::max<uint32_t>(10, data_time_span());
   return m_current / m_span;
 }
 
 void
-Rate::insert(uint32_t bytes) {
+Rate::insert(rate_type bytes) {
   discard_old();
 
-  if (m_container.empty() ||
-      m_container.front().first != cachedTime.seconds())
+  if (m_container.empty() || m_container.front().first != cachedTime.seconds())
     m_container.push_front(value_type(cachedTime.seconds(), bytes));
   else
     m_container.front().second += bytes;
@@ -71,6 +68,5 @@ Rate::insert(uint32_t bytes) {
   m_total += bytes;
   m_current += bytes;
 }
-  
 
 }
