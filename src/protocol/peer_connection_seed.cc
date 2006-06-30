@@ -213,6 +213,9 @@ PeerConnectionSeed::event_read() {
 
     do {
 
+      if (m_down->buffer()->size_end() == read_size)
+        throw internal_error("PeerConnectionSeed::event_read() m_down->buffer()->size_end() == read_size.");
+
       m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
         
       while (read_message());

@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <rak/functional.h>
+
 #include "object.h"
 
 namespace torrent {
@@ -135,6 +137,37 @@ Object::get_key(const std::string& k) const {
     throw bencode_error("Object operator [" + k + "] could not find element");
 
   return itr->second;
+}
+
+// Add a parameter for how deep we do the merge?
+
+Object&
+Object::merge_recursive(const Object& object, uint32_t maxDepth) {
+  if (maxDepth == 0 || !is_map() || !object.is_map())
+    return (*this = object);
+
+  map_type& dest = as_map();
+  map_type::iterator destItr = dest.begin();
+
+  map_type::const_iterator srcItr = object.as_map().begin();
+  map_type::const_iterator srcLast = object.as_map().end();
+
+  while (srcItr != srcLast) {
+    destItr = std::find_if(destItr, dest.end(), rak::less_equal(srcItr->first, rak::mem_ptr_ref(&map_type::value_type::first)));
+
+    if (srcItr->first < destItr->first) {
+      // destItr remains valid and pointing to the next possible
+      // position.
+      dest.insert(destItr, *srcItr);
+
+    } else {
+      destItr->second.merge_recursive(srcItr->second, maxDepth - 1);
+    }
+
+    srcItr++;
+  }
+
+  return *this;
 }
 
 }

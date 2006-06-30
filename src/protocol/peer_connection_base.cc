@@ -234,8 +234,16 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
 
 void
 PeerConnectionBase::down_chunk_finished() {
+  if (!download_queue()->transfer()->is_finished())
+    throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
+
   m_downChunk.object()->set_time_modified(cachedTime);
-  download_queue()->finished();
+
+  if (download_queue()->transfer()->is_leader()) {
+    download_queue()->finished();
+  } else {
+    download_queue()->skipped();
+  }
         
   if (m_downStall > 0)
     m_downStall--;
@@ -305,14 +313,14 @@ PeerConnectionBase::down_chunk_skip() {
   if (down_chunk_skip_process(m_nullBuffer, length) != length)
     throw internal_error("PeerConnectionBase::down_chunk_skip() down_chunk_skip_process(m_nullBuffer, length) != length.");
 
-  return m_downloadQueue.transfer()->is_finished() || m_downloadQueue.transfer()->is_leader();
+  return m_downloadQueue.transfer()->is_finished();
 }
 
 bool
 PeerConnectionBase::down_chunk_skip_from_buffer() {
   m_down->buffer()->move_position(down_chunk_skip_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
   
-  return m_downloadQueue.transfer()->is_finished() || m_downloadQueue.transfer()->is_leader();
+  return m_downloadQueue.transfer()->is_finished();
 }
 
 // Process data from a leading transfer.

@@ -224,44 +224,28 @@ PeerConnectionLeech::read_message() {
     if (!down_chunk_start(m_down->read_piece(length - 9))) {
 
       // We don't want this chunk.
-      if (!down_chunk_skip_from_buffer()) {
-        // We did not finish the chunk.
-        m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
-        return false;
-
-      } else if (m_downloadQueue.transfer()->is_finished()) {
-        m_downloadQueue.skipped();
+      if (down_chunk_skip_from_buffer()) {
+        m_tryRequest = true;
+        down_chunk_finished();
         return true;
 
-      } else if (m_downloadQueue.transfer()->is_leader()) {
-        // We became the new leader, do a normal download.
+      } else {
+        m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
+        return false;
+      }
+      
+    } else {
+
+      if (down_chunk_from_buffer()) {
+        m_tryRequest = true;
+        down_chunk_finished();
+        return true;
+
+      } else {
         m_down->set_state(ProtocolRead::READ_PIECE);
         m_download->download_throttle()->insert(m_peerChunks.download_throttle());
         return false;
-        
-      } else {
-        throw internal_error("PeerConnectionLeech::read_message() skipped returned true but transfer is neither leader nor finished.");
       }
-      
-    } else if (down_chunk_from_buffer()) {
-      // Done with chunk.
-      m_downChunk.object()->set_time_modified(cachedTime);
-      download_queue()->finished();
-    
-      if (m_downStall > 0)
-        m_downStall--;
-    
-      // TODO: clear m_down.data?
-      // TODO: remove throttle if choked? Rarely happens though.
-      m_tryRequest = true;
-      write_insert_poll_safe();
-
-      return true;
-
-    } else {
-      m_down->set_state(ProtocolRead::READ_PIECE);
-      m_download->download_throttle()->insert(m_peerChunks.download_throttle());
-      return false;
     }
 
   case ProtocolBase::CANCEL:
@@ -304,6 +288,9 @@ PeerConnectionLeech::event_read() {
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
+        if (m_down->buffer()->size_end() == read_size)
+          throw internal_error("PeerConnectionLeech::event_read() m_down->buffer()->size_end() == read_size.");
+
         m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
         
         while (read_message());
@@ -334,30 +321,19 @@ PeerConnectionLeech::event_read() {
         break;
 
       case ProtocolRead::READ_SKIP_PIECE:
+        if (download_queue()->transfer()->is_leader()) {
+          m_down->set_state(ProtocolRead::READ_PIECE);
+          m_download->download_throttle()->insert(m_peerChunks.download_throttle());
+          break;
+        }
+
         if (!down_chunk_skip())
           return;
 
-        if (download_queue()->transfer()->is_finished()) {
-
-          if (download_queue()->transfer()->is_leader()) {
-            m_tryRequest = true;
-            down_chunk_finished();
-
-          } else {
-            download_queue()->skipped();
-          }
-
-          m_down->set_state(ProtocolRead::IDLE);
-          break;
-
-        } else {
-          if (!download_queue()->transfer()->is_leader())
-            throw internal_error("PeerConnectionLeech::event_read() skipped returned true but transfer is neither leader nor finished.");
-
-          m_down->set_state(ProtocolRead::READ_PIECE);
-          m_download->download_throttle()->insert(m_peerChunks.download_throttle());
-          return;
-        }
+        m_tryRequest = true;
+        m_down->set_state(ProtocolRead::IDLE);
+        down_chunk_finished();
+        break;
 
       default:
         throw internal_error("PeerConnectionLeech::event_read() wrong state.");

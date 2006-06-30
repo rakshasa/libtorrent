@@ -126,6 +126,9 @@ public:
 
   const uint8_t*      chunks_seen() const;
 
+  // Set the number of finished chunks for closed torrents.
+  void                set_chunks_done(uint32_t chunks);
+
   const Bitfield*     bitfield() const;
 
   uint32_t            peers_min() const;

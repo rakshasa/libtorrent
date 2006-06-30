@@ -104,6 +104,10 @@ DownloadMain::open() {
 
   m_content.entry_list()->open();
 
+  // Move the clearing of this to the hash resume thingie?
+  m_content.bitfield()->allocate();
+  m_content.bitfield()->unset_all();
+
   m_chunkList->resize(m_content.chunk_total());
   m_chunkStatistics->initialize(m_content.chunk_total());
 
@@ -123,7 +127,7 @@ DownloadMain::close() {
   m_trackerManager->close();
   m_delegator.transfer_list()->clear();
 
-  m_content.clear();
+  m_content.bitfield()->unallocate();
   m_content.entry_list()->close();
 
   // Clear the chunklist last as it requires all referenced chunks to

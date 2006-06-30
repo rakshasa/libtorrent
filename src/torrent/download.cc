@@ -253,6 +253,14 @@ Download::chunks_seen() const {
   return !m_ptr->main()->chunk_statistics()->empty() ? &*m_ptr->main()->chunk_statistics()->begin() : NULL;
 }
 
+void
+Download::set_chunks_done(uint32_t chunks) {
+  if (m_ptr->main()->is_open())
+    throw input_error("Download::set_chunks_done(...) Download is open.");
+
+  m_ptr->main()->content()->bitfield()->set_size_set(chunks);
+}
+
 const Bitfield*
 Download::bitfield() const {
   return m_ptr->main()->content()->bitfield();

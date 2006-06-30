@@ -68,8 +68,6 @@ Content::initialize(uint32_t chunkSize) {
   m_chunkSize = chunkSize;
 
   m_bitfield.set_size_bits((m_entryList->bytes_size() + chunkSize - 1) / chunkSize);
-  m_bitfield.allocate();
-  m_bitfield.unset_all();
 
   if (m_hash.size() / 20 < chunk_total())
     throw bencode_error("Torrent size and 'info:pieces' length does not match.");
@@ -78,11 +76,6 @@ Content::initialize(uint32_t chunkSize) {
     (*itr)->set_range(make_index_range((*itr)->position(), (*itr)->size()));
 
   m_entryList->set_root_dir(".");
-}
-
-void
-Content::clear() {
-  m_bitfield.unset_all();
 }
 
 void
@@ -127,10 +120,15 @@ Content::chunk_index_size(uint32_t index) const {
 
 uint64_t
 Content::bytes_completed() const {
+  // Chunk size needs to be cast to a uint64_t for the below to work.
   uint64_t cs = m_chunkSize;
 
+  if (m_bitfield.empty())
+    return m_bitfield.is_all_set() ? m_entryList->bytes_size() : (chunks_completed() * cs);
+
   if (!m_bitfield.get(chunk_total() - 1) || m_entryList->bytes_size() % cs == 0) {
-    // The last chunk is not done, or the last chunk is the same size as the others.
+    // The last chunk is not done, or the last chunk is the same size
+    // as the others.
     return chunks_completed() * cs;
 
   } else {

@@ -65,7 +65,7 @@ public:
   };
 
   Object()                     : m_type(TYPE_NONE) {}
-  Object(const int64_t v)      : m_type(TYPE_VALUE), m_value(v) {}
+  Object(const value_type v)   : m_type(TYPE_VALUE), m_value(v) {}
   Object(const char* s)        : m_type(TYPE_STRING), m_string(new string_type(s)) {}
   Object(const string_type& s) : m_type(TYPE_STRING), m_string(new string_type(s)) {}
   Object(const Object& b);
@@ -121,6 +121,9 @@ public:
 
   Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
   void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); m_map->erase(k); }
+
+  // Only maps are merged.
+  Object&             merge_recursive(const Object& object, uint32_t maxDepth = ~uint32_t());
 
   Object&             operator = (const Object& b);
 

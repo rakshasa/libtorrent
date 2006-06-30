@@ -70,10 +70,6 @@ public:
   ~Content();
 
   void                   initialize(uint32_t chunkSize);
-  void                   clear();
-
-  void                   open();
-  void                   close();
 
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);

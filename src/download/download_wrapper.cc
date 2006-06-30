@@ -335,7 +335,7 @@ DownloadWrapper::receive_initial_hash() {
     // Clear after m_hash to ensure that the empty hash done signal does
     // not get passed to HashTorrent.
     m_hash->get_queue()->remove(this);
-    m_main.content()->clear();
+    m_main.content()->bitfield()->unset_all();
 
   } else if (!m_main.content()->entry_list()->resize_all()) {
     // We couldn't resize the files, tell the client.

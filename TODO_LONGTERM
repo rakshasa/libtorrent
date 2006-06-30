@@ -8,16 +8,9 @@ Disk cache.
 
 Resume needs to be split.
 
-Add interface for getting currently downloading chunks. Don't use thin
-wrappers here?
-
-Add helpers to Object::get_key
-
 Split priority etc stuff from "libtorrent resume" so we don't lose
-that information on re-hashing etc.
-
-Allow the client to set the done counter, and read it, when
-closed. This would be in the bitfield.
+that information on re-hashing etc. Make this client loadable, with
+default tools in libtorrent.
 
 Allow the client to set the a/sync times and sizes.
 

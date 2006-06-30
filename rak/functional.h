@@ -188,10 +188,10 @@ less2(FtorA f_a, FtorB f_b) {
 }
 
 template <typename Type, typename Ftor>
-struct _greater {
+struct greater_t : public std::unary_function<typename Ftor::argument_type, bool> {
   typedef bool result_type;
 
-  _greater(Type t, Ftor f) : m_t(t), m_f(f) {}
+  greater_t(Type t, Ftor f) : m_t(t), m_f(f) {}
 
   template <typename Arg>
   bool operator () (Arg& a) {
@@ -203,9 +203,9 @@ struct _greater {
 };
 
 template <typename Type, typename Ftor>
-inline _greater<Type, Ftor>
+inline greater_t<Type, Ftor>
 greater(Type t, Ftor f) {
-  return _greater<Type, Ftor>(t, f);
+  return greater_t<Type, Ftor>(t, f);
 }
 
 template <typename Type, typename Ftor>
@@ -278,12 +278,12 @@ on(Src s, Dest d) {
 
 // Creates a functor for accessing a member.
 template <typename Class, typename Member>
-struct mem_ptr_ref_t : public std::unary_function<Class&, Member&> {
+struct mem_ptr_ref_t : public std::unary_function<const Class&, const Member&> {
   mem_ptr_ref_t(Member Class::*m) : m_member(m) {}
 
-  Member& operator () (Class& c) {
-    return c.*m_member;
-  }
+//   Member& operator () (Class& c) {
+//     return c.*m_member;
+//   }
 
   const Member& operator () (const Class& c) {
     return c.*m_member;
