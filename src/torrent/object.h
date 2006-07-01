@@ -122,8 +122,14 @@ public:
   Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
   void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); m_map->erase(k); }
 
-  // Only maps are merged.
-  Object&             merge_recursive(const Object& object, uint32_t maxDepth = ~uint32_t());
+  // Copy and merge operations:
+
+  Object&             move(Object& b);
+  Object&             swap(Object& b);
+
+  // Only map entries are merged.
+  Object&             merge_move(Object object, uint32_t maxDepth = ~uint32_t());
+  Object&             merge_copy(const Object& object, uint32_t maxDepth = ~uint32_t());
 
   Object&             operator = (const Object& b);
 
@@ -142,25 +148,40 @@ public:
 };
 
 inline
+Object::Object(const Object& b) : m_type(b.m_type) {
+  switch (m_type) {
+  case TYPE_NONE:  break;
+  case TYPE_VALUE:  m_value = b.m_value; break;
+  case TYPE_STRING: m_string = new string_type(*b.m_string); break;
+  case TYPE_LIST:   m_list = new list_type(*b.m_list); break;
+  case TYPE_MAP:    m_map = new map_type(*b.m_map);  break;
+  }
+}
+
+inline
 Object::Object(type_type t) :
   m_type(t) {
 
   switch (m_type) {
-  case TYPE_NONE:
-    break;
-  case TYPE_VALUE:
-    m_value = value_type();
-    break;
-  case TYPE_STRING:
-    m_string = new string_type();
-    break;
-  case TYPE_LIST:
-    m_list = new list_type();
-    break;
-  case TYPE_MAP:
-    m_map = new map_type();
-    break;
+  case TYPE_NONE:   break;
+  case TYPE_VALUE:  m_value = value_type(); break;
+  case TYPE_STRING: m_string = new string_type(); break;
+  case TYPE_LIST:   m_list = new list_type(); break;
+  case TYPE_MAP:    m_map = new map_type(); break;
   }
+}
+
+inline void
+Object::clear() {
+  switch (m_type) {
+  case TYPE_NONE:
+  case TYPE_VALUE:  break;
+  case TYPE_STRING: delete m_string; break;
+  case TYPE_LIST:   delete m_list; break;
+  case TYPE_MAP:    delete m_map; break;
+  }
+
+  m_type = TYPE_NONE;
 }
 
 }

@@ -237,10 +237,13 @@ PeerConnectionBase::down_chunk_finished() {
   if (!download_queue()->transfer()->is_finished())
     throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
 
-  m_downChunk.object()->set_time_modified(cachedTime);
-
   if (download_queue()->transfer()->is_leader()) {
+    if (!m_downChunk.is_valid())
+      throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer is the leader, but no chunk allocated.");
+
     download_queue()->finished();
+    m_downChunk.object()->set_time_modified(cachedTime);
+
   } else {
     download_queue()->skipped();
   }

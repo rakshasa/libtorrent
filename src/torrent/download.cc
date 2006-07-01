@@ -88,28 +88,29 @@ Download::stop() {
 }
 
 void
-Download::hash_check(bool resume) {
+Download::hash_check() {
   if (!m_ptr->main()->is_open() || m_ptr->main()->is_active())
     throw client_error("Download::hash_check(...) called on a closed or active download.");
 
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw client_error("Download::hash_check(...) called but already checking or complete.");
 
-  if (resume)
-    m_ptr->hash_resume_load();
+  // The bitfield still hasn't been allocated, so no resume data was
+  // given. 
+
+  if (m_ptr->main()->content()->bitfield()->empty()) {
+    m_ptr->main()->content()->bitfield()->allocate();
+    m_ptr->main()->content()->bitfield()->unset_all();
+
+    m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->content()->chunk_total());
+
+    // Make sure other book-keeping is cleared, like file progress.
+
+  } else {
+    m_ptr->main()->content()->update_done();
+  }
 
   m_ptr->hash_checker()->start();
-}
-
-void
-Download::hash_resume_save() {
-  m_ptr->hash_resume_save();
-}
-
-void
-Download::hash_resume_clear() {
-  if (m_ptr->bencode()->has_key("libtorrent resume"))
-    m_ptr->bencode()->get_key("libtorrent resume").erase_key("bitfield");
 }
 
 bool
@@ -261,9 +262,43 @@ Download::set_chunks_done(uint32_t chunks) {
   m_ptr->main()->content()->bitfield()->set_size_set(chunks);
 }
 
+void
+Download::set_bitfield(uint8_t* first, uint8_t* last) {
+  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
+    throw input_error("Download::set_bitfield(...) Download in invalid state.");
+
+  if (std::distance(first, last) != (ptrdiff_t)m_ptr->main()->content()->bitfield()->size_bytes())
+    throw input_error("Download::set_bitfield(...) Invalid length.");
+
+  m_ptr->main()->content()->bitfield()->allocate();
+  std::memcpy(m_ptr->main()->content()->bitfield()->begin(), first, m_ptr->main()->content()->bitfield()->size_bytes());
+  m_ptr->main()->content()->bitfield()->update();
+  
+  m_ptr->hash_checker()->ranges().clear();
+}
+
+void
+Download::clear_range(uint32_t first, uint32_t last) {
+  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking() || m_ptr->main()->content()->bitfield()->empty())
+    throw input_error("Download::clear_range(...) Download in invalid state.");
+
+  m_ptr->hash_checker()->ranges().insert(first, last);
+  m_ptr->main()->content()->bitfield()->unset_range(first, last);
+}
+ 
 const Bitfield*
 Download::bitfield() const {
   return m_ptr->main()->content()->bitfield();
+}
+
+void
+Download::insert_addresses(const std::string& addresses) {
+  m_ptr->insert_available_list(addresses);
+}
+
+void
+Download::extract_addresses(std::string& addresses) {
+  m_ptr->extract_available_list(addresses);
 }
 
 uint32_t

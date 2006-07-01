@@ -73,10 +73,6 @@ public:
   // Initialize hash checker and various download stuff.
   void                initialize(const std::string& hash, const std::string& id);
 
-  // Don't load unless the object is newly initialized.
-  void                hash_resume_load();
-  void                hash_resume_save();
-
   void                open();
   void                close();
 
@@ -99,7 +95,7 @@ public:
   void                set_connection_type(int t)              { m_connectionType = t; }
 
   void                insert_available_list(const std::string& src);
-  void                extract_available_list(Object* dest);
+  void                extract_available_list(std::string& dest);
 
   void                receive_keepalive();
   void                receive_initial_hash();

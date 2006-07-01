@@ -36,83 +36,12 @@
 
 #include "config.h"
 
+#include <cstring>
 #include <rak/functional.h>
 
 #include "object.h"
 
 namespace torrent {
-
-Object::Object(const Object& b) :
-  m_type(b.m_type)
-{
-  switch (m_type) {
-  case TYPE_VALUE:
-    m_value = b.m_value;
-    break;
-  case TYPE_STRING:
-    m_string = new string_type(*b.m_string);
-    break;
-  case TYPE_LIST:
-    m_list = new list_type(*b.m_list);
-    break;
-  case TYPE_MAP:
-    m_map = new map_type(*b.m_map);
-    break;
-  default:
-    break;
-  }
-}
-
-void
-Object::clear() {
-  switch (m_type) {
-  case TYPE_NONE:
-  case TYPE_VALUE:
-    break;
-  case TYPE_STRING:
-    delete m_string;
-    break;
-  case TYPE_LIST:
-    delete m_list;
-    break;
-  case TYPE_MAP:
-    delete m_map;
-    break;
-  default:
-    break;
-  }
-
-  m_type = TYPE_NONE;
-}
-
-Object&
-Object::operator = (const Object& b) {
-  if (&b == this)
-    return *this;
-
-  clear();
-
-  m_type = b.m_type;
-
-  switch (m_type) {
-  case TYPE_VALUE:
-    m_value = b.m_value;
-    break;
-  case TYPE_STRING:
-    m_string = new string_type(*b.m_string);
-    break;
-  case TYPE_LIST:
-    m_list = new list_type(*b.m_list);
-    break;
-  case TYPE_MAP:
-    m_map = new map_type(*b.m_map);
-    break;
-  default:
-    break;
-  }
-
-  return *this;
-}
 
 Object&
 Object::get_key(const std::string& k) {
@@ -139,32 +68,97 @@ Object::get_key(const std::string& k) const {
   return itr->second;
 }
 
-// Add a parameter for how deep we do the merge?
+Object&
+Object::move(Object& src) {
+  if (this == &src)
+    return *this;
+
+  clear();
+  std::memcpy(this, &src, sizeof(Object));
+
+  return *this;
+}
 
 Object&
-Object::merge_recursive(const Object& object, uint32_t maxDepth) {
-  if (maxDepth == 0 || !is_map() || !object.is_map())
+Object::swap(Object& src) {
+  char tmp[sizeof(Object)];
+
+  std::memcpy(tmp, &src, sizeof(Object));
+  std::memcpy(&src, this, sizeof(Object));
+  std::memcpy(this, tmp, sizeof(Object));
+
+  return *this;
+}
+
+Object&
+Object::merge_copy(const Object& object, uint32_t maxDepth) {
+  if (maxDepth == 0)
     return (*this = object);
 
-  map_type& dest = as_map();
-  map_type::iterator destItr = dest.begin();
+  if (object.is_map()) {
+    if (!is_map())
+      *this = Object(TYPE_MAP);
 
-  map_type::const_iterator srcItr = object.as_map().begin();
-  map_type::const_iterator srcLast = object.as_map().end();
+    map_type& dest = as_map();
+    map_type::iterator destItr = dest.begin();
 
-  while (srcItr != srcLast) {
-    destItr = std::find_if(destItr, dest.end(), rak::less_equal(srcItr->first, rak::mem_ptr_ref(&map_type::value_type::first)));
+    map_type::const_iterator srcItr = object.as_map().begin();
+    map_type::const_iterator srcLast = object.as_map().end();
 
-    if (srcItr->first < destItr->first) {
-      // destItr remains valid and pointing to the next possible
-      // position.
-      dest.insert(destItr, *srcItr);
+    while (srcItr != srcLast) {
+      destItr = std::find_if(destItr, dest.end(), rak::less_equal(srcItr->first, rak::mem_ptr_ref(&map_type::value_type::first)));
 
-    } else {
-      destItr->second.merge_recursive(srcItr->second, maxDepth - 1);
+      if (srcItr->first < destItr->first)
+        // destItr remains valid and pointing to the next possible
+        // position.
+        dest.insert(destItr, *srcItr);
+      else
+        destItr->second.merge_copy(srcItr->second, maxDepth - 1);
+
+      srcItr++;
     }
 
-    srcItr++;
+  } else if (object.is_list()) {
+    if (!is_list())
+      *this = Object(TYPE_LIST);
+
+    list_type& dest = as_list();
+    list_type::iterator destItr = dest.begin();
+
+    list_type::const_iterator srcItr = object.as_list().begin();
+    list_type::const_iterator srcLast = object.as_list().end();
+    
+    while (srcItr != srcLast) {
+      if (destItr == dest.end())
+        destItr = dest.insert(destItr, *srcItr);
+      else
+        destItr->merge_copy(*srcItr, maxDepth - 1);
+
+      destItr++;
+    }
+
+  } else {
+    *this = object;
+  }
+
+  return *this;
+}
+
+Object&
+Object::operator = (const Object& src) {
+  if (&src == this)
+    return *this;
+
+  clear();
+
+  m_type = src.m_type;
+
+  switch (m_type) {
+  case TYPE_NONE:   break;
+  case TYPE_VALUE:  m_value = src.m_value; break;
+  case TYPE_STRING: m_string = new string_type(*src.m_string); break;
+  case TYPE_LIST:   m_list = new list_type(*src.m_list); break;
+  case TYPE_MAP:    m_map = new map_type(*src.m_map);  break;
   }
 
   return *this;

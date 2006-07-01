@@ -72,12 +72,7 @@ public:
   void                open();
   void                close();
 
-  // Torrent must be open for calls to hash_check(bool) and
-  // hash_resume_save(). hash_resume_clear() removes resume data from
-  // the bencode'ed torrent.
-  void                hash_check(bool resume = true);
-  void                hash_resume_save();
-  void                hash_resume_clear();
+  void                hash_check();
 
   // Start/stop the download. The torrent must be open.
   void                start();
@@ -129,7 +124,21 @@ public:
   // Set the number of finished chunks for closed torrents.
   void                set_chunks_done(uint32_t chunks);
 
+  // Use the below to set the resume data and what chunk ranges need
+  // to be hash checked. If they arn't called then by default it will
+  // use an cleared bitfield and check the whole range.
+  //
+  // These must be called when is_open, !is_checked and !is_checking.
+  void                set_bitfield(uint8_t* first, uint8_t* last);
+  void                clear_range(uint32_t first, uint32_t last);
+
   const Bitfield*     bitfield() const;
+
+  // Temporary hack until i can move the available list stuf somewhere
+  // and make a nice interface for it.
+
+  void                insert_addresses(const std::string& addresses);
+  void                extract_addresses(std::string& addresses);
 
   uint32_t            peers_min() const;
   uint32_t            peers_max() const;

@@ -106,132 +106,6 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 }
 
 void
-DownloadWrapper::hash_resume_load() {
-  if (!m_main.is_open() || m_main.is_active() || m_hash->is_checked())
-    throw client_error("DownloadWrapper::resume_load() called with wrong state");
-
-  if (!m_bencode->has_key_map("libtorrent resume"))
-    return;
-
-  try {
-    Object& resume  = m_bencode->get_key("libtorrent resume");
-
-    // Load peer addresses.
-    if (resume.has_key_string("peers"))
-      insert_available_list(resume.get_key_string("peers"));
-
-    Object& files = resume.get_key("files");
-
-    if (resume.has_key_string("bitfield") &&
-        resume.get_key_string("bitfield").size() == m_main.content()->bitfield()->size_bytes() &&
-        files.as_list().size() == m_main.content()->entry_list()->files_size()) {
-
-      // Clear the hash checking ranges, and add the files ranges we
-      // must check.
-      m_hash->ranges().clear();
-      m_main.content()->bitfield()->from_c_str(resume.get_key_string("bitfield").c_str());
-
-    } else {
-      // No resume bitfield available, check the whole range.
-      m_hash->ranges().insert(0, m_main.content()->chunk_total());
-    }
-
-    Object::list_type::iterator bItr = files.as_list().begin();
-    EntryList::iterator sItr = m_main.content()->entry_list()->begin();
-
-    // Check the validity of each file, add to the m_hash's ranges if invalid.
-    while (sItr != m_main.content()->entry_list()->end()) {
-      rak::file_stat fs;
-
-      // Check that the size and modified stamp matches. If not, then
-      // add to the hashes to check.
-
-      if (!fs.update((*sItr)->file_meta()->get_path()) ||
-          (*sItr)->size() != fs.size() ||
-          !bItr->has_key_value("mtime") ||
-          bItr->get_key_value("mtime") != fs.modified_time())
-        m_hash->ranges().insert((*sItr)->range().first, (*sItr)->range().second);
-
-      // Update the priority from the fast resume data.
-      if (bItr->has_key_value("priority") &&
-          bItr->get_key_value("priority") >= 0 &&
-          bItr->get_key_value("priority") <= PRIORITY_HIGH)
-        (*sItr)->set_priority((priority_t)(*bItr).get_key_value("priority"));
-
-      ++sItr;
-      ++bItr;
-    }  
-
-  } catch (bencode_error e) {
-    m_hash->ranges().insert(0, m_main.content()->chunk_total());
-  }
-
-  // Clear bits in invalid regions which will be checked by m_hash.
-  //
-  // If this is ever optimized in such a way as not to update the
-  // bitfield's set size, make sure that Content::update_done() calls
-  // Bitfield::update().
-  for (HashTorrent::Ranges::iterator itr = m_hash->ranges().begin(); itr != m_hash->ranges().end(); ++itr)
-    m_main.content()->bitfield()->unset_range(itr->first, itr->second);
-
-  m_main.content()->update_done();
-}
-
-// Break this function up into several smaller functions to make it
-// easier to read.
-void
-DownloadWrapper::hash_resume_save() {
-  if (!m_main.is_open() || m_main.is_active())
-    throw client_error("DownloadWrapper::resume_save() called with wrong state");
-
-  if (!m_hash->is_checked())
-    // We don't remove the old hash data since it might still be
-    // valid, just that the client didn't finish the check this time.
-    return;
-
-  // If we can't sync, don't save the resume data.
-  if (m_main.chunk_list()->sync_all(MemoryChunk::sync_sync) != 0 && m_bencode->has_key("libtorrent resume")) {
-    m_bencode->get_key("libtorrent resume").erase_key("bitfield");
-    return;
-  }
-
-  // Clear the resume data since if the syncing fails we propably don't
-  // want the old resume data.
-  Object& resume = m_bencode->insert_key("libtorrent resume", Object(Object::TYPE_MAP));
-
-  resume.insert_key("bitfield", std::string((char*)m_main.content()->bitfield()->begin(), m_main.content()->bitfield()->size_bytes()));
-
-  Object::list_type& l = resume.insert_key("files", Object(Object::TYPE_LIST)).as_list();
-
-  EntryList::iterator sItr = m_main.content()->entry_list()->begin();
-  
-  // Check the validity of each file, add to the m_hash's ranges if invalid.
-  while (sItr != m_main.content()->entry_list()->end()) {
-    Object& b = *l.insert(l.end(), Object(Object::TYPE_MAP));
-
-    rak::file_stat fs;
-
-    if (!fs.update((*sItr)->file_meta()->get_path())) {
-      l.clear();
-      break;
-    }
-
-    b.insert_key("mtime", fs.modified_time());
-    b.insert_key("priority", (int)(*sItr)->priority());
-
-    ++sItr;
-  }
-
-  // Save the available peer list. Since this function is called when
-  // the download is stopped, we know that all the previously
-  // connected peers have been copied to the available list.
-  //
-  // Consider whetever we need to add currently connected too, as we
-  // might save the session while still active.
-  extract_available_list(&resume.insert_key("peers", Object()));
-}
-
-void
 DownloadWrapper::open() {
   if (m_main.is_open())
     return;
@@ -300,17 +174,14 @@ DownloadWrapper::insert_available_list(const std::string& src) {
 }
 
 void
-DownloadWrapper::extract_available_list(Object* dest) {
-  *dest = std::string();
-  
-  std::string& peers = dest->as_string();
-  peers.reserve(m_main.available_list()->size() * sizeof(SocketAddressCompact));
+DownloadWrapper::extract_available_list(std::string& dest) {
+  dest.reserve(m_main.available_list()->size() * sizeof(SocketAddressCompact));
   
   for (AvailableList::const_iterator itr = m_main.available_list()->begin(), last = m_main.available_list()->end(); itr != last; ++itr) {
     if (itr->family() == rak::socket_address::af_inet) {
       SocketAddressCompact sac(itr->sa_inet()->address_n(), itr->sa_inet()->port_n());
 
-      peers.append(sac.c_str(), sizeof(SocketAddressCompact));
+      dest.append(sac.c_str(), sizeof(SocketAddressCompact));
     }
   }  
 }
