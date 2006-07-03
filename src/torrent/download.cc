@@ -76,7 +76,32 @@ Download::close() {
 
 void
 Download::start() {
-  m_ptr->start();
+  if (!m_ptr->hash_checker()->is_checked())
+    throw client_error("Tried to start an unchecked download");
+
+  if (!m_ptr->main()->is_open())
+    throw client_error("Tried to start a closed download");
+
+  if (m_ptr->main()->is_active())
+    return;
+
+  m_ptr->main()->start();
+  m_ptr->main()->tracker_manager()->set_active(true);
+
+  // Either the client queued a completed request, or it is still
+  // sending the stopped request. Don't send started nor reset the
+  // baseline.
+  //
+  // Check for stopped request.
+  if (m_ptr->main()->tracker_manager()->is_busy())
+    return;
+
+  // Reset the uploaded/download baseline when we restart the download
+  // so that broken trackers get the right uploaded ratio.
+  m_ptr->info()->set_uploaded_baseline(m_ptr->info()->up_rate()->total());
+  m_ptr->info()->set_downloaded_baseline(m_ptr->info()->down_rate()->total());
+
+  m_ptr->main()->tracker_manager()->send_start();
 }
 
 void
@@ -84,7 +109,9 @@ Download::stop() {
   if (!m_ptr->main()->is_active())
     return;
 
-  m_ptr->stop();
+  m_ptr->main()->stop();
+  m_ptr->main()->tracker_manager()->set_active(false);
+  m_ptr->main()->tracker_manager()->send_stop();
 }
 
 void
@@ -111,6 +138,21 @@ Download::hash_check() {
   }
 
   m_ptr->hash_checker()->start();
+}
+
+// Propably not correct, need to clear content, etc.
+void
+Download::hash_stop() {
+  if (!m_ptr->hash_checker()->is_checking())
+    return;
+
+  // Stop the hashing first as we need to make sure all chunks are
+  // released when DownloadMain::close() is called.
+  m_ptr->hash_checker()->clear();
+
+  // Clear after m_hash to ensure that the empty hash done signal does
+  // not get passed to HashTorrent.
+  m_ptr->hash_checker()->get_queue()->remove(m_ptr);
 }
 
 bool

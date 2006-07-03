@@ -21,6 +21,10 @@ New FileList and friends.
 Convert stuff to use off_t for byte sizes? Though what about when it
 is only 32 bit?
 
+Allow the client to do some quick hashing related checks before
+queueing it for proper hashing, just in case it can be started
+immediately.
+
 
 === torrent::Object ==
 

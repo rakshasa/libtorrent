@@ -62,7 +62,9 @@ public:
   TrackerManager();
   ~TrackerManager();
 
-  bool                is_active() const;
+  bool                is_active() const                         { return m_active; }
+  void                set_active(bool a)                        { m_active = a; }
+
   bool                is_busy() const;
 
   void                close();
@@ -110,6 +112,7 @@ private:
 
   TrackerControl*     m_control;
 
+  bool                m_active;
   bool                m_isRequesting;
 
   uint32_t            m_numRequests;

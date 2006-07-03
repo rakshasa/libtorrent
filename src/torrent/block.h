@@ -98,8 +98,6 @@ public:
 
   // Internal to libTorrent:
 
-  void                      clear();
-
   BlockTransfer*            insert(PeerInfo* peerInfo);
 
   // If the queued or transfering is already removed from the block it

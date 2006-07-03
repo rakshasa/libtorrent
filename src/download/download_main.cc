@@ -149,12 +149,6 @@ void DownloadMain::start() {
   m_delegator.set_aggressive(false);
   update_endgame();  
 
-  // Reset the uploaded baseline every time we restart the download so
-  // that broken trackers get the right uploaded ratio.
-  m_info->set_uploaded_baseline(m_info->up_rate()->total());
-  m_info->set_downloaded_baseline(m_info->down_rate()->total());
-  m_trackerManager->send_start();
-
   receive_connect_peers();
 }  
 

@@ -49,11 +49,6 @@
 namespace torrent {
 
 Block::~Block() {
-  delete m_failedList;
-}
-
-void
-Block::clear() {
   m_leader = NULL;
 
   std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
@@ -64,6 +59,8 @@ Block::clear() {
 
   if (m_notStalled != 0)
     throw internal_error("Block::clear() m_stalled != 0.");
+
+  delete m_failedList;
 }
 
 BlockTransfer*
@@ -116,11 +113,15 @@ Block::erase(BlockTransfer* transfer) {
       // have the same data up to their position. PeerConnectionBase
       // assumes that a Block with non-leaders have a leader.
 
-      transfer_list_type::iterator newLeader = std::max_element(std::find_if(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_not_leader))),
-                                                                m_transfers.end(),
-                                                                rak::less2(std::mem_fun(&BlockTransfer::position), std::mem_fun(&BlockTransfer::position)));
+      // Create a range containing transfers with
+      // is_not_leader(). Erased transfer will end up in the back.
 
-      if (newLeader != m_transfers.end()) {
+      transfer_list_type::iterator first = std::find_if(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_leader)));
+      transfer_list_type::iterator last = std::stable_partition(first, m_transfers.end(), std::mem_fun(&BlockTransfer::is_not_leader));
+
+      transfer_list_type::iterator newLeader = std::max_element(first, last, rak::less2(std::mem_fun(&BlockTransfer::position), std::mem_fun(&BlockTransfer::position)));
+
+      if (newLeader != last) {
         m_leader = *newLeader;
         m_leader->set_state(BlockTransfer::STATE_LEADER);
       } else {
@@ -283,16 +284,14 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
   if (transfer == m_leader)
     throw internal_error("Block::invalidate_transfer(...) transfer == m_leader.");
 
-  transfer->set_block(NULL);
-
   // FIXME: Various other accounting like position and counters.
-  if (transfer->is_erased()) {
+  if (!transfer->is_valid()) {
     delete transfer;
 
   } else {
     m_notStalled -= transfer->stall() == 0;
 
-    transfer->set_state(BlockTransfer::STATE_ERASED);
+    transfer->set_block(NULL);
   }
 }
 

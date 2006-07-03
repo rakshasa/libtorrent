@@ -45,7 +45,10 @@ namespace torrent {
 
 TrackerManager::TrackerManager() :
   m_control(new TrackerControl),
+
+  m_active(false),
   m_isRequesting(false),
+
   m_numRequests(0),
   m_maxRequests(3),
   m_failedRequests(0),
@@ -62,11 +65,6 @@ TrackerManager::~TrackerManager() {
     throw internal_error("TrackerManager::~TrackerManager() called but is_active() != false.");
 
   delete m_control;
-}
-
-bool
-TrackerManager::is_active() const {
-  return m_taskTimeout.is_queued() || m_control->is_busy();
 }
 
 bool
@@ -93,9 +91,6 @@ TrackerManager::send_start() {
 
 void
 TrackerManager::send_stop() {
-  if (!is_active())
-    return;
-
   close();
 
   m_control->set_focus_index(m_initialTracker);
@@ -104,9 +99,6 @@ TrackerManager::send_stop() {
 
 void
 TrackerManager::send_completed() {
-  if (!is_active() || m_control->get_state() == DownloadInfo::STOPPED)
-    return;
-
   close();
   m_control->send_state(DownloadInfo::COMPLETED);
 }
@@ -225,6 +217,9 @@ TrackerManager::receive_timeout() {
   if (m_control->is_busy())
     throw internal_error("TrackerManager::receive_timeout() called but m_control->is_busy() == true.");
 
+  if (!m_active)
+    return;
+
   m_control->send_state(m_control->get_state());
 }
 
@@ -232,7 +227,7 @@ void
 TrackerManager::receive_success(AddressList* l) {
   m_failedRequests = 0;
 
-  if (m_control->get_state() == DownloadInfo::STOPPED) {
+  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active) {
     m_slotSuccess(l);
     return;
   }
@@ -263,7 +258,7 @@ TrackerManager::receive_success(AddressList* l) {
 
 void
 TrackerManager::receive_failed(const std::string& msg) {
-  if (m_control->get_state() == DownloadInfo::STOPPED) {
+  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active) {
     m_slotFailed(msg);
     return;
   }

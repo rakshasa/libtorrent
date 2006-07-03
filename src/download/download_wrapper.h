@@ -76,9 +76,6 @@ public:
   void                open();
   void                close();
 
-  void                start();
-  void                stop();
-
   bool                is_open() const                         { return m_main.is_open(); }
   bool                is_stopped() const;
 

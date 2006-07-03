@@ -73,6 +73,7 @@ public:
   void                close();
 
   void                hash_check();
+  void                hash_stop();
 
   // Start/stop the download. The torrent must be open.
   void                start();

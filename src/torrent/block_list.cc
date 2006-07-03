@@ -75,7 +75,6 @@ BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
 }
 
 BlockList::~BlockList() {
-  std::for_each(begin(), end(), std::mem_fun_ref(&Block::clear));
 }
 
 }

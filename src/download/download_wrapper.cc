@@ -73,7 +73,7 @@ DownloadWrapper::DownloadWrapper() :
 
 DownloadWrapper::~DownloadWrapper() {
   if (m_main.is_active())
-    stop();
+    m_main.stop();
 
   if (m_main.is_open())
     close();
@@ -135,30 +135,9 @@ DownloadWrapper::close() {
   priority_queue_erase(&taskScheduler, &m_delayDownloadDone);
 }
 
-void
-DownloadWrapper::start() {
-  if (!m_hash->is_checked())
-    throw client_error("Tried to start an unchecked download");
-
-  if (!m_main.is_open())
-    throw client_error("Tried to start a closed download");
-
-  if (m_main.is_active())
-    return;
-
-  m_main.start();
-}
-
-// Remember to update receive_tick() when changing stop().
-void
-DownloadWrapper::stop() {
-  m_main.stop();
-  m_main.tracker_manager()->send_stop();
-}
-
 bool
 DownloadWrapper::is_stopped() const {
-  return !m_main.tracker_manager()->is_active();
+  return !m_main.tracker_manager()->is_active() && !m_main.tracker_manager()->is_busy();
 }
 
 void
