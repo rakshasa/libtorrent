@@ -40,6 +40,7 @@
 #include <sigc++/bind.h>
 #include <sigc++/hide.h>
 
+#include "data/chunk_list.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/choke_manager.h"
@@ -331,6 +332,11 @@ Download::clear_range(uint32_t first, uint32_t last) {
 const Bitfield*
 Download::bitfield() const {
   return m_ptr->main()->content()->bitfield();
+}
+
+void
+Download::sync_chunks() {
+  m_ptr->main()->chunk_list()->sync_all(MemoryChunk::sync_sync);
 }
 
 void

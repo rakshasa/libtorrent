@@ -135,6 +135,10 @@ public:
 
   const Bitfield*     bitfield() const;
 
+  // Temporary hack for syncing chunks to disk before hash resume is
+  // saved.
+  void                sync_chunks();
+
   // Temporary hack until i can move the available list stuf somewhere
   // and make a nice interface for it.
 

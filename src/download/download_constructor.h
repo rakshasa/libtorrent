@@ -64,6 +64,7 @@ public:
   void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
 
 private:  
+  void                parse_name(const Object& b);
   void                parse_tracker(const Object& b);
   void                parse_info(const Object& b);
 

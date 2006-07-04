@@ -87,6 +87,8 @@ resume_save_progress(Download download, Object& object) {
     // valid, just that the client didn't finish the check this time.
     return;
 
+  download.sync_chunks();
+
   object.insert_key("bitfield", std::string((char*)download.bitfield()->begin(), download.bitfield()->size_bytes()));
   
   Object::list_type& files = object.has_key_list("files")

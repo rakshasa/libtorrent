@@ -77,13 +77,45 @@ struct download_constructor_encoding_match :
 
 void
 DownloadConstructor::initialize(const Object& b) {
-  m_download->info()->set_name(b.get_key("info").get_key_string("name"));
-
   if (b.has_key_string("encoding"))
     m_defaultEncoding = b.get_key_string("encoding");
 
+  parse_name(b.get_key("info"));
   parse_info(b.get_key("info"));
+
   parse_tracker(b);
+}
+
+// Currently using a hack of the path thingie to extract the correct
+// torrent name.
+void
+DownloadConstructor::parse_name(const Object& b) {
+  if (is_invalid_path_element(b.get_key("name")))
+    throw input_error("Bad torrent file, \"name\" is an invalid path name.");
+
+  std::list<Path> pathList;
+
+  pathList.push_back(Path());
+  pathList.back().set_encoding(m_defaultEncoding);
+  pathList.back().push_back(b.get_key_string("name"));
+
+  for (Object::map_type::const_iterator itr = b.as_map().begin();
+       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path())) != b.as_map().end();
+       ++itr) {
+    pathList.push_back(Path());
+    pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
+    pathList.back().push_back(itr->second.as_string());
+  }
+
+  if (pathList.empty())
+    throw input_error("Bad torrent file, an entry has no valid name.");
+
+  Path name = choose_path(&pathList);
+
+  if (name.empty())
+    throw internal_error("DownloadConstructor::parse_name(...) Ended up with an empty Path.");
+
+  m_download->info()->set_name(name.front());
 }
 
 void
@@ -195,8 +227,7 @@ DownloadConstructor::parse_multi_files(const Object& b) {
 
   m_download->main()->content()->entry_list()->reserve(b.as_list().size());
 
-  std::for_each(b.as_list().begin(), b.as_list().end(),
-		rak::make_mem_fun(this, &DownloadConstructor::add_file));
+  std::for_each(b.as_list().begin(), b.as_list().end(), rak::make_mem_fun(this, &DownloadConstructor::add_file));
 }
 
 void
@@ -215,8 +246,7 @@ DownloadConstructor::add_file(const Object& b) {
 
   Object::map_type::const_iterator itr = b.as_map().begin();
   
-  while ((itr = std::find_if(itr, b.as_map().end(), download_constructor_is_multi_path()))
-	 != b.as_map().end()) {
+  while ((itr = std::find_if(itr, b.as_map().end(), download_constructor_is_multi_path())) != b.as_map().end()) {
     pathList.push_back(create_path(itr->second.as_list(), itr->first.substr(sizeof("path.") - 1)));
     ++itr;
   }
@@ -231,12 +261,10 @@ inline Path
 DownloadConstructor::create_path(const Object::list_type& plist, const std::string enc) {
   // Make sure we are given a proper file path.
   if (plist.empty())
-    throw input_error("Bad torrent file, \"path\" has zero entries");
+    throw input_error("Bad torrent file, \"path\" has zero entries.");
 
-  // Reneable.
-  if (std::find_if(plist.begin(), plist.end(),
-		   std::ptr_fun(&DownloadConstructor::is_invalid_path_element)) != plist.end())
-    throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry");
+  if (std::find_if(plist.begin(), plist.end(), std::ptr_fun(&DownloadConstructor::is_invalid_path_element)) != plist.end())
+    throw input_error("Bad torrent file, \"path\" has zero entries or a zero lenght entry.");
 
   Path p;
   p.set_encoding(enc);
@@ -254,8 +282,7 @@ DownloadConstructor::choose_path(std::list<Path>* pathList) {
   EncodingList::const_iterator encodingLast  = m_encodingList->end();
   
   for ( ; encodingFirst != encodingLast; ++encodingFirst) {
-    std::list<Path>::iterator itr = std::find_if(pathFirst, pathLast,
-						 rak::bind2nd(download_constructor_encoding_match(), encodingFirst->c_str()));
+    std::list<Path>::iterator itr = std::find_if(pathFirst, pathLast, rak::bind2nd(download_constructor_encoding_match(), encodingFirst->c_str()));
     
     if (itr != pathLast)
       pathList->splice(pathFirst, *pathList, itr);

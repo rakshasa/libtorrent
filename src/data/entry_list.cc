@@ -90,19 +90,17 @@ EntryList::open() {
     throw internal_error("EntryList::open() m_rootDir.empty().");
 
   Path lastPath;
-
-  m_isOpen = true;
+  iterator itr = begin();
 
   try {
     make_directory(m_rootDir);
 
-    for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    for (iterator last = end(); itr != last; ++itr) {
       if ((*itr)->file_meta()->is_open())
         throw internal_error("EntryList::open(...) found an already opened file.");
       
-      // Do this somewhere else.
       m_slotInsertFileMeta((*itr)->file_meta());
-      
+
       if ((*itr)->path()->empty())
         throw storage_error("Found an empty filename.");
 
@@ -113,9 +111,15 @@ EntryList::open() {
     }
 
   } catch (storage_error& e) {
-    close();
+    itr++;
+
+    for (iterator cleanupItr = begin(); cleanupItr != itr; ++cleanupItr)
+      m_slotEraseFileMeta((*cleanupItr)->file_meta());
+
     throw e;
   }
+
+  m_isOpen = true;
 }
 
 void
