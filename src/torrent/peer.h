@@ -91,6 +91,8 @@ public:
 
   uint32_t             chunks_done() const;
 
+  uint32_t             failed_counter() const;
+
   PeerConnectionBase*  ptr()                             { return m_ptr; }
   void                 set_ptr(PeerConnectionBase* ptr)  { m_ptr = ptr; }
 

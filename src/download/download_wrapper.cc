@@ -101,8 +101,9 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   // Connect various signals and slots.
   m_hash->slot_check_chunk(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
-  m_hash->slot_initial_hash(rak::make_mem_fun(this, &DownloadWrapper::receive_initial_hash));
   m_hash->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
+
+  m_hash->delay_checked().set_slot(rak::mem_fn(this, &DownloadWrapper::receive_initial_hash));
 }
 
 void
@@ -179,7 +180,7 @@ DownloadWrapper::receive_initial_hash() {
   if (m_main.is_active())
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
-  if (!m_hash->is_checked()) {
+  if (!m_hash->is_checking()) {
     m_hash->clear();
 
     // Clear after m_hash to ensure that the empty hash done signal does
@@ -187,7 +188,10 @@ DownloadWrapper::receive_initial_hash() {
     m_hash->get_queue()->remove(this);
     m_main.content()->bitfield()->unset_all();
 
-  } else if (!m_main.content()->entry_list()->resize_all()) {
+  } else if (m_main.content()->entry_list()->resize_all()) {
+    m_hash->confirm_checked();
+
+  } else {
     // We couldn't resize the files, tell the client.
     receive_storage_error("Could not resize files in the torrent.");
 

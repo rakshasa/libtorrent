@@ -144,4 +144,9 @@ Peer::chunks_done() const {
   return m_ptr->peer_chunks()->bitfield()->size_set();
 }  
 
+uint32_t
+Peer::failed_counter() const {
+  return m_ptr->peer_info()->failed_counter();
+}  
+
 }

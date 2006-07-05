@@ -50,24 +50,27 @@ HashTorrent::HashTorrent(ChunkList* c) :
   m_queue(NULL) {
 }
 
-void
-HashTorrent::start() {
-  if (is_checking() ||
-      m_position > 0 ||
-      m_queue == NULL ||
-      m_chunkList == NULL ||
-      m_chunkList->empty())
-    throw internal_error("HashTorrent::start() call failed.");
+bool
+HashTorrent::start(bool tryQuick) {
+  if (m_position == m_chunkList->size())
+    return true;
 
-  m_outstanding = 0;
-  queue();
+  if (!is_checking()) {
+    if (m_position > 0 || m_queue == NULL || m_chunkList == NULL || m_chunkList->empty())
+      throw internal_error("HashTorrent::start() call failed.");
+
+    m_outstanding = 0;
+  }
+
+  // This doesn't really handle paused hashing properly... Do we set
+  // m_outstanding to -1 when stopping?
+
+  queue(tryQuick);
+  return m_position == m_chunkList->size();
 }
 
 void
 HashTorrent::clear() {
-//   if (is_checking())
-//     m_queue->remove(m_id);
-
   m_outstanding = -1;
   m_position = 0;
 }
@@ -78,6 +81,17 @@ HashTorrent::is_checked() {
   // chunk list for a short while as we have outstanding chunks, so
   // check the latter.
   return !m_chunkList->empty() && m_position == m_chunkList->size() && m_outstanding == -1;
+}
+
+// After all chunks are checked it won't show as is_checked until
+// after this function is called. This allows for the hash done signal
+// to be delayed.
+void
+HashTorrent::confirm_checked() {
+  if (m_outstanding != 0)
+    throw internal_error("HashTorrent::confirm_checked() m_outstanding != 0.");
+
+  m_outstanding = -1;
 }
 
 void
@@ -97,11 +111,11 @@ HashTorrent::receive_chunkdone() {
   // m_outstanding. This code is ugly... needs a refactoring, a
   // seperate flag for active and allow pause or clearing the state.
   if (m_outstanding >= 0)
-    queue();
+    queue(false);
 }
 
 void
-HashTorrent::queue() {
+HashTorrent::queue(bool quick) {
   if (!is_checking())
     throw internal_error("HashTorrent::queue() called but it's not running.");
 
@@ -124,6 +138,11 @@ HashTorrent::queue() {
     if (!handle.is_valid())
       continue;
 
+    // We're not actually interested in doing any hashing, nor should
+    // be trigger any storage error.
+    if (quick)
+      return m_chunkList->release(&handle);
+
     // If the error number is not valid, then we've just encountered a
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
@@ -132,9 +151,9 @@ HashTorrent::queue() {
       // DownloadWrapper::receive_hash_done.
       clear();
 
-      m_slotInitialHash();
       m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
 
+      rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
       return;
     }
     
@@ -143,8 +162,10 @@ HashTorrent::queue() {
   }
 
   if (m_outstanding == 0) {
-    m_outstanding = -1;
-    m_slotInitialHash();
+    // Erase the scheduled item just to make sure that if hashing is
+    // started again during the delay it won't cause an exception.
+    rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
+    rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
   }
 }
 

@@ -72,7 +72,13 @@ public:
   void                open();
   void                close();
 
-  void                hash_check();
+  // When 'tryQuick' is true, it will only check if the chunks can be
+  // mmaped and returns if one is encountered. If it doesn't find any
+  // mappable chunks it will return true to indicate that it is
+  // finished and a hash done signal has been queued.
+  //
+  // Chunk ranges that have valid resume data won't be checked.
+  bool                hash_check(bool tryQuick);
   void                hash_stop();
 
   // Start/stop the download. The torrent must be open.

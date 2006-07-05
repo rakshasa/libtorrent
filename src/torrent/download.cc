@@ -115,13 +115,16 @@ Download::stop() {
   m_ptr->main()->tracker_manager()->send_stop();
 }
 
-void
-Download::hash_check() {
+bool
+Download::hash_check(bool tryQuick) {
+  if (m_ptr->hash_checker()->is_checking())
+    return m_ptr->hash_checker()->start(tryQuick);
+
   if (!m_ptr->main()->is_open() || m_ptr->main()->is_active())
     throw client_error("Download::hash_check(...) called on a closed or active download.");
 
-  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
-    throw client_error("Download::hash_check(...) called but already checking or complete.");
+  if (m_ptr->hash_checker()->is_checked())
+    throw client_error("Download::hash_check(...) called but already hash checked.");
 
   // The bitfield still hasn't been allocated, so no resume data was
   // given. 
@@ -138,7 +141,7 @@ Download::hash_check() {
     m_ptr->main()->content()->update_done();
   }
 
-  m_ptr->hash_checker()->start();
+  return m_ptr->hash_checker()->start(tryQuick);
 }
 
 // Propably not correct, need to clear content, etc.

@@ -41,6 +41,7 @@
 #include <inttypes.h>
 #include <rak/functional.h>
 #include <rak/ranges.h>
+#include <rak/priority_queue_default.h>
 
 #include "data/chunk_handle.h"
 
@@ -61,11 +62,14 @@ public:
   HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }
 
-  void                start();
+  bool                start(bool tryQuick);
+
   void                clear();
 
   bool                is_checking()                          { return m_outstanding >= 0; }
   bool                is_checked();
+
+  void                confirm_checked();
 
   Ranges&             ranges()                               { return m_ranges; }
 
@@ -75,13 +79,14 @@ public:
   void                set_queue(HashQueue* q)                { m_queue = q; }
 
   void                slot_check_chunk(SlotCheckChunk s)     { m_slotCheckChunk = s; }
-  void                slot_initial_hash(SlotInitialHash s)   { m_slotInitialHash = s; }
   void                slot_storage_error(SlotStorageError s) { m_slotStorageError = s; }
+
+  rak::priority_item& delay_checked()                        { return m_delayChecked; }
 
   void                receive_chunkdone();
   
 private:
-  void                queue();
+  void                queue(bool quick);
 
   unsigned int        m_position;
   int                 m_outstanding;
@@ -91,8 +96,9 @@ private:
   HashQueue*          m_queue;
 
   SlotCheckChunk      m_slotCheckChunk;
-  SlotInitialHash     m_slotInitialHash;
   SlotStorageError    m_slotStorageError;
+
+  rak::priority_item  m_delayChecked;
 };
 
 }
