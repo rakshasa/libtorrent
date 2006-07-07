@@ -65,7 +65,7 @@ public:
   using Base::size;
   using Base::empty;
 
-  ChunkList() : m_maxQueueSize(0), m_maxTimeQueued(300) {}
+  ChunkList() : m_maxQueueSize(~uint32_t()), m_timeoutSync(300), m_timeoutSafeSync(600) {}
   ~ChunkList() { clear(); }
 
   bool                has_chunk(size_type index, int prot) const;
@@ -76,8 +76,14 @@ public:
   ChunkHandle         get(size_type index, bool writable);
   void                release(ChunkHandle* handle);
 
-  uint32_t            max_queue_size() const               { return m_maxQueueSize; }
-  void                set_max_queue_size(uint32_t v)       { m_maxQueueSize = v; }
+  uint32_t            max_queue_size() const                  { return m_maxQueueSize; }
+  void                set_max_queue_size(uint32_t v)          { m_maxQueueSize = v; }
+
+  uint32_t            timeout_sync() const                    { return m_timeoutSync; }
+  void                set_timeout_sync(uint32_t seconds)      { m_timeoutSync = seconds; }
+
+  uint32_t            timeout_safe_sync() const               { return m_timeoutSafeSync; }
+  void                set_timeout_safe_sync(uint32_t seconds) { m_timeoutSafeSync = seconds; }
 
   // Possibly have multiple version, some that do syncing of
   // sequential chunks only etc. Pretty much depends on the time of
@@ -95,8 +101,11 @@ private:
   static inline bool  sync_chunk(ChunkListNode* node, int flags, bool cleanup);
 
   Queue               m_queue;
+
   uint32_t            m_maxQueueSize;
-  uint32_t            m_maxTimeQueued;
+
+  uint32_t            m_timeoutSync;
+  uint32_t            m_timeoutSafeSync;
 
   SlotCreateChunk     m_slotCreateChunk;
 };

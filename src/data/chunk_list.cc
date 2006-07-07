@@ -44,8 +44,8 @@
 
 namespace torrent {
 
-struct chunk_list_last_modified {
-  chunk_list_last_modified() : m_time(cachedTime) {}
+struct chunk_list_earliest_modified {
+  chunk_list_earliest_modified() : m_time(cachedTime) {}
 
   void operator () (ChunkListNode* node) {
     if (node->time_modified() < m_time && node->time_modified() != rak::timer())
@@ -253,8 +253,13 @@ ChunkList::sync_periodic() {
   // kernel might do so anyway if it lies in its path, so we don't
   // sync those chunks.
 
-  if (std::distance(split, m_queue.end()) < (difference_type)m_maxQueueSize &&
-      std::for_each(split, m_queue.end(), chunk_list_last_modified()).m_time + rak::timer::from_seconds(m_maxTimeQueued) < cachedTime)
+  bool force;
+
+  if (std::distance(split, m_queue.end()) > (difference_type)m_maxQueueSize)
+    force = true;
+  else if (std::for_each(split, m_queue.end(), chunk_list_earliest_modified()).m_time + rak::timer::from_seconds(m_timeoutSync) >= cachedTime)
+    force = false;
+  else
     return 0;
 
   // The queue contains pointer of objects in a vector, so we can sort
@@ -272,11 +277,16 @@ ChunkList::sync_periodic() {
 
       std::iter_swap(itr, split++);
 
-    } else {
+    } else if (force || (*itr)->time_modified() + rak::timer::from_seconds(m_timeoutSafeSync) >= cachedTime) {
+      // When constrained of space, it triggers sync just one period
+      // after async. Else it waits for the safe sync timeout.
       if (!sync_chunk(*itr, MemoryChunk::sync_sync, true)) {
         failed++;
         std::iter_swap(itr, split++);
       }
+
+    } else {
+      std::iter_swap(itr, split++);
     }
   }
 

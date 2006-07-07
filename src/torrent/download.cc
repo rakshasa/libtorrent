@@ -171,7 +171,7 @@ Download::is_active() const {
 
 bool
 Download::is_hash_checked() const {
-  return m_ptr->main()->is_open() && m_ptr->hash_checker()->is_checked();
+  return m_ptr->hash_checker()->is_checked();
 }
 
 bool
@@ -350,6 +350,36 @@ Download::insert_addresses(const std::string& addresses) {
 void
 Download::extract_addresses(std::string& addresses) {
   m_ptr->extract_available_list(addresses);
+}
+
+uint32_t
+Download::timeout_sync() const {
+  return m_ptr->main()->chunk_list()->timeout_sync();
+}
+
+void
+Download::set_timeout_sync(uint32_t seconds) {
+  m_ptr->main()->chunk_list()->set_timeout_sync(seconds);
+}
+
+uint32_t
+Download::timeout_safe_sync() const {
+  return m_ptr->main()->chunk_list()->timeout_safe_sync();
+}
+
+void
+Download::set_timeout_safe_sync(uint32_t seconds) {
+  m_ptr->main()->chunk_list()->set_timeout_safe_sync(seconds);
+}
+
+uint32_t
+Download::max_chunks_queued() const {
+  return m_ptr->main()->chunk_list()->max_queue_size();
+}
+
+void
+Download::set_max_chunks_queued(uint32_t chunks) {
+  m_ptr->main()->chunk_list()->set_max_queue_size(chunks);
 }
 
 uint32_t

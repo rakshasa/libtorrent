@@ -534,9 +534,20 @@ PeerConnectionBase::try_request_pieces() {
     m_downStall = 0;
 
   uint32_t pipeSize = download_queue()->calculate_pipe_size(m_peerChunks.download_throttle()->rate()->rate());
+
+  // Don't start requesting if we can't do it in large enough chunks.
+  if (download_queue()->size() >= (pipeSize + 10) / 2)
+    return false;
+
   bool success = false;
 
   while (download_queue()->size() < pipeSize && m_up->can_write_request()) {
+
+    // Delegator should return a vector of pieces, and it should be
+    // passed the number of pieces it should delegate. Try to ensure
+    // it receives large enough request to fill a whole chunk if the
+    // peer is fast enough.
+
     const Piece* p = download_queue()->delegate();
 
     if (p == NULL)

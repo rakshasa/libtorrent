@@ -2,7 +2,8 @@
 
 Add macro for asserting with internal_error exception.
 
-A disk setting manager, allow change of read-ahead etc.
+A disk setting manager, allow change of read-ahead etc. Each download
+should also include slots for monitoring syncing, etc.
 
 The seed count and scrape leech/seed.
 
@@ -14,16 +15,10 @@ Split priority etc stuff from "libtorrent resume" so we don't lose
 that information on re-hashing etc. Make this client loadable, with
 default tools in libtorrent.
 
-Allow the client to set the a/sync times and sizes.
-
 New FileList and friends.
 
 Convert stuff to use off_t for byte sizes? Though what about when it
 is only 32 bit?
-
-Allow the client to do some quick hashing related checks before
-queueing it for proper hashing, just in case it can be started
-immediately.
 
 
 === torrent::Object ==
@@ -33,6 +28,8 @@ Ways of checking that they are a value and between a range.
 Make an union of two bencode streams. This will allow rtorrent to save
 much smaller files with recent changes, and thus not require
 re-constructing torrent files of ~100KB in some cases.
+
+Add a variable that has can have an off state, plus a value range.
 
 
 === Session management ==

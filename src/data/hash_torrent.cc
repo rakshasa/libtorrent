@@ -153,6 +153,7 @@ HashTorrent::queue(bool quick) {
 
       m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
 
+      rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
       rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
       return;
     }
