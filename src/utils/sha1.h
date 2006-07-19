@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_HASH_COMPUTE_H
 #define LIBTORRENT_HASH_COMPUTE_H
 
-#include <string>
+#include <cstring>
 
 #if defined USE_NSS_SHA
 #include "sha_fast.h"
@@ -53,7 +53,6 @@ class Sha1 {
 public:
   void                init();
   void                update(const void* data, unsigned int length);
-//   std::string         final();
 
   void                final_c(char* buffer);
 
@@ -73,21 +72,11 @@ Sha1::update(const void* data, unsigned int length) {
   SHA1_Update(&m_ctx, (unsigned char*)data, length);
 }
 
-// inline std::string
-// Sha1::final() {
-//   unsigned int len;
-//   unsigned char buf[20];
-  
-//   SHA1_End(&m_ctx, buf, &len, 20);
-  
-//   return std::string((char*)buf, 20);
-// }
-
 inline void
 Sha1::final_c(char* buffer) {
   unsigned int len;
   
-  SHA1_End(&m_ctx, buffer, &len, 20);
+  SHA1_End(&m_ctx, (unsigned char*)buffer, &len, 20);
 }
 
 #elif defined USE_OPENSSL_SHA

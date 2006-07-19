@@ -46,6 +46,7 @@
 
 namespace torrent {
 
+class ChunkManager;
 class Content;
 
 class ChunkList : private std::vector<ChunkListNode> {
@@ -54,7 +55,9 @@ public:
   typedef std::pair<Chunk*,rak::error_number>           CreateChunk;
   typedef std::vector<ChunkListNode>                    Base;
   typedef std::vector<ChunkListNode*>                   Queue;
+
   typedef rak::mem_fun2<Content, CreateChunk, uint32_t, bool> SlotCreateChunk;
+  typedef rak::const_mem_fun0<Content, uint64_t>              SlotFreeDiskspace;
 
   using Base::value_type;
   using Base::reference;
@@ -65,8 +68,10 @@ public:
   using Base::size;
   using Base::empty;
 
-  ChunkList() : m_maxQueueSize(~uint32_t()), m_timeoutSync(300), m_timeoutSafeSync(600) {}
+  ChunkList();
   ~ChunkList() { clear(); }
+
+  void                set_manager(ChunkManager* manager)      { m_manager = manager; }
 
   bool                has_chunk(size_type index, int prot) const;
 
@@ -76,8 +81,10 @@ public:
   ChunkHandle         get(size_type index, bool writable);
   void                release(ChunkHandle* handle);
 
-  uint32_t            max_queue_size() const                  { return m_maxQueueSize; }
-  void                set_max_queue_size(uint32_t v)          { m_maxQueueSize = v; }
+  size_type           queue_size() const                      { return m_queue.size(); }
+
+  size_type           max_queue_size() const                  { return m_maxQueueSize; }
+  void                set_max_queue_size(size_type v)         { m_maxQueueSize = v; }
 
   uint32_t            timeout_sync() const                    { return m_timeoutSync; }
   void                set_timeout_sync(uint32_t seconds)      { m_timeoutSync = seconds; }
@@ -91,15 +98,18 @@ public:
   //
   // Returns the number of failed syncs.
   unsigned int        sync_all(int flags);
-  unsigned int        sync_periodic();
+  unsigned int        sync_periodic(bool force = false);
 
-  void                slot_create_chunk(SlotCreateChunk s) { m_slotCreateChunk = s; }
+  void                slot_create_chunk(SlotCreateChunk s)     { m_slotCreateChunk = s; }
+  void                slot_free_diskspace(SlotFreeDiskspace s) { m_slotFreeDiskspace = s; }
 
 private:
   inline bool         is_queued(ChunkListNode* node);
 
-  static inline bool  sync_chunk(ChunkListNode* node, int flags, bool cleanup);
+  inline void         clear_chunk(ChunkListNode* node);
+  inline bool         sync_chunk(ChunkListNode* node, int flags, bool cleanup);
 
+  ChunkManager*       m_manager;
   Queue               m_queue;
 
   uint32_t            m_maxQueueSize;
@@ -108,6 +118,7 @@ private:
   uint32_t            m_timeoutSafeSync;
 
   SlotCreateChunk     m_slotCreateChunk;
+  SlotFreeDiskspace   m_slotFreeDiskspace;
 };
 
 }

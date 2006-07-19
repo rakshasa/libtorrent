@@ -49,6 +49,7 @@
 #include "net/throttle_manager.h"
 #include "net/listen.h"
 
+#include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
 
 #include "manager.h"
@@ -65,6 +66,7 @@ Manager::Manager() :
   m_hashQueue(new HashQueue),
   m_resourceManager(new ResourceManager),
 
+  m_chunkManager(new ChunkManager),
   m_connectionManager(new ConnectionManager),
 
   m_poll(NULL),
@@ -92,8 +94,10 @@ Manager::~Manager() {
   delete m_fileManager;
   delete m_handshakeManager;
   delete m_hashQueue;
+
   delete m_resourceManager;
   delete m_connectionManager;
+  delete m_chunkManager;
 
   delete m_uploadThrottle;
   delete m_downloadThrottle;
@@ -110,6 +114,7 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->main()->content()->entry_list()->slot_insert_filemeta(rak::make_mem_fun(m_fileManager, &FileManager::insert));
   d->main()->content()->entry_list()->slot_erase_filemeta(rak::make_mem_fun(m_fileManager, &FileManager::erase));
 
+  m_chunkManager->insert(d->main()->chunk_list());
   m_downloadManager->insert(d);
   m_resourceManager->insert(d->main(), 1);
 
@@ -125,6 +130,7 @@ void
 Manager::cleanup_download(DownloadWrapper* d) {
   m_resourceManager->erase(d->main());
   m_downloadManager->erase(d);
+  m_chunkManager->erase(d->main()->chunk_list());
 }
 
 void

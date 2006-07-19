@@ -137,9 +137,13 @@ perform() {
 bool
 is_inactive() {
   return manager == NULL ||
-    std::find_if(manager->download_manager()->begin(), manager->download_manager()->end(),
-		      std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
+    std::find_if(manager->download_manager()->begin(), manager->download_manager()->end(), std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
     == manager->download_manager()->end();
+}
+
+ChunkManager*
+chunk_manager() {
+  return manager->chunk_manager();
 }
 
 ConnectionManager*
@@ -311,8 +315,7 @@ download_add(Object* object) {
 
   ctor.initialize(*object);
 
-  download->initialize(object_sha1(&object->get_key("info")),
-		       PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
+  download->initialize(object_sha1(&object->get_key("info")), PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
 
   // Default PeerConnection factory functions.
   download->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);

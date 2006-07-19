@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "torrent/exceptions.h"
+#include "torrent/chunk_manager.h"
 
 #include "chunk_list.h"
 #include "chunk.h"
@@ -60,6 +61,14 @@ struct chunk_list_sort_index {
     return node1->index() < node2->index();
   }
 };
+
+ChunkList::ChunkList() :
+  m_manager(NULL),
+
+  m_maxQueueSize(~uint32_t()),
+  m_timeoutSync(300),
+  m_timeoutSafeSync(600) {
+}
 
 inline bool
 ChunkList::is_queued(ChunkListNode* node) {
@@ -93,9 +102,7 @@ ChunkList::clear() {
       throw internal_error("ChunkList::clear() called but a node in the queue is still referenced.");
     
     (*itr)->dec_rw();
-
-    delete (*itr)->chunk();
-    (*itr)->set_chunk(NULL);
+    clear_chunk(*itr);
   }
 
   m_queue.clear();
@@ -112,18 +119,28 @@ ChunkHandle
 ChunkList::get(size_type index, bool writable) {
   ChunkListNode* node = &Base::at(index);
 
-  if (!node->is_valid() || (writable && !node->chunk()->is_writable())) {
+  if (!node->is_valid()) {
     CreateChunk chunk = m_slotCreateChunk(index, writable);
 
-    if (chunk.first == NULL) {
-      ChunkHandle c;
-      c.set_error_number(chunk.second);
-      
-      return c;
+    if (chunk.first == NULL)
+      return ChunkHandle::from_error(chunk.second);
+
+    // Would be cleaner to do this before creating the chunk.
+    if (!m_manager->allocate(chunk.first->size())) {
+      delete chunk.first;
+      return ChunkHandle::from_error(rak::error_number::e_nomem);
     }
 
-    if (node->is_valid())
-      delete node->chunk();
+    node->set_chunk(chunk.first);
+    node->set_time_modified(rak::timer());
+
+  } else if (writable && !node->chunk()->is_writable()) {
+    CreateChunk chunk = m_slotCreateChunk(index, writable);
+
+    if (chunk.first == NULL)
+      return ChunkHandle::from_error(chunk.second);
+
+    delete node->chunk();
 
     node->set_chunk(chunk.first);
     node->set_time_modified(rak::timer());
@@ -174,18 +191,30 @@ ChunkList::release(ChunkHandle* handle) {
     }
 
   } else {
-    if (handle->object()->references() == 1) {
+    handle->object()->dec_references();
+
+    if (handle->object()->references() == 0) {
       if (is_queued(handle->object()))
         throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
 
-      delete handle->object()->chunk();
-      handle->object()->set_chunk(NULL);
+      clear_chunk(handle->object());
     }
-
-    handle->object()->dec_references();
   }
 
   handle->clear();
+}
+
+inline void
+ChunkList::clear_chunk(ChunkListNode* node) {
+  if (!node->is_valid())
+    throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
+
+  uint32_t size = node->chunk()->size();
+
+  delete node->chunk();
+  node->set_chunk(NULL);
+
+  m_manager->deallocate(size);
 }
 
 inline bool
@@ -204,10 +233,8 @@ ChunkList::sync_chunk(ChunkListNode* node, int flags, bool cleanup) {
 
   node->dec_rw();
  
-  if (node->references() == 0) {
-    delete node->chunk();
-    node->set_chunk(NULL);
-  }
+  if (node->references() == 0)
+    clear_chunk(node);
 
   return true;
 }
@@ -231,7 +258,7 @@ ChunkList::sync_all(int flags) {
 }
 
 unsigned int
-ChunkList::sync_periodic() {
+ChunkList::sync_periodic(bool force) {
   if (std::find_if(m_queue.begin(), m_queue.end(), rak::equal(0, std::mem_fun(&ChunkListNode::writable)))
       != m_queue.end())
     throw internal_error("ChunkList::sync_periodic() found a chunk with writable == 0.");
@@ -253,34 +280,43 @@ ChunkList::sync_periodic() {
   // kernel might do so anyway if it lies in its path, so we don't
   // sync those chunks.
 
-  bool force;
-
-  if (std::distance(split, m_queue.end()) > (difference_type)m_maxQueueSize)
+  if (force || std::distance(split, m_queue.end()) > (difference_type)m_maxQueueSize)
     force = true;
+
   else if (std::for_each(split, m_queue.end(), chunk_list_earliest_modified()).m_time + rak::timer::from_seconds(m_timeoutSync) >= cachedTime)
-    force = false;
-  else
     return 0;
 
   // The queue contains pointer of objects in a vector, so we can sort
   // by the pointer value.
   std::sort(split, m_queue.end());
 
+  // Need to rewrite this whole function, just adding this hack for
+  // testing.
+  int syncOptions;
+
+  if (m_slotFreeDiskspace() < (1 << 30))
+    syncOptions = MemoryChunk::sync_sync;
+  else
+    syncOptions = MemoryChunk::sync_async;
+
   unsigned int failed = 0;
 
   for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
     // Do first async on the chunk, then sync at the next periodic
     // call.
-    if (!(*itr)->sync_triggered()) {
+
+    // Urgh... need to fix this for forced syncing...
+
+    if (!force && !(*itr)->sync_triggered()) {
       if (!sync_chunk(*itr, MemoryChunk::sync_async, false))
         failed++;
 
       std::iter_swap(itr, split++);
 
-    } else if (force || (*itr)->time_modified() + rak::timer::from_seconds(m_timeoutSafeSync) >= cachedTime) {
+    } else if (force || (*itr)->time_modified() + rak::timer::from_seconds(m_timeoutSafeSync) < cachedTime) {
       // When constrained of space, it triggers sync just one period
       // after async. Else it waits for the safe sync timeout.
-      if (!sync_chunk(*itr, MemoryChunk::sync_sync, true)) {
+      if (!sync_chunk(*itr, syncOptions, true)) {
         failed++;
         std::iter_swap(itr, split++);
       }

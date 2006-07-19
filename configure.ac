@@ -1,9 +1,9 @@
-AC_INIT(libtorrent, 0.10.0, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.10.1, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME, "-lt0A00-", Identifier that is part of the default peer id)
+AC_DEFINE(PEER_NAME, "-lt0A10-", Identifier that is part of the default peer id)
 
-LIBTORRENT_CURRENT=8
+LIBTORRENT_CURRENT=9
 LIBTORRENT_REVISION=0
 LIBTORRENT_AGE=0
 
@@ -41,6 +41,9 @@ AC_SYS_LARGEFILE
 TORRENT_WITH_XFS
 TORRENT_WITHOUT_EPOLL
 TORRENT_WITH_POSIX_FALLOCATE
+
+TORRENT_WITHOUT_STATVFS()
+TORRENT_WITHOUT_STATFS()
 
 AC_ARG_WITH(openssl,
   [  --without-openssl       Don't use OpenSSL's SHA1 implementation.],

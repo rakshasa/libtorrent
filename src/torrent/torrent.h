@@ -51,6 +51,7 @@ namespace torrent {
 
 class Poll;
 class Rate;
+class ChunkManager;
 class ConnectionManager;
 class Object;
 
@@ -72,6 +73,7 @@ void                perform();
 
 bool                is_inactive();
 
+ChunkManager*       chunk_manager();
 ConnectionManager*  connection_manager();
 
 uint32_t            total_handshakes();

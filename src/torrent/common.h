@@ -42,11 +42,13 @@
 
 namespace torrent {
 
-typedef enum {
+enum priority_enum {
   PRIORITY_OFF = 0,
   PRIORITY_NORMAL,
   PRIORITY_HIGH
-} priority_t;
+};
+
+typedef priority_enum priority_t;
 
 }
 

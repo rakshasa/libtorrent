@@ -62,6 +62,8 @@ public:
 
   uint32_t            index() const                         { return m_node->index(); }
 
+  static ChunkHandle  from_error(rak::error_number e)       { ChunkHandle h; h.set_error_number(e); return h; }
+
 private:
   ChunkListNode*      m_node;
   bool                m_writable;

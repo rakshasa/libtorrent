@@ -9,6 +9,8 @@ libsub_torrent_la_SOURCES = \
 	block_list.cc \
 	block_list.h \
 	block_transfer.h \
+	chunk_manager.cc \
+	chunk_manager.h \
 	common.h \
 	connection_manager.cc \
 	connection_manager.h \
@@ -60,6 +62,7 @@ libtorrentinclude_HEADERS = \
 	block.h \
 	block_list.h \
 	block_transfer.h \
+	chunk_manager.h \
 	common.h \
 	connection_manager.h \
 	download.h \

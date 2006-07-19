@@ -55,6 +55,7 @@ class DownloadMain;
 class FileManager;
 class ResourceManager;
 class PeerInfo;
+class ChunkManager;
 class ConnectionManager;
 class ThrottleManager;
 
@@ -71,6 +72,7 @@ public:
   HashQueue*          hash_queue()                              { return m_hashQueue; }
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
 
+  ChunkManager*       chunk_manager()                           { return m_chunkManager; }
   ConnectionManager*  connection_manager()                      { return m_connectionManager; }
   
   Poll*               poll()                                    { return m_poll; }
@@ -93,6 +95,7 @@ private:
   HashQueue*          m_hashQueue;
   ResourceManager*    m_resourceManager;
 
+  ChunkManager*       m_chunkManager;
   ConnectionManager*  m_connectionManager;
   Poll*               m_poll;
 

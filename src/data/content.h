@@ -87,6 +87,10 @@ public:
   uint32_t               chunk_index_size(uint32_t index) const;
   off_t                  chunk_position(uint32_t c) const               { return c * (off_t)m_chunkSize; }
 
+  // If the files span multiple disks, the one with the least amount
+  // of free diskspace will be returned.
+  uint64_t               free_diskspace() const;
+
   Bitfield*              bitfield()                                     { return &m_bitfield; }
 
   EntryList*             entry_list()                                   { return m_entryList; }
