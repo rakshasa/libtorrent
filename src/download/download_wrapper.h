@@ -76,7 +76,7 @@ public:
   void                open();
   void                close();
 
-  bool                is_open() const                         { return m_main.is_open(); }
+//   bool                is_open() const                         { return m_main.is_open(); }
   bool                is_stopped() const;
 
   DownloadMain*       main()                                  { return &m_main; }

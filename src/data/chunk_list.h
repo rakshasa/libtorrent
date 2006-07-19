@@ -97,8 +97,15 @@ public:
   // dereferencing etc.
   //
   // Returns the number of failed syncs.
-  unsigned int        sync_all(int flags);
-  unsigned int        sync_periodic(bool force = false);
+//   unsigned int        sync_all(int flags);
+//   unsigned int        sync_periodic(bool force = false);
+
+  static const int sync_all    = (1 << 0);
+  static const int sync_force  = (1 << 1);
+  static const int sync_safe   = (1 << 2);
+  static const int sync_sloppy = (1 << 3);
+
+  uint32_t            sync_chunks(int flags);
 
   void                slot_create_chunk(SlotCreateChunk s)     { m_slotCreateChunk = s; }
   void                slot_free_diskspace(SlotFreeDiskspace s) { m_slotFreeDiskspace = s; }

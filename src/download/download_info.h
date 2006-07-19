@@ -69,10 +69,13 @@ public:
   };
 
   DownloadInfo() :
+    m_isOpen(false),
+    m_isActive(false),
+    m_isCompact(true),
+    m_isAcceptingNewPeers(true),
+
     m_key(0),
-    m_compact(true),
     m_numwant(-1),
-    m_acceptingNewPeers(true),
 
     m_upRate(60),
     m_downRate(60),
@@ -89,18 +92,24 @@ public:
   const std::string&  local_id() const                             { return m_localId; }
   void                set_local_id(const std::string& id)          { m_localId = id; }
 
+  bool                is_open() const                              { return m_isOpen; }
+  void                set_open(bool s)                             { m_isOpen = s; }
+
+  bool                is_active() const                            { return m_isActive; }
+  void                set_active(bool s)                           { m_isActive = s; }
+
+  bool                is_compact() const                           { return m_isCompact; }
+  void                set_compact(bool s)                          { m_isCompact = s; }
+
+  bool                is_accepting_new_peers() const               { return m_isAcceptingNewPeers; }
+  void                set_accepting_new_peers(bool s)              { m_isAcceptingNewPeers = s; }
+  
   uint32_t            key() const                                  { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
-
-  bool                compact() const                              { return m_compact; }
-  void                set_compact(bool c)                          { m_compact = c; }
 
   int32_t             numwant() const                              { return m_numwant; }
   void                set_numwant(int32_t n)                       { m_numwant = n; }
 
-  bool                accepting_new_peers() const                  { return m_acceptingNewPeers; }
-  void                set_accepting_new_peers(bool a)              { m_acceptingNewPeers = a; }
-  
   Rate*               up_rate()                                    { return &m_upRate; }
   Rate*               down_rate()                                  { return &m_downRate; }
 
@@ -125,10 +134,13 @@ private:
   std::string         m_hash;
   std::string         m_localId;
 
+  bool                m_isOpen;
+  bool                m_isActive;
+  bool                m_isCompact;
+  bool                m_isAcceptingNewPeers;
+
   uint32_t            m_key;
-  bool                m_compact;
   int32_t             m_numwant;
-  bool                m_acceptingNewPeers;
 
   Rate                m_upRate;
   Rate                m_downRate;

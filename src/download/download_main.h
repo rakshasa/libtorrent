@@ -76,9 +76,6 @@ public:
   void                start();
   void                stop();
 
-  bool                is_open() const                            { return m_isOpen; }
-  bool                is_active() const                          { return m_started; }
-
   ChokeManager*       choke_manager()                            { return m_chokeManager; }
   TrackerManager*     tracker_manager()                          { return m_trackerManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
@@ -103,7 +100,6 @@ public:
   ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
   void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
 
-  bool                get_endgame() const                        { return m_endgame; }
   uint64_t            get_bytes_left() const;
 
   // Carefull with these.
@@ -153,9 +149,6 @@ private:
   ConnectionList*     m_connectionList;
   PeerList            m_peerList;
 
-  bool                m_started;
-  bool                m_isOpen;
-  bool                m_endgame;
   uint32_t            m_lastConnectedSize;
 
   ThrottleList*       m_uploadThrottle;

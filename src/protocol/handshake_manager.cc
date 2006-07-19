@@ -158,7 +158,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
   PeerConnectionBase* pcb;
 
-  if (h->download()->is_active() &&
+  if (h->download()->info()->is_active() &&
 
       // We need to make libtorrent more selective in the clients it
       // connects to, and to move this somewhere else.

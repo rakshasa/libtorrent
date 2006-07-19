@@ -121,6 +121,8 @@ public:
   // Size of the torrent.
   uint64_t            bytes_total() const;
 
+  uint64_t            free_diskspace() const;
+
   uint32_t            chunks_size() const;
   uint32_t            chunks_done() const;
   uint32_t            chunks_total() const;

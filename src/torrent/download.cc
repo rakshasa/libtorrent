@@ -69,7 +69,7 @@ Download::open() {
 
 void
 Download::close() {
-  if (m_ptr->main()->is_active())
+  if (m_ptr->info()->is_active())
     stop();
 
   m_ptr->close();
@@ -80,10 +80,10 @@ Download::start() {
   if (!m_ptr->hash_checker()->is_checked())
     throw client_error("Tried to start an unchecked download");
 
-  if (!m_ptr->main()->is_open())
+  if (!m_ptr->info()->is_open())
     throw client_error("Tried to start a closed download");
 
-  if (m_ptr->main()->is_active())
+  if (m_ptr->info()->is_active())
     return;
 
   m_ptr->main()->start();
@@ -107,7 +107,7 @@ Download::start() {
 
 void
 Download::stop() {
-  if (!m_ptr->main()->is_active())
+  if (!m_ptr->info()->is_active())
     return;
 
   m_ptr->main()->stop();
@@ -120,7 +120,7 @@ Download::hash_check(bool tryQuick) {
   if (m_ptr->hash_checker()->is_checking())
     return m_ptr->hash_checker()->start(tryQuick);
 
-  if (!m_ptr->main()->is_open() || m_ptr->main()->is_active())
+  if (!m_ptr->info()->is_open() || m_ptr->info()->is_active())
     throw client_error("Download::hash_check(...) called on a closed or active download.");
 
   if (m_ptr->hash_checker()->is_checked())
@@ -161,12 +161,12 @@ Download::hash_stop() {
 
 bool
 Download::is_open() const {
-  return m_ptr->main()->is_open();
+  return m_ptr->info()->is_open();
 }
 
 bool
 Download::is_active() const {
-  return m_ptr->main()->is_active();
+  return m_ptr->info()->is_active();
 }
 
 bool
@@ -275,6 +275,11 @@ Download::bytes_total() const {
   return m_ptr->main()->content()->entry_list()->bytes_size();
 }
 
+uint64_t
+Download::free_diskspace() const {
+  return m_ptr->main()->content()->free_diskspace();
+}
+
 uint32_t
 Download::chunks_size() const {
   return m_ptr->main()->content()->chunk_size();
@@ -302,7 +307,7 @@ Download::chunks_seen() const {
 
 void
 Download::set_chunks_done(uint32_t chunks) {
-  if (m_ptr->main()->is_open())
+  if (m_ptr->info()->is_open())
     throw input_error("Download::set_chunks_done(...) Download is open.");
 
   m_ptr->main()->content()->bitfield()->set_size_set(chunks);
@@ -339,7 +344,7 @@ Download::bitfield() const {
 
 void
 Download::sync_chunks() {
-  m_ptr->main()->chunk_list()->sync_all(MemoryChunk::sync_sync);
+  m_ptr->main()->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force);
 }
 
 void
@@ -424,7 +429,7 @@ Download::peers_currently_interested() const {
 
 bool
 Download::accepting_new_peers() const {
-  return m_ptr->info()->accepting_new_peers();
+  return m_ptr->info()->is_accepting_new_peers();
 }
 
 uint32_t
@@ -486,19 +491,15 @@ Download::update_priorities() {
 
 void
 Download::peer_list(PList& pList) {
-  std::for_each(m_ptr->main()->connection_list()->begin(),
-		m_ptr->main()->connection_list()->end(),
-		rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
+  std::for_each(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
+                rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
 }
 
 Peer
 Download::peer_find(const std::string& id) {
   ConnectionList::iterator itr =
-    std::find_if(m_ptr->main()->connection_list()->begin(),
-		 m_ptr->main()->connection_list()->end(),
-		 
-		 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
-					std::mem_fun(&PeerInfo::get_id))));
+    std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
+                 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::peer_info), std::mem_fun(&PeerInfo::get_id))));
 
   return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
 }

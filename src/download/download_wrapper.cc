@@ -72,10 +72,10 @@ DownloadWrapper::DownloadWrapper() :
 }
 
 DownloadWrapper::~DownloadWrapper() {
-  if (m_main.is_active())
+  if (info()->is_active())
     m_main.stop();
 
-  if (m_main.is_open())
+  if (info()->is_open())
     close();
 
   delete m_hash;
@@ -108,7 +108,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
 void
 DownloadWrapper::open() {
-  if (m_main.is_open())
+  if (info()->is_open())
     return;
 
   m_main.open();
@@ -128,7 +128,7 @@ DownloadWrapper::close() {
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
   // hash_resume_save get ignored anyway.
-  m_main.chunk_list()->sync_all(MemoryChunk::sync_async);
+  m_main.chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy);
 
   m_main.close();
 
@@ -177,7 +177,7 @@ DownloadWrapper::receive_keepalive() {
 
 void
 DownloadWrapper::receive_initial_hash() {
-  if (m_main.is_active())
+  if (info()->is_active())
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
   if (!m_hash->is_checking()) {
@@ -220,7 +220,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
   if (!handle.is_valid())
     throw internal_error("DownloadWrapper::receive_hash_done(...) called on an invalid chunk.");
 
-  if (!is_open())
+  if (!info()->is_open())
     throw internal_error("DownloadWrapper::receive_hash_done(...) called but the download is not open.");
 
   if (hash == NULL) {
@@ -298,12 +298,12 @@ DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
 
 void
 DownloadWrapper::receive_tick() {
-  if (!m_main.is_open())
+  if (!info()->is_open())
     return;
 
-  unsigned int syncFailed = m_main.chunk_list()->sync_periodic();
+  unsigned int syncFailed = m_main.chunk_list()->sync_chunks(0);
 
-  if (m_main.is_active() && syncFailed != 0) {
+  if (info()->is_active() && syncFailed != 0) {
     // Need to move this stuff into a seperate function.
     m_main.stop();
 

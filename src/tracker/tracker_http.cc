@@ -103,7 +103,7 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
       !localAddress->sa_inet()->is_address_any())
     s << "&ip=" << localAddress->address_str();
 
-  if (m_info->compact())
+  if (m_info->is_compact())
     s << "&compact=1";
 
   if (m_info->numwant() >= 0)

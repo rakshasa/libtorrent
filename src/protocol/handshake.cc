@@ -156,7 +156,7 @@ Handshake::event_read() {
         m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
         m_readBuffer.move_position(20);
 
-        if (m_download == NULL || !m_download->info()->accepting_new_peers())
+        if (m_download == NULL || !m_download->info()->is_accepting_new_peers())
           return m_manager->receive_failed(this);
 
         m_state = WRITE_FILL;

@@ -518,7 +518,7 @@ PeerConnectionBase::should_request() {
     // || m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
-  else if (!m_download->get_endgame())
+  else if (!m_download->delegator()->get_aggressive())
     return true;
 
   else

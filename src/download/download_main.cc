@@ -61,10 +61,6 @@ DownloadMain::DownloadMain() :
   m_chunkSelector(new ChunkSelector),
   m_chunkStatistics(new ChunkStatistics),
 
-  m_started(false),
-  m_isOpen(false),
-  m_endgame(false),
-
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
 
@@ -100,7 +96,7 @@ DownloadMain::~DownloadMain() {
 
 void
 DownloadMain::open() {
-  if (is_open())
+  if (info()->is_open())
     throw internal_error("Tried to open a download that is already open");
 
   m_content.entry_list()->open();
@@ -108,18 +104,18 @@ DownloadMain::open() {
   m_chunkList->resize(m_content.chunk_total());
   m_chunkStatistics->initialize(m_content.chunk_total());
 
-  m_isOpen = true;
+  info()->set_open(true);
 }
 
 void
 DownloadMain::close() {
-  if (is_active())
+  if (info()->is_active())
     throw internal_error("Tried to close an active download");
 
-  if (!is_open())
+  if (!info()->is_open())
     return;
 
-  m_isOpen = false;
+  info()->set_open(false);
 
   m_trackerManager->close();
   m_delegator.transfer_list()->clear();
@@ -137,16 +133,15 @@ DownloadMain::close() {
 }
 
 void DownloadMain::start() {
-  if (!is_open())
+  if (!info()->is_open())
     throw client_error("Tried to start a closed download");
 
-  if (is_active())
+  if (info()->is_active())
     throw client_error("Tried to start an active download");
 
-  m_started = true;
+  info()->set_active(true);
   m_lastConnectedSize = 0;
 
-  m_endgame = false;
   m_delegator.set_aggressive(false);
   update_endgame();  
 
@@ -161,12 +156,12 @@ struct peer_connection_socket_address : public std::unary_function<const PeerCon
 
 void
 DownloadMain::stop() {
-  if (!m_started)
+  if (!info()->is_active())
     return;
 
   // Set this early so functions like receive_connect_peers() knows
   // not to eat available peers.
-  m_started = false;
+  info()->set_active(false);
 
   m_slotStopHandshakes(this);
 
@@ -201,10 +196,8 @@ DownloadMain::get_bytes_left() const {
 
 void
 DownloadMain::update_endgame() {
-  if (!m_endgame && m_content.chunks_completed() + m_delegator.transfer_list()->size() + 5 >= m_content.chunk_total()) {
-    m_endgame = true;
+  if (!m_delegator.get_aggressive() && m_content.chunks_completed() + m_delegator.transfer_list()->size() + 5 >= m_content.chunk_total())
     m_delegator.set_aggressive(true);
-  }
 }
 
 void
@@ -219,7 +212,7 @@ DownloadMain::receive_chunk_done(unsigned int index) {
 
 void
 DownloadMain::receive_connect_peers() {
-  if (!m_started)
+  if (!info()->is_active())
     return;
 
   while (!available_list()->empty() &&
@@ -234,7 +227,7 @@ DownloadMain::receive_connect_peers() {
 
 void
 DownloadMain::receive_tracker_success() {
-  if (!m_started)
+  if (!info()->is_active())
     return;
 
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);

@@ -239,91 +239,88 @@ ChunkList::sync_chunk(ChunkListNode* node, int flags, bool cleanup) {
   return true;
 }
 
-unsigned int
-ChunkList::sync_all(int flags) {
-  std::sort(m_queue.begin(), m_queue.end());
+uint32_t
+ChunkList::sync_chunks(int flags) {
+  Queue::iterator split;
 
-  unsigned int failed = 0;
-  Queue::iterator split = m_queue.begin();
-
-  for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr)
-    if (!sync_chunk(*itr, flags, true)) {
-      // Makes sure the failed chunks don't get erased.
-      std::iter_swap(itr, split++);
-      failed++;
-    }
-
-  m_queue.erase(split, m_queue.end());
-  return failed;
-}
-
-unsigned int
-ChunkList::sync_periodic(bool force) {
-  if (std::find_if(m_queue.begin(), m_queue.end(), rak::equal(0, std::mem_fun(&ChunkListNode::writable)))
-      != m_queue.end())
-    throw internal_error("ChunkList::sync_periodic() found a chunk with writable == 0.");
-
-  // Chunks that still have writers are moved infront of split. Those
-  // chunks were once released by the last writer, and later grabbed
-  // again. This should be relatively rare and should not cause any
-  // problems.
-  //
-  // Using std::stable_partition to keep the index order relatively
-  // intact for quicker sorting.
-  Queue::iterator split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
-
-  // Do various partitioning before sorting by index, so that when we
-  // call sync we always increase the index of the chunk.
-  //
-  // Some times when we sync there are users holding write references
-  // to chunks in the queue. These won't explicitly be synced, but the
-  // kernel might do so anyway if it lies in its path, so we don't
-  // sync those chunks.
-
-  if (force || std::distance(split, m_queue.end()) > (difference_type)m_maxQueueSize)
-    force = true;
-
-  else if (std::for_each(split, m_queue.end(), chunk_list_earliest_modified()).m_time + rak::timer::from_seconds(m_timeoutSync) >= cachedTime)
-    return 0;
-
-  // The queue contains pointer of objects in a vector, so we can sort
-  // by the pointer value.
-  std::sort(split, m_queue.end());
-
-  // Need to rewrite this whole function, just adding this hack for
-  // testing.
-  int syncOptions;
-
-  if (m_slotFreeDiskspace() < (1 << 30))
-    syncOptions = MemoryChunk::sync_sync;
+  if (flags & sync_all)
+    split = m_queue.begin();
   else
-    syncOptions = MemoryChunk::sync_async;
+    split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
 
-  unsigned int failed = 0;
+  // Some checks to decide if we really want to sync or not? Check
+  // timers and perhaps if we're closing in on max memory usage.
+
+  // Allow a flag that does more culling, so that we only get large
+  // continous sections.
+  //
+  // How does this interact with timers, should be make it so that
+  // only areas with timers are (preferably) synced?
+
+  std::sort(split, m_queue.end());
+  
+  // Add a flag for not checking diskspace.
+
+  if (!(flags & (sync_safe | sync_sloppy)) && (m_slotFreeDiskspace() <= m_manager->safe_free_diskspace()))
+    flags |= sync_safe;
+
+  uint32_t failed = 0;
 
   for (Queue::iterator itr = split, last = m_queue.end(); itr != last; ++itr) {
-    // Do first async on the chunk, then sync at the next periodic
-    // call.
+    
+    // We can easily skip pieces by swap_iter, so there should be no
+    // problem being selective about the ranges we sync.
 
-    // Urgh... need to fix this for forced syncing...
+    // Use a function for checking the next few chunks and see how far
+    // we want to sync. When we want to sync everything use end. Call
+    // before the loop, or add a check.
 
-    if (!force && !(*itr)->sync_triggered()) {
-      if (!sync_chunk(*itr, MemoryChunk::sync_async, false))
-        failed++;
+    // if we don't want to sync, swap and break.
 
-      std::iter_swap(itr, split++);
+    int syncFlags;
+    bool syncCleanup;
 
-    } else if (force || (*itr)->time_modified() + rak::timer::from_seconds(m_timeoutSafeSync) < cachedTime) {
-      // When constrained of space, it triggers sync just one period
-      // after async. Else it waits for the safe sync timeout.
-      if (!sync_chunk(*itr, syncOptions, true)) {
-        failed++;
-        std::iter_swap(itr, split++);
+    // Using if statements since some linkers have problem with static
+    // const int members inside the ?: operators. The compiler should
+    // be optimizing this anyway.
+
+    if (flags & sync_force) {
+      syncCleanup = true;
+
+      if (flags & sync_safe)
+        syncFlags = MemoryChunk::sync_sync;
+      else
+        syncFlags = MemoryChunk::sync_async;
+
+    } else if (flags & sync_safe) {
+      
+      if ((*itr)->sync_triggered()) {
+        syncCleanup = true;
+        syncFlags = MemoryChunk::sync_sync;
+      } else {
+        syncCleanup = false;
+        syncFlags = MemoryChunk::sync_async;
       }
 
     } else {
-      std::iter_swap(itr, split++);
+      syncCleanup = true;
+      syncFlags = MemoryChunk::sync_async;
     }
+
+//     if (syncFlags == MemoryChunk::sync_sync)
+//       throw internal_error("Bork Bork Sync");
+
+    if (!sync_chunk(*itr, syncFlags, syncCleanup)) {
+      failed++;
+      std::iter_swap(itr, split++);
+      
+      continue;
+    }
+
+    (*itr)->set_sync_triggered(true);
+
+    if (!syncCleanup)
+      std::iter_swap(itr, split++);
   }
 
   m_queue.erase(split, m_queue.end());

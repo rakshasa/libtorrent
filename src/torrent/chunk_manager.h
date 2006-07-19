@@ -72,6 +72,8 @@ public:
 
   static uint64_t     estimate_max_memory_usage();
 
+  uint64_t            safe_free_diskspace() const;
+
   void                insert(ChunkList* chunkList);
   void                erase(ChunkList* chunkList);
 

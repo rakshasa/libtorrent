@@ -58,6 +58,15 @@ ChunkManager::~ChunkManager() {
 
 uint64_t
 ChunkManager::estimate_max_memory_usage() {
+  // Check ulimit and word size.
+
+  return (uint64_t)1 << 30;
+}
+
+uint64_t
+ChunkManager::safe_free_diskspace() const {
+  // Add some magic here, check how much has been write allocated.
+
   return (uint64_t)1 << 30;
 }
 
@@ -112,10 +121,17 @@ void
 ChunkManager::try_free_memory(uint64_t size, bool aggressive) {
   uint64_t target = size <= m_memoryUsage ? (m_memoryUsage - size) : 0;
 
+  int flags;
+
+  if (aggressive)
+    flags = ChunkList::sync_all | ChunkList::sync_force;
+  else
+    flags = 0;
+
   m_lastFreed = std::min<size_type>(m_lastFreed + 1, base_type::size());
 
   for (iterator itr = begin() + m_lastFreed, last = base_type::end(); itr != last; ++itr) {
-    (*itr)->sync_periodic(aggressive);
+    (*itr)->sync_chunks(flags);
 
     if (m_memoryUsage <= target) {
       m_lastFreed = itr - begin();
@@ -124,7 +140,7 @@ ChunkManager::try_free_memory(uint64_t size, bool aggressive) {
   }
 
   for (iterator itr = begin(), last = base_type::begin() + m_lastFreed; itr != last; ++itr) {
-    (*itr)->sync_periodic(aggressive);
+    (*itr)->sync_chunks(flags);
 
     if (m_memoryUsage <= target) {
       m_lastFreed = itr - begin();
