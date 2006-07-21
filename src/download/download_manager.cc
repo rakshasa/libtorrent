@@ -60,9 +60,6 @@ DownloadManager::erase(DownloadWrapper* d) {
   if (itr == end())
     throw client_error("Tried to remove a torrent that doesn't exist");
     
-  (*itr)->main()->stop();
-  (*itr)->close();
-
   delete *itr;
   return Base::erase(itr);
 }

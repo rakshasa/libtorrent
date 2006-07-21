@@ -68,7 +68,7 @@ public:
   using Base::size;
   using Base::empty;
 
-  ChunkList();
+  ChunkList() : m_manager(NULL) {}
   ~ChunkList() { clear(); }
 
   void                set_manager(ChunkManager* manager)      { m_manager = manager; }
@@ -83,28 +83,17 @@ public:
 
   size_type           queue_size() const                      { return m_queue.size(); }
 
-  size_type           max_queue_size() const                  { return m_maxQueueSize; }
-  void                set_max_queue_size(size_type v)         { m_maxQueueSize = v; }
+  static const int sync_all         = (1 << 0);
+  static const int sync_force       = (1 << 1);
+  static const int sync_safe        = (1 << 2);
+  static const int sync_sloppy      = (1 << 3);
+  static const int sync_use_timeout = (1 << 4);
 
-  uint32_t            timeout_sync() const                    { return m_timeoutSync; }
-  void                set_timeout_sync(uint32_t seconds)      { m_timeoutSync = seconds; }
+  // Replace use_timeout with something like performance related
+  // keyword. Then use that flag to decide if we should skip
+  // non-continious regions.
 
-  uint32_t            timeout_safe_sync() const               { return m_timeoutSafeSync; }
-  void                set_timeout_safe_sync(uint32_t seconds) { m_timeoutSafeSync = seconds; }
-
-  // Possibly have multiple version, some that do syncing of
-  // sequential chunks only etc. Pretty much depends on the time of
-  // dereferencing etc.
-  //
   // Returns the number of failed syncs.
-//   unsigned int        sync_all(int flags);
-//   unsigned int        sync_periodic(bool force = false);
-
-  static const int sync_all    = (1 << 0);
-  static const int sync_force  = (1 << 1);
-  static const int sync_safe   = (1 << 2);
-  static const int sync_sloppy = (1 << 3);
-
   uint32_t            sync_chunks(int flags);
 
   void                slot_create_chunk(SlotCreateChunk s)     { m_slotCreateChunk = s; }
@@ -118,11 +107,6 @@ private:
 
   ChunkManager*       m_manager;
   Queue               m_queue;
-
-  uint32_t            m_maxQueueSize;
-
-  uint32_t            m_timeoutSync;
-  uint32_t            m_timeoutSafeSync;
 
   SlotCreateChunk     m_slotCreateChunk;
   SlotFreeDiskspace   m_slotFreeDiskspace;

@@ -59,20 +59,30 @@ public:
   // The ChunkManager will automatically try to adjust max memory
   // usage to a resonable value. This should be based on the arch,
   // ulimit and errors encountered when mmap'ing.
-  bool                auto_memory() const                  { return m_autoMemory; }
-  void                set_auto_memory(bool state)          { m_autoMemory = state; }
+  bool                auto_memory() const                     { return m_autoMemory; }
+  void                set_auto_memory(bool state)             { m_autoMemory = state; }
 
-  uint64_t            memory_usage() const                 { return m_memoryUsage; }
+  uint64_t            memory_usage() const                    { return m_memoryUsage; }
 
   // Should we allow the client to reserve some memory?
 
   // The client should set this automatically if ulimit is set.
-  uint64_t            max_memory_usage() const             { return m_maxMemoryUsage; }
-  void                set_max_memory_usage(uint64_t bytes) { m_maxMemoryUsage = bytes; }
+  uint64_t            max_memory_usage() const                { return m_maxMemoryUsage; }
+  void                set_max_memory_usage(uint64_t bytes)    { m_maxMemoryUsage = bytes; }
 
+  // Estimate the max memory usage possible, capped at 1GB.
   static uint64_t     estimate_max_memory_usage();
 
   uint64_t            safe_free_diskspace() const;
+
+  // Set the interval to wait after the last write to a chunk before
+  // trying to sync it. By not forcing a sync too early it should give
+  // the kernel an oppertunity to sync at its convenience.
+  uint32_t            timeout_sync() const                    { return m_timeoutSync; }
+  void                set_timeout_sync(uint32_t seconds)      { m_timeoutSync = seconds; }
+
+  uint32_t            timeout_safe_sync() const               { return m_timeoutSafeSync; }
+  void                set_timeout_safe_sync(uint32_t seconds) { m_timeoutSafeSync = seconds; }
 
   void                insert(ChunkList* chunkList);
   void                erase(ChunkList* chunkList);
@@ -85,7 +95,7 @@ public:
   bool                allocate(uint32_t size);
   void                deallocate(uint32_t size);
 
-  void                try_free_memory(uint64_t size, bool aggressive);
+  void                try_free_memory(uint64_t size);
 
 private:
   ChunkManager(const ChunkManager&);
@@ -96,6 +106,10 @@ private:
   uint64_t            m_memoryUsage;
   uint64_t            m_maxMemoryUsage;
 
+  uint32_t            m_timeoutSync;
+  uint32_t            m_timeoutSafeSync;
+
+  int64_t             m_timerStarved;
   size_type           m_lastFreed;
 };
 

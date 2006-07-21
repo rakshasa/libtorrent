@@ -62,14 +62,6 @@ struct chunk_list_sort_index {
   }
 };
 
-ChunkList::ChunkList() :
-  m_manager(NULL),
-
-  m_maxQueueSize(~uint32_t()),
-  m_timeoutSync(300),
-  m_timeoutSafeSync(600) {
-}
-
 inline bool
 ChunkList::is_queued(ChunkListNode* node) {
   return std::find(m_queue.begin(), m_queue.end(), node) != m_queue.end();
@@ -248,8 +240,10 @@ ChunkList::sync_chunks(int flags) {
   else
     split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
 
-  // Some checks to decide if we really want to sync or not? Check
-  // timers and perhaps if we're closing in on max memory usage.
+  if ((flags & sync_use_timeout))
+//   if ((flags & sync_use_timeout) &&
+//       std::for_each(split, m_queue.end(), chunk_list_earliest_modified()).m_time + rak::timer::from_seconds(m_manager->timeout_sync()) >= cachedTime)
+    return 0;
 
   // Allow a flag that does more culling, so that we only get large
   // continous sections.
@@ -277,6 +271,7 @@ ChunkList::sync_chunks(int flags) {
 
     // if we don't want to sync, swap and break.
 
+    // These might be outside the loop?
     int syncFlags;
     bool syncCleanup;
 

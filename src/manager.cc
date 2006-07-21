@@ -128,9 +128,13 @@ Manager::initialize_download(DownloadWrapper* d) {
 
 void
 Manager::cleanup_download(DownloadWrapper* d) {
+  d->main()->stop();
+  d->close();
+
   m_resourceManager->erase(d->main());
-  m_downloadManager->erase(d);
   m_chunkManager->erase(d->main()->chunk_list());
+
+  m_downloadManager->erase(d);
 }
 
 void

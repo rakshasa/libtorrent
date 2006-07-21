@@ -36,19 +36,31 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+#include <sys/resource.h>
+
 #include "data/chunk_list.h"
 
 #include "exceptions.h"
 #include "chunk_manager.h"
+#include "globals.h"
 
 namespace torrent {
 
 ChunkManager::ChunkManager() :
   m_autoMemory(true),
   m_memoryUsage(0),
+
+  m_timeoutSync(600),
+  m_timeoutSafeSync(900),
+
+  m_timerStarved(0),
   m_lastFreed(0) {
 
-  m_maxMemoryUsage = estimate_max_memory_usage();
+  // 1/5 of the available memory should be enough for the client. If
+  // the client really requires alot more memory it should call this
+  // itself.
+  m_maxMemoryUsage = (estimate_max_memory_usage() * 4) / 5;
 }
 
 ChunkManager::~ChunkManager() {
@@ -58,16 +70,17 @@ ChunkManager::~ChunkManager() {
 
 uint64_t
 ChunkManager::estimate_max_memory_usage() {
-  // Check ulimit and word size.
+  rlimit rlp;
+  
+  if (getrlimit(RLIMIT_AS, &rlp) == 0)
+    return std::min<uint64_t>(rlp.rlim_cur, 1 << 30);
 
   return (uint64_t)1 << 30;
 }
 
 uint64_t
 ChunkManager::safe_free_diskspace() const {
-  // Add some magic here, check how much has been write allocated.
-
-  return (uint64_t)1 << 30;
+  return m_memoryUsage + ((uint64_t)512 << 20);
 }
 
 void
@@ -96,10 +109,7 @@ ChunkManager::erase(ChunkList* chunkList) {
 bool
 ChunkManager::allocate(uint32_t size) {
   if (m_memoryUsage + size > m_maxMemoryUsage)
-    try_free_memory(size, false);
-
-  if (m_memoryUsage + size > m_maxMemoryUsage)
-    try_free_memory(size, true);
+    try_free_memory(size);
 
   if (m_memoryUsage + size > m_maxMemoryUsage)
     return false;
@@ -118,20 +128,16 @@ ChunkManager::deallocate(uint32_t size) {
 }
 
 void
-ChunkManager::try_free_memory(uint64_t size, bool aggressive) {
+ChunkManager::try_free_memory(uint64_t size) {
+  if (rak::timer(m_timerStarved) + rak::timer::from_seconds(30) >= cachedTime)
+    return;
+
   uint64_t target = size <= m_memoryUsage ? (m_memoryUsage - size) : 0;
-
-  int flags;
-
-  if (aggressive)
-    flags = ChunkList::sync_all | ChunkList::sync_force;
-  else
-    flags = 0;
 
   m_lastFreed = std::min<size_type>(m_lastFreed + 1, base_type::size());
 
   for (iterator itr = begin() + m_lastFreed, last = base_type::end(); itr != last; ++itr) {
-    (*itr)->sync_chunks(flags);
+    (*itr)->sync_chunks(0);
 
     if (m_memoryUsage <= target) {
       m_lastFreed = itr - begin();
@@ -140,13 +146,15 @@ ChunkManager::try_free_memory(uint64_t size, bool aggressive) {
   }
 
   for (iterator itr = begin(), last = base_type::begin() + m_lastFreed; itr != last; ++itr) {
-    (*itr)->sync_chunks(flags);
+    (*itr)->sync_chunks(0);
 
     if (m_memoryUsage <= target) {
       m_lastFreed = itr - begin();
       return;
     }
   }
+
+  m_timerStarved = cachedTime.usec();
 }
 
 }

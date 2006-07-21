@@ -91,8 +91,6 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   info()->slot_stat_left() = rak::make_mem_fun(&m_main, &DownloadMain::get_bytes_left);
 
-  m_main.chunk_list()->set_max_queue_size((32 << 20) / m_main.content()->chunk_size());
-
   m_main.connection_list()->slot_connected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_connected));
   m_main.connection_list()->slot_disconnected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_disconnected));
 
@@ -301,7 +299,7 @@ DownloadWrapper::receive_tick() {
   if (!info()->is_open())
     return;
 
-  unsigned int syncFailed = m_main.chunk_list()->sync_chunks(0);
+  unsigned int syncFailed = m_main.chunk_list()->sync_chunks(ChunkList::sync_use_timeout);
 
   if (info()->is_active() && syncFailed != 0) {
     // Need to move this stuff into a seperate function.

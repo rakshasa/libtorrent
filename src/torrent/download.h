@@ -153,17 +153,6 @@ public:
   void                insert_addresses(const std::string& addresses);
   void                extract_addresses(std::string& addresses);
 
-  // This should also be moved out into a seperate class, possibly
-  // global settings.
-  uint32_t            timeout_sync() const;
-  void                set_timeout_sync(uint32_t seconds);
-
-  uint32_t            timeout_safe_sync() const;
-  void                set_timeout_safe_sync(uint32_t seconds);
-
-  uint32_t            max_chunks_queued() const;
-  void                set_max_chunks_queued(uint32_t chunks);
-
   uint32_t            peers_min() const;
   uint32_t            peers_max() const;
   uint32_t            peers_connected() const;
