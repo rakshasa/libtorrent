@@ -44,6 +44,8 @@
 #include "file.h"
 #include "file_list.h"
 #include "object.h"
+#include "tracker.h"
+#include "tracker_list.h"
 
 #include "resume.h"
 
@@ -81,7 +83,7 @@ resume_load_progress(Download download, const Object& object) {
 }
 
 void
-resume_save_progress(Download download, Object& object) {
+resume_save_progress(Download download, Object& object, bool onlyCompleted) {
   if (!download.is_hash_checked())
     // We don't remove the old hash data since it might still be
     // valid, just that the client didn't finish the check this time.
@@ -106,8 +108,10 @@ resume_save_progress(Download download, Object& object) {
       *filesItr = Object(Object::TYPE_MAP);
 
     rak::file_stat fs;
+    File file = fileList.get(index);
 
-    if (!fs.update(fileList.root_dir() + fileList.get(index).path_str())) {
+    if (!fs.update(fileList.root_dir() + file.path_str()) ||
+        (onlyCompleted && file.completed_chunks() != file.size_chunks())) {
       filesItr->erase_key("mtime");
       continue;
     }
@@ -175,6 +179,45 @@ resume_load_addresses(Download download, const Object& object) {
 void
 resume_save_addresses(Download download, Object& object) {
   download.extract_addresses(object.insert_key("peers", std::string()).as_string());
+}
+
+void
+resume_load_tracker_settings(Download download, const Object& object) {
+  if (!object.has_key_map("trackers"))
+    return;
+
+  const Object& src = object.get_key("trackers");
+
+  TrackerList trackerList = download.tracker_list();
+
+  for (unsigned int i = 0; i < trackerList.size(); ++i) {
+    Tracker tracker = trackerList.get(i);
+
+    if (!src.has_key_map(tracker.url()))
+      continue;
+
+    const Object& trackerObject = src.get_key(tracker.url());
+
+    if (trackerObject.has_key_value("enabled") && trackerObject.get_key_value("enabled") == 0)
+      tracker.disable();
+    else
+      tracker.enable();
+  }    
+}
+
+void
+resume_save_tracker_settings(Download download, Object& object) {
+  Object& dest = object.has_key_map("trackers") ? object.get_key("trackers") : object.insert_key("trackers", Object(Object::TYPE_MAP));
+
+  TrackerList trackerList = download.tracker_list();
+
+  for (unsigned int i = 0; i < trackerList.size(); ++i) {
+    Tracker tracker = trackerList.get(i);
+
+    Object& trackerObject = dest.insert_key(tracker.url(), Object(Object::TYPE_MAP));
+
+    trackerObject.insert_key("enabled", Object((int64_t)tracker.is_enabled()));
+  }
 }
 
 }

@@ -50,8 +50,12 @@ namespace torrent {
 class Object;
 class Download;
 
+// When saving resume data for a torrent that is currently active, set
+// 'onlyCompleted' to ensure that a crash, etc, will cause incomplete
+// files to be hashed.
+
 void resume_load_progress(Download download, const Object& object);
-void resume_save_progress(Download download, Object& object);
+void resume_save_progress(Download download, Object& object, bool onlyCompleted = false);
 void resume_clear_progress(Download download, Object& object);
 
 void resume_load_file_priorities(Download download, const Object& object);
@@ -59,6 +63,9 @@ void resume_save_file_priorities(Download download, Object& object);
 
 void resume_load_addresses(Download download, const Object& object);
 void resume_save_addresses(Download download, Object& object);
+
+void resume_load_tracker_settings(Download download, const Object& object);
+void resume_save_tracker_settings(Download download, Object& object);
 
 }
 
