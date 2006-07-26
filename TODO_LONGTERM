@@ -7,14 +7,6 @@ should also include slots for monitoring syncing, etc.
 
 The seed count and scrape leech/seed.
 
-Disk cache.
-
-Resume needs to be split.
-
-Split priority etc stuff from "libtorrent resume" so we don't lose
-that information on re-hashing etc. Make this client loadable, with
-default tools in libtorrent.
-
 New FileList and friends.
 
 Convert stuff to use off_t for byte sizes? Though what about when it
@@ -34,21 +26,9 @@ Add a variable that has can have an off state, plus a value range.
 
 === Session management ==
 
-Add a command to tie a torrent to the life-time of a file. When that
-file is deleted, stop or delete the torrent.
-
-To support this, use different states (enum) for each torrent;
-STOPPED, STARTED, DEFUNCT(?), LOADING(?), SCHEDULED. When this is
-available, it should be possible to temporarily stop all torrents and
-remove DEFUNCT when quitting rtorrent. The latter could be used when
-the user deletes the file it is tied to.
-
 Saving session torrents should be lazy, perhaps only for those who are
 not open. Or do session torrent saving as needed, when seeding is
 stopped etc. Perhaps a dirty flag.
-
-Mark files in the session torrent that we know have been created. Thus
-we can bork if we find anything missing.
 
 
 == Global and Download specific variables ==
