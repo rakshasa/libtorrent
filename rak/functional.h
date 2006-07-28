@@ -188,10 +188,10 @@ less2(FtorA f_a, FtorB f_b) {
 }
 
 template <typename Type, typename Ftor>
-struct greater_t : public std::unary_function<typename Ftor::argument_type, bool> {
+struct _greater {
   typedef bool result_type;
 
-  greater_t(Type t, Ftor f) : m_t(t), m_f(f) {}
+  _greater(Type t, Ftor f) : m_t(t), m_f(f) {}
 
   template <typename Arg>
   bool operator () (Arg& a) {
@@ -203,9 +203,27 @@ struct greater_t : public std::unary_function<typename Ftor::argument_type, bool
 };
 
 template <typename Type, typename Ftor>
-inline greater_t<Type, Ftor>
+inline _greater<Type, Ftor>
 greater(Type t, Ftor f) {
-  return greater_t<Type, Ftor>(t, f);
+  return _greater<Type, Ftor>(t, f);
+}
+
+template <typename FtorA, typename FtorB>
+struct greater2_t : public std::binary_function<typename FtorA::argument_type, typename FtorB::argument_type, bool> {
+  greater2_t(FtorA f_a, FtorB f_b) : m_f_a(f_a), m_f_b(f_b) {}
+
+  bool operator () (typename FtorA::argument_type a, typename FtorB::argument_type b) {
+    return m_f_a(a) > m_f_b(b);
+  }
+
+  FtorA m_f_a;
+  FtorB m_f_b;
+};
+
+template <typename FtorA, typename FtorB>
+inline greater2_t<FtorA, FtorB>
+greater2(FtorA f_a, FtorB f_b) {
+  return greater2_t<FtorA,FtorB>(f_a,f_b);
 }
 
 template <typename Type, typename Ftor>
@@ -278,12 +296,33 @@ on(Src s, Dest d) {
 
 // Creates a functor for accessing a member.
 template <typename Class, typename Member>
-struct mem_ptr_ref_t : public std::unary_function<const Class&, const Member&> {
+struct mem_ptr_t : public std::unary_function<Class*, Member&> {
+  mem_ptr_t(Member Class::*m) : m_member(m) {}
+
+  Member& operator () (Class* c) {
+    return c->*m_member;
+  }
+
+  const Member& operator () (const Class* c) {
+    return c->*m_member;
+  }
+
+  Member Class::*m_member;
+};
+
+template <typename Class, typename Member>
+inline mem_ptr_t<Class, Member>
+mem_ptr(Member Class::*m) {
+  return mem_ptr_t<Class, Member>(m);
+}
+
+template <typename Class, typename Member>
+struct mem_ptr_ref_t : public std::unary_function<Class&, Member&> {
   mem_ptr_ref_t(Member Class::*m) : m_member(m) {}
 
-//   Member& operator () (Class& c) {
-//     return c.*m_member;
-//   }
+  Member& operator () (Class& c) {
+    return c.*m_member;
+  }
 
   const Member& operator () (const Class& c) {
     return c.*m_member;
