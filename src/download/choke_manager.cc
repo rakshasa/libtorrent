@@ -123,11 +123,9 @@ ChokeManager::max_alternate() const {
 
 inline void
 ChokeManager::alternate_ranges(iterator firstUnchoked, iterator lastUnchoked,
-			       iterator firstChoked, iterator lastChoked,
-			       unsigned int max) {
-  max = std::min(std::min<unsigned int>(std::distance(firstUnchoked, lastUnchoked),
-					std::distance(firstChoked, lastChoked)),
-		 max);
+                               iterator firstChoked, iterator lastChoked,
+                               unsigned int max) {
+  max = std::min(max, std::min<unsigned int>(std::distance(firstUnchoked, lastUnchoked), std::distance(firstChoked, lastChoked)));
 
   // Do unchoke first, then choke. Take the return value of the first
   // unchoke and use it for choking. Don't need the above min call.

@@ -54,7 +54,7 @@ struct peer_list_equal_port : public std::binary_function<PeerList::reference, u
 
 void
 PeerList::clear() {
-  std::for_each(begin(), end(), rak::on(rak::mem_ptr_ref(&value_type::second), rak::call_delete<PeerInfo>()));
+  std::for_each(begin(), end(), rak::on(rak::mem_ref(&value_type::second), rak::call_delete<PeerInfo>()));
 
   base_type::clear();
 }
@@ -66,7 +66,7 @@ PeerList::connected(const rak::socket_address& sa) {
   iterator itr = std::find_if(range.first, range.second, rak::bind2nd(peer_list_equal_port(), sa.port()));
 
   if (itr == range.second)
-    itr = std::find_if(range.first, range.second, rak::on(rak::mem_ptr_ref(&value_type::second), std::not1(std::mem_fun(&PeerInfo::is_connected))));
+    itr = std::find_if(range.first, range.second, rak::on(rak::mem_ref(&value_type::second), std::not1(std::mem_fun(&PeerInfo::is_connected))));
 
   else if (itr->second->is_connected())
     return end();
@@ -96,10 +96,10 @@ void
 PeerList::disconnected(PeerInfo* p) {
   range_type range = base_type::equal_range(*p->socket_address());
   
-  iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ptr_ref(&value_type::second)));
+  iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ref(&value_type::second)));
 
   if (itr == range.second)
-    if (std::find_if(begin(), end(), rak::equal(p, rak::mem_ptr_ref(&value_type::second))) == end())
+    if (std::find_if(begin(), end(), rak::equal(p, rak::mem_ref(&value_type::second))) == end())
       throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist");
     else
       throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");

@@ -55,14 +55,14 @@ ResourceManager::~ResourceManager() {
 
 void
 ResourceManager::insert(DownloadMain* d, uint16_t priority) {
-  iterator itr = std::find_if(begin(), end(), rak::less(priority, rak::mem_ptr_ref(&value_type::first)));
+  iterator itr = std::find_if(begin(), end(), rak::less(priority, rak::mem_ref(&value_type::first)));
 
   Base::insert(itr, value_type(priority, d));
 }
 
 void
 ResourceManager::erase(DownloadMain* d) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(d, rak::mem_ptr_ref(&value_type::second)));
+  iterator itr = std::find_if(begin(), end(), rak::equal(d, rak::mem_ref(&value_type::second)));
 
   if (itr != end())
     Base::erase(itr);
@@ -70,7 +70,7 @@ ResourceManager::erase(DownloadMain* d) {
 
 ResourceManager::iterator
 ResourceManager::find(DownloadMain* d) {
-  return std::find_if(begin(), end(), rak::equal(d, rak::mem_ptr_ref(&value_type::second)));
+  return std::find_if(begin(), end(), rak::equal(d, rak::mem_ref(&value_type::second)));
 }
 
 void
@@ -125,7 +125,7 @@ ResourceManager::receive_tick() {
 
 unsigned int
 ResourceManager::total_weight() const {
-  return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, rak::mem_ptr_ref(&value_type::first))).result;
+  return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, rak::const_mem_ref(&value_type::first))).result;
 }
 
 struct resource_manager_interested_increasing {
@@ -163,7 +163,5 @@ ResourceManager::balance_unchoked(unsigned int weight) {
       m_currentlyUnchoked += itr->second->choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
   }
 }
-
-
 
 }

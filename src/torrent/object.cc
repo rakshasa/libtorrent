@@ -106,7 +106,7 @@ Object::merge_copy(const Object& object, uint32_t maxDepth) {
     map_type::const_iterator srcLast = object.as_map().end();
 
     while (srcItr != srcLast) {
-      destItr = std::find_if(destItr, dest.end(), rak::less_equal(srcItr->first, rak::mem_ptr_ref(&map_type::value_type::first)));
+      destItr = std::find_if(destItr, dest.end(), rak::less_equal(srcItr->first, rak::mem_ref(&map_type::value_type::first)));
 
       if (srcItr->first < destItr->first)
         // destItr remains valid and pointing to the next possible

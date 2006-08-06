@@ -48,7 +48,7 @@ namespace torrent {
 bool
 TrackerContainer::has_enabled() const {
   return std::find_if(begin(), end(),
-		      rak::on(rak::mem_ptr_ref(&value_type::second), std::mem_fun(&TrackerBase::is_enabled)))
+		      rak::on(rak::mem_ref(&value_type::second), std::mem_fun(&TrackerBase::is_enabled)))
     != end();
 }
 
@@ -69,7 +69,7 @@ TrackerContainer::randomize() {
 void
 TrackerContainer::clear() {
   std::for_each(begin(), end(),
-		rak::on(rak::mem_ptr_ref(&value_type::second), rak::call_delete<TrackerBase>()));
+		rak::on(rak::mem_ref(&value_type::second), rak::call_delete<TrackerBase>()));
 
   Base::clear();
 }
@@ -93,7 +93,7 @@ TrackerContainer::promote(iterator itr) {
 
 TrackerContainer::iterator
 TrackerContainer::find(TrackerBase* tb) {
-  return std::find_if(begin(), end(), rak::equal(tb, rak::mem_ptr_ref(&value_type::second)));
+  return std::find_if(begin(), end(), rak::equal(tb, rak::mem_ref(&value_type::second)));
 }
 
 TrackerContainer::iterator
@@ -106,8 +106,7 @@ TrackerContainer::find_enabled(iterator itr) {
 
 TrackerContainer::iterator
 TrackerContainer::begin_group(int group) {
-  return std::find_if(begin(), end(),
-		      rak::less_equal(group, rak::mem_ptr_ref(&value_type::first)));
+  return std::find_if(begin(), end(), rak::less_equal(group, rak::mem_ref(&value_type::first)));
 }
 
 void
