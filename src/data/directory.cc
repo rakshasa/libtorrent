@@ -46,9 +46,9 @@ namespace torrent {
 
 void
 make_directory(const std::string& root,
-	    Path::const_iterator pathBegin, Path::const_iterator pathEnd,
-	    Path::const_iterator ignoreBegin, Path::const_iterator ignoreEnd,
-	    unsigned int umask) {
+               Path::const_iterator pathBegin, Path::const_iterator pathEnd,
+               Path::const_iterator ignoreBegin, Path::const_iterator ignoreEnd,
+               unsigned int umask) {
 
   std::string p = root;
 
@@ -56,13 +56,12 @@ make_directory(const std::string& root,
     p += "/" + *pathBegin;
 
     if (ignoreBegin == ignoreEnd ||
-	*pathBegin != *ignoreBegin) {
+        *pathBegin != *ignoreBegin) {
 
       ignoreBegin = ignoreEnd;
 
-      if (::mkdir(p.c_str(), umask) &&
-	  errno != EEXIST)
-	throw storage_error("Could not create directory '" + p + "': " + strerror(errno));
+      if (::mkdir(p.c_str(), umask) && errno != EEXIST)
+        throw storage_error("Could not create directory '" + p + "': " + strerror(errno));
 
     } else {
       ++ignoreBegin;
@@ -74,8 +73,7 @@ make_directory(const std::string& root,
 
 void
 make_directory(const std::string& dir, unsigned int umask) {
-  if (::mkdir(dir.c_str(), umask) &&
-      errno != EEXIST)
+  if (::mkdir(dir.c_str(), umask) && errno != EEXIST)
     throw storage_error("Could not create directory '" + dir + "': " + strerror(errno));
 }
 

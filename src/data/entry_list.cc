@@ -95,24 +95,24 @@ EntryList::open() {
   try {
     make_directory(m_rootDir);
 
-    for (iterator last = end(); itr != last; ++itr) {
-      if ((*itr)->file_meta()->is_open())
+    while (itr != end()) {
+      EntryListNode* entry = *itr++;
+
+      if (entry->file_meta()->is_open())
         throw internal_error("EntryList::open(...) found an already opened file.");
       
-      m_slotInsertFileMeta((*itr)->file_meta());
+      m_slotInsertFileMeta(entry->file_meta());
 
-      if ((*itr)->path()->empty())
+      if (entry->path()->empty())
         throw storage_error("Found an empty filename.");
 
-      if (!open_file(&*(*itr), lastPath))
-        throw storage_error("Could not open file \"" + m_rootDir + (*itr)->path()->as_string() + "\": " + rak::error_number::current().c_str());
+      if (!open_file(&*entry, lastPath))
+        throw storage_error("Could not open file \"" + m_rootDir + entry->path()->as_string() + "\": " + rak::error_number::current().c_str());
       
-      lastPath = *(*itr)->path();
+      lastPath = *entry->path();
     }
 
   } catch (storage_error& e) {
-    itr++;
-
     for (iterator cleanupItr = begin(); cleanupItr != itr; ++cleanupItr)
       m_slotEraseFileMeta((*cleanupItr)->file_meta());
 
