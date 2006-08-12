@@ -42,7 +42,6 @@
 #include <cstdlib>
 #include <iterator>
 #include <locale>
-#include <stdlib.h>
 
 namespace rak {
 
@@ -192,8 +191,8 @@ OutputIterator
 copy_escape_html(InputIterator first, InputIterator last, OutputIterator dest) {
   while (first != last) {
     if (std::isalpha(*first, std::locale::classic()) ||
-	std::isdigit(*first, std::locale::classic()) ||
-	*first == '-') {
+        std::isdigit(*first, std::locale::classic()) ||
+        *first == '-') {
       *(dest++) = *first;
 
     } else {
@@ -206,6 +205,27 @@ copy_escape_html(InputIterator first, InputIterator last, OutputIterator dest) {
   }
 
   return dest;
+}
+
+template <typename InputIterator, typename OutputIterator> 
+OutputIterator
+copy_escape_html(InputIterator first1, InputIterator last1, OutputIterator first2, OutputIterator last2) {
+  while (first1 != last1) {
+    if (std::isalpha(*first1, std::locale::classic()) ||
+        std::isdigit(*first1, std::locale::classic()) ||
+        *first1 == '-') {
+      if (first2 == last2) break; else *(first2++) = *first1;
+
+    } else {
+      if (first2 == last2) break; else *(first2++) = '%';
+      if (first2 == last2) break; else *(first2++) = value_to_hexchar<1>(*first1);
+      if (first2 == last2) break; else *(first2++) = value_to_hexchar<0>(*first1);
+    }
+
+    ++first1;
+  }
+
+  return first2;
 }
 
 template <typename Sequence>
@@ -231,6 +251,19 @@ transform_hex(InputIterator first, InputIterator last, OutputIterator dest) {
   return dest;
 }
 
+template <typename InputIterator, typename OutputIterator> 
+OutputIterator
+transform_hex(InputIterator first1, InputIterator last1, OutputIterator first2, OutputIterator last2) {
+  while (first1 != last1) {
+    if (first2 == last2) break; else *(first2++) = value_to_hexchar<1>(*first1);
+    if (first2 == last2) break; else *(first2++) = value_to_hexchar<0>(*first1);
+
+    ++first1;
+  }
+
+  return first2;
+}
+
 template <typename Sequence>
 Sequence
 transform_hex(const Sequence& src) {
@@ -246,7 +279,7 @@ generate_random(size_t length) {
   Sequence s;
   s.reserve(length);
 
-  std::generate_n(std::back_inserter(s), length, &::random);
+  std::generate_n(std::back_inserter(s), length, &std::rand);
 
   return s;
 }
