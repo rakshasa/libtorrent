@@ -75,6 +75,9 @@ public:
 
   uint64_t            safe_free_diskspace() const;
 
+  bool                safe_sync() const                       { return m_safeSync; }
+  void                set_safe_sync(uint32_t state)           { m_safeSync = state; }
+
   // Set the interval to wait after the last write to a chunk before
   // trying to sync it. By not forcing a sync too early it should give
   // the kernel an oppertunity to sync at its convenience.
@@ -106,6 +109,7 @@ private:
   uint64_t            m_memoryUsage;
   uint64_t            m_maxMemoryUsage;
 
+  bool                m_safeSync;
   uint32_t            m_timeoutSync;
   uint32_t            m_timeoutSafeSync;
 

@@ -97,6 +97,10 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
   // set.
   rak::partial_queue* queue = pc->is_seeder() ? &m_sharedQueue : pc->download_cache();
 
+  // DEBUG: Remove this, just for testing syncing.
+//   m_position = random() % size();
+//   queue->clear();
+
   if (queue->is_enabled()) {
 
     // First check the cached queue.
@@ -104,7 +108,7 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
       uint32_t pos = queue->pop();
 
       if (!m_bitfield.get(pos))
-	continue;
+        continue;
 
       return pos;
     }

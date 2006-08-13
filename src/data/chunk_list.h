@@ -105,6 +105,11 @@ private:
   inline void         clear_chunk(ChunkListNode* node);
   inline bool         sync_chunk(ChunkListNode* node, int flags, bool cleanup);
 
+  Queue::iterator     partition_optimize(Queue::iterator first, Queue::iterator last);
+
+  inline Queue::iterator seek_range(Queue::iterator first, Queue::iterator last);
+  inline bool            check_node(ChunkListNode* node);
+
   ChunkManager*       m_manager;
   Queue               m_queue;
 

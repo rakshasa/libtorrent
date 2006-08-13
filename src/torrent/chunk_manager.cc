@@ -51,6 +51,7 @@ ChunkManager::ChunkManager() :
   m_autoMemory(true),
   m_memoryUsage(0),
 
+  m_safeSync(false),
   m_timeoutSync(600),
   m_timeoutSafeSync(900),
 
@@ -72,10 +73,10 @@ uint64_t
 ChunkManager::estimate_max_memory_usage() {
   rlimit rlp;
   
-  if (getrlimit(RLIMIT_AS, &rlp) == 0)
-    return std::min<uint64_t>(rlp.rlim_cur, 1 << 30);
+  if (getrlimit(RLIMIT_AS, &rlp) != 0 || rlp.rlim_cur == RLIM_INFINITY)
+    return (uint64_t)1 << 30;
 
-  return (uint64_t)1 << 30;
+  return rlp.rlim_cur;
 }
 
 uint64_t
@@ -129,6 +130,12 @@ ChunkManager::deallocate(uint32_t size) {
 
 void
 ChunkManager::try_free_memory(uint64_t size) {
+  // Ensure that we don't call this function too often when futile as
+  // it might be somewhat expensive.
+  //
+  // Note that it won't be able to free chunks that are scheduled for
+  // hash checking, so a too low max memory setting will give problem
+  // at high transfer speed.
   if (rak::timer(m_timerStarved) + rak::timer::from_seconds(30) >= cachedTime)
     return;
 

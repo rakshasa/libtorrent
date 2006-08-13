@@ -240,11 +240,6 @@ ChunkList::sync_chunks(int flags) {
   else
     split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
 
-  if ((flags & sync_use_timeout))
-//   if ((flags & sync_use_timeout) &&
-//       std::for_each(split, m_queue.end(), chunk_list_earliest_modified()).m_time + rak::timer::from_seconds(m_manager->timeout_sync()) >= cachedTime)
-    return 0;
-
   // Allow a flag that does more culling, so that we only get large
   // continous sections.
   //
@@ -253,9 +248,11 @@ ChunkList::sync_chunks(int flags) {
 
   std::sort(split, m_queue.end());
   
-  // Add a flag for not checking diskspace.
+  if ((flags & sync_use_timeout))
+    split = partition_optimize(split, m_queue.end());
 
-  if (!(flags & (sync_safe | sync_sloppy)) && (m_slotFreeDiskspace() <= m_manager->safe_free_diskspace()))
+  // Add a flag for not checking diskspace.
+  if (!(flags & (sync_safe | sync_sloppy)) && (m_manager->safe_sync() || m_slotFreeDiskspace() <= m_manager->safe_free_diskspace()))
     flags |= sync_safe;
 
   uint32_t failed = 0;
@@ -320,6 +317,67 @@ ChunkList::sync_chunks(int flags) {
 
   m_queue.erase(split, m_queue.end());
   return failed;
+}
+
+// Using a rather simple algorithm for now. This should really be more
+// robust against holes withing otherwise compact ranges and take into
+// consideration chunk size.
+inline ChunkList::Queue::iterator
+ChunkList::seek_range(Queue::iterator first, Queue::iterator last) {
+  uint32_t prevIndex = (*first)->index();
+
+  while (++first != last) {
+    if ((*first)->index() - prevIndex > 3)
+      break;
+
+    prevIndex = (*first)->index();
+  }
+
+  return first;
+}
+
+inline bool
+ChunkList::check_node(ChunkListNode* node) {
+  return
+    node->time_modified() != rak::timer() &&
+    node->time_modified() + rak::timer::from_seconds(m_manager->timeout_sync()) < cachedTime;
+}
+
+// Optimize the selection of chunks to sync. Continuous regions are
+// preferred, while if too fragmented or if too few chunks are
+// available it skips syncing of all chunks.
+
+ChunkList::Queue::iterator
+ChunkList::partition_optimize(Queue::iterator first, Queue::iterator last) {
+  unsigned int required = 0;
+  unsigned int weight = 0;
+
+  for (Queue::iterator itr = first; itr != last;) {
+    Queue::iterator range = seek_range(itr, last);
+
+    unsigned int requiredRange = std::count_if(itr, range, std::bind1st(std::mem_fun(&ChunkList::check_node), this));
+    required += requiredRange;
+
+    if (requiredRange == 0 && std::distance(itr, range) < 5) {
+      // Don't sync this range.
+      unsigned int l = std::min(range - itr, itr - first);
+      std::swap_ranges(first, first + l, range - l);
+
+      first += l;
+
+    } else {
+      // This probably increases too fast.
+      weight += std::distance(itr, range) * std::distance(itr, range);
+    }
+
+    itr = range;
+  }
+
+  // These values are all arbritrary...
+  if (required == 0 && weight < 200)
+    return last;
+
+  return first;
 }
 
 }
