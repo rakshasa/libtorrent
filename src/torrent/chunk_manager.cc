@@ -73,10 +73,14 @@ uint64_t
 ChunkManager::estimate_max_memory_usage() {
   rlimit rlp;
   
-  if (getrlimit(RLIMIT_AS, &rlp) != 0 || rlp.rlim_cur == RLIM_INFINITY)
-    return (uint64_t)1 << 30;
+#ifdef RLIMIT_AS
+  if (getrlimit(RLIMIT_AS, &rlp) == 0 && rlp.rlim_cur != RLIM_INFINITY)
+#else
+  if (getrlimit(RLIMIT_DATA, &rlp) == 0 && rlp.rlim_cur != RLIM_INFINITY)
+#endif
+    return rlp.rlim_cur;
 
-  return rlp.rlim_cur;
+  return (uint64_t)1 << 30;
 }
 
 uint64_t
