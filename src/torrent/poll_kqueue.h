@@ -49,6 +49,10 @@ class PollKQueue : public torrent::Poll {
 public:
   typedef std::vector<uint32_t> Table;
 
+  static const uint32_t flag_read  = (1 << 0);
+  static const uint32_t flag_write = (1 << 1);
+  static const uint32_t flag_error = (1 << 2);
+
   static PollKQueue*   create(int maxOpenSockets);
   virtual ~PollKQueue();
 
@@ -85,7 +89,7 @@ private:
   inline uint32_t     event_mask(Event* e);
   inline void         set_event_mask(Event* e, uint32_t m);
 
-  inline void         modify(torrent::Event* event, int op, uint32_t mask);
+  void                modify(torrent::Event* event, unsigned short op, short mask);
 
   int                 m_fd;
 
@@ -94,8 +98,8 @@ private:
   int                 m_changedEvents;
 
   Table               m_table;
-  kevent*             m_events;
-  kevent*             m_changes;
+  struct kevent*      m_events;
+  struct kevent*      m_changes;
 };
 
 }

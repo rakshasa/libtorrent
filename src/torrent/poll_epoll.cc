@@ -122,6 +122,12 @@ PollEPoll::poll(int msec) {
 void
 PollEPoll::perform() {
   for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+    // Each branch must check for data.ptr != NULL to allow the socket
+    // to remove itself between the calls.
+    //
+    // TODO: Make it so that it checks that read/write is wanted, that
+    // it wasn't removed from one of them but not closed.
+
     if (itr->events & EPOLLERR && itr->data.ptr != NULL)
       ((Event*)itr->data.ptr)->event_error();
 

@@ -38,7 +38,6 @@
 #define LIBTORRENT_PRIORITY_H
 
 #include <inttypes.h>
-#include <rak/ranges.h>
 
 namespace torrent {
 

@@ -38,7 +38,10 @@
 
 #include <cerrno>
 
+#include <algorithm>
 #include <unistd.h>
+#include <rak/error_number.h>
+#include <rak/functional.h>
 #include <torrent/exceptions.h>
 #include <torrent/event.h>
 
@@ -64,25 +67,29 @@ PollKQueue::set_event_mask(Event* e, uint32_t m) {
   m_table[e->file_descriptor()] = m;
 }
 
-inline void
-PollKQueue::modify(Event* event, int op, uint32_t mask) {
-  if (event_mask(event) == mask)
+void
+PollKQueue::modify(Event* event, unsigned short op, short mask) {
+  // Just so I can test it on my mac, comment this out.
+  if (event->file_descriptor() == 0)
     return;
 
-  epoll_event e;
-  e.data.u64 = 0; // Make valgrind happy? Remove please.
-  e.data.ptr = event;
-  e.events = mask;
+  // Flush the changed filters to the kernel if the buffer if full.
+  if (m_changedEvents == 1) {
+//   if (m_changedEvents == m_maxEvents) {
+    if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
+      throw internal_error("PollKQueue::modify() error: " + std::string(rak::error_number::current().c_str()));
+      
+    m_changedEvents = 0;
+  }
 
-  set_event_mask(event, mask);
+  struct kevent* itr = m_changes + (m_changedEvents++);
 
-  if (epoll_ctl(m_fd, op, event->file_descriptor(), &e))
-    throw internal_error("PollKQueue::insert_read(...) epoll_ctl call failed");
+  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
 }
 
 PollKQueue*
 PollKQueue::create(int maxOpenSockets) {
-  int fd = epoll_create(maxOpenSockets);
+  int fd = kqueue();
 
   if (fd == -1)
     return NULL;
@@ -94,44 +101,53 @@ PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) :
   m_fd(fd),
   m_maxEvents(maxEvents),
   m_waitingEvents(0),
-  m_events(new epoll_event[m_maxEvents]) {
+  m_changedEvents(0) {
+
+  m_events = new struct kevent[m_maxEvents];
+  m_changes = new struct kevent[maxOpenSockets];
 
   m_table.resize(maxOpenSockets);
 }
 
 PollKQueue::~PollKQueue() {
   m_table.clear();
-  delete [] (epoll_event*)m_events;
+  delete [] m_events;
+  delete [] m_changes;
 
   ::close(m_fd);
 }
 
 int
 PollKQueue::poll(int msec) {
-  int nfds = epoll_wait(m_fd, (epoll_event*)m_events, m_maxEvents, msec);
+  timespec timeout = { msec / 1000, (msec % 1000) * 1000000 };
+
+  int nfds = kevent(m_fd, m_changes, m_changedEvents, m_events, m_maxEvents, &timeout);
 
   if (nfds == -1)
     return -1;
 
-  return m_waitingEvents = nfds;
+  m_waitingEvents = nfds;
+  m_changedEvents = 0;
+
+  return nfds;
 }
 
-// We check m_table to make sure the Event is still listening to the
-// event, so it is safe to remove Event's while in working.
-//
-// TODO: Do we want to guarantee if the Event has been removed from
-// some event but not closed, it won't call that event? Think so...
 void
 PollKQueue::perform() {
-  for (epoll_event *itr = (epoll_event*)m_events, *last = (epoll_event*)m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->events & EPOLLERR && itr->data.ptr != NULL)
-      ((Event*)itr->data.ptr)->event_error();
+  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+    if (itr->flags == EV_ERROR)
+      throw internal_error("PollKQueue::perform() error: " + std::string(rak::error_number(itr->data).c_str()));
 
-    if (itr->events & EPOLLIN && itr->data.ptr != NULL)
-      ((Event*)itr->data.ptr)->event_read();
+    if (itr->udata == NULL)
+      continue;
 
-    if (itr->events & EPOLLOUT && itr->data.ptr != NULL)
-      ((Event*)itr->data.ptr)->event_write();
+    // Also check current mask.
+
+    if (itr->filter == EVFILT_READ)
+      ((Event*)itr->udata)->event_read();
+
+    if (itr->filter == EVFILT_WRITE)
+      ((Event*)itr->udata)->event_write();
   }
 
   m_waitingEvents = 0;
@@ -153,68 +169,76 @@ PollKQueue::close(Event* event) {
   if (event_mask(event) != 0)
     throw internal_error("PollKQueue::close(...) called but the file descriptor is active");
 
-  for (epoll_event *itr = (epoll_event*)m_events, *last = (epoll_event*)m_events + m_waitingEvents; itr != last; ++itr)
-    if (itr->data.ptr == event)
-      itr->data.ptr = NULL;
+  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
+    if (itr->udata == event)
+      itr->udata = NULL;
+
+  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
 }
 
 // Use custom defines for EPOLL* to make the below code compile with
 // and with epoll.
 bool
 PollKQueue::in_read(Event* event) {
-  return event_mask(event) & EPOLLIN;
+  return event_mask(event) & flag_read;
 }
 
 bool
 PollKQueue::in_write(Event* event) {
-  return event_mask(event) & EPOLLOUT;
+  return event_mask(event) & flag_write;
 }
 
 bool
 PollKQueue::in_error(Event* event) {
-  return event_mask(event) & EPOLLERR;
+  return event_mask(event) & flag_error;
 }
 
 void
 PollKQueue::insert_read(Event* event) {
-  modify(event,
-	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 event_mask(event) | EPOLLIN);
+  if (event_mask(event) & flag_read)
+    return;
+
+  set_event_mask(event, event_mask(event) | flag_read);
+
+  modify(event, EV_ADD, EVFILT_READ);
 }
 
 void
 PollKQueue::insert_write(Event* event) {
-  modify(event,
-	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 event_mask(event) | EPOLLOUT);
+  if (event_mask(event) & flag_write)
+    return;
+
+  set_event_mask(event, event_mask(event) | flag_write);
+
+  modify(event, EV_ADD, EVFILT_WRITE);
 }
 
 void
 PollKQueue::insert_error(Event* event) {
-  modify(event,
-	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-	 event_mask(event) | EPOLLERR);
 }
 
 void
 PollKQueue::remove_read(Event* event) {
-  uint32_t mask = event_mask(event) & ~EPOLLIN;
+  if (!(event_mask(event) & flag_read))
+    return;
 
-  modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
+  set_event_mask(event, event_mask(event) & ~flag_read);
+
+  modify(event, EV_DELETE, EVFILT_READ);
 }
 
 void
 PollKQueue::remove_write(Event* event) {
-  uint32_t mask = event_mask(event) & ~EPOLLOUT;
+  if (!(event_mask(event) & flag_write))
+    return;
 
-  modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
+  set_event_mask(event, event_mask(event) & ~flag_write);
+
+  modify(event, EV_DELETE, EVFILT_WRITE);
 }
 
 void
 PollKQueue::remove_error(Event* event) {
-  uint32_t mask = event_mask(event) & ~EPOLLERR;
-
-  modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
 #else // USE_QUEUE
