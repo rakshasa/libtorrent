@@ -135,18 +135,33 @@ HashTorrent::queue(bool quick) {
 
     ChunkHandle handle = m_chunkList->get(m_position++, false);
 
-    if (!handle.is_valid())
-      continue;
+    if (quick) {
+      // We're not actually interested in doing any hashing, so just
+      // skip what we know is not possible to hash.
+      //
+      // If the file does not exist then no valid error number is
+      // returned.
 
-    // We're not actually interested in doing any hashing, nor should
-    // be trigger any storage error.
-    if (quick)
-      return m_chunkList->release(&handle);
+      if (m_outstanding != 0)
+        throw internal_error("HashTorrent::queue() quick hashing but m_outstanding != 0.");
+
+      if (handle.is_valid())
+        return m_chunkList->release(&handle);
+      
+      if (handle.error_number().is_valid())
+        return;
+
+      continue;
+    }
 
     // If the error number is not valid, then we've just encountered a
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
-    if (handle.error_number().is_valid()) {
+    if (handle.is_valid()) {
+      m_slotCheckChunk(handle);
+      m_outstanding++;
+
+    } else if (handle.error_number().is_valid()) {
       // The rest of the outstanding chunks get ignored by
       // DownloadWrapper::receive_hash_done.
       clear();
@@ -157,9 +172,6 @@ HashTorrent::queue(bool quick) {
       rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
       return;
     }
-    
-    m_slotCheckChunk(handle);
-    m_outstanding++;
   }
 
   if (m_outstanding == 0) {

@@ -128,13 +128,13 @@ PollEPoll::perform() {
     // TODO: Make it so that it checks that read/write is wanted, that
     // it wasn't removed from one of them but not closed.
 
-    if (itr->events & EPOLLERR && itr->data.ptr != NULL)
+    if (itr->events & EPOLLERR && itr->data.ptr != NULL && event_mask((Event*)itr->data.ptr) & EPOLLERR)
       ((Event*)itr->data.ptr)->event_error();
 
-    if (itr->events & EPOLLIN && itr->data.ptr != NULL)
+    if (itr->events & EPOLLIN && itr->data.ptr != NULL && event_mask((Event*)itr->data.ptr) & EPOLLIN)
       ((Event*)itr->data.ptr)->event_read();
 
-    if (itr->events & EPOLLOUT && itr->data.ptr != NULL)
+    if (itr->events & EPOLLOUT && itr->data.ptr != NULL && event_mask((Event*)itr->data.ptr) & EPOLLOUT)
       ((Event*)itr->data.ptr)->event_write();
   }
 
