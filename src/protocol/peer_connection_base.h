@@ -37,17 +37,15 @@
 #ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
-#include "data/chunk.h"
 #include "data/chunk_handle.h"
 #include "net/socket_stream.h"
-#include "globals.h"
-#include "torrent/connection_manager.h"
 #include "torrent/poll.h"
 
-#include "peer_info.h"
 #include "peer_chunks.h"
 #include "protocol_base.h"
 #include "request_list.h"
+
+#include "globals.h"
 
 #include "manager.h"
 
@@ -111,8 +109,6 @@ public:
   void                push_unread(const void* data, uint32_t size);
 
 protected:
-  typedef Chunk::iterator ChunkPart;
-
   inline bool         read_remaining();
   inline bool         write_remaining();
 

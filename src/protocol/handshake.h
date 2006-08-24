@@ -42,8 +42,7 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
 #include "torrent/bitfield.h"
-
-#include "peer_info.h"
+#include "torrent/peer_info.h"
 
 namespace torrent {
 

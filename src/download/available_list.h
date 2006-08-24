@@ -61,9 +61,7 @@ public:
   using Base::empty;
   using Base::clear;
 
-//   using Base::front;
   using Base::back;
-//   using Base::pop_front;
   using Base::pop_back;
   using Base::begin;
   using Base::end;
@@ -75,7 +73,7 @@ public:
   value_type          pop_random();
 
   // Fuzzy size limit.
-  size_type           get_max_size() const               { return m_maxSize; }
+  size_type           max_size() const                   { return m_maxSize; }
   void                set_max_size(size_type s)          { m_maxSize = s; }
 
   // This push is somewhat inefficient as it iterates through the

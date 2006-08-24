@@ -39,16 +39,36 @@
 #include <algorithm>
 #include <functional>
 #include <rak/functional.h>
+#include <rak/socket_address.h>
 
-#include "protocol/peer_info.h"
-#include "torrent/exceptions.h"
+#include "exceptions.h"
+#include "peer_info.h"
 #include "peer_list.h"
 
 namespace torrent {
 
+bool
+socket_address_key::operator < (const socket_address_key& sa) const {
+  const rak::socket_address* sa1 = rak::socket_address::cast_from(m_sockaddr);
+  const rak::socket_address* sa2 = rak::socket_address::cast_from(sa.m_sockaddr);
+
+  if (sa1->family() != sa2->family())
+    return sa1->family() > sa2->family();
+
+  else if (sa1->family() == rak::socket_address::af_inet)
+    // Sort by hardware byte order to ensure proper ordering for
+    // humans.
+    return sa1->sa_inet()->address_h() < sa2->sa_inet()->address_h();
+
+  else
+    // When we implement INET6 handling, embed the ipv4 address in
+    // the ipv6 address.
+    throw internal_error("socket_address_key(...) tried to compare an invalid family type.");
+}
+
 struct peer_list_equal_port : public std::binary_function<PeerList::reference, uint16_t, bool> {
   bool operator () (PeerList::reference p, uint16_t port) {
-    return p.second->socket_address()->port() == port;
+    return rak::socket_address::cast_from(p.second->socket_address())->port() == port;
   }
 };
 
@@ -59,11 +79,14 @@ PeerList::clear() {
   base_type::clear();
 }
 
+// Make sure we properly clear port when disconnecting.
+
 PeerList::iterator
-PeerList::connected(const rak::socket_address& sa) {
+PeerList::connected(const sockaddr* sa) {
   range_type range = base_type::equal_range(sa);
   
-  iterator itr = std::find_if(range.first, range.second, rak::bind2nd(peer_list_equal_port(), sa.port()));
+  iterator itr = std::find_if(range.first, range.second,
+                              rak::bind2nd(peer_list_equal_port(), rak::socket_address::cast_from(sa)->port()));
 
   if (itr == range.second)
     itr = std::find_if(range.first, range.second, rak::on(rak::mem_ref(&value_type::second), std::not1(std::mem_fun(&PeerInfo::is_connected))));
@@ -73,18 +96,16 @@ PeerList::connected(const rak::socket_address& sa) {
 
   if (itr == range.second) {
     // Create a new entry.
-
     if (std::distance(range.first, range.second) >= 5)
       return end();
 
-    itr = base_type::insert(range.second, value_type(rak::socket_address_key(sa), new PeerInfo()));
+    PeerInfo* peerInfo = new PeerInfo(sa);
 
-    // Do this in handshake?
-    itr->second->set_socket_address(&sa);
+    itr = base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
 
   } else {
     // Use an old entry.
-    itr->second->socket_address()->set_port(sa.port());
+    itr->second->set_port(rak::socket_address::cast_from(sa)->port());
   }
 
   itr->second->set_connected(true);
@@ -94,7 +115,7 @@ PeerList::connected(const rak::socket_address& sa) {
 
 void
 PeerList::disconnected(PeerInfo* p) {
-  range_type range = base_type::equal_range(*p->socket_address());
+  range_type range = base_type::equal_range(p->socket_address());
   
   iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ref(&value_type::second)));
 

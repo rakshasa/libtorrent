@@ -148,11 +148,11 @@ void DownloadMain::start() {
   receive_connect_peers();
 }  
 
-struct peer_connection_socket_address : public std::unary_function<const PeerConnectionBase*, const rak::socket_address&> {
-  const rak::socket_address& operator () (const PeerConnectionBase* p) const {
-    return *p->peer_info()->socket_address();
-  }
-};
+// struct peer_connection_socket_address : public std::unary_function<const PeerConnectionBase*, const rak::socket_address&> {
+//   const rak::socket_address& operator () (const PeerConnectionBase* p) const {
+//     return *rak::socket_address::cast_from(p->peer_info()->socket_address());
+//   }
+// };
 
 void
 DownloadMain::stop() {
@@ -170,7 +170,7 @@ DownloadMain::stop() {
   // torrent. Consider saving these in the torrent file when dumping
   // it.
   std::list<rak::socket_address> addressList;
-  std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList), peer_connection_socket_address());
+//   std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList), peer_connection_socket_address());
 
   addressList.sort();
   available_list()->insert(&addressList);

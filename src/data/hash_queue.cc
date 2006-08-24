@@ -71,8 +71,8 @@ struct HashQueueWillneed {
 
 HashQueue::HashQueue() :
   m_readAhead(10 << 20),
-  m_interval(10000),
-  m_maxTries(20) {
+  m_interval(5000),
+  m_maxTries(5) {
 
   m_taskWork.set_slot(rak::mem_fn(this, &HashQueue::work));
 }

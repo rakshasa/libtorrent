@@ -14,7 +14,6 @@ libsub_protocol_la_SOURCES = \
 	peer_connection_seed.h \
 	peer_factory.cc \
 	peer_factory.h \
-        peer_info.h \
 	protocol_base.h \
 	request_list.cc \
 	request_list.h

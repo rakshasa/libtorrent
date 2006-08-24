@@ -120,7 +120,12 @@ public:
   // The different families will be sorted according to the
   // sa_family_t's numeric value.
   bool                operator == (const socket_address& rhs) const;
-  bool                operator < (const socket_address& rhs) const;
+  bool                operator  < (const socket_address& rhs) const;
+
+  bool                operator == (const sockaddr& rhs) const { return *this == *cast_from(&rhs); }
+  bool                operator == (const sockaddr* rhs) const { return *this == *cast_from(rhs); }
+  bool                operator  < (const sockaddr& rhs) const { return *this == *cast_from(&rhs); }
+  bool                operator  < (const sockaddr* rhs) const { return *this == *cast_from(rhs); }
 
 private:
   union {

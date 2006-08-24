@@ -40,17 +40,15 @@
 #include <rak/functional.h>
 #include <sigc++/signal.h>
 
+#include "globals.h"
+
 #include "available_list.h"
 #include "connection_list.h"
-#include "peer_list.h"
 #include "delegator.h"
 
 #include "data/content.h"
 #include "data/chunk_handle.h"
-#include "protocol/peer_info.h"
-#include "globals.h"
-
-#include "download/download_info.h"
+#include "torrent/peer_list.h"
 
 namespace torrent {
 

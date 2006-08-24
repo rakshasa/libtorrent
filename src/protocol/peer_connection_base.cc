@@ -46,13 +46,15 @@
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
+#include "download/download_info.h"
 #include "download/download_main.h"
 #include "net/socket_base.h"
-
 #include "torrent/connection_manager.h"
-#include "../manager.h"
+#include "torrent/peer_info.h"
 
 #include "peer_connection_base.h"
+
+#include "manager.h"
 
 namespace torrent {
 

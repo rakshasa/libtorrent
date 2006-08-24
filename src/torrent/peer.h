@@ -47,6 +47,7 @@ namespace torrent {
 class Bitfield;
 class BlockTransfer;
 class PeerConnectionBase;
+class PeerInfo;
 class Piece;
 class Rate;
 
@@ -81,6 +82,8 @@ public:
   const Rate*          down_rate() const;
   const Rate*          up_rate() const;
   const Rate*          peer_rate() const;
+
+  const PeerInfo*      info() const;
 
   const Bitfield*      bitfield() const;
 

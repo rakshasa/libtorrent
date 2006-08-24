@@ -68,6 +68,12 @@ public:
   using Base::size;
   using Base::empty;
 
+  static const int sync_all         = (1 << 0);
+  static const int sync_force       = (1 << 1);
+  static const int sync_safe        = (1 << 2);
+  static const int sync_sloppy      = (1 << 3);
+  static const int sync_use_timeout = (1 << 4);
+
   ChunkList() : m_manager(NULL) {}
   ~ChunkList() { clear(); }
 
@@ -82,12 +88,6 @@ public:
   void                release(ChunkHandle* handle);
 
   size_type           queue_size() const                      { return m_queue.size(); }
-
-  static const int sync_all         = (1 << 0);
-  static const int sync_force       = (1 << 1);
-  static const int sync_safe        = (1 << 2);
-  static const int sync_sloppy      = (1 << 3);
-  static const int sync_use_timeout = (1 << 4);
 
   // Replace use_timeout with something like performance related
   // keyword. Then use that flag to decide if we should skip

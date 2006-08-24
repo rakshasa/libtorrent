@@ -34,17 +34,32 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DOWNLOAD_PEER_LIST_H
-#define LIBTORRENT_DOWNLOAD_PEER_LIST_H
+#ifndef LIBTORRENT_PEER_LIST_H
+#define LIBTORRENT_PEER_LIST_H
 
 #include <map>
-#include <rak/socket_address.h>
+
+struct sockaddr;
 
 namespace torrent {
 
-class PeerList : private std::multimap<rak::socket_address_key, PeerInfo*> {
+class PeerInfo;
+
+// Unique key for the address, excluding port numbers etc.
+class socket_address_key {
 public:
-  typedef std::multimap<rak::socket_address_key, PeerInfo*>   base_type;
+  socket_address_key(const sockaddr* sa) : m_sockaddr(sa) {}
+  socket_address_key(const sockaddr& sa) : m_sockaddr(&sa) {}
+
+  bool operator < (const socket_address_key& sa) const;
+
+private:
+  const sockaddr*     m_sockaddr;
+};
+
+class PeerList : private std::multimap<socket_address_key, PeerInfo*> {
+public:
+  typedef std::multimap<socket_address_key, PeerInfo*>        base_type;
   typedef std::pair<base_type::iterator, base_type::iterator> range_type;
 
   using base_type::value_type;
@@ -67,7 +82,7 @@ public:
 
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
   // if no more connections are allowed from that host.
-  iterator            connected(const rak::socket_address& sa);
+  iterator            connected(const sockaddr* sa);
 
   void                disconnected(PeerInfo* p);
   iterator            disconnected(iterator itr);

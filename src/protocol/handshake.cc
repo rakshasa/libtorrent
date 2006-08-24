@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "data/content.h"
+#include "download/download_info.h"
 #include "download/download_main.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
@@ -261,7 +262,7 @@ Handshake::prepare_peer_info() {
   if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
     throw close_connection();
 
-  PeerList::iterator itr = m_download->peer_list()->connected(m_address);
+  PeerList::iterator itr = m_download->peer_list()->connected(m_address.c_sockaddr());
 
   if (itr == m_download->peer_list()->end())
     throw close_connection();
@@ -272,7 +273,7 @@ Handshake::prepare_peer_info() {
   m_peerInfo->set_incoming(m_incoming);
   //  m_peerInfo->set_socket_address(&m_address);
 
-  std::memcpy(m_peerInfo->get_options(), m_options, 8);
+  std::memcpy(m_peerInfo->set_options(), m_options, 8);
 }
 
 inline void

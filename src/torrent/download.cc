@@ -58,6 +58,7 @@
 #include "download.h"
 #include "file_list.h"
 #include "object.h"
+#include "peer_info.h"
 #include "tracker_list.h"
 
 namespace torrent {
@@ -229,6 +230,11 @@ Download::file_list() const {
 TrackerList
 Download::tracker_list() const {
   return TrackerList(m_ptr->main()->tracker_manager());
+}
+
+const PeerList*
+Download::peer_list() const {
+  return m_ptr->main()->peer_list();
 }
 
 const TransferList*
@@ -469,7 +475,7 @@ Peer
 Download::peer_find(const std::string& id) {
   ConnectionList::iterator itr =
     std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
-                 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::peer_info), std::mem_fun(&PeerInfo::get_id))));
+                 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::peer_info), std::mem_fun(&PeerInfo::id))));
 
   return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
 }

@@ -36,25 +36,37 @@
 
 #include "config.h"
 
-#include "peer_factory.h"
-#include "peer_connection_leech.h"
-#include "peer_connection_seed.h"
+#include <cstring>
+#include <rak/socket_address.h>
+
+#include "peer_info.h"
 
 namespace torrent {
 
-PeerConnectionBase*
-createPeerConnectionDefault() {
-//   PeerConnection* pc = new PeerConnectionLeech;
-  PeerConnectionBase* pc = new PeerConnectionLeech;
+// Move this to peer_info.cc when these are made into the public API.
+PeerInfo::PeerInfo(const sockaddr* address) : 
+  m_connected(false),
+  m_incoming(false),
+  m_failedCounter(0)
+{
+  rak::socket_address* sa = new rak::socket_address();
+  *sa = *rak::socket_address::cast_from(address);
 
-  return pc;
+  m_address = sa->c_sockaddr();
 }
 
-PeerConnectionBase*
-createPeerConnectionSeed() {
-  PeerConnectionBase* pc = new PeerConnectionSeed;
+PeerInfo::~PeerInfo() {
+  delete rak::socket_address::cast_from(m_address);
+}
 
-  return pc;
+bool
+PeerInfo::is_valid() const {
+  return m_id.length() == 20 && rak::socket_address::cast_from(m_address)->is_valid();
+}
+
+void
+PeerInfo::set_port(uint16_t port) {
+  rak::socket_address::cast_from(m_address)->set_port(port);
 }
 
 }

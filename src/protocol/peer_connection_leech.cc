@@ -43,6 +43,7 @@
 #include "data/chunk_list_node.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
+#include "download/download_info.h"
 #include "download/download_main.h"
 
 #include "peer_connection_leech.h"

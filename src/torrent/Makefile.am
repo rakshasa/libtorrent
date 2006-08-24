@@ -33,6 +33,10 @@ libsub_torrent_la_SOURCES = \
 	path.h \
 	peer.cc \
 	peer.h \
+        peer_info.cc \
+        peer_info.h \
+	peer_list.cc \
+	peer_list.h \
 	piece.h \
 	poll.h \
 	poll_epoll.cc \
@@ -75,6 +79,8 @@ libtorrentinclude_HEADERS = \
 	object_stream.h \
 	path.h \
 	peer.h \
+        peer_info.h \
+	peer_list.h \
 	piece.h \
 	poll.h \
 	poll_epoll.h \

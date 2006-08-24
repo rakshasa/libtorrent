@@ -39,9 +39,9 @@
 #include <algorithm>
 
 #include "download/download_info.h"
-#include "protocol/peer_info.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "torrent/peer_info.h"
 
 #include "connection_list.h"
 
@@ -135,22 +135,22 @@ ConnectionList::erase_seeders() {
 
 struct connection_list_less {
   bool operator () (const PeerConnectionBase* p1, const PeerConnectionBase* p2) const {
-    return *p1->peer_info()->socket_address() < *p2->peer_info()->socket_address();
+    return *rak::socket_address::cast_from(p1->peer_info()->socket_address()) < *rak::socket_address::cast_from(p2->peer_info()->socket_address());
   }
 
   bool operator () (const rak::socket_address& sa1, const PeerConnectionBase* p2) const {
-    return sa1 < *p2->peer_info()->socket_address();
+    return sa1 < *rak::socket_address::cast_from(p2->peer_info()->socket_address());
   }
 
   bool operator () (const PeerConnectionBase* p1, const rak::socket_address& sa2) const {
-    return *p1->peer_info()->socket_address() < sa2;
+    return *rak::socket_address::cast_from(p1->peer_info()->socket_address()) < sa2;
   }
 };
 
 ConnectionList::iterator
 ConnectionList::find(const rak::socket_address& sa) {
   return std::find_if(begin(), end(), rak::equal_ptr(&sa, rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
-                                                                  std::mem_fun<const rak::socket_address*>(&PeerInfo::socket_address))));
+                                                                  std::mem_fun(&PeerInfo::socket_address))));
 }
 
 void

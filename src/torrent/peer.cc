@@ -43,6 +43,7 @@
 #include "block.h"
 #include "block_transfer.h"
 #include "peer.h"
+#include "peer_info.h"
 #include "rate.h"
 
 namespace torrent {
@@ -84,17 +85,17 @@ Peer::set_snubbed(bool v) {
 
 const std::string&
 Peer::id() const {
-  return m_ptr->peer_info()->get_id();
+  return m_ptr->peer_info()->id();
 }
 
 const char*
 Peer::options() const {
-  return m_ptr->peer_info()->get_options();
+  return m_ptr->peer_info()->options();
 }
 
 const sockaddr*
 Peer::address() const {
-  return m_ptr->peer_info()->socket_address()->c_sockaddr();
+  return m_ptr->peer_info()->socket_address();
 }
 
 const Rate*
@@ -111,6 +112,11 @@ const Rate*
 Peer::peer_rate() const {
   return m_ptr->peer_chunks()->peer_rate();
 } 
+
+const PeerInfo*
+Peer::info() const {
+  return m_ptr->peer_info();
+}
 
 const Bitfield*
 Peer::bitfield() const {

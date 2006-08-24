@@ -157,13 +157,15 @@ HashTorrent::queue(bool quick) {
     // If the error number is not valid, then we've just encountered a
     // file that hasn't be created/resized. Which means we ignore it
     // when doing initial hashing.
-    if (handle.is_valid()) {
-      m_slotCheckChunk(handle);
-      m_outstanding++;
+    if (handle.error_number().is_valid()) {
+      // We wait for all the outstanding chunks to be checked before
+      // borking completely, else low-memory devices might not be able
+      // to finish the hash check.
+      if (m_outstanding != 0)
+        return;
 
-    } else if (handle.error_number().is_valid()) {
       // The rest of the outstanding chunks get ignored by
-      // DownloadWrapper::receive_hash_done.
+      // DownloadWrapper::receive_hash_done. Obsolete.
       clear();
 
       m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
@@ -172,6 +174,9 @@ HashTorrent::queue(bool quick) {
       rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
       return;
     }
+
+    m_slotCheckChunk(handle);
+    m_outstanding++;
   }
 
   if (m_outstanding == 0) {

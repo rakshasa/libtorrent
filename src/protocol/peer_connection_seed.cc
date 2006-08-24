@@ -41,6 +41,7 @@
 
 #include "data/content.h"
 #include "download/chunk_statistics.h"
+#include "download/download_info.h"
 #include "download/download_main.h"
 
 #include "peer_connection_seed.h"

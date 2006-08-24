@@ -56,6 +56,7 @@ class FileList;
 class Rate;
 class Object;
 class Peer;
+class PeerList;
 class TrackerList;
 class TransferList;
 
@@ -108,6 +109,7 @@ public:
   FileList            file_list() const;
   TrackerList         tracker_list() const;
 
+  const PeerList*     peer_list() const;
   const TransferList* transfer_list() const;
 
   Rate*               down_rate();

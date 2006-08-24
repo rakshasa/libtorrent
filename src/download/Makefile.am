@@ -21,8 +21,6 @@ libsub_download_la_SOURCES = \
 	download_manager.cc \
 	download_manager.h \
 	download_wrapper.cc \
-	download_wrapper.h \
-	peer_list.cc \
-	peer_list.h
+	download_wrapper.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

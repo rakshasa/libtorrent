@@ -34,64 +34,68 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PEER_PEER_INFO_H
-#define LIBTORRENT_PEER_PEER_INFO_H
+#ifndef LIBTORRENT_PEER_INFO_H
+#define LIBTORRENT_PEER_INFO_H
 
 #include <string>
 #include <cstring>
 #include <inttypes.h>
 
-#include <rak/socket_address.h>
+class sockaddr;
 
 namespace torrent {
 
+class Handshake;
+class PeerList;
+
 class PeerInfo {
 public:
-  PeerInfo();
+  friend class Handshake;
+  friend class PeerList;
 
-  bool                is_valid() const                      { return m_id.length() == 20 && m_address.is_valid(); }
+  PeerInfo(const sockaddr* address);
+  ~PeerInfo();
 
+  bool                is_valid() const;
   bool                is_connected() const                  { return m_connected; }
-  void                set_connected(bool v)                 { m_connected = v; }
-
   bool                is_incoming() const                   { return m_incoming; }
-  void                set_incoming(bool v)                  { m_incoming = v; }
 
-  const std::string&  get_id() const                        { return m_id; }
+  const std::string&  id() const                            { return m_id; }
   void                set_id(const std::string& id)         { m_id = id; }
 
-  char*               get_options()                         { return m_options; }
-  const char*         get_options() const                   { return m_options; }
-
-  rak::socket_address*       socket_address()               { return &m_address; }
-  const rak::socket_address* socket_address() const         { return &m_address; }
-
-  void                set_socket_address(const rak::socket_address* sa) { m_address = *sa; }
+  const char*         options() const                       { return m_options; }
 
   uint32_t            failed_counter() const                { return m_failedCounter; }
   void                inc_failed_counter()                  { m_failedCounter++; }
   void                set_failed_counter(uint32_t c)        { m_failedCounter = c; }
 
+  const sockaddr*     socket_address() const                { return m_address; }
+
+protected:
+  void                set_connected(bool v)                 { m_connected = v; }
+  void                set_incoming(bool v)                  { m_incoming = v; }
+
+  void                set_port(uint16_t port);
+  char*               set_options()                         { return m_options; }
+
 private:
+  PeerInfo(const PeerInfo&);
+  void operator = (const PeerInfo&);
+
+  // Replace id with a char buffer, or a cheap struct?
   std::string         m_id;
-  rak::socket_address m_address;
+
   char                m_options[8];
 
   bool                m_connected;
   bool                m_incoming;
 
   uint32_t            m_failedCounter;
-};
 
-inline
-PeerInfo::PeerInfo() : 
-  m_connected(false),
-  m_incoming(false),
-  m_failedCounter(0)
-{
-  m_address.clear();
-  std::memset(m_options, 0, 8);
-}
+  // Replace this with a union. Since the user never copies PeerInfo
+  // it should be safe to not require sockaddr_in6 to be part of it.
+  sockaddr*           m_address;
+};
 
 } // namespace torrent
 

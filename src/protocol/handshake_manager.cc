@@ -38,17 +38,17 @@
 
 #include <rak/socket_address.h>
 
-#include "torrent/connection_manager.h"
-#include "../manager.h"
-
 #include "torrent/exceptions.h"
 #include "download/download_info.h"
 #include "download/download_main.h"
+#include "torrent/connection_manager.h"
+#include "torrent/peer_info.h"
 
-#include "peer_info.h"
 #include "peer_connection_base.h"
 #include "handshake.h"
 #include "handshake_manager.h"
+
+#include "manager.h"
 
 namespace torrent {
 
@@ -86,7 +86,7 @@ HandshakeManager::erase(Handshake* handshake) {
 
 struct handshake_manager_equal : std::binary_function<const rak::socket_address*, const Handshake*, bool> {
   bool operator () (const rak::socket_address* sa1, const Handshake* p2) const {
-    return p2->peer_info() != NULL && *sa1 == *p2->peer_info()->socket_address();
+    return p2->peer_info() != NULL && *sa1 == *rak::socket_address::cast_from(p2->peer_info()->socket_address());
   }
 };
 
