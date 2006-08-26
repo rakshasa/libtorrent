@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <rak/file_stat.h>
+#include <rak/socket_address.h>
 
 #include "common.h"
 #include "bitfield.h"
@@ -44,8 +45,12 @@
 #include "file.h"
 #include "file_list.h"
 #include "object.h"
+#include "peer_info.h"
+#include "peer_list.h"
 #include "tracker.h"
 #include "tracker_list.h"
+
+#include "globals.h"
 
 #include "resume.h"
 
@@ -132,7 +137,7 @@ resume_load_file_priorities(Download download, const Object& object) {
 
   const Object::list_type& files = object.get_key_list("files");
 
-  Object::list_type::const_iterator filesItr = files.begin();
+  Object::list_type::const_iterator filesItr  = files.begin();
   Object::list_type::const_iterator filesLast = files.end();
 
   FileList fileList = download.file_list();
@@ -170,15 +175,70 @@ resume_save_file_priorities(Download download, Object& object) {
 
 void
 resume_load_addresses(Download download, const Object& object) {
-  if (!object.has_key_string("peers"))
+  if (!object.has_key_list("peers"))
     return;
 
-  download.insert_addresses(object.get_key_string("peers"));
+  PeerList* peerList = download.peer_list();
+
+  const Object::list_type& src = object.get_key_list("peers");
+  
+  for (Object::list_type::const_iterator itr = src.begin(), last = src.end(); itr != last; ++itr) {
+    rak::socket_address socketAddress;
+
+    if (!itr->is_map() ||
+        !itr->has_key_string("address") || !socketAddress.set_address_str(itr->get_key_string("address")) ||
+        !itr->has_key_value("port") ||
+        !itr->has_key_value("failed") ||
+        !itr->has_key_value("last") || itr->get_key_value("last") > cachedTime.seconds())
+      continue;
+
+    socketAddress.set_port(itr->get_key_value("port"));
+
+    int flags = 0;
+
+    if (socketAddress.port() != 0)
+      flags |= PeerList::flag_available;
+
+    PeerInfo* peerInfo = peerList->insert_address(socketAddress.c_sockaddr(), flags);
+
+    if (peerInfo == NULL)
+      continue;
+
+    peerInfo->set_failed_counter(itr->get_key_value("failed"));
+    peerInfo->set_last_connection(itr->get_key_value("last"));
+  }
+
+  // Tell rTorrent to harvest addresses.
 }
 
 void
 resume_save_addresses(Download download, Object& object) {
-  download.extract_addresses(object.insert_key("peers", std::string()).as_string());
+  const PeerList* peerList = download.peer_list();
+  Object&         dest     = object.insert_key("peers", Object(Object::TYPE_LIST));
+
+  for (PeerList::const_iterator itr = peerList->begin(), last = peerList->end(); itr != last; ++itr) {
+    // Add some checks, like see if there's anything interesting to
+    // save, etc. Or if we can reconnect to it at some later time.
+    //
+    // This should really ensure that if called on a torrent that has
+    // been closed for a while, it won't throw out perfectly good
+    // entries.
+
+//     if (itr->second->
+//     continue;
+
+    Object& peer = dest.insert_back(Object(Object::TYPE_MAP));
+
+    // Need to save the address properly.
+    peer.insert_key("address", rak::socket_address::cast_from(itr->second->socket_address())->address_str());
+
+    peer.insert_key("failed",  itr->second->failed_counter());
+    peer.insert_key("last",    itr->second->is_connected() ? cachedTime.seconds() : itr->second->last_connection());
+
+    // A valid port indicates that we can reconnect to the peer in the
+    // future.
+    peer.insert_key("port",    itr->second->port());
+  }
 }
 
 void
@@ -186,9 +246,8 @@ resume_load_tracker_settings(Download download, const Object& object) {
   if (!object.has_key_map("trackers"))
     return;
 
-  const Object& src = object.get_key("trackers");
-
-  TrackerList trackerList = download.tracker_list();
+  const Object& src         = object.get_key("trackers");
+  TrackerList   trackerList = download.tracker_list();
 
   for (unsigned int i = 0; i < trackerList.size(); ++i) {
     Tracker tracker = trackerList.get(i);
@@ -207,8 +266,7 @@ resume_load_tracker_settings(Download download, const Object& object) {
 
 void
 resume_save_tracker_settings(Download download, Object& object) {
-  Object& dest = object.has_key_map("trackers") ? object.get_key("trackers") : object.insert_key("trackers", Object(Object::TYPE_MAP));
-
+  Object&     dest        = object.has_key_map("trackers") ? object.get_key("trackers") : object.insert_key("trackers", Object(Object::TYPE_MAP));
   TrackerList trackerList = download.tracker_list();
 
   for (unsigned int i = 0; i < trackerList.size(); ++i) {

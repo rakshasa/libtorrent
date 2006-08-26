@@ -42,7 +42,6 @@
 
 #include "globals.h"
 
-#include "available_list.h"
 #include "connection_list.h"
 #include "delegator.h"
 
@@ -88,7 +87,6 @@ public:
   Content*            content()                                  { return &m_content; }
   Delegator*          delegator()                                { return &m_delegator; }
 
-  AvailableList*      available_list()                           { return &m_availableList; }
   ConnectionList*     connection_list()                          { return m_connectionList; }
   PeerList*           peer_list()                                { return &m_peerList; }
 
@@ -143,7 +141,6 @@ private:
   Content             m_content;
   Delegator           m_delegator;
 
-  AvailableList       m_availableList;
   ConnectionList*     m_connectionList;
   PeerList            m_peerList;
 

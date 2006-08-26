@@ -41,7 +41,10 @@
 #include <rak/functional.h>
 #include <rak/socket_address.h>
 
+#include "download/available_list.h"
+
 #include "exceptions.h"
+#include "globals.h"
 #include "peer_info.h"
 #include "peer_list.h"
 
@@ -72,6 +75,14 @@ struct peer_list_equal_port : public std::binary_function<PeerList::reference, u
   }
 };
 
+PeerList::PeerList() :
+  m_availableList(new AvailableList) {
+}
+
+PeerList::~PeerList() {
+  delete m_availableList;
+}
+
 void
 PeerList::clear() {
   std::for_each(begin(), end(), rak::on(rak::mem_ref(&value_type::second), rak::call_delete<PeerInfo>()));
@@ -79,9 +90,28 @@ PeerList::clear() {
   base_type::clear();
 }
 
-// Make sure we properly clear port when disconnecting.
+PeerInfo*
+PeerList::insert_address(const sockaddr* address, int flags) {
+  range_type range = base_type::equal_range(address);
 
-PeerList::iterator
+  // Do some special handling if we go a new port number but the
+  // address was present.
+  //
+  // What we do depends on the flags, but for now just allow one
+  // PeerInfo per address key and do nothing.
+  if (range.first != range.second)
+    return NULL;
+
+  PeerInfo* peerInfo = new PeerInfo(address);
+  base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
+
+  if (flags & flag_available)
+    m_availableList->push_back(rak::socket_address::cast_from(peerInfo->socket_address()));
+
+  return peerInfo;
+}
+
+PeerInfo*
 PeerList::connected(const sockaddr* sa) {
   range_type range = base_type::equal_range(sa);
   
@@ -92,12 +122,12 @@ PeerList::connected(const sockaddr* sa) {
     itr = std::find_if(range.first, range.second, rak::on(rak::mem_ref(&value_type::second), std::not1(std::mem_fun(&PeerInfo::is_connected))));
 
   else if (itr->second->is_connected())
-    return end();
+    return NULL;
 
   if (itr == range.second) {
     // Create a new entry.
     if (std::distance(range.first, range.second) >= 5)
-      return end();
+      return NULL;
 
     PeerInfo* peerInfo = new PeerInfo(sa);
 
@@ -109,9 +139,12 @@ PeerList::connected(const sockaddr* sa) {
   }
 
   itr->second->set_connected(true);
+  itr->second->set_last_connection(cachedTime.seconds());
 
-  return itr;
+  return itr->second;
 }
+
+// Make sure we properly clear port when disconnecting.
 
 void
 PeerList::disconnected(PeerInfo* p) {
@@ -120,8 +153,8 @@ PeerList::disconnected(PeerInfo* p) {
   iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ref(&value_type::second)));
 
   if (itr == range.second)
-    if (std::find_if(begin(), end(), rak::equal(p, rak::mem_ref(&value_type::second))) == end())
-      throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist");
+    if (std::find_if(base_type::begin(), base_type::end(), rak::equal(p, rak::mem_ref(&value_type::second))) == base_type::end())
+      throw internal_error("PeerList::disconnected(...) itr == range.second, doesn't exist.");
     else
       throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");
   
@@ -130,13 +163,14 @@ PeerList::disconnected(PeerInfo* p) {
 
 PeerList::iterator
 PeerList::disconnected(iterator itr) {
-  if (itr == end())
+  if (itr == base_type::end())
     throw internal_error("PeerList::disconnected(...) itr == end().");
 
   if (!itr->second->is_connected())
     throw internal_error("PeerList::disconnected(...) !itr->is_connected().");
 
   itr->second->set_connected(false);
+  itr->second->set_last_connection(cachedTime.seconds());
 
   // Do magic to get rid of unneeded entries.
   return ++itr;

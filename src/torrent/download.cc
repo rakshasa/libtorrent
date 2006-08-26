@@ -43,6 +43,7 @@
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
+#include "download/available_list.h"
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
@@ -232,11 +233,15 @@ Download::tracker_list() const {
   return TrackerList(m_ptr->main()->tracker_manager());
 }
 
+PeerList*
+Download::peer_list() {
+  return m_ptr->main()->peer_list();
+}
+
 const PeerList*
 Download::peer_list() const {
   return m_ptr->main()->peer_list();
 }
-
 const TransferList*
 Download::transfer_list() const {
   return m_ptr->main()->delegator()->transfer_list();
@@ -353,15 +358,15 @@ Download::sync_chunks() {
   m_ptr->main()->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force);
 }
 
-void
-Download::insert_addresses(const std::string& addresses) {
-  m_ptr->insert_available_list(addresses);
-}
+// void
+// Download::insert_addresses(const std::string& addresses) {
+//   m_ptr->insert_available_list(addresses);
+// }
 
-void
-Download::extract_addresses(std::string& addresses) {
-  m_ptr->extract_available_list(addresses);
-}
+// void
+// Download::extract_addresses(std::string& addresses) {
+//   m_ptr->extract_available_list(addresses);
+// }
 
 uint32_t
 Download::peers_min() const {
@@ -380,7 +385,7 @@ Download::peers_connected() const {
 
 uint32_t
 Download::peers_not_connected() const {
-  return m_ptr->main()->available_list()->size();
+  return m_ptr->main()->peer_list()->available_list()->size();
 }
 
 uint32_t

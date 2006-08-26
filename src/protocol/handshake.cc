@@ -262,16 +262,13 @@ Handshake::prepare_peer_info() {
   if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
     throw close_connection();
 
-  PeerList::iterator itr = m_download->peer_list()->connected(m_address.c_sockaddr());
+  m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr());
 
-  if (itr == m_download->peer_list()->end())
+  if (m_peerInfo == NULL)
     throw close_connection();
-
-  m_peerInfo = itr->second;
 
   m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
   m_peerInfo->set_incoming(m_incoming);
-  //  m_peerInfo->set_socket_address(&m_address);
 
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
 }

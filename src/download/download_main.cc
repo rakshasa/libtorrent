@@ -40,15 +40,16 @@
 #include <limits>
 
 #include "data/chunk_list.h"
-#include "download/download_info.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "tracker/tracker_manager.h"
 #include "torrent/exceptions.h"
 
+#include "available_list.h"
 #include "choke_manager.h"
 #include "chunk_selector.h"
 #include "chunk_statistics.h"
+#include "download_info.h"
 #include "download_main.h"
 
 namespace torrent {
@@ -169,11 +170,11 @@ DownloadMain::stop() {
   // perform alot of requests to the tracker when restarting the
   // torrent. Consider saving these in the torrent file when dumping
   // it.
-  std::list<rak::socket_address> addressList;
+//   std::list<rak::socket_address> addressList;
 //   std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList), peer_connection_socket_address());
 
-  addressList.sort();
-  available_list()->insert(&addressList);
+//   addressList.sort();
+//   available_list()->insert(&addressList);
 
   while (!connection_list()->empty())
     connection_list()->erase(connection_list()->front());
@@ -215,10 +216,10 @@ DownloadMain::receive_connect_peers() {
   if (!info()->is_active())
     return;
 
-  while (!available_list()->empty() &&
+  while (!peer_list()->available_list()->empty() &&
          connection_list()->size() < connection_list()->get_min_size() &&
          connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->get_max_size()) {
-    rak::socket_address sa = available_list()->pop_random();
+    rak::socket_address sa = peer_list()->available_list()->pop_random();
 
     if (connection_list()->find(sa) == connection_list()->end())
       m_slotStartHandshake(sa, this);

@@ -43,7 +43,10 @@ struct sockaddr;
 
 namespace torrent {
 
+class AvailableList;
+class Handshake;
 class PeerInfo;
+class PeerConnectionBase;
 
 // Unique key for the address, excluding port numbers etc.
 class socket_address_key {
@@ -59,6 +62,9 @@ private:
 
 class PeerList : private std::multimap<socket_address_key, PeerInfo*> {
 public:
+  friend class Handshake;
+  friend class PeerConnectionBase;
+
   typedef std::multimap<socket_address_key, PeerInfo*>        base_type;
   typedef std::pair<base_type::iterator, base_type::iterator> range_type;
 
@@ -68,26 +74,41 @@ public:
 
   using base_type::iterator;
   using base_type::reverse_iterator;
+  using base_type::const_iterator;
+  using base_type::const_reverse_iterator;
+
   using base_type::size;
   using base_type::empty;
 
-  using base_type::begin;
-  using base_type::end;
-  using base_type::rbegin;
-  using base_type::rend;
+  static const int flag_available = (1 << 0);
 
-  ~PeerList() { clear(); }
+  PeerList();
+  ~PeerList();
 
   void                clear();
 
+  PeerInfo*           insert_address(const sockaddr* address, int flags);
+
+  const_iterator         begin() const  { return base_type::begin(); }
+  const_iterator         end() const    { return base_type::end(); }
+  const_reverse_iterator rbegin() const { return base_type::rbegin(); }
+  const_reverse_iterator rend() const   { return base_type::rend(); }
+
+  AvailableList*      available_list()  { return m_availableList; }
+
+protected:
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
   // if no more connections are allowed from that host.
-  iterator            connected(const sockaddr* sa);
+  PeerInfo*           connected(const sockaddr* sa);
 
   void                disconnected(PeerInfo* p);
   iterator            disconnected(iterator itr);
 
 private:
+  PeerList(const PeerList&);
+  void operator = (const PeerList&);
+
+  AvailableList*      m_availableList;
 };
 
 }

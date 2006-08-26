@@ -53,6 +53,7 @@
 #include "torrent/object.h"
 #include "tracker/tracker_manager.h"
 
+#include "available_list.h"
 #include "chunk_selector.h"
 
 #include "download_wrapper.h"
@@ -148,14 +149,14 @@ DownloadWrapper::insert_available_list(const std::string& src) {
             std::back_inserter(l));
   l.sort();
 
-  m_main.available_list()->insert(&l);
+  m_main.peer_list()->available_list()->insert(&l);
 }
 
 void
 DownloadWrapper::extract_available_list(std::string& dest) {
-  dest.reserve(m_main.available_list()->size() * sizeof(SocketAddressCompact));
+  dest.reserve(m_main.peer_list()->available_list()->size() * sizeof(SocketAddressCompact));
   
-  for (AvailableList::const_iterator itr = m_main.available_list()->begin(), last = m_main.available_list()->end(); itr != last; ++itr) {
+  for (AvailableList::const_iterator itr = m_main.peer_list()->available_list()->begin(), last = m_main.peer_list()->available_list()->end(); itr != last; ++itr) {
     if (itr->family() == rak::socket_address::af_inet) {
       SocketAddressCompact sac(itr->sa_inet()->address_n(), itr->sa_inet()->port_n());
 
@@ -270,7 +271,7 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
 void
 DownloadWrapper::receive_tracker_success(AddressList* l) {
   m_main.connection_list()->set_difference(l);
-  m_main.available_list()->insert(l);
+  m_main.peer_list()->available_list()->insert(l);
   m_main.receive_connect_peers();
   m_main.receive_tracker_success();
 

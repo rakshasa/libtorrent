@@ -109,6 +109,7 @@ public:
   FileList            file_list() const;
   TrackerList         tracker_list() const;
 
+  PeerList*           peer_list();
   const PeerList*     peer_list() const;
   const TransferList* transfer_list() const;
 
@@ -152,8 +153,8 @@ public:
   // Temporary hack until i can move the available list stuf somewhere
   // and make a nice interface for it.
 
-  void                insert_addresses(const std::string& addresses);
-  void                extract_addresses(std::string& addresses);
+//   void                insert_addresses(const std::string& addresses);
+//   void                extract_addresses(std::string& addresses);
 
   uint32_t            peers_min() const;
   uint32_t            peers_max() const;

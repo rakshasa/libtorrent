@@ -47,7 +47,8 @@ namespace torrent {
 PeerInfo::PeerInfo(const sockaddr* address) : 
   m_connected(false),
   m_incoming(false),
-  m_failedCounter(0)
+  m_failedCounter(0),
+  m_lastConnection(0)
 {
   rak::socket_address* sa = new rak::socket_address();
   *sa = *rak::socket_address::cast_from(address);
@@ -62,6 +63,15 @@ PeerInfo::~PeerInfo() {
 bool
 PeerInfo::is_valid() const {
   return m_id.length() == 20 && rak::socket_address::cast_from(m_address)->is_valid();
+}
+
+uint16_t
+PeerInfo::port() const {
+  // Temporary until I replace it with a seperate port variable.
+  if (m_incoming && m_lastConnection != 0)
+    return 0;
+
+  return rak::socket_address::cast_from(m_address)->port();
 }
 
 void

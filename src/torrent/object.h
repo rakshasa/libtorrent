@@ -122,6 +122,9 @@ public:
   Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
   void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); m_map->erase(k); }
 
+  Object&             insert_front(const Object& b)                  { check_throw(TYPE_LIST); return *m_list->insert(m_list->begin(), b); }
+  Object&             insert_back(const Object& b)                   { check_throw(TYPE_LIST); return *m_list->insert(m_list->end(), b); }
+
   // Copy and merge operations:
 
   Object&             move(Object& b);
