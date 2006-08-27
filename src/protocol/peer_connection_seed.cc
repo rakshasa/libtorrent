@@ -235,20 +235,20 @@ PeerConnectionSeed::event_read() {
   // Exception handlers:
 
   } catch (close_connection& e) {
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
     m_download->info()->signal_network_log().emit("Momentarily blocked read connection.");
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
     m_download->info()->signal_network_log().emit(e.what());
 
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
     m_download->info()->signal_storage_error().emit(e.what());
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {
     std::stringstream s;
@@ -342,19 +342,19 @@ PeerConnectionSeed::event_write() {
     } while (true);
 
   } catch (close_connection& e) {
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
     m_download->info()->signal_network_log().emit("Momentarily blocked write connection.");
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
     m_download->info()->signal_network_log().emit(e.what());
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
     m_download->info()->signal_storage_error().emit(e.what());
-    m_download->connection_list()->erase(this);
+    m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {
     std::stringstream s;

@@ -141,35 +141,10 @@ DownloadWrapper::is_stopped() const {
 }
 
 void
-DownloadWrapper::insert_available_list(const std::string& src) {
-  std::list<rak::socket_address> l;
-
-  std::copy(reinterpret_cast<const SocketAddressCompact*>(src.c_str()),
-            reinterpret_cast<const SocketAddressCompact*>(src.c_str() + src.size() - src.size() % sizeof(SocketAddressCompact)),
-            std::back_inserter(l));
-  l.sort();
-
-  m_main.peer_list()->available_list()->insert(&l);
-}
-
-void
-DownloadWrapper::extract_available_list(std::string& dest) {
-  dest.reserve(m_main.peer_list()->available_list()->size() * sizeof(SocketAddressCompact));
-  
-  for (AvailableList::const_iterator itr = m_main.peer_list()->available_list()->begin(), last = m_main.peer_list()->available_list()->end(); itr != last; ++itr) {
-    if (itr->family() == rak::socket_address::af_inet) {
-      SocketAddressCompact sac(itr->sa_inet()->address_n(), itr->sa_inet()->port_n());
-
-      dest.append(sac.c_str(), sizeof(SocketAddressCompact));
-    }
-  }  
-}
-
-void
 DownloadWrapper::receive_keepalive() {
   for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); )
     if (!(*itr)->receive_keepalive())
-      itr = m_main.connection_list()->erase(itr);
+      itr = m_main.connection_list()->erase(itr, ConnectionList::disconnect_available);
     else
       itr++;
 }
@@ -290,8 +265,6 @@ DownloadWrapper::receive_peer_connected(PeerConnectionBase* peer) {
 
 void
 DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
-  m_main.receive_connect_peers();
-
   m_signalPeerDisconnected.emit(Peer(peer));
 }
 

@@ -39,6 +39,7 @@
 #include <algorithm>
 
 #include "download/download_info.h"
+#include "download/download_main.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
 #include "torrent/peer_info.h"
@@ -54,96 +55,87 @@ ConnectionList::clear() {
 }
 
 PeerConnectionBase*
-ConnectionList::insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd, Bitfield* bitfield) {
+ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield) {
   if (size() >= m_maxSize)
     return NULL;
 
-  PeerConnectionBase* pcb = m_slotNewConnection();
+  PeerConnectionBase* peerConnection = m_slotNewConnection();
 
-  if (pcb == NULL || bitfield == NULL)
+  if (peerConnection == NULL || bitfield == NULL)
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
-  pcb->initialize(d, p, fd, bitfield);
+  peerConnection->initialize(m_download, peerInfo, fd, bitfield);
 
-  Base::push_back(pcb);
+  Base::push_back(peerConnection);
+  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 
-  m_info->set_accepting_new_peers(size() < m_maxSize);
-  m_slotConnected(pcb);
+  m_slotConnected(peerConnection);
 
-  return pcb;
+  return peerConnection;
 }
 
 ConnectionList::iterator
-ConnectionList::erase(iterator pos) {
+ConnectionList::erase(iterator pos, int flags) {
   if (pos < begin() || pos >= end())
     throw internal_error("ConnectionList::erase(...) iterator out or range.");
 
-  value_type v = *pos;
+  PeerConnectionBase* peerConnection = *pos;
 
+  // The connection must be erased from the list before the signal is
+  // emited otherwise some listeners might do stuff with the
+  // assumption that the connection will remain in the list.
   pos = Base::erase(pos);
+  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 
-  m_info->set_accepting_new_peers(size() < m_maxSize);
-  m_slotDisconnected(v);
+  m_slotDisconnected(peerConnection);
 
-  // Delete after the erase to ensure the connection doesn't get added
-  // to the poll after PeerConnectionBase's dtor has been called.
-  delete v;
+  // Before of after the signal?
+  peerConnection->cleanup();
+  m_download->peer_list()->disconnected(peerConnection->peer_info(), 0);
+
+  // Delete after the signal to ensure the address of 'v' doesn't get
+  // allocated for a different PCB in the signal.
+  delete peerConnection;
+
+  if (!(flags & disconnect_quick))
+    m_download->receive_connect_peers();
 
   return pos;
 }
 
 void
-ConnectionList::erase(PeerConnectionBase* p) {
-  iterator itr = std::find(begin(), end(), p);
-
-  if (itr == end())
-    throw internal_error("Tried to remove peer connection from download that doesn't exist");
-
-  // The connection must be erased from the list before the signal is
-  // emited otherwise some listeners might do stuff with the
-  // assumption that the connection will remain in the list.
-  Base::erase(itr);
-
-  m_info->set_accepting_new_peers(size() < m_maxSize);
-  m_slotDisconnected(p);
-
-  // Delete after the erase to ensure the connection doesn't get added
-  // to the poll after PeerConnectionBase's dtor has been called.
-  delete p;
+ConnectionList::erase(PeerConnectionBase* p, int flags) {
+  erase(std::find(begin(), end(), p), flags);
 }
 
 void
-ConnectionList::erase_remaining(iterator pos) {
+ConnectionList::erase_remaining(iterator pos, int flags) {
+  flags |= disconnect_quick;
+
   // Need to do it one connection at the time to ensure that when the
   // signal is emited everything is in a valid state.
-  while (pos != end()) {
-    value_type v = Base::back();
+  while (pos != end())
+    erase(--end(), flags);
 
-    Base::pop_back();
-
-    m_slotDisconnected(v);
-    delete v;
-  }
-
-  m_info->set_accepting_new_peers(size() < m_maxSize);
+  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 }
 
 void
 ConnectionList::erase_seeders() {
-  erase_remaining(std::partition(begin(), end(), std::not1(std::mem_fun(&PeerConnectionBase::is_seeder))));
+  erase_remaining(std::partition(begin(), end(), std::not1(std::mem_fun(&PeerConnectionBase::is_seeder))), disconnect_unwanted);
 }
 
 struct connection_list_less {
   bool operator () (const PeerConnectionBase* p1, const PeerConnectionBase* p2) const {
-    return *rak::socket_address::cast_from(p1->peer_info()->socket_address()) < *rak::socket_address::cast_from(p2->peer_info()->socket_address());
+    return *rak::socket_address::cast_from(p1->c_peer_info()->socket_address()) < *rak::socket_address::cast_from(p2->c_peer_info()->socket_address());
   }
 
   bool operator () (const rak::socket_address& sa1, const PeerConnectionBase* p2) const {
-    return sa1 < *rak::socket_address::cast_from(p2->peer_info()->socket_address());
+    return sa1 < *rak::socket_address::cast_from(p2->c_peer_info()->socket_address());
   }
 
   bool operator () (const PeerConnectionBase* p1, const rak::socket_address& sa2) const {
-    return *rak::socket_address::cast_from(p1->peer_info()->socket_address()) < sa2;
+    return *rak::socket_address::cast_from(p1->c_peer_info()->socket_address()) < sa2;
   }
 };
 
@@ -169,7 +161,7 @@ ConnectionList::send_finished_chunk(uint32_t index) {
 void
 ConnectionList::set_max_size(size_type v) { 
   m_maxSize = v;
-  m_info->set_accepting_new_peers(size() < m_maxSize);
+  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 }
 
 }

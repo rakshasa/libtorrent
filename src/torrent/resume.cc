@@ -39,6 +39,9 @@
 #include <rak/file_stat.h>
 #include <rak/socket_address.h>
 
+// For SocketAddressCompact.
+#include "download/download_info.h"
+
 #include "common.h"
 #include "bitfield.h"
 #include "download.h"
@@ -58,16 +61,35 @@ namespace torrent {
 
 void
 resume_load_progress(Download download, const Object& object) {
-  if (!object.has_key_list("files") || !object.has_key_string("bitfield"))
+  if (!object.has_key_list("files"))
     return;
 
-  const Object::list_type&   files    = object.get_key_list("files");
-  const Object::string_type& bitfield = object.get_key_string("bitfield");
+  const Object::list_type& files = object.get_key_list("files");
 
-  if (files.size() != download.file_list().size() || bitfield.size() != download.bitfield()->size_bytes())
+  if (files.size() != download.file_list().size())
     return;
 
-  download.set_bitfield((uint8_t*)bitfield.c_str(), (uint8_t*)(bitfield.c_str() + bitfield.size()));
+  if (object.has_key_string("bitfield")) {
+    const Object::string_type& bitfield = object.get_key_string("bitfield");
+
+    if (bitfield.size() != download.bitfield()->size_bytes())
+      return;
+
+    download.set_bitfield((uint8_t*)bitfield.c_str(), (uint8_t*)(bitfield.c_str() + bitfield.size()));
+
+  } else if (object.has_key_value("bitfield")) {
+    Object::value_type chunksDone = object.get_key_value("bitfield");
+
+    if (chunksDone == download.bitfield()->size_bits())
+      download.set_bitfield(true);
+    else if (chunksDone == 0)
+      download.set_bitfield(false);
+    else
+      return;
+
+  } else {
+    return;
+  }
 
   Object::list_type::const_iterator filesItr  = files.begin();
   Object::list_type::const_iterator filesLast = files.end();
@@ -96,7 +118,12 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
 
   download.sync_chunks();
 
-  object.insert_key("bitfield", std::string((char*)download.bitfield()->begin(), download.bitfield()->size_bytes()));
+  const Bitfield* bitfield = download.bitfield();
+
+  if (bitfield->is_all_set() || bitfield->is_all_unset())
+    object.insert_key("bitfield", bitfield->size_set());
+  else
+    object.insert_key("bitfield", std::string((char*)download.bitfield()->begin(), download.bitfield()->size_bytes()));
   
   Object::list_type& files = object.has_key_list("files")
     ? object.get_key_list("files")
@@ -183,21 +210,17 @@ resume_load_addresses(Download download, const Object& object) {
   const Object::list_type& src = object.get_key_list("peers");
   
   for (Object::list_type::const_iterator itr = src.begin(), last = src.end(); itr != last; ++itr) {
-    rak::socket_address socketAddress;
-
     if (!itr->is_map() ||
-        !itr->has_key_string("address") || !socketAddress.set_address_str(itr->get_key_string("address")) ||
-        !itr->has_key_value("port") ||
+        !itr->has_key_string("inet") || itr->get_key_string("inet").size() != sizeof(SocketAddressCompact) ||
         !itr->has_key_value("failed") ||
         !itr->has_key_value("last") || itr->get_key_value("last") > cachedTime.seconds())
       continue;
 
-    socketAddress.set_port(itr->get_key_value("port"));
-
     int flags = 0;
+    rak::socket_address socketAddress = *reinterpret_cast<const SocketAddressCompact*>(itr->get_key_string("inet").c_str());
 
     if (socketAddress.port() != 0)
-      flags |= PeerList::flag_available;
+      flags |= PeerList::address_available;
 
     PeerInfo* peerInfo = peerList->insert_address(socketAddress.c_sockaddr(), flags);
 
@@ -224,20 +247,15 @@ resume_save_addresses(Download download, Object& object) {
     // been closed for a while, it won't throw out perfectly good
     // entries.
 
-//     if (itr->second->
-//     continue;
-
     Object& peer = dest.insert_back(Object(Object::TYPE_MAP));
 
-    // Need to save the address properly.
-    peer.insert_key("address", rak::socket_address::cast_from(itr->second->socket_address())->address_str());
+    const rak::socket_address* sa = rak::socket_address::cast_from(itr->second->socket_address());
+
+    if (sa->family() == rak::socket_address::af_inet)
+      peer.insert_key("inet", std::string(SocketAddressCompact(sa->sa_inet()->address_n(), htons(itr->second->listen_port())).c_str(), sizeof(SocketAddressCompact)));
 
     peer.insert_key("failed",  itr->second->failed_counter());
     peer.insert_key("last",    itr->second->is_connected() ? cachedTime.seconds() : itr->second->last_connection());
-
-    // A valid port indicates that we can reconnect to the peer in the
-    // future.
-    peer.insert_key("port",    itr->second->port());
   }
 }
 

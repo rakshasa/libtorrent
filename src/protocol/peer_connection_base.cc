@@ -73,44 +73,8 @@ PeerConnectionBase::PeerConnectionBase() :
 }
 
 PeerConnectionBase::~PeerConnectionBase() {
-  if (!get_fd().is_valid())
-    return;
-
-  if (m_download == NULL)
-    throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
-
-  m_downloadQueue.clear();
-
-  up_chunk_release();
-  down_chunk_release();
-
-  m_download->choke_manager()->disconnected(this);
-  m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
-
-  manager->poll()->remove_read(this);
-  manager->poll()->remove_write(this);
-  manager->poll()->remove_error(this);
-  manager->poll()->close(this);
-  
-  manager->connection_manager()->dec_socket_count();
-
-  get_fd().close();
-  get_fd().clear();
-
-  // Need to move more stuff into download*.
-  m_download->peer_list()->disconnected(m_peerInfo);
-  m_peerInfo = NULL;
-
-  m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
-  m_download->download_throttle()->erase(m_peerChunks.download_throttle());
-
-  m_up->set_state(ProtocolWrite::INTERNAL_ERROR);
-  m_down->set_state(ProtocolRead::INTERNAL_ERROR);
-
   delete m_up;
   delete m_down;
-
-  m_download = NULL;
 }
 
 void
@@ -151,6 +115,41 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   update_interested();
 
   initialize_custom();
+}
+
+void
+PeerConnectionBase::cleanup() {
+  if (!get_fd().is_valid())
+    return;
+
+  if (m_download == NULL)
+    throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
+
+  m_downloadQueue.clear();
+
+  up_chunk_release();
+  down_chunk_release();
+
+  m_download->choke_manager()->disconnected(this);
+  m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
+
+  manager->poll()->remove_read(this);
+  manager->poll()->remove_write(this);
+  manager->poll()->remove_error(this);
+  manager->poll()->close(this);
+  
+  manager->connection_manager()->dec_socket_count();
+
+  get_fd().close();
+  get_fd().clear();
+
+  m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
+  m_download->download_throttle()->erase(m_peerChunks.download_throttle());
+
+  m_up->set_state(ProtocolWrite::INTERNAL_ERROR);
+  m_down->set_state(ProtocolRead::INTERNAL_ERROR);
+
+  m_download = NULL;
 }
 
 void
@@ -208,7 +207,7 @@ PeerConnectionBase::receive_throttle_up_activate() {
 
 void
 PeerConnectionBase::event_error() {
-  m_download->connection_list()->erase(this);
+  m_download->connection_list()->erase(this, 0);
 }
 
 bool

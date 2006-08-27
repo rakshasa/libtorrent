@@ -164,7 +164,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
       // connects to, and to move this somewhere else.
       (!h->download()->content()->is_done() || !h->bitfield()->is_all_set()) &&
 
-      (pcb = h->download()->connection_list()->insert(h->download(), h->peer_info(), h->get_fd(), h->bitfield())) != NULL) {
+      (pcb = h->download()->connection_list()->insert(h->peer_info(), h->get_fd(), h->bitfield())) != NULL) {
 
 //     h->download()->info()->signal_network_log().emit("Successful handshake: " + h->peer_info()->socket_address()->address_str());
     h->set_peer_info(NULL);

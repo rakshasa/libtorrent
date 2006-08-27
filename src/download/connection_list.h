@@ -45,7 +45,6 @@
 namespace torrent {
 
 class Bitfield;
-class DownloadInfo;
 class DownloadMain;
 class DownloadWrapper;
 class PeerConnectionBase;
@@ -78,7 +77,12 @@ public:
   using Base::rbegin;
   using Base::rend;
   
-  ConnectionList(DownloadInfo* i) : m_minSize(50), m_maxSize(100), m_info(i) {}
+  // Make sure any change here match PeerList's flags.
+  static const int disconnect_available = (1 << 0);
+  static const int disconnect_quick     = (1 << 1);
+  static const int disconnect_unwanted  = (1 << 2);
+
+  ConnectionList(DownloadMain* download) : m_minSize(50), m_maxSize(100), m_download(download) {}
   ~ConnectionList() { clear(); }
 
   // Does not do the usual cleanup done by 'erase'.
@@ -88,11 +92,11 @@ public:
   // responsible for cleaning up 'fd'.
   //
   // Clean this up, don't use this many arguments.
-  PeerConnectionBase* insert(DownloadMain* d, PeerInfo* p, const SocketFd& fd, Bitfield* bitfield);
+  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield);
 
-  iterator            erase(iterator pos);
-  void                erase(PeerConnectionBase* p);
-  void                erase_remaining(iterator pos);
+  iterator            erase(iterator pos, int flags);
+  void                erase(PeerConnectionBase* p, int flags);
+  void                erase_remaining(iterator pos, int flags);
   void                erase_seeders();
 
   iterator            find(const rak::socket_address& sa);
@@ -116,7 +120,6 @@ public:
   // When a peer is disconnected the torrent should rebalance the
   // choked peers and connect to new ones if possible.
   void                slot_disconnected(slot_peer_type s)              { m_slotDisconnected = s; }
-
   void                slot_new_connection(SlotNewConnection s)         { m_slotNewConnection = s; }
 
 private:
@@ -131,7 +134,7 @@ private:
 
   SlotNewConnection   m_slotNewConnection;
 
-  DownloadInfo*       m_info;
+  DownloadMain*       m_download;
 };
 
 }

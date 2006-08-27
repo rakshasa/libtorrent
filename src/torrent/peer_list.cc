@@ -80,21 +80,17 @@ PeerList::PeerList() :
 }
 
 PeerList::~PeerList() {
+  std::for_each(begin(), end(), rak::on(rak::mem_ref(&value_type::second), rak::call_delete<PeerInfo>()));
+  base_type::clear();
+
   delete m_availableList;
 }
 
-void
-PeerList::clear() {
-  std::for_each(begin(), end(), rak::on(rak::mem_ref(&value_type::second), rak::call_delete<PeerInfo>()));
-
-  base_type::clear();
-}
-
 PeerInfo*
-PeerList::insert_address(const sockaddr* address, int flags) {
-  range_type range = base_type::equal_range(address);
+PeerList::insert_address(const sockaddr* sa, int flags) {
+  range_type range = base_type::equal_range(sa);
 
-  // Do some special handling if we go a new port number but the
+  // Do some special handling if we got a new port number but the
   // address was present.
   //
   // What we do depends on the flags, but for now just allow one
@@ -102,52 +98,55 @@ PeerList::insert_address(const sockaddr* address, int flags) {
   if (range.first != range.second)
     return NULL;
 
-  PeerInfo* peerInfo = new PeerInfo(address);
+  const rak::socket_address* address = rak::socket_address::cast_from(sa);
+
+  PeerInfo* peerInfo = new PeerInfo(sa);
+  peerInfo->set_listen_port(address->port());
+
   base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
 
-  if (flags & flag_available)
-    m_availableList->push_back(rak::socket_address::cast_from(peerInfo->socket_address()));
+  if (flags & address_available && peerInfo->listen_port() != 0)
+    m_availableList->push_back(address);
 
   return peerInfo;
 }
 
 PeerInfo*
-PeerList::connected(const sockaddr* sa) {
+PeerList::connected(const sockaddr* sa, int flags) {
   range_type range = base_type::equal_range(sa);
-  
-  iterator itr = std::find_if(range.first, range.second,
-                              rak::bind2nd(peer_list_equal_port(), rak::socket_address::cast_from(sa)->port()));
 
-  if (itr == range.second)
-    itr = std::find_if(range.first, range.second, rak::on(rak::mem_ref(&value_type::second), std::not1(std::mem_fun(&PeerInfo::is_connected))));
+  PeerInfo* peerInfo;
 
-  else if (itr->second->is_connected())
-    return NULL;
-
-  if (itr == range.second) {
+  if (range.first == range.second) {
     // Create a new entry.
-    if (std::distance(range.first, range.second) >= 5)
-      return NULL;
+    peerInfo = new PeerInfo(sa);
 
-    PeerInfo* peerInfo = new PeerInfo(sa);
+    base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
 
-    itr = base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
+  } else if (!range.first->second->is_connected()) {
+    // Use an old entry.
+    peerInfo = range.first->second;
+    peerInfo->set_port(rak::socket_address::cast_from(sa)->port());
 
   } else {
-    // Use an old entry.
-    itr->second->set_port(rak::socket_address::cast_from(sa)->port());
+    return NULL;
   }
 
-  itr->second->set_connected(true);
-  itr->second->set_last_connection(cachedTime.seconds());
+  if (!(flags & connect_incoming))
+    peerInfo->set_listen_port(rak::socket_address::cast_from(sa)->port());
 
-  return itr->second;
+  peerInfo->set_incoming(flags & connect_incoming);
+
+  peerInfo->set_connected(true);
+  peerInfo->set_last_connection(cachedTime.seconds());
+
+  return peerInfo;
 }
 
 // Make sure we properly clear port when disconnecting.
 
 void
-PeerList::disconnected(PeerInfo* p) {
+PeerList::disconnected(PeerInfo* p, int flags) {
   range_type range = base_type::equal_range(p->socket_address());
   
   iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ref(&value_type::second)));
@@ -158,11 +157,11 @@ PeerList::disconnected(PeerInfo* p) {
     else
       throw internal_error("PeerList::disconnected(...) itr == range.second, not in the range.");
   
-  disconnected(itr);
+  disconnected(itr, flags);
 }
 
 PeerList::iterator
-PeerList::disconnected(iterator itr) {
+PeerList::disconnected(iterator itr, int flags) {
   if (itr == base_type::end())
     throw internal_error("PeerList::disconnected(...) itr == end().");
 
@@ -171,6 +170,13 @@ PeerList::disconnected(iterator itr) {
 
   itr->second->set_connected(false);
   itr->second->set_last_connection(cachedTime.seconds());
+
+  // Replace the socket address port with the listening port so that
+  // future outgoing connections will connect to the right port.
+  itr->second->set_port(itr->second->listen_port());
+
+  if (flags & disconnect_available && itr->second->listen_port() != 0)
+    m_availableList->push_back(rak::socket_address::cast_from(itr->second->socket_address()));
 
   // Do magic to get rid of unneeded entries.
   return ++itr;

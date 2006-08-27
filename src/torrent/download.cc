@@ -325,6 +325,23 @@ Download::set_chunks_done(uint32_t chunks) {
 }
 
 void
+Download::set_bitfield(bool allSet) {
+  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
+    throw input_error("Download::set_bitfield(...) Download in invalid state.");
+
+  Bitfield* bitfield = m_ptr->main()->content()->bitfield();
+
+  bitfield->allocate();
+
+  if (allSet)
+    bitfield->set_all();
+  else
+    bitfield->unset_all();
+  
+  m_ptr->hash_checker()->ranges().clear();
+}
+
+void
 Download::set_bitfield(uint8_t* first, uint8_t* last) {
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw input_error("Download::set_bitfield(...) Download in invalid state.");
@@ -332,9 +349,11 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
   if (std::distance(first, last) != (ptrdiff_t)m_ptr->main()->content()->bitfield()->size_bytes())
     throw input_error("Download::set_bitfield(...) Invalid length.");
 
-  m_ptr->main()->content()->bitfield()->allocate();
-  std::memcpy(m_ptr->main()->content()->bitfield()->begin(), first, m_ptr->main()->content()->bitfield()->size_bytes());
-  m_ptr->main()->content()->bitfield()->update();
+  Bitfield* bitfield = m_ptr->main()->content()->bitfield();
+
+  bitfield->allocate();
+  std::memcpy(bitfield->begin(), first, bitfield->size_bytes());
+  bitfield->update();
   
   m_ptr->hash_checker()->ranges().clear();
 }
@@ -357,16 +376,6 @@ void
 Download::sync_chunks() {
   m_ptr->main()->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force);
 }
-
-// void
-// Download::insert_addresses(const std::string& addresses) {
-//   m_ptr->insert_available_list(addresses);
-// }
-
-// void
-// Download::extract_addresses(std::string& addresses) {
-//   m_ptr->extract_available_list(addresses);
-// }
 
 uint32_t
 Download::peers_min() const {
@@ -480,14 +489,14 @@ Peer
 Download::peer_find(const std::string& id) {
   ConnectionList::iterator itr =
     std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
-                 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::peer_info), std::mem_fun(&PeerInfo::id))));
+                 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::c_peer_info), std::mem_fun(&PeerInfo::id))));
 
   return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
 }
 
 void
 Download::disconnect_peer(Peer p) {
-  m_ptr->main()->connection_list()->erase(p.ptr());
+  m_ptr->main()->connection_list()->erase(p.ptr(), 0);
 }
 
 sigc::connection

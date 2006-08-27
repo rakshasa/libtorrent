@@ -48,7 +48,8 @@ PeerInfo::PeerInfo(const sockaddr* address) :
   m_connected(false),
   m_incoming(false),
   m_failedCounter(0),
-  m_lastConnection(0)
+  m_lastConnection(0),
+  m_listenPort(0)
 {
   rak::socket_address* sa = new rak::socket_address();
   *sa = *rak::socket_address::cast_from(address);

@@ -91,9 +91,6 @@ public:
   int                 connection_type() const                 { return m_connectionType; }
   void                set_connection_type(int t)              { m_connectionType = t; }
 
-  void                insert_available_list(const std::string& src);
-  void                extract_available_list(std::string& dest);
-
   void                receive_keepalive();
   void                receive_initial_hash();
 

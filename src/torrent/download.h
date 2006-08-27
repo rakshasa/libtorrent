@@ -141,6 +141,7 @@ public:
   // use an cleared bitfield and check the whole range.
   //
   // These must be called when is_open, !is_checked and !is_checking.
+  void                set_bitfield(bool allSet);
   void                set_bitfield(uint8_t* first, uint8_t* last);
   void                clear_range(uint32_t first, uint32_t last);
 
@@ -149,12 +150,6 @@ public:
   // Temporary hack for syncing chunks to disk before hash resume is
   // saved.
   void                sync_chunks();
-
-  // Temporary hack until i can move the available list stuf somewhere
-  // and make a nice interface for it.
-
-//   void                insert_addresses(const std::string& addresses);
-//   void                extract_addresses(std::string& addresses);
 
   uint32_t            peers_min() const;
   uint32_t            peers_max() const;

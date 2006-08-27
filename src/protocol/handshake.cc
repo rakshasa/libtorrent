@@ -80,7 +80,7 @@ Handshake::~Handshake() {
     throw internal_error("Handshake dtor called but m_fd is still open.");
 
   if (m_peerInfo != NULL) {
-    m_download->peer_list()->disconnected(m_peerInfo);
+    m_download->peer_list()->disconnected(m_peerInfo, 0);
     m_peerInfo = NULL;
   }
 }
@@ -262,13 +262,17 @@ Handshake::prepare_peer_info() {
   if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
     throw close_connection();
 
-  m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr());
+  int flags = 0;
+
+  if (m_incoming)
+    flags |= PeerList::connect_incoming;
+
+  m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), flags);
 
   if (m_peerInfo == NULL)
     throw close_connection();
 
   m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
-  m_peerInfo->set_incoming(m_incoming);
 
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
 }

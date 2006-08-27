@@ -68,6 +68,7 @@ public:
   // The assumed listening port of the peer, not to be confused with
   // the socket address port.
   uint16_t            port() const;
+  uint16_t            listen_port() const                   { return m_listenPort; }
 
   uint32_t            failed_counter() const                { return m_failedCounter; }
   void                inc_failed_counter()                  { m_failedCounter++; }
@@ -83,6 +84,8 @@ protected:
   void                set_id(const std::string& id)         { m_id = id; }
 
   void                set_port(uint16_t port);
+  void                set_listen_port(uint16_t port)        { m_listenPort = port; }
+
   char*               set_options()                         { return m_options; }
 
 private:
@@ -98,8 +101,9 @@ private:
   bool                m_incoming;
 
   uint32_t            m_failedCounter;
-
   uint32_t            m_lastConnection;
+
+  uint16_t            m_listenPort;
 
   // Replace this with a union. Since the user never copies PeerInfo
   // it should be safe to not require sockaddr_in6 to be part of it.

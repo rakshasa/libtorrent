@@ -120,6 +120,7 @@ Bitfield::set_all() {
   m_set = m_size;
 
   std::memset(m_data, ~value_type(), size_bytes());
+  clear_tail();
 }
 
 void

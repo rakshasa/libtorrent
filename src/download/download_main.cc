@@ -65,7 +65,7 @@ DownloadMain::DownloadMain() :
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
 
-  m_connectionList = new ConnectionList(m_info);
+  m_connectionList = new ConnectionList(this);
   m_chokeManager = new ChokeManager(m_connectionList);
 
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
@@ -129,8 +129,6 @@ DownloadMain::close() {
   m_chunkStatistics->clear();
   m_chunkList->clear();
   m_chunkSelector->cleanup();
-
-  m_peerList.clear();
 }
 
 void DownloadMain::start() {
@@ -149,12 +147,6 @@ void DownloadMain::start() {
   receive_connect_peers();
 }  
 
-// struct peer_connection_socket_address : public std::unary_function<const PeerConnectionBase*, const rak::socket_address&> {
-//   const rak::socket_address& operator () (const PeerConnectionBase* p) const {
-//     return *rak::socket_address::cast_from(p->peer_info()->socket_address());
-//   }
-// };
-
 void
 DownloadMain::stop() {
   if (!info()->is_active())
@@ -166,18 +158,7 @@ DownloadMain::stop() {
 
   m_slotStopHandshakes(this);
 
-  // Save the addresses we are connected to, so we don't need to
-  // perform alot of requests to the tracker when restarting the
-  // torrent. Consider saving these in the torrent file when dumping
-  // it.
-//   std::list<rak::socket_address> addressList;
-//   std::transform(connection_list()->begin(), connection_list()->end(), std::back_inserter(addressList), peer_connection_socket_address());
-
-//   addressList.sort();
-//   available_list()->insert(&addressList);
-
-  while (!connection_list()->empty())
-    connection_list()->erase(connection_list()->front());
+  connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
 }
