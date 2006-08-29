@@ -182,4 +182,35 @@ PeerList::disconnected(iterator itr, int flags) {
   return ++itr;
 }
 
+uint32_t
+PeerList::cull_peers(int flags) {
+  uint32_t counter = 0;
+  uint32_t timer;
+
+  if (flags & cull_old)
+    timer = cachedTime.seconds() - 24 * 60 * 60;
+  else
+    timer = 0;
+
+  for (iterator itr = base_type::begin(); itr != base_type::end(); ) {
+    if (itr->second->is_connected() ||
+        itr->second->transfer_counter() != 0 ||
+        itr->second->last_connection() >= timer ||
+
+        (flags & cull_keep_interesting && itr->second->failed_counter() != 0)) {
+      itr++;
+      continue;
+    }
+
+    iterator tmp = itr++;
+
+    delete tmp->second;
+    base_type::erase(tmp);
+
+    counter++;
+  }
+
+  return counter;
+}
+
 }

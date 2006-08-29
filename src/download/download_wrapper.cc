@@ -141,15 +141,6 @@ DownloadWrapper::is_stopped() const {
 }
 
 void
-DownloadWrapper::receive_keepalive() {
-  for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); )
-    if (!(*itr)->receive_keepalive())
-      itr = m_main.connection_list()->erase(itr, ConnectionList::disconnect_available);
-    else
-      itr++;
-}
-
-void
 DownloadWrapper::receive_initial_hash() {
   if (info()->is_active())
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
@@ -269,9 +260,25 @@ DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
 }
 
 void
-DownloadWrapper::receive_tick() {
+DownloadWrapper::receive_tick(uint32_t ticks) {
+  // Trigger culling of PeerInfo's every hour. This should be called
+  // before the is_open check to ensure that stopped torrents reduce
+  // their memory usage.
+//   if (ticks % 120 == 0)
+  if (ticks % 1 == 0)
+    m_main.peer_list()->cull_peers(PeerList::cull_old || PeerList::cull_keep_interesting);
+
   if (!info()->is_open())
     return;
+
+  // Every 2 minutes.
+  if (ticks % 4 == 0) {
+    for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); )
+      if (!(*itr)->receive_keepalive())
+        itr = m_main.connection_list()->erase(itr, ConnectionList::disconnect_available);
+      else
+        itr++;
+  }
 
   unsigned int syncFailed = m_main.chunk_list()->sync_chunks(ChunkList::sync_use_timeout);
 

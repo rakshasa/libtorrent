@@ -47,6 +47,7 @@ public:
   
   Chunk::data_type    data();
 
+  bool                next();
   bool                used(uint32_t length);
 
 private:
@@ -72,6 +73,13 @@ ChunkIterator::data() {
   data.second = std::min(data.second, m_last - m_first);
 
   return data;
+}
+
+inline bool
+ChunkIterator::next() {
+  m_first = m_iterator->position() + m_iterator->size();
+
+  return m_first < m_last && ++m_iterator != m_chunk->end();
 }
 
 inline bool

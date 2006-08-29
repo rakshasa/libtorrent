@@ -175,6 +175,10 @@ HashTorrent::queue(bool quick) {
       return;
     }
 
+    // Missing file, skip the hash check.
+    if (!handle.is_valid())
+      continue;
+
     m_slotCheckChunk(handle);
     m_outstanding++;
   }

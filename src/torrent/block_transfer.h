@@ -39,6 +39,7 @@
 
 #include <inttypes.h>
 #include <torrent/piece.h>
+#include <torrent/peer_info.h>
 
 namespace torrent {
 
@@ -58,7 +59,8 @@ public:
     STATE_NOT_LEADER
   } state_type;
 
-  BlockTransfer() {}
+  BlockTransfer() : m_peerInfo(NULL) {}
+  ~BlockTransfer();
 
   bool                is_valid() const              { return m_block != NULL; }
 
@@ -69,34 +71,34 @@ public:
 
   bool                is_finished() const           { return m_position == m_piece.length(); }
 
-  void                create_dummy(PeerInfo* peerInfo, const Piece& piece);
-
   key_type            peer_info()                   { return m_peerInfo; }
   const key_type      const_peer_info() const       { return m_peerInfo; }
-  void                set_peer_info(key_type p)     { m_peerInfo = p; }
 
   Block*              block()                       { return m_block; }
   const Block*        const_block() const           { return m_block; }
-  void                set_block(Block* b)           { m_block = b; }
 
   const Piece&        piece() const                 { return m_piece; }
-  void                set_piece(const Piece& p)     { m_piece = p; }
-
   uint32_t            index() const                 { return m_piece.index(); }
-
   state_type          state() const                 { return m_state; }
-  void                set_state(state_type s)       { m_state = s; }
 
   // Adjust the position after any actions like erasing it from a
   // Block, but before if finishing.
   uint32_t            position() const              { return m_position; }
+  uint32_t            stall() const                 { return m_stall; }
+  uint32_t            failed_index() const          { return m_failedIndex; }
+
+  // Internal to libtorrent, some are implemented in block.cc:
+  void                create_dummy(PeerInfo* peerInfo, const Piece& piece);
+
+  void                set_peer_info(key_type p);
+  void                set_block(Block* b)           { m_block = b; }
+  void                set_piece(const Piece& p)     { m_piece = p; }
+  void                set_state(state_type s)       { m_state = s; }
+
   void                set_position(uint32_t p)      { m_position = p; }
   void                adjust_position(uint32_t p)   { m_position += p; }
 
-  uint32_t            stall() const                 { return m_stall; }
   void                set_stall(uint32_t s)         { m_stall = s; }
-
-  uint32_t            failed_index() const          { return m_failedIndex; }
   void                set_failed_index(uint32_t i)  { m_failedIndex = i; }
 
 private:
@@ -114,16 +116,23 @@ private:
   uint32_t            m_failedIndex;
 };
 
-inline void
-BlockTransfer::create_dummy(PeerInfo* peerInfo, const Piece& piece) {
-  m_peerInfo = peerInfo;
-  m_block = NULL;
-  m_piece = piece;
-  m_state = BlockTransfer::STATE_ERASED;
+inline
+BlockTransfer::~BlockTransfer() {
+  if (m_peerInfo == NULL)
+    return;
 
-  m_position = 0;
-  m_stall = 0;
-  m_failedIndex = invalid_index;
+  m_peerInfo->set_transfer_counter(m_peerInfo->transfer_counter() - 1);
+}  
+
+// Make sure this doesn't get called multiple times.
+inline void
+BlockTransfer::set_peer_info(key_type p) {
+  m_peerInfo = p;
+
+  if (m_peerInfo == NULL)
+    return;
+
+  m_peerInfo->set_transfer_counter(m_peerInfo->transfer_counter() + 1);
 }
 
 }

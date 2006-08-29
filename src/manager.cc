@@ -143,12 +143,9 @@ Manager::receive_tick() {
 
   m_resourceManager->receive_tick();
 
-  if (m_ticks % 4 == 0)
-    std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::mem_fun(&DownloadWrapper::receive_keepalive));
+  std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::bind2nd(std::mem_fun(&DownloadWrapper::receive_tick), m_ticks));
 
-  std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::mem_fun(&DownloadWrapper::receive_tick));
-
-  // If you change the interval, make sure the above keepalive gets
+  // If you change the interval, make sure the keepalives gets
   // triggered every 120 seconds.
   priority_queue_insert(&taskScheduler, &m_taskTick, (cachedTime + rak::timer::from_seconds(30)).round_seconds());
 }

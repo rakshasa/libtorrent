@@ -154,8 +154,11 @@ PeerConnectionBase::cleanup() {
 
 void
 PeerConnectionBase::load_up_chunk() {
-  if (m_upChunk.is_valid() && m_upChunk.index() == m_upPiece.index())
+  if (m_upChunk.is_valid() && m_upChunk.index() == m_upPiece.index()) {
+    // Better checking needed.
+    //     m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->size());
     return;
+  }
 
   up_chunk_release();
   
@@ -163,6 +166,12 @@ PeerConnectionBase::load_up_chunk() {
   
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
+
+  // Make sure we preload the next step once we get past the length
+  // here. This is just some testing, don't include this with the
+  // release. (Yet)
+  m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->size());
+  //   m_upChunk.chunk()->preload(m_upPiece.offset(), std::min(128u << 10, m_peerChunks.upload_throttle()->rate()->rate() * 10));
 }
 
 void

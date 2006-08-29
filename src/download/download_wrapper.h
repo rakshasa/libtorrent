@@ -91,7 +91,6 @@ public:
   int                 connection_type() const                 { return m_connectionType; }
   void                set_connection_type(int t)              { m_connectionType = t; }
 
-  void                receive_keepalive();
   void                receive_initial_hash();
 
   void                check_chunk_hash(ChunkHandle handle);
@@ -104,7 +103,7 @@ public:
   void                receive_peer_connected(PeerConnectionBase* peer);
   void                receive_peer_disconnected(PeerConnectionBase* peer);
 
-  void                receive_tick();
+  void                receive_tick(uint32_t ticks);
 
   void                receive_update_priorities();
 

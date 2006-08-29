@@ -48,6 +48,19 @@
 
 namespace torrent {
 
+void
+BlockTransfer::create_dummy(PeerInfo* peerInfo, const Piece& piece) {
+  set_peer_info(peerInfo);
+
+  m_block = NULL;
+  m_piece = piece;
+  m_state = BlockTransfer::STATE_ERASED;
+
+  m_position = 0;
+  m_stall = 0;
+  m_failedIndex = invalid_index;
+}
+
 Block::~Block() {
   m_leader = NULL;
 

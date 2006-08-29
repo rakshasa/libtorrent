@@ -65,14 +65,14 @@ public:
   const char*         options() const                       { return m_options; }
   const sockaddr*     socket_address() const                { return m_address; }
 
-  // The assumed listening port of the peer, not to be confused with
-  // the socket address port.
-  uint16_t            port() const;
   uint16_t            listen_port() const                   { return m_listenPort; }
 
   uint32_t            failed_counter() const                { return m_failedCounter; }
   void                inc_failed_counter()                  { m_failedCounter++; }
   void                set_failed_counter(uint32_t c)        { m_failedCounter = c; }
+
+  uint32_t            transfer_counter() const              { return m_transferCounter; }
+  void                set_transfer_counter(uint32_t c)      { m_transferCounter = c; }
 
   uint32_t            last_connection() const               { return m_lastConnection; }
   void                set_last_connection(uint32_t tvsec)   { m_lastConnection = tvsec; }
@@ -101,6 +101,7 @@ private:
   bool                m_incoming;
 
   uint32_t            m_failedCounter;
+  uint32_t            m_transferCounter;
   uint32_t            m_lastConnection;
 
   uint16_t            m_listenPort;

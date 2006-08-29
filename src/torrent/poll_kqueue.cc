@@ -70,8 +70,8 @@ PollKQueue::set_event_mask(Event* e, uint32_t m) {
 void
 PollKQueue::modify(Event* event, unsigned short op, short mask) {
   // Just so I can test it on my mac, comment this out.
-  if (event->file_descriptor() == 0)
-    return;
+//   if (event->file_descriptor() == 0)
+//     return;
 
   // Flush the changed filters to the kernel if the buffer if full.
   if (m_changedEvents == m_maxEvents) {
@@ -142,10 +142,10 @@ PollKQueue::perform() {
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ)
+    if (itr->filter == EVFILT_READ && event_mask((Event*)itr->udata) & flag_read)
       ((Event*)itr->udata)->event_read();
 
-    if (itr->filter == EVFILT_WRITE)
+    if (itr->filter == EVFILT_WRITE && event_mask((Event*)itr->udata) & flag_write)
       ((Event*)itr->udata)->event_write();
   }
 

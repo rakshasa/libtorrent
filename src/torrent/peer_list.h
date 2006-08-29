@@ -89,6 +89,9 @@ public:
   static const int disconnect_quick     = (1 << 1);
   static const int disconnect_unwanted  = (1 << 2);
 
+  static const int cull_old              = (1 << 0);
+  static const int cull_keep_interesting = (1 << 1);
+
   PeerList();
   ~PeerList();
 
@@ -100,6 +103,8 @@ public:
   const_reverse_iterator rend() const   { return base_type::rend(); }
 
   AvailableList*      available_list()  { return m_availableList; }
+
+  uint32_t            cull_peers(int flags);
 
 protected:
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end

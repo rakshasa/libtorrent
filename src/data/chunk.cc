@@ -138,6 +138,26 @@ Chunk::sync(int flags) {
   return success;
 }
 
+void
+Chunk::preload(uint32_t position, uint32_t length) {
+  if (position >= m_size)
+    throw internal_error("Chunk::preload(...) position > m_size.");
+
+  if (length == 0)
+    return;
+
+  Chunk::data_type data;
+  ChunkIterator itr(this, position, position + std::min(length, m_size - position));
+
+  do {
+    data = itr.data();
+
+    for (char* first = (char*)data.first, *last = (char*)data.first + data.second; first < last; first += 4096)
+      volatile char __UNUSED touchChunk = *(char*)data.first;
+
+  } while (itr.next());
+}
+
 // Consider using uint32_t returning first mismatch or length if
 // matching.
 bool
