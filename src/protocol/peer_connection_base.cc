@@ -310,8 +310,8 @@ bool
 PeerConnectionBase::down_chunk_from_buffer() {
   m_down->buffer()->move_position(down_chunk_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
 
-  if (m_downloadQueue.transfer()->is_finished() && m_down->buffer()->remaining() != 0)
-    throw internal_error("PeerConnectionBase::down_chunk_from_buffer() transfer->is_finished() && m_down->buffer()->remaining() != 0.");
+  if (!m_downloadQueue.transfer()->is_finished() && m_down->buffer()->remaining() != 0)
+    throw internal_error("PeerConnectionBase::down_chunk_from_buffer() !transfer->is_finished() && m_down->buffer()->remaining() != 0.");
 
   return m_downloadQueue.transfer()->is_finished();
 }  

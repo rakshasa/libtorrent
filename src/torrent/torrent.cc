@@ -125,6 +125,11 @@ void
 perform() {
   cachedTime = rak::timer::current();
 
+  // Ensure we don't call rak::timer::current() twice if there was no
+  // scheduled tasks called.
+  if (taskScheduler.empty() || taskScheduler.top()->time() > cachedTime)
+    return;
+
   while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
     rak::priority_item* v = taskScheduler.top();
     taskScheduler.pop();
@@ -132,6 +137,10 @@ perform() {
     v->clear_time();
     v->call();
   }
+
+  // Update the timer again to ensure we get accurate triggering of
+  // msec timers.
+  cachedTime = rak::timer::current();
 }
 
 bool

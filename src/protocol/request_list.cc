@@ -56,8 +56,8 @@ struct request_list_same_piece {
 
   bool operator () (const BlockTransfer* d) {
     return
-      m_piece.index() == d->const_block()->piece().index() &&
-      m_piece.offset() == d->const_block()->piece().offset();
+      m_piece.index() == d->piece().index() &&
+      m_piece.offset() == d->piece().offset();
   }
 
   Piece m_piece;
@@ -68,10 +68,10 @@ RequestList::delegate() {
   BlockTransfer* r = m_delegator->delegate(m_peerChunks, m_affinity);
 
   if (r) {
-    m_affinity = r->block()->index();
+    m_affinity = r->index();
     m_queued.push_back(r);
 
-    return &r->block()->piece();
+    return &r->piece();
 
   } else {
     return NULL;
@@ -114,24 +114,16 @@ RequestList::downloading(const Piece& piece) {
   if (m_transfer != NULL)
     throw internal_error("RequestList::downloading(...) m_transfer != NULL.");
 
-  // Consider doing this on cancel_range.
-  remove_invalid();
-
   ReserveeList::iterator itr = std::find_if(m_queued.begin(), m_queued.end(), request_list_same_piece(piece));
 
   if (itr == m_queued.end()) {
     itr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(piece));
 
     if (itr == m_canceled.end()) {
-      // Create a dummy BlockTransfer object to hold the piece
-      // information.
-      m_transfer = new BlockTransfer();
-      m_transfer->create_dummy(m_peerChunks->peer_info(), piece);
-
-      return false;
+      // Consider counting these pieces as spam.
+      goto downloading_error;
     }
 
-    // Remove all up to and including itr.
     m_transfer = *itr;
     m_canceled.erase(itr);
 
@@ -151,11 +143,7 @@ RequestList::downloading(const Piece& piece) {
       throw network_error("Peer sent a piece with wrong, non-zero, length.");
 
     Block::release(m_transfer);
-
-    m_transfer = new BlockTransfer();
-    m_transfer->create_dummy(m_peerChunks->peer_info(), piece);
-
-    return false;
+    goto downloading_error;
   }
 
   // Check if piece isn't wanted anymore. Do this after the length
@@ -165,6 +153,14 @@ RequestList::downloading(const Piece& piece) {
 
   m_transfer->block()->transfering(m_transfer);
   return true;
+
+ downloading_error:
+  // Create a dummy BlockTransfer object to hold the piece
+  // information.
+  m_transfer = new BlockTransfer();
+  m_transfer->create_dummy(m_peerChunks->peer_info(), piece);
+
+  return false;
 }
 
 // Must clear the downloading piece.
@@ -208,7 +204,7 @@ RequestList::transfer_dissimilar() {
 
 struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, bool> {
   bool operator () (BlockTransfer* r, uint32_t index) const {
-    return r->is_valid() && index == r->block()->index();
+    return r->is_valid() && index == r->index();
   }
 };
 
@@ -228,11 +224,29 @@ RequestList::has_index(uint32_t index) {
 
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
+  // This only gets called when it's downloading a non-canceled piece,
+  // so to avoid a backlog of canceled pieces we need to empty it
+  // here.
+  //
+  // This may cause us to skip pieces if the peer does some strange
+  // reordering.
+  //
+  // Add some extra checks here to avoid clearing too often.
+  if (!m_canceled.empty()) {
+    std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));
+    m_canceled.clear();
+  }
+
   while (m_queued.begin() != end) {
-    Block::stalled(m_queued.front());
-    
-    m_canceled.push_back(m_queued.front());
+    BlockTransfer* transfer = m_queued.front();
     m_queued.pop_front();
+
+    if (transfer->is_valid()) {
+      Block::stalled(transfer);
+      m_canceled.push_back(transfer);
+    } else {
+      Block::release(transfer);
+    }
   }
 }
 
