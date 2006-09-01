@@ -115,6 +115,7 @@ public:
 
   void                receive_connect_peers();
   void                receive_chunk_done(unsigned int index);
+  void                receive_corrupt_chunk(PeerInfo* peerInfo);
 
   void                receive_tracker_success();
   void                receive_tracker_request();

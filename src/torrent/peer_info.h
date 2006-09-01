@@ -46,21 +46,30 @@ class sockaddr;
 namespace torrent {
 
 class Handshake;
+class HandshakeManager;
 class PeerList;
 
 class PeerInfo {
 public:
   friend class Handshake;
+  friend class HandshakeManager;
   friend class PeerList;
+
+  static const int flag_connected = (1 << 0);
+  static const int flag_incoming  = (1 << 1);
+  static const int flag_handshake = (1 << 2);
 
   PeerInfo(const sockaddr* address);
   ~PeerInfo();
 
   bool                is_valid() const;
-  bool                is_connected() const                  { return m_connected; }
-  bool                is_incoming() const                   { return m_incoming; }
+  bool                is_connected() const                  { return m_flags & flag_connected; }
+  bool                is_incoming() const                   { return m_flags & flag_incoming; }
+  bool                is_handshake() const                  { return m_flags & flag_handshake; }
 
   const std::string&  id() const                            { return m_id; }
+
+  int                 flags() const                         { return m_flags; }
 
   const char*         options() const                       { return m_options; }
   const sockaddr*     socket_address() const                { return m_address; }
@@ -68,7 +77,6 @@ public:
   uint16_t            listen_port() const                   { return m_listenPort; }
 
   uint32_t            failed_counter() const                { return m_failedCounter; }
-  void                inc_failed_counter()                  { m_failedCounter++; }
   void                set_failed_counter(uint32_t c)        { m_failedCounter = c; }
 
   uint32_t            transfer_counter() const              { return m_transferCounter; }
@@ -78,8 +86,8 @@ public:
   void                set_last_connection(uint32_t tvsec)   { m_lastConnection = tvsec; }
 
 protected:
-  void                set_connected(bool v)                 { m_connected = v; }
-  void                set_incoming(bool v)                  { m_incoming = v; }
+  void                set_flags(int flags)                  { m_flags |= flags; }
+  void                unset_flags(int flags)                { m_flags &= ~flags; }
 
   void                set_id(const std::string& id)         { m_id = id; }
 
@@ -94,11 +102,9 @@ private:
 
   // Replace id with a char buffer, or a cheap struct?
   std::string         m_id;
+  int                 m_flags;
 
   char                m_options[8];
-
-  bool                m_connected;
-  bool                m_incoming;
 
   uint32_t            m_failedCounter;
   uint32_t            m_transferCounter;

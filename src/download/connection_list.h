@@ -95,7 +95,9 @@ public:
   PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield);
 
   iterator            erase(iterator pos, int flags);
+  void                erase(PeerInfo* peerInfo, int flags);
   void                erase(PeerConnectionBase* p, int flags);
+
   void                erase_remaining(iterator pos, int flags);
   void                erase_seeders();
 

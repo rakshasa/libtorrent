@@ -223,7 +223,7 @@ TransferList::mark_failed_peers(BlockList* blockList) {
       if ((*itr2)->failed_index() != itr->failed_list()->current())
         badPeers.insert((*itr2)->peer_info());
 
-  std::for_each(badPeers.begin(), badPeers.end(), std::mem_fun(&PeerInfo::inc_failed_counter));
+  std::for_each(badPeers.begin(), badPeers.end(), m_slotCorrupt);
 }
 
 // Copy the stored data to the chunk from the failed entries with

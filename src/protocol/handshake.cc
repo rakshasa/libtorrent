@@ -81,13 +81,18 @@ Handshake::~Handshake() {
 
   if (m_peerInfo != NULL) {
     m_download->peer_list()->disconnected(m_peerInfo, 0);
+
+    m_peerInfo->unset_flags(PeerInfo::flag_handshake);
     m_peerInfo = NULL;
   }
 }
 
 void
-Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d) {
+Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, PeerInfo* peerInfo) {
   m_download = d;
+
+  m_peerInfo = peerInfo;
+  m_peerInfo->set_flags(PeerInfo::flag_handshake);
 
   m_incoming = false;
   m_address = sa;
@@ -262,19 +267,22 @@ Handshake::prepare_peer_info() {
   if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
     throw close_connection();
 
-  int flags = 0;
+  // PeerInfo handling for outgoing connections needs to be moved to
+  // HandshakeManager.
+  if (m_peerInfo == NULL) {
+    if (!m_incoming)
+      throw internal_error("Handshake::prepare_peer_info() !m_incoming.");
 
-  if (m_incoming)
-    flags |= PeerList::connect_incoming;
+    m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), PeerList::connect_incoming);
 
-  m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), flags);
+    if (m_peerInfo == NULL)
+      throw close_connection();
 
-  if (m_peerInfo == NULL)
-    throw close_connection();
-
-  m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+    m_peerInfo->set_flags(PeerInfo::flag_handshake);
+  }
 
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
+  m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
 }
 
 inline void

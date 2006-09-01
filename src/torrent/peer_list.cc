@@ -113,9 +113,10 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
 
 PeerInfo*
 PeerList::connected(const sockaddr* sa, int flags) {
-  range_type range = base_type::equal_range(sa);
-
   PeerInfo* peerInfo;
+  const rak::socket_address* address = rak::socket_address::cast_from(sa);
+
+  range_type range = base_type::equal_range(sa);
 
   if (range.first == range.second) {
     // Create a new entry.
@@ -126,18 +127,32 @@ PeerList::connected(const sockaddr* sa, int flags) {
   } else if (!range.first->second->is_connected()) {
     // Use an old entry.
     peerInfo = range.first->second;
-    peerInfo->set_port(rak::socket_address::cast_from(sa)->port());
+    peerInfo->set_port(address->port());
 
   } else {
+    // Make sure we don't end up throwing away the port the host is
+    // actually listening on, when there may be several simultaneous
+    // connection attempts to/from different ports.
+    //
+    // This also ensure we can connect to peers running on the same
+    // host as the tracker.
+    if (flags & connect_keep_handshakes &&
+        range.first->second->is_handshake() &&
+        rak::socket_address::cast_from(range.first->second->socket_address())->port() != address->port())
+      m_availableList->buffer()->push_back(*address);
+
     return NULL;
   }
 
   if (!(flags & connect_incoming))
-    peerInfo->set_listen_port(rak::socket_address::cast_from(sa)->port());
+    peerInfo->set_listen_port(address->port());
 
-  peerInfo->set_incoming(flags & connect_incoming);
+  if (flags & connect_incoming)
+    peerInfo->set_flags(PeerInfo::flag_incoming);
+  else
+    peerInfo->unset_flags(PeerInfo::flag_incoming);
 
-  peerInfo->set_connected(true);
+  peerInfo->set_flags(PeerInfo::flag_connected);
   peerInfo->set_last_connection(cachedTime.seconds());
 
   return peerInfo;
@@ -168,12 +183,12 @@ PeerList::disconnected(iterator itr, int flags) {
   if (!itr->second->is_connected())
     throw internal_error("PeerList::disconnected(...) !itr->is_connected().");
 
-  itr->second->set_connected(false);
+  itr->second->unset_flags(PeerInfo::flag_connected);
   itr->second->set_last_connection(cachedTime.seconds());
 
   // Replace the socket address port with the listening port so that
   // future outgoing connections will connect to the right port.
-  itr->second->set_port(itr->second->listen_port());
+  itr->second->set_port(0);
 
   if (flags & disconnect_available && itr->second->listen_port() != 0)
     m_availableList->push_back(rak::socket_address::cast_from(itr->second->socket_address()));

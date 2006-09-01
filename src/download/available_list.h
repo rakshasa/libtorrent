@@ -84,8 +84,14 @@ public:
   void                erase(const rak::socket_address& sa);
   void                erase(iterator itr)                 { *itr = back(); pop_back(); }
 
+  // A place to temporarily put addresses before re-adding them to the
+  // AvailableList.
+  AddressList*        buffer()                            { return &m_buffer; }
+
 private:
   size_type           m_maxSize;
+
+  AddressList         m_buffer;
 };
 
 }

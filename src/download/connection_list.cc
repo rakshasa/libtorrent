@@ -97,10 +97,21 @@ ConnectionList::erase(iterator pos, int flags) {
   // allocated for a different PCB in the signal.
   delete peerConnection;
 
-  if (!(flags & disconnect_quick))
-    m_download->receive_connect_peers();
+  // Now handled by the tick.
+//   if (!(flags & disconnect_quick))
+//     m_download->receive_connect_peers();
 
   return pos;
+}
+
+void
+ConnectionList::erase(PeerInfo* peerInfo, int flags) {
+  iterator itr = std::find_if(begin(), end(), rak::equal(peerInfo, std::mem_fun(&PeerConnectionBase::peer_info)));
+
+  if (itr == end())
+    return;
+
+  erase(itr, flags);
 }
 
 void

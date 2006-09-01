@@ -46,6 +46,7 @@ namespace torrent {
 class AvailableList;
 class ConnectionList;
 class Handshake;
+class HandshakeManager;
 class PeerInfo;
 
 // Unique key for the address, excluding port numbers etc.
@@ -63,6 +64,7 @@ private:
 class PeerList : private std::multimap<socket_address_key, PeerInfo*> {
 public:
   friend class Handshake;
+  friend class HandshakeManager;
   friend class ConnectionList;
 
   typedef std::multimap<socket_address_key, PeerInfo*>        base_type;
@@ -80,31 +82,32 @@ public:
   using base_type::size;
   using base_type::empty;
 
-  static const int address_available    = (1 << 0);
+  static const int address_available       = (1 << 0);
 
-  static const int connect_incoming     = (1 << 0);
+  static const int connect_incoming        = (1 << 0);
+  static const int connect_keep_handshakes = (1 << 1);
 
   // Make sure any change here match ConnectionList's flags.
-  static const int disconnect_available = (1 << 0);
-  static const int disconnect_quick     = (1 << 1);
-  static const int disconnect_unwanted  = (1 << 2);
+  static const int disconnect_available    = (1 << 0);
+  static const int disconnect_quick        = (1 << 1);
+  static const int disconnect_unwanted     = (1 << 2);
 
-  static const int cull_old              = (1 << 0);
-  static const int cull_keep_interesting = (1 << 1);
+  static const int cull_old                = (1 << 0);
+  static const int cull_keep_interesting   = (1 << 1);
 
   PeerList();
   ~PeerList();
 
   PeerInfo*           insert_address(const sockaddr* address, int flags);
 
+  AvailableList*      available_list()  { return m_availableList; }
+
+  uint32_t            cull_peers(int flags);
+
   const_iterator         begin() const  { return base_type::begin(); }
   const_iterator         end() const    { return base_type::end(); }
   const_reverse_iterator rbegin() const { return base_type::rbegin(); }
   const_reverse_iterator rend() const   { return base_type::rend(); }
-
-  AvailableList*      available_list()  { return m_availableList; }
-
-  uint32_t            cull_peers(int flags);
 
 protected:
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end

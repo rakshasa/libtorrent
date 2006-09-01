@@ -46,8 +46,7 @@ namespace torrent {
 
 // Move this to peer_info.cc when these are made into the public API.
 PeerInfo::PeerInfo(const sockaddr* address) : 
-  m_connected(false),
-  m_incoming(false),
+  m_flags(0),
 
   m_failedCounter(0),
   m_transferCounter(0),

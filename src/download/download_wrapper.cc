@@ -280,6 +280,8 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
         itr++;
   }
 
+  m_main.receive_connect_peers();
+
   unsigned int syncFailed = m_main.chunk_list()->sync_chunks(ChunkList::sync_use_timeout);
 
   if (info()->is_active() && syncFailed != 0) {

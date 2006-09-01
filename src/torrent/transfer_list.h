@@ -49,12 +49,12 @@ class BlockTransfer;
 class Chunk;
 class ChunkSelector;
 class DownloadMain;
+class PeerInfo;
 class Piece;
 
 class TransferList : public std::vector<BlockList*> {
 public:
-  typedef std::vector<BlockList*>                        base_type;
-//   typedef uint32_t                                      size_type;
+  typedef std::vector<BlockList*> base_type;
 
   using base_type::value_type;
   using base_type::reference;
@@ -75,7 +75,8 @@ public:
   TransferList() :
     m_slotCanceled(slot_canceled_type(slot_canceled_op(NULL), NULL)),
     m_slotCompleted(slot_completed_type(slot_completed_op(NULL), NULL)),
-    m_slotQueued(slot_queued_type(slot_queued_op(NULL), NULL)) { }
+    m_slotQueued(slot_queued_type(slot_queued_op(NULL), NULL)),
+    m_slotCorrupt(slot_corrupt_type(slot_corrupt_op(NULL), NULL)) { }
 
   iterator            find(uint32_t index);
   const_iterator      find(uint32_t index) const;
@@ -101,9 +102,14 @@ public:
   typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_queued_op;
   typedef std::binder1st<slot_queued_op>                 slot_queued_type;
 
+  typedef std::mem_fun1_t<void, DownloadMain, PeerInfo*> slot_corrupt_op;
+  typedef std::binder1st<slot_corrupt_op>                slot_corrupt_type;
+
   void                slot_canceled(slot_canceled_type s)   { m_slotCanceled = s; }
   void                slot_completed(slot_completed_type s) { m_slotCompleted = s; }
   void                slot_queued(slot_queued_type s)       { m_slotQueued = s; }
+
+  void                slot_corrupt(slot_corrupt_type s)     { m_slotCorrupt = s; }
 
 private:
   TransferList(const TransferList&);
@@ -117,6 +123,7 @@ private:
   slot_canceled_type  m_slotCanceled;
   slot_completed_type m_slotCompleted;
   slot_queued_type    m_slotQueued;
+  slot_corrupt_type   m_slotCorrupt;
 };
 
 }

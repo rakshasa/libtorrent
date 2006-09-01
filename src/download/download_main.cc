@@ -74,6 +74,7 @@ DownloadMain::DownloadMain() :
   m_delegator.transfer_list()->slot_canceled(std::bind1st(std::mem_fun(&ChunkSelector::not_using_index), m_chunkSelector));
   m_delegator.transfer_list()->slot_queued(std::bind1st(std::mem_fun(&ChunkSelector::using_index), m_chunkSelector));
   m_delegator.transfer_list()->slot_completed(std::bind1st(std::mem_fun(&DownloadMain::receive_chunk_done), this));
+  m_delegator.transfer_list()->slot_corrupt(std::bind1st(std::mem_fun(&DownloadMain::receive_corrupt_chunk), this));
 
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
 
@@ -193,9 +194,29 @@ DownloadMain::receive_chunk_done(unsigned int index) {
 }
 
 void
+DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
+  peerInfo->set_failed_counter(peerInfo->failed_counter() + 1);
+
+  // Just use some very primitive heuristics here to decide if we're
+  // going to disconnect the peer. Also, consider adding a flag so we
+  // don't recalculate these things whenever the peer reconnects.
+
+  // That is... non at all ;)
+  connection_list()->erase(peerInfo, ConnectionList::disconnect_unwanted);
+}
+
+void
 DownloadMain::receive_connect_peers() {
   if (!info()->is_active())
     return;
+
+  AvailableList::AddressList* alist = peer_list()->available_list()->buffer();
+
+  if (!alist->empty()) {
+    alist->sort();
+    peer_list()->available_list()->insert(alist);
+    alist->clear();
+  }
 
   while (!peer_list()->available_list()->empty() &&
          connection_list()->size() < connection_list()->get_min_size() &&

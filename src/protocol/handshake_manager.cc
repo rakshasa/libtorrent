@@ -121,29 +121,35 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
 }
   
 void
-HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* info) {
+HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* download) {
   if (!manager->connection_manager()->can_connect() ||
       !manager->connection_manager()->filter(sa.c_sockaddr()))
     return;
 
-  SocketFd fd;
+  PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(), PeerList::connect_keep_handshakes);
 
-  if (!fd.open_stream())
+  if (peerInfo == NULL)
     return;
 
+  SocketFd fd;
   const rak::socket_address* bindAddress = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
 
-  if (!setup_socket(fd) ||
+  if (!fd.open_stream() ||
+      !setup_socket(fd) ||
       (bindAddress->is_bindable() && !fd.bind(*bindAddress)) ||
       !fd.connect(sa)) {
-    fd.close();
+
+    if (fd.is_valid())
+      fd.close();
+
+    download->peer_list()->disconnected(peerInfo, 0);
     return;
   }
 
   manager->connection_manager()->inc_socket_count();
 
   Handshake* h = new Handshake(fd, this);
-  h->initialize_outgoing(sa, info);
+  h->initialize_outgoing(sa, download, peerInfo);
 
   Base::push_back(h);
 }
@@ -155,6 +161,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
   erase(h);
   h->clear();
+  h->peer_info()->unset_flags(PeerInfo::flag_handshake);
 
   PeerConnectionBase* pcb;
 
