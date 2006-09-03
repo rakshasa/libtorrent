@@ -71,7 +71,7 @@ TrackerContainer::clear() {
   std::for_each(begin(), end(),
 		rak::on(rak::mem_ref(&value_type::second), rak::call_delete<TrackerBase>()));
 
-  Base::clear();
+  base_type::clear();
 }
 
 TrackerContainer::iterator

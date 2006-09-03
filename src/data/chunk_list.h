@@ -51,22 +51,22 @@ class Content;
 
 class ChunkList : private std::vector<ChunkListNode> {
 public:
-  typedef uint32_t                                      size_type;
-  typedef std::pair<Chunk*,rak::error_number>           CreateChunk;
-  typedef std::vector<ChunkListNode>                    Base;
-  typedef std::vector<ChunkListNode*>                   Queue;
+  typedef uint32_t                            size_type;
+  typedef std::vector<ChunkListNode>          base_type;
+  typedef std::pair<Chunk*,rak::error_number> CreateChunk;
+  typedef std::vector<ChunkListNode*>         Queue;
 
   typedef rak::mem_fun2<Content, CreateChunk, uint32_t, bool> SlotCreateChunk;
   typedef rak::const_mem_fun0<Content, uint64_t>              SlotFreeDiskspace;
 
-  using Base::value_type;
-  using Base::reference;
-  using Base::difference_type;
+  using base_type::value_type;
+  using base_type::reference;
+  using base_type::difference_type;
 
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-  using Base::empty;
+  using base_type::iterator;
+  using base_type::reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
 
   static const int sync_all         = (1 << 0);
   static const int sync_force       = (1 << 1);
@@ -105,7 +105,7 @@ private:
   inline void         clear_chunk(ChunkListNode* node);
   inline bool         sync_chunk(ChunkListNode* node, int flags, bool cleanup);
 
-  Queue::iterator     partition_optimize(Queue::iterator first, Queue::iterator last);
+  Queue::iterator     partition_optimize(Queue::iterator first, Queue::iterator last, int weight, int maxDistance, bool dontSkip);
 
   inline Queue::iterator seek_range(Queue::iterator first, Queue::iterator last);
   inline bool            check_node(ChunkListNode* node);

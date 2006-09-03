@@ -57,7 +57,7 @@ void
 ResourceManager::insert(DownloadMain* d, uint16_t priority) {
   iterator itr = std::find_if(begin(), end(), rak::less(priority, rak::mem_ref(&value_type::first)));
 
-  Base::insert(itr, value_type(priority, d));
+  base_type::insert(itr, value_type(priority, d));
 }
 
 void
@@ -65,7 +65,7 @@ ResourceManager::erase(DownloadMain* d) {
   iterator itr = std::find_if(begin(), end(), rak::equal(d, rak::mem_ref(&value_type::second)));
 
   if (itr != end())
-    Base::erase(itr);
+    base_type::erase(itr);
 }
 
 ResourceManager::iterator
@@ -80,7 +80,7 @@ ResourceManager::set_priority(iterator itr, uint16_t pri) {
 
   DownloadMain* d = itr->second;
 
-  Base::erase(itr);
+  base_type::erase(itr);
   insert(d, pri);
 }
 

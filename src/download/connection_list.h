@@ -53,7 +53,7 @@ class SocketFd;
 
 class ConnectionList : private rak::unordered_vector<PeerConnectionBase*> {
 public:
-  typedef rak::unordered_vector<PeerConnectionBase*> Base;
+  typedef rak::unordered_vector<PeerConnectionBase*> base_type;
   typedef std::list<rak::socket_address>             AddressList;
   typedef uint32_t                                   size_type;
 
@@ -61,21 +61,21 @@ public:
 
   typedef PeerConnectionBase* (*SlotNewConnection)();
 
-  using Base::value_type;
-  using Base::reference;
-  using Base::difference_type;
+  using base_type::value_type;
+  using base_type::reference;
+  using base_type::difference_type;
 
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-  using Base::empty;
+  using base_type::iterator;
+  using base_type::reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
 
-  using Base::front;
-  using Base::back;
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
+  using base_type::front;
+  using base_type::back;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
   
   // Make sure any change here match PeerList's flags.
   static const int disconnect_available = (1 << 0);

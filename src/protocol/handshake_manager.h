@@ -54,17 +54,17 @@ class PeerConnectionBase;
 
 class HandshakeManager : private rak::unordered_vector<Handshake*> {
 public:
-  typedef rak::unordered_vector<Handshake*> Base;
+  typedef rak::unordered_vector<Handshake*> base_type;
   typedef uint32_t                          size_type;
 
   typedef rak::mem_fun1<DownloadManager, DownloadMain*, const std::string&> SlotDownloadId;
 
-  using Base::empty;
+  using base_type::empty;
 
   HandshakeManager() { }
   ~HandshakeManager() { clear(); }
 
-  size_type           size() const { return Base::size(); }
+  size_type           size() const { return base_type::size(); }
   size_type           size_info(DownloadMain* info) const;
 
   void                clear();

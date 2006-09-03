@@ -69,7 +69,7 @@ ChunkList::is_queued(ChunkListNode* node) {
 
 bool
 ChunkList::has_chunk(size_type index, int prot) const {
-  return Base::at(index).is_valid() && Base::at(index).chunk()->has_permissions(prot);
+  return base_type::at(index).is_valid() && base_type::at(index).chunk()->has_permissions(prot);
 }
 
 void
@@ -77,7 +77,7 @@ ChunkList::resize(size_type s) {
   if (!empty())
     throw internal_error("ChunkList::resize(...) called on an non-empty object.");
 
-  Base::resize(s);
+  base_type::resize(s);
 
   uint32_t index = 0;
 
@@ -104,12 +104,12 @@ ChunkList::clear() {
       std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::writable)) != end())
     throw internal_error("ChunkList::clear() called but a valid node was found.");
 
-  Base::clear();
+  base_type::clear();
 }
 
 ChunkHandle
 ChunkList::get(size_type index, bool writable) {
-  ChunkListNode* node = &Base::at(index);
+  ChunkListNode* node = &base_type::at(index);
 
   if (!node->is_valid()) {
     CreateChunk chunk = m_slotCreateChunk(index, writable);
@@ -249,7 +249,7 @@ ChunkList::sync_chunks(int flags) {
   std::sort(split, m_queue.end());
   
   if ((flags & sync_use_timeout))
-    split = partition_optimize(split, m_queue.end());
+    split = partition_optimize(split, m_queue.end(), 200, 5, false);
 
   // Add a flag for not checking diskspace.
   if (!(flags & (sync_safe | sync_sloppy)) && (m_manager->safe_sync() || m_slotFreeDiskspace() <= m_manager->safe_free_diskspace()))
@@ -300,7 +300,8 @@ ChunkList::sync_chunks(int flags) {
     }
 
 //     if (syncFlags == MemoryChunk::sync_sync)
-//       throw internal_error("Bork Bork Sync");
+//       // throw internal_error("Bork Bork Sync");
+//       return 0;
 
     if (!sync_chunk(*itr, syncFlags, syncCleanup)) {
       failed++;
@@ -348,17 +349,14 @@ ChunkList::check_node(ChunkListNode* node) {
 // available it skips syncing of all chunks.
 
 ChunkList::Queue::iterator
-ChunkList::partition_optimize(Queue::iterator first, Queue::iterator last) {
-  unsigned int required = 0;
-  unsigned int weight = 0;
-
+ChunkList::partition_optimize(Queue::iterator first, Queue::iterator last, int weight, int maxDistance, bool dontSkip) {
   for (Queue::iterator itr = first; itr != last;) {
     Queue::iterator range = seek_range(itr, last);
 
-    unsigned int requiredRange = std::count_if(itr, range, std::bind1st(std::mem_fun(&ChunkList::check_node), this));
-    required += requiredRange;
+    bool required = std::find_if(itr, range, std::bind1st(std::mem_fun(&ChunkList::check_node), this)) != range;
+    dontSkip = dontSkip || required;
 
-    if (requiredRange == 0 && std::distance(itr, range) < 5) {
+    if (!required && std::distance(itr, range) < maxDistance) {
       // Don't sync this range.
       unsigned int l = std::min(range - itr, itr - first);
       std::swap_ranges(first, first + l, range - l);
@@ -367,14 +365,14 @@ ChunkList::partition_optimize(Queue::iterator first, Queue::iterator last) {
 
     } else {
       // This probably increases too fast.
-      weight += std::distance(itr, range) * std::distance(itr, range);
+      weight -= std::distance(itr, range) * std::distance(itr, range);
     }
 
     itr = range;
   }
 
   // These values are all arbritrary...
-  if (required == 0 && weight < 200)
+  if (!dontSkip && weight > 0)
     return last;
 
   return first;

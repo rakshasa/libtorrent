@@ -188,7 +188,7 @@ ThrottleList::node_deactivate(ThrottleNode* node) {
                          "ThrottleList::node_deactivate(...) called on an inactive node." :
                          "ThrottleList::node_deactivate(...) could not find node.");
 
-  Base::splice(end(), *this, node->list_iterator());
+  base_type::splice(end(), *this, node->list_iterator());
 
   if (m_splitActive == end())
     m_splitActive = node->list_iterator();
@@ -201,13 +201,13 @@ ThrottleList::insert(ThrottleNode* node) {
 
   if (!m_enabled) {
     // Add to waiting queue.
-    node->set_list_iterator(Base::insert(end(), node));
+    node->set_list_iterator(base_type::insert(end(), node));
     node->clear_quota();
 
   } else {
     // Add before the active split, so if we only need to decrement
     // m_splitActive to change the queue it is in.
-    node->set_list_iterator(Base::insert(m_splitActive, node));
+    node->set_list_iterator(base_type::insert(m_splitActive, node));
     allocate_quota(node);
   }
 
@@ -232,9 +232,9 @@ ThrottleList::erase(ThrottleNode* node) {
   }
 
   if (node->list_iterator() == m_splitActive)
-    m_splitActive = Base::erase(node->list_iterator());
+    m_splitActive = base_type::erase(node->list_iterator());
   else
-    Base::erase(node->list_iterator());
+    base_type::erase(node->list_iterator());
 
   node->clear_quota();
   node->set_list_iterator(end());

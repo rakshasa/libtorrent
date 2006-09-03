@@ -12,6 +12,9 @@ New FileList and friends.
 Convert stuff to use off_t for byte sizes? Though what about when it
 is only 32 bit?
 
+Fix the exceptions so they can be used for the new error codes, and
+doesn't require std::string for all.
+
 
 === torrent::Object ==
 

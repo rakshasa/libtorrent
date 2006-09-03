@@ -52,21 +52,21 @@ class TrackerBase;
 
 class TrackerContainer : private std::vector<std::pair<int, TrackerBase*> > {
 public:
-  typedef std::vector<std::pair<int, TrackerBase*> > Base;
+  typedef std::vector<std::pair<int, TrackerBase*> > base_type;
 
-  using Base::value_type;
+  using base_type::value_type;
 
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-  using Base::empty;
+  using base_type::iterator;
+  using base_type::reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
 
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
-  using Base::operator[];
+  using base_type::operator[];
 
   ~TrackerContainer() { clear(); }
 
@@ -89,7 +89,7 @@ public:
 
 inline TrackerContainer::iterator
 TrackerContainer::insert(int group, TrackerBase* t) {
-  return Base::insert(end_group(group), value_type(group, t));
+  return base_type::insert(end_group(group), value_type(group, t));
 }
 
 }

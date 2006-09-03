@@ -100,7 +100,7 @@ HashQueue::push_back(ChunkHandle handle, SlotDone d) {
     priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1);
   }
 
-  Base::push_back(HashQueueNode(hc, d));
+  base_type::push_back(HashQueueNode(hc, d));
   willneed(m_readAhead);
 }
 
@@ -136,7 +136,7 @@ HashQueue::clear() {
 
   // Replace with a dtor check to ensure it is empty?
 //   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
-//   Base::clear();
+//   base_type::clear();
 //   priority_queue_erase(&taskScheduler, &m_taskWork);
 }
 
@@ -156,15 +156,15 @@ HashQueue::work() {
 
 bool
 HashQueue::check(bool force) {
-  if (!Base::front().perform(force)) {
+  if (!base_type::front().perform(force)) {
     willneed(m_readAhead);
     return false;
   }
 
-  HashChunk* chunk                 = Base::front().get_chunk();
-  HashQueueNode::SlotDone slotDone = Base::front().slot_done();
+  HashChunk* chunk                 = base_type::front().get_chunk();
+  HashQueueNode::SlotDone slotDone = base_type::front().slot_done();
 
-  Base::pop_front();
+  base_type::pop_front();
 
   char buffer[20];
   chunk->hash_c(buffer);

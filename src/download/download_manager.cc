@@ -50,7 +50,7 @@ DownloadManager::insert(DownloadWrapper* d) {
   if (find(d->info()->hash()) != end())
     throw input_error("Could not add torrent as it already exists");
 
-  return Base::insert(end(), d);
+  return base_type::insert(end(), d);
 }
 
 DownloadManager::iterator
@@ -61,14 +61,14 @@ DownloadManager::erase(DownloadWrapper* d) {
     throw client_error("Tried to remove a torrent that doesn't exist");
     
   delete *itr;
-  return Base::erase(itr);
+  return base_type::erase(itr);
 }
 
 void
 DownloadManager::clear() {
   while (!empty()) {
-    delete Base::front();
-    Base::pop_front();
+    delete base_type::front();
+    base_type::pop_front();
   }
 }
 

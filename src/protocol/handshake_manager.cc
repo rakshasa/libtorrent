@@ -65,23 +65,23 @@ HandshakeManager::delete_handshake(Handshake* h) {
 
 HandshakeManager::size_type
 HandshakeManager::size_info(DownloadMain* info) const {
-  return std::count_if(Base::begin(), Base::end(), rak::equal(info, std::mem_fun(&Handshake::download)));
+  return std::count_if(base_type::begin(), base_type::end(), rak::equal(info, std::mem_fun(&Handshake::download)));
 }
 
 void
 HandshakeManager::clear() {
-  std::for_each(Base::begin(), Base::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
-  Base::clear();
+  std::for_each(base_type::begin(), base_type::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
+  base_type::clear();
 }
 
 void
 HandshakeManager::erase(Handshake* handshake) {
-  iterator itr = std::find(Base::begin(), Base::end(), handshake);
+  iterator itr = std::find(base_type::begin(), base_type::end(), handshake);
 
-  if (itr == Base::end())
+  if (itr == base_type::end())
     throw internal_error("HandshakeManager::erase(...) could not find handshake.");
 
-  Base::erase(itr);
+  base_type::erase(itr);
 }
 
 struct handshake_manager_equal : std::binary_function<const rak::socket_address*, const Handshake*, bool> {
@@ -92,15 +92,15 @@ struct handshake_manager_equal : std::binary_function<const rak::socket_address*
 
 bool
 HandshakeManager::find(const rak::socket_address& sa) {
-  return std::find_if(Base::begin(), Base::end(), std::bind1st(handshake_manager_equal(), &sa)) != Base::end();
+  return std::find_if(base_type::begin(), base_type::end(), std::bind1st(handshake_manager_equal(), &sa)) != base_type::end();
 }
 
 void
 HandshakeManager::erase_download(DownloadMain* info) {
-  iterator split = std::partition(Base::begin(), Base::end(), rak::not_equal(info, std::mem_fun(&Handshake::download)));
+  iterator split = std::partition(base_type::begin(), base_type::end(), rak::not_equal(info, std::mem_fun(&Handshake::download)));
 
-  std::for_each(split, Base::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
-  Base::erase(split, Base::end());
+  std::for_each(split, base_type::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
+  base_type::erase(split, base_type::end());
 }
 
 void
@@ -117,7 +117,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   Handshake* h = new Handshake(fd, this);
   h->initialize_incoming(sa);
 
-  Base::push_back(h);
+  base_type::push_back(h);
 }
   
 void
@@ -151,7 +151,7 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* down
   Handshake* h = new Handshake(fd, this);
   h->initialize_outgoing(sa, download, peerInfo);
 
-  Base::push_back(h);
+  base_type::push_back(h);
 }
 
 void

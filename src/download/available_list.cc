@@ -65,7 +65,7 @@ AvailableList::push_back(const rak::socket_address* sa) {
   if (std::find(begin(), end(), *sa) != end())
     return;
 
-  Base::push_back(*sa);
+  base_type::push_back(*sa);
 }
 
 void
@@ -83,7 +83,7 @@ AvailableList::insert(AddressList* l) {
   AddressList difference;
   std::set_difference(l->begin(), l->end(), begin(), end(), std::back_inserter(difference));
 
-  std::copy(difference.begin(), difference.end(), std::back_inserter(*static_cast<Base*>(this)));
+  std::copy(difference.begin(), difference.end(), std::back_inserter(*static_cast<base_type*>(this)));
 }
 
 void

@@ -51,7 +51,7 @@ namespace torrent {
 void
 ConnectionList::clear() {
   std::for_each(begin(), end(), rak::call_delete<PeerConnectionBase>());
-  Base::clear();
+  base_type::clear();
 }
 
 PeerConnectionBase*
@@ -66,7 +66,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
 
   peerConnection->initialize(m_download, peerInfo, fd, bitfield);
 
-  Base::push_back(peerConnection);
+  base_type::push_back(peerConnection);
   m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 
   m_slotConnected(peerConnection);
@@ -84,7 +84,7 @@ ConnectionList::erase(iterator pos, int flags) {
   // The connection must be erased from the list before the signal is
   // emited otherwise some listeners might do stuff with the
   // assumption that the connection will remain in the list.
-  pos = Base::erase(pos);
+  pos = base_type::erase(pos);
   m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 
   m_slotDisconnected(peerConnection);

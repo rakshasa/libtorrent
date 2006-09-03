@@ -47,27 +47,27 @@ class DownloadMain;
 
 class DownloadManager : private std::list<DownloadWrapper*>{
 public:
-  typedef std::list<DownloadWrapper*> Base;
+  typedef std::list<DownloadWrapper*> base_type;
 
-  typedef Base::value_type value_type;
-  typedef Base::pointer pointer;
-  typedef Base::const_pointer const_pointer;
-  typedef Base::reference reference;
-  typedef Base::const_reference const_reference;
-  typedef Base::size_type size_type;
+  typedef base_type::value_type value_type;
+  typedef base_type::pointer pointer;
+  typedef base_type::const_pointer const_pointer;
+  typedef base_type::reference reference;
+  typedef base_type::const_reference const_reference;
+  typedef base_type::size_type size_type;
 
-  typedef Base::iterator iterator;
-  typedef Base::reverse_iterator reverse_iterator;
-  typedef Base::const_iterator const_iterator;
-  typedef Base::const_reverse_iterator const_reverse_iterator;
+  typedef base_type::iterator iterator;
+  typedef base_type::reverse_iterator reverse_iterator;
+  typedef base_type::const_iterator const_iterator;
+  typedef base_type::const_reverse_iterator const_reverse_iterator;
 
-  using Base::empty;
-  using Base::size;
+  using base_type::empty;
+  using base_type::size;
 
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
   ~DownloadManager() { clear(); }
 

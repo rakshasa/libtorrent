@@ -47,19 +47,19 @@ class FileMeta;
 
 class FileManager : private rak::unordered_vector<FileMeta*> {
 public:
-  typedef rak::unordered_vector<FileMeta*> Base;
+  typedef rak::unordered_vector<FileMeta*> base_type;
 
-  using Base::value_type;
+  using base_type::value_type;
 
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-  using Base::empty;
+  using base_type::iterator;
+  using base_type::reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
 
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
   FileManager() : m_openSize(0), m_maxSize(0) {}
   ~FileManager();

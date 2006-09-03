@@ -113,8 +113,8 @@ ChunkManager::erase(ChunkList* chunkList) {
 
 bool
 ChunkManager::allocate(uint32_t size) {
-  if (m_memoryUsage + size > m_maxMemoryUsage)
-    try_free_memory(size);
+  if (m_memoryUsage + size > (3 * m_maxMemoryUsage) / 4)
+    try_free_memory((1 * m_maxMemoryUsage) / 4);
 
   if (m_memoryUsage + size > m_maxMemoryUsage)
     return false;
@@ -140,32 +140,31 @@ ChunkManager::try_free_memory(uint64_t size) {
   // Note that it won't be able to free chunks that are scheduled for
   // hash checking, so a too low max memory setting will give problem
   // at high transfer speed.
-  if (rak::timer(m_timerStarved) + rak::timer::from_seconds(30) >= cachedTime)
+  if (empty() || m_timerStarved + 10 >= cachedTime.seconds())
     return;
 
   uint64_t target = size <= m_memoryUsage ? (m_memoryUsage - size) : 0;
 
-  m_lastFreed = std::min<size_type>(m_lastFreed + 1, base_type::size());
+  // The caller must ensure he tries to free a sufficiently large
+  // amount of memory to ensure it, and other users, has enough memory
+  // space for at least 10 seconds.
+  m_timerStarved = cachedTime.seconds();
 
-  for (iterator itr = begin() + m_lastFreed, last = base_type::end(); itr != last; ++itr) {
+  // Start from the next entry so that we don't end up repeatedly
+  // syncing the same torrent.
+  m_lastFreed = m_lastFreed % base_type::size() + 1;
+
+  iterator itr = base_type::begin() + m_lastFreed;
+
+  do {
+    if (itr == base_type::end())
+      itr = base_type::begin();
+    
     (*itr)->sync_chunks(0);
 
-    if (m_memoryUsage <= target) {
-      m_lastFreed = itr - begin();
-      return;
-    }
-  }
+  } while (++itr != base_type::begin() + m_lastFreed && m_memoryUsage <= target);
 
-  for (iterator itr = begin(), last = base_type::begin() + m_lastFreed; itr != last; ++itr) {
-    (*itr)->sync_chunks(0);
-
-    if (m_memoryUsage <= target) {
-      m_lastFreed = itr - begin();
-      return;
-    }
-  }
-
-  m_timerStarved = cachedTime.usec();
+  m_lastFreed = itr - begin();
 }
 
 }

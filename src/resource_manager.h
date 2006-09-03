@@ -51,11 +51,11 @@ class DownloadMain;
 
 class ResourceManager : public std::vector<std::pair<uint16_t, DownloadMain*> > {
 public:
-  typedef std::vector<std::pair<uint16_t, DownloadMain*> > Base;
-  typedef Base::value_type                                 value_type;
+  typedef std::vector<std::pair<uint16_t, DownloadMain*> > base_type;
+  typedef base_type::value_type                            value_type;
 
-  using Base::begin;
-  using Base::end;
+  using base_type::begin;
+  using base_type::end;
 
   ResourceManager() :
     m_currentlyUnchoked(0),

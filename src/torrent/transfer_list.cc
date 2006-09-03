@@ -183,7 +183,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
       itr->set_failed_list(new BlockFailed());
 
     BlockFailed::iterator failedItr = std::find_if(itr->failed_list()->begin(), itr->failed_list()->end(),
-                                                               transfer_list_compare_data(chunk, itr->piece()));
+                                                   transfer_list_compare_data(chunk, itr->piece()));
 
     if (failedItr == itr->failed_list()->end()) {
       // We've never encountered this data before, make a new entry.

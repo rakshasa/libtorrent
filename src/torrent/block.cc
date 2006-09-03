@@ -91,6 +91,7 @@ Block::insert(PeerInfo* peerInfo) {
   (*itr)->set_state(BlockTransfer::STATE_QUEUED);
   (*itr)->set_position(0);
   (*itr)->set_stall(0);
+  (*itr)->set_failed_index(BlockFailed::invalid_index);
 
   return (*itr);
 }

@@ -57,15 +57,15 @@ class HashChunk;
 
 class HashQueue : private std::list<HashQueueNode> {
 public:
-  typedef std::list<HashQueueNode> Base;
+  typedef std::list<HashQueueNode> base_type;
   typedef HashQueueNode::SlotDone  SlotDone;
 
-  using Base::iterator;
+  using base_type::iterator;
 
-  using Base::empty;
+  using base_type::empty;
 
-  using Base::begin;
-  using Base::end;
+  using base_type::begin;
+  using base_type::end;
 
   HashQueue();
   ~HashQueue() { clear(); }

@@ -345,7 +345,7 @@ AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
     [
       AC_CHECK_SIZEOF(long)
 
-      if test "$ac_cv_sizeof_long" = "4"; then
+      if test $ac_cv_sizeof_long = 8; then
         AC_DEFINE(DEFAULT_ADDRESS_SPACE_SIZE, 4096, Default address space size.)
       else
         AC_DEFINE(DEFAULT_ADDRESS_SPACE_SIZE, 1024, Default address space size.)

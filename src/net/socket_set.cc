@@ -47,8 +47,8 @@ const SocketSet::size_type SocketSet::npos;
 
 inline void
 SocketSet::_replace_with_last(size_type idx) {
-  while (!Base::empty() && Base::back() == NULL)
-    Base::pop_back();
+  while (!base_type::empty() && base_type::back() == NULL)
+    base_type::pop_back();
 
   if (idx >= m_table.size())
     throw internal_error("SocketSet::_replace_with_last(...) input out-of-bounds");
@@ -58,10 +58,10 @@ SocketSet::_replace_with_last(size_type idx) {
   if (idx >= size())
     return;
 
-  *(begin() + idx) = Base::back();
-  _index(Base::back()) = idx;
+  *(begin() + idx) = base_type::back();
+  _index(base_type::back()) = idx;
 
-  Base::pop_back();
+  base_type::pop_back();
 }
 
 void

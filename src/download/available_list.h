@@ -46,27 +46,27 @@ namespace torrent {
 
 class AvailableList : private std::vector<rak::socket_address> {
 public:
-  typedef std::vector<rak::socket_address> Base;
+  typedef std::vector<rak::socket_address> base_type;
   typedef std::list<rak::socket_address>   AddressList;
   typedef uint32_t                         size_type;
 
-  using Base::value_type;
-  using Base::reference;
-  using Base::const_reference;
+  using base_type::value_type;
+  using base_type::reference;
+  using base_type::const_reference;
 
-  using Base::iterator;
-  using Base::const_iterator;
-  using Base::reverse_iterator;
-  using Base::size;
-  using Base::empty;
-  using Base::clear;
+  using base_type::iterator;
+  using base_type::const_iterator;
+  using base_type::reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
+  using base_type::clear;
 
-  using Base::back;
-  using Base::pop_back;
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
+  using base_type::back;
+  using base_type::pop_back;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
   AvailableList() : m_maxSize(1000) {}
 
@@ -83,7 +83,7 @@ public:
   void                insert(AddressList* l);
   void                erase(const rak::socket_address& sa);
   void                erase(iterator itr)                 { *itr = back(); pop_back(); }
-
+  
   // A place to temporarily put addresses before re-adding them to the
   // AvailableList.
   AddressList*        buffer()                            { return &m_buffer; }

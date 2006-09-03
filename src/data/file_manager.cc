@@ -54,7 +54,7 @@ FileManager::~FileManager() {
 void
 FileManager::insert(FileMeta* f) {
   f->slot_prepare(rak::make_mem_fun(this, &FileManager::prepare_file));
-  Base::push_back(f);
+  base_type::push_back(f);
 }
 
 void
@@ -67,7 +67,7 @@ FileManager::erase(FileMeta* f) {
   if (f->is_open())
     close_file(f);
 
-  Base::erase(itr);
+  base_type::erase(itr);
   f->slot_prepare(FileMeta::slot_prepare_type());
 }
 

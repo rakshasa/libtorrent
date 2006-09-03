@@ -53,6 +53,9 @@ public:
 
   typedef base_type::iterator     iterator;
 
+  using base_type::size;
+  using base_type::empty;
+
   ChunkManager();
   ~ChunkManager();
   
@@ -113,7 +116,7 @@ private:
   uint32_t            m_timeoutSync;
   uint32_t            m_timeoutSafeSync;
 
-  int64_t             m_timerStarved;
+  int32_t             m_timerStarved;
   size_type           m_lastFreed;
 };
 

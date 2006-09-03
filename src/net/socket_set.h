@@ -55,22 +55,22 @@ namespace torrent {
 class SocketSet : private std::vector<Event*> {
 public:
   typedef uint32_t               size_type;
-  typedef std::vector<Event*>    Base;
+  typedef std::vector<Event*>    base_type;
   typedef std::vector<size_type> Table;
 
   static const size_type npos = static_cast<size_type>(-1);
 
-  using Base::value_type;
+  using base_type::value_type;
 
-  using Base::iterator;
-  using Base::reverse_iterator;
-  using Base::empty;
-  using Base::size;
+  using base_type::iterator;
+  using base_type::reverse_iterator;
+  using base_type::empty;
+  using base_type::size;
 
-  using Base::begin;
-  using Base::end;
-  using Base::rbegin;
-  using Base::rend;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
   bool                has(Event* s) const                    { return _index(s) != npos; }
 
@@ -81,7 +81,7 @@ public:
   // Remove all erased elements from the container.
   void                prepare();
   // Allocate storage for fd's with up to 'openMax' value. TODO: Remove reserve
-  void                reserve(size_t openMax)                { m_table.resize(openMax, npos); Base::reserve(openMax); }
+  void                reserve(size_t openMax)                { m_table.resize(openMax, npos); base_type::reserve(openMax); }
 
   size_t              max_size() const                       { return m_table.size(); }
 
@@ -113,7 +113,7 @@ SocketSet::insert(Event* s) {
     return;
 
   _index(s) = size();
-  Base::push_back(s);
+  base_type::push_back(s);
 }
 
 inline void
