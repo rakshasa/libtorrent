@@ -264,8 +264,8 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   // Trigger culling of PeerInfo's every hour. This should be called
   // before the is_open check to ensure that stopped torrents reduce
   // their memory usage.
-//   if (ticks % 120 == 0)
-  if (ticks % 1 == 0)
+  if (ticks % 120 == 0)
+//   if (ticks % 1 == 0)
     m_main.peer_list()->cull_peers(PeerList::cull_old || PeerList::cull_keep_interesting);
 
   if (!info()->is_open())
@@ -282,17 +282,17 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
   m_main.receive_connect_peers();
 
-  unsigned int syncFailed = m_main.chunk_list()->sync_chunks(ChunkList::sync_use_timeout);
+//   unsigned int syncFailed = m_main.chunk_list()->sync_chunks(ChunkList::sync_use_timeout);
 
-  if (info()->is_active() && syncFailed != 0) {
-    // Need to move this stuff into a seperate function.
-    m_main.stop();
+//   if (info()->is_active() && syncFailed != 0) {
+//     // Need to move this stuff into a seperate function.
+//     m_main.stop();
 
-    m_connectionChunkPassed.disconnect();
-    m_connectionChunkFailed.disconnect();
+//     m_connectionChunkPassed.disconnect();
+//     m_connectionChunkFailed.disconnect();
 
-    info()->signal_storage_error().emit("Could not sync data to disk, possibly full.");
-  }
+//     info()->signal_storage_error().emit("Could not sync data to disk, possibly full.");
+//   }
 }
 
 void

@@ -140,15 +140,26 @@ ChunkManager::try_free_memory(uint64_t size) {
   // Note that it won't be able to free chunks that are scheduled for
   // hash checking, so a too low max memory setting will give problem
   // at high transfer speed.
-  if (empty() || m_timerStarved + 10 >= cachedTime.seconds())
+  if (m_timerStarved + 10 >= cachedTime.seconds())
     return;
 
-  uint64_t target = size <= m_memoryUsage ? (m_memoryUsage - size) : 0;
+  sync_all(0, size <= m_memoryUsage ? (m_memoryUsage - size) : 0);
 
   // The caller must ensure he tries to free a sufficiently large
   // amount of memory to ensure it, and other users, has enough memory
   // space for at least 10 seconds.
   m_timerStarved = cachedTime.seconds();
+}
+
+void
+ChunkManager::periodic_sync() {
+  sync_all(ChunkList::sync_use_timeout, 0);
+}
+
+void
+ChunkManager::sync_all(int flags, uint64_t target) {
+  if (empty())
+    return;
 
   // Start from the next entry so that we don't end up repeatedly
   // syncing the same torrent.
@@ -160,9 +171,9 @@ ChunkManager::try_free_memory(uint64_t size) {
     if (itr == base_type::end())
       itr = base_type::begin();
     
-    (*itr)->sync_chunks(0);
+    (*itr)->sync_chunks(flags);
 
-  } while (++itr != base_type::begin() + m_lastFreed && m_memoryUsage <= target);
+  } while (++itr != base_type::begin() + m_lastFreed && m_memoryUsage >= target);
 
   m_lastFreed = itr - begin();
 }

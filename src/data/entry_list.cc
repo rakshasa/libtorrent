@@ -40,13 +40,13 @@
 #include <functional>
 #include <memory>
 #include <rak/error_number.h>
+#include <rak/file_stat.h>
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/path.h"
 
 #include "chunk.h"
-#include "directory.h"
 #include "file_meta.h"
 #include "entry_list.h"
 #include "memory_chunk.h"
@@ -89,12 +89,15 @@ EntryList::open() {
   if (m_rootDir.empty())
     throw internal_error("EntryList::open() m_rootDir.empty().");
 
+  m_indirectLinks.push_back(m_rootDir);
+
   Path lastPath;
   iterator itr = begin();
 
   try {
-    make_directory(m_rootDir);
-
+    if (::mkdir(m_rootDir.c_str(), 0777) && errno != EEXIST)
+      throw storage_error("Could not create directory '" + m_rootDir + "': " + strerror(errno));
+  
     while (itr != end()) {
       EntryListNode* entry = *itr++;
 
@@ -134,6 +137,7 @@ EntryList::close() {
   }
 
   m_isOpen = false;
+  m_indirectLinks.clear();
 }
 
 void
@@ -171,13 +175,57 @@ EntryList::at_position(iterator itr, off_t offset) {
   return itr;
 }
 
+inline void
+EntryList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) {
+  std::string path = m_rootDir;
+
+  while (pathBegin != pathEnd) {
+    path += "/" + *pathBegin;
+
+    if (pathBegin++ != startItr)
+      continue;
+
+    startItr++;
+
+    rak::file_stat fileStat;
+
+    if (!fileStat.update(path))
+      throw storage_error("Could not call fstat on: " + path);
+
+    // Remove this:
+//     if (fileStat.is_link())
+//       throw storage_error("Could not call fstat on a symlink: " + path);
+
+    if (fileStat.is_link() &&
+        std::find(m_indirectLinks.begin(), m_indirectLinks.end(), path) == m_indirectLinks.end())
+      m_indirectLinks.push_back(path);
+
+    if (::mkdir(path.c_str(), 0777) && errno != EEXIST)
+      throw storage_error("Could not create directory '" + path + "': " + strerror(errno));
+  }
+}
+
 bool
 EntryList::open_file(EntryListNode* node, const Path& lastPath) {
-  make_directory(m_rootDir, node->path()->begin(), --node->path()->end(), lastPath.begin(), lastPath.end());
+  const Path* path = node->path();
+
+  Path::const_iterator lastItr = lastPath.begin();
+  Path::const_iterator firstMismatch = path->begin();
+
+  // Couldn't find a suitable stl algo, need to write my own.
+  while (firstMismatch != path->end() && lastItr != lastPath.end() && *firstMismatch == *lastItr) {
+    lastItr++;
+    firstMismatch++;
+  }
+
+  make_directory(path->begin(), --path->end(), firstMismatch);
+
+  if (m_indirectLinks.size() != 1)
+    throw internal_error("Bork bork.");
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
-  if (node->path()->back().empty())
+  if (path->back().empty())
     return node->size() == 0;
 
   return

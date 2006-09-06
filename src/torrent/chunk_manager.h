@@ -102,10 +102,14 @@ public:
   void                deallocate(uint32_t size);
 
   void                try_free_memory(uint64_t size);
+  
+  void                periodic_sync();
 
 private:
   ChunkManager(const ChunkManager&);
   void operator = (const ChunkManager&);
+
+  void                sync_all(int flags, uint64_t target);
 
   bool                m_autoMemory;
 

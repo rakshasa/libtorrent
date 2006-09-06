@@ -248,12 +248,16 @@ ChunkList::sync_chunks(int flags) {
 
   std::sort(split, m_queue.end());
   
-  if ((flags & sync_use_timeout))
-    split = partition_optimize(split, m_queue.end(), 200, 5, false);
+  // If we got enough diskspace and have not requested safe syncing,
+  // then sync all chunks with MS_ASYNC.
+  if (!(flags & (sync_safe | sync_sloppy)))
+    if (m_manager->safe_sync() || m_slotFreeDiskspace() <= m_manager->safe_free_diskspace())
+      flags |= sync_safe;
+    else
+      flags |= sync_force;
 
-  // Add a flag for not checking diskspace.
-  if (!(flags & (sync_safe | sync_sloppy)) && (m_manager->safe_sync() || m_slotFreeDiskspace() <= m_manager->safe_free_diskspace()))
-    flags |= sync_safe;
+  if ((flags & sync_use_timeout) && !(flags & sync_force))
+    split = partition_optimize(split, m_queue.end(), 50, 5, false);
 
   uint32_t failed = 0;
 
@@ -328,7 +332,7 @@ ChunkList::seek_range(Queue::iterator first, Queue::iterator last) {
   uint32_t prevIndex = (*first)->index();
 
   while (++first != last) {
-    if ((*first)->index() - prevIndex > 3)
+    if ((*first)->index() - prevIndex > 5)
       break;
 
     prevIndex = (*first)->index();

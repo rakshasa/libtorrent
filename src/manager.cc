@@ -142,6 +142,7 @@ Manager::receive_tick() {
   m_ticks++;
 
   m_resourceManager->receive_tick();
+  m_chunkManager->periodic_sync();
 
   std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::bind2nd(std::mem_fun(&DownloadWrapper::receive_tick), m_ticks));
 

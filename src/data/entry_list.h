@@ -52,6 +52,7 @@ class MemoryChunk;
 class EntryList : private std::vector<EntryListNode*> {
 public:
   typedef std::vector<EntryListNode*>                 base_type;
+  typedef std::vector<std::string>                    path_list;
   typedef rak::mem_fun1<FileManager, void, FileMeta*> slot_meta_type;
 
   using base_type::value_type;
@@ -97,11 +98,15 @@ public:
 
   iterator            at_position(iterator itr, off_t offset);
 
+  path_list*          indirect_links()                           { return &m_indirectLinks; }
+
   void                slot_insert_filemeta(slot_meta_type s)     { m_slotInsertFileMeta = s; }
   void                slot_erase_filemeta(slot_meta_type s)      { m_slotEraseFileMeta = s; }
 
 private:
   bool                open_file(EntryListNode* node, const Path& lastPath);
+
+  inline void         make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr);
 
   inline MemoryChunk  create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot);
 
@@ -109,6 +114,8 @@ private:
   std::string         m_rootDir;
 
   bool                m_isOpen;
+
+  path_list           m_indirectLinks;
 
   slot_meta_type      m_slotInsertFileMeta;
   slot_meta_type      m_slotEraseFileMeta;
