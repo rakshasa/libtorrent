@@ -79,7 +79,7 @@ DownloadMain::DownloadMain() :
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
 
   m_chunkList->slot_create_chunk(rak::make_mem_fun(&m_content, &Content::create_chunk));
-  m_chunkList->slot_free_diskspace(rak::make_mem_fun(&m_content, &Content::free_diskspace));
+  m_chunkList->slot_free_diskspace(rak::make_mem_fun(m_content.entry_list(), &EntryList::free_diskspace));
 }
 
 DownloadMain::~DownloadMain() {

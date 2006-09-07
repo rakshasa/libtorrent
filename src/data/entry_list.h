@@ -92,6 +92,10 @@ public:
   size_t              files_size() const                         { return base_type::size(); }
   off_t               bytes_size() const                         { return m_bytesSize; }
 
+  // If the files span multiple disks, the one with the least amount
+  // of free diskspace will be returned.
+  uint64_t            free_diskspace() const;
+
   EntryListNode*      get_node(uint32_t idx)                     { return base_type::operator[](idx); }
 
   Chunk*              create_chunk(off_t offset, uint32_t length, int prot);

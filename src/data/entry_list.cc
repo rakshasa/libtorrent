@@ -41,6 +41,7 @@
 #include <memory>
 #include <rak/error_number.h>
 #include <rak/file_stat.h>
+#include <rak/fs_stat.h>
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
@@ -189,16 +190,13 @@ EntryList::make_directory(Path::const_iterator pathBegin, Path::const_iterator p
 
     rak::file_stat fileStat;
 
-    if (!fileStat.update(path))
-      throw storage_error("Could not call fstat on: " + path);
-
-    // Remove this:
-//     if (fileStat.is_link())
-//       throw storage_error("Could not call fstat on a symlink: " + path);
-
-    if (fileStat.is_link() &&
+    if (fileStat.update_link(path) &&
+        fileStat.is_link() &&
         std::find(m_indirectLinks.begin(), m_indirectLinks.end(), path) == m_indirectLinks.end())
       m_indirectLinks.push_back(path);
+
+    if (pathBegin + 1 != pathEnd)
+      continue;
 
     if (::mkdir(path.c_str(), 0777) && errno != EEXIST)
       throw storage_error("Could not create directory '" + path + "': " + strerror(errno));
@@ -218,10 +216,7 @@ EntryList::open_file(EntryListNode* node, const Path& lastPath) {
     firstMismatch++;
   }
 
-  make_directory(path->begin(), --path->end(), firstMismatch);
-
-  if (m_indirectLinks.size() != 1)
-    throw internal_error("Bork bork.");
+  make_directory(path->begin(), path->end(), firstMismatch);
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
@@ -231,6 +226,24 @@ EntryList::open_file(EntryListNode* node, const Path& lastPath) {
   return
     node->file_meta()->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, SocketFile::o_create) ||
     node->file_meta()->prepare(MemoryChunk::prot_read, SocketFile::o_create);
+}
+
+// This function should really ensure that we arn't dealing files
+// spread over multiple mount-points.
+uint64_t
+EntryList::free_diskspace() const {
+  uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
+
+  for (path_list::const_iterator itr = m_indirectLinks.begin(), last = m_indirectLinks.end(); itr != last; ++itr) {
+    rak::fs_stat stat;
+
+    if (!stat.update(*itr))
+      return 0;
+
+    freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
+  }
+
+  return freeDiskspace;
 }
 
 inline MemoryChunk

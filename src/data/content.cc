@@ -39,7 +39,6 @@
 #include <memory>
 #include <sstream>
 #include <rak/file_stat.h>
-#include <rak/fs_stat.h>
 
 #include "torrent/exceptions.h"
 #include "content.h"
@@ -117,18 +116,6 @@ Content::chunk_index_size(uint32_t index) const {
     return m_chunkSize;
   else
     return m_entryList->bytes_size() % m_chunkSize;
-}
-
-// This function should really ensure that we arn't dealing files
-// spread over multiple mount-points.
-uint64_t
-Content::free_diskspace() const {
-  rak::fs_stat stat;
-
-  if (!stat.update(m_entryList->root_dir()))
-    return 0;
-
-  return stat.bytes_avail();
 }
 
 uint64_t

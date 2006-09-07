@@ -48,6 +48,7 @@ namespace torrent {
 
 class ChunkManager;
 class Content;
+class EntryList;
 
 class ChunkList : private std::vector<ChunkListNode> {
 public:
@@ -57,7 +58,7 @@ public:
   typedef std::vector<ChunkListNode*>         Queue;
 
   typedef rak::mem_fun2<Content, CreateChunk, uint32_t, bool> SlotCreateChunk;
-  typedef rak::const_mem_fun0<Content, uint64_t>              SlotFreeDiskspace;
+  typedef rak::const_mem_fun0<EntryList, uint64_t>            SlotFreeDiskspace;
 
   using base_type::value_type;
   using base_type::reference;

@@ -288,7 +288,7 @@ Download::bytes_total() const {
 
 uint64_t
 Download::free_diskspace() const {
-  return m_ptr->main()->content()->free_diskspace();
+  return m_ptr->main()->content()->entry_list()->free_diskspace();
 }
 
 uint32_t
