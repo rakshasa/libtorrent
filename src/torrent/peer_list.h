@@ -53,7 +53,6 @@ class PeerInfo;
 class socket_address_key {
 public:
   socket_address_key(const sockaddr* sa) : m_sockaddr(sa) {}
-  socket_address_key(const sockaddr& sa) : m_sockaddr(&sa) {}
 
   bool operator < (const socket_address_key& sa) const;
 

@@ -218,9 +218,10 @@ PeerList::cull_peers(int flags) {
     }
 
     iterator tmp = itr++;
+    PeerInfo* peerInfo = tmp->second;
 
-    delete tmp->second;
     base_type::erase(tmp);
+    delete peerInfo;
 
     counter++;
   }

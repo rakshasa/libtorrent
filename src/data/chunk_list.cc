@@ -320,7 +320,7 @@ ChunkList::sync_chunks(int flags) {
   // The caller must either make sure that it is safe to close the
   // download or set the sync_ignore_error flag.
   if (failed && !(flags & sync_ignore_error))
-    m_slotStorageError("Could not sync chunk: " + std::string(handle.error_number().c_str()));
+    m_slotStorageError("Could not sync chunk: " + std::string(rak::error_number::current().c_str()));
 
   return failed;
 }
