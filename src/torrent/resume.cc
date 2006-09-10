@@ -111,12 +111,16 @@ resume_load_progress(Download download, const Object& object) {
 
 void
 resume_save_progress(Download download, Object& object, bool onlyCompleted) {
+  // We don't remove the old hash data since it might still be valid,
+  // just that the client didn't finish the check this time.
   if (!download.is_hash_checked())
-    // We don't remove the old hash data since it might still be
-    // valid, just that the client didn't finish the check this time.
     return;
 
   download.sync_chunks();
+
+  // If syncing failed, return.
+  if (!download.is_hash_checked())
+    return;
 
   const Bitfield* bitfield = download.bitfield();
 

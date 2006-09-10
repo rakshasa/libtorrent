@@ -214,7 +214,6 @@ ChunkList::sync_chunk(ChunkListNode* node, int flags, bool cleanup) {
   if (node->references() <= 0 || node->writable() <= 0)
     throw internal_error("ChunkList::sync_chunk(...) got a node with invalid reference count.");
 
-  // Using sync for the time being.
   if (!node->chunk()->sync(flags))
     return false;
 
@@ -303,14 +302,10 @@ ChunkList::sync_chunks(int flags) {
       syncFlags = MemoryChunk::sync_async;
     }
 
-//     if (syncFlags == MemoryChunk::sync_sync)
-//       // throw internal_error("Bork Bork Sync");
-//       return 0;
-
     if (!sync_chunk(*itr, syncFlags, syncCleanup)) {
-      failed++;
       std::iter_swap(itr, split++);
       
+      failed++;
       continue;
     }
 
@@ -321,6 +316,12 @@ ChunkList::sync_chunks(int flags) {
   }
 
   m_queue.erase(split, m_queue.end());
+
+  // The caller must either make sure that it is safe to close the
+  // download or set the sync_ignore_error flag.
+  if (failed && !(flags & sync_ignore_error))
+    m_slotStorageError("Could not sync chunk: " + std::string(handle.error_number().c_str()));
+
   return failed;
 }
 

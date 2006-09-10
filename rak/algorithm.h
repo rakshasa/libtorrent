@@ -67,6 +67,17 @@ advance_bidirectional(_InputIter __first, _InputIter __middle1, _InputIter __las
     if (!__distance)
       break;
 
+    if (__middle2 != __last) {
+      ++__middle2;
+      --__distance;
+
+    } else if (__middle1 == __first) {
+      break;
+    }
+
+    if (!__distance)
+      break;
+
     if (__middle1 != __first) {
       --__middle1;
       --__distance;
@@ -75,16 +86,6 @@ advance_bidirectional(_InputIter __first, _InputIter __middle1, _InputIter __las
       break;
     }
 
-    if (!__distance)
-      break;
-
-    if (__middle2 != __last) {
-      ++__middle2;
-      --__distance;
-
-    } else if (__middle1 == __first) {
-      break;
-    }
   } while (true);
 
   return std::make_pair(__middle1, __middle2);

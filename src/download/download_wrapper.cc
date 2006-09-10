@@ -70,6 +70,8 @@ DownloadWrapper::DownloadWrapper() :
   m_main.tracker_manager()->set_info(info());
   m_main.tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
   m_main.tracker_manager()->slot_failed(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_failed));
+
+  m_main.chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 }
 
 DownloadWrapper::~DownloadWrapper() {
@@ -127,7 +129,7 @@ DownloadWrapper::close() {
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
   // hash_resume_save get ignored anyway.
-  m_main.chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy);
+  m_main.chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy | ChunkList::sync_ignore_error);
 
   m_main.close();
 
@@ -146,6 +148,9 @@ DownloadWrapper::receive_initial_hash() {
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
   if (!m_hash->is_checking()) {
+    if (rak::error_number(m_hash->error_number()).is_valid())
+      info()->signal_storage_error().emit(("Hash checker was unable to map chunk: " + std::string(rak::error_number(m_hash->error_number()).c_str())));
+
     m_hash->clear();
 
     // Clear after m_hash to ensure that the empty hash done signal does
@@ -231,6 +236,16 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
 
 void
 DownloadWrapper::receive_storage_error(const std::string& str) {
+//   m_main.chunk_list()->slot_storage_error(ChunkList::SlotStorageError(NULL, NULL));
+
+  m_main.stop();
+  m_main.close();
+
+//   m_main.chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
+
+  m_main.tracker_manager()->set_active(false);
+  m_main.tracker_manager()->close();
+
   info()->signal_storage_error().emit(str);
 }
 
@@ -281,18 +296,6 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   }
 
   m_main.receive_connect_peers();
-
-//   unsigned int syncFailed = m_main.chunk_list()->sync_chunks(ChunkList::sync_use_timeout);
-
-//   if (info()->is_active() && syncFailed != 0) {
-//     // Need to move this stuff into a seperate function.
-//     m_main.stop();
-
-//     m_connectionChunkPassed.disconnect();
-//     m_connectionChunkFailed.disconnect();
-
-//     info()->signal_storage_error().emit("Could not sync data to disk, possibly full.");
-//   }
 }
 
 void

@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <rak/error_number.h>
 #include <rak/file_stat.h>
@@ -238,12 +239,12 @@ EntryList::free_diskspace() const {
     rak::fs_stat stat;
 
     if (!stat.update(*itr))
-      return 0;
+      continue;
 
     freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
   }
 
-  return freeDiskspace;
+  return freeDiskspace != std::numeric_limits<uint64_t>::max() ? freeDiskspace : 0;
 }
 
 inline MemoryChunk

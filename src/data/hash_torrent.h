@@ -75,6 +75,8 @@ public:
 
   uint32_t            position() const                       { return m_position; }
 
+  int                 error_number() const                   { return m_errno; }
+
   HashQueue*          get_queue()                            { return m_queue; }
   void                set_queue(HashQueue* q)                { m_queue = q; }
 
@@ -91,6 +93,8 @@ private:
   unsigned int        m_position;
   int                 m_outstanding;
   Ranges              m_ranges;
+
+  int                 m_errno;
 
   ChunkList*          m_chunkList;
   HashQueue*          m_queue;

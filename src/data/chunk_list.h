@@ -48,6 +48,7 @@ namespace torrent {
 
 class ChunkManager;
 class Content;
+class DownloadWrapper;
 class EntryList;
 
 class ChunkList : private std::vector<ChunkListNode> {
@@ -57,8 +58,9 @@ public:
   typedef std::pair<Chunk*,rak::error_number> CreateChunk;
   typedef std::vector<ChunkListNode*>         Queue;
 
-  typedef rak::mem_fun2<Content, CreateChunk, uint32_t, bool> SlotCreateChunk;
-  typedef rak::const_mem_fun0<EntryList, uint64_t>            SlotFreeDiskspace;
+  typedef rak::mem_fun2<Content, CreateChunk, uint32_t, bool>      SlotCreateChunk;
+  typedef rak::const_mem_fun0<EntryList, uint64_t>                 SlotFreeDiskspace;
+  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotStorageError;
 
   using base_type::value_type;
   using base_type::reference;
@@ -69,11 +71,12 @@ public:
   using base_type::size;
   using base_type::empty;
 
-  static const int sync_all         = (1 << 0);
-  static const int sync_force       = (1 << 1);
-  static const int sync_safe        = (1 << 2);
-  static const int sync_sloppy      = (1 << 3);
-  static const int sync_use_timeout = (1 << 4);
+  static const int sync_all          = (1 << 0);
+  static const int sync_force        = (1 << 1);
+  static const int sync_safe         = (1 << 2);
+  static const int sync_sloppy       = (1 << 3);
+  static const int sync_use_timeout  = (1 << 4);
+  static const int sync_ignore_error = (1 << 5);
 
   ChunkList() : m_manager(NULL) {}
   ~ChunkList() { clear(); }
@@ -97,6 +100,7 @@ public:
   // Returns the number of failed syncs.
   uint32_t            sync_chunks(int flags);
 
+  void                slot_storage_error(SlotStorageError s)   { m_slotStorageError = s; }
   void                slot_create_chunk(SlotCreateChunk s)     { m_slotCreateChunk = s; }
   void                slot_free_diskspace(SlotFreeDiskspace s) { m_slotFreeDiskspace = s; }
 
@@ -114,6 +118,7 @@ private:
   ChunkManager*       m_manager;
   Queue               m_queue;
 
+  SlotStorageError    m_slotStorageError;
   SlotCreateChunk     m_slotCreateChunk;
   SlotFreeDiskspace   m_slotFreeDiskspace;
 };

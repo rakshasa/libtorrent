@@ -46,6 +46,8 @@ namespace torrent {
 HashTorrent::HashTorrent(ChunkList* c) :
   m_position(0),
   m_outstanding(-1),
+  m_errno(0),
+
   m_chunkList(c),
   m_queue(NULL) {
 }
@@ -73,6 +75,7 @@ void
 HashTorrent::clear() {
   m_outstanding = -1;
   m_position = 0;
+  m_errno = 0;
 }
 
 bool
@@ -152,35 +155,36 @@ HashTorrent::queue(bool quick) {
         return;
 
       continue;
-    }
 
-    // If the error number is not valid, then we've just encountered a
-    // file that hasn't be created/resized. Which means we ignore it
-    // when doing initial hashing.
-    if (handle.error_number().is_valid()) {
-      // We wait for all the outstanding chunks to be checked before
-      // borking completely, else low-memory devices might not be able
-      // to finish the hash check.
-      if (m_outstanding != 0)
+    } else {
+      // If the error number is not valid, then we've just encountered a
+      // file that hasn't be created/resized. Which means we ignore it
+      // when doing initial hashing.
+      if (handle.error_number().is_valid()) {
+        // We wait for all the outstanding chunks to be checked before
+        // borking completely, else low-memory devices might not be able
+        // to finish the hash check.
+        if (m_outstanding != 0)
+          return;
+
+        // The rest of the outstanding chunks get ignored by
+        // DownloadWrapper::receive_hash_done. Obsolete.
+        clear();
+
+        m_errno = handle.error_number().value();
+
+        rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
+        rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
         return;
+      }
 
-      // The rest of the outstanding chunks get ignored by
-      // DownloadWrapper::receive_hash_done. Obsolete.
-      clear();
+      // Missing file, skip the hash check.
+      if (!handle.is_valid())
+        continue;
 
-      m_slotStorageError("Hash checker was unable to map chunk: " + std::string(handle.error_number().c_str()));
-
-      rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
-      rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
-      return;
+      m_slotCheckChunk(handle);
+      m_outstanding++;
     }
-
-    // Missing file, skip the hash check.
-    if (!handle.is_valid())
-      continue;
-
-    m_slotCheckChunk(handle);
-    m_outstanding++;
   }
 
   if (m_outstanding == 0) {
