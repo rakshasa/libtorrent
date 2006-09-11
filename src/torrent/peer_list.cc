@@ -217,6 +217,9 @@ PeerList::cull_peers(int flags) {
       continue;
     }
 
+    // The key is a pointer to a member in the value, although the key
+    // shouldn't actually be used in erase (I think), just ot be safe
+    // we delete it after erase.
     iterator tmp = itr++;
     PeerInfo* peerInfo = tmp->second;
 

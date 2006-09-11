@@ -144,7 +144,12 @@ EntryList::close() {
 
 void
 EntryList::set_root_dir(const std::string& path) {
-  m_rootDir = path;
+  std::string::size_type last = path.find_last_not_of('/');
+
+  if (last == std::string::npos)
+    m_rootDir = ".";
+  else
+    m_rootDir = path.substr(0, last + 1);
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
     if ((*itr)->file_meta()->is_open())
@@ -196,8 +201,8 @@ EntryList::make_directory(Path::const_iterator pathBegin, Path::const_iterator p
         std::find(m_indirectLinks.begin(), m_indirectLinks.end(), path) == m_indirectLinks.end())
       m_indirectLinks.push_back(path);
 
-    if (pathBegin + 1 != pathEnd)
-      continue;
+    if (pathBegin == pathEnd)
+      break;
 
     if (::mkdir(path.c_str(), 0777) && errno != EEXIST)
       throw storage_error("Could not create directory '" + path + "': " + strerror(errno));
