@@ -54,7 +54,7 @@ void
 Chunk::clear() {
   std::for_each(begin(), end(), std::mem_fun_ref(&ChunkPart::clear));
 
-  m_size = 0;
+  m_chunkSize = 0;
   m_prot = ~0;
   base_type::clear();
 }
@@ -70,15 +70,16 @@ void
 Chunk::push_back(value_type::mapped_type mapped, const MemoryChunk& c) {
   m_prot &= c.get_prot();
 
-  reserve(size() + 1);
-  base_type::insert(end(), ChunkPart(mapped, c, m_size));
+  // Gcc starts the reserved size at 1 for the first insert, so we
+  // won't be wasting any space in the general case.
+  base_type::insert(end(), ChunkPart(mapped, c, m_chunkSize));
 
-  m_size += c.size();
+  m_chunkSize += c.size();
 }
 
 Chunk::iterator
 Chunk::at_position(uint32_t pos) {
-  if (pos >= m_size)
+  if (pos >= m_chunkSize)
     throw internal_error("Chunk::at_position(...) tried to get Chunk position out of range.");
 
   iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&ChunkPart::is_contained), pos));
@@ -140,14 +141,14 @@ Chunk::sync(int flags) {
 
 void
 Chunk::preload(uint32_t position, uint32_t length) {
-  if (position >= m_size)
-    throw internal_error("Chunk::preload(...) position > m_size.");
+  if (position >= m_chunkSize)
+    throw internal_error("Chunk::preload(...) position > m_chunkSize.");
 
   if (length == 0)
     return;
 
   Chunk::data_type data;
-  ChunkIterator itr(this, position, position + std::min(length, m_size - position));
+  ChunkIterator itr(this, position, position + std::min(length, m_chunkSize - position));
 
   do {
     data = itr.data();
@@ -162,8 +163,8 @@ Chunk::preload(uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
-  if (position + length > m_size)
-    throw internal_error("Chunk::to_buffer(...) position + length > m_size.");
+  if (position + length > m_chunkSize)
+    throw internal_error("Chunk::to_buffer(...) position + length > m_chunkSize.");
 
   if (length == 0)
     return true;
@@ -186,8 +187,8 @@ Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
-  if (position + length > m_size)
-    throw internal_error("Chunk::from_buffer(...) position + length > m_size.");
+  if (position + length > m_chunkSize)
+    throw internal_error("Chunk::from_buffer(...) position + length > m_chunkSize.");
 
   if (length == 0)
     return true;
@@ -210,8 +211,8 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::compare_buffer(const void* buffer, uint32_t position, uint32_t length) {
-  if (position + length > m_size)
-    throw internal_error("Chunk::compare_buffer(...) position + length > m_size.");
+  if (position + length > m_chunkSize)
+    throw internal_error("Chunk::compare_buffer(...) position + length > m_chunkSize.");
 
   if (length == 0)
     return true;

@@ -51,7 +51,6 @@ public:
 
   using base_type::iterator;
   using base_type::reverse_iterator;
-  using base_type::size;
   using base_type::empty;
   using base_type::reserve;
 
@@ -60,7 +59,7 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
-  Chunk() : m_size(0), m_prot(~0) {}
+  Chunk() : m_chunkSize(0), m_prot(~0) {}
   ~Chunk() { clear(); }
 
   bool                is_all_valid() const;
@@ -70,7 +69,7 @@ public:
   bool                is_writable() const             { return m_prot & MemoryChunk::prot_write; }
   bool                has_permissions(int prot) const { return !(prot & ~m_prot); }
 
-  uint32_t            size()                          { return m_size; }
+  uint32_t            chunk_size() const              { return m_chunkSize; }
 
   void                clear();
 
@@ -96,7 +95,7 @@ private:
   Chunk(const Chunk&);
   void operator = (const Chunk&);
   
-  uint32_t            m_size;
+  uint32_t            m_chunkSize;
   int                 m_prot;
 };
 

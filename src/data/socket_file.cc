@@ -170,7 +170,7 @@ SocketFile::create_chunk(off_t offset, uint32_t length, int prot, int flags) con
 
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.
-  if (offset < 0 || length == 0 || offset + length > size())
+  if (offset < 0 || length == 0 || offset > size() || offset + length > size())
     return MemoryChunk();
 
   off_t align = offset % MemoryChunk::page_size();

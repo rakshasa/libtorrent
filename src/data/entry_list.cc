@@ -254,20 +254,18 @@ EntryList::free_diskspace() const {
 
 inline MemoryChunk
 EntryList::create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot) {
-  MemoryChunk chunk;
-
   offset -= (*itr)->position();
   length = std::min<off_t>(length, (*itr)->size() - offset);
 
   if (offset < 0)
     throw internal_error("EntryList::chunk_part(...) caught a negative offset");
 
-  if ((*itr)->file_meta()->prepare(prot))
-    chunk = (*itr)->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
-  else
-    chunk.clear();
+  // Check that offset != length of file.
 
-  return chunk;
+  if (!(*itr)->file_meta()->prepare(prot))
+    return MemoryChunk();
+
+  return (*itr)->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
 }
 
 Chunk*
@@ -290,13 +288,22 @@ EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
     if (!mc.is_valid())
       return NULL;
 
+    if (mc.size() == 0)
+      throw internal_error("EntryList::create_chunk(...) mc.size() == 0.");
+
+    if (mc.size() > length)
+      throw internal_error("EntryList::create_chunk(...) mc.size() > length.");
+
     chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
 
     offset += mc.size();
     length -= mc.size();
   }
 
-  return !chunk->empty() ? chunk.release() : NULL;
+  if (chunk->empty())
+    return NULL;
+
+  return chunk.release();
 }
 
 }

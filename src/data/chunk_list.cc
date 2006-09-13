@@ -118,7 +118,7 @@ ChunkList::get(size_type index, bool writable) {
       return ChunkHandle::from_error(chunk.second);
 
     // Would be cleaner to do this before creating the chunk.
-    if (!m_manager->allocate(chunk.first->size())) {
+    if (!m_manager->allocate(chunk.first->chunk_size())) {
       delete chunk.first;
       return ChunkHandle::from_error(rak::error_number::e_nomem);
     }
@@ -201,7 +201,7 @@ ChunkList::clear_chunk(ChunkListNode* node) {
   if (!node->is_valid())
     throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
 
-  uint32_t size = node->chunk()->size();
+  uint32_t size = node->chunk()->chunk_size();
 
   delete node->chunk();
   node->set_chunk(NULL);
