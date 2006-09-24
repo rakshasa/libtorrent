@@ -47,7 +47,8 @@ class ChunkListNode;
 
 class ChunkHandle {
 public:
-  ChunkHandle(ChunkListNode* c = NULL, bool wr = false) : m_node(c), m_writable(wr) {}
+  ChunkHandle(ChunkListNode* c = NULL, bool wr = false) :
+    m_node(c), m_writable(wr) {}
 
   bool                is_valid() const                      { return m_node != NULL; }
   bool                is_writable() const                   { return m_writable; }

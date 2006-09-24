@@ -152,14 +152,24 @@ DownloadWrapper::receive_initial_hash() {
       info()->signal_storage_error().emit(("Hash checker was unable to map chunk: " + std::string(rak::error_number(m_hash->error_number()).c_str())));
 
     m_hash->clear();
+    m_hash->ranges().clear();
 
     // Clear after m_hash to ensure that the empty hash done signal does
     // not get passed to HashTorrent.
     m_hash->get_queue()->remove(this);
-    m_main.content()->bitfield()->unset_all();
+
+    m_main.content()->bitfield()->unallocate();
 
   } else if (m_main.content()->entry_list()->resize_all()) {
     m_hash->confirm_checked();
+
+    if (m_hash->get_queue()->has(this))
+      throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
+
+    // Initialize the ChunkSelector here so that no chunks will be
+    // marked by HashTorrent that are not accounted for.
+    m_main.chunk_selector()->initialize(m_main.content()->bitfield(), m_main.chunk_statistics());
+    receive_update_priorities();
 
   } else {
     // We couldn't resize the files, tell the client.
@@ -167,14 +177,6 @@ DownloadWrapper::receive_initial_hash() {
 
     // Do we clear the hash?
   }
-
-  if (m_hash->get_queue()->has(this))
-    throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
-
-  // Initialize the ChunkSelector here so that no chunks will be
-  // marked by HashTorrent that are not accounted for.
-  m_main.chunk_selector()->initialize(m_main.content()->bitfield(), m_main.chunk_statistics());
-  receive_update_priorities();
 
   m_signalInitialHash.emit();
 }    

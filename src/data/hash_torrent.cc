@@ -136,6 +136,8 @@ HashTorrent::queue(bool quick) {
       m_position = itr->first;
     }
 
+    // Need to do increment later if we're going to support resume
+    // hashing a quick hashed torrent.
     ChunkHandle handle = m_chunkList->get(m_position++, false);
 
     if (quick) {
@@ -164,8 +166,10 @@ HashTorrent::queue(bool quick) {
         // We wait for all the outstanding chunks to be checked before
         // borking completely, else low-memory devices might not be able
         // to finish the hash check.
-        if (m_outstanding != 0)
+        if (m_outstanding != 0) {
+          m_position--;
           return;
+        }
 
         // The rest of the outstanding chunks get ignored by
         // DownloadWrapper::receive_hash_done. Obsolete.
