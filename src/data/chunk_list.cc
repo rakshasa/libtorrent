@@ -210,16 +210,16 @@ ChunkList::clear_chunk(ChunkListNode* node) {
 }
 
 inline bool
-ChunkList::sync_chunk(ChunkListNode* node, int flags, bool cleanup) {
+ChunkList::sync_chunk(ChunkListNode* node, std::pair<int,bool> options) {
   if (node->references() <= 0 || node->writable() <= 0)
     throw internal_error("ChunkList::sync_chunk(...) got a node with invalid reference count.");
 
-  if (!node->chunk()->sync(flags))
+  if (!node->chunk()->sync(options.first))
     return false;
 
   node->set_sync_triggered(true);
 
-  if (!cleanup)
+  if (!options.second)
     return true;
 
   node->dec_rw();
@@ -271,38 +271,9 @@ ChunkList::sync_chunks(int flags) {
 
     // if we don't want to sync, swap and break.
 
-    // These might be outside the loop?
-    int syncFlags;
-    bool syncCleanup;
+    std::pair<int,bool> options = sync_options(*itr, flags);
 
-    // Using if statements since some linkers have problem with static
-    // const int members inside the ?: operators. The compiler should
-    // be optimizing this anyway.
-
-    if (flags & sync_force) {
-      syncCleanup = true;
-
-      if (flags & sync_safe)
-        syncFlags = MemoryChunk::sync_sync;
-      else
-        syncFlags = MemoryChunk::sync_async;
-
-    } else if (flags & sync_safe) {
-      
-      if ((*itr)->sync_triggered()) {
-        syncCleanup = true;
-        syncFlags = MemoryChunk::sync_sync;
-      } else {
-        syncCleanup = false;
-        syncFlags = MemoryChunk::sync_async;
-      }
-
-    } else {
-      syncCleanup = true;
-      syncFlags = MemoryChunk::sync_async;
-    }
-
-    if (!sync_chunk(*itr, syncFlags, syncCleanup)) {
+    if (!sync_chunk(*itr, options)) {
       std::iter_swap(itr, split++);
       
       failed++;
@@ -311,7 +282,7 @@ ChunkList::sync_chunks(int flags) {
 
     (*itr)->set_sync_triggered(true);
 
-    if (!syncCleanup)
+    if (!options.second)
       std::iter_swap(itr, split++);
   }
 
@@ -323,6 +294,31 @@ ChunkList::sync_chunks(int flags) {
     m_slotStorageError("Could not sync chunk: " + std::string(rak::error_number::current().c_str()));
 
   return failed;
+}
+
+std::pair<int, bool>
+ChunkList::sync_options(ChunkListNode* node, int flags) {
+  // Using if statements since some linkers have problem with static
+  // const int members inside the ?: operators. The compiler should
+  // be optimizing this anyway.
+
+  if (flags & sync_force) {
+
+    if (flags & sync_safe)
+      return std::make_pair(MemoryChunk::sync_sync, true);
+    else
+      return std::make_pair(MemoryChunk::sync_async, true);
+
+  } else if (flags & sync_safe) {
+      
+    if (node->sync_triggered())
+      return std::make_pair(MemoryChunk::sync_sync, true);
+    else
+      return std::make_pair(MemoryChunk::sync_async, false);
+
+  } else {
+    return std::make_pair(MemoryChunk::sync_async, true);
+  }
 }
 
 // Using a rather simple algorithm for now. This should really be more

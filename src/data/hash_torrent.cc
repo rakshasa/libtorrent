@@ -163,6 +163,9 @@ HashTorrent::queue(bool quick) {
       // file that hasn't be created/resized. Which means we ignore it
       // when doing initial hashing.
       if (handle.error_number().is_valid()) {
+        if (handle.is_valid())
+          throw internal_error("HashTorrent::queue() error, but handle.is_valid().");
+
         // We wait for all the outstanding chunks to be checked before
         // borking completely, else low-memory devices might not be able
         // to finish the hash check.

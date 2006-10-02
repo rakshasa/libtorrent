@@ -108,12 +108,14 @@ private:
   inline bool         is_queued(ChunkListNode* node);
 
   inline void         clear_chunk(ChunkListNode* node);
-  inline bool         sync_chunk(ChunkListNode* node, int flags, bool cleanup);
+  inline bool         sync_chunk(ChunkListNode* node, std::pair<int,bool> options);
 
   Queue::iterator     partition_optimize(Queue::iterator first, Queue::iterator last, int weight, int maxDistance, bool dontSkip);
 
   inline Queue::iterator seek_range(Queue::iterator first, Queue::iterator last);
   inline bool            check_node(ChunkListNode* node);
+
+  std::pair<int,bool> sync_options(ChunkListNode* node, int flags);
 
   ChunkManager*       m_manager;
   Queue               m_queue;
