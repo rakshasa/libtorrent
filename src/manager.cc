@@ -114,9 +114,9 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->main()->content()->entry_list()->slot_insert_filemeta(rak::make_mem_fun(m_fileManager, &FileManager::insert));
   d->main()->content()->entry_list()->slot_erase_filemeta(rak::make_mem_fun(m_fileManager, &FileManager::erase));
 
-  m_chunkManager->insert(d->main()->chunk_list());
   m_downloadManager->insert(d);
   m_resourceManager->insert(d->main(), 1);
+  m_chunkManager->insert(d->main()->chunk_list());
 
   d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
   d->main()->set_download_throttle(m_downloadThrottle->throttle_list());

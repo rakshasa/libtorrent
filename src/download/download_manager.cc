@@ -48,7 +48,7 @@ namespace torrent {
 DownloadManager::iterator
 DownloadManager::insert(DownloadWrapper* d) {
   if (find(d->info()->hash()) != end())
-    throw input_error("Could not add torrent as it already exists");
+    throw client_error("Could not add torrent as it already exists.");
 
   return base_type::insert(end(), d);
 }

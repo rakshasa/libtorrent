@@ -122,11 +122,18 @@ PollKQueue::poll(int msec) {
 
   int nfds = kevent(m_fd, m_changes, m_changedEvents, m_events, m_maxEvents, &timeout);
 
+  // Clear the changed events even on fail as we might have received a
+  // signal or similar, and the changed events have already been
+  // consumed.
+  //
+  // There's a chance a bad changed event could make kevent return -1,
+  // but it won't as long as there is room enough in m_events.
+  m_changedEvents = 0;
+
   if (nfds == -1)
     return -1;
 
   m_waitingEvents = nfds;
-  m_changedEvents = 0;
 
   return nfds;
 }
@@ -137,15 +144,12 @@ PollKQueue::perform() {
     if (itr->flags == EV_ERROR)
       throw internal_error("PollKQueue::perform() error: " + std::string(rak::error_number(itr->data).c_str()));
 
-    if (itr->udata == NULL)
-      continue;
-
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && event_mask((Event*)itr->udata) & flag_read)
+    if (itr->filter == EVFILT_READ && itr->udata != NULL && event_mask((Event*)itr->udata) & flag_read)
       ((Event*)itr->udata)->event_read();
 
-    if (itr->filter == EVFILT_WRITE && event_mask((Event*)itr->udata) & flag_write)
+    if (itr->filter == EVFILT_WRITE && itr->udata != NULL && event_mask((Event*)itr->udata) & flag_write)
       ((Event*)itr->udata)->event_write();
   }
 
