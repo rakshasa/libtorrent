@@ -30,6 +30,8 @@ re-constructing torrent files of ~100KB in some cases.
 
 Add a variable that has can have an off state, plus a value range.
 
+Add a bit for modified entries, or perhaps just freeze lists/maps.
+
 
 === Session management ==
 
