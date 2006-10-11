@@ -96,8 +96,6 @@ public:
   ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
   void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
 
-  uint64_t            get_bytes_left() const;
-
   // Carefull with these.
   void                setup_delegator();
   void                setup_tracker();

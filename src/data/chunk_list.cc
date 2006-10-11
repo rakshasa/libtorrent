@@ -196,7 +196,7 @@ ChunkList::release(ChunkHandle* handle) {
   handle->clear();
 }
 
-inline void
+void
 ChunkList::clear_chunk(ChunkListNode* node) {
   if (!node->is_valid())
     throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
@@ -255,6 +255,7 @@ ChunkList::sync_chunks(int flags) {
     else
       flags |= sync_force;
 
+  // TODO: This won't trigger for default sync_force.
   if ((flags & sync_use_timeout) && !(flags & sync_force))
     split = partition_optimize(split, m_queue.end(), 50, 5, false);
 

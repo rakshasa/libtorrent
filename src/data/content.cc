@@ -139,6 +139,19 @@ Content::bytes_completed() const {
   }
 }
 
+uint64_t
+Content::bytes_left() const {
+  uint64_t left = entry_list()->bytes_size() - bytes_completed();
+
+  if (left > ((uint64_t)1 << 60))
+    throw internal_error("Content::bytes_left() is too large."); 
+
+  if (chunks_completed() == chunk_total() && left != 0)
+    throw internal_error("Content::bytes_left() has an invalid size."); 
+
+  return left;
+}
+
 bool
 Content::is_valid_piece(const Piece& p) const {
   return

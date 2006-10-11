@@ -78,8 +78,10 @@ public:
   void                   set_complete_hash(const std::string& hash);
 
   uint32_t               chunks_completed() const                       { return m_bitfield.size_set(); }
+
   uint64_t               bytes_completed() const;
-  
+  uint64_t               bytes_left() const;
+
   uint32_t               chunk_total() const                            { return m_bitfield.size_bits(); }
   uint32_t               chunk_size() const                             { return m_chunkSize; }
   const char*            chunk_hash(unsigned int index)                 { return m_hash.c_str() + 20 * index; }

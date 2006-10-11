@@ -48,6 +48,7 @@
 
 namespace torrent {
 
+class Content;
 class DownloadMain;
 class Rate;
 
@@ -55,7 +56,7 @@ class Rate;
 
 class DownloadInfo {
 public:
-  typedef rak::const_mem_fun0<DownloadMain, uint64_t>                  slot_stat_type;
+  typedef rak::const_mem_fun0<Content, uint64_t>                       slot_stat_type;
 
   typedef sigc::signal1<void, const std::string&>                      signal_string_type;
   typedef sigc::signal1<void, uint32_t>                                signal_chunk_type;
@@ -80,7 +81,7 @@ public:
     m_upRate(60),
     m_downRate(60),
     m_uploadedBaseline(0),
-    m_downloadedBaseline(0) {
+    m_completedBaseline(0) {
   }
 
   const std::string&  name() const                                 { return m_name; }
@@ -116,14 +117,15 @@ public:
   uint64_t            uploaded_baseline() const                    { return m_uploadedBaseline; }
   void                set_uploaded_baseline(uint64_t b)            { m_uploadedBaseline = b; }
 
-  uint64_t            downloaded_baseline() const                  { return m_downloadedBaseline; }
-  void                set_downloaded_baseline(uint64_t b)          { m_downloadedBaseline = b; }
+  uint64_t            completed_baseline() const                   { return m_completedBaseline; }
+  void                set_completed_baseline(uint64_t b)           { m_completedBaseline = b; }
 
   uint32_t            http_timeout() const                         { return 60; }
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
-  slot_stat_type&     slot_stat_left()                             { return m_slotStatLeft; }
+  slot_stat_type&     slot_completed()                             { return m_slotStatCompleted; }
+  slot_stat_type&     slot_left()                                  { return m_slotStatLeft; }
 
   signal_string_type& signal_network_log()                         { return m_signalNetworkLog; }
   signal_string_type& signal_storage_error()                       { return m_signalStorageError; }
@@ -146,8 +148,9 @@ private:
   Rate                m_downRate;
 
   uint64_t            m_uploadedBaseline;
-  uint64_t            m_downloadedBaseline;
+  uint64_t            m_completedBaseline;
 
+  slot_stat_type      m_slotStatCompleted;
   slot_stat_type      m_slotStatLeft;
 
   signal_string_type  m_signalNetworkLog;

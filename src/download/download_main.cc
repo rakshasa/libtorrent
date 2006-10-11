@@ -164,19 +164,6 @@ DownloadMain::stop() {
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
 }
 
-uint64_t
-DownloadMain::get_bytes_left() const {
-  uint64_t left = m_content.entry_list()->bytes_size() - m_content.bytes_completed();
-
-  if (left > ((uint64_t)1 << 60))
-    throw internal_error("DownloadMain::get_bytes_left() is too large"); 
-
-  if (m_content.chunks_completed() == m_content.chunk_total() && left != 0)
-    throw internal_error("DownloadMain::get_bytes_left() has an invalid size"); 
-
-  return left;
-}
-
 void
 DownloadMain::update_endgame() {
   if (!m_delegator.get_aggressive() && m_content.chunks_completed() + m_delegator.transfer_list()->size() + 5 >= m_content.chunk_total())

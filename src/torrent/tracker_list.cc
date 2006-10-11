@@ -80,7 +80,7 @@ TrackerList::numwant() const {
 
 void
 TrackerList::set_numwant(int32_t n) {
-  m_manager->info()->set_numwant(n);
+  m_manager->info()->set_numwant(std::max<int32_t>(n, -1));
 }
 
 uint32_t

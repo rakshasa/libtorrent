@@ -92,7 +92,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   info()->set_hash(hash);
   info()->set_local_id(id);
 
-  info()->slot_stat_left() = rak::make_mem_fun(&m_main, &DownloadMain::get_bytes_left);
+  info()->slot_completed() = rak::make_mem_fun(m_main.content(), &Content::bytes_completed);
+  info()->slot_left()      = rak::make_mem_fun(m_main.content(), &Content::bytes_left);
 
   m_main.connection_list()->slot_connected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_connected));
   m_main.connection_list()->slot_disconnected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_disconnected));

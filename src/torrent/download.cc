@@ -102,7 +102,7 @@ Download::start() {
   // Reset the uploaded/download baseline when we restart the download
   // so that broken trackers get the right uploaded ratio.
   m_ptr->info()->set_uploaded_baseline(m_ptr->info()->up_rate()->total());
-  m_ptr->info()->set_downloaded_baseline(m_ptr->info()->down_rate()->total());
+  m_ptr->info()->set_completed_baseline(m_ptr->info()->slot_completed()());
 
   m_ptr->main()->tracker_manager()->send_start();
 }
