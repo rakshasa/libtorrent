@@ -34,38 +34,29 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-
-#include "peer_connection_base.h"
+#ifndef LIBTORRENT_TORRENT_ERROR_H
+#define LIBTORRENT_TORRENT_ERROR_H
 
 namespace torrent {
 
-class PeerConnectionLeech : public PeerConnectionBase {
-public:
-  PeerConnectionLeech() : m_tryRequest(true) {}
-  ~PeerConnectionLeech();
+  // Handshake errors passed to signal handler
+  const int EH_None                    = 0;
+  const int EH_NotBTProtocol           = 1;
+  const int EH_NotAcceptingPeers       = 2;
+  const int EH_Duplicate               = 3;
+  const int EH_Unknown                 = 4;
+  const int EH_Inactive                = 5;
+  const int EH_SeederRejected          = 6;
+  const int EH_IsSelf                  = 7;
+  const int EH_InvalidValue            = 8;
+  const int EH_UnencryptedRejected     = 9;
+  const int EH_InvalidEncryptionMethod = 10;
+  const int EH_EncryptionSyncFailed    = 11;
+  const int EH_NetworkError            = 12;
 
-  virtual void        initialize_custom();
+  const int E_Max                      = 12;
 
-  virtual void        update_interested();
-
-  virtual void        receive_finished_chunk(int32_t index);
-  virtual bool        receive_keepalive();
-
-  virtual void        event_read();
-  virtual void        event_write();
-
-private:
-  inline bool         read_message();
-  void                read_have_chunk(uint32_t index);
-
-  inline unsigned int read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length);
-  inline void         fill_write_buffer();
-
-  bool                m_tryRequest;
-};
-
+  const char* strerror(int err);
 }
 
 #endif

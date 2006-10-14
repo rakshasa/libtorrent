@@ -54,13 +54,13 @@ public:
 
   void                reset()                       { m_position = m_end = begin(); }
   void                reset_position()              { m_position = m_buffer; }
-  void                move_position(difference_type v) { m_position += v; }
+  difference_type     move_position(difference_type v) { m_position += v; return v; }
+  bool                consume(difference_type v);
 
   void                set_position_itr(iterator itr) { m_position = itr; }
 
-  void                prepare_end()                 { m_end = m_position; reset_position(); }
   void                set_end(size_type v)          { m_end = m_buffer + v; }
-  void                move_end(difference_type v)   { m_end += v; }
+  difference_type     move_end(difference_type v)   { m_end += v; return v; }
 
   uint8_t             read_8()                      { return *m_position++; }
   uint8_t             peek_8()                      { return *m_position; }
@@ -75,13 +75,16 @@ public:
   template <typename Out>
   void                read_range(Out first, Out last);
 
+  template <typename Out>
+  void                read_len(Out start, unsigned int len);
+
   template <typename T>
   inline T            read_int();
 
   template <typename T>
   inline T            peek_int();
 
-  void                write_8(uint8_t v)            { *m_position++ = v; validate_position(); }
+  void                write_8(uint8_t v)            { *m_end++ = v; validate_end(); }
   void                write_16(uint16_t v);
   void                write_32(uint32_t v);
   void                write_32_n(uint32_t v);
@@ -93,6 +96,9 @@ public:
   template <typename In>
   void                write_range(In first, In last);
 
+  template <typename In>
+  void                write_len(In start, unsigned int len);
+
   iterator            begin()                       { return m_buffer; }
   iterator            position()                    { return m_position; }
   iterator            end()                         { return m_end; }
@@ -101,11 +107,20 @@ public:
   size_type           size_end() const              { return m_end - m_buffer; }
   size_type           remaining() const             { return m_end - m_position; }
   size_type           reserved() const              { return tmpl_size; }
-  size_type           reserved_left() const         { return reserved() - size_position(); }
+  size_type           reserved_left() const         { return reserved() - size_end(); }
 
   void                validate_position() const {
 #ifdef USE_EXTRA_DEBUG
     if (m_position > m_buffer + tmpl_size)
+      throw internal_error("ProtocolBuffer tried to read beyond scope of the buffer.");
+    if (m_position > m_end)
+      throw internal_error("ProtocolBuffer tried to read beyond end of the buffer.");
+#endif
+  }
+
+  void                validate_end() const {
+#ifdef USE_EXTRA_DEBUG
+    if (m_end > m_buffer + tmpl_size)
       throw internal_error("ProtocolBuffer tried to write beyond scope of the buffer.");
 #endif
   }
@@ -115,6 +130,18 @@ private:
   iterator            m_end;
   value_type          m_buffer[tmpl_size];
 };
+
+template <uint16_t tmpl_size>
+inline bool
+ProtocolBuffer<tmpl_size>::consume(difference_type v) {
+  move_position(v);
+
+  if (remaining())
+    return false;
+
+  reset();
+  return true; 
+}
 
 template <uint16_t tmpl_size>
 inline uint16_t
@@ -180,10 +207,10 @@ template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write_16(uint16_t v) {
 #ifndef USE_ALIGNED
-  *reinterpret_cast<uint16_t*>(m_position) = htons(v);
-  m_position += sizeof(uint16_t);
+  *reinterpret_cast<uint16_t*>(m_end) = htons(v);
+  m_end += sizeof(uint16_t);
 
-  validate_position();
+  validate_end();
 #else
   write_int<uint16_t>(v);
 #endif
@@ -193,10 +220,10 @@ template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write_32(uint32_t v) {
 #ifndef USE_ALIGNED
-  *reinterpret_cast<uint32_t*>(m_position) = htonl(v);
-  m_position += sizeof(uint32_t);
+  *reinterpret_cast<uint32_t*>(m_end) = htonl(v);
+  m_end += sizeof(uint32_t);
 
-  validate_position();
+  validate_end();
 #else
   write_int<uint32_t>(v);
 #endif
@@ -205,10 +232,10 @@ ProtocolBuffer<tmpl_size>::write_32(uint32_t v) {
 template <uint16_t tmpl_size>
 inline void
 ProtocolBuffer<tmpl_size>::write_32_n(uint32_t v) {
-  *reinterpret_cast<uint32_t*>(m_position) = v;
-  m_position += sizeof(uint32_t);
+  *reinterpret_cast<uint32_t*>(m_end) = v;
+  m_end += sizeof(uint32_t);
 
-  validate_position();
+  validate_end();
 }
 
 template <uint16_t tmpl_size>
@@ -222,24 +249,44 @@ ProtocolBuffer<tmpl_size>::read_range(Out first, Out last) {
 }
 
 template <uint16_t tmpl_size>
+template <typename Out>
+void
+ProtocolBuffer<tmpl_size>::read_len(Out start, unsigned int len) {
+  for ( ; len > 0; ++m_position, ++start, --len)
+    *start = *m_position;
+
+  validate_position();
+}
+
+template <uint16_t tmpl_size>
 template <typename T>
 inline void
 ProtocolBuffer<tmpl_size>::write_int(T v) {
-  for (iterator itr = m_position + sizeof(T); itr != m_position; v >>= 8)
+  for (iterator itr = m_end + sizeof(T); itr != m_end; v >>= 8)
     *(--itr) = v;
 
-  m_position += sizeof(T);
-  validate_position();
+  m_end += sizeof(T);
+  validate_end();
 }
 
 template <uint16_t tmpl_size>
 template <typename In>
 void
 ProtocolBuffer<tmpl_size>::write_range(In first, In last) {
-  for ( ; first != last; ++m_position, ++first)
-    *m_position = *first;
+  for ( ; first != last; ++m_end, ++first)
+    *m_end = *first;
 
-  validate_position();
+  validate_end();
+}
+
+template <uint16_t tmpl_size>
+template <typename In>
+void
+ProtocolBuffer<tmpl_size>::write_len(In start, unsigned int len) {
+  for ( ; len > 0; ++m_end, ++start, --len)
+    *m_end = *start;
+
+  validate_end();
 }
 
 }

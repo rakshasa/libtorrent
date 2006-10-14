@@ -1,6 +1,9 @@
 noinst_LTLIBRARIES = libsub_utils.la
 
 libsub_utils_la_SOURCES = \
+	diffie_hellman.cc \
+	diffie_hellman.h \
+	rc4.h \
 	sha1.h \
 	sha_fast.cc \
 	sha_fast.h

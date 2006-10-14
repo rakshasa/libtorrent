@@ -34,38 +34,48 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
+#include "config.h"
 
-#include "peer_connection_base.h"
+#include <string>
+#include <openssl/bn.h>
+
+#include "diffie_hellman.h"
+#include "torrent/exceptions.h"
 
 namespace torrent {
 
-class PeerConnectionLeech : public PeerConnectionBase {
-public:
-  PeerConnectionLeech() : m_tryRequest(true) {}
-  ~PeerConnectionLeech();
+DiffieHellman::DiffieHellman(const unsigned char *prime, int prime_length, const unsigned char *generator, int generator_length) :
+  m_secret(NULL) {
 
-  virtual void        initialize_custom();
+  m_dh = DH_new();
+  m_dh->p = BN_bin2bn(prime, prime_length, NULL);
+  m_dh->g = BN_bin2bn(generator, generator_length, NULL);
 
-  virtual void        update_interested();
-
-  virtual void        receive_finished_chunk(int32_t index);
-  virtual bool        receive_keepalive();
-
-  virtual void        event_read();
-  virtual void        event_write();
-
-private:
-  inline bool         read_message();
-  void                read_have_chunk(uint32_t index);
-
-  inline unsigned int read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length);
-  inline void         fill_write_buffer();
-
-  bool                m_tryRequest;
+  DH_generate_key(m_dh);
 };
 
+DiffieHellman::~DiffieHellman() {
+  free(m_secret);
+  DH_free(m_dh);
+};
+
+void
+DiffieHellman::compute_secret(const unsigned char *pubkey, int length) {
+  BIGNUM* k;
+
+  free(m_secret);
+
+  k = BN_bin2bn(pubkey, length, NULL);
+  m_secret = (unsigned char*) malloc(DH_size(m_dh));
+  m_length = DH_compute_key(m_secret, k, m_dh);
+  BN_free(k);
+};
+
+void
+DiffieHellman::store_pub_key(unsigned char* to, int length) {
+  std::memset(to, 0, length);
+  if (length >= BN_num_bytes(m_dh->pub_key))
+    BN_bn2bin(m_dh->pub_key, to + length - BN_num_bytes(m_dh->pub_key));
 }
 
-#endif
+};

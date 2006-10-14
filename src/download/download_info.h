@@ -88,7 +88,8 @@ public:
   void                set_name(const std::string& s)               { m_name = s; }
 
   const std::string&  hash() const                                 { return m_hash; }
-  void                set_hash(const std::string& hash)            { m_hash = hash; }
+  const std::string&  hash_obfuscated() const                      { return m_hash_obfuscated; }
+  void                set_hash(const std::string& hash);
 
   const std::string&  local_id() const                             { return m_localId; }
   void                set_local_id(const std::string& id)          { m_localId = id; }
@@ -134,6 +135,7 @@ public:
 private:
   std::string         m_name;
   std::string         m_hash;
+  std::string         m_hash_obfuscated;
   std::string         m_localId;
 
   bool                m_isOpen;

@@ -42,6 +42,7 @@
 #include <rak/functional.h>
 #include <rak/unordered_vector.h>
 #include <rak/socket_address.h>
+#include <torrent/connection_manager.h>
 
 #include "net/socket_fd.h"
 
@@ -78,14 +79,18 @@ public:
   void                add_outgoing(const rak::socket_address& sa, DownloadMain* info);
 
   void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
+  void                slot_download_id_obfuscated(SlotDownloadId s) { m_slotDownloadIdObfuscated = s; }
 
   void                receive_succeeded(Handshake* h);
-  void                receive_failed(Handshake* h);
+  void                receive_failed(Handshake* h, ConnectionManager::HandshakeMessage message, uint32_t err);
+  void                receive_timeout(Handshake* h);
 
   // This needs to be filterable slot.
   DownloadMain*       download_info(const std::string& hash)    { return m_slotDownloadId(hash); }
+  DownloadMain*       download_info_obfuscated(const std::string& hash) { return m_slotDownloadIdObfuscated(hash); }
 
 private:
+  void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryption_options);
   void                erase(Handshake* handshake);
 
   bool                setup_socket(SocketFd fd);
@@ -95,6 +100,7 @@ private:
   inline void         post_insert(Handshake* h, PeerConnectionBase* pcb);
 
   SlotDownloadId      m_slotDownloadId;
+  SlotDownloadId      m_slotDownloadIdObfuscated;
 };
 
 }

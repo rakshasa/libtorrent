@@ -55,16 +55,16 @@ ConnectionList::clear() {
 }
 
 PeerConnectionBase*
-ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield) {
+ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo) {
   if (size() >= m_maxSize)
     return NULL;
 
-  PeerConnectionBase* peerConnection = m_slotNewConnection();
+  PeerConnectionBase* peerConnection = m_slotNewConnection(encryptionInfo->is_encrypted());
 
   if (peerConnection == NULL || bitfield == NULL)
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
-  peerConnection->initialize(m_download, peerInfo, fd, bitfield);
+  peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo);
 
   base_type::push_back(peerConnection);
   m_download->info()->set_accepting_new_peers(size() < m_maxSize);

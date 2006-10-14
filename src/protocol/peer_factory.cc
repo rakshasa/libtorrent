@@ -43,16 +43,19 @@
 namespace torrent {
 
 PeerConnectionBase*
-createPeerConnectionDefault() {
-//   PeerConnection* pc = new PeerConnectionLeech;
+createPeerConnectionDefault(bool encrypted) {
   PeerConnectionBase* pc = new PeerConnectionLeech;
 
   return pc;
 }
 
 PeerConnectionBase*
-createPeerConnectionSeed() {
-  PeerConnectionBase* pc = new PeerConnectionSeed;
+createPeerConnectionSeed(bool encrypted) {
+  PeerConnectionBase* pc;
+  if (encrypted)
+    pc = new PeerConnectionLeech;   // PCS doesn't have encryption support
+  else
+    pc = new PeerConnectionSeed;
 
   return pc;
 }

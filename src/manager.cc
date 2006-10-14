@@ -81,6 +81,7 @@ Manager::Manager() :
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 
   m_handshakeManager->slot_download_id(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main));
+  m_handshakeManager->slot_download_id_obfuscated(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main_obfuscated));
   m_connectionManager->listen()->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
 }
 

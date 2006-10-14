@@ -45,6 +45,8 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
+#include <sigc++/connection.h>
+#include <sigc++/signal.h>
 #include <sigc++/slot.h>
 
 class sockaddr;
@@ -74,6 +76,30 @@ public:
   static const priority_type iptos_mincost     = iptos_throughput;
 #endif
 
+  static const uint32_t encryption_none             = 0;
+  static const uint32_t encryption_allow_incoming   = (1 << 0);
+  static const uint32_t encryption_try_outgoing     = (1 << 1);
+  static const uint32_t encryption_require          = (1 << 2);
+  static const uint32_t encryption_require_RC4      = (1 << 3);
+  static const uint32_t encryption_enable_retry     = (1 << 4);
+  static const uint32_t encryption_prefer_plaintext = (1 << 5);
+
+  typedef enum {
+    handshake_incoming,
+    handshake_outgoing,
+    handshake_outgoing_encrypted,
+
+    handshake_success,
+    handshake_dropped,
+    handshake_failed,
+
+    handshake_retry_plaintext,
+    handshake_retry_encrypted,
+  } HandshakeMessage;
+
+  typedef sigc::slot4<void, const sockaddr*, HandshakeMessage, uint32_t, std::string>   slot_handshake_type;
+  typedef sigc::signal4<void, const sockaddr*, HandshakeMessage, uint32_t, std::string> signal_handshake_type;
+
   ConnectionManager();
   ~ConnectionManager();
   
@@ -101,6 +127,9 @@ public:
   uint32_t            receive_buffer_size() const             { return m_receiveBufferSize; }
   void                set_receive_buffer_size(uint32_t s);
 
+  uint32_t            encryption_options()                    { return m_encryptionOptions; }
+  void                set_encryption_options(uint32_t options) { m_encryptionOptions = options; } 
+
   // Propably going to have to make m_bindAddress a pointer to make it
   // safe.
   //
@@ -118,6 +147,9 @@ public:
 
   bool                listen_open(port_type begin, port_type end);
   void                listen_close();  
+
+  signal_handshake_type& signal_handshake_log()               { return m_signalHandshakeLog; }
+  sigc::connection    set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
 
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,
@@ -138,6 +170,7 @@ private:
   priority_type       m_priority;
   uint32_t            m_sendBufferSize;
   uint32_t            m_receiveBufferSize;
+  int                 m_encryptionOptions;
 
   sockaddr*           m_bindAddress;
   sockaddr*           m_localAddress;
@@ -146,6 +179,7 @@ private:
   port_type           m_listenPort;
 
   slot_filter_type    m_slotFilter;
+  signal_handshake_type m_signalHandshakeLog;
 };
 
 }

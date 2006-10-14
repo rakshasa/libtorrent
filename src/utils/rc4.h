@@ -34,38 +34,27 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
+#ifndef LIBTORRENT_RC4_H
+#define LIBTORRENT_RC4_H
 
-#include "peer_connection_base.h"
+#include <string>
+
+#include <openssl/rc4.h>
 
 namespace torrent {
 
-class PeerConnectionLeech : public PeerConnectionBase {
+class RC4 {
 public:
-  PeerConnectionLeech() : m_tryRequest(true) {}
-  ~PeerConnectionLeech();
+  RC4()                                                               { }
+  RC4(const unsigned char key[], int len)                             { RC4_set_key(&m_key, len, key); }
 
-  virtual void        initialize_custom();
-
-  virtual void        update_interested();
-
-  virtual void        receive_finished_chunk(int32_t index);
-  virtual bool        receive_keepalive();
-
-  virtual void        event_read();
-  virtual void        event_write();
+  void crypt(const void* indata, void* outdata, unsigned int length)  { ::RC4(&m_key, length, (const unsigned char*)indata, (unsigned char*)outdata); }
+  void crypt(void* data, unsigned int length)                         { ::RC4(&m_key, length, (unsigned char*)data, (unsigned char*)data); }
 
 private:
-  inline bool         read_message();
-  void                read_have_chunk(uint32_t index);
-
-  inline unsigned int read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length);
-  inline void         fill_write_buffer();
-
-  bool                m_tryRequest;
+  RC4_KEY m_key;
 };
 
-}
+};
 
 #endif

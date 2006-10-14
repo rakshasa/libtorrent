@@ -240,17 +240,15 @@ TrackerUdp::parse_url() {
 
 void
 TrackerUdp::prepare_connect_input() {
-  m_writeBuffer->reset_position();
+  m_writeBuffer->reset();
   m_writeBuffer->write_64(m_connectionId = magic_connection_id);
   m_writeBuffer->write_32(m_action = 0);
   m_writeBuffer->write_32(m_transactionId = random());
-
-  m_writeBuffer->prepare_end();
 }
 
 void
 TrackerUdp::prepare_announce_input() {
-  m_writeBuffer->reset_position();
+  m_writeBuffer->reset();
 
   m_writeBuffer->write_64(m_connectionId);
   m_writeBuffer->write_32(m_action = 1);
@@ -274,8 +272,6 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_32(m_info->key());
   m_writeBuffer->write_32(m_info->numwant());
   m_writeBuffer->write_16(manager->connection_manager()->listen_port());
-
-  m_writeBuffer->prepare_end();
 
   if (m_writeBuffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");

@@ -34,38 +34,32 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-
-#include "peer_connection_base.h"
+#include "error.h"
 
 namespace torrent {
 
-class PeerConnectionLeech : public PeerConnectionBase {
-public:
-  PeerConnectionLeech() : m_tryRequest(true) {}
-  ~PeerConnectionLeech();
+const char*
+strerror(int err) {
+  static const char* errorStr[E_Max+1] = {
+    "",                                   // EH_None
+    "not BT protocol",                    // EH_NotBTProtocol
+    "not accepting new peers",            // EH_NotAcceptingPeers
+    "duplicate peer ID",                  // EH_Duplicate
+    "unknown download",                   // EH_Unknown
+    "download inactive",                  // EH_Inactive
+    "seeder while seeding",               // EH_SeederRejected
+    "talking to self",                    // EH_IsSelf
+    "invalid value received",             // EH_InvalidValue
+    "unencrypted connection rejected",    // EH_UnencryptedRejected
+    "invalid encryption method",          // EH_InvalidEncryptionMethod
+    "encryption sync failed",             // EH_EncryptionSyncFailed
+    "network error",                      // EH_NetworkError
+  };
 
-  virtual void        initialize_custom();
-
-  virtual void        update_interested();
-
-  virtual void        receive_finished_chunk(int32_t index);
-  virtual bool        receive_keepalive();
-
-  virtual void        event_read();
-  virtual void        event_write();
-
-private:
-  inline bool         read_message();
-  void                read_have_chunk(uint32_t index);
-
-  inline unsigned int read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length);
-  inline void         fill_write_buffer();
-
-  bool                m_tryRequest;
-};
-
+  if (err < 0 || (unsigned int) err >= sizeof(errorStr)/sizeof(errorStr[0]))
+    return "unknown error";
+  
+  return errorStr[err];
 }
 
-#endif
+}

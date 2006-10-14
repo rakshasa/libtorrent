@@ -50,6 +50,7 @@ class DownloadWrapper;
 class PeerConnectionBase;
 class PeerInfo;
 class SocketFd;
+class EncryptionInfo;
 
 class ConnectionList : private rak::unordered_vector<PeerConnectionBase*> {
 public:
@@ -59,7 +60,7 @@ public:
 
   typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> slot_peer_type;
 
-  typedef PeerConnectionBase* (*SlotNewConnection)();
+  typedef PeerConnectionBase* (*SlotNewConnection)(bool encrypted);
 
   using base_type::value_type;
   using base_type::reference;
@@ -92,7 +93,7 @@ public:
   // responsible for cleaning up 'fd'.
   //
   // Clean this up, don't use this many arguments.
-  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield);
+  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo);
 
   iterator            erase(iterator pos, int flags);
   void                erase(PeerInfo* peerInfo, int flags);

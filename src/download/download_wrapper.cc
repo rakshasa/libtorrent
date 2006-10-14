@@ -58,7 +58,20 @@
 
 #include "download_wrapper.h"
 
+// Temporary:
+#include "protocol/handshake.h"
+
 namespace torrent {
+
+// Temporary:
+void
+DownloadInfo::set_hash(const std::string& hash) {
+  char hash_obfuscated[20];
+
+  m_hash = hash;
+  Handshake::generate_hash("req2", hash, hash_obfuscated);
+  m_hash_obfuscated = std::string(hash_obfuscated, 20);
+};
 
 DownloadWrapper::DownloadWrapper() :
   m_bencode(NULL),

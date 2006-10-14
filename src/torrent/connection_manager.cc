@@ -41,6 +41,7 @@
 #include "net/listen.h"
 
 #include "connection_manager.h"
+#include "error.h"
 #include "exceptions.h"
 
 namespace torrent {
@@ -52,6 +53,7 @@ ConnectionManager::ConnectionManager() :
   m_priority(iptos_throughput),
   m_sendBufferSize(0),
   m_receiveBufferSize(0),
+  m_encryptionOptions(encryption_none),
 
   m_listen(new Listen) {
 

@@ -54,6 +54,16 @@ Peer::is_incoming() const {
 }
 
 bool
+Peer::is_encrypted() const {
+  return m_ptr->is_encrypted();
+}
+
+bool
+Peer::is_obfuscated() const {
+  return m_ptr->is_obfuscated();
+}
+
+bool
 Peer::is_local_choked() const {
   return m_ptr->is_up_choked();
 }

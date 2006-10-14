@@ -34,38 +34,36 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
+#ifndef LIBTORRENT_DIFFIE_HELLMAN_H
+#define LIBTORRENT_DIFFIE_HELLMAN_H
 
-#include "peer_connection_base.h"
+#include <string>
+
+#include <openssl/dh.h>
 
 namespace torrent {
 
-class PeerConnectionLeech : public PeerConnectionBase {
+class DiffieHellman {
 public:
-  PeerConnectionLeech() : m_tryRequest(true) {}
-  ~PeerConnectionLeech();
+  DiffieHellman(const unsigned char prime[], int prime_length, const unsigned char generator[], int generator_length);
+  ~DiffieHellman();
 
-  virtual void        initialize_custom();
+  void                  compute_secret(const unsigned char pubkey[], int length);
 
-  virtual void        update_interested();
+  void                  store_pub_key(unsigned char* to, int length);
 
-  virtual void        receive_finished_chunk(int32_t index);
-  virtual bool        receive_keepalive();
-
-  virtual void        event_read();
-  virtual void        event_write();
+  const unsigned char*  secret_cstr()        { return m_secret; }
+  std::string           secret()             { return std::string((char*)m_secret, m_length); }
 
 private:
-  inline bool         read_message();
-  void                read_have_chunk(uint32_t index);
+  DiffieHellman(const DiffieHellman& dh);
+  DiffieHellman& operator = (const DiffieHellman& dh);
 
-  inline unsigned int read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length);
-  inline void         fill_write_buffer();
-
-  bool                m_tryRequest;
+  DH* m_dh;
+  unsigned char* m_secret;
+  int m_length;
 };
 
-}
+};
 
 #endif

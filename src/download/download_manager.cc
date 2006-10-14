@@ -86,8 +86,17 @@ DownloadMain*
 DownloadManager::find_main(const std::string& hash) {
   iterator itr = std::find_if(begin(), end(), rak::equal(hash, rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash))));
 
-  // TODO: Move these checks somewhere else.
-  if (itr == end() || !(*itr)->info()->is_active())
+  if (itr == end())
+    return NULL;
+  else
+    return (*itr)->main();
+}
+
+DownloadMain*
+DownloadManager::find_main_obfuscated(const std::string& hash) {
+  iterator itr = std::find_if(begin(), end(), rak::equal(hash, rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash_obfuscated))));
+
+  if (itr == end())
     return NULL;
   else
     return (*itr)->main();

@@ -42,12 +42,18 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
 #include "torrent/bitfield.h"
+#include "torrent/connection_manager.h"
 #include "torrent/peer_info.h"
+#include "utils/sha1.h"
+
+#include "encryption_info.h"
 
 namespace torrent {
 
 class HandshakeManager;
 class DownloadMain;
+
+class DiffieHellman;
 
 class Handshake : public SocketStream {
 public:
@@ -57,20 +63,35 @@ public:
 
   static const uint32_t protocol_bitfield = 5;
 
-  typedef ProtocolBuffer<handshake_size> Buffer;
+  static const uint32_t enc_negotiation_size = 8 + 4 + 2;
+  static const uint32_t enc_pad_read_size = 96 + 512 + 20;
+
+  // must be no smaller than enc_pad_read_size+20+enc_negotiation_size+512+2+handshake_size = 1244 bytes
+  typedef ProtocolBuffer<4096> Buffer;
 
   typedef enum {
     INACTIVE,
     CONNECTING,
-    WRITE_FILL,
-    WRITE_SEND,
+    BITFIELD,
+
+    READ_ENC_KEY,
+    READ_ENC_SYNC,
+    READ_ENC_SKEY,
+    READ_ENC_NEGOT,
+    READ_ENC_PAD,
+    READ_ENC_IA,
+
     READ_INFO,
     READ_PEER,
-
-    BITFIELD
   } State;
 
-  Handshake(SocketFd fd, HandshakeManager* m);
+  typedef enum {
+    RETRY_NONE,
+    RETRY_PLAIN,
+    RETRY_ENCRYPTED,
+  } Retry;
+
+  Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
   ~Handshake();
 
   bool                is_active() const             { return m_state != INACTIVE; }
@@ -83,7 +104,7 @@ public:
 
   void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
 
-  const rak::socket_address* socket_address() const       { return &m_address; }
+  const rak::socket_address* socket_address() const { return &m_address; }
 
   DownloadMain*       download()                    { return m_download; }
   Bitfield*           bitfield()                    { return &m_bitfield; }
@@ -99,18 +120,42 @@ public:
   virtual void        event_write();
   virtual void        event_error();
 
+  EncryptionInfo*     encryption_info()             { return &m_encryption; }
+
+  bool                do_retry()                    { return (m_encryptionOptions & ConnectionManager::encryption_enable_retry) != 0 && m_retry != Handshake::RETRY_NONE; }
+  int                 retry_options();
+
+  static inline void  generate_hash(const char* salt, std::string key, char* out);
+
 protected:
   Handshake(const Handshake&);
   void operator = (const Handshake&);
   
   void                read_done();
 
-  inline void         prepare_peer_info();
+  bool                fill_read_buffer(int size);
 
-  inline void         prepare_write_bitfield();
-  inline void         prepare_write_keepalive();
+  bool                read_encryption_key();
+  bool                read_encryption_sync();
+  bool                read_encryption_negotiation();
+  bool                read_negotiation_reply();
+  bool                read_info();
+  bool                read_peer();
+  bool                read_bitfield();
+
+  void                prepare_key_plus_pad();
+  void                prepare_enc_negotiation();
+  void                prepare_handshake();
+  void                prepare_peer_info();
+  void                prepare_bitfield();
+  void                prepare_keepalive();
 
   void                write_bitfield();
+
+  DownloadMain*       find_obfuscated_download(uint8_t* obf_hash);
+  inline void         validate_download();
+  void                initialize_decrypt();
+  void                initialize_encrypt();
 
   static const char*  m_protocol;
 
@@ -136,7 +181,26 @@ protected:
 
   rak::socket_address m_address;
   char                m_options[8];
+
+  EncryptionInfo      m_encryption;
+
+  int                 m_encryptionOptions;
+  Retry               m_retry;
+  DiffieHellman*      m_key;
+  std::string         m_sync;
+  uint32_t            m_cryptoSelect;
+  unsigned int        m_lenIA;
 };
+
+inline void
+Handshake::generate_hash(const char* salt, std::string key, char* out) {
+  Sha1 sha1;
+
+  sha1.init();
+  sha1.update(salt, strlen(salt));
+  sha1.update(key.c_str(), key.length());
+  sha1.final_c(out);
+}
 
 }
 

@@ -292,29 +292,19 @@ PeerConnectionSeed::event_write() {
       switch (m_up->get_state()) {
       case ProtocolWrite::IDLE:
 
-        // We might have buffered keepalive message or similar, but
-        // 'end' should remain at the start of the buffer.
-        if (m_up->buffer()->size_end() != 0)
-          throw internal_error("PeerConnectionSeed::event_write() ProtocolWrite::IDLE in a wrong state.");
-
         // Fill up buffer.
         fill_write_buffer();
 
-        if (m_up->buffer()->size_position() == 0) {
+        if (m_up->buffer()->size_end() == 0) {
           manager->poll()->remove_write(this);
           return;
         }
 
         m_up->set_state(ProtocolWrite::MSG);
-        m_up->buffer()->prepare_end();
 
       case ProtocolWrite::MSG:
-        m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
-
-        if (m_up->buffer()->remaining())
+        if (!m_up->buffer()->consume(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining())))
           return;
-
-        m_up->buffer()->reset();
 
         if (m_up->last_command() != ProtocolBase::PIECE) {
           // Break or loop? Might do an ifelse based on size of the

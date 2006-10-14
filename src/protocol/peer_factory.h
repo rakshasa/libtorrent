@@ -41,8 +41,8 @@ namespace torrent {
 
 class PeerConnectionBase;
 
-PeerConnectionBase* createPeerConnectionDefault();
-PeerConnectionBase* createPeerConnectionSeed();
+PeerConnectionBase* createPeerConnectionDefault(bool encrypted);
+PeerConnectionBase* createPeerConnectionSeed(bool encrypted);
 
 }
 

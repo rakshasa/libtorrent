@@ -98,6 +98,7 @@ public:
   // Returns "" if the object is not valid.
   const std::string&  name() const;
   const std::string&  info_hash() const;
+  const std::string&  info_hash_obfuscated() const;
   const std::string&  local_id() const;
 
   // Unix epoche, 0 == unknown.

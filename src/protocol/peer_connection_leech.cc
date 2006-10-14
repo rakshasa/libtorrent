@@ -108,7 +108,11 @@ PeerConnectionLeech::receive_keepalive() {
       m_up->can_write_keepalive()) {
 
     write_insert_poll_safe();
+
+    ProtocolBuffer<512>::iterator old_end = m_up->buffer()->end();
     m_up->write_keepalive();
+    if (is_encrypted())
+      m_encryption.encrypt(old_end, m_up->buffer()->end() - old_end);
   }
 
   m_tryRequest = true;
@@ -265,6 +269,16 @@ PeerConnectionLeech::read_message() {
   return false;
 }
 
+inline unsigned int
+PeerConnectionLeech::read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length) {
+  unsigned int read;
+  read = read_stream_throws(buffer->end(), read_size - buffer->size_end());
+  if (is_encrypted())
+    m_encryption.decrypt(buffer->end(), read);
+  buffer->move_end(read);
+  return read;
+}
+
 void
 PeerConnectionLeech::event_read() {
   m_timeLastRead = cachedTime;
@@ -292,8 +306,8 @@ PeerConnectionLeech::event_read() {
         if (m_down->buffer()->size_end() == read_size)
           throw internal_error("PeerConnectionLeech::event_read() m_down->buffer()->size_end() == read_size.");
 
-        m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
-        
+        read_decrypt(m_down->buffer(), read_size);
+
         while (read_message());
         
         if (m_down->buffer()->size_end() == read_size) {
@@ -373,6 +387,8 @@ PeerConnectionLeech::event_read() {
 
 inline void
 PeerConnectionLeech::fill_write_buffer() {
+  ProtocolBuffer<512>::iterator old_end = m_up->buffer()->end();
+
   // No need to use delayed choke as we are a leecher.
   if (m_sendChoked && m_up->can_write_choke()) {
     m_sendChoked = false;
@@ -383,6 +399,11 @@ PeerConnectionLeech::fill_write_buffer() {
       up_chunk_release();
       m_peerChunks.upload_queue()->clear();
 
+      if (m_encryptBuffer && m_encryptBuffer->remaining())
+        throw internal_error("Deleting encryptBuffer with encrypted data remaining!");
+
+      delete m_encryptBuffer;
+      m_encryptBuffer = NULL;
     } else {
       m_download->upload_throttle()->insert(m_peerChunks.upload_throttle());
     }
@@ -416,6 +437,9 @@ PeerConnectionLeech::fill_write_buffer() {
       !m_peerChunks.upload_queue()->empty() &&
       m_up->can_write_piece())
     write_prepare_piece();
+
+  if (is_encrypted())
+    m_encryption.encrypt(old_end, m_up->buffer()->end() - old_end);
 }
 
 void
@@ -427,29 +451,18 @@ PeerConnectionLeech::event_write() {
       switch (m_up->get_state()) {
       case ProtocolWrite::IDLE:
 
-        // We might have buffered keepalive message or similar, but
-        // 'end' should remain at the start of the buffer.
-        if (m_up->buffer()->size_end() != 0)
-          throw internal_error("PeerConnectionLeech::event_write() ProtocolWrite::IDLE in a wrong state.");
-
-        // Fill up buffer.
         fill_write_buffer();
 
-        if (m_up->buffer()->size_position() == 0) {
+        if (m_up->buffer()->remaining() == 0) {
           manager->poll()->remove_write(this);
           return;
         }
 
         m_up->set_state(ProtocolWrite::MSG);
-        m_up->buffer()->prepare_end();
 
       case ProtocolWrite::MSG:
-        m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
-
-        if (m_up->buffer()->remaining())
+        if (!m_up->buffer()->consume(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining())))
           return;
-
-        m_up->buffer()->reset();
 
         if (m_up->last_command() != ProtocolBase::PIECE) {
           // Break or loop? Might do an ifelse based on size of the
@@ -460,6 +473,10 @@ PeerConnectionLeech::event_write() {
 
         // We're uploading a piece.
         load_up_chunk();
+        if (is_encrypted() && m_encryptBuffer == NULL) {
+          m_encryptBuffer = new EncryptBuffer();
+          m_encryptBuffer->reset();
+        }
         m_up->set_state(ProtocolWrite::WRITE_PIECE);
 
       case ProtocolWrite::WRITE_PIECE:

@@ -65,6 +65,8 @@ public:
   // Does not check if it has been removed from the download.
   bool                 is_valid() const { return m_ptr; }
   bool                 is_incoming() const;
+  bool                 is_encrypted() const;
+  bool                 is_obfuscated() const;
 
   bool                 is_local_choked() const;
   bool                 is_local_interested() const;

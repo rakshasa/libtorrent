@@ -34,36 +34,37 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
-#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_LEECH_H
+#ifndef LIBTORRENT_PROTOCOL_ENCRYPTION_H
+#define LIBTORRENT_PROTOCOL_ENCRYPTION_H
 
-#include "peer_connection_base.h"
+#include "utils/rc4.h"
 
 namespace torrent {
 
-class PeerConnectionLeech : public PeerConnectionBase {
+class EncryptionInfo {
 public:
-  PeerConnectionLeech() : m_tryRequest(true) {}
-  ~PeerConnectionLeech();
+  EncryptionInfo() : m_encrypted(false), m_obfuscated(false), m_decryptValid(false) {};
 
-  virtual void        initialize_custom();
+  void                encrypt(const void *indata, void *outdata, unsigned int length) { m_encrypt.crypt(indata, outdata, length); }
+  void                encrypt(void *data, unsigned int length)                        { m_encrypt.crypt(data, length); }
+  void                decrypt(const void *indata, void *outdata, unsigned int length) { m_decrypt.crypt(indata, outdata, length); }
+  void                decrypt(void *data, unsigned int length)                        { m_decrypt.crypt(data, length); }
 
-  virtual void        update_interested();
+  bool                is_encrypted() const              { return m_encrypted; }
+  bool                is_obfuscated() const             { return m_obfuscated; }
+  bool                decrypt_valid() const             { return m_decryptValid; }
 
-  virtual void        receive_finished_chunk(int32_t index);
-  virtual bool        receive_keepalive();
-
-  virtual void        event_read();
-  virtual void        event_write();
+  void                set_obfuscated()                  { m_obfuscated = true; m_encrypted = m_decryptValid = false; }
+  void                set_encrypt(RC4 encrypt)          { m_encrypt = encrypt; m_encrypted = m_obfuscated = true; }
+  void                set_decrypt(RC4 decrypt)          { m_decrypt = decrypt; m_decryptValid = true; }
 
 private:
-  inline bool         read_message();
-  void                read_have_chunk(uint32_t index);
+  bool                m_encrypted;
+  bool                m_obfuscated;
+  bool                m_decryptValid;
 
-  inline unsigned int read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length);
-  inline void         fill_write_buffer();
-
-  bool                m_tryRequest;
+  RC4                 m_encrypt;
+  RC4                 m_decrypt;
 };
 
 }

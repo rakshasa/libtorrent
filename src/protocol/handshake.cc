@@ -39,9 +39,12 @@
 #include "data/content.h"
 #include "download/download_info.h"
 #include "download/download_main.h"
+#include "rak/string_manip.h"
 #include "torrent/exceptions.h"
-#include "torrent/connection_manager.h"
+#include "torrent/error.h"
 #include "torrent/poll.h"
+#include "utils/diffie_hellman.h"
+#include "utils/rc4.h"
 
 #include "globals.h"
 #include "manager.h"
@@ -53,7 +56,44 @@ namespace torrent {
 
 const char* Handshake::m_protocol = "BitTorrent protocol";
 
-Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
+static const unsigned char DH_Prime[] = {
+               0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC9, 0x0F, 0xDA, 0xA2,
+               0x21, 0x68, 0xC2, 0x34, 0xC4, 0xC6, 0x62, 0x8B, 0x80, 0xDC, 0x1C, 0xD1,
+               0x29, 0x02, 0x4E, 0x08, 0x8A, 0x67, 0xCC, 0x74, 0x02, 0x0B, 0xBE, 0xA6,
+               0x3B, 0x13, 0x9B, 0x22, 0x51, 0x4A, 0x08, 0x79, 0x8E, 0x34, 0x04, 0xDD,
+               0xEF, 0x95, 0x19, 0xB3, 0xCD, 0x3A, 0x43, 0x1B, 0x30, 0x2B, 0x0A, 0x6D,
+               0xF2, 0x5F, 0x14, 0x37, 0x4F, 0xE1, 0x35, 0x6D, 0x6D, 0x51, 0xC2, 0x45, 
+               0xE4, 0x85, 0xB5, 0x76, 0x62, 0x5E, 0x7E, 0xC6, 0xF4, 0x4C, 0x42, 0xE9,
+               0xA6, 0x3A, 0x36, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x05, 0x63, 
+};
+static const int DH_Prime_Length = 96;
+
+static const unsigned char VC[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+static const int VC_Length = 8;
+
+static const unsigned char DH_Generator[] = { 2 };
+static const int DH_Generator_Length = 1;
+
+const uint32_t Crypto_Plain = 1;
+const uint32_t Crypto_RC4 = 2;
+
+class handshake_error : public network_error {
+public:
+  handshake_error(ConnectionManager::HandshakeMessage type, int error) : network_error("handshake error"), m_type(type), m_error(error) {}
+
+  virtual ConnectionManager::HandshakeMessage type() const throw()  { return m_type; }
+  virtual int error() const throw()                                 { return m_error; }
+private:
+  ConnectionManager::HandshakeMessage m_type;
+  int                                 m_error;
+};
+
+class handshake_succeeded : public network_error {
+public:
+  handshake_succeeded() : network_error("handshake succeeded") {}
+};
+
+Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryption_options) :
   m_state(INACTIVE),
 
   m_manager(m),
@@ -61,7 +101,11 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
   m_download(NULL),
 
   m_readDone(false),
-  m_writeDone(false) {
+  m_writeDone(false),
+
+  m_encryptionOptions(encryption_options),
+  m_retry(RETRY_NONE),
+  m_key(NULL) {
 
   set_fd(fd);
 
@@ -69,7 +113,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m) :
   m_writeBuffer.reset();      
 
   m_taskTimeout.clear_time();
-  m_taskTimeout.set_slot(rak::bind_mem_fn(m, &HandshakeManager::receive_failed, this));
+  m_taskTimeout.set_slot(rak::bind_mem_fn(m, &HandshakeManager::receive_timeout, this));
 }
 
 Handshake::~Handshake() {
@@ -85,6 +129,8 @@ Handshake::~Handshake() {
     m_peerInfo->unset_flags(PeerInfo::flag_handshake);
     m_peerInfo = NULL;
   }
+
+  delete m_key;
 }
 
 void
@@ -111,7 +157,10 @@ Handshake::initialize_incoming(const rak::socket_address& sa) {
   m_incoming = true;
   m_address = sa;
 
-  m_state = READ_INFO;
+  if (m_encryptionOptions & (ConnectionManager::encryption_allow_incoming | ConnectionManager::encryption_require)) 
+    m_state = READ_ENC_KEY;
+  else
+    m_state = READ_INFO;
 
   manager->poll()->open(this);
   manager->poll()->insert_read(this);
@@ -133,139 +182,588 @@ Handshake::clear() {
   manager->poll()->close(this);
 }
 
+int
+Handshake::retry_options() {
+  int options = m_encryptionOptions & ~ConnectionManager::encryption_enable_retry;
+
+  if (m_retry == RETRY_PLAIN)
+    options &= ~ConnectionManager::encryption_try_outgoing;
+  else if (m_retry == RETRY_ENCRYPTED)
+    options |= ConnectionManager::encryption_try_outgoing;
+  else
+    throw internal_error("Unhandled retry type.");
+
+  return options;
+}
+
+void
+Handshake::prepare_key_plus_pad() {
+  m_key = new DiffieHellman(DH_Prime, DH_Prime_Length, DH_Generator, DH_Generator_Length);
+  m_key->store_pub_key(m_writeBuffer.end(), 96);
+  m_writeBuffer.move_end(96);
+
+  int padLen = random() % 512;
+  m_writeBuffer.write_len(rak::generate_random<std::string>(padLen).c_str(), padLen);
+}
+
+bool
+Handshake::read_encryption_key() {
+  if (m_incoming) {
+    if (m_readBuffer.remaining() < 20)
+      m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), 20 - m_readBuffer.remaining()));
+    if (m_readBuffer.remaining() < 20)
+      return false;
+
+    if (m_readBuffer.peek_8() == 19 && std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) == 0) {
+      // got unencrypted BT handshake
+      if (m_encryptionOptions & ConnectionManager::encryption_require)
+        throw handshake_error(ConnectionManager::handshake_dropped, EH_UnencryptedRejected);
+
+      m_state = READ_INFO;
+      return true;
+    }
+  }
+
+  // read as much of key, pad and sync string as we can; this is safe because peer can't send
+  // anything beyond the initial BT handshake because it doesn't know our encryption choice yet
+  if (m_readBuffer.remaining() < enc_pad_read_size)
+  m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), enc_pad_read_size - m_readBuffer.remaining()));
+
+  // but we need at least the key at this point
+  if (m_readBuffer.size_end() < 96)
+    return false;
+
+  // If the handshake fails after this, it wasn't because the peer
+  // doesn't like encrypted connections, so don't retry unencrypted
+  m_retry = RETRY_NONE;
+
+  if (m_incoming)
+    prepare_key_plus_pad();
+
+  m_key->compute_secret(m_readBuffer.position(), 96);
+  m_readBuffer.consume(96);
+
+  // determine synchronisation string
+  if (m_incoming) {
+    // incoming: peer sends HASH('req1' + S)
+    char hash[20];
+    generate_hash("req1", m_key->secret(), hash);
+    m_sync = std::string(hash, 20);
+  } else {
+    // outgoing: peer sends ENCRYPT(VC)
+    Sha1 sha1;
+    char hash[20];
+
+    sha1.init();
+    sha1.update("keyB", 4);
+    sha1.update(m_key->secret_cstr(), 96);
+    sha1.update(m_download->info()->hash().c_str(), 20);
+    sha1.final_c(hash);
+
+    char discard[1024];
+    RC4 peerEncrypt((const unsigned char*)hash, 20);
+
+    peerEncrypt.crypt(discard, 1024);
+
+    char sync[VC_Length];
+    std::memcpy(sync, VC, VC_Length);
+    peerEncrypt.crypt(sync, VC_Length);
+    m_sync = std::string(sync, VC_Length);
+  }
+
+  // also put as much as we can write so far in the buffer
+  if (!m_incoming)
+    prepare_enc_negotiation();
+
+  m_state = READ_ENC_SYNC;
+
+  return true;
+}
+
+bool
+Handshake::read_encryption_sync() {
+  // see if we've read the sync string already in the previous state (this is very likely and avoids an unneeded read)
+  int pos = std::string(m_readBuffer.position(), m_readBuffer.end()).find(m_sync);
+
+  if (pos == -1) {
+    // otherwise read as many bytes as possible until we find the sync string
+   int toRead = 512 + m_sync.length() - m_readBuffer.remaining();
+
+   if (toRead <= 0)
+      throw handshake_error(ConnectionManager::handshake_failed, EH_EncryptionSyncFailed);
+
+    m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), toRead));
+
+    pos = std::string(m_readBuffer.position(), m_readBuffer.end()).find(m_sync);
+    if (pos == -1)
+      return false;
+  }
+
+  if (m_incoming) {
+    // we've found HASH('req1' + S), skip that and go on reading the SKEY hash
+    m_readBuffer.consume(pos + 20);
+    m_state = READ_ENC_SKEY;
+  } else {
+    m_readBuffer.consume(pos);
+    m_state = READ_ENC_NEGOT;
+  }
+
+  return true;
+}
+
+bool
+Handshake::read_encryption_negotiation() {
+  if (!fill_read_buffer(enc_negotiation_size))
+    return false;
+
+  if (!m_incoming) {
+    // start decrypting, but don't decrypt beyond the initial encrypted handshake and later the pad
+    // because we may have read too much data which may be unencrypted if the peer chose that option
+    initialize_decrypt();
+    m_encryption.decrypt(m_readBuffer.position(), enc_negotiation_size);
+  }
+
+  if (std::memcmp(m_readBuffer.position(), VC, VC_Length) != 0)
+    throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+
+  m_readBuffer.consume(VC_Length);
+
+  m_cryptoSelect = m_readBuffer.read_32();
+  m_readPos = m_readBuffer.read_16();       // length of padC/padD
+
+  if (m_readPos > 512)
+    throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+
+  // choose one of the offered encryptions, or check the chosen one is valid
+  if (m_incoming) {
+    if ((m_encryptionOptions & ConnectionManager::encryption_prefer_plaintext) && (m_cryptoSelect & Crypto_Plain)) {
+      m_cryptoSelect = Crypto_Plain;
+    } else if ((m_encryptionOptions & ConnectionManager::encryption_require_RC4) && !(m_cryptoSelect & Crypto_RC4)) {
+      throw handshake_error(ConnectionManager::handshake_dropped, EH_UnencryptedRejected);
+    } else if (m_cryptoSelect & Crypto_RC4) {
+      m_cryptoSelect = Crypto_RC4;
+    } else if (m_cryptoSelect & Crypto_Plain) {
+      m_cryptoSelect = Crypto_Plain;
+    } else {
+      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidEncryptionMethod);
+    }
+
+    // at this point we can also write the rest of our negotiation reply
+    m_writeBuffer.write_32(m_cryptoSelect);
+    m_writeBuffer.write_16(0);
+    m_encryption.encrypt(m_writeBuffer.end() - 4 - 2, 4 + 2);
+  } else {
+    if (m_cryptoSelect != Crypto_RC4 && m_cryptoSelect != Crypto_Plain)
+      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidEncryptionMethod);
+    if ((m_encryptionOptions & ConnectionManager::encryption_require_RC4) && (m_cryptoSelect != Crypto_RC4))
+      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidEncryptionMethod);
+  }
+
+  if (!m_incoming) {
+    // decrypt appropriate part of buffer: only pad or all
+    if (m_cryptoSelect == Crypto_Plain)
+      m_encryption.decrypt(m_readBuffer.position(), std::min<uint32_t>(m_readPos, m_readBuffer.remaining()));
+    else
+      m_encryption.decrypt(m_readBuffer.position(), m_readBuffer.remaining());
+  }
+
+  // next, skip padC/padD
+  m_state = READ_ENC_PAD;
+  return true;
+}
+
+bool
+Handshake::read_negotiation_reply() {
+  if (!m_incoming) {
+    if (m_cryptoSelect != Crypto_RC4)
+      m_encryption.set_obfuscated();
+
+    m_state = READ_INFO;
+    return true;
+  }
+
+  if (!fill_read_buffer(2))
+    return false;
+
+  // peer may send initial payload that is RC4 encrypted even
+  // if we have selected plaintext encryption, so read it ahead of BT handshake
+  m_lenIA = m_readBuffer.read_16();
+  if (m_lenIA > handshake_size)
+    throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+
+  m_state = READ_ENC_IA;
+
+  return true;
+}
+
+bool
+Handshake::read_info() {
+  fill_read_buffer(handshake_size);
+
+  // Check the first byte as early as possible so we can
+  // disconnect non-BT connections if they send less than 20 bytes.
+  if ((m_readBuffer.remaining() >= 1 && m_readBuffer.peek_8() != 19) || m_readBuffer.remaining() >= 20 && (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0))
+    throw handshake_error(ConnectionManager::handshake_failed, EH_NotBTProtocol);
+
+  if (m_readBuffer.remaining() < part1_size)
+    return false;
+
+  // If the handshake fails after this, it isn't being rejected because
+  // it is unencrypted, so don't retry
+  m_retry = RETRY_NONE;
+
+  m_readBuffer.consume(20);
+
+  // Should do some option field stuff here, for now just copy.
+  m_readBuffer.read_range(m_options, m_options + 8);
+
+  // Check the info hash.
+  if (m_incoming) {
+    if (m_download != NULL) {
+      // Have the download from the encrypted handshake, make sure it matches the BT handshake
+      if (m_download->info()->hash() != std::string(m_readBuffer.position(), m_readBuffer.position() + 20))
+        throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+    } else {
+      m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+    }
+    validate_download();
+
+    prepare_handshake();
+  } else {
+    if (std::memcmp(m_download->info()->hash().c_str(), m_readBuffer.position(), 20) != 0)
+      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+  }
+
+  m_readBuffer.consume(20);
+
+  m_state = READ_PEER;
+
+  return true;
+}
+
+bool
+Handshake::read_peer() {
+  if (!fill_read_buffer(20))
+    return false;
+
+  prepare_peer_info();
+
+  // The download is just starting so we're not sending any
+  // bitfield.
+  if (m_download->content()->bitfield()->is_all_unset())
+    prepare_keepalive();
+  else
+    prepare_bitfield();
+
+  m_state = BITFIELD;
+  manager->poll()->insert_write(this);
+
+  // Give some extra time for reading/writing the bitfield.
+  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(120)).round_seconds());
+
+  // Trigger event_write() directly and then skip straight to read
+  // BITFIELD. This avoids going through polling for the first
+  // write.
+  write_bitfield();
+
+  return false;
+}
+
+bool
+Handshake::read_bitfield() {
+  if (m_bitfield.empty()) {
+    fill_read_buffer(5);
+
+    // Received a keep-alive message which means we won't be
+    // getting any bitfield.
+    if (m_readBuffer.size_end() >= 4 && m_readBuffer.peek_32() == 0) {
+      m_readBuffer.read_32();
+      read_done();
+      return false;
+    }
+
+    if (m_readBuffer.size_end() < 5)
+      return false;
+
+    // Received a non-bitfield command.
+    if (m_readBuffer.peek_8_at(4) != protocol_bitfield) {
+      read_done();
+      return false;
+    }
+
+    if (m_readBuffer.read_32() != m_download->content()->bitfield()->size_bytes() + 1)
+      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+
+    m_readBuffer.read_8();
+    m_readPos = 0;
+
+    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
+    m_bitfield.allocate();
+
+    if (m_readBuffer.remaining() != 0) {
+      m_readPos = std::min<uint32_t>(m_bitfield.size_bytes(), m_readBuffer.remaining());
+      std::memcpy(m_bitfield.begin(), m_readBuffer.position(), m_readPos);
+      m_readBuffer.consume(m_readPos);
+    }
+  }
+
+  if (m_readPos < m_bitfield.size_bytes()) {
+    uint32_t read;
+    read = read_stream_throws(m_bitfield.begin() + m_readPos, m_bitfield.size_bytes() - m_readPos);
+    if (m_encryption.decrypt_valid())
+      m_encryption.decrypt(m_bitfield.begin() + m_readPos, read);
+    m_readPos += read;
+  }
+
+  if (m_readPos == m_bitfield.size_bytes())
+    read_done();
+
+  return true;
+}
+
 void
 Handshake::event_read() {
   try {
 
+restart:
     switch (m_state) {
-    case READ_INFO:
-      m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), handshake_size - m_readBuffer.size_end()));
 
-      // Check the first byte as early as possible so we can
-      // disconnect non-BT connections if they send less than 20 bytes.
-      if (m_readBuffer.size_end() >= 1 && m_readBuffer.peek_8() != 19)
-        return m_manager->receive_failed(this);
-      
-      if (m_readBuffer.size_end() < part1_size)
-        return;
+    case READ_ENC_KEY:
+      if (!read_encryption_key())
+        break;
 
-      if (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0)
-        return m_manager->receive_failed(this);
+      if (m_state != READ_ENC_SYNC)
+        goto restart;
 
-      m_readBuffer.move_position(20);
+    case READ_ENC_SYNC:
+      if (!read_encryption_sync())
+        break;
 
-      // Should do some option field stuff here, for now just copy.
-      m_readBuffer.read_range(m_options, m_options + 8);
+      if (m_state != READ_ENC_SKEY)
+        goto restart;
 
-      // Check the info hash.
-      if (m_incoming) {
-        m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
-        m_readBuffer.move_position(20);
+    case READ_ENC_SKEY:
+      if (!fill_read_buffer(20))
+        break;
 
-        if (m_download == NULL || !m_download->info()->is_accepting_new_peers())
-          return m_manager->receive_failed(this);
+      m_download = find_obfuscated_download(m_readBuffer.position());
+      m_readBuffer.consume(20);
+      validate_download();
 
-        m_state = WRITE_FILL;
+      initialize_encrypt();
+      initialize_decrypt();
 
-        manager->poll()->remove_read(this);
-        manager->poll()->insert_write(this);
+      m_encryption.decrypt(m_readBuffer.position(), m_readBuffer.remaining());
 
-        return;
+      m_writeBuffer.write_range(VC, VC + VC_Length);
+      m_encryption.encrypt(m_writeBuffer.end() - VC_Length, VC_Length);
 
-      } else {
-        if (std::memcmp(m_download->info()->hash().c_str(), m_readBuffer.position(), 20) != 0)
-          return m_manager->receive_failed(this);
+      m_state = READ_ENC_NEGOT;
 
-        m_state = READ_PEER;
-        m_readBuffer.move_position(20);
+    case READ_ENC_NEGOT:
+      if (!read_encryption_negotiation())
+        break;
+
+      if (m_state != READ_ENC_PAD)
+        goto restart;
+
+    case READ_ENC_PAD:
+      if (m_readPos) {
+        // read padC+lenIA or padD; pad length in m_readPos
+        if (!fill_read_buffer(m_readPos + (m_incoming ? 2 : 0)))
+          break;     // this can be improved (consume as much as was read)
+        m_readBuffer.consume(m_readPos);
+        m_readPos = 0;
       }
+
+      if (!read_negotiation_reply())
+        break;
+
+      if (m_state != READ_ENC_IA)
+        goto restart;
+
+    case READ_ENC_IA:
+      // just read (and automatically decrypt) the initial payload
+      // and leave it in the buffer for READ_INFO later
+      if (m_lenIA > 0 && !fill_read_buffer(m_lenIA))
+        break;
+
+      if (m_readBuffer.remaining() > m_lenIA)
+        throw internal_error("Read past initial payload after incoming encrypted handshake.");
+
+      if (m_cryptoSelect != Crypto_RC4)
+        m_encryption.set_obfuscated();
+
+      m_state = READ_INFO;
+
+    case READ_INFO:
+      if (!read_info())
+        break;
+
+      if (m_state != READ_PEER)
+        goto restart;
 
     case READ_PEER:
-      if (m_readBuffer.size_end() < handshake_size)
-        m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), handshake_size - m_readBuffer.size_end()));
+      if (!read_peer())
+        break;
 
-      if (m_readBuffer.size_end() < handshake_size)
-        return;
-
-      prepare_peer_info();
-      
-      m_readBuffer.reset();
-      m_writeBuffer.reset();
-
-      // The download is just starting so we're not sending any
-      // bitfield.
-      if (m_download->content()->bitfield()->is_all_unset())
-        prepare_write_keepalive();
-      else
-        prepare_write_bitfield();
-
-      m_state = BITFIELD;
-      manager->poll()->insert_write(this);
-
-      // Give some extra time for reading/writing the bitfield.
-      priority_queue_erase(&taskScheduler, &m_taskTimeout);
-      priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(120)).round_seconds());
-
-      // Trigger event_write() directly and then skip straight to read
-      // BITFIELD. This avoids going through polling for the first
-      // write.
-      write_bitfield();
+      if (m_state != BITFIELD)
+        goto restart;
 
     case BITFIELD:
-      if (m_bitfield.empty()) {
-        m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), 5 - m_readBuffer.size_end()));
-
-        // Received a keep-alive message which means we won't be
-        // getting any bitfield.
-        if (m_readBuffer.size_end() >= 4 && m_readBuffer.peek_32() == 0) {
-          m_readBuffer.read_32();
-          return read_done();
-        }
-
-        if (m_readBuffer.size_end() < 5)
-          return;
-
-        // Received a non-bitfield command.
-        if (m_readBuffer.peek_8_at(4) != protocol_bitfield)
-          return read_done();
-
-        if (m_readBuffer.read_32() != m_download->content()->bitfield()->size_bytes() + 1)
-          return m_manager->receive_failed(this);
-
-        m_readBuffer.read_8();
-        m_readPos = 0;
-
-        m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
-        m_bitfield.allocate();
-
-        if (m_readBuffer.remaining() != 0)
-          throw internal_error("Handshake::event_read() m_readBuffer.remaining() != 0.");
-
-        // Copy any unread data to bitfield here.
-      }
-
-      // We're guaranteed that we still got bytes remaining to be
-      // read of the bitfield.
-      m_readPos += read_stream_throws(m_bitfield.begin() + m_readPos, m_bitfield.size_bytes() - m_readPos);
-      
-      if (m_readPos == m_bitfield.size_bytes())
-        read_done();
-
-      return;
+      read_bitfield();
+      break;
 
     default:
       throw internal_error("Handshake::event_read() called in invalid state.");
     }
 
+    // if we have more data to write, do so
+    if (m_writeBuffer.remaining()) {
+      manager->poll()->insert_write(this);
+      return event_write();
+    }
+
+  } catch (handshake_succeeded& e) {
+    m_manager->receive_succeeded(this);
+
+  } catch (handshake_error& e) {
+    m_manager->receive_failed(this, e.type(), e.error());
+
   } catch (network_error& e) {
-    m_manager->receive_failed(this);
+    m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
+
   }
 }
 
+bool
+Handshake::fill_read_buffer(int size) {
+  if (m_readBuffer.remaining() < size) {
+    int read = m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), size - m_readBuffer.remaining()));
+
+    if (m_encryption.decrypt_valid() && read > 0)
+      m_encryption.decrypt(m_readBuffer.end() - read, read);
+  }
+  return m_readBuffer.remaining() >= size;
+}
+
+void
+Handshake::prepare_enc_negotiation() {
+  char hash[20];
+
+  // first piece, HASH('req1' + S)
+  generate_hash("req1", m_key->secret(), (char*)m_writeBuffer.end());
+  m_writeBuffer.move_end(20);
+
+  // second piece, HASH('req2' + SKEY) ^ HASH('req3' + S)
+  m_writeBuffer.write_len(m_download->info()->hash_obfuscated().c_str(), 20);
+  generate_hash("req3", m_key->secret(), hash);
+
+  for (int i = 0; i < 20; i++)
+    m_writeBuffer.end()[i - 20] ^= hash[i];
+
+  // last piece, ENCRYPT(VC, crypto_provide, len(PadC), PadC, len(IA))
+  initialize_encrypt();
+
+  Buffer::iterator old_end = m_writeBuffer.end();
+  std::memcpy(m_writeBuffer.end(), VC, VC_Length);
+  m_writeBuffer.move_end(VC_Length);
+
+  if (m_encryptionOptions & ConnectionManager::encryption_require_RC4) {
+    m_writeBuffer.write_32(Crypto_RC4);
+  } else {
+    m_writeBuffer.write_32(Crypto_Plain | Crypto_RC4);
+  }
+  m_writeBuffer.write_16(0);
+  m_writeBuffer.write_16(handshake_size);
+  m_encryption.encrypt(old_end, m_writeBuffer.end() - old_end);
+
+  // write and encrypt BT handshake as initial payload IA
+  prepare_handshake();
+}
+
+DownloadMain*
+Handshake::find_obfuscated_download(uint8_t* obf_hash) {
+  // obfuscated hash is HASH('req2', download_hash), extract that from HASH('req2', download_hash) ^ HASH('req3', S)
+  char hash[20];
+  generate_hash("req3", m_key->secret(), hash);
+
+  for (int i = 0; i < 20; i++)
+    hash[i] ^= obf_hash[i];
+
+  return m_manager->download_info_obfuscated(std::string(hash, 20));
+}
+
 inline void
+Handshake::validate_download() {
+  if (m_download == NULL)
+    throw handshake_error(ConnectionManager::handshake_dropped, EH_Unknown);
+  if (!m_download->info()->is_active())
+    throw handshake_error(ConnectionManager::handshake_dropped, EH_Inactive);
+  if (!m_download->info()->is_accepting_new_peers())
+    throw handshake_error(ConnectionManager::handshake_dropped, EH_NotAcceptingPeers);
+}
+
+void
+Handshake::initialize_decrypt() {
+  Sha1 sha1;
+  char hash[20];
+
+  sha1.init();
+  if (m_incoming)
+    sha1.update("keyA", 4);
+  else
+    sha1.update("keyB", 4);
+  sha1.update(m_key->secret_cstr(), 96);
+  sha1.update(m_download->info()->hash().c_str(), 20);
+  sha1.final_c(hash);
+
+  m_encryption.set_decrypt(RC4((const unsigned char*)hash, 20));
+
+  unsigned char discard[1024];
+  m_encryption.decrypt(discard, 1024);
+}
+
+void
+Handshake::initialize_encrypt() {
+  Sha1 sha1;
+  char hash[20];
+
+  sha1.init();
+  if (m_incoming)
+    sha1.update("keyB", 4);
+  else
+    sha1.update("keyA", 4);
+  sha1.update(m_key->secret_cstr(), 96);
+  sha1.update(m_download->info()->hash().c_str(), 20);
+  sha1.final_c(hash);
+
+  m_encryption.set_encrypt(RC4((const unsigned char*)hash, 20));
+
+  unsigned char discard[1024];
+  m_encryption.encrypt(discard, 1024);
+}
+
+void
+Handshake::prepare_handshake() {
+  m_writeBuffer.write_8(19);
+  m_writeBuffer.write_range(m_protocol, m_protocol + 19);
+
+  std::memset(m_writeBuffer.end(), 0, 8);
+  m_writeBuffer.move_end(8);
+
+  m_writeBuffer.write_range(m_download->info()->hash().c_str(), m_download->info()->hash().c_str() + 20);
+  m_writeBuffer.write_range(m_download->info()->local_id().c_str(), m_download->info()->local_id().c_str() + 20);
+
+  if (m_encryption.is_encrypted())
+    m_encryption.encrypt(m_writeBuffer.end() - handshake_size, handshake_size);
+}
+
+void
 Handshake::prepare_peer_info() {
   if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
-    throw close_connection();
+    throw handshake_error(ConnectionManager::handshake_failed, EH_IsSelf);
 
   // PeerInfo handling for outgoing connections needs to be moved to
   // HandshakeManager.
@@ -276,29 +774,32 @@ Handshake::prepare_peer_info() {
     m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), PeerList::connect_incoming);
 
     if (m_peerInfo == NULL)
-      throw close_connection();
+      throw handshake_error(ConnectionManager::handshake_failed, EH_NetworkError);
 
     m_peerInfo->set_flags(PeerInfo::flag_handshake);
   }
 
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
   m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+  m_readBuffer.consume(20);
 }
 
-inline void
-Handshake::prepare_write_bitfield() {
+void
+Handshake::prepare_bitfield() {
   m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
   m_writeBuffer.write_8(protocol_bitfield);
-  m_writeBuffer.prepare_end();
+  if (m_encryption.is_encrypted())
+    m_encryption.encrypt(m_writeBuffer.end() - 5, 5);
 
   m_writePos = 0;
 }
 
-inline void
-Handshake::prepare_write_keepalive() {
+void
+Handshake::prepare_keepalive() {
   // Write a keep-alive message.
   m_writeBuffer.write_32(0);
-  m_writeBuffer.prepare_end();
+  if (m_encryption.is_encrypted())
+    m_encryption.encrypt(m_writeBuffer.end() - 4, 4);
 
   // Skip writting the bitfield.
   m_writePos = m_download->content()->bitfield()->size_bytes();
@@ -321,10 +822,8 @@ Handshake::read_done() {
     m_bitfield.update();
   }
 
-  // Disconnect if both are seeders.
-
   if (m_writeDone)
-    m_manager->receive_succeeded(this);
+    throw handshake_succeeded();
 }
 
 void
@@ -332,55 +831,57 @@ Handshake::event_write() {
   try {
 
     switch (m_state) {
+
     case CONNECTING:
       if (get_fd().get_error())
-        return m_manager->receive_failed(this);
- 
-    case WRITE_FILL:
-      m_writeBuffer.write_8(19);
-      m_writeBuffer.write_range(m_protocol, m_protocol + 19);
+        throw handshake_error(ConnectionManager::handshake_failed, EH_NetworkError);
 
-      //       m_writeBuffer.write_range(m_peerInfo->get_options(), m_peerInfo->get_options() + 8);
-      std::memset(m_writeBuffer.position(), 0, 8);
-      m_writeBuffer.move_position(8);
+      if (m_encryptionOptions & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require)) {
+        prepare_key_plus_pad();
 
-      m_writeBuffer.write_range(m_download->info()->hash().c_str(), m_download->info()->hash().c_str() + 20);
-      m_writeBuffer.write_range(m_download->info()->local_id().c_str(), m_download->info()->local_id().c_str() + 20);
+        // if connection fails, peer probably closed it because it was encrypted, so retry encrypted if enabled
+        if (!(m_encryptionOptions & ConnectionManager::encryption_require))
+          m_retry = RETRY_PLAIN;
 
-      m_writeBuffer.prepare_end();
+        m_state = READ_ENC_KEY;
+      } else {
+        // if connection is closed before we read the handshake, it might
+        // be rejected because it is unencrypted, in that case retry encrypted
+        m_retry = RETRY_ENCRYPTED;
 
-      if (m_writeBuffer.size_end() != handshake_size)
-        throw internal_error("Handshake::event_write() wrong fill size.");
+        prepare_handshake();
 
-      m_state = WRITE_SEND;
-
-    case WRITE_SEND:
-      m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
-
-      if (m_writeBuffer.remaining())
-        return;
-
-      if (m_incoming)
-        m_state = READ_PEER;
-      else
-        m_state = READ_INFO;
-
-      manager->poll()->remove_write(this);
+        if (m_incoming)
+          m_state = READ_PEER;
+        else
+          m_state = READ_INFO;
+      }
       manager->poll()->insert_read(this);
-
-      return;
+      break;
 
     case BITFIELD:
       write_bitfield();
-
       return;
 
     default:
-      throw internal_error("Handshake::event_write() called in invalid state.");
+      break;
     }
 
+    if (!m_writeBuffer.remaining())
+      throw internal_error("event_write called with empty write buffer.");
+
+    if (m_writeBuffer.consume(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining())))
+      manager->poll()->remove_write(this);
+
+  } catch (handshake_succeeded& e) {
+    m_manager->receive_succeeded(this);
+
+  } catch (handshake_error& e) {
+    m_manager->receive_failed(this, e.type(), e.error());
+
   } catch (network_error& e) {
-    m_manager->receive_failed(this);
+    m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
+
   }
 }
 
@@ -390,14 +891,32 @@ Handshake::write_bitfield() {
     throw internal_error("Handshake::event_write() m_writeDone != false.");
 
   if (m_writeBuffer.remaining())
-    m_writeBuffer.move_position(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining()));
-      
-  if (m_writeBuffer.remaining())
-    return;
+    if (!m_writeBuffer.consume(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining())))
+      return;
 
-  if (m_writePos != m_download->content()->bitfield()->size_bytes())
-    m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
-                                      m_download->content()->bitfield()->size_bytes() - m_writePos);
+  if (m_writePos != m_download->content()->bitfield()->size_bytes()) {
+    if (m_encryption.is_encrypted()) {
+      if (m_writePos == 0)
+        m_writeBuffer.reset();	// this should be unnecessary now
+
+      uint32_t length = std::min<uint32_t>(m_download->content()->bitfield()->size_bytes() - m_writePos, m_writeBuffer.reserved()) - m_writeBuffer.size_end();
+
+      if (length > 0) {
+        std::memcpy(m_writeBuffer.end(), m_download->content()->bitfield()->begin() + m_writePos + m_writeBuffer.size_end(), length);
+        m_encryption.encrypt(m_writeBuffer.end(), length);
+        m_writeBuffer.move_end(length);
+      }
+
+      length = write_stream_throws(m_writeBuffer.begin(), m_writeBuffer.size_end());
+      m_writePos += length;
+      if (length != m_writeBuffer.size_end() && length > 0)
+        std::memmove(m_writeBuffer.begin(), m_writeBuffer.begin() + length, m_writeBuffer.size_end() - length);
+      m_writeBuffer.move_end(-length);
+    } else {
+      m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
+                                        m_download->content()->bitfield()->size_bytes() - m_writePos);
+    }
+  }
 
   if (m_writePos == m_download->content()->bitfield()->size_bytes()) {
     m_writeDone = true;
@@ -406,7 +925,7 @@ Handshake::write_bitfield() {
     // Ok to just check m_readDone as the call in event_read() won't
     // set it before the call.
     if (m_readDone)
-      m_manager->receive_succeeded(this);
+      throw handshake_succeeded();
   }
 }
 
@@ -415,7 +934,7 @@ Handshake::event_error() {
   if (m_state == INACTIVE)
     throw internal_error("Handshake::event_error() called on an inactive handshake.");
 
-  m_manager->receive_failed(this);
+  m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
 }
 
 }

@@ -41,6 +41,7 @@
 #include "net/socket_stream.h"
 #include "torrent/poll.h"
 
+#include "encryption_info.h"
 #include "peer_chunks.h"
 #include "protocol_base.h"
 #include "request_list.h"
@@ -65,13 +66,15 @@ public:
   typedef ProtocolBase           ProtocolRead;
   typedef ProtocolBase           ProtocolWrite;
 
+  typedef ProtocolBuffer<16384>  EncryptBuffer;
+
   // Find an optimal number for this.
   static const uint32_t read_size = 64;
 
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
-  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield);
+  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo);
   void                cleanup();
 
   bool                is_up_choked()                { return m_up->choked(); }
@@ -82,6 +85,9 @@ public:
   bool                is_upload_wanted() const      { return m_down->interested() && !m_peerChunks.is_snubbed(); }
 
   bool                is_seeder() const             { return m_peerChunks.is_seeder(); }
+
+  bool                is_encrypted() const          { return m_encryption.is_encrypted(); }
+  bool                is_obfuscated() const         { return m_encryption.is_obfuscated(); }
 
   PeerInfo*           peer_info()                   { return m_peerInfo; }
   const PeerInfo*     c_peer_info() const           { return m_peerInfo; }
@@ -138,6 +144,7 @@ protected:
   uint32_t            down_chunk_skip_process(const void* buffer, uint32_t length);
 
   bool                up_chunk();
+  inline void         up_chunk_encrypt(uint32_t amount);
 
   void                down_chunk_release();
   void                up_chunk_release();
@@ -172,6 +179,9 @@ protected:
 
   rak::timer          m_timeLastChoked;
   rak::timer          m_timeLastRead;
+
+  EncryptBuffer*      m_encryptBuffer;
+  EncryptionInfo      m_encryption;
 };
 
 inline void
@@ -180,6 +190,8 @@ PeerConnectionBase::push_unread(const void* data, uint32_t size) {
   m_down->buffer()->move_end(size);
 }
 
+// if these are ever used, they must add support for encryption
+#if 0
 inline bool
 PeerConnectionBase::read_remaining() {
   m_down->buffer()->move_position(read_stream_throws(m_down->buffer()->position(), m_down->buffer()->remaining()));
@@ -193,6 +205,7 @@ PeerConnectionBase::write_remaining() {
 
   return !m_up->buffer()->remaining();
 }
+#endif
 
 inline void
 PeerConnectionBase::read_insert_poll_safe() {

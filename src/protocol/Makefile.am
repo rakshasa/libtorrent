@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsub_protocol.la
 
 libsub_protocol_la_SOURCES = \
+        encryption_info.h \
         handshake.cc \
         handshake.h \
         handshake_manager.cc \
