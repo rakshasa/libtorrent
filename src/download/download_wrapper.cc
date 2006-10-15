@@ -49,6 +49,7 @@
 #include "data/file_meta.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
+#include "protocol/handshake.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "tracker/tracker_manager.h"
@@ -58,20 +59,7 @@
 
 #include "download_wrapper.h"
 
-// Temporary:
-#include "protocol/handshake.h"
-
 namespace torrent {
-
-// Temporary:
-void
-DownloadInfo::set_hash(const std::string& hash) {
-  char hash_obfuscated[20];
-
-  m_hash = hash;
-  Handshake::generate_hash("req2", hash, hash_obfuscated);
-  m_hash_obfuscated = std::string(hash_obfuscated, 20);
-};
 
 DownloadWrapper::DownloadWrapper() :
   m_bencode(NULL),
@@ -100,13 +88,18 @@ DownloadWrapper::~DownloadWrapper() {
 
 void
 DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
-  m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
+  char hashObfuscated[20];
+  Handshake::generate_hash("req2", hash, hashObfuscated);
 
   info()->set_hash(hash);
+  info()->set_hash_obfuscated(std::string(hashObfuscated, 20));
+
   info()->set_local_id(id);
 
   info()->slot_completed() = rak::make_mem_fun(m_main.content(), &Content::bytes_completed);
   info()->slot_left()      = rak::make_mem_fun(m_main.content(), &Content::bytes_left);
+
+  m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
   m_main.connection_list()->slot_connected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_connected));
   m_main.connection_list()->slot_disconnected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_disconnected));

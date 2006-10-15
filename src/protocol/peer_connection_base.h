@@ -190,23 +190,6 @@ PeerConnectionBase::push_unread(const void* data, uint32_t size) {
   m_down->buffer()->move_end(size);
 }
 
-// if these are ever used, they must add support for encryption
-#if 0
-inline bool
-PeerConnectionBase::read_remaining() {
-  m_down->buffer()->move_position(read_stream_throws(m_down->buffer()->position(), m_down->buffer()->remaining()));
-
-  return !m_down->buffer()->remaining();
-}
-
-inline bool
-PeerConnectionBase::write_remaining() {
-  m_up->buffer()->move_position(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()));
-
-  return !m_up->buffer()->remaining();
-}
-#endif
-
 inline void
 PeerConnectionBase::read_insert_poll_safe() {
   if (m_down->get_state() != ProtocolRead::IDLE)

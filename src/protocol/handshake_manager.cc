@@ -184,7 +184,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
       // connects to, and to move this somewhere else.
       (!h->download()->content()->is_done() || !h->bitfield()->is_all_set()) &&
 
-      (pcb = h->download()->connection_list()->insert(h->peer_info(), h->get_fd(), h->bitfield(), h->encryption_info())) != NULL) {
+      (pcb = h->download()->connection_list()->insert(h->peer_info(), h->get_fd(), h->bitfield(), h->encryption()->info())) != NULL) {
 
     manager->connection_manager()->signal_handshake_log().emit(h->peer_info()->socket_address(), ConnectionManager::handshake_success, EH_None, h->download()->info()->hash());
 
@@ -224,7 +224,7 @@ HandshakeManager::receive_failed(Handshake* h, ConnectionManager::HandshakeMessa
 
   erase(h);
 
-  if (h->do_retry()) {
+  if (h->should_retry()) {
     int retry_options = h->retry_options();
     const rak::socket_address* sa = h->socket_address();
     DownloadMain* download = h->download();

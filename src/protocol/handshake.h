@@ -42,18 +42,15 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
 #include "torrent/bitfield.h"
-#include "torrent/connection_manager.h"
 #include "torrent/peer_info.h"
 #include "utils/sha1.h"
 
-#include "encryption_info.h"
+#include "handshake_encryption.h"
 
 namespace torrent {
 
 class HandshakeManager;
 class DownloadMain;
-
-class DiffieHellman;
 
 class Handshake : public SocketStream {
 public:
@@ -85,12 +82,6 @@ public:
     READ_PEER,
   } State;
 
-  typedef enum {
-    RETRY_NONE,
-    RETRY_PLAIN,
-    RETRY_ENCRYPTED,
-  } Retry;
-
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
   ~Handshake();
 
@@ -120,12 +111,13 @@ public:
   virtual void        event_write();
   virtual void        event_error();
 
-  EncryptionInfo*     encryption_info()             { return &m_encryption; }
+  HandshakeEncryption* encryption() { return &m_encryption; }
 
-  bool                do_retry()                    { return (m_encryptionOptions & ConnectionManager::encryption_enable_retry) != 0 && m_retry != Handshake::RETRY_NONE; }
   int                 retry_options();
 
-  static inline void  generate_hash(const char* salt, std::string key, char* out);
+  bool                should_retry() const;
+
+  static void         generate_hash(const char* salt, const std::string& key, char* out);
 
 protected:
   Handshake(const Handshake&);
@@ -182,25 +174,8 @@ protected:
   rak::socket_address m_address;
   char                m_options[8];
 
-  EncryptionInfo      m_encryption;
-
-  int                 m_encryptionOptions;
-  Retry               m_retry;
-  DiffieHellman*      m_key;
-  std::string         m_sync;
-  uint32_t            m_cryptoSelect;
-  unsigned int        m_lenIA;
+  HandshakeEncryption m_encryption;
 };
-
-inline void
-Handshake::generate_hash(const char* salt, std::string key, char* out) {
-  Sha1 sha1;
-
-  sha1.init();
-  sha1.update(salt, strlen(salt));
-  sha1.update(key.c_str(), key.length());
-  sha1.final_c(out);
-}
 
 }
 

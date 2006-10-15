@@ -40,7 +40,7 @@ namespace torrent {
 
 const char*
 strerror(int err) {
-  static const char* errorStr[E_Max+1] = {
+  static const char* errorStr[E_Last + 1] = {
     "",                                   // EH_None
     "not BT protocol",                    // EH_NotBTProtocol
     "not accepting new peers",            // EH_NotAcceptingPeers
@@ -56,7 +56,7 @@ strerror(int err) {
     "network error",                      // EH_NetworkError
   };
 
-  if (err < 0 || (unsigned int) err >= sizeof(errorStr)/sizeof(errorStr[0]))
+  if (err < 0 || err > E_Last)
     return "unknown error";
   
   return errorStr[err];

@@ -4,6 +4,8 @@ libsub_protocol_la_SOURCES = \
         encryption_info.h \
         handshake.cc \
         handshake.h \
+	handshake_encryption.cc \
+	handshake_encryption.h \
         handshake_manager.cc \
         handshake_manager.h \
 	peer_chunks.h \
