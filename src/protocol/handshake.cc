@@ -56,9 +56,6 @@ namespace torrent {
 
 const char* Handshake::m_protocol = "BitTorrent protocol";
 
-static const unsigned char VC[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-static const int VC_Length = 8;
-
 class handshake_error : public network_error {
 public:
   handshake_error(ConnectionManager::HandshakeMessage type, int error) : network_error("handshake error"), m_type(type), m_error(error) {}
@@ -205,8 +202,9 @@ Handshake::read_encryption_key() {
     }
   }
 
-  // read as much of key, pad and sync string as we can; this is safe because peer can't send
-  // anything beyond the initial BT handshake because it doesn't know our encryption choice yet
+  // Read as much of key, pad and sync string as we can; this is safe
+  // because peer can't send anything beyond the initial BT handshake
+  // because it doesn't know our encryption choice yet.
   if (m_readBuffer.remaining() < enc_pad_read_size)
   m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), enc_pad_read_size - m_readBuffer.remaining()));
 
@@ -215,7 +213,7 @@ Handshake::read_encryption_key() {
     return false;
 
   // If the handshake fails after this, it wasn't because the peer
-  // doesn't like encrypted connections, so don't retry unencrypted
+  // doesn't like encrypted connections, so don't retry unencrypted.
   m_encryption.set_retry(HandshakeEncryption::RETRY_NONE);
 
   if (m_incoming)
@@ -224,12 +222,10 @@ Handshake::read_encryption_key() {
   m_encryption.key()->compute_secret(m_readBuffer.position(), 96);
   m_readBuffer.consume(96);
 
-  // determine synchronisation string
+  // Determine the synchronisation string.
   if (m_incoming) {
     // incoming: peer sends HASH('req1' + S)
-    char hash[20];
-    generate_hash("req1", m_encryption.key()->secret(), hash);
-    m_encryption.set_sync(hash, 20);
+    generate_hash("req1", m_encryption.key()->secret(), m_encryption.modify_sync(20));
 
   } else {
     // outgoing: peer sends ENCRYPT(VC)
@@ -242,15 +238,12 @@ Handshake::read_encryption_key() {
     sha1.update(m_download->info()->hash().c_str(), 20);
     sha1.final_c(hash);
 
+    // Don't we need to fill this?
     char discard[1024];
     RC4 peerEncrypt((const unsigned char*)hash, 20);
 
     peerEncrypt.crypt(discard, 1024);
-
-    char sync[VC_Length];
-    std::memcpy(sync, VC, VC_Length);
-    peerEncrypt.crypt(sync, VC_Length);
-    m_encryption.set_sync(sync, VC_Length);
+    peerEncrypt.crypt(m_encryption.vc_to_sync(), HandshakeEncryption::vc_length);
   }
 
   // also put as much as we can write so far in the buffer
@@ -266,32 +259,35 @@ bool
 Handshake::read_encryption_sync() {
   // Check if we've read the sync string already in the previous
   // state. This is very likely and avoids an unneeded read.
-  int pos = std::string(m_readBuffer.position(), m_readBuffer.end()).find(m_encryption.sync());
+//   int pos = std::string(m_readBuffer.position(), m_readBuffer.end()).find(m_encryption.sync());
+  Buffer::iterator itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
+                                     m_encryption.sync(), m_encryption.sync() + m_encryption.sync_length());
 
-  if (pos == -1) {
+  if (itr == m_readBuffer.end()) {
     // Otherwise read as many bytes as possible until we find the sync
     // string.
-    int toRead = 512 + m_encryption.sync().length() - m_readBuffer.remaining();
+    int toRead = 512 + m_encryption.sync_length() - m_readBuffer.remaining();
 
     if (toRead <= 0)
       throw handshake_error(ConnectionManager::handshake_failed, EH_EncryptionSyncFailed);
 
     m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), toRead));
 
-    pos = std::string(m_readBuffer.position(), m_readBuffer.end()).find(m_encryption.sync());
+    itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
+                      m_encryption.sync(), m_encryption.sync() + m_encryption.sync_length());
 
-    if (pos == -1)
+    if (itr == m_readBuffer.end())
       return false;
   }
 
   if (m_incoming) {
     // We've found HASH('req1' + S), skip that and go on reading the
     // SKEY hash.
-    m_readBuffer.consume(pos + 20);
+    m_readBuffer.set_position_itr(itr + 20);
     m_state = READ_ENC_SKEY;
 
   } else {
-    m_readBuffer.consume(pos);
+    m_readBuffer.set_position_itr(itr);
     m_state = READ_ENC_NEGOT;
   }
 
@@ -312,10 +308,10 @@ Handshake::read_encryption_negotiation() {
     m_encryption.info()->decrypt(m_readBuffer.position(), enc_negotiation_size);
   }
 
-  if (std::memcmp(m_readBuffer.position(), VC, VC_Length) != 0)
+  if (!HandshakeEncryption::compare_vc(m_readBuffer.position()))
     throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
 
-  m_readBuffer.consume(VC_Length);
+  m_readBuffer.consume(HandshakeEncryption::vc_length);
 
   m_encryption.set_crypto(m_readBuffer.read_32());
   m_readPos = m_readBuffer.read_16();       // length of padC/padD
@@ -555,8 +551,9 @@ restart:
 
       m_encryption.info()->decrypt(m_readBuffer.position(), m_readBuffer.remaining());
 
-      m_writeBuffer.write_range(VC, VC + VC_Length);
-      m_encryption.info()->encrypt(m_writeBuffer.end() - VC_Length, VC_Length);
+      HandshakeEncryption::copy_vc(m_writeBuffer.end());
+      m_encryption.info()->encrypt(m_writeBuffer.end(), HandshakeEncryption::vc_length);
+      m_writeBuffer.move_end(HandshakeEncryption::vc_length);
 
       m_state = READ_ENC_NEGOT;
 
@@ -666,14 +663,16 @@ Handshake::prepare_enc_negotiation() {
   initialize_encrypt();
 
   Buffer::iterator old_end = m_writeBuffer.end();
-  std::memcpy(m_writeBuffer.end(), VC, VC_Length);
-  m_writeBuffer.move_end(VC_Length);
+
+  HandshakeEncryption::copy_vc(m_writeBuffer.end());
+  m_writeBuffer.move_end(HandshakeEncryption::vc_length);
 
   if (m_encryption.options() & ConnectionManager::encryption_require_RC4) {
     m_writeBuffer.write_32(HandshakeEncryption::crypto_rc4);
   } else {
     m_writeBuffer.write_32(HandshakeEncryption::crypto_plain | HandshakeEncryption::crypto_rc4);
   }
+
   m_writeBuffer.write_16(0);
   m_writeBuffer.write_16(handshake_size);
   m_encryption.info()->encrypt(old_end, m_writeBuffer.end() - old_end);

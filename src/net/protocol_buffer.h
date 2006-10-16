@@ -60,6 +60,7 @@ public:
   void                set_position_itr(iterator itr) { m_position = itr; }
 
   void                set_end(size_type v)          { m_end = m_buffer + v; }
+  void                set_end_itr(iterator itr)     { m_end = itr; }
   difference_type     move_end(difference_type v)   { m_end += v; return v; }
 
   uint8_t             read_8()                      { return *m_position++; }

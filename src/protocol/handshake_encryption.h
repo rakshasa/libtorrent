@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_PROTOCOL_HANDSHAKE_ENCRYPTION_H
 #define LIBTORRENT_PROTOCOL_HANDSHAKE_ENCRYPTION_H
 
+#include <cstring>
+
 #include "encryption_info.h"
 
 // Remove this dependency.
@@ -57,11 +59,14 @@ public:
   static const int crypto_plain = (1 << 0);
   static const int crypto_rc4   = (1 << 1);
 
+  static const unsigned int vc_length = 8;
+
   HandshakeEncryption(int options) :
     m_key(NULL),
     m_options(options),
     m_crypto(0),
     m_retry(RETRY_NONE),
+    m_syncLength(0),
     m_lengthIA(0) {}
 
   bool                has_crypto_plain() const                     { return m_crypto & crypto_plain; }
@@ -78,15 +83,21 @@ public:
   Retry               retry() const                                { return m_retry; }
   void                set_retry(Retry val)                         { m_retry = val; }
 
-  // Use a char array instead to avoid std::string ctor.
-  const std::string&  sync() const                                 { return m_sync; }
-  void                set_sync(const char* src, unsigned int size) { m_sync = std::string(src, size); }
+  const char*         sync() const                                 { return m_sync; }
+  unsigned int        sync_length() const                          { return m_syncLength; }
+
+  void                set_sync(const char* src, unsigned int len)  { std::memcpy(m_sync, src, (m_syncLength = len)); }
+  char*               vc_to_sync()                                 { std::memset(m_sync, 0, (m_syncLength = vc_length)); return m_sync; }
+  char*               modify_sync(unsigned int len)                { m_syncLength = len; return m_sync; }
 
   unsigned int        length_ia() const                            { return m_lengthIA; }
   void                set_length_ia(unsigned int len)              { m_lengthIA = len; }
 
   void                initialize();
   void                cleanup();
+
+  static void         copy_vc(void* dest)                          { std::memset(dest, 0, vc_length); }
+  static bool         compare_vc(const void* buf);
 
 private:
   DiffieHellman*      m_key;
@@ -99,7 +110,9 @@ private:
 
   Retry               m_retry;
 
-  std::string         m_sync;
+  char                m_sync[20];
+  unsigned int        m_syncLength;
+
   unsigned int        m_lengthIA;
 };
 

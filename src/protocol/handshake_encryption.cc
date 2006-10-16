@@ -36,6 +36,9 @@
 
 #include "config.h"
 
+#include <algorithm>
+#include <functional>
+
 #include "utils/diffie_hellman.h"
 
 #include "handshake_encryption.h"
@@ -58,6 +61,8 @@ static const int DH_Prime_Length = 96;
 static const unsigned char DH_Generator[] = { 2 };
 static const int DH_Generator_Length = 1;
 
+static const unsigned char VC[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
 void
 HandshakeEncryption::initialize() {
   m_key = new DiffieHellman(DH_Prime, DH_Prime_Length, DH_Generator, DH_Generator_Length);
@@ -67,6 +72,13 @@ void
 HandshakeEncryption::cleanup() {
   delete m_key;
   m_key = NULL;
+}
+
+bool
+HandshakeEncryption::compare_vc(const void* buf) {
+//   return std::find_if((const char*)buf, (const char*)buf + vc_length,
+// 		      std::bind1st(std::not_equal_to<char>(), 0)) == (const char*)buf + vc_length;
+  return std::memcmp(buf, VC, vc_length) == 0;
 }
 
 }
