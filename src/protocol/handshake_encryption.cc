@@ -74,6 +74,14 @@ HandshakeEncryption::cleanup() {
   m_key = NULL;
 }
 
+char*
+HandshakeEncryption::vc_to_sync() {
+  m_syncLength = vc_length;
+  std::memcpy(m_sync, VC, vc_length);
+
+  return m_sync;
+}
+
 bool
 HandshakeEncryption::compare_vc(const void* buf) {
 //   return std::find_if((const char*)buf, (const char*)buf + vc_length,

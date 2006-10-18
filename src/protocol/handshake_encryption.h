@@ -87,7 +87,7 @@ public:
   unsigned int        sync_length() const                          { return m_syncLength; }
 
   void                set_sync(const char* src, unsigned int len)  { std::memcpy(m_sync, src, (m_syncLength = len)); }
-  char*               vc_to_sync()                                 { std::memset(m_sync, 0, (m_syncLength = vc_length)); return m_sync; }
+  char*               vc_to_sync();
   char*               modify_sync(unsigned int len)                { m_syncLength = len; return m_sync; }
 
   unsigned int        length_ia() const                            { return m_lengthIA; }

@@ -38,7 +38,6 @@
 #define LIBTORRENT_DIFFIE_HELLMAN_H
 
 #include <string>
-
 #include <openssl/dh.h>
 
 namespace torrent {
@@ -59,9 +58,9 @@ private:
   DiffieHellman(const DiffieHellman& dh);
   DiffieHellman& operator = (const DiffieHellman& dh);
 
-  DH* m_dh;
-  unsigned char* m_secret;
-  int m_length;
+  DH*                   m_dh;
+  unsigned char*        m_secret;
+  int                   m_length;
 };
 
 };

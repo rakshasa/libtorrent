@@ -259,7 +259,6 @@ bool
 Handshake::read_encryption_sync() {
   // Check if we've read the sync string already in the previous
   // state. This is very likely and avoids an unneeded read.
-//   int pos = std::string(m_readBuffer.position(), m_readBuffer.end()).find(m_encryption.sync());
   Buffer::iterator itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
                                      m_encryption.sync(), m_encryption.sync() + m_encryption.sync_length());
 
