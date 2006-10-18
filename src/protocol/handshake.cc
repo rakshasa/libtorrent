@@ -161,7 +161,7 @@ Handshake::clear() {
 
 int
 Handshake::retry_options() {
-  int options = m_encryption.options() & ~ConnectionManager::encryption_enable_retry;
+  uint32_t options = m_encryption.options() & ~ConnectionManager::encryption_enable_retry;
 
   if (m_encryption.retry() == HandshakeEncryption::RETRY_PLAIN)
     options &= ~ConnectionManager::encryption_try_outgoing;
@@ -260,7 +260,7 @@ Handshake::read_encryption_sync() {
   // Check if we've read the sync string already in the previous
   // state. This is very likely and avoids an unneeded read.
   Buffer::iterator itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
-                                     m_encryption.sync(), m_encryption.sync() + m_encryption.sync_length());
+                                     (uint8_t*)m_encryption.sync(), (uint8_t*)m_encryption.sync() + m_encryption.sync_length());
 
   if (itr == m_readBuffer.end()) {
     // Otherwise read as many bytes as possible until we find the sync
@@ -273,7 +273,7 @@ Handshake::read_encryption_sync() {
     m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), toRead));
 
     itr = std::search(m_readBuffer.position(), m_readBuffer.end(),
-                      m_encryption.sync(), m_encryption.sync() + m_encryption.sync_length());
+                      (uint8_t*)m_encryption.sync(), (uint8_t*)m_encryption.sync() + m_encryption.sync_length());
 
     if (itr == m_readBuffer.end())
       return false;
@@ -282,11 +282,11 @@ Handshake::read_encryption_sync() {
   if (m_incoming) {
     // We've found HASH('req1' + S), skip that and go on reading the
     // SKEY hash.
-    m_readBuffer.set_position_itr(itr + 20);
+    m_readBuffer.consume(std::distance(m_readBuffer.position(), itr) + 20);
     m_state = READ_ENC_SKEY;
 
   } else {
-    m_readBuffer.set_position_itr(itr);
+    m_readBuffer.consume(std::distance(m_readBuffer.position(), itr));
     m_state = READ_ENC_NEGOT;
   }
 
