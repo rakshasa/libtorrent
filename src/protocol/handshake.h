@@ -61,10 +61,12 @@ public:
   static const uint32_t protocol_bitfield = 5;
 
   static const uint32_t enc_negotiation_size = 8 + 4 + 2;
-  static const uint32_t enc_pad_read_size = 96 + 512 + 20;
+  static const uint32_t enc_pad_size         = 512;
+  static const uint32_t enc_pad_read_size    = 96 + enc_pad_size + 20;
 
-  // must be no smaller than enc_pad_read_size+20+enc_negotiation_size+512+2+handshake_size = 1244 bytes
-  typedef ProtocolBuffer<4096> Buffer;
+  static const uint32_t buffer_size = enc_pad_read_size + 20 + enc_negotiation_size + enc_pad_size + 2 + handshake_size;
+
+  typedef ProtocolBuffer<buffer_size> Buffer;
 
   typedef enum {
     INACTIVE,
@@ -117,8 +119,6 @@ public:
 
   bool                should_retry() const;
 
-  static void         generate_hash(const char* salt, const std::string& key, char* out);
-
 protected:
   Handshake(const Handshake&);
   void operator = (const Handshake&);
@@ -162,11 +162,9 @@ protected:
   rak::priority_item  m_taskTimeout;
 
   uint32_t            m_readPos;
-  Buffer              m_readBuffer;
   bool                m_readDone;
 
   uint32_t            m_writePos;
-  Buffer              m_writeBuffer;
   bool                m_writeDone;
 
   bool                m_incoming;
@@ -175,6 +173,10 @@ protected:
   char                m_options[8];
 
   HandshakeEncryption m_encryption;
+
+  // Put these last to keep variables closer to *this.
+  Buffer              m_readBuffer;
+  Buffer              m_writeBuffer;
 };
 
 }

@@ -80,6 +80,8 @@ public:
 
     m_upRate(60),
     m_downRate(60),
+    m_skipRate(60),
+
     m_uploadedBaseline(0),
     m_completedBaseline(0) {
   }
@@ -116,6 +118,7 @@ public:
 
   Rate*               up_rate()                                    { return &m_upRate; }
   Rate*               down_rate()                                  { return &m_downRate; }
+  Rate*               skip_rate()                                  { return &m_skipRate; }
 
   uint64_t            uploaded_baseline() const                    { return m_uploadedBaseline; }
   void                set_uploaded_baseline(uint64_t b)            { m_uploadedBaseline = b; }
@@ -150,6 +153,7 @@ private:
 
   Rate                m_upRate;
   Rate                m_downRate;
+  Rate                m_skipRate;
 
   uint64_t            m_uploadedBaseline;
   uint64_t            m_completedBaseline;

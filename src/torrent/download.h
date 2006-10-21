@@ -120,6 +120,9 @@ public:
   Rate*               up_rate();
   const Rate*         up_rate() const;
 
+  Rate*               skip_rate();
+  const Rate*         skip_rate() const;
+
   // Bytes completed.
   uint64_t            bytes_done() const;
   // Size of the torrent.

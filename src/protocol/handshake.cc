@@ -180,7 +180,7 @@ Handshake::prepare_key_plus_pad() {
   m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
   m_writeBuffer.move_end(96);
 
-  int padLen = random() % 512;
+  int padLen = random() % enc_pad_size;
   m_writeBuffer.write_len(rak::generate_random<std::string>(padLen).c_str(), padLen);
 }
 
@@ -225,18 +225,16 @@ Handshake::read_encryption_key() {
   // Determine the synchronisation string.
   if (m_incoming) {
     // incoming: peer sends HASH('req1' + S)
-    generate_hash("req1", m_encryption.key()->secret(), m_encryption.modify_sync(20));
+    sha1_salt("req1", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), m_encryption.modify_sync(20));
 
   } else {
     // outgoing: peer sends ENCRYPT(VC)
-    Sha1 sha1;
     char hash[20];
 
-    sha1.init();
-    sha1.update("keyB", 4);
-    sha1.update(m_encryption.key()->secret_cstr(), 96);
-    sha1.update(m_download->info()->hash().c_str(), 20);
-    sha1.final_c(hash);
+    sha1_salt("keyB", 4,
+              m_encryption.key()->c_str(), 96,
+              m_download->info()->hash().c_str(), 20,
+              hash);
 
     // Don't we need to fill this?
     char discard[1024];
@@ -265,7 +263,7 @@ Handshake::read_encryption_sync() {
   if (itr == m_readBuffer.end()) {
     // Otherwise read as many bytes as possible until we find the sync
     // string.
-    int toRead = 512 + m_encryption.sync_length() - m_readBuffer.remaining();
+    int toRead = enc_pad_size + m_encryption.sync_length() - m_readBuffer.remaining();
 
     if (toRead <= 0)
       throw handshake_error(ConnectionManager::handshake_failed, EH_EncryptionSyncFailed);
@@ -315,7 +313,7 @@ Handshake::read_encryption_negotiation() {
   m_encryption.set_crypto(m_readBuffer.read_32());
   m_readPos = m_readBuffer.read_16();       // length of padC/padD
 
-  if (m_readPos > 512)
+  if (m_readPos > enc_pad_size)
     throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
 
   // choose one of the offered encryptions, or check the chosen one is valid
@@ -648,12 +646,12 @@ Handshake::prepare_enc_negotiation() {
   char hash[20];
 
   // first piece, HASH('req1' + S)
-  generate_hash("req1", m_encryption.key()->secret(), (char*)m_writeBuffer.end());
+  sha1_salt("req1", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), m_writeBuffer.end());
   m_writeBuffer.move_end(20);
 
   // second piece, HASH('req2' + SKEY) ^ HASH('req3' + S)
   m_writeBuffer.write_len(m_download->info()->hash_obfuscated().c_str(), 20);
-  generate_hash("req3", m_encryption.key()->secret(), hash);
+  sha1_salt("req3", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), hash);
 
   for (int i = 0; i < 20; i++)
     m_writeBuffer.end()[i - 20] ^= hash[i];
@@ -685,7 +683,7 @@ Handshake::prepare_enc_negotiation() {
 DownloadMain*
 Handshake::find_obfuscated_download(uint8_t* obf_hash) {
   char hash[20];
-  generate_hash("req3", m_encryption.key()->secret(), hash);
+  sha1_salt("req3", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), hash);
 
   for (int i = 0; i < 20; i++)
     hash[i] ^= obf_hash[i];
@@ -705,17 +703,12 @@ Handshake::validate_download() {
 
 void
 Handshake::initialize_decrypt() {
-  Sha1 sha1;
   char hash[20];
 
-  sha1.init();
-  if (m_incoming)
-    sha1.update("keyA", 4);
-  else
-    sha1.update("keyB", 4);
-  sha1.update(m_encryption.key()->secret_cstr(), 96);
-  sha1.update(m_download->info()->hash().c_str(), 20);
-  sha1.final_c(hash);
+  sha1_salt(m_incoming ? "keyA" : "keyB", 4,
+            m_encryption.key()->c_str(), 96,
+            m_download->info()->hash().c_str(), 20,
+            hash);
 
   m_encryption.info()->set_decrypt(RC4((const unsigned char*)hash, 20));
 
@@ -725,17 +718,12 @@ Handshake::initialize_decrypt() {
 
 void
 Handshake::initialize_encrypt() {
-  Sha1 sha1;
   char hash[20];
 
-  sha1.init();
-  if (m_incoming)
-    sha1.update("keyB", 4);
-  else
-    sha1.update("keyA", 4);
-  sha1.update(m_encryption.key()->secret_cstr(), 96);
-  sha1.update(m_download->info()->hash().c_str(), 20);
-  sha1.final_c(hash);
+  sha1_salt(m_incoming ? "keyB" : "keyA", 4,
+            m_encryption.key()->c_str(), 96,
+            m_download->info()->hash().c_str(), 20,
+            hash);
 
   m_encryption.info()->set_encrypt(RC4((const unsigned char*)hash, 20));
 
@@ -940,16 +928,6 @@ Handshake::should_retry() const {
   return
     (m_encryption.options() & ConnectionManager::encryption_enable_retry) != 0 &&
     m_encryption.retry() != HandshakeEncryption::RETRY_NONE;
-}
-
-void
-Handshake::generate_hash(const char* salt, const std::string& key, char* out) {
-  Sha1 sha1;
-
-  sha1.init();
-  sha1.update(salt, strlen(salt));
-  sha1.update(key.c_str(), key.length());
-  sha1.final_c(out);
 }
 
 }

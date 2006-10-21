@@ -69,6 +69,8 @@ private:
 
   Http*               m_get;
   std::stringstream*  m_data;
+
+  bool                m_dropDeliminator;
 };
 
 }

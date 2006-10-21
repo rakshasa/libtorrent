@@ -306,6 +306,8 @@ PeerConnectionSeed::event_write() {
         if (!m_up->buffer()->consume(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining())))
           return;
 
+        m_up->buffer()->reset();
+
         if (m_up->last_command() != ProtocolBase::PIECE) {
           // Break or loop? Might do an ifelse based on size of the
           // write buffer. Also the write buffer is relatively large.

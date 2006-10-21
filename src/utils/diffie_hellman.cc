@@ -44,38 +44,40 @@
 
 namespace torrent {
 
-DiffieHellman::DiffieHellman(const unsigned char *prime, int prime_length, const unsigned char *generator, int generator_length) :
+DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
+                             const unsigned char *generator, int generatorLength) :
   m_secret(NULL) {
 
   m_dh = DH_new();
-  m_dh->p = BN_bin2bn(prime, prime_length, NULL);
-  m_dh->g = BN_bin2bn(generator, generator_length, NULL);
+  m_dh->p = BN_bin2bn(prime, primeLength, NULL);
+  m_dh->g = BN_bin2bn(generator, generatorLength, NULL);
 
   DH_generate_key(m_dh);
 };
 
 DiffieHellman::~DiffieHellman() {
-  free(m_secret);
+  delete [] m_secret;
   DH_free(m_dh);
 };
 
 void
-DiffieHellman::compute_secret(const unsigned char *pubkey, int length) {
-  BIGNUM* k;
+DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) {
+  BIGNUM* k = BN_bin2bn(pubkey, length, NULL);
 
-  free(m_secret);
+  delete [] m_secret;
+  m_secret = new char[DH_size(m_dh)];
 
-  k = BN_bin2bn(pubkey, length, NULL);
-  m_secret = (unsigned char*) malloc(DH_size(m_dh));
-  m_length = DH_compute_key(m_secret, k, m_dh);
+  m_length = DH_compute_key((unsigned char*)m_secret, k, m_dh);
+  
   BN_free(k);
 };
 
 void
-DiffieHellman::store_pub_key(unsigned char* to, int length) {
-  std::memset(to, 0, length);
-  if (length >= BN_num_bytes(m_dh->pub_key))
-    BN_bn2bin(m_dh->pub_key, to + length - BN_num_bytes(m_dh->pub_key));
+DiffieHellman::store_pub_key(unsigned char* dest, unsigned int length) {
+  std::memset(dest, 0, length);
+
+  if ((int)length >= BN_num_bytes(m_dh->pub_key))
+    BN_bn2bin(m_dh->pub_key, dest + length - BN_num_bytes(m_dh->pub_key));
 }
 
 };

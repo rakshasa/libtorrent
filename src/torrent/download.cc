@@ -275,6 +275,16 @@ Download::up_rate() const {
   return m_ptr->info()->up_rate();
 }
 
+Rate*
+Download::skip_rate() {
+  return m_ptr->info()->skip_rate();
+}
+
+const Rate*
+Download::skip_rate() const {
+  return m_ptr->info()->skip_rate();
+}
+
 uint64_t
 Download::bytes_done() const {
   uint64_t a = 0;

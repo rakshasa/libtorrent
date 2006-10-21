@@ -176,6 +176,11 @@ PeerConnectionBase::load_up_chunk() {
   if (!m_upChunk.is_valid())
     throw storage_error("File chunk read error: " + std::string(m_upChunk.error_number().c_str()));
 
+  if (is_encrypted() && m_encryptBuffer == NULL) {
+    m_encryptBuffer = new EncryptBuffer();
+    m_encryptBuffer->reset();
+  }
+
   // Make sure we preload the next step once we get past the length
   // here. This is just some testing, don't include this with the
   // release. (Yet)
@@ -303,6 +308,7 @@ PeerConnectionBase::down_chunk() {
   do {
     data = itr.data();
     data.second = read_stream_throws(data.first, data.second);
+
     if (is_encrypted())
       m_encryption.decrypt(data.first, data.second);
 
@@ -320,7 +326,7 @@ PeerConnectionBase::down_chunk() {
 
 bool
 PeerConnectionBase::down_chunk_from_buffer() {
-  m_down->buffer()->move_position(down_chunk_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
+  m_down->buffer()->consume(down_chunk_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
 
   if (!m_downloadQueue.transfer()->is_finished() && m_down->buffer()->remaining() != 0)
     throw internal_error("PeerConnectionBase::down_chunk_from_buffer() !transfer->is_finished() && m_down->buffer()->remaining() != 0.");
@@ -334,6 +340,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
 bool
 PeerConnectionBase::down_chunk_skip() {
   uint32_t length = read_stream_throws(m_nullBuffer, m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position());
+
   if (is_encrypted())
     m_encryption.decrypt(m_nullBuffer, length);
 
@@ -345,7 +352,7 @@ PeerConnectionBase::down_chunk_skip() {
 
 bool
 PeerConnectionBase::down_chunk_skip_from_buffer() {
-  m_down->buffer()->move_position(down_chunk_skip_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
+  m_down->buffer()->consume(down_chunk_skip_process(m_down->buffer()->position(), m_down->buffer()->remaining()));
   
   return m_downloadQueue.transfer()->is_finished();
 }
@@ -384,8 +391,11 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   // the block to simplify the rest of the function.
   length = std::min(length, transfer->piece().length() - transfer->position());
 
+  // Hmm, this might result in more bytes than nessesary being
+  // counted.
   m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), length);
   m_download->info()->down_rate()->insert(length);
+  m_download->info()->skip_rate()->insert(length);
 
   if (!transfer->is_valid()) {
     transfer->adjust_position(length);
@@ -430,18 +440,33 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   return length;
 }
 
-inline void
-PeerConnectionBase::up_chunk_encrypt(uint32_t amount) {
+inline uint32_t
+PeerConnectionBase::up_chunk_encrypt(uint32_t quota) {
   if (m_encryptBuffer == NULL)
     throw internal_error("PeerConnectionBase::up_chunk: m_encryptBuffer is NULL.");
 
-  if (amount <= m_encryptBuffer->remaining())
-    return;
+  if (quota <= m_encryptBuffer->remaining())
+    return quota;
 
-  amount -= m_encryptBuffer->remaining();
-  m_upChunk.chunk()->to_buffer(m_encryptBuffer->end(), m_upPiece.offset() + m_encryptBuffer->remaining(), amount);
-  m_encryption.encrypt(m_encryptBuffer->end(), amount);
-  m_encryptBuffer->move_end(amount);
+  // Also, consider checking here if the number of bytes remaining in
+  // the buffer is small enought that the cost of moving them would
+  // outweigh the extra context switches, etc.
+
+  if (m_encryptBuffer->remaining() == 0) {
+    // This handles reset also for new chunk transfers.
+    m_encryptBuffer->reset();
+
+    quota = std::min<uint32_t>(quota, m_encryptBuffer->reserved());
+
+  } else {
+    quota = std::min<uint32_t>(quota - m_encryptBuffer->remaining(), m_encryptBuffer->reserved_left());
+  }
+
+  m_upChunk.chunk()->to_buffer(m_encryptBuffer->end(), m_upPiece.offset() + m_encryptBuffer->remaining(), quota);
+  m_encryption.encrypt(m_encryptBuffer->end(), quota);
+  m_encryptBuffer->move_end(quota);
+
+  return m_encryptBuffer->remaining();
 }
 
 bool
@@ -463,11 +488,14 @@ PeerConnectionBase::up_chunk() {
   uint32_t bytesTransfered = 0;
 
   if (is_encrypted()) {
-    // prepare as many bytes as quota specifies, up to end of piece or buffer
-    // (only bytes beyond remaining() are new and will be encrypted)
-    up_chunk_encrypt(std::min(quota, std::min<uint32_t>(m_upPiece.length(), m_encryptBuffer->reserved() - m_encryptBuffer->size_position())));
-    bytesTransfered = write_stream_throws(m_encryptBuffer->position(), std::min<uint32_t>(quota, m_encryptBuffer->remaining()));
+    // Prepare as many bytes as quota specifies, up to end of piece or
+    // buffer. Only bytes beyond remaining() are new and will be
+    // encrypted.
+    quota = up_chunk_encrypt(std::min(quota, m_upPiece.length()));
+
+    bytesTransfered = write_stream_throws(m_encryptBuffer->position(), quota);
     m_encryptBuffer->consume(bytesTransfered);
+
   } else {
     Chunk::data_type data;
     ChunkIterator itr(m_upChunk.chunk(), m_upPiece.offset(), m_upPiece.offset() + std::min(quota, m_upPiece.length()));

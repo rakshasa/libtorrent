@@ -61,6 +61,13 @@ TrackerHttp::TrackerHttp(DownloadInfo* info, const std::string& url) :
 
   m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
   m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
+
+  // Haven't considered if this needs any stronger error detection,
+  // can dropping the '?' be used for malicious purposes?
+  size_t delim = url.rfind('?');
+
+  m_dropDeliminator = delim != std::string::npos &&
+    url.find('/', delim) == std::string::npos;
 }
 
 TrackerHttp::~TrackerHttp() {
@@ -88,7 +95,8 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
   s.imbue(std::locale::classic());
 
   s << m_url
-    << "?info_hash=" << rak::copy_escape_html(m_info->hash())
+    << (m_dropDeliminator ? '&' : '?')
+    << "info_hash=" << rak::copy_escape_html(m_info->hash())
     << "&peer_id=" << rak::copy_escape_html(m_info->local_id());
 
   if (m_info->key())

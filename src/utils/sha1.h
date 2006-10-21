@@ -104,6 +104,32 @@ Sha1::final_c(char* buffer) {
 };
 #endif
 
+inline void
+sha1_salt(const char* salt, unsigned int saltLength,
+          const char* key, unsigned int keyLength,
+          void* out) {
+  Sha1 sha1;
+
+  sha1.init();
+  sha1.update(salt, saltLength);
+  sha1.update(key, keyLength);
+  sha1.final_c((char*)out);
+}
+
+inline void
+sha1_salt(const char* salt, unsigned int saltLength,
+          const char* key1, unsigned int key1Length,
+          const char* key2, unsigned int key2Length,
+          void* out) {
+  Sha1 sha1;
+
+  sha1.init();
+  sha1.update(salt, saltLength);
+  sha1.update(key1, key1Length);
+  sha1.update(key2, key2Length);
+  sha1.final_c((char*)out);
+}
+
 }
 
 #endif

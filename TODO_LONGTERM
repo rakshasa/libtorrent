@@ -19,6 +19,10 @@ Add API for peer client info, which can be used to detect the peer
 client version, etc, and include various stats and limits for that
 specific client. These would then be used to configure PeerConnection.
 
+Add an efficient hash class that allows conversion to std::string,
+etc, and possibly a template with typedefs that can be used for other
+fixed-width strings.
+
 
 === torrent::Object ==
 

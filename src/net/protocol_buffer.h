@@ -54,7 +54,6 @@ public:
 
   void                reset()                       { m_position = m_end = begin(); }
   void                reset_position()              { m_position = m_buffer; }
-  difference_type     move_position(difference_type v) { m_position += v; return v; }
   bool                consume(difference_type v);
 
   void                set_position_itr(iterator itr) { m_position = itr; }
@@ -135,12 +134,11 @@ private:
 template <uint16_t tmpl_size>
 inline bool
 ProtocolBuffer<tmpl_size>::consume(difference_type v) {
-  move_position(v);
+  m_position += v;
 
   if (remaining())
     return false;
 
-  reset();
   return true; 
 }
 

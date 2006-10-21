@@ -49,7 +49,6 @@
 #include "data/file_meta.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
-#include "protocol/handshake.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "tracker/tracker_manager.h"
@@ -89,7 +88,7 @@ DownloadWrapper::~DownloadWrapper() {
 void
 DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   char hashObfuscated[20];
-  Handshake::generate_hash("req2", hash, hashObfuscated);
+  sha1_salt("req2", 4, hash.c_str(), hash.length(), hashObfuscated);
 
   info()->set_hash(hash);
   info()->set_hash_obfuscated(std::string(hashObfuscated, 20));

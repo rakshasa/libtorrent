@@ -66,7 +66,12 @@ public:
   typedef ProtocolBase           ProtocolRead;
   typedef ProtocolBase           ProtocolWrite;
 
+#if USE_EXTRA_DEBUG == 666
+  // For testing, use a really small buffer.
+  typedef ProtocolBuffer<256>  EncryptBuffer;
+#else
   typedef ProtocolBuffer<16384>  EncryptBuffer;
+#endif
 
   // Find an optimal number for this.
   static const uint32_t read_size = 64;
@@ -144,7 +149,7 @@ protected:
   uint32_t            down_chunk_skip_process(const void* buffer, uint32_t length);
 
   bool                up_chunk();
-  inline void         up_chunk_encrypt(uint32_t amount);
+  inline uint32_t     up_chunk_encrypt(uint32_t quota);
 
   void                down_chunk_release();
   void                up_chunk_release();

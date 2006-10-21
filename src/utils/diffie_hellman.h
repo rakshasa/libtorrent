@@ -44,23 +44,25 @@ namespace torrent {
 
 class DiffieHellman {
 public:
-  DiffieHellman(const unsigned char prime[], int prime_length, const unsigned char generator[], int generator_length);
+  DiffieHellman(const unsigned char prime[], int primeLength,
+                const unsigned char generator[], int generatorLength);
   ~DiffieHellman();
 
-  void                  compute_secret(const unsigned char pubkey[], int length);
+  void                compute_secret(const unsigned char pubkey[], unsigned int length);
+  void                store_pub_key(unsigned char* dest, unsigned int length);
 
-  void                  store_pub_key(unsigned char* to, int length);
+  unsigned int        length() const       { return m_length; }
 
-  const unsigned char*  secret_cstr()        { return m_secret; }
-  std::string           secret()             { return std::string((char*)m_secret, m_length); }
+  const char*         c_str() const        { return m_secret; }
+  std::string         secret_str() const   { return std::string(m_secret, m_length); }
 
 private:
   DiffieHellman(const DiffieHellman& dh);
   DiffieHellman& operator = (const DiffieHellman& dh);
 
-  DH*                   m_dh;
-  unsigned char*        m_secret;
-  int                   m_length;
+  DH*                 m_dh;
+  char*               m_secret;
+  unsigned int        m_length;
 };
 
 };
