@@ -73,6 +73,9 @@ public:
     CONNECTING,
     BITFIELD,
 
+    PROXY_CONNECT,
+    PROXY_DONE,
+
     READ_ENC_KEY,
     READ_ENC_SYNC,
     READ_ENC_SKEY,
@@ -89,8 +92,8 @@ public:
 
   bool                is_active() const             { return m_state != INACTIVE; }
 
-  void                initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, PeerInfo* peerInfo);
   void                initialize_incoming(const rak::socket_address& sa);
+  void                initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, PeerInfo* peerInfo);
   
   PeerInfo*           peer_info()                   { return m_peerInfo; }
   const PeerInfo*     peer_info() const             { return m_peerInfo; }
@@ -127,6 +130,7 @@ protected:
 
   bool                fill_read_buffer(int size);
 
+  bool                read_proxy_connect();
   bool                read_encryption_key();
   bool                read_encryption_sync();
   bool                read_encryption_negotiation();
@@ -135,6 +139,7 @@ protected:
   bool                read_peer();
   bool                read_bitfield();
 
+  void                prepare_proxy_connect();
   void                prepare_key_plus_pad();
   void                prepare_enc_negotiation();
   void                prepare_handshake();

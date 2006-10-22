@@ -133,7 +133,7 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* down
 }
 
 void
-HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* download, int encryption_options) {
+HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* download, int encryptionOptions) {
   PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(), PeerList::connect_keep_handshakes);
 
   if (peerInfo == NULL)
@@ -141,11 +141,17 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
 
   SocketFd fd;
   const rak::socket_address* bindAddress = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+  const rak::socket_address* connectAddress = &sa;
+
+  if (rak::socket_address::cast_from(manager->connection_manager()->proxy_address())->is_valid()) {
+    connectAddress = rak::socket_address::cast_from(manager->connection_manager()->proxy_address());
+    encryptionOptions |= ConnectionManager::encryption_use_proxy;
+  }
 
   if (!fd.open_stream() ||
       !setup_socket(fd) ||
       (bindAddress->is_bindable() && !fd.bind(*bindAddress)) ||
-      !fd.connect(sa)) {
+      !fd.connect(*connectAddress)) {
 
     if (fd.is_valid())
       fd.close();
@@ -154,17 +160,19 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
     return;
   }
 
-  if ((encryption_options & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require)) != 0)
+  if (encryptionOptions & ConnectionManager::encryption_use_proxy)
+    manager->connection_manager()->signal_handshake_log().emit(sa.c_sockaddr(), ConnectionManager::handshake_outgoing_proxy, EH_None, download->info()->hash());
+  else if (encryptionOptions & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require))
     manager->connection_manager()->signal_handshake_log().emit(sa.c_sockaddr(), ConnectionManager::handshake_outgoing_encrypted, EH_None, download->info()->hash());
   else
     manager->connection_manager()->signal_handshake_log().emit(sa.c_sockaddr(), ConnectionManager::handshake_outgoing, EH_None, download->info()->hash());
 
   manager->connection_manager()->inc_socket_count();
 
-  Handshake* h = new Handshake(fd, this, encryption_options);
-  h->initialize_outgoing(sa, download, peerInfo);
+  Handshake* handshake = new Handshake(fd, this, encryptionOptions);
+  handshake->initialize_outgoing(sa, download, peerInfo);
 
-  base_type::push_back(h);
+  base_type::push_back(handshake);
 }
 
 void

@@ -111,6 +111,24 @@ Handshake::~Handshake() {
 }
 
 void
+Handshake::initialize_incoming(const rak::socket_address& sa) {
+  m_incoming = true;
+  m_address = sa;
+
+  if (m_encryption.options() & (ConnectionManager::encryption_allow_incoming | ConnectionManager::encryption_require)) 
+    m_state = READ_ENC_KEY;
+  else
+    m_state = READ_INFO;
+
+  manager->poll()->open(this);
+  manager->poll()->insert_read(this);
+  manager->poll()->insert_error(this);
+
+  // Use lower timeout here.
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+}
+
+void
 Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, PeerInfo* peerInfo) {
   m_download = d;
 
@@ -126,24 +144,6 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, P
   manager->poll()->insert_write(this);
   manager->poll()->insert_error(this);
 
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
-}
-
-void
-Handshake::initialize_incoming(const rak::socket_address& sa) {
-  m_incoming = true;
-  m_address = sa;
-
-  if (m_encryption.options() & (ConnectionManager::encryption_allow_incoming | ConnectionManager::encryption_require)) 
-    m_state = READ_ENC_KEY;
-  else
-    m_state = READ_INFO;
-
-  manager->poll()->open(this);
-  manager->poll()->insert_read(this);
-  manager->poll()->insert_error(this);
-
-  // Use lower timeout here.
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(60)).round_seconds());
 }
 
@@ -173,15 +173,34 @@ Handshake::retry_options() {
   return options;
 }
 
-void
-Handshake::prepare_key_plus_pad() {
-  m_encryption.initialize();
+bool
+Handshake::read_proxy_connect() {
+  // Being greedy for now.
+  m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), 1024));
+  
+  const char* pattern = "\r\n\r\n";
+  const unsigned int patternLength = 4;
 
-  m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
-  m_writeBuffer.move_end(96);
+  if (m_readBuffer.remaining() < patternLength)
+    return false;
 
-  int padLen = random() % enc_pad_size;
-  m_writeBuffer.write_len(rak::generate_random<std::string>(padLen).c_str(), padLen);
+  Buffer::iterator itr = std::search(m_readBuffer.begin(), m_readBuffer.end(),
+                                     (uint8_t*)pattern, (uint8_t*)pattern + patternLength);
+
+  if (itr == m_readBuffer.end()) {
+    std::memmove(m_readBuffer.begin(), m_readBuffer.end() - patternLength, patternLength);
+    m_readBuffer.set_end(patternLength);
+
+    return false;
+
+  } else {
+    uint32_t remaining = std::distance(itr += patternLength, m_readBuffer.end());
+
+    std::memmove(m_readBuffer.begin(), itr, remaining);
+    m_readBuffer.set_end(remaining);
+
+    return true;
+  }
 }
 
 bool
@@ -189,6 +208,7 @@ Handshake::read_encryption_key() {
   if (m_incoming) {
     if (m_readBuffer.remaining() < 20)
       m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), 20 - m_readBuffer.remaining()));
+  
     if (m_readBuffer.remaining() < 20)
       return false;
 
@@ -520,6 +540,14 @@ Handshake::event_read() {
 
 restart:
     switch (m_state) {
+    case PROXY_CONNECT:
+      if (!read_proxy_connect())
+        break;
+
+      m_state = PROXY_DONE;
+
+      manager->poll()->insert_write(this);
+      return event_write();
 
     case READ_ENC_KEY:
       if (!read_encryption_key())
@@ -641,43 +669,6 @@ Handshake::fill_read_buffer(int size) {
   return m_readBuffer.remaining() >= size;
 }
 
-void
-Handshake::prepare_enc_negotiation() {
-  char hash[20];
-
-  // first piece, HASH('req1' + S)
-  sha1_salt("req1", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), m_writeBuffer.end());
-  m_writeBuffer.move_end(20);
-
-  // second piece, HASH('req2' + SKEY) ^ HASH('req3' + S)
-  m_writeBuffer.write_len(m_download->info()->hash_obfuscated().c_str(), 20);
-  sha1_salt("req3", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), hash);
-
-  for (int i = 0; i < 20; i++)
-    m_writeBuffer.end()[i - 20] ^= hash[i];
-
-  // last piece, ENCRYPT(VC, crypto_provide, len(PadC), PadC, len(IA))
-  initialize_encrypt();
-
-  Buffer::iterator old_end = m_writeBuffer.end();
-
-  HandshakeEncryption::copy_vc(m_writeBuffer.end());
-  m_writeBuffer.move_end(HandshakeEncryption::vc_length);
-
-  if (m_encryption.options() & ConnectionManager::encryption_require_RC4) {
-    m_writeBuffer.write_32(HandshakeEncryption::crypto_rc4);
-  } else {
-    m_writeBuffer.write_32(HandshakeEncryption::crypto_plain | HandshakeEncryption::crypto_rc4);
-  }
-
-  m_writeBuffer.write_16(0);
-  m_writeBuffer.write_16(handshake_size);
-  m_encryption.info()->encrypt(old_end, m_writeBuffer.end() - old_end);
-
-  // write and encrypt BT handshake as initial payload IA
-  prepare_handshake();
-}
-
 // Obfuscated hash is HASH('req2', download_hash), extract that from
 // HASH('req2', download_hash) ^ HASH('req3', S)
 DownloadMain*
@@ -732,6 +723,165 @@ Handshake::initialize_encrypt() {
 }
 
 void
+Handshake::read_done() {
+  if (m_readDone != false)
+    throw internal_error("Handshake::read_done() m_readDone != false.");
+
+  m_readDone = true;
+  manager->poll()->remove_read(this);
+
+  if (m_bitfield.empty()) {
+    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
+    m_bitfield.allocate();
+    m_bitfield.unset_all();
+
+  } else {
+    m_bitfield.update();
+  }
+
+  if (m_writeDone)
+    throw handshake_succeeded();
+}
+
+void
+Handshake::event_write() {
+  try {
+
+    switch (m_state) {
+    case CONNECTING:
+      if (get_fd().get_error())
+        throw handshake_error(ConnectionManager::handshake_failed, EH_NetworkError);
+
+      manager->poll()->insert_read(this);
+
+      if (m_encryption.options() & ConnectionManager::encryption_use_proxy) {
+        prepare_proxy_connect();
+        
+        m_state = PROXY_CONNECT;
+        break;
+      }
+
+    case PROXY_DONE:
+      // If there's any bytes remaining, it means we got a reply from
+      // the other side before our proxy connect command was finished
+      // written. This probably means the other side isn't a proxy.
+      if (m_writeBuffer.remaining())
+        throw handshake_error(ConnectionManager::handshake_failed, EH_NotBTProtocol);
+
+      m_writeBuffer.reset();
+
+      if (m_encryption.options() & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require)) {
+        prepare_key_plus_pad();
+
+        // if connection fails, peer probably closed it because it was encrypted, so retry encrypted if enabled
+        if (!(m_encryption.options() & ConnectionManager::encryption_require))
+          m_encryption.set_retry(HandshakeEncryption::RETRY_PLAIN);
+
+        m_state = READ_ENC_KEY;
+
+      } else {
+        // if connection is closed before we read the handshake, it might
+        // be rejected because it is unencrypted, in that case retry encrypted
+        m_encryption.set_retry(HandshakeEncryption::RETRY_ENCRYPTED);
+
+        prepare_handshake();
+
+        if (m_incoming)
+          m_state = READ_PEER;
+        else
+          m_state = READ_INFO;
+      }
+
+      break;
+
+    case BITFIELD:
+      write_bitfield();
+      return;
+
+    default:
+      break;
+    }
+
+    if (!m_writeBuffer.remaining())
+      throw internal_error("event_write called with empty write buffer.");
+
+    if (m_writeBuffer.consume(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining())))
+      manager->poll()->remove_write(this);
+
+  } catch (handshake_succeeded& e) {
+    m_manager->receive_succeeded(this);
+
+  } catch (handshake_error& e) {
+    m_manager->receive_failed(this, e.type(), e.error());
+
+  } catch (network_error& e) {
+    m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
+
+  }
+}
+
+void
+Handshake::prepare_proxy_connect() {
+  char buf[256];
+  m_address.address_c_str(buf, 256);  
+
+  int advance = snprintf((char*)m_writeBuffer.position(), m_writeBuffer.reserved_left(),
+                         "CONNECT %s:%hu HTTP/1.0\r\n\r\n", buf, m_address.port());
+
+  if (advance == -1)
+    throw internal_error("Handshake::prepare_proxy_connect() snprintf failed.");
+
+  m_writeBuffer.move_end(advance);
+}
+
+void
+Handshake::prepare_key_plus_pad() {
+  m_encryption.initialize();
+
+  m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
+  m_writeBuffer.move_end(96);
+
+  int padLen = random() % enc_pad_size;
+  m_writeBuffer.write_len(rak::generate_random<std::string>(padLen).c_str(), padLen);
+}
+
+void
+Handshake::prepare_enc_negotiation() {
+  char hash[20];
+
+  // first piece, HASH('req1' + S)
+  sha1_salt("req1", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), m_writeBuffer.end());
+  m_writeBuffer.move_end(20);
+
+  // second piece, HASH('req2' + SKEY) ^ HASH('req3' + S)
+  m_writeBuffer.write_len(m_download->info()->hash_obfuscated().c_str(), 20);
+  sha1_salt("req3", 4, m_encryption.key()->c_str(), m_encryption.key()->length(), hash);
+
+  for (int i = 0; i < 20; i++)
+    m_writeBuffer.end()[i - 20] ^= hash[i];
+
+  // last piece, ENCRYPT(VC, crypto_provide, len(PadC), PadC, len(IA))
+  initialize_encrypt();
+
+  Buffer::iterator old_end = m_writeBuffer.end();
+
+  HandshakeEncryption::copy_vc(m_writeBuffer.end());
+  m_writeBuffer.move_end(HandshakeEncryption::vc_length);
+
+  if (m_encryption.options() & ConnectionManager::encryption_require_RC4)
+    m_writeBuffer.write_32(HandshakeEncryption::crypto_rc4);
+  else
+    m_writeBuffer.write_32(HandshakeEncryption::crypto_plain | HandshakeEncryption::crypto_rc4);
+
+  m_writeBuffer.write_16(0);
+  m_writeBuffer.write_16(handshake_size);
+  m_encryption.info()->encrypt(old_end, m_writeBuffer.end() - old_end);
+
+  // write and encrypt BT handshake as initial payload IA
+  prepare_handshake();
+}
+
+void
 Handshake::prepare_handshake() {
   m_writeBuffer.write_8(19);
   m_writeBuffer.write_range(m_protocol, m_protocol + 19);
@@ -774,6 +924,7 @@ void
 Handshake::prepare_bitfield() {
   m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
   m_writeBuffer.write_8(protocol_bitfield);
+
   if (m_encryption.info()->is_encrypted())
     m_encryption.info()->encrypt(m_writeBuffer.end() - 5, 5);
 
@@ -789,86 +940,6 @@ Handshake::prepare_keepalive() {
 
   // Skip writting the bitfield.
   m_writePos = m_download->content()->bitfield()->size_bytes();
-}
-
-void
-Handshake::read_done() {
-  if (m_readDone != false)
-    throw internal_error("Handshake::read_done() m_readDone != false.");
-
-  m_readDone = true;
-  manager->poll()->remove_read(this);
-
-  if (m_bitfield.empty()) {
-    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
-    m_bitfield.allocate();
-    m_bitfield.unset_all();
-
-  } else {
-    m_bitfield.update();
-  }
-
-  if (m_writeDone)
-    throw handshake_succeeded();
-}
-
-void
-Handshake::event_write() {
-  try {
-
-    switch (m_state) {
-
-    case CONNECTING:
-      if (get_fd().get_error())
-        throw handshake_error(ConnectionManager::handshake_failed, EH_NetworkError);
-
-      if (m_encryption.options() & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require)) {
-        prepare_key_plus_pad();
-
-        // if connection fails, peer probably closed it because it was encrypted, so retry encrypted if enabled
-        if (!(m_encryption.options() & ConnectionManager::encryption_require))
-          m_encryption.set_retry(HandshakeEncryption::RETRY_PLAIN);
-
-        m_state = READ_ENC_KEY;
-      } else {
-        // if connection is closed before we read the handshake, it might
-        // be rejected because it is unencrypted, in that case retry encrypted
-        m_encryption.set_retry(HandshakeEncryption::RETRY_ENCRYPTED);
-
-        prepare_handshake();
-
-        if (m_incoming)
-          m_state = READ_PEER;
-        else
-          m_state = READ_INFO;
-      }
-      manager->poll()->insert_read(this);
-      break;
-
-    case BITFIELD:
-      write_bitfield();
-      return;
-
-    default:
-      break;
-    }
-
-    if (!m_writeBuffer.remaining())
-      throw internal_error("event_write called with empty write buffer.");
-
-    if (m_writeBuffer.consume(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining())))
-      manager->poll()->remove_write(this);
-
-  } catch (handshake_succeeded& e) {
-    m_manager->receive_succeeded(this);
-
-  } catch (handshake_error& e) {
-    m_manager->receive_failed(this, e.type(), e.error());
-
-  } catch (network_error& e) {
-    m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
-
-  }
 }
 
 void

@@ -84,10 +84,14 @@ public:
   static const uint32_t encryption_enable_retry     = (1 << 4);
   static const uint32_t encryption_prefer_plaintext = (1 << 5);
 
+  // Internal to libtorrent.
+  static const uint32_t encryption_use_proxy        = (1 << 6);
+
   typedef enum {
     handshake_incoming,
     handshake_outgoing,
     handshake_outgoing_encrypted,
+    handshake_outgoing_proxy,
 
     handshake_success,
     handshake_dropped,
@@ -142,6 +146,9 @@ public:
   const sockaddr*     local_address() const                   { return m_localAddress; }
   void                set_local_address(const sockaddr* sa);
 
+  const sockaddr*     proxy_address() const                   { return m_proxyAddress; }
+  void                set_proxy_address(const sockaddr* sa);
+
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slotFilter = s; }
 
@@ -149,7 +156,7 @@ public:
   void                listen_close();  
 
   signal_handshake_type& signal_handshake_log()               { return m_signalHandshakeLog; }
-  sigc::connection    set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
+  sigc::connection       set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
 
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,
@@ -174,6 +181,7 @@ private:
 
   sockaddr*           m_bindAddress;
   sockaddr*           m_localAddress;
+  sockaddr*           m_proxyAddress;
 
   Listen*             m_listen;
   port_type           m_listenPort;

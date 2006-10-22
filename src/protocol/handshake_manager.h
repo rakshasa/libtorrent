@@ -78,19 +78,19 @@ public:
   void                add_incoming(SocketFd fd, const rak::socket_address& sa);
   void                add_outgoing(const rak::socket_address& sa, DownloadMain* info);
 
-  void                slot_download_id(SlotDownloadId s)        { m_slotDownloadId = s; }
-  void                slot_download_id_obfuscated(SlotDownloadId s) { m_slotDownloadIdObfuscated = s; }
+  void                slot_download_id(SlotDownloadId s)                { m_slotDownloadId = s; }
+  void                slot_download_id_obfuscated(SlotDownloadId s)     { m_slotDownloadIdObfuscated = s; }
 
   void                receive_succeeded(Handshake* h);
   void                receive_failed(Handshake* h, ConnectionManager::HandshakeMessage message, uint32_t err);
   void                receive_timeout(Handshake* h);
 
   // This needs to be filterable slot.
-  DownloadMain*       download_info(const std::string& hash)    { return m_slotDownloadId(hash); }
+  DownloadMain*       download_info(const std::string& hash)            { return m_slotDownloadId(hash); }
   DownloadMain*       download_info_obfuscated(const std::string& hash) { return m_slotDownloadIdObfuscated(hash); }
 
 private:
-  void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryption_options);
+  void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryptionOptions);
   void                erase(Handshake* handshake);
 
   bool                setup_socket(SocketFd fd);

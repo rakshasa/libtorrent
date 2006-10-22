@@ -62,6 +62,9 @@ ConnectionManager::ConnectionManager() :
 
   m_localAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_localAddress)->sa_inet()->clear();
+
+  m_proxyAddress = (new rak::socket_address())->c_sockaddr();
+  rak::socket_address::cast_from(m_proxyAddress)->sa_inet()->clear();
 }
 
 ConnectionManager::~ConnectionManager() {
@@ -104,6 +107,16 @@ ConnectionManager::set_local_address(const sockaddr* sa) {
     throw input_error("Tried to set a local address that is not an af_inet address.");
 
   rak::socket_address::cast_from(m_localAddress)->copy(*rsa, rsa->length());
+}
+
+void
+ConnectionManager::set_proxy_address(const sockaddr* sa) {
+  const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
+
+  if (rsa->family() != rak::socket_address::af_inet)
+    throw input_error("Tried to set a proxy address that is not an af_inet address.");
+
+  rak::socket_address::cast_from(m_proxyAddress)->copy(*rsa, rsa->length());
 }
 
 uint32_t
