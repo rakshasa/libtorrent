@@ -39,7 +39,10 @@
 #include <algorithm>
 #include <functional>
 
+#include "torrent/connection_manager.h"
+#include "torrent/exceptions.h"
 #include "utils/diffie_hellman.h"
+#include "utils/sha1.h"
 
 #include "handshake_encryption.h"
 
@@ -59,6 +62,11 @@ const unsigned char HandshakeEncryption::dh_prime[] = {
 const unsigned char HandshakeEncryption::dh_generator[] = { 2 };
 const unsigned char HandshakeEncryption::vc_data[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
+bool
+HandshakeEncryption::should_retry() const {
+  return (m_options & ConnectionManager::encryption_enable_retry) != 0 && m_retry != HandshakeEncryption::RETRY_NONE;
+}
+
 void
 HandshakeEncryption::initialize() {
   m_key = new DiffieHellman(dh_prime, dh_prime_length, dh_generator, dh_generator_length);
@@ -70,17 +78,67 @@ HandshakeEncryption::cleanup() {
   m_key = NULL;
 }
 
-char*
-HandshakeEncryption::vc_to_sync() {
-  m_syncLength = vc_length;
-  std::memcpy(m_sync, vc_data, vc_length);
-
-  return m_sync;
-}
-
 bool
 HandshakeEncryption::compare_vc(const void* buf) {
   return std::memcmp(buf, vc_data, vc_length) == 0;
+}
+
+void
+HandshakeEncryption::initialize_decrypt(const char* origHash, bool incoming) {
+  char hash[20];
+  unsigned char discard[1024];
+
+  sha1_salt(incoming ? "keyA" : "keyB", 4, m_key->c_str(), 96, origHash, 20, hash);
+
+  m_info.set_decrypt(RC4((const unsigned char*)hash, 20));
+  m_info.decrypt(discard, 1024);
+}
+
+void
+HandshakeEncryption::initialize_encrypt(const char* origHash, bool incoming) {
+  char hash[20];
+  unsigned char discard[1024];
+
+  sha1_salt(incoming ? "keyB" : "keyA", 4, m_key->c_str(), 96, origHash, 20, hash);
+
+  m_info.set_encrypt(RC4((const unsigned char*)hash, 20));
+  m_info.encrypt(discard, 1024);
+}
+
+// Obfuscated hash is HASH('req2', download_hash), extract that from
+// HASH('req2', download_hash) ^ HASH('req3', S).
+std::string
+HandshakeEncryption::deobfuscate_hash(const char* src) const {
+  char dest[20];
+  sha1_salt("req3", 4, m_key->c_str(), m_key->size(), dest);
+
+  for (int i = 0; i < 20; i++)
+    dest[i] ^= src[i];
+
+  return std::string(dest, 20);
+}
+
+void
+HandshakeEncryption::hash_req1_to_sync() {
+  sha1_salt("req1", 4,
+            m_key->c_str(), m_key->size(),
+            modify_sync(20));
+}
+
+void
+HandshakeEncryption::encrypt_vc_to_sync(const char* origHash) {
+  m_syncLength = vc_length;
+  std::memcpy(m_sync, vc_data, vc_length);
+
+  char hash[20];
+  char discard[1024];
+
+  sha1_salt("keyB", 4, m_key->c_str(), 96, origHash, 20, hash);
+
+  RC4 peerEncrypt((const unsigned char*)hash, 20);
+
+  peerEncrypt.crypt(discard, 1024);
+  peerEncrypt.crypt(m_sync, HandshakeEncryption::vc_length);
 }
 
 }

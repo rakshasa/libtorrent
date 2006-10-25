@@ -51,10 +51,10 @@ public:
   void                compute_secret(const unsigned char pubkey[], unsigned int length);
   void                store_pub_key(unsigned char* dest, unsigned int length);
 
-  unsigned int        length() const       { return m_length; }
+  unsigned int        size() const         { return m_size; }
 
   const char*         c_str() const        { return m_secret; }
-  std::string         secret_str() const   { return std::string(m_secret, m_length); }
+  std::string         secret_str() const   { return std::string(m_secret, m_size); }
 
 private:
   DiffieHellman(const DiffieHellman& dh);
@@ -62,7 +62,7 @@ private:
 
   DH*                 m_dh;
   char*               m_secret;
-  unsigned int        m_length;
+  unsigned int        m_size;
 };
 
 };

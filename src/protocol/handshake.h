@@ -120,8 +120,6 @@ public:
 
   int                 retry_options();
 
-  bool                should_retry() const;
-
 protected:
   Handshake(const Handshake&);
   void operator = (const Handshake&);
@@ -130,6 +128,7 @@ protected:
 
   bool                fill_read_buffer(int size);
 
+  // Check what is unnessesary.
   bool                read_proxy_connect();
   bool                read_encryption_key();
   bool                read_encryption_sync();
@@ -149,10 +148,7 @@ protected:
 
   void                write_bitfield();
 
-  DownloadMain*       find_obfuscated_download(uint8_t* obf_hash);
   inline void         validate_download();
-  void                initialize_decrypt();
-  void                initialize_encrypt();
 
   static const char*  m_protocol;
 

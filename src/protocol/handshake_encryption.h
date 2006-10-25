@@ -42,7 +42,7 @@
 #include "encryption_info.h"
 
 // Remove this dependency.
-#include "torrent/connection_manager.h"
+// #include "torrent/connection_manager.h"
 
 namespace torrent {
 
@@ -90,11 +90,12 @@ public:
   Retry               retry() const                                { return m_retry; }
   void                set_retry(Retry val)                         { m_retry = val; }
 
+  bool                should_retry() const;
+
   const char*         sync() const                                 { return m_sync; }
   unsigned int        sync_length() const                          { return m_syncLength; }
 
   void                set_sync(const char* src, unsigned int len)  { std::memcpy(m_sync, src, (m_syncLength = len)); }
-  char*               vc_to_sync();
   char*               modify_sync(unsigned int len)                { m_syncLength = len; return m_sync; }
 
   unsigned int        length_ia() const                            { return m_lengthIA; }
@@ -102,6 +103,15 @@ public:
 
   void                initialize();
   void                cleanup();
+
+  void                initialize_decrypt(const char* origHash, bool incoming);
+  void                initialize_encrypt(const char* origHash, bool incoming);
+
+  // This should get rid of the std::string usage.
+  std::string         deobfuscate_hash(const char* src) const;
+
+  void                hash_req1_to_sync();
+  void                encrypt_vc_to_sync(const char* origHash);
 
   static void         copy_vc(void* dest)                          { std::memset(dest, 0, vc_length); }
   static bool         compare_vc(const void* buf);

@@ -67,7 +67,7 @@ DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) 
   delete [] m_secret;
   m_secret = new char[DH_size(m_dh)];
 
-  m_length = DH_compute_key((unsigned char*)m_secret, k, m_dh);
+  m_size = DH_compute_key((unsigned char*)m_secret, k, m_dh);
   
   BN_free(k);
 };

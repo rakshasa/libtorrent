@@ -224,28 +224,29 @@ HandshakeManager::post_insert(Handshake* h, PeerConnectionBase* pcb) {
 }
 
 void
-HandshakeManager::receive_failed(Handshake* h, ConnectionManager::HandshakeMessage message, uint32_t err) {
-  if (!h->is_active())
+HandshakeManager::receive_failed(Handshake* handshake, ConnectionManager::HandshakeMessage message, uint32_t err) {
+  if (!handshake->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  manager->connection_manager()->signal_handshake_log().emit(h->socket_address()->c_sockaddr(), message, err, h->download() != NULL ? h->download()->info()->hash() : "");
+  const rak::socket_address* sa = handshake->socket_address();
 
-  erase(h);
+  manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(), message, err, handshake->download() != NULL ? handshake->download()->info()->hash() : "");
+  erase(handshake);
 
-  if (h->should_retry()) {
-    int retry_options = h->retry_options();
-    const rak::socket_address* sa = h->socket_address();
-    DownloadMain* download = h->download();
+  if (handshake->encryption()->should_retry()) {
+    int retry_options = handshake->retry_options();
+    DownloadMain* download = handshake->download();
 
     if (retry_options & ConnectionManager::encryption_try_outgoing)
-      manager->connection_manager()->signal_handshake_log().emit(h->socket_address()->c_sockaddr(), ConnectionManager::handshake_retry_encrypted, EH_None, download->info()->hash());
+      manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(), ConnectionManager::handshake_retry_encrypted, EH_None, download->info()->hash());
     else
-      manager->connection_manager()->signal_handshake_log().emit(h->socket_address()->c_sockaddr(), ConnectionManager::handshake_retry_plaintext, EH_None, download->info()->hash());
+      manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(), ConnectionManager::handshake_retry_plaintext, EH_None, download->info()->hash());
 
-    delete_handshake(h);
+    delete_handshake(handshake);
     create_outgoing(*sa, download, retry_options);
+
   } else {
-    delete_handshake(h);
+    delete_handshake(handshake);
   }
 }
 
