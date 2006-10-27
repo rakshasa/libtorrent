@@ -47,6 +47,8 @@ TORRENT_WITH_ADDRESS_SPACE
 TORRENT_WITHOUT_STATVFS
 TORRENT_WITHOUT_STATFS
 
+CC_ATTRIBUTE_DEFAULT([CXXFLAGS="$CXXFLAGS -fvisibility=hidden"])
+
 AC_ARG_WITH(openssl,
   [  --without-openssl       Don't use OpenSSL's SHA1 implementation.],
   [

@@ -40,7 +40,6 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
-#include <inttypes.h>
 #include <torrent/common.h>
 
 namespace torrent {

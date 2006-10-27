@@ -37,7 +37,6 @@
 #ifndef LIBTORRENT_TORRENT_POLL_KQUEUE_H
 #define LIBTORRENT_TORRENT_POLL_KQUEUE_H
 
-#include <inttypes.h>
 #include <vector>
 #include <torrent/poll.h>
 
@@ -45,7 +44,7 @@ struct kevent;
 
 namespace torrent {
 
-class PollKQueue : public torrent::Poll {
+class LIBTORRENT_EXPORT PollKQueue : public torrent::Poll {
 public:
   typedef std::vector<uint32_t> Table;
 

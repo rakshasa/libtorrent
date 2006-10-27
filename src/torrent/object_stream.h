@@ -39,23 +39,22 @@
 
 #include <ios>
 #include <string>
+#include <torrent/common.h>
 
 namespace torrent {
 
-class Object;
-
-std::string object_sha1(const Object* object);
+std::string object_sha1(const Object* object) LIBTORRENT_EXPORT;
 
 // Assumes the stream's locale has been set to POSIX or C.  Max depth
 // is 1024, this ensures files consisting of only 'l' don't segfault
 // the client.
-void object_read_bencode(std::istream* input, Object* object, uint32_t depth = 0);
+void object_read_bencode(std::istream* input, Object* object, uint32_t depth = 0) LIBTORRENT_EXPORT;
 
 // Assumes the stream's locale has been set to POSIX or C.
-void object_write_bencode(std::ostream* output, const Object* object);
+void object_write_bencode(std::ostream* output, const Object* object) LIBTORRENT_EXPORT;
 
-std::istream& operator >> (std::istream& input, Object& object);
-std::ostream& operator << (std::ostream& output, const Object& object);
+std::istream& operator >> (std::istream& input, Object& object) LIBTORRENT_EXPORT;
+std::ostream& operator << (std::ostream& output, const Object& object) LIBTORRENT_EXPORT;
 
 }
 

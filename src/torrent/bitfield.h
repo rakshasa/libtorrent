@@ -38,11 +38,11 @@
 #define LIBTORRENT_BITFIELD_H
 
 #include <cstring>
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
-class Bitfield {
+class LIBTORRENT_EXPORT Bitfield {
 public:
   typedef uint32_t              size_type;
   typedef uint8_t               value_type;

@@ -37,14 +37,14 @@
 #ifndef LIBTORRENT_DOWNLOAD_H
 #define LIBTORRENT_DOWNLOAD_H
 
-#include <torrent/peer.h>
-
 #include <list>
 #include <vector>
 #include <string>
-#include <inttypes.h>
 #include <sigc++/slot.h>
 #include <sigc++/connection.h>
+
+#include <torrent/common.h>
+#include <torrent/peer.h>
 
 namespace torrent {
 
@@ -63,7 +63,7 @@ class TransferList;
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
 
-class Download {
+class LIBTORRENT_EXPORT Download {
 public:
   static const uint32_t numwanted_diabled = ~uint32_t();
 

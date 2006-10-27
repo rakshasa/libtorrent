@@ -38,19 +38,16 @@
 #define LIBTORRENT_BLOCK_H
 
 #include <vector>
-#include <inttypes.h>
+#include <torrent/common.h>
 #include <torrent/block_transfer.h>
+#include <torrent/common.h>
 
 namespace torrent {
-
-class BlockFailed;
-class BlockList;
-class PeerInfo;
 
 // If you start adding slots, make sure the rest of the code creates
 // copies and clears the original variables before calls to erase etc.
 
-class Block {
+class LIBTORRENT_EXPORT Block {
 public:
   // Using vectors as they will remain small, thus the cost of erase
   // should be small. Later we can do faster erase by ignoring the

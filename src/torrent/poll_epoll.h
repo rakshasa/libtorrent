@@ -37,7 +37,6 @@
 #ifndef LIBTORRENT_TORRENT_POLL_EPOLL_H
 #define LIBTORRENT_TORRENT_POLL_EPOLL_H
 
-#include <inttypes.h>
 #include <vector>
 #include <torrent/poll.h>
 
@@ -45,7 +44,7 @@ struct epoll_event;
 
 namespace torrent {
 
-class PollEPoll : public torrent::Poll {
+class LIBTORRENT_EXPORT PollEPoll : public torrent::Poll {
 public:
   typedef std::vector<uint32_t> Table;
 

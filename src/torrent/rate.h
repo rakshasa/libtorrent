@@ -38,7 +38,7 @@
 #define LIBTORRENT_UTILS_RATE_H
 
 #include <deque>
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
@@ -46,7 +46,7 @@ namespace torrent {
 // insert(...). This requires a mutable since rate() can be const, but
 // is justified as we avoid iterating the deque for each call.
 
-class Rate {
+class LIBTORRENT_EXPORT Rate {
 public:
   typedef int32_t                          timer_type;
   typedef uint32_t                         rate_type;
@@ -94,4 +94,4 @@ private:
 
 }
 
-#endif // LIBTORRENT_RATE_H
+#endif

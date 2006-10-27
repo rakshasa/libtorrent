@@ -38,14 +38,13 @@
 #define LIBTORRENT_BLOCK_LIST_H
 
 #include <vector>
-#include <inttypes.h>
 #include <torrent/common.h>
 #include <torrent/block.h>
 #include <torrent/piece.h>
 
 namespace torrent {
 
-class BlockList : public std::vector<Block> {
+class LIBTORRENT_EXPORT BlockList : public std::vector<Block> {
 public:
   typedef std::vector<Block> base_type;
   typedef uint32_t           size_type;

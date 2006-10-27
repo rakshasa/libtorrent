@@ -34,10 +34,12 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PRIORITY_H
-#define LIBTORRENT_PRIORITY_H
+#ifndef LIBTORRENT_COMMON_H
+#define LIBTORRENT_COMMON_H
 
-#include <inttypes.h>
+#include <torrent/common.h>
+
+struct sockaddr;
 
 namespace torrent {
 
@@ -48,6 +50,56 @@ enum priority_enum {
 };
 
 typedef priority_enum priority_t;
+
+// Just forward declare everything here so we can keep the actual
+// headers clean.
+class AvailableList;
+class Bitfield;
+class Block;
+class BlockFailed;
+class BlockList;
+class BlockTransfer;
+class Chunk;
+class ChunkList;
+class ChunkManager;
+class ChunkSelector;
+class ConnectionList;
+class ConnectionManager;
+class Download;
+class DownloadMain;
+class DownloadWrapper;
+class EntryList;
+class EntryListNode;
+class Event;
+class File;
+class FileList;
+class Handshake;
+class HandshakeManager;
+class Listen;
+class Object;
+class Path;
+class Peer;
+class PeerConnectionBase;
+class PeerInfo;
+class PeerList;
+class Piece;
+class Poll;
+class Rate;
+class SocketSet;
+class Tracker;
+class TrackerBase;
+class TrackerList;
+class TrackerManager;
+class TransferList;
+
+// This should only need to be set when compiling libtorrent.
+#ifdef SUPPORT_ATTRIBUTE_DEFAULT
+  #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
+  #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
+#else
+  #define LIBTORRENT_NO_EXPORT
+  #define LIBTORRENT_EXPORT
+#endif
 
 }
 

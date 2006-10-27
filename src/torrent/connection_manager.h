@@ -39,7 +39,6 @@
 #ifndef LIBTORRENT_CONNECTION_MANAGER_H
 #define LIBTORRENT_CONNECTION_MANAGER_H
 
-#include <inttypes.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -49,14 +48,11 @@
 #include <sigc++/signal.h>
 #include <sigc++/slot.h>
 
-class sockaddr;
+#include <torrent/common.h>
 
 namespace torrent {
 
-// Internal.
-class Listen;
-
-class ConnectionManager {
+class LIBTORRENT_EXPORT ConnectionManager {
 public:
   typedef uint32_t                              size_type;
   typedef uint16_t                              port_type;

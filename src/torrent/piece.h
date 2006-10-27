@@ -37,11 +37,11 @@
 #ifndef LIBTORRENT_PIECE_H
 #define LIBTORRENT_PIECE_H
 
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
-class Piece {
+class LIBTORRENT_EXPORT Piece {
 public:
   static const uint32_t invalid_index = ~uint32_t();
 

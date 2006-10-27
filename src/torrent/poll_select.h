@@ -38,6 +38,7 @@
 #define LIBTORRENT_NET_POLL_SELECT_H
 
 #include <sys/types.h>
+#include <torrent/common.h>
 #include <torrent/poll.h>
 
 namespace torrent {
@@ -48,9 +49,7 @@ namespace torrent {
 // be called) immidiately before and after the call to work(...). This
 // ensures we dealt with scheduled tasks and updated the cache'ed time.
 
-class SocketSet;
-
-class PollSelect : public Poll {
+class LIBTORRENT_EXPORT PollSelect : public Poll {
 public:
   static PollSelect*  create(int maxOpenSockets);
   virtual ~PollSelect();

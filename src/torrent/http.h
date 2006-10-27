@@ -39,8 +39,8 @@
 
 #include <string>
 #include <iosfwd>
-#include <inttypes.h>
 #include <sigc++/signal.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
@@ -48,7 +48,7 @@ namespace torrent {
 // "CLIENT_NAME/CLIENT_VERSION/LIBRARY_VERSION".
 
 // Keep in mind that these objects get reused.
-class Http {
+class LIBTORRENT_EXPORT Http {
  public:
   typedef sigc::signal0<void>                     Signal;
   typedef sigc::signal1<void, const std::string&> SignalString;

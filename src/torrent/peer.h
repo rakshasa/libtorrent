@@ -38,18 +38,9 @@
 #define LIBTORRENT_PEER_H
 
 #include <string>
-#include <inttypes.h>
-
-struct sockaddr;
+#include <torrent/common.h>
 
 namespace torrent {
-
-class Bitfield;
-class BlockTransfer;
-class PeerConnectionBase;
-class PeerInfo;
-class Piece;
-class Rate;
 
 // == and = operators works as expected.
 
@@ -58,7 +49,7 @@ class Rate;
 // you keep a list or single instances in the client, you need to
 // listen to the appropriate signals from the download to keep up to
 // date. 
-class Peer {
+class LIBTORRENT_EXPORT Peer {
 public:
   Peer(PeerConnectionBase* p = NULL) : m_ptr(p) {}
 

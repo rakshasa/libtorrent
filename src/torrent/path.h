@@ -39,12 +39,13 @@
 
 #include <string>
 #include <vector>
+#include <torrent/common.h>
 
 namespace torrent {
 
 // Use a blank first path to get root and "." to get current dir.
 
-class Path : private std::vector<std::string> {
+class LIBTORRENT_EXPORT Path : private std::vector<std::string> {
 public:
   typedef std::vector<std::string>          base_type;
 

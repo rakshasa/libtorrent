@@ -577,9 +577,11 @@ restart:
 
     case READ_ENC_PAD:
       if (m_readPos) {
-        // read padC+lenIA or padD; pad length in m_readPos
+        // Read padC + lenIA or padD; pad length in m_readPos.
         if (!fill_read_buffer(m_readPos + (m_incoming ? 2 : 0)))
-          break;     // this can be improved (consume as much as was read)
+          // This can be improved (consume as much as was read)
+          break;
+
         m_readBuffer.consume(m_readPos);
         m_readPos = 0;
       }
@@ -591,8 +593,8 @@ restart:
         goto restart;
 
     case READ_ENC_IA:
-      // just read (and automatically decrypt) the initial payload
-      // and leave it in the buffer for READ_INFO later
+      // Just read (and automatically decrypt) the initial payload
+      // and leave it in the buffer for READ_INFO later.
       if (m_encryption.length_ia() > 0 && !fill_read_buffer(m_encryption.length_ia()))
         break;
 

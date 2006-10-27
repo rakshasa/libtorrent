@@ -37,14 +37,14 @@
 #ifndef LIBTORRENT_TRACKER_LIST_H
 #define LIBTORRENT_TRACKER_LIST_H
 
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
 class Tracker;
 class TrackerManager;
 
-class TrackerList {
+class LIBTORRENT_EXPORT TrackerList {
 public:
   TrackerList(TrackerManager* m = NULL) : m_manager(m) {}
 

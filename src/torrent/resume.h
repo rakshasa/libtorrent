@@ -45,27 +45,26 @@
 #ifndef LIBTORRENT_RESUME_H
 #define LIBTORRENT_RESUME_H
 
-namespace torrent {
+#include <torrent/common.h>
 
-class Object;
-class Download;
+namespace torrent {
 
 // When saving resume data for a torrent that is currently active, set
 // 'onlyCompleted' to ensure that a crash, etc, will cause incomplete
 // files to be hashed.
 
-void resume_load_progress(Download download, const Object& object);
-void resume_save_progress(Download download, Object& object, bool onlyCompleted = false);
-void resume_clear_progress(Download download, Object& object);
+void resume_load_progress(Download download, const Object& object) LIBTORRENT_EXPORT;
+void resume_save_progress(Download download, Object& object, bool onlyCompleted = false) LIBTORRENT_EXPORT;
+void resume_clear_progress(Download download, Object& object) LIBTORRENT_EXPORT;
 
-void resume_load_file_priorities(Download download, const Object& object);
-void resume_save_file_priorities(Download download, Object& object);
+void resume_load_file_priorities(Download download, const Object& object) LIBTORRENT_EXPORT;
+void resume_save_file_priorities(Download download, Object& object) LIBTORRENT_EXPORT;
 
-void resume_load_addresses(Download download, const Object& object);
-void resume_save_addresses(Download download, Object& object);
+void resume_load_addresses(Download download, const Object& object) LIBTORRENT_EXPORT;
+void resume_save_addresses(Download download, Object& object) LIBTORRENT_EXPORT;
 
-void resume_load_tracker_settings(Download download, const Object& object);
-void resume_save_tracker_settings(Download download, Object& object);
+void resume_load_tracker_settings(Download download, const Object& object) LIBTORRENT_EXPORT;
+void resume_save_tracker_settings(Download download, Object& object) LIBTORRENT_EXPORT;
 
 }
 

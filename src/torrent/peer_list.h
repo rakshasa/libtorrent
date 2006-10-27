@@ -38,19 +38,12 @@
 #define LIBTORRENT_PEER_LIST_H
 
 #include <map>
-
-struct sockaddr;
+#include <torrent/common.h>
 
 namespace torrent {
 
-class AvailableList;
-class ConnectionList;
-class Handshake;
-class HandshakeManager;
-class PeerInfo;
-
 // Unique key for the address, excluding port numbers etc.
-class socket_address_key {
+class LIBTORRENT_EXPORT socket_address_key {
 public:
   socket_address_key(const sockaddr* sa) : m_sockaddr(sa) {}
 
@@ -60,7 +53,7 @@ private:
   const sockaddr*     m_sockaddr;
 };
 
-class PeerList : private std::multimap<socket_address_key, PeerInfo*> {
+class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, PeerInfo*> {
 public:
   friend class Handshake;
   friend class HandshakeManager;

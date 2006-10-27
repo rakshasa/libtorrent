@@ -40,13 +40,11 @@
 #define LIBTORRENT_CHUNK_MANAGER_H
 
 #include <vector>
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
-class ChunkList;
-
-class ChunkManager : private std::vector<ChunkList*> {
+class LIBTORRENT_EXPORT ChunkManager : private std::vector<ChunkList*> {
 public:
   typedef std::vector<ChunkList*> base_type;
   typedef uint32_t                size_type;

@@ -39,7 +39,6 @@
 
 #include <list>
 #include <string>
-#include <inttypes.h>
 #include <torrent/common.h>
 
 namespace torrent {
@@ -47,7 +46,7 @@ namespace torrent {
 class EntryListNode;
 class Path;
 
-class File {
+class LIBTORRENT_EXPORT File {
 public:
   File(EntryListNode* e = NULL) : m_entry(e) {}
   

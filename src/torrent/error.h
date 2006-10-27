@@ -37,26 +37,29 @@
 #ifndef LIBTORRENT_TORRENT_ERROR_H
 #define LIBTORRENT_TORRENT_ERROR_H
 
+#include <torrent/common.h>
+
 namespace torrent {
 
-  // Handshake errors passed to signal handler
-  const int EH_None                    = 0;
-  const int EH_NotBTProtocol           = 1;
-  const int EH_NotAcceptingPeers       = 2;
-  const int EH_Duplicate               = 3;
-  const int EH_Unknown                 = 4;
-  const int EH_Inactive                = 5;
-  const int EH_SeederRejected          = 6;
-  const int EH_IsSelf                  = 7;
-  const int EH_InvalidValue            = 8;
-  const int EH_UnencryptedRejected     = 9;
-  const int EH_InvalidEncryptionMethod = 10;
-  const int EH_EncryptionSyncFailed    = 11;
-  const int EH_NetworkError            = 12;
+// Handshake errors passed to signal handler
+const int EH_None                    = 0;
+const int EH_NotBTProtocol           = 1;
+const int EH_NotAcceptingPeers       = 2;
+const int EH_Duplicate               = 3;
+const int EH_Unknown                 = 4;
+const int EH_Inactive                = 5;
+const int EH_SeederRejected          = 6;
+const int EH_IsSelf                  = 7;
+const int EH_InvalidValue            = 8;
+const int EH_UnencryptedRejected     = 9;
+const int EH_InvalidEncryptionMethod = 10;
+const int EH_EncryptionSyncFailed    = 11;
+const int EH_NetworkError            = 12;
 
-  const int E_Last                     = 12;
+const int E_Last                     = 12;
 
-  const char* strerror(int err);
+const char* strerror(int err) LIBTORRENT_EXPORT;
+
 }
 
 #endif

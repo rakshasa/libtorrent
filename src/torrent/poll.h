@@ -37,13 +37,13 @@
 #ifndef LIBTORRENT_TORRENT_POLL_H
 #define LIBTORRENT_TORRENT_POLL_H
 
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
 class Event;
 
-class Poll {
+class LIBTORRENT_EXPORT Poll {
 public:
   virtual ~Poll() {}
 

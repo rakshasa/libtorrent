@@ -34,6 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
+#include "config.h"
+
 #include "error.h"
 
 namespace torrent {

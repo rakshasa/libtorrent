@@ -39,17 +39,11 @@
 
 #include <string>
 #include <cstring>
-#include <inttypes.h>
-
-class sockaddr;
+#include <torrent/common.h>
 
 namespace torrent {
 
-class Handshake;
-class HandshakeManager;
-class PeerList;
-
-class PeerInfo {
+class LIBTORRENT_EXPORT PeerInfo {
 public:
   friend class Handshake;
   friend class HandshakeManager;
@@ -117,6 +111,6 @@ private:
   sockaddr*           m_address;
 };
 
-} // namespace torrent
+}
 
 #endif

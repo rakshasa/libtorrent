@@ -41,9 +41,6 @@
 
 #include "encryption_info.h"
 
-// Remove this dependency.
-// #include "torrent/connection_manager.h"
-
 namespace torrent {
 
 class DiffieHellman;

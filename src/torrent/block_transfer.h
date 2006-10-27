@@ -37,16 +37,13 @@
 #ifndef LIBTORRENT_BLOCK_TRANSFER_H
 #define LIBTORRENT_BLOCK_TRANSFER_H
 
-#include <inttypes.h>
+#include <torrent/common.h>
 #include <torrent/piece.h>
 #include <torrent/peer_info.h>
 
 namespace torrent {
 
-class Block;
-class PeerInfo;
-
-class BlockTransfer {
+class LIBTORRENT_EXPORT BlockTransfer {
 public:
   static const uint32_t invalid_index = ~uint32_t();
 

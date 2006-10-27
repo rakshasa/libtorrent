@@ -37,9 +37,11 @@
 #ifndef LIBTORRENT_TORRENT_EVENT_H
 #define LIBTORRENT_TORRENT_EVENT_H
 
+#include <torrent/common.h>
+
 namespace torrent {
 
-class Event {
+class LIBTORRENT_EXPORT Event {
 public:
   virtual ~Event() {}
 

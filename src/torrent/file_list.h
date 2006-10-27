@@ -37,14 +37,14 @@
 #ifndef LIBTORRENT_FILE_LIST_H
 #define LIBTORRENT_FILE_LIST_H
 
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
 class EntryList;
 class File;
 
-class FileList {
+class LIBTORRENT_EXPORT FileList {
 public:
   FileList(EntryList* e = NULL) : m_list(e) {}
 

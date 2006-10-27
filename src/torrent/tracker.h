@@ -38,15 +38,13 @@
 #define LIBTORRENT_TRACKER_H
 
 #include <string>
-#include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
-class TrackerBase;
-
 // Consider changing into a Download + tracker id.
 
-class Tracker {
+class LIBTORRENT_EXPORT Tracker {
 public:
   typedef std::pair<int, TrackerBase*> value_type;
 

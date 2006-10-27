@@ -40,7 +40,7 @@
 #include <string>
 #include <map>
 #include <list>
-#include <inttypes.h>
+#include <torrent/common.h>
 #include <torrent/exceptions.h>
 
 namespace torrent {
@@ -48,7 +48,7 @@ namespace torrent {
 // Look into making a custom comp and allocator classes for the
 // map_type which use a const char* for key_type.
 
-class Object {
+class LIBTORRENT_EXPORT Object {
 public:
   typedef int64_t                         value_type;
   typedef std::string                     string_type;

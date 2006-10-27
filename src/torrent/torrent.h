@@ -39,86 +39,75 @@
 
 #include <list>
 #include <string>
-#include <inttypes.h>
+#include <torrent/common.h>
 #include <torrent/download.h>
-
-#include <sys/types.h>
-#include <sys/select.h>
-
-struct sockaddr;
 
 namespace torrent {
 
-class Poll;
-class Rate;
-class ChunkManager;
-class ConnectionManager;
-class Object;
-
 // Make sure you seed srandom and srand48 if available.
-void                initialize(Poll* poll);
+void                initialize(Poll* poll) LIBTORRENT_EXPORT;
 
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
-void                cleanup();
+void                cleanup() LIBTORRENT_EXPORT;
 
-int64_t             next_timeout();
+int64_t             next_timeout() LIBTORRENT_EXPORT;
 
 // Calls this function when get_next_timeout() is zero or at
 // semi-regular intervals when socket events accure. It updates the
 // cached time and performs scheduled tasks.
 //
 // Bad name, find something better.
-void                perform();
+void                perform() LIBTORRENT_EXPORT;
 
-bool                is_inactive();
+bool                is_inactive() LIBTORRENT_EXPORT;
 
-ChunkManager*       chunk_manager();
-ConnectionManager*  connection_manager();
+ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
+ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
 
-uint32_t            total_handshakes();
+uint32_t            total_handshakes() LIBTORRENT_EXPORT;
 
 // These should really be unsigned, but there was a bug in the
 // client. ;( Fix this later.
 //
 // 0 == UNLIMITED.
-int32_t             down_throttle();
-void                set_down_throttle(int32_t bytes);
+int32_t             down_throttle() LIBTORRENT_EXPORT;
+void                set_down_throttle(int32_t bytes) LIBTORRENT_EXPORT;
 
-int32_t             up_throttle();
-void                set_up_throttle(int32_t bytes);
+int32_t             up_throttle() LIBTORRENT_EXPORT;
+void                set_up_throttle(int32_t bytes) LIBTORRENT_EXPORT;
 
-uint32_t            currently_unchoked();
-uint32_t            max_unchoked();
-void                set_max_unchoked(uint32_t count);
+uint32_t            currently_unchoked() LIBTORRENT_EXPORT;
+uint32_t            max_unchoked() LIBTORRENT_EXPORT;
+void                set_max_unchoked(uint32_t count) LIBTORRENT_EXPORT;
 
-const Rate*         down_rate();
-const Rate*         up_rate();
+const Rate*         down_rate() LIBTORRENT_EXPORT;
+const Rate*         up_rate() LIBTORRENT_EXPORT;
 
-const char*         version();
+const char*         version() LIBTORRENT_EXPORT;
 
 // Disk access tuning.
-uint32_t            hash_read_ahead();
-void                set_hash_read_ahead(uint32_t bytes);
+uint32_t            hash_read_ahead() LIBTORRENT_EXPORT;
+void                set_hash_read_ahead(uint32_t bytes) LIBTORRENT_EXPORT;
 
-uint32_t            hash_interval();
-void                set_hash_interval(uint32_t usec);
+uint32_t            hash_interval() LIBTORRENT_EXPORT;
+void                set_hash_interval(uint32_t usec) LIBTORRENT_EXPORT;
 
-uint32_t            hash_max_tries();
-void                set_hash_max_tries(uint32_t tries);
+uint32_t            hash_max_tries() LIBTORRENT_EXPORT;
+void                set_hash_max_tries(uint32_t tries) LIBTORRENT_EXPORT;
 
-uint32_t            open_files();
-uint32_t            max_open_files();
-void                set_max_open_files(uint32_t size);
+uint32_t            open_files() LIBTORRENT_EXPORT;
+uint32_t            max_open_files() LIBTORRENT_EXPORT;
+void                set_max_open_files(uint32_t size) LIBTORRENT_EXPORT;
 
-uint32_t            open_sockets();
-uint32_t            max_open_sockets();
-void                set_max_open_sockets(uint32_t size);
+uint32_t            open_sockets() LIBTORRENT_EXPORT;
+uint32_t            max_open_sockets() LIBTORRENT_EXPORT;
+void                set_max_open_sockets(uint32_t size) LIBTORRENT_EXPORT;
 
 typedef std::list<Download> DList;
 typedef std::list<std::string> EncodingList;
 
-EncodingList*       encoding_list();
+EncodingList*       encoding_list() LIBTORRENT_EXPORT;
 
 // Will always return a valid Download. On errors it
 // throws. 'encodingList' contains a list of prefered encodings to use
@@ -129,18 +118,18 @@ EncodingList*       encoding_list();
 // is done by 'download_remove'.
 //
 // Might consider redesigning that...
-Download            download_add(Object* s);
-void                download_remove(Download d);
+Download            download_add(Object* s) LIBTORRENT_EXPORT;
+void                download_remove(Download d) LIBTORRENT_EXPORT;
 
 // Add all downloads to dlist. The client is responsible for clearing
 // it before the call.
-void                download_list(DList& dlist);
+void                download_list(DList& dlist) LIBTORRENT_EXPORT;
 
 // Make sure you check the returned Download's is_valid().
-Download            download_find(const std::string& infohash);
+Download            download_find(const std::string& infohash) LIBTORRENT_EXPORT;
 
-uint32_t            download_priority(Download d);
-void                download_set_priority(Download d, uint32_t pri);
+uint32_t            download_priority(Download d) LIBTORRENT_EXPORT;
+void                download_set_priority(Download d, uint32_t pri) LIBTORRENT_EXPORT;
 
 }
 
