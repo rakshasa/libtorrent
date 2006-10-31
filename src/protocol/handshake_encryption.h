@@ -104,8 +104,7 @@ public:
   void                initialize_decrypt(const char* origHash, bool incoming);
   void                initialize_encrypt(const char* origHash, bool incoming);
 
-  // This should get rid of the std::string usage.
-  std::string         deobfuscate_hash(const char* src) const;
+  void                deobfuscate_hash(char* src) const;
 
   void                hash_req1_to_sync();
   void                encrypt_vc_to_sync(const char* origHash);

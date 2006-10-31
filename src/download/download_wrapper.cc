@@ -90,10 +90,10 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   char hashObfuscated[20];
   sha1_salt("req2", 4, hash.c_str(), hash.length(), hashObfuscated);
 
-  info()->set_hash(hash);
-  info()->set_hash_obfuscated(std::string(hashObfuscated, 20));
+  info()->mutable_hash().assign(hash.c_str());
+  info()->mutable_hash_obfuscated().assign(hashObfuscated);
 
-  info()->set_local_id(id);
+  info()->mutable_local_id().assign(id.c_str());
 
   info()->slot_completed() = rak::make_mem_fun(m_main.content(), &Content::bytes_completed);
   info()->slot_left()      = rak::make_mem_fun(m_main.content(), &Content::bytes_left);

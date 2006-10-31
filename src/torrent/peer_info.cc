@@ -66,11 +66,6 @@ PeerInfo::~PeerInfo() {
   delete rak::socket_address::cast_from(m_address);
 }
 
-bool
-PeerInfo::is_valid() const {
-  return m_id.length() == 20 && rak::socket_address::cast_from(m_address)->is_valid();
-}
-
 void
 PeerInfo::set_port(uint16_t port) {
   rak::socket_address::cast_from(m_address)->set_port(port);

@@ -417,18 +417,18 @@ Handshake::read_info() {
     if (m_download != NULL) {
       // Have the download from the encrypted handshake, make sure it
       // matches the BT handshake.
-      if (m_download->info()->hash() != std::string(m_readBuffer.position(), m_readBuffer.position() + 20))
+      if (m_download->info()->hash() != (char*)m_readBuffer.position())
         throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
 
     } else {
-      m_download = m_manager->download_info(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+      m_download = m_manager->download_info((char*)m_readBuffer.position());
     }
 
     validate_download();
     prepare_handshake();
 
   } else {
-    if (std::memcmp(m_download->info()->hash().c_str(), m_readBuffer.position(), 20) != 0)
+    if (m_download->info()->hash() != (char*)m_readBuffer.position())
       throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
   }
 
@@ -552,7 +552,8 @@ restart:
       if (!fill_read_buffer(20))
         break;
 
-      m_download = m_manager->download_info_obfuscated(m_encryption.deobfuscate_hash((const char*)m_readBuffer.position()));
+      m_encryption.deobfuscate_hash((char*)m_readBuffer.position());
+      m_download = m_manager->download_info_obfuscated((char*)m_readBuffer.position());
       m_readBuffer.consume(20);
 
       validate_download();
@@ -861,7 +862,7 @@ Handshake::prepare_peer_info() {
   }
 
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
-  m_peerInfo->set_id(std::string(m_readBuffer.position(), m_readBuffer.position() + 20));
+  m_peerInfo->mutable_id().assign((const char*)m_readBuffer.position());
   m_readBuffer.consume(20);
 }
 

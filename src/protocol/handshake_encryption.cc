@@ -107,15 +107,13 @@ HandshakeEncryption::initialize_encrypt(const char* origHash, bool incoming) {
 
 // Obfuscated hash is HASH('req2', download_hash), extract that from
 // HASH('req2', download_hash) ^ HASH('req3', S).
-std::string
-HandshakeEncryption::deobfuscate_hash(const char* src) const {
-  char dest[20];
-  sha1_salt("req3", 4, m_key->c_str(), m_key->size(), dest);
+void
+HandshakeEncryption::deobfuscate_hash(char* src) const {
+  char tmp[20];
+  sha1_salt("req3", 4, m_key->c_str(), m_key->size(), tmp);
 
   for (int i = 0; i < 20; i++)
-    dest[i] ^= src[i];
-
-  return std::string(dest, 20);
+    src[i] ^= tmp[i];
 }
 
 void

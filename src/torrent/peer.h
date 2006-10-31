@@ -67,7 +67,7 @@ public:
   bool                 is_snubbed() const;
   void                 set_snubbed(bool v);
 
-  const std::string&   id() const;
+  const HashString&    id() const;
   const char*          options() const;
 
   const sockaddr*      address() const;

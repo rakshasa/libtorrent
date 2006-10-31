@@ -50,16 +50,6 @@ namespace torrent {
 
 typedef std::list<Peer> PList;
 
-class Bitfield;
-class DownloadWrapper;
-class FileList;
-class Rate;
-class Object;
-class Peer;
-class PeerList;
-class TrackerList;
-class TransferList;
-
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
 
@@ -97,9 +87,10 @@ public:
 
   // Returns "" if the object is not valid.
   const std::string&  name() const;
-  const std::string&  info_hash() const;
-  const std::string&  info_hash_obfuscated() const;
-  const std::string&  local_id() const;
+
+  const HashString&   info_hash() const;
+  const HashString&   info_hash_obfuscated() const;
+  const HashString&   local_id() const;
 
   // Unix epoche, 0 == unknown.
   uint32_t            creation_date() const;

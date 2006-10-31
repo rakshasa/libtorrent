@@ -25,6 +25,7 @@ libsub_torrent_la_SOURCES = \
 	file.h \
 	file_list.cc \
 	file_list.h \
+	hash_string.h \
 	http.cc \
 	http.h \
 	object.cc \
@@ -77,6 +78,7 @@ libtorrentinclude_HEADERS = \
 	event.h \
 	file.h \
 	file_list.h \
+	hash_string.h \
 	http.h \
 	object.h \
 	object_stream.h \

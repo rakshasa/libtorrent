@@ -45,6 +45,7 @@
 #include <sigc++/signal.h>
 
 #include "torrent/rate.h"
+#include "torrent/hash_string.h"
 
 namespace torrent {
 
@@ -89,14 +90,14 @@ public:
   const std::string&  name() const                                 { return m_name; }
   void                set_name(const std::string& s)               { m_name = s; }
 
-  const std::string&  hash() const                                 { return m_hash; }
-  const std::string&  hash_obfuscated() const                      { return m_hashObfuscated; }
+  const HashString&   hash() const                                 { return m_hash; }
+  HashString&         mutable_hash()                               { return m_hash; }
 
-  void                set_hash(const std::string& hash)            { m_hash = hash; }
-  void                set_hash_obfuscated(const std::string& hash) { m_hashObfuscated = hash; }
+  const HashString&   hash_obfuscated() const                      { return m_hashObfuscated; }
+  HashString&         mutable_hash_obfuscated()                    { return m_hashObfuscated; }
 
-  const std::string&  local_id() const                             { return m_localId; }
-  void                set_local_id(const std::string& id)          { m_localId = id; }
+  const HashString&   local_id() const                             { return m_localId; }
+  HashString&         mutable_local_id()                           { return m_localId; }
 
   bool                is_open() const                              { return m_isOpen; }
   void                set_open(bool s)                             { m_isOpen = s; }
@@ -139,9 +140,9 @@ public:
 
 private:
   std::string         m_name;
-  std::string         m_hash;
-  std::string         m_hashObfuscated;
-  std::string         m_localId;
+  HashString          m_hash;
+  HashString          m_hashObfuscated;
+  HashString          m_localId;
 
   bool                m_isOpen;
   bool                m_isActive;

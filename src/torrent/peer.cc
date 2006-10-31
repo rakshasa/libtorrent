@@ -93,7 +93,7 @@ Peer::set_snubbed(bool v) {
   m_ptr->set_snubbed(v);
 }
 
-const std::string&
+const HashString&
 Peer::id() const {
   return m_ptr->peer_info()->id();
 }

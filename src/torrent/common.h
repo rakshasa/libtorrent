@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_COMMON_H
 #define LIBTORRENT_COMMON_H
 
-#include <torrent/common.h>
+#include <inttypes.h>
 
 struct sockaddr;
 
@@ -75,6 +75,7 @@ class File;
 class FileList;
 class Handshake;
 class HandshakeManager;
+class HashString;
 class Listen;
 class Object;
 class Path;
@@ -93,7 +94,7 @@ class TrackerManager;
 class TransferList;
 
 // This should only need to be set when compiling libtorrent.
-#ifdef SUPPORT_ATTRIBUTE_DEFAULT
+#ifdef SUPPORT_ATTRIBUTE_VISIBILITY
   #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
   #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
 #else

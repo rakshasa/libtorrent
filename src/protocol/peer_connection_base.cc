@@ -86,7 +86,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   if (get_fd().is_valid())
     throw internal_error("Tried to re-set PeerConnection.");
 
-  if (!peerInfo->is_valid() || !fd.is_valid())
+  if (!fd.is_valid())
     throw internal_error("PeerConnectionBase::set(...) received bad input.");
 
   if (encryptionInfo->is_encrypted() != encryptionInfo->decrypt_valid())

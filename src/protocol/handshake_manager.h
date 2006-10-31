@@ -58,7 +58,7 @@ public:
   typedef rak::unordered_vector<Handshake*> base_type;
   typedef uint32_t                          size_type;
 
-  typedef rak::mem_fun1<DownloadManager, DownloadMain*, const std::string&> SlotDownloadId;
+  typedef rak::mem_fun1<DownloadManager, DownloadMain*, const char*> SlotDownloadId;
 
   using base_type::empty;
 
@@ -86,8 +86,8 @@ public:
   void                receive_timeout(Handshake* h);
 
   // This needs to be filterable slot.
-  DownloadMain*       download_info(const std::string& hash)            { return m_slotDownloadId(hash); }
-  DownloadMain*       download_info_obfuscated(const std::string& hash) { return m_slotDownloadIdObfuscated(hash); }
+  DownloadMain*       download_info(const char* hash)                   { return m_slotDownloadId(hash); }
+  DownloadMain*       download_info_obfuscated(const char* hash)        { return m_slotDownloadIdObfuscated(hash); }
 
 private:
   void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryptionOptions);

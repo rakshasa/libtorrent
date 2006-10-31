@@ -189,27 +189,18 @@ Download::name() const {
   return m_ptr->info()->name();
 }
 
-const std::string&
+const HashString&
 Download::info_hash() const {
-  if (m_ptr == NULL)
-    throw internal_error("Download::info_hash() m_ptr == NULL.");
-
   return m_ptr->info()->hash();
 }
 
-const std::string&
+const HashString&
 Download::info_hash_obfuscated() const {
-  if (m_ptr == NULL)
-    throw internal_error("Download::info_hash_obfuscated() m_ptr == NULL.");
-
   return m_ptr->info()->hash_obfuscated();
 }
 
-const std::string&
+const HashString&
 Download::local_id() const {
-  if (m_ptr == NULL)
-    throw internal_error("Download::local_id() m_ptr == NULL.");
-
   return m_ptr->info()->local_id();
 }
 

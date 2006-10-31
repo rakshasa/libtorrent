@@ -85,19 +85,21 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
   close();
 
   if (m_info == NULL)
-    throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info");
-
-  if (m_info->local_id().length() != 20 ||
-      m_info->hash().length() != 20)
-    throw internal_error("Send state with TrackerHttp with bad hash or id");
+    throw internal_error("TrackerHttp::send_state(...) does not have a valid m_info.");
 
   std::stringstream s;
   s.imbue(std::locale::classic());
 
+  char hash[60];
+  char localId[60];
+
+  rak::copy_escape_html(m_info->hash().begin(), m_info->hash().end(), hash);
+  rak::copy_escape_html(m_info->local_id().begin(), m_info->local_id().end(), localId);
+
   s << m_url
     << (m_dropDeliminator ? '&' : '?')
-    << "info_hash=" << rak::copy_escape_html(m_info->hash())
-    << "&peer_id=" << rak::copy_escape_html(m_info->local_id());
+    << "info_hash=" << hash
+    << "&peer_id=" << localId;
 
   if (m_info->key())
     s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_info->key() << std::dec;

@@ -77,9 +77,11 @@ public:
   void                clear();
 
   iterator            find(const std::string& hash);
+  iterator            find(const HashString& hash);
   iterator            find(DownloadInfo* info);
-  DownloadMain*       find_main(const std::string& hash);
-  DownloadMain*       find_main_obfuscated(const std::string& hash);
+
+  DownloadMain*       find_main(const char* hash);
+  DownloadMain*       find_main_obfuscated(const char* hash);
 };
 
 }

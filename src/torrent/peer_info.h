@@ -37,9 +37,7 @@
 #ifndef LIBTORRENT_PEER_INFO_H
 #define LIBTORRENT_PEER_INFO_H
 
-#include <string>
-#include <cstring>
-#include <torrent/common.h>
+#include <torrent/hash_string.h>
 
 namespace torrent {
 
@@ -56,12 +54,11 @@ public:
   PeerInfo(const sockaddr* address);
   ~PeerInfo();
 
-  bool                is_valid() const;
   bool                is_connected() const                  { return m_flags & flag_connected; }
   bool                is_incoming() const                   { return m_flags & flag_incoming; }
   bool                is_handshake() const                  { return m_flags & flag_handshake; }
 
-  const std::string&  id() const                            { return m_id; }
+  const HashString&   id() const                            { return m_id; }
 
   int                 flags() const                         { return m_flags; }
 
@@ -83,7 +80,7 @@ protected:
   void                set_flags(int flags)                  { m_flags |= flags; }
   void                unset_flags(int flags)                { m_flags &= ~flags; }
 
-  void                set_id(const std::string& id)         { m_id = id; }
+  HashString&         mutable_id()                          { return m_id; }
 
   void                set_port(uint16_t port);
   void                set_listen_port(uint16_t port)        { m_listenPort = port; }
@@ -95,7 +92,7 @@ private:
   void operator = (const PeerInfo&);
 
   // Replace id with a char buffer, or a cheap struct?
-  std::string         m_id;
+  HashString          m_id;
   int                 m_flags;
 
   char                m_options[8];

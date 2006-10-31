@@ -97,8 +97,8 @@ public:
     handshake_retry_encrypted,
   } HandshakeMessage;
 
-  typedef sigc::slot4<void, const sockaddr*, HandshakeMessage, uint32_t, std::string>   slot_handshake_type;
-  typedef sigc::signal4<void, const sockaddr*, HandshakeMessage, uint32_t, std::string> signal_handshake_type;
+  typedef sigc::slot4<void, const sockaddr*, HandshakeMessage, uint32_t, const HashString*>   slot_handshake_type;
+  typedef sigc::signal4<void, const sockaddr*, HandshakeMessage, uint32_t, const HashString*> signal_handshake_type;
 
   ConnectionManager();
   ~ConnectionManager();
