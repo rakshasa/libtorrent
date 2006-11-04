@@ -97,7 +97,7 @@ EntryList::open() {
   iterator itr = begin();
 
   try {
-    if (::mkdir(m_rootDir.c_str(), 0777) && errno != EEXIST)
+    if (::mkdir(m_rootDir.c_str(), 0777) != 0 && errno != EEXIST)
       throw storage_error("Could not create directory '" + m_rootDir + "': " + strerror(errno));
   
     while (itr != end()) {
@@ -204,7 +204,7 @@ EntryList::make_directory(Path::const_iterator pathBegin, Path::const_iterator p
     if (pathBegin == pathEnd)
       break;
 
-    if (::mkdir(path.c_str(), 0777) && errno != EEXIST)
+    if (::mkdir(path.c_str(), 0777) != 0 && errno != EEXIST)
       throw storage_error("Could not create directory '" + path + "': " + strerror(errno));
   }
 }
@@ -222,12 +222,24 @@ EntryList::open_file(EntryListNode* node, const Path& lastPath) {
     firstMismatch++;
   }
 
+  rak::error_number::clear_global();
+
   make_directory(path->begin(), path->end(), firstMismatch);
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
   if (path->back().empty())
     return node->size() == 0;
+
+  rak::file_stat fileStat;
+
+  if (fileStat.update(node->file_meta()->get_path()) &&
+      !fileStat.is_regular() && !fileStat.is_link()) {
+    // Might also bork on other kinds of file types, but there's no
+    // suitable errno for all cases.
+    rak::error_number::set_global(rak::error_number::e_isdir);
+    return false;
+  }
 
   return
     node->file_meta()->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, SocketFile::o_create) ||

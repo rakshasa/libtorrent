@@ -90,11 +90,11 @@ TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, u
   std::stringstream s;
   s.imbue(std::locale::classic());
 
-  char hash[60];
-  char localId[60];
+  char hash[61];
+  char localId[61];
 
-  rak::copy_escape_html(m_info->hash().begin(), m_info->hash().end(), hash);
-  rak::copy_escape_html(m_info->local_id().begin(), m_info->local_id().end(), localId);
+  *rak::copy_escape_html(m_info->hash().begin(), m_info->hash().end(), hash) = '\0';
+  *rak::copy_escape_html(m_info->local_id().begin(), m_info->local_id().end(), localId) = '\0';
 
   s << m_url
     << (m_dropDeliminator ? '&' : '?')

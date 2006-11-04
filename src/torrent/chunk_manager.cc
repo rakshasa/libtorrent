@@ -55,6 +55,10 @@ ChunkManager::ChunkManager() :
   m_timeoutSync(600),
   m_timeoutSafeSync(900),
 
+  m_preloadMinPipelined(0),
+  m_preloadMinSize(256 << 10),
+  m_preloadRequiredRate(10),
+
   m_timerStarved(0),
   m_lastFreed(0) {
 

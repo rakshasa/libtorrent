@@ -70,19 +70,22 @@ public:
   Chunk*              chunk() const                  { return m_chunk; }
   void                set_chunk(Chunk* c)            { m_chunk = c; }
 
-  const rak::timer&   time_modified() const           { return m_timeModified; }
-  void                set_time_modified(rak::timer t) { m_timeModified = t; }
+  const rak::timer&   time_modified() const            { return m_timeModified; }
+  void                set_time_modified(rak::timer t)  { m_timeModified = t; }
+
+  const rak::timer&   time_preloaded() const           { return m_timePreloaded; }
+  void                set_time_preloaded(rak::timer t) { m_timePreloaded = t; }
 
   bool                sync_triggered() const         { return m_asyncTriggered; }
   void                set_sync_triggered(bool v)     { m_asyncTriggered = v; }
 
   int                 references() const             { return m_references; }
-  void                dec_references()               { m_references--; }
-  void                inc_references()               { m_references++; }
+  int                 dec_references()               { return --m_references; }
+  int                 inc_references()               { return ++m_references; }
 
   int                 writable() const               { return m_writable; }
-  void                dec_writable()                 { m_writable--; }
-  void                inc_writable()                 { m_writable++; }
+  int                 dec_writable()                 { return --m_writable; }
+  int                 inc_writable()                 { return ++m_writable; }
 
   void                inc_rw()                       { inc_writable(); inc_references(); }
   void                dec_rw()                       { dec_writable(); dec_references(); }
@@ -94,8 +97,10 @@ private:
   int                 m_references;
   int                 m_writable;
 
-  rak::timer          m_timeModified;
   bool                m_asyncTriggered;
+
+  rak::timer          m_timeModified;
+  rak::timer          m_timePreloaded;
 };
 
 }

@@ -183,9 +183,7 @@ ChunkList::release(ChunkHandle* handle) {
     }
 
   } else {
-    handle->object()->dec_references();
-
-    if (handle->object()->references() == 0) {
+    if (handle->object()->dec_references() == 0) {
       if (is_queued(handle->object()))
         throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
 

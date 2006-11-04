@@ -85,7 +85,8 @@ public:
 
   void                assign(const value_type* src)     { std::memcpy(data(), src, size()); }
 
-  bool                compare(const char* hash)         { return std::memcmp(m_data, hash, size()); }
+  bool                equal_to(const char* hash) const     { return std::memcmp(m_data, hash, size()) == 0; }
+  bool                not_equal_to(const char* hash) const { return std::memcmp(m_data, hash, size()) == 1; }
 
 private:
   char                m_data[size_data];
@@ -104,26 +105,6 @@ operator == (const std::string& one, const HashString& two) {
 inline bool
 operator == (const HashString& one, const std::string& two) {
   return two.size() == HashString::size_data && std::memcmp(one.begin(), two.c_str(), HashString::size_data) == 0;
-}
-
-inline bool
-operator == (const HashString& one, const char* two) {
-  return std::memcmp(one.begin(), two, HashString::size_data) == 0;
-}
-
-inline bool
-operator != (const HashString& one, const char* two) {
-  return std::memcmp(one.begin(), two, HashString::size_data) != 0;
-}
-
-inline bool
-operator == (const char* one, const HashString& two) {
-  return std::memcmp(one, two.begin(), HashString::size_data) == 0;
-}
-
-inline bool
-operator != (const char* one, const HashString& two) {
-  return std::memcmp(one, two.begin(), HashString::size_data) != 0;
 }
 
 }

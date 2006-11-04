@@ -41,6 +41,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/block.h"
+#include "torrent/chunk_manager.h"
 #include "data/chunk_iterator.h"
 #include "data/chunk_list.h"
 #include "download/choke_manager.h"
@@ -181,12 +182,21 @@ PeerConnectionBase::load_up_chunk() {
     m_encryptBuffer->reset();
   }
 
-  // Make sure we preload the next step once we get past the length
-  // here. This is just some testing, don't include this with the
-  // release. (Yet)
-//   if (m_peerChunks.upload_throttle()->rate()->rate() >= 10 << 10)
-//     m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->size());
-//   m_upChunk.chunk()->preload(m_upPiece.offset(), std::min(128u << 10, m_peerChunks.upload_throttle()->rate()->rate() * 10));
+  // Also check if we've already preloaded in the recent past, even
+  // past unmaps.
+  ChunkManager* cm = manager->chunk_manager();
+
+  if (cm->preload_min_pipelined() == 0 ||
+      m_upChunk.object()->time_preloaded() >= cachedTime - rak::timer::from_seconds(60))
+    return;
+
+  uint32_t preloadSize = m_upPiece.offset() < cm->preload_min_size();
+
+  if (preloadSize < cm->preload_min_size() ||
+      m_peerChunks.upload_throttle()->rate()->rate() < cm->preload_required_rate() * (preloadSize + (2 << 20) - 1) / (2 << 20))
+    return;
+
+  m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size());
 }
 
 void

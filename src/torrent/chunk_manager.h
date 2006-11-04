@@ -60,33 +60,49 @@ public:
   // The ChunkManager will automatically try to adjust max memory
   // usage to a resonable value. This should be based on the arch,
   // ulimit and errors encountered when mmap'ing.
-  bool                auto_memory() const                     { return m_autoMemory; }
-  void                set_auto_memory(bool state)             { m_autoMemory = state; }
+  bool                auto_memory() const                       { return m_autoMemory; }
+  void                set_auto_memory(bool state)               { m_autoMemory = state; }
 
-  uint64_t            memory_usage() const                    { return m_memoryUsage; }
+  uint64_t            memory_usage() const                      { return m_memoryUsage; }
 
   // Should we allow the client to reserve some memory?
 
   // The client should set this automatically if ulimit is set.
-  uint64_t            max_memory_usage() const                { return m_maxMemoryUsage; }
-  void                set_max_memory_usage(uint64_t bytes)    { m_maxMemoryUsage = bytes; }
+  uint64_t            max_memory_usage() const                  { return m_maxMemoryUsage; }
+  void                set_max_memory_usage(uint64_t bytes)      { m_maxMemoryUsage = bytes; }
 
   // Estimate the max memory usage possible, capped at 1GB.
   static uint64_t     estimate_max_memory_usage();
 
   uint64_t            safe_free_diskspace() const;
 
-  bool                safe_sync() const                       { return m_safeSync; }
-  void                set_safe_sync(uint32_t state)           { m_safeSync = state; }
+  bool                safe_sync() const                         { return m_safeSync; }
+  void                set_safe_sync(uint32_t state)             { m_safeSync = state; }
 
   // Set the interval to wait after the last write to a chunk before
   // trying to sync it. By not forcing a sync too early it should give
   // the kernel an oppertunity to sync at its convenience.
-  uint32_t            timeout_sync() const                    { return m_timeoutSync; }
-  void                set_timeout_sync(uint32_t seconds)      { m_timeoutSync = seconds; }
+  uint32_t            timeout_sync() const                      { return m_timeoutSync; }
+  void                set_timeout_sync(uint32_t seconds)        { m_timeoutSync = seconds; }
 
-  uint32_t            timeout_safe_sync() const               { return m_timeoutSafeSync; }
-  void                set_timeout_safe_sync(uint32_t seconds) { m_timeoutSafeSync = seconds; }
+  uint32_t            timeout_safe_sync() const                 { return m_timeoutSafeSync; }
+  void                set_timeout_safe_sync(uint32_t seconds)   { m_timeoutSafeSync = seconds; }
+
+  // Set to 0 to disable preloading.
+  //
+  // How the value is used is yet to be determined, but it won't be
+  // able to use actual requests in the request queue as we can easily
+  // stay ahead of it causing preloading to fail.
+  uint32_t            preload_min_pipelined() const             { return m_preloadMinPipelined; }
+  void                set_preload_min_pipelined(uint32_t size)  { m_preloadMinPipelined = size; }
+
+  uint32_t            preload_min_size() const                  { return m_preloadMinSize; }
+  void                set_preload_min_size(uint32_t bytes)      { m_preloadMinSize = bytes; }
+
+  // Required rate before attempting to preload chunk, per whole
+  // megabyte of chunk size.
+  uint32_t            preload_required_rate() const             { return m_preloadRequiredRate; }
+  void                set_preload_required_rate(uint32_t bytes) { m_preloadRequiredRate = bytes; }
 
   void                insert(ChunkList* chunkList);
   void                erase(ChunkList* chunkList);
@@ -117,6 +133,10 @@ private:
   bool                m_safeSync;
   uint32_t            m_timeoutSync;
   uint32_t            m_timeoutSafeSync;
+
+  uint32_t            m_preloadMinPipelined;
+  uint32_t            m_preloadMinSize;
+  uint32_t            m_preloadRequiredRate;
 
   int32_t             m_timerStarved;
   size_type           m_lastFreed;

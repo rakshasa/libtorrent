@@ -417,7 +417,7 @@ Handshake::read_info() {
     if (m_download != NULL) {
       // Have the download from the encrypted handshake, make sure it
       // matches the BT handshake.
-      if (m_download->info()->hash() != (char*)m_readBuffer.position())
+      if (m_download->info()->hash().not_equal_to((char*)m_readBuffer.position()))
         throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
 
     } else {
@@ -428,7 +428,7 @@ Handshake::read_info() {
     prepare_handshake();
 
   } else {
-    if (m_download->info()->hash() != (char*)m_readBuffer.position())
+    if (m_download->info()->hash().not_equal_to((char*)m_readBuffer.position()))
       throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
   }
 
