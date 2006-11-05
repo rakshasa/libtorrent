@@ -140,7 +140,7 @@ Chunk::sync(int flags) {
 }
 
 void
-Chunk::preload(uint32_t position, uint32_t length) {
+Chunk::preload(uint32_t position, uint32_t length, bool useAdvise) {
   if (position >= m_chunkSize)
     throw internal_error("Chunk::preload(...) position > m_chunkSize.");
 
@@ -153,8 +153,16 @@ Chunk::preload(uint32_t position, uint32_t length) {
   do {
     data = itr.data();
 
-    for (char* first = (char*)data.first, *last = (char*)data.first + data.second; first < last; first += 4096)
-      volatile char __UNUSED touchChunk = *(char*)data.first;
+    if (useAdvise) {
+      itr.memory_chunk()->advise(itr.memory_chunk_first(), data.second, MemoryChunk::advice_willneed);
+
+    } else {
+      for (char* first = (char*)data.first, *last = (char*)data.first + data.second; first < last; first += 4096)
+        volatile char __UNUSED touchChunk = *(char*)data.first;
+
+      // Make sure we touch the last page in the range.
+      volatile char __UNUSED touchChunk = *((char*)data.first + data.second - 1);
+    }
 
   } while (itr.next());
 }

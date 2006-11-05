@@ -93,8 +93,8 @@ public:
   // How the value is used is yet to be determined, but it won't be
   // able to use actual requests in the request queue as we can easily
   // stay ahead of it causing preloading to fail.
-  uint32_t            preload_min_pipelined() const             { return m_preloadMinPipelined; }
-  void                set_preload_min_pipelined(uint32_t size)  { m_preloadMinPipelined = size; }
+  uint32_t            preload_type() const                      { return m_preloadType; }
+  void                set_preload_type(uint32_t t)              { m_preloadType = t; }
 
   uint32_t            preload_min_size() const                  { return m_preloadMinSize; }
   void                set_preload_min_size(uint32_t bytes)      { m_preloadMinSize = bytes; }
@@ -103,6 +103,7 @@ public:
   // megabyte of chunk size.
   uint32_t            preload_required_rate() const             { return m_preloadRequiredRate; }
   void                set_preload_required_rate(uint32_t bytes) { m_preloadRequiredRate = bytes; }
+
 
   void                insert(ChunkList* chunkList);
   void                erase(ChunkList* chunkList);
@@ -119,6 +120,14 @@ public:
   
   void                periodic_sync();
 
+  // Not sure if I wnt these here. Consider implementing a generic
+  // statistics API.
+  uint32_t            stats_preloaded() const                   { return m_statsPreloaded; }
+  void                inc_stats_preloaded()                     { m_statsPreloaded++; }
+
+  uint32_t            stats_not_preloaded() const               { return m_statsNotPreloaded; }
+  void                inc_stats_not_preloaded()                 { m_statsNotPreloaded++; }
+
 private:
   ChunkManager(const ChunkManager&);
   void operator = (const ChunkManager&);
@@ -134,9 +143,12 @@ private:
   uint32_t            m_timeoutSync;
   uint32_t            m_timeoutSafeSync;
 
-  uint32_t            m_preloadMinPipelined;
+  uint32_t            m_preloadType;
   uint32_t            m_preloadMinSize;
   uint32_t            m_preloadRequiredRate;
+
+  uint32_t            m_statsPreloaded;
+  uint32_t            m_statsNotPreloaded;
 
   int32_t             m_timerStarved;
   size_type           m_lastFreed;

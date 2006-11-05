@@ -47,6 +47,11 @@ public:
   
   Chunk::data_type    data();
 
+  MemoryChunk*        memory_chunk() { return &m_iterator->chunk(); }
+
+  uint32_t            memory_chunk_first() const { return m_first - m_iterator->position(); }
+  uint32_t            memory_chunk_last() const { return m_last - m_iterator->position(); }
+
   bool                next();
   bool                used(uint32_t length);
 

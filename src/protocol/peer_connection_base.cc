@@ -185,18 +185,21 @@ PeerConnectionBase::load_up_chunk() {
   // Also check if we've already preloaded in the recent past, even
   // past unmaps.
   ChunkManager* cm = manager->chunk_manager();
+  uint32_t preloadSize = m_upChunk.chunk()->chunk_size() - m_upPiece.offset();
 
-  if (cm->preload_min_pipelined() == 0 ||
-      m_upChunk.object()->time_preloaded() >= cachedTime - rak::timer::from_seconds(60))
+  if (cm->preload_type() == 0 ||
+      m_upChunk.object()->time_preloaded() >= cachedTime - rak::timer::from_seconds(60) ||
+
+      preloadSize < cm->preload_min_size() ||
+      m_peerChunks.upload_throttle()->rate()->rate() < cm->preload_required_rate() * ((preloadSize + (2 << 20) - 1) / (2 << 20))) {
+    cm->inc_stats_not_preloaded();
     return;
+  }
 
-  uint32_t preloadSize = m_upPiece.offset() < cm->preload_min_size();
+  cm->inc_stats_preloaded();
 
-  if (preloadSize < cm->preload_min_size() ||
-      m_peerChunks.upload_throttle()->rate()->rate() < cm->preload_required_rate() * (preloadSize + (2 << 20) - 1) / (2 << 20))
-    return;
-
-  m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size());
+  m_upChunk.object()->set_time_preloaded(cachedTime);
+  m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), cm->preload_type() == 1);
 }
 
 void

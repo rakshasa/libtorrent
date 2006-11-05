@@ -85,7 +85,7 @@ public:
 
   bool                sync(int flags);
 
-  void                preload(uint32_t position, uint32_t length);
+  void                preload(uint32_t position, uint32_t length, bool useAdvise);
 
   bool                to_buffer(void* buffer, uint32_t position, uint32_t length);
   bool                from_buffer(const void* buffer, uint32_t position, uint32_t length);
