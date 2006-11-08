@@ -498,7 +498,7 @@ Peer
 Download::peer_find(const std::string& id) {
   ConnectionList::iterator itr =
     std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
-                 rak::equal(id, rak::on(std::mem_fun(&PeerConnectionBase::c_peer_info), std::mem_fun(&PeerInfo::id))));
+                 rak::equal(*HashString::cast_from(id), rak::on(std::mem_fun(&PeerConnectionBase::c_peer_info), std::mem_fun(&PeerInfo::id))));
 
   return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
 }

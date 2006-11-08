@@ -74,7 +74,8 @@ DownloadManager::clear() {
 
 DownloadManager::iterator
 DownloadManager::find(const std::string& hash) {
-  return std::find_if(begin(), end(), rak::equal(hash, rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash))));
+  return std::find_if(begin(), end(), rak::equal(*HashString::cast_from(hash),
+                                                 rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash))));
 }
 
 DownloadManager::iterator
@@ -89,7 +90,8 @@ DownloadManager::find(DownloadInfo* info) {
 
 DownloadMain*
 DownloadManager::find_main(const char* hash) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(hash, rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash))));
+  iterator itr = std::find_if(begin(), end(), rak::equal(*HashString::cast_from(hash),
+                                                         rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash))));
 
   if (itr == end())
     return NULL;
@@ -99,7 +101,8 @@ DownloadManager::find_main(const char* hash) {
 
 DownloadMain*
 DownloadManager::find_main_obfuscated(const char* hash) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(hash, rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash_obfuscated))));
+  iterator itr = std::find_if(begin(), end(), rak::equal(*HashString::cast_from(hash),
+                                                         rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash_obfuscated))));
 
   if (itr == end())
     return NULL;

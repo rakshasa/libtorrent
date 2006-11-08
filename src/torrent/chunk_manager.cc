@@ -57,7 +57,7 @@ ChunkManager::ChunkManager() :
 
   m_preloadType(0),
   m_preloadMinSize(256 << 10),
-  m_preloadRequiredRate(5),
+  m_preloadRequiredRate(5 << 10),
 
   m_statsPreloaded(0),
   m_statsNotPreloaded(0),
