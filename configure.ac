@@ -90,6 +90,8 @@ AC_OUTPUT([
 	Makefile
 	src/Makefile
 	src/torrent/Makefile
+	src/torrent/peer/Makefile
+	src/torrent/data/Makefile
 	src/data/Makefile
 	src/download/Makefile
 	src/net/Makefile

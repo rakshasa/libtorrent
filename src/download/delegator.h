@@ -41,7 +41,7 @@
 #include <vector>
 #include <rak/functional.h>
 
-#include "torrent/transfer_list.h"
+#include "torrent/data/transfer_list.h"
 
 namespace torrent {
 

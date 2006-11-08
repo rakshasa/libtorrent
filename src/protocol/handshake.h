@@ -42,7 +42,7 @@
 #include "net/protocol_buffer.h"
 #include "net/socket_stream.h"
 #include "torrent/bitfield.h"
-#include "torrent/peer_info.h"
+#include "torrent/peer/peer_info.h"
 #include "utils/sha1.h"
 
 #include "handshake_encryption.h"

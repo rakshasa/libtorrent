@@ -39,8 +39,7 @@
 
 #include <vector>
 #include <torrent/common.h>
-#include <torrent/block_transfer.h>
-#include <torrent/common.h>
+#include <torrent/data/block_transfer.h>
 
 namespace torrent {
 

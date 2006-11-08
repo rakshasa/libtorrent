@@ -36,12 +36,12 @@
 
 #include "config.h"
 
+#include "data/block.h"
+#include "data/block_transfer.h"
 #include "protocol/peer_chunks.h"
 #include "protocol/peer_connection_base.h"
 
 #include "exceptions.h"
-#include "block.h"
-#include "block_transfer.h"
 #include "peer.h"
 #include "peer_info.h"
 #include "rate.h"

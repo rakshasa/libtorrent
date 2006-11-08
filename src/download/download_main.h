@@ -47,7 +47,7 @@
 
 #include "data/content.h"
 #include "data/chunk_handle.h"
-#include "torrent/peer_list.h"
+#include "torrent/peer/peer_list.h"
 
 namespace torrent {
 

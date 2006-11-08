@@ -39,7 +39,7 @@
 
 #include <deque>
 
-#include "torrent/block_transfer.h"
+#include "torrent/data/block_transfer.h"
 
 namespace torrent {
 

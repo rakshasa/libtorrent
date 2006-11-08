@@ -40,8 +40,8 @@
 #include <inttypes.h>
 #include <rak/functional.h>
 
-#include "torrent/block.h"
-#include "torrent/block_list.h"
+#include "torrent/data/block.h"
+#include "torrent/data/block_list.h"
 #include "torrent/exceptions.h"
 #include "download/delegator.h"
 

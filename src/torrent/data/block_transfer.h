@@ -38,8 +38,8 @@
 #define LIBTORRENT_BLOCK_TRANSFER_H
 
 #include <torrent/common.h>
-#include <torrent/piece.h>
-#include <torrent/peer_info.h>
+#include <torrent/data/piece.h>
+#include <torrent/peer/peer_info.h>
 
 namespace torrent {
 

@@ -39,8 +39,8 @@
 
 #include <vector>
 #include <torrent/common.h>
-#include <torrent/block.h>
-#include <torrent/piece.h>
+#include <torrent/data/block.h>
+#include <torrent/data/piece.h>
 
 namespace torrent {
 

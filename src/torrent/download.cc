@@ -40,6 +40,8 @@
 #include <sigc++/bind.h>
 #include <sigc++/hide.h>
 
+#include "data/block.h"
+#include "data/block_list.h"
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
@@ -51,15 +53,13 @@
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
 #include "download/download_info.h"
+#include "peer/peer_info.h"
 #include "tracker/tracker_manager.h"
 
 #include "exceptions.h"
-#include "block.h"
-#include "block_list.h"
 #include "download.h"
 #include "file_list.h"
 #include "object.h"
-#include "peer_info.h"
 #include "tracker_list.h"
 
 namespace torrent {

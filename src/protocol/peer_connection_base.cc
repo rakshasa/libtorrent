@@ -40,7 +40,7 @@
 #include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
-#include "torrent/block.h"
+#include "torrent/data/block.h"
 #include "torrent/chunk_manager.h"
 #include "data/chunk_iterator.h"
 #include "data/chunk_list.h"
@@ -51,7 +51,7 @@
 #include "download/download_main.h"
 #include "net/socket_base.h"
 #include "torrent/connection_manager.h"
-#include "torrent/peer_info.h"
+#include "torrent/peer/peer_info.h"
 
 #include "peer_connection_base.h"
 

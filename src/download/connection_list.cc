@@ -42,7 +42,7 @@
 #include "download/download_main.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
-#include "torrent/peer_info.h"
+#include "torrent/peer/peer_info.h"
 
 #include "connection_list.h"
 

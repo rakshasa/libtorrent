@@ -43,7 +43,7 @@
 #include "download/download_info.h"
 #include "download/download_main.h"
 #include "torrent/connection_manager.h"
-#include "torrent/peer_info.h"
+#include "torrent/peer/peer_info.h"
 
 #include "peer_connection_base.h"
 #include "handshake.h"

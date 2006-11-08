@@ -44,7 +44,7 @@
 #include <sigc++/connection.h>
 
 #include <torrent/common.h>
-#include <torrent/peer.h>
+#include <torrent/peer/peer.h>
 
 namespace torrent {
 

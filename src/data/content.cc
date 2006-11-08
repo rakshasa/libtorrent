@@ -45,7 +45,7 @@
 #include "data/file_meta.h"
 #include "data/chunk.h"
 #include "data/entry_list.h"
-#include "torrent/piece.h"
+#include "torrent/data/piece.h"
 
 namespace torrent {
 

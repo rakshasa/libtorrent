@@ -1,14 +1,12 @@
+SUBDIRS = \
+	data \
+	peer
+
 noinst_LTLIBRARIES = libsub_torrent.la
 
 libsub_torrent_la_SOURCES = \
 	bitfield.cc \
 	bitfield.h \
-	block.cc \
-	block.h \
-	block_failed.h \
-	block_list.cc \
-	block_list.h \
-	block_transfer.h \
 	chunk_manager.cc \
 	chunk_manager.h \
 	common.h \
@@ -34,13 +32,6 @@ libsub_torrent_la_SOURCES = \
 	object_stream.h \
 	path.cc \
 	path.h \
-	peer.cc \
-	peer.h \
-        peer_info.cc \
-        peer_info.h \
-	peer_list.cc \
-	peer_list.h \
-	piece.h \
 	poll.h \
 	poll_epoll.cc \
 	poll_epoll.h \
@@ -57,18 +48,13 @@ libsub_torrent_la_SOURCES = \
 	tracker.cc \
 	tracker.h \
 	tracker_list.cc \
-	tracker_list.h \
-	transfer_list.cc \
-	transfer_list.h
+	tracker_list.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
 	bitfield.h \
-	block.h \
-	block_list.h \
-	block_transfer.h \
 	chunk_manager.h \
 	common.h \
 	connection_manager.h \
@@ -83,10 +69,6 @@ libtorrentinclude_HEADERS = \
 	object.h \
 	object_stream.h \
 	path.h \
-	peer.h \
-        peer_info.h \
-	peer_list.h \
-	piece.h \
 	poll.h \
 	poll_epoll.h \
 	poll_kqueue.h \
@@ -95,5 +77,4 @@ libtorrentinclude_HEADERS = \
 	resume.h \
 	torrent.h \
 	tracker.h \
-	tracker_list.h \
-	transfer_list.h
+	tracker_list.h

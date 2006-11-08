@@ -42,12 +42,12 @@
 #include <rak/functional.h>
 
 #include "data/chunk.h"
+#include "peer/peer_info.h"
 
 #include "block_failed.h"
 #include "block_transfer.h"
 #include "block_list.h"
 #include "exceptions.h"
-#include "peer_info.h"
 #include "piece.h"
 
 #include "transfer_list.h"

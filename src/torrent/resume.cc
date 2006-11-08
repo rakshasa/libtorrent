@@ -41,6 +41,8 @@
 
 // For SocketAddressCompact.
 #include "download/download_info.h"
+#include "peer/peer_info.h"
+#include "peer/peer_list.h"
 
 #include "common.h"
 #include "bitfield.h"
@@ -48,8 +50,6 @@
 #include "file.h"
 #include "file_list.h"
 #include "object.h"
-#include "peer_info.h"
-#include "peer_list.h"
 #include "tracker.h"
 #include "tracker_list.h"
 

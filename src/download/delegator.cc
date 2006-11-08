@@ -42,9 +42,9 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/bitfield.h"
-#include "torrent/block.h"
-#include "torrent/block_list.h"
-#include "torrent/block_transfer.h"
+#include "torrent/data/block.h"
+#include "torrent/data/block_list.h"
+#include "torrent/data/block_transfer.h"
 #include "protocol/peer_chunks.h"
 
 #include "delegator.h"

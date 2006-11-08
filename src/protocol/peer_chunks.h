@@ -42,7 +42,7 @@
 
 #include "net/throttle_node.h"
 #include "torrent/bitfield.h"
-#include "torrent/piece.h"
+#include "torrent/data/piece.h"
 #include "torrent/rate.h"
 
 namespace torrent {
