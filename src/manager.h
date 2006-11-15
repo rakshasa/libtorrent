@@ -73,6 +73,7 @@ public:
   ResourceManager*    resource_manager()                        { return m_resourceManager; }
 
   ChunkManager*       chunk_manager()                           { return m_chunkManager; }
+  ClientList*         client_list()                             { return m_clientList; }
   ConnectionManager*  connection_manager()                      { return m_connectionManager; }
   
   Poll*               poll()                                    { return m_poll; }
@@ -96,6 +97,7 @@ private:
   ResourceManager*    m_resourceManager;
 
   ChunkManager*       m_chunkManager;
+  ClientList*         m_clientList;
   ConnectionManager*  m_connectionManager;
   Poll*               m_poll;
 

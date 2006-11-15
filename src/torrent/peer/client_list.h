@@ -34,75 +34,39 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_COMMON_H
-#define LIBTORRENT_COMMON_H
+#ifndef LIBTORRENT_PEER_CLIENT_LIST_H
+#define LIBTORRENT_PEER_CLIENT_LIST_H
 
-#include <inttypes.h>
-
-struct sockaddr;
+#include <vector>
+#include <torrent/peer/client_info.h>
 
 namespace torrent {
 
-enum priority_enum {
-  PRIORITY_OFF = 0,
-  PRIORITY_NORMAL,
-  PRIORITY_HIGH
+class LIBTORRENT_EXPORT ClientList : private std::vector<ClientInfo> {
+public:
+  typedef std::vector<ClientInfo> base_type;
+  typedef uint32_t                size_type;
+
+  using base_type::value_type;
+  using base_type::reference;
+  using base_type::difference_type;
+
+  using base_type::iterator;
+  using base_type::reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
+
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
+  
+  ClientList();
+
+  iterator            insert(ClientInfo::id_type type, const char* key, const char* version, const char* upperVersion);
+
+  ClientInfo          parse_id(const HashString& id) const;
 };
-
-typedef priority_enum priority_t;
-
-// Just forward declare everything here so we can keep the actual
-// headers clean.
-class AvailableList;
-class Bitfield;
-class Block;
-class BlockFailed;
-class BlockList;
-class BlockTransfer;
-class Chunk;
-class ChunkList;
-class ChunkManager;
-class ChunkSelector;
-class ClientInfo;
-class ClientList;
-class ConnectionList;
-class ConnectionManager;
-class Download;
-class DownloadMain;
-class DownloadWrapper;
-class EntryList;
-class EntryListNode;
-class Event;
-class File;
-class FileList;
-class Handshake;
-class HandshakeManager;
-class HashString;
-class Listen;
-class Object;
-class Path;
-class Peer;
-class PeerConnectionBase;
-class PeerInfo;
-class PeerList;
-class Piece;
-class Poll;
-class Rate;
-class SocketSet;
-class Tracker;
-class TrackerBase;
-class TrackerList;
-class TrackerManager;
-class TransferList;
-
-// This should only need to be set when compiling libtorrent.
-#ifdef SUPPORT_ATTRIBUTE_VISIBILITY
-  #define LIBTORRENT_NO_EXPORT __attribute__ ((visibility("hidden")))
-  #define LIBTORRENT_EXPORT __attribute__ ((visibility("default")))
-#else
-  #define LIBTORRENT_NO_EXPORT
-  #define LIBTORRENT_EXPORT
-#endif
 
 }
 

@@ -51,6 +51,7 @@
 
 #include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
+#include "torrent/peer/client_list.h"
 
 #include "manager.h"
 #include "resource_manager.h"
@@ -67,6 +68,7 @@ Manager::Manager() :
   m_resourceManager(new ResourceManager),
 
   m_chunkManager(new ChunkManager),
+  m_clientList(new ClientList),
   m_connectionManager(new ConnectionManager),
 
   m_poll(NULL),

@@ -155,6 +155,11 @@ chunk_manager() {
   return manager->chunk_manager();
 }
 
+ClientList*
+client_list() {
+  return manager->client_list();
+}
+
 ConnectionManager*
 connection_manager() {
   return manager->connection_manager();
