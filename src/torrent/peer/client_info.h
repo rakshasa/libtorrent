@@ -69,6 +69,8 @@ public:
   const char*         short_description() const               { return m_info->m_shortDescription; }
   void                set_short_description(const char* str)  { m_info->m_shortDescription = str; }
 
+  static unsigned int key_size(id_type id);
+
   // The intersect/disjoint postfix indicates what kind of equivalence
   // comparison we get when using !less && !greater.
   static bool         less_intersects(const ClientInfo& left, const ClientInfo& right);

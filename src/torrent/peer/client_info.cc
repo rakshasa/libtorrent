@@ -42,6 +42,20 @@
 
 namespace torrent {
 
+unsigned int
+ClientInfo::key_size(id_type id) {
+  switch (id) {
+  case TYPE_AZUREUS:
+    return 2;
+  case TYPE_COMPACT:
+  case TYPE_MAINLINE:
+    return 1;
+
+  default:
+    return 0;
+  }
+}
+
 bool
 ClientInfo::less_intersects(const ClientInfo& left, const ClientInfo& right) {
   if (left.type() > right.type())

@@ -65,7 +65,16 @@ public:
 
   iterator            insert(ClientInfo::id_type type, const char* key, const char* version, const char* upperVersion);
 
-  ClientInfo          parse_id(const HashString& id) const;
+  // Helper functions which only require the key to be as long as the
+  // key for that specific id type.
+  iterator            insert_helper(ClientInfo::id_type type,
+                                    const char* key,
+                                    const char* version,
+                                    const char* upperVersion,
+                                    const char* shortDescription);
+
+  bool                retrieve_id(ClientInfo* dest, const HashString& id) const;
+  void                retrieve_unknown(ClientInfo* dest) const;
 };
 
 }
