@@ -85,6 +85,11 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_COMPACT, "O", NULL, NULL, "Osprey Permaseed");
 }
 
+ClientList::~ClientList() {
+  for (iterator itr = begin(), last = end(); itr != last; ++itr)
+    delete itr->info();
+}
+
 ClientList::iterator
 ClientList::insert(ClientInfo::id_type type, const char* key, const char* version, const char* upperVersion) {
   if (type >= ClientInfo::TYPE_MAX_SIZE)

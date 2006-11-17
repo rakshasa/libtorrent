@@ -44,6 +44,7 @@
 #include "download/download_main.h"
 #include "torrent/connection_manager.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/peer/client_list.h"
 
 #include "peer_connection_base.h"
 #include "handshake.h"
@@ -196,6 +197,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
       (pcb = h->download()->connection_list()->insert(h->peer_info(), h->get_fd(), h->bitfield(), h->encryption()->info())) != NULL) {
 
+    manager->client_list()->retrieve_id(&h->peer_info()->mutable_client_info(), h->peer_info()->id());
     manager->connection_manager()->signal_handshake_log().emit(h->peer_info()->socket_address(), ConnectionManager::handshake_success, EH_None, &h->download()->info()->hash());
 
     h->set_peer_info(NULL);

@@ -42,9 +42,11 @@
 #include <rak/socket_address.h>
 
 #include "download/available_list.h"
+#include "torrent/peer/client_list.h"
 
 #include "exceptions.h"
 #include "globals.h"
+#include "manager.h"
 #include "peer_info.h"
 #include "peer_list.h"
 
@@ -102,6 +104,8 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
 
   PeerInfo* peerInfo = new PeerInfo(sa);
   peerInfo->set_listen_port(address->port());
+  
+  manager->client_list()->retrieve_unknown(&peerInfo->mutable_client_info());
 
   base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
 

@@ -62,6 +62,7 @@ public:
   using base_type::rend;
   
   ClientList();
+  ~ClientList();
 
   iterator            insert(ClientInfo::id_type type, const char* key, const char* version, const char* upperVersion);
 
