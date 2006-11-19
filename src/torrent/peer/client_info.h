@@ -70,6 +70,7 @@ public:
   void                set_short_description(const char* str)  { m_info->m_shortDescription = str; }
 
   static unsigned int key_size(id_type id);
+  static unsigned int version_size(id_type id);
 
   // The intersect/disjoint postfix indicates what kind of equivalence
   // comparison we get when using !less && !greater.

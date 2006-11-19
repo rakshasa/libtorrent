@@ -164,17 +164,32 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     dest->mutable_version()[2] = dest->mutable_upper_version()[2] = rak::hexchar_to_value(id[3]);
     dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
 
-  } else if (std::isalpha(id[0]) && id[2] == '-' && id[4] == '-' && id[6] == '-' &&
-             std::isxdigit(id[1]) && std::isxdigit(id[3]) && std::isxdigit(id[5])) {
+  } else if (std::isalpha(id[0]) && std::isdigit(id[1]) && id[2] == '-' &&
+             std::isdigit(id[3]) && (id[6] == '-' || id[7] == '-')) {
+
     dest->set_type(ClientInfo::TYPE_MAINLINE);
 
     dest->mutable_key()[0] = id[0];
     dest->mutable_key()[1] = '\0';
     
     dest->mutable_version()[0] = dest->mutable_upper_version()[0] = rak::hexchar_to_value(id[1]);
-    dest->mutable_version()[1] = dest->mutable_upper_version()[1] = rak::hexchar_to_value(id[3]);
-    dest->mutable_version()[2] = dest->mutable_upper_version()[2] = rak::hexchar_to_value(id[5]);
-    dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
+
+    if (id[4] == '-' && std::isdigit(id[5]) && id[6] == '-') {
+      dest->mutable_version()[1] = dest->mutable_upper_version()[1] = rak::hexchar_to_value(id[3]);
+      dest->mutable_version()[2] = dest->mutable_upper_version()[2] = rak::hexchar_to_value(id[5]);
+      dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
+
+    } else if (std::isdigit(id[4]) && id[5] == '-' && std::isdigit(id[6]) && id[7] == '-') {
+      dest->mutable_version()[1] = dest->mutable_upper_version()[1] = rak::hexchar_to_value(id[3]) * 10 + rak::hexchar_to_value(id[4]);
+      dest->mutable_version()[2] = dest->mutable_upper_version()[2] = rak::hexchar_to_value(id[6]);
+      dest->mutable_version()[3] = dest->mutable_upper_version()[3] = '\0';
+
+    } else {
+      *dest = *begin();
+      std::memset(dest->mutable_upper_version(), 0, ClientInfo::max_version_size);
+
+      return false;
+    }
 
   } else {
     // And then the incompatible idiots that make life difficult for us

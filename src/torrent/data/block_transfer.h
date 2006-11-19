@@ -39,7 +39,6 @@
 
 #include <torrent/common.h>
 #include <torrent/data/piece.h>
-#include <torrent/peer/peer_info.h>
 
 namespace torrent {
 
@@ -56,8 +55,7 @@ public:
     STATE_NOT_LEADER
   } state_type;
 
-  BlockTransfer() : m_peerInfo(NULL) {}
-  ~BlockTransfer();
+  BlockTransfer() {}
 
   bool                is_valid() const              { return m_block != NULL; }
 
@@ -84,10 +82,7 @@ public:
   uint32_t            stall() const                 { return m_stall; }
   uint32_t            failed_index() const          { return m_failedIndex; }
 
-  // Internal to libtorrent, some are implemented in block.cc:
-  void                create_dummy(PeerInfo* peerInfo, const Piece& piece);
-
-  void                set_peer_info(key_type p);
+  void                set_peer_info(key_type p)     { m_peerInfo = p; }
   void                set_block(Block* b)           { m_block = b; }
   void                set_piece(const Piece& p)     { m_piece = p; }
   void                set_state(state_type s)       { m_state = s; }
@@ -112,25 +107,6 @@ private:
   uint32_t            m_stall;
   uint32_t            m_failedIndex;
 };
-
-inline
-BlockTransfer::~BlockTransfer() {
-  if (m_peerInfo == NULL)
-    return;
-
-  m_peerInfo->set_transfer_counter(m_peerInfo->transfer_counter() - 1);
-}  
-
-// Make sure this doesn't get called multiple times.
-inline void
-BlockTransfer::set_peer_info(key_type p) {
-  m_peerInfo = p;
-
-  if (m_peerInfo == NULL)
-    return;
-
-  m_peerInfo->set_transfer_counter(m_peerInfo->transfer_counter() + 1);
-}
 
 }
 

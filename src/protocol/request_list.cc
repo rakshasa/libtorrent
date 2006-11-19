@@ -158,7 +158,7 @@ RequestList::downloading(const Piece& piece) {
   // Create a dummy BlockTransfer object to hold the piece
   // information.
   m_transfer = new BlockTransfer();
-  m_transfer->create_dummy(m_peerChunks->peer_info(), piece);
+  Block::create_dummy(m_transfer, m_peerChunks->peer_info(), piece);
 
   return false;
 }
@@ -195,7 +195,7 @@ RequestList::transfer_dissimilar() {
     throw internal_error("RequestList::transfer_dissimilar() called but no transfer is in progress.");
 
   BlockTransfer* dummy = new BlockTransfer();
-  dummy->create_dummy(m_peerChunks->peer_info(), m_transfer->piece());
+  Block::create_dummy(dummy, m_peerChunks->peer_info(), m_transfer->piece());
   dummy->set_position(m_transfer->position());
 
   m_transfer->block()->transfer_dissimilar(m_transfer);

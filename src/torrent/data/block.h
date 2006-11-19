@@ -95,11 +95,6 @@ public:
   // Internal to libTorrent:
 
   BlockTransfer*            insert(PeerInfo* peerInfo);
-
-  // If the queued or transfering is already removed from the block it
-  // will just delete the object. Made static so it can be called when
-  // block == NULL.
-  static inline void        release(BlockTransfer* transfer);
   void                      erase(BlockTransfer* transfer);
 
   bool                      transfering(BlockTransfer* transfer);
@@ -118,11 +113,18 @@ public:
   BlockFailed*              failed_list()                                { return m_failedList; }
   void                      set_failed_list(BlockFailed* f)              { m_failedList = f; }
 
+  static void               create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& piece);
+
+  // If the queued or transfering is already removed from the block it
+  // will just delete the object. Made static so it can be called when
+  // block == NULL.
+  static void               release(BlockTransfer* transfer);
+
 private:
 //   Block(const Block&);
 //   void operator = (const Block&);
 
-  inline void               invalidate_transfer(BlockTransfer* transfer);
+  void                      invalidate_transfer(BlockTransfer* transfer);
 
   void                      remove_erased_transfers();
   void                      remove_non_leader_transfers();
@@ -158,14 +160,6 @@ Block::find(const PeerInfo* p) const {
     return transfer;
   else
     return find_transfer(p);
-}
-
-inline void
-Block::release(BlockTransfer* transfer) {
-  if (!transfer->is_valid())
-    delete transfer;
-  else
-    transfer->block()->erase(transfer);
 }
 
 }

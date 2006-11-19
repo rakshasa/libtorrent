@@ -40,6 +40,8 @@
 #include <functional>
 #include <rak/functional.h>
 
+#include "peer/peer_info.h"
+
 #include "block.h"
 #include "block_failed.h"
 #include "block_list.h"
@@ -47,19 +49,6 @@
 #include "exceptions.h"
 
 namespace torrent {
-
-void
-BlockTransfer::create_dummy(PeerInfo* peerInfo, const Piece& piece) {
-  set_peer_info(peerInfo);
-
-  m_block = NULL;
-  m_piece = piece;
-  m_state = BlockTransfer::STATE_ERASED;
-
-  m_position = 0;
-  m_stall = 0;
-  m_failedIndex = invalid_index;
-}
 
 Block::~Block() {
   m_leader = NULL;
@@ -92,6 +81,8 @@ Block::insert(PeerInfo* peerInfo) {
   (*itr)->set_position(0);
   (*itr)->set_stall(0);
   (*itr)->set_failed_index(BlockFailed::invalid_index);
+
+  peerInfo->set_transfer_counter(peerInfo->transfer_counter() + 1);
 
   return (*itr);
 }
@@ -152,6 +143,9 @@ Block::erase(BlockTransfer* transfer) {
   } else {
     throw internal_error("Block::erase(...) Transfer is finished.");
   }
+
+  if (transfer->peer_info() != NULL)
+    transfer->peer_info()->set_transfer_counter(transfer->peer_info()->transfer_counter() - 1);
 
   transfer->set_block(NULL);
   delete transfer;
@@ -293,13 +287,44 @@ Block::failed_leader() {
     m_failedList->set_current(BlockFailed::invalid_index);
 }
 
-inline void
+void
+Block::create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& piece) {
+  transfer->set_peer_info(peerInfo);
+
+  if (peerInfo != NULL)
+    peerInfo->set_transfer_counter(peerInfo->transfer_counter() + 1);
+
+  transfer->set_block(NULL);
+  transfer->set_piece(piece);
+  transfer->set_state(BlockTransfer::STATE_ERASED);
+
+  transfer->set_position(0);
+  transfer->set_stall(0);
+  transfer->set_failed_index(BlockTransfer::invalid_index);
+}
+
+void
+Block::release(BlockTransfer* transfer) {
+  if (!transfer->is_valid()) {
+    if (transfer->peer_info() != NULL)
+      transfer->peer_info()->set_transfer_counter(transfer->peer_info()->transfer_counter() - 1);
+
+    delete transfer;
+  } else {
+    transfer->block()->erase(transfer);
+  }
+}
+
+void
 Block::invalidate_transfer(BlockTransfer* transfer) {
   if (transfer == m_leader)
     throw internal_error("Block::invalidate_transfer(...) transfer == m_leader.");
 
   // FIXME: Various other accounting like position and counters.
   if (!transfer->is_valid()) {
+    if (transfer->peer_info() != NULL)
+      transfer->peer_info()->set_transfer_counter(transfer->peer_info()->transfer_counter() - 1);
+
     delete transfer;
 
   } else {

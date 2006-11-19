@@ -43,14 +43,6 @@
 
 namespace torrent {
 
-class BlockList;
-class BlockTransfer;
-class Chunk;
-class ChunkSelector;
-class DownloadMain;
-class PeerInfo;
-class Piece;
-
 class TransferList : public std::vector<BlockList*> {
 public:
   typedef std::vector<BlockList*> base_type;
