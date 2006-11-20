@@ -233,6 +233,22 @@ PeerConnectionBase::receive_choke(bool v) {
 }
 
 void
+PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
+  if (!get_fd().is_valid())
+    throw internal_error("PeerConnectionBase::cancel_transfer(...) !get_fd().is_valid().");
+
+  // We don't send cancel messages if the transfer has already
+  // started.
+  if (transfer == m_downloadQueue.transfer())
+    return;
+
+  write_insert_poll_safe();
+
+  m_peerChunks.cancel_queue()->push_back(transfer->piece());
+//   m_downloadQueue.cancel_transfer(transfer);
+}
+
+void
 PeerConnectionBase::receive_throttle_down_activate() {
   manager->poll()->insert_read(this);
 }

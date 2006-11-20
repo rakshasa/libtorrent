@@ -399,11 +399,13 @@ PeerConnectionLeech::fill_write_buffer() {
       up_chunk_release();
       m_peerChunks.upload_queue()->clear();
 
-      if (m_encryptBuffer && m_encryptBuffer->remaining())
-        throw internal_error("Deleting encryptBuffer with encrypted data remaining!");
+      if (m_encryptBuffer != NULL) {
+        if (m_encryptBuffer->remaining())
+          throw internal_error("Deleting encryptBuffer with encrypted data remaining.");
 
-      delete m_encryptBuffer;
-      m_encryptBuffer = NULL;
+        delete m_encryptBuffer;
+        m_encryptBuffer = NULL;
+      }
 
     } else {
       m_download->upload_throttle()->insert(m_peerChunks.upload_throttle());
@@ -432,6 +434,11 @@ PeerConnectionLeech::fill_write_buffer() {
   while (!m_peerChunks.have_queue()->empty() && m_up->can_write_have()) {
     m_up->write_have(m_peerChunks.have_queue()->front());
     m_peerChunks.have_queue()->pop_front();
+  }
+
+  while (!m_peerChunks.cancel_queue()->empty() && m_up->can_write_cancel()) {
+    m_up->write_cancel(m_peerChunks.cancel_queue()->front());
+    m_peerChunks.cancel_queue()->pop_front();
   }
 
   if (!m_up->choked() &&

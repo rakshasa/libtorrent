@@ -76,6 +76,7 @@ public:
 
   piece_list_type*    upload_queue()                { return &m_uploadQueue; }
   index_list_type*    have_queue()                  { return &m_haveQueue; }
+  piece_list_type*    cancel_queue()                { return &m_cancelQueue; }
 
   Rate*               peer_rate()                   { return &m_peerRate; }
 
@@ -94,6 +95,7 @@ private:
 
   piece_list_type     m_uploadQueue;
   index_list_type     m_haveQueue;
+  piece_list_type     m_cancelQueue;
 
   Rate                m_peerRate;
 

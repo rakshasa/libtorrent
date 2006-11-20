@@ -104,7 +104,8 @@ public:
   void                write_interested(bool s);
   void                write_have(uint32_t index);
   void                write_bitfield(size_type length);
-  void                write_request(const Piece& p, bool s = true);
+  void                write_request(const Piece& p);
+  void                write_cancel(const Piece& p);
   void                write_piece(const Piece& p);
 
   static const size_type sizeof_keepalive    = 4;
@@ -115,6 +116,8 @@ public:
   static const size_type sizeof_bitfield     = 5;
   static const size_type sizeof_request      = 17;
   static const size_type sizeof_request_body = 12;
+  static const size_type sizeof_cancel       = 17;
+  static const size_type sizeof_cancel_body  = 12;
   static const size_type sizeof_piece        = 13;
   static const size_type sizeof_piece_body   = 8;
 
@@ -124,6 +127,7 @@ public:
   bool                can_write_have() const                  { return m_buffer.reserved_left() >= sizeof_have; }
   bool                can_write_bitfield() const              { return m_buffer.reserved_left() >= sizeof_bitfield; }
   bool                can_write_request() const               { return m_buffer.reserved_left() >= sizeof_request; }
+  bool                can_write_cancel() const                { return m_buffer.reserved_left() >= sizeof_cancel; }
   bool                can_write_piece() const                 { return m_buffer.reserved_left() >= sizeof_piece; }
 
   bool                can_read_have_body() const              { return m_buffer.remaining() >= sizeof_have_body; }
@@ -190,9 +194,18 @@ ProtocolBase::write_bitfield(size_type length) {
 }
 
 inline void
-ProtocolBase::write_request(const Piece& p, bool s) {
+ProtocolBase::write_request(const Piece& p) {
   m_buffer.write_32(13);
-  write_command(s ? REQUEST : CANCEL);
+  write_command(REQUEST);
+  m_buffer.write_32(p.index());
+  m_buffer.write_32(p.offset());
+  m_buffer.write_32(p.length());
+}
+
+inline void
+ProtocolBase::write_cancel(const Piece& p) {
+  m_buffer.write_32(13);
+  write_command(CANCEL);
   m_buffer.write_32(p.index());
   m_buffer.write_32(p.offset());
   m_buffer.write_32(p.length());

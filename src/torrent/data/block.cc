@@ -41,6 +41,7 @@
 #include <rak/functional.h>
 
 #include "peer/peer_info.h"
+#include "protocol/peer_connection_base.h"
 
 #include "block.h"
 #include "block_failed.h"
@@ -331,6 +332,10 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
     m_notStalled -= transfer->stall() == 0;
 
     transfer->set_block(NULL);
+
+    // Do the canceling magic here. 
+    if (transfer->peer_info()->connection() != NULL)
+      transfer->peer_info()->connection()->cancel_transfer(transfer);
   }
 }
 

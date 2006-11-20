@@ -44,6 +44,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT PeerInfo {
 public:
+  friend class ConnectionList;
   friend class Handshake;
   friend class HandshakeManager;
   friend class PeerList;
@@ -78,6 +79,9 @@ public:
   uint32_t            last_connection() const               { return m_lastConnection; }
   void                set_last_connection(uint32_t tvsec)   { m_lastConnection = tvsec; }
 
+  // Internal to libTorrent:
+  PeerConnectionBase* connection()                          { return m_connection; }
+
 protected:
   void                set_flags(int flags)                  { m_flags |= flags; }
   void                unset_flags(int flags)                { m_flags &= ~flags; }
@@ -89,6 +93,7 @@ protected:
   void                set_listen_port(uint16_t port)        { m_listenPort = port; }
 
   char*               set_options()                         { return m_options; }
+  void                set_connection(PeerConnectionBase* c) { m_connection = c; }
 
 private:
   PeerInfo(const PeerInfo&);
@@ -110,6 +115,8 @@ private:
   // Replace this with a union. Since the user never copies PeerInfo
   // it should be safe to not require sockaddr_in6 to be part of it.
   sockaddr*           m_address;
+
+  PeerConnectionBase* m_connection;
 };
 
 }

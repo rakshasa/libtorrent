@@ -64,11 +64,12 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
   if (peerConnection == NULL || bitfield == NULL)
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
+  peerInfo->set_connection(peerConnection);
   peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo);
 
   base_type::push_back(peerConnection);
-  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 
+  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
   m_slotConnected(peerConnection);
 
   return peerConnection;
@@ -91,6 +92,8 @@ ConnectionList::erase(iterator pos, int flags) {
 
   // Before of after the signal?
   peerConnection->cleanup();
+  peerConnection->peer_info()->set_connection(NULL);
+
   m_download->peer_list()->disconnected(peerConnection->peer_info(), 0);
 
   // Delete after the signal to ensure the address of 'v' doesn't get
@@ -106,7 +109,8 @@ ConnectionList::erase(iterator pos, int flags) {
 
 void
 ConnectionList::erase(PeerInfo* peerInfo, int flags) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(peerInfo, std::mem_fun(&PeerConnectionBase::peer_info)));
+//   iterator itr = std::find_if(begin(), end(), rak::equal(peerInfo, std::mem_fun(&PeerConnectionBase::peer_info)));
+  iterator itr = std::find(begin(), end(), peerInfo->connection());
 
   if (itr == end())
     return;

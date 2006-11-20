@@ -121,6 +121,8 @@ public:
 
   void                push_unread(const void* data, uint32_t size);
 
+  void                cancel_transfer(BlockTransfer* transfer);
+
 protected:
   inline bool         read_remaining();
   inline bool         write_remaining();

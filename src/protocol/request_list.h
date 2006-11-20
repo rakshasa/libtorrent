@@ -74,19 +74,20 @@ public:
 
   void                 transfer_dissimilar();
 
-  bool                 is_downloading()                 { return m_transfer != NULL; }
+//   void                 cancel_transfer(BlockTransfer* transfer);
+
+  bool                 is_downloading()                  { return m_transfer != NULL; }
   bool                 is_interested_in_active() const;
 
   bool                 has_index(uint32_t i);
-  uint32_t             remove_invalid();
 
-  bool                 empty() const                    { return m_queued.empty(); }
-  size_t               size()                           { return m_queued.size(); }
+  bool                 empty() const                     { return m_queued.empty(); }
+  size_t               size()                            { return m_queued.size(); }
 
   uint32_t             calculate_pipe_size(uint32_t rate);
 
-  void                 set_delegator(Delegator* d)      { m_delegator = d; }
-  void                 set_peer_chunks(PeerChunks* b)   { m_peerChunks = b; }
+  void                 set_delegator(Delegator* d)       { m_delegator = d; }
+  void                 set_peer_chunks(PeerChunks* b)    { m_peerChunks = b; }
 
   BlockTransfer*       transfer()                        { return m_transfer; }
   const BlockTransfer* transfer() const                  { return m_transfer; }

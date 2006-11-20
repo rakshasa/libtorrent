@@ -202,6 +202,13 @@ RequestList::transfer_dissimilar() {
   m_transfer = dummy;
 }
 
+// void
+// RequestList::cancel_transfer(BlockTransfer* transfer) {
+// //   ReserveeList itr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(piece));
+
+// //   ReserveeList itr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(piece));
+// }
+
 struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, bool> {
   bool operator () (BlockTransfer* r, uint32_t index) const {
     return r->is_valid() && index == r->index();
@@ -248,27 +255,6 @@ RequestList::cancel_range(ReserveeList::iterator end) {
       Block::release(transfer);
     }
   }
-}
-
-uint32_t
-RequestList::remove_invalid() {
-  uint32_t count = 0;
-  ReserveeList::iterator itr;
-
-  // Could be more efficient, but rarely do we find any.
-  while ((itr = std::find_if(m_queued.begin(), m_queued.end(),  std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_queued.end()) {
-    count++;
-    Block::release(*itr);
-    m_queued.erase(itr);
-  }
-
-  // Don't count m_canceled that are invalid.
-  while ((itr = std::find_if(m_canceled.begin(), m_canceled.end(), std::not1(std::mem_fun(&BlockTransfer::is_valid)))) != m_canceled.end()) {
-    Block::release(*itr);
-    m_canceled.erase(itr);
-  }
-
-  return count;
 }
 
 uint32_t

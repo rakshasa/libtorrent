@@ -51,7 +51,9 @@ PeerInfo::PeerInfo(const sockaddr* address) :
   m_failedCounter(0),
   m_transferCounter(0),
   m_lastConnection(0),
-  m_listenPort(0)
+  m_listenPort(0),
+
+  m_connection(NULL)
 {
   rak::socket_address* sa = new rak::socket_address();
   *sa = *rak::socket_address::cast_from(address);
