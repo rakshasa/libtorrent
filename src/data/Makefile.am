@@ -12,8 +12,6 @@ libsub_data_la_SOURCES = \
 	content.h \
 	entry_list.cc \
 	entry_list.h \
-	entry_list_node.cc \
-	entry_list_node.h \
 	chunk_part.cc \
 	chunk_part.h \
 	file_manager.cc \

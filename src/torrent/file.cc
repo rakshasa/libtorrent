@@ -36,71 +36,71 @@
 
 #include "config.h"
 
-#include "exceptions.h"
+#include <rak/error_number.h>
+#include <rak/file_stat.h>
+
+#include "data/file_meta.h"
+#include "torrent/exceptions.h"
+
 #include "file.h"
-#include "data/entry_list_node.h"
 
 namespace torrent {
 
+File::File() :
+  m_fileMeta(new FileMeta),
+
+  m_position(0),
+  m_size(0),
+  m_completed(0),
+  m_priority(PRIORITY_NORMAL) {
+}
+
+File::~File() {
+  delete m_fileMeta;
+}
+
 bool
 File::is_created() const {
-  return m_entry->is_created();
+  rak::file_stat fs;
+
+  // If we can't even get permission to do fstat, we might as well
+  // consider the file as not created. This function is to be used by
+  // the client to check that the torrent files are present and ok,
+  // rather than as a way to find out if it is starting on a blank
+  // slate.
+  if (!fs.update(m_fileMeta->get_path()))
+//     return rak::error_number::current() == rak::error_number::e_access;
+    return false;
+
+  return fs.is_regular();
 }
 
 bool
 File::is_correct_size() const {
-  return m_entry->is_correct_size();
+  rak::file_stat fs;
+
+  if (!fs.update(m_fileMeta->get_path()))
+    return false;
+
+  return fs.is_regular() && fs.size() == m_size;
 }
 
-uint64_t
-File::size_bytes() const {
-  return m_entry->size();
-}
+bool
+File::resize_file() {
+  if (!m_fileMeta->prepare(MemoryChunk::prot_read))
+    return false;
 
-uint32_t
-File::size_chunks() const {
-  return m_entry->range().second - m_entry->range().first;
-}
+  if (m_size == m_fileMeta->get_file().size())
+    return true;
 
-uint32_t
-File::completed_chunks() const {
-  return m_entry->completed();
-}
+  if (!m_fileMeta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
+      !m_fileMeta->get_file().set_size(m_size))
+    return false;
+  
+  // Not here... make it a setting of sorts?
+  //m_fileMeta->get_file().reserve();
 
-uint32_t
-File::chunk_begin() const {
-  return m_entry->range().first;
-}
-
-uint32_t
-File::chunk_end() const {
-  return m_entry->range().second;
-}  
-
-priority_t
-File::priority() const {
-  return m_entry->priority();
-}
-
-void
-File::set_priority(priority_t p) {
-  m_entry->set_priority(p);
-}
-
-Path*
-File::path() {
-  return m_entry->path();
-}
-
-const Path*
-File::path() const {
-  return m_entry->path();
-}
-
-// Relative to root of torrent.
-std::string
-File::path_str() const {
-  return m_entry->path()->as_string();
+  return true;
 }
 
 }

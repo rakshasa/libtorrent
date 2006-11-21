@@ -49,7 +49,7 @@ FileList::is_open() const {
   return m_list->is_open();
 }
 
-File
+File*
 FileList::get(uint32_t index) {
   if (index >= m_list->files_size())
     throw client_error("Client called FileList::get(...) with out of range index.");

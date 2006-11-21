@@ -42,7 +42,6 @@
 namespace torrent {
 
 class EntryList;
-class File;
 
 class LIBTORRENT_EXPORT FileList {
 public:
@@ -51,7 +50,7 @@ public:
   bool                is_open() const;
 
   // Access the files in the torrent.
-  File                get(uint32_t index);
+  File*               get(uint32_t index);
 
   uint32_t            size() const;
 

@@ -104,10 +104,10 @@ public:
 protected:
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
   // if no more connections are allowed from that host.
-  PeerInfo*           connected(const sockaddr* sa, int flags);
+  PeerInfo*           connected(const sockaddr* sa, int flags) LIBTORRENT_NO_EXPORT;
 
-  void                disconnected(PeerInfo* p, int flags);
-  iterator            disconnected(iterator itr, int flags);
+  void                disconnected(PeerInfo* p, int flags) LIBTORRENT_NO_EXPORT;
+  iterator            disconnected(iterator itr, int flags) LIBTORRENT_NO_EXPORT;
 
 private:
   PeerList(const PeerList&);

@@ -37,48 +37,75 @@
 #ifndef LIBTORRENT_FILE_H
 #define LIBTORRENT_FILE_H
 
-#include <list>
-#include <string>
 #include <torrent/common.h>
+#include <torrent/path.h>
 
 namespace torrent {
 
-class EntryListNode;
-class Path;
-
 class LIBTORRENT_EXPORT File {
 public:
-  File(EntryListNode* e = NULL) : m_entry(e) {}
-  
+  friend class EntryList;
+
+  // Get rid of this.
+  friend class Content;
+
+  typedef std::pair<uint32_t, uint32_t> range_type;
+
+  File();
+  ~File();
+
   bool                is_created() const;
   bool                is_correct_size() const;
+  inline bool         is_valid_position(off_t p) const;
 
-  uint64_t            size_bytes() const;
-  uint32_t            size_chunks() const;
+  Path*               path()                                  { return &m_path; }
+  const Path*         path() const                            { return &m_path; }
 
-  uint32_t            completed_chunks() const;
+  off_t               position() const                        { return m_position; }
 
-  uint32_t            chunk_begin() const;
-  uint32_t            chunk_end() const;
+  off_t               size_bytes() const                      { return m_size; }
+  uint32_t            size_chunks() const                     { return m_range.second - m_range.first; }
 
-  // Need this?
-  //uint64_t            byte_begin();
-  //uint64_t            byte_end();
+  uint32_t            completed_chunks() const                { return m_completed; }
 
-  Path*               path();
-  const Path*         path() const;
+  const range_type&   range() const                           { return m_range; }
 
-  // Relative to root of the torrent.
-  std::string         path_str() const;
+  priority_t          priority() const                        { return m_priority; }
+  void                set_priority(priority_t t)              { m_priority = t; }
 
-  // When setting the priority, Download::update_priorities() must be
-  // called for it to take effect.
-  priority_t          priority() const;
-  void                set_priority(priority_t p);
+protected:
+  void                set_position(off_t pos)                 { m_position = pos; }
+  void                set_size_bytes(off_t s)                 { m_size = s; }
+  void                set_range(const range_type& range)      { m_range = range; }
+
+  void                set_completed(uint32_t v)               { m_completed = v; }
+  void                inc_completed()                         { m_completed++; }
+
+  bool                resize_file();
+
+  FileMeta*           file_meta()                             { return m_fileMeta; }
+  const FileMeta*     file_meta() const                       { return m_fileMeta; }
 
 private:
-  EntryListNode*      m_entry;
+  File(const File&);
+  void operator = (const File&);
+
+  FileMeta*           m_fileMeta;
+  Path                m_path;
+
+  off_t               m_position;
+  off_t               m_size;
+
+  range_type          m_range;
+
+  uint32_t            m_completed;
+  priority_t          m_priority;
 };
+
+inline bool
+File::is_valid_position(off_t p) const {
+  return p >= m_position && p < m_position + m_size;
+}
 
 }
 

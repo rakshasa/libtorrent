@@ -40,19 +40,20 @@
 #include <vector>
 #include <rak/functional.h>
 
-#include "entry_list_node.h"
+#include "torrent/path.h"
 
 namespace torrent {
 
 class Chunk;
-class EntryListNode;
+class File;
 class FileManager;
 class MemoryChunk;
 
-class EntryList : private std::vector<EntryListNode*> {
+class EntryList : private std::vector<File*> {
 public:
-  typedef std::vector<EntryListNode*>                 base_type;
+  typedef std::vector<File*>                          base_type;
   typedef std::vector<std::string>                    path_list;
+  typedef std::pair<uint32_t, uint32_t>               range_type;
   typedef rak::mem_fun1<FileManager, void, FileMeta*> slot_meta_type;
 
   using base_type::value_type;
@@ -75,7 +76,7 @@ public:
   bool                is_open() const                            { return m_isOpen; }
 
   // We take over ownership of 'file'.
-  void                push_back(const Path& path, const EntryListNode::Range& range, off_t size);
+  void                push_back(const Path& path, const range_type& range, off_t size);
 
   void                clear();
 
@@ -96,7 +97,7 @@ public:
   // of free diskspace will be returned.
   uint64_t            free_diskspace() const;
 
-  EntryListNode*      get_node(uint32_t idx)                     { return base_type::operator[](idx); }
+  File*               get_node(uint32_t idx)                     { return base_type::operator[](idx); }
 
   Chunk*              create_chunk(off_t offset, uint32_t length, int prot);
 
@@ -108,7 +109,7 @@ public:
   void                slot_erase_filemeta(slot_meta_type s)      { m_slotEraseFileMeta = s; }
 
 private:
-  bool                open_file(EntryListNode* node, const Path& lastPath);
+  bool                open_file(File* node, const Path& lastPath);
 
   inline void         make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr);
 

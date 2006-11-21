@@ -124,10 +124,10 @@ private:
 //   Block(const Block&);
 //   void operator = (const Block&);
 
-  void                      invalidate_transfer(BlockTransfer* transfer);
+  void                      invalidate_transfer(BlockTransfer* transfer) LIBTORRENT_NO_EXPORT;
 
-  void                      remove_erased_transfers();
-  void                      remove_non_leader_transfers();
+  void                      remove_erased_transfers() LIBTORRENT_NO_EXPORT;
+  void                      remove_non_leader_transfers() LIBTORRENT_NO_EXPORT;
 
   BlockList*                m_parent;
   Piece                     m_piece;

@@ -132,7 +132,7 @@ private:
   ChunkManager(const ChunkManager&);
   void operator = (const ChunkManager&);
 
-  void                sync_all(int flags, uint64_t target);
+  void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
 
   bool                m_autoMemory;
 

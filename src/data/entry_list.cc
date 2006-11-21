@@ -46,6 +46,7 @@
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/file.h"
 #include "torrent/path.h"
 
 #include "chunk.h"
@@ -56,17 +57,17 @@
 namespace torrent {
 
 void
-EntryList::push_back(const Path& path, const EntryListNode::Range& range, off_t size) {
+EntryList::push_back(const Path& path, const range_type& range, off_t size) {
   if (sizeof(off_t) != 8)
     throw internal_error("sizeof(off_t) != 8");
 
   if (size + m_bytesSize < m_bytesSize)
     throw internal_error("Sum of files added to EntryList overflowed 64bit");
 
-  EntryListNode* e = new EntryListNode();
+  File* e = new File();
 
   e->set_position(m_bytesSize);
-  e->set_size(size);
+  e->set_size_bytes(size);
   e->set_range(range);
 
   *e->path() = path;
@@ -80,7 +81,7 @@ void
 EntryList::clear() {
   close();
 
-  std::for_each(begin(), end(), rak::call_delete<EntryListNode>());
+  std::for_each(begin(), end(), rak::call_delete<File>());
 
   base_type::clear();
   m_bytesSize = 0;
@@ -101,7 +102,7 @@ EntryList::open() {
       throw storage_error("Could not create directory '" + m_rootDir + "': " + strerror(errno));
   
     while (itr != end()) {
-      EntryListNode* entry = *itr++;
+      File* entry = *itr++;
 
       if (entry->file_meta()->is_open())
         throw internal_error("EntryList::open(...) found an already opened file.");
@@ -161,10 +162,10 @@ EntryList::set_root_dir(const std::string& path) {
 
 bool
 EntryList::resize_all() {
-  iterator itr = std::find_if(begin(), end(), std::not1(std::mem_fun(&EntryListNode::resize_file)));
+  iterator itr = std::find_if(begin(), end(), std::not1(std::mem_fun(&File::resize_file)));
 
   if (itr != end()) {
-    std::for_each(++itr, end(), std::mem_fun(&EntryListNode::resize_file));
+    std::for_each(++itr, end(), std::mem_fun(&File::resize_file));
     return false;
   }
 
@@ -174,7 +175,7 @@ EntryList::resize_all() {
 EntryList::iterator
 EntryList::at_position(iterator itr, off_t offset) {
   while (itr != end())
-    if (offset >= (*itr)->position() + (*itr)->size())
+    if (offset >= (*itr)->position() + (*itr)->size_bytes())
       ++itr;
     else
       return itr;
@@ -210,7 +211,7 @@ EntryList::make_directory(Path::const_iterator pathBegin, Path::const_iterator p
 }
 
 bool
-EntryList::open_file(EntryListNode* node, const Path& lastPath) {
+EntryList::open_file(File* node, const Path& lastPath) {
   const Path* path = node->path();
 
   Path::const_iterator lastItr = lastPath.begin();
@@ -229,7 +230,7 @@ EntryList::open_file(EntryListNode* node, const Path& lastPath) {
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
   if (path->back().empty())
-    return node->size() == 0;
+    return node->size_bytes() == 0;
 
   rak::file_stat fileStat;
 
@@ -267,7 +268,7 @@ EntryList::free_diskspace() const {
 inline MemoryChunk
 EntryList::create_chunk_part(iterator itr, off_t offset, uint32_t length, int prot) {
   offset -= (*itr)->position();
-  length = std::min<off_t>(length, (*itr)->size() - offset);
+  length = std::min<off_t>(length, (*itr)->size_bytes() - offset);
 
   if (offset < 0)
     throw internal_error("EntryList::chunk_part(...) caught a negative offset");
@@ -287,12 +288,12 @@ EntryList::create_chunk(off_t offset, uint32_t length, int prot) {
 
   std::auto_ptr<Chunk> chunk(new Chunk);
 
-  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun(&EntryListNode::is_valid_position), offset)); length != 0; ++itr) {
+  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun(&File::is_valid_position), offset)); length != 0; ++itr) {
 
     if (itr == end())
       throw internal_error("EntryList could not find a valid file for chunk");
 
-    if ((*itr)->size() == 0)
+    if ((*itr)->size_bytes() == 0)
       continue;
 
     MemoryChunk mc = create_chunk_part(itr, offset, length, prot);

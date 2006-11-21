@@ -50,6 +50,7 @@
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "torrent/file.h"
 #include "torrent/object.h"
 #include "tracker/tracker_manager.h"
 

@@ -89,7 +89,7 @@ protected:
   HashString&         mutable_id()                          { return m_id; }
   ClientInfo&         mutable_client_info()                 { return m_clientInfo; }
 
-  void                set_port(uint16_t port);
+  void                set_port(uint16_t port) LIBTORRENT_NO_EXPORT;
   void                set_listen_port(uint16_t port)        { m_listenPort = port; }
 
   char*               set_options()                         { return m_options; }

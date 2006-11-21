@@ -98,14 +98,14 @@ resume_load_progress(Download download, const Object& object) {
 
   for (unsigned int index = 0; index < fileList.size(); ++index, ++filesItr) {
     rak::file_stat fs;
-    File file = fileList.get(index);
+    File* file = fileList.get(index);
 
     // Check that the size and modified stamp matches. If not, then
     // clear the resume data for that range.
 
-    if (!fs.update(fileList.root_dir() + file.path_str()) || fs.size() != (off_t)file.size_bytes() ||
+    if (!fs.update(fileList.root_dir() + file->path()->as_string()) || fs.size() != (off_t)file->size_bytes() ||
         !filesItr->has_key_value("mtime") || filesItr->get_key_value("mtime") != fs.modified_time())
-      download.clear_range(file.chunk_begin(), file.chunk_end());
+      download.clear_range(file->range().first, file->range().second);
   }
 }
 
@@ -144,10 +144,10 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
       *filesItr = Object(Object::TYPE_MAP);
 
     rak::file_stat fs;
-    File file = fileList.get(index);
+    File* file = fileList.get(index);
 
-    if (!fs.update(fileList.root_dir() + file.path_str()) ||
-        (onlyCompleted && file.completed_chunks() != file.size_chunks())) {
+    if (!fs.update(fileList.root_dir() + file->path()->as_string()) ||
+        (onlyCompleted && file->completed_chunks() != file->size_chunks())) {
       filesItr->erase_key("mtime");
       continue;
     }
@@ -180,7 +180,7 @@ resume_load_file_priorities(Download download, const Object& object) {
     // Update the priority from the fast resume data.
     if (filesItr->has_key_value("priority") &&
         filesItr->get_key_value("priority") >= 0 && filesItr->get_key_value("priority") <= PRIORITY_HIGH)
-      fileList.get(index).set_priority((priority_t)filesItr->get_key_value("priority"));
+      fileList.get(index)->set_priority((priority_t)filesItr->get_key_value("priority"));
   }
 }
 
@@ -200,7 +200,7 @@ resume_save_file_priorities(Download download, Object& object) {
     else if (!filesItr->is_map())
       *filesItr = Object(Object::TYPE_MAP);
 
-    filesItr->insert_key("priority", (int64_t)fileList.get(index).priority());
+    filesItr->insert_key("priority", (int64_t)fileList.get(index)->priority());
   }
 }
 

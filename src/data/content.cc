@@ -41,6 +41,7 @@
 #include <rak/file_stat.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/file.h"
 #include "content.h"
 #include "data/file_meta.h"
 #include "data/chunk.h"
@@ -73,7 +74,7 @@ Content::initialize(uint32_t chunkSize) {
     throw bencode_error("Torrent size and 'info:pieces' length does not match.");
 
   for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
-    (*itr)->set_range(make_index_range((*itr)->position(), (*itr)->size()));
+    (*itr)->set_range(make_index_range((*itr)->position(), (*itr)->size_bytes()));
 
   m_entryList->set_root_dir(".");
 }
@@ -84,7 +85,7 @@ Content::add_file(const Path& path, uint64_t size) {
     throw internal_error("Tried to add file to a torrent::Content that is initialized.");
 
   if (m_maxFileSize == 0 || size < m_maxFileSize) {
-    m_entryList->push_back(path, EntryListNode::Range(), size);
+    m_entryList->push_back(path, File::range_type(), size);
 
   } else {
     Path newPath = path;
@@ -97,7 +98,7 @@ Content::add_file(const Path& path, uint64_t size) {
       uint64_t partSize = std::min(size, m_maxFileSize);
       size -= partSize;
 
-      m_entryList->push_back(newPath, EntryListNode::Range(), partSize);
+      m_entryList->push_back(newPath, File::range_type(), partSize);
     }
   }
 }
@@ -188,7 +189,7 @@ Content::receive_chunk_hash(uint32_t index, const char* hash) {
   if (first == m_entryList->end())
     throw internal_error("Content::mark_done got first == m_entryList->end().");
 
-  std::for_each(first, last, std::mem_fun(&EntryListNode::inc_completed));
+  std::for_each(first, last, std::mem_fun(&File::inc_completed));
 
   return true;
 }
@@ -214,7 +215,7 @@ Content::update_done() {
       if (first == m_entryList->end())
         throw internal_error("Content::update_done() reached m_entryList->end().");
 
-      std::for_each(first, last, std::mem_fun(&EntryListNode::inc_completed));
+      std::for_each(first, last, std::mem_fun(&File::inc_completed));
     }
 }
 
