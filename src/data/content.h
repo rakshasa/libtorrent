@@ -44,8 +44,6 @@
 #include "torrent/bitfield.h"
 #include "globals.h"
 
-#include "data/entry_list.h"
-
 namespace torrent {
 
 // Since g++ uses reference counted strings, it's cheaper to just hand
@@ -57,7 +55,7 @@ namespace torrent {
 // ranges.
 
 class ChunkListNode;
-class EntryList;
+class FileList;
 class Path;
 class Piece;
 
@@ -69,7 +67,7 @@ public:
   Content();
   ~Content();
 
-  void                   initialize(uint32_t chunkSize);
+  void                   initialize();
 
   // Do not modify chunk size after files have been added.
   void                   add_file(const Path& path, uint64_t size);
@@ -83,16 +81,18 @@ public:
   uint64_t               bytes_left() const;
 
   uint32_t               chunk_total() const                            { return m_bitfield.size_bits(); }
-  uint32_t               chunk_size() const                             { return m_chunkSize; }
   const char*            chunk_hash(unsigned int index)                 { return m_hash.c_str() + 20 * index; }
+
+  uint32_t               chunk_size() const                             { return m_chunkSize; }
+  void                   set_chunk_size(uint32_t size)                  { m_chunkSize = size; }
 
   uint32_t               chunk_index_size(uint32_t index) const;
   off_t                  chunk_position(uint32_t c) const               { return c * (off_t)m_chunkSize; }
 
   Bitfield*              bitfield()                                     { return &m_bitfield; }
 
-  EntryList*             entry_list()                                   { return m_entryList; }
-  const EntryList*       entry_list() const                             { return m_entryList; }
+  FileList*              file_list()                                    { return m_fileList; }
+  const FileList*        file_list() const                              { return m_fileList; }
 
   bool                   is_done() const                                { return chunks_completed() == chunk_total(); }
   bool                   is_valid_piece(const Piece& p) const;
@@ -110,7 +110,7 @@ private:
   uint32_t               m_chunkSize;
   uint64_t               m_maxFileSize;
 
-  EntryList*             m_entryList;
+  FileList*              m_fileList;
   Bitfield               m_bitfield;
 
   std::string            m_hash;

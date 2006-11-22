@@ -44,6 +44,7 @@
 #include "protocol/peer_connection_base.h"
 #include "tracker/tracker_manager.h"
 #include "torrent/exceptions.h"
+#include "torrent/file_list.h"
 #include "torrent/peer/peer_info.h"
 
 #include "available_list.h"
@@ -80,7 +81,7 @@ DownloadMain::DownloadMain() :
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
 
   m_chunkList->slot_create_chunk(rak::make_mem_fun(&m_content, &Content::create_chunk));
-  m_chunkList->slot_free_diskspace(rak::make_mem_fun(m_content.entry_list(), &EntryList::free_diskspace));
+  m_chunkList->slot_free_diskspace(rak::make_mem_fun(m_content.file_list(), &FileList::free_diskspace));
 }
 
 DownloadMain::~DownloadMain() {
@@ -102,7 +103,7 @@ DownloadMain::open() {
   if (info()->is_open())
     throw internal_error("Tried to open a download that is already open");
 
-  m_content.entry_list()->open();
+  m_content.file_list()->open();
 
   m_chunkList->resize(m_content.chunk_total());
   m_chunkStatistics->initialize(m_content.chunk_total());
@@ -124,7 +125,7 @@ DownloadMain::close() {
   m_delegator.transfer_list()->clear();
 
   m_content.bitfield()->unallocate();
-  m_content.entry_list()->close();
+  m_content.file_list()->close();
 
   // Clear the chunklist last as it requires all referenced chunks to
   // be released.

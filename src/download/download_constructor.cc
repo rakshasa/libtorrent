@@ -41,9 +41,10 @@
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
-#include "torrent/exceptions.h"
 #include "data/content.h"
 #include "download/download_wrapper.h"
+#include "torrent/exceptions.h"
+#include "torrent/file_list.h"
 #include "tracker/tracker_manager.h"
 
 #include "torrent/object.h"
@@ -122,30 +123,34 @@ void
 DownloadConstructor::parse_info(const Object& b) {
   Content* c = m_download->main()->content();
 
-  if (!c->entry_list()->empty())
+  if (!c->file_list()->empty())
     throw internal_error("parse_info received an already initialized Content object");
+
+  uint32_t chunkSize = b.get_key_value("piece length");
+
+  if (chunkSize <= (1 << 10) || chunkSize > (128 << 20))
+    throw input_error("Torrent has an invalid \"piece length\".");
+
+  c->set_chunk_size(chunkSize);
 
   if (b.has_key("length")) {
     parse_single_file(b);
 
   } else if (b.has_key("files")) {
     parse_multi_files(b.get_key("files"));
-    c->entry_list()->set_root_dir("./" + b.get_key_string("name"));
+    c->file_list()->set_root_dir("./" + b.get_key_string("name"));
 
   } else {
     throw input_error("Torrent must have either length or files entry");
   }
 
-  if (c->entry_list()->bytes_size() == 0)
+  if (c->file_list()->size_bytes() == 0)
     throw input_error("Torrent has zero length.");
-
-  if (b.get_key_value("piece length") <= (1 << 10) || b.get_key_value("piece length") > (128 << 20))
-    throw input_error("Torrent has an invalid \"piece length\".");
 
   // Set chunksize before adding files to make sure the index range is
   // correct.
   c->set_complete_hash(b.get_key_string("pieces"));
-  c->initialize(b.get_key_value("piece length"));
+  c->initialize();
 }
 
 void
@@ -225,7 +230,7 @@ DownloadConstructor::parse_multi_files(const Object& b) {
   if (b.as_list().empty())
     throw input_error("Bad torrent file, entry has no files.");
 
-  m_download->main()->content()->entry_list()->reserve(b.as_list().size());
+  m_download->main()->content()->file_list()->reserve(b.as_list().size());
 
   std::for_each(b.as_list().begin(), b.as_list().end(), rak::make_mem_fun(this, &DownloadConstructor::add_file));
 }

@@ -51,6 +51,7 @@
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
 #include "torrent/file.h"
+#include "torrent/file_list.h"
 #include "torrent/object.h"
 #include "tracker/tracker_manager.h"
 
@@ -167,7 +168,7 @@ DownloadWrapper::receive_initial_hash() {
 
     m_main.content()->bitfield()->unallocate();
 
-  } else if (m_main.content()->entry_list()->resize_all()) {
+  } else if (m_main.content()->file_list()->resize_all()) {
     m_hash->confirm_checked();
 
     if (m_hash->get_queue()->has(this))
@@ -315,7 +316,7 @@ DownloadWrapper::receive_update_priorities() {
   m_main.chunk_selector()->high_priority()->clear();
   m_main.chunk_selector()->normal_priority()->clear();
 
-  for (EntryList::iterator itr = m_main.content()->entry_list()->begin(); itr != m_main.content()->entry_list()->end(); ++itr) {
+  for (FileList::iterator itr = m_main.content()->file_list()->begin(); itr != m_main.content()->file_list()->end(); ++itr) {
     if ((*itr)->priority() == 1)
       m_main.chunk_selector()->normal_priority()->insert((*itr)->range().first, (*itr)->range().second);
 

@@ -37,32 +37,84 @@
 #ifndef LIBTORRENT_FILE_LIST_H
 #define LIBTORRENT_FILE_LIST_H
 
+#include <vector>
 #include <torrent/common.h>
+#include <torrent/path.h>
 
 namespace torrent {
 
-class EntryList;
+class Content;
+class DownloadMain;
+class DownloadWrapper;
 
-class LIBTORRENT_EXPORT FileList {
+class LIBTORRENT_EXPORT FileList : private std::vector<File*> {
 public:
-  FileList(EntryList* e = NULL) : m_list(e) {}
+  friend class Content;
+  friend class DownloadMain;
+  friend class DownloadWrapper;
 
-  bool                is_open() const;
+  typedef std::vector<File*>            base_type;
+  typedef std::vector<std::string>      path_list;
+  typedef std::pair<uint32_t, uint32_t> range_type;
 
-  // Access the files in the torrent.
-  File*               get(uint32_t index);
+  using base_type::value_type;
 
-  uint32_t            size() const;
+  using base_type::iterator;
+  using base_type::reverse_iterator;
 
-  // This can be moved?
-//   bool                file_entry_created(uint32_t index);
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
-  // Only set the root directory while the torrent is closed.
-  const std::string&  root_dir() const;
-  void                set_root_dir(const std::string& dir);
+  using base_type::back;
+  using base_type::empty;
+  using base_type::reserve;
+
+  FileList() : m_sizeBytes(0), m_isOpen(false) {}
+
+  bool                is_open() const                            { return m_isOpen; }
+
+  // You must call set_root_dir after all nodes have been added.
+  const std::string&  root_dir() const                           { return m_rootDir; }
+  void                set_root_dir(const std::string& path);
+
+  size_t              size_files() const                         { return base_type::size(); }
+  uint64_t            size_bytes() const                         { return m_sizeBytes; }
+
+  // If the files span multiple disks, the one with the least amount
+  // of free diskspace will be returned.
+  uint64_t            free_diskspace() const;
+
+  File*               at_index(uint32_t idx)                     { return *(begin() + idx); }
+  iterator            at_position(iterator itr, uint64_t offset);
+
+  const path_list*    indirect_links() const                     { return &m_indirectLinks; }
+
+protected:
+  void                open() LIBTORRENT_NO_EXPORT;
+  void                close() LIBTORRENT_NO_EXPORT;
+
+  void                clear() LIBTORRENT_NO_EXPORT;
+  bool                resize_all() LIBTORRENT_NO_EXPORT;
+
+  void                push_back(const Path& path, const range_type& range, uint64_t size) LIBTORRENT_NO_EXPORT;
+
+  Chunk*              create_chunk(uint64_t offset, uint32_t length, int prot) LIBTORRENT_NO_EXPORT;
+
+  iterator            inc_completed(iterator firstItr, uint64_t firstPos, uint64_t lastPos) LIBTORRENT_NO_EXPORT;
 
 private:
-  EntryList*          m_list;
+  inline bool         open_file(File* node, const Path& lastPath);
+  inline void         make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr);
+  inline MemoryChunk  create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int prot);
+
+  uint64_t            m_sizeBytes;
+  std::string         m_rootDir;
+
+  bool                m_isOpen;
+
+  path_list           m_indirectLinks;
 };
 
 }

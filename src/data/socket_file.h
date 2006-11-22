@@ -67,19 +67,19 @@ public:
   
   // Reserve the space on disk if a system call is defined. 'length'
   // of zero indicates to the end of the file.
-  bool                reserve(off_t offset = 0, off_t length = 0);
+  bool                reserve(uint64_t offset = 0, uint64_t length = 0);
 
   bool                is_open() const                                   { return m_fd != invalid_fd; }
   bool                is_readable() const                               { return m_prot & MemoryChunk::prot_read; }
   bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }
   bool                is_nonblock() const                               { return m_flags & o_nonblock; }
 
-  off_t               size() const;
-  bool                set_size(off_t s) const;
+  uint64_t            size() const;
+  bool                set_size(uint64_t s) const;
 
   int                 get_prot() const                                  { return m_prot; }
 
-  MemoryChunk         create_chunk(off_t offset, uint32_t length, int prot, int flags) const;
+  MemoryChunk         create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const;
   
   fd_type             fd() const                                        { return m_fd; }
 

@@ -58,7 +58,6 @@
 
 #include "exceptions.h"
 #include "download.h"
-#include "file_list.h"
 #include "object.h"
 #include "tracker_list.h"
 
@@ -222,9 +221,9 @@ Download::bencode() const {
   return m_ptr->bencode();
 }
 
-FileList
+FileList*
 Download::file_list() const {
-  return FileList(m_ptr->main()->content()->entry_list());
+  return m_ptr->main()->content()->file_list();
 }
 
 TrackerList
@@ -288,16 +287,6 @@ Download::bytes_done() const {
         a += itr2->piece().length();
   
   return a + m_ptr->main()->content()->bytes_completed();
-}
-
-uint64_t
-Download::bytes_total() const {
-  return m_ptr->main()->content()->entry_list()->bytes_size();
-}
-
-uint64_t
-Download::free_diskspace() const {
-  return m_ptr->main()->content()->entry_list()->free_diskspace();
 }
 
 uint32_t

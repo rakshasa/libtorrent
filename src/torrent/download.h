@@ -98,9 +98,9 @@ public:
   Object*             bencode();
   const Object*       bencode() const;
 
-  FileList            file_list() const;
   TrackerList         tracker_list() const;
 
+  FileList*           file_list() const;
   PeerList*           peer_list();
   const PeerList*     peer_list() const;
   const TransferList* transfer_list() const;
@@ -116,10 +116,6 @@ public:
 
   // Bytes completed.
   uint64_t            bytes_done() const;
-  // Size of the torrent.
-  uint64_t            bytes_total() const;
-
-  uint64_t            free_diskspace() const;
 
   uint32_t            chunks_size() const;
   uint32_t            chunks_done() const;

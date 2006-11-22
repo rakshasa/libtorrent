@@ -45,38 +45,40 @@
 #include "content.h"
 #include "data/file_meta.h"
 #include "data/chunk.h"
-#include "data/entry_list.h"
+
+#include "torrent/file_list.h"
 #include "torrent/data/piece.h"
 
 namespace torrent {
 
 Content::Content() :
-  m_chunkSize(1 << 16),
+  m_chunkSize(0),
 
   // Temporary personal hack.
   //  m_maxFileSize((uint64_t)600 << 20),
   m_maxFileSize((uint64_t)0),
 
-  m_entryList(new EntryList) {
+  m_fileList(new FileList) {
 }
 
 Content::~Content() {
-  delete m_entryList;
+  if (!m_fileList->empty())
+    throw internal_error("Content::~Content() !m_fileList->empty().");
+
+  delete m_fileList;
 }
 
 void
-Content::initialize(uint32_t chunkSize) {
-  m_chunkSize = chunkSize;
+Content::initialize() {
+  if (m_chunkSize == 0)
+    throw internal_error("Content::initialize() m_chunkSize == 0.");
 
-  m_bitfield.set_size_bits((m_entryList->bytes_size() + chunkSize - 1) / chunkSize);
+  m_bitfield.set_size_bits((m_fileList->size_bytes() + m_chunkSize - 1) / m_chunkSize);
 
   if (m_hash.size() / 20 < chunk_total())
     throw bencode_error("Torrent size and 'info:pieces' length does not match.");
 
-  for (EntryList::iterator itr = m_entryList->begin(); itr != m_entryList->end(); ++itr)
-    (*itr)->set_range(make_index_range((*itr)->position(), (*itr)->size_bytes()));
-
-  m_entryList->set_root_dir(".");
+  m_fileList->set_root_dir(".");
 }
 
 void
@@ -85,7 +87,7 @@ Content::add_file(const Path& path, uint64_t size) {
     throw internal_error("Tried to add file to a torrent::Content that is initialized.");
 
   if (m_maxFileSize == 0 || size < m_maxFileSize) {
-    m_entryList->push_back(path, File::range_type(), size);
+    m_fileList->push_back(path, make_index_range(m_fileList->size_bytes(), size), size);
 
   } else {
     Path newPath = path;
@@ -98,7 +100,7 @@ Content::add_file(const Path& path, uint64_t size) {
       uint64_t partSize = std::min(size, m_maxFileSize);
       size -= partSize;
 
-      m_entryList->push_back(newPath, File::range_type(), partSize);
+      m_fileList->push_back(newPath, make_index_range(m_fileList->size_bytes(), partSize), partSize);
     }
   }
 }
@@ -113,10 +115,10 @@ Content::set_complete_hash(const std::string& hash) {
 
 uint32_t
 Content::chunk_index_size(uint32_t index) const {
-  if (index + 1 != chunk_total() || m_entryList->bytes_size() % m_chunkSize == 0)
+  if (index + 1 != chunk_total() || m_fileList->size_bytes() % m_chunkSize == 0)
     return m_chunkSize;
   else
-    return m_entryList->bytes_size() % m_chunkSize;
+    return m_fileList->size_bytes() % m_chunkSize;
 }
 
 uint64_t
@@ -125,9 +127,9 @@ Content::bytes_completed() const {
   uint64_t cs = m_chunkSize;
 
   if (m_bitfield.empty())
-    return m_bitfield.is_all_set() ? m_entryList->bytes_size() : (chunks_completed() * cs);
+    return m_bitfield.is_all_set() ? m_fileList->size_bytes() : (chunks_completed() * cs);
 
-  if (!m_bitfield.get(chunk_total() - 1) || m_entryList->bytes_size() % cs == 0) {
+  if (!m_bitfield.get(chunk_total() - 1) || m_fileList->size_bytes() % cs == 0) {
     // The last chunk is not done, or the last chunk is the same size
     // as the others.
     return chunks_completed() * cs;
@@ -136,13 +138,13 @@ Content::bytes_completed() const {
     if (chunks_completed() == 0)
       throw internal_error("Content::bytes_completed() chunks_completed() == 0.");
 
-    return (chunks_completed() - 1) * cs + m_entryList->bytes_size() % cs;
+    return (chunks_completed() - 1) * cs + m_fileList->size_bytes() % cs;
   }
 }
 
 uint64_t
 Content::bytes_left() const {
-  uint64_t left = entry_list()->bytes_size() - bytes_completed();
+  uint64_t left = file_list()->size_bytes() - bytes_completed();
 
   if (left > ((uint64_t)1 << 60))
     throw internal_error("Content::bytes_left() is too large."); 
@@ -179,17 +181,7 @@ Content::receive_chunk_hash(uint32_t index, const char* hash) {
     return false;
 
   m_bitfield.set(index);
-
-  EntryList::iterator first = m_entryList->at_position(m_entryList->begin(), index * (off_t)m_chunkSize);
-  EntryList::iterator last  = m_entryList->at_position(first, (index + 1) * (off_t)m_chunkSize - 1);
-
-  if (last != m_entryList->end())
-    last++;
-
-  if (first == m_entryList->end())
-    throw internal_error("Content::mark_done got first == m_entryList->end().");
-
-  std::for_each(first, last, std::mem_fun(&File::inc_completed));
+  m_fileList->inc_completed(m_fileList->begin(), index * (off_t)m_chunkSize, (index + 1) * (off_t)m_chunkSize);
 
   return true;
 }
@@ -201,29 +193,18 @@ Content::update_done() {
   if (!m_bitfield.is_tail_cleared())
     throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
 
-  EntryList::iterator first = m_entryList->begin();
-  EntryList::iterator last;
+  FileList::iterator entryItr = m_fileList->begin();
 
-  for (Bitfield::size_type i = 0; i < m_bitfield.size_bits(); ++i)
-    if (m_bitfield.get(i)) {
-      first = m_entryList->at_position(first, i * (off_t)m_chunkSize);
-      last = m_entryList->at_position(first, (i + 1) * (off_t)m_chunkSize - 1);
-
-      if (last != m_entryList->end())
-        last++;
-
-      if (first == m_entryList->end())
-        throw internal_error("Content::update_done() reached m_entryList->end().");
-
-      std::for_each(first, last, std::mem_fun(&File::inc_completed));
-    }
+  for (Bitfield::size_type index = 0; index < m_bitfield.size_bits(); ++index)
+    if (m_bitfield.get(index))
+      entryItr = m_fileList->inc_completed(entryItr, index * (off_t)m_chunkSize, (index + 1) * (off_t)m_chunkSize);
 }
 
 std::pair<Chunk*,rak::error_number>
 Content::create_chunk(uint32_t index, bool writable) {
   rak::error_number::clear_global();
 
-  Chunk* c = m_entryList->create_chunk(chunk_position(index), chunk_index_size(index),
+  Chunk* c = m_fileList->create_chunk(chunk_position(index), chunk_index_size(index),
                                        MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
   return std::pair<Chunk*,rak::error_number>(c, c == NULL ? rak::error_number::current() : rak::error_number());

@@ -44,10 +44,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT File {
 public:
-  friend class EntryList;
-
-  // Get rid of this.
-  friend class Content;
+  friend class FileList;
 
   typedef std::pair<uint32_t, uint32_t> range_type;
 
@@ -56,14 +53,14 @@ public:
 
   bool                is_created() const;
   bool                is_correct_size() const;
-  inline bool         is_valid_position(off_t p) const;
+  inline bool         is_valid_position(uint64_t p) const;
 
   Path*               path()                                  { return &m_path; }
   const Path*         path() const                            { return &m_path; }
 
-  off_t               position() const                        { return m_position; }
+  uint64_t            position() const                        { return m_position; }
 
-  off_t               size_bytes() const                      { return m_size; }
+  uint64_t            size_bytes() const                      { return m_size; }
   uint32_t            size_chunks() const                     { return m_range.second - m_range.first; }
 
   uint32_t            completed_chunks() const                { return m_completed; }
@@ -74,8 +71,8 @@ public:
   void                set_priority(priority_t t)              { m_priority = t; }
 
 protected:
-  void                set_position(off_t pos)                 { m_position = pos; }
-  void                set_size_bytes(off_t s)                 { m_size = s; }
+  void                set_position(uint64_t pos)                 { m_position = pos; }
+  void                set_size_bytes(uint64_t s)                 { m_size = s; }
   void                set_range(const range_type& range)      { m_range = range; }
 
   void                set_completed(uint32_t v)               { m_completed = v; }
@@ -93,8 +90,8 @@ private:
   FileMeta*           m_fileMeta;
   Path                m_path;
 
-  off_t               m_position;
-  off_t               m_size;
+  uint64_t            m_position;
+  uint64_t            m_size;
 
   range_type          m_range;
 
@@ -103,7 +100,7 @@ private:
 };
 
 inline bool
-File::is_valid_position(off_t p) const {
+File::is_valid_position(uint64_t p) const {
   return p >= m_position && p < m_position + m_size;
 }
 

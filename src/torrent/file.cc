@@ -82,7 +82,7 @@ File::is_correct_size() const {
   if (!fs.update(m_fileMeta->get_path()))
     return false;
 
-  return fs.is_regular() && fs.size() == m_size;
+  return fs.is_regular() && (uint64_t)fs.size() == m_size;
 }
 
 bool

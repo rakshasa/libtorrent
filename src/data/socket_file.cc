@@ -109,7 +109,7 @@ SocketFile::close() {
 #endif
 
 bool
-SocketFile::reserve(RESERVE_PARAM off_t offset, RESERVE_PARAM off_t length) {
+SocketFile::reserve(RESERVE_PARAM uint64_t offset, RESERVE_PARAM uint64_t length) {
 #ifdef USE_XFS
   struct xfs_flock64 flock;
 
@@ -130,7 +130,7 @@ SocketFile::reserve(RESERVE_PARAM off_t offset, RESERVE_PARAM off_t length) {
 
 #undef RESERVE_PARAM
 
-off_t
+uint64_t
 SocketFile::size() const {
   if (!is_open())
     throw internal_error("SocketFile::size() called on a closed file");
@@ -141,7 +141,7 @@ SocketFile::size() const {
 }  
 
 bool
-SocketFile::set_size(off_t size) const {
+SocketFile::set_size(uint64_t size) const {
   if (!is_open())
     throw internal_error("SocketFile::set_size() called on a closed file");
 
@@ -152,7 +152,7 @@ SocketFile::set_size(off_t size) const {
   // client to block while it is resizing the files, this really
   // should be in a seperate thread.
   if (size != 0 &&
-      lseek(m_fd, size - 1, SEEK_SET) == (size - 1) &&
+      lseek(m_fd, size - 1, SEEK_SET) == (off_t)(size - 1) &&
       write(m_fd, &size, 1) == 1)
     return true;
   
@@ -160,7 +160,7 @@ SocketFile::set_size(off_t size) const {
 }
 
 MemoryChunk
-SocketFile::create_chunk(off_t offset, uint32_t length, int prot, int flags) const {
+SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const {
   if (!is_open())
     throw internal_error("SocketFile::get_chunk() called on a closed file");
 
@@ -173,7 +173,7 @@ SocketFile::create_chunk(off_t offset, uint32_t length, int prot, int flags) con
   if (offset < 0 || length == 0 || offset > size() || offset + length > size())
     return MemoryChunk();
 
-  off_t align = offset % MemoryChunk::page_size();
+  uint64_t align = offset % MemoryChunk::page_size();
 
   char* ptr = (char*)mmap(NULL, length + align, prot, flags, m_fd, offset - align);
   

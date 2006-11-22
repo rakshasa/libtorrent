@@ -66,7 +66,7 @@ resume_load_progress(Download download, const Object& object) {
 
   const Object::list_type& files = object.get_key_list("files");
 
-  if (files.size() != download.file_list().size())
+  if (files.size() != download.file_list()->size_bytes())
     return;
 
   if (object.has_key_string("bitfield")) {
@@ -94,16 +94,16 @@ resume_load_progress(Download download, const Object& object) {
   Object::list_type::const_iterator filesItr  = files.begin();
   Object::list_type::const_iterator filesLast = files.end();
 
-  FileList fileList = download.file_list();
+  FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList.size(); ++index, ++filesItr) {
+  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
     rak::file_stat fs;
-    File* file = fileList.get(index);
+    File* file = fileList->at_index(index);
 
     // Check that the size and modified stamp matches. If not, then
     // clear the resume data for that range.
 
-    if (!fs.update(fileList.root_dir() + file->path()->as_string()) || fs.size() != (off_t)file->size_bytes() ||
+    if (!fs.update(fileList->root_dir() + file->path()->as_string()) || fs.size() != (off_t)file->size_bytes() ||
         !filesItr->has_key_value("mtime") || filesItr->get_key_value("mtime") != fs.modified_time())
       download.clear_range(file->range().first, file->range().second);
   }
@@ -135,18 +135,18 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
 
   Object::list_type::iterator filesItr = files.begin();
 
-  FileList fileList = download.file_list();
+  FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList.size(); ++index, ++filesItr) {
+  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
     if (filesItr == files.end())
       filesItr = files.insert(filesItr, Object(Object::TYPE_MAP));
     else if (!filesItr->is_map())
       *filesItr = Object(Object::TYPE_MAP);
 
     rak::file_stat fs;
-    File* file = fileList.get(index);
+    File* file = fileList->at_index(index);
 
-    if (!fs.update(fileList.root_dir() + file->path()->as_string()) ||
+    if (!fs.update(fileList->root_dir() + file->path()->as_string()) ||
         (onlyCompleted && file->completed_chunks() != file->size_chunks())) {
       filesItr->erase_key("mtime");
       continue;
@@ -171,16 +171,16 @@ resume_load_file_priorities(Download download, const Object& object) {
   Object::list_type::const_iterator filesItr  = files.begin();
   Object::list_type::const_iterator filesLast = files.end();
 
-  FileList fileList = download.file_list();
+  FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList.size(); ++index, ++filesItr) {
+  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
     if (filesItr == filesLast)
       return;
 
     // Update the priority from the fast resume data.
     if (filesItr->has_key_value("priority") &&
         filesItr->get_key_value("priority") >= 0 && filesItr->get_key_value("priority") <= PRIORITY_HIGH)
-      fileList.get(index)->set_priority((priority_t)filesItr->get_key_value("priority"));
+      fileList->at_index(index)->set_priority((priority_t)filesItr->get_key_value("priority"));
   }
 }
 
@@ -192,15 +192,15 @@ resume_save_file_priorities(Download download, Object& object) {
 
   Object::list_type::iterator filesItr = files.begin();
 
-  FileList fileList = download.file_list();
+  FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList.size(); ++index, ++filesItr) {
+  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
     if (filesItr == files.end())
       filesItr = files.insert(filesItr, Object(Object::TYPE_MAP));
     else if (!filesItr->is_map())
       *filesItr = Object(Object::TYPE_MAP);
 
-    filesItr->insert_key("priority", (int64_t)fileList.get(index)->priority());
+    filesItr->insert_key("priority", (int64_t)fileList->at_index(index)->priority());
   }
 }
 
