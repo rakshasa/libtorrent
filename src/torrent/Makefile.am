@@ -19,10 +19,6 @@ libsub_torrent_la_SOURCES = \
 	event.h \
 	exceptions.cc \
 	exceptions.h \
-	file.cc \
-	file.h \
-	file_list.cc \
-	file_list.h \
 	hash_string.h \
 	http.cc \
 	http.h \
@@ -62,8 +58,6 @@ libtorrentinclude_HEADERS = \
 	error.h \
 	exceptions.h \
 	event.h \
-	file.h \
-	file_list.h \
 	hash_string.h \
 	http.h \
 	object.h \

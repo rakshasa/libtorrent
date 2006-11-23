@@ -44,7 +44,7 @@
 #include "protocol/peer_connection_base.h"
 #include "tracker/tracker_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/file_list.h"
+#include "torrent/data/file_list.h"
 #include "torrent/peer/peer_info.h"
 
 #include "available_list.h"

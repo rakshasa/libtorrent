@@ -44,11 +44,12 @@
 #include "peer/peer_info.h"
 #include "peer/peer_list.h"
 
+#include "data/file.h"
+#include "data/file_list.h"
+
 #include "common.h"
 #include "bitfield.h"
 #include "download.h"
-#include "file.h"
-#include "file_list.h"
 #include "object.h"
 #include "tracker.h"
 #include "tracker_list.h"

@@ -44,10 +44,10 @@
 #include "data/content.h"
 #include "download/download_wrapper.h"
 #include "torrent/exceptions.h"
-#include "torrent/file_list.h"
+#include "torrent/object.h"
+#include "torrent/data/file_list.h"
 #include "tracker/tracker_manager.h"
 
-#include "torrent/object.h"
 #include "download_constructor.h"
 
 namespace torrent {

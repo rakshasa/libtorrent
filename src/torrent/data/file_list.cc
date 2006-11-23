@@ -51,9 +51,9 @@
 #include "data/memory_chunk.h"
 
 #include "torrent/exceptions.h"
-#include "torrent/file.h"
 #include "torrent/path.h"
 
+#include "file.h"
 #include "file_list.h"
 #include "manager.h"
 

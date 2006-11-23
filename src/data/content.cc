@@ -41,13 +41,13 @@
 #include <rak/file_stat.h>
 
 #include "torrent/exceptions.h"
-#include "torrent/file.h"
-#include "content.h"
-#include "data/file_meta.h"
-#include "data/chunk.h"
-
-#include "torrent/file_list.h"
+#include "torrent/data/file.h"
+#include "torrent/data/file_list.h"
 #include "torrent/data/piece.h"
+
+#include "content.h"
+#include "file_meta.h"
+#include "chunk.h"
 
 namespace torrent {
 
@@ -62,9 +62,7 @@ Content::Content() :
 }
 
 Content::~Content() {
-  if (!m_fileList->empty())
-    throw internal_error("Content::~Content() !m_fileList->empty().");
-
+  m_fileList->clear();
   delete m_fileList;
 }
 
