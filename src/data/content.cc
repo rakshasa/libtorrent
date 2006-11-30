@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <memory>
-#include <sstream>
 #include <rak/file_stat.h>
 
 #include "torrent/exceptions.h"
@@ -51,13 +50,13 @@
 
 namespace torrent {
 
+// Temporary, Content will be deprecated.
+uint32_t
+Content::chunk_size() const {
+  return m_fileList->chunk_size();
+}
+
 Content::Content() :
-  m_chunkSize(0),
-
-  // Temporary personal hack.
-  //  m_maxFileSize((uint64_t)600 << 20),
-  m_maxFileSize((uint64_t)0),
-
   m_fileList(new FileList) {
 }
 
@@ -68,10 +67,10 @@ Content::~Content() {
 
 void
 Content::initialize() {
-  if (m_chunkSize == 0)
-    throw internal_error("Content::initialize() m_chunkSize == 0.");
+  if (chunk_size() == 0)
+    throw internal_error("Content::initialize() chunk_size() == 0.");
 
-  m_bitfield.set_size_bits((m_fileList->size_bytes() + m_chunkSize - 1) / m_chunkSize);
+  m_bitfield.set_size_bits((m_fileList->size_bytes() + chunk_size() - 1) / chunk_size());
 
   if (m_hash.size() / 20 < chunk_total())
     throw bencode_error("Torrent size and 'info:pieces' length does not match.");
@@ -84,23 +83,7 @@ Content::add_file(const Path& path, uint64_t size) {
   if (chunk_total())
     throw internal_error("Tried to add file to a torrent::Content that is initialized.");
 
-  if (m_maxFileSize == 0 || size < m_maxFileSize) {
-    m_fileList->push_back(path, make_index_range(m_fileList->size_bytes(), size), size);
-
-  } else {
-    Path newPath = path;
-
-    for (int i = 0; size != 0; ++i) {
-      std::stringstream filename;
-      filename << path.back() << ".part" << i;
-      newPath.back() = filename.str();
-
-      uint64_t partSize = std::min(size, m_maxFileSize);
-      size -= partSize;
-
-      m_fileList->push_back(newPath, make_index_range(m_fileList->size_bytes(), partSize), partSize);
-    }
-  }
+  m_fileList->push_back(path, size);
 }
 
 void
@@ -113,16 +96,16 @@ Content::set_complete_hash(const std::string& hash) {
 
 uint32_t
 Content::chunk_index_size(uint32_t index) const {
-  if (index + 1 != chunk_total() || m_fileList->size_bytes() % m_chunkSize == 0)
-    return m_chunkSize;
+  if (index + 1 != chunk_total() || m_fileList->size_bytes() % chunk_size() == 0)
+    return chunk_size();
   else
-    return m_fileList->size_bytes() % m_chunkSize;
+    return m_fileList->size_bytes() % chunk_size();
 }
 
 uint64_t
 Content::bytes_completed() const {
   // Chunk size needs to be cast to a uint64_t for the below to work.
-  uint64_t cs = m_chunkSize;
+  uint64_t cs = chunk_size();
 
   if (m_bitfield.empty())
     return m_bitfield.is_all_set() ? m_fileList->size_bytes() : (chunks_completed() * cs);
@@ -179,7 +162,7 @@ Content::receive_chunk_hash(uint32_t index, const char* hash) {
     return false;
 
   m_bitfield.set(index);
-  m_fileList->inc_completed(m_fileList->begin(), index * (off_t)m_chunkSize, (index + 1) * (off_t)m_chunkSize);
+  m_fileList->inc_completed(m_fileList->begin(), index * (off_t)chunk_size(), (index + 1) * (off_t)chunk_size());
 
   return true;
 }
@@ -195,7 +178,7 @@ Content::update_done() {
 
   for (Bitfield::size_type index = 0; index < m_bitfield.size_bits(); ++index)
     if (m_bitfield.get(index))
-      entryItr = m_fileList->inc_completed(entryItr, index * (off_t)m_chunkSize, (index + 1) * (off_t)m_chunkSize);
+      entryItr = m_fileList->inc_completed(entryItr, index * (off_t)chunk_size(), (index + 1) * (off_t)chunk_size());
 }
 
 std::pair<Chunk*,rak::error_number>

@@ -131,7 +131,7 @@ DownloadConstructor::parse_info(const Object& b) {
   if (chunkSize <= (1 << 10) || chunkSize > (128 << 20))
     throw input_error("Torrent has an invalid \"piece length\".");
 
-  c->set_chunk_size(chunkSize);
+  c->file_list()->set_chunk_size(chunkSize);
 
   if (b.has_key("length")) {
     parse_single_file(b);

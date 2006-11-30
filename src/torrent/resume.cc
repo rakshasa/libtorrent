@@ -67,7 +67,7 @@ resume_load_progress(Download download, const Object& object) {
 
   const Object::list_type& files = object.get_key_list("files");
 
-  if (files.size() != download.file_list()->size_bytes())
+  if (files.size() != download.file_list()->size_files())
     return;
 
   if (object.has_key_string("bitfield")) {

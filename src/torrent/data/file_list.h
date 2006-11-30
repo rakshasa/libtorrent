@@ -44,18 +44,19 @@
 namespace torrent {
 
 class Content;
+class DownloadConstructor;
 class DownloadMain;
 class DownloadWrapper;
 
 class LIBTORRENT_EXPORT FileList : private std::vector<File*> {
 public:
   friend class Content;
+  friend class DownloadConstructor;
   friend class DownloadMain;
   friend class DownloadWrapper;
 
   typedef std::vector<File*>            base_type;
   typedef std::vector<std::string>      path_list;
-  typedef std::pair<uint32_t, uint32_t> range_type;
 
   using base_type::value_type;
 
@@ -71,7 +72,7 @@ public:
   using base_type::empty;
   using base_type::reserve;
 
-  FileList() : m_sizeBytes(0), m_isOpen(false) {}
+  FileList();
 
   bool                is_open() const                            { return m_isOpen; }
 
@@ -81,6 +82,11 @@ public:
 
   size_t              size_files() const                         { return base_type::size(); }
   uint64_t            size_bytes() const                         { return m_sizeBytes; }
+
+  uint64_t            max_file_size() const                      { return m_maxFileSize; }
+  void                set_max_file_size(uint64_t size);
+
+  uint32_t            chunk_size() const                         { return m_chunkSize; }
 
   // If the files span multiple disks, the one with the least amount
   // of free diskspace will be returned.
@@ -98,7 +104,9 @@ protected:
   void                clear() LIBTORRENT_NO_EXPORT;
   bool                resize_all() LIBTORRENT_NO_EXPORT;
 
-  void                push_back(const Path& path, const range_type& range, uint64_t size) LIBTORRENT_NO_EXPORT;
+  void                set_chunk_size(uint32_t size)              { m_chunkSize = size; }
+
+  void                push_back(const Path& path, uint64_t fileSize) LIBTORRENT_NO_EXPORT;
 
   Chunk*              create_chunk(uint64_t offset, uint32_t length, int prot) LIBTORRENT_NO_EXPORT;
 
@@ -109,10 +117,13 @@ private:
   inline void         make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr);
   inline MemoryChunk  create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int prot);
 
-  uint64_t            m_sizeBytes;
-  std::string         m_rootDir;
-
   bool                m_isOpen;
+
+  uint64_t            m_sizeBytes;
+  uint32_t            m_chunkSize;
+  uint64_t            m_maxFileSize;
+
+  std::string         m_rootDir;
 
   path_list           m_indirectLinks;
 };

@@ -71,8 +71,8 @@ public:
   void                set_priority(priority_t t)              { m_priority = t; }
 
 protected:
-  void                set_position(uint64_t pos)                 { m_position = pos; }
-  void                set_size_bytes(uint64_t s)                 { m_size = s; }
+  void                set_position(uint64_t pos)              { m_position = pos; }
+  void                set_size_bytes(uint64_t s)              { m_size = s; }
   void                set_range(const range_type& range)      { m_range = range; }
 
   void                set_completed(uint32_t v)               { m_completed = v; }

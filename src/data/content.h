@@ -83,11 +83,10 @@ public:
   uint32_t               chunk_total() const                            { return m_bitfield.size_bits(); }
   const char*            chunk_hash(unsigned int index)                 { return m_hash.c_str() + 20 * index; }
 
-  uint32_t               chunk_size() const                             { return m_chunkSize; }
-  void                   set_chunk_size(uint32_t size)                  { m_chunkSize = size; }
+  uint32_t               chunk_size() const;
 
   uint32_t               chunk_index_size(uint32_t index) const;
-  off_t                  chunk_position(uint32_t c) const               { return c * (off_t)m_chunkSize; }
+  off_t                  chunk_position(uint32_t c) const               { return c * chunk_size(); }
 
   Bitfield*              bitfield()                                     { return &m_bitfield; }
 
@@ -105,24 +104,11 @@ public:
   void                   update_done();
 
 private:
-  Range                  make_index_range(uint64_t pos, uint64_t size) const;
-
-  uint32_t               m_chunkSize;
-  uint64_t               m_maxFileSize;
-
   FileList*              m_fileList;
   Bitfield               m_bitfield;
 
   std::string            m_hash;
 };
-
-inline Content::Range
-Content::make_index_range(uint64_t pos, uint64_t size) const {
-  if (size == 0)
-    return Range(pos / m_chunkSize, pos / m_chunkSize);
-
-  return Range(pos / m_chunkSize, (pos + size + m_chunkSize - 1) / m_chunkSize);
-}
 
 }
 

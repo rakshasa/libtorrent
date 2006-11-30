@@ -59,25 +59,37 @@
 
 namespace torrent {
 
-void
-FileList::push_back(const Path& path, const range_type& range, uint64_t size) {
-  if (sizeof(off_t) != 8)
-    throw internal_error("sizeof(off_t) != 8");
+FileList::FileList() :
+  m_isOpen(false),
 
-  if (size + m_sizeBytes < m_sizeBytes)
-    throw internal_error("Sum of files added to FileList overflowed 64bit");
+  m_sizeBytes(0),
+  m_chunkSize(0),
+  m_maxFileSize((uint64_t)64 << 30) {
+}
+
+void
+FileList::push_back(const Path& path, uint64_t fileSize) {
+  if (sizeof(off_t) != 8)
+    throw internal_error("Last minute panic; sizeof(off_t) != 8.");
+
+  if (fileSize + m_sizeBytes < m_sizeBytes || m_chunkSize == 0)
+    throw internal_error("FileList::push_back(...) invalid parameters.");
 
   File* e = new File();
 
-  e->set_position(m_sizeBytes);
-  e->set_size_bytes(size);
-  e->set_range(range);
-
   *e->path() = path;
+  e->set_position(m_sizeBytes);
+  e->set_size_bytes(fileSize);
+
+  if (e->size_bytes() == 0)
+    e->set_range(File::range_type(e->position() / m_chunkSize, e->position() / m_chunkSize));
+  else
+    e->set_range(File::range_type(e->position() / m_chunkSize,
+                                  (e->position() + e->size_bytes() + m_chunkSize - 1) / m_chunkSize));
 
   base_type::push_back(e);
 
-  m_sizeBytes += size;
+  m_sizeBytes += fileSize;
 }
 
 void
@@ -164,6 +176,14 @@ FileList::set_root_dir(const std::string& path) {
     
     (*itr)->file_meta()->set_path(m_rootDir + (*itr)->path()->as_string());
   }
+}
+
+void
+FileList::set_max_file_size(uint64_t size) {
+  if (m_isOpen)
+    throw input_error("Tried to change the max file size for an open download.");
+
+  m_maxFileSize = size;
 }
 
 bool
