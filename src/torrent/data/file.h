@@ -66,6 +66,8 @@ public:
   uint32_t            completed_chunks() const                { return m_completed; }
 
   const range_type&   range() const                           { return m_range; }
+  uint32_t            range_first() const                     { return m_range.first; }
+  uint32_t            range_second() const                    { return m_range.second; }
 
   priority_t          priority() const                        { return m_priority; }
   void                set_priority(priority_t t)              { m_priority = t; }

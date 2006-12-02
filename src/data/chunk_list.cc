@@ -109,32 +109,34 @@ ChunkList::clear() {
 
 ChunkHandle
 ChunkList::get(size_type index, bool writable) {
+  rak::error_number::clear_global();
+
   ChunkListNode* node = &base_type::at(index);
 
   if (!node->is_valid()) {
-    CreateChunk chunk = m_slotCreateChunk(index, writable);
+    Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
-    if (chunk.first == NULL)
-      return ChunkHandle::from_error(chunk.second);
+    if (chunk == NULL)
+      return ChunkHandle::from_error(rak::error_number::current());
 
     // Would be cleaner to do this before creating the chunk.
-    if (!m_manager->allocate(chunk.first->chunk_size())) {
-      delete chunk.first;
+    if (!m_manager->allocate(chunk->chunk_size())) {
+      delete chunk;
       return ChunkHandle::from_error(rak::error_number::e_nomem);
     }
 
-    node->set_chunk(chunk.first);
+    node->set_chunk(chunk);
     node->set_time_modified(rak::timer());
 
   } else if (writable && !node->chunk()->is_writable()) {
-    CreateChunk chunk = m_slotCreateChunk(index, writable);
+    Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
-    if (chunk.first == NULL)
-      return ChunkHandle::from_error(chunk.second);
+    if (chunk == NULL)
+      return ChunkHandle::from_error(rak::error_number::current());
 
     delete node->chunk();
 
-    node->set_chunk(chunk.first);
+    node->set_chunk(chunk);
     node->set_time_modified(rak::timer());
   }
 

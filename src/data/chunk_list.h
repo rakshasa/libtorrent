@@ -55,10 +55,9 @@ class ChunkList : private std::vector<ChunkListNode> {
 public:
   typedef uint32_t                            size_type;
   typedef std::vector<ChunkListNode>          base_type;
-  typedef std::pair<Chunk*,rak::error_number> CreateChunk;
   typedef std::vector<ChunkListNode*>         Queue;
 
-  typedef rak::mem_fun2<Content, CreateChunk, uint32_t, bool>      SlotCreateChunk;
+  typedef rak::mem_fun2<FileList, Chunk*, uint32_t, int>           SlotCreateChunk;
   typedef rak::const_mem_fun0<FileList, uint64_t>                  SlotFreeDiskspace;
   typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotStorageError;
 

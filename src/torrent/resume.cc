@@ -73,7 +73,7 @@ resume_load_progress(Download download, const Object& object) {
   if (object.has_key_string("bitfield")) {
     const Object::string_type& bitfield = object.get_key_string("bitfield");
 
-    if (bitfield.size() != download.bitfield()->size_bytes())
+    if (bitfield.size() != download.file_list()->bitfield()->size_bytes())
       return;
 
     download.set_bitfield((uint8_t*)bitfield.c_str(), (uint8_t*)(bitfield.c_str() + bitfield.size()));
@@ -81,7 +81,7 @@ resume_load_progress(Download download, const Object& object) {
   } else if (object.has_key_value("bitfield")) {
     Object::value_type chunksDone = object.get_key_value("bitfield");
 
-    if (chunksDone == download.bitfield()->size_bits())
+    if (chunksDone == download.file_list()->bitfield()->size_bits())
       download.set_bitfield(true);
     else if (chunksDone == 0)
       download.set_bitfield(false);
@@ -97,16 +97,15 @@ resume_load_progress(Download download, const Object& object) {
 
   FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
+  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     rak::file_stat fs;
-    File* file = fileList->at_index(index);
 
     // Check that the size and modified stamp matches. If not, then
     // clear the resume data for that range.
 
-    if (!fs.update(fileList->root_dir() + file->path()->as_string()) || fs.size() != (off_t)file->size_bytes() ||
+    if (!fs.update(fileList->root_dir() + (*listItr)->path()->as_string()) || fs.size() != (off_t)(*listItr)->size_bytes() ||
         !filesItr->has_key_value("mtime") || filesItr->get_key_value("mtime") != fs.modified_time())
-      download.clear_range(file->range().first, file->range().second);
+      download.clear_range((*listItr)->range().first, (*listItr)->range().second);
   }
 }
 
@@ -123,12 +122,12 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
   if (!download.is_hash_checked())
     return;
 
-  const Bitfield* bitfield = download.bitfield();
+  const Bitfield* bitfield = download.file_list()->bitfield();
 
   if (bitfield->is_all_set() || bitfield->is_all_unset())
     object.insert_key("bitfield", bitfield->size_set());
   else
-    object.insert_key("bitfield", std::string((char*)download.bitfield()->begin(), download.bitfield()->size_bytes()));
+    object.insert_key("bitfield", std::string((char*)bitfield->begin(), bitfield->size_bytes()));
   
   Object::list_type& files = object.has_key_list("files")
     ? object.get_key_list("files")
@@ -138,17 +137,16 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
 
   FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
+  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if (filesItr == files.end())
       filesItr = files.insert(filesItr, Object(Object::TYPE_MAP));
     else if (!filesItr->is_map())
       *filesItr = Object(Object::TYPE_MAP);
 
     rak::file_stat fs;
-    File* file = fileList->at_index(index);
 
-    if (!fs.update(fileList->root_dir() + file->path()->as_string()) ||
-        (onlyCompleted && file->completed_chunks() != file->size_chunks())) {
+    if (!fs.update(fileList->root_dir() + (*listItr)->path()->as_string()) ||
+        (onlyCompleted && (*listItr)->completed_chunks() != (*listItr)->size_chunks())) {
       filesItr->erase_key("mtime");
       continue;
     }
@@ -174,14 +172,14 @@ resume_load_file_priorities(Download download, const Object& object) {
 
   FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
+  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if (filesItr == filesLast)
       return;
 
     // Update the priority from the fast resume data.
     if (filesItr->has_key_value("priority") &&
         filesItr->get_key_value("priority") >= 0 && filesItr->get_key_value("priority") <= PRIORITY_HIGH)
-      fileList->at_index(index)->set_priority((priority_t)filesItr->get_key_value("priority"));
+      (*listItr)->set_priority((priority_t)filesItr->get_key_value("priority"));
   }
 }
 
@@ -195,13 +193,13 @@ resume_save_file_priorities(Download download, Object& object) {
 
   FileList* fileList = download.file_list();
 
-  for (unsigned int index = 0; index < fileList->size_files(); ++index, ++filesItr) {
+  for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if (filesItr == files.end())
       filesItr = files.insert(filesItr, Object(Object::TYPE_MAP));
     else if (!filesItr->is_map())
       *filesItr = Object(Object::TYPE_MAP);
 
-    filesItr->insert_key("priority", (int64_t)fileList->at_index(index)->priority());
+    filesItr->insert_key("priority", (int64_t)(*listItr)->priority());
   }
 }
 

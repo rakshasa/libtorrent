@@ -71,7 +71,7 @@ DownloadMain::DownloadMain() :
   m_chokeManager = new ChokeManager(m_connectionList);
 
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
-  m_delegator.slot_chunk_size(rak::make_mem_fun(&m_content, &Content::chunk_index_size));
+  m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));
 
   m_delegator.transfer_list()->slot_canceled(std::bind1st(std::mem_fun(&ChunkSelector::not_using_index), m_chunkSelector));
   m_delegator.transfer_list()->slot_queued(std::bind1st(std::mem_fun(&ChunkSelector::using_index), m_chunkSelector));
@@ -80,8 +80,8 @@ DownloadMain::DownloadMain() :
 
   m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
 
-  m_chunkList->slot_create_chunk(rak::make_mem_fun(&m_content, &Content::create_chunk));
-  m_chunkList->slot_free_diskspace(rak::make_mem_fun(m_content.file_list(), &FileList::free_diskspace));
+  m_chunkList->slot_create_chunk(rak::make_mem_fun(file_list(), &FileList::create_chunk_index));
+  m_chunkList->slot_free_diskspace(rak::make_mem_fun(file_list(), &FileList::free_diskspace));
 }
 
 DownloadMain::~DownloadMain() {
@@ -103,10 +103,10 @@ DownloadMain::open() {
   if (info()->is_open())
     throw internal_error("Tried to open a download that is already open");
 
-  m_content.file_list()->open();
+  file_list()->open();
 
-  m_chunkList->resize(m_content.chunk_total());
-  m_chunkStatistics->initialize(m_content.chunk_total());
+  m_chunkList->resize(file_list()->size_chunks());
+  m_chunkStatistics->initialize(file_list()->size_chunks());
 
   info()->set_open(true);
 }
@@ -124,8 +124,8 @@ DownloadMain::close() {
   m_trackerManager->close();
   m_delegator.transfer_list()->clear();
 
-  m_content.bitfield()->unallocate();
-  m_content.file_list()->close();
+  file_list()->mutable_bitfield()->unallocate();
+  file_list()->close();
 
   // Clear the chunklist last as it requires all referenced chunks to
   // be released.
@@ -168,7 +168,8 @@ DownloadMain::stop() {
 
 void
 DownloadMain::update_endgame() {
-  if (!m_delegator.get_aggressive() && m_content.chunks_completed() + m_delegator.transfer_list()->size() + 5 >= m_content.chunk_total())
+  if (!m_delegator.get_aggressive() &&
+      file_list()->completed_chunks() + m_delegator.transfer_list()->size() + 5 >= file_list()->size_chunks())
     m_delegator.set_aggressive(true);
 }
 

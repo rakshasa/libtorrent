@@ -49,7 +49,7 @@
 
 namespace torrent {
 
-class Content;
+class FileList;
 class DownloadMain;
 class Rate;
 
@@ -57,7 +57,7 @@ class Rate;
 
 class DownloadInfo {
 public:
-  typedef rak::const_mem_fun0<Content, uint64_t>                       slot_stat_type;
+  typedef rak::const_mem_fun0<FileList, uint64_t>                      slot_stat_type;
 
   typedef sigc::signal1<void, const std::string&>                      signal_string_type;
   typedef sigc::signal1<void, uint32_t>                                signal_chunk_type;

@@ -39,7 +39,6 @@
 #include <cstring>
 #include <sstream>
 
-#include "data/content.h"
 #include "download/chunk_statistics.h"
 #include "download/download_info.h"
 #include "download/download_main.h"
@@ -58,7 +57,7 @@ PeerConnectionSeed::~PeerConnectionSeed() {
 void
 PeerConnectionSeed::initialize_custom() {
 //   if (m_download->content()->chunks_completed() != 0) {
-//     m_up->write_bitfield(m_download->content()->bitfield()->size_bytes());
+//     m_up->write_bitfield(m_download->file_list()->bitfield()->size_bytes());
 
 //     m_up->buffer()->prepare_end();
 //     m_up->set_position(0);
@@ -366,7 +365,7 @@ PeerConnectionSeed::read_have_chunk(uint32_t index) {
   if (m_peerChunks.bitfield()->get(index))
     return;
 
-  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->content()->chunk_size());
+  m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->file_list()->chunk_size());
   //m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index);
 
   if (m_peerChunks.bitfield()->is_all_set())

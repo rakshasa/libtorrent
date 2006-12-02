@@ -39,21 +39,26 @@
 
 #include <vector>
 #include <torrent/common.h>
+#include <torrent/bitfield.h>
 #include <torrent/path.h>
 
 namespace torrent {
 
 class Content;
+class Download;
 class DownloadConstructor;
 class DownloadMain;
 class DownloadWrapper;
+class Handshake;
 
 class LIBTORRENT_EXPORT FileList : private std::vector<File*> {
 public:
   friend class Content;
+  friend class Download;
   friend class DownloadConstructor;
   friend class DownloadMain;
   friend class DownloadWrapper;
+  friend class Handshake;
 
   typedef std::vector<File*>            base_type;
   typedef std::vector<std::string>      path_list;
@@ -72,45 +77,62 @@ public:
   using base_type::empty;
   using base_type::reserve;
 
-  FileList();
+  FileList() LIBTORRENT_NO_EXPORT;
+  ~FileList() LIBTORRENT_NO_EXPORT;
 
   bool                is_open() const                            { return m_isOpen; }
-
-  // You must call set_root_dir after all nodes have been added.
-  const std::string&  root_dir() const                           { return m_rootDir; }
-  void                set_root_dir(const std::string& path);
+  bool                is_done() const                            { return completed_chunks() == size_chunks(); }
+  bool                is_valid_piece(const Piece& piece) const;
 
   size_t              size_files() const                         { return base_type::size(); }
   uint64_t            size_bytes() const                         { return m_sizeBytes; }
+  uint32_t            size_chunks() const                        { return m_bitfield.size_bits(); }
+
+  uint32_t            completed_chunks() const                   { return m_bitfield.size_set(); }
+  uint64_t            completed_bytes() const;
+  uint64_t            left_bytes() const;
+
+  uint32_t            chunk_size() const                         { return m_chunkSize; }
+  uint32_t            chunk_index_size(uint32_t index) const;
+  uint64_t            chunk_index_position(uint32_t index) const { return index * chunk_size(); }
+
+  // You may only call set_root_dir after all nodes have been added.
+  const std::string&  root_dir() const                           { return m_rootDir; }
+  void                set_root_dir(const std::string& path);
+
+  const Bitfield*     bitfield() const                           { return &m_bitfield; }
 
   uint64_t            max_file_size() const                      { return m_maxFileSize; }
   void                set_max_file_size(uint64_t size);
-
-  uint32_t            chunk_size() const                         { return m_chunkSize; }
 
   // If the files span multiple disks, the one with the least amount
   // of free diskspace will be returned.
   uint64_t            free_diskspace() const;
 
-  File*               at_index(uint32_t idx)                     { return *(begin() + idx); }
-  iterator            at_position(iterator itr, uint64_t offset);
-
   const path_list*    indirect_links() const                     { return &m_indirectLinks; }
 
 protected:
+  void                initialize();
+
   void                open() LIBTORRENT_NO_EXPORT;
   void                close() LIBTORRENT_NO_EXPORT;
 
-  void                clear() LIBTORRENT_NO_EXPORT;
   bool                resize_all() LIBTORRENT_NO_EXPORT;
+
+  Bitfield*           mutable_bitfield()                         { return &m_bitfield; }
 
   void                set_chunk_size(uint32_t size)              { m_chunkSize = size; }
 
   void                push_back(const Path& path, uint64_t fileSize) LIBTORRENT_NO_EXPORT;
 
+  // Before calling this function, make sure you clear errno. If
+  // creating the chunk failed, NULL is returned and errno is set.
   Chunk*              create_chunk(uint64_t offset, uint32_t length, int prot) LIBTORRENT_NO_EXPORT;
+  Chunk*              create_chunk_index(uint32_t index, int prot) LIBTORRENT_NO_EXPORT;
 
-  iterator            inc_completed(iterator firstItr, uint64_t firstPos, uint64_t lastPos) LIBTORRENT_NO_EXPORT;
+  void                mark_completed(uint32_t index) LIBTORRENT_NO_EXPORT;
+  iterator            inc_completed(iterator firstItr, uint32_t index) LIBTORRENT_NO_EXPORT;
+  void                update_completed();
 
 private:
   inline bool         open_file(File* node, const Path& lastPath);
@@ -124,6 +146,7 @@ private:
   uint64_t            m_maxFileSize;
 
   std::string         m_rootDir;
+  Bitfield            m_bitfield;
 
   path_list           m_indirectLinks;
 };

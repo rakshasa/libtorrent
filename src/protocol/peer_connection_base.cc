@@ -272,7 +272,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
     return false;
   }
 
-  if (!m_download->content()->is_valid_piece(piece))
+  if (!m_download->file_list()->is_valid_piece(piece))
     throw internal_error("Incoming pieces list contains a bad piece.");
   
   if (!m_downChunk.is_valid() || piece.index() != m_downChunk.index()) {
@@ -596,8 +596,8 @@ PeerConnectionBase::write_prepare_piece() {
   m_peerChunks.upload_queue()->pop_front();
 
   // Move these checks somewhere else?
-  if (!m_download->content()->is_valid_piece(m_upPiece) ||
-      !m_download->content()->has_chunk(m_upPiece.index())) {
+  if (!m_download->file_list()->is_valid_piece(m_upPiece) ||
+      !m_download->file_list()->bitfield()->get(m_upPiece.index())) {
     std::stringstream s;
 
     s << "Peer requested a piece with invalid index or length/offset: "
@@ -656,7 +656,7 @@ PeerConnectionBase::try_request_pieces() {
     if (p == NULL)
       break;
 
-    if (!m_download->content()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->index()))
+    if (!m_download->file_list()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->index()))
       throw internal_error("PeerConnectionBase::try_request_pieces() tried to use an invalid piece.");
 
     m_up->write_request(*p);

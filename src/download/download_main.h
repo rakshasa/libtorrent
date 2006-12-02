@@ -45,8 +45,8 @@
 #include "connection_list.h"
 #include "delegator.h"
 
-#include "data/content.h"
 #include "data/chunk_handle.h"
+#include "torrent/data/file_list.h"
 #include "torrent/peer/peer_list.h"
 
 namespace torrent {
@@ -84,10 +84,10 @@ public:
   ChunkSelector*      chunk_selector()                           { return m_chunkSelector; }
   ChunkStatistics*    chunk_statistics()                         { return m_chunkStatistics; }
   
-  Content*            content()                                  { return &m_content; }
   Delegator*          delegator()                                { return &m_delegator; }
 
   ConnectionList*     connection_list()                          { return m_connectionList; }
+  FileList*           file_list()                                { return &m_fileList; }
   PeerList*           peer_list()                                { return &m_peerList; }
 
   ThrottleList*       upload_throttle()                          { return m_uploadThrottle; }
@@ -137,10 +137,10 @@ private:
   ChunkSelector*      m_chunkSelector;
   ChunkStatistics*    m_chunkStatistics;
 
-  Content             m_content;
   Delegator           m_delegator;
 
   ConnectionList*     m_connectionList;
+  FileList            m_fileList;
   PeerList            m_peerList;
 
   uint32_t            m_lastConnectedSize;

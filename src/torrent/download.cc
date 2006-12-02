@@ -129,17 +129,18 @@ Download::hash_check(bool tryQuick) {
 
   // The bitfield still hasn't been allocated, so no resume data was
   // given. 
+  Bitfield* bitfield = m_ptr->main()->file_list()->mutable_bitfield();
 
-  if (m_ptr->main()->content()->bitfield()->empty()) {
-    m_ptr->main()->content()->bitfield()->allocate();
-    m_ptr->main()->content()->bitfield()->unset_all();
+  if (bitfield->empty()) {
+    bitfield->allocate();
+    bitfield->unset_all();
 
-    m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->content()->chunk_total());
+    m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
 
     // Make sure other book-keeping is cleared, like file progress.
 
   } else {
-    m_ptr->main()->content()->update_done();
+    m_ptr->main()->file_list()->update_completed();
   }
 
   return m_ptr->hash_checker()->start(tryQuick);
@@ -223,7 +224,7 @@ Download::bencode() const {
 
 FileList*
 Download::file_list() const {
-  return m_ptr->main()->content()->file_list();
+  return m_ptr->main()->file_list();
 }
 
 TrackerList
@@ -286,22 +287,7 @@ Download::bytes_done() const {
       if (itr2->is_finished())
         a += itr2->piece().length();
   
-  return a + m_ptr->main()->content()->bytes_completed();
-}
-
-uint32_t
-Download::chunks_size() const {
-  return m_ptr->main()->content()->chunk_size();
-}
-
-uint32_t
-Download::chunks_done() const {
-  return m_ptr->main()->content()->chunks_completed();
-}
-
-uint32_t 
-Download::chunks_total() const {
-  return m_ptr->main()->content()->chunk_total();
+  return a + m_ptr->main()->file_list()->completed_bytes();
 }
 
 uint32_t 
@@ -319,7 +305,7 @@ Download::set_chunks_done(uint32_t chunks) {
   if (m_ptr->info()->is_open())
     throw input_error("Download::set_chunks_done(...) Download is open.");
 
-  m_ptr->main()->content()->bitfield()->set_size_set(chunks);
+  m_ptr->main()->file_list()->mutable_bitfield()->set_size_set(chunks);
 }
 
 void
@@ -327,7 +313,7 @@ Download::set_bitfield(bool allSet) {
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw input_error("Download::set_bitfield(...) Download in invalid state.");
 
-  Bitfield* bitfield = m_ptr->main()->content()->bitfield();
+  Bitfield* bitfield = m_ptr->main()->file_list()->mutable_bitfield();
 
   bitfield->allocate();
 
@@ -344,10 +330,10 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking())
     throw input_error("Download::set_bitfield(...) Download in invalid state.");
 
-  if (std::distance(first, last) != (ptrdiff_t)m_ptr->main()->content()->bitfield()->size_bytes())
+  if (std::distance(first, last) != (ptrdiff_t)m_ptr->main()->file_list()->bitfield()->size_bytes())
     throw input_error("Download::set_bitfield(...) Invalid length.");
 
-  Bitfield* bitfield = m_ptr->main()->content()->bitfield();
+  Bitfield* bitfield = m_ptr->main()->file_list()->mutable_bitfield();
 
   bitfield->allocate();
   std::memcpy(bitfield->begin(), first, bitfield->size_bytes());
@@ -358,18 +344,13 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
 
 void
 Download::clear_range(uint32_t first, uint32_t last) {
-  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking() || m_ptr->main()->content()->bitfield()->empty())
+  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking() || m_ptr->main()->file_list()->bitfield()->empty())
     throw input_error("Download::clear_range(...) Download in invalid state.");
 
   m_ptr->hash_checker()->ranges().insert(first, last);
-  m_ptr->main()->content()->bitfield()->unset_range(first, last);
+  m_ptr->main()->file_list()->mutable_bitfield()->unset_range(first, last);
 }
  
-const Bitfield*
-Download::bitfield() const {
-  return m_ptr->main()->content()->bitfield();
-}
-
 void
 Download::sync_chunks() {
   m_ptr->main()->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force);

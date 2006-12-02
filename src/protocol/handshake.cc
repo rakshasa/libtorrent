@@ -36,10 +36,8 @@
 
 #include "config.h"
 
-#include "data/content.h"
 #include "download/download_info.h"
 #include "download/download_main.h"
-#include "rak/string_manip.h"
 #include "torrent/exceptions.h"
 #include "torrent/error.h"
 #include "torrent/poll.h"
@@ -447,7 +445,7 @@ Handshake::read_peer() {
 
   // The download is just starting so we're not sending any
   // bitfield.
-  if (m_download->content()->bitfield()->is_all_unset())
+  if (m_download->file_list()->bitfield()->is_all_unset())
     prepare_keepalive();
   else
     prepare_bitfield();
@@ -469,6 +467,8 @@ Handshake::read_peer() {
 
 bool
 Handshake::read_bitfield() {
+  Bitfield* bitfield = m_download->file_list()->mutable_bitfield();
+
   if (m_bitfield.empty()) {
     fill_read_buffer(5);
 
@@ -489,13 +489,13 @@ Handshake::read_bitfield() {
       return false;
     }
 
-    if (m_readBuffer.read_32() != m_download->content()->bitfield()->size_bytes() + 1)
+    if (m_readBuffer.read_32() != bitfield->size_bytes() + 1)
       throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
 
     m_readBuffer.read_8();
     m_readPos = 0;
 
-    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
+    m_bitfield.set_size_bits(bitfield->size_bits());
     m_bitfield.allocate();
 
     if (m_readBuffer.remaining() != 0) {
@@ -677,7 +677,7 @@ Handshake::read_done() {
   manager->poll()->remove_read(this);
 
   if (m_bitfield.empty()) {
-    m_bitfield.set_size_bits(m_download->content()->bitfield()->size_bits());
+    m_bitfield.set_size_bits(m_download->file_list()->bitfield()->size_bits());
     m_bitfield.allocate();
     m_bitfield.unset_all();
 
@@ -787,8 +787,11 @@ Handshake::prepare_key_plus_pad() {
   m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
   m_writeBuffer.move_end(96);
 
-  int padLen = random() % enc_pad_size;
-  m_writeBuffer.write_len(rak::generate_random<std::string>(padLen).c_str(), padLen);
+  int length = random() % enc_pad_size;
+  char pad[length];
+
+  std::generate_n(pad, length, &::random);
+  m_writeBuffer.write_len(pad, length);
 }
 
 void
@@ -868,7 +871,7 @@ Handshake::prepare_peer_info() {
 
 void
 Handshake::prepare_bitfield() {
-  m_writeBuffer.write_32(m_download->content()->bitfield()->size_bytes() + 1);
+  m_writeBuffer.write_32(m_download->file_list()->bitfield()->size_bytes() + 1);
   m_writeBuffer.write_8(protocol_bitfield);
 
   if (m_encryption.info()->is_encrypted())
@@ -885,11 +888,13 @@ Handshake::prepare_keepalive() {
     m_encryption.info()->encrypt(m_writeBuffer.end() - 4, 4);
 
   // Skip writting the bitfield.
-  m_writePos = m_download->content()->bitfield()->size_bytes();
+  m_writePos = m_download->file_list()->bitfield()->size_bytes();
 }
 
 void
 Handshake::write_bitfield() {
+  const Bitfield* bitfield = m_download->file_list()->bitfield();
+
   if (m_writeDone != false)
     throw internal_error("Handshake::event_write() m_writeDone != false.");
 
@@ -897,15 +902,15 @@ Handshake::write_bitfield() {
     if (!m_writeBuffer.consume(write_stream_throws(m_writeBuffer.position(), m_writeBuffer.remaining())))
       return;
 
-  if (m_writePos != m_download->content()->bitfield()->size_bytes()) {
+  if (m_writePos != bitfield->size_bytes()) {
     if (m_encryption.info()->is_encrypted()) {
       if (m_writePos == 0)
         m_writeBuffer.reset();	// this should be unnecessary now
 
-      uint32_t length = std::min<uint32_t>(m_download->content()->bitfield()->size_bytes() - m_writePos, m_writeBuffer.reserved()) - m_writeBuffer.size_end();
+      uint32_t length = std::min<uint32_t>(bitfield->size_bytes() - m_writePos, m_writeBuffer.reserved()) - m_writeBuffer.size_end();
 
       if (length > 0) {
-        std::memcpy(m_writeBuffer.end(), m_download->content()->bitfield()->begin() + m_writePos + m_writeBuffer.size_end(), length);
+        std::memcpy(m_writeBuffer.end(), bitfield->begin() + m_writePos + m_writeBuffer.size_end(), length);
         m_encryption.info()->encrypt(m_writeBuffer.end(), length);
         m_writeBuffer.move_end(length);
       }
@@ -919,12 +924,12 @@ Handshake::write_bitfield() {
       m_writeBuffer.move_end(-length);
 
     } else {
-      m_writePos += write_stream_throws(m_download->content()->bitfield()->begin() + m_writePos,
-                                        m_download->content()->bitfield()->size_bytes() - m_writePos);
+      m_writePos += write_stream_throws(bitfield->begin() + m_writePos,
+                                        bitfield->size_bytes() - m_writePos);
     }
   }
 
-  if (m_writePos == m_download->content()->bitfield()->size_bytes()) {
+  if (m_writePos == bitfield->size_bytes()) {
     m_writeDone = true;
     manager->poll()->remove_write(this);
 

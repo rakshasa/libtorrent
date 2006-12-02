@@ -45,11 +45,10 @@
 
 namespace torrent {
 
-class BitField;
 class Block;
 class BlockList;
 class BlockTransfer;
-class Content;
+class FileList;
 class DownloadMain;
 class Piece;
 class PeerChunks;
@@ -60,7 +59,7 @@ class Delegator {
 public:
   typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
   typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
-  typedef rak::const_mem_fun1<Content, uint32_t, uint32_t>          SlotChunkSize;
+  typedef rak::const_mem_fun1<FileList, uint32_t, uint32_t>         SlotChunkSize;
 
   static const unsigned int block_size = 1 << 14;
 

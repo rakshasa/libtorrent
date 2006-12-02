@@ -56,6 +56,7 @@
 #include "file.h"
 #include "file_list.h"
 #include "manager.h"
+#include "piece.h"
 
 namespace torrent {
 
@@ -67,10 +68,121 @@ FileList::FileList() :
   m_maxFileSize((uint64_t)64 << 30) {
 }
 
+FileList::~FileList() {
+  // Can we skip close()?
+  close();
+
+  std::for_each(begin(), end(), rak::call_delete<File>());
+
+  base_type::clear();
+  m_sizeBytes = 0;
+}
+
+bool
+FileList::is_valid_piece(const Piece& piece) const {
+  return
+    piece.index() < size_chunks() &&
+    piece.length() != 0 &&
+
+    // Make sure offset does not overflow 32 bits.
+    piece.offset() + piece.length() >= piece.offset() &&
+    piece.offset() + piece.length() <= chunk_index_size(piece.index());
+}
+
+uint64_t
+FileList::completed_bytes() const {
+  // Chunk size needs to be cast to a uint64_t for the below to work.
+  uint64_t cs = chunk_size();
+
+  if (m_bitfield.empty())
+    return m_bitfield.is_all_set() ? size_bytes() : (completed_chunks() * cs);
+
+  if (!m_bitfield.get(size_chunks() - 1) || size_bytes() % cs == 0) {
+    // The last chunk is not done, or the last chunk is the same size
+    // as the others.
+    return completed_chunks() * cs;
+
+  } else {
+    if (completed_chunks() == 0)
+      throw internal_error("FileList::bytes_completed() completed_chunks() == 0.");
+
+    return (completed_chunks() - 1) * cs + size_bytes() % cs;
+  }
+}
+
+uint64_t
+FileList::left_bytes() const {
+  uint64_t left = size_bytes() - completed_bytes();
+
+  if (left > ((uint64_t)1 << 60))
+    throw internal_error("FileList::bytes_left() is too large."); 
+
+  if (completed_chunks() == size_chunks() && left != 0)
+    throw internal_error("FileList::bytes_left() has an invalid size."); 
+
+  return left;
+}
+
+uint32_t
+FileList::chunk_index_size(uint32_t index) const {
+  if (index + 1 != size_chunks() || size_bytes() % chunk_size() == 0)
+    return chunk_size();
+  else
+    return size_bytes() % chunk_size();
+}
+
+void
+FileList::set_root_dir(const std::string& path) {
+  if (m_isOpen)
+    throw input_error("Tried to change the root directory on an open download.");
+
+  std::string::size_type last = path.find_last_not_of('/');
+
+  if (last == std::string::npos)
+    m_rootDir = ".";
+  else
+    m_rootDir = path.substr(0, last + 1);
+
+  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    if ((*itr)->file_meta()->is_open())
+      throw internal_error("FileList::set_root_dir(...) found an already opened file.");
+    
+    (*itr)->file_meta()->set_path(m_rootDir + (*itr)->path()->as_string());
+  }
+}
+
+void
+FileList::set_max_file_size(uint64_t size) {
+  if (m_isOpen)
+    throw input_error("Tried to change the max file size for an open download.");
+
+  m_maxFileSize = size;
+}
+
+// This function should really ensure that we arn't dealing files
+// spread over multiple mount-points.
+uint64_t
+FileList::free_diskspace() const {
+  uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
+
+  for (path_list::const_iterator itr = m_indirectLinks.begin(), last = m_indirectLinks.end(); itr != last; ++itr) {
+    rak::fs_stat stat;
+
+    if (!stat.update(*itr))
+      continue;
+
+    freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
+  }
+
+  return freeDiskspace != std::numeric_limits<uint64_t>::max() ? freeDiskspace : 0;
+}
+
 void
 FileList::push_back(const Path& path, uint64_t fileSize) {
   if (sizeof(off_t) != 8)
     throw internal_error("Last minute panic; sizeof(off_t) != 8.");
+
+  // Check if open/something.
 
   if (fileSize + m_sizeBytes < m_sizeBytes || m_chunkSize == 0)
     throw internal_error("FileList::push_back(...) invalid parameters.");
@@ -93,13 +205,13 @@ FileList::push_back(const Path& path, uint64_t fileSize) {
 }
 
 void
-FileList::clear() {
-  close();
+FileList::initialize() {
+  if (chunk_size() == 0)
+    throw internal_error("FileList::initialize() chunk_size() == 0.");
 
-  std::for_each(begin(), end(), rak::call_delete<File>());
+  m_bitfield.set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
 
-  base_type::clear();
-  m_sizeBytes = 0;
+  set_root_dir(".");
 }
 
 void
@@ -158,34 +270,6 @@ FileList::close() {
   m_indirectLinks.clear();
 }
 
-void
-FileList::set_root_dir(const std::string& path) {
-  if (m_isOpen)
-    throw input_error("Tried to change the root directory on an open download.");
-
-  std::string::size_type last = path.find_last_not_of('/');
-
-  if (last == std::string::npos)
-    m_rootDir = ".";
-  else
-    m_rootDir = path.substr(0, last + 1);
-
-  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-    if ((*itr)->file_meta()->is_open())
-      throw internal_error("FileList::set_root_dir(...) found an already opened file.");
-    
-    (*itr)->file_meta()->set_path(m_rootDir + (*itr)->path()->as_string());
-  }
-}
-
-void
-FileList::set_max_file_size(uint64_t size) {
-  if (m_isOpen)
-    throw input_error("Tried to change the max file size for an open download.");
-
-  m_maxFileSize = size;
-}
-
 bool
 FileList::resize_all() {
   iterator itr = std::find_if(begin(), end(), std::not1(std::mem_fun(&File::resize_file)));
@@ -196,17 +280,6 @@ FileList::resize_all() {
   }
 
   return true;
-}
-
-FileList::iterator
-FileList::at_position(iterator itr, uint64_t offset) {
-  while (itr != end())
-    if (offset >= (*itr)->position() + (*itr)->size_bytes())
-      ++itr;
-    else
-      return itr;
-
-  return itr;
 }
 
 inline void
@@ -273,24 +346,6 @@ FileList::open_file(File* node, const Path& lastPath) {
     node->file_meta()->prepare(MemoryChunk::prot_read, SocketFile::o_create);
 }
 
-// This function should really ensure that we arn't dealing files
-// spread over multiple mount-points.
-uint64_t
-FileList::free_diskspace() const {
-  uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
-
-  for (path_list::const_iterator itr = m_indirectLinks.begin(), last = m_indirectLinks.end(); itr != last; ++itr) {
-    rak::fs_stat stat;
-
-    if (!stat.update(*itr))
-      continue;
-
-    freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
-  }
-
-  return freeDiskspace != std::numeric_limits<uint64_t>::max() ? freeDiskspace : 0;
-}
-
 inline MemoryChunk
 FileList::create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int prot) {
   offset -= (*itr)->position();
@@ -345,11 +400,30 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
   return chunk.release();
 }
 
-FileList::iterator
-FileList::inc_completed(iterator firstItr, uint64_t firstPos, uint64_t lastPos) {
-  firstItr = at_position(firstItr, firstPos);
+Chunk*
+FileList::create_chunk_index(uint32_t index, int prot) {
+  return create_chunk((uint64_t)index * chunk_size(), chunk_index_size(index), prot);
+}
 
-  iterator lastItr = at_position(firstItr, lastPos - 1);
+void
+FileList::mark_completed(uint32_t index) {
+  if (m_bitfield.get(index))
+    throw internal_error("FileList::mark_completed(...) received a chunk that has already been finished.");
+
+  if (m_bitfield.size_set() >= m_bitfield.size_bits())
+    throw internal_error("FileList::mark_completed(...) m_bitfield.size_set() >= m_bitfield.size_bits().");
+
+  if (index >= size_chunks() || completed_chunks() >= size_chunks())
+    throw internal_error("FileList::mark_completed(...) received an invalid index.");
+
+  m_bitfield.set(index);
+  inc_completed(begin(), index);
+}
+
+FileList::iterator
+FileList::inc_completed(iterator firstItr, uint32_t index) {
+  firstItr         = std::find_if(firstItr, end(), rak::less(index, std::mem_fun(&File::range_second)));
+  iterator lastItr = std::find_if(firstItr, end(), rak::less(index + 1, std::mem_fun(&File::range_second)));
 
   if (firstItr == end())
     throw internal_error("FileList::inc_completed() first == m_entryList->end().");
@@ -359,6 +433,18 @@ FileList::inc_completed(iterator firstItr, uint64_t firstPos, uint64_t lastPos) 
                 std::mem_fun(&File::inc_completed));
 
   return lastItr;
+}
+
+void
+FileList::update_completed() {
+  if (!m_bitfield.is_tail_cleared())
+    throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
+
+  iterator entryItr = begin();
+
+  for (Bitfield::size_type index = 0; index < m_bitfield.size_bits(); ++index)
+    if (m_bitfield.get(index))
+      entryItr = inc_completed(entryItr, index);
 }
 
 }

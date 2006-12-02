@@ -41,7 +41,6 @@
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
-#include "data/content.h"
 #include "download/download_wrapper.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
@@ -121,9 +120,9 @@ DownloadConstructor::parse_name(const Object& b) {
 
 void
 DownloadConstructor::parse_info(const Object& b) {
-  Content* c = m_download->main()->content();
+  FileList* fileList = m_download->main()->file_list();
 
-  if (!c->file_list()->empty())
+  if (!fileList->empty())
     throw internal_error("parse_info received an already initialized Content object");
 
   uint32_t chunkSize = b.get_key_value("piece length");
@@ -131,26 +130,30 @@ DownloadConstructor::parse_info(const Object& b) {
   if (chunkSize <= (1 << 10) || chunkSize > (128 << 20))
     throw input_error("Torrent has an invalid \"piece length\".");
 
-  c->file_list()->set_chunk_size(chunkSize);
+  fileList->set_chunk_size(chunkSize);
 
   if (b.has_key("length")) {
     parse_single_file(b);
 
   } else if (b.has_key("files")) {
     parse_multi_files(b.get_key("files"));
-    c->file_list()->set_root_dir("./" + b.get_key_string("name"));
+    fileList->set_root_dir("./" + b.get_key_string("name"));
 
   } else {
     throw input_error("Torrent must have either length or files entry");
   }
 
-  if (c->file_list()->size_bytes() == 0)
+  if (fileList->size_bytes() == 0)
     throw input_error("Torrent has zero length.");
 
   // Set chunksize before adding files to make sure the index range is
   // correct.
-  c->set_complete_hash(b.get_key_string("pieces"));
-  c->initialize();
+  m_download->set_complete_hash(b.get_key_string("pieces"));
+
+  if (m_download->complete_hash().size() / 20 < fileList->size_chunks())
+    throw bencode_error("Torrent size and 'info:pieces' length does not match.");
+
+  fileList->initialize();
 }
 
 void
@@ -221,7 +224,7 @@ DownloadConstructor::parse_single_file(const Object& b) {
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
   // Single file torrent
-  m_download->main()->content()->add_file(choose_path(&pathList), b.get_key_value("length"));
+  m_download->main()->file_list()->push_back(choose_path(&pathList), b.get_key_value("length"));
 }
 
 void
@@ -230,7 +233,7 @@ DownloadConstructor::parse_multi_files(const Object& b) {
   if (b.as_list().empty())
     throw input_error("Bad torrent file, entry has no files.");
 
-  m_download->main()->content()->file_list()->reserve(b.as_list().size());
+  m_download->main()->file_list()->reserve(b.as_list().size());
 
   std::for_each(b.as_list().begin(), b.as_list().end(), rak::make_mem_fun(this, &DownloadConstructor::add_file));
 }
@@ -259,7 +262,7 @@ DownloadConstructor::add_file(const Object& b) {
   if (pathList.empty())
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
-  m_download->main()->content()->add_file(choose_path(&pathList), length);
+  m_download->main()->file_list()->push_back(choose_path(&pathList), length);
 }
 
 inline Path

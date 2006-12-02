@@ -8,8 +8,6 @@ libsub_data_la_SOURCES = \
 	chunk_list.cc \
 	chunk_list.h \
 	chunk_list_node.h \
-	content.cc \
-	content.h \
 	chunk_part.cc \
 	chunk_part.h \
 	file_manager.cc \

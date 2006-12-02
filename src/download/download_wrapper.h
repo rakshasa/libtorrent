@@ -81,10 +81,14 @@ public:
 
   DownloadMain*       main()                                  { return &m_main; }
   const DownloadMain* main() const                            { return &m_main; }
-  HashTorrent*        hash_checker()                          { return m_hash; }
+  HashTorrent*        hash_checker()                          { return m_hashChecker; }
 
   Object*             bencode()                               { return m_bencode; }
   void                set_bencode(Object* o)                  { m_bencode = o; }
+
+  const std::string&  complete_hash()                            { return m_hash; }
+  const char*         chunk_hash(unsigned int index)             { return m_hash.c_str() + 20 * index; }
+  void                set_complete_hash(const std::string& hash) { m_hash = hash; }
 
   DownloadInfo*       info()                                  { return m_main.info(); }
 
@@ -128,7 +132,9 @@ private:
 
   DownloadMain        m_main;
   Object*             m_bencode;
-  HashTorrent*        m_hash;
+  HashTorrent*        m_hashChecker;
+
+  std::string         m_hash;
 
   int                 m_connectionType;
 

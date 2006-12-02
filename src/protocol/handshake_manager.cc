@@ -193,7 +193,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
 
       // We need to make libtorrent more selective in the clients it
       // connects to, and to move this somewhere else.
-      (!h->download()->content()->is_done() || !h->bitfield()->is_all_set()) &&
+      (!h->download()->file_list()->is_done() || !h->bitfield()->is_all_set()) &&
 
       (pcb = h->download()->connection_list()->insert(h->peer_info(), h->get_fd(), h->bitfield(), h->encryption()->info())) != NULL) {
 
@@ -213,7 +213,7 @@ HandshakeManager::receive_succeeded(Handshake* h) {
     if (!h->download()->info()->is_active())
       reason = EH_Inactive;
 
-    if (h->download()->content()->is_done() && h->bitfield()->is_all_set())
+    if (h->download()->file_list()->is_done() && h->bitfield()->is_all_set())
       reason = EH_SeederRejected;
 
     manager->connection_manager()->signal_handshake_log().emit(h->peer_info()->socket_address(), ConnectionManager::handshake_dropped, reason, &h->download()->info()->hash());

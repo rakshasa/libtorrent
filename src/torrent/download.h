@@ -117,9 +117,6 @@ public:
   // Bytes completed.
   uint64_t            bytes_done() const;
 
-  uint32_t            chunks_size() const;
-  uint32_t            chunks_done() const;
-  uint32_t            chunks_total() const;
   uint32_t            chunks_hashed() const;
 
   const uint8_t*      chunks_seen() const;
@@ -135,8 +132,6 @@ public:
   void                set_bitfield(bool allSet);
   void                set_bitfield(uint8_t* first, uint8_t* last);
   void                clear_range(uint32_t first, uint32_t last);
-
-  const Bitfield*     bitfield() const;
 
   // Temporary hack for syncing chunks to disk before hash resume is
   // saved.
