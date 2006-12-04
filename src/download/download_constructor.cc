@@ -44,6 +44,7 @@
 #include "download/download_wrapper.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
+#include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "tracker/tracker_manager.h"
 
@@ -123,24 +124,22 @@ DownloadConstructor::parse_info(const Object& b) {
   FileList* fileList = m_download->main()->file_list();
 
   if (!fileList->empty())
-    throw internal_error("parse_info received an already initialized Content object");
+    throw internal_error("parse_info received an already initialized Content object.");
 
   uint32_t chunkSize = b.get_key_value("piece length");
 
   if (chunkSize <= (1 << 10) || chunkSize > (128 << 20))
     throw input_error("Torrent has an invalid \"piece length\".");
 
-  fileList->set_chunk_size(chunkSize);
-
   if (b.has_key("length")) {
-    parse_single_file(b);
+    parse_single_file(b, chunkSize);
 
   } else if (b.has_key("files")) {
-    parse_multi_files(b.get_key("files"));
-    fileList->set_root_dir("./" + b.get_key_string("name"));
+    parse_multi_files(b.get_key("files"), chunkSize);
+    fileList->set_root_dir("./" + m_download->info()->name());
 
   } else {
-    throw input_error("Torrent must have either length or files entry");
+    throw input_error("Torrent must have either length or files entry.");
   }
 
   if (fileList->size_bytes() == 0)
@@ -152,8 +151,6 @@ DownloadConstructor::parse_info(const Object& b) {
 
   if (m_download->complete_hash().size() / 20 < fileList->size_chunks())
     throw bencode_error("Torrent size and 'info:pieces' length does not match.");
-
-  fileList->initialize();
 }
 
 void
@@ -202,9 +199,12 @@ DownloadConstructor::is_valid_path_element(const Object& b) {
 }
 
 void
-DownloadConstructor::parse_single_file(const Object& b) {
+DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
   if (is_invalid_path_element(b.get_key("name")))
     throw input_error("Bad torrent file, \"name\" is an invalid path name.");
+
+  FileList* fileList = m_download->main()->file_list();
+  fileList->initialize(b.get_key_value("length"), chunkSize);
 
   std::list<Path> pathList;
 
@@ -223,46 +223,49 @@ DownloadConstructor::parse_single_file(const Object& b) {
   if (pathList.empty())
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
-  // Single file torrent
-  m_download->main()->file_list()->push_back(choose_path(&pathList), b.get_key_value("length"));
+  *fileList->front()->path() = choose_path(&pathList);
 }
 
 void
-DownloadConstructor::parse_multi_files(const Object& b) {
+DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
+  const Object::list_type& objectList = b.as_list();
+
   // Multi file torrent
-  if (b.as_list().empty())
+  if (objectList.empty())
     throw input_error("Bad torrent file, entry has no files.");
 
-  m_download->main()->file_list()->reserve(b.as_list().size());
+  int64_t torrentSize = 0;
+  std::vector<FileList::split_type> splitList(objectList.size());
+  std::vector<FileList::split_type>::iterator splitItr = splitList.begin();
 
-  std::for_each(b.as_list().begin(), b.as_list().end(), rak::make_mem_fun(this, &DownloadConstructor::add_file));
-}
+  for (Object::list_type::const_iterator listItr = objectList.begin(), listLast = objectList.end(); listItr != listLast; ++listItr, ++splitItr) {
+    std::list<Path> pathList;
 
-void
-DownloadConstructor::add_file(const Object& b) {
-  // Do a read first checking that we're above zero, then move to a
-  // uint64_t.
-  int64_t length = b.get_key_value("length");
+    if (listItr->has_key_list("path"))
+      pathList.push_back(create_path(listItr->get_key_list("path"), m_defaultEncoding));
 
-  if (length < 0 || length > (int64_t)DownloadConstructor::max_file_length)
-    throw input_error("Bad torrent file, invalid length for file given");
-
-  std::list<Path> pathList;
-
-  if (b.has_key_list("path"))
-    pathList.push_back(create_path(b.get_key_list("path"), m_defaultEncoding));
-
-  Object::map_type::const_iterator itr = b.as_map().begin();
+    Object::map_type::const_iterator itr = listItr->as_map().begin();
+    Object::map_type::const_iterator last = listItr->as_map().end();
   
-  while ((itr = std::find_if(itr, b.as_map().end(), download_constructor_is_multi_path())) != b.as_map().end()) {
-    pathList.push_back(create_path(itr->second.as_list(), itr->first.substr(sizeof("path.") - 1)));
-    ++itr;
+    while ((itr = std::find_if(itr, last, download_constructor_is_multi_path())) != last) {
+      pathList.push_back(create_path(itr->second.as_list(), itr->first.substr(sizeof("path.") - 1)));
+      ++itr;
+    }
+
+    if (pathList.empty())
+      throw input_error("Bad torrent file, an entry has no valid filename.");
+
+    int64_t length = listItr->get_key_value("length");
+
+    if (length < 0 || torrentSize + length < 0)
+      throw input_error("Bad torrent file, invalid length for file.");
+
+    torrentSize += length;
+    *splitItr = FileList::split_type(length, choose_path(&pathList));
   }
 
-  if (pathList.empty())
-    throw input_error("Bad torrent file, an entry has no valid filename.");
-
-  m_download->main()->file_list()->push_back(choose_path(&pathList), length);
+  m_download->main()->file_list()->initialize(torrentSize, chunkSize);
+  m_download->main()->file_list()->split(m_download->main()->file_list()->begin(), &*splitList.begin(), &*splitList.end());
 }
 
 inline Path

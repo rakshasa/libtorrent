@@ -63,7 +63,7 @@ namespace torrent {
 FileList::FileList() :
   m_isOpen(false),
 
-  m_sizeBytes(0),
+  m_torrentSize(0),
   m_chunkSize(0),
   m_maxFileSize((uint64_t)64 << 30) {
 }
@@ -75,7 +75,7 @@ FileList::~FileList() {
   std::for_each(begin(), end(), rak::call_delete<File>());
 
   base_type::clear();
-  m_sizeBytes = 0;
+  m_torrentSize = 0;
 }
 
 bool
@@ -133,7 +133,7 @@ FileList::chunk_index_size(uint32_t index) const {
 
 void
 FileList::set_root_dir(const std::string& path) {
-  if (m_isOpen)
+  if (is_open())
     throw input_error("Tried to change the root directory on an open download.");
 
   std::string::size_type last = path.find_last_not_of('/');
@@ -142,18 +142,11 @@ FileList::set_root_dir(const std::string& path) {
     m_rootDir = ".";
   else
     m_rootDir = path.substr(0, last + 1);
-
-  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-    if ((*itr)->file_meta()->is_open())
-      throw internal_error("FileList::set_root_dir(...) found an already opened file.");
-    
-    (*itr)->file_meta()->set_path(m_rootDir + (*itr)->path()->as_string());
-  }
 }
 
 void
 FileList::set_max_file_size(uint64_t size) {
-  if (m_isOpen)
+  if (is_open())
     throw input_error("Tried to change the max file size for an open download.");
 
   m_maxFileSize = size;
@@ -177,41 +170,76 @@ FileList::free_diskspace() const {
   return freeDiskspace != std::numeric_limits<uint64_t>::max() ? freeDiskspace : 0;
 }
 
+FileList::iterator_range
+FileList::split(iterator position, split_type* first, split_type* last) {
+  if (is_open())
+    throw internal_error("FileList::split(...) is_open().");
+  
+  if (first == last || position == end())
+    throw internal_error("FileList::split(...) invalid arguments.");
+
+  File* oldFile = *position;
+
+  uint64_t offset = oldFile->position();
+  size_type index = std::distance(begin(), position);
+  size_type length = std::distance(first, last);
+
+  base_type::insert(position, length - 1, NULL);
+  position = begin() + index;
+
+  iterator itr = position;
+
+  while (first != last) {
+    File* newFile = new File();
+
+    newFile->set_position(offset);
+    newFile->set_size_bytes(first->first);
+    *newFile->path() = first->second;
+
+    if (first->first == 0)
+      newFile->set_range(File::range_type(newFile->position() / m_chunkSize,
+                                          newFile->position() / m_chunkSize));
+    else
+      newFile->set_range(File::range_type(newFile->position() / m_chunkSize,
+                                          (newFile->position() + first->first + m_chunkSize - 1) / m_chunkSize));
+    
+    offset += first->first;
+    *itr = newFile;
+
+    itr++;
+    first++;
+  }
+
+  if (offset != oldFile->position() + oldFile->size_bytes())
+    throw internal_error("FileList::split(...) split size does not match the old size.");
+
+  delete oldFile;
+  return iterator_range(position, itr);
+}
+
+// Initialize FileList and add a dummy file that may be split into
+// multiple files.
 void
-FileList::push_back(const Path& path, uint64_t fileSize) {
+FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   if (sizeof(off_t) != 8)
     throw internal_error("Last minute panic; sizeof(off_t) != 8.");
 
-  // Check if open/something.
-
-  if (fileSize + m_sizeBytes < m_sizeBytes || m_chunkSize == 0)
-    throw internal_error("FileList::push_back(...) invalid parameters.");
-
-  File* e = new File();
-
-  *e->path() = path;
-  e->set_position(m_sizeBytes);
-  e->set_size_bytes(fileSize);
-
-  if (e->size_bytes() == 0)
-    e->set_range(File::range_type(e->position() / m_chunkSize, e->position() / m_chunkSize));
-  else
-    e->set_range(File::range_type(e->position() / m_chunkSize,
-                                  (e->position() + e->size_bytes() + m_chunkSize - 1) / m_chunkSize));
-
-  base_type::push_back(e);
-
-  m_sizeBytes += fileSize;
-}
-
-void
-FileList::initialize() {
-  if (chunk_size() == 0)
+  if (chunkSize == 0)
     throw internal_error("FileList::initialize() chunk_size() == 0.");
+
+  m_chunkSize = chunkSize;
+  m_torrentSize = torrentSize;
+  m_rootDir = ".";
 
   m_bitfield.set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
 
-  set_root_dir(".");
+  File* newFile = new File();
+
+  newFile->set_position(0);
+  newFile->set_size_bytes(torrentSize);
+  newFile->set_range(File::range_type(0, (m_torrentSize + m_chunkSize - 1) / m_chunkSize));
+
+  base_type::push_back(newFile);
 }
 
 void
@@ -236,6 +264,13 @@ FileList::open() {
       
       manager->file_manager()->insert(entry->file_meta());
 
+      // Update the path during open so that any changes to root dir
+      // and file paths are properly handled.
+      entry->file_meta()->set_path(m_rootDir + entry->path()->as_string());
+
+      if (entry->size_bytes() > m_maxFileSize)
+        throw storage_error("Found a file exceeding max file size.");
+
       if (entry->path()->empty())
         throw storage_error("Found an empty filename.");
 
@@ -257,7 +292,7 @@ FileList::open() {
 
 void
 FileList::close() {
-  if (!m_isOpen)
+  if (!is_open())
     return;
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
@@ -364,7 +399,7 @@ FileList::create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int 
 
 Chunk*
 FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
-  if (offset + length > m_sizeBytes)
+  if (offset + length > m_torrentSize)
     throw internal_error("Tried to access chunk out of range in FileList");
 
   std::auto_ptr<Chunk> chunk(new Chunk);

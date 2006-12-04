@@ -62,11 +62,13 @@ public:
 
   typedef std::vector<File*>            base_type;
   typedef std::vector<std::string>      path_list;
+  typedef std::pair<uint64_t, Path>     split_type;
 
   using base_type::value_type;
-
   using base_type::iterator;
   using base_type::reverse_iterator;
+
+  typedef std::pair<iterator, iterator> iterator_range;
 
   using base_type::begin;
   using base_type::end;
@@ -85,7 +87,7 @@ public:
   bool                is_valid_piece(const Piece& piece) const;
 
   size_t              size_files() const                         { return base_type::size(); }
-  uint64_t            size_bytes() const                         { return m_sizeBytes; }
+  uint64_t            size_bytes() const                         { return m_torrentSize; }
   uint32_t            size_chunks() const                        { return m_bitfield.size_bits(); }
 
   uint32_t            completed_chunks() const                   { return m_bitfield.size_set(); }
@@ -96,11 +98,11 @@ public:
   uint32_t            chunk_index_size(uint32_t index) const;
   uint64_t            chunk_index_position(uint32_t index) const { return index * chunk_size(); }
 
+  const Bitfield*     bitfield() const                           { return &m_bitfield; }
+
   // You may only call set_root_dir after all nodes have been added.
   const std::string&  root_dir() const                           { return m_rootDir; }
   void                set_root_dir(const std::string& path);
-
-  const Bitfield*     bitfield() const                           { return &m_bitfield; }
 
   uint64_t            max_file_size() const                      { return m_maxFileSize; }
   void                set_max_file_size(uint64_t size);
@@ -111,8 +113,13 @@ public:
 
   const path_list*    indirect_links() const                     { return &m_indirectLinks; }
 
+  // The sum of the sizes in the range [first,last> must be equal to
+  // the size of 'position'. Do not use the old pointer in 'position'
+  // after this call.
+  iterator_range      split(iterator position, split_type* first, split_type* last);
+
 protected:
-  void                initialize();
+  void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
 
   void                open() LIBTORRENT_NO_EXPORT;
   void                close() LIBTORRENT_NO_EXPORT;
@@ -121,10 +128,6 @@ protected:
 
   Bitfield*           mutable_bitfield()                         { return &m_bitfield; }
 
-  void                set_chunk_size(uint32_t size)              { m_chunkSize = size; }
-
-  void                push_back(const Path& path, uint64_t fileSize) LIBTORRENT_NO_EXPORT;
-
   // Before calling this function, make sure you clear errno. If
   // creating the chunk failed, NULL is returned and errno is set.
   Chunk*              create_chunk(uint64_t offset, uint32_t length, int prot) LIBTORRENT_NO_EXPORT;
@@ -132,7 +135,7 @@ protected:
 
   void                mark_completed(uint32_t index) LIBTORRENT_NO_EXPORT;
   iterator            inc_completed(iterator firstItr, uint32_t index) LIBTORRENT_NO_EXPORT;
-  void                update_completed();
+  void                update_completed() LIBTORRENT_NO_EXPORT;
 
 private:
   inline bool         open_file(File* node, const Path& lastPath);
@@ -141,7 +144,7 @@ private:
 
   bool                m_isOpen;
 
-  uint64_t            m_sizeBytes;
+  uint64_t            m_torrentSize;
   uint32_t            m_chunkSize;
   uint64_t            m_maxFileSize;
 

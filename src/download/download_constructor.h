@@ -53,9 +53,6 @@ typedef std::list<std::string> EncodingList;
 
 class DownloadConstructor {
 public:
-  
-  static const uint64_t max_file_length = ((uint64_t)1 << 45);
-
   DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
 
   void                initialize(const Object& b);
@@ -74,9 +71,8 @@ private:
   static bool         is_valid_path_element(const Object& b);
   static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
 
-  void                parse_single_file(const Object& b);
-  void                parse_multi_files(const Object& b);
-  void                add_file(const Object& b);
+  void                parse_single_file(const Object& b, uint32_t chunkSize);
+  void                parse_multi_files(const Object& b, uint32_t chunkSize);
 
   inline Path         create_path(const Object::list_type& plist, const std::string enc);
   inline Path         choose_path(std::list<Path>* pathList);
