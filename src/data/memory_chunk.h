@@ -127,7 +127,7 @@ private:
 
 inline bool
 MemoryChunk::is_valid_range(uint32_t offset, uint32_t length) const {
-  return length != 0 && (off_t)offset + length <= size();
+  return length != 0 && (uint64_t)offset + length <= size();
 }
 
 inline void

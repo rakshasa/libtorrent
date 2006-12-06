@@ -180,7 +180,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
 
   File* oldFile = *position;
 
-  uint64_t offset = oldFile->position();
+  uint64_t offset = oldFile->offset();
   size_type index = std::distance(begin(), position);
   size_type length = std::distance(first, last);
 
@@ -192,17 +192,11 @@ FileList::split(iterator position, split_type* first, split_type* last) {
   while (first != last) {
     File* newFile = new File();
 
-    newFile->set_position(offset);
+    newFile->set_offset(offset);
     newFile->set_size_bytes(first->first);
+    newFile->set_range(m_chunkSize);
     *newFile->path() = first->second;
 
-    if (first->first == 0)
-      newFile->set_range(File::range_type(newFile->position() / m_chunkSize,
-                                          newFile->position() / m_chunkSize));
-    else
-      newFile->set_range(File::range_type(newFile->position() / m_chunkSize,
-                                          (newFile->position() + first->first + m_chunkSize - 1) / m_chunkSize));
-    
     offset += first->first;
     *itr = newFile;
 
@@ -210,11 +204,41 @@ FileList::split(iterator position, split_type* first, split_type* last) {
     first++;
   }
 
-  if (offset != oldFile->position() + oldFile->size_bytes())
+  if (offset != oldFile->offset() + oldFile->size_bytes())
     throw internal_error("FileList::split(...) split size does not match the old size.");
 
   delete oldFile;
   return iterator_range(position, itr);
+}
+
+FileList::iterator
+FileList::merge(iterator first, iterator last, const Path& path) {
+  File* newFile = new File;
+
+  if (first == last) {
+    if (first == end())
+      newFile->set_offset(m_torrentSize);
+    else
+      newFile->set_offset((*first)->offset());
+
+    first = base_type::insert(first, newFile);
+
+  } else {
+    newFile->set_offset((*first)->offset());
+
+    for (iterator itr = first; itr != last; ++itr) {
+      newFile->set_size_bytes(newFile->size_bytes() + (*itr)->size_bytes());
+      delete *itr;
+    }
+
+    first = base_type::erase(first + 1, last) - 1;
+    *first = newFile;
+  }
+
+  *newFile->path() = path;
+  newFile->set_range(m_chunkSize);
+
+  return first;
 }
 
 // Initialize FileList and add a dummy file that may be split into
@@ -235,9 +259,9 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
 
   File* newFile = new File();
 
-  newFile->set_position(0);
+  newFile->set_offset(0);
   newFile->set_size_bytes(torrentSize);
-  newFile->set_range(File::range_type(0, (m_torrentSize + m_chunkSize - 1) / m_chunkSize));
+  newFile->set_range(m_chunkSize);
 
   base_type::push_back(newFile);
 }
@@ -383,7 +407,7 @@ FileList::open_file(File* node, const Path& lastPath) {
 
 inline MemoryChunk
 FileList::create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int prot) {
-  offset -= (*itr)->position();
+  offset -= (*itr)->offset();
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
   if (offset < 0)

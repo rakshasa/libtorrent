@@ -58,7 +58,7 @@ public:
   Path*               path()                                  { return &m_path; }
   const Path*         path() const                            { return &m_path; }
 
-  uint64_t            position() const                        { return m_position; }
+  uint64_t            offset() const                          { return m_offset; }
 
   uint64_t            size_bytes() const                      { return m_size; }
   uint32_t            size_chunks() const                     { return m_range.second - m_range.first; }
@@ -73,9 +73,9 @@ public:
   void                set_priority(priority_t t)              { m_priority = t; }
 
 protected:
-  void                set_position(uint64_t pos)              { m_position = pos; }
-  void                set_size_bytes(uint64_t s)              { m_size = s; }
-  void                set_range(const range_type& range)      { m_range = range; }
+  void                set_offset(uint64_t off)                { m_offset = off; }
+  void                set_size_bytes(uint64_t size)           { m_size = size; }
+  void                set_range(uint32_t chunkSize);
 
   void                set_completed(uint32_t v)               { m_completed = v; }
   void                inc_completed()                         { m_completed++; }
@@ -92,7 +92,7 @@ private:
   FileMeta*           m_fileMeta;
   Path                m_path;
 
-  uint64_t            m_position;
+  uint64_t            m_offset;
   uint64_t            m_size;
 
   range_type          m_range;
@@ -103,7 +103,7 @@ private:
 
 inline bool
 File::is_valid_position(uint64_t p) const {
-  return p >= m_position && p < m_position + m_size;
+  return p >= m_offset && p < m_offset + m_size;
 }
 
 }

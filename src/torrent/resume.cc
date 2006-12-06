@@ -103,7 +103,7 @@ resume_load_progress(Download download, const Object& object) {
     // Check that the size and modified stamp matches. If not, then
     // clear the resume data for that range.
 
-    if (!fs.update(fileList->root_dir() + (*listItr)->path()->as_string()) || fs.size() != (off_t)(*listItr)->size_bytes() ||
+    if (!fs.update(fileList->root_dir() + (*listItr)->path()->as_string()) || (uint64_t)fs.size() != (*listItr)->size_bytes() ||
         !filesItr->has_key_value("mtime") || filesItr->get_key_value("mtime") != fs.modified_time())
       download.clear_range((*listItr)->range().first, (*listItr)->range().second);
   }

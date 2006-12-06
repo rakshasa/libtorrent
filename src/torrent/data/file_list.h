@@ -82,41 +82,45 @@ public:
   FileList() LIBTORRENT_NO_EXPORT;
   ~FileList() LIBTORRENT_NO_EXPORT;
 
-  bool                is_open() const                            { return m_isOpen; }
-  bool                is_done() const                            { return completed_chunks() == size_chunks(); }
+  bool                is_open() const                                 { return m_isOpen; }
+  bool                is_done() const                                 { return completed_chunks() == size_chunks(); }
   bool                is_valid_piece(const Piece& piece) const;
 
-  size_t              size_files() const                         { return base_type::size(); }
-  uint64_t            size_bytes() const                         { return m_torrentSize; }
-  uint32_t            size_chunks() const                        { return m_bitfield.size_bits(); }
+  size_t              size_files() const                              { return base_type::size(); }
+  uint64_t            size_bytes() const                              { return m_torrentSize; }
+  uint32_t            size_chunks() const                             { return m_bitfield.size_bits(); }
 
-  uint32_t            completed_chunks() const                   { return m_bitfield.size_set(); }
+  uint32_t            completed_chunks() const                        { return m_bitfield.size_set(); }
   uint64_t            completed_bytes() const;
   uint64_t            left_bytes() const;
 
-  uint32_t            chunk_size() const                         { return m_chunkSize; }
+  uint32_t            chunk_size() const                              { return m_chunkSize; }
   uint32_t            chunk_index_size(uint32_t index) const;
-  uint64_t            chunk_index_position(uint32_t index) const { return index * chunk_size(); }
+  uint64_t            chunk_index_position(uint32_t index) const      { return index * chunk_size(); }
 
-  const Bitfield*     bitfield() const                           { return &m_bitfield; }
+  const Bitfield*     bitfield() const                                { return &m_bitfield; }
 
   // You may only call set_root_dir after all nodes have been added.
-  const std::string&  root_dir() const                           { return m_rootDir; }
+  const std::string&  root_dir() const                                { return m_rootDir; }
   void                set_root_dir(const std::string& path);
 
-  uint64_t            max_file_size() const                      { return m_maxFileSize; }
+  uint64_t            max_file_size() const                           { return m_maxFileSize; }
   void                set_max_file_size(uint64_t size);
 
   // If the files span multiple disks, the one with the least amount
   // of free diskspace will be returned.
   uint64_t            free_diskspace() const;
 
-  const path_list*    indirect_links() const                     { return &m_indirectLinks; }
+  const path_list*    indirect_links() const                          { return &m_indirectLinks; }
 
   // The sum of the sizes in the range [first,last> must be equal to
   // the size of 'position'. Do not use the old pointer in 'position'
   // after this call.
   iterator_range      split(iterator position, split_type* first, split_type* last);
+
+  // Use an empty range to insert a zero length file.
+  iterator            merge(iterator first, iterator last, const Path& path);
+  iterator            merge(iterator_range range, const Path& path)   { return merge(range.first, range.second, path); }
 
 protected:
   void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
@@ -126,7 +130,7 @@ protected:
 
   bool                resize_all() LIBTORRENT_NO_EXPORT;
 
-  Bitfield*           mutable_bitfield()                         { return &m_bitfield; }
+  Bitfield*           mutable_bitfield()                               { return &m_bitfield; }
 
   // Before calling this function, make sure you clear errno. If
   // creating the chunk failed, NULL is returned and errno is set.

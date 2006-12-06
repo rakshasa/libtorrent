@@ -49,7 +49,7 @@ namespace torrent {
 File::File() :
   m_fileMeta(new FileMeta),
 
-  m_position(0),
+  m_offset(0),
   m_size(0),
   m_completed(0),
   m_priority(PRIORITY_NORMAL) {
@@ -83,6 +83,16 @@ File::is_correct_size() const {
     return false;
 
   return fs.is_regular() && (uint64_t)fs.size() == m_size;
+}
+
+void
+File::set_range(uint32_t chunkSize) {
+  if (chunkSize == 0)
+    m_range = range_type(0, 0);
+  else if (m_size == 0)
+    m_range = File::range_type(m_offset / chunkSize, m_offset / chunkSize);
+  else
+    m_range = File::range_type(m_offset / chunkSize, (m_offset + m_size + chunkSize - 1) / chunkSize);
 }
 
 bool
