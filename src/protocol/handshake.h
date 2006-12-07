@@ -105,9 +105,9 @@ public:
   DownloadMain*       download()                    { return m_download; }
   Bitfield*           bitfield()                    { return &m_bitfield; }
   
-  // Make sure the fd is valid when this is called. The caller is
-  // responsible for closing the socket if nessesary.
-  void                clear();
+  void                deactivate_connection();
+  void                release_connection();
+  void                destroy_connection();
 
   const void*         unread_data()                 { return m_readBuffer.position(); }
   uint32_t            unread_size() const           { return m_readBuffer.remaining(); }

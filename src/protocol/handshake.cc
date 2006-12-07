@@ -97,13 +97,6 @@ Handshake::~Handshake() {
   if (get_fd().is_valid())
     throw internal_error("Handshake dtor called but m_fd is still open.");
 
-  if (m_peerInfo != NULL) {
-    m_download->peer_list()->disconnected(m_peerInfo, 0);
-
-    m_peerInfo->unset_flags(PeerInfo::flag_handshake);
-    m_peerInfo = NULL;
-  }
-
   m_encryption.cleanup();
 }
 
@@ -145,7 +138,7 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, P
 }
 
 void
-Handshake::clear() {
+Handshake::deactivate_connection() {
   m_state = INACTIVE;
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
@@ -154,6 +147,30 @@ Handshake::clear() {
   manager->poll()->remove_write(this);
   manager->poll()->remove_error(this);
   manager->poll()->close(this);
+}
+
+void
+Handshake::release_connection() {
+  m_peerInfo->unset_flags(PeerInfo::flag_handshake);
+  m_peerInfo = NULL;
+
+  get_fd().clear();
+}
+
+void
+Handshake::destroy_connection() {
+  manager->connection_manager()->dec_socket_count();
+
+  get_fd().close();
+  get_fd().clear();
+
+  if (m_peerInfo == NULL)
+    return;
+
+  m_download->peer_list()->disconnected(m_peerInfo, 0);
+
+  m_peerInfo->unset_flags(PeerInfo::flag_handshake);
+  m_peerInfo = NULL;
 }
 
 int

@@ -55,12 +55,9 @@
 namespace torrent {
 
 inline void
-HandshakeManager::delete_handshake(Handshake* h) {
-  manager->connection_manager()->dec_socket_count();
-
-  h->clear();
-  h->get_fd().close();
-  h->get_fd().clear();
+handshake_manager_delete_handshake(Handshake* h) {
+  h->deactivate_connection();
+  h->destroy_connection();
 
   delete h;
 }
@@ -72,7 +69,7 @@ HandshakeManager::size_info(DownloadMain* info) const {
 
 void
 HandshakeManager::clear() {
-  std::for_each(base_type::begin(), base_type::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
+  std::for_each(base_type::begin(), base_type::end(), std::ptr_fun(&handshake_manager_delete_handshake));
   base_type::clear();
 }
 
@@ -101,7 +98,7 @@ void
 HandshakeManager::erase_download(DownloadMain* info) {
   iterator split = std::partition(base_type::begin(), base_type::end(), rak::not_equal(info, std::mem_fun(&Handshake::download)));
 
-  std::for_each(split, base_type::end(), std::bind1st(std::mem_fun(&HandshakeManager::delete_handshake), this));
+  std::for_each(split, base_type::end(), std::ptr_fun(&handshake_manager_delete_handshake));
   base_type::erase(split, base_type::end());
 }
 
@@ -179,56 +176,61 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
 }
 
 void
-HandshakeManager::receive_succeeded(Handshake* h) {
-  if (!h->is_active())
+HandshakeManager::receive_succeeded(Handshake* handshake) {
+  if (!handshake->is_active())
     throw internal_error("HandshakeManager::receive_succeeded(...) called on an inactive handshake.");
 
-  erase(h);
-  h->clear();
-  h->peer_info()->unset_flags(PeerInfo::flag_handshake);
+  erase(handshake);
+  handshake->deactivate_connection();
 
+  DownloadMain* download = handshake->download();
   PeerConnectionBase* pcb;
 
-  if (h->download()->info()->is_active() &&
+  if (download->info()->is_active() &&
 
       // We need to make libtorrent more selective in the clients it
       // connects to, and to move this somewhere else.
-      (!h->download()->file_list()->is_done() || !h->bitfield()->is_all_set()) &&
+      (!download->file_list()->is_done() || !handshake->bitfield()->is_all_set()) &&
 
-      (pcb = h->download()->connection_list()->insert(h->peer_info(), h->get_fd(), h->bitfield(), h->encryption()->info())) != NULL) {
+      (pcb = download->connection_list()->insert(handshake->peer_info(),
+                                                              handshake->get_fd(),
+                                                              handshake->bitfield(),
+                                                              handshake->encryption()->info())) != NULL) {
 
-    manager->client_list()->retrieve_id(&h->peer_info()->mutable_client_info(), h->peer_info()->id());
-    manager->connection_manager()->signal_handshake_log().emit(h->peer_info()->socket_address(), ConnectionManager::handshake_success, EH_None, &h->download()->info()->hash());
+    manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
+    manager->connection_manager()->signal_handshake_log().emit(handshake->peer_info()->socket_address(),
+                                                               ConnectionManager::handshake_success,
+                                                               EH_None,
+                                                               &download->info()->hash());
 
-    h->set_peer_info(NULL);
+    if (handshake->unread_size() != 0) {
+      pcb->push_unread(handshake->unread_data(), handshake->unread_size());
+      pcb->event_read();
+    }
 
-    post_insert(h, pcb);
+    handshake->release_connection();
 
   } else {
     manager->connection_manager()->dec_socket_count();
-    h->get_fd().close();
+    handshake->get_fd().close();
 
-    uint32_t reason = EH_Duplicate;
+    uint32_t reason;
 
-    if (!h->download()->info()->is_active())
+    if (!download->info()->is_active())
       reason = EH_Inactive;
-
-    if (h->download()->file_list()->is_done() && h->bitfield()->is_all_set())
+    else if (download->file_list()->is_done() && handshake->bitfield()->is_all_set())
       reason = EH_SeederRejected;
+    else
+      reason = EH_Duplicate;
 
-    manager->connection_manager()->signal_handshake_log().emit(h->peer_info()->socket_address(), ConnectionManager::handshake_dropped, reason, &h->download()->info()->hash());
+    manager->connection_manager()->signal_handshake_log().emit(handshake->peer_info()->socket_address(),
+                                                               ConnectionManager::handshake_dropped,
+                                                               reason,
+                                                               &download->info()->hash());
+    handshake->destroy_connection();
   }
 
-  h->get_fd().clear();
-  delete h;
-}
-
-inline void
-HandshakeManager::post_insert(Handshake* h, PeerConnectionBase* pcb) {
-  if (h->unread_size() != 0) {
-    pcb->push_unread(h->unread_data(), h->unread_size());
-    pcb->event_read();
-  }
+  delete handshake;
 }
 
 void
@@ -238,24 +240,29 @@ HandshakeManager::receive_failed(Handshake* handshake, ConnectionManager::Handsh
 
   const rak::socket_address* sa = handshake->socket_address();
 
-  manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(), message, err, handshake->download() != NULL ? &handshake->download()->info()->hash() : NULL);
   erase(handshake);
+  handshake->deactivate_connection();
+  handshake->destroy_connection();
 
+  manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(),
+                                                             message,
+                                                             err,
+                                                             handshake->download() != NULL ? &handshake->download()->info()->hash() : NULL);
   if (handshake->encryption()->should_retry()) {
     int retry_options = handshake->retry_options();
     DownloadMain* download = handshake->download();
 
     manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(),
-                                                               retry_options & ConnectionManager::encryption_try_outgoing ? ConnectionManager::handshake_retry_encrypted : ConnectionManager::handshake_retry_plaintext,
+                                                               retry_options & ConnectionManager::encryption_try_outgoing ?
+                                                               ConnectionManager::handshake_retry_encrypted :
+                                                               ConnectionManager::handshake_retry_plaintext,
                                                                EH_None,
                                                                &download->info()->hash());
 
-    delete_handshake(handshake);
     create_outgoing(*sa, download, retry_options);
-
-  } else {
-    delete_handshake(handshake);
   }
+
+  delete handshake;
 }
 
 void
