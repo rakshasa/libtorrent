@@ -211,9 +211,6 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
     handshake->release_connection();
 
   } else {
-    manager->connection_manager()->dec_socket_count();
-    handshake->get_fd().close();
-
     uint32_t reason;
 
     if (!download->info()->is_active())
