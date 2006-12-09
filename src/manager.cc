@@ -102,6 +102,8 @@ Manager::~Manager() {
   delete m_connectionManager;
   delete m_chunkManager;
 
+  delete m_clientList;
+
   delete m_uploadThrottle;
   delete m_downloadThrottle;
 }

@@ -48,6 +48,8 @@ public:
   typedef ProtocolBuffer<512> Buffer;
   typedef uint32_t            size_type;
 
+  static const size_type buffer_size = 512;
+
   typedef enum {
     CHOKE = 0,
     UNCHOKE,

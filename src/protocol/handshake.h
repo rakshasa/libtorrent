@@ -127,6 +127,7 @@ protected:
   void                read_done();
 
   bool                fill_read_buffer(int size);
+  void                move_unused();
 
   // Check what is unnessesary.
   bool                read_proxy_connect();

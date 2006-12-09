@@ -201,20 +201,10 @@ Handshake::read_proxy_connect() {
   Buffer::iterator itr = std::search(m_readBuffer.begin(), m_readBuffer.end(),
                                      (uint8_t*)pattern, (uint8_t*)pattern + patternLength);
 
-  if (itr == m_readBuffer.end()) {
-    std::memmove(m_readBuffer.begin(), m_readBuffer.end() - patternLength, patternLength);
-    m_readBuffer.set_end(patternLength);
+  m_readBuffer.set_position_itr(itr != m_readBuffer.end() ? (itr + patternLength) : (itr - patternLength));
+  move_unused();
 
-    return false;
-
-  } else {
-    uint32_t remaining = std::distance(itr += patternLength, m_readBuffer.end());
-
-    std::memmove(m_readBuffer.begin(), itr, remaining);
-    m_readBuffer.set_end(remaining);
-
-    return true;
-  }
+  return itr != m_readBuffer.end();
 }
 
 bool
@@ -523,11 +513,12 @@ Handshake::read_bitfield() {
   }
 
   if (m_readPos < m_bitfield.size_bytes()) {
-    uint32_t read;
-    read = read_stream_throws(m_bitfield.begin() + m_readPos, m_bitfield.size_bytes() - m_readPos);
+    uint32_t length = read_stream_throws(m_bitfield.begin() + m_readPos, m_bitfield.size_bytes() - m_readPos);
+
     if (m_encryption.info()->decrypt_valid())
-      m_encryption.info()->decrypt(m_bitfield.begin() + m_readPos, read);
-    m_readPos += read;
+      m_encryption.info()->decrypt(m_bitfield.begin() + m_readPos, length);
+
+    m_readPos += length;
   }
 
   if (m_readPos == m_bitfield.size_bytes())
@@ -666,13 +657,25 @@ restart:
 
 bool
 Handshake::fill_read_buffer(int size) {
+  if (size > m_readBuffer.reserved_left())
+    throw internal_error("Handshake::fill_read_buffer(...) Buffer overflow.");
+
   if (m_readBuffer.remaining() < size) {
     int read = m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), size - m_readBuffer.remaining()));
 
     if (m_encryption.info()->decrypt_valid() && read > 0)
       m_encryption.info()->decrypt(m_readBuffer.end() - read, read);
   }
+
   return m_readBuffer.remaining() >= size;
+}
+
+void
+Handshake::move_unused() {
+  std::memmove(m_readBuffer.begin(), m_readBuffer.position(), m_readBuffer.remaining());
+
+  m_readBuffer.set_end(m_readBuffer.remaining());
+  m_readBuffer.reset_position();
 }
 
 inline void
