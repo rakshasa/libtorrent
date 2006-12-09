@@ -296,24 +296,6 @@ set_max_open_files(uint32_t size) {
   manager->file_manager()->set_max_size(size);
 }
 
-uint32_t
-open_sockets() {
-  return manager->connection_manager()->size();
-}
-
-uint32_t
-max_open_sockets() {
-  return manager->connection_manager()->max_size();
-}
-
-void
-set_max_open_sockets(uint32_t size) {
-  if (size < 4 || size > (1 << 16))
-    throw input_error("Max open sockets must be between 4 and 2^16.");
-
-  manager->connection_manager()->set_max_size(size);
-}
-
 EncodingList*
 encoding_list() {
   return manager->encoding_list();

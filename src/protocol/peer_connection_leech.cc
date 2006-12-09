@@ -310,10 +310,10 @@ PeerConnectionLeech::event_read() {
         while (read_message());
         
         if (m_down->buffer()->size_end() == read_size) {
-          read_buffer_move_unused();
+          m_down->buffer()->move_unused();
           break;
         } else {
-          read_buffer_move_unused();
+          m_down->buffer()->move_unused();
           return;
         }
 

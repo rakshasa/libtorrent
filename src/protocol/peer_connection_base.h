@@ -135,8 +135,6 @@ protected:
   void                read_request_piece(const Piece& p);
   void                read_cancel_piece(const Piece& p);
 
-  void                read_buffer_move_unused();
-
   void                write_prepare_piece();
 
   bool                down_chunk_start(const Piece& p);

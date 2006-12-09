@@ -581,16 +581,6 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
 }  
 
 void
-PeerConnectionBase::read_buffer_move_unused() {
-  uint32_t remaining = m_down->buffer()->remaining();
-  
-  std::memmove(m_down->buffer()->begin(), m_down->buffer()->position(), remaining);
-  
-  m_down->buffer()->reset_position();
-  m_down->buffer()->set_end(remaining);
-}
-
-void
 PeerConnectionBase::write_prepare_piece() {
   m_upPiece = m_peerChunks.upload_queue()->front();
   m_peerChunks.upload_queue()->pop_front();

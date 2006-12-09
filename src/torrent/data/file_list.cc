@@ -40,6 +40,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <set>
 #include <rak/error_number.h>
 #include <rak/file_stat.h>
 #include <rak/fs_stat.h>
@@ -266,14 +267,23 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   base_type::push_back(newFile);
 }
 
+struct file_list_cstr_less {
+  bool operator () (const char* c1, const char* c2) const {
+    return std::strcmp(c1, c2) < 0;
+  }
+};
+
 void
 FileList::open() {
+  typedef std::set<const char*, file_list_cstr_less> path_set;
+
   if (m_rootDir.empty())
     throw internal_error("FileList::open() m_rootDir.empty().");
 
   m_indirectLinks.push_back(m_rootDir);
 
   Path lastPath;
+  path_set pathSet;
   iterator itr = begin();
 
   try {
@@ -291,6 +301,9 @@ FileList::open() {
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
       entry->file_meta()->set_path(m_rootDir + entry->path()->as_string());
+
+      if (!pathSet.insert(entry->file_meta()->get_path().c_str()).second)
+        throw storage_error("Found a duplicate filename.");
 
       if (entry->size_bytes() > m_maxFileSize)
         throw storage_error("Found a file exceeding max file size.");

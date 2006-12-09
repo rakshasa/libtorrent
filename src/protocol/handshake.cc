@@ -187,6 +187,9 @@ Handshake::retry_options() {
   return options;
 }
 
+// Handshake::read_proxy_connect()
+// Entry: 0, 0
+// * 0, [0, 508>
 bool
 Handshake::read_proxy_connect() {
   // Being greedy for now.
@@ -202,11 +205,15 @@ Handshake::read_proxy_connect() {
                                      (uint8_t*)pattern, (uint8_t*)pattern + patternLength);
 
   m_readBuffer.set_position_itr(itr != m_readBuffer.end() ? (itr + patternLength) : (itr - patternLength));
-  move_unused();
+  m_readBuffer.move_unused();
 
   return itr != m_readBuffer.end();
 }
 
+// Handshake::read_encryption_key()
+// Entry: * 0, [0, 508>
+// IU 20, [20, enc_pad_read_size>
+// *E 96, [96, enc_pad_read_size>
 bool
 Handshake::read_encryption_key() {
   if (m_incoming) {
@@ -257,10 +264,11 @@ Handshake::read_encryption_key() {
     prepare_enc_negotiation();
 
   m_state = READ_ENC_SYNC;
-
   return true;
 }
 
+// Handshake::read_encryption_sync()
+// *E 96, [96, enc_pad_read_size>
 bool
 Handshake::read_encryption_sync() {
   // Check if we've read the sync string already in the previous
@@ -296,6 +304,30 @@ Handshake::read_encryption_sync() {
     m_state = READ_ENC_NEGOT;
   }
 
+  return true;
+}
+
+bool
+Handshake::read_encryption_skey() {
+  if (!fill_read_buffer(20))
+    return false;
+
+  m_encryption.deobfuscate_hash((char*)m_readBuffer.position());
+  m_download = m_manager->download_info_obfuscated((char*)m_readBuffer.position());
+  m_readBuffer.consume(20);
+
+  validate_download();
+
+  m_encryption.initialize_encrypt(m_download->info()->hash().c_str(), m_incoming);
+  m_encryption.initialize_decrypt(m_download->info()->hash().c_str(), m_incoming);
+
+  m_encryption.info()->decrypt(m_readBuffer.position(), m_readBuffer.remaining());
+
+  HandshakeEncryption::copy_vc(m_writeBuffer.end());
+  m_encryption.info()->encrypt(m_writeBuffer.end(), HandshakeEncryption::vc_length);
+  m_writeBuffer.move_end(HandshakeEncryption::vc_length);
+
+  m_state = READ_ENC_NEGOT;
   return true;
 }
 
@@ -557,25 +589,8 @@ restart:
         goto restart;
 
     case READ_ENC_SKEY:
-      if (!fill_read_buffer(20))
+      if (!read_encryption_skey())
         break;
-
-      m_encryption.deobfuscate_hash((char*)m_readBuffer.position());
-      m_download = m_manager->download_info_obfuscated((char*)m_readBuffer.position());
-      m_readBuffer.consume(20);
-
-      validate_download();
-
-      m_encryption.initialize_encrypt(m_download->info()->hash().c_str(), m_incoming);
-      m_encryption.initialize_decrypt(m_download->info()->hash().c_str(), m_incoming);
-
-      m_encryption.info()->decrypt(m_readBuffer.position(), m_readBuffer.remaining());
-
-      HandshakeEncryption::copy_vc(m_writeBuffer.end());
-      m_encryption.info()->encrypt(m_writeBuffer.end(), HandshakeEncryption::vc_length);
-      m_writeBuffer.move_end(HandshakeEncryption::vc_length);
-
-      m_state = READ_ENC_NEGOT;
 
     case READ_ENC_NEGOT:
       if (!read_encryption_negotiation())
@@ -663,19 +678,11 @@ Handshake::fill_read_buffer(int size) {
   if (m_readBuffer.remaining() < size) {
     int read = m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), size - m_readBuffer.remaining()));
 
-    if (m_encryption.info()->decrypt_valid() && read > 0)
+    if (m_encryption.info()->decrypt_valid())
       m_encryption.info()->decrypt(m_readBuffer.end() - read, read);
   }
 
   return m_readBuffer.remaining() >= size;
-}
-
-void
-Handshake::move_unused() {
-  std::memmove(m_readBuffer.begin(), m_readBuffer.position(), m_readBuffer.remaining());
-
-  m_readBuffer.set_end(m_readBuffer.remaining());
-  m_readBuffer.reset_position();
 }
 
 inline void

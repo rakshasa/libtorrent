@@ -127,12 +127,12 @@ protected:
   void                read_done();
 
   bool                fill_read_buffer(int size);
-  void                move_unused();
 
   // Check what is unnessesary.
   bool                read_proxy_connect();
   bool                read_encryption_key();
   bool                read_encryption_sync();
+  bool                read_encryption_skey();
   bool                read_encryption_negotiation();
   bool                read_negotiation_reply();
   bool                read_info();

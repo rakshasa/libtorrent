@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_NET_PROTOCOL_BUFFER_H
 #define LIBTORRENT_NET_PROTOCOL_BUFFER_H
 
+#include <memory>
 #include <inttypes.h>
 #include <netinet/in.h>
 
@@ -108,6 +109,8 @@ public:
   size_type           remaining() const             { return m_end - m_position; }
   size_type           reserved() const              { return tmpl_size; }
   size_type           reserved_left() const         { return reserved() - size_end(); }
+
+  void                move_unused();
 
   void                validate_position() const {
 #ifdef USE_EXTRA_DEBUG
@@ -286,6 +289,15 @@ ProtocolBuffer<tmpl_size>::write_len(In start, unsigned int len) {
     *m_end = *start;
 
   validate_end();
+}
+
+template <uint16_t tmpl_size>
+void
+ProtocolBuffer<tmpl_size>::move_unused() {
+  std::memmove(begin(), position(), remaining());
+
+  set_end(remaining());
+  reset_position();
 }
 
 }

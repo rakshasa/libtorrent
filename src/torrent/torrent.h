@@ -101,10 +101,6 @@ uint32_t            open_files() LIBTORRENT_EXPORT;
 uint32_t            max_open_files() LIBTORRENT_EXPORT;
 void                set_max_open_files(uint32_t size) LIBTORRENT_EXPORT;
 
-uint32_t            open_sockets() LIBTORRENT_EXPORT;
-uint32_t            max_open_sockets() LIBTORRENT_EXPORT;
-void                set_max_open_sockets(uint32_t size) LIBTORRENT_EXPORT;
-
 typedef std::list<Download> DList;
 typedef std::list<std::string> EncodingList;
 
