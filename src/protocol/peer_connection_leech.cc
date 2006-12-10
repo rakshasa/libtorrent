@@ -268,16 +268,6 @@ PeerConnectionLeech::read_message() {
   return false;
 }
 
-inline unsigned int
-PeerConnectionLeech::read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length) {
-  unsigned int read;
-  read = read_stream_throws(buffer->end(), read_size - buffer->size_end());
-  if (is_encrypted())
-    m_encryption.decrypt(buffer->end(), read);
-  buffer->move_end(read);
-  return read;
-}
-
 void
 PeerConnectionLeech::event_read() {
   m_timeLastRead = cachedTime;
@@ -302,10 +292,14 @@ PeerConnectionLeech::event_read() {
 
       switch (m_down->get_state()) {
       case ProtocolRead::IDLE:
-        if (m_down->buffer()->size_end() == read_size)
-          throw internal_error("PeerConnectionLeech::event_read() m_down->buffer()->size_end() == read_size.");
+        if (m_down->buffer()->size_end() < read_size) {
+          unsigned int length = read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end());
 
-        read_decrypt(m_down->buffer(), read_size);
+          if (is_encrypted())
+            m_encryption.decrypt(m_down->buffer()->end(), length);
+
+          m_down->buffer()->move_end(length);
+        }
 
         while (read_message());
         
@@ -319,7 +313,7 @@ PeerConnectionLeech::event_read() {
 
       case ProtocolRead::READ_PIECE:
         if (!download_queue()->is_downloading())
-          throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading");
+          throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading.");
 
         if (!m_downloadQueue.transfer()->is_valid() || !m_downloadQueue.transfer()->is_leader()) {
           m_down->set_state(ProtocolRead::READ_SKIP_PIECE);

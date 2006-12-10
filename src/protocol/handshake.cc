@@ -513,13 +513,13 @@ Handshake::read_bitfield() {
 
     // Received a keep-alive message which means we won't be
     // getting any bitfield.
-    if (m_readBuffer.size_end() >= 4 && m_readBuffer.peek_32() == 0) {
+    if (m_readBuffer.remaining() >= 4 && m_readBuffer.peek_32() == 0) {
       m_readBuffer.read_32();
       read_done();
       return false;
     }
 
-    if (m_readBuffer.size_end() < 5)
+    if (m_readBuffer.remaining() < 5)
       return false;
 
     // Received a non-bitfield command.

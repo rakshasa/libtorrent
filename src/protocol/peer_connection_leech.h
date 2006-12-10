@@ -60,7 +60,6 @@ private:
   inline bool         read_message();
   void                read_have_chunk(uint32_t index);
 
-  inline unsigned int read_decrypt(ProtocolBase::Buffer* buffer, unsigned int length);
   inline void         fill_write_buffer();
 
   bool                m_tryRequest;
