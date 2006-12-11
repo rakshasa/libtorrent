@@ -79,10 +79,10 @@ Download::close() {
 void
 Download::start() {
   if (!m_ptr->hash_checker()->is_checked())
-    throw client_error("Tried to start an unchecked download");
+    throw internal_error("Tried to start an unchecked download.");
 
   if (!m_ptr->info()->is_open())
-    throw client_error("Tried to start a closed download");
+    throw internal_error("Tried to start a closed download.");
 
   if (m_ptr->info()->is_active())
     return;
@@ -122,10 +122,10 @@ Download::hash_check(bool tryQuick) {
     return m_ptr->hash_checker()->start(tryQuick);
 
   if (!m_ptr->info()->is_open() || m_ptr->info()->is_active())
-    throw client_error("Download::hash_check(...) called on a closed or active download.");
+    throw internal_error("Download::hash_check(...) called on a closed or active download.");
 
   if (m_ptr->hash_checker()->is_checked())
-    throw client_error("Download::hash_check(...) called but already hash checked.");
+    throw internal_error("Download::hash_check(...) called but already hash checked.");
 
   // The bitfield still hasn't been allocated, so no resume data was
   // given. 

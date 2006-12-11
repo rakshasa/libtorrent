@@ -78,7 +78,7 @@ class LIBTORRENT_EXPORT Http {
   // Set the factory function that constructs and returns a valid Http* object.
   static void        set_factory(const SlotFactory& f);
 
-  // Guaranteed to return a valid object or throw a client_error. The
+  // Guaranteed to return a valid object or throw a internal_error. The
   // caller takes ownership of the returned object. Is there any
   // interest in making a destructor slot?
   static Http*       call_factory();

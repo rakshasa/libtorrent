@@ -170,7 +170,7 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 void
 PollSelect::open(Event* event) {
   if ((uint32_t)event->file_descriptor() >= m_readSet->max_size())
-    throw client_error("Tried to add a socket to PollSelect that is larger than PollSelect::get_open_max()");
+    throw internal_error("Tried to add a socket to PollSelect that is larger than PollSelect::get_open_max()");
 
   if (in_read(event) || in_write(event) || in_error(event))
     throw internal_error("PollSelect::open(...) called on an inserted event");

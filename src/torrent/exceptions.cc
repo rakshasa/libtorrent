@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <cerrno>
+
 #include "exceptions.h"
 
 namespace torrent {
@@ -44,16 +46,24 @@ namespace torrent {
 // exceptions. This allows us to create breakpoints at throws. This is
 // limited to rarely thrown exceptions.
 
-internal_error::internal_error(const std::string& msg) :
-  program_error(msg) {
+internal_error::internal_error(const char* msg) : m_msg(msg) {}
+internal_error::internal_error(const std::string& msg) : m_msg(msg) {}
+
+communication_error::communication_error(const char* msg) : m_msg(msg) {}
+communication_error::communication_error(const std::string& msg) : m_msg(msg) {}
+
+const char*
+connection_error::what() const throw() {
+  return std::strerror(m_errno);
 }
 
-client_error::client_error(const std::string& msg) :
-  program_error(msg) {
-}
+storage_error::storage_error(const char* msg) : m_msg(msg) {}
+storage_error::storage_error(const std::string& msg) : m_msg(msg) {}
 
-storage_error::storage_error(const std::string& msg) :
-  local_error(msg) {
-}
+resource_error::resource_error(const char* msg) : m_msg(msg) {}
+resource_error::resource_error(const std::string& msg) : m_msg(msg) {}
+
+input_error::input_error(const char* msg) : m_msg(msg) {}
+input_error::input_error(const std::string& msg) : m_msg(msg) {}
 
 }

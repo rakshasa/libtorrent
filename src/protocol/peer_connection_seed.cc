@@ -119,7 +119,7 @@ PeerConnectionSeed::read_message() {
     return false;
 
   } else if (length > (1 << 20)) {
-    throw network_error("PeerConnectionSeed::read_message() got an invalid message length.");
+    throw communication_error("PeerConnectionSeed::read_message() got an invalid message length.");
   }
     
   // We do not verify the message length of those with static
@@ -173,7 +173,7 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::PIECE:
-    throw network_error("Received a piece but the connection is strictly for seeding.");
+    throw communication_error("Received a piece but the connection is strictly for seeding.");
 
   case ProtocolBase::CANCEL:
     if (!m_down->can_read_cancel_body())
@@ -183,7 +183,7 @@ PeerConnectionSeed::read_message() {
     return true;
 
   default:
-    throw network_error("Received unsupported message type.");
+    throw communication_error("Received unsupported message type.");
   }
 
   // We were unsuccessfull in reading the message, need more data.
@@ -252,9 +252,7 @@ PeerConnectionSeed::event_read() {
     std::stringstream s;
     s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
 
-    e.set(s.str());
-
-    throw;
+    throw internal_error(s.str());
   }
 }
 
@@ -350,16 +348,14 @@ PeerConnectionSeed::event_write() {
     std::stringstream s;
     s << "Connection write fd(" << get_fd().get_fd() << ',' << m_up->get_state() << ',' << m_up->last_command() << ") \"" << e.what() << '"';
 
-    e.set(s.str());
-
-    throw;
+    throw internal_error(s.str());
   }
 }
 
 void
 PeerConnectionSeed::read_have_chunk(uint32_t index) {
   if (index >= m_peerChunks.bitfield()->size_bits())
-    throw network_error("Peer sent HAVE message with out-of-range index.");
+    throw communication_error("Peer sent HAVE message with out-of-range index.");
 
   if (m_peerChunks.bitfield()->get(index))
     return;

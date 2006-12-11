@@ -54,12 +54,12 @@ Http::set_factory(const SlotFactory& f) {
 Http*
 Http::call_factory() {
   if (m_factory.empty())
-    throw client_error("Http factory not set");
+    throw internal_error("Http factory not set.");
 
   Http* h = m_factory();
 
   if (h == NULL)
-    throw client_error("Http factory returned a NULL object");
+    throw internal_error("Http factory returned a NULL object.");
 
   return h;
 }

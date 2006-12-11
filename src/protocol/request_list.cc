@@ -140,7 +140,7 @@ RequestList::downloading(const Piece& piece) {
   // the unmodified BlockTransfer.
   if (piece.length() != m_transfer->piece().length()) {
     if (piece.length() != 0)
-      throw network_error("Peer sent a piece with wrong, non-zero, length.");
+      throw communication_error("Peer sent a piece with wrong, non-zero, length.");
 
     Block::release(m_transfer);
     goto downloading_error;

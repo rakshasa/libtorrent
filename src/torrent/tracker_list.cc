@@ -53,7 +53,7 @@ TrackerList::is_busy() const {
 Tracker
 TrackerList::get(uint32_t index) const {
   if (index >= m_manager->size())
-    throw client_error("Client called TrackerList::get_tracker(...) with out of range index.");
+    throw internal_error("Client called TrackerList::get_tracker(...) with out of range index.");
 
   return m_manager->get(index);
 }

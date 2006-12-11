@@ -55,10 +55,13 @@ const char* Handshake::m_protocol = "BitTorrent protocol";
 
 class handshake_error : public network_error {
 public:
-  handshake_error(ConnectionManager::HandshakeMessage type, int error) : network_error("handshake error"), m_type(type), m_error(error) {}
+  handshake_error(ConnectionManager::HandshakeMessage type, int error) : m_type(type), m_error(error) {}
+
+  virtual const char* what() const throw() { return "Handshake error"; }
 
   virtual ConnectionManager::HandshakeMessage type() const throw()  { return m_type; }
   virtual int error() const throw()                                 { return m_error; }
+
 private:
   ConnectionManager::HandshakeMessage m_type;
   int                                 m_error;
@@ -66,7 +69,7 @@ private:
 
 class handshake_succeeded : public network_error {
 public:
-  handshake_succeeded() : network_error("handshake succeeded") {}
+  handshake_succeeded() {}
 };
 
 Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :

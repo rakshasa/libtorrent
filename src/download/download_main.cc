@@ -136,10 +136,10 @@ DownloadMain::close() {
 
 void DownloadMain::start() {
   if (!info()->is_open())
-    throw client_error("Tried to start a closed download");
+    throw internal_error("Tried to start a closed download");
 
   if (info()->is_active())
-    throw client_error("Tried to start an active download");
+    throw internal_error("Tried to start an active download");
 
   info()->set_active(true);
   m_lastConnectedSize = 0;

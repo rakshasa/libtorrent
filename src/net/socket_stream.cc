@@ -69,10 +69,7 @@ SocketStream::read_stream_throws(void* buf, uint32_t length) {
     else if (rak::error_number::current().is_blocked_prolonged())
       throw blocked_connection();
     else
-      throw connection_error("Connection closed due to (errno: " +
-			     int_to_string(rak::error_number::current().value()) +
-			     ") " +
-			     std::string(rak::error_number::current().c_str()));
+      throw connection_error(rak::error_number::current().value());
 
   return r;
 }
@@ -92,10 +89,7 @@ SocketStream::write_stream_throws(const void* buf, uint32_t length) {
     else if (rak::error_number::current().is_blocked_prolonged())
       throw blocked_connection();
     else
-      throw connection_error("Connection closed due to (errno: " +
-			     int_to_string(rak::error_number::current().value()) +
-			     ") " +
-			     std::string(rak::error_number::current().c_str()));
+      throw connection_error(rak::error_number::current().value());
 
   return r;
 }

@@ -94,10 +94,10 @@ calculate_reserved(uint32_t openMax) {
 void
 initialize(Poll* poll) {
   if (manager != NULL)
-    throw client_error("torrent::initialize(...) called but the library has already been initialized");
+    throw internal_error("torrent::initialize(...) called but the library has already been initialized");
 
   if (poll->open_max() < 64)
-    throw client_error("Could not initialize libtorrent, Poll::open_max() < 64.");
+    throw internal_error("Could not initialize libtorrent, Poll::open_max() < 64.");
 
   cachedTime = rak::timer::current();
 
@@ -115,7 +115,7 @@ initialize(Poll* poll) {
 void
 cleanup() {
   if (manager == NULL)
-    throw client_error("torrent::cleanup() called but the library is not initialized.");
+    throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
   delete manager;
   manager = NULL;
@@ -354,7 +354,7 @@ download_priority(Download d) {
   ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr()->main());
 
   if (itr == manager->resource_manager()->end())
-    throw client_error("torrent::download_priority(...) could not find the download in the resource manager.");
+    throw internal_error("torrent::download_priority(...) could not find the download in the resource manager.");
 
   return itr->first;
 }
@@ -364,10 +364,10 @@ download_set_priority(Download d, uint32_t pri) {
   ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr()->main());
 
   if (itr == manager->resource_manager()->end())
-    throw client_error("torrent::download_set_priority(...) could not find the download in the resource manager.");
+    throw internal_error("torrent::download_set_priority(...) could not find the download in the resource manager.");
 
   if (pri > 1024)
-    throw client_error("torrent::download_set_priority(...) received an invalid priority.");
+    throw internal_error("torrent::download_set_priority(...) received an invalid priority.");
 
   manager->resource_manager()->set_priority(itr, pri);
 }

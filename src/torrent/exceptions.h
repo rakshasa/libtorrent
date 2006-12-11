@@ -43,86 +43,115 @@
 
 namespace torrent {
 
-// all exceptions inherit from runtime_error to make catching everything
-// at the root easier.
-
+// All exceptions inherit from std::exception to make catching
+// everything libtorrent related at the root easier.
 class LIBTORRENT_EXPORT base_error : public std::exception {
 public:
-  base_error(const std::string& msg) : m_msg(msg) {}
   virtual ~base_error() throw() {}
+};
+
+// The library or application did some borking it shouldn't have, bug
+// tracking time!
+class LIBTORRENT_EXPORT internal_error : public base_error {
+public:
+  internal_error(const char* msg);
+  internal_error(const std::string& msg);
+  virtual ~internal_error() throw() {}
 
   virtual const char* what() const throw() { return m_msg.c_str(); }
 
-  void set(const std::string& msg) { m_msg = msg; }
-
 private:
   std::string m_msg;
-};
-
-class LIBTORRENT_EXPORT program_error : public base_error {
-public:
-  program_error(const std::string& msg) : base_error(msg) {}
-};
-
-// The library or application did some borking it shouldn't have, bug tracking time!
-class LIBTORRENT_EXPORT internal_error : public program_error {
-public:
-  internal_error(const std::string& msg);
-};
-
-class LIBTORRENT_EXPORT client_error : public program_error {
-public:
-  client_error(const std::string& msg);
 };
 
 // For some reason we couldn't talk with a protocol/tracker, migth be a
 // library bug, connection problem or bad input.
 class LIBTORRENT_EXPORT network_error : public base_error {
 public:
-  network_error(const std::string& msg) : base_error(msg) {}
+  virtual ~network_error() throw() {}
 };
 
 class LIBTORRENT_EXPORT communication_error : public network_error {
 public:
-  communication_error(const std::string& msg) : network_error(msg) {}
+  communication_error(const char* msg);
+  communication_error(const std::string& msg);
+  virtual ~communication_error() throw() {}
+
+  virtual const char* what() const throw() { return m_msg.c_str(); }
+
+private:
+  std::string m_msg;
 };
 
 class LIBTORRENT_EXPORT connection_error : public network_error {
 public:
-  connection_error(const std::string& msg) : network_error(msg) {}
+  connection_error(int err) : m_errno(err) {}
+  virtual ~connection_error() throw() {}
+
+  virtual const char* what() const throw();
+
+private:
+  int m_errno;
 };
 
 class LIBTORRENT_EXPORT close_connection : public network_error {
 public:
-  close_connection() : network_error("") {}
-
-  close_connection(const std::string& msg) : network_error(msg) {}
+  virtual ~close_connection() throw() {}
 };
 
 class LIBTORRENT_EXPORT blocked_connection : public network_error {
 public:
-  blocked_connection() : network_error("") {}
+  virtual ~blocked_connection() throw() {}
 };
 
 // Stuff like bad torrent file, disk space and permissions.
 class LIBTORRENT_EXPORT local_error : public base_error {
 public:
-  local_error(const std::string& msg) : base_error(msg) {}
+  virtual ~local_error() throw() {}
 };
 
 class LIBTORRENT_EXPORT storage_error : public local_error {
 public:
+  storage_error(const char* msg);
   storage_error(const std::string& msg);
+  virtual ~storage_error() throw() {}
+
+  virtual const char* what() const throw() { return m_msg.c_str(); }
+
+private:
+  std::string m_msg;
+};
+
+class LIBTORRENT_EXPORT resource_error : public local_error {
+public:
+  resource_error(const char* msg);
+  resource_error(const std::string& msg);
+  virtual ~resource_error() throw() {}
+
+  virtual const char* what() const throw() { return m_msg.c_str(); }
+
+private:
+  std::string m_msg;
 };
 
 class LIBTORRENT_EXPORT input_error : public local_error {
 public:
-  input_error(const std::string& msg) : local_error(msg) {}
+  input_error(const char* msg);
+  input_error(const std::string& msg);
+  virtual ~input_error() throw() {}
+
+  virtual const char* what() const throw() { return m_msg.c_str(); }
+
+private:
+  std::string m_msg;
 };
 
 class LIBTORRENT_EXPORT bencode_error : public input_error {
 public:
+  bencode_error(const char* msg) : input_error(msg) {}
   bencode_error(const std::string& msg) : input_error(msg) {}
+
+  virtual ~bencode_error() throw() {}
 };
 
 }

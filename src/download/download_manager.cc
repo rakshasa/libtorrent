@@ -48,7 +48,7 @@ namespace torrent {
 DownloadManager::iterator
 DownloadManager::insert(DownloadWrapper* d) {
   if (find(d->info()->hash()) != end())
-    throw client_error("Could not add torrent as it already exists.");
+    throw internal_error("Could not add torrent as it already exists.");
 
   return base_type::insert(end(), d);
 }
@@ -58,7 +58,7 @@ DownloadManager::erase(DownloadWrapper* d) {
   iterator itr = std::find(begin(), end(), d);
 
   if (itr == end())
-    throw client_error("Tried to remove a torrent that doesn't exist");
+    throw internal_error("Tried to remove a torrent that doesn't exist");
     
   delete *itr;
   return base_type::erase(itr);
