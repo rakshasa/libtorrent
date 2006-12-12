@@ -40,28 +40,37 @@
 
 namespace torrent {
 
+static const char* errorStrings[e_last + 1] = {
+  "Unknown error",                      // e_none
+
+  "Not BitTorrent protocol",            // eh_not_bittorrent
+  "Not accepting connections",          // eh_not_accepting_connections
+  "Duplicate peer ID",                  // eh_duplicate
+  "Unknown download",                   // eh_unknown_download
+  "Download inactive",                  // eh_inactive_download
+  "Seeder rejected",                    // eh_unwanted_connection
+  "Is self",                            // eh_is_self
+  "Invalid value received",             // eh_invalid_value
+  "Unencrypted connection rejected",    // eh_unencrypted_rejected
+  "Invalid encryption method",          // eh_invalid_encryption
+  "Encryption sync failed",             // eh_encryption_sync_failed
+  "Network error",                      // eh_network_error
+
+//   "", // e_handshake_incoming
+//   "", // e_handshake_outgoing
+//   "", // e_handshake_outgoing_encrypted
+//   "", // e_handshake_outgoing_proxy
+//   "", // e_handshake_success
+//   "", // e_handshake_retry_plaintext
+//   ""  // e_handshake_retry_encrypted
+};
+
 const char*
 strerror(int err) {
-  static const char* errorStr[E_Last + 1] = {
-    "",                                   // EH_None
-    "not BT protocol",                    // EH_NotBTProtocol
-    "not accepting new peers",            // EH_NotAcceptingPeers
-    "duplicate peer ID",                  // EH_Duplicate
-    "unknown download",                   // EH_Unknown
-    "download inactive",                  // EH_Inactive
-    "seeder while seeding",               // EH_SeederRejected
-    "talking to self",                    // EH_IsSelf
-    "invalid value received",             // EH_InvalidValue
-    "unencrypted connection rejected",    // EH_UnencryptedRejected
-    "invalid encryption method",          // EH_InvalidEncryptionMethod
-    "encryption sync failed",             // EH_EncryptionSyncFailed
-    "network error",                      // EH_NetworkError
-  };
-
-  if (err < 0 || err > E_Last)
-    return "unknown error";
+  if (err < 0 || err > e_last)
+    return "Unknown error";
   
-  return errorStr[err];
+  return errorStrings[err];
 }
 
 }

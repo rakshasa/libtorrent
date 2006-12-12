@@ -82,7 +82,7 @@ public:
   void                slot_download_id_obfuscated(SlotDownloadId s)     { m_slotDownloadIdObfuscated = s; }
 
   void                receive_succeeded(Handshake* h);
-  void                receive_failed(Handshake* h, ConnectionManager::HandshakeMessage message, uint32_t err);
+  void                receive_failed(Handshake* h, int message, int error);
   void                receive_timeout(Handshake* h);
 
   // This needs to be filterable slot.

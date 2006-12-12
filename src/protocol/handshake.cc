@@ -55,16 +55,15 @@ const char* Handshake::m_protocol = "BitTorrent protocol";
 
 class handshake_error : public network_error {
 public:
-  handshake_error(ConnectionManager::HandshakeMessage type, int error) : m_type(type), m_error(error) {}
+  handshake_error(int type, int error) : m_type(type), m_error(error) {}
 
-  virtual const char* what() const throw() { return "Handshake error"; }
-
-  virtual ConnectionManager::HandshakeMessage type() const throw()  { return m_type; }
-  virtual int error() const throw()                                 { return m_error; }
+  virtual const char* what() const throw()  { return "Handshake error"; }
+  virtual int         type() const throw()  { return m_type; }
+  virtual int         error() const throw() { return m_error; }
 
 private:
-  ConnectionManager::HandshakeMessage m_type;
-  int                                 m_error;
+  int     m_type;
+  int     m_error;
 };
 
 class handshake_succeeded : public network_error {
@@ -229,7 +228,7 @@ Handshake::read_encryption_key() {
     if (m_readBuffer.peek_8() == 19 && std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) == 0) {
       // got unencrypted BT handshake
       if (m_encryption.options() & ConnectionManager::encryption_require)
-        throw handshake_error(ConnectionManager::handshake_dropped, EH_UnencryptedRejected);
+        throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unencrypted_rejected);
 
       m_state = READ_INFO;
       return true;
@@ -285,7 +284,7 @@ Handshake::read_encryption_sync() {
     int toRead = enc_pad_size + m_encryption.sync_length() - m_readBuffer.remaining();
 
     if (toRead <= 0)
-      throw handshake_error(ConnectionManager::handshake_failed, EH_EncryptionSyncFailed);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_encryption_sync_failed);
 
     m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), toRead));
 
@@ -349,7 +348,7 @@ Handshake::read_encryption_negotiation() {
   }
 
   if (!HandshakeEncryption::compare_vc(m_readBuffer.position()))
-    throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
   m_readBuffer.consume(HandshakeEncryption::vc_length);
 
@@ -357,7 +356,7 @@ Handshake::read_encryption_negotiation() {
   m_readPos = m_readBuffer.read_16();       // length of padC/padD
 
   if (m_readPos > enc_pad_size)
-    throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
   // choose one of the offered encryptions, or check the chosen one is valid
   if (m_incoming) {
@@ -365,7 +364,7 @@ Handshake::read_encryption_negotiation() {
       m_encryption.set_crypto(HandshakeEncryption::crypto_plain);
 
     } else if ((m_encryption.options() & ConnectionManager::encryption_require_RC4) && !m_encryption.has_crypto_rc4()) {
-      throw handshake_error(ConnectionManager::handshake_dropped, EH_UnencryptedRejected);
+      throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unencrypted_rejected);
 
     } else if (m_encryption.has_crypto_rc4()) {
       m_encryption.set_crypto(HandshakeEncryption::crypto_rc4);
@@ -374,7 +373,7 @@ Handshake::read_encryption_negotiation() {
       m_encryption.set_crypto(HandshakeEncryption::crypto_plain);
 
     } else {
-      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidEncryptionMethod);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
     }
 
     // at this point we can also write the rest of our negotiation reply
@@ -384,10 +383,10 @@ Handshake::read_encryption_negotiation() {
 
   } else {
     if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4 && m_encryption.crypto() != HandshakeEncryption::crypto_plain)
-      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidEncryptionMethod);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
 
     if ((m_encryption.options() & ConnectionManager::encryption_require_RC4) && (m_encryption.crypto() != HandshakeEncryption::crypto_rc4))
-      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidEncryptionMethod);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
   }
 
   if (!m_incoming) {
@@ -422,7 +421,7 @@ Handshake::read_negotiation_reply() {
   m_encryption.set_length_ia(m_readBuffer.read_16());
 
   if (m_encryption.length_ia() > handshake_size)
-    throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
   m_state = READ_ENC_IA;
 
@@ -438,7 +437,7 @@ Handshake::read_info() {
   if ((m_readBuffer.remaining() >= 1 && m_readBuffer.peek_8() != 19) ||
       m_readBuffer.remaining() >= 20 &&
       (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0))
-    throw handshake_error(ConnectionManager::handshake_failed, EH_NotBTProtocol);
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_not_bittorrent);
 
   if (m_readBuffer.remaining() < part1_size)
     return false;
@@ -458,7 +457,7 @@ Handshake::read_info() {
       // Have the download from the encrypted handshake, make sure it
       // matches the BT handshake.
       if (m_download->info()->hash().not_equal_to((char*)m_readBuffer.position()))
-        throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
     } else {
       m_download = m_manager->download_info((char*)m_readBuffer.position());
@@ -469,7 +468,7 @@ Handshake::read_info() {
 
   } else {
     if (m_download->info()->hash().not_equal_to((char*)m_readBuffer.position()))
-      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
   }
 
   m_readBuffer.consume(20);
@@ -532,7 +531,7 @@ Handshake::read_bitfield() {
     }
 
     if (m_readBuffer.read_32() != bitfield->size_bytes() + 1)
-      throw handshake_error(ConnectionManager::handshake_failed, EH_InvalidValue);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
     m_readBuffer.read_8();
     m_readPos = 0;
@@ -668,7 +667,7 @@ restart:
     m_manager->receive_failed(this, e.type(), e.error());
 
   } catch (network_error& e) {
-    m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
+    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
 
   }
 }
@@ -691,11 +690,11 @@ Handshake::fill_read_buffer(int size) {
 inline void
 Handshake::validate_download() {
   if (m_download == NULL)
-    throw handshake_error(ConnectionManager::handshake_dropped, EH_Unknown);
+    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unknown_download);
   if (!m_download->info()->is_active())
-    throw handshake_error(ConnectionManager::handshake_dropped, EH_Inactive);
+    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_inactive_download);
   if (!m_download->info()->is_accepting_new_peers())
-    throw handshake_error(ConnectionManager::handshake_dropped, EH_NotAcceptingPeers);
+    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_not_accepting_connections);
 }
 
 void
@@ -726,7 +725,7 @@ Handshake::event_write() {
     switch (m_state) {
     case CONNECTING:
       if (get_fd().get_error())
-        throw handshake_error(ConnectionManager::handshake_failed, EH_NetworkError);
+        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_error);
 
       manager->poll()->insert_read(this);
 
@@ -742,7 +741,7 @@ Handshake::event_write() {
       // the other side before our proxy connect command was finished
       // written. This probably means the other side isn't a proxy.
       if (m_writeBuffer.remaining())
-        throw handshake_error(ConnectionManager::handshake_failed, EH_NotBTProtocol);
+        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_not_bittorrent);
 
       m_writeBuffer.reset();
 
@@ -791,7 +790,7 @@ Handshake::event_write() {
     m_manager->receive_failed(this, e.type(), e.error());
 
   } catch (network_error& e) {
-    m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
+    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
 
   }
 }
@@ -878,7 +877,7 @@ Handshake::prepare_handshake() {
 void
 Handshake::prepare_peer_info() {
   if (std::memcmp(m_readBuffer.position(), m_download->info()->local_id().c_str(), 20) == 0)
-    throw handshake_error(ConnectionManager::handshake_failed, EH_IsSelf);
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_is_self);
 
   // PeerInfo handling for outgoing connections needs to be moved to
   // HandshakeManager.
@@ -889,7 +888,7 @@ Handshake::prepare_peer_info() {
     m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), PeerList::connect_incoming);
 
     if (m_peerInfo == NULL)
-      throw handshake_error(ConnectionManager::handshake_failed, EH_NetworkError);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_error);
 
     m_peerInfo->set_flags(PeerInfo::flag_handshake);
   }
@@ -975,7 +974,7 @@ Handshake::event_error() {
   if (m_state == INACTIVE)
     throw internal_error("Handshake::event_error() called on an inactive handshake.");
 
-  m_manager->receive_failed(this, ConnectionManager::handshake_failed, EH_NetworkError);
+  m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
 }
 
 }

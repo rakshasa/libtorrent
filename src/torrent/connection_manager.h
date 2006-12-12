@@ -83,22 +83,20 @@ public:
   // Internal to libtorrent.
   static const uint32_t encryption_use_proxy        = (1 << 6);
 
-  typedef enum {
-    handshake_incoming,
-    handshake_outgoing,
-    handshake_outgoing_encrypted,
-    handshake_outgoing_proxy,
+  enum {
+    handshake_incoming           = 1,
+    handshake_outgoing           = 2,
+    handshake_outgoing_encrypted = 3,
+    handshake_outgoing_proxy     = 4,
+    handshake_success            = 5,
+    handshake_dropped            = 6,
+    handshake_failed             = 7,
+    handshake_retry_plaintext    = 8,
+    handshake_retry_encrypted    = 9
+  };
 
-    handshake_success,
-    handshake_dropped,
-    handshake_failed,
-
-    handshake_retry_plaintext,
-    handshake_retry_encrypted,
-  } HandshakeMessage;
-
-  typedef sigc::slot4<void, const sockaddr*, HandshakeMessage, uint32_t, const HashString*>   slot_handshake_type;
-  typedef sigc::signal4<void, const sockaddr*, HandshakeMessage, uint32_t, const HashString*> signal_handshake_type;
+  typedef sigc::slot4<void, const sockaddr*, int, int, const HashString*>   slot_handshake_type;
+  typedef sigc::signal4<void, const sockaddr*, int, int, const HashString*> signal_handshake_type;
 
   ConnectionManager();
   ~ConnectionManager();
@@ -151,7 +149,7 @@ public:
   bool                listen_open(port_type begin, port_type end);
   void                listen_close();  
 
-  signal_handshake_type& signal_handshake_log()               { return m_signalHandshakeLog; }
+  signal_handshake_type& signal_handshake_log()                          { return m_signalHandshakeLog; }
   sigc::connection       set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
 
   // Since trackers need our port number, it doesn't get cleared after
@@ -182,7 +180,7 @@ private:
   Listen*             m_listen;
   port_type           m_listenPort;
 
-  slot_filter_type    m_slotFilter;
+  slot_filter_type      m_slotFilter;
   signal_handshake_type m_signalHandshakeLog;
 };
 
