@@ -155,17 +155,7 @@ DownloadWrapper::receive_initial_hash() {
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
   if (!m_hashChecker->is_checking()) {
-    if (rak::error_number(m_hashChecker->error_number()).is_valid())
-      info()->signal_storage_error().emit(("Hash checker was unable to map chunk: " + std::string(rak::error_number(m_hashChecker->error_number()).c_str())));
-
-    m_hashChecker->clear();
-    m_hashChecker->ranges().clear();
-
-    // Clear after m_hashChecker to ensure that the empty hash done signal does
-    // not get passed to HashTorrent.
-    hash_queue()->remove(this);
-
-    m_main.file_list()->mutable_bitfield()->unallocate();
+    receive_storage_error("Hash checker was unable to map chunk: " + std::string(rak::error_number(m_hashChecker->error_number()).c_str()));
 
   } else if (m_main.file_list()->resize_all()) {
     m_hashChecker->confirm_checked();
@@ -179,10 +169,7 @@ DownloadWrapper::receive_initial_hash() {
     receive_update_priorities();
 
   } else {
-    // We couldn't resize the files, tell the client.
     receive_storage_error("Could not resize files in the torrent.");
-
-    // Do we clear the hash?
   }
 
   m_signalInitialHash.emit();
@@ -252,12 +239,8 @@ DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
 
 void
 DownloadWrapper::receive_storage_error(const std::string& str) {
-//   m_main.chunk_list()->slot_storage_error(ChunkList::SlotStorageError(NULL, NULL));
-
   m_main.stop();
-  m_main.close();
-
-//   m_main.chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
+  close();
 
   m_main.tracker_manager()->set_active(false);
   m_main.tracker_manager()->close();

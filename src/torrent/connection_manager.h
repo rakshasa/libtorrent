@@ -126,7 +126,7 @@ public:
   void                set_receive_buffer_size(uint32_t s);
 
   uint32_t            encryption_options()                    { return m_encryptionOptions; }
-  void                set_encryption_options(uint32_t options) { m_encryptionOptions = options; } 
+  void                set_encryption_options(uint32_t options); 
 
   // Propably going to have to make m_bindAddress a pointer to make it
   // safe.

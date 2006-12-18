@@ -90,6 +90,15 @@ ConnectionManager::set_receive_buffer_size(uint32_t s) {
 }
 
 void
+ConnectionManager::set_encryption_options(uint32_t options) {
+#ifdef USE_OPENSSL
+  m_encryptionOptions = options;
+#else
+  throw input_error("Compiled without encryption support.");
+#endif
+}
+
+void
 ConnectionManager::set_bind_address(const sockaddr* sa) {
   const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
 

@@ -44,6 +44,7 @@
 #include "hash_chunk.h"
 #include "chunk.h"
 #include "chunk_list_node.h"
+#include "globals.h"
 
 namespace torrent {
 

@@ -37,14 +37,21 @@
 #ifndef LIBTORRENT_RC4_H
 #define LIBTORRENT_RC4_H
 
+#include "config.h"
+
 #include <string>
 
+#ifdef USE_OPENSSL
 #include <openssl/rc4.h>
+#else
+#include "torrent/exceptions.h"
+#endif
 
 namespace torrent {
 
 class RC4 {
 public:
+#ifdef USE_OPENSSL
   RC4()                                                               { }
   RC4(const unsigned char key[], int len)                             { RC4_set_key(&m_key, len, key); }
 
@@ -53,6 +60,11 @@ public:
 
 private:
   RC4_KEY m_key;
+
+#else
+  RC4(...)                       { throw internal_error("Compiled without encryption support."); }
+  void crypt(...)                { }
+#endif
 };
 
 };

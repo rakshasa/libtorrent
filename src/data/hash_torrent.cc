@@ -36,10 +36,12 @@
 
 #include "config.h"
 
-#include "torrent/exceptions.h"
 #include "data/chunk_list.h"
+#include "torrent/exceptions.h"
+
 #include "hash_torrent.h"
 #include "hash_queue.h"
+#include "globals.h"
 
 namespace torrent {
 

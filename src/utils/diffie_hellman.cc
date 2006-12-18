@@ -37,7 +37,10 @@
 #include "config.h"
 
 #include <string>
+
+#ifdef USE_OPENSSL
 #include <openssl/bn.h>
+#endif
 
 #include "diffie_hellman.h"
 #include "torrent/exceptions.h"
@@ -48,20 +51,27 @@ DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
                              const unsigned char *generator, int generatorLength) :
   m_secret(NULL) {
 
+#ifdef USE_OPENSSL
   m_dh = DH_new();
   m_dh->p = BN_bin2bn(prime, primeLength, NULL);
   m_dh->g = BN_bin2bn(generator, generatorLength, NULL);
 
   DH_generate_key(m_dh);
+#else
+  throw internal_error("Compiled without encryption support.");
+#endif
 };
 
 DiffieHellman::~DiffieHellman() {
   delete [] m_secret;
+#ifdef USE_OPENSSL
   DH_free(m_dh);
+#endif
 };
 
 void
 DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) {
+#ifdef USE_OPENSSL
   BIGNUM* k = BN_bin2bn(pubkey, length, NULL);
 
   delete [] m_secret;
@@ -70,14 +80,17 @@ DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) 
   m_size = DH_compute_key((unsigned char*)m_secret, k, m_dh);
   
   BN_free(k);
+#endif
 };
 
 void
 DiffieHellman::store_pub_key(unsigned char* dest, unsigned int length) {
+#ifdef USE_OPENSSL
   std::memset(dest, 0, length);
 
   if ((int)length >= BN_num_bytes(m_dh->pub_key))
     BN_bn2bin(m_dh->pub_key, dest + length - BN_num_bytes(m_dh->pub_key));
+#endif
 }
 
 };

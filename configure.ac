@@ -54,12 +54,14 @@ AC_ARG_WITH(openssl,
   [
     if test "$withval" = "yes"; then
       TORRENT_CHECK_OPENSSL
+      AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
       AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
     else
       AC_DEFINE(USE_NSS_SHA, 1, Using Mozilla's SHA1 implementation.)
     fi
   ], [
     TORRENT_CHECK_OPENSSL
+    AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
     AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
   ]
 )

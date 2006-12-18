@@ -37,13 +37,11 @@
 #ifndef LIBTORRENT_DATA_HASH_QUEUE_H
 #define LIBTORRENT_DATA_HASH_QUEUE_H
 
-#include <string>
-#include <list>
+#include <deque>
+#include <rak/priority_queue_default.h>
 
 #include "hash_queue_node.h"
 #include "chunk_handle.h"
-
-#include "globals.h"
 
 namespace torrent {
 
@@ -55,9 +53,9 @@ class HashChunk;
 // helps us in getting as much done as possible while the pages are in
 // memory.
 
-class HashQueue : private std::list<HashQueueNode> {
+class HashQueue : private std::deque<HashQueueNode> {
 public:
-  typedef std::list<HashQueueNode>      base_type;
+  typedef std::deque<HashQueueNode>     base_type;
   typedef HashQueueNode::slot_done_type slot_done_type;
 
   using base_type::iterator;

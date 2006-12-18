@@ -37,8 +37,13 @@
 #ifndef LIBTORRENT_DIFFIE_HELLMAN_H
 #define LIBTORRENT_DIFFIE_HELLMAN_H
 
+#include "config.h"
+
 #include <string>
+
+#ifdef USE_OPENSSL
 #include <openssl/dh.h>
+#endif
 
 namespace torrent {
 
@@ -60,7 +65,9 @@ private:
   DiffieHellman(const DiffieHellman& dh);
   DiffieHellman& operator = (const DiffieHellman& dh);
 
+#ifdef USE_OPENSSL
   DH*                 m_dh;
+#endif
   char*               m_secret;
   unsigned int        m_size;
 };
