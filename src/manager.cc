@@ -114,8 +114,6 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->main()->slot_start_handshake(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_outgoing));
   d->main()->slot_stop_handshakes(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::erase_download));
 
-  d->hash_checker()->set_queue(m_hashQueue);
-
   m_downloadManager->insert(d);
   m_resourceManager->insert(d->main(), 1);
   m_chunkManager->insert(d->main()->chunk_list());

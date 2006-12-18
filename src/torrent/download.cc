@@ -152,13 +152,10 @@ Download::hash_stop() {
   if (!m_ptr->hash_checker()->is_checking())
     return;
 
-  // Stop the hashing first as we need to make sure all chunks are
-  // released when DownloadMain::close() is called.
-  m_ptr->hash_checker()->clear();
+  m_ptr->hash_checker()->ranges().erase(0, m_ptr->hash_checker()->position());
+  m_ptr->hash_queue()->remove(m_ptr);
 
-  // Clear after m_hash to ensure that the empty hash done signal does
-  // not get passed to HashTorrent.
-  m_ptr->hash_checker()->get_queue()->remove(m_ptr);
+  m_ptr->hash_checker()->clear();
 }
 
 bool

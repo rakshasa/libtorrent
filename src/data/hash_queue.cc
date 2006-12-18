@@ -86,7 +86,7 @@ HashQueue::willneed(int bytes) {
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
-HashQueue::push_back(ChunkHandle handle, SlotDone d) {
+HashQueue::push_back(ChunkHandle handle, slot_done_type d) {
   if (!handle.is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
@@ -161,8 +161,8 @@ HashQueue::check(bool force) {
     return false;
   }
 
-  HashChunk* chunk                 = base_type::front().get_chunk();
-  HashQueueNode::SlotDone slotDone = base_type::front().slot_done();
+  HashChunk* chunk                       = base_type::front().get_chunk();
+  HashQueueNode::slot_done_type slotDone = base_type::front().slot_done();
 
   base_type::pop_front();
 

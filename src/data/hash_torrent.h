@@ -48,22 +48,19 @@
 namespace torrent {
 
 class ChunkList;
-class HashQueue;
 class DownloadWrapper;
 
 class HashTorrent {
 public:
   typedef rak::ranges<uint32_t> Ranges;
 
-  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>           SlotCheckChunk;
-  typedef rak::mem_fun0<DownloadWrapper, void>                        SlotInitialHash;
-  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&>    SlotStorageError;
+  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>        slot_check_type;
+  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> slot_error_type;
   
   HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }
 
   bool                start(bool tryQuick);
-
   void                clear();
 
   bool                is_checking()                          { return m_outstanding >= 0; }
@@ -72,20 +69,18 @@ public:
   void                confirm_checked();
 
   Ranges&             ranges()                               { return m_ranges; }
-
   uint32_t            position() const                       { return m_position; }
+  uint32_t            outstanding() const                    { return m_outstanding; }
 
   int                 error_number() const                   { return m_errno; }
 
-  HashQueue*          get_queue()                            { return m_queue; }
-  void                set_queue(HashQueue* q)                { m_queue = q; }
-
-  void                slot_check_chunk(SlotCheckChunk s)     { m_slotCheckChunk = s; }
-  void                slot_storage_error(SlotStorageError s) { m_slotStorageError = s; }
+  void                slot_check(slot_check_type s)          { m_slotCheck = s; }
+//   void                slot_error(slot_error_type s)          { m_slotError = s; }
 
   rak::priority_item& delay_checked()                        { return m_delayChecked; }
 
   void                receive_chunkdone();
+  void                receive_chunk_cleared(uint32_t index);
   
 private:
   void                queue(bool quick);
@@ -97,10 +92,9 @@ private:
   int                 m_errno;
 
   ChunkList*          m_chunkList;
-  HashQueue*          m_queue;
 
-  SlotCheckChunk      m_slotCheckChunk;
-  SlotStorageError    m_slotStorageError;
+  slot_check_type     m_slotCheck;
+  slot_error_type     m_slotError;
 
   rak::priority_item  m_delayChecked;
 };

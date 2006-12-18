@@ -316,6 +316,7 @@ download_add(Object* object) {
   if (manager->download_manager()->find(infoHash) != manager->download_manager()->end())
     throw input_error("Info hash already used by another torrent.");
 
+  download->set_hash_queue(manager->hash_queue());
   download->initialize(infoHash, PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
 
   // Default PeerConnection factory functions.

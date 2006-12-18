@@ -86,6 +86,9 @@ public:
   Object*             bencode()                               { return m_bencode; }
   void                set_bencode(Object* o)                  { m_bencode = o; }
 
+  HashQueue*          hash_queue()                            { return m_hashQueue; }
+  void                set_hash_queue(HashQueue* q)            { m_hashQueue = q; }
+
   const std::string&  complete_hash()                            { return m_hash; }
   const char*         chunk_hash(unsigned int index)             { return m_hash.c_str() + 20 * index; }
   void                set_complete_hash(const std::string& hash) { m_hash = hash; }
@@ -96,9 +99,9 @@ public:
   void                set_connection_type(int t)              { m_connectionType = t; }
 
   void                receive_initial_hash();
+  void                receive_hash_done(ChunkHandle handle, const char* hash);
 
   void                check_chunk_hash(ChunkHandle handle);
-  void                receive_hash_done(ChunkHandle handle, const char* hash);
 
   void                receive_storage_error(const std::string& str);
   void                receive_tracker_success(AddressList* l);
@@ -133,6 +136,7 @@ private:
   DownloadMain        m_main;
   Object*             m_bencode;
   HashTorrent*        m_hashChecker;
+  HashQueue*          m_hashQueue;
 
   std::string         m_hash;
 

@@ -57,8 +57,8 @@ class HashChunk;
 
 class HashQueue : private std::list<HashQueueNode> {
 public:
-  typedef std::list<HashQueueNode> base_type;
-  typedef HashQueueNode::SlotDone  SlotDone;
+  typedef std::list<HashQueueNode>      base_type;
+  typedef HashQueueNode::slot_done_type slot_done_type;
 
   using base_type::iterator;
 
@@ -70,7 +70,7 @@ public:
   HashQueue();
   ~HashQueue() { clear(); }
 
-  void                push_back(ChunkHandle handle, SlotDone d);
+  void                push_back(ChunkHandle handle, slot_done_type d);
 
   bool                has(HashQueueNode::id_type id);
   bool                has(HashQueueNode::id_type id, uint32_t index);

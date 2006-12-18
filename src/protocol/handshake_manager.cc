@@ -277,7 +277,7 @@ HandshakeManager::setup_socket(SocketFd fd) {
 
   ConnectionManager* m = manager->connection_manager();
 
-  if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(ConnectionManager::iptos_throughput))
+  if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
     return false;
 
   if (m->send_buffer_size() != 0 && !fd.set_send_buffer_size(m->send_buffer_size()))

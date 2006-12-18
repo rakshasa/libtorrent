@@ -50,10 +50,11 @@ class DownloadWrapper;
 
 class HashQueueNode {
 public:
-  typedef rak::mem_fun2<DownloadWrapper, void, ChunkHandle, const char*> SlotDone;
-  typedef const SlotDone::object_type*                                   id_type;
+  typedef rak::mem_fun2<DownloadWrapper, void, ChunkHandle, const char*> slot_done_type;
+  typedef const slot_done_type::object_type*                             id_type;
 
-  HashQueueNode(HashChunk* c, SlotDone d) : m_chunk(c), m_willneed(false), m_slotDone(d) {}
+  HashQueueNode(HashChunk* c, slot_done_type d) :
+    m_chunk(c), m_willneed(false), m_slotDone(d) {}
 
   id_type             id() const                    { return m_slotDone.object(); }
 
@@ -70,13 +71,13 @@ public:
   // number of bytes not checked in this chunk.
   uint32_t            call_willneed();
 
-  SlotDone&           slot_done()                   { return m_slotDone; }
+  slot_done_type&     slot_done()                   { return m_slotDone; }
 
 private:
   HashChunk*          m_chunk;
   bool                m_willneed;
 
-  SlotDone            m_slotDone;
+  slot_done_type      m_slotDone;
 };
 
 }

@@ -48,8 +48,7 @@ HashTorrent::HashTorrent(ChunkList* c) :
   m_outstanding(-1),
   m_errno(0),
 
-  m_chunkList(c),
-  m_queue(NULL) {
+  m_chunkList(c) {
 }
 
 bool
@@ -58,7 +57,7 @@ HashTorrent::start(bool tryQuick) {
     return true;
 
   if (!is_checking()) {
-    if (m_position > 0 || m_queue == NULL || m_chunkList == NULL || m_chunkList->empty())
+    if (m_position > 0 || m_chunkList->empty())
       throw internal_error("HashTorrent::start() call failed.");
 
     m_outstanding = 0;
@@ -117,6 +116,21 @@ HashTorrent::receive_chunkdone() {
     queue(false);
 }
 
+// Mark unsuccessful checks so that if we have just stopped the
+// hash checker it will ensure those pieces get rechecked upon
+// restart.
+void
+HashTorrent::receive_chunk_cleared(uint32_t index) {
+  if (m_outstanding <= 0)
+    throw internal_error("HashTorrent::receive_chunk_cleared() m_outstanding < 0.");
+  
+  if (m_ranges.has(index))
+    throw internal_error("HashTorrent::receive_chunk_cleared() m_ranges.has(index).");
+
+  m_outstanding--;
+  m_ranges.insert(index, index + 1);
+}
+
 void
 HashTorrent::queue(bool quick) {
   if (!is_checking())
@@ -138,7 +152,7 @@ HashTorrent::queue(bool quick) {
 
     // Need to do increment later if we're going to support resume
     // hashing a quick hashed torrent.
-    ChunkHandle handle = m_chunkList->get(m_position++, false);
+    ChunkHandle handle = m_chunkList->get(m_position, false);
 
     if (quick) {
       // We're not actually interested in doing any hashing, so just
@@ -156,6 +170,7 @@ HashTorrent::queue(bool quick) {
       if (handle.error_number().is_valid())
         return;
 
+      m_position++;
       continue;
 
     } else {
@@ -169,10 +184,8 @@ HashTorrent::queue(bool quick) {
         // We wait for all the outstanding chunks to be checked before
         // borking completely, else low-memory devices might not be able
         // to finish the hash check.
-        if (m_outstanding != 0) {
-          m_position--;
+        if (m_outstanding != 0)
           return;
-        }
 
         // The rest of the outstanding chunks get ignored by
         // DownloadWrapper::receive_hash_done. Obsolete.
@@ -185,11 +198,13 @@ HashTorrent::queue(bool quick) {
         return;
       }
 
+      m_position++;
+
       // Missing file, skip the hash check.
       if (!handle.is_valid())
         continue;
 
-      m_slotCheckChunk(handle);
+      m_slotCheck(handle);
       m_outstanding++;
     }
   }

@@ -108,8 +108,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   m_hashChecker = new HashTorrent(m_main.chunk_list());
 
   // Connect various signals and slots.
-  m_hashChecker->slot_check_chunk(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
-  m_hashChecker->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
+  m_hashChecker->slot_check(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
+//   m_hashChecker->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 
   m_hashChecker->delay_checked().set_slot(rak::mem_fn(this, &DownloadWrapper::receive_initial_hash));
 }
@@ -131,7 +131,7 @@ DownloadWrapper::close() {
 
   // Clear after m_hashChecker to ensure that the empty hash done signal does
   // not get passed to HashTorrent.
-  m_hashChecker->get_queue()->remove(this);
+  hash_queue()->remove(this);
 
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
@@ -163,14 +163,14 @@ DownloadWrapper::receive_initial_hash() {
 
     // Clear after m_hashChecker to ensure that the empty hash done signal does
     // not get passed to HashTorrent.
-    m_hashChecker->get_queue()->remove(this);
+    hash_queue()->remove(this);
 
     m_main.file_list()->mutable_bitfield()->unallocate();
 
   } else if (m_main.file_list()->resize_all()) {
     m_hashChecker->confirm_checked();
 
-    if (m_hashChecker->get_queue()->has(this))
+    if (hash_queue()->has(this))
       throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
 
     // Initialize the ChunkSelector here so that no chunks will be
@@ -189,12 +189,6 @@ DownloadWrapper::receive_initial_hash() {
 }    
 
 void
-DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
-  // Using HashTorrent's queue temporarily.
-  m_hashChecker->get_queue()->push_back(handle, rak::make_mem_fun(this, &DownloadWrapper::receive_hash_done));
-}
-
-void
 DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
   if (!handle.is_valid())
     throw internal_error("DownloadWrapper::receive_hash_done(...) called on an invalid chunk.");
@@ -202,48 +196,59 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
   if (!info()->is_open())
     throw internal_error("DownloadWrapper::receive_hash_done(...) called but the download is not open.");
 
-  if (hash == NULL) {
-    // Clearing the hash queue, do nothing. Add checks here?
-
-  } else if (m_hashChecker->is_checking()) {
-    if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0)
-      m_main.file_list()->mark_completed(handle.index());
-
-    m_hashChecker->receive_chunkdone();
-
-  } else if (m_hashChecker->is_checked()) {
-    // Receiving chunk hashes after stopping the torrent should be
-    // safe.
-
-    if (m_main.chunk_selector()->bitfield()->get(handle.index()))
-      throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
-
-    if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
-      m_main.file_list()->mark_completed(handle.index());
-      m_main.delegator()->transfer_list()->hash_succeded(handle.index());
-      m_main.update_endgame();
-
-      if (m_main.file_list()->is_done())
-        finished_download();
+  if (m_hashChecker->is_checking()) {
     
-      m_main.connection_list()->send_finished_chunk(handle.index());
-      signal_chunk_passed().emit(handle.index());
+    if (hash == NULL) {
+      m_hashChecker->receive_chunk_cleared(handle.index());
 
     } else {
-      // This needs to ensure the chunk is still valid.
-      m_main.delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
-      signal_chunk_failed().emit(handle.index());
+      if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0)
+        m_main.file_list()->mark_completed(handle.index());
+
+      m_hashChecker->receive_chunkdone();
     }
 
   } else {
-    // When clearing, we get a NULL string, so if none of the above
-    // caught this hash, then we got a problem.
+    if (hash == NULL) {
+      // Clearing the queue, do nothing.
+      
+    } else {
+      if (!m_hashChecker->is_checked())
+        throw internal_error("DownloadWrapper::receive_hash_done(...) Was not expecting non-NULL hash.");
 
-    throw internal_error("DownloadWrapper::receive_hash_done(...) Was not expecting non-NULL hash.");
+      // Receiving chunk hashes after stopping the torrent should be
+      // safe.
+
+      if (m_main.chunk_selector()->bitfield()->get(handle.index()))
+        throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
+
+      if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
+        m_main.file_list()->mark_completed(handle.index());
+        m_main.delegator()->transfer_list()->hash_succeded(handle.index());
+        m_main.update_endgame();
+
+        if (m_main.file_list()->is_done())
+          finished_download();
+    
+        m_main.connection_list()->send_finished_chunk(handle.index());
+        signal_chunk_passed().emit(handle.index());
+
+      } else {
+        // This needs to ensure the chunk is still valid.
+        m_main.delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
+        signal_chunk_failed().emit(handle.index());
+      }
+    }
   }
 
   m_main.chunk_list()->release(&handle);
 }  
+
+void
+DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
+  // Using HashTorrent's queue temporarily.
+  hash_queue()->push_back(handle, rak::make_mem_fun(this, &DownloadWrapper::receive_hash_done));
+}
 
 void
 DownloadWrapper::receive_storage_error(const std::string& str) {
