@@ -39,12 +39,8 @@
 
 #include "config.h"
 
-#include <string>
-
 #ifdef USE_OPENSSL
 #include <openssl/rc4.h>
-#else
-#include "torrent/exceptions.h"
 #endif
 
 namespace torrent {
@@ -62,8 +58,11 @@ private:
   RC4_KEY m_key;
 
 #else
-  RC4(...)                       { throw internal_error("Compiled without encryption support."); }
-  void crypt(...)                { }
+  RC4() { }
+  RC4(const unsigned char key[], int len) { }
+
+  void crypt(const void* indata, void* outdata, unsigned int length) { }
+  void crypt(void* data, unsigned int length) {}
 #endif
 };
 

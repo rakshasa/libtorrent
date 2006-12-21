@@ -72,6 +72,8 @@ public:
   priority_t          priority() const                        { return m_priority; }
   void                set_priority(priority_t t)              { m_priority = t; }
 
+  uint32_t            path_match_depth() const                { return m_pathMatchDepth; }
+
 protected:
   void                set_offset(uint64_t off)                { m_offset = off; }
   void                set_size_bytes(uint64_t size)           { m_size = size; }
@@ -79,6 +81,8 @@ protected:
 
   void                set_completed(uint32_t v)               { m_completed = v; }
   void                inc_completed()                         { m_completed++; }
+
+  void                set_path_match_depth(uint32_t l)        { m_pathMatchDepth = l; }
 
   bool                resize_file();
 
@@ -99,6 +103,8 @@ private:
 
   uint32_t            m_completed;
   priority_t          m_priority;
+
+  uint32_t            m_pathMatchDepth;
 };
 
 inline bool

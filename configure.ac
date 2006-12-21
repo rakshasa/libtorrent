@@ -1,10 +1,10 @@
-AC_INIT(libtorrent, 0.11.0, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.11.1, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME, "-lt0B00-", Identifier that is part of the default peer id)
+AC_DEFINE(PEER_NAME, "-lt0B01-", Identifier that is part of the default peer id)
 
 LIBTORRENT_CURRENT=10
-LIBTORRENT_REVISION=0
+LIBTORRENT_REVISION=1
 LIBTORRENT_AGE=0
 
 LIBTORRENT_INTERFACE_VERSION_INFO=$LIBTORRENT_CURRENT:$LIBTORRENT_REVISION:$LIBTORRENT_AGE
@@ -52,7 +52,7 @@ CC_ATTRIBUTE_VISIBILITY
 AC_ARG_WITH(openssl,
   [  --without-openssl       Don't use OpenSSL's SHA1 implementation.],
   [
-    if test "$withval" = "yes"; then
+    if test "$withval" = "yes" || test "$withval" != "no"; then
       TORRENT_CHECK_OPENSSL
       AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
       AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)

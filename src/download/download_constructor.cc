@@ -224,6 +224,7 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
   *fileList->front()->path() = choose_path(&pathList);
+  fileList->update_paths(fileList->begin(), fileList->end());  
 }
 
 void
@@ -264,8 +265,11 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
     *splitItr = FileList::split_type(length, choose_path(&pathList));
   }
 
-  m_download->main()->file_list()->initialize(torrentSize, chunkSize);
-  m_download->main()->file_list()->split(m_download->main()->file_list()->begin(), &*splitList.begin(), &*splitList.end());
+  FileList* fileList = m_download->main()->file_list();
+
+  fileList->initialize(torrentSize, chunkSize);
+  fileList->split(fileList->begin(), &*splitList.begin(), &*splitList.end());
+  fileList->update_paths(fileList->begin(), fileList->end());  
 }
 
 inline Path

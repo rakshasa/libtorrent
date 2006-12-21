@@ -209,12 +209,36 @@ FileList::split(iterator position, split_type* first, split_type* last) {
     throw internal_error("FileList::split(...) split size does not match the old size.");
 
   delete oldFile;
+
+  if (itr != end())
+    (*itr)->set_path_match_depth(0);
+
   return iterator_range(position, itr);
+}
+
+uint32_t
+file_list_match_depth(const Path* left, const Path* right) {
+  uint32_t level = 0;
+
+  Path::const_iterator itrLeft = left->begin();
+  Path::const_iterator itrRight = right->begin();
+
+  while (itrLeft != left->end() && itrRight != right->end() && *itrLeft == *itrRight) {
+    itrLeft++;
+    itrRight++;
+    level++;
+  }
+
+  return level;
 }
 
 FileList::iterator
 FileList::merge(iterator first, iterator last, const Path& path) {
   File* newFile = new File;
+
+  // Set the path before deleting any iterators in case it refers to
+  // one of the objects getting deleted.
+  *newFile->path() = path;
 
   if (first == last) {
     if (first == end())
@@ -236,10 +260,33 @@ FileList::merge(iterator first, iterator last, const Path& path) {
     *first = newFile;
   }
 
-  *newFile->path() = path;
   newFile->set_range(m_chunkSize);
 
+  if (first == begin())
+    newFile->set_path_match_depth(0);
+  else
+    newFile->set_path_match_depth(file_list_match_depth(newFile->path(), (*(first - 1))->path()));
+
+  if (first + 1 != end())
+    (*(first + 1))->set_path_match_depth(file_list_match_depth(newFile->path(), (*(first + 1))->path()));
+
   return first;
+}
+
+void
+FileList::update_paths(iterator first, iterator last) {
+  // Check if we're open?
+
+  if (first == end() || first == last)
+    return;
+
+  if (first == begin())
+    (*first)->set_path_match_depth(0);
+  else
+    (*first)->set_path_match_depth(file_list_match_depth((*first)->path(), (*(first - 1))->path()));
+
+  while (first != last && ++first != end())
+    (*first)->set_path_match_depth(file_list_match_depth((*first)->path(), (*(first - 1))->path()));
 }
 
 // Initialize FileList and add a dummy file that may be split into

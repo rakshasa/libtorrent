@@ -122,6 +122,8 @@ public:
   iterator            merge(iterator first, iterator last, const Path& path);
   iterator            merge(iterator_range range, const Path& path)   { return merge(range.first, range.second, path); }
 
+  void                update_paths(iterator first, iterator last);
+
 protected:
   void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
 

@@ -52,7 +52,9 @@ File::File() :
   m_offset(0),
   m_size(0),
   m_completed(0),
-  m_priority(PRIORITY_NORMAL) {
+  m_priority(PRIORITY_NORMAL),
+
+  m_pathMatchDepth(0) {
 }
 
 File::~File() {
