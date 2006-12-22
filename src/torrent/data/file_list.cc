@@ -179,6 +179,12 @@ FileList::split(iterator position, split_type* first, split_type* last) {
   if (first == last || position == end())
     throw internal_error("FileList::split(...) invalid arguments.");
 
+  if (position != begin())
+    (*(position - 1))->set_match_depth_next(0);
+
+  if (position + 1 != end())
+    (*(position + 1))->set_match_depth_prev(0);
+
   File* oldFile = *position;
 
   uint64_t offset = oldFile->offset();
@@ -209,27 +215,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
     throw internal_error("FileList::split(...) split size does not match the old size.");
 
   delete oldFile;
-
-  if (itr != end())
-    (*itr)->set_path_match_depth(0);
-
   return iterator_range(position, itr);
-}
-
-uint32_t
-file_list_match_depth(const Path* left, const Path* right) {
-  uint32_t level = 0;
-
-  Path::const_iterator itrLeft = left->begin();
-  Path::const_iterator itrRight = right->begin();
-
-  while (itrLeft != left->end() && itrRight != right->end() && *itrLeft == *itrRight) {
-    itrLeft++;
-    itrRight++;
-    level++;
-  }
-
-  return level;
 }
 
 FileList::iterator
@@ -263,30 +249,31 @@ FileList::merge(iterator first, iterator last, const Path& path) {
   newFile->set_range(m_chunkSize);
 
   if (first == begin())
-    newFile->set_path_match_depth(0);
+    newFile->set_match_depth_prev(0);
   else
-    newFile->set_path_match_depth(file_list_match_depth(newFile->path(), (*(first - 1))->path()));
+    set_match_depth(*(first - 1), newFile);
 
-  if (first + 1 != end())
-    (*(first + 1))->set_path_match_depth(file_list_match_depth(newFile->path(), (*(first + 1))->path()));
+  if (first + 1 == end())
+    newFile->set_match_depth_next(0);
+  else
+    set_match_depth(newFile, *(first + 1));
 
   return first;
 }
 
+// If the user supplies an invalid range, it will bork in weird ways.
 void
 FileList::update_paths(iterator first, iterator last) {
   // Check if we're open?
 
-  if (first == end() || first == last)
+  if (first == last)
     return;
 
-  if (first == begin())
-    (*first)->set_path_match_depth(0);
-  else
-    (*first)->set_path_match_depth(file_list_match_depth((*first)->path(), (*(first - 1))->path()));
+  if (first != begin())
+    set_match_depth(*(first - 1), *first);
 
   while (first != last && ++first != end())
-    (*first)->set_path_match_depth(file_list_match_depth((*first)->path(), (*(first - 1))->path()));
+    set_match_depth(*(first - 1), *first);
 }
 
 // Initialize FileList and add a dummy file that may be split into
@@ -564,6 +551,23 @@ FileList::update_completed() {
   for (Bitfield::size_type index = 0; index < m_bitfield.size_bits(); ++index)
     if (m_bitfield.get(index))
       entryItr = inc_completed(entryItr, index);
+}
+
+void
+FileList::set_match_depth(File* left, File* right) {
+  uint32_t level = 0;
+
+  Path::const_iterator itrLeft = left->path()->begin();
+  Path::const_iterator itrRight = right->path()->begin();
+
+  while (itrLeft != left->path()->end() && itrRight != right->path()->end() && *itrLeft == *itrRight) {
+    itrLeft++;
+    itrRight++;
+    level++;
+  }
+
+  left->set_match_depth_next(level);
+  right->set_match_depth_prev(level);
 }
 
 }

@@ -54,7 +54,8 @@ File::File() :
   m_completed(0),
   m_priority(PRIORITY_NORMAL),
 
-  m_pathMatchDepth(0) {
+  m_matchDepthPrev(0),
+  m_matchDepthNext(0) {
 }
 
 File::~File() {

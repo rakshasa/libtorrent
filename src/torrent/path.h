@@ -77,6 +77,9 @@ public:
 
   using base_type::push_back;
 
+  using base_type::at;
+  using base_type::operator[];
+
   void               insert_path(iterator pos, const std::string& path);
 
   // Return the path as a string with '/' deliminator. The deliminator

@@ -79,6 +79,9 @@ public:
   using base_type::empty;
   using base_type::reserve;
 
+  using base_type::at;
+  using base_type::operator[];
+
   FileList() LIBTORRENT_NO_EXPORT;
   ~FileList() LIBTORRENT_NO_EXPORT;
 
@@ -147,6 +150,8 @@ private:
   inline bool         open_file(File* node, const Path& lastPath);
   inline void         make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr);
   inline MemoryChunk  create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int prot);
+
+  void                set_match_depth(File* left, File* right);
 
   bool                m_isOpen;
 

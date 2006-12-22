@@ -674,10 +674,10 @@ restart:
 
 bool
 Handshake::fill_read_buffer(int size) {
-  if (size > m_readBuffer.reserved_left())
-    throw internal_error("Handshake::fill_read_buffer(...) Buffer overflow.");
-
   if (m_readBuffer.remaining() < size) {
+    if (size - m_readBuffer.remaining() > m_readBuffer.reserved_left())
+      throw internal_error("Handshake::fill_read_buffer(...) Buffer overflow.");
+
     int read = m_readBuffer.move_end(read_stream_throws(m_readBuffer.end(), size - m_readBuffer.remaining()));
 
     if (m_encryption.info()->decrypt_valid())
