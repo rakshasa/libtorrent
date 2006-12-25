@@ -60,24 +60,31 @@ FileListIterator::is_entering() const {
 
 FileListIterator&
 FileListIterator::operator ++() {
-  int32_t sizePath = (*m_position)->path()->size();
+  int32_t size = (*m_position)->path()->size();
 
-  if (sizePath == 0) {
+  if (size == 0) {
     m_position++;
+    return *this;
+  }
+
+  if (std::abs(m_depth) == (int32_t)(*m_position)->match_depth_next()) {
+    m_position++;
+    m_depth = std::abs(m_depth);
+
     return *this;
   }
 
   m_depth++;
   
-  if (m_depth >= sizePath)
-    throw internal_error("FileListIterator::operator ++() m_depth >= sizePath.");
+  if (m_depth > size)
+    throw internal_error("FileListIterator::operator ++() m_depth >= size.");
 
-  if (m_depth == sizePath)
-    m_depth = -(sizePath - 1);
+  if (m_depth == size)
+    m_depth = -(size - 1);
 
-  if (-m_depth == (int32_t)(*m_position)->match_depth_next()) {
-    m_depth = -m_depth;
+  if (m_depth == -(int32_t)(*m_position)->match_depth_next()) {
     m_position++;
+    m_depth = -m_depth;
   }
 
   return *this;
@@ -92,35 +99,28 @@ FileListIterator::operator --() {
 
     // This ensures we properly start iterating the paths in a tree
     // without failing badly when size == 0.
-    if ((*m_position)->path()->size() <= 1)
-      return *this;
-
-    m_depth--;
-
-    if (m_depth <= -(int32_t)(*m_position)->path()->size())
-      throw internal_error("FileListIterator::operator --() m_depth <= -sizePath path 1.");
+    if ((*m_position)->path()->size() > 1)
+      m_depth = -1;
 
   } else if (m_depth == (int32_t)(*m_position)->match_depth_prev()) {
     m_position--;
-    m_depth = -m_depth;
 
-    if (m_depth <= -(int32_t)(*m_position)->path()->size())
-      throw internal_error("FileListIterator::operator --() m_depth <= -sizePath path 2.");
+    // If only the last element differs, then we don't switch to
+    // negative depth. Also make sure we skip the negative of the
+    // current depth, as we index by the depth we're exiting from.
+    if (m_depth + 1 != (int32_t)(*m_position)->path()->size())
+      m_depth = -(m_depth + 1);
 
   } else {
+    int32_t size = (int32_t)(*m_position)->path()->size();
     m_depth--;
 
-    if (m_depth <= -(int32_t)(*m_position)->path()->size())
-      throw internal_error("FileListIterator::operator --() m_depth <= -sizePath path 3.");
+    if (m_depth < -size)
+      throw internal_error("FileListIterator::operator --() m_depth < -size.");
+
+    if (m_depth == -size)
+      m_depth = size - 1;
   }
-
-  int32_t sizePath = (*m_position)->path()->size();
-
-  if (m_depth <= -sizePath)
-    throw internal_error("FileListIterator::operator --() m_depth <= -sizePath.");
-
-  if (m_depth == -(sizePath - 1))
-    m_depth = -m_depth;
 
   return *this;
 }
