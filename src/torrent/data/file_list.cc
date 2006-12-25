@@ -61,6 +61,20 @@
 
 namespace torrent {
 
+void
+verify_file_list(const FileList* fl) {
+  if (fl->empty())
+    throw internal_error("verify_file_list() 1.");
+
+  if ((*fl->begin())->match_depth_prev() != 0 || (*fl->rbegin())->match_depth_next() != 0)
+    throw internal_error("verify_file_list() 2.");
+
+  for (FileList::const_iterator itr = fl->begin(), last = fl->end() - 1; itr != last; itr++)
+    if ((*itr)->match_depth_next() != (*(itr + 1))->match_depth_prev() ||
+        (*itr)->match_depth_next() >= (*itr)->path()->size())
+      throw internal_error("verify_file_list() 3.");
+}
+
 FileList::FileList() :
   m_isOpen(false),
 
@@ -274,6 +288,8 @@ FileList::update_paths(iterator first, iterator last) {
 
   while (first != last && ++first != end())
     set_match_depth(*(first - 1), *first);
+
+  verify_file_list(this);
 }
 
 // Initialize FileList and add a dummy file that may be split into
