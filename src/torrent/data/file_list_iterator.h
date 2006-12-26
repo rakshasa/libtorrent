@@ -64,6 +64,7 @@ public:
   uint32_t            depth() const       { return std::abs(m_depth); }
 
   iterator            base() const        { return m_position; }
+  reference           file() const        { return *m_position; }
 
   reference           operator *() const  { return *m_position; }
   pointer             operator ->() const { return &*m_position; }
