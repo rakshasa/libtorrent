@@ -67,24 +67,17 @@ FileListIterator::operator ++() {
     return *this;
   }
 
-  if (std::abs(m_depth) == (int32_t)(*m_position)->match_depth_next()) {
-    m_position++;
-    m_depth = std::abs(m_depth);
-
-    return *this;
-  }
-
   m_depth++;
   
   if (m_depth > size)
-    throw internal_error("FileListIterator::operator ++() m_depth >= size.");
+    throw internal_error("FileListIterator::operator ++() m_depth > size.");
 
   if (m_depth == size)
     m_depth = -(size - 1);
 
   if (m_depth == -(int32_t)(*m_position)->match_depth_next()) {
+    m_depth = (*m_position)->match_depth_next();
     m_position++;
-    m_depth = -m_depth;
   }
 
   return *this;
