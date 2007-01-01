@@ -217,7 +217,11 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
         if (m_main.file_list()->is_done())
           finished_download();
     
-        m_main.connection_list()->send_finished_chunk(handle.index());
+        if (!m_main.have_queue()->empty() && m_main.have_queue()->front().first >= cachedTime)
+          m_main.have_queue()->push_front(DownloadMain::have_queue_type::value_type(m_main.have_queue()->front().first + 1, handle.index()));
+        else
+          m_main.have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
+
         signal_chunk_passed().emit(handle.index());
 
       } else {
@@ -293,6 +297,12 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
       else
         itr++;
   }
+
+  DownloadMain::have_queue_type* haveQueue = m_main.have_queue();
+  haveQueue->erase(std::find_if(haveQueue->rbegin(), haveQueue->rend(),
+                                rak::less(cachedTime - rak::timer::from_seconds(600),
+                                             rak::mem_ref(&DownloadMain::have_queue_type::value_type::first))).base(),
+                   haveQueue->end());
 
   m_main.receive_connect_peers();
 }

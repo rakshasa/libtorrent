@@ -110,11 +110,9 @@ public:
 
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
-
   virtual void        update_interested() = 0;
-
-  virtual void        receive_finished_chunk(int32_t i) = 0;
   virtual bool        receive_keepalive() = 0;
+
   void                receive_choke(bool v);
 
   virtual void        event_error();

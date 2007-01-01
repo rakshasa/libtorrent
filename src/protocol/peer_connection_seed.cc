@@ -70,11 +70,6 @@ PeerConnectionSeed::update_interested() {
   // We assume this won't be called.
 }
 
-void
-PeerConnectionSeed::receive_finished_chunk(__UNUSED int32_t i) {
-  // We assume this won't be called.
-}
-
 bool
 PeerConnectionSeed::receive_keepalive() {
   if (cachedTime - m_timeLastRead > rak::timer::from_seconds(240))

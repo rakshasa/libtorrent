@@ -47,10 +47,7 @@ public:
   ~PeerConnectionSeed();
 
   virtual void        initialize_custom();
-
   virtual void        update_interested();
-
-  virtual void        receive_finished_chunk(int32_t i);
   virtual bool        receive_keepalive();
 
   virtual void        event_read();

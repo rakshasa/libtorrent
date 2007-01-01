@@ -112,6 +112,8 @@ public:
   const void*         unread_data()                 { return m_readBuffer.position(); }
   uint32_t            unread_size() const           { return m_readBuffer.remaining(); }
 
+  rak::timer          initialized_time() const      { return m_initializedTime; }
+
   virtual void        event_read();
   virtual void        event_write();
   virtual void        event_error();
@@ -162,6 +164,7 @@ protected:
   Bitfield            m_bitfield;
 
   rak::priority_item  m_taskTimeout;
+  rak::timer          m_initializedTime;
 
   uint32_t            m_readPos;
   bool                m_readDone;

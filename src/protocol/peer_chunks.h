@@ -39,6 +39,7 @@
 
 #include <list>
 #include <rak/partial_queue.h>
+#include <rak/timer.h>
 
 #include "net/throttle_node.h"
 #include "torrent/bitfield.h"
@@ -51,7 +52,6 @@ class PeerInfo;
 
 class PeerChunks {
 public:
-  typedef std::list<uint32_t> index_list_type;
   typedef std::list<Piece>    piece_list_type;
 
   PeerChunks();
@@ -72,11 +72,12 @@ public:
   const Bitfield*     bitfield() const              { return &m_bitfield; }
 
   rak::partial_queue* download_cache()              { return &m_downloadCache; }
-  //RequestList*        download_queue()              { return &m_downloadQueue; }
 
   piece_list_type*    upload_queue()                { return &m_uploadQueue; }
-  index_list_type*    have_queue()                  { return &m_haveQueue; }
   piece_list_type*    cancel_queue()                { return &m_cancelQueue; }
+
+  rak::timer          have_timer() const            { return m_haveTimer; }
+  void                set_have_timer(rak::timer t)  { m_haveTimer = t; }
 
   Rate*               peer_rate()                   { return &m_peerRate; }
 
@@ -94,8 +95,9 @@ private:
   rak::partial_queue  m_downloadCache;
 
   piece_list_type     m_uploadQueue;
-  index_list_type     m_haveQueue;
   piece_list_type     m_cancelQueue;
+
+  rak::timer          m_haveTimer;
 
   Rate                m_peerRate;
 

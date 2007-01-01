@@ -114,8 +114,6 @@ public:
   // 'l' is sorted and unique.
   void                set_difference(AddressList* l);
 
-  void                send_finished_chunk(uint32_t index);
-
   // When a peer is connected it should be removed from the list of
   // available peers.
   void                slot_connected(slot_peer_type s)                 { m_slotConnected = s; }

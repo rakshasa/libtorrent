@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_MAIN_H
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
+#include <deque>
 #include <rak/functional.h>
 #include <sigc++/signal.h>
 
@@ -64,6 +65,8 @@ class ThrottleList;
 
 class DownloadMain {
 public:
+  typedef std::deque<std::pair<rak::timer, uint32_t> > have_queue_type;
+
   DownloadMain();
   ~DownloadMain();
 
@@ -85,6 +88,8 @@ public:
   ChunkStatistics*    chunk_statistics()                         { return m_chunkStatistics; }
   
   Delegator*          delegator()                                { return &m_delegator; }
+
+  have_queue_type*    have_queue()                               { return &m_haveQueue; }
 
   ConnectionList*     connection_list()                          { return m_connectionList; }
   FileList*           file_list()                                { return &m_fileList; }
@@ -138,6 +143,7 @@ private:
   ChunkStatistics*    m_chunkStatistics;
 
   Delegator           m_delegator;
+  have_queue_type     m_haveQueue;
 
   ConnectionList*     m_connectionList;
   FileList            m_fileList;

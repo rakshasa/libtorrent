@@ -169,11 +169,6 @@ ConnectionList::set_difference(AddressList* l) {
 }
 
 void
-ConnectionList::send_finished_chunk(uint32_t index) {
-  std::for_each(begin(), end(), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_finished_chunk), index));
-}
-
-void
 ConnectionList::set_max_size(size_type v) { 
   m_maxSize = v;
   m_download->info()->set_accepting_new_peers(size() < m_maxSize);

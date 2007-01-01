@@ -86,16 +86,6 @@ PeerConnectionLeech::update_interested() {
   m_peerChunks.download_cache()->clear();
 }
 
-// Disconnecting connections where both are seeders should be done by
-// DownloadMain when it finishes the last chunk.
-void
-PeerConnectionLeech::receive_finished_chunk(int32_t index) {
-  m_peerChunks.have_queue()->push_back(index);
-
-  if (download_queue()->has_index(index))
-    throw internal_error("PeerConnection::sendHave(...) found a request with the same index");
-}
-
 bool
 PeerConnectionLeech::receive_keepalive() {
   if (cachedTime - m_timeLastRead > rak::timer::from_seconds(240))
@@ -422,9 +412,19 @@ PeerConnectionLeech::fill_write_buffer() {
     m_up->set_interested(false);
   }
 
-  while (!m_peerChunks.have_queue()->empty() && m_up->can_write_have()) {
-    m_up->write_have(m_peerChunks.have_queue()->front());
-    m_peerChunks.have_queue()->pop_front();
+  DownloadMain::have_queue_type* haveQueue = m_download->have_queue();
+
+  if (!haveQueue->empty() &&
+      m_peerChunks.have_timer() <= haveQueue->front().first &&
+      m_up->can_write_have()) {
+    DownloadMain::have_queue_type::iterator last = std::find_if(haveQueue->begin(), haveQueue->end(),
+                                                                rak::greater(m_peerChunks.have_timer(), rak::mem_ref(&DownloadMain::have_queue_type::value_type::first)));
+
+    do {
+      m_up->write_have((--last)->second);
+    } while (last != haveQueue->begin() && m_up->can_write_have());
+
+    m_peerChunks.set_have_timer(last->first + 1);
   }
 
   while (!m_peerChunks.cancel_queue()->empty() && m_up->can_write_cancel()) {

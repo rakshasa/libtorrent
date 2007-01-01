@@ -78,6 +78,8 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_peerInfo(NULL),
   m_download(NULL),
 
+  m_initializedTime(cachedTime),
+
   m_readDone(false),
   m_writeDone(false),
 
