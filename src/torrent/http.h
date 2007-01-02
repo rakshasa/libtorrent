@@ -72,6 +72,9 @@ class LIBTORRENT_EXPORT Http {
   uint32_t           timeout() const                      { return m_timeout; }
   void               set_timeout(uint32_t seconds)        { m_timeout = seconds; }
 
+  // The owner of the Http object must close it as soon as possible
+  // after receiving the signal, as the implementation may allocate
+  // limited resources during its lifetime.
   Signal&            signal_done()                        { return m_signalDone; }
   SignalString&      signal_failed()                      { return m_signalFailed; }
 
