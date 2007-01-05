@@ -118,4 +118,61 @@ FileListIterator::operator --() {
   return *this;
 }
 
+FileListIterator&
+FileListIterator::forward_current_depth() {
+  uint32_t baseDepth = depth();
+
+  // This needs to handle is_empty().
+
+  if (file()->match_depth_next() <= baseDepth)
+    return ++(*this);
+
+  // If the above test was false then we know there must be a
+  // 'leaving' at baseDepth before the end of the list.
+  do {
+    ++(*this);
+  } while (depth() > baseDepth);
+
+  if (depth() == baseDepth && is_leaving())
+    ++(*this);
+      
+  return *this;
+}
+
+FileListIterator&
+FileListIterator::backward_current_depth() {
+//   uint32_t baseDepth = depth();
+
+//   if (file()->match_depth_prev() < baseDepth)
+//     return --(*this);
+
+//   if (file()->match_depth_prev() == baseDepth) {
+//     --(*this);
+
+//     if (depth() == baseDepth && !is_leaving())
+//       return *this;
+//   }
+
+//   // If the above test was false then we know there must be a
+//   // 'leaving' at baseDepth before the end of the list.
+//   do {
+//     --(*this);
+//   } while (depth() > baseDepth);
+      
+  --(*this);
+
+  if (is_entering() || is_file() || is_empty())
+    return *this;
+
+  if (depth() == 0)
+    throw internal_error("FileListIterator::backward_current_depth() depth() == 0.");
+
+  uint32_t baseDepth = depth();
+  
+  while (depth() >= baseDepth)
+    --(*this);
+
+  return *this;
+}
+
 }

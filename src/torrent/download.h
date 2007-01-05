@@ -63,6 +63,10 @@ public:
   void                open();
   void                close();
 
+  static const int open_no_create = 0x1;
+
+  void                open(int flags);
+
   // When 'tryQuick' is true, it will only check if the chunks can be
   // mmaped and stops if one is encountered. If it doesn't find any
   // mappable chunks it will return true to indicate that it is
