@@ -74,7 +74,6 @@ class FileList;
 class Event;
 class File;
 class FileList;
-class FileMeta;
 class Handshake;
 class HandshakeManager;
 class HashString;

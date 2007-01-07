@@ -45,7 +45,6 @@
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "data/file_manager.h"
-#include "data/file_meta.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"

@@ -48,8 +48,8 @@
 
 #include "data/chunk.h"
 #include "data/file_manager.h"
-#include "data/file_meta.h"
 #include "data/memory_chunk.h"
+#include "data/socket_file.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/path.h"
@@ -343,16 +343,16 @@ FileList::open() {
     while (itr != end()) {
       File* entry = *itr++;
 
-      if (entry->file_meta()->is_open())
+      if (entry->is_open())
         throw internal_error("FileList::open(...) found an already opened file.");
       
-      manager->file_manager()->insert(entry->file_meta());
+      manager->file_manager()->insert(entry);
 
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
-      entry->file_meta()->set_path(m_rootDir + entry->path()->as_string());
+      entry->set_frozen_path(m_rootDir + entry->path()->as_string());
 
-      if (!pathSet.insert(entry->file_meta()->get_path().c_str()).second)
+      if (!pathSet.insert(entry->frozen_path().c_str()).second)
         throw storage_error("Found a duplicate filename.");
 
       if (entry->size_bytes() > m_maxFileSize)
@@ -369,7 +369,7 @@ FileList::open() {
 
   } catch (storage_error& e) {
     for (iterator cleanupItr = begin(); cleanupItr != itr; ++cleanupItr)
-      manager->file_manager()->erase((*cleanupItr)->file_meta());
+      manager->file_manager()->erase((*cleanupItr));
 
     throw e;
   }
@@ -383,7 +383,7 @@ FileList::close() {
     return;
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-    manager->file_manager()->erase((*itr)->file_meta());
+    manager->file_manager()->erase(*itr);
     
     (*itr)->set_completed(0);
   }
@@ -404,7 +404,7 @@ FileList::resize_all() {
   return true;
 }
 
-inline void
+void
 FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) {
   std::string path = m_rootDir;
 
@@ -431,7 +431,7 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
   }
 }
 
-inline bool
+bool
 FileList::open_file(File* node, const Path& lastPath) {
   const Path* path = node->path();
 
@@ -455,7 +455,7 @@ FileList::open_file(File* node, const Path& lastPath) {
 
   rak::file_stat fileStat;
 
-  if (fileStat.update(node->file_meta()->get_path()) &&
+  if (fileStat.update(node->frozen_path()) &&
       !fileStat.is_regular() && !fileStat.is_link()) {
     // Might also bork on other kinds of file types, but there's no
     // suitable errno for all cases.
@@ -464,12 +464,12 @@ FileList::open_file(File* node, const Path& lastPath) {
   }
 
   return
-    node->file_meta()->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, SocketFile::o_create) ||
-    node->file_meta()->prepare(MemoryChunk::prot_read, SocketFile::o_create);
+    node->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, SocketFile::o_create) ||
+    node->prepare(MemoryChunk::prot_read, SocketFile::o_create);
 }
 
-inline MemoryChunk
-FileList::create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int prot) {
+MemoryChunk
+FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, int prot) {
   offset -= (*itr)->offset();
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
@@ -478,10 +478,10 @@ FileList::create_chunk_part(iterator itr, uint64_t offset, uint32_t length, int 
 
   // Check that offset != length of file.
 
-  if (!(*itr)->file_meta()->prepare(prot))
+  if (!(*itr)->prepare(prot))
     return MemoryChunk();
 
-  return (*itr)->file_meta()->get_file().create_chunk(offset, length, prot, MemoryChunk::map_shared);
+  return (*itr)->socket_file()->create_chunk(offset, length, prot, MemoryChunk::map_shared);
 }
 
 Chunk*

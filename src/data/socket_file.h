@@ -58,7 +58,7 @@ public:
   static const int o_truncate             = O_TRUNC;
   static const int o_nonblock             = O_NONBLOCK;
 
-  SocketFile() : m_fd(invalid_fd), m_prot(0), m_flags(0) {}
+  SocketFile() : m_fd(invalid_fd) {}
   ~SocketFile();
 
   bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
@@ -70,14 +70,9 @@ public:
   bool                reserve(uint64_t offset = 0, uint64_t length = 0);
 
   bool                is_open() const                                   { return m_fd != invalid_fd; }
-  bool                is_readable() const                               { return m_prot & MemoryChunk::prot_read; }
-  bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }
-  bool                is_nonblock() const                               { return m_flags & o_nonblock; }
 
   uint64_t            size() const;
   bool                set_size(uint64_t s) const;
-
-  int                 get_prot() const                                  { return m_prot; }
 
   MemoryChunk         create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const;
   
@@ -90,8 +85,6 @@ private:
   void operator = (const SocketFile&);
 
   fd_type             m_fd;
-  int                 m_prot;
-  int                 m_flags;
 };
 
 }

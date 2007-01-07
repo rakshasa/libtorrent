@@ -63,10 +63,6 @@ public:
   void                open();
   void                close();
 
-  static const int open_no_create = 0x1;
-
-  void                open(int flags);
-
   // When 'tryQuick' is true, it will only check if the chunks can be
   // mmaped and stops if one is encountered. If it doesn't find any
   // mappable chunks it will return true to indicate that it is
@@ -79,6 +75,10 @@ public:
   // Start/stop the download. The torrent must be open.
   void                start();
   void                stop();
+
+//   static const int start_no_create = 0x1;
+
+//   void                start(int flags);
 
   // Does not check if the download has been removed.
   bool                is_valid() const { return m_ptr; }

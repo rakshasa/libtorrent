@@ -40,9 +40,11 @@
 #include <functional>
 
 #include "torrent/exceptions.h"
+#include "torrent/data/file.h"
 
 #include "file_manager.h"
-#include "file_meta.h"
+#include "manager.h"
+#include "socket_file.h"
 
 namespace torrent {
 
@@ -52,13 +54,13 @@ FileManager::~FileManager() {
 }
 
 void
-FileManager::insert(FileMeta* f) {
-  f->slot_prepare(rak::make_mem_fun(this, &FileManager::prepare_file));
+FileManager::insert(value_type f) {
+//   f->slot_prepare(rak::make_mem_fun(this, &FileManager::prepare_file));
   base_type::push_back(f);
 }
 
 void
-FileManager::erase(FileMeta* f) {
+FileManager::erase(value_type f) {
   iterator itr = std::find(begin(), end(), f);
 
   if (itr == end())
@@ -68,7 +70,7 @@ FileManager::erase(FileMeta* f) {
     close_file(f);
 
   base_type::erase(itr);
-  f->slot_prepare(FileMeta::slot_prepare_type());
+//   f->slot_prepare(FileMeta::slot_prepare_type());
 }
 
 void
@@ -80,7 +82,7 @@ FileManager::set_max_size(size_t s) {
 }
 
 bool
-FileManager::prepare_file(FileMeta* meta, int prot, int flags) {
+FileManager::prepare_file(value_type meta, int prot, int flags) {
   if (meta->is_open())
     close_file(meta);
 
@@ -90,8 +92,10 @@ FileManager::prepare_file(FileMeta* meta, int prot, int flags) {
   if (m_openSize == m_maxSize)
     close_least_active();
 
-  if (!meta->get_file().open(meta->get_path(), prot, flags))
+  if (!meta->socket_file()->open(meta->frozen_path(), prot, flags))
     return false;
+
+  meta->set_protection(prot);
 
   ++m_openSize;
 
@@ -99,26 +103,26 @@ FileManager::prepare_file(FileMeta* meta, int prot, int flags) {
 }
 
 void
-FileManager::close_file(FileMeta* meta) {
+FileManager::close_file(value_type meta) {
   if (!meta->is_open())
     throw internal_error("FileManager::close_file(...) called on a closed FileMeta");
 
-  meta->get_file().close();
+  meta->socket_file()->close();
   --m_openSize;
 }
 
 struct FileManagerActivity {
-  FileManagerActivity() : m_last(rak::timer::max()), m_meta(NULL) {}
+  FileManagerActivity() : m_last(rak::timer::max().usec()), m_meta(NULL) {}
 
-  void operator ()(FileMeta* f) {
-    if (f->is_open() && f->get_last_touched() <= m_last) {
-      m_last = f->get_last_touched();
+  void operator ()(File* f) {
+    if (f->is_open() && f->last_touched() <= m_last) {
+      m_last = f->last_touched();
       m_meta = f;
     }
   }
 
-  rak::timer m_last;
-  FileMeta*  m_meta;
+  uint64_t   m_last;
+  File*      m_meta;
 };
 
 void

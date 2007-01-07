@@ -82,9 +82,6 @@ SocketFile::open(const std::string& path, int prot, int flags, mode_t mode) {
     return false;
 
   m_fd = fd;
-  m_flags = flags;
-  m_prot = prot;
-
   return true;
 }
 
@@ -96,8 +93,6 @@ SocketFile::close() {
   ::close(m_fd);
 
   m_fd = invalid_fd;
-  m_prot = 0;
-  m_flags = 0;
 }
 
 // Reserve the space on disk if a system call is defined. 'length'
@@ -163,10 +158,6 @@ MemoryChunk
 SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const {
   if (!is_open())
     throw internal_error("SocketFile::get_chunk() called on a closed file");
-
-  if (((prot & MemoryChunk::prot_read) && !is_readable()) ||
-      ((prot & MemoryChunk::prot_write) && !is_writable()))
-    throw storage_error("SocketFile::get_chunk() permission denied");
 
   // For some reason mapping beyond the extent of the file does not
   // cause mmap to complain, so we need to check manually here.

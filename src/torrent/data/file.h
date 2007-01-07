@@ -42,6 +42,8 @@
 
 namespace torrent {
 
+class SocketFile;
+
 class LIBTORRENT_EXPORT File {
 public:
   friend class FileList;
@@ -52,50 +54,74 @@ public:
   ~File();
 
   bool                is_created() const;
+  bool                is_open() const                          { return m_fd != -1; }
+
   bool                is_correct_size() const;
-  inline bool         is_valid_position(uint64_t p) const;
+  bool                is_valid_position(uint64_t p) const;
 
-  Path*               path()                                  { return &m_path; }
-  const Path*         path() const                            { return &m_path; }
+  bool                has_permissions(int prot) const          { return !(prot & ~m_protection); }
 
-  uint64_t            offset() const                          { return m_offset; }
+//   bool                is_readable() const                               { return m_prot & MemoryChunk::prot_read; }
+//   bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }
+//   bool                is_nonblock() const                               { return m_flags & o_nonblock; }
 
-  uint64_t            size_bytes() const                      { return m_size; }
-  uint32_t            size_chunks() const                     { return m_range.second - m_range.first; }
+  uint64_t            offset() const                           { return m_offset; }
 
-  uint32_t            completed_chunks() const                { return m_completed; }
+  uint64_t            size_bytes() const                       { return m_size; }
+  uint32_t            size_chunks() const                      { return m_range.second - m_range.first; }
 
-  const range_type&   range() const                           { return m_range; }
-  uint32_t            range_first() const                     { return m_range.first; }
-  uint32_t            range_second() const                    { return m_range.second; }
+  uint32_t            completed_chunks() const                 { return m_completed; }
 
-  priority_t          priority() const                        { return m_priority; }
-  void                set_priority(priority_t t)              { m_priority = t; }
+  const range_type&   range() const                            { return m_range; }
+  uint32_t            range_first() const                      { return m_range.first; }
+  uint32_t            range_second() const                     { return m_range.second; }
 
-  uint32_t            match_depth_prev() const                { return m_matchDepthPrev; }
-  uint32_t            match_depth_next() const                { return m_matchDepthNext; }
+  priority_t          priority() const                         { return m_priority; }
+  void                set_priority(priority_t t)               { m_priority = t; }
+
+  Path*               path()                                   { return &m_path; }
+  const Path*         path() const                             { return &m_path; }
+
+  const std::string&  frozen_path() const                      { return m_frozenPath; }
+  void                set_frozen_path(const std::string& path) { m_frozenPath = path; }
+
+  uint32_t            match_depth_prev() const                 { return m_matchDepthPrev; }
+  uint32_t            match_depth_next() const                 { return m_matchDepthNext; }
+
+  // This should only be changed by libtorrent.
+  int                 file_descriptor() const                  { return m_fd; }
+  void                set_file_descriptor(int fd)              { m_fd = fd; }
+
+  // Hmm...
+  SocketFile*         socket_file()                            { return reinterpret_cast<SocketFile*>(&m_fd); }
+  const SocketFile*   socket_file() const                      { return reinterpret_cast<const SocketFile*>(&m_fd); }
+
+  // More hmm...
+  bool                prepare(int prot, int flags = 0);
+
+  int                 protection() const                       { return m_protection; }
+  void                set_protection(int prot)                 { m_protection = prot; }
+
+  uint64_t            last_touched() const                     { return m_lastTouched; }
+  void                set_last_touched(uint64_t t)             { m_lastTouched = t; }
 
 protected:
-  void                set_offset(uint64_t off)                { m_offset = off; }
-  void                set_size_bytes(uint64_t size)           { m_size = size; }
+  void                set_offset(uint64_t off)                 { m_offset = off; }
+  void                set_size_bytes(uint64_t size)            { m_size = size; }
   void                set_range(uint32_t chunkSize);
 
-  void                set_completed(uint32_t v)               { m_completed = v; }
-  void                inc_completed()                         { m_completed++; }
+  void                set_completed(uint32_t v)                { m_completed = v; }
+  void                inc_completed()                          { m_completed++; }
 
-  void                set_match_depth_prev(uint32_t l)        { m_matchDepthPrev = l; }
-  void                set_match_depth_next(uint32_t l)        { m_matchDepthNext = l; }
+  void                set_match_depth_prev(uint32_t l)         { m_matchDepthPrev = l; }
+  void                set_match_depth_next(uint32_t l)         { m_matchDepthNext = l; }
 
   bool                resize_file();
-
-  FileMeta*           file_meta()                             { return m_fileMeta; }
-  const FileMeta*     file_meta() const                       { return m_fileMeta; }
 
 private:
   File(const File&);
   void operator = (const File&);
 
-  FileMeta*           m_fileMeta;
   Path                m_path;
 
   uint64_t            m_offset;
@@ -108,6 +134,15 @@ private:
 
   uint32_t            m_matchDepthPrev;
   uint32_t            m_matchDepthNext;
+
+  // Move the below stuff up to the right places next incompatible API
+  // change.
+  int                 m_fd;
+  std::string         m_frozenPath;
+
+  int                 m_protection;
+
+  uint64_t            m_lastTouched;
 };
 
 inline bool

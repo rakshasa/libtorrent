@@ -41,13 +41,13 @@
 
 namespace torrent {
 
-class FileMeta;
+class File;
 
 // Use unordered_vector instead.
 
-class FileManager : private rak::unordered_vector<FileMeta*> {
+class FileManager : private rak::unordered_vector<File*> {
 public:
-  typedef rak::unordered_vector<FileMeta*> base_type;
+  typedef rak::unordered_vector<File*> base_type;
 
   using base_type::value_type;
 
@@ -64,21 +64,21 @@ public:
   FileManager() : m_openSize(0), m_maxSize(0) {}
   ~FileManager();
 
-  void                insert(FileMeta* f);
-  void                erase(FileMeta* f);
+  void                insert(value_type f);
+  void                erase(value_type f);
 
   size_t              open_size() const               { return m_openSize; }
 
   size_t              max_size() const                { return m_maxSize; }
   void                set_max_size(size_t s);
 
+  // Bool or throw? iterator or reference/pointer?
+  bool                prepare_file(value_type meta, int prot, int flags);
+  void                close_file(value_type meta);
+
 private:
   FileManager(const FileManager&);
   void operator = (const FileManager&);
-
-  // Bool or throw? iterator or reference/pointer?
-  bool                prepare_file(FileMeta* meta, int prot, int flags);
-  void                close_file(FileMeta* meta);
 
   void                close_least_active();
 

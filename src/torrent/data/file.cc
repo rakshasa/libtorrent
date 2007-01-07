@@ -39,27 +39,32 @@
 #include <rak/error_number.h>
 #include <rak/file_stat.h>
 
-#include "data/file_meta.h"
+#include "data/file_manager.h"
+#include "data/memory_chunk.h"
+#include "data/socket_file.h"
 #include "torrent/exceptions.h"
 
 #include "file.h"
+#include "globals.h"
+#include "manager.h"
 
 namespace torrent {
 
 File::File() :
-  m_fileMeta(new FileMeta),
-
   m_offset(0),
   m_size(0),
   m_completed(0),
   m_priority(PRIORITY_NORMAL),
 
   m_matchDepthPrev(0),
-  m_matchDepthNext(0) {
+  m_matchDepthNext(0),
+
+  m_fd(-1),
+  m_protection(0),
+  m_lastTouched(cachedTime.usec()) {
 }
 
 File::~File() {
-  delete m_fileMeta;
 }
 
 bool
@@ -71,7 +76,7 @@ File::is_created() const {
   // the client to check that the torrent files are present and ok,
   // rather than as a way to find out if it is starting on a blank
   // slate.
-  if (!fs.update(m_fileMeta->get_path()))
+  if (!fs.update(frozen_path()))
 //     return rak::error_number::current() == rak::error_number::e_access;
     return false;
 
@@ -82,10 +87,23 @@ bool
 File::is_correct_size() const {
   rak::file_stat fs;
 
-  if (!fs.update(m_fileMeta->get_path()))
+  if (!fs.update(frozen_path()))
     return false;
 
   return fs.is_regular() && (uint64_t)fs.size() == m_size;
+}
+
+bool
+File::prepare(int prot, int flags) {
+//   if (!m_slotPrepare.is_valid())
+//     return false;
+
+  m_lastTouched = cachedTime.usec();
+
+  if (is_open() && has_permissions(prot))
+    return true;
+
+  return manager->file_manager()->prepare_file(this, prot, flags);
 }
 
 void
@@ -100,18 +118,18 @@ File::set_range(uint32_t chunkSize) {
 
 bool
 File::resize_file() {
-  if (!m_fileMeta->prepare(MemoryChunk::prot_read))
+  if (!prepare(MemoryChunk::prot_read))
     return false;
 
-  if (m_size == m_fileMeta->get_file().size())
+  if (m_size == socket_file()->size())
     return true;
 
-  if (!m_fileMeta->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
-      !m_fileMeta->get_file().set_size(m_size))
+  if (!prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
+      !socket_file()->set_size(m_size))
     return false;
   
   // Not here... make it a setting of sorts?
-  //m_fileMeta->get_file().reserve();
+  //get_file().reserve();
 
   return true;
 }
