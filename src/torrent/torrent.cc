@@ -107,7 +107,7 @@ initialize(Poll* poll) {
   uint32_t maxFiles = calculate_max_open_files(poll->open_max());
 
   manager->connection_manager()->set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
-  manager->file_manager()->set_max_size(maxFiles);
+  manager->file_manager()->set_max_open_files(maxFiles);
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -280,12 +280,12 @@ set_hash_max_tries(uint32_t tries) {
 
 uint32_t
 open_files() {
-  return manager->file_manager()->open_size();
+  return manager->file_manager()->open_files();
 }
 
 uint32_t
 max_open_files() {
-  return manager->file_manager()->max_size();
+  return manager->file_manager()->max_open_files();
 }
 
 void
@@ -293,7 +293,7 @@ set_max_open_files(uint32_t size) {
   if (size < 4 || size > (1 << 16))
     throw input_error("Max open files must be between 4 and 2^16.");
 
-  manager->file_manager()->set_max_size(size);
+  manager->file_manager()->set_max_open_files(size);
 }
 
 EncodingList*

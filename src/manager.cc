@@ -42,7 +42,6 @@
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
 #include "download/download_main.h"
-#include "data/file_manager.h"
 #include "data/hash_torrent.h"
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
@@ -51,6 +50,7 @@
 
 #include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
+#include "torrent/data/file_manager.h"
 #include "torrent/peer/client_list.h"
 
 #include "manager.h"

@@ -34,58 +34,88 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_FILE_MANAGER_H
-#define LIBTORRENT_DATA_FILE_MANAGER_H
+#include "config.h"
 
-#include <rak/unordered_vector.h>
+#include <algorithm>
+
+#include "data/socket_file.h"
+#include "torrent/exceptions.h"
+
+#include "file.h"
+#include "file_manager.h"
+#include "manager.h"
 
 namespace torrent {
 
-class File;
-
-// Use unordered_vector instead.
-
-class FileManager : private rak::unordered_vector<File*> {
-public:
-  typedef rak::unordered_vector<File*> base_type;
-
-  using base_type::value_type;
-
-  using base_type::iterator;
-  using base_type::reverse_iterator;
-  using base_type::size;
-  using base_type::empty;
-
-  using base_type::begin;
-  using base_type::end;
-  using base_type::rbegin;
-  using base_type::rend;
-
-  FileManager() : m_openSize(0), m_maxSize(0) {}
-  ~FileManager();
-
-  void                insert(value_type f);
-  void                erase(value_type f);
-
-  size_t              open_size() const               { return m_openSize; }
-
-  size_t              max_size() const                { return m_maxSize; }
-  void                set_max_size(size_t s);
-
-  // Bool or throw? iterator or reference/pointer?
-  bool                prepare_file(value_type meta, int prot, int flags);
-  void                close_file(value_type meta);
-
-private:
-  FileManager(const FileManager&);
-  void operator = (const FileManager&);
-
-  void                close_least_active();
-
-  size_t              m_openSize;
-  size_t              m_maxSize;
-};
-
+FileManager::~FileManager() {
+  if (!empty())
+    throw internal_error("FileManager::~FileManager() called but empty() != true.");
 }
 
-#endif
+void
+FileManager::set_max_open_files(size_type s) {
+  m_maxOpenFiles = s;
+
+  while (size() > m_maxOpenFiles)
+    close_least_active();
+}
+
+bool
+FileManager::open(value_type file, int prot, int flags) {
+  if (file->is_open())
+    close(file);
+
+  if (size() > m_maxOpenFiles)
+    throw internal_error("FileManager::open_file(...) m_openSize > m_maxOpenFiles.");
+
+  if (size() == m_maxOpenFiles)
+    close_least_active();
+
+  if (!file->socket_file()->open(file->frozen_path(), prot, flags))
+    return false;
+
+  file->set_protection(prot);
+  base_type::push_back(file);
+
+  // Consider storing the position of the file here.
+
+  return true;
+}
+
+void
+FileManager::close(value_type file) {
+  if (!file->is_open())
+    return;
+
+  file->set_protection(0);
+  file->socket_file()->close();
+  
+  iterator itr = std::find(begin(), end(), file);
+
+  if (itr == end())
+    throw internal_error("FileManager::close_file(...) itr == end().");
+
+  *itr = back();
+  base_type::pop_back();
+}
+
+struct FileManagerActivity {
+  FileManagerActivity() : m_last(rak::timer::max().usec()), m_file(NULL) {}
+
+  void operator ()(File* f) {
+    if (f->is_open() && f->last_touched() <= m_last) {
+      m_last = f->last_touched();
+      m_file = f;
+    }
+  }
+
+  uint64_t   m_last;
+  File*      m_file;
+};
+
+void
+FileManager::close_least_active() {
+  close(std::for_each(begin(), end(), FileManagerActivity()).m_file);
+}
+
+}

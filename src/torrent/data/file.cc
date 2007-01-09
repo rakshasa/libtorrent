@@ -39,12 +39,12 @@
 #include <rak/error_number.h>
 #include <rak/file_stat.h>
 
-#include "data/file_manager.h"
 #include "data/memory_chunk.h"
 #include "data/socket_file.h"
 #include "torrent/exceptions.h"
 
 #include "file.h"
+#include "file_manager.h"
 #include "globals.h"
 #include "manager.h"
 
@@ -65,6 +65,8 @@ File::File() :
 }
 
 File::~File() {
+  if (is_open())
+    throw internal_error("File::~File() called on an open file.");
 }
 
 bool
@@ -103,7 +105,7 @@ File::prepare(int prot, int flags) {
   if (is_open() && has_permissions(prot))
     return true;
 
-  return manager->file_manager()->prepare_file(this, prot, flags);
+  return manager->file_manager()->open(this, prot, flags);
 }
 
 void

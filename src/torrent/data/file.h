@@ -61,10 +61,6 @@ public:
 
   bool                has_permissions(int prot) const          { return !(prot & ~m_protection); }
 
-//   bool                is_readable() const                               { return m_prot & MemoryChunk::prot_read; }
-//   bool                is_writable() const                               { return m_prot & MemoryChunk::prot_write; }
-//   bool                is_nonblock() const                               { return m_flags & o_nonblock; }
-
   uint64_t            offset() const                           { return m_offset; }
 
   uint64_t            size_bytes() const                       { return m_size; }
@@ -96,7 +92,9 @@ public:
   SocketFile*         socket_file()                            { return reinterpret_cast<SocketFile*>(&m_fd); }
   const SocketFile*   socket_file() const                      { return reinterpret_cast<const SocketFile*>(&m_fd); }
 
-  // More hmm...
+  // This might actually be wanted, as it would be nice to allow the
+  // File to decide if it needs to try creating the underlying file or
+  // not.
   bool                prepare(int prot, int flags = 0);
 
   int                 protection() const                       { return m_protection; }

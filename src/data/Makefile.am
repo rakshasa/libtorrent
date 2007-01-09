@@ -10,8 +10,6 @@ libsub_data_la_SOURCES = \
 	chunk_list_node.h \
 	chunk_part.cc \
 	chunk_part.h \
-	file_manager.cc \
-	file_manager.h \
 	hash_chunk.cc \
 	hash_chunk.h \
 	hash_queue.cc \

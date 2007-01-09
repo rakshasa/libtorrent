@@ -47,7 +47,6 @@
 #include <rak/functional.h>
 
 #include "data/chunk.h"
-#include "data/file_manager.h"
 #include "data/memory_chunk.h"
 #include "data/socket_file.h"
 
@@ -56,6 +55,7 @@
 
 #include "file.h"
 #include "file_list.h"
+#include "file_manager.h"
 #include "manager.h"
 #include "piece.h"
 
@@ -346,7 +346,7 @@ FileList::open() {
       if (entry->is_open())
         throw internal_error("FileList::open(...) found an already opened file.");
       
-      manager->file_manager()->insert(entry);
+//       manager->file_manager()->insert(entry);
 
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
@@ -369,7 +369,7 @@ FileList::open() {
 
   } catch (storage_error& e) {
     for (iterator cleanupItr = begin(); cleanupItr != itr; ++cleanupItr)
-      manager->file_manager()->erase((*cleanupItr));
+      manager->file_manager()->close(*cleanupItr);
 
     throw e;
   }
@@ -383,7 +383,7 @@ FileList::close() {
     return;
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-    manager->file_manager()->erase(*itr);
+    manager->file_manager()->close(*itr);
     
     (*itr)->set_completed(0);
   }
