@@ -123,11 +123,11 @@ File::resize_file() {
   if (!prepare(MemoryChunk::prot_read))
     return false;
 
-  if (m_size == socket_file()->size())
+  if (m_size == SocketFile(m_fd).size())
     return true;
 
   if (!prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
-      !socket_file()->set_size(m_size))
+      !SocketFile(m_fd).set_size(m_size))
     return false;
   
   // Not here... make it a setting of sorts?

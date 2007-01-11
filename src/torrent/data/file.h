@@ -42,8 +42,6 @@
 
 namespace torrent {
 
-class SocketFile;
-
 class LIBTORRENT_EXPORT File {
 public:
   friend class FileList;
@@ -79,7 +77,6 @@ public:
   const Path*         path() const                             { return &m_path; }
 
   const std::string&  frozen_path() const                      { return m_frozenPath; }
-  void                set_frozen_path(const std::string& path) { m_frozenPath = path; }
 
   uint32_t            match_depth_prev() const                 { return m_matchDepthPrev; }
   uint32_t            match_depth_next() const                 { return m_matchDepthNext; }
@@ -87,10 +84,6 @@ public:
   // This should only be changed by libtorrent.
   int                 file_descriptor() const                  { return m_fd; }
   void                set_file_descriptor(int fd)              { m_fd = fd; }
-
-  // Hmm...
-  SocketFile*         socket_file()                            { return reinterpret_cast<SocketFile*>(&m_fd); }
-  const SocketFile*   socket_file() const                      { return reinterpret_cast<const SocketFile*>(&m_fd); }
 
   // This might actually be wanted, as it would be nice to allow the
   // File to decide if it needs to try creating the underlying file or
@@ -104,6 +97,8 @@ public:
   void                set_last_touched(uint64_t t)             { m_lastTouched = t; }
 
 protected:
+  void                set_frozen_path(const std::string& path) { m_frozenPath = path; }
+
   void                set_offset(uint64_t off)                 { m_offset = off; }
   void                set_size_bytes(uint64_t size)            { m_size = size; }
   void                set_range(uint32_t chunkSize);

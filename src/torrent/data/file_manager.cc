@@ -71,10 +71,13 @@ FileManager::open(value_type file, int prot, int flags) {
   if (size() == m_maxOpenFiles)
     close_least_active();
 
-  if (!file->socket_file()->open(file->frozen_path(), prot, flags))
+  SocketFile fd;
+
+  if (!fd.open(file->frozen_path(), prot, flags))
     return false;
 
   file->set_protection(prot);
+  file->set_file_descriptor(fd.fd());
   base_type::push_back(file);
 
   // Consider storing the position of the file here.
@@ -87,8 +90,10 @@ FileManager::close(value_type file) {
   if (!file->is_open())
     return;
 
+  SocketFile(file->file_descriptor()).close();
+
   file->set_protection(0);
-  file->socket_file()->close();
+  file->set_file_descriptor(-1);
   
   iterator itr = std::find(begin(), end(), file);
 

@@ -481,7 +481,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   if (!(*itr)->prepare(prot))
     return MemoryChunk();
 
-  return (*itr)->socket_file()->create_chunk(offset, length, prot, MemoryChunk::map_shared);
+  return SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
 }
 
 Chunk*

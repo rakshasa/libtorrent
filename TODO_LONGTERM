@@ -9,6 +9,9 @@ The seed count and scrape leech/seed.
 
 Rename FileListIterator.
 
+Allow the client to set the priority of chunks directly, just add some
+helper functions.
+
 
 === torrent::Object ==
 
