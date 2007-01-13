@@ -60,7 +60,6 @@ public:
 
   SocketFile() : m_fd(invalid_fd) {}
   SocketFile(fd_type fd) : m_fd(fd) {}
-  ~SocketFile();
 
   bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
 

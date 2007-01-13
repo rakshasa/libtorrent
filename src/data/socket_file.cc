@@ -52,12 +52,6 @@
 
 namespace torrent {
 
-SocketFile::~SocketFile() {
-  // Temporary test case to make sure we close files properly.
-  if (is_open())
-    throw internal_error("Destroyed a SocketFile that is open");
-}
-
 bool
 SocketFile::open(const std::string& path, int prot, int flags, mode_t mode) {
   close();
