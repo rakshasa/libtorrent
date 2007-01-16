@@ -49,18 +49,24 @@ TORRENT_WITHOUT_STATFS
 
 CC_ATTRIBUTE_VISIBILITY
 
-AC_ARG_WITH(openssl,
-  [  --without-openssl       Don't use OpenSSL's SHA1 implementation.],
+AC_ARG_ENABLE(openssl,
+  [  --disable-openssl       Don't use OpenSSL's SHA1 implementation.],
   [
-    if test "$withval" = "yes" || test "$withval" != "no"; then
-      TORRENT_CHECK_OPENSSL
+    if test "$enableval" = "yes"; then
+      PKG_CHECK_MODULES(OPENSSL, openssl,
+        CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";
+        LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`")
+
       AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
       AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
     else
       AC_DEFINE(USE_NSS_SHA, 1, Using Mozilla's SHA1 implementation.)
     fi
-  ], [
-    TORRENT_CHECK_OPENSSL
+  ],[
+    PKG_CHECK_MODULES(OPENSSL, openssl,
+      CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";
+      LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`")
+
     AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
     AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
   ]

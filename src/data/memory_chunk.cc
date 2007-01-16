@@ -37,6 +37,8 @@
 #include "config.h"
 
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/mman.h>
 #include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
