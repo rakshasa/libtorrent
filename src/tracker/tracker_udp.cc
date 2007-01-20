@@ -229,11 +229,14 @@ TrackerUdp::parse_url() {
   if ((err = rak::address_info::get_address_info(hostname, PF_INET, SOCK_STREAM, &ai)) != 0)
     return false;
   
-  if (ai->address()->family() != rak::socket_address::af_inet)
+  if (ai->address()->family() != rak::socket_address::af_inet) {
+    rak::address_info::free_address_info(ai);
     return false;
+  }
 
   m_connectAddress.copy(*ai->address(), ai->length());
   m_connectAddress.set_port(port);
+  rak::address_info::free_address_info(ai);
 
   return m_connectAddress.is_valid();
 }

@@ -109,14 +109,18 @@ public:
   const PeerList*     peer_list() const;
   const TransferList* transfer_list() const;
 
+  // Remove the old non-const versions.
   Rate*               down_rate();
   const Rate*         down_rate() const;
+  Rate*               mutable_down_rate();
 
   Rate*               up_rate();
   const Rate*         up_rate() const;
+  Rate*               mutable_up_rate();
 
   Rate*               skip_rate();
   const Rate*         skip_rate() const;
+  Rate*               mutable_skip_rate();
 
   // Bytes completed.
   uint64_t            bytes_done() const;

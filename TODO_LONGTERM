@@ -12,6 +12,8 @@ Rename FileListIterator.
 Allow the client to set the priority of chunks directly, just add some
 helper functions.
 
+Remove the old non-const rate functions in Download.
+
 
 === torrent::Object ==
 
@@ -24,6 +26,10 @@ re-constructing torrent files of ~100KB in some cases.
 Add a variable that has can have an off state, plus a value range.
 
 Add a bit for modified entries, or perhaps just freeze lists/maps.
+
+Need to make this cheap for copying, so that we don't need to rely on
+an inherently borked design in the use of Variable::m_cache. It
+doesn't work if we call the same variable several times.
 
 
 === Session management ==

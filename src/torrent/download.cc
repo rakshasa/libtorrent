@@ -254,6 +254,11 @@ Download::down_rate() const {
 }
 
 Rate*
+Download::mutable_down_rate() {
+  return m_ptr->info()->down_rate();
+}
+
+Rate*
 Download::up_rate() {
   return m_ptr->info()->up_rate();
 }
@@ -264,12 +269,22 @@ Download::up_rate() const {
 }
 
 Rate*
+Download::mutable_up_rate() {
+  return m_ptr->info()->up_rate();
+}
+
+Rate*
 Download::skip_rate() {
   return m_ptr->info()->skip_rate();
 }
 
 const Rate*
 Download::skip_rate() const {
+  return m_ptr->info()->skip_rate();
+}
+
+Rate*
+Download::mutable_skip_rate() {
   return m_ptr->info()->skip_rate();
 }
 
