@@ -91,6 +91,10 @@ public:
   bool                is_done() const                                 { return completed_chunks() == size_chunks(); }
   bool                is_valid_piece(const Piece& piece) const;
 
+  // Check if the torrent is loaded as a multi-file torrent. This may
+  // return true even for a torrent with just one file.
+  bool                is_multi_file() const;
+
   size_t              size_files() const                              { return base_type::size(); }
   uint64_t            size_bytes() const                              { return m_torrentSize; }
   uint32_t            size_chunks() const                             { return m_bitfield.size_bits(); }

@@ -14,6 +14,10 @@ helper functions.
 
 Remove the old non-const rate functions in Download.
 
+Allow flags to be passed during creation of download. This would be
+used to f.ex deciding if a download should be considered a multi-file
+torrent or not.
+
 
 === torrent::Object ==
 

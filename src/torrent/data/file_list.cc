@@ -104,6 +104,14 @@ FileList::is_valid_piece(const Piece& piece) const {
     piece.offset() + piece.length() <= chunk_index_size(piece.index());
 }
 
+bool
+FileList::is_multi_file() const {
+  // Currently only check if we got just one file. In the future this
+  // should be a bool, which will be set based on what flags are
+  // passed when the torrent was loaded.
+  return size() != 1;
+}
+
 uint64_t
 FileList::completed_bytes() const {
   // Chunk size needs to be cast to a uint64_t for the below to work.
