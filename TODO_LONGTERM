@@ -43,32 +43,6 @@ not open. Or do session torrent saving as needed, when seeding is
 stopped etc. Perhaps a dirty flag.
 
 
-== Global and Download specific variables ==
-
-There are various things, ties to files, peer connection type etc that
-should be in a generic variable container thingie. In addition there
-should be a template for new downloads, download factory etc. The
-download factory's being given to the new download.
-
-Remember that we currently don't save sessions for inactive torrents.
-
-Some variables should have custom store/retrive slots. One kind could
-be used to store/retrive values from the bencoded data, with syntax
-like "rtorrent/state" etc.
-
-Stuff about new bencode thingie.
-
-Make it possible to do an validity check on a bencode stream.
-
-
-== Cleanup of the display manager ==
-
-Consider taking the tasks out of the Window class, and just use flags
-for those that want to be regulary updated.
-
-Get rid of the Element* classes?
-
-
 == Configurable keybindings ==
 
 ...

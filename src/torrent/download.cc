@@ -119,7 +119,7 @@ Download::stop() {
 bool
 Download::hash_check(bool tryQuick) {
   if (m_ptr->hash_checker()->is_checking())
-    return m_ptr->hash_checker()->start(tryQuick);
+    throw internal_error("Download::hash_check(...) called but the hash is already being checked.");
 
   if (!m_ptr->info()->is_open() || m_ptr->info()->is_active())
     throw internal_error("Download::hash_check(...) called on a closed or active download.");
@@ -127,11 +127,11 @@ Download::hash_check(bool tryQuick) {
   if (m_ptr->hash_checker()->is_checked())
     throw internal_error("Download::hash_check(...) called but already hash checked.");
 
-  // The bitfield still hasn't been allocated, so no resume data was
-  // given. 
   Bitfield* bitfield = m_ptr->main()->file_list()->mutable_bitfield();
 
   if (bitfield->empty()) {
+    // The bitfield still hasn't been allocated, so no resume data was
+    // given. 
     bitfield->allocate();
     bitfield->unset_all();
 

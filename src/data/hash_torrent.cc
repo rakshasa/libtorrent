@@ -58,15 +58,10 @@ HashTorrent::start(bool tryQuick) {
   if (m_position == m_chunkList->size())
     return true;
 
-  if (!is_checking()) {
-    if (m_position > 0 || m_chunkList->empty())
-      throw internal_error("HashTorrent::start() call failed.");
+  if (m_position > 0 || m_chunkList->empty())
+    throw internal_error("HashTorrent::start() call failed.");
 
-    m_outstanding = 0;
-  }
-
-  // This doesn't really handle paused hashing properly... Do we set
-  // m_outstanding to -1 when stopping?
+  m_outstanding = 0;
 
   queue(tryQuick);
   return m_position == m_chunkList->size();
@@ -100,22 +95,17 @@ HashTorrent::confirm_checked() {
 
 void
 HashTorrent::receive_chunkdone() {
-  if (m_outstanding == -1)
-    throw internal_error("HashTorrent::receive_chunkdone() m_outstanding < 0.");
+  if (m_outstanding <= 0)
+    throw internal_error("HashTorrent::receive_chunkdone() m_outstanding <= 0.");
 
   // m_signalChunk will always point to
   // DownloadMain::receive_hash_done, so it will take care of cleanup.
   //
   // Make sure we call chunkdone before torrentDone has a chance to
   // trigger.
-//   m_slotChunkDone(handle, hash);
   m_outstanding--;
 
-  // Don't add more when we've stopped. Use some better condition than
-  // m_outstanding. This code is ugly... needs a refactoring, a
-  // seperate flag for active and allow pause or clearing the state.
-  if (m_outstanding >= 0)
-    queue(false);
+  queue(false);
 }
 
 // Mark unsuccessful checks so that if we have just stopped the
