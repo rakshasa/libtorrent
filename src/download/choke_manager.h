@@ -49,21 +49,22 @@ class PeerConnectionBase;
 
 class ChokeManager {
 public:
-  typedef ConnectionList::iterator                          iterator;
   typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotChoke;
   typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotUnchoke;
   typedef rak::mem_fun0<ResourceManager, unsigned int>       SlotCanUnchoke;
 
+//   typedef rak::unordered_vector<PeerConnectionBase*> container_type;
+  typedef std::vector<PeerConnectionBase*>           container_type;
+  typedef container_type::iterator                   iterator;
+
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
-    m_currentlyUnchoked(0),
-    m_currentlyInterested(0),
     m_maxUnchoked(15),
     m_generousUnchokes(3) {}
   ~ChokeManager();
   
-  unsigned int        currently_unchoked() const              { return m_currentlyUnchoked; }
-  unsigned int        currently_interested() const            { return m_currentlyInterested; }
+  unsigned int        currently_unchoked() const              { return m_unchoked.size(); }
+  unsigned int        currently_interested() const            { return m_interested.size() + m_unchoked.size(); }
 
   unsigned int        max_unchoked() const                    { return m_maxUnchoked; }
   void                set_max_unchoked(unsigned int v)        { m_maxUnchoked = v; }
@@ -86,24 +87,19 @@ public:
   void                slot_can_unchoke(SlotCanUnchoke s)       { m_slotCanUnchoke = s; }
 
 private:
-  static iterator     seperate_interested(iterator first, iterator last);
-  static iterator     seperate_unchoked(iterator first, iterator last);
-
   inline unsigned int max_alternate() const;
 
   unsigned int        choke_range(iterator first, iterator last, unsigned int max);
   unsigned int        unchoke_range(iterator first, iterator last, unsigned int max);
 
-  inline void         alternate_ranges(iterator firstUnchoked, iterator lastUnchoked,
-				       iterator firstChoked, iterator lastChoked,
-				       unsigned int max);
+  inline void         alternate_ranges(unsigned int max);
 
   inline static void  swap_with_shift(iterator first, iterator source);
 
   ConnectionList*     m_connectionList;
 
-  unsigned int        m_currentlyUnchoked;
-  unsigned int        m_currentlyInterested;
+  container_type      m_interested;
+  container_type      m_unchoked;
 
   unsigned int        m_maxUnchoked;
   unsigned int        m_generousUnchokes;
