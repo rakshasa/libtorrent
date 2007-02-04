@@ -80,6 +80,9 @@ public:
   void                set_interested(PeerConnectionBase* pc);
   void                set_not_interested(PeerConnectionBase* pc);
 
+  void                set_snubbed(PeerConnectionBase* pc);
+  void                set_not_snubbed(PeerConnectionBase* pc);
+
   void                disconnected(PeerConnectionBase* pc);
 
   void                slot_choke(SlotChoke s)                  { m_slotChoke = s; }

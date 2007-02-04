@@ -38,6 +38,8 @@
 
 #include "data/block.h"
 #include "data/block_transfer.h"
+#include "download/choke_manager.h"
+#include "download/download_main.h"
 #include "protocol/peer_chunks.h"
 #include "protocol/peer_connection_base.h"
 
@@ -90,7 +92,10 @@ Peer::is_snubbed() const {
 
 void
 Peer::set_snubbed(bool v) {
-  m_ptr->set_snubbed(v);
+  if (v)
+    m_ptr->download()->choke_manager()->set_snubbed(m_ptr);
+  else
+    m_ptr->download()->choke_manager()->set_not_snubbed(m_ptr);
 }
 
 const HashString&

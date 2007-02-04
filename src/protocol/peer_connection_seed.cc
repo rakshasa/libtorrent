@@ -39,6 +39,7 @@
 #include <cstring>
 #include <sstream>
 
+#include "download/choke_manager.h"
 #include "download/chunk_statistics.h"
 #include "download/download_info.h"
 #include "download/download_main.h"
@@ -139,11 +140,11 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    set_remote_interested();
+    m_download->choke_manager()->set_interested(this);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    set_remote_not_interested();
+    m_download->choke_manager()->set_not_interested(this);
     return true;
 
   case ProtocolBase::HAVE:

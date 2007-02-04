@@ -98,13 +98,8 @@ public:
   const PeerInfo*     c_peer_info() const           { return m_peerInfo; }
   PeerChunks*         peer_chunks()                 { return &m_peerChunks; }
 
+  DownloadMain*       download()                    { return m_download; }
   RequestList*        download_queue()              { return &m_downloadQueue; }
-
-  // Make sure you choke the peer when snubbing. Snubbing a peer will
-  // only cause it not to be unchoked.
-  //
-  // Move this stuff to PeerChunks.
-  void                set_snubbed(bool v);
 
   rak::timer          time_last_choked() const      { return m_timeLastChoked; }
 
@@ -120,6 +115,9 @@ public:
   void                push_unread(const void* data, uint32_t size);
 
   void                cancel_transfer(BlockTransfer* transfer);
+
+  // Only for use by ChokeManager.
+  void                set_down_interested(bool v)   { m_down->set_interested(v); }
 
 protected:
   inline bool         read_remaining();
@@ -154,9 +152,6 @@ protected:
 
   bool                should_request();
   bool                try_request_pieces();
-
-  void                set_remote_interested();
-  void                set_remote_not_interested();
 
   // Insert into the poll unless we're blocking for throttling etc.
   void                read_insert_poll_safe();

@@ -40,6 +40,7 @@
 #include <sstream>
 
 #include "data/chunk_list_node.h"
+#include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_info.h"
@@ -183,11 +184,11 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    set_remote_interested();
+    m_download->choke_manager()->set_interested(this);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    set_remote_not_interested();
+    m_download->choke_manager()->set_not_interested(this);
     return true;
 
   case ProtocolBase::HAVE:
@@ -528,7 +529,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
     if (m_download->file_list()->is_done())
       throw close_connection();
     else
-      set_remote_not_interested();
+      m_download->choke_manager()->set_not_interested(this);
 
   if (m_download->file_list()->is_done())
     return;

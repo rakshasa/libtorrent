@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <sstream>
+#include <cstdio>
 #include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
@@ -200,24 +200,6 @@ PeerConnectionBase::load_up_chunk() {
 
   m_upChunk.object()->set_time_preloaded(cachedTime);
   m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), cm->preload_type() == 1);
-}
-
-void
-PeerConnectionBase::set_snubbed(bool v) {
-  if (v == m_peerChunks.is_snubbed())
-    return;
-
-  bool wasUploadWanted = is_upload_wanted();
-  m_peerChunks.set_snubbed(v);
-
-  if (v) {
-    if (wasUploadWanted)
-      m_download->choke_manager()->set_not_interested(this);
-
-  } else {
-    if (is_upload_wanted())
-      m_download->choke_manager()->set_interested(this);
-  }
 }
 
 void
@@ -588,17 +570,12 @@ PeerConnectionBase::write_prepare_piece() {
   // Move these checks somewhere else?
   if (!m_download->file_list()->is_valid_piece(m_upPiece) ||
       !m_download->file_list()->bitfield()->get(m_upPiece.index())) {
-    std::stringstream s;
+    char buffer[128];
+    snprintf(buffer, 128, "Peer requested an invalid piece: %u %u %u", m_upPiece.index(), m_upPiece.length(), m_upPiece.offset());
 
-    s << "Peer requested a piece with invalid index or length/offset: "
-      << m_upPiece.index() << ' '
-      << m_upPiece.length() << ' '
-      << m_upPiece.offset();
-
-    throw communication_error(s.str());
-//     throw communication_error("Peer requested a piece with invalid index or length/offset.");
+    throw communication_error(buffer);
   }
-      
+  
   m_up->write_piece(m_upPiece);
 }
 
@@ -655,30 +632,6 @@ PeerConnectionBase::try_request_pieces() {
   }
 
   return success;
-}
-
-void
-PeerConnectionBase::set_remote_interested() {
-  if (m_down->interested() || m_peerChunks.bitfield()->is_all_set())
-    return;
-
-  m_down->set_interested(true);
-
-  if (is_upload_wanted())
-    m_download->choke_manager()->set_interested(this);
-}
-
-void
-PeerConnectionBase::set_remote_not_interested() {
-  if (!m_down->interested())
-    return;
-
-  bool wasUploadWanted = is_upload_wanted();
-
-  m_down->set_interested(false);
-
-  if (wasUploadWanted)
-    m_download->choke_manager()->set_not_interested(this);
 }
 
 }

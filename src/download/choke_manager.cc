@@ -96,16 +96,6 @@ struct choke_manager_not_recently_unchoked {
   }
 };
 
-// inline ChokeManager::iterator
-// ChokeManager::seperate_interested(iterator first, iterator last) {
-//   return std::partition(first, last, choke_manager_is_interested());
-// }
-
-// inline ChokeManager::iterator
-// ChokeManager::seperate_unchoked(iterator first, iterator last) {
-//   return std::partition(first, last, std::not1(std::mem_fun(&PeerConnectionBase::is_up_choked)));
-// }
-
 // 1  > 1
 // 9  > 2
 // 17 > 3 < 21
@@ -190,12 +180,18 @@ ChokeManager::cycle(unsigned int quota) {
   return cycled;
 }
 
-// Move the setting/unsetting of interested in here.
-
 void
 ChokeManager::set_interested(PeerConnectionBase* pc) {
+  if (pc->is_down_interested())
+    return;
+
   if (!pc->is_up_choked())
     throw internal_error("ChokeManager::set_interested(...) !pc->is_up_choked().");
+
+  pc->set_down_interested(true);
+
+  if (pc->peer_chunks()->is_snubbed())
+    return;    
 
   if (m_unchoked.size() < m_maxUnchoked &&
       pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
@@ -210,28 +206,76 @@ ChokeManager::set_interested(PeerConnectionBase* pc) {
   }
 }
 
-// Replace the find+erase with throw with a single inlined function.
+void
+choke_manager_erase(ChokeManager::container_type* container, PeerConnectionBase* pc) {
+  ChokeManager::container_type::iterator itr = std::find(container->begin(), container->end(), pc);
+
+  if (itr == container->end())
+    throw internal_error("choke_manager_remove(...) itr == m_unchoked.end().");
+
+  container->erase(itr);
+}
 
 void
 ChokeManager::set_not_interested(PeerConnectionBase* pc) {
+  if (!pc->is_down_interested())
+    return;
+
+  pc->set_down_interested(false);
+
+  if (pc->peer_chunks()->is_snubbed())
+    return;
+
   if (!pc->is_up_choked()) {
-    iterator itr = std::find(m_unchoked.begin(), m_unchoked.end(), pc);
-
-    if (itr == m_unchoked.end())
-      throw internal_error("ChokeManager::set_not_interested(...) itr == m_unchoked.end().");
-
-    m_unchoked.erase(itr);
-
+    choke_manager_erase(&m_unchoked, pc);
     pc->receive_choke(true);
     m_slotChoke(1);
 
   } else {
-    iterator itr = std::find(m_interested.begin(), m_interested.end(), pc);
+    choke_manager_erase(&m_interested, pc);
+  }
+}
 
-    if (itr == m_interested.end())
-      throw internal_error("ChokeManager::set_not_interested(...) itr == m_interested.end().");
+void
+ChokeManager::set_snubbed(PeerConnectionBase* pc) {
+  if (pc->peer_chunks()->is_snubbed())
+    return;
 
-    m_interested.erase(itr);
+  pc->peer_chunks()->set_snubbed(true);
+
+  if (!pc->is_up_choked()) {
+    choke_manager_erase(&m_unchoked, pc);
+    pc->receive_choke(true);
+    m_slotChoke(1);
+
+  } else if (pc->is_down_interested()) {
+    choke_manager_erase(&m_interested, pc);
+  }
+}
+
+void
+ChokeManager::set_not_snubbed(PeerConnectionBase* pc) {
+  if (!pc->peer_chunks()->is_snubbed())
+    return;
+
+  pc->peer_chunks()->set_snubbed(false);
+
+  if (!pc->is_down_interested())
+    return;
+
+  if (!pc->is_up_choked())
+    throw internal_error("ChokeManager::set_not_snubbed(...) !pc->is_up_choked().");
+  
+  if (m_unchoked.size() < m_maxUnchoked &&
+      pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
+      m_slotCanUnchoke()) {
+    m_unchoked.push_back(pc);
+    pc->receive_choke(false);
+
+    m_slotUnchoke(1);
+
+  } else {
+    m_interested.push_back(pc);
   }
 }
 
