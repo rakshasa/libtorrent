@@ -54,48 +54,6 @@ ChokeManager::~ChokeManager() {
     throw internal_error("ChokeManager::~ChokeManager() called but m_currentlyInterested != 0.");
 }
 
-struct choke_manager_read_rate_increasing {
-  bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return *p1->peer_chunks()->download_throttle()->rate() < *p2->peer_chunks()->download_throttle()->rate();
-  }
-};
-
-struct choke_manager_write_rate_increasing {
-  bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return *p1->peer_chunks()->upload_throttle()->rate() < *p2->peer_chunks()->upload_throttle()->rate();
-  }
-};
-
-struct choke_manager_read_rate_decreasing {
-  bool operator () (PeerConnectionBase* p1, PeerConnectionBase* p2) const {
-    return *p1->peer_chunks()->download_throttle()->rate() > *p2->peer_chunks()->download_throttle()->rate();
-  }
-};
-
-struct choke_manager_is_remote_not_uploading {
-  bool operator () (PeerConnectionBase* p1) const {
-    return *p1->peer_chunks()->download_throttle()->rate() == 0;
-  }
-};
-
-struct choke_manager_is_remote_uploading {
-  bool operator () (PeerConnectionBase* p1) const {
-    return *p1->peer_chunks()->download_throttle()->rate() != 0;
-  }
-};
-
-struct choke_manager_is_interested {
-  bool operator () (PeerConnectionBase* p) const {
-    return p->is_upload_wanted();
-  }
-};
-
-struct choke_manager_not_recently_unchoked {
-  bool operator () (PeerConnectionBase* p) const {
-    return p->time_last_choked() + rak::timer::from_seconds(10) < cachedTime;
-  }
-};
-
 // 1  > 1
 // 9  > 2
 // 17 > 3 < 21
@@ -196,24 +154,26 @@ ChokeManager::set_interested(PeerConnectionBase* pc) {
   if (m_unchoked.size() < m_maxUnchoked &&
       pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
       m_slotCanUnchoke()) {
-    m_unchoked.push_back(pc);
+    m_unchoked.push_back(value_type(pc, 0));
     pc->receive_choke(false);
 
     m_slotUnchoke(1);
 
   } else {
-    m_interested.push_back(pc);
+    m_interested.push_back(value_type(pc, 0));
   }
 }
 
 void
 choke_manager_erase(ChokeManager::container_type* container, PeerConnectionBase* pc) {
-  ChokeManager::container_type::iterator itr = std::find(container->begin(), container->end(), pc);
+  ChokeManager::container_type::iterator itr = std::find_if(container->begin(), container->end(),
+                                                            rak::equal(pc, rak::mem_ref(&ChokeManager::value_type::first)));
 
   if (itr == container->end())
     throw internal_error("choke_manager_remove(...) itr == m_unchoked.end().");
 
-  container->erase(itr);
+  *itr = container->back();
+  container->pop_back();
 }
 
 void
@@ -269,13 +229,13 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc) {
   if (m_unchoked.size() < m_maxUnchoked &&
       pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
       m_slotCanUnchoke()) {
-    m_unchoked.push_back(pc);
+    m_unchoked.push_back(value_type(pc, 0));
     pc->receive_choke(false);
 
     m_slotUnchoke(1);
 
   } else {
-    m_interested.push_back(pc);
+    m_interested.push_back(value_type(pc, 0));
   }
 }
 
@@ -283,24 +243,35 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc) {
 void
 ChokeManager::disconnected(PeerConnectionBase* pc) {
   if (!pc->is_up_choked()) {
-    iterator itr = std::find(m_unchoked.begin(), m_unchoked.end(), pc);
-
-    if (itr == m_unchoked.end())
-      throw internal_error("ChokeManager::disconnected(...) itr == m_unchoked.end().");
-
-    m_unchoked.erase(itr);
-
+    choke_manager_erase(&m_unchoked, pc);
     m_slotChoke(1);
 
   } else if (pc->is_upload_wanted()) {
-    iterator itr = std::find(m_interested.begin(), m_interested.end(), pc);
-
-    if (itr == m_interested.end())
-      throw internal_error("ChokeManager::disconnected(...) itr == m_interested.end().");
-
-    m_interested.erase(itr);
+    choke_manager_erase(&m_interested, pc);
   }
 }
+
+inline void
+ChokeManager::swap_with_shift(iterator first, iterator source) {
+  while (first != source) {
+    iterator tmp = source;
+    std::iter_swap(tmp, --source);
+  }
+}
+
+struct choke_manager_less {
+  bool operator () (ChokeManager::value_type v1, ChokeManager::value_type v2) const { return v1.second < v2.second; }
+};
+
+struct choke_manager_greater {
+  bool operator () (ChokeManager::value_type v1, ChokeManager::value_type v2) const { return v1.second > v2.second; }
+};
+
+struct choke_manager_is_remote_not_uploading {
+  bool operator () (ChokeManager::value_type p1) const {
+    return *p1.first->peer_chunks()->download_throttle()->rate() == 0;
+  }
+};
 
 // This could be handled more efficiently with only nth_element
 // sorting, etc.
@@ -311,59 +282,91 @@ unsigned int
 ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
   max = std::min<unsigned int>(max, distance(first, last));
 
-  std::sort(first, last, choke_manager_read_rate_increasing());
+  calculate_upload_choke(first, last);
+  std::sort(first, last, choke_manager_greater());
 
-  iterator split;
-  split = std::stable_partition(first, last, choke_manager_not_recently_unchoked());
-  split = std::find_if(first, split, choke_manager_is_remote_uploading());
+  std::for_each(last - max, last, rak::on(rak::mem_ref(&value_type::first),
+                                          std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true)));
 
-  std::sort(first, split, choke_manager_write_rate_increasing());
-
-  std::for_each(first, first + max, std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true));
-
-  m_interested.insert(m_interested.end(), first, first + max);
-  m_unchoked.erase(first, first + max);
+  m_interested.insert(m_interested.end(), last - max, last);
+  m_unchoked.erase(last - max, last);
 
   return max;
 }
   
-inline void
-ChokeManager::swap_with_shift(iterator first, iterator source) {
-  while (first != source) {
-    iterator tmp = source;
-    std::iter_swap(tmp, --source);
+unsigned int
+ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
+  max = std::min<unsigned int>(max, distance(first, last));
+
+  calculate_upload_unchoke(first, last);
+  std::sort(first, last, choke_manager_less());
+
+  std::for_each(last - max, last, rak::on(rak::mem_ref(&value_type::first),
+                                          std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false)));
+
+  m_unchoked.insert(m_unchoked.end(), last - max, last);
+  m_interested.erase(last - max, last);
+
+  return max;
+}
+
+// Note that these algorithms fail if the rate >= 2^30.
+
+// Need to add the recently unchoked check here?
+
+void
+ChokeManager::calculate_upload_choke(iterator first, iterator last) {
+  while (first != last) {
+    if (!first->first->is_down_choked()) {
+      uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
+
+      // If the peer transmits at less than 1KB, we should consider it
+      // to be a rather stingy peer, and should look for new ones.
+
+      if (downloadRate < 1000)
+        first->second = downloadRate;
+      else
+        first->second = 2 * order_base + downloadRate;
+
+    } else {
+      // The peer hasn't unchoked us yet, let us see if uploading some
+      // more helps, so try to stay unchoked if other very slow
+      // uploaders are unchoked.
+      //
+      // This should also check how long the peer's been unchoked. If
+      // more than f.ex 240 seconds, we might as well give up on them
+      // and bump them to order 0.
+
+      first->second = 1 * order_base + first->first->peer_chunks()->upload_throttle()->rate()->rate();
+    }
+
+    first++;
   }
 }
 
-unsigned int
-ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
-  std::sort(first, last, choke_manager_read_rate_decreasing());
+void
+ChokeManager::calculate_upload_unchoke(iterator first, iterator last) {
+  while (first != last) {
+    if (!first->first->is_down_choked()) {
+      uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
 
-  // Find the split between the ones that are uploading to us, and
-  // those that arn't. When unchoking, circa every third unchoke is of
-  // a connection in the list of those not uploading to us.
-  //
-  // Perhaps we should prefer those we are interested in?
+      // If the peer transmits at less than 1KB, we should consider it
+      // to be a rather stingy peer, and should look for new ones.
 
-  iterator itr = first;
-  iterator split = std::find_if(first, last, choke_manager_is_remote_not_uploading());
+      if (downloadRate < 1000)
+        first->second = downloadRate;
+      else
+        first->second = 2 * order_base + downloadRate;
 
-  for ( ; (unsigned int)std::distance(first, itr) != max && itr != last; itr++) {
+    } else {
+      // This will be our optimistic unchoke queue, should be
+      // semi-random. Give lower weights to known stingy peers.
 
-    if (split != last &&
-	(*(*itr)->peer_chunks()->download_throttle()->rate() < 500 || ::random() % m_generousUnchokes == 0)) {
-      // Use a random connection that is not uploading to us.
-      std::iter_swap(split, split + ::random() % std::distance(split, last));
-      swap_with_shift(itr, split++);
+      first->second = 1 * order_base + ::random() % (1 << 10);
     }
-    
-    (*itr)->receive_choke(false);
+
+    first++;
   }
-
-  m_unchoked.insert(m_unchoked.end(), first, itr);
-  m_interested.erase(first, itr);
-
-  return std::distance(first, itr);
 }
 
 }

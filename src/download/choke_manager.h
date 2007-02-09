@@ -38,6 +38,7 @@
 #define LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_H
 
 #include <list>
+#include <inttypes.h>
 #include <rak/functional.h>
 
 #include "connection_list.h"
@@ -53,9 +54,9 @@ public:
   typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotUnchoke;
   typedef rak::mem_fun0<ResourceManager, unsigned int>       SlotCanUnchoke;
 
-//   typedef rak::unordered_vector<PeerConnectionBase*> container_type;
-  typedef std::vector<PeerConnectionBase*>           container_type;
-  typedef container_type::iterator                   iterator;
+  typedef std::vector<std::pair<PeerConnectionBase*, uint32_t> > container_type;
+  typedef container_type::iterator                               iterator;
+  typedef container_type::value_type                             value_type;
 
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
@@ -90,6 +91,8 @@ public:
   void                slot_can_unchoke(SlotCanUnchoke s)       { m_slotCanUnchoke = s; }
 
 private:
+  static const uint32_t order_base = (1 << 30);
+
   inline unsigned int max_alternate() const;
 
   unsigned int        choke_range(iterator first, iterator last, unsigned int max);
@@ -98,6 +101,9 @@ private:
   inline void         alternate_ranges(unsigned int max);
 
   inline static void  swap_with_shift(iterator first, iterator source);
+
+  void                calculate_upload_choke(iterator first, iterator last);
+  void                calculate_upload_unchoke(iterator first, iterator last);
 
   ConnectionList*     m_connectionList;
 

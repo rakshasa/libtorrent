@@ -91,7 +91,7 @@ file_split_all(FileList* fileList, uint64_t maxSize, const std::string& suffix) 
   FileList::iterator itr = fileList->begin();
 
   while (itr != fileList->end())
-    if ((*itr)->size_bytes() > maxSize || !(*itr)->path()->empty())
+    if ((*itr)->size_bytes() > maxSize && !(*itr)->path()->empty())
       itr = file_split(fileList, itr, maxSize, suffix);
     else
       itr++;

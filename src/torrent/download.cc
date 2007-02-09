@@ -136,12 +136,9 @@ Download::hash_check(bool tryQuick) {
     bitfield->unset_all();
 
     m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
-
-    // Make sure other book-keeping is cleared, like file progress.
-
-  } else {
-    m_ptr->main()->file_list()->update_completed();
   }
+
+  m_ptr->main()->file_list()->update_completed();
 
   return m_ptr->hash_checker()->start(tryQuick);
 }
@@ -358,6 +355,8 @@ void
 Download::clear_range(uint32_t first, uint32_t last) {
   if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking() || m_ptr->main()->file_list()->bitfield()->empty())
     throw input_error("Download::clear_range(...) Download in invalid state.");
+
+  // Unset progress of any files.
 
   m_ptr->hash_checker()->ranges().insert(first, last);
   m_ptr->main()->file_list()->mutable_bitfield()->unset_range(first, last);

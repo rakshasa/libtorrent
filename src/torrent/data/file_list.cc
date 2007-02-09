@@ -393,7 +393,9 @@ FileList::close() {
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
     manager->file_manager()->close(*itr);
     
-    (*itr)->set_completed(0);
+    // Keep the progress so the user can see it even though he closes
+    // the torrent.
+//     (*itr)->set_completed(0);
   }
 
   m_isOpen = false;
@@ -570,11 +572,25 @@ FileList::update_completed() {
   if (!m_bitfield.is_tail_cleared())
     throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
 
-  iterator entryItr = begin();
+  if (m_bitfield.is_all_set()) {
+    for (iterator itr = begin(), last = end(); itr != last; ++itr)
+      (*itr)->set_completed((*itr)->size_chunks());
 
-  for (Bitfield::size_type index = 0; index < m_bitfield.size_bits(); ++index)
-    if (m_bitfield.get(index))
-      entryItr = inc_completed(entryItr, index);
+  } else {
+    // Clear any old progress data from the entries as we don't clear
+    // this on close, etc.
+    for (iterator itr = begin(), last = end(); itr != last; ++itr)
+      (*itr)->set_completed(0);
+
+    if (m_bitfield.is_all_unset())
+      return;
+
+    iterator entryItr = begin();
+
+    for (Bitfield::size_type index = 0; index < m_bitfield.size_bits(); ++index)
+      if (m_bitfield.get(index))
+        entryItr = inc_completed(entryItr, index);
+  }
 }
 
 void
