@@ -70,6 +70,9 @@ DownloadMain::DownloadMain() :
   m_connectionList = new ConnectionList(this);
   m_chokeManager = new ChokeManager(m_connectionList);
 
+  m_chokeManager->slot_choke_weight(&calculate_upload_choke);
+  m_chokeManager->slot_unchoke_weight(&calculate_upload_unchoke);
+
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));
 

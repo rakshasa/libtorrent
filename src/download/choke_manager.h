@@ -58,10 +58,16 @@ public:
   typedef container_type::iterator                               iterator;
   typedef container_type::value_type                             value_type;
 
+  typedef void (*slot_weight)(iterator first, iterator last);
+
+  static const uint32_t order_base = (1 << 30);
+
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
     m_maxUnchoked(15),
-    m_generousUnchokes(3) {}
+    m_generousUnchokes(3),
+    m_slotChokeWeight(NULL),
+    m_slotUnchokeWeight(NULL) {}
   ~ChokeManager();
   
   unsigned int        currently_unchoked() const              { return m_unchoked.size(); }
@@ -86,24 +92,20 @@ public:
 
   void                disconnected(PeerConnectionBase* pc);
 
+  void                slot_choke_weight(slot_weight s)         { m_slotChokeWeight = s; }
+  void                slot_unchoke_weight(slot_weight s)       { m_slotUnchokeWeight = s; }
+
   void                slot_choke(SlotChoke s)                  { m_slotChoke = s; }
   void                slot_unchoke(SlotUnchoke s)              { m_slotUnchoke = s; }
   void                slot_can_unchoke(SlotCanUnchoke s)       { m_slotCanUnchoke = s; }
 
 private:
-  static const uint32_t order_base = (1 << 30);
-
   inline unsigned int max_alternate() const;
 
   unsigned int        choke_range(iterator first, iterator last, unsigned int max);
-  unsigned int        unchoke_range(iterator first, iterator last, unsigned int max);
+  unsigned int        unchoke_range(iterator first, iterator last, unsigned int unchoke);
 
   inline void         alternate_ranges(unsigned int max);
-
-  inline static void  swap_with_shift(iterator first, iterator source);
-
-  void                calculate_upload_choke(iterator first, iterator last);
-  void                calculate_upload_unchoke(iterator first, iterator last);
 
   ConnectionList*     m_connectionList;
 
@@ -113,10 +115,16 @@ private:
   unsigned int        m_maxUnchoked;
   unsigned int        m_generousUnchokes;
 
+  slot_weight         m_slotChokeWeight;
+  slot_weight         m_slotUnchokeWeight;
+
   SlotChoke           m_slotChoke;
   SlotUnchoke         m_slotUnchoke;
   SlotCanUnchoke      m_slotCanUnchoke;
 };
+
+void calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last);
+void calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator last);
 
 }
 

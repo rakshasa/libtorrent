@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <numeric>
 #include <stdlib.h>
 
 #include "protocol/peer_connection_base.h"
@@ -251,26 +252,12 @@ ChokeManager::disconnected(PeerConnectionBase* pc) {
   }
 }
 
-inline void
-ChokeManager::swap_with_shift(iterator first, iterator source) {
-  while (first != source) {
-    iterator tmp = source;
-    std::iter_swap(tmp, --source);
-  }
-}
-
 struct choke_manager_less {
   bool operator () (ChokeManager::value_type v1, ChokeManager::value_type v2) const { return v1.second < v2.second; }
 };
 
 struct choke_manager_greater {
   bool operator () (ChokeManager::value_type v1, ChokeManager::value_type v2) const { return v1.second > v2.second; }
-};
-
-struct choke_manager_is_remote_not_uploading {
-  bool operator () (ChokeManager::value_type p1) const {
-    return *p1.first->peer_chunks()->download_throttle()->rate() == 0;
-  }
 };
 
 // This could be handled more efficiently with only nth_element
@@ -282,7 +269,7 @@ unsigned int
 ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
   max = std::min<unsigned int>(max, distance(first, last));
 
-  calculate_upload_choke(first, last);
+  m_slotChokeWeight(first, last);
   std::sort(first, last, choke_manager_greater());
 
   std::for_each(last - max, last, rak::on(rak::mem_ref(&value_type::first),
@@ -295,19 +282,108 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
 }
   
 unsigned int
-ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
-  max = std::min<unsigned int>(max, distance(first, last));
-
-  calculate_upload_unchoke(first, last);
+ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke) {
+  m_slotUnchokeWeight(first, last);
   std::sort(first, last, choke_manager_less());
 
-  std::for_each(last - max, last, rak::on(rak::mem_ref(&value_type::first),
-                                          std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false)));
+  // Weighting and randomizing code, cleanup needed.
+  static const uint32_t order_max_size = 4;
+  static const uint32_t m_unchokeWeight[4 + 1] = { 0, 1, 3, 0 };
 
-  m_unchoked.insert(m_unchoked.end(), last - max, last);
-  m_interested.erase(last - max, last);
+  uint32_t weightTotal = 0;
+  std::pair<uint32_t, iterator> target[order_max_size + 1];
 
-  return max;
+  target[0].second = first;
+
+  for (uint32_t i = 0; i < order_max_size; i++) {
+    target[i].first = 0;
+    target[i + 1].second = std::find_if(target[i].second, last, rak::less(i * order_base + (order_base - 1), rak::mem_ref(&value_type::second)));
+
+    if (std::distance(target[i].second, target[i + 1].second) != 0)
+      weightTotal += m_unchokeWeight[i];
+  }
+
+  // Spread available unchoke slots as long as we can give everyone an
+  // equal share.
+  while (weightTotal != 0 && unchoke / weightTotal > 0) {
+    if (weightTotal > 1024)
+      throw internal_error("ChokeManager::unchoke_range(...) invalid weightTotal value.");
+
+    uint32_t base = unchoke / weightTotal;
+
+    for (uint32_t i = 0; i < order_max_size; i++) {
+      uint32_t s = std::distance(target[i].second, target[i + 1].second);
+
+      if (m_unchokeWeight[i] == 0 ||target[i].first == s)
+        continue;
+        
+      uint32_t u = std::min(s - target[i].first, base * m_unchokeWeight[i]);
+
+      if (u == 0 || u > 1024)
+        throw internal_error("ChokeManager::unchoke_range(...) u == 0 || u > 1024.");
+
+      unchoke -= u;
+      target[i].first += u;
+
+      if (target[i].first == s)
+        weightTotal -= m_unchokeWeight[i];
+    }
+  }
+
+  // Spread the remainder starting from a random position based on the
+  // total weight. This will ensure that aggregated over time we
+  // spread the unchokes equally according to the weight table.
+  if (weightTotal != 0 && unchoke != 0) {
+    uint32_t start = ::random() % weightTotal;
+    unsigned int itr = 0;
+
+    while (true) {
+      uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
+
+      if (m_unchokeWeight[itr] == 0 || target[itr].first == s)
+        continue;
+
+      if (start < m_unchokeWeight[itr])
+        break;
+
+      start -= m_unchokeWeight[itr];
+      itr++;
+    }
+
+    while (weightTotal != 0 && unchoke != 0) {
+      uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
+
+      if (m_unchokeWeight[itr] == 0 ||target[itr].first == s)
+        continue;
+
+      uint32_t u = std::min(unchoke, std::min(s - target[itr].first, m_unchokeWeight[itr] - start));
+
+      start = 0;
+      unchoke -= u;
+      target[itr].first += u;
+
+      if (++itr == order_max_size)
+        itr = 0;
+    }
+  }
+
+  // Now do the actual unchoking.
+  unchoke = 0;
+
+  for (std::pair<uint32_t, iterator>* itr = target + order_max_size; itr != target; itr--) {
+    if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
+      throw internal_error("ChokeManager::unchoke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
+
+    unchoke += (itr - 1)->first;
+
+    std::for_each(itr->second - (itr - 1)->first, itr->second, rak::on(rak::mem_ref(&value_type::first),
+                                                                       std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false)));
+
+    m_unchoked.insert(m_unchoked.end(), itr->second - (itr - 1)->first, itr->second);
+    m_interested.erase(itr->second - (itr - 1)->first, itr->second);
+  }
+
+  return unchoke;
 }
 
 // Note that these algorithms fail if the rate >= 2^30.
@@ -315,7 +391,7 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
 // Need to add the recently unchoked check here?
 
 void
-ChokeManager::calculate_upload_choke(iterator first, iterator last) {
+calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last) {
   while (first != last) {
     if (!first->first->is_down_choked()) {
       uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
@@ -326,7 +402,7 @@ ChokeManager::calculate_upload_choke(iterator first, iterator last) {
       if (downloadRate < 1000)
         first->second = downloadRate;
       else
-        first->second = 2 * order_base + downloadRate;
+        first->second = 2 * ChokeManager::order_base + downloadRate;
 
     } else {
       // The peer hasn't unchoked us yet, let us see if uploading some
@@ -337,7 +413,7 @@ ChokeManager::calculate_upload_choke(iterator first, iterator last) {
       // more than f.ex 240 seconds, we might as well give up on them
       // and bump them to order 0.
 
-      first->second = 1 * order_base + first->first->peer_chunks()->upload_throttle()->rate()->rate();
+      first->second = 1 * ChokeManager::order_base + first->first->peer_chunks()->upload_throttle()->rate()->rate();
     }
 
     first++;
@@ -345,7 +421,7 @@ ChokeManager::calculate_upload_choke(iterator first, iterator last) {
 }
 
 void
-ChokeManager::calculate_upload_unchoke(iterator first, iterator last) {
+calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator last) {
   while (first != last) {
     if (!first->first->is_down_choked()) {
       uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
@@ -356,13 +432,13 @@ ChokeManager::calculate_upload_unchoke(iterator first, iterator last) {
       if (downloadRate < 1000)
         first->second = downloadRate;
       else
-        first->second = 2 * order_base + downloadRate;
+        first->second = 2 * ChokeManager::order_base + downloadRate;
 
     } else {
       // This will be our optimistic unchoke queue, should be
       // semi-random. Give lower weights to known stingy peers.
 
-      first->second = 1 * order_base + ::random() % (1 << 10);
+      first->second = 1 * ChokeManager::order_base + ::random() % (1 << 10);
     }
 
     first++;
