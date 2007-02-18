@@ -103,9 +103,7 @@ private:
   inline unsigned int max_alternate() const;
 
   unsigned int        choke_range(iterator first, iterator last, unsigned int max);
-  unsigned int        unchoke_range(iterator first, iterator last, unsigned int unchoke);
-
-  inline void         alternate_ranges(unsigned int max);
+  unsigned int        unchoke_range(iterator first, iterator last, unsigned int max);
 
   ConnectionList*     m_connectionList;
 

@@ -70,18 +70,6 @@ ChokeManager::max_alternate() const {
     return (m_unchoked.size() + 9) / 10;
 }
 
-inline void
-ChokeManager::alternate_ranges(unsigned int max) {
-  max = std::min(max, std::min<unsigned int>(m_unchoked.size(), m_interested.size()));
-
-  // Do unchoke first, then choke. Take the return value of the first
-  // unchoke and use it for choking. Don't need the above min call.
-  unsigned int sizeInterested = m_interested.size();
-
-  choke_range(m_unchoked.begin(), m_unchoked.end(), max);
-  unchoke_range(m_interested.begin(), m_interested.begin() + sizeInterested, max);
-}
-
 // Would propably replace maxUnchoked with whatever max the global
 // manager gives us. When trying unchoke, we always ask the global
 // manager for permission to unchoke, and when we did a choke.
@@ -114,29 +102,27 @@ ChokeManager::balance() {
 
 int
 ChokeManager::cycle(unsigned int quota) {
-  // We don't call the resource manager slots, the number of un/choked
-  // connections is returned.
+  quota = std::min(quota, m_maxUnchoked);
 
-  int cycled;
-  int adjust = std::min(quota, m_maxUnchoked) - m_unchoked.size();
+  unsigned int oldSize = m_unchoked.size();
 
-  if (adjust > 0)
-    cycled = unchoke_range(m_interested.begin(), m_interested.end(), adjust);
-  else if (adjust < 0)
-    cycled = -choke_range(m_unchoked.begin(), m_unchoked.end(), -adjust);
+  // This needs to consider the case when we don't really have
+  // anything to unchoke later.
+  int choke = std::max((int)m_unchoked.size() - (int)quota,
+                       std::min<int>(max_alternate(), m_interested.size()));
+
+  if (choke <= 0)
+    choke = 0;
   else
-    cycled = 0;
+    choke = choke_range(m_unchoked.begin(), m_unchoked.end(), choke);
 
-  adjust = max_alternate() - std::abs(cycled);
-
-  // Consider rolling this into the above calls.
-  if (adjust > 0)
-    alternate_ranges(adjust);
+  if (m_unchoked.size() < quota)
+    unchoke_range(m_interested.begin(), m_interested.end() - choke, quota - m_unchoked.size());
 
   if (m_unchoked.size() > quota)
     throw internal_error("ChokeManager::cycle() m_unchoked.size() > quota.");
 
-  return cycled;
+  return m_unchoked.size() - oldSize;
 }
 
 void
@@ -282,7 +268,7 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
 }
   
 unsigned int
-ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke) {
+ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
   m_slotUnchokeWeight(first, last);
   std::sort(first, last, choke_manager_less());
 
@@ -290,7 +276,12 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke)
   static const uint32_t order_max_size = 4;
   static const uint32_t m_unchokeWeight[4 + 1] = { 0, 1, 3, 0 };
 
+  // 'weightTotal' only contains the weight of targets that have
+  // connections to unchoke. When all connections are in a group are
+  // to be unchoked, then the group's weight is removed.
   uint32_t weightTotal = 0;
+  uint32_t unchoke = max;
+
   std::pair<uint32_t, iterator> target[order_max_size + 1];
 
   target[0].second = first;
@@ -306,27 +297,21 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke)
   // Spread available unchoke slots as long as we can give everyone an
   // equal share.
   while (weightTotal != 0 && unchoke / weightTotal > 0) {
-    if (weightTotal > 1024)
-      throw internal_error("ChokeManager::unchoke_range(...) invalid weightTotal value.");
-
     uint32_t base = unchoke / weightTotal;
 
-    for (uint32_t i = 0; i < order_max_size; i++) {
-      uint32_t s = std::distance(target[i].second, target[i + 1].second);
+    for (uint32_t itr = 0; itr < order_max_size; itr++) {
+      uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
 
-      if (m_unchokeWeight[i] == 0 ||target[i].first == s)
+      if (m_unchokeWeight[itr] == 0 ||target[itr].first >= s)
         continue;
         
-      uint32_t u = std::min(s - target[i].first, base * m_unchokeWeight[i]);
-
-      if (u == 0 || u > 1024)
-        throw internal_error("ChokeManager::unchoke_range(...) u == 0 || u > 1024.");
+      uint32_t u = std::min(s - target[itr].first, base * m_unchokeWeight[itr]);
 
       unchoke -= u;
-      target[i].first += u;
+      target[itr].first += u;
 
-      if (target[i].first == s)
-        weightTotal -= m_unchokeWeight[i];
+      if (target[itr].first >= s)
+        weightTotal -= m_unchokeWeight[itr];
     }
   }
 
@@ -337,23 +322,22 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke)
     uint32_t start = ::random() % weightTotal;
     unsigned int itr = 0;
 
-    while (true) {
+    for ( ; ; itr++) {
       uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
 
-      if (m_unchokeWeight[itr] == 0 || target[itr].first == s)
+      if (m_unchokeWeight[itr] == 0 || target[itr].first >= s)
         continue;
 
       if (start < m_unchokeWeight[itr])
         break;
 
       start -= m_unchokeWeight[itr];
-      itr++;
     }
 
-    while (weightTotal != 0 && unchoke != 0) {
+    for ( ; weightTotal != 0 && unchoke != 0; itr = (itr + 1) % order_max_size) {
       uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
 
-      if (m_unchokeWeight[itr] == 0 ||target[itr].first == s)
+      if (m_unchokeWeight[itr] == 0 || target[itr].first >= s)
         continue;
 
       uint32_t u = std::min(unchoke, std::min(s - target[itr].first, m_unchokeWeight[itr] - start));
@@ -362,8 +346,8 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke)
       unchoke -= u;
       target[itr].first += u;
 
-      if (++itr == order_max_size)
-        itr = 0;
+      if (target[itr].first >= s)
+        weightTotal -= m_unchokeWeight[itr];
     }
   }
 
@@ -374,6 +358,13 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke)
     if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
       throw internal_error("ChokeManager::unchoke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
 
+    if (itr->second - (itr - 1)->first > itr->second ||
+        itr->second - (itr - 1)->first < m_interested.begin() ||
+        itr->second - (itr - 1)->first > m_interested.end() ||
+        (itr - 1)->second < m_interested.begin() ||
+        (itr - 1)->second > m_interested.end())
+      throw internal_error("ChokeManager::unchoke_range(...) bad iterator range.");
+
     unchoke += (itr - 1)->first;
 
     std::for_each(itr->second - (itr - 1)->first, itr->second, rak::on(rak::mem_ref(&value_type::first),
@@ -382,6 +373,9 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int unchoke)
     m_unchoked.insert(m_unchoked.end(), itr->second - (itr - 1)->first, itr->second);
     m_interested.erase(itr->second - (itr - 1)->first, itr->second);
   }
+
+  if (unchoke > max)
+    throw internal_error("ChokeManager::unchoke_range(...) unchoke > max.");
 
   return unchoke;
 }

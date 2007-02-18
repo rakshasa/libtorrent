@@ -149,9 +149,11 @@ ResourceManager::balance_unchoked(unsigned int weight) {
     sort(begin(), end(), resource_manager_interested_increasing());
 
     for (iterator itr = begin(); itr != end(); ++itr) {
-      m_currentlyUnchoked += itr->second->choke_manager()->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
+      ChokeManager* cm = itr->second->choke_manager();
 
-      quota -= itr->second->choke_manager()->currently_unchoked();
+      m_currentlyUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
+
+      quota -= cm->currently_unchoked();
       weight -= itr->first;
     }
 
