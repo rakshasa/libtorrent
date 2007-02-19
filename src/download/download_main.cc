@@ -73,6 +73,9 @@ DownloadMain::DownloadMain() :
   m_chokeManager->slot_choke_weight(&calculate_upload_choke);
   m_chokeManager->slot_unchoke_weight(&calculate_upload_unchoke);
 
+  std::memcpy(m_chokeManager->choke_weight(), weights_upload_choke, ChokeManager::order_max_size);
+  std::memcpy(m_chokeManager->unchoke_weight(), weights_upload_unchoke, ChokeManager::order_max_size);
+
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));
 

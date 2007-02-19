@@ -242,39 +242,10 @@ struct choke_manager_less {
   bool operator () (ChokeManager::value_type v1, ChokeManager::value_type v2) const { return v1.second < v2.second; }
 };
 
-struct choke_manager_greater {
-  bool operator () (ChokeManager::value_type v1, ChokeManager::value_type v2) const { return v1.second > v2.second; }
-};
-
-// This could be handled more efficiently with only nth_element
-// sorting, etc.
-//
-// Also, this should also swap the order the elements are sorted into,
-// so we can grab them from the end of m_unchoked.
-unsigned int
-ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
-  max = std::min<unsigned int>(max, distance(first, last));
-
-  m_slotChokeWeight(first, last);
-  std::sort(first, last, choke_manager_greater());
-
-  std::for_each(last - max, last, rak::on(rak::mem_ref(&value_type::first),
-                                          std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true)));
-
-  m_interested.insert(m_interested.end(), last - max, last);
-  m_unchoked.erase(last - max, last);
-
-  return max;
-}
-  
-unsigned int
-ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
-  m_slotUnchokeWeight(first, last);
+void
+choke_manager_allocate_slots(ChokeManager::iterator first, ChokeManager::iterator last,
+                             uint32_t max, uint32_t* weights, ChokeManager::target_type* target) {
   std::sort(first, last, choke_manager_less());
-
-  // Weighting and randomizing code, cleanup needed.
-  static const uint32_t order_max_size = 4;
-  static const uint32_t m_unchokeWeight[4 + 1] = { 0, 1, 3, 0 };
 
   // 'weightTotal' only contains the weight of targets that have
   // connections to unchoke. When all connections are in a group are
@@ -282,16 +253,16 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
   uint32_t weightTotal = 0;
   uint32_t unchoke = max;
 
-  std::pair<uint32_t, iterator> target[order_max_size + 1];
-
   target[0].second = first;
 
-  for (uint32_t i = 0; i < order_max_size; i++) {
+  for (uint32_t i = 0; i < ChokeManager::order_max_size; i++) {
     target[i].first = 0;
-    target[i + 1].second = std::find_if(target[i].second, last, rak::less(i * order_base + (order_base - 1), rak::mem_ref(&value_type::second)));
+    target[i + 1].second = std::find_if(target[i].second, last,
+                                        rak::less(i * ChokeManager::order_base + (ChokeManager::order_base - 1),
+                                                  rak::mem_ref(&ChokeManager::value_type::second)));
 
     if (std::distance(target[i].second, target[i + 1].second) != 0)
-      weightTotal += m_unchokeWeight[i];
+      weightTotal += weights[i];
   }
 
   // Spread available unchoke slots as long as we can give everyone an
@@ -299,19 +270,19 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
   while (weightTotal != 0 && unchoke / weightTotal > 0) {
     uint32_t base = unchoke / weightTotal;
 
-    for (uint32_t itr = 0; itr < order_max_size; itr++) {
+    for (uint32_t itr = 0; itr < ChokeManager::order_max_size; itr++) {
       uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
 
-      if (m_unchokeWeight[itr] == 0 ||target[itr].first >= s)
+      if (weights[itr] == 0 ||target[itr].first >= s)
         continue;
         
-      uint32_t u = std::min(s - target[itr].first, base * m_unchokeWeight[itr]);
+      uint32_t u = std::min(s - target[itr].first, base * weights[itr]);
 
       unchoke -= u;
       target[itr].first += u;
 
       if (target[itr].first >= s)
-        weightTotal -= m_unchokeWeight[itr];
+        weightTotal -= weights[itr];
     }
   }
 
@@ -325,36 +296,80 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
     for ( ; ; itr++) {
       uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
 
-      if (m_unchokeWeight[itr] == 0 || target[itr].first >= s)
+      if (weights[itr] == 0 || target[itr].first >= s)
         continue;
 
-      if (start < m_unchokeWeight[itr])
+      if (start < weights[itr])
         break;
 
-      start -= m_unchokeWeight[itr];
+      start -= weights[itr];
     }
 
-    for ( ; weightTotal != 0 && unchoke != 0; itr = (itr + 1) % order_max_size) {
+    for ( ; weightTotal != 0 && unchoke != 0; itr = (itr + 1) % ChokeManager::order_max_size) {
       uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
 
-      if (m_unchokeWeight[itr] == 0 || target[itr].first >= s)
+      if (weights[itr] == 0 || target[itr].first >= s)
         continue;
 
-      uint32_t u = std::min(unchoke, std::min(s - target[itr].first, m_unchokeWeight[itr] - start));
+      uint32_t u = std::min(unchoke, std::min(s - target[itr].first, weights[itr] - start));
 
       start = 0;
       unchoke -= u;
       target[itr].first += u;
 
       if (target[itr].first >= s)
-        weightTotal -= m_unchokeWeight[itr];
+        weightTotal -= weights[itr];
     }
   }
+}
+
+unsigned int
+ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
+  m_slotChokeWeight(first, last);
+
+  target_type target[order_max_size + 1];
+  choke_manager_allocate_slots(first, last, max, m_chokeWeight, target);
 
   // Now do the actual unchoking.
-  unchoke = 0;
+  uint32_t count = 0;
 
-  for (std::pair<uint32_t, iterator>* itr = target + order_max_size; itr != target; itr--) {
+  for (target_type* itr = target + order_max_size; itr != target; itr--) {
+    if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
+      throw internal_error("ChokeManager::choke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
+
+    if (itr->second - (itr - 1)->first > itr->second ||
+        itr->second - (itr - 1)->first < m_unchoked.begin() ||
+        itr->second - (itr - 1)->first > m_unchoked.end() ||
+        (itr - 1)->second < m_unchoked.begin() ||
+        (itr - 1)->second > m_unchoked.end())
+      throw internal_error("ChokeManager::choke_range(...) bad iterator range.");
+
+    count += (itr - 1)->first;
+
+    std::for_each(itr->second - (itr - 1)->first, itr->second,
+                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true)));
+
+    m_interested.insert(m_interested.end(), itr->second - (itr - 1)->first, itr->second);
+    m_unchoked.erase(itr->second - (itr - 1)->first, itr->second);
+  }
+
+  if (count > max)
+    throw internal_error("ChokeManager::choke_range(...) count > max.");
+
+  return count;
+}
+  
+unsigned int
+ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
+  m_slotUnchokeWeight(first, last);
+
+  target_type target[order_max_size + 1];
+  choke_manager_allocate_slots(first, last, max, m_unchokeWeight, target);
+
+  // Now do the actual unchoking.
+  uint32_t count = 0;
+
+  for (target_type* itr = target + order_max_size; itr != target; itr--) {
     if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
       throw internal_error("ChokeManager::unchoke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
 
@@ -365,50 +380,34 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
         (itr - 1)->second > m_interested.end())
       throw internal_error("ChokeManager::unchoke_range(...) bad iterator range.");
 
-    unchoke += (itr - 1)->first;
+    count += (itr - 1)->first;
 
-    std::for_each(itr->second - (itr - 1)->first, itr->second, rak::on(rak::mem_ref(&value_type::first),
-                                                                       std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false)));
+    std::for_each(itr->second - (itr - 1)->first, itr->second,
+                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false)));
 
     m_unchoked.insert(m_unchoked.end(), itr->second - (itr - 1)->first, itr->second);
     m_interested.erase(itr->second - (itr - 1)->first, itr->second);
   }
 
-  if (unchoke > max)
-    throw internal_error("ChokeManager::unchoke_range(...) unchoke > max.");
+  if (count > max)
+    throw internal_error("ChokeManager::unchoke_range(...) count > max.");
 
-  return unchoke;
+  return count;
 }
 
 // Note that these algorithms fail if the rate >= 2^30.
 
 // Need to add the recently unchoked check here?
 
+uint32_t weights_upload_choke[ChokeManager::order_max_size]   = { 1, 1, 1, 1 };
+uint32_t weights_upload_unchoke[ChokeManager::order_max_size] = { 0, 1, 3, 0 };
+
 void
 calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last) {
   while (first != last) {
-    if (!first->first->is_down_choked()) {
-      uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
-
-      // If the peer transmits at less than 1KB, we should consider it
-      // to be a rather stingy peer, and should look for new ones.
-
-      if (downloadRate < 1000)
-        first->second = downloadRate;
-      else
-        first->second = 2 * ChokeManager::order_base + downloadRate;
-
-    } else {
-      // The peer hasn't unchoked us yet, let us see if uploading some
-      // more helps, so try to stay unchoked if other very slow
-      // uploaders are unchoked.
-      //
-      // This should also check how long the peer's been unchoked. If
-      // more than f.ex 240 seconds, we might as well give up on them
-      // and bump them to order 0.
-
-      first->second = 1 * ChokeManager::order_base + first->first->peer_chunks()->upload_throttle()->rate()->rate();
-    }
+    // Very crude version for now.
+    uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
+    first->second = ChokeManager::order_base - 1 - downloadRate;
 
     first++;
   }

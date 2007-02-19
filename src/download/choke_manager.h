@@ -58,16 +58,17 @@ public:
   typedef container_type::iterator                               iterator;
   typedef container_type::value_type                             value_type;
 
+  typedef std::pair<uint32_t, iterator>                          target_type;
+
   typedef void (*slot_weight)(iterator first, iterator last);
 
   static const uint32_t order_base = (1 << 30);
+  static const uint32_t order_max_size = 4;
 
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
     m_maxUnchoked(15),
-    m_generousUnchokes(3),
-    m_slotChokeWeight(NULL),
-    m_slotUnchokeWeight(NULL) {}
+    m_generousUnchokes(3) {}
   ~ChokeManager();
   
   unsigned int        currently_unchoked() const              { return m_unchoked.size(); }
@@ -92,6 +93,9 @@ public:
 
   void                disconnected(PeerConnectionBase* pc);
 
+  uint32_t*           choke_weight()                           { return m_chokeWeight; }
+  uint32_t*           unchoke_weight()                         { return m_unchokeWeight; }
+
   void                slot_choke_weight(slot_weight s)         { m_slotChokeWeight = s; }
   void                slot_unchoke_weight(slot_weight s)       { m_slotUnchokeWeight = s; }
 
@@ -110,6 +114,9 @@ private:
   container_type      m_interested;
   container_type      m_unchoked;
 
+  uint32_t            m_chokeWeight[order_max_size];
+  uint32_t            m_unchokeWeight[order_max_size];
+
   unsigned int        m_maxUnchoked;
   unsigned int        m_generousUnchokes;
 
@@ -120,6 +127,9 @@ private:
   SlotUnchoke         m_slotUnchoke;
   SlotCanUnchoke      m_slotCanUnchoke;
 };
+
+extern uint32_t weights_upload_choke[ChokeManager::order_max_size];
+extern uint32_t weights_upload_unchoke[ChokeManager::order_max_size];
 
 void calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last);
 void calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator last);
