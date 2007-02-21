@@ -54,6 +54,8 @@ public:
   typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotUnchoke;
   typedef rak::mem_fun0<ResourceManager, unsigned int>       SlotCanUnchoke;
 
+  typedef std::mem_fun1_t<void, PeerConnectionBase, bool>        slot_connection;
+
   typedef std::vector<std::pair<PeerConnectionBase*, uint32_t> > container_type;
   typedef container_type::iterator                               iterator;
   typedef container_type::value_type                             value_type;
@@ -68,7 +70,8 @@ public:
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
     m_maxUnchoked(15),
-    m_generousUnchokes(3) {}
+    m_generousUnchokes(3),
+    m_slotConnection(NULL) {}
   ~ChokeManager();
   
   unsigned int        currently_unchoked() const              { return m_unchoked.size(); }
@@ -93,15 +96,17 @@ public:
 
   void                disconnected(PeerConnectionBase* pc);
 
-  uint32_t*           choke_weight()                           { return m_chokeWeight; }
-  uint32_t*           unchoke_weight()                         { return m_unchokeWeight; }
+  uint32_t*           choke_weight()                          { return m_chokeWeight; }
+  uint32_t*           unchoke_weight()                        { return m_unchokeWeight; }
 
-  void                slot_choke_weight(slot_weight s)         { m_slotChokeWeight = s; }
-  void                slot_unchoke_weight(slot_weight s)       { m_slotUnchokeWeight = s; }
+  void                set_slot_choke_weight(slot_weight s)    { m_slotChokeWeight = s; }
+  void                set_slot_unchoke_weight(slot_weight s)  { m_slotUnchokeWeight = s; }
 
-  void                slot_choke(SlotChoke s)                  { m_slotChoke = s; }
-  void                slot_unchoke(SlotUnchoke s)              { m_slotUnchoke = s; }
-  void                slot_can_unchoke(SlotCanUnchoke s)       { m_slotCanUnchoke = s; }
+  void                set_slot_connection(slot_connection s)  { m_slotConnection = s; }
+
+  void                slot_choke(SlotChoke s)                 { m_slotChoke = s; }
+  void                slot_unchoke(SlotUnchoke s)             { m_slotUnchoke = s; }
+  void                slot_can_unchoke(SlotCanUnchoke s)      { m_slotCanUnchoke = s; }
 
 private:
   inline unsigned int max_alternate() const;
@@ -122,6 +127,8 @@ private:
 
   slot_weight         m_slotChokeWeight;
   slot_weight         m_slotUnchokeWeight;
+
+  slot_connection     m_slotConnection;
 
   SlotChoke           m_slotChoke;
   SlotUnchoke         m_slotUnchoke;

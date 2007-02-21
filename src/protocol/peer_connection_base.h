@@ -108,7 +108,7 @@ public:
   virtual void        update_interested() = 0;
   virtual bool        receive_keepalive() = 0;
 
-  void                receive_choke(bool v);
+  void                receive_upload_choke(bool v);
 
   virtual void        event_error();
 

@@ -68,13 +68,14 @@ DownloadMain::DownloadMain() :
   m_downloadThrottle(NULL) {
 
   m_connectionList = new ConnectionList(this);
-  m_chokeManager = new ChokeManager(m_connectionList);
+  m_uploadChokeManager = new ChokeManager(m_connectionList);
 
-  m_chokeManager->slot_choke_weight(&calculate_upload_choke);
-  m_chokeManager->slot_unchoke_weight(&calculate_upload_unchoke);
+  m_uploadChokeManager->set_slot_choke_weight(&calculate_upload_choke);
+  m_uploadChokeManager->set_slot_unchoke_weight(&calculate_upload_unchoke);
+  m_uploadChokeManager->set_slot_connection(std::mem_fun(&PeerConnectionBase::receive_upload_choke));
 
-  std::memcpy(m_chokeManager->choke_weight(), weights_upload_choke, ChokeManager::order_max_size);
-  std::memcpy(m_chokeManager->unchoke_weight(), weights_upload_unchoke, ChokeManager::order_max_size);
+  std::memcpy(m_uploadChokeManager->choke_weight(), weights_upload_choke, ChokeManager::order_max_size);
+  std::memcpy(m_uploadChokeManager->unchoke_weight(), weights_upload_unchoke, ChokeManager::order_max_size);
 
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));
@@ -95,7 +96,7 @@ DownloadMain::~DownloadMain() {
     throw internal_error("DownloadMain::~DownloadMain(): m_taskTrackerRequest is queued.");
 
   delete m_trackerManager;
-  delete m_chokeManager;
+  delete m_uploadChokeManager;
   delete m_connectionList;
 
   delete m_chunkStatistics;

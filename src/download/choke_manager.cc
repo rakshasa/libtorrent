@@ -142,7 +142,7 @@ ChokeManager::set_interested(PeerConnectionBase* pc) {
       pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
       m_slotCanUnchoke()) {
     m_unchoked.push_back(value_type(pc, 0));
-    pc->receive_choke(false);
+    m_slotConnection(pc, false);
 
     m_slotUnchoke(1);
 
@@ -175,7 +175,7 @@ ChokeManager::set_not_interested(PeerConnectionBase* pc) {
 
   if (!pc->is_up_choked()) {
     choke_manager_erase(&m_unchoked, pc);
-    pc->receive_choke(true);
+    m_slotConnection(pc, true);
     m_slotChoke(1);
 
   } else {
@@ -192,7 +192,7 @@ ChokeManager::set_snubbed(PeerConnectionBase* pc) {
 
   if (!pc->is_up_choked()) {
     choke_manager_erase(&m_unchoked, pc);
-    pc->receive_choke(true);
+    m_slotConnection(pc, true);
     m_slotChoke(1);
 
   } else if (pc->is_down_interested()) {
@@ -217,7 +217,7 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc) {
       pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
       m_slotCanUnchoke()) {
     m_unchoked.push_back(value_type(pc, 0));
-    pc->receive_choke(false);
+    m_slotConnection(pc, false);
 
     m_slotUnchoke(1);
 
@@ -347,7 +347,7 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
     count += (itr - 1)->first;
 
     std::for_each(itr->second - (itr - 1)->first, itr->second,
-                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), true)));
+                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, true)));
 
     m_interested.insert(m_interested.end(), itr->second - (itr - 1)->first, itr->second);
     m_unchoked.erase(itr->second - (itr - 1)->first, itr->second);
@@ -383,7 +383,7 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
     count += (itr - 1)->first;
 
     std::for_each(itr->second - (itr - 1)->first, itr->second,
-                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(std::mem_fun(&PeerConnectionBase::receive_choke), false)));
+                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, false)));
 
     m_unchoked.insert(m_unchoked.end(), itr->second - (itr - 1)->first, itr->second);
     m_interested.erase(itr->second - (itr - 1)->first, itr->second);

@@ -121,9 +121,9 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
   d->main()->set_download_throttle(m_downloadThrottle->throttle_list());
 
-  d->main()->choke_manager()->slot_choke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_choke));
-  d->main()->choke_manager()->slot_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_unchoke));
-  d->main()->choke_manager()->slot_can_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::retrieve_can_unchoke));
+  d->main()->upload_choke_manager()->slot_choke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_choke));
+  d->main()->upload_choke_manager()->slot_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_unchoke));
+  d->main()->upload_choke_manager()->slot_can_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::retrieve_can_unchoke));
 }
 
 void

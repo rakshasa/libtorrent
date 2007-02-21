@@ -140,7 +140,7 @@ PeerConnectionBase::cleanup() {
   up_chunk_release();
   down_chunk_release();
 
-  m_download->choke_manager()->disconnected(this);
+  m_download->upload_choke_manager()->disconnected(this);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
   manager->poll()->remove_read(this);
@@ -160,6 +160,18 @@ PeerConnectionBase::cleanup() {
   m_down->set_state(ProtocolRead::INTERNAL_ERROR);
 
   m_download = NULL;
+}
+
+void
+PeerConnectionBase::receive_upload_choke(bool v) {
+  if (v == m_up->choked())
+    throw internal_error("PeerConnectionBase::receive_upload_choke(...) already set to the same state.");
+
+  write_insert_poll_safe();
+
+  m_sendChoked = true;
+  m_up->set_choked(v);
+  m_timeLastChoked = cachedTime;
 }
 
 void
@@ -200,18 +212,6 @@ PeerConnectionBase::load_up_chunk() {
 
   m_upChunk.object()->set_time_preloaded(cachedTime);
   m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->chunk_size(), cm->preload_type() == 1);
-}
-
-void
-PeerConnectionBase::receive_choke(bool v) {
-  if (v == m_up->choked())
-    throw internal_error("PeerConnectionBase::receive_choke(...) already set to the same state.");
-
-  write_insert_poll_safe();
-
-  m_sendChoked = true;
-  m_up->set_choked(v);
-  m_timeLastChoked = cachedTime;
 }
 
 void

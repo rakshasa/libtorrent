@@ -130,7 +130,7 @@ ResourceManager::total_weight() const {
 
 struct resource_manager_interested_increasing {
   bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) const {
-    return v1.second->choke_manager()->currently_interested() < v2.second->choke_manager()->currently_interested();
+    return v1.second->upload_choke_manager()->currently_interested() < v2.second->upload_choke_manager()->currently_interested();
   }
 };
 
@@ -149,7 +149,7 @@ ResourceManager::balance_unchoked(unsigned int weight) {
     sort(begin(), end(), resource_manager_interested_increasing());
 
     for (iterator itr = begin(); itr != end(); ++itr) {
-      ChokeManager* cm = itr->second->choke_manager();
+      ChokeManager* cm = itr->second->upload_choke_manager();
 
       m_currentlyUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
 
@@ -162,7 +162,7 @@ ResourceManager::balance_unchoked(unsigned int weight) {
 
   } else {
     for (iterator itr = begin(); itr != end(); ++itr)
-      m_currentlyUnchoked += itr->second->choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
+      m_currentlyUnchoked += itr->second->upload_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
   }
 }
 

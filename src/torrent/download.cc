@@ -399,12 +399,12 @@ Download::peers_accounted() const {
 
 uint32_t
 Download::peers_currently_unchoked() const {
-  return m_ptr->main()->choke_manager()->currently_unchoked();
+  return m_ptr->main()->upload_choke_manager()->currently_unchoked();
 }
 
 uint32_t
 Download::peers_currently_interested() const {
-  return m_ptr->main()->choke_manager()->currently_interested();
+  return m_ptr->main()->upload_choke_manager()->currently_interested();
 }
 
 bool
@@ -414,7 +414,7 @@ Download::accepting_new_peers() const {
 
 uint32_t
 Download::uploads_max() const {
-  return m_ptr->main()->choke_manager()->max_unchoked();
+  return m_ptr->main()->upload_choke_manager()->max_unchoked();
 }
   
 void
@@ -439,8 +439,8 @@ Download::set_uploads_max(uint32_t v) {
   if (v > (1 << 16))
     throw input_error("Max uploads must be between 0 and 2^16.");
 
-  m_ptr->main()->choke_manager()->set_max_unchoked(v);
-  m_ptr->main()->choke_manager()->balance();
+  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v);
+  m_ptr->main()->upload_choke_manager()->balance();
 }
 
 Download::ConnectionType
