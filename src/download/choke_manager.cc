@@ -39,13 +39,25 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "protocol/peer_connection_base.h"
 
 #include "choke_manager.h"
 
 namespace torrent {
+
+void
+choke_manager_erase(ChokeManager::container_type* container, PeerConnectionBase* pc) {
+  ChokeManager::container_type::iterator itr = std::find_if(container->begin(), container->end(),
+                                                            rak::equal(pc, rak::mem_ref(&ChokeManager::value_type::first)));
+
+  if (itr == container->end())
+    throw internal_error("choke_manager_remove(...) itr == m_unchoked.end().");
+
+  *itr = container->back();
+  container->pop_back();
+}
 
 ChokeManager::~ChokeManager() {
   if (m_unchoked.size() != 0)
@@ -126,20 +138,20 @@ ChokeManager::cycle(unsigned int quota) {
 }
 
 void
-ChokeManager::set_interested(PeerConnectionBase* pc) {
-  if (pc->is_up_interested())
+ChokeManager::set_interested(PeerConnectionBase* pc, ProtocolBase* base) {
+  if (base->interested())
     return;
 
-  if (!pc->is_up_choked())
-    throw internal_error("ChokeManager::set_interested(...) !pc->is_up_choked().");
+  if (!base->choked())
+    throw internal_error("ChokeManager::set_interested(...) !base->choked().");
 
-  pc->set_up_interested(true);
+  base->set_interested(true);
 
-  if (pc->peer_chunks()->is_snubbed())
+  if (base->snubbed())
     return;    
 
   if (m_unchoked.size() < m_maxUnchoked &&
-      pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
+      base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
       m_slotCanUnchoke()) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
@@ -152,28 +164,16 @@ ChokeManager::set_interested(PeerConnectionBase* pc) {
 }
 
 void
-choke_manager_erase(ChokeManager::container_type* container, PeerConnectionBase* pc) {
-  ChokeManager::container_type::iterator itr = std::find_if(container->begin(), container->end(),
-                                                            rak::equal(pc, rak::mem_ref(&ChokeManager::value_type::first)));
-
-  if (itr == container->end())
-    throw internal_error("choke_manager_remove(...) itr == m_unchoked.end().");
-
-  *itr = container->back();
-  container->pop_back();
-}
-
-void
-ChokeManager::set_not_interested(PeerConnectionBase* pc) {
-  if (!pc->is_up_interested())
+ChokeManager::set_not_interested(PeerConnectionBase* pc, ProtocolBase* base) {
+  if (!base->interested())
     return;
 
-  pc->set_up_interested(false);
+  base->set_interested(false);
 
-  if (pc->peer_chunks()->is_snubbed())
+  if (base->snubbed())
     return;
 
-  if (!pc->is_up_choked()) {
+  if (!base->choked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotConnection(pc, true);
     m_slotChoke(1);
@@ -184,37 +184,37 @@ ChokeManager::set_not_interested(PeerConnectionBase* pc) {
 }
 
 void
-ChokeManager::set_snubbed(PeerConnectionBase* pc) {
-  if (pc->peer_chunks()->is_snubbed())
+ChokeManager::set_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
+  if (base->snubbed())
     return;
 
-  pc->peer_chunks()->set_snubbed(true);
+  base->set_snubbed(true);
 
-  if (!pc->is_up_choked()) {
+  if (!base->choked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotConnection(pc, true);
     m_slotChoke(1);
 
-  } else if (pc->is_up_interested()) {
+  } else if (base->interested()) {
     choke_manager_erase(&m_interested, pc);
   }
 }
 
 void
-ChokeManager::set_not_snubbed(PeerConnectionBase* pc) {
-  if (!pc->peer_chunks()->is_snubbed())
+ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
+  if (!base->snubbed())
     return;
 
-  pc->peer_chunks()->set_snubbed(false);
+  base->set_snubbed(false);
 
-  if (!pc->is_up_interested())
+  if (!base->interested())
     return;
 
-  if (!pc->is_up_choked())
-    throw internal_error("ChokeManager::set_not_snubbed(...) !pc->is_up_choked().");
+  if (!base->choked())
+    throw internal_error("ChokeManager::set_not_snubbed(...) !base->choked().");
   
   if (m_unchoked.size() < m_maxUnchoked &&
-      pc->time_last_choked() + rak::timer::from_seconds(10) < cachedTime &&
+      base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
       m_slotCanUnchoke()) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
@@ -228,12 +228,12 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc) {
 
 // We are no longer in m_connectionList.
 void
-ChokeManager::disconnected(PeerConnectionBase* pc) {
-  if (!pc->is_up_choked()) {
+ChokeManager::disconnected(PeerConnectionBase* pc, ProtocolBase* base) {
+  if (!base->choked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotChoke(1);
 
-  } else if (pc->is_upload_wanted()) {
+  } else if (base->interested() && !base->snubbed()) {
     choke_manager_erase(&m_interested, pc);
   }
 }

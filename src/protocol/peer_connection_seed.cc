@@ -140,11 +140,11 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    m_download->upload_choke_manager()->set_interested(this);
+    m_download->upload_choke_manager()->set_interested(this, m_up);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_download->upload_choke_manager()->set_not_interested(this);
+    m_download->upload_choke_manager()->set_not_interested(this, m_up);
     return true;
 
   case ProtocolBase::HAVE:

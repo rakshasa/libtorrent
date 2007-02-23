@@ -87,15 +87,12 @@ Peer::is_remote_interested() const {
 
 bool
 Peer::is_snubbed() const {
-  return m_ptr->peer_chunks()->is_snubbed();
+  return m_ptr->is_up_snubbed();
 }
 
 void
 Peer::set_snubbed(bool v) {
-  if (v)
-    m_ptr->download()->upload_choke_manager()->set_snubbed(m_ptr);
-  else
-    m_ptr->download()->upload_choke_manager()->set_not_snubbed(m_ptr);
+  m_ptr->set_upload_snubbed(v);
 }
 
 const HashString&

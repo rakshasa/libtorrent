@@ -58,9 +58,6 @@ public:
 
   bool                is_seeder() const             { return m_bitfield.is_all_set(); }
 
-  bool                is_snubbed() const            { return m_snubbed; }
-  void                set_snubbed(bool v)           { m_snubbed = v; }
-
   PeerInfo*           peer_info()                   { return m_peerInfo; }
   const PeerInfo*     peer_info() const             { return m_peerInfo; }
   void                set_peer_info(PeerInfo* p)    { m_peerInfo = p; }
@@ -87,7 +84,6 @@ public:
 private:
   PeerInfo*           m_peerInfo;
 
-  bool                m_snubbed;
   bool                m_usingCounter;
 
   Bitfield            m_bitfield;
@@ -109,7 +105,6 @@ inline
 PeerChunks::PeerChunks() :
   m_peerInfo(NULL),
 
-  m_snubbed(false),
   m_usingCounter(false),
 
   m_peerRate(600),

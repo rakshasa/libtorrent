@@ -184,11 +184,11 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    m_download->upload_choke_manager()->set_interested(this);
+    m_download->upload_choke_manager()->set_interested(this, m_up);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_download->upload_choke_manager()->set_not_interested(this);
+    m_download->upload_choke_manager()->set_not_interested(this, m_up);
     return true;
 
   case ProtocolBase::HAVE:
@@ -529,7 +529,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
     if (m_download->file_list()->is_done())
       throw close_connection();
     else
-      m_download->upload_choke_manager()->set_not_interested(this);
+      m_download->upload_choke_manager()->set_not_interested(this, m_up);
 
   if (m_download->file_list()->is_done())
     return;

@@ -140,7 +140,7 @@ PeerConnectionBase::cleanup() {
   up_chunk_release();
   down_chunk_release();
 
-  m_download->upload_choke_manager()->disconnected(this);
+  m_download->upload_choke_manager()->disconnected(this, m_up);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
   manager->poll()->remove_read(this);
@@ -163,6 +163,14 @@ PeerConnectionBase::cleanup() {
 }
 
 void
+PeerConnectionBase::set_upload_snubbed(bool v) {
+  if (v)
+    m_download->upload_choke_manager()->set_snubbed(this, m_up);
+  else
+    m_download->upload_choke_manager()->set_not_snubbed(this, m_up);
+}
+
+void
 PeerConnectionBase::receive_upload_choke(bool v) {
   if (v == m_up->choked())
     throw internal_error("PeerConnectionBase::receive_upload_choke(...) already set to the same state.");
@@ -171,7 +179,7 @@ PeerConnectionBase::receive_upload_choke(bool v) {
 
   m_sendChoked = true;
   m_up->set_choked(v);
-  m_timeLastChoked = cachedTime;
+  m_up->set_time_last_choke(cachedTime);
 }
 
 void

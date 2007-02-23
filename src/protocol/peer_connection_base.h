@@ -84,10 +84,11 @@ public:
 
   bool                is_up_choked()                { return m_up->choked(); }
   bool                is_up_interested()            { return m_up->interested(); }
+  bool                is_up_snubbed()               { return m_up->snubbed(); }
   bool                is_down_choked()              { return m_down->choked(); }
   bool                is_down_interested()          { return m_down->interested(); }
 
-  bool                is_upload_wanted() const      { return m_up->interested() && !m_peerChunks.is_snubbed(); }
+  void                set_upload_snubbed(bool v);
 
   bool                is_seeder() const             { return m_peerChunks.is_seeder(); }
 
@@ -101,8 +102,6 @@ public:
   DownloadMain*       download()                    { return m_download; }
   RequestList*        download_queue()              { return &m_downloadQueue; }
 
-  rak::timer          time_last_choked() const      { return m_timeLastChoked; }
-
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
   virtual void        update_interested() = 0;
@@ -115,9 +114,6 @@ public:
   void                push_unread(const void* data, uint32_t size);
 
   void                cancel_transfer(BlockTransfer* transfer);
-
-  // Only for use by ChokeManager.
-  void                set_up_interested(bool v)   { m_up->set_interested(v); }
 
 protected:
   inline bool         read_remaining();
@@ -175,7 +171,6 @@ protected:
   bool                m_sendChoked;
   bool                m_sendInterested;
 
-  rak::timer          m_timeLastChoked;
   rak::timer          m_timeLastRead;
 
   EncryptBuffer*      m_encryptBuffer;

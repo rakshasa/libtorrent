@@ -45,8 +45,9 @@
 
 namespace torrent {
 
-class ResourceManager;
 class PeerConnectionBase;
+class ProtocolBase;
+class ResourceManager;
 
 class ChokeManager {
 public:
@@ -88,13 +89,13 @@ public:
 
   // Assume interested state is already updated for the PCB and that
   // this gets called once every time the status changes.
-  void                set_interested(PeerConnectionBase* pc);
-  void                set_not_interested(PeerConnectionBase* pc);
+  void                set_interested(PeerConnectionBase* pc, ProtocolBase* base);
+  void                set_not_interested(PeerConnectionBase* pc, ProtocolBase* base);
 
-  void                set_snubbed(PeerConnectionBase* pc);
-  void                set_not_snubbed(PeerConnectionBase* pc);
+  void                set_snubbed(PeerConnectionBase* pc, ProtocolBase* base);
+  void                set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base);
 
-  void                disconnected(PeerConnectionBase* pc);
+  void                disconnected(PeerConnectionBase* pc, ProtocolBase* base);
 
   uint32_t*           choke_weight()                          { return m_chokeWeight; }
   uint32_t*           unchoke_weight()                        { return m_unchokeWeight; }
