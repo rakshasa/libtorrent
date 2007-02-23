@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <cstring>
 #include <rak/functional.h>
 

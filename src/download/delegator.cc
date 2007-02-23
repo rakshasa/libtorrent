@@ -38,6 +38,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <inttypes.h>
 
 #include "torrent/exceptions.h"

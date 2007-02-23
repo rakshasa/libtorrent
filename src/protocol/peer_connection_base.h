@@ -87,7 +87,7 @@ public:
   bool                is_down_choked()              { return m_down->choked(); }
   bool                is_down_interested()          { return m_down->interested(); }
 
-  bool                is_upload_wanted() const      { return m_down->interested() && !m_peerChunks.is_snubbed(); }
+  bool                is_upload_wanted() const      { return m_up->interested() && !m_peerChunks.is_snubbed(); }
 
   bool                is_seeder() const             { return m_peerChunks.is_seeder(); }
 
@@ -117,7 +117,7 @@ public:
   void                cancel_transfer(BlockTransfer* transfer);
 
   // Only for use by ChokeManager.
-  void                set_down_interested(bool v)   { m_down->set_interested(v); }
+  void                set_up_interested(bool v)   { m_up->set_interested(v); }
 
 protected:
   inline bool         read_remaining();

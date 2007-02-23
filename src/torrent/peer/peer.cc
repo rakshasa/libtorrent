@@ -72,7 +72,7 @@ Peer::is_local_choked() const {
 
 bool
 Peer::is_local_interested() const {
-  return m_ptr->is_up_interested();
+  return m_ptr->is_down_interested();
 }
 
 bool
@@ -82,7 +82,7 @@ Peer::is_remote_choked() const {
 
 bool
 Peer::is_remote_interested() const {
-  return m_ptr->is_down_interested();
+  return m_ptr->is_up_interested();
 }
 
 bool

@@ -77,11 +77,11 @@ PeerConnectionLeech::update_interested() {
   // anyway.
 
   if (true) {
-    m_sendInterested = !m_up->interested();
-    m_up->set_interested(true);
+    m_sendInterested = !m_down->interested();
+    m_down->set_interested(true);
   } else {
-    m_sendInterested = m_up->interested();
-    m_up->set_interested(false);
+    m_sendInterested = m_down->interested();
+    m_down->set_interested(false);
   }
 
   m_peerChunks.download_cache()->clear();
@@ -399,7 +399,7 @@ PeerConnectionLeech::fill_write_buffer() {
   // request has been received while uninterested. The problem arises
   // as they send unchoke before receiving interested.
   if (m_sendInterested && m_up->can_write_interested()) {
-    m_up->write_interested(m_up->interested());
+    m_up->write_interested(m_down->interested());
     m_sendInterested = false;
   }
 
@@ -410,7 +410,7 @@ PeerConnectionLeech::fill_write_buffer() {
 
       !download_queue()->is_interested_in_active()) {
     m_sendInterested = true;
-    m_up->set_interested(false);
+    m_down->set_interested(false);
   }
 
   DownloadMain::have_queue_type* haveQueue = m_download->have_queue();
@@ -534,7 +534,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
   if (m_download->file_list()->is_done())
     return;
 
-  if (is_up_interested()) {
+  if (is_down_interested()) {
 
     if (!m_tryRequest && m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
       m_tryRequest = true;
@@ -545,7 +545,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
     if (m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
       m_sendInterested = true;
-      m_up->set_interested(true);
+      m_down->set_interested(true);
       
       // Is it enough to insert into write here? Make the interested
       // check branch to include insert_write, even when not sending

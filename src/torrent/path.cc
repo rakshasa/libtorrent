@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <algorithm>
+
 #include "exceptions.h"
 #include "path.h"
 

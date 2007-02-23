@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <functional>
 #include <inttypes.h>
 #include <rak/functional.h>

@@ -127,13 +127,13 @@ ChokeManager::cycle(unsigned int quota) {
 
 void
 ChokeManager::set_interested(PeerConnectionBase* pc) {
-  if (pc->is_down_interested())
+  if (pc->is_up_interested())
     return;
 
   if (!pc->is_up_choked())
     throw internal_error("ChokeManager::set_interested(...) !pc->is_up_choked().");
 
-  pc->set_down_interested(true);
+  pc->set_up_interested(true);
 
   if (pc->peer_chunks()->is_snubbed())
     return;    
@@ -165,10 +165,10 @@ choke_manager_erase(ChokeManager::container_type* container, PeerConnectionBase*
 
 void
 ChokeManager::set_not_interested(PeerConnectionBase* pc) {
-  if (!pc->is_down_interested())
+  if (!pc->is_up_interested())
     return;
 
-  pc->set_down_interested(false);
+  pc->set_up_interested(false);
 
   if (pc->peer_chunks()->is_snubbed())
     return;
@@ -195,7 +195,7 @@ ChokeManager::set_snubbed(PeerConnectionBase* pc) {
     m_slotConnection(pc, true);
     m_slotChoke(1);
 
-  } else if (pc->is_down_interested()) {
+  } else if (pc->is_up_interested()) {
     choke_manager_erase(&m_interested, pc);
   }
 }
@@ -207,7 +207,7 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc) {
 
   pc->peer_chunks()->set_snubbed(false);
 
-  if (!pc->is_down_interested())
+  if (!pc->is_up_interested())
     return;
 
   if (!pc->is_up_choked())

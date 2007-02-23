@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <functional>
 
 #include "torrent/exceptions.h"
