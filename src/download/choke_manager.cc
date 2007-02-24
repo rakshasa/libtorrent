@@ -63,8 +63,8 @@ ChokeManager::~ChokeManager() {
   if (m_unchoked.size() != 0)
     throw internal_error("ChokeManager::~ChokeManager() called but m_currentlyUnchoked != 0.");
 
-  if (m_interested.size() != 0)
-    throw internal_error("ChokeManager::~ChokeManager() called but m_currentlyInterested != 0.");
+  if (m_queued.size() != 0)
+    throw internal_error("ChokeManager::~ChokeManager() called but m_currentlyQueued != 0.");
 }
 
 // 1  > 1
@@ -97,7 +97,7 @@ ChokeManager::balance() {
   int adjust = m_maxUnchoked - m_unchoked.size();
 
   if (adjust > 0) {
-    adjust = unchoke_range(m_interested.begin(), m_interested.end(),
+    adjust = unchoke_range(m_queued.begin(), m_queued.end(),
 			   std::min((unsigned int)adjust, m_slotCanUnchoke()));
 
     m_slotUnchoke(adjust);
@@ -121,7 +121,7 @@ ChokeManager::cycle(unsigned int quota) {
   // This needs to consider the case when we don't really have
   // anything to unchoke later.
   int choke = std::max((int)m_unchoked.size() - (int)quota,
-                       std::min<int>(max_alternate(), m_interested.size()));
+                       std::min<int>(max_alternate(), m_queued.size()));
 
   if (choke <= 0)
     choke = 0;
@@ -129,7 +129,7 @@ ChokeManager::cycle(unsigned int quota) {
     choke = choke_range(m_unchoked.begin(), m_unchoked.end(), choke);
 
   if (m_unchoked.size() < quota)
-    unchoke_range(m_interested.begin(), m_interested.end() - choke, quota - m_unchoked.size());
+    unchoke_range(m_queued.begin(), m_queued.end() - choke, quota - m_unchoked.size());
 
   if (m_unchoked.size() > quota)
     throw internal_error("ChokeManager::cycle() m_unchoked.size() > quota.");
@@ -138,17 +138,17 @@ ChokeManager::cycle(unsigned int quota) {
 }
 
 void
-ChokeManager::set_interested(PeerConnectionBase* pc, ProtocolBase* base) {
-  if (base->interested())
+ChokeManager::set_queued(PeerConnectionBase* pc, ProtocolBase* base) {
+  if (base->queued())
     return;
 
-  if (!base->choked())
-    throw internal_error("ChokeManager::set_interested(...) !base->choked().");
+  if (base->unchoked() || !base->interested())
+    throw internal_error("ChokeManager::set_queued(...) base->unchoked() || !base->interested().");
 
-  base->set_interested(true);
+  base->set_queued(true);
 
   if (base->snubbed())
-    return;    
+    return;
 
   if (m_unchoked.size() < m_maxUnchoked &&
       base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
@@ -159,27 +159,27 @@ ChokeManager::set_interested(PeerConnectionBase* pc, ProtocolBase* base) {
     m_slotUnchoke(1);
 
   } else {
-    m_interested.push_back(value_type(pc, 0));
+    m_queued.push_back(value_type(pc, 0));
   }
 }
 
 void
-ChokeManager::set_not_interested(PeerConnectionBase* pc, ProtocolBase* base) {
-  if (!base->interested())
+ChokeManager::set_not_queued(PeerConnectionBase* pc, ProtocolBase* base) {
+  if (!base->queued())
     return;
 
-  base->set_interested(false);
+  base->set_queued(false);
 
   if (base->snubbed())
     return;
 
-  if (!base->choked()) {
+  if (base->unchoked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotConnection(pc, true);
     m_slotChoke(1);
 
   } else {
-    choke_manager_erase(&m_interested, pc);
+    choke_manager_erase(&m_queued, pc);
   }
 }
 
@@ -190,14 +190,16 @@ ChokeManager::set_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
 
   base->set_snubbed(true);
 
-  if (!base->choked()) {
+  if (base->unchoked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotConnection(pc, true);
     m_slotChoke(1);
 
-  } else if (base->interested()) {
-    choke_manager_erase(&m_interested, pc);
+  } else if (base->queued()) {
+    choke_manager_erase(&m_queued, pc);
   }
+
+  base->set_queued(false);
 }
 
 void
@@ -207,11 +209,11 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
 
   base->set_snubbed(false);
 
-  if (!base->interested())
+  if (!base->queued())
     return;
 
-  if (!base->choked())
-    throw internal_error("ChokeManager::set_not_snubbed(...) !base->choked().");
+  if (base->unchoked())
+    throw internal_error("ChokeManager::set_not_snubbed(...) base->unchoked().");
   
   if (m_unchoked.size() < m_maxUnchoked &&
       base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
@@ -222,20 +224,25 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
     m_slotUnchoke(1);
 
   } else {
-    m_interested.push_back(value_type(pc, 0));
+    m_queued.push_back(value_type(pc, 0));
   }
 }
 
 // We are no longer in m_connectionList.
 void
 ChokeManager::disconnected(PeerConnectionBase* pc, ProtocolBase* base) {
-  if (!base->choked()) {
+  if (base->snubbed()) {
+    // Do nothing.
+
+  } else if (base->unchoked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotChoke(1);
 
-  } else if (base->interested() && !base->snubbed()) {
-    choke_manager_erase(&m_interested, pc);
+  } else if (base->queued()) {
+    choke_manager_erase(&m_queued, pc);
   }
+
+  base->set_queued(false);
 }
 
 struct choke_manager_less {
@@ -349,7 +356,7 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
     std::for_each(itr->second - (itr - 1)->first, itr->second,
                   rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, true)));
 
-    m_interested.insert(m_interested.end(), itr->second - (itr - 1)->first, itr->second);
+    m_queued.insert(m_queued.end(), itr->second - (itr - 1)->first, itr->second);
     m_unchoked.erase(itr->second - (itr - 1)->first, itr->second);
   }
 
@@ -374,10 +381,10 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
       throw internal_error("ChokeManager::unchoke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
 
     if (itr->second - (itr - 1)->first > itr->second ||
-        itr->second - (itr - 1)->first < m_interested.begin() ||
-        itr->second - (itr - 1)->first > m_interested.end() ||
-        (itr - 1)->second < m_interested.begin() ||
-        (itr - 1)->second > m_interested.end())
+        itr->second - (itr - 1)->first < m_queued.begin() ||
+        itr->second - (itr - 1)->first > m_queued.end() ||
+        (itr - 1)->second < m_queued.begin() ||
+        (itr - 1)->second > m_queued.end())
       throw internal_error("ChokeManager::unchoke_range(...) bad iterator range.");
 
     count += (itr - 1)->first;
@@ -386,7 +393,7 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
                   rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, false)));
 
     m_unchoked.insert(m_unchoked.end(), itr->second - (itr - 1)->first, itr->second);
-    m_interested.erase(itr->second - (itr - 1)->first, itr->second);
+    m_queued.erase(itr->second - (itr - 1)->first, itr->second);
   }
 
   if (count > max)

@@ -75,8 +75,9 @@ public:
     m_slotConnection(NULL) {}
   ~ChokeManager();
   
-  unsigned int        currently_unchoked() const              { return m_unchoked.size(); }
-  unsigned int        currently_interested() const            { return m_interested.size() + m_unchoked.size(); }
+  unsigned int        size_unchoked() const                   { return m_unchoked.size(); }
+  unsigned int        size_queued() const                     { return m_queued.size(); }
+  unsigned int        size_total() const                      { return m_queued.size() + m_unchoked.size(); }
 
   unsigned int        max_unchoked() const                    { return m_maxUnchoked; }
   void                set_max_unchoked(unsigned int v)        { m_maxUnchoked = v; }
@@ -89,8 +90,8 @@ public:
 
   // Assume interested state is already updated for the PCB and that
   // this gets called once every time the status changes.
-  void                set_interested(PeerConnectionBase* pc, ProtocolBase* base);
-  void                set_not_interested(PeerConnectionBase* pc, ProtocolBase* base);
+  void                set_queued(PeerConnectionBase* pc, ProtocolBase* base);
+  void                set_not_queued(PeerConnectionBase* pc, ProtocolBase* base);
 
   void                set_snubbed(PeerConnectionBase* pc, ProtocolBase* base);
   void                set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base);
@@ -117,7 +118,7 @@ private:
 
   ConnectionList*     m_connectionList;
 
-  container_type      m_interested;
+  container_type      m_queued;
   container_type      m_unchoked;
 
   uint32_t            m_chokeWeight[order_max_size];

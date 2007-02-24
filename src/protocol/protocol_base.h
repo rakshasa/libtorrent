@@ -76,6 +76,7 @@ public:
   } State;
 
   ProtocolBase() :
+    m_queued(false),
     m_choked(true),
     m_interested(false),
     m_snubbed(false),
@@ -92,7 +93,11 @@ public:
   // interested states togheter, thus for m_up 'interested' means the
   // remote peer wants upload and 'choke' means we've choked upload to
   // that peer.
+  bool                queued() const                          { return m_queued; }
+  void                set_queued(bool s)                      { m_queued = s; }
+
   bool                choked() const                          { return m_choked; }
+  bool                unchoked() const                        { return !m_choked; }
   void                set_choked(bool s)                      { m_choked = s; }
 
   bool                interested() const                      { return m_interested; }
@@ -154,6 +159,7 @@ public:
   bool                can_read_piece_body() const             { return m_buffer.remaining() >= sizeof_piece_body; }
 
 protected:
+  bool                m_queued;
   bool                m_choked;
   bool                m_interested;
   bool                m_snubbed;

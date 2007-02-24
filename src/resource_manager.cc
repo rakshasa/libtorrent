@@ -130,7 +130,7 @@ ResourceManager::total_weight() const {
 
 struct resource_manager_interested_increasing {
   bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) const {
-    return v1.second->upload_choke_manager()->currently_interested() < v2.second->upload_choke_manager()->currently_interested();
+    return v1.second->upload_choke_manager()->size_total() < v2.second->upload_choke_manager()->size_total();
   }
 };
 
@@ -153,7 +153,7 @@ ResourceManager::balance_unchoked(unsigned int weight) {
 
       m_currentlyUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
 
-      quota -= cm->currently_unchoked();
+      quota -= cm->size_unchoked();
       weight -= itr->first;
     }
 
