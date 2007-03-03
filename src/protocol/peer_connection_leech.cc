@@ -184,6 +184,9 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
+    if (m_peerChunks.bitfield()->is_all_set())
+      return true;
+
     m_up->set_interested(true);
     m_download->upload_choke_manager()->set_queued(this, m_up);
     return true;
@@ -527,11 +530,13 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
 
   m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->file_list()->chunk_size());
 
-  if (m_peerChunks.bitfield()->is_all_set())
+  if (m_peerChunks.bitfield()->is_all_set()) {
     if (m_download->file_list()->is_done())
       throw close_connection();
-    else
-      m_download->upload_choke_manager()->set_not_queued(this, m_up);
+
+    m_up->set_interested(false);
+    m_download->upload_choke_manager()->set_not_queued(this, m_up);
+  }
 
   if (m_download->file_list()->is_done())
     return;

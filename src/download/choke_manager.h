@@ -143,6 +143,12 @@ extern uint32_t weights_upload_unchoke[ChokeManager::order_max_size];
 void calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last);
 void calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator last);
 
+extern uint32_t weights_download_choke[ChokeManager::order_max_size];
+extern uint32_t weights_download_unchoke[ChokeManager::order_max_size];
+
+void calculate_download_choke(ChokeManager::iterator first, ChokeManager::iterator last);
+void calculate_download_unchoke(ChokeManager::iterator first, ChokeManager::iterator last);
+
 }
 
 #endif

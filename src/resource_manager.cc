@@ -49,8 +49,11 @@
 namespace torrent {
 
 ResourceManager::~ResourceManager() {
-  if (m_currentlyUnchoked != 0)
-    throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyUnchoked != 0.");
+  if (m_currentlyUploadUnchoked != 0)
+    throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyUploadUnchoked != 0.");
+
+  if (m_currentlyDownloadUnchoked != 0)
+    throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyDownloadUnchoked != 0.");
 }
 
 void
@@ -87,30 +90,60 @@ ResourceManager::set_priority(iterator itr, uint16_t pri) {
 // The choking choke manager won't updated it's count until after
 // possibly multiple calls of this function.
 void
-ResourceManager::receive_choke(unsigned int num) {
-  if (num > m_currentlyUnchoked)
+ResourceManager::receive_upload_choke(unsigned int num) {
+  if (num > m_currentlyUploadUnchoked)
     throw internal_error("ResourceManager::receive_choke(...) received an invalid value.");
 
-  m_currentlyUnchoked -= num;
+  m_currentlyUploadUnchoked -= num;
 
   // Do unchoking of other peers.
 }
 
 void
-ResourceManager::receive_unchoke(unsigned int num) {
-  m_currentlyUnchoked += num;
+ResourceManager::receive_download_choke(unsigned int num) {
+  if (num > m_currentlyDownloadUnchoked)
+    throw internal_error("ResourceManager::receive_choke(...) received an invalid value.");
 
-  if (m_maxUnchoked != 0 && (num > m_maxUnchoked || m_currentlyUnchoked > m_maxUnchoked))
+  m_currentlyDownloadUnchoked -= num;
+
+  // Do unchoking of other peers.
+}
+
+void
+ResourceManager::receive_upload_unchoke(unsigned int num) {
+  m_currentlyUploadUnchoked += num;
+
+  if (m_maxUploadUnchoked != 0 && (num > m_maxUploadUnchoked || m_currentlyUploadUnchoked > m_maxUploadUnchoked))
+    throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
+}
+
+void
+ResourceManager::receive_download_unchoke(unsigned int num) {
+  m_currentlyDownloadUnchoked += num;
+
+  if (m_maxDownloadUnchoked != 0 && (num > m_maxDownloadUnchoked || m_currentlyDownloadUnchoked > m_maxDownloadUnchoked))
     throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
 }
 
 unsigned int
-ResourceManager::retrieve_can_unchoke() {
-  if (m_maxUnchoked == 0)
+ResourceManager::retrieve_upload_can_unchoke() {
+  if (m_maxUploadUnchoked == 0)
     return std::numeric_limits<unsigned int>::max();
 
-  else if (m_currentlyUnchoked < m_maxUnchoked)
-    return m_maxUnchoked - m_currentlyUnchoked;
+  else if (m_currentlyUploadUnchoked < m_maxUploadUnchoked)
+    return m_maxUploadUnchoked - m_currentlyUploadUnchoked;
+
+  else
+    return 0;
+}
+
+unsigned int
+ResourceManager::retrieve_download_can_unchoke() {
+  if (m_maxDownloadUnchoked == 0)
+    return std::numeric_limits<unsigned int>::max();
+
+  else if (m_currentlyDownloadUnchoked < m_maxDownloadUnchoked)
+    return m_maxDownloadUnchoked - m_currentlyDownloadUnchoked;
 
   else
     return 0;
@@ -120,7 +153,8 @@ void
 ResourceManager::receive_tick() {
   unsigned int totalWeight = total_weight();
 
-  balance_unchoked(totalWeight);
+  balance_upload_unchoked(totalWeight);
+  balance_download_unchoked(totalWeight);
 }
 
 unsigned int
@@ -128,16 +162,22 @@ ResourceManager::total_weight() const {
   return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, rak::const_mem_ref(&value_type::first))).result;
 }
 
-struct resource_manager_interested_increasing {
+struct resource_manager_upload_increasing {
   bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) const {
     return v1.second->upload_choke_manager()->size_total() < v2.second->upload_choke_manager()->size_total();
   }
 };
 
+struct resource_manager_download_increasing {
+  bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) const {
+    return v1.second->download_choke_manager()->size_total() < v2.second->download_choke_manager()->size_total();
+  }
+};
+
 void
-ResourceManager::balance_unchoked(unsigned int weight) {
-  if (m_maxUnchoked != 0) {
-    unsigned int quota = m_maxUnchoked;
+ResourceManager::balance_upload_unchoked(unsigned int weight) {
+  if (m_maxUploadUnchoked != 0) {
+    unsigned int quota = m_maxUploadUnchoked;
 
     // We put the downloads with fewest interested first so that those
     // with more interested will gain any unused slots from the
@@ -146,23 +186,55 @@ ResourceManager::balance_unchoked(unsigned int weight) {
     // Consider skipping the leading zero interested downloads. Though
     // that won't work as they need to choke peers once their priority
     // is turned off.
-    sort(begin(), end(), resource_manager_interested_increasing());
+    sort(begin(), end(), resource_manager_upload_increasing());
 
     for (iterator itr = begin(); itr != end(); ++itr) {
       ChokeManager* cm = itr->second->upload_choke_manager();
 
-      m_currentlyUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
+      m_currentlyUploadUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
 
       quota -= cm->size_unchoked();
       weight -= itr->first;
     }
 
     if (weight != 0)
-      throw internal_error("ResourceManager::balance_unchoked(...) weight did not reach zero.");
+      throw internal_error("ResourceManager::balance_upload_unchoked(...) weight did not reach zero.");
 
   } else {
     for (iterator itr = begin(); itr != end(); ++itr)
-      m_currentlyUnchoked += itr->second->upload_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
+      m_currentlyUploadUnchoked += itr->second->upload_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
+  }
+}
+
+void
+ResourceManager::balance_download_unchoked(unsigned int weight) {
+  if (m_maxDownloadUnchoked != 0) {
+    unsigned int quota = m_maxDownloadUnchoked;
+
+    // We put the downloads with fewest interested first so that those
+    // with more interested will gain any unused slots from the
+    // preceding downloads. Consider multiplying with priority.
+    //
+    // Consider skipping the leading zero interested downloads. Though
+    // that won't work as they need to choke peers once their priority
+    // is turned off.
+    sort(begin(), end(), resource_manager_download_increasing());
+
+    for (iterator itr = begin(); itr != end(); ++itr) {
+      ChokeManager* cm = itr->second->download_choke_manager();
+
+      m_currentlyDownloadUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
+
+      quota -= cm->size_unchoked();
+      weight -= itr->first;
+    }
+
+    if (weight != 0)
+      throw internal_error("ResourceManager::balance_download_unchoked(...) weight did not reach zero.");
+
+  } else {
+    for (iterator itr = begin(); itr != end(); ++itr)
+      m_currentlyDownloadUnchoked += itr->second->download_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
   }
 }
 

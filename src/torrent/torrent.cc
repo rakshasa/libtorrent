@@ -208,12 +208,12 @@ set_up_throttle(int32_t bytes) {
 
 uint32_t
 currently_unchoked() {
-  return manager->resource_manager()->currently_unchoked();
+  return manager->resource_manager()->currently_upload_unchoked();
 }
 
 uint32_t
 max_unchoked() {
-  return manager->resource_manager()->max_unchoked();
+  return manager->resource_manager()->max_upload_unchoked();
 }
 
 void
@@ -221,7 +221,7 @@ set_max_unchoked(uint32_t count) {
   if (count > (1 << 16))
     throw input_error("Max unchoked must be between 0 and 2^16.");
 
-  manager->resource_manager()->set_max_unchoked(count);
+  manager->resource_manager()->set_max_upload_unchoked(count);
 }
 
 const Rate*

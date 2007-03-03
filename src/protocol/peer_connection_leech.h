@@ -43,7 +43,6 @@ namespace torrent {
 
 class PeerConnectionLeech : public PeerConnectionBase {
 public:
-  PeerConnectionLeech() : m_tryRequest(true) {}
   ~PeerConnectionLeech();
 
   virtual void        initialize_custom();
@@ -58,8 +57,6 @@ private:
   void                read_have_chunk(uint32_t index);
 
   inline void         fill_write_buffer();
-
-  bool                m_tryRequest;
 };
 
 }

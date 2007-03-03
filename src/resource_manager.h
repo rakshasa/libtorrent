@@ -58,8 +58,10 @@ public:
   using base_type::end;
 
   ResourceManager() :
-    m_currentlyUnchoked(0),
-    m_maxUnchoked(0) {}
+    m_currentlyUploadUnchoked(0),
+    m_currentlyDownloadUnchoked(0),
+    m_maxUploadUnchoked(0),
+    m_maxDownloadUnchoked(0) {}
   ~ResourceManager();
 
   void                insert(DownloadMain* d, uint16_t priority);
@@ -70,22 +72,37 @@ public:
 
   // When setting this, make sure you choke peers, else change
   // receive_can_unchoke.
-  unsigned int        currently_unchoked() const       { return m_currentlyUnchoked; }
-  unsigned int        max_unchoked() const             { return m_maxUnchoked; }
-  void                set_max_unchoked(unsigned int m) { m_maxUnchoked = m; }
+  unsigned int        currently_upload_unchoked() const         { return m_currentlyUploadUnchoked; }
+  unsigned int        currently_download_unchoked() const       { return m_currentlyDownloadUnchoked; }
 
-  void                receive_choke(unsigned int num);
-  void                receive_unchoke(unsigned int num);
-  unsigned int        retrieve_can_unchoke();
+  unsigned int        max_upload_unchoked() const               { return m_maxUploadUnchoked; }
+  unsigned int        max_download_unchoked() const             { return m_maxDownloadUnchoked; }
+
+  void                set_max_upload_unchoked(unsigned int m)   { m_maxUploadUnchoked = m; }
+  void                set_max_download_unchoked(unsigned int m) { m_maxDownloadUnchoked = m; }
+
+  void                receive_upload_choke(unsigned int num);
+  void                receive_download_choke(unsigned int num);
+
+  void                receive_upload_unchoke(unsigned int num);
+  void                receive_download_unchoke(unsigned int num);
+
+  unsigned int        retrieve_upload_can_unchoke();
+  unsigned int        retrieve_download_can_unchoke();
 
   void                receive_tick();
 
 private:
   unsigned int        total_weight() const;
-  void                balance_unchoked(unsigned int weight);
 
-  unsigned int        m_currentlyUnchoked;
-  unsigned int        m_maxUnchoked;
+  void                balance_upload_unchoked(unsigned int weight);
+  void                balance_download_unchoked(unsigned int weight);
+
+  unsigned int        m_currentlyUploadUnchoked;
+  unsigned int        m_currentlyDownloadUnchoked;
+
+  unsigned int        m_maxUploadUnchoked;
+  unsigned int        m_maxDownloadUnchoked;
 };
 
 }

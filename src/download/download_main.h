@@ -77,6 +77,7 @@ public:
   void                stop();
 
   ChokeManager*       upload_choke_manager()                     { return m_uploadChokeManager; }
+  ChokeManager*       download_choke_manager()                   { return m_downloadChokeManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
   DownloadInfo*       info()                                     { return m_info; }
@@ -136,6 +137,7 @@ private:
 
   TrackerManager*     m_trackerManager;
   ChokeManager*       m_uploadChokeManager;
+  ChokeManager*       m_downloadChokeManager;
 
   ChunkList*          m_chunkList;
   ChunkSelector*      m_chunkSelector;

@@ -167,9 +167,9 @@ protected:
   rak::timer          m_initializedTime;
 
   uint32_t            m_readPos;
-  bool                m_readDone;
-
   uint32_t            m_writePos;
+
+  bool                m_readDone;
   bool                m_writeDone;
 
   bool                m_incoming;

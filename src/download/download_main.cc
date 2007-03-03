@@ -67,8 +67,9 @@ DownloadMain::DownloadMain() :
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
 
-  m_connectionList = new ConnectionList(this);
-  m_uploadChokeManager = new ChokeManager(m_connectionList);
+  m_connectionList       = new ConnectionList(this);
+  m_uploadChokeManager   = new ChokeManager(m_connectionList);
+  m_downloadChokeManager = new ChokeManager(m_connectionList);
 
   m_uploadChokeManager->set_slot_choke_weight(&calculate_upload_choke);
   m_uploadChokeManager->set_slot_unchoke_weight(&calculate_upload_unchoke);
@@ -76,6 +77,13 @@ DownloadMain::DownloadMain() :
 
   std::memcpy(m_uploadChokeManager->choke_weight(), weights_upload_choke, ChokeManager::order_max_size);
   std::memcpy(m_uploadChokeManager->unchoke_weight(), weights_upload_unchoke, ChokeManager::order_max_size);
+
+  m_downloadChokeManager->set_slot_choke_weight(&calculate_download_choke);
+  m_downloadChokeManager->set_slot_unchoke_weight(&calculate_download_unchoke);
+  m_downloadChokeManager->set_slot_connection(std::mem_fun(&PeerConnectionBase::receive_download_choke));
+
+  std::memcpy(m_downloadChokeManager->choke_weight(), weights_download_choke, ChokeManager::order_max_size);
+  std::memcpy(m_downloadChokeManager->unchoke_weight(), weights_download_unchoke, ChokeManager::order_max_size);
 
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));
@@ -97,6 +105,7 @@ DownloadMain::~DownloadMain() {
 
   delete m_trackerManager;
   delete m_uploadChokeManager;
+  delete m_downloadChokeManager;
   delete m_connectionList;
 
   delete m_chunkStatistics;

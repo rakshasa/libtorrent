@@ -71,6 +71,7 @@ PeerConnectionBase::PeerConnectionBase() :
 
   m_sendChoked(false),
   m_sendInterested(false),
+  m_tryRequest(true),
 
   m_encryptBuffer(NULL) {
 }
@@ -179,6 +180,17 @@ PeerConnectionBase::receive_upload_choke(bool v) {
 
   m_sendChoked = true;
   m_up->set_choked(v);
+  m_up->set_time_last_choke(cachedTime);
+}
+
+void
+PeerConnectionBase::receive_download_choke(bool v) {
+  if (v == m_down->choked())
+    throw internal_error("PeerConnectionBase::receive_download_choke(...) already set to the same state.");
+
+  write_insert_poll_safe();
+
+  m_tryRequest = true;
   m_up->set_time_last_choke(cachedTime);
 }
 

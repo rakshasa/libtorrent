@@ -108,6 +108,7 @@ public:
   virtual bool        receive_keepalive() = 0;
 
   void                receive_upload_choke(bool v);
+  void                receive_download_choke(bool v);
 
   virtual void        event_error();
 
@@ -170,6 +171,7 @@ protected:
 
   bool                m_sendChoked;
   bool                m_sendInterested;
+  bool                m_tryRequest;
 
   rak::timer          m_timeLastRead;
 

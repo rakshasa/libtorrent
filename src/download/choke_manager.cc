@@ -407,7 +407,7 @@ ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
 // Need to add the recently unchoked check here?
 
 uint32_t weights_upload_choke[ChokeManager::order_max_size]   = { 1, 1, 1, 1 };
-uint32_t weights_upload_unchoke[ChokeManager::order_max_size] = { 0, 1, 3, 0 };
+uint32_t weights_upload_unchoke[ChokeManager::order_max_size] = { 1, 3, 9, 0 };
 
 void
 calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last) {
@@ -440,6 +440,33 @@ calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator la
 
       first->second = 1 * ChokeManager::order_base + ::random() % (1 << 10);
     }
+
+    first++;
+  }
+}
+
+// Fix this, but for now just use something simple.
+
+uint32_t weights_download_choke[ChokeManager::order_max_size]   = { 1, 1, 1, 1 };
+uint32_t weights_download_unchoke[ChokeManager::order_max_size] = { 1, 1, 1, 1 };
+
+void
+calculate_download_choke(ChokeManager::iterator first, ChokeManager::iterator last) {
+  while (first != last) {
+    // Very crude version for now.
+    uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
+    first->second = ChokeManager::order_base - 1 - downloadRate;
+
+    first++;
+  }
+}
+
+void
+calculate_download_unchoke(ChokeManager::iterator first, ChokeManager::iterator last) {
+  while (first != last) {
+    // Very crude version for now.
+    uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
+    first->second = downloadRate;
 
     first++;
   }
