@@ -224,6 +224,24 @@ set_max_unchoked(uint32_t count) {
   manager->resource_manager()->set_max_upload_unchoked(count);
 }
 
+uint32_t
+download_unchoked() {
+  return manager->resource_manager()->currently_download_unchoked();
+}
+
+uint32_t
+max_download_unchoked() {
+  return manager->resource_manager()->max_download_unchoked();
+}
+
+void
+set_max_download_unchoked(uint32_t count) {
+  if (count > (1 << 16))
+    throw input_error("Max unchoked must be between 0 and 2^16.");
+
+  manager->resource_manager()->set_max_download_unchoked(count);
+}
+
 const Rate*
 down_rate() {
   return manager->download_throttle()->throttle_list()->rate_slow();

@@ -46,8 +46,10 @@ namespace torrent {
 // exceptions. This allows us to create breakpoints at throws. This is
 // limited to rarely thrown exceptions.
 
-internal_error::internal_error(const char* msg) : m_msg(msg) {}
-internal_error::internal_error(const std::string& msg) : m_msg(msg) {}
+internal_error::internal_error(const char* msg) : m_msg(msg) {
+}
+internal_error::internal_error(const std::string& msg) : m_msg(msg) {
+}
 
 communication_error::communication_error(const char* msg) : m_msg(msg) {}
 communication_error::communication_error(const std::string& msg) : m_msg(msg) {}

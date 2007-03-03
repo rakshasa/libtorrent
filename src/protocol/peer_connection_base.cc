@@ -142,6 +142,7 @@ PeerConnectionBase::cleanup() {
   down_chunk_release();
 
   m_download->upload_choke_manager()->disconnected(this, m_up);
+  m_download->download_choke_manager()->disconnected(this, m_down);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
   manager->poll()->remove_read(this);
@@ -190,8 +191,20 @@ PeerConnectionBase::receive_download_choke(bool v) {
 
   write_insert_poll_safe();
 
-  m_tryRequest = true;
-  m_up->set_time_last_choke(cachedTime);
+  m_down->set_choked(v);
+  m_down->set_time_last_choke(cachedTime);
+
+  if (v) {
+    m_peerChunks.download_cache()->disable();
+
+    // If the queue isn't empty, then we might still receive some
+    // pieces, so don't remove us from throttle.
+    if (!download_queue()->is_downloading() && download_queue()->empty())
+      m_download->download_throttle()->erase(m_peerChunks.download_throttle());
+
+  } else {
+    m_tryRequest = true;
+  }
 }
 
 void
@@ -308,7 +321,12 @@ PeerConnectionBase::down_chunk_finished() {
     m_downStall--;
         
   // TODO: clear m_down.data?
-  // TODO: remove throttle if choked? Rarely happens though.
+
+  // If we were choked by choke_manager but still had queued pieces,
+  // then we might still be in the throttle.
+  if (m_down->choked() && download_queue()->empty())
+    m_download->download_throttle()->erase(m_peerChunks.download_throttle());
+
   write_insert_poll_safe();
 }
 

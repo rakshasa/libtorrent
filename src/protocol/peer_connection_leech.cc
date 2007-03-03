@@ -101,6 +101,7 @@ PeerConnectionLeech::receive_keepalive() {
 
     ProtocolBuffer<512>::iterator old_end = m_up->buffer()->end();
     m_up->write_keepalive();
+
     if (is_encrypted())
       m_encryption.encrypt(old_end, m_up->buffer()->end() - old_end);
   }
@@ -114,6 +115,9 @@ PeerConnectionLeech::receive_keepalive() {
   // should stay at zero or one when downloading at an acceptable
   // speed. Thus only when m_downStall >= 2 is the download actually
   // stalling.
+
+  // TODO: Do we need to remove from download throttle here?
+
   if (!download_queue()->empty() && m_downStall++ != 0)
     download_queue()->stall();
 
@@ -156,7 +160,7 @@ PeerConnectionLeech::read_message() {
   // the above test.
   //
   // Those that do in some weird way manage to produce a valid
-  // command, will not be able to do any damage as malicious
+  // command, will not be able to do any more damage than a malicious
   // peer. Those cases should be caught elsewhere in the code.
 
   // Temporary.
@@ -164,23 +168,20 @@ PeerConnectionLeech::read_message() {
 
   switch (buf->read_8()) {
   case ProtocolBase::CHOKE:
-    m_down->set_choked(true);
-
-    m_peerChunks.download_cache()->disable();
+    // Cancel before dequeueing so receive_download_choke knows if it
+    // should remove us from throttle.
+    //
+    // Hmm... that won't work, as we arn't necessarily unchoked when
+    // in throttle.
 
     download_queue()->cancel();
+    m_download->download_choke_manager()->set_not_queued(this, m_down);
     m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
     return true;
 
   case ProtocolBase::UNCHOKE:
-    if (is_down_choked()) {
-      write_insert_poll_safe();
-
-      m_down->set_choked(false);
-      m_tryRequest = true;
-    }
-
+    m_download->download_choke_manager()->set_queued(this, m_down);
     return true;
 
   case ProtocolBase::INTERESTED:
@@ -408,14 +409,14 @@ PeerConnectionLeech::fill_write_buffer() {
     m_sendInterested = false;
   }
 
-  if (m_tryRequest &&
+  if (m_tryRequest) {
+    if (!(m_tryRequest = !should_request()) &&
+        !(m_tryRequest = try_request_pieces()) &&
 
-      !(m_tryRequest = !should_request()) &&
-      !(m_tryRequest = try_request_pieces()) &&
-
-      !download_queue()->is_interested_in_active()) {
-    m_sendInterested = true;
-    m_down->set_interested(false);
+        !download_queue()->is_interested_in_active()) {
+      m_sendInterested = true;
+      m_down->set_interested(false);
+    }
   }
 
   DownloadMain::have_queue_type* haveQueue = m_download->have_queue();

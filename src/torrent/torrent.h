@@ -82,6 +82,10 @@ uint32_t            currently_unchoked() LIBTORRENT_EXPORT;
 uint32_t            max_unchoked() LIBTORRENT_EXPORT;
 void                set_max_unchoked(uint32_t count) LIBTORRENT_EXPORT;
 
+uint32_t            download_unchoked() LIBTORRENT_EXPORT;
+uint32_t            max_download_unchoked() LIBTORRENT_EXPORT;
+void                set_max_download_unchoked(uint32_t count) LIBTORRENT_EXPORT;
+
 const Rate*         down_rate() LIBTORRENT_EXPORT;
 const Rate*         up_rate() LIBTORRENT_EXPORT;
 

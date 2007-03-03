@@ -86,6 +86,7 @@ public:
   bool                is_up_interested()            { return m_up->interested(); }
   bool                is_up_snubbed()               { return m_up->snubbed(); }
   bool                is_down_choked()              { return m_down->choked(); }
+  bool                is_down_queued()              { return m_down->queued(); }
   bool                is_down_interested()          { return m_down->interested(); }
 
   void                set_upload_snubbed(bool v);

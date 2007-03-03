@@ -50,90 +50,34 @@
 
 namespace torrent {
 
-bool
-Peer::is_incoming() const {
-  return m_ptr->peer_info()->is_incoming();
-}
+bool Peer::is_incoming() const             { return m_ptr->peer_info()->is_incoming(); }
+bool Peer::is_encrypted() const            { return m_ptr->is_encrypted(); }
+bool Peer::is_obfuscated() const           { return m_ptr->is_obfuscated(); }
 
-bool
-Peer::is_encrypted() const {
-  return m_ptr->is_encrypted();
-}
+bool Peer::is_local_choked() const         { return m_ptr->is_up_choked(); }
+bool Peer::is_local_interested() const     { return m_ptr->is_down_interested(); }
+bool Peer::is_remote_choked() const        { return m_ptr->is_down_choked(); }
+bool Peer::is_remote_queued() const        { return m_ptr->is_down_queued(); }
+bool Peer::is_remote_interested() const    { return m_ptr->is_up_interested(); }
 
-bool
-Peer::is_obfuscated() const {
-  return m_ptr->is_obfuscated();
-}
+bool Peer::is_snubbed() const              { return m_ptr->is_up_snubbed(); }
+void Peer::set_snubbed(bool v)             { m_ptr->set_upload_snubbed(v); }
 
-bool
-Peer::is_local_choked() const {
-  return m_ptr->is_up_choked();
-}
+const HashString& Peer::id() const         { return m_ptr->peer_info()->id(); }
+const char*       Peer::options() const    { return m_ptr->peer_info()->options(); }
+const sockaddr*   Peer::address() const    { return m_ptr->peer_info()->socket_address(); }
 
-bool
-Peer::is_local_interested() const {
-  return m_ptr->is_down_interested();
-}
+const Rate*       Peer::down_rate() const  { return m_ptr->peer_chunks()->download_throttle()->rate(); } 
+const Rate*       Peer::up_rate() const    { return m_ptr->peer_chunks()->upload_throttle()->rate(); } 
+const Rate*       Peer::peer_rate() const  { return m_ptr->peer_chunks()->peer_rate(); } 
 
-bool
-Peer::is_remote_choked() const {
-  return m_ptr->is_down_choked();
-}
+const PeerInfo*   Peer::info() const       { return m_ptr->peer_info(); }
+const Bitfield*   Peer::bitfield() const   { return m_ptr->peer_chunks()->bitfield(); }
 
-bool
-Peer::is_remote_interested() const {
-  return m_ptr->is_up_interested();
-}
-
-bool
-Peer::is_snubbed() const {
-  return m_ptr->is_up_snubbed();
-}
-
-void
-Peer::set_snubbed(bool v) {
-  m_ptr->set_upload_snubbed(v);
-}
-
-const HashString&
-Peer::id() const {
-  return m_ptr->peer_info()->id();
-}
-
-const char*
-Peer::options() const {
-  return m_ptr->peer_info()->options();
-}
-
-const sockaddr*
-Peer::address() const {
-  return m_ptr->peer_info()->socket_address();
-}
-
-const Rate*
-Peer::down_rate() const {
-  return m_ptr->peer_chunks()->download_throttle()->rate();
-} 
-
-const Rate*
-Peer::up_rate() const {
-  return m_ptr->peer_chunks()->upload_throttle()->rate();
-} 
-
-const Rate*
-Peer::peer_rate() const {
-  return m_ptr->peer_chunks()->peer_rate();
-} 
-
-const PeerInfo*
-Peer::info() const {
-  return m_ptr->peer_info();
-}
-
-const Bitfield*
-Peer::bitfield() const {
-  return m_ptr->peer_chunks()->bitfield();
-}
+uint32_t Peer::incoming_queue_size() const { return m_ptr->download_queue()->size(); }
+uint32_t Peer::outgoing_queue_size() const { return m_ptr->peer_chunks()->upload_queue()->size(); }  
+uint32_t Peer::chunks_done() const         { return m_ptr->peer_chunks()->bitfield()->size_set(); }  
+uint32_t Peer::failed_counter() const      { return m_ptr->peer_info()->failed_counter(); }  
 
 const BlockTransfer*
 Peer::transfer() const {
@@ -146,25 +90,5 @@ Peer::transfer() const {
   else
     return NULL;
 }
-
-uint32_t
-Peer::incoming_queue_size() const {
-  return m_ptr->download_queue()->size();
-}
-
-uint32_t
-Peer::outgoing_queue_size() const {
-  return m_ptr->peer_chunks()->upload_queue()->size();
-}  
-
-uint32_t
-Peer::chunks_done() const {
-  return m_ptr->peer_chunks()->bitfield()->size_set();
-}  
-
-uint32_t
-Peer::failed_counter() const {
-  return m_ptr->peer_info()->failed_counter();
-}  
 
 }

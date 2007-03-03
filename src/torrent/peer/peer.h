@@ -62,6 +62,7 @@ public:
   bool                 is_local_choked() const;
   bool                 is_local_interested() const;
   bool                 is_remote_choked() const;
+  bool                 is_remote_queued() const;
   bool                 is_remote_interested() const;
 
   bool                 is_snubbed() const;

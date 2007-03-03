@@ -93,6 +93,10 @@ public:
   // interested states togheter, thus for m_up 'interested' means the
   // remote peer wants upload and 'choke' means we've choked upload to
   // that peer.
+  //
+  // In the downlod object, 'queued' now means the same as the spec's
+  // 'unchoked', while 'unchoked' means we start requesting pieces.
+
   bool                queued() const                          { return m_queued; }
   void                set_queued(bool s)                      { m_queued = s; }
 
