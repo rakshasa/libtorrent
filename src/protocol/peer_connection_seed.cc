@@ -132,11 +132,7 @@ PeerConnectionSeed::read_message() {
 
   switch (buf->read_8()) {
   case ProtocolBase::CHOKE:
-    m_down->set_choked(true);
-    return true;
-
   case ProtocolBase::UNCHOKE:
-    m_down->set_choked(false);
     return true;
 
   case ProtocolBase::INTERESTED:
