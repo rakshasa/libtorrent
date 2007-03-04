@@ -116,20 +116,12 @@ int
 ChokeManager::cycle(unsigned int quota) {
   quota = std::min(quota, m_maxUnchoked);
 
-  unsigned int oldSize = m_unchoked.size();
+  unsigned int oldSize  = m_unchoked.size();
+  unsigned int unchoked = unchoke_range(m_queued.begin(), m_queued.end(),
+                                        std::max<int>((int)quota - (int)m_unchoked.size(), max_alternate()));
 
-  // This needs to consider the case when we don't really have
-  // anything to unchoke later.
-  int choke = std::max((int)m_unchoked.size() - (int)quota,
-                       std::min<int>(max_alternate(), m_queued.size()));
-
-  if (choke <= 0)
-    choke = 0;
-  else
-    choke = choke_range(m_unchoked.begin(), m_unchoked.end(), choke);
-
-  if (m_unchoked.size() < quota)
-    unchoke_range(m_queued.begin(), m_queued.end() - choke, quota - m_unchoked.size());
+  if (m_unchoked.size() > quota)
+    choke_range(m_unchoked.begin(), m_unchoked.end() - unchoked, m_unchoked.size() - quota);
 
   if (m_unchoked.size() > quota)
     throw internal_error("ChokeManager::cycle() m_unchoked.size() > quota.");
@@ -142,7 +134,7 @@ ChokeManager::set_queued(PeerConnectionBase* pc, ProtocolBase* base) {
   if (base->queued())
     return;
 
-  if (base->unchoked() || !base->interested())
+  if (base->unchoked())// || !base->interested())
     throw internal_error("ChokeManager::set_queued(...) base->unchoked() || !base->interested().");
 
   base->set_queued(true);
