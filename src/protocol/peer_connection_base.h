@@ -38,6 +38,7 @@
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
 #include "data/chunk_handle.h"
+#include "download/choke_manager_node.h"
 #include "net/socket_stream.h"
 #include "torrent/poll.h"
 
@@ -82,12 +83,12 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo);
   void                cleanup();
 
-  bool                is_up_choked()                { return m_up->choked(); }
-  bool                is_up_interested()            { return m_up->interested(); }
-  bool                is_up_snubbed()               { return m_up->snubbed(); }
-  bool                is_down_choked()              { return m_down->choked(); }
-  bool                is_down_queued()              { return m_down->queued(); }
-  bool                is_down_interested()          { return m_down->interested(); }
+  bool                is_up_choked()                { return m_upChoke.choked(); }
+  bool                is_up_interested()            { return m_upChoke.queued(); }
+  bool                is_up_snubbed()               { return m_upChoke.snubbed(); }
+  bool                is_down_choked()              { return m_downChoke.choked(); }
+  bool                is_down_queued()              { return m_downChoke.queued(); }
+  bool                is_down_interested()          { return m_downInterested; }
 
   void                set_upload_snubbed(bool v);
 
@@ -169,6 +170,21 @@ protected:
 
   Piece               m_upPiece;
   ChunkHandle         m_upChunk;
+
+  // The interested state no longer follows the spec's wording as it
+  // has been swapped.
+  //
+  // Thus the same ProtocolBase object now groups the same choke and
+  // interested states togheter, thus for m_up 'interested' means the
+  // remote peer wants upload and 'choke' means we've choked upload to
+  // that peer.
+  //
+  // In the downlod object, 'queued' now means the same as the spec's
+  // 'unchoked', while 'unchoked' means we start requesting pieces.
+  ChokeManagerNode    m_upChoke;
+  ChokeManagerNode    m_downChoke;
+
+  bool                m_downInterested;
 
   bool                m_sendChoked;
   bool                m_sendInterested;

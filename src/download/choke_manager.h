@@ -45,8 +45,8 @@
 
 namespace torrent {
 
+class ChokeManagerNode;
 class PeerConnectionBase;
-class ProtocolBase;
 class ResourceManager;
 
 class ChokeManager {
@@ -58,8 +58,8 @@ public:
   typedef std::mem_fun1_t<void, PeerConnectionBase, bool>        slot_connection;
 
   typedef std::vector<std::pair<PeerConnectionBase*, uint32_t> > container_type;
-  typedef container_type::iterator                               iterator;
   typedef container_type::value_type                             value_type;
+  typedef container_type::iterator                               iterator;
 
   typedef std::pair<uint32_t, iterator>                          target_type;
 
@@ -67,6 +67,7 @@ public:
 
   static const uint32_t order_base = (1 << 30);
   static const uint32_t order_max_size = 4;
+  static const uint32_t weight_size_bytes = order_max_size * sizeof(uint32_t);
 
   ChokeManager(ConnectionList* cl) :
     m_connectionList(cl),
@@ -90,13 +91,13 @@ public:
 
   // Assume interested state is already updated for the PCB and that
   // this gets called once every time the status changes.
-  void                set_queued(PeerConnectionBase* pc, ProtocolBase* base);
-  void                set_not_queued(PeerConnectionBase* pc, ProtocolBase* base);
+  void                set_queued(PeerConnectionBase* pc, ChokeManagerNode* base);
+  void                set_not_queued(PeerConnectionBase* pc, ChokeManagerNode* base);
 
-  void                set_snubbed(PeerConnectionBase* pc, ProtocolBase* base);
-  void                set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base);
+  void                set_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base);
+  void                set_not_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base);
 
-  void                disconnected(PeerConnectionBase* pc, ProtocolBase* base);
+  void                disconnected(PeerConnectionBase* pc, ChokeManagerNode* base);
 
   uint32_t*           choke_weight()                          { return m_chokeWeight; }
   uint32_t*           unchoke_weight()                        { return m_unchokeWeight; }

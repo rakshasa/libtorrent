@@ -44,6 +44,7 @@
 #include "protocol/peer_connection_base.h"
 
 #include "choke_manager.h"
+#include "choke_manager_node.h"
 
 namespace torrent {
 
@@ -118,7 +119,8 @@ ChokeManager::cycle(unsigned int quota) {
 
   unsigned int oldSize  = m_unchoked.size();
   unsigned int unchoked = unchoke_range(m_queued.begin(), m_queued.end(),
-                                        std::max<int>((int)quota - (int)m_unchoked.size(), max_alternate()));
+                                        std::max<int>((int)quota - (int)m_unchoked.size(),
+                                                      std::min(quota, max_alternate())));
 
   if (m_unchoked.size() > quota)
     choke_range(m_unchoked.begin(), m_unchoked.end() - unchoked, m_unchoked.size() - quota);
@@ -130,7 +132,7 @@ ChokeManager::cycle(unsigned int quota) {
 }
 
 void
-ChokeManager::set_queued(PeerConnectionBase* pc, ProtocolBase* base) {
+ChokeManager::set_queued(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->queued())
     return;
 
@@ -156,7 +158,7 @@ ChokeManager::set_queued(PeerConnectionBase* pc, ProtocolBase* base) {
 }
 
 void
-ChokeManager::set_not_queued(PeerConnectionBase* pc, ProtocolBase* base) {
+ChokeManager::set_not_queued(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (!base->queued())
     return;
 
@@ -176,7 +178,7 @@ ChokeManager::set_not_queued(PeerConnectionBase* pc, ProtocolBase* base) {
 }
 
 void
-ChokeManager::set_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
+ChokeManager::set_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->snubbed())
     return;
 
@@ -195,7 +197,7 @@ ChokeManager::set_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
 }
 
 void
-ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
+ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (!base->snubbed())
     return;
 
@@ -222,7 +224,7 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ProtocolBase* base) {
 
 // We are no longer in m_connectionList.
 void
-ChokeManager::disconnected(PeerConnectionBase* pc, ProtocolBase* base) {
+ChokeManager::disconnected(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->snubbed()) {
     // Do nothing.
 
@@ -272,9 +274,9 @@ choke_manager_allocate_slots(ChokeManager::iterator first, ChokeManager::iterato
     for (uint32_t itr = 0; itr < ChokeManager::order_max_size; itr++) {
       uint32_t s = std::distance(target[itr].second, target[itr + 1].second);
 
-      if (weights[itr] == 0 ||target[itr].first >= s)
+      if (weights[itr] == 0 || target[itr].first >= s)
         continue;
-        
+      
       uint32_t u = std::min(s - target[itr].first, base * weights[itr]);
 
       unchoke -= u;

@@ -72,6 +72,7 @@ ConnectionManager::~ConnectionManager() {
 
   delete m_bindAddress;
   delete m_localAddress;
+  delete m_proxyAddress;
 }
 
 bool

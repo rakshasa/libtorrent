@@ -77,10 +77,10 @@ PeerConnectionLeech::update_interested() {
   // anyway.
 
   if (true) {
-    m_sendInterested = !m_down->interested();
+    m_sendInterested = !m_downInterested;
     m_down->set_interested(true);
   } else {
-    m_sendInterested = m_down->interested();
+    m_sendInterested = m_downInterested;
     m_down->set_interested(false);
   }
 
@@ -175,26 +175,24 @@ PeerConnectionLeech::read_message() {
     // in throttle.
 
     download_queue()->cancel();
-    m_download->download_choke_manager()->set_not_queued(this, m_down);
+    m_download->download_choke_manager()->set_not_queued(this, &m_downChoke);
     m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
     return true;
 
   case ProtocolBase::UNCHOKE:
-    m_download->download_choke_manager()->set_queued(this, m_down);
+    m_download->download_choke_manager()->set_queued(this, &m_downChoke);
     return true;
 
   case ProtocolBase::INTERESTED:
     if (m_peerChunks.bitfield()->is_all_set())
       return true;
 
-    m_up->set_interested(true);
-    m_download->upload_choke_manager()->set_queued(this, m_up);
+    m_download->upload_choke_manager()->set_queued(this, &m_upChoke);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_up->set_interested(false);
-    m_download->upload_choke_manager()->set_not_queued(this, m_up);
+    m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
     return true;
 
   case ProtocolBase::HAVE:
@@ -208,7 +206,7 @@ PeerConnectionLeech::read_message() {
     if (!m_down->can_read_request_body())
       break;
 
-    if (!m_up->choked()) {
+    if (!m_upChoke.choked()) {
       write_insert_poll_safe();
       read_request_piece(m_down->read_request());
 
@@ -380,9 +378,9 @@ PeerConnectionLeech::fill_write_buffer() {
   // No need to use delayed choke as we are a leecher.
   if (m_sendChoked && m_up->can_write_choke()) {
     m_sendChoked = false;
-    m_up->write_choke(m_up->choked());
+    m_up->write_choke(m_upChoke.choked());
 
-    if (m_up->choked()) {
+    if (m_upChoke.choked()) {
       m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
       up_chunk_release();
       m_peerChunks.upload_queue()->clear();
@@ -405,7 +403,7 @@ PeerConnectionLeech::fill_write_buffer() {
   // request has been received while uninterested. The problem arises
   // as they send unchoke before receiving interested.
   if (m_sendInterested && m_up->can_write_interested()) {
-    m_up->write_interested(m_down->interested());
+    m_up->write_interested(m_downInterested);
     m_sendInterested = false;
   }
 
@@ -439,7 +437,7 @@ PeerConnectionLeech::fill_write_buffer() {
     m_peerChunks.cancel_queue()->pop_front();
   }
 
-  if (!m_up->choked() &&
+  if (!m_upChoke.choked() &&
       !m_peerChunks.upload_queue()->empty() &&
       m_up->can_write_piece())
     write_prepare_piece();
@@ -535,8 +533,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
     if (m_download->file_list()->is_done())
       throw close_connection();
 
-    m_up->set_interested(false);
-    m_download->upload_choke_manager()->set_not_queued(this, m_up);
+    m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
   }
 
   if (m_download->file_list()->is_done())

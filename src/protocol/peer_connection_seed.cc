@@ -137,12 +137,12 @@ PeerConnectionSeed::read_message() {
 
   case ProtocolBase::INTERESTED:
     m_up->set_interested(true);
-    m_download->upload_choke_manager()->set_queued(this, m_up);
+    m_download->upload_choke_manager()->set_queued(this, &m_upChoke);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
     m_up->set_interested(false);
-    m_download->upload_choke_manager()->set_not_queued(this, m_up);
+    m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
     return true;
 
   case ProtocolBase::HAVE:
@@ -156,7 +156,7 @@ PeerConnectionSeed::read_message() {
     if (!m_down->can_read_request_body())
       break;
 
-    if (!m_up->choked()) {
+    if (!m_upChoke.choked()) {
       write_insert_poll_safe();
       read_request_piece(m_down->read_request());
 
@@ -255,9 +255,9 @@ PeerConnectionSeed::fill_write_buffer() {
   // No need to use delayed choke as we are a seeder.
   if (m_sendChoked && m_up->can_write_choke()) {
     m_sendChoked = false;
-    m_up->write_choke(m_up->choked());
+    m_up->write_choke(m_upChoke.choked());
 
-    if (m_up->choked()) {
+    if (m_upChoke.choked()) {
       m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
       up_chunk_release();
       m_peerChunks.upload_queue()->clear();
@@ -267,7 +267,7 @@ PeerConnectionSeed::fill_write_buffer() {
     }
   }
 
-  if (!m_up->choked() &&
+  if (!m_upChoke.choked() &&
       !m_peerChunks.upload_queue()->empty() &&
       m_up->can_write_piece())
     write_prepare_piece();

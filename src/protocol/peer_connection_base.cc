@@ -69,6 +69,8 @@ PeerConnectionBase::PeerConnectionBase() :
 
   m_downStall(0),
 
+  m_downInterested(false),
+
   m_sendChoked(false),
   m_sendInterested(false),
   m_tryRequest(true),
@@ -141,8 +143,8 @@ PeerConnectionBase::cleanup() {
   up_chunk_release();
   down_chunk_release();
 
-  m_download->upload_choke_manager()->disconnected(this, m_up);
-  m_download->download_choke_manager()->disconnected(this, m_down);
+  m_download->upload_choke_manager()->disconnected(this, &m_upChoke);
+  m_download->download_choke_manager()->disconnected(this, &m_downChoke);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
   manager->poll()->remove_read(this);
@@ -167,32 +169,32 @@ PeerConnectionBase::cleanup() {
 void
 PeerConnectionBase::set_upload_snubbed(bool v) {
   if (v)
-    m_download->upload_choke_manager()->set_snubbed(this, m_up);
+    m_download->upload_choke_manager()->set_snubbed(this, &m_upChoke);
   else
-    m_download->upload_choke_manager()->set_not_snubbed(this, m_up);
+    m_download->upload_choke_manager()->set_not_snubbed(this, &m_upChoke);
 }
 
 void
 PeerConnectionBase::receive_upload_choke(bool v) {
-  if (v == m_up->choked())
+  if (v == m_upChoke.choked())
     throw internal_error("PeerConnectionBase::receive_upload_choke(...) already set to the same state.");
 
   write_insert_poll_safe();
 
   m_sendChoked = true;
-  m_up->set_choked(v);
-  m_up->set_time_last_choke(cachedTime);
+  m_upChoke.set_unchoked(!v);
+  m_upChoke.set_time_last_choke(cachedTime);
 }
 
 void
 PeerConnectionBase::receive_download_choke(bool v) {
-  if (v == m_down->choked())
+  if (v == m_downChoke.choked())
     throw internal_error("PeerConnectionBase::receive_download_choke(...) already set to the same state.");
 
   write_insert_poll_safe();
 
-  m_down->set_choked(v);
-  m_down->set_time_last_choke(cachedTime);
+  m_downChoke.set_unchoked(!v);
+  m_downChoke.set_time_last_choke(cachedTime);
 
   if (v) {
     m_peerChunks.download_cache()->disable();
@@ -324,7 +326,7 @@ PeerConnectionBase::down_chunk_finished() {
 
   // If we were choked by choke_manager but still had queued pieces,
   // then we might still be in the throttle.
-  if (m_down->choked() && download_queue()->empty())
+  if (m_downChoke.choked() && download_queue()->empty())
     m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
   write_insert_poll_safe();
@@ -585,7 +587,7 @@ void
 PeerConnectionBase::read_request_piece(const Piece& p) {
   PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(), m_peerChunks.upload_queue()->end(), p);
   
-  if (m_up->choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17))
+  if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17))
     return;
 
   m_peerChunks.upload_queue()->push_back(p);
@@ -622,7 +624,7 @@ PeerConnectionBase::write_prepare_piece() {
 // from high stall counts when we are doing decent speeds.
 bool
 PeerConnectionBase::should_request() {
-  if (m_down->choked() || !m_down->interested())
+  if (m_downChoke.choked() || !m_down->interested())
     // || m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 

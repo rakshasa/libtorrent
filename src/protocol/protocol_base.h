@@ -76,45 +76,14 @@ public:
   } State;
 
   ProtocolBase() :
-    m_queued(false),
-    m_choked(true),
-    m_interested(false),
-    m_snubbed(false),
     m_state(IDLE),
     m_lastCommand(NONE) {
 
     m_buffer.reset();
   }
 
-  // The interested state no longer follows the spec's wording as it
-  // has been swapped.
-  //
-  // Thus the same ProtocolBase object now groups the same choke and
-  // interested states togheter, thus for m_up 'interested' means the
-  // remote peer wants upload and 'choke' means we've choked upload to
-  // that peer.
-  //
-  // In the downlod object, 'queued' now means the same as the spec's
-  // 'unchoked', while 'unchoked' means we start requesting pieces.
-
-  bool                queued() const                          { return m_queued; }
-  void                set_queued(bool s)                      { m_queued = s; }
-
-  bool                choked() const                          { return m_choked; }
-  bool                unchoked() const                        { return !m_choked; }
-  void                set_choked(bool s)                      { m_choked = s; }
-
-  bool                interested() const                      { return m_interested; }
-  void                set_interested(bool s)                  { m_interested = s; }
-
-  bool                snubbed() const                         { return m_snubbed; }
-  void                set_snubbed(bool s)                     { m_snubbed = s; }
-
   Protocol            last_command() const                    { return m_lastCommand; }
   void                set_last_command(Protocol p)            { m_lastCommand = p; }
-
-  rak::timer          time_last_choke() const                 { return m_timeLastChoke; }
-  void                set_time_last_choke(rak::timer t)       { m_timeLastChoke = t; }
 
   Buffer*             buffer()                                { return &m_buffer; }
 
@@ -163,15 +132,8 @@ public:
   bool                can_read_piece_body() const             { return m_buffer.remaining() >= sizeof_piece_body; }
 
 protected:
-  bool                m_queued;
-  bool                m_choked;
-  bool                m_interested;
-  bool                m_snubbed;
-
   State               m_state;
   Protocol            m_lastCommand;
-
-  rak::timer          m_timeLastChoke;
 
   Buffer              m_buffer;
 };
