@@ -70,21 +70,19 @@ PeerConnectionLeech::initialize_custom() {
 
 void
 PeerConnectionLeech::update_interested() {
-// FIXME:   if (m_download->delegator()->get_select().interested(m_peerChunks.bitfield()->bitfield())) {
+  m_peerChunks.download_cache()->clear();
+
+  if (m_downInterested)
+    return;
 
   // Consider just setting to interested without checking the
   // bitfield. The status might change by the time we get unchoked
   // anyway.
 
-  if (true) {
-    m_sendInterested = !m_downInterested;
-    m_down->set_interested(true);
-  } else {
-    m_sendInterested = m_downInterested;
-    m_down->set_interested(false);
-  }
+  m_sendInterested = !m_downInterested;
+  m_downInterested = true;
 
-  m_peerChunks.download_cache()->clear();
+  m_download->download_choke_manager()->set_queued(this, &m_downChoke);
 }
 
 bool
@@ -174,6 +172,10 @@ PeerConnectionLeech::read_message() {
     // Hmm... that won't work, as we arn't necessarily unchoked when
     // in throttle.
 
+    // Which needs to be done before, and which after calling choke
+    // manager?
+    m_downUnchoked = false;
+
     download_queue()->cancel();
     m_download->download_choke_manager()->set_not_queued(this, &m_downChoke);
     m_download->download_throttle()->erase(m_peerChunks.download_throttle());
@@ -181,6 +183,13 @@ PeerConnectionLeech::read_message() {
     return true;
 
   case ProtocolBase::UNCHOKE:
+    m_downUnchoked = true;
+
+    // Some peers unchoke us even though we're not interested, so we
+    // need to ensure it doesn't get added to the queue.
+    if (!m_downInterested)
+      return true;
+
     m_download->download_choke_manager()->set_queued(this, &m_downChoke);
     return true;
 
@@ -413,7 +422,9 @@ PeerConnectionLeech::fill_write_buffer() {
 
         !download_queue()->is_interested_in_active()) {
       m_sendInterested = true;
-      m_down->set_interested(false);
+      m_downInterested = false;
+
+      m_download->download_choke_manager()->set_not_queued(this, &m_downChoke);
     }
   }
 
@@ -549,9 +560,15 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
   } else {
 
     if (m_download->chunk_selector()->received_have_chunk(&m_peerChunks, index)) {
-      m_sendInterested = true;
-      m_down->set_interested(true);
+      m_sendInterested = !m_downInterested;
+      m_downInterested = true;
       
+      // Ensure we get inserted into the chunk manager queue in case
+      // the peer keeps us unchoked even though we've said we're not
+      // interested.
+      if (m_downUnchoked)
+        m_download->download_choke_manager()->set_queued(this, &m_downChoke);
+
       // Is it enough to insert into write here? Make the interested
       // check branch to include insert_write, even when not sending
       // interested.

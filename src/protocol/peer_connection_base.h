@@ -86,8 +86,10 @@ public:
   bool                is_up_choked()                { return m_upChoke.choked(); }
   bool                is_up_interested()            { return m_upChoke.queued(); }
   bool                is_up_snubbed()               { return m_upChoke.snubbed(); }
-  bool                is_down_choked()              { return m_downChoke.choked(); }
+
   bool                is_down_queued()              { return m_downChoke.queued(); }
+  bool                is_down_local_unchoked()      { return m_downChoke.unchoked(); }
+  bool                is_down_remote_unchoked()     { return m_downUnchoked; }
   bool                is_down_interested()          { return m_downInterested; }
 
   void                set_upload_snubbed(bool v);
@@ -109,8 +111,8 @@ public:
   virtual void        update_interested() = 0;
   virtual bool        receive_keepalive() = 0;
 
-  void                receive_upload_choke(bool v);
-  void                receive_download_choke(bool v);
+  bool                receive_upload_choke(bool choke);
+  bool                receive_download_choke(bool choke);
 
   virtual void        event_error();
 
@@ -185,6 +187,7 @@ protected:
   ChokeManagerNode    m_downChoke;
 
   bool                m_downInterested;
+  bool                m_downUnchoked;
 
   bool                m_sendChoked;
   bool                m_sendInterested;

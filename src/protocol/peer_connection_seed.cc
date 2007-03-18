@@ -136,12 +136,10 @@ PeerConnectionSeed::read_message() {
     return true;
 
   case ProtocolBase::INTERESTED:
-    m_up->set_interested(true);
     m_download->upload_choke_manager()->set_queued(this, &m_upChoke);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_up->set_interested(false);
     m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
     return true;
 

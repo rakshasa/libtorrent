@@ -56,9 +56,11 @@ bool Peer::is_obfuscated() const           { return m_ptr->is_obfuscated(); }
 
 bool Peer::is_local_choked() const         { return m_ptr->is_up_choked(); }
 bool Peer::is_local_interested() const     { return m_ptr->is_down_interested(); }
-bool Peer::is_remote_choked() const        { return m_ptr->is_down_choked(); }
-bool Peer::is_remote_queued() const        { return m_ptr->is_down_queued(); }
-bool Peer::is_remote_interested() const    { return m_ptr->is_up_interested(); }
+
+bool Peer::is_remote_choked() const         { return !m_ptr->is_down_remote_unchoked(); }
+bool Peer::is_remote_choked_limited() const { return !m_ptr->is_down_local_unchoked(); }
+bool Peer::is_remote_queued() const         { return m_ptr->is_down_queued(); }
+bool Peer::is_remote_interested() const     { return m_ptr->is_up_interested(); }
 
 bool Peer::is_snubbed() const              { return m_ptr->is_up_snubbed(); }
 void Peer::set_snubbed(bool v)             { m_ptr->set_upload_snubbed(v); }

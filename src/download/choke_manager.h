@@ -51,11 +51,9 @@ class ResourceManager;
 
 class ChokeManager {
 public:
-  typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotChoke;
-  typedef rak::mem_fun1<ResourceManager, void, unsigned int> SlotUnchoke;
-  typedef rak::mem_fun0<ResourceManager, unsigned int>       SlotCanUnchoke;
-
-  typedef std::mem_fun1_t<void, PeerConnectionBase, bool>        slot_connection;
+  typedef rak::mem_fun1<ResourceManager, void, int>              slot_unchoke;
+  typedef rak::mem_fun0<ResourceManager, unsigned int>           slot_can_unchoke;
+  typedef std::mem_fun1_t<bool, PeerConnectionBase, bool>        slot_connection;
 
   typedef std::vector<std::pair<PeerConnectionBase*, uint32_t> > container_type;
   typedef container_type::value_type                             value_type;
@@ -65,12 +63,15 @@ public:
 
   typedef void (*slot_weight)(iterator first, iterator last);
 
+  static const int flag_unchoke_all_new = 0x1;
+
   static const uint32_t order_base = (1 << 30);
   static const uint32_t order_max_size = 4;
   static const uint32_t weight_size_bytes = order_max_size * sizeof(uint32_t);
 
-  ChokeManager(ConnectionList* cl) :
+  ChokeManager(ConnectionList* cl, int flags = 0) :
     m_connectionList(cl),
+    m_flags(flags),
     m_maxUnchoked(15),
     m_generousUnchokes(3),
     m_slotConnection(NULL) {}
@@ -99,17 +100,15 @@ public:
 
   void                disconnected(PeerConnectionBase* pc, ChokeManagerNode* base);
 
-  uint32_t*           choke_weight()                          { return m_chokeWeight; }
-  uint32_t*           unchoke_weight()                        { return m_unchokeWeight; }
+  uint32_t*           choke_weight()                           { return m_chokeWeight; }
+  uint32_t*           unchoke_weight()                         { return m_unchokeWeight; }
 
-  void                set_slot_choke_weight(slot_weight s)    { m_slotChokeWeight = s; }
-  void                set_slot_unchoke_weight(slot_weight s)  { m_slotUnchokeWeight = s; }
+  void                set_slot_choke_weight(slot_weight s)     { m_slotChokeWeight = s; }
+  void                set_slot_unchoke_weight(slot_weight s)   { m_slotUnchokeWeight = s; }
 
-  void                set_slot_connection(slot_connection s)  { m_slotConnection = s; }
-
-  void                slot_choke(SlotChoke s)                 { m_slotChoke = s; }
-  void                slot_unchoke(SlotUnchoke s)             { m_slotUnchoke = s; }
-  void                slot_can_unchoke(SlotCanUnchoke s)      { m_slotCanUnchoke = s; }
+  void                set_slot_unchoke(slot_unchoke s)         { m_slotUnchoke = s; }
+  void                set_slot_can_unchoke(slot_can_unchoke s) { m_slotCanUnchoke = s; }
+  void                set_slot_connection(slot_connection s)   { m_slotConnection = s; }
 
 private:
   inline unsigned int max_alternate() const;
@@ -125,17 +124,17 @@ private:
   uint32_t            m_chokeWeight[order_max_size];
   uint32_t            m_unchokeWeight[order_max_size];
 
+  int                 m_flags;
+
   unsigned int        m_maxUnchoked;
   unsigned int        m_generousUnchokes;
 
   slot_weight         m_slotChokeWeight;
   slot_weight         m_slotUnchokeWeight;
 
+  slot_unchoke        m_slotUnchoke;
+  slot_can_unchoke    m_slotCanUnchoke;
   slot_connection     m_slotConnection;
-
-  SlotChoke           m_slotChoke;
-  SlotUnchoke         m_slotUnchoke;
-  SlotCanUnchoke      m_slotCanUnchoke;
 };
 
 extern uint32_t weights_upload_choke[ChokeManager::order_max_size];

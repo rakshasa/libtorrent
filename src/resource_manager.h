@@ -81,11 +81,8 @@ public:
   void                set_max_upload_unchoked(unsigned int m)   { m_maxUploadUnchoked = m; }
   void                set_max_download_unchoked(unsigned int m) { m_maxDownloadUnchoked = m; }
 
-  void                receive_upload_choke(unsigned int num);
-  void                receive_download_choke(unsigned int num);
-
-  void                receive_upload_unchoke(unsigned int num);
-  void                receive_download_unchoke(unsigned int num);
+  void                receive_upload_unchoke(int num);
+  void                receive_download_unchoke(int num);
 
   unsigned int        retrieve_upload_can_unchoke();
   unsigned int        retrieve_download_can_unchoke();

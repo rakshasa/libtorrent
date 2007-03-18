@@ -90,39 +90,19 @@ ResourceManager::set_priority(iterator itr, uint16_t pri) {
 // The choking choke manager won't updated it's count until after
 // possibly multiple calls of this function.
 void
-ResourceManager::receive_upload_choke(unsigned int num) {
-  if (num > m_currentlyUploadUnchoked)
-    throw internal_error("ResourceManager::receive_choke(...) received an invalid value.");
-
-  m_currentlyUploadUnchoked -= num;
-
-  // Do unchoking of other peers.
-}
-
-void
-ResourceManager::receive_download_choke(unsigned int num) {
-  if (num > m_currentlyDownloadUnchoked)
-    throw internal_error("ResourceManager::receive_choke(...) received an invalid value.");
-
-  m_currentlyDownloadUnchoked -= num;
-
-  // Do unchoking of other peers.
-}
-
-void
-ResourceManager::receive_upload_unchoke(unsigned int num) {
+ResourceManager::receive_upload_unchoke(int num) {
   m_currentlyUploadUnchoked += num;
 
-  if (m_maxUploadUnchoked != 0 && (num > m_maxUploadUnchoked || m_currentlyUploadUnchoked > m_maxUploadUnchoked))
+  if (m_maxUploadUnchoked != 0 && (num > (int)m_maxUploadUnchoked || m_currentlyUploadUnchoked > m_maxUploadUnchoked))
     throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
 }
 
 void
-ResourceManager::receive_download_unchoke(unsigned int num) {
+ResourceManager::receive_download_unchoke(int num) {
   m_currentlyDownloadUnchoked += num;
 
-  if (m_maxDownloadUnchoked != 0 && (num > m_maxDownloadUnchoked || m_currentlyDownloadUnchoked > m_maxDownloadUnchoked))
-    throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
+//   if (m_maxDownloadUnchoked != 0 && (num > m_maxDownloadUnchoked || m_currentlyDownloadUnchoked > m_maxDownloadUnchoked))
+//     throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
 }
 
 unsigned int

@@ -70,6 +70,7 @@ PeerConnectionBase::PeerConnectionBase() :
   m_downStall(0),
 
   m_downInterested(false),
+  m_downUnchoked(false),
 
   m_sendChoked(false),
   m_sendInterested(false),
@@ -174,29 +175,31 @@ PeerConnectionBase::set_upload_snubbed(bool v) {
     m_download->upload_choke_manager()->set_not_snubbed(this, &m_upChoke);
 }
 
-void
-PeerConnectionBase::receive_upload_choke(bool v) {
-  if (v == m_upChoke.choked())
+bool
+PeerConnectionBase::receive_upload_choke(bool choke) {
+  if (choke == m_upChoke.choked())
     throw internal_error("PeerConnectionBase::receive_upload_choke(...) already set to the same state.");
 
   write_insert_poll_safe();
 
   m_sendChoked = true;
-  m_upChoke.set_unchoked(!v);
+  m_upChoke.set_unchoked(!choke);
   m_upChoke.set_time_last_choke(cachedTime);
+
+  return true;
 }
 
-void
-PeerConnectionBase::receive_download_choke(bool v) {
-  if (v == m_downChoke.choked())
+bool
+PeerConnectionBase::receive_download_choke(bool choke) {
+  if (choke == m_downChoke.choked())
     throw internal_error("PeerConnectionBase::receive_download_choke(...) already set to the same state.");
 
   write_insert_poll_safe();
 
-  m_downChoke.set_unchoked(!v);
+  m_downChoke.set_unchoked(!choke);
   m_downChoke.set_time_last_choke(cachedTime);
 
-  if (v) {
+  if (choke) {
     m_peerChunks.download_cache()->disable();
 
     // If the queue isn't empty, then we might still receive some
@@ -204,9 +207,46 @@ PeerConnectionBase::receive_download_choke(bool v) {
     if (!download_queue()->is_downloading() && download_queue()->empty())
       m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
+    // Send uninterested if unchoked, but only _after_ receiving our
+    // chunks?
+
+    if (m_downUnchoked) {
+      // Tell the peer we're no longer interested to avoid
+      // disconnects. We keep the connection in the queue so that
+      // ChokeManager::cycle(...) can attempt to get us unchoked
+      // again.
+
+      m_sendInterested = m_downInterested;
+      m_downInterested = false;
+
+    } else {
+      // Remove from queue so that an unchoke from the remote peer
+      // will cause the connection to be unchoked immediately by the
+      // choke manager.
+      m_downChoke.set_queued(false);
+      return false;
+    }
+
   } else {
     m_tryRequest = true;
+
+    if (!m_downInterested) {
+      // We were marked as not interested by the cycling choke and
+      // kept in the queue, thus the peer should have some pieces of
+      // interest.
+      //
+      // We have now been 'unchoked' by the choke manager, so tell the
+      // peer that we're again interested. If the peer doesn't unchoke
+      // us within a cycle or two we're likely to be choked and left
+      // out of the queue. So if the peer unchokes us at a later time,
+      // we skip the queue and unchoke immediately.
+
+      m_sendInterested = !m_downInterested;
+      m_downInterested = true;
+    }
   }
+
+  return true;
 }
 
 void
@@ -624,7 +664,7 @@ PeerConnectionBase::write_prepare_piece() {
 // from high stall counts when we are doing decent speeds.
 bool
 PeerConnectionBase::should_request() {
-  if (m_downChoke.choked() || !m_down->interested())
+  if (m_downChoke.choked() || !m_downInterested)
     // || m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 

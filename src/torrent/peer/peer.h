@@ -59,9 +59,12 @@ public:
   bool                 is_encrypted() const;
   bool                 is_obfuscated() const;
 
+  // For the next API revision, fix these names.
   bool                 is_local_choked() const;
   bool                 is_local_interested() const;
+
   bool                 is_remote_choked() const;
+  bool                 is_remote_choked_limited() const;
   bool                 is_remote_queued() const;
   bool                 is_remote_interested() const;
 

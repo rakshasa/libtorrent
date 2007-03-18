@@ -41,33 +41,25 @@
 
 namespace torrent {
 
-class ChokeManager;
-
 class ChokeManagerNode {
 public:
-  friend class ChokeManager;
-
   ChokeManagerNode() :
     m_queued(false),
     m_unchoked(false),
     m_snubbed(false) {}
 
   bool                queued() const                          { return m_queued; }
+  void                set_queued(bool s)                      { m_queued = s; }
 
   bool                choked() const                          { return !m_unchoked; }
   bool                unchoked() const                        { return m_unchoked; }
+  void                set_unchoked(bool s)                    { m_unchoked = s; }
 
   bool                snubbed() const                         { return m_snubbed; }
   void                set_snubbed(bool s)                     { m_snubbed = s; }
 
   rak::timer          time_last_choke() const                 { return m_timeLastChoke; }
   void                set_time_last_choke(rak::timer t)       { m_timeLastChoke = t; }
-
-  // Move.
-  void                set_unchoked(bool s)                    { m_unchoked = s; }
-
-protected:
-  void                set_queued(bool s)                      { m_queued = s; }
 
 private:
   bool                m_queued;

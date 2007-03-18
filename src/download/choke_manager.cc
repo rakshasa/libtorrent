@@ -109,7 +109,7 @@ ChokeManager::balance() {
     // call-back.
     adjust = choke_range(m_unchoked.begin(), m_unchoked.end(), -adjust);
 
-    m_slotChoke(adjust);
+    m_slotUnchoke(-adjust);
   }
 }
 
@@ -133,11 +133,8 @@ ChokeManager::cycle(unsigned int quota) {
 
 void
 ChokeManager::set_queued(PeerConnectionBase* pc, ChokeManagerNode* base) {
-  if (base->queued())
+  if (base->queued() || base->unchoked())
     return;
-
-  if (base->unchoked())// || !base->interested())
-    throw internal_error("ChokeManager::set_queued(...) base->unchoked() || !base->interested().");
 
   base->set_queued(true);
 
@@ -146,7 +143,7 @@ ChokeManager::set_queued(PeerConnectionBase* pc, ChokeManagerNode* base) {
 
   if (m_unchoked.size() < m_maxUnchoked &&
       base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
-      m_slotCanUnchoke()) {
+      (m_flags && flag_unchoke_all_new || m_slotCanUnchoke())) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
 
@@ -170,7 +167,7 @@ ChokeManager::set_not_queued(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->unchoked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotConnection(pc, true);
-    m_slotChoke(1);
+    m_slotUnchoke(-1);
 
   } else {
     choke_manager_erase(&m_queued, pc);
@@ -187,7 +184,7 @@ ChokeManager::set_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->unchoked()) {
     choke_manager_erase(&m_unchoked, pc);
     m_slotConnection(pc, true);
-    m_slotChoke(1);
+    m_slotUnchoke(-1);
 
   } else if (base->queued()) {
     choke_manager_erase(&m_queued, pc);
@@ -211,7 +208,7 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base) {
   
   if (m_unchoked.size() < m_maxUnchoked &&
       base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
-      m_slotCanUnchoke()) {
+      (m_flags && flag_unchoke_all_new || m_slotCanUnchoke())) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
 
@@ -230,7 +227,7 @@ ChokeManager::disconnected(PeerConnectionBase* pc, ChokeManagerNode* base) {
 
   } else if (base->unchoked()) {
     choke_manager_erase(&m_unchoked, pc);
-    m_slotChoke(1);
+    m_slotUnchoke(-1);
 
   } else if (base->queued()) {
     choke_manager_erase(&m_queued, pc);
@@ -334,6 +331,8 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
   // Now do the actual unchoking.
   uint32_t count = 0;
 
+  // Iterate in reverse so that the iterators in 'target' remain vaild
+  // even though we remove random ranges.
   for (target_type* itr = target + order_max_size; itr != target; itr--) {
     if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
       throw internal_error("ChokeManager::choke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
@@ -347,10 +346,17 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
 
     count += (itr - 1)->first;
 
-    std::for_each(itr->second - (itr - 1)->first, itr->second,
-                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, true)));
+    // We move the connections that return true, while the ones that
+    // return false get thrown out. The function called must update
+    // ChunkManager::m_queued if false is returned.
+    //
+    // The C++ standard says std::partition will call the predicate
+    // max 'last - first' times, so we can assume it gets called once
+    // per element.
+    iterator split = std::partition(itr->second - (itr - 1)->first, itr->second,
+                                    rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, true)));
 
-    m_queued.insert(m_queued.end(), itr->second - (itr - 1)->first, itr->second);
+    m_queued.insert(m_queued.end(), itr->second - (itr - 1)->first, split);
     m_unchoked.erase(itr->second - (itr - 1)->first, itr->second);
   }
 
@@ -417,7 +423,7 @@ calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last
 void
 calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator last) {
   while (first != last) {
-    if (!first->first->is_down_choked()) {
+    if (first->first->is_down_local_unchoked()) {
       uint32_t downloadRate = first->first->peer_chunks()->download_throttle()->rate()->rate();
 
       // If the peer transmits at less than 1KB, we should consider it

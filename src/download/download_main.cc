@@ -69,7 +69,7 @@ DownloadMain::DownloadMain() :
 
   m_connectionList       = new ConnectionList(this);
   m_uploadChokeManager   = new ChokeManager(m_connectionList);
-  m_downloadChokeManager = new ChokeManager(m_connectionList);
+  m_downloadChokeManager = new ChokeManager(m_connectionList, ChokeManager::flag_unchoke_all_new);
 
   m_uploadChokeManager->set_slot_choke_weight(&calculate_upload_choke);
   m_uploadChokeManager->set_slot_unchoke_weight(&calculate_upload_unchoke);
