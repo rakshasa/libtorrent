@@ -664,7 +664,7 @@ PeerConnectionBase::write_prepare_piece() {
 // from high stall counts when we are doing decent speeds.
 bool
 PeerConnectionBase::should_request() {
-  if (m_downChoke.choked() || !m_downInterested)
+  if (m_downChoke.choked() || !m_downInterested || !m_downUnchoked)
     // || m_down->get_state() == ProtocolRead::READ_SKIP_PIECE)
     return false;
 
