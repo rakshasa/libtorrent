@@ -137,7 +137,10 @@ DownloadMain::close() {
 
   info()->set_open(false);
 
-  m_trackerManager->close();
+  // Don't close the tracker manager here else it will cause STOPPED
+  // requests to be lost. TODO: Check that this is valid.
+//   m_trackerManager->close();
+
   m_delegator.transfer_list()->clear();
 
   file_list()->mutable_bitfield()->unallocate();

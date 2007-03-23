@@ -227,10 +227,8 @@ void
 TrackerManager::receive_success(AddressList* l) {
   m_failedRequests = 0;
 
-  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active) {
-    m_slotSuccess(l);
-    return;
-  }
+  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active)
+    return m_slotSuccess(l);
 
   if (m_control->get_state() == DownloadInfo::STARTED)
     m_initialTracker = m_control->focus_index();
@@ -258,10 +256,8 @@ TrackerManager::receive_success(AddressList* l) {
 
 void
 TrackerManager::receive_failed(const std::string& msg) {
-  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active) {
-    m_slotFailed(msg);
-    return;
-  }
+  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active)
+    return m_slotFailed(msg);
 
   if (m_isRequesting) {
     // Currently trying to request additional peers.

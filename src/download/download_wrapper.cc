@@ -81,6 +81,8 @@ DownloadWrapper::~DownloadWrapper() {
   if (info()->is_open())
     close();
 
+  m_main.tracker_manager()->close();
+
   delete m_hashChecker;
   delete m_bencode;
 }
