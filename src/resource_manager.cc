@@ -91,18 +91,18 @@ ResourceManager::set_priority(iterator itr, uint16_t pri) {
 // possibly multiple calls of this function.
 void
 ResourceManager::receive_upload_unchoke(int num) {
-  m_currentlyUploadUnchoked += num;
+  if ((int)m_currentlyUploadUnchoked + num < 0)
+    throw internal_error("ResourceManager::receive_upload_unchoke(...) received an invalid value.");
 
-  if (m_maxUploadUnchoked != 0 && (num > (int)m_maxUploadUnchoked || m_currentlyUploadUnchoked > m_maxUploadUnchoked))
-    throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
+  m_currentlyUploadUnchoked += num;
 }
 
 void
 ResourceManager::receive_download_unchoke(int num) {
-  m_currentlyDownloadUnchoked += num;
+  if ((int)m_currentlyDownloadUnchoked + num < 0)
+    throw internal_error("ResourceManager::receive_download_unchoke(...) received an invalid value.");
 
-//   if (m_maxDownloadUnchoked != 0 && (num > m_maxDownloadUnchoked || m_currentlyDownloadUnchoked > m_maxDownloadUnchoked))
-//     throw internal_error("ResourceManager::receive_unchoke(...) received an invalid value.");
+  m_currentlyDownloadUnchoked += num;
 }
 
 unsigned int

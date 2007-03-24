@@ -70,6 +70,8 @@ public:
   void                cycle_group(int group);
   void                manual_request(bool force);
 
+  void                manual_cancel();
+
 //   void                scrape();
 
   // Use some weird and unreliable heuristic to figure out which

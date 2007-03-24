@@ -81,6 +81,8 @@ DownloadWrapper::~DownloadWrapper() {
   if (info()->is_open())
     close();
 
+  // If the client wants to do a quick cleanup after calling close, it
+  // will need to manually cancel the tracker requests.
   m_main.tracker_manager()->close();
 
   delete m_hashChecker;

@@ -108,4 +108,9 @@ TrackerList::manual_request(bool force) {
   m_manager->manual_request(force);
 }
 
+void
+TrackerList::manual_cancel() {
+  m_manager->close();
+}
+
 }
