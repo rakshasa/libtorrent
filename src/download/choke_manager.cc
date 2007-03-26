@@ -75,7 +75,7 @@ ChokeManager::~ChokeManager() {
 // 33 > 5 < 41
 // 65 > 9 < 81
 
-inline unsigned int
+inline uint32_t
 ChokeManager::max_alternate() const {
   if (m_unchoked.size() < 31)
     return (m_unchoked.size() + 7) / 8;
@@ -91,7 +91,9 @@ ChokeManager::max_alternate() const {
 
 void
 ChokeManager::balance() {
-  // Return if no balancing is needed.
+  // Return if no balancing is needed. Don't return if is_unlimited()
+  // as we might have just changed the value and have interested that
+  // can be unchoked.
   if (m_unchoked.size() == m_maxUnchoked)
     return;
 
@@ -99,7 +101,7 @@ ChokeManager::balance() {
 
   if (adjust > 0) {
     adjust = unchoke_range(m_queued.begin(), m_queued.end(),
-			   std::min((unsigned int)adjust, m_slotCanUnchoke()));
+			   std::min((uint32_t)adjust, m_slotCanUnchoke()));
 
     m_slotUnchoke(adjust);
 
@@ -114,13 +116,14 @@ ChokeManager::balance() {
 }
 
 int
-ChokeManager::cycle(unsigned int quota) {
+ChokeManager::cycle(uint32_t quota) {
   quota = std::min(quota, m_maxUnchoked);
 
-  unsigned int oldSize  = m_unchoked.size();
-  unsigned int unchoked = unchoke_range(m_queued.begin(), m_queued.end(),
-                                        std::max<int>((int)quota - (int)m_unchoked.size(),
-                                                      std::min(quota, max_alternate())));
+  // Does this properly handle 'unlimited' quota?
+  uint32_t oldSize  = m_unchoked.size();
+  uint32_t unchoked = unchoke_range(m_queued.begin(), m_queued.end(),
+                                    std::max<uint32_t>(m_unchoked.size() < quota ? quota - m_unchoked.size() : 0,
+                                                       std::min(quota, max_alternate())));
 
   if (m_unchoked.size() > quota)
     choke_range(m_unchoked.begin(), m_unchoked.end() - unchoked, m_unchoked.size() - quota);
@@ -141,9 +144,8 @@ ChokeManager::set_queued(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->snubbed())
     return;
 
-  if (m_unchoked.size() < m_maxUnchoked &&
-      base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
-      (m_flags && flag_unchoke_all_new || m_slotCanUnchoke())) {
+  if ((m_flags & flag_unchoke_all_new || (!is_full() && m_slotCanUnchoke())) &&
+      base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
 
@@ -206,9 +208,8 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->unchoked())
     throw internal_error("ChokeManager::set_not_snubbed(...) base->unchoked().");
   
-  if (m_unchoked.size() < m_maxUnchoked &&
-      base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime &&
-      (m_flags && flag_unchoke_all_new || m_slotCanUnchoke())) {
+  if ((m_flags & flag_unchoke_all_new || (!is_full() && m_slotCanUnchoke())) &&
+      base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
 
@@ -321,8 +322,8 @@ choke_manager_allocate_slots(ChokeManager::iterator first, ChokeManager::iterato
   }
 }
 
-unsigned int
-ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
+uint32_t
+ChokeManager::choke_range(iterator first, iterator last, uint32_t max) {
   m_slotChokeWeight(first, last);
 
   target_type target[order_max_size + 1];
@@ -366,8 +367,8 @@ ChokeManager::choke_range(iterator first, iterator last, unsigned int max) {
   return count;
 }
   
-unsigned int
-ChokeManager::unchoke_range(iterator first, iterator last, unsigned int max) {
+uint32_t
+ChokeManager::unchoke_range(iterator first, iterator last, uint32_t max) {
   m_slotUnchokeWeight(first, last);
 
   target_type target[order_max_size + 1];

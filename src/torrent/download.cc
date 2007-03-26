@@ -439,7 +439,8 @@ Download::set_uploads_max(uint32_t v) {
   if (v > (1 << 16))
     throw input_error("Max uploads must be between 0 and 2^16.");
 
-  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v);
+  // For the moment, treat 0 as unlimited.
+  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v == 0 ? ChokeManager::unlimited : v);
   m_ptr->main()->upload_choke_manager()->balance();
 }
 

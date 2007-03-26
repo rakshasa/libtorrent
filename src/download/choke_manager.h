@@ -69,26 +69,31 @@ public:
   static const uint32_t order_max_size = 4;
   static const uint32_t weight_size_bytes = order_max_size * sizeof(uint32_t);
 
+  static const uint32_t unlimited = ~uint32_t();
+
   ChokeManager(ConnectionList* cl, int flags = 0) :
     m_connectionList(cl),
     m_flags(flags),
-    m_maxUnchoked(15),
+    m_maxUnchoked(unlimited),
     m_generousUnchokes(3),
     m_slotConnection(NULL) {}
   ~ChokeManager();
   
-  unsigned int        size_unchoked() const                   { return m_unchoked.size(); }
-  unsigned int        size_queued() const                     { return m_queued.size(); }
-  unsigned int        size_total() const                      { return m_queued.size() + m_unchoked.size(); }
+  bool                is_full() const                         { return !is_unlimited() && m_unchoked.size() < m_maxUnchoked; }
+  bool                is_unlimited() const                    { return m_maxUnchoked == unlimited; }
 
-  unsigned int        max_unchoked() const                    { return m_maxUnchoked; }
-  void                set_max_unchoked(unsigned int v)        { m_maxUnchoked = v; }
+  uint32_t            size_unchoked() const                   { return m_unchoked.size(); }
+  uint32_t            size_queued() const                     { return m_queued.size(); }
+  uint32_t            size_total() const                      { return m_queued.size() + m_unchoked.size(); }
 
-  unsigned int        generous_unchokes() const               { return m_generousUnchokes; }
-  void                set_generous_unchokes(unsigned int v)   { m_generousUnchokes = v; }
+  uint32_t            max_unchoked() const                    { return m_maxUnchoked; }
+  void                set_max_unchoked(uint32_t v)            { m_maxUnchoked = v; }
+
+  uint32_t            generous_unchokes() const               { return m_generousUnchokes; }
+  void                set_generous_unchokes(uint32_t v)       { m_generousUnchokes = v; }
 
   void                balance();
-  int                 cycle(unsigned int quota);
+  int                 cycle(uint32_t quota);
 
   // Assume interested state is already updated for the PCB and that
   // this gets called once every time the status changes.
@@ -111,10 +116,10 @@ public:
   void                set_slot_connection(slot_connection s)   { m_slotConnection = s; }
 
 private:
-  inline unsigned int max_alternate() const;
+  inline uint32_t     max_alternate() const;
 
-  unsigned int        choke_range(iterator first, iterator last, unsigned int max);
-  unsigned int        unchoke_range(iterator first, iterator last, unsigned int max);
+  uint32_t            choke_range(iterator first, iterator last, uint32_t max);
+  uint32_t            unchoke_range(iterator first, iterator last, uint32_t max);
 
   ConnectionList*     m_connectionList;
 
@@ -126,8 +131,8 @@ private:
 
   int                 m_flags;
 
-  unsigned int        m_maxUnchoked;
-  unsigned int        m_generousUnchokes;
+  uint32_t            m_maxUnchoked;
+  uint32_t            m_generousUnchokes;
 
   slot_weight         m_slotChokeWeight;
   slot_weight         m_slotUnchokeWeight;
