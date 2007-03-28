@@ -358,7 +358,10 @@ FileList::open() {
 
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
-      entry->set_frozen_path(m_rootDir + entry->path()->as_string());
+      if (entry->path()->back().empty())
+        entry->set_frozen_path(std::string());
+      else
+        entry->set_frozen_path(m_rootDir + entry->path()->as_string());
 
       if (!pathSet.insert(entry->frozen_path().c_str()).second)
         throw storage_error("Found a duplicate filename.");
@@ -404,14 +407,14 @@ FileList::close() {
 
 bool
 FileList::resize_all() {
-  iterator itr = std::find_if(begin(), end(), std::not1(std::mem_fun(&File::resize_file)));
+  bool success = true;
 
-  if (itr != end()) {
-    std::for_each(++itr, end(), std::mem_fun(&File::resize_file));
-    return false;
-  }
+  for (iterator itr = begin(); itr != end(); itr++)
+    if (!(*itr)->frozen_path().empty() &&
+        !(*itr)->resize_file())
+      success = false;
 
-  return true;
+  return success;
 }
 
 void
