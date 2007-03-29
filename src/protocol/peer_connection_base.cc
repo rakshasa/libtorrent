@@ -126,7 +126,14 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   m_download->chunk_statistics()->received_connect(&m_peerChunks);
 
   // Hmm... cleanup?
-  update_interested();
+//   update_interested();
+
+  m_peerChunks.download_cache()->clear();
+
+  if (!m_download->file_list()->is_done()) {
+    m_sendInterested = true;
+    m_downInterested = true;
+  }
 
   initialize_custom();
 }

@@ -82,7 +82,9 @@ PeerConnectionLeech::update_interested() {
   m_sendInterested = !m_downInterested;
   m_downInterested = true;
 
-  m_download->download_choke_manager()->set_queued(this, &m_downChoke);
+  // Hmm... does this belong here, or should we insert ourselves into
+  // the queue when we receive the unchoke?
+//   m_download->download_choke_manager()->set_queued(this, &m_downChoke);
 }
 
 bool
