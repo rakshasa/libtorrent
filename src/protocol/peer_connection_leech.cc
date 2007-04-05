@@ -115,11 +115,19 @@ PeerConnectionLeech::receive_keepalive() {
   // should stay at zero or one when downloading at an acceptable
   // speed. Thus only when m_downStall >= 2 is the download actually
   // stalling.
+  //
+  // If more than 6 ticks have gone by, assume the peer forgot about
+  // our requests or tried to cheat with empty piece messages, and try
+  // again.
 
   // TODO: Do we need to remove from download throttle here?
 
-  if (!download_queue()->empty() && m_downStall++ != 0)
-    download_queue()->stall();
+  if (!download_queue()->empty() && m_downStall++ != 0) {
+    if (m_downStall > 6)
+      download_queue()->cancel();
+    else
+      download_queue()->stall();
+  }
 
   return true;
 }

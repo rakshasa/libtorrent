@@ -126,7 +126,7 @@ Listen::event_write() {
 
 void
 Listen::event_error() {
-  throw resource_error("Listener port received an error event.");
+  throw internal_error("Listener port received an error event.");
 }
 
 }

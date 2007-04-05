@@ -80,6 +80,10 @@ RequestList::delegate() {
 }
 
 // Replace m_canceled with m_queued and set them to stalled.
+//
+// This doesn't seem entirely correct... Perhaps canceled requests
+// should be kept around until we hit a safe state where we may throw
+// them out?
 void
 RequestList::cancel() {
   std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));

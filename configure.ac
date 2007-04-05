@@ -55,7 +55,7 @@ AC_ARG_ENABLE(openssl,
     if test "$enableval" = "yes"; then
       PKG_CHECK_MODULES(OPENSSL, openssl,
         CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";
-        LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`")
+        LIBS="$LIBS -lcrypto `pkg-config --libs-only-L --libs-only-other openssl`")
 
       AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
       AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
@@ -65,7 +65,7 @@ AC_ARG_ENABLE(openssl,
   ],[
     PKG_CHECK_MODULES(OPENSSL, openssl,
       CXXFLAGS="$CXXFLAGS `pkg-config --cflags openssl`";
-      LIBS="$LIBS -lcrypto `pkg-config --libs-only-L openssl`")
+      LIBS="$LIBS -lcrypto `pkg-config --libs-only-L --libs-only-other openssl`")
 
     AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
     AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
