@@ -46,6 +46,11 @@
 
 namespace torrent {
 
+// Add support for the GCC move semantics.
+
+class ObjectRef;
+class ObjectRefRef;
+
 class LIBTORRENT_EXPORT Object {
 public:
   typedef int64_t                         value_type;
@@ -71,15 +76,21 @@ public:
   // Consider if part of the mask should be made to clear upon copy,
   // and do so for both private and public?
 
-  static const state_type mask_private = 0x0000ffff;
-  static const state_type mask_public  = 0xffff0000;
-  static const state_type mask_type    = 0x000000ff;
+  static const state_type mask_private   = 0x0000ffff;
+  static const state_type mask_public    = 0xffff0000;
+  static const state_type mask_type      = 0x000000ff;
   
-  static const state_type type_none    = TYPE_NONE;
-  static const state_type type_value   = TYPE_VALUE;
-  static const state_type type_string  = TYPE_STRING;
-  static const state_type type_list    = TYPE_LIST;
-  static const state_type type_map     = TYPE_MAP;
+//   static const state_type flag_const   = 0x000000;
+  static const state_type flag_reference = 0x100;
+
+  static const state_type type_none      = TYPE_NONE;
+  static const state_type type_value     = TYPE_VALUE;
+  static const state_type type_string    = TYPE_STRING;
+  static const state_type type_list      = TYPE_LIST;
+  static const state_type type_map       = TYPE_MAP;
+
+  // Add ctors that take a use_copy, use_move and use_internal_move
+  // parameters.
 
   Object()                     : m_state(TYPE_NONE) {}
   Object(const value_type v)   : m_state(TYPE_VALUE), m_value(v) {}
@@ -87,11 +98,7 @@ public:
   Object(const string_type& s) : m_state(TYPE_STRING), m_string(new string_type(s)) {}
   Object(const Object& b);
 
-//   Object(object_rvalref src) {
-//     std::memcpy(this, &src.m_ref, sizeof(Object));
-//     std::memset(&src.m_ref, 0, sizeof(Object));
-//     throw internal_error("Move ctor");
-//   }
+  Object(ObjectRef src);
 
   // Hmm... reconsider this.
   explicit Object(type_type t);
@@ -106,6 +113,8 @@ public:
   bool                is_string() const                       { return type() == TYPE_STRING; }
   bool                is_list() const                         { return type() == TYPE_LIST; }
   bool                is_map() const                          { return type() == TYPE_MAP; }
+
+  bool                is_reference() const                    { return m_state & flag_reference; }
 
   // Add _mutable_ to non-const access.
   value_type&         as_value()                              { check_throw(TYPE_VALUE); return m_value; }
@@ -157,10 +166,12 @@ public:
   Object&             merge_move(Object object, uint32_t maxDepth = ~uint32_t());
   Object&             merge_copy(const Object& object, uint32_t maxDepth = ~uint32_t());
 
+  // Instead of swap, it might be more efficient to clear ObjectRef
+  // src. But the dtor needs to be visible for optimization to happen.
   Object&             operator = (const Object& b);
-//   Object&             operator = (object_rvalref src) { throw internal_error("Move copy"); return swap(src.m_ref); }
+  Object&             operator = (ObjectRef& src);
 
- private:
+private:
   inline bool         check(map_type::const_iterator itr, type_type t) const;
   inline void         check_throw(type_type t) const;
 
@@ -174,6 +185,61 @@ public:
   };
 };
 
+class LIBTORRENT_EXPORT ObjectRefRef {
+protected:
+  friend class ObjectRef;
+
+  // Kinda hacked up, clean this up.
+  explicit ObjectRefRef(Object* src) {
+    std::memcpy(m_buffer, src, sizeof(Object));
+    std::memset(src, 0, sizeof(Object));
+  }
+
+public:
+  char m_buffer[sizeof(Object)];
+};
+
+class LIBTORRENT_EXPORT ObjectRef {
+public:
+  struct use_move {};
+
+  // Using Object's ObjectRef ctor will move the content.
+  ObjectRef(ObjectRef& src) : m_object(src) {}
+
+  // Meh...
+  ObjectRef(ObjectRefRef src) { std::memcpy(&m_object, src.m_buffer, sizeof(Object)); }
+  
+  explicit ObjectRef(Object& src, use_move) { m_object.move(src); }
+
+  // Should we allow these?
+//   Object&             operator *  () throw() { return *&m_object; }
+//   Object*             operator -> () throw() { return &m_object; }
+
+  Object*             get_mutable() throw() { return &m_object; }
+  const Object*       get() const throw()   { return &m_object; }
+  
+//   static ObjectRefRef move(Object& src)     { return ObjectRefRef(&src); }
+  
+  ObjectRef&          operator =  (ObjectRef& objectRef) { m_object = objectRef; return *this; }
+
+//   operator ObjectRef() throw()    { return ObjectRef(m_object, use_move()); }
+  operator ObjectRefRef() throw() { return ObjectRefRef(&m_object); }
+
+private:
+  Object              m_object;
+};
+
+inline
+Object::Object(ObjectRef src) {
+  std::memcpy(this, src.get_mutable(), sizeof(Object));
+  std::memset(src.get_mutable(), 0, sizeof(Object));
+}
+
+// inline
+// Object::Object(ObjectRefRef src) {
+//   std::memcpy(this, src.m_buffer, sizeof(Object));
+// }
+
 inline
 Object::Object(type_type t) :
   m_state(t) {
@@ -185,6 +251,12 @@ Object::Object(type_type t) :
   case TYPE_LIST:   m_list = new list_type(); break;
   case TYPE_MAP:    m_map = new map_type(); break;
   }
+}
+
+inline Object&
+Object::operator = (ObjectRef& src) {
+  swap(*src.get_mutable());
+  return *this;
 }
 
 inline bool

@@ -118,6 +118,7 @@ Object::move(Object& src) {
 
   clear();
   std::memcpy(this, &src, sizeof(Object));
+  std::memset(&src, 0, sizeof(Object));
 
   return *this;
 }
