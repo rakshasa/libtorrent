@@ -34,6 +34,12 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
+// Note that some of the exception classes below are strictly speaking
+// _NOT DOING THE RIGHT THING_. One is really not supposed to use any
+// calls to malloc/new in an exception's ctor.
+//
+// Will be fixed next API update.
+
 #ifndef LIBTORRENT_EXCEPTIONS_H
 #define LIBTORRENT_EXCEPTIONS_H
 

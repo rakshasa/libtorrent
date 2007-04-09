@@ -64,6 +64,10 @@ public:
   typedef std::vector<std::string>      path_list;
   typedef std::pair<uint64_t, Path>     split_type;
 
+  // The below are using-directives that make visible functions and
+  // typedefs in the parent std::vector, only those listed below are
+  // accessible. If you don't understand how this works, use google,
+  // don't ask me.
   using base_type::value_type;
   using base_type::iterator;
   using base_type::const_iterator;
