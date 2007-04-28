@@ -354,7 +354,7 @@ AC_DEFUN([TORRENT_WITH_XMLRPC_C], [
         LIBS="$LIBS `xmlrpc-c-config --libs server-util` -lxmlrpc_server"
 
         AC_TRY_LINK(
-        [ #include <xmlrpc_server.h>
+        [ #include <xmlrpc-c/server.h>
         ],[ xmlrpc_registry_new(NULL); ],
         [
           AC_MSG_RESULT(ok)

@@ -48,7 +48,6 @@ namespace torrent {
 
 // Add support for the GCC move semantics.
 
-class ObjectRef;
 class ObjectRefRef;
 
 class LIBTORRENT_EXPORT Object {
@@ -92,13 +91,11 @@ public:
   // Add ctors that take a use_copy, use_move and use_internal_move
   // parameters.
 
-  Object()                     : m_state(TYPE_NONE) {}
-  Object(const value_type v)   : m_state(TYPE_VALUE), m_value(v) {}
-  Object(const char* s)        : m_state(TYPE_STRING), m_string(new string_type(s)) {}
-  Object(const string_type& s) : m_state(TYPE_STRING), m_string(new string_type(s)) {}
+  Object()                     : m_state(type_none) {}
+  Object(const value_type v)   : m_state(type_value), m_value(v) {}
+  Object(const char* s)        : m_state(type_string), m_string(new string_type(s)) {}
+  Object(const string_type& s) : m_state(type_string), m_string(new string_type(s)) {}
   Object(const Object& b);
-
-  Object(ObjectRef src);
 
   // Hmm... reconsider this.
   explicit Object(type_type t);
@@ -109,32 +106,32 @@ public:
 
   type_type           type() const                            { return (type_type)(m_state & mask_type); }
 
-  bool                is_value() const                        { return type() == TYPE_VALUE; }
-  bool                is_string() const                       { return type() == TYPE_STRING; }
-  bool                is_list() const                         { return type() == TYPE_LIST; }
-  bool                is_map() const                          { return type() == TYPE_MAP; }
+  bool                is_value() const                        { return type() == type_value; }
+  bool                is_string() const                       { return type() == type_string; }
+  bool                is_list() const                         { return type() == type_list; }
+  bool                is_map() const                          { return type() == type_map; }
 
   bool                is_reference() const                    { return m_state & flag_reference; }
 
   // Add _mutable_ to non-const access.
-  value_type&         as_value()                              { check_throw(TYPE_VALUE); return m_value; }
-  const value_type&   as_value() const                        { check_throw(TYPE_VALUE); return m_value; }
+  value_type&         as_value()                              { check_throw(type_value); return m_value; }
+  const value_type&   as_value() const                        { check_throw(type_value); return m_value; }
 
-  string_type&        as_string()                             { check_throw(TYPE_STRING); return *m_string; }
-  const string_type&  as_string() const                       { check_throw(TYPE_STRING); return *m_string; }
+  string_type&        as_string()                             { check_throw(type_string); return *m_string; }
+  const string_type&  as_string() const                       { check_throw(type_string); return *m_string; }
 
-  list_type&          as_list()                               { check_throw(TYPE_LIST); return *m_list; }
-  const list_type&    as_list() const                         { check_throw(TYPE_LIST); return *m_list; }
+  list_type&          as_list()                               { check_throw(type_list); return *m_list; }
+  const list_type&    as_list() const                         { check_throw(type_list); return *m_list; }
 
-  map_type&           as_map()                                { check_throw(TYPE_MAP); return *m_map; }
-  const map_type&     as_map() const                          { check_throw(TYPE_MAP); return *m_map; }
+  map_type&           as_map()                                { check_throw(type_map); return *m_map; }
+  const map_type&     as_map() const                          { check_throw(type_map); return *m_map; }
 
   // Map operations:
-  bool                has_key(const key_type& k) const        { check_throw(TYPE_MAP); return m_map->find(k) != m_map->end(); }
-  bool                has_key_value(const key_type& k) const  { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_VALUE); }
-  bool                has_key_string(const key_type& k) const { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_STRING); }
-  bool                has_key_list(const key_type& k) const   { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_LIST); }
-  bool                has_key_map(const key_type& k) const    { check_throw(TYPE_MAP); return check(m_map->find(k), TYPE_MAP); }
+  bool                has_key(const key_type& k) const        { check_throw(type_map); return m_map->find(k) != m_map->end(); }
+  bool                has_key_value(const key_type& k) const  { check_throw(type_map); return check(m_map->find(k), type_value); }
+  bool                has_key_string(const key_type& k) const { check_throw(type_map); return check(m_map->find(k), type_string); }
+  bool                has_key_list(const key_type& k) const   { check_throw(type_map); return check(m_map->find(k), type_list); }
+  bool                has_key_map(const key_type& k) const    { check_throw(type_map); return check(m_map->find(k), type_map); }
 
   Object&             get_key(const key_type& k);
   const Object&       get_key(const key_type& k) const;
@@ -151,12 +148,12 @@ public:
   map_type&           get_key_map(const key_type& k)                 { return get_key(k).as_map(); }
   const map_type&     get_key_map(const key_type& k) const           { return get_key(k).as_map(); }
 
-  Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
-  void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); m_map->erase(k); }
+  Object&             insert_key(const key_type& k, const Object& b) { check_throw(type_map); return (*m_map)[k] = b; }
+  void                erase_key(const key_type& k)                   { check_throw(type_map); m_map->erase(k); }
 
   // List operations:
-  Object&             insert_front(const Object& b)                  { check_throw(TYPE_LIST); return *m_list->insert(m_list->begin(), b); }
-  Object&             insert_back(const Object& b)                   { check_throw(TYPE_LIST); return *m_list->insert(m_list->end(), b); }
+  Object&             insert_front(const Object& b)                  { check_throw(type_list); return *m_list->insert(m_list->begin(), b); }
+  Object&             insert_back(const Object& b)                   { check_throw(type_list); return *m_list->insert(m_list->end(), b); }
 
   // Copy and merge operations:
   Object&             move(Object& b);
@@ -166,14 +163,11 @@ public:
   Object&             merge_move(Object object, uint32_t maxDepth = ~uint32_t());
   Object&             merge_copy(const Object& object, uint32_t maxDepth = ~uint32_t());
 
-  // Instead of swap, it might be more efficient to clear ObjectRef
-  // src. But the dtor needs to be visible for optimization to happen.
   Object&             operator = (const Object& b);
-  Object&             operator = (ObjectRef& src);
 
 private:
-  inline bool         check(map_type::const_iterator itr, type_type t) const;
-  inline void         check_throw(type_type t) const;
+  inline bool         check(map_type::const_iterator itr, state_type t) const;
+  inline void         check_throw(state_type t) const;
 
   state_type          m_state;
 
@@ -185,66 +179,11 @@ private:
   };
 };
 
-class LIBTORRENT_EXPORT ObjectRefRef {
-protected:
-  friend class ObjectRef;
-
-  // Kinda hacked up, clean this up.
-  explicit ObjectRefRef(Object* src) {
-    std::memcpy(m_buffer, src, sizeof(Object));
-    std::memset(src, 0, sizeof(Object));
-  }
-
-public:
-  char m_buffer[sizeof(Object)];
-};
-
-class LIBTORRENT_EXPORT ObjectRef {
-public:
-  struct use_move {};
-
-  // Using Object's ObjectRef ctor will move the content.
-  ObjectRef(ObjectRef& src) : m_object(src) {}
-
-  // Meh...
-  ObjectRef(ObjectRefRef src) { std::memcpy(&m_object, src.m_buffer, sizeof(Object)); }
-  
-  explicit ObjectRef(Object& src, use_move) { m_object.move(src); }
-
-  // Should we allow these?
-//   Object&             operator *  () throw() { return *&m_object; }
-//   Object*             operator -> () throw() { return &m_object; }
-
-  Object*             get_mutable() throw() { return &m_object; }
-  const Object*       get() const throw()   { return &m_object; }
-  
-//   static ObjectRefRef move(Object& src)     { return ObjectRefRef(&src); }
-  
-  ObjectRef&          operator =  (ObjectRef& objectRef) { m_object = objectRef; return *this; }
-
-//   operator ObjectRef() throw()    { return ObjectRef(m_object, use_move()); }
-  operator ObjectRefRef() throw() { return ObjectRefRef(&m_object); }
-
-private:
-  Object              m_object;
-};
-
-inline
-Object::Object(ObjectRef src) {
-  std::memcpy(this, src.get_mutable(), sizeof(Object));
-  std::memset(src.get_mutable(), 0, sizeof(Object));
-}
-
-// inline
-// Object::Object(ObjectRefRef src) {
-//   std::memcpy(this, src.m_buffer, sizeof(Object));
-// }
-
 inline
 Object::Object(type_type t) :
   m_state(t) {
 
-  switch (type()) {
+  switch (t) {
   case TYPE_NONE:   break;
   case TYPE_VALUE:  m_value = value_type(); break;
   case TYPE_STRING: m_string = new string_type(); break;
@@ -253,19 +192,13 @@ Object::Object(type_type t) :
   }
 }
 
-inline Object&
-Object::operator = (ObjectRef& src) {
-  swap(*src.get_mutable());
-  return *this;
-}
-
 inline bool
-Object::check(map_type::const_iterator itr, type_type t) const {
+Object::check(map_type::const_iterator itr, state_type t) const {
   return itr != m_map->end() && itr->second.type() == t;
 }
 
 inline void
-Object::check_throw(type_type t) const {
+Object::check_throw(state_type t) const {
   if (t != type())
     throw bencode_error("Wrong object type.");
 }

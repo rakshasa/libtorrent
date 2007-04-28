@@ -45,11 +45,11 @@ namespace torrent {
 
 Object::Object(const Object& b) : m_state(b.type()) {
   switch (type()) {
-  case TYPE_NONE:   break;
-  case TYPE_VALUE:  m_value = b.m_value; break;
-  case TYPE_STRING: m_string = new string_type(*b.m_string); break;
-  case TYPE_LIST:   m_list = new list_type(*b.m_list); break;
-  case TYPE_MAP:    m_map = new map_type(*b.m_map);  break;
+  case type_none:   break;
+  case type_value:  m_value = b.m_value; break;
+  case type_string: m_string = new string_type(*b.m_string); break;
+  case type_list:   m_list = new list_type(*b.m_list); break;
+  case type_map:    m_map = new map_type(*b.m_map);  break;
   }
 }
 
@@ -63,11 +63,11 @@ Object::operator = (const Object& src) {
   m_state = src.m_state;
 
   switch (type()) {
-  case TYPE_NONE:   break;
-  case TYPE_VALUE:  m_value = src.m_value; break;
-  case TYPE_STRING: m_string = new string_type(*src.m_string); break;
-  case TYPE_LIST:   m_list = new list_type(*src.m_list); break;
-  case TYPE_MAP:    m_map = new map_type(*src.m_map);  break;
+  case type_none:   break;
+  case type_value:  m_value = src.m_value; break;
+  case type_string: m_string = new string_type(*src.m_string); break;
+  case type_list:   m_list = new list_type(*src.m_list); break;
+  case type_map:    m_map = new map_type(*src.m_map);  break;
   }
 
   return *this;
@@ -76,19 +76,19 @@ Object::operator = (const Object& src) {
 void
 Object::clear() {
   switch (type()) {
-  case TYPE_NONE:
-  case TYPE_VALUE:  break;
-  case TYPE_STRING: delete m_string; break;
-  case TYPE_LIST:   delete m_list; break;
-  case TYPE_MAP:    delete m_map; break;
+  case type_none:
+  case type_value:  break;
+  case type_string: delete m_string; break;
+  case type_list:   delete m_list; break;
+  case type_map:    delete m_map; break;
   }
 
-  m_state = TYPE_NONE;
+  m_state = type_none;
 }
 
 Object&
 Object::get_key(const std::string& k) {
-  check_throw(TYPE_MAP);
+  check_throw(type_map);
 
   map_type::iterator itr = m_map->find(k);
 
@@ -101,7 +101,7 @@ Object::get_key(const std::string& k) {
 
 const Object&
 Object::get_key(const std::string& k) const {
-  check_throw(TYPE_MAP);
+  check_throw(type_map);
 
   map_type::const_iterator itr = m_map->find(k);
 
@@ -141,7 +141,7 @@ Object::merge_copy(const Object& object, uint32_t maxDepth) {
 
   if (object.is_map()) {
     if (!is_map())
-      *this = Object(TYPE_MAP);
+      *this = Object(type_map);
 
     map_type& dest = as_map();
     map_type::iterator destItr = dest.begin();
@@ -164,7 +164,7 @@ Object::merge_copy(const Object& object, uint32_t maxDepth) {
 
   } else if (object.is_list()) {
     if (!is_list())
-      *this = Object(TYPE_LIST);
+      *this = Object(type_list);
 
     list_type& dest = as_list();
     list_type::iterator destItr = dest.begin();

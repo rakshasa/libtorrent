@@ -6,9 +6,9 @@
 #ifdef NEW_OBJECT
 #include "object.h"
 
-typedef torrent::ObjectRef return_type;
+typedef torrent::Object return_type;
 //#define OBJECTREF_MOVE(x) torrent::ObjectRef::move(x)
-#define OBJECTREF_MOVE(x) torrent::ObjectRef(x, torrent::ObjectRef::use_move())
+#define OBJECTREF_MOVE(x) x
 
 #else
 #include "../src/torrent/object.h"
