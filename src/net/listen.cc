@@ -62,11 +62,10 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
       bindAddress->family() != rak::socket_address::af_inet6)
     throw input_error("Listening socket must be bound to an inet or inet6 address.");
 
-  if (!get_fd().open_stream() || !get_fd().set_nonblock())
+  if (!get_fd().open_stream() ||
+      !get_fd().set_nonblock() ||
+      !get_fd().set_reuse_address(true))
     throw resource_error("Could not allocate socket for listening.");
-
-  if (!get_fd().set_reuse_address(true))
-    throw resource_error("Could not set listening port to reuse address.");
 
   rak::socket_address sa;
   sa.copy(*bindAddress, bindAddress->length());
