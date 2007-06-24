@@ -205,6 +205,7 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
 
   FileList* fileList = m_download->main()->file_list();
   fileList->initialize(b.get_key_value("length"), chunkSize);
+  fileList->set_multi_file(false);
 
   std::list<Path> pathList;
 
@@ -266,6 +267,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
   }
 
   FileList* fileList = m_download->main()->file_list();
+  fileList->set_multi_file(true);
 
   fileList->initialize(torrentSize, chunkSize);
   fileList->split(fileList->begin(), &*splitList.begin(), &*splitList.end());

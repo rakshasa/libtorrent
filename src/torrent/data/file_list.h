@@ -98,6 +98,7 @@ public:
   // Check if the torrent is loaded as a multi-file torrent. This may
   // return true even for a torrent with just one file.
   bool                is_multi_file() const;
+  void                set_multi_file(bool state)                      { m_isMultiFile = state; }
 
   size_t              size_files() const                              { return base_type::size(); }
   uint64_t            size_bytes() const                              { return m_torrentSize; }
@@ -173,6 +174,9 @@ private:
   Bitfield            m_bitfield;
 
   path_list           m_indirectLinks;
+
+  // Reorder next minor version bump:
+  bool                m_isMultiFile;
 };
 
 }

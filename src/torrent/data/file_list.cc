@@ -109,7 +109,7 @@ FileList::is_multi_file() const {
   // Currently only check if we got just one file. In the future this
   // should be a bool, which will be set based on what flags are
   // passed when the torrent was loaded.
-  return size() != 1;
+  return m_isMultiFile;
 }
 
 uint64_t
