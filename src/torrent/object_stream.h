@@ -56,6 +56,15 @@ void object_write_bencode(std::ostream* output, const Object* object) LIBTORRENT
 std::istream& operator >> (std::istream& input, Object& object) LIBTORRENT_EXPORT;
 std::ostream& operator << (std::ostream& output, const Object& object) LIBTORRENT_EXPORT;
 
+// object_buffer_t contains the start and end of the buffer.
+typedef std::pair<char*, char*> object_buffer_t;
+typedef object_buffer_t (*object_write_t)(void* data, object_buffer_t buffer);
+
+object_buffer_t object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buffer, const Object* object);
+
+// To char buffer. 'data' is NULL.
+object_buffer_t object_write_to_buffer(void* data, object_buffer_t buffer);
+
 }
 
 #endif

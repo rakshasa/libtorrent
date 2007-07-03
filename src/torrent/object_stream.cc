@@ -45,6 +45,9 @@
 #include "object.h"
 #include "object_stream.h"
 
+// TMP
+// #include <fstream>
+
 namespace torrent {
 
 bool
@@ -197,6 +200,28 @@ object_sha1(const Object* object) {
   char buffer[20];
   sha1.final_c(buffer);
 
+  // Testing new write functions.
+  char* testBuffer = new char[s.size()];
+  object_buffer_t testResult = object_write_bencode_c(&object_write_to_buffer, NULL, std::make_pair(testBuffer, testBuffer + s.size()), object);
+
+//   std::ofstream out1("./out_1.txt");
+//   std::ofstream out2("./out_2.txt");
+
+//   out1 << s << std::flush;
+//   out2 << std::string(testBuffer, testBuffer + s.size()) << std::flush;
+
+  if (testResult.first != testResult.second)
+    throw internal_error("BORK");
+
+  if (testResult.first != testBuffer + s.size())
+    throw internal_error("BORK^2");
+
+  if (std::memcmp(s.c_str(), testBuffer, s.size()) != 0)
+    throw internal_error("BORK BORK_");
+
+  delete [] testBuffer;
+  // End test.
+
   return std::string(buffer, 20);
 }
 
@@ -219,6 +244,111 @@ operator << (std::ostream& output, const Object& object) {
 
   output.imbue(locale);
   return output;
+}
+
+struct object_write_data_t {
+  object_write_t writeFunc;
+  void* data;
+
+  object_buffer_t buffer;
+  char* pos;
+};
+
+// This should be possible to simplify for the case where we write
+// just one byte.
+void
+object_write_bencode_c_string(object_write_data_t* output, const char* srcData, uint32_t srcLength) {
+  do {
+    uint32_t len = std::min<uint32_t>(srcLength, std::distance(output->pos, output->buffer.second));
+
+    std::memcpy(output->pos, srcData, len);
+
+    output->pos += len;
+
+    if (output->pos == output->buffer.second) {
+      output->buffer = output->writeFunc(output->data, output->buffer);
+      output->pos = output->buffer.first;
+    }
+
+    srcData += len;
+    srcLength -= len;
+
+  } while (srcLength != 0);
+}
+
+void
+object_write_bencode_c_object(object_write_data_t* output, const Object* object) {
+  int len;
+  char buf[64];
+
+  switch (object->type()) {
+  case Object::TYPE_NONE:
+    break;
+
+  case Object::TYPE_VALUE:
+    // Convert these to our own value printing function.
+    len = sprintf(buf, "i%llie", object->as_value());
+    object_write_bencode_c_string(output, buf, len);
+    break;
+
+  case Object::TYPE_STRING:
+    len = sprintf(buf, "%zu:", object->as_string().size());
+    object_write_bencode_c_string(output, buf, len);
+    object_write_bencode_c_string(output, object->as_string().c_str(), object->as_string().size());
+    break;
+
+  case Object::TYPE_LIST:
+    object_write_bencode_c_string(output, "l", 1);
+
+    for (Object::list_type::const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last; ++itr)
+      object_write_bencode_c_object(output, &*itr);
+
+    object_write_bencode_c_string(output, "e", 1);
+    break;
+
+  case Object::TYPE_MAP:
+    object_write_bencode_c_string(output, "d", 1);
+
+    for (Object::map_type::const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last; ++itr) {
+      len = sprintf(buf, "%zu:", itr->first.size());
+      object_write_bencode_c_string(output, buf, len);
+      object_write_bencode_c_string(output, itr->first.c_str(), itr->first.size());
+
+      object_write_bencode_c_object(output, &itr->second);
+    }
+
+    object_write_bencode_c_string(output, "e", 1);
+    break;
+  }
+}
+
+object_buffer_t
+object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buffer, const Object* object) {
+  object_write_data_t output;
+  output.writeFunc = writeFunc;
+  output.data      = data;
+  output.buffer    = buffer;
+  output.pos       = buffer.first;
+
+  object_write_bencode_c_object(&output, object);
+
+  // Don't flush the buffer.
+  if (output.pos == output.buffer.first)
+    return output.buffer;
+
+//   throw internal_error("Needs flushing...?");
+
+  output.buffer.second = output.pos;
+
+  return output.writeFunc(output.data, output.buffer);
+}
+
+object_buffer_t
+object_write_to_buffer(void* data, object_buffer_t buffer) {
+  if (buffer.first == buffer.second)
+    throw internal_error("object_write_to_buffer(...) buffer overflow.");
+
+  return std::make_pair(buffer.second, buffer.second);
 }
 
 }
