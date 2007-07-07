@@ -500,11 +500,6 @@ Handshake::read_peer() {
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(120)).round_seconds());
 
-  // Trigger event_write() directly and then skip straight to read
-  // BITFIELD. This avoids going through polling for the first
-  // write.
-  write_bitfield();
-
   return false;
 }
 
@@ -656,7 +651,8 @@ restart:
       throw internal_error("Handshake::event_read() called in invalid state.");
     }
 
-    // if we have more data to write, do so
+    // Call event_write if we have any data to write. Make sure
+    // event_write() doesn't get called twice in this function.
     if (m_writeBuffer.remaining()) {
       manager->poll()->insert_write(this);
       return event_write();
@@ -670,7 +666,6 @@ restart:
 
   } catch (network_error& e) {
     m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
-
   }
 }
 
@@ -793,7 +788,6 @@ Handshake::event_write() {
 
   } catch (network_error& e) {
     m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
-
   }
 }
 

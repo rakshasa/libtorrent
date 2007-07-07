@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <iterator>
-#include <sstream>
+#include <iostream>
 #include <rak/functional.h>
 
 #include "utils/sha1.h"
@@ -140,75 +140,19 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 
 void
 object_write_bencode(std::ostream* output, const Object* object) {
-  // A decent compiler should be able to optimize away the
-  // Object::check_type calls.
-  switch (object->type()) {
-  case Object::TYPE_NONE:
-    // Consider failing here?
-    break;
-
-  case Object::TYPE_VALUE:
-    *output << 'i' << object->as_value() << 'e';
-    break;
-
-  case Object::TYPE_STRING:
-    *output << object->as_string().size() << ':' << object->as_string();
-    break;
-
-  case Object::TYPE_LIST:
-    // Add check for depth here?
-    *output << 'l';
-
-    for (Object::list_type::const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last && output->good(); ++itr)
-      object_write_bencode(output, &*itr);
-
-    *output << 'e';
-    break;
-
-  case Object::TYPE_MAP:
-    // Add check for depth here?
-    *output << 'd';
-
-    for (Object::map_type::const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last && output->good(); ++itr) {
-      *output << itr->first.size() << ':' << itr->first;
-      object_write_bencode(output, &itr->second);
-    }
-
-    *output << 'e';
-    break;
-  }
+  char buffer[1024];
+  object_write_bencode_c(&object_write_to_stream, output, object_buffer_t(buffer, buffer + 1024), object);
 }
 
 // Would be nice to have a straight stream to hash conversion.
 std::string
 object_sha1(const Object* object) {
-  std::stringstream str;
-  str << *object;
+  Sha1 sha;
+  char buffer[1024];
 
-  if (str.fail())
-    throw bencode_error("Could not write bencode to stream");
-
-  std::string s = str.str();
-  Sha1 sha1;
-
-  sha1.init();
-  sha1.update(s.c_str(), s.size());
-
-  char buffer[20];
-  sha1.final_c(buffer);
-
-  // Testing new write functions.
-  Sha1 shaTest;
-  char testBuffer[1024];
-
-  shaTest.init();
-  object_write_bencode_c(&object_write_to_sha1, &shaTest, std::make_pair(testBuffer, testBuffer + 1024), object);
-  shaTest.final_c(testBuffer);
-
-  if (std::memcmp(buffer, testBuffer, 20) != 0)
-    throw internal_error("BORK BORK_");
-
-  // End test.
+  sha.init();
+  object_write_bencode_c(&object_write_to_sha1, &sha, object_buffer_t(buffer, buffer + 1024), object);
+  sha.final_c(buffer);
 
   return std::string(buffer, 20);
 }
@@ -226,11 +170,7 @@ operator >> (std::istream& input, Object& object) {
 
 std::ostream&
 operator << (std::ostream& output, const Object& object) {
-  std::locale locale = output.imbue(std::locale::classic());
-
   object_write_bencode(&output, &object);
-
-  output.imbue(locale);
   return output;
 }
 
@@ -353,7 +293,7 @@ object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buf
   if (output.pos == output.buffer.first)
     return output.buffer;
 
-  return output.writeFunc(output.data, std::make_pair(output.buffer.first, output.pos));
+  return output.writeFunc(output.data, object_buffer_t(output.buffer.first, output.pos));
 }
 
 object_buffer_t
@@ -361,12 +301,22 @@ object_write_to_buffer(void* data, object_buffer_t buffer) {
   if (buffer.first == buffer.second)
     throw internal_error("object_write_to_buffer(...) buffer overflow.");
 
-  return std::make_pair(buffer.second, buffer.second);
+  return object_buffer_t(buffer.second, buffer.second);
 }
 
 object_buffer_t
 object_write_to_sha1(void* data, object_buffer_t buffer) {
-  ((Sha1*)data)->update(buffer.first, std::distance(buffer.first, buffer.second));
+  reinterpret_cast<Sha1*>(data)->update(buffer.first, std::distance(buffer.first, buffer.second));
+
+  return buffer;
+}
+
+object_buffer_t
+object_write_to_stream(void* data, object_buffer_t buffer) {
+  reinterpret_cast<std::ostream*>(data)->write(buffer.first, std::distance(buffer.first, buffer.second));
+
+  if (reinterpret_cast<std::ostream*>(data)->bad())
+    return object_buffer_t(buffer.first, buffer.first);
 
   return buffer;
 }

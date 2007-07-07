@@ -60,12 +60,12 @@ std::ostream& operator << (std::ostream& output, const Object& object) LIBTORREN
 typedef std::pair<char*, char*> object_buffer_t;
 typedef object_buffer_t (*object_write_t)(void* data, object_buffer_t buffer);
 
-object_buffer_t object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buffer, const Object* object);
+object_buffer_t object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buffer, const Object* object) LIBTORRENT_EXPORT;
 
 // To char buffer. 'data' is NULL.
-object_buffer_t object_write_to_buffer(void* data, object_buffer_t buffer);
-object_buffer_t object_write_to_sha1(void* data, object_buffer_t buffer);
-
+object_buffer_t object_write_to_buffer(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
+object_buffer_t object_write_to_sha1(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
+object_buffer_t object_write_to_stream(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
 }
 
 #endif
