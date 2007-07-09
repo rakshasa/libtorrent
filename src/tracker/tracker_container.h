@@ -57,7 +57,9 @@ public:
   using base_type::value_type;
 
   using base_type::iterator;
+  using base_type::const_iterator;
   using base_type::reverse_iterator;
+  using base_type::const_reverse_iterator;
   using base_type::size;
   using base_type::empty;
 
@@ -81,6 +83,7 @@ public:
 
   iterator            find(TrackerBase* tb);
   iterator            find_enabled(iterator itr);
+  const_iterator      find_enabled(const_iterator itr) const;
 
   iterator            begin_group(int group);
   iterator            end_group(int group)                    { return begin_group(group + 1); }

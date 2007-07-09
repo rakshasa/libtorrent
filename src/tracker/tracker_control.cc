@@ -51,8 +51,6 @@ namespace torrent {
 
 TrackerControl::TrackerControl() :
   m_tries(-1),
-  m_normalInterval(1800),
-  m_minInterval(0),
   m_info(NULL),
   m_state(DownloadInfo::STOPPED),
   m_timeLastConnection(cachedTime) {
@@ -80,8 +78,6 @@ TrackerControl::insert(int group, const std::string& url) {
   
   t->slot_success(rak::make_mem_fun(this, &TrackerControl::receive_success));
   t->slot_failed(rak::make_mem_fun(this, &TrackerControl::receive_failed));
-  t->slot_set_interval(rak::make_mem_fun(this, &TrackerControl::receive_set_normal_interval));
-  t->slot_set_min_interval(rak::make_mem_fun(this, &TrackerControl::receive_set_min_interval));
 
   m_list.insert(group, t);
   m_itr = m_list.begin();
@@ -176,16 +172,23 @@ TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
   m_slotFailed(msg);
 }
 
-void
-TrackerControl::receive_set_normal_interval(int v) {
-  if (v >= 60 && v <= 3600)
-    m_normalInterval = v;
+uint32_t
+TrackerControl::focus_normal_interval() const {
+  if (m_itr == m_list.end()) {
+    TrackerContainer::const_iterator itr = m_list.find_enabled(m_list.begin());
+    
+    if (itr == m_list.end())
+      return 1800;
+
+    return itr->second->normal_interval();
+  }
+
+  return m_itr->second->normal_interval();
 }
 
-void
-TrackerControl::receive_set_min_interval(int v) {
-  if (v >= 0 && v <= 600)
-    m_minInterval = v;
+uint32_t
+TrackerControl::focus_min_interval() const {
+  return 0;
 }
 
 }

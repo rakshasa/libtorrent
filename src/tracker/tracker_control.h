@@ -82,9 +82,6 @@ public:
 
   TrackerContainer&   get_list()                              { return m_list; }
 
-  uint32_t            get_normal_interval() const             { return m_normalInterval; }
-  uint32_t            get_min_interval() const                { return m_minInterval; }
-
   uint32_t            focus_index() const                     { return m_itr - m_list.begin(); }
   void                set_focus_index(uint32_t v);
 
@@ -93,6 +90,9 @@ public:
   bool                focus_next_group();
 
   rak::timer          time_last_connection() const            { return m_timeLastConnection; }
+
+  uint32_t            focus_normal_interval() const;
+  uint32_t            focus_min_interval() const;
 
   void                slot_success(SlotSuccess s)             { m_slotSuccess = s; }
   void                slot_failed(SlotFailed s)               { m_slotFailed = s; }
@@ -106,12 +106,7 @@ private:
   void                receive_success(TrackerBase* tb, AddressList* l);
   void                receive_failed(TrackerBase* tb, const std::string& msg);
 
-  void                receive_set_normal_interval(int v);
-  void                receive_set_min_interval(int v);
-
   int                 m_tries;
-  int                 m_normalInterval;
-  int                 m_minInterval;
 
   DownloadInfo*       m_info;
   DownloadInfo::State m_state;

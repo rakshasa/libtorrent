@@ -297,7 +297,7 @@ TrackerUdp::process_announce_output() {
       m_readBuffer->read_32() != m_transactionId)
     return false;
 
-  m_slotSetInterval(m_readBuffer->read_32());
+  set_normal_interval(m_readBuffer->read_32());
 
   m_readBuffer->read_32(); // leechers
   m_readBuffer->read_32(); // seeders

@@ -76,6 +76,16 @@ Tracker::tracker_type() const {
   return static_cast<Type>(m_tracker.second->type());
 }
 
+uint32_t
+Tracker::normal_interval() const {
+  return m_tracker.second->normal_interval();
+}
+
+uint32_t
+Tracker::min_interval() const {
+  return m_tracker.second->min_interval();
+}
+
 uint64_t
 Tracker::scrape_time_last() const {
   return m_tracker.second->scrape_time_last().usec();

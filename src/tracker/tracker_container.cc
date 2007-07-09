@@ -106,6 +106,14 @@ TrackerContainer::find_enabled(iterator itr) {
   return itr;
 }
 
+TrackerContainer::const_iterator
+TrackerContainer::find_enabled(const_iterator itr) const {
+  while (itr != end() && !itr->second->is_enabled())
+    ++itr;
+
+  return itr;
+}
+
 TrackerContainer::iterator
 TrackerContainer::begin_group(int group) {
   return std::find_if(begin(), end(), rak::less_equal(group, rak::mem_ref(&value_type::first)));

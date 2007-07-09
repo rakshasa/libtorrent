@@ -70,6 +70,9 @@ public:
   const std::string&  tracker_id() const;
   Type                tracker_type() const;
 
+  uint32_t            normal_interval() const;
+  uint32_t            min_interval() const;
+
   uint64_t            scrape_time_last() const;
   uint32_t            scrape_complete() const;
   uint32_t            scrape_incomplete() const;

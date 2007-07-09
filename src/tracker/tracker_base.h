@@ -52,7 +52,6 @@ class TrackerControl;
 class TrackerBase {
 public:
   typedef std::list<rak::socket_address>                                        AddressList;
-  typedef rak::mem_fun1<TrackerControl, void, int>                              SlotInt;
   typedef rak::mem_fun2<TrackerControl, void, TrackerBase*, AddressList*>       SlotTbAddressList;
   typedef rak::mem_fun2<TrackerControl, void, TrackerBase*, const std::string&> SlotTbString;
 
@@ -63,7 +62,9 @@ public:
   } Type;
 
   TrackerBase(DownloadInfo* info, const std::string& url) :
-    m_enabled(true), m_info(info), m_url(url), m_scrapeComplete(0), m_scrapeIncomplete(0) {}
+    m_enabled(true), m_info(info), m_url(url),
+    m_normalInterval(1800), m_minInterval(0),
+    m_scrapeComplete(0), m_scrapeIncomplete(0) {}
   virtual ~TrackerBase() {}
 
   virtual bool        is_busy() const = 0;
@@ -83,6 +84,9 @@ public:
   const std::string&  tracker_id() const                    { return m_trackerId; }
   void                set_tracker_id(const std::string& id) { m_trackerId = id; }
 
+  uint32_t            normal_interval() const               { return m_normalInterval; }
+  uint32_t            min_interval() const                  { return m_minInterval; }
+
   const rak::timer&   scrape_time_last() const              { return m_scrapeTimeLast; }
   uint32_t            scrape_complete() const               { return m_scrapeComplete; }
   uint32_t            scrape_incomplete() const             { return m_scrapeIncomplete; }
@@ -90,12 +94,13 @@ public:
 
   void                slot_success(SlotTbAddressList s)     { m_slotSuccess = s; }
   void                slot_failed(SlotTbString s)           { m_slotFailed = s; }
-  void                slot_set_interval(SlotInt s)          { m_slotSetInterval = s; }
-  void                slot_set_min_interval(SlotInt s)      { m_slotSetMinInterval = s; }
 
 protected:
   TrackerBase(const TrackerBase& t);
   void operator = (const TrackerBase& t);
+
+  void                set_normal_interval(int v) { if (v >= 60 && v <= 3600) m_normalInterval = v; }
+  void                set_min_interval(int v)    { if (v >= 0 && v <= 600)   m_minInterval = v; }
 
   bool                m_enabled;
 
@@ -104,6 +109,9 @@ protected:
 
   std::string         m_trackerId;
 
+  uint32_t            m_normalInterval;
+  uint32_t            m_minInterval;
+
   rak::timer          m_scrapeTimeLast;
   uint32_t            m_scrapeComplete;
   uint32_t            m_scrapeIncomplete;
@@ -111,8 +119,6 @@ protected:
 
   SlotTbAddressList   m_slotSuccess;
   SlotTbString        m_slotFailed;
-  SlotInt             m_slotSetInterval;
-  SlotInt             m_slotSetMinInterval;
 };
 
 struct address_list_add_address : public std::unary_function<rak::socket_address, void> {

@@ -194,10 +194,10 @@ TrackerHttp::receive_done() {
 			 + "\"");
 
   if (b.has_key_value("interval"))
-    m_slotSetInterval(b.get_key_value("interval"));
+    set_normal_interval(b.get_key_value("interval"));
   
   if (b.has_key_value("min interval"))
-    m_slotSetMinInterval(b.get_key_value("min interval"));
+    set_min_interval(b.get_key_value("min interval"));
 
   if (b.has_key_string("tracker id"))
     m_trackerId = b.get_key_string("tracker id");

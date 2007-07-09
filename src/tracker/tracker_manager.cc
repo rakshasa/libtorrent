@@ -151,7 +151,7 @@ TrackerManager::manual_request(bool force) {
   rak::timer t(cachedTime + rak::timer::from_seconds(2));
   
   if (!force)
-    t = std::max(t, m_control->time_last_connection() + rak::timer::from_seconds(m_control->get_min_interval()));
+    t = std::max(t, m_control->time_last_connection() + rak::timer::from_seconds(m_control->focus_min_interval()));
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
   priority_queue_insert(&taskScheduler, &m_taskTimeout, t.round_seconds());
@@ -249,7 +249,7 @@ TrackerManager::receive_success(AddressList* l) {
   m_isRequesting = false;
 
   m_control->set_state(DownloadInfo::NONE);
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_control->get_normal_interval())).round_seconds());
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_control->focus_normal_interval())).round_seconds());
 
   m_slotSuccess(l);
 }
@@ -266,7 +266,7 @@ TrackerManager::receive_failed(const std::string& msg) {
       // Don't start from the beginning of the list if we've gone
       // through the whole list. Return to normal timeout.
       m_isRequesting = false;
-      priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_control->get_normal_interval())).round_seconds());
+      priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_control->focus_normal_interval())).round_seconds());
     } else {
       priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(20)).round_seconds());
     }
