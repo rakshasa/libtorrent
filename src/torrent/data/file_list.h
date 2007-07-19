@@ -125,6 +125,9 @@ public:
   // of free diskspace will be returned.
   uint64_t            free_diskspace() const;
 
+  // List of directories in the torrent that might be on different
+  // volumes as they are links, including the root directory. Used by
+  // 'free_diskspace()'.
   const path_list*    indirect_links() const                          { return &m_indirectLinks; }
 
   // The sum of the sizes in the range [first,last> must be equal to
