@@ -52,13 +52,18 @@
 
 namespace torrent {
 
+inline bool
+socket_address_key::is_comparable(const sockaddr* sa) {
+  return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet;
+}
+
 bool
 socket_address_key::operator < (const socket_address_key& sa) const {
   const rak::socket_address* sa1 = rak::socket_address::cast_from(m_sockaddr);
   const rak::socket_address* sa2 = rak::socket_address::cast_from(sa.m_sockaddr);
 
   if (sa1->family() != sa2->family())
-    return sa1->family() > sa2->family();
+    return sa1->family() < sa2->family();
 
   else if (sa1->family() == rak::socket_address::af_inet)
     // Sort by hardware byte order to ensure proper ordering for
@@ -90,6 +95,9 @@ PeerList::~PeerList() {
 
 PeerInfo*
 PeerList::insert_address(const sockaddr* sa, int flags) {
+  if (!socket_address_key::is_comparable(sa))
+    return NULL;
+
   range_type range = base_type::equal_range(sa);
 
   // Do some special handling if we got a new port number but the
@@ -117,6 +125,9 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
 
 PeerInfo*
 PeerList::connected(const sockaddr* sa, int flags) {
+  if (!socket_address_key::is_comparable(sa))
+    return NULL;
+
   PeerInfo* peerInfo;
   const rak::socket_address* address = rak::socket_address::cast_from(sa);
 

@@ -47,6 +47,8 @@ class LIBTORRENT_EXPORT socket_address_key {
 public:
   socket_address_key(const sockaddr* sa) : m_sockaddr(sa) {}
 
+  inline static bool is_comparable(const sockaddr* sa);
+
   bool operator < (const socket_address_key& sa) const;
 
 private:
