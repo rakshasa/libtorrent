@@ -267,17 +267,17 @@ RequestList::calculate_pipe_size(uint32_t rate) {
   // Change into KB.
   rate /= 1024;
 
-  // Request enough to have enough for 16 seconds at fast rates.
-
   if (!m_delegator->get_aggressive()) {
-    uint32_t queueKB = std::min(rate * 30, (uint32_t)16 << 10);
-  
-    return (queueKB / (Delegator::block_size / 1024)) + 2;
+    if (rate < 20)
+      return rate + 2;
+    else
+      return rate / 5 + 18;
 
   } else {
-    uint32_t queueKB = std::min(rate * 16, (uint32_t)16 << 10);
-  
-    return (queueKB / (Delegator::block_size / 1024)) + 1;
+    if (rate < 10)
+      return rate / 5 + 1;
+    else
+      return rate / 10 + 2;
   }
 }
 
