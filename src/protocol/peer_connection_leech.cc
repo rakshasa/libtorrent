@@ -573,7 +573,7 @@ PeerConnectionLeech::read_have_chunk(uint32_t index) {
       m_sendInterested = !m_downInterested;
       m_downInterested = true;
       
-      // Ensure we get inserted into the chunk manager queue in case
+      // Ensure we get inserted into the choke manager queue in case
       // the peer keeps us unchoked even though we've said we're not
       // interested.
       if (m_downUnchoked)
