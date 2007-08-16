@@ -201,7 +201,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
 
       BlockFailed::iterator maxItr = itr->failed_list()->max_element();
 
-      if (maxItr->second == failedItr->second && maxItr != --itr->failed_list()->reverse_max_element().base())
+      if (maxItr->second == failedItr->second && maxItr != (itr->failed_list()->reverse_max_element().base() - 1))
         promoted++;
 
       failedItr->second++;

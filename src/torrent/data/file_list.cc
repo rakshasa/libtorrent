@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -346,7 +347,7 @@ FileList::open() {
 
   try {
     if (::mkdir(m_rootDir.c_str(), 0777) != 0 && errno != EEXIST)
-      throw storage_error("Could not create directory '" + m_rootDir + "': " + strerror(errno));
+      throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
   
     while (itr != end()) {
       File* entry = *itr++;
@@ -440,7 +441,7 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
       break;
 
     if (::mkdir(path.c_str(), 0777) != 0 && errno != EEXIST)
-      throw storage_error("Could not create directory '" + path + "': " + strerror(errno));
+      throw storage_error("Could not create directory '" + path + "': " + std::strerror(errno));
   }
 }
 
