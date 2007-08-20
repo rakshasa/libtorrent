@@ -37,8 +37,9 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_UDP_H
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
-#include "net/protocol_buffer.h"
 #include <rak/socket_address.h>
+
+#include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
 #include "globals.h"
 #include "tracker_base.h"
@@ -74,7 +75,7 @@ private:
   void                receive_failed(const std::string& msg);
   void                receive_timeout();
 
-  bool                parse_url();
+  void                start_announce(const sockaddr* sa, int err);
 
   void                prepare_connect_input();
   void                prepare_announce_input();
@@ -84,11 +85,14 @@ private:
   bool                process_error_output();
 
   rak::socket_address m_connectAddress;
+  int                 m_port;
 
   DownloadInfo::State m_sendState;
   uint64_t            m_sendUp;
   uint64_t            m_sendDown;
   uint64_t            m_sendLeft;
+
+  void*               m_slotResolver;
 
   uint32_t            m_action;
   uint64_t            m_connectionId;

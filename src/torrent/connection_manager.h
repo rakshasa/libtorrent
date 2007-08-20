@@ -95,6 +95,10 @@ public:
     handshake_retry_encrypted    = 9
   };
 
+  // The sockaddr argument in the result slot call is NULL if the resolve failed, and the int holds the errno.
+  typedef sigc::slot2<void, const sockaddr*, int>                                                   slot_resolver_result_type;
+  typedef sigc::slot4<slot_resolver_result_type*, const char*, int, int, slot_resolver_result_type> slot_resolver_type;
+
   typedef sigc::slot4<void, const sockaddr*, int, int, const HashString*>   slot_handshake_type;
   typedef sigc::signal4<void, const sockaddr*, int, int, const HashString*> signal_handshake_type;
 
@@ -152,6 +156,12 @@ public:
   signal_handshake_type& signal_handshake_log()                          { return m_signalHandshakeLog; }
   sigc::connection       set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
 
+  // The resolver returns a pointer to its copy of the result slot which the caller may set blocked to
+  // prevent the slot from being called. The pointer must be NULL if the result slot was already called
+  // because the resolve was synchronous.
+  const slot_resolver_type& resolver() const                  { return m_slotResolver; }
+  void                set_resolver(const slot_resolver_type& s) { m_slotResolver = s; }
+
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,
   // but do note that it gets overwritten after 'listen_open(...)'.
@@ -182,6 +192,7 @@ private:
 
   slot_filter_type      m_slotFilter;
   signal_handshake_type m_signalHandshakeLog;
+  slot_resolver_type    m_slotResolver;
 };
 
 }

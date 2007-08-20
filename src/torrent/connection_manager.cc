@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <rak/address_info.h>
 #include <rak/socket_address.h>
 
 #include "net/listen.h"
@@ -46,6 +47,23 @@
 
 namespace torrent {
 
+static ConnectionManager::slot_resolver_result_type*
+resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
+  rak::address_info* ai;
+  int err;
+  if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
+    slot(NULL, err);
+    return NULL;
+  }
+
+  rak::socket_address sa;
+  sa.copy(*ai->address(), ai->length());
+  rak::address_info::free_address_info(ai);
+
+  slot(sa.c_sockaddr(), 0);
+  return NULL;
+}
+
 ConnectionManager::ConnectionManager() :
   m_size(0),
   m_maxSize(0),
@@ -55,7 +73,8 @@ ConnectionManager::ConnectionManager() :
   m_receiveBufferSize(0),
   m_encryptionOptions(encryption_none),
 
-  m_listen(new Listen) {
+  m_listen(new Listen),
+  m_slotResolver(&resolve_host) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();

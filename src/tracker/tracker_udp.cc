@@ -36,8 +36,8 @@
 
 #include "config.h"
 
-#include <rak/address_info.h>
-#include <rak/error_number.h>
+#include <sigc++/bind.h>
+#include <torrent/connection_manager.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
@@ -50,6 +50,7 @@ namespace torrent {
 
 TrackerUdp::TrackerUdp(DownloadInfo* info, const std::string& url) :
   TrackerBase(info, url),
+  m_slotResolver(NULL),
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
 
@@ -57,6 +58,9 @@ TrackerUdp::TrackerUdp(DownloadInfo* info, const std::string& url) :
 }
 
 TrackerUdp::~TrackerUdp() {
+  if (m_slotResolver != NULL)
+    static_cast<ConnectionManager::slot_resolver_result_type*>(m_slotResolver)->blocked();
+
   close();
 }
   
@@ -69,8 +73,39 @@ void
 TrackerUdp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
-  if (!parse_url())
+  char hostname[1024];
+      
+  if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname, &m_port) != 2 ||
+      hostname[0] == '\0' ||
+      m_port <= 0 || m_port >= (1 << 16))
     return receive_failed("Could not parse UDP hostname or port.");
+
+  // Because we can only remember one slot, set any pending resolves blocked
+  // so that if this tracker is deleted, the member function won't be called.
+  if (m_slotResolver != NULL)
+    static_cast<ConnectionManager::slot_resolver_result_type*>(m_slotResolver)->blocked();
+
+  m_sendState = state;
+  m_sendDown = down;
+  m_sendUp = up;
+  m_sendLeft = left;
+
+  m_slotResolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
+                                                             sigc::mem_fun(this, &TrackerUdp::start_announce));
+}
+
+void
+TrackerUdp::start_announce(const sockaddr* sa, int err) {
+  m_slotResolver = NULL;
+
+  if (sa == NULL)
+    return receive_failed("Could not resolve hostname.");
+
+  m_connectAddress = *rak::socket_address::cast_from(sa);
+  m_connectAddress.set_port(m_port);
+
+  if (!m_connectAddress.is_valid())
+    return receive_failed("Invalid tracker address.");
 
   if (!get_fd().open_datagram() ||
       !get_fd().set_nonblock() ||
@@ -79,11 +114,6 @@ TrackerUdp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, ui
 
   m_readBuffer = new ReadBuffer;
   m_writeBuffer = new WriteBuffer;
-
-  m_sendState = state;
-  m_sendDown = down;
-  m_sendUp = up;
-  m_sendLeft = left;
 
   prepare_connect_input();
 
@@ -211,34 +241,6 @@ TrackerUdp::event_write() {
 
 void
 TrackerUdp::event_error() {
-}
-
-bool
-TrackerUdp::parse_url() {
-  int port;
-  char hostname[1024];
-      
-  if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname, &port) != 2 ||
-      hostname[0] == '\0' ||
-      port <= 0 || port >= (1 << 16))
-    return false;
-
-  int err;
-  rak::address_info* ai;
-
-  if ((err = rak::address_info::get_address_info(hostname, PF_INET, SOCK_STREAM, &ai)) != 0)
-    return false;
-  
-  if (ai->address()->family() != rak::socket_address::af_inet) {
-    rak::address_info::free_address_info(ai);
-    return false;
-  }
-
-  m_connectAddress.copy(*ai->address(), ai->length());
-  m_connectAddress.set_port(port);
-  rak::address_info::free_address_info(ai);
-
-  return m_connectAddress.is_valid();
 }
 
 void
