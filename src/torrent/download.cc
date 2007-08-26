@@ -76,8 +76,11 @@ Download::close() {
   m_ptr->close();
 }
 
+void Download::start() { start2(0); }
+void Download::stop()  { stop2(0); }
+
 void
-Download::start() {
+Download::start2(int flags) {
   if (!m_ptr->hash_checker()->is_checked())
     throw internal_error("Tried to start an unchecked download.");
 
@@ -90,30 +93,32 @@ Download::start() {
   m_ptr->main()->start();
   m_ptr->main()->tracker_manager()->set_active(true);
 
-  // Either the client queued a completed request, or it is still
-  // sending the stopped request. Don't send started nor reset the
-  // baseline.
-  //
-  // Check for stopped request.
-  if (m_ptr->main()->tracker_manager()->is_busy())
-    return;
-
   // Reset the uploaded/download baseline when we restart the download
   // so that broken trackers get the right uploaded ratio.
-  m_ptr->info()->set_uploaded_baseline(m_ptr->info()->up_rate()->total());
-  m_ptr->info()->set_completed_baseline(m_ptr->info()->slot_completed()());
+  if (!(flags & start_keep_baseline)) {
+    m_ptr->info()->set_uploaded_baseline(m_ptr->info()->up_rate()->total());
+    m_ptr->info()->set_completed_baseline(m_ptr->info()->slot_completed()());
+  }
 
-  m_ptr->main()->tracker_manager()->send_start();
+  if (flags & start_skip_tracker)
+    // If tracker_manager isn't active and nothing is sent, it will
+    // stay stuck.
+    m_ptr->main()->tracker_manager()->send_later();
+  else
+    m_ptr->main()->tracker_manager()->send_start();
 }
 
 void
-Download::stop() {
+Download::stop2(int flags) {
   if (!m_ptr->info()->is_active())
     return;
 
+  // The caller should be allowed to disable this.
   m_ptr->main()->stop();
   m_ptr->main()->tracker_manager()->set_active(false);
-  m_ptr->main()->tracker_manager()->send_stop();
+
+  if (!(flags & stop_skip_tracker))
+    m_ptr->main()->tracker_manager()->send_stop();
 }
 
 bool

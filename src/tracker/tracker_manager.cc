@@ -103,6 +103,18 @@ TrackerManager::send_completed() {
   m_control->send_state(DownloadInfo::COMPLETED);
 }
 
+void
+TrackerManager::send_later() {
+  if (m_control->is_busy())
+    return;
+
+  if (m_control->get_state() == DownloadInfo::STOPPED)
+    throw internal_error("TrackerManager::send_later() m_control->set() == DownloadInfo::STOPPED.");
+
+  priority_queue_erase(&taskScheduler, &m_taskTimeout);
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, m_control->time_last_connection() + rak::timer::from_seconds(m_control->focus_min_interval()));
+}
+
 // When request_{current,next} is called, m_isRequesting is set to
 // true. This ensures that if none of the remaining trackers can be
 // reached or if a connection is successfull, it will not reset the

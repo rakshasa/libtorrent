@@ -72,6 +72,7 @@ public:
   void                send_start();
   void                send_stop();
   void                send_completed();
+  void                send_later();
 
   // Request more peers from current, or the next tracker on the
   // list. These functions will start from the current focus and

@@ -76,9 +76,15 @@ public:
   void                start();
   void                stop();
 
-//   static const int start_no_create = 0x1;
+  //   static const int start_no_create = (1 << 0);
+  static const int start_keep_baseline = (1 << 1);
+  static const int start_skip_tracker  = (1 << 2);
 
-//   void                start(int flags);
+  static const int stop_skip_tracker   = (1 << 0);
+
+  // These will be renamed when the API is updated.
+  void                start2(int flags);
+  void                stop2(int flags);
 
   // Does not check if the download has been removed.
   bool                is_valid() const { return m_ptr; }
