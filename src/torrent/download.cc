@@ -113,7 +113,6 @@ Download::stop2(int flags) {
   if (!m_ptr->info()->is_active())
     return;
 
-  // The caller should be allowed to disable this.
   m_ptr->main()->stop();
   m_ptr->main()->tracker_manager()->set_active(false);
 
