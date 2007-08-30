@@ -674,8 +674,9 @@ PeerConnectionBase::up_extension() {
 
       m_encryption.encrypt(m_extensionMessage.data(), buffer, m_extensionMessage.length());
       m_extensionMessage.set(buffer, buffer + m_extensionMessage.length(), true);
-      m_extensionOffset = 0;
     }
+
+    m_extensionOffset = 0;
   }
 
   if (m_extensionOffset >= m_extensionMessage.length())
