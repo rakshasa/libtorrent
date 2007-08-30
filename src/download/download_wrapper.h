@@ -51,6 +51,7 @@ namespace torrent {
 
 // Remember to clean up the pointers, DownloadWrapper won't do it.
 
+class AddressList;
 class FileManager;
 class HashQueue;
 class HashTorrent;
@@ -60,8 +61,6 @@ class Object;
 
 class DownloadWrapper {
 public:
-  typedef std::list<rak::socket_address>          AddressList;
-
   typedef sigc::signal0<void>                     Signal;
   typedef sigc::signal1<void, uint32_t>           SignalChunk;
   typedef sigc::signal1<void, const std::string&> SignalString;

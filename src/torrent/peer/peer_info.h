@@ -48,6 +48,7 @@ public:
   friend class Handshake;
   friend class HandshakeManager;
   friend class PeerList;
+  friend class ProtocolExtension;
 
   static const int flag_connected = (1 << 0);
   static const int flag_incoming  = (1 << 1);
@@ -78,6 +79,8 @@ public:
 
   uint32_t            last_connection() const               { return m_lastConnection; }
   void                set_last_connection(uint32_t tvsec)   { m_lastConnection = tvsec; }
+
+  bool                supports_extensions() const           { return m_options[5] & 0x10; }
 
   // Internal to libTorrent:
   PeerConnectionBase* connection()                          { return m_connection; }

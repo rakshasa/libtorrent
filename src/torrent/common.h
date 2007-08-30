@@ -87,6 +87,7 @@ class PeerInfo;
 class PeerList;
 class Piece;
 class Poll;
+class ProtocolExtension;
 class Rate;
 class SocketSet;
 class Tracker;

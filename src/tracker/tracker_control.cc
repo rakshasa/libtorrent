@@ -40,6 +40,7 @@
 #include <cstring>
 #include <functional>
 
+#include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "tracker_control.h"
 #include "tracker_http.h"

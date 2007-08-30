@@ -37,25 +37,25 @@
 #ifndef LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
 #define LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
 
-#include <list>
 #include <rak/functional.h>
 #include <rak/socket_address.h>
 #include <rak/unordered_vector.h>
 
 namespace torrent {
 
+class AddressList;
 class Bitfield;
 class DownloadMain;
 class DownloadWrapper;
 class PeerConnectionBase;
 class PeerInfo;
+class ProtocolExtension;
 class SocketFd;
 class EncryptionInfo;
 
 class ConnectionList : private rak::unordered_vector<PeerConnectionBase*> {
 public:
   typedef rak::unordered_vector<PeerConnectionBase*> base_type;
-  typedef std::list<rak::socket_address>             AddressList;
   typedef uint32_t                                   size_type;
 
   typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> slot_peer_type;
@@ -93,7 +93,7 @@ public:
   // responsible for cleaning up 'fd'.
   //
   // Clean this up, don't use this many arguments.
-  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo);
+  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
 
   iterator            erase(iterator pos, int flags);
   void                erase(PeerInfo* peerInfo, int flags);

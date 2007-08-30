@@ -44,9 +44,12 @@
 #include "globals.h"
 
 #include "connection_list.h"
+#include "download_info.h"
 #include "delegator.h"
 
 #include "data/chunk_handle.h"
+#include "download/available_list.h"
+#include "protocol/extensions.h"
 #include "torrent/data/file_list.h"
 #include "torrent/peer/peer_list.h"
 
@@ -101,6 +104,10 @@ public:
   ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
   void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
 
+  ProtocolExtension::Buffer get_ut_pex(bool initial)             { return initial ? m_ut_pex_initial : m_ut_pex_delta; }
+
+  bool                want_pex_msg()                             { return m_info->pex_active() && m_peerList.available_list()->want_more(); }; 
+
   // Carefull with these.
   void                setup_delegator();
   void                setup_tracker();
@@ -122,6 +129,10 @@ public:
 
   void                receive_tracker_success();
   void                receive_tracker_request();
+
+  void                receive_do_peer_exchange();
+
+  void                do_peer_exchange();
 
   void                update_endgame();
 
@@ -151,6 +162,10 @@ private:
   PeerList            m_peerList;
 
   uint32_t            m_lastConnectedSize;
+
+  ProtocolExtension::Buffer   m_ut_pex_delta;
+  ProtocolExtension::Buffer   m_ut_pex_initial;
+  ProtocolExtension::PEXList  m_ut_pex_list;
 
   ThrottleList*       m_uploadThrottle;
   ThrottleList*       m_downloadThrottle;

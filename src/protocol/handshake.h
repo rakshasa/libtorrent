@@ -58,7 +58,9 @@ public:
   static const uint32_t part2_size     = 20;
   static const uint32_t handshake_size = part1_size + part2_size;
 
-  static const uint32_t protocol_bitfield = 5;
+  static const uint32_t protocol_bitfield  = 5;
+  static const uint32_t protocol_port      = 9;
+  static const uint32_t protocol_extension = 20;
 
   static const uint32_t enc_negotiation_size = 8 + 4 + 2;
   static const uint32_t enc_pad_size         = 512;
@@ -118,7 +120,8 @@ public:
   virtual void        event_write();
   virtual void        event_error();
 
-  HandshakeEncryption* encryption() { return &m_encryption; }
+  HandshakeEncryption* encryption()                 { return &m_encryption; }
+  ProtocolExtension*  extensions()                  { return m_extensions; }
 
   int                 retry_options();
 
@@ -149,9 +152,13 @@ protected:
   void                prepare_bitfield();
   void                prepare_keepalive();
 
+  void                write_extension_handshake();
   void                write_bitfield();
 
   inline void         validate_download();
+
+  uint32_t            read_unthrottled(void* buf, uint32_t length);
+  uint32_t            write_unthrottled(const void* buf, uint32_t length);
 
   static const char*  m_protocol;
 
@@ -162,6 +169,9 @@ protected:
   PeerInfo*           m_peerInfo;
   DownloadMain*       m_download;
   Bitfield            m_bitfield;
+
+  ThrottleList*       m_uploadThrottle;
+  ThrottleList*       m_downloadThrottle;
 
   rak::priority_item  m_taskTimeout;
   rak::timer          m_initializedTime;
@@ -178,6 +188,7 @@ protected:
   char                m_options[8];
 
   HandshakeEncryption m_encryption;
+  ProtocolExtension*  m_extensions;
 
   // Put these last to keep variables closer to *this.
   Buffer              m_readBuffer;

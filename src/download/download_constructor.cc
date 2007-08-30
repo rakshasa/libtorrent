@@ -81,6 +81,9 @@ DownloadConstructor::initialize(const Object& b) {
   if (b.has_key_string("encoding"))
     m_defaultEncoding = b.get_key_string("encoding");
 
+  m_download->info()->set_private(b.get_key("info").has_key_value("private") && 
+                                  b.get_key("info").get_key_value("private") == 1);
+
   parse_name(b.get_key("info"));
   parse_info(b.get_key("info"));
 

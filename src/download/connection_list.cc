@@ -40,6 +40,7 @@
 
 #include "download/download_info.h"
 #include "download/download_main.h"
+#include "net/address_list.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
 #include "torrent/peer/peer_info.h"
@@ -55,7 +56,7 @@ ConnectionList::clear() {
 }
 
 PeerConnectionBase*
-ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo) {
+ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)
     return NULL;
 
@@ -65,7 +66,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
   peerInfo->set_connection(peerConnection);
-  peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo);
+  peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
   base_type::push_back(peerConnection);
 

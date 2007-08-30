@@ -39,6 +39,7 @@
 #include <sigc++/bind.h>
 #include <torrent/connection_manager.h>
 
+#include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"

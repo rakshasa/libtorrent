@@ -34,40 +34,48 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_HTTP_H
-#define LIBTORRENT_TRACKER_TRACKER_HTTP_H
+#include "config.h"
 
-#include <iosfwd>
+#include <rak/functional.h>
 
-#include "torrent/object.h"
-#include "tracker_base.h"
+#include "download/download_info.h"  // for SocketAddressCompact
+
+#include "address_list.h"
 
 namespace torrent {
 
-class Http;
+inline rak::socket_address
+AddressList::parse_address(const Object& b) {
+  rak::socket_address sa;
+  sa.clear();
 
-class TrackerHttp : public TrackerBase {
-public:
-  TrackerHttp(DownloadInfo* info, const std::string& url);
-  ~TrackerHttp();
-  
-  virtual bool        is_busy() const;
+  if (!b.is_map())
+    return sa;
 
-  virtual void        send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left);
-  virtual void        close();
+  if (!b.has_key_string("ip") || !sa.set_address_str(b.get_key_string("ip")))
+    return sa;
 
-  virtual Type        type() const;
+  if (!b.has_key_value("port") || b.get_key_value("port") <= 0 || b.get_key_value("port") >= (1 << 16))
+    return sa;
 
-private:
-  void                receive_done();
-  void                receive_failed(std::string msg);
+  sa.set_port(b.get_key_value("port"));
 
-  Http*               m_get;
-  std::stringstream*  m_data;
-
-  bool                m_dropDeliminator;
-};
-
+  return sa;
 }
 
-#endif
+void
+AddressList::parse_address_normal(const Object::list_type& b) {
+  std::for_each(b.begin(), b.end(), rak::on(std::ptr_fun(&AddressList::parse_address), AddressList::add_address(this)));
+}
+
+void
+AddressList::parse_address_compact(const std::string& s) {
+  if (sizeof(const SocketAddressCompact) != 6)
+    throw internal_error("ConnectionList::AddressList::parse_address_compact(...) bad struct size.");
+
+  std::copy(reinterpret_cast<const SocketAddressCompact*>(s.c_str()),
+	    reinterpret_cast<const SocketAddressCompact*>(s.c_str() + s.size() - s.size() % sizeof(SocketAddressCompact)),
+	    std::back_inserter(*this));
+}
+
+}

@@ -54,6 +54,8 @@
 
 namespace torrent {
 
+ProtocolExtension HandshakeManager::DefaultExtensions = ProtocolExtension::make_default();
+
 inline void
 handshake_manager_delete_handshake(Handshake* h) {
   h->deactivate_connection();
@@ -195,7 +197,8 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
       (pcb = download->connection_list()->insert(handshake->peer_info(),
                                                               handshake->get_fd(),
                                                               handshake->bitfield(),
-                                                              handshake->encryption()->info())) != NULL) {
+                                                              handshake->encryption()->info(),
+                                                              handshake->extensions())) != NULL) {
 
     manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
     manager->connection_manager()->signal_handshake_log().emit(handshake->peer_info()->socket_address(),

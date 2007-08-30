@@ -75,6 +75,9 @@ public:
     m_isActive(false),
     m_isCompact(true),
     m_isAcceptingNewPeers(true),
+    m_isPrivate(false),
+    m_pexEnabled(true),
+    m_pexActive(true),
 
     m_key(0),
     m_numwant(-1),
@@ -110,7 +113,16 @@ public:
 
   bool                is_accepting_new_peers() const               { return m_isAcceptingNewPeers; }
   void                set_accepting_new_peers(bool s)              { m_isAcceptingNewPeers = s; }
-  
+
+  bool                is_private() const                           { return m_isPrivate; }
+  void                set_private(bool p)                          { m_isPrivate = p; if (p) m_pexEnabled = false; }
+
+  bool                pex_enabled() const                          { return m_pexEnabled; }
+  void                set_pex_enabled(bool enabled)                { m_pexEnabled = enabled && !m_isPrivate; }
+
+  bool                pex_active() const                           { return m_pexActive; }
+  void                set_pex_active(bool active)                  { m_pexActive = active; }
+
   uint32_t            key() const                                  { return m_key; }
   void                set_key(uint32_t key)                        { m_key = key; }
 
@@ -148,6 +160,9 @@ private:
   bool                m_isActive;
   bool                m_isCompact;
   bool                m_isAcceptingNewPeers;
+  bool                m_isPrivate;
+  bool                m_pexEnabled;
+  bool                m_pexActive;
 
   uint32_t            m_key;
   int32_t             m_numwant;

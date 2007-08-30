@@ -50,6 +50,7 @@ ThrottleList::ThrottleList() :
   m_size(0),
   m_outstandingQuota(0),
   m_unallocatedQuota(0),
+  m_unusedUnthrottledQuota(0),
 
   m_minChunkSize(2 << 10),
   m_maxChunkSize(16 << 10),
@@ -108,6 +109,7 @@ ThrottleList::disable() {
 
   m_outstandingQuota = 0;
   m_unallocatedQuota = 0;
+  m_unusedUnthrottledQuota = 0;
 
   std::for_each(begin(), end(), std::mem_fun(&ThrottleNode::clear_quota));
   std::for_each(m_splitActive, end(), std::mem_fun(&ThrottleNode::activate));
@@ -120,11 +122,15 @@ ThrottleList::update_quota(uint32_t quota) {
   if (!m_enabled)
     throw internal_error("ThrottleList::update_quota(...) called but the object is not enabled.");
 
+  // Distribute new quota to unthrottled quota first, and use
+  // left-over unthrottled quota from last turn to be allocated
+  // to throttled nodes this turn.
   // When distributing, we include the unallocated quota from the
   // previous turn. This will ensure that quota that was reclaimed
   // will have a chance of being used, even by those nodes that were
   // deactivated.
-  m_unallocatedQuota += quota;
+  m_unallocatedQuota += m_unusedUnthrottledQuota;
+  m_unusedUnthrottledQuota = quota;
 
   // Add remaining to the next, even when less than activate border.
   while (m_splitActive != end()) {
@@ -163,13 +169,13 @@ ThrottleList::node_quota(ThrottleNode* node) {
   }
 }
 
-void
+uint32_t
 ThrottleList::node_used(ThrottleNode* node, uint32_t used) {
   m_rateSlow.insert(used);
   node->rate()->insert(used);
 
   if (used == 0 || !m_enabled || node->list_iterator() == end())
-    return;
+    return used;
 
   uint32_t quota = std::min(used, node->quota());
 
@@ -179,6 +185,21 @@ ThrottleList::node_used(ThrottleNode* node, uint32_t used) {
   node->set_quota(node->quota() - quota);
   m_outstandingQuota -= quota;
   m_unallocatedQuota -= std::min(used - quota, m_unallocatedQuota);
+
+  return used;
+}
+
+uint32_t
+ThrottleList::node_used_unthrottled(uint32_t used) {
+  m_rateSlow.insert(used);
+
+  // Use what we can from the unthrottled quota,
+  // if node used too much borrow from throttled quota.
+  uint32_t avail = std::min(used, m_unusedUnthrottledQuota);
+  m_unusedUnthrottledQuota -= avail;
+  m_unallocatedQuota -= std::min(used - avail, m_unallocatedQuota);
+
+  return used;
 }
 
 void

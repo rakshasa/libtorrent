@@ -53,6 +53,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/peer/peer_info.h"
 
+#include "extensions.h"
 #include "peer_connection_base.h"
 
 #include "manager.h"
@@ -75,8 +76,10 @@ PeerConnectionBase::PeerConnectionBase() :
   m_sendChoked(false),
   m_sendInterested(false),
   m_tryRequest(true),
+  m_sendPEXMask(0),
 
-  m_encryptBuffer(NULL) {
+  m_encryptBuffer(NULL),
+  m_extensions(NULL) {
 }
 
 PeerConnectionBase::~PeerConnectionBase() {
@@ -84,10 +87,16 @@ PeerConnectionBase::~PeerConnectionBase() {
   delete m_down;
 
   delete m_encryptBuffer;
+
+  if (m_extensions != NULL && !m_extensions->is_default())
+    delete m_extensions;
+
+  if (m_extensionMessage.copied())
+    m_extensionMessage.clear();
 }
 
 void
-PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo) {
+PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (get_fd().is_valid())
     throw internal_error("Tried to re-set PeerConnection.");
 
@@ -103,6 +112,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   m_download = download;
 
   m_encryption = *encryptionInfo;
+  m_extensions = extensions;
 
   m_peerChunks.set_peer_info(m_peerInfo);
   m_peerChunks.bitfield()->swap(*bitfield);
@@ -437,7 +447,21 @@ PeerConnectionBase::down_chunk_from_buffer() {
 // don't really care that much about performance.
 bool
 PeerConnectionBase::down_chunk_skip() {
-  uint32_t length = read_stream_throws(m_nullBuffer, m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position());
+  ThrottleList* throttle = m_download->download_throttle();
+
+  if (!throttle->is_throttled(m_peerChunks.download_throttle()))
+    throw internal_error("PeerConnectionBase::down_chunk_skip() tried to read a piece but is not in throttle list");
+
+  uint32_t quota = throttle->node_quota(m_peerChunks.download_throttle());
+
+  if (quota == 0) {
+    manager->poll()->remove_read(this);
+    throttle->node_deactivate(m_peerChunks.download_throttle());
+    return false;
+  }
+
+  uint32_t length = read_stream_throws(m_nullBuffer, std::min(quota, m_downloadQueue.transfer()->piece().length() - m_downloadQueue.transfer()->position()));
+  throttle->node_used(m_peerChunks.download_throttle(), length);
 
   if (is_encrypted())
     m_encryption.decrypt(m_nullBuffer, length);
@@ -538,6 +562,27 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   return length;
 }
 
+bool
+PeerConnectionBase::down_extension() {
+  uint32_t need = m_extensions->read_need();
+
+  // If we need more bytes, read as much as we can get nonetheless.
+  if (need > m_down->buffer()->remaining() && m_down->buffer()->reserved_left() > 0) {
+    uint32_t read = m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), m_down->buffer()->reserved_left()));
+    m_download->download_throttle()->node_used_unthrottled(read);
+
+    if (is_encrypted())
+      m_encryption.decrypt(m_down->buffer()->end() - read, read);
+  }
+
+  if (m_down->buffer()->consume(m_extensions->read(m_down->buffer()->position(), 
+                                                   std::min<uint32_t>(m_down->buffer()->remaining(), need), 
+                                                   m_peerInfo)))
+    m_down->buffer()->reset();
+
+  return m_extensions->is_complete();
+}
+
 inline uint32_t
 PeerConnectionBase::up_chunk_encrypt(uint32_t quota) {
   if (m_encryptBuffer == NULL)
@@ -618,6 +663,41 @@ PeerConnectionBase::up_chunk() {
   return m_upPiece.length() == 0;
 }
 
+bool
+PeerConnectionBase::up_extension() {
+  if (m_extensionOffset == extension_must_encrypt) {
+    if (m_extensionMessage.copied()) {
+      m_encryption.encrypt(m_extensionMessage.data(), m_extensionMessage.length());
+
+    } else {
+      char* buffer = new char[m_extensionMessage.length()];
+
+      m_encryption.encrypt(m_extensionMessage.data(), buffer, m_extensionMessage.length());
+      m_extensionMessage.set(buffer, buffer + m_extensionMessage.length(), true);
+      m_extensionOffset = 0;
+    }
+  }
+
+  if (m_extensionOffset >= m_extensionMessage.length())
+    throw internal_error("PeerConnectionBase::up_extension bad offset.");
+
+  uint32_t written = write_stream_throws(m_extensionMessage.data() + m_extensionOffset, m_extensionMessage.length() - m_extensionOffset);
+  m_download->upload_throttle()->node_used_unthrottled(written);
+  m_extensionOffset += written;
+
+  if (m_extensionOffset < m_extensionMessage.length())
+    return false;
+
+  // clear() deletes the buffer, only do that if we made a copy,
+  // otherwise the buffer is shared among all connections.
+  if (m_extensionMessage.copied())
+    m_extensionMessage.clear();
+  else 
+    m_extensionMessage.set(NULL, NULL, false);
+
+  return true;
+}
+
 void
 PeerConnectionBase::down_chunk_release() {
   if (m_downChunk.is_valid())
@@ -664,6 +744,19 @@ PeerConnectionBase::write_prepare_piece() {
   }
   
   m_up->write_piece(m_upPiece);
+}
+
+void
+PeerConnectionBase::write_prepare_extension(int type, const ProtocolExtension::Buffer& message) {
+  m_up->write_extension(m_extensions->id(type), message.length());
+
+  m_extensionOffset = 0;
+  m_extensionMessage = message;
+
+  // Need to encrypt the buffer, but not until the m_up
+  // write buffer has been flushed, so flag it for now.
+  if (is_encrypted())
+    m_extensionOffset = extension_must_encrypt;
 }
 
 // High stall count peers should request if we're *not* in endgame, or
@@ -719,6 +812,32 @@ PeerConnectionBase::try_request_pieces() {
   }
 
   return success;
+}
+
+// Send one peer exchange message according to bits set in m_sendPEXMask.
+// We can only send one message at a time, because the derived class
+// needs to flush the buffer and call up_extension before the next one.
+void
+PeerConnectionBase::send_pex_message() {
+  // Message to tell peer to stop/start doing PEX is small so send it first.
+  if (m_sendPEXMask & (PEX_ENABLE | PEX_DISABLE)) {
+    write_prepare_extension(ProtocolExtension::HANDSHAKE,
+                            ProtocolExtension::toggle_message(ProtocolExtension::UT_PEX, m_sendPEXMask & PEX_ENABLE != 0));
+
+    m_sendPEXMask &= ~(PEX_ENABLE | PEX_DISABLE);
+
+  } else if (m_sendPEXMask & PEX_DO) {
+    const ProtocolExtension::Buffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
+    m_extensions->clear_initial_pex();
+
+    if (!pexMessage.empty())
+      write_prepare_extension(ProtocolExtension::UT_PEX, pexMessage);
+
+    m_sendPEXMask &= ~PEX_DO;
+
+  } else {
+    throw internal_error("ProtocolConnectionBase::send_pex_message invalid value in m_sendPEXMask.");
+  }
 }
 
 }

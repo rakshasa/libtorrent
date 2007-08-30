@@ -47,11 +47,11 @@
 
 namespace torrent {
 
+class AddressList;
 class TrackerControl;
 
 class TrackerBase {
 public:
-  typedef std::list<rak::socket_address>                                        AddressList;
   typedef rak::mem_fun2<TrackerControl, void, TrackerBase*, AddressList*>       SlotTbAddressList;
   typedef rak::mem_fun2<TrackerControl, void, TrackerBase*, const std::string&> SlotTbString;
 
@@ -119,19 +119,6 @@ protected:
 
   SlotTbAddressList   m_slotSuccess;
   SlotTbString        m_slotFailed;
-};
-
-struct address_list_add_address : public std::unary_function<rak::socket_address, void> {
-  address_list_add_address(TrackerBase::AddressList* l) : m_list(l) {}
-
-  void operator () (const rak::socket_address& sa) const {
-    if (!sa.is_valid())
-      return;
-
-    m_list->push_back(sa);
-  }
-
-  TrackerBase::AddressList* m_list;
 };
 
 }

@@ -70,7 +70,7 @@ AvailableList::push_back(const rak::socket_address* sa) {
 
 void
 AvailableList::insert(AddressList* l) {
-  if (size() > m_maxSize)
+  if (!want_more())
     return;
 
   std::sort(begin(), end());

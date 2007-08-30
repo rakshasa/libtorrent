@@ -95,6 +95,10 @@ public:
   bool                is_hash_checked() const;
   bool                is_hash_checking() const;
 
+  bool                is_private() const;
+  bool                pex_enabled() const;
+  void                set_pex_enabled(bool enabled);
+
   // Returns "" if the object is not valid.
   const std::string&  name() const;
 

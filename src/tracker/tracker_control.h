@@ -56,11 +56,11 @@ namespace torrent {
 // tracker we can connect to, NONE's should be interpreted as a
 // started download.
 
+class AddressList;
 class TrackerManager;
 
 class TrackerControl {
 public:
-  typedef std::list<rak::socket_address>                          AddressList;
   typedef rak::mem_fun1<TrackerManager, void, AddressList*>       SlotSuccess;
   typedef rak::mem_fun1<TrackerManager, void, const std::string&> SlotFailed;
 

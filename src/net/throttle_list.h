@@ -85,7 +85,8 @@ public:
   void                set_max_chunk_size(uint32_t v) { m_maxChunkSize = v; }
 
   uint32_t            node_quota(ThrottleNode* node);
-  void                node_used(ThrottleNode* node, uint32_t used);
+  uint32_t            node_used(ThrottleNode* node, uint32_t used);  // both node_used functions
+  uint32_t            node_used_unthrottled(uint32_t used);          // return the "used" argument
   void                node_deactivate(ThrottleNode* node);
 
   const Rate*         rate_slow() const              { return &m_rateSlow; }
@@ -104,6 +105,7 @@ private:
 
   uint32_t            m_outstandingQuota;
   uint32_t            m_unallocatedQuota;
+  uint32_t            m_unusedUnthrottledQuota;
 
   uint32_t            m_minChunkSize;
   uint32_t            m_maxChunkSize;

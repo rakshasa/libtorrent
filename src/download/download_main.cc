@@ -112,6 +112,9 @@ DownloadMain::~DownloadMain() {
   delete m_chunkList;
   delete m_chunkSelector;
   delete m_info;
+
+  m_ut_pex_delta.clear();
+  m_ut_pex_initial.clear();
 }
 
 void
@@ -219,7 +222,7 @@ DownloadMain::receive_connect_peers() {
   if (!info()->is_active())
     return;
 
-  AvailableList::AddressList* alist = peer_list()->available_list()->buffer();
+  AddressList* alist = peer_list()->available_list()->buffer();
 
   if (!alist->empty()) {
     alist->sort();
@@ -259,6 +262,85 @@ DownloadMain::receive_tracker_request() {
     m_trackerManager->request_next();
 
   m_lastConnectedSize = connection_list()->size();
+}
+
+struct SocketAddressCompact_less {
+  bool operator () (const SocketAddressCompact& a, const SocketAddressCompact& b) const {
+    return (a.addr < b.addr) || ((a.addr == b.addr) && (a.port < b.port));
+  }
+};
+
+void
+DownloadMain::do_peer_exchange() {
+  if (!info()->is_active())
+    throw internal_error("DownloadMain::do_peer_exchange called on inactive download.");
+
+  // Check whether we should tell the peers to stop/start sending PEX messages.
+  int togglePex = 0;
+
+  if (!m_info->pex_active() && m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
+    togglePex = PeerConnectionBase::PEX_ENABLE;
+    m_info->set_pex_active(true);
+
+  } else if (m_info->pex_active() && m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
+    togglePex = PeerConnectionBase::PEX_DISABLE;
+    m_info->set_pex_active(false);
+  }
+
+  ProtocolExtension::PEXList current;
+
+  for (ConnectionList::iterator itr = m_connectionList->begin(); itr != m_connectionList->end(); ++itr) {
+    if (togglePex != 0)
+      (*itr)->toggle_peer_exchange(togglePex);
+
+    // Still using the old buffer? Make a copy in this rare case.
+    ProtocolExtension::Buffer* message = (*itr)->extension_message();
+    if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
+      char* buffer = new char[message->length()];
+      memcpy(buffer, message->data(), message->length());
+      message->set(buffer, buffer + message->length(), true);
+    }
+
+    (*itr)->do_peer_exchange();
+
+    if ((*itr)->peer_info()->listen_port() == 0) 
+      continue;
+
+    const rak::socket_address* sa = rak::socket_address::cast_from((*itr)->peer_info()->socket_address());
+
+    if (sa->family() != rak::socket_address::af_inet)
+      continue;
+
+    current.push_back(SocketAddressCompact(sa->sa_inet()->address_n(), (*itr)->peer_info()->listen_port()));
+  }
+
+  std::sort(current.begin(), current.end(), SocketAddressCompact_less());
+
+  // Collect new peers in the "added" list.
+  ProtocolExtension::PEXList added;
+  std::set_difference(current.begin(), current.end(), 
+                      m_ut_pex_list.begin(), m_ut_pex_list.end(), 
+                      std::back_inserter(added), SocketAddressCompact_less());
+
+  // Collect removed peers in m_ut_pex_list.
+  m_ut_pex_list.erase(std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), 
+                                          current.begin(), current.end(), 
+                                          m_ut_pex_list.begin(), SocketAddressCompact_less()),
+                      m_ut_pex_list.end());
+
+  m_ut_pex_delta.clear();
+
+  // If no peers were added or removed, the initial message is still correct and
+  // the delta message stays emptied. Otherwise generate the appropriate messages.
+  if (!added.empty() || !m_ut_pex_list.empty()) {
+    m_ut_pex_delta = ProtocolExtension::ut_pex_message(added, m_ut_pex_list);
+
+    m_ut_pex_list.clear();
+    m_ut_pex_initial.clear();
+    m_ut_pex_initial = ProtocolExtension::ut_pex_message(current, m_ut_pex_list);
+  }
+
+  m_ut_pex_list.swap(current);
 }
 
 }

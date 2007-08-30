@@ -45,6 +45,7 @@
 
 namespace torrent {
 
+class AddressList;
 class DownloadWrapper;
 class TrackerControl;
 class DownloadInfo;
@@ -54,7 +55,6 @@ class TrackerManager {
 public:
   typedef uint32_t                                size_type;
   typedef std::pair<int, TrackerBase*>            value_type;
-  typedef std::list<rak::socket_address>          AddressList;
 
   typedef rak::mem_fun1<DownloadWrapper, void, AddressList*>       SlotSuccess;
   typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotFailed;

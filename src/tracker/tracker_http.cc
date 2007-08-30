@@ -41,6 +41,7 @@
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
+#include "net/address_list.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
@@ -218,10 +219,10 @@ TrackerHttp::receive_done() {
     // Due to some trackers sending the wrong type when no peers are
     // available, don't bork on it.
     if (b.get_key("peers").is_string())
-      parse_address_compact(&l, b.get_key_string("peers"));
+      l.parse_address_compact(b.get_key_string("peers"));
 
     else if (b.get_key("peers").is_list())
-      parse_address_normal(&l, b.get_key_list("peers"));
+      l.parse_address_normal(b.get_key_list("peers"));
 
   } catch (bencode_error& e) {
     return receive_failed(e.what());
@@ -236,40 +237,6 @@ TrackerHttp::receive_failed(std::string msg) {
   // Does the order matter?
   close();
   m_slotFailed(this, msg);
-}
-
-inline rak::socket_address
-TrackerHttp::parse_address(const Object& b) {
-  rak::socket_address sa;
-  sa.clear();
-
-  if (!b.is_map())
-    return sa;
-
-  if (!b.has_key_string("ip") || !sa.set_address_str(b.get_key_string("ip")))
-    return sa;
-
-  if (!b.has_key_value("port") || b.get_key_value("port") <= 0 || b.get_key_value("port") >= (1 << 16))
-    return sa;
-
-  sa.set_port(b.get_key_value("port"));
-
-  return sa;
-}
-
-void
-TrackerHttp::parse_address_normal(AddressList* l, const Object::list_type& b) {
-  std::for_each(b.begin(), b.end(), rak::on(std::ptr_fun(&TrackerHttp::parse_address), address_list_add_address(l)));
-}
-
-void
-TrackerHttp::parse_address_compact(AddressList* l, const std::string& s) {
-  if (sizeof(const SocketAddressCompact) != 6)
-    throw internal_error("TrackerHttp::parse_address_compact(...) bad struct size.");
-
-  std::copy(reinterpret_cast<const SocketAddressCompact*>(s.c_str()),
-	    reinterpret_cast<const SocketAddressCompact*>(s.c_str() + s.size() - s.size() % sizeof(SocketAddressCompact)),
-	    std::back_inserter(*l));
 }
 
 }

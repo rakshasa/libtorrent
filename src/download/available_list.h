@@ -42,12 +42,13 @@
 
 #include <rak/socket_address.h>
 
+#include "net/address_list.h"
+
 namespace torrent {
 
 class AvailableList : private std::vector<rak::socket_address> {
 public:
   typedef std::vector<rak::socket_address> base_type;
-  typedef std::list<rak::socket_address>   AddressList;
   typedef uint32_t                         size_type;
 
   using base_type::value_type;
@@ -75,6 +76,8 @@ public:
   // Fuzzy size limit.
   size_type           max_size() const                   { return m_maxSize; }
   void                set_max_size(size_type s)          { m_maxSize = s; }
+
+  bool                want_more() const                  { return size() <= m_maxSize; }
 
   // This push is somewhat inefficient as it iterates through the
   // whole container to see if the address already exists.

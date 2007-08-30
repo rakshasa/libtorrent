@@ -44,6 +44,7 @@
 #include "download/download_info.h"
 #include "download/download_main.h"
 
+#include "extensions.h"
 #include "peer_connection_seed.h"
 
 namespace torrent {
@@ -174,6 +175,21 @@ PeerConnectionSeed::read_message() {
     read_cancel_piece(m_down->read_request());
     return true;
 
+  case ProtocolBase::EXTENSION_PROTOCOL:
+    if (!m_down->can_read_extension_body())
+      break;
+
+    {
+      int extension = m_down->buffer()->read_8();
+      m_extensions->read_start(extension, length - 2, (extension == ProtocolExtension::UT_PEX) && !m_download->want_pex_msg());
+      m_down->set_state(ProtocolRead::READ_EXTENSION);
+    }
+
+    if (down_extension())
+      m_down->set_state(ProtocolRead::IDLE);
+
+    return true;
+
   default:
     throw communication_error("Received unsupported message type.");
   }
@@ -205,11 +221,18 @@ PeerConnectionSeed::event_read() {
 
     do {
 
+      if (m_down->get_state() == ProtocolRead::READ_EXTENSION) {
+        if (!down_extension())
+          return;
+
+        m_down->set_state(ProtocolRead::IDLE);
+      }
+
       if (m_down->buffer()->size_end() == read_size)
         throw internal_error("PeerConnectionSeed::event_read() m_down->buffer()->size_end() == read_size.");
 
-      m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end()));
-        
+      m_down->buffer()->move_end(m_download->download_throttle()->node_used_unthrottled(read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end())));
+
       while (read_message());
         
       if (m_down->buffer()->size_end() == read_size) {
@@ -265,9 +288,14 @@ PeerConnectionSeed::fill_write_buffer() {
     }
   }
 
-  if (!m_upChoke.choked() &&
-      !m_peerChunks.upload_queue()->empty() &&
-      m_up->can_write_piece())
+  if (m_sendPEXMask &&
+      m_extensions->id(ProtocolExtension::UT_PEX) &&
+      m_up->can_write_extension())
+    send_pex_message();
+
+  else if (!m_upChoke.choked() &&
+           !m_peerChunks.upload_queue()->empty() &&
+           m_up->can_write_piece())
     write_prepare_piece();
 }
 
@@ -291,28 +319,41 @@ PeerConnectionSeed::event_write() {
         m_up->set_state(ProtocolWrite::MSG);
 
       case ProtocolWrite::MSG:
-        if (!m_up->buffer()->consume(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining())))
+        if (!m_up->buffer()->consume(m_download->upload_throttle()->node_used_unthrottled(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()))))
           return;
 
         m_up->buffer()->reset();
 
-        if (m_up->last_command() != ProtocolBase::PIECE) {
+        if (m_up->last_command() == ProtocolBase::PIECE) {
+          // We're uploading a piece.
+          load_up_chunk();
+          m_up->set_state(ProtocolWrite::WRITE_PIECE);
+
+          // fall through to WRITE_PIECE case below
+
+        } else if (m_up->last_command() == ProtocolBase::EXTENSION_PROTOCOL) {
+          m_up->set_state(ProtocolWrite::WRITE_EXTENSION);
+          break;
+
+        } else {
           // Break or loop? Might do an ifelse based on size of the
           // write buffer. Also the write buffer is relatively large.
           m_up->set_state(ProtocolWrite::IDLE);
           break;
         }
 
-        // We're uploading a piece.
-        load_up_chunk();
-        m_up->set_state(ProtocolWrite::WRITE_PIECE);
-
       case ProtocolWrite::WRITE_PIECE:
         if (!up_chunk())
           return;
 
         m_up->set_state(ProtocolWrite::IDLE);
+        break;
 
+      case ProtocolWrite::WRITE_EXTENSION:
+        if (!up_extension())
+          return;
+
+        m_up->set_state(ProtocolWrite::IDLE);
         break;
 
       default:

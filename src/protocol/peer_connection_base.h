@@ -43,6 +43,7 @@
 #include "torrent/poll.h"
 
 #include "encryption_info.h"
+#include "extensions.h"
 #include "peer_chunks.h"
 #include "protocol_base.h"
 #include "request_list.h"
@@ -77,10 +78,15 @@ public:
   // Find an optimal number for this.
   static const uint32_t read_size = 64;
 
+  // Bitmasks for peer exchange messages to send.
+  static const int PEX_DO      = (1 << 0);
+  static const int PEX_ENABLE  = (1 << 1);
+  static const int PEX_DISABLE = (1 << 2);
+
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
-  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo);
+  void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
   bool                is_up_choked()                { return m_upChoke.choked(); }
@@ -106,6 +112,12 @@ public:
   DownloadMain*       download()                    { return m_download; }
   RequestList*        download_queue()              { return &m_downloadQueue; }
 
+  ProtocolExtension*  extensions()                  { return m_extensions; }
+  ProtocolExtension::Buffer* extension_message()    { return &m_extensionMessage; }
+
+  void                do_peer_exchange()            { m_sendPEXMask |= PEX_DO; }
+  void                toggle_peer_exchange(int flag){ m_sendPEXMask = (m_sendPEXMask & ~(PEX_ENABLE | PEX_DISABLE)) | flag; }
+
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
   virtual void        update_interested() = 0;
@@ -121,6 +133,8 @@ public:
   void                cancel_transfer(BlockTransfer* transfer);
 
 protected:
+  static const uint32_t extension_must_encrypt = ~uint32_t();
+
   inline bool         read_remaining();
   inline bool         write_remaining();
 
@@ -133,6 +147,7 @@ protected:
   void                read_cancel_piece(const Piece& p);
 
   void                write_prepare_piece();
+  void                write_prepare_extension(int type, const ProtocolExtension::Buffer& message);
 
   bool                down_chunk_start(const Piece& p);
   void                down_chunk_finished();
@@ -145,14 +160,20 @@ protected:
   uint32_t            down_chunk_process(const void* buffer, uint32_t length);
   uint32_t            down_chunk_skip_process(const void* buffer, uint32_t length);
 
+  bool                down_extension();
+
   bool                up_chunk();
   inline uint32_t     up_chunk_encrypt(uint32_t quota);
+
+  bool                up_extension();
 
   void                down_chunk_release();
   void                up_chunk_release();
 
   bool                should_request();
   bool                try_request_pieces();
+
+  void                send_pex_message();
 
   // Insert into the poll unless we're blocking for throttling etc.
   void                read_insert_poll_safe();
@@ -193,10 +214,16 @@ protected:
   bool                m_sendInterested;
   bool                m_tryRequest;
 
+  int                 m_sendPEXMask;
+
   rak::timer          m_timeLastRead;
+
+  ProtocolExtension::Buffer m_extensionMessage;
+  uint32_t            m_extensionOffset;
 
   EncryptBuffer*      m_encryptBuffer;
   EncryptionInfo      m_encryption;
+  ProtocolExtension*  m_extensions;
 };
 
 inline void

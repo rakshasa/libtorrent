@@ -179,6 +179,21 @@ Download::is_hash_checking() const {
   return m_ptr->hash_checker()->is_checking();
 }
 
+bool
+Download::is_private() const {
+  return m_ptr->info()->is_private();
+}
+
+bool
+Download::pex_enabled() const {
+  return m_ptr->info()->pex_enabled();
+}
+
+void
+Download::set_pex_enabled(bool enabled) {
+  m_ptr->info()->set_pex_enabled(enabled);
+}
+
 const std::string&
 Download::name() const {
   if (m_ptr == NULL)

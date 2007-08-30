@@ -89,11 +89,15 @@ public:
   DownloadMain*       download_info(const char* hash)                   { return m_slotDownloadId(hash); }
   DownloadMain*       download_info_obfuscated(const char* hash)        { return m_slotDownloadIdObfuscated(hash); }
 
+  ProtocolExtension*  default_extensions() const                        { return &DefaultExtensions; }
+
 private:
   void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryptionOptions);
   void                erase(Handshake* handshake);
 
   bool                setup_socket(SocketFd fd);
+
+  static ProtocolExtension DefaultExtensions;
 
   SlotDownloadId      m_slotDownloadId;
   SlotDownloadId      m_slotDownloadIdObfuscated;

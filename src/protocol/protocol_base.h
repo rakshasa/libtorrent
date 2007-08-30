@@ -62,6 +62,9 @@ public:
     REQUEST,
     PIECE,
     CANCEL,
+
+    EXTENSION_PROTOCOL = 20,
+
     NONE,           // These are not part of the protocol
     KEEP_ALIVE      // Last command was a keep alive
   } Protocol;
@@ -71,7 +74,9 @@ public:
     MSG,
     READ_PIECE,
     READ_SKIP_PIECE,
+    READ_EXTENSION,
     WRITE_PIECE,
+    WRITE_EXTENSION,
     INTERNAL_ERROR
   } State;
 
@@ -103,6 +108,7 @@ public:
   void                write_request(const Piece& p);
   void                write_cancel(const Piece& p);
   void                write_piece(const Piece& p);
+  void                write_extension(uint8_t id, uint32_t length);
 
   static const size_type sizeof_keepalive    = 4;
   static const size_type sizeof_choke        = 5;
@@ -116,6 +122,8 @@ public:
   static const size_type sizeof_cancel_body  = 12;
   static const size_type sizeof_piece        = 13;
   static const size_type sizeof_piece_body   = 8;
+  static const size_type sizeof_extension    = 6;
+  static const size_type sizeof_extension_body=1;
 
   bool                can_write_keepalive() const             { return m_buffer.reserved_left() >= sizeof_keepalive; }
   bool                can_write_choke() const                 { return m_buffer.reserved_left() >= sizeof_choke; }
@@ -125,11 +133,13 @@ public:
   bool                can_write_request() const               { return m_buffer.reserved_left() >= sizeof_request; }
   bool                can_write_cancel() const                { return m_buffer.reserved_left() >= sizeof_cancel; }
   bool                can_write_piece() const                 { return m_buffer.reserved_left() >= sizeof_piece; }
+  bool                can_write_extension() const             { return m_buffer.reserved_left() >= sizeof_extension; }
 
   bool                can_read_have_body() const              { return m_buffer.remaining() >= sizeof_have_body; }
   bool                can_read_request_body() const           { return m_buffer.remaining() >= sizeof_request_body; }
   bool                can_read_cancel_body() const            { return m_buffer.remaining() >= sizeof_request_body; }
   bool                can_read_piece_body() const             { return m_buffer.remaining() >= sizeof_piece_body; }
+  bool                can_read_extension_body() const         { return m_buffer.remaining() >= sizeof_extension_body; }
 
 protected:
   State               m_state;
@@ -210,6 +220,13 @@ ProtocolBase::write_piece(const Piece& p) {
   write_command(PIECE);
   m_buffer.write_32(p.index());
   m_buffer.write_32(p.offset());
+}
+
+inline void
+ProtocolBase::write_extension(uint8_t id, uint32_t length) {
+  m_buffer.write_32(2 + length);
+  write_command(EXTENSION_PROTOCOL);
+  m_buffer.write_8(id);
 }
 
 }

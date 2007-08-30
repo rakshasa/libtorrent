@@ -34,38 +34,39 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_TRACKER_HTTP_H
-#define LIBTORRENT_TRACKER_TRACKER_HTTP_H
+#ifndef LIBTORRENT_DOWNLOAD_ADDRESS_LIST_H
+#define LIBTORRENT_DOWNLOAD_ADDRESS_LIST_H
 
-#include <iosfwd>
+#include <list>
+#include <string>
+#include <rak/socket_address.h>
 
-#include "torrent/object.h"
-#include "tracker_base.h"
+#include <torrent/object.h>
 
 namespace torrent {
 
-class Http;
-
-class TrackerHttp : public TrackerBase {
+class AddressList : public std::list<rak::socket_address> {
 public:
-  TrackerHttp(DownloadInfo* info, const std::string& url);
-  ~TrackerHttp();
-  
-  virtual bool        is_busy() const;
-
-  virtual void        send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left);
-  virtual void        close();
-
-  virtual Type        type() const;
+  // Parse normal or compact list of addresses and add to AddressList
+  void                        parse_address_normal(const Object::list_type& b);
+  void                        parse_address_compact(const std::string& s);
 
 private:
-  void                receive_done();
-  void                receive_failed(std::string msg);
+  static rak::socket_address  parse_address(const Object& b);
 
-  Http*               m_get;
-  std::stringstream*  m_data;
+  struct add_address : public std::unary_function<rak::socket_address, void> {
+    add_address(AddressList* l) : m_list(l) {}
 
-  bool                m_dropDeliminator;
+    void operator () (const rak::socket_address& sa) const {
+      if (!sa.is_valid())
+        return;
+ 
+      m_list->push_back(sa);
+    }
+
+    AddressList* m_list;
+  };
+
 };
 
 }
