@@ -254,7 +254,7 @@ DownloadMain::receive_tracker_request() {
   if (connection_list()->size() >= connection_list()->get_min_size())
     return;
 
-  if (m_info->pex_enabled() || connection_list()->size() < m_lastConnectedSize + 10)
+  if (m_info->is_pex_enabled() || connection_list()->size() < m_lastConnectedSize + 10)
     m_trackerManager->request_next();
   else if (!m_trackerManager->request_current())
     m_trackerManager->request_next();
@@ -276,11 +276,11 @@ DownloadMain::do_peer_exchange() {
   // Check whether we should tell the peers to stop/start sending PEX messages.
   int togglePex = 0;
 
-  if (!m_info->pex_active() && m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
+  if (!m_info->is_pex_active() && m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
     togglePex = PeerConnectionBase::PEX_ENABLE;
     m_info->set_pex_active(true);
 
-  } else if (m_info->pex_active() && m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
+  } else if (m_info->is_pex_active() && m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
     togglePex = PeerConnectionBase::PEX_DISABLE;
     m_info->set_pex_active(false);
   }

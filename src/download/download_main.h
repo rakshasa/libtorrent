@@ -106,7 +106,7 @@ public:
 
   ProtocolExtension::Buffer get_ut_pex(bool initial)             { return initial ? m_ut_pex_initial : m_ut_pex_delta; }
 
-  bool                want_pex_msg()                             { return m_info->pex_active() && m_peerList.available_list()->want_more(); }; 
+  bool                want_pex_msg()                             { return m_info->is_pex_active() && m_peerList.available_list()->want_more(); }; 
 
   // Carefull with these.
   void                setup_delegator();

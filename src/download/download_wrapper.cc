@@ -295,11 +295,11 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   // Every 2 minutes.
   if (ticks % 4 == 0) {
     if (info()->is_active()) {
-      if (info()->pex_enabled()) {
+      if (info()->is_pex_enabled()) {
         m_main.do_peer_exchange();
 
       // If PEX was disabled since the last peer exchange, deactivate it now.
-      } else if (info()->pex_active()) {
+      } else if (info()->is_pex_active()) {
         info()->set_pex_active(false);
         for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); ++itr)
           (*itr)->toggle_peer_exchange(PeerConnectionBase::PEX_DISABLE);

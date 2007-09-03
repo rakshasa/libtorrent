@@ -117,10 +117,10 @@ public:
   bool                is_private() const                           { return m_isPrivate; }
   void                set_private(bool p)                          { m_isPrivate = p; if (p) m_pexEnabled = false; }
 
-  bool                pex_enabled() const                          { return m_pexEnabled; }
+  bool                is_pex_enabled() const                       { return m_pexEnabled; }
   void                set_pex_enabled(bool enabled)                { m_pexEnabled = enabled && !m_isPrivate; }
 
-  bool                pex_active() const                           { return m_pexActive; }
+  bool                is_pex_active() const                        { return m_pexActive; }
   void                set_pex_active(bool active)                  { m_pexActive = active; }
 
   uint32_t            key() const                                  { return m_key; }

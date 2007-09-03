@@ -989,7 +989,7 @@ Handshake::write_extension_handshake() {
   if (m_extensions->is_default())
     m_extensions = new ProtocolExtension;
 
-  ProtocolExtension::Buffer message = m_extensions->handshake_message(m_download->info()->pex_active());
+  ProtocolExtension::Buffer message = m_extensions->handshake_message(m_download->info()->is_pex_active());
 
   m_writeBuffer.write_32(message.length() + 2);
   m_writeBuffer.write_8(protocol_extension);
