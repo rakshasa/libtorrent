@@ -141,6 +141,8 @@ public:
 
   void                update_paths(iterator first, iterator last);
 
+  void                set_file_completed_chunks(iterator itr, uint32_t v);
+
 protected:
   void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
 

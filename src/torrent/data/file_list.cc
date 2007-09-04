@@ -301,6 +301,14 @@ FileList::update_paths(iterator first, iterator last) {
   verify_file_list(this);
 }
 
+void
+FileList::set_file_completed_chunks(iterator itr, uint32_t v) {
+  if (is_open())
+    return;
+
+  (*itr)->set_completed(v);
+}
+
 // Initialize FileList and add a dummy file that may be split into
 // multiple files.
 void

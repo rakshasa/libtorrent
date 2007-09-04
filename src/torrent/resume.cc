@@ -145,6 +145,8 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
     else if (!filesItr->is_map())
       *filesItr = Object(Object::TYPE_MAP);
 
+    filesItr->insert_key("completed", (int64_t)(*listItr)->completed_chunks());
+
     rak::file_stat fs;
 
     if (!fs.update(fileList->root_dir() + (*listItr)->path()->as_string()) ||
@@ -182,6 +184,9 @@ resume_load_file_priorities(Download download, const Object& object) {
     if (filesItr->has_key_value("priority") &&
         filesItr->get_key_value("priority") >= 0 && filesItr->get_key_value("priority") <= PRIORITY_HIGH)
       (*listItr)->set_priority((priority_t)filesItr->get_key_value("priority"));
+
+    if (filesItr->has_key_value("completed"))
+      fileList->set_file_completed_chunks(listItr, std::max<int64_t>(filesItr->get_key_value("completed"), (*listItr)->size_chunks()));
   }
 }
 
