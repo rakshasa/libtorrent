@@ -331,11 +331,11 @@ DownloadMain::do_peer_exchange() {
   // If no peers were added or removed, the initial message is still correct and
   // the delta message stays emptied. Otherwise generate the appropriate messages.
   if (!added.empty() || !m_ut_pex_list.empty()) {
-    m_ut_pex_delta = ProtocolExtension::ut_pex_message(added, m_ut_pex_list);
+    m_ut_pex_delta = ProtocolExtension::generate_ut_pex_message(added, m_ut_pex_list);
 
     m_ut_pex_list.clear();
     m_ut_pex_initial.clear();
-    m_ut_pex_initial = ProtocolExtension::ut_pex_message(current, m_ut_pex_list);
+    m_ut_pex_initial = ProtocolExtension::generate_ut_pex_message(current, m_ut_pex_list);
   }
 
   m_ut_pex_list.swap(current);

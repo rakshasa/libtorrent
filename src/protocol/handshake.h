@@ -143,6 +143,7 @@ protected:
   bool                read_info();
   bool                read_peer();
   bool                read_bitfield();
+  bool                read_extension();
 
   void                prepare_proxy_connect();
   void                prepare_key_plus_pad();

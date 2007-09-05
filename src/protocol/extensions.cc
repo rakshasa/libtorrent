@@ -60,7 +60,7 @@ const char* ProtocolExtension::message_keys[] = {
 };
 
 ProtocolExtension::Buffer
-ProtocolExtension::handshake_message(bool pexEnable) {
+ProtocolExtension::generate_handshake_message(bool pexEnable) {
   Object map(Object::TYPE_MAP);
 
   map.insert_key(message_keys[UT_PEX], pexEnable ? UT_PEX : 0);
@@ -87,7 +87,7 @@ ProtocolExtension::handshake_message(bool pexEnable) {
 }
 
 ProtocolExtension::Buffer
-ProtocolExtension::toggle_message(ProtocolExtension::MessageType t, bool on) {
+ProtocolExtension::generate_toggle_message(ProtocolExtension::MessageType t, bool on) {
   // Manually create bencoded map { "m" => { message_keys[t] => on ? t : 0 } }
   char* b = new char[32];
   unsigned int length = snprintf(b, 32, "d1:md%zu:%si%deee", strlen(message_keys[t]), message_keys[t], on ? t : 0);
@@ -98,7 +98,7 @@ ProtocolExtension::toggle_message(ProtocolExtension::MessageType t, bool on) {
 }
 
 ProtocolExtension::Buffer
-ProtocolExtension::ut_pex_message(const PEXList& added, const PEXList& removed) {
+ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& removed) {
   if (added.empty() && removed.empty())
     return Buffer();
 
@@ -193,7 +193,7 @@ void
 ProtocolExtension::peer_toggle_extension(int type, bool active) {
   // When ut_pex is enabled, the first peer exchange afterwards needs to be a full message, not delta.
   if (active && (type == UT_PEX))
-    m_isInitialPEX = true;
+    m_flags |= flag_initial_pex;
 }
 
 void

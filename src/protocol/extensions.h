@@ -82,28 +82,28 @@ public:
     bool    m_copied;  // Used to indicate if buffer held by PCB is copied and needs to be deleted after transmission.
   };
 
+  static const int    flag_default      = 0x1;
+  static const int    flag_initial_pex  = 0x2;
+  static const int    flag_received_pex = 0x4;
+
   static const char*  message_keys[FIRST_INVALID];
 
   // Number of extensions we support, not counting handshake.
   static const int    extension_count = FIRST_INVALID - HANDSHAKE - 1;
 
-  ProtocolExtension() : m_isDefault(false), m_readType(FIRST_INVALID), m_read(NULL) { reset(); }
+  ProtocolExtension() : m_flags(0), m_readType(FIRST_INVALID), m_read(NULL) { reset(); }
   ~ProtocolExtension() { if (m_read != NULL) delete[] m_read; }
 
   // Create default extension object, with all extensions disabled.
   // Useful for eliminating checks whether peer supports extensions at all.
-  static ProtocolExtension make_default() { ProtocolExtension extension; extension.m_isDefault = true; return extension; }
+  static ProtocolExtension make_default() { ProtocolExtension extension; extension.m_flags |= flag_default; return extension; }
 
-  // Generate handshake message.
-  static Buffer       handshake_message(bool pexEnable);
+  static Buffer       generate_handshake_message(bool pexEnable);
+  static Buffer       generate_toggle_message(MessageType t, bool on);
+  static Buffer       generate_ut_pex_message(const PEXList& added, const PEXList& removed);
 
-  // Generate message to enable/disable the given extension.
-  static Buffer       toggle_message(MessageType t, bool on);
-
-  // Generate peer exchange message with the given added/removed peers.
-  static Buffer       ut_pex_message(const PEXList& added, const PEXList& removed);
-
-  // Return peer's extension ID for the given extension type, or 0 if disabled by peer.
+  // Return peer's extension ID for the given extension type, or 0 if
+  // disabled by peer.
   uint8_t             id(int t) const;
 
   // General information about peer from extension handshake.
@@ -115,13 +115,17 @@ public:
   uint32_t            read_need() const             { return m_readLeft; }
 
   bool                is_complete() const           { return m_readLeft == 0; }
+  bool                is_invalid() const            { return m_readType == FIRST_INVALID; }
 
-  bool                is_default() const            { return m_isDefault; }
+  bool                is_default() const            { return m_flags & flag_default; }
 
   // Initial PEX message after peer enables PEX needs to send full list
   // of peers instead of the delta list, so keep track of that.
-  bool                is_initial_pex() const        { return m_isInitialPEX; }
-  void                clear_initial_pex()           { m_isInitialPEX = false; }
+  bool                is_initial_pex() const        { return m_flags & flag_initial_pex; }
+  bool                is_received_pex() const       { return m_flags & flag_received_pex; }
+
+  void                clear_initial_pex()           { m_flags &= ~flag_initial_pex; }
+  void                set_received_pex()            { m_flags |= flag_received_pex; }
 
   void                reset();
 
@@ -136,8 +140,7 @@ private:
 
   uint32_t            m_maxQueueLength;
 
-  bool                m_isInitialPEX;
-  bool                m_isDefault;
+  int                 m_flags;
 
   uint8_t             m_readType;
   uint32_t            m_readLeft;

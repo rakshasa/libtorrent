@@ -823,7 +823,7 @@ PeerConnectionBase::send_pex_message() {
   // Message to tell peer to stop/start doing PEX is small so send it first.
   if (m_sendPEXMask & (PEX_ENABLE | PEX_DISABLE)) {
     write_prepare_extension(ProtocolExtension::HANDSHAKE,
-                            ProtocolExtension::toggle_message(ProtocolExtension::UT_PEX, m_sendPEXMask & PEX_ENABLE != 0));
+                            ProtocolExtension::generate_toggle_message(ProtocolExtension::UT_PEX, m_sendPEXMask & PEX_ENABLE != 0));
 
     m_sendPEXMask &= ~(PEX_ENABLE | PEX_DISABLE);
 

@@ -555,37 +555,14 @@ Handshake::read_bitfield() {
     if (m_readBuffer.remaining() < 5)
       return false;
 
-    // Extension handshake is sent after BT handshake but before bitfield, so handle that.
-    if (m_readBuffer.peek_8_at(4) == protocol_extension) {
-      if (m_readBuffer.peek_32() > m_readBuffer.reserved())
-          throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
-
-      int32_t need = m_readBuffer.peek_32() + 4 - m_readBuffer.remaining();
-
-      // We currently can't handle an extension handshake that doesn't completely fit in the buffer.
-      // However these messages are usually ~100 bytes large and the buffer holds over 1000 bytes so it
-      // should be ok. Else maybe figure out how to disable extensions for when peer connects next time.
-      if (need > m_readBuffer.reserved_left()) {
-        m_readBuffer.move_unused();
-
-        if (need > m_readBuffer.reserved_left())
-          throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
-      }
-
-      if (!fill_read_buffer(m_readBuffer.peek_32() + 4))
+    // Extension handshake is sent after BT handshake but before
+    // bitfield, so handle that. If we've already received a message
+    // of this type then we will assume the peer won't be sending a
+    // bitfield.
+    if (m_readBuffer.peek_8_at(4) == protocol_extension && !m_extensions->is_received_pex()) {
+      if (!read_extension())
         return false;
 
-      uint32_t length = m_readBuffer.read_32() - 2;
-      m_readBuffer.read_8();
-
-      m_extensions->read_start(m_readBuffer.read_8(), length, false);
-
-      if (!m_extensions->read(m_readBuffer.position(), length, m_peerInfo))
-        throw internal_error("Could not read extension handshake even though it should be in the read buffer.");
-
-      m_readBuffer.consume(length);
-
-      // Restart, see if we'll be getting a bitfield after the extension handshake.
       return read_bitfield();
     }
 
@@ -623,6 +600,48 @@ Handshake::read_bitfield() {
   if (m_readPos == m_bitfield.size_bytes())
     read_done();
 
+  return true;
+}
+
+bool
+Handshake::read_extension() {
+  if (m_readBuffer.peek_32() > m_readBuffer.reserved())
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+
+  int32_t need = m_readBuffer.peek_32() + 4 - m_readBuffer.remaining();
+
+  // We currently can't handle an extension handshake that doesn't
+  // completely fit in the buffer.  However these messages are usually
+  // ~100 bytes large and the buffer holds over 1000 bytes so it
+  // should be ok. Else maybe figure out how to disable extensions for
+  // when peer connects next time.
+  //
+  // In addition, make sure there's at least 5 bytes available after
+  // the PEX message has been read, so that we can fit the preamble of
+  // a BITFIELD message.
+  if (need + 5 > m_readBuffer.reserved_left()) {
+    m_readBuffer.move_unused();
+
+    if (need + 5 > m_readBuffer.reserved_left())
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+  }
+
+  if (!fill_read_buffer(m_readBuffer.peek_32() + 4))
+    return false;
+
+  uint32_t length = m_readBuffer.read_32() - 2;
+  m_readBuffer.read_8();
+
+  // This might not be set if we receive the PEX handshake after
+  // BITFIELD. If it is to be used outside of Handshake, then move
+  // this to ProtocolExtension.
+  m_extensions->set_received_pex();
+  m_extensions->read_start(m_readBuffer.read_8(), length, false);
+
+  if (!m_extensions->read(m_readBuffer.position(), length, m_peerInfo))
+    throw internal_error("Could not read extension handshake even though it should be in the read buffer.");
+
+  m_readBuffer.consume(length);
   return true;
 }
 
@@ -989,7 +1008,7 @@ Handshake::write_extension_handshake() {
   if (m_extensions->is_default())
     m_extensions = new ProtocolExtension;
 
-  ProtocolExtension::Buffer message = m_extensions->handshake_message(m_download->info()->is_pex_active());
+  ProtocolExtension::Buffer message = m_extensions->generate_handshake_message(m_download->info()->is_pex_active());
 
   m_writeBuffer.write_32(message.length() + 2);
   m_writeBuffer.write_8(protocol_extension);
