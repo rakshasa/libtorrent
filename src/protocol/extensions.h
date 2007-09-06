@@ -84,7 +84,7 @@ public:
 
   static const int    flag_default      = 0x1;
   static const int    flag_initial_pex  = 0x2;
-  static const int    flag_received_pex = 0x4;
+  static const int    flag_received_ext = 0x4;
 
   static const char*  message_keys[FIRST_INVALID];
 
@@ -122,10 +122,10 @@ public:
   // Initial PEX message after peer enables PEX needs to send full list
   // of peers instead of the delta list, so keep track of that.
   bool                is_initial_pex() const        { return m_flags & flag_initial_pex; }
-  bool                is_received_pex() const       { return m_flags & flag_received_pex; }
+  bool                is_received_ext() const       { return m_flags & flag_received_ext; }
 
   void                clear_initial_pex()           { m_flags &= ~flag_initial_pex; }
-  void                set_received_pex()            { m_flags |= flag_received_pex; }
+  void                set_received_ext()            { m_flags |= flag_received_ext; }
 
   void                reset();
 

@@ -559,7 +559,7 @@ Handshake::read_bitfield() {
     // bitfield, so handle that. If we've already received a message
     // of this type then we will assume the peer won't be sending a
     // bitfield.
-    if (m_readBuffer.peek_8_at(4) == protocol_extension && !m_extensions->is_received_pex()) {
+    if (m_readBuffer.peek_8_at(4) == protocol_extension && !m_extensions->is_received_ext()) {
       if (!read_extension())
         return false;
 
@@ -635,7 +635,7 @@ Handshake::read_extension() {
   // This might not be set if we receive the PEX handshake after
   // BITFIELD. If it is to be used outside of Handshake, then move
   // this to ProtocolExtension.
-  m_extensions->set_received_pex();
+  m_extensions->set_received_ext();
   m_extensions->read_start(m_readBuffer.read_8(), length, false);
 
   if (!m_extensions->read(m_readBuffer.position(), length, m_peerInfo))
