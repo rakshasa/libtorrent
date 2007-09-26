@@ -3,6 +3,7 @@ noinst_LTLIBRARIES = libsub_net.la
 libsub_net_la_SOURCES = \
 	address_list.cc \
 	address_list.h \
+	data_buffer.h \
 	listen.cc \
 	listen.h \
 	protocol_buffer.h \

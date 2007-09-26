@@ -47,7 +47,8 @@
 namespace torrent {
 
 // Add support for the GCC move semantics.
-
+//
+// Not today?
 class ObjectRefRef;
 
 class LIBTORRENT_EXPORT Object {
@@ -93,6 +94,8 @@ public:
 
   Object()                     : m_state(type_none) {}
   Object(const value_type v)   : m_state(type_value), m_value(v) {}
+
+  // Don't inline these.
   Object(const char* s)        : m_state(type_string), m_string(new string_type(s)) {}
   Object(const string_type& s) : m_state(type_string), m_string(new string_type(s)) {}
   Object(const Object& b);
@@ -179,6 +182,9 @@ private:
   };
 };
 
+// Inline?
+//
+// Or just replace with specific ctors?
 inline
 Object::Object(type_type t) :
   m_state(t) {

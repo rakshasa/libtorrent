@@ -87,7 +87,9 @@ public:
     m_skipRate(60),
 
     m_uploadedBaseline(0),
-    m_completedBaseline(0) {
+    m_completedBaseline(0),
+    m_sizePex(0),
+    m_maxSizePex(5) {
   }
 
   const std::string&  name() const                                 { return m_name; }
@@ -139,6 +141,12 @@ public:
   uint64_t            completed_baseline() const                   { return m_completedBaseline; }
   void                set_completed_baseline(uint64_t b)           { m_completedBaseline = b; }
 
+  uint32_t            size_pex() const                             { return m_sizePex; }
+  void                set_size_pex(uint32_t b)                     { m_sizePex = b; }
+
+  uint32_t            max_size_pex() const                         { return m_maxSizePex; }
+  void                set_max_size_pex(uint32_t b)                 { m_maxSizePex = b; }
+
   uint32_t            http_timeout() const                         { return 60; }
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
@@ -173,6 +181,8 @@ private:
 
   uint64_t            m_uploadedBaseline;
   uint64_t            m_completedBaseline;
+  uint32_t            m_sizePex;
+  uint32_t            m_maxSizePex;
 
   slot_stat_type      m_slotStatCompleted;
   slot_stat_type      m_slotStatLeft;

@@ -104,7 +104,7 @@ public:
   ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
   void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
 
-  ProtocolExtension::Buffer get_ut_pex(bool initial)             { return initial ? m_ut_pex_initial : m_ut_pex_delta; }
+  DataBuffer          get_ut_pex(bool initial)                   { return initial ? m_ut_pex_initial : m_ut_pex_delta; }
 
   bool                want_pex_msg()                             { return m_info->is_pex_active() && m_peerList.available_list()->want_more(); }; 
 
@@ -163,8 +163,8 @@ private:
 
   uint32_t            m_lastConnectedSize;
 
-  ProtocolExtension::Buffer   m_ut_pex_delta;
-  ProtocolExtension::Buffer   m_ut_pex_initial;
+  DataBuffer          m_ut_pex_delta;
+  DataBuffer          m_ut_pex_initial;
   ProtocolExtension::PEXList  m_ut_pex_list;
 
   ThrottleList*       m_uploadThrottle;

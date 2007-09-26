@@ -115,6 +115,9 @@ DownloadMain::~DownloadMain() {
 
   m_ut_pex_delta.clear();
   m_ut_pex_initial.clear();
+
+  if (m_info->size_pex() != 0)
+    throw internal_error("DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
 }
 
 void
@@ -273,7 +276,8 @@ DownloadMain::do_peer_exchange() {
   if (!info()->is_active())
     throw internal_error("DownloadMain::do_peer_exchange called on inactive download.");
 
-  // Check whether we should tell the peers to stop/start sending PEX messages.
+  // Check whether we should tell the peers to stop/start sending PEX
+  // messages.
   int togglePex = 0;
 
   if (!m_info->is_pex_active() && m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
@@ -289,10 +293,11 @@ DownloadMain::do_peer_exchange() {
 
   for (ConnectionList::iterator itr = m_connectionList->begin(); itr != m_connectionList->end(); ++itr) {
     if (togglePex != 0)
-      (*itr)->toggle_peer_exchange(togglePex);
+      (*itr)->set_peer_exchange(togglePex == PeerConnectionBase::PEX_ENABLE);
 
     // Still using the old buffer? Make a copy in this rare case.
-    ProtocolExtension::Buffer* message = (*itr)->extension_message();
+    DataBuffer* message = (*itr)->extension_message();
+
     if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
       char* buffer = new char[message->length()];
       memcpy(buffer, message->data(), message->length());

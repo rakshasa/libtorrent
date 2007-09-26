@@ -186,8 +186,10 @@ Handshake::destroy_connection() {
   m_peerInfo->unset_flags(PeerInfo::flag_handshake);
   m_peerInfo = NULL;
 
-  if (!m_extensions->is_default())
+  if (!m_extensions->is_default()) {
+    m_extensions->cleanup();
     delete m_extensions;
+  }
 }
 
 int
@@ -555,10 +557,11 @@ Handshake::read_bitfield() {
     if (m_readBuffer.remaining() < 5)
       return false;
 
-    // Extension handshake is sent after BT handshake but before
+    // Extension handshake was sent after BT handshake but before
     // bitfield, so handle that. If we've already received a message
     // of this type then we will assume the peer won't be sending a
-    // bitfield.
+    // bitfield, as the second extension message will be part of the
+    // normal traffic, not the handshake.
     if (m_readBuffer.peek_8_at(4) == protocol_extension && !m_extensions->is_received_ext()) {
       if (!read_extension())
         return false;
@@ -618,7 +621,7 @@ Handshake::read_extension() {
   //
   // In addition, make sure there's at least 5 bytes available after
   // the PEX message has been read, so that we can fit the preamble of
-  // a BITFIELD message.
+  // the BITFIELD message.
   if (need + 5 > m_readBuffer.reserved_left()) {
     m_readBuffer.move_unused();
 
@@ -632,14 +635,13 @@ Handshake::read_extension() {
   uint32_t length = m_readBuffer.read_32() - 2;
   m_readBuffer.read_8();
 
-  // This might not be set if we receive the PEX handshake after
-  // BITFIELD. If it is to be used outside of Handshake, then move
-  // this to ProtocolExtension.
-  m_extensions->set_received_ext();
   m_extensions->read_start(m_readBuffer.read_8(), length, false);
 
-  if (!m_extensions->read(m_readBuffer.position(), length, m_peerInfo))
+  // Does this check if it is a handshake we read?
+  if (!m_extensions->read(m_readBuffer.position(), length))
     throw internal_error("Could not read extension handshake even though it should be in the read buffer.");
+
+//   m_download->info()->set_size_pex(m_download->info()->size_pex() + m_extensions->id(UT_PEX));
 
   m_readBuffer.consume(length);
   return true;
@@ -1005,10 +1007,17 @@ Handshake::prepare_keepalive() {
 
 void
 Handshake::write_extension_handshake() {
-  if (m_extensions->is_default())
-    m_extensions = new ProtocolExtension;
+  DownloadInfo* info = m_download->info();
 
-  ProtocolExtension::Buffer message = m_extensions->generate_handshake_message(m_download->info()->is_pex_active());
+  if (m_extensions->is_default()) {
+    m_extensions = new ProtocolExtension;
+    m_extensions->set_info(m_peerInfo, m_download);
+  }
+
+  if (info->is_pex_active() && info->size_pex() < info->max_size_pex())
+    m_extensions->set_local_enabled(ProtocolExtension::UT_PEX);
+
+  DataBuffer message = m_extensions->generate_handshake_message();
 
   m_writeBuffer.write_32(message.length() + 2);
   m_writeBuffer.write_8(protocol_extension);

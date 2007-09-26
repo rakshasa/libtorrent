@@ -113,11 +113,11 @@ public:
   RequestList*        download_queue()              { return &m_downloadQueue; }
 
   ProtocolExtension*  extensions()                  { return m_extensions; }
-  ProtocolExtension::Buffer* extension_message()    { return &m_extensionMessage; }
+  DataBuffer*         extension_message()           { return &m_extensionMessage; }
 
   void                do_peer_exchange()            { m_sendPEXMask |= PEX_DO; }
-  void                toggle_peer_exchange(int flag){ m_sendPEXMask = (m_sendPEXMask & ~(PEX_ENABLE | PEX_DISABLE)) | flag; }
-
+  inline void         set_peer_exchange(bool state);
+  
   // These must be implemented by the child class.
   virtual void        initialize_custom() = 0;
   virtual void        update_interested() = 0;
@@ -147,7 +147,7 @@ protected:
   void                read_cancel_piece(const Piece& p);
 
   void                write_prepare_piece();
-  void                write_prepare_extension(int type, const ProtocolExtension::Buffer& message);
+  void                write_prepare_extension(int type, const DataBuffer& message);
 
   bool                down_chunk_start(const Piece& p);
   void                down_chunk_finished();
@@ -218,13 +218,27 @@ protected:
 
   rak::timer          m_timeLastRead;
 
-  ProtocolExtension::Buffer m_extensionMessage;
+  DataBuffer          m_extensionMessage;
   uint32_t            m_extensionOffset;
 
   EncryptBuffer*      m_encryptBuffer;
   EncryptionInfo      m_encryption;
   ProtocolExtension*  m_extensions;
 };
+
+inline void
+PeerConnectionBase::set_peer_exchange(bool state) {
+  if (m_extensions->is_default())
+    return;
+
+  if (state) {
+    m_sendPEXMask = PEX_ENABLE | (m_sendPEXMask & ~PEX_DISABLE);
+    m_extensions->set_local_enabled(ProtocolExtension::UT_PEX);
+  } else {
+    m_sendPEXMask = PEX_DISABLE | (m_sendPEXMask & ~PEX_ENABLE);
+    m_extensions->unset_local_enabled(ProtocolExtension::UT_PEX);
+  }
+}
 
 inline void
 PeerConnectionBase::push_unread(const void* data, uint32_t size) {

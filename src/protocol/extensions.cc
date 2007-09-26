@@ -59,15 +59,57 @@ const char* ProtocolExtension::message_keys[] = {
   "ut_pex",
 };
 
-ProtocolExtension::Buffer
-ProtocolExtension::generate_handshake_message(bool pexEnable) {
+void
+ProtocolExtension::cleanup() {
+//   if (is_default())
+//     return;
+
+  for (int t = HANDSHAKE + 1; t < FIRST_INVALID; t++)
+    if (is_local_enabled(t))
+      unset_local_enabled(t);
+}
+
+void
+ProtocolExtension::set_local_enabled(int t) {
+  if (is_local_enabled(t))
+    return;
+
+  m_flags |= flag_local_enabled_base << t;
+
+  switch (t) {
+  case UT_PEX:
+//     m_download->info()->set_size_pex(download->info()->size_pex() + 1);
+    break;
+  default:
+    break;
+  }
+}
+
+void
+ProtocolExtension::unset_local_enabled(int t) {
+  if (!is_local_enabled(t))
+    return;
+
+  m_flags &= ~(flag_local_enabled_base << t);
+
+  switch (t) {
+  case UT_PEX:
+//     m_download->info()->set_size_pex(download->info()->size_pex() + 1);
+    break;
+  default:
+    break;
+  }
+}
+
+DataBuffer
+ProtocolExtension::generate_handshake_message() {
   Object map(Object::TYPE_MAP);
-
-  map.insert_key(message_keys[UT_PEX], pexEnable ? UT_PEX : 0);
-
   Object message(Object::TYPE_MAP);
 
-  // Add "e" key if encryption is enabled, set it to 1 if we require encryption for incoming connections, or 0 otherwise.
+  map.insert_key(message_keys[UT_PEX], is_local_enabled(UT_PEX) ? 1 : 0);
+
+  // Add "e" key if encryption is enabled, set it to 1 if we require
+  // encryption for incoming connections, or 0 otherwise.
   if (manager->connection_manager()->encryption_options() & ConnectionManager::encryption_allow_incoming != 0)
     message.insert_key("e", manager->connection_manager()->encryption_options() & ConnectionManager::encryption_require != 0);
 
@@ -83,26 +125,29 @@ ProtocolExtension::generate_handshake_message(bool pexEnable) {
   char* copy = new char[length];
   memcpy(copy, buffer, length);
 
-  return Buffer(copy, copy + length);
+  return DataBuffer(copy, copy + length);
 }
 
-ProtocolExtension::Buffer
+DataBuffer
 ProtocolExtension::generate_toggle_message(ProtocolExtension::MessageType t, bool on) {
+  // TODO: Check if we're accepting this message type?
+
   // Manually create bencoded map { "m" => { message_keys[t] => on ? t : 0 } }
   char* b = new char[32];
   unsigned int length = snprintf(b, 32, "d1:md%zu:%si%deee", strlen(message_keys[t]), message_keys[t], on ? t : 0);
+
   if (length > 32)
     throw internal_error("ProtocolExtension::toggle_message wrote past buffer.");
 
-  return Buffer(b, b + length);
+  return DataBuffer(b, b + length);
 }
 
-ProtocolExtension::Buffer
+DataBuffer
 ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& removed) {
   if (added.empty() && removed.empty())
-    return Buffer();
+    return DataBuffer();
 
-  int added_len = added.size() * 6;
+  int added_len   = added.size() * 6;
   int removed_len = removed.size() * 6;
 
   // Manually create bencoded map { "added" => added, "dropped" => dropped }
@@ -121,7 +166,7 @@ ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& 
   if (end - buffer > 32 + added_len + removed_len)
     throw internal_error("ProtocolExtension::ut_pex_message wrote beyond buffer.");
 
-  return Buffer(buffer, end);
+  return DataBuffer(buffer, end);
 }
 
 void
@@ -132,7 +177,11 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
   if (m_read != NULL)
     throw internal_error("ProtocolExtension::read_start called in inconsistent state.");
 
-  m_readType = skip ? SKIP_EXTENSION : type;
+  if (skip || !is_local_enabled(type))
+    m_readType = SKIP_EXTENSION;
+  else
+    m_readType = type;
+
   m_readLeft = length;
 
   if (!skip)
@@ -140,7 +189,7 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
 }
 
 uint32_t
-ProtocolExtension::read(const uint8_t* buffer, uint32_t length, PeerInfo* peerInfo) {
+ProtocolExtension::read(const uint8_t* buffer, uint32_t length) {
   if (length > m_readLeft)
     throw internal_error("ProtocolExtension::read string too long.");
 
@@ -173,11 +222,11 @@ ProtocolExtension::read(const uint8_t* buffer, uint32_t length, PeerInfo* peerIn
 
   switch(m_readType) {
   case HANDSHAKE:
-    parse_handshake(message, peerInfo);
+    parse_handshake(message);
     break;
 
   case UT_PEX:
-    parse_ut_pex(message, peerInfo);
+    parse_ut_pex(message);
     break;
 
   default:
@@ -185,49 +234,71 @@ ProtocolExtension::read(const uint8_t* buffer, uint32_t length, PeerInfo* peerIn
   }
 
   m_readType = FIRST_INVALID;
+  m_flags |= flag_received_ext;
+
   return length;
 }
 
 // Called whenever peer enables or disables an extension.
 void
-ProtocolExtension::peer_toggle_extension(int type, bool active) {
-  // When ut_pex is enabled, the first peer exchange afterwards needs to be a full message, not delta.
-  if (active && (type == UT_PEX))
-    m_flags |= flag_initial_pex;
+ProtocolExtension::peer_toggle_remote(int type, bool active) {
+  if (type == UT_PEX) {
+    // When ut_pex is enabled, the first peer exchange afterwards needs
+    // to be a full message, not delta.
+    if (active)
+      m_flags |= flag_initial_pex;
+  }
 }
 
 void
-ProtocolExtension::parse_handshake(const Object& message, PeerInfo* peerInfo) {
+ProtocolExtension::parse_handshake(const Object& message) {
   if (message.has_key_map("m")) {
     const Object& idMap = message.get_key("m");
 
     for (int t = HANDSHAKE + 1; t < FIRST_INVALID; t++) {
-      if (idMap.has_key_value(message_keys[t])) {
-        uint8_t id = idMap.get_key_value(message_keys[t]);
+      if (!idMap.has_key_value(message_keys[t]))
+        continue;
 
-        if (id != m_idMap[t - 1]) {
-          peer_toggle_extension(t, id != 0);
-          m_idMap[t - 1] = id;
-        }
+      uint8_t id = idMap.get_key_value(message_keys[t]);
+
+      if (id != m_idMap[t - 1]) {
+        set_remote_supported(t);
+        peer_toggle_remote(t, id != 0);
+
+        m_idMap[t - 1] = id;
       }
+
     }
+  }
+
+  // If this is the first handshake, then disable any local extensions
+  // not supported by remote.
+  if (is_initial_handshake()) {
+    for (int t = HANDSHAKE + 1; t < FIRST_INVALID; t++)
+      if (!is_remote_supported(t))
+        unset_local_enabled(t);
   }
 
   if (message.has_key_value("p")) {
     uint16_t port = message.get_key_value("p");
 
     if (port > 0)
-      peerInfo->set_listen_port(port);
+      m_peerInfo->set_listen_port(port);
   }
 
   if (message.has_key_value("reqq"))
     m_maxQueueLength = message.get_key_value("reqq");
+
+  m_flags &= ~flag_initial_handshake;
 }
 
 void
-ProtocolExtension::parse_ut_pex(const Object& message, PeerInfo* peerInfo) {
-  // Ignore message if we're still in the handshake (no connection yet), or no peers are present.
-  if ((peerInfo->connection() == NULL) || !message.has_key_string("added"))
+ProtocolExtension::parse_ut_pex(const Object& message) {
+  // Ignore message if we're still in the handshake (no connection
+  // yet), or no peers are present.
+
+  // TODO: Check if pex is enabled?
+  if (!message.has_key_string("added"))
     return;
 
   const std::string& peers = message.get_key_string("added");
@@ -239,14 +310,8 @@ ProtocolExtension::parse_ut_pex(const Object& message, PeerInfo* peerInfo) {
   l.sort();
   l.erase(std::unique(l.begin(), l.end()), l.end());
  
-  DownloadMain* main = peerInfo->connection()->download();
-  main->connection_list()->set_difference(&l);
-  main->peer_list()->available_list()->insert(&l);
-}
-
-void
-ProtocolExtension::reset() {
-  memset(&m_idMap, 0, sizeof(m_idMap));
+  m_download->connection_list()->set_difference(&l);
+  m_download->peer_list()->available_list()->insert(&l);
 }
 
 }

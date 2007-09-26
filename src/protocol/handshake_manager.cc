@@ -195,11 +195,11 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
       (!download->file_list()->is_done() || !handshake->bitfield()->is_all_set()) &&
 
       (pcb = download->connection_list()->insert(handshake->peer_info(),
-                                                              handshake->get_fd(),
-                                                              handshake->bitfield(),
-                                                              handshake->encryption()->info(),
-                                                              handshake->extensions())) != NULL) {
-
+                                                 handshake->get_fd(),
+                                                 handshake->bitfield(),
+                                                 handshake->encryption()->info(),
+                                                 handshake->extensions())) != NULL) {
+    
     manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
     manager->connection_manager()->signal_handshake_log().emit(handshake->peer_info()->socket_address(),
                                                                ConnectionManager::handshake_success,

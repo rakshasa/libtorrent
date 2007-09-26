@@ -165,6 +165,9 @@ PeerConnectionBase::cleanup() {
   m_download->download_choke_manager()->disconnected(this, &m_downChoke);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
+  if (!m_extensions->is_default())
+    m_extensions->cleanup();
+
   manager->poll()->remove_read(this);
   manager->poll()->remove_write(this);
   manager->poll()->remove_error(this);
@@ -575,9 +578,7 @@ PeerConnectionBase::down_extension() {
       m_encryption.decrypt(m_down->buffer()->end() - read, read);
   }
 
-  if (m_down->buffer()->consume(m_extensions->read(m_down->buffer()->position(), 
-                                                   std::min<uint32_t>(m_down->buffer()->remaining(), need), 
-                                                   m_peerInfo)))
+  if (m_down->buffer()->consume(m_extensions->read(m_down->buffer()->position(), std::min<uint32_t>(m_down->buffer()->remaining(), need))))
     m_down->buffer()->reset();
 
   return m_extensions->is_complete();
@@ -748,7 +749,7 @@ PeerConnectionBase::write_prepare_piece() {
 }
 
 void
-PeerConnectionBase::write_prepare_extension(int type, const ProtocolExtension::Buffer& message) {
+PeerConnectionBase::write_prepare_extension(int type, const DataBuffer& message) {
   m_up->write_extension(m_extensions->id(type), message.length());
 
   m_extensionOffset = 0;
@@ -828,7 +829,7 @@ PeerConnectionBase::send_pex_message() {
     m_sendPEXMask &= ~(PEX_ENABLE | PEX_DISABLE);
 
   } else if (m_sendPEXMask & PEX_DO) {
-    const ProtocolExtension::Buffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
+    const DataBuffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
     m_extensions->clear_initial_pex();
 
     if (!pexMessage.empty())

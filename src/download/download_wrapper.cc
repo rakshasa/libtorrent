@@ -302,7 +302,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
       } else if (info()->is_pex_active()) {
         info()->set_pex_active(false);
         for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); ++itr)
-          (*itr)->toggle_peer_exchange(PeerConnectionBase::PEX_DISABLE);
+          (*itr)->set_peer_exchange(false);
       }
     }
 

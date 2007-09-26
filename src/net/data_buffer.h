@@ -34,68 +34,54 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_NET_DATA_BUFFER_H
+#define LIBTORRENT_NET_DATA_BUFFER_H
 
-#include <stdlib.h>
-#include <algorithm>
-#include <iterator>
-
-#include "torrent/exceptions.h"
-#include "available_list.h"
+#include <memory>
+#include <inttypes.h>
 
 namespace torrent {
 
-AvailableList::value_type
-AvailableList::pop_random() {
-  if (empty())
-    throw internal_error("AvailableList::pop_random() called on an empty container");
+// Recipient must call clear() when done with the buffer.
+struct DataBuffer {
+  DataBuffer()                        : m_data(NULL), m_end(NULL), m_copied(false) {}
+  DataBuffer(char* data, char* end)   : m_data(data), m_end(end),  m_copied(false) {}
 
-  size_type idx = random() % size();
+  char*               data() const         { return m_data; }
+  char*               end() const          { return m_end; }
 
-  value_type tmp = *(begin() + idx);
-  *(begin() + idx) = back();
+  bool                copied() const       { return m_copied; }
+  bool                empty() const        { return m_data == NULL; }
+  size_t              length() const       { return m_end - m_data; }
 
-  pop_back();
+  void                clear();
+  void                set(char* data, char* end, bool copied);
 
-  return tmp;
+private:
+  char*               m_data;
+  char*               m_end;
+
+  // Used to indicate if buffer held by PCB is copied and needs to be
+  // deleted after transmission.
+  bool                m_copied;
+};
+
+inline void
+DataBuffer::clear() {
+  if (!empty())
+    delete[] m_data;
+
+  m_data = m_end = NULL;
+  m_copied = false;
 }
 
-void
-AvailableList::push_back(const rak::socket_address* sa) {
-  if (std::find(begin(), end(), *sa) != end())
-    return;
-
-  base_type::push_back(*sa);
-}
-
-void
-AvailableList::insert(AddressList* l) {
-  if (!want_more())
-    return;
-
-  std::sort(begin(), end());
-
-  // Can i use use the std::remove* semantics for this, and just copy
-  // to 'l'?.
-  //
-  // 'l' is guaranteed to be sorted, so we can just do
-  // std::set_difference.
-  AddressList difference;
-  std::set_difference(l->begin(), l->end(), begin(), end(), std::back_inserter(difference));
-
-  std::copy(difference.begin(), difference.end(), std::back_inserter(*static_cast<base_type*>(this)));
-}
-
-void
-AvailableList::erase(const rak::socket_address& sa) {
-  iterator itr = std::find(begin(), end(), sa);
-
-  if (itr != end()) {
-    value_type tmp = *itr;
-    *itr = back();
-
-    pop_back();
-  }
+inline void
+DataBuffer::set(char* data, char* end, bool copied) {
+  m_data = data;
+  m_end = end;
+  m_copied = copied;
 }
 
 }
+
+#endif
