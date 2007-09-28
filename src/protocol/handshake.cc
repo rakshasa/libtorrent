@@ -1014,7 +1014,8 @@ Handshake::write_extension_handshake() {
     m_extensions->set_info(m_peerInfo, m_download);
   }
 
-  if (info->is_pex_active() && info->size_pex() < info->max_size_pex())
+  // PEX may be disabled but still active if disabled since last download tick.
+  if (info->is_pex_enabled() && info->is_pex_active() && info->size_pex() < info->max_size_pex())
     m_extensions->set_local_enabled(ProtocolExtension::UT_PEX);
 
   DataBuffer message = m_extensions->generate_handshake_message();

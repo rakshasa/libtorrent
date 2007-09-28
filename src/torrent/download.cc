@@ -426,6 +426,16 @@ Download::peers_currently_interested() const {
   return m_ptr->main()->upload_choke_manager()->size_total();
 }
 
+uint32_t
+Download::size_pex() const {
+  return m_ptr->main()->info()->size_pex();
+}
+
+uint32_t
+Download::max_size_pex() const {
+  return m_ptr->main()->info()->max_size_pex();
+}
+
 bool
 Download::accepting_new_peers() const {
   return m_ptr->info()->is_accepting_new_peers();

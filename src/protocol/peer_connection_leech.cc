@@ -279,6 +279,11 @@ PeerConnectionLeech::read_message() {
     if (!m_down->can_read_extension_body())
       break;
 
+    if (m_extensions->is_default()) {
+      m_extensions = new ProtocolExtension();
+      m_extensions->set_info(m_peerInfo, m_download);
+    }
+
     {
       int extension = m_down->buffer()->read_8();
       m_extensions->read_start(extension, length - 2, (extension == ProtocolExtension::UT_PEX) && !m_download->want_pex_msg());

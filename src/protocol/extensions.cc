@@ -78,7 +78,7 @@ ProtocolExtension::set_local_enabled(int t) {
 
   switch (t) {
   case UT_PEX:
-//     m_download->info()->set_size_pex(download->info()->size_pex() + 1);
+    m_download->info()->set_size_pex(m_download->info()->size_pex() + 1);
     break;
   default:
     break;
@@ -94,7 +94,7 @@ ProtocolExtension::unset_local_enabled(int t) {
 
   switch (t) {
   case UT_PEX:
-//     m_download->info()->set_size_pex(download->info()->size_pex() + 1);
+    m_download->info()->set_size_pex(m_download->info()->size_pex() - 1);
     break;
   default:
     break;
@@ -177,15 +177,15 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
   if (m_read != NULL)
     throw internal_error("ProtocolExtension::read_start called in inconsistent state.");
 
-  if (skip || !is_local_enabled(type))
-    m_readType = SKIP_EXTENSION;
-  else
-    m_readType = type;
-
   m_readLeft = length;
 
-  if (!skip)
+  if (skip || !is_local_enabled(type)) {
+    m_readType = SKIP_EXTENSION;
+
+  } else {
+    m_readType = type;
     m_readEnd = m_read = new char[length];
+  }
 }
 
 uint32_t
@@ -196,8 +196,10 @@ ProtocolExtension::read(const uint8_t* buffer, uint32_t length) {
   m_readLeft -= length;
 
   if (m_readType == SKIP_EXTENSION) {
-    if (m_readLeft == 0)
+    if (m_readLeft == 0) {
       m_readType = FIRST_INVALID;
+      m_flags |= flag_received_ext;
+    }
 
     return length;
   }
@@ -261,8 +263,9 @@ ProtocolExtension::parse_handshake(const Object& message) {
 
       uint8_t id = idMap.get_key_value(message_keys[t]);
 
+      set_remote_supported(t);
+
       if (id != m_idMap[t - 1]) {
-        set_remote_supported(t);
         peer_toggle_remote(t, id != 0);
 
         m_idMap[t - 1] = id;

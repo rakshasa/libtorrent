@@ -164,6 +164,7 @@ private:
   HashString          m_hashObfuscated;
   HashString          m_localId;
 
+  // TODO: Use flags.
   bool                m_isOpen;
   bool                m_isActive;
   bool                m_isCompact;

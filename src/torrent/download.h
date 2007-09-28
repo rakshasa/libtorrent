@@ -165,6 +165,9 @@ public:
   uint32_t            peers_currently_unchoked() const;
   uint32_t            peers_currently_interested() const;
 
+  uint32_t            size_pex() const;
+  uint32_t            max_size_pex() const;
+
   bool                accepting_new_peers() const;
   uint32_t            uploads_max() const;
   
