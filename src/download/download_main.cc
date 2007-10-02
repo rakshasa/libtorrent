@@ -281,8 +281,11 @@ DownloadMain::do_peer_exchange() {
   int togglePex = 0;
 
   if (!m_info->is_pex_active() && m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
-    togglePex = PeerConnectionBase::PEX_ENABLE;
     m_info->set_pex_active(true);
+
+    // Only set PEX_ENABLE if we don't have max_size_pex set to zero.
+    if (m_info->size_pex() < m_info->max_size_pex())
+      togglePex = PeerConnectionBase::PEX_ENABLE;
 
   } else if (m_info->is_pex_active() && m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
     togglePex = PeerConnectionBase::PEX_DISABLE;
@@ -292,8 +295,23 @@ DownloadMain::do_peer_exchange() {
   ProtocolExtension::PEXList current;
 
   for (ConnectionList::iterator itr = m_connectionList->begin(); itr != m_connectionList->end(); ++itr) {
-    if (togglePex != 0)
-      (*itr)->set_peer_exchange(togglePex == PeerConnectionBase::PEX_ENABLE);
+    if (!(*itr)->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
+      continue;
+
+    if (togglePex == PeerConnectionBase::PEX_ENABLE) {
+      (*itr)->set_peer_exchange(true);
+
+      if (m_info->size_pex() >= m_info->max_size_pex())
+        togglePex = 0;
+
+    } else if (!(*itr)->extensions()->is_local_enabled(ProtocolExtension::UT_PEX)) {
+      continue;
+
+    } else if (togglePex == PeerConnectionBase::PEX_DISABLE) {
+      (*itr)->set_peer_exchange(false);
+
+      continue;
+    }
 
     // Still using the old buffer? Make a copy in this rare case.
     DataBuffer* message = (*itr)->extension_message();
