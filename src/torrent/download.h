@@ -96,6 +96,7 @@ public:
   bool                is_hash_checking() const;
 
   bool                is_private() const;
+  bool                is_pex_active() const;
   bool                is_pex_enabled() const;
   void                set_pex_enabled(bool enabled);
 

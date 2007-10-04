@@ -641,8 +641,6 @@ Handshake::read_extension() {
   if (!m_extensions->read(m_readBuffer.position(), length))
     throw internal_error("Could not read extension handshake even though it should be in the read buffer.");
 
-//   m_download->info()->set_size_pex(m_download->info()->size_pex() + m_extensions->id(UT_PEX));
-
   m_readBuffer.consume(length);
   return true;
 }

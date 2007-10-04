@@ -293,9 +293,7 @@ PeerConnectionSeed::fill_write_buffer() {
     }
   }
 
-  if (m_sendPEXMask &&
-      m_extensions->id(ProtocolExtension::UT_PEX) &&
-      m_up->can_write_extension())
+  if (m_sendPEXMask && m_up->can_write_extension())
     send_pex_message();
 
   else if (!m_upChoke.choked() &&

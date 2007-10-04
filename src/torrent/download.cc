@@ -185,6 +185,11 @@ Download::is_private() const {
 }
 
 bool
+Download::is_pex_active() const {
+  return m_ptr->info()->is_pex_active();
+}
+
+bool
 Download::is_pex_enabled() const {
   return m_ptr->info()->is_pex_enabled();
 }

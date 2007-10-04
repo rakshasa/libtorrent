@@ -823,12 +823,15 @@ void
 PeerConnectionBase::send_pex_message() {
   // Message to tell peer to stop/start doing PEX is small so send it first.
   if (m_sendPEXMask & (PEX_ENABLE | PEX_DISABLE)) {
+    if (!m_extensions->is_remote_supported(ProtocolExtension::UT_PEX))
+      throw internal_error("PeerConnectionBase::send_pex_message() Not supported by peer.");
+
     write_prepare_extension(ProtocolExtension::HANDSHAKE,
                             ProtocolExtension::generate_toggle_message(ProtocolExtension::UT_PEX, m_sendPEXMask & PEX_ENABLE != 0));
 
     m_sendPEXMask &= ~(PEX_ENABLE | PEX_DISABLE);
 
-  } else if (m_sendPEXMask & PEX_DO) {
+  } else if (m_sendPEXMask & PEX_DO && m_extensions->id(ProtocolExtension::UT_PEX)) {
     const DataBuffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
     m_extensions->clear_initial_pex();
 
@@ -838,7 +841,7 @@ PeerConnectionBase::send_pex_message() {
     m_sendPEXMask &= ~PEX_DO;
 
   } else {
-    throw internal_error("ProtocolConnectionBase::send_pex_message invalid value in m_sendPEXMask.");
+    m_sendPEXMask = 0;
   }
 }
 

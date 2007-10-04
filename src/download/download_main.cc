@@ -280,17 +280,23 @@ DownloadMain::do_peer_exchange() {
   // messages.
   int togglePex = 0;
 
-  if (!m_info->is_pex_active() && m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
+  if (!m_info->is_pex_active() &&
+      m_connectionList->size() < m_connectionList->get_min_size() / 2 &&
+      m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
     m_info->set_pex_active(true);
 
     // Only set PEX_ENABLE if we don't have max_size_pex set to zero.
     if (m_info->size_pex() < m_info->max_size_pex())
       togglePex = PeerConnectionBase::PEX_ENABLE;
 
-  } else if (m_info->is_pex_active() && m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
+  } else if (m_info->is_pex_active() &&
+             m_connectionList->size() >= m_connectionList->get_min_size()) {
+//              m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
     togglePex = PeerConnectionBase::PEX_DISABLE;
     m_info->set_pex_active(false);
   }
+
+  // Return if we don't really want to do anything?
 
   ProtocolExtension::PEXList current;
 

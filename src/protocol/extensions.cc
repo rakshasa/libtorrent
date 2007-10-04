@@ -174,7 +174,7 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
   if (is_default() || (type >= FIRST_INVALID))
     throw communication_error("Received invalid extension message.");
 
-  if (m_read != NULL)
+  if (m_read != NULL || length < 0)
     throw internal_error("ProtocolExtension::read_start called in inconsistent state.");
 
   m_readLeft = length;
@@ -213,7 +213,7 @@ ProtocolExtension::read(const uint8_t* buffer, uint32_t length) {
   std::stringstream s(std::string(m_read, m_readEnd));
   s.imbue(std::locale::classic());
 
-  delete[] m_read;
+  delete [] m_read;
   m_read = NULL;
 
   Object message;
