@@ -228,7 +228,7 @@ protected:
 
 inline void
 PeerConnectionBase::set_peer_exchange(bool state) {
-  if (m_extensions->is_default())
+  if (m_extensions->is_default() || !m_extensions->is_remote_supported(ProtocolExtension::UT_PEX))
     return;
 
   if (state) {

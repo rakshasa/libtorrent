@@ -821,6 +821,11 @@ PeerConnectionBase::try_request_pieces() {
 // needs to flush the buffer and call up_extension before the next one.
 void
 PeerConnectionBase::send_pex_message() {
+  if (!m_extensions->is_remote_supported(ProtocolExtension::UT_PEX)) {
+    m_sendPEXMask = 0;
+    return;
+  }
+
   // Message to tell peer to stop/start doing PEX is small so send it first.
   if (m_sendPEXMask & (PEX_ENABLE | PEX_DISABLE)) {
     if (!m_extensions->is_remote_supported(ProtocolExtension::UT_PEX))

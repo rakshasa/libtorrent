@@ -89,7 +89,7 @@ public:
     m_uploadedBaseline(0),
     m_completedBaseline(0),
     m_sizePex(0),
-    m_maxSizePex(5) {
+    m_maxSizePex(8) {
   }
 
   const std::string&  name() const                                 { return m_name; }
