@@ -234,6 +234,7 @@ DownloadMain::receive_connect_peers() {
   }
 
   while (!peer_list()->available_list()->empty() &&
+         manager->connection_manager()->can_connect() &&
          connection_list()->size() < connection_list()->get_min_size() &&
          connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->get_max_size()) {
     rak::socket_address sa = peer_list()->available_list()->pop_random();

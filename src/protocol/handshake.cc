@@ -529,7 +529,7 @@ Handshake::read_peer() {
   else
     prepare_bitfield();
 
-  m_state = BITFIELD;
+  m_state = READ_MESSAGE;
   manager->poll()->insert_write(this);
 
   // Give some extra time for reading/writing the bitfield.
@@ -541,56 +541,6 @@ Handshake::read_peer() {
 
 bool
 Handshake::read_bitfield() {
-  Bitfield* bitfield = m_download->file_list()->mutable_bitfield();
-
-  if (m_bitfield.empty()) {
-    fill_read_buffer(5);
-
-    // Received a keep-alive message which means we won't be
-    // getting any bitfield.
-    if (m_readBuffer.remaining() >= 4 && m_readBuffer.peek_32() == 0) {
-      m_readBuffer.read_32();
-      read_done();
-      return false;
-    }
-
-    if (m_readBuffer.remaining() < 5)
-      return false;
-
-    // Extension handshake was sent after BT handshake but before
-    // bitfield, so handle that. If we've already received a message
-    // of this type then we will assume the peer won't be sending a
-    // bitfield, as the second extension message will be part of the
-    // normal traffic, not the handshake.
-    if (m_readBuffer.peek_8_at(4) == protocol_extension && !m_extensions->is_received_ext()) {
-      if (!read_extension())
-        return false;
-
-      return read_bitfield();
-    }
-
-    // Received a non-bitfield command.
-    if (m_readBuffer.peek_8_at(4) != protocol_bitfield) {
-      read_done();
-      return false;
-    }
-
-    if (m_readBuffer.read_32() != bitfield->size_bytes() + 1)
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
-
-    m_readBuffer.read_8();
-    m_readPos = 0;
-
-    m_bitfield.set_size_bits(bitfield->size_bits());
-    m_bitfield.allocate();
-
-    if (m_readBuffer.remaining() != 0) {
-      m_readPos = std::min<uint32_t>(m_bitfield.size_bytes(), m_readBuffer.remaining());
-      std::memcpy(m_bitfield.begin(), m_readBuffer.position(), m_readPos);
-      m_readBuffer.consume(m_readPos);
-    }
-  }
-
   if (m_readPos < m_bitfield.size_bytes()) {
     uint32_t length = read_unthrottled(m_bitfield.begin() + m_readPos, m_bitfield.size_bytes() - m_readPos);
 
@@ -600,10 +550,7 @@ Handshake::read_bitfield() {
     m_readPos += length;
   }
 
-  if (m_readPos == m_bitfield.size_bytes())
-    read_done();
-
-  return true;
+  return m_readPos == m_bitfield.size_bytes();
 }
 
 bool
@@ -634,7 +581,6 @@ Handshake::read_extension() {
 
   uint32_t length = m_readBuffer.read_32() - 2;
   m_readBuffer.read_8();
-
   m_extensions->read_start(m_readBuffer.read_8(), length, false);
 
   // Does this check if it is a handshake we read?
@@ -643,6 +589,30 @@ Handshake::read_extension() {
 
   m_readBuffer.consume(length);
   return true;
+}
+
+void
+Handshake::read_done() {
+  if (m_readDone != false)
+    throw internal_error("Handshake::read_done() m_readDone != false.");
+
+//   if (m_peerInfo->supports_extensions() && m_extensions->is_initial_handshake())
+//     throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_order);
+
+  m_readDone = true;
+  manager->poll()->remove_read(this);
+
+  if (m_bitfield.empty()) {
+    m_bitfield.set_size_bits(m_download->file_list()->bitfield()->size_bits());
+    m_bitfield.allocate();
+    m_bitfield.unset_all();
+
+  } else {
+    m_bitfield.update();
+  }
+
+  if (m_writeDone)
+    throw handshake_succeeded();
 }
 
 void
@@ -727,12 +697,73 @@ restart:
       if (!read_peer())
         break;
 
-      if (m_state != BITFIELD)
+      // Is this correct?
+      if (m_state != READ_MESSAGE)
         goto restart;
 
-    case BITFIELD:
-      read_bitfield();
-      break;
+    case READ_MESSAGE:
+      fill_read_buffer(5);
+
+      // Received a keep-alive message which means we won't be
+      // getting any bitfield.
+      if (m_readBuffer.remaining() >= 4 && m_readBuffer.peek_32() == 0) {
+        m_readBuffer.read_32();
+        read_done();
+        break;
+      }
+
+      if (m_readBuffer.remaining() < 5)
+        break;
+
+      m_readPos = 0;
+
+      // Extension handshake was sent after BT handshake but before
+      // bitfield, so handle that. If we've already received a message
+      // of this type then we will assume the peer won't be sending a
+      // bitfield, as the second extension message will be part of the
+      // normal traffic, not the handshake.
+      if (m_readBuffer.peek_8_at(4) == protocol_bitfield) {
+        const Bitfield* bitfield = m_download->file_list()->bitfield();
+
+        if (!m_bitfield.empty() || m_readBuffer.read_32() != bitfield->size_bytes() + 1)
+          throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+
+        m_readBuffer.read_8();
+
+        m_bitfield.set_size_bits(bitfield->size_bits());
+        m_bitfield.allocate();
+
+        m_readPos = std::min<uint32_t>(m_bitfield.size_bytes(), m_readBuffer.remaining());
+        std::memcpy(m_bitfield.begin(), m_readBuffer.position(), m_readPos);
+        m_readBuffer.consume(m_readPos);
+
+        m_state = READ_BITFIELD;
+
+      } else if (m_readBuffer.peek_8_at(4) == protocol_extension && m_extensions->is_initial_handshake()) {
+        m_readPos = 0;
+        m_state = READ_EXT;
+
+      } else {
+        read_done();
+        break;
+      }
+
+    case READ_BITFIELD:
+    case READ_EXT:
+      // Gather the different command types into the same case group
+      // so that we don't need 'goto restart' above.
+      if ((m_state == READ_BITFIELD && !read_bitfield()) ||
+          (m_state == READ_EXT && !read_extension()))
+        break;
+
+      m_state = READ_MESSAGE;
+
+      if (!m_bitfield.empty() && (!m_peerInfo->supports_extensions() || !m_extensions->is_initial_handshake())) {
+        read_done();
+        break;
+      }
+
+      goto restart;
 
     default:
       throw internal_error("Handshake::event_read() called in invalid state.");
@@ -740,7 +771,7 @@ restart:
 
     // Call event_write if we have any data to write. Make sure
     // event_write() doesn't get called twice in this function.
-    if (m_writeBuffer.remaining()) {
+    if (m_writeBuffer.remaining() && !manager->poll()->in_write(this)) {
       manager->poll()->insert_write(this);
       return event_write();
     }
@@ -779,27 +810,6 @@ Handshake::validate_download() {
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_inactive_download);
   if (!m_download->info()->is_accepting_new_peers())
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_not_accepting_connections);
-}
-
-void
-Handshake::read_done() {
-  if (m_readDone != false)
-    throw internal_error("Handshake::read_done() m_readDone != false.");
-
-  m_readDone = true;
-  manager->poll()->remove_read(this);
-
-  if (m_bitfield.empty()) {
-    m_bitfield.set_size_bits(m_download->file_list()->bitfield()->size_bits());
-    m_bitfield.allocate();
-    m_bitfield.unset_all();
-
-  } else {
-    m_bitfield.update();
-  }
-
-  if (m_writeDone)
-    throw handshake_succeeded();
 }
 
 void
@@ -853,7 +863,9 @@ Handshake::event_write() {
 
       break;
 
-    case BITFIELD:
+    case READ_MESSAGE:
+    case READ_BITFIELD:
+    case READ_EXT:
       write_bitfield();
       return;
 

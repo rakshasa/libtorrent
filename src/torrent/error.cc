@@ -55,6 +55,7 @@ static const char* errorStrings[e_last + 1] = {
   "Invalid encryption method",          // eh_invalid_encryption
   "Encryption sync failed",             // eh_encryption_sync_failed
   "Network error",                      // eh_network_error
+  "Invalid message order",              // eh_invalid_order
 
 //   "", // e_handshake_incoming
 //   "", // e_handshake_outgoing

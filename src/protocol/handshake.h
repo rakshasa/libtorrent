@@ -73,7 +73,6 @@ public:
   typedef enum {
     INACTIVE,
     CONNECTING,
-    BITFIELD,
 
     PROXY_CONNECT,
     PROXY_DONE,
@@ -87,6 +86,9 @@ public:
 
     READ_INFO,
     READ_PEER,
+    READ_MESSAGE,
+    READ_BITFIELD,
+    READ_EXT
   } State;
 
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
@@ -121,7 +123,7 @@ public:
   virtual void        event_error();
 
   HandshakeEncryption* encryption()                 { return &m_encryption; }
-  ProtocolExtension*  extensions()                  { return m_extensions; }
+  ProtocolExtension*   extensions()                  { return m_extensions; }
 
   int                 retry_options();
 

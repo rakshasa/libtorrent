@@ -56,6 +56,7 @@ const int e_handshake_unencrypted_rejected      = 9;
 const int e_handshake_invalid_encryption        = 10;
 const int e_handshake_encryption_sync_failed    = 11;
 const int e_handshake_network_error             = 12;
+const int e_handshake_invalid_order             = 13;
 
 // const int e_handshake_incoming                  = 13;
 // const int e_handshake_outgoing                  = 14;
@@ -65,7 +66,7 @@ const int e_handshake_network_error             = 12;
 // const int e_handshake_retry_plaintext           = 18;
 // const int e_handshake_retry_encrypted           = 19;
 
-const int e_last                                = 12;
+const int e_last                                = 13;
 
 const char* strerror(int err) LIBTORRENT_EXPORT;
 
