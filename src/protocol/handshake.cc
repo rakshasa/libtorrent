@@ -536,7 +536,7 @@ Handshake::read_peer() {
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(120)).round_seconds());
 
-  return false;
+  return true;
 }
 
 bool
@@ -583,10 +583,13 @@ Handshake::read_extension() {
   m_readBuffer.read_8();
   m_extensions->read_start(m_readBuffer.read_8(), length, false);
 
-  // Does this check if it is a handshake we read?
-  if (!m_extensions->read(m_readBuffer.position(), length))
+  std::memcpy(m_extensions->read_position(), m_readBuffer.position(), length);
+
+  // Does this check need to check if it is a handshake we read?
+  if (!m_extensions->is_complete())
     throw internal_error("Could not read extension handshake even though it should be in the read buffer.");
 
+  m_extensions->read_done();
   m_readBuffer.consume(length);
   return true;
 }
@@ -819,7 +822,7 @@ Handshake::event_write() {
     switch (m_state) {
     case CONNECTING:
       if (get_fd().get_error())
-        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_error);
+        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_unreachable);
 
       manager->poll()->insert_read(this);
 

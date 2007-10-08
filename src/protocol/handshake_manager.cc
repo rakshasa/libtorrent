@@ -272,7 +272,7 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
 
 void
 HandshakeManager::receive_timeout(Handshake* h) {
-  receive_failed(h, ConnectionManager::handshake_failed, e_handshake_network_error);
+  receive_failed(h, ConnectionManager::handshake_failed, h->state() == Handshake::CONNECTING ? e_handshake_network_unreachable : e_handshake_network_timeout);
 }
 
 bool

@@ -96,6 +96,8 @@ public:
 
   bool                is_active() const             { return m_state != INACTIVE; }
 
+  State               state() const                 { return m_state; }
+
   void                initialize_incoming(const rak::socket_address& sa);
   void                initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, PeerInfo* peerInfo);
   

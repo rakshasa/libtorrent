@@ -567,19 +567,26 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 
 bool
 PeerConnectionBase::down_extension() {
-  uint32_t need = m_extensions->read_need();
+  if (m_down->buffer()->remaining()) {
+    uint32_t need = std::min(m_extensions->read_need(), (uint32_t)m_down->buffer()->remaining());
+    std::memcpy(m_extensions->read_position(), m_down->buffer()->position(), need);
 
-  // If we need more bytes, read as much as we can get nonetheless.
-  if (need > m_down->buffer()->remaining() && m_down->buffer()->reserved_left() > 0) {
-    uint32_t read = m_down->buffer()->move_end(read_stream_throws(m_down->buffer()->end(), m_down->buffer()->reserved_left()));
-    m_download->download_throttle()->node_used_unthrottled(read);
-
-    if (is_encrypted())
-      m_encryption.decrypt(m_down->buffer()->end() - read, read);
+    m_extensions->read_move(need);
+    m_down->buffer()->consume(need);
   }
 
-  if (m_down->buffer()->consume(m_extensions->read(m_down->buffer()->position(), std::min<uint32_t>(m_down->buffer()->remaining(), need))))
-    m_down->buffer()->reset();
+  if (!m_extensions->is_complete()) {
+    uint32_t bytes = read_stream_throws(m_extensions->read_position(), m_extensions->read_need());
+    m_download->download_throttle()->node_used_unthrottled(bytes);
+    
+    if (is_encrypted())
+      m_encryption.decrypt(m_extensions->read_position(), bytes);
+
+    m_extensions->read_move(bytes);
+  }
+
+  if (m_extensions->is_complete())
+    m_extensions->read_done();
 
   return m_extensions->is_complete();
 }

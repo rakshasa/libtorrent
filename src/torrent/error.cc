@@ -41,21 +41,23 @@
 namespace torrent {
 
 static const char* errorStrings[e_last + 1] = {
-  "Unknown error",                      // e_none
+  "unknown error",                      // e_none
 
-  "Not BitTorrent protocol",            // eh_not_bittorrent
-  "Not accepting connections",          // eh_not_accepting_connections
-  "Duplicate peer ID",                  // eh_duplicate
-  "Unknown download",                   // eh_unknown_download
-  "Download inactive",                  // eh_inactive_download
-  "Seeder rejected",                    // eh_unwanted_connection
-  "Is self",                            // eh_is_self
-  "Invalid value received",             // eh_invalid_value
-  "Unencrypted connection rejected",    // eh_unencrypted_rejected
-  "Invalid encryption method",          // eh_invalid_encryption
-  "Encryption sync failed",             // eh_encryption_sync_failed
-  "Network error",                      // eh_network_error
-  "Invalid message order",              // eh_invalid_order
+  "not BitTorrent protocol",            // eh_not_bittorrent
+  "not accepting connections",          // eh_not_accepting_connections
+  "duplicate peer ID",                  // eh_duplicate
+  "unknown download",                   // eh_unknown_download
+  "download inactive",                  // eh_inactive_download
+  "seeder rejected",                    // eh_unwanted_connection
+  "is self",                            // eh_is_self
+  "invalid value received",             // eh_invalid_value
+  "unencrypted connection rejected",    // eh_unencrypted_rejected
+  "invalid encryption method",          // eh_invalid_encryption
+  "encryption sync failed",             // eh_encryption_sync_failed
+  "network error",                      // eh_network_error
+  "network unreachable",                // eh_network_unreachable
+  "network timeout",                    // eh_network_timeout
+  "invalid message order",              // eh_invalid_order
 
 //   "", // e_handshake_incoming
 //   "", // e_handshake_outgoing

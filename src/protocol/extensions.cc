@@ -171,7 +171,7 @@ ProtocolExtension::generate_ut_pex_message(const PEXList& added, const PEXList& 
 
 void
 ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
-  if (is_default() || (type >= FIRST_INVALID))
+  if (is_default() || (type >= FIRST_INVALID) || length > (1 << 14))
     throw communication_error("Received invalid extension message.");
 
   if (m_read != NULL || length < 0)
@@ -184,33 +184,22 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
 
   } else {
     m_readType = type;
-    m_readEnd = m_read = new char[length];
   }
+
+  // Allocate the buffer even for SKIP_EXTENSION, just to make things
+  // simpler.
+  m_readPos = m_read = new char[length];
 }
 
-uint32_t
-ProtocolExtension::read(const uint8_t* buffer, uint32_t length) {
-  if (length > m_readLeft)
-    throw internal_error("ProtocolExtension::read string too long.");
-
-  m_readLeft -= length;
-
+void
+ProtocolExtension::read_done() {
   if (m_readType == SKIP_EXTENSION) {
-    if (m_readLeft == 0) {
-      m_readType = FIRST_INVALID;
-      m_flags |= flag_received_ext;
-    }
-
-    return length;
+    delete [] m_read;
+    m_read = NULL;
+    return;
   }
 
-  memcpy(m_readEnd, buffer, length);
-  m_readEnd += length;
-
-  if (m_readLeft > 0)
-    return length;
-
-  std::stringstream s(std::string(m_read, m_readEnd));
+  std::stringstream s(std::string(m_read, m_readPos));
   s.imbue(std::locale::classic());
 
   delete [] m_read;
@@ -237,8 +226,6 @@ ProtocolExtension::read(const uint8_t* buffer, uint32_t length) {
 
   m_readType = FIRST_INVALID;
   m_flags |= flag_received_ext;
-
-  return length;
 }
 
 // Called whenever peer enables or disables an extension.
