@@ -302,6 +302,11 @@ DownloadMain::do_peer_exchange() {
   ProtocolExtension::PEXList current;
 
   for (ConnectionList::iterator itr = m_connectionList->begin(); itr != m_connectionList->end(); ++itr) {
+    const rak::socket_address* sa = rak::socket_address::cast_from((*itr)->peer_info()->socket_address());
+
+    if ((*itr)->peer_info()->listen_port() != 0 && sa->family() == rak::socket_address::af_inet)
+      current.push_back(SocketAddressCompact(sa->sa_inet()->address_n(), (*itr)->peer_info()->listen_port()));
+
     if (!(*itr)->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;
 
@@ -330,16 +335,6 @@ DownloadMain::do_peer_exchange() {
     }
 
     (*itr)->do_peer_exchange();
-
-    if ((*itr)->peer_info()->listen_port() == 0) 
-      continue;
-
-    const rak::socket_address* sa = rak::socket_address::cast_from((*itr)->peer_info()->socket_address());
-
-    if (sa->family() != rak::socket_address::af_inet)
-      continue;
-
-    current.push_back(SocketAddressCompact(sa->sa_inet()->address_n(), (*itr)->peer_info()->listen_port()));
   }
 
   std::sort(current.begin(), current.end(), SocketAddressCompact_less());

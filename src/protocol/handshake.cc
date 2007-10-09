@@ -584,6 +584,7 @@ Handshake::read_extension() {
   m_extensions->read_start(m_readBuffer.read_8(), length, false);
 
   std::memcpy(m_extensions->read_position(), m_readBuffer.position(), length);
+  m_extensions->read_move(length);
 
   // Does this check need to check if it is a handshake we read?
   if (!m_extensions->is_complete())
@@ -963,6 +964,7 @@ Handshake::prepare_handshake() {
   m_writeBuffer.write_range(m_protocol, m_protocol + 19);
 
   std::memset(m_writeBuffer.end(), 0, 8);
+  *(m_writeBuffer.end()+5) |= 0x10;    // support extension protocol
   m_writeBuffer.move_end(8);
 
   m_writeBuffer.write_range(m_download->info()->hash().c_str(), m_download->info()->hash().c_str() + 20);

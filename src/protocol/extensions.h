@@ -110,7 +110,7 @@ public:
   void                read_done();
 
   char*               read_position()                  { return m_readPos; }
-  bool                read_move(uint32_t v)            { m_readPos += v; return (m_readPos -= v) == 0; }
+  bool                read_move(uint32_t v)            { m_readPos += v; return (m_readLeft -= v) == 0; }
   uint32_t            read_need() const                { return m_readLeft; }
 
   bool                is_complete() const              { return m_readLeft == 0; }
