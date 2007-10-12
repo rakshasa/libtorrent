@@ -40,6 +40,7 @@
 #include <limits>
 
 #include "data/chunk_list.h"
+#include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "tracker/tracker_manager.h"
@@ -345,13 +346,23 @@ DownloadMain::do_peer_exchange() {
                       m_ut_pex_list.begin(), m_ut_pex_list.end(), 
                       std::back_inserter(added), SocketAddressCompact_less());
 
-  // Collect removed peers in m_ut_pex_list.
+  // Collect removed peers in the "removed" list.
   m_ut_pex_list.erase(std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), 
                                           current.begin(), current.end(), 
                                           m_ut_pex_list.begin(), SocketAddressCompact_less()),
                       m_ut_pex_list.end());
 
   m_ut_pex_delta.clear();
+
+  if (current.size() > m_info->max_size_pex_list()) {
+    // This test is only correct as long as we have a constant max
+    // size.
+    if (added.size() < current.size() - m_info->max_size_pex_list())
+      throw internal_error("DownloadMain::do_peer_exchange() added.size() < current.size() - m_info->max_size_pex_list().");
+
+    // Randomize this:
+    added.erase(added.end() - (current.size() - m_info->max_size_pex_list()), added.end());
+  }
 
   // If no peers were added or removed, the initial message is still correct and
   // the delta message stays emptied. Otherwise generate the appropriate messages.

@@ -48,6 +48,7 @@
 #include "globals.h"
 #include "manager.h"
 
+#include "extensions.h"
 #include "handshake.h"
 #include "handshake_manager.h"
 

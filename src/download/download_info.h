@@ -147,6 +147,8 @@ public:
   uint32_t            max_size_pex() const                         { return m_maxSizePex; }
   void                set_max_size_pex(uint32_t b)                 { m_maxSizePex = b; }
 
+  uint32_t            max_size_pex_list() const                    { return 200; }
+
   uint32_t            http_timeout() const                         { return 60; }
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }

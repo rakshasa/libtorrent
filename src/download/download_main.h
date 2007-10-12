@@ -49,7 +49,7 @@
 
 #include "data/chunk_handle.h"
 #include "download/available_list.h"
-#include "protocol/extensions.h"
+#include "net/data_buffer.h"
 #include "torrent/data/file_list.h"
 #include "torrent/peer/peer_list.h"
 
@@ -69,6 +69,7 @@ class ThrottleList;
 class DownloadMain {
 public:
   typedef std::deque<std::pair<rak::timer, uint32_t> > have_queue_type;
+  typedef std::vector<SocketAddressCompact>            pex_list;
 
   DownloadMain();
   ~DownloadMain();
@@ -165,7 +166,7 @@ private:
 
   DataBuffer          m_ut_pex_delta;
   DataBuffer          m_ut_pex_initial;
-  ProtocolExtension::PEXList  m_ut_pex_list;
+  pex_list            m_ut_pex_list;
 
   ThrottleList*       m_uploadThrottle;
   ThrottleList*       m_downloadThrottle;
