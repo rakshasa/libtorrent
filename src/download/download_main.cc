@@ -340,20 +340,16 @@ DownloadMain::do_peer_exchange() {
 
   std::sort(current.begin(), current.end(), SocketAddressCompact_less());
 
-  // Collect new peers in the "added" list.
   ProtocolExtension::PEXList added;
-  std::set_difference(current.begin(), current.end(), 
-                      m_ut_pex_list.begin(), m_ut_pex_list.end(), 
+  added.reserve(current.size());
+  std::set_difference(current.begin(), current.end(), m_ut_pex_list.begin(), m_ut_pex_list.end(), 
                       std::back_inserter(added), SocketAddressCompact_less());
 
-  // Collect removed peers in the "removed" list.
-  m_ut_pex_list.erase(std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), 
-                                          current.begin(), current.end(), 
-                                          m_ut_pex_list.begin(), SocketAddressCompact_less()),
-                      m_ut_pex_list.end());
-
-  m_ut_pex_delta.clear();
-
+  ProtocolExtension::PEXList removed;
+  removed.reserve(m_ut_pex_list.size());
+  std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), current.begin(), current.end(), 
+                      std::back_inserter(removed), SocketAddressCompact_less());
+    
   if (current.size() > m_info->max_size_pex_list()) {
     // This test is only correct as long as we have a constant max
     // size.
@@ -362,19 +358,31 @@ DownloadMain::do_peer_exchange() {
 
     // Randomize this:
     added.erase(added.end() - (current.size() - m_info->max_size_pex_list()), added.end());
+
+    // Create the new m_ut_pex_list by removing any 'removed'
+    // addresses from the original list and then adding the new
+    // addresses.
+    m_ut_pex_list.erase(std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), removed.begin(), removed.end(),
+                                            m_ut_pex_list.begin(), SocketAddressCompact_less()), m_ut_pex_list.end());
+    m_ut_pex_list.insert(m_ut_pex_list.end(), added.begin(), added.end());
+
+    std::sort(m_ut_pex_list.begin(), m_ut_pex_list.end(), SocketAddressCompact_less());
+
+  } else {
+    m_ut_pex_list.swap(current);
   }
+
+  current.clear();
+  m_ut_pex_delta.clear();
 
   // If no peers were added or removed, the initial message is still correct and
   // the delta message stays emptied. Otherwise generate the appropriate messages.
   if (!added.empty() || !m_ut_pex_list.empty()) {
-    m_ut_pex_delta = ProtocolExtension::generate_ut_pex_message(added, m_ut_pex_list);
+    m_ut_pex_delta = ProtocolExtension::generate_ut_pex_message(added, removed);
 
-    m_ut_pex_list.clear();
     m_ut_pex_initial.clear();
-    m_ut_pex_initial = ProtocolExtension::generate_ut_pex_message(current, m_ut_pex_list);
+    m_ut_pex_initial = ProtocolExtension::generate_ut_pex_message(m_ut_pex_list, current);
   }
-
-  m_ut_pex_list.swap(current);
 }
 
 }
