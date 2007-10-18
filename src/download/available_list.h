@@ -59,6 +59,8 @@ public:
   using base_type::const_iterator;
   using base_type::reverse_iterator;
   using base_type::size;
+  using base_type::capacity;
+  using base_type::reserve;
   using base_type::empty;
   using base_type::clear;
 

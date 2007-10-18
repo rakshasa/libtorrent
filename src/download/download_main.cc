@@ -226,11 +226,12 @@ DownloadMain::receive_connect_peers() {
   if (!info()->is_active())
     return;
 
+  // TODO: Is this actually going to be used?
   AddressList* alist = peer_list()->available_list()->buffer();
 
   if (!alist->empty()) {
     alist->sort();
-    peer_list()->available_list()->insert(alist);
+    peer_list()->insert_available(alist);
     alist->clear();
   }
 

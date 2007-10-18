@@ -257,8 +257,7 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
 
 void
 DownloadWrapper::receive_tracker_success(AddressList* l) {
-  m_main.connection_list()->set_difference(l);
-  m_main.peer_list()->available_list()->insert(l);
+  m_main.peer_list()->insert_available(l);
   m_main.receive_connect_peers();
   m_main.receive_tracker_success();
 

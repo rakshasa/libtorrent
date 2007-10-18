@@ -300,8 +300,7 @@ ProtocolExtension::parse_ut_pex(const Object& message) {
   l.sort();
   l.erase(std::unique(l.begin(), l.end()), l.end());
  
-  m_download->connection_list()->set_difference(&l);
-  m_download->peer_list()->available_list()->insert(&l);
+  m_download->peer_list()->insert_available(&l);
 }
 
 }

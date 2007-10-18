@@ -42,6 +42,8 @@
 
 namespace torrent {
 
+bool        socket_address_less(const sockaddr* s1, const sockaddr* s2);
+
 // Unique key for the address, excluding port numbers etc.
 class LIBTORRENT_EXPORT socket_address_key {
 public:
@@ -49,7 +51,7 @@ public:
 
   inline static bool is_comparable(const sockaddr* sa);
 
-  bool operator < (const socket_address_key& sa) const;
+  bool operator < (const socket_address_key& sa) const { return socket_address_less(m_sockaddr, sa.m_sockaddr); }
 
 private:
   const sockaddr*     m_sockaddr;
@@ -93,6 +95,9 @@ public:
   ~PeerList();
 
   PeerInfo*           insert_address(const sockaddr* address, int flags);
+
+  // This will be used internally only for the moment.
+  uint32_t            insert_available(const void* al) LIBTORRENT_NO_EXPORT;
 
   AvailableList*      available_list()  { return m_availableList; }
 

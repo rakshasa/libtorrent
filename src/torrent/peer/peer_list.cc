@@ -52,15 +52,10 @@
 
 namespace torrent {
 
-inline bool
-socket_address_key::is_comparable(const sockaddr* sa) {
-  return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet;
-}
-
 bool
-socket_address_key::operator < (const socket_address_key& sa) const {
-  const rak::socket_address* sa1 = rak::socket_address::cast_from(m_sockaddr);
-  const rak::socket_address* sa2 = rak::socket_address::cast_from(sa.m_sockaddr);
+socket_address_less(const sockaddr* s1, const sockaddr* s2) {
+  const rak::socket_address* sa1 = rak::socket_address::cast_from(s1);
+  const rak::socket_address* sa2 = rak::socket_address::cast_from(s2);
 
   if (sa1->family() != sa2->family())
     return sa1->family() < sa2->family();
@@ -74,6 +69,11 @@ socket_address_key::operator < (const socket_address_key& sa) const {
     // When we implement INET6 handling, embed the ipv4 address in
     // the ipv6 address.
     throw internal_error("socket_address_key(...) tried to compare an invalid family type.");
+}
+
+inline bool
+socket_address_key::is_comparable(const sockaddr* sa) {
+  return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet;
 }
 
 struct peer_list_equal_port : public std::binary_function<PeerList::reference, uint16_t, bool> {
@@ -121,6 +121,73 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
     m_availableList->push_back(address);
 
   return peerInfo;
+}
+
+inline bool
+socket_address_less_rak(const rak::socket_address& s1, const rak::socket_address& s2) {
+  return socket_address_less(s1.c_sockaddr(), s2.c_sockaddr());
+}
+
+uint32_t
+PeerList::insert_available(const void* al) {
+  uint32_t inserted = 0;
+  const AddressList* addressList = static_cast<const AddressList*>(al);
+
+  if (m_availableList->size() + addressList->size() > m_availableList->capacity())
+    m_availableList->reserve(m_availableList->size() + addressList->size() + 128);
+
+  // Optimize this so that we don't traverse the tree for every
+  // insert, since we know 'al' is sorted.
+
+  AddressList::const_iterator itr   = addressList->begin();
+  AddressList::const_iterator last  = addressList->end();
+  AvailableList::const_iterator availItr  = m_availableList->begin();
+  AvailableList::const_iterator availLast = m_availableList->end();
+
+  for (; itr != last; itr++) {
+    if (!socket_address_key::is_comparable(itr->c_sockaddr()) || itr->port() == 0)
+      continue;
+
+    availItr = std::find_if(availItr, availLast, rak::bind2nd(std::ptr_fun(&socket_address_less_rak), *itr));
+
+    if (availItr != availLast && !socket_address_less(availItr->c_sockaddr(), itr->c_sockaddr())) {
+      // The address is already in m_availableList, so don't bother
+      // going further.
+      continue;
+    }
+
+    // Check if the peerinfo exists, if it does, check if we would
+    // ever want to connect. Just update the timer for the last
+    // availability notice if the peer isn't really ideal, but might
+    // be used in an emergency.
+    range_type range = base_type::equal_range(itr->c_sockaddr());
+
+    if (range.first != range.second) {
+      // Add some logic here to select the best PeerInfo, but for now
+      // just assume the first one is the only one that exists.
+      PeerInfo* peerInfo = range.first->second;
+
+      if (peerInfo->listen_port() == 0)
+        peerInfo->set_port(itr->port());
+
+      if (peerInfo->connection() != NULL)
+        continue;
+      
+      // If the peer has sent us bad chunks or we just connected or
+      // tried to do so a few minutes ago, only update its
+      // availability timer.
+    }
+
+    // Should we perhaps add to available list even though we don't
+    // want the peer, just to ensure we don't need to search for the
+    // PeerInfo every time it gets reported. Though I'd assume it
+    // won't happen often enough to be worth it.
+
+    inserted++;
+    m_availableList->push_back(&*itr);
+  }
+
+  return inserted;
 }
 
 PeerInfo*
