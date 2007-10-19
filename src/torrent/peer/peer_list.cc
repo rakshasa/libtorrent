@@ -170,9 +170,10 @@ PeerList::insert_available(const void* al) {
       if (peerInfo->listen_port() == 0)
         peerInfo->set_port(itr->port());
 
-      if (peerInfo->connection() != NULL)
+      if (peerInfo->connection() != NULL ||
+          peerInfo->last_handshake() + 600 > (uint32_t)cachedTime.seconds())
         continue;
-      
+
       // If the peer has sent us bad chunks or we just connected or
       // tried to do so a few minutes ago, only update its
       // availability timer.
@@ -226,6 +227,10 @@ PeerList::connected(const sockaddr* sa, int flags) {
     return NULL;
   }
 
+  if (flags & connect_filter_recent &&
+      peerInfo->last_handshake() + 600 > (uint32_t)cachedTime.seconds())
+    return NULL;
+
   if (!(flags & connect_incoming))
     peerInfo->set_listen_port(address->port());
 
@@ -235,7 +240,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
     peerInfo->unset_flags(PeerInfo::flag_incoming);
 
   peerInfo->set_flags(PeerInfo::flag_connected);
-  peerInfo->set_last_connection(cachedTime.seconds());
+  peerInfo->set_last_handshake(cachedTime.seconds());
 
   return peerInfo;
 }
@@ -266,11 +271,13 @@ PeerList::disconnected(iterator itr, int flags) {
     throw internal_error("PeerList::disconnected(...) !itr->is_connected().");
 
   itr->second->unset_flags(PeerInfo::flag_connected);
-  itr->second->set_last_connection(cachedTime.seconds());
 
   // Replace the socket address port with the listening port so that
   // future outgoing connections will connect to the right port.
   itr->second->set_port(0);
+
+  if (flags & disconnect_set_time)
+    itr->second->set_last_connection(cachedTime.seconds());
 
   if (flags & disconnect_available && itr->second->listen_port() != 0)
     m_availableList->push_back(rak::socket_address::cast_from(itr->second->socket_address()));

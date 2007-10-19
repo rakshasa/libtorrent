@@ -82,11 +82,13 @@ public:
 
   static const int connect_incoming        = (1 << 0);
   static const int connect_keep_handshakes = (1 << 1);
+  static const int connect_filter_recent   = (1 << 2);
 
   // Make sure any change here match ConnectionList's flags.
   static const int disconnect_available    = (1 << 0);
   static const int disconnect_quick        = (1 << 1);
   static const int disconnect_unwanted     = (1 << 2);
+  static const int disconnect_set_time     = (1 << 3);
 
   static const int cull_old                = (1 << 0);
   static const int cull_keep_interesting   = (1 << 1);

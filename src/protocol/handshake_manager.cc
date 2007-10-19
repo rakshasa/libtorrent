@@ -133,7 +133,8 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* down
 
 void
 HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* download, int encryptionOptions) {
-  PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(), PeerList::connect_keep_handshakes);
+  PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(),
+                                                        PeerList::connect_keep_handshakes | PeerList::connect_filter_recent);
 
   if (peerInfo == NULL)
     return;

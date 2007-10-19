@@ -54,6 +54,7 @@ PeerInfo::PeerInfo(const sockaddr* address) :
   m_failedCounter(0),
   m_transferCounter(0),
   m_lastConnection(0),
+  m_lastHandshake(0),
   m_listenPort(0),
 
   m_connection(NULL)

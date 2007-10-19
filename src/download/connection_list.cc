@@ -66,6 +66,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
     throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
 
   peerInfo->set_connection(peerConnection);
+  peerInfo->set_last_connection(cachedTime.seconds());
   peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
   base_type::push_back(peerConnection);
@@ -95,7 +96,7 @@ ConnectionList::erase(iterator pos, int flags) {
   peerConnection->cleanup();
   peerConnection->peer_info()->set_connection(NULL);
 
-  m_download->peer_list()->disconnected(peerConnection->peer_info(), 0);
+  m_download->peer_list()->disconnected(peerConnection->peer_info(), PeerList::disconnect_set_time);
 
   // Delete after the signal to ensure the address of 'v' doesn't get
   // allocated for a different PCB in the signal.

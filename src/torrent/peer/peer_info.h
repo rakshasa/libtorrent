@@ -80,6 +80,9 @@ public:
   uint32_t            last_connection() const               { return m_lastConnection; }
   void                set_last_connection(uint32_t tvsec)   { m_lastConnection = tvsec; }
 
+  uint32_t            last_handshake() const                { return m_lastHandshake; }
+  void                set_last_handshake(uint32_t tvsec)    { m_lastHandshake = tvsec; }
+
   bool                supports_extensions() const           { return m_options[5] & 0x10; }
 
   // Internal to libTorrent:
@@ -112,6 +115,7 @@ private:
   uint32_t            m_failedCounter;
   uint32_t            m_transferCounter;
   uint32_t            m_lastConnection;
+  uint32_t            m_lastHandshake;
 
   uint16_t            m_listenPort;
 
