@@ -39,7 +39,7 @@
 #include <iterator>
 #include <stdlib.h>
 #include <rak/file_stat.h>
-#include <sigc++/bind.h>
+#include <sigc++/adaptors/bind.h>
 
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"

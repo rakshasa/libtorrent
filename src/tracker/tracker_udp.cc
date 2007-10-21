@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <sigc++/bind.h>
+#include <sigc++/adaptors/bind.h>
 #include <torrent/connection_manager.h>
 
 #include "net/address_list.h"

@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_MANAGER_H
 #define LIBTORRENT_DOWNLOAD_MANAGER_H
 
-#include <list>
+#include <vector>
 
 namespace torrent {
 
@@ -45,9 +45,9 @@ class DownloadWrapper;
 class DownloadInfo;
 class DownloadMain;
 
-class DownloadManager : private std::list<DownloadWrapper*>{
+class DownloadManager : private std::vector<DownloadWrapper*>{
 public:
-  typedef std::list<DownloadWrapper*> base_type;
+  typedef std::vector<DownloadWrapper*> base_type;
 
   typedef base_type::value_type value_type;
   typedef base_type::pointer pointer;

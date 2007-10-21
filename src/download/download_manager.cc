@@ -67,8 +67,8 @@ DownloadManager::erase(DownloadWrapper* d) {
 void
 DownloadManager::clear() {
   while (!empty()) {
-    delete base_type::front();
-    base_type::pop_front();
+    delete base_type::back();
+    base_type::pop_back();
   }
 }
 

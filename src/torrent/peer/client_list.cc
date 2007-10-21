@@ -54,7 +54,7 @@ ClientList::ClientList() {
   // Sorted by popularity to optimize search. This list is heavily
   // biased by my own prejudices, and not at all based on facts.
 
-  // First patch of clients.
+  // First batch of clients.
   insert_helper(ClientInfo::TYPE_AZUREUS, "AZ", NULL, NULL, "Azureus");
   insert_helper(ClientInfo::TYPE_AZUREUS, "BC", NULL, NULL, "BitComet");
   insert_helper(ClientInfo::TYPE_AZUREUS, "CD", NULL, NULL, "Enhanced CTorrent");
@@ -67,7 +67,7 @@ ClientList::ClientList() {
 
   insert_helper(ClientInfo::TYPE_COMPACT, "T", NULL, NULL, "BitTornado");
 
-  // Second patch of clients.
+  // Second batch of clients.
   insert_helper(ClientInfo::TYPE_AZUREUS, "AR", NULL, NULL, "Arctic");
   insert_helper(ClientInfo::TYPE_AZUREUS, "BB", NULL, NULL, "BitBuddy");
   insert_helper(ClientInfo::TYPE_AZUREUS, "BX", NULL, NULL, "Bittorrent X");
@@ -94,7 +94,7 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_COMPACT, "U", NULL, NULL, "UPnP NAT BitTorrent");
   insert_helper(ClientInfo::TYPE_COMPACT, "O", NULL, NULL, "Osprey Permaseed");
 
-  // Third patch of clients.
+  // Third batch of clients.
   insert_helper(ClientInfo::TYPE_AZUREUS, "AX", NULL, NULL, "BitPump");
   insert_helper(ClientInfo::TYPE_AZUREUS, "BF", NULL, NULL, "BitFlu");
   insert_helper(ClientInfo::TYPE_AZUREUS, "BG", NULL, NULL, "BTG");
@@ -103,6 +103,7 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_AZUREUS, "HL", NULL, NULL, "Halite");
   insert_helper(ClientInfo::TYPE_AZUREUS, "qB", NULL, NULL, "qBittorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "UL", NULL, NULL, "uLeecher!");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "XL", NULL, NULL, "XeiLun");
 
   insert_helper(ClientInfo::TYPE_COMPACT, "R", NULL, NULL, "Tribler");
 }

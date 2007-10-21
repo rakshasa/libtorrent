@@ -145,7 +145,15 @@ Manager::receive_tick() {
   m_resourceManager->receive_tick();
   m_chunkManager->periodic_sync();
 
-  std::for_each(m_downloadManager->begin(), m_downloadManager->end(), std::bind2nd(std::mem_fun(&DownloadWrapper::receive_tick), m_ticks));
+  // To ensure the downloads get equal chance over time at using
+  // various limited resources, like sockets for handshakes, cycle the
+  // group in reverse order.
+  if (!m_downloadManager->empty()) {
+    DownloadManager::iterator split = m_downloadManager->end() - m_ticks % m_downloadManager->size() - 1;
+
+    std::for_each(split, m_downloadManager->end(),   std::bind2nd(std::mem_fun(&DownloadWrapper::receive_tick), m_ticks));
+    std::for_each(m_downloadManager->begin(), split, std::bind2nd(std::mem_fun(&DownloadWrapper::receive_tick), m_ticks));
+  }
 
   // If you change the interval, make sure the keepalives gets
   // triggered every 120 seconds.
