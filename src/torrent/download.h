@@ -40,8 +40,8 @@
 #include <list>
 #include <vector>
 #include <string>
-#include <sigc++/slot.h>
 #include <sigc++/connection.h>
+#include <sigc++/functors/slot.h>
 
 #include <torrent/common.h>
 #include <torrent/peer/peer.h>

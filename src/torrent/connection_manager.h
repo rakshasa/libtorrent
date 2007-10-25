@@ -46,7 +46,7 @@
 #include <netinet/ip.h>
 #include <sigc++/connection.h>
 #include <sigc++/signal.h>
-#include <sigc++/slot.h>
+#include <sigc++/functors/slot.h>
 
 #include <torrent/common.h>
 
