@@ -92,8 +92,8 @@ resume_load_progress(Download download, const Object& object) {
     return;
   }
 
-  Object::list_type::const_iterator filesItr  = files.begin();
-  Object::list_type::const_iterator filesLast = files.end();
+  Object::list_const_iterator filesItr  = files.begin();
+  Object::list_const_iterator filesLast = files.end();
 
   FileList* fileList = download.file_list();
 
@@ -131,11 +131,8 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
   else
     object.insert_key("bitfield", std::string((char*)bitfield->begin(), bitfield->size_bytes()));
   
-  Object::list_type& files = object.has_key_list("files")
-    ? object.get_key_list("files")
-    : object.insert_key("files", Object(Object::TYPE_LIST)).as_list();
-
-  Object::list_type::iterator filesItr = files.begin();
+  Object::list_type&    files    = object.insert_preserve_list("files").first->second.as_list();
+  Object::list_iterator filesItr = files.begin();
 
   FileList* fileList = download.file_list();
 
@@ -171,8 +168,8 @@ resume_load_file_priorities(Download download, const Object& object) {
 
   const Object::list_type& files = object.get_key_list("files");
 
-  Object::list_type::const_iterator filesItr  = files.begin();
-  Object::list_type::const_iterator filesLast = files.end();
+  Object::list_const_iterator filesItr  = files.begin();
+  Object::list_const_iterator filesLast = files.end();
 
   FileList* fileList = download.file_list();
 
@@ -192,11 +189,8 @@ resume_load_file_priorities(Download download, const Object& object) {
 
 void
 resume_save_file_priorities(Download download, Object& object) {
-  Object::list_type& files = object.has_key_list("files")
-    ? object.get_key_list("files")
-    : object.insert_key("files", Object(Object::TYPE_LIST)).as_list();
-
-  Object::list_type::iterator filesItr = files.begin();
+  Object::list_type&    files    = object.insert_preserve_list("files").first->second.as_list();
+  Object::list_iterator filesItr = files.begin();
 
   FileList* fileList = download.file_list();
 
@@ -219,7 +213,7 @@ resume_load_addresses(Download download, const Object& object) {
 
   const Object::list_type& src = object.get_key_list("peers");
   
-  for (Object::list_type::const_iterator itr = src.begin(), last = src.end(); itr != last; ++itr) {
+  for (Object::list_const_iterator itr = src.begin(), last = src.end(); itr != last; ++itr) {
     if (!itr->is_map() ||
         !itr->has_key_string("inet") || itr->get_key_string("inet").size() != sizeof(SocketAddressCompact) ||
         !itr->has_key_value("failed") ||
@@ -294,12 +288,11 @@ resume_load_tracker_settings(Download download, const Object& object) {
 
 void
 resume_save_tracker_settings(Download download, Object& object) {
-  Object&     dest        = object.has_key_map("trackers") ? object.get_key("trackers") : object.insert_key("trackers", Object(Object::TYPE_MAP));
+  Object& dest = object.insert_preserve_map("trackers").first->second;
   TrackerList trackerList = download.tracker_list();
 
   for (unsigned int i = 0; i < trackerList.size(); ++i) {
     Tracker tracker = trackerList.get(i);
-
     Object& trackerObject = dest.insert_key(tracker.url(), Object(Object::TYPE_MAP));
 
     trackerObject.insert_key("enabled", Object((int64_t)tracker.is_enabled()));

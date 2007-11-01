@@ -94,7 +94,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 	return;
       }
 
-      Object::list_type::iterator itr = object->as_list().insert(object->as_list().end(), Object());
+      Object::list_iterator itr = object->as_list().insert(object->as_list().end(), Object());
       object_read_bencode(input, &*itr, depth);
     }
 
@@ -257,7 +257,7 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object)
   case Object::TYPE_LIST:
     object_write_bencode_c_char(output, 'l');
 
-    for (Object::list_type::const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last; ++itr)
+    for (Object::list_const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last; ++itr)
       object_write_bencode_c_object(output, &*itr);
 
     object_write_bencode_c_char(output, 'e');
@@ -266,7 +266,7 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object)
   case Object::TYPE_MAP:
     object_write_bencode_c_char(output, 'd');
 
-    for (Object::map_type::const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last; ++itr) {
+    for (Object::map_const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last; ++itr) {
       object_write_bencode_c_value(output, itr->first.size());
       object_write_bencode_c_char(output, ':');
       object_write_bencode_c_string(output, itr->first.c_str(), itr->first.size());

@@ -50,11 +50,23 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Object {
 public:
-  typedef int64_t                         value_type;
-  typedef std::string                     string_type;
-  typedef std::list<Object>               list_type;
-  typedef std::map<std::string, Object>   map_type;
-  typedef map_type::key_type              key_type;
+  typedef int64_t                           value_type;
+  typedef std::string                       string_type;
+  typedef std::list<Object>                 list_type;
+  typedef std::map<std::string, Object>     map_type;
+  typedef map_type::key_type                key_type;
+
+  typedef list_type::iterator               list_iterator;
+  typedef list_type::const_iterator         list_const_iterator;
+  typedef list_type::reverse_iterator       list_reverse_iterator;
+  typedef list_type::const_reverse_iterator list_const_reverse_iterator;
+
+  typedef map_type::iterator                map_iterator;
+  typedef map_type::const_iterator          map_const_iterator;
+  typedef map_type::reverse_iterator        map_reverse_iterator;
+  typedef map_type::const_reverse_iterator  map_const_reverse_iterator;
+
+  typedef std::pair<map_iterator, bool>     map_insert_type;
 
   enum type_type {
     TYPE_NONE,
@@ -119,7 +131,21 @@ public:
   map_type&           get_key_map(const key_type& k)                 { return get_key(k).as_map(); }
   const map_type&     get_key_map(const key_type& k) const           { return get_key(k).as_map(); }
 
-  Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
+  Object&             insert_key(const key_type& k, const Object& b)      { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
+
+  // 'insert_preserve_*' inserts the object 'b' if the key 'k' does
+  // not exist, else it returns the old entry. The type specific
+  // versions also require the old entry to be of the same type.
+  //
+  // Consider making insert_preserve_* return std::pair<Foo*,bool> or
+  // something similar.
+  map_insert_type     insert_preserve(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return m_map->insert(map_type::value_type(k, b)); }
+  map_insert_type     insert_preserve_list(const key_type& k);
+  map_insert_type     insert_preserve_map(const key_type& k);
+  map_insert_type     insert_preserve_value(const key_type& k, value_type b);
+  map_insert_type     insert_preserve_cstr(const key_type& k, const char* b);
+  map_insert_type     insert_preserve_string(const key_type& k, const std::string& b);
+
   void                erase_key(const key_type& k)                   { check_throw(TYPE_MAP); m_map->erase(k); }
 
   Object&             insert_front(const Object& b)                  { check_throw(TYPE_LIST); return *m_list->insert(m_list->begin(), b); }

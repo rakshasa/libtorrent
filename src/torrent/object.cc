@@ -47,7 +47,6 @@ namespace torrent {
 Object&
 Object::get_key(const std::string& k) {
   check_throw(TYPE_MAP);
-
   map_type::iterator itr = m_map->find(k);
 
   if (itr == m_map->end())
@@ -60,13 +59,77 @@ Object::get_key(const std::string& k) {
 const Object&
 Object::get_key(const std::string& k) const {
   check_throw(TYPE_MAP);
-
   map_type::const_iterator itr = m_map->find(k);
 
   if (itr == m_map->end())
     throw bencode_error("Object operator [" + k + "] could not find element");
 
   return itr->second;
+}
+
+Object::map_insert_type
+Object::insert_preserve_list(const key_type& k) {
+  check_throw(TYPE_MAP);
+  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(TYPE_LIST)));
+
+  if (!result.second && result.first->second.type() != TYPE_LIST) {
+    result.first->second = torrent::Object(TYPE_LIST);
+    result.second = true;
+  }
+
+  return result;
+}
+
+Object::map_insert_type
+Object::insert_preserve_map(const key_type& k) {
+  check_throw(TYPE_MAP);
+  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(TYPE_MAP)));
+
+  if (!result.second && result.first->second.type() != TYPE_MAP) {
+    result.first->second = torrent::Object(TYPE_MAP);
+    result.second = true;
+  }
+
+  return result;
+}
+
+Object::map_insert_type
+Object::insert_preserve_value(const key_type& k, value_type b) {
+  check_throw(TYPE_MAP);
+  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(b)));
+
+  if (!result.second && result.first->second.type() != TYPE_VALUE) {
+    result.first->second = torrent::Object(b);
+    result.second = true;
+  }
+
+  return result;
+}
+
+Object::map_insert_type
+Object::insert_preserve_cstr(const key_type& k, const char* b) {
+  check_throw(TYPE_MAP);
+  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(b)));
+
+  if (!result.second && result.first->second.type() != TYPE_STRING) {
+    result.first->second = torrent::Object(b);
+    result.second = true;
+  }
+
+  return result;
+}
+
+Object::map_insert_type
+Object::insert_preserve_string(const key_type& k, const std::string& b) {
+  check_throw(TYPE_MAP);
+  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(b)));
+
+  if (!result.second && result.first->second.type() != TYPE_STRING) {
+    result.first->second = torrent::Object(b);
+    result.second = true;
+  }
+
+  return result;
 }
 
 Object&
