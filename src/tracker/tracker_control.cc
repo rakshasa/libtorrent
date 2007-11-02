@@ -64,7 +64,7 @@ TrackerControl::insert(int group, const std::string& url) {
   if (is_busy())
     throw internal_error("Added tracker url while the current tracker is busy");
 
-  TrackerBase* t;
+  Tracker* t;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0)
@@ -83,7 +83,7 @@ TrackerControl::insert(int group, const std::string& url) {
 
 void
 TrackerControl::cycle_group(int group) {
-  TrackerBase* tb = (m_itr != m_list.end()) ? *m_itr : NULL;
+  Tracker* tb = (m_itr != m_list.end()) ? *m_itr : NULL;
 
   m_list.cycle_group(group);
   m_itr = m_list.find(tb);
@@ -135,7 +135,7 @@ TrackerControl::focus_next_group() {
 }
 
 void
-TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
+TrackerControl::receive_success(Tracker* tb, AddressList* l) {
 //   if ((*m_itr)->get_data() != NULL)
 //     m_signalDump.emit((*m_itr)->get_data());
 
@@ -156,7 +156,7 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
 }
 
 void
-TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
+TrackerControl::receive_failed(Tracker* tb, const std::string& msg) {
 //   if ((*m_itr)->get_data() != NULL)
 //     m_signalDump.emit((*m_itr)->get_data());
 

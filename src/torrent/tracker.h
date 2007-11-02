@@ -38,15 +38,19 @@
 #define LIBTORRENT_TRACKER_H
 
 #include <string>
+#include <inttypes.h>
 #include <torrent/common.h>
 
 namespace torrent {
 
-// Consider changing into a Download + tracker id.
+class AddressList;
+class TrackerContainer;
+class TrackerControl;
 
 class LIBTORRENT_EXPORT Tracker {
 public:
-  typedef TrackerBase* value_type;
+  friend class TrackerContainer;
+  friend class TrackerControl;
 
   typedef enum {
     TRACKER_NONE,
@@ -54,32 +58,62 @@ public:
     TRACKER_UDP
   } Type;
 
-  Tracker()             : m_tracker(NULL) {}
-  Tracker(value_type v) : m_tracker(v) {}
-  
-  bool                is_enabled() const;
-  bool                is_open() const;
+  virtual ~Tracker() {}
 
-  void                enable();
-  void                disable();
+  virtual bool        is_busy() const = 0;
+  bool                is_enabled() const                    { return m_enabled; }
 
-  uint32_t            group() const;
-  const std::string&  url() const;
+  void                enable()                              { m_enabled = true; }
+  void                disable()                             { m_enabled = false; }
 
-  // The "tracker id" string returned by the tracker.
-  const std::string&  tracker_id() const;
-  Type                tracker_type() const;
+  TrackerControl*     parent()                              { return m_parent; }
 
-  uint32_t            normal_interval() const;
-  uint32_t            min_interval() const;
+  uint32_t            group() const                         { return m_group; }
+  virtual Type        type() const = 0;
 
-  uint64_t            scrape_time_last() const;
-  uint32_t            scrape_complete() const;
-  uint32_t            scrape_incomplete() const;
-  uint32_t            scrape_downloaded() const;
+  const std::string&  url() const                           { return m_url; }
+  void                set_url(const std::string& url)       { m_url = url; }
 
-private:
-  value_type          m_tracker;
+  const std::string&  tracker_id() const                    { return m_trackerId; }
+  void                set_tracker_id(const std::string& id) { m_trackerId = id; }
+
+  uint32_t            normal_interval() const               { return m_normalInterval; }
+  uint32_t            min_interval() const                  { return m_minInterval; }
+
+  uint32_t            scrape_time_last() const              { return m_scrapeTimeLast; }
+  uint32_t            scrape_complete() const               { return m_scrapeComplete; }
+  uint32_t            scrape_incomplete() const             { return m_scrapeIncomplete; }
+  uint32_t            scrape_downloaded() const             { return m_scrapeDownloaded; }
+
+protected:
+  Tracker(TrackerControl* parent, const std::string& url);
+  Tracker(const Tracker& t);
+  void operator = (const Tracker& t);
+
+  virtual void        send_state(int state, uint64_t down, uint64_t up, uint64_t left) = 0;
+  virtual void        close() = 0;
+
+  void                set_group(uint32_t v)                 { m_group = v; }
+
+  void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normalInterval = v; }
+  void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_minInterval = v; }
+
+  bool                m_enabled;
+
+  TrackerControl*     m_parent;
+  uint32_t            m_group;
+
+  std::string         m_url;
+
+  std::string         m_trackerId;
+
+  uint32_t            m_normalInterval;
+  uint32_t            m_minInterval;
+
+  uint32_t            m_scrapeTimeLast;
+  uint32_t            m_scrapeComplete;
+  uint32_t            m_scrapeIncomplete;
+  uint32_t            m_scrapeDownloaded;
 };
 
 }

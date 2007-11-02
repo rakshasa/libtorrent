@@ -36,79 +36,23 @@
 
 #include "config.h"
 
-#include "tracker/tracker_http.h"
 #include "tracker.h"
 
 namespace torrent {
 
-bool
-Tracker::is_enabled() const {
-  return m_tracker->is_enabled();
-}
+Tracker::Tracker(TrackerControl* parent, const std::string& url) :
+  m_enabled(true),
+  m_parent(parent),
+  m_group(0),
+  m_url(url),
 
-void
-Tracker::enable() {
-  m_tracker->enable(true);
-}
+  m_normalInterval(1800),
+  m_minInterval(0),
 
-void
-Tracker::disable() {
-  m_tracker->enable(false);
-}
-
-bool
-Tracker::is_open() const {
-  return m_tracker->is_busy();
-}
-
-uint32_t
-Tracker::group() const {
-  return m_tracker->group();
-}
-
-const std::string&
-Tracker::url() const {
-  return m_tracker->url();
-}
-
-const std::string&
-Tracker::tracker_id() const {
-  return m_tracker->tracker_id();
-}
-
-Tracker::Type
-Tracker::tracker_type() const {
-  return static_cast<Type>(m_tracker->type());
-}
-
-uint32_t
-Tracker::normal_interval() const {
-  return m_tracker->normal_interval();
-}
-
-uint32_t
-Tracker::min_interval() const {
-  return m_tracker->min_interval();
-}
-
-uint64_t
-Tracker::scrape_time_last() const {
-  return m_tracker->scrape_time_last().usec();
-}
-
-uint32_t
-Tracker::scrape_complete() const {
-  return m_tracker->scrape_complete();
-}
-
-uint32_t
-Tracker::scrape_incomplete() const {
-  return m_tracker->scrape_incomplete();
-}
-
-uint32_t
-Tracker::scrape_downloaded() const {
-  return m_tracker->scrape_downloaded();
+  m_scrapeTimeLast(0),
+  m_scrapeComplete(0),
+  m_scrapeIncomplete(0),
+  m_scrapeDownloaded(0) {
 }
 
 }

@@ -40,20 +40,20 @@
 #include <iosfwd>
 
 #include "torrent/object.h"
-#include "tracker_base.h"
+#include "torrent/tracker.h"
 
 namespace torrent {
 
 class Http;
 
-class TrackerHttp : public TrackerBase {
+class TrackerHttp : public Tracker {
 public:
   TrackerHttp(TrackerControl* parent, const std::string& url);
   ~TrackerHttp();
   
   virtual bool        is_busy() const;
 
-  virtual void        send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left);
+  virtual void        send_state(int state, uint64_t down, uint64_t up, uint64_t left);
   virtual void        close();
 
   virtual Type        type() const;

@@ -40,14 +40,14 @@
 
 #include "torrent/exceptions.h"
 
-#include "tracker_base.h"
+#include "torrent/tracker.h"
 #include "tracker_container.h"
 
 namespace torrent {
 
 bool
 TrackerContainer::has_enabled() const {
-  return std::find_if(begin(), end(), std::mem_fun(&TrackerBase::is_enabled)) != end();
+  return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_enabled)) != end();
 }
 
 void
@@ -65,7 +65,7 @@ TrackerContainer::randomize() {
 
 void
 TrackerContainer::clear() {
-  std::for_each(begin(), end(), rak::call_delete<TrackerBase>());
+  std::for_each(begin(), end(), rak::call_delete<Tracker>());
   base_type::clear();
 }
 
@@ -98,7 +98,7 @@ TrackerContainer::find_enabled(const_iterator itr) const {
 
 TrackerContainer::iterator
 TrackerContainer::begin_group(unsigned int group) {
-  return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&TrackerBase::group)));
+  return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
 }
 
 void

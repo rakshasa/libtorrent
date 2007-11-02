@@ -56,7 +56,7 @@
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerControl* parent, const std::string& url) :
-  TrackerBase(parent, url),
+  Tracker(parent, url),
 
   m_get(Http::call_factory()),
   m_data(NULL) {
@@ -83,7 +83,7 @@ TrackerHttp::is_busy() const {
 }
 
 void
-TrackerHttp::send_state(DownloadInfo::State state, uint64_t down, uint64_t up, uint64_t left) {
+TrackerHttp::send_state(int state, uint64_t down, uint64_t up, uint64_t left) {
   close();
 
   if (m_parent == NULL)
@@ -211,8 +211,7 @@ TrackerHttp::receive_done() {
   if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
     m_scrapeComplete   = std::max<int64_t>(b.get_key_value("complete"), 0);
     m_scrapeIncomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
-
-    m_scrapeTimeLast = cachedTime;
+    m_scrapeTimeLast   = rak::timer::current().seconds();
   }
 
   if (b.has_key_value("downloaded"))

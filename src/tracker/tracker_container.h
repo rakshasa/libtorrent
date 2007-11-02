@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-class TrackerBase;
+class Tracker;
 
 // The tracker list will contain a list of tracker, divided into
 // subgroups. Each group must be randomized before we start. When
@@ -51,9 +51,9 @@ class TrackerBase;
 // tracker to the beginning of the subgroup and start from the
 // beginning of the whole list.
 
-class TrackerContainer : private std::vector<TrackerBase*> {
+class TrackerContainer : private std::vector<Tracker*> {
 public:
-  typedef std::vector<TrackerBase*> base_type;
+  typedef std::vector<Tracker*> base_type;
 
   using base_type::value_type;
 
@@ -78,11 +78,11 @@ public:
   void                randomize();
   void                clear();
 
-  iterator            insert(unsigned int group, TrackerBase* t);
+  iterator            insert(unsigned int group, Tracker* t);
 
   iterator            promote(iterator itr);
 
-  iterator            find(TrackerBase* tb)                   { return std::find(begin(), end(), tb); }
+  iterator            find(Tracker* tb)                   { return std::find(begin(), end(), tb); }
   iterator            find_enabled(iterator itr);
   const_iterator      find_enabled(const_iterator itr) const;
 
@@ -92,7 +92,7 @@ public:
 };
 
 inline TrackerContainer::iterator
-TrackerContainer::insert(unsigned int group, TrackerBase* t) {
+TrackerContainer::insert(unsigned int group, Tracker* t) {
   t->set_group(group);
 
   return base_type::insert(end_group(group), t);

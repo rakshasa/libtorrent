@@ -49,12 +49,12 @@ class AddressList;
 class DownloadWrapper;
 class TrackerControl;
 class DownloadInfo;
-class TrackerBase;
+class Tracker;
 
 class TrackerManager {
 public:
   typedef uint32_t                                size_type;
-  typedef TrackerBase*                            value_type;
+  typedef Tracker*                                value_type;
 
   typedef rak::mem_fun1<DownloadWrapper, void, AddressList*>       SlotSuccess;
   typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotFailed;

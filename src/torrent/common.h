@@ -91,7 +91,7 @@ class ProtocolExtension;
 class Rate;
 class SocketSet;
 class Tracker;
-class TrackerBase;
+class Tracker;
 class TrackerList;
 class TrackerManager;
 class TransferList;

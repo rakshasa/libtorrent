@@ -43,8 +43,8 @@
 #include <rak/socket_address.h>
 
 #include "download/download_info.h"
+#include "torrent/tracker.h"
 
-#include "tracker_base.h"
 #include "tracker_container.h"
 
 #include "globals.h"
@@ -97,8 +97,8 @@ public:
   void                slot_success(SlotSuccess s)             { m_slotSuccess = s; }
   void                slot_failed(SlotFailed s)               { m_slotFailed = s; }
 
-  void                receive_success(TrackerBase* tb, AddressList* l);
-  void                receive_failed(TrackerBase* tb, const std::string& msg);
+  void                receive_success(Tracker* tb, AddressList* l);
+  void                receive_failed(Tracker* tb, const std::string& msg);
 
 private:
   TrackerControl(const TrackerControl& t);
