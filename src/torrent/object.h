@@ -118,20 +118,22 @@ public:
 
   Object&             get_key(const key_type& k);
   const Object&       get_key(const key_type& k) const;
+  Object&             get_key(const char* k);
+  const Object&       get_key(const char* k) const;
 
-  value_type&         get_key_value(const key_type& k)               { return get_key(k).as_value(); }
-  const value_type&   get_key_value(const key_type& k) const         { return get_key(k).as_value(); }
+  template <typename T> value_type&        get_key_value(const T& k)        { return get_key(k).as_value(); }
+  template <typename T> const value_type&  get_key_value(const T& k) const  { return get_key(k).as_value(); }
 
-  string_type&        get_key_string(const key_type& k)              { return get_key(k).as_string(); }
-  const string_type&  get_key_string(const key_type& k) const        { return get_key(k).as_string(); }
+  template <typename T> string_type&       get_key_string(const T& k)       { return get_key(k).as_string(); }
+  template <typename T> const string_type& get_key_string(const T& k) const { return get_key(k).as_string(); }
 
-  list_type&          get_key_list(const key_type& k)                { return get_key(k).as_list(); }
-  const list_type&    get_key_list(const key_type& k) const          { return get_key(k).as_list(); }
+  template <typename T> list_type&         get_key_list(const T& k)         { return get_key(k).as_list(); }
+  template <typename T> const list_type&   get_key_list(const T& k) const   { return get_key(k).as_list(); }
 
-  map_type&           get_key_map(const key_type& k)                 { return get_key(k).as_map(); }
-  const map_type&     get_key_map(const key_type& k) const           { return get_key(k).as_map(); }
+  template <typename T> map_type&          get_key_map(const T& k)          { return get_key(k).as_map(); }
+  template <typename T> const map_type&    get_key_map(const T& k) const    { return get_key(k).as_map(); }
 
-  Object&             insert_key(const key_type& k, const Object& b)      { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
+  Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
 
   // 'insert_preserve_*' inserts the object 'b' if the key 'k' does
   // not exist, else it returns the old entry. The type specific

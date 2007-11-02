@@ -44,13 +44,14 @@
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
 
+#include "tracker_control.h"
 #include "tracker_udp.h"
 #include "manager.h"
 
 namespace torrent {
 
-TrackerUdp::TrackerUdp(DownloadInfo* info, const std::string& url) :
-  TrackerBase(info, url),
+TrackerUdp::TrackerUdp(TrackerControl* parent, const std::string& url) :
+  TrackerBase(parent, url),
   m_slotResolver(NULL),
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
@@ -123,8 +124,8 @@ TrackerUdp::start_announce(const sockaddr* sa, int err) {
   manager->poll()->insert_write(this);
   manager->poll()->insert_error(this);
 
-  m_tries = m_info->udp_tries();
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_info->udp_timeout())).round_seconds());
+  m_tries = m_parent->info()->udp_tries();
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
 }
 
 void
@@ -157,7 +158,7 @@ TrackerUdp::type() const {
 void
 TrackerUdp::receive_failed(const std::string& msg) {
   close();
-  m_slotFailed(this, msg);
+  m_parent->receive_failed(this, msg);
 }
 
 void
@@ -168,7 +169,7 @@ TrackerUdp::receive_timeout() {
   if (--m_tries == 0) {
     receive_failed("Unable to connect to UDP tracker.");
   } else {
-    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_info->udp_timeout())).round_seconds());
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
 
     manager->poll()->insert_write(this);
   }
@@ -186,8 +187,8 @@ TrackerUdp::event_read() {
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
 
-  if (!m_info->signal_tracker_dump().empty())
-    m_info->signal_tracker_dump().emit(m_url, (const char*)m_readBuffer->begin(), s);
+  if (!m_parent->info()->signal_tracker_dump().empty())
+    m_parent->info()->signal_tracker_dump().emit(m_url, (const char*)m_readBuffer->begin(), s);
 
   if (s < 4)
     return;
@@ -203,9 +204,9 @@ TrackerUdp::event_read() {
     prepare_announce_input();
 
     priority_queue_erase(&taskScheduler, &m_taskTimeout);
-    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_info->udp_timeout())).round_seconds());
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
 
-    m_tries = m_info->udp_tries();
+    m_tries = m_parent->info()->udp_tries();
     manager->poll()->insert_write(this);
     return;
 
@@ -254,14 +255,16 @@ TrackerUdp::prepare_connect_input() {
 
 void
 TrackerUdp::prepare_announce_input() {
+  DownloadInfo* info = m_parent->info();
+
   m_writeBuffer->reset();
 
   m_writeBuffer->write_64(m_connectionId);
   m_writeBuffer->write_32(m_action = 1);
   m_writeBuffer->write_32(m_transactionId = random());
 
-  m_writeBuffer->write_range(m_info->hash().begin(), m_info->hash().end());
-  m_writeBuffer->write_range(m_info->local_id().begin(), m_info->local_id().end());
+  m_writeBuffer->write_range(info->hash().begin(), info->hash().end());
+  m_writeBuffer->write_range(info->local_id().begin(), info->local_id().end());
 
   m_writeBuffer->write_64(m_sendDown);
   m_writeBuffer->write_64(m_sendLeft);
@@ -272,11 +275,11 @@ TrackerUdp::prepare_announce_input() {
 
   // This code assumes we're have a inet address.
   if (localAddress->family() != rak::socket_address::af_inet)
-    throw internal_error("TrackerUdp::prepare_announce_input() m_info->local_address() not of family AF_INET.");
+    throw internal_error("TrackerUdp::prepare_announce_input() info->local_address() not of family AF_INET.");
 
   m_writeBuffer->write_32_n(localAddress->sa_inet()->address_n());
-  m_writeBuffer->write_32(m_info->key());
-  m_writeBuffer->write_32(m_info->numwant());
+  m_writeBuffer->write_32(info->key());
+  m_writeBuffer->write_32(info->numwant());
   m_writeBuffer->write_16(manager->connection_manager()->listen_port());
 
   if (m_writeBuffer->size_end() != 98)
@@ -314,7 +317,7 @@ TrackerUdp::process_announce_output() {
   // Some logic here to decided on whetever we're going to close the
   // connection or not?
   close();
-  m_slotSuccess(this, &l);
+  m_parent->receive_success(this, &l);
 
   return true;
 }

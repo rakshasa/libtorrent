@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#include <algorithm>
-
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
@@ -49,9 +47,7 @@ namespace torrent {
 
 bool
 TrackerContainer::has_enabled() const {
-  return std::find_if(begin(), end(),
-		      rak::on(rak::mem_ref(&value_type::second), std::mem_fun(&TrackerBase::is_enabled)))
-    != end();
+  return std::find_if(begin(), end(), std::mem_fun(&TrackerBase::is_enabled)) != end();
 }
 
 void
@@ -60,8 +56,7 @@ TrackerContainer::randomize() {
   iterator itr = begin();
   
   while (itr != end()) {
-    iterator tmp = end_group(itr->first);
-
+    iterator tmp = end_group((*itr)->group());
     std::random_shuffle(itr, tmp);
 
     itr = tmp;
@@ -70,37 +65,24 @@ TrackerContainer::randomize() {
 
 void
 TrackerContainer::clear() {
-  std::for_each(begin(), end(),
-		rak::on(rak::mem_ref(&value_type::second), rak::call_delete<TrackerBase>()));
-
+  std::for_each(begin(), end(), rak::call_delete<TrackerBase>());
   base_type::clear();
 }
 
 TrackerContainer::iterator
 TrackerContainer::promote(iterator itr) {
-  iterator beg = begin_group(itr->first);
+  iterator first = begin_group((*itr)->group());
 
-  if (beg == end())
-    throw internal_error("torrent::TrackerContainer::promote(...) Could not find beginning of group");
+  if (first == end())
+    throw internal_error("torrent::TrackerContainer::promote(...) Could not find beginning of group.");
 
-  // GCC 3.3 bug, don't use yet.
-  //std::swap(beg, itr);
-
-  value_type tmp = *beg;
-  *beg = *itr;
-  *itr = tmp;
-
-  return beg;
-}
-
-TrackerContainer::iterator
-TrackerContainer::find(TrackerBase* tb) {
-  return std::find_if(begin(), end(), rak::equal(tb, rak::mem_ref(&value_type::second)));
+  std::swap(first, itr);
+  return first;
 }
 
 TrackerContainer::iterator
 TrackerContainer::find_enabled(iterator itr) {
-  while (itr != end() && !itr->second->is_enabled())
+  while (itr != end() && !(*itr)->is_enabled())
     ++itr;
 
   return itr;
@@ -108,30 +90,27 @@ TrackerContainer::find_enabled(iterator itr) {
 
 TrackerContainer::const_iterator
 TrackerContainer::find_enabled(const_iterator itr) const {
-  while (itr != end() && !itr->second->is_enabled())
+  while (itr != end() && !(*itr)->is_enabled())
     ++itr;
 
   return itr;
 }
 
 TrackerContainer::iterator
-TrackerContainer::begin_group(int group) {
-  return std::find_if(begin(), end(), rak::less_equal(group, rak::mem_ref(&value_type::first)));
+TrackerContainer::begin_group(unsigned int group) {
+  return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&TrackerBase::group)));
 }
 
 void
-TrackerContainer::cycle_group(int group) {
+TrackerContainer::cycle_group(unsigned int group) {
   iterator itr = begin_group(group);
   iterator prev = itr;
 
-  if (itr == end() || itr->first != group)
+  if (itr == end() || (*itr)->group() != group)
     return;
 
-  while (++itr != end() && itr->first == group) {
-    value_type tmp = *itr;
-    *itr = *prev;
-    *prev = tmp;
-
+  while (++itr != end() && (*itr)->group() == group) {
+    std::swap(itr, prev);
     prev = itr;
   }
 }

@@ -73,8 +73,8 @@ public:
   priority_t          priority() const                         { return m_priority; }
   void                set_priority(priority_t t)               { m_priority = t; }
 
-  Path*               path()                                   { return &m_path; }
   const Path*         path() const                             { return &m_path; }
+  Path*               mutable_path()                           { return &m_path; }
 
   const std::string&  frozen_path() const                      { return m_frozenPath; }
 

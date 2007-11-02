@@ -225,7 +225,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
     newFile->set_offset(offset);
     newFile->set_size_bytes(first->first);
     newFile->set_range(m_chunkSize);
-    *newFile->path() = first->second;
+    *newFile->mutable_path() = first->second;
 
     offset += first->first;
     *itr = newFile;
@@ -247,7 +247,7 @@ FileList::merge(iterator first, iterator last, const Path& path) {
 
   // Set the path before deleting any iterators in case it refers to
   // one of the objects getting deleted.
-  *newFile->path() = path;
+  *newFile->mutable_path() = path;
 
   if (first == last) {
     if (first == end())

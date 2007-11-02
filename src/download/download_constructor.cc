@@ -227,7 +227,7 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
   if (pathList.empty())
     throw input_error("Bad torrent file, an entry has no valid filename.");
 
-  *fileList->front()->path() = choose_path(&pathList);
+  *fileList->front()->mutable_path() = choose_path(&pathList);
   fileList->update_paths(fileList->begin(), fileList->end());  
 }
 

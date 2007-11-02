@@ -43,67 +43,72 @@ namespace torrent {
 
 bool
 Tracker::is_enabled() const {
-  return m_tracker.second->is_enabled();
+  return m_tracker->is_enabled();
 }
 
 void
 Tracker::enable() {
-  m_tracker.second->enable(true);
+  m_tracker->enable(true);
 }
 
 void
 Tracker::disable() {
-  m_tracker.second->enable(false);
+  m_tracker->enable(false);
 }
 
 bool
 Tracker::is_open() const {
-  return m_tracker.second->is_busy();
+  return m_tracker->is_busy();
+}
+
+uint32_t
+Tracker::group() const {
+  return m_tracker->group();
 }
 
 const std::string&
 Tracker::url() const {
-  return m_tracker.second->url();
+  return m_tracker->url();
 }
 
 const std::string&
 Tracker::tracker_id() const {
-  return m_tracker.second->tracker_id();
+  return m_tracker->tracker_id();
 }
 
 Tracker::Type
 Tracker::tracker_type() const {
-  return static_cast<Type>(m_tracker.second->type());
+  return static_cast<Type>(m_tracker->type());
 }
 
 uint32_t
 Tracker::normal_interval() const {
-  return m_tracker.second->normal_interval();
+  return m_tracker->normal_interval();
 }
 
 uint32_t
 Tracker::min_interval() const {
-  return m_tracker.second->min_interval();
+  return m_tracker->min_interval();
 }
 
 uint64_t
 Tracker::scrape_time_last() const {
-  return m_tracker.second->scrape_time_last().usec();
+  return m_tracker->scrape_time_last().usec();
 }
 
 uint32_t
 Tracker::scrape_complete() const {
-  return m_tracker.second->scrape_complete();
+  return m_tracker->scrape_complete();
 }
 
 uint32_t
 Tracker::scrape_incomplete() const {
-  return m_tracker.second->scrape_incomplete();
+  return m_tracker->scrape_incomplete();
 }
 
 uint32_t
 Tracker::scrape_downloaded() const {
-  return m_tracker.second->scrape_downloaded();
+  return m_tracker->scrape_downloaded();
 }
 
 }

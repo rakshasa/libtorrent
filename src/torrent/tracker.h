@@ -46,7 +46,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT Tracker {
 public:
-  typedef std::pair<int, TrackerBase*> value_type;
+  typedef TrackerBase* value_type;
 
   typedef enum {
     TRACKER_NONE,
@@ -54,7 +54,7 @@ public:
     TRACKER_UDP
   } Type;
 
-  Tracker()             : m_tracker(value_type(0, NULL)) {}
+  Tracker()             : m_tracker(NULL) {}
   Tracker(value_type v) : m_tracker(v) {}
   
   bool                is_enabled() const;
@@ -63,7 +63,7 @@ public:
   void                enable();
   void                disable();
 
-  uint32_t            group() const { return m_tracker.first; }
+  uint32_t            group() const;
   const std::string&  url() const;
 
   // The "tracker id" string returned by the tracker.

@@ -97,14 +97,12 @@ public:
   void                slot_success(SlotSuccess s)             { m_slotSuccess = s; }
   void                slot_failed(SlotFailed s)               { m_slotFailed = s; }
 
-private:
-
-  TrackerControl(const TrackerControl& t);
-  void                operator = (const TrackerControl& t);
-
-  // Rename to receive_addresses or something?
   void                receive_success(TrackerBase* tb, AddressList* l);
   void                receive_failed(TrackerBase* tb, const std::string& msg);
+
+private:
+  TrackerControl(const TrackerControl& t);
+  void                operator = (const TrackerControl& t);
 
   int                 m_tries;
 
@@ -122,13 +120,13 @@ private:
 
 inline bool
 TrackerControl::is_busy() const {
-  return m_itr != m_list.end() && m_itr->second->is_busy();
+  return m_itr != m_list.end() && (*m_itr)->is_busy();
 }
 
 inline void
 TrackerControl::close() {
   if (m_itr != m_list.end())
-    m_itr->second->close();
+    (*m_itr)->close();
 }
 
 }

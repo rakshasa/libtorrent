@@ -54,7 +54,7 @@ class TrackerBase;
 class TrackerManager {
 public:
   typedef uint32_t                                size_type;
-  typedef std::pair<int, TrackerBase*>            value_type;
+  typedef TrackerBase*                            value_type;
 
   typedef rak::mem_fun1<DownloadWrapper, void, AddressList*>       SlotSuccess;
   typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotFailed;

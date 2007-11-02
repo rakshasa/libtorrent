@@ -67,6 +67,28 @@ Object::get_key(const std::string& k) const {
   return itr->second;
 }
 
+Object&
+Object::get_key(const char* k) {
+  check_throw(TYPE_MAP);
+  map_type::iterator itr = m_map->find(std::string(k));
+
+  if (itr == m_map->end())
+    throw bencode_error("Object operator [" + std::string(k) + "] could not find element");
+
+  return itr->second;
+}
+
+const Object&
+Object::get_key(const char* k) const {
+  check_throw(TYPE_MAP);
+  map_type::iterator itr = m_map->find(std::string(k));
+
+  if (itr == m_map->end())
+    throw bencode_error("Object operator [" + std::string(k) + "] could not find element");
+
+  return itr->second;
+}
+
 Object::map_insert_type
 Object::insert_preserve_list(const key_type& k) {
   check_throw(TYPE_MAP);

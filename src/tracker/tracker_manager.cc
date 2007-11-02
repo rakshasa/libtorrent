@@ -189,7 +189,7 @@ TrackerManager::group_size() const {
   if (m_control->get_list().rbegin() == m_control->get_list().rend())
     return 0;
   else
-    return m_control->get_list().rbegin()->first + 1;
+    return (*m_control->get_list().rbegin())->group() + 1;
 }
 
 TrackerManager::value_type

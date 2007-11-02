@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_CONTAINER_H
 #define LIBTORRENT_TRACKER_TRACKER_CONTAINER_H
 
+#include <algorithm>
 #include <vector>
 
 namespace torrent {
@@ -50,9 +51,9 @@ class TrackerBase;
 // tracker to the beginning of the subgroup and start from the
 // beginning of the whole list.
 
-class TrackerContainer : private std::vector<std::pair<int, TrackerBase*> > {
+class TrackerContainer : private std::vector<TrackerBase*> {
 public:
-  typedef std::vector<std::pair<int, TrackerBase*> > base_type;
+  typedef std::vector<TrackerBase*> base_type;
 
   using base_type::value_type;
 
@@ -77,22 +78,24 @@ public:
   void                randomize();
   void                clear();
 
-  iterator            insert(int group, TrackerBase* t);
+  iterator            insert(unsigned int group, TrackerBase* t);
 
   iterator            promote(iterator itr);
 
-  iterator            find(TrackerBase* tb);
+  iterator            find(TrackerBase* tb)                   { return std::find(begin(), end(), tb); }
   iterator            find_enabled(iterator itr);
   const_iterator      find_enabled(const_iterator itr) const;
 
-  iterator            begin_group(int group);
-  iterator            end_group(int group)                    { return begin_group(group + 1); }
-  void                cycle_group(int group);
+  iterator            begin_group(unsigned int group);
+  iterator            end_group(unsigned int group)                    { return begin_group(group + 1); }
+  void                cycle_group(unsigned int group);
 };
 
 inline TrackerContainer::iterator
-TrackerContainer::insert(int group, TrackerBase* t) {
-  return base_type::insert(end_group(group), value_type(group, t));
+TrackerContainer::insert(unsigned int group, TrackerBase* t) {
+  t->set_group(group);
+
+  return base_type::insert(end_group(group), t);
 }
 
 }

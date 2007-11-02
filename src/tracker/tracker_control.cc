@@ -68,25 +68,22 @@ TrackerControl::insert(int group, const std::string& url) {
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0)
-    t = new TrackerHttp(m_info, url);
+    t = new TrackerHttp(this, url);
 
   else if (std::strncmp("udp://", url.c_str(), 6) == 0)
-    t = new TrackerUdp(m_info, url);
+    t = new TrackerUdp(this, url);
 
   else
     // TODO: Error message here?... not really...
     return;
   
-  t->slot_success(rak::make_mem_fun(this, &TrackerControl::receive_success));
-  t->slot_failed(rak::make_mem_fun(this, &TrackerControl::receive_failed));
-
   m_list.insert(group, t);
   m_itr = m_list.begin();
 }
 
 void
 TrackerControl::cycle_group(int group) {
-  TrackerBase* tb = (m_itr != m_list.end()) ? m_itr->second : NULL;
+  TrackerBase* tb = (m_itr != m_list.end()) ? *m_itr : NULL;
 
   m_list.cycle_group(group);
   m_itr = m_list.find(tb);
@@ -96,7 +93,7 @@ void
 TrackerControl::send_state(DownloadInfo::State s) {
   // Reset the target tracker since we're doing a new request.
   if (m_itr != m_list.end())
-    m_itr->second->close();
+    (*m_itr)->close();
 
   m_tries = -1;
   m_state = s;
@@ -104,7 +101,7 @@ TrackerControl::send_state(DownloadInfo::State s) {
   m_itr = m_list.find_enabled(m_itr);
 
   if (m_itr != m_list.end())
-    m_itr->second->send_state(m_state,
+    (*m_itr)->send_state(m_state,
                               std::max<int64_t>(m_info->slot_completed()() - m_info->completed_baseline(), 0),
                               std::max<int64_t>(m_info->up_rate()->total() - m_info->uploaded_baseline(), 0),
                               m_info->slot_left()());
@@ -118,7 +115,7 @@ TrackerControl::set_focus_index(uint32_t v) {
     throw internal_error("TrackerControl::set_focus_index(...) received an out-of-bounds value.");
 
   // Don't allow change of focus while busy for the moment.
-  if (m_itr != m_list.end() && m_itr->second->is_busy())
+  if (m_itr != m_list.end() && (*m_itr)->is_busy())
     throw internal_error("TrackerControl::set_focus_index(...) called but m_itr is busy.");
 
   m_itr = m_list.begin() + v;
@@ -130,22 +127,21 @@ TrackerControl::focus_next_group() {
     return false;
 
   // Don't allow change of focus while busy for the moment.
-  if (m_itr->second->is_busy())
+  if ((*m_itr)->is_busy())
     throw internal_error("TrackerControl::focus_next_group(...) called but m_itr is busy.");
 
-  m_itr = m_list.begin_group(m_itr->first + 1);
-
+  m_itr = m_list.end_group((*m_itr)->group());
   return m_itr != m_list.end();
 }
 
 void
 TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
-//   if (m_itr->second->get_data() != NULL)
-//     m_signalDump.emit(m_itr->second->get_data());
+//   if ((*m_itr)->get_data() != NULL)
+//     m_signalDump.emit((*m_itr)->get_data());
 
   TrackerContainer::iterator itr = m_list.find(tb);
 
-  if (itr != m_itr || m_itr == m_list.end() || m_itr->second->is_busy())
+  if (itr != m_itr || m_itr == m_list.end() || (*m_itr)->is_busy())
     throw internal_error("TrackerControl::receive_success(...) called but the iterator is invalid.");
 
   // Promote the tracker to the front of the group since it was
@@ -161,12 +157,12 @@ TrackerControl::receive_success(TrackerBase* tb, AddressList* l) {
 
 void
 TrackerControl::receive_failed(TrackerBase* tb, const std::string& msg) {
-//   if (m_itr->second->get_data() != NULL)
-//     m_signalDump.emit(m_itr->second->get_data());
+//   if ((*m_itr)->get_data() != NULL)
+//     m_signalDump.emit((*m_itr)->get_data());
 
   TrackerContainer::iterator itr = m_list.find(tb);
 
-  if (itr != m_itr || m_itr == m_list.end() || m_itr->second->is_busy())
+  if (itr != m_itr || m_itr == m_list.end() || (*m_itr)->is_busy())
     throw internal_error("TrackerControl::receive_failed(...) called but the iterator is invalid.");
 
   m_itr++;
@@ -181,10 +177,10 @@ TrackerControl::focus_normal_interval() const {
     if (itr == m_list.end())
       return 1800;
 
-    return itr->second->normal_interval();
+    return (*itr)->normal_interval();
   }
 
-  return m_itr->second->normal_interval();
+  return (*m_itr)->normal_interval();
 }
 
 uint32_t
