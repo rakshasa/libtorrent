@@ -106,8 +106,8 @@ TrackerHttp::send_state(int state) {
     << "info_hash=" << hash
     << "&peer_id=" << localId;
 
-  if (info->key())
-    s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << info->key() << std::dec;
+  if (m_parent->key())
+    s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_parent->key() << std::dec;
 
   if (!m_trackerId.empty())
     s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
@@ -121,8 +121,8 @@ TrackerHttp::send_state(int state) {
   if (info->is_compact())
     s << "&compact=1";
 
-  if (info->numwant() >= 0)
-    s << "&numwant=" << info->numwant();
+  if (m_parent->numwant() >= 0)
+    s << "&numwant=" << m_parent->numwant();
 
   if (manager->connection_manager()->listen_port())
     s << "&port=" << manager->connection_manager()->listen_port();

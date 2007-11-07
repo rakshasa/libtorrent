@@ -79,9 +79,6 @@ public:
     m_pexEnabled(true),
     m_pexActive(true),
 
-    m_key(0),
-    m_numwant(-1),
-
     m_upRate(60),
     m_downRate(60),
     m_skipRate(60),
@@ -124,12 +121,6 @@ public:
 
   bool                is_pex_active() const                        { return m_pexActive; }
   void                set_pex_active(bool active)                  { m_pexActive = active; }
-
-  uint32_t            key() const                                  { return m_key; }
-  void                set_key(uint32_t key)                        { m_key = key; }
-
-  int32_t             numwant() const                              { return m_numwant; }
-  void                set_numwant(int32_t n)                       { m_numwant = n; }
 
   Rate*               up_rate()                                    { return &m_upRate; }
   Rate*               down_rate()                                  { return &m_downRate; }
@@ -176,9 +167,6 @@ private:
   bool                m_isPrivate;
   bool                m_pexEnabled;
   bool                m_pexActive;
-
-  uint32_t            m_key;
-  int32_t             m_numwant;
 
   Rate                m_upRate;
   Rate                m_downRate;

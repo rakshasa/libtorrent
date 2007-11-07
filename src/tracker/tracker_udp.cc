@@ -275,8 +275,8 @@ TrackerUdp::prepare_announce_input() {
     throw internal_error("TrackerUdp::prepare_announce_input() info->local_address() not of family AF_INET.");
 
   m_writeBuffer->write_32_n(localAddress->sa_inet()->address_n());
-  m_writeBuffer->write_32(info->key());
-  m_writeBuffer->write_32(info->numwant());
+  m_writeBuffer->write_32(m_parent->key());
+  m_writeBuffer->write_32(m_parent->numwant());
   m_writeBuffer->write_16(manager->connection_manager()->listen_port());
 
   if (m_writeBuffer->size_end() != 98)

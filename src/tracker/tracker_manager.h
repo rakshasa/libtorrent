@@ -98,18 +98,21 @@ public:
   const DownloadInfo* info() const;
   void                set_info(DownloadInfo* info);
 
+  TrackerContainer*   container()                               { return m_control; }
+
   rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }
 
   void                slot_success(SlotSuccess s)               { m_slotSuccess = s; }
   void                slot_failed(SlotFailed s)                 { m_slotFailed = s; }
+
+  void                receive_success(AddressList* l);
+  void                receive_failed(const std::string& msg);
 
 private:
   TrackerManager(const TrackerManager&);
   void operator = (const TrackerManager&);
 
   void                receive_timeout();
-  void                receive_success(AddressList* l);
-  void                receive_failed(const std::string& msg);
 
   TrackerContainer*   m_control;
 

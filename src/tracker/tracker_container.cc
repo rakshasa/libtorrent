@@ -45,13 +45,19 @@
 
 #include "globals.h"
 #include "tracker_container.h"
+#include "tracker_manager.h"
 
 namespace torrent {
 
-TrackerContainer::TrackerContainer() :
+TrackerContainer::TrackerContainer(TrackerManager* manager) :
+  m_manager(manager),
   m_info(NULL),
   m_state(DownloadInfo::STOPPED),
+
+  m_key(0),
+  m_numwant(-1),
   m_timeLastConnection(0),
+
   m_itr(begin()) {
 }
 
@@ -88,7 +94,7 @@ TrackerContainer::send_state(int s) {
   if (m_itr != end())
     (*m_itr)->send_state(state());
   else
-    m_slotFailed("Tried all trackers.");
+    m_manager->receive_failed("Tried all trackers.");
 }
 
 TrackerContainer::iterator
@@ -131,6 +137,26 @@ TrackerContainer::cycle_group(int group) {
 
   cycle_group(group);
   m_itr = find(tb);
+}
+
+uint32_t
+TrackerContainer::time_next_connection() const {
+  return std::max(m_manager->get_next_timeout() - cachedTime, rak::timer()).seconds();
+}
+
+void
+TrackerContainer::send_completed() {
+  m_manager->send_completed();
+}
+
+void
+TrackerContainer::manual_request(bool force) {
+  m_manager->manual_request(force);
+}
+
+void
+TrackerContainer::manual_cancel() {
+  m_manager->close();
 }
 
 TrackerContainer::iterator
@@ -207,7 +233,7 @@ TrackerContainer::receive_success(Tracker* tb, AddressList* l) {
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
   set_time_last_connection(cachedTime.seconds());
-  m_slotSuccess(l);
+  m_manager->receive_success(l);
 }
 
 void
@@ -218,7 +244,7 @@ TrackerContainer::receive_failed(Tracker* tb, const std::string& msg) {
     throw internal_error("TrackerContainer::receive_failed(...) called but the iterator is invalid.");
 
   m_itr++;
-  m_slotFailed(msg);
+  m_manager->receive_failed(msg);
 }
 
 }

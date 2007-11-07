@@ -38,6 +38,7 @@
 
 #include "download/download_info.h"
 #include "tracker/tracker_manager.h"
+#include "tracker/tracker_container.h"
 
 #include "exceptions.h"
 #include "tracker.h"
@@ -75,22 +76,22 @@ TrackerList::timeout() const {
 
 int16_t
 TrackerList::numwant() const {
-  return m_manager->info()->numwant();
+  return m_manager->container()->numwant();
 }
 
 void
 TrackerList::set_numwant(int32_t n) {
-  m_manager->info()->set_numwant(std::max<int32_t>(n, -1));
+  m_manager->container()->set_numwant(std::max<int32_t>(n, -1));
 }
 
 uint32_t
 TrackerList::key() const {
-  return m_manager->info()->key();
+  return m_manager->container()->key();
 }
 
 void
 TrackerList::set_key(uint32_t k) {
-  m_manager->info()->set_key(k);
+  m_manager->container()->set_key(k);
 }
 
 void

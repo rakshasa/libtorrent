@@ -48,7 +48,7 @@
 namespace torrent {
 
 TrackerManager::TrackerManager() :
-  m_control(new TrackerContainer),
+  m_control(new TrackerContainer(this)),
 
   m_active(false),
   m_isRequesting(false),
@@ -58,9 +58,6 @@ TrackerManager::TrackerManager() :
   m_failedRequests(0),
   m_initialTracker(0) {
 
-  m_control->slot_success(rak::make_mem_fun(this, &TrackerManager::receive_success));
-  m_control->slot_failed(rak::make_mem_fun(this, &TrackerManager::receive_failed));
-
   m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerManager::receive_timeout));
 }
 
@@ -68,6 +65,7 @@ TrackerManager::~TrackerManager() {
   if (is_active())
     throw internal_error("TrackerManager::~TrackerManager() called but is_active() != false.");
 
+  m_control->clear();
   delete m_control;
 }
 

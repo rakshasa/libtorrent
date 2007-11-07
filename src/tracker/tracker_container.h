@@ -39,13 +39,13 @@
 
 #include <algorithm>
 #include <vector>
-#include <rak/functional.h>
 
 namespace torrent {
 
 class AddressList;
 class DownloadInfo;
 class Tracker;
+class TrackerManager;
 
 // The tracker list will contain a list of tracker, divided into
 // subgroups. Each group must be randomized before we start. When
@@ -56,9 +56,9 @@ class Tracker;
 
 class TrackerContainer : private std::vector<Tracker*> {
 public:
-  typedef std::vector<Tracker*>                                   base_type;
-  typedef rak::mem_fun1<TrackerManager, void, AddressList*>       slot_success_type;
-  typedef rak::mem_fun1<TrackerManager, void, const std::string&> slot_failed_type;
+  friend class TrackerManager;
+
+  typedef std::vector<Tracker*> base_type;
 
   using base_type::value_type;
 
@@ -74,10 +74,10 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
+  using base_type::at;
   using base_type::operator[];
 
-  TrackerContainer();
-  ~TrackerContainer() { clear(); }
+  TrackerContainer(TrackerManager* manager);
 
   bool                has_active() const;
   bool                has_enabled() const;
@@ -87,18 +87,21 @@ public:
 
   iterator            insert(unsigned int group, Tracker* t);
 
-  iterator            promote(iterator itr);
-
   void                send_state(int s);
+
+  iterator            promote(iterator itr);
 
   void                randomize();
   void                cycle_group(int group);
 
   DownloadInfo*       info()                                  { return m_info; }
-  void                set_info(DownloadInfo* info)            { m_info = info; }
-
   int                 state()                                 { return m_state; }
-  void                set_state(int s)                        { m_state = s; }
+
+  uint32_t            key() const                             { return m_key; }
+  void                set_key(uint32_t key)                   { m_key = key; }
+
+  int32_t             numwant() const                         { return m_numwant; }
+  void                set_numwant(int32_t n)                  { m_numwant = n; }
 
   iterator            find(Tracker* tb)                       { return std::find(begin(), end(), tb); }
   iterator            find_enabled(iterator itr);
@@ -108,36 +111,48 @@ public:
   iterator            end_group(unsigned int group)           { return begin_group(group + 1); }
   void                cycle_group(unsigned int group);
 
+  uint32_t            time_next_connection() const;
   uint32_t            time_last_connection() const            { return m_timeLastConnection; }
-  void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
+
+  // Some temporary functions that are routed to
+  // TrackerManager... Clean this up.
+  void                send_completed();
+
+  void                manual_request(bool force);
+  void                manual_cancel();
 
   // Functions for controlling the current focus. They only support
   // one active tracker atm.
   iterator            focus()                                 { return m_itr; }
   const_iterator      focus() const                           { return m_itr; }
-  void                set_focus(iterator itr)                 { m_itr = itr; }
+  uint32_t            focus_index() const                     { return m_itr - begin(); }
 
   bool                focus_next_group();
 
   uint32_t            focus_normal_interval() const;
   uint32_t            focus_min_interval() const;
 
-  void                slot_success(slot_success_type s)       { m_slotSuccess = s; }
-  void                slot_failed(slot_failed_type s)         { m_slotFailed = s; }
-
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
 
+protected:
+  void                set_info(DownloadInfo* info)            { m_info = info; }
+  void                set_state(int s)                        { m_state = s; }
+
+  void                set_focus(iterator itr)                 { m_itr = itr; }
+  void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
+
 private:
+  TrackerManager*     m_manager;
   DownloadInfo*       m_info;
   int                 m_state;
+
+  uint32_t            m_key;
+  int32_t             m_numwant;
 
   uint32_t            m_timeLastConnection;
 
   iterator            m_itr;
-
-  slot_success_type   m_slotSuccess;
-  slot_failed_type    m_slotFailed;
 };
 
 }
