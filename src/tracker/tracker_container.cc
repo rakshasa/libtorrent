@@ -38,16 +38,78 @@
 
 #include <rak/functional.h>
 
+#include "download/download_info.h"
+#include "net/address_list.h"
 #include "torrent/exceptions.h"
-
 #include "torrent/tracker.h"
+
+#include "globals.h"
 #include "tracker_container.h"
 
 namespace torrent {
 
+TrackerContainer::TrackerContainer() :
+  m_info(NULL),
+  m_state(DownloadInfo::STOPPED),
+  m_timeLastConnection(0),
+  m_itr(begin()) {
+}
+
+bool
+TrackerContainer::has_active() const {
+  return m_itr != end() && (*m_itr)->is_busy();
+}
+
 bool
 TrackerContainer::has_enabled() const {
   return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_enabled)) != end();
+}
+
+void
+TrackerContainer::close_all() {
+  std::for_each(begin(), end(), std::mem_fun(&Tracker::close));
+}
+
+void
+TrackerContainer::clear() {
+  std::for_each(begin(), end(), rak::call_delete<Tracker>());
+  base_type::clear();
+}
+
+void
+TrackerContainer::send_state(int s) {
+  // Reset the target tracker since we're doing a new request.
+  if (m_itr != end())
+    (*m_itr)->close();
+
+  set_state(s);
+  m_itr = find_enabled(m_itr);
+
+  if (m_itr != end())
+    (*m_itr)->send_state(state());
+  else
+    m_slotFailed("Tried all trackers.");
+}
+
+TrackerContainer::iterator
+TrackerContainer::insert(unsigned int group, Tracker* t) {
+  t->set_group(group);
+
+  iterator itr = base_type::insert(end_group(group), t);
+
+  m_itr = begin();
+  return itr;
+}
+
+TrackerContainer::iterator
+TrackerContainer::promote(iterator itr) {
+  iterator first = begin_group((*itr)->group());
+
+  if (first == end())
+    throw internal_error("torrent::TrackerContainer::promote(...) Could not find beginning of group.");
+
+  std::swap(first, itr);
+  return first;
 }
 
 void
@@ -64,20 +126,11 @@ TrackerContainer::randomize() {
 }
 
 void
-TrackerContainer::clear() {
-  std::for_each(begin(), end(), rak::call_delete<Tracker>());
-  base_type::clear();
-}
+TrackerContainer::cycle_group(int group) {
+  Tracker* tb = m_itr != end() ? *m_itr : NULL;
 
-TrackerContainer::iterator
-TrackerContainer::promote(iterator itr) {
-  iterator first = begin_group((*itr)->group());
-
-  if (first == end())
-    throw internal_error("torrent::TrackerContainer::promote(...) Could not find beginning of group.");
-
-  std::swap(first, itr);
-  return first;
+  cycle_group(group);
+  m_itr = find(tb);
 }
 
 TrackerContainer::iterator
@@ -113,6 +166,59 @@ TrackerContainer::cycle_group(unsigned int group) {
     std::swap(itr, prev);
     prev = itr;
   }
+}
+
+bool
+TrackerContainer::focus_next_group() {
+  return (m_itr = end_group((*m_itr)->group())) != end();
+}
+
+uint32_t
+TrackerContainer::focus_normal_interval() const {
+  if (m_itr == end()) {
+    const_iterator itr = find_enabled(begin());
+    
+    if (itr == end())
+      return 1800;
+
+    return (*itr)->normal_interval();
+  }
+
+  return (*m_itr)->normal_interval();
+}
+
+uint32_t
+TrackerContainer::focus_min_interval() const {
+  return 0;
+}
+
+void
+TrackerContainer::receive_success(Tracker* tb, AddressList* l) {
+  iterator itr = find(tb);
+
+  if (itr != m_itr || m_itr == end() || (*m_itr)->is_busy())
+    throw internal_error("TrackerContainer::receive_success(...) called but the iterator is invalid.");
+
+  // Promote the tracker to the front of the group since it was
+  // successfull.
+  m_itr = promote(m_itr);
+
+  l->sort();
+  l->erase(std::unique(l->begin(), l->end()), l->end());
+
+  set_time_last_connection(cachedTime.seconds());
+  m_slotSuccess(l);
+}
+
+void
+TrackerContainer::receive_failed(Tracker* tb, const std::string& msg) {
+  iterator itr = find(tb);
+
+  if (itr != m_itr || m_itr == end() || (*m_itr)->is_busy())
+    throw internal_error("TrackerContainer::receive_failed(...) called but the iterator is invalid.");
+
+  m_itr++;
+  m_slotFailed(msg);
 }
 
 }

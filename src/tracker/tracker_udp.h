@@ -54,12 +54,12 @@ public:
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 
-  TrackerUdp(TrackerControl* parent, const std::string& url);
+  TrackerUdp(TrackerContainer* parent, const std::string& url);
   ~TrackerUdp();
   
   virtual bool        is_busy() const;
 
-  virtual void        send_state(int state, uint64_t down, uint64_t up, uint64_t left);
+  virtual void        send_state(int state);
 
   virtual void        close();
 
@@ -86,9 +86,6 @@ private:
   int                 m_port;
 
   int                 m_sendState;
-  uint64_t            m_sendUp;
-  uint64_t            m_sendDown;
-  uint64_t            m_sendLeft;
 
   void*               m_slotResolver;
 

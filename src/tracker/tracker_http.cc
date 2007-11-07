@@ -41,13 +41,14 @@
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
+#include "download/download_info.h"
 #include "net/address_list.h"
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
 #include "torrent/object_stream.h"
 
-#include "tracker_control.h"
+#include "tracker_container.h"
 #include "tracker_http.h"
 
 #include "globals.h"
@@ -55,7 +56,7 @@
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp(TrackerControl* parent, const std::string& url) :
+TrackerHttp::TrackerHttp(TrackerContainer* parent, const std::string& url) :
   Tracker(parent, url),
 
   m_get(Http::call_factory()),
@@ -83,7 +84,7 @@ TrackerHttp::is_busy() const {
 }
 
 void
-TrackerHttp::send_state(int state, uint64_t down, uint64_t up, uint64_t left) {
+TrackerHttp::send_state(int state) {
   close();
 
   if (m_parent == NULL)
@@ -126,9 +127,9 @@ TrackerHttp::send_state(int state, uint64_t down, uint64_t up, uint64_t left) {
   if (manager->connection_manager()->listen_port())
     s << "&port=" << manager->connection_manager()->listen_port();
 
-  s << "&uploaded=" << up
-    << "&downloaded=" << down
-    << "&left=" << left;
+  s << "&uploaded=" << info->uploaded_adjusted()
+    << "&downloaded=" << info->completed_adjusted()
+    << "&left=" << info->slot_left()();
 
   switch(state) {
   case DownloadInfo::STARTED:

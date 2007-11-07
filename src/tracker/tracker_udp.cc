@@ -39,18 +39,19 @@
 #include <sigc++/adaptors/bind.h>
 #include <torrent/connection_manager.h>
 
+#include "download/download_info.h"
 #include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
 
-#include "tracker_control.h"
+#include "tracker_container.h"
 #include "tracker_udp.h"
 #include "manager.h"
 
 namespace torrent {
 
-TrackerUdp::TrackerUdp(TrackerControl* parent, const std::string& url) :
+TrackerUdp::TrackerUdp(TrackerContainer* parent, const std::string& url) :
   Tracker(parent, url),
   m_slotResolver(NULL),
   m_readBuffer(NULL),
@@ -72,7 +73,7 @@ TrackerUdp::is_busy() const {
 }
 
 void
-TrackerUdp::send_state(int state, uint64_t down, uint64_t up, uint64_t left) {
+TrackerUdp::send_state(int state) {
   close();
 
   char hostname[1024];
@@ -88,10 +89,6 @@ TrackerUdp::send_state(int state, uint64_t down, uint64_t up, uint64_t left) {
     static_cast<ConnectionManager::slot_resolver_result_type*>(m_slotResolver)->blocked();
 
   m_sendState = state;
-  m_sendDown = down;
-  m_sendUp = up;
-  m_sendLeft = left;
-
   m_slotResolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
                                                              sigc::mem_fun(this, &TrackerUdp::start_announce));
 }
@@ -266,9 +263,9 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_range(info->hash().begin(), info->hash().end());
   m_writeBuffer->write_range(info->local_id().begin(), info->local_id().end());
 
-  m_writeBuffer->write_64(m_sendDown);
-  m_writeBuffer->write_64(m_sendLeft);
-  m_writeBuffer->write_64(m_sendUp);
+  m_writeBuffer->write_64(info->completed_adjusted());
+  m_writeBuffer->write_64(info->slot_left()());
+  m_writeBuffer->write_64(info->uploaded_adjusted());
   m_writeBuffer->write_32(m_sendState);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());

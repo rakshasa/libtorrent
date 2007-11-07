@@ -36,15 +36,19 @@
 
 #include "config.h"
 
+#include "download/download_info.h"
 #include "torrent/exceptions.h"
+#include "torrent/tracker.h"
 
-#include "tracker_control.h"
+#include "tracker_container.h"
+#include "tracker_http.h"
 #include "tracker_manager.h"
+#include "tracker_udp.h"
 
 namespace torrent {
 
 TrackerManager::TrackerManager() :
-  m_control(new TrackerControl),
+  m_control(new TrackerContainer),
 
   m_active(false),
   m_isRequesting(false),
@@ -69,7 +73,7 @@ TrackerManager::~TrackerManager() {
 
 bool
 TrackerManager::is_busy() const {
-  return m_control->is_busy();
+  return m_control->has_active();
 }
 
 void
@@ -77,7 +81,7 @@ TrackerManager::close() {
   m_isRequesting = false;
   m_failedRequests = 0;
 
-  m_control->close();
+  m_control->close_all();
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 }
 
@@ -85,7 +89,7 @@ void
 TrackerManager::send_start() {
   close();
 
-  m_control->set_focus_index(0);
+  m_control->set_focus(m_control->begin());
   m_control->send_state(DownloadInfo::STARTED);
 }
 
@@ -93,7 +97,7 @@ void
 TrackerManager::send_stop() {
   close();
 
-  m_control->set_focus_index(m_initialTracker);
+  m_control->set_focus(m_control->begin() + m_initialTracker);
   m_control->send_state(DownloadInfo::STOPPED);
 }
 
@@ -105,14 +109,14 @@ TrackerManager::send_completed() {
 
 void
 TrackerManager::send_later() {
-  if (m_control->is_busy())
+  if (m_control->has_active())
     return;
 
-  if (m_control->get_state() == DownloadInfo::STOPPED)
+  if (m_control->state() == DownloadInfo::STOPPED)
     throw internal_error("TrackerManager::send_later() m_control->set() == DownloadInfo::STOPPED.");
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, m_control->time_last_connection() + rak::timer::from_seconds(m_control->focus_min_interval()));
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, rak::timer::from_seconds(m_control->time_last_connection() + m_control->focus_min_interval()));
 }
 
 // When request_{current,next} is called, m_isRequesting is set to
@@ -121,7 +125,7 @@ TrackerManager::send_later() {
 // focus to the first tracker.
 //
 // The client can therefor call these functions after
-// TrackerControl::signal_success is emited and know it won't cause
+// TrackerContainer::signal_success is emited and know it won't cause
 // looping if there are unreachable trackers.
 //
 // When the number of consequtive requests from the same tracker
@@ -130,7 +134,7 @@ TrackerManager::send_later() {
 // high "min peers" setting will not cause too much traffic.
 bool
 TrackerManager::request_current() {
-  if (m_control->is_busy() || m_numRequests >= m_maxRequests)
+  if (m_control->has_active() || m_numRequests >= m_maxRequests)
     return false;
 
   // Keep track of how many times we've requested from the current
@@ -144,7 +148,7 @@ TrackerManager::request_current() {
 void
 TrackerManager::request_next() {
   // Check next against last successfull connection?
-  if (m_control->is_busy() || !m_control->focus_next_group())
+  if (m_control->has_active() || !m_control->focus_next_group())
     return;
 
   m_isRequesting = true;
@@ -163,7 +167,7 @@ TrackerManager::manual_request(bool force) {
   rak::timer t(cachedTime + rak::timer::from_seconds(2));
   
   if (!force)
-    t = std::max(t, m_control->time_last_connection() + rak::timer::from_seconds(m_control->focus_min_interval()));
+    t = std::max(t, rak::timer::from_seconds(m_control->time_last_connection() + m_control->focus_min_interval()));
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
   priority_queue_insert(&taskScheduler, &m_taskTimeout, t.round_seconds());
@@ -176,37 +180,51 @@ TrackerManager::cycle_group(int group) {
 
 void
 TrackerManager::randomize() {
-  m_control->get_list().randomize();
+  m_control->randomize();
 }
 
 TrackerManager::size_type
 TrackerManager::size() const {
-  return m_control->get_list().size();
+  return m_control->size();
 }
 
 TrackerManager::size_type
 TrackerManager::group_size() const {
-  if (m_control->get_list().rbegin() == m_control->get_list().rend())
+  if (m_control->rbegin() == m_control->rend())
     return 0;
   else
-    return (*m_control->get_list().rbegin())->group() + 1;
+    return (*m_control->rbegin())->group() + 1;
 }
 
 TrackerManager::value_type
 TrackerManager::get(size_type idx) const {
-  return m_control->get_list()[idx];
+  return (*m_control)[idx];
 }
 
 TrackerManager::size_type
 TrackerManager::focus_index() const {
-  return m_control->focus_index();
+  return std::distance(m_control->begin(), m_control->focus());
 }
 
 void
 TrackerManager::insert(int group, const std::string& url) {
-  // Consider borking m_initialTracker.
+  if (m_control->has_active())
+    throw internal_error("Tried to add tracker while a tracker is active.");
 
-  m_control->insert(group, url);
+  Tracker* t;
+
+  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
+      std::strncmp("https://", url.c_str(), 8) == 0)
+    t = new TrackerHttp(m_control, url);
+
+  else if (std::strncmp("udp://", url.c_str(), 6) == 0)
+    t = new TrackerUdp(m_control, url);
+
+  else
+    // TODO: Error message here?... not really...
+    return;
+  
+  m_control->insert(group, t);
 }
 
 DownloadInfo*
@@ -226,24 +244,24 @@ TrackerManager::set_info(DownloadInfo* info) {
 
 void
 TrackerManager::receive_timeout() {
-  if (m_control->is_busy())
-    throw internal_error("TrackerManager::receive_timeout() called but m_control->is_busy() == true.");
+  if (m_control->has_active())
+    throw internal_error("TrackerManager::receive_timeout() called but m_control->has_active() == true.");
 
   if (!m_active)
     return;
 
-  m_control->send_state(m_control->get_state());
+  m_control->send_state((DownloadInfo::State)m_control->state());
 }
 
 void
 TrackerManager::receive_success(AddressList* l) {
   m_failedRequests = 0;
 
-  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active)
+  if (m_control->state() == DownloadInfo::STOPPED || !m_active)
     return m_slotSuccess(l);
 
-  if (m_control->get_state() == DownloadInfo::STARTED)
-    m_initialTracker = m_control->focus_index();
+  if (m_control->state() == DownloadInfo::STARTED)
+    m_initialTracker = std::distance(m_control->begin(), m_control->focus());
 
   // Don't reset the focus when we're requesting more peers. If we
   // want to query the next tracker in the list we need to remember
@@ -252,7 +270,7 @@ TrackerManager::receive_success(AddressList* l) {
     m_numRequests++;
   } else {
     m_numRequests = 1;
-    m_control->set_focus_index(0);
+    m_control->set_focus(m_control->begin());
   }
 
   // Reset m_isRequesting so a new call to request_*() is needed to
@@ -268,13 +286,13 @@ TrackerManager::receive_success(AddressList* l) {
 
 void
 TrackerManager::receive_failed(const std::string& msg) {
-  if (m_control->get_state() == DownloadInfo::STOPPED || !m_active)
+  if (m_control->state() == DownloadInfo::STOPPED || !m_active)
     return m_slotFailed(msg);
 
   if (m_isRequesting) {
     // Currently trying to request additional peers.
 
-    if (m_control->focus_index() == m_control->get_list().size()) {
+    if (m_control->focus() == m_control->end()) {
       // Don't start from the beginning of the list if we've gone
       // through the whole list. Return to normal timeout.
       m_isRequesting = false;
@@ -286,10 +304,10 @@ TrackerManager::receive_failed(const std::string& msg) {
   } else {
     // Normal retry.
 
-    if (m_control->focus_index() == m_control->get_list().size()) {
+    if (m_control->focus() == m_control->end()) {
       // Tried all the trackers, start from the beginning.
       m_failedRequests++;
-      m_control->set_focus_index(0);
+      m_control->set_focus(m_control->begin());
     }
     
     priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(std::min<uint32_t>(600, 20 + 20 * m_failedRequests))).round_seconds());

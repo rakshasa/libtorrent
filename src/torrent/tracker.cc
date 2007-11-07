@@ -40,7 +40,7 @@
 
 namespace torrent {
 
-Tracker::Tracker(TrackerControl* parent, const std::string& url) :
+Tracker::Tracker(TrackerContainer* parent, const std::string& url) :
   m_enabled(true),
   m_parent(parent),
   m_group(0),

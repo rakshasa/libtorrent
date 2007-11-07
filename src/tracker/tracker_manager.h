@@ -47,7 +47,7 @@ namespace torrent {
 
 class AddressList;
 class DownloadWrapper;
-class TrackerControl;
+class TrackerContainer;
 class DownloadInfo;
 class Tracker;
 
@@ -111,7 +111,7 @@ private:
   void                receive_success(AddressList* l);
   void                receive_failed(const std::string& msg);
 
-  TrackerControl*     m_control;
+  TrackerContainer*   m_control;
 
   bool                m_active;
   bool                m_isRequesting;

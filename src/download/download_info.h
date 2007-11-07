@@ -136,9 +136,11 @@ public:
   Rate*               skip_rate()                                  { return &m_skipRate; }
 
   uint64_t            uploaded_baseline() const                    { return m_uploadedBaseline; }
+  uint64_t            uploaded_adjusted() const                    { return std::max<int64_t>(m_upRate.total() - uploaded_baseline(), 0); }
   void                set_uploaded_baseline(uint64_t b)            { m_uploadedBaseline = b; }
 
   uint64_t            completed_baseline() const                   { return m_completedBaseline; }
+  uint64_t            completed_adjusted() const                   { return std::max<int64_t>(m_slotStatCompleted() - completed_baseline(), 0); }
   void                set_completed_baseline(uint64_t b)           { m_completedBaseline = b; }
 
   uint32_t            size_pex() const                             { return m_sizePex; }
