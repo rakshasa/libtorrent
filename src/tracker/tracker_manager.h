@@ -47,7 +47,7 @@ namespace torrent {
 
 class AddressList;
 class DownloadWrapper;
-class TrackerContainer;
+class TrackerList;
 class DownloadInfo;
 class Tracker;
 
@@ -98,7 +98,7 @@ public:
   const DownloadInfo* info() const;
   void                set_info(DownloadInfo* info);
 
-  TrackerContainer*   container()                               { return m_control; }
+  TrackerList*        container()                               { return m_control; }
 
   rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }
 
@@ -114,7 +114,7 @@ private:
 
   void                receive_timeout();
 
-  TrackerContainer*   m_control;
+  TrackerList*        m_control;
 
   bool                m_active;
   bool                m_isRequesting;

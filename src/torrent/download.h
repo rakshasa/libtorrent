@@ -113,7 +113,7 @@ public:
   Object*             bencode();
   const Object*       bencode() const;
 
-  TrackerList         tracker_list() const;
+  TrackerList*        tracker_list() const;
 
   FileList*           file_list() const;
   PeerList*           peer_list();

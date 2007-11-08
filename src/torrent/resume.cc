@@ -269,33 +269,30 @@ resume_load_tracker_settings(Download download, const Object& object) {
     return;
 
   const Object& src         = object.get_key("trackers");
-  TrackerList   trackerList = download.tracker_list();
+  TrackerList*  trackerList = download.tracker_list();
 
-  for (unsigned int i = 0; i < trackerList.size(); ++i) {
-    Tracker* tracker = trackerList.get(i);
-
-    if (!src.has_key_map(tracker->url()))
+  for (TrackerList::iterator itr = trackerList->begin(), last = trackerList->end(); itr != last; ++itr) {
+    if (!src.has_key_map((*itr)->url()))
       continue;
 
-    const Object& trackerObject = src.get_key(tracker->url());
+    const Object& trackerObject = src.get_key((*itr)->url());
 
     if (trackerObject.has_key_value("enabled") && trackerObject.get_key_value("enabled") == 0)
-      tracker->disable();
+      (*itr)->disable();
     else
-      tracker->enable();
+      (*itr)->enable();
   }    
 }
 
 void
 resume_save_tracker_settings(Download download, Object& object) {
   Object& dest = object.insert_preserve_map("trackers").first->second;
-  TrackerList trackerList = download.tracker_list();
+  TrackerList* trackerList = download.tracker_list();
 
-  for (unsigned int i = 0; i < trackerList.size(); ++i) {
-    Tracker* tracker = trackerList.get(i);
-    Object& trackerObject = dest.insert_key(tracker->url(), Object(Object::TYPE_MAP));
+  for (TrackerList::iterator itr = trackerList->begin(), last = trackerList->end(); itr != last; ++itr) {
+    Object& trackerObject = dest.insert_key((*itr)->url(), Object(Object::TYPE_MAP));
 
-    trackerObject.insert_key("enabled", Object((int64_t)tracker->is_enabled()));
+    trackerObject.insert_key("enabled", Object((int64_t)(*itr)->is_enabled()));
   }
 }
 

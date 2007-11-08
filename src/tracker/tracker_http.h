@@ -48,7 +48,7 @@ class Http;
 
 class TrackerHttp : public Tracker {
 public:
-  TrackerHttp(TrackerContainer* parent, const std::string& url);
+  TrackerHttp(TrackerList* parent, const std::string& url);
   ~TrackerHttp();
   
   virtual bool        is_busy() const;

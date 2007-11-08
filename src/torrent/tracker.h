@@ -44,11 +44,11 @@
 namespace torrent {
 
 class AddressList;
-class TrackerContainer;
+class TrackerList;
 
 class LIBTORRENT_EXPORT Tracker {
 public:
-  friend class TrackerContainer;
+  friend class TrackerList;
 
   typedef enum {
     TRACKER_NONE,
@@ -64,7 +64,7 @@ public:
   void                enable()                              { m_enabled = true; }
   void                disable()                             { m_enabled = false; }
 
-  TrackerContainer*   parent()                              { return m_parent; }
+  TrackerList*        parent()                              { return m_parent; }
 
   uint32_t            group() const                         { return m_group; }
   virtual Type        type() const = 0;
@@ -84,7 +84,7 @@ public:
   uint32_t            scrape_downloaded() const             { return m_scrapeDownloaded; }
 
 protected:
-  Tracker(TrackerContainer* parent, const std::string& url);
+  Tracker(TrackerList* parent, const std::string& url);
   Tracker(const Tracker& t);
   void operator = (const Tracker& t);
 
@@ -98,7 +98,7 @@ protected:
 
   bool                m_enabled;
 
-  TrackerContainer*   m_parent;
+  TrackerList*        m_parent;
   uint32_t            m_group;
 
   std::string         m_url;

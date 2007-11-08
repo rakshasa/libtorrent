@@ -1,8 +1,6 @@
 noinst_LTLIBRARIES = libsub_tracker.la
 
 libsub_tracker_la_SOURCES = \
-	tracker_container.cc \
-	tracker_container.h \
 	tracker_http.cc \
 	tracker_http.h \
 	tracker_manager.cc \

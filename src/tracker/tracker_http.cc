@@ -47,8 +47,8 @@
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
 #include "torrent/object_stream.h"
+#include "torrent/tracker_list.h"
 
-#include "tracker_container.h"
 #include "tracker_http.h"
 
 #include "globals.h"
@@ -56,7 +56,7 @@
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp(TrackerContainer* parent, const std::string& url) :
+TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url) :
   Tracker(parent, url),
 
   m_get(Http::call_factory()),

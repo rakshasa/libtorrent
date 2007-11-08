@@ -44,14 +44,14 @@
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
+#include "torrent/tracker_list.h"
 
-#include "tracker_container.h"
 #include "tracker_udp.h"
 #include "manager.h"
 
 namespace torrent {
 
-TrackerUdp::TrackerUdp(TrackerContainer* parent, const std::string& url) :
+TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url) :
   Tracker(parent, url),
   m_slotResolver(NULL),
   m_readBuffer(NULL),

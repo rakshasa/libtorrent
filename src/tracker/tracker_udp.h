@@ -54,7 +54,7 @@ public:
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 
-  TrackerUdp(TrackerContainer* parent, const std::string& url);
+  TrackerUdp(TrackerList* parent, const std::string& url);
   ~TrackerUdp();
   
   virtual bool        is_busy() const;

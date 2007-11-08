@@ -37,52 +37,126 @@
 #ifndef LIBTORRENT_TRACKER_LIST_H
 #define LIBTORRENT_TRACKER_LIST_H
 
+#include <algorithm>
+#include <vector>
 #include <torrent/common.h>
 
 namespace torrent {
 
+class AddressList;
+class DownloadInfo;
 class Tracker;
 class TrackerManager;
 
-class LIBTORRENT_EXPORT TrackerList {
+// The tracker list will contain a list of tracker, divided into
+// subgroups. Each group must be randomized before we start. When
+// starting the tracker request, always start from the beginning and
+// iterate if the request failed. Upon request success move the
+// tracker to the beginning of the subgroup and start from the
+// beginning of the whole list.
+
+class LIBTORRENT_EXPORT TrackerList : private std::vector<Tracker*> {
 public:
-  TrackerList(TrackerManager* m = NULL) : m_manager(m) {}
+  friend class TrackerManager;
 
-  bool                is_busy() const;
+  typedef std::vector<Tracker*> base_type;
 
-  // Access the trackers in the torrent.
-  Tracker*            get(uint32_t index) const;
+  using base_type::value_type;
 
-  uint32_t            focus() const;
-  uint32_t            size() const;
+  using base_type::iterator;
+  using base_type::const_iterator;
+  using base_type::reverse_iterator;
+  using base_type::const_reverse_iterator;
+  using base_type::size;
+  using base_type::empty;
 
-  uint64_t            timeout() const;
+  using base_type::begin;
+  using base_type::end;
+  using base_type::rbegin;
+  using base_type::rend;
 
-  int16_t             numwant() const;
-  void                set_numwant(int32_t n);
+  using base_type::at;
+  using base_type::operator[];
 
-  uint32_t            key() const;
-  void                set_key(uint32_t k);
+  TrackerList(TrackerManager* manager);
 
-  // Perhaps make tracker_cycle_group part of Tracker?
+  bool                has_active() const;
+  bool                has_enabled() const;
+
+  void                close_all();
+  void                clear();
+
+  iterator            insert(unsigned int group, Tracker* t);
+
+  void                send_state(int s);
+
+  iterator            promote(iterator itr);
+
+  void                randomize();
+  void                cycle_group(int group);
+
+  DownloadInfo*       info()                                  { return m_info; }
+  int                 state()                                 { return m_state; }
+
+  uint32_t            key() const                             { return m_key; }
+  void                set_key(uint32_t key)                   { m_key = key; }
+
+  int32_t             numwant() const                         { return m_numwant; }
+  void                set_numwant(int32_t n)                  { m_numwant = n; }
+
+  iterator            find(Tracker* tb)                       { return std::find(begin(), end(), tb); }
+  iterator            find_enabled(iterator itr);
+  const_iterator      find_enabled(const_iterator itr) const;
+
+  iterator            begin_group(unsigned int group);
+  iterator            end_group(unsigned int group)           { return begin_group(group + 1); }
+  void                cycle_group(unsigned int group);
+
+  uint32_t            time_next_connection() const;
+  uint32_t            time_last_connection() const            { return m_timeLastConnection; }
+
+  // Some temporary functions that are routed to
+  // TrackerManager... Clean this up.
   void                send_completed();
 
-  void                cycle_group(int group);
   void                manual_request(bool force);
-
   void                manual_cancel();
 
-//   void                scrape();
+  // Functions for controlling the current focus. They only support
+  // one active tracker atm.
+  iterator            focus()                                 { return m_itr; }
+  const_iterator      focus() const                           { return m_itr; }
+  uint32_t            focus_index() const                     { return m_itr - begin(); }
 
-  // Use some weird and unreliable heuristic to figure out which
-  // tracker's scrape to use?
-//   uint64_t            scrape_time_last() const;
-//   uint32_t            scrape_complete() const;
-//   uint32_t            scrape_incomplete() const;
-//   uint32_t            scrape_downloaded() const;
+  bool                focus_next_group();
+
+  uint32_t            focus_normal_interval() const;
+  uint32_t            focus_min_interval() const;
+
+  void                receive_success(Tracker* tb, AddressList* l);
+  void                receive_failed(Tracker* tb, const std::string& msg);
+
+protected:
+  void                set_info(DownloadInfo* info)            { m_info = info; }
+  void                set_state(int s)                        { m_state = s; }
+
+  void                set_focus(iterator itr)                 { m_itr = itr; }
+  void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
 
 private:
+  TrackerList(const TrackerList&) LIBTORRENT_NO_EXPORT;
+  void operator = (const TrackerList&) LIBTORRENT_NO_EXPORT;
+
   TrackerManager*     m_manager;
+  DownloadInfo*       m_info;
+  int                 m_state;
+
+  uint32_t            m_key;
+  int32_t             m_numwant;
+
+  uint32_t            m_timeLastConnection;
+
+  iterator            m_itr;
 };
 
 }

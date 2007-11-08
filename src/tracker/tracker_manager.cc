@@ -39,8 +39,8 @@
 #include "download/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/tracker.h"
+#include "torrent/tracker_list.h"
 
-#include "tracker_container.h"
 #include "tracker_http.h"
 #include "tracker_manager.h"
 #include "tracker_udp.h"
@@ -48,7 +48,7 @@
 namespace torrent {
 
 TrackerManager::TrackerManager() :
-  m_control(new TrackerContainer(this)),
+  m_control(new TrackerList(this)),
 
   m_active(false),
   m_isRequesting(false),
@@ -123,7 +123,7 @@ TrackerManager::send_later() {
 // focus to the first tracker.
 //
 // The client can therefor call these functions after
-// TrackerContainer::signal_success is emited and know it won't cause
+// TrackerList::signal_success is emited and know it won't cause
 // looping if there are unreachable trackers.
 //
 // When the number of consequtive requests from the same tracker

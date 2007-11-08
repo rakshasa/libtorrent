@@ -245,9 +245,9 @@ Download::file_list() const {
   return m_ptr->main()->file_list();
 }
 
-TrackerList
+TrackerList*
 Download::tracker_list() const {
-  return TrackerList(m_ptr->main()->tracker_manager());
+  return m_ptr->main()->tracker_manager()->container();
 }
 
 PeerList*
