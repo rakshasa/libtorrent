@@ -71,16 +71,13 @@ Download::open() {
 void
 Download::close() {
   if (m_ptr->info()->is_active())
-    stop();
+    stop(0);
 
   m_ptr->close();
 }
 
-void Download::start() { start2(0); }
-void Download::stop()  { stop2(0); }
-
 void
-Download::start2(int flags) {
+Download::start(int flags) {
   if (!m_ptr->hash_checker()->is_checked())
     throw internal_error("Tried to start an unchecked download.");
 
@@ -109,7 +106,7 @@ Download::start2(int flags) {
 }
 
 void
-Download::stop2(int flags) {
+Download::stop(int flags) {
   if (!m_ptr->info()->is_active())
     return;
 
