@@ -42,6 +42,8 @@
 
 namespace torrent {
 
+class PeerConnectionBase;
+
 // == and = operators works as expected.
 
 // The Peer class is a wrapper around the internal peer class. This
@@ -51,10 +53,7 @@ namespace torrent {
 // date. 
 class LIBTORRENT_EXPORT Peer {
 public:
-  Peer(PeerConnectionBase* p = NULL) : m_ptr(p) {}
-
   // Does not check if it has been removed from the download.
-  bool                 is_valid() const { return m_ptr; }
   bool                 is_incoming() const;
   bool                 is_encrypted() const;
   bool                 is_obfuscated() const;
@@ -93,13 +92,11 @@ public:
 
   uint32_t             failed_counter() const;
 
-  PeerConnectionBase*  ptr()                             { return m_ptr; }
-  void                 set_ptr(PeerConnectionBase* ptr)  { m_ptr = ptr; }
+  PeerConnectionBase*       ptr()       { return reinterpret_cast<PeerConnectionBase*>(this); }
+  const PeerConnectionBase* ptr() const { return reinterpret_cast<const PeerConnectionBase*>(this); }
 
-  bool                 operator == (const Peer& p) const { return m_ptr == p.m_ptr; }
-
-private:
-  PeerConnectionBase*  m_ptr;
+ private:
+  bool                 operator == (const Peer& p) const;
 };
 
 }

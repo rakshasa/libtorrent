@@ -503,22 +503,25 @@ Download::update_priorities() {
 
 void
 Download::peer_list(PList& pList) {
-  std::for_each(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
-                rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
+//   std::for_each(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
+//                 rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
+
+  for (ConnectionList::iterator itr = m_ptr->main()->connection_list()->begin(), last = m_ptr->main()->connection_list()->end(); itr != last; ++itr)
+    pList.push_back(reinterpret_cast<Peer*>(*itr));
 }
 
-Peer
+Peer*
 Download::peer_find(const std::string& id) {
   ConnectionList::iterator itr =
     std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
                  rak::equal(*HashString::cast_from(id), rak::on(std::mem_fun(&PeerConnectionBase::c_peer_info), std::mem_fun(&PeerInfo::id))));
 
-  return itr != m_ptr->main()->connection_list()->end() ? *itr : NULL;
+  return itr != m_ptr->main()->connection_list()->end() ? reinterpret_cast<Peer*>(*itr) : NULL;
 }
 
 void
-Download::disconnect_peer(Peer p) {
-  m_ptr->main()->connection_list()->erase(p.ptr(), 0);
+Download::disconnect_peer(Peer* p) {
+  m_ptr->main()->connection_list()->erase(p->ptr(), 0);
 }
 
 sigc::connection

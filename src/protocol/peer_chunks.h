@@ -70,16 +70,20 @@ public:
 
   rak::partial_queue* download_cache()              { return &m_downloadCache; }
 
-  piece_list_type*    upload_queue()                { return &m_uploadQueue; }
+  piece_list_type*       upload_queue()             { return &m_uploadQueue; }
+  const piece_list_type* upload_queue() const       { return &m_uploadQueue; }
   piece_list_type*    cancel_queue()                { return &m_cancelQueue; }
 
   rak::timer          have_timer() const            { return m_haveTimer; }
   void                set_have_timer(rak::timer t)  { m_haveTimer = t; }
 
   Rate*               peer_rate()                   { return &m_peerRate; }
+  const Rate*         peer_rate() const             { return &m_peerRate; }
 
   ThrottleNode*       download_throttle()           { return &m_downloadThrottle; }
+  const ThrottleNode* download_throttle() const     { return &m_downloadThrottle; }
   ThrottleNode*       upload_throttle()             { return &m_uploadThrottle; }
+  const ThrottleNode* upload_throttle() const       { return &m_uploadThrottle; }
 
 private:
   PeerInfo*           m_peerInfo;

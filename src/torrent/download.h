@@ -48,7 +48,7 @@
 
 namespace torrent {
 
-typedef std::list<Peer> PList;
+typedef std::list<Peer*> PList;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
@@ -190,14 +190,14 @@ public:
   // peer_{connected,disconnected}. Otherwise you may experience undefined
   // behaviour when using invalid peers in the list.
   void                peer_list(PList& pList);
-  Peer                peer_find(const std::string& id);
+  Peer*               peer_find(const std::string& id);
 
-  void                disconnect_peer(Peer p);
+  void                disconnect_peer(Peer* p);
 
   typedef sigc::slot0<void>                                          slot_void_type;
   typedef sigc::slot1<void, const std::string&>                      slot_string_type;
 
-  typedef sigc::slot1<void, Peer>                                    slot_peer_type;
+  typedef sigc::slot1<void, Peer*>                                   slot_peer_type;
   typedef sigc::slot1<void, uint32_t>                                slot_chunk_type;
   typedef sigc::slot3<void, const std::string&, const char*, size_t> slot_dump_type;
 

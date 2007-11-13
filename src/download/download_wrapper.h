@@ -42,7 +42,6 @@
 #include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
-#include "torrent/peer/peer.h"
 #include "download/download_info.h"
 
 #include "download_main.h"
@@ -58,13 +57,14 @@ class HashTorrent;
 class HandshakeManager;
 class DownloadInfo;
 class Object;
+class Peer;
 
 class DownloadWrapper {
 public:
   typedef sigc::signal0<void>                     Signal;
   typedef sigc::signal1<void, uint32_t>           SignalChunk;
   typedef sigc::signal1<void, const std::string&> SignalString;
-  typedef sigc::signal1<void, Peer>               SignalPeer;
+  typedef sigc::signal1<void, Peer*>              SignalPeer;
 
   DownloadWrapper();
   ~DownloadWrapper();

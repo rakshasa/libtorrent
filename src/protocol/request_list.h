@@ -82,7 +82,7 @@ public:
   bool                 has_index(uint32_t i);
 
   bool                 empty() const                     { return m_queued.empty(); }
-  size_t               size()                            { return m_queued.size(); }
+  size_t               size() const                      { return m_queued.size(); }
 
   uint32_t             calculate_pipe_size(uint32_t rate);
 

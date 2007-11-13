@@ -271,12 +271,12 @@ DownloadWrapper::receive_tracker_failed(const std::string& msg) {
 
 void
 DownloadWrapper::receive_peer_connected(PeerConnectionBase* peer) {
-  m_signalPeerConnected.emit(Peer(peer));
+  m_signalPeerConnected.emit(reinterpret_cast<Peer*>(peer));
 }
 
 void
 DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
-  m_signalPeerDisconnected.emit(Peer(peer));
+  m_signalPeerDisconnected.emit(reinterpret_cast<Peer*>(peer));
 }
 
 void

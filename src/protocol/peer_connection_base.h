@@ -89,33 +89,36 @@ public:
   void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
-  bool                is_up_choked()                { return m_upChoke.choked(); }
-  bool                is_up_interested()            { return m_upChoke.queued(); }
-  bool                is_up_snubbed()               { return m_upChoke.snubbed(); }
+  bool                is_up_choked() const            { return m_upChoke.choked(); }
+  bool                is_up_interested() const        { return m_upChoke.queued(); }
+  bool                is_up_snubbed() const           { return m_upChoke.snubbed(); }
 
-  bool                is_down_queued()              { return m_downChoke.queued(); }
-  bool                is_down_local_unchoked()      { return m_downChoke.unchoked(); }
-  bool                is_down_remote_unchoked()     { return m_downUnchoked; }
-  bool                is_down_interested()          { return m_downInterested; }
+  bool                is_down_queued() const          { return m_downChoke.queued(); }
+  bool                is_down_local_unchoked() const  { return m_downChoke.unchoked(); }
+  bool                is_down_remote_unchoked() const { return m_downUnchoked; }
+  bool                is_down_interested() const      { return m_downInterested; }
 
   void                set_upload_snubbed(bool v);
 
-  bool                is_seeder() const             { return m_peerChunks.is_seeder(); }
+  bool                is_seeder() const               { return m_peerChunks.is_seeder(); }
 
-  bool                is_encrypted() const          { return m_encryption.is_encrypted(); }
-  bool                is_obfuscated() const         { return m_encryption.is_obfuscated(); }
+  bool                is_encrypted() const            { return m_encryption.is_encrypted(); }
+  bool                is_obfuscated() const           { return m_encryption.is_obfuscated(); }
 
-  PeerInfo*           peer_info()                   { return m_peerInfo; }
-  const PeerInfo*     c_peer_info() const           { return m_peerInfo; }
-  PeerChunks*         peer_chunks()                 { return &m_peerChunks; }
+  PeerInfo*           peer_info()                     { return m_peerInfo; }
+  const PeerInfo*     c_peer_info() const             { return m_peerInfo; }
 
-  DownloadMain*       download()                    { return m_download; }
-  RequestList*        download_queue()              { return &m_downloadQueue; }
+  PeerChunks*         peer_chunks()                   { return &m_peerChunks; }
+  const PeerChunks*   c_peer_chunks() const           { return &m_peerChunks; }
 
-  ProtocolExtension*  extensions()                  { return m_extensions; }
-  DataBuffer*         extension_message()           { return &m_extensionMessage; }
+  DownloadMain*       download()                      { return m_download; }
+  RequestList*        download_queue()                { return &m_downloadQueue; }
+  const RequestList*  download_queue() const          { return &m_downloadQueue; }
 
-  void                do_peer_exchange()            { m_sendPEXMask |= PEX_DO; }
+  ProtocolExtension*  extensions()                    { return m_extensions; }
+  DataBuffer*         extension_message()             { return &m_extensionMessage; }
+
+  void                do_peer_exchange()              { m_sendPEXMask |= PEX_DO; }
   inline void         set_peer_exchange(bool state);
   
   // These must be implemented by the child class.
