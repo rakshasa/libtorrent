@@ -51,6 +51,7 @@
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
+#include "torrent/peer/peer.h"
 #include "tracker/tracker_manager.h"
 
 #include "available_list.h"
@@ -300,13 +301,14 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
       // If PEX was disabled since the last peer exchange, deactivate it now.
       } else if (info()->is_pex_active()) {
         info()->set_pex_active(false);
+
         for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); ++itr)
-          (*itr)->set_peer_exchange(false);
+          (*itr)->ptr()->set_peer_exchange(false);
       }
     }
 
     for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); )
-      if (!(*itr)->receive_keepalive())
+      if (!(*itr)->ptr()->receive_keepalive())
         itr = m_main.connection_list()->erase(itr, ConnectionList::disconnect_available);
       else
         itr++;
@@ -339,7 +341,8 @@ DownloadWrapper::receive_update_priorities() {
 
   m_main.chunk_selector()->update_priorities();
 
-  std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(), std::mem_fun(&PeerConnectionBase::update_interested));
+  std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
+                rak::on(std::mem_fun(&Peer::m_ptr), std::mem_fun(&PeerConnectionBase::update_interested)));
 }
 
 void

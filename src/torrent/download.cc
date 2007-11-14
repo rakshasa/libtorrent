@@ -512,9 +512,12 @@ Download::peer_list(PList& pList) {
 
 Peer*
 Download::peer_find(const std::string& id) {
-  ConnectionList::iterator itr =
-    std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
-                 rak::equal(*HashString::cast_from(id), rak::on(std::mem_fun(&PeerConnectionBase::c_peer_info), std::mem_fun(&PeerInfo::id))));
+  if (id.size() != 20)
+    return NULL;
+
+  ConnectionList::iterator itr = m_ptr->main()->connection_list()->find(id.c_str());
+//     std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
+//                  rak::equal(*HashString::cast_from(id), rak::on(std::mem_fun(&PeerConnectionBase::c_peer_info), std::mem_fun(&PeerInfo::id))));
 
   return itr != m_ptr->main()->connection_list()->end() ? reinterpret_cast<Peer*>(*itr) : NULL;
 }

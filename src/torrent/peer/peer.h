@@ -92,8 +92,12 @@ public:
 
   uint32_t             failed_counter() const;
 
-  PeerConnectionBase*       ptr()       { return reinterpret_cast<PeerConnectionBase*>(this); }
-  const PeerConnectionBase* ptr() const { return reinterpret_cast<const PeerConnectionBase*>(this); }
+  static Peer*         cast_from(PeerConnectionBase* pcb) { return reinterpret_cast<Peer*>(pcb); }
+
+  PeerConnectionBase*       ptr()         { return reinterpret_cast<PeerConnectionBase*>(this); }
+  const PeerConnectionBase* ptr() const   { return reinterpret_cast<const PeerConnectionBase*>(this); }
+  PeerConnectionBase*       m_ptr()       { return reinterpret_cast<PeerConnectionBase*>(this); }
+  const PeerConnectionBase* c_ptr() const { return reinterpret_cast<const PeerConnectionBase*>(this); }
 
  private:
   bool                 operator == (const Peer& p) const;

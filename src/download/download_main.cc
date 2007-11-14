@@ -46,6 +46,7 @@
 #include "tracker/tracker_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/file_list.h"
+#include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
 
 #include "available_list.h"
@@ -304,31 +305,32 @@ DownloadMain::do_peer_exchange() {
   ProtocolExtension::PEXList current;
 
   for (ConnectionList::iterator itr = m_connectionList->begin(); itr != m_connectionList->end(); ++itr) {
-    const rak::socket_address* sa = rak::socket_address::cast_from((*itr)->peer_info()->socket_address());
+    PeerConnectionBase* pcb = (*itr)->ptr();
+    const rak::socket_address* sa = rak::socket_address::cast_from(pcb->peer_info()->socket_address());
 
-    if ((*itr)->peer_info()->listen_port() != 0 && sa->family() == rak::socket_address::af_inet)
-      current.push_back(SocketAddressCompact(sa->sa_inet()->address_n(), (*itr)->peer_info()->listen_port()));
+    if (pcb->peer_info()->listen_port() != 0 && sa->family() == rak::socket_address::af_inet)
+      current.push_back(SocketAddressCompact(sa->sa_inet()->address_n(), pcb->peer_info()->listen_port()));
 
-    if (!(*itr)->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
+    if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;
 
     if (togglePex == PeerConnectionBase::PEX_ENABLE) {
-      (*itr)->set_peer_exchange(true);
+      pcb->set_peer_exchange(true);
 
       if (m_info->size_pex() >= m_info->max_size_pex())
         togglePex = 0;
 
-    } else if (!(*itr)->extensions()->is_local_enabled(ProtocolExtension::UT_PEX)) {
+    } else if (!pcb->extensions()->is_local_enabled(ProtocolExtension::UT_PEX)) {
       continue;
 
     } else if (togglePex == PeerConnectionBase::PEX_DISABLE) {
-      (*itr)->set_peer_exchange(false);
+      pcb->set_peer_exchange(false);
 
       continue;
     }
 
     // Still using the old buffer? Make a copy in this rare case.
-    DataBuffer* message = (*itr)->extension_message();
+    DataBuffer* message = pcb->extension_message();
 
     if (!message->empty() && (message->data() == m_ut_pex_initial.data() || message->data() == m_ut_pex_delta.data())) {
       char* buffer = new char[message->length()];
@@ -336,7 +338,7 @@ DownloadMain::do_peer_exchange() {
       message->set(buffer, buffer + message->length(), true);
     }
 
-    (*itr)->do_peer_exchange();
+    pcb->do_peer_exchange();
   }
 
   std::sort(current.begin(), current.end(), SocketAddressCompact_less());

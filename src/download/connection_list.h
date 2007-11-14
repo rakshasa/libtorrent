@@ -47,16 +47,17 @@ class AddressList;
 class Bitfield;
 class DownloadMain;
 class DownloadWrapper;
+class Peer;
 class PeerConnectionBase;
 class PeerInfo;
 class ProtocolExtension;
 class SocketFd;
 class EncryptionInfo;
 
-class ConnectionList : private rak::unordered_vector<PeerConnectionBase*> {
+class ConnectionList : private std::vector<Peer*> {
 public:
-  typedef rak::unordered_vector<PeerConnectionBase*> base_type;
-  typedef uint32_t                                   size_type;
+  typedef std::vector<Peer*> base_type;
+  typedef uint32_t           size_type;
 
   typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> slot_peer_type;
 
@@ -102,6 +103,7 @@ public:
   void                erase_remaining(iterator pos, int flags);
   void                erase_seeders();
 
+  iterator            find(const char* id);
   iterator            find(const rak::socket_address& sa);
 
   size_type           get_min_size() const                              { return m_minSize; }

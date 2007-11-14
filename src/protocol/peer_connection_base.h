@@ -101,6 +101,7 @@ public:
   void                set_upload_snubbed(bool v);
 
   bool                is_seeder() const               { return m_peerChunks.is_seeder(); }
+  bool                is_not_seeder() const           { return !m_peerChunks.is_seeder(); }
 
   bool                is_encrypted() const            { return m_encryption.is_encrypted(); }
   bool                is_obfuscated() const           { return m_encryption.is_obfuscated(); }
