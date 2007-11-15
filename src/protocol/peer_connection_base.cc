@@ -52,6 +52,7 @@
 #include "net/socket_base.h"
 #include "torrent/connection_manager.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/peer/connection_list.h"
 
 #include "extensions.h"
 #include "peer_connection_base.h"

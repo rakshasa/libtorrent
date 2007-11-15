@@ -52,6 +52,7 @@
 #include "torrent/data/file_list.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/peer/peer.h"
+#include "torrent/peer/connection_list.h"
 #include "tracker/tracker_manager.h"
 
 #include "available_list.h"

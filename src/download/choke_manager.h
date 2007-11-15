@@ -38,14 +38,14 @@
 #define LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_H
 
 #include <list>
+#include <vector>
 #include <inttypes.h>
 #include <rak/functional.h>
-
-#include "connection_list.h"
 
 namespace torrent {
 
 class ChokeManagerNode;
+class ConnectionList;
 class PeerConnectionBase;
 class ResourceManager;
 

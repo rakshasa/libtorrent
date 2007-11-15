@@ -45,6 +45,7 @@
 #include "download/chunk_statistics.h"
 #include "download/download_info.h"
 #include "download/download_main.h"
+#include "torrent/peer/connection_list.h"
 
 #include "extensions.h"
 #include "peer_connection_leech.h"

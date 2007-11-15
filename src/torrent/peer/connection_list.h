@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
-#define LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
+#ifndef LIBTORRENT_PEER_CONNECTION_LIST_H
+#define LIBTORRENT_PEER_CONNECTION_LIST_H
 
 #include <vector>
 #include <sigc++/signal.h>
@@ -55,7 +55,7 @@ class SocketFd;
 class EncryptionInfo;
 class HandshakeManager;
 
-class ConnectionList : private std::vector<Peer*> {
+class LIBTORRENT_EXPORT ConnectionList : private std::vector<Peer*> {
 public:
   friend class DownloadMain;
   friend class DownloadWrapper;
@@ -90,6 +90,7 @@ public:
 
   ConnectionList(DownloadMain* download);
 
+  // Make these protected?
   iterator            erase(iterator pos, int flags);
   void                erase(PeerInfo* peerInfo, int flags);
   void                erase(PeerConnectionBase* p, int flags);
@@ -118,17 +119,17 @@ public:
 
 protected:
   // Does not do the usual cleanup done by 'erase'.
-  void                clear();
+  void                clear() LIBTORRENT_NO_EXPORT;
 
   // Returns false if the connection was not added, the caller is then
   // responsible for cleaning up 'fd'.
   //
   // Clean this up, don't use this many arguments.
-  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
+  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) LIBTORRENT_NO_EXPORT;
 
 private:
-  ConnectionList(const ConnectionList&);
-  void operator = (const ConnectionList&);
+  ConnectionList(const ConnectionList&) LIBTORRENT_NO_EXPORT;
+  void operator = (const ConnectionList&) LIBTORRENT_NO_EXPORT;
 
   DownloadMain*       m_download;
 

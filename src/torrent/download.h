@@ -48,7 +48,7 @@
 
 namespace torrent {
 
-typedef std::list<Peer*> PList;
+class ConnectionList;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
@@ -116,6 +116,9 @@ public:
   const PeerList*     peer_list() const;
   const TransferList* transfer_list() const;
 
+  ConnectionList*       connection_list();
+  const ConnectionList* connection_list() const;
+
   // Remove the old non-const versions.
   Rate*               down_rate();
   const Rate*         down_rate() const;
@@ -168,9 +171,6 @@ public:
   bool                accepting_new_peers() const;
   uint32_t            uploads_max() const;
   
-  void                set_peers_min(uint32_t v);
-  void                set_peers_max(uint32_t v);
-
   void                set_uploads_max(uint32_t v);
 
   typedef enum {
@@ -186,18 +186,11 @@ public:
   // all the peer bitfields to see if we are still interested.
   void                update_priorities();
 
-  // If you create a peer list, you *must* keep it up to date with the signals
-  // peer_{connected,disconnected}. Otherwise you may experience undefined
-  // behaviour when using invalid peers in the list.
-  void                peer_list(PList& pList);
-  Peer*               peer_find(const std::string& id);
-
   void                disconnect_peer(Peer* p);
 
   typedef sigc::slot0<void>                                          slot_void_type;
   typedef sigc::slot1<void, const std::string&>                      slot_string_type;
 
-  typedef sigc::slot1<void, Peer*>                                   slot_peer_type;
   typedef sigc::slot1<void, uint32_t>                                slot_chunk_type;
   typedef sigc::slot3<void, const std::string&, const char*, size_t> slot_dump_type;
 
@@ -206,9 +199,6 @@ public:
   // when the torrent is active, so hash checking will not trigger it.
   sigc::connection    signal_download_done(slot_void_type s);
   sigc::connection    signal_hash_done(slot_void_type s);
-
-  sigc::connection    signal_peer_connected(slot_peer_type s);
-  sigc::connection    signal_peer_disconnected(slot_peer_type s);
 
   sigc::connection    signal_tracker_succeded(slot_void_type s);
   sigc::connection    signal_tracker_failed(slot_string_type s);

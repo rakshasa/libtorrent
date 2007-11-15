@@ -43,7 +43,6 @@
 
 #include "globals.h"
 
-#include "connection_list.h"
 #include "download_info.h"
 #include "delegator.h"
 
@@ -60,6 +59,7 @@ class ChunkSelector;
 class ChunkStatistics;
 
 class ChokeManager;
+class ConnectionList;
 class DownloadWrapper;
 class HandshakeManager;
 class TrackerManager;

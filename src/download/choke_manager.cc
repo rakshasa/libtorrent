@@ -42,6 +42,7 @@
 #include <cstdlib>
 
 #include "protocol/peer_connection_base.h"
+#include "torrent/peer/connection_list.h"
 
 #include "choke_manager.h"
 #include "choke_manager_node.h"

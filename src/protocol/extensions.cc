@@ -40,12 +40,12 @@
 #include <sstream>
 
 #include "download/available_list.h"
-#include "download/connection_list.h"
 #include "download/download_main.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/connection_manager.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
+#include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "tracker/tracker_http.h"
 #include "manager.h"

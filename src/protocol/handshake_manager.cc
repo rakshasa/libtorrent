@@ -45,6 +45,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
+#include "torrent/peer/connection_list.h"
 
 #include "peer_connection_base.h"
 #include "handshake.h"

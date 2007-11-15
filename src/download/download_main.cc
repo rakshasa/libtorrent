@@ -46,6 +46,7 @@
 #include "tracker/tracker_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/file_list.h"
+#include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
 

@@ -55,6 +55,7 @@
 #include "download/download_info.h"
 #include "peer/peer_info.h"
 #include "tracker/tracker_manager.h"
+#include "torrent/peer/connection_list.h"
 
 #include "exceptions.h"
 #include "download.h"
@@ -256,9 +257,20 @@ const PeerList*
 Download::peer_list() const {
   return m_ptr->main()->peer_list();
 }
+
 const TransferList*
 Download::transfer_list() const {
   return m_ptr->main()->delegator()->transfer_list();
+}
+
+ConnectionList*
+Download::connection_list() {
+  return m_ptr->main()->connection_list();
+}
+
+const ConnectionList*
+Download::connection_list() const {
+  return m_ptr->main()->connection_list();
 }
 
 Rate*
@@ -449,22 +461,13 @@ Download::uploads_max() const {
 }
   
 void
-Download::set_peers_min(uint32_t v) {
-  if (v > (1 << 16))
-    throw input_error("Min peer connections must be between 0 and 2^16.");
-  
-  m_ptr->main()->connection_list()->set_min_size(v);
-  m_ptr->main()->receive_connect_peers();
-}
-
-void
-Download::set_peers_max(uint32_t v) {
-  m_ptr->main()->connection_list()->set_max_size(v);
-}
-
-void
 Download::set_uploads_max(uint32_t v) {
-  m_ptr->main()->connection_list()->set_min_size(v);
+  if (v > (1 << 16)) 
+    throw input_error("Max uploads must be between 0 and 2^16."); 
+	 	 
+  // For the moment, treat 0 as unlimited. 
+  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v == 0 ? ChokeManager::unlimited : v); 
+  m_ptr->main()->upload_choke_manager()->balance();
 }
 
 Download::ConnectionType
@@ -494,27 +497,6 @@ Download::update_priorities() {
 }
 
 void
-Download::peer_list(PList& pList) {
-//   std::for_each(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
-//                 rak::bind1st(std::mem_fun<void,PList,PList::const_reference>(&PList::push_back), &pList));
-
-  for (ConnectionList::iterator itr = m_ptr->main()->connection_list()->begin(), last = m_ptr->main()->connection_list()->end(); itr != last; ++itr)
-    pList.push_back(reinterpret_cast<Peer*>(*itr));
-}
-
-Peer*
-Download::peer_find(const std::string& id) {
-  if (id.size() != 20)
-    return NULL;
-
-  ConnectionList::iterator itr = m_ptr->main()->connection_list()->find(id.c_str());
-//     std::find_if(m_ptr->main()->connection_list()->begin(), m_ptr->main()->connection_list()->end(),
-//                  rak::equal(*HashString::cast_from(id), rak::on(std::mem_fun(&PeerConnectionBase::c_peer_info), std::mem_fun(&PeerInfo::id))));
-
-  return itr != m_ptr->main()->connection_list()->end() ? reinterpret_cast<Peer*>(*itr) : NULL;
-}
-
-void
 Download::disconnect_peer(Peer* p) {
   m_ptr->main()->connection_list()->erase(p->ptr(), 0);
 }
@@ -527,16 +509,6 @@ Download::signal_download_done(Download::slot_void_type s) {
 sigc::connection
 Download::signal_hash_done(Download::slot_void_type s) {
   return m_ptr->signal_initial_hash().connect(s);
-}
-
-sigc::connection
-Download::signal_peer_connected(Download::slot_peer_type s) {
-  return m_ptr->main()->connection_list()->signal_connected().connect(s);
-}
-
-sigc::connection
-Download::signal_peer_disconnected(Download::slot_peer_type s) {
-  return m_ptr->main()->connection_list()->signal_disconnected().connect(s);
 }
 
 sigc::connection

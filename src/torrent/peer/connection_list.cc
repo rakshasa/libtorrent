@@ -45,10 +45,10 @@
 #include "net/address_list.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
-#include "torrent/peer/peer.h"
-#include "torrent/peer/peer_info.h"
 
 #include "connection_list.h"
+#include "peer.h"
+#include "peer_info.h"
 
 // When a peer is connected it should be removed from the list of
 // available peers.

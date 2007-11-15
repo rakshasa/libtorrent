@@ -10,8 +10,6 @@ libsub_download_la_SOURCES = \
 	chunk_selector.h \
 	chunk_statistics.cc \
 	chunk_statistics.h \
-	connection_list.cc \
-	connection_list.h \
 	delegator.cc \
 	delegator.h \
 	download_constructor.cc \
