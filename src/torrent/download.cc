@@ -390,12 +390,12 @@ Download::sync_chunks() {
 
 uint32_t
 Download::peers_min() const {
-  return m_ptr->main()->connection_list()->get_min_size();
+  return m_ptr->main()->connection_list()->min_size();
 }
 
 uint32_t
 Download::peers_max() const {
-  return m_ptr->main()->connection_list()->get_max_size();
+  return m_ptr->main()->connection_list()->max_size();
 }
 
 uint32_t
@@ -459,20 +459,12 @@ Download::set_peers_min(uint32_t v) {
 
 void
 Download::set_peers_max(uint32_t v) {
-  if (v > (1 << 16))
-    throw input_error("Max peer connections must be between 0 and 2^16.");
-
   m_ptr->main()->connection_list()->set_max_size(v);
 }
 
 void
 Download::set_uploads_max(uint32_t v) {
-  if (v > (1 << 16))
-    throw input_error("Max uploads must be between 0 and 2^16.");
-
-  // For the moment, treat 0 as unlimited.
-  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v == 0 ? ChokeManager::unlimited : v);
-  m_ptr->main()->upload_choke_manager()->balance();
+  m_ptr->main()->connection_list()->set_min_size(v);
 }
 
 Download::ConnectionType
@@ -539,12 +531,12 @@ Download::signal_hash_done(Download::slot_void_type s) {
 
 sigc::connection
 Download::signal_peer_connected(Download::slot_peer_type s) {
-  return m_ptr->signal_peer_connected().connect(s);
+  return m_ptr->main()->connection_list()->signal_connected().connect(s);
 }
 
 sigc::connection
 Download::signal_peer_disconnected(Download::slot_peer_type s) {
-  return m_ptr->signal_peer_disconnected().connect(s);
+  return m_ptr->main()->connection_list()->signal_disconnected().connect(s);
 }
 
 sigc::connection

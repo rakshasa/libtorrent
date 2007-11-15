@@ -105,6 +105,9 @@ DownloadMain::~DownloadMain() {
   if (m_taskTrackerRequest.is_queued())
     throw internal_error("DownloadMain::~DownloadMain(): m_taskTrackerRequest is queued.");
 
+  // Check if needed.
+  m_connectionList->clear();
+
   delete m_trackerManager;
   delete m_uploadChokeManager;
   delete m_downloadChokeManager;
@@ -238,11 +241,11 @@ DownloadMain::receive_connect_peers() {
 
   while (!peer_list()->available_list()->empty() &&
          manager->connection_manager()->can_connect() &&
-         connection_list()->size() < connection_list()->get_min_size() &&
-         connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->get_max_size()) {
+         connection_list()->size() < connection_list()->min_size() &&
+         connection_list()->size() + m_slotCountHandshakes(this) < connection_list()->max_size()) {
     rak::socket_address sa = peer_list()->available_list()->pop_random();
 
-    if (connection_list()->find(sa) == connection_list()->end())
+    if (connection_list()->find(sa.c_sockaddr()) == connection_list()->end())
       m_slotStartHandshake(sa, this);
   }
 }
@@ -258,7 +261,7 @@ DownloadMain::receive_tracker_success() {
 
 void
 DownloadMain::receive_tracker_request() {
-  if (connection_list()->size() >= connection_list()->get_min_size())
+  if (connection_list()->size() >= connection_list()->min_size())
     return;
 
   if (m_info->is_pex_enabled() || connection_list()->size() < m_lastConnectedSize + 10)
@@ -285,7 +288,7 @@ DownloadMain::do_peer_exchange() {
   int togglePex = 0;
 
   if (!m_info->is_pex_active() &&
-      m_connectionList->size() < m_connectionList->get_min_size() / 2 &&
+      m_connectionList->size() < m_connectionList->min_size() / 2 &&
       m_peerList.available_list()->size() < m_peerList.available_list()->max_size() / 4) {
     m_info->set_pex_active(true);
 
@@ -294,7 +297,7 @@ DownloadMain::do_peer_exchange() {
       togglePex = PeerConnectionBase::PEX_ENABLE;
 
   } else if (m_info->is_pex_active() &&
-             m_connectionList->size() >= m_connectionList->get_min_size()) {
+             m_connectionList->size() >= m_connectionList->min_size()) {
 //              m_peerList.available_list()->size() >= m_peerList.available_list()->max_size() / 2) {
     togglePex = PeerConnectionBase::PEX_DISABLE;
     m_info->set_pex_active(false);

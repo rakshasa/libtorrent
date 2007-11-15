@@ -105,9 +105,6 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
-  m_main.connection_list()->slot_connected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_connected));
-  m_main.connection_list()->slot_disconnected(rak::make_mem_fun(this, &DownloadWrapper::receive_peer_disconnected));
-
   // Info hash must be calculate from here on.
   m_hashChecker = new HashTorrent(m_main.chunk_list());
 
@@ -268,16 +265,6 @@ DownloadWrapper::receive_tracker_success(AddressList* l) {
 void
 DownloadWrapper::receive_tracker_failed(const std::string& msg) {
   m_signalTrackerFailed.emit(msg);
-}
-
-void
-DownloadWrapper::receive_peer_connected(PeerConnectionBase* peer) {
-  m_signalPeerConnected.emit(reinterpret_cast<Peer*>(peer));
-}
-
-void
-DownloadWrapper::receive_peer_disconnected(PeerConnectionBase* peer) {
-  m_signalPeerDisconnected.emit(reinterpret_cast<Peer*>(peer));
 }
 
 void

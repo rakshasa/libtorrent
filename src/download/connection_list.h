@@ -37,9 +37,9 @@
 #ifndef LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
 #define LIBTORRENT_DOWNLOAD_CONNECTION_LIST_H
 
-#include <rak/functional.h>
-#include <rak/socket_address.h>
-#include <rak/unordered_vector.h>
+#include <vector>
+#include <sigc++/signal.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
@@ -53,15 +53,19 @@ class PeerInfo;
 class ProtocolExtension;
 class SocketFd;
 class EncryptionInfo;
+class HandshakeManager;
 
 class ConnectionList : private std::vector<Peer*> {
 public:
-  typedef std::vector<Peer*> base_type;
-  typedef uint32_t           size_type;
+  friend class DownloadMain;
+  friend class DownloadWrapper;
+  friend class HandshakeManager;
 
-  typedef rak::mem_fun1<DownloadWrapper, void, PeerConnectionBase*> slot_peer_type;
+  typedef std::vector<Peer*>         base_type;
+  typedef uint32_t                   size_type;
+  typedef sigc::signal1<void, Peer*> signal_peer_type;
 
-  typedef PeerConnectionBase* (*SlotNewConnection)(bool encrypted);
+  typedef PeerConnectionBase* (*slot_new_conn_type)(bool encrypted);
 
   using base_type::value_type;
   using base_type::reference;
@@ -84,17 +88,7 @@ public:
   static const int disconnect_quick     = (1 << 1);
   static const int disconnect_unwanted  = (1 << 2);
 
-  ConnectionList(DownloadMain* download) : m_minSize(50), m_maxSize(100), m_download(download) {}
-  ~ConnectionList() { clear(); }
-
-  // Does not do the usual cleanup done by 'erase'.
-  void                clear();
-
-  // Returns false if the connection was not added, the caller is then
-  // responsible for cleaning up 'fd'.
-  //
-  // Clean this up, don't use this many arguments.
-  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
+  ConnectionList(DownloadMain* download);
 
   iterator            erase(iterator pos, int flags);
   void                erase(PeerInfo* peerInfo, int flags);
@@ -104,40 +98,47 @@ public:
   void                erase_seeders();
 
   iterator            find(const char* id);
-  iterator            find(const rak::socket_address& sa);
+  iterator            find(const sockaddr* sa);
 
-  size_type           get_min_size() const                              { return m_minSize; }
-  void                set_min_size(size_type v)                         { m_minSize = v; }
+  size_type           min_size() const                          { return m_minSize; }
+  void                set_min_size(size_type v);
 
-  size_type           get_max_size() const                              { return m_maxSize; }
+  size_type           max_size() const                          { return m_maxSize; }
   void                set_max_size(size_type v);
 
   // Removes from 'l' addresses that are already connected to. Assumes
   // 'l' is sorted and unique.
   void                set_difference(AddressList* l);
 
-  // When a peer is connected it should be removed from the list of
-  // available peers.
-  void                slot_connected(slot_peer_type s)                 { m_slotConnected = s; }
+  signal_peer_type&   signal_connected()                        { return m_signalConnected; }
+  signal_peer_type&   signal_disconnected()                     { return m_signalDisconnected; }
 
-  // When a peer is disconnected the torrent should rebalance the
-  // choked peers and connect to new ones if possible.
-  void                slot_disconnected(slot_peer_type s)              { m_slotDisconnected = s; }
-  void                slot_new_connection(SlotNewConnection s)         { m_slotNewConnection = s; }
+  // Move to protected:
+  void                slot_new_connection(slot_new_conn_type s) { m_slotNewConnection = s; }
+
+protected:
+  // Does not do the usual cleanup done by 'erase'.
+  void                clear();
+
+  // Returns false if the connection was not added, the caller is then
+  // responsible for cleaning up 'fd'.
+  //
+  // Clean this up, don't use this many arguments.
+  PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
 
 private:
   ConnectionList(const ConnectionList&);
   void operator = (const ConnectionList&);
 
+  DownloadMain*       m_download;
+
   size_type           m_minSize;
   size_type           m_maxSize;
 
-  slot_peer_type      m_slotConnected;
-  slot_peer_type      m_slotDisconnected;
+  signal_peer_type    m_signalConnected;
+  signal_peer_type    m_signalDisconnected;
 
-  SlotNewConnection   m_slotNewConnection;
-
-  DownloadMain*       m_download;
+  slot_new_conn_type  m_slotNewConnection;
 };
 
 }
