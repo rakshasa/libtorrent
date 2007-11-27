@@ -109,6 +109,9 @@ DownloadMain::~DownloadMain() {
   // Check if needed.
   m_connectionList->clear();
 
+  if (m_info->size_pex() != 0)
+    throw internal_error("DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
+
   delete m_trackerManager;
   delete m_uploadChokeManager;
   delete m_downloadChokeManager;
@@ -121,9 +124,6 @@ DownloadMain::~DownloadMain() {
 
   m_ut_pex_delta.clear();
   m_ut_pex_initial.clear();
-
-  if (m_info->size_pex() != 0)
-    throw internal_error("DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
 }
 
 void

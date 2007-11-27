@@ -102,6 +102,7 @@ public:
   uint32_t            insert_available(const void* al) LIBTORRENT_NO_EXPORT;
 
   AvailableList*      available_list()  { return m_availableList; }
+  uint32_t            available_list_size() const;
 
   uint32_t            cull_peers(int flags);
 

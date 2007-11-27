@@ -401,26 +401,6 @@ Download::sync_chunks() {
 }
 
 uint32_t
-Download::peers_min() const {
-  return m_ptr->main()->connection_list()->min_size();
-}
-
-uint32_t
-Download::peers_max() const {
-  return m_ptr->main()->connection_list()->max_size();
-}
-
-uint32_t
-Download::peers_connected() const {
-  return m_ptr->main()->connection_list()->size();
-}
-
-uint32_t
-Download::peers_not_connected() const {
-  return m_ptr->main()->peer_list()->available_list()->size();
-}
-
-uint32_t
 Download::peers_complete() const {
   return m_ptr->main()->chunk_statistics()->complete();
 }

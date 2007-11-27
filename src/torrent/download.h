@@ -155,10 +155,6 @@ public:
   // saved.
   void                sync_chunks();
 
-  uint32_t            peers_min() const;
-  uint32_t            peers_max() const;
-  uint32_t            peers_connected() const;
-  uint32_t            peers_not_connected() const;
   uint32_t            peers_complete() const;
   uint32_t            peers_accounted() const;
 

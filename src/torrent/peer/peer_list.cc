@@ -191,6 +191,11 @@ PeerList::insert_available(const void* al) {
   return inserted;
 }
 
+uint32_t
+PeerList::available_list_size() const {
+  return m_availableList->size();
+}
+
 PeerInfo*
 PeerList::connected(const sockaddr* sa, int flags) {
   if (!socket_address_key::is_comparable(sa))
