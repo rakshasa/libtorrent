@@ -65,6 +65,7 @@ bool                is_inactive() LIBTORRENT_EXPORT;
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
 ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
+DhtManager*         dht_manager() LIBTORRENT_EXPORT;
 
 uint32_t            total_handshakes() LIBTORRENT_EXPORT;
 

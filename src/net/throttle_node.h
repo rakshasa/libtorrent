@@ -45,13 +45,13 @@
 
 namespace torrent {
 
-class PeerConnectionBase;
+class SocketBase;
 
 class ThrottleNode {
 public:
   typedef ThrottleList::iterator                  iterator;
   typedef ThrottleList::const_iterator            const_iterator;
-  typedef rak::mem_fun0<PeerConnectionBase, void> SlotActivate;
+  typedef rak::mem_fun0<SocketBase, void>         SlotActivate;
 
   ThrottleNode(uint32_t rateSpan) : m_rate(rateSpan)  { clear_quota(); }
 

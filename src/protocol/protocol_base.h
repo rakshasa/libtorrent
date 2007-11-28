@@ -62,6 +62,7 @@ public:
     REQUEST,
     PIECE,
     CANCEL,
+    PORT,
 
     EXTENSION_PROTOCOL = 20,
 
@@ -108,6 +109,7 @@ public:
   void                write_request(const Piece& p);
   void                write_cancel(const Piece& p);
   void                write_piece(const Piece& p);
+  void                write_port(uint16_t port);
   void                write_extension(uint8_t id, uint32_t length);
 
   static const size_type sizeof_keepalive    = 4;
@@ -122,6 +124,8 @@ public:
   static const size_type sizeof_cancel_body  = 12;
   static const size_type sizeof_piece        = 13;
   static const size_type sizeof_piece_body   = 8;
+  static const size_type sizeof_port         = 7;
+  static const size_type sizeof_port_body    = 2;
   static const size_type sizeof_extension    = 6;
   static const size_type sizeof_extension_body=1;
 
@@ -133,12 +137,14 @@ public:
   bool                can_write_request() const               { return m_buffer.reserved_left() >= sizeof_request; }
   bool                can_write_cancel() const                { return m_buffer.reserved_left() >= sizeof_cancel; }
   bool                can_write_piece() const                 { return m_buffer.reserved_left() >= sizeof_piece; }
+  bool                can_write_port() const                  { return m_buffer.reserved_left() >= sizeof_port; }
   bool                can_write_extension() const             { return m_buffer.reserved_left() >= sizeof_extension; }
 
   bool                can_read_have_body() const              { return m_buffer.remaining() >= sizeof_have_body; }
   bool                can_read_request_body() const           { return m_buffer.remaining() >= sizeof_request_body; }
   bool                can_read_cancel_body() const            { return m_buffer.remaining() >= sizeof_request_body; }
   bool                can_read_piece_body() const             { return m_buffer.remaining() >= sizeof_piece_body; }
+  bool                can_read_port_body() const              { return m_buffer.remaining() >= sizeof_port_body; }
   bool                can_read_extension_body() const         { return m_buffer.remaining() >= sizeof_extension_body; }
 
 protected:
@@ -220,6 +226,13 @@ ProtocolBase::write_piece(const Piece& p) {
   write_command(PIECE);
   m_buffer.write_32(p.index());
   m_buffer.write_32(p.offset());
+}
+
+inline void
+ProtocolBase::write_port(uint16_t port) {
+  m_buffer.write_32(3);
+  write_command(PORT);
+  m_buffer.write_16(port);
 }
 
 inline void

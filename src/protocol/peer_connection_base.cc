@@ -119,10 +119,10 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   m_peerChunks.bitfield()->swap(*bitfield);
 
   m_peerChunks.upload_throttle()->set_list_iterator(m_download->upload_throttle()->end());
-  m_peerChunks.upload_throttle()->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_up_activate));
+  m_peerChunks.upload_throttle()->slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_up_activate));
 
   m_peerChunks.download_throttle()->set_list_iterator(m_download->download_throttle()->end());
-  m_peerChunks.download_throttle()->slot_activate(rak::make_mem_fun(this, &PeerConnectionBase::receive_throttle_down_activate));
+  m_peerChunks.download_throttle()->slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_down_activate));
 
   download_queue()->set_delegator(m_download->delegator());
   download_queue()->set_peer_chunks(&m_peerChunks);
@@ -324,16 +324,6 @@ PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
 
   m_peerChunks.cancel_queue()->push_back(transfer->piece());
 //   m_downloadQueue.cancel_transfer(transfer);
-}
-
-void
-PeerConnectionBase::receive_throttle_down_activate() {
-  manager->poll()->insert_read(this);
-}
-
-void
-PeerConnectionBase::receive_throttle_up_activate() {
-  manager->poll()->insert_write(this);
 }
 
 void

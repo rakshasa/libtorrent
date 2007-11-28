@@ -34,56 +34,80 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#include "config.h"
 
-#include <list>
-#include <string>
-#include <inttypes.h>
+#include <torrent/exceptions.h>
+
+#include "manager.h"
+#include "dht/dht_router.h"
+#include "net/throttle_manager.h"
+
+#include "dht_manager.h"
 
 namespace torrent {
 
-class Object;
-class Content;
-class DownloadWrapper;
-class TrackerManager;
-class Path;
-
-typedef std::list<std::string> EncodingList;
-
-class DownloadConstructor {
-public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
-
-  void                initialize(const Object& b);
-
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
-
-private:  
-  void                parse_name(const Object& b);
-  void                parse_tracker(const Object& b);
-  void                parse_info(const Object& b);
-
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-  void                add_dht_node(const Object& b);
-
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
-
-  void                parse_single_file(const Object& b, uint32_t chunkSize);
-  void                parse_multi_files(const Object& b, uint32_t chunkSize);
-
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
-
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
-
-  std::string         m_defaultEncoding;
-};
-
+DhtManager::~DhtManager() {
+  stop();
+  delete m_router;
 }
 
-#endif
+void
+DhtManager::initialize(const Object& dhtCache) {
+  if (m_router != NULL)
+    throw internal_error("DhtManager::initialize called with DHT already active.");
+
+  m_router = new DhtRouter(dhtCache, rak::socket_address::cast_from(manager->connection_manager()->bind_address()));
+}
+
+void
+DhtManager::start(port_type port) {
+  if (m_router == NULL)
+    throw internal_error("DhtManager::start called without initializing first.");
+
+  m_port = port;
+  m_router->start(port);
+}
+
+
+void
+DhtManager::stop() {
+  if (m_router != NULL)
+    m_router->stop();
+}
+
+bool
+DhtManager::is_active() const {
+  return m_router != NULL && m_router->is_active();
+}
+
+void
+DhtManager::add_node(const sockaddr* addr, int port) {
+  if (m_router != NULL)
+    m_router->contact(rak::socket_address::cast_from(addr), port);
+}
+
+void
+DhtManager::add_node(const std::string& host, int port) {
+  if (m_router != NULL)
+    m_router->add_contact(host, port);
+}
+
+Object*
+DhtManager::store_cache(Object* container) const {
+  if (m_router == NULL)
+    throw internal_error("DhtManager::store_cache called but DHT not initialized.");
+
+  return m_router->store_cache(container);
+}
+
+DhtManager::statistics_type
+DhtManager::get_statistics() const {
+  return m_router->get_statistics();
+}
+
+void
+DhtManager::reset_statistics() {
+  m_router->reset_statistics();
+}
+
+}

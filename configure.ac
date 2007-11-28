@@ -2,6 +2,7 @@ AC_INIT(libtorrent, 0.11.9, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
 AC_DEFINE(PEER_NAME, "-lt0B90-", Identifier that is part of the default peer id)
+AC_DEFINE(PEER_VERSION, "lt\x0B\x80", 4 byte client and version identifier for DHT)
 
 LIBTORRENT_CURRENT=10
 LIBTORRENT_REVISION=8
@@ -32,6 +33,7 @@ TORRENT_CHECK_CXXFLAGS
 TORRENT_ENABLE_DEBUG
 TORRENT_ENABLE_EXTRA_DEBUG
 TORRENT_ENABLE_WERROR
+TORRENT_ENABLE_TR1
 
 TORRENT_DISABLE_IPV6
 
@@ -104,6 +106,7 @@ AC_OUTPUT([
 	src/torrent/peer/Makefile
 	src/torrent/data/Makefile
 	src/data/Makefile
+	src/dht/Makefile
 	src/download/Makefile
 	src/net/Makefile
 	src/protocol/Makefile

@@ -41,6 +41,8 @@
 #include <sys/socket.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/poll.h"
+#include "manager.h"
 #include "socket_base.h"
 
 namespace torrent {
@@ -70,6 +72,16 @@ SocketBase::write_oob(const void* buffer) {
 //     m_errno = errno;
 
   return r == 1;
+}
+
+void
+SocketBase::receive_throttle_down_activate() {
+  manager->poll()->insert_read(this);
+}
+
+void
+SocketBase::receive_throttle_up_activate() {
+  manager->poll()->insert_write(this);
 }
 
 } // namespace torrent

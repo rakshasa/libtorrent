@@ -34,56 +34,56 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#include "config.h"
+#include "globals.h"
 
-#include <list>
-#include <string>
-#include <inttypes.h>
+#include "torrent/exceptions.h"
+#include "torrent/object.h"
+
+#include "dht_node.h"
 
 namespace torrent {
 
-class Object;
-class Content;
-class DownloadWrapper;
-class TrackerManager;
-class Path;
+DhtNode::DhtNode(const HashString& id, const rak::socket_address* sa) :
+  HashString(id),
+  m_socketAddress(*sa),
+  m_lastSeen(0),
+  m_recentlyActive(false),
+  m_recentlyInactive(0),
+  m_bucket(NULL) {
 
-typedef std::list<std::string> EncodingList;
-
-class DownloadConstructor {
-public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
-
-  void                initialize(const Object& b);
-
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
-
-private:  
-  void                parse_name(const Object& b);
-  void                parse_tracker(const Object& b);
-  void                parse_info(const Object& b);
-
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-  void                add_dht_node(const Object& b);
-
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
-
-  void                parse_single_file(const Object& b, uint32_t chunkSize);
-  void                parse_multi_files(const Object& b, uint32_t chunkSize);
-
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
-
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
-
-  std::string         m_defaultEncoding;
-};
-
+  if (sa->family() != rak::socket_address::af_inet)
+    throw resource_error("Address not af_inet");
 }
 
-#endif
+DhtNode::DhtNode(const std::string& id, const Object& cache) :
+  HashString(*HashString::cast_from(id.c_str())),
+  m_recentlyActive(false),
+  m_recentlyInactive(0),
+  m_bucket(NULL) {
+
+  rak::socket_address_inet* sa = m_socketAddress.sa_inet();
+  sa->set_family();
+  sa->set_address_h(cache.get_key_value("i"));
+  sa->set_port(cache.get_key_value("p"));
+  m_lastSeen = cache.get_key_value("t");
+  update();
+}
+
+char*
+DhtNode::store_compact(char* buffer) const {
+  HashString::cast_from(buffer)->assign(data());
+  *(uint32_t*) (buffer+20) = address()->sa_inet()->address_n();
+  *(uint16_t*) (buffer+24) = address()->sa_inet()->port_n();
+  return buffer+26;
+}
+
+Object*
+DhtNode::store_cache(Object* container) const {
+  container->insert_key("i", m_socketAddress.sa_inet()->address_h());
+  container->insert_key("p", m_socketAddress.sa_inet()->port());
+  container->insert_key("t", m_lastSeen);
+  return container;
+}
+
+}

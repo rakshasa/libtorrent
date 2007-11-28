@@ -60,6 +60,9 @@ public:
   bool                read_oob(void* buffer);
   bool                write_oob(const void* buffer);
 
+  void                receive_throttle_down_activate();
+  void                receive_throttle_up_activate();
+
 protected:
   // Disable copying
   SocketBase(const SocketBase&);

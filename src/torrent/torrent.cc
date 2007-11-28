@@ -166,6 +166,11 @@ connection_manager() {
   return manager->connection_manager();
 }
 
+DhtManager*
+dht_manager() {
+  return manager->dht_manager();
+}
+
 uint32_t
 total_handshakes() {
   return manager->handshake_manager()->size();

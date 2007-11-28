@@ -41,6 +41,7 @@
 #include "torrent/tracker.h"
 #include "torrent/tracker_list.h"
 
+#include "tracker_dht.h"
 #include "tracker_http.h"
 #include "tracker_manager.h"
 #include "tracker_udp.h"
@@ -217,6 +218,9 @@ TrackerManager::insert(int group, const std::string& url) {
 
   else if (std::strncmp("udp://", url.c_str(), 6) == 0)
     t = new TrackerUdp(m_control, url);
+
+  else if (std::strncmp("dht://", url.c_str(), 6) == 0)
+    t = new TrackerDht(m_control, url);
 
   else
     // TODO: Error message here?... not really...

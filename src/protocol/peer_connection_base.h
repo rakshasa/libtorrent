@@ -144,9 +144,6 @@ protected:
 
   void                load_up_chunk();
 
-  void                receive_throttle_down_activate();
-  void                receive_throttle_up_activate();
-
   void                read_request_piece(const Piece& p);
   void                read_cancel_piece(const Piece& p);
 

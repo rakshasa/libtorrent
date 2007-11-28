@@ -291,6 +291,26 @@ AC_DEFUN([TORRENT_WITH_ADDRESS_SPACE], [
     ])
 ])
 
+AC_DEFUN([TORRENT_CHECK_TR1], [
+  AC_LANG_PUSH(C++)
+  AC_MSG_CHECKING(for TR1 support)
+
+  AC_COMPILE_IFELSE(
+    [[#include <tr1/unordered_map>
+      class Foo;
+      typedef std::tr1::unordered_map<Foo*, int> Bar;
+    ]],
+    [
+      AC_MSG_RESULT(yes)
+      AC_DEFINE(HAVE_TR1, 1, Define to 1 if your C++ library supports the extensions from Technical Report 1)
+    ],
+    [
+      AC_MSG_RESULT(no)
+    ]
+  )
+
+  AC_LANG_POP(C++)
+])
 
 AC_DEFUN([TORRENT_WITH_FASTCGI], [
   AC_ARG_WITH(fastcgi,

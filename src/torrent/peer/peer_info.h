@@ -83,6 +83,7 @@ public:
   uint32_t            last_handshake() const                { return m_lastHandshake; }
   void                set_last_handshake(uint32_t tvsec)    { m_lastHandshake = tvsec; }
 
+  bool                supports_dht() const                  { return m_options[7] & 0x01; }
   bool                supports_extensions() const           { return m_options[5] & 0x10; }
 
   // Internal to libTorrent:

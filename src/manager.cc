@@ -50,6 +50,7 @@
 
 #include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
+#include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/peer/client_list.h"
 
@@ -70,6 +71,7 @@ Manager::Manager() :
   m_chunkManager(new ChunkManager),
   m_clientList(new ClientList),
   m_connectionManager(new ConnectionManager),
+  m_dhtManager(new DhtManager),
 
   m_poll(NULL),
 
@@ -99,6 +101,7 @@ Manager::~Manager() {
   delete m_hashQueue;
 
   delete m_resourceManager;
+  delete m_dhtManager;
   delete m_connectionManager;
   delete m_chunkManager;
 

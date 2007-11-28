@@ -73,6 +73,7 @@ public:
   typedef enum {
     INACTIVE,
     CONNECTING,
+    POST_HANDSHAKE,
 
     PROXY_CONNECT,
     PROXY_DONE,
@@ -134,6 +135,7 @@ protected:
   void operator = (const Handshake&);
   
   void                read_done();
+  void                write_done();
 
   bool                fill_read_buffer(int size);
 
@@ -155,7 +157,7 @@ protected:
   void                prepare_handshake();
   void                prepare_peer_info();
   void                prepare_bitfield();
-  void                prepare_keepalive();
+  void                prepare_post_handshake(bool must_write);
 
   void                write_extension_handshake();
   void                write_bitfield();

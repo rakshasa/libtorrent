@@ -45,7 +45,9 @@
 #include "download/chunk_statistics.h"
 #include "download/download_info.h"
 #include "download/download_main.h"
+#include "torrent/dht_manager.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/peer/peer_info.h"
 
 #include "extensions.h"
 #include "peer_connection_leech.h"
@@ -274,6 +276,13 @@ PeerConnectionLeech::read_message() {
       break;
 
     read_cancel_piece(m_down->read_request());
+    return true;
+
+  case ProtocolBase::PORT:
+    if (!m_down->can_read_port_body())
+      break;
+
+    manager->dht_manager()->add_node(m_peerInfo->socket_address(), m_down->buffer()->read_16());
     return true;
 
   case ProtocolBase::EXTENSION_PROTOCOL:

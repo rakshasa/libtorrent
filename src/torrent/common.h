@@ -67,6 +67,8 @@ class ClientInfo;
 class ClientList;
 class ConnectionList;
 class ConnectionManager;
+class DhtManager;
+class DhtRouter;
 class Download;
 class DownloadMain;
 class DownloadWrapper;

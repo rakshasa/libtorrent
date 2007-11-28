@@ -34,54 +34,48 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#ifndef LIBTORRENT_DHT_TRACKER_H
+#define LIBTORRENT_DHT_TRACKER_H
 
-#include <list>
-#include <string>
-#include <inttypes.h>
+#include "globals.h"
+
+#include <vector>
+#include <rak/socket_address.h>
+
+#include "download/download_info.h"  // for SocketAddressCompact
 
 namespace torrent {
 
-class Object;
-class Content;
-class DownloadWrapper;
-class TrackerManager;
-class Path;
+// Container for peers tracked in a torrent.
 
-typedef std::list<std::string> EncodingList;
-
-class DownloadConstructor {
+class DhtTracker {
 public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
+  // Maximum number of peers we return for a GET_PEERS query (default value only). 
+  // Needs to be small enough so that a packet with a payload of num_peers*6 bytes 
+  // does not need fragmentation. Value chosen so that the size is approximately
+  // equal to a FIND_NODE reply (8*26 bytes).
+  static const unsigned int max_peers = 32;
 
-  void                initialize(const Object& b);
+  // Maximum number of peers we keep track of. For torrents with more peers,
+  // we replace the oldest peer with each new announce to avoid excessively
+  // large peer tables for very active torrents.
+  static const unsigned int max_size = 128;
 
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
+  bool                empty() const                { return m_peers.empty(); }
+  size_t              size() const                 { return m_peers.size(); }
 
-private:  
-  void                parse_name(const Object& b);
-  void                parse_tracker(const Object& b);
-  void                parse_info(const Object& b);
+  void                add_peer(uint32_t addr, uint16_t port);
+  std::string         get_peers(unsigned int maxPeers = max_peers);
 
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-  void                add_dht_node(const Object& b);
+  // Remove old announces from the tracker that have not reannounced for
+  // more than the given number of seconds.
+  void                prune(uint32_t maxAge);
 
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
+private:
+  typedef std::vector<SocketAddressCompact> PeerList;
 
-  void                parse_single_file(const Object& b, uint32_t chunkSize);
-  void                parse_multi_files(const Object& b, uint32_t chunkSize);
-
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
-
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
-
-  std::string         m_defaultEncoding;
+  PeerList               m_peers;
+  std::vector<uint32_t>  m_lastSeen;
 };
 
 }

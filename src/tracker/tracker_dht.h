@@ -34,54 +34,54 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#ifndef LIBTORRENT_TRACKER_TRACKER_DHT_H
+#define LIBTORRENT_TRACKER_TRACKER_DHT_H
 
-#include <list>
-#include <string>
-#include <inttypes.h>
+#include "net/address_list.h"
+#include "torrent/object.h"
+#include "torrent/tracker.h"
 
 namespace torrent {
 
-class Object;
-class Content;
-class DownloadWrapper;
-class TrackerManager;
-class Path;
-
-typedef std::list<std::string> EncodingList;
-
-class DownloadConstructor {
+class TrackerDht : public Tracker {
 public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
+  TrackerDht(TrackerList* parent, const std::string& url);
+  ~TrackerDht();
 
-  void                initialize(const Object& b);
+  typedef enum {
+    state_idle,
+    state_searching,
+    state_announcing,
+  } state_type;
 
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
+  static const char* states[];
+  
+  virtual bool        is_busy() const;
+  virtual bool        is_usable() const;
 
-private:  
-  void                parse_name(const Object& b);
-  void                parse_tracker(const Object& b);
-  void                parse_info(const Object& b);
+  virtual void        send_state(int state);
+  virtual void        close();
 
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-  void                add_dht_node(const Object& b);
+  virtual Type        type() const;
 
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
+  virtual void        get_status(char* buffer, int length);
 
-  void                parse_single_file(const Object& b, uint32_t chunkSize);
-  void                parse_multi_files(const Object& b, uint32_t chunkSize);
+  void                set_state(state_type state)      { m_state = state; }
+  state_type          get_state() const                { return m_state; }
 
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
+  bool                has_peers() const                { return !m_peers.empty(); }
 
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
+  void                receive_peers(const std::string& peers);
+  void                receive_success();
+  void                receive_failed(const char* msg);
+  void                receive_progress(int replied, int contacted);
 
-  std::string         m_defaultEncoding;
+private:
+  AddressList  m_peers;
+  state_type   m_state;
+
+  int          m_replied;
+  int          m_contacted;
 };
 
 }

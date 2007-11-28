@@ -83,6 +83,10 @@ public:
 
   const value_type*   c_str() const                     { return m_data; }
 
+  std::string         str() const                       { return std::string(m_data, size_data); }
+
+  void                clear(int v = 0)                  { std::memset(data(), v, size()); }
+
   void                assign(const value_type* src)     { std::memcpy(data(), src, size()); }
 
   bool                equal_to(const char* hash) const     { return std::memcmp(m_data, hash, size()) == 0; }
@@ -92,6 +96,8 @@ public:
   // size_data.
   static const HashString* cast_from(const char* src)        { return (const HashString*)src; }
   static const HashString* cast_from(const std::string& src) { return (const HashString*)src.c_str(); }
+
+  static HashString*  cast_from(char* src)                   { return (HashString*)src; }
 
 private:
   char                m_data[size_data];
@@ -103,8 +109,18 @@ operator == (const HashString& one, const HashString& two) {
 }
 
 inline bool
+operator != (const HashString& one, const HashString& two) {
+  return std::memcmp(one.begin(), two.begin(), HashString::size_data) != 0;
+}
+
+inline bool
 operator < (const HashString& one, const HashString& two) {
   return std::memcmp(one.begin(), two.begin(), HashString::size_data) < 0;
+}
+
+inline bool
+operator <= (const HashString& one, const HashString& two) {
+  return std::memcmp(one.begin(), two.begin(), HashString::size_data) <= 0;
 }
 
 }

@@ -81,7 +81,7 @@ public:
   TrackerList(TrackerManager* manager);
 
   bool                has_active() const;
-  bool                has_enabled() const;
+  bool                has_usable() const;
 
   void                close_all();
   void                clear();
@@ -105,8 +105,8 @@ public:
   void                set_numwant(int32_t n)                  { m_numwant = n; }
 
   iterator            find(Tracker* tb)                       { return std::find(begin(), end(), tb); }
-  iterator            find_enabled(iterator itr);
-  const_iterator      find_enabled(const_iterator itr) const;
+  iterator            find_usable(iterator itr);
+  const_iterator      find_usable(const_iterator itr) const;
 
   iterator            begin_group(unsigned int group);
   iterator            end_group(unsigned int group)           { return begin_group(group + 1); }

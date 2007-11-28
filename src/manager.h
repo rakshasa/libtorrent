@@ -58,6 +58,7 @@ class PeerInfo;
 class ChunkManager;
 class ConnectionManager;
 class ThrottleManager;
+class DhtManager;
 
 typedef std::list<std::string> EncodingList;
 
@@ -75,6 +76,7 @@ public:
   ChunkManager*       chunk_manager()                           { return m_chunkManager; }
   ClientList*         client_list()                             { return m_clientList; }
   ConnectionManager*  connection_manager()                      { return m_connectionManager; }
+  DhtManager*         dht_manager()                             { return m_dhtManager; }
   
   Poll*               poll()                                    { return m_poll; }
   void                set_poll(Poll* p)                         { m_poll = p; }
@@ -99,6 +101,7 @@ private:
   ChunkManager*       m_chunkManager;
   ClientList*         m_clientList;
   ConnectionManager*  m_connectionManager;
+  DhtManager*         m_dhtManager;
   Poll*               m_poll;
 
   EncodingList        m_encodingList;

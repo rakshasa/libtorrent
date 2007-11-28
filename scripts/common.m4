@@ -239,3 +239,18 @@ AC_DEFUN([TORRENT_DISABLE_IPV6], [
         fi
     ])
 ])
+
+AC_DEFUN([TORRENT_ENABLE_TR1], [
+  AC_ARG_ENABLE(std_tr1,
+    [  --disable-std_tr1       disable check for support for TR1 [[default=enable]]],
+    [
+      if test "$enableval" = "yes"; then
+        TORRENT_CHECK_TR1()
+      else
+        AC_MSG_CHECKING(for TR1 support)
+        AC_MSG_RESULT(disabled)
+      fi
+    ],[
+        TORRENT_CHECK_TR1()
+    ])
+])

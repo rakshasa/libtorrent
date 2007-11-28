@@ -53,13 +53,15 @@ public:
   typedef enum {
     TRACKER_NONE,
     TRACKER_HTTP,
-    TRACKER_UDP
+    TRACKER_UDP,
+    TRACKER_DHT,
   } Type;
 
   virtual ~Tracker() {}
 
   virtual bool        is_busy() const = 0;
   bool                is_enabled() const                    { return m_enabled; }
+  virtual bool        is_usable() const                     { return m_enabled; }
 
   void                enable()                              { m_enabled = true; }
   void                disable()                             { m_enabled = false; }
@@ -82,6 +84,8 @@ public:
   uint32_t            scrape_complete() const               { return m_scrapeComplete; }
   uint32_t            scrape_incomplete() const             { return m_scrapeIncomplete; }
   uint32_t            scrape_downloaded() const             { return m_scrapeDownloaded; }
+
+  virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; } 
 
 protected:
   Tracker(TrackerList* parent, const std::string& url);

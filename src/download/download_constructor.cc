@@ -42,6 +42,7 @@
 #include <rak/string_manip.h>
 
 #include "download/download_wrapper.h"
+#include "torrent/dht_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 #include "torrent/data/file.h"
@@ -49,6 +50,8 @@
 #include "tracker/tracker_manager.h"
 
 #include "download_constructor.h"
+
+#include "manager.h"
 
 namespace torrent {
 
@@ -167,8 +170,15 @@ DownloadConstructor::parse_tracker(const Object& b) {
   else if (b.has_key("announce"))
     add_tracker_single(b.get_key("announce"), 0);
 
-  else
+  else if (!manager->dht_manager()->is_valid() || m_download->info()->is_private())
     throw bencode_error("Could not find any trackers");
+
+  if (manager->dht_manager()->is_valid() && !m_download->info()->is_private())
+    tracker->insert(tracker->group_size(), "dht://");
+
+  if (manager->dht_manager()->is_valid() && b.has_key_list("nodes"))
+    std::for_each(b.get_key_list("nodes").begin(), b.get_key_list("nodes").end(),
+                  rak::make_mem_fun(this, &DownloadConstructor::add_dht_node));
 
   tracker->randomize();
 }
@@ -189,6 +199,24 @@ DownloadConstructor::add_tracker_single(const Object& b, int group) {
     throw bencode_error("Tracker entry not a string");
     
   m_download->main()->tracker_manager()->insert(group, rak::trim_classic(b.as_string()));
+}
+
+void
+DownloadConstructor::add_dht_node(const Object& b) {
+  if (!b.is_list() || b.as_list().size() < 2)
+    return;
+
+  Object::list_type::const_iterator el = b.as_list().begin();
+
+  if (!el->is_string())
+    return;
+
+  const std::string& host = el->as_string();
+
+  if (!(++el)->is_value())
+    return;
+
+  manager->dht_manager()->add_node(host, el->as_value());
 }
 
 bool
