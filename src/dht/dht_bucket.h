@@ -91,7 +91,7 @@ public:
 
   unsigned int        age() const                             { return cachedTime.seconds() - m_lastChanged; }
   void                touch()                                 { m_lastChanged = cachedTime.seconds(); }
-  void                set_time(int time)                      { m_lastChanged = time; }
+  void                set_time(int32_t time)                  { m_lastChanged = time; }
 
   // Called every 15 minutes after updating nodes.
   void                update();
@@ -121,7 +121,7 @@ private:
   DhtBucket*          m_parent;
   DhtBucket*          m_child;
   
-  unsigned int        m_lastChanged;
+  int32_t             m_lastChanged;
 
   unsigned int        m_good;
   unsigned int        m_bad;

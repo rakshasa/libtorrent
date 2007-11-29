@@ -153,7 +153,7 @@ private:
   void                receive_timeout_bootstrap();
 
   // buffer needs to hold an SHA1 hash (20 bytes), not just the token (8 bytes)
-  void                generate_token(const rak::socket_address* sa, int token, char buffer[20]);
+  char*               generate_token(const rak::socket_address* sa, int token, char buffer[20]);
 
   rak::priority_item  m_taskTimeout;
 

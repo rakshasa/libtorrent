@@ -54,16 +54,24 @@ namespace torrent {
 
 #if HAVE_TR1
 // Hash functions for HashString keys, and dereferencing HashString pointers.
-// We use the last n bits of the 160-bit ID hash, since in sub-buckets the
-// first few bits are all identical.
+
+// Since the first few bits are very similar if not identical (since the IDs
+// will be close to our own node ID), we use an offset of 64 bits in the hash
+// string. These bits will be uniformly distributed until the number of DHT
+// nodes on the planet approaches 2^64 which is... unlikely.
+// An offset of 64 bits provides 96 significant bits which is fine as long as
+// the size of size_t does not exceed 12 bytes, while still having correctly
+// aligned 64-bit access.
+static const unsigned int hashstring_hash_ofs = 8;
+
 struct hashstring_ptr_hash : public std::unary_function<const HashString*, size_t> {
   size_t operator () (const HashString* n) const 
-  { return *(size_t*)(n->data() + n->size() - sizeof(size_t)); }
+  { return *(size_t*)(n->data() + hashstring_hash_ofs); }
 };
 
 struct hashstring_hash : public std::unary_function<HashString, size_t> {
   size_t operator () (const HashString& n) const 
-  { return *(size_t*)(n.data() + n.size() - sizeof(size_t)); }
+  { return *(size_t*)(n.data() + hashstring_hash_ofs); }
 };
 
 // Compare HashString pointers by dereferencing them.

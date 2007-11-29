@@ -117,7 +117,7 @@ DhtServer::start(int port) {
     if (!get_fd().bind(sa))
       throw resource_error("Could not bind datagram socket.");
 
-  } catch (...) {
+  } catch (torrent::base_error& e) {
     get_fd().close();
     get_fd().clear();
     throw;

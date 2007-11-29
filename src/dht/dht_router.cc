@@ -492,7 +492,7 @@ DhtRouter::receive_timeout() {
   m_numRefresh++;
 }
 
-void
+char*
 DhtRouter::generate_token(const rak::socket_address* sa, int token, char buffer[20]) {
   Sha1 sha;
   uint32_t key = sa->sa_inet()->address_n();
@@ -501,15 +501,15 @@ DhtRouter::generate_token(const rak::socket_address* sa, int token, char buffer[
   sha.update(&token, sizeof(token));
   sha.update(&key, 4);
   sha.final_c(buffer);
+
+  return buffer;
 }
 
 std::string
 DhtRouter::make_token(const rak::socket_address* sa) {
   char token[20];
 
-  generate_token(sa, m_curToken, token);
-
-  return std::string(token, size_token);
+  return std::string(generate_token(sa, m_curToken, token), size_token);
 }
 
 bool
@@ -521,16 +521,12 @@ DhtRouter::token_valid(const std::string& token, const rak::socket_address* sa) 
   char reference[20];
 
   // First try current token.
-  generate_token(sa, m_curToken, reference);
-
-  if (std::memcmp(reference, token.c_str(), size_token) == 0)
+  if (std::memcmp(generate_token(sa, m_curToken, reference), token.c_str(), size_token) == 0)
     return true;
 
   // If token recently changed, some clients may be using the older one.
   // That way a token is valid for 15-30 minutes, instead of 0-15.
-  generate_token(sa, m_prevToken, reference);
-
-  return std::memcmp(reference, token.c_str(), size_token) == 0;
+  return std::memcmp(generate_token(sa, m_prevToken, reference), token.c_str(), size_token) == 0;
 }
 
 DhtNode*

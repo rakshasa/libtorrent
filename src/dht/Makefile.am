@@ -10,7 +10,6 @@ libsub_dht_la_SOURCES = \
 	dht_router.h \
 	dht_server.cc \
 	dht_server.h \
-	dht_size_list.h \
 	dht_tracker.cc \
 	dht_tracker.h \
 	dht_transaction.cc \
