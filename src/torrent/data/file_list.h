@@ -144,9 +144,11 @@ public:
   void                set_file_completed_chunks(iterator itr, uint32_t v);
 
 protected:
+  static const int open_no_create = (1 << 0);
+
   void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
 
-  void                open() LIBTORRENT_NO_EXPORT;
+  void                open(int flags) LIBTORRENT_NO_EXPORT;
   void                close() LIBTORRENT_NO_EXPORT;
 
   bool                resize_all() LIBTORRENT_NO_EXPORT;
@@ -163,7 +165,7 @@ protected:
   void                update_completed() LIBTORRENT_NO_EXPORT;
 
 private:
-  bool                open_file(File* node, const Path& lastPath) LIBTORRENT_NO_EXPORT;
+  bool                open_file(File* node, const Path& lastPath, int flags) LIBTORRENT_NO_EXPORT;
   void                make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) LIBTORRENT_NO_EXPORT;
   MemoryChunk         create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t length, int prot) LIBTORRENT_NO_EXPORT;
 

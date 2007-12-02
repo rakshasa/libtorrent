@@ -117,15 +117,6 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 }
 
 void
-DownloadWrapper::open() {
-  if (info()->is_open())
-    return;
-
-  m_main.open();
-  m_hashChecker->ranges().insert(0, m_main.file_list()->size_chunks());
-}
-
-void
 DownloadWrapper::close() {
   // Stop the hashing first as we need to make sure all chunks are
   // released when DownloadMain::close() is called.

@@ -74,7 +74,7 @@ public:
   DownloadMain();
   ~DownloadMain();
 
-  void                open();
+  void                open(int flags);
   void                close();
 
   void                start();

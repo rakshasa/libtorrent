@@ -127,11 +127,11 @@ DownloadMain::~DownloadMain() {
 }
 
 void
-DownloadMain::open() {
+DownloadMain::open(int flags) {
   if (info()->is_open())
     throw internal_error("Tried to open a download that is already open");
 
-  file_list()->open();
+  file_list()->open(flags & FileList::open_no_create);
 
   m_chunkList->resize(file_list()->size_chunks());
   m_chunkStatistics->initialize(file_list()->size_chunks());

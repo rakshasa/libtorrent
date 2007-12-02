@@ -341,7 +341,7 @@ struct file_list_cstr_less {
 };
 
 void
-FileList::open() {
+FileList::open(int flags) {
   typedef std::set<const char*, file_list_cstr_less> path_set;
 
   if (m_rootDir.empty())
@@ -354,7 +354,8 @@ FileList::open() {
   iterator itr = begin();
 
   try {
-    if (::mkdir(m_rootDir.c_str(), 0777) != 0 && errno != EEXIST)
+    if (!(flags & open_no_create) &&
+        ::mkdir(m_rootDir.c_str(), 0777) != 0 && errno != EEXIST)
       throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
   
     while (itr != end()) {
@@ -381,7 +382,7 @@ FileList::open() {
       if (entry->path()->empty())
         throw storage_error("Found an empty filename.");
 
-      if (!open_file(&*entry, lastPath))
+      if (!open_file(&*entry, lastPath, flags))
         throw storage_error("Could not open file \"" + m_rootDir + entry->path()->as_string() + "\": " + rak::error_number::current().c_str());
       
       lastPath = *entry->path();
@@ -454,7 +455,7 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 }
 
 bool
-FileList::open_file(File* node, const Path& lastPath) {
+FileList::open_file(File* node, const Path& lastPath, int flags) {
   const Path* path = node->path();
 
   Path::const_iterator lastItr = lastPath.begin();
@@ -468,7 +469,8 @@ FileList::open_file(File* node, const Path& lastPath) {
 
   rak::error_number::clear_global();
 
-  make_directory(path->begin(), path->end(), firstMismatch);
+  if (!(flags & open_no_create))
+    make_directory(path->begin(), path->end(), firstMismatch);
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
@@ -486,8 +488,8 @@ FileList::open_file(File* node, const Path& lastPath) {
   }
 
   return
-    node->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, SocketFile::o_create) ||
-    node->prepare(MemoryChunk::prot_read, SocketFile::o_create);
+    node->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, (flags & open_no_create ? 0 : SocketFile::o_create)) ||
+    node->prepare(MemoryChunk::prot_read, 0);
 }
 
 MemoryChunk

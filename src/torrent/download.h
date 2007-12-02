@@ -57,10 +57,17 @@ class LIBTORRENT_EXPORT Download {
 public:
   static const uint32_t numwanted_diabled = ~uint32_t();
 
+  static const int open_no_create      = (1 << 0);
+
+  static const int start_keep_baseline = (1 << 1);
+  static const int start_skip_tracker  = (1 << 2);
+
+  static const int stop_skip_tracker   = (1 << 0);
+
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
   // Not active atm. Opens and prepares/closes the files.
-  void                open();
+  void                open(int flags);
   void                close();
 
   // When 'tryQuick' is true, it will only check if the chunks can be
@@ -71,12 +78,6 @@ public:
   // Chunk ranges that have valid resume data won't be checked.
   bool                hash_check(bool tryQuick);
   void                hash_stop();
-
-  //   static const int start_no_create = (1 << 0);
-  static const int start_keep_baseline = (1 << 1);
-  static const int start_skip_tracker  = (1 << 2);
-
-  static const int stop_skip_tracker   = (1 << 0);
 
   // Start/stop the download. The torrent must be open.
   void                start(int flags);

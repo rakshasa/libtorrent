@@ -65,8 +65,12 @@
 namespace torrent {
 
 void
-Download::open() {
-  m_ptr->open();
+Download::open(int flags) {
+  if (m_ptr->info()->is_open())
+    return;
+
+  m_ptr->main()->open(flags);
+  m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
 }
 
 void

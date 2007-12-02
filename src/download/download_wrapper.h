@@ -71,7 +71,6 @@ public:
   // Initialize hash checker and various download stuff.
   void                initialize(const std::string& hash, const std::string& id);
 
-  void                open();
   void                close();
 
 //   bool                is_open() const                         { return m_main.is_open(); }
