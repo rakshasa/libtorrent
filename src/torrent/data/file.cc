@@ -51,17 +51,19 @@
 namespace torrent {
 
 File::File() :
+  m_fd(-1),
+  m_protection(0),
+  m_flags(0),
+
   m_offset(0),
   m_size(0),
+  m_lastTouched(cachedTime.usec()),
+
   m_completed(0),
   m_priority(PRIORITY_NORMAL),
 
   m_matchDepthPrev(0),
-  m_matchDepthNext(0),
-
-  m_fd(-1),
-  m_protection(0),
-  m_lastTouched(cachedTime.usec()) {
+  m_matchDepthNext(0) {
 }
 
 File::~File() {
@@ -97,15 +99,20 @@ File::is_correct_size() const {
 
 bool
 File::prepare(int prot, int flags) {
-//   if (!m_slotPrepare.is_valid())
-//     return false;
-
   m_lastTouched = cachedTime.usec();
 
   if (is_open() && has_permissions(prot))
     return true;
 
-  return manager->file_manager()->open(this, prot, flags);
+  // For now don't allow overridding this check in prepare.
+  if (m_flags & flag_previously_created)
+    flags &= ~SocketFile::o_create;
+
+  if (!manager->file_manager()->open(this, prot, flags))
+    return false;
+
+  m_flags |= flag_previously_created;
+  return true;
 }
 
 void
@@ -126,6 +133,7 @@ File::resize_file() {
   if (m_size == SocketFile(m_fd).size())
     return true;
 
+  // Does this need to clear prev_created?
   if (!prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
       !SocketFile(m_fd).set_size(m_size))
     return false;

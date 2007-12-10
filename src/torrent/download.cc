@@ -69,12 +69,14 @@ Download::open(int flags) {
   if (m_ptr->info()->is_open())
     return;
 
-  m_ptr->main()->open(flags);
+  // Currently always open with no_create, as start will make sure
+  // they are created. Need to fix this.
+  m_ptr->main()->open(FileList::open_no_create);
   m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
 }
 
 void
-Download::close() {
+Download::close(int flags) {
   if (m_ptr->info()->is_active())
     stop(0);
 
@@ -91,6 +93,9 @@ Download::start(int flags) {
 
   if (m_ptr->info()->is_active())
     return;
+
+//   file_list()->open(flags);
+  file_list()->open(flags & ~FileList::open_no_create);
 
   m_ptr->main()->start();
   m_ptr->main()->tracker_manager()->set_active(true);

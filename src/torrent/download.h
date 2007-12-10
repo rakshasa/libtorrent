@@ -57,8 +57,9 @@ class LIBTORRENT_EXPORT Download {
 public:
   static const uint32_t numwanted_diabled = ~uint32_t();
 
-  static const int open_no_create      = (1 << 0);
-
+  // Start and open flags can be stored in the same integer, same for
+  // stop and close flags.
+  static const int start_no_create     = (1 << 0);
   static const int start_keep_baseline = (1 << 1);
   static const int start_skip_tracker  = (1 << 2);
 
@@ -67,8 +68,8 @@ public:
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
   // Not active atm. Opens and prepares/closes the files.
-  void                open(int flags);
-  void                close();
+  void                open(int flags = 0);
+  void                close(int flags = 0);
 
   // When 'tryQuick' is true, it will only check if the chunks can be
   // mmaped and stops if one is encountered. If it doesn't find any
@@ -80,8 +81,8 @@ public:
   void                hash_stop();
 
   // Start/stop the download. The torrent must be open.
-  void                start(int flags);
-  void                stop(int flags);
+  void                start(int flags = 0);
+  void                stop(int flags = 0);
 
   // Does not check if the download has been removed.
   bool                is_valid() const { return m_ptr; }

@@ -63,11 +63,7 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
-  TransferList() :
-    m_slotCanceled(slot_canceled_type(slot_canceled_op(NULL), NULL)),
-    m_slotCompleted(slot_completed_type(slot_completed_op(NULL), NULL)),
-    m_slotQueued(slot_queued_type(slot_queued_op(NULL), NULL)),
-    m_slotCorrupt(slot_corrupt_type(slot_corrupt_op(NULL), NULL)) { }
+  TransferList();
 
   iterator            find(uint32_t index);
   const_iterator      find(uint32_t index) const;

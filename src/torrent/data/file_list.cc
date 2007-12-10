@@ -361,8 +361,14 @@ FileList::open(int flags) {
     while (itr != end()) {
       File* entry = *itr++;
 
+      // We no longer consider it an error to open a previously opened
+      // FileList as we now use the same function to create
+      // non-existent files.
+      //
+      // Since m_isOpen is set, we know root dir wasn't changed, thus
+      // we can keep the previously opened file.
       if (entry->is_open())
-        throw internal_error("FileList::open(...) found an already opened file.");
+        continue;
       
 //       manager->file_manager()->insert(entry);
 
@@ -382,9 +388,20 @@ FileList::open(int flags) {
       if (entry->path()->empty())
         throw storage_error("Found an empty filename.");
 
-      if (!open_file(&*entry, lastPath, flags))
-        throw storage_error("Could not open file \"" + m_rootDir + entry->path()->as_string() + "\": " + rak::error_number::current().c_str());
-      
+      // Handle directory creation outside of open_file, so we can do
+      // it here if necessary.
+
+      if (!open_file(&*entry, lastPath, flags)) {
+        // This needs to check if the error was due to open_no_create
+        // being set or not.
+        if (!(flags & open_no_create))
+          // Also check if open_require_all_open is set.
+          throw storage_error("Could not open file \"" + m_rootDir + entry->path()->as_string() + "\": " + rak::error_number::current().c_str());
+
+        // Don't set the lastPath as we haven't created the directory.
+        continue;
+      }
+
       lastPath = *entry->path();
     }
 
@@ -392,6 +409,9 @@ FileList::open(int flags) {
     for (iterator cleanupItr = begin(); cleanupItr != itr; ++cleanupItr)
       manager->file_manager()->close(*cleanupItr);
 
+    // Set to false here in case we tried to open the FileList for the
+    // second time.
+    m_isOpen = false;
     throw e;
   }
 
@@ -417,6 +437,9 @@ FileList::close() {
 
 bool
 FileList::resize_all() {
+  // Hack!!!
+  open(0);
+
   bool success = true;
 
   for (iterator itr = begin(); itr != end(); itr++)

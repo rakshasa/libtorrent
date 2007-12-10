@@ -48,6 +48,8 @@ public:
 
   typedef std::pair<uint32_t, uint32_t> range_type;
 
+  static const int flag_previously_created = (1 << 0);
+
   File();
   ~File();
 
@@ -56,6 +58,8 @@ public:
 
   bool                is_correct_size() const;
   bool                is_valid_position(uint64_t p) const;
+
+  bool                is_previously_created() const            { return m_flags & flag_previously_created; }
 
   bool                has_permissions(int prot) const          { return !(prot & ~m_protection); }
 
@@ -115,10 +119,16 @@ private:
   File(const File&);
   void operator = (const File&);
 
+  int                 m_fd;
+  int                 m_protection;
+  int                 m_flags;
+  
   Path                m_path;
+  std::string         m_frozenPath;
 
   uint64_t            m_offset;
   uint64_t            m_size;
+  uint64_t            m_lastTouched;
 
   range_type          m_range;
 
@@ -127,15 +137,6 @@ private:
 
   uint32_t            m_matchDepthPrev;
   uint32_t            m_matchDepthNext;
-
-  // Move the below stuff up to the right places next incompatible API
-  // change.
-  int                 m_fd;
-  std::string         m_frozenPath;
-
-  int                 m_protection;
-
-  uint64_t            m_lastTouched;
 };
 
 inline bool

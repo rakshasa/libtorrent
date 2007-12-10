@@ -144,7 +144,8 @@ public:
   void                set_file_completed_chunks(iterator itr, uint32_t v);
 
 protected:
-  static const int open_no_create = (1 << 0);
+  static const int open_no_create        = (1 << 0);
+  static const int open_require_all_open = (1 << 1);
 
   void                initialize(uint64_t torrentSize, uint32_t chunkSize) LIBTORRENT_NO_EXPORT;
 

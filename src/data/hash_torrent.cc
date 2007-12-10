@@ -169,7 +169,7 @@ HashTorrent::queue(bool quick) {
       // If the error number is not valid, then we've just encountered a
       // file that hasn't be created/resized. Which means we ignore it
       // when doing initial hashing.
-      if (handle.error_number().is_valid()) {
+      if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent) {
         if (handle.is_valid())
           throw internal_error("HashTorrent::queue() error, but handle.is_valid().");
 
@@ -206,7 +206,7 @@ HashTorrent::queue(bool quick) {
     // started again during the delay it won't cause an exception.
     rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
     rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
-  }
+   }
 }
 
 }
