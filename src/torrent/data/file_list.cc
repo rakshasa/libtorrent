@@ -351,15 +351,14 @@ FileList::open(int flags) {
 
   Path lastPath;
   path_set pathSet;
-  iterator itr = begin();
 
   try {
     if (!(flags & open_no_create) &&
         ::mkdir(m_rootDir.c_str(), 0777) != 0 && errno != EEXIST)
       throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
   
-    while (itr != end()) {
-      File* entry = *itr++;
+    for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+      File* entry = *itr;
 
       // We no longer consider it an error to open a previously opened
       // FileList as we now use the same function to create
@@ -370,8 +369,6 @@ FileList::open(int flags) {
       if (entry->is_open())
         continue;
       
-//       manager->file_manager()->insert(entry);
-
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
       if (entry->path()->back().empty())
@@ -405,14 +402,14 @@ FileList::open(int flags) {
       lastPath = *entry->path();
     }
 
-  } catch (storage_error& e) {
-    for (iterator cleanupItr = begin(); cleanupItr != itr; ++cleanupItr)
-      manager->file_manager()->close(*cleanupItr);
+  } catch (local_error& e) {
+    for (iterator itr = begin(), last = end(); itr != last; ++itr)
+      manager->file_manager()->close(*itr);
 
     // Set to false here in case we tried to open the FileList for the
     // second time.
     m_isOpen = false;
-    throw e;
+    throw;
   }
 
   m_isOpen = true;
@@ -437,9 +434,6 @@ FileList::close() {
 
 bool
 FileList::resize_all() {
-  // Hack!!!
-  open(0);
-
   bool success = true;
 
   for (iterator itr = begin(); itr != end(); itr++)

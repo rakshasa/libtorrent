@@ -150,7 +150,7 @@ DownloadWrapper::receive_initial_hash() {
   if (!m_hashChecker->is_checking()) {
     receive_storage_error("Hash checker was unable to map chunk: " + std::string(rak::error_number(m_hashChecker->error_number()).c_str()));
 
-  } else if (m_main.file_list()->resize_all()) {
+  } else {
     m_hashChecker->confirm_checked();
 
     if (hash_queue()->has(this))
@@ -160,9 +160,6 @@ DownloadWrapper::receive_initial_hash() {
     // marked by HashTorrent that are not accounted for.
     m_main.chunk_selector()->initialize(m_main.file_list()->mutable_bitfield(), m_main.chunk_statistics());
     receive_update_priorities();
-
-  } else {
-    receive_storage_error("Could not resize files in the torrent.");
   }
 
   m_signalInitialHash.emit();
