@@ -55,6 +55,7 @@
 #include "download/download_info.h"
 #include "peer/peer_info.h"
 #include "tracker/tracker_manager.h"
+#include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
 
 #include "exceptions.h"
@@ -73,6 +74,13 @@ Download::open(int flags) {
   // they are created. Need to fix this.
   m_ptr->main()->open(FileList::open_no_create);
   m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
+
+  // Mark the files by default to be created and resized. The client
+  // should be allowed to pass a flag that will keep the old settings,
+  // although loading resume data should really handle everything
+  // properly.
+  for (FileList::iterator itr = m_ptr->main()->file_list()->begin(), last = m_ptr->main()->file_list()->end(); itr != last; itr++)
+    (*itr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
 }
 
 void
@@ -394,14 +402,17 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
 }
 
 void
-Download::clear_range(uint32_t first, uint32_t last) {
-  if (m_ptr->hash_checker()->is_checked() || m_ptr->hash_checker()->is_checking() || m_ptr->main()->file_list()->bitfield()->empty())
+Download::update_range(int flags, uint32_t first, uint32_t last) {
+  if (m_ptr->hash_checker()->is_checked() ||
+      m_ptr->hash_checker()->is_checking() ||
+      m_ptr->main()->file_list()->bitfield()->empty())
     throw input_error("Download::clear_range(...) Download in invalid state.");
 
-  // Unset progress of any files.
-
-  m_ptr->hash_checker()->ranges().insert(first, last);
-  m_ptr->main()->file_list()->mutable_bitfield()->unset_range(first, last);
+  if (flags & update_range_recheck)
+    m_ptr->hash_checker()->ranges().insert(first, last);
+  
+  if (flags & (update_range_clear | update_range_recheck))
+    m_ptr->main()->file_list()->mutable_bitfield()->unset_range(first, last);
 }
  
 void

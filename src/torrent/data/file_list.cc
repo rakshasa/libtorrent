@@ -436,10 +436,12 @@ bool
 FileList::resize_all() {
   bool success = true;
 
-  for (iterator itr = begin(); itr != end(); itr++)
-    if (!(*itr)->frozen_path().empty() &&
-        !(*itr)->resize_file())
-      success = false;
+  // Remove this function.
+
+//   for (iterator itr = begin(); itr != end(); itr++)
+//     if (!(*itr)->frozen_path().empty() &&
+//         !(*itr)->resize_file())
+//       success = false;
 
   return success;
 }

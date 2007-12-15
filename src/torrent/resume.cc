@@ -100,14 +100,49 @@ resume_load_progress(Download download, const Object& object) {
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     rak::file_stat fs;
 
-    // Check that the size and modified stamp matches. If not, then
-    // clear the resume data for that range.
+    // If mtime is -1, we never created the file at all.
 
-    if (!fs.update(fileList->root_dir() + (*listItr)->path()->as_string()) ||
-        (uint64_t)fs.size() != (*listItr)->size_bytes() ||
-        !filesItr->has_key_value("mtime") ||
-        filesItr->get_key_value("mtime") != fs.modified_time())
-      download.clear_range((*listItr)->range().first, (*listItr)->range().second);
+    if (!filesItr->has_key_value("mtime")) {
+      // If 'mtime' is erased, it means we should start hashing and
+      // downloading the file as if it was a new torrent.
+      (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+
+      download.update_range(Download::update_range_recheck | Download::update_range_clear,
+                            (*listItr)->range().first, (*listItr)->range().second);
+      continue;
+    }
+
+    int64_t mtimeValue = filesItr->get_key_value("mtime");
+    bool    fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
+
+    // The default action when we have 'mtime' is to not create nor
+    // resize the file.
+    (*listItr)->unset_flags(File::flag_create_queued | File::flag_resize_queued);
+
+    if (mtimeValue == ~int64_t(0) || mtimeValue == ~int64_t(1)) {
+      // If 'mtime' is -1 it means we haven't gotten around to
+      // creating the file.
+      if (mtimeValue == ~int64_t(0))
+        (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+
+      // Ensure the bitfield range is cleared so that stray resume
+      // data doesn't get counted.
+      download.update_range(Download::update_range_clear | (fileExists ? Download::update_range_recheck : 0),
+                            (*listItr)->range().first, (*listItr)->range().second);
+      continue;
+    }
+
+    if ((uint64_t)fs.size() != (*listItr)->size_bytes() || mtimeValue != fs.modified_time()) {
+      // If we're the wrong size or mtime, set flag_resize_queued if
+      // necessary and do a hash check for the range.
+
+      if ((uint64_t)fs.size() != (*listItr)->size_bytes())
+        (*listItr)->set_flags(File::flag_resize_queued);
+
+      download.update_range(Download::update_range_clear | Download::update_range_recheck,
+                            (*listItr)->range().first, (*listItr)->range().second);
+      continue;
+    }
   }
 }
 
@@ -146,13 +181,20 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
 
     rak::file_stat fs;
 
-    if (!fs.update(fileList->root_dir() + (*listItr)->path()->as_string()) ||
-        (onlyCompleted && (*listItr)->completed_chunks() != (*listItr)->size_chunks())) {
-      filesItr->erase_key("mtime");
-      continue;
-    }
+    if ((*listItr)->is_create_queued()) {
+      // We indicate that a file still needs to be created by setting
+      // mtime to -1.
+      filesItr->insert_key("mtime", ~int64_t());
 
-    filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+    } else if ((onlyCompleted && (*listItr)->completed_chunks() != (*listItr)->size_chunks()) ||
+               !fs.update(fileList->root_dir() + (*listItr)->path()->as_string())) {
+      // If we don't want to or can't use the resume data, then we
+      // erase mtime.
+      filesItr->erase_key("mtime");
+
+    } else {
+      filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+    }
   }
 }
 

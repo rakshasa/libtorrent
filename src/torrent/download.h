@@ -151,7 +151,11 @@ public:
   // These must be called when is_open, !is_checked and !is_checking.
   void                set_bitfield(bool allSet);
   void                set_bitfield(uint8_t* first, uint8_t* last);
-  void                clear_range(uint32_t first, uint32_t last);
+
+  static const int update_range_recheck = (1 << 0);
+  static const int update_range_clear   = (1 << 1);
+
+  void                update_range(int flags, uint32_t first, uint32_t last);
 
   // Temporary hack for syncing chunks to disk before hash resume is
   // saved.

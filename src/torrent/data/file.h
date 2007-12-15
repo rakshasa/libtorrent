@@ -48,7 +48,9 @@ public:
 
   typedef std::pair<uint32_t, uint32_t> range_type;
 
-  static const int flag_previously_created = (1 << 0);
+  static const int flag_create_queued      = (1 << 0);
+  static const int flag_resize_queued      = (1 << 1);
+  static const int flag_previously_created = (1 << 2);
 
   File();
   ~File();
@@ -59,7 +61,12 @@ public:
   bool                is_correct_size() const;
   bool                is_valid_position(uint64_t p) const;
 
+  bool                is_create_queued() const                 { return m_flags & flag_create_queued; }
+  bool                is_resize_queued() const                 { return m_flags & flag_resize_queued; }
   bool                is_previously_created() const            { return m_flags & flag_previously_created; }
+
+  void                set_flags(int flags);
+  void                unset_flags(int flags);
 
   bool                has_permissions(int prot) const          { return !(prot & ~m_protection); }
 
@@ -113,11 +120,11 @@ protected:
   void                set_match_depth_prev(uint32_t l)         { m_matchDepthPrev = l; }
   void                set_match_depth_next(uint32_t l)         { m_matchDepthNext = l; }
 
-  bool                resize_file();
-
 private:
   File(const File&);
   void operator = (const File&);
+
+  bool                resize_file();
 
   int                 m_fd;
   int                 m_protection;
@@ -142,6 +149,16 @@ private:
 inline bool
 File::is_valid_position(uint64_t p) const {
   return p >= m_offset && p < m_offset + m_size;
+}
+
+inline void
+File::set_flags(int flags) {
+  m_flags |= flags & (flag_create_queued | flag_resize_queued);
+}
+
+inline void
+File::unset_flags(int flags) {
+  m_flags |= flags & (flag_create_queued | flag_resize_queued);
 }
 
 }

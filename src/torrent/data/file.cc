@@ -97,21 +97,38 @@ File::is_correct_size() const {
   return fs.is_regular() && (uint64_t)fs.size() == m_size;
 }
 
+// At some point we should pass flags for deciding if the correct size
+// is necessary, etc.
+
 bool
 File::prepare(int prot, int flags) {
   m_lastTouched = cachedTime.usec();
+
+  // Check if we got write protection and flag_resize_queued is
+  // set. If so don't quit as we need to try re-sizing, instead call
+  // resize_file.
 
   if (is_open() && has_permissions(prot))
     return true;
 
   // For now don't allow overridding this check in prepare.
-  if (m_flags & flag_previously_created)
+  if (m_flags & flag_create_queued)
+    flags |= SocketFile::o_create;
+  else
     flags &= ~SocketFile::o_create;
 
   if (!manager->file_manager()->open(this, prot, flags))
     return false;
 
   m_flags |= flag_previously_created;
+  m_flags &= ~flag_create_queued;
+
+  // Replace PROT_WRITE with something prettier.
+  if ((m_flags & flag_resize_queued) && has_permissions(PROT_WRITE)) {
+    m_flags &= ~flag_resize_queued;
+    return resize_file();
+  }
+
   return true;
 }
 
@@ -127,21 +144,11 @@ File::set_range(uint32_t chunkSize) {
 
 bool
 File::resize_file() {
-  if (!prepare(MemoryChunk::prot_read))
+  if (!is_open())
     return false;
 
-  if (m_size == SocketFile(m_fd).size())
-    return true;
-
-  // Does this need to clear prev_created?
-  if (!prepare(MemoryChunk::prot_read | MemoryChunk::prot_write) ||
-      !SocketFile(m_fd).set_size(m_size))
-    return false;
-  
-  // Not here... make it a setting of sorts?
-  //get_file().reserve();
-
-  return true;
+  // This doesn't try to re-open it as rw.
+  return m_size == SocketFile(m_fd).size() || SocketFile(m_fd).set_size(m_size);
 }
 
 }
