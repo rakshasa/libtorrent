@@ -100,8 +100,6 @@ resume_load_progress(Download download, const Object& object) {
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     rak::file_stat fs;
 
-    // If mtime is -1, we never created the file at all.
-
     if (!filesItr->has_key_value("mtime")) {
       // If 'mtime' is erased, it means we should start hashing and
       // downloading the file as if it was a new torrent.
@@ -120,8 +118,16 @@ resume_load_progress(Download download, const Object& object) {
     (*listItr)->unset_flags(File::flag_create_queued | File::flag_resize_queued);
 
     if (mtimeValue == ~int64_t(0) || mtimeValue == ~int64_t(1)) {
-      // If 'mtime' is -1 it means we haven't gotten around to
+      // If 'mtime' is ~0 it means we haven't gotten around to
       // creating the file.
+      //
+      // Else if it is ~1 it means the file doesn't exist nor do we
+      // want to create it.
+      //
+      // When 'mtime' is ~2 we need to recheck the hash without
+      // creating the file. It will just fail on the mtime check
+      // later, so we don't need to handle it explicitly.
+
       if (mtimeValue == ~int64_t(0))
         (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
 
@@ -180,17 +186,24 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
     filesItr->insert_key("completed", (int64_t)(*listItr)->completed_chunks());
 
     rak::file_stat fs;
+    bool fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
 
-    if ((*listItr)->is_create_queued()) {
-      // We indicate that a file still needs to be created by setting
-      // mtime to -1.
-      filesItr->insert_key("mtime", ~int64_t());
+    if (!fileExists) {
+      
+      if ((*listItr)->is_create_queued())
+        // ~0 means the file still needs to be created.
+        filesItr->insert_key("mtime", ~int64_t(0));
+      else
+        // ~1 means the file shouldn't be created.
+        filesItr->insert_key("mtime", ~int64_t(1));
 
-    } else if ((onlyCompleted && (*listItr)->completed_chunks() != (*listItr)->size_chunks()) ||
-               !fs.update(fileList->root_dir() + (*listItr)->path()->as_string())) {
-      // If we don't want to or can't use the resume data, then we
-      // erase mtime.
-      filesItr->erase_key("mtime");
+    } else if (onlyCompleted && (*listItr)->completed_chunks() != (*listItr)->size_chunks()) {
+
+      // ~2 means the file needs to be rehashed, but not created.
+      //
+      // This needs to be fixed so it handles cases where the file
+      // exists but wasn't the right size.
+      filesItr->insert_key("mtime", ~int64_t(2));
 
     } else {
       filesItr->insert_key("mtime", (int64_t)fs.modified_time());
