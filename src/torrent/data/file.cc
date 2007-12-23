@@ -142,6 +142,23 @@ File::set_range(uint32_t chunkSize) {
     m_range = File::range_type(m_offset / chunkSize, (m_offset + m_size + chunkSize - 1) / chunkSize);
 }
 
+void
+File::set_match_depth(File* left, File* right) {
+  uint32_t level = 0;
+
+  Path::const_iterator itrLeft = left->path()->begin();
+  Path::const_iterator itrRight = right->path()->begin();
+
+  while (itrLeft != left->path()->end() && itrRight != right->path()->end() && *itrLeft == *itrRight) {
+    itrLeft++;
+    itrRight++;
+    level++;
+  }
+
+  left->m_matchDepthNext = level;
+  right->m_matchDepthPrev = level;
+}
+
 bool
 File::resize_file() {
   if (!is_open())

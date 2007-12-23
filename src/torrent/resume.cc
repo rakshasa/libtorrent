@@ -238,7 +238,7 @@ resume_load_file_priorities(Download download, const Object& object) {
       (*listItr)->set_priority((priority_t)filesItr->get_key_value("priority"));
 
     if (filesItr->has_key_value("completed"))
-      fileList->set_file_completed_chunks(listItr, std::max<int64_t>(filesItr->get_key_value("completed"), (*listItr)->size_chunks()));
+      (*listItr)->set_completed_chunks(filesItr->get_key_value("completed"));
   }
 }
 

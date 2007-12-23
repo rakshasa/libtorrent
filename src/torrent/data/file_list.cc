@@ -274,12 +274,12 @@ FileList::merge(iterator first, iterator last, const Path& path) {
   if (first == begin())
     newFile->set_match_depth_prev(0);
   else
-    set_match_depth(*(first - 1), newFile);
+    File::set_match_depth(*(first - 1), newFile);
 
   if (first + 1 == end())
     newFile->set_match_depth_next(0);
   else
-    set_match_depth(newFile, *(first + 1));
+    File::set_match_depth(newFile, *(first + 1));
 
   return first;
 }
@@ -293,20 +293,58 @@ FileList::update_paths(iterator first, iterator last) {
     return;
 
   if (first != begin())
-    set_match_depth(*(first - 1), *first);
+    File::set_match_depth(*(first - 1), *first);
 
   while (first != last && ++first != end())
-    set_match_depth(*(first - 1), *first);
+    File::set_match_depth(*(first - 1), *first);
 
   verify_file_list(this);
 }
 
-void
-FileList::set_file_completed_chunks(iterator itr, uint32_t v) {
-  if (is_open())
-    return;
+bool
+FileList::make_root_path() {
+  if (!is_open())
+    return false;
 
-  (*itr)->set_completed(v);
+  return ::mkdir(m_rootDir.c_str(), 0777) == 0 || errno == EEXIST;
+}
+
+bool
+FileList::make_all_paths() {
+  if (!is_open())
+    return false;
+
+  Path dummyPath;
+  const Path* lastPath = &dummyPath;
+
+  for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    File* entry = *itr;
+
+    // No need to create directories if the entry has already been
+    // opened.
+    if (entry->is_open())
+      continue;
+
+    if (entry->path()->empty())
+      throw storage_error("Found an empty filename.");
+
+    Path::const_iterator lastPathItr   = lastPath->begin();
+    Path::const_iterator firstMismatch = entry->path()->begin();
+
+    // Couldn't find a suitable stl algo, need to write my own.
+    while (firstMismatch != entry->path()->end() && lastPathItr != lastPath->end() && *firstMismatch == *lastPathItr) {
+      lastPathItr++;
+      firstMismatch++;
+    }
+
+    rak::error_number::clear_global();
+
+    make_directory(entry->path()->begin(), entry->path()->end(), firstMismatch);
+    
+    lastPath = entry->path();
+  }
+
+  return true;
 }
 
 // Initialize FileList and add a dummy file that may be split into
@@ -353,8 +391,7 @@ FileList::open(int flags) {
   path_set pathSet;
 
   try {
-    if (!(flags & open_no_create) &&
-        ::mkdir(m_rootDir.c_str(), 0777) != 0 && errno != EEXIST)
+    if (!(flags & open_no_create) && !make_root_path())
       throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
   
     for (iterator itr = begin(), last = end(); itr != last; ++itr) {
@@ -388,6 +425,8 @@ FileList::open(int flags) {
       // Handle directory creation outside of open_file, so we can do
       // it here if necessary.
 
+      entry->set_flags_protected(File::flag_active);
+
       if (!open_file(&*entry, lastPath, flags)) {
         // This needs to check if the error was due to open_no_create
         // being set or not.
@@ -403,8 +442,10 @@ FileList::open(int flags) {
     }
 
   } catch (local_error& e) {
-    for (iterator itr = begin(), last = end(); itr != last; ++itr)
+    for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+      (*itr)->unset_flags_protected(File::flag_active);
       manager->file_manager()->close(*itr);
+    }
 
     // Set to false here in case we tried to open the FileList for the
     // second time.
@@ -421,29 +462,12 @@ FileList::close() {
     return;
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    (*itr)->unset_flags_protected(File::flag_active);
     manager->file_manager()->close(*itr);
-    
-    // Keep the progress so the user can see it even though he closes
-    // the torrent.
-//     (*itr)->set_completed(0);
   }
 
   m_isOpen = false;
   m_indirectLinks.clear();
-}
-
-bool
-FileList::resize_all() {
-  bool success = true;
-
-  // Remove this function.
-
-//   for (iterator itr = begin(); itr != end(); itr++)
-//     if (!(*itr)->frozen_path().empty() &&
-//         !(*itr)->resize_file())
-//       success = false;
-
-  return success;
 }
 
 void
@@ -475,25 +499,26 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
 
 bool
 FileList::open_file(File* node, const Path& lastPath, int flags) {
-  const Path* path = node->path();
-
-  Path::const_iterator lastItr = lastPath.begin();
-  Path::const_iterator firstMismatch = path->begin();
-
-  // Couldn't find a suitable stl algo, need to write my own.
-  while (firstMismatch != path->end() && lastItr != lastPath.end() && *firstMismatch == *lastItr) {
-    lastItr++;
-    firstMismatch++;
-  }
-
   rak::error_number::clear_global();
 
-  if (!(flags & open_no_create))
+  if (!(flags & open_no_create)) {
+    const Path* path = node->path();
+
+    Path::const_iterator lastItr = lastPath.begin();
+    Path::const_iterator firstMismatch = path->begin();
+
+    // Couldn't find a suitable stl algo, need to write my own.
+    while (firstMismatch != path->end() && lastItr != lastPath.end() && *firstMismatch == *lastItr) {
+      lastItr++;
+      firstMismatch++;
+    }
+
     make_directory(path->begin(), path->end(), firstMismatch);
+  }
 
   // Some torrents indicate an empty directory by having a path with
   // an empty last element. This entry must be zero length.
-  if (path->back().empty())
+  if (node->path()->back().empty())
     return node->size_bytes() == 0;
 
   rak::file_stat fileStat;
@@ -595,7 +620,7 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
 
   std::for_each(firstItr,
                 lastItr == end() ? end() : (lastItr + 1),
-                std::mem_fun(&File::inc_completed));
+                std::mem_fun(&File::inc_completed_protected));
 
   return lastItr;
 }
@@ -607,13 +632,13 @@ FileList::update_completed() {
 
   if (m_bitfield.is_all_set()) {
     for (iterator itr = begin(), last = end(); itr != last; ++itr)
-      (*itr)->set_completed((*itr)->size_chunks());
+      (*itr)->set_completed_protected((*itr)->size_chunks());
 
   } else {
     // Clear any old progress data from the entries as we don't clear
     // this on close, etc.
     for (iterator itr = begin(), last = end(); itr != last; ++itr)
-      (*itr)->set_completed(0);
+      (*itr)->set_completed_protected(0);
 
     if (m_bitfield.is_all_unset())
       return;
@@ -624,23 +649,6 @@ FileList::update_completed() {
       if (m_bitfield.get(index))
         entryItr = inc_completed(entryItr, index);
   }
-}
-
-void
-FileList::set_match_depth(File* left, File* right) {
-  uint32_t level = 0;
-
-  Path::const_iterator itrLeft = left->path()->begin();
-  Path::const_iterator itrRight = right->path()->begin();
-
-  while (itrLeft != left->path()->end() && itrRight != right->path()->end() && *itrLeft == *itrRight) {
-    itrLeft++;
-    itrRight++;
-    level++;
-  }
-
-  left->set_match_depth_next(level);
-  right->set_match_depth_prev(level);
 }
 
 }
