@@ -92,10 +92,10 @@ Object::get_key(const char* k) const {
 Object::map_insert_type
 Object::insert_preserve_list(const key_type& k) {
   check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(TYPE_LIST)));
+  map_insert_type result = m_map->insert(map_type::value_type(k, create_list()));
 
   if (!result.second && result.first->second.type() != TYPE_LIST) {
-    result.first->second = torrent::Object(TYPE_LIST);
+    result.first->second = create_list();
     result.second = true;
   }
 
@@ -105,10 +105,10 @@ Object::insert_preserve_list(const key_type& k) {
 Object::map_insert_type
 Object::insert_preserve_map(const key_type& k) {
   check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(TYPE_MAP)));
+  map_insert_type result = m_map->insert(map_type::value_type(k, create_map()));
 
   if (!result.second && result.first->second.type() != TYPE_MAP) {
-    result.first->second = torrent::Object(TYPE_MAP);
+    result.first->second = create_map();
     result.second = true;
   }
 
@@ -183,7 +183,7 @@ Object::merge_copy(const Object& object, uint32_t maxDepth) {
 
   if (object.is_map()) {
     if (!is_map())
-      *this = Object(TYPE_MAP);
+      *this = create_map();
 
     map_type& dest = as_map();
     map_type::iterator destItr = dest.begin();
@@ -206,7 +206,7 @@ Object::merge_copy(const Object& object, uint32_t maxDepth) {
 
   } else if (object.is_list()) {
     if (!is_list())
-      *this = Object(TYPE_LIST);
+      *this = create_list();
 
     list_type& dest = as_list();
     list_type::iterator destItr = dest.begin();

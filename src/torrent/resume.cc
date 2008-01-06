@@ -179,9 +179,9 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
 
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if (filesItr == files.end())
-      filesItr = files.insert(filesItr, Object(Object::TYPE_MAP));
+      filesItr = files.insert(filesItr, Object::create_map());
     else if (!filesItr->is_map())
-      *filesItr = Object(Object::TYPE_MAP);
+      *filesItr = Object::create_map();
 
     filesItr->insert_key("completed", (int64_t)(*listItr)->completed_chunks());
 
@@ -251,9 +251,9 @@ resume_save_file_priorities(Download download, Object& object) {
 
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
     if (filesItr == files.end())
-      filesItr = files.insert(filesItr, Object(Object::TYPE_MAP));
+      filesItr = files.insert(filesItr, Object::create_map());
     else if (!filesItr->is_map())
-      *filesItr = Object(Object::TYPE_MAP);
+      *filesItr = Object::create_map();
 
     filesItr->insert_key("priority", (int64_t)(*listItr)->priority());
   }
@@ -296,7 +296,7 @@ resume_load_addresses(Download download, const Object& object) {
 void
 resume_save_addresses(Download download, Object& object) {
   const PeerList* peerList = download.peer_list();
-  Object&         dest     = object.insert_key("peers", Object(Object::TYPE_LIST));
+  Object&         dest     = object.insert_key("peers", Object::create_list());
 
   for (PeerList::const_iterator itr = peerList->begin(), last = peerList->end(); itr != last; ++itr) {
     // Add some checks, like see if there's anything interesting to
@@ -306,7 +306,7 @@ resume_save_addresses(Download download, Object& object) {
     // been closed for a while, it won't throw out perfectly good
     // entries.
 
-    Object& peer = dest.insert_back(Object(Object::TYPE_MAP));
+    Object& peer = dest.insert_back(Object::create_map());
 
     const rak::socket_address* sa = rak::socket_address::cast_from(itr->second->socket_address());
 
@@ -345,7 +345,7 @@ resume_save_tracker_settings(Download download, Object& object) {
   TrackerList* trackerList = download.tracker_list();
 
   for (TrackerList::iterator itr = trackerList->begin(), last = trackerList->end(); itr != last; ++itr) {
-    Object& trackerObject = dest.insert_key((*itr)->url(), Object(Object::TYPE_MAP));
+    Object& trackerObject = dest.insert_key((*itr)->url(), Object::create_map());
 
     trackerObject.insert_key("enabled", Object((int64_t)(*itr)->is_enabled()));
   }

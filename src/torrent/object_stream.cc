@@ -73,7 +73,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
   case 'i':
     input->get();
 
-    *object = Object(Object::TYPE_VALUE);
+    *object = Object::create_value();
     *input >> object->as_value();
 
     if (input->get() != 'e')
@@ -83,7 +83,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 
   case 'l':
     input->get();
-    *object = Object(Object::TYPE_LIST);
+    *object = Object::create_list();
 
     if (++depth >= 1024)
       break;
@@ -102,7 +102,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 
   case 'd':
     input->get();
-    *object = Object(Object::TYPE_MAP);
+    *object = Object::create_map();
 
     if (++depth >= 1024)
       break;
@@ -125,7 +125,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 
   default:
     if (c >= '0' && c <= '9') {
-      *object = Object(Object::TYPE_STRING);
+      *object = Object::create_string();
       
       if (object_read_string(input, object->as_string()))
 	return;

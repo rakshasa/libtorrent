@@ -244,7 +244,7 @@ DhtServer::process_query(const Object& transactionId, const HashString& id, cons
   Object& arg = request.get_key("a");
 
   // Construct reply.
-  Object reply(Object::TYPE_MAP);
+  Object reply = Object::create_map();
 
   if (query == "find_node")
     create_find_node_response(arg, reply);
@@ -302,7 +302,7 @@ DhtServer::create_get_peers_response(const Object& arg, const rak::socket_addres
     reply.insert_key("nodes", std::string(compact, end));
 
   } else {
-    Object& values = reply.insert_key("values", Object(Object::TYPE_LIST));
+    Object& values = reply.insert_key("values", Object::create_list());
     values.insert_back(tracker->get_peers());
   }
 }
@@ -480,7 +480,7 @@ DhtServer::create_query(transaction_itr itr, int tID, const rak::socket_address*
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
 
-  Object query(Object::TYPE_MAP);
+  Object query = Object::create_map();
 
   DhtTransaction* transaction = itr->second;
   char trans_id = tID;
@@ -489,7 +489,7 @@ DhtServer::create_query(transaction_itr itr, int tID, const rak::socket_address*
   query.insert_key("q", queries[transaction->type()]);
   query.insert_key("v", PEER_VERSION);
 
-  Object& q = query.insert_key("a", Object(Object::TYPE_MAP));
+  Object& q = query.insert_key("a", Object::create_map());
   q.insert_key("id", m_router->str());
 
   switch (transaction->type()) {
@@ -521,7 +521,7 @@ DhtServer::create_query(transaction_itr itr, int tID, const rak::socket_address*
 
 void
 DhtServer::create_response(const Object& transactionId, const rak::socket_address* sa, Object& r) {
-  Object reply(Object::TYPE_MAP);
+  Object reply = Object::create_map();
   r.insert_key("id", m_router->str());
 
   reply.insert_key("t", transactionId);
@@ -534,7 +534,7 @@ DhtServer::create_response(const Object& transactionId, const rak::socket_addres
 
 void
 DhtServer::create_error(const Object* transactionId, const rak::socket_address* sa, int num, const std::string& msg) {
-  Object error(Object::TYPE_MAP);
+  Object error = Object::create_map();
 
   if (transactionId != NULL)
     error.insert_key("t", *transactionId);
@@ -542,7 +542,7 @@ DhtServer::create_error(const Object* transactionId, const rak::socket_address* 
   error.insert_key("y", "e");
   error.insert_key("v", PEER_VERSION);
 
-  Object& e = error.insert_key("e", Object(Object::TYPE_LIST));
+  Object& e = error.insert_key("e", Object::create_list());
   e.insert_back(num);
   e.insert_back(msg);
 

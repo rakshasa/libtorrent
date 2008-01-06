@@ -82,9 +82,12 @@ public:
   Object(const string_type& s) : m_type(TYPE_STRING), m_string(new string_type(s)) {}
   Object(const Object& b);
 
-  explicit Object(type_type t);
-  
   ~Object() { clear(); }
+
+  static Object       create_value()  { return Object(value_type()); }
+  static Object       create_string() { return Object(string_type()); }
+  static Object       create_list()   { Object tmp; tmp.m_type = TYPE_LIST; tmp.m_list = new list_type(); return tmp; }
+  static Object       create_map()    { Object tmp; tmp.m_type = TYPE_MAP;  tmp.m_map  = new map_type();  return tmp; }
 
   void                clear();
 
@@ -165,6 +168,9 @@ public:
   Object&             operator = (const Object& b);
 
  private:
+  // TMP to kill bad uses.
+  explicit Object(type_type t);
+
   inline bool         check(map_type::const_iterator itr, type_type t) const { return itr != m_map->end() && itr->second.m_type == t; }
   inline void         check_throw(type_type t) const                         { if (t != m_type) throw bencode_error("Wrong object type."); }
 
@@ -186,19 +192,6 @@ Object::Object(const Object& b) : m_type(b.m_type) {
   case TYPE_STRING: m_string = new string_type(*b.m_string); break;
   case TYPE_LIST:   m_list = new list_type(*b.m_list); break;
   case TYPE_MAP:    m_map = new map_type(*b.m_map);  break;
-  }
-}
-
-inline
-Object::Object(type_type t) :
-  m_type(t) {
-
-  switch (m_type) {
-  case TYPE_NONE:   break;
-  case TYPE_VALUE:  m_value = value_type(); break;
-  case TYPE_STRING: m_string = new string_type(); break;
-  case TYPE_LIST:   m_list = new list_type(); break;
-  case TYPE_MAP:    m_map = new map_type(); break;
   }
 }
 

@@ -103,8 +103,8 @@ ProtocolExtension::unset_local_enabled(int t) {
 
 DataBuffer
 ProtocolExtension::generate_handshake_message() {
-  Object map(Object::TYPE_MAP);
-  Object message(Object::TYPE_MAP);
+  Object map = Object::create_map();
+  Object message = Object::create_map();
 
   map.insert_key(message_keys[UT_PEX], is_local_enabled(UT_PEX) ? 1 : 0);
 

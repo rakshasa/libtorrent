@@ -352,18 +352,18 @@ DhtRouter::store_cache(Object* container) const {
   container->insert_key("self_id", str());
 
   // Insert all nodes.
-  Object& nodes = container->insert_key("nodes", Object(Object::TYPE_MAP));
+  Object& nodes = container->insert_key("nodes", Object::create_map());
   for (DhtNodeList::const_accessor itr = m_nodes.begin(); itr != m_nodes.end(); ++itr) {
     if (!itr.node()->is_bad())
-      itr.node()->store_cache(&nodes.insert_key(itr.id().str(), Object(Object::TYPE_MAP)));
+      itr.node()->store_cache(&nodes.insert_key(itr.id().str(), Object::create_map()));
   }
 
   // Insert contacts, if we have any.
   if (m_contacts != NULL) {
-    Object& contacts = container->insert_key("contacts", Object(Object::TYPE_LIST));
+    Object& contacts = container->insert_key("contacts", Object::create_list());
 
     for (std::deque<contact_t>::const_iterator itr = m_contacts->begin(); itr != m_contacts->end(); ++itr) {
-      Object::list_type& list = contacts.insert_back(Object(Object::TYPE_LIST)).as_list();
+      Object::list_type& list = contacts.insert_back(Object::create_list()).as_list();
       list.push_back(itr->first);
       list.push_back(itr->second);
     }
