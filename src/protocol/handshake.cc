@@ -525,9 +525,9 @@ Handshake::read_peer() {
     write_extension_handshake();
 
   // The download is just starting so we're not sending any
-  // bitfield.
+  // bitfield. Pretend we wrote it already.
   if (m_download->file_list()->bitfield()->is_all_unset())
-    prepare_post_handshake(true);
+    m_writePos = m_download->file_list()->bitfield()->size_bytes();
   else
     prepare_bitfield();
 
@@ -616,6 +616,12 @@ Handshake::read_done() {
   } else {
     m_bitfield.update();
   }
+
+  // Should've started to write post handshake data already, but we were
+  // still reading the bitfield/extension and postponed it. If we had no
+  // bitfield to send, we need to send a keep-alive now.
+  if (m_writePos == m_download->file_list()->bitfield()->size_bytes())
+    prepare_post_handshake(m_download->file_list()->bitfield()->is_all_unset());
 
   if (m_writeDone)
     throw handshake_succeeded();
@@ -1020,6 +1026,9 @@ Handshake::prepare_bitfield() {
 
 void
 Handshake::prepare_post_handshake(bool must_write) {
+  if (m_writePos != m_download->file_list()->bitfield()->size_bytes())
+    throw internal_error("Handshake::prepare_post_handshake called while bitfield not written completely.");
+
   m_state = POST_HANDSHAKE;
 
   Buffer::iterator old_end = m_writeBuffer.end();
@@ -1041,9 +1050,6 @@ Handshake::prepare_post_handshake(bool must_write) {
 
   if (!m_writeBuffer.remaining())
     write_done();
-
-  // Skip writting the bitfield.
-  m_writePos = m_download->file_list()->bitfield()->size_bytes();
 }
 
 void
@@ -1121,8 +1127,16 @@ Handshake::write_bitfield() {
     }
   }
 
-  if (m_writePos == bitfield->size_bytes())
-    prepare_post_handshake(false);
+  // We can't call prepare_post_handshake until the read code is done reading
+  // the bitfield, so if we get here before then, postpone the post handshake
+  // data until reading is done. Since we're done writing, remove us from the
+  // poll in that case.
+  if (m_writePos == bitfield->size_bytes()) {
+    if (!m_readDone)
+      manager->poll()->remove_write(this);
+    else
+      prepare_post_handshake(false);
+  }
 }
 
 void

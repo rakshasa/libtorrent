@@ -369,9 +369,15 @@ AC_DEFUN([TORRENT_WITH_XMLRPC_C], [
       AC_MSG_RESULT(no)
 
     else
-      if eval xmlrpc-c-config --version 2>/dev/null >/dev/null; then
-        CXXFLAGS="$CXXFLAGS `xmlrpc-c-config --cflags server-util`"
-        LIBS="$LIBS `xmlrpc-c-config server-util --libs`"
+      if test "$withval" = "yes"; then
+        xmlrpc_cc_prg="xmlrpc-c-config"
+      else
+        xmlrpc_cc_prg="$withval"
+      fi
+      
+      if eval $xmlrpc_cc_prg --version 2>/dev/null >/dev/null; then
+        CXXFLAGS="$CXXFLAGS `$xmlrpc_cc_prg --cflags server-util`"
+        LIBS="$LIBS `$xmlrpc_cc_prg server-util --libs`"
 
         AC_TRY_LINK(
         [ #include <xmlrpc-c/server.h>
