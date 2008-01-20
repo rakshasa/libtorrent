@@ -172,7 +172,7 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
   else
     object.insert_key("bitfield", std::string((char*)bitfield->begin(), bitfield->size_bytes()));
   
-  Object::list_type&    files    = object.insert_preserve_list("files").first->second.as_list();
+  Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
   Object::list_iterator filesItr = files.begin();
 
   FileList* fileList = download.file_list();
@@ -244,7 +244,7 @@ resume_load_file_priorities(Download download, const Object& object) {
 
 void
 resume_save_file_priorities(Download download, Object& object) {
-  Object::list_type&    files    = object.insert_preserve_list("files").first->second.as_list();
+  Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
   Object::list_iterator filesItr = files.begin();
 
   FileList* fileList = download.file_list();
@@ -341,7 +341,7 @@ resume_load_tracker_settings(Download download, const Object& object) {
 
 void
 resume_save_tracker_settings(Download download, Object& object) {
-  Object& dest = object.insert_preserve_map("trackers").first->second;
+  Object& dest = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
   TrackerList* trackerList = download.tracker_list();
 
   for (TrackerList::iterator itr = trackerList->begin(), last = trackerList->end(); itr != last; ++itr) {

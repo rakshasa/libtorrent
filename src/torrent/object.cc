@@ -90,64 +90,12 @@ Object::get_key(const char* k) const {
 }
 
 Object::map_insert_type
-Object::insert_preserve_list(const key_type& k) {
+Object::insert_preserve_type(const key_type& k, Object& b) {
   check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, create_list()));
+  map_insert_type result = m_map->insert(map_type::value_type(k, b));
 
-  if (!result.second && result.first->second.type() != TYPE_LIST) {
-    result.first->second = create_list();
-    result.second = true;
-  }
-
-  return result;
-}
-
-Object::map_insert_type
-Object::insert_preserve_map(const key_type& k) {
-  check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, create_map()));
-
-  if (!result.second && result.first->second.type() != TYPE_MAP) {
-    result.first->second = create_map();
-    result.second = true;
-  }
-
-  return result;
-}
-
-Object::map_insert_type
-Object::insert_preserve_value(const key_type& k, value_type b) {
-  check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(b)));
-
-  if (!result.second && result.first->second.type() != TYPE_VALUE) {
-    result.first->second = torrent::Object(b);
-    result.second = true;
-  }
-
-  return result;
-}
-
-Object::map_insert_type
-Object::insert_preserve_cstr(const key_type& k, const char* b) {
-  check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(b)));
-
-  if (!result.second && result.first->second.type() != TYPE_STRING) {
-    result.first->second = torrent::Object(b);
-    result.second = true;
-  }
-
-  return result;
-}
-
-Object::map_insert_type
-Object::insert_preserve_string(const key_type& k, const std::string& b) {
-  check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, torrent::Object(b)));
-
-  if (!result.second && result.first->second.type() != TYPE_STRING) {
-    result.first->second = torrent::Object(b);
+  if (!result.second && result.first->second.type() != b.type()) {
+    result.first->second.swap(b);
     result.second = true;
   }
 
@@ -237,9 +185,10 @@ Object::operator = (const Object& src) {
 
   clear();
 
-  m_type = src.m_type;
+  // Need some more magic here?
+  m_flags = src.m_flags & mask_type;
 
-  switch (m_type) {
+  switch (type()) {
   case TYPE_NONE:   break;
   case TYPE_VALUE:  m_value = src.m_value; break;
   case TYPE_STRING: m_string = new string_type(*src.m_string); break;
