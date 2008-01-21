@@ -174,7 +174,7 @@ protected:
   bool                should_request();
   bool                try_request_pieces();
 
-  void                send_pex_message();
+  bool                send_pex_message();
 
   // Insert into the poll unless we're blocking for throttling etc.
   void                read_insert_poll_safe();

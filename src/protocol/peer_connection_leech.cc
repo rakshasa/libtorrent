@@ -497,13 +497,15 @@ PeerConnectionLeech::fill_write_buffer() {
     m_peerChunks.cancel_queue()->pop_front();
   }
 
-  if (m_sendPEXMask && m_up->can_write_extension())
-    send_pex_message();
+  if (m_sendPEXMask && m_up->can_write_extension() &&
+      send_pex_message()) {
+    // Don't do anything else if send_pex_message() succeeded.
 
-  else if (!m_upChoke.choked() &&
-           !m_peerChunks.upload_queue()->empty() &&
-           m_up->can_write_piece())
+  } else if (!m_upChoke.choked() &&
+             !m_peerChunks.upload_queue()->empty() &&
+             m_up->can_write_piece()) {
     write_prepare_piece();
+  }
 
   if (is_encrypted())
     m_encryption.encrypt(old_end, m_up->buffer()->end() - old_end);

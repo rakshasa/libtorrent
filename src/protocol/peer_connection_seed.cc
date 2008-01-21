@@ -303,12 +303,14 @@ PeerConnectionSeed::fill_write_buffer() {
     }
   }
 
+  bool wrotePEX = false;
   if (m_sendPEXMask && m_up->can_write_extension())
-    send_pex_message();
+    wrotePEX = send_pex_message();
 
-  else if (!m_upChoke.choked() &&
-           !m_peerChunks.upload_queue()->empty() &&
-           m_up->can_write_piece())
+  if (!wrotePEX &&
+      !m_upChoke.choked() &&
+      !m_peerChunks.upload_queue()->empty() &&
+      m_up->can_write_piece())
     write_prepare_piece();
 }
 

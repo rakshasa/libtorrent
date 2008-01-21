@@ -101,6 +101,11 @@ public:
 
   type_type           type() const                            { return (type_type)(m_flags & mask_type); }
 
+  uint32_t            flags() const                           { return m_flags; }
+
+  void                set_flags(uint32_t f)                   { m_flags |= f & mask_public; }
+  void                unset_flags(uint32_t f)                 { m_flags &= ~(f & mask_public); }
+
   // Add functions for setting/clearing the public flags.
 
   bool                is_value() const                        { return type() == TYPE_VALUE; }

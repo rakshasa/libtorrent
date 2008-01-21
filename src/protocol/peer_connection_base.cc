@@ -817,11 +817,11 @@ PeerConnectionBase::try_request_pieces() {
 // Send one peer exchange message according to bits set in m_sendPEXMask.
 // We can only send one message at a time, because the derived class
 // needs to flush the buffer and call up_extension before the next one.
-void
+bool
 PeerConnectionBase::send_pex_message() {
   if (!m_extensions->is_remote_supported(ProtocolExtension::UT_PEX)) {
     m_sendPEXMask = 0;
-    return;
+    return false;
   }
 
   // Message to tell peer to stop/start doing PEX is small so send it first.
@@ -837,15 +837,19 @@ PeerConnectionBase::send_pex_message() {
   } else if (m_sendPEXMask & PEX_DO && m_extensions->id(ProtocolExtension::UT_PEX)) {
     const DataBuffer& pexMessage = m_download->get_ut_pex(m_extensions->is_initial_pex());
     m_extensions->clear_initial_pex();
-
-    if (!pexMessage.empty())
-      write_prepare_extension(ProtocolExtension::UT_PEX, pexMessage);
-
+ 
     m_sendPEXMask &= ~PEX_DO;
+
+    if (pexMessage.empty())
+      return false;
+
+    write_prepare_extension(ProtocolExtension::UT_PEX, pexMessage);
 
   } else {
     m_sendPEXMask = 0;
   }
+
+  return true;
 }
 
 }
