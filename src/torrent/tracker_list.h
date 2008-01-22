@@ -92,7 +92,7 @@ public:
 
   iterator            promote(iterator itr);
 
-  void                randomize();
+  void                randomize_group_entries();
   void                cycle_group(int group);
 
   DownloadInfo*       info()                                  { return m_info; }

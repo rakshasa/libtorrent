@@ -113,7 +113,7 @@ resume_load_progress(Download download, const Object& object) {
     int64_t mtimeValue = filesItr->get_key_value("mtime");
     bool    fileExists = fs.update(fileList->root_dir() + (*listItr)->path()->as_string());
 
-    // The default action when we have 'mtime' is to not create nor
+    // The default action when we have 'mtime' is not to create nor
     // resize the file.
     (*listItr)->unset_flags(File::flag_create_queued | File::flag_resize_queued);
 

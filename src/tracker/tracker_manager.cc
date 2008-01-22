@@ -179,7 +179,7 @@ TrackerManager::cycle_group(int group) {
 
 void
 TrackerManager::randomize() {
-  m_control->randomize();
+  m_control->randomize_group_entries();
 }
 
 TrackerManager::size_type

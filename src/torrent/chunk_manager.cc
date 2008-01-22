@@ -49,7 +49,6 @@
 namespace torrent {
 
 ChunkManager::ChunkManager() :
-  m_autoMemory(true),
   m_memoryUsage(0),
 
   m_safeSync(false),

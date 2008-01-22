@@ -124,7 +124,7 @@ TrackerList::promote(iterator itr) {
 }
 
 void
-TrackerList::randomize() {
+TrackerList::randomize_group_entries() {
   // Random random random.
   iterator itr = begin();
   

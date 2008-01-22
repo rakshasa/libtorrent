@@ -57,12 +57,6 @@ public:
   ChunkManager();
   ~ChunkManager();
   
-  // The ChunkManager will automatically try to adjust max memory
-  // usage to a resonable value. This should be based on the arch,
-  // ulimit and errors encountered when mmap'ing.
-  bool                auto_memory() const                       { return m_autoMemory; }
-  void                set_auto_memory(bool state)               { m_autoMemory = state; }
-
   uint64_t            memory_usage() const                      { return m_memoryUsage; }
 
   // Should we allow the client to reserve some memory?
@@ -133,8 +127,6 @@ private:
   void operator = (const ChunkManager&);
 
   void                sync_all(int flags, uint64_t target) LIBTORRENT_NO_EXPORT;
-
-  bool                m_autoMemory;
 
   uint64_t            m_memoryUsage;
   uint64_t            m_maxMemoryUsage;

@@ -180,7 +180,7 @@ public:
 
  private:
   // TMP to kill bad uses.
-  explicit Object(type_type t);
+  //  explicit Object(type_type t);
 
   inline bool         check(map_type::const_iterator itr, type_type t) const { return itr != m_map->end() && itr->second.type() == t; }
   inline void         check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
