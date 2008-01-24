@@ -194,7 +194,7 @@ TrackerList::cycle_group(unsigned int group) {
     return;
 
   while (++itr != end() && (*itr)->group() == group) {
-    std::swap(itr, prev);
+    std::iter_swap(itr, prev);
     prev = itr;
   }
 }

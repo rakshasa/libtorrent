@@ -225,7 +225,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
 
     // If the queue isn't empty, then we might still receive some
     // pieces, so don't remove us from throttle.
-    if (!download_queue()->is_downloading() && download_queue()->empty())
+    if (!download_queue()->is_downloading() && download_queue()->queued_empty())
       m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
     // Send uninterested if unchoked, but only _after_ receiving our
@@ -377,7 +377,7 @@ PeerConnectionBase::down_chunk_finished() {
 
   // If we were choked by choke_manager but still had queued pieces,
   // then we might still be in the throttle.
-  if (m_downChoke.choked() && download_queue()->empty())
+  if (m_downChoke.choked() && download_queue()->queued_empty())
     m_download->download_throttle()->erase(m_peerChunks.download_throttle());
 
   write_insert_poll_safe();
@@ -780,18 +780,18 @@ PeerConnectionBase::should_request() {
 
 bool
 PeerConnectionBase::try_request_pieces() {
-  if (download_queue()->empty())
+  if (download_queue()->queued_empty())
     m_downStall = 0;
 
   uint32_t pipeSize = download_queue()->calculate_pipe_size(m_peerChunks.download_throttle()->rate()->rate());
 
   // Don't start requesting if we can't do it in large enough chunks.
-  if (download_queue()->size() >= (pipeSize + 10) / 2)
+  if (download_queue()->queued_size() >= (pipeSize + 10) / 2)
     return false;
 
   bool success = false;
 
-  while (download_queue()->size() < pipeSize && m_up->can_write_request()) {
+  while (download_queue()->queued_size() < pipeSize && m_up->can_write_request()) {
 
     // Delegator should return a vector of pieces, and it should be
     // passed the number of pieces it should delegate. Try to ensure

@@ -81,8 +81,11 @@ public:
 
   bool                 has_index(uint32_t i);
 
-  bool                 empty() const                     { return m_queued.empty(); }
-  size_t               size() const                      { return m_queued.size(); }
+  bool                 queued_empty() const               { return m_queued.empty(); }
+  size_t               queued_size() const                { return m_queued.size(); }
+
+  bool                 canceled_empty() const             { return m_canceled.empty(); }
+  size_t               canceled_size() const              { return m_queued.size(); }
 
   uint32_t             calculate_pipe_size(uint32_t rate);
 

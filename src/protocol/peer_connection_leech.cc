@@ -125,13 +125,14 @@ PeerConnectionLeech::receive_keepalive() {
   // again.
 
   // TODO: Do we need to remove from download throttle here?
+  //
+  // Do we also need to remove from download throttle? Check how it
+  // worked again.
 
-  if (!download_queue()->empty() && m_downStall++ != 0) {
-    if (m_downStall > 6)
-      download_queue()->cancel();
-    else
-      download_queue()->stall();
-  }
+  if (!download_queue()->canceled_empty() && m_downStall >= 6)
+    download_queue()->cancel();
+  else if (!download_queue()->queued_empty() && m_downStall++ != 0)
+    download_queue()->stall();
 
   return true;
 }
