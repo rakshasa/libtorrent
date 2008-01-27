@@ -82,10 +82,10 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
   peerInfo->set_last_connection(cachedTime.seconds());
   peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
-  base_type::push_back(Peer::cast_from(peerConnection));
+  base_type::push_back(peerConnection);
 
   m_download->info()->set_accepting_new_peers(size() < m_maxSize);
-  m_signalConnected(Peer::cast_from(peerConnection));
+  m_signalConnected(peerConnection);
 
   return peerConnection;
 }
@@ -95,7 +95,7 @@ ConnectionList::erase(iterator pos, int flags) {
   if (pos < begin() || pos >= end())
     throw internal_error("ConnectionList::erase(...) iterator out or range.");
 
-  PeerConnectionBase* peerConnection = (*pos)->ptr();
+  PeerConnectionBase* peerConnection = (*pos)->m_ptr();
 
   // The connection must be erased from the list before the signal is
   // emited otherwise some listeners might do stuff with the
@@ -105,13 +105,13 @@ ConnectionList::erase(iterator pos, int flags) {
 
   m_download->info()->set_accepting_new_peers(size() < m_maxSize);
 
-  m_signalDisconnected(Peer::cast_from(peerConnection));
+  m_signalDisconnected(peerConnection);
 
   // Before of after the signal?
   peerConnection->cleanup();
-  peerConnection->peer_info()->set_connection(NULL);
+  peerConnection->mutable_peer_info()->set_connection(NULL);
 
-  m_download->peer_list()->disconnected(peerConnection->peer_info(), PeerList::disconnect_set_time);
+  m_download->peer_list()->disconnected(peerConnection->mutable_peer_info(), PeerList::disconnect_set_time);
 
   // Delete after the signal to ensure the address of 'v' doesn't get
   // allocated for a different PCB in the signal.
@@ -121,7 +121,7 @@ ConnectionList::erase(iterator pos, int flags) {
 
 void
 ConnectionList::erase(PeerInfo* peerInfo, int flags) {
-  iterator itr = std::find(begin(), end(), Peer::cast_from(peerInfo->connection()));
+  iterator itr = std::find(begin(), end(), peerInfo->connection());
 
   if (itr == end())
     return;
@@ -131,7 +131,7 @@ ConnectionList::erase(PeerInfo* peerInfo, int flags) {
 
 void
 ConnectionList::erase(PeerConnectionBase* p, int flags) {
-  erase(std::find(begin(), end(), Peer::cast_from(p)), flags);
+  erase(std::find(begin(), end(), p), flags);
 }
 
 void
@@ -155,16 +155,16 @@ ConnectionList::erase_seeders() {
 struct connection_list_less {
   bool operator () (const Peer* p1, const Peer* p2) const {
     return
-      *rak::socket_address::cast_from(p1->ptr()->c_peer_info()->socket_address()) <
-      *rak::socket_address::cast_from(p2->ptr()->c_peer_info()->socket_address());
+      *rak::socket_address::cast_from(p1->peer_info()->socket_address()) <
+      *rak::socket_address::cast_from(p2->peer_info()->socket_address());
   }
 
   bool operator () (const rak::socket_address& sa1, const Peer* p2) const {
-    return sa1 < *rak::socket_address::cast_from(p2->ptr()->c_peer_info()->socket_address());
+    return sa1 < *rak::socket_address::cast_from(p2->peer_info()->socket_address());
   }
 
   bool operator () (const Peer* p1, const rak::socket_address& sa2) const {
-    return *rak::socket_address::cast_from(p1->ptr()->c_peer_info()->socket_address()) < sa2;
+    return *rak::socket_address::cast_from(p1->peer_info()->socket_address()) < sa2;
   }
 };
 

@@ -498,7 +498,7 @@ Download::update_priorities() {
 
 void
 Download::disconnect_peer(Peer* p) {
-  m_ptr->main()->connection_list()->erase(p->ptr(), 0);
+  m_ptr->main()->connection_list()->erase(p->m_ptr(), 0);
 }
 
 sigc::connection

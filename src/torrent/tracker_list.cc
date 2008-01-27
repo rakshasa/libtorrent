@@ -112,38 +112,6 @@ TrackerList::insert(unsigned int group, Tracker* t) {
   return itr;
 }
 
-TrackerList::iterator
-TrackerList::promote(iterator itr) {
-  iterator first = begin_group((*itr)->group());
-
-  if (first == end())
-    throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group.");
-
-  std::swap(first, itr);
-  return first;
-}
-
-void
-TrackerList::randomize_group_entries() {
-  // Random random random.
-  iterator itr = begin();
-  
-  while (itr != end()) {
-    iterator tmp = end_group((*itr)->group());
-    std::random_shuffle(itr, tmp);
-
-    itr = tmp;
-  }
-}
-
-void
-TrackerList::cycle_group(int group) {
-  Tracker* tb = m_itr != end() ? *m_itr : NULL;
-
-  cycle_group(group);
-  m_itr = find(tb);
-}
-
 uint32_t
 TrackerList::time_next_connection() const {
   return std::max(m_manager->get_next_timeout() - cachedTime, rak::timer()).seconds();
@@ -187,6 +155,8 @@ TrackerList::begin_group(unsigned int group) {
 
 void
 TrackerList::cycle_group(unsigned int group) {
+  Tracker* trackerPtr = m_itr != end() ? *m_itr : NULL;
+
   iterator itr = begin_group(group);
   iterator prev = itr;
 
@@ -196,6 +166,32 @@ TrackerList::cycle_group(unsigned int group) {
   while (++itr != end() && (*itr)->group() == group) {
     std::iter_swap(itr, prev);
     prev = itr;
+  }
+
+  m_itr = find(trackerPtr);
+}
+
+TrackerList::iterator
+TrackerList::promote(iterator itr) {
+  iterator first = begin_group((*itr)->group());
+
+  if (first == end())
+    throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group.");
+
+  std::swap(first, itr);
+  return first;
+}
+
+void
+TrackerList::randomize_group_entries() {
+  // Random random random.
+  iterator itr = begin();
+  
+  while (itr != end()) {
+    iterator tmp = end_group((*itr)->group());
+    std::random_shuffle(itr, tmp);
+
+    itr = tmp;
   }
 }
 

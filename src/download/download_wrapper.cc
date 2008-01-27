@@ -279,12 +279,12 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
         info()->set_pex_active(false);
 
         for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); ++itr)
-          (*itr)->ptr()->set_peer_exchange(false);
+          (*itr)->m_ptr()->set_peer_exchange(false);
       }
     }
 
     for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); )
-      if (!(*itr)->ptr()->receive_keepalive())
+      if (!(*itr)->m_ptr()->receive_keepalive())
         itr = m_main.connection_list()->erase(itr, ConnectionList::disconnect_available);
       else
         itr++;

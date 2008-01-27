@@ -72,8 +72,10 @@ public:
 
   piece_list_type*       upload_queue()             { return &m_uploadQueue; }
   const piece_list_type* upload_queue() const       { return &m_uploadQueue; }
-  piece_list_type*    cancel_queue()                { return &m_cancelQueue; }
+  piece_list_type*       cancel_queue()             { return &m_cancelQueue; }
 
+  // Timer used to figure out what HAVE_PIECE messages have not been
+  // sent.
   rak::timer          have_timer() const            { return m_haveTimer; }
   void                set_have_timer(rak::timer t)  { m_haveTimer = t; }
 

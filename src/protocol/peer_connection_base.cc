@@ -67,8 +67,6 @@ PeerConnectionBase::PeerConnectionBase() :
   m_down(new ProtocolRead()),
   m_up(new ProtocolWrite()),
 
-  m_peerInfo(NULL),
-
   m_downStall(0),
 
   m_downInterested(false),
@@ -81,6 +79,8 @@ PeerConnectionBase::PeerConnectionBase() :
 
   m_encryptBuffer(NULL),
   m_extensions(NULL) {
+
+  m_peerInfo = NULL;
 }
 
 PeerConnectionBase::~PeerConnectionBase() {

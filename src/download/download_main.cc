@@ -309,7 +309,7 @@ DownloadMain::do_peer_exchange() {
   ProtocolExtension::PEXList current;
 
   for (ConnectionList::iterator itr = m_connectionList->begin(); itr != m_connectionList->end(); ++itr) {
-    PeerConnectionBase* pcb = (*itr)->ptr();
+    PeerConnectionBase* pcb = (*itr)->m_ptr();
     const rak::socket_address* sa = rak::socket_address::cast_from(pcb->peer_info()->socket_address());
 
     if (pcb->peer_info()->listen_port() != 0 && sa->family() == rak::socket_address::af_inet)

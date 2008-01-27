@@ -90,11 +90,6 @@ public:
 
   void                send_state(int s);
 
-  iterator            promote(iterator itr);
-
-  void                randomize_group_entries();
-  void                cycle_group(int group);
-
   DownloadInfo*       info()                                  { return m_info; }
   int                 state()                                 { return m_state; }
 
@@ -111,6 +106,9 @@ public:
   iterator            begin_group(unsigned int group);
   iterator            end_group(unsigned int group)           { return begin_group(group + 1); }
   void                cycle_group(unsigned int group);
+
+  iterator            promote(iterator itr);
+  void                randomize_group_entries();
 
   uint32_t            time_next_connection() const;
   uint32_t            time_last_connection() const            { return m_timeLastConnection; }

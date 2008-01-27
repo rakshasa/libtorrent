@@ -41,6 +41,7 @@
 #include "download/choke_manager_node.h"
 #include "net/socket_stream.h"
 #include "torrent/poll.h"
+#include "torrent/peer/peer.h"
 
 #include "encryption_info.h"
 #include "extensions.h"
@@ -63,7 +64,7 @@ namespace torrent {
 
 class DownloadMain;
 
-class PeerConnectionBase : public SocketStream {
+class PeerConnectionBase : public Peer, public SocketStream {
 public:
   typedef ProtocolBase           ProtocolRead;
   typedef ProtocolBase           ProtocolWrite;
@@ -106,8 +107,7 @@ public:
   bool                is_encrypted() const            { return m_encryption.is_encrypted(); }
   bool                is_obfuscated() const           { return m_encryption.is_obfuscated(); }
 
-  PeerInfo*           peer_info()                     { return m_peerInfo; }
-  const PeerInfo*     c_peer_info() const             { return m_peerInfo; }
+  PeerInfo*           mutable_peer_info()             { return m_peerInfo; }
 
   PeerChunks*         peer_chunks()                   { return &m_peerChunks; }
   const PeerChunks*   c_peer_chunks() const           { return &m_peerChunks; }
@@ -185,7 +185,6 @@ protected:
   ProtocolRead*       m_down;
   ProtocolWrite*      m_up;
 
-  PeerInfo*           m_peerInfo;
   PeerChunks          m_peerChunks;
 
   RequestList         m_downloadQueue;

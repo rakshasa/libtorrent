@@ -39,6 +39,7 @@
 
 #include <string>
 #include <torrent/common.h>
+#include <torrent/peer/peer_info.h>
 
 namespace torrent {
 
@@ -53,33 +54,31 @@ class PeerConnectionBase;
 // date. 
 class LIBTORRENT_EXPORT Peer {
 public:
+  Peer() {}
+
   // Does not check if it has been removed from the download.
-  bool                 is_incoming() const;
+  bool                 is_incoming() const                { return peer_info()->is_incoming(); }
   bool                 is_encrypted() const;
   bool                 is_obfuscated() const;
 
-  // For the next API revision, fix these names.
-  bool                 is_local_choked() const;
-  bool                 is_local_interested() const;
+  bool                 is_up_choked() const;
+  bool                 is_up_interested() const;
 
-  bool                 is_remote_choked() const;
-  bool                 is_remote_choked_limited() const;
-  bool                 is_remote_queued() const;
-  bool                 is_remote_interested() const;
+  bool                 is_down_choked() const;
+  bool                 is_down_choked_limited() const;
+  bool                 is_down_queued() const;
+  bool                 is_down_interested() const;
 
   bool                 is_snubbed() const;
   void                 set_snubbed(bool v);
 
-  const HashString&    id() const;
-  const char*          options() const;
-
-  const sockaddr*      address() const;
+  const HashString&    id() const                         { return peer_info()->id(); }
+  const char*          options() const                    { return peer_info()->options(); }
+  const sockaddr*      address() const                    { return peer_info()->socket_address(); }
 
   const Rate*          down_rate() const;
   const Rate*          up_rate() const;
   const Rate*          peer_rate() const;
-
-  const PeerInfo*      info() const;
 
   const Bitfield*      bitfield() const;
 
@@ -90,17 +89,24 @@ public:
 
   uint32_t             chunks_done() const;
 
-  uint32_t             failed_counter() const;
+  uint32_t             failed_counter() const             { return peer_info()->failed_counter(); }
 
-  static Peer*         cast_from(PeerConnectionBase* pcb) { return reinterpret_cast<Peer*>(pcb); }
+  //
+  // New interface:
+  //
 
-  PeerConnectionBase*       ptr()         { return reinterpret_cast<PeerConnectionBase*>(this); }
-  const PeerConnectionBase* ptr() const   { return reinterpret_cast<const PeerConnectionBase*>(this); }
+  const PeerInfo*      peer_info() const                  { return m_peerInfo; }
+
   PeerConnectionBase*       m_ptr()       { return reinterpret_cast<PeerConnectionBase*>(this); }
   const PeerConnectionBase* c_ptr() const { return reinterpret_cast<const PeerConnectionBase*>(this); }
 
- private:
+protected:
+  Peer(const Peer&);
+  void operator = (const Peer&);
+
   bool                 operator == (const Peer& p) const;
+
+  PeerInfo*           m_peerInfo;
 };
 
 }
