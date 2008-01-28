@@ -45,7 +45,6 @@
 #include "data/hash_torrent.h"
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
-#include "net/throttle_manager.h"
 #include "net/listen.h"
 
 #include "torrent/chunk_manager.h"
@@ -53,6 +52,7 @@
 #include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/peer/client_list.h"
+#include "torrent/throttle.h"
 
 #include "manager.h"
 #include "resource_manager.h"
@@ -75,8 +75,8 @@ Manager::Manager() :
 
   m_poll(NULL),
 
-  m_uploadThrottle(new ThrottleManager),
-  m_downloadThrottle(new ThrottleManager),
+  m_uploadThrottle(Throttle::create_throttle()),
+  m_downloadThrottle(Throttle::create_throttle()),
 
   m_ticks(0) {
 
@@ -107,8 +107,8 @@ Manager::~Manager() {
 
   delete m_clientList;
 
-  delete m_uploadThrottle;
-  delete m_downloadThrottle;
+  Throttle::destroy_throttle(m_uploadThrottle);
+  Throttle::destroy_throttle(m_downloadThrottle);
 }
 
 void

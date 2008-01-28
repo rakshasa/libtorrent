@@ -52,6 +52,10 @@
 
 namespace torrent {
 
+// Standard pair of up/down throttles.
+// First element is upload throttle, second element is download throttle.
+typedef std::pair<Throttle*, Throttle*> ThrottlePair;
+
 class LIBTORRENT_EXPORT ConnectionManager {
 public:
   typedef uint32_t                              size_type;
@@ -101,6 +105,8 @@ public:
 
   typedef sigc::slot4<void, const sockaddr*, int, int, const HashString*>   slot_handshake_type;
   typedef sigc::signal4<void, const sockaddr*, int, int, const HashString*> signal_handshake_type;
+
+  typedef sigc::slot1<ThrottlePair, const sockaddr*>  slot_address_throttle_type;
 
   ConnectionManager();
   ~ConnectionManager();
@@ -164,6 +170,12 @@ public:
   port_type           listen_port() const                     { return m_listenPort; }
   void                set_listen_port(port_type p)            { m_listenPort = p; }
 
+  // The slot returns a ThrottlePair to use for the given address, or NULLs to use the default throttle.
+  const slot_address_throttle_type&
+                      address_throttle() const                { return m_slotAddressThrottle; }
+  void                set_address_throttle(const slot_address_throttle_type& s)
+                                                              { m_slotAddressThrottle = s; }
+
   // For internal usage.
   Listen*             listen()                                { return m_listen; }
 
@@ -189,6 +201,7 @@ private:
   slot_filter_type      m_slotFilter;
   signal_handshake_type m_signalHandshakeLog;
   slot_resolver_type    m_slotResolver;
+  slot_address_throttle_type  m_slotAddressThrottle;
 };
 
 }

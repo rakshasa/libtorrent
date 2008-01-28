@@ -92,7 +92,7 @@ class Poll;
 class ProtocolExtension;
 class Rate;
 class SocketSet;
-class Tracker;
+class Throttle;
 class Tracker;
 class TrackerList;
 class TrackerManager;

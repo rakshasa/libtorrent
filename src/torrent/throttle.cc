@@ -36,10 +36,14 @@
 
 #include "config.h"
 
-#include "torrent/exceptions.h"
+#include <rak/timer.h> 
 
-#include "throttle_list.h"
-#include "throttle_manager.h"
+#include "net/throttle_list.h"
+
+#include "globals.h"
+
+#include "exceptions.h"
+#include "throttle.h"
 
 namespace torrent {
 
@@ -49,24 +53,48 @@ namespace torrent {
 // allow us to remove us from the task scheduler when we're full. Also
 // this would let us be abit more flexible with the interval.
 
-ThrottleManager::ThrottleManager() :
-  m_maxRate(0),
-  m_throttleList(new ThrottleList()) {
+class ThrottleInternal : public Throttle {
+public:
+  // Set these as public for now, since they are being used by the
+  // Throttle class, which doesn't actually have access to them.
 
-  m_timeLastTick = cachedTime;
+  rak::timer          m_timeLastTick;
+  rak::priority_item  m_taskTick;
+};
 
-  m_taskTick.set_slot(rak::mem_fn(this, &ThrottleManager::receive_tick));
-}
+Throttle*
+Throttle::create_throttle() {
+  ThrottleInternal* throttle = new ThrottleInternal;
 
-ThrottleManager::~ThrottleManager() {
-  priority_queue_erase(&taskScheduler, &m_taskTick);
-  delete m_throttleList;
+  throttle->m_maxRate = 0;
+  throttle->m_throttleList = new ThrottleList();
+
+  throttle->m_timeLastTick = cachedTime;
+  throttle->m_taskTick.set_slot(rak::mem_fn((Throttle*)throttle, &Throttle::receive_tick));
+
+  return throttle;
 }
 
 void
-ThrottleManager::set_max_rate(uint32_t v) {
+Throttle::destroy_throttle(Throttle* throttle) {
+  priority_queue_erase(&taskScheduler, &throttle->m_ptr()->m_taskTick);
+
+  delete throttle->m_ptr()->m_throttleList;
+  delete throttle->m_ptr();
+}
+
+bool
+Throttle::is_throttled() {
+  return m_maxRate != 0 && m_maxRate != std::numeric_limits<uint32_t>::max();
+}
+
+void
+Throttle::set_max_rate(uint32_t v) {
   if (v == m_maxRate)
     return;
+
+  if (v < 0 || v > (1 << 30))
+    throw input_error("Throttle rate must be between 0 and 2^30.");
 
   uint32_t oldRate = m_maxRate;
   m_maxRate = v;
@@ -77,32 +105,37 @@ ThrottleManager::set_max_rate(uint32_t v) {
   if (oldRate == 0) {
     m_throttleList->enable();
 
-    // We need to start the ticks, and make sure we set m_timeLastTick
+    // We need to start the ticks, and make sure we set timeLastTick
     // to a value that gives an reasonable initial quota.
-    m_timeLastTick = cachedTime - rak::timer::from_seconds(1);
+    m_ptr()->m_timeLastTick = cachedTime - rak::timer::from_seconds(1);
     receive_tick();
 
   } else if (m_maxRate == 0) {
     m_throttleList->disable();
-    priority_queue_erase(&taskScheduler, &m_taskTick);
+    priority_queue_erase(&taskScheduler, &m_ptr()->m_taskTick);
   }
 }
 
-void
-ThrottleManager::receive_tick() {
-  if (cachedTime <= m_timeLastTick + 90000)
-    throw internal_error("ThrottleManager::receive_tick() called at a to short interval.");
+const Rate*
+Throttle::rate() const {
+  return m_throttleList->rate_slow();
+}
 
-  float timeSinceLast = (cachedTime.usec() - m_timeLastTick.usec()) / 1000000.0f;
+void
+Throttle::receive_tick() {
+  if (cachedTime <= m_ptr()->m_timeLastTick + 90000)
+    throw internal_error("Throttle::receive_tick() called at a to short interval.");
+
+  float timeSinceLast = (cachedTime.usec() - m_ptr()->m_timeLastTick.usec()) / 1000000.0f;
 
   m_throttleList->update_quota((uint32_t)(m_maxRate * timeSinceLast));
 
-  priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime + calculate_interval());
-  m_timeLastTick = cachedTime;
+  priority_queue_insert(&taskScheduler, &m_ptr()->m_taskTick, cachedTime + calculate_interval());
+  m_ptr()->m_timeLastTick = cachedTime;
 }
 
 uint32_t
-ThrottleManager::calculate_min_chunk_size() const {
+Throttle::calculate_min_chunk_size() const {
   // Just for each modification, make this into a function, rather
   // than if-else chain.
   if (m_maxRate <= (8 << 10))
@@ -128,13 +161,13 @@ ThrottleManager::calculate_min_chunk_size() const {
 }
 
 uint32_t
-ThrottleManager::calculate_max_chunk_size() const {
+Throttle::calculate_max_chunk_size() const {
   // Make this return a lower value for very low throttle settings.
   return calculate_min_chunk_size() * 4;
 }
 
 uint32_t
-ThrottleManager::calculate_interval() const {
+Throttle::calculate_interval() const {
   uint32_t rate = m_throttleList->rate_slow()->rate();
 
   if (rate < 1024)

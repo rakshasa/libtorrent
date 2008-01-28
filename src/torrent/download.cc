@@ -61,6 +61,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "object.h"
+#include "throttle.h"
 #include "tracker_list.h"
 
 namespace torrent {
@@ -458,6 +459,22 @@ Download::accepting_new_peers() const {
 uint32_t
 Download::uploads_max() const {
   return m_ptr->main()->upload_choke_manager()->max_unchoked();
+}
+
+void
+Download::set_upload_throttle(Throttle* t) {
+  if (m_ptr->info()->is_active())
+    throw internal_error("Download::set_upload_throttle() called on active download.");
+
+  m_ptr->main()->set_upload_throttle(t->throttle_list());
+}
+
+void
+Download::set_download_throttle(Throttle* t) {
+  if (m_ptr->info()->is_active())
+    throw internal_error("Download::set_download_throttle() called on active download.");
+
+  m_ptr->main()->set_download_throttle(t->throttle_list());
 }
   
 void

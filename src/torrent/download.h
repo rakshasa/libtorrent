@@ -175,6 +175,9 @@ public:
   
   void                set_uploads_max(uint32_t v);
 
+  void                set_upload_throttle(Throttle* t);
+  void                set_download_throttle(Throttle* t);
+
   typedef enum {
     CONNECTION_LEECH,
     CONNECTION_SEED

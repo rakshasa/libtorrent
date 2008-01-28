@@ -40,12 +40,12 @@
 #include <algorithm>
 #include <sstream>
 
-#include "net/throttle_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
 #include "torrent/poll.h"
+#include "torrent/throttle.h"
 #include "tracker/tracker_dht.h"
 
 #include "dht_bucket.h"

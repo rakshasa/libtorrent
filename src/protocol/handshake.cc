@@ -39,11 +39,11 @@
 #include "download/download_info.h"
 #include "download/download_main.h"
 #include "net/throttle_list.h"
-#include "net/throttle_manager.h"
 #include "torrent/dht_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/error.h"
 #include "torrent/poll.h"
+#include "torrent/throttle.h"
 #include "utils/diffie_hellman.h"
 
 #include "globals.h"

@@ -57,7 +57,7 @@ class ResourceManager;
 class PeerInfo;
 class ChunkManager;
 class ConnectionManager;
-class ThrottleManager;
+class Throttle;
 class DhtManager;
 
 typedef std::list<std::string> EncodingList;
@@ -83,8 +83,8 @@ public:
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
 
-  ThrottleManager*    upload_throttle()                         { return m_uploadThrottle; }
-  ThrottleManager*    download_throttle()                       { return m_downloadThrottle; }
+  Throttle*           upload_throttle()                         { return m_uploadThrottle; }
+  Throttle*           download_throttle()                       { return m_downloadThrottle; }
 
   void                initialize_download(DownloadWrapper* d);
   void                cleanup_download(DownloadWrapper* d);
@@ -106,8 +106,8 @@ private:
 
   EncodingList        m_encodingList;
 
-  ThrottleManager*    m_uploadThrottle;
-  ThrottleManager*    m_downloadThrottle;
+  Throttle*           m_uploadThrottle;
+  Throttle*           m_downloadThrottle;
 
   unsigned int        m_ticks;
   rak::priority_item  m_taskTick;

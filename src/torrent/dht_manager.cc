@@ -37,10 +37,10 @@
 #include "config.h"
 
 #include <torrent/exceptions.h>
+#include <torrent/throttle.h>
 
 #include "manager.h"
 #include "dht/dht_router.h"
-#include "net/throttle_manager.h"
 
 #include "dht_manager.h"
 
@@ -108,6 +108,14 @@ DhtManager::get_statistics() const {
 void
 DhtManager::reset_statistics() {
   m_router->reset_statistics();
+}
+
+void
+DhtManager::set_upload_throttle(Throttle* t) {
+}
+
+void
+DhtManager::set_download_throttle(Throttle* t) {
 }
 
 }

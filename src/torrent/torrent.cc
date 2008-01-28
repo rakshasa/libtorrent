@@ -44,14 +44,13 @@
 #include "torrent.h"
 #include "object.h"
 #include "object_stream.h"
+#include "throttle.h"
 #include "connection_manager.h"
 #include "poll.h"
 
 #include "manager.h"
 #include "resource_manager.h"
 
-#include "net/throttle_list.h"
-#include "net/throttle_manager.h"
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_factory.h"
 #include "data/file_manager.h"
@@ -186,30 +185,14 @@ next_timeout() {
     return rak::timer::from_seconds(60).usec();
 }
 
-int32_t
-down_throttle() {
-  return manager->download_throttle()->max_rate();
+Throttle*
+down_throttle_global() {
+  return manager->download_throttle();
 }
 
-void
-set_down_throttle(int32_t bytes) {
-  if (bytes < 0 || bytes > (1 << 30))
-    throw input_error("Download throttle must be between 0 and 2^30.");
-
-  return manager->download_throttle()->set_max_rate(bytes);
-}
-
-int32_t
-up_throttle() {
-  return manager->upload_throttle()->max_rate();
-}
-
-void
-set_up_throttle(int32_t bytes) {
-  if (bytes < 0 || bytes > (1 << 30))
-    throw input_error("Upload throttle must be between 0 and 2^30.");
-
-  return manager->upload_throttle()->set_max_rate(bytes);
+Throttle*
+up_throttle_global() {
+  return manager->upload_throttle();
 }
 
 uint32_t
@@ -250,12 +233,12 @@ set_max_download_unchoked(uint32_t count) {
 
 const Rate*
 down_rate() {
-  return manager->download_throttle()->throttle_list()->rate_slow();
+  return manager->download_throttle()->rate();
 }
 
 const Rate*
 up_rate() {
-  return manager->upload_throttle()->throttle_list()->rate_slow();
+  return manager->upload_throttle()->rate();
 }
 
 const char*

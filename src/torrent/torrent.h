@@ -69,15 +69,8 @@ DhtManager*         dht_manager() LIBTORRENT_EXPORT;
 
 uint32_t            total_handshakes() LIBTORRENT_EXPORT;
 
-// These should really be unsigned, but there was a bug in the
-// client. ;( Fix this later.
-//
-// 0 == UNLIMITED.
-int32_t             down_throttle() LIBTORRENT_EXPORT;
-void                set_down_throttle(int32_t bytes) LIBTORRENT_EXPORT;
-
-int32_t             up_throttle() LIBTORRENT_EXPORT;
-void                set_up_throttle(int32_t bytes) LIBTORRENT_EXPORT;
+Throttle*           down_throttle_global() LIBTORRENT_EXPORT;
+Throttle*           up_throttle_global() LIBTORRENT_EXPORT;
 
 uint32_t            currently_unchoked() LIBTORRENT_EXPORT;
 uint32_t            max_unchoked() LIBTORRENT_EXPORT;

@@ -34,41 +34,48 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_THROTTLE_MANAGER_H
-#define LIBTORRENT_NET_THROTTLE_MANAGER_H
+#ifndef LIBTORRENT_TORRENT_THROTTLE_H
+#define LIBTORRENT_TORRENT_THROTTLE_H
 
-#include <rak/timer.h>
-
-#include "globals.h"
+#include <torrent/common.h>
 
 namespace torrent {
 
 class ThrottleList;
+class ThrottleInternal;
 
-class ThrottleManager {
+class LIBTORRENT_EXPORT Throttle {
 public:
+  static Throttle*    create_throttle();
+  static void         destroy_throttle(Throttle* throttle);
 
-  ThrottleManager();
-  ~ThrottleManager();
+  bool                is_throttled();
 
-  uint32_t            max_rate() const         { return m_maxRate; }
+  // 0 == UNLIMITED.
+  uint32_t            max_rate() const { return m_maxRate; }
   void                set_max_rate(uint32_t v);
 
-  ThrottleList*       throttle_list()          { return m_throttleList; }
+  const Rate*         rate() const;
+
+  ThrottleList*       throttle_list()  { return m_throttleList; }
+
+protected:
+  Throttle() {}
+  ~Throttle() {}
+
+  ThrottleInternal*       m_ptr()       { return reinterpret_cast<ThrottleInternal*>(this); }
+  const ThrottleInternal* c_ptr() const { return reinterpret_cast<const ThrottleInternal*>(this); }
 
 private:
-  void                receive_tick();
+  void                receive_tick() LIBTORRENT_NO_EXPORT;
 
-  uint32_t            calculate_min_chunk_size() const;
-  uint32_t            calculate_max_chunk_size() const;
-  uint32_t            calculate_interval() const;
+  uint32_t            calculate_min_chunk_size() const LIBTORRENT_NO_EXPORT;
+  uint32_t            calculate_max_chunk_size() const LIBTORRENT_NO_EXPORT;
+  uint32_t            calculate_interval() const LIBTORRENT_NO_EXPORT;
 
   uint32_t            m_maxRate;
 
   ThrottleList*       m_throttleList;
-
-  rak::timer          m_timeLastTick;
-  rak::priority_item  m_taskTick;
 };
 
 }
