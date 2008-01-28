@@ -94,8 +94,8 @@ public:
 
   // Make these protected?
   iterator            erase(iterator pos, int flags);
+  void                erase(Peer* p, int flags);
   void                erase(PeerInfo* peerInfo, int flags);
-  void                erase(PeerConnectionBase* p, int flags);
 
   void                erase_remaining(iterator pos, int flags);
   void                erase_seeders();

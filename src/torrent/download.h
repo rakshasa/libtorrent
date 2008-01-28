@@ -191,8 +191,6 @@ public:
   // all the peer bitfields to see if we are still interested.
   void                update_priorities();
 
-  void                disconnect_peer(Peer* p);
-
   typedef sigc::slot0<void>                                          slot_void_type;
   typedef sigc::slot1<void, const std::string&>                      slot_string_type;
 

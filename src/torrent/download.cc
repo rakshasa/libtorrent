@@ -513,11 +513,6 @@ Download::update_priorities() {
   m_ptr->receive_update_priorities();
 }
 
-void
-Download::disconnect_peer(Peer* p) {
-  m_ptr->main()->connection_list()->erase(p->m_ptr(), 0);
-}
-
 sigc::connection
 Download::signal_download_done(Download::slot_void_type s) {
   return m_ptr->signal_download_done().connect(s);

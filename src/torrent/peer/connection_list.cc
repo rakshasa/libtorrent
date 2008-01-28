@@ -120,6 +120,11 @@ ConnectionList::erase(iterator pos, int flags) {
 }
 
 void
+ConnectionList::erase(Peer* p, int flags) {
+  erase(std::find(begin(), end(), p), flags);
+}
+
+void
 ConnectionList::erase(PeerInfo* peerInfo, int flags) {
   iterator itr = std::find(begin(), end(), peerInfo->connection());
 
@@ -127,11 +132,6 @@ ConnectionList::erase(PeerInfo* peerInfo, int flags) {
     return;
 
   erase(itr, flags);
-}
-
-void
-ConnectionList::erase(PeerConnectionBase* p, int flags) {
-  erase(std::find(begin(), end(), p), flags);
 }
 
 void
