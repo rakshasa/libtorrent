@@ -40,6 +40,9 @@
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 
+// For SACompact...
+#include "download/download_info.h"
+
 #include "dht_node.h"
 
 namespace torrent {
@@ -73,9 +76,11 @@ DhtNode::DhtNode(const std::string& id, const Object& cache) :
 char*
 DhtNode::store_compact(char* buffer) const {
   HashString::cast_from(buffer)->assign(data());
-  *(uint32_t*) (buffer+20) = address()->sa_inet()->address_n();
-  *(uint16_t*) (buffer+24) = address()->sa_inet()->port_n();
-  return buffer+26;
+
+  SocketAddressCompact sa(address()->sa_inet());
+  std::memcpy(buffer + 20, sa.c_str(), 6);
+
+  return buffer + 26;
 }
 
 Object*

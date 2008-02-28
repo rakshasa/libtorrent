@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TRACKER_INFO_H
-#define LIBTORRENT_TRACKER_INFO_H
+#ifndef LIBTORRENT_DOWNLOAD_INFO_H
+#define LIBTORRENT_DOWNLOAD_INFO_H
 
 #include <list>
 #include <string>
@@ -189,6 +189,7 @@ private:
 struct SocketAddressCompact {
   SocketAddressCompact() {}
   SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
+  SocketAddressCompact(const rak::socket_address_inet* sa) : addr(sa->address_n()), port(sa->port_n()) {}
 
   operator rak::socket_address () const {
     rak::socket_address sa;
