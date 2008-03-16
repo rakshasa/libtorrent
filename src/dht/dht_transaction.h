@@ -269,12 +269,14 @@ public:
 protected:
   DhtTransaction(int quick_timeout, int timeout, const HashString& id, const rak::socket_address* sa);
 
-  bool                 m_hasQuickTimeout;
+  // m_id must be the first element to ensure it is aligned properly,
+  // because we later read a size_t value from it.
+  const HashString       m_id;
+  bool                   m_hasQuickTimeout;
 
 private:
   DhtTransaction(const DhtTransaction& t);
 
-  HashString             m_id;
   rak::socket_address    m_sa;
   int                    m_timeout;
   int                    m_quickTimeout;

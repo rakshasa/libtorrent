@@ -38,24 +38,19 @@
 
 #include "peer_factory.h"
 #include "peer_connection_leech.h"
-#include "peer_connection_seed.h"
 
 namespace torrent {
 
 PeerConnectionBase*
 createPeerConnectionDefault(bool encrypted) {
-  PeerConnectionBase* pc = new PeerConnectionLeech;
+  PeerConnectionBase* pc = new PeerConnection<Download::CONNECTION_LEECH>;
 
   return pc;
 }
 
 PeerConnectionBase*
 createPeerConnectionSeed(bool encrypted) {
-  PeerConnectionBase* pc;
-  if (encrypted)
-    pc = new PeerConnectionLeech;   // PCS doesn't have encryption support
-  else
-    pc = new PeerConnectionSeed;
+  PeerConnectionBase* pc = new PeerConnection<Download::CONNECTION_SEED>;
 
   return pc;
 }

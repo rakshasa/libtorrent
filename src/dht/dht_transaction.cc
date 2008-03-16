@@ -272,8 +272,8 @@ DhtTransactionPacket::build_buffer(const Object& data) {
 }
 
 DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString& id, const rak::socket_address* sa)
-  : m_hasQuickTimeout(quick_timeout > 0),
-    m_id(id),
+  : m_id(id),
+    m_hasQuickTimeout(quick_timeout > 0),
     m_sa(*sa),
     m_timeout(cachedTime.seconds() + timeout),
     m_quickTimeout(cachedTime.seconds() + quick_timeout),

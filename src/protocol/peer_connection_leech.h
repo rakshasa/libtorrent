@@ -39,11 +39,14 @@
 
 #include "peer_connection_base.h"
 
+#include "torrent/download.h"
+
 namespace torrent {
 
-class PeerConnectionLeech : public PeerConnectionBase {
+template<Download::ConnectionType type>
+class PeerConnection : public PeerConnectionBase {
 public:
-  ~PeerConnectionLeech();
+  ~PeerConnection();
 
   virtual void        initialize_custom();
   virtual void        update_interested();
