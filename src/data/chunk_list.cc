@@ -117,7 +117,7 @@ ChunkList::get(size_type index, bool writable) {
     Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
     if (chunk == NULL)
-      return ChunkHandle::from_error(rak::error_number::current());
+      return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
 
     // Would be cleaner to do this before creating the chunk.
     if (!m_manager->allocate(chunk->chunk_size())) {
@@ -132,7 +132,7 @@ ChunkList::get(size_type index, bool writable) {
     Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
     if (chunk == NULL)
-      return ChunkHandle::from_error(rak::error_number::current());
+      return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
 
     delete node->chunk();
 
