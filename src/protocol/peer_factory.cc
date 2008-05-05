@@ -55,4 +55,11 @@ createPeerConnectionSeed(bool encrypted) {
   return pc;
 }
 
+PeerConnectionBase*
+createPeerConnectionInitialSeed(bool encrypted) {
+  PeerConnectionBase* pc = new PeerConnection<Download::CONNECTION_INITIAL_SEED>;
+
+  return pc;
+}
+
 }

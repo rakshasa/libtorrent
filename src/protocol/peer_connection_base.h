@@ -136,6 +136,10 @@ public:
 
   void                cancel_transfer(BlockTransfer* transfer);
 
+  // Insert into the poll unless we're blocking for throttling etc.
+  void                read_insert_poll_safe();
+  void                write_insert_poll_safe();
+
 protected:
   static const uint32_t extension_must_encrypt = ~uint32_t();
 
@@ -175,10 +179,6 @@ protected:
   bool                try_request_pieces();
 
   bool                send_pex_message();
-
-  // Insert into the poll unless we're blocking for throttling etc.
-  void                read_insert_poll_safe();
-  void                write_insert_poll_safe();
 
   DownloadMain*       m_download;
 

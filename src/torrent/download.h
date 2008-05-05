@@ -180,7 +180,8 @@ public:
 
   typedef enum {
     CONNECTION_LEECH,
-    CONNECTION_SEED
+    CONNECTION_SEED,
+    CONNECTION_INITIAL_SEED,
   } ConnectionType;
 
   ConnectionType      connection_type() const;

@@ -42,8 +42,11 @@
 #include "data/chunk_list.h"
 #include "protocol/extensions.h"
 #include "protocol/handshake_manager.h"
+#include "protocol/initial_seed.h"
 #include "protocol/peer_connection_base.h"
+#include "protocol/peer_factory.h"
 #include "tracker/tracker_manager.h"
+#include "torrent/download.h"
 #include "torrent/exceptions.h"
 #include "torrent/data/file_list.h"
 #include "torrent/peer/connection_list.h"
@@ -56,6 +59,8 @@
 #include "chunk_statistics.h"
 #include "download_info.h"
 #include "download_main.h"
+#include "download_manager.h"
+#include "download_wrapper.h"
 
 namespace torrent {
 
@@ -67,6 +72,7 @@ DownloadMain::DownloadMain() :
   m_chunkSelector(new ChunkSelector),
   m_chunkStatistics(new ChunkStatistics),
 
+  m_initialSeeding(NULL),
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
 
@@ -191,10 +197,47 @@ DownloadMain::stop() {
   info()->set_active(false);
 
   m_slotStopHandshakes(this);
-
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
+  delete m_initialSeeding;
+
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
+}
+
+bool
+DownloadMain::start_initial_seeding() {
+  if (!file_list()->is_done())
+    return false;
+
+  m_initialSeeding = new InitialSeeding(this);
+  return true;
+}
+
+void
+DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
+  if (m_initialSeeding == NULL)
+    throw internal_error("DownloadMain::initial_seeding_done called when not initial seeding.");
+
+  // Close all connections but the currently active one (pcb).
+  // That one will be closed by throw close_connection() later.
+  if (m_connectionList->size() > 1) {
+    ConnectionList::iterator itr = std::find(m_connectionList->begin(), m_connectionList->end(), pcb);
+    if (itr == m_connectionList->end())
+      throw internal_error("DownloadMain::initial_seeding_done could not find current connection.");
+
+    std::iter_swap(m_connectionList->begin(), itr);
+    m_connectionList->erase_remaining(m_connectionList->begin() + 1, ConnectionList::disconnect_available);
+  }
+
+  // Switch to normal seeding.
+  DownloadManager::iterator itr = manager->download_manager()->find(m_info);
+  (*itr)->set_connection_type(Download::CONNECTION_SEED);
+  m_connectionList->slot_new_connection(&createPeerConnectionSeed);
+  delete m_initialSeeding;
+  m_initialSeeding = NULL;
+
+  // And close the current connection.
+  throw close_connection();
 }
 
 void

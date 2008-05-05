@@ -10,6 +10,8 @@ libsub_protocol_la_SOURCES = \
 	handshake_encryption.h \
         handshake_manager.cc \
         handshake_manager.h \
+	initial_seed.cc \
+	initial_seed.h \
 	peer_chunks.h \
 	peer_connection_base.cc \
 	peer_connection_base.h \

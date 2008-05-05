@@ -50,6 +50,7 @@
 #include "torrent/peer/peer_info.h"
 
 #include "extensions.h"
+#include "initial_seed.h"
 #include "peer_connection_leech.h"
 
 namespace torrent {
@@ -65,6 +66,16 @@ PeerConnection<type>::~PeerConnection() {
 template<Download::ConnectionType type>
 void
 PeerConnection<type>::initialize_custom() {
+  if (type == Download::CONNECTION_INITIAL_SEED) {
+    if (m_download->initial_seeding() == NULL) {
+      // Can't throw close_connection or network_error here, we're still
+      // initializing. So close the socket and let that kill it later.
+      get_fd().close();
+      return;
+    }
+
+    m_download->initial_seeding()->new_peer(this);
+  }
 //   if (m_download->content()->chunks_completed() != 0) {
 //     m_up->write_bitfield(m_download->file_list()->bitfield()->size_bytes());
 
@@ -77,7 +88,7 @@ PeerConnection<type>::initialize_custom() {
 template<Download::ConnectionType type>
 void
 PeerConnection<type>::update_interested() {
-  if (type == Download::CONNECTION_SEED)
+  if (type != Download::CONNECTION_LEECH)
     return;
 
   m_peerChunks.download_cache()->clear();
@@ -117,7 +128,7 @@ PeerConnection<type>::receive_keepalive() {
       m_encryption.encrypt(old_end, m_up->buffer()->end() - old_end);
   }
 
-  if (type == Download::CONNECTION_SEED)
+  if (type != Download::CONNECTION_LEECH)
     return true;
 
   m_tryRequest = true;
@@ -192,7 +203,7 @@ PeerConnection<type>::read_message() {
 
   switch (buf->read_8()) {
   case ProtocolBase::CHOKE:
-    if (type == Download::CONNECTION_SEED)
+    if (type != Download::CONNECTION_LEECH)
       return true;
 
     // Cancel before dequeueing so receive_download_choke knows if it
@@ -212,7 +223,7 @@ PeerConnection<type>::read_message() {
     return true;
 
   case ProtocolBase::UNCHOKE:
-    if (type == Download::CONNECTION_SEED)
+    if (type != Download::CONNECTION_LEECH)
       return true;
 
     m_downUnchoked = true;
@@ -258,7 +269,7 @@ PeerConnection<type>::read_message() {
     return true;
 
   case ProtocolBase::PIECE:
-    if (type == Download::CONNECTION_SEED)
+    if (type != Download::CONNECTION_LEECH)
       throw communication_error("Received a piece but the connection is strictly for seeding.");
 
     if (!m_down->can_read_piece_body())
@@ -381,7 +392,7 @@ PeerConnection<type>::event_read() {
         }
 
       case ProtocolRead::READ_PIECE:
-        if (type == Download::CONNECTION_SEED)
+        if (type != Download::CONNECTION_LEECH)
           return;
 
         if (!download_queue()->is_downloading())
@@ -401,7 +412,7 @@ PeerConnection<type>::event_read() {
         break;
 
       case ProtocolRead::READ_SKIP_PIECE:
-        if (type == Download::CONNECTION_SEED)
+        if (type != Download::CONNECTION_LEECH)
           return;
 
         if (download_queue()->transfer()->is_leader()) {
@@ -489,12 +500,12 @@ PeerConnection<type>::fill_write_buffer() {
   // e.g. BitTornado 0.7.14 and uTorrent 0.3.0, disconnect if a
   // request has been received while uninterested. The problem arises
   // as they send unchoke before receiving interested.
-  if (type != Download::CONNECTION_SEED && m_sendInterested && m_up->can_write_interested()) {
+  if (type == Download::CONNECTION_LEECH && m_sendInterested && m_up->can_write_interested()) {
     m_up->write_interested(m_downInterested);
     m_sendInterested = false;
   }
 
-  if (type != Download::CONNECTION_SEED && m_tryRequest) {
+  if (type == Download::CONNECTION_LEECH && m_tryRequest) {
     if (!(m_tryRequest = !should_request()) &&
         !(m_tryRequest = try_request_pieces()) &&
 
@@ -508,7 +519,7 @@ PeerConnection<type>::fill_write_buffer() {
 
   DownloadMain::have_queue_type* haveQueue = m_download->have_queue();
 
-  if (type != Download::CONNECTION_SEED && 
+  if (type == Download::CONNECTION_LEECH && 
       !haveQueue->empty() &&
       m_peerChunks.have_timer() <= haveQueue->front().first &&
       m_up->can_write_have()) {
@@ -522,7 +533,10 @@ PeerConnection<type>::fill_write_buffer() {
     m_peerChunks.set_have_timer(last->first + 1);
   }
 
-  while (type != Download::CONNECTION_SEED && !m_peerChunks.cancel_queue()->empty() && m_up->can_write_cancel()) {
+  if (type == Download::CONNECTION_INITIAL_SEED && m_up->can_write_have())
+    offer_chunk();
+
+  while (type == Download::CONNECTION_LEECH && !m_peerChunks.cancel_queue()->empty() && m_up->can_write_cancel()) {
     m_up->write_cancel(m_peerChunks.cancel_queue()->front());
     m_peerChunks.cancel_queue()->pop_front();
   }
@@ -533,7 +547,8 @@ PeerConnection<type>::fill_write_buffer() {
 
   } else if (!m_upChoke.choked() &&
              !m_peerChunks.upload_queue()->empty() &&
-             m_up->can_write_piece()) {
+             m_up->can_write_piece() &&
+             (type != Download::CONNECTION_INITIAL_SEED || should_upload())) {
     write_prepare_piece();
   }
 
@@ -638,14 +653,20 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
 
   m_download->chunk_statistics()->received_have_chunk(&m_peerChunks, index, m_download->file_list()->chunk_size());
 
+  if (type == Download::CONNECTION_INITIAL_SEED)
+    m_download->initial_seeding()->chunk_seen(index, this);
+
+  // Disconnect seeds when we are seeding (but not for initial seeding
+  // so that we keep accurate chunk statistics until that is done).
   if (m_peerChunks.bitfield()->is_all_set()) {
-    if (type == Download::CONNECTION_SEED || m_download->file_list()->is_done())
+    if (type == Download::CONNECTION_SEED || 
+        (type != Download::CONNECTION_INITIAL_SEED && m_download->file_list()->is_done()))
       throw close_connection();
 
     m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
   }
 
-  if (type == Download::CONNECTION_SEED || m_download->file_list()->is_done())
+  if (type != Download::CONNECTION_LEECH || m_download->file_list()->is_done())
     return;
 
   if (is_down_interested()) {
@@ -676,8 +697,56 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
   }
 }
 
-// Explicit instatiation of the member functions and vtable.
+template<>
+void
+PeerConnection<Download::CONNECTION_INITIAL_SEED>::offer_chunk() {
+  // If bytes left to send in this chunk minus bytes about to be sent is zero,
+  // assume the peer will have got the chunk completely. In that case we may
+  // get another one to offer if not enough other peers are interested even
+  // if the peer would otherwise still be blocked.
+  uint32_t bytesLeft = m_data.bytesLeft;
+  if (!m_peerChunks.upload_queue()->empty() && m_peerChunks.upload_queue()->front().index() == m_data.lastIndex)
+    bytesLeft -= m_peerChunks.upload_queue()->front().length();
+
+  uint32_t index = m_download->initial_seeding()->chunk_offer(this, bytesLeft == 0 ? m_data.lastIndex : InitialSeeding::no_offer);
+
+  if (index == InitialSeeding::no_offer || index == m_data.lastIndex)
+    return;
+
+  m_up->write_have(index);
+  m_data.lastIndex = index;
+  m_data.bytesLeft = m_download->file_list()->chunk_index_size(index);
+}
+
+template<>
+bool
+PeerConnection<Download::CONNECTION_INITIAL_SEED>::should_upload() {
+  // For initial seeding, check if chunk is well seeded now, and if so
+  // remove it from the queue to better use our bandwidth on rare chunks.
+  while (!m_peerChunks.upload_queue()->empty() &&
+         !m_download->initial_seeding()->should_upload(m_peerChunks.upload_queue()->front().index()))
+    m_peerChunks.upload_queue()->pop_front();
+
+  // If queue ends up empty, choke peer to let it know that it
+  // shouldn't wait for the cancelled pieces to be sent.
+  if (m_peerChunks.upload_queue()->empty()) {
+    m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
+    m_download->upload_choke_manager()->set_queued(this, &m_upChoke);
+
+  // If we're sending the chunk we last offered, adjust bytes left in it.
+  } else if (m_peerChunks.upload_queue()->front().index() == m_data.lastIndex) {
+    m_data.bytesLeft -= m_peerChunks.upload_queue()->front().length();
+
+    if (!m_data.bytesLeft)
+      m_data.lastIndex = InitialSeeding::no_offer;
+  }
+
+  return !m_peerChunks.upload_queue()->empty();
+}
+
+// Explicit instantiation of the member functions and vtable.
 template class PeerConnection<Download::CONNECTION_LEECH>;
 template class PeerConnection<Download::CONNECTION_SEED>;
+template class PeerConnection<Download::CONNECTION_INITIAL_SEED>;
 
 }

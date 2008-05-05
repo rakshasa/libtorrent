@@ -43,6 +43,7 @@ class PeerConnectionBase;
 
 PeerConnectionBase* createPeerConnectionDefault(bool encrypted);
 PeerConnectionBase* createPeerConnectionSeed(bool encrypted);
+PeerConnectionBase* createPeerConnectionInitialSeed(bool encrypted);
 
 }
 

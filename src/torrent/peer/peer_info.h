@@ -47,12 +47,15 @@ public:
   friend class ConnectionList;
   friend class Handshake;
   friend class HandshakeManager;
+  friend class InitialSeeding;
   friend class PeerList;
   friend class ProtocolExtension;
 
   static const int flag_connected = (1 << 0);
   static const int flag_incoming  = (1 << 1);
   static const int flag_handshake = (1 << 2);
+  static const int flag_blocked   = (1 << 3);   // For initial seeding.
+  static const int flag_restart   = (1 << 4);
 
   PeerInfo(const sockaddr* address);
   ~PeerInfo();
@@ -60,6 +63,8 @@ public:
   bool                is_connected() const                  { return m_flags & flag_connected; }
   bool                is_incoming() const                   { return m_flags & flag_incoming; }
   bool                is_handshake() const                  { return m_flags & flag_handshake; }
+  bool                is_blocked() const                    { return m_flags & flag_blocked; }
+  bool                is_restart() const                    { return m_flags & flag_restart; }
 
   int                 flags() const                         { return m_flags; }
 

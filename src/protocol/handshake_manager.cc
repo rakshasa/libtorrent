@@ -194,7 +194,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 
       // We need to make libtorrent more selective in the clients it
       // connects to, and to move this somewhere else.
-      (!download->file_list()->is_done() || !handshake->bitfield()->is_all_set()) &&
+      (!download->file_list()->is_done() || !handshake->bitfield()->is_all_set() || download->initial_seeding() != NULL) &&
 
       (pcb = download->connection_list()->insert(handshake->peer_info(),
                                                  handshake->get_fd(),

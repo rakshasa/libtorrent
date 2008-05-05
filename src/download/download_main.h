@@ -65,6 +65,7 @@ class HandshakeManager;
 class TrackerManager;
 class DownloadInfo;
 class ThrottleList;
+class InitialSeeding;
 
 class DownloadMain {
 public:
@@ -94,6 +95,10 @@ public:
   Delegator*          delegator()                                { return &m_delegator; }
 
   have_queue_type*    have_queue()                               { return &m_haveQueue; }
+
+  InitialSeeding*     initial_seeding()                          { return m_initialSeeding; }
+  bool                start_initial_seeding();
+  void                initial_seeding_done(PeerConnectionBase* pcb);
 
   ConnectionList*     connection_list()                          { return m_connectionList; }
   FileList*           file_list()                                { return &m_fileList; }
@@ -157,6 +162,7 @@ private:
 
   Delegator           m_delegator;
   have_queue_type     m_haveQueue;
+  InitialSeeding*     m_initialSeeding;
 
   ConnectionList*     m_connectionList;
   FileList            m_fileList;

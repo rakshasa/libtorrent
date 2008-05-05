@@ -106,6 +106,11 @@ Download::start(int flags) {
 //   file_list()->open(flags);
   file_list()->open(flags & ~FileList::open_no_create);
 
+  if (m_ptr->connection_type() == CONNECTION_INITIAL_SEED) {
+    if (!m_ptr->main()->start_initial_seeding()) 
+      set_connection_type(CONNECTION_SEED);
+  }
+
   m_ptr->main()->start();
   m_ptr->main()->tracker_manager()->set_active(true);
 
@@ -500,6 +505,11 @@ Download::set_connection_type(ConnectionType t) {
     break;
   case CONNECTION_SEED:
     m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionSeed);
+    break;
+  case CONNECTION_INITIAL_SEED:
+    if (is_active() && m_ptr->main()->initial_seeding() == NULL)
+      throw input_error("Can't switch to initial seeding: download is active.");
+    m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionInitialSeed);
     break;
   default:
     throw input_error("torrent::Download::set_connection_type(...) received an unknown type.");

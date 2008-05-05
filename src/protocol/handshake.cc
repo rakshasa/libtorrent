@@ -526,10 +526,16 @@ Handshake::read_peer() {
 
   // The download is just starting so we're not sending any
   // bitfield. Pretend we wrote it already.
-  if (m_download->file_list()->bitfield()->is_all_unset())
+  if (m_download->file_list()->bitfield()->is_all_unset() || m_download->initial_seeding() != NULL) {
     m_writePos = m_download->file_list()->bitfield()->size_bytes();
-  else
+    m_writeBuffer.write_32(0);
+
+    if (m_encryption.info()->is_encrypted())
+      m_encryption.info()->encrypt(m_writeBuffer.end() - 4, 4);
+
+  } else {
     prepare_bitfield();
+  }
 
   m_state = READ_MESSAGE;
   manager->poll()->insert_write(this);
@@ -621,7 +627,7 @@ Handshake::read_done() {
   // still reading the bitfield/extension and postponed it. If we had no
   // bitfield to send, we need to send a keep-alive now.
   if (m_writePos == m_download->file_list()->bitfield()->size_bytes())
-    prepare_post_handshake(m_download->file_list()->bitfield()->is_all_unset());
+    prepare_post_handshake(m_download->file_list()->bitfield()->is_all_unset() || m_download->initial_seeding() != NULL);
 
   if (m_writeDone)
     throw handshake_succeeded();

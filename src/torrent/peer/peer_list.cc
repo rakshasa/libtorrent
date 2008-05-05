@@ -306,7 +306,8 @@ PeerList::cull_peers(int flags) {
         itr->second->transfer_counter() != 0 ||
         itr->second->last_connection() >= timer ||
 
-        (flags & cull_keep_interesting && itr->second->failed_counter() != 0)) {
+        (flags & cull_keep_interesting && 
+         (itr->second->failed_counter() != 0 || itr->second->is_blocked()))) {
       itr++;
       continue;
     }
