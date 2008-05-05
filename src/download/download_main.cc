@@ -200,6 +200,7 @@ DownloadMain::stop() {
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
   delete m_initialSeeding;
+  m_initialSeeding = NULL;
 
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
 }
