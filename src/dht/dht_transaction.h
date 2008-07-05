@@ -77,7 +77,7 @@ struct dht_compare_closer : public std::binary_function<const DhtNode*, const Dh
   const HashString&               target() const   { return m_target; }
 
   private:
-  HashString m_target;
+  const HashString&    m_target;
 };
 
 // DhtSearch contains a list of nodes sorted by closeness to the given target,
@@ -126,7 +126,7 @@ public:
   bool                 start()                           { m_started = true; return m_pending; }
   bool                 complete() const                  { return m_started && !m_pending; }
 
-  const HashString&    target() const                    { return key_comp().target(); }
+  const HashString&    target() const                    { return m_target; }
 
   virtual bool         is_announce() const               { return false; }
 
@@ -158,6 +158,8 @@ private:
   DhtSearch(const DhtSearch& s);
 
   bool                 node_uncontacted(const DhtNode* node) const;
+
+  HashString           m_target;
 };
 
 class DhtAnnounce : public DhtSearch {

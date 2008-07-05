@@ -263,7 +263,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   // their memory usage.
   if (ticks % 120 == 0)
 //   if (ticks % 1 == 0)
-    m_main.peer_list()->cull_peers(PeerList::cull_old || PeerList::cull_keep_interesting);
+    m_main.peer_list()->cull_peers(PeerList::cull_old | PeerList::cull_keep_interesting);
 
   if (!info()->is_open())
     return;

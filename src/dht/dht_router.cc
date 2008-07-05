@@ -200,14 +200,14 @@ DhtRouter::get_node(const HashString& id) {
 
 DhtRouter::DhtBucketList::iterator
 DhtRouter::find_bucket(const HashString& id) {
-  DhtBucketList::iterator itr = m_routingTable.upper_bound(id);
+  DhtBucketList::iterator itr = m_routingTable.lower_bound(id);
 
 #ifdef USE_EXTRA_DEBUG
   if (itr == m_routingTable.end())
     throw internal_error("DHT Buckets not covering entire ID space.");
 
   if (!itr->second->is_in_range(id))
-    throw internal_error("DhtRouter::find_bucket, m_routingTable.upper_bound did not find correct bucket.");
+    throw internal_error("DhtRouter::find_bucket, m_routingTable.lower_bound did not find correct bucket.");
 #endif
 
   return itr;
