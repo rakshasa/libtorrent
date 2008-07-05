@@ -114,8 +114,11 @@ TrackerManager::send_later() {
   if (m_control->state() == DownloadInfo::STOPPED)
     throw internal_error("TrackerManager::send_later() m_control->set() == DownloadInfo::STOPPED.");
 
+  rak::timer t(std::max(cachedTime + rak::timer::from_seconds(2),
+                        rak::timer::from_seconds(m_control->time_last_connection() + m_control->focus_min_interval())));
+
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
-  priority_queue_insert(&taskScheduler, &m_taskTimeout, rak::timer::from_seconds(m_control->time_last_connection() + m_control->focus_min_interval()));
+  priority_queue_insert(&taskScheduler, &m_taskTimeout, t);
 }
 
 // When request_{current,next} is called, m_isRequesting is set to

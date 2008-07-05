@@ -86,8 +86,6 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_uploadThrottle(manager->upload_throttle()->throttle_list()),
   m_downloadThrottle(manager->download_throttle()->throttle_list()),
 
-  m_initializedTime(cachedTime),
-
   m_readDone(false),
   m_writeDone(false),
 
@@ -523,6 +521,13 @@ Handshake::read_peer() {
   // Send EXTENSION_PROTOCOL handshake message if peer supports it.
   if (m_peerInfo->supports_extensions())
     write_extension_handshake();
+
+  // Replay HAVE messages we receive after starting to send the bitfield.
+  // This avoids replaying HAVEs for pieces received between starting the
+  // handshake and now (e.g. when connecting takes longer). Ideally we
+  // should make a snapshot of the bitfield here in case it changes while
+  // we're sending it (if it can't be sent in one write() call).
+  m_initializedTime = cachedTime;
 
   // The download is just starting so we're not sending any
   // bitfield. Pretend we wrote it already.

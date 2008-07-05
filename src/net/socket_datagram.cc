@@ -73,7 +73,7 @@ SocketDatagram::write_datagram(const void* buffer, unsigned int length, rak::soc
   int r;
 
   if (sa != NULL) {
-    r = ::sendto(m_fileDesc, buffer, length, 0, sa->c_sockaddr(), sizeof(rak::socket_address));
+    r = ::sendto(m_fileDesc, buffer, length, 0, sa->sa_inet()->c_sockaddr(), sizeof(rak::socket_address_inet));
   } else {
     r = ::send(m_fileDesc, buffer, length, 0);
   }

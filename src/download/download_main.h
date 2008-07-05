@@ -110,7 +110,7 @@ public:
   ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
   void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
 
-  DataBuffer          get_ut_pex(bool initial)                   { return initial ? m_ut_pex_initial : m_ut_pex_delta; }
+  DataBuffer          get_ut_pex(bool initial)                   { return (initial ? m_ut_pex_initial : m_ut_pex_delta).clone(); }
 
   bool                want_pex_msg()                             { return m_info->is_pex_active() && m_peerList.available_list()->want_more(); }; 
 

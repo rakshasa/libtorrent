@@ -92,7 +92,7 @@ PeerConnectionBase::~PeerConnectionBase() {
   if (m_extensions != NULL && !m_extensions->is_default())
     delete m_extensions;
 
-  if (m_extensionMessage.copied())
+  if (m_extensionMessage.owned())
     m_extensionMessage.clear();
 }
 
@@ -665,7 +665,7 @@ PeerConnectionBase::up_chunk() {
 bool
 PeerConnectionBase::up_extension() {
   if (m_extensionOffset == extension_must_encrypt) {
-    if (m_extensionMessage.copied()) {
+    if (m_extensionMessage.owned()) {
       m_encryption.encrypt(m_extensionMessage.data(), m_extensionMessage.length());
 
     } else {
@@ -690,7 +690,7 @@ PeerConnectionBase::up_extension() {
 
   // clear() deletes the buffer, only do that if we made a copy,
   // otherwise the buffer is shared among all connections.
-  if (m_extensionMessage.copied())
+  if (m_extensionMessage.owned())
     m_extensionMessage.clear();
   else 
     m_extensionMessage.set(NULL, NULL, false);

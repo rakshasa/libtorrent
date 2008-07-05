@@ -208,13 +208,13 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
                                                                e_none,
                                                                &download->info()->hash());
 
+    pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
+
     if (handshake->unread_size() != 0) {
       if (handshake->unread_size() > PeerConnectionBase::ProtocolRead::buffer_size)
         throw internal_error("HandshakeManager::receive_succeeded(...) Unread data won't fit PCB's read buffer.");
 
       pcb->push_unread(handshake->unread_data(), handshake->unread_size());
-      pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
-
       pcb->event_read();
     }
 
