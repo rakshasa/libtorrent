@@ -50,6 +50,7 @@
 #ifdef USE_KQUEUE
 #include <sys/types.h>
 #include <sys/event.h>
+#include <sys/select.h>
 #include <sys/time.h>
 #endif
 
@@ -69,15 +70,11 @@ PollKQueue::set_event_mask(Event* e, uint32_t m) {
 
 void
 PollKQueue::modify(Event* event, unsigned short op, short mask) {
-  // Just so I can test it on my mac, comment this out.
-//   if (event->file_descriptor() == 0)
-//     return;
-
   // Flush the changed filters to the kernel if the buffer if full.
   if (m_changedEvents == m_maxEvents) {
     if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
       throw internal_error("PollKQueue::modify() error: " + std::string(rak::error_number::current().c_str()));
-      
+
     m_changedEvents = 0;
   }
 
@@ -100,7 +97,8 @@ PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) :
   m_fd(fd),
   m_maxEvents(maxEvents),
   m_waitingEvents(0),
-  m_changedEvents(0) {
+  m_changedEvents(0),
+  m_stdinEvent(NULL) {
 
   m_events = new struct kevent[m_maxEvents];
   m_changes = new struct kevent[maxOpenSockets];
@@ -118,9 +116,28 @@ PollKQueue::~PollKQueue() {
 
 int
 PollKQueue::poll(int msec) {
+#if KQUEUE_SOCKET_ONLY
+  if (m_stdinEvent != NULL) {
+    // Flush all changes to the kqueue poll before we start select
+    // polling, so that they get included.
+    if (m_changedEvents != 0) {
+      if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
+        throw internal_error("PollKQueue::poll() error: " + std::string(rak::error_number::current().c_str()));
+
+      m_changedEvents = 0;
+    }
+
+    if (poll_select(msec) == -1)
+      return -1;
+
+    // The timeout was already handled in select().
+    msec = 0;
+  }
+#endif
+
   timespec timeout = { msec / 1000, (msec % 1000) * 1000000 };
 
-  int nfds = kevent(m_fd, m_changes, m_changedEvents, m_events, m_maxEvents, &timeout);
+  int nfds = kevent(m_fd, m_changes, m_changedEvents, m_events + m_waitingEvents, m_maxEvents - m_waitingEvents, &timeout);
 
   // Clear the changed events even on fail as we might have received a
   // signal or similar, and the changed events have already been
@@ -133,16 +150,52 @@ PollKQueue::poll(int msec) {
   if (nfds == -1)
     return -1;
 
-  m_waitingEvents = nfds;
+  m_waitingEvents += nfds;
 
   return nfds;
 }
 
+#if KQUEUE_SOCKET_ONLY
+int
+PollKQueue::poll_select(int msec) {
+  if (m_waitingEvents >= m_maxEvents)
+    return 0;
+
+  timeval selectTimeout = { msec / 1000, (msec % 1000) * 1000 };
+
+  // If m_fd isn't the first FD opened by the client and has
+  // a low number, using ::poll() here would perform better.
+  //
+  // This kinda assumes fd_set's internal type is int.
+  int readBuffer[m_fd + 1];
+  fd_set* readSet = (fd_set*)&readBuffer;
+
+  std::memset(readBuffer, 0, m_fd + 1);
+  FD_SET(0,    readSet);
+  FD_SET(m_fd, readSet);
+
+  int nfds = select(m_fd + 1, readSet, NULL, NULL, &selectTimeout);
+
+  if (nfds == -1)
+    return nfds;
+
+  if (FD_ISSET(0, readSet)) {
+    m_events[m_waitingEvents].filter = EVFILT_READ;
+    m_events[m_waitingEvents].udata = m_stdinEvent;
+    m_waitingEvents++;
+  }
+
+  return nfds;
+}
+#endif
+
 void
 PollKQueue::perform() {
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->flags == EV_ERROR)
-      throw internal_error("PollKQueue::perform() error: " + std::string(rak::error_number(itr->data).c_str()));
+    if ((itr->flags & EV_ERROR) && itr->udata != NULL && event_mask((Event*)itr->udata) & flag_error) {
+      ((Event*)itr->udata)->event_error();
+      continue;
+    }
 
     // Also check current mask.
 
@@ -169,6 +222,13 @@ PollKQueue::open(Event* event) {
 
 void
 PollKQueue::close(Event* event) {
+#if KQUEUE_SOCKET_ONLY
+  if (event->file_descriptor() == 0) {
+    m_stdinEvent = NULL;
+    return;
+  }
+#endif
+
   if (event_mask(event) != 0)
     throw internal_error("PollKQueue::close(...) called but the file descriptor is active");
 
@@ -203,6 +263,13 @@ PollKQueue::insert_read(Event* event) {
 
   set_event_mask(event, event_mask(event) | flag_read);
 
+#if KQUEUE_SOCKET_ONLY
+  if (event->file_descriptor() == 0) {
+    m_stdinEvent = event;
+    return;
+  }
+#endif
+
   modify(event, EV_ADD, EVFILT_READ);
 }
 
@@ -212,7 +279,6 @@ PollKQueue::insert_write(Event* event) {
     return;
 
   set_event_mask(event, event_mask(event) | flag_write);
-
   modify(event, EV_ADD, EVFILT_WRITE);
 }
 
@@ -227,6 +293,13 @@ PollKQueue::remove_read(Event* event) {
 
   set_event_mask(event, event_mask(event) & ~flag_read);
 
+#if KQUEUE_SOCKET_ONLY
+  if (event->file_descriptor() == 0) {
+    m_stdinEvent = NULL;
+    return;
+  }
+#endif
+
   modify(event, EV_DELETE, EVFILT_READ);
 }
 
@@ -236,7 +309,6 @@ PollKQueue::remove_write(Event* event) {
     return;
 
   set_event_mask(event, event_mask(event) & ~flag_write);
-
   modify(event, EV_DELETE, EVFILT_WRITE);
 }
 

@@ -83,12 +83,14 @@ public:
   virtual void        remove_error(torrent::Event* event);
 
 private:
-  PollKQueue(int fd, int maxEvents, int maxOpenSockets);
+  PollKQueue(int fd, int maxEvents, int maxOpenSockets) LIBTORRENT_NO_EXPORT;
 
-  inline uint32_t     event_mask(Event* e);
-  inline void         set_event_mask(Event* e, uint32_t m);
+  inline uint32_t     event_mask(Event* e) LIBTORRENT_NO_EXPORT;
+  inline void         set_event_mask(Event* e, uint32_t m) LIBTORRENT_NO_EXPORT;
 
-  void                modify(torrent::Event* event, unsigned short op, short mask);
+  int                 poll_select(int msec) LIBTORRENT_NO_EXPORT;
+
+  void                modify(torrent::Event* event, unsigned short op, short mask) LIBTORRENT_NO_EXPORT;
 
   int                 m_fd;
 
@@ -99,6 +101,9 @@ private:
   Table               m_table;
   struct kevent*      m_events;
   struct kevent*      m_changes;
+
+  // Work-around the stdin bug in MacOSX's kqueue implementation.
+  Event*              m_stdinEvent;
 };
 
 }
