@@ -114,11 +114,13 @@ TrackerDht::type() const {
 }
 
 void
-TrackerDht::receive_peers(const std::string& peers) {
+TrackerDht::receive_peers(const Object& peer_list) {
   if (!is_busy())
     throw internal_error("TrackerDht::receive_peers called while not busy.");
 
-  m_peers.parse_address_compact(peers);
+  Object::list_type peers = peer_list.as_list();
+  for (Object::list_type::const_iterator itr = peers.begin(); itr != peers.end(); ++itr)
+    m_peers.parse_address_compact(itr->as_string());
 }
 
 void

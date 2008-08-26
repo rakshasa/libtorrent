@@ -36,8 +36,10 @@
 
 #include "config.h"
 
+#include <cstring>
 #include <algorithm>
 #include <functional>
+#include <cstring>
 
 #include "torrent/exceptions.h"
 

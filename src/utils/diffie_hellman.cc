@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <cstring>
 #include <string>
 
 #ifdef USE_OPENSSL

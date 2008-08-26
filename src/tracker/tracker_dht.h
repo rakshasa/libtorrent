@@ -71,7 +71,7 @@ public:
 
   bool                has_peers() const                { return !m_peers.empty(); }
 
-  void                receive_peers(const std::string& peers);
+  void                receive_peers(const Object& peer_list);
   void                receive_success();
   void                receive_failed(const char* msg);
   void                receive_progress(int replied, int contacted);

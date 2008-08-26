@@ -38,6 +38,7 @@
 #define LIBTORRENT_TRACKER_LIST_H
 
 #include <algorithm>
+#include <string>
 #include <vector>
 #include <torrent/common.h>
 

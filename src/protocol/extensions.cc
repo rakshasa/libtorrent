@@ -110,8 +110,8 @@ ProtocolExtension::generate_handshake_message() {
 
   // Add "e" key if encryption is enabled, set it to 1 if we require
   // encryption for incoming connections, or 0 otherwise.
-  if (manager->connection_manager()->encryption_options() & ConnectionManager::encryption_allow_incoming != 0)
-    message.insert_key("e", manager->connection_manager()->encryption_options() & ConnectionManager::encryption_require != 0);
+  if ((manager->connection_manager()->encryption_options() & ConnectionManager::encryption_allow_incoming) != 0)
+    message.insert_key("e", (manager->connection_manager()->encryption_options() & ConnectionManager::encryption_require) != 0);
 
   message.insert_key("m", map);
   message.insert_key("p", manager->connection_manager()->listen_port());

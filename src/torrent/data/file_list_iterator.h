@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_FILE_LIST_ITERATOR_H
 #define LIBTORRENT_FILE_LIST_ITERATOR_H
 
+#include <cstdlib>
 #include <torrent/common.h>
 #include <torrent/data/file_list.h>
 

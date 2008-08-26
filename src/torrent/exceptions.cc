@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <cerrno>
+#include <cstring>
 
 #include "exceptions.h"
 

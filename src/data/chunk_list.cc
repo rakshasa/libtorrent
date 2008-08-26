@@ -249,11 +249,12 @@ ChunkList::sync_chunks(int flags) {
   
   // If we got enough diskspace and have not requested safe syncing,
   // then sync all chunks with MS_ASYNC.
-  if (!(flags & (sync_safe | sync_sloppy)))
+  if (!(flags & (sync_safe | sync_sloppy))) {
     if (m_manager->safe_sync() || m_slotFreeDiskspace() <= m_manager->safe_free_diskspace())
       flags |= sync_safe;
     else
       flags |= sync_force;
+  }
 
   // TODO: This won't trigger for default sync_force.
   if ((flags & sync_use_timeout) && !(flags & sync_force))

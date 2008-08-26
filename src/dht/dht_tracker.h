@@ -65,7 +65,7 @@ public:
   size_t              size() const                 { return m_peers.size(); }
 
   void                add_peer(uint32_t addr, uint16_t port);
-  std::string         get_peers(unsigned int maxPeers = max_peers);
+  Object              get_peers(unsigned int maxPeers = max_peers);
 
   // Remove old announces from the tracker that have not reannounced for
   // more than the given number of seconds.

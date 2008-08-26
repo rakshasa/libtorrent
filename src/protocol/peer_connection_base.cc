@@ -830,7 +830,7 @@ PeerConnectionBase::send_pex_message() {
       throw internal_error("PeerConnectionBase::send_pex_message() Not supported by peer.");
 
     write_prepare_extension(ProtocolExtension::HANDSHAKE,
-                            ProtocolExtension::generate_toggle_message(ProtocolExtension::UT_PEX, m_sendPEXMask & PEX_ENABLE != 0));
+                            ProtocolExtension::generate_toggle_message(ProtocolExtension::UT_PEX, (m_sendPEXMask & PEX_ENABLE) != 0));
 
     m_sendPEXMask &= ~(PEX_ENABLE | PEX_DISABLE);
 

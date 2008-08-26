@@ -302,8 +302,7 @@ DhtServer::create_get_peers_response(const Object& arg, const rak::socket_addres
     reply.insert_key("nodes", std::string(compact, end));
 
   } else {
-    Object& values = reply.insert_key("values", Object::create_list());
-    values.insert_back(tracker->get_peers());
+    reply.insert_key("values", Object::create_list()).as_list().swap(tracker->get_peers().as_list());
   }
 }
 
@@ -417,7 +416,7 @@ DhtServer::parse_get_peers_reply(DhtTransactionGetPeers* transaction, const Obje
   transaction->complete(true);
 
   if (response.has_key_list("values"))
-    announce->receive_peers((*response.get_key_list("values").begin()).as_string());
+    announce->receive_peers(response.get_key("values"));
 
   if (response.has_key_string("token"))
     add_transaction(new DhtTransactionAnnouncePeer(transaction->id(), transaction->address(), announce->target(), response.get_key_string("token")), packet_prio_low);
@@ -641,6 +640,7 @@ DhtServer::event_read() {
   sstream.imbue(std::locale::classic());
 
   while (true) {
+    Object request;
     rak::socket_address sa;
     int type = '?';
     const Object* transactionId = NULL;
@@ -656,7 +656,6 @@ DhtServer::event_read() {
       total += read;
       sstream.str(std::string(buffer, read));
 
-      Object request;
       sstream >> request;
 
       // If it's not a valid bencode dictionary at all, it's probably not a DHT

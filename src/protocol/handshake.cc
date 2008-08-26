@@ -465,8 +465,8 @@ Handshake::read_info() {
   // Check the first byte as early as possible so we can
   // disconnect non-BT connections if they send less than 20 bytes.
   if ((m_readBuffer.remaining() >= 1 && m_readBuffer.peek_8() != 19) ||
-      m_readBuffer.remaining() >= 20 &&
-      (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0))
+      (m_readBuffer.remaining() >= 20 &&
+       (std::memcmp(m_readBuffer.position() + 1, m_protocol, 19) != 0)))
     throw handshake_error(ConnectionManager::handshake_failed, e_handshake_not_bittorrent);
 
   if (m_readBuffer.remaining() < part1_size)

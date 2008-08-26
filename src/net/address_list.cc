@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <rak/functional.h>
 
 #include "download/download_info.h"  // for SocketAddressCompact

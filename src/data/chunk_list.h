@@ -37,7 +37,9 @@
 #ifndef LIBTORRENT_DATA_CHUNK_LIST_H
 #define LIBTORRENT_DATA_CHUNK_LIST_H
 
+#include <string>
 #include <vector>
+#include <string>
 #include <rak/error_number.h>
 #include <rak/functional.h>
 

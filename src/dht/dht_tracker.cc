@@ -79,7 +79,7 @@ DhtTracker::add_peer(uint32_t addr, uint16_t port) {
 
 // Return compact info (6 bytes) for up to 30 peers, returning different
 // peers for each call if there are more.
-std::string
+Object
 DhtTracker::get_peers(unsigned int maxPeers) {
   PeerList::iterator first = m_peers.begin();
   PeerList::iterator last = m_peers.end();
@@ -94,7 +94,11 @@ DhtTracker::get_peers(unsigned int maxPeers) {
     last = first + maxPeers;
   }
 
-  return std::string(first->c_str(), last->c_str());
+  Object peers = Object::create_list();
+  for (; first != last; ++first)
+    peers.insert_back(std::string(first->c_str(), sizeof(*first)));
+
+  return peers;
 }
 
 // Remove old announces.

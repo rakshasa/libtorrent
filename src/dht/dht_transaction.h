@@ -178,7 +178,7 @@ public:
   // counts announces instead.
   const_accessor       start_announce();
 
-  void                 receive_peers(const std::string& peers);
+  void                 receive_peers(const Object& peer_list);
   void                 update_status();
 
 private:

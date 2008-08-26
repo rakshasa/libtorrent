@@ -252,7 +252,7 @@ DhtAnnounce::start_announce() {
 }
 
 void 
-DhtAnnounce::receive_peers(const std::string& peers) {
+DhtAnnounce::receive_peers(const Object& peers) {
   m_tracker->receive_peers(peers);
 }
 
