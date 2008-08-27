@@ -162,6 +162,17 @@ PollEPoll::close(Event* event) {
       itr->data.ptr = NULL;
 }
 
+void
+PollEPoll::closed(Event* event) {
+  // Kernel removes closed FDs automatically, so just clear the mask and remove it.
+  for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+    if (itr->data.ptr == event) {
+      set_event_mask(event, 0);
+      itr->data.ptr = NULL;
+    }
+  }
+}
+
 // Use custom defines for EPOLL* to make the below code compile with
 // and with epoll.
 bool
@@ -252,6 +263,10 @@ PollEPoll::open(torrent::Event* event) {
 
 void
 PollEPoll::close(torrent::Event* event) {
+}
+
+void
+PollEPoll::closed(torrent::Event* event) {
 }
 
 bool

@@ -187,6 +187,14 @@ PollSelect::close(Event* event) {
     throw internal_error("PollSelect::close(...) called on an inserted event");
 }
 
+void
+PollSelect::closed(Event* event) {
+  // event->get_fd() was closed, remove it from the sets.
+  m_readSet->erase(event);
+  m_writeSet->erase(event);
+  m_exceptSet->erase(event);
+}
+
 bool
 PollSelect::in_read(Event* event) {
   return m_readSet->find(event) != m_readSet->end();

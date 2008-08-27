@@ -63,6 +63,8 @@ public:
   virtual void        open(Event* event);
   virtual void        close(Event* event);
 
+  virtual void        closed(Event* event);
+
   virtual bool        in_read(Event* event);
   virtual bool        in_write(Event* event);
   virtual bool        in_error(Event* event);

@@ -57,6 +57,11 @@ public:
   virtual void        open(Event* event) = 0;
   virtual void        close(Event* event) = 0;
 
+  // More efficient interface when closing the file descriptor.
+  // Automatically removes the event from all polls.
+  // Event::get_fd() may or may not be closed already.
+  virtual void        closed(Event* event) = 0;
+
   // Functions for checking whetever the Event is listening to r/w/e?
   virtual bool        in_read(Event* event) = 0;
   virtual bool        in_write(Event* event) = 0;

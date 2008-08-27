@@ -239,6 +239,19 @@ PollKQueue::close(Event* event) {
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
 }
 
+void
+PollKQueue::closed(Event* event) {
+  // Kernel removes closed FDs automatically, so just clear the mask and remove it.
+  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+    if (itr->udata == event) {
+      set_event_mask(event, 0);
+      itr->udata = NULL;
+    }
+  }
+
+  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
+}
+
 // Use custom defines for EPOLL* to make the below code compile with
 // and with epoll.
 bool
@@ -347,6 +360,10 @@ PollKQueue::open(__UNUSED torrent::Event* event) {
 
 void
 PollKQueue::close(__UNUSED torrent::Event* event) {
+}
+
+void
+PollKQueue::closed(__UNUSED torrent::Event* event) {
 }
 
 bool

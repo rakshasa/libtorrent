@@ -67,6 +67,9 @@ public:
   virtual void        open(torrent::Event* event);
   virtual void        close(torrent::Event* event);
 
+  // torrent::Event::get_fd() was closed outside of our control.
+  virtual void        closed(torrent::Event* event);
+
   // Functions for checking whetever the torrent::Event is listening to r/w/e?
   virtual bool        in_read(torrent::Event* event);
   virtual bool        in_write(torrent::Event* event);
