@@ -60,11 +60,15 @@ namespace torrent {
 
 inline uint32_t
 PollKQueue::event_mask(Event* e) {
+  assert(e->file_descriptor() != -1);
+
   return m_table[e->file_descriptor()];
 }
 
 inline void
 PollKQueue::set_event_mask(Event* e, uint32_t m) {
+  assert(e->file_descriptor() != -1);
+
   m_table[e->file_descriptor()] = m;
 }
 
@@ -241,7 +245,14 @@ PollKQueue::close(Event* event) {
 
 void
 PollKQueue::closed(Event* event) {
-  // Kernel removes closed FDs automatically, so just clear the mask and remove it.
+  // Kernel removes closed FDs automatically, so just clear the mask
+  // and remove it.
+  //
+  // TODO: Check what happens if the Event if 'closed' and deleted,
+  // yet the fd remains open. This would leave events registered in
+  // kqueue, and when they trigger they will end up using a dangeling
+  // udata pointer.
+
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->udata == event) {
       set_event_mask(event, 0);
