@@ -46,7 +46,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT PollEPoll : public torrent::Poll {
 public:
-  typedef std::vector<uint32_t> Table;
+  typedef std::vector<std::pair<uint32_t, Event*> > Table;
 
   static PollEPoll*   create(int maxOpenSockets);
   virtual ~PollEPoll();

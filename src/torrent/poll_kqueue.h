@@ -46,7 +46,7 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT PollKQueue : public torrent::Poll {
 public:
-  typedef std::vector<uint32_t> Table;
+  typedef std::vector<std::pair<uint32_t, Event*> > Table;
 
   static const uint32_t flag_read  = (1 << 0);
   static const uint32_t flag_write = (1 << 1);
@@ -93,13 +93,14 @@ private:
 
   int                 poll_select(int msec) LIBTORRENT_NO_EXPORT;
 
+  void                flush_events() LIBTORRENT_NO_EXPORT;
   void                modify(torrent::Event* event, unsigned short op, short mask) LIBTORRENT_NO_EXPORT;
 
   int                 m_fd;
 
-  int                 m_maxEvents;
-  int                 m_waitingEvents;
-  int                 m_changedEvents;
+  unsigned int        m_maxEvents;
+  unsigned int        m_waitingEvents;
+  unsigned int        m_changedEvents;
 
   Table               m_table;
   struct kevent*      m_events;

@@ -62,19 +62,35 @@ inline uint32_t
 PollKQueue::event_mask(Event* e) {
   assert(e->file_descriptor() != -1);
 
-  return m_table[e->file_descriptor()];
+  Table::value_type entry = m_table[e->file_descriptor()];
+  return entry.second != e ? 0 : entry.first;
 }
 
 inline void
 PollKQueue::set_event_mask(Event* e, uint32_t m) {
   assert(e->file_descriptor() != -1);
 
-  m_table[e->file_descriptor()] = m;
+  m_table[e->file_descriptor()] = std::make_pair(m, e);
+}
+
+void
+PollKQueue::flush_events() {
+  timespec timeout = { 0, 0 };
+
+  int nfds = kevent(m_fd, m_changes, m_changedEvents, m_events + m_waitingEvents, m_maxEvents - m_waitingEvents, &timeout);
+  if (nfds == -1)
+    throw internal_error("PollKQueue::flush_events() error: " + std::string(rak::error_number::current().c_str()));
+
+  m_changedEvents = 0;
+  m_waitingEvents += nfds;
 }
 
 void
 PollKQueue::modify(Event* event, unsigned short op, short mask) {
   // Flush the changed filters to the kernel if the buffer if full.
+  if (m_changedEvents == m_table.size())
+    flush_events();
+
   if (m_changedEvents == m_maxEvents) {
     if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
       throw internal_error("PollKQueue::modify() error: " + std::string(rak::error_number::current().c_str()));
@@ -124,12 +140,8 @@ PollKQueue::poll(int msec) {
   if (m_stdinEvent != NULL) {
     // Flush all changes to the kqueue poll before we start select
     // polling, so that they get included.
-    if (m_changedEvents != 0) {
-      if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
-        throw internal_error("PollKQueue::poll() error: " + std::string(rak::error_number::current().c_str()));
-
-      m_changedEvents = 0;
-    }
+    if (m_changedEvents != 0)
+      flush_events();
 
     if (poll_select(msec) == -1)
       return -1;
@@ -196,8 +208,9 @@ PollKQueue::poll_select(int msec) {
 void
 PollKQueue::perform() {
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if ((itr->flags & EV_ERROR) && itr->udata != NULL && event_mask((Event*)itr->udata) & flag_error) {
-      ((Event*)itr->udata)->event_error();
+    if ((itr->flags & EV_ERROR) && itr->udata != NULL) {
+      if (event_mask((Event*)itr->udata) & flag_error)
+        ((Event*)itr->udata)->event_error();
       continue;
     }
 
@@ -245,19 +258,22 @@ PollKQueue::close(Event* event) {
 
 void
 PollKQueue::closed(Event* event) {
+#if KQUEUE_SOCKET_ONLY
+  if (event->file_descriptor() == 0) {
+    m_stdinEvent = NULL;
+    return;
+  }
+#endif
+
   // Kernel removes closed FDs automatically, so just clear the mask
-  // and remove it.
-  //
-  // TODO: Check what happens if the Event if 'closed' and deleted,
-  // yet the fd remains open. This would leave events registered in
-  // kqueue, and when they trigger they will end up using a dangeling
-  // udata pointer.
+  // and remove it from pending calls.  Don't touch if the FD was
+  // re-used before we received the close notification.
+  if (m_table[event->file_descriptor()].second == event)
+    set_event_mask(event, 0);
 
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->udata == event) {
-      set_event_mask(event, 0);
+    if (itr->udata == event)
       itr->udata = NULL;
-    }
   }
 
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;

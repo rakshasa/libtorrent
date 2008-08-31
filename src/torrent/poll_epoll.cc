@@ -54,12 +54,13 @@ namespace torrent {
 
 inline uint32_t
 PollEPoll::event_mask(Event* e) {
-  return m_table[e->file_descriptor()];
+  Table::value_type entry = m_table[e->file_descriptor()];
+  return entry.second != e ? 0 : entry.first;
 }
 
 inline void
 PollEPoll::set_event_mask(Event* e, uint32_t m) {
-  m_table[e->file_descriptor()] = m;
+  m_table[e->file_descriptor()] = std::make_pair(m, e);
 }
 
 inline void
@@ -74,8 +75,14 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
 
   set_event_mask(event, mask);
 
-  if (epoll_ctl(m_fd, op, event->file_descriptor(), &e))
-    throw internal_error("PollEPoll::insert_read(...) epoll_ctl call failed");
+  // If error is EEXIST, try again with EPOLL_CTL_MOD.
+  // libcurl with c-ares may unwittingly re-open an FD closed by
+  // c-ares before notified (and thus notifying us) of its closure.
+  if (epoll_ctl(m_fd, op, event->file_descriptor(), &e)) {
+    if (op != EPOLL_CTL_ADD || errno != EEXIST ||
+        epoll_ctl(m_fd, EPOLL_CTL_MOD, event->file_descriptor(), &e))
+      throw internal_error("PollEPoll::modify(...) epoll_ctl call failed");
+  }
 }
 
 PollEPoll*
@@ -164,12 +171,14 @@ PollEPoll::close(Event* event) {
 
 void
 PollEPoll::closed(Event* event) {
-  // Kernel removes closed FDs automatically, so just clear the mask and remove it.
+  // Kernel removes closed FDs automatically, so just clear the mask and remove it from pending calls.
+  // Don't touch if the FD was re-used before we received the close notification.
+  if (m_table[event->file_descriptor()].second == event)
+    set_event_mask(event, 0);
+
   for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->data.ptr == event) {
-      set_event_mask(event, 0);
+    if (itr->data.ptr == event)
       itr->data.ptr = NULL;
-    }
   }
 }
 
