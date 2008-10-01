@@ -45,8 +45,11 @@
 
 namespace torrent {
 
-// Look into making a custom comp and allocator classes for the
+// TODO: Look into making a custom comp and allocator classes for the
 // map_type which use a const char* for key_type.
+//
+// TODO: Use placement new/delete in order to avoid the extra level of
+// indirection caused by the union.
 
 class LIBTORRENT_EXPORT Object {
 public:
