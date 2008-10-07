@@ -75,12 +75,21 @@ PollEPoll::modify(Event* event, int op, uint32_t mask) {
 
   set_event_mask(event, mask);
 
-  // If error is EEXIST, try again with EPOLL_CTL_MOD.
-  // libcurl with c-ares may unwittingly re-open an FD closed by
-  // c-ares before notified (and thus notifying us) of its closure.
   if (epoll_ctl(m_fd, op, event->file_descriptor(), &e)) {
-    if (op != EPOLL_CTL_ADD || errno != EEXIST ||
-        epoll_ctl(m_fd, EPOLL_CTL_MOD, event->file_descriptor(), &e))
+    // Socket was probably already closed. Ignore this.
+    if (op == EPOLL_CTL_DEL && errno == ENOENT)
+      return;
+
+    // Handle some libcurl/c-ares bugs by retrying once.
+    if (op == EPOLL_CTL_ADD && errno == EEXIST) {
+      op = EPOLL_CTL_MOD;
+      errno = 0;
+    } else if (op == EPOLL_CTL_MOD && errno == ENOENT) {
+      op = EPOLL_CTL_ADD;
+      errno = 0;
+    }
+
+    if (errno || epoll_ctl(m_fd, op, event->file_descriptor(), &e))
       throw internal_error("PollEPoll::modify(...) epoll_ctl call failed");
   }
 }

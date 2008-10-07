@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <strings.h>
+#include <string.h>
 
 #include "download/choke_manager.h"
 #include "download/chunk_statistics.h"

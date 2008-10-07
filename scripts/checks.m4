@@ -78,7 +78,8 @@ AC_DEFUN([TORRENT_CHECK_KQUEUE], [
   AC_MSG_CHECKING(for kqueue support)
 
   AC_LINK_IFELSE(
-    [[#include <sys/event.h>
+    [[#include <sys/time.h>  /* Because OpenBSD's sys/event.h fails to compile otherwise. Yeah... */
+      #include <sys/event.h>
       int main() {
         int fd = kqueue();
         return 0;
