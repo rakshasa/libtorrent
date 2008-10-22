@@ -63,6 +63,7 @@ bool Peer::is_down_interested() const      { return c_ptr()->is_up_interested();
 
 bool Peer::is_snubbed() const              { return c_ptr()->is_up_snubbed(); }
 void Peer::set_snubbed(bool v)             { m_ptr()->set_upload_snubbed(v); }
+void Peer::set_banned()                    { m_peerInfo->set_failed_counter(64); }
 
 const Rate*       Peer::down_rate() const  { return c_ptr()->c_peer_chunks()->download_throttle()->rate(); } 
 const Rate*       Peer::up_rate() const    { return c_ptr()->c_peer_chunks()->upload_throttle()->rate(); } 

@@ -523,6 +523,16 @@ Download::update_priorities() {
   m_ptr->receive_update_priorities();
 }
 
+void
+Download::add_peer(const sockaddr* sa, int port) {
+  if (m_ptr->info()->is_private())
+    return;
+
+  rak::socket_address sa_port = *rak::socket_address::cast_from(sa);
+  sa_port.set_port(port);
+  m_ptr->main()->add_peer(sa_port);
+}
+
 sigc::connection
 Download::signal_download_done(Download::slot_void_type s) {
   return m_ptr->signal_download_done().connect(s);

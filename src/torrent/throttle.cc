@@ -126,9 +126,9 @@ Throttle::receive_tick() {
   if (cachedTime <= m_ptr()->m_timeLastTick + 90000)
     throw internal_error("Throttle::receive_tick() called at a to short interval.");
 
-  float timeSinceLast = (cachedTime.usec() - m_ptr()->m_timeLastTick.usec()) / 1000000.0f;
+  uint32_t quota = ((uint64_t)(cachedTime.usec() - m_ptr()->m_timeLastTick.usec())) * m_maxRate / 1000000;
 
-  m_throttleList->update_quota((uint32_t)(m_maxRate * timeSinceLast));
+  m_throttleList->update_quota(quota);
 
   priority_queue_insert(&taskScheduler, &m_ptr()->m_taskTick, cachedTime + calculate_interval());
   m_ptr()->m_timeLastTick = cachedTime;

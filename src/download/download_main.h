@@ -129,6 +129,8 @@ public:
   void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
   void                slot_hash_check_add(SlotHashCheckAdd s)      { m_slotHashCheckAdd = s; }
 
+  void                add_peer(const rak::socket_address& sa);
+
   void                receive_connect_peers();
   void                receive_chunk_done(unsigned int index);
   void                receive_corrupt_chunk(PeerInfo* peerInfo);

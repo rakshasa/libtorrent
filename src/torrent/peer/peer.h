@@ -69,6 +69,7 @@ public:
 
   bool                 is_snubbed() const;
   void                 set_snubbed(bool v);
+  void                 set_banned();
 
   const HashString&    id() const                         { return peer_info()->id(); }
   const char*          options() const                    { return peer_info()->options(); }

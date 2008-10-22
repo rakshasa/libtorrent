@@ -1016,6 +1016,9 @@ Handshake::prepare_peer_info() {
     if (m_peerInfo == NULL)
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_error);
 
+    if (m_peerInfo->failed_counter() > 10)
+      throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unwanted_connection);
+
     m_peerInfo->set_flags(PeerInfo::flag_handshake);
   }
 

@@ -271,6 +271,11 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
 }
 
 void
+DownloadMain::add_peer(const rak::socket_address& sa) {
+  m_slotStartHandshake(sa, this);
+}
+
+void
 DownloadMain::receive_connect_peers() {
   if (!info()->is_active())
     return;
