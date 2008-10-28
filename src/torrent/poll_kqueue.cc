@@ -70,7 +70,7 @@ inline void
 PollKQueue::set_event_mask(Event* e, uint32_t m) {
   assert(e->file_descriptor() != -1);
 
-  m_table[e->file_descriptor()] = std::make_pair(m, e);
+  m_table[e->file_descriptor()] = Table::value_type(m, e);
 }
 
 void
@@ -87,7 +87,7 @@ PollKQueue::flush_events() {
 
 void
 PollKQueue::modify(Event* event, unsigned short op, short mask) {
-  // Flush the changed filters to the kernel if the buffer if full.
+  // Flush the changed filters to the kernel if the buffer is full.
   if (m_changedEvents == m_table.size())
     flush_events();
 
@@ -100,7 +100,8 @@ PollKQueue::modify(Event* event, unsigned short op, short mask) {
 
   struct kevent* itr = m_changes + (m_changedEvents++);
 
-  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
+  assert(event == m_table[event->file_descriptor()].second);
+  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, NULL);
 }
 
 PollKQueue*
@@ -196,8 +197,9 @@ PollKQueue::poll_select(int msec) {
     return nfds;
 
   if (FD_ISSET(0, readSet)) {
+    m_events[m_waitingEvents].ident = 0;
     m_events[m_waitingEvents].filter = EVFILT_READ;
-    m_events[m_waitingEvents].udata = m_stdinEvent;
+    m_events[m_waitingEvents].flags = 0;
     m_waitingEvents++;
   }
 
@@ -208,19 +210,24 @@ PollKQueue::poll_select(int msec) {
 void
 PollKQueue::perform() {
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if ((itr->flags & EV_ERROR) && itr->udata != NULL) {
-      if (event_mask((Event*)itr->udata) & flag_error)
-        ((Event*)itr->udata)->event_error();
+    if (itr->ident < 0 || itr->ident >= m_table.size())
+      continue;
+
+    Table::iterator evItr = m_table.begin() + itr->ident;
+
+    if ((itr->flags & EV_ERROR) && evItr->second != NULL) {
+      if (evItr->first & flag_error)
+        evItr->second->event_error();
       continue;
     }
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && itr->udata != NULL && event_mask((Event*)itr->udata) & flag_read)
-      ((Event*)itr->udata)->event_read();
+    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & flag_read)
+      evItr->second->event_read();
 
-    if (itr->filter == EVFILT_WRITE && itr->udata != NULL && event_mask((Event*)itr->udata) & flag_write)
-      ((Event*)itr->udata)->event_write();
+    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & flag_write)
+      evItr->second->event_write();
   }
 
   m_waitingEvents = 0;
@@ -249,11 +256,16 @@ PollKQueue::close(Event* event) {
   if (event_mask(event) != 0)
     throw internal_error("PollKQueue::close(...) called but the file descriptor is active");
 
+  m_table[event->file_descriptor()] = Table::value_type();
+
+  /*
+  Shouldn't be needed anymore.
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = NULL;
 
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
+  */
 }
 
 void
@@ -269,14 +281,16 @@ PollKQueue::closed(Event* event) {
   // and remove it from pending calls.  Don't touch if the FD was
   // re-used before we received the close notification.
   if (m_table[event->file_descriptor()].second == event)
-    set_event_mask(event, 0);
+    m_table[event->file_descriptor()] = Table::value_type();
 
+  /*
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->udata == event)
       itr->udata = NULL;
   }
 
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
+  */
 }
 
 // Use custom defines for EPOLL* to make the below code compile with
