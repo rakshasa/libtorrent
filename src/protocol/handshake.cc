@@ -926,7 +926,7 @@ Handshake::prepare_proxy_connect() {
   int advance = snprintf((char*)m_writeBuffer.position(), m_writeBuffer.reserved_left(),
                          "CONNECT %s:%hu HTTP/1.0\r\n\r\n", buf, m_address.port());
 
-  if (advance == -1)
+  if (advance == -1 || advance > m_writeBuffer.reserved_left())
     throw internal_error("Handshake::prepare_proxy_connect() snprintf failed.");
 
   m_writeBuffer.move_end(advance);

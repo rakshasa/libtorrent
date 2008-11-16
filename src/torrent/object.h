@@ -223,6 +223,21 @@ Object::clear() {
   m_flags = TYPE_NONE;
 }
 
+inline bool
+object_equal(const Object& left, const Object& right) {
+  if (left.type() != right.type())
+    return false;
+
+  switch (left.type()) {
+  case Object::TYPE_NONE:   return true;
+  case Object::TYPE_VALUE:  return left.as_value() == right.as_value();
+  case Object::TYPE_STRING: return left.as_string() == right.as_string();
+//   case Object::TYPE_LIST:   return false;
+//   case Object::TYPE_MAP:    return false;
+  default: return false;
+  }
+}
+
 }
 
 #endif
