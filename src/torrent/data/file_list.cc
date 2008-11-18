@@ -106,6 +106,17 @@ FileList::is_valid_piece(const Piece& piece) const {
 }
 
 bool
+FileList::is_root_dir_created() const {
+  rak::file_stat fs;
+
+  if (!fs.update(m_rootDir))
+//     return rak::error_number::current() == rak::error_number::e_access;
+    return false;
+
+  return fs.is_directory();
+}
+
+bool
 FileList::is_multi_file() const {
   // Currently only check if we got just one file. In the future this
   // should be a bool, which will be set based on what flags are

@@ -216,6 +216,28 @@ resume_clear_progress(Download download, Object& object) {
   object.erase_key("bitfield");
 }
 
+bool
+resume_check_target_files(Download download, __UNUSED const Object& object) {
+  FileList* fileList = download.file_list();
+
+  if (!fileList->is_open())
+    return false;
+
+  if (!fileList->is_root_dir_created())
+    return false;
+
+  if (fileList->is_multi_file()) {
+    // Here we should probably check all/most of the files within the
+    // torrent. But for now just return true, as the root dir is
+    // usually created for each (multi) torrent.
+    return true;
+
+  } else {
+    // We consider empty file lists as being valid.
+    return fileList->empty() || fileList->front()->is_created();
+  }    
+}
+
 void
 resume_load_file_priorities(Download download, const Object& object) {
   if (!object.has_key_list("files"))

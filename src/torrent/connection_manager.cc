@@ -74,6 +74,7 @@ ConnectionManager::ConnectionManager() :
   m_encryptionOptions(encryption_none),
 
   m_listen(new Listen),
+  m_listenPort(0),
   m_slotResolver(&resolve_host) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();

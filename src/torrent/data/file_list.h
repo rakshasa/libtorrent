@@ -81,6 +81,7 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
+  using base_type::front;
   using base_type::back;
   using base_type::empty;
   using base_type::reserve;
@@ -94,6 +95,7 @@ public:
   bool                is_open() const                                 { return m_isOpen; }
   bool                is_done() const                                 { return completed_chunks() == size_chunks(); }
   bool                is_valid_piece(const Piece& piece) const;
+  bool                is_root_dir_created() const;
 
   // Check if the torrent is loaded as a multi-file torrent. This may
   // return true even for a torrent with just one file.
