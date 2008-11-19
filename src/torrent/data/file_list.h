@@ -118,6 +118,7 @@ public:
 
   // You may only call set_root_dir after all nodes have been added.
   const std::string&  root_dir() const                                { return m_rootDir; }
+  const std::string&  frozen_root_dir() const                         { return m_frozenRootDir; }
   void                set_root_dir(const std::string& path);
 
   uint64_t            max_file_size() const                           { return m_maxFileSize; }
@@ -184,6 +185,7 @@ private:
 
   // Reorder next minor version bump:
   bool                m_isMultiFile;
+  std::string         m_frozenRootDir;
 };
 
 }

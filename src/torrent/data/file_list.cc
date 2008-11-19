@@ -465,6 +465,7 @@ FileList::open(int flags) {
   }
 
   m_isOpen = true;
+  m_frozenRootDir = m_rootDir;
 }
 
 void

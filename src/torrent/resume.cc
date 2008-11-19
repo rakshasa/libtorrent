@@ -230,6 +230,22 @@ resume_check_target_files(Download download, __UNUSED const Object& object) {
     // Here we should probably check all/most of the files within the
     // torrent. But for now just return true, as the root dir is
     // usually created for each (multi) torrent.
+
+//     int failed = 0;
+//     int exists = 0;
+
+//     for (FileList::const_iterator itr = fileList->begin(), last = fileList->end(); itr != last; itr++) {
+//       if (!(*itr)->is_previously_created())
+//         continue;
+
+//       if ((*itr)->is_created())
+//         exists++;
+//       else
+//         failed++;
+//     }
+
+//     return failed >= exists;
+
     return true;
 
   } else {
