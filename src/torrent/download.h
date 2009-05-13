@@ -59,11 +59,13 @@ public:
 
   // Start and open flags can be stored in the same integer, same for
   // stop and close flags.
-  static const int start_no_create     = (1 << 0);
-  static const int start_keep_baseline = (1 << 1);
-  static const int start_skip_tracker  = (1 << 2);
+  static const int open_enable_fallocate = (1 << 0);
 
-  static const int stop_skip_tracker   = (1 << 0);
+  static const int start_no_create       = (1 << 1);
+  static const int start_keep_baseline   = (1 << 2);
+  static const int start_skip_tracker    = (1 << 3);
+
+  static const int stop_skip_tracker     = (1 << 0);
 
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 

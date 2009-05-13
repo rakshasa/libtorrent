@@ -165,7 +165,16 @@ File::resize_file() {
     return false;
 
   // This doesn't try to re-open it as rw.
-  return m_size == SocketFile(m_fd).size() || SocketFile(m_fd).set_size(m_size);
+  if (m_size == SocketFile(m_fd).size())
+    return true;
+
+  if (!SocketFile(m_fd).set_size(m_size))
+    return false;
+
+  if (m_flags & flag_fallocate)
+    SocketFile(m_fd).reserve(0, m_size);
+
+  return true;
 }
 
 }

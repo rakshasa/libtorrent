@@ -80,8 +80,13 @@ Download::open(int flags) {
   // should be allowed to pass a flag that will keep the old settings,
   // although loading resume data should really handle everything
   // properly.
+  int fileFlags = File::flag_create_queued | File::flag_resize_queued;
+
+  if (flags & open_enable_fallocate)
+    fileFlags |= File::flag_fallocate;
+
   for (FileList::iterator itr = m_ptr->main()->file_list()->begin(), last = m_ptr->main()->file_list()->end(); itr != last; itr++)
-    (*itr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+    (*itr)->set_flags(fileFlags);
 }
 
 void

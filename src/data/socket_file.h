@@ -66,7 +66,8 @@ public:
   void                close();
   
   // Reserve the space on disk if a system call is defined. 'length'
-  // of zero indicates to the end of the file.
+  // of zero indicates to the end of the file. (ERRR... nope, set
+  // length properly...)
   bool                reserve(uint64_t offset = 0, uint64_t length = 0);
 
   bool                is_open() const                                   { return m_fd != invalid_fd; }
