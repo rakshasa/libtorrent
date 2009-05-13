@@ -58,6 +58,7 @@ static const char* errorStrings[e_last + 1] = {
   "network unreachable",                // eh_network_unreachable
   "network timeout",                    // eh_network_timeout
   "invalid message order",              // eh_invalid_order
+  "too many failed chunks",             // eh_toomanyfailed
 
 //   "", // e_handshake_incoming
 //   "", // e_handshake_outgoing

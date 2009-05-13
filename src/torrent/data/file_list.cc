@@ -543,9 +543,7 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
     return false;
   }
 
-  return
-    node->prepare(MemoryChunk::prot_read | MemoryChunk::prot_write, (flags & open_no_create ? 0 : SocketFile::o_create)) ||
-    node->prepare(MemoryChunk::prot_read, 0);
+  return node->prepare(MemoryChunk::prot_read, 0);
 }
 
 MemoryChunk

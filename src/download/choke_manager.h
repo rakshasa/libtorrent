@@ -79,7 +79,7 @@ public:
     m_slotConnection(NULL) {}
   ~ChokeManager();
   
-  bool                is_full() const                         { return !is_unlimited() && m_unchoked.size() < m_maxUnchoked; }
+  bool                is_full() const                         { return !is_unlimited() && m_unchoked.size() >= m_maxUnchoked; }
   bool                is_unlimited() const                    { return m_maxUnchoked == unlimited; }
 
   uint32_t            size_unchoked() const                   { return m_unchoked.size(); }

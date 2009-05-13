@@ -59,6 +59,7 @@ const int e_handshake_network_error             = 12;
 const int e_handshake_network_unreachable       = 13;
 const int e_handshake_network_timeout           = 14;
 const int e_handshake_invalid_order             = 15;
+const int e_handshake_toomanyfailed             = 16;
 
 // const int e_handshake_incoming                  = 13;
 // const int e_handshake_outgoing                  = 14;
@@ -68,7 +69,7 @@ const int e_handshake_invalid_order             = 15;
 // const int e_handshake_retry_plaintext           = 18;
 // const int e_handshake_retry_encrypted           = 19;
 
-const int e_last                                = 15;
+const int e_last                                = 16;
 
 const char* strerror(int err) LIBTORRENT_EXPORT;
 

@@ -77,7 +77,7 @@ public:
 
   void                finished(BlockTransfer* transfer);
 
-  void                hash_succeded(uint32_t index);
+  void                hash_succeded(uint32_t index, Chunk* chunk);
   void                hash_failed(uint32_t index, Chunk* chunk);
 
   typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_canceled_op;
@@ -103,7 +103,7 @@ private:
   void operator = (const TransferList&);
 
   unsigned int        update_failed(BlockList* blockList, Chunk* chunk);
-  void                mark_failed_peers(BlockList* blockList);
+  void                mark_failed_peers(BlockList* blockList, Chunk* chunk);
 
   void                retry_most_popular(BlockList* blockList, Chunk* chunk);
 

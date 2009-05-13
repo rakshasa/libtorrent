@@ -267,7 +267,9 @@ DownloadMain::receive_corrupt_chunk(PeerInfo* peerInfo) {
   // don't recalculate these things whenever the peer reconnects.
 
   // That is... non at all ;)
-  connection_list()->erase(peerInfo, ConnectionList::disconnect_unwanted);
+
+  if (peerInfo->failed_counter() > HandshakeManager::max_failed)
+    connection_list()->erase(peerInfo, ConnectionList::disconnect_unwanted);
 }
 
 void

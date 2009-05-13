@@ -60,6 +60,9 @@ public:
 
   typedef rak::mem_fun1<DownloadManager, DownloadMain*, const char*> SlotDownloadId;
 
+  // Do not connect to peers with this many or more failed chunks.
+  static const unsigned int max_failed = 3;
+
   using base_type::empty;
 
   HandshakeManager() { }

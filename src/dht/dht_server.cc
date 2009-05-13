@@ -335,35 +335,43 @@ DhtServer::process_response(int transactionId, const HashString& id, const rak::
   m_repliesReceived++;
   m_networkUp = true;
 
-  DhtTransaction* transaction = itr->second;
+  // Make sure transaction is erased even if an exception is thrown.
+  try {
+    DhtTransaction* transaction = itr->second;
 #ifdef USE_EXTRA_DEBUG
-  if (DhtTransaction::key(sa, transactionId) != transaction->key(transactionId))
-    throw internal_error("DhtServer::process_response key mismatch.");
+    if (DhtTransaction::key(sa, transactionId) != transaction->key(transactionId))
+      throw internal_error("DhtServer::process_response key mismatch.");
 #endif
 
-  // If we contact a node but its ID is not the one we expect, ignore the reply
-  // to prevent interference from rogue nodes.
-  if ((id != transaction->id() && transaction->id() != m_router->zero_id))
-    return;
+    // If we contact a node but its ID is not the one we expect, ignore the reply
+    // to prevent interference from rogue nodes.
+    if ((id != transaction->id() && transaction->id() != m_router->zero_id))
+      return;
 
-  const Object& response = request.get_key("r");
+    const Object& response = request.get_key("r");
 
-  switch (transaction->type()) {
-    case DhtTransaction::DHT_FIND_NODE:
-      parse_find_node_reply(transaction->as_find_node(), response.get_key_string("nodes"));
-      break;
+    switch (transaction->type()) {
+      case DhtTransaction::DHT_FIND_NODE:
+        parse_find_node_reply(transaction->as_find_node(), response.get_key_string("nodes"));
+        break;
 
-    case DhtTransaction::DHT_GET_PEERS:
-      parse_get_peers_reply(transaction->as_get_peers(), response);
-      break;
+      case DhtTransaction::DHT_GET_PEERS:
+        parse_get_peers_reply(transaction->as_get_peers(), response);
+        break;
 
-    // Nothing to do for DHT_PING and DHT_ANNOUNCE_PEER
-    default:
-      break;
+      // Nothing to do for DHT_PING and DHT_ANNOUNCE_PEER
+      default:
+        break;
+    }
+
+    // Mark node responsive only if all processing was successful, without errors.
+    m_router->node_replied(id, sa);
+
+  } catch (std::exception& e) {
+    delete itr->second;
+    m_transactions.erase(itr);
+    throw;
   }
-
-  // Mark node responsive only if all processing was successful, without errors.
-  m_router->node_replied(id, sa);
 
   delete itr->second;
   m_transactions.erase(itr);
@@ -611,7 +619,17 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
     else
       transaction->as_find_node()->complete(false);
 
-    find_node_next(transaction->as_find_node());
+    try {
+      find_node_next(transaction->as_find_node());
+
+    } catch (std::exception& e) {
+      if (!quick) {
+        delete itr->second;
+        m_transactions.erase(itr);
+      }
+
+      throw;
+    }
   }
 
   if (quick) {

@@ -113,14 +113,14 @@ TransferList::finished(BlockTransfer* transfer) {
 }
 
 void
-TransferList::hash_succeded(uint32_t index) {
+TransferList::hash_succeded(uint32_t index, Chunk* chunk) {
   iterator blockListItr = find(index);
 
   if ((Block::size_type)std::count_if((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::is_finished)) != (*blockListItr)->size())
     throw internal_error("TransferList::hash_succeded(...) Finished blocks does not match size.");
 
   if ((*blockListItr)->failed() != 0)
-    mark_failed_peers(*blockListItr);
+    mark_failed_peers(*blockListItr, chunk);
 
   erase(blockListItr);
 }
@@ -198,6 +198,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
       chunk->to_buffer(buffer, itr->piece().offset(), itr->piece().length());
 
       itr->failed_list()->push_back(BlockFailed::value_type(buffer, 1));
+      failedItr = itr->failed_list()->end() - 1;
 
       // Count how many new data sets?
 
@@ -221,13 +222,19 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
 }
 
 void
-TransferList::mark_failed_peers(BlockList* blockList) {
+TransferList::mark_failed_peers(BlockList* blockList, Chunk* chunk) {
   std::set<PeerInfo*> badPeers;
 
-  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr)
+  for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr) {
+    // This chunk data is good, set it as current and
+    // everyone who sent something else is a bad peer.
+    itr->failed_list()->set_current(std::find_if(itr->failed_list()->begin(), itr->failed_list()->end(),
+                                                 transfer_list_compare_data(chunk, itr->piece())));
+
     for (Block::transfer_list_type::const_iterator itr2 = itr->transfers()->begin(), last2 = itr->transfers()->end(); itr2 != last2; ++itr2)
-      if ((*itr2)->failed_index() != itr->failed_list()->current())
+      if ((*itr2)->failed_index() != itr->failed_list()->current() && (*itr2)->failed_index() != ~uint32_t())
         badPeers.insert((*itr2)->peer_info());
+  }
 
   std::for_each(badPeers.begin(), badPeers.end(), m_slotCorrupt);
 }

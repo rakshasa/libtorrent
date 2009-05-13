@@ -145,7 +145,7 @@ ChokeManager::set_queued(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->snubbed())
     return;
 
-  if ((m_flags & flag_unchoke_all_new || (!is_full() && m_slotCanUnchoke())) &&
+  if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke()) &&
       base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
@@ -209,7 +209,7 @@ ChokeManager::set_not_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base) {
   if (base->unchoked())
     throw internal_error("ChokeManager::set_not_snubbed(...) base->unchoked().");
   
-  if ((m_flags & flag_unchoke_all_new || (!is_full() && m_slotCanUnchoke())) &&
+  if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke()) &&
       base->time_last_choke() + rak::timer::from_seconds(10) < cachedTime) {
     m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
