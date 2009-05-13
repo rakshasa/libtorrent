@@ -38,6 +38,7 @@
 
 #include <cstring>
 #include <sstream>
+#include <rak/string_manip.h>
 
 #include "data/chunk_list_node.h"
 #include "download/choke_manager.h"
@@ -452,7 +453,7 @@ PeerConnection<type>::event_read() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
-    m_download->info()->signal_network_log().emit(e.what());
+    m_download->info()->signal_network_log().emit((rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str() + " " + rak::copy_escape_html(std::string(m_peerInfo->id().c_str(), 8)) + ": " + e.what()).c_str());
 
     m_download->connection_list()->erase(this, 0);
 

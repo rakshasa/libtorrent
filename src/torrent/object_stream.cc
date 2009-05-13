@@ -100,12 +100,14 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 
     break;
 
-  case 'd':
+  case 'd': {
     input->get();
     *object = Object::create_map();
 
     if (++depth >= 1024)
       break;
+
+    Object::string_type last;
 
     while (input->good()) {
       if (input->peek() == 'e') {
@@ -118,10 +120,16 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
       if (!object_read_string(input, str))
 	break;
 
+      if (last >= str)
+        break;
+
       object_read_bencode(input, &object->as_map()[str], depth);
+
+      str.swap(last);
     }
 
     break;
+  }
 
   default:
     if (c >= '0' && c <= '9') {
