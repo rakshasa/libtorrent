@@ -12,16 +12,16 @@ lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_LDFLAGS = -version-info $(LIBTORRENT_INTERFACE_VERSION_INFO)
 libtorrent_la_LIBADD = \
-	$(top_srcdir)/src/torrent/libsub_torrent.la \
-	$(top_srcdir)/src/torrent/data/libsub_torrentdata.la \
-	$(top_srcdir)/src/torrent/peer/libsub_torrentpeer.la \
-	$(top_srcdir)/src/data/libsub_data.la \
-	$(top_srcdir)/src/dht/libsub_dht.la \
-	$(top_srcdir)/src/download/libsub_download.la \
-	$(top_srcdir)/src/net/libsub_net.la \
-	$(top_srcdir)/src/protocol/libsub_protocol.la \
-	$(top_srcdir)/src/tracker/libsub_tracker.la \
-	$(top_srcdir)/src/utils/libsub_utils.la
+	torrent/libsub_torrent.la \
+	torrent/data/libsub_torrentdata.la \
+	torrent/peer/libsub_torrentpeer.la \
+	data/libsub_data.la \
+	dht/libsub_dht.la \
+	download/libsub_download.la \
+	net/libsub_net.la \
+	protocol/libsub_protocol.la \
+	tracker/libsub_tracker.la \
+	utils/libsub_utils.la
 
 libtorrent_la_SOURCES = \
 	globals.cc \
@@ -30,3 +30,5 @@ libtorrent_la_SOURCES = \
 	manager.h \
 	resource_manager.cc \
 	resource_manager.h
+
+INCLUDES = -I$(srcdir) -I$(top_srcdir)

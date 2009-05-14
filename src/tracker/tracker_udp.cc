@@ -38,6 +38,7 @@
 
 #include <sigc++/adaptors/bind.h>
 #include <torrent/connection_manager.h>
+#include <cstdio>
 
 #include "download/download_info.h"
 #include "net/address_list.h"

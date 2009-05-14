@@ -38,6 +38,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <cstdio>
 
 #include <unistd.h>
 #include <torrent/exceptions.h>

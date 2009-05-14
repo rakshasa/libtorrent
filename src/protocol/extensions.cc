@@ -39,6 +39,8 @@
 #include <limits>
 #include <sstream>
 
+#include <cstdio>
+
 #include "download/available_list.h"
 #include "download/download_main.h"
 #include "protocol/peer_connection_base.h"

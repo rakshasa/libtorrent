@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <sstream>
+#include <cstdio>
 
 #include "dht/dht_router.h"
 #include "torrent/connection_manager.h"
