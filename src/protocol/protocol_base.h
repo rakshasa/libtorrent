@@ -83,7 +83,8 @@ public:
 
   ProtocolBase() :
     m_state(IDLE),
-    m_lastCommand(NONE) {
+    m_lastCommand(NONE),
+    m_throttle(NULL) {
 
     m_buffer.reset();
   }
@@ -92,6 +93,9 @@ public:
   void                set_last_command(Protocol p)            { m_lastCommand = p; }
 
   Buffer*             buffer()                                { return &m_buffer; }
+
+  ThrottleList*       throttle()                              { return m_throttle; }
+  void                set_throttle(ThrottleList* t)           { m_throttle = t; }
 
   State               get_state() const                       { return m_state; }
   void                set_state(State s)                      { m_state = s; }
@@ -150,6 +154,7 @@ public:
 protected:
   State               m_state;
   Protocol            m_lastCommand;
+  ThrottleList*       m_throttle;
 
   Buffer              m_buffer;
 };

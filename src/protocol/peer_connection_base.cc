@@ -51,6 +51,7 @@
 #include "download/download_main.h"
 #include "net/socket_base.h"
 #include "torrent/connection_manager.h"
+#include "torrent/throttle.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/connection_list.h"
 
@@ -118,10 +119,14 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   m_peerChunks.set_peer_info(m_peerInfo);
   m_peerChunks.bitfield()->swap(*bitfield);
 
-  m_peerChunks.upload_throttle()->set_list_iterator(m_download->upload_throttle()->end());
+  std::pair<ThrottleList*, ThrottleList*> throttles = m_download->throttles(m_peerInfo->socket_address());
+  m_up->set_throttle(throttles.first);
+  m_down->set_throttle(throttles.second);
+
+  m_peerChunks.upload_throttle()->set_list_iterator(m_up->throttle()->end());
   m_peerChunks.upload_throttle()->slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_up_activate));
 
-  m_peerChunks.download_throttle()->set_list_iterator(m_download->download_throttle()->end());
+  m_peerChunks.download_throttle()->set_list_iterator(m_down->throttle()->end());
   m_peerChunks.download_throttle()->slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_down_activate));
 
   download_queue()->set_delegator(m_download->delegator());
@@ -179,8 +184,8 @@ PeerConnectionBase::cleanup() {
   get_fd().close();
   get_fd().clear();
 
-  m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
-  m_download->download_throttle()->erase(m_peerChunks.download_throttle());
+  m_up->throttle()->erase(m_peerChunks.upload_throttle());
+  m_down->throttle()->erase(m_peerChunks.download_throttle());
 
   m_up->set_state(ProtocolWrite::INTERNAL_ERROR);
   m_down->set_state(ProtocolRead::INTERNAL_ERROR);
@@ -226,7 +231,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
     // If the queue isn't empty, then we might still receive some
     // pieces, so don't remove us from throttle.
     if (!download_queue()->is_downloading() && download_queue()->queued_empty())
-      m_download->download_throttle()->erase(m_peerChunks.download_throttle());
+      m_down->throttle()->erase(m_peerChunks.download_throttle());
 
     // Send uninterested if unchoked, but only _after_ receiving our
     // chunks?
@@ -378,24 +383,24 @@ PeerConnectionBase::down_chunk_finished() {
   // If we were choked by choke_manager but still had queued pieces,
   // then we might still be in the throttle.
   if (m_downChoke.choked() && download_queue()->queued_empty())
-    m_download->download_throttle()->erase(m_peerChunks.download_throttle());
+    m_down->throttle()->erase(m_peerChunks.download_throttle());
 
   write_insert_poll_safe();
 }
 
 bool
 PeerConnectionBase::down_chunk() {
-  if (!m_download->download_throttle()->is_throttled(m_peerChunks.download_throttle()))
+  if (!m_down->throttle()->is_throttled(m_peerChunks.download_throttle()))
     throw internal_error("PeerConnectionBase::down_chunk() tried to read a piece but is not in throttle list");
 
   if (!m_downChunk.chunk()->is_writable())
     throw internal_error("PeerConnectionBase::down_part() chunk not writable, permission denided");
 
-  uint32_t quota = m_download->download_throttle()->node_quota(m_peerChunks.download_throttle());
+  uint32_t quota = m_down->throttle()->node_quota(m_peerChunks.download_throttle());
 
   if (quota == 0) {
     manager->poll()->remove_read(this);
-    m_download->download_throttle()->node_deactivate(m_peerChunks.download_throttle());
+    m_down->throttle()->node_deactivate(m_peerChunks.download_throttle());
     return false;
   }
 
@@ -420,7 +425,7 @@ PeerConnectionBase::down_chunk() {
 
   transfer->adjust_position(bytesTransfered);
 
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
+  m_down->throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
   m_download->info()->down_rate()->insert(bytesTransfered);
 
   return transfer->is_finished();
@@ -441,7 +446,7 @@ PeerConnectionBase::down_chunk_from_buffer() {
 // don't really care that much about performance.
 bool
 PeerConnectionBase::down_chunk_skip() {
-  ThrottleList* throttle = m_download->download_throttle();
+  ThrottleList* throttle = m_down->throttle();
 
   if (!throttle->is_throttled(m_peerChunks.download_throttle()))
     throw internal_error("PeerConnectionBase::down_chunk_skip() tried to read a piece but is not in throttle list");
@@ -490,7 +495,7 @@ PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
 
   transfer->adjust_position(length);
 
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), length);
+  m_down->throttle()->node_used(m_peerChunks.download_throttle(), length);
   m_download->info()->down_rate()->insert(length);
 
   return length;
@@ -509,7 +514,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
 
   // Hmm, this might result in more bytes than nessesary being
   // counted.
-  m_download->download_throttle()->node_used(m_peerChunks.download_throttle(), length);
+  m_down->throttle()->node_used(m_peerChunks.download_throttle(), length);
   m_download->info()->down_rate()->insert(length);
   m_download->info()->skip_rate()->insert(length);
 
@@ -568,7 +573,7 @@ PeerConnectionBase::down_extension() {
 
   if (!m_extensions->is_complete()) {
     uint32_t bytes = read_stream_throws(m_extensions->read_position(), m_extensions->read_need());
-    m_download->download_throttle()->node_used_unthrottled(bytes);
+    m_down->throttle()->node_used_unthrottled(bytes);
     
     if (is_encrypted())
       m_encryption.decrypt(m_extensions->read_position(), bytes);
@@ -613,17 +618,17 @@ PeerConnectionBase::up_chunk_encrypt(uint32_t quota) {
 
 bool
 PeerConnectionBase::up_chunk() {
-  if (!m_download->upload_throttle()->is_throttled(m_peerChunks.upload_throttle()))
+  if (!m_up->throttle()->is_throttled(m_peerChunks.upload_throttle()))
     throw internal_error("PeerConnectionBase::up_chunk() tried to write a piece but is not in throttle list");
 
   if (!m_upChunk.chunk()->is_readable())
     throw internal_error("ProtocolChunk::write_part() chunk not readable, permission denided");
 
-  uint32_t quota = m_download->upload_throttle()->node_quota(m_peerChunks.upload_throttle());
+  uint32_t quota = m_up->throttle()->node_quota(m_peerChunks.upload_throttle());
 
   if (quota == 0) {
     manager->poll()->remove_write(this);
-    m_download->upload_throttle()->node_deactivate(m_peerChunks.upload_throttle());
+    m_up->throttle()->node_deactivate(m_peerChunks.upload_throttle());
     return false;
   }
 
@@ -651,7 +656,7 @@ PeerConnectionBase::up_chunk() {
     } while (itr.used(data.second));
   }
 
-  m_download->upload_throttle()->node_used(m_peerChunks.upload_throttle(), bytesTransfered);
+  m_up->throttle()->node_used(m_peerChunks.upload_throttle(), bytesTransfered);
   m_download->info()->up_rate()->insert(bytesTransfered);
 
   // Just modifying the piece to cover the remaining data ends up
@@ -682,7 +687,7 @@ PeerConnectionBase::up_extension() {
     throw internal_error("PeerConnectionBase::up_extension bad offset.");
 
   uint32_t written = write_stream_throws(m_extensionMessage.data() + m_extensionOffset, m_extensionMessage.length() - m_extensionOffset);
-  m_download->upload_throttle()->node_used_unthrottled(written);
+  m_up->throttle()->node_used_unthrottled(written);
   m_extensionOffset += written;
 
   if (m_extensionOffset < m_extensionMessage.length())

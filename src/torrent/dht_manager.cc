@@ -112,10 +112,18 @@ DhtManager::reset_statistics() {
 
 void
 DhtManager::set_upload_throttle(Throttle* t) {
+  if (m_router->is_active())
+    throw internal_error("DhtManager::set_upload_throttle() called while DHT server active.");
+
+  m_router->set_upload_throttle(t->throttle_list());
 }
 
 void
 DhtManager::set_download_throttle(Throttle* t) {
+  if (m_router->is_active())
+    throw internal_error("DhtManager::set_download_throttle() called while DHT server active.");
+
+  m_router->set_download_throttle(t->throttle_list());
 }
 
 }

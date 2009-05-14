@@ -17,6 +17,8 @@ libsub_net_la_SOURCES = \
 	socket_set.h \
 	socket_stream.cc \
 	socket_stream.h \
+	throttle_internal.cc \
+	throttle_internal.h \
 	throttle_list.cc \
 	throttle_list.h \
 	throttle_node.h

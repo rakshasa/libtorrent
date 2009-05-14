@@ -219,7 +219,7 @@ PeerConnection<type>::read_message() {
 
     download_queue()->cancel();
     m_download->download_choke_manager()->set_not_queued(this, &m_downChoke);
-    m_download->download_throttle()->erase(m_peerChunks.download_throttle());
+    m_down->throttle()->erase(m_peerChunks.download_throttle());
 
     return true;
 
@@ -286,7 +286,7 @@ PeerConnection<type>::read_message() {
 
       } else {
         m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
-        m_download->download_throttle()->insert(m_peerChunks.download_throttle());
+        m_down->throttle()->insert(m_peerChunks.download_throttle());
         return false;
       }
       
@@ -299,7 +299,7 @@ PeerConnection<type>::read_message() {
 
       } else {
         m_down->set_state(ProtocolRead::READ_PIECE);
-        m_download->download_throttle()->insert(m_peerChunks.download_throttle());
+        m_down->throttle()->insert(m_peerChunks.download_throttle());
         return false;
       }
     }
@@ -374,7 +374,7 @@ PeerConnection<type>::event_read() {
       case ProtocolRead::IDLE:
         if (m_down->buffer()->size_end() < read_size) {
           unsigned int length = read_stream_throws(m_down->buffer()->end(), read_size - m_down->buffer()->size_end());
-          m_download->download_throttle()->node_used_unthrottled(length);
+          m_down->throttle()->node_used_unthrottled(length);
 
           if (is_encrypted())
             m_encryption.decrypt(m_down->buffer()->end(), length);
@@ -480,7 +480,7 @@ PeerConnection<type>::fill_write_buffer() {
     m_up->write_choke(m_upChoke.choked());
 
     if (m_upChoke.choked()) {
-      m_download->upload_throttle()->erase(m_peerChunks.upload_throttle());
+      m_up->throttle()->erase(m_peerChunks.upload_throttle());
       up_chunk_release();
       m_peerChunks.upload_queue()->clear();
 
@@ -493,7 +493,7 @@ PeerConnection<type>::fill_write_buffer() {
       }
 
     } else {
-      m_download->upload_throttle()->insert(m_peerChunks.upload_throttle());
+      m_up->throttle()->insert(m_peerChunks.upload_throttle());
     }
   }
 
@@ -577,7 +577,7 @@ PeerConnection<type>::event_write() {
         m_up->set_state(ProtocolWrite::MSG);
 
       case ProtocolWrite::MSG:
-        if (!m_up->buffer()->consume(m_download->upload_throttle()->node_used_unthrottled(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()))))
+        if (!m_up->buffer()->consume(m_up->throttle()->node_used_unthrottled(write_stream_throws(m_up->buffer()->position(), m_up->buffer()->remaining()))))
           return;
 
         m_up->buffer()->reset();

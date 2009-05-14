@@ -90,10 +90,13 @@ public:
   // Called every 15 minutes.
   void                update();
 
-  ThrottleNode*       upload_throttle()                          { return &m_uploadThrottle; }
-  const ThrottleNode* upload_throttle() const                    { return &m_uploadThrottle; }
-  ThrottleNode*       download_throttle()                        { return &m_downloadThrottle; }
-  const ThrottleNode* download_throttle() const                  { return &m_downloadThrottle; }
+  ThrottleNode*       upload_throttle_node()                  { return &m_uploadNode; }
+  const ThrottleNode* upload_throttle_node() const            { return &m_uploadNode; }
+  ThrottleNode*       download_throttle_node()                { return &m_downloadNode; }
+  const ThrottleNode* download_throttle_node() const          { return &m_downloadNode; }
+
+  void                set_upload_throttle(ThrottleList* t)    { m_uploadThrottle = t; }
+  void                set_download_throttle(ThrottleList* t)  { m_downloadThrottle = t; }
 
   virtual void        event_read();
   virtual void        event_write();
@@ -166,8 +169,11 @@ private:
 
   rak::priority_item  m_taskTimeout;
 
-  ThrottleNode        m_uploadThrottle;
-  ThrottleNode        m_downloadThrottle;
+  ThrottleNode        m_uploadNode;
+  ThrottleNode        m_downloadNode;
+
+  ThrottleList*       m_uploadThrottle;
+  ThrottleList*       m_downloadThrottle;
 
   unsigned int        m_queriesReceived;
   unsigned int        m_queriesSent;

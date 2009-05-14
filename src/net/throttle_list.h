@@ -41,6 +41,9 @@
 
 #include "torrent/rate.h"
 
+// To allow conditional compilation depending on whether this patch is applied or not.
+#define LIBTORRENT_CUSTOM_THROTTLES 1
+
 namespace torrent {
 
 class ThrottleNode;
@@ -62,6 +65,8 @@ public:
 
   ThrottleList();
 
+  bool                is_enabled() const             { return m_enabled; }
+
   bool                is_active(const ThrottleNode* node) const;
   bool                is_inactive(const ThrottleNode* node) const;
 
@@ -71,7 +76,9 @@ public:
   void                enable();
   void                disable();
 
-  void                update_quota(uint32_t quota);
+  // Returns the amount of quota used. May be negative if it had unused
+  // quota left over from the last call that was more than is now allowed.
+  int32_t             update_quota(uint32_t quota);
 
   uint32_t            size() const                   { return m_size; }
 
@@ -91,6 +98,9 @@ public:
 
   const Rate*         rate_slow() const              { return &m_rateSlow; }
 
+  void                add_rate(uint32_t used);
+  uint32_t            rate_added()                   { uint32_t v = m_rateAdded; m_rateAdded = 0; return v; }
+
   // It is asumed that inserted nodes are currently active. It won't
   // matter if they do not get any initial quota as a later activation
   // of an active node should be safe.
@@ -106,6 +116,8 @@ private:
   uint32_t            m_outstandingQuota;
   uint32_t            m_unallocatedQuota;
   uint32_t            m_unusedUnthrottledQuota;
+
+  uint32_t            m_rateAdded;
 
   uint32_t            m_minChunkSize;
   uint32_t            m_maxChunkSize;

@@ -79,8 +79,11 @@ private:
 DhtServer::DhtServer(DhtRouter* router) :
   m_router(router),
 
-  m_uploadThrottle(60),
-  m_downloadThrottle(60),
+  m_uploadNode(60),
+  m_downloadNode(60),
+
+  m_uploadThrottle(manager->upload_throttle()->throttle_list()),
+  m_downloadThrottle(manager->download_throttle()->throttle_list()),
 
   m_networkUp(false) {
 
@@ -125,11 +128,11 @@ DhtServer::start(int port) {
 
   m_taskTimeout.set_slot(rak::mem_fn(this, &DhtServer::receive_timeout));
 
-  m_uploadThrottle.set_list_iterator(manager->upload_throttle()->throttle_list()->end());
-  m_uploadThrottle.slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_up_activate));
+  m_uploadNode.set_list_iterator(m_uploadThrottle->end());
+  m_uploadNode.slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_up_activate));
 
-  m_downloadThrottle.set_list_iterator(manager->download_throttle()->throttle_list()->end());
-  manager->download_throttle()->throttle_list()->insert(&m_downloadThrottle);
+  m_downloadNode.set_list_iterator(m_downloadThrottle->end());
+  m_downloadThrottle->insert(&m_downloadNode);
 
   manager->poll()->open(this);
   manager->poll()->insert_read(this);
@@ -145,8 +148,8 @@ DhtServer::stop() {
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
-  manager->upload_throttle()->throttle_list()->erase(&m_uploadThrottle);
-  manager->download_throttle()->throttle_list()->erase(&m_downloadThrottle);
+  m_uploadThrottle->erase(&m_uploadNode);
+  m_downloadThrottle->erase(&m_downloadNode);
 
   manager->poll()->remove_read(this);
   manager->poll()->remove_write(this);
@@ -165,8 +168,8 @@ DhtServer::reset_statistics() {
   m_queriesSent = 0;
   m_repliesReceived = 0;
 
-  m_uploadThrottle.rate()->set_total(0);
-  m_downloadThrottle.rate()->set_total(0);
+  m_uploadNode.rate()->set_total(0);
+  m_downloadNode.rate()->set_total(0);
 }
 
 // Ping a node whose ID we know.
@@ -750,8 +753,8 @@ DhtServer::event_read() {
     }
   }
 
-  manager->download_throttle()->throttle_list()->node_used_unthrottled(total);
-  m_downloadThrottle.rate()->insert(total);
+  m_downloadThrottle->node_used_unthrottled(total);
+  m_downloadNode.rate()->insert(total);
 
   start_write();
 }
@@ -773,7 +776,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
     }
 
     if (packet->length() > *quota) {
-      manager->upload_throttle()->throttle_list()->node_used(&m_uploadThrottle, used);
+      m_uploadThrottle->node_used(&m_uploadNode, used);
       return false;
     }
 
@@ -808,7 +811,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
     delete packet;
   }
 
-  manager->upload_throttle()->throttle_list()->node_used(&m_uploadThrottle, used);
+  m_uploadThrottle->node_used(&m_uploadNode, used);
   return true;
 }
 
@@ -817,18 +820,18 @@ DhtServer::event_write() {
   if (m_highQueue.empty() && m_lowQueue.empty())
     throw internal_error("DhtServer::event_write called but both write queues are empty.");
 
-  if (!manager->upload_throttle()->throttle_list()->is_throttled(&m_uploadThrottle))
+  if (!m_uploadThrottle->is_throttled(&m_uploadNode))
     throw internal_error("DhtServer::event_write called while not in throttle list.");
 
-  uint32_t quota = manager->upload_throttle()->throttle_list()->node_quota(&m_uploadThrottle);
+  uint32_t quota = m_uploadThrottle->node_quota(&m_uploadNode);
 
   if (quota == 0 || !process_queue(m_highQueue, &quota) || !process_queue(m_lowQueue, &quota)) {
     manager->poll()->remove_write(this);
-    manager->upload_throttle()->throttle_list()->node_deactivate(&m_uploadThrottle);
+    m_uploadThrottle->node_deactivate(&m_uploadNode);
 
   } else if (m_highQueue.empty() && m_lowQueue.empty()) {
     manager->poll()->remove_write(this);
-    manager->upload_throttle()->throttle_list()->erase(&m_uploadThrottle);
+    m_uploadThrottle->erase(&m_uploadNode);
   }
 }
 
@@ -838,8 +841,8 @@ DhtServer::event_error() {
 
 void
 DhtServer::start_write() {
-  if ((!m_highQueue.empty() || !m_lowQueue.empty()) && !manager->upload_throttle()->throttle_list()->is_throttled(&m_uploadThrottle)) {
-    manager->upload_throttle()->throttle_list()->insert(&m_uploadThrottle);
+  if ((!m_highQueue.empty() || !m_lowQueue.empty()) && !m_uploadThrottle->is_throttled(&m_uploadNode)) {
+    m_uploadThrottle->insert(&m_uploadNode);
     manager->poll()->insert_write(this);
   }
 

@@ -51,6 +51,7 @@ ThrottleList::ThrottleList() :
   m_outstandingQuota(0),
   m_unallocatedQuota(0),
   m_unusedUnthrottledQuota(0),
+  m_rateAdded(0),
 
   m_minChunkSize(2 << 10),
   m_maxChunkSize(16 << 10),
@@ -117,7 +118,7 @@ ThrottleList::disable() {
   m_splitActive = end();
 }
 
-void
+int32_t
 ThrottleList::update_quota(uint32_t quota) {
   if (!m_enabled)
     throw internal_error("ThrottleList::update_quota(...) called but the object is not enabled.");
@@ -144,9 +145,15 @@ ThrottleList::update_quota(uint32_t quota) {
   }
 
   // Use 'quota' as an upper bound to avoid accumulating unused quota
-  // over time.
-  if (m_unallocatedQuota > quota)
+  // over time. Return actually used amount of quota.
+  int32_t used = quota;
+
+  if (m_unallocatedQuota > quota) {
+    used -= m_unallocatedQuota - quota;
     m_unallocatedQuota = quota;
+  }
+
+  return used;
 }
 
 uint32_t
@@ -169,9 +176,15 @@ ThrottleList::node_quota(ThrottleNode* node) {
   }
 }
 
+void
+ThrottleList::add_rate(uint32_t used) {
+  m_rateSlow.insert(used);
+  m_rateAdded += used;
+}
+
 uint32_t
 ThrottleList::node_used(ThrottleNode* node, uint32_t used) {
-  m_rateSlow.insert(used);
+  add_rate(used);
   node->rate()->insert(used);
 
   if (used == 0 || !m_enabled || node->list_iterator() == end())
@@ -191,7 +204,7 @@ ThrottleList::node_used(ThrottleNode* node, uint32_t used) {
 
 uint32_t
 ThrottleList::node_used_unthrottled(uint32_t used) {
-  m_rateSlow.insert(used);
+  add_rate(used);
 
   // Use what we can from the unthrottled quota,
   // if node used too much borrow from throttled quota.

@@ -133,14 +133,13 @@ void
 Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, PeerInfo* peerInfo) {
   m_download = d;
 
-  m_uploadThrottle = d->upload_throttle();
-  m_downloadThrottle = d->download_throttle();
-
   m_peerInfo = peerInfo;
   m_peerInfo->set_flags(PeerInfo::flag_handshake);
 
   m_incoming = false;
   m_address = sa;
+
+  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.c_sockaddr());
 
   m_state = CONNECTING;
 
@@ -347,8 +346,7 @@ Handshake::read_encryption_skey() {
 
   validate_download();
 
-  m_uploadThrottle = m_download->upload_throttle();
-  m_downloadThrottle = m_download->download_throttle();
+  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.c_sockaddr());
 
   m_encryption.initialize_encrypt(m_download->info()->hash().c_str(), m_incoming);
   m_encryption.initialize_decrypt(m_download->info()->hash().c_str(), m_incoming);
@@ -495,8 +493,7 @@ Handshake::read_info() {
 
     validate_download();
 
-    m_uploadThrottle = m_download->upload_throttle();
-    m_downloadThrottle = m_download->download_throttle();
+    std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.c_sockaddr());
 
     prepare_handshake();
 

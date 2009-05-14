@@ -38,6 +38,7 @@
 
 #include <rak/timer.h> 
 
+#include "net/throttle_internal.h"
 #include "net/throttle_list.h"
 
 #include "globals.h"
@@ -53,34 +54,25 @@ namespace torrent {
 // allow us to remove us from the task scheduler when we're full. Also
 // this would let us be abit more flexible with the interval.
 
-class ThrottleInternal : public Throttle {
-public:
-  // Set these as public for now, since they are being used by the
-  // Throttle class, which doesn't actually have access to them.
-
-  rak::timer          m_timeLastTick;
-  rak::priority_item  m_taskTick;
-};
-
 Throttle*
 Throttle::create_throttle() {
-  ThrottleInternal* throttle = new ThrottleInternal;
+  ThrottleInternal* throttle = new ThrottleInternal(ThrottleInternal::flag_root);
 
   throttle->m_maxRate = 0;
   throttle->m_throttleList = new ThrottleList();
-
-  throttle->m_timeLastTick = cachedTime;
-  throttle->m_taskTick.set_slot(rak::mem_fn((Throttle*)throttle, &Throttle::receive_tick));
 
   return throttle;
 }
 
 void
 Throttle::destroy_throttle(Throttle* throttle) {
-  priority_queue_erase(&taskScheduler, &throttle->m_ptr()->m_taskTick);
-
   delete throttle->m_ptr()->m_throttleList;
   delete throttle->m_ptr();
+}
+
+Throttle*
+Throttle::create_slave() {
+  return m_ptr()->create_slave();
 }
 
 bool
@@ -102,36 +94,18 @@ Throttle::set_max_rate(uint32_t v) {
   m_throttleList->set_min_chunk_size(calculate_min_chunk_size());
   m_throttleList->set_max_chunk_size(calculate_max_chunk_size());
 
-  if (oldRate == 0) {
-    m_throttleList->enable();
+  if (!m_ptr()->is_root())
+    return;
 
-    // We need to start the ticks, and make sure we set timeLastTick
-    // to a value that gives an reasonable initial quota.
-    m_ptr()->m_timeLastTick = cachedTime - rak::timer::from_seconds(1);
-    receive_tick();
-
-  } else if (m_maxRate == 0) {
-    m_throttleList->disable();
-    priority_queue_erase(&taskScheduler, &m_ptr()->m_taskTick);
-  }
+  if (oldRate == 0)
+    m_ptr()->enable();
+  else if (m_maxRate == 0)
+    m_ptr()->disable();
 }
 
 const Rate*
 Throttle::rate() const {
   return m_throttleList->rate_slow();
-}
-
-void
-Throttle::receive_tick() {
-  if (cachedTime <= m_ptr()->m_timeLastTick + 90000)
-    throw internal_error("Throttle::receive_tick() called at a to short interval.");
-
-  uint32_t quota = ((uint64_t)(cachedTime.usec() - m_ptr()->m_timeLastTick.usec())) * m_maxRate / 1000000;
-
-  m_throttleList->update_quota(quota);
-
-  priority_queue_insert(&taskScheduler, &m_ptr()->m_taskTick, cachedTime + calculate_interval());
-  m_ptr()->m_timeLastTick = cachedTime;
 }
 
 uint32_t

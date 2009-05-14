@@ -105,7 +105,6 @@ public:
   statistics_type     get_statistics() const;
   void                reset_statistics();
 
-  // Not implemented yet.
   void                set_upload_throttle(Throttle* t);
   void                set_download_throttle(Throttle* t);
 

@@ -374,7 +374,7 @@ DhtRouter::store_cache(Object* container) const {
 
 DhtManager::statistics_type
 DhtRouter::get_statistics() const {
-  DhtManager::statistics_type stats(*m_server.upload_throttle()->rate(), *m_server.download_throttle()->rate());
+  DhtManager::statistics_type stats(*m_server.upload_throttle_node()->rate(), *m_server.download_throttle_node()->rate());
 
   if (!m_server.is_active())
     stats.cycle = 0;

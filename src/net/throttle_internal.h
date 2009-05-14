@@ -34,47 +34,53 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TORRENT_THROTTLE_H
-#define LIBTORRENT_TORRENT_THROTTLE_H
+#ifndef LIBTORRENT_NET_THROTTLE_INTERNAL_H
+#define LIBTORRENT_NET_THROTTLE_INTERNAL_H
 
-#include <torrent/common.h>
+#include <vector>
+#include <rak/priority_queue_default.h>
+
+#include "torrent/common.h"
+#include "torrent/throttle.h"
 
 namespace torrent {
 
-class ThrottleList;
-class ThrottleInternal;
-
-class LIBTORRENT_EXPORT Throttle {
+class ThrottleInternal : public Throttle {
 public:
-  static Throttle*    create_throttle();
-  static void         destroy_throttle(Throttle* throttle);
+  static const int flag_none = 0;
+  static const int flag_root = 1;
 
-  Throttle*           create_slave();
+  ThrottleInternal(int flags);
+  ~ThrottleInternal();
 
-  bool                is_throttled();
+  ThrottleInternal*   create_slave();
 
-  // 0 == UNLIMITED.
-  uint32_t            max_rate() const { return m_maxRate; }
-  void                set_max_rate(uint32_t v);
+  bool                is_root()         { return m_flags & flag_root; }
 
-  const Rate*         rate() const;
+  void                enable();
+  void                disable();
 
-  ThrottleList*       throttle_list()  { return m_throttleList; }
+private:
+  // Fraction is a fixed-precision value with the given number of bits after the decimal point.
+  static const uint32_t fraction_bits = 16;
+  static const uint32_t fraction_base = (1 << fraction_bits);
 
-protected:
-  Throttle() {}
-  ~Throttle() {}
+  typedef std::vector<ThrottleInternal*>  SlaveList;
 
-  ThrottleInternal*       m_ptr()       { return reinterpret_cast<ThrottleInternal*>(this); }
-  const ThrottleInternal* c_ptr() const { return reinterpret_cast<const ThrottleInternal*>(this); }
+  void                receive_tick();
 
-  uint32_t            calculate_min_chunk_size() const LIBTORRENT_NO_EXPORT;
-  uint32_t            calculate_max_chunk_size() const LIBTORRENT_NO_EXPORT;
-  uint32_t            calculate_interval() const LIBTORRENT_NO_EXPORT;
+  // Distribute quota, return amount of quota used. May be negative
+  // if it had more unused quota than is now allowed.
+  int32_t             receive_quota(uint32_t quota, uint32_t fraction);
 
-  uint32_t            m_maxRate;
+  int                 m_flags;
+  SlaveList           m_slaveList;
+  SlaveList::iterator m_nextSlave;
 
-  ThrottleList*       m_throttleList;
+  uint32_t            m_unusedQuota;
+
+  rak::timer          m_timeLastTick;
+  rak::priority_item  m_taskTick;
 };
 
 }

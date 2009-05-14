@@ -48,6 +48,7 @@
 #include "tracker/tracker_manager.h"
 #include "torrent/download.h"
 #include "torrent/exceptions.h"
+#include "torrent/throttle.h"
 #include "torrent/data/file_list.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
@@ -130,6 +131,17 @@ DownloadMain::~DownloadMain() {
 
   m_ut_pex_delta.clear();
   m_ut_pex_initial.clear();
+}
+
+std::pair<ThrottleList*, ThrottleList*>
+DownloadMain::throttles(const sockaddr* sa) {
+  ThrottlePair pair = ThrottlePair(NULL, NULL);
+
+  if (!manager->connection_manager()->address_throttle().empty())
+    pair = manager->connection_manager()->address_throttle()(sa);
+
+  return std::make_pair(pair.first == NULL ? upload_throttle() : pair.first->throttle_list(),
+                        pair.second == NULL ? download_throttle() : pair.second->throttle_list());
 }
 
 void
