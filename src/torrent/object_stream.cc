@@ -107,7 +107,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
     if (++depth >= 1024)
       break;
 
-    Object::string_type last;
+    //    Object::string_type last;
 
     while (input->good()) {
       if (input->peek() == 'e') {
@@ -120,12 +120,12 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
       if (!object_read_string(input, str))
 	break;
 
-      if (last >= str)
-        break;
+      //      if (last >= str)
+      //        break;
 
       object_read_bencode(input, &object->as_map()[str], depth);
 
-      str.swap(last);
+      //      str.swap(last);
     }
 
     break;
@@ -202,6 +202,9 @@ object_write_bencode_c_string(object_write_data_t* output, const char* srcData, 
     if (output->pos == output->buffer.second) {
       output->buffer = output->writeFunc(output->data, output->buffer);
       output->pos = output->buffer.first;
+
+      //      if (output->buffer.first == output->buffer.second)
+      //        return;
     }
 
     srcData += len;
@@ -296,6 +299,9 @@ object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buf
   output.pos       = buffer.first;
 
   object_write_bencode_c_object(&output, object);
+
+  //  if (output->buffer.first == output->buffer.second)
+  //    throw 
 
   // Don't flush the buffer.
   if (output.pos == output.buffer.first)
