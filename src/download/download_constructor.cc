@@ -132,6 +132,9 @@ DownloadConstructor::parse_info(const Object& b) {
   if (!fileList->empty())
     throw internal_error("parse_info received an already initialized Content object.");
 
+  if (b.flags() & Object::flag_unordered)
+    throw input_error("Download has unordered info dictionary.");
+
   uint32_t chunkSize = b.get_key_value("piece length");
 
   if (chunkSize <= (1 << 10) || chunkSize > (128 << 20))

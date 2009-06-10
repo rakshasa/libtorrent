@@ -96,6 +96,9 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 
       Object::list_iterator itr = object->as_list().insert(object->as_list().end(), Object());
       object_read_bencode(input, &*itr, depth);
+
+      if (itr->flags() & Object::flag_unordered)
+        object->set_internal_flags(Object::flag_unordered);
     }
 
     break;
@@ -107,7 +110,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
     if (++depth >= 1024)
       break;
 
-    //    Object::string_type last;
+    Object::string_type last;
 
     while (input->good()) {
       if (input->peek() == 'e') {
@@ -120,12 +123,16 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
       if (!object_read_string(input, str))
 	break;
 
-      //      if (last >= str)
-      //        break;
+      if (last >= str)
+        object->set_internal_flags(Object::flag_unordered);
 
-      object_read_bencode(input, &object->as_map()[str], depth);
+      Object* value = &object->as_map()[str];
+      object_read_bencode(input, value, depth);
 
-      //      str.swap(last);
+      if (value->flags() & Object::flag_unordered)
+        object->set_internal_flags(Object::flag_unordered);
+
+      str.swap(last);
     }
 
     break;

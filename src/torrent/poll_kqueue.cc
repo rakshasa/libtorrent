@@ -54,6 +54,8 @@
 #include <sys/time.h>
 #endif
 
+#include <assert.h>
+
 namespace torrent {
 
 #ifdef USE_KQUEUE
@@ -88,9 +90,6 @@ PollKQueue::flush_events() {
 void
 PollKQueue::modify(Event* event, unsigned short op, short mask) {
   // Flush the changed filters to the kernel if the buffer is full.
-  if (m_changedEvents == m_table.size())
-    flush_events();
-
   if (m_changedEvents == m_maxEvents) {
     if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
       throw internal_error("PollKQueue::modify() error: " + std::string(rak::error_number::current().c_str()));

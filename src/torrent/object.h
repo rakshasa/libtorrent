@@ -75,6 +75,8 @@ public:
   static const uint32_t mask_internal = 0xffff;
   static const uint32_t mask_public   = ~mask_internal;
 
+  static const uint32_t flag_unordered = 0x100;    // bencode dictionary was not sorted
+
   enum type_type {
     TYPE_NONE,
     TYPE_VALUE,
@@ -108,6 +110,9 @@ public:
 
   void                set_flags(uint32_t f)                   { m_flags |= f & mask_public; }
   void                unset_flags(uint32_t f)                 { m_flags &= ~(f & mask_public); }
+
+  void                set_internal_flags(uint32_t f)          { m_flags |= f & (mask_internal & ~mask_type); }
+  void                unset_internal_flags(uint32_t f)        { m_flags &= ~(f & (mask_internal & ~mask_type)); }
 
   // Add functions for setting/clearing the public flags.
 
