@@ -97,6 +97,9 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
       Object::list_iterator itr = object->as_list().insert(object->as_list().end(), Object());
       object_read_bencode(input, &*itr, depth);
 
+      // The unordered flag is inherited also from list elements who
+      // have been marked as unordered, though e.g. unordered strings
+      // in the list itself does not cause this flag to be set.
       if (itr->flags() & Object::flag_unordered)
         object->set_internal_flags(Object::flag_unordered);
     }
