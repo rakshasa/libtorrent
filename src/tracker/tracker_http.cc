@@ -121,7 +121,7 @@ TrackerHttp::send_state(int state) {
   if (info->is_compact())
     s << "&compact=1";
 
-  if (m_parent->numwant() >= 0)
+  if (m_parent->numwant() >= 0 && state != DownloadInfo::STOPPED)
     s << "&numwant=" << m_parent->numwant();
 
   if (manager->connection_manager()->listen_port())

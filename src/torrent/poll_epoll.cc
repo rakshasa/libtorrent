@@ -190,12 +190,11 @@ PollEPoll::close(Event* event) {
 
   m_table[event->file_descriptor()] = Table::value_type();
 
-  /*
-  Shouldn't be needed anymore.
+  // Clear the event list just in case we open a new socket with the
+  // same fd while in the middle of calling PollEPoll::perform.
   for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->data.ptr == event)
       itr->data.ptr = NULL;
-  */
 }
 
 void
