@@ -213,8 +213,8 @@ object_write_bencode_c_string(object_write_data_t* output, const char* srcData, 
       output->buffer = output->writeFunc(output->data, output->buffer);
       output->pos = output->buffer.first;
 
-      //      if (output->buffer.first == output->buffer.second)
-      //        return;
+      if (output->buffer.first == output->buffer.second)
+        return;
     }
 
     srcData += len;
@@ -228,6 +228,9 @@ object_write_bencode_c_char(object_write_data_t* output, char src) {
   if (output->pos == output->buffer.second) {
     output->buffer = output->writeFunc(output->data, output->buffer);
     output->pos = output->buffer.first;
+
+    if (output->buffer.first == output->buffer.second)
+      return;
   }
 
   *output->pos++ = src;
@@ -325,6 +328,7 @@ object_write_to_buffer(void* data, object_buffer_t buffer) {
   if (buffer.first == buffer.second)
     throw internal_error("object_write_to_buffer(...) buffer overflow.");
 
+  // Hmm... this does something weird...
   return object_buffer_t(buffer.second, buffer.second);
 }
 
