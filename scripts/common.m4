@@ -86,8 +86,9 @@ AC_DEFUN([TORRENT_ENABLE_ARCH], [
         AC_MSG_RESULT($enableval)
 
         for i in `IFS=,; echo $enableval`; do
-          CXXFLAGS="$CXXFLAGS -arch $i"
-          LDFLAGS="$LDFLAGS -arch $i"
+          CFLAGS="$CFLAGS -march=$i"
+          CXXFLAGS="$CXXFLAGS -march=$i"
+          LDFLAGS="$LDFLAGS -march=$i"
         done
       fi
     ])

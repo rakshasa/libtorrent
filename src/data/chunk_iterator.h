@@ -87,13 +87,18 @@ ChunkIterator::next() {
   return m_first < m_last && ++m_iterator != m_chunk->end();
 }
 
+// Returns true if the new position is on a file boundary while not at
+// the edges of the chunk.
+//
+// Do not return true if the length was zero, in order to avoid
+// getting stuck looping when no data is being read/written.
 inline bool
 ChunkIterator::used(uint32_t length) {
   m_first += length;
 
   Chunk::iterator itr = m_iterator++;
 
-  return m_first != m_last && m_first == itr->position() + itr->size();
+  return m_first != m_last && m_first == itr->position() + itr->size() && length != 0;
 }
 
 }

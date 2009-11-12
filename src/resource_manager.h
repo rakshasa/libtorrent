@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DOWNLOAD_RESOURCE_MANAGER_H
-#define LIBTORRENT_DOWNLOAD_RESOURCE_MANAGER_H
+#ifndef LIBTORRENT_RESOURCE_MANAGER_H
+#define LIBTORRENT_RESOURCE_MANAGER_H
 
 #include <vector>
 #include <inttypes.h>
