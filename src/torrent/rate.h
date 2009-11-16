@@ -49,7 +49,7 @@ namespace torrent {
 class LIBTORRENT_EXPORT Rate {
 public:
   typedef int32_t                          timer_type;
-  typedef uint32_t                         rate_type;
+  typedef uint64_t                         rate_type;
   typedef uint64_t                         total_type;
 
   typedef std::pair<timer_type, rate_type> value_type;

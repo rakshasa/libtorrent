@@ -38,6 +38,7 @@
 
 #include "globals.h"
 #include "rate.h"
+#include "exceptions.h"
 
 namespace torrent {
 
@@ -59,6 +60,9 @@ Rate::rate() const {
 void
 Rate::insert(rate_type bytes) {
   discard_old();
+
+  if (m_current > ((rate_type)1 << 40) || bytes > ((rate_type)1 << 28))
+    throw internal_error("Rate::insert(bytes) received out-of-bounds values..");
 
   if (m_container.empty() || m_container.front().first != cachedTime.seconds())
     m_container.push_front(value_type(cachedTime.seconds(), bytes));
