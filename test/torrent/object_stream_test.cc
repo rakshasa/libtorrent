@@ -32,6 +32,13 @@ ObjectStreamTest::testInputOrdered() {
   CPPUNIT_ASSERT(unorderedObj.flags() & torrent::Object::flag_unordered);
 }
 
+void
+ObjectStreamTest::testInputNullKey() {
+  torrent::Object obj = create_bencode("d0:i1e5:filesi2ee");
+
+  CPPUNIT_ASSERT(!(obj.flags() & torrent::Object::flag_unordered));
+}
+
 //
 // Testing for bugs in bencode write.
 //

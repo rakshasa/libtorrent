@@ -126,7 +126,10 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
       if (!object_read_string(input, str))
 	break;
 
-      if (last >= str)
+      // We do not set flag_unordered if the first key was zero
+      // length, while multiple zero length keys will trigger the
+      // unordered_flag.
+      if (str <= last && !object->as_map().empty())
         object->set_internal_flags(Object::flag_unordered);
 
       Object* value = &object->as_map()[str];
