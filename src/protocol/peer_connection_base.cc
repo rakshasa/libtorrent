@@ -421,7 +421,7 @@ PeerConnectionBase::down_chunk() {
 
     bytesTransfered += data.second;
 
-  } while (itr.used(data.second));
+  } while (data.second != 0 && itr.forward(data.second));
 
   transfer->adjust_position(bytesTransfered);
 
@@ -653,7 +653,7 @@ PeerConnectionBase::up_chunk() {
 
       bytesTransfered += data.second;
 
-    } while (itr.used(data.second));
+    } while (data.second != 0 && itr.forward(data.second));
   }
 
   m_up->throttle()->node_used(m_peerChunks.upload_throttle(), bytesTransfered);

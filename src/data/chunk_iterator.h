@@ -45,6 +45,9 @@ class ChunkIterator {
 public:
   ChunkIterator(Chunk* chunk, uint32_t first, uint32_t last);
   
+  bool                empty() const { return m_iterator == m_chunk->end() || m_first >= m_last; }
+
+  // Only non-zero length ranges will be returned.
   Chunk::data_type    data();
 
   MemoryChunk*        memory_chunk() { return &m_iterator->chunk(); }
@@ -53,7 +56,7 @@ public:
   uint32_t            memory_chunk_last() const { return m_last - m_iterator->position(); }
 
   bool                next();
-  bool                used(uint32_t length);
+  bool                forward(uint32_t length);
 
 private:
   Chunk*              m_chunk;
@@ -84,7 +87,12 @@ inline bool
 ChunkIterator::next() {
   m_first = m_iterator->position() + m_iterator->size();
 
-  return m_first < m_last && ++m_iterator != m_chunk->end();
+  while (++m_iterator != m_chunk->end()) {
+    if (m_iterator->size() != 0)
+      return m_first < m_last;
+  }
+
+  return false;
 }
 
 // Returns true if the new position is on a file boundary while not at
@@ -93,12 +101,20 @@ ChunkIterator::next() {
 // Do not return true if the length was zero, in order to avoid
 // getting stuck looping when no data is being read/written.
 inline bool
-ChunkIterator::used(uint32_t length) {
+ChunkIterator::forward(uint32_t length) {
   m_first += length;
 
-  Chunk::iterator itr = m_iterator++;
+  if (m_first >= m_last)
+    return false;
 
-  return m_first != m_last && m_first == itr->position() + itr->size() && length != 0;
+  do {
+    if (m_first < m_iterator->position() + m_iterator->size())
+      return true;
+
+    m_iterator++;
+  } while (m_iterator != m_chunk->end());
+
+  return false;
 }
 
 }

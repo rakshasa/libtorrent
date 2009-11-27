@@ -156,6 +156,8 @@ Chunk::preload(uint32_t position, uint32_t length, bool useAdvise) {
   do {
     data = itr.data();
 
+    // Don't do preloading for zero-length chunks.
+
     if (useAdvise) {
       itr.memory_chunk()->advise(itr.memory_chunk_first(), data.second, MemoryChunk::advice_willneed);
 
@@ -188,8 +190,7 @@ Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
     std::memcpy(buffer, data.first, data.second);
 
     buffer = static_cast<char*>(buffer) + data.second;
-
-  } while (itr.used(data.second));
+  } while (itr.next());
   
   return true;
 }
@@ -212,8 +213,7 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
     std::memcpy(data.first, buffer, data.second);
 
     buffer = static_cast<const char*>(buffer) + data.second;
-
-  } while (itr.used(data.second));
+  } while (itr.next());
   
   return true;
 }
@@ -238,8 +238,7 @@ Chunk::compare_buffer(const void* buffer, uint32_t position, uint32_t length) {
       return false;
 
     buffer = static_cast<const char*>(buffer) + data.second;
-
-  } while (itr.used(data.second));
+  } while (itr.next());
   
   return true;
 }

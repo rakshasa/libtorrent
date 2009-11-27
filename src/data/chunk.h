@@ -75,6 +75,8 @@ public:
 
   void                push_back(value_type::mapped_type mapped, const MemoryChunk& c);
 
+  // The at_position functions only returns non-zero length iterators
+  // or end.
   iterator            at_position(uint32_t pos);
   iterator            at_position(uint32_t pos, iterator itr);
 
