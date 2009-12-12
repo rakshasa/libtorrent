@@ -40,6 +40,7 @@
 #include <list>
 #include <vector>
 #include <inttypes.h>
+#include <rak/allocators.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/event.h"
@@ -52,11 +53,12 @@ namespace torrent {
 
 // Propably should rename to EventSet...
 
-class SocketSet : private std::vector<Event*> {
+class SocketSet : private std::vector<Event*, rak::cacheline_allocator<> > {
 public:
-  typedef uint32_t               size_type;
-  typedef std::vector<Event*>    base_type;
-  typedef std::vector<size_type> Table;
+  typedef uint32_t    size_type;
+
+  typedef std::vector<Event*, rak::cacheline_allocator<> > base_type;
+  typedef std::vector<size_type, rak::cacheline_allocator<> > Table;
 
   static const size_type npos = static_cast<size_type>(-1);
 
@@ -81,7 +83,7 @@ public:
   // Remove all erased elements from the container.
   void                prepare();
   // Allocate storage for fd's with up to 'openMax' value. TODO: Remove reserve
-  void                reserve(size_t openMax)                { m_table.resize(openMax, npos); base_type::reserve(openMax); }
+  void                reserve(size_t openMax);
 
   size_t              max_size() const                       { return m_table.size(); }
 

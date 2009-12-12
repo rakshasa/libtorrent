@@ -42,6 +42,7 @@
 #include <sys/time.h>
 
 #include "net/socket_set.h"
+#include "rak/allocators.h"
 
 #include "event.h"
 #include "exceptions.h"
@@ -102,11 +103,24 @@ PollSelect::create(int maxOpenSockets) {
   if (maxOpenSockets <= 0)
     throw internal_error("PollSelect::set_open_max(...) received an invalid value");
 
-  PollSelect* p = new PollSelect;
+  // Just a temp hack, make some special template function for this...
+  //
+  // Also consider how portable this is for specialized C++
+  // allocators.
+  struct block_type {
+    PollSelect t1;
+    SocketSet t2;
+    SocketSet t3;
+    SocketSet t4;
+  };
 
-  p->m_readSet = new SocketSet;
-  p->m_writeSet = new SocketSet;
-  p->m_exceptSet = new SocketSet;
+  block_type* block = new (rak::cacheline_allocator<>()) block_type;
+
+  PollSelect* p = new (&block->t1) PollSelect;
+
+  p->m_readSet = new (&block->t2) SocketSet;
+  p->m_writeSet = new (&block->t3) SocketSet;
+  p->m_exceptSet = new (&block->t4) SocketSet;
 
   p->m_readSet->reserve(maxOpenSockets);
   p->m_writeSet->reserve(maxOpenSockets);
@@ -124,9 +138,9 @@ PollSelect::~PollSelect() {
   if (!m_readSet->empty() || !m_writeSet->empty() || !m_exceptSet->empty())
     throw internal_error("PollSelect::~PollSelect() called but the sets are not empty");
 
-  delete m_readSet;
-  delete m_writeSet;
-  delete m_exceptSet;
+//   delete m_readSet;
+//   delete m_writeSet;
+//   delete m_exceptSet;
 
   m_readSet = m_writeSet = m_exceptSet = NULL;
 }

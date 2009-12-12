@@ -71,4 +71,12 @@ SocketSet::prepare() {
 
   m_erased.clear();
 }
+
+void
+SocketSet::reserve(size_t openMax) {
+  m_table.resize(openMax, npos);
+
+  base_type::reserve(openMax);
+}
+
 }
