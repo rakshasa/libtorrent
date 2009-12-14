@@ -63,36 +63,6 @@
 
 namespace torrent {
 
-// A preliminary implementation of a global lock, to be moved
-// somewhere more appropriate when it's put to use.
-
-// pthread_mutex_t m_globalLock __cacheline_alinged;
-
-// void
-// acquire_global_lock() {
-//   int err;
-
-//   __sync_add_and_fetch(&this->m_globalWaiting, 1);
-
-//   if ((err = pthread_mutex_lock(&this->m_globalLock)))
-//     throw internal_error("Mutex failed.");
-  
-//   __sync_fetch_and_sub(&this->m_globalWaiting, 1);
-// }
-
-// void
-// release_global_lock() {
-//   pthread_mutex_unlock(&this->m_globalLock);
-// }
-
-// void
-// waive_global_lock() {
-//   pthread_mutex_unlock(&this->m_globalLock);
-
-//   // Do we need to sleep here? Make a CppUnit test for this.
-//   acquire_global_lock();
-// }
-
 uint32_t
 calculate_max_open_files(uint32_t openMax) {
   if (openMax >= 8096)
