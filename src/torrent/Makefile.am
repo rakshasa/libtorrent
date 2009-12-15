@@ -41,6 +41,8 @@ libsub_torrent_la_SOURCES = \
 	rate.h \
 	resume.cc \
 	resume.h \
+	thread_base.cc \
+	thread_base.h \
 	throttle.cc \
 	throttle.h \
 	torrent.cc \
@@ -74,6 +76,7 @@ libtorrentinclude_HEADERS = \
 	poll_select.h \
 	rate.h \
 	resume.h \
+	thread_base.h \
 	throttle.h \
 	torrent.h \
 	tracker.h \

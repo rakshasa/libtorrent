@@ -45,6 +45,7 @@
 #include <torrent/event.h>
 
 #include "poll_epoll.h"
+#include "thread_base.h"
 
 #ifdef USE_EPOLL
 #include <sys/epoll.h>
@@ -150,6 +151,9 @@ PollEPoll::perform() {
   for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->data.fd < 0 || (size_t)itr->data.fd >= m_table.size())
       continue;
+
+    if (ThreadBase::global_queue_size() != 0)
+      ThreadBase::waive_global_lock();
 
     Table::iterator evItr = m_table.begin() + itr->data.fd;
 

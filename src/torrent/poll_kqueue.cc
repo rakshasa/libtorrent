@@ -46,6 +46,7 @@
 #include <torrent/event.h>
 
 #include "poll_kqueue.h"
+#include "thread_base.h"
 
 #ifdef USE_KQUEUE
 #include <sys/types.h>
@@ -211,6 +212,9 @@ PollKQueue::perform() {
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->ident < 0 || itr->ident >= m_table.size())
       continue;
+
+    if (ThreadBase::global_queue_size() != 0)
+      ThreadBase::waive_global_lock();
 
     Table::iterator evItr = m_table.begin() + itr->ident;
 

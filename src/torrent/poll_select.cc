@@ -47,6 +47,7 @@
 #include "event.h"
 #include "exceptions.h"
 #include "poll_select.h"
+#include "thread_base.h"
 
 namespace torrent {
 
@@ -55,6 +56,9 @@ struct poll_check_t {
   poll_check_t(fd_set* s, _Operation op) : m_set(s), m_op(op) {}
 
   void operator () (Event* s) {
+    if (ThreadBase::global_queue_size() != 0)
+      ThreadBase::waive_global_lock();
+
     // This check is nessesary as other events may remove a socket
     // from the set.
     if (s == NULL)
