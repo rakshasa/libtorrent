@@ -56,7 +56,7 @@ public:
 
 protected:
 
-  struct __cacheline_aligned global_lock_type {
+  struct global_lock_type {
     int             waiting;
     pthread_mutex_t lock;
   };
