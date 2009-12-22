@@ -160,6 +160,11 @@ public:
   virtual ~bencode_error() throw() {}
 };
 
+class LIBTORRENT_EXPORT shutdown_exception : public base_error {
+public:
+  virtual ~shutdown_exception() throw() {}
+};
+
 }
 
 #endif
