@@ -152,7 +152,7 @@ PollEPoll::perform() {
     if (itr->data.fd < 0 || (size_t)itr->data.fd >= m_table.size())
       continue;
 
-    if (ThreadBase::global_queue_size() != 0)
+    if ((flags() & flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
       ThreadBase::waive_global_lock();
 
     Table::iterator evItr = m_table.begin() + itr->data.fd;

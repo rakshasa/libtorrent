@@ -45,7 +45,13 @@ class Event;
 
 class LIBTORRENT_EXPORT Poll {
 public:
+  static const uint32_t flag_waive_global_lock = 0x1;
+
+  Poll() : m_flags(0) {}
   virtual ~Poll() {}
+
+  uint32_t            flags() const { return m_flags; }
+  void                set_flags(uint32_t flags) { m_flags = flags; }
 
   // The open max value is used when initializing libtorrent, it
   // should be less than or equal to sysconf(_SC_OPEN_MAX).
@@ -78,6 +84,8 @@ public:
   virtual void        remove_error(Event* event) = 0;
 
   // Add one for HUP? Or would that be in event?
+private:
+  uint32_t            m_flags;
 };
 
 }

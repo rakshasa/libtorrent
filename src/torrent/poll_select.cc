@@ -53,10 +53,10 @@ namespace torrent {
 
 template <typename _Operation>
 struct poll_check_t {
-  poll_check_t(fd_set* s, _Operation op) : m_set(s), m_op(op) {}
+  poll_check_t(Poll* p, fd_set* s, _Operation op) : m_poll(p), m_set(s), m_op(op) {}
 
   void operator () (Event* s) {
-    if (ThreadBase::global_queue_size() != 0)
+    if ((m_poll->flags() & Poll::flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
       ThreadBase::waive_global_lock();
 
     // This check is nessesary as other events may remove a socket
@@ -72,14 +72,15 @@ struct poll_check_t {
       m_op(s);
   }
 
+  Poll*      m_poll;
   fd_set*    m_set;
   _Operation m_op;
 };
 
 template <typename _Operation>
 inline poll_check_t<_Operation>
-poll_check(fd_set* s, _Operation op) {
-  return poll_check_t<_Operation>(s, op);
+poll_check(Poll* p, fd_set* s, _Operation op) {
+  return poll_check_t<_Operation>(p, s, op);
 }
 
 struct poll_mark {
@@ -176,15 +177,15 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   // not be a problem as any except call should remove it from the m_*Set's.
   m_exceptSet->prepare();
   std::for_each(m_exceptSet->begin(), m_exceptSet->end(),
-		poll_check(exceptSet, std::mem_fun(&Event::event_error)));
+		poll_check(this, exceptSet, std::mem_fun(&Event::event_error)));
 
   m_readSet->prepare();
   std::for_each(m_readSet->begin(), m_readSet->end(),
-		poll_check(readSet, std::mem_fun(&Event::event_read)));
+		poll_check(this, readSet, std::mem_fun(&Event::event_read)));
 
   m_writeSet->prepare();
   std::for_each(m_writeSet->begin(), m_writeSet->end(),
-		poll_check(writeSet, std::mem_fun(&Event::event_write)));
+		poll_check(this, writeSet, std::mem_fun(&Event::event_write)));
 }
 
 void

@@ -213,7 +213,7 @@ PollKQueue::perform() {
     if (itr->ident < 0 || itr->ident >= m_table.size())
       continue;
 
-    if (ThreadBase::global_queue_size() != 0)
+    if ((flags() & flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
       ThreadBase::waive_global_lock();
 
     Table::iterator evItr = m_table.begin() + itr->ident;
