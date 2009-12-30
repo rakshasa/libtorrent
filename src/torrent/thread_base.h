@@ -67,25 +67,17 @@ protected:
 inline void
 ThreadBase::acquire_global_lock() {
   __sync_add_and_fetch(&ThreadBase::m_global.waiting, 1);
-
   pthread_mutex_lock(&ThreadBase::m_global.lock);
-
-//   if (pthread_mutex_lock(&ThreadBase::m_global.lock))
-//     throw internal_error("Mutex failed.");
-  
-  __sync_synchronize();
   __sync_fetch_and_sub(&ThreadBase::m_global.waiting, 1);
 }
 
 inline void
 ThreadBase::release_global_lock() {
-  __sync_synchronize();
   pthread_mutex_unlock(&ThreadBase::m_global.lock);
 }
 
 inline void
 ThreadBase::waive_global_lock() {
-  __sync_synchronize();
   pthread_mutex_unlock(&ThreadBase::m_global.lock);
 
   // Do we need to sleep here? Make a CppUnit test for this.
