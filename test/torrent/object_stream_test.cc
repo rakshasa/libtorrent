@@ -23,6 +23,15 @@ create_bencode(const char* str) {
   return obj;
 }
 
+static bool
+compare_bencode(const torrent::Object& obj, const char* str, uint32_t skip_mask = 0) {
+  char buffer[256];
+  std::memset(buffer, 0, 256);
+  torrent::object_write_bencode(buffer, buffer + 256, &obj, skip_mask).second;
+
+  return strcmp(buffer, str) == 0;
+}
+
 void
 ObjectStreamTest::testInputOrdered() {
   torrent::Object orderedObj   = create_bencode(ordered_bencode);
@@ -37,6 +46,18 @@ ObjectStreamTest::testInputNullKey() {
   torrent::Object obj = create_bencode("d0:i1e5:filesi2ee");
 
   CPPUNIT_ASSERT(!(obj.flags() & torrent::Object::flag_unordered));
+}
+
+void
+ObjectStreamTest::testOutputMask() {
+  torrent::Object normalObj = create_bencode("d1:ai1e1:bi2e1:ci3ee");
+
+  CPPUNIT_ASSERT(compare_bencode(normalObj, "d1:ai1e1:bi2e1:ci3ee"));
+
+  normalObj.get_key("b").set_flags(torrent::Object::flag_session_data);
+  normalObj.get_key("c").set_flags(torrent::Object::flag_static_data);
+
+  CPPUNIT_ASSERT(compare_bencode(normalObj, "d1:ai1e1:ci3ee", torrent::Object::flag_session_data));
 }
 
 //

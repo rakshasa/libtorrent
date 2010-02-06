@@ -159,12 +159,6 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
   object->clear();
 }
 
-void
-object_write_bencode(std::ostream* output, const Object* object) {
-  char buffer[1024];
-  object_write_bencode_c(&object_write_to_stream, output, object_buffer_t(buffer, buffer + 1024), object);
-}
-
 // Would be nice to have a straight stream to hash conversion.
 std::string
 object_sha1(const Object* object) {
@@ -264,7 +258,7 @@ object_write_bencode_c_value(object_write_data_t* output, int64_t src) {
 }
 
 void
-object_write_bencode_c_object(object_write_data_t* output, const Object* object) {
+object_write_bencode_c_object(object_write_data_t* output, const Object* object, uint32_t skip_mask) {
   switch (object->type()) {
   case Object::TYPE_NONE:
     break;
@@ -284,8 +278,12 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object)
   case Object::TYPE_LIST:
     object_write_bencode_c_char(output, 'l');
 
-    for (Object::list_const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last; ++itr)
-      object_write_bencode_c_object(output, &*itr);
+    for (Object::list_const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last; ++itr) {
+      if (itr->flags() & skip_mask)
+        continue;
+
+      object_write_bencode_c_object(output, &*itr, skip_mask);
+    }
 
     object_write_bencode_c_char(output, 'e');
     break;
@@ -294,11 +292,14 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object)
     object_write_bencode_c_char(output, 'd');
 
     for (Object::map_const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last; ++itr) {
+      if (itr->second.flags() & skip_mask)
+        continue;
+
       object_write_bencode_c_value(output, itr->first.size());
       object_write_bencode_c_char(output, ':');
       object_write_bencode_c_string(output, itr->first.c_str(), itr->first.size());
 
-      object_write_bencode_c_object(output, &itr->second);
+      object_write_bencode_c_object(output, &itr->second, skip_mask);
     }
 
     object_write_bencode_c_char(output, 'e');
@@ -306,15 +307,32 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object)
   }
 }
 
+void
+object_write_bencode(std::ostream* output, const Object* object, uint32_t skip_mask) {
+  char buffer[1024];
+  object_write_bencode_c(&object_write_to_stream, output, object_buffer_t(buffer, buffer + 1024), object, skip_mask);
+}
+
 object_buffer_t
-object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buffer, const Object* object) {
+object_write_bencode(char* first, char* last, const Object* object, uint32_t skip_mask) {
+  object_buffer_t buffer = object_buffer_t(first, last);
+  return object_write_bencode_c(&object_write_to_buffer, &buffer, buffer, object, skip_mask);
+}
+
+object_buffer_t
+object_write_bencode_c(object_write_t writeFunc,
+                       void* data,
+                       object_buffer_t buffer,
+                       const Object* object,
+                       uint32_t skip_mask) {
   object_write_data_t output;
   output.writeFunc = writeFunc;
   output.data      = data;
   output.buffer    = buffer;
   output.pos       = buffer.first;
 
-  object_write_bencode_c_object(&output, object);
+  if (!(object->flags() & skip_mask))
+    object_write_bencode_c_object(&output, object, skip_mask);
 
   //  if (output->buffer.first == output->buffer.second)
   //    throw 

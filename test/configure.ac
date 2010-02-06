@@ -13,6 +13,16 @@ TORRENT_ENABLE_EXTRA_DEBUG
 TORRENT_ENABLE_WERROR
 TORRENT_ENABLE_TR1
 
+TORRENT_CHECK_MADVISE()
+TORRENT_CHECK_CACHELINE()
+TORRENT_MINCORE()
+TORRENT_OTFD()
+
+CC_ATTRIBUTE_UNUSED(
+	AC_DEFINE([__UNUSED], [__attribute__((unused))], [Wrapper around unused attribute]),
+	AC_DEFINE([__UNUSED], [], [Null-wrapper if unused attribute is unsupported])
+)
+
 AC_OUTPUT([
 	Makefile
 ])

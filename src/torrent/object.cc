@@ -126,8 +126,8 @@ Object::swap(Object& src) {
 }
 
 Object&
-Object::merge_copy(const Object& object, uint32_t maxDepth) {
-  if (maxDepth == 0)
+Object::merge_copy(const Object& object, uint32_t skip_mask, uint32_t maxDepth) {
+  if (maxDepth == 0 || m_flags & skip_mask)
     return (*this = object);
 
   if (object.is_map()) {
@@ -153,24 +153,24 @@ Object::merge_copy(const Object& object, uint32_t maxDepth) {
       srcItr++;
     }
 
-  } else if (object.is_list()) {
-    if (!is_list())
-      *this = create_list();
+//   } else if (object.is_list()) {
+//     if (!is_list())
+//       *this = create_list();
 
-    list_type& dest = as_list();
-    list_type::iterator destItr = dest.begin();
+//     list_type& dest = as_list();
+//     list_type::iterator destItr = dest.begin();
 
-    list_type::const_iterator srcItr = object.as_list().begin();
-    list_type::const_iterator srcLast = object.as_list().end();
+//     list_type::const_iterator srcItr = object.as_list().begin();
+//     list_type::const_iterator srcLast = object.as_list().end();
     
-    while (srcItr != srcLast) {
-      if (destItr == dest.end())
-        destItr = dest.insert(destItr, *srcItr);
-      else
-        destItr->merge_copy(*srcItr, maxDepth - 1);
+//     while (srcItr != srcLast) {
+//       if (destItr == dest.end())
+//         destItr = dest.insert(destItr, *srcItr);
+//       else
+//         destItr->merge_copy(*srcItr, maxDepth - 1);
 
-      destItr++;
-    }
+//       destItr++;
+//     }
 
   } else {
     *this = object;
@@ -187,7 +187,7 @@ Object::operator = (const Object& src) {
   clear();
 
   // Need some more magic here?
-  m_flags = src.m_flags & mask_type;
+  m_flags = src.m_flags & (mask_type | mask_public);
 
   switch (type()) {
   case TYPE_NONE:   break;

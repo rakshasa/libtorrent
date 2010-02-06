@@ -50,9 +50,6 @@ std::string object_sha1(const Object* object) LIBTORRENT_EXPORT;
 // the client.
 void object_read_bencode(std::istream* input, Object* object, uint32_t depth = 0) LIBTORRENT_EXPORT;
 
-// Assumes the stream's locale has been set to POSIX or C.
-void object_write_bencode(std::ostream* output, const Object* object) LIBTORRENT_EXPORT;
-
 std::istream& operator >> (std::istream& input, Object& object) LIBTORRENT_EXPORT;
 std::ostream& operator << (std::ostream& output, const Object& object) LIBTORRENT_EXPORT;
 
@@ -60,7 +57,14 @@ std::ostream& operator << (std::ostream& output, const Object& object) LIBTORREN
 typedef std::pair<char*, char*> object_buffer_t;
 typedef object_buffer_t (*object_write_t)(void* data, object_buffer_t buffer);
 
-object_buffer_t object_write_bencode_c(object_write_t writeFunc, void* data, object_buffer_t buffer, const Object* object) LIBTORRENT_EXPORT;
+// Assumes the stream's locale has been set to POSIX or C.
+void            object_write_bencode(std::ostream* output, const Object* object, uint32_t skip_mask = 0) LIBTORRENT_EXPORT;
+object_buffer_t object_write_bencode(char* first, char* last, const Object* object, uint32_t skip_mask = 0) LIBTORRENT_EXPORT;
+object_buffer_t object_write_bencode_c(object_write_t writeFunc,
+                                       void* data,
+                                       object_buffer_t buffer,
+                                       const Object* object,
+                                       uint32_t skip_mask = 0) LIBTORRENT_EXPORT;
 
 // To char buffer. 'data' is NULL.
 object_buffer_t object_write_to_buffer(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
