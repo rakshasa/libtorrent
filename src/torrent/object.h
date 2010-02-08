@@ -165,6 +165,7 @@ public:
   template <typename T> const map_type&    get_key_map(const T& k) const    { return get_key(k).as_map(); }
 
   Object&             insert_key(const key_type& k, const Object& b) { check_throw(TYPE_MAP); return (*m_map)[k] = b; }
+  Object&             insert_key_swap(const key_type& k, Object& b)  { check_throw(TYPE_MAP); return (*m_map)[k].swap(b); }
 
   // 'insert_preserve_*' inserts the object 'b' if the key 'k' does
   // not exist, else it returns the old entry. The type specific

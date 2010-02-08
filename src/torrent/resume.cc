@@ -46,6 +46,7 @@
 
 #include "data/file.h"
 #include "data/file_list.h"
+#include "data/transfer_list.h"
 
 #include "common.h"
 #include "bitfield.h"
@@ -138,22 +139,43 @@ resume_load_progress(Download download, const Object& object) {
       continue;
     }
 
-    if ((uint64_t)fs.size() != (*listItr)->size_bytes() || mtimeValue != fs.modified_time()) {
-      // If we're the wrong size or mtime, set flag_resize_queued if
-      // necessary and do a hash check for the range.
+    // If the file is the wrong size, queue resize and clear resume
+    // data for that file.
+    if ((uint64_t)fs.size() != (*listItr)->size_bytes()) {
+      (*listItr)->set_flags(File::flag_resize_queued);
+      download.update_range(Download::update_range_clear | Download::update_range_recheck,
+                            (*listItr)->range().first, (*listItr)->range().second);
+      continue;
+    }
 
-      if ((uint64_t)fs.size() != (*listItr)->size_bytes())
-        (*listItr)->set_flags(File::flag_resize_queued);
+    // An 'mtime' of ~3 means the resume data was written while the
+    // torrent was actively downloading, and thus we need to recheck
+    // chunks that might not have been completely written to disk.
+    //
+    // This gets handled below, so just skip to the next file.
+    if (mtimeValue == ~int64_t(3))
+      continue;
 
+    // An 'mtime' of ~2 indicates that the resume data was made by an
+    // old rtorrent version which does not include 'uncertain_pieces'
+    // field, and thus can't be relied upon.
+    //
+    // If the 'mtime' is an actual mtime we check to see if it matches
+    // the file, else clear the range. This should be set only for
+    // files that have completed and got no indices in
+    // TransferList::completed_list().
+    if (mtimeValue == ~int64_t(2) || mtimeValue != fs.modified_time()) {
       download.update_range(Download::update_range_clear | Download::update_range_recheck,
                             (*listItr)->range().first, (*listItr)->range().second);
       continue;
     }
   }
+
+  resume_load_uncertain_pieces(download, object);
 }
 
 void
-resume_save_progress(Download download, Object& object, bool onlyCompleted) {
+resume_save_progress(Download download, Object& object) {
   // We don't remove the old hash data since it might still be valid,
   // just that the client didn't finish the check this time.
   if (!download.is_hash_checked())
@@ -161,9 +183,18 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
 
   download.sync_chunks();
 
-  // If syncing failed, return.
-  if (!download.is_hash_checked())
+  // If syncing failed, invalidate all resume data and return.
+  if (!download.is_hash_checked()) {
+    if (!object.has_key_list("files"))
+      return;
+
+    Object::list_type& files = object.get_key_list("files");
+
+    for (Object::list_iterator itr = files.begin(), last = files.end(); itr != last; itr++)
+      itr->insert_key("mtime", ~int64_t(2));
+
     return;
+  }
 
   const Bitfield* bitfield = download.file_list()->bitfield();
 
@@ -197,16 +228,28 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
         // ~1 means the file shouldn't be created.
         filesItr->insert_key("mtime", ~int64_t(1));
 
-    } else if (onlyCompleted && (*listItr)->completed_chunks() != (*listItr)->size_chunks()) {
+      //    } else if ((*listItr)->completed_chunks() == (*listItr)->size_chunks()) {
+    } else if (bitfield->is_all_set()) {
 
-      // ~2 means the file needs to be rehashed, but not created.
-      //
-      // This needs to be fixed so it handles cases where the file
-      // exists but wasn't the right size.
-      filesItr->insert_key("mtime", ~int64_t(2));
+
+      // Currently only checking if we're finished. This needs to be
+      // smarter when it comes to downloading partial torrents, etc.
+
+      // This assumes the syncs are properly called before
+      // resume_save_progress gets called after finishing a torrent.
+      filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+
+    } else if (!download.is_active()) {
+
+      // When stopped, all chunks should have received sync, thus the
+      // file's mtime will be correct. (We hope)
+      filesItr->insert_key("mtime", (int64_t)fs.modified_time());
 
     } else {
-      filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+      // If the torrent isn't done and we've not shut down, then set
+      // 'mtime' to ~3 so as to indicate that the 'mtime' is not to be
+      // trusted, yet we have a partial bitfield for the file.
+      filesItr->insert_key("mtime", ~int64_t(3));
     }
   }
 }
@@ -214,6 +257,51 @@ resume_save_progress(Download download, Object& object, bool onlyCompleted) {
 void
 resume_clear_progress(Download download, Object& object) {
   object.erase_key("bitfield");
+}
+
+void
+resume_load_uncertain_pieces(Download download, const Object& object) {
+  if (!object.has_key_string("uncertain_pieces"))
+    return;
+
+  const Object::string_type& uncertain = object.get_key_string("uncertain_pieces");
+
+  for (const char* itr = uncertain.c_str(), *last = uncertain.c_str() + uncertain.size();
+       itr + sizeof(uint32_t) <= last; itr += sizeof(uint32_t)) {
+    // Fix this so it does full ranges.
+    download.update_range(Download::update_range_recheck | Download::update_range_clear,
+                          ntohl(*(uint32_t*)itr), ntohl(*(uint32_t*)itr) + 1);
+  }
+}
+
+void
+resume_save_uncertain_pieces(Download download, Object& object) {
+  // Add information on what chunks might still not have been properly
+  // written to disk.
+  object.erase_key("uncertain_pieces");
+
+  const TransferList::completed_list_type& completedList = download.transfer_list()->completed_list();
+  TransferList::completed_list_type::const_iterator itr =
+    std::find_if(completedList.begin(), completedList.end(),
+                 rak::less_equal((rak::timer::current() - rak::timer::from_minutes(15)).usec(),
+                                 rak::const_mem_ref(&TransferList::completed_list_type::value_type::first)));
+
+  if (itr == completedList.end())
+    return;
+
+  std::vector<uint32_t> buffer;
+  buffer.reserve(std::distance(itr, completedList.end()));
+
+  while (itr != completedList.end())
+    buffer.push_back((itr++)->second);
+
+  std::sort(buffer.begin(), buffer.end());
+
+  for (std::vector<uint32_t>::iterator itr2 = buffer.begin(), last = buffer.end(); itr2 != last; itr2++)
+    *itr2 = htonl(*itr2);
+
+  Object::string_type& completed = object.insert_key("uncertain_pieces", std::string()).as_string();
+  completed.append((const char*)&buffer.front(), buffer.size() * sizeof(uint32_t));
 }
 
 bool

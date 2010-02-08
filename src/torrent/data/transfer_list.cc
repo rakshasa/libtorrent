@@ -40,6 +40,7 @@
 #include <functional>
 #include <set>
 #include <rak/functional.h>
+#include <rak/timer.h>
 
 #include "data/chunk.h"
 #include "peer/peer_info.h"
@@ -119,8 +120,29 @@ TransferList::hash_succeded(uint32_t index, Chunk* chunk) {
   if ((Block::size_type)std::count_if((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::is_finished)) != (*blockListItr)->size())
     throw internal_error("TransferList::hash_succeded(...) Finished blocks does not match size.");
 
+  // The chunk should also be marked here or by the caller so that it
+  // gets priority for syncing back to disk.
+
   if ((*blockListItr)->failed() != 0)
     mark_failed_peers(*blockListItr, chunk);
+
+  // Add to a list of finished chunks indices with timestamps. This is
+  // mainly used for torrent resume data on which chunks need to be
+  // rehashed on crashes.
+  //
+  // We assume the chunk gets sync'ed within 10 minutes, so minimum
+  // retention time of 30 minutes should be enough. The list only gets
+  // pruned every 60 minutes, so any timer that reads values once
+  // every 30 minutes is guaranteed to get them all as long as it is
+  // ordered properly.
+  m_completedList.push_back(std::make_pair(rak::timer::current().usec(), index));
+  
+  if (rak::timer(m_completedList.front().first) + rak::timer::from_minutes(60) < rak::timer::current()) {
+    completed_list_type::iterator itr = std::find_if(m_completedList.begin(), m_completedList.end(),
+                                                     rak::less_equal(rak::timer::current() - rak::timer::from_minutes(30),
+                                                                     rak::mem_ref(&completed_list_type::value_type::first)));
+    m_completedList.erase(itr, m_completedList.end());
+  }
 
   erase(blockListItr);
 }

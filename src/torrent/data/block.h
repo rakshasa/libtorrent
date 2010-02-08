@@ -99,7 +99,7 @@ public:
 
   bool                      transfering(BlockTransfer* transfer);
 
-  // Return true if all blocks in the chunk is finished.
+  // Return true if all blocks in the chunk are finished.
   bool                      completed(BlockTransfer* transfer);
 
   void                      transfer_dissimilar(BlockTransfer* transfer);

@@ -45,7 +45,8 @@ namespace torrent {
 
 class TransferList : public std::vector<BlockList*> {
 public:
-  typedef std::vector<BlockList*> base_type;
+  typedef std::vector<BlockList*>                    base_type;
+  typedef std::vector<std::pair<int64_t, uint32_t> > completed_list_type;
 
   using base_type::value_type;
   using base_type::reference;
@@ -67,6 +68,8 @@ public:
 
   iterator            find(uint32_t index);
   const_iterator      find(uint32_t index) const;
+
+  const completed_list_type& completed_list() const { return m_completedList; }
 
   // Internal to libTorrent:
 
@@ -111,6 +114,8 @@ private:
   slot_completed_type m_slotCompleted;
   slot_queued_type    m_slotQueued;
   slot_corrupt_type   m_slotCorrupt;
+
+  completed_list_type m_completedList;
 };
 
 }
