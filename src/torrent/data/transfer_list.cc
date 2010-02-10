@@ -141,7 +141,7 @@ TransferList::hash_succeded(uint32_t index, Chunk* chunk) {
     completed_list_type::iterator itr = std::find_if(m_completedList.begin(), m_completedList.end(),
                                                      rak::less_equal(rak::timer::current() - rak::timer::from_minutes(30),
                                                                      rak::mem_ref(&completed_list_type::value_type::first)));
-    m_completedList.erase(itr, m_completedList.end());
+    m_completedList.erase(m_completedList.begin(), itr);
   }
 
   erase(blockListItr);
