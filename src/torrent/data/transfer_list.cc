@@ -59,7 +59,9 @@ TransferList::TransferList() :
   m_slotCanceled(slot_canceled_type(slot_canceled_op(NULL), NULL)),
   m_slotCompleted(slot_completed_type(slot_completed_op(NULL), NULL)),
   m_slotQueued(slot_queued_type(slot_queued_op(NULL), NULL)),
-  m_slotCorrupt(slot_corrupt_type(slot_corrupt_op(NULL), NULL)) { }
+  m_slotCorrupt(slot_corrupt_type(slot_corrupt_op(NULL), NULL)),
+  m_succeededCount(0),
+  m_failedCount(0) { }
 
 TransferList::iterator
 TransferList::find(uint32_t index) {
@@ -114,11 +116,12 @@ TransferList::finished(BlockTransfer* transfer) {
 }
 
 void
-TransferList::hash_succeded(uint32_t index, Chunk* chunk) {
+TransferList::hash_succeeded(uint32_t index, Chunk* chunk) {
   iterator blockListItr = find(index);
 
-  if ((Block::size_type)std::count_if((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::is_finished)) != (*blockListItr)->size())
-    throw internal_error("TransferList::hash_succeded(...) Finished blocks does not match size.");
+  if ((Block::size_type)std::count_if((*blockListItr)->begin(), (*blockListItr)->end(),
+                                      std::mem_fun_ref(&Block::is_finished)) != (*blockListItr)->size())
+    throw internal_error("TransferList::hash_succeeded(...) Finished blocks does not match size.");
 
   // The chunk should also be marked here or by the caller so that it
   // gets priority for syncing back to disk.
@@ -144,6 +147,7 @@ TransferList::hash_succeded(uint32_t index, Chunk* chunk) {
     m_completedList.erase(m_completedList.begin(), itr);
   }
 
+  m_succeededCount++;
   erase(blockListItr);
 }
 
@@ -167,6 +171,8 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
 
   if ((Block::size_type)std::count_if((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::is_finished)) != (*blockListItr)->size())
     throw internal_error("TransferList::hash_failed(...) Finished blocks does not match size.");
+
+  m_failedCount++;
 
   // Could propably also check promoted against size of the block
   // list.

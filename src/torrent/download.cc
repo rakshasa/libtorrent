@@ -256,6 +256,11 @@ Download::creation_date() const {
     return 0;
 }
 
+uint32_t
+Download::load_date() const {
+  return m_ptr->info()->load_date();
+}
+
 Object*
 Download::bencode() {
   return m_ptr->bencode();
@@ -549,7 +554,7 @@ Download::signal_hash_done(Download::slot_void_type s) {
 }
 
 sigc::connection
-Download::signal_tracker_succeded(Download::slot_void_type s) {
+Download::signal_tracker_succeeded(Download::slot_void_type s) {
   return m_ptr->signal_tracker_success().connect(s);
 }
 

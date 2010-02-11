@@ -71,6 +71,9 @@ public:
 
   const completed_list_type& completed_list() const { return m_completedList; }
 
+  uint32_t            succeeded_count() const { return m_succeededCount; }
+  uint32_t            failed_count() const { return m_failedCount; }
+
   // Internal to libTorrent:
 
   void                clear();
@@ -80,7 +83,7 @@ public:
 
   void                finished(BlockTransfer* transfer);
 
-  void                hash_succeded(uint32_t index, Chunk* chunk);
+  void                hash_succeeded(uint32_t index, Chunk* chunk);
   void                hash_failed(uint32_t index, Chunk* chunk);
 
   typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_canceled_op;
@@ -116,6 +119,9 @@ private:
   slot_corrupt_type   m_slotCorrupt;
 
   completed_list_type m_completedList;
+
+  uint32_t            m_succeededCount;
+  uint32_t            m_failedCount;
 };
 
 }

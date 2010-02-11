@@ -109,6 +109,7 @@ public:
 
   // Unix epoche, 0 == unknown.
   uint32_t            creation_date() const;
+  uint32_t            load_date() const;
 
   Object*             bencode();
   const Object*       bencode() const;
@@ -208,7 +209,7 @@ public:
   sigc::connection    signal_download_done(slot_void_type s);
   sigc::connection    signal_hash_done(slot_void_type s);
 
-  sigc::connection    signal_tracker_succeded(slot_void_type s);
+  sigc::connection    signal_tracker_succeeded(slot_void_type s);
   sigc::connection    signal_tracker_failed(slot_string_type s);
   sigc::connection    signal_tracker_dump(slot_dump_type s);
 

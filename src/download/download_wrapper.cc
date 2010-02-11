@@ -201,7 +201,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
 
       if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
         m_main.file_list()->mark_completed(handle.index());
-        m_main.delegator()->transfer_list()->hash_succeded(handle.index(), handle.chunk());
+        m_main.delegator()->transfer_list()->hash_succeeded(handle.index(), handle.chunk());
         m_main.update_endgame();
 
         if (m_main.file_list()->is_done())

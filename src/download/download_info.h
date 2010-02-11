@@ -42,6 +42,7 @@
 #include <inttypes.h>
 #include <rak/functional.h>
 #include <rak/socket_address.h>
+#include <rak/timer.h>
 #include <sigc++/signal.h>
 
 #include "torrent/rate.h"
@@ -86,7 +87,9 @@ public:
     m_uploadedBaseline(0),
     m_completedBaseline(0),
     m_sizePex(0),
-    m_maxSizePex(8) {
+    m_maxSizePex(8),
+
+    m_loadDate(rak::timer::current_seconds()) {
   }
 
   const std::string&  name() const                                 { return m_name; }
@@ -142,6 +145,8 @@ public:
 
   uint32_t            max_size_pex_list() const                    { return 200; }
 
+  uint32_t            load_date() const                            { return m_loadDate; }
+
   uint32_t            http_timeout() const                         { return 60; }
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
@@ -176,6 +181,8 @@ private:
   uint64_t            m_completedBaseline;
   uint32_t            m_sizePex;
   uint32_t            m_maxSizePex;
+
+  uint32_t            m_loadDate;
 
   slot_stat_type      m_slotStatCompleted;
   slot_stat_type      m_slotStatLeft;

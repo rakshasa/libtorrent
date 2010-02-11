@@ -261,7 +261,10 @@ resume_clear_progress(Download download, Object& object) {
 
 void
 resume_load_uncertain_pieces(Download download, const Object& object) {
-  if (!object.has_key_string("uncertain_pieces"))
+  // Don't rehash when loading resume data within the same session.
+  if (!object.has_key_string("uncertain_pieces") ||
+      !object.has_key_value("uncertain_pieces.timestamp") ||
+      object.get_key_value("uncertain_pieces.timestamp") >= (int64_t)download.load_date())
     return;
 
   const Object::string_type& uncertain = object.get_key_string("uncertain_pieces");
@@ -279,6 +282,7 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   // Add information on what chunks might still not have been properly
   // written to disk.
   object.erase_key("uncertain_pieces");
+  object.insert_key("uncertain_pieces.timestamp", rak::timer::current_seconds());
 
   const TransferList::completed_list_type& completedList = download.transfer_list()->completed_list();
   TransferList::completed_list_type::const_iterator itr =
