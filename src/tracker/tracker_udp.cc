@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+
 #include <sigc++/adaptors/bind.h>
 #include <torrent/connection_manager.h>
 #include <cstdio>

@@ -47,9 +47,9 @@ namespace torrent {
 Object&
 Object::get_key(const std::string& k) {
   check_throw(TYPE_MAP);
-  map_type::iterator itr = m_map->find(k);
+  map_type::iterator itr = _map().find(k);
 
-  if (itr == m_map->end())
+  if (itr == _map().end())
     throw bencode_error("Object operator [" + k + "] could not find element");
 
   return itr->second;
@@ -59,9 +59,9 @@ Object::get_key(const std::string& k) {
 const Object&
 Object::get_key(const std::string& k) const {
   check_throw(TYPE_MAP);
-  map_type::const_iterator itr = m_map->find(k);
+  map_type::const_iterator itr = _map().find(k);
 
-  if (itr == m_map->end())
+  if (itr == _map().end())
     throw bencode_error("Object operator [" + k + "] could not find element");
 
   return itr->second;
@@ -70,9 +70,9 @@ Object::get_key(const std::string& k) const {
 Object&
 Object::get_key(const char* k) {
   check_throw(TYPE_MAP);
-  map_type::iterator itr = m_map->find(std::string(k));
+  map_type::iterator itr = _map().find(std::string(k));
 
-  if (itr == m_map->end())
+  if (itr == _map().end())
     throw bencode_error("Object operator [" + std::string(k) + "] could not find element");
 
   return itr->second;
@@ -81,9 +81,9 @@ Object::get_key(const char* k) {
 const Object&
 Object::get_key(const char* k) const {
   check_throw(TYPE_MAP);
-  map_type::iterator itr = m_map->find(std::string(k));
+  map_type::const_iterator itr = _map().find(std::string(k));
 
-  if (itr == m_map->end())
+  if (itr == _map().end())
     throw bencode_error("Object operator [" + std::string(k) + "] could not find element");
 
   return itr->second;
@@ -92,10 +92,10 @@ Object::get_key(const char* k) const {
 Object::map_insert_type
 Object::insert_preserve_type(const key_type& k, Object& b) {
   check_throw(TYPE_MAP);
-  map_insert_type result = m_map->insert(map_type::value_type(k, b));
+  map_insert_type result = _map().insert(map_type::value_type(k, b));
 
   if (!result.second && result.first->second.type() != b.type()) {
-    result.first->second.swap(b);
+    result.first->second.move(b);
     result.second = true;
   }
 
@@ -108,19 +108,27 @@ Object::move(Object& src) {
     return *this;
 
   clear();
-  std::memcpy(this, &src, sizeof(Object));
-  std::memset(&src, 0, sizeof(Object));
+  m_flags = src.m_flags & (mask_type | mask_public);
+  src.m_flags = TYPE_NONE;
+
+  switch (type()) {
+  case TYPE_NONE:
+  case TYPE_VALUE: _value() = src._value(); break;
+  case TYPE_STRING: new (&_string()) string_type(); _string().swap(src._string()); src._string().~string_type(); break;
+  case TYPE_LIST: new (&_list()) list_type(); _list().swap(src._list()); src._list().~list_type(); break;
+  case TYPE_MAP: new (&_map()) map_type(); _map().swap(src._map()); src._map().~map_type(); break;
+  }
 
   return *this;
 }
 
 Object&
 Object::swap(Object& src) {
-  char tmp[sizeof(Object)];
-
-  std::memcpy(tmp, &src, sizeof(Object));
-  std::memcpy(&src, this, sizeof(Object));
-  std::memcpy(this, tmp, sizeof(Object));
+  // Fix this...
+  Object tmp;
+  tmp.move(src);
+  src.move(*this);
+  this->move(tmp);
 
   return *this;
 }
@@ -191,10 +199,10 @@ Object::operator = (const Object& src) {
 
   switch (type()) {
   case TYPE_NONE:   break;
-  case TYPE_VALUE:  m_value = src.m_value; break;
-  case TYPE_STRING: m_string = new string_type(*src.m_string); break;
-  case TYPE_LIST:   m_list = new list_type(*src.m_list); break;
-  case TYPE_MAP:    m_map = new map_type(*src.m_map);  break;
+  case TYPE_VALUE:  new (&_value()) value_type(src._value()); break;
+  case TYPE_STRING: new (&_string()) string_type(src._string()); break;
+  case TYPE_LIST:   new (&_list()) list_type(src._list()); break;
+  case TYPE_MAP:    new (&_map()) map_type(src._map()); break;
   }
 
   return *this;

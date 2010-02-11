@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+
 #include <rak/address_info.h>
 #include <rak/socket_address.h>
 
