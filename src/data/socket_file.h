@@ -58,22 +58,19 @@ public:
   static const int o_truncate             = O_TRUNC;
   static const int o_nonblock             = O_NONBLOCK;
 
+  static const int flag_fallocate          = (1 << 0);
+  static const int flag_fallocate_blocking = (1 << 1);
+
   SocketFile() : m_fd(invalid_fd) {}
   SocketFile(fd_type fd) : m_fd(fd) {}
 
-  bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
-
-  void                close();
-  
-  // Reserve the space on disk if a system call is defined. 'length'
-  // of zero indicates to the end of the file. (ERRR... nope, set
-  // length properly...)
-  bool                reserve(uint64_t offset = 0, uint64_t length = 0);
-
   bool                is_open() const                                   { return m_fd != invalid_fd; }
 
+  bool                open(const std::string& path, int prot, int flags, mode_t mode = 0666);
+  void                close();
+  
   uint64_t            size() const;
-  bool                set_size(uint64_t s) const;
+  bool                set_size(uint64_t s, int flags = 0) const;
 
   MemoryChunk         create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const;
   

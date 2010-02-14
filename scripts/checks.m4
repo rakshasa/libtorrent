@@ -157,6 +157,25 @@ AC_DEFUN([TORRENT_WITHOUT_VARIABLE_FDSET], [
 ])
 
 
+AC_DEFUN([TORRENT_CHECK_FALLOCATE], [
+  AC_MSG_CHECKING(for fallocate)
+
+  AC_COMPILE_IFELSE(
+    [[#include <fcntl.h>
+      int main() {
+	fallocate(0, FALLOC_FL_KEEP_SIZE, 0, 0);
+        return 0;
+      }
+    ]],
+    [
+      AC_DEFINE(HAVE_FALLOCATE, 1, Linux's fallocate supported.)
+      AC_MSG_RESULT(yes)
+    ], [
+      AC_MSG_RESULT(no)
+    ])
+])
+
+
 AC_DEFUN([TORRENT_CHECK_POSIX_FALLOCATE], [
   AC_MSG_CHECKING(for posix_fallocate)
 

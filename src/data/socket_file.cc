@@ -41,6 +41,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <rak/error_number.h>
 #include <rak/file_stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -89,36 +90,6 @@ SocketFile::close() {
   m_fd = invalid_fd;
 }
 
-// Reserve the space on disk if a system call is defined. 'length'
-// of zero indicates to the end of the file.
-#if !defined(USE_XFS) && !defined(USE_POSIX_FALLOCATE)
-#define RESERVE_PARAM __UNUSED
-#else
-#define RESERVE_PARAM
-#endif
-
-bool
-SocketFile::reserve(RESERVE_PARAM uint64_t offset, RESERVE_PARAM uint64_t length) {
-#ifdef USE_XFS
-  struct xfs_flock64 flock;
-
-  flock.l_whence = SEEK_SET;
-  flock.l_start = offset;
-  flock.l_len = length;
-
-  if (ioctl(m_fd, XFS_IOC_RESVSP64, &flock) >= 0)
-    return true;
-#endif
-
-#ifdef USE_POSIX_FALLOCATE
-  return !posix_fallocate(m_fd, offset, length);
-#else
-  return true;
-#endif
-}
-
-#undef RESERVE_PARAM
-
 uint64_t
 SocketFile::size() const {
   if (!is_open())
@@ -130,13 +101,45 @@ SocketFile::size() const {
 }  
 
 bool
-SocketFile::set_size(uint64_t size) const {
+SocketFile::set_size(uint64_t size, int flags) const {
   if (!is_open())
     throw internal_error("SocketFile::set_size() called on a closed file");
 
+#ifdef HAVE_FALLOCATE
+  if (flags & flag_fallocate && fallocate(m_fd, 0, 0, size) == 0)
+    return true;
+#endif
+
+#ifdef USE_POSIX_FALLOCATE
+  if (flags & flag_fallocate &&
+      flags & flag_fallocate_blocking &&
+      posix_fallocate(m_fd, 0, size) == 0)
+    return true;
+#endif
+
+#ifdef SYS_DARWIN
+  if (flags & flag_fallocate) {
+    fstore_t fstore;
+    fstore.fst_flags = F_ALLOCATECONTIG;
+    fstore.fst_posmode = F_PEOFPOSMODE;
+    fstore.fst_offset = 0;
+    fstore.fst_length = size;
+    fstore.fst_bytesalloc = 0;
+
+    // Hmm... this shouldn't really be something we fail the set_size
+    // on...
+    //
+    // Yet is somehow fails with ENOSPC...
+    if (fcntl(m_fd, F_PREALLOCATE, &fstore) == -1)
+      throw internal_error("hack: fcntl failed" + std::string(strerror(errno)));
+
+    //    fcntl(m_fd, F_PREALLOCATE, &fstore); // Ignore result for now...
+  }
+#endif
+
   if (ftruncate(m_fd, size) == 0)
     return true;
-
+  
   // Use workaround to resize files on vfat. It causes the whole
   // client to block while it is resizing the files, this really
   // should be in a seperate thread.
@@ -144,7 +147,7 @@ SocketFile::set_size(uint64_t size) const {
       lseek(m_fd, size - 1, SEEK_SET) == (off_t)(size - 1) &&
       write(m_fd, &size, 1) == 1)
     return true;
-  
+
   return false;
 }
 
