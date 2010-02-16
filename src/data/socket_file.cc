@@ -47,10 +47,6 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
-#ifdef USE_XFS
-#include <xfs/libxfs.h>
-#endif
-
 namespace torrent {
 
 bool
