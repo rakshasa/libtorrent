@@ -45,12 +45,6 @@
 
 namespace torrent {
 
-// TODO: Look into making a custom comp and allocator classes for the
-// map_type which use a const char* for key_type.
-//
-// TODO: Use placement new/delete in order to avoid the extra level of
-// indirection caused by the union.
-
 class LIBTORRENT_EXPORT Object {
 public:
   typedef int64_t                           value_type;
@@ -103,14 +97,14 @@ public:
   static Object       create_string() { return Object(string_type()); }
   static Object       create_list()   { Object tmp; tmp.m_flags = TYPE_LIST; new (&tmp._list()) list_type(); return tmp; }
   static Object       create_map()    { Object tmp; tmp.m_flags = TYPE_MAP; new (&tmp._map()) map_type(); return tmp; }
-
+  static Object       create_empty(type_type t);
+  
   // Clear should probably not be inlined due to size and not being
   // optimized away in pretty much any case. Might not work well in
   // cases where we pass constant rvalues.
   void                clear();
 
   type_type           type() const                            { return (type_type)(m_flags & mask_type); }
-
   uint32_t            flags() const                           { return m_flags & mask_flags; }
 
   void                set_flags(uint32_t f)                   { m_flags |= f & mask_public; }
@@ -143,6 +137,8 @@ public:
 
   // Should have an interface for that returns pointer or something,
   // so we don't need to search twice.
+
+  // Make these inline...
 
   Object&             get_key(const key_type& k);
   const Object&       get_key(const key_type& k) const;
@@ -182,6 +178,7 @@ public:
   // Copy and merge operations:
   Object&             move(Object& b);
   Object&             swap(Object& b);
+  Object&             swap_same_type(Object& b);
 
   // Only map entries are merged.
   Object&             merge_move(Object& object, uint32_t maxDepth = ~uint32_t());
@@ -190,6 +187,9 @@ public:
                                  uint32_t maxDepth = ~uint32_t());
 
   Object&             operator = (const Object& b);
+
+  // Internal:
+  void                swap_same_type(Object& left, Object& right);
 
  private:
   // TMP to kill bad uses.
@@ -230,6 +230,18 @@ Object::Object(const Object& b) {
   }
 }
 
+inline Object
+Object::create_empty(type_type t) {
+  switch (t) {
+  case TYPE_VALUE: return create_value();
+  case TYPE_STRING: return create_string();
+  case TYPE_LIST: return create_list();
+  case TYPE_MAP: return create_map();
+  case TYPE_NONE:
+  default: return torrent::Object();
+  }
+}
+
 inline void
 Object::clear() {
   switch (type()) {
@@ -243,6 +255,21 @@ Object::clear() {
   // Only clear type?
   m_flags = TYPE_NONE;
 }
+
+inline void
+Object::swap_same_type(Object& left, Object& right) {
+  std::swap(left.m_flags, right.m_flags);
+
+  switch (left.type()) {
+  case Object::TYPE_NONE:
+  case Object::TYPE_VALUE: std::swap(left._value(), right._value()); break;
+  case Object::TYPE_STRING: left._string().swap(right._string()); break;
+  case Object::TYPE_LIST: left._list().swap(right._list()); break;
+  case Object::TYPE_MAP: left._map().swap(right._map()); break;
+  }
+}
+
+inline void swap(Object& left, Object& right) { left.swap(right); }
 
 inline bool
 object_equal(const Object& left, const Object& right) {

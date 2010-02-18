@@ -107,28 +107,28 @@ Object::move(Object& src) {
   if (this == &src)
     return *this;
 
-  clear();
-  m_flags = src.m_flags & (mask_type | mask_public);
-  src.m_flags = TYPE_NONE;
-
-  switch (type()) {
-  case TYPE_NONE:
-  case TYPE_VALUE: _value() = src._value(); break;
-  case TYPE_STRING: new (&_string()) string_type(); _string().swap(src._string()); src._string().~string_type(); break;
-  case TYPE_LIST: new (&_list()) list_type(); _list().swap(src._list()); src._list().~list_type(); break;
-  case TYPE_MAP: new (&_map()) map_type(); _map().swap(src._map()); src._map().~map_type(); break;
-  }
+  src = create_empty(src.type());
+  swap_same_type(*this, src);
 
   return *this;
 }
 
 Object&
 Object::swap(Object& src) {
-  // Fix this...
-  Object tmp;
-  tmp.move(src);
-  src.move(*this);
-  this->move(tmp);
+  if (this == &src)
+    return *this;
+
+  if (type() != src.type()) {
+    torrent::Object tmp = create_empty(src.type());
+    swap_same_type(tmp, src);
+    src = create_empty(this->type());
+    swap_same_type(src, *this);
+    *this = create_empty(tmp.type());
+    swap_same_type(*this, tmp);
+
+  } else {
+    swap_same_type(*this, src);
+  }
 
   return *this;
 }
