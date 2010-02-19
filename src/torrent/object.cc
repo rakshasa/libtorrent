@@ -107,7 +107,7 @@ Object::move(Object& src) {
   if (this == &src)
     return *this;
 
-  src = create_empty(src.type());
+  *this = create_empty(src.type());
   swap_same_type(*this, src);
 
   return *this;

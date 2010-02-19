@@ -55,6 +55,18 @@ swap_compare(const char* left, const char* right) {
   return true;
 }
 
+static bool
+move_compare(const char* left, const char* right) {
+  torrent::Object obj_left = create_bencode(left);
+  torrent::Object obj_right = create_bencode(right);
+
+  obj_left.move(obj_right);
+  if (!compare_bencode(obj_left, right))
+    return false;
+
+  return true;
+}
+
 void
 ObjectTest::test_swap_and_move() {
   CPPUNIT_ASSERT(swap_compare(TEST_VALUE_A, TEST_VALUE_B));
@@ -66,4 +78,8 @@ ObjectTest::test_swap_and_move() {
   CPPUNIT_ASSERT(swap_compare(TEST_STRING_A, TEST_MAP_B));
   CPPUNIT_ASSERT(swap_compare(TEST_MAP_A, TEST_LIST_B));
   CPPUNIT_ASSERT(swap_compare(TEST_LIST_A, TEST_VALUE_B));
+
+  CPPUNIT_ASSERT(swap_compare("i1e", TEST_VALUE_A));
+  CPPUNIT_ASSERT(swap_compare("i1e", TEST_MAP_A));
+  CPPUNIT_ASSERT(swap_compare("i1e", TEST_LIST_A));
 }
