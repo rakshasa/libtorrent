@@ -26,6 +26,9 @@ libsub_torrent_la_SOURCES = \
 	http.h \
 	object.cc \
 	object.h \
+	object_raw_bencode.h \
+	object_static_map.cc \
+	object_static_map.h \
 	object_stream.cc \
 	object_stream.h \
 	path.cc \
@@ -68,6 +71,8 @@ libtorrentinclude_HEADERS = \
 	hash_string.h \
 	http.h \
 	object.h \
+	object_raw_bencode.h \
+	object_static_map.h \
 	object_stream.h \
 	path.h \
 	poll.h \

@@ -15,6 +15,21 @@ create_bencode(const char* str) {
   return obj;
 }
 
+torrent::Object
+create_bencode_c(const char* str) {
+  torrent::Object obj;
+  const char* last = str + strlen(str);
+
+  CPPUNIT_ASSERT(object_read_bencode_c(str, last, &obj) == last);
+  return obj;
+}
+
+bool
+validate_bencode(const char* first, const char* last) {
+  torrent::Object obj;
+  return object_read_bencode_c(first, last, &obj) == last;
+}
+
 bool
 compare_bencode(const torrent::Object& obj, const char* str, uint32_t skip_mask) {
   char buffer[256];

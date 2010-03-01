@@ -8,6 +8,9 @@ class ObjectStreamTest : public CppUnit::TestFixture {
   CPPUNIT_TEST(testInputNullKey);
   CPPUNIT_TEST(testOutputMask);
   CPPUNIT_TEST(testBuffer);
+  CPPUNIT_TEST(testReadBencodeC);
+
+  CPPUNIT_TEST(test_write);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -18,5 +21,9 @@ public:
   void testInputNullKey();
   void testOutputMask();
   void testBuffer();
+
+  void testReadBencodeC();
+
+  void test_write();
 };
 

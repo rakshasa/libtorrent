@@ -198,8 +198,13 @@ Object::operator = (const Object& src) {
   m_flags = src.m_flags & (mask_type | mask_public);
 
   switch (type()) {
-  case TYPE_NONE:   break;
-  case TYPE_VALUE:  new (&_value()) value_type(src._value()); break;
+  case TYPE_NONE:
+  case TYPE_RAW_BENCODE:
+  case TYPE_RAW_VALUE: 
+  case TYPE_RAW_STRING: 
+  case TYPE_RAW_LIST: 
+  case TYPE_RAW_MAP:
+  case TYPE_VALUE:  t_pod = src.t_pod; break;
   case TYPE_STRING: new (&_string()) string_type(src._string()); break;
   case TYPE_LIST:   new (&_list()) list_type(src._list()); break;
   case TYPE_MAP:    new (&_map()) map_type(src._map()); break;

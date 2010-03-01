@@ -61,3 +61,57 @@ ObjectStreamTest::testBuffer() {
 
   object_write_bencode_c(&object_write_to_invalidate, NULL, buffer, &obj);
 }
+
+static const char* single_level_bencode = "d1:ai1e1:bi2e1:cl1:ai1e1:bi2eee";
+
+void
+ObjectStreamTest::testReadBencodeC() {
+  torrent::Object orderedObj   = create_bencode_c(ordered_bencode);
+  torrent::Object unorderedObj = create_bencode_c(unordered_bencode);
+
+  CPPUNIT_ASSERT(!(orderedObj.flags() & torrent::Object::flag_unordered));
+  CPPUNIT_ASSERT(unorderedObj.flags() & torrent::Object::flag_unordered);
+  CPPUNIT_ASSERT(compare_bencode(orderedObj, ordered_bencode));
+
+  //  torrent::Object single_level = create_bencode_c(single_level_bencode);
+  torrent::Object single_level = create_bencode_c(single_level_bencode);
+
+  CPPUNIT_ASSERT(compare_bencode(single_level, single_level_bencode));
+}
+
+bool object_write_bencode(const torrent::Object& obj, const char* original) {
+  try {
+    char buffer[1023];
+    char* last = torrent::object_write_bencode(buffer, buffer + 1024, &obj).first;
+    return std::strncmp(buffer, original, std::distance(buffer, last)) == 0;
+
+  } catch (torrent::bencode_error& e) {
+    return false;
+  }
+}
+
+void
+ObjectStreamTest::test_write() {
+  torrent::Object obj;
+
+  CPPUNIT_ASSERT(object_write_bencode(torrent::Object(), ""));
+  CPPUNIT_ASSERT(object_write_bencode(torrent::Object((int64_t)1), "i1e"));
+  CPPUNIT_ASSERT(object_write_bencode(torrent::Object("test"), "4:test"));
+  CPPUNIT_ASSERT(object_write_bencode(torrent::Object::create_list(), "le"));
+  CPPUNIT_ASSERT(object_write_bencode(torrent::Object::create_map(), "de"));
+
+  obj = torrent::Object::create_map();
+  obj.as_map()["a"] = (int64_t)1;
+  CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1ee"));
+
+  obj.as_map()["b"] = "test";
+  CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:teste"));
+
+  obj.as_map()["c"] = torrent::Object::create_list();
+  obj.as_map()["c"].as_list().push_back("foo");
+  CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:test1:cl3:fooee"));
+
+  obj.as_map()["c"].as_list().push_back(torrent::Object());
+  obj.as_map()["d"] = torrent::Object();
+  CPPUNIT_ASSERT(object_write_bencode(obj, "d1:ai1e1:b4:test1:cl3:fooee"));
+}

@@ -1,11 +1,19 @@
 #include "config.h"
 
+#include <iostream>
 #include <torrent/object.h>
 
 #import "object_test.h"
 #import "object_test_utils.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectTest);
+
+void
+ObjectTest::test_basic() {
+  std::cout << "sizeof(torrent::Object) = " << sizeof(torrent::Object) << std::endl;
+  std::cout << "sizeof(torrent::Object::list_type) = " << sizeof(torrent::Object::list_type) << std::endl;
+  std::cout << "sizeof(torrent::Object::map_type) = " << sizeof(torrent::Object::map_type) << std::endl;
+}
 
 void
 ObjectTest::test_flags() {
@@ -55,17 +63,17 @@ swap_compare(const char* left, const char* right) {
   return true;
 }
 
-static bool
-move_compare(const char* left, const char* right) {
-  torrent::Object obj_left = create_bencode(left);
-  torrent::Object obj_right = create_bencode(right);
+// static bool
+// move_compare(const char* left, const char* right) {
+//   torrent::Object obj_left = create_bencode(left);
+//   torrent::Object obj_right = create_bencode(right);
 
-  obj_left.move(obj_right);
-  if (!compare_bencode(obj_left, right))
-    return false;
+//   obj_left.move(obj_right);
+//   if (!compare_bencode(obj_left, right))
+//     return false;
 
-  return true;
-}
+//   return true;
+// }
 
 void
 ObjectTest::test_swap_and_move() {

@@ -4,6 +4,7 @@
 
 class ObjectTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(ObjectTest);
+  CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_flags);
   CPPUNIT_TEST(test_swap_and_move);
   CPPUNIT_TEST_SUITE_END();
@@ -12,6 +13,7 @@ public:
   void setUp() {}
   void tearDown() {}
 
+  void test_basic();
   void test_flags();
   void test_merge();
 

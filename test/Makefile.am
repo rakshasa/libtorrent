@@ -7,6 +7,8 @@ LibTorrentTest_SOURCES = \
 	torrent/object_test.h \
 	torrent/object_test_utils.cc \
 	torrent/object_test_utils.h \
+	torrent/object_static_map_test.cc \
+	torrent/object_static_map_test.h \
 	torrent/object_stream_test.cc \
 	torrent/object_stream_test.h \
 	main.cc

@@ -38,12 +38,15 @@
 
 #include <iterator>
 #include <iostream>
+#include <rak/algorithm.h>
 #include <rak/functional.h>
+#include <rak/string_manip.h>
 
 #include "utils/sha1.h"
 
 #include "object.h"
 #include "object_stream.h"
+#include "object_static_map.h"
 
 namespace torrent {
 
@@ -61,6 +64,46 @@ object_read_string(std::istream* input, std::string& str) {
     *itr = input->get();
   
   return !input->fail();
+}
+
+const char*
+object_read_bencode_c_value(const char* first, const char* last, int64_t& value) {
+  if (first == last)
+    return last;
+
+  bool neg = false;
+
+  if (*first == '-') {
+    neg = true;
+    first++;
+  }
+
+  value = 0;
+
+  while (first != last && *first >= '0' && *first <= '9')
+    value = value * 10 + (*first++ - '0');
+
+  if (neg)
+    value = -value;
+
+  return first;
+}
+
+const char*
+object_read_bencode_c_string(const char* first, const char* last, std::string& str) {
+  // Set the most-significant bit so that if there are no numbers in
+  // the input it will fail the length check, while "0" will shift the
+  // bit out.
+  unsigned int length = 0x1 << (std::numeric_limits<unsigned int>::digits - 1);
+
+  while (first != last && *first >= '0' && *first <= '9')
+    length = length * 10 + (*first++ - '0');
+
+  if (length + 1 > (unsigned int)std::distance(first, last) || *first++ != ':')
+    return NULL;
+  
+  str = std::string(first, length);
+  return first + length;
 }
 
 // Could consider making this non-recursive, but they seldomly are
@@ -159,6 +202,98 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
   object->clear();
 }
 
+const char*
+object_read_bencode_c(const char* first, const char* last, Object* object, uint32_t depth) {
+  if (first == last)
+    return NULL;
+
+  switch (*first) {
+  case 'i':
+    *object = Object::create_value();
+    first = object_read_bencode_c_value(first + 1, last, object->as_value());
+
+    if (first == NULL || first == last || *first++ != 'e')
+      break;
+
+    return first;
+
+  case 'l':
+    if (++depth >= 1024)
+      break;
+
+    first++;
+    *object = Object::create_list();
+
+    while (first != NULL && first != last) {
+      if (*first == 'e')
+	return first + 1;
+
+      Object::list_iterator itr = object->as_list().insert(object->as_list().end(), Object());
+      first = object_read_bencode_c(first, last, &*itr, depth);
+
+      // The unordered flag is inherited also from list elements who
+      // have been marked as unordered, though e.g. unordered strings
+      // in the list itself does not cause this flag to be set.
+      if (itr->flags() & Object::flag_unordered)
+        object->set_internal_flags(Object::flag_unordered);
+    }
+
+    break;
+
+  case 'd': {
+    if (++depth >= 1024)
+      break;
+
+    first++;
+    *object = Object::create_map();
+
+    Object::string_type prev;
+
+    while (first != NULL && first != last) {
+      if (*first == 'e')
+	return first + 1;
+
+      Object::string_type str;
+
+      if ((first = object_read_bencode_c_string(first, last, str)) == NULL)
+	break;
+
+      // We do not set flag_unordered if the first key was zero
+      // length, while multiple zero length keys will trigger the
+      // unordered_flag.
+      if (str <= prev && !object->as_map().empty())
+        object->set_internal_flags(Object::flag_unordered);
+
+      Object* value = &object->as_map()[str];
+      first = object_read_bencode_c(first, last, value, depth);
+
+      if (value->flags() & Object::flag_unordered)
+        object->set_internal_flags(Object::flag_unordered);
+
+      str.swap(prev);
+    }
+
+    break;
+  }
+
+  default:
+    if (*first >= '0' && *first <= '9')
+      return object_read_bencode_c_string(first, last, (*object = Object::create_string()).as_string());
+
+    break;
+  }
+
+  object->clear();
+  return NULL;
+}
+
+// TODO: Optimize this.
+const char*
+object_read_bencode_skip_c(const char* first, const char* last, uint32_t depth) {
+  torrent::Object obj;
+  return object_read_bencode_c(first, last, &obj, depth);
+}
+
 // Would be nice to have a straight stream to hash conversion.
 std::string
 object_sha1(const Object* object) {
@@ -199,9 +334,8 @@ struct object_write_data_t {
 
 void
 object_write_bencode_c_string(object_write_data_t* output, const char* srcData, uint32_t srcLength) {
-  do {
+  while (srcLength != 0) {
     uint32_t len = std::min<uint32_t>(srcLength, std::distance(output->pos, output->buffer.second));
-
     std::memcpy(output->pos, srcData, len);
 
     output->pos += len;
@@ -216,8 +350,7 @@ object_write_bencode_c_string(object_write_data_t* output, const char* srcData, 
 
     srcData += len;
     srcLength -= len;
-
-  } while (srcLength != 0);
+  }
 }
 
 void
@@ -257,29 +390,75 @@ object_write_bencode_c_value(object_write_data_t* output, int64_t src) {
   object_write_bencode_c_string(output, first, 20 - std::distance(buffer, first));
 }
 
+inline void
+object_write_bencode_c_obj_value(object_write_data_t* output, int64_t value) {
+  object_write_bencode_c_char(output, 'i');
+  object_write_bencode_c_value(output, value);
+  object_write_bencode_c_char(output, 'e');
+}
+
+inline void
+object_write_bencode_c_obj_string(object_write_data_t* output, const char* data, uint32_t size) {
+  object_write_bencode_c_value(output, size);
+  object_write_bencode_c_char(output, ':');
+  object_write_bencode_c_string(output, data, size);
+}
+
+inline void
+object_write_bencode_c_obj_string(object_write_data_t* output, const std::string& str) {
+  object_write_bencode_c_obj_string(output, str.c_str(), str.size());
+}
+
 void
 object_write_bencode_c_object(object_write_data_t* output, const Object* object, uint32_t skip_mask) {
   switch (object->type()) {
-  case Object::TYPE_NONE:
+  case Object::TYPE_NONE: break;
+  case Object::TYPE_RAW_BENCODE:
+  {
+    raw_bencode raw = object->as_raw_bencode();
+    object_write_bencode_c_string(output, raw.begin(), raw.size());
     break;
-
-  case Object::TYPE_VALUE:
+  }
+  case Object::TYPE_RAW_VALUE:
+  {
+    raw_value raw = object->as_raw_value();
     object_write_bencode_c_char(output, 'i');
-    object_write_bencode_c_value(output, object->as_value());
+    object_write_bencode_c_string(output, raw.begin(), raw.size());
     object_write_bencode_c_char(output, 'e');
     break;
-
-  case Object::TYPE_STRING:
-    object_write_bencode_c_value(output, object->as_string().size());
+  }
+  case Object::TYPE_RAW_STRING: 
+  {
+    raw_string raw = object->as_raw_string();
+    object_write_bencode_c_value(output, raw.size());
     object_write_bencode_c_char(output, ':');
-    object_write_bencode_c_string(output, object->as_string().c_str(), object->as_string().size());
+    object_write_bencode_c_string(output, raw.begin(), raw.size());
     break;
+  }
+  case Object::TYPE_RAW_LIST: 
+  {
+    raw_list raw = object->as_raw_list();
+    object_write_bencode_c_char(output, 'l');
+    object_write_bencode_c_string(output, raw.begin(), raw.size());
+    object_write_bencode_c_char(output, 'e');
+    break;
+  }
+  case Object::TYPE_RAW_MAP:
+  {
+    raw_map raw = object->as_raw_map();
+    object_write_bencode_c_char(output, 'd');
+    object_write_bencode_c_string(output, raw.begin(), raw.size());
+    object_write_bencode_c_char(output, 'e');
+    break;
+  }
+  case Object::TYPE_VALUE: object_write_bencode_c_obj_value(output, object->as_value()); break;
+  case Object::TYPE_STRING: object_write_bencode_c_obj_string(output, object->as_string()); break;
 
   case Object::TYPE_LIST:
     object_write_bencode_c_char(output, 'l');
 
     for (Object::list_const_iterator itr = object->as_list().begin(), last = object->as_list().end(); itr != last; ++itr) {
-      if (itr->flags() & skip_mask)
+      if (itr->is_empty() || itr->flags() & skip_mask)
         continue;
 
       object_write_bencode_c_object(output, &*itr, skip_mask);
@@ -292,13 +471,10 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
     object_write_bencode_c_char(output, 'd');
 
     for (Object::map_const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last; ++itr) {
-      if (itr->second.flags() & skip_mask)
+      if (itr->second.is_empty() || itr->second.flags() & skip_mask)
         continue;
 
-      object_write_bencode_c_value(output, itr->first.size());
-      object_write_bencode_c_char(output, ':');
-      object_write_bencode_c_string(output, itr->first.c_str(), itr->first.size());
-
+      object_write_bencode_c_obj_string(output, itr->first);
       object_write_bencode_c_object(output, &itr->second, skip_mask);
     }
 
@@ -368,6 +544,258 @@ object_write_to_stream(void* data, object_buffer_t buffer) {
     return object_buffer_t(buffer.first, buffer.first);
 
   return buffer;
+}
+
+//
+// static_map operations:
+//
+
+const char*
+static_map_read_bencode_c(const char* first,
+                         const char* last,
+                         static_map_entry_type* entry_values,
+                         const static_map_mapping_type* first_key,
+                         const static_map_mapping_type* last_key) {
+  // Temp hack... validate that we got valid bencode data...
+//   {
+//     torrent::Object obj;
+//     if (object_read_bencode_c(first, last, &obj) != last) {
+//       std::string escaped = rak::copy_escape_html(first, last);
+
+//       char buffer[1024];
+//       sprintf(buffer, "Verified wrong, %u, '%u', '%s'.", std::distance(first, last), (unsigned int)*first, escaped.c_str());
+
+//       throw torrent::bencode_error("Invalid bencode data.");
+//     }
+//   }
+
+  if (first == last || *first++ != 'd')
+    throw torrent::bencode_error("Invalid bencode data.");
+  
+  static_map_stack_type stack[8];
+  static_map_stack_type* stack_itr = stack;
+  stack_itr->clear();
+
+  char current_key[static_map_mapping_type::max_key_size + 2] = "";
+
+  while (first != last && first != NULL) {
+    // End a dictionary/list or the whole stream.
+    if (*first == 'e') {
+      first++;
+
+      if (stack_itr == stack)
+        return first;
+
+      stack_itr--;
+    }
+
+    std::string key_str;
+
+    if ((first = object_read_bencode_c_string(first, last, key_str)) == NULL)
+      break;
+
+    // Optimze this buy directly copying into 'current_key'.
+    //
+    // The max length of 'current_key' is one char more than the
+    // mapping key so any bencode which exceeds that will always fail
+    // to find a match.
+    if (key_str.size() >= static_map_mapping_type::max_key_size - stack_itr->next_key) {
+      first = object_read_bencode_skip_c(first, last);
+      continue;
+    }
+
+    memcpy(current_key + stack_itr->next_key, key_str.c_str(), key_str.size());
+    current_key[stack_itr->next_key + key_str.size()] = '\0';
+
+    // Locate the right key. Optimize this by remembering previous
+    // position...
+    static_map_key_search_result key_search = find_key_match(first_key, last_key, current_key);    
+
+    // We're not interest in this object, skip it.
+    if (key_search.second == 0) {
+      first = object_read_bencode_skip_c(first, last);
+      continue;
+    }
+
+    // Check if we're interested in any dictionaries/lists entries
+    // under this key.
+    //
+    // Note that 'find_key_match' only returns 'key_search.second !=
+    // 0' for keys where the next characters are '\0', '::' or '[]'.
+    switch (key_search.first->key[key_search.second]) {
+    case '\0':
+      first = object_read_bencode_c(first, last, &entry_values[key_search.first->index].object);
+      first_key = key_search.first + 1;
+      break;
+
+    case '*':
+    {
+      const char* tmp = first;
+      first = object_read_bencode_skip_c(first, last);
+
+      if (first != NULL)
+        entry_values[key_search.first->index].object = raw_bencode(tmp, std::distance(tmp, first));
+
+      first_key = key_search.first + 1;
+      break;
+    }
+    case ':':
+      if (first == last)
+        break;
+
+      // The bencode object isn't a list. This should either skip it
+      // or produce an error.
+      if (*first++ != 'd')
+        throw torrent::bencode_error("Invalid bencode data.");
+
+      stack_itr++;
+      stack_itr->set_key_index((stack_itr - 1)->next_key, key_search.second, 2);
+
+      current_key[key_search.second] = ':';
+      current_key[key_search.second + 1] = ':';
+      break;
+
+    case '[':
+    {
+      if (first == last)
+        break;
+
+      // The bencode object isn't a list. This should either skip it
+      // or produce an error.
+      if (*first++ != 'l')
+        throw torrent::bencode_error("Invalid bencode data.");
+
+      first_key = key_search.first;
+
+      while (first != last) {
+        if (*first == 'e') {
+          first++;
+          break;
+        }
+
+        if ((first = object_read_bencode_c(first, last, &entry_values[first_key->index].object)) == NULL)
+          break;
+
+        if (++first_key == last_key || strcmp(first_key->key, (first_key - 1)->key) != 0) {
+          while (first != last) {
+            if (*first == 'e') {
+              first++;
+              break;
+            }
+
+            first = object_read_bencode_skip_c(first, last);
+          }
+
+          break;
+        }
+      }
+
+      break;
+    }
+    default:
+      throw internal_error("static_map_read_bencode_c: key_search.first->key[base] returned invalid character.");
+    };
+  }
+  
+  throw torrent::bencode_error("Invalid bencode data.");
+}
+
+void
+static_map_write_bencode_c_values(object_write_data_t* output,
+                                 const static_map_entry_type* entry_values,
+                                 const static_map_mapping_type* first_key,
+                                 const static_map_mapping_type* last_key) {
+  const char* prev_key = NULL;
+
+  static_map_stack_type stack[8];
+  static_map_stack_type* stack_itr = stack;
+  stack_itr->clear();
+
+  object_write_bencode_c_char(output, 'd');
+
+  while (first_key != last_key) {
+    if (entry_values[first_key->index].object.is_empty()) {
+      first_key++;
+      continue;
+    }
+
+    // Compare the keys to see if they are part of the same
+    // dictionaries/lists.
+    unsigned int base_size = rak::count_base(first_key->key, first_key->key + stack_itr->next_key,
+                                             prev_key, prev_key + stack_itr->next_key);
+
+    while (base_size < stack_itr->next_key) {
+      object_write_bencode_c_char(output, 'e');
+      stack_itr--;
+    }
+
+    const char* key_begin = first_key->key + stack_itr->next_key;
+
+    do {
+      const char* key_end = first_key->find_key_end(key_begin);
+
+      if (stack_itr->obj_type == Object::TYPE_MAP)
+        object_write_bencode_c_obj_string(output, key_begin, std::distance(key_begin, key_end));
+    
+      // Check if '::' or '[' were found...
+      if (*key_end == ':' && *(key_end + 1) == ':') {
+        (++stack_itr)->set_key_index(std::distance(first_key->key, key_begin),
+                                     std::distance(first_key->key, key_end), 2);
+
+        key_begin = key_end + 2;
+        object_write_bencode_c_char(output, 'd');
+        continue;
+      }
+
+      // Handle "foo[]..." entries. We iterate once for each "foo[]"
+      // found in the key list.
+      if (*key_end == '[' && *(key_end + 1) == ']') {
+        (++stack_itr)->set_key_index(std::distance(first_key->key, key_begin),
+                                     std::distance(first_key->key, key_end), 2,
+                                     Object::TYPE_LIST);
+
+        key_begin = key_end + 2;
+        object_write_bencode_c_char(output, 'l');
+        continue;
+      }
+
+      // We have a leaf object.
+      if (*key_end != '\0')
+        throw internal_error("static_map_type key is invalid.");
+
+      object_write_bencode_c_object(output, &entry_values[first_key->index].object, 0);
+
+      break;
+    } while (true);
+
+    prev_key = (first_key++)->key;
+  }
+
+  do {
+    object_write_bencode_c_char(output, 'e');
+  } while (stack_itr-- != stack);
+}
+
+object_buffer_t
+static_map_write_bencode_c_wrap(object_write_t writeFunc,
+                               void* data,
+                               object_buffer_t buffer,
+                               const static_map_entry_type* entry_values,
+                               const static_map_mapping_type* first_key,
+                               const static_map_mapping_type* last_key) {
+  object_write_data_t output;
+  output.writeFunc = writeFunc;
+  output.data      = data;
+  output.buffer    = buffer;
+  output.pos       = buffer.first;
+
+  static_map_write_bencode_c_values(&output, entry_values, first_key, last_key);
+
+  // Don't flush the buffer.
+  if (output.pos == output.buffer.first)
+    return output.buffer;
+
+  return output.writeFunc(output.data, object_buffer_t(output.buffer.first, output.pos));
 }
 
 }
