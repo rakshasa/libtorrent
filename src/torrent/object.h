@@ -52,6 +52,7 @@ public:
   typedef std::string                       string_type;
   typedef std::list<Object>                 list_type;
   typedef std::map<std::string, Object>     map_type;
+  typedef map_type*                         map_ptr_type;
   typedef map_type::key_type                key_type;
 
   typedef list_type::iterator               list_iterator;
@@ -109,7 +110,7 @@ public:
   static Object       create_value()  { return Object(value_type()); }
   static Object       create_string() { return Object(string_type()); }
   static Object       create_list()   { Object tmp; tmp.m_flags = TYPE_LIST; new (&tmp._list()) list_type(); return tmp; }
-  static Object       create_map()    { Object tmp; tmp.m_flags = TYPE_MAP; new (&tmp._map()) map_type(); return tmp; }
+  static Object       create_map()    { Object tmp; tmp.m_flags = TYPE_MAP; tmp._map_ptr() = new map_type(); return tmp; }
 
   static Object       create_raw_bencode(raw_bencode obj = raw_bencode()) {
     Object tmp; tmp.m_flags = TYPE_RAW_BENCODE; new (&tmp._raw_bencode()) raw_bencode(); return tmp;
@@ -233,9 +234,6 @@ public:
   void                swap_same_type(Object& left, Object& right);
 
  private:
-  // TMP to kill bad uses.
-  //  explicit Object(type_type t);
-
   inline bool         check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
   inline void         check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
 
@@ -247,8 +245,10 @@ public:
   const string_type&  _string() const      { return reinterpret_cast<const string_type&>(t_string); }
   list_type&          _list()              { return reinterpret_cast<list_type&>(t_list); }
   const list_type&    _list() const        { return reinterpret_cast<const list_type&>(t_list); }
-  map_type&           _map()               { return reinterpret_cast<map_type&>(t_map); }
-  const map_type&     _map() const         { return reinterpret_cast<const map_type&>(t_map); }
+  map_type&           _map()               { return *reinterpret_cast<map_ptr_type&>(t_pod); }
+  const map_type&     _map() const         { return *reinterpret_cast<const map_ptr_type&>(t_pod); }
+  map_ptr_type&       _map_ptr()           { return reinterpret_cast<map_ptr_type&>(t_pod); }
+  const map_ptr_type& _map_ptr() const     { return reinterpret_cast<const map_ptr_type&>(t_pod); }
   raw_object&         _raw_object()        { return reinterpret_cast<raw_object&>(t_pod); }
   const raw_object&   _raw_object() const  { return reinterpret_cast<const raw_object&>(t_pod); }
   raw_bencode&        _raw_bencode()       { return reinterpret_cast<raw_bencode&>(t_pod); }
@@ -264,6 +264,7 @@ public:
 
   union pod_types {
     value_type t_value;
+    map_type*  t_map;
     char       t_raw_obect[sizeof(raw_object)];
   };
 
@@ -271,7 +272,6 @@ public:
     pod_types t_pod;
     char    t_string[sizeof(string_type)];
     char    t_list[sizeof(list_type)];
-    char    t_map[sizeof(map_type)];
   };
 };
 
@@ -289,7 +289,7 @@ Object::Object(const Object& b) {
   case TYPE_VALUE:       t_pod = b.t_pod; break;
   case TYPE_STRING:      new (&_string()) string_type(b._string()); break;
   case TYPE_LIST:        new (&_list()) list_type(b._list()); break;
-  case TYPE_MAP:         new (&_map()) map_type(b._map()); break;
+  case TYPE_MAP:         _map_ptr() = new map_type(b._map()); break;
   }
 }
 
@@ -318,38 +318,24 @@ object_create_raw_bencode_c_str(const char str[]) {
 inline void
 Object::clear() {
   switch (type()) {
-  case TYPE_NONE:
-  case TYPE_RAW_BENCODE:
-  case TYPE_RAW_VALUE: 
-  case TYPE_RAW_STRING: 
-  case TYPE_RAW_LIST: 
-  case TYPE_RAW_MAP:
-  case TYPE_VALUE:  break;
   case TYPE_STRING: _string().~string_type(); break;
   case TYPE_LIST:   _list().~list_type(); break;
-  case TYPE_MAP:    _map().~map_type(); break;
+  case TYPE_MAP:    delete _map_ptr(); break;
+  default: break;
   }
 
   // Only clear type?
   m_flags = TYPE_NONE;
 }
 
-// TODO: Don't have separete swap cases for PODs.
 inline void
 Object::swap_same_type(Object& left, Object& right) {
   std::swap(left.m_flags, right.m_flags);
 
   switch (left.type()) {
-  case Object::TYPE_NONE:
-  case Object::TYPE_RAW_BENCODE:
-  case Object::TYPE_RAW_VALUE: 
-  case Object::TYPE_RAW_STRING: 
-  case Object::TYPE_RAW_LIST: 
-  case Object::TYPE_RAW_MAP: 
-  case Object::TYPE_VALUE:  std::swap(left.t_pod, right.t_pod); break;
   case Object::TYPE_STRING: left._string().swap(right._string()); break;
   case Object::TYPE_LIST:   left._list().swap(right._list()); break;
-  case Object::TYPE_MAP:    left._map().swap(right._map()); break;
+  default: std::swap(left.t_pod, right.t_pod); break;
   }
 }
 
@@ -362,11 +348,8 @@ object_equal(const Object& left, const Object& right) {
 
   switch (left.type()) {
   case Object::TYPE_NONE:        return true;
-    //  case Object::TYPE_RAW_BENCODE: return false;
   case Object::TYPE_VALUE:       return left.as_value() == right.as_value();
   case Object::TYPE_STRING:      return left.as_string() == right.as_string();
-//   case Object::TYPE_LIST:   return false;
-//   case Object::TYPE_MAP:    return false;
   default: return false;
   }
 }

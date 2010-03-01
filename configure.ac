@@ -4,8 +4,8 @@ dnl Find a better way to do this
 AC_DEFINE(PEER_NAME, "-lt0C60-", Identifier that is part of the default peer id)
 AC_DEFINE(PEER_VERSION, "lt\x0C\x60", 4 byte client and version identifier for DHT)
 
-LIBTORRENT_CURRENT=11
-LIBTORRENT_REVISION=6
+LIBTORRENT_CURRENT=13
+LIBTORRENT_REVISION=0
 LIBTORRENT_AGE=0
 
 LIBTORRENT_INTERFACE_VERSION_INFO=$LIBTORRENT_CURRENT:$LIBTORRENT_REVISION:$LIBTORRENT_AGE
@@ -17,6 +17,7 @@ AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
+AM_PATH_CPPUNIT(1.9.6)
 AC_DISABLE_STATIC
 
 AM_DISABLE_STATIC
@@ -116,4 +117,5 @@ AC_OUTPUT([
 	src/protocol/Makefile
 	src/tracker/Makefile
 	src/utils/Makefile
+        test/Makefile
 ])
