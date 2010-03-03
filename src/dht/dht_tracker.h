@@ -43,6 +43,7 @@
 #include <rak/socket_address.h>
 
 #include "download/download_info.h"  // for SocketAddressCompact
+#include "torrent/object_raw_bencode.h"
 
 namespace torrent {
 
@@ -65,14 +66,26 @@ public:
   size_t              size() const                 { return m_peers.size(); }
 
   void                add_peer(uint32_t addr, uint16_t port);
-  Object              get_peers(unsigned int maxPeers = max_peers);
+  raw_list            get_peers(unsigned int maxPeers = max_peers);
 
   // Remove old announces from the tracker that have not reannounced for
   // more than the given number of seconds.
   void                prune(uint32_t maxAge);
 
 private:
-  typedef std::vector<SocketAddressCompact> PeerList;
+  // We need to store the address as a bencoded string.
+  struct BencodeAddress {
+    char                 header[2];
+    SocketAddressCompact peer;
+
+    BencodeAddress(const SocketAddressCompact& p) : peer(p) { header[0] = '6'; header[1] = ':'; }
+
+    const char*  bencode() const { return header; }
+
+    bool         empty() const   { return !peer.port; }
+  } __attribute__ ((packed));
+
+  typedef std::vector<BencodeAddress> PeerList;
 
   PeerList               m_peers;
   std::vector<uint32_t>  m_lastSeen;

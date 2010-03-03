@@ -69,6 +69,9 @@ public:
 
   value_type* data() const { return m_data; }
 
+  bool operator == (const raw_object& rhs) const { return m_size == rhs.m_size && std::memcmp(m_data, rhs.m_data, m_size) == 0; }
+  bool operator != (const raw_object& rhs) const { return m_size != rhs.m_size || std::memcmp(m_data, rhs.m_data, m_size) != 0; }
+
 protected:
   iterator  m_data;
   size_type m_size;
@@ -83,12 +86,16 @@ protected:
   using raw_object::size;                       \
   using raw_object::begin;                      \
   using raw_object::end;                        \
-  using raw_object::data;
+  using raw_object::data;                       \
+                                                \
+  bool operator == (const this_type& rhs) const { return raw_object::operator==(rhs); } \
+  bool operator != (const this_type& rhs) const { return raw_object::operator!=(rhs); } \
 
 // A raw_bencode object shall always contain valid bencode data or be
 // empty.
 class raw_bencode : protected raw_object {
 public:
+  typedef raw_bencode this_type;
   RAW_BENCODE_SET_USING
 
   raw_bencode() : raw_object() {}
@@ -104,10 +111,13 @@ public:
   raw_string as_raw_string() const;
   raw_list   as_raw_list() const;
   raw_map    as_raw_map() const;
+
+  static raw_bencode from_c_str(const char* str) { return raw_bencode(str, std::strlen(str)); }
 };
 
 class raw_value : protected raw_object {
 public:
+  typedef raw_value this_type;
   RAW_BENCODE_SET_USING
 
   raw_value() {}
@@ -118,24 +128,31 @@ public:
 
 class raw_string : protected raw_object {
 public:
+  typedef raw_string this_type;
   RAW_BENCODE_SET_USING
 
   raw_string() {}
   raw_string(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   std::string as_string() const { return std::string(m_data, m_size); }
+
+  static raw_string from_c_str(const char* str) { return raw_string(str, std::strlen(str)); }
 };
 
 class raw_list : protected raw_object {
 public:
+  typedef raw_list this_type;
   RAW_BENCODE_SET_USING
 
   raw_list() {}
   raw_list(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
+
+  static raw_list from_c_str(const char* str) { return raw_list(str, std::strlen(str)); }
 };
 
 class raw_map : protected raw_object {
 public:
+  typedef raw_map this_type;
   RAW_BENCODE_SET_USING
 
   raw_map() {}

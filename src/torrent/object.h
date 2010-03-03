@@ -149,6 +149,10 @@ public:
   bool                is_string() const                       { return type() == TYPE_STRING; }
   bool                is_list() const                         { return type() == TYPE_LIST; }
   bool                is_map() const                          { return type() == TYPE_MAP; }
+  bool                is_raw_bencode() const                  { return type() == TYPE_RAW_BENCODE; }
+  bool                is_raw_string() const                   { return type() == TYPE_RAW_STRING; }
+  bool                is_raw_list() const                     { return type() == TYPE_RAW_LIST; }
+  bool                is_raw_map() const                      { return type() == TYPE_RAW_MAP; }
 
   value_type&        as_value()                              { check_throw(TYPE_VALUE); return _value(); }
   const value_type&  as_value() const                        { check_throw(TYPE_VALUE); return _value(); }

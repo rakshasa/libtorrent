@@ -123,7 +123,7 @@ DhtSearch::trim(bool final) {
   // We keep:
   // - the max_contacts=18 closest good or unknown nodes and all nodes closer
   //   than them (to see if further searches find closer ones)
-  // - for announces, also the 8 closest good nodes (i.e. nodes that have
+  // - for announces, also the 3 closest good nodes (i.e. nodes that have
   //   replied) to have at least that many for the actual announce
   // - any node that currently has transactions pending
   //
@@ -136,7 +136,7 @@ DhtSearch::trim(bool final) {
   // node is new and unknown otherwise
 
   int needClosest = final ? 0 : max_contacts;
-  int needGood = is_announce() ? DhtBucket::num_nodes : 0;
+  int needGood = is_announce() ? max_announce : 0;
 
   // We're done if we can't find any more nodes to contact.
   m_next = end();
@@ -251,20 +251,10 @@ DhtAnnounce::start_announce() {
   return const_accessor(begin());
 }
 
-void 
-DhtAnnounce::receive_peers(const Object& peers) {
-  m_tracker->receive_peers(peers);
-}
-
-void 
-DhtAnnounce::update_status() {
-  m_tracker->receive_progress(m_replied, m_contacted);
-}
-
 void
-DhtTransactionPacket::build_buffer(const Object& data) {
+DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
   char buffer[1500];  // If the message would exceed an Ethernet frame, something went very wrong.
-  object_buffer_t result = object_write_bencode_c(object_write_to_buffer, NULL, std::make_pair(buffer, buffer + sizeof(buffer)), &data);
+  object_buffer_t result = static_map_write_bencode_c(object_write_to_buffer, NULL, std::make_pair(buffer, buffer + sizeof(buffer)), msg);
 
   m_length = result.second - buffer;
   m_data = new char[m_length];
@@ -277,7 +267,6 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
     m_sa(*sa),
     m_timeout(cachedTime.seconds() + timeout),
     m_quickTimeout(cachedTime.seconds() + quick_timeout),
-    m_retry(3),
     m_packet(NULL) {
 
 }

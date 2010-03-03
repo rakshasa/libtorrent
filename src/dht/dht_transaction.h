@@ -38,11 +38,12 @@
 #define LIBTORRENT_DHT_TRANSACTION_H
 
 #include <map>
-
 #include <rak/socket_address.h>
 
 #include "dht/dht_node.h"
 #include "torrent/hash_string.h"
+#include "torrent/object_static_map.h"
+#include "tracker/tracker_dht.h"
 
 namespace torrent {
 
@@ -75,6 +76,7 @@ struct dht_compare_closer : public std::binary_function<const DhtNode*, const Dh
   bool operator () (const DhtNode* one, const DhtNode* two) const;
 
   const HashString&               target() const   { return m_target; }
+  raw_string                      target_raw_string() const { return raw_string(m_target.data(), HashString::size_data); }
 
   private:
   const HashString&    m_target;
@@ -92,6 +94,9 @@ public:
 
   // Number of closest potential contact nodes to keep.
   static const unsigned int max_contacts = 18;
+
+  // Number of closest nodes we actually announce to.
+  static const unsigned int max_announce = 3;
 
   DhtSearch(const HashString& target, const DhtBucket& contacts);
   virtual ~DhtSearch();
@@ -127,6 +132,7 @@ public:
   bool                 complete() const                  { return m_started && !m_pending; }
 
   const HashString&    target() const                    { return m_target; }
+  raw_string           target_raw_string() const         { return raw_string(m_target.data(), HashString::size_data); }
 
   virtual bool         is_announce() const               { return false; }
 
@@ -178,22 +184,65 @@ public:
   // counts announces instead.
   const_accessor       start_announce();
 
-  void                 receive_peers(const Object& peer_list);
-  void                 update_status();
+  void                 receive_peers(raw_list peers) { m_tracker->receive_peers(peers); }
+  void                 update_status() { m_tracker->receive_progress(m_replied, m_contacted); }
 
 private:
   TrackerDht*          m_tracker;
+};
+
+// Possible bencode keys in a DHT message.
+enum dht_keys {
+  key_a_id,
+  key_a_infoHash,
+  key_a_port,
+  key_a_target,
+  key_a_token,
+
+  key_e_0,
+  key_e_1,
+
+  key_q,
+
+  key_r_id,
+  key_r_nodes,
+  key_r_token,
+  key_r_values,
+
+  key_t,
+  key_v,
+  key_y,
+
+  key_LAST,
+};
+
+class DhtMessage : public static_map_type<dht_keys, key_LAST> {
+public:
+  typedef static_map_type<dht_keys, key_LAST> base_type;
+
+  DhtMessage() : data_end(data) {};
+
+  // Must be big enough to hold one of the possible variable-sized reply data.
+  // Currently either:
+  // - error message (size doesn't really matter, it'll be truncated at worst)
+  // - announce token (8 bytes, needs 20 bytes buffer to build)
+  // Never more than one of the above.
+  // And additionally for queries we send:
+  // - transaction ID (3 bytes)
+  static const size_t data_size = 64;
+  char data[data_size];
+  char* data_end;
 };
 
 // Class holding transaction data to be transmitted.
 class DhtTransactionPacket {
 public:
   // transaction packet
-  DhtTransactionPacket(const rak::socket_address* s, const Object& d, unsigned int id, DhtTransaction* t)
+  DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d, unsigned int id, DhtTransaction* t)
     : m_sa(*s), m_id(id), m_transaction(t) { build_buffer(d); };
 
   // non-transaction packet
-  DhtTransactionPacket(const rak::socket_address* s, const Object& d)
+  DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
     : m_sa(*s), m_id(-cachedTime.seconds()), m_transaction(NULL) { build_buffer(d); };
 
   ~DhtTransactionPacket()                               { delete[] m_data; }
@@ -214,7 +263,7 @@ public:
   DhtTransaction*             transaction()             { return m_transaction; }
 
 private:
-  void                        build_buffer(const Object& data);
+  void                        build_buffer(const DhtMessage& data);
 
   rak::socket_address   m_sa;
   char*                 m_data;
@@ -255,9 +304,6 @@ public:
   int                         quick_timeout()      { return m_quickTimeout; }
   bool                        has_quick_timeout()  { return m_hasQuickTimeout; }
 
-  int                         dec_retry()          { return m_retry--; }
-  int                         retry()              { return m_retry; }
-
   DhtTransactionPacket*       packet()             { return m_packet; }
   void                        set_packet(DhtTransactionPacket* p) { m_packet = p; }
 
@@ -282,7 +328,6 @@ private:
   rak::socket_address    m_sa;
   int                    m_timeout;
   int                    m_quickTimeout;
-  int                    m_retry;
   DhtTransactionPacket*  m_packet;
 };
 
@@ -337,19 +382,23 @@ public:
 
 class DhtTransactionAnnouncePeer : public DhtTransaction {
 public:
-  DhtTransactionAnnouncePeer(const HashString& id, const rak::socket_address* sa, const HashString& infoHash, const std::string& token)
+  DhtTransactionAnnouncePeer(const HashString& id,
+                             const rak::socket_address* sa,
+                             const HashString& infoHash,
+                             raw_string token)
     : DhtTransaction(-1, 30, id, sa),
       m_infoHash(infoHash),
       m_token(token) { }
 
-  virtual transaction_type    type()                     { return DHT_ANNOUNCE_PEER; }
+  virtual transaction_type type()      { return DHT_ANNOUNCE_PEER; }
 
-  const HashString&           info_hash()                { return m_infoHash; }
-  const std::string&          token()                    { return m_token; }
+  const HashString&        info_hash() { return m_infoHash; }
+  raw_string               info_hash_raw_string() const { return raw_string(m_infoHash.data(), HashString::size_data); }
+  raw_string               token()     { return m_token; }
 
 private:
-  HashString           m_infoHash;
-  std::string          m_token;
+  HashString m_infoHash;
+  raw_string m_token;
 };
 
 inline bool

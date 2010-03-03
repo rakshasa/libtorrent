@@ -42,6 +42,7 @@
 #include <rak/socket_address.h>
 
 #include <torrent/object.h>
+#include <torrent/object_raw_bencode.h>
 
 namespace torrent {
 
@@ -49,7 +50,12 @@ class AddressList : public std::list<rak::socket_address> {
 public:
   // Parse normal or compact list of addresses and add to AddressList
   void                        parse_address_normal(const Object::list_type& b);
-  void                        parse_address_compact(const std::string& s);
+  void                        parse_address_bencode(raw_list s);
+
+  void                        parse_address_compact(raw_string s);
+  void                        parse_address_compact(const std::string& s) {
+    return parse_address_compact(raw_string(s.data(), s.size()));
+  }
 
 private:
   static rak::socket_address  parse_address(const Object& b);

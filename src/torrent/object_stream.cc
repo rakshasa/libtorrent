@@ -633,8 +633,30 @@ static_map_read_bencode_c(const char* first,
       const char* tmp = first;
       first = object_read_bencode_skip_c(first, last);
 
-      if (first != NULL)
-        entry_values[key_search.first->index].object = raw_bencode(tmp, std::distance(tmp, first));
+      if (first == NULL)
+        break;
+
+      raw_bencode obj = raw_bencode(tmp, std::distance(tmp, first));
+
+      if (obj.is_empty())
+        break;
+
+      switch (key_search.first->key[key_search.second + 1]) {
+      case 'S':
+        if (obj.is_raw_string())
+          entry_values[key_search.first->index].object = obj.as_raw_string();
+        break;
+      case 'L':
+        if (obj.is_raw_list())
+          entry_values[key_search.first->index].object = obj.as_raw_list();
+        break;
+      case 'M':
+        if (obj.is_raw_map())
+          entry_values[key_search.first->index].object = obj.as_raw_map();
+        break;
+      default:
+        entry_values[key_search.first->index].object = obj;
+      };
 
       first_key = key_search.first + 1;
       break;
@@ -760,7 +782,7 @@ static_map_write_bencode_c_values(object_write_data_t* output,
       }
 
       // We have a leaf object.
-      if (*key_end != '\0')
+      if (*key_end != '\0' && *key_end != '*')
         throw internal_error("static_map_type key is invalid.");
 
       object_write_bencode_c_object(output, &entry_values[first_key->index].object, 0);

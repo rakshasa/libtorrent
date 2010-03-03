@@ -70,13 +70,28 @@ AddressList::parse_address_normal(const Object::list_type& b) {
 }
 
 void
-AddressList::parse_address_compact(const std::string& s) {
+AddressList::parse_address_compact(raw_string s) {
   if (sizeof(const SocketAddressCompact) != 6)
     throw internal_error("ConnectionList::AddressList::parse_address_compact(...) bad struct size.");
 
-  std::copy(reinterpret_cast<const SocketAddressCompact*>(s.c_str()),
-	    reinterpret_cast<const SocketAddressCompact*>(s.c_str() + s.size() - s.size() % sizeof(SocketAddressCompact)),
+  std::copy(reinterpret_cast<const SocketAddressCompact*>(s.data()),
+	    reinterpret_cast<const SocketAddressCompact*>(s.data() + s.size() - s.size() % sizeof(SocketAddressCompact)),
 	    std::back_inserter(*this));
+}
+
+void
+AddressList::parse_address_bencode(raw_list s) {
+  if (sizeof(const SocketAddressCompact) != 6)
+    throw internal_error("AddressList::parse_address_bencode(...) bad struct size.");
+
+  for (raw_list::const_iterator itr = s.begin();
+       itr + 2 + sizeof(SocketAddressCompact) <= s.end();
+       itr += sizeof(SocketAddressCompact)) {
+    if (*itr++ != '6' || *itr++ != ':')
+      break;
+
+    insert(end(), *reinterpret_cast<const SocketAddressCompact*>(s.data()));
+  }
 }
 
 }

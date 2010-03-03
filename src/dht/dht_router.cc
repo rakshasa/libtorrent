@@ -329,24 +329,6 @@ DhtRouter::node_invalid(const HashString& id) {
   delete_node(m_nodes.find(&node->id()));
 }
 
-char*
-DhtRouter::store_closest_nodes(const HashString& id, char* buffer, char* bufferEnd) {
-  DhtBucketChain chain(find_bucket(id)->second);
-
-  do {
-    for (DhtBucket::const_iterator itr = chain.bucket()->begin(); itr != chain.bucket()->end() && buffer != bufferEnd; ++itr) {
-      if (!(*itr)->is_bad()) {
-        buffer = (*itr)->store_compact(buffer);
-
-        if (buffer > bufferEnd)
-          throw internal_error("DhtRouter::store_closest_nodes wrote past buffer end.");
-      }
-    }
-  } while (buffer != bufferEnd && chain.next() != NULL);
-
-  return buffer;
-}
-
 Object*
 DhtRouter::store_cache(Object* container) const {
   container->insert_key("self_id", str());
@@ -386,6 +368,8 @@ DhtRouter::get_statistics() const {
   stats.queries_received = m_server.queries_received();
   stats.queries_sent     = m_server.queries_sent();
   stats.replies_received = m_server.replies_received();
+  stats.errors_received  = m_server.errors_received();
+  stats.errors_caught    = m_server.errors_caught();
 
   stats.num_nodes        = m_nodes.size();
   stats.num_buckets      = m_routingTable.size();
@@ -470,7 +454,7 @@ DhtRouter::receive_timeout() {
   for (DhtBucketList::const_iterator itr = m_routingTable.begin(); itr != m_routingTable.end(); ++itr) {
     itr->second->update();
 
-    if (!itr->second->is_full() || itr->second->age() > timeout_bucket_bootstrap)
+    if (!itr->second->is_full() || itr->second == bucket() || itr->second->age() > timeout_bucket_bootstrap)
       bootstrap_bucket(itr->second);
   }
 
@@ -505,28 +489,21 @@ DhtRouter::generate_token(const rak::socket_address* sa, int token, char buffer[
   return buffer;
 }
 
-std::string
-DhtRouter::make_token(const rak::socket_address* sa) {
-  char token[20];
-
-  return std::string(generate_token(sa, m_curToken, token), size_token);
-}
-
 bool
-DhtRouter::token_valid(const std::string& token, const rak::socket_address* sa) {
-  if (token.length() != size_token)
+DhtRouter::token_valid(raw_string token, const rak::socket_address* sa) {
+  if (token.size() != size_token)
     return false;
 
   // Compare given token to the reference token.
   char reference[20];
 
   // First try current token.
-  if (std::memcmp(generate_token(sa, m_curToken, reference), token.c_str(), size_token) == 0)
-    return true;
-
-  // If token recently changed, some clients may be using the older one.
+  //
+  // Else if token recently changed, some clients may be using the older one.
   // That way a token is valid for 15-30 minutes, instead of 0-15.
-  return std::memcmp(generate_token(sa, m_prevToken, reference), token.c_str(), size_token) == 0;
+  return 
+    token == raw_string(generate_token(sa, m_curToken, reference), size_token) ||
+    token == raw_string(generate_token(sa, m_prevToken, reference), size_token);
 }
 
 DhtNode*

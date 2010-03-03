@@ -52,6 +52,8 @@ DhtBucket::DhtBucket(const HashString& begin, const HashString& end) :
   m_good(0),
   m_bad(0),
 
+  m_fullCacheLength(0),
+
   m_begin(begin),
   m_end(end) {
 
@@ -67,6 +69,8 @@ DhtBucket::add_node(DhtNode* n) {
     m_good++;
   else if (n->is_bad())
     m_bad++;
+
+  m_fullCacheLength = 0;
 }
 
 void
@@ -81,6 +85,8 @@ DhtBucket::remove_node(DhtNode* n) {
     m_good--;
   else if (n->is_bad())
     m_bad--;
+
+  m_fullCacheLength = 0;
 }
 
 void
@@ -92,9 +98,11 @@ DhtBucket::count() {
 // Called every 15 minutes for housekeeping.
 void
 DhtBucket::update() {
-  // For now we only update the counts after some nodes have become bad
-  // due to prolonged inactivity.
   count();
+
+  // In case adjacent buckets whose nodes we borrowed have changed,
+  // we force an update of the cache.
+  m_fullCacheLength = 0;
 }
 
 DhtBucket::iterator
@@ -186,6 +194,26 @@ DhtBucket::split(const HashString& id) {
   }
 
   return other;
+}
+
+void
+DhtBucket::build_full_cache() {
+  DhtBucketChain chain(this);
+
+  char* pos = m_fullCache;
+
+  do {
+    for (const_iterator itr = chain.bucket()->begin(); itr != chain.bucket()->end() && pos < m_fullCache + sizeof(m_fullCache); ++itr) {
+      if (!(*itr)->is_bad()) {
+        pos = (*itr)->store_compact(pos);
+
+        if (pos > m_fullCache + sizeof(m_fullCache))
+          throw internal_error("DhtRouter::store_closest_nodes wrote past buffer end.");
+      }
+    }
+  } while (pos < m_fullCache + sizeof(m_fullCache) && chain.next() != NULL);
+
+  m_fullCacheLength = pos - m_fullCache;
 }
 
 }

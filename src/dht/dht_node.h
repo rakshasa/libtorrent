@@ -42,6 +42,7 @@
 #include <rak/socket_address.h>
 
 #include "torrent/hash_string.h"
+#include "torrent/object_raw_bencode.h"
 
 #include "dht_bucket.h"
 
@@ -60,6 +61,7 @@ public:
   DhtNode(const std::string& id, const Object& cache);
 
   const HashString&           id() const                 { return *this; }
+  raw_string                  id_raw_string() const      { return raw_string(data(), size_data); }
   const rak::socket_address*  address() const            { return &m_socketAddress; }
   void                        set_address(const rak::socket_address* sa) { m_socketAddress = *sa; }
 

@@ -54,8 +54,8 @@ DhtTracker::add_peer(uint32_t addr, uint16_t port) {
 
   // Check if peer exists. If not, find oldest peer.
   for (unsigned int i = 0; i < size(); i++) {
-    if (m_peers[i].addr == compact.addr) {
-      m_peers[i].port = compact.port;
+    if (m_peers[i].peer.addr == compact.addr) {
+      m_peers[i].peer.port = compact.port;
       m_lastSeen[i] = cachedTime.seconds();
       return;
 
@@ -77,10 +77,13 @@ DhtTracker::add_peer(uint32_t addr, uint16_t port) {
   }
 }
 
-// Return compact info (6 bytes) for up to 30 peers, returning different
-// peers for each call if there are more.
-Object
+// Return compact info as bencoded string (8 bytes per peer) for up to 30 peers,
+// returning different peers for each call if there are more.
+raw_list
 DhtTracker::get_peers(unsigned int maxPeers) {
+  if (sizeof(BencodeAddress) != 8)
+    throw internal_error("DhtTracker::BencodeAddress is packed incorrectly.");
+
   PeerList::iterator first = m_peers.begin();
   PeerList::iterator last = m_peers.end();
 
@@ -94,11 +97,7 @@ DhtTracker::get_peers(unsigned int maxPeers) {
     last = first + maxPeers;
   }
 
-  Object peers = Object::create_list();
-  for (; first != last; ++first)
-    peers.insert_back(std::string(first->c_str(), sizeof(*first)));
-
-  return peers;
+  return raw_list(first->bencode(), last->bencode() - first->bencode());
 }
 
 // Remove old announces.
@@ -107,9 +106,9 @@ DhtTracker::prune(uint32_t maxAge) {
   uint32_t minSeen = cachedTime.seconds() - maxAge;
 
   for (unsigned int i = 0; i < m_lastSeen.size(); i++)
-    if (m_lastSeen[i] < minSeen) m_peers[i].port = 0;
+    if (m_lastSeen[i] < minSeen) m_peers[i].peer.port = 0;
 
-  m_peers.erase(std::remove_if(m_peers.begin(), m_peers.end(), rak::on(rak::mem_ref(&SocketAddressCompact::port), std::bind2nd(std::equal_to<uint16_t>(), 0))), m_peers.end());
+  m_peers.erase(std::remove_if(m_peers.begin(), m_peers.end(), std::mem_fun_ref(&BencodeAddress::empty)), m_peers.end());
   m_lastSeen.erase(std::remove_if(m_lastSeen.begin(), m_lastSeen.end(), std::bind2nd(std::less<uint32_t>(), minSeen)), m_lastSeen.end());
 
   if (m_peers.size() != m_lastSeen.size())

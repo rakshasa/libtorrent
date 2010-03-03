@@ -62,8 +62,8 @@ struct static_map_entry_type {
 template <typename tmpl_key_type, size_t tmpl_length>
 class static_map_type {
 public:
-  typedef Object          value_type;
-  typedef tmpl_key_type   key_type;
+  typedef Object                  value_type;
+  typedef tmpl_key_type           key_type;
   typedef static_map_entry_type   entry_type;
   typedef static_map_mapping_type mapping_type;
 

@@ -46,6 +46,13 @@
 #include "download/download_info.h"
 #include "net/data_buffer.h"
 
+// Not really important, so no need to make this a configure check.
+#ifdef __GNUC__
+#define ATTRIBUTE_PRINTF(num) __attribute__ ((format (printf, num, num+1)))
+#else
+#define ATTRIBUTE_PRINTF(num)
+#endif
+
 namespace torrent {
 
 class ProtocolExtension {
@@ -70,8 +77,6 @@ public:
   // enabled locally or supported by the peer.
   static const int    flag_local_enabled_base    = 1<<8;
   static const int    flag_remote_supported_base = 1<<16;
-
-  static const char*  message_keys[FIRST_INVALID];
 
   // Number of extensions we support, not counting handshake.
   static const int    extension_count = FIRST_INVALID - HANDSHAKE - 1;
@@ -128,8 +133,10 @@ public:
   void                reset()                          { std::memset(&m_idMap, 0, sizeof(m_idMap)); }
 
 private:
-  void                parse_handshake(const Object& message);
-  void                parse_ut_pex(const Object& message);
+  void                parse_handshake();
+  void                parse_ut_pex();
+
+  static DataBuffer   build_bencode(size_t maxLength, const char* format, ...) ATTRIBUTE_PRINTF(2);
 
   void                peer_toggle_remote(int type, bool active);
 

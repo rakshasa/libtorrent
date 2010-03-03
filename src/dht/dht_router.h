@@ -115,14 +115,14 @@ public:
 
   // Store compact node information (26 bytes) for nodes closest to the
   // given ID in the given buffer, return new buffer end.
-  char*               store_closest_nodes(const HashString& id, char* buffer, char* bufferEnd);
+  raw_list            get_closest_nodes(const HashString& id)  { return find_bucket(id)->second->full_bucket(); }
 
   // Store DHT cache in the given container.
   Object*             store_cache(Object* container) const;
 
   // Create and verify a token. Tokens are valid between 15-30 minutes from creation.
-  std::string         make_token(const rak::socket_address* sa);
-  bool                token_valid(const std::string& token, const rak::socket_address* sa);
+  raw_string          make_token(const rak::socket_address* sa, char* buffer);
+  bool                token_valid(raw_string token, const rak::socket_address* sa);
 
   DhtManager::statistics_type get_statistics() const;
   void                reset_statistics()                      { m_server.reset_statistics(); }
@@ -146,6 +146,8 @@ private:
 
   bool                add_node_to_bucket(DhtNode* node);
   void                delete_node(const DhtNodeList::accessor& itr);
+
+  void                store_closest_nodes(const HashString& id, DhtBucket* bucket);
 
   DhtBucketList::iterator split_bucket(const DhtBucketList::iterator& itr, DhtNode* node);
 
@@ -175,6 +177,11 @@ private:
   int                 m_curToken;
   int                 m_prevToken;
 };
+
+inline raw_string
+DhtRouter::make_token(const rak::socket_address* sa, char* buffer) {
+  return raw_string(generate_token(sa, m_curToken, buffer), size_token);
+}
 
 }
 

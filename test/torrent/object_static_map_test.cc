@@ -42,7 +42,7 @@ typedef torrent::static_map_type<keys_2, key_2_LAST> test_map_2_type;
 
 // List of all possible keys we need/support in a DHT message.
 // Unsupported keys we receive are dropped (ignored) while decoding.
-// See torrent/static_map.h for how this works.
+// See torrent/object_static_map.h for how this works.
 template <>
 const test_map_type::key_list_type test_map_type::keys = {
   { key_d_a,          "d_a::b" },
@@ -172,11 +172,13 @@ bool static_map_write_bencode(map_type map, const char* original) {
 enum keys_empty { key_empty_LAST };
 enum keys_single { key_single_a, key_single_LAST };
 enum keys_raw { key_raw_a, key_raw_LAST };
+enum keys_raw_types { key_raw_types_empty, key_raw_types_list, key_raw_types_map, key_raw_types_str, key_raw_types_LAST};
 enum keys_multiple { key_multiple_a, key_multiple_b, key_multiple_c, key_multiple_LAST };
 
 typedef torrent::static_map_type<keys_empty, key_empty_LAST> test_empty_type;
 typedef torrent::static_map_type<keys_single, key_single_LAST> test_single_type;
 typedef torrent::static_map_type<keys_raw, key_raw_LAST> test_raw_type;
+typedef torrent::static_map_type<keys_raw_types, key_raw_types_LAST> test_raw_types_type;
 typedef torrent::static_map_type<keys_multiple, key_multiple_LAST> test_multiple_type;
 
 template <> const test_empty_type::key_list_type
@@ -185,6 +187,11 @@ template <> const test_single_type::key_list_type
 test_single_type::keys = { { key_single_a, "b" } };
 template <> const test_raw_type::key_list_type
 test_raw_type::keys = { { key_raw_a, "b*" } };
+template <> const test_raw_types_type::key_list_type
+test_raw_types_type::keys = { { key_raw_types_empty, "e*"},
+                              { key_raw_types_list, "l*L"},
+                              { key_raw_types_map, "m*M"},
+                              { key_raw_types_str, "s*S"} };
 template <> const test_multiple_type::key_list_type
 test_multiple_type::keys = { { key_multiple_a, "a" }, { key_multiple_b, "b*" }, { key_multiple_c, "c" } };
 
@@ -241,6 +248,17 @@ ObjectStaticMapTest::test_read_single_raw() {
 }
 
 void
+ObjectStaticMapTest::test_read_raw_types() {
+  test_raw_types_type map_raw;
+
+  STATIC_MAP_READ_BENCODE_ASSERT(map_raw, "d" "1:ei1e" "1:lli1ei2ee" "1:md1:ai1e1:bi2ee" "1:s2:ab" "e");
+  CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_types_empty].as_raw_bencode(), "i1e"));
+  CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_types_str].as_raw_string(), "ab"));
+  CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_types_list].as_raw_list(), "i1ei2e"));
+  CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_types_map].as_raw_map(), "1:ai1e1:bi2e"));
+}
+
+void
 ObjectStaticMapTest::test_read_multiple() {
   test_multiple_type map_normal;
 
@@ -267,10 +285,6 @@ ObjectStaticMapTest::test_read_multiple() {
   CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().size() == 1);
   CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().data()[0] == '2');
   CPPUNIT_ASSERT(map_normal[key_multiple_c].as_value() == 3);
-  
-
-//   CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_a].as_raw_bencode(), "i1e"));
-//   CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_a].as_raw_bencode().as_raw_value(), "1"));
 }
 
 void

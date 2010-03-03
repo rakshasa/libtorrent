@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <limits>
-#include <sstream>
+#include <stdarg.h>
 
 #include <cstdio>
 
@@ -49,16 +49,47 @@
 #include "torrent/object_stream.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-#include "tracker/tracker_http.h"
+#include "torrent/object_static_map.h"
 #include "manager.h"
 
 #include "extensions.h"
 
 namespace torrent {
 
-const char* ProtocolExtension::message_keys[] = {
-  "HANDSHAKE",
-  "ut_pex",
+enum ext_handshake_keys {
+  key_e,
+  key_m_utPex,
+  key_p,
+  key_reqq,
+  key_v,
+  key_handshake_LAST
+};
+
+enum ext_pex_keys {
+  key_pex_added,
+  key_pex_LAST
+};
+
+typedef static_map_type<ext_handshake_keys, key_handshake_LAST> ExtHandshakeMessage;
+typedef static_map_type<ext_pex_keys, key_pex_LAST> ExtPEXMessage;
+
+template <>
+const ExtHandshakeMessage::key_list_type ExtHandshakeMessage::keys = {
+  { key_e,            "e" },
+  { key_m_utPex,      "m::ut_pex" },
+  { key_p,            "p" },
+  { key_reqq,         "reqq" },
+  { key_v,            "v" },
+};
+
+template <>
+const ExtPEXMessage::key_list_type ExtPEXMessage::keys = {
+  { key_pex_added,    "added*S" },
+};
+
+ext_handshake_keys message_keys[ProtocolExtension::FIRST_INVALID] = {
+  key_handshake_LAST,     // Handshake, not actually used.
+  key_m_utPex,
 };
 
 void
@@ -105,23 +136,24 @@ ProtocolExtension::unset_local_enabled(int t) {
 
 DataBuffer
 ProtocolExtension::generate_handshake_message() {
-  Object map = Object::create_map();
-  Object message = Object::create_map();
-
-  map.insert_key(message_keys[UT_PEX], is_local_enabled(UT_PEX) ? 1 : 0);
+  ExtHandshakeMessage message;
 
   // Add "e" key if encryption is enabled, set it to 1 if we require
   // encryption for incoming connections, or 0 otherwise.
   if ((manager->connection_manager()->encryption_options() & ConnectionManager::encryption_allow_incoming) != 0)
-    message.insert_key("e", (manager->connection_manager()->encryption_options() & ConnectionManager::encryption_require) != 0);
+    message[key_e] = (manager->connection_manager()->encryption_options() & ConnectionManager::encryption_require) != 0;
 
-  message.insert_key("m", map);
-  message.insert_key("p", manager->connection_manager()->listen_port());
-  message.insert_key("v", "libTorrent " VERSION);
-  message.insert_key("reqq", 2048);  // maximum request queue size
+  message[key_p] = manager->connection_manager()->listen_port();
+  message[key_v] = raw_string::from_c_str("libTorrent " VERSION);
+  message[key_reqq] = 2048;  // maximum request queue size
+
+  message[key_m_utPex] = is_local_enabled(UT_PEX) ? UT_PEX : 0;
 
   char buffer[1024];
-  object_buffer_t result = object_write_bencode_c(object_write_to_buffer, NULL, std::make_pair(buffer, buffer + sizeof(buffer)), &message);
+  object_buffer_t result = static_map_write_bencode_c(object_write_to_buffer,
+                                                      NULL,
+                                                      std::make_pair(buffer, buffer + sizeof(buffer)),
+                                                      message);
 
   int length = result.second - buffer;
   char* copy = new char[length];
@@ -130,18 +162,30 @@ ProtocolExtension::generate_handshake_message() {
   return DataBuffer(copy, copy + length);
 }
 
+inline DataBuffer
+ProtocolExtension::build_bencode(size_t maxLength, const char* format, ...) {
+  char* b = new char[maxLength];
+
+  va_list args;
+  va_start(args, format);
+  unsigned int length = vsnprintf(b, maxLength, format, args);
+  va_end(args);
+
+  if (length > maxLength)
+    throw internal_error("ProtocolExtension::build_bencode wrote past buffer.");
+
+  return DataBuffer(b, b + length);
+}
+
 DataBuffer
-ProtocolExtension::generate_toggle_message(ProtocolExtension::MessageType t, bool on) {
+ProtocolExtension::generate_toggle_message(MessageType t, bool on) {
   // TODO: Check if we're accepting this message type?
 
   // Manually create bencoded map { "m" => { message_keys[t] => on ? t : 0 } }
-  char* b = new char[32];
-  unsigned int length = snprintf(b, 32, "d1:md%zu:%si%deee", strlen(message_keys[t]), message_keys[t], on ? t : 0);
-
-  if (length > 32)
-    throw internal_error("ProtocolExtension::toggle_message wrote past buffer.");
-
-  return DataBuffer(b, b + length);
+  return build_bencode(32, "d1:md%zu:%si%deee",
+                       strlen(ExtPEXMessage::keys[message_keys[t]].key),
+                       ExtPEXMessage::keys[message_keys[t]].key,
+                       on ? t : 0);
 }
 
 DataBuffer
@@ -195,36 +239,29 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
 
 void
 ProtocolExtension::read_done() {
-  if (m_readType == SKIP_EXTENSION) {
-    delete [] m_read;
-    m_read = NULL;
-    return;
-  }
+  try {
+    switch(m_readType) {
+    case SKIP_EXTENSION:
+      break;
 
-  std::stringstream s(std::string(m_read, m_readPos));
-  s.imbue(std::locale::classic());
+    case HANDSHAKE:
+      parse_handshake();
+      break;
+
+    case UT_PEX:
+      parse_ut_pex();
+      break;
+
+    default:
+      throw internal_error("ProtocolExtension::read_done called with invalid extension type.");
+    }
+
+  } catch (bencode_error& e) {
+    // Ignore malformed messages.
+  }
 
   delete [] m_read;
   m_read = NULL;
-
-  Object message;
-  s >> message;
-
-  if (s.fail() || !message.is_map())
-    throw communication_error("Invalid extension message.");
-
-  switch(m_readType) {
-  case HANDSHAKE:
-    parse_handshake(message);
-    break;
-
-  case UT_PEX:
-    parse_ut_pex(message);
-    break;
-
-  default:
-    throw internal_error("ProtocolExtension::down_extension_finished called with invalid extension type.");
-  }
 
   m_readType = FIRST_INVALID;
   m_flags |= flag_received_ext;
@@ -242,24 +279,22 @@ ProtocolExtension::peer_toggle_remote(int type, bool active) {
 }
 
 void
-ProtocolExtension::parse_handshake(const Object& message) {
-  if (message.has_key_map("m")) {
-    const Object& idMap = message.get_key("m");
+ProtocolExtension::parse_handshake() {
+  ExtHandshakeMessage message;
+  static_map_read_bencode(m_read, m_readPos, message);
 
-    for (int t = HANDSHAKE + 1; t < FIRST_INVALID; t++) {
-      if (!idMap.has_key_value(message_keys[t]))
-        continue;
+  for (int t = HANDSHAKE + 1; t < FIRST_INVALID; t++) {
+    if (!message[message_keys[t]].is_value())
+      continue;
 
-      uint8_t id = idMap.get_key_value(message_keys[t]);
+    uint8_t id = message[message_keys[t]].as_value();
 
-      set_remote_supported(t);
+    set_remote_supported(t);
 
-      if (id != m_idMap[t - 1]) {
-        peer_toggle_remote(t, id != 0);
+    if (id != m_idMap[t - 1]) {
+      peer_toggle_remote(t, id != 0);
 
-        m_idMap[t - 1] = id;
-      }
-
+      m_idMap[t - 1] = id;
     }
   }
 
@@ -271,32 +306,37 @@ ProtocolExtension::parse_handshake(const Object& message) {
         unset_local_enabled(t);
   }
 
-  if (message.has_key_value("p")) {
-    uint16_t port = message.get_key_value("p");
+  if (message[key_p].is_value()) {
+    uint16_t port = message[key_p].as_value();
 
     if (port > 0)
       m_peerInfo->set_listen_port(port);
   }
 
-  if (message.has_key_value("reqq"))
-    m_maxQueueLength = message.get_key_value("reqq");
+  if (message[key_reqq].is_value())
+    m_maxQueueLength = message[key_reqq].as_value();
 
   m_flags &= ~flag_initial_handshake;
 }
 
 void
-ProtocolExtension::parse_ut_pex(const Object& message) {
+ProtocolExtension::parse_ut_pex() {
   // Ignore message if we're still in the handshake (no connection
   // yet), or no peers are present.
 
+  ExtPEXMessage message;
+  static_map_read_bencode(m_read, m_readPos, message);
+
   // TODO: Check if pex is enabled?
-  if (!message.has_key_string("added"))
+  if (!message[key_pex_added].is_raw_string())
     return;
 
-  const std::string& peers = message.get_key_string("added");
+  raw_string peers = message[key_pex_added].as_raw_string();
+
   if (peers.empty())
     return;
 
+  // TODO: Sort the list before adding it.
   AddressList l;
   l.parse_address_compact(peers);
   l.sort();

@@ -42,6 +42,7 @@
 #include "globals.h"
 
 #include "torrent/hash_string.h"
+#include "torrent/object_raw_bencode.h"
 
 namespace torrent {
 
@@ -111,12 +112,18 @@ public:
   DhtBucket*          parent() const                          { return m_parent; }
   DhtBucket*          child() const                           { return m_child; }
 
+  // Return a full bucket's worth of compact node data. If this bucket is not
+  // full, it uses nodes from the child/parent buckets until we have enough.
+  raw_list            full_bucket();
+
   // Called by the DhtNode on its bucket to update good/bad node counts.
   void                node_now_good(bool was_bad);
   void                node_now_bad(bool was_good);
 
 private:
   void                count();
+
+  void                build_full_cache();
 
   DhtBucket*          m_parent;
   DhtBucket*          m_child;
@@ -126,11 +133,15 @@ private:
   unsigned int        m_good;
   unsigned int        m_bad;
 
+  size_t              m_fullCacheLength;
+
   // These are 40 bytes together, so might as well put them last.
   // m_end is const because it is used as key for the DhtRouter routing table
   // map, which would be inconsistent if m_end were changed carelessly.
   HashString          m_begin;
   const HashString    m_end;
+
+  char                m_fullCache[num_nodes * 26];
 };
 
 // Helper class to recursively follow a chain of buckets.  It first recurses
@@ -158,6 +169,14 @@ inline void
 DhtBucket::node_now_bad(bool was_good) {
   m_good -= was_good;
   m_bad++;
+}
+
+inline raw_list
+DhtBucket::full_bucket() {
+  if (!m_fullCacheLength)
+    build_full_cache();
+
+  return raw_list(m_fullCache, m_fullCacheLength);
 }
 
 inline const DhtBucket*
