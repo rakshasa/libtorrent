@@ -73,10 +73,10 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
   { key_a_infoHash, "a::info_hash*S" },
   { key_a_port,     "a::port", },
   { key_a_target,   "a::target*S" },
-  { key_a_token,    "a::token" },
+  { key_a_token,    "a::token*S" },
 
-  { key_e_0,        "e[]" },
-  { key_e_1,        "e[]" },
+  { key_e_0,        "e[]*" },
+  { key_e_1,        "e[]*" },
 
   { key_q,          "q*S" },
 
@@ -86,8 +86,8 @@ const DhtMessage::key_list_type DhtMessage::base_type::keys = {
   { key_r_values,   "r::values*L" },
 
   { key_t,          "t*S" },
-  { key_v,          "v" },
-  { key_y,          "y" },
+  { key_v,          "v*" },
+  { key_y,          "y*S" },
 };
 
 // Error in DHT protocol, avoids std::string ctor from communication_error
@@ -582,7 +582,7 @@ DhtServer::create_error(const DhtMessage& req, const rak::socket_address* sa, in
   error[key_y] = raw_bencode::from_c_str("1:e");
   error[key_v] = raw_bencode("4:" PEER_VERSION, 6);
   error[key_e_0] = num;
-  error[key_e_1] = raw_bencode::from_c_str(msg);
+  error[key_e_1] = raw_string::from_c_str(msg);
 
   add_packet(new DhtTransactionPacket(sa, error), packet_prio_reply);
 }

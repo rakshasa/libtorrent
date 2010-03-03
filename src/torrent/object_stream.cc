@@ -294,6 +294,39 @@ object_read_bencode_skip_c(const char* first, const char* last, uint32_t depth) 
   return object_read_bencode_c(first, last, &obj, depth);
 }
 
+const char*
+object_read_bencode_raw_c(const char* first, const char* last, torrent::Object* object, char type) {
+  const char* tmp = first;
+  first = object_read_bencode_skip_c(first, last);
+
+  if (first == NULL)
+    return first;
+
+  raw_bencode obj = raw_bencode(tmp, std::distance(tmp, first));
+
+  if (obj.is_empty())
+    return NULL;
+
+  switch (type) {
+  case 'S':
+    if (obj.is_raw_string())
+      *object = obj.as_raw_string();
+    break;
+  case 'L':
+    if (obj.is_raw_list())
+      *object = obj.as_raw_list();
+    break;
+  case 'M':
+    if (obj.is_raw_map())
+      *object = obj.as_raw_map();
+    break;
+  default:
+    *object = obj;
+  };
+
+  return first;
+}
+
 // Would be nice to have a straight stream to hash conversion.
 std::string
 object_sha1(const Object* object) {
@@ -629,38 +662,11 @@ static_map_read_bencode_c(const char* first,
       break;
 
     case '*':
-    {
-      const char* tmp = first;
-      first = object_read_bencode_skip_c(first, last);
-
-      if (first == NULL)
-        break;
-
-      raw_bencode obj = raw_bencode(tmp, std::distance(tmp, first));
-
-      if (obj.is_empty())
-        break;
-
-      switch (key_search.first->key[key_search.second + 1]) {
-      case 'S':
-        if (obj.is_raw_string())
-          entry_values[key_search.first->index].object = obj.as_raw_string();
-        break;
-      case 'L':
-        if (obj.is_raw_list())
-          entry_values[key_search.first->index].object = obj.as_raw_list();
-        break;
-      case 'M':
-        if (obj.is_raw_map())
-          entry_values[key_search.first->index].object = obj.as_raw_map();
-        break;
-      default:
-        entry_values[key_search.first->index].object = obj;
-      };
-
+      first = object_read_bencode_raw_c(first, last,
+                                        &entry_values[key_search.first->index].object,
+                                        key_search.first->key[key_search.second + 1]);
       first_key = key_search.first + 1;
       break;
-    }
     case ':':
       if (first == last)
         break;
@@ -695,8 +701,15 @@ static_map_read_bencode_c(const char* first,
           break;
         }
 
-        if ((first = object_read_bencode_c(first, last, &entry_values[first_key->index].object)) == NULL)
-          break;
+        if (first_key->key[key_search.second + 2] == '*') {
+          if ((first = object_read_bencode_raw_c(first, last,
+                                                 &entry_values[first_key->index].object,
+                                                 key_search.first->key[key_search.second + 1])) == NULL)
+            break;
+        } else {
+          if ((first = object_read_bencode_c(first, last, &entry_values[first_key->index].object)) == NULL)
+            break;
+        }
 
         if (++first_key == last_key || strcmp(first_key->key, (first_key - 1)->key) != 0) {
           while (first != last) {
@@ -812,6 +825,18 @@ static_map_write_bencode_c_wrap(object_write_t writeFunc,
   output.pos       = buffer.first;
 
   static_map_write_bencode_c_values(&output, entry_values, first_key, last_key);
+
+  {
+    torrent::Object obj;
+    if (object_read_bencode_c(output.buffer.first, output.pos, &obj) != output.pos) {
+      std::string escaped = rak::copy_escape_html(output.buffer.first, output.pos);
+
+      //char buffer[1024];
+      //      sprintf(buffer, "Verified wrong, %u, '%u', '%s'.", std::distanescaped.c_str());
+
+      throw torrent::internal_error("Invalid bencode data generated: '" + escaped + "'");
+    }
+  }
 
   // Don't flush the buffer.
   if (output.pos == output.buffer.first)
