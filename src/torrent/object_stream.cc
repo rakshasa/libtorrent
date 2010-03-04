@@ -89,8 +89,8 @@ object_read_bencode_c_value(const char* first, const char* last, int64_t& value)
   return first;
 }
 
-const char*
-object_read_bencode_c_string(const char* first, const char* last, std::string& str) {
+raw_string
+object_read_bencode_c_string(const char* first, const char* last) {
   // Set the most-significant bit so that if there are no numbers in
   // the input it will fail the length check, while "0" will shift the
   // bit out.
@@ -100,10 +100,9 @@ object_read_bencode_c_string(const char* first, const char* last, std::string& s
     length = length * 10 + (*first++ - '0');
 
   if (length + 1 > (unsigned int)std::distance(first, last) || *first++ != ':')
-    return NULL;
+    throw torrent::bencode_error("Invalid bencode data.");
   
-  str = std::string(first, length);
-  return first + length;
+  return raw_string(first, length);
 }
 
 // Could consider making this non-recursive, but they seldomly are
@@ -205,7 +204,7 @@ object_read_bencode(std::istream* input, Object* object, uint32_t depth) {
 const char*
 object_read_bencode_c(const char* first, const char* last, Object* object, uint32_t depth) {
   if (first == last)
-    return NULL;
+    throw torrent::bencode_error("Invalid bencode data.");
 
   switch (*first) {
   case 'i':
@@ -253,10 +252,10 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
       if (*first == 'e')
 	return first + 1;
 
-      Object::string_type str;
+      raw_string raw_str = object_read_bencode_c_string(first, last);
+      first = raw_str.end();
 
-      if ((first = object_read_bencode_c_string(first, last, str)) == NULL)
-	break;
+      Object::string_type str = raw_str.as_string();
 
       // We do not set flag_unordered if the first key was zero
       // length, while multiple zero length keys will trigger the
@@ -277,21 +276,70 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
   }
 
   default:
-    if (*first >= '0' && *first <= '9')
-      return object_read_bencode_c_string(first, last, (*object = Object::create_string()).as_string());
+    if (*first < '0' || *first > '9')
+      throw torrent::bencode_error("Invalid bencode data.");
 
-    break;
+    raw_string raw_str = object_read_bencode_c_string(first, last);
+    *object = raw_str.as_string();
+
+    return raw_str.end();
   }
 
   object->clear();
-  return NULL;
+  throw torrent::bencode_error("Invalid bencode data.");
 }
 
-// TODO: Optimize this.
+inline bool object_is_not_digit(char c) { return c < '0' || c > '9'; }
+
 const char*
-object_read_bencode_skip_c(const char* first, const char* last, uint32_t depth) {
-  torrent::Object obj;
-  return object_read_bencode_c(first, last, &obj, depth);
+object_read_bencode_skip_c(const char* first, const char* last) {
+  char stack[128] = { 0 };
+  char* stack_itr = stack;
+
+  while (first != last) {
+    if (*first == 'e') {
+      if (stack_itr-- == stack)
+        throw torrent::bencode_error("Invalid bencode data.");
+
+      first++;
+
+      if (stack_itr == stack)
+        return first;
+
+      continue;
+    }
+
+    // Currently reading a dictionary, so ensure the first entry is a
+    // string.
+    if (*stack_itr && (first = object_read_bencode_c_string(first, last).end()) == last)
+      break;
+
+    switch (*first) {
+    case 'i':
+      first = std::find_if(first + 1, last, &object_is_not_digit);
+
+      if (first == last || *first++ != 'e')
+        throw torrent::bencode_error("Invalid bencode data.");
+
+      break;
+
+    case 'l':
+    case 'd':
+      if (++stack_itr == stack + 128)
+        throw torrent::bencode_error("Invalid bencode data.");
+
+      *stack_itr = (*first++ == 'd');
+      continue;
+
+    default:
+      first = object_read_bencode_c_string(first, last).end();
+    };
+
+    if (stack_itr == stack)
+      return first;
+  }
+
+  throw torrent::bencode_error("Invalid bencode data.");
 }
 
 const char*
@@ -543,9 +591,6 @@ object_write_bencode_c(object_write_t writeFunc,
   if (!(object->flags() & skip_mask))
     object_write_bencode_c_object(&output, object, skip_mask);
 
-  //  if (output->buffer.first == output->buffer.second)
-  //    throw 
-
   // Don't flush the buffer.
   if (output.pos == output.buffer.first)
     return output.buffer;
@@ -622,23 +667,21 @@ static_map_read_bencode_c(const char* first,
       stack_itr--;
     }
 
-    std::string key_str;
-
-    if ((first = object_read_bencode_c_string(first, last, key_str)) == NULL)
-      break;
+    raw_string raw_key = object_read_bencode_c_string(first, last);
+    first = raw_key.end();
 
     // Optimze this buy directly copying into 'current_key'.
     //
     // The max length of 'current_key' is one char more than the
     // mapping key so any bencode which exceeds that will always fail
     // to find a match.
-    if (key_str.size() >= static_map_mapping_type::max_key_size - stack_itr->next_key) {
+    if (raw_key.size() >= static_map_mapping_type::max_key_size - stack_itr->next_key) {
       first = object_read_bencode_skip_c(first, last);
       continue;
     }
 
-    memcpy(current_key + stack_itr->next_key, key_str.c_str(), key_str.size());
-    current_key[stack_itr->next_key + key_str.size()] = '\0';
+    memcpy(current_key + stack_itr->next_key, raw_key.data(), raw_key.size());
+    current_key[stack_itr->next_key + raw_key.size()] = '\0';
 
     // Locate the right key. Optimize this by remembering previous
     // position...
@@ -826,6 +869,7 @@ static_map_write_bencode_c_wrap(object_write_t writeFunc,
 
   static_map_write_bencode_c_values(&output, entry_values, first_key, last_key);
 
+  // DEBUG: Remove this.
   {
     torrent::Object obj;
     if (object_read_bencode_c(output.buffer.first, output.pos, &obj) != output.pos) {

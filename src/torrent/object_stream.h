@@ -50,7 +50,7 @@ std::string object_sha1(const Object* object) LIBTORRENT_EXPORT;
 // the client.
 void        object_read_bencode(std::istream* input, Object* object, uint32_t depth = 0) LIBTORRENT_EXPORT;
 const char* object_read_bencode_c(const char* first, const char* last, Object* object, uint32_t depth = 0) LIBTORRENT_EXPORT;
-const char* object_read_bencode_skip_c(const char* first, const char* last, uint32_t depth = 0) LIBTORRENT_EXPORT;
+const char* object_read_bencode_skip_c(const char* first, const char* last) LIBTORRENT_EXPORT;
 
 std::istream& operator >> (std::istream& input, Object& object) LIBTORRENT_EXPORT;
 std::ostream& operator << (std::ostream& output, const Object& object) LIBTORRENT_EXPORT;

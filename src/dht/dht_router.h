@@ -115,7 +115,7 @@ public:
 
   // Store compact node information (26 bytes) for nodes closest to the
   // given ID in the given buffer, return new buffer end.
-  raw_list            get_closest_nodes(const HashString& id)  { return find_bucket(id)->second->full_bucket(); }
+  raw_string          get_closest_nodes(const HashString& id)  { return find_bucket(id)->second->full_bucket(); }
 
   // Store DHT cache in the given container.
   Object*             store_cache(Object* container) const;

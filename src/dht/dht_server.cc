@@ -301,7 +301,7 @@ DhtServer::create_find_node_response(const DhtMessage& req, DhtMessage& reply) {
 
   reply[key_r_nodes] = m_router->get_closest_nodes(*HashString::cast_from(target.data()));
 
-  if (reply[key_r_nodes].as_raw_list().empty())
+  if (reply[key_r_nodes].as_raw_string().empty())
     throw dht_error(dht_error_generic, "No nodes");
 }
 
@@ -321,7 +321,7 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const rak::socket_ad
 
   // If we're not tracking or have no peers, send closest nodes.
   if (!tracker || tracker->empty()) {
-    raw_list nodes = m_router->get_closest_nodes(*info_hash);
+    raw_string nodes = m_router->get_closest_nodes(*info_hash);
 
     if (nodes.empty())
       throw dht_error(dht_error_generic, "No peers nor nodes");

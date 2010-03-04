@@ -114,7 +114,7 @@ public:
 
   // Return a full bucket's worth of compact node data. If this bucket is not
   // full, it uses nodes from the child/parent buckets until we have enough.
-  raw_list            full_bucket();
+  raw_string          full_bucket();
 
   // Called by the DhtNode on its bucket to update good/bad node counts.
   void                node_now_good(bool was_bad);
@@ -171,12 +171,12 @@ DhtBucket::node_now_bad(bool was_good) {
   m_bad++;
 }
 
-inline raw_list
+inline raw_string
 DhtBucket::full_bucket() {
   if (!m_fullCacheLength)
     build_full_cache();
 
-  return raw_list(m_fullCache, m_fullCacheLength);
+  return raw_string(m_fullCache, m_fullCacheLength);
 }
 
 inline const DhtBucket*

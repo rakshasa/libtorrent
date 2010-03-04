@@ -126,10 +126,10 @@ SocketFile::set_size(uint64_t size, int flags) const {
     // on...
     //
     // Yet is somehow fails with ENOSPC...
-    if (fcntl(m_fd, F_PREALLOCATE, &fstore) == -1)
-      throw internal_error("hack: fcntl failed" + std::string(strerror(errno)));
+//     if (fcntl(m_fd, F_PREALLOCATE, &fstore) == -1)
+//       throw internal_error("hack: fcntl failed" + std::string(strerror(errno)));
 
-    //    fcntl(m_fd, F_PREALLOCATE, &fstore); // Ignore result for now...
+    fcntl(m_fd, F_PREALLOCATE, &fstore); // Ignore result for now...
   }
 #endif
 

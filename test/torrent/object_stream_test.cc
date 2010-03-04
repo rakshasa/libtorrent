@@ -90,6 +90,55 @@ bool object_write_bencode(const torrent::Object& obj, const char* original) {
   }
 }
 
+bool object_stream_read_skip(const char* input) {
+  try {
+    return torrent::object_read_bencode_skip_c(input, input + strlen(input)) == input + strlen(input);
+  } catch (torrent::bencode_error& e) {
+    return false;
+  }
+}
+
+bool object_stream_read_skip_catch(const char* input) {
+  try {
+    torrent::object_read_bencode_skip_c(input, input + strlen(input));
+    return false;
+  } catch (torrent::bencode_error& e) {
+    return true;
+  }
+}
+
+void
+ObjectStreamTest::test_read_skip() {
+  CPPUNIT_ASSERT(object_stream_read_skip("i0e"));
+  CPPUNIT_ASSERT(object_stream_read_skip("i9999e"));
+
+  CPPUNIT_ASSERT(object_stream_read_skip("0:"));
+  CPPUNIT_ASSERT(object_stream_read_skip("4:test"));
+
+  CPPUNIT_ASSERT(object_stream_read_skip("le"));
+  CPPUNIT_ASSERT(object_stream_read_skip("li1ee"));
+  CPPUNIT_ASSERT(object_stream_read_skip("llee"));
+  CPPUNIT_ASSERT(object_stream_read_skip("ll1:a1:bel1:c1:dee"));
+
+  CPPUNIT_ASSERT(object_stream_read_skip("de"));
+  CPPUNIT_ASSERT(object_stream_read_skip("d1:ai1e1:b1:xe"));
+  CPPUNIT_ASSERT(object_stream_read_skip("d1:ali1eee"));
+  CPPUNIT_ASSERT(object_stream_read_skip("d1:ad1:bi1eee"));
+}
+
+void
+ObjectStreamTest::test_read_skip_invalid() {
+  CPPUNIT_ASSERT(object_stream_read_skip_catch(""));
+  CPPUNIT_ASSERT(object_stream_read_skip_catch("i"));
+  CPPUNIT_ASSERT(object_stream_read_skip_catch("1"));
+  CPPUNIT_ASSERT(object_stream_read_skip_catch("d"));
+
+  CPPUNIT_ASSERT(object_stream_read_skip_catch("llllllll" "llllllll" "llllllll" "llllllll"
+                                               "llllllll" "llllllll" "llllllll" "llllllll"
+                                               "llllllll" "llllllll" "llllllll" "llllllll"
+                                               "llllllll" "llllllll" "llllllll" "llllllll"));
+}
+
 void
 ObjectStreamTest::test_write() {
   torrent::Object obj;

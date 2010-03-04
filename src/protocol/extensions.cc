@@ -87,9 +87,14 @@ const ExtPEXMessage::key_list_type ExtPEXMessage::keys = {
   { key_pex_added,    "added*S" },
 };
 
-ext_handshake_keys message_keys[ProtocolExtension::FIRST_INVALID] = {
-  key_handshake_LAST,     // Handshake, not actually used.
-  key_m_utPex,
+struct message_type {
+  const char* key;
+  ext_handshake_keys index;
+};
+
+const message_type message_keys[] = { 
+  { "HANDSHAKE", key_handshake_LAST },
+  { "ut_pex", key_m_utPex }
 };
 
 void
@@ -182,10 +187,7 @@ ProtocolExtension::generate_toggle_message(MessageType t, bool on) {
   // TODO: Check if we're accepting this message type?
 
   // Manually create bencoded map { "m" => { message_keys[t] => on ? t : 0 } }
-  return build_bencode(32, "d1:md%zu:%si%deee",
-                       strlen(ExtPEXMessage::keys[message_keys[t]].key),
-                       ExtPEXMessage::keys[message_keys[t]].key,
-                       on ? t : 0);
+  return build_bencode(32, "d1:md%zu:%si%deee", strlen(message_keys[t].key), message_keys[t].key, on ? t : 0);
 }
 
 DataBuffer
@@ -258,6 +260,8 @@ ProtocolExtension::read_done() {
 
   } catch (bencode_error& e) {
     // Ignore malformed messages.
+    // DEBUG:
+    throw internal_error("ProtocolExtension::read_done '" + std::string(m_read, std::distance(m_read, m_readPos)) + "'");
   }
 
   delete [] m_read;
@@ -284,10 +288,10 @@ ProtocolExtension::parse_handshake() {
   static_map_read_bencode(m_read, m_readPos, message);
 
   for (int t = HANDSHAKE + 1; t < FIRST_INVALID; t++) {
-    if (!message[message_keys[t]].is_value())
+    if (!message[message_keys[t].index].is_value())
       continue;
 
-    uint8_t id = message[message_keys[t]].as_value();
+    uint8_t id = message[message_keys[t].index].as_value();
 
     set_remote_supported(t);
 
