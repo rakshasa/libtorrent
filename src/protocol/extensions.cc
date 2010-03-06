@@ -45,33 +45,14 @@
 #include "download/download_main.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/connection_manager.h"
-#include "torrent/object.h"
 #include "torrent/object_stream.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-#include "torrent/object_static_map.h"
 #include "manager.h"
 
 #include "extensions.h"
 
 namespace torrent {
-
-enum ext_handshake_keys {
-  key_e,
-  key_m_utPex,
-  key_p,
-  key_reqq,
-  key_v,
-  key_handshake_LAST
-};
-
-enum ext_pex_keys {
-  key_pex_added,
-  key_pex_LAST
-};
-
-typedef static_map_type<ext_handshake_keys, key_handshake_LAST> ExtHandshakeMessage;
-typedef static_map_type<ext_pex_keys, key_pex_LAST> ExtPEXMessage;
 
 template <>
 const ExtHandshakeMessage::key_list_type ExtHandshakeMessage::keys = {

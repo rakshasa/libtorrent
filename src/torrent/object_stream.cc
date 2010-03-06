@@ -38,6 +38,8 @@
 
 #include <iterator>
 #include <iostream>
+#include <cmath>
+#include <limits>
 #include <rak/algorithm.h>
 #include <rak/functional.h>
 #include <rak/string_manip.h>
@@ -211,7 +213,7 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
     *object = Object::create_value();
     first = object_read_bencode_c_value(first + 1, last, object->as_value());
 
-    if (first == NULL || first == last || *first++ != 'e')
+    if (first == last || *first++ != 'e')
       break;
 
     return first;
@@ -223,7 +225,7 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
     first++;
     *object = Object::create_list();
 
-    while (first != NULL && first != last) {
+    while (first != last) {
       if (*first == 'e')
 	return first + 1;
 
@@ -248,7 +250,7 @@ object_read_bencode_c(const char* first, const char* last, Object* object, uint3
 
     Object::string_type prev;
 
-    while (first != NULL && first != last) {
+    while (first != last) {
       if (*first == 'e')
 	return first + 1;
 
@@ -347,13 +349,10 @@ object_read_bencode_raw_c(const char* first, const char* last, torrent::Object* 
   const char* tmp = first;
   first = object_read_bencode_skip_c(first, last);
 
-  if (first == NULL)
-    return first;
-
   raw_bencode obj = raw_bencode(tmp, std::distance(tmp, first));
 
-  if (obj.is_empty())
-    return NULL;
+//   if (obj.is_empty())
+//     throw torrent::bencode_error("Invalid bencode data.");
 
   switch (type) {
   case 'S':
@@ -643,7 +642,7 @@ static_map_read_bencode_c(const char* first,
 //       char buffer[1024];
 //       sprintf(buffer, "Verified wrong, %u, '%u', '%s'.", std::distance(first, last), (unsigned int)*first, escaped.c_str());
 
-//       throw torrent::bencode_error("Invalid bencode data.");
+//       throw torrent::internal_error("Invalid bencode data.");
 //     }
 //   }
 
@@ -656,7 +655,7 @@ static_map_read_bencode_c(const char* first,
 
   char current_key[static_map_mapping_type::max_key_size + 2] = "";
 
-  while (first != last && first != NULL) {
+  while (first != last) {
     // End a dictionary/list or the whole stream.
     if (*first == 'e') {
       first++;
@@ -665,6 +664,7 @@ static_map_read_bencode_c(const char* first,
         return first;
 
       stack_itr--;
+      continue;
     }
 
     raw_string raw_key = object_read_bencode_c_string(first, last);
@@ -716,8 +716,10 @@ static_map_read_bencode_c(const char* first,
 
       // The bencode object isn't a list. This should either skip it
       // or produce an error.
-      if (*first++ != 'd')
-        throw torrent::bencode_error("Invalid bencode data.");
+      if (*first++ != 'd') {
+        first = object_read_bencode_skip_c(first - 1, last);
+        break;
+      }
 
       stack_itr++;
       stack_itr->set_key_index((stack_itr - 1)->next_key, key_search.second, 2);
@@ -733,8 +735,10 @@ static_map_read_bencode_c(const char* first,
 
       // The bencode object isn't a list. This should either skip it
       // or produce an error.
-      if (*first++ != 'l')
-        throw torrent::bencode_error("Invalid bencode data.");
+      if (*first++ != 'l') {
+        first = object_read_bencode_skip_c(first - 1, last);
+        break;
+      }
 
       first_key = key_search.first;
 
@@ -745,13 +749,11 @@ static_map_read_bencode_c(const char* first,
         }
 
         if (first_key->key[key_search.second + 2] == '*') {
-          if ((first = object_read_bencode_raw_c(first, last,
-                                                 &entry_values[first_key->index].object,
-                                                 key_search.first->key[key_search.second + 1])) == NULL)
-            break;
+          first = object_read_bencode_raw_c(first, last,
+                                            &entry_values[first_key->index].object,
+                                            key_search.first->key[key_search.second + 1]);
         } else {
-          if ((first = object_read_bencode_c(first, last, &entry_values[first_key->index].object)) == NULL)
-            break;
+          first = object_read_bencode_c(first, last, &entry_values[first_key->index].object);
         }
 
         if (++first_key == last_key || strcmp(first_key->key, (first_key - 1)->key) != 0) {

@@ -124,6 +124,8 @@ ObjectStreamTest::test_read_skip() {
   CPPUNIT_ASSERT(object_stream_read_skip("d1:ai1e1:b1:xe"));
   CPPUNIT_ASSERT(object_stream_read_skip("d1:ali1eee"));
   CPPUNIT_ASSERT(object_stream_read_skip("d1:ad1:bi1eee"));
+
+  CPPUNIT_ASSERT(object_stream_read_skip("d1:md6:ut_pexi0eee"));
 }
 
 void

@@ -1,5 +1,8 @@
 TESTS = LibTorrentTest
 check_PROGRAMS = $(TESTS)
+LibTorrentTest_LDADD = \
+	../src/libtorrent.la
+
 LibTorrentTest_SOURCES = \
 	rak/allocators_test.cc \
 	rak/allocators_test.h \
@@ -12,9 +15,6 @@ LibTorrentTest_SOURCES = \
 	torrent/object_stream_test.cc \
 	torrent/object_stream_test.h \
 	main.cc
-
-LibTorrentTest_LDADD = \
-	../src/libtorrent.la
 
 LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrentTest_LDFLAGS = $(CPPUNIT_LIBS)  -ldl

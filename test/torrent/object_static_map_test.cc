@@ -3,6 +3,7 @@
 #include <torrent/object.h>
 #include <torrent/object_stream.h>
 #include "torrent/object_static_map.h"
+#include "protocol/extensions.h"
 
 #import "object_test_utils.h"
 #import "object_static_map_test.h"
@@ -151,6 +152,27 @@ ObjectStaticMapTest::test_read() {
    CPPUNIT_ASSERT(static_map_read_bencode(test_skip_map, test_read_skip_bencode));
 }
 
+template <>
+const torrent::ExtHandshakeMessage::key_list_type torrent::ExtHandshakeMessage::keys = {
+  { key_e,            "e" },
+  { key_m_utPex,      "m::ut_pex" },
+  { key_p,            "p" },
+  { key_reqq,         "reqq" },
+  { key_v,            "v" },
+};
+
+void
+ObjectStaticMapTest::test_read_extensions() {
+  torrent::ExtHandshakeMessage test_ext;
+
+  CPPUNIT_ASSERT(static_map_read_bencode(test_ext, "d1:ai1ee"));
+
+  CPPUNIT_ASSERT(static_map_read_bencode(test_ext, "d1:mi1ee"));
+  CPPUNIT_ASSERT(static_map_read_bencode(test_ext, "d1:mdee"));
+  CPPUNIT_ASSERT(static_map_read_bencode(test_ext, "d6:ut_pexi0ee"));
+  CPPUNIT_ASSERT(static_map_read_bencode(test_ext, "d1:md6:ut_pexi0eee"));
+}
+
 template <typename map_type>
 bool static_map_write_bencode(map_type map, const char* original) {
   try {
@@ -175,12 +197,14 @@ enum keys_single { key_single_a, key_single_LAST };
 enum keys_raw { key_raw_a, key_raw_LAST };
 enum keys_raw_types { key_raw_types_empty, key_raw_types_list, key_raw_types_map, key_raw_types_str, key_raw_types_LAST};
 enum keys_multiple { key_multiple_a, key_multiple_b, key_multiple_c, key_multiple_LAST };
+enum keys_dict { key_dict_a_b, key_dict_LAST };
 
 typedef torrent::static_map_type<keys_empty, key_empty_LAST> test_empty_type;
 typedef torrent::static_map_type<keys_single, key_single_LAST> test_single_type;
 typedef torrent::static_map_type<keys_raw, key_raw_LAST> test_raw_type;
 typedef torrent::static_map_type<keys_raw_types, key_raw_types_LAST> test_raw_types_type;
 typedef torrent::static_map_type<keys_multiple, key_multiple_LAST> test_multiple_type;
+typedef torrent::static_map_type<keys_dict, key_dict_LAST> test_dict_type;
 
 template <> const test_empty_type::key_list_type
 test_empty_type::keys = { };
@@ -195,6 +219,8 @@ test_raw_types_type::keys = { { key_raw_types_empty, "e*"},
                               { key_raw_types_str, "s*S"} };
 template <> const test_multiple_type::key_list_type
 test_multiple_type::keys = { { key_multiple_a, "a" }, { key_multiple_b, "b*" }, { key_multiple_c, "c" } };
+template <> const test_dict_type::key_list_type
+test_dict_type::keys = { { key_dict_a_b, "a::b" } };
 
 void
 ObjectStaticMapTest::test_read_empty() {
@@ -286,6 +312,20 @@ ObjectStaticMapTest::test_read_multiple() {
   CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().size() == 1);
   CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().data()[0] == '2');
   CPPUNIT_ASSERT(map_normal[key_multiple_c].as_value() == 3);
+}
+
+void
+ObjectStaticMapTest::test_read_dict() {
+  test_dict_type map_normal;
+
+  CPPUNIT_ASSERT(static_map_read_bencode(map_normal, "d1:ai1ee"));
+  CPPUNIT_ASSERT(map_normal[key_dict_a_b].is_empty());
+
+  CPPUNIT_ASSERT(static_map_read_bencode(map_normal, "d1:adee"));
+  CPPUNIT_ASSERT(map_normal[key_dict_a_b].is_empty());
+
+  CPPUNIT_ASSERT(static_map_read_bencode(map_normal, "d1:ad1:bi1eee"));
+  CPPUNIT_ASSERT(map_normal[key_dict_a_b].as_value() == 1);
 }
 
 void

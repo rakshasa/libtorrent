@@ -40,8 +40,9 @@
 #include <string>
 #include <vector>
 
-#include <torrent/exceptions.h>
-#include <torrent/object.h>
+#include "torrent/exceptions.h"
+#include "torrent/object.h"
+#include "torrent/object_static_map.h"
 
 #include "download/download_info.h"
 #include "net/data_buffer.h"
@@ -155,6 +156,31 @@ private:
   char*               m_read;
   char*               m_readPos;
 };
+
+//
+// 
+//
+
+enum ext_handshake_keys {
+  key_e,
+  key_m_utPex,
+  key_p,
+  key_reqq,
+  key_v,
+  key_handshake_LAST
+};
+
+enum ext_pex_keys {
+  key_pex_added,
+  key_pex_LAST
+};
+
+typedef static_map_type<ext_handshake_keys, key_handshake_LAST> ExtHandshakeMessage;
+typedef static_map_type<ext_pex_keys, key_pex_LAST> ExtPEXMessage;
+
+//
+//
+//
 
 inline
 ProtocolExtension::ProtocolExtension() :

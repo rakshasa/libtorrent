@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_OBJECT_RAW_BENCODE_H
 #define LIBTORRENT_OBJECT_RAW_BENCODE_H
 
+#include <algorithm>
 #include <string>
 #include <cstring>
 #include <torrent/common.h>
