@@ -62,7 +62,7 @@ public:
     REQUEST,
     PIECE,
     CANCEL,
-    PORT,
+    PORT, // = 9
 
     EXTENSION_PROTOCOL = 20,
 

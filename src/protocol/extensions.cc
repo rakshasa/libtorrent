@@ -225,7 +225,9 @@ ProtocolExtension::read_done() {
   try {
     switch(m_readType) {
     case SKIP_EXTENSION:
-      break;
+      delete [] m_read;
+      m_read = NULL;
+      return;
 
     case HANDSHAKE:
       parse_handshake();

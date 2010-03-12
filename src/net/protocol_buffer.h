@@ -66,6 +66,7 @@ public:
   uint8_t             read_8()                      { return *m_position++; }
   uint8_t             peek_8()                      { return *m_position; }
   uint16_t            read_16();
+  uint16_t            peek_16();
   uint32_t            read_32();
   uint32_t            peek_32();
   uint64_t            read_64()                     { return read_int<uint64_t>(); }
@@ -155,6 +156,16 @@ ProtocolBuffer<tmpl_size>::read_16() {
   return t;
 #else
   return read_int<uint16_t>();
+#endif
+}
+
+template <uint16_t tmpl_size>
+inline uint16_t
+ProtocolBuffer<tmpl_size>::peek_16() {
+#ifndef USE_ALIGNED
+  return ntohs(*reinterpret_cast<uint16_t*>(m_position));
+#else
+  return peek_int<uint16_t>();
 #endif
 }
 

@@ -89,7 +89,8 @@ public:
     READ_PEER,
     READ_MESSAGE,
     READ_BITFIELD,
-    READ_EXT
+    READ_EXT,
+    READ_PORT
   } State;
 
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
@@ -150,6 +151,7 @@ protected:
   bool                read_peer();
   bool                read_bitfield();
   bool                read_extension();
+  bool                read_port();
 
   void                prepare_proxy_connect();
   void                prepare_key_plus_pad();

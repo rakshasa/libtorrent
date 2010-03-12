@@ -605,6 +605,33 @@ Handshake::read_extension() {
   return true;
 }
 
+bool
+Handshake::read_port() {
+  if (m_readBuffer.peek_32() > m_readBuffer.reserved())
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+
+  int32_t need = m_readBuffer.peek_32() + 4 - m_readBuffer.remaining();
+
+  if (need + 5 > m_readBuffer.reserved_left()) {
+    m_readBuffer.move_unused();
+
+    if (need + 5 > m_readBuffer.reserved_left())
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
+  }
+
+  if (!fill_read_buffer(m_readBuffer.peek_32() + 4))
+    return false;
+
+  uint32_t length = m_readBuffer.read_32() - 1;
+  m_readBuffer.read_8();
+
+  if (length == 2)
+    manager->dht_manager()->add_node(m_address.c_sockaddr(), m_readBuffer.peek_16());
+
+  m_readBuffer.consume(length);
+  return true;
+}
+
 void
 Handshake::read_done() {
   if (m_readDone != false)
@@ -764,6 +791,12 @@ restart:
         m_readPos = 0;
         m_state = READ_EXT;
 
+      } else if (m_readBuffer.peek_8_at(4) == protocol_port) {
+        // Some peers seem to send the port message before handshake,
+        // so handle it here.
+        m_readPos = 0;
+        m_state = READ_PORT;
+
       } else {
         read_done();
         break;
@@ -774,7 +807,8 @@ restart:
       // Gather the different command types into the same case group
       // so that we don't need 'goto restart' above.
       if ((m_state == READ_BITFIELD && !read_bitfield()) ||
-          (m_state == READ_EXT && !read_extension()))
+          (m_state == READ_EXT && !read_extension()) ||
+          (m_state == READ_PORT && !read_port()))
         break;
 
       m_state = READ_MESSAGE;
