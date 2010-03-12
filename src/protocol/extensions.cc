@@ -244,7 +244,7 @@ ProtocolExtension::read_done() {
   } catch (bencode_error& e) {
     // Ignore malformed messages.
     // DEBUG:
-    throw internal_error("ProtocolExtension::read_done '" + std::string(m_read, std::distance(m_read, m_readPos)) + "'");
+//     throw internal_error("ProtocolExtension::read_done '" + std::string(m_read, std::distance(m_read, m_readPos)) + "'");
   }
 
   delete [] m_read;

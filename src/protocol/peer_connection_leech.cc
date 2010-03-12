@@ -464,7 +464,7 @@ PeerConnection<type>::event_read() {
   } catch (base_error& e) {
     std::stringstream s;
     s << "Connection read fd(" << get_fd().get_fd() << ',' << m_down->get_state() << ',' << m_down->last_command() << ") \"" << e.what() << '"';
-    //    s << " '" << rak::copy_escape_html((char*)m_down->buffer()->begin(), (char*)m_down->buffer()->position()) << "'";
+    s << " '" << rak::copy_escape_html((char*)m_down->buffer()->begin(), (char*)m_down->buffer()->position()) << "'";
 
     throw internal_error(s.str());
   }

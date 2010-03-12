@@ -872,17 +872,17 @@ static_map_write_bencode_c_wrap(object_write_t writeFunc,
   static_map_write_bencode_c_values(&output, entry_values, first_key, last_key);
 
   // DEBUG: Remove this.
-  {
-    torrent::Object obj;
-    if (object_read_bencode_c(output.buffer.first, output.pos, &obj) != output.pos) {
-      std::string escaped = rak::copy_escape_html(output.buffer.first, output.pos);
+//   {
+//     torrent::Object obj;
+//     if (object_read_bencode_c(output.buffer.first, output.pos, &obj) != output.pos) {
+//       std::string escaped = rak::copy_escape_html(output.buffer.first, output.pos);
 
-      //char buffer[1024];
-      //      sprintf(buffer, "Verified wrong, %u, '%u', '%s'.", std::distanescaped.c_str());
+//       //char buffer[1024];
+//       //      sprintf(buffer, "Verified wrong, %u, '%u', '%s'.", std::distanescaped.c_str());
 
-      throw torrent::internal_error("Invalid bencode data generated: '" + escaped + "'");
-    }
-  }
+//       throw torrent::internal_error("Invalid bencode data generated: '" + escaped + "'");
+//     }
+//   }
 
   // Don't flush the buffer.
   if (output.pos == output.buffer.first)
