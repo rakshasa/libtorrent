@@ -55,7 +55,7 @@ class DownloadConstructor {
 public:
   DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
 
-  void                initialize(const Object& b);
+  void                initialize(Object& b);
 
   void                set_download(DownloadWrapper* d)         { m_download = d; }
   void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
@@ -64,6 +64,7 @@ private:
   void                parse_name(const Object& b);
   void                parse_tracker(const Object& b);
   void                parse_info(const Object& b);
+  void                parse_magnet_uri(Object& b, const std::string& uri);
 
   void                add_tracker_group(const Object& b);
   void                add_tracker_single(const Object& b, int group);

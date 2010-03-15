@@ -47,7 +47,7 @@
 
 namespace torrent {
 
-char* SocketBase::m_nullBuffer = new char[1 << 17];
+char* SocketBase::m_nullBuffer = new char[SocketBase::null_buffer_size];
 
 SocketBase::~SocketBase() {
   if (get_fd().is_valid())

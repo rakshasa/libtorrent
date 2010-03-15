@@ -44,7 +44,6 @@
 
 #include "net/socket_datagram.h"
 #include "net/throttle_node.h"
-#include "download/download_info.h"  // for SocketAddressCompact
 #include "torrent/hash_string.h"
 #include "torrent/object_raw_bencode.h"
 

@@ -42,7 +42,6 @@
 #include <sigc++/signal.h>
 
 #include "data/chunk_handle.h"
-#include "download/download_info.h"
 
 #include "download_main.h"
 

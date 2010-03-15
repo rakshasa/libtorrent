@@ -34,45 +34,40 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_SOCKET_BASE_H
-#define LIBTORRENT_NET_SOCKET_BASE_H
+#ifndef LIBTORRENT_PROTOCOL_PEER_CONNECTION_METADATA_H
+#define LIBTORRENT_PROTOCOL_PEER_CONNECTION_METADATA_H
 
-#include <list>
-#include <inttypes.h>
+#include "peer_connection_base.h"
 
-#include "torrent/event.h"
-#include "socket_fd.h"
+#include "torrent/download.h"
 
 namespace torrent {
 
-class SocketBase : public Event {
+class PeerConnectionMetadata : public PeerConnectionBase {
 public:
-  SocketBase() { set_fd(SocketFd()); }
-  virtual ~SocketBase();
+  ~PeerConnectionMetadata();
 
-  // Ugly hack... But the alternative is to include SocketFd as part
-  // of the library API or make SocketFd::m_fd into an non-modifiable
-  // value.
-  SocketFd&           get_fd()            { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
-  const SocketFd&     get_fd() const      { return *reinterpret_cast<const SocketFd*>(&m_fileDesc); }
-  void                set_fd(SocketFd fd) { m_fileDesc = fd.get_fd(); }
+  virtual void        initialize_custom();
+  virtual void        update_interested();
+  virtual bool        receive_keepalive();
 
-  bool                read_oob(void* buffer);
-  bool                write_oob(const void* buffer);
+  virtual void        event_read();
+  virtual void        event_write();
 
-  void                receive_throttle_down_activate();
-  void                receive_throttle_up_activate();
+  virtual void        receive_metadata_piece(uint32_t piece, const char* data, uint32_t length);
 
-protected:
-  // Disable copying
-  SocketBase(const SocketBase&);
-  void operator = (const SocketBase&);
+private:
+  inline bool         read_message();
 
-  static const size_t null_buffer_size = 1 << 17;
+  bool                read_skip_bitfield();
 
-  static char*        m_nullBuffer;
+  bool                try_request_metadata_pieces();
+
+  inline void         fill_write_buffer();
+
+  uint32_t   m_skipLength;
 };
 
 }
 
-#endif // LIBTORRENT_SOCKET_BASE_H
+#endif

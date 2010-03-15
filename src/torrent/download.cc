@@ -52,9 +52,9 @@
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
-#include "download/download_info.h"
 #include "peer/peer_info.h"
 #include "tracker/tracker_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
 
@@ -65,6 +65,9 @@
 #include "tracker_list.h"
 
 namespace torrent {
+
+const DownloadInfo*
+Download::info() const { return m_ptr->info(); }
 
 void
 Download::open(int flags) {
@@ -123,7 +126,7 @@ Download::start(int flags) {
   // so that broken trackers get the right uploaded ratio.
   if (!(flags & start_keep_baseline)) {
     m_ptr->info()->set_uploaded_baseline(m_ptr->info()->up_rate()->total());
-    m_ptr->info()->set_completed_baseline(m_ptr->info()->slot_completed()());
+    m_ptr->info()->set_completed_baseline(m_ptr->main()->file_list()->completed_bytes());
   }
 
   if (flags & start_skip_tracker)
@@ -185,15 +188,15 @@ Download::hash_stop() {
   m_ptr->hash_checker()->clear();
 }
 
-bool
-Download::is_open() const {
-  return m_ptr->info()->is_open();
-}
+// bool
+// Download::is_open() const {
+//   return m_ptr->info()->is_open();
+// }
 
-bool
-Download::is_active() const {
-  return m_ptr->info()->is_active();
-}
+// bool
+// Download::is_active() const {
+//   return m_ptr->info()->is_active();
+// }
 
 bool
 Download::is_hash_checked() const {
@@ -205,25 +208,30 @@ Download::is_hash_checking() const {
   return m_ptr->hash_checker()->is_checking();
 }
 
-bool
-Download::is_private() const {
-  return m_ptr->info()->is_private();
-}
+// bool
+// Download::is_private() const {
+//   return m_ptr->info()->is_private();
+// }
 
-bool
-Download::is_pex_active() const {
-  return m_ptr->info()->is_pex_active();
-}
+// bool
+// Download::is_pex_active() const {
+//   return m_ptr->info()->is_pex_active();
+// }
 
-bool
-Download::is_pex_enabled() const {
-  return m_ptr->info()->is_pex_enabled();
-}
+// bool
+// Download::is_pex_enabled() const {
+//   return m_ptr->info()->is_pex_enabled();
+// }
 
 void
 Download::set_pex_enabled(bool enabled) {
-  m_ptr->info()->set_pex_enabled(enabled);
+  m_ptr->info()->change_flags(DownloadInfo::flag_pex_enabled, enabled);
 }
+
+// bool
+// Download::is_meta_download() const {
+//   return m_ptr->info()->is_meta_download();
+// }
 
 const std::string&
 Download::name() const {
@@ -509,6 +517,11 @@ Download::connection_type() const {
 
 void
 Download::set_connection_type(ConnectionType t) {
+  if (m_ptr->info()->is_meta_download()) {
+    m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionMetadata);
+    return;
+  }
+
   switch (t) {
   case CONNECTION_LEECH:
     m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
@@ -517,7 +530,7 @@ Download::set_connection_type(ConnectionType t) {
     m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionSeed);
     break;
   case CONNECTION_INITIAL_SEED:
-    if (is_active() && m_ptr->main()->initial_seeding() == NULL)
+    if (info()->is_active() && m_ptr->main()->initial_seeding() == NULL)
       throw input_error("Can't switch to initial seeding: download is active.");
     m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionInitialSeed);
     break;

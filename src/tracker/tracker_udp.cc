@@ -42,10 +42,10 @@
 #include <torrent/connection_manager.h>
 #include <cstdio>
 
-#include "download/download_info.h"
 #include "net/address_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/poll.h"
 #include "torrent/tracker_list.h"
 

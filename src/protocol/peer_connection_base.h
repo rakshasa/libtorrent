@@ -140,6 +140,9 @@ public:
   void                read_insert_poll_safe();
   void                write_insert_poll_safe();
 
+  // Communication with the protocol extensions
+  virtual void        receive_metadata_piece(uint32_t piece, const char* data, uint32_t length);
+
 protected:
   static const uint32_t extension_must_encrypt = ~uint32_t();
 
@@ -179,6 +182,7 @@ protected:
   bool                try_request_pieces();
 
   bool                send_pex_message();
+  bool                send_ext_message();
 
   DownloadMain*       m_download;
 

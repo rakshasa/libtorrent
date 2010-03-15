@@ -42,6 +42,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/object.h"
 #include "torrent/object_stream.h"
 #include "torrent/poll.h"

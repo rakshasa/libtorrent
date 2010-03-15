@@ -41,9 +41,9 @@
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 
-#include "download/download_info.h"
 #include "net/address_list.h"
 #include "torrent/connection_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/http.h"
 #include "torrent/object_stream.h"

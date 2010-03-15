@@ -14,7 +14,6 @@ libsub_download_la_SOURCES = \
 	delegator.h \
 	download_constructor.cc \
 	download_constructor.h \
-	download_info.h \
 	download_main.cc \
 	download_main.h \
 	download_manager.cc \

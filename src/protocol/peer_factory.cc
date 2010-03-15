@@ -38,6 +38,7 @@
 
 #include "peer_factory.h"
 #include "peer_connection_leech.h"
+#include "peer_connection_metadata.h"
 
 namespace torrent {
 
@@ -58,6 +59,13 @@ createPeerConnectionSeed(bool encrypted) {
 PeerConnectionBase*
 createPeerConnectionInitialSeed(bool encrypted) {
   PeerConnectionBase* pc = new PeerConnection<Download::CONNECTION_INITIAL_SEED>;
+
+  return pc;
+}
+
+PeerConnectionBase*
+createPeerConnectionMetadata(bool encrypted) {
+  PeerConnectionBase* pc = new PeerConnectionMetadata;
 
   return pc;
 }

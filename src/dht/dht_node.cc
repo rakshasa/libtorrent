@@ -40,8 +40,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
 
-// For SACompact...
-#include "download/download_info.h"
+#include "net/address_list.h" // For SA.
 
 #include "dht_node.h"
 

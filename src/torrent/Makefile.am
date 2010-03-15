@@ -16,6 +16,7 @@ libsub_torrent_la_SOURCES = \
 	dht_manager.h \
 	download.cc \
 	download.h \
+	download_info.h \
 	error.cc \
 	error.h \
 	event.h \
@@ -65,6 +66,7 @@ libtorrentinclude_HEADERS = \
 	connection_manager.h \
 	dht_manager.h \
 	download.h \
+	download_info.h \
 	error.h \
 	exceptions.h \
 	event.h \

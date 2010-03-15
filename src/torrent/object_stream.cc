@@ -623,6 +623,13 @@ object_write_to_stream(void* data, object_buffer_t buffer) {
   return buffer;
 }
 
+object_buffer_t
+object_write_to_size(void* data, object_buffer_t buffer) {
+  *reinterpret_cast<uint64_t*>(data) += std::distance(buffer.first, buffer.second);
+
+  return buffer;
+}
+
 //
 // static_map operations:
 //

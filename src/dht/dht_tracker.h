@@ -42,7 +42,7 @@
 #include <vector>
 #include <rak/socket_address.h>
 
-#include "download/download_info.h"  // for SocketAddressCompact
+#include "net/address_list.h" // For SA.
 #include "torrent/object_raw_bencode.h"
 
 namespace torrent {

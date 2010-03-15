@@ -49,6 +49,7 @@
 namespace torrent {
 
 class ConnectionList;
+class DownloadInfo;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
@@ -68,6 +69,8 @@ public:
   static const int stop_skip_tracker     = (1 << 0);
 
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
+
+  const DownloadInfo* info() const;
 
   // Not active atm. Opens and prepares/closes the files.
   void                open(int flags = 0);
@@ -89,16 +92,18 @@ public:
   // Does not check if the download has been removed.
   bool                is_valid() const { return m_ptr; }
 
-  bool                is_open() const;
-  bool                is_active() const;
+//   bool                is_open() const;
+//   bool                is_active() const;
 
   bool                is_hash_checked() const;
   bool                is_hash_checking() const;
 
-  bool                is_private() const;
-  bool                is_pex_active() const;
-  bool                is_pex_enabled() const;
+//   bool                is_private() const;
+//   bool                is_pex_active() const;
+//   bool                is_pex_enabled() const;
   void                set_pex_enabled(bool enabled);
+
+//   bool                is_meta_download() const;
 
   // Returns "" if the object is not valid.
   const std::string&  name() const;
@@ -185,6 +190,7 @@ public:
     CONNECTION_LEECH,
     CONNECTION_SEED,
     CONNECTION_INITIAL_SEED,
+    CONNECTION_METADATA,
   } ConnectionType;
 
   ConnectionType      connection_type() const;

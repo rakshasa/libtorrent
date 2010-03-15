@@ -72,6 +72,8 @@ object_buffer_t object_write_bencode_c(object_write_t writeFunc,
 object_buffer_t object_write_to_buffer(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
 object_buffer_t object_write_to_sha1(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
 object_buffer_t object_write_to_stream(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
+// Measures bencode size, 'data' is uint64_t*.
+object_buffer_t object_write_to_size(void* data, object_buffer_t buffer) LIBTORRENT_EXPORT;
 
 //
 // static_map operations:

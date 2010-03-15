@@ -47,10 +47,10 @@
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
-#include "download/download_info.h"
 #include "download/download_main.h"
 #include "net/socket_base.h"
 #include "torrent/connection_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/throttle.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/connection_list.h"
@@ -93,8 +93,7 @@ PeerConnectionBase::~PeerConnectionBase() {
   if (m_extensions != NULL && !m_extensions->is_default())
     delete m_extensions;
 
-  if (m_extensionMessage.owned())
-    m_extensionMessage.clear();
+  m_extensionMessage.clear();
 }
 
 void
@@ -115,6 +114,8 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
 
   m_encryption = *encryptionInfo;
   m_extensions = extensions;
+
+  m_extensions->set_connection(this);
 
   m_peerChunks.set_peer_info(m_peerInfo);
   m_peerChunks.bitfield()->swap(*bitfield);
@@ -581,8 +582,12 @@ PeerConnectionBase::down_extension() {
     m_extensions->read_move(bytes);
   }
 
-  if (m_extensions->is_complete())
-    m_extensions->read_done();
+  // If extension can't be processed yet (due to a pending write),
+  // disable reads until the pending message is completely sent.
+  if (m_extensions->is_complete() && !m_extensions->is_invalid() && !m_extensions->read_done()) {
+    manager->poll()->remove_read(this);
+    return false;
+  }
 
   return m_extensions->is_complete();
 }
@@ -693,12 +698,16 @@ PeerConnectionBase::up_extension() {
   if (m_extensionOffset < m_extensionMessage.length())
     return false;
 
-  // clear() deletes the buffer, only do that if we made a copy,
-  // otherwise the buffer is shared among all connections.
-  if (m_extensionMessage.owned())
-    m_extensionMessage.clear();
-  else 
-    m_extensionMessage.set(NULL, NULL, false);
+  m_extensionMessage.clear();
+
+  // If we have an unprocessed message, process it now and enable reads again.
+  if (m_extensions->is_complete() && !m_extensions->is_invalid()) {
+    // DEBUG: What, this should fail when we block, no?
+    if (!m_extensions->read_done())
+      throw internal_error("PeerConnectionBase::up_extension could not process complete extension message.");
+
+    manager->poll()->insert_read(this);
+  }
 
   return true;
 }
@@ -855,6 +864,18 @@ PeerConnectionBase::send_pex_message() {
   }
 
   return true;
+}
+
+// Extension protocol needs to send a reply.
+bool
+PeerConnectionBase::send_ext_message() {
+  write_prepare_extension(m_extensions->pending_message_type(), m_extensions->pending_message_data());
+  m_extensions->clear_pending_message();
+  return true;
+}
+
+void
+PeerConnectionBase::receive_metadata_piece(uint32_t piece, const char* data, uint32_t length) {
 }
 
 }

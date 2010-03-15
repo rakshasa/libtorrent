@@ -39,18 +39,18 @@
 #include <rak/file_stat.h>
 #include <rak/socket_address.h>
 
-// For SocketAddressCompact.
-#include "download/download_info.h"
 #include "peer/peer_info.h"
 #include "peer/peer_list.h"
 
 #include "data/file.h"
 #include "data/file_list.h"
 #include "data/transfer_list.h"
+#include "net/address_list.h"
 
 #include "common.h"
 #include "bitfield.h"
 #include "download.h"
+#include "download_info.h"
 #include "object.h"
 #include "tracker.h"
 #include "tracker_list.h"
@@ -239,7 +239,7 @@ resume_save_progress(Download download, Object& object) {
       // resume_save_progress gets called after finishing a torrent.
       filesItr->insert_key("mtime", (int64_t)fs.modified_time());
 
-    } else if (!download.is_active()) {
+    } else if (!download.info()->is_active()) {
 
       // When stopped, all chunks should have received sync, thus the
       // file's mtime will be correct. (We hope)

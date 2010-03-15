@@ -41,6 +41,7 @@
 
 #include "dht/dht_router.h"
 #include "torrent/connection_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/dht_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/tracker_list.h"

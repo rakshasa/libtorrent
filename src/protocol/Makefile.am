@@ -17,6 +17,8 @@ libsub_protocol_la_SOURCES = \
 	peer_connection_base.h \
 	peer_connection_leech.cc \
 	peer_connection_leech.h \
+	peer_connection_metadata.cc \
+	peer_connection_metadata.h \
 	peer_factory.cc \
 	peer_factory.h \
 	protocol_base.h \

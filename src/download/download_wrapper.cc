@@ -101,8 +101,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   info()->mutable_local_id().assign(id.c_str());
 
-  info()->slot_completed() = rak::make_mem_fun(m_main.file_list(), &FileList::completed_bytes);
-  info()->slot_left()      = rak::make_mem_fun(m_main.file_list(), &FileList::left_bytes);
+  info()->slot_left() = sigc::mem_fun(m_main.file_list(), &FileList::left_bytes);
+  info()->slot_completed() = sigc::mem_fun(m_main.file_list(), &FileList::completed_bytes);
 
   m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
@@ -276,7 +276,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
       // If PEX was disabled since the last peer exchange, deactivate it now.
       } else if (info()->is_pex_active()) {
-        info()->set_pex_active(false);
+        info()->unset_flags(DownloadInfo::flag_pex_active);
 
         for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); ++itr)
           (*itr)->m_ptr()->set_peer_exchange(false);

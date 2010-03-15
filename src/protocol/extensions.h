@@ -44,7 +44,8 @@
 #include "torrent/object.h"
 #include "torrent/object_static_map.h"
 
-#include "download/download_info.h"
+#include "torrent/download_info.h"
+#include "net/address_list.h"
 #include "net/data_buffer.h"
 
 // Not really important, so no need to make this a configure check.
@@ -61,6 +62,7 @@ public:
   typedef enum {
     HANDSHAKE = 0,
     UT_PEX,
+    UT_METADATA,
 
     FIRST_INVALID,    // first invalid message ID
 
@@ -82,6 +84,10 @@ public:
   // Number of extensions we support, not counting handshake.
   static const int    extension_count = FIRST_INVALID - HANDSHAKE - 1;
 
+  // Fixed size of a metadata piece (16 KB).
+  static const size_t metadata_piece_shift = 14;
+  static const size_t metadata_piece_size  = 1 << metadata_piece_shift;
+
   ProtocolExtension();
   ~ProtocolExtension() { delete [] m_read; }
 
@@ -92,6 +98,7 @@ public:
   static ProtocolExtension make_default();
 
   void                set_info(PeerInfo* peerInfo, DownloadMain* download) { m_peerInfo = peerInfo; m_download = download; }
+  void                set_connection(PeerConnectionBase* c)                { m_connection = c; }
 
   DataBuffer          generate_handshake_message();
   static DataBuffer   generate_toggle_message(MessageType t, bool on);
@@ -113,7 +120,7 @@ public:
 
   // Handle reading extension data from peer.
   void                read_start(int type, uint32_t length, bool skip);
-  void                read_done();
+  bool                read_done();
 
   char*               read_position()                  { return m_readPos; }
   bool                read_move(uint32_t v)            { m_readPos += v; return (m_readLeft -= v) == 0; }
@@ -133,13 +140,23 @@ public:
   void                clear_initial_pex()              { m_flags &= ~flag_initial_pex; }
   void                reset()                          { std::memset(&m_idMap, 0, sizeof(m_idMap)); }
 
+  bool                request_metadata_piece(const Piece* p);
+
+  // To handle cases where the extension protocol needs to send a reply.
+  bool                has_pending_message() const      { return m_pendingType != HANDSHAKE; }
+  MessageType         pending_message_type() const     { return m_pendingType; }
+  DataBuffer          pending_message_data()           { return m_pending.release(); }
+  void                clear_pending_message()          { if (m_pending.empty()) m_pendingType = HANDSHAKE; }
+
 private:
-  void                parse_handshake();
-  void                parse_ut_pex();
+  bool                parse_handshake();
+  bool                parse_ut_pex();
+  bool                parse_ut_metadata();
 
   static DataBuffer   build_bencode(size_t maxLength, const char* format, ...) ATTRIBUTE_PRINTF(2);
 
   void                peer_toggle_remote(int type, bool active);
+  void                send_metadata_piece(size_t piece);
 
   // Map of IDs peer uses for each extension message type, excluding
   // HANDSHAKE. 
@@ -150,11 +167,15 @@ private:
   int                 m_flags;
   PeerInfo*           m_peerInfo;
   DownloadMain*       m_download;
+  PeerConnectionBase* m_connection;
 
   uint8_t             m_readType;
   uint32_t            m_readLeft;
   char*               m_read;
   char*               m_readPos;
+
+  MessageType         m_pendingType;
+  DataBuffer          m_pending;
 };
 
 //
@@ -163,7 +184,9 @@ private:
 
 enum ext_handshake_keys {
   key_e,
+  key_m_utMetadata,
   key_m_utPex,
+  key_metadataSize,
   key_p,
   key_reqq,
   key_v,
@@ -175,8 +198,16 @@ enum ext_pex_keys {
   key_pex_LAST
 };
 
+enum ext_metadata_keys {
+  key_msgType,
+  key_piece,
+  key_totalSize,
+  key_metadata_LAST
+};
+
 typedef static_map_type<ext_handshake_keys, key_handshake_LAST> ExtHandshakeMessage;
 typedef static_map_type<ext_pex_keys, key_pex_LAST> ExtPEXMessage;
+typedef static_map_type<ext_metadata_keys, key_metadata_LAST> ExtMetadataMessage;
 
 //
 //
@@ -189,10 +220,13 @@ ProtocolExtension::ProtocolExtension() :
   m_flags(flag_local_enabled_base | flag_remote_supported_base | flag_initial_handshake),
   m_peerInfo(NULL),
   m_download(NULL),
+  m_connection(NULL),
   m_readType(FIRST_INVALID),
-  m_read(NULL) {
+  m_read(NULL),
+  m_pendingType(HANDSHAKE) {
 
   reset();
+  set_local_enabled(UT_METADATA);
 }
 
 inline ProtocolExtension

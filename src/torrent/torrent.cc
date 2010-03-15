@@ -320,10 +320,21 @@ download_add(Object* object) {
 
   ctor.initialize(*object);
 
-  std::string infoHash = object_sha1(&object->get_key("info"));
+  std::string infoHash;
+  if (download->info()->is_meta_download())
+    infoHash = object->get_key("info").get_key("pieces").as_string();
+  else
+    infoHash = object_sha1(&object->get_key("info"));
 
   if (manager->download_manager()->find(infoHash) != manager->download_manager()->end())
     throw input_error("Info hash already used by another torrent.");
+
+  if (!download->info()->is_meta_download()) {
+    char buffer[1024];
+    uint64_t metadata_size = 0;
+    object_write_bencode_c(&object_write_to_size, &metadata_size, object_buffer_t(buffer, buffer + sizeof(buffer)), &object->get_key("info"));
+    download->main()->set_metadata_size(metadata_size);
+  }
 
   download->set_hash_queue(manager->hash_queue());
   download->initialize(infoHash, PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));

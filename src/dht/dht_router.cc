@@ -41,6 +41,7 @@
 #include <rak/functional.h>
 
 #include "torrent/dht_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "utils/sha1.h"
 #include "manager.h"

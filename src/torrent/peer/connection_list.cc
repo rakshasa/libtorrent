@@ -40,11 +40,11 @@
 #include <rak/socket_address.h>
 
 #include "download/choke_manager.h"
-#include "download/download_info.h"
 #include "download/download_main.h"
 #include "net/address_list.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "torrent/download_info.h"
 
 #include "connection_list.h"
 #include "peer.h"
@@ -84,7 +84,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
 
   base_type::push_back(peerConnection);
 
-  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
+  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
   m_signalConnected(peerConnection);
 
   return peerConnection;
@@ -103,8 +103,7 @@ ConnectionList::erase(iterator pos, int flags) {
   *pos = base_type::back();
   base_type::pop_back();
 
-  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
-
+  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
   m_signalDisconnected(peerConnection);
 
   // Before of after the signal?
@@ -143,7 +142,7 @@ ConnectionList::erase_remaining(iterator pos, int flags) {
   while (pos != end())
     erase(--end(), flags);
 
-  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
+  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
 }
 
 void
@@ -206,7 +205,7 @@ ConnectionList::set_max_size(size_type v) {
     v = ChokeManager::unlimited;
 
   m_maxSize = v;
-  m_download->info()->set_accepting_new_peers(size() < m_maxSize);
+  m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
   m_download->upload_choke_manager()->balance();
 }
 

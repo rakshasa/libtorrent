@@ -38,7 +38,7 @@
 
 #include <rak/functional.h>
 
-#include "download/download_info.h"
+#include "torrent/download_info.h"
 #include "net/address_list.h"
 #include "tracker/tracker_manager.h"
 

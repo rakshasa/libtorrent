@@ -167,6 +167,10 @@ protected:
   iterator            inc_completed(iterator firstItr, uint32_t index) LIBTORRENT_NO_EXPORT;
   void                update_completed() LIBTORRENT_NO_EXPORT;
 
+  // Used for meta downloads; we only know the
+  // size after the first extension handshake.
+  void                reset_filesize(int64_t) LIBTORRENT_NO_EXPORT;
+
 private:
   bool                open_file(File* node, const Path& lastPath, int flags) LIBTORRENT_NO_EXPORT;
   void                make_directory(Path::const_iterator pathBegin, Path::const_iterator pathEnd, Path::const_iterator startItr) LIBTORRENT_NO_EXPORT;

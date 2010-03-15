@@ -40,26 +40,22 @@
 #include <list>
 #include <string>
 #include <inttypes.h>
-#include <rak/functional.h>
 #include <rak/socket_address.h>
-#include <rak/timer.h>
 #include <sigc++/signal.h>
 
-#include "torrent/rate.h"
-#include "torrent/hash_string.h"
+#include <torrent/rate.h>
+#include <torrent/hash_string.h>
 
 namespace torrent {
 
 class FileList;
 class DownloadMain;
-class Rate;
 
 // This will become a Download 'handle' of kinds.
 
 class DownloadInfo {
 public:
-  typedef rak::const_mem_fun0<FileList, uint64_t>                      slot_stat_type;
-
+  typedef sigc::slot0<uint64_t>                                        slot_stat_type;
   typedef sigc::signal1<void, const std::string&>                      signal_string_type;
   typedef sigc::signal1<void, uint32_t>                                signal_chunk_type;
   typedef sigc::signal3<void, const std::string&, const char*, size_t> signal_dump_type;
@@ -71,26 +67,16 @@ public:
     STOPPED
   };
 
-  DownloadInfo() :
-    m_isOpen(false),
-    m_isActive(false),
-    m_isCompact(true),
-    m_isAcceptingNewPeers(true),
-    m_isPrivate(false),
-    m_pexEnabled(true),
-    m_pexActive(true),
+  static const int flag_open                = (1 << 0);
+  static const int flag_active              = (1 << 1);
+  static const int flag_compact             = (1 << 2);
+  static const int flag_accepting_new_peers = (1 << 3);
+  static const int flag_private             = (1 << 4);
+  static const int flag_meta_download       = (1 << 5);
+  static const int flag_pex_enabled         = (1 << 6);
+  static const int flag_pex_active          = (1 << 7);
 
-    m_upRate(60),
-    m_downRate(60),
-    m_skipRate(60),
-
-    m_uploadedBaseline(0),
-    m_completedBaseline(0),
-    m_sizePex(0),
-    m_maxSizePex(8),
-
-    m_loadDate(rak::timer::current_seconds()) {
-  }
+  DownloadInfo();
 
   const std::string&  name() const                                 { return m_name; }
   void                set_name(const std::string& s)               { m_name = s; }
@@ -104,26 +90,21 @@ public:
   const HashString&   local_id() const                             { return m_localId; }
   HashString&         mutable_local_id()                           { return m_localId; }
 
-  bool                is_open() const                              { return m_isOpen; }
-  void                set_open(bool s)                             { m_isOpen = s; }
+  bool                is_open() const                              { return m_flags & flag_open; }
+  bool                is_active() const                            { return m_flags & flag_active; }
+  bool                is_compact() const                           { return m_flags & flag_compact; }
+  bool                is_accepting_new_peers() const               { return m_flags & flag_accepting_new_peers; }
+  bool                is_private() const                           { return m_flags & flag_private; }
+  bool                is_meta_download() const                     { return m_flags & flag_meta_download; }
+  bool                is_pex_enabled() const                       { return m_flags & flag_pex_enabled; }
+  bool                is_pex_active() const                        { return m_flags & flag_pex_active; }
 
-  bool                is_active() const                            { return m_isActive; }
-  void                set_active(bool s)                           { m_isActive = s; }
+  void                set_flags(int flags)                         { m_flags |= flags; }
+  void                unset_flags(int flags)                       { m_flags &= ~flags; }
+  void                change_flags(int flags, bool state)          { if (state) set_flags(flags); else unset_flags(flags); }
 
-  bool                is_compact() const                           { return m_isCompact; }
-  void                set_compact(bool s)                          { m_isCompact = s; }
-
-  bool                is_accepting_new_peers() const               { return m_isAcceptingNewPeers; }
-  void                set_accepting_new_peers(bool s)              { m_isAcceptingNewPeers = s; }
-
-  bool                is_private() const                           { return m_isPrivate; }
-  void                set_private(bool p)                          { m_isPrivate = p; if (p) m_pexEnabled = false; }
-
-  bool                is_pex_enabled() const                       { return m_pexEnabled; }
-  void                set_pex_enabled(bool enabled)                { m_pexEnabled = enabled && !m_isPrivate; }
-
-  bool                is_pex_active() const                        { return m_pexActive; }
-  void                set_pex_active(bool active)                  { m_pexActive = active; }
+  void                set_private()                                { set_flags(flag_private); unset_flags(flag_pex_enabled); }
+  void                set_pex_enabled()                            { if (!is_private()) set_flags(flag_pex_enabled); }
 
   Rate*               up_rate()                                    { return &m_upRate; }
   Rate*               down_rate()                                  { return &m_downRate; }
@@ -136,6 +117,9 @@ public:
   uint64_t            completed_baseline() const                   { return m_completedBaseline; }
   uint64_t            completed_adjusted() const                   { return std::max<int64_t>(m_slotStatCompleted() - completed_baseline(), 0); }
   void                set_completed_baseline(uint64_t b)           { m_completedBaseline = b; }
+
+  size_t              metadata_size() const                        { return m_metadataSize; }
+  void                set_metadata_size(size_t size)               { m_metadataSize = size; }
 
   uint32_t            size_pex() const                             { return m_sizePex; }
   void                set_size_pex(uint32_t b)                     { m_sizePex = b; }
@@ -151,8 +135,8 @@ public:
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
-  slot_stat_type&     slot_completed()                             { return m_slotStatCompleted; }
   slot_stat_type&     slot_left()                                  { return m_slotStatLeft; }
+  slot_stat_type&     slot_completed()                             { return m_slotStatCompleted; }
 
   signal_string_type& signal_network_log()                         { return m_signalNetworkLog; }
   signal_string_type& signal_storage_error()                       { return m_signalStorageError; }
@@ -164,14 +148,7 @@ private:
   HashString          m_hashObfuscated;
   HashString          m_localId;
 
-  // TODO: Use flags.
-  bool                m_isOpen;
-  bool                m_isActive;
-  bool                m_isCompact;
-  bool                m_isAcceptingNewPeers;
-  bool                m_isPrivate;
-  bool                m_pexEnabled;
-  bool                m_pexActive;
+  int                 m_flags;
 
   Rate                m_upRate;
   Rate                m_downRate;
@@ -181,37 +158,17 @@ private:
   uint64_t            m_completedBaseline;
   uint32_t            m_sizePex;
   uint32_t            m_maxSizePex;
+  size_t              m_metadataSize;
 
   uint32_t            m_loadDate;
 
-  slot_stat_type      m_slotStatCompleted;
   slot_stat_type      m_slotStatLeft;
+  slot_stat_type      m_slotStatCompleted;
 
   signal_string_type  m_signalNetworkLog;
   signal_string_type  m_signalStorageError;
   signal_dump_type    m_signalTrackerDump;
 };
-
-// Move somewhere else.
-struct SocketAddressCompact {
-  SocketAddressCompact() {}
-  SocketAddressCompact(uint32_t a, uint16_t p) : addr(a), port(p) {}
-  SocketAddressCompact(const rak::socket_address_inet* sa) : addr(sa->address_n()), port(sa->port_n()) {}
-
-  operator rak::socket_address () const {
-    rak::socket_address sa;
-    sa.sa_inet()->clear();
-    sa.sa_inet()->set_port_n(port);
-    sa.sa_inet()->set_address_n(addr);
-
-    return sa;
-  }
-
-  uint32_t addr;
-  uint16_t port;
-
-  const char*         c_str() const { return reinterpret_cast<const char*>(this); }
-} __attribute__ ((packed));
 
 }
 

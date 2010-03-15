@@ -40,9 +40,9 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/error.h"
-#include "download/download_info.h"
 #include "download/download_main.h"
 #include "torrent/connection_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"

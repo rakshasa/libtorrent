@@ -44,9 +44,9 @@
 #include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
-#include "download/download_info.h"
 #include "download/download_main.h"
 #include "torrent/dht_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 
@@ -333,9 +333,13 @@ PeerConnection<type>::read_message() {
       m_down->set_state(ProtocolRead::READ_EXTENSION);
     }
 
-    if (down_extension())
-      m_down->set_state(ProtocolRead::IDLE);
+    if (!down_extension())
+      return false;
 
+    if (m_extensions->has_pending_message())
+      write_insert_poll_safe();
+
+    m_down->set_state(ProtocolRead::IDLE);
     return true;
 
   default:
@@ -432,6 +436,9 @@ PeerConnection<type>::event_read() {
       case ProtocolRead::READ_EXTENSION:
         if (!down_extension())
           return;
+
+        if (m_extensions->has_pending_message())
+          write_insert_poll_safe();
 
         m_down->set_state(ProtocolRead::IDLE);
         break;
@@ -546,6 +553,10 @@ PeerConnection<type>::fill_write_buffer() {
   if (m_sendPEXMask && m_up->can_write_extension() &&
       send_pex_message()) {
     // Don't do anything else if send_pex_message() succeeded.
+
+  } else if (m_extensions->has_pending_message() && m_up->can_write_extension() &&
+             send_ext_message()) {
+    // Same.
 
   } else if (!m_upChoke.choked() &&
              !m_peerChunks.upload_queue()->empty() &&

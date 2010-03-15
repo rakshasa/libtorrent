@@ -36,10 +36,10 @@
 
 #include "config.h"
 
-#include "download/download_info.h"
 #include "download/download_main.h"
 #include "net/throttle_list.h"
 #include "torrent/dht_manager.h"
+#include "torrent/download_info.h"
 #include "torrent/exceptions.h"
 #include "torrent/error.h"
 #include "torrent/poll.h"
@@ -750,6 +750,17 @@ restart:
 
     case READ_MESSAGE:
     case POST_HANDSHAKE:
+      // For meta-downloads, we aren't interested in the bitfield or
+      // extension messages here, PCMetadata handles all that. The
+      // bitfield only refers to the single-chunk meta-data, so fake that.
+      if (m_download->info()->is_meta_download()) {
+        m_bitfield.set_size_bits(1);
+        m_bitfield.allocate();
+        m_bitfield.set(0);
+        read_done();
+        break;
+      }
+
       fill_read_buffer(5);
 
       // Received a keep-alive message which means we won't be
@@ -1056,6 +1067,10 @@ Handshake::prepare_peer_info() {
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
   m_peerInfo->mutable_id().assign((const char*)m_readBuffer.position());
   m_readBuffer.consume(20);
+
+  // For meta downloads, we require support of the extension protocol.
+  if (m_download->info()->is_meta_download() && !m_peerInfo->supports_extensions())
+    throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unwanted_connection);
 }
 
 void

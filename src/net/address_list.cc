@@ -39,8 +39,6 @@
 #include <algorithm>
 #include <rak/functional.h>
 
-#include "download/download_info.h"  // for SocketAddressCompact
-
 #include "address_list.h"
 
 namespace torrent {

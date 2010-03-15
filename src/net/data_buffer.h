@@ -48,6 +48,7 @@ struct DataBuffer {
   DataBuffer(char* data, char* end)   : m_data(data), m_end(end),  m_owned(true) {}
 
   DataBuffer          clone() const        { DataBuffer d = *this; d.m_owned = false; return d; }
+  DataBuffer          release()            { DataBuffer d = *this; set(NULL, NULL, false); return d; }
 
   char*               data() const         { return m_data; }
   char*               end() const          { return m_end; }
@@ -70,7 +71,7 @@ private:
 
 inline void
 DataBuffer::clear() {
-  if (!empty())
+  if (!empty() && m_owned)
     delete[] m_data;
 
   m_data = m_end = NULL;
