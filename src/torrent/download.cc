@@ -445,49 +445,4 @@ Download::add_peer(const sockaddr* sa, int port) {
   m_ptr->main()->add_peer(sa_port);
 }
 
-sigc::connection
-Download::signal_download_done(Download::slot_void_type s) {
-  return m_ptr->signal_download_done().connect(s);
-}
-
-sigc::connection
-Download::signal_hash_done(Download::slot_void_type s) {
-  return m_ptr->signal_initial_hash().connect(s);
-}
-
-sigc::connection
-Download::signal_tracker_succeeded(Download::slot_void_type s) {
-  return m_ptr->signal_tracker_success().connect(s);
-}
-
-sigc::connection
-Download::signal_tracker_failed(Download::slot_string_type s) {
-  return m_ptr->signal_tracker_failed().connect(s);
-}
-
-sigc::connection
-Download::signal_tracker_dump(Download::slot_dump_type s) {
-  return m_ptr->info()->signal_tracker_dump().connect(s);
-}
-
-sigc::connection
-Download::signal_chunk_passed(Download::slot_chunk_type s) {
-  return m_ptr->signal_chunk_passed().connect(s);
-}
-
-sigc::connection
-Download::signal_chunk_failed(Download::slot_chunk_type s) {
-  return m_ptr->signal_chunk_failed().connect(s);
-}
-
-sigc::connection
-Download::signal_network_log(slot_string_type s) {
-  return m_ptr->info()->signal_network_log().connect(s);
-}
-
-sigc::connection
-Download::signal_storage_error(slot_string_type s) {
-  return m_ptr->info()->signal_storage_error().connect(s);
-}
-
 }

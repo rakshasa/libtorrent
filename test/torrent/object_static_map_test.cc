@@ -259,7 +259,6 @@ ObjectStaticMapTest::test_read_single_raw() {
 
   CPPUNIT_ASSERT(static_map_read_bencode(map_raw, "d1:bi1ee"));
   CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_a].as_raw_bencode(), "i1e"));
-  CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_a].as_raw_bencode().as_raw_value(), "1"));
 
   CPPUNIT_ASSERT(static_map_read_bencode(map_raw, "d1:b2:abe"));
   CPPUNIT_ASSERT(torrent::raw_bencode_equal_c_str(map_raw[key_raw_a].as_raw_bencode(), "2:ab"));
@@ -309,8 +308,8 @@ ObjectStaticMapTest::test_read_multiple() {
   map_normal = test_multiple_type();
   CPPUNIT_ASSERT(static_map_read_bencode(map_normal, "d1:ai1e1:bi2e1:ci3ee"));
   CPPUNIT_ASSERT(map_normal[key_multiple_a].as_value() == 1);
-  CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().size() == 1);
-  CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().data()[0] == '2');
+//   CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().size() == 1);
+//   CPPUNIT_ASSERT(map_normal[key_multiple_b].as_raw_bencode().as_raw_value().data()[0] == '2');
   CPPUNIT_ASSERT(map_normal[key_multiple_c].as_value() == 3);
 }
 
@@ -354,8 +353,8 @@ ObjectStaticMapTest::test_write_single() {
   map_value[key_single_a] = torrent::raw_bencode("i1e", 3);
   CPPUNIT_ASSERT(static_map_write_bencode(map_value, "d1:bi1ee"));
 
-  map_value[key_single_a] = torrent::raw_value("1", 1);
-  CPPUNIT_ASSERT(static_map_write_bencode(map_value, "d1:bi1ee"));
+//   map_value[key_single_a] = torrent::raw_value("1", 1);
+//   CPPUNIT_ASSERT(static_map_write_bencode(map_value, "d1:bi1ee"));
 
   map_value[key_single_a] = torrent::raw_string("test", 4);
   CPPUNIT_ASSERT(static_map_write_bencode(map_value, "d1:b4:teste"));

@@ -56,6 +56,7 @@ class DownloadMain;
 class DownloadInfo {
 public:
   typedef sigc::slot0<uint64_t>                                        slot_stat_type;
+  typedef sigc::signal0<void>                                          signal_void_type;
   typedef sigc::signal1<void, const std::string&>                      signal_string_type;
   typedef sigc::signal1<void, uint32_t>                                signal_chunk_type;
   typedef sigc::signal3<void, const std::string&, const char*, size_t> signal_dump_type;
@@ -141,18 +142,30 @@ public:
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
-  slot_stat_type&     slot_left()                                  { return m_slotStatLeft; }
-  slot_stat_type&     slot_completed()                             { return m_slotStatCompleted; }
+  // These signals are also used internally, so do not clear them or
+  // trigger them.
+  signal_void_type&   signal_initial_hash() const                  { return m_signalInitialHash; }
+  signal_void_type&   signal_download_done() const                 { return m_signalDownloadDone; }
 
-  signal_string_type& signal_network_log()                         { return m_signalNetworkLog; }
-  signal_string_type& signal_storage_error()                       { return m_signalStorageError; }
-  signal_dump_type&   signal_tracker_dump()                        { return m_signalTrackerDump; }
+  signal_string_type& signal_network_log() const                   { return m_signalNetworkLog; }
+  signal_string_type& signal_storage_error() const                 { return m_signalStorageError; }
+  signal_dump_type&   signal_tracker_dump() const                  { return m_signalTrackerDump; }
+
+  // The list of addresses is guaranteed to be sorted and unique.
+  signal_void_type&   signal_tracker_success() const               { return m_signalTrackerSuccess; }
+  signal_string_type& signal_tracker_failed() const                { return m_signalTrackerFailed; }
+
+  signal_chunk_type&  signal_chunk_passed() const                  { return m_signalChunkPassed; }
+  signal_chunk_type&  signal_chunk_failed() const                  { return m_signalChunkFailed; }
 
   //
   // Libtorrent internal:
   //
 
   void                set_creation_date(uint32_t d)                { m_creationDate = d; }
+
+  slot_stat_type&     slot_left()                                  { return m_slotStatLeft; }
+  slot_stat_type&     slot_completed()                             { return m_slotStatCompleted; }
 
 private:
   std::string         m_name;
@@ -178,9 +191,18 @@ private:
   slot_stat_type      m_slotStatLeft;
   slot_stat_type      m_slotStatCompleted;
 
-  signal_string_type  m_signalNetworkLog;
-  signal_string_type  m_signalStorageError;
-  signal_dump_type    m_signalTrackerDump;
+  mutable signal_void_type    m_signalInitialHash;
+  mutable signal_void_type    m_signalDownloadDone;
+
+  mutable signal_string_type  m_signalNetworkLog;
+  mutable signal_string_type  m_signalStorageError;
+  mutable signal_dump_type    m_signalTrackerDump;
+
+  mutable signal_void_type    m_signalTrackerSuccess;
+  mutable signal_string_type  m_signalTrackerFailed;
+
+  mutable signal_chunk_type   m_signalChunkPassed;
+  mutable signal_chunk_type   m_signalChunkFailed;
 };
 
 }

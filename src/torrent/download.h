@@ -171,34 +171,6 @@ public:
 
   void                add_peer(const sockaddr* addr, int port);
 
-  typedef sigc::slot0<void>                                          slot_void_type;
-  typedef sigc::slot1<void, const std::string&>                      slot_string_type;
-
-  typedef sigc::slot1<void, uint32_t>                                slot_chunk_type;
-  typedef sigc::slot3<void, const std::string&, const char*, size_t> slot_dump_type;
-
-  // signal_download_done is a delayed signal so it is safe to
-  // stop/close the torrent when received. The signal is only emitted
-  // when the torrent is active, so hash checking will not trigger it.
-  sigc::connection    signal_download_done(slot_void_type s);
-  sigc::connection    signal_hash_done(slot_void_type s);
-
-  sigc::connection    signal_tracker_succeeded(slot_void_type s);
-  sigc::connection    signal_tracker_failed(slot_string_type s);
-  sigc::connection    signal_tracker_dump(slot_dump_type s);
-
-  sigc::connection    signal_chunk_passed(slot_chunk_type s);
-  sigc::connection    signal_chunk_failed(slot_chunk_type s);
-
-  // Various network log message signals.
-  sigc::connection    signal_network_log(slot_string_type s);
-
-  // Emits error messages if there are problems opening files for
-  // read/write when the download is active. The client should stop
-  // the download if it receive any of these as it will not be able to
-  // continue.
-  sigc::connection    signal_storage_error(slot_string_type s);
-
   DownloadWrapper*    ptr() { return m_ptr; }
 
 private:

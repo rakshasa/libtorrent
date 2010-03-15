@@ -63,32 +63,35 @@
 namespace torrent {
 
 DownloadWrapper::DownloadWrapper() :
+  m_main(new DownloadMain),
+
   m_bencode(NULL),
   m_hashChecker(NULL),
   m_connectionType(0) {
 
-  m_delayDownloadDone.set_slot(rak::mem_fn(&m_signalDownloadDone, &Signal::operator()));
+  m_main->delay_download_done().set_slot(rak::mem_fn(&info()->signal_download_done(), &Signal::operator()));
 
-  m_main.tracker_manager()->set_info(info());
-  m_main.tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
-  m_main.tracker_manager()->slot_failed(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_failed));
+  m_main->tracker_manager()->set_info(info());
+  m_main->tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
+  m_main->tracker_manager()->slot_failed(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_failed));
 
-  m_main.chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
+  m_main->chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 }
 
 DownloadWrapper::~DownloadWrapper() {
   if (info()->is_active())
-    m_main.stop();
+    m_main->stop();
 
   if (info()->is_open())
     close();
 
   // If the client wants to do a quick cleanup after calling close, it
   // will need to manually cancel the tracker requests.
-  m_main.tracker_manager()->close();
+  m_main->tracker_manager()->close();
 
   delete m_hashChecker;
   delete m_bencode;
+  delete m_main;
 }
 
 void
@@ -101,13 +104,13 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   info()->mutable_local_id().assign(id.c_str());
 
-  info()->slot_left() = sigc::mem_fun(m_main.file_list(), &FileList::left_bytes);
-  info()->slot_completed() = sigc::mem_fun(m_main.file_list(), &FileList::completed_bytes);
+  info()->slot_left() = sigc::mem_fun(m_main->file_list(), &FileList::left_bytes);
+  info()->slot_completed() = sigc::mem_fun(m_main->file_list(), &FileList::completed_bytes);
 
-  m_main.slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
+  m_main->slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
   // Info hash must be calculate from here on.
-  m_hashChecker = new HashTorrent(m_main.chunk_list());
+  m_hashChecker = new HashTorrent(m_main->chunk_list());
 
   // Connect various signals and slots.
   m_hashChecker->slot_check(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
@@ -129,17 +132,17 @@ DownloadWrapper::close() {
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
   // hash_resume_save get ignored anyway.
-  m_main.chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy | ChunkList::sync_ignore_error);
+  m_main->chunk_list()->sync_chunks(ChunkList::sync_all | ChunkList::sync_force | ChunkList::sync_sloppy | ChunkList::sync_ignore_error);
 
-  m_main.close();
+  m_main->close();
 
   // Should this perhaps be in stop?
-  priority_queue_erase(&taskScheduler, &m_delayDownloadDone);
+  priority_queue_erase(&taskScheduler, &m_main->delay_download_done());
 }
 
 bool
 DownloadWrapper::is_stopped() const {
-  return !m_main.tracker_manager()->is_active() && !m_main.tracker_manager()->is_busy();
+  return !m_main->tracker_manager()->is_active() && !m_main->tracker_manager()->is_busy();
 }
 
 void
@@ -158,11 +161,11 @@ DownloadWrapper::receive_initial_hash() {
 
     // Initialize the ChunkSelector here so that no chunks will be
     // marked by HashTorrent that are not accounted for.
-    m_main.chunk_selector()->initialize(m_main.file_list()->mutable_bitfield(), m_main.chunk_statistics());
+    m_main->chunk_selector()->initialize(m_main->file_list()->mutable_bitfield(), m_main->chunk_statistics());
     receive_update_priorities();
   }
 
-  m_signalInitialHash.emit();
+  info()->signal_initial_hash().emit();
 }    
 
 void
@@ -180,7 +183,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
 
     } else {
       if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0)
-        m_main.file_list()->mark_completed(handle.index());
+        m_main->file_list()->mark_completed(handle.index());
 
       m_hashChecker->receive_chunkdone();
     }
@@ -196,33 +199,33 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       // Receiving chunk hashes after stopping the torrent should be
       // safe.
 
-      if (m_main.chunk_selector()->bitfield()->get(handle.index()))
+      if (m_main->chunk_selector()->bitfield()->get(handle.index()))
         throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
       if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
-        m_main.file_list()->mark_completed(handle.index());
-        m_main.delegator()->transfer_list()->hash_succeeded(handle.index(), handle.chunk());
-        m_main.update_endgame();
+        m_main->file_list()->mark_completed(handle.index());
+        m_main->delegator()->transfer_list()->hash_succeeded(handle.index(), handle.chunk());
+        m_main->update_endgame();
 
-        if (m_main.file_list()->is_done())
+        if (m_main->file_list()->is_done())
           finished_download();
     
-        if (!m_main.have_queue()->empty() && m_main.have_queue()->front().first >= cachedTime)
-          m_main.have_queue()->push_front(DownloadMain::have_queue_type::value_type(m_main.have_queue()->front().first + 1, handle.index()));
+        if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
+          m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(m_main->have_queue()->front().first + 1, handle.index()));
         else
-          m_main.have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
+          m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
 
-        signal_chunk_passed().emit(handle.index());
+        info()->signal_chunk_passed().emit(handle.index());
 
       } else {
         // This needs to ensure the chunk is still valid.
-        m_main.delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
-        signal_chunk_failed().emit(handle.index());
+        m_main->delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
+        info()->signal_chunk_failed().emit(handle.index());
       }
     }
   }
 
-  m_main.chunk_list()->release(&handle);
+  m_main->chunk_list()->release(&handle);
 }  
 
 void
@@ -233,27 +236,27 @@ DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
 
 void
 DownloadWrapper::receive_storage_error(const std::string& str) {
-  m_main.stop();
+  m_main->stop();
   close();
 
-  m_main.tracker_manager()->set_active(false);
-  m_main.tracker_manager()->close();
+  m_main->tracker_manager()->set_active(false);
+  m_main->tracker_manager()->close();
 
   info()->signal_storage_error().emit(str);
 }
 
 void
 DownloadWrapper::receive_tracker_success(AddressList* l) {
-  m_main.peer_list()->insert_available(l);
-  m_main.receive_connect_peers();
-  m_main.receive_tracker_success();
+  m_main->peer_list()->insert_available(l);
+  m_main->receive_connect_peers();
+  m_main->receive_tracker_success();
 
-  m_signalTrackerSuccess.emit();
+  info()->signal_tracker_success().emit();
 }
 
 void
 DownloadWrapper::receive_tracker_failed(const std::string& msg) {
-  m_signalTrackerFailed.emit(msg);
+  info()->signal_tracker_failed().emit(msg);
 }
 
 void
@@ -263,7 +266,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   // their memory usage.
   if (ticks % 120 == 0)
 //   if (ticks % 1 == 0)
-    m_main.peer_list()->cull_peers(PeerList::cull_old | PeerList::cull_keep_interesting);
+    m_main->peer_list()->cull_peers(PeerList::cull_old | PeerList::cull_keep_interesting);
 
   if (!info()->is_open())
     return;
@@ -272,52 +275,52 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
   if (ticks % 4 == 0) {
     if (info()->is_active()) {
       if (info()->is_pex_enabled()) {
-        m_main.do_peer_exchange();
+        m_main->do_peer_exchange();
 
       // If PEX was disabled since the last peer exchange, deactivate it now.
       } else if (info()->is_pex_active()) {
         info()->unset_flags(DownloadInfo::flag_pex_active);
 
-        for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); ++itr)
+        for (ConnectionList::iterator itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end(); ++itr)
           (*itr)->m_ptr()->set_peer_exchange(false);
       }
     }
 
-    for (ConnectionList::iterator itr = m_main.connection_list()->begin(); itr != m_main.connection_list()->end(); )
+    for (ConnectionList::iterator itr = m_main->connection_list()->begin(); itr != m_main->connection_list()->end(); )
       if (!(*itr)->m_ptr()->receive_keepalive())
-        itr = m_main.connection_list()->erase(itr, ConnectionList::disconnect_available);
+        itr = m_main->connection_list()->erase(itr, ConnectionList::disconnect_available);
       else
         itr++;
   }
 
-  DownloadMain::have_queue_type* haveQueue = m_main.have_queue();
+  DownloadMain::have_queue_type* haveQueue = m_main->have_queue();
   haveQueue->erase(std::find_if(haveQueue->rbegin(), haveQueue->rend(),
                                 rak::less(cachedTime - rak::timer::from_seconds(600),
                                              rak::mem_ref(&DownloadMain::have_queue_type::value_type::first))).base(),
                    haveQueue->end());
 
-  m_main.receive_connect_peers();
+  m_main->receive_connect_peers();
 }
 
 void
 DownloadWrapper::receive_update_priorities() {
-  if (m_main.chunk_selector()->empty())
+  if (m_main->chunk_selector()->empty())
     return;
 
-  m_main.chunk_selector()->high_priority()->clear();
-  m_main.chunk_selector()->normal_priority()->clear();
+  m_main->chunk_selector()->high_priority()->clear();
+  m_main->chunk_selector()->normal_priority()->clear();
 
-  for (FileList::iterator itr = m_main.file_list()->begin(); itr != m_main.file_list()->end(); ++itr) {
+  for (FileList::iterator itr = m_main->file_list()->begin(); itr != m_main->file_list()->end(); ++itr) {
     if ((*itr)->priority() == 1)
-      m_main.chunk_selector()->normal_priority()->insert((*itr)->range().first, (*itr)->range().second);
+      m_main->chunk_selector()->normal_priority()->insert((*itr)->range().first, (*itr)->range().second);
 
     else if ((*itr)->priority() == 2)
-      m_main.chunk_selector()->high_priority()->insert((*itr)->range().first, (*itr)->range().second);
+      m_main->chunk_selector()->high_priority()->insert((*itr)->range().first, (*itr)->range().second);
   }
 
-  m_main.chunk_selector()->update_priorities();
+  m_main->chunk_selector()->update_priorities();
 
-  std::for_each(m_main.connection_list()->begin(), m_main.connection_list()->end(),
+  std::for_each(m_main->connection_list()->begin(), m_main->connection_list()->end(),
                 rak::on(std::mem_fun(&Peer::m_ptr), std::mem_fun(&PeerConnectionBase::update_interested)));
 }
 
@@ -330,10 +333,10 @@ DownloadWrapper::finished_download() {
   // point.
   //
   // This needs to be seperated into a new function.
-  if (!m_delayDownloadDone.is_queued())
-    priority_queue_insert(&taskScheduler, &m_delayDownloadDone, cachedTime);
+  if (!m_main->delay_download_done().is_queued())
+    priority_queue_insert(&taskScheduler, &m_main->delay_download_done(), cachedTime);
 
-  m_main.connection_list()->erase_seeders();
+  m_main->connection_list()->erase_seeders();
   info()->mutable_down_rate()->reset_rate();
 }
 

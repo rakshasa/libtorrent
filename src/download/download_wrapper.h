@@ -37,7 +37,6 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
-#include <rak/socket_address.h>
 #include <sigc++/connection.h>
 #include <sigc++/signal.h>
 
@@ -67,16 +66,17 @@ public:
   DownloadWrapper();
   ~DownloadWrapper();
 
+  DownloadInfo*       info()                                  { return m_main->info(); }
+
   // Initialize hash checker and various download stuff.
   void                initialize(const std::string& hash, const std::string& id);
 
   void                close();
 
-//   bool                is_open() const                         { return m_main.is_open(); }
   bool                is_stopped() const;
 
-  DownloadMain*       main()                                  { return &m_main; }
-  const DownloadMain* main() const                            { return &m_main; }
+  DownloadMain*       main()                                  { return m_main; }
+  const DownloadMain* main() const                            { return m_main; }
   HashTorrent*        hash_checker()                          { return m_hashChecker; }
 
   Object*             bencode()                               { return m_bencode; }
@@ -89,10 +89,12 @@ public:
   const char*         chunk_hash(unsigned int index)             { return m_hash.c_str() + 20 * index; }
   void                set_complete_hash(const std::string& hash) { m_hash = hash; }
 
-  DownloadInfo*       info()                                  { return m_main.info(); }
-
   int                 connection_type() const                 { return m_connectionType; }
   void                set_connection_type(int t)              { m_connectionType = t; }
+
+  //
+  // Internal:
+  //
 
   void                receive_initial_hash();
   void                receive_hash_done(ChunkHandle handle, const char* hash);
@@ -107,23 +109,13 @@ public:
 
   void                receive_update_priorities();
 
-  Signal&             signal_initial_hash()          { return m_signalInitialHash; }
-  Signal&             signal_download_done()         { return m_signalDownloadDone; }
-
-  // The list of addresses is guaranteed to be sorted and unique.
-  Signal&             signal_tracker_success()       { return m_signalTrackerSuccess; }
-  SignalString&       signal_tracker_failed()        { return m_signalTrackerFailed; }
-
-  SignalChunk&        signal_chunk_passed()          { return m_signalChunkPassed; }
-  SignalChunk&        signal_chunk_failed()          { return m_signalChunkFailed; }
-
 private:
   DownloadWrapper(const DownloadWrapper&);
   void operator = (const DownloadWrapper&);
 
   void                finished_download();
 
-  DownloadMain        m_main;
+  DownloadMain*       m_main;
   Object*             m_bencode;
   HashTorrent*        m_hashChecker;
   HashQueue*          m_hashQueue;
@@ -131,17 +123,6 @@ private:
   std::string         m_hash;
 
   int                 m_connectionType;
-
-  rak::priority_item  m_delayDownloadDone;
-
-  Signal              m_signalInitialHash;
-  Signal              m_signalDownloadDone;
-
-  Signal              m_signalTrackerSuccess;
-  SignalString        m_signalTrackerFailed;
-
-  SignalChunk         m_signalChunkPassed;
-  SignalChunk         m_signalChunkFailed;
 
   sigc::connection    m_connectionChunkPassed;
   sigc::connection    m_connectionChunkFailed;

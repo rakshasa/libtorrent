@@ -148,6 +148,8 @@ public:
 
   void                update_endgame();
 
+  rak::priority_item& delay_download_done() { return m_delayDownloadDone; }
+
 private:
   // Disable copy ctor and assignment.
   DownloadMain(const DownloadMain&);
@@ -189,6 +191,7 @@ private:
   SlotCountHandshakes m_slotCountHandshakes;
   SlotHashCheckAdd    m_slotHashCheckAdd;
 
+  rak::priority_item  m_delayDownloadDone;
   rak::priority_item  m_taskTrackerRequest;
 };
 
