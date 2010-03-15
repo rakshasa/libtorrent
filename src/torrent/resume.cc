@@ -264,7 +264,7 @@ resume_load_uncertain_pieces(Download download, const Object& object) {
   // Don't rehash when loading resume data within the same session.
   if (!object.has_key_string("uncertain_pieces") ||
       !object.has_key_value("uncertain_pieces.timestamp") ||
-      object.get_key_value("uncertain_pieces.timestamp") >= (int64_t)download.load_date())
+      object.get_key_value("uncertain_pieces.timestamp") >= (int64_t)download.info()->load_date())
     return;
 
   const Object::string_type& uncertain = object.get_key_string("uncertain_pieces");

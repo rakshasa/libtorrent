@@ -45,7 +45,6 @@
 namespace torrent {
 
 class raw_bencode;
-class raw_value;
 class raw_string;
 class raw_list;
 class raw_map;
@@ -103,28 +102,16 @@ public:
   raw_bencode(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
   bool       is_empty() const      { return m_size == 0; }
-  bool       is_raw_value() const  { return m_size && m_data[0] >= 'i'; }
+  bool       is_value() const      { return m_size && m_data[0] >= 'i'; }
   bool       is_raw_string() const { return m_size && m_data[0] >= '0' && m_data[0] <= '9'; }
   bool       is_raw_list() const   { return m_size && m_data[0] >= 'l'; }
   bool       is_raw_map() const    { return m_size && m_data[0] >= 'd'; }
 
-  raw_value  as_raw_value() const;
   raw_string as_raw_string() const;
   raw_list   as_raw_list() const;
   raw_map    as_raw_map() const;
 
   static raw_bencode from_c_str(const char* str) { return raw_bencode(str, std::strlen(str)); }
-};
-
-class raw_value : protected raw_object {
-public:
-  typedef raw_value this_type;
-  RAW_BENCODE_SET_USING
-
-  raw_value() {}
-  raw_value(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
-
-//   int64_t as_value() const;
 };
 
 class raw_string : protected raw_object {
@@ -164,14 +151,6 @@ public:
 //
 //
 
-inline raw_value
-raw_bencode::as_raw_value() const {
-  if (!is_raw_value())
-    throw bencode_error("Wrong object type.");
-
-  return raw_value(m_data + 1, m_size - 2);
-}
-
 inline raw_string
 raw_bencode::as_raw_string() const {
   if (!is_raw_string())
@@ -200,12 +179,6 @@ raw_bencode::as_raw_map() const {
 
   return raw_map(m_data + 1, m_size - 2);
 }
-
-// inline int64_t
-// raw_value::as_value() const {
-//   int64_t value = strtoll(
-// }
-
 
 //
 // Redo...

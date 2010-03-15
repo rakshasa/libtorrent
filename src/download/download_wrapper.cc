@@ -334,7 +334,7 @@ DownloadWrapper::finished_download() {
     priority_queue_insert(&taskScheduler, &m_delayDownloadDone, cachedTime);
 
   m_main.connection_list()->erase_seeders();
-  info()->down_rate()->reset_rate();
+  info()->mutable_down_rate()->reset_rate();
 }
 
 }

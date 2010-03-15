@@ -92,29 +92,10 @@ public:
   // Does not check if the download has been removed.
   bool                is_valid() const { return m_ptr; }
 
-//   bool                is_open() const;
-//   bool                is_active() const;
-
   bool                is_hash_checked() const;
   bool                is_hash_checking() const;
 
-//   bool                is_private() const;
-//   bool                is_pex_active() const;
-//   bool                is_pex_enabled() const;
   void                set_pex_enabled(bool enabled);
-
-//   bool                is_meta_download() const;
-
-  // Returns "" if the object is not valid.
-  const std::string&  name() const;
-
-  const HashString&   info_hash() const;
-  const HashString&   info_hash_obfuscated() const;
-  const HashString&   local_id() const;
-
-  // Unix epoche, 0 == unknown.
-  uint32_t            creation_date() const;
-  uint32_t            load_date() const;
 
   Object*             bencode();
   const Object*       bencode() const;
@@ -128,19 +109,6 @@ public:
 
   ConnectionList*       connection_list();
   const ConnectionList* connection_list() const;
-
-  // Remove the old non-const versions.
-  Rate*               down_rate();
-  const Rate*         down_rate() const;
-  Rate*               mutable_down_rate();
-
-  Rate*               up_rate();
-  const Rate*         up_rate() const;
-  Rate*               mutable_up_rate();
-
-  Rate*               skip_rate();
-  const Rate*         skip_rate() const;
-  Rate*               mutable_skip_rate();
 
   // Bytes completed.
   uint64_t            bytes_done() const;

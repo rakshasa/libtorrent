@@ -81,7 +81,6 @@ public:
   enum type_type {
     TYPE_NONE,
     TYPE_RAW_BENCODE,
-    TYPE_RAW_VALUE,
     TYPE_RAW_STRING,
     TYPE_RAW_LIST,
     TYPE_RAW_MAP,
@@ -96,7 +95,6 @@ public:
   Object(const char* s)        : m_flags(TYPE_STRING) { new (&_string()) string_type(s); }
   Object(const string_type& s) : m_flags(TYPE_STRING) { new (&_string()) string_type(s); }
   Object(const raw_bencode& r) : m_flags(TYPE_RAW_BENCODE) { new (&_raw_bencode()) raw_bencode(r); }
-  Object(const raw_value& r)   : m_flags(TYPE_RAW_VALUE) { new (&_raw_value()) raw_value(r); }
   Object(const raw_string& r)  : m_flags(TYPE_RAW_STRING) { new (&_raw_string()) raw_string(r); }
   Object(const raw_list& r)    : m_flags(TYPE_RAW_LIST) { new (&_raw_list()) raw_list(r); }
   Object(const raw_map& r)     : m_flags(TYPE_RAW_MAP) { new (&_raw_map()) raw_map(r); }
@@ -114,9 +112,6 @@ public:
 
   static Object       create_raw_bencode(raw_bencode obj = raw_bencode()) {
     Object tmp; tmp.m_flags = TYPE_RAW_BENCODE; new (&tmp._raw_bencode()) raw_bencode(); return tmp;
-  }
-  static Object       create_raw_value(raw_value obj = raw_value()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_VALUE; new (&tmp._raw_value()) raw_value(); return tmp;
   }
   static Object       create_raw_string(raw_string obj = raw_string()) {
     Object tmp; tmp.m_flags = TYPE_RAW_STRING; new (&tmp._raw_string()) raw_string(); return tmp;
@@ -164,8 +159,6 @@ public:
   const map_type&    as_map() const                          { check_throw(TYPE_MAP); return _map(); }
   raw_bencode&       as_raw_bencode()                    { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
   const raw_bencode& as_raw_bencode() const              { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
-  raw_value&         as_raw_value()                      { check_throw(TYPE_RAW_VALUE); return _raw_value(); }
-  const raw_value&   as_raw_value() const                { check_throw(TYPE_RAW_VALUE); return _raw_value(); }
   raw_string&        as_raw_string()                     { check_throw(TYPE_RAW_STRING); return _raw_string(); }
   const raw_string&  as_raw_string() const               { check_throw(TYPE_RAW_STRING); return _raw_string(); }
   raw_list&          as_raw_list()                       { check_throw(TYPE_RAW_LIST); return _raw_list(); }
@@ -179,7 +172,6 @@ public:
   bool                has_key_list(const key_type& k) const   { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_LIST); }
   bool                has_key_map(const key_type& k) const    { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_MAP); }
   bool                has_key_raw_bencode(const key_type& k) const { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_RAW_BENCODE); }
-  bool                has_key_raw_value(const key_type& k) const { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_RAW_VALUE); }
   bool                has_key_raw_string(const key_type& k) const { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_RAW_STRING); }
   bool                has_key_raw_list(const key_type& k) const { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_RAW_LIST); }
   bool                has_key_raw_map(const key_type& k) const { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_RAW_MAP); }
@@ -257,8 +249,6 @@ public:
   const raw_object&   _raw_object() const  { return reinterpret_cast<const raw_object&>(t_pod); }
   raw_bencode&        _raw_bencode()       { return reinterpret_cast<raw_bencode&>(t_pod); }
   const raw_bencode&  _raw_bencode() const { return reinterpret_cast<const raw_bencode&>(t_pod); }
-  raw_value&          _raw_value()         { return reinterpret_cast<raw_value&>(t_pod); }
-  const raw_value&    _raw_value() const   { return reinterpret_cast<const raw_value&>(t_pod); }
   raw_string&         _raw_string()        { return reinterpret_cast<raw_string&>(t_pod); }
   const raw_string&   _raw_string() const  { return reinterpret_cast<const raw_string&>(t_pod); }
   raw_list&           _raw_list()          { return reinterpret_cast<raw_list&>(t_pod); }
@@ -286,7 +276,6 @@ Object::Object(const Object& b) {
   switch (type()) {
   case TYPE_NONE:
   case TYPE_RAW_BENCODE:
-  case TYPE_RAW_VALUE: 
   case TYPE_RAW_STRING: 
   case TYPE_RAW_LIST: 
   case TYPE_RAW_MAP:
@@ -301,7 +290,6 @@ inline Object
 Object::create_empty(type_type t) {
   switch (t) {
   case TYPE_RAW_BENCODE: return create_raw_bencode();
-  case TYPE_RAW_VALUE:   return create_raw_value();
   case TYPE_RAW_STRING:  return create_raw_string();
   case TYPE_RAW_LIST:    return create_raw_list();
   case TYPE_RAW_MAP:     return create_raw_map();

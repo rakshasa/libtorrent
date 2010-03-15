@@ -499,14 +499,6 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
     object_write_bencode_c_string(output, raw.begin(), raw.size());
     break;
   }
-  case Object::TYPE_RAW_VALUE:
-  {
-    raw_value raw = object->as_raw_value();
-    object_write_bencode_c_char(output, 'i');
-    object_write_bencode_c_string(output, raw.begin(), raw.size());
-    object_write_bencode_c_char(output, 'e');
-    break;
-  }
   case Object::TYPE_RAW_STRING: 
   {
     raw_string raw = object->as_raw_string();

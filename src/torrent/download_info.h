@@ -106,9 +106,13 @@ public:
   void                set_private()                                { set_flags(flag_private); unset_flags(flag_pex_enabled); }
   void                set_pex_enabled()                            { if (!is_private()) set_flags(flag_pex_enabled); }
 
-  Rate*               up_rate()                                    { return &m_upRate; }
-  Rate*               down_rate()                                  { return &m_downRate; }
-  Rate*               skip_rate()                                  { return &m_skipRate; }
+  const Rate*         up_rate() const                              { return &m_upRate; }
+  const Rate*         down_rate() const                            { return &m_downRate; }
+  const Rate*         skip_rate() const                            { return &m_skipRate; }
+
+  Rate*               mutable_up_rate() const                      { return &m_upRate; }
+  Rate*               mutable_down_rate() const                    { return &m_downRate; }
+  Rate*               mutable_skip_rate() const                    { return &m_skipRate; }
 
   uint64_t            uploaded_baseline() const                    { return m_uploadedBaseline; }
   uint64_t            uploaded_adjusted() const                    { return std::max<int64_t>(m_upRate.total() - uploaded_baseline(), 0); }
@@ -129,6 +133,8 @@ public:
 
   uint32_t            max_size_pex_list() const                    { return 200; }
 
+  // Unix epoche, 0 == unknown.
+  uint32_t            creation_date() const                        { return m_creationDate; }
   uint32_t            load_date() const                            { return m_loadDate; }
 
   uint32_t            http_timeout() const                         { return 60; }
@@ -142,6 +148,12 @@ public:
   signal_string_type& signal_storage_error()                       { return m_signalStorageError; }
   signal_dump_type&   signal_tracker_dump()                        { return m_signalTrackerDump; }
 
+  //
+  // Libtorrent internal:
+  //
+
+  void                set_creation_date(uint32_t d)                { m_creationDate = d; }
+
 private:
   std::string         m_name;
   HashString          m_hash;
@@ -150,9 +162,9 @@ private:
 
   int                 m_flags;
 
-  Rate                m_upRate;
-  Rate                m_downRate;
-  Rate                m_skipRate;
+  mutable Rate        m_upRate;
+  mutable Rate        m_downRate;
+  mutable Rate        m_skipRate;
 
   uint64_t            m_uploadedBaseline;
   uint64_t            m_completedBaseline;
@@ -160,6 +172,7 @@ private:
   uint32_t            m_maxSizePex;
   size_t              m_metadataSize;
 
+  uint32_t            m_creationDate;
   uint32_t            m_loadDate;
 
   slot_stat_type      m_slotStatLeft;

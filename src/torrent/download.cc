@@ -188,16 +188,6 @@ Download::hash_stop() {
   m_ptr->hash_checker()->clear();
 }
 
-// bool
-// Download::is_open() const {
-//   return m_ptr->info()->is_open();
-// }
-
-// bool
-// Download::is_active() const {
-//   return m_ptr->info()->is_active();
-// }
-
 bool
 Download::is_hash_checked() const {
   return m_ptr->hash_checker()->is_checked();
@@ -208,65 +198,9 @@ Download::is_hash_checking() const {
   return m_ptr->hash_checker()->is_checking();
 }
 
-// bool
-// Download::is_private() const {
-//   return m_ptr->info()->is_private();
-// }
-
-// bool
-// Download::is_pex_active() const {
-//   return m_ptr->info()->is_pex_active();
-// }
-
-// bool
-// Download::is_pex_enabled() const {
-//   return m_ptr->info()->is_pex_enabled();
-// }
-
 void
 Download::set_pex_enabled(bool enabled) {
   m_ptr->info()->change_flags(DownloadInfo::flag_pex_enabled, enabled);
-}
-
-// bool
-// Download::is_meta_download() const {
-//   return m_ptr->info()->is_meta_download();
-// }
-
-const std::string&
-Download::name() const {
-  if (m_ptr == NULL)
-    throw internal_error("Download::name() m_ptr == NULL.");
-
-  return m_ptr->info()->name();
-}
-
-const HashString&
-Download::info_hash() const {
-  return m_ptr->info()->hash();
-}
-
-const HashString&
-Download::info_hash_obfuscated() const {
-  return m_ptr->info()->hash_obfuscated();
-}
-
-const HashString&
-Download::local_id() const {
-  return m_ptr->info()->local_id();
-}
-
-uint32_t
-Download::creation_date() const {
-  if (m_ptr->bencode()->has_key_value("creation date"))
-    return m_ptr->bencode()->get_key_value("creation date");
-  else
-    return 0;
-}
-
-uint32_t
-Download::load_date() const {
-  return m_ptr->info()->load_date();
 }
 
 Object*
@@ -312,51 +246,6 @@ Download::connection_list() {
 const ConnectionList*
 Download::connection_list() const {
   return m_ptr->main()->connection_list();
-}
-
-Rate*
-Download::down_rate() {
-  return m_ptr->info()->down_rate();
-}
-
-const Rate*
-Download::down_rate() const {
-  return m_ptr->info()->down_rate();
-}
-
-Rate*
-Download::mutable_down_rate() {
-  return m_ptr->info()->down_rate();
-}
-
-Rate*
-Download::up_rate() {
-  return m_ptr->info()->up_rate();
-}
-
-const Rate*
-Download::up_rate() const {
-  return m_ptr->info()->up_rate();
-}
-
-Rate*
-Download::mutable_up_rate() {
-  return m_ptr->info()->up_rate();
-}
-
-Rate*
-Download::skip_rate() {
-  return m_ptr->info()->skip_rate();
-}
-
-const Rate*
-Download::skip_rate() const {
-  return m_ptr->info()->skip_rate();
-}
-
-Rate*
-Download::mutable_skip_rate() {
-  return m_ptr->info()->skip_rate();
 }
 
 uint64_t

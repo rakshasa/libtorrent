@@ -77,6 +77,7 @@ DownloadInfo::DownloadInfo() :
   m_maxSizePex(8),
   m_metadataSize(0),
   
+  m_creationDate(0),
   m_loadDate(rak::timer::current_seconds()) {
 }
 

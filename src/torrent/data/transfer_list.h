@@ -74,7 +74,9 @@ public:
   uint32_t            succeeded_count() const { return m_succeededCount; }
   uint32_t            failed_count() const { return m_failedCount; }
 
+  //
   // Internal to libTorrent:
+  //
 
   void                clear();
 

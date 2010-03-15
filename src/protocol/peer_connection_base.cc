@@ -427,7 +427,7 @@ PeerConnectionBase::down_chunk() {
   transfer->adjust_position(bytesTransfered);
 
   m_down->throttle()->node_used(m_peerChunks.download_throttle(), bytesTransfered);
-  m_download->info()->down_rate()->insert(bytesTransfered);
+  m_download->info()->mutable_down_rate()->insert(bytesTransfered);
 
   return transfer->is_finished();
 }
@@ -497,7 +497,7 @@ PeerConnectionBase::down_chunk_process(const void* buffer, uint32_t length) {
   transfer->adjust_position(length);
 
   m_down->throttle()->node_used(m_peerChunks.download_throttle(), length);
-  m_download->info()->down_rate()->insert(length);
+  m_download->info()->mutable_down_rate()->insert(length);
 
   return length;
 }
@@ -516,8 +516,8 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   // Hmm, this might result in more bytes than nessesary being
   // counted.
   m_down->throttle()->node_used(m_peerChunks.download_throttle(), length);
-  m_download->info()->down_rate()->insert(length);
-  m_download->info()->skip_rate()->insert(length);
+  m_download->info()->mutable_down_rate()->insert(length);
+  m_download->info()->mutable_skip_rate()->insert(length);
 
   if (!transfer->is_valid()) {
     transfer->adjust_position(length);
@@ -662,7 +662,7 @@ PeerConnectionBase::up_chunk() {
   }
 
   m_up->throttle()->node_used(m_peerChunks.upload_throttle(), bytesTransfered);
-  m_download->info()->up_rate()->insert(bytesTransfered);
+  m_download->info()->mutable_up_rate()->insert(bytesTransfered);
 
   // Just modifying the piece to cover the remaining data ends up
   // being much cleaner and we avoid an unnessesary position variable.
