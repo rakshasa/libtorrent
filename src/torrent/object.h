@@ -39,7 +39,7 @@
 
 #include <string>
 #include <map>
-#include <list>
+#include <vector>
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
 #include <torrent/object_raw_bencode.h>
@@ -50,7 +50,7 @@ class LIBTORRENT_EXPORT Object {
 public:
   typedef int64_t                           value_type;
   typedef std::string                       string_type;
-  typedef std::list<Object>                 list_type;
+  typedef std::vector<Object>               list_type;
   typedef std::map<std::string, Object>     map_type;
   typedef map_type*                         map_ptr_type;
   typedef map_type::key_type                key_type;

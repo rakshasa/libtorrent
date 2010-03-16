@@ -47,6 +47,10 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
+#ifdef HAVE_FALLOCATE
+#include <linux/falloc.h>
+#endif
+
 namespace torrent {
 
 bool
