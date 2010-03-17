@@ -62,8 +62,11 @@ void                perform() LIBTORRENT_EXPORT;
 
 bool                is_inactive() LIBTORRENT_EXPORT;
 
+class FileManager;
+
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
+FileManager*        file_manager() LIBTORRENT_EXPORT;
 ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
 DhtManager*         dht_manager() LIBTORRENT_EXPORT;
 

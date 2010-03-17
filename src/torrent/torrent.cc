@@ -160,6 +160,8 @@ client_list() {
   return manager->client_list();
 }
 
+FileManager* file_manager() { return manager->file_manager(); }
+
 ConnectionManager*
 connection_manager() {
   return manager->connection_manager();

@@ -58,7 +58,7 @@ public:
   using base_type::rbegin;
   using base_type::rend;
 
-  FileManager() : m_maxOpenFiles(0) {}
+  FileManager();
   ~FileManager();
 
   size_type           open_files() const              { return base_type::size(); }
@@ -71,11 +71,20 @@ public:
 
   void                close_least_active();
 
+  // Statistics:
+  uint64_t            files_opened_counter() const { return m_filesOpenedCounter; }
+  uint64_t            files_closed_counter() const { return m_filesClosedCounter; }
+  uint64_t            files_failed_counter() const { return m_filesFailedCounter; }
+
 private:
   FileManager(const FileManager&) LIBTORRENT_NO_EXPORT;
   void operator = (const FileManager&) LIBTORRENT_NO_EXPORT;
 
   size_type           m_maxOpenFiles;
+
+  uint64_t            m_filesOpenedCounter;
+  uint64_t            m_filesClosedCounter;
+  uint64_t            m_filesFailedCounter;
 };
 
 }
