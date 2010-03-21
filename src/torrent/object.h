@@ -111,16 +111,16 @@ public:
   static Object       create_map()    { Object tmp; tmp.m_flags = TYPE_MAP; tmp._map_ptr() = new map_type(); return tmp; }
 
   static Object       create_raw_bencode(raw_bencode obj = raw_bencode()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_BENCODE; new (&tmp._raw_bencode()) raw_bencode(); return tmp;
+    Object tmp; tmp.m_flags = TYPE_RAW_BENCODE; new (&tmp._raw_bencode()) raw_bencode(obj); return tmp;
   }
   static Object       create_raw_string(raw_string obj = raw_string()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_STRING; new (&tmp._raw_string()) raw_string(); return tmp;
+    Object tmp; tmp.m_flags = TYPE_RAW_STRING; new (&tmp._raw_string()) raw_string(obj); return tmp;
   }
   static Object       create_raw_list(raw_list obj = raw_list()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_LIST; new (&tmp._raw_list()) raw_list(); return tmp;
+    Object tmp; tmp.m_flags = TYPE_RAW_LIST; new (&tmp._raw_list()) raw_list(obj); return tmp;
   }
   static Object       create_raw_map(raw_map obj = raw_map()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_MAP; new (&tmp._raw_map()) raw_map(); return tmp;
+    Object tmp; tmp.m_flags = TYPE_RAW_MAP; new (&tmp._raw_map()) raw_map(obj); return tmp;
   }
 
   // Clear should probably not be inlined due to size and not being

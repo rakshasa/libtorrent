@@ -8,11 +8,26 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectTest);
 
+void object_test_return_void() { }
+
+// template <typename Ret>
+// struct object_void_wrapper {
+//   typedef 
+
+//   object_void_wrapper(Slot s) : m_slot(s) {}
+
+//   torrent::Object operator () () { m_slot(
+
+//   Slot m_slot;
+// }
+
 void
 ObjectTest::test_basic() {
   std::cout << "sizeof(torrent::Object) = " << sizeof(torrent::Object) << std::endl;
   std::cout << "sizeof(torrent::Object::list_type) = " << sizeof(torrent::Object::list_type) << std::endl;
   std::cout << "sizeof(torrent::Object::map_type) = " << sizeof(torrent::Object::map_type) << std::endl;
+
+//   torrent::Object obj_void(object_test_return_void());
 }
 
 void
