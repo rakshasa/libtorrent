@@ -60,6 +60,9 @@ FileManager::~FileManager() {
 
 void
 FileManager::set_max_open_files(size_type s) {
+  if (s < 4 || s > (1 << 16))
+    throw input_error("Max open files must be between 4 and 2^16.");
+
   m_maxOpenFiles = s;
 
   while (size() > m_maxOpenFiles)

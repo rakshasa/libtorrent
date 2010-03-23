@@ -289,24 +289,6 @@ set_hash_max_tries(uint32_t tries) {
   manager->hash_queue()->set_max_tries(tries);
 }  
 
-uint32_t
-open_files() {
-  return manager->file_manager()->open_files();
-}
-
-uint32_t
-max_open_files() {
-  return manager->file_manager()->max_open_files();
-}
-
-void
-set_max_open_files(uint32_t size) {
-  if (size < 4 || size > (1 << 16))
-    throw input_error("Max open files must be between 4 and 2^16.");
-
-  manager->file_manager()->set_max_open_files(size);
-}
-
 EncodingList*
 encoding_list() {
   return manager->encoding_list();
