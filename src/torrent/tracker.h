@@ -65,6 +65,7 @@ public:
 
   void                enable()                              { m_enabled = true; }
   void                disable()                             { m_enabled = false; }
+  void                set_enabled(bool status)              { m_enabled = status; }
 
   TrackerList*        parent()                              { return m_parent; }
 
