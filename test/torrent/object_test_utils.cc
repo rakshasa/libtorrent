@@ -24,6 +24,24 @@ create_bencode_c(const char* str) {
   return obj;
 }
 
+// torrent::Object
+// create_bencode_raw_bencode_c(const char* str) {
+//   torrent::Object obj;
+//   const char* last = str + strlen(str);
+
+//   CPPUNIT_ASSERT(object_read_bencode_skip_c(str, last) == last);
+//   return torrent::raw_bencode(str, std::distance(str, last));
+// }
+
+// torrent::Object
+// create_bencode_raw_list_c(const char* str) {
+//   torrent::Object obj;
+//   const char* last = str + strlen(str);
+
+//   CPPUNIT_ASSERT(object_read_bencode_skip_c(str, last) == last);
+//   return torrent::raw_bencode(str, std::distance(str, last));
+// }
+
 bool
 validate_bencode(const char* first, const char* last) {
   torrent::Object obj;

@@ -75,7 +75,7 @@ public:
   using base_type::reverse_iterator;
   using base_type::const_iterator;
   using base_type::const_reverse_iterator;
-  using base_type::size;
+  //  using base_type::size;
   using base_type::empty;
 
   using base_type::front;
@@ -105,6 +105,8 @@ public:
 
   size_type           min_size() const                          { return m_minSize; }
   void                set_min_size(size_type v);
+
+  size_type           size() const                              { return base_type::size(); }
 
   size_type           max_size() const                          { return m_maxSize; }
   void                set_max_size(size_type v);

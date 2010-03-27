@@ -43,7 +43,11 @@
 
 namespace torrent {
 
+class raw_string;
+
 std::string object_sha1(const Object* object) LIBTORRENT_EXPORT;
+
+raw_string  object_read_bencode_c_string(const char* first, const char* last) LIBTORRENT_EXPORT;
 
 // Assumes the stream's locale has been set to POSIX or C.  Max depth
 // is 1024, this ensures files consisting of only 'l' don't segfault

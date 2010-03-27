@@ -41,6 +41,7 @@
 #include <rak/functional.h>
 
 #include "object.h"
+#include "object_stream.h"
 
 namespace torrent {
 
@@ -206,5 +207,68 @@ Object::operator = (const Object& src) {
 
   return *this;
 }
+
+Object object_create_normal(const raw_bencode& obj) {
+  torrent::Object result;
+
+  if (object_read_bencode_c(obj.begin(), obj.end(), &result, 128) != obj.end())
+    throw bencode_error("Invalid bencode data.");
+
+  return result;
+}
+
+Object object_create_normal(const raw_list& obj) {
+  torrent::Object result = Object::create_list();
+
+  raw_list::iterator first = obj.begin();
+  raw_list::iterator last = obj.end();
+
+  while (first != last) {
+    Object::list_iterator new_entry = result.as_list().insert(result.as_list().end(), Object());
+
+    first = object_read_bencode_c(first, last, &*new_entry, 128);
+
+    // The unordered flag is inherited also from list elements who
+    // have been marked as unordered, though e.g. unordered strings
+    // in the list itself does not cause this flag to be set.
+    if (new_entry->flags() & Object::flag_unordered)
+      result.set_internal_flags(Object::flag_unordered);
+  }
+
+  return result;
+}
+
+Object object_create_normal(const raw_map& obj) {
+  torrent::Object result = Object::create_map();
+
+  raw_list::iterator first = obj.begin();
+  raw_list::iterator last = obj.end();
+
+  Object::string_type prev;
+
+  while (first != last) {
+    raw_string raw_str = object_read_bencode_c_string(first, last);
+    first = raw_str.end();
+
+    Object::string_type key_str = raw_str.as_string();
+
+    // We do not set flag_unordered if the first key was zero
+    // length, while multiple zero length keys will trigger the
+    // unordered_flag.
+    if (key_str <= prev && !result.as_map().empty())
+      result.set_internal_flags(Object::flag_unordered);
+
+    Object* value = &result.as_map()[key_str];
+    first = object_read_bencode_c(first, last, value, 128);
+
+    if (value->flags() & Object::flag_unordered)
+      result.set_internal_flags(Object::flag_unordered);
+
+    key_str.swap(prev);
+  }
+
+  return result;
+}
+
 
 }

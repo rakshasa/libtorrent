@@ -78,18 +78,6 @@ swap_compare(const char* left, const char* right) {
   return true;
 }
 
-// static bool
-// move_compare(const char* left, const char* right) {
-//   torrent::Object obj_left = create_bencode(left);
-//   torrent::Object obj_right = create_bencode(right);
-
-//   obj_left.move(obj_right);
-//   if (!compare_bencode(obj_left, right))
-//     return false;
-
-//   return true;
-// }
-
 void
 ObjectTest::test_swap_and_move() {
   CPPUNIT_ASSERT(swap_compare(TEST_VALUE_A, TEST_VALUE_B));
@@ -105,4 +93,18 @@ ObjectTest::test_swap_and_move() {
   CPPUNIT_ASSERT(swap_compare("i1e", TEST_VALUE_A));
   CPPUNIT_ASSERT(swap_compare("i1e", TEST_MAP_A));
   CPPUNIT_ASSERT(swap_compare("i1e", TEST_LIST_A));
+}
+
+void
+ObjectTest::test_create_normal() {
+  torrent::Object obj;
+
+  CPPUNIT_ASSERT(torrent::object_create_normal(create_bencode_raw_bencode_c("i45e")).as_value() == 45);
+  CPPUNIT_ASSERT(torrent::object_create_normal(create_bencode_raw_bencode_c("4:test")).as_string() == "test");
+  CPPUNIT_ASSERT(torrent::object_create_normal(create_bencode_raw_bencode_c("li5ee")).as_list().front().as_value() == 5);
+  CPPUNIT_ASSERT(torrent::object_create_normal(create_bencode_raw_bencode_c("d1:ai6ee")).as_map()["a"].as_value() == 6);
+
+  CPPUNIT_ASSERT(torrent::object_create_normal(create_bencode_raw_string_c("test")).as_string() == "test");
+  CPPUNIT_ASSERT(torrent::object_create_normal(create_bencode_raw_list_c("i5ei6e")).as_list().back().as_value() == 6);
+  CPPUNIT_ASSERT(torrent::object_create_normal(create_bencode_raw_map_c("1:ai2e1:bi3e")).as_map()["b"].as_value() == 3);
 }

@@ -149,22 +149,22 @@ public:
   bool                is_raw_list() const                     { return type() == TYPE_RAW_LIST; }
   bool                is_raw_map() const                      { return type() == TYPE_RAW_MAP; }
 
-  value_type&        as_value()                              { check_throw(TYPE_VALUE); return _value(); }
-  const value_type&  as_value() const                        { check_throw(TYPE_VALUE); return _value(); }
-  string_type&       as_string()                             { check_throw(TYPE_STRING); return _string(); }
-  const string_type& as_string() const                       { check_throw(TYPE_STRING); return _string(); }
-  list_type&         as_list()                               { check_throw(TYPE_LIST); return _list(); }
-  const list_type&   as_list() const                         { check_throw(TYPE_LIST); return _list(); }
-  map_type&          as_map()                                { check_throw(TYPE_MAP); return _map(); }
-  const map_type&    as_map() const                          { check_throw(TYPE_MAP); return _map(); }
-  raw_bencode&       as_raw_bencode()                    { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
-  const raw_bencode& as_raw_bencode() const              { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
-  raw_string&        as_raw_string()                     { check_throw(TYPE_RAW_STRING); return _raw_string(); }
-  const raw_string&  as_raw_string() const               { check_throw(TYPE_RAW_STRING); return _raw_string(); }
-  raw_list&          as_raw_list()                       { check_throw(TYPE_RAW_LIST); return _raw_list(); }
-  const raw_list&    as_raw_list() const                 { check_throw(TYPE_RAW_LIST); return _raw_list(); }
-  raw_map&           as_raw_map()                        { check_throw(TYPE_RAW_MAP); return _raw_map(); }
-  const raw_map&     as_raw_map() const                  { check_throw(TYPE_RAW_MAP); return _raw_map(); }
+  value_type&         as_value()                              { check_throw(TYPE_VALUE); return _value(); }
+  const value_type&   as_value() const                        { check_throw(TYPE_VALUE); return _value(); }
+  string_type&        as_string()                             { check_throw(TYPE_STRING); return _string(); }
+  const string_type&  as_string() const                       { check_throw(TYPE_STRING); return _string(); }
+  list_type&          as_list()                               { check_throw(TYPE_LIST); return _list(); }
+  const list_type&    as_list() const                         { check_throw(TYPE_LIST); return _list(); }
+  map_type&           as_map()                                { check_throw(TYPE_MAP); return _map(); }
+  const map_type&     as_map() const                          { check_throw(TYPE_MAP); return _map(); }
+  raw_bencode&        as_raw_bencode()                    { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
+  const raw_bencode&  as_raw_bencode() const              { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
+  raw_string&         as_raw_string()                     { check_throw(TYPE_RAW_STRING); return _raw_string(); }
+  const raw_string&   as_raw_string() const               { check_throw(TYPE_RAW_STRING); return _raw_string(); }
+  raw_list&           as_raw_list()                       { check_throw(TYPE_RAW_LIST); return _raw_list(); }
+  const raw_list&     as_raw_list() const                 { check_throw(TYPE_RAW_LIST); return _raw_list(); }
+  raw_map&            as_raw_map()                        { check_throw(TYPE_RAW_MAP); return _raw_map(); }
+  const raw_map&      as_raw_map() const                  { check_throw(TYPE_RAW_MAP); return _raw_map(); }
 
   bool                has_key(const key_type& k) const        { check_throw(TYPE_MAP); return _map().find(k) != _map().end(); }
   bool                has_key_value(const key_type& k) const  { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_VALUE); }
@@ -305,6 +305,24 @@ Object::create_empty(type_type t) {
 inline Object
 object_create_raw_bencode_c_str(const char str[]) {
   return Object::create_raw_bencode(raw_bencode(str, strlen(str)));
+}
+
+// TODO: These do not preserve the flag...
+
+Object object_create_normal(const raw_bencode& obj) LIBTORRENT_EXPORT;
+Object object_create_normal(const raw_list& obj) LIBTORRENT_EXPORT;
+Object object_create_normal(const raw_map& obj) LIBTORRENT_EXPORT;
+inline Object object_create_normal(const raw_string& obj) { return torrent::Object(obj.as_string()); }
+
+inline Object
+object_create_normal(const Object& obj) {
+  switch (obj.type()) {
+  case Object::TYPE_RAW_BENCODE: return object_create_normal(obj.as_raw_bencode());
+  case Object::TYPE_RAW_STRING:  return object_create_normal(obj.as_raw_string());
+  case Object::TYPE_RAW_LIST:    return object_create_normal(obj.as_raw_list());
+  case Object::TYPE_RAW_MAP:     return object_create_normal(obj.as_raw_map());
+  default: return obj;
+  }
 }
 
 inline void
