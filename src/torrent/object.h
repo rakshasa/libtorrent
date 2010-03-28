@@ -325,6 +325,15 @@ object_create_normal(const Object& obj) {
   }
 }
 
+inline std::string
+object_create_string(const torrent::Object& obj) {
+  switch (obj.type()) {
+  case Object::TYPE_RAW_BENCODE: return obj.as_raw_bencode().as_raw_string().as_string();
+  case Object::TYPE_RAW_STRING:  return obj.as_raw_string().as_string();
+  default: return obj.as_string();
+  }
+}
+
 inline void
 Object::clear() {
   switch (type()) {
