@@ -140,6 +140,7 @@ public:
   // Add functions for setting/clearing the public flags.
 
   bool                is_empty() const                        { return type() == TYPE_NONE; }
+  bool                is_not_empty() const                    { return type() != TYPE_NONE; }
   bool                is_value() const                        { return type() == TYPE_VALUE; }
   bool                is_string() const                       { return type() == TYPE_STRING; }
   bool                is_list() const                         { return type() == TYPE_LIST; }
