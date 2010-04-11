@@ -125,6 +125,7 @@ public:
   std::string as_string() const { return std::string(m_data, m_size); }
 
   static raw_string from_c_str(const char* str) { return raw_string(str, std::strlen(str)); }
+  static raw_string from_string(const std::string& str) { return raw_string(str.data(), str.size()); }
 };
 
 class raw_list : protected raw_object {
