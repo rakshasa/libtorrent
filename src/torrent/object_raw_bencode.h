@@ -101,15 +101,16 @@ public:
   raw_bencode() : raw_object() {}
   raw_bencode(value_type* src_data, size_type src_size) : raw_object(src_data, src_size) {}
 
-  bool       is_empty() const      { return m_size == 0; }
-  bool       is_value() const      { return m_size && m_data[0] >= 'i'; }
-  bool       is_raw_string() const { return m_size && m_data[0] >= '0' && m_data[0] <= '9'; }
-  bool       is_raw_list() const   { return m_size && m_data[0] >= 'l'; }
-  bool       is_raw_map() const    { return m_size && m_data[0] >= 'd'; }
+  bool        is_empty() const      { return m_size == 0; }
+  bool        is_value() const      { return m_size >= 3 && m_data[0] >= 'i'; }
+  bool        is_raw_string() const { return m_size >= 2 && m_data[0] >= '0' && m_data[0] <= '9'; }
+  bool        is_raw_list() const   { return m_size >= 2 && m_data[0] >= 'l'; }
+  bool        is_raw_map() const    { return m_size >= 2 && m_data[0] >= 'd'; }
 
-  raw_string as_raw_string() const;
-  raw_list   as_raw_list() const;
-  raw_map    as_raw_map() const;
+  std::string as_value_string() const;
+  raw_string  as_raw_string() const;
+  raw_list    as_raw_list() const;
+  raw_map     as_raw_map() const;
 
   static raw_bencode from_c_str(const char* str) { return raw_bencode(str, std::strlen(str)); }
 };
@@ -151,6 +152,14 @@ public:
 //
 //
 //
+
+inline std::string
+raw_bencode::as_value_string() const {
+  if (!is_value())
+    throw bencode_error("Wrong object type.");
+
+  return std::string(data() + 1, size() - 2);
+}
 
 inline raw_string
 raw_bencode::as_raw_string() const {

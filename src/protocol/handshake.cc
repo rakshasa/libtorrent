@@ -815,6 +815,7 @@ restart:
 
     case READ_BITFIELD:
     case READ_EXT:
+    case READ_PORT:
       // Gather the different command types into the same case group
       // so that we don't need 'goto restart' above.
       if ((m_state == READ_BITFIELD && !read_bitfield()) ||
