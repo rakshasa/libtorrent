@@ -34,44 +34,23 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
-#define LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
+#ifndef LIBTORRENT_CHUNK_UTILS_H
+#define LIBTORRENT_CHUNK_UTILS_H
 
-#include "memory_chunk.h"
+#include <torrent/common.h>
+#include <vector>
 
 namespace torrent {
 
-class ChunkPart {
-public:
-  typedef enum {
-    MAPPED_MMAP,
-    MAPPED_STATIC
-  } mapped_type;
-
-  ChunkPart(mapped_type mapped, const MemoryChunk& c, uint32_t pos) :
-    m_mapped(mapped), m_chunk(c), m_position(pos) {}
-
-  bool                is_valid() const                      { return m_chunk.is_valid(); }
-  bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }
-
-  void                clear();
-
-  mapped_type         mapped() const                        { return m_mapped; }
-
-  MemoryChunk&        chunk()                               { return m_chunk; }
-  const MemoryChunk&  chunk() const                         { return m_chunk; }
-
-  uint32_t            size() const                          { return m_chunk.size(); }
-  uint32_t            position() const                      { return m_position; }
-
-  uint32_t            incore_length(uint32_t pos);
-
-private:
-  mapped_type         m_mapped;
-
-  MemoryChunk         m_chunk;
-  uint32_t            m_position;
+struct vm_mapping {
+  void* ptr;
+  uint64_t length;
 };
+
+// Change to ChunkList* when that becomes part of the public API.
+
+std::vector<vm_mapping>
+chunk_list_mapping(Download* download) LIBTORRENT_EXPORT;
 
 }
 

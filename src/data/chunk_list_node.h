@@ -62,7 +62,7 @@ public:
     m_writable(0),
     m_asyncTriggered(false) {}
 
-  bool                is_valid() const               { return m_chunk; }
+  bool                is_valid() const               { return m_chunk != NULL; }
 
   uint32_t            index() const                  { return m_index; }
   void                set_index(uint32_t idx)        { m_index = idx; }

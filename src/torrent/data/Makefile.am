@@ -7,6 +7,8 @@ libsub_torrentdata_la_SOURCES = \
 	block_list.cc \
 	block_list.h \
 	block_transfer.h \
+	chunk_utils.cc \
+	chunk_utils.h \
 	file.cc \
 	file.h \
 	file_list.cc \
@@ -28,6 +30,7 @@ libtorrentinclude_HEADERS = \
 	block.h \
 	block_list.h \
 	block_transfer.h \
+	chunk_utils.h \
 	file.h \
 	file_list.h \
 	file_list_iterator.h \

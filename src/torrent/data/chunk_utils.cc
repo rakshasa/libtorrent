@@ -34,45 +34,39 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
-#define LIBTORRENT_DATA_STORAGE_CHUNK_PART_H
+#include "config.h"
 
-#include "memory_chunk.h"
+#include "chunk_utils.h"
+#include "download.h"
+#include "exceptions.h"
+
+#include "download/download_wrapper.h"
+
+#include "data/chunk.h"
+#include "data/chunk_list.h"
 
 namespace torrent {
 
-class ChunkPart {
-public:
-  typedef enum {
-    MAPPED_MMAP,
-    MAPPED_STATIC
-  } mapped_type;
+std::vector<vm_mapping>
+chunk_list_mapping(Download* download) {
+  ChunkList* chunk_list = download->ptr()->main()->chunk_list();
 
-  ChunkPart(mapped_type mapped, const MemoryChunk& c, uint32_t pos) :
-    m_mapped(mapped), m_chunk(c), m_position(pos) {}
+  std::vector<vm_mapping> mappings;
 
-  bool                is_valid() const                      { return m_chunk.is_valid(); }
-  bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }
+  for (ChunkList::const_iterator itr = chunk_list->begin(), last = chunk_list->end(); itr != last; itr++) {
+    if (!itr->is_valid())
+      continue;
 
-  void                clear();
+    for (Chunk::const_iterator itr2 = itr->chunk()->begin(), last2 = itr->chunk()->end(); itr2 != last2; itr2++) {
+      if (itr2->mapped() != ChunkPart::MAPPED_MMAP)
+        continue;
 
-  mapped_type         mapped() const                        { return m_mapped; }
+      vm_mapping val = { itr2->chunk().ptr(), itr2->chunk().size_aligned() };
+      mappings.push_back(val);
+    }
+  }
 
-  MemoryChunk&        chunk()                               { return m_chunk; }
-  const MemoryChunk&  chunk() const                         { return m_chunk; }
-
-  uint32_t            size() const                          { return m_chunk.size(); }
-  uint32_t            position() const                      { return m_position; }
-
-  uint32_t            incore_length(uint32_t pos);
-
-private:
-  mapped_type         m_mapped;
-
-  MemoryChunk         m_chunk;
-  uint32_t            m_position;
-};
-
+  return mappings;
 }
 
-#endif
+}
