@@ -113,22 +113,28 @@ Chunk::at_memory(uint32_t offset, iterator part) {
 }
 
 uint32_t
-Chunk::incore_length(uint32_t pos) {
-  uint32_t lengthIncore = 0;
+Chunk::incore_length(uint32_t pos, uint32_t length) {
+  uint32_t result = 0;
   iterator itr = at_position(pos);
 
   if (itr == end())
     throw internal_error("Chunk::incore_length(...) at end()");
 
-  do {
-    uint32_t length = itr->incore_length(pos);
+  length = std::min(length, chunk_size() - pos);
 
-    pos += length;
-    lengthIncore += length;
+  do {
+    uint32_t incore_len = itr->incore_length(pos, length);
+
+    if (incore_len > length)
+      throw internal_error("Chunk::incore_length(...) incore_len > length.");
+
+    pos += incore_len;
+    length -= incore_len;
+    result += incore_len;
 
   } while (pos == itr->position() + itr->size() && ++itr != end());
 
-  return lengthIncore;
+  return result;
 }
 
 bool

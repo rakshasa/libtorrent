@@ -37,7 +37,9 @@
 #include "config.h"
 
 #include <cstdio>
+#include <fcntl.h>
 #include <rak/error_number.h>
+#include <rak/string_manip.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/data/block.h"
@@ -276,11 +278,56 @@ PeerConnectionBase::receive_download_choke(bool choke) {
   return true;
 }
 
+inline static void
+log_upload_chunk_mincore(Chunk* chunk, const Piece& piece, bool new_index) {
+#ifdef LT_LOG_MINCORE_FILE
+  static int mincore_fd = -1;
+  static int32_t ticker = rak::timer::current().seconds() / 10 * 10;
+
+  static int counter_incore = 0;
+  static int counter_not_incore = 0;
+  static int counter_incore_new = 0;
+  static int counter_not_incore_new = 0;
+
+  if (rak::timer::current().seconds() >= ticker + 10) {
+    char buffer[256];
+
+    if (mincore_fd == -1) {
+      snprintf(buffer, 256, "%s.%u", LT_LOG_MINCORE_FILE, getpid());
+    
+      if ((mincore_fd = open(buffer, O_WRONLY | O_CREAT | O_TRUNC)) == -1)
+        throw internal_error("Could not open mincore log file.");
+    }
+
+    // Log the result of mincore for every piece uploaded to a file.
+    unsigned int buf_lenght = snprintf(buffer, 256, "%i %u %u %u %u\n",
+                                       ticker, counter_incore, counter_incore_new, counter_not_incore, counter_not_incore_new);
+
+    write(mincore_fd, buffer, buf_lenght);
+    
+    ticker = rak::timer::current().seconds() / 10 * 10;
+
+    counter_incore = 0;
+    counter_not_incore = 0;
+    counter_incore_new = 0;
+    counter_not_incore_new = 0;
+  }
+
+  bool is_incore = (chunk->incore_length(piece.offset(), piece.length()) == piece.length());
+
+  counter_incore += !new_index && is_incore;
+  counter_incore_new += new_index && is_incore;
+  counter_not_incore += !new_index && !is_incore;
+  counter_not_incore_new += new_index && !is_incore;
+#endif
+}
+
 void
 PeerConnectionBase::load_up_chunk() {
   if (m_upChunk.is_valid() && m_upChunk.index() == m_upPiece.index()) {
     // Better checking needed.
     //     m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->size());
+    log_upload_chunk_mincore(m_upChunk.chunk(), m_upPiece, false);
     return;
   }
 
@@ -295,6 +342,8 @@ PeerConnectionBase::load_up_chunk() {
     m_encryptBuffer = new EncryptBuffer();
     m_encryptBuffer->reset();
   }
+
+  log_upload_chunk_mincore(m_upChunk.chunk(), m_upPiece, true);
 
   // Also check if we've already preloaded in the recent past, even
   // past unmaps.

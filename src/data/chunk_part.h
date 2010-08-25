@@ -64,7 +64,9 @@ public:
   uint32_t            size() const                          { return m_chunk.size(); }
   uint32_t            position() const                      { return m_position; }
 
-  uint32_t            incore_length(uint32_t pos);
+  uint32_t            remaining_from(uint32_t pos) const    { return size() - (pos - m_position); }
+
+  uint32_t            incore_length(uint32_t pos, uint32_t length = ~uint32_t());
 
 private:
   mapped_type         m_mapped;

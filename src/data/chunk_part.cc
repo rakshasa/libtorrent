@@ -61,14 +61,14 @@ ChunkPart::clear() {
 }
 
 uint32_t
-ChunkPart::incore_length(uint32_t pos) {
+ChunkPart::incore_length(uint32_t pos, uint32_t length) {
   // Do we want to use this?
-  pos -= m_position;
+  length = std::min(length, remaining_from(pos));
+  pos = pos - m_position;
 
   if (pos >= size())
     throw internal_error("ChunkPart::incore_length(...) got invalid position");
 
-  int length = size() - pos;
   int touched = m_chunk.pages_touched(pos, length);
   char buf[touched];
 

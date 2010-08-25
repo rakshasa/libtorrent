@@ -84,7 +84,7 @@ public:
   data_type           at_memory(uint32_t offset, iterator part);
 
   // Check how much of the chunk is incore from pos.
-  uint32_t            incore_length(uint32_t pos);
+  uint32_t            incore_length(uint32_t pos, uint32_t length = ~uint32_t());
 
   bool                sync(int flags);
 
