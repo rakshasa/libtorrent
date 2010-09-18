@@ -112,6 +112,27 @@ Chunk::at_memory(uint32_t offset, iterator part) {
   return data_type(part->chunk().begin() + offset, part->size() - offset);
 }
 
+bool
+Chunk::is_incore(uint32_t pos, uint32_t length) {
+  iterator itr = at_position(pos);
+
+  if (itr == end())
+    throw internal_error("Chunk::incore_length(...) at end()");
+
+  uint32_t last = pos + std::min(length, chunk_size() - pos);
+
+  while (itr->is_incore(pos, last - pos)) {
+    if (++itr == end() || itr->position() >= last)
+      return true;
+
+    pos = itr->position();
+  }
+
+  return false;
+}
+
+// TODO: Buggy, hitting internal_error. Likely need to fix
+// ChunkPart::incore_length's length align.
 uint32_t
 Chunk::incore_length(uint32_t pos, uint32_t length) {
   uint32_t result = 0;

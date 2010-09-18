@@ -66,6 +66,7 @@ public:
 
   uint32_t            remaining_from(uint32_t pos) const    { return size() - (pos - m_position); }
 
+  bool                is_incore(uint32_t pos, uint32_t length = ~uint32_t());
   uint32_t            incore_length(uint32_t pos, uint32_t length = ~uint32_t());
 
 private:

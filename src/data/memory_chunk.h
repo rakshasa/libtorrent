@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_DATA_MEMORY_CHUNK_H
 #define LIBTORRENT_DATA_MEMORY_CHUNK_H
 
+#include <algorithm>
 #include <inttypes.h>
 #include <sys/mman.h>
 
@@ -145,6 +146,16 @@ MemoryChunk::pages_touched(uint32_t offset, uint32_t length) const {
 inline uint32_t
 MemoryChunk::size_aligned() const {
   return std::distance(m_ptr, m_end) + page_size() - ((std::distance(m_ptr, m_end) - 1) % page_size() + 1);
+}
+
+inline bool
+MemoryChunk::is_incore(uint32_t offset, uint32_t length) {
+  uint32_t size = pages_touched(offset, length);
+  char buf[size];
+  
+  incore(buf, offset, length);
+
+  return std::find(buf, buf + size, 0) == buf + size;
 }
 
 }

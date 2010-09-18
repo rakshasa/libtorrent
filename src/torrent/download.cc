@@ -370,6 +370,9 @@ Download::accepting_new_peers() const {
 
 uint32_t
 Download::uploads_max() const {
+  if (m_ptr->main()->upload_choke_manager()->max_unchoked() == ChokeManager::unlimited)
+    return 0;
+
   return m_ptr->main()->upload_choke_manager()->max_unchoked();
 }
 

@@ -228,6 +228,8 @@ protected:
   EncryptBuffer*      m_encryptBuffer;
   EncryptionInfo      m_encryption;
   ProtocolExtension*  m_extensions;
+
+  bool m_incoreContinous;
 };
 
 inline void
