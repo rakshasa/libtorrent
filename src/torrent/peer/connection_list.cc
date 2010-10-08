@@ -66,6 +66,8 @@ void
 ConnectionList::clear() {
   std::for_each(begin(), end(), rak::on(std::mem_fun(&Peer::m_ptr), rak::call_delete<PeerConnectionBase>()));
   base_type::clear();
+  
+  m_disconnectQueue.clear();
 }
 
 PeerConnectionBase*
@@ -94,6 +96,12 @@ ConnectionList::iterator
 ConnectionList::erase(iterator pos, int flags) {
   if (pos < begin() || pos >= end())
     throw internal_error("ConnectionList::erase(...) iterator out or range.");
+
+  if (flags & disconnect_delayed) {
+    m_disconnectQueue.push_back((*pos)->id());
+    priority_queue_insert(&taskScheduler, &m_download->delay_disconnect_peers(), cachedTime);
+    return pos;
+  }
 
   PeerConnectionBase* peerConnection = (*pos)->m_ptr();
 
@@ -149,6 +157,18 @@ void
 ConnectionList::erase_seeders() {
   erase_remaining(std::partition(begin(), end(), rak::on(std::mem_fun(&Peer::c_ptr), std::mem_fun(&PeerConnectionBase::is_not_seeder))),
                   disconnect_unwanted);
+}
+
+void
+ConnectionList::disconnect_queued() {
+  for (queue_type::const_iterator itr = m_disconnectQueue.begin(), last = m_disconnectQueue.end(); itr != last; itr++) {
+    ConnectionList::iterator conn_itr = find(m_disconnectQueue.back().c_str());
+
+    if (conn_itr != end())
+      erase(conn_itr, 0);
+  }
+
+  m_disconnectQueue = queue_type();
 }
 
 struct connection_list_less {

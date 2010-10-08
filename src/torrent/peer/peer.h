@@ -68,8 +68,10 @@ public:
   bool                 is_down_interested() const;
 
   bool                 is_snubbed() const;
+  bool                 is_banned() const;
+
   void                 set_snubbed(bool v);
-  void                 set_banned();
+  void                 set_banned(bool v);
 
   const HashString&    id() const                         { return peer_info()->id(); }
   const char*          options() const                    { return peer_info()->options(); }
@@ -89,6 +91,8 @@ public:
   uint32_t             chunks_done() const;
 
   uint32_t             failed_counter() const             { return peer_info()->failed_counter(); }
+
+  void                 disconnect(int flags);
 
   //
   // New interface:

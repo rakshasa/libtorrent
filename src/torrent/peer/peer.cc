@@ -44,6 +44,7 @@
 #include "protocol/peer_connection_base.h"
 
 #include "exceptions.h"
+#include "connection_list.h"
 #include "peer.h"
 #include "peer_info.h"
 #include "rate.h"
@@ -62,8 +63,10 @@ bool Peer::is_down_queued() const          { return c_ptr()->is_down_queued(); }
 bool Peer::is_down_interested() const      { return c_ptr()->is_up_interested(); }
 
 bool Peer::is_snubbed() const              { return c_ptr()->is_up_snubbed(); }
+bool Peer::is_banned() const               { return m_peerInfo->failed_counter() >= 64; }
+
 void Peer::set_snubbed(bool v)             { m_ptr()->set_upload_snubbed(v); }
-void Peer::set_banned()                    { m_peerInfo->set_failed_counter(64); }
+void Peer::set_banned(bool v)              { m_peerInfo->set_failed_counter(v ? 64 : 0); }
 
 const Rate*       Peer::down_rate() const  { return c_ptr()->c_peer_chunks()->download_throttle()->rate(); } 
 const Rate*       Peer::up_rate() const    { return c_ptr()->c_peer_chunks()->upload_throttle()->rate(); } 
@@ -85,6 +88,11 @@ Peer::transfer() const {
 
   else
     return NULL;
+}
+
+void
+Peer::disconnect(int flags) {
+  m_ptr()->download()->connection_list()->erase(this, flags);
 }
 
 }

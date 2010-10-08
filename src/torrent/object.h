@@ -123,6 +123,9 @@ public:
     Object tmp; tmp.m_flags = TYPE_RAW_MAP; new (&tmp._raw_map()) raw_map(obj); return tmp;
   }
 
+  template <typename ForwardIterator>
+  static Object       create_list_range(ForwardIterator first, ForwardIterator last);
+
   // Clear should probably not be inlined due to size and not being
   // optimized away in pretty much any case. Might not work well in
   // cases where we pass constant rvalues.
@@ -333,6 +336,12 @@ object_create_string(const torrent::Object& obj) {
   case Object::TYPE_RAW_STRING:  return obj.as_raw_string().as_string();
   default: return obj.as_string();
   }
+}
+
+template <typename ForwardIterator>
+inline Object
+Object::create_list_range(ForwardIterator first, ForwardIterator last) {
+  Object tmp; tmp.m_flags = TYPE_LIST; new (&tmp._list()) list_type(first, last); return tmp;
 }
 
 inline void

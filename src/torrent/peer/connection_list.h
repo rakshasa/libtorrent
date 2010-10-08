@@ -40,6 +40,7 @@
 #include <vector>
 #include <sigc++/signal.h>
 #include <torrent/common.h>
+#include <torrent/hash_string.h>
 
 namespace torrent {
 
@@ -62,6 +63,7 @@ public:
   friend class HandshakeManager;
 
   typedef std::vector<Peer*>         base_type;
+  typedef std::vector<HashString>    queue_type;
   typedef uint32_t                   size_type;
   typedef sigc::signal1<void, Peer*> signal_peer_type;
 
@@ -89,6 +91,7 @@ public:
   static const int disconnect_available = (1 << 0);
   static const int disconnect_quick     = (1 << 1);
   static const int disconnect_unwanted  = (1 << 2);
+  static const int disconnect_delayed   = (1 << 3);
 
   ConnectionList(DownloadMain* download);
 
@@ -131,6 +134,8 @@ protected:
   // Clean this up, don't use this many arguments.
   PeerConnectionBase* insert(PeerInfo* p, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) LIBTORRENT_NO_EXPORT;
 
+  void                disconnect_queued() LIBTORRENT_NO_EXPORT;
+
 private:
   ConnectionList(const ConnectionList&) LIBTORRENT_NO_EXPORT;
   void operator = (const ConnectionList&) LIBTORRENT_NO_EXPORT;
@@ -144,6 +149,8 @@ private:
   signal_peer_type    m_signalDisconnected;
 
   slot_new_conn_type  m_slotNewConnection;
+
+  queue_type          m_disconnectQueue;
 };
 
 }
