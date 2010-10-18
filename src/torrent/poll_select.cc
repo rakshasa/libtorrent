@@ -56,9 +56,6 @@ struct poll_check_t {
   poll_check_t(Poll* p, fd_set* s, _Operation op) : m_poll(p), m_set(s), m_op(op) {}
 
   void operator () (Event* s) {
-    if ((m_poll->flags() & Poll::flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
-      ThreadBase::waive_global_lock();
-
     // This check is nessesary as other events may remove a socket
     // from the set.
     if (s == NULL)
@@ -68,8 +65,15 @@ struct poll_check_t {
     if (s->file_descriptor() < 0)
       throw internal_error("poll_check: s->fd < 0");
 
-    if (FD_ISSET(s->file_descriptor(), m_set))
+    if (FD_ISSET(s->file_descriptor(), m_set)) {
       m_op(s);
+
+      // We waive the global lock after an event has been processed in
+      // order to ensure that 's' doesn't get removed before the op is
+      // called.
+      if ((m_poll->flags() & Poll::flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
+        ThreadBase::waive_global_lock();
+    }
   }
 
   Poll*      m_poll;
