@@ -54,10 +54,15 @@ public:
   static inline void  release_global_lock();
   static inline void  waive_global_lock();
 
+  static inline bool  is_main_polling() { return m_global.main_polling; }
+  static inline void  entering_main_polling();
+  static inline void  leaving_main_polling();
+
 protected:
 
   struct global_lock_type {
     int             waiting;
+    int             main_polling;
     pthread_mutex_t lock;
   };
 
@@ -68,7 +73,7 @@ inline void
 ThreadBase::acquire_global_lock() {
   __sync_add_and_fetch(&ThreadBase::m_global.waiting, 1);
   pthread_mutex_lock(&ThreadBase::m_global.lock);
-  __sync_fetch_and_sub(&ThreadBase::m_global.waiting, 1);
+  __sync_sub_and_fetch(&ThreadBase::m_global.waiting, 1);
 }
 
 inline void
@@ -82,6 +87,23 @@ ThreadBase::waive_global_lock() {
 
   // Do we need to sleep here? Make a CppUnit test for this.
   acquire_global_lock();
+}
+
+// 'entering/leaving_main_polling' is used by the main polling thread
+// to indicate to other threads when it is safe to change the main
+// thread's event entries.
+//
+// A thread should first aquire global lock, then if it needs to
+// change poll'ed sockets on the main thread it should call
+// 'interrupt_main_polling' unless 'is_main_polling() == false'.
+inline void
+ThreadBase::entering_main_polling() {
+  __sync_lock_test_and_set(&ThreadBase::m_global.main_polling, 1);
+}
+
+inline void
+ThreadBase::leaving_main_polling() {
+  __sync_lock_test_and_set(&ThreadBase::m_global.main_polling, 0);
 }
 
 }  

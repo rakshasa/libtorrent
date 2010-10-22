@@ -192,6 +192,25 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 		poll_check(this, writeSet, std::mem_fun(&Event::event_write)));
 }
 
+inline static void
+log_poll_open(Event* event) {
+#ifdef LT_LOG_POLL_OPEN
+  static int log_fd = -1;
+  char buffer[256];
+
+  if (log_fd == -1) {
+    snprintf(buffer, 256, LT_LOG_POLL_OPEN, getpid());
+    
+    if ((log_fd = open(buffer, O_WRONLY | O_CREAT | O_TRUNC)) == -1)
+      throw internal_error("Could not open poll open log file.");
+  }
+
+  unsigned int buf_lenght = snprintf(buffer, 256, "open %i\n",
+                                     event->fd());
+
+#endif
+}
+
 void
 PollSelect::open(Event* event) {
   if ((uint32_t)event->file_descriptor() >= m_readSet->max_size())

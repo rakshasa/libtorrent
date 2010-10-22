@@ -40,6 +40,6 @@
 
 namespace torrent {
 
-ThreadBase::global_lock_type lt_cacheline_aligned ThreadBase::m_global = { 0, PTHREAD_MUTEX_INITIALIZER };
+ThreadBase::global_lock_type lt_cacheline_aligned ThreadBase::m_global = { 0, 0, PTHREAD_MUTEX_INITIALIZER };
 
 }
