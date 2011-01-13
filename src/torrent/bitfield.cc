@@ -43,7 +43,7 @@
 
 namespace torrent {
 
-// *sigh*
+// Number of set bits in a byte.
 static const unsigned char bit_count_256[] = 
 {
   0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 

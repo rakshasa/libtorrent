@@ -6,6 +6,8 @@ LibTorrentTest_LDADD = \
 LibTorrentTest_SOURCES = \
 	rak/allocators_test.cc \
 	rak/allocators_test.h \
+	rak/ranges_test.cc \
+	rak/ranges_test.h \
 	torrent/object_test.cc \
 	torrent/object_test.h \
 	torrent/object_test_utils.cc \

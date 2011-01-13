@@ -60,5 +60,17 @@ hash_string_from_hex_c_str(const char* first, HashString& hash) {
   return first;
 }
   
+const char*
+hash_string_to_hex(const HashString& hash, char* first) {
+  return rak::transform_hex(hash.begin(), hash.end(), first);
 }
-  
+
+std::string
+hash_string_to_hex_str(const HashString& hash) {
+  std::string str(HashString::size_data * 2, '\0');
+  rak::transform_hex(hash.begin(), hash.end(), str.begin());
+
+  return str;
+}
+
+}

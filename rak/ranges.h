@@ -75,6 +75,9 @@ public:
 
   // Use find with no closest match.
   bool                has(Type index) const;
+
+  size_t              intersect_distance(Type first, Type last) const;
+  size_t              intersect_distance(value_type range) const;
 };
 
 template <typename Type>
@@ -157,6 +160,28 @@ ranges<Type>::has(Type index) const {
   const_iterator itr = find(index);
 
   return itr != end() && index >= itr->first;
+}
+
+template <typename Type>
+size_t
+ranges<Type>::intersect_distance(Type first, Type last) const {
+  return intersect_distance(std::make_pair(first, last));
+}
+
+template <typename Type>
+size_t
+ranges<Type>::intersect_distance(value_type range) const {
+  const_iterator first = find(range.first);
+
+  if (first == end() || range.second <= first->first)
+    return 0;
+
+  size_t dist = std::min(range.second, first->second) - std::max(range.first, first->first);
+
+  while (++first != end() && range.second > first->first)
+    dist += std::min(range.second, first->second) - first->first;
+
+  return dist;
 }
 
 }

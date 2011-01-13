@@ -134,8 +134,12 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* down
 
 void
 HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* download, int encryptionOptions) {
-  PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(),
-                                                        PeerList::connect_keep_handshakes | PeerList::connect_filter_recent);
+  int connection_options = PeerList::connect_keep_handshakes;
+
+  if (!(encryptionOptions & ConnectionManager::encryption_retrying))
+    connection_options |= PeerList::connect_filter_recent;
+
+  PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(), connection_options);
 
   if (peerInfo == NULL || peerInfo->failed_counter() > max_failed)
     return;
@@ -256,7 +260,7 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
                                                              error,
                                                              handshake->download() != NULL ? &handshake->download()->info()->hash() : NULL);
   if (handshake->encryption()->should_retry()) {
-    int retry_options = handshake->retry_options();
+    int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
     DownloadMain* download = handshake->download();
 
     manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(),

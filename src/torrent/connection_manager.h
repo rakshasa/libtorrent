@@ -86,6 +86,7 @@ public:
 
   // Internal to libtorrent.
   static const uint32_t encryption_use_proxy        = (1 << 6);
+  static const uint32_t encryption_retrying         = (1 << 7);
 
   enum {
     handshake_incoming           = 1,
