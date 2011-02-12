@@ -78,6 +78,29 @@ swap_compare(const char* left, const char* right) {
   return true;
 }
 
+static bool
+swap_compare_dict_key(const char* left_key, const char* left_obj, const char* right_key, const char* right_obj) {
+  torrent::Object obj_left = torrent::Object::create_dict_key();
+  torrent::Object obj_right = torrent::Object::create_dict_key();
+
+  obj_left.as_dict_key()  = left_key;
+  obj_left.as_dict_obj()  = create_bencode(left_obj);
+  obj_right.as_dict_key() = right_key;
+  obj_right.as_dict_obj() = create_bencode(right_obj);
+
+  obj_left.swap(obj_right);
+  if (obj_left.as_dict_key() != right_key || !compare_bencode(obj_left.as_dict_obj(), right_obj) ||
+      obj_right.as_dict_key() != left_key || !compare_bencode(obj_right.as_dict_obj(), left_obj))
+    return false;
+
+  obj_left.swap(obj_right);
+  if (obj_left.as_dict_key() != left_key || !compare_bencode(obj_left.as_dict_obj(), left_obj) ||
+      obj_right.as_dict_key() != right_key || !compare_bencode(obj_right.as_dict_obj(), right_obj))
+    return false;
+
+  return true;
+}
+
 void
 ObjectTest::test_swap_and_move() {
   CPPUNIT_ASSERT(swap_compare(TEST_VALUE_A, TEST_VALUE_B));
@@ -93,6 +116,9 @@ ObjectTest::test_swap_and_move() {
   CPPUNIT_ASSERT(swap_compare("i1e", TEST_VALUE_A));
   CPPUNIT_ASSERT(swap_compare("i1e", TEST_MAP_A));
   CPPUNIT_ASSERT(swap_compare("i1e", TEST_LIST_A));
+
+  CPPUNIT_ASSERT(swap_compare_dict_key("a", TEST_VALUE_A, "b", TEST_STRING_B));
+  CPPUNIT_ASSERT(swap_compare_dict_key("a", TEST_STRING_A, "b", TEST_STRING_B));
 }
 
 void

@@ -65,6 +65,7 @@ public:
   using base_type::value_type;
 
   using base_type::iterator;
+  using base_type::const_iterator;
   using base_type::reverse_iterator;
   using base_type::empty;
   using base_type::size;

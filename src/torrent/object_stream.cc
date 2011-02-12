@@ -552,6 +552,9 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
 
     object_write_bencode_c_char(output, 'e');
     break;
+  case Object::TYPE_DICT_KEY:
+    throw torrent::bencode_error("Cannot bencode internal dict_key type.");
+    break;
   }
 }
 

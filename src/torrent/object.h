@@ -54,6 +54,7 @@ public:
   typedef std::map<std::string, Object>     map_type;
   typedef map_type*                         map_ptr_type;
   typedef map_type::key_type                key_type;
+  typedef std::pair<std::string, Object*>   dict_key_type;
 
   typedef list_type::iterator               list_iterator;
   typedef list_type::const_iterator         list_const_iterator;
@@ -75,8 +76,13 @@ public:
   static const uint32_t mask_public   = ~mask_internal;
 
   static const uint32_t flag_unordered    = 0x100;    // bencode dictionary was not sorted
-  static const uint32_t flag_static_data  = 0x10000;  // Object does not change across sessions.
-  static const uint32_t flag_session_data = 0x20000;  // Object changes between sessions.
+  static const uint32_t flag_static_data  = 0x010000;  // Object does not change across sessions.
+  static const uint32_t flag_session_data = 0x020000;  // Object changes between sessions.
+  static const uint32_t flag_function     = 0x040000;  // A function object.
+  static const uint32_t flag_function_q1  = 0x080000;  // A quoted function object.
+  static const uint32_t flag_function_q2  = 0x100000;  // A double-quoted function object.
+
+  static const uint32_t mask_function     = 0x1C0000;  // Mask for function objects.
 
   enum type_type {
     TYPE_NONE,
@@ -87,7 +93,8 @@ public:
     TYPE_VALUE,
     TYPE_STRING,
     TYPE_LIST,
-    TYPE_MAP
+    TYPE_MAP,
+    TYPE_DICT_KEY
   };
 
   Object()                     : m_flags(TYPE_NONE) {}
@@ -109,19 +116,12 @@ public:
   static Object       create_string() { return Object(string_type()); }
   static Object       create_list()   { Object tmp; tmp.m_flags = TYPE_LIST; new (&tmp._list()) list_type(); return tmp; }
   static Object       create_map()    { Object tmp; tmp.m_flags = TYPE_MAP; tmp._map_ptr() = new map_type(); return tmp; }
+  static Object       create_dict_key();
 
-  static Object       create_raw_bencode(raw_bencode obj = raw_bencode()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_BENCODE; new (&tmp._raw_bencode()) raw_bencode(obj); return tmp;
-  }
-  static Object       create_raw_string(raw_string obj = raw_string()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_STRING; new (&tmp._raw_string()) raw_string(obj); return tmp;
-  }
-  static Object       create_raw_list(raw_list obj = raw_list()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_LIST; new (&tmp._raw_list()) raw_list(obj); return tmp;
-  }
-  static Object       create_raw_map(raw_map obj = raw_map()) {
-    Object tmp; tmp.m_flags = TYPE_RAW_MAP; new (&tmp._raw_map()) raw_map(obj); return tmp;
-  }
+  static Object       create_raw_bencode(raw_bencode obj = raw_bencode());
+  static Object       create_raw_string(raw_string obj = raw_string());
+  static Object       create_raw_list(raw_list obj = raw_list());
+  static Object       create_raw_map(raw_map obj = raw_map());
 
   template <typename ForwardIterator>
   static Object       create_list_range(ForwardIterator first, ForwardIterator last);
@@ -148,6 +148,7 @@ public:
   bool                is_string() const                       { return type() == TYPE_STRING; }
   bool                is_list() const                         { return type() == TYPE_LIST; }
   bool                is_map() const                          { return type() == TYPE_MAP; }
+  bool                is_dict_key() const                     { return type() == TYPE_DICT_KEY; }
   bool                is_raw_bencode() const                  { return type() == TYPE_RAW_BENCODE; }
   bool                is_raw_string() const                   { return type() == TYPE_RAW_STRING; }
   bool                is_raw_list() const                     { return type() == TYPE_RAW_LIST; }
@@ -161,14 +162,18 @@ public:
   const list_type&    as_list() const                         { check_throw(TYPE_LIST); return _list(); }
   map_type&           as_map()                                { check_throw(TYPE_MAP); return _map(); }
   const map_type&     as_map() const                          { check_throw(TYPE_MAP); return _map(); }
-  raw_bencode&        as_raw_bencode()                    { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
-  const raw_bencode&  as_raw_bencode() const              { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
-  raw_string&         as_raw_string()                     { check_throw(TYPE_RAW_STRING); return _raw_string(); }
-  const raw_string&   as_raw_string() const               { check_throw(TYPE_RAW_STRING); return _raw_string(); }
-  raw_list&           as_raw_list()                       { check_throw(TYPE_RAW_LIST); return _raw_list(); }
-  const raw_list&     as_raw_list() const                 { check_throw(TYPE_RAW_LIST); return _raw_list(); }
-  raw_map&            as_raw_map()                        { check_throw(TYPE_RAW_MAP); return _raw_map(); }
-  const raw_map&      as_raw_map() const                  { check_throw(TYPE_RAW_MAP); return _raw_map(); }
+  string_type&        as_dict_key()                           { check_throw(TYPE_DICT_KEY); return _dict_key().first; }
+  const string_type&  as_dict_key() const                     { check_throw(TYPE_DICT_KEY); return _dict_key().first; }
+  Object&             as_dict_obj()                           { check_throw(TYPE_DICT_KEY); return *_dict_key().second; }
+  const Object&       as_dict_obj() const                     { check_throw(TYPE_DICT_KEY); return *_dict_key().second; }
+  raw_bencode&        as_raw_bencode()                        { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
+  const raw_bencode&  as_raw_bencode() const                  { check_throw(TYPE_RAW_BENCODE); return _raw_bencode(); }
+  raw_string&         as_raw_string()                         { check_throw(TYPE_RAW_STRING); return _raw_string(); }
+  const raw_string&   as_raw_string() const                   { check_throw(TYPE_RAW_STRING); return _raw_string(); }
+  raw_list&           as_raw_list()                           { check_throw(TYPE_RAW_LIST); return _raw_list(); }
+  const raw_list&     as_raw_list() const                     { check_throw(TYPE_RAW_LIST); return _raw_list(); }
+  raw_map&            as_raw_map()                            { check_throw(TYPE_RAW_MAP); return _raw_map(); }
+  const raw_map&      as_raw_map() const                      { check_throw(TYPE_RAW_MAP); return _raw_map(); }
 
   bool                has_key(const key_type& k) const        { check_throw(TYPE_MAP); return _map().find(k) != _map().end(); }
   bool                has_key_value(const key_type& k) const  { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_VALUE); }
@@ -249,6 +254,8 @@ public:
   const map_type&     _map() const         { return *reinterpret_cast<const map_ptr_type&>(t_pod); }
   map_ptr_type&       _map_ptr()           { return reinterpret_cast<map_ptr_type&>(t_pod); }
   const map_ptr_type& _map_ptr() const     { return reinterpret_cast<const map_ptr_type&>(t_pod); }
+  dict_key_type&       _dict_key()         { return reinterpret_cast<dict_key_type&>(t_pod); }
+  const dict_key_type& _dict_key() const   { return reinterpret_cast<const dict_key_type&>(t_pod); }
   raw_object&         _raw_object()        { return reinterpret_cast<raw_object&>(t_pod); }
   const raw_object&   _raw_object() const  { return reinterpret_cast<const raw_object&>(t_pod); }
   raw_bencode&        _raw_bencode()       { return reinterpret_cast<raw_bencode&>(t_pod); }
@@ -261,15 +268,16 @@ public:
   const raw_map&      _raw_map() const     { return reinterpret_cast<const raw_map&>(t_pod); }
 
   union pod_types {
-    value_type t_value;
-    map_type*  t_map;
-    char       t_raw_obect[sizeof(raw_object)];
+    value_type    t_value;
+    map_type*     t_map;
+    char          t_raw_object[sizeof(raw_object)];
   };
 
   union {
     pod_types t_pod;
-    char    t_string[sizeof(string_type)];
-    char    t_list[sizeof(list_type)];
+    char      t_string[sizeof(string_type)];
+    char      t_list[sizeof(list_type)];
+    char      t_dict_key[sizeof(dict_key_type)];
   };
 };
 
@@ -287,6 +295,9 @@ Object::Object(const Object& b) {
   case TYPE_STRING:      new (&_string()) string_type(b._string()); break;
   case TYPE_LIST:        new (&_list()) list_type(b._list()); break;
   case TYPE_MAP:         _map_ptr() = new map_type(b._map()); break;
+  case TYPE_DICT_KEY:
+    new (&_dict_key().first) string_type(b._dict_key().first);
+    _dict_key().second = new Object(*b._dict_key().second); break;
   }
 }
 
@@ -301,6 +312,7 @@ Object::create_empty(type_type t) {
   case TYPE_STRING:      return create_string();
   case TYPE_LIST:        return create_list();
   case TYPE_MAP:         return create_map();
+  case TYPE_DICT_KEY:    return create_dict_key();
   case TYPE_NONE:
   default: return torrent::Object();
   }
@@ -317,6 +329,35 @@ Object object_create_normal(const raw_bencode& obj) LIBTORRENT_EXPORT;
 Object object_create_normal(const raw_list& obj) LIBTORRENT_EXPORT;
 Object object_create_normal(const raw_map& obj) LIBTORRENT_EXPORT;
 inline Object object_create_normal(const raw_string& obj) { return torrent::Object(obj.as_string()); }
+
+inline Object
+Object::create_dict_key() {
+  Object tmp;
+  tmp.m_flags = TYPE_DICT_KEY;
+  new (&tmp._dict_key()) dict_key_type();
+  tmp._dict_key().second = new Object();
+  return tmp;
+}
+
+inline Object
+Object::create_raw_bencode(raw_bencode obj) {
+  Object tmp; tmp.m_flags = TYPE_RAW_BENCODE; new (&tmp._raw_bencode()) raw_bencode(obj); return tmp;
+}
+
+inline Object
+Object::create_raw_string(raw_string obj) {
+  Object tmp; tmp.m_flags = TYPE_RAW_STRING; new (&tmp._raw_string()) raw_string(obj); return tmp;
+}
+
+inline Object
+Object::create_raw_list(raw_list obj) {
+  Object tmp; tmp.m_flags = TYPE_RAW_LIST; new (&tmp._raw_list()) raw_list(obj); return tmp;
+}
+
+inline Object
+Object::create_raw_map(raw_map obj) {
+  Object tmp; tmp.m_flags = TYPE_RAW_MAP; new (&tmp._raw_map()) raw_map(obj); return tmp;
+}
 
 inline Object
 object_create_normal(const Object& obj) {
@@ -347,9 +388,10 @@ Object::create_list_range(ForwardIterator first, ForwardIterator last) {
 inline void
 Object::clear() {
   switch (type()) {
-  case TYPE_STRING: _string().~string_type(); break;
-  case TYPE_LIST:   _list().~list_type(); break;
-  case TYPE_MAP:    delete _map_ptr(); break;
+  case TYPE_STRING:   _string().~string_type(); break;
+  case TYPE_LIST:     _list().~list_type(); break;
+  case TYPE_MAP:      delete _map_ptr(); break;
+  case TYPE_DICT_KEY: delete _dict_key().second; _dict_key().~dict_key_type(); break;
   default: break;
   }
 
@@ -362,8 +404,11 @@ Object::swap_same_type(Object& left, Object& right) {
   std::swap(left.m_flags, right.m_flags);
 
   switch (left.type()) {
-  case Object::TYPE_STRING: left._string().swap(right._string()); break;
-  case Object::TYPE_LIST:   left._list().swap(right._list()); break;
+  case Object::TYPE_STRING:   left._string().swap(right._string()); break;
+  case Object::TYPE_LIST:     left._list().swap(right._list()); break;
+  case Object::TYPE_DICT_KEY:
+    std::swap(left._dict_key().first, right._dict_key().first);
+    std::swap(left._dict_key().second, right._dict_key().second); break;
   default: std::swap(left.t_pod, right.t_pod); break;
   }
 }
