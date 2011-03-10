@@ -308,14 +308,17 @@ TrackerManager::receive_failed(const std::string& msg) {
 
   } else {
     // Normal retry.
+    unsigned int retry_seconds = 3;
 
     if (m_control->focus() == m_control->end()) {
       // Tried all the trackers, start from the beginning.
       m_failedRequests++;
       m_control->set_focus(m_control->begin());
+
+      retry_seconds = std::min<unsigned int>(300, 3 + 20 * m_failedRequests);
     }
-    
-    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(std::min<uint32_t>(600, 20 + 20 * m_failedRequests))).round_seconds());
+
+    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(retry_seconds)).round_seconds());
   }
 
   m_slotFailed(msg);
