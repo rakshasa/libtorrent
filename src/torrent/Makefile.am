@@ -1,6 +1,7 @@
 SUBDIRS = \
 	data \
-	peer
+	peer \
+	utils
 
 noinst_LTLIBRARIES = libsub_torrent.la
 

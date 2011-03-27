@@ -15,6 +15,7 @@ libtorrent_la_LIBADD = \
 	torrent/libsub_torrent.la \
 	torrent/data/libsub_torrentdata.la \
 	torrent/peer/libsub_torrentpeer.la \
+	torrent/utils/libsub_torrentutils.la \
 	data/libsub_data.la \
 	dht/libsub_dht.la \
 	download/libsub_download.la \

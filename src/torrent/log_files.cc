@@ -40,6 +40,8 @@
 #include <functional>
 #include <cstring>
 #include <fcntl.h>
+#include <cstdio>
+#include <unistd.h>
 
 #include "rak/timer.h"
 #include "log_files.h"
