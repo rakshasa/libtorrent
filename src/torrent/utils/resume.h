@@ -42,8 +42,8 @@
 
 // Should propably move this into a sub-directory.
 
-#ifndef LIBTORRENT_RESUME_H
-#define LIBTORRENT_RESUME_H
+#ifndef LIBTORRENT_UTILS_RESUME_H
+#define LIBTORRENT_UTILS_RESUME_H
 
 #include <torrent/common.h>
 

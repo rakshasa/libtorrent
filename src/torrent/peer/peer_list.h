@@ -39,10 +39,13 @@
 
 #include <map>
 #include <torrent/common.h>
+#include <torrent/utils/extents.h>
 
 namespace torrent {
 
-bool        socket_address_less(const sockaddr* s1, const sockaddr* s2);
+typedef extents<uint32_t, int, 32, 256, 8> ipv4_table;
+
+bool socket_address_less(const sockaddr* s1, const sockaddr* s2);
 
 // Unique key for the address, excluding port numbers etc.
 class LIBTORRENT_EXPORT socket_address_key {
@@ -101,6 +104,8 @@ public:
   // This will be used internally only for the moment.
   uint32_t            insert_available(const void* al) LIBTORRENT_NO_EXPORT;
 
+  static ipv4_table*  ipv4_filter() { return &m_ipv4_table; }
+
   AvailableList*      available_list()  { return m_availableList; }
   uint32_t            available_list_size() const;
 
@@ -123,6 +128,7 @@ private:
   PeerList(const PeerList&);
   void operator = (const PeerList&);
 
+  static ipv4_table   m_ipv4_table;
   AvailableList*      m_availableList;
 };
 

@@ -52,6 +52,8 @@
 
 namespace torrent {
 
+ipv4_table PeerList::m_ipv4_table;
+
 bool
 socket_address_less(const sockaddr* s1, const sockaddr* s2) {
   const rak::socket_address* sa1 = rak::socket_address::cast_from(s1);
@@ -112,6 +114,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
 
   PeerInfo* peerInfo = new PeerInfo(sa);
   peerInfo->set_listen_port(address->port());
+  peerInfo->set_flags(m_ipv4_table.at(address->sa_inet()->address_h()) & PeerInfo::mask_ip_table);
   
   manager->client_list()->retrieve_unknown(&peerInfo->mutable_client_info());
 
@@ -209,6 +212,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
   if (range.first == range.second) {
     // Create a new entry.
     peerInfo = new PeerInfo(sa);
+    peerInfo->set_flags(m_ipv4_table.at(address->sa_inet()->address_h()) & PeerInfo::mask_ip_table);
 
     base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
 

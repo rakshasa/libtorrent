@@ -56,6 +56,10 @@ public:
   static const int flag_handshake = (1 << 2);
   static const int flag_blocked   = (1 << 3);   // For initial seeding.
   static const int flag_restart   = (1 << 4);
+  static const int flag_unwanted  = (1 << 5);
+  static const int flag_preferred = (1 << 6);
+
+  static const int mask_ip_table = flag_unwanted | flag_preferred;
 
   PeerInfo(const sockaddr* address);
   ~PeerInfo();
@@ -65,6 +69,8 @@ public:
   bool                is_handshake() const                  { return m_flags & flag_handshake; }
   bool                is_blocked() const                    { return m_flags & flag_blocked; }
   bool                is_restart() const                    { return m_flags & flag_restart; }
+  bool                is_unwanted() const                   { return m_flags & flag_unwanted; }
+  bool                is_preferred() const                  { return m_flags & flag_preferred; }
 
   int                 flags() const                         { return m_flags; }
 
