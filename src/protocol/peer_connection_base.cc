@@ -41,10 +41,6 @@
 #include <rak/error_number.h>
 #include <rak/string_manip.h>
 
-#include "torrent/exceptions.h"
-#include "torrent/data/block.h"
-#include "torrent/chunk_manager.h"
-#include "torrent/log_files.h"
 #include "data/chunk_iterator.h"
 #include "data/chunk_list.h"
 #include "download/choke_manager.h"
@@ -52,11 +48,15 @@
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
 #include "net/socket_base.h"
+#include "torrent/exceptions.h"
+#include "torrent/data/block.h"
+#include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/throttle.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/utils/log_files.h"
 
 #include "extensions.h"
 #include "peer_connection_base.h"

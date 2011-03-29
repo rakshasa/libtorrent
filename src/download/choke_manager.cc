@@ -40,9 +40,11 @@
 #include <functional>
 #include <numeric>
 #include <cstdlib>
+#include <tr1/functional>
 
 #include "protocol/peer_connection_base.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/utils/log_files.h"
 
 #include "choke_manager.h"
 #include "choke_manager_node.h"
@@ -100,6 +102,9 @@ ChokeManager::balance() {
 
   int adjust = m_maxUnchoked - m_unchoked.size();
 
+  if (log_files[LOG_CHOKE_CHANGES].is_open())
+    log_choke_changes_func_new(this, "balance", m_maxUnchoked, adjust);
+
   if (adjust > 0) {
     adjust = unchoke_range(m_queued.begin(), m_queued.end(),
 			   std::min((uint32_t)adjust, m_slotCanUnchoke()));
@@ -120,11 +125,15 @@ int
 ChokeManager::cycle(uint32_t quota) {
   quota = std::min(quota, m_maxUnchoked);
 
+  uint32_t adjust = std::max<uint32_t>(m_unchoked.size() < quota ? quota - m_unchoked.size() : 0,
+                                       std::min(quota, max_alternate()));
+
+  if (log_files[LOG_CHOKE_CHANGES].is_open())
+    log_choke_changes_func_new(this, "cycle", quota, adjust);
+
   // Does this properly handle 'unlimited' quota?
   uint32_t oldSize  = m_unchoked.size();
-  uint32_t unchoked = unchoke_range(m_queued.begin(), m_queued.end(),
-                                    std::max<uint32_t>(m_unchoked.size() < quota ? quota - m_unchoked.size() : 0,
-                                                       std::min(quota, max_alternate())));
+  uint32_t unchoked = unchoke_range(m_queued.begin(), m_queued.end(), adjust);
 
   if (m_unchoked.size() > quota)
     choke_range(m_unchoked.begin(), m_unchoked.end() - unchoked, m_unchoked.size() - quota);
@@ -355,8 +364,15 @@ ChokeManager::choke_range(iterator first, iterator last, uint32_t max) {
     // The C++ standard says std::partition will call the predicate
     // max 'last - first' times, so we can assume it gets called once
     // per element.
+    iterator first_unchoke = itr->second - (itr - 1)->first;
+    iterator last_unchoke = itr->second;
+
     iterator split = std::partition(itr->second - (itr - 1)->first, itr->second,
                                     rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, true)));
+
+    if (log_files[LOG_CHOKE_CHANGES].is_open())
+      std::for_each(first_unchoke, split,
+                    std::tr1::bind(&log_choke_changes_func_peer, this, "  choke", std::tr1::placeholders::_1));
 
     m_queued.insert(m_queued.end(), itr->second - (itr - 1)->first, split);
     m_unchoked.erase(itr->second - (itr - 1)->first, itr->second);
@@ -391,8 +407,14 @@ ChokeManager::unchoke_range(iterator first, iterator last, uint32_t max) {
 
     count += (itr - 1)->first;
 
-    std::for_each(itr->second - (itr - 1)->first, itr->second,
-                  rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, false)));
+    iterator first_unchoke = itr->second - (itr - 1)->first;
+    iterator last_unchoke = itr->second;
+
+    std::for_each(first_unchoke, last_unchoke, rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, false)));
+
+    if (log_files[LOG_CHOKE_CHANGES].is_open())
+      std::for_each(first_unchoke, last_unchoke,
+                    std::tr1::bind(&log_choke_changes_func_peer, this, "unchoke", std::tr1::placeholders::_1));
 
     m_unchoked.insert(m_unchoked.end(), itr->second - (itr - 1)->first, itr->second);
     m_queued.erase(itr->second - (itr - 1)->first, itr->second);

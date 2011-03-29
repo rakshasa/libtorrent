@@ -49,7 +49,8 @@
 namespace torrent {
 
 log_file log_files[LOG_MAX_SIZE] = {
-  log_file("mincore_stats")
+  log_file("mincore_stats"),
+  log_file("choke_changes")
 };
 
 bool
@@ -59,7 +60,7 @@ log_file::open_file(const char* filename) {
 
   m_last_update = rak::timer::current().seconds();
 
-  return (m_fd = open(filename, O_WRONLY | O_CREAT | O_EXCL)) != -1;
+  return (m_fd = open(filename, O_RDWR | O_CREAT | O_EXCL, 0666)) != -1;
 }
 
 void
@@ -129,5 +130,27 @@ log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
   continous = is_incore;
 }
 
+void
+log_choke_changes_func_new(void* address, const char* title, int quota, int adjust) {
+  log_file* lf = &log_files[LOG_CHOKE_CHANGES];
+  lf->set_last_update(rak::timer::current().seconds());
+
+  char buffer[256];
+  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %i %i\n",
+                                     address, lf->last_update(), title, quota, adjust);
+
+  write(lf->file_descriptor(), buffer, buf_lenght);
+}
+
+void
+log_choke_changes_func_peer(void* address, const char* title, std::pair<PeerConnectionBase*, uint32_t> data) {
+  log_file* lf = &log_files[LOG_CHOKE_CHANGES];
+
+  char buffer[256];
+  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %p %u\n",
+                                     address, lf->last_update(), title, data.first, data.second);
+
+  write(lf->file_descriptor(), buffer, buf_lenght);
+}
 
 }

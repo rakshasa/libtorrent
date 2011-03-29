@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_LOG_FILES_H
-#define LIBTORRENT_LOG_FILES_H
+#ifndef LIBTORRENT_UTILS_LOG_FILES_H
+#define LIBTORRENT_UTILS_LOG_FILES_H
 
 #include <torrent/common.h>
 
@@ -65,6 +65,7 @@ private:
 
 enum {
   LOG_MINCORE_STATS,
+  LOG_CHOKE_CHANGES,
   LOG_MAX_SIZE
 };
 
@@ -74,6 +75,8 @@ log_file* find_log_file(const char* name) LIBTORRENT_EXPORT;
 
 // Update log files:
 void log_mincore_stats_func(bool is_incore, bool new_index, bool& continous);
+void log_choke_changes_func_new(void* address, const char* title, int quota, int adjust);
+void log_choke_changes_func_peer(void* address, const char* title, std::pair<PeerConnectionBase*, uint32_t> data);
 
 }
 
