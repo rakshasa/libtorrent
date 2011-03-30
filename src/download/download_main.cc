@@ -97,19 +97,11 @@ DownloadMain::DownloadMain() :
   m_uploadChokeManager   = new ChokeManager(m_connectionList);
   m_downloadChokeManager = new ChokeManager(m_connectionList, ChokeManager::flag_unchoke_all_new);
 
-  m_uploadChokeManager->set_slot_choke_weight(&calculate_upload_choke);
-  m_uploadChokeManager->set_slot_unchoke_weight(&calculate_upload_unchoke);
+  m_uploadChokeManager->set_heuristics(ChokeManager::HEURISTICS_UPLOAD_LEECH);
   m_uploadChokeManager->set_slot_connection(std::mem_fun(&PeerConnectionBase::receive_upload_choke));
 
-  std::memcpy(m_uploadChokeManager->choke_weight(),   weights_upload_choke,   ChokeManager::weight_size_bytes);
-  std::memcpy(m_uploadChokeManager->unchoke_weight(), weights_upload_unchoke, ChokeManager::weight_size_bytes);
-
-  m_downloadChokeManager->set_slot_choke_weight(&calculate_download_choke);
-  m_downloadChokeManager->set_slot_unchoke_weight(&calculate_download_unchoke);
+  m_downloadChokeManager->set_heuristics(ChokeManager::HEURISTICS_DOWNLOAD_LEECH);
   m_downloadChokeManager->set_slot_connection(std::mem_fun(&PeerConnectionBase::receive_download_choke));
-
-  std::memcpy(m_downloadChokeManager->choke_weight(),   weights_download_choke,   ChokeManager::weight_size_bytes);
-  std::memcpy(m_downloadChokeManager->unchoke_weight(), weights_download_unchoke, ChokeManager::weight_size_bytes);
 
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));

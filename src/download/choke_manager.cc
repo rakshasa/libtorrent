@@ -254,6 +254,7 @@ struct choke_manager_less {
 void
 choke_manager_allocate_slots(ChokeManager::iterator first, ChokeManager::iterator last,
                              uint32_t max, uint32_t* weights, ChokeManager::target_type* target) {
+  // Sorting the connections from the lowest to highest value.
   std::sort(first, last, choke_manager_less());
 
   // 'weightTotal' only contains the weight of targets that have
@@ -334,10 +335,14 @@ choke_manager_allocate_slots(ChokeManager::iterator first, ChokeManager::iterato
 
 uint32_t
 ChokeManager::choke_range(iterator first, iterator last, uint32_t max) {
-  m_slotChokeWeight(first, last);
+  m_heuristics_list[m_heuristics].slot_choke_weight(first, last);
 
   target_type target[order_max_size + 1];
-  choke_manager_allocate_slots(first, last, max, m_chokeWeight, target);
+  choke_manager_allocate_slots(first, last, max, m_heuristics_list[m_heuristics].choke_weight, target);
+
+  if (log_files[LOG_CHOKE_CHANGES].is_open())
+    for (uint32_t i = 0; i < ChokeManager::order_max_size; i++)
+      log_choke_changes_func_allocate(this, "  choke", i, target[i].first, std::distance(target[i].second, target[i + 1].second));
 
   // Now do the actual unchoking.
   uint32_t count = 0;
@@ -386,10 +391,14 @@ ChokeManager::choke_range(iterator first, iterator last, uint32_t max) {
   
 uint32_t
 ChokeManager::unchoke_range(iterator first, iterator last, uint32_t max) {
-  m_slotUnchokeWeight(first, last);
+  m_heuristics_list[m_heuristics].slot_unchoke_weight(first, last);
 
   target_type target[order_max_size + 1];
-  choke_manager_allocate_slots(first, last, max, m_unchokeWeight, target);
+  choke_manager_allocate_slots(first, last, max, m_heuristics_list[m_heuristics].unchoke_weight, target);
+
+  if (log_files[LOG_CHOKE_CHANGES].is_open())
+    for (uint32_t i = 0; i < ChokeManager::order_max_size; i++)
+      log_choke_changes_func_allocate(this, "unchoke", i, target[i].first, std::distance(target[i].second, target[i + 1].second));
 
   // Now do the actual unchoking.
   uint32_t count = 0;
@@ -430,9 +439,6 @@ ChokeManager::unchoke_range(iterator first, iterator last, uint32_t max) {
 
 // Need to add the recently unchoked check here?
 
-uint32_t weights_upload_choke[ChokeManager::order_max_size]   = { 1, 1, 1, 1 };
-uint32_t weights_upload_unchoke[ChokeManager::order_max_size] = { 1, 3, 9, 0 };
-
 void
 calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last) {
   while (first != last) {
@@ -471,9 +477,6 @@ calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator la
 
 // Fix this, but for now just use something simple.
 
-uint32_t weights_download_choke[ChokeManager::order_max_size]   = { 1, 1, 1, 1 };
-uint32_t weights_download_unchoke[ChokeManager::order_max_size] = { 1, 1, 1, 1 };
-
 void
 calculate_download_choke(ChokeManager::iterator first, ChokeManager::iterator last) {
   while (first != last) {
@@ -495,5 +498,10 @@ calculate_download_unchoke(ChokeManager::iterator first, ChokeManager::iterator 
     first++;
   }
 }
+
+ChokeManager::heuristics_type ChokeManager::m_heuristics_list[HEURISTICS_MAX_SIZE] = {
+  { &calculate_upload_choke,   &calculate_upload_unchoke,   { 1, 1, 1, 1 }, { 1, 3, 9, 0 } },
+  { &calculate_download_choke, &calculate_download_unchoke, { 1, 1, 1, 1 }, { 1, 1, 1, 1 } }
+};
 
 }

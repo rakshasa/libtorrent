@@ -71,9 +71,24 @@ public:
 
   static const uint32_t unlimited = ~uint32_t();
 
+  struct heuristics_type {
+    slot_weight         slot_choke_weight;
+    slot_weight         slot_unchoke_weight;
+    
+    uint32_t            choke_weight[order_max_size];
+    uint32_t            unchoke_weight[order_max_size];
+  };
+
+   enum heuristics_enum {
+    HEURISTICS_UPLOAD_LEECH,
+    HEURISTICS_DOWNLOAD_LEECH,
+    HEURISTICS_MAX_SIZE
+  };
+
   ChokeManager(ConnectionList* cl, int flags = 0) :
     m_connectionList(cl),
     m_flags(flags),
+    m_heuristics(HEURISTICS_MAX_SIZE),
     m_maxUnchoked(unlimited),
     m_generousUnchokes(3),
     m_slotConnection(NULL) {}
@@ -105,11 +120,8 @@ public:
 
   void                disconnected(PeerConnectionBase* pc, ChokeManagerNode* base);
 
-  uint32_t*           choke_weight()                           { return m_chokeWeight; }
-  uint32_t*           unchoke_weight()                         { return m_unchokeWeight; }
-
-  void                set_slot_choke_weight(slot_weight s)     { m_slotChokeWeight = s; }
-  void                set_slot_unchoke_weight(slot_weight s)   { m_slotUnchokeWeight = s; }
+  heuristics_enum     heuristics() const                       { return m_heuristics; }
+  void                set_heuristics(heuristics_enum hs)       { m_heuristics = hs; }
 
   void                set_slot_unchoke(slot_unchoke s)         { m_slotUnchoke = s; }
   void                set_slot_can_unchoke(slot_can_unchoke s) { m_slotCanUnchoke = s; }
@@ -121,38 +133,23 @@ private:
   uint32_t            choke_range(iterator first, iterator last, uint32_t max);
   uint32_t            unchoke_range(iterator first, iterator last, uint32_t max);
 
+  static heuristics_type m_heuristics_list[HEURISTICS_MAX_SIZE];
+
   ConnectionList*     m_connectionList;
 
   container_type      m_queued;
   container_type      m_unchoked;
 
-  uint32_t            m_chokeWeight[order_max_size];
-  uint32_t            m_unchokeWeight[order_max_size];
-
   int                 m_flags;
+  heuristics_enum     m_heuristics;
 
   uint32_t            m_maxUnchoked;
   uint32_t            m_generousUnchokes;
-
-  slot_weight         m_slotChokeWeight;
-  slot_weight         m_slotUnchokeWeight;
 
   slot_unchoke        m_slotUnchoke;
   slot_can_unchoke    m_slotCanUnchoke;
   slot_connection     m_slotConnection;
 };
-
-extern uint32_t weights_upload_choke[ChokeManager::order_max_size];
-extern uint32_t weights_upload_unchoke[ChokeManager::order_max_size];
-
-void calculate_upload_choke(ChokeManager::iterator first, ChokeManager::iterator last);
-void calculate_upload_unchoke(ChokeManager::iterator first, ChokeManager::iterator last);
-
-extern uint32_t weights_download_choke[ChokeManager::order_max_size];
-extern uint32_t weights_download_unchoke[ChokeManager::order_max_size];
-
-void calculate_download_choke(ChokeManager::iterator first, ChokeManager::iterator last);
-void calculate_download_unchoke(ChokeManager::iterator first, ChokeManager::iterator last);
 
 }
 

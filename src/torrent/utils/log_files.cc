@@ -46,6 +46,8 @@
 #include "rak/timer.h"
 #include "log_files.h"
 
+#include "protocol/peer_connection_base.h"
+
 namespace torrent {
 
 log_file log_files[LOG_MAX_SIZE] = {
@@ -147,8 +149,20 @@ log_choke_changes_func_peer(void* address, const char* title, std::pair<PeerConn
   log_file* lf = &log_files[LOG_CHOKE_CHANGES];
 
   char buffer[256];
-  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %p %u\n",
-                                     address, lf->last_update(), title, data.first, data.second);
+  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %p %X %llu %llu\n",
+                                     address, lf->last_update(), title, data.first, data.second,
+                                     data.first->up_rate()->rate(), data.first->down_rate()->rate());
+
+  write(lf->file_descriptor(), buffer, buf_lenght);
+}
+
+void
+log_choke_changes_func_allocate(void* address, const char* title, unsigned int index, uint32_t count, int dist) {
+  log_file* lf = &log_files[LOG_CHOKE_CHANGES];
+
+  char buffer[256];
+  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %u %u %i\n",
+                                     address, lf->last_update(), title, index, count, dist);
 
   write(lf->file_descriptor(), buffer, buf_lenght);
 }

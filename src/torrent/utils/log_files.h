@@ -77,6 +77,7 @@ log_file* find_log_file(const char* name) LIBTORRENT_EXPORT;
 void log_mincore_stats_func(bool is_incore, bool new_index, bool& continous);
 void log_choke_changes_func_new(void* address, const char* title, int quota, int adjust);
 void log_choke_changes_func_peer(void* address, const char* title, std::pair<PeerConnectionBase*, uint32_t> data);
+void log_choke_changes_func_allocate(void* address, const char* title, unsigned int index, uint32_t count, int dist);
 
 }
 
