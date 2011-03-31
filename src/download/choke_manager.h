@@ -82,6 +82,7 @@ public:
    enum heuristics_enum {
     HEURISTICS_UPLOAD_LEECH,
     HEURISTICS_DOWNLOAD_LEECH,
+    //    HEURISTICS_UPLOAD_SEED,
     HEURISTICS_MAX_SIZE
   };
 

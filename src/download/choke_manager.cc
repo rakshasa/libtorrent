@@ -500,8 +500,9 @@ calculate_download_unchoke(ChokeManager::iterator first, ChokeManager::iterator 
 }
 
 ChokeManager::heuristics_type ChokeManager::m_heuristics_list[HEURISTICS_MAX_SIZE] = {
-  { &calculate_upload_choke,   &calculate_upload_unchoke,   { 1, 1, 1, 1 }, { 1, 3, 9, 0 } },
-  { &calculate_download_choke, &calculate_download_unchoke, { 1, 1, 1, 1 }, { 1, 1, 1, 1 } }
+  { &calculate_upload_choke,      &calculate_upload_unchoke,      { 1, 1, 1, 1 }, { 1, 3, 9, 0 } },
+  { &calculate_download_choke,    &calculate_download_unchoke,    { 1, 1, 1, 1 }, { 1, 1, 1, 1 } },
+  //  { &calculate_upload_choke_seed, &calculate_upload_unchoke_seed, { 1, 1, 1, 1 }, { 1, 3, 9, 0 } },
 };
 
 }

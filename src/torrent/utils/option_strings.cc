@@ -43,6 +43,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "option_strings.h"
+#include "download/choke_manager.h"
 
 namespace torrent {
 
@@ -60,8 +61,9 @@ option_pair option_list_0[] = {
 };
 
 option_pair option_list_1[] = {
-  { "upload_leech",   Download::HEURISTICS_UPLOAD_LEECH },
-  { "download_leech", Download::HEURISTICS_DOWNLOAD_LEECH },
+  { "upload_leech",   ChokeManager::HEURISTICS_UPLOAD_LEECH },
+  { "download_leech", ChokeManager::HEURISTICS_DOWNLOAD_LEECH },
+  //  { "upload_seed",    ChokeManager::HEURISTICS_UPLOAD_SEED },
   { NULL, 0 }
 };
 

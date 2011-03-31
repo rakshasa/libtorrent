@@ -146,6 +146,7 @@ public:
   bool                is_not_empty() const                    { return type() != TYPE_NONE; }
   bool                is_value() const                        { return type() == TYPE_VALUE; }
   bool                is_string() const                       { return type() == TYPE_STRING; }
+  bool                is_string_empty() const                 { return type() != TYPE_STRING || _string().empty(); }
   bool                is_list() const                         { return type() == TYPE_LIST; }
   bool                is_map() const                          { return type() == TYPE_MAP; }
   bool                is_dict_key() const                     { return type() == TYPE_DICT_KEY; }
