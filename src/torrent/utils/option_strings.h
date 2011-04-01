@@ -44,6 +44,7 @@ namespace torrent {
 enum option_enum {
   OPTION_CONNECTION_TYPE,
   OPTION_CHOKE_HEURISTICS,
+  OPTION_IP_FILTER,
   OPTION_MAX_SIZE
 };
 

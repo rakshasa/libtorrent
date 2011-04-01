@@ -67,9 +67,16 @@ option_pair option_list_1[] = {
   { NULL, 0 }
 };
 
+option_pair option_list_2[] = {
+  { "unwanted",  PeerInfo::flag_unwanted },
+  { "preferred", PeerInfo::flag_preferred },
+  { NULL, 0 }
+};
+
 option_pair* option_lists[OPTION_MAX_SIZE] = {
   option_list_0,
-  option_list_1
+  option_list_1,
+  option_list_2,
 };
 
 int

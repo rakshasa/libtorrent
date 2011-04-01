@@ -56,18 +56,20 @@ struct extents_base {
     mask_bits(parent->mask_bits - TableBits), position(parent->partition_pos(itr)) { table.assign(mapped_type(NULL, itr->second)); }
   ~extents_base();
 
-  bool     is_divisible(key_type key) const { return key % mask_bits == 0; }
-  bool     is_leaf_branch() const           { return mask_bits == 0; }
-  bool     is_equal_range(key_type first, key_type last, const mapped_value_type& val) const;
+  bool         is_divisible(key_type key) const { return key % mask_bits == 0; }
+  bool         is_leaf_branch() const           { return mask_bits == 0; }
+  bool         is_equal_range(key_type first, key_type last, const mapped_value_type& val) const;
+
+  unsigned int sizeof_data() const;
 
   typename table_type::iterator       partition_at(key_type key)           { return table.begin() + ((key >> mask_bits) & (TableSize - 1)); }
   typename table_type::const_iterator partition_at(key_type key) const     { return table.begin() + ((key >> mask_bits) & (TableSize - 1)); }
 
   unsigned int mask_distance(unsigned int mb) { return (~(~key_type() << mb) >> mask_bits); }
 
-  key_type    partition_pos(typename table_type::const_iterator part) const { return position + (std::distance(table.begin(), part) << mask_bits); }
+  key_type     partition_pos(typename table_type::const_iterator part) const { return position + (std::distance(table.begin(), part) << mask_bits); }
 
-  void insert(key_type pos, unsigned int mb, const mapped_value_type& val);
+  void         insert(key_type pos, unsigned int mb, const mapped_value_type& val);
 
   const mapped_value_type& at(key_type key) const;
 
@@ -93,6 +95,7 @@ public:
   static const key_type table_size = TableSize;
 
   using base_type::at;
+  using base_type::sizeof_data;
 
   extents();
 
@@ -113,6 +116,18 @@ template <typename Key, typename Tp, unsigned int TableSize, unsigned int TableB
 extents_base<Key, Tp, TableSize, TableBits>::~extents_base() {
   for (typename table_type::const_iterator itr = table.begin(), last = table.end(); itr != last; itr++)
     delete itr->first;
+}
+
+template <typename Key, typename Tp, unsigned int TableSize, unsigned int TableBits>
+unsigned int
+extents_base<Key, Tp, TableSize, TableBits>::sizeof_data() const {
+  unsigned int sum = sizeof(*this);
+
+  for (typename table_type::const_iterator itr = table.begin(), last = table.end(); itr != last; itr++)
+    if (itr->first != NULL)
+      sum += itr->first->sizeof_data();
+
+  return sum;
 }
 
 template <typename Key, typename Tp, unsigned int MaskBits, unsigned int TableSize, unsigned int TableBits>
