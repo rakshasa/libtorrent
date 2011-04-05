@@ -188,9 +188,16 @@ void
 DownloadConstructor::parse_tracker(const Object& b) {
   TrackerManager* tracker = m_download->main()->tracker_manager();
 
-  if (b.has_key_list("announce-list"))
-    std::for_each(b.get_key_list("announce-list").begin(), b.get_key_list("announce-list").end(),
-		  rak::make_mem_fun(this, &DownloadConstructor::add_tracker_group));
+  const Object::list_type* announce_list = NULL;
+
+  if (b.has_key_list("announce-list") &&
+
+      // Some torrent makers create empty/invalid 'announce-list'
+      // entries while still having valid 'announce'.
+      !(announce_list = &b.get_key_list("announce-list"))->empty() &&
+      std::find_if(announce_list->begin(), announce_list->end(), std::mem_fun_ref(&Object::is_list)) != announce_list->end())
+
+    std::for_each(announce_list->begin(), announce_list->end(), rak::make_mem_fun(this, &DownloadConstructor::add_tracker_group));
 
   else if (b.has_key("announce"))
     add_tracker_single(b.get_key("announce"), 0);
