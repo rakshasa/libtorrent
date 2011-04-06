@@ -84,6 +84,11 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
   peerInfo->set_last_connection(cachedTime.seconds());
   peerConnection->initialize(m_download, peerInfo, fd, bitfield, encryptionInfo, extensions);
 
+  if (!peerConnection->get_fd().is_valid()) {
+    delete peerConnection;
+    return NULL;
+  }
+
   base_type::push_back(peerConnection);
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);

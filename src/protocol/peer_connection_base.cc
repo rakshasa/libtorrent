@@ -138,6 +138,19 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
   download_queue()->set_delegator(m_download->delegator());
   download_queue()->set_peer_chunks(&m_peerChunks);
 
+  try {
+    initialize_custom();
+
+  } catch (close_connection& e) {
+    // The handshake manager closes the socket for us.
+    m_peerInfo = NULL;
+    m_download = NULL;
+    m_extensions = NULL;
+
+    get_fd().clear();
+    return;
+  }
+
   manager->poll()->open(this);
   manager->poll()->insert_read(this);
   manager->poll()->insert_write(this);
@@ -156,8 +169,6 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
     m_sendInterested = true;
     m_downInterested = true;
   }
-
-  initialize_custom();
 }
 
 void

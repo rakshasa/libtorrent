@@ -241,21 +241,27 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
   if (m_initialSeeding == NULL)
     throw internal_error("DownloadMain::initial_seeding_done called when not initial seeding.");
 
-  // Close all connections but the currently active one (pcb).
-  // That one will be closed by throw close_connection() later.
-  if (m_connectionList->size() > 1) {
-    ConnectionList::iterator itr = std::find(m_connectionList->begin(), m_connectionList->end(), pcb);
-    if (itr == m_connectionList->end())
-      throw internal_error("DownloadMain::initial_seeding_done could not find current connection.");
+  // Close all connections but the currently active one (pcb), that
+  // one will be closed by throw close_connection() later.
+  //
+  // When calling initial_seed()->new_peer(...) the 'pcb' won't be in
+  // the connection list, so don't treat it as an error. Make sure to
+  // catch close_connection() at the caller of new_peer(...) and just
+  // close the filedesc before proceeding as normal.
+  ConnectionList::iterator pcb_itr = std::find(m_connectionList->begin(), m_connectionList->end(), pcb);
 
-    std::iter_swap(m_connectionList->begin(), itr);
+  if (pcb_itr != m_connectionList->end()) {
+    std::iter_swap(m_connectionList->begin(), pcb_itr);
     m_connectionList->erase_remaining(m_connectionList->begin() + 1, ConnectionList::disconnect_available);
+  } else {
+    m_connectionList->erase_remaining(m_connectionList->begin(), ConnectionList::disconnect_available);
   }
 
   // Switch to normal seeding.
   DownloadManager::iterator itr = manager->download_manager()->find(m_info);
   (*itr)->set_connection_type(Download::CONNECTION_SEED);
   m_connectionList->slot_new_connection(&createPeerConnectionSeed);
+
   delete m_initialSeeding;
   m_initialSeeding = NULL;
 

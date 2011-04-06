@@ -68,15 +68,12 @@ template<Download::ConnectionType type>
 void
 PeerConnection<type>::initialize_custom() {
   if (type == Download::CONNECTION_INITIAL_SEED) {
-    if (m_download->initial_seeding() == NULL) {
-      // Can't throw close_connection or network_error here, we're still
-      // initializing. So close the socket and let that kill it later.
-      get_fd().close();
-      return;
-    }
+    if (m_download->initial_seeding() == NULL)
+      throw close_connection();
 
     m_download->initial_seeding()->new_peer(this);
   }
+
 //   if (m_download->content()->chunks_completed() != 0) {
 //     m_up->write_bitfield(m_download->file_list()->bitfield()->size_bytes());
 
