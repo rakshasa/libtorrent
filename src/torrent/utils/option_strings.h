@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_UTILS_OPTION_STRINGS_H
 #define LIBTORRENT_UTILS_OPTION_STRINGS_H
 
+#include <string>
 #include <torrent/common.h>
 
 namespace torrent {
@@ -48,7 +49,8 @@ enum option_enum {
   OPTION_MAX_SIZE
 };
 
-int option_find_string(option_enum opt_enum, const char* name) LIBTORRENT_EXPORT;
+int        option_find_string(option_enum opt_enum, const char* name) LIBTORRENT_EXPORT;
+inline int option_find_string_str(option_enum opt_enum, const std::string& name) { return option_find_string(opt_enum, name.c_str()); }
 
 const char* option_as_string(option_enum opt_enum, int value) LIBTORRENT_EXPORT;
 
