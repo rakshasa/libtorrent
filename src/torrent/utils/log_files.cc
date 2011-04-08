@@ -101,14 +101,11 @@ void
 log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
   log_file* lf = &log_files[LOG_MINCORE_STATS];
 
-  //  if (lf->file_descriptor() == -1)
-  //    return;
-
   if (rak::timer::current().seconds() >= lf->last_update() + 10) {
     char buffer[256];
 
     // Log the result of mincore for every piece uploaded to a file.
-    unsigned int buf_lenght = snprintf(buffer, 256, "%i %u %u %u %u %u\n",
+    unsigned int buf_length = snprintf(buffer, 256, "%i %u %u %u %u %u\n",
                                        lf->last_update(),
                                        log_mincore_stats_instance.counter_incore,
                                        log_mincore_stats_instance.counter_incore_new,
@@ -116,10 +113,14 @@ log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
                                        log_mincore_stats_instance.counter_not_incore_new,
                                        log_mincore_stats_instance.counter_incore_break);
 
-    write(lf->file_descriptor(), buffer, buf_lenght);
+    // Add a zero'ed log entry so that graphs will look right after a
+    // long period with no activity.
+    if (rak::timer::current().seconds() >= lf->last_update() + 20)
+      buf_length += snprintf(buffer + buf_length, 256 - buf_length, "%i 0 0 0 0 0\n", lf->last_update() + 10);
+
+    write(lf->file_descriptor(), buffer, buf_length);
     
     lf->set_last_update(rak::timer::current().seconds() / 10 * 10);
-
     std::memset(&log_mincore_stats_instance, 0, sizeof(log_mincore_stats));
   }
 
@@ -138,10 +139,10 @@ log_choke_changes_func_new(void* address, const char* title, int quota, int adju
   lf->set_last_update(rak::timer::current().seconds());
 
   char buffer[256];
-  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %i %i\n",
+  unsigned int buf_length = snprintf(buffer, 256, "%p %i %s %i %i\n",
                                      address, lf->last_update(), title, quota, adjust);
 
-  write(lf->file_descriptor(), buffer, buf_lenght);
+  write(lf->file_descriptor(), buffer, buf_length);
 }
 
 void
@@ -149,11 +150,11 @@ log_choke_changes_func_peer(void* address, const char* title, std::pair<PeerConn
   log_file* lf = &log_files[LOG_CHOKE_CHANGES];
 
   char buffer[256];
-  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %p %X %llu %llu\n",
+  unsigned int buf_length = snprintf(buffer, 256, "%p %i %s %p %X %llu %llu\n",
                                      address, lf->last_update(), title, data.first, data.second,
                                      data.first->up_rate()->rate(), data.first->down_rate()->rate());
 
-  write(lf->file_descriptor(), buffer, buf_lenght);
+  write(lf->file_descriptor(), buffer, buf_length);
 }
 
 void
@@ -161,10 +162,10 @@ log_choke_changes_func_allocate(void* address, const char* title, unsigned int i
   log_file* lf = &log_files[LOG_CHOKE_CHANGES];
 
   char buffer[256];
-  unsigned int buf_lenght = snprintf(buffer, 256, "%p %i %s %u %u %i\n",
+  unsigned int buf_length = snprintf(buffer, 256, "%p %i %s %u %u %i\n",
                                      address, lf->last_update(), title, index, count, dist);
 
-  write(lf->file_descriptor(), buffer, buf_lenght);
+  write(lf->file_descriptor(), buffer, buf_length);
 }
 
 }

@@ -40,7 +40,6 @@
 #include <list>
 #include <string>
 #include <inttypes.h>
-#include <rak/socket_address.h>
 #include <sigc++/signal.h>
 
 #include <torrent/rate.h>
