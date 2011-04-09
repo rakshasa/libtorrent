@@ -112,9 +112,16 @@ public:
   // usage by indicating how much it uses. This shouldn't really be
   // nessesary unless the client maps large amounts of memory.
   //
+  // If the caller finds out the allocated memory quota isn't needed
+  // due to e.g. other errors then 'deallocate_unused' must be called
+  // within the context of the original 'allocate' caller in order to
+  // properly be reflected when logging.
+  //
   // The primary user of these functions is ChunkList.
+
   bool                allocate(uint32_t size);
   void                deallocate(uint32_t size);
+  void                deallocate_unused(uint32_t size);
 
   void                try_free_memory(uint64_t size);
   

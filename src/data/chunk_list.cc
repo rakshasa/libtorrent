@@ -121,7 +121,7 @@ ChunkList::get(size_type index, bool writable) {
     Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
     if (chunk == NULL) {
-      m_manager->deallocate(m_chunk_size);
+      m_manager->deallocate_unused(m_chunk_size);
       return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
     }
 

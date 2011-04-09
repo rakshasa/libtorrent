@@ -171,6 +171,17 @@ ChunkManager::deallocate(uint32_t size) {
 }
 
 void
+ChunkManager::deallocate_unused(uint32_t size) {
+  if (size > m_memoryUsage)
+    throw internal_error("ChunkManager::deallocate(...) size > m_memoryUsage.");
+
+  if (log_files[LOG_MINCORE_STATS].is_open())
+    log_mincore_stats_func_alloc(-size);
+
+  m_memoryUsage -= size;
+}
+
+void
 ChunkManager::try_free_memory(uint64_t size) {
   // Ensure that we don't call this function too often when futile as
   // it might be somewhat expensive.
