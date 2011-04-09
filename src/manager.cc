@@ -43,6 +43,7 @@
 #include "download/download_wrapper.h"
 #include "download/download_main.h"
 #include "data/hash_torrent.h"
+#include "data/chunk_list.h"
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
 #include "net/listen.h"
@@ -120,6 +121,8 @@ Manager::initialize_download(DownloadWrapper* d) {
   m_downloadManager->insert(d);
   m_resourceManager->insert(d->main(), 1);
   m_chunkManager->insert(d->main()->chunk_list());
+
+  d->main()->chunk_list()->set_chunk_size(d->main()->file_list()->chunk_size());
 
   d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
   d->main()->set_download_throttle(m_downloadThrottle->throttle_list());

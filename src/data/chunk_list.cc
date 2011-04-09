@@ -38,6 +38,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
+#include "torrent/utils/log_files.h"
 
 #include "chunk_list.h"
 #include "chunk.h"
@@ -114,15 +115,14 @@ ChunkList::get(size_type index, bool writable) {
   ChunkListNode* node = &base_type::at(index);
 
   if (!node->is_valid()) {
+    if (!m_manager->allocate(m_chunk_size))
+      return ChunkHandle::from_error(rak::error_number::e_nomem);
+
     Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
 
-    if (chunk == NULL)
+    if (chunk == NULL) {
+      m_manager->deallocate(m_chunk_size);
       return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
-
-    // Would be cleaner to do this before creating the chunk.
-    if (!m_manager->allocate(chunk->chunk_size())) {
-      delete chunk;
-      return ChunkHandle::from_error(rak::error_number::e_nomem);
     }
 
     node->set_chunk(chunk);
@@ -286,6 +286,11 @@ ChunkList::sync_chunks(int flags) {
 
     if (!options.second)
       std::iter_swap(itr, split++);
+  }
+
+  if (log_files[LOG_MINCORE_STATS].is_open()) {
+    log_mincore_stats_func_sync_success(std::distance(split, m_queue.end()));
+    log_mincore_stats_func_sync_failed(failed);
   }
 
   m_queue.erase(split, m_queue.end());

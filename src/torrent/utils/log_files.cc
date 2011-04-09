@@ -93,9 +93,22 @@ struct log_mincore_stats {
   int counter_incore_new;
   int counter_not_incore_new;
   int counter_incore_break;
+
+  int counter_sync_success;
+  int counter_sync_failed;
+  int counter_alloc_failed;
+  
+  uint64_t velocity_allocate;
+  uint64_t velocity_deallocate;
 };
 
-log_mincore_stats log_mincore_stats_instance = { 0, 0, 0, 0, 0 };
+log_mincore_stats log_mincore_stats_instance = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+void log_mincore_stats_func_sync_success(int count) { log_mincore_stats_instance.counter_sync_success += count; }
+void log_mincore_stats_func_sync_failed(int count)  { log_mincore_stats_instance.counter_sync_failed += count; }
+void log_mincore_stats_func_alloc_failed(int count) { log_mincore_stats_instance.counter_alloc_failed += count; }
+void log_mincore_stats_func_alloc(int velocity)     { log_mincore_stats_instance.velocity_allocate += velocity; }
+void log_mincore_stats_func_dealloc(int velocity)   { log_mincore_stats_instance.velocity_deallocate += velocity; }
 
 void
 log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
@@ -105,18 +118,28 @@ log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
     char buffer[256];
 
     // Log the result of mincore for every piece uploaded to a file.
-    unsigned int buf_length = snprintf(buffer, 256, "%i %u %u %u %u %u\n",
+    unsigned int buf_length = snprintf(buffer, 256, "%i %u %u %u %u %u %u %u %u %llu %llu\n",
                                        lf->last_update(),
                                        log_mincore_stats_instance.counter_incore,
                                        log_mincore_stats_instance.counter_incore_new,
                                        log_mincore_stats_instance.counter_not_incore,
                                        log_mincore_stats_instance.counter_not_incore_new,
-                                       log_mincore_stats_instance.counter_incore_break);
+                                       log_mincore_stats_instance.counter_incore_break,
+                                       log_mincore_stats_instance.counter_sync_success,
+                                       log_mincore_stats_instance.counter_sync_failed,
+                                       log_mincore_stats_instance.counter_alloc_failed,
+                                       log_mincore_stats_instance.velocity_allocate,
+                                       log_mincore_stats_instance.velocity_deallocate);
 
     // Add a zero'ed log entry so that graphs will look right after a
     // long period with no activity.
     if (rak::timer::current().seconds() >= lf->last_update() + 20)
-      buf_length += snprintf(buffer + buf_length, 256 - buf_length, "%i 0 0 0 0 0\n", lf->last_update() + 10);
+      buf_length += snprintf(buffer + buf_length, 256 - buf_length,
+                             "%i 0 0 0 0 0 0 0 0 0 0\n", lf->last_update() + 10);
+
+    if (rak::timer::current().seconds() >= lf->last_update() + 30)
+      buf_length += snprintf(buffer + buf_length, 256 - buf_length,
+                             "%i 0 0 0 0 0 0 0 0 0 0\n", rak::timer::current().seconds() / 10 * 10 - 10);
 
     write(lf->file_descriptor(), buffer, buf_length);
     

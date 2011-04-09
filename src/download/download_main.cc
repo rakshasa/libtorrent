@@ -200,6 +200,8 @@ void DownloadMain::start() {
     throw internal_error("Tried to start an active download");
 
   info()->set_flags(DownloadInfo::flag_active);
+  chunk_list()->set_flags(ChunkList::flag_active);
+
   m_lastConnectedSize = 0;
 
   m_delegator.set_aggressive(false);
@@ -216,6 +218,7 @@ DownloadMain::stop() {
   // Set this early so functions like receive_connect_peers() knows
   // not to eat available peers.
   info()->unset_flags(DownloadInfo::flag_active);
+  chunk_list()->unset_flags(ChunkList::flag_active);
 
   m_slotStopHandshakes(this);
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);

@@ -44,6 +44,9 @@
 
 namespace torrent {
 
+// TODO: Currently all chunk lists are inserted, despite the download
+// not being open/active.
+
 class LIBTORRENT_EXPORT ChunkManager : private std::vector<ChunkList*> {
 public:
   typedef std::vector<ChunkList*> base_type;
@@ -58,6 +61,9 @@ public:
   ~ChunkManager();
   
   uint64_t            memory_usage() const                      { return m_memoryUsage; }
+  uint64_t            sync_queue_memory_usage() const;
+
+  uint32_t            sync_queue_size() const;
 
   // Should we allow the client to reserve some memory?
 

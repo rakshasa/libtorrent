@@ -83,10 +83,19 @@ public:
   static const int sync_use_timeout  = (1 << 4);
   static const int sync_ignore_error = (1 << 5);
 
-  ChunkList() : m_manager(NULL) {}
+  static const int flag_active       = (1 << 0);
+
+  ChunkList() : m_manager(NULL), m_flags(0), m_chunk_size(0) {}
   ~ChunkList() { clear(); }
 
-  void                set_manager(ChunkManager* manager)      { m_manager = manager; }
+  void                set_flags(int flags)                { m_flags |= flags; }
+  void                unset_flags(int flags)              { m_flags &= ~flags; }
+  void                change_flags(int flags, bool state) { if (state) set_flags(flags); else unset_flags(flags); }
+
+  uint32_t            chunk_size() const                  { return m_chunk_size; }
+
+  void                set_manager(ChunkManager* manager)  { m_manager = manager; }
+  void                set_chunk_size(uint32_t cs)         { m_chunk_size = cs; }
 
   bool                has_chunk(size_type index, int prot) const;
 
@@ -124,6 +133,9 @@ private:
 
   ChunkManager*       m_manager;
   Queue               m_queue;
+
+  int                 m_flags;
+  uint32_t            m_chunk_size;
 
   SlotStorageError    m_slotStorageError;
   SlotCreateChunk     m_slotCreateChunk;

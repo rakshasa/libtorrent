@@ -41,6 +41,7 @@
 #include <sys/resource.h>
 
 #include "data/chunk_list.h"
+#include "utils/log_files.h"
 
 #include "exceptions.h"
 #include "chunk_manager.h"
@@ -74,6 +75,26 @@ ChunkManager::ChunkManager() :
 ChunkManager::~ChunkManager() {
   if (m_memoryUsage != 0)
     throw internal_error("ChunkManager::~ChunkManager() m_memoryUsage != 0.");
+}
+
+uint64_t
+ChunkManager::sync_queue_memory_usage() const {
+  uint64_t size = 0;
+
+  for (const_iterator itr = begin(), last = end(); itr != last; itr++)
+    size += (*itr)->queue_size() * (*itr)->chunk_size();
+
+  return size;
+}
+
+uint32_t
+ChunkManager::sync_queue_size() const {
+  uint32_t size = 0;
+
+  for (const_iterator itr = begin(), last = end(); itr != last; itr++)
+    size += (*itr)->queue_size();
+
+  return size;
 }
 
 uint64_t
@@ -123,8 +144,15 @@ ChunkManager::allocate(uint32_t size) {
   if (m_memoryUsage + size > (3 * m_maxMemoryUsage) / 4)
     try_free_memory((1 * m_maxMemoryUsage) / 4);
 
-  if (m_memoryUsage + size > m_maxMemoryUsage)
+  if (m_memoryUsage + size > m_maxMemoryUsage) {
+    if (log_files[LOG_MINCORE_STATS].is_open())
+      log_mincore_stats_func_alloc_failed(1);
+
     return false;
+  }
+
+  if (log_files[LOG_MINCORE_STATS].is_open())
+    log_mincore_stats_func_alloc(size);
 
   m_memoryUsage += size;
 
@@ -135,6 +163,9 @@ void
 ChunkManager::deallocate(uint32_t size) {
   if (size > m_memoryUsage)
     throw internal_error("ChunkManager::deallocate(...) size > m_memoryUsage.");
+
+  if (log_files[LOG_MINCORE_STATS].is_open())
+    log_mincore_stats_func_dealloc(size);
 
   m_memoryUsage -= size;
 }
