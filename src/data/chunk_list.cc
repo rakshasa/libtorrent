@@ -206,7 +206,7 @@ ChunkList::clear_chunk(ChunkListNode* node) {
   delete node->chunk();
   node->set_chunk(NULL);
 
-  m_manager->deallocate(size);
+  m_manager->deallocate(m_chunk_size);
 }
 
 inline bool
