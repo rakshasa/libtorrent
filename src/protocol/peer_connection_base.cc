@@ -246,9 +246,11 @@ PeerConnectionBase::receive_download_choke(bool choke) {
     m_peerChunks.download_cache()->disable();
 
     // If the queue isn't empty, then we might still receive some
-    // pieces, so don't remove us from throttle.
-    if (!download_queue()->is_downloading() && download_queue()->queued_empty())
+    // pieces, so don't remove us from throttle or release the chunk.
+    if (!download_queue()->is_downloading() && download_queue()->queued_empty()) {
       m_down->throttle()->erase(m_peerChunks.download_throttle());
+      down_chunk_release();
+    }
 
     // Send uninterested if unchoked, but only _after_ receiving our
     // chunks?
@@ -406,7 +408,14 @@ PeerConnectionBase::down_chunk_finished() {
   if (m_downStall > 0)
     m_downStall--;
         
-  // TODO: clear m_down.data?
+  // We need to release chunks when we're not sure if they will be
+  // used in the near future so as to avoid hitting the address space
+  // limit in high-bandwidth situations.
+  //
+  // Some tweaking of the pipe size might be necessary if the queue
+  // empties too often.
+  if (download_queue()->queued_empty() || m_downChunk.index() != download_queue()->next_queued_piece().index())
+    down_chunk_release();
 
   // If we were choked by choke_manager but still had queued pieces,
   // then we might still be in the throttle.

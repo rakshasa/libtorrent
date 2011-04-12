@@ -63,6 +63,7 @@ public:
   uint64_t            memory_usage() const                      { return m_memoryUsage; }
   uint64_t            sync_queue_memory_usage() const;
 
+  uint32_t            memory_block_count() const                { return m_memoryBlockCount; }
   uint32_t            sync_queue_size() const;
 
   // Should we allow the client to reserve some memory?
@@ -143,6 +144,8 @@ private:
 
   uint64_t            m_memoryUsage;
   uint64_t            m_maxMemoryUsage;
+
+  uint32_t            m_memoryBlockCount;
 
   bool                m_safeSync;
   uint32_t            m_timeoutSync;

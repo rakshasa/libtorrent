@@ -51,6 +51,7 @@ namespace torrent {
 
 ChunkManager::ChunkManager() :
   m_memoryUsage(0),
+  m_memoryBlockCount(0),
 
   m_safeSync(false),
   m_timeoutSync(600),
@@ -73,8 +74,8 @@ ChunkManager::ChunkManager() :
 }
 
 ChunkManager::~ChunkManager() {
-  if (m_memoryUsage != 0)
-    throw internal_error("ChunkManager::~ChunkManager() m_memoryUsage != 0.");
+  if (m_memoryUsage != 0 || m_memoryBlockCount != 0)
+    throw internal_error("ChunkManager::~ChunkManager() m_memoryUsage != 0 || m_memoryBlockCount != 0.");
 }
 
 uint64_t
@@ -155,6 +156,7 @@ ChunkManager::allocate(uint32_t size) {
     log_mincore_stats_func_alloc(size);
 
   m_memoryUsage += size;
+  m_memoryBlockCount++;
 
   return true;
 }
@@ -168,6 +170,7 @@ ChunkManager::deallocate(uint32_t size) {
     log_mincore_stats_func_dealloc(size);
 
   m_memoryUsage -= size;
+  m_memoryBlockCount--;
 }
 
 void
@@ -179,6 +182,7 @@ ChunkManager::deallocate_unused(uint32_t size) {
     log_mincore_stats_func_alloc(-size);
 
   m_memoryUsage -= size;
+  m_memoryBlockCount--;
 }
 
 void

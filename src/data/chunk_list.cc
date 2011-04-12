@@ -201,8 +201,6 @@ ChunkList::clear_chunk(ChunkListNode* node) {
   if (!node->is_valid())
     throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
 
-  uint32_t size = node->chunk()->chunk_size();
-
   delete node->chunk();
   node->set_chunk(NULL);
 

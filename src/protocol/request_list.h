@@ -84,6 +84,8 @@ public:
   bool                 queued_empty() const               { return m_queued.empty(); }
   size_t               queued_size() const                { return m_queued.size(); }
 
+  const Piece&         next_queued_piece() const          { return m_queued.front()->piece(); }
+
   bool                 canceled_empty() const             { return m_canceled.empty(); }
   size_t               canceled_size() const              { return m_queued.size(); }
 

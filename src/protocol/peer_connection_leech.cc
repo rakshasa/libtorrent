@@ -214,6 +214,8 @@ PeerConnection<type>::read_message() {
     // manager?
     m_downUnchoked = false;
 
+    down_chunk_release();
+
     download_queue()->cancel();
     m_download->download_choke_manager()->set_not_queued(this, &m_downChoke);
     m_down->throttle()->erase(m_peerChunks.download_throttle());
