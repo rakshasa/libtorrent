@@ -414,7 +414,8 @@ PeerConnectionBase::down_chunk_finished() {
   //
   // Some tweaking of the pipe size might be necessary if the queue
   // empties too often.
-  if (download_queue()->queued_empty() || m_downChunk.index() != download_queue()->next_queued_piece().index())
+  if (m_downChunk.is_valid() &&
+      (download_queue()->queued_empty() || m_downChunk.index() != download_queue()->next_queued_piece().index()))
     down_chunk_release();
 
   // If we were choked by choke_manager but still had queued pieces,
