@@ -89,6 +89,8 @@ const Rate*         up_rate() LIBTORRENT_EXPORT;
 const char*         version() LIBTORRENT_EXPORT;
 
 // Disk access tuning.
+uint32_t            hash_queue_size() LIBTORRENT_EXPORT;
+
 uint32_t            hash_read_ahead() LIBTORRENT_EXPORT;
 void                set_hash_read_ahead(uint32_t bytes) LIBTORRENT_EXPORT;
 

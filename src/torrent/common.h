@@ -38,6 +38,7 @@
 #define LIBTORRENT_COMMON_H
 
 #include <inttypes.h>
+#include <cstddef>
 
 struct sockaddr;
 

@@ -81,6 +81,8 @@ log_file* find_log_file(const char* name) LIBTORRENT_EXPORT;
 void log_mincore_stats_func(bool is_incore, bool new_index, bool& continous);
 void log_mincore_stats_func_sync_success(int count);
 void log_mincore_stats_func_sync_failed(int count);
+void log_mincore_stats_func_sync_not_synced(int count);
+void log_mincore_stats_func_sync_not_deallocated(int count);
 void log_mincore_stats_func_alloc_failed(int count);
 void log_mincore_stats_func_alloc(int velocity);
 void log_mincore_stats_func_dealloc(int velocity);

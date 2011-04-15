@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <inttypes.h>
 #include <sys/mman.h>
+#include <cstddef>
 
 namespace torrent {
 

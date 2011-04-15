@@ -250,10 +250,8 @@ version() {
   return VERSION;
 }
 
-uint32_t
-hash_read_ahead() {
-  return manager->hash_queue()->read_ahead();
-}
+uint32_t hash_queue_size() { return manager->hash_queue()->size(); }
+uint32_t hash_read_ahead() { return manager->hash_queue()->read_ahead(); }
 
 void
 set_hash_read_ahead(uint32_t bytes) {

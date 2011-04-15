@@ -217,6 +217,9 @@ ChunkList::sync_chunk(ChunkListNode* node, std::pair<int,bool> options) {
 
   node->set_sync_triggered(true);
 
+  // When returning here we're not properly deallocating the piece.
+  //
+  // Only release the chunk after a blocking sync.
   if (!options.second)
     return true;
 
@@ -280,8 +283,6 @@ ChunkList::sync_chunks(int flags) {
       continue;
     }
 
-    (*itr)->set_sync_triggered(true);
-
     if (!options.second)
       std::iter_swap(itr, split++);
   }
@@ -289,6 +290,8 @@ ChunkList::sync_chunks(int flags) {
   if (log_files[LOG_MINCORE_STATS].is_open()) {
     log_mincore_stats_func_sync_success(std::distance(split, m_queue.end()));
     log_mincore_stats_func_sync_failed(failed);
+    log_mincore_stats_func_sync_not_synced(std::distance(m_queue.begin(), split));
+    log_mincore_stats_func_sync_not_deallocated(std::count_if(split, m_queue.end(), std::mem_fun(&ChunkListNode::is_valid)));
   }
 
   m_queue.erase(split, m_queue.end());
