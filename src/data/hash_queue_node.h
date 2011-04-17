@@ -63,7 +63,7 @@ public:
   HashChunk*          get_chunk()                   { return m_chunk; }
   bool                get_willneed() const          { return m_willneed; }
 
-  bool                perform(bool force)           { return m_chunk->perform(m_chunk->remaining(), force); }
+  bool                perform_remaining(bool force) { return m_chunk->perform(m_chunk->remaining(), force); }
 
   void                clear();
 

@@ -36,7 +36,6 @@
 
 #include "config.h"
 
-#include "torrent/exceptions.h"
 #include "hash_chunk.h"
 #include "chunk.h"
 #include "chunk_list_node.h"
@@ -84,14 +83,6 @@ HashChunk::advise_willneed(uint32_t length) {
     length -= l;
     ++itr;
   }
-}
-
-uint32_t
-HashChunk::remaining() {
-  if (!m_chunk.is_valid())
-    throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
-
-  return m_chunk.chunk()->chunk_size() - m_position;
 }
 
 uint32_t

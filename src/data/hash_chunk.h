@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_HASH_CHUNK_H
 #define LIBTORRENT_HASH_CHUNK_H
 
+#include "torrent/exceptions.h"
 #include "utils/sha1.h"
 
 #include "chunk.h"
@@ -80,6 +81,14 @@ private:
 inline uint32_t
 HashChunk::remaining_part(Chunk::iterator itr, uint32_t pos) {
   return itr->size() - (pos - itr->position());
+}
+
+inline uint32_t
+HashChunk::remaining() {
+  if (!m_chunk.is_valid())
+    throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
+
+  return m_chunk.chunk()->chunk_size() - m_position;
 }
 
 }
