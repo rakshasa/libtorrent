@@ -53,10 +53,10 @@
 #include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/peer/client_list.h"
+#include "torrent/peer/resource_manager.h"
 #include "torrent/throttle.h"
 
 #include "manager.h"
-#include "resource_manager.h"
 
 namespace torrent {
 
@@ -118,6 +118,8 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->main()->slot_start_handshake(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_outgoing));
   d->main()->slot_stop_handshakes(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::erase_download));
 
+  // TODO: The resource manager doesn't need to know about this
+  // download until we start/stop the torrent.
   m_downloadManager->insert(d);
   m_resourceManager->insert(d->main(), 1);
   m_chunkManager->insert(d->main()->chunk_list());

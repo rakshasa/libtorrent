@@ -281,7 +281,7 @@ DownloadMain::update_endgame() {
 
 void
 DownloadMain::receive_chunk_done(unsigned int index) {
-  ChunkHandle handle = m_chunkList->get(index, false);
+  ChunkHandle handle = m_chunkList->get(index);
 
   if (!handle.is_valid())
     throw storage_error("DownloadState::chunk_done(...) called with an index we couldn't retrieve from storage");

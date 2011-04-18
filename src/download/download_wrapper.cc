@@ -188,40 +188,40 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       m_hashChecker->receive_chunkdone();
     }
 
-  } else {
-    if (hash == NULL) {
-      // Clearing the queue, do nothing.
-      
-    } else {
-      if (!m_hashChecker->is_checked())
-        throw internal_error("DownloadWrapper::receive_hash_done(...) Was not expecting non-NULL hash.");
+    m_main->chunk_list()->release(&handle, ChunkList::get_dont_log);
+    return;
+  }
 
-      // Receiving chunk hashes after stopping the torrent should be
-      // safe.
+  // If hash == NULL we're clearing the queue, so do nothing.
+  if (hash != NULL) {
+    if (!m_hashChecker->is_checked())
+      throw internal_error("DownloadWrapper::receive_hash_done(...) Was not expecting non-NULL hash.");
 
-      if (m_main->chunk_selector()->bitfield()->get(handle.index()))
-        throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
+    // Receiving chunk hashes after stopping the torrent should be
+    // safe.
 
-      if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
-        m_main->file_list()->mark_completed(handle.index());
-        m_main->delegator()->transfer_list()->hash_succeeded(handle.index(), handle.chunk());
-        m_main->update_endgame();
+    if (m_main->chunk_selector()->bitfield()->get(handle.index()))
+      throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
-        if (m_main->file_list()->is_done())
-          finished_download();
+    if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
+      m_main->file_list()->mark_completed(handle.index());
+      m_main->delegator()->transfer_list()->hash_succeeded(handle.index(), handle.chunk());
+      m_main->update_endgame();
+
+      if (m_main->file_list()->is_done())
+        finished_download();
     
-        if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
-          m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(m_main->have_queue()->front().first + 1, handle.index()));
-        else
-          m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
+      if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
+        m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(m_main->have_queue()->front().first + 1, handle.index()));
+      else
+        m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
 
-        info()->signal_chunk_passed().emit(handle.index());
+      info()->signal_chunk_passed().emit(handle.index());
 
-      } else {
-        // This needs to ensure the chunk is still valid.
-        m_main->delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
-        info()->signal_chunk_failed().emit(handle.index());
-      }
+    } else {
+      // This needs to ensure the chunk is still valid.
+      m_main->delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
+      info()->signal_chunk_failed().emit(handle.index());
     }
   }
 

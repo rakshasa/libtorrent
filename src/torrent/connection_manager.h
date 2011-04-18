@@ -123,30 +123,26 @@ public:
   void                dec_socket_count()                      { m_size--; }
 
   size_type           size() const                            { return m_size; }
-
   size_type           max_size() const                        { return m_maxSize; }
-  void                set_max_size(size_type s)               { m_maxSize = s; }
 
   priority_type       priority() const                        { return m_priority; }
-  void                set_priority(priority_type p)           { m_priority = p; }
-
   uint32_t            send_buffer_size() const                { return m_sendBufferSize; }
-  void                set_send_buffer_size(uint32_t s);
-
   uint32_t            receive_buffer_size() const             { return m_receiveBufferSize; }
-  void                set_receive_buffer_size(uint32_t s);
-
   uint32_t            encryption_options()                    { return m_encryptionOptions; }
+
+  void                set_max_size(size_type s)               { m_maxSize = s; }
+  void                set_priority(priority_type p)           { m_priority = p; }
+  void                set_send_buffer_size(uint32_t s);
+  void                set_receive_buffer_size(uint32_t s);
   void                set_encryption_options(uint32_t options); 
 
   // Setting the addresses creates a copy of the address.
   const sockaddr*     bind_address() const                    { return m_bindAddress; }
-  void                set_bind_address(const sockaddr* sa);
-
   const sockaddr*     local_address() const                   { return m_localAddress; }
-  void                set_local_address(const sockaddr* sa);
-
   const sockaddr*     proxy_address() const                   { return m_proxyAddress; }
+
+  void                set_bind_address(const sockaddr* sa);
+  void                set_local_address(const sockaddr* sa);
   void                set_proxy_address(const sockaddr* sa);
 
   uint32_t            filter(const sockaddr* sa);

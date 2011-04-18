@@ -141,18 +141,18 @@ ChunkManager::erase(ChunkList* chunkList) {
 }
 
 bool
-ChunkManager::allocate(uint32_t size) {
+ChunkManager::allocate(uint32_t size, int flags) {
   if (m_memoryUsage + size > (3 * m_maxMemoryUsage) / 4)
     try_free_memory((1 * m_maxMemoryUsage) / 4);
 
   if (m_memoryUsage + size > m_maxMemoryUsage) {
-    if (log_files[LOG_MINCORE_STATS].is_open())
+    if (log_files[LOG_MINCORE_STATS].is_open() && !(flags & allocate_dont_log))
       log_mincore_stats_func_alloc_failed(1);
 
     return false;
   }
 
-  if (log_files[LOG_MINCORE_STATS].is_open())
+  if (log_files[LOG_MINCORE_STATS].is_open() && !(flags & allocate_dont_log))
     log_mincore_stats_func_alloc(size);
 
   m_memoryUsage += size;
@@ -162,24 +162,15 @@ ChunkManager::allocate(uint32_t size) {
 }
 
 void
-ChunkManager::deallocate(uint32_t size) {
+ChunkManager::deallocate(uint32_t size, int flags) {
   if (size > m_memoryUsage)
     throw internal_error("ChunkManager::deallocate(...) size > m_memoryUsage.");
 
-  if (log_files[LOG_MINCORE_STATS].is_open())
-    log_mincore_stats_func_dealloc(size);
-
-  m_memoryUsage -= size;
-  m_memoryBlockCount--;
-}
-
-void
-ChunkManager::deallocate_unused(uint32_t size) {
-  if (size > m_memoryUsage)
-    throw internal_error("ChunkManager::deallocate(...) size > m_memoryUsage.");
-
-  if (log_files[LOG_MINCORE_STATS].is_open())
-    log_mincore_stats_func_alloc(-size);
+  if (log_files[LOG_MINCORE_STATS].is_open() && !(flags & allocate_dont_log))
+    if (flags & allocate_revert_log)
+      log_mincore_stats_func_alloc(-size);
+    else
+      log_mincore_stats_func_dealloc(size);
 
   m_memoryUsage -= size;
   m_memoryBlockCount--;

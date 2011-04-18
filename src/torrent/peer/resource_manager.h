@@ -34,22 +34,27 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_RESOURCE_MANAGER_H
-#define LIBTORRENT_RESOURCE_MANAGER_H
+#ifndef LIBTORRENT_PEER_RESOURCE_MANAGER_H
+#define LIBTORRENT_PEER_RESOURCE_MANAGER_H
 
 #include <vector>
 #include <inttypes.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
 // This class will handle the division of various resources like
 // uploads. For now the weight is equal to the value of the priority.
 //
+// Although the ConnectionManager class keeps a tally of open sockets,
+// we still need to balance them across the different downloads so
+// ResourceManager will also keep track of those.
+//
 // Add unlimited handling later.
 
 class DownloadMain;
 
-class ResourceManager : public std::vector<std::pair<uint16_t, DownloadMain*> > {
+class LIBTORRENT_EXPORT ResourceManager : public std::vector<std::pair<uint16_t, DownloadMain*> > {
 public:
   typedef std::vector<std::pair<uint16_t, DownloadMain*> > base_type;
   typedef base_type::value_type                            value_type;
@@ -78,8 +83,8 @@ public:
   unsigned int        max_upload_unchoked() const               { return m_maxUploadUnchoked; }
   unsigned int        max_download_unchoked() const             { return m_maxDownloadUnchoked; }
 
-  void                set_max_upload_unchoked(unsigned int m)   { m_maxUploadUnchoked = m; }
-  void                set_max_download_unchoked(unsigned int m) { m_maxDownloadUnchoked = m; }
+  void                set_max_upload_unchoked(unsigned int m);
+  void                set_max_download_unchoked(unsigned int m);
 
   void                receive_upload_unchoke(int num);
   void                receive_download_unchoke(int num);

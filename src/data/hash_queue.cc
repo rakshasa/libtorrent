@@ -72,7 +72,7 @@ struct HashQueueWillneed {
 
 HashQueue::HashQueue() :
   m_readAhead(10 << 20),
-  m_interval(1000),
+  m_interval(2000),
   m_maxTries(5) {
 
   m_taskWork.set_slot(rak::mem_fn(this, &HashQueue::work));
@@ -174,6 +174,10 @@ HashQueue::check(bool force) {
   // downloaded chunks.
   force = force || size() > 50;
 
+  // TODO: The read-ahead algorithm here calls msync will-need, yet we
+  // are only trying to hash the first chunk. Fix this so that only
+  // whole chunks are called with will-need and that we check mincore
+  // for all those chunks in case we can hash them.
   if (base_type::front().get_chunk()->remaining() != 0 && !base_type::front().perform_remaining(force)) {
     willneed(m_readAhead);
     return false;

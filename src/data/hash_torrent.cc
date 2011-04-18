@@ -147,7 +147,7 @@ HashTorrent::queue(bool quick) {
 
     // Need to do increment later if we're going to support resume
     // hashing a quick hashed torrent.
-    ChunkHandle handle = m_chunkList->get(m_position, false);
+    ChunkHandle handle = m_chunkList->get(m_position, ChunkList::get_dont_log);
 
     if (quick) {
       // We're not actually interested in doing any hashing, so just
@@ -160,7 +160,7 @@ HashTorrent::queue(bool quick) {
         throw internal_error("HashTorrent::queue() quick hashing but m_outstanding != 0.");
 
       if (handle.is_valid())
-        return m_chunkList->release(&handle);
+        return m_chunkList->release(&handle, ChunkList::get_dont_log);
       
       if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent)
         return;

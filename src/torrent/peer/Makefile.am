@@ -12,7 +12,9 @@ libsub_torrentpeer_la_SOURCES = \
         peer_info.cc \
         peer_info.h \
 	peer_list.cc \
-	peer_list.h
+	peer_list.h \
+	resource_manager.cc \
+	resource_manager.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
@@ -23,4 +25,5 @@ libtorrentinclude_HEADERS = \
 	connection_list.h \
 	peer.h \
         peer_info.h \
-	peer_list.h
+	peer_list.h \
+	resource_manager.h

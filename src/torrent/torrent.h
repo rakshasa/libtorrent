@@ -63,25 +63,19 @@ void                perform() LIBTORRENT_EXPORT;
 bool                is_inactive() LIBTORRENT_EXPORT;
 
 class FileManager;
+class ResourceManager;
 
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
 FileManager*        file_manager() LIBTORRENT_EXPORT;
 ConnectionManager*  connection_manager() LIBTORRENT_EXPORT;
 DhtManager*         dht_manager() LIBTORRENT_EXPORT;
+ResourceManager*    resource_manager() LIBTORRENT_EXPORT;
 
 uint32_t            total_handshakes() LIBTORRENT_EXPORT;
 
 Throttle*           down_throttle_global() LIBTORRENT_EXPORT;
 Throttle*           up_throttle_global() LIBTORRENT_EXPORT;
-
-uint32_t            currently_unchoked() LIBTORRENT_EXPORT;
-uint32_t            max_unchoked() LIBTORRENT_EXPORT;
-void                set_max_unchoked(uint32_t count) LIBTORRENT_EXPORT;
-
-uint32_t            download_unchoked() LIBTORRENT_EXPORT;
-uint32_t            max_download_unchoked() LIBTORRENT_EXPORT;
-void                set_max_download_unchoked(uint32_t count) LIBTORRENT_EXPORT;
 
 const Rate*         down_rate() LIBTORRENT_EXPORT;
 const Rate*         up_rate() LIBTORRENT_EXPORT;

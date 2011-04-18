@@ -28,8 +28,6 @@ libtorrent_la_SOURCES = \
 	globals.cc \
 	globals.h \
 	manager.cc \
-	manager.h \
-	resource_manager.cc \
-	resource_manager.h
+	manager.h
 
 INCLUDES = -I$(srcdir) -I$(top_srcdir)

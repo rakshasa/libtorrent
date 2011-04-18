@@ -87,6 +87,22 @@ ResourceManager::set_priority(iterator itr, uint16_t pri) {
   insert(d, pri);
 }
 
+void
+ResourceManager::set_max_upload_unchoked(unsigned int m) {
+  if (m > (1 << 16))
+    throw input_error("Max unchoked must be between 0 and 2^16.");
+
+  m_maxUploadUnchoked = m;
+}
+
+void
+ResourceManager::set_max_download_unchoked(unsigned int m) {
+  if (m > (1 << 16))
+    throw input_error("Max unchoked must be between 0 and 2^16.");
+
+  m_maxDownloadUnchoked = m;
+}
+
 // The choking choke manager won't updated it's count until after
 // possibly multiple calls of this function.
 void

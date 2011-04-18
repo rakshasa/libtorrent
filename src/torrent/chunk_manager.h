@@ -120,9 +120,11 @@ public:
   //
   // The primary user of these functions is ChunkList.
 
-  bool                allocate(uint32_t size);
-  void                deallocate(uint32_t size);
-  void                deallocate_unused(uint32_t size);
+  static const int allocate_revert_log = (1 << 0);
+  static const int allocate_dont_log   = (1 << 1);
+
+  bool                allocate(uint32_t size, int flags = 0);
+  void                deallocate(uint32_t size, int flags = 0);
 
   void                try_free_memory(uint64_t size);
   

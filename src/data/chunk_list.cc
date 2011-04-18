@@ -109,27 +109,30 @@ ChunkList::clear() {
 }
 
 ChunkHandle
-ChunkList::get(size_type index, bool writable) {
+ChunkList::get(size_type index, int flags) {
   rak::error_number::clear_global();
 
   ChunkListNode* node = &base_type::at(index);
 
+  int allocate_flags = (flags & get_dont_log) ? ChunkManager::allocate_dont_log : 0;
+  int prot_flags = MemoryChunk::prot_read | ((flags & get_writable) ? MemoryChunk::prot_write : 0);
+
   if (!node->is_valid()) {
-    if (!m_manager->allocate(m_chunk_size))
+    if (!m_manager->allocate(m_chunk_size, allocate_flags))
       return ChunkHandle::from_error(rak::error_number::e_nomem);
 
-    Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
+    Chunk* chunk = m_slotCreateChunk(index, prot_flags);
 
     if (chunk == NULL) {
-      m_manager->deallocate_unused(m_chunk_size);
+      m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);
       return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
     }
 
     node->set_chunk(chunk);
     node->set_time_modified(rak::timer());
 
-  } else if (writable && !node->chunk()->is_writable()) {
-    Chunk* chunk = m_slotCreateChunk(index, MemoryChunk::prot_read | (writable ? MemoryChunk::prot_write : 0));
+  } else if (flags & get_writable && !node->chunk()->is_writable()) {
+    Chunk* chunk = m_slotCreateChunk(index, prot_flags);
 
     if (chunk == NULL)
       return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
@@ -142,7 +145,7 @@ ChunkList::get(size_type index, bool writable) {
 
   node->inc_references();
 
-  if (writable) {
+  if (flags & get_writable) {
     node->inc_writable();
 
     // Make sure that periodic syncing uses async on any subsequent
@@ -150,7 +153,7 @@ ChunkList::get(size_type index, bool writable) {
     node->set_sync_triggered(false);
   }
 
-  return ChunkHandle(node, writable);
+  return ChunkHandle(node, flags & get_writable);
 }
 
 // The chunks in 'm_queue' have been modified and need to be synced
@@ -158,7 +161,7 @@ ChunkList::get(size_type index, bool writable) {
 // will allow us to schedule writes at more resonable intervals.
 
 void
-ChunkList::release(ChunkHandle* handle) {
+ChunkList::release(ChunkHandle* handle, int flags) {
   if (!handle->is_valid())
     throw internal_error("ChunkList::release(...) received an invalid handle.");
 
@@ -189,7 +192,7 @@ ChunkList::release(ChunkHandle* handle) {
       if (is_queued(handle->object()))
         throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
 
-      clear_chunk(handle->object());
+      clear_chunk(handle->object(), flags);
     }
   }
 
@@ -197,14 +200,14 @@ ChunkList::release(ChunkHandle* handle) {
 }
 
 void
-ChunkList::clear_chunk(ChunkListNode* node) {
+ChunkList::clear_chunk(ChunkListNode* node, int flags) {
   if (!node->is_valid())
     throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
 
   delete node->chunk();
   node->set_chunk(NULL);
 
-  m_manager->deallocate(m_chunk_size);
+  m_manager->deallocate(m_chunk_size, (flags & get_dont_log) ? ChunkManager::allocate_dont_log : 0);
 }
 
 inline bool
