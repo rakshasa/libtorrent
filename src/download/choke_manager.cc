@@ -247,6 +247,43 @@ ChokeManager::disconnected(PeerConnectionBase* pc, ChokeManagerNode* base) {
   base->set_queued(false);
 }
 
+// No need to do any choking as the next choke balancing will take
+// care of things.
+void
+ChokeManager::move(ChokeManager* src, ChokeManager* dest, DownloadMain* download) {
+  iterator itr = src->m_queued.begin();
+
+  while (itr != src->m_queued.end()) {
+    if (itr->first->download() != download) {
+      itr++;
+      continue;
+    }
+
+    dest->m_queued.push_back(*itr);
+
+    *itr = src->m_queued.back();
+    src->m_queued.pop_back();
+  }
+
+  itr = src->m_unchoked.begin();
+
+  while (itr != src->m_unchoked.end()) {
+    if (itr->first->download() != download) {
+      itr++;
+      continue;
+    }
+
+    dest->m_unchoked.push_back(*itr);
+
+    *itr = src->m_unchoked.back();
+    src->m_unchoked.pop_back();
+  }
+}
+
+//
+// Heuristics:
+//
+
 struct choke_manager_less {
   bool operator () (ChokeManager::value_type v1, ChokeManager::value_type v2) const { return v1.second < v2.second; }
 };

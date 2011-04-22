@@ -76,12 +76,12 @@ ResourceManager::find(DownloadMain* d) {
 }
 
 void
-ResourceManager::set_priority(iterator itr, uint16_t pri) {
-  if (itr->priority() == pri)
+ResourceManager::set_group(iterator itr, uint16_t grp) {
+  if (itr->group() == grp)
     return;
 
   resource_manager_entry entry = *itr;
-  entry.set_priority(pri);
+  entry.set_group(grp);
   
   base_type::erase(itr);
   insert(entry);

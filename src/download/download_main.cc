@@ -94,8 +94,8 @@ DownloadMain::DownloadMain() :
   m_downloadThrottle(NULL) {
 
   m_connectionList       = new ConnectionList(this);
-  m_uploadChokeManager   = new ChokeManager(m_connectionList);
-  m_downloadChokeManager = new ChokeManager(m_connectionList, ChokeManager::flag_unchoke_all_new);
+  m_uploadChokeManager   = new ChokeManager();
+  m_downloadChokeManager = new ChokeManager(ChokeManager::flag_unchoke_all_new);
 
   m_uploadChokeManager->set_heuristics(ChokeManager::HEURISTICS_UPLOAD_LEECH);
   m_uploadChokeManager->set_slot_connection(std::mem_fun(&PeerConnectionBase::receive_upload_choke));

@@ -48,6 +48,7 @@ class ChokeManagerNode;
 class ConnectionList;
 class PeerConnectionBase;
 class ResourceManager;
+class DownloadMain;
 
 class ChokeManager {
 public:
@@ -86,8 +87,7 @@ public:
     HEURISTICS_MAX_SIZE
   };
 
-  ChokeManager(ConnectionList* cl, int flags = 0) :
-    m_connectionList(cl),
+  ChokeManager(int flags = 0) :
     m_flags(flags),
     m_heuristics(HEURISTICS_MAX_SIZE),
     m_maxUnchoked(unlimited),
@@ -121,6 +121,8 @@ public:
 
   void                disconnected(PeerConnectionBase* pc, ChokeManagerNode* base);
 
+  static void         move(ChokeManager* src, ChokeManager* dest, DownloadMain* download);
+
   heuristics_enum     heuristics() const                       { return m_heuristics; }
   void                set_heuristics(heuristics_enum hs)       { m_heuristics = hs; }
 
@@ -135,8 +137,6 @@ private:
   uint32_t            unchoke_range(iterator first, iterator last, uint32_t max);
 
   static heuristics_type m_heuristics_list[HEURISTICS_MAX_SIZE];
-
-  ConnectionList*     m_connectionList;
 
   container_type      m_queued;
   container_type      m_unchoked;
