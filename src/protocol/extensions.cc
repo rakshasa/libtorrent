@@ -43,11 +43,11 @@
 
 #include "download/available_list.h"
 #include "download/download_main.h"
-#include "download/download_manager.h"
 #include "download/download_wrapper.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/connection_manager.h"
 #include "torrent/object_stream.h"
+#include "torrent/download/download_manager.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "manager.h"

@@ -39,7 +39,6 @@
 #include "torrent/exceptions.h"
 
 #include "download/choke_manager.h"
-#include "download/download_manager.h"
 #include "download/download_wrapper.h"
 #include "download/download_main.h"
 #include "data/hash_torrent.h"
@@ -52,6 +51,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
+#include "torrent/download/download_manager.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/resource_manager.h"
 #include "torrent/throttle.h"

@@ -38,6 +38,7 @@
 #define LIBTORRENT_DOWNLOAD_MANAGER_H
 
 #include <vector>
+#include <torrent/common.h>
 
 namespace torrent {
 
@@ -45,7 +46,7 @@ class DownloadWrapper;
 class DownloadInfo;
 class DownloadMain;
 
-class DownloadManager : private std::vector<DownloadWrapper*>{
+class LIBTORRENT_EXPORT DownloadManager : private std::vector<DownloadWrapper*> {
 public:
   typedef std::vector<DownloadWrapper*> base_type;
 
@@ -71,17 +72,21 @@ public:
 
   ~DownloadManager() { clear(); }
 
-  iterator            insert(DownloadWrapper* d);
-  iterator            erase(DownloadWrapper* d);
-
-  void                clear();
-
   iterator            find(const std::string& hash);
   iterator            find(const HashString& hash);
   iterator            find(DownloadInfo* info);
 
   DownloadMain*       find_main(const char* hash);
   DownloadMain*       find_main_obfuscated(const char* hash);
+
+  //
+  // Don't export:
+  //
+
+  iterator            insert(DownloadWrapper* d) LIBTORRENT_NO_EXPORT;
+  iterator            erase(DownloadWrapper* d) LIBTORRENT_NO_EXPORT;
+
+  void                clear() LIBTORRENT_NO_EXPORT;
 };
 
 }

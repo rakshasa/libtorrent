@@ -50,6 +50,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
 #include "torrent/data/file_list.h"
+#include "torrent/download/download_manager.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
@@ -59,7 +60,6 @@
 #include "chunk_selector.h"
 #include "chunk_statistics.h"
 #include "download_main.h"
-#include "download_manager.h"
 #include "download_wrapper.h"
 
 namespace torrent {

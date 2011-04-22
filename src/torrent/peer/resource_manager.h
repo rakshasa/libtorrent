@@ -53,11 +53,36 @@ namespace torrent {
 // Add unlimited handling later.
 
 class DownloadMain;
+class ResourceManager;
 
-class LIBTORRENT_EXPORT ResourceManager : public std::vector<std::pair<uint16_t, DownloadMain*> > {
+class LIBTORRENT_EXPORT resource_manager_entry {
 public:
-  typedef std::vector<std::pair<uint16_t, DownloadMain*> > base_type;
-  typedef base_type::value_type                            value_type;
+  friend class ResourceManager;
+
+  resource_manager_entry(DownloadMain* d = NULL, uint16_t p = 0) : m_download(NULL), m_priority(0) {}
+
+  DownloadMain*       download()         { return m_download; }
+  const DownloadMain* c_download() const { return m_download; }
+  uint16_t            priority() const   { return m_priority; }
+
+protected:
+  void                set_priority(uint16_t p) { m_priority = p; }
+
+private:
+  DownloadMain*       m_download;
+
+  // TODO: Deprecate this when we move to more refined groupings.
+  //
+  // Change set_priority before adding more variables.
+  uint16_t            m_priority;
+};
+
+
+class LIBTORRENT_EXPORT ResourceManager : public std::vector<resource_manager_entry> {
+public:
+  typedef std::vector<resource_manager_entry> base_type;
+  typedef base_type::value_type               value_type;
+  typedef base_type::iterator                 iterator;
 
   using base_type::begin;
   using base_type::end;
@@ -69,7 +94,7 @@ public:
     m_maxDownloadUnchoked(0) {}
   ~ResourceManager();
 
-  void                insert(DownloadMain* d, uint16_t priority);
+  void                insert(DownloadMain* d, uint16_t priority) { insert(value_type(d, priority)); }
   void                erase(DownloadMain* d);
 
   iterator            find(DownloadMain* d);
@@ -95,6 +120,8 @@ public:
   void                receive_tick();
 
 private:
+  iterator            insert(const resource_manager_entry& entry);
+
   unsigned int        total_weight() const;
 
   void                balance_upload_unchoked(unsigned int weight);

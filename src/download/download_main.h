@@ -82,7 +82,9 @@ public:
   void                stop();
 
   ChokeManager*       upload_choke_manager()                     { return m_uploadChokeManager; }
+  const ChokeManager* c_upload_choke_manager() const             { return m_uploadChokeManager; }
   ChokeManager*       download_choke_manager()                   { return m_downloadChokeManager; }
+  const ChokeManager* c_download_choke_manager() const           { return m_downloadChokeManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
   DownloadInfo*       info()                                     { return m_info; }

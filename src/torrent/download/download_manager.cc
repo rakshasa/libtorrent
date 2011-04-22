@@ -40,8 +40,8 @@
 
 #include "torrent/exceptions.h"
 
+#include "download/download_wrapper.h"
 #include "download_manager.h"
-#include "download_wrapper.h"
 
 namespace torrent {
 

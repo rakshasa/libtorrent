@@ -288,7 +288,7 @@ download_priority(Download d) {
   if (itr == manager->resource_manager()->end())
     throw internal_error("torrent::download_priority(...) could not find the download in the resource manager.");
 
-  return itr->first;
+  return itr->priority();
 }
 
 void

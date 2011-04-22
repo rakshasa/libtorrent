@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <rak/functional.h>
 
@@ -56,16 +57,14 @@ ResourceManager::~ResourceManager() {
     throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyDownloadUnchoked != 0.");
 }
 
-void
-ResourceManager::insert(DownloadMain* d, uint16_t priority) {
-  iterator itr = std::find_if(begin(), end(), rak::less(priority, rak::mem_ref(&value_type::first)));
-
-  base_type::insert(itr, value_type(priority, d));
+ResourceManager::iterator
+ResourceManager::insert(const resource_manager_entry& entry) {
+  return base_type::insert(std::find_if(begin(), end(), rak::less(entry.priority(), std::mem_fun_ref(&value_type::priority))), entry);
 }
 
 void
 ResourceManager::erase(DownloadMain* d) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(d, rak::mem_ref(&value_type::second)));
+  iterator itr = std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
 
   if (itr != end())
     base_type::erase(itr);
@@ -73,18 +72,19 @@ ResourceManager::erase(DownloadMain* d) {
 
 ResourceManager::iterator
 ResourceManager::find(DownloadMain* d) {
-  return std::find_if(begin(), end(), rak::equal(d, rak::mem_ref(&value_type::second)));
+  return std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
 }
 
 void
 ResourceManager::set_priority(iterator itr, uint16_t pri) {
-  if (itr->first == pri)
+  if (itr->priority() == pri)
     return;
 
-  DownloadMain* d = itr->second;
-
+  resource_manager_entry entry = *itr;
+  entry.set_priority(pri);
+  
   base_type::erase(itr);
-  insert(d, pri);
+  insert(entry);
 }
 
 void
@@ -155,18 +155,18 @@ ResourceManager::receive_tick() {
 
 unsigned int
 ResourceManager::total_weight() const {
-  return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, rak::const_mem_ref(&value_type::first))).result;
+  return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, std::mem_fun_ref(&value_type::priority))).result;
 }
 
 struct resource_manager_upload_increasing {
-  bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) const {
-    return v1.second->upload_choke_manager()->size_total() < v2.second->upload_choke_manager()->size_total();
+  bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) {
+    return v1.c_download()->c_upload_choke_manager()->size_total() < v2.c_download()->c_upload_choke_manager()->size_total();
   }
 };
 
 struct resource_manager_download_increasing {
-  bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) const {
-    return v1.second->download_choke_manager()->size_total() < v2.second->download_choke_manager()->size_total();
+  bool operator () (const ResourceManager::value_type& v1, const ResourceManager::value_type& v2) {
+    return v1.c_download()->c_download_choke_manager()->size_total() < v2.c_download()->c_download_choke_manager()->size_total();
   }
 };
 
@@ -185,12 +185,12 @@ ResourceManager::balance_upload_unchoked(unsigned int weight) {
     sort(begin(), end(), resource_manager_upload_increasing());
 
     for (iterator itr = begin(); itr != end(); ++itr) {
-      ChokeManager* cm = itr->second->upload_choke_manager();
+      ChokeManager* cm = itr->download()->upload_choke_manager();
 
-      m_currentlyUploadUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
+      m_currentlyUploadUnchoked += cm->cycle(weight != 0 ? (quota * itr->priority()) / weight : 0);
 
       quota -= cm->size_unchoked();
-      weight -= itr->first;
+      weight -= itr->priority();
     }
 
     if (weight != 0)
@@ -198,7 +198,7 @@ ResourceManager::balance_upload_unchoked(unsigned int weight) {
 
   } else {
     for (iterator itr = begin(); itr != end(); ++itr)
-      m_currentlyUploadUnchoked += itr->second->upload_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
+      m_currentlyUploadUnchoked += itr->download()->upload_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
   }
 }
 
@@ -217,12 +217,12 @@ ResourceManager::balance_download_unchoked(unsigned int weight) {
     sort(begin(), end(), resource_manager_download_increasing());
 
     for (iterator itr = begin(); itr != end(); ++itr) {
-      ChokeManager* cm = itr->second->download_choke_manager();
+      ChokeManager* cm = itr->download()->download_choke_manager();
 
-      m_currentlyDownloadUnchoked += cm->cycle(weight != 0 ? (quota * itr->first) / weight : 0);
+      m_currentlyDownloadUnchoked += cm->cycle(weight != 0 ? (quota * itr->priority()) / weight : 0);
 
       quota -= cm->size_unchoked();
-      weight -= itr->first;
+      weight -= itr->priority();
     }
 
     if (weight != 0)
@@ -230,7 +230,7 @@ ResourceManager::balance_download_unchoked(unsigned int weight) {
 
   } else {
     for (iterator itr = begin(); itr != end(); ++itr)
-      m_currentlyDownloadUnchoked += itr->second->download_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
+      m_currentlyDownloadUnchoked += itr->download()->download_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
   }
 }
 
