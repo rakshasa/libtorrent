@@ -40,6 +40,7 @@
 #include <vector>
 #include <inttypes.h>
 #include <torrent/common.h>
+#include <torrent/download/choke_group.h>
 
 namespace torrent {
 
@@ -80,20 +81,19 @@ private:
 };
 
 
-class LIBTORRENT_EXPORT ResourceManager : private std::vector<resource_manager_entry> {
+class LIBTORRENT_EXPORT ResourceManager :
+    private std::vector<resource_manager_entry>,
+    private std::vector<choke_group> {
 public:
   typedef std::vector<resource_manager_entry> base_type;
+  typedef std::vector<choke_group>            choke_base_type;
   typedef base_type::value_type               value_type;
   typedef base_type::iterator                 iterator;
 
   using base_type::begin;
   using base_type::end;
 
-  ResourceManager() :
-    m_currentlyUploadUnchoked(0),
-    m_currentlyDownloadUnchoked(0),
-    m_maxUploadUnchoked(0),
-    m_maxDownloadUnchoked(0) {}
+  ResourceManager();
   ~ResourceManager();
 
   void                insert(DownloadMain* d, uint16_t priority) { insert(value_type(d, priority)); }
