@@ -121,7 +121,7 @@ public:
 
   void                disconnected(PeerConnectionBase* pc, ChokeManagerNode* base);
 
-  static void         move(ChokeManager* src, ChokeManager* dest, DownloadMain* download);
+  static void         move_connections(ChokeManager* src, ChokeManager* dest, DownloadMain* download);
 
   heuristics_enum     heuristics() const                       { return m_heuristics; }
   void                set_heuristics(heuristics_enum hs)       { m_heuristics = hs; }

@@ -250,7 +250,7 @@ ChokeManager::disconnected(PeerConnectionBase* pc, ChokeManagerNode* base) {
 // No need to do any choking as the next choke balancing will take
 // care of things.
 void
-ChokeManager::move(ChokeManager* src, ChokeManager* dest, DownloadMain* download) {
+ChokeManager::move_connections(ChokeManager* src, ChokeManager* dest, DownloadMain* download) {
   iterator itr = src->m_queued.begin();
 
   while (itr != src->m_queued.end()) {

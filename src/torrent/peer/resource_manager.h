@@ -59,28 +59,28 @@ class LIBTORRENT_EXPORT resource_manager_entry {
 public:
   friend class ResourceManager;
 
-  resource_manager_entry(DownloadMain* d = NULL, uint16_t grp = 0) : m_download(d), m_group(grp) {}
+  resource_manager_entry(DownloadMain* d = NULL, uint16_t pri = 0, uint16_t grp = 0) :
+    m_download(d), m_priority(pri), m_group(grp) {}
 
   DownloadMain*       download()         { return m_download; }
   const DownloadMain* c_download() const { return m_download; }
 
+  uint16_t            priority() const   { return m_priority; }
   uint16_t            group() const      { return m_group; }
-  uint16_t            priority() const   { return m_group; }
 
 protected:
+  void                set_priority(uint16_t pri) { m_priority = pri; }
   void                set_group(uint16_t grp) { m_group = grp; }
 
 private:
   DownloadMain*       m_download;
 
-  // TODO: Deprecate this when we move to more refined
-  // groupings. Remember to disable priority set/get functions when
-  // enabling grouping.
+  uint16_t            m_priority;
   uint16_t            m_group;
 };
 
 
-class LIBTORRENT_EXPORT ResourceManager : public std::vector<resource_manager_entry> {
+class LIBTORRENT_EXPORT ResourceManager : private std::vector<resource_manager_entry> {
 public:
   typedef std::vector<resource_manager_entry> base_type;
   typedef base_type::value_type               value_type;
@@ -100,8 +100,9 @@ public:
   void                erase(DownloadMain* d);
 
   iterator            find(DownloadMain* d);
+  iterator            find_group_end(uint16_t group);
 
-  void                set_priority(iterator itr, uint16_t pri) { set_group(itr, pri); }
+  void                set_priority(iterator itr, uint16_t pri);
   void                set_group(iterator itr, uint16_t grp);
 
   // When setting this, make sure you choke peers, else change

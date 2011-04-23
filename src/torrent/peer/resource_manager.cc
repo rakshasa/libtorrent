@@ -59,7 +59,11 @@ ResourceManager::~ResourceManager() {
 
 ResourceManager::iterator
 ResourceManager::insert(const resource_manager_entry& entry) {
-  return base_type::insert(std::find_if(begin(), end(), rak::less(entry.priority(), std::mem_fun_ref(&value_type::priority))), entry);
+  // init
+
+  
+
+  return base_type::insert(find_group_end(entry.priority()), entry);
 }
 
 void
@@ -75,6 +79,16 @@ ResourceManager::find(DownloadMain* d) {
   return std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
 }
 
+ResourceManager::iterator
+ResourceManager::find_group_end(uint16_t group) {
+  return std::find_if(begin(), end(), rak::less(group, std::mem_fun_ref(&value_type::group)));
+}
+
+void
+ResourceManager::set_priority(iterator itr, uint16_t pri) {
+  itr->set_priority(pri);
+}
+
 void
 ResourceManager::set_group(iterator itr, uint16_t grp) {
   if (itr->group() == grp)
@@ -83,8 +97,10 @@ ResourceManager::set_group(iterator itr, uint16_t grp) {
   resource_manager_entry entry = *itr;
   entry.set_group(grp);
   
+  // move and set.
+
   base_type::erase(itr);
-  insert(entry);
+  base_type::insert(find_group_end(entry.priority()), entry);
 }
 
 void
