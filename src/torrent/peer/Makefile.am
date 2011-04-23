@@ -12,7 +12,7 @@ libsub_torrentpeer_la_SOURCES = \
         peer_info.cc \
         peer_info.h \
 	peer_list.cc \
-	peer_list.h \
+	peer_list.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 

@@ -59,7 +59,7 @@
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
 #include "torrent/peer/connection_list.h"
-#include "torrent/peer/resource_manager.h"
+#include "torrent/download/resource_manager.h"
 
 namespace torrent {
 

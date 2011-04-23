@@ -52,8 +52,8 @@
 #include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
 #include "torrent/download/download_manager.h"
+#include "torrent/download/resource_manager.h"
 #include "torrent/peer/client_list.h"
-#include "torrent/peer/resource_manager.h"
 #include "torrent/throttle.h"
 
 #include "manager.h"
