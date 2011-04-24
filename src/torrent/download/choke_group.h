@@ -51,6 +51,9 @@ public:
   int balance_upload_unchoked(unsigned int weight, unsigned int max_unchoked);
   int balance_download_unchoked(unsigned int weight, unsigned int max_unchoked);
   
+  resource_manager_entry* first() { return m_first; }
+  resource_manager_entry* last()  { return m_last; }
+
   void set_first(resource_manager_entry* first) { m_first = first; }
   void set_last(resource_manager_entry* last) { m_last = last; }
 

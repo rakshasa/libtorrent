@@ -38,7 +38,7 @@
 
 #include <string.h>
 
-#include "download/choke_manager.h"
+#include "torrent/download/choke_queue.h"
 #include "download/chunk_statistics.h"
 
 #include "initial_seed.h"

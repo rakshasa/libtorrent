@@ -34,19 +34,20 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_NODE_H
-#define LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_NODE_H
+#ifndef LIBTORRENT_DOWNLOAD_CHOKE_STATUS_H
+#define LIBTORRENT_DOWNLOAD_CHOKE_STATUS_H
 
-#include <rak/timer.h>
+#include <torrent/common.h>
 
 namespace torrent {
 
-class ChokeManagerNode {
+class choke_status {
 public:
-  ChokeManagerNode() :
+  choke_status() :
     m_queued(false),
     m_unchoked(false),
-    m_snubbed(false) {}
+    m_snubbed(false),
+    m_timeLastChoke(0) {}
 
   bool                queued() const                          { return m_queued; }
   void                set_queued(bool s)                      { m_queued = s; }
@@ -58,15 +59,16 @@ public:
   bool                snubbed() const                         { return m_snubbed; }
   void                set_snubbed(bool s)                     { m_snubbed = s; }
 
-  rak::timer          time_last_choke() const                 { return m_timeLastChoke; }
-  void                set_time_last_choke(rak::timer t)       { m_timeLastChoke = t; }
+  int64_t             time_last_choke() const                 { return m_timeLastChoke; }
+  void                set_time_last_choke(int64_t t)          { m_timeLastChoke = t; }
 
 private:
+  // TODO: Use flags.
   bool                m_queued;
   bool                m_unchoked;
   bool                m_snubbed;
 
-  rak::timer          m_timeLastChoke;
+  int64_t             m_timeLastChoke;
 };
 
 }

@@ -38,10 +38,10 @@
 #define LIBTORRENT_PROTOCOL_PEER_CONNECTION_BASE_H
 
 #include "data/chunk_handle.h"
-#include "download/choke_manager_node.h"
 #include "net/socket_stream.h"
 #include "torrent/poll.h"
 #include "torrent/peer/peer.h"
+#include "torrent/peer/choke_status.h"
 
 #include "encryption_info.h"
 #include "extensions.h"
@@ -208,8 +208,8 @@ protected:
   //
   // In the downlod object, 'queued' now means the same as the spec's
   // 'unchoked', while 'unchoked' means we start requesting pieces.
-  ChokeManagerNode    m_upChoke;
-  ChokeManagerNode    m_downChoke;
+  choke_status    m_upChoke;
+  choke_status    m_downChoke;
 
   bool                m_downInterested;
   bool                m_downUnchoked;

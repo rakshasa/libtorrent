@@ -58,7 +58,7 @@ class ChunkList;
 class ChunkSelector;
 class ChunkStatistics;
 
-class ChokeManager;
+class choke_queue;
 class ConnectionList;
 class DownloadWrapper;
 class HandshakeManager;
@@ -81,10 +81,10 @@ public:
   void                start();
   void                stop();
 
-  ChokeManager*       upload_choke_manager()                     { return m_uploadChokeManager; }
-  const ChokeManager* c_upload_choke_manager() const             { return m_uploadChokeManager; }
-  ChokeManager*       download_choke_manager()                   { return m_downloadChokeManager; }
-  const ChokeManager* c_download_choke_manager() const           { return m_downloadChokeManager; }
+  choke_queue*        upload_choke_manager()                     { return m_uploadChokeManager; }
+  const choke_queue*  c_upload_choke_manager() const             { return m_uploadChokeManager; }
+  choke_queue*        download_choke_manager()                   { return m_downloadChokeManager; }
+  const choke_queue*  c_download_choke_manager() const           { return m_downloadChokeManager; }
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
   DownloadInfo*       info()                                     { return m_info; }
@@ -164,8 +164,8 @@ private:
   DownloadInfo*       m_info;
 
   TrackerManager*     m_trackerManager;
-  ChokeManager*       m_uploadChokeManager;
-  ChokeManager*       m_downloadChokeManager;
+  choke_queue*        m_uploadChokeManager;
+  choke_queue*        m_downloadChokeManager;
 
   ChunkList*          m_chunkList;
   ChunkSelector*      m_chunkSelector;

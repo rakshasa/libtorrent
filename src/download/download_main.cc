@@ -51,16 +51,18 @@
 #include "torrent/throttle.h"
 #include "torrent/data/file_list.h"
 #include "torrent/download/download_manager.h"
+#include "torrent/download/choke_queue.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
 
 #include "available_list.h"
-#include "choke_manager.h"
 #include "chunk_selector.h"
 #include "chunk_statistics.h"
 #include "download_main.h"
 #include "download_wrapper.h"
+
+namespace std { using namespace tr1; }
 
 namespace torrent {
 
@@ -94,14 +96,14 @@ DownloadMain::DownloadMain() :
   m_downloadThrottle(NULL) {
 
   m_connectionList       = new ConnectionList(this);
-  m_uploadChokeManager   = new ChokeManager();
-  m_downloadChokeManager = new ChokeManager(ChokeManager::flag_unchoke_all_new);
+  m_uploadChokeManager   = new choke_queue();
+  m_downloadChokeManager = new choke_queue(choke_queue::flag_unchoke_all_new);
 
-  m_uploadChokeManager->set_heuristics(ChokeManager::HEURISTICS_UPLOAD_LEECH);
-  m_uploadChokeManager->set_slot_connection(std::mem_fun(&PeerConnectionBase::receive_upload_choke));
+  m_uploadChokeManager->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
+  m_uploadChokeManager->set_slot_connection(std::bind(&PeerConnectionBase::receive_upload_choke, std::placeholders::_1, std::placeholders::_2));
 
-  m_downloadChokeManager->set_heuristics(ChokeManager::HEURISTICS_DOWNLOAD_LEECH);
-  m_downloadChokeManager->set_slot_connection(std::mem_fun(&PeerConnectionBase::receive_download_choke));
+  m_downloadChokeManager->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
+  m_downloadChokeManager->set_slot_connection(std::bind(&PeerConnectionBase::receive_download_choke, std::placeholders::_1, std::placeholders::_2));
 
   m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
   m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));

@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsub_torrentpeer.la
 
 libsub_torrentpeer_la_SOURCES = \
+	choke_status.h \
 	client_info.cc \
 	client_info.h \
 	client_list.cc \
@@ -18,6 +19,7 @@ INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent/peer
 libtorrentinclude_HEADERS = \
+	choke_status.h \
 	client_info.h \
 	client_list.h \
 	connection_list.h \

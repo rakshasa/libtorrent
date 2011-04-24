@@ -38,7 +38,6 @@
 
 #include "torrent/exceptions.h"
 
-#include "download/choke_manager.h"
 #include "download/download_wrapper.h"
 #include "download/download_main.h"
 #include "data/hash_torrent.h"
@@ -51,12 +50,15 @@
 #include "torrent/connection_manager.h"
 #include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
+#include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download/resource_manager.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/throttle.h"
 
 #include "manager.h"
+
+namespace std { using namespace tr1; }
 
 namespace torrent {
 
@@ -129,10 +131,10 @@ Manager::initialize_download(DownloadWrapper* d) {
   d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
   d->main()->set_download_throttle(m_downloadThrottle->throttle_list());
 
-  d->main()->upload_choke_manager()->set_slot_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_upload_unchoke));
-  d->main()->upload_choke_manager()->set_slot_can_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::retrieve_upload_can_unchoke));
-  d->main()->download_choke_manager()->set_slot_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::receive_download_unchoke));
-  d->main()->download_choke_manager()->set_slot_can_unchoke(rak::make_mem_fun(manager->resource_manager(), &ResourceManager::retrieve_download_can_unchoke));
+  d->main()->upload_choke_manager()->set_slot_unchoke(std::bind(&ResourceManager::receive_upload_unchoke, manager->resource_manager(), std::placeholders::_1));
+  d->main()->upload_choke_manager()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_upload_can_unchoke, manager->resource_manager()));
+  d->main()->download_choke_manager()->set_slot_unchoke(std::bind(&ResourceManager::receive_download_unchoke, manager->resource_manager(), std::placeholders::_1));
+  d->main()->download_choke_manager()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_download_can_unchoke, manager->resource_manager()));
 }
 
 void

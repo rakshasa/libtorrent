@@ -46,7 +46,6 @@
 #include "data/hash_queue.h"
 #include "data/hash_torrent.h"
 #include "download/available_list.h"
-#include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_wrapper.h"
@@ -54,6 +53,7 @@
 #include "protocol/peer_factory.h"
 #include "peer/peer_info.h"
 #include "tracker/tracker_manager.h"
+#include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
@@ -374,7 +374,7 @@ Download::accepting_new_peers() const {
 
 uint32_t
 Download::uploads_max() const {
-  if (m_ptr->main()->upload_choke_manager()->max_unchoked() == ChokeManager::unlimited)
+  if (m_ptr->main()->upload_choke_manager()->max_unchoked() == choke_queue::unlimited)
     return 0;
 
   return m_ptr->main()->upload_choke_manager()->max_unchoked();
@@ -402,7 +402,7 @@ Download::set_uploads_max(uint32_t v) {
     throw input_error("Max uploads must be between 0 and 2^16."); 
 	 	 
   // For the moment, treat 0 as unlimited. 
-  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v == 0 ? ChokeManager::unlimited : v); 
+  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v == 0 ? choke_queue::unlimited : v); 
   m_ptr->main()->upload_choke_manager()->balance();
 }
 
@@ -444,10 +444,10 @@ Download::upload_choke_heuristic() const {
 
 void
 Download::set_upload_choke_heuristic(HeuristicType t) {
-  if ((ChokeManager::heuristics_enum)t >= ChokeManager::HEURISTICS_MAX_SIZE)
+  if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
   
-  m_ptr->main()->upload_choke_manager()->set_heuristics((ChokeManager::heuristics_enum)t);
+  m_ptr->main()->upload_choke_manager()->set_heuristics((choke_queue::heuristics_enum)t);
 }
 
 Download::HeuristicType
@@ -457,10 +457,10 @@ Download::download_choke_heuristic() const {
 
 void
 Download::set_download_choke_heuristic(HeuristicType t) {
-  if ((ChokeManager::heuristics_enum)t >= ChokeManager::HEURISTICS_MAX_SIZE)
+  if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
   
-  m_ptr->main()->download_choke_manager()->set_heuristics((ChokeManager::heuristics_enum)t);
+  m_ptr->main()->download_choke_manager()->set_heuristics((choke_queue::heuristics_enum)t);
 }
 
 void
@@ -477,5 +477,7 @@ Download::add_peer(const sockaddr* sa, int port) {
   sa_port.set_port(port);
   m_ptr->main()->add_peer(sa_port);
 }
+
+DownloadMain* Download::main() { return m_ptr->main(); }
 
 }

@@ -34,27 +34,28 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_H
-#define LIBTORRENT_DOWNLOAD_CHOKE_MANAGER_H
+#ifndef LIBTORRENT_DOWNLOAD_CHOKE_QUEUE_H
+#define LIBTORRENT_DOWNLOAD_CHOKE_QUEUE_H
+
+#include <torrent/common.h>
 
 #include <list>
 #include <vector>
 #include <inttypes.h>
-#include <rak/functional.h>
+#include <tr1/functional>
 
 namespace torrent {
 
-class ChokeManagerNode;
+class choke_status;
 class ConnectionList;
 class PeerConnectionBase;
-class ResourceManager;
 class DownloadMain;
 
-class ChokeManager {
+class LIBTORRENT_EXPORT choke_queue {
 public:
-  typedef rak::mem_fun1<ResourceManager, void, int>              slot_unchoke;
-  typedef rak::mem_fun0<ResourceManager, unsigned int>           slot_can_unchoke;
-  typedef std::mem_fun1_t<bool, PeerConnectionBase, bool>        slot_connection;
+  typedef std::tr1::function<void (int)>                         slot_unchoke;
+  typedef std::tr1::function<unsigned int ()>                    slot_can_unchoke;
+  typedef std::tr1::function<bool (PeerConnectionBase*, bool)>   slot_connection;
 
   typedef std::vector<std::pair<PeerConnectionBase*, uint32_t> > container_type;
   typedef container_type::value_type                             value_type;
@@ -87,13 +88,13 @@ public:
     HEURISTICS_MAX_SIZE
   };
 
-  ChokeManager(int flags = 0) :
+  choke_queue(int flags = 0) :
     m_flags(flags),
     m_heuristics(HEURISTICS_MAX_SIZE),
     m_maxUnchoked(unlimited),
     m_generousUnchokes(3),
     m_slotConnection(NULL) {}
-  ~ChokeManager();
+  ~choke_queue();
   
   bool                is_full() const                         { return !is_unlimited() && m_unchoked.size() >= m_maxUnchoked; }
   bool                is_unlimited() const                    { return m_maxUnchoked == unlimited; }
@@ -113,15 +114,15 @@ public:
 
   // Assume interested state is already updated for the PCB and that
   // this gets called once every time the status changes.
-  void                set_queued(PeerConnectionBase* pc, ChokeManagerNode* base);
-  void                set_not_queued(PeerConnectionBase* pc, ChokeManagerNode* base);
+  void                set_queued(PeerConnectionBase* pc, choke_status* base);
+  void                set_not_queued(PeerConnectionBase* pc, choke_status* base);
 
-  void                set_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base);
-  void                set_not_snubbed(PeerConnectionBase* pc, ChokeManagerNode* base);
+  void                set_snubbed(PeerConnectionBase* pc, choke_status* base);
+  void                set_not_snubbed(PeerConnectionBase* pc, choke_status* base);
 
-  void                disconnected(PeerConnectionBase* pc, ChokeManagerNode* base);
+  void                disconnected(PeerConnectionBase* pc, choke_status* base);
 
-  static void         move_connections(ChokeManager* src, ChokeManager* dest, DownloadMain* download);
+  static void         move_connections(choke_queue* src, choke_queue* dest, DownloadMain* download);
 
   heuristics_enum     heuristics() const                       { return m_heuristics; }
   void                set_heuristics(heuristics_enum hs)       { m_heuristics = hs; }

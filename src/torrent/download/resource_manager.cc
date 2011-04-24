@@ -42,9 +42,9 @@
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
-#include "download/choke_manager.h"
 #include "download/download_main.h"
 
+#include "choke_queue.h"
 #include "resource_manager.h"
 
 namespace torrent {
@@ -87,8 +87,26 @@ ResourceManager::find(DownloadMain* d) {
 }
 
 ResourceManager::iterator
+ResourceManager::find_throw(DownloadMain* d) {
+  iterator itr = std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
+
+  if (itr == end())
+    throw input_error("Could not find download in resource manager.");
+
+  return itr;
+}
+
+ResourceManager::iterator
 ResourceManager::find_group_end(uint16_t group) {
   return std::find_if(begin(), end(), rak::less(group, std::mem_fun_ref(&value_type::group)));
+}
+
+choke_group&
+ResourceManager::group_at(uint16_t grp) {
+  if (grp >= choke_base_type::size())
+    throw input_error("Choke group not found.");
+
+  return choke_base_type::at(grp);
 }
 
 void
@@ -101,13 +119,16 @@ ResourceManager::set_group(iterator itr, uint16_t grp) {
   if (itr->group() == grp)
     return;
 
+  if (grp >= choke_base_type::size())
+    throw input_error("Choke group not found.");
+
   resource_manager_entry entry = *itr;
   entry.set_group(grp);
   
   // move and set.
 
   base_type::erase(itr);
-  base_type::insert(find_group_end(entry.priority()), entry);
+  base_type::insert(find_group_end(entry.group()), entry);
 }
 
 void
@@ -170,8 +191,6 @@ ResourceManager::retrieve_download_can_unchoke() {
 
 void
 ResourceManager::receive_tick() {
-  unsigned int totalWeight = total_weight();
-
   // Update these when inserting/erasing downloads.
   base_type::iterator       entry_itr = base_type::begin();
   choke_base_type::iterator group_itr = choke_base_type::begin();
@@ -187,8 +206,11 @@ ResourceManager::receive_tick() {
   group_itr = choke_base_type::begin();
 
   while (group_itr != choke_base_type::end()) {
-    m_currentlyUploadUnchoked   += group_itr->balance_upload_unchoked(totalWeight, m_maxUploadUnchoked);
-    m_currentlyDownloadUnchoked += group_itr->balance_download_unchoked(totalWeight, m_maxDownloadUnchoked);
+    unsigned int total_weight =
+      std::for_each(group_itr->first(), group_itr->last(), rak::accumulate((unsigned int)0, std::mem_fun_ref(&value_type::priority))).result;
+
+    m_currentlyUploadUnchoked   += group_itr->balance_upload_unchoked(total_weight, m_maxUploadUnchoked);
+    m_currentlyDownloadUnchoked += group_itr->balance_download_unchoked(total_weight, m_maxDownloadUnchoked);
     group_itr++;
   }
 }

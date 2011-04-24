@@ -39,12 +39,12 @@
 #include <algorithm>
 
 #include "choke_group.h"
+#include "choke_queue.h"
 
 // TODO: Put resource_manager_entry in a separate file.
 #include "resource_manager.h"
 
 #include "torrent/exceptions.h"
-#include "download/choke_manager.h"
 #include "download/download_main.h"
 
 namespace torrent {
@@ -84,7 +84,7 @@ choke_group::balance_upload_unchoked(unsigned int weight, unsigned int max_uncho
   std::sort(m_first, m_last, choke_group_upload_increasing());
 
   for (resource_manager_entry* itr = m_first; itr != m_last; ++itr) {
-    ChokeManager* cm = itr->download()->upload_choke_manager();
+    choke_queue* cm = itr->download()->upload_choke_manager();
 
     change += cm->cycle(weight != 0 ? (quota * itr->priority()) / weight : 0);
 
@@ -121,7 +121,7 @@ choke_group::balance_download_unchoked(unsigned int weight, unsigned int max_unc
   std::sort(m_first, m_last, choke_group_download_increasing());
 
   for (resource_manager_entry* itr = m_first; itr != m_last; ++itr) {
-    ChokeManager* cm = itr->download()->download_choke_manager();
+    choke_queue* cm = itr->download()->download_choke_manager();
 
     change += cm->cycle(weight != 0 ? (quota * itr->priority()) / weight : 0);
 

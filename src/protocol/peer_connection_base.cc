@@ -43,7 +43,6 @@
 
 #include "data/chunk_iterator.h"
 #include "data/chunk_list.h"
-#include "download/choke_manager.h"
 #include "download/chunk_selector.h"
 #include "download/chunk_statistics.h"
 #include "download/download_main.h"
@@ -54,6 +53,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/throttle.h"
+#include "torrent/download/choke_queue.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log_files.h"
@@ -227,7 +227,7 @@ PeerConnectionBase::receive_upload_choke(bool choke) {
 
   m_sendChoked = true;
   m_upChoke.set_unchoked(!choke);
-  m_upChoke.set_time_last_choke(cachedTime);
+  m_upChoke.set_time_last_choke(cachedTime.usec());
 
   return true;
 }
@@ -240,7 +240,7 @@ PeerConnectionBase::receive_download_choke(bool choke) {
   write_insert_poll_safe();
 
   m_downChoke.set_unchoked(!choke);
-  m_downChoke.set_time_last_choke(cachedTime);
+  m_downChoke.set_time_last_choke(cachedTime.usec());
 
   if (choke) {
     m_peerChunks.download_cache()->disable();

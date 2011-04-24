@@ -71,7 +71,7 @@ public:
 
 protected:
   void                set_priority(uint16_t pri) { m_priority = pri; }
-  void                set_group(uint16_t grp) { m_group = grp; }
+  void                set_group(uint16_t grp)    { m_group = grp; }
 
 private:
   DownloadMain*       m_download;
@@ -100,7 +100,11 @@ public:
   void                erase(DownloadMain* d);
 
   iterator            find(DownloadMain* d);
+  iterator            find_throw(DownloadMain* d);
   iterator            find_group_end(uint16_t group);
+
+  choke_group&            group_at(uint16_t grp);
+  resource_manager_entry& entry_at(DownloadMain* d) { return *find_throw(d); }
 
   void                set_priority(iterator itr, uint16_t pri);
   void                set_group(iterator itr, uint16_t grp);
