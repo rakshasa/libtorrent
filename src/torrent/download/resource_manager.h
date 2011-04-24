@@ -40,7 +40,6 @@
 #include <vector>
 #include <inttypes.h>
 #include <torrent/common.h>
-#include <torrent/download/choke_group.h>
 
 namespace torrent {
 
@@ -53,6 +52,7 @@ namespace torrent {
 //
 // Add unlimited handling later.
 
+class choke_group;
 class DownloadMain;
 class ResourceManager;
 
@@ -83,10 +83,10 @@ private:
 
 class LIBTORRENT_EXPORT ResourceManager :
     private std::vector<resource_manager_entry>,
-    private std::vector<choke_group> {
+    private std::vector<choke_group*> {
 public:
   typedef std::vector<resource_manager_entry> base_type;
-  typedef std::vector<choke_group>            choke_base_type;
+  typedef std::vector<choke_group*>           choke_base_type;
   typedef base_type::value_type               value_type;
   typedef base_type::iterator                 iterator;
 
@@ -103,7 +103,7 @@ public:
   iterator            find_throw(DownloadMain* d);
   iterator            find_group_end(uint16_t group);
 
-  choke_group&            group_at(uint16_t grp);
+  choke_group*            group_at(uint16_t grp);
   resource_manager_entry& entry_at(DownloadMain* d) { return *find_throw(d); }
 
   void                set_priority(iterator itr, uint16_t pri);

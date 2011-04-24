@@ -49,6 +49,8 @@
 
 namespace torrent {
 
+choke_group::choke_group() : m_first(NULL), m_last(NULL) { }
+
 struct choke_group_upload_increasing {
   bool operator () (const resource_manager_entry& v1, const resource_manager_entry& v2) {
     return v1.c_download()->c_upload_choke_manager()->size_total() < v2.c_download()->c_upload_choke_manager()->size_total();

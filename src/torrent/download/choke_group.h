@@ -40,14 +40,22 @@
 #include <vector>
 #include <inttypes.h>
 #include <torrent/common.h>
+#include <torrent/download/choke_queue.h>
 
 namespace torrent {
 
-class ResourceManager;
+class choke_queue;
 class resource_manager_entry;
 
 class LIBTORRENT_EXPORT choke_group {
 public:
+  choke_group();
+  
+  choke_queue* up_queue()   { return &m_up_queue; }
+  choke_queue* down_queue() { return &m_down_queue; }
+
+  // Internal:
+
   int balance_upload_unchoked(unsigned int weight, unsigned int max_unchoked);
   int balance_download_unchoked(unsigned int weight, unsigned int max_unchoked);
   
@@ -58,6 +66,9 @@ public:
   void set_last(resource_manager_entry* last) { m_last = last; }
 
 private:
+  choke_queue             m_up_queue;
+  choke_queue             m_down_queue;
+
   resource_manager_entry* m_first;
   resource_manager_entry* m_last;
 };

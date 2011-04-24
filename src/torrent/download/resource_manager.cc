@@ -42,6 +42,7 @@
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/download/choke_group.h"
 #include "download/download_main.h"
 
 #include "choke_queue.h"
@@ -55,7 +56,7 @@ ResourceManager::ResourceManager() :
   m_maxUploadUnchoked(0),
   m_maxDownloadUnchoked(0)
 {
-  choke_base_type::push_back(choke_group());
+  choke_base_type::push_back(new choke_group());
 }
 
 ResourceManager::~ResourceManager() {
@@ -64,6 +65,8 @@ ResourceManager::~ResourceManager() {
 
   if (m_currentlyDownloadUnchoked != 0)
     throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyDownloadUnchoked != 0.");
+
+  std::for_each(choke_base_type::begin(), choke_base_type::end(), rak::call_delete<choke_group>());
 }
 
 ResourceManager::iterator
@@ -101,7 +104,7 @@ ResourceManager::find_group_end(uint16_t group) {
   return std::find_if(begin(), end(), rak::less(group, std::mem_fun_ref(&value_type::group)));
 }
 
-choke_group&
+choke_group*
 ResourceManager::group_at(uint16_t grp) {
   if (grp >= choke_base_type::size())
     throw input_error("Choke group not found.");
@@ -196,10 +199,10 @@ ResourceManager::receive_tick() {
   choke_base_type::iterator group_itr = choke_base_type::begin();
 
   while (group_itr != choke_base_type::end()) {
-    group_itr->set_first(&*entry_itr);
+    (*group_itr)->set_first(&*entry_itr);
     entry_itr = std::find_if(entry_itr, end(), rak::less(std::distance(choke_base_type::begin(), group_itr),
                                                          std::mem_fun_ref(&value_type::group)));
-    group_itr->set_last(&*entry_itr);
+    (*group_itr)->set_last(&*entry_itr);
     group_itr++;
   }
 
@@ -207,10 +210,10 @@ ResourceManager::receive_tick() {
 
   while (group_itr != choke_base_type::end()) {
     unsigned int total_weight =
-      std::for_each(group_itr->first(), group_itr->last(), rak::accumulate((unsigned int)0, std::mem_fun_ref(&value_type::priority))).result;
+      std::for_each((*group_itr)->first(), (*group_itr)->last(), rak::accumulate((unsigned int)0, std::mem_fun_ref(&value_type::priority))).result;
 
-    m_currentlyUploadUnchoked   += group_itr->balance_upload_unchoked(total_weight, m_maxUploadUnchoked);
-    m_currentlyDownloadUnchoked += group_itr->balance_download_unchoked(total_weight, m_maxDownloadUnchoked);
+    m_currentlyUploadUnchoked   += (*group_itr)->balance_upload_unchoked(total_weight, m_maxUploadUnchoked);
+    m_currentlyDownloadUnchoked += (*group_itr)->balance_download_unchoked(total_weight, m_maxDownloadUnchoked);
     group_itr++;
   }
 }
