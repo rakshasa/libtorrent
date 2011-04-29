@@ -62,7 +62,7 @@ log_file::open_file(const char* filename) {
 
   m_last_update = rak::timer::current().seconds();
 
-  return (m_fd = open(filename, O_RDWR | O_CREAT | O_EXCL, 0666)) != -1;
+  return (m_fd = open(filename, O_APPEND | O_RDWR | O_CREAT, 0666)) != -1;
 }
 
 void
