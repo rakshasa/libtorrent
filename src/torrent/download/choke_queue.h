@@ -92,7 +92,6 @@ public:
     m_flags(flags),
     m_heuristics(HEURISTICS_MAX_SIZE),
     m_maxUnchoked(unlimited),
-    m_generousUnchokes(3),
     m_slotConnection(NULL) {}
   ~choke_queue();
   
@@ -105,9 +104,6 @@ public:
 
   uint32_t            max_unchoked() const                    { return m_maxUnchoked; }
   void                set_max_unchoked(uint32_t v)            { m_maxUnchoked = v; }
-
-  uint32_t            generous_unchokes() const               { return m_generousUnchokes; }
-  void                set_generous_unchokes(uint32_t v)       { m_generousUnchokes = v; }
 
   void                balance();
   int                 cycle(uint32_t quota);
@@ -134,8 +130,7 @@ public:
 private:
   inline uint32_t     max_alternate() const;
 
-  uint32_t            choke_range(iterator first, iterator last, uint32_t max);
-  uint32_t            unchoke_range(iterator first, iterator last, uint32_t max);
+  uint32_t            adjust_choke_range(iterator first, iterator last, uint32_t max, bool is_choke);
 
   static heuristics_type m_heuristics_list[HEURISTICS_MAX_SIZE];
 
@@ -146,7 +141,6 @@ private:
   heuristics_enum     m_heuristics;
 
   uint32_t            m_maxUnchoked;
-  uint32_t            m_generousUnchokes;
 
   slot_unchoke        m_slotUnchoke;
   slot_can_unchoke    m_slotCanUnchoke;

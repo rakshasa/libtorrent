@@ -106,8 +106,8 @@ choke_queue::balance() {
     log_choke_changes_func_new(this, "balance", m_maxUnchoked, adjust);
 
   if (adjust > 0) {
-    adjust = unchoke_range(m_queued.begin(), m_queued.end(),
-			   std::min((uint32_t)adjust, m_slotCanUnchoke()));
+    adjust = adjust_choke_range(m_queued.begin(), m_queued.end(),
+                                std::min((uint32_t)adjust, m_slotCanUnchoke()), false);
 
     m_slotUnchoke(adjust);
 
@@ -115,7 +115,7 @@ choke_queue::balance() {
     // We can do the choking before the slot is called as this
     // choke_queue won't be unchoking the same peers due to the
     // call-back.
-    adjust = choke_range(m_unchoked.begin(), m_unchoked.end(), -adjust);
+    adjust = adjust_choke_range(m_unchoked.begin(), m_unchoked.end(), -adjust, true);
 
     m_slotUnchoke(-adjust);
   }
@@ -133,10 +133,10 @@ choke_queue::cycle(uint32_t quota) {
 
   // Does this properly handle 'unlimited' quota?
   uint32_t oldSize  = m_unchoked.size();
-  uint32_t unchoked = unchoke_range(m_queued.begin(), m_queued.end(), adjust);
+  uint32_t unchoked = adjust_choke_range(m_queued.begin(), m_queued.end(), adjust, false);
 
   if (m_unchoked.size() > quota)
-    choke_range(m_unchoked.begin(), m_unchoked.end() - unchoked, m_unchoked.size() - quota);
+    adjust_choke_range(m_unchoked.begin(), m_unchoked.end() - unchoked, m_unchoked.size() - quota, true);
 
   if (m_unchoked.size() > quota)
     throw internal_error("choke_queue::cycle() m_unchoked.size() > quota.");
@@ -370,104 +370,62 @@ choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator 
   }
 }
 
-uint32_t
-choke_queue::choke_range(iterator first, iterator last, uint32_t max) {
-  m_heuristics_list[m_heuristics].slot_choke_weight(first, last);
-
-  target_type target[order_max_size + 1];
-  choke_manager_allocate_slots(first, last, max, m_heuristics_list[m_heuristics].choke_weight, target);
-
-  if (log_files[LOG_CHOKE_CHANGES].is_open())
-    for (uint32_t i = 0; i < choke_queue::order_max_size; i++)
-      log_choke_changes_func_allocate(this, "  choke", i, target[i].first, std::distance(target[i].second, target[i + 1].second));
-
-  // Now do the actual unchoking.
-  uint32_t count = 0;
-
-  // Iterate in reverse so that the iterators in 'target' remain vaild
-  // even though we remove random ranges.
-  for (target_type* itr = target + order_max_size; itr != target; itr--) {
-    if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
-      throw internal_error("choke_queue::choke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
-
-    if (itr->second - (itr - 1)->first > itr->second ||
-        itr->second - (itr - 1)->first < m_unchoked.begin() ||
-        itr->second - (itr - 1)->first > m_unchoked.end() ||
-        (itr - 1)->second < m_unchoked.begin() ||
-        (itr - 1)->second > m_unchoked.end())
-      throw internal_error("choke_queue::choke_range(...) bad iterator range.");
-
-    count += (itr - 1)->first;
-
-    // We move the connections that return true, while the ones that
-    // return false get thrown out. The function called must update
-    // ChunkManager::m_queued if false is returned.
-    //
-    // The C++ standard says std::partition will call the predicate
-    // max 'last - first' times, so we can assume it gets called once
-    // per element.
-    iterator first_unchoke = itr->second - (itr - 1)->first;
-    iterator last_unchoke = itr->second;
-
-    iterator split = std::partition(itr->second - (itr - 1)->first, itr->second,
-                                    rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, true)));
-
-    if (log_files[LOG_CHOKE_CHANGES].is_open())
-      std::for_each(first_unchoke, split,
-                    std::tr1::bind(&log_choke_changes_func_peer, this, "  choke", std::tr1::placeholders::_1));
-
-    m_queued.insert(m_queued.end(), itr->second - (itr - 1)->first, split);
-    m_unchoked.erase(itr->second - (itr - 1)->first, itr->second);
-  }
-
-  if (count > max)
-    throw internal_error("choke_queue::choke_range(...) count > max.");
-
-  return count;
+template <typename Itr>
+bool range_is_contained(Itr first, Itr last, Itr lower_bound, Itr upper_bound) {
+  return first >= lower_bound && last <= upper_bound && first <= last;
 }
-  
-uint32_t
-choke_queue::unchoke_range(iterator first, iterator last, uint32_t max) {
-  m_heuristics_list[m_heuristics].slot_unchoke_weight(first, last);
 
+uint32_t
+choke_queue::adjust_choke_range(iterator first, iterator last, uint32_t max, bool is_choke) {
   target_type target[order_max_size + 1];
-  choke_manager_allocate_slots(first, last, max, m_heuristics_list[m_heuristics].unchoke_weight, target);
+  container_type* src_container;
+  container_type* dest_container;
+
+  if (is_choke) {
+    src_container  = &m_unchoked;
+    dest_container = &m_queued;
+
+    m_heuristics_list[m_heuristics].slot_choke_weight(first, last);
+    choke_manager_allocate_slots(first, last, max, m_heuristics_list[m_heuristics].choke_weight, target);
+  } else {
+    src_container  = &m_queued;
+    dest_container = &m_unchoked;
+
+    m_heuristics_list[m_heuristics].slot_unchoke_weight(first, last);
+    choke_manager_allocate_slots(first, last, max, m_heuristics_list[m_heuristics].unchoke_weight, target);
+  }
 
   if (log_files[LOG_CHOKE_CHANGES].is_open())
     for (uint32_t i = 0; i < choke_queue::order_max_size; i++)
-      log_choke_changes_func_allocate(this, "unchoke", i, target[i].first, std::distance(target[i].second, target[i + 1].second));
+      log_choke_changes_func_allocate(this, "unchoke" + 2*is_choke, i, target[i].first, std::distance(target[i].second, target[i + 1].second));
 
   // Now do the actual unchoking.
   uint32_t count = 0;
 
   for (target_type* itr = target + order_max_size; itr != target; itr--) {
     if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
-      throw internal_error("choke_queue::unchoke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
-
-    if (itr->second - (itr - 1)->first > itr->second ||
-        itr->second - (itr - 1)->first < m_queued.begin() ||
-        itr->second - (itr - 1)->first > m_queued.end() ||
-        (itr - 1)->second < m_queued.begin() ||
-        (itr - 1)->second > m_queued.end())
-      throw internal_error("choke_queue::unchoke_range(...) bad iterator range.");
+      throw internal_error("choke_queue::adjust_choke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
 
     count += (itr - 1)->first;
 
-    iterator first_unchoke = itr->second - (itr - 1)->first;
-    iterator last_unchoke = itr->second;
+    iterator first_adjust = itr->second - (itr - 1)->first;
+    iterator last_adjust = itr->second;
 
-    std::for_each(first_unchoke, last_unchoke, rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, false)));
+    if (!range_is_contained(first_adjust, last_adjust, src_container->begin(), src_container->end()))
+      throw internal_error("choke_queue::adjust_choke_range(...) bad iterator range.");
+
+    std::for_each(first_adjust, last_adjust, rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, is_choke)));
 
     if (log_files[LOG_CHOKE_CHANGES].is_open())
-      std::for_each(first_unchoke, last_unchoke,
-                    std::tr1::bind(&log_choke_changes_func_peer, this, "unchoke", std::tr1::placeholders::_1));
+      std::for_each(first_adjust, last_adjust,
+                    std::tr1::bind(&log_choke_changes_func_peer, this, "unchoke" + 2*is_choke, std::tr1::placeholders::_1));
 
-    m_unchoked.insert(m_unchoked.end(), itr->second - (itr - 1)->first, itr->second);
-    m_queued.erase(itr->second - (itr - 1)->first, itr->second);
+    dest_container->insert(dest_container->end(), itr->second - (itr - 1)->first, itr->second);
+    src_container->erase(itr->second - (itr - 1)->first, itr->second);
   }
 
   if (count > max)
-    throw internal_error("choke_queue::unchoke_range(...) count > max.");
+    throw internal_error("choke_queue::adjust_choke_range(...) count > max.");
 
   return count;
 }
