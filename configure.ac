@@ -1,10 +1,10 @@
-AC_INIT(libtorrent, 0.12.7, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.12.8, jaris@ifi.uio.no)
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME, "-lt0C70-", Identifier that is part of the default peer id)
-AC_DEFINE(PEER_VERSION, "lt\x0C\x70", 4 byte client and version identifier for DHT)
+AC_DEFINE(PEER_NAME, "-lt0C80-", Identifier that is part of the default peer id)
+AC_DEFINE(PEER_VERSION, "lt\x0C\x80", 4 byte client and version identifier for DHT)
 
-LIBTORRENT_CURRENT=13
+LIBTORRENT_CURRENT=14
 LIBTORRENT_REVISION=0
 LIBTORRENT_AGE=0
 
