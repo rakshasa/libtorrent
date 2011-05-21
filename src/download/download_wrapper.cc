@@ -311,11 +311,30 @@ DownloadWrapper::receive_update_priorities() {
   m_main->chunk_selector()->normal_priority()->clear();
 
   for (FileList::iterator itr = m_main->file_list()->begin(); itr != m_main->file_list()->end(); ++itr) {
-    if ((*itr)->priority() == 1)
-      m_main->chunk_selector()->normal_priority()->insert((*itr)->range().first, (*itr)->range().second);
+    switch ((*itr)->priority()) {
+    case PRIORITY_NORMAL:
+    {
+      File::range_type range = (*itr)->range();
 
-    else if ((*itr)->priority() == 2)
+      if ((*itr)->has_flags(File::flag_prioritize_first) && range.first != range.second) {
+        m_main->chunk_selector()->high_priority()->insert(range.first, range.first + 1);
+        range.first++;
+      }
+
+      if ((*itr)->has_flags(File::flag_prioritize_last) && range.first != range.second) {
+        m_main->chunk_selector()->high_priority()->insert(range.second - 1, range.second);
+        range.second--;
+      }
+
+      m_main->chunk_selector()->normal_priority()->insert(range);
+      break;
+    }
+    case PRIORITY_HIGH:
       m_main->chunk_selector()->high_priority()->insert((*itr)->range().first, (*itr)->range().second);
+      break;
+    default:
+      break;
+    }
   }
 
   m_main->chunk_selector()->update_priorities();
