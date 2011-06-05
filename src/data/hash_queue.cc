@@ -39,6 +39,7 @@
 #include <functional>
 
 #include "torrent/exceptions.h"
+#include "torrent/thread_base.h"
 
 #include "hash_queue.h"
 #include "hash_chunk.h"
@@ -160,7 +161,7 @@ HashQueue::work() {
     if (!check(++m_tries >= m_maxTries))
       return priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + m_interval);
     
-    m_tries = std::min(0, m_tries - 2);
+    m_tries = std::max(0, (int)(m_tries - 2));
   }
 
   if (!empty() && !m_taskWork.is_queued())

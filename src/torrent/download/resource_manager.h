@@ -92,6 +92,8 @@ public:
 
   using base_type::begin;
   using base_type::end;
+  using base_type::size;
+  using base_type::capacity;
 
   ResourceManager();
   ~ResourceManager();
