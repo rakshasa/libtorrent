@@ -65,13 +65,37 @@ namespace torrent {
 static const unsigned int hashstring_hash_ofs = 8;
 
 struct hashstring_ptr_hash : public std::unary_function<const HashString*, size_t> {
-  size_t operator () (const HashString* n) const 
-  { return *(size_t*)(n->data() + hashstring_hash_ofs); }
+  size_t operator () (const HashString* n) const {
+#if USE_ALIGNED
+    size_t result = 0;
+    const char *first = n->data() + hashstring_hash_ofs;
+    const char *last = first + sizeof(size_t);
+
+    while (first != last)
+      result = (result << 8) + *first++;
+    
+    return result;
+#else
+    return *(size_t*)(n->data() + hashstring_hash_ofs);
+#endif
+  }
 };
 
 struct hashstring_hash : public std::unary_function<HashString, size_t> {
-  size_t operator () (const HashString& n) const 
-  { return *(size_t*)(n.data() + hashstring_hash_ofs); }
+  size_t operator () (const HashString& n) const {
+#if USE_ALIGNED
+    size_t result = 0;
+    const char *first = n.data() + hashstring_hash_ofs;
+    const char *last = first + sizeof(size_t);
+
+    while (first != last)
+      result = (result << 8) + *first++;
+    
+    return result;
+#else
+    return *(size_t*)(n.data() + hashstring_hash_ofs);
+#endif
+  }
 };
 
 // Compare HashString pointers by dereferencing them.
