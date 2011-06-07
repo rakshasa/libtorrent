@@ -204,7 +204,10 @@ Download::is_hash_checking() const {
 
 void
 Download::set_pex_enabled(bool enabled) {
-  m_ptr->info()->change_flags(DownloadInfo::flag_pex_enabled, enabled);
+  if (enabled)
+    m_ptr->info()->set_pex_enabled();
+  else
+    m_ptr->info()->unset_flags(DownloadInfo::flag_pex_enabled);
 }
 
 Object*

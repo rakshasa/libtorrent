@@ -91,9 +91,9 @@ DownloadConstructor::initialize(Object& b) {
   if (b.has_key_value("creation date"))
     m_download->info()->set_creation_date(b.get_key_value("creation date"));
 
-  m_download->info()->change_flags(DownloadInfo::flag_private,
-                                   b.get_key("info").has_key_value("private") && 
-                                   b.get_key("info").get_key_value("private") == 1);
+  if (b.get_key("info").has_key_value("private") && 
+      b.get_key("info").get_key_value("private") == 1)
+    m_download->info()->set_private();
 
   parse_name(b.get_key("info"));
   parse_info(b.get_key("info"));
