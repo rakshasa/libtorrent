@@ -81,7 +81,7 @@ FileList::FileList() :
 
   m_torrentSize(0),
   m_chunkSize(0),
-  m_maxFileSize((uint64_t)64 << 30) {
+  m_maxFileSize(~uint64_t()) {
 }
 
 FileList::~FileList() {
