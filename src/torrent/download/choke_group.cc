@@ -49,6 +49,16 @@
 
 namespace torrent {
 
+uint64_t
+choke_group::up_rate() const {
+  return 6666;
+}
+
+uint64_t
+choke_group::down_rate() const {
+  return 6666;
+}
+
 choke_group::choke_group() : m_first(NULL), m_last(NULL) { }
 
 struct choke_group_upload_increasing {
