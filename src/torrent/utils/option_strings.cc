@@ -43,6 +43,7 @@
 #include "exceptions.h"
 #include "download.h"
 #include "option_strings.h"
+#include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 
 namespace torrent {
@@ -61,9 +62,10 @@ option_pair option_list_0[] = {
 };
 
 option_pair option_list_1[] = {
-  { "upload_leech",   choke_queue::HEURISTICS_UPLOAD_LEECH },
-  { "download_leech", choke_queue::HEURISTICS_DOWNLOAD_LEECH },
-  //  { "upload_seed",    choke_queue::HEURISTICS_UPLOAD_SEED },
+  { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
+  //{ "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  //{ "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
+  { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
   { NULL, 0 }
 };
 
@@ -73,10 +75,17 @@ option_pair option_list_2[] = {
   { NULL, 0 }
 };
 
+option_pair option_list_tracker_mode[] = {
+  { "normal",     choke_group::TRACKER_MODE_NORMAL },
+  { "aggressive", choke_group::TRACKER_MODE_AGGRESSIVE },
+  { NULL, 0 }
+};
+
 option_pair* option_lists[OPTION_MAX_SIZE] = {
   option_list_0,
   option_list_1,
   option_list_2,
+  option_list_tracker_mode,
 };
 
 int

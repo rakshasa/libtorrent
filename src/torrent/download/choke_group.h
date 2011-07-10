@@ -53,10 +53,18 @@ class resource_manager_entry;
 
 class LIBTORRENT_EXPORT choke_group {
 public:
+  enum tracker_mode_enum {
+    TRACKER_MODE_NORMAL,
+    TRACKER_MODE_AGGRESSIVE
+  };
+
   choke_group();
   
   const std::string&  name() const { return m_name; }
   void                set_name(const std::string& name) { m_name = name; }
+
+  tracker_mode_enum   tracker_mode() const                   { return m_tracker_mode; }
+  void                set_tracker_mode(tracker_mode_enum tm) { m_tracker_mode = tm; }
 
   choke_queue*        up_queue()   { return &m_up_queue; }
   choke_queue*        down_queue() { return &m_down_queue; }
@@ -89,6 +97,7 @@ public:
 
 private:
   std::string             m_name;
+  tracker_mode_enum       m_tracker_mode;
 
   choke_queue             m_up_queue;
   choke_queue             m_down_queue;

@@ -38,6 +38,7 @@
 
 #include <rak/functional.h>
 
+#include "torrent/utils/log_files.h"
 #include "torrent/download_info.h"
 #include "net/address_list.h"
 #include "tracker/tracker_manager.h"
@@ -96,10 +97,25 @@ TrackerList::send_state(int s) {
   set_state(s);
   m_itr = find_usable(m_itr);
 
-  if (m_itr != end())
-    (*m_itr)->send_state(state());
-  else
+  if (m_itr == end()) {
     m_manager->receive_failed("Tried all trackers.");
+    return;
+  }
+
+  (*m_itr)->send_state(state());
+
+  if (log_files[LOG_TRACKER].is_open()) {
+    const char* event_name = NULL;
+
+    switch(state()) {
+    case DownloadInfo::STARTED:   event_name = "started"; break;
+    case DownloadInfo::STOPPED:   event_name = "stopped"; break;
+    case DownloadInfo::COMPLETED: event_name = "completed"; break;
+    default:                      event_name = "updated"; break;
+    }
+
+    log_tracker_append(this, (*m_itr)->group(), *m_itr, 0, "send_state", event_name);
+  }
 }
 
 TrackerList::iterator
@@ -107,6 +123,9 @@ TrackerList::insert(unsigned int group, Tracker* t) {
   t->set_group(group);
 
   iterator itr = base_type::insert(end_group(group), t);
+
+  if (log_files[LOG_TRACKER].is_open())
+    log_tracker_append(this, (*itr)->group(), *itr, 0, "inserted", (*itr)->url().c_str());
 
   m_itr = begin();
   return itr;
@@ -233,6 +252,9 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
+  if (log_files[LOG_TRACKER].is_open())
+    log_tracker_append(this, (*m_itr)->group(), *m_itr, l->size(), "receive", "success");
+
   set_time_last_connection(cachedTime.seconds());
   m_manager->receive_success(l);
 }
@@ -243,6 +265,9 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
 
   if (itr != m_itr || m_itr == end() || (*m_itr)->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
+
+  if (log_files[LOG_TRACKER].is_open())
+    log_tracker_append(this, (*m_itr)->group(), *m_itr, 0, "receive", "failed");
 
   m_itr++;
   m_manager->receive_failed(msg);
