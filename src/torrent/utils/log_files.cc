@@ -135,8 +135,8 @@ log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
                                        log_mincore_stats_instance.counter_sync_not_synced,
                                        log_mincore_stats_instance.counter_sync_not_deallocated,
                                        log_mincore_stats_instance.counter_alloc_failed,
-                                       log_mincore_stats_instance.velocity_allocate,
-                                       log_mincore_stats_instance.velocity_deallocate);
+                                       (long long unsigned int)log_mincore_stats_instance.velocity_allocate,
+                                       (long long unsigned int)log_mincore_stats_instance.velocity_deallocate);
 
     // Add a zero'ed log entry so that graphs will look right after a
     // long period with no activity.
@@ -182,7 +182,8 @@ log_choke_changes_func_peer(void* address, const char* title, std::pair<PeerConn
   char buffer[256];
   unsigned int buf_length = snprintf(buffer, 256, "%p %i %s %p %X %llu %llu\n",
                                      address, lf->last_update(), title, data.first, data.second,
-                                     data.first->up_rate()->rate(), data.first->down_rate()->rate());
+                                     (long long unsigned int)data.first->up_rate()->rate(),
+                                     (long long unsigned int)data.first->down_rate()->rate());
 
   write(lf->file_descriptor(), buffer, buf_length);
 }
