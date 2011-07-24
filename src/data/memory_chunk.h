@@ -140,6 +140,9 @@ MemoryChunk::clear() {
 
 inline uint32_t
 MemoryChunk::pages_touched(uint32_t offset, uint32_t length) const {
+  if (length == 0)
+    return 0;
+
   return (length + page_align(offset) + m_pagesize - 1) / m_pagesize;
 }
 
