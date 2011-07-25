@@ -603,6 +603,7 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
       throw internal_error("FileList::create_chunk(...) mc.size() > length.");
 
     chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
+    chunk->back().set_file(*itr, offset - (*itr)->offset());
 
     offset += mc.size();
     length -= mc.size();

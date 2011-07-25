@@ -42,6 +42,7 @@
 
 namespace torrent {
 
+class ChunkList;
 class DownloadWrapper;
 class DownloadInfo;
 class DownloadMain;
@@ -75,6 +76,8 @@ public:
   iterator            find(const std::string& hash);
   iterator            find(const HashString& hash);
   iterator            find(DownloadInfo* info);
+
+  iterator            find_chunk_list(ChunkList* cl);
 
   DownloadMain*       find_main(const char* hash);
   DownloadMain*       find_main_obfuscated(const char* hash);

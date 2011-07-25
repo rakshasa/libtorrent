@@ -37,10 +37,13 @@
 #ifndef LIBTORRENT_FILE_LIST_H
 #define LIBTORRENT_FILE_LIST_H
 
+#include <algorithm>
+#include <functional>
 #include <vector>
 #include <torrent/common.h>
 #include <torrent/bitfield.h>
 #include <torrent/path.h>
+#include <torrent/data/file.h>
 
 namespace torrent {
 
@@ -191,6 +194,11 @@ private:
   bool                m_isMultiFile;
   std::string         m_frozenRootDir;
 };
+
+inline FileList::iterator
+file_list_contains_position(FileList* file_list, uint64_t pos) {
+  return std::find_if(file_list->begin(), file_list->end(), std::bind2nd(std::mem_fun(&File::is_valid_position), pos));
+}
 
 }
 

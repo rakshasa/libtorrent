@@ -39,10 +39,10 @@
 
 #include <string>
 #include <vector>
-#include <string>
 #include <rak/error_number.h>
 #include <rak/functional.h>
 
+#include "chunk.h"
 #include "chunk_handle.h"
 #include "chunk_list_node.h"
 
@@ -120,6 +120,10 @@ public:
   void                slot_storage_error(SlotStorageError s)   { m_slotStorageError = s; }
   void                slot_create_chunk(SlotCreateChunk s)     { m_slotCreateChunk = s; }
   void                slot_free_diskspace(SlotFreeDiskspace s) { m_slotFreeDiskspace = s; }
+
+  typedef std::pair<iterator, Chunk::iterator> chunk_address_result;
+
+  chunk_address_result find_address(void* ptr);
 
 private:
   inline bool         is_queued(ChunkListNode* node);

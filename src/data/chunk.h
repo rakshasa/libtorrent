@@ -37,7 +37,10 @@
 #ifndef LIBTORRENT_STORAGE_CHUNK_H
 #define LIBTORRENT_STORAGE_CHUNK_H
 
+#include <algorithm>
+#include <functional>
 #include <vector>
+
 #include "chunk_part.h"
 
 namespace torrent {
@@ -59,6 +62,9 @@ public:
   using base_type::end;
   using base_type::rbegin;
   using base_type::rend;
+
+  using base_type::front;
+  using base_type::back;
 
   Chunk() : m_chunkSize(0), m_prot(~0) {}
   ~Chunk() { clear(); }
@@ -82,6 +88,8 @@ public:
   iterator            at_position(uint32_t pos, iterator itr);
 
   data_type           at_memory(uint32_t offset, iterator part);
+
+  iterator            find_address(void* ptr);
 
   // Check how much of the chunk is incore from pos.
   bool                is_incore(uint32_t pos, uint32_t length = ~uint32_t());
@@ -109,6 +117,11 @@ Chunk::at_position(uint32_t pos, iterator itr) {
     itr++;
 
   return itr;
+}
+
+inline Chunk::iterator
+Chunk::find_address(void* ptr) {
+  return std::find_if(begin(), end(), std::bind2nd(std::mem_fun_ref(&ChunkPart::has_address), ptr));
 }
 
 }

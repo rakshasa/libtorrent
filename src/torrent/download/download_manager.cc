@@ -88,6 +88,11 @@ DownloadManager::find(DownloadInfo* info) {
   return std::find_if(begin(), end(), rak::equal(info, std::mem_fun(&DownloadWrapper::info)));
 }
 
+DownloadManager::iterator
+DownloadManager::find_chunk_list(ChunkList* cl) {
+  return std::find_if(begin(), end(), rak::equal(cl, std::mem_fun(&DownloadWrapper::chunk_list)));
+}
+
 DownloadMain*
 DownloadManager::find_main(const char* hash) {
   iterator itr = std::find_if(begin(), end(), rak::equal(*HashString::cast_from(hash),

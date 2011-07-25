@@ -67,6 +67,7 @@ public:
   ~DownloadWrapper();
 
   DownloadInfo*       info()                                  { return m_main->info(); }
+  ChunkList*          chunk_list()                            { return m_main->chunk_list(); }
 
   // Initialize hash checker and various download stuff.
   void                initialize(const std::string& hash, const std::string& id);

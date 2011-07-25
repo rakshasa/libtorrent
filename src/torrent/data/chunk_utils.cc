@@ -40,7 +40,11 @@
 #include "download.h"
 #include "exceptions.h"
 
+#include "manager.h"
+#include "chunk_manager.h"
+
 #include "download/download_wrapper.h"
+#include "torrent/download/download_manager.h"
 
 #include "data/chunk.h"
 #include "data/chunk_list.h"
@@ -67,6 +71,39 @@ chunk_list_mapping(Download* download) {
   }
 
   return mappings;
+}
+
+chunk_info_result
+chunk_list_address_info(void* address) {
+  ChunkManager::iterator first = manager->chunk_manager()->begin();
+  ChunkManager::iterator last = manager->chunk_manager()->begin();
+  
+  while (first != last) {
+    ChunkList::chunk_address_result result = (*first)->find_address(address);
+
+    if (result.first != (*first)->end()) {
+      DownloadManager::iterator d_itr = manager->download_manager()->find_chunk_list(*first);
+
+      if (d_itr == manager->download_manager()->end())
+        return chunk_info_result();
+
+      chunk_info_result ci;
+      ci.download = Download(*d_itr);
+      ci.chunk_index = result.first->index();
+      ci.chunk_offset = result.second->position() +
+        std::distance(result.second->chunk().begin(), (char*)address);
+      
+      ci.file_path = result.second->file()->frozen_path().c_str();
+      ci.file_offset = result.second->file_offset() +
+        std::distance(result.second->chunk().begin(), (char*)address);
+
+      return ci;
+    }
+
+    first++;
+  }
+
+  return chunk_info_result();
 }
 
 }
