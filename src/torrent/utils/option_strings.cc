@@ -40,11 +40,14 @@
 #include <functional>
 #include <cstring>
 
+#include "torrent/connection_manager.h"
+#include "torrent/object.h"
+#include "torrent/download/choke_group.h"
+#include "torrent/download/choke_queue.h"
+
 #include "exceptions.h"
 #include "download.h"
 #include "option_strings.h"
-#include "torrent/download/choke_group.h"
-#include "torrent/download/choke_queue.h"
 
 namespace torrent {
 
@@ -69,9 +72,30 @@ option_pair option_list_1[] = {
   { NULL, 0 }
 };
 
-option_pair option_list_2[] = {
+option_pair option_list_encryption[] = {
+  { "none",             torrent::ConnectionManager::encryption_none },
+  { "allow_incoming",   torrent::ConnectionManager::encryption_allow_incoming },
+  { "try_outgoing",     torrent::ConnectionManager::encryption_try_outgoing },
+  { "require",          torrent::ConnectionManager::encryption_require },
+  { "require_RC4",      torrent::ConnectionManager::encryption_require_RC4 },
+  { "require_rc4",      torrent::ConnectionManager::encryption_require_RC4 },
+  { "enable_retry",     torrent::ConnectionManager::encryption_enable_retry },
+  { "prefer_plaintext", torrent::ConnectionManager::encryption_prefer_plaintext },
+  { NULL, 0 }
+};
+
+option_pair option_list_ip_filter[] = {
   { "unwanted",  PeerInfo::flag_unwanted },
   { "preferred", PeerInfo::flag_preferred },
+  { NULL, 0 }
+};
+
+option_pair option_list_ip_tos[] = {
+  { "default",     torrent::ConnectionManager::iptos_default },
+  { "lowdelay",    torrent::ConnectionManager::iptos_lowdelay },
+  { "throughput",  torrent::ConnectionManager::iptos_throughput },
+  { "reliability", torrent::ConnectionManager::iptos_reliability },
+  { "mincost",     torrent::ConnectionManager::iptos_mincost },
   { NULL, 0 }
 };
 
@@ -84,7 +108,9 @@ option_pair option_list_tracker_mode[] = {
 option_pair* option_lists[OPTION_MAX_SIZE] = {
   option_list_0,
   option_list_1,
-  option_list_2,
+  option_list_encryption,
+  option_list_ip_filter,
+  option_list_ip_tos,
   option_list_tracker_mode,
 };
 
@@ -110,6 +136,18 @@ option_as_string(option_enum opt_enum, int value) {
   } while ((++itr)->name != NULL);
 
   throw input_error("Invalid option value.");  
+}
+
+torrent::Object
+option_list_strings(option_enum opt_enum) {
+  Object::list_type result;
+
+  option_pair* itr = option_lists[opt_enum];
+
+  while (itr->name != NULL)
+    result.push_back(std::string(itr++->name));
+
+  return Object::from_list(result);
 }
 
 }

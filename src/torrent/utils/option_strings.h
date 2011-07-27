@@ -42,18 +42,24 @@
 
 namespace torrent {
 
+class Object;
+
 enum option_enum {
   OPTION_CONNECTION_TYPE,
   OPTION_CHOKE_HEURISTICS,
+  OPTION_ENCRYPTION,
   OPTION_IP_FILTER,
+  OPTION_IP_TOS,
   OPTION_TRACKER_MODE,
   OPTION_MAX_SIZE
 };
 
-int        option_find_string(option_enum opt_enum, const char* name) LIBTORRENT_EXPORT;
-inline int option_find_string_str(option_enum opt_enum, const std::string& name) { return option_find_string(opt_enum, name.c_str()); }
+int             option_find_string(option_enum opt_enum, const char* name) LIBTORRENT_EXPORT;
+inline int      option_find_string_str(option_enum opt_enum, const std::string& name) { return option_find_string(opt_enum, name.c_str()); }
 
-const char* option_as_string(option_enum opt_enum, int value) LIBTORRENT_EXPORT;
+const char*     option_as_string(option_enum opt_enum, int value) LIBTORRENT_EXPORT;
+
+torrent::Object option_list_strings(option_enum opt_enum) LIBTORRENT_EXPORT;
 
 }
 
