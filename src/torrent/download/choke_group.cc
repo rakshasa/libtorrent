@@ -59,7 +59,10 @@ choke_group::down_rate() const {
   return 6666;
 }
 
-choke_group::choke_group() : m_first(NULL), m_last(NULL) { }
+choke_group::choke_group() :
+  m_tracker_mode(TRACKER_MODE_NORMAL),
+  m_first(NULL),
+  m_last(NULL) { }
 
 struct choke_group_upload_increasing {
   bool operator () (const resource_manager_entry& v1, const resource_manager_entry& v2) {
