@@ -38,10 +38,11 @@
 #define LIBTORRENT_DOWNLOAD_CHUNK_SELECTOR_H
 
 #include <inttypes.h>
-#include <rak/ranges.h>
 #include <rak/partial_queue.h>
 
 #include "torrent/bitfield.h"
+#include "torrent/data/download_data.h"
+#include "torrent/utils/ranges.h"
 
 namespace torrent {
 
@@ -58,21 +59,21 @@ class PeerChunks;
 
 class ChunkSelector {
 public:
-  typedef rak::ranges<uint32_t> priority_ranges;
-
   static const uint32_t invalid_chunk = ~(uint32_t)0;
 
+  ChunkSelector(download_data* data) : m_data(data) {}
+
   bool                empty() const                 { return size() == 0; }
-  uint32_t            size() const                  { return m_bitfield.size_bits(); }
+  uint32_t            size() const                  { return m_data->untouched_bitfield()->size_bits(); }
 
-  const Bitfield*     bitfield()                    { return &m_bitfield; }
+  //  const Bitfield*     bitfield()                    { return m_data->untouched_bitfield(); }
 
-  priority_ranges*    high_priority()               { return &m_highPriority; }
-  priority_ranges*    normal_priority()             { return &m_normalPriority; }
+  // priority_ranges*    high_priority()               { return &m_highPriority; }
+  // priority_ranges*    normal_priority()             { return &m_normalPriority; }
 
   // Initialize doesn't update the priority cache, so it is as if it
   // has empty priority ranges.
-  void                initialize(Bitfield* bf, ChunkStatistics* cs);
+  void                initialize(ChunkStatistics* cs);
   void                cleanup();
 
   // Call this once you've modified the bitfield or priorities to
@@ -100,7 +101,7 @@ public:
   bool                received_have_chunk(PeerChunks* pc, uint32_t index);
 
 private:
-  bool                search_linear(const Bitfield* bf, rak::partial_queue* pq, priority_ranges* ranges, uint32_t first, uint32_t last);
+  bool                search_linear(const Bitfield* bf, rak::partial_queue* pq, const download_data::priority_ranges* ranges, uint32_t first, uint32_t last);
   inline bool         search_linear_range(const Bitfield* bf, rak::partial_queue* pq, uint32_t first, uint32_t last);
   inline bool         search_linear_byte(rak::partial_queue* pq, uint32_t index, Bitfield::value_type wanted);
 
@@ -110,12 +111,10 @@ private:
 
   void                advance_position();
 
-  Bitfield            m_bitfield;
+  download_data*      m_data;
+
   ChunkStatistics*    m_statistics;
   
-  priority_ranges     m_highPriority;
-  priority_ranges     m_normalPriority;
-
   rak::partial_queue  m_sharedQueue;
 
   uint32_t            m_position;

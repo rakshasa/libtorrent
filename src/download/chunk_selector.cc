@@ -50,14 +50,17 @@ namespace torrent {
 
 // Consider making statistics a part of selector.
 void
-ChunkSelector::initialize(Bitfield* bf, ChunkStatistics* cs) {
+ChunkSelector::initialize(ChunkStatistics* cs) {
   m_position = invalid_chunk;
   m_statistics = cs;
 
-  m_bitfield.set_size_bits(bf->size_bits());
-  m_bitfield.allocate();
-  std::transform(bf->begin(), bf->end(), m_bitfield.begin(), rak::invert<Bitfield::value_type>());
-  m_bitfield.update();
+  Bitfield* completed = m_data->mutable_completed_bitfield();
+  Bitfield* untouched = m_data->mutable_untouched_bitfield();
+
+  untouched->set_size_bits(completed->size_bits());
+  untouched->allocate();
+  std::transform(completed->begin(), completed->end(), untouched->begin(), rak::invert<Bitfield::value_type>());
+  untouched->update();
 
   m_sharedQueue.enable(32);
   m_sharedQueue.clear();
@@ -65,7 +68,7 @@ ChunkSelector::initialize(Bitfield* bf, ChunkStatistics* cs) {
 
 void
 ChunkSelector::cleanup() {
-  m_bitfield.clear();
+  m_data->mutable_untouched_bitfield()->clear();
   m_statistics = NULL;
 }
 
@@ -111,7 +114,7 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
     while (queue->prepare_pop()) {
       uint32_t pos = queue->pop();
 
-      if (!m_bitfield.get(pos))
+      if (!m_data->untouched_bitfield()->get(pos))
         continue;
 
       return pos;
@@ -125,8 +128,8 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
 
   queue->clear();
 
-  (search_linear(pc->bitfield(), queue, &m_highPriority, m_position, size()) &&
-   search_linear(pc->bitfield(), queue, &m_highPriority, 0, m_position));
+  (search_linear(pc->bitfield(), queue, m_data->high_priority(), m_position, size()) &&
+   search_linear(pc->bitfield(), queue, m_data->high_priority(), 0, m_position));
 
   if (queue->prepare_pop()) {
     // Set that the peer has high priority pieces cached.
@@ -137,8 +140,8 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
     // Urgh...
     queue->clear();
 
-    (search_linear(pc->bitfield(), queue, &m_normalPriority, m_position, size()) &&
-     search_linear(pc->bitfield(), queue, &m_normalPriority, 0, m_position));
+    (search_linear(pc->bitfield(), queue, m_data->normal_priority(), m_position, size()) &&
+     search_linear(pc->bitfield(), queue, m_data->normal_priority(), 0, m_position));
 
     if (!queue->prepare_pop())
       return invalid_chunk;
@@ -146,7 +149,7 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
 
   uint32_t pos = queue->pop();
   
-  if (!m_bitfield.get(pos))
+  if (!m_data->untouched_bitfield()->get(pos))
     throw internal_error("ChunkSelector::find(...) bad index.");
   
   return pos;
@@ -154,7 +157,7 @@ ChunkSelector::find(PeerChunks* pc, __UNUSED bool highPriority) {
 
 bool
 ChunkSelector::is_wanted(uint32_t index) const {
-  return m_bitfield.get(index) && (m_normalPriority.has(index) || m_highPriority.has(index));
+  return m_data->untouched_bitfield()->get(index) && (m_data->normal_priority()->has(index) || m_data->high_priority()->has(index));
 }
 
 void
@@ -162,10 +165,10 @@ ChunkSelector::using_index(uint32_t index) {
   if (index >= size())
     throw internal_error("ChunkSelector::select_index(...) index out of range.");
 
-  if (!m_bitfield.get(index))
+  if (!m_data->untouched_bitfield()->get(index))
     throw internal_error("ChunkSelector::select_index(...) index already set.");
 
-  m_bitfield.unset(index);
+  m_data->mutable_untouched_bitfield()->unset(index);
 
   // We always know 'm_position' points to a wanted chunk. If it
   // changes, we need to move m_position to the next one.
@@ -178,10 +181,10 @@ ChunkSelector::not_using_index(uint32_t index) {
   if (index >= size())
     throw internal_error("ChunkSelector::deselect_index(...) index out of range.");
 
-  if (m_bitfield.get(index))
+  if (m_data->untouched_bitfield()->get(index))
     throw internal_error("ChunkSelector::deselect_index(...) index already unset.");
 
-  m_bitfield.set(index);
+  m_data->mutable_untouched_bitfield()->set(index);
 
   // This will make sure that if we enable new chunks, it will start
   // downloading them event when 'index == invalid_chunk'.
@@ -198,11 +201,11 @@ ChunkSelector::not_using_index(uint32_t index) {
 // start downloading.
 bool
 ChunkSelector::received_have_chunk(PeerChunks* pc, uint32_t index) {
-  if (!m_bitfield.get(index))
+  if (!m_data->untouched_bitfield()->get(index))
     return false;
 
   // Also check if the peer only has high-priority chunks.
-  if (!m_highPriority.has(index) && !m_normalPriority.has(index))
+  if (!m_data->high_priority()->has(index) && !m_data->normal_priority()->has(index))
     return false;
 
   if (pc->download_cache()->is_enabled())
@@ -212,8 +215,8 @@ ChunkSelector::received_have_chunk(PeerChunks* pc, uint32_t index) {
 }
 
 bool
-ChunkSelector::search_linear(const Bitfield* bf, rak::partial_queue* pq, priority_ranges* ranges, uint32_t first, uint32_t last) {
-  priority_ranges::iterator itr = ranges->find(first);
+ChunkSelector::search_linear(const Bitfield* bf, rak::partial_queue* pq, const download_data::priority_ranges* ranges, uint32_t first, uint32_t last) {
+  download_data::priority_ranges::const_iterator itr = ranges->find(first);
 
   while (itr != ranges->end() && itr->first < last) {
 
@@ -233,24 +236,24 @@ ChunkSelector::search_linear_range(const Bitfield* bf, rak::partial_queue* pq, u
   if (first >= last || last > size())
     throw internal_error("ChunkSelector::search_linear_range(...) received an invalid range.");
 
-  Bitfield::const_iterator local  = m_bitfield.begin() + first / 8;
+  Bitfield::const_iterator local  = m_data->untouched_bitfield()->begin() + first / 8;
   Bitfield::const_iterator source = bf->begin() + first / 8;
 
   // Unset any bits before 'first'.
   Bitfield::value_type wanted = (*source & *local) & Bitfield::mask_from(first % 8);
 
-  while (m_bitfield.position(local + 1) < last) {
-    if (wanted && !search_linear_byte(pq, m_bitfield.position(local), wanted))
+  while (m_data->untouched_bitfield()->position(local + 1) < last) {
+    if (wanted && !search_linear_byte(pq, m_data->untouched_bitfield()->position(local), wanted))
       return false;
 
     wanted = (*++source & *++local);
   }
   
   // Unset any bits from 'last'.
-  wanted &= Bitfield::mask_before(last - m_bitfield.position(local));
+  wanted &= Bitfield::mask_before(last - m_data->untouched_bitfield()->position(local));
 
   if (wanted)
-    return search_linear_byte(pq, m_bitfield.position(local), wanted);
+    return search_linear_byte(pq, m_data->untouched_bitfield()->position(local), wanted);
   else
     return true;
 }

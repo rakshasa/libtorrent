@@ -2,12 +2,13 @@
 
 #include <vector>
 
-#include "rak/ranges.h"
+#include "torrent/utils/ranges.h"
 
 class RangesTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(RangesTest);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_intersect);
+  CPPUNIT_TEST(test_create_union);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -16,4 +17,6 @@ public:
 
   void test_basic();
   void test_intersect();
+
+  void test_create_union();
 };

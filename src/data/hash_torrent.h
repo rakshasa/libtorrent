@@ -40,10 +40,10 @@
 #include <string>
 #include <inttypes.h>
 #include <rak/functional.h>
-#include <rak/ranges.h>
 #include <rak/priority_queue_default.h>
 
 #include "data/chunk_handle.h"
+#include "torrent/utils/ranges.h"
 
 namespace torrent {
 
@@ -52,7 +52,7 @@ class DownloadWrapper;
 
 class HashTorrent {
 public:
-  typedef rak::ranges<uint32_t> Ranges;
+  typedef ranges<uint32_t> Ranges;
 
   typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>        slot_check_type;
   typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> slot_error_type;

@@ -129,10 +129,10 @@ FileList::completed_bytes() const {
   // Chunk size needs to be cast to a uint64_t for the below to work.
   uint64_t cs = chunk_size();
 
-  if (m_bitfield.empty())
-    return m_bitfield.is_all_set() ? size_bytes() : (completed_chunks() * cs);
+  if (bitfield()->empty())
+    return bitfield()->is_all_set() ? size_bytes() : (completed_chunks() * cs);
 
-  if (!m_bitfield.get(size_chunks() - 1) || size_bytes() % cs == 0) {
+  if (!bitfield()->get(size_chunks() - 1) || size_bytes() % cs == 0) {
     // The last chunk is not done, or the last chunk is the same size
     // as the others.
     return completed_chunks() * cs;
@@ -372,7 +372,7 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   m_torrentSize = torrentSize;
   m_rootDir = ".";
 
-  m_bitfield.set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
+  mutable_bitfield()->set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
 
   File* newFile = new File();
 
@@ -622,16 +622,16 @@ FileList::create_chunk_index(uint32_t index, int prot) {
 
 void
 FileList::mark_completed(uint32_t index) {
-  if (m_bitfield.get(index))
+  if (bitfield()->get(index))
     throw internal_error("FileList::mark_completed(...) received a chunk that has already been finished.");
 
-  if (m_bitfield.size_set() >= m_bitfield.size_bits())
-    throw internal_error("FileList::mark_completed(...) m_bitfield.size_set() >= m_bitfield.size_bits().");
+  if (bitfield()->size_set() >= bitfield()->size_bits())
+    throw internal_error("FileList::mark_completed(...) bitfield()->size_set() >= bitfield()->size_bits().");
 
   if (index >= size_chunks() || completed_chunks() >= size_chunks())
     throw internal_error("FileList::mark_completed(...) received an invalid index.");
 
-  m_bitfield.set(index);
+  mutable_bitfield()->set(index);
   inc_completed(begin(), index);
 }
 
@@ -643,6 +643,7 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
   if (firstItr == end())
     throw internal_error("FileList::inc_completed() first == m_entryList->end().");
 
+  // TODO: Check if this works right for zero-length files.
   std::for_each(firstItr,
                 lastItr == end() ? end() : (lastItr + 1),
                 std::mem_fun(&File::inc_completed_protected));
@@ -652,10 +653,10 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
 
 void
 FileList::update_completed() {
-  if (!m_bitfield.is_tail_cleared())
+  if (!bitfield()->is_tail_cleared())
     throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
 
-  if (m_bitfield.is_all_set()) {
+  if (bitfield()->is_all_set()) {
     for (iterator itr = begin(), last = end(); itr != last; ++itr)
       (*itr)->set_completed_protected((*itr)->size_chunks());
 
@@ -665,13 +666,13 @@ FileList::update_completed() {
     for (iterator itr = begin(), last = end(); itr != last; ++itr)
       (*itr)->set_completed_protected(0);
 
-    if (m_bitfield.is_all_unset())
+    if (bitfield()->is_all_unset())
       return;
 
     iterator entryItr = begin();
 
-    for (Bitfield::size_type index = 0; index < m_bitfield.size_bits(); ++index)
-      if (m_bitfield.get(index))
+    for (Bitfield::size_type index = 0; index < bitfield()->size_bits(); ++index)
+      if (bitfield()->get(index))
         entryItr = inc_completed(entryItr, index);
   }
 }

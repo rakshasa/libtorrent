@@ -161,7 +161,7 @@ DownloadWrapper::receive_initial_hash() {
 
     // Initialize the ChunkSelector here so that no chunks will be
     // marked by HashTorrent that are not accounted for.
-    m_main->chunk_selector()->initialize(m_main->file_list()->mutable_bitfield(), m_main->chunk_statistics());
+    m_main->chunk_selector()->initialize(m_main->chunk_statistics());
     receive_update_priorities();
   }
 
@@ -200,7 +200,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
     // Receiving chunk hashes after stopping the torrent should be
     // safe.
 
-    if (m_main->chunk_selector()->bitfield()->get(handle.index()))
+    if (data()->untouched_bitfield()->get(handle.index()))
       throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
     if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
@@ -307,8 +307,8 @@ DownloadWrapper::receive_update_priorities() {
   if (m_main->chunk_selector()->empty())
     return;
 
-  m_main->chunk_selector()->high_priority()->clear();
-  m_main->chunk_selector()->normal_priority()->clear();
+  data()->mutable_high_priority()->clear();
+  data()->mutable_normal_priority()->clear();
 
   for (FileList::iterator itr = m_main->file_list()->begin(); itr != m_main->file_list()->end(); ++itr) {
     switch ((*itr)->priority()) {
@@ -317,25 +317,44 @@ DownloadWrapper::receive_update_priorities() {
       File::range_type range = (*itr)->range();
 
       if ((*itr)->has_flags(File::flag_prioritize_first) && range.first != range.second) {
-        m_main->chunk_selector()->high_priority()->insert(range.first, range.first + 1);
+        data()->mutable_high_priority()->insert(range.first, range.first + 1);
         range.first++;
       }
 
       if ((*itr)->has_flags(File::flag_prioritize_last) && range.first != range.second) {
-        m_main->chunk_selector()->high_priority()->insert(range.second - 1, range.second);
+        data()->mutable_high_priority()->insert(range.second - 1, range.second);
         range.second--;
       }
 
-      m_main->chunk_selector()->normal_priority()->insert(range);
+      data()->mutable_normal_priority()->insert(range);
       break;
     }
     case PRIORITY_HIGH:
-      m_main->chunk_selector()->high_priority()->insert((*itr)->range().first, (*itr)->range().second);
+      data()->mutable_high_priority()->insert((*itr)->range().first, (*itr)->range().second);
       break;
     default:
       break;
     }
   }
+
+  // Calculate the number of chunks remaining to be downloaded.
+  //
+  // Doing it the slow and safe way, optimize this at some point.
+  uint32_t remaining = 0;
+
+  // download_data::priority_ranges high_itr = data()->high_priority()->begin();
+  // download_data::priority_ranges high_last = data()->high_priority()->end();
+  // download_data::priority_ranges normal_itr = data()->normal_priority()->begin();
+  // download_data::priority_ranges normal_last = data()->normal_priority()->end();
+
+  // const Bitfield* completed = data()->completed_bitfield();
+
+  // for (uint32_t itr = 0, last = completed->size_bits(); itr != last; itr++) {
+    
+
+  // }
+
+  data()->set_wanted_chunks(remaining);
 
   m_main->chunk_selector()->update_priorities();
 

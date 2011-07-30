@@ -88,7 +88,7 @@ DownloadMain::DownloadMain() :
 
   m_trackerManager(new TrackerManager()),
   m_chunkList(new ChunkList),
-  m_chunkSelector(new ChunkSelector),
+  m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
   m_chunkStatistics(new ChunkStatistics),
 
   m_initialSeeding(NULL),
