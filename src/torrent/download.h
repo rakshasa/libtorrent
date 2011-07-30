@@ -51,6 +51,7 @@ namespace torrent {
 class ConnectionList;
 class DownloadInfo;
 class DownloadMain;
+class download_data;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
@@ -71,7 +72,8 @@ public:
 
   Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
 
-  const DownloadInfo* info() const;
+  const DownloadInfo*  info() const;
+  const download_data* data() const;
 
   // Not active atm. Opens and prepares/closes the files.
   void                open(int flags = 0);

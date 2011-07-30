@@ -90,6 +90,8 @@ public:
   void                unset_all();
   void                unset_range(size_type first, size_type last);
 
+  // size_type           count_range(size_type first, size_type last) const;
+
   bool                get(size_type idx) const      { return m_data[idx / 8] & mask_at(idx % 8); }
 
   void                set(size_type idx)            { m_set += !get(idx); m_data[idx / 8] |=  mask_at(idx % 8); }

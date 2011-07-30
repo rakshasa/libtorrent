@@ -144,4 +144,14 @@ Bitfield::unset_range(size_type first, size_type last) {
     unset(first++);
 }
 
+// size_type
+// Bitfield::count_range(size_type first, size_type last) {
+//   size_type count = 0;
+
+//   // Some archs have bitcounting instructions, look into writing a
+//   // wrapper for those.
+//   for (iterator itr = m_data, last = end(); itr != last; ++itr)
+//     m_set += bit_count_256[*itr];
+// }
+
 }

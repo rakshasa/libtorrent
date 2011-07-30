@@ -66,8 +66,8 @@
 
 namespace torrent {
 
-const DownloadInfo*
-Download::info() const { return m_ptr->info(); }
+const DownloadInfo* Download::info() const { return m_ptr->info(); }
+const download_data* Download::data() const { return m_ptr->data(); }
 
 void
 Download::open(int flags) {

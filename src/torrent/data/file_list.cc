@@ -633,6 +633,10 @@ FileList::mark_completed(uint32_t index) {
 
   mutable_bitfield()->set(index);
   inc_completed(begin(), index);
+
+  // TODO: Remember to validate 'wanted_chunks'.
+  if (m_data.normal_priority()->has(index) || m_data.high_priority()->has(index))
+    m_data.set_wanted_chunks(m_data.wanted_chunks() - 1);
 }
 
 FileList::iterator

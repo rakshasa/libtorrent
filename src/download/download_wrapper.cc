@@ -340,19 +340,21 @@ DownloadWrapper::receive_update_priorities() {
   // Calculate the number of chunks remaining to be downloaded.
   //
   // Doing it the slow and safe way, optimize this at some point.
+  download_data::priority_ranges wanted_ranges =
+    download_data::priority_ranges::create_union(*data()->normal_priority(), *data()->high_priority());
+
   uint32_t remaining = 0;
 
-  // download_data::priority_ranges high_itr = data()->high_priority()->begin();
-  // download_data::priority_ranges high_last = data()->high_priority()->end();
-  // download_data::priority_ranges normal_itr = data()->normal_priority()->begin();
-  // download_data::priority_ranges normal_last = data()->normal_priority()->end();
+  const Bitfield* completed = data()->completed_bitfield();
 
-  // const Bitfield* completed = data()->completed_bitfield();
+  for (download_data::priority_ranges::const_iterator itr = wanted_ranges.begin(), last = wanted_ranges.end(); itr != last; itr++) {
+    //remaining = completed->count_range(itr->first, itr->second);
 
-  // for (uint32_t itr = 0, last = completed->size_bits(); itr != last; itr++) {
-    
+    uint32_t idx = itr->first;
 
-  // }
+    while (idx != itr->second)
+      remaining += !completed->get(idx++);
+  }
 
   data()->set_wanted_chunks(remaining);
 
@@ -360,6 +362,10 @@ DownloadWrapper::receive_update_priorities() {
 
   std::for_each(m_main->connection_list()->begin(), m_main->connection_list()->end(),
                 rak::on(std::mem_fun(&Peer::m_ptr), std::mem_fun(&PeerConnectionBase::update_interested)));
+
+  // TODO: Trigger event if this results in the torrent being
+  // partially finished, or going from partially finished to needing
+  // to download more.
 }
 
 void
