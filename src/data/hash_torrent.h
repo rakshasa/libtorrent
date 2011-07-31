@@ -68,7 +68,7 @@ public:
 
   void                confirm_checked();
 
-  Ranges&             ranges()                               { return m_ranges; }
+  Ranges&             hashing_ranges()                       { return m_ranges; }
   uint32_t            position() const                       { return m_position; }
   uint32_t            outstanding() const                    { return m_outstanding; }
 

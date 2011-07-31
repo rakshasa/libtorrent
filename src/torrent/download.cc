@@ -77,7 +77,7 @@ Download::open(int flags) {
   // Currently always open with no_create, as start will make sure
   // they are created. Need to fix this.
   m_ptr->main()->open(FileList::open_no_create);
-  m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
+  m_ptr->hash_checker()->hashing_ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
 
   // Mark the files by default to be created and resized. The client
   // should be allowed to pass a flag that will keep the old settings,
@@ -172,7 +172,7 @@ Download::hash_check(bool tryQuick) {
     bitfield->allocate();
     bitfield->unset_all();
 
-    m_ptr->hash_checker()->ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
+    m_ptr->hash_checker()->hashing_ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
   }
 
   m_ptr->main()->file_list()->update_completed();
@@ -186,7 +186,7 @@ Download::hash_stop() {
   if (!m_ptr->hash_checker()->is_checking())
     return;
 
-  m_ptr->hash_checker()->ranges().erase(0, m_ptr->hash_checker()->position());
+  m_ptr->hash_checker()->hashing_ranges().erase(0, m_ptr->hash_checker()->position());
   m_ptr->hash_queue()->remove(m_ptr);
 
   m_ptr->hash_checker()->clear();
@@ -301,7 +301,7 @@ Download::set_bitfield(bool allSet) {
   else
     bitfield->unset_all();
   
-  m_ptr->hash_checker()->ranges().clear();
+  m_ptr->hash_checker()->hashing_ranges().clear();
 }
 
 void
@@ -318,7 +318,7 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
   std::memcpy(bitfield->begin(), first, bitfield->size_bytes());
   bitfield->update();
   
-  m_ptr->hash_checker()->ranges().clear();
+  m_ptr->hash_checker()->hashing_ranges().clear();
 }
 
 void
@@ -329,7 +329,7 @@ Download::update_range(int flags, uint32_t first, uint32_t last) {
     throw input_error("Download::clear_range(...) Download in invalid state.");
 
   if (flags & update_range_recheck)
-    m_ptr->hash_checker()->ranges().insert(first, last);
+    m_ptr->hash_checker()->hashing_ranges().insert(first, last);
   
   if (flags & (update_range_clear | update_range_recheck))
     m_ptr->main()->file_list()->mutable_bitfield()->unset_range(first, last);
