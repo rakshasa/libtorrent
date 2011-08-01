@@ -74,7 +74,7 @@ Bitfield::set_size_bits(size_type s) {
 
 void
 Bitfield::set_size_set(size_type s) {
-  if (s > m_size)
+  if (s > m_size || m_data != NULL)
     throw internal_error("Bitfield::set_size_set(size_type s) s > m_size.");
 
   m_set = s;

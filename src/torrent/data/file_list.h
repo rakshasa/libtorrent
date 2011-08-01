@@ -161,7 +161,6 @@ protected:
   void                close() LIBTORRENT_NO_EXPORT;
 
   download_data*      mutable_data()                                   { return &m_data; }
-  Bitfield*           mutable_bitfield()                               { return m_data.mutable_completed_bitfield(); }
 
   // Before calling this function, make sure you clear errno. If
   // creating the chunk failed, NULL is returned and errno is set.

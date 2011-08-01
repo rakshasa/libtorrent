@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_PEER_RESOURCE_MANAGER_H
 #define LIBTORRENT_PEER_RESOURCE_MANAGER_H
 
+#include <string>
 #include <vector>
 #include <inttypes.h>
 #include <torrent/common.h>

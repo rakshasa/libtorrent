@@ -34,59 +34,42 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_DOWNLOAD_DATA_H
-#define LIBTORRENT_DATA_DOWNLOAD_DATA_H
+#include "config.h"
 
-#include <torrent/common.h>
-#include <torrent/bitfield.h>
-#include <torrent/utils/ranges.h>
+#include "torrent/exceptions.h"
+
+#include "download_data.h"
 
 namespace torrent {
 
-class ChunkSelector;
-class Download;
-class DownloadWrapper;
-class FileList;
+// Calculate the number of chunks remaining to be downloaded.
+//
+// Doing it the slow and safe way, optimize this at some point.
+void
+download_data::update_wanted_chunks() {
+  m_wanted_chunks = 0;
 
-class download_data {
-public:
-  typedef ranges<uint32_t> priority_ranges;
+  if (m_completed_bitfield.is_all_set())
+    return;
 
-  download_data() : m_wanted_chunks(0) {}
+  priority_ranges wanted_ranges = priority_ranges::create_union(m_normal_priority, m_high_priority);
 
-  const Bitfield*        completed_bitfield() const { return &m_completed_bitfield; }
-  const Bitfield*        untouched_bitfield() const { return &m_untouched_bitfield; }
+  if (m_completed_bitfield.is_all_unset()) {
+    m_wanted_chunks = wanted_ranges.intersect_distance(0, m_completed_bitfield.size_bits());
+    return;
+  }
 
-  const priority_ranges* high_priority() const      { return &m_high_priority; }
-  const priority_ranges* normal_priority() const    { return &m_normal_priority; }
+  if (m_completed_bitfield.empty())
+    throw internal_error("download_data::update_wanted_chunks() m_completed_bitfield.empty().");
 
-  uint32_t               wanted_chunks() const      { return m_wanted_chunks; }
+  for (download_data::priority_ranges::const_iterator itr = wanted_ranges.begin(), last = wanted_ranges.end(); itr != last; itr++) {
+    //remaining = completed->count_range(itr->first, itr->second);
 
-protected:
-  friend class ChunkSelector;
-  friend class Download;
-  friend class DownloadWrapper;
-  friend class FileList;
+    uint32_t idx = itr->first;
 
-  Bitfield*           mutable_completed_bitfield()  { return &m_completed_bitfield; }
-  Bitfield*           mutable_untouched_bitfield()  { return &m_untouched_bitfield; }
-
-  priority_ranges*    mutable_high_priority()       { return &m_high_priority; }
-  priority_ranges*    mutable_normal_priority()     { return &m_normal_priority; }
-
-  void                update_wanted_chunks();
-  void                set_wanted_chunks(uint32_t n) { m_wanted_chunks = n; }
-
-private:
-  Bitfield            m_completed_bitfield;
-  Bitfield            m_untouched_bitfield;
-
-  priority_ranges     m_high_priority;
-  priority_ranges     m_normal_priority;
-
-  uint32_t            m_wanted_chunks;
-};
-
+    while (idx != itr->second)
+      m_wanted_chunks += !m_completed_bitfield.get(idx++);
+  }
 }
 
-#endif // LIBTORRENT_DATA_DOWNLOAD_DATA_H
+}

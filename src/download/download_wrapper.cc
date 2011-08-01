@@ -337,26 +337,7 @@ DownloadWrapper::receive_update_priorities() {
     }
   }
 
-  // Calculate the number of chunks remaining to be downloaded.
-  //
-  // Doing it the slow and safe way, optimize this at some point.
-  download_data::priority_ranges wanted_ranges =
-    download_data::priority_ranges::create_union(*data()->normal_priority(), *data()->high_priority());
-
-  uint32_t remaining = 0;
-
-  const Bitfield* completed = data()->completed_bitfield();
-
-  for (download_data::priority_ranges::const_iterator itr = wanted_ranges.begin(), last = wanted_ranges.end(); itr != last; itr++) {
-    //remaining = completed->count_range(itr->first, itr->second);
-
-    uint32_t idx = itr->first;
-
-    while (idx != itr->second)
-      remaining += !completed->get(idx++);
-  }
-
-  data()->set_wanted_chunks(remaining);
+  data()->update_wanted_chunks();
 
   m_main->chunk_selector()->update_priorities();
 

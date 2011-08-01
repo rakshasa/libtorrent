@@ -9,6 +9,7 @@ libsub_torrentdata_la_SOURCES = \
 	block_transfer.h \
 	chunk_utils.cc \
 	chunk_utils.h \
+	download_data.cc \
 	download_data.h \
 	file.cc \
 	file.h \

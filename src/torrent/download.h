@@ -121,7 +121,7 @@ public:
   const uint8_t*      chunks_seen() const;
 
   // Set the number of finished chunks for closed torrents.
-  void                set_chunks_done(uint32_t chunks);
+  void                set_chunks_done(uint32_t chunks_done, uint32_t chunks_wanted);
 
   // Use the below to set the resume data and what chunk ranges need
   // to be hash checked. If they arn't called then by default it will

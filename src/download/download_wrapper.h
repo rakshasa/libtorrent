@@ -68,6 +68,7 @@ public:
 
   DownloadInfo*       info()                                  { return m_main->info(); }
   download_data*      data()                                  { return m_main->file_list()->mutable_data(); }
+  FileList*           file_list()                             { return m_main->file_list(); }
   ChunkList*          chunk_list()                            { return m_main->chunk_list(); }
 
   // Initialize hash checker and various download stuff.

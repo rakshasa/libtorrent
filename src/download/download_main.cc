@@ -184,7 +184,6 @@ DownloadMain::close() {
 
   m_delegator.transfer_list()->clear();
 
-  file_list()->mutable_bitfield()->unallocate();
   file_list()->close();
 
   // Clear the chunklist last as it requires all referenced chunks to

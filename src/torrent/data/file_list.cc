@@ -372,7 +372,10 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   m_torrentSize = torrentSize;
   m_rootDir = ".";
 
-  mutable_bitfield()->set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
+  m_data.mutable_completed_bitfield()->set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
+
+  m_data.mutable_normal_priority()->insert(0, size_chunks());
+  m_data.set_wanted_chunks(size_chunks());
 
   File* newFile = new File();
 
@@ -494,6 +497,8 @@ FileList::close() {
 
   m_isOpen = false;
   m_indirectLinks.clear();
+
+  m_data.mutable_completed_bitfield()->unallocate();
 }
 
 void
@@ -631,12 +636,16 @@ FileList::mark_completed(uint32_t index) {
   if (index >= size_chunks() || completed_chunks() >= size_chunks())
     throw internal_error("FileList::mark_completed(...) received an invalid index.");
 
-  mutable_bitfield()->set(index);
+  m_data.mutable_completed_bitfield()->set(index);
   inc_completed(begin(), index);
 
   // TODO: Remember to validate 'wanted_chunks'.
-  if (m_data.normal_priority()->has(index) || m_data.high_priority()->has(index))
+  if (m_data.normal_priority()->has(index) || m_data.high_priority()->has(index)) {
+    if (m_data.wanted_chunks() == 0)
+      throw internal_error("FileList::mark_completed(...) m_data.wanted_chunks() == 0.");
+    
     m_data.set_wanted_chunks(m_data.wanted_chunks() - 1);
+  }
 }
 
 FileList::iterator
