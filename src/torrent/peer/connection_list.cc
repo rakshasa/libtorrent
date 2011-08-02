@@ -70,6 +70,17 @@ ConnectionList::clear() {
   m_disconnectQueue.clear();
 }
 
+bool
+ConnectionList::want_connection(PeerInfo* p, Bitfield* bitfield) {
+  if (m_download->file_list()->is_done() || m_download->initial_seeding() != NULL)
+    return !bitfield->is_all_set();
+
+  if (!m_download->info()->is_accepting_seeders())
+    return !bitfield->is_all_set();
+
+  return true;
+}
+
 PeerConnectionBase*
 ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)

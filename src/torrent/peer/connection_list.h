@@ -128,7 +128,9 @@ protected:
   // Does not do the usual cleanup done by 'erase'.
   void                clear() LIBTORRENT_NO_EXPORT;
 
-  // Returns false if the connection was not added, the caller is then
+  bool                want_connection(PeerInfo* p, Bitfield* bitfield);
+
+  // Returns NULL if the connection was not added, the caller is then
   // responsible for cleaning up 'fd'.
   //
   // Clean this up, don't use this many arguments.

@@ -67,7 +67,7 @@ namespace std { using namespace tr1; }
 namespace torrent {
 
 DownloadInfo::DownloadInfo() :
-  m_flags(flag_compact | flag_accepting_new_peers | flag_pex_enabled | flag_pex_active),
+  m_flags(flag_compact | flag_accepting_new_peers | flag_accepting_seeders | flag_pex_enabled | flag_pex_active),
 
   m_upRate(60),
   m_downRate(60),

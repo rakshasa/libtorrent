@@ -71,10 +71,13 @@ public:
   static const int flag_active              = (1 << 1);
   static const int flag_compact             = (1 << 2);
   static const int flag_accepting_new_peers = (1 << 3);
-  static const int flag_private             = (1 << 4);
-  static const int flag_meta_download       = (1 << 5);
-  static const int flag_pex_enabled         = (1 << 6);
-  static const int flag_pex_active          = (1 << 7);
+  static const int flag_accepting_seeders   = (1 << 4); // Only used during leeching.
+  static const int flag_private             = (1 << 5);
+  static const int flag_meta_download       = (1 << 6);
+  static const int flag_pex_enabled         = (1 << 7);
+  static const int flag_pex_active          = (1 << 8);
+
+  static const int public_flags = flag_accepting_seeders;
 
   DownloadInfo();
 
@@ -94,14 +97,21 @@ public:
   bool                is_active() const                            { return m_flags & flag_active; }
   bool                is_compact() const                           { return m_flags & flag_compact; }
   bool                is_accepting_new_peers() const               { return m_flags & flag_accepting_new_peers; }
+  bool                is_accepting_seeders() const                 { return m_flags & flag_accepting_seeders; }
   bool                is_private() const                           { return m_flags & flag_private; }
   bool                is_meta_download() const                     { return m_flags & flag_meta_download; }
   bool                is_pex_enabled() const                       { return m_flags & flag_pex_enabled; }
   bool                is_pex_active() const                        { return m_flags & flag_pex_active; }
 
+  int                 flags() const                                { return m_flags; }
+
   void                set_flags(int flags)                         { m_flags |= flags; }
   void                unset_flags(int flags)                       { m_flags &= ~flags; }
   void                change_flags(int flags, bool state)          { if (state) set_flags(flags); else unset_flags(flags); }
+
+  void                public_set_flags(int flags) const                { m_flags |= (flags & public_flags); }
+  void                public_unset_flags(int flags) const              { m_flags &= ~(flags & public_flags); }
+  void                public_change_flags(int flags, bool state) const { if (state) public_set_flags(flags); else public_unset_flags(flags); }
 
   void                set_private()                                { set_flags(flag_private); unset_flags(flag_pex_enabled); }
   void                set_pex_enabled()                            { if (!is_private()) set_flags(flag_pex_enabled); }
@@ -172,7 +182,7 @@ private:
   HashString          m_hashObfuscated;
   HashString          m_localId;
 
-  int                 m_flags;
+  mutable int         m_flags;
 
   mutable Rate        m_upRate;
   mutable Rate        m_downRate;
