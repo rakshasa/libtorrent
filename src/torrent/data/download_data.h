@@ -54,13 +54,16 @@ public:
 
   download_data() : m_wanted_chunks(0) {}
 
-  const Bitfield*        completed_bitfield() const { return &m_completed_bitfield; }
-  const Bitfield*        untouched_bitfield() const { return &m_untouched_bitfield; }
+  bool                   is_partially_done() const     { return m_wanted_chunks == 0; }
+  bool                   is_not_partially_done() const { return m_wanted_chunks != 0; }
 
-  const priority_ranges* high_priority() const      { return &m_high_priority; }
-  const priority_ranges* normal_priority() const    { return &m_normal_priority; }
+  const Bitfield*        completed_bitfield() const    { return &m_completed_bitfield; }
+  const Bitfield*        untouched_bitfield() const    { return &m_untouched_bitfield; }
 
-  uint32_t               wanted_chunks() const      { return m_wanted_chunks; }
+  const priority_ranges* high_priority() const         { return &m_high_priority; }
+  const priority_ranges* normal_priority() const       { return &m_normal_priority; }
+
+  uint32_t               wanted_chunks() const         { return m_wanted_chunks; }
 
 protected:
   friend class ChunkSelector;
