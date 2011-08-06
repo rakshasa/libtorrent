@@ -56,7 +56,7 @@ struct option_pair {
   int         value;
 };
 
-option_pair option_list_0[] = {
+option_pair option_list_connection[] = {
   { "leech",        Download::CONNECTION_LEECH },
   { "seed",         Download::CONNECTION_SEED },
   { "initial_seed", Download::CONNECTION_INITIAL_SEED },
@@ -64,12 +64,24 @@ option_pair option_list_0[] = {
   { NULL, 0 }
 };
 
-option_pair option_list_1[] = {
+option_pair option_list_heuristics[] = {
   { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
-  //{ "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
-  //{ "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
+  { "upload_leech_dummy",        choke_queue::HEURISTICS_UPLOAD_LEECH_DUMMY },
   { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
+  { "download_leech_dummy",      choke_queue::HEURISTICS_DOWNLOAD_LEECH_DUMMY },
   { "invalid",                   choke_queue::HEURISTICS_MAX_SIZE },
+  { NULL, 0 }
+};
+
+option_pair option_list_heuristics_download[] = {
+  { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
+  { "download_leech_dummy",      choke_queue::HEURISTICS_DOWNLOAD_LEECH_DUMMY },
+  { NULL, 0 }
+};
+
+option_pair option_list_heuristics_upload[] = {
+  { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
+  { "upload_leech_dummy",        choke_queue::HEURISTICS_UPLOAD_LEECH_DUMMY },
   { NULL, 0 }
 };
 
@@ -107,8 +119,10 @@ option_pair option_list_tracker_mode[] = {
 };
 
 option_pair* option_lists[OPTION_MAX_SIZE] = {
-  option_list_0,
-  option_list_1,
+  option_list_connection,
+  option_list_heuristics,
+  option_list_heuristics_download,
+  option_list_heuristics_upload,
   option_list_encryption,
   option_list_ip_filter,
   option_list_ip_tos,
