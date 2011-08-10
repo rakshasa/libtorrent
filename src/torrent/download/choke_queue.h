@@ -104,6 +104,7 @@ public:
   uint32_t            size_total() const                      { return m_queued.size() + m_unchoked.size(); }
 
   uint32_t            max_unchoked() const                    { return m_maxUnchoked; }
+  int32_t             max_unchoked_signed() const             { return m_maxUnchoked; }
   void                set_max_unchoked(uint32_t v)            { m_maxUnchoked = v; }
 
   void                balance();
