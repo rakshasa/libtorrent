@@ -47,26 +47,15 @@ namespace torrent {
 // exceptions. This allows us to create breakpoints at throws. This is
 // limited to rarely thrown exceptions.
 
-internal_error::internal_error(const char* msg) : m_msg(msg) {
-}
-internal_error::internal_error(const std::string& msg) : m_msg(msg) {
-}
-
-communication_error::communication_error(const char* msg) : m_msg(msg) {}
-communication_error::communication_error(const std::string& msg) : m_msg(msg) {}
+void internal_error::initialize(const std::string& msg) { m_msg = msg; }
+void communication_error::initialize(const std::string& msg) { m_msg = msg; }
+void storage_error::initialize(const std::string& msg) { m_msg = msg; }
+void resource_error::initialize(const std::string& msg) { m_msg = msg; }
+void input_error::initialize(const std::string& msg) { m_msg = msg; }
 
 const char*
 connection_error::what() const throw() {
   return std::strerror(m_errno);
 }
-
-storage_error::storage_error(const char* msg) : m_msg(msg) {}
-storage_error::storage_error(const std::string& msg) : m_msg(msg) {}
-
-resource_error::resource_error(const char* msg) : m_msg(msg) {}
-resource_error::resource_error(const std::string& msg) : m_msg(msg) {}
-
-input_error::input_error(const char* msg) : m_msg(msg) {}
-input_error::input_error(const std::string& msg) : m_msg(msg) {}
 
 }

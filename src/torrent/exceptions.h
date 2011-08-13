@@ -60,13 +60,16 @@ public:
 // tracking time!
 class LIBTORRENT_EXPORT internal_error : public base_error {
 public:
-  internal_error(const char* msg);
-  internal_error(const std::string& msg);
+  internal_error(const char* msg)        { initialize(msg); }
+  internal_error(const std::string& msg) { initialize(msg); }
   virtual ~internal_error() throw() {}
 
   virtual const char* what() const throw() { return m_msg.c_str(); }
 
 private:
+  // Use this function for breaking on throws.
+  void initialize(const std::string& msg);
+
   std::string m_msg;
 };
 
@@ -79,13 +82,16 @@ public:
 
 class LIBTORRENT_EXPORT communication_error : public network_error {
 public:
-  communication_error(const char* msg);
-  communication_error(const std::string& msg);
+  communication_error(const char* msg)        { initialize(msg); }
+  communication_error(const std::string& msg) { initialize(msg); }
   virtual ~communication_error() throw() {}
 
   virtual const char* what() const throw() { return m_msg.c_str(); }
 
 private:
+  // Use this function for breaking on throws.
+  void initialize(const std::string& msg);
+
   std::string m_msg;
 };
 
@@ -118,37 +124,46 @@ public:
 
 class LIBTORRENT_EXPORT storage_error : public local_error {
 public:
-  storage_error(const char* msg);
-  storage_error(const std::string& msg);
+  storage_error(const char* msg)       { initialize(msg); }
+  storage_error(const std::string& msg) { initialize(msg); }
   virtual ~storage_error() throw() {}
 
   virtual const char* what() const throw() { return m_msg.c_str(); }
 
 private:
+  // Use this function for breaking on throws.
+  void initialize(const std::string& msg);
+
   std::string m_msg;
 };
 
 class LIBTORRENT_EXPORT resource_error : public local_error {
 public:
-  resource_error(const char* msg);
-  resource_error(const std::string& msg);
+  resource_error(const char* msg) { initialize(msg); }
+  resource_error(const std::string& msg) { initialize(msg); }
   virtual ~resource_error() throw() {}
 
   virtual const char* what() const throw() { return m_msg.c_str(); }
 
 private:
+  // Use this function for breaking on throws.
+  void initialize(const std::string& msg);
+
   std::string m_msg;
 };
 
 class LIBTORRENT_EXPORT input_error : public local_error {
 public:
-  input_error(const char* msg);
-  input_error(const std::string& msg);
+  input_error(const char* msg) { initialize(msg); }
+  input_error(const std::string& msg) { initialize(msg); }
   virtual ~input_error() throw() {}
 
   virtual const char* what() const throw() { return m_msg.c_str(); }
 
 private:
+  // Use this function for breaking on throws.
+  void initialize(const std::string& msg);
+
   std::string m_msg;
 };
 

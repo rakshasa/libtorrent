@@ -65,6 +65,9 @@ public:
 
   uint32_t               wanted_chunks() const         { return m_wanted_chunks; }
 
+  uint32_t               calc_wanted_chunks() const;
+  void                   verify_wanted_chunks(const char* where) const;
+
 protected:
   friend class ChunkSelector;
   friend class Download;
@@ -77,7 +80,7 @@ protected:
   priority_ranges*    mutable_high_priority()       { return &m_high_priority; }
   priority_ranges*    mutable_normal_priority()     { return &m_normal_priority; }
 
-  void                update_wanted_chunks();
+  void                update_wanted_chunks()        { m_wanted_chunks = calc_wanted_chunks(); }
   void                set_wanted_chunks(uint32_t n) { m_wanted_chunks = n; }
 
 private:

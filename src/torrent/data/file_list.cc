@@ -669,6 +669,8 @@ FileList::update_completed() {
   if (!bitfield()->is_tail_cleared())
     throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
 
+  m_data.update_wanted_chunks();
+
   if (bitfield()->is_all_set()) {
     for (iterator itr = begin(), last = end(); itr != last; ++itr)
       (*itr)->set_completed_protected((*itr)->size_chunks());

@@ -111,6 +111,8 @@ Download::start(int flags) {
   if (m_ptr->info()->is_active())
     return;
 
+  m_ptr->data()->verify_wanted_chunks("Download::start(...)");
+
 //   file_list()->open(flags);
 
   // If the FileList::open_no_create flag was not set, our new
