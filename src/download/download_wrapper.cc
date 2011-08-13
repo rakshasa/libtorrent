@@ -69,7 +69,7 @@ DownloadWrapper::DownloadWrapper() :
   m_hashChecker(NULL),
   m_connectionType(0) {
 
-  m_main->delay_download_done().set_slot(rak::mem_fn(&info()->signal_download_done(), &Signal::operator()));
+  m_main->delay_download_done().set_slot      (rak::mem_fn(data(), &download_data::call_download_done));
 
   m_main->tracker_manager()->set_info(info());
   m_main->tracker_manager()->slot_success(rak::make_mem_fun(this, &DownloadWrapper::receive_tracker_success));
@@ -165,7 +165,8 @@ DownloadWrapper::receive_initial_hash() {
     receive_update_priorities();
   }
 
-  info()->signal_initial_hash().emit();
+  if (data()->slot_initial_hash())
+    data()->slot_initial_hash()();
 }    
 
 void

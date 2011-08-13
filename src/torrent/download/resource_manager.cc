@@ -38,15 +38,19 @@
 
 #include <algorithm>
 #include <functional>
+#include <tr1/functional>
 #include <limits>
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/download/choke_group.h"
 #include "download/download_main.h"
+#include "protocol/peer_connection_base.h"
 
 #include "choke_queue.h"
 #include "resource_manager.h"
+
+namespace std { using namespace tr1; }
 
 namespace torrent {
 

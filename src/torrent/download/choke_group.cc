@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <tr1/functional>
 
 #include "choke_group.h"
 #include "choke_queue.h"
@@ -46,6 +47,8 @@
 
 #include "torrent/exceptions.h"
 #include "download/download_main.h"
+
+namespace std { using namespace tr1; }
 
 namespace torrent {
 

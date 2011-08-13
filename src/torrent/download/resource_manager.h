@@ -55,6 +55,7 @@ namespace torrent {
 
 class choke_group;
 class DownloadMain;
+class Rate;
 class ResourceManager;
 
 class LIBTORRENT_EXPORT resource_manager_entry {

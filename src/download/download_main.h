@@ -150,9 +150,10 @@ public:
 
   void                update_endgame();
 
-  rak::priority_item& delay_partially_done()   { return m_delay_partially_done; }
+  rak::priority_item& delay_download_done()       { return m_delay_download_done; }
+  rak::priority_item& delay_partially_done()      { return m_delay_partially_done; }
+  rak::priority_item& delay_partially_restarted() { return m_delay_partially_restarted; }
 
-  rak::priority_item& delay_download_done()    { return m_delayDownloadDone; }
   rak::priority_item& delay_disconnect_peers() { return m_delayDisconnectPeers; }
 
 private:
@@ -196,9 +197,10 @@ private:
   SlotCountHandshakes m_slotCountHandshakes;
   SlotHashCheckAdd    m_slotHashCheckAdd;
 
+  rak::priority_item  m_delay_download_done;
   rak::priority_item  m_delay_partially_done;
+  rak::priority_item  m_delay_partially_restarted;
 
-  rak::priority_item  m_delayDownloadDone;
   rak::priority_item  m_delayDisconnectPeers;
   rak::priority_item  m_taskTrackerRequest;
 };

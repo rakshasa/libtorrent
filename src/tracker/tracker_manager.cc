@@ -55,7 +55,7 @@ TrackerManager::TrackerManager() :
   m_isRequesting(false),
 
   m_numRequests(0),
-  m_maxRequests(3),
+  m_maxRequests(4),
   m_failedRequests(0),
   m_initialTracker(0) {
 

@@ -151,11 +151,6 @@ public:
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
-  // These signals are also used internally, so do not clear them or
-  // trigger them.
-  signal_void_type&   signal_initial_hash() const                  { return m_signalInitialHash; }
-  signal_void_type&   signal_download_done() const                 { return m_signalDownloadDone; }
-
   signal_string_type& signal_network_log() const                   { return m_signalNetworkLog; }
   signal_string_type& signal_storage_error() const                 { return m_signalStorageError; }
   signal_dump_type&   signal_tracker_dump() const                  { return m_signalTrackerDump; }
@@ -199,9 +194,6 @@ private:
 
   slot_stat_type      m_slotStatLeft;
   slot_stat_type      m_slotStatCompleted;
-
-  mutable signal_void_type    m_signalInitialHash;
-  mutable signal_void_type    m_signalDownloadDone;
 
   mutable signal_string_type  m_signalNetworkLog;
   mutable signal_string_type  m_signalStorageError;

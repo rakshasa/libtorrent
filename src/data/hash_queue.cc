@@ -162,6 +162,11 @@ HashQueue::work() {
       return priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + m_interval);
     
     m_tries = std::max(0, (int)(m_tries - 2));
+
+    // If we got any XMLRPC calls to handle we need to break
+    // here.
+    if (ThreadBase::global_queue_size() != 0)
+      break;
   }
 
   if (!empty() && !m_taskWork.is_queued())

@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_DATA_DOWNLOAD_DATA_H
 #define LIBTORRENT_DATA_DOWNLOAD_DATA_H
 
+#include <tr1/functional>
+
 #include <torrent/common.h>
 #include <torrent/bitfield.h>
 #include <torrent/utils/ranges.h>
@@ -51,6 +53,10 @@ class FileList;
 class download_data {
 public:
   typedef ranges<uint32_t> priority_ranges;
+
+  typedef void (function_void)(void);
+
+  typedef std::tr1::function<function_void> slot_void;
 
   download_data() : m_wanted_chunks(0) {}
 
@@ -68,29 +74,43 @@ public:
   uint32_t               calc_wanted_chunks() const;
   void                   verify_wanted_chunks(const char* where) const;
 
+  slot_void&             slot_initial_hash() const        { return m_slot_initial_hash; }
+  slot_void&             slot_download_done() const       { return m_slot_download_done; }
+  slot_void&             slot_partially_done() const      { return m_slot_partially_done; }
+  slot_void&             slot_partially_restarted() const { return m_slot_partially_restarted; }
+
 protected:
   friend class ChunkSelector;
   friend class Download;
   friend class DownloadWrapper;
   friend class FileList;
 
-  Bitfield*           mutable_completed_bitfield()  { return &m_completed_bitfield; }
-  Bitfield*           mutable_untouched_bitfield()  { return &m_untouched_bitfield; }
+  Bitfield*              mutable_completed_bitfield()  { return &m_completed_bitfield; }
+  Bitfield*              mutable_untouched_bitfield()  { return &m_untouched_bitfield; }
 
-  priority_ranges*    mutable_high_priority()       { return &m_high_priority; }
-  priority_ranges*    mutable_normal_priority()     { return &m_normal_priority; }
+  priority_ranges*       mutable_high_priority()       { return &m_high_priority; }
+  priority_ranges*       mutable_normal_priority()     { return &m_normal_priority; }
 
   void                update_wanted_chunks()        { m_wanted_chunks = calc_wanted_chunks(); }
   void                set_wanted_chunks(uint32_t n) { m_wanted_chunks = n; }
 
+  void                   call_download_done()          { if (m_slot_download_done) m_slot_download_done(); }
+  void                   call_partially_done()         { if (m_slot_partially_done) m_slot_partially_done(); }
+  void                   call_partially_restarted()    { if (m_slot_partially_restarted) m_slot_partially_restarted(); }
+
 private:
-  Bitfield            m_completed_bitfield;
-  Bitfield            m_untouched_bitfield;
+  Bitfield               m_completed_bitfield;
+  Bitfield               m_untouched_bitfield;
 
-  priority_ranges     m_high_priority;
-  priority_ranges     m_normal_priority;
+  priority_ranges        m_high_priority;
+  priority_ranges        m_normal_priority;
 
-  uint32_t            m_wanted_chunks;
+  uint32_t               m_wanted_chunks;
+
+  mutable slot_void      m_slot_initial_hash;
+  mutable slot_void      m_slot_download_done;
+  mutable slot_void      m_slot_partially_done;
+  mutable slot_void      m_slot_partially_restarted;
 };
 
 }

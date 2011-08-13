@@ -100,6 +100,8 @@ public:
 
   TrackerList*        container()                               { return m_control; }
 
+  uint32_t            num_requests() const                      { return m_numRequests; }
+
   rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }
 
   void                slot_success(SlotSuccess s)               { m_slotSuccess = s; }
