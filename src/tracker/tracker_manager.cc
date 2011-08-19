@@ -222,7 +222,7 @@ TrackerManager::insert(int group, const std::string& url) {
   else if (std::strncmp("udp://", url.c_str(), 6) == 0)
     t = new TrackerUdp(m_control, url);
 
-  else if (std::strncmp("dht://", url.c_str(), 6) == 0)
+  else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed())
     t = new TrackerDht(m_control, url);
 
   else

@@ -123,7 +123,8 @@ PollSelect::create(int maxOpenSockets) {
     SocketSet t4;
   };
 
-  block_type* block = new (rak::cacheline_allocator<>()) block_type;
+  rak::cacheline_allocator<Block*> cl_alloc;
+  block_type* block = new (cl_alloc) block_type;
 
   PollSelect* p = new (&block->t1) PollSelect;
 

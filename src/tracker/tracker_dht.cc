@@ -55,6 +55,8 @@ namespace torrent {
 
 const char* TrackerDht::states[] = { "Idle", "Searching", "Announcing" };
 
+bool TrackerDht::is_allowed() { return manager->dht_manager()->is_valid(); }
+
 TrackerDht::TrackerDht(TrackerList* parent, const std::string& url) :
   Tracker(parent, url),
   m_state(state_idle) {

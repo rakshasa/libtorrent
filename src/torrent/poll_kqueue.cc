@@ -25,7 +25,7 @@
 // all of the code used other than OpenSSL.  If you modify file(s)
 // with this exception, you may extend this exception to your version
 // of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
+// wish to do so, delete this exception statement from your version.213
 // If you delete this exception statement from all source files in the
 // program, then also delete it here.
 //
@@ -210,7 +210,7 @@ PollKQueue::poll_select(int msec) {
 void
 PollKQueue::perform() {
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
-    if (itr->ident < 0 || itr->ident >= m_table.size())
+    if (itr->ident >= m_table.size())
       continue;
 
     if ((flags() & flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)

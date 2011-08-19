@@ -570,7 +570,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   offset -= (*itr)->offset();
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
-  if (offset < 0)
+  if ((int64_t)offset < 0)
     throw internal_error("FileList::chunk_part(...) caught a negative offset");
 
   // Check that offset != length of file.

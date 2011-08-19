@@ -56,6 +56,8 @@ public:
 
   static const char* states[];
   
+  static bool         is_allowed();
+
   virtual bool        is_busy() const;
   virtual bool        is_usable() const;
 
