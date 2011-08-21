@@ -80,7 +80,10 @@ DownloadInfo::DownloadInfo() :
   m_metadataSize(0),
   
   m_creationDate(0),
-  m_loadDate(rak::timer::current_seconds()) {
+  m_loadDate(rak::timer::current_seconds()),
+
+  m_upload_unchoked(0),
+  m_download_unchoked(0) {
 }
 
 DownloadMain::DownloadMain() :
@@ -229,6 +232,9 @@ DownloadMain::stop() {
 
   priority_queue_erase(&taskScheduler, &m_delayDisconnectPeers);
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
+
+  if (info()->upload_unchoked() != 0 || info()->download_unchoked() != 0)
+    throw internal_error("DownloadMain::stop(): info()->upload_unchoked() != 0 || info()->download_unchoked() != 0.");
 }
 
 bool

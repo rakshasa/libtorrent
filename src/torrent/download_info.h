@@ -151,6 +151,9 @@ public:
   uint32_t            udp_timeout() const                          { return 30; }
   uint32_t            udp_tries() const                            { return 2; }
 
+  uint32_t            upload_unchoked() const                      { return m_upload_unchoked; }
+  uint32_t            download_unchoked() const                    { return m_download_unchoked; }
+
   signal_string_type& signal_network_log() const                   { return m_signalNetworkLog; }
   signal_string_type& signal_storage_error() const                 { return m_signalStorageError; }
   signal_dump_type&   signal_tracker_dump() const                  { return m_signalTrackerDump; }
@@ -167,6 +170,9 @@ public:
   //
 
   void                set_creation_date(uint32_t d)                { m_creationDate = d; }
+
+  void                set_upload_unchoked(uint32_t num)            { m_upload_unchoked = num; }
+  void                set_download_unchoked(uint32_t num)          { m_download_unchoked = num; }
 
   slot_stat_type&     slot_left()                                  { return m_slotStatLeft; }
   slot_stat_type&     slot_completed()                             { return m_slotStatCompleted; }
@@ -191,6 +197,9 @@ private:
 
   uint32_t            m_creationDate;
   uint32_t            m_loadDate;
+
+  uint32_t            m_upload_unchoked;
+  uint32_t            m_download_unchoked;
 
   slot_stat_type      m_slotStatLeft;
   slot_stat_type      m_slotStatCompleted;

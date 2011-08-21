@@ -232,11 +232,11 @@ TrackerUdp::event_write() {
   if (m_writeBuffer->size_end() == 0)
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
-  int s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
+  int __UNUSED s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
 
   // TODO: If send failed, retry shortly or do i call receive_failed?
-  if (s != m_writeBuffer->size_end())
-    ;
+  // if (s != m_writeBuffer->size_end())
+  //   ;
 
   manager->poll()->remove_write(this);
 }

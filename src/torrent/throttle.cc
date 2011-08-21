@@ -85,7 +85,7 @@ Throttle::set_max_rate(uint32_t v) {
   if (v == m_maxRate)
     return;
 
-  if (v < 0 || v > (1 << 30))
+  if (v > (1 << 30))
     throw input_error("Throttle rate must be between 0 and 2^30.");
 
   uint32_t oldRate = m_maxRate;

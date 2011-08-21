@@ -184,6 +184,9 @@ PeerConnectionBase::cleanup() {
   up_chunk_release();
   down_chunk_release();
 
+  m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - m_upChoke.unchoked());
+  m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - m_downChoke.unchoked());
+
   m_download->upload_choke_manager()->disconnected(this, &m_upChoke);
   m_download->download_choke_manager()->disconnected(this, &m_downChoke);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
@@ -229,6 +232,8 @@ PeerConnectionBase::receive_upload_choke(bool choke) {
   m_upChoke.set_unchoked(!choke);
   m_upChoke.set_time_last_choke(cachedTime.usec());
 
+  m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() + (choke ? -1 : 1));
+
   return true;
 }
 
@@ -241,6 +246,8 @@ PeerConnectionBase::receive_download_choke(bool choke) {
 
   m_downChoke.set_unchoked(!choke);
   m_downChoke.set_time_last_choke(cachedTime.usec());
+
+  m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() + (choke ? -1 : 1));
 
   if (choke) {
     m_peerChunks.download_cache()->disable();

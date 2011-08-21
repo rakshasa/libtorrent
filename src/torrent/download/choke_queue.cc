@@ -375,6 +375,11 @@ bool range_is_contained(Itr first, Itr last, Itr lower_bound, Itr upper_bound) {
   return first >= lower_bound && last <= upper_bound && first <= last;
 }
 
+static inline bool
+should_connection_unchoke(PeerConnectionBase* pcb) {
+  return true;
+}
+
 uint32_t
 choke_queue::adjust_choke_range(iterator first, iterator last, uint32_t max, bool is_choke) {
   target_type target[order_max_size + 1];
@@ -401,12 +406,17 @@ choke_queue::adjust_choke_range(iterator first, iterator last, uint32_t max, boo
 
   // Now do the actual unchoking.
   uint32_t count = 0;
+  uint32_t skipped = 0;
 
   for (target_type* itr = target + order_max_size; itr != target; itr--) {
-    if ((itr - 1)->first > (uint32_t)std::distance((itr - 1)->second, itr->second))
-      throw internal_error("choke_queue::adjust_choke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
+    uint32_t order_size = std::distance((itr - 1)->second, itr->second);
+    uint32_t order_remaining = order_size - (itr - 1)->first;
 
-    count += (itr - 1)->first;
+    if ((itr - 1)->first > order_size)
+      throw internal_error("choke_queue::adjust_choke_range(...) itr->first > std::distance((itr - 1)->second, itr->second).");
+    
+    (itr - 1)->first += std::min(skipped, order_remaining);
+    skipped          -= std::min(skipped, order_remaining);
 
     iterator first_adjust = itr->second - (itr - 1)->first;
     iterator last_adjust = itr->second;
@@ -414,14 +424,62 @@ choke_queue::adjust_choke_range(iterator first, iterator last, uint32_t max, boo
     if (!range_is_contained(first_adjust, last_adjust, src_container->begin(), src_container->end()))
       throw internal_error("choke_queue::adjust_choke_range(...) bad iterator range.");
 
-    std::for_each(first_adjust, last_adjust, rak::on(rak::mem_ref(&value_type::first), std::bind2nd(m_slotConnection, is_choke)));
+    // We start by unchoking the highest priority in this group, and
+    // if we find any peers we can't choke/unchoke we'll move them to
+    // the last spot in the container and decrement 'last_adjust'.
+    iterator itr_adjust = last_adjust;
 
-    if (log_files[LOG_CHOKE_CHANGES].is_open())
-      std::for_each(first_adjust, last_adjust,
-                    std::tr1::bind(&log_choke_changes_func_peer, this, "unchoke" + 2*is_choke, std::tr1::placeholders::_1));
+    while (itr_adjust != first_adjust) {
+      itr_adjust--;
 
-    dest_container->insert(dest_container->end(), itr->second - (itr - 1)->first, itr->second);
-    src_container->erase(itr->second - (itr - 1)->first, itr->second);
+      if (!is_choke && should_connection_unchoke(itr_adjust->first)) {
+        // Swap with end and continue if not done with group. Count how many?
+        std::iter_swap(itr_adjust, --last_adjust);
+
+        if (first_adjust == (itr - 1)->second)
+          skipped++;
+        else
+          first_adjust--;
+
+        continue;
+      }
+
+      m_slotConnection(itr_adjust->first, is_choke);
+      count++;
+
+      if (!log_files[LOG_CHOKE_CHANGES].is_open())
+        continue;
+
+      log_choke_changes_func_peer(this, "unchoke" + 2*is_choke, *itr_adjust);
+    }
+
+    // The 'target' iterators remain valid after erase since we're
+    // removing them in reverse order.
+    dest_container->insert(dest_container->end(), first_adjust, last_adjust);
+    src_container->erase(first_adjust, last_adjust);
+  }
+
+  // TODO: Go through the remaining connections...
+  iterator itr_skipped = src_container->end();
+
+  while (skipped != 0 && itr_skipped != src_container->begin()) {
+    itr_skipped--;
+
+    if (!is_choke && should_connection_unchoke(itr_skipped->first))
+      continue;
+
+    m_slotConnection(itr_skipped->first, is_choke);
+    count++;
+    skipped--;
+
+    if (!log_files[LOG_CHOKE_CHANGES].is_open())
+      continue;
+
+    log_choke_changes_func_peer(this, "unchoke" + 2*is_choke, *itr_skipped);
+    
+    dest_container->push_back(*itr_skipped);
+    std::swap(*itr_skipped, src_container->back());
+    src_container->pop_back();
   }
 
   if (count > max)

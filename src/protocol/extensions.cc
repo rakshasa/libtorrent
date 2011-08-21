@@ -220,7 +220,7 @@ ProtocolExtension::read_start(int type, uint32_t length, bool skip) {
   if (is_default() || (type >= FIRST_INVALID) || length > (1 << 15))
     throw communication_error("Received invalid extension message.");
 
-  if (m_read != NULL || length < 0)
+  if (m_read != NULL || (int32_t)length < 0)
     throw internal_error("ProtocolExtension::read_start called in inconsistent state.");
 
   m_readLeft = length;
