@@ -79,6 +79,8 @@ public:
 
   static const int public_flags = flag_accepting_seeders;
 
+  static const uint32_t unlimited = ~uint32_t();
+
   DownloadInfo();
 
   const std::string&  name() const                                 { return m_name; }

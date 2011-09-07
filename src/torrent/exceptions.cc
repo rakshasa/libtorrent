@@ -38,6 +38,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <unistd.h>
 
 #include "exceptions.h"
 
@@ -47,7 +48,7 @@ namespace torrent {
 // exceptions. This allows us to create breakpoints at throws. This is
 // limited to rarely thrown exceptions.
 
-void internal_error::initialize(const std::string& msg) { m_msg = msg; }
+void internal_error::initialize(const std::string& msg) { m_msg = msg; } //while (true) sleep(1); }
 void communication_error::initialize(const std::string& msg) { m_msg = msg; }
 void storage_error::initialize(const std::string& msg) { m_msg = msg; }
 void resource_error::initialize(const std::string& msg) { m_msg = msg; }

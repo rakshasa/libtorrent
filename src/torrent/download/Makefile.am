@@ -7,6 +7,7 @@ libsub_torrentdownload_la_SOURCES = \
 	choke_queue.h \
 	download_manager.cc \
 	download_manager.h \
+	group_entry.h \
 	resource_manager.cc \
 	resource_manager.h
 
@@ -17,4 +18,5 @@ libtorrentinclude_HEADERS = \
 	choke_group.h \
 	choke_queue.h \
 	download_manager.h \
+	group_entry.h \
 	resource_manager.h

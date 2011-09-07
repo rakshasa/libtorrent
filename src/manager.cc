@@ -50,6 +50,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/dht_manager.h"
 #include "torrent/data/file_manager.h"
+#include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download/download_manager.h"
 #include "torrent/download/resource_manager.h"
@@ -90,6 +91,10 @@ Manager::Manager() :
   m_handshakeManager->slot_download_id(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main));
   m_handshakeManager->slot_download_id_obfuscated(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main_obfuscated));
   m_connectionManager->listen()->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
+
+  // m_resourceManager->push_group("default");
+  // m_resourceManager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
+  // m_resourceManager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 }
 
 Manager::~Manager() {
@@ -130,11 +135,6 @@ Manager::initialize_download(DownloadWrapper* d) {
 
   d->main()->set_upload_throttle(m_uploadThrottle->throttle_list());
   d->main()->set_download_throttle(m_downloadThrottle->throttle_list());
-
-  d->main()->upload_choke_manager()->set_slot_unchoke(std::bind(&ResourceManager::receive_upload_unchoke, manager->resource_manager(), std::placeholders::_1));
-  d->main()->upload_choke_manager()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_upload_can_unchoke, manager->resource_manager()));
-  d->main()->download_choke_manager()->set_slot_unchoke(std::bind(&ResourceManager::receive_download_unchoke, manager->resource_manager(), std::placeholders::_1));
-  d->main()->download_choke_manager()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_download_can_unchoke, manager->resource_manager()));
 }
 
 void

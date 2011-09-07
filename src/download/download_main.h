@@ -49,6 +49,7 @@
 #include "download/available_list.h"
 #include "net/data_buffer.h"
 #include "torrent/download_info.h"
+#include "torrent/download/group_entry.h"
 #include "torrent/data/file_list.h"
 #include "torrent/peer/peer_list.h"
 
@@ -58,7 +59,7 @@ class ChunkList;
 class ChunkSelector;
 class ChunkStatistics;
 
-class choke_queue;
+class choke_group;
 class ConnectionList;
 class DownloadWrapper;
 class HandshakeManager;
@@ -81,10 +82,10 @@ public:
   void                start();
   void                stop();
 
-  choke_queue*        upload_choke_manager()                     { return m_uploadChokeManager; }
-  const choke_queue*  c_upload_choke_manager() const             { return m_uploadChokeManager; }
-  choke_queue*        download_choke_manager()                   { return m_downloadChokeManager; }
-  const choke_queue*  c_download_choke_manager() const           { return m_downloadChokeManager; }
+  struct choke_group*       choke_group()                        { return m_choke_group; }
+  const struct choke_group* c_choke_group() const                { return m_choke_group; }
+  void                set_choke_group(struct choke_group* grp)   { m_choke_group = grp; }
+
   TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
 
   DownloadInfo*       info()                                     { return m_info; }
@@ -113,6 +114,9 @@ public:
 
   ThrottleList*       download_throttle()                        { return m_downloadThrottle; }
   void                set_download_throttle(ThrottleList* t)     { m_downloadThrottle = t; }
+
+  group_entry*        up_group_entry()                           { return &m_up_group_entry; }
+  group_entry*        down_group_entry()                         { return &m_down_group_entry; }
 
   DataBuffer          get_ut_pex(bool initial)                   { return (initial ? m_ut_pex_initial : m_ut_pex_delta).clone(); }
 
@@ -167,8 +171,10 @@ private:
   DownloadInfo*       m_info;
 
   TrackerManager*     m_trackerManager;
-  choke_queue*        m_uploadChokeManager;
-  choke_queue*        m_downloadChokeManager;
+  struct choke_group* m_choke_group;
+
+  group_entry         m_up_group_entry;
+  group_entry         m_down_group_entry;
 
   ChunkList*          m_chunkList;
   ChunkSelector*      m_chunkSelector;

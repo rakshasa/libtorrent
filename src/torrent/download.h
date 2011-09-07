@@ -150,9 +150,18 @@ public:
   uint32_t            max_size_pex() const;
 
   bool                accepting_new_peers() const;
+
   uint32_t            uploads_max() const;
-  
   void                set_uploads_max(uint32_t v);
+
+  uint32_t            uploads_min() const;
+  void                set_uploads_min(uint32_t v);
+
+  uint32_t            downloads_max() const;
+  void                set_downloads_max(uint32_t v);
+
+  uint32_t            downloads_min() const;
+  void                set_downloads_min(uint32_t v);
 
   void                set_upload_throttle(Throttle* t);
   void                set_download_throttle(Throttle* t);

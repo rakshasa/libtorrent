@@ -62,6 +62,7 @@ namespace torrent {
 // PeerConnectionBase and its children. Do we use additional layers of
 // inheritance or member instances?
 
+class choke_queue;
 class DownloadMain;
 
 class PeerConnectionBase : public Peer, public SocketStream {
@@ -112,6 +113,9 @@ public:
   PeerChunks*         peer_chunks()                   { return &m_peerChunks; }
   const PeerChunks*   c_peer_chunks() const           { return &m_peerChunks; }
 
+  choke_status*       up_choke()                      { return &m_upChoke; }
+  choke_status*       down_choke()                    { return &m_downChoke; }
+
   DownloadMain*       download()                      { return m_download; }
   RequestList*        download_queue()                { return &m_downloadQueue; }
   const RequestList*  download_queue() const          { return &m_downloadQueue; }
@@ -142,6 +146,8 @@ public:
 
   // Communication with the protocol extensions
   virtual void        receive_metadata_piece(uint32_t piece, const char* data, uint32_t length);
+
+  bool                should_connection_unchoke(choke_queue* cq) const;
 
 protected:
   static const uint32_t extension_must_encrypt = ~uint32_t();

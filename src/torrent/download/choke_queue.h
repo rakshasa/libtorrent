@@ -43,13 +43,23 @@
 #include <vector>
 #include <inttypes.h>
 #include <tr1/functional>
+#include <torrent/download/group_entry.h>
 
 namespace torrent {
 
 class choke_status;
+class group_entry;
+
 class ConnectionList;
 class PeerConnectionBase;
 class DownloadMain;
+
+struct group_stats {
+  unsigned int sum_min_needed;
+  unsigned int sum_max_needed;
+  unsigned int sum_max_leftovers;
+  unsigned int now_unchoked;
+};
 
 class LIBTORRENT_EXPORT choke_queue {
 public:
@@ -57,11 +67,13 @@ public:
   typedef std::tr1::function<unsigned int ()>                    slot_can_unchoke;
   typedef std::tr1::function<bool (PeerConnectionBase*, bool)>   slot_connection;
 
-  typedef std::vector<std::pair<PeerConnectionBase*, uint32_t> > container_type;
+  typedef std::vector<weighted_connection>                       container_type;
   typedef container_type::value_type                             value_type;
   typedef container_type::iterator                               iterator;
 
   typedef std::pair<uint32_t, iterator>                          target_type;
+
+  typedef std::vector<group_entry*>                              group_container_type;
 
   typedef void (*slot_weight)(iterator first, iterator last);
 
@@ -121,7 +133,7 @@ public:
 
   void                disconnected(PeerConnectionBase* pc, choke_status* base);
 
-  static void         move_connections(choke_queue* src, choke_queue* dest, DownloadMain* download);
+  static void         move_connections(choke_queue* src, choke_queue* dest, DownloadMain* download, group_entry* base);
 
   heuristics_enum     heuristics() const                       { return m_heuristics; }
   void                set_heuristics(heuristics_enum hs)       { m_heuristics = hs; }
@@ -130,10 +142,19 @@ public:
   void                set_slot_can_unchoke(slot_can_unchoke s) { m_slotCanUnchoke = s; }
   void                set_slot_connection(slot_connection s)   { m_slotConnection = s; }
 
+  // TODO: Consider putting this in queue_group.
+  group_container_type& group_container()                      { return m_group_container; }
+
 private:
+  group_stats         prepare_weights(group_stats gs);
+  group_stats         retrieve_connections(group_stats gs);
+  void                rebuild_containers();
+
   inline uint32_t     max_alternate() const;
 
-  uint32_t            adjust_choke_range(iterator first, iterator last, uint32_t max, bool is_choke);
+  uint32_t            adjust_choke_range(iterator first, iterator last,
+                                         container_type* src_container, container_type* dest_container,
+                                         uint32_t max, bool is_choke);
 
   static heuristics_type m_heuristics_list[HEURISTICS_MAX_SIZE];
 
@@ -148,6 +169,8 @@ private:
   slot_unchoke        m_slotUnchoke;
   slot_can_unchoke    m_slotCanUnchoke;
   slot_connection     m_slotConnection;
+
+  group_container_type m_group_container;
 };
 
 }

@@ -83,9 +83,6 @@ public:
 
   // Internal:
 
-  int balance_upload_unchoked(unsigned int weight, unsigned int max_unchoked);
-  int balance_download_unchoked(unsigned int weight, unsigned int max_unchoked);
-
   resource_manager_entry* first() { return m_first; }
   resource_manager_entry* last()  { return m_last; }
 

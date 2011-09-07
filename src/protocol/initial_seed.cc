@@ -38,6 +38,7 @@
 
 #include <string.h>
 
+#include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "download/chunk_statistics.h"
 
@@ -159,7 +160,7 @@ InitialSeeding::chunk_offer(PeerConnectionBase* pcb, uint32_t chunkDone) {
   // If this peer completely downloaded the chunk we offered and we have too
   // many unused upload slots, give it another chunk to download for free.
   if (peer->is_blocked() && chunkDone != no_offer && m_peerChunks[chunkDone] == peer &&
-      m_download->upload_choke_manager()->size_total() * 10 < 9 * m_download->upload_choke_manager()->max_unchoked()) {
+      m_download->choke_group()->up_queue()->size_total() * 10 < 9 * m_download->choke_group()->up_queue()->max_unchoked()) {
     m_peerChunks[chunkDone] = chunk_unknown;
     peer->unset_flags(PeerInfo::flag_blocked);
 

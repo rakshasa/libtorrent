@@ -53,6 +53,7 @@
 #include "protocol/peer_factory.h"
 #include "peer/peer_info.h"
 #include "tracker/tracker_manager.h"
+#include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
 #include "torrent/data/file.h"
@@ -362,12 +363,12 @@ Download::peers_accounted() const {
 
 uint32_t
 Download::peers_currently_unchoked() const {
-  return m_ptr->main()->upload_choke_manager()->size_unchoked();
+  return m_ptr->main()->choke_group()->up_queue()->size_unchoked();
 }
 
 uint32_t
 Download::peers_currently_interested() const {
-  return m_ptr->main()->upload_choke_manager()->size_total();
+  return m_ptr->main()->choke_group()->up_queue()->size_total();
 }
 
 uint32_t
@@ -385,12 +386,37 @@ Download::accepting_new_peers() const {
   return m_ptr->info()->is_accepting_new_peers();
 }
 
+// DEPRECATE
 uint32_t
 Download::uploads_max() const {
-  if (m_ptr->main()->upload_choke_manager()->max_unchoked() == choke_queue::unlimited)
+  if (m_ptr->main()->up_group_entry()->max_slots() == DownloadInfo::unlimited)
     return 0;
 
-  return m_ptr->main()->upload_choke_manager()->max_unchoked();
+  return m_ptr->main()->up_group_entry()->max_slots();
+}
+
+uint32_t
+Download::uploads_min() const {
+  // if (m_ptr->main()->up_group_entry()->min_slots() == DownloadInfo::unlimited)
+  //   return 0;
+
+  return m_ptr->main()->up_group_entry()->min_slots();
+}
+
+uint32_t
+Download::downloads_max() const {
+  if (m_ptr->main()->down_group_entry()->max_slots() == DownloadInfo::unlimited)
+    return 0;
+
+  return m_ptr->main()->down_group_entry()->max_slots();
+}
+
+uint32_t
+Download::downloads_min() const {
+  // if (m_ptr->main()->down_group_entry()->min_slots() == DownloadInfo::unlimited)
+  //   return 0;
+
+  return m_ptr->main()->down_group_entry()->min_slots();
 }
 
 void
@@ -409,14 +435,45 @@ Download::set_download_throttle(Throttle* t) {
   m_ptr->main()->set_download_throttle(t->throttle_list());
 }
   
+// DEPRECATE
 void
 Download::set_uploads_max(uint32_t v) {
   if (v > (1 << 16)) 
     throw input_error("Max uploads must be between 0 and 2^16."); 
 	 	 
   // For the moment, treat 0 as unlimited. 
-  m_ptr->main()->upload_choke_manager()->set_max_unchoked(v == 0 ? choke_queue::unlimited : v); 
-  m_ptr->main()->upload_choke_manager()->balance();
+  m_ptr->main()->up_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v); 
+  ///  m_ptr->main()->choke_group()->up_queue()->balance();
+}
+
+void
+Download::set_uploads_min(uint32_t v) {
+  if (v > (1 << 16)) 
+    throw input_error("Min uploads must be between 0 and 2^16."); 
+	 	 
+  // For the moment, treat 0 as unlimited. 
+  m_ptr->main()->up_group_entry()->set_min_slots(v); 
+  ///  m_ptr->main()->choke_group()->up_queue()->balance();
+}
+
+void
+Download::set_downloads_max(uint32_t v) {
+  if (v > (1 << 16)) 
+    throw input_error("Max downloads must be between 0 and 2^16."); 
+	 	 
+  // For the moment, treat 0 as unlimited. 
+  m_ptr->main()->down_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v); 
+  ///  m_ptr->main()->choke_group()->up_queue()->balance();
+}
+
+void
+Download::set_downloads_min(uint32_t v) {
+  if (v > (1 << 16)) 
+    throw input_error("Min downloads must be between 0 and 2^16."); 
+	 	 
+  // For the moment, treat 0 as unlimited. 
+  m_ptr->main()->down_group_entry()->set_min_slots(v); 
+  ///  m_ptr->main()->choke_group()->up_queue()->balance();
 }
 
 Download::ConnectionType
@@ -452,7 +509,7 @@ Download::set_connection_type(ConnectionType t) {
 
 Download::HeuristicType
 Download::upload_choke_heuristic() const {
-  return (Download::HeuristicType)m_ptr->main()->upload_choke_manager()->heuristics();
+  return (Download::HeuristicType)m_ptr->main()->choke_group()->up_queue()->heuristics();
 }
 
 void
@@ -460,12 +517,12 @@ Download::set_upload_choke_heuristic(HeuristicType t) {
   if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
   
-  m_ptr->main()->upload_choke_manager()->set_heuristics((choke_queue::heuristics_enum)t);
+  m_ptr->main()->choke_group()->up_queue()->set_heuristics((choke_queue::heuristics_enum)t);
 }
 
 Download::HeuristicType
 Download::download_choke_heuristic() const {
-  return (Download::HeuristicType)m_ptr->main()->download_choke_manager()->heuristics();
+  return (Download::HeuristicType)m_ptr->main()->choke_group()->down_queue()->heuristics();
 }
 
 void
@@ -473,7 +530,7 @@ Download::set_download_choke_heuristic(HeuristicType t) {
   if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
     throw input_error("Invalid heuristics value.");
   
-  m_ptr->main()->download_choke_manager()->set_heuristics((choke_queue::heuristics_enum)t);
+  m_ptr->main()->choke_group()->down_queue()->set_heuristics((choke_queue::heuristics_enum)t);
 }
 
 void

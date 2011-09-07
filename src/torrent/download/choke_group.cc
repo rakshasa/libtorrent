@@ -52,105 +52,23 @@ namespace std { using namespace tr1; }
 
 namespace torrent {
 
+choke_group::choke_group() :
+  m_tracker_mode(TRACKER_MODE_NORMAL),
+  m_down_queue(choke_queue::flag_unchoke_all_new),
+  m_first(NULL), m_last(NULL) { }
+
 uint64_t
 choke_group::up_rate() const {
-  return 6666;
+  return
+    std::for_each(m_first, m_last, 
+                  rak::accumulate((uint64_t)0, std::bind(&Rate::rate, std::bind(&resource_manager_entry::up_rate, std::placeholders::_1)))).result;
 }
 
 uint64_t
 choke_group::down_rate() const {
-  return 6666;
-}
-
-choke_group::choke_group() :
-  m_tracker_mode(TRACKER_MODE_NORMAL),
-  m_first(NULL),
-  m_last(NULL) { }
-
-struct choke_group_upload_increasing {
-  bool operator () (const resource_manager_entry& v1, const resource_manager_entry& v2) {
-    return v1.c_download()->c_upload_choke_manager()->size_total() < v2.c_download()->c_upload_choke_manager()->size_total();
-  }
-};
-
-struct choke_group_download_increasing {
-  bool operator () (const resource_manager_entry& v1, const resource_manager_entry& v2) {
-    return v1.c_download()->c_download_choke_manager()->size_total() < v2.c_download()->c_download_choke_manager()->size_total();
-  }
-};
-
-int
-choke_group::balance_upload_unchoked(unsigned int weight, unsigned int max_unchoked) {
-  int change = 0;
-
-  if (max_unchoked == 0) {
-    for (resource_manager_entry* itr = m_first; itr != m_last; ++itr)
-      change += itr->download()->upload_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
-
-    return change;
-  }
-
-  unsigned int quota = max_unchoked;
-
-  // We put the downloads with fewest interested first so that those
-  // with more interested will gain any unused slots from the
-  // preceding downloads. Consider multiplying with priority.
-  //
-  // Consider skipping the leading zero interested downloads. Though
-  // that won't work as they need to choke peers once their priority
-  // is turned off.
-  std::sort(m_first, m_last, choke_group_upload_increasing());
-
-  for (resource_manager_entry* itr = m_first; itr != m_last; ++itr) {
-    choke_queue* cm = itr->download()->upload_choke_manager();
-
-    change += cm->cycle(weight != 0 ? (quota * itr->priority()) / weight : 0);
-
-    quota -= cm->size_unchoked();
-    weight -= itr->priority();
-  }
-
-  if (weight != 0)
-    throw internal_error("choke_group::balance_upload_unchoked(...) weight did not reach zero.");
-
-  return change;
-}
-
-int
-choke_group::balance_download_unchoked(unsigned int weight, unsigned int max_unchoked) {
-  int change = 0;
-
-  if (max_unchoked == 0) {
-    for (resource_manager_entry* itr = m_first; itr != m_last; ++itr)
-      change += itr->download()->download_choke_manager()->cycle(std::numeric_limits<unsigned int>::max());
-
-    return change;
-  }
-
-  unsigned int quota = max_unchoked;
-
-  // We put the downloads with fewest interested first so that those
-  // with more interested will gain any unused slots from the
-  // preceding downloads. Consider multiplying with priority.
-  //
-  // Consider skipping the leading zero interested downloads. Though
-  // that won't work as they need to choke peers once their priority
-  // is turned off.
-  std::sort(m_first, m_last, choke_group_download_increasing());
-
-  for (resource_manager_entry* itr = m_first; itr != m_last; ++itr) {
-    choke_queue* cm = itr->download()->download_choke_manager();
-
-    change += cm->cycle(weight != 0 ? (quota * itr->priority()) / weight : 0);
-
-    quota -= cm->size_unchoked();
-    weight -= itr->priority();
-  }
-
-  if (weight != 0)
-    throw internal_error("choke_group::balance_download_unchoked(...) weight did not reach zero.");
-
-  return change;
+  return
+    std::for_each(m_first, m_last, 
+                  rak::accumulate((uint64_t)0, std::bind(&Rate::rate, std::bind(&resource_manager_entry::down_rate, std::placeholders::_1)))).result;
 }
 
 }

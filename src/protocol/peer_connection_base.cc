@@ -53,6 +53,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/throttle.h"
+#include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/connection_list.h"
@@ -122,6 +123,9 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
 
   m_extensions->set_connection(this);
 
+  m_upChoke.set_entry(m_download->up_group_entry());
+  m_downChoke.set_entry(m_download->down_group_entry());
+
   m_peerChunks.set_peer_info(m_peerInfo);
   m_peerChunks.bitfield()->swap(*bitfield);
 
@@ -187,8 +191,8 @@ PeerConnectionBase::cleanup() {
   m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - m_upChoke.unchoked());
   m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - m_downChoke.unchoked());
 
-  m_download->upload_choke_manager()->disconnected(this, &m_upChoke);
-  m_download->download_choke_manager()->disconnected(this, &m_downChoke);
+  m_download->choke_group()->up_queue()->disconnected(this, &m_upChoke);
+  m_download->choke_group()->down_queue()->disconnected(this, &m_downChoke);
   m_download->chunk_statistics()->received_disconnect(&m_peerChunks);
 
   if (!m_extensions->is_default())
@@ -216,9 +220,9 @@ PeerConnectionBase::cleanup() {
 void
 PeerConnectionBase::set_upload_snubbed(bool v) {
   if (v)
-    m_download->upload_choke_manager()->set_snubbed(this, &m_upChoke);
+    m_download->choke_group()->up_queue()->set_snubbed(this, &m_upChoke);
   else
-    m_download->upload_choke_manager()->set_not_snubbed(this, &m_upChoke);
+    m_download->choke_group()->up_queue()->set_not_snubbed(this, &m_upChoke);
 }
 
 bool
@@ -232,7 +236,15 @@ PeerConnectionBase::receive_upload_choke(bool choke) {
   m_upChoke.set_unchoked(!choke);
   m_upChoke.set_time_last_choke(cachedTime.usec());
 
-  m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() + (choke ? -1 : 1));
+  if (choke) {
+    m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - 1);
+    m_upChoke.entry()->connection_choked(this);
+    m_upChoke.entry()->connection_queued(this);
+  } else {
+    m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() + 1);
+    m_upChoke.entry()->connection_unqueued(this);
+    m_upChoke.entry()->connection_unchoked(this);
+  }
 
   return true;
 }
@@ -247,7 +259,15 @@ PeerConnectionBase::receive_download_choke(bool choke) {
   m_downChoke.set_unchoked(!choke);
   m_downChoke.set_time_last_choke(cachedTime.usec());
 
-  m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() + (choke ? -1 : 1));
+  if (choke) {
+    m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - 1);
+    m_downChoke.entry()->connection_choked(this);
+    m_downChoke.entry()->connection_queued(this);
+  } else {
+    m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() + 1);
+    m_downChoke.entry()->connection_unqueued(this);
+    m_downChoke.entry()->connection_unchoked(this);
+  }
 
   if (choke) {
     m_peerChunks.download_cache()->disable();
@@ -275,7 +295,9 @@ PeerConnectionBase::receive_download_choke(bool choke) {
       // Remove from queue so that an unchoke from the remote peer
       // will cause the connection to be unchoked immediately by the
       // choke manager.
-      m_downChoke.set_queued(false);
+      //
+      // TODO: This doesn't seem safe...
+      m_download->choke_group()->down_queue()->set_not_queued(this, &m_downChoke);
       return false;
     }
 
@@ -371,6 +393,14 @@ PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
 void
 PeerConnectionBase::event_error() {
   m_download->connection_list()->erase(this, 0);
+}
+
+bool
+PeerConnectionBase::should_connection_unchoke(choke_queue* cq) const {
+  if (cq == m_download->choke_group()->up_queue())
+    return m_download->info()->upload_unchoked() < m_download->up_group_entry()->max_slots();
+
+  return true;
 }
 
 bool

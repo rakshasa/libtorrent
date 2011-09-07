@@ -44,6 +44,7 @@
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
+#include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 
 #include "connection_list.h"
@@ -242,7 +243,7 @@ ConnectionList::set_max_size(size_type v) {
 
   m_maxSize = v;
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  m_download->upload_choke_manager()->balance();
+  m_download->choke_group()->up_queue()->balance();
 }
 
 }

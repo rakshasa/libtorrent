@@ -46,6 +46,7 @@
 #include "download/download_main.h"
 #include "torrent/dht_manager.h"
 #include "torrent/download_info.h"
+#include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
@@ -103,7 +104,7 @@ PeerConnection<type>::update_interested() {
 
   // Hmm... does this belong here, or should we insert ourselves into
   // the queue when we receive the unchoke?
-//   m_download->download_choke_manager()->set_queued(this, &m_downChoke);
+//   m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
 }
 
 template<Download::ConnectionType type>
@@ -217,7 +218,7 @@ PeerConnection<type>::read_message() {
     down_chunk_release();
 
     download_queue()->cancel();
-    m_download->download_choke_manager()->set_not_queued(this, &m_downChoke);
+    m_download->choke_group()->down_queue()->set_not_queued(this, &m_downChoke);
     m_down->throttle()->erase(m_peerChunks.download_throttle());
 
     return true;
@@ -233,18 +234,18 @@ PeerConnection<type>::read_message() {
     if (!m_downInterested)
       return true;
 
-    m_download->download_choke_manager()->set_queued(this, &m_downChoke);
+    m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
     return true;
 
   case ProtocolBase::INTERESTED:
     if (type == Download::CONNECTION_LEECH && m_peerChunks.bitfield()->is_all_set())
       return true;
 
-    m_download->upload_choke_manager()->set_queued(this, &m_upChoke);
+    m_download->choke_group()->up_queue()->set_queued(this, &m_upChoke);
     return true;
 
   case ProtocolBase::NOT_INTERESTED:
-    m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
+    m_download->choke_group()->up_queue()->set_not_queued(this, &m_upChoke);
     return true;
 
   case ProtocolBase::HAVE:
@@ -521,7 +522,7 @@ PeerConnection<type>::fill_write_buffer() {
       m_sendInterested = true;
       m_downInterested = false;
 
-      m_download->download_choke_manager()->set_not_queued(this, &m_downChoke);
+      m_download->choke_group()->down_queue()->set_not_queued(this, &m_downChoke);
     }
   }
 
@@ -675,7 +676,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
         (type != Download::CONNECTION_INITIAL_SEED && m_download->file_list()->is_done()))
       throw close_connection();
 
-    m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
+    m_download->choke_group()->up_queue()->set_not_queued(this, &m_upChoke);
   }
 
   if (type != Download::CONNECTION_LEECH || m_download->file_list()->is_done())
@@ -698,7 +699,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
       // the peer keeps us unchoked even though we've said we're not
       // interested.
       if (m_downUnchoked)
-        m_download->download_choke_manager()->set_queued(this, &m_downChoke);
+        m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
 
       // Is it enough to insert into write here? Make the interested
       // check branch to include insert_write, even when not sending
@@ -742,8 +743,8 @@ PeerConnection<Download::CONNECTION_INITIAL_SEED>::should_upload() {
   // If queue ends up empty, choke peer to let it know that it
   // shouldn't wait for the cancelled pieces to be sent.
   if (m_peerChunks.upload_queue()->empty()) {
-    m_download->upload_choke_manager()->set_not_queued(this, &m_upChoke);
-    m_download->upload_choke_manager()->set_queued(this, &m_upChoke);
+    m_download->choke_group()->up_queue()->set_not_queued(this, &m_upChoke);
+    m_download->choke_group()->up_queue()->set_queued(this, &m_upChoke);
 
   // If we're sending the chunk we last offered, adjust bytes left in it.
   } else if (m_peerChunks.upload_queue()->front().index() == m_data.lastIndex) {
