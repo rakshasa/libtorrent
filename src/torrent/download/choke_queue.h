@@ -105,15 +105,17 @@ public:
     m_flags(flags),
     m_heuristics(HEURISTICS_MAX_SIZE),
     m_maxUnchoked(unlimited),
+    m_currently_queued(0),
+    m_currently_unchoked(0),
     m_slotConnection(NULL) {}
   ~choke_queue();
   
-  bool                is_full() const                         { return !is_unlimited() && m_unchoked.size() >= m_maxUnchoked; }
+  bool                is_full() const                         { return !is_unlimited() && size_unchoked() >= m_maxUnchoked; }
   bool                is_unlimited() const                    { return m_maxUnchoked == unlimited; }
 
-  uint32_t            size_unchoked() const                   { return m_unchoked.size(); }
-  uint32_t            size_queued() const                     { return m_queued.size(); }
-  uint32_t            size_total() const                      { return m_queued.size() + m_unchoked.size(); }
+  uint32_t            size_unchoked() const                   { return m_currently_unchoked; }
+  uint32_t            size_queued() const                     { return m_currently_queued; }
+  uint32_t            size_total() const                      { return size_unchoked() + size_queued(); }
 
   // This must be unsigned.
   uint32_t            max_unchoked() const                    { return m_maxUnchoked; }
@@ -145,10 +147,13 @@ public:
   // TODO: Consider putting this in queue_group.
   group_container_type& group_container()                      { return m_group_container; }
 
+  void                modify_currently_queued(int value)       { m_currently_queued += value; }
+  void                modify_currently_unchoked(int value)     { m_currently_unchoked += value; }
+
 private:
   group_stats         prepare_weights(group_stats gs);
-  group_stats         retrieve_connections(group_stats gs);
-  void                rebuild_containers();
+  group_stats         retrieve_connections(group_stats gs, container_type* queued, container_type* unchoked);
+  void                rebuild_containers(container_type* queued, container_type* unchoked);
 
   inline uint32_t     max_alternate() const;
 
@@ -158,13 +163,13 @@ private:
 
   static heuristics_type m_heuristics_list[HEURISTICS_MAX_SIZE];
 
-  container_type      m_queued;
-  container_type      m_unchoked;
-
   int                 m_flags;
   heuristics_enum     m_heuristics;
 
   uint32_t            m_maxUnchoked;
+
+  uint32_t            m_currently_queued;
+  uint32_t            m_currently_unchoked;
 
   slot_unchoke        m_slotUnchoke;
   slot_can_unchoke    m_slotCanUnchoke;

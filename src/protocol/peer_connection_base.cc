@@ -240,10 +240,17 @@ PeerConnectionBase::receive_upload_choke(bool choke) {
     m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() - 1);
     m_upChoke.entry()->connection_choked(this);
     m_upChoke.entry()->connection_queued(this);
+
+    m_download->choke_group()->up_queue()->modify_currently_unchoked(-1);
+    m_download->choke_group()->up_queue()->modify_currently_queued(1);
+
   } else {
     m_download->info()->set_upload_unchoked(m_download->info()->upload_unchoked() + 1);
     m_upChoke.entry()->connection_unqueued(this);
     m_upChoke.entry()->connection_unchoked(this);
+
+    m_download->choke_group()->up_queue()->modify_currently_unchoked(1);
+    m_download->choke_group()->up_queue()->modify_currently_queued(-1);
   }
 
   return true;
@@ -263,10 +270,17 @@ PeerConnectionBase::receive_download_choke(bool choke) {
     m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() - 1);
     m_downChoke.entry()->connection_choked(this);
     m_downChoke.entry()->connection_queued(this);
+
+    m_download->choke_group()->down_queue()->modify_currently_unchoked(-1);
+    m_download->choke_group()->down_queue()->modify_currently_queued(1);
+
   } else {
     m_download->info()->set_download_unchoked(m_download->info()->download_unchoked() + 1);
     m_downChoke.entry()->connection_unqueued(this);
     m_downChoke.entry()->connection_unchoked(this);
+
+    m_download->choke_group()->down_queue()->modify_currently_unchoked(1);
+    m_download->choke_group()->down_queue()->modify_currently_queued(-1);
   }
 
   if (choke) {

@@ -56,28 +56,16 @@ struct choke_manager_less {
   bool operator () (choke_queue::value_type v1, choke_queue::value_type v2) const { return v1.weight < v2.weight; }
 };
 
-void
-choke_manager_erase(choke_queue::container_type* container, PeerConnectionBase* pc) {
-  choke_queue::container_type::iterator itr = std::find_if(container->begin(), container->end(),
-                                                           rak::equal(pc, rak::mem_ref(&choke_queue::value_type::connection)));
-
-  if (itr == container->end())
-    return;
-
-  *itr = container->back();
-  container->pop_back();
-}
-
 static inline bool
 should_connection_unchoke(choke_queue* cq, PeerConnectionBase* pcb) {
   return pcb->should_connection_unchoke(cq);
 }
 
 choke_queue::~choke_queue() {
-  if (m_unchoked.size() != 0)
+  if (m_currently_unchoked != 0)
     throw internal_error("choke_queue::~choke_queue() called but m_currentlyUnchoked != 0.");
 
-  if (m_queued.size() != 0)
+  if (m_currently_queued != 0)
     throw internal_error("choke_queue::~choke_queue() called but m_currentlyQueued != 0.");
 }
 
@@ -90,10 +78,10 @@ choke_queue::~choke_queue() {
 
 inline uint32_t
 choke_queue::max_alternate() const {
-  if (m_unchoked.size() < 31)
-    return (m_unchoked.size() + 7) / 8;
+  if (m_currently_unchoked < 31)
+    return (m_currently_unchoked + 7) / 8;
   else
-    return (m_unchoked.size() + 9) / 10;
+    return (m_currently_unchoked + 9) / 10;
 }
 
 group_stats
@@ -128,7 +116,7 @@ choke_queue::prepare_weights(group_stats gs) {
 }
 
 group_stats
-choke_queue::retrieve_connections(group_stats gs) {
+choke_queue::retrieve_connections(group_stats gs, container_type* queued, container_type* unchoked) {
   for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.begin(); itr != last; itr++) {
     group_entry* entry = *itr;
 
@@ -156,28 +144,28 @@ choke_queue::retrieve_connections(group_stats gs) {
       group_entry::container_type::const_iterator first = entry->unchoked()->begin() + entry->min_slots();
       group_entry::container_type::const_iterator last  = entry->unchoked()->end();
 
-      m_unchoked.insert(m_unchoked.end(), first, last);
+      unchoked->insert(unchoked->end(), first, last);
       gs.now_unchoked += entry->min_slots();
     }
 
     // We can assume that at either we have no queued connections or
     // 'min_slots' has been reached.
-    m_queued.insert(m_queued.end(),
-                    entry->queued()->begin(),
-                    entry->queued()->begin() + std::min<uint32_t>(entry->queued()->size(), entry->max_slots()));
+    queued->insert(queued->end(),
+                   entry->queued()->begin(),
+                   entry->queued()->begin() + std::min<uint32_t>(entry->queued()->size(), entry->max_slots()));
   }    
 
   return gs;
 }
 
 void
-choke_queue::rebuild_containers() {
-  m_queued.clear();
-  m_unchoked.clear();
+choke_queue::rebuild_containers(container_type* queued, container_type* unchoked) {
+  queued->clear();
+  unchoked->clear();
 
   for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.begin(); itr != last; itr++) {
-    m_queued.insert(m_queued.end(), (*itr)->queued()->begin(), (*itr)->queued()->end());
-    m_unchoked.insert(m_unchoked.end(), (*itr)->unchoked()->begin(), (*itr)->unchoked()->end());
+    queued->insert(queued->end(), (*itr)->queued()->begin(), (*itr)->queued()->end());
+    unchoked->insert(unchoked->end(), (*itr)->unchoked()->begin(), (*itr)->unchoked()->end());
   }
 }
 
@@ -189,26 +177,26 @@ choke_queue::balance() {
   //
   // TODO: Check if unlimited, in that case we don't need to balance
   // if we got no queued connections.
-  if (m_unchoked.size() == m_maxUnchoked)
+  if (m_currently_unchoked == m_maxUnchoked)
     return;
 
-  m_queued.clear();
-  m_unchoked.clear();
+  container_type queued;
+  container_type unchoked;
 
   group_stats gs;
   std::memset(&gs, 0, sizeof(group_stats));
 
   gs = prepare_weights(gs);
-  gs = retrieve_connections(gs);
+  gs = retrieve_connections(gs, &queued, &unchoked);
 
-  int adjust = (int)std::min(m_maxUnchoked, (uint32_t)(1 << 20)) - (int)(m_unchoked.size() + gs.now_unchoked);
+  int adjust = (int)std::min(m_maxUnchoked, (uint32_t)(1 << 20)) - (int)(unchoked.size() + gs.now_unchoked);
 
   if (log_files[LOG_CHOKE_CHANGES].is_open())
     log_choke_changes_func_new(this, "balance", m_maxUnchoked, adjust);
 
   if (adjust > 0) {
-    adjust = adjust_choke_range(m_queued.begin(), m_queued.end(),
-                                &m_queued, &m_unchoked,
+    adjust = adjust_choke_range(queued.begin(), queued.end(),
+                                &queued, &unchoked,
                                 std::min((uint32_t)adjust, m_slotCanUnchoke()), false);
 
     m_slotUnchoke(adjust);
@@ -217,12 +205,12 @@ choke_queue::balance() {
     // We can do the choking before the slot is called as this
     // choke_queue won't be unchoking the same peers due to the
     // call-back.
-    adjust = adjust_choke_range(m_unchoked.begin(), m_unchoked.end(), &m_unchoked, &m_queued, -adjust, true);
+    adjust = adjust_choke_range(unchoked.begin(), unchoked.end(), &unchoked, &queued, -adjust, true);
 
     m_slotUnchoke(-adjust);
   }
 
-  rebuild_containers();
+  rebuild_containers(&queued, &unchoked);
 }
 
 int
@@ -230,40 +218,43 @@ choke_queue::cycle(uint32_t quota) {
   // TODO: This should not use the old values, but rather the number
   // of unchoked this round.
   // HACKKKKKK
-  rebuild_containers();
+  container_type queued;
+  container_type unchoked;
 
-  uint32_t oldSize = m_unchoked.size();
+  rebuild_containers(&queued, &unchoked);
+
+  uint32_t oldSize = unchoked.size();
   uint32_t alternate = max_alternate();
 
-  m_queued.clear();
-  m_unchoked.clear();
+  queued.clear();
+  unchoked.clear();
 
   group_stats gs;
   std::memset(&gs, 0, sizeof(group_stats));
 
   gs = prepare_weights(gs);
-  gs = retrieve_connections(gs);
+  gs = retrieve_connections(gs, &queued, &unchoked);
 
   quota = std::min(quota, m_maxUnchoked);
   quota = quota - std::min(quota, gs.now_unchoked);
 
-  uint32_t adjust = std::max<uint32_t>(m_unchoked.size() < quota ? quota - m_unchoked.size() : 0,
+  uint32_t adjust = std::max<uint32_t>(unchoked.size() < quota ? quota - unchoked.size() : 0,
                                        alternate); //std::min(quota, max_alternate()));
 
   if (log_files[LOG_CHOKE_CHANGES].is_open())
     log_choke_changes_func_new(this, "cycle", quota, adjust);
 
-  uint32_t unchoked = adjust_choke_range(m_queued.begin(), m_queued.end(), &m_queued, &m_unchoked, adjust, false);
+  uint32_t unchoked_count = adjust_choke_range(queued.begin(), queued.end(), &queued, &unchoked, adjust, false);
 
-  if (m_unchoked.size() > quota)
-    adjust_choke_range(m_unchoked.begin(), m_unchoked.end() - unchoked, &m_unchoked, &m_queued, m_unchoked.size() - quota, true);
+  if (unchoked.size() > quota)
+    adjust_choke_range(unchoked.begin(), unchoked.end() - unchoked_count, &unchoked, &queued, unchoked.size() - quota, true);
 
-  if (m_unchoked.size() > quota)
-    throw internal_error("choke_queue::cycle() m_unchoked.size() > quota.");
+  if (unchoked.size() > quota)
+    throw internal_error("choke_queue::cycle() unchoked.size() > quota.");
 
-  rebuild_containers();
+  rebuild_containers(&queued, &unchoked);
 
-  return m_unchoked.size() - oldSize;
+  return unchoked.size() - oldSize;
 }
 
 void
@@ -277,17 +268,13 @@ choke_queue::set_queued(PeerConnectionBase* pc, choke_status* base) {
     return;
 
   base->entry()->connection_queued(pc);
+  modify_currently_queued(1);
 
   if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke()) &&
       should_connection_unchoke(this, pc) &&
       rak::timer(base->time_last_choke()) + rak::timer::from_seconds(10) < cachedTime) {
-    m_unchoked.push_back(value_type(pc, 0));
-
     m_slotConnection(pc, false);
     m_slotUnchoke(1);
-
-  } else {
-    m_queued.push_back(value_type(pc, 0));
   }
 }
 
@@ -302,16 +289,12 @@ choke_queue::set_not_queued(PeerConnectionBase* pc, choke_status* base) {
     return;
 
   if (base->unchoked()) {
-    choke_manager_erase(&m_unchoked, pc);
-
     m_slotConnection(pc, true);
     m_slotUnchoke(-1);
-
-  } else {
-    choke_manager_erase(&m_queued, pc);
   }
 
   base->entry()->connection_unqueued(pc);
+  modify_currently_queued(-1);
 }
 
 void
@@ -322,18 +305,16 @@ choke_queue::set_snubbed(PeerConnectionBase* pc, choke_status* base) {
   base->set_snubbed(true);
 
   if (base->unchoked()) {
-    choke_manager_erase(&m_unchoked, pc);
     m_slotConnection(pc, true);
     m_slotUnchoke(-1);
 
-  } else if (base->queued()) {
-    choke_manager_erase(&m_queued, pc);
-
-  } else {
+  } else if (!base->queued()) {
     return;
   }
 
   base->entry()->connection_unqueued(pc);
+  modify_currently_queued(-1);
+
   base->set_queued(false);
 }
 
@@ -351,17 +332,14 @@ choke_queue::set_not_snubbed(PeerConnectionBase* pc, choke_status* base) {
     throw internal_error("choke_queue::set_not_snubbed(...) base->unchoked().");
   
   base->entry()->connection_queued(pc);
+  modify_currently_queued(1);
 
   if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke()) &&
       should_connection_unchoke(this, pc) &&
       rak::timer(base->time_last_choke()) + rak::timer::from_seconds(10) < cachedTime) {
-    m_unchoked.push_back(value_type(pc, 0));
     m_slotConnection(pc, false);
 
     m_slotUnchoke(1);
-
-  } else {
-    m_queued.push_back(value_type(pc, 0));
   }
 }
 
@@ -372,14 +350,14 @@ choke_queue::disconnected(PeerConnectionBase* pc, choke_status* base) {
     // Do nothing.
 
   } else if (base->unchoked()) {
-    choke_manager_erase(&m_unchoked, pc);
     m_slotUnchoke(-1);
 
     base->entry()->connection_choked(pc);
+    modify_currently_unchoked(-1);
 
   } else if (base->queued()) {
-    choke_manager_erase(&m_queued, pc);
     base->entry()->connection_unqueued(pc);
+    modify_currently_queued(-1);
   }
 
   base->set_queued(false);
@@ -405,33 +383,10 @@ choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain*
   if (src == NULL || dest == NULL)
     return;
 
-  iterator itr = src->m_queued.begin();
-
-  while (itr != src->m_queued.end()) {
-    if (itr->connection->download() != download) {
-      itr++;
-      continue;
-    }
-
-    dest->m_queued.push_back(*itr);
-
-    *itr = src->m_queued.back();
-    src->m_queued.pop_back();
-  }
-
-  itr = src->m_unchoked.begin();
-
-  while (itr != src->m_unchoked.end()) {
-    if (itr->connection->download() != download) {
-      itr++;
-      continue;
-    }
-
-    dest->m_unchoked.push_back(*itr);
-
-    *itr = src->m_unchoked.back();
-    src->m_unchoked.pop_back();
-  }
+  src->modify_currently_queued(-base->queued()->size());
+  src->modify_currently_unchoked(-base->unchoked()->size());
+  dest->modify_currently_queued(base->queued()->size());
+  dest->modify_currently_unchoked(base->unchoked()->size());
 }
 
 //
