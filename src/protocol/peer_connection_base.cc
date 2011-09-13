@@ -414,6 +414,9 @@ PeerConnectionBase::should_connection_unchoke(choke_queue* cq) const {
   if (cq == m_download->choke_group()->up_queue())
     return m_download->info()->upload_unchoked() < m_download->up_group_entry()->max_slots();
 
+  if (cq == m_download->choke_group()->down_queue())
+    return m_download->info()->download_unchoked() < m_download->down_group_entry()->max_slots();
+
   return true;
 }
 
