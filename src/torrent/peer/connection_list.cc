@@ -243,7 +243,7 @@ ConnectionList::set_max_size(size_type v) {
 
   m_maxSize = v;
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  m_download->choke_group()->up_queue()->balance();
+  //m_download->choke_group()->up_queue()->balance();
 }
 
 }

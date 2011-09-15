@@ -443,7 +443,7 @@ Download::set_uploads_max(uint32_t v) {
 	 	 
   // For the moment, treat 0 as unlimited. 
   m_ptr->main()->up_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v); 
-  ///  m_ptr->main()->choke_group()->up_queue()->balance();
+  m_ptr->main()->choke_group()->up_queue()->balance_entry(m_ptr->main()->up_group_entry());
 }
 
 void
@@ -453,7 +453,7 @@ Download::set_uploads_min(uint32_t v) {
 	 	 
   // For the moment, treat 0 as unlimited. 
   m_ptr->main()->up_group_entry()->set_min_slots(v); 
-  ///  m_ptr->main()->choke_group()->up_queue()->balance();
+  m_ptr->main()->choke_group()->up_queue()->balance_entry(m_ptr->main()->up_group_entry());
 }
 
 void
@@ -463,7 +463,7 @@ Download::set_downloads_max(uint32_t v) {
 	 	 
   // For the moment, treat 0 as unlimited. 
   m_ptr->main()->down_group_entry()->set_max_slots(v == 0 ? DownloadInfo::unlimited : v); 
-  ///  m_ptr->main()->choke_group()->up_queue()->balance();
+  m_ptr->main()->choke_group()->down_queue()->balance_entry(m_ptr->main()->down_group_entry());
 }
 
 void
@@ -473,7 +473,7 @@ Download::set_downloads_min(uint32_t v) {
 	 	 
   // For the moment, treat 0 as unlimited. 
   m_ptr->main()->down_group_entry()->set_min_slots(v); 
-  ///  m_ptr->main()->choke_group()->up_queue()->balance();
+  m_ptr->main()->choke_group()->down_queue()->balance_entry(m_ptr->main()->down_group_entry());
 }
 
 Download::ConnectionType

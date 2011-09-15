@@ -123,6 +123,7 @@ public:
   void                set_max_unchoked(uint32_t v)            { m_maxUnchoked = v; }
 
   void                balance();
+  void                balance_entry(group_entry* entry);
   int                 cycle(uint32_t quota);
 
   // Assume interested state is already updated for the PCB and that
