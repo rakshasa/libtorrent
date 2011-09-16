@@ -305,8 +305,9 @@ TrackerUdp::process_announce_output() {
 
   set_normal_interval(m_readBuffer->read_32());
 
-  m_readBuffer->read_32(); // leechers
-  m_readBuffer->read_32(); // seeders
+  m_scrapeIncomplete = m_readBuffer->read_32(); // leechers
+  m_scrapeComplete   = m_readBuffer->read_32(); // seeders
+  m_scrapeTimeLast   = rak::timer::current().seconds();
 
   AddressList l;
 
