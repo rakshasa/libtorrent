@@ -37,7 +37,8 @@
 #ifndef LIBTORRENT_UTILS_LOG_H
 #define LIBTORRENT_UTILS_LOG_H
 
-//#include <utility>
+#include <string>
+#include <vector>
 #include <tr1/array>
 #include <tr1/functional>
 #include <torrent/common.h>
@@ -70,26 +71,38 @@ enum {
   LOG_MAX_SIZE
 };
 
+#define lt_log_print(group, ...) if (torrent::log_groups[group].valid()) torrent::log_groups[group].internal_print(__VA_ARGS__);
+
 struct log_cached_outputs;
-typedef std::tr1::function<void (const char*)>   log_slot;
+
+typedef std::tr1::function<void (const char*, unsigned int)> log_slot;
+typedef std::vector<std::pair<std::string, log_slot> >       log_output_list;
 
 class LIBTORRENT_EXPORT log_group {
 public:
-  log_group() : m_outputs(0), m_first(NULL), m_last(NULL) {}
+  log_group() : m_outputs(0), m_cached_outputs(0), m_first(NULL), m_last(NULL) {}
 
-  bool valid() const { return m_first != NULL; }
-  bool empty() const { return m_first == NULL; }
+  bool                valid() const { return m_first != NULL; }
+  bool                empty() const { return m_first == NULL; }
 
-  void print(const char* fmt, ...);
+  size_t              size_outputs() const { return std::distance(m_first, m_last); }
 
   // Internal:
+  void                internal_print(const char* fmt, ...);
+
   uint64_t            outputs() const                    { return m_outputs; }
+  uint64_t            cached_outputs() const             { return m_cached_outputs; }
+
+  void                clear_cached_outputs()             { m_cached_outputs = m_outputs; }
+
   void                set_outputs(uint64_t val)          { m_outputs = val; }
+  void                set_cached_outputs(uint64_t val)   { m_cached_outputs = val; }
 
   void                set_cached(log_slot* f, log_slot* l) { m_first = f; m_last = l; }
 
 private:
   uint64_t            m_outputs;
+  uint64_t            m_cached_outputs;
 
   log_slot*           m_first;
   log_slot*           m_last;
@@ -97,9 +110,8 @@ private:
 
 typedef std::tr1::array<log_group, LOG_MAX_SIZE> log_group_list;
 
-extern log_group_list log_groups LIBTORRENT_EXPORT;
-
-#define lt_log_print(group, fmt, ...) if (!log_groups[group].empty()) log_groups[group].print(fmt, __VA_ARGS__);
+extern log_group_list  log_groups LIBTORRENT_EXPORT;
+extern log_output_list log_outputs LIBTORRENT_EXPORT;
 
 // Called by torrent::initialize().
 void log_initialize() LIBTORRENT_EXPORT;
