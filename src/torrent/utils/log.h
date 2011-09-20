@@ -120,6 +120,8 @@ void log_cleanup() LIBTORRENT_EXPORT;
 void log_open_output(const char* name, log_slot slot) LIBTORRENT_EXPORT;
 void log_close_output(const char* name) LIBTORRENT_EXPORT;
 
+void log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
+
 void log_add_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 

@@ -44,8 +44,11 @@
 #include <stdarg.h>
 
 #include <algorithm>
+#include <fstream>
 #include <functional>
+#include <memory>
 #include <tr1/functional>
+#include <tr1/memory>
 
 namespace std { using namespace tr1; }
 
@@ -218,6 +221,18 @@ log_open_output(const char* name, log_slot slot) {
   log_rebuild_cache();
 }
 
+// TODO: Allow for different write functions that prepend timestamps,
+// etc.
+void
+log_open_file_output(const char* name, const char* filename) {
+  std::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
+
+  if (!outfile->good())
+    throw input_error("Could not open log file '" + std::string(filename) + "'.");
+
+  log_open_output(name, std::bind(&std::ofstream::write, outfile, std::placeholders::_1, std::placeholders::_2));
+}
+
 void
 log_close_output(const char* name) {
 }
@@ -251,7 +266,7 @@ log_add_child(int group, int child) {
 
 void
 log_remove_child(int group, int child) {
-
+  // Remove from all groups, then modify all outputs.
 }
 
 }

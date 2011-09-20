@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <fstream>
 #include <iostream>
 #include <tr1/functional>
 #include <torrent/exceptions.h>
@@ -116,4 +117,25 @@ utils_log_test::test_children() {
   LTUNIT_ASSERT_OUTPUT(GROUP_PARENT_2,  0x2, "parent_2", "parent_2");
   LTUNIT_ASSERT_OUTPUT(GROUP_CHILD_1,   0x3, "child_1", "child_1");
   LTUNIT_ASSERT_OUTPUT(GROUP_CHILD_1_1, 0x3, "child_1", "child_1");
+}
+
+void
+utils_log_test::test_file_output() {
+  char* filename = tmpnam(NULL);
+
+  torrent::log_open_file_output("test_file", filename);
+  torrent::log_add_group_output(GROUP_PARENT_1, "test_file");
+  
+  lt_log_print(GROUP_PARENT_1, "test_file");
+
+  torrent::log_cleanup(); // To ensure we flush the buffers.
+
+  std::ifstream temp_file(filename);
+
+  CPPUNIT_ASSERT(temp_file.good());
+  
+  char buffer[256];
+  temp_file.getline(buffer, 256);
+
+  CPPUNIT_ASSERT(std::string(buffer) == "test_file");
 }
