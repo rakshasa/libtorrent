@@ -155,6 +155,13 @@ option_pair option_list_log_group[] = {
   { "storage_info",        LOG_STORAGE_INFO },
   { "storage_debug",       LOG_STORAGE_DEBUG },
 
+  { "thread_critical",     LOG_THREAD_CRITICAL },
+  { "thread_error",        LOG_THREAD_ERROR },
+  { "thread_warn",         LOG_THREAD_WARN },
+  { "thread_notice",       LOG_THREAD_NOTICE },
+  { "thread_info",         LOG_THREAD_INFO },
+  { "thread_debug",        LOG_THREAD_DEBUG },
+  
   { "torrent_critical",    LOG_TORRENT_CRITICAL },
   { "torrent_error",       LOG_TORRENT_ERROR },
   { "torrent_warn",        LOG_TORRENT_WARN },
