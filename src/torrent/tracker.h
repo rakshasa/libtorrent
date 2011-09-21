@@ -81,6 +81,9 @@ public:
   uint32_t            normal_interval() const               { return m_normalInterval; }
   uint32_t            min_interval() const                  { return m_minInterval; }
 
+  uint32_t            success_time_last() const             { return m_success_time_last; }
+  uint32_t            failed_time_last() const              { return m_failed_time_last; }
+
   uint32_t            scrape_time_last() const              { return m_scrapeTimeLast; }
   uint32_t            scrape_complete() const               { return m_scrapeComplete; }
   uint32_t            scrape_incomplete() const             { return m_scrapeIncomplete; }
@@ -112,6 +115,9 @@ protected:
 
   uint32_t            m_normalInterval;
   uint32_t            m_minInterval;
+
+  uint32_t            m_success_time_last;
+  uint32_t            m_failed_time_last;
 
   uint32_t            m_scrapeTimeLast;
   uint32_t            m_scrapeComplete;

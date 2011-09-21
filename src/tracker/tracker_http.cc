@@ -234,6 +234,7 @@ TrackerHttp::receive_done() {
   }
 
   close();
+  m_success_time_last = rak::timer::current().seconds();
   m_parent->receive_success(this, &l);
 }
 
@@ -241,6 +242,7 @@ void
 TrackerHttp::receive_failed(std::string msg) {
   // Does the order matter?
   close();
+  m_failed_time_last = rak::timer::current().seconds();
   m_parent->receive_failed(this, msg);
 }
 

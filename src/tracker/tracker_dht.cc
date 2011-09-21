@@ -130,6 +130,8 @@ TrackerDht::receive_success() {
   if (!is_busy())
     throw internal_error("TrackerDht::receive_success called while not busy.");
 
+  m_success_time_last = rak::timer::current().seconds();
+
   m_state = state_idle;
   m_parent->receive_success(this, &m_peers);
   m_peers.clear();
@@ -139,6 +141,8 @@ void
 TrackerDht::receive_failed(const char* msg) {
   if (!is_busy())
     throw internal_error("TrackerDht::receive_failed called while not busy.");
+
+  m_failed_time_last = rak::timer::current().seconds();
 
   m_state = state_idle;
   m_parent->receive_failed(this, msg);
