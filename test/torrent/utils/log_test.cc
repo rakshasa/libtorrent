@@ -30,7 +30,8 @@ test_output(const char* output, unsigned int length, unsigned int mask) {
 
 void
 utils_log_test::setUp() {
-  torrent::log_initialize();
+  // Don't initialize since this creates the group->child connections.
+  //  torrent::log_initialize();
 }
 
 void

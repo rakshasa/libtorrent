@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "log.h"
+#include "rak/timer.h"
 #include "torrent/exceptions.h"
 
 #include <stdio.h>
@@ -129,7 +130,7 @@ void
 log_rebuild_cache() {
   std::for_each(log_groups.begin(), log_groups.end(), std::mem_fun_ref(&log_group::clear_cached_outputs));
 
-  for (int i = 0; i < LOG_MAX_SIZE; i++)
+  for (int i = 0; i < LOG_GROUP_MAX_SIZE; i++)
     log_update_child_cache(i);
 
   // Clear the cache...
@@ -183,8 +184,38 @@ log_group::internal_print(const char* fmt, ...) {
                                              std::min<unsigned int>(count, 1023)));
 }
 
+#define LOG_CHILDREN_CASCADE(critical)                                  \
+  log_children.push_back(std::make_pair(critical + LOG_CRITICAL, 0 + LOG_ERROR)); \
+  log_children.push_back(std::make_pair(critical + LOG_ERROR,    0 + LOG_WARN)); \
+  log_children.push_back(std::make_pair(critical + LOG_WARN,     0 + LOG_NOTICE)); \
+  log_children.push_back(std::make_pair(critical + LOG_NOTICE,   0 + LOG_INFO)); \
+  log_children.push_back(std::make_pair(critical + LOG_INFO,     0 + LOG_DEBUG));
+
+#define LOG_CHILDREN_SUBGROUP(parent, subgroup)                         \
+  log_children.push_back(std::make_pair(parent + LOG_CRITICAL, subgroup + LOG_CRITICAL)); \
+  log_children.push_back(std::make_pair(parent + LOG_ERROR,    subgroup + LOG_ERROR)); \
+  log_children.push_back(std::make_pair(parent + LOG_WARN,     subgroup + LOG_WARN));  \
+  log_children.push_back(std::make_pair(parent + LOG_NOTICE,   subgroup + LOG_NOTICE)); \
+  log_children.push_back(std::make_pair(parent + LOG_INFO,     subgroup + LOG_INFO));  \
+  log_children.push_back(std::make_pair(parent + LOG_DEBUG,    subgroup + LOG_DEBUG));
+
 void
 log_initialize() {
+  LOG_CHILDREN_CASCADE(LOG_CRITICAL);
+  LOG_CHILDREN_CASCADE(LOG_CONNECTION_CRITICAL);
+  LOG_CHILDREN_CASCADE(LOG_DHT_CRITICAL);
+  LOG_CHILDREN_CASCADE(LOG_RPC_CRITICAL);
+  LOG_CHILDREN_CASCADE(LOG_STORAGE_CRITICAL);
+  LOG_CHILDREN_CASCADE(LOG_TORRENT_CRITICAL);
+
+  LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_CONNECTION_CRITICAL);
+  LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_DHT_CRITICAL);
+  LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_RPC_CRITICAL);
+  LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_STORAGE_CRITICAL);
+  LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
+
+  std::sort(log_children.begin(), log_children.end());
+  log_rebuild_cache();
 }
 
 void
@@ -221,6 +252,12 @@ log_open_output(const char* name, log_slot slot) {
   log_rebuild_cache();
 }
 
+void
+log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length) {
+  // Add group name, data, etc as flags.
+  *outfile << rak::timer::current().seconds() << " " << data << std::endl;
+}
+
 // TODO: Allow for different write functions that prepend timestamps,
 // etc.
 void
@@ -230,7 +267,8 @@ log_open_file_output(const char* name, const char* filename) {
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
-  log_open_output(name, std::bind(&std::ofstream::write, outfile, std::placeholders::_1, std::placeholders::_2));
+  //  log_open_output(name, std::bind(&std::ofstream::write, outfile, std::placeholders::_1, std::placeholders::_2));
+  log_open_output(name, std::bind(&log_file_write, outfile, std::placeholders::_1, std::placeholders::_2));
 }
 
 void

@@ -61,6 +61,20 @@ enum {
   LOG_CONNECTION_INFO,
   LOG_CONNECTION_DEBUG,
 
+  LOG_DHT_CRITICAL,
+  LOG_DHT_ERROR,
+  LOG_DHT_WARN,
+  LOG_DHT_NOTICE,
+  LOG_DHT_INFO,
+  LOG_DHT_DEBUG,
+
+  LOG_RPC_CRITICAL,
+  LOG_RPC_ERROR,
+  LOG_RPC_WARN,
+  LOG_RPC_NOTICE,
+  LOG_RPC_INFO,
+  LOG_RPC_DEBUG,
+
   LOG_STORAGE_CRITICAL,
   LOG_STORAGE_ERROR,
   LOG_STORAGE_WARN,
@@ -68,10 +82,17 @@ enum {
   LOG_STORAGE_INFO,
   LOG_STORAGE_DEBUG,
 
-  LOG_MAX_SIZE
+  LOG_TORRENT_CRITICAL,
+  LOG_TORRENT_ERROR,
+  LOG_TORRENT_WARN,
+  LOG_TORRENT_NOTICE,
+  LOG_TORRENT_INFO,
+  LOG_TORRENT_DEBUG,
+
+  LOG_GROUP_MAX_SIZE
 };
 
-#define lt_log_print(group, ...) if (torrent::log_groups[group].valid()) torrent::log_groups[group].internal_print(__VA_ARGS__);
+#define lt_log_print(group, ...) { if (torrent::log_groups[group].valid()) torrent::log_groups[group].internal_print(__VA_ARGS__); }
 
 struct log_cached_outputs;
 
@@ -108,7 +129,7 @@ private:
   log_slot*           m_last;
 };
 
-typedef std::tr1::array<log_group, LOG_MAX_SIZE> log_group_list;
+typedef std::tr1::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
 
 extern log_group_list  log_groups LIBTORRENT_EXPORT;
 extern log_output_list log_outputs LIBTORRENT_EXPORT;

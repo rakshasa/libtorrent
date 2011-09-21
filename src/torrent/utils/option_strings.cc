@@ -47,6 +47,7 @@
 
 #include "exceptions.h"
 #include "download.h"
+#include "log.h"
 #include "option_strings.h"
 
 namespace torrent {
@@ -118,6 +119,52 @@ option_pair option_list_tracker_mode[] = {
   { NULL, 0 }
 };
 
+option_pair option_list_log_group[] = {
+  { "critical",            LOG_CRITICAL },
+  { "error",               LOG_ERROR },
+  { "warn",                LOG_WARN },
+  { "notice",              LOG_NOTICE },
+  { "info",                LOG_INFO },
+  { "debug",               LOG_DEBUG },
+  
+  { "connection_critical", LOG_CONNECTION_CRITICAL },
+  { "connection_error",    LOG_CONNECTION_ERROR },
+  { "connection_warn",     LOG_CONNECTION_WARN },
+  { "connection_notice",   LOG_CONNECTION_NOTICE },
+  { "connection_info",     LOG_CONNECTION_INFO },
+  { "connection_debug",    LOG_CONNECTION_DEBUG },
+  
+  { "dht_critical",        LOG_DHT_CRITICAL },
+  { "dht_error",           LOG_DHT_ERROR },
+  { "dht_warn",            LOG_DHT_WARN },
+  { "dht_notice",          LOG_DHT_NOTICE },
+  { "dht_info",            LOG_DHT_INFO },
+  { "dht_debug",           LOG_DHT_DEBUG },
+  
+  { "rpc_critical",        LOG_RPC_CRITICAL },
+  { "rpc_error",           LOG_RPC_ERROR },
+  { "rpc_warn",            LOG_RPC_WARN },
+  { "rpc_notice",          LOG_RPC_NOTICE },
+  { "rpc_info",            LOG_RPC_INFO },
+  { "rpc_debug",           LOG_RPC_DEBUG },
+  
+  { "storage_critical",    LOG_STORAGE_CRITICAL },
+  { "storage_error",       LOG_STORAGE_ERROR },
+  { "storage_warn",        LOG_STORAGE_WARN },
+  { "storage_notice",      LOG_STORAGE_NOTICE },
+  { "storage_info",        LOG_STORAGE_INFO },
+  { "storage_debug",       LOG_STORAGE_DEBUG },
+
+  { "torrent_critical",    LOG_TORRENT_CRITICAL },
+  { "torrent_error",       LOG_TORRENT_ERROR },
+  { "torrent_warn",        LOG_TORRENT_WARN },
+  { "torrent_notice",      LOG_TORRENT_NOTICE },
+  { "torrent_info",        LOG_TORRENT_INFO },
+  { "torrent_debug",       LOG_TORRENT_DEBUG },
+  
+  { NULL, 0 }
+};
+
 option_pair* option_lists[OPTION_MAX_SIZE] = {
   option_list_connection,
   option_list_heuristics,
@@ -126,6 +173,7 @@ option_pair* option_lists[OPTION_MAX_SIZE] = {
   option_list_encryption,
   option_list_ip_filter,
   option_list_ip_tos,
+  option_list_log_group,
   option_list_tracker_mode,
 };
 
