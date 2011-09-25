@@ -48,6 +48,7 @@
 #include "torrent/http.h"
 #include "torrent/object_stream.h"
 #include "torrent/tracker_list.h"
+#include "torrent/utils/log.h"
 
 #include "tracker_http.h"
 
@@ -145,9 +146,13 @@ TrackerHttp::send_state(int state) {
     break;
   }
 
+  std::string request_url = s.str();
+
   m_data = new std::stringstream();
 
-  m_get->set_url(s.str());
+  lt_log_print(LOG_TRACKER_INFO, "--- Tracker HTTP Request ---\n%*s\n---", request_url.size(), request_url.c_str());
+
+  m_get->set_url(request_url);
   m_get->set_stream(m_data);
   m_get->set_timeout(2 * 60);
 
@@ -176,12 +181,9 @@ TrackerHttp::receive_done() {
   if (m_data == NULL)
     throw internal_error("TrackerHttp::receive_done() called on an invalid object");
 
-  DownloadInfo* info = m_parent->info();
-
-  if (!info->signal_tracker_dump().empty()) {
+  if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
     std::string dump = m_data->str();
-
-    info->signal_tracker_dump().emit(m_get->url(), dump.c_str(), dump.size());
+    lt_log_print(LOG_TRACKER_DEBUG, "--- Tracker HTTP receive done ---\n%*s\n---", dump.size(), dump.c_str());
   }
 
   Object b;

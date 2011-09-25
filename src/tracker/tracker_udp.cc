@@ -48,6 +48,7 @@
 #include "torrent/download_info.h"
 #include "torrent/poll.h"
 #include "torrent/tracker_list.h"
+#include "torrent/utils/log.h"
 
 #include "tracker_udp.h"
 #include "manager.h"
@@ -189,8 +190,7 @@ TrackerUdp::event_read() {
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
 
-  if (!m_parent->info()->signal_tracker_dump().empty())
-    m_parent->info()->signal_tracker_dump().emit(m_url, (const char*)m_readBuffer->begin(), s);
+  lt_log_print(LOG_TRACKER_DEBUG, "--- Tracker UDP received ---\n%*s\n---", s, (const char*)m_readBuffer->begin());
 
   if (s < 4)
     return;
@@ -235,6 +235,8 @@ TrackerUdp::event_write() {
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
   int __UNUSED s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
+
+  lt_log_print(LOG_TRACKER_DEBUG, "--- Tracker UDP send ---\n%*s\n---", m_readBuffer->size_end(), (const char*)m_readBuffer->begin());
 
   // TODO: If send failed, retry shortly or do i call receive_failed?
   // if (s != m_writeBuffer->size_end())

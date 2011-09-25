@@ -89,6 +89,13 @@ enum {
   LOG_THREAD_INFO,
   LOG_THREAD_DEBUG,
 
+  LOG_TRACKER_CRITICAL,
+  LOG_TRACKER_ERROR,
+  LOG_TRACKER_WARN,
+  LOG_TRACKER_NOTICE,
+  LOG_TRACKER_INFO,
+  LOG_TRACKER_DEBUG,
+
   LOG_TORRENT_CRITICAL,
   LOG_TORRENT_ERROR,
   LOG_TORRENT_WARN,
@@ -100,6 +107,7 @@ enum {
 };
 
 #define lt_log_print(group, ...) { if (torrent::log_groups[group].valid()) torrent::log_groups[group].internal_print(__VA_ARGS__); }
+#define lt_log_is_valid(group) (torrent::log_groups[group].valid())
 
 struct log_cached_outputs;
 

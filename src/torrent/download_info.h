@@ -158,7 +158,6 @@ public:
 
   signal_string_type& signal_network_log() const                   { return m_signalNetworkLog; }
   signal_string_type& signal_storage_error() const                 { return m_signalStorageError; }
-  signal_dump_type&   signal_tracker_dump() const                  { return m_signalTrackerDump; }
 
   // The list of addresses is guaranteed to be sorted and unique.
   signal_void_type&   signal_tracker_success() const               { return m_signalTrackerSuccess; }
@@ -208,7 +207,6 @@ private:
 
   mutable signal_string_type  m_signalNetworkLog;
   mutable signal_string_type  m_signalStorageError;
-  mutable signal_dump_type    m_signalTrackerDump;
 
   mutable signal_void_type    m_signalTrackerSuccess;
   mutable signal_string_type  m_signalTrackerFailed;

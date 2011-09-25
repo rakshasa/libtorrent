@@ -162,6 +162,13 @@ option_pair option_list_log_group[] = {
   { "thread_info",         LOG_THREAD_INFO },
   { "thread_debug",        LOG_THREAD_DEBUG },
   
+  { "tracker_critical",    LOG_TRACKER_CRITICAL },
+  { "tracker_error",       LOG_TRACKER_ERROR },
+  { "tracker_warn",        LOG_TRACKER_WARN },
+  { "tracker_notice",      LOG_TRACKER_NOTICE },
+  { "tracker_info",        LOG_TRACKER_INFO },
+  { "tracker_debug",       LOG_TRACKER_DEBUG },
+  
   { "torrent_critical",    LOG_TORRENT_CRITICAL },
   { "torrent_error",       LOG_TORRENT_ERROR },
   { "torrent_warn",        LOG_TORRENT_WARN },

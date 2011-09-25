@@ -45,6 +45,7 @@
 #include "torrent/dht_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/tracker_list.h"
+#include "torrent/utils/log.h"
 
 #include "tracker_dht.h"
 

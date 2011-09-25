@@ -185,12 +185,14 @@ log_group::internal_print(const char* fmt, ...) {
                                              std::min<unsigned int>(count, buffer_size - 1)));
 }
 
-#define LOG_CHILDREN_CASCADE(critical)                                  \
-  log_children.push_back(std::make_pair(critical + LOG_ERROR,    critical + LOG_CRITICAL)); \
-  log_children.push_back(std::make_pair(critical + LOG_WARN,     critical + LOG_ERROR)); \
-  log_children.push_back(std::make_pair(critical + LOG_NOTICE,   critical + LOG_WARN)); \
-  log_children.push_back(std::make_pair(critical + LOG_INFO,     critical + LOG_NOTICE)); \
-  log_children.push_back(std::make_pair(critical + LOG_DEBUG,    critical + LOG_INFO));
+#define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
+
+#define LOG_CHILDREN_CASCADE(parent, subgroup)                          \
+  log_children.push_back(std::make_pair(parent + LOG_ERROR,    subgroup + LOG_CRITICAL)); \
+  log_children.push_back(std::make_pair(parent + LOG_WARN,     subgroup + LOG_ERROR)); \
+  log_children.push_back(std::make_pair(parent + LOG_NOTICE,   subgroup + LOG_WARN)); \
+  log_children.push_back(std::make_pair(parent + LOG_INFO,     subgroup + LOG_NOTICE)); \
+  log_children.push_back(std::make_pair(parent + LOG_DEBUG,    subgroup + LOG_INFO));
 
 #define LOG_CHILDREN_SUBGROUP(parent, subgroup)                         \
   log_children.push_back(std::make_pair(parent + LOG_CRITICAL, subgroup + LOG_CRITICAL)); \
@@ -202,13 +204,14 @@ log_group::internal_print(const char* fmt, ...) {
 
 void
 log_initialize() {
-  LOG_CHILDREN_CASCADE(LOG_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_CONNECTION_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_DHT_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_RPC_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_STORAGE_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_THREAD_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_TORRENT_CRITICAL);
+  LOG_CASCADE(LOG_CRITICAL);
+  LOG_CASCADE(LOG_CONNECTION_CRITICAL);
+  LOG_CASCADE(LOG_DHT_CRITICAL);
+  LOG_CASCADE(LOG_RPC_CRITICAL);
+  LOG_CASCADE(LOG_STORAGE_CRITICAL);
+  LOG_CASCADE(LOG_THREAD_CRITICAL);
+  LOG_CASCADE(LOG_TRACKER_CRITICAL);
+  LOG_CASCADE(LOG_TORRENT_CRITICAL);
 
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_CONNECTION_CRITICAL);
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_DHT_CRITICAL);
@@ -216,6 +219,10 @@ log_initialize() {
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_STORAGE_CRITICAL);
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_THREAD_CRITICAL);
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
+
+  // Some groups are too verbose, and as such the parent is matched
+  // against the log output level one above.
+  LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TRACKER_CRITICAL);
 
   std::sort(log_children.begin(), log_children.end());
   log_rebuild_cache();
