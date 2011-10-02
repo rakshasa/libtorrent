@@ -1,12 +1,14 @@
 #include "config.h"
 
-#import "allocators_test.h"
+#include <stdint.h>
+
+#include "allocators_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(AllocatorsTest);
 
 template <typename T>
 bool is_aligned(const T& t) {
-  return t.empty() || (reinterpret_cast<int>(&t[0]) & (LT_SMP_CACHE_BYTES - 1)) == 0x0;
+  return t.empty() || (reinterpret_cast<intptr_t>(&t[0]) & (LT_SMP_CACHE_BYTES - 1)) == 0x0;
 }
 
 void

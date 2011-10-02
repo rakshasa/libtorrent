@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <stdio.h>
+
 #include "download/download_main.h"
 #include "net/throttle_list.h"
 #include "torrent/dht_manager.h"

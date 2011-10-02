@@ -42,7 +42,7 @@ utils_log_test::tearDown() {
 void
 utils_log_test::test_basic() {
   CPPUNIT_ASSERT(!torrent::log_groups.empty());
-  CPPUNIT_ASSERT(torrent::log_groups.size() == torrent::LOG_MAX_SIZE);
+  CPPUNIT_ASSERT(torrent::log_groups.size() == torrent::LOG_GROUP_MAX_SIZE);
 
   CPPUNIT_ASSERT(std::find_if(torrent::log_groups.begin(), torrent::log_groups.end(),
                               std::bind(&torrent::log_group::valid, std::placeholders::_1)) == torrent::log_groups.end());
