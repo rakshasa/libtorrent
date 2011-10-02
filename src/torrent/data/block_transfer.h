@@ -39,6 +39,7 @@
 
 #include <torrent/common.h>
 #include <torrent/data/piece.h>
+#include <cstdlib>
 
 namespace torrent {
 

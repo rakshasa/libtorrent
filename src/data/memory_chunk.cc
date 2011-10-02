@@ -69,7 +69,7 @@ MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags)
   if (page_align() >= m_pagesize)
     throw internal_error("MemoryChunk::MemoryChunk(...) received an page alignment >= page size");
 
-  if ((ptrdiff_t)ptr % m_pagesize)
+  if ((std::ptrdiff_t)ptr % m_pagesize)
     throw internal_error("MemoryChunk::MemoryChunk(...) is not aligned to a page");
 }
 

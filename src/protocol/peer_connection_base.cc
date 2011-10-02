@@ -616,7 +616,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   }
 
   if (!transfer->block()->is_transfering())
-    throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) block is not transfering, yet we have non-leaders.");
+    throw internal_error("PeerConnectionBase::down_chunk_skip_process(...) block is not transferring, yet we have non-leaders.");
 
   // Temporary test.
   if (transfer->position() > transfer->block()->leader()->position())
