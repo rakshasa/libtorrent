@@ -58,13 +58,16 @@ struct group_stats {
   unsigned int sum_min_needed;
   unsigned int sum_max_needed;
   unsigned int sum_max_leftovers;
+  unsigned int changed_choked;
+  unsigned int changed_unchoked;
+  unsigned int now_choked;
   unsigned int now_unchoked;
 };
 
 class LIBTORRENT_EXPORT choke_queue {
 public:
   typedef std::tr1::function<void (int)>                         slot_unchoke;
-  typedef std::tr1::function<unsigned int ()>                    slot_can_unchoke;
+  typedef std::tr1::function<int ()>                             slot_can_unchoke;
   typedef std::tr1::function<bool (PeerConnectionBase*, bool)>   slot_connection;
 
   typedef std::vector<weighted_connection>                       container_type;

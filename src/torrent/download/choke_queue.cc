@@ -46,6 +46,7 @@
 #include "torrent/download/group_entry.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/choke_status.h"
+#include "torrent/utils/log.h"
 #include "torrent/utils/log_files.h"
 
 #include "choke_queue.h"
@@ -92,7 +93,7 @@ choke_queue::prepare_weights(group_stats gs) {
   //
   // also remember to clear the queue/unchoked thingies.
 
-  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.begin(); itr != last; itr++) {
+  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.end(); itr != last; itr++) {
     m_heuristics_list[m_heuristics].slot_choke_weight((*itr)->mutable_unchoked()->begin(), (*itr)->mutable_unchoked()->end());
     std::sort((*itr)->mutable_unchoked()->begin(), (*itr)->mutable_unchoked()->end(), choke_manager_less());
 
@@ -117,30 +118,40 @@ choke_queue::prepare_weights(group_stats gs) {
 
 group_stats
 choke_queue::retrieve_connections(group_stats gs, container_type* queued, container_type* unchoked) {
-  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.begin(); itr != last; itr++) {
+  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.end(); itr != last; itr++) {
     group_entry* entry = *itr;
     unsigned int min_slots = std::min(entry->min_slots(), entry->max_slots());
 
-    // Currently unchoked is less than min_slots, so don't give any
-    // candidates for choking and also check if we can fill the
-    // requirement by unchoking queued connections.
-    if (entry->unchoked()->size() <= min_slots) {
+    lt_log_print(LOG_PEER_DEBUG, "Choke queue retrieve_connections; queued:%u unchoked:%u min_slots:%u max_slots:%u.",
+                 (unsigned)entry->queued()->size(), (unsigned)entry->unchoked()->size(), min_slots, entry->max_slots());
+
+    // Disable this after finding the flaw... ?
+    // if (entry->unchoked()->size() > entry->max_slots()) {
+    //   unsigned int count = 0;
+
+    //   // Still needing choke/unchoke to fill min_size.
+    //   while (entry->unchoked()->size() > entry->max_slots() && !entry->unchoked()->empty())
+    //     count += m_slotConnection(entry->unchoked()->back().connection, true);
+
+    //   //      m_slotUnchoke(-count); // Move this?
+    //   gs.now_choked += entry->unchoked()->size(); // Need to add this...
+    // }
+
+    if (entry->unchoked()->size() < min_slots) {
+      // Currently unchoked is less than min_slots, so don't give any
+      // candidates for choking and also check if we can fill the
+      // requirement by unchoking queued connections.
       unsigned int count = 0;
 
       // Still needing choke/unchoke to fill min_size.
       while (!entry->queued()->empty() && entry->unchoked()->size() < min_slots)
         count += m_slotConnection(entry->queued()->back().connection, false);
 
-      m_slotUnchoke(count); // Move this?
+      gs.changed_unchoked += count;
       gs.now_unchoked += entry->unchoked()->size();
 
     } else {
-      // TODO: This does not currently actively go out to choke
-      // connections when max_slots is exceeded. Just choke those at the
-      // end to fit.
-      //
       // TODO: This only handles a single weight group, fixme.
-
       group_entry::container_type::const_iterator first = entry->unchoked()->begin() + min_slots;
       group_entry::container_type::const_iterator last  = entry->unchoked()->end();
 
@@ -148,11 +159,14 @@ choke_queue::retrieve_connections(group_stats gs, container_type* queued, contai
       gs.now_unchoked += min_slots;
     }
 
-    // We can assume that at either we have no queued connections or
-    // 'min_slots' has been reached.
-    queued->insert(queued->end(),
-                   entry->queued()->begin(),
-                   entry->queued()->begin() + std::min<uint32_t>(entry->queued()->size(), entry->max_slots()));
+    // TODO: Does not do optimistic unchokes if min_slots >= max_slots.
+    if (entry->unchoked()->size() < entry->max_slots()) {
+      // We can assume that at either we have no queued connections or
+      // 'min_slots' has been reached.
+      queued->insert(queued->end(),
+                     entry->queued()->end() - std::min<uint32_t>(entry->queued()->size(), entry->max_slots() - entry->unchoked()->size()),
+                     entry->queued()->end());
+    }
   }    
 
   return gs;
@@ -163,7 +177,7 @@ choke_queue::rebuild_containers(container_type* queued, container_type* unchoked
   queued->clear();
   unchoked->clear();
 
-  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.begin(); itr != last; itr++) {
+  for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.end(); itr != last; itr++) {
     queued->insert(queued->end(), (*itr)->queued()->begin(), (*itr)->queued()->end());
     unchoked->insert(unchoked->end(), (*itr)->unchoked()->begin(), (*itr)->unchoked()->end());
   }
@@ -189,28 +203,38 @@ choke_queue::balance() {
   gs = prepare_weights(gs);
   gs = retrieve_connections(gs, &queued, &unchoked);
 
-  int adjust = (int)std::min(m_maxUnchoked, (uint32_t)(1 << 20)) - (int)(unchoked.size() + gs.now_unchoked);
+  if (gs.changed_unchoked != 0)
+    m_slotUnchoke(gs.changed_unchoked);
+
+  // If we have more unchoked than max global slots allow for,
+  // 'can_unchoke' will be negative.
+  int can_unchoke = m_slotCanUnchoke();
+  int max_unchoked = std::min(m_maxUnchoked, (uint32_t)(1 << 20));
+
+  int adjust = max_unchoked - (int)(unchoked.size() + gs.now_unchoked);
+  adjust = std::min(adjust, can_unchoke);
 
   if (log_files[LOG_CHOKE_CHANGES].is_open())
     log_choke_changes_func_new(this, "balance", m_maxUnchoked, adjust);
 
+  int result = 0;
+
   if (adjust > 0) {
-    adjust = adjust_choke_range(queued.begin(), queued.end(),
+    result = adjust_choke_range(queued.begin(), queued.end(),
                                 &queued, &unchoked,
-                                std::min((uint32_t)adjust, m_slotCanUnchoke()), false);
-
-    m_slotUnchoke(adjust);
-
+                                adjust, false);
   } else if (adjust < 0)  {
     // We can do the choking before the slot is called as this
     // choke_queue won't be unchoking the same peers due to the
     // call-back.
-    adjust = adjust_choke_range(unchoked.begin(), unchoked.end(), &unchoked, &queued, -adjust, true);
-
-    m_slotUnchoke(-adjust);
+    result = -adjust_choke_range(unchoked.begin(), unchoked.end(), &unchoked, &queued, -adjust, true);
   }
 
-  rebuild_containers(&queued, &unchoked);
+  if (result != 0)
+    m_slotUnchoke(result);
+
+  lt_log_print(LOG_PEER_DEBUG, "Called balance; adjust:%i can_unchoke:%i queued:%u unchoked:%u result:%i.",
+               adjust, can_unchoke, (unsigned)queued.size(), (unsigned)unchoked.size(), result);
 }
 
 void
@@ -243,7 +267,7 @@ choke_queue::cycle(uint32_t quota) {
 
   rebuild_containers(&queued, &unchoked);
 
-  uint32_t oldSize = unchoked.size();
+  int oldSize = unchoked.size();
   uint32_t alternate = max_alternate();
 
   queued.clear();
@@ -258,11 +282,14 @@ choke_queue::cycle(uint32_t quota) {
   quota = std::min(quota, m_maxUnchoked);
   quota = quota - std::min(quota, gs.now_unchoked);
 
-  uint32_t adjust = std::max<uint32_t>(unchoked.size() < quota ? quota - unchoked.size() : 0,
-                                       alternate); //std::min(quota, max_alternate()));
+  uint32_t adjust = (unchoked.size() < quota) ? (quota - unchoked.size()) : 0; 
+  adjust = std::max(adjust, alternate);
 
   if (log_files[LOG_CHOKE_CHANGES].is_open())
     log_choke_changes_func_new(this, "cycle", quota, adjust);
+
+  lt_log_print(LOG_PEER_DEBUG, "Called cycle; quota:%u adjust:%i alternate:%i queued:%u unchoked:%u.",
+               quota, adjust, alternate, (unsigned)queued.size(), (unsigned)unchoked.size());
 
   uint32_t unchoked_count = adjust_choke_range(queued.begin(), queued.end(), &queued, &unchoked, adjust, false);
 
@@ -272,9 +299,12 @@ choke_queue::cycle(uint32_t quota) {
   if (unchoked.size() > quota)
     throw internal_error("choke_queue::cycle() unchoked.size() > quota.");
 
-  rebuild_containers(&queued, &unchoked);
+  rebuild_containers(&queued, &unchoked); // Remove...
 
-  return unchoked.size() - oldSize;
+  lt_log_print(LOG_PEER_DEBUG, "After cycle; queued:%u unchoked:%u unchoked_count:%i old_size:%i.",
+               (unsigned)queued.size(), (unsigned)unchoked.size(), unchoked_count, oldSize);
+
+  return ((int)unchoked.size() - (int)oldSize); // + gs.changed_unchoke
 }
 
 void
@@ -290,7 +320,7 @@ choke_queue::set_queued(PeerConnectionBase* pc, choke_status* base) {
   base->entry()->connection_queued(pc);
   modify_currently_queued(1);
 
-  if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke()) &&
+  if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke() > 0) &&
       should_connection_unchoke(this, pc) &&
       rak::timer(base->time_last_choke()) + rak::timer::from_seconds(10) < cachedTime) {
     m_slotConnection(pc, false);
@@ -354,7 +384,7 @@ choke_queue::set_not_snubbed(PeerConnectionBase* pc, choke_status* base) {
   base->entry()->connection_queued(pc);
   modify_currently_queued(1);
 
-  if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke()) &&
+  if (!is_full() && (m_flags & flag_unchoke_all_new || m_slotCanUnchoke() > 0) &&
       should_connection_unchoke(this, pc) &&
       rak::timer(base->time_last_choke()) + rak::timer::from_seconds(10) < cachedTime) {
     m_slotConnection(pc, false);

@@ -207,6 +207,7 @@ log_initialize() {
   LOG_CASCADE(LOG_CRITICAL);
   LOG_CASCADE(LOG_CONNECTION_CRITICAL);
   LOG_CASCADE(LOG_DHT_CRITICAL);
+  LOG_CASCADE(LOG_PEER_CRITICAL);
   LOG_CASCADE(LOG_RPC_CRITICAL);
   LOG_CASCADE(LOG_STORAGE_CRITICAL);
   LOG_CASCADE(LOG_THREAD_CRITICAL);
@@ -222,6 +223,7 @@ log_initialize() {
 
   // Some groups are too verbose, and as such the parent is matched
   // against the log output level one above.
+  LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_PEER_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TRACKER_CRITICAL);
 
   std::sort(log_children.begin(), log_children.end());

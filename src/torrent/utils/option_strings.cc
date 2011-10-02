@@ -141,6 +141,13 @@ option_pair option_list_log_group[] = {
   { "dht_info",            LOG_DHT_INFO },
   { "dht_debug",           LOG_DHT_DEBUG },
   
+  { "peer_critical",       LOG_PEER_CRITICAL },
+  { "peer_error",          LOG_PEER_ERROR },
+  { "peer_warn",           LOG_PEER_WARN },
+  { "peer_notice",         LOG_PEER_NOTICE },
+  { "peer_info",           LOG_PEER_INFO },
+  { "peer_debug",          LOG_PEER_DEBUG },
+  
   { "rpc_critical",        LOG_RPC_CRITICAL },
   { "rpc_error",           LOG_RPC_ERROR },
   { "rpc_warn",            LOG_RPC_WARN },

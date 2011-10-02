@@ -44,6 +44,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/download/choke_group.h"
+#include "torrent/utils/log.h"
 #include "download/download_main.h"
 #include "protocol/peer_connection_base.h"
 
@@ -204,6 +205,8 @@ ResourceManager::set_max_download_unchoked(unsigned int m) {
 // possibly multiple calls of this function.
 void
 ResourceManager::receive_upload_unchoke(int num) {
+  lt_log_print(LOG_PEER_DEBUG, "Upload unchoked slots adjust; currently:%u adjust:%i", m_currentlyUploadUnchoked, num);
+
   if ((int)m_currentlyUploadUnchoked + num < 0)
     throw internal_error("ResourceManager::receive_upload_unchoke(...) received an invalid value.");
 
@@ -212,34 +215,28 @@ ResourceManager::receive_upload_unchoke(int num) {
 
 void
 ResourceManager::receive_download_unchoke(int num) {
+  lt_log_print(LOG_PEER_DEBUG, "Download unchoked slots adjust; currently:%u adjust:%i", m_currentlyDownloadUnchoked, num);
+
   if ((int)m_currentlyDownloadUnchoked + num < 0)
     throw internal_error("ResourceManager::receive_download_unchoke(...) received an invalid value.");
 
   m_currentlyDownloadUnchoked += num;
 }
 
-unsigned int
+int
 ResourceManager::retrieve_upload_can_unchoke() {
   if (m_maxUploadUnchoked == 0)
-    return std::numeric_limits<unsigned int>::max();
+    return std::numeric_limits<int>::max();
 
-  else if (m_currentlyUploadUnchoked < m_maxUploadUnchoked)
-    return m_maxUploadUnchoked - m_currentlyUploadUnchoked;
-
-  else
-    return 0;
+  return (int)m_maxUploadUnchoked - (int)m_currentlyUploadUnchoked;
 }
 
-unsigned int
+int
 ResourceManager::retrieve_download_can_unchoke() {
   if (m_maxDownloadUnchoked == 0)
-    return std::numeric_limits<unsigned int>::max();
+    return std::numeric_limits<int>::max();
 
-  else if (m_currentlyDownloadUnchoked < m_maxDownloadUnchoked)
-    return m_maxDownloadUnchoked - m_currentlyDownloadUnchoked;
-
-  else
-    return 0;
+  return (int)m_maxDownloadUnchoked - (int)m_currentlyDownloadUnchoked;
 }
 
 void
@@ -248,6 +245,12 @@ ResourceManager::receive_tick() {
 
   m_currentlyUploadUnchoked   += balance_unchoked(choke_base_type::size(), m_maxUploadUnchoked, true);
   m_currentlyDownloadUnchoked += balance_unchoked(choke_base_type::size(), m_maxDownloadUnchoked, false);
+
+  if (m_currentlyUploadUnchoked != choke_base_type::back()->up_queue()->size_unchoked())
+    throw torrent::internal_error("m_currentlyUploadUnchoked != choke_base_type::back()->up_queue()->size_unchoked()");
+
+  if (m_currentlyDownloadUnchoked != choke_base_type::back()->down_queue()->size_unchoked())
+    throw torrent::internal_error("m_currentlyDownloadUnchoked != choke_base_type::back()->down_queue()->size_unchoked()");
 }
 
 unsigned int
@@ -263,10 +266,13 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
   if (max_unchoked == 0)
     max_unchoked = std::numeric_limits<unsigned int>::max();
 
-  if (is_up)
+  if (is_up) {
     change += choke_base_type::back()->up_queue()->cycle(max_unchoked);
-  else
+    lt_log_print(LOG_PEER_DEBUG, "Upload unchoked slots cycle; currently:%u adjusted:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
+  } else {
     change += choke_base_type::back()->down_queue()->cycle(max_unchoked);
+    lt_log_print(LOG_PEER_DEBUG, "Download unchoked slots cycle; currently:%u adjusted:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
+  }
 
   return change;
 }

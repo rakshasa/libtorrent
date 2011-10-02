@@ -79,6 +79,15 @@ AC_ARG_ENABLE(openssl,
   ]
 )
 
+AC_ARG_ENABLE(cyrus-rc4,
+  [  --enable-cyrus-rc4=PFX  Use Cyrus RC4 implementation.],
+  [
+    CXXFLAGS="$CXXFLAGS -I${enableval}/include";
+    LIBS="$LIBS -lrc4 -L${enableval}/lib"
+    AC_DEFINE(USE_CYRUS_RC4, 1, Using Cyrus RC4 implementation.)
+  ]
+)
+
 PKG_CHECK_MODULES(STUFF, sigc++-2.0,
 	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
 		  LIBS="$LIBS $STUFF_LIBS")
