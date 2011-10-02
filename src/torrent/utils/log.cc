@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "log.h"
+#include "rak/algorithm.h"
 #include "rak/timer.h"
 #include "torrent/exceptions.h"
 
@@ -78,27 +79,6 @@ log_group_list  log_groups;
 
 // Removing logs always triggers a check if we got any un-used
 // log_output objects.
-
-// TODO: Copy to bitfield...
-template<typename T>
-inline int popcount_wrapper(T t) {
-#if 1  //def __builtin_popcount
-  if (std::numeric_limits<T>::digits <= std::numeric_limits<unsigned int>::digits)
-    return __builtin_popcount(t);
-  else
-    return __builtin_popcountll(t);
-#else
-#warning __builtin_popcount not found.
-  unsigned int count = 0;
-  
-  while (t) {
-    count += t & 0x1;
-    t >> 1;
-  }
-
-  return count;
-#endif
-}
 
 void
 log_update_child_cache(int index) {
@@ -154,7 +134,7 @@ log_rebuild_cache() {
     if (cache_itr == log_cache.end()) {
       cache_itr = log_cache.insert(log_cache.end(), log_cache_entry());
       cache_itr->outputs = use_outputs;
-      cache_itr->allocate(popcount_wrapper(use_outputs));
+      cache_itr->allocate(rak::popcount_wrapper(use_outputs));
 
       log_slot* dest_itr = cache_itr->cache_first;
 

@@ -38,31 +38,12 @@
 
 #include <algorithm>
 
+#include "rak/algorithm.h"
+
 #include "bitfield.h"
 #include "exceptions.h"
 
 namespace torrent {
-
-// Number of set bits in a byte.
-static const unsigned char bit_count_256[] = 
-{
-  0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 
-  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
-  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
-  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
-  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
-  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
-  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
-  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
-  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
-  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
-  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
-  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
-  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
-  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
-  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
-  4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
-};
 
 void
 Bitfield::set_size_bits(size_type s) {
@@ -87,10 +68,17 @@ Bitfield::update() {
 
   m_set = 0;
 
-  // Some archs have bitcounting instructions, look into writing a
-  // wrapper for those.
-  for (iterator itr = m_data, last = end(); itr != last; ++itr)
-    m_set += bit_count_256[*itr];
+  iterator itr = m_data;
+  iterator last = end();
+
+  while (itr + sizeof(unsigned int) <= last) {
+    m_set += rak::popcount_wrapper(*reinterpret_cast<unsigned int*>(itr));
+    itr += sizeof(unsigned int);
+  }
+
+  while (itr != last) {
+    m_set += rak::popcount_wrapper(*itr++);
+  }
 }
 
 void
