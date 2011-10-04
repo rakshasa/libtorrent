@@ -138,5 +138,5 @@ utils_log_test::test_file_output() {
   char buffer[256];
   temp_file.getline(buffer, 256);
 
-  CPPUNIT_ASSERT(std::string(buffer) == "test_file");
+  CPPUNIT_ASSERT_MESSAGE(buffer, std::string(buffer).find("test_file") != std::string::npos);
 }

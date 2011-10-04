@@ -1,3 +1,4 @@
+
 TESTS = LibTorrentTest
 check_PROGRAMS = $(TESTS)
 LibTorrentTest_LDADD = \
@@ -20,6 +21,8 @@ LibTorrentTest_SOURCES = \
 	torrent/object_stream_test.h \
 	torrent/utils/log_test.cc \
 	torrent/utils/log_test.h \
+	torrent/utils/option_strings_test.cc \
+	torrent/utils/option_strings_test.h \
 	main.cc
 
 LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)

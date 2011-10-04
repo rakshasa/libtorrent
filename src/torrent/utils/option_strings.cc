@@ -52,9 +52,14 @@
 
 namespace torrent {
 
+struct option_single {
+  unsigned int size;
+  const char** name;
+};
+
 struct option_pair {
-  const char* name;
-  int         value;
+  const char*  name;
+  unsigned int value;
 };
 
 option_pair option_list_connection[] = {
@@ -119,74 +124,74 @@ option_pair option_list_tracker_mode[] = {
   { NULL, 0 }
 };
 
-option_pair option_list_log_group[] = {
-  { "critical",            LOG_CRITICAL },
-  { "error",               LOG_ERROR },
-  { "warn",                LOG_WARN },
-  { "notice",              LOG_NOTICE },
-  { "info",                LOG_INFO },
-  { "debug",               LOG_DEBUG },
+const char* option_list_log_group[] = {
+  "critical",
+  "error",
+  "warn",
+  "notice",
+  "info",
+  "debug",
   
-  { "connection_critical", LOG_CONNECTION_CRITICAL },
-  { "connection_error",    LOG_CONNECTION_ERROR },
-  { "connection_warn",     LOG_CONNECTION_WARN },
-  { "connection_notice",   LOG_CONNECTION_NOTICE },
-  { "connection_info",     LOG_CONNECTION_INFO },
-  { "connection_debug",    LOG_CONNECTION_DEBUG },
+  "connection_critical",
+  "connection_error",
+  "connection_warn",
+  "connection_notice",
+  "connection_info",
+  "connection_debug",
   
-  { "dht_critical",        LOG_DHT_CRITICAL },
-  { "dht_error",           LOG_DHT_ERROR },
-  { "dht_warn",            LOG_DHT_WARN },
-  { "dht_notice",          LOG_DHT_NOTICE },
-  { "dht_info",            LOG_DHT_INFO },
-  { "dht_debug",           LOG_DHT_DEBUG },
+  "dht_critical",
+  "dht_error",
+  "dht_warn",
+  "dht_notice",
+  "dht_info",
+  "dht_debug",
   
-  { "peer_critical",       LOG_PEER_CRITICAL },
-  { "peer_error",          LOG_PEER_ERROR },
-  { "peer_warn",           LOG_PEER_WARN },
-  { "peer_notice",         LOG_PEER_NOTICE },
-  { "peer_info",           LOG_PEER_INFO },
-  { "peer_debug",          LOG_PEER_DEBUG },
+  "peer_critical",
+  "peer_error",
+  "peer_warn",
+  "peer_notice",
+  "peer_info",
+  "peer_debug",
   
-  { "rpc_critical",        LOG_RPC_CRITICAL },
-  { "rpc_error",           LOG_RPC_ERROR },
-  { "rpc_warn",            LOG_RPC_WARN },
-  { "rpc_notice",          LOG_RPC_NOTICE },
-  { "rpc_info",            LOG_RPC_INFO },
-  { "rpc_debug",           LOG_RPC_DEBUG },
+  "rpc_critical",
+  "rpc_error",
+  "rpc_warn",
+  "rpc_notice",
+  "rpc_info",
+  "rpc_debug",
   
-  { "storage_critical",    LOG_STORAGE_CRITICAL },
-  { "storage_error",       LOG_STORAGE_ERROR },
-  { "storage_warn",        LOG_STORAGE_WARN },
-  { "storage_notice",      LOG_STORAGE_NOTICE },
-  { "storage_info",        LOG_STORAGE_INFO },
-  { "storage_debug",       LOG_STORAGE_DEBUG },
+  "storage_critical",
+  "storage_error",
+  "storage_warn",
+  "storage_notice",
+  "storage_info",
+  "storage_debug",
 
-  { "thread_critical",     LOG_THREAD_CRITICAL },
-  { "thread_error",        LOG_THREAD_ERROR },
-  { "thread_warn",         LOG_THREAD_WARN },
-  { "thread_notice",       LOG_THREAD_NOTICE },
-  { "thread_info",         LOG_THREAD_INFO },
-  { "thread_debug",        LOG_THREAD_DEBUG },
+  "thread_critical",
+  "thread_error",
+  "thread_warn",
+  "thread_notice",
+  "thread_info",
+  "thread_debug",
   
-  { "tracker_critical",    LOG_TRACKER_CRITICAL },
-  { "tracker_error",       LOG_TRACKER_ERROR },
-  { "tracker_warn",        LOG_TRACKER_WARN },
-  { "tracker_notice",      LOG_TRACKER_NOTICE },
-  { "tracker_info",        LOG_TRACKER_INFO },
-  { "tracker_debug",       LOG_TRACKER_DEBUG },
+  "tracker_critical",
+  "tracker_error",
+  "tracker_warn",
+  "tracker_notice",
+  "tracker_info",
+  "tracker_debug",
   
-  { "torrent_critical",    LOG_TORRENT_CRITICAL },
-  { "torrent_error",       LOG_TORRENT_ERROR },
-  { "torrent_warn",        LOG_TORRENT_WARN },
-  { "torrent_notice",      LOG_TORRENT_NOTICE },
-  { "torrent_info",        LOG_TORRENT_INFO },
-  { "torrent_debug",       LOG_TORRENT_DEBUG },
-  
-  { NULL, 0 }
+  "torrent_critical",
+  "torrent_error",
+  "torrent_warn",
+  "torrent_notice",
+  "torrent_info",
+  "torrent_debug",
+
+  NULL
 };
 
-option_pair* option_lists[OPTION_MAX_SIZE] = {
+option_pair* option_pair_lists[OPTION_START_COMPACT] = {
   option_list_connection,
   option_list_heuristics,
   option_list_heuristics_download,
@@ -194,30 +199,49 @@ option_pair* option_lists[OPTION_MAX_SIZE] = {
   option_list_encryption,
   option_list_ip_filter,
   option_list_ip_tos,
-  option_list_log_group,
   option_list_tracker_mode,
+};
+
+option_single option_single_lists[OPTION_SINGLE_SIZE] = {
+  { sizeof(option_list_log_group) / sizeof(const char*) - 1, option_list_log_group },
 };
 
 int
 option_find_string(option_enum opt_enum, const char* name) {
-  option_pair* itr = option_lists[opt_enum];
+  if (opt_enum < OPTION_START_COMPACT) {
+    option_pair* itr = option_pair_lists[opt_enum];
   
-  do {
-    if (std::strcmp(itr->name, name) == 0)
-      return itr->value;
-  } while ((++itr)->name != NULL);
+    do {
+      if (std::strcmp(itr->name, name) == 0)
+        return itr->value;
+    } while ((++itr)->name != NULL);
+
+  } else if (opt_enum < OPTION_MAX_SIZE) {
+    const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
+  
+    do {
+      if (std::strcmp(*itr, name) == 0)
+        return std::distance(option_single_lists[opt_enum - OPTION_START_COMPACT].name, itr);
+    } while (*++itr != NULL);
+  }
 
   throw input_error("Invalid option name.");  
 }
 
 const char*
-option_as_string(option_enum opt_enum, int value) {
-  option_pair* itr = option_lists[opt_enum];
+option_as_string(option_enum opt_enum, unsigned int value) {
+  if (opt_enum < OPTION_START_COMPACT) {
+    option_pair* itr = option_pair_lists[opt_enum];
   
-  do {
-    if (itr->value == value)
-      return itr->name;
-  } while ((++itr)->name != NULL);
+    do {
+      if (itr->value == value)
+        return itr->name;
+    } while ((++itr)->name != NULL);
+
+  } else if (opt_enum < OPTION_MAX_SIZE) {
+    if (value < option_single_lists[opt_enum - OPTION_START_COMPACT].size)
+      return option_single_lists[opt_enum - OPTION_START_COMPACT].name[value];
+  }
 
   throw input_error("Invalid option value.");  
 }
@@ -226,10 +250,17 @@ torrent::Object
 option_list_strings(option_enum opt_enum) {
   Object::list_type result;
 
-  option_pair* itr = option_lists[opt_enum];
+  if (opt_enum < OPTION_START_COMPACT) {
+    option_pair* itr = option_pair_lists[opt_enum];
 
-  while (itr->name != NULL)
-    result.push_back(std::string(itr++->name));
+    while (itr->name != NULL)
+      result.push_back(std::string(itr++->name));
+
+  } else if (opt_enum < OPTION_MAX_SIZE) {
+    const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
+  
+    while (*itr != NULL) result.push_back(std::string(*itr++));
+  }
 
   return Object::from_list(result);
 }
