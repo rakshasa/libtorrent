@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <inttypes.h>
 #include <rak/functional.h>
 #include <sigc++/adaptors/bind.h>
 #include <sigc++/adaptors/hide.h>
@@ -134,6 +135,9 @@ Download::start(int flags) {
   if (!(flags & start_keep_baseline)) {
     m_ptr->info()->set_uploaded_baseline(m_ptr->info()->up_rate()->total());
     m_ptr->info()->set_completed_baseline(m_ptr->main()->file_list()->completed_bytes());
+
+    lt_log_print(LOG_TRACKER_INFO, "Setting new baseline on start: uploaded:%" PRIu64 " completed:%" PRIu64 ".",
+                 m_ptr->info()->uploaded_baseline(), m_ptr->info()->completed_baseline());
   }
 
   if (flags & start_skip_tracker)
