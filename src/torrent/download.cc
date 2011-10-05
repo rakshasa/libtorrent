@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <inttypes.h>
 #include <rak/functional.h>
 #include <sigc++/adaptors/bind.h>
@@ -59,6 +61,7 @@
 #include "torrent/download_info.h"
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/utils/log.h"
 
 #include "exceptions.h"
 #include "download.h"
