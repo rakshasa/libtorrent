@@ -79,6 +79,8 @@ public:
   using base_type::end;
   using base_type::rbegin;
   using base_type::rend;
+  using base_type::front;
+  using base_type::back;
 
   using base_type::at;
   using base_type::operator[];
