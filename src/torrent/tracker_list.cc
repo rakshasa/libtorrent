@@ -50,8 +50,7 @@
 
 namespace torrent {
 
-TrackerList::TrackerList(TrackerManager* manager) :
-  m_manager(manager),
+TrackerList::TrackerList() :
   m_info(NULL),
   m_state(DownloadInfo::STOPPED),
 
@@ -98,7 +97,7 @@ TrackerList::send_state(int s) {
   m_itr = find_usable(m_itr);
 
   if (m_itr == end()) {
-    m_manager->receive_failed("Tried all trackers.");
+    m_slot_failed("Tried all trackers.");
     return;
   }
 
@@ -129,26 +128,6 @@ TrackerList::insert(unsigned int group, Tracker* t) {
 
   m_itr = begin();
   return itr;
-}
-
-uint32_t
-TrackerList::time_next_connection() const {
-  return std::max(m_manager->get_next_timeout() - cachedTime, rak::timer()).seconds();
-}
-
-void
-TrackerList::send_completed() {
-  m_manager->send_completed();
-}
-
-void
-TrackerList::manual_request(bool force) {
-  m_manager->manual_request(force);
-}
-
-void
-TrackerList::manual_cancel() {
-  m_manager->close();
 }
 
 TrackerList::iterator
@@ -256,7 +235,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
     log_tracker_append(this, (*m_itr)->group(), *m_itr, l->size(), "receive", "success");
 
   set_time_last_connection(cachedTime.seconds());
-  m_manager->receive_success(l);
+  m_slot_success(l);
 }
 
 void
@@ -270,7 +249,7 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
     log_tracker_append(this, (*m_itr)->group(), *m_itr, 0, "receive", "failed");
 
   m_itr++;
-  m_manager->receive_failed(msg);
+  m_slot_failed(msg);
 }
 
 }
