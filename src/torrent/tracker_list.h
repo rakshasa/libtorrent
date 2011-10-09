@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 #include <torrent/common.h>
+#include <tr1/functional>
 
 namespace torrent {
 
@@ -62,6 +63,9 @@ public:
 
   typedef std::vector<Tracker*> base_type;
 
+  typedef std::tr1::function<void (const std::string&)> slot_string;
+  typedef std::tr1::function<void (AddressList*)>       slot_address_list;
+
   using base_type::value_type;
 
   using base_type::iterator;
@@ -75,11 +79,13 @@ public:
   using base_type::end;
   using base_type::rbegin;
   using base_type::rend;
+  using base_type::front;
+  using base_type::back;
 
   using base_type::at;
   using base_type::operator[];
 
-  TrackerList(TrackerManager* manager);
+  TrackerList();
 
   bool                has_active() const;
   bool                has_usable() const;
@@ -111,15 +117,7 @@ public:
   iterator            promote(iterator itr);
   void                randomize_group_entries();
 
-  uint32_t            time_next_connection() const;
   uint32_t            time_last_connection() const            { return m_timeLastConnection; }
-
-  // Some temporary functions that are routed to
-  // TrackerManager... Clean this up.
-  void                send_completed();
-
-  void                manual_request(bool force);
-  void                manual_cancel();
 
   // Functions for controlling the current focus. They only support
   // one active tracker atm.
@@ -135,6 +133,9 @@ public:
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
 
+  void                set_slot_success(slot_address_list slot) { m_slot_success = slot; }
+  void                set_slot_failed(slot_string slot)        { m_slot_failed = slot; }
+
 protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
   void                set_state(int s)                        { m_state = s; }
@@ -146,7 +147,6 @@ private:
   TrackerList(const TrackerList&) LIBTORRENT_NO_EXPORT;
   void operator = (const TrackerList&) LIBTORRENT_NO_EXPORT;
 
-  TrackerManager*     m_manager;
   DownloadInfo*       m_info;
   int                 m_state;
 
@@ -156,6 +156,9 @@ private:
   uint32_t            m_timeLastConnection;
 
   iterator            m_itr;
+
+  slot_address_list   m_slot_success;
+  slot_string         m_slot_failed;
 };
 
 }

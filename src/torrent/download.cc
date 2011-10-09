@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <inttypes.h>
 #include <rak/functional.h>
 #include <sigc++/adaptors/bind.h>
@@ -59,6 +61,7 @@
 #include "torrent/download_info.h"
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/utils/log.h"
 
 #include "exceptions.h"
 #include "download.h"
@@ -439,6 +442,26 @@ Download::set_download_throttle(Throttle* t) {
   m_ptr->main()->set_download_throttle(t->throttle_list());
 }
   
+uint32_t
+Download::time_next_connection() const {
+  return std::max(m_ptr->main()->tracker_manager()->get_next_timeout() - cachedTime, rak::timer()).seconds();
+}
+
+void
+Download::send_completed() {
+  m_ptr->main()->tracker_manager()->send_completed();
+}
+
+void
+Download::manual_request(bool force) {
+  m_ptr->main()->tracker_manager()->manual_request(force);
+}
+
+void
+Download::manual_cancel() {
+  m_ptr->main()->tracker_manager()->close();
+}
+
 // DEPRECATE
 void
 Download::set_uploads_max(uint32_t v) {
