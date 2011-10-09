@@ -46,10 +46,12 @@
 #include "tracker_manager.h"
 #include "tracker_udp.h"
 
+namespace std { using namespace tr1; }
+
 namespace torrent {
 
 TrackerManager::TrackerManager() :
-  m_control(new TrackerList(this)),
+  m_control(new TrackerList()),
 
   m_active(false),
   m_isRequesting(false),
@@ -58,6 +60,9 @@ TrackerManager::TrackerManager() :
   m_maxRequests(4),
   m_failedRequests(0),
   m_initialTracker(0) {
+
+  m_control->set_slot_success(std::bind(&TrackerManager::receive_success, this, std::placeholders::_1));
+  m_control->set_slot_failed(std::bind(&TrackerManager::receive_failed, this, std::placeholders::_1));
 
   m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerManager::receive_timeout));
 }

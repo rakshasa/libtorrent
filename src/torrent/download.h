@@ -166,6 +166,15 @@ public:
   void                set_upload_throttle(Throttle* t);
   void                set_download_throttle(Throttle* t);
 
+  uint32_t            time_next_connection() const;
+
+  // Some temporary functions that are routed to
+  // TrackerManager... Clean this up.
+  void                send_completed();
+
+  void                manual_request(bool force);
+  void                manual_cancel();
+
   typedef enum {
     CONNECTION_LEECH,
     CONNECTION_SEED,
