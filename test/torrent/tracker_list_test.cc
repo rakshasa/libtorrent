@@ -10,14 +10,16 @@ class TrackerTest : public torrent::Tracker {
 public:
   // TODO: Clean up tracker related enums.
   TrackerTest(torrent::TrackerList* parent, const std::string& url) :
-    torrent::Tracker(parent, url), m_requesting_state(0) {}
+    torrent::Tracker(parent, url), m_requesting_state(-1) {}
 
   virtual bool        is_busy() const { return false; }
 
   virtual Type        type() const { return (Type)(TRACKER_DHT + 1); }
 
+  int                 requesting_state() const { return m_requesting_state; }
+
 private:
-  virtual void        send_state(int state) {  }
+  virtual void        send_state(int state) { m_requesting_state = state; }
   virtual void        close() {}
 
   int                 m_requesting_state;
@@ -37,7 +39,10 @@ tracker_list_test::test_basic() {
 void
 tracker_list_test::test_single_tracker() {
   torrent::TrackerList tracker_list;
+  TrackerTest* tracker_0 = new TrackerTest(&tracker_list, "");
 
-  tracker_list.insert(0, new TrackerTest(&tracker_list, ""));
+  tracker_list.insert(0, tracker_0);
   tracker_list.send_state(1);
+
+  CPPUNIT_ASSERT(tracker_0->requesting_state() == 1);
 }
