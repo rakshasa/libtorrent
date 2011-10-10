@@ -221,12 +221,12 @@ void
 TrackerList::receive_success(Tracker* tb, AddressList* l) {
   iterator itr = find(tb);
 
-  if (itr != m_itr || m_itr == end() || (*m_itr)->is_busy())
+  if (itr == end() || (*itr)->is_busy())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
   // Promote the tracker to the front of the group since it was
   // successfull.
-  m_itr = promote(m_itr);
+  m_itr = promote(itr);
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());

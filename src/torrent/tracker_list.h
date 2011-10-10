@@ -62,6 +62,7 @@ public:
   friend class TrackerManager;
 
   typedef std::vector<Tracker*> base_type;
+  typedef AddressList           address_list;
 
   typedef std::tr1::function<void (const std::string&)> slot_string;
   typedef std::tr1::function<void (AddressList*)>       slot_address_list;
