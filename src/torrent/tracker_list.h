@@ -97,6 +97,8 @@ public:
   iterator            insert(unsigned int group, Tracker* t);
 
   void                send_state(int s);
+  void                send_state_idx(unsigned idx, int event_state);
+  void                send_state_tracker(iterator itr, int event_state);
 
   DownloadInfo*       info()                                  { return m_info; }
   int                 state()                                 { return m_state; }

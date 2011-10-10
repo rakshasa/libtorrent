@@ -138,6 +138,59 @@ tracker_list_test::test_single_closing() {
   CPPUNIT_ASSERT(!tracker_0->is_open());
 }
 
+void
+tracker_list_test::test_multiple_success() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0_0);
+  TRACKER_INSERT(0, tracker_0_1);
+  TRACKER_INSERT(1, tracker_1_0);
+  TRACKER_INSERT(1, tracker_1_1);
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_1->is_busy());
+
+  tracker_list.send_state_idx(0, 1);
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_1->is_busy());
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_1->is_busy());
+
+  tracker_list.send_state_idx(1, 1);
+  tracker_list.send_state_idx(3, 1);
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(tracker_1_1->is_busy());
+
+  CPPUNIT_ASSERT(tracker_1_1->trigger_success());
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_1->is_busy());
+
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_1->is_busy());
+
+  CPPUNIT_ASSERT(success_counter == 3 && failure_counter == 0);
+}
+
+
 // test last_connect timer.
 
 

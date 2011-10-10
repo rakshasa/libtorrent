@@ -117,6 +117,38 @@ TrackerList::send_state(int s) {
   }
 }
 
+void
+TrackerList::send_state_idx(unsigned idx, int event_state) {
+  if (idx >= size())
+    throw internal_error("TrackerList::send_state_idx(...) got idx >= size().");
+    
+  send_state_tracker(begin() + idx, event_state);
+}
+
+void
+TrackerList::send_state_tracker(iterator itr, int event_state) {
+  if (itr == end())
+    throw internal_error("TrackerList::send_state_tracker(...) got itr == end().");
+
+  if (!(*itr)->is_usable())
+    return;
+
+  (*itr)->send_state(event_state);
+
+  if (log_files[LOG_TRACKER].is_open()) {
+    const char* event_name = NULL;
+
+    switch(event_state) {
+    case DownloadInfo::STARTED:   event_name = "started"; break;
+    case DownloadInfo::STOPPED:   event_name = "stopped"; break;
+    case DownloadInfo::COMPLETED: event_name = "completed"; break;
+    default:                      event_name = "updated"; break;
+    }
+
+    log_tracker_append(this, (*itr)->group(), *itr, 0, "send_state", event_name);
+  }
+}
+
 TrackerList::iterator
 TrackerList::insert(unsigned int group, Tracker* t) {
   t->set_group(group);
