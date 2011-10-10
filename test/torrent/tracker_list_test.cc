@@ -140,3 +140,34 @@ tracker_list_test::test_single_closing() {
 
 // test last_connect timer.
 
+
+// test has_active, and then clean up TrackerManager.
+
+void
+tracker_list_test::test_has_active() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0_0);
+  TRACKER_INSERT(0, tracker_0_1);
+  TRACKER_INSERT(1, tracker_1_0);
+
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+
+  tracker_list.send_state(1);
+  CPPUNIT_ASSERT(tracker_list.has_active());
+
+  tracker_0_0->trigger_success();
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+  
+  // Test second tracker in groun 0...
+
+  tracker_list.focus_next_group();
+  tracker_list.send_state(1);
+  CPPUNIT_ASSERT(tracker_list.has_active());
+  
+  tracker_1_0->trigger_success();
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+
+  // Test multiple active trackers.
+}
+
+// Add separate functions for sending state to multiple trackers...

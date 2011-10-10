@@ -9,6 +9,8 @@ class tracker_list_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_single_success);
   CPPUNIT_TEST(test_single_failure);
   CPPUNIT_TEST(test_single_closing);
+
+  CPPUNIT_TEST(test_has_active);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -20,6 +22,8 @@ public:
   void test_single_success();
   void test_single_failure();
   void test_single_closing();
+
+  void test_has_active();
 };
 
 class TrackerTest : public torrent::Tracker {

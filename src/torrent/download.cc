@@ -235,6 +235,11 @@ Download::file_list() const {
   return m_ptr->main()->file_list();
 }
 
+TrackerController*
+Download::tracker_controller() const {
+  return m_ptr->main()->tracker_manager()->tracker_controller();
+}
+
 TrackerList*
 Download::tracker_list() const {
   return m_ptr->main()->tracker_manager()->container();

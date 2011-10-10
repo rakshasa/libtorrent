@@ -52,6 +52,7 @@ class ConnectionList;
 class DownloadInfo;
 class DownloadMain;
 class download_data;
+class TrackerController;
 
 // Download is safe to copy and destory as it is just a pointer to an
 // internal class.
@@ -103,6 +104,7 @@ public:
   Object*             bencode();
   const Object*       bencode() const;
 
+  TrackerController*  tracker_controller() const;
   TrackerList*        tracker_list() const;
 
   FileList*           file_list() const;
