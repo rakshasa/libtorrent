@@ -19,6 +19,8 @@ LibTorrentTest_SOURCES = \
 	torrent/object_static_map_test.h \
 	torrent/object_stream_test.cc \
 	torrent/object_stream_test.h \
+	torrent/tracker_controller_test.cc \
+	torrent/tracker_controller_test.h \
 	torrent/tracker_list_test.cc \
 	torrent/tracker_list_test.h \
 	torrent/utils/log_test.cc \

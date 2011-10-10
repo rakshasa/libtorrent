@@ -54,6 +54,8 @@ libsub_torrent_la_SOURCES = \
 	torrent.h \
 	tracker.cc \
 	tracker.h \
+	tracker_controller.cc \
+	tracker_controller.h \
 	tracker_list.cc \
 	tracker_list.h
 
@@ -87,4 +89,5 @@ libtorrentinclude_HEADERS = \
 	throttle.h \
 	torrent.h \
 	tracker.h \
+	tracker_controller.h \
 	tracker_list.h

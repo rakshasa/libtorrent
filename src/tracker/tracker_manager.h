@@ -43,13 +43,15 @@
 #include <rak/socket_address.h>
 #include "globals.h"
 
+#include "torrent/tracker_controller.h"
+
 namespace torrent {
 
 class AddressList;
 class DownloadWrapper;
-class TrackerList;
 class DownloadInfo;
 class Tracker;
+class TrackerList;
 
 class TrackerManager {
 public:
@@ -62,8 +64,8 @@ public:
   TrackerManager();
   ~TrackerManager();
 
-  bool                is_active() const                         { return m_active; }
-  void                set_active(bool a)                        { m_active = a; }
+  bool                is_active() const  { return m_tracker_controller->is_active(); }
+  void                set_active(bool a) { a ? m_tracker_controller->enable() : m_tracker_controller->disable(); }
 
   bool                is_busy() const;
 
@@ -98,7 +100,8 @@ public:
   const DownloadInfo* info() const;
   void                set_info(DownloadInfo* info);
 
-  TrackerList*        container()                               { return m_control; }
+  TrackerController*  tracker_controller()                      { return m_tracker_controller; }
+  TrackerList*        container()                               { return m_tracker_list; }
 
   uint32_t            num_requests() const                      { return m_numRequests; }
 
@@ -116,10 +119,8 @@ private:
 
   void                receive_timeout();
 
-  TrackerList*        m_control;
-
-  bool                m_active;
-  bool                m_isRequesting;
+  TrackerController*  m_tracker_controller;
+  TrackerList*        m_tracker_list;
 
   uint32_t            m_numRequests;
   uint32_t            m_maxRequests;
