@@ -234,6 +234,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   if (log_files[LOG_TRACKER].is_open())
     log_tracker_append(this, (*itr)->group(), *m_itr, l->size(), "receive", "success");
 
+  (*itr)->set_success_counter((*itr)->success_counter() + 1);
   (*itr)->set_failed_counter(0);
 
   set_time_last_connection(cachedTime.seconds());

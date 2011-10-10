@@ -82,8 +82,9 @@ public:
   uint32_t            min_interval() const                  { return m_minInterval; }
 
   uint32_t            success_time_last() const             { return m_success_time_last; }
-  uint32_t            failed_time_last() const              { return m_failed_time_last; }
+  uint32_t            success_counter() const               { return m_success_counter; }
 
+  uint32_t            failed_time_last() const              { return m_failed_time_last; }
   uint32_t            failed_counter() const                { return m_failed_counter; }
 
   uint32_t            scrape_time_last() const              { return m_scrapeTimeLast; }
@@ -106,6 +107,7 @@ protected:
   void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normalInterval = v; }
   void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_minInterval = v; }
 
+  void                set_success_counter(uint32_t value)   { m_success_counter = value; }
   void                set_failed_counter(uint32_t value)    { m_failed_counter = value; }
 
   bool                m_enabled;
@@ -121,8 +123,8 @@ protected:
   uint32_t            m_minInterval;
 
   uint32_t            m_success_time_last;
+  uint32_t            m_success_counter;
   uint32_t            m_failed_time_last;
-
   uint32_t            m_failed_counter;
 
   uint32_t            m_scrapeTimeLast;

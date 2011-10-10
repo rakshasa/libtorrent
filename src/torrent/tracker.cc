@@ -50,8 +50,9 @@ Tracker::Tracker(TrackerList* parent, const std::string& url) :
   m_minInterval(0),
 
   m_success_time_last(0),
-  m_failed_time_last(0),
+  m_success_counter(0),
 
+  m_failed_time_last(0),
   m_failed_counter(0),
 
   m_scrapeTimeLast(0),
