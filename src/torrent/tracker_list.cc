@@ -63,7 +63,7 @@ TrackerList::TrackerList() :
 
 bool
 TrackerList::has_active() const {
-  return m_itr != end() && (*m_itr)->is_busy();
+  return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_busy)) != end();
 }
 
 // Need a custom predicate because the is_usable function is virtual.
