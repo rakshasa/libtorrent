@@ -296,6 +296,9 @@ TrackerManager::receive_success(AddressList* l) {
 
 void
 TrackerManager::receive_failed(const std::string& msg) {
+  if (m_tracker_list->focus() != m_tracker_list->end())
+    m_tracker_list->set_focus(m_tracker_list->focus() + 1);
+
   if (m_tracker_list->state() == DownloadInfo::STOPPED || !is_active())
     return m_slotFailed(msg);
 

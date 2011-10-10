@@ -104,8 +104,13 @@ tracker_list_test::test_single_failure() {
   CPPUNIT_ASSERT(tracker_0->requesting_state() == 0);
 
   CPPUNIT_ASSERT(success_counter == 0 && failure_counter == 1);
+  CPPUNIT_ASSERT(tracker_0->failed_counter() == 1);
 
-  // Add failure counter for all trackers...
+  tracker_list.send_state(1);
+  CPPUNIT_ASSERT(tracker_0->trigger_success());
+
+  CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 1);
+  CPPUNIT_ASSERT(tracker_0->failed_counter() == 0);
 }
 
 void

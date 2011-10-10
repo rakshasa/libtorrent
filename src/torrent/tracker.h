@@ -84,6 +84,8 @@ public:
   uint32_t            success_time_last() const             { return m_success_time_last; }
   uint32_t            failed_time_last() const              { return m_failed_time_last; }
 
+  uint32_t            failed_counter() const                { return m_failed_counter; }
+
   uint32_t            scrape_time_last() const              { return m_scrapeTimeLast; }
   uint32_t            scrape_complete() const               { return m_scrapeComplete; }
   uint32_t            scrape_incomplete() const             { return m_scrapeIncomplete; }
@@ -104,6 +106,8 @@ protected:
   void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normalInterval = v; }
   void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_minInterval = v; }
 
+  void                set_failed_counter(uint32_t value)    { m_failed_counter = value; }
+
   bool                m_enabled;
 
   TrackerList*        m_parent;
@@ -118,6 +122,8 @@ protected:
 
   uint32_t            m_success_time_last;
   uint32_t            m_failed_time_last;
+
+  uint32_t            m_failed_counter;
 
   uint32_t            m_scrapeTimeLast;
   uint32_t            m_scrapeComplete;

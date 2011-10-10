@@ -232,7 +232,9 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
   if (log_files[LOG_TRACKER].is_open())
-    log_tracker_append(this, (*m_itr)->group(), *m_itr, l->size(), "receive", "success");
+    log_tracker_append(this, (*itr)->group(), *m_itr, l->size(), "receive", "success");
+
+  (*itr)->set_failed_counter(0);
 
   set_time_last_connection(cachedTime.seconds());
   m_slot_success(l);
@@ -242,13 +244,13 @@ void
 TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
   iterator itr = find(tb);
 
-  if (itr != m_itr || m_itr == end() || (*m_itr)->is_busy())
+  if (itr == end() || (*itr)->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
   if (log_files[LOG_TRACKER].is_open())
     log_tracker_append(this, (*m_itr)->group(), *m_itr, 0, "receive", "failed");
 
-  m_itr++;
+  (*itr)->set_failed_counter((*itr)->failed_counter() + 1);
   m_slot_failed(msg);
 }
 

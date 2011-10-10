@@ -52,6 +52,8 @@ Tracker::Tracker(TrackerList* parent, const std::string& url) :
   m_success_time_last(0),
   m_failed_time_last(0),
 
+  m_failed_counter(0),
+
   m_scrapeTimeLast(0),
   m_scrapeComplete(0),
   m_scrapeIncomplete(0),
