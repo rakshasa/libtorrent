@@ -97,7 +97,7 @@ TrackerList::send_state(int s) {
   m_itr = find_usable(m_itr);
 
   if (m_itr == end()) {
-    m_slot_failed("Tried all trackers.");
+    m_slot_failed(NULL, "Tried all trackers.");
     return;
   }
 
@@ -270,7 +270,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   (*itr)->set_failed_counter(0);
 
   set_time_last_connection(cachedTime.seconds());
-  m_slot_success(l);
+  m_slot_success(tb, l);
 }
 
 void
@@ -284,7 +284,7 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
     log_tracker_append(this, (*m_itr)->group(), *m_itr, 0, "receive", "failed");
 
   (*itr)->set_failed_counter((*itr)->failed_counter() + 1);
-  m_slot_failed(msg);
+  m_slot_failed(tb, msg);
 }
 
 }

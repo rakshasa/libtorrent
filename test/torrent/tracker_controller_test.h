@@ -7,6 +7,8 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
   CPPUNIT_TEST(test_requesting);
+
+  CPPUNIT_TEST(test_single_success);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -16,4 +18,6 @@ public:
   void test_basic();
   void test_enable();
   void test_requesting();
+
+  void test_single_success();
 };

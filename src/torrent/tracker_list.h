@@ -64,8 +64,8 @@ public:
   typedef std::vector<Tracker*> base_type;
   typedef AddressList           address_list;
 
-  typedef std::tr1::function<void (const std::string&)> slot_string;
-  typedef std::tr1::function<void (AddressList*)>       slot_address_list;
+  typedef std::tr1::function<void (Tracker*, const std::string&)> slot_string;
+  typedef std::tr1::function<void (Tracker*, AddressList*)>       slot_address_list;
 
   using base_type::value_type;
 
@@ -136,8 +136,8 @@ public:
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
 
-  void                set_slot_success(slot_address_list slot) { m_slot_success = slot; }
-  void                set_slot_failed(slot_string slot)        { m_slot_failed = slot; }
+  slot_address_list&  slot_success()                          { return m_slot_success; }
+  slot_string&        slot_failure()                          { return m_slot_failed; }
 
 protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }

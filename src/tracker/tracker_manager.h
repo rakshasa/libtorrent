@@ -64,11 +64,6 @@ public:
   TrackerManager();
   ~TrackerManager();
 
-  bool                is_active() const  { return m_tracker_controller->is_active(); }
-  void                set_active(bool a) { a ? m_tracker_controller->enable() : m_tracker_controller->disable(); }
-
-  bool                is_busy() const;
-
   void                close();
 
   void                send_start();
@@ -107,9 +102,6 @@ public:
 
   rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }
 
-  void                slot_success(SlotSuccess s)               { m_slotSuccess = s; }
-  void                slot_failed(SlotFailed s)                 { m_slotFailed = s; }
-
   void                receive_success(AddressList* l);
   void                receive_failed(const std::string& msg);
 
@@ -128,9 +120,6 @@ private:
 
   uint32_t            m_initialTracker;
   
-  SlotSuccess         m_slotSuccess;
-  SlotFailed          m_slotFailed;
-
   rak::priority_item  m_taskTimeout;
 };
 

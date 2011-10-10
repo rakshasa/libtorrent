@@ -37,18 +37,26 @@
 #ifndef LIBTORRENT_TRACKER_CONTROLLER_H
 #define LIBTORRENT_TRACKER_CONTROLLER_H
 
+#include <string>
+#include <tr1/functional>
 #include <torrent/common.h>
 
 namespace torrent {
 
+class AddressList;
 class TrackerList;
 
 class LIBTORRENT_EXPORT TrackerController {
 public:
+  typedef AddressList address_list;
+
+  typedef std::tr1::function<void (const std::string&)> slot_string;
+  typedef std::tr1::function<void (AddressList*)>       slot_address_list;
+
   static const int flag_active = 0x1;
   static const int flag_requesting = 0x2;
 
-  TrackerController(TrackerList* trackers) : m_flags(0), m_tracker_list(trackers) {}
+  TrackerController(TrackerList* trackers);
 
   int                 flags() const         { return m_flags; }
 
@@ -58,15 +66,25 @@ public:
   TrackerList*        tracker_list()        { return m_tracker_list; }
   TrackerList*        tracker_list() const  { return m_tracker_list; }
 
+  //protected:
   void                enable();
   void                disable();
 
   void                start_requesting();
   void                stop_requesting();
 
+  void                receive_success(Tracker* tb, address_list* l);
+  void                receive_failure(Tracker* tb, const std::string& msg);
+
+  slot_address_list&  slot_success()        { return m_slot_success; }
+  slot_string&        slot_failure()        { return m_slot_failure; }
+
 private:
   int                 m_flags;
   TrackerList*        m_tracker_list;
+
+  slot_address_list   m_slot_success;
+  slot_string         m_slot_failure;
 };
 
 }

@@ -62,4 +62,3 @@ private:
   bool                m_close_on_done;
   int                 m_requesting_state;
 };
-

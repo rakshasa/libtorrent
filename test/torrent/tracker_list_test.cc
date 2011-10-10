@@ -12,8 +12,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
   torrent::TrackerList tracker_list;                                    \
   int success_counter = 0;                                              \
   int failure_counter = 0;                                              \
-  tracker_list.set_slot_success(std::bind(&increment_value, &success_counter)); \
-  tracker_list.set_slot_failed(std::bind(&increment_value, &failure_counter));
+  tracker_list.slot_success() = std::bind(&increment_value, &success_counter); \
+  tracker_list.slot_failure() = std::bind(&increment_value, &failure_counter);
 
 #define TRACKER_INSERT(group, name)                             \
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \

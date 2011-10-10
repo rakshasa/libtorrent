@@ -59,25 +59,22 @@ TrackerManager::TrackerManager() :
   m_initialTracker(0) {
 
   m_tracker_controller = new TrackerController(m_tracker_list);
+  m_tracker_controller->slot_success() = std::bind(&TrackerManager::receive_success, this, std::placeholders::_1);
+  m_tracker_controller->slot_failure() = std::bind(&TrackerManager::receive_failed, this, std::placeholders::_1);
 
-  m_tracker_list->set_slot_success(std::bind(&TrackerManager::receive_success, this, std::placeholders::_1));
-  m_tracker_list->set_slot_failed(std::bind(&TrackerManager::receive_failed, this, std::placeholders::_1));
+  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
 
   m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerManager::receive_timeout));
 }
 
 TrackerManager::~TrackerManager() {
-  if (is_active())
+  if (m_tracker_controller->is_active())
     throw internal_error("TrackerManager::~TrackerManager() called but is_active() != false.");
 
   m_tracker_list->clear();
   delete m_tracker_list;
   delete m_tracker_controller;
-}
-
-bool
-TrackerManager::is_busy() const {
-  return m_tracker_list->has_active();
 }
 
 void
@@ -257,7 +254,7 @@ TrackerManager::receive_timeout() {
   if (m_tracker_list->has_active())
     throw internal_error("TrackerManager::receive_timeout() called but m_tracker_list->has_active() == true.");
 
-  if (!is_active())
+  if (!m_tracker_controller->is_active())
     return;
 
   m_tracker_list->send_state((DownloadInfo::State)m_tracker_list->state());
@@ -267,8 +264,8 @@ void
 TrackerManager::receive_success(AddressList* l) {
   m_failedRequests = 0;
 
-  if (m_tracker_list->state() == DownloadInfo::STOPPED || !is_active())
-    return m_slotSuccess(l);
+  if (m_tracker_list->state() == DownloadInfo::STOPPED || !m_tracker_controller->is_active())
+    return m_tracker_controller->slot_success()(l);
 
   if (m_tracker_list->state() == DownloadInfo::STARTED)
     m_initialTracker = std::distance(m_tracker_list->begin(), m_tracker_list->focus());
@@ -291,7 +288,7 @@ TrackerManager::receive_success(AddressList* l) {
   m_tracker_list->set_state(DownloadInfo::NONE);
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_tracker_list->focus_normal_interval())).round_seconds());
 
-  m_slotSuccess(l);
+  m_tracker_controller->slot_success()(l);
 }
 
 void
@@ -299,8 +296,8 @@ TrackerManager::receive_failed(const std::string& msg) {
   if (m_tracker_list->focus() != m_tracker_list->end())
     m_tracker_list->set_focus(m_tracker_list->focus() + 1);
 
-  if (m_tracker_list->state() == DownloadInfo::STOPPED || !is_active())
-    return m_slotFailed(msg);
+  if (m_tracker_list->state() == DownloadInfo::STOPPED || !m_tracker_controller->is_active())
+    return m_tracker_controller->slot_failure()(msg);
 
   if (m_tracker_controller->is_requesting()) {
     // Currently trying to request additional peers.
@@ -329,7 +326,7 @@ TrackerManager::receive_failed(const std::string& msg) {
     priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(retry_seconds)).round_seconds());
   }
 
-  m_slotFailed(msg);
+  m_tracker_controller->slot_failure()(msg);
 }
 
 }

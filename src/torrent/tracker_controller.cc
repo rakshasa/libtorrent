@@ -40,6 +40,11 @@
 
 namespace torrent {
 
+TrackerController::TrackerController(TrackerList* trackers) :
+  m_flags(0),
+  m_tracker_list(trackers) {
+}
+
 void
 TrackerController::enable() {
   m_flags |= flag_active;
@@ -58,6 +63,16 @@ TrackerController::start_requesting() {
 void
 TrackerController::stop_requesting() {
   m_flags &= ~flag_requesting;
+}
+
+void
+TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
+  m_slot_success(l);
+}
+
+void
+TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
+  m_slot_failure(msg);
 }
 
 }
