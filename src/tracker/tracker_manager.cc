@@ -55,7 +55,6 @@ TrackerManager::TrackerManager() :
 
   m_numRequests(0),
   m_maxRequests(4),
-  m_failedRequests(0),
   m_initialTracker(0) {
 
   m_tracker_controller = new TrackerController(m_tracker_list);
@@ -75,14 +74,6 @@ TrackerManager::~TrackerManager() {
   m_tracker_list->clear();
   delete m_tracker_list;
   delete m_tracker_controller;
-}
-
-void
-TrackerManager::close() {
-  m_failedRequests = 0;
-
-  m_tracker_controller->close();
-  priority_queue_erase(&taskScheduler, m_tracker_controller->task_timeout());
 }
 
 void
@@ -213,8 +204,6 @@ TrackerManager::receive_timeout() {
 
 void
 TrackerManager::receive_success(AddressList* l) {
-  m_failedRequests = 0;
-
   if (m_tracker_list->state() == DownloadInfo::STOPPED || !m_tracker_controller->is_active())
     return m_tracker_controller->slot_success()(l);
 
@@ -268,10 +257,10 @@ TrackerManager::receive_failed(const std::string& msg) {
 
     if (m_tracker_list->focus() == m_tracker_list->end()) {
       // Tried all the trackers, start from the beginning.
-      m_failedRequests++;
+      m_tracker_controller->set_failed_requests(m_tracker_controller->failed_requests() + 1);
       m_tracker_list->set_focus(m_tracker_list->begin());
 
-      retry_seconds = std::min<unsigned int>(300, 3 + 20 * m_failedRequests);
+      retry_seconds = std::min<unsigned int>(300, 3 + 20 * m_tracker_controller->failed_requests());
     }
 
     priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), (cachedTime + rak::timer::from_seconds(retry_seconds)).round_seconds());

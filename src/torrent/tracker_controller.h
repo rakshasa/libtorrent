@@ -70,6 +70,8 @@ public:
   TrackerList*        tracker_list()        { return m_tracker_list; }
   TrackerList*        tracker_list() const  { return m_tracker_list; }
 
+  uint32_t            failed_requests() const { return m_failed_requests; }
+
   //protected:
   void                close();
 
@@ -87,10 +89,13 @@ public:
 
   // TEMP:
   rak::priority_item* task_timeout()        { return m_task_timeout; }
+  void                set_failed_requests(uint32_t value) { m_failed_requests = value; }
 
 private:
   int                 m_flags;
   TrackerList*        m_tracker_list;
+
+  uint32_t            m_failed_requests;
 
   slot_address_list   m_slot_success;
   slot_string         m_slot_failure;

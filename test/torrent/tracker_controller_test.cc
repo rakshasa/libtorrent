@@ -14,6 +14,7 @@ tracker_controller_test::test_basic() {
   torrent::TrackerController tracker_controller(NULL);
 
   CPPUNIT_ASSERT(tracker_controller.flags() == 0);
+  CPPUNIT_ASSERT(tracker_controller.failed_requests() == 0);
   CPPUNIT_ASSERT(!tracker_controller.is_active());
   CPPUNIT_ASSERT(!tracker_controller.is_requesting());
 }
@@ -76,9 +77,11 @@ tracker_controller_test::test_single_success() {
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
+  CPPUNIT_ASSERT(tracker_controller.failed_requests() == 0);
   
   tracker_list.send_state_idx(0, 2);
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
 
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 1);
+  //  CPPUNIT_ASSERT(tracker_controller.failed_requests() == 1);
 }

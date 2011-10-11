@@ -46,6 +46,7 @@ namespace torrent {
 TrackerController::TrackerController(TrackerList* trackers) :
   m_flags(0),
   m_tracker_list(trackers),
+  m_failed_requests(0),
   m_task_timeout(new rak::priority_item()) {
 }
 
@@ -55,9 +56,12 @@ TrackerController::~TrackerController() {
 
 void
 TrackerController::close() {
+  m_failed_requests = 0;
+
   stop_requesting();
 
   m_tracker_list->close_all();
+  priority_queue_erase(&taskScheduler, m_task_timeout);
 }
 
 void
@@ -82,6 +86,8 @@ TrackerController::stop_requesting() {
 
 void
 TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
+  m_failed_requests = 0;
+
   m_slot_success(l);
 }
 
