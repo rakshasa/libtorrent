@@ -80,27 +80,14 @@ public:
 
   void                manual_request(bool force);
 
-  void                cycle_group(int group);
-  void                randomize();
-
-  size_type           size() const;
-  size_type           group_size() const;
-
-  value_type          get(size_type idx) const;
-  size_type           focus_index() const;
-
   void                insert(int group, const std::string& url);
-
-  DownloadInfo*       info();
-  const DownloadInfo* info() const;
-  void                set_info(DownloadInfo* info);
 
   TrackerController*  tracker_controller()                      { return m_tracker_controller; }
   TrackerList*        container()                               { return m_tracker_list; }
 
   uint32_t            num_requests() const                      { return m_numRequests; }
 
-  rak::timer          get_next_timeout() const                  { return m_taskTimeout.time(); }
+  rak::timer          get_next_timeout() const                  { return m_tracker_controller->task_timeout()->time(); }
 
   void                receive_success(AddressList* l);
   void                receive_failed(const std::string& msg);
@@ -119,8 +106,6 @@ private:
   uint32_t            m_failedRequests;
 
   uint32_t            m_initialTracker;
-  
-  rak::priority_item  m_taskTimeout;
 };
 
 }

@@ -37,12 +37,27 @@
 #include "config.h"
 
 #include "tracker_controller.h"
+#include "tracker_list.h"
+
+#include "globals.h"
 
 namespace torrent {
 
 TrackerController::TrackerController(TrackerList* trackers) :
   m_flags(0),
-  m_tracker_list(trackers) {
+  m_tracker_list(trackers),
+  m_task_timeout(new rak::priority_item()) {
+}
+
+TrackerController::~TrackerController() {
+  delete m_task_timeout;
+}
+
+void
+TrackerController::close() {
+  stop_requesting();
+
+  m_tracker_list->close_all();
 }
 
 void

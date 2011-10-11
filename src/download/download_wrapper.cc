@@ -74,7 +74,7 @@ DownloadWrapper::DownloadWrapper() :
 
   m_main->delay_download_done().set_slot(rak::mem_fn(data(), &download_data::call_download_done));
 
-  m_main->tracker_manager()->set_info(info());
+  m_main->tracker_manager()->container()->set_info(info());
   m_main->tracker_manager()->tracker_controller()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
   m_main->tracker_manager()->tracker_controller()->slot_failure() = std::bind(&DownloadWrapper::receive_tracker_failed, this, std::placeholders::_1);
 

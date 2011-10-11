@@ -47,6 +47,7 @@ namespace torrent {
 
 class AddressList;
 class DownloadInfo;
+class DownloadWrapper;
 class Tracker;
 class TrackerManager;
 
@@ -59,6 +60,7 @@ class TrackerManager;
 
 class LIBTORRENT_EXPORT TrackerList : private std::vector<Tracker*> {
 public:
+  friend class DownloadWrapper;
   friend class TrackerManager;
 
   typedef std::vector<Tracker*> base_type;
@@ -115,6 +117,8 @@ public:
 
   iterator            begin_group(unsigned int group);
   iterator            end_group(unsigned int group)           { return begin_group(group + 1); }
+
+  size_type           size_group() const;
   void                cycle_group(unsigned int group);
 
   iterator            promote(iterator itr);

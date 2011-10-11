@@ -41,6 +41,9 @@
 #include <tr1/functional>
 #include <torrent/common.h>
 
+// Refactor:
+namespace rak { class priority_item; }
+
 namespace torrent {
 
 class AddressList;
@@ -57,6 +60,7 @@ public:
   static const int flag_requesting = 0x2;
 
   TrackerController(TrackerList* trackers);
+  ~TrackerController();
 
   int                 flags() const         { return m_flags; }
 
@@ -67,6 +71,8 @@ public:
   TrackerList*        tracker_list() const  { return m_tracker_list; }
 
   //protected:
+  void                close();
+
   void                enable();
   void                disable();
 
@@ -79,12 +85,17 @@ public:
   slot_address_list&  slot_success()        { return m_slot_success; }
   slot_string&        slot_failure()        { return m_slot_failure; }
 
+  // TEMP:
+  rak::priority_item* task_timeout()        { return m_task_timeout; }
+
 private:
   int                 m_flags;
   TrackerList*        m_tracker_list;
 
   slot_address_list   m_slot_success;
   slot_string         m_slot_failure;
+
+  rak::priority_item* m_task_timeout;
 };
 
 }

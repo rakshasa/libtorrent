@@ -183,6 +183,11 @@ TrackerList::begin_group(unsigned int group) {
   return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
 }
 
+TrackerList::size_type
+TrackerList::size_group() const {
+  return !empty() ? back()->group() + 1 : 0;
+}
+
 void
 TrackerList::cycle_group(unsigned int group) {
   Tracker* trackerPtr = m_itr != end() ? *m_itr : NULL;
