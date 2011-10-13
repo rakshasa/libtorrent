@@ -464,7 +464,7 @@ Download::manual_request(bool force) {
 
 void
 Download::manual_cancel() {
-  m_ptr->main()->tracker_manager()->close();
+  m_ptr->main()->tracker_manager()->tracker_controller()->close();
 }
 
 // DEPRECATE

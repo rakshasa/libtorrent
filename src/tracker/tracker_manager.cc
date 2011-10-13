@@ -78,7 +78,7 @@ TrackerManager::~TrackerManager() {
 
 void
 TrackerManager::send_start() {
-  close();
+  tracker_controller()->close();
 
   m_tracker_list->set_focus(m_tracker_list->begin());
   m_tracker_list->send_state(DownloadInfo::STARTED);
@@ -86,7 +86,7 @@ TrackerManager::send_start() {
 
 void
 TrackerManager::send_stop() {
-  close();
+  tracker_controller()->close();
 
   m_tracker_list->set_focus(m_tracker_list->begin() + m_initialTracker);
   m_tracker_list->send_state(DownloadInfo::STOPPED);
@@ -94,7 +94,7 @@ TrackerManager::send_stop() {
 
 void
 TrackerManager::send_completed() {
-  close();
+  tracker_controller()->close();
   m_tracker_list->send_state(DownloadInfo::COMPLETED);
 }
 
@@ -205,7 +205,7 @@ TrackerManager::receive_timeout() {
 void
 TrackerManager::receive_success(AddressList* l) {
   if (m_tracker_list->state() == DownloadInfo::STOPPED || !m_tracker_controller->is_active())
-    return m_tracker_controller->slot_success()(l);
+    return slot_success()(l);
 
   if (m_tracker_list->state() == DownloadInfo::STARTED)
     m_initialTracker = std::distance(m_tracker_list->begin(), m_tracker_list->focus());
@@ -226,9 +226,10 @@ TrackerManager::receive_success(AddressList* l) {
   m_tracker_controller->stop_requesting();
 
   m_tracker_list->set_state(DownloadInfo::NONE);
+  priority_queue_erase(&taskScheduler, m_tracker_controller->task_timeout());
   priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), (cachedTime + rak::timer::from_seconds(m_tracker_list->focus_normal_interval())).round_seconds());
 
-  m_tracker_controller->slot_success()(l);
+  slot_success()(l);
 }
 
 void
@@ -237,7 +238,9 @@ TrackerManager::receive_failed(const std::string& msg) {
     m_tracker_list->set_focus(m_tracker_list->focus() + 1);
 
   if (m_tracker_list->state() == DownloadInfo::STOPPED || !m_tracker_controller->is_active())
-    return m_tracker_controller->slot_failure()(msg);
+    return slot_failure()(msg);
+
+  priority_queue_erase(&taskScheduler, m_tracker_controller->task_timeout());
 
   if (m_tracker_controller->is_requesting()) {
     // Currently trying to request additional peers.
@@ -266,7 +269,7 @@ TrackerManager::receive_failed(const std::string& msg) {
     priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), (cachedTime + rak::timer::from_seconds(retry_seconds)).round_seconds());
   }
 
-  m_tracker_controller->slot_failure()(msg);
+  slot_failure()(msg);
 }
 
 }

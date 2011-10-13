@@ -58,13 +58,11 @@ public:
   typedef uint32_t                                size_type;
   typedef Tracker*                                value_type;
 
-  typedef rak::mem_fun1<DownloadWrapper, void, AddressList*>       SlotSuccess;
-  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotFailed;
+  typedef std::tr1::function<void (const std::string&)> slot_string;
+  typedef std::tr1::function<void (AddressList*)>       slot_address_list;
 
   TrackerManager();
   ~TrackerManager();
-
-  void                close();
 
   void                send_start();
   void                send_stop();
@@ -89,6 +87,9 @@ public:
 
   rak::timer          get_next_timeout() const                  { return m_tracker_controller->task_timeout()->time(); }
 
+  slot_address_list&  slot_success()        { return m_slot_success; }
+  slot_string&        slot_failure()        { return m_slot_failure; }
+
   void                receive_success(AddressList* l);
   void                receive_failed(const std::string& msg);
 
@@ -100,6 +101,9 @@ private:
 
   TrackerController*  m_tracker_controller;
   TrackerList*        m_tracker_list;
+
+  slot_address_list   m_slot_success;
+  slot_string         m_slot_failure;
 
   uint32_t            m_numRequests;
   uint32_t            m_maxRequests;

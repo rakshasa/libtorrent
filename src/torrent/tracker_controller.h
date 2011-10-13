@@ -92,6 +92,9 @@ public:
   void                set_failed_requests(uint32_t value) { m_failed_requests = value; }
 
 private:
+  TrackerController();
+  void operator = (const TrackerController&);
+
   int                 m_flags;
   TrackerList*        m_tracker_list;
 

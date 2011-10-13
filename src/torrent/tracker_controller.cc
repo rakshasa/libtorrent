@@ -54,6 +54,7 @@ TrackerController::~TrackerController() {
   delete m_task_timeout;
 }
 
+// Currently being used by send_state, fixme.
 void
 TrackerController::close() {
   m_failed_requests = 0;

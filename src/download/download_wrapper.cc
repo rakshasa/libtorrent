@@ -75,8 +75,8 @@ DownloadWrapper::DownloadWrapper() :
   m_main->delay_download_done().set_slot(rak::mem_fn(data(), &download_data::call_download_done));
 
   m_main->tracker_manager()->container()->set_info(info());
-  m_main->tracker_manager()->tracker_controller()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
-  m_main->tracker_manager()->tracker_controller()->slot_failure() = std::bind(&DownloadWrapper::receive_tracker_failed, this, std::placeholders::_1);
+  m_main->tracker_manager()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
+  m_main->tracker_manager()->slot_failure() = std::bind(&DownloadWrapper::receive_tracker_failed, this, std::placeholders::_1);
 
   m_main->chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 }
@@ -90,7 +90,7 @@ DownloadWrapper::~DownloadWrapper() {
 
   // If the client wants to do a quick cleanup after calling close, it
   // will need to manually cancel the tracker requests.
-  m_main->tracker_manager()->close();
+  m_main->tracker_manager()->tracker_controller()->close();
 
   delete m_hashChecker;
   delete m_bencode;
@@ -244,7 +244,7 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
   close();
 
   m_main->tracker_manager()->tracker_controller()->disable();
-  m_main->tracker_manager()->close();
+  m_main->tracker_manager()->tracker_controller()->close();
 
   info()->signal_storage_error().emit(str);
 }
