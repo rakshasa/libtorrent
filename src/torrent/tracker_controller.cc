@@ -175,6 +175,12 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
 
 void
 TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
+  if (tb == NULL) {
+    LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
+    m_slot_failure(msg);
+    return;
+  }
+
   LT_LOG_TRACKER(INFO, "Received failure to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
   m_slot_failure(msg);
