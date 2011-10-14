@@ -39,6 +39,11 @@
 #include "tracker_controller.h"
 #include "tracker_list.h"
 
+#include "tracker/tracker_dht.h"
+#include "tracker/tracker_http.h"
+#include "tracker/tracker_manager.h"
+#include "tracker/tracker_udp.h"
+
 #include "globals.h"
 
 namespace torrent {
@@ -52,6 +57,64 @@ TrackerController::TrackerController(TrackerList* trackers) :
 
 TrackerController::~TrackerController() {
   delete m_task_timeout;
+}
+
+int64_t
+TrackerController::next_timeout() const {
+  return m_task_timeout->time().usec();
+}
+
+uint32_t
+TrackerController::seconds_to_next_timeout() const {
+  return std::max(m_task_timeout->time() - cachedTime, rak::timer()).seconds();
+}
+
+// TODO: Move to tracker_list?
+void
+TrackerController::insert(int group, const std::string& url) {
+  if (m_tracker_list->has_active())
+    throw internal_error("Tried to add tracker while a tracker is active.");
+
+  Tracker* t;
+
+  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
+      std::strncmp("https://", url.c_str(), 8) == 0)
+    t = new TrackerHttp(m_tracker_list, url);
+
+  else if (std::strncmp("udp://", url.c_str(), 6) == 0)
+    t = new TrackerUdp(m_tracker_list, url);
+
+  else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed())
+    t = new TrackerDht(m_tracker_list, url);
+
+  else
+    // TODO: Error message here?... not really...
+    return;
+  
+  m_tracker_list->insert(group, t);
+}
+
+void
+TrackerController::send_start_event() {
+
+  // This will now be 'lazy', rather than a definite event. We tell
+  // the controller that a 'start' event should be sent, and it will
+  // send it when the tracker controller get's enabled.
+
+  // If the controller is already running, we insert this new event.
+  
+  // Return, or something, if already active and sending?
+
+  // m_flags &= ~(flag_send_stop | flag_send_completed);
+  // m_flags |= flag_send_start;
+  
+  // if (m_flags & flag_active) {
+    // Start with requesting from the first
+
+    // Print log. Add macro for prefix.
+  // } else {
+    // Print log.
+  // }
 }
 
 // Currently being used by send_state, fixme.
@@ -68,6 +131,8 @@ TrackerController::close() {
 void
 TrackerController::enable() {
   m_flags |= flag_active;
+
+  // Start sending...
 }
 
 void

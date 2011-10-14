@@ -58,6 +58,9 @@ public:
 
   static const int flag_active = 0x1;
   static const int flag_requesting = 0x2;
+  static const int flag_send_start = 0x4;
+  static const int flag_send_stop = 0x8;
+  static const int flag_send_completed = 0x10;
 
   TrackerController(TrackerList* trackers);
   ~TrackerController();
@@ -72,7 +75,14 @@ public:
 
   uint32_t            failed_requests() const { return m_failed_requests; }
 
+  int64_t             next_timeout() const;
+  uint32_t            seconds_to_next_timeout() const;
+
+  void                insert(int group, const std::string& url);
+
   //protected:
+  void                send_start_event();
+
   void                close();
 
   void                enable();

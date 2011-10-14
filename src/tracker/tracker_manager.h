@@ -64,6 +64,7 @@ public:
   TrackerManager();
   ~TrackerManager();
 
+  // 3...
   void                send_start();
   void                send_stop();
   void                send_completed();
@@ -78,14 +79,10 @@ public:
 
   void                manual_request(bool force);
 
-  void                insert(int group, const std::string& url);
-
   TrackerController*  tracker_controller()                      { return m_tracker_controller; }
   TrackerList*        container()                               { return m_tracker_list; }
 
   uint32_t            num_requests() const                      { return m_numRequests; }
-
-  rak::timer          get_next_timeout() const                  { return m_tracker_controller->task_timeout()->time(); }
 
   slot_address_list&  slot_success()        { return m_slot_success; }
   slot_string&        slot_failure()        { return m_slot_failure; }

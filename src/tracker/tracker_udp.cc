@@ -79,6 +79,7 @@ TrackerUdp::is_busy() const {
 void
 TrackerUdp::send_state(int state) {
   close();
+  m_latest_event = state;
 
   char hostname[1024];
       

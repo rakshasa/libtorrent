@@ -57,6 +57,13 @@ public:
     TRACKER_DHT,
   } Type;
 
+  enum tracker_event {
+    EVENT_NONE,
+    EVENT_COMPLETED,
+    EVENT_STARTED,
+    EVENT_STOPPED
+  };
+
   virtual ~Tracker() {}
 
   virtual bool        is_busy() const = 0;
@@ -80,6 +87,8 @@ public:
 
   uint32_t            normal_interval() const               { return m_normalInterval; }
   uint32_t            min_interval() const                  { return m_minInterval; }
+
+  int                 latest_event() const                  { return m_latest_event; }
 
   uint32_t            success_time_last() const             { return m_success_time_last; }
   uint32_t            success_counter() const               { return m_success_counter; }
@@ -121,6 +130,8 @@ protected:
 
   uint32_t            m_normalInterval;
   uint32_t            m_minInterval;
+
+  int                 m_latest_event;
 
   uint32_t            m_success_time_last;
   uint32_t            m_success_counter;

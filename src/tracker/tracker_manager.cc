@@ -168,30 +168,6 @@ TrackerManager::manual_request(bool force) {
 }
 
 void
-TrackerManager::insert(int group, const std::string& url) {
-  if (m_tracker_list->has_active())
-    throw internal_error("Tried to add tracker while a tracker is active.");
-
-  Tracker* t;
-
-  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
-      std::strncmp("https://", url.c_str(), 8) == 0)
-    t = new TrackerHttp(m_tracker_list, url);
-
-  else if (std::strncmp("udp://", url.c_str(), 6) == 0)
-    t = new TrackerUdp(m_tracker_list, url);
-
-  else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed())
-    t = new TrackerDht(m_tracker_list, url);
-
-  else
-    // TODO: Error message here?... not really...
-    return;
-  
-  m_tracker_list->insert(group, t);
-}
-
-void
 TrackerManager::receive_timeout() {
   if (m_tracker_list->has_active())
     throw internal_error("TrackerManager::receive_timeout() called but m_tracker_list->has_active() == true.");

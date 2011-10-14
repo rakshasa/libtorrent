@@ -91,6 +91,8 @@ TrackerHttp::send_state(int state) {
   if (m_parent == NULL)
     throw internal_error("TrackerHttp::send_state(...) does not have a valid m_parent.");
 
+  m_latest_event = state;
+
   std::stringstream s;
   s.imbue(std::locale::classic());
 

@@ -75,18 +75,21 @@ tracker_list_test::test_single_success() {
   CPPUNIT_ASSERT(!tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_open());
   CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
+  CPPUNIT_ASSERT(tracker_0->latest_event() == torrent::Tracker::EVENT_NONE);
 
-  tracker_list.send_state(1);
+  tracker_list.send_state(torrent::Tracker::EVENT_STARTED);
 
   CPPUNIT_ASSERT(tracker_0->is_busy());
   CPPUNIT_ASSERT(tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == 1);
+  CPPUNIT_ASSERT(tracker_0->requesting_state() == torrent::Tracker::EVENT_STARTED);
+  CPPUNIT_ASSERT(tracker_0->latest_event() == torrent::Tracker::EVENT_STARTED);
 
   CPPUNIT_ASSERT(tracker_0->trigger_success());
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_open());
   CPPUNIT_ASSERT(tracker_0->requesting_state() == 0);
+  CPPUNIT_ASSERT(tracker_0->latest_event() == torrent::Tracker::EVENT_STARTED);
   
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
   CPPUNIT_ASSERT(tracker_0->success_counter() == 1);

@@ -54,7 +54,7 @@ public:
   void                set_close_on_done(bool state) { m_close_on_done = state; }
 
 private:
-  virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = state; }
+  virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = state; m_latest_event = state; }
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = 0; }
 
   bool                m_busy;

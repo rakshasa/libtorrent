@@ -143,6 +143,7 @@ Download::start(int flags) {
                  m_ptr->info()->uploaded_baseline(), m_ptr->info()->completed_baseline());
   }
 
+  // TODO: Fixme when redoing tracker...
   if (flags & start_skip_tracker)
     // If tracker_manager isn't active and nothing is sent, it will
     // stay stuck.
@@ -447,11 +448,6 @@ Download::set_download_throttle(Throttle* t) {
   m_ptr->main()->set_download_throttle(t->throttle_list());
 }
   
-uint32_t
-Download::time_next_connection() const {
-  return std::max(m_ptr->main()->tracker_manager()->get_next_timeout() - cachedTime, rak::timer()).seconds();
-}
-
 void
 Download::send_completed() {
   m_ptr->main()->tracker_manager()->send_completed();

@@ -93,6 +93,8 @@ TrackerDht::send_state(int state) {
       throw internal_error("TrackerDht::send_state cancel_announce did not cancel announce.");
   }
 
+  m_latest_event = state;
+
   if (state == DownloadInfo::STOPPED)
     return;
 

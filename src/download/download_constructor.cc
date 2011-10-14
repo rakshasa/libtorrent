@@ -46,6 +46,7 @@
 #include "torrent/dht_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/object.h"
+#include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
@@ -207,7 +208,7 @@ DownloadConstructor::parse_tracker(const Object& b) {
     throw bencode_error("Could not find any trackers");
 
   if (manager->dht_manager()->is_valid() && !m_download->info()->is_private())
-    tracker->insert(tracker->container()->size_group(), "dht://");
+    tracker->tracker_controller()->insert(tracker->container()->size_group(), "dht://");
 
   if (manager->dht_manager()->is_valid() && b.has_key_list("nodes"))
     std::for_each(b.get_key_list("nodes").begin(), b.get_key_list("nodes").end(),
@@ -231,7 +232,7 @@ DownloadConstructor::add_tracker_single(const Object& b, int group) {
   if (!b.is_string())
     throw bencode_error("Tracker entry not a string");
     
-  m_download->main()->tracker_manager()->insert(group, rak::trim_classic(b.as_string()));
+  m_download->main()->tracker_manager()->tracker_controller()->insert(group, rak::trim_classic(b.as_string()));
 }
 
 void
