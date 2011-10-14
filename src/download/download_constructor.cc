@@ -99,8 +99,6 @@ DownloadConstructor::initialize(Object& b) {
 
   parse_name(b.get_key("info"));
   parse_info(b.get_key("info"));
-
-  parse_tracker(b);
 }
 
 // Currently using a hack of the path thingie to extract the correct

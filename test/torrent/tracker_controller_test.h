@@ -20,4 +20,6 @@ public:
   void test_requesting();
 
   void test_single_success();
+
+  void test_send_start();
 };

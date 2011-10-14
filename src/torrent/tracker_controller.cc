@@ -36,15 +36,22 @@
 
 #include "config.h"
 
+#include "download_info.h"
 #include "tracker_controller.h"
 #include "tracker_list.h"
 
+#include "utils/log.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_manager.h"
 #include "tracker/tracker_udp.h"
 
 #include "globals.h"
+
+#define LT_LOG_TRACKER(log_level, log_fmt, ...) {                       \
+    char log_buffer[41]; log_buffer[40] = '\0';                         \
+    lt_log_print(LOG_TRACKER_##log_level, "%s->tracker_controller: " log_fmt, \
+                 hash_string_to_hex_first(m_tracker_list->info()->hash(), log_buffer), __VA_ARGS__); }
 
 namespace torrent {
 
@@ -75,23 +82,26 @@ TrackerController::insert(int group, const std::string& url) {
   if (m_tracker_list->has_active())
     throw internal_error("Tried to add tracker while a tracker is active.");
 
-  Tracker* t;
+  Tracker* tracker;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
-      std::strncmp("https://", url.c_str(), 8) == 0)
-    t = new TrackerHttp(m_tracker_list, url);
+      std::strncmp("https://", url.c_str(), 8) == 0) {
+    tracker = new TrackerHttp(m_tracker_list, url);
 
-  else if (std::strncmp("udp://", url.c_str(), 6) == 0)
-    t = new TrackerUdp(m_tracker_list, url);
+  } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
+    tracker = new TrackerUdp(m_tracker_list, url);
 
-  else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed())
-    t = new TrackerDht(m_tracker_list, url);
+  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
+    tracker = new TrackerDht(m_tracker_list, url);
 
-  else
-    // TODO: Error message here?... not really...
+  } else {
+    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url:'%s'.", url.c_str());
     return;
+  }
   
-  m_tracker_list->insert(group, t);
+  LT_LOG_TRACKER(INFO, "Added tracker group:%i url:'%s'.", group, url.c_str());
+
+  m_tracker_list->insert(group, tracker);
 }
 
 void
@@ -132,12 +142,16 @@ void
 TrackerController::enable() {
   m_flags |= flag_active;
 
+  LT_LOG_TRACKER(INFO, "Called enable with %u trackers.", m_tracker_list->size());
+
   // Start sending...
 }
 
 void
 TrackerController::disable() {
   m_flags &= ~flag_active;
+
+  LT_LOG_TRACKER(INFO, "Called disable with %u trackers.", m_tracker_list->size());
 }
 
 void
@@ -154,11 +168,15 @@ void
 TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
   m_failed_requests = 0;
 
+  LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
+
   m_slot_success(l);
 }
 
 void
 TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
+  LT_LOG_TRACKER(INFO, "Received failure to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
+
   m_slot_failure(msg);
 }
 

@@ -57,12 +57,13 @@ public:
 
   void                initialize(Object& b);
 
+  void                parse_tracker(const Object& b);
+
   void                set_download(DownloadWrapper* d)         { m_download = d; }
   void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
 
 private:  
   void                parse_name(const Object& b);
-  void                parse_tracker(const Object& b);
   void                parse_info(const Object& b);
   void                parse_magnet_uri(Object& b, const std::string& uri);
 

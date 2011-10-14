@@ -250,6 +250,10 @@ download_add(Object* object) {
   download->set_hash_queue(manager->hash_queue());
   download->initialize(infoHash, PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
 
+  // Add trackers, etc, after setting the info hash so that log
+  // entries look sane.
+  ctor.parse_tracker(*object);
+
   // Default PeerConnection factory functions.
   download->main()->connection_list()->slot_new_connection(&createPeerConnectionDefault);
 

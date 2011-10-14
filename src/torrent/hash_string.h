@@ -108,6 +108,8 @@ const char* hash_string_to_hex(const HashString& hash, char* first) LIBTORRENT_E
 
 std::string hash_string_to_hex_str(const HashString& hash) LIBTORRENT_EXPORT;
 
+inline const char* hash_string_to_hex_first(const HashString& hash, char* first) { hash_string_to_hex(hash, first); return first; }
+
 inline bool
 operator == (const HashString& one, const HashString& two) {
   return std::memcmp(one.begin(), two.begin(), HashString::size_data) == 0;
