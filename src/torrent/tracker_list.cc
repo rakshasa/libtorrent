@@ -93,13 +93,13 @@ TrackerList::clear() {
 }
 
 void
-TrackerList::send_state(int new_state) {
+TrackerList::send_state(int new_event) {
   // Reset the target tracker since we're doing a new request.
   if (m_itr != end())
     (*m_itr)->close();
 
   // TODO: Don't have a state set for the whole list.
-  set_state(new_state);
+  set_state(new_event);
   m_itr = find_usable(m_itr);
 
   if (m_itr == end()) {
@@ -107,43 +107,34 @@ TrackerList::send_state(int new_state) {
     return;
   }
 
-  (*m_itr)->send_state(new_state);
+  (*m_itr)->send_state(new_event);
 
   LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
-                 option_as_string(OPTION_TRACKER_EVENT, new_state),
+                 option_as_string(OPTION_TRACKER_EVENT, new_event),
                  (*m_itr)->group(), (*m_itr)->url().c_str());
 }
 
 void
-TrackerList::send_state_idx(unsigned idx, int event_state) {
+TrackerList::send_state_idx(unsigned idx, int new_event) {
   if (idx >= size())
     throw internal_error("TrackerList::send_state_idx(...) got idx >= size().");
     
-  send_state_tracker(begin() + idx, event_state);
+  send_state_tracker(begin() + idx, new_event);
 }
 
 void
-TrackerList::send_state_tracker(iterator itr, int event_state) {
+TrackerList::send_state_tracker(iterator itr, int new_event) {
   if (itr == end())
     throw internal_error("TrackerList::send_state_tracker(...) got itr == end().");
 
   if (!(*itr)->is_usable())
     return;
 
-  (*itr)->send_state(event_state);
+  (*itr)->send_state(new_event);
 
-  if (log_files[LOG_TRACKER].is_open()) {
-    const char* event_name = NULL;
-
-    switch(event_state) {
-    case DownloadInfo::STARTED:   event_name = "started"; break;
-    case DownloadInfo::STOPPED:   event_name = "stopped"; break;
-    case DownloadInfo::COMPLETED: event_name = "completed"; break;
-    default:                      event_name = "updated"; break;
-    }
-
-    log_tracker_append(this, (*itr)->group(), *itr, 0, "send_state", event_name);
-  }
+  LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
+                 option_as_string(OPTION_TRACKER_EVENT, new_event),
+                 (*m_itr)->group(), (*m_itr)->url().c_str());
 }
 
 TrackerList::iterator
@@ -151,9 +142,6 @@ TrackerList::insert(unsigned int group, Tracker* t) {
   t->set_group(group);
 
   iterator itr = base_type::insert(end_group(group), t);
-
-  if (log_files[LOG_TRACKER].is_open())
-    log_tracker_append(this, (*itr)->group(), *itr, 0, "inserted", (*itr)->url().c_str());
 
   m_itr = begin();
   return itr;
@@ -265,8 +253,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
-  if (log_files[LOG_TRACKER].is_open())
-    log_tracker_append(this, (*itr)->group(), *m_itr, l->size(), "receive", "success");
+  LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
 
   (*itr)->set_success_counter((*itr)->success_counter() + 1);
   (*itr)->set_failed_counter(0);
@@ -282,8 +269,7 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
   if (itr == end() || (*itr)->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  if (log_files[LOG_TRACKER].is_open())
-    log_tracker_append(this, (*m_itr)->group(), *m_itr, 0, "receive", "failed");
+  LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
   (*itr)->set_failed_counter((*itr)->failed_counter() + 1);
   m_slot_failed(tb, msg);

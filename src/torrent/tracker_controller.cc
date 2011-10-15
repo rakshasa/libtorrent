@@ -166,8 +166,6 @@ void
 TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
   m_failed_requests = 0;
 
-  LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
-
   m_slot_success(l);
 }
 
@@ -178,8 +176,6 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
     m_slot_failure(msg);
     return;
   }
-
-  LT_LOG_TRACKER(INFO, "Received failure to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
   m_slot_failure(msg);
 }

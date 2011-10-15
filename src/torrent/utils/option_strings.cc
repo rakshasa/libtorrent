@@ -193,9 +193,9 @@ const char* option_list_log_group[] = {
 
 const char* option_list_tracker_event[] = {
   "updated",
-  "started",
-  "stopped",
   "completed",
+  "stopped",
+  "started",
 
   NULL
 };
