@@ -191,6 +191,15 @@ const char* option_list_log_group[] = {
   NULL
 };
 
+const char* option_list_tracker_event[] = {
+  "updated",
+  "started",
+  "stopped",
+  "completed",
+
+  NULL
+};
+
 option_pair* option_pair_lists[OPTION_START_COMPACT] = {
   option_list_connection,
   option_list_heuristics,
@@ -202,8 +211,12 @@ option_pair* option_pair_lists[OPTION_START_COMPACT] = {
   option_list_tracker_mode,
 };
 
+#define OPTION_SINGLE_ENTRY(single_name) \
+  { sizeof(single_name) / sizeof(const char*) - 1, single_name }
+
 option_single option_single_lists[OPTION_SINGLE_SIZE] = {
-  { sizeof(option_list_log_group) / sizeof(const char*) - 1, option_list_log_group },
+  OPTION_SINGLE_ENTRY(option_list_log_group),
+  OPTION_SINGLE_ENTRY(option_list_tracker_event),
 };
 
 int

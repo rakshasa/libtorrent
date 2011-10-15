@@ -48,10 +48,8 @@
 
 #include "globals.h"
 
-#define LT_LOG_TRACKER(log_level, log_fmt, ...) {                       \
-    char log_buffer[41]; log_buffer[40] = '\0';                         \
-    lt_log_print(LOG_TRACKER_##log_level, "%s->tracker_controller: " log_fmt, \
-                 hash_string_to_hex_first(m_tracker_list->info()->hash(), log_buffer), __VA_ARGS__); }
+#define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
+  lt_log_print_info(LOG_TRACKER_##log_level, m_tracker_list->info(), "->tracker_controller: " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

@@ -60,7 +60,7 @@ hash_string_from_hex_c_str(const char* first, HashString& hash) {
   return first;
 }
   
-const char*
+char*
 hash_string_to_hex(const HashString& hash, char* first) {
   return rak::transform_hex(hash.begin(), hash.end(), first);
 }

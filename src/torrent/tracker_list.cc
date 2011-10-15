@@ -38,7 +38,9 @@
 
 #include <rak/functional.h>
 
+#include "torrent/utils/log.h"
 #include "torrent/utils/log_files.h"
+#include "torrent/utils/option_strings.h"
 #include "torrent/download_info.h"
 #include "net/address_list.h"
 #include "tracker/tracker_manager.h"
@@ -47,6 +49,9 @@
 #include "exceptions.h"
 #include "tracker.h"
 #include "tracker_list.h"
+
+#define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
+  lt_log_print_info(LOG_TRACKER_##log_level, info(), "->tracker_list: " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -88,12 +93,13 @@ TrackerList::clear() {
 }
 
 void
-TrackerList::send_state(int s) {
+TrackerList::send_state(int new_state) {
   // Reset the target tracker since we're doing a new request.
   if (m_itr != end())
     (*m_itr)->close();
 
-  set_state(s);
+  // TODO: Don't have a state set for the whole list.
+  set_state(new_state);
   m_itr = find_usable(m_itr);
 
   if (m_itr == end()) {
@@ -101,20 +107,11 @@ TrackerList::send_state(int s) {
     return;
   }
 
-  (*m_itr)->send_state(state());
+  (*m_itr)->send_state(new_state);
 
-  if (log_files[LOG_TRACKER].is_open()) {
-    const char* event_name = NULL;
-
-    switch(state()) {
-    case DownloadInfo::STARTED:   event_name = "started"; break;
-    case DownloadInfo::STOPPED:   event_name = "stopped"; break;
-    case DownloadInfo::COMPLETED: event_name = "completed"; break;
-    default:                      event_name = "updated"; break;
-    }
-
-    log_tracker_append(this, (*m_itr)->group(), *m_itr, 0, "send_state", event_name);
-  }
+  LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
+                 option_as_string(OPTION_TRACKER_EVENT, new_state),
+                 (*m_itr)->group(), (*m_itr)->url().c_str());
 }
 
 void

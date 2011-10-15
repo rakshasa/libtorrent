@@ -113,10 +113,12 @@ enum {
   LOG_GROUP_MAX_SIZE
 };
 
-#define lt_log_print(group, ...) { if (torrent::log_groups[group].valid()) torrent::log_groups[group].internal_print(__VA_ARGS__); }
-#define lt_log_is_valid(group) (torrent::log_groups[group].valid())
+#define lt_log_print(log_group, ...) { if (torrent::log_groups[log_group].valid()) torrent::log_groups[log_group].internal_print(__VA_ARGS__); }
+#define lt_log_print_info(log_group, log_info, ...) { if (torrent::log_groups[log_group].valid()) torrent::log_groups[log_group].internal_print_info(log_info, __VA_ARGS__); }
+#define lt_log_is_valid(log_group) (torrent::log_groups[log_group].valid())
 
 struct log_cached_outputs;
+class DownloadInfo;
 
 typedef std::tr1::function<void (const char*, unsigned int)> log_slot;
 typedef std::vector<std::pair<std::string, log_slot> >       log_output_list;
@@ -132,6 +134,7 @@ public:
 
   // Internal:
   void                internal_print(const char* fmt, ...);
+  void                internal_print_info(const DownloadInfo* info, const char* fmt, ...);
 
   uint64_t            outputs() const                    { return m_outputs; }
   uint64_t            cached_outputs() const             { return m_cached_outputs; }

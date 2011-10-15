@@ -40,6 +40,7 @@
 #include "rak/algorithm.h"
 #include "rak/timer.h"
 #include "torrent/exceptions.h"
+#include "torrent/download_info.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,6 +157,24 @@ log_group::internal_print(const char* fmt, ...) {
 
   va_start(ap, fmt);
   int count = vsnprintf(buffer, 4096, fmt, ap);
+  va_end(ap);
+
+  if (count >= 0)
+    std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
+                                             std::placeholders::_1,
+                                             buffer,
+                                             std::min<unsigned int>(count, buffer_size - 1)));
+}
+
+void
+log_group::internal_print_info(const DownloadInfo* info, const char* fmt, ...) {
+  va_list ap;
+  unsigned int buffer_size = 4096;
+  char buffer[buffer_size];
+  char* first = hash_string_to_hex(info->hash(), buffer);
+
+  va_start(ap, fmt);
+  int count = vsnprintf(first, 4096 - (first - buffer) , fmt, ap);
   va_end(ap);
 
   if (count >= 0)
