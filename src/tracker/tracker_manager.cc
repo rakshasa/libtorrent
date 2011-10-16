@@ -60,11 +60,10 @@ TrackerManager::TrackerManager() :
   m_tracker_controller = new TrackerController(m_tracker_list);
   m_tracker_controller->slot_success() = std::bind(&TrackerManager::receive_success, this, std::placeholders::_1);
   m_tracker_controller->slot_failure() = std::bind(&TrackerManager::receive_failed, this, std::placeholders::_1);
+  m_tracker_controller->slot_timeout() = std::bind(&TrackerManager::receive_timeout, this);
 
   m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
   m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
-
-  m_tracker_controller->task_timeout()->set_slot(rak::mem_fn(this, &TrackerManager::receive_timeout));
 }
 
 TrackerManager::~TrackerManager() {

@@ -54,6 +54,7 @@ class LIBTORRENT_EXPORT TrackerController {
 public:
   typedef AddressList address_list;
 
+  typedef std::tr1::function<void (void)>               slot_void;
   typedef std::tr1::function<void (const std::string&)> slot_string;
   typedef std::tr1::function<void (AddressList*)>       slot_address_list;
 
@@ -96,23 +97,24 @@ public:
   void                start_requesting();
   void                stop_requesting();
 
-  void                receive_task_timeout();
-
   void                receive_success(Tracker* tb, address_list* l);
   void                receive_failure(Tracker* tb, const std::string& msg);
 
   void                receive_success_new(Tracker* tb, address_list* l);
   void                receive_failure_new(Tracker* tb, const std::string& msg);
 
+  slot_void&          slot_timeout()        { return m_slot_timeout; }
   slot_address_list&  slot_success()        { return m_slot_success; }
   slot_string&        slot_failure()        { return m_slot_failure; }
 
+  // TEMP:
   rak::priority_item* task_timeout();
 
-  // TEMP:
   void                set_failed_requests(uint32_t value) { m_failed_requests = value; }
 
 private:
+  void                receive_timeout();
+
   TrackerController();
   void operator = (const TrackerController&);
 
@@ -121,9 +123,11 @@ private:
 
   uint32_t            m_failed_requests;
 
+  slot_void           m_slot_timeout;
   slot_address_list   m_slot_success;
   slot_string         m_slot_failure;
 
+  // Refactor this out.
   tracker_controller_private* m_private;
 };
 

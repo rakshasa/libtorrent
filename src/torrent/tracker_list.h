@@ -145,8 +145,9 @@ public:
 
 protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
-  void                set_state(int s)                        { m_state = s; }
 
+  // Deprecated.
+  void                set_state(int s)                        { m_state = s; }
   void                set_focus(iterator itr)                 { m_itr = itr; }
   void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
 

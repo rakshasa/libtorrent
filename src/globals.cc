@@ -37,10 +37,11 @@
 #include "config.h"
 
 #include "globals.h"
+#include "torrent/common.h"
 
 namespace torrent {
 
-rak::priority_queue_default taskScheduler;
-rak::timer                  cachedTime;
+LIBTORRENT_EXPORT rak::priority_queue_default taskScheduler;
+LIBTORRENT_EXPORT rak::timer                  cachedTime;
 
 }

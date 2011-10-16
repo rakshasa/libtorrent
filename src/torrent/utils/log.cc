@@ -92,7 +92,7 @@ log_update_child_cache(int index) {
 
   uint64_t outputs = log_groups[index].cached_outputs();
 
-  while (first->first == index) {
+  while (first != log_children.end() && first->first == index) {
     if ((outputs & log_groups[first->second].cached_outputs()) != outputs) {
       log_groups[first->second].set_cached_outputs(outputs | log_groups[first->second].cached_outputs());
       log_update_child_cache(first->second);
