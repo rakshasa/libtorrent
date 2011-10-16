@@ -48,6 +48,7 @@ namespace torrent {
 
 class AddressList;
 class TrackerList;
+struct tracker_controller_private;
 
 class LIBTORRENT_EXPORT TrackerController {
 public:
@@ -61,6 +62,8 @@ public:
   static const int flag_send_start = 0x4;
   static const int flag_send_stop = 0x8;
   static const int flag_send_completed = 0x10;
+
+  static const int mask_send = flag_send_start | flag_send_stop | flag_send_completed;
 
   TrackerController(TrackerList* trackers);
   ~TrackerController();
@@ -82,6 +85,7 @@ public:
 
   //protected:
   void                send_start_event();
+  void                send_stop_event();
 
   void                close();
 
@@ -91,14 +95,20 @@ public:
   void                start_requesting();
   void                stop_requesting();
 
+  void                receive_task_timeout();
+
   void                receive_success(Tracker* tb, address_list* l);
   void                receive_failure(Tracker* tb, const std::string& msg);
+
+  void                receive_success_new(Tracker* tb, address_list* l);
+  void                receive_failure_new(Tracker* tb, const std::string& msg);
 
   slot_address_list&  slot_success()        { return m_slot_success; }
   slot_string&        slot_failure()        { return m_slot_failure; }
 
+  rak::priority_item* task_timeout();
+
   // TEMP:
-  rak::priority_item* task_timeout()        { return m_task_timeout; }
   void                set_failed_requests(uint32_t value) { m_failed_requests = value; }
 
 private:
@@ -113,7 +123,7 @@ private:
   slot_address_list   m_slot_success;
   slot_string         m_slot_failure;
 
-  rak::priority_item* m_task_timeout;
+  tracker_controller_private* m_private;
 };
 
 }

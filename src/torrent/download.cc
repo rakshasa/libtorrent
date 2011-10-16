@@ -107,13 +107,15 @@ Download::close(int flags) {
 
 void
 Download::start(int flags) {
+  DownloadInfo* info = m_ptr->info();
+
   if (!m_ptr->hash_checker()->is_checked())
     throw internal_error("Tried to start an unchecked download.");
 
-  if (!m_ptr->info()->is_open())
+  if (!info->is_open())
     throw internal_error("Tried to start a closed download.");
 
-  if (m_ptr->info()->is_active())
+  if (info->is_active())
     return;
 
   m_ptr->data()->verify_wanted_chunks("Download::start(...)");
@@ -136,11 +138,12 @@ Download::start(int flags) {
   // Reset the uploaded/download baseline when we restart the download
   // so that broken trackers get the right uploaded ratio.
   if (!(flags & start_keep_baseline)) {
-    m_ptr->info()->set_uploaded_baseline(m_ptr->info()->up_rate()->total());
-    m_ptr->info()->set_completed_baseline(m_ptr->main()->file_list()->completed_bytes());
+    info->set_uploaded_baseline(info->up_rate()->total());
+    info->set_completed_baseline(m_ptr->main()->file_list()->completed_bytes());
 
-    lt_log_print(LOG_TRACKER_INFO, "Setting new baseline on start: uploaded:%" PRIu64 " completed:%" PRIu64 ".",
-                 m_ptr->info()->uploaded_baseline(), m_ptr->info()->completed_baseline());
+    lt_log_print_info(LOG_TRACKER_INFO, info,
+                      "->download: Setting new baseline on start: uploaded:%" PRIu64 " completed:%" PRIu64 ".",
+                      info->uploaded_baseline(), info->completed_baseline());
   }
 
   // TODO: Fixme when redoing tracker...

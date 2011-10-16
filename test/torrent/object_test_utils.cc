@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <sstream>
 #include <cppunit/extensions/HelperMacros.h>
 #include "torrent/object_stream.h"

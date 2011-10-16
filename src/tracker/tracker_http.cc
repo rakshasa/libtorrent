@@ -55,6 +55,9 @@
 #include "globals.h"
 #include "manager.h"
 
+#define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
+  lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
+
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url) :
@@ -152,7 +155,7 @@ TrackerHttp::send_state(int state) {
 
   m_data = new std::stringstream();
 
-  lt_log_print(LOG_TRACKER_INFO, "--- Tracker HTTP Request ---\n%*s\n---", request_url.size(), request_url.c_str());
+  LT_LOG_TRACKER(DEBUG, "Tracker HTTP Request ---\n%*s\n---", request_url.size(), request_url.c_str());
 
   m_get->set_url(request_url);
   m_get->set_stream(m_data);
@@ -185,7 +188,7 @@ TrackerHttp::receive_done() {
 
   if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
     std::string dump = m_data->str();
-    lt_log_print(LOG_TRACKER_DEBUG, "--- Tracker HTTP receive done ---\n%*s\n---", dump.size(), dump.c_str());
+    LT_LOG_TRACKER(DEBUG, "Tracker HTTP receive done ---\n%*s\n---", dump.size(), dump.c_str());
   }
 
   Object b;
@@ -244,7 +247,11 @@ TrackerHttp::receive_done() {
 
 void
 TrackerHttp::receive_failed(std::string msg) {
-  // Does the order matter?
+  if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
+    std::string dump = m_data->str();
+    LT_LOG_TRACKER(DEBUG, "Tracker HTTP receive failed ---\n%*s\n---", dump.size(), dump.c_str());
+  }
+
   close();
   m_failed_time_last = rak::timer::current().seconds();
   m_parent->receive_failed(this, msg);
