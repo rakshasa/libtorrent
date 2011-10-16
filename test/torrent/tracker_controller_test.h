@@ -12,6 +12,7 @@ class tracker_controller_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_send_start);
   CPPUNIT_TEST(test_send_stop_normal);
+  CPPUNIT_TEST(test_send_completed_normal);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -26,6 +27,7 @@ public:
 
   void test_send_start();
   void test_send_stop_normal();
+  void test_send_completed_normal();
 
   //  void test_single_promiscuous();
 };

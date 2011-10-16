@@ -184,6 +184,31 @@ TrackerController::send_stop_event() {
   }
 }
 
+void
+TrackerController::send_completed_event() {
+  if (m_flags & flag_send_completed) {
+    // Do we just return, or bork? At least we need to check to see
+    // that there's something requesting 'start' event or fail hard.
+  }
+
+  m_flags &= ~mask_send;
+  m_flags |= flag_send_completed;
+  
+  if (m_flags & flag_active && m_tracker_list->has_usable()) {
+    LT_LOG_TRACKER(INFO, "Sending completed event.", 0);
+
+    // Send to all trackers that would want to know.
+
+    close();
+    m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_COMPLETED);
+
+    // Timer...
+
+  } else {
+    LT_LOG_TRACKER(INFO, "Queueing completed event.", 0);
+  }
+}
+
 // Currently being used by send_state, fixme.
 void
 TrackerController::close() {

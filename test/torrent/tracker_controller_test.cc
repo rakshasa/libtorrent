@@ -162,6 +162,27 @@ tracker_controller_test::test_send_stop_normal() {
 
 // send_stop during request and right after start, send stop failed.
 
+void
+tracker_controller_test::test_send_completed_normal() {
+  TEST_SEND_SINGLE_BEGIN();
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+
+  tracker_controller.send_completed_event();
+  CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == torrent::TrackerController::flag_send_completed);
+
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
+  // CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() == 0);
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+  CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == 0);
+
+  CPPUNIT_ASSERT(success_counter == 2 && failure_counter == 0);
+  
+  // Add a slot for stopped events done.
+  TEST_SEND_SINGLE_END();
+}
+
 // Test send_start promiscious...
 //   - Make sure we check that no timer is inserted while still having active trackers.
 //   - Calculate the next timeout according to a list of in-use trackers, with the first timeout as the interval.

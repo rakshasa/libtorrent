@@ -86,6 +86,7 @@ public:
   //protected:
   void                send_start_event();
   void                send_stop_event();
+  void                send_completed_event();
 
   void                close();
 
