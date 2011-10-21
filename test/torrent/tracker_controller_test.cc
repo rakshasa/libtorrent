@@ -222,14 +222,23 @@ tracker_controller_test::test_send_completed_normal() {
   TEST_SEND_SINGLE_END(2, 0);
 }
 
+// Test quick connect, few peers, request more...
+// - this needs a check to see if we're still requesting.
+
+
+
+// Add multiple trackers, with partial-promiscious mode that is actually
+// sequential. Test multiple stopped/completed to trackers based on who
+// knows we're running.
+
+
+
 // Test send_* with controller not enabled.
 
 // Test cleanup after disable.
 // Test cleanup of timers at disable (and empty timers at enable).
 
 // Test trying to send_start twice, etc.
-
-// Test quick connect, few peers, request more...
 
 // Test send_start promiscious...
 //   - Make sure we check that no timer is inserted while still having active trackers.
