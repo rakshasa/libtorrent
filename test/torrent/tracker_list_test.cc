@@ -234,4 +234,35 @@ tracker_list_test::test_has_active() {
   CPPUNIT_ASSERT(!tracker_list.has_active());
 }
 
+void
+tracker_list_test::test_count_active() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0_0);
+  TRACKER_INSERT(0, tracker_0_1);
+  TRACKER_INSERT(1, tracker_1_0);
+  TRACKER_INSERT(2, tracker_2_0);
+
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
+
+  tracker_list.send_state_idx(0, 1);
+  CPPUNIT_ASSERT(tracker_list.count_active() == 1);
+
+  tracker_list.send_state_idx(3, 1);
+  CPPUNIT_ASSERT(tracker_list.count_active() == 2);
+
+  tracker_list.send_state_idx(1, 1);
+  tracker_list.send_state_idx(2, 1);
+  CPPUNIT_ASSERT(tracker_list.count_active() == 4);
+
+  tracker_0_0->trigger_success();
+  CPPUNIT_ASSERT(tracker_list.count_active() == 3);
+  
+  tracker_0_1->trigger_success();
+  tracker_2_0->trigger_success();
+  CPPUNIT_ASSERT(tracker_list.count_active() == 1);
+  
+  tracker_1_0->trigger_success();
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
+}
+
 // Add separate functions for sending state to multiple trackers...

@@ -13,6 +13,7 @@ class tracker_list_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_multiple_success);
 
   CPPUNIT_TEST(test_has_active);
+  CPPUNIT_TEST(test_count_active);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -28,6 +29,7 @@ public:
   void test_multiple_success();
 
   void test_has_active();
+  void test_count_active();
 };
 
 class TrackerTest : public torrent::Tracker {

@@ -81,6 +81,12 @@ TrackerList::has_usable() const {
   return std::find_if(begin(), end(), tracker_usable_t()) != end();
 }
 
+unsigned int
+TrackerList::count_active() const {
+  return std::count_if(begin(), end(), std::mem_fun(&Tracker::is_busy));
+}
+
+
 void
 TrackerList::close_all() {
   std::for_each(begin(), end(), std::mem_fun(&Tracker::close));

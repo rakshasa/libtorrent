@@ -93,6 +93,8 @@ public:
   bool                has_active() const;
   bool                has_usable() const;
 
+  unsigned int        count_active() const;
+
   void                close_all();
   void                clear();
 

@@ -74,7 +74,10 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
                  failure_counter == failure_counter);
 
-
+#define TEST_GOTO_NEXT_TIMEOUT(assumed_timeout)                         \
+  CPPUNIT_ASSERT(assumed_timeout == tracker_controller.seconds_to_next_timeout()); \
+  torrent::cachedTime += rak::timer::from_seconds(tracker_controller.seconds_to_next_timeout()); \
+  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
 
 
 static void increment_value(int* value) { (*value)++; }
@@ -250,25 +253,46 @@ tracker_controller_test::test_multiple_success() {
   TEST_SEND_SINGLE_BEGIN();
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+  TEST_GOTO_NEXT_TIMEOUT(tracker_0_0->normal_interval());
 
-  CPPUNIT_ASSERT(tracker_0_0->normal_interval() == tracker_controller.seconds_to_next_timeout());
+  // Verify that we're busy...
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
 
-  torrent::cachedTime += rak::timer::from_seconds(test_interval);
+  CPPUNIT_ASSERT(std::find_if(tracker_list.begin() + 1, tracker_list.end(),
+                              std::mem_fun(&torrent::Tracker::is_busy)) == tracker_list.end());
 
-  // Time out.
-  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == test_interval);
-
-
-
-  // Verify that we're not busy...
-
-  // Trigger success.
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
   
-  // Verify only first had any success/failure/busy.
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+  CPPUNIT_ASSERT(tracker_0_0->success_counter() == 2);
+
+  TEST_MULTIPLE_END(2, 0);
+}
+
+void
+tracker_controller_test::test_multiple_failure() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN();
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+  
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+
+  // CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  // CPPUNIT_ASSERT(tracker_0_1->is_busy());
+
+  // timeout
+  
+  // Verify new connection on next tracker.
+
+  // 
 
   TEST_MULTIPLE_END(0, 0);
 }
+
+// Test failure -> success -> retry result in attempting first tracker.
+
+
 
 
 // Test quick connect, few peers, request more...
