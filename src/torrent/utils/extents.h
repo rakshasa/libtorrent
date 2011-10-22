@@ -133,27 +133,69 @@ extents_base<Key, Tp, TableSize, TableBits>::sizeof_data() const {
 template <typename Key, typename Tp, unsigned int MaskBits, unsigned int TableSize, unsigned int TableBits>
 void
 extents<Key, Tp, MaskBits, TableSize, TableBits>::insert(key_type pos, unsigned int mb, const mapped_value_type& val) {
-  // Temporarily removed.
+  key_type mask = ~key_type() << mb;
+
+  base_type::insert(pos & mask, mb, val);
 }
 
 template <typename Key, typename Tp, unsigned int TableSize, unsigned int TableBits>
 void
 extents_base<Key, Tp, TableSize, TableBits>::insert(key_type pos, unsigned int mb, const mapped_value_type& val) {
-  // Temporarily removed.
+  // RESTRICTED
+  typename table_type::iterator first = partition_at(pos);
+  typename table_type::iterator last = partition_at(pos) + mask_distance(mb) + 1;
+
+  if (mb < mask_bits) {
+    if (first->first == NULL)
+      first->first = new extents_base(this, first);
+    
+    first->first->insert(pos, mb, val);
+    return;
+  }
+
+  while (first != last) {
+    if (first->first != NULL) {
+      delete first->first;
+      first->first = NULL;
+    }
+    
+    (first++)->second = val;
+  }
 }
 
 template <typename Key, typename Tp, unsigned int MaskBits, unsigned int TableSize, unsigned int TableBits>
 bool
 extents<Key, Tp, MaskBits, TableSize, TableBits>::is_equal_range(key_type first, key_type last, const mapped_value_type& val) const {
-  // Temporarily removed.
-  return false;
+  // RESTRICTED
+  first = std::max(first, key_type());
+  last = std::min(last, key_type() + (~key_type() >> (sizeof(key_type) * 8 - MaskBits)));
+
+  if (first <= last)
+    return base_type::is_equal_range(first, last, val);
+  else
+    return true;
 }
 
 template <typename Key, typename Tp, unsigned int TableSize, unsigned int TableBits>
 bool
 extents_base<Key, Tp, TableSize, TableBits>::is_equal_range(key_type key_first, key_type key_last, const mapped_value_type& val) const {
-  // Temporarily removed.
-  return false;
+  // RESTRICTED
+  typename table_type::const_iterator first = partition_at(key_first);
+  typename table_type::const_iterator last = partition_at(key_last) + 1;
+
+  do {
+    //    std::cout << "shift_amount " << key_first << ' ' << key_last << std::endl;
+
+    if (first->first == NULL && val != first->second)
+      return false;
+
+    if (first->first != NULL && !first->first->is_equal_range(std::max(key_first, partition_pos(first)),
+                                                              std::min(key_last, partition_pos(first + 1) - 1), val))
+      return false;
+
+  } while (++first != last);
+
+  return true;
 }
 
 // Assumes 'key' is within the range of the range.

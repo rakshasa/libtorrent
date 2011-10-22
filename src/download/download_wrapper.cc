@@ -141,6 +141,8 @@ DownloadWrapper::close() {
 
   // Should this perhaps be in stop?
   priority_queue_erase(&taskScheduler, &m_main->delay_download_done());
+  priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
+  priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
 }
 
 bool
@@ -208,12 +210,20 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       throw internal_error("DownloadWrapper::receive_hash_done(...) received a chunk that isn't set in ChunkSelector.");
 
     if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0) {
+      bool was_partial = data()->wanted_chunks() != 0;
+
       m_main->file_list()->mark_completed(handle.index());
       m_main->delegator()->transfer_list()->hash_succeeded(handle.index(), handle.chunk());
       m_main->update_endgame();
 
-      if (m_main->file_list()->is_done())
+      if (m_main->file_list()->is_done()) {
         finished_download();
+
+      } else if (was_partial && data()->wanted_chunks() == 0) {
+        priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
+        priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
+        priority_queue_insert(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
+      }
     
       if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
         m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(m_main->have_queue()->front().first + 1, handle.index()));
@@ -341,6 +351,8 @@ DownloadWrapper::receive_update_priorities() {
     }
   }
 
+  bool was_partial = data()->wanted_chunks() != 0;
+
   data()->update_wanted_chunks();
 
   m_main->chunk_selector()->update_priorities();
@@ -348,9 +360,17 @@ DownloadWrapper::receive_update_priorities() {
   std::for_each(m_main->connection_list()->begin(), m_main->connection_list()->end(),
                 rak::on(std::mem_fun(&Peer::m_ptr), std::mem_fun(&PeerConnectionBase::update_interested)));
 
-  // TODO: Trigger event if this results in the torrent being
-  // partially finished, or going from partially finished to needing
-  // to download more.
+  // The 'partially_done/restarted' signal only gets triggered when a
+  // download is active and not completed.
+  if (info()->is_active() && !file_list()->is_done() && was_partial != (data()->wanted_chunks() != 0)) {
+    priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
+    priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
+    
+    if (was_partial)
+      priority_queue_insert(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
+    else
+      priority_queue_insert(&taskScheduler, &m_main->delay_partially_restarted(), cachedTime);
+  }
 }
 
 void

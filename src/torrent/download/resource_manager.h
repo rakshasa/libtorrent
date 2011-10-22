@@ -95,6 +95,8 @@ public:
   typedef base_type::value_type               value_type;
   typedef base_type::iterator                 iterator;
 
+  typedef choke_base_type::iterator           group_iterator;
+
   using base_type::begin;
   using base_type::end;
   using base_type::size;
@@ -106,11 +108,23 @@ public:
   void                insert(DownloadMain* d, uint16_t priority) { insert(value_type(d, priority)); }
   void                erase(DownloadMain* d);
 
+  void                push_group(const std::string& name);
+
   iterator            find(DownloadMain* d);
   iterator            find_throw(DownloadMain* d);
   iterator            find_group_end(uint16_t group);
 
+  unsigned int            group_size() const                    { return choke_base_type::size(); }
+  choke_group*            group_back()                          { return choke_base_type::back(); }
+
   choke_group*            group_at(uint16_t grp);
+  choke_group*            group_at_name(const std::string& name);
+
+  int                     group_index_of(const std::string& name);
+
+  group_iterator          group_begin() { return choke_base_type::begin(); }
+  group_iterator          group_end()   { return choke_base_type::end(); }
+
   resource_manager_entry& entry_at(DownloadMain* d) { return *find_throw(d); }
 
   void                set_priority(iterator itr, uint16_t pri);

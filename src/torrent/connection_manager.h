@@ -151,6 +151,8 @@ public:
   bool                listen_open(port_type begin, port_type end);
   void                listen_close();  
 
+  bool                listen_is_open() const;
+
   signal_handshake_type& signal_handshake_log()                          { return m_signalHandshakeLog; }
   sigc::connection       set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
 

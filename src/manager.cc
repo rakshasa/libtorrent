@@ -92,9 +92,9 @@ Manager::Manager() :
   m_handshakeManager->slot_download_id_obfuscated(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main_obfuscated));
   m_connectionManager->listen()->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
 
-  // m_resourceManager->push_group("default");
-  // m_resourceManager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
-  // m_resourceManager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
+  m_resourceManager->push_group("default");
+  m_resourceManager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
+  m_resourceManager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 }
 
 Manager::~Manager() {

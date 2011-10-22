@@ -45,7 +45,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
                  failure_counter == failure_counter);
 
 #define TEST_SEND_SINGLE_BEGIN()                                        \
-  TEST_SINGLE_BEGIN();                                                  \
   tracker_controller.send_start_event();                                \
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == \
                  torrent::TrackerController::flag_send_start);          \
@@ -57,6 +56,26 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   TEST_SINGLE_END(succeeded, failed)                                    \
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);    \
   //CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() != 0);
+
+#define TEST_MULTI3_BEGIN()                                             \
+  TRACKER_SETUP();                                                      \
+  TRACKER_INSERT(0, tracker_0_0);                                       \
+  TRACKER_INSERT(0, tracker_0_1);                                       \
+  TRACKER_INSERT(1, tracker_1_0);                                       \
+  TRACKER_INSERT(2, tracker_2_0);                                       \
+  TRACKER_INSERT(3, tracker_3_0);                                       \
+                                                                        \
+  tracker_controller.enable();                                          \
+  CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::mask_send)); \
+
+#define TEST_MULTIPLE_END(succeeded, failed)                            \
+  tracker_controller.disable();                                         \
+  CPPUNIT_ASSERT(!tracker_list.has_active());                           \
+  CPPUNIT_ASSERT(success_counter == succeeded &&                        \
+                 failure_counter == failure_counter);
+
+
+
 
 static void increment_value(int* value) { (*value)++; }
 
@@ -164,6 +183,7 @@ tracker_controller_test::test_single_disable() {
 
 void
 tracker_controller_test::test_send_start() {
+  TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN();
 
   // We might want some different types of timeouts... Move these test to a promicious unit test...
@@ -184,6 +204,7 @@ tracker_controller_test::test_send_start() {
 
 void
 tracker_controller_test::test_send_stop_normal() {
+  TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN();
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
@@ -205,6 +226,7 @@ tracker_controller_test::test_send_stop_normal() {
 
 void
 tracker_controller_test::test_send_completed_normal() {
+  TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN();
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
@@ -221,6 +243,33 @@ tracker_controller_test::test_send_completed_normal() {
   // Add a slot for stopped events done.
   TEST_SEND_SINGLE_END(2, 0);
 }
+
+void
+tracker_controller_test::test_multiple_success() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN();
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+
+  CPPUNIT_ASSERT(tracker_0_0->normal_interval() == tracker_controller.seconds_to_next_timeout());
+
+  torrent::cachedTime += rak::timer::from_seconds(test_interval);
+
+  // Time out.
+  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == test_interval);
+
+
+
+  // Verify that we're not busy...
+
+  // Trigger success.
+  
+  // Verify only first had any success/failure/busy.
+
+  TEST_MULTIPLE_END(0, 0);
+}
+
 
 // Test quick connect, few peers, request more...
 // - this needs a check to see if we're still requesting.
