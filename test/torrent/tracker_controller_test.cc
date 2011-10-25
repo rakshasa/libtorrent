@@ -50,7 +50,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
                  torrent::TrackerController::flag_send_start);          \
                                                                         \
   CPPUNIT_ASSERT(tracker_controller.is_active());                       \
-  CPPUNIT_ASSERT(tracker_controller.tracker_list()->has_active());
+  CPPUNIT_ASSERT(tracker_controller.tracker_list()->count_active() == 1);
 
 #define TEST_SEND_SINGLE_END(succeeded, failed)                         \
   TEST_SINGLE_END(succeeded, failed)                                    \
@@ -278,16 +278,23 @@ tracker_controller_test::test_multiple_failure() {
   
   TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
 
-  // CPPUNIT_ASSERT(!tracker_0_0->is_busy());
-  // CPPUNIT_ASSERT(tracker_0_1->is_busy());
+  // Verify that the retry timer is _fast_ when the next tracker has
+  // no failed counter.
 
-  // timeout
+  CPPUNIT_ASSERT(tracker_list.count_active() == 1);
+  CPPUNIT_ASSERT(tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
+
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
   
   // Verify new connection on next tracker.
+  CPPUNIT_ASSERT(tracker_list.count_active() == 1 && tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(tracker_1_0->trigger_success());
 
-  // 
+  // Also verify the next time out, etc...
 
-  TEST_MULTIPLE_END(0, 0);
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
+  TEST_MULTIPLE_END(1, 2);
 }
 
 // Test failure -> success -> retry result in attempting first tracker.

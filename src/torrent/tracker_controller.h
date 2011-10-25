@@ -63,6 +63,7 @@ public:
   static const int flag_send_start = 0x4;
   static const int flag_send_stop = 0x8;
   static const int flag_send_completed = 0x10;
+  static const int flag_failure_mode = 0x20;
 
   static const int mask_send = flag_send_start | flag_send_stop | flag_send_completed;
 

@@ -35,6 +35,7 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list) {
 
   m_busy = false;
   m_open = !m_close_on_done;
+  m_success_time_last = rak::timer::current().seconds();
   parent()->receive_success(this, address_list);
 
   m_requesting_state = 0;
@@ -48,6 +49,7 @@ TrackerTest::trigger_failure() {
 
   m_busy = false;
   m_open = !m_close_on_done;
+  m_failed_time_last = rak::timer::current().seconds();
   parent()->receive_failed(this, "failed");
   m_requesting_state = 0;
   return true;

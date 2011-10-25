@@ -1,5 +1,6 @@
 #include <torrent/tracker.h>
 #include <torrent/tracker_list.h>
+#include <rak/timer.h>
 #include <cppunit/extensions/HelperMacros.h>
 
 class tracker_list_test : public CppUnit::TestFixture {

@@ -286,8 +286,20 @@ TrackerController::receive_timeout() {
     send_state = Tracker::EVENT_NONE;
   }
 
-  // Currently support only one tracker...
-  m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), send_state);
+  // Find the next tracker to try...
+  TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
+  TrackerList::iterator preferred = itr;
+
+  while (++itr != m_tracker_list->end()) {
+    if (!(*itr)->is_usable())
+      continue;
+
+    if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
+        (*itr)->failed_time_last() < (*preferred)->failed_time_last())
+      preferred = itr;
+  }
+
+  m_tracker_list->send_state_tracker(preferred, send_state);
 
   if (m_slot_timeout)
     m_slot_timeout();
@@ -354,6 +366,8 @@ TrackerController::receive_failure_new(Tracker* tb, const std::string& msg) {
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
   priority_queue_insert(&taskScheduler, &m_private->task_timeout,
                         (cachedTime + rak::timer::from_seconds(next_request)).round_seconds());
+
+  m_flags |= flag_failure_mode;
 
   m_slot_failure(msg);
 }
