@@ -51,11 +51,7 @@ namespace std { using namespace tr1; }
 namespace torrent {
 
 TrackerManager::TrackerManager() :
-  m_tracker_list(new TrackerList()),
-
-  m_numRequests(0),
-  m_maxRequests(4),
-  m_initialTracker(0) {
+  m_tracker_list(new TrackerList()) {
 
   m_tracker_controller = new TrackerController(m_tracker_list);
 
@@ -70,28 +66,6 @@ TrackerManager::~TrackerManager() {
   m_tracker_list->clear();
   delete m_tracker_list;
   delete m_tracker_controller;
-}
-
-void
-TrackerManager::send_start() {
-  tracker_controller()->close();
-
-  m_tracker_list->set_focus(m_tracker_list->begin());
-  m_tracker_list->send_state(DownloadInfo::STARTED);
-}
-
-void
-TrackerManager::send_stop() {
-  tracker_controller()->close();
-
-  m_tracker_list->set_focus(m_tracker_list->begin() + m_initialTracker);
-  m_tracker_list->send_state(DownloadInfo::STOPPED);
-}
-
-void
-TrackerManager::send_completed() {
-  tracker_controller()->close();
-  m_tracker_list->send_state(DownloadInfo::COMPLETED);
 }
 
 void
@@ -124,7 +98,7 @@ TrackerManager::send_later() {
 // high "min peers" setting will not cause too much traffic.
 bool
 TrackerManager::request_current() {
-  if (m_tracker_list->has_active() || m_numRequests >= m_maxRequests)
+  if (m_tracker_list->has_active())// || m_numRequests >= m_maxRequests)
     return false;
 
   // Keep track of how many times we've requested from the current
@@ -142,7 +116,7 @@ TrackerManager::request_next() {
     return;
 
   m_tracker_controller->start_requesting();
-  m_numRequests  = 0;
+  //  m_numRequests  = 0;
   manual_request(true);
 }
 

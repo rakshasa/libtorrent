@@ -307,18 +307,21 @@ TrackerController::receive_timeout() {
 
   // Find the next tracker to try...
   TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
-  TrackerList::iterator preferred = itr;
 
-  while (++itr != m_tracker_list->end()) {
-    if (!(*itr)->is_usable())
-      continue;
+  if (itr != m_tracker_list->end()) {
+    TrackerList::iterator preferred = itr;
 
-    if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
-        (*itr)->failed_time_last() < (*preferred)->failed_time_last())
-      preferred = itr;
+    while (++itr != m_tracker_list->end()) {
+      if (!(*itr)->is_usable())
+        continue;
+
+      if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
+          (*itr)->failed_time_last() < (*preferred)->failed_time_last())
+        preferred = itr;
+    }
+
+    m_tracker_list->send_state_tracker(preferred, send_state);
   }
-
-  m_tracker_list->send_state_tracker(preferred, send_state);
 
   if (m_slot_timeout)
     m_slot_timeout();

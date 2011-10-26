@@ -55,16 +55,9 @@ class TrackerList;
 
 class TrackerManager {
 public:
-  typedef uint32_t                                size_type;
-  typedef Tracker*                                value_type;
-
   TrackerManager();
   ~TrackerManager();
 
-  // 3...
-  void                send_start();
-  void                send_stop();
-  void                send_completed();
   void                send_later();
 
   // Request more peers from current, or the next tracker on the
@@ -79,8 +72,6 @@ public:
   TrackerController*  tracker_controller()                      { return m_tracker_controller; }
   TrackerList*        container()                               { return m_tracker_list; }
 
-  uint32_t            num_requests() const                      { return m_numRequests; }
-
 private:
   TrackerManager(const TrackerManager&);
   void operator = (const TrackerManager&);
@@ -89,11 +80,6 @@ private:
 
   TrackerController*  m_tracker_controller;
   TrackerList*        m_tracker_list;
-
-  uint32_t            m_numRequests;
-  uint32_t            m_maxRequests;
-
-  uint32_t            m_initialTracker;
 };
 
 }
