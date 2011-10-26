@@ -113,7 +113,8 @@ tracker_controller_test::test_enable() {
 
 void
 tracker_controller_test::test_requesting() {
-  torrent::TrackerController tracker_controller(NULL);
+  torrent::TrackerList tracker_list;
+  torrent::TrackerController tracker_controller(&tracker_list);
 
   tracker_controller.enable();
   tracker_controller.start_requesting();
@@ -376,7 +377,7 @@ tracker_controller_test::test_multiple_requesting() {
   tracker_controller.start_requesting();
 
   // Next timeout should be short...
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0); // 0 or 1?
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
   TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
 
   // Should be connecting again to... same tracker.
@@ -389,12 +390,12 @@ tracker_controller_test::test_multiple_requesting() {
   CPPUNIT_ASSERT(!tracker_2_0->is_busy());
   CPPUNIT_ASSERT(!tracker_3_0->is_busy());
 
-  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   // Consider adding
 
   // Next timeout should be soon...
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 10); // 10 or what ever??...
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 30);
   TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
 
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
@@ -403,15 +404,11 @@ tracker_controller_test::test_multiple_requesting() {
   CPPUNIT_ASSERT(!tracker_2_0->is_busy());
   CPPUNIT_ASSERT(!tracker_3_0->is_busy());
 
-  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   tracker_controller.stop_requesting();
 
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 600); // long re-connect timer...
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
-
-  // Should have only one request...
-
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0->normal_interval());
   TEST_MULTIPLE_END(3, 0);
 }
 

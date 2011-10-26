@@ -206,7 +206,12 @@ TrackerController::send_completed_event() {
     // Send to all trackers that would want to know.
 
     close();
-    m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_COMPLETED);
+    TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+
+    while (itr != m_tracker_list->end()) {
+      m_tracker_list->send_state_tracker(itr, Tracker::EVENT_COMPLETED);
+      itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+    }
 
     // Timer...
 
@@ -257,11 +262,22 @@ TrackerController::disable() {
 void
 TrackerController::start_requesting() {
   m_flags |= flag_requesting;
+
+  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  priority_queue_insert(&taskScheduler, &m_private->task_timeout, cachedTime);
 }
 
 void
 TrackerController::stop_requesting() {
   m_flags &= ~flag_requesting;
+
+  // Should check if timeout is set?
+  if (!m_tracker_list->has_active() && m_tracker_list->has_usable()) {
+    priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+    priority_queue_insert(&taskScheduler, &m_private->task_timeout,
+                          // Improve this...
+                          cachedTime + rak::timer::from_seconds((*m_tracker_list->find_usable(m_tracker_list->begin()))->normal_interval()).round_seconds());
+  }
 }
 
 void
@@ -325,6 +341,11 @@ TrackerController::receive_success_new(Tracker* tb, TrackerController::address_l
 
   // For the moment, just use the last tracker...
   unsigned int next_request = tb->normal_interval();
+
+  // Also make this check how many new peers we got, and how often
+  // we've reconnected this time.
+  if (m_flags & flag_requesting)
+    next_request = 30;
 
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
   priority_queue_insert(&taskScheduler, &m_private->task_timeout,
