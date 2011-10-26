@@ -58,12 +58,9 @@ TrackerManager::TrackerManager() :
   m_initialTracker(0) {
 
   m_tracker_controller = new TrackerController(m_tracker_list);
-  m_tracker_controller->slot_success() = std::bind(&TrackerManager::receive_success, this, std::placeholders::_1);
-  m_tracker_controller->slot_failure() = std::bind(&TrackerManager::receive_failed, this, std::placeholders::_1);
-  m_tracker_controller->slot_timeout() = std::bind(&TrackerManager::receive_timeout, this);
 
-  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success_new, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure_new, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
 }
 
 TrackerManager::~TrackerManager() {
@@ -164,87 +161,6 @@ TrackerManager::manual_request(bool force) {
 
   priority_queue_erase(&taskScheduler, m_tracker_controller->task_timeout());
   priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), t.round_seconds());
-}
-
-void
-TrackerManager::receive_timeout() {
-  if (m_tracker_list->has_active())
-    throw internal_error("TrackerManager::receive_timeout() called but m_tracker_list->has_active() == true.");
-
-  if (!m_tracker_controller->is_active())
-    return;
-
-  m_tracker_list->send_state((DownloadInfo::State)m_tracker_list->state());
-}
-
-void
-TrackerManager::receive_success(AddressList* l) {
-  if (m_tracker_list->state() == DownloadInfo::STOPPED || !m_tracker_controller->is_active())
-    return slot_success()(l);
-
-  if (m_tracker_list->state() == DownloadInfo::STARTED)
-    m_initialTracker = std::distance(m_tracker_list->begin(), m_tracker_list->focus());
-
-  // Don't reset the focus when we're requesting more peers. If we
-  // want to query the next tracker in the list we need to remember
-  // the current focus.
-  if (m_tracker_controller->is_requesting()) {
-    m_numRequests++;
-  } else {
-    m_numRequests = 1;
-    m_tracker_list->set_focus(m_tracker_list->begin());
-  }
-
-  // Reset m_isRequesting so a new call to request_*() is needed to
-  // try from the rest of the trackers in the list. If not called, the
-  // next tracker request will reset the focus to the first tracker.
-  m_tracker_controller->stop_requesting();
-
-  m_tracker_list->set_state(DownloadInfo::NONE);
-  priority_queue_erase(&taskScheduler, m_tracker_controller->task_timeout());
-  priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), (cachedTime + rak::timer::from_seconds(m_tracker_list->focus_normal_interval())).round_seconds());
-
-  slot_success()(l);
-}
-
-void
-TrackerManager::receive_failed(const std::string& msg) {
-  if (m_tracker_list->focus() != m_tracker_list->end())
-    m_tracker_list->set_focus(m_tracker_list->focus() + 1);
-
-  if (m_tracker_list->state() == DownloadInfo::STOPPED || !m_tracker_controller->is_active())
-    return slot_failure()(msg);
-
-  priority_queue_erase(&taskScheduler, m_tracker_controller->task_timeout());
-
-  if (m_tracker_controller->is_requesting()) {
-    // Currently trying to request additional peers.
-
-    if (m_tracker_list->focus() == m_tracker_list->end()) {
-      // Don't start from the beginning of the list if we've gone
-      // through the whole list. Return to normal timeout.
-      m_tracker_controller->stop_requesting();
-      priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), (cachedTime + rak::timer::from_seconds(m_tracker_list->focus_normal_interval())).round_seconds());
-    } else {
-      priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), (cachedTime + rak::timer::from_seconds(20)).round_seconds());
-    }
-
-  } else {
-    // Normal retry.
-    unsigned int retry_seconds = 3;
-
-    if (m_tracker_list->focus() == m_tracker_list->end()) {
-      // Tried all the trackers, start from the beginning.
-      m_tracker_controller->set_failed_requests(m_tracker_controller->failed_requests() + 1);
-      m_tracker_list->set_focus(m_tracker_list->begin());
-
-      retry_seconds = std::min<unsigned int>(300, 3 + 20 * m_tracker_controller->failed_requests());
-    }
-
-    priority_queue_insert(&taskScheduler, m_tracker_controller->task_timeout(), (cachedTime + rak::timer::from_seconds(retry_seconds)).round_seconds());
-  }
-
-  slot_failure()(msg);
 }
 
 }

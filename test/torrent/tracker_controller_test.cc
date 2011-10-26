@@ -287,7 +287,6 @@ tracker_controller_test::test_multiple_failure() {
 
   TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
   
-  // Verify new connection on next tracker.
   CPPUNIT_ASSERT(tracker_list.count_active() == 1 && tracker_1_0->is_busy());
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
 
@@ -297,15 +296,124 @@ tracker_controller_test::test_multiple_failure() {
   TEST_MULTIPLE_END(1, 2);
 }
 
-// Test failure -> success -> retry result in attempting first tracker.
+void
+tracker_controller_test::test_multiple_cycle() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN();
 
+  CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
 
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_list.front() == tracker_0_1);
 
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  
+  CPPUNIT_ASSERT(tracker_list.count_active() == 1 && tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
 
-// Test quick connect, few peers, request more...
-// - this needs a check to see if we're still requesting.
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
+  TEST_MULTIPLE_END(2, 1);
+}
 
+void
+tracker_controller_test::test_multiple_cycle_second_group() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN();
 
+  CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+
+  CPPUNIT_ASSERT(tracker_1_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_list[0] == tracker_0_0);
+  CPPUNIT_ASSERT(tracker_list[1] == tracker_0_1);
+  CPPUNIT_ASSERT(tracker_list[2] == tracker_1_0);
+  CPPUNIT_ASSERT(tracker_list[3] == tracker_2_0);
+  CPPUNIT_ASSERT(tracker_list[4] == tracker_3_0);
+
+  TEST_MULTIPLE_END(1, 2);
+}
+
+void
+tracker_controller_test::test_multiple_send_stop() {
+  TEST_MULTI3_BEGIN();
+
+  tracker_list.send_state_idx(1, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_state_idx(3, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_state_idx(4, torrent::Tracker::EVENT_NONE);
+
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_2_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_3_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
+
+  tracker_controller.send_stop_event();
+  CPPUNIT_ASSERT(tracker_list.count_active() == 3);
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_2_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_3_0->trigger_success());
+
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
+
+  // Test also that after closing the tracker controller, and
+  // reopening it a 'send stop' event causes no tracker to be busy.
+
+  TEST_MULTIPLE_END(6, 0);
+}
+
+void
+tracker_controller_test::test_multiple_requesting() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN();
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+
+  tracker_controller.start_requesting();
+
+  // Next timeout should be short...
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0); // 0 or 1?
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+
+  // Should be connecting again to... same tracker.
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  
+  // When adding multi-tracker requests; check that all trackers are
+  // requesting.
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_2_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_3_0->is_busy());
+
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+
+  // Consider adding
+
+  // Next timeout should be soon...
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 10); // 10 or what ever??...
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_2_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_3_0->is_busy());
+
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+
+  tracker_controller.stop_requesting();
+
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 600); // long re-connect timer...
+  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+
+  // Should have only one request...
+
+  TEST_MULTIPLE_END(3, 0);
+}
 
 // Add multiple trackers, with partial-promiscious mode that is actually
 // sequential. Test multiple stopped/completed to trackers based on who

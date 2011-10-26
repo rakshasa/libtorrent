@@ -99,6 +99,11 @@ TrackerList::clear() {
 }
 
 void
+TrackerList::clear_stats() {
+  std::for_each(begin(), end(), std::mem_fun(&Tracker::clear_stats));
+}
+
+void
 TrackerList::send_state(int new_event) {
   // Reset the target tracker since we're doing a new request.
   if (m_itr != end())
@@ -204,7 +209,7 @@ TrackerList::promote(iterator itr) {
   if (first == end())
     throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group.");
 
-  std::swap(first, itr);
+  std::swap(*first, *itr);
   return first;
 }
 
@@ -254,15 +259,15 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
 
   // Promote the tracker to the front of the group since it was
   // successfull.
-  m_itr = promote(itr);
+  itr = m_itr = promote(itr);
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
   LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
 
-  (*itr)->set_success_counter((*itr)->success_counter() + 1);
-  (*itr)->set_failed_counter(0);
+  tb->set_success_counter(tb->success_counter() + 1);
+  tb->set_failed_counter(0);
 
   set_time_last_connection(cachedTime.seconds());
   m_slot_success(tb, l);
@@ -272,12 +277,12 @@ void
 TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
   iterator itr = find(tb);
 
-  if (itr == end() || (*itr)->is_busy())
+  if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
   LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
-  (*itr)->set_failed_counter((*itr)->failed_counter() + 1);
+  tb->set_failed_counter(tb->failed_counter() + 1);
   m_slot_failed(tb, msg);
 }
 

@@ -67,8 +67,9 @@ public:
   virtual ~Tracker() {}
 
   virtual bool        is_busy() const = 0;
-  bool                is_enabled() const                    { return m_enabled; }
   virtual bool        is_usable() const                     { return m_enabled; }
+  bool                is_enabled() const                    { return m_enabled; }
+  bool                is_in_use() const                     { return m_enabled && m_success_counter != 0; }
 
   void                enable()                              { m_enabled = true; }
   void                disable()                             { m_enabled = false; }
@@ -110,6 +111,8 @@ protected:
 
   virtual void        send_state(int state) = 0;
   virtual void        close() = 0;
+
+  void                clear_stats() { m_success_counter = m_failed_counter = 0; }
 
   void                set_group(uint32_t v)                 { m_group = v; }
 

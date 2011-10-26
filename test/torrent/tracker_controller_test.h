@@ -4,6 +4,7 @@
 
 class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(tracker_controller_test);
+
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
   CPPUNIT_TEST(test_requesting);
@@ -19,6 +20,11 @@ class tracker_controller_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_multiple_success);
   CPPUNIT_TEST(test_multiple_failure);
+  CPPUNIT_TEST(test_multiple_cycle);
+  CPPUNIT_TEST(test_multiple_cycle_second_group);
+  CPPUNIT_TEST(test_multiple_send_stop);
+  CPPUNIT_TEST(test_multiple_requesting);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -41,6 +47,10 @@ public:
 
   void test_multiple_success();
   void test_multiple_failure();
+  void test_multiple_cycle();
+  void test_multiple_cycle_second_group();
+  void test_multiple_send_stop();
+  void test_multiple_requesting();
 
   //  void test_single_promiscuous();
 };

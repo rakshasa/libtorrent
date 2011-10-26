@@ -139,8 +139,11 @@ tracker_list_test::test_single_closing() {
   CPPUNIT_ASSERT(tracker_0->is_open());
 
   tracker_list.close_all();
+  tracker_list.clear_stats();
 
   CPPUNIT_ASSERT(!tracker_0->is_open());
+  CPPUNIT_ASSERT(tracker_0->success_counter() == 0);
+  CPPUNIT_ASSERT(tracker_0->failed_counter() == 0);
 }
 
 void

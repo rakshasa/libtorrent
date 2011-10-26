@@ -97,6 +97,7 @@ public:
 
   void                close_all();
   void                clear();
+  void                clear_stats();
 
   iterator            insert(unsigned int group, Tracker* t);
 

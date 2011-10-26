@@ -175,10 +175,13 @@ TrackerController::send_stop_event() {
   if (m_flags & flag_active && m_tracker_list->has_usable()) {
     LT_LOG_TRACKER(INFO, "Sending stopped event.", 0);
 
-    // Send to all trackers that would want to know.
-
     close();
-    m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STOPPED);
+    TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+
+    while (itr != m_tracker_list->end()) {
+      m_tracker_list->send_state_tracker(itr, Tracker::EVENT_STOPPED);
+      itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+    }
 
     // Timer...
 
@@ -303,28 +306,6 @@ TrackerController::receive_timeout() {
 
   if (m_slot_timeout)
     m_slot_timeout();
-}
-
-void
-TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
-  m_failed_requests = 0;
-
-  // if (<check if we have multiple trackers to send this event to, before we declare success>) {
-    m_flags &= ~mask_send;
-  // }
-
-  m_slot_success(l);
-}
-
-void
-TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
-  if (tb == NULL) {
-    LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
-    m_slot_failure(msg);
-    return;
-  }
-
-  m_slot_failure(msg);
 }
 
 void
