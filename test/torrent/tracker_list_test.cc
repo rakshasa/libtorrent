@@ -35,6 +35,7 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list) {
 
   m_busy = false;
   m_open = !m_close_on_done;
+  m_success_time_last = rak::timer::current().seconds();
   parent()->receive_success(this, address_list);
 
   m_requesting_state = 0;
@@ -48,6 +49,7 @@ TrackerTest::trigger_failure() {
 
   m_busy = false;
   m_open = !m_close_on_done;
+  m_failed_time_last = rak::timer::current().seconds();
   parent()->receive_failed(this, "failed");
   m_requesting_state = 0;
   return true;
@@ -137,8 +139,11 @@ tracker_list_test::test_single_closing() {
   CPPUNIT_ASSERT(tracker_0->is_open());
 
   tracker_list.close_all();
+  tracker_list.clear_stats();
 
   CPPUNIT_ASSERT(!tracker_0->is_open());
+  CPPUNIT_ASSERT(tracker_0->success_counter() == 0);
+  CPPUNIT_ASSERT(tracker_0->failed_counter() == 0);
 }
 
 void
@@ -232,6 +237,37 @@ tracker_list_test::test_has_active() {
 
   tracker_0_1->trigger_success();
   CPPUNIT_ASSERT(!tracker_list.has_active());
+}
+
+void
+tracker_list_test::test_count_active() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0_0);
+  TRACKER_INSERT(0, tracker_0_1);
+  TRACKER_INSERT(1, tracker_1_0);
+  TRACKER_INSERT(2, tracker_2_0);
+
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
+
+  tracker_list.send_state_idx(0, 1);
+  CPPUNIT_ASSERT(tracker_list.count_active() == 1);
+
+  tracker_list.send_state_idx(3, 1);
+  CPPUNIT_ASSERT(tracker_list.count_active() == 2);
+
+  tracker_list.send_state_idx(1, 1);
+  tracker_list.send_state_idx(2, 1);
+  CPPUNIT_ASSERT(tracker_list.count_active() == 4);
+
+  tracker_0_0->trigger_success();
+  CPPUNIT_ASSERT(tracker_list.count_active() == 3);
+  
+  tracker_0_1->trigger_success();
+  tracker_2_0->trigger_success();
+  CPPUNIT_ASSERT(tracker_list.count_active() == 1);
+  
+  tracker_1_0->trigger_success();
+  CPPUNIT_ASSERT(tracker_list.count_active() == 0);
 }
 
 // Add separate functions for sending state to multiple trackers...

@@ -175,10 +175,13 @@ TrackerController::send_stop_event() {
   if (m_flags & flag_active && m_tracker_list->has_usable()) {
     LT_LOG_TRACKER(INFO, "Sending stopped event.", 0);
 
-    // Send to all trackers that would want to know.
-
     close();
-    m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STOPPED);
+    TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+
+    while (itr != m_tracker_list->end()) {
+      m_tracker_list->send_state_tracker(itr, Tracker::EVENT_STOPPED);
+      itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+    }
 
     // Timer...
 
@@ -203,7 +206,12 @@ TrackerController::send_completed_event() {
     // Send to all trackers that would want to know.
 
     close();
-    m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_COMPLETED);
+    TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+
+    while (itr != m_tracker_list->end()) {
+      m_tracker_list->send_state_tracker(itr, Tracker::EVENT_COMPLETED);
+      itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+    }
 
     // Timer...
 
@@ -254,11 +262,22 @@ TrackerController::disable() {
 void
 TrackerController::start_requesting() {
   m_flags |= flag_requesting;
+
+  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  priority_queue_insert(&taskScheduler, &m_private->task_timeout, cachedTime);
 }
 
 void
 TrackerController::stop_requesting() {
   m_flags &= ~flag_requesting;
+
+  // Should check if timeout is set?
+  if (!m_tracker_list->has_active() && m_tracker_list->has_usable()) {
+    priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+    priority_queue_insert(&taskScheduler, &m_private->task_timeout,
+                          // Improve this...
+                          cachedTime + rak::timer::from_seconds((*m_tracker_list->find_usable(m_tracker_list->begin()))->normal_interval()).round_seconds());
+  }
 }
 
 void
@@ -286,33 +305,26 @@ TrackerController::receive_timeout() {
     send_state = Tracker::EVENT_NONE;
   }
 
-  // Currently support only one tracker...
-  m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), send_state);
+  // Find the next tracker to try...
+  TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
+
+  if (itr != m_tracker_list->end()) {
+    TrackerList::iterator preferred = itr;
+
+    while (++itr != m_tracker_list->end()) {
+      if (!(*itr)->is_usable())
+        continue;
+
+      if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
+          (*itr)->failed_time_last() < (*preferred)->failed_time_last())
+        preferred = itr;
+    }
+
+    m_tracker_list->send_state_tracker(preferred, send_state);
+  }
 
   if (m_slot_timeout)
     m_slot_timeout();
-}
-
-void
-TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
-  m_failed_requests = 0;
-
-  // if (<check if we have multiple trackers to send this event to, before we declare success>) {
-    m_flags &= ~mask_send;
-  // }
-
-  m_slot_success(l);
-}
-
-void
-TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
-  if (tb == NULL) {
-    LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
-    m_slot_failure(msg);
-    return;
-  }
-
-  m_slot_failure(msg);
 }
 
 void
@@ -332,6 +344,11 @@ TrackerController::receive_success_new(Tracker* tb, TrackerController::address_l
 
   // For the moment, just use the last tracker...
   unsigned int next_request = tb->normal_interval();
+
+  // Also make this check how many new peers we got, and how often
+  // we've reconnected this time.
+  if (m_flags & flag_requesting)
+    next_request = 30;
 
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
   priority_queue_insert(&taskScheduler, &m_private->task_timeout,
@@ -354,6 +371,8 @@ TrackerController::receive_failure_new(Tracker* tb, const std::string& msg) {
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
   priority_queue_insert(&taskScheduler, &m_private->task_timeout,
                         (cachedTime + rak::timer::from_seconds(next_request)).round_seconds());
+
+  m_flags |= flag_failure_mode;
 
   m_slot_failure(msg);
 }

@@ -81,6 +81,12 @@ TrackerList::has_usable() const {
   return std::find_if(begin(), end(), tracker_usable_t()) != end();
 }
 
+unsigned int
+TrackerList::count_active() const {
+  return std::count_if(begin(), end(), std::mem_fun(&Tracker::is_busy));
+}
+
+
 void
 TrackerList::close_all() {
   std::for_each(begin(), end(), std::mem_fun(&Tracker::close));
@@ -90,6 +96,11 @@ void
 TrackerList::clear() {
   std::for_each(begin(), end(), rak::call_delete<Tracker>());
   base_type::clear();
+}
+
+void
+TrackerList::clear_stats() {
+  std::for_each(begin(), end(), std::mem_fun(&Tracker::clear_stats));
 }
 
 void
@@ -134,7 +145,7 @@ TrackerList::send_state_tracker(iterator itr, int new_event) {
 
   LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
                  option_as_string(OPTION_TRACKER_EVENT, new_event),
-                 (*m_itr)->group(), (*m_itr)->url().c_str());
+                 (*itr)->group(), (*itr)->url().c_str());
 }
 
 TrackerList::iterator
@@ -198,7 +209,7 @@ TrackerList::promote(iterator itr) {
   if (first == end())
     throw internal_error("torrent::TrackerList::promote(...) Could not find beginning of group.");
 
-  std::swap(first, itr);
+  std::swap(*first, *itr);
   return first;
 }
 
@@ -248,15 +259,15 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
 
   // Promote the tracker to the front of the group since it was
   // successfull.
-  m_itr = promote(itr);
+  itr = m_itr = promote(itr);
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
   LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
 
-  (*itr)->set_success_counter((*itr)->success_counter() + 1);
-  (*itr)->set_failed_counter(0);
+  tb->set_success_counter(tb->success_counter() + 1);
+  tb->set_failed_counter(0);
 
   set_time_last_connection(cachedTime.seconds());
   m_slot_success(tb, l);
@@ -266,12 +277,12 @@ void
 TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
   iterator itr = find(tb);
 
-  if (itr == end() || (*itr)->is_busy())
+  if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
   LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
-  (*itr)->set_failed_counter((*itr)->failed_counter() + 1);
+  tb->set_failed_counter(tb->failed_counter() + 1);
   m_slot_failed(tb, msg);
 }
 

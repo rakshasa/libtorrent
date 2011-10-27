@@ -55,19 +55,9 @@ class TrackerList;
 
 class TrackerManager {
 public:
-  typedef uint32_t                                size_type;
-  typedef Tracker*                                value_type;
-
-  typedef std::tr1::function<void (const std::string&)> slot_string;
-  typedef std::tr1::function<void (AddressList*)>       slot_address_list;
-
   TrackerManager();
   ~TrackerManager();
 
-  // 3...
-  void                send_start();
-  void                send_stop();
-  void                send_completed();
   void                send_later();
 
   // Request more peers from current, or the next tracker on the
@@ -82,14 +72,6 @@ public:
   TrackerController*  tracker_controller()                      { return m_tracker_controller; }
   TrackerList*        container()                               { return m_tracker_list; }
 
-  uint32_t            num_requests() const                      { return m_numRequests; }
-
-  slot_address_list&  slot_success()        { return m_slot_success; }
-  slot_string&        slot_failure()        { return m_slot_failure; }
-
-  void                receive_success(AddressList* l);
-  void                receive_failed(const std::string& msg);
-
 private:
   TrackerManager(const TrackerManager&);
   void operator = (const TrackerManager&);
@@ -98,14 +80,6 @@ private:
 
   TrackerController*  m_tracker_controller;
   TrackerList*        m_tracker_list;
-
-  slot_address_list   m_slot_success;
-  slot_string         m_slot_failure;
-
-  uint32_t            m_numRequests;
-  uint32_t            m_maxRequests;
-
-  uint32_t            m_initialTracker;
 };
 
 }

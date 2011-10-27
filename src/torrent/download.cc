@@ -152,7 +152,7 @@ Download::start(int flags) {
     // stay stuck.
     m_ptr->main()->tracker_manager()->send_later();
   else
-    m_ptr->main()->tracker_manager()->send_start();
+    m_ptr->main()->tracker_manager()->tracker_controller()->send_start_event();
 }
 
 void
@@ -164,7 +164,7 @@ Download::stop(int flags) {
   m_ptr->main()->tracker_manager()->tracker_controller()->disable();
 
   if (!(flags & stop_skip_tracker))
-    m_ptr->main()->tracker_manager()->send_stop();
+    m_ptr->main()->tracker_manager()->tracker_controller()->send_stop_event();
 }
 
 bool
@@ -453,7 +453,7 @@ Download::set_download_throttle(Throttle* t) {
   
 void
 Download::send_completed() {
-  m_ptr->main()->tracker_manager()->send_completed();
+  m_ptr->main()->tracker_manager()->tracker_controller()->send_completed_event();
 }
 
 void
