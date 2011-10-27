@@ -74,7 +74,8 @@ TrackerManager::send_later() {
     return;
 
   if (m_tracker_list->state() == DownloadInfo::STOPPED)
-    throw internal_error("TrackerManager::send_later() m_tracker_list->set() == DownloadInfo::STOPPED.");
+    //throw internal_error("TrackerManager::send_later() m_tracker_list->set() == DownloadInfo::STOPPED.");
+    return;
 
   rak::timer t(std::max(cachedTime + rak::timer::from_seconds(2),
                         rak::timer::from_seconds(m_tracker_list->time_last_connection() + m_tracker_list->focus_min_interval())));
