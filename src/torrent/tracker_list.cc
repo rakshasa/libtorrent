@@ -43,7 +43,6 @@
 #include "torrent/utils/option_strings.h"
 #include "torrent/download_info.h"
 #include "net/address_list.h"
-#include "tracker/tracker_manager.h"
 
 #include "globals.h"
 #include "exceptions.h"

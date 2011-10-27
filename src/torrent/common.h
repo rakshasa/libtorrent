@@ -96,7 +96,6 @@ class SocketSet;
 class Throttle;
 class Tracker;
 class TrackerList;
-class TrackerManager;
 class TransferList;
 
 // This should only need to be set when compiling libtorrent.

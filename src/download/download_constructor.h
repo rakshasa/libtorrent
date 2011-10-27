@@ -46,7 +46,6 @@ namespace torrent {
 class Object;
 class Content;
 class DownloadWrapper;
-class TrackerManager;
 class Path;
 
 typedef std::list<std::string> EncodingList;

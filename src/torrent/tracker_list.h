@@ -49,7 +49,6 @@ class AddressList;
 class DownloadInfo;
 class DownloadWrapper;
 class Tracker;
-class TrackerManager;
 
 // The tracker list will contain a list of tracker, divided into
 // subgroups. Each group must be randomized before we start. When
@@ -61,7 +60,6 @@ class TrackerManager;
 class LIBTORRENT_EXPORT TrackerList : private std::vector<Tracker*> {
 public:
   friend class DownloadWrapper;
-  friend class TrackerManager;
 
   typedef std::vector<Tracker*> base_type;
   typedef AddressList           address_list;

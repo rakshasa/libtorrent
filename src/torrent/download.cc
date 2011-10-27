@@ -55,12 +55,13 @@
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
 #include "peer/peer_info.h"
-#include "tracker/tracker_manager.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
 #include "torrent/download_info.h"
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
+#include "torrent/tracker_controller.h"
+#include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 
 #include "exceptions.h"
@@ -133,7 +134,7 @@ Download::start(int flags) {
   }
 
   m_ptr->main()->start();
-  m_ptr->main()->tracker_manager()->tracker_controller()->enable();
+  m_ptr->main()->tracker_controller()->enable();
 
   // Reset the uploaded/download baseline when we restart the download
   // so that broken trackers get the right uploaded ratio.
@@ -147,7 +148,7 @@ Download::start(int flags) {
   }
 
   if (!(flags & start_skip_tracker))
-    m_ptr->main()->tracker_manager()->tracker_controller()->send_start_event();
+    m_ptr->main()->tracker_controller()->send_start_event();
 }
 
 void
@@ -156,10 +157,10 @@ Download::stop(int flags) {
     return;
 
   m_ptr->main()->stop();
-  m_ptr->main()->tracker_manager()->tracker_controller()->disable();
+  m_ptr->main()->tracker_controller()->disable();
 
   if (!(flags & stop_skip_tracker))
-    m_ptr->main()->tracker_manager()->tracker_controller()->send_stop_event();
+    m_ptr->main()->tracker_controller()->send_stop_event();
 }
 
 bool
@@ -236,12 +237,12 @@ Download::file_list() const {
 
 TrackerController*
 Download::tracker_controller() const {
-  return m_ptr->main()->tracker_manager()->tracker_controller();
+  return m_ptr->main()->tracker_controller();
 }
 
 TrackerList*
 Download::tracker_list() const {
-  return m_ptr->main()->tracker_manager()->container();
+  return m_ptr->main()->tracker_list();
 }
 
 PeerList*
@@ -448,17 +449,17 @@ Download::set_download_throttle(Throttle* t) {
   
 void
 Download::send_completed() {
-  m_ptr->main()->tracker_manager()->tracker_controller()->send_completed_event();
+  m_ptr->main()->tracker_controller()->send_completed_event();
 }
 
 void
 Download::manual_request(bool force) {
-  m_ptr->main()->tracker_manager()->tracker_controller()->manual_request(force);
+  m_ptr->main()->tracker_controller()->manual_request(force);
 }
 
 void
 Download::manual_cancel() {
-  m_ptr->main()->tracker_manager()->tracker_controller()->close();
+  m_ptr->main()->tracker_controller()->close();
 }
 
 // DEPRECATE

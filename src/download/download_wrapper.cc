@@ -54,7 +54,8 @@
 #include "torrent/data/file_manager.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/connection_list.h"
-#include "tracker/tracker_manager.h"
+#include "torrent/tracker_controller.h"
+#include "torrent/tracker_list.h"
 
 #include "available_list.h"
 #include "chunk_selector.h"
@@ -74,9 +75,9 @@ DownloadWrapper::DownloadWrapper() :
 
   m_main->delay_download_done().set_slot(rak::mem_fn(data(), &download_data::call_download_done));
 
-  m_main->tracker_manager()->container()->set_info(info());
-  m_main->tracker_manager()->tracker_controller()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
-  m_main->tracker_manager()->tracker_controller()->slot_failure() = std::bind(&DownloadWrapper::receive_tracker_failed, this, std::placeholders::_1);
+  m_main->tracker_list()->set_info(info());
+  m_main->tracker_controller()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
+  m_main->tracker_controller()->slot_failure() = std::bind(&DownloadWrapper::receive_tracker_failed, this, std::placeholders::_1);
 
   m_main->chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 }
@@ -90,7 +91,7 @@ DownloadWrapper::~DownloadWrapper() {
 
   // If the client wants to do a quick cleanup after calling close, it
   // will need to manually cancel the tracker requests.
-  m_main->tracker_manager()->tracker_controller()->close();
+  m_main->tracker_controller()->close();
 
   delete m_hashChecker;
   delete m_bencode;
@@ -145,7 +146,7 @@ DownloadWrapper::close() {
 
 bool
 DownloadWrapper::is_stopped() const {
-  return !m_main->tracker_manager()->tracker_controller()->is_active() && m_main->tracker_manager()->container()->has_active();
+  return !m_main->tracker_controller()->is_active() && m_main->tracker_list()->has_active();
 }
 
 void
@@ -243,8 +244,8 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
   m_main->stop();
   close();
 
-  m_main->tracker_manager()->tracker_controller()->disable();
-  m_main->tracker_manager()->tracker_controller()->close();
+  m_main->tracker_controller()->disable();
+  m_main->tracker_controller()->close();
 
   info()->signal_storage_error().emit(str);
 }

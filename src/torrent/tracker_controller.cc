@@ -44,7 +44,6 @@
 #include "utils/log.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
-#include "tracker/tracker_manager.h"
 #include "tracker/tracker_udp.h"
 
 #include "globals.h"

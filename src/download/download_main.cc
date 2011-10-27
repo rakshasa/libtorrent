@@ -45,7 +45,6 @@
 #include "protocol/initial_seed.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
-#include "tracker/tracker_manager.h"
 #include "torrent/download.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
@@ -56,6 +55,8 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/tracker_controller.h"
+#include "torrent/tracker_list.h"
 
 #include "available_list.h"
 #include "chunk_selector.h"
@@ -90,7 +91,6 @@ DownloadInfo::DownloadInfo() :
 DownloadMain::DownloadMain() :
   m_info(new DownloadInfo),
 
-  m_trackerManager(new TrackerManager()),
   m_choke_group(NULL),
   m_chunkList(new ChunkList),
   m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
@@ -99,6 +99,12 @@ DownloadMain::DownloadMain() :
   m_initialSeeding(NULL),
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
+
+  m_tracker_list = new TrackerList();
+  m_tracker_controller = new TrackerController(m_tracker_list);
+
+  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success_new, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure_new, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
 
   m_connectionList = new ConnectionList(this);
 
@@ -123,11 +129,13 @@ DownloadMain::~DownloadMain() {
 
   // Check if needed.
   m_connectionList->clear();
+  m_tracker_list->clear();
 
   if (m_info->size_pex() != 0)
     throw internal_error("DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
 
-  delete m_trackerManager;
+  delete m_tracker_controller;
+  delete m_tracker_list;
   delete m_connectionList;
 
   delete m_chunkStatistics;
