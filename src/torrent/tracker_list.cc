@@ -145,7 +145,7 @@ TrackerList::send_state_tracker(iterator itr, int new_event) {
 
   LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
                  option_as_string(OPTION_TRACKER_EVENT, new_event),
-                 (*m_itr)->group(), (*m_itr)->url().c_str());
+                 (*itr)->group(), (*itr)->url().c_str());
 }
 
 TrackerList::iterator
