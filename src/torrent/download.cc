@@ -146,12 +146,7 @@ Download::start(int flags) {
                       info->uploaded_baseline(), info->completed_baseline());
   }
 
-  // TODO: Fixme when redoing tracker...
-  if (flags & start_skip_tracker)
-    // If tracker_manager isn't active and nothing is sent, it will
-    // stay stuck.
-    m_ptr->main()->tracker_manager()->send_later();
-  else
+  if (!(flags & start_skip_tracker))
     m_ptr->main()->tracker_manager()->tracker_controller()->send_start_event();
 }
 
@@ -458,7 +453,7 @@ Download::send_completed() {
 
 void
 Download::manual_request(bool force) {
-  m_ptr->main()->tracker_manager()->manual_request(force);
+  m_ptr->main()->tracker_manager()->tracker_controller()->manual_request(force);
 }
 
 void

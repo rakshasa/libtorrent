@@ -117,6 +117,24 @@ TrackerController::insert(int group, const std::string& url) {
   m_tracker_list->insert(group, tracker);
 }
 
+
+void
+TrackerController::manual_request(bool request_now) {
+  if (!m_private->task_timeout.is_queued())
+    return;
+
+  rak::timer t(cachedTime + rak::timer::from_seconds(2));
+  
+  // Add functions to get the lowest timeout, etc...
+
+  // if (!force)
+  //   t = std::max(t, rak::timer::from_seconds(m_tracker_list->time_last_connection() + m_tracker_list->focus_min_interval()));
+
+  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  priority_queue_insert(&taskScheduler, &m_private->task_timeout, t.round_seconds());
+}
+
+
 // The send_*_event() functions tries to ensure the relevant trackers
 // receive the event.
 //
@@ -261,6 +279,9 @@ TrackerController::disable() {
 
 void
 TrackerController::start_requesting() {
+  if ((m_flags & flag_requesting))
+    return;
+
   m_flags |= flag_requesting;
 
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
@@ -269,6 +290,9 @@ TrackerController::start_requesting() {
 
 void
 TrackerController::stop_requesting() {
+  if (!(m_flags & flag_requesting))
+    return;
+
   m_flags &= ~flag_requesting;
 
   // Should check if timeout is set?

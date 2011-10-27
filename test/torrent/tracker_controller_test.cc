@@ -392,7 +392,9 @@ tracker_controller_test::test_multiple_requesting() {
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
-  // Consider adding
+  // TODO: Change this so that requesting state results in tracker
+  // requests from many peers. Also, add a limit so we don't keep
+  // requesting from spent trackers.
 
   // Next timeout should be soon...
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 30);
@@ -415,7 +417,6 @@ tracker_controller_test::test_multiple_requesting() {
 // Add multiple trackers, with partial-promiscious mode that is actually
 // sequential. Test multiple stopped/completed to trackers based on who
 // knows we're running.
-
 
 
 // Test send_* with controller not enabled.

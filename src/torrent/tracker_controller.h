@@ -85,6 +85,8 @@ public:
 
   void                insert(int group, const std::string& url);
 
+  void                manual_request(bool request_now);
+
   //protected:
   void                send_start_event();
   void                send_stop_event();

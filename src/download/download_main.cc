@@ -346,10 +346,10 @@ DownloadMain::receive_tracker_request() {
   if (connection_list()->size() >= connection_list()->min_size())
     return;
 
-  if (m_info->is_pex_enabled() || connection_list()->size() < m_lastConnectedSize + 10)
-    m_trackerManager->request_next();
-  else if (!m_trackerManager->request_current())
-    m_trackerManager->request_next();
+  // if (m_info->is_pex_enabled() || connection_list()->size() < m_lastConnectedSize + 10)
+  //   m_trackerManager->request_next();
+  // else if (!m_trackerManager->request_current())
+  //   m_trackerManager->request_next();
 
   m_lastConnectedSize = connection_list()->size();
 }
