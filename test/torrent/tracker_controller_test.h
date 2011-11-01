@@ -25,7 +25,8 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_multiple_send_stop);
 
   CPPUNIT_TEST(test_multiple_requesting);
-  CPPUNIT_TEST(test_multiple_promiscious);
+  CPPUNIT_TEST(test_multiple_promiscious_timeout);
+  CPPUNIT_TEST(test_multiple_promiscious_failed);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -54,5 +55,6 @@ public:
   void test_multiple_send_stop();
 
   void test_multiple_requesting();
-  void test_multiple_promiscious();
+  void test_multiple_promiscious_timeout();
+  void test_multiple_promiscious_failed();
 };

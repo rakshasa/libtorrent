@@ -66,6 +66,15 @@ TrackerController::update_timeout(uint32_t seconds_to_next) {
                         (cachedTime + rak::timer::from_seconds(seconds_to_next)).round_seconds());
 }
 
+inline int
+TrackerController::current_send_state() const {
+  switch ((m_flags & mask_send)) {
+  case flag_send_start:     return Tracker::EVENT_STARTED;
+  case flag_send_stop:      return Tracker::EVENT_STOPPED;
+  case flag_send_completed: return Tracker::EVENT_COMPLETED;
+  default:                  return Tracker::EVENT_NONE;
+  }
+}
 
 TrackerController::TrackerController(TrackerList* trackers) :
   m_flags(0),
@@ -336,18 +345,7 @@ TrackerController::receive_timeout() {
   // the timeout for? Seems reasonable, as that allows us to do
   // iteration through multiple trackers.
 
-  int send_state;
-
-  if ((m_flags & flag_send_start)) {
-    send_state = Tracker::EVENT_STARTED;
-  } else if ((m_flags & flag_send_stop)) {
-    send_state = Tracker::EVENT_STOPPED;;
-  } else if ((m_flags & flag_send_completed)) {
-    send_state = Tracker::EVENT_COMPLETED;
-  } else {
-    send_state = Tracker::EVENT_NONE;
-  }
-
+  int send_state = current_send_state();
   TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
 
   if (itr == m_tracker_list->end()) {
@@ -427,10 +425,30 @@ TrackerController::receive_failure_new(Tracker* tb, const std::string& msg) {
     return;
   }
 
+  m_flags |= flag_failure_mode;
+
+  if ((m_flags & flag_promiscuous_mode)) {
+    int send_state = current_send_state();
+    TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
+
+    for (; itr != m_tracker_list->end(); itr++) {
+      // The first time a tracker failes during promiscious requests
+      // we send to all trackers.
+      if ((*itr)->is_busy() || !(*itr)->is_usable() || (*itr)->failed_counter() != 0)
+        continue;
+
+      m_tracker_list->send_state_tracker(itr, send_state);
+    }
+
+    if (m_tracker_list->has_active()) {
+      priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+      m_slot_failure(msg);
+      return;
+    }
+  }
+
   // For the moment, just use the last tracker...
   unsigned int next_request = 5 << std::min<int>(tb->failed_counter() - 1, 6);
-
-  m_flags |= flag_failure_mode;
 
   update_timeout(next_request);
   m_slot_failure(msg);

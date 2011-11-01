@@ -381,9 +381,6 @@ tracker_controller_test::test_multiple_requesting() {
 
   // Should be connecting again to... same tracker.
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
-  
-  // When adding multi-tracker requests; check that all trackers are
-  // requesting.
   CPPUNIT_ASSERT(!tracker_0_1->is_busy());
   CPPUNIT_ASSERT(!tracker_1_0->is_busy());
   CPPUNIT_ASSERT(!tracker_2_0->is_busy());
@@ -412,14 +409,8 @@ tracker_controller_test::test_multiple_requesting() {
   TEST_MULTIPLE_END(3, 0);
 }
 
-// Add multiple trackers, with partial-promiscious mode that is actually
-// sequential. Test multiple stopped/completed to trackers based on who
-// knows we're running.
-
-// Make sequential requesting work before moving to promiscious mode
-// support.
 void
-tracker_controller_test::test_multiple_promiscious() {
+tracker_controller_test::test_multiple_promiscious_timeout() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
@@ -434,6 +425,8 @@ tracker_controller_test::test_multiple_promiscious() {
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+  CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
+
   CPPUNIT_ASSERT(tracker_0_1->trigger_success());
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
   CPPUNIT_ASSERT(tracker_2_0->trigger_success());
@@ -444,6 +437,42 @@ tracker_controller_test::test_multiple_promiscious() {
 
   TEST_MULTIPLE_END(5, 0);
 }
+
+// Fix failure event handler so that it properly handles multi-request
+// situations. This includes fixing old tests.
+
+void
+tracker_controller_test::test_multiple_promiscious_failed() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(start);
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+  CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(tracker_2_0->is_busy());
+  CPPUNIT_ASSERT(tracker_3_0->is_busy());
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  TEST_MULTIPLE_END(0, 1);
+}
+
+// Add tests for when we fail multiple tracker requests, to ensure
+// that that we aren't requesting from all the other trackers
+// prematurely.
+
+
+// Trackers should be trying to request from failed trackers, even if
+// the others are active? A normal timeout would suffice to allow
+// those trackers a chance to reply.
+
+
+// The use of ++itr in various while loops makes an assumption that
+// we're always skipping the first tracker, which isn't the case.
+
 
 // Clear the others of comments assuming promiscious mode would go
 // beyond the started message? (Or we want to go promiscious also for
