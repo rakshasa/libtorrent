@@ -58,12 +58,14 @@ public:
   typedef std::tr1::function<void (const std::string&)> slot_string;
   typedef std::tr1::function<void (AddressList*)>       slot_address_list;
 
-  static const int flag_active = 0x1;
-  static const int flag_requesting = 0x2;
-  static const int flag_send_start = 0x4;
-  static const int flag_send_stop = 0x8;
-  static const int flag_send_completed = 0x10;
-  static const int flag_failure_mode = 0x20;
+  static const int flag_active           = 0x1;
+  static const int flag_requesting       = 0x2;
+  static const int flag_send_start       = 0x10;
+  static const int flag_send_stop        = 0x20;
+  static const int flag_send_completed   = 0x40;
+  static const int flag_send_update      = 0x0; // Fake flag, don't use.
+  static const int flag_failure_mode     = 0x100;
+  static const int flag_promiscuous_mode = 0x200;
 
   static const int mask_send = flag_send_start | flag_send_stop | flag_send_completed;
 
@@ -91,6 +93,7 @@ public:
   void                send_start_event();
   void                send_stop_event();
   void                send_completed_event();
+  void                send_update_event();
 
   void                close();
 
@@ -114,6 +117,8 @@ public:
 
 private:
   void                receive_timeout();
+
+  inline void         update_timeout(uint32_t seconds_to_next);
 
   TrackerController();
   void operator = (const TrackerController&);

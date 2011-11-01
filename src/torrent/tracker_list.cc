@@ -85,6 +85,10 @@ TrackerList::count_active() const {
   return std::count_if(begin(), end(), std::mem_fun(&Tracker::is_busy));
 }
 
+unsigned int
+TrackerList::count_usable() const {
+  return std::count_if(begin(), end(), tracker_usable_t());
+}
 
 void
 TrackerList::close_all() {
@@ -134,10 +138,7 @@ TrackerList::send_state_idx(unsigned idx, int new_event) {
 
 void
 TrackerList::send_state_tracker(iterator itr, int new_event) {
-  if (itr == end())
-    throw internal_error("TrackerList::send_state_tracker(...) got itr == end().");
-
-  if (!(*itr)->is_usable())
+  if (itr == end() || !(*itr)->is_usable())
     return;
 
   (*itr)->send_state(new_event);

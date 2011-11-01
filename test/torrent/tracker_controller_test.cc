@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <iostream>
 #include <torrent/tracker_controller.h>
 
 #include "rak/priority_queue_default.h"
@@ -44,10 +45,10 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
                  failure_counter == failure_counter);
 
-#define TEST_SEND_SINGLE_BEGIN()                                        \
-  tracker_controller.send_start_event();                                \
+#define TEST_SEND_SINGLE_BEGIN(event_name)                              \
+  tracker_controller.send_##event_name##_event();                       \
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == \
-                 torrent::TrackerController::flag_send_start);          \
+                 torrent::TrackerController::flag_send_##event_name);   \
                                                                         \
   CPPUNIT_ASSERT(tracker_controller.is_active());                       \
   CPPUNIT_ASSERT(tracker_controller.tracker_list()->count_active() == 1);
@@ -85,6 +86,7 @@ static void increment_value(int* value) { (*value)++; }
 void
 tracker_controller_test::setUp() {
   torrent::cachedTime = rak::timer::current();
+  //  torrent::cachedTime = rak::timer::current().round_seconds();
 }
 
 void
@@ -188,7 +190,7 @@ tracker_controller_test::test_single_disable() {
 void
 tracker_controller_test::test_send_start() {
   TEST_SINGLE_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(start);
 
   // We might want some different types of timeouts... Move these test to a promicious unit test...
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
@@ -209,7 +211,7 @@ tracker_controller_test::test_send_start() {
 void
 tracker_controller_test::test_send_stop_normal() {
   TEST_SINGLE_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
@@ -231,7 +233,7 @@ tracker_controller_test::test_send_stop_normal() {
 void
 tracker_controller_test::test_send_completed_normal() {
   TEST_SINGLE_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
@@ -251,7 +253,7 @@ tracker_controller_test::test_send_completed_normal() {
 void
 tracker_controller_test::test_multiple_success() {
   TEST_MULTI3_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
   TEST_GOTO_NEXT_TIMEOUT(tracker_0_0->normal_interval());
@@ -273,11 +275,11 @@ tracker_controller_test::test_multiple_success() {
 void
 tracker_controller_test::test_multiple_failure() {
   TEST_MULTI3_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
   
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(5);
 
   // Verify that the retry timer is _fast_ when the next tracker has
   // no failed counter.
@@ -286,7 +288,7 @@ tracker_controller_test::test_multiple_failure() {
   CPPUNIT_ASSERT(tracker_0_1->is_busy());
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
 
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(5);
   
   CPPUNIT_ASSERT(tracker_list.count_active() == 1 && tracker_1_0->is_busy());
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
@@ -300,15 +302,15 @@ tracker_controller_test::test_multiple_failure() {
 void
 tracker_controller_test::test_multiple_cycle() {
   TEST_MULTI3_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(5);
 
   CPPUNIT_ASSERT(tracker_0_1->trigger_success());
   CPPUNIT_ASSERT(tracker_list.front() == tracker_0_1);
 
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(tracker_0_1->normal_interval());
   
   CPPUNIT_ASSERT(tracker_list.count_active() == 1 && tracker_0_1->is_busy());
   CPPUNIT_ASSERT(tracker_0_1->trigger_success());
@@ -320,12 +322,12 @@ tracker_controller_test::test_multiple_cycle() {
 void
 tracker_controller_test::test_multiple_cycle_second_group() {
   TEST_MULTI3_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(5);
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(5);
 
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
   CPPUNIT_ASSERT(tracker_list[0] == tracker_0_0);
@@ -370,15 +372,12 @@ tracker_controller_test::test_multiple_send_stop() {
 void
 tracker_controller_test::test_multiple_requesting() {
   TEST_MULTI3_BEGIN();
-  TEST_SEND_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   tracker_controller.start_requesting();
-
-  // Next timeout should be short...
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(0);
 
   // Should be connecting again to... same tracker.
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
@@ -397,8 +396,7 @@ tracker_controller_test::test_multiple_requesting() {
   // requesting from spent trackers.
 
   // Next timeout should be soon...
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 30);
-  TEST_GOTO_NEXT_TIMEOUT(tracker_controller.seconds_to_next_timeout());
+  TEST_GOTO_NEXT_TIMEOUT(30);
 
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0_1->is_busy());
@@ -418,6 +416,45 @@ tracker_controller_test::test_multiple_requesting() {
 // sequential. Test multiple stopped/completed to trackers based on who
 // knows we're running.
 
+// Make sequential requesting work before moving to promiscious mode
+// support.
+void
+tracker_controller_test::test_multiple_promiscious() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(start);
+
+  TEST_GOTO_NEXT_TIMEOUT(3);
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(tracker_2_0->is_busy());
+  CPPUNIT_ASSERT(tracker_3_0->is_busy());
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_1_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_2_0->trigger_success());
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  CPPUNIT_ASSERT(tracker_3_0->trigger_success());
+  TEST_GOTO_NEXT_TIMEOUT(tracker_0_0->normal_interval());
+
+  TEST_MULTIPLE_END(5, 0);
+}
+
+// Clear the others of comments assuming promiscious mode would go
+// beyond the started message? (Or we want to go promiscious also for
+// requesting?)
+
+
+// Add test for promiscious mode while with a single tracker?
+
+// !!! Add check that timer is not on when all trackers are busy, and
+// clear timer when calling send_*, etc.
+
 
 // Test send_* with controller not enabled.
 
@@ -431,3 +468,6 @@ tracker_controller_test::test_multiple_requesting() {
 //   - Calculate the next timeout according to a list of in-use trackers, with the first timeout as the interval.
 
 // Test clearing of recv/failed counter on trackers.
+
+// Test tracker send timeouts when we go from no usable to one or more
+// usable trackers.

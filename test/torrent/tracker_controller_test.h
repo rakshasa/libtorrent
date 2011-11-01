@@ -23,7 +23,9 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_multiple_cycle);
   CPPUNIT_TEST(test_multiple_cycle_second_group);
   CPPUNIT_TEST(test_multiple_send_stop);
+
   CPPUNIT_TEST(test_multiple_requesting);
+  CPPUNIT_TEST(test_multiple_promiscious);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -50,7 +52,7 @@ public:
   void test_multiple_cycle();
   void test_multiple_cycle_second_group();
   void test_multiple_send_stop();
-  void test_multiple_requesting();
 
-  //  void test_single_promiscuous();
+  void test_multiple_requesting();
+  void test_multiple_promiscious();
 };
