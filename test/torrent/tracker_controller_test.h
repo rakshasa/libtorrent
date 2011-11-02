@@ -17,6 +17,7 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_send_start);
   CPPUNIT_TEST(test_send_stop_normal);
   CPPUNIT_TEST(test_send_completed_normal);
+  CPPUNIT_TEST(test_send_task_timeout);
 
   CPPUNIT_TEST(test_multiple_success);
   CPPUNIT_TEST(test_multiple_failure);
@@ -47,6 +48,7 @@ public:
   void test_send_start();
   void test_send_stop_normal();
   void test_send_completed_normal();
+  void test_send_task_timeout();
 
   void test_multiple_success();
   void test_multiple_failure();

@@ -25,8 +25,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   tracker_controller.slot_failure() = std::bind(&increment_value, &failure_counter); \
   tracker_controller.slot_timeout() = std::bind(&increment_value, &timeout_counter); \
                                                                         \
-  tracker_list.slot_success() = std::bind(&torrent::TrackerController::receive_success_new, &tracker_controller, std::placeholders::_1, std::placeholders::_2); \
-  tracker_list.slot_failure() = std::bind(&torrent::TrackerController::receive_failure_new, &tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  tracker_list.slot_success() = std::bind(&torrent::TrackerController::receive_success, &tracker_controller, std::placeholders::_1, std::placeholders::_2); \
+  tracker_list.slot_failure() = std::bind(&torrent::TrackerController::receive_failure, &tracker_controller, std::placeholders::_1, std::placeholders::_2);
 
 #define TRACKER_INSERT(group, name)                             \
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \
@@ -192,6 +192,8 @@ tracker_controller_test::test_send_start() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
   // We might want some different types of timeouts... Move these test to a promicious unit test...
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
   //CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() != 0);
@@ -213,6 +215,7 @@ tracker_controller_test::test_send_stop_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   tracker_controller.send_stop_event();
@@ -235,6 +238,7 @@ tracker_controller_test::test_send_completed_normal() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
 
   tracker_controller.send_completed_event();
@@ -248,6 +252,16 @@ tracker_controller_test::test_send_completed_normal() {
 
   // Add a slot for stopped events done.
   TEST_SEND_SINGLE_END(2, 0);
+}
+
+void
+tracker_controller_test::test_send_task_timeout() {
+  TEST_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  TEST_SEND_SINGLE_END(0, 0);
 }
 
 void
@@ -476,15 +490,16 @@ tracker_controller_test::test_multiple_promiscious_failed() {
   TEST_MULTIPLE_END(0, 5);
 }
 
+// Add checks for various pathological cases of receive_timeout calls.
+
+
+// !!! Add check that timer is not on when all trackers are busy, and
+// clear timer when calling send_*, etc.
+
+
 // Make sure that we always remain with timeout, even if we send a
 // request that somehow doesn't actually activate any
 // trackers. e.g. check all send_tracker_itr uses.
-
-
-// Trackers should be trying to request from failed trackers, even if
-// the others are active? A normal timeout would suffice to allow
-// those trackers a chance to reply.
-
 
 
 // Clear the others of comments assuming promiscious mode would go
@@ -494,8 +509,6 @@ tracker_controller_test::test_multiple_promiscious_failed() {
 
 // Add test for promiscious mode while with a single tracker?
 
-// !!! Add check that timer is not on when all trackers are busy, and
-// clear timer when calling send_*, etc.
 
 
 // Test send_* with controller not enabled.
@@ -513,3 +526,6 @@ tracker_controller_test::test_multiple_promiscious_failed() {
 
 // Test tracker send timeouts when we go from no usable to one or more
 // usable trackers.
+
+// Make sure that adding a new tracker to a tracker list with no
+// usable tracker restarts the tracker requests.

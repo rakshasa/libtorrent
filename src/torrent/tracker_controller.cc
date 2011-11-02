@@ -267,8 +267,10 @@ TrackerController::send_update_event() {
 
   LT_LOG_TRACKER(INFO, "Sending update event.", 0);
 
-  // close();
   m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STARTED);
+
+  if (m_tracker_list->has_active())
+    priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 }
 
 // Currently being used by send_state, fixme.
@@ -337,8 +339,6 @@ TrackerController::receive_timeout() {
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
     return;
 
-  //  LT_LOG_TRACKER(INFO, "Timeout called.");
-
   // Handle the different states properly...
 
   // Do we want the timeout function to know what tracker we queued
@@ -386,7 +386,7 @@ TrackerController::receive_timeout() {
 }
 
 void
-TrackerController::receive_success_new(Tracker* tb, TrackerController::address_list* l) {
+TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
   m_failed_requests = 0;
 
   // if (<check if we have multiple trackers to send this event to, before we declare success>) {
@@ -416,7 +416,7 @@ TrackerController::receive_success_new(Tracker* tb, TrackerController::address_l
 }
 
 void
-TrackerController::receive_failure_new(Tracker* tb, const std::string& msg) {
+TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
   if (tb == NULL) {
     LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
     m_slot_failure(msg);

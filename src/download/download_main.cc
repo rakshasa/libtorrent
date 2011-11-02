@@ -103,8 +103,8 @@ DownloadMain::DownloadMain() :
   m_tracker_list = new TrackerList();
   m_tracker_controller = new TrackerController(m_tracker_list);
 
-  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success_new, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure_new, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
 
   m_connectionList = new ConnectionList(this);
 

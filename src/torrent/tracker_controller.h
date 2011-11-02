@@ -103,8 +103,8 @@ public:
   void                start_requesting();
   void                stop_requesting();
 
-  void                receive_success_new(Tracker* tb, address_list* l);
-  void                receive_failure_new(Tracker* tb, const std::string& msg);
+  void                receive_success(Tracker* tb, address_list* l);
+  void                receive_failure(Tracker* tb, const std::string& msg);
 
   slot_void&          slot_timeout()        { return m_slot_timeout; }
   slot_address_list&  slot_success()        { return m_slot_success; }
