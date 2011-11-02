@@ -379,7 +379,6 @@ tracker_controller_test::test_multiple_requesting() {
   tracker_controller.start_requesting();
   TEST_GOTO_NEXT_TIMEOUT(0);
 
-  // Should be connecting again to... same tracker.
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0_1->is_busy());
   CPPUNIT_ASSERT(!tracker_1_0->is_busy());
@@ -457,21 +456,35 @@ tracker_controller_test::test_multiple_promiscious_failed() {
 
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
 
-  TEST_MULTIPLE_END(0, 1);
+  CPPUNIT_ASSERT(tracker_2_0->trigger_failure());
+  CPPUNIT_ASSERT(tracker_3_0->trigger_failure());
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_2_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_3_0->is_busy());
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
+  CPPUNIT_ASSERT(tracker_1_0->trigger_failure());
+
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+
+  TEST_MULTIPLE_END(0, 5);
 }
 
-// Add tests for when we fail multiple tracker requests, to ensure
-// that that we aren't requesting from all the other trackers
-// prematurely.
+// Make sure that we always remain with timeout, even if we send a
+// request that somehow doesn't actually activate any
+// trackers. e.g. check all send_tracker_itr uses.
 
 
 // Trackers should be trying to request from failed trackers, even if
 // the others are active? A normal timeout would suffice to allow
 // those trackers a chance to reply.
 
-
-// The use of ++itr in various while loops makes an assumption that
-// we're always skipping the first tracker, which isn't the case.
 
 
 // Clear the others of comments assuming promiscious mode would go

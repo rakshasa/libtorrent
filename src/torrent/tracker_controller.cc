@@ -348,19 +348,12 @@ TrackerController::receive_timeout() {
   int send_state = current_send_state();
   TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
 
-  if (itr == m_tracker_list->end()) {
-    if (m_slot_timeout)
-      m_slot_timeout();
-
-    return;
-  }
-
   if ((m_flags & flag_promiscuous_mode)) {
     // When in promiscious mode we want as many peers as quickly as
     // possible, so every available tracker is requested. The
     // promiscious mode only gets acted upon in the timeout handler so
     // as to give the primary tracker a few seconds to reply.
-    while (++itr != m_tracker_list->end()) {
+    for (; itr != m_tracker_list->end(); itr++) {
       if ((*itr)->is_busy() || !(*itr)->is_usable())
         continue;
 
@@ -371,7 +364,7 @@ TrackerController::receive_timeout() {
     // Find the next tracker to try...
     TrackerList::iterator preferred = itr;
 
-    while (++itr != m_tracker_list->end()) {
+    for (; itr != m_tracker_list->end(); itr++) {
       if ((*itr)->is_busy() || !(*itr)->is_usable())
         continue;
 
@@ -380,11 +373,16 @@ TrackerController::receive_timeout() {
         preferred = itr;
     }
 
-    m_tracker_list->send_state_tracker(preferred, send_state);
+    if (preferred != m_tracker_list->end())
+      m_tracker_list->send_state_tracker(preferred, send_state);
   }
 
   if (m_slot_timeout)
     m_slot_timeout();
+
+  // There should be no timeout when we don't have any active trackers, etc.
+  // if (!m_tracker_list->has_active())
+  //   update_timeout(30);
 }
 
 void
