@@ -60,9 +60,7 @@ TrackerList::TrackerList() :
 
   m_key(0),
   m_numwant(-1),
-  m_timeLastConnection(0),
-
-  m_itr(begin()) {
+  m_timeLastConnection(0) {
 }
 
 bool
@@ -107,28 +105,6 @@ TrackerList::clear_stats() {
 }
 
 void
-TrackerList::send_state(int new_event) {
-  // Reset the target tracker since we're doing a new request.
-  if (m_itr != end())
-    (*m_itr)->close();
-
-  // TODO: Don't have a state set for the whole list.
-  set_state(new_event);
-  m_itr = find_usable(m_itr);
-
-  if (m_itr == end()) {
-    m_slot_failed(NULL, "Tried all trackers.");
-    return;
-  }
-
-  (*m_itr)->send_state(new_event);
-
-  LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
-                 option_as_string(OPTION_TRACKER_EVENT, new_event),
-                 (*m_itr)->group(), (*m_itr)->url().c_str());
-}
-
-void
 TrackerList::send_state_idx(unsigned idx, int new_event) {
   if (idx >= size())
     throw internal_error("TrackerList::send_state_idx(...) got idx >= size().");
@@ -151,11 +127,7 @@ TrackerList::send_state_tracker(iterator itr, int new_event) {
 TrackerList::iterator
 TrackerList::insert(unsigned int group, Tracker* t) {
   t->set_group(group);
-
-  iterator itr = base_type::insert(end_group(group), t);
-
-  m_itr = begin();
-  return itr;
+  return base_type::insert(end_group(group), t);
 }
 
 TrackerList::iterator
@@ -186,8 +158,6 @@ TrackerList::size_group() const {
 
 void
 TrackerList::cycle_group(unsigned int group) {
-  Tracker* trackerPtr = m_itr != end() ? *m_itr : NULL;
-
   iterator itr = begin_group(group);
   iterator prev = itr;
 
@@ -198,8 +168,6 @@ TrackerList::cycle_group(unsigned int group) {
     std::iter_swap(itr, prev);
     prev = itr;
   }
-
-  m_itr = find(trackerPtr);
 }
 
 TrackerList::iterator
@@ -226,30 +194,6 @@ TrackerList::randomize_group_entries() {
   }
 }
 
-bool
-TrackerList::focus_next_group() {
-  return (m_itr = end_group((*m_itr)->group())) != end();
-}
-
-uint32_t
-TrackerList::focus_normal_interval() const {
-  if (m_itr == end()) {
-    const_iterator itr = find_usable(begin());
-    
-    if (itr == end())
-      return 1800;
-
-    return (*itr)->normal_interval();
-  }
-
-  return (*m_itr)->normal_interval();
-}
-
-uint32_t
-TrackerList::focus_min_interval() const {
-  return 0;
-}
-
 void
 TrackerList::receive_success(Tracker* tb, AddressList* l) {
   iterator itr = find(tb);
@@ -259,7 +203,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
 
   // Promote the tracker to the front of the group since it was
   // successfull.
-  itr = m_itr = promote(itr);
+  itr = promote(itr);
 
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());

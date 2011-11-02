@@ -100,7 +100,6 @@ public:
 
   iterator            insert(unsigned int group, Tracker* t);
 
-  void                send_state(int new_state);
   void                send_state_idx(unsigned idx, int new_event);
   void                send_state_tracker(iterator itr, int new_event);
 
@@ -128,17 +127,6 @@ public:
 
   uint32_t            time_last_connection() const            { return m_timeLastConnection; }
 
-  // Functions for controlling the current focus. They only support
-  // one active tracker atm.
-  iterator            focus()                                 { return m_itr; }
-  const_iterator      focus() const                           { return m_itr; }
-  uint32_t            focus_index() const                     { return m_itr - begin(); }
-
-  bool                focus_next_group();
-
-  uint32_t            focus_normal_interval() const;
-  uint32_t            focus_min_interval() const;
-
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
 
@@ -148,9 +136,7 @@ public:
 protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
 
-  // Deprecated.
   void                set_state(int s)                        { m_state = s; }
-  void                set_focus(iterator itr)                 { m_itr = itr; }
   void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
 
 private:
@@ -164,8 +150,6 @@ private:
   int32_t             m_numwant;
 
   uint32_t            m_timeLastConnection;
-
-  iterator            m_itr;
 
   slot_address_list   m_slot_success;
   slot_string         m_slot_failed;

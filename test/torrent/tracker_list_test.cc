@@ -79,7 +79,7 @@ tracker_list_test::test_single_success() {
   CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
   CPPUNIT_ASSERT(tracker_0->latest_event() == torrent::Tracker::EVENT_NONE);
 
-  tracker_list.send_state(torrent::Tracker::EVENT_STARTED);
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_STARTED);
 
   CPPUNIT_ASSERT(tracker_0->is_busy());
   CPPUNIT_ASSERT(tracker_0->is_open());
@@ -103,7 +103,7 @@ tracker_list_test::test_single_failure() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
-  tracker_list.send_state(1);
+  tracker_list.send_state_idx(0, 1);
   CPPUNIT_ASSERT(tracker_0->trigger_failure());
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
@@ -114,7 +114,7 @@ tracker_list_test::test_single_failure() {
   CPPUNIT_ASSERT(tracker_0->success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->failed_counter() == 1);
 
-  tracker_list.send_state(1);
+  tracker_list.send_state_idx(0, 1);
   CPPUNIT_ASSERT(tracker_0->trigger_success());
 
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 1);
@@ -130,7 +130,7 @@ tracker_list_test::test_single_closing() {
   CPPUNIT_ASSERT(!tracker_0->is_open());
 
   tracker_0->set_close_on_done(false);
-  tracker_list.send_state(1);
+  tracker_list.send_state_idx(0, 1);
 
   CPPUNIT_ASSERT(tracker_0->is_open());
   CPPUNIT_ASSERT(tracker_0->trigger_success());
@@ -213,14 +213,13 @@ tracker_list_test::test_has_active() {
 
   CPPUNIT_ASSERT(!tracker_list.has_active());
 
-  tracker_list.send_state(1);
+  tracker_list.send_state_idx(0, 1);
   CPPUNIT_ASSERT(tracker_list.has_active());
 
   tracker_0_0->trigger_success();
   CPPUNIT_ASSERT(!tracker_list.has_active());
   
-  tracker_list.focus_next_group();
-  tracker_list.send_state(1);
+  tracker_list.send_state_idx(2, 1);
   CPPUNIT_ASSERT(tracker_list.has_active());
   
   tracker_1_0->trigger_success();
