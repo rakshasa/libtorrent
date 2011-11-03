@@ -57,6 +57,7 @@ public:
   typedef std::tr1::function<void (void)>               slot_void;
   typedef std::tr1::function<void (const std::string&)> slot_string;
   typedef std::tr1::function<void (AddressList*)>       slot_address_list;
+  typedef std::tr1::function<void (Tracker*)>           slot_tracker;
 
   static const int flag_active           = 0x1;
   static const int flag_requesting       = 0x2;
@@ -106,9 +107,15 @@ public:
   void                receive_success(Tracker* tb, address_list* l);
   void                receive_failure(Tracker* tb, const std::string& msg);
 
+  void                receive_tracker_enabled(Tracker* tb);
+  void                receive_tracker_disabled(Tracker* tb);
+
   slot_void&          slot_timeout()        { return m_slot_timeout; }
   slot_address_list&  slot_success()        { return m_slot_success; }
   slot_string&        slot_failure()        { return m_slot_failure; }
+
+  slot_tracker&       slot_tracker_enabled()  { return m_slot_tracker_enabled; }
+  slot_tracker&       slot_tracker_disabled() { return m_slot_tracker_disabled; }
 
   // TEMP:
   rak::priority_item* task_timeout();
@@ -133,6 +140,9 @@ private:
   slot_void           m_slot_timeout;
   slot_address_list   m_slot_success;
   slot_string         m_slot_failure;
+
+  slot_tracker        m_slot_tracker_enabled;
+  slot_tracker        m_slot_tracker_disabled;
 
   // Refactor this out.
   tracker_controller_private* m_private;

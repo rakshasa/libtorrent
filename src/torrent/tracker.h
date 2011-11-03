@@ -71,8 +71,8 @@ public:
   bool                is_enabled() const                    { return m_enabled; }
   bool                is_in_use() const                     { return m_enabled && m_success_counter != 0; }
 
-  void                enable()                              { m_enabled = true; }
-  void                disable()                             { m_enabled = false; }
+  void                enable();
+  void                disable();
   void                set_enabled(bool status)              { m_enabled = status; }
 
   TrackerList*        parent()                              { return m_parent; }

@@ -20,13 +20,19 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   int success_counter = 0;                                              \
   int failure_counter = 0;                                              \
   int timeout_counter = 0;                                              \
+  int enabled_counter = 0;                                              \
+  int disabled_counter = 0;                                             \
                                                                         \
   tracker_controller.slot_success() = std::bind(&increment_value, &success_counter); \
   tracker_controller.slot_failure() = std::bind(&increment_value, &failure_counter); \
   tracker_controller.slot_timeout() = std::bind(&increment_value, &timeout_counter); \
+  tracker_controller.slot_tracker_enabled() = std::bind(&increment_value, &enabled_counter); \
+  tracker_controller.slot_tracker_disabled() = std::bind(&increment_value, &disabled_counter); \
                                                                         \
   tracker_list.slot_success() = std::bind(&torrent::TrackerController::receive_success, &tracker_controller, std::placeholders::_1, std::placeholders::_2); \
-  tracker_list.slot_failure() = std::bind(&torrent::TrackerController::receive_failure, &tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  tracker_list.slot_failure() = std::bind(&torrent::TrackerController::receive_failure, &tracker_controller, std::placeholders::_1, std::placeholders::_2); \
+  tracker_list.slot_tracker_enabled()  = std::bind(&torrent::TrackerController::receive_tracker_enabled, &tracker_controller, std::placeholders::_1); \
+  tracker_list.slot_tracker_disabled() = std::bind(&torrent::TrackerController::receive_tracker_disabled, &tracker_controller, std::placeholders::_1);
 
 #define TRACKER_INSERT(group, name)                             \
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \
@@ -490,8 +496,60 @@ tracker_controller_test::test_multiple_promiscious_failed() {
   TEST_MULTIPLE_END(0, 5);
 }
 
-// Add checks for various pathological cases of receive_timeout calls.
+// Test timeout called, no usable trackers at all which leads to
+// disabling the timeout.
+//
+// The enable/disable tracker functions will poke the tracker
+// controller, ensuring the tast timeout gets re-started.
+void
+tracker_controller_test::test_timeout_lacking_usable() {
+  TEST_MULTI3_BEGIN();
 
+  std::for_each(tracker_list.begin(), tracker_list.end(), std::mem_fun(&torrent::Tracker::disable));
+  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+
+  TEST_GOTO_NEXT_TIMEOUT(0);
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_2_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_3_0->is_busy());
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  tracker_1_0->enable();
+
+  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
+
+  TEST_GOTO_NEXT_TIMEOUT(0);
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0_1->is_busy());
+  CPPUNIT_ASSERT(tracker_1_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_2_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_3_0->is_busy());
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  tracker_3_0->enable();
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 5);
+  TEST_MULTIPLE_END(0, 0);
+}
+
+// Test timeout called, usable trackers exist but could not be called
+// at this moment, thus leading to no active trackers.
+
+// Add checks to ensure we don't prematurely do timeout on a tracker
+// after disabling the lead one.
+
+// Add checks for various pathological cases of receive_timeout calls,
+// needs to be multi3 specific due to rearrangeable trackers.
+
+
+// Change the asserts for is_busy to a vector argument of some kind.
 
 // !!! Add check that timer is not on when all trackers are busy, and
 // clear timer when calling send_*, etc.

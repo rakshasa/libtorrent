@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "tracker.h"
+#include "tracker_list.h"
 
 namespace torrent {
 
@@ -61,6 +62,28 @@ Tracker::Tracker(TrackerList* parent, const std::string& url) :
   m_scrapeComplete(0),
   m_scrapeIncomplete(0),
   m_scrapeDownloaded(0) {
+}
+
+void
+Tracker::enable() {
+  if (m_enabled)
+    return;
+
+  m_enabled = true;
+  
+  if (m_parent->slot_tracker_enabled())
+    m_parent->slot_tracker_enabled()(this);
+}
+
+void
+Tracker::disable() {
+  if (!m_enabled)
+    return;
+
+  m_enabled = false;
+
+  if (m_parent->slot_tracker_disabled())
+    m_parent->slot_tracker_disabled()(this);
 }
 
 }

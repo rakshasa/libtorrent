@@ -452,4 +452,27 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
   m_slot_failure(msg);
 }
 
+void
+TrackerController::receive_tracker_enabled(Tracker* tb) {
+  // TODO: This won't be needed if we rely only on Tracker::m_enable,
+  // rather than a virtual function.
+  if (!m_tracker_list->has_usable())
+    return;
+  
+  if (!m_private->task_timeout.is_queued() && !m_tracker_list->has_active()) {
+    // TODO: Figure out the proper timeout to use here based on when the
+    // tracker last connected, etc.
+    update_timeout(0);
+  }
+
+  if (m_slot_tracker_enabled)
+    m_slot_tracker_enabled(tb);
+}
+
+void
+TrackerController::receive_tracker_disabled(Tracker* tb) {
+  if (m_slot_tracker_disabled)
+    m_slot_tracker_disabled(tb);
+}
+
 }

@@ -6,6 +6,7 @@
 class tracker_list_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(tracker_list_test);
   CPPUNIT_TEST(test_basic);
+  CPPUNIT_TEST(test_enable);
 
   CPPUNIT_TEST(test_single_success);
   CPPUNIT_TEST(test_single_failure);
@@ -22,6 +23,7 @@ public:
   void tearDown() {}
 
   void test_basic();
+  void test_enable();
 
   void test_single_success();
   void test_single_failure();

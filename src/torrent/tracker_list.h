@@ -64,6 +64,7 @@ public:
   typedef std::vector<Tracker*> base_type;
   typedef AddressList           address_list;
 
+  typedef std::tr1::function<void (Tracker*)>                     slot_tracker;
   typedef std::tr1::function<void (Tracker*, const std::string&)> slot_string;
   typedef std::tr1::function<void (Tracker*, AddressList*)>       slot_address_list;
 
@@ -130,8 +131,12 @@ public:
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
 
+  // Used by libtorrent internally.
   slot_address_list&  slot_success()                          { return m_slot_success; }
   slot_string&        slot_failure()                          { return m_slot_failed; }
+
+  slot_tracker&       slot_tracker_enabled()                  { return m_slot_tracker_enabled; }
+  slot_tracker&       slot_tracker_disabled()                 { return m_slot_tracker_disabled; }
 
 protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
@@ -153,6 +158,9 @@ private:
 
   slot_address_list   m_slot_success;
   slot_string         m_slot_failed;
+
+  slot_tracker        m_slot_tracker_enabled;
+  slot_tracker        m_slot_tracker_disabled;
 };
 
 }

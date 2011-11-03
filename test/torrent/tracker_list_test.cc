@@ -67,6 +67,32 @@ tracker_list_test::test_basic() {
   CPPUNIT_ASSERT(tracker_list.find_usable(tracker_list.begin()) != tracker_list.end());
 }
 
+void
+tracker_list_test::test_enable() {
+  TRACKER_SETUP();
+  int enabled_counter = 0;
+  int disabled_counter = 0;
+
+  tracker_list.slot_tracker_enabled() = std::bind(&increment_value, &enabled_counter);
+  tracker_list.slot_tracker_disabled() = std::bind(&increment_value, &disabled_counter);
+
+  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(1, tracker_1);
+
+  tracker_0->enable(); tracker_1->enable();
+  CPPUNIT_ASSERT(enabled_counter == 0 && disabled_counter == 0);
+  
+  tracker_0->disable(); tracker_1->enable();
+  CPPUNIT_ASSERT(enabled_counter == 0 && disabled_counter == 1);
+
+  tracker_1->disable(); tracker_0->disable();
+  CPPUNIT_ASSERT(enabled_counter == 0 && disabled_counter == 2);
+
+  tracker_0->enable(); tracker_1->enable();
+  tracker_0->enable(); tracker_1->enable();
+  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 2);
+}
+
 // Test clear.
 
 void
@@ -213,29 +239,18 @@ tracker_list_test::test_has_active() {
 
   CPPUNIT_ASSERT(!tracker_list.has_active());
 
-  tracker_list.send_state_idx(0, 1);
-  CPPUNIT_ASSERT(tracker_list.has_active());
-
-  tracker_0_0->trigger_success();
-  CPPUNIT_ASSERT(!tracker_list.has_active());
+  tracker_list.send_state_idx(0, 1); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_0_0->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
   
-  tracker_list.send_state_idx(2, 1);
-  CPPUNIT_ASSERT(tracker_list.has_active());
-  
-  tracker_1_0->trigger_success();
-  CPPUNIT_ASSERT(!tracker_list.has_active());
+  tracker_list.send_state_idx(2, 1); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_1_0->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
   // Test multiple active trackers.
-  tracker_list.send_state_idx(0, 1);
-  CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_list.send_state_idx(0, 1); CPPUNIT_ASSERT(tracker_list.has_active());
 
   tracker_list.send_state_idx(1, 1);
-  tracker_0_0->trigger_success();
-
-  CPPUNIT_ASSERT(tracker_list.has_active());
-
-  tracker_0_1->trigger_success();
-  CPPUNIT_ASSERT(!tracker_list.has_active());
+  tracker_0_0->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
+  tracker_0_1->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 }
 
 void
