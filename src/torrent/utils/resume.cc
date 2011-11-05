@@ -53,6 +53,7 @@
 #include "download_info.h"
 #include "object.h"
 #include "tracker.h"
+#include "tracker_controller.h"
 #include "tracker_list.h"
 
 #include "globals.h"
@@ -453,10 +454,21 @@ resume_load_tracker_settings(Download download, const Object& object) {
   if (!object.has_key_map("trackers"))
     return;
 
-  const Object& src         = object.get_key("trackers");
-  TrackerList*  trackerList = download.tracker_list();
+  const Object& src = object.get_key("trackers");
+  TrackerList*  tracker_list = download.tracker_list();
 
-  for (TrackerList::iterator itr = trackerList->begin(), last = trackerList->end(); itr != last; ++itr) {
+  for (Object::map_const_iterator itr = src.as_map().begin(), last = src.as_map().end(); itr != last; ++itr) {
+    if (!itr->second.has_key("extra_tracker") || itr->second.get_key_value("extra_tracker") == 0 ||
+        !itr->second.has_key("group"))
+      continue;
+
+    if (tracker_list->find_url(itr->first) != tracker_list->end())
+      continue;
+
+    download.tracker_controller()->insert(itr->second.get_key_value("group"), itr->first);
+  }
+
+  for (TrackerList::iterator itr = tracker_list->begin(), last = tracker_list->end(); itr != last; ++itr) {
     if (!src.has_key_map((*itr)->url()))
       continue;
 
@@ -472,12 +484,17 @@ resume_load_tracker_settings(Download download, const Object& object) {
 void
 resume_save_tracker_settings(Download download, Object& object) {
   Object& dest = object.insert_preserve_copy("trackers", Object::create_map()).first->second;
-  TrackerList* trackerList = download.tracker_list();
+  TrackerList* tracker_list = download.tracker_list();
 
-  for (TrackerList::iterator itr = trackerList->begin(), last = trackerList->end(); itr != last; ++itr) {
+  for (TrackerList::iterator itr = tracker_list->begin(), last = tracker_list->end(); itr != last; ++itr) {
     Object& trackerObject = dest.insert_key((*itr)->url(), Object::create_map());
 
     trackerObject.insert_key("enabled", Object((int64_t)(*itr)->is_enabled()));
+
+    if ((*itr)->is_extra_tracker()) {
+      trackerObject.insert_key("extra_tracker", Object((int64_t)1));
+      trackerObject.insert_key("group", (*itr)->group());
+    }
   }
 }
 

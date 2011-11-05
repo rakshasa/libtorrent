@@ -45,7 +45,6 @@
 #include "protocol/initial_seed.h"
 #include "protocol/peer_connection_base.h"
 #include "protocol/peer_factory.h"
-#include "tracker/tracker_manager.h"
 #include "torrent/download.h"
 #include "torrent/exceptions.h"
 #include "torrent/throttle.h"
@@ -56,6 +55,8 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/tracker_controller.h"
+#include "torrent/tracker_list.h"
 
 #include "available_list.h"
 #include "chunk_selector.h"
@@ -90,7 +91,6 @@ DownloadInfo::DownloadInfo() :
 DownloadMain::DownloadMain() :
   m_info(new DownloadInfo),
 
-  m_trackerManager(new TrackerManager()),
   m_choke_group(NULL),
   m_chunkList(new ChunkList),
   m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
@@ -99,6 +99,14 @@ DownloadMain::DownloadMain() :
   m_initialSeeding(NULL),
   m_uploadThrottle(NULL),
   m_downloadThrottle(NULL) {
+
+  m_tracker_list = new TrackerList();
+  m_tracker_controller = new TrackerController(m_tracker_list);
+
+  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_tracker_enabled()  = std::bind(&TrackerController::receive_tracker_enabled, m_tracker_controller, std::placeholders::_1);
+  m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, m_tracker_controller, std::placeholders::_1);
 
   m_connectionList = new ConnectionList(this);
 
@@ -123,11 +131,13 @@ DownloadMain::~DownloadMain() {
 
   // Check if needed.
   m_connectionList->clear();
+  m_tracker_list->clear();
 
   if (m_info->size_pex() != 0)
     throw internal_error("DownloadMain::~DownloadMain(): m_info->size_pex() != 0.");
 
-  delete m_trackerManager;
+  delete m_tracker_controller;
+  delete m_tracker_list;
   delete m_connectionList;
 
   delete m_chunkStatistics;
@@ -337,40 +347,19 @@ DownloadMain::receive_tracker_success() {
   if (!info()->is_active())
     return;
 
-  rak::timer next_timer = cachedTime + rak::timer::from_seconds(30);
-
-  if (m_choke_group->tracker_mode() == choke_group::TRACKER_MODE_AGGRESSIVE)
-    next_timer = cachedTime + rak::timer::from_seconds(10 + (30 * (m_trackerManager->num_requests() - 1)));
-
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
-  priority_queue_insert(&taskScheduler, &m_taskTrackerRequest, next_timer.round_seconds());
+  priority_queue_insert(&taskScheduler, &m_taskTrackerRequest, (cachedTime + rak::timer::from_seconds(30)).round_seconds());
 }
 
 void
 DownloadMain::receive_tracker_request() {
-  if (connection_list()->size() >= connection_list()->max_size())
+  if (connection_list()->size() >= connection_list()->min_size())
     return;
 
-  if (m_choke_group->tracker_mode() == choke_group::TRACKER_MODE_AGGRESSIVE) {
-    if (connection_list()->size() > 5 && m_info->is_pex_enabled())
-      m_trackerManager->request_next();
-
-    // else if (connection_list()->size() < m_lastConnectedSize + 5 && m_trackerManager->num_requests() )
-    //   m_trackerManager->request_next();
-
-    else if (!m_trackerManager->request_current())
-      m_trackerManager->request_next();
-
-  } else {
-    if (connection_list()->size() >= connection_list()->min_size())
-      return;
-
-    if ((connection_list()->size() > 5 && m_info->is_pex_enabled()) ||
-        connection_list()->size() < m_lastConnectedSize + 10)
-      m_trackerManager->request_next();
-    else if (!m_trackerManager->request_current())
-      m_trackerManager->request_next();
-  }
+  // if (m_info->is_pex_enabled() || connection_list()->size() < m_lastConnectedSize + 10)
+  //   m_trackerManager->request_next();
+  // else if (!m_trackerManager->request_current())
+  //   m_trackerManager->request_next();
 
   m_lastConnectedSize = connection_list()->size();
 }

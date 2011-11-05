@@ -49,7 +49,6 @@ class AddressList;
 class DownloadInfo;
 class DownloadWrapper;
 class Tracker;
-class TrackerManager;
 
 // The tracker list will contain a list of tracker, divided into
 // subgroups. Each group must be randomized before we start. When
@@ -61,11 +60,11 @@ class TrackerManager;
 class LIBTORRENT_EXPORT TrackerList : private std::vector<Tracker*> {
 public:
   friend class DownloadWrapper;
-  friend class TrackerManager;
 
   typedef std::vector<Tracker*> base_type;
   typedef AddressList           address_list;
 
+  typedef std::tr1::function<void (Tracker*)>                     slot_tracker;
   typedef std::tr1::function<void (Tracker*, const std::string&)> slot_string;
   typedef std::tr1::function<void (Tracker*, AddressList*)>       slot_address_list;
 
@@ -94,14 +93,16 @@ public:
   bool                has_usable() const;
 
   unsigned int        count_active() const;
+  unsigned int        count_usable() const;
 
-  void                close_all();
+  void                close_all() { close_all_excluding(0); }
+  void                close_all_excluding(int event_bitmap);
+
   void                clear();
   void                clear_stats();
 
-  iterator            insert(unsigned int group, Tracker* t);
+  iterator            insert(unsigned int group, Tracker* tracker);
 
-  void                send_state(int new_state);
   void                send_state_idx(unsigned idx, int new_event);
   void                send_state_tracker(iterator itr, int new_event);
 
@@ -115,6 +116,8 @@ public:
   void                set_numwant(int32_t n)                  { m_numwant = n; }
 
   iterator            find(Tracker* tb)                       { return std::find(begin(), end(), tb); }
+  iterator            find_url(const std::string& url);
+
   iterator            find_usable(iterator itr);
   const_iterator      find_usable(const_iterator itr) const;
 
@@ -129,29 +132,20 @@ public:
 
   uint32_t            time_last_connection() const            { return m_timeLastConnection; }
 
-  // Functions for controlling the current focus. They only support
-  // one active tracker atm.
-  iterator            focus()                                 { return m_itr; }
-  const_iterator      focus() const                           { return m_itr; }
-  uint32_t            focus_index() const                     { return m_itr - begin(); }
-
-  bool                focus_next_group();
-
-  uint32_t            focus_normal_interval() const;
-  uint32_t            focus_min_interval() const;
-
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
 
+  // Used by libtorrent internally.
   slot_address_list&  slot_success()                          { return m_slot_success; }
   slot_string&        slot_failure()                          { return m_slot_failed; }
+
+  slot_tracker&       slot_tracker_enabled()                  { return m_slot_tracker_enabled; }
+  slot_tracker&       slot_tracker_disabled()                 { return m_slot_tracker_disabled; }
 
 protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
 
-  // Deprecated.
   void                set_state(int s)                        { m_state = s; }
-  void                set_focus(iterator itr)                 { m_itr = itr; }
   void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
 
 private:
@@ -166,10 +160,11 @@ private:
 
   uint32_t            m_timeLastConnection;
 
-  iterator            m_itr;
-
   slot_address_list   m_slot_success;
   slot_string         m_slot_failed;
+
+  slot_tracker        m_slot_tracker_enabled;
+  slot_tracker        m_slot_tracker_disabled;
 };
 
 }

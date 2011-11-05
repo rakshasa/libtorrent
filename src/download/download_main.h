@@ -63,7 +63,8 @@ class choke_group;
 class ConnectionList;
 class DownloadWrapper;
 class HandshakeManager;
-class TrackerManager;
+class TrackerController;
+class TrackerList;
 class DownloadInfo;
 class ThrottleList;
 class InitialSeeding;
@@ -86,7 +87,8 @@ public:
   const struct choke_group* c_choke_group() const                { return m_choke_group; }
   void                set_choke_group(struct choke_group* grp)   { m_choke_group = grp; }
 
-  TrackerManager*     tracker_manager() const                    { return m_trackerManager; }
+  TrackerController*  tracker_controller()                       { return m_tracker_controller; }
+  TrackerList*        tracker_list()                             { return m_tracker_list; }
 
   DownloadInfo*       info()                                     { return m_info; }
 
@@ -170,7 +172,9 @@ private:
 
   DownloadInfo*       m_info;
 
-  TrackerManager*     m_trackerManager;
+  TrackerController*  m_tracker_controller;
+  TrackerList*        m_tracker_list;
+
   struct choke_group* m_choke_group;
 
   group_entry         m_up_group_entry;

@@ -107,7 +107,7 @@ utils_log_test::test_children() {
   torrent::log_add_child(GROUP_PARENT_1, GROUP_CHILD_1);
   torrent::log_add_child(GROUP_CHILD_1,  GROUP_CHILD_1_1);
 
-  std::cout << "cached_output(" << torrent::log_groups[GROUP_PARENT_1].cached_outputs() << ')';
+  // std::cout << "cached_output(" << torrent::log_groups[GROUP_PARENT_1].cached_outputs() << ')';
 
   LTUNIT_ASSERT_OUTPUT(GROUP_PARENT_1,  0x1, "parent_1", "parent_1");
   LTUNIT_ASSERT_OUTPUT(GROUP_CHILD_1,   0x1, "child_1", "child_1");

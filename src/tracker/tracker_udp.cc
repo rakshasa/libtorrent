@@ -55,8 +55,9 @@
 
 namespace torrent {
 
-TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url) :
-  Tracker(parent, url),
+TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
+  Tracker(parent, url, flags),
+
   m_slotResolver(NULL),
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {

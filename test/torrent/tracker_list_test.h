@@ -6,6 +6,11 @@
 class tracker_list_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(tracker_list_test);
   CPPUNIT_TEST(test_basic);
+  CPPUNIT_TEST(test_enable);
+  CPPUNIT_TEST(test_close);
+
+  CPPUNIT_TEST(test_tracker_flags);
+  CPPUNIT_TEST(test_find_url);
 
   CPPUNIT_TEST(test_single_success);
   CPPUNIT_TEST(test_single_failure);
@@ -22,6 +27,11 @@ public:
   void tearDown() {}
 
   void test_basic();
+  void test_enable();
+  void test_close();
+
+  void test_tracker_flags();
+  void test_find_url();
 
   void test_single_success();
   void test_single_failure();
@@ -36,8 +46,8 @@ public:
 class TrackerTest : public torrent::Tracker {
 public:
   // TODO: Clean up tracker related enums.
-  TrackerTest(torrent::TrackerList* parent, const std::string& url) :
-    torrent::Tracker(parent, url),
+  TrackerTest(torrent::TrackerList* parent, const std::string& url, int flags = torrent::Tracker::flag_enabled) :
+    torrent::Tracker(parent, url, flags),
     m_busy(false),
     m_open(false),
     m_close_on_done(true),

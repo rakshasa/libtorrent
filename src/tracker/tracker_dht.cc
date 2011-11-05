@@ -58,8 +58,8 @@ const char* TrackerDht::states[] = { "Idle", "Searching", "Announcing" };
 
 bool TrackerDht::is_allowed() { return manager->dht_manager()->is_valid(); }
 
-TrackerDht::TrackerDht(TrackerList* parent, const std::string& url) :
-  Tracker(parent, url),
+TrackerDht::TrackerDht(TrackerList* parent, const std::string& url, int flags) :
+  Tracker(parent, url, flags),
   m_state(state_idle) {
 
   if (!manager->dht_manager()->is_valid())
@@ -78,7 +78,7 @@ TrackerDht::is_busy() const {
 
 bool
 TrackerDht::is_usable() const {
-  return m_enabled && manager->dht_manager()->is_active();
+  return is_enabled() && manager->dht_manager()->is_active();
 }
 
 void

@@ -23,9 +23,9 @@ void object_test_return_void() { }
 
 void
 ObjectTest::test_basic() {
-  std::cout << "sizeof(torrent::Object) = " << sizeof(torrent::Object) << std::endl;
-  std::cout << "sizeof(torrent::Object::list_type) = " << sizeof(torrent::Object::list_type) << std::endl;
-  std::cout << "sizeof(torrent::Object::map_type) = " << sizeof(torrent::Object::map_type) << std::endl;
+  // std::cout << "sizeof(torrent::Object) = " << sizeof(torrent::Object) << std::endl;
+  // std::cout << "sizeof(torrent::Object::list_type) = " << sizeof(torrent::Object::list_type) << std::endl;
+  // std::cout << "sizeof(torrent::Object::map_type) = " << sizeof(torrent::Object::map_type) << std::endl;
 
 //   torrent::Object obj_void(object_test_return_void());
 }

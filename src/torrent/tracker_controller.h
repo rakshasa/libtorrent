@@ -57,13 +57,17 @@ public:
   typedef std::tr1::function<void (void)>               slot_void;
   typedef std::tr1::function<void (const std::string&)> slot_string;
   typedef std::tr1::function<void (AddressList*)>       slot_address_list;
+  typedef std::tr1::function<void (Tracker*)>           slot_tracker;
 
-  static const int flag_active = 0x1;
-  static const int flag_requesting = 0x2;
-  static const int flag_send_start = 0x4;
-  static const int flag_send_stop = 0x8;
-  static const int flag_send_completed = 0x10;
-  static const int flag_failure_mode = 0x20;
+  static const int flag_send_update      = 0x0; // Fake flag, don't use.
+  static const int flag_send_completed   = 0x1;
+  static const int flag_send_start       = 0x2;
+  static const int flag_send_stop        = 0x4;
+
+  static const int flag_active           = 0x10;
+  static const int flag_requesting       = 0x20;
+  static const int flag_failure_mode     = 0x40;
+  static const int flag_promiscuous_mode = 0x80;
 
   static const int mask_send = flag_send_start | flag_send_stop | flag_send_completed;
 
@@ -83,12 +87,15 @@ public:
   int64_t             next_timeout() const;
   uint32_t            seconds_to_next_timeout() const;
 
-  void                insert(int group, const std::string& url);
+  void                insert(int group, const std::string& url, bool extra_tracker = false);
+
+  void                manual_request(bool request_now);
 
   //protected:
   void                send_start_event();
   void                send_stop_event();
   void                send_completed_event();
+  void                send_update_event();
 
   void                close();
 
@@ -98,12 +105,18 @@ public:
   void                start_requesting();
   void                stop_requesting();
 
-  void                receive_success_new(Tracker* tb, address_list* l);
-  void                receive_failure_new(Tracker* tb, const std::string& msg);
+  void                receive_success(Tracker* tb, address_list* l);
+  void                receive_failure(Tracker* tb, const std::string& msg);
+
+  void                receive_tracker_enabled(Tracker* tb);
+  void                receive_tracker_disabled(Tracker* tb);
 
   slot_void&          slot_timeout()        { return m_slot_timeout; }
   slot_address_list&  slot_success()        { return m_slot_success; }
   slot_string&        slot_failure()        { return m_slot_failure; }
+
+  slot_tracker&       slot_tracker_enabled()  { return m_slot_tracker_enabled; }
+  slot_tracker&       slot_tracker_disabled() { return m_slot_tracker_disabled; }
 
   // TEMP:
   rak::priority_item* task_timeout();
@@ -112,6 +125,10 @@ public:
 
 private:
   void                receive_timeout();
+
+  void                update_timeout(uint32_t seconds_to_next);
+
+  inline int          current_send_state() const;
 
   TrackerController();
   void operator = (const TrackerController&);
@@ -124,6 +141,9 @@ private:
   slot_void           m_slot_timeout;
   slot_address_list   m_slot_success;
   slot_string         m_slot_failure;
+
+  slot_tracker        m_slot_tracker_enabled;
+  slot_tracker        m_slot_tracker_disabled;
 
   // Refactor this out.
   tracker_controller_private* m_private;

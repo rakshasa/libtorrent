@@ -50,7 +50,6 @@
 #include "torrent/tracker_list.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
-#include "tracker/tracker_manager.h"
 
 #include "download_constructor.h"
 
@@ -186,8 +185,6 @@ DownloadConstructor::parse_info(const Object& b) {
 
 void
 DownloadConstructor::parse_tracker(const Object& b) {
-  TrackerManager* tracker = m_download->main()->tracker_manager();
-
   const Object::list_type* announce_list = NULL;
 
   if (b.has_key_list("announce-list") &&
@@ -206,13 +203,13 @@ DownloadConstructor::parse_tracker(const Object& b) {
     throw bencode_error("Could not find any trackers");
 
   if (manager->dht_manager()->is_valid() && !m_download->info()->is_private())
-    tracker->tracker_controller()->insert(tracker->container()->size_group(), "dht://");
+    m_download->main()->tracker_controller()->insert(m_download->main()->tracker_list()->size_group(), "dht://");
 
   if (manager->dht_manager()->is_valid() && b.has_key_list("nodes"))
     std::for_each(b.get_key_list("nodes").begin(), b.get_key_list("nodes").end(),
                   rak::make_mem_fun(this, &DownloadConstructor::add_dht_node));
 
-  tracker->container()->randomize_group_entries();
+  m_download->main()->tracker_list()->randomize_group_entries();
 }
 
 void
@@ -222,7 +219,7 @@ DownloadConstructor::add_tracker_group(const Object& b) {
 
   std::for_each(b.as_list().begin(), b.as_list().end(),
 		rak::bind2nd(rak::make_mem_fun(this, &DownloadConstructor::add_tracker_single),
-			     m_download->main()->tracker_manager()->container()->size_group()));
+			     m_download->main()->tracker_list()->size_group()));
 }
 
 void
@@ -230,7 +227,7 @@ DownloadConstructor::add_tracker_single(const Object& b, int group) {
   if (!b.is_string())
     throw bencode_error("Tracker entry not a string");
     
-  m_download->main()->tracker_manager()->tracker_controller()->insert(group, rak::trim_classic(b.as_string()));
+  m_download->main()->tracker_controller()->insert(group, rak::trim_classic(b.as_string()));
 }
 
 void

@@ -161,9 +161,9 @@ log_group::internal_print(const char* fmt, ...) {
 
   if (count >= 0)
     std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
-                                             std::placeholders::_1,
-                                             buffer,
-                                             std::min<unsigned int>(count, buffer_size - 1)));
+                                             std::placeholders::_1, buffer,
+                                             std::min<unsigned int>(count, buffer_size - 1),
+                                             std::distance(log_groups.begin(), this)));
 }
 
 void
@@ -179,9 +179,9 @@ log_group::internal_print_info(const DownloadInfo* info, const char* fmt, ...) {
 
   if (count >= 0)
     std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
-                                             std::placeholders::_1,
-                                             buffer,
-                                             std::min<unsigned int>(count, buffer_size - 1)));
+                                             std::placeholders::_1, buffer,
+                                             std::min<unsigned int>(count, buffer_size - 1),
+                                             std::distance(log_groups.begin(), this)));
 }
 
 #define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
@@ -263,10 +263,12 @@ log_open_output(const char* name, log_slot slot) {
   log_rebuild_cache();
 }
 
+char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
+
 void
-log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length) {
+log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
-  *outfile << rak::timer::current().seconds() << " " << data << std::endl;
+  *outfile << rak::timer::current().seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
 }
 
 // TODO: Allow for different write functions that prepend timestamps,
@@ -279,7 +281,7 @@ log_open_file_output(const char* name, const char* filename) {
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
   //  log_open_output(name, std::bind(&std::ofstream::write, outfile, std::placeholders::_1, std::placeholders::_2));
-  log_open_output(name, std::bind(&log_file_write, outfile, std::placeholders::_1, std::placeholders::_2));
+  log_open_output(name, std::bind(&log_file_write, outfile, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
 void

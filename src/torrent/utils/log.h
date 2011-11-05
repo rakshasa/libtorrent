@@ -120,8 +120,8 @@ enum {
 struct log_cached_outputs;
 class DownloadInfo;
 
-typedef std::tr1::function<void (const char*, unsigned int)> log_slot;
-typedef std::vector<std::pair<std::string, log_slot> >       log_output_list;
+typedef std::tr1::function<void (const char*, unsigned int, int)> log_slot;
+typedef std::vector<std::pair<std::string, log_slot> >            log_output_list;
 
 class LIBTORRENT_EXPORT log_group {
 public:

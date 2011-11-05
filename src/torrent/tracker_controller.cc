@@ -44,7 +44,6 @@
 #include "utils/log.h"
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
-#include "tracker/tracker_manager.h"
 #include "tracker/tracker_udp.h"
 
 #include "globals.h"
@@ -59,6 +58,30 @@ struct tracker_controller_private {
 };
 
 // End temp hacks...
+
+void
+TrackerController::update_timeout(uint32_t seconds_to_next) {
+  if (!(m_flags & flag_active))
+    throw internal_error("TrackerController cannot set timeout when inactive.");
+
+  rak::timer next_timeout = cachedTime;
+
+  if (seconds_to_next != 0)
+    next_timeout = (cachedTime + rak::timer::from_seconds(seconds_to_next)).round_seconds();
+
+  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  priority_queue_insert(&taskScheduler, &m_private->task_timeout, next_timeout);
+}
+
+inline int
+TrackerController::current_send_state() const {
+  switch ((m_flags & mask_send)) {
+  case flag_send_start:     return Tracker::EVENT_STARTED;
+  case flag_send_stop:      return Tracker::EVENT_STOPPED;
+  case flag_send_completed: return Tracker::EVENT_COMPLETED;
+  default:                  return Tracker::EVENT_NONE;
+  }
+}
 
 TrackerController::TrackerController(TrackerList* trackers) :
   m_flags(0),
@@ -90,25 +113,32 @@ TrackerController::seconds_to_next_timeout() const {
 }
 
 // TODO: Move to tracker_list?
+//
+// TODO: Use proper flags for insert options.
 void
-TrackerController::insert(int group, const std::string& url) {
-  if (m_tracker_list->has_active())
-    throw internal_error("Tried to add tracker while a tracker is active.");
-
+TrackerController::insert(int group, const std::string& url, bool extra_tracker) {
   Tracker* tracker;
+  int flags = Tracker::flag_enabled;
+
+  if (extra_tracker)
+    flags |= Tracker::flag_extra_tracker;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
-    tracker = new TrackerHttp(m_tracker_list, url);
+    tracker = new TrackerHttp(m_tracker_list, url, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    tracker = new TrackerUdp(m_tracker_list, url);
+    tracker = new TrackerUdp(m_tracker_list, url, flags);
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    tracker = new TrackerDht(m_tracker_list, url);
+    tracker = new TrackerDht(m_tracker_list, url, flags);
 
   } else {
-    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url:'%s'.", url.c_str());
+    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url: '%s'.", url.c_str());
+
+    if (extra_tracker)
+      throw torrent::input_error("Could find matching tracker protocol for url: '" + url + "'.");
+
     return;
   }
   
@@ -116,6 +146,21 @@ TrackerController::insert(int group, const std::string& url) {
 
   m_tracker_list->insert(group, tracker);
 }
+
+
+void
+TrackerController::manual_request(bool request_now) {
+  if (!m_private->task_timeout.is_queued())
+    return;
+
+  // Add functions to get the lowest timeout, etc...
+
+  // if (!force)
+  //   t = std::max(t, rak::timer::from_seconds(m_tracker_list->time_last_connection() + m_tracker_list->focus_min_interval()));
+
+  update_timeout(2);
+}
+
 
 // The send_*_event() functions tries to ensure the relevant trackers
 // receive the event.
@@ -142,23 +187,28 @@ TrackerController::send_start_event() {
   m_flags &= ~mask_send;
   m_flags |= flag_send_start;
   
-  if (m_flags & flag_active && m_tracker_list->has_usable()) {
-    // Start with requesting from the first tracker. Add timer to
-    // catch when we don't get any response within the first few
-    // seconds, at which point we go promiscious.
-
-    // Do we use the old 'focus' thing?... Rather react on no reply,
-    // go into promiscious.
-
-    // Do we really want to close all here? Probably, as we're sending
-    // a new event.
-    LT_LOG_TRACKER(INFO, "Sending started event.", 0);
-
-    close();
-    m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STARTED);
-
-  } else {
+  if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
     LT_LOG_TRACKER(INFO, "Queueing started event.", 0);
+    return;
+  }
+
+  // Start with requesting from the first tracker. Add timer to
+  // catch when we don't get any response within the first few
+  // seconds, at which point we go promiscious.
+
+  // Do we use the old 'focus' thing?... Rather react on no reply,
+  // go into promiscious.
+
+  // Do we really want to close all here? Probably, as we're sending
+  // a new event.
+  LT_LOG_TRACKER(INFO, "Sending started event.", 0);
+
+  close();
+  m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STARTED);
+
+  if (m_tracker_list->count_usable() > 1) {
+    m_flags |= flag_promiscuous_mode;
+    update_timeout(3);
   }
 }
 
@@ -170,24 +220,25 @@ TrackerController::send_stop_event() {
   }
 
   m_flags &= ~mask_send;
+
+  if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
+    LT_LOG_TRACKER(INFO, "Skipping stopped event as no tracker need it.", 0);
+    return;
+  }
+
   m_flags |= flag_send_stop;
   
-  if (m_flags & flag_active && m_tracker_list->has_usable()) {
-    LT_LOG_TRACKER(INFO, "Sending stopped event.", 0);
+  LT_LOG_TRACKER(INFO, "Sending stopped event.", 0);
 
-    close();
-    TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+  close();
+  TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
 
-    while (itr != m_tracker_list->end()) {
-      m_tracker_list->send_state_tracker(itr, Tracker::EVENT_STOPPED);
-      itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
-    }
-
-    // Timer...
-
-  } else {
-    LT_LOG_TRACKER(INFO, "Queueing stopped event.", 0);
+  while (itr != m_tracker_list->end()) {
+    m_tracker_list->send_state_tracker(itr, Tracker::EVENT_STOPPED);
+    itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
   }
+
+  // Timer...
 }
 
 void
@@ -200,32 +251,47 @@ TrackerController::send_completed_event() {
   m_flags &= ~mask_send;
   m_flags |= flag_send_completed;
   
-  if (m_flags & flag_active && m_tracker_list->has_usable()) {
-    LT_LOG_TRACKER(INFO, "Sending completed event.", 0);
-
-    // Send to all trackers that would want to know.
-
-    close();
-    TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
-
-    while (itr != m_tracker_list->end()) {
-      m_tracker_list->send_state_tracker(itr, Tracker::EVENT_COMPLETED);
-      itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
-    }
-
-    // Timer...
-
-  } else {
+  if (!(m_flags & flag_active) || !m_tracker_list->has_usable()) {
     LT_LOG_TRACKER(INFO, "Queueing completed event.", 0);
+    return;
   }
+
+  LT_LOG_TRACKER(INFO, "Sending completed event.", 0);
+
+  // Send to all trackers that would want to know.
+
+  close();
+  TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+
+  while (itr != m_tracker_list->end()) {
+    m_tracker_list->send_state_tracker(itr, Tracker::EVENT_COMPLETED);
+    itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
+  }
+
+  // Timer...
+}
+
+void
+TrackerController::send_update_event() {
+  if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
+    return;
+
+  if ((m_flags & mask_send) || m_tracker_list->has_active())
+    return;
+
+  LT_LOG_TRACKER(INFO, "Sending update event.", 0);
+
+  m_tracker_list->send_state_tracker(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STARTED);
+
+  if (m_tracker_list->has_active())
+    priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 }
 
 // Currently being used by send_state, fixme.
 void
 TrackerController::close() {
   m_failed_requests = 0;
-
-  stop_requesting();
+  m_flags &= ~(flag_requesting | flag_promiscuous_mode);
 
   m_tracker_list->close_all();
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
@@ -238,11 +304,12 @@ TrackerController::enable() {
 
   m_flags |= flag_active;
 
+  m_tracker_list->close_all_excluding((1 << Tracker::EVENT_COMPLETED));
   LT_LOG_TRACKER(INFO, "Called enable with %u trackers.", m_tracker_list->size());
 
   // Adding of the tracker requests gets done after the caller has had
   // a chance to override the default behavior.
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout, cachedTime);
+  update_timeout(0);
 }
 
 void
@@ -251,9 +318,9 @@ TrackerController::disable() {
     return;
 
   // Disable other flags?...
-  m_flags &= ~flag_active;
+  m_flags &= ~(flag_active | flag_requesting | flag_requesting | flag_promiscuous_mode);
 
-  close();
+  m_tracker_list->close_all_excluding((1 << Tracker::EVENT_STOPPED) | (1 << Tracker::EVENT_COMPLETED));
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
   LT_LOG_TRACKER(INFO, "Called disable with %u trackers.", m_tracker_list->size());
@@ -261,23 +328,24 @@ TrackerController::disable() {
 
 void
 TrackerController::start_requesting() {
+  if (!(m_flags & flag_active) || (m_flags & flag_requesting))
+    return;
+
   m_flags |= flag_requesting;
 
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout, cachedTime);
+  update_timeout(0);
 }
 
 void
 TrackerController::stop_requesting() {
+  if (!(m_flags & flag_active) || !(m_flags & flag_requesting))
+    return;
+
   m_flags &= ~flag_requesting;
 
   // Should check if timeout is set?
-  if (!m_tracker_list->has_active() && m_tracker_list->has_usable()) {
-    priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-    priority_queue_insert(&taskScheduler, &m_private->task_timeout,
-                          // Improve this...
-                          cachedTime + rak::timer::from_seconds((*m_tracker_list->find_usable(m_tracker_list->begin()))->normal_interval()).round_seconds());
-  }
+  if (!m_tracker_list->has_active() && m_tracker_list->has_usable())
+    update_timeout((*m_tracker_list->find_usable(m_tracker_list->begin()))->normal_interval());
 }
 
 void
@@ -285,34 +353,33 @@ TrackerController::receive_timeout() {
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
     return;
 
-  //  LT_LOG_TRACKER(INFO, "Timeout called.");
-
   // Handle the different states properly...
 
   // Do we want the timeout function to know what tracker we queued
   // the timeout for? Seems reasonable, as that allows us to do
   // iteration through multiple trackers.
 
-  int send_state;
-
-  if ((m_flags & flag_send_start)) {
-    send_state = Tracker::EVENT_STARTED;
-  } else if ((m_flags & flag_send_stop)) {
-    send_state = Tracker::EVENT_STOPPED;;
-  } else if ((m_flags & flag_send_completed)) {
-    send_state = Tracker::EVENT_COMPLETED;
-  } else {
-    send_state = Tracker::EVENT_NONE;
-  }
-
-  // Find the next tracker to try...
+  int send_state = current_send_state();
   TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
 
-  if (itr != m_tracker_list->end()) {
+  if ((m_flags & flag_promiscuous_mode)) {
+    // When in promiscious mode we want as many peers as quickly as
+    // possible, so every available tracker is requested. The
+    // promiscious mode only gets acted upon in the timeout handler so
+    // as to give the primary tracker a few seconds to reply.
+    for (; itr != m_tracker_list->end(); itr++) {
+      if ((*itr)->is_busy() || !(*itr)->is_usable())
+        continue;
+
+      m_tracker_list->send_state_tracker(itr, send_state);
+    }
+
+  } else {
+    // Find the next tracker to try...
     TrackerList::iterator preferred = itr;
 
-    while (++itr != m_tracker_list->end()) {
-      if (!(*itr)->is_usable())
+    for (; itr != m_tracker_list->end(); itr++) {
+      if ((*itr)->is_busy() || !(*itr)->is_usable())
         continue;
 
       if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
@@ -320,19 +387,29 @@ TrackerController::receive_timeout() {
         preferred = itr;
     }
 
-    m_tracker_list->send_state_tracker(preferred, send_state);
+    if (preferred != m_tracker_list->end())
+      m_tracker_list->send_state_tracker(preferred, send_state);
   }
 
   if (m_slot_timeout)
     m_slot_timeout();
+
+  // There should be no timeout when we don't have any active trackers, etc.
+  // if (!m_tracker_list->has_active())
+  //   update_timeout(30);
 }
 
 void
-TrackerController::receive_success_new(Tracker* tb, TrackerController::address_list* l) {
+TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
+  if (!(m_flags & flag_active)) {
+    m_slot_success(l);
+    return;
+  }
+
   m_failed_requests = 0;
 
   // if (<check if we have multiple trackers to send this event to, before we declare success>) {
-  m_flags &= ~mask_send;
+  m_flags &= ~(mask_send | flag_promiscuous_mode);
   // }
 
   //unsigned int next_request = m_tracker_list->focus_normal_interval();
@@ -342,39 +419,89 @@ TrackerController::receive_success_new(Tracker* tb, TrackerController::address_l
   // Calculate the next timeout according to a list of in-use
   // trackers, with the first timeout as the interval.
 
-  // For the moment, just use the last tracker...
-  unsigned int next_request = tb->normal_interval();
+  if (!m_tracker_list->has_active()) {
+    // For the moment, just use the last tracker...
+    unsigned int next_request = tb->normal_interval();
 
-  // Also make this check how many new peers we got, and how often
-  // we've reconnected this time.
-  if (m_flags & flag_requesting)
-    next_request = 30;
+    // Also make this check how many new peers we got, and how often
+    // we've reconnected this time.
+    if (m_flags & flag_requesting)
+      next_request = 30;
 
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout,
-                        (cachedTime + rak::timer::from_seconds(next_request)).round_seconds());
-  
+    update_timeout(next_request);
+  }
+
   m_slot_success(l);
 }
 
 void
-TrackerController::receive_failure_new(Tracker* tb, const std::string& msg) {
+TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
+  if (!(m_flags & flag_active)) {
+    m_slot_failure(msg);
+    return;
+  }
+
   if (tb == NULL) {
     LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
     m_slot_failure(msg);
     return;
   }
 
+  m_flags |= flag_failure_mode;
+
+  if ((m_flags & flag_promiscuous_mode)) {
+    int send_state = current_send_state();
+    TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
+
+    for (; itr != m_tracker_list->end(); itr++) {
+      // The first time a tracker failes during promiscious requests
+      // we send to all trackers.
+      if ((*itr)->is_busy() || !(*itr)->is_usable() || (*itr)->failed_counter() != 0)
+        continue;
+
+      m_tracker_list->send_state_tracker(itr, send_state);
+    }
+
+    if (m_tracker_list->has_active()) {
+      priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+      m_slot_failure(msg);
+      return;
+    }
+  }
+
   // For the moment, just use the last tracker...
   unsigned int next_request = 5 << std::min<int>(tb->failed_counter() - 1, 6);
 
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout,
-                        (cachedTime + rak::timer::from_seconds(next_request)).round_seconds());
-
-  m_flags |= flag_failure_mode;
-
+  update_timeout(next_request);
   m_slot_failure(msg);
+}
+
+void
+TrackerController::receive_tracker_enabled(Tracker* tb) {
+  // TODO: This won't be needed if we rely only on Tracker::m_enable,
+  // rather than a virtual function.
+  if (!m_tracker_list->has_usable())
+    return;
+  
+  if ((m_flags & flag_active)) {
+    if (!m_private->task_timeout.is_queued() && !m_tracker_list->has_active()) {
+      // TODO: Figure out the proper timeout to use here based on when the
+      // tracker last connected, etc.
+      update_timeout(0);
+    }
+  }
+
+  if (m_slot_tracker_enabled)
+    m_slot_tracker_enabled(tb);
+}
+
+void
+TrackerController::receive_tracker_disabled(Tracker* tb) {
+  if ((m_flags & flag_active) && !m_private->task_timeout.is_queued())
+    update_timeout(0);
+
+  if (m_slot_tracker_disabled)
+    m_slot_tracker_disabled(tb);
 }
 
 }

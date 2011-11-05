@@ -60,8 +60,8 @@
 
 namespace torrent {
 
-TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url) :
-  Tracker(parent, url),
+TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags) :
+  Tracker(parent, url, flags),
 
   m_get(Http::call_factory()),
   m_data(NULL) {
