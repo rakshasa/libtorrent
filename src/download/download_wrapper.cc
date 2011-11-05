@@ -146,7 +146,7 @@ DownloadWrapper::close() {
 
 bool
 DownloadWrapper::is_stopped() const {
-  return !m_main->tracker_controller()->is_active() && m_main->tracker_list()->has_active();
+  return !m_main->tracker_controller()->is_active() && !m_main->tracker_list()->has_active();
 }
 
 void
