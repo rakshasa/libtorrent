@@ -95,7 +95,7 @@ public:
   unsigned int        count_active() const;
   unsigned int        count_usable() const;
 
-  void                close_all() { close_all_excluding(~int()); }
+  void                close_all() { close_all_excluding(0); }
   void                close_all_excluding(int event_bitmap);
 
   void                clear();

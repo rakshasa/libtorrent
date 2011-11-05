@@ -122,7 +122,8 @@ tracker_controller_test::test_basic() {
 
 void
 tracker_controller_test::test_enable() {
-  torrent::TrackerController tracker_controller(NULL);
+  torrent::TrackerList tracker_list;
+  torrent::TrackerController tracker_controller(&tracker_list);
 
   tracker_controller.enable();
 
@@ -207,7 +208,7 @@ tracker_controller_test::test_single_failure() {
 void
 tracker_controller_test::test_single_disable() {
   TEST_SINGLE_BEGIN();
-  tracker_list.send_state_idx(0, 1);
+  tracker_list.send_state_idx(0, 0);
   TEST_SINGLE_END(0, 0);
 }
 
@@ -231,6 +232,11 @@ tracker_controller_test::test_send_start() {
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() != 0);
   //CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() != 0);
 
+  tracker_controller.send_start_event();
+  tracker_controller.disable();
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+
   TEST_SEND_SINGLE_END(1, 0);
 }
 
@@ -246,13 +252,17 @@ tracker_controller_test::test_send_stop_normal() {
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == torrent::TrackerController::flag_send_stop);
 
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
-  // CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() == 0);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == 0);
 
-  // Add a slot for stopped events done.
-  TEST_SEND_SINGLE_END(2, 0);
+  tracker_controller.send_stop_event();
+  tracker_controller.disable();
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  tracker_0_0->trigger_success();
+
+  TEST_SEND_SINGLE_END(3, 0);
 }
 
 // send_stop during request and right after start, send stop failed.
@@ -269,13 +279,17 @@ tracker_controller_test::test_send_completed_normal() {
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == torrent::TrackerController::flag_send_completed);
 
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
-  // CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() == 0);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == 0);
 
-  // Add a slot for stopped events done.
-  TEST_SEND_SINGLE_END(2, 0);
+  tracker_controller.send_completed_event();
+  tracker_controller.disable();
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  tracker_0_0->trigger_success();
+
+  TEST_SEND_SINGLE_END(3, 0);
 }
 
 void
@@ -289,6 +303,27 @@ tracker_controller_test::test_send_task_timeout() {
 }
 
 void
+tracker_controller_test::test_send_close_on_enable() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(0, tracker_1);
+  TRACKER_INSERT(0, tracker_2);
+  TRACKER_INSERT(0, tracker_3);
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_state_idx(1, torrent::Tracker::EVENT_STARTED);
+  tracker_list.send_state_idx(2, torrent::Tracker::EVENT_STOPPED);
+  tracker_list.send_state_idx(3, torrent::Tracker::EVENT_COMPLETED);
+
+  tracker_controller.enable();
+
+  CPPUNIT_ASSERT(!tracker_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_2->is_busy());
+  CPPUNIT_ASSERT(tracker_3->is_busy());
+}
+
+void
 tracker_controller_test::test_multiple_success() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
@@ -296,7 +331,6 @@ tracker_controller_test::test_multiple_success() {
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
   TEST_GOTO_NEXT_TIMEOUT(tracker_0_0->normal_interval());
 
-  // Verify that we're busy...
   TEST_MULTI3_IS_BUSY("10000");
 
   CPPUNIT_ASSERT(std::find_if(tracker_list.begin() + 1, tracker_list.end(),

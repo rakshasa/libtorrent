@@ -304,6 +304,7 @@ TrackerController::enable() {
 
   m_flags |= flag_active;
 
+  m_tracker_list->close_all_excluding((1 << Tracker::EVENT_COMPLETED));
   LT_LOG_TRACKER(INFO, "Called enable with %u trackers.", m_tracker_list->size());
 
   // Adding of the tracker requests gets done after the caller has had
@@ -317,9 +318,9 @@ TrackerController::disable() {
     return;
 
   // Disable other flags?...
-  m_flags &= ~(flag_active | flag_requesting);
+  m_flags &= ~(flag_active | flag_requesting | flag_requesting | flag_promiscuous_mode);
 
-  close();
+  m_tracker_list->close_all_excluding((1 << Tracker::EVENT_STOPPED) | (1 << Tracker::EVENT_COMPLETED));
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 
   LT_LOG_TRACKER(INFO, "Called disable with %u trackers.", m_tracker_list->size());
@@ -400,8 +401,10 @@ TrackerController::receive_timeout() {
 
 void
 TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
-  if (!(m_flags & flag_active))
+  if (!(m_flags & flag_active)) {
+    m_slot_success(l);
     return;
+  }
 
   m_failed_requests = 0;
 
@@ -433,8 +436,10 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
 
 void
 TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
-  if (!(m_flags & flag_active))
+  if (!(m_flags & flag_active)) {
+    m_slot_failure(msg);
     return;
+  }
 
   if (tb == NULL) {
     LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());

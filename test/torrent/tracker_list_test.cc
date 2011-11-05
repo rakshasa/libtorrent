@@ -114,10 +114,10 @@ tracker_list_test::test_close() {
 
   tracker_list.close_all_excluding((1 << torrent::Tracker::EVENT_STARTED) | (1 << torrent::Tracker::EVENT_STOPPED));
 
-  CPPUNIT_ASSERT(tracker_0->is_busy());
-  CPPUNIT_ASSERT(!tracker_1->is_busy());
-  CPPUNIT_ASSERT(!tracker_2->is_busy());
-  CPPUNIT_ASSERT(tracker_3->is_busy());
+  CPPUNIT_ASSERT(!tracker_0->is_busy());
+  CPPUNIT_ASSERT(tracker_1->is_busy());
+  CPPUNIT_ASSERT(tracker_2->is_busy());
+  CPPUNIT_ASSERT(!tracker_3->is_busy());
 
   tracker_list.close_all();
 
@@ -133,10 +133,10 @@ tracker_list_test::test_close() {
 
   tracker_list.close_all_excluding((1 << torrent::Tracker::EVENT_NONE) | (1 << torrent::Tracker::EVENT_COMPLETED));
 
-  CPPUNIT_ASSERT(!tracker_0->is_busy());
-  CPPUNIT_ASSERT(tracker_1->is_busy());
-  CPPUNIT_ASSERT(tracker_2->is_busy());
-  CPPUNIT_ASSERT(!tracker_3->is_busy());
+  CPPUNIT_ASSERT(tracker_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_2->is_busy());
+  CPPUNIT_ASSERT(tracker_3->is_busy());
 }
 
 // Test clear.
