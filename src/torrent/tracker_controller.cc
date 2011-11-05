@@ -117,9 +117,6 @@ TrackerController::seconds_to_next_timeout() const {
 // TODO: Use proper flags for insert options.
 void
 TrackerController::insert(int group, const std::string& url, bool extra_tracker) {
-  if (m_tracker_list->has_active())
-    throw internal_error("Tried to add tracker while a tracker is active.");
-
   Tracker* tracker;
   int flags = Tracker::flag_enabled;
 
