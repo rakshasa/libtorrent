@@ -97,6 +97,22 @@ tracker_list_test::test_enable() {
 // Test clear.
 
 void
+tracker_list_test::test_tracker_flags() {
+  TRACKER_SETUP();
+  tracker_list.insert(0, new TrackerTest(&tracker_list, ""));
+  tracker_list.insert(0, new TrackerTest(&tracker_list, "", 0));
+  tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_enabled));
+  tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_extra_tracker));
+  tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker));
+
+  CPPUNIT_ASSERT(tracker_list[0]->flags() == torrent::Tracker::flag_enabled);
+  CPPUNIT_ASSERT(tracker_list[1]->flags() == 0);
+  CPPUNIT_ASSERT(tracker_list[2]->flags() == torrent::Tracker::flag_enabled);
+  CPPUNIT_ASSERT(tracker_list[3]->flags() == torrent::Tracker::flag_extra_tracker);
+  CPPUNIT_ASSERT(tracker_list[4]->flags() == torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker);
+}
+
+void
 tracker_list_test::test_single_success() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);

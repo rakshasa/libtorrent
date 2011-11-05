@@ -113,25 +113,35 @@ TrackerController::seconds_to_next_timeout() const {
 }
 
 // TODO: Move to tracker_list?
+//
+// TODO: Use proper flags for insert options.
 void
-TrackerController::insert(int group, const std::string& url) {
+TrackerController::insert(int group, const std::string& url, bool extra_tracker) {
   if (m_tracker_list->has_active())
     throw internal_error("Tried to add tracker while a tracker is active.");
 
   Tracker* tracker;
+  int flags = Tracker::flag_enabled;
+
+  if (extra_tracker)
+    flags |= Tracker::flag_extra_tracker;
 
   if (std::strncmp("http://", url.c_str(), 7) == 0 ||
       std::strncmp("https://", url.c_str(), 8) == 0) {
-    tracker = new TrackerHttp(m_tracker_list, url);
+    tracker = new TrackerHttp(m_tracker_list, url, flags);
 
   } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    tracker = new TrackerUdp(m_tracker_list, url);
+    tracker = new TrackerUdp(m_tracker_list, url, flags);
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    tracker = new TrackerDht(m_tracker_list, url);
+    tracker = new TrackerDht(m_tracker_list, url, flags);
 
   } else {
-    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url:'%s'.", url.c_str());
+    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url: '%s'.", url.c_str());
+
+    if (extra_tracker)
+      throw torrent::input_error("Could find matching tracker protocol for url: '" + url + "'.");
+
     return;
   }
   

@@ -45,7 +45,7 @@ namespace torrent {
 
 class TrackerDht : public Tracker {
 public:
-  TrackerDht(TrackerList* parent, const std::string& url);
+  TrackerDht(TrackerList* parent, const std::string& url, int flags);
   ~TrackerDht();
 
   typedef enum {

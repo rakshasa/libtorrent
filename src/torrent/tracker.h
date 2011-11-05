@@ -64,16 +64,22 @@ public:
     EVENT_STOPPED
   };
 
+  static const int flag_enabled = 0x1;
+  static const int flag_extra_tracker = 0x2;
+
   virtual ~Tracker() {}
 
+  int                 flags() const { return m_flags; }
+
+  bool                is_enabled() const        { return (m_flags & flag_enabled); }
+  bool                is_extra_tracker() const  { return (m_flags & flag_extra_tracker); }
+  bool                is_in_use() const         { return is_enabled() && m_success_counter != 0; }
+
   virtual bool        is_busy() const = 0;
-  virtual bool        is_usable() const                     { return m_enabled; }
-  bool                is_enabled() const                    { return m_enabled; }
-  bool                is_in_use() const                     { return m_enabled && m_success_counter != 0; }
+  virtual bool        is_usable() const { return is_enabled(); }
 
   void                enable();
   void                disable();
-  void                set_enabled(bool status)              { m_enabled = status; }
 
   TrackerList*        parent()                              { return m_parent; }
 
@@ -105,7 +111,7 @@ public:
   virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; } 
 
 protected:
-  Tracker(TrackerList* parent, const std::string& url);
+  Tracker(TrackerList* parent, const std::string& url, int flags = 0);
   Tracker(const Tracker& t);
   void operator = (const Tracker& t);
 
@@ -122,7 +128,7 @@ protected:
   void                set_success_counter(uint32_t value)   { m_success_counter = value; }
   void                set_failed_counter(uint32_t value)    { m_failed_counter = value; }
 
-  bool                m_enabled;
+  int                 m_flags;
 
   TrackerList*        m_parent;
   uint32_t            m_group;
