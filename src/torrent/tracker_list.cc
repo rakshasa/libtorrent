@@ -125,9 +125,15 @@ TrackerList::send_state_tracker(iterator itr, int new_event) {
 }
 
 TrackerList::iterator
-TrackerList::insert(unsigned int group, Tracker* t) {
-  t->set_group(group);
-  return base_type::insert(end_group(group), t);
+TrackerList::insert(unsigned int group, Tracker* tracker) {
+  tracker->set_group(group);
+  
+  iterator itr = base_type::insert(end_group(group), tracker);
+
+  if (m_slot_tracker_enabled)
+    m_slot_tracker_enabled(tracker);
+
+  return itr;
 }
 
 TrackerList::iterator

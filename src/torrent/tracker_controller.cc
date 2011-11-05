@@ -59,11 +59,18 @@ struct tracker_controller_private {
 
 // End temp hacks...
 
-inline void
+void
 TrackerController::update_timeout(uint32_t seconds_to_next) {
+  if (!(m_flags & flag_active))
+    throw internal_error("TrackerController cannot set timeout when inactive.");
+
+  rak::timer next_timeout = cachedTime;
+
+  if (seconds_to_next != 0)
+    next_timeout = (cachedTime + rak::timer::from_seconds(seconds_to_next)).round_seconds();
+
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout,
-                        (cachedTime + rak::timer::from_seconds(seconds_to_next)).round_seconds());
+  priority_queue_insert(&taskScheduler, &m_private->task_timeout, next_timeout);
 }
 
 inline int
@@ -294,7 +301,7 @@ TrackerController::enable() {
 
   // Adding of the tracker requests gets done after the caller has had
   // a chance to override the default behavior.
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout, cachedTime);
+  update_timeout(0);
 }
 
 void
@@ -303,7 +310,7 @@ TrackerController::disable() {
     return;
 
   // Disable other flags?...
-  m_flags &= ~flag_active;
+  m_flags &= ~(flag_active | flag_requesting);
 
   close();
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
@@ -313,18 +320,17 @@ TrackerController::disable() {
 
 void
 TrackerController::start_requesting() {
-  if ((m_flags & flag_requesting))
+  if (!(m_flags & flag_active) || (m_flags & flag_requesting))
     return;
 
   m_flags |= flag_requesting;
 
-  priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  priority_queue_insert(&taskScheduler, &m_private->task_timeout, cachedTime);
+  update_timeout(0);
 }
 
 void
 TrackerController::stop_requesting() {
-  if (!(m_flags & flag_requesting))
+  if (!(m_flags & flag_active) || !(m_flags & flag_requesting))
     return;
 
   m_flags &= ~flag_requesting;
@@ -387,6 +393,9 @@ TrackerController::receive_timeout() {
 
 void
 TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
+  if (!(m_flags & flag_active))
+    return;
+
   m_failed_requests = 0;
 
   // if (<check if we have multiple trackers to send this event to, before we declare success>) {
@@ -417,6 +426,9 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
 
 void
 TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
+  if (!(m_flags & flag_active))
+    return;
+
   if (tb == NULL) {
     LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
     m_slot_failure(msg);
@@ -459,10 +471,12 @@ TrackerController::receive_tracker_enabled(Tracker* tb) {
   if (!m_tracker_list->has_usable())
     return;
   
-  if (!m_private->task_timeout.is_queued() && !m_tracker_list->has_active()) {
-    // TODO: Figure out the proper timeout to use here based on when the
-    // tracker last connected, etc.
-    update_timeout(0);
+  if ((m_flags & flag_active)) {
+    if (!m_private->task_timeout.is_queued() && !m_tracker_list->has_active()) {
+      // TODO: Figure out the proper timeout to use here based on when the
+      // tracker last connected, etc.
+      update_timeout(0);
+    }
   }
 
   if (m_slot_tracker_enabled)

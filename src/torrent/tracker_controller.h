@@ -125,7 +125,7 @@ public:
 private:
   void                receive_timeout();
 
-  inline void         update_timeout(uint32_t seconds_to_next);
+  void                update_timeout(uint32_t seconds_to_next);
 
   inline int          current_send_state() const;
 

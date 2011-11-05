@@ -99,7 +99,7 @@ public:
   void                clear();
   void                clear_stats();
 
-  iterator            insert(unsigned int group, Tracker* t);
+  iterator            insert(unsigned int group, Tracker* tracker);
 
   void                send_state_idx(unsigned idx, int new_event);
   void                send_state_tracker(iterator itr, int new_event);

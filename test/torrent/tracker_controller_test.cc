@@ -149,7 +149,14 @@ tracker_controller_test::test_requesting() {
 
 void
 tracker_controller_test::test_timeout() {
-  TEST_SINGLE_BEGIN();
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0_0);
+
+  CPPUNIT_ASSERT(enabled_counter == 1);
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  tracker_controller.enable();
 
   rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
 
@@ -513,34 +520,30 @@ tracker_controller_test::test_timeout_lacking_usable() {
   tracker_3_0->enable();
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
 
-  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 5);
+  CPPUNIT_ASSERT(enabled_counter == 5 + 2 && disabled_counter == 5);
   TEST_MULTIPLE_END(0, 0);
 }
 
+// Add new function for finding the first tracker that will time out,
+// e.g. both with failure mode and normal rerequesting.
+
+
+// Make sure that adding a new tracker to a tracker list with no
+// usable tracker restarts the tracker requests.
+
 // Test timeout called, usable trackers exist but could not be called
-// at this moment, thus leading to no active trackers.
+// at this moment, thus leading to no active trackers. (Rather, clean
+// up the 'is_usable()' functions, and make it a new function that is
+// independent of enabled, or is itself manipulating/dependent on
+// enabled)
 
 // Add checks to ensure we don't prematurely do timeout on a tracker
 // after disabling the lead one.
-
-// Add checks for various pathological cases of receive_timeout calls,
-// needs to be multi3 specific due to rearrangeable trackers.
-
-
-// Change the asserts for is_busy to a vector argument of some kind.
-
-// !!! Add check that timer is not on when all trackers are busy, and
-// clear timer when calling send_*, etc.
 
 
 // Make sure that we always remain with timeout, even if we send a
 // request that somehow doesn't actually activate any
 // trackers. e.g. check all send_tracker_itr uses.
-
-
-// Clear the others of comments assuming promiscious mode would go
-// beyond the started message? (Or we want to go promiscious also for
-// requesting?)
 
 
 // Add test for promiscious mode while with a single tracker?
@@ -560,8 +563,3 @@ tracker_controller_test::test_timeout_lacking_usable() {
 
 // Test clearing of recv/failed counter on trackers.
 
-// Test tracker send timeouts when we go from no usable to one or more
-// usable trackers.
-
-// Make sure that adding a new tracker to a tracker list with no
-// usable tracker restarts the tracker requests.

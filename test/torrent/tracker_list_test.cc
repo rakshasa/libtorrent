@@ -78,19 +78,20 @@ tracker_list_test::test_enable() {
 
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(1, tracker_1);
+  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 0);
 
   tracker_0->enable(); tracker_1->enable();
-  CPPUNIT_ASSERT(enabled_counter == 0 && disabled_counter == 0);
+  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 0);
   
   tracker_0->disable(); tracker_1->enable();
-  CPPUNIT_ASSERT(enabled_counter == 0 && disabled_counter == 1);
+  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 1);
 
   tracker_1->disable(); tracker_0->disable();
-  CPPUNIT_ASSERT(enabled_counter == 0 && disabled_counter == 2);
+  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 2);
 
   tracker_0->enable(); tracker_1->enable();
   tracker_0->enable(); tracker_1->enable();
-  CPPUNIT_ASSERT(enabled_counter == 2 && disabled_counter == 2);
+  CPPUNIT_ASSERT(enabled_counter == 4 && disabled_counter == 2);
 }
 
 // Test clear.
