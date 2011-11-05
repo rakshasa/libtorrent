@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <functional>
 #include <rak/functional.h>
 
 #include "torrent/utils/log.h"
@@ -51,6 +52,8 @@
 
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, info(), "->tracker_list: " log_fmt, __VA_ARGS__);
+
+namespace std { using namespace tr1; }
 
 namespace torrent {
 
@@ -134,6 +137,12 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
     m_slot_tracker_enabled(tracker);
 
   return itr;
+}
+
+TrackerList::iterator
+TrackerList::find_url(const std::string& url) {
+  return std::find_if(begin(), end(), std::bind(std::equal_to<std::string>(), url,
+                                                std::bind(&Tracker::url, std::placeholders::_1)));
 }
 
 TrackerList::iterator

@@ -113,6 +113,26 @@ tracker_list_test::test_tracker_flags() {
 }
 
 void
+tracker_list_test::test_find_url() {
+  TRACKER_SETUP();
+
+  tracker_list.insert(0, new TrackerTest(&tracker_list, "http://1"));
+  tracker_list.insert(0, new TrackerTest(&tracker_list, "http://2"));
+  tracker_list.insert(1, new TrackerTest(&tracker_list, "http://3"));
+
+  CPPUNIT_ASSERT(tracker_list.find_url("http://") == tracker_list.end());
+
+  CPPUNIT_ASSERT(tracker_list.find_url("http://1") != tracker_list.end());
+  CPPUNIT_ASSERT(*tracker_list.find_url("http://1") == tracker_list[0]);
+
+  CPPUNIT_ASSERT(tracker_list.find_url("http://2") != tracker_list.end());
+  CPPUNIT_ASSERT(*tracker_list.find_url("http://2") == tracker_list[1]);
+
+  CPPUNIT_ASSERT(tracker_list.find_url("http://3") != tracker_list.end());
+  CPPUNIT_ASSERT(*tracker_list.find_url("http://3") == tracker_list[2]);
+}
+
+void
 tracker_list_test::test_single_success() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0);

@@ -114,6 +114,8 @@ public:
   void                set_numwant(int32_t n)                  { m_numwant = n; }
 
   iterator            find(Tracker* tb)                       { return std::find(begin(), end(), tb); }
+  iterator            find_url(const std::string& url);
+
   iterator            find_usable(iterator itr);
   const_iterator      find_usable(const_iterator itr) const;
 
