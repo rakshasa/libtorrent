@@ -7,6 +7,7 @@ class tracker_list_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(tracker_list_test);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_enable);
+  CPPUNIT_TEST(test_close);
 
   CPPUNIT_TEST(test_tracker_flags);
   CPPUNIT_TEST(test_find_url);
@@ -27,6 +28,7 @@ public:
 
   void test_basic();
   void test_enable();
+  void test_close();
 
   void test_tracker_flags();
   void test_find_url();

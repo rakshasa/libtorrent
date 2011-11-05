@@ -59,14 +59,15 @@ public:
   typedef std::tr1::function<void (AddressList*)>       slot_address_list;
   typedef std::tr1::function<void (Tracker*)>           slot_tracker;
 
-  static const int flag_active           = 0x1;
-  static const int flag_requesting       = 0x2;
-  static const int flag_send_start       = 0x10;
-  static const int flag_send_stop        = 0x20;
-  static const int flag_send_completed   = 0x40;
   static const int flag_send_update      = 0x0; // Fake flag, don't use.
-  static const int flag_failure_mode     = 0x100;
-  static const int flag_promiscuous_mode = 0x200;
+  static const int flag_send_completed   = 0x1;
+  static const int flag_send_start       = 0x2;
+  static const int flag_send_stop        = 0x4;
+
+  static const int flag_active           = 0x10;
+  static const int flag_requesting       = 0x20;
+  static const int flag_failure_mode     = 0x40;
+  static const int flag_promiscuous_mode = 0x80;
 
   static const int mask_send = flag_send_start | flag_send_stop | flag_send_completed;
 

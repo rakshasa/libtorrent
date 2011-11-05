@@ -94,6 +94,51 @@ tracker_list_test::test_enable() {
   CPPUNIT_ASSERT(enabled_counter == 4 && disabled_counter == 2);
 }
 
+void
+tracker_list_test::test_close() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(0, tracker_1);
+  TRACKER_INSERT(0, tracker_2);
+  TRACKER_INSERT(0, tracker_3);
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_state_idx(1, torrent::Tracker::EVENT_STARTED);
+  tracker_list.send_state_idx(2, torrent::Tracker::EVENT_STOPPED);
+  tracker_list.send_state_idx(3, torrent::Tracker::EVENT_COMPLETED);
+
+  CPPUNIT_ASSERT(tracker_0->is_busy());
+  CPPUNIT_ASSERT(tracker_1->is_busy());
+  CPPUNIT_ASSERT(tracker_2->is_busy());
+  CPPUNIT_ASSERT(tracker_3->is_busy());
+
+  tracker_list.close_all_excluding((1 << torrent::Tracker::EVENT_STARTED) | (1 << torrent::Tracker::EVENT_STOPPED));
+
+  CPPUNIT_ASSERT(tracker_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_2->is_busy());
+  CPPUNIT_ASSERT(tracker_3->is_busy());
+
+  tracker_list.close_all();
+
+  CPPUNIT_ASSERT(!tracker_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_1->is_busy());
+  CPPUNIT_ASSERT(!tracker_2->is_busy());
+  CPPUNIT_ASSERT(!tracker_3->is_busy());
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  tracker_list.send_state_idx(1, torrent::Tracker::EVENT_STARTED);
+  tracker_list.send_state_idx(2, torrent::Tracker::EVENT_STOPPED);
+  tracker_list.send_state_idx(3, torrent::Tracker::EVENT_COMPLETED);
+
+  tracker_list.close_all_excluding((1 << torrent::Tracker::EVENT_NONE) | (1 << torrent::Tracker::EVENT_COMPLETED));
+
+  CPPUNIT_ASSERT(!tracker_0->is_busy());
+  CPPUNIT_ASSERT(tracker_1->is_busy());
+  CPPUNIT_ASSERT(tracker_2->is_busy());
+  CPPUNIT_ASSERT(!tracker_3->is_busy());
+}
+
 // Test clear.
 
 void

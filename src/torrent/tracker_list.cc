@@ -92,8 +92,10 @@ TrackerList::count_usable() const {
 }
 
 void
-TrackerList::close_all() {
-  std::for_each(begin(), end(), std::mem_fun(&Tracker::close));
+TrackerList::close_all_excluding(int event_bitmap) {
+  for (iterator itr = begin(); itr != end(); itr++)
+    if ((event_bitmap & (1 << (*itr)->latest_event())))
+      (*itr)->close();
 }
 
 void
