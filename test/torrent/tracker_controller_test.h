@@ -31,6 +31,7 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_multiple_promiscious_failed);
 
   CPPUNIT_TEST(test_timeout_lacking_usable);
+  CPPUNIT_TEST(test_disable_tracker);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -65,4 +66,5 @@ public:
   void test_multiple_promiscious_failed();
 
   void test_timeout_lacking_usable();
+  void test_disable_tracker();
 };

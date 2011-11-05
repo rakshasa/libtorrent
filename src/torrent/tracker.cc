@@ -80,6 +80,7 @@ Tracker::disable() {
   if (!is_enabled())
     return;
 
+  close();
   m_flags &= ~flag_enabled;
 
   if (m_parent->slot_tracker_disabled())

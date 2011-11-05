@@ -558,6 +558,24 @@ tracker_controller_test::test_timeout_lacking_usable() {
   TEST_MULTIPLE_END(0, 0);
 }
 
+void
+tracker_controller_test::test_disable_tracker() {
+  TEST_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+
+  tracker_0_0->disable();
+
+  CPPUNIT_ASSERT(!tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+
+  TEST_SINGLE_END(0, 0);
+}
+
+
+
 // Add new function for finding the first tracker that will time out,
 // e.g. both with failure mode and normal rerequesting.
 

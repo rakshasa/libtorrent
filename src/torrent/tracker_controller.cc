@@ -497,6 +497,9 @@ TrackerController::receive_tracker_enabled(Tracker* tb) {
 
 void
 TrackerController::receive_tracker_disabled(Tracker* tb) {
+  if ((m_flags & flag_active) && !m_private->task_timeout.is_queued())
+    update_timeout(0);
+
   if (m_slot_tracker_disabled)
     m_slot_tracker_disabled(tb);
 }
