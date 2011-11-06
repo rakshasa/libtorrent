@@ -195,20 +195,28 @@ tracker_list_test::test_can_scrape() {
   TRACKER_SETUP();
   torrent::Http::set_factory(sigc::ptr_fun(&http_factory));
 
-  tracker_list.insert_url(0, "http://example.com/announce"); // http://example.com/scrape
+  tracker_list.insert_url(0, "http://example.com/announce");
   CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+                 "http://example.com/scrape");
 
-  tracker_list.insert_url(0, "http://example.com/x/announce"); // http://example.com/x/scrape
+  tracker_list.insert_url(0, "http://example.com/x/announce");
   CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+                 "http://example.com/x/scrape");
 
-  tracker_list.insert_url(0, "http://example.com/announce.php"); // http://example.com/scrape.php
+  tracker_list.insert_url(0, "http://example.com/announce.php");
   CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+                 "http://example.com/scrape.php");
 
   tracker_list.insert_url(0, "http://example.com/a");
   CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
 
-  tracker_list.insert_url(0, "http://example.com/announce?x2%0644"); // http://example.com/scrape?x2%0644
+  tracker_list.insert_url(0, "http://example.com/announce?x2%0644");
   CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+  CPPUNIT_ASSERT(torrent::Tracker::scrape_url_from(tracker_list.back()->url()) ==
+                 "http://example.com/scrape?x2%0644");
 
   tracker_list.insert_url(0, "http://example.com/announce?x=2/4");
   CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));

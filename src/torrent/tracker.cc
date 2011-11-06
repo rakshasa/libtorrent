@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include "exceptions.h"
 #include "tracker.h"
 #include "tracker_list.h"
 
@@ -85,6 +86,16 @@ Tracker::disable() {
 
   if (m_parent->slot_tracker_disabled())
     m_parent->slot_tracker_disabled()(this);
+}
+
+std::string
+Tracker::scrape_url_from(std::string url) {
+  size_t delim_slash = url.rfind('/');
+
+  if (delim_slash == std::string::npos || url.find("/announce", delim_slash) != delim_slash)
+    throw internal_error("Tried to make scrape url from invalid url.");
+
+  return url.replace(delim_slash, sizeof("/announce") - 1, "/scrape");
 }
 
 }

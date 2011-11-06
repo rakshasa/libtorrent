@@ -111,6 +111,8 @@ public:
 
   virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; } 
 
+  static std::string  scrape_url_from(std::string url);
+
 protected:
   Tracker(TrackerList* parent, const std::string& url, int flags = 0);
   Tracker(const Tracker& t);
