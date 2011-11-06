@@ -36,15 +36,14 @@
 
 #include "config.h"
 
+#include "exceptions.h"
 #include "download_info.h"
+#include "tracker.h"
 #include "tracker_controller.h"
 #include "tracker_list.h"
 
 #include "rak/priority_queue_default.h"
 #include "utils/log.h"
-#include "tracker/tracker_dht.h"
-#include "tracker/tracker_http.h"
-#include "tracker/tracker_udp.h"
 
 #include "globals.h"
 
@@ -111,42 +110,6 @@ uint32_t
 TrackerController::seconds_to_next_timeout() const {
   return std::max(m_private->task_timeout.time() - cachedTime, rak::timer()).seconds_ceiling();
 }
-
-// TODO: Move to tracker_list?
-//
-// TODO: Use proper flags for insert options.
-void
-TrackerController::insert(int group, const std::string& url, bool extra_tracker) {
-  Tracker* tracker;
-  int flags = Tracker::flag_enabled;
-
-  if (extra_tracker)
-    flags |= Tracker::flag_extra_tracker;
-
-  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
-      std::strncmp("https://", url.c_str(), 8) == 0) {
-    tracker = new TrackerHttp(m_tracker_list, url, flags);
-
-  } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
-    tracker = new TrackerUdp(m_tracker_list, url, flags);
-
-  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
-    tracker = new TrackerDht(m_tracker_list, url, flags);
-
-  } else {
-    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url: '%s'.", url.c_str());
-
-    if (extra_tracker)
-      throw torrent::input_error("Could find matching tracker protocol for url: '" + url + "'.");
-
-    return;
-  }
-  
-  LT_LOG_TRACKER(INFO, "Added tracker group:%i url:'%s'.", group, url.c_str());
-
-  m_tracker_list->insert(group, tracker);
-}
-
 
 void
 TrackerController::manual_request(bool request_now) {

@@ -87,8 +87,6 @@ public:
   int64_t             next_timeout() const;
   uint32_t            seconds_to_next_timeout() const;
 
-  void                insert(int group, const std::string& url, bool extra_tracker = false);
-
   void                manual_request(bool request_now);
 
   //protected:

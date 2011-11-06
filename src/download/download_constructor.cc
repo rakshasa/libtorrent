@@ -203,7 +203,7 @@ DownloadConstructor::parse_tracker(const Object& b) {
     throw bencode_error("Could not find any trackers");
 
   if (manager->dht_manager()->is_valid() && !m_download->info()->is_private())
-    m_download->main()->tracker_controller()->insert(m_download->main()->tracker_list()->size_group(), "dht://");
+    m_download->main()->tracker_list()->insert_url(m_download->main()->tracker_list()->size_group(), "dht://");
 
   if (manager->dht_manager()->is_valid() && b.has_key_list("nodes"))
     std::for_each(b.get_key_list("nodes").begin(), b.get_key_list("nodes").end(),
@@ -227,7 +227,7 @@ DownloadConstructor::add_tracker_single(const Object& b, int group) {
   if (!b.is_string())
     throw bencode_error("Tracker entry not a string");
     
-  m_download->main()->tracker_controller()->insert(group, rak::trim_classic(b.as_string()));
+  m_download->main()->tracker_list()->insert_url(group, rak::trim_classic(b.as_string()));
 }
 
 void

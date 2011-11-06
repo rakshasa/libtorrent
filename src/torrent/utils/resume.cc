@@ -53,7 +53,6 @@
 #include "download_info.h"
 #include "object.h"
 #include "tracker.h"
-#include "tracker_controller.h"
 #include "tracker_list.h"
 
 #include "globals.h"
@@ -465,7 +464,7 @@ resume_load_tracker_settings(Download download, const Object& object) {
     if (tracker_list->find_url(itr->first) != tracker_list->end())
       continue;
 
-    download.tracker_controller()->insert(itr->second.get_key_value("group"), itr->first);
+    download.tracker_list()->insert_url(itr->second.get_key_value("group"), itr->first);
   }
 
   for (TrackerList::iterator itr = tracker_list->begin(), last = tracker_list->end(); itr != last; ++itr) {

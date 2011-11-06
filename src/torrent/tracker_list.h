@@ -102,6 +102,7 @@ public:
   void                clear_stats();
 
   iterator            insert(unsigned int group, Tracker* tracker);
+  void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
   void                send_state_idx(unsigned idx, int new_event);
   void                send_state_tracker(iterator itr, int new_event);

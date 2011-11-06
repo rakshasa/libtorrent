@@ -39,11 +39,14 @@
 #include <functional>
 #include <rak/functional.h>
 
+#include "net/address_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/log_files.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/download_info.h"
-#include "net/address_list.h"
+#include "tracker/tracker_dht.h"
+#include "tracker/tracker_http.h"
+#include "tracker/tracker_udp.h"
 
 #include "globals.h"
 #include "exceptions.h"
@@ -142,6 +145,38 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
     m_slot_tracker_enabled(tracker);
 
   return itr;
+}
+
+// TODO: Use proper flags for insert options.
+void
+TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
+  Tracker* tracker;
+  int flags = Tracker::flag_enabled;
+
+  if (extra_tracker)
+    flags |= Tracker::flag_extra_tracker;
+
+  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
+      std::strncmp("https://", url.c_str(), 8) == 0) {
+    tracker = new TrackerHttp(this, url, flags);
+
+  } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
+    tracker = new TrackerUdp(this, url, flags);
+
+  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
+    tracker = new TrackerDht(this, url, flags);
+
+  } else {
+    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url: '%s'.", url.c_str());
+
+    if (extra_tracker)
+      throw torrent::input_error("Could find matching tracker protocol for url: '" + url + "'.");
+
+    return;
+  }
+  
+  LT_LOG_TRACKER(INFO, "Added tracker group:%i url:'%s'.", group, url.c_str());
+  insert(group, tracker);
 }
 
 TrackerList::iterator

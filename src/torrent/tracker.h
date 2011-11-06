@@ -66,6 +66,7 @@ public:
 
   static const int flag_enabled = 0x1;
   static const int flag_extra_tracker = 0x2;
+  static const int flag_can_scrape = 0x4;
 
   virtual ~Tracker() {}
 
