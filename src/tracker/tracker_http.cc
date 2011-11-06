@@ -95,6 +95,17 @@ TrackerHttp::is_busy() const {
 }
 
 void
+TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
+  char hash[61];
+
+  *rak::copy_escape_html(m_parent->info()->hash().begin(),
+                         m_parent->info()->hash().end(), hash) = '\0';
+  *stream << url
+          << (m_dropDeliminator ? '&' : '?')
+          << "info_hash=" << hash;
+}
+
+void
 TrackerHttp::send_state(int state) {
   close();
 
@@ -106,18 +117,15 @@ TrackerHttp::send_state(int state) {
   std::stringstream s;
   s.imbue(std::locale::classic());
 
-  char hash[61];
   char localId[61];
 
   DownloadInfo* info = m_parent->info();
 
-  *rak::copy_escape_html(info->hash().begin(), info->hash().end(), hash) = '\0';
+  request_prefix(&s, m_url);
+
   *rak::copy_escape_html(info->local_id().begin(), info->local_id().end(), localId) = '\0';
 
-  s << m_url
-    << (m_dropDeliminator ? '&' : '?')
-    << "info_hash=" << hash
-    << "&peer_id=" << localId;
+  s << "&peer_id=" << localId;
 
   if (m_parent->key())
     s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_parent->key() << std::dec;
@@ -158,9 +166,9 @@ TrackerHttp::send_state(int state) {
     break;
   }
 
-  std::string request_url = s.str();
-
   m_data = new std::stringstream();
+
+  std::string request_url = s.str();
 
   LT_LOG_TRACKER(DEBUG, "Tracker HTTP Request ---\n%*s\n---", request_url.size(), request_url.c_str());
 
@@ -173,6 +181,24 @@ TrackerHttp::send_state(int state) {
 
 void
 TrackerHttp::send_scrape() {
+  // TODO: Throw if busy, etc?
+
+  std::stringstream s;
+  s.imbue(std::locale::classic());
+
+  request_prefix(&s, scrape_url_from(m_url));
+
+  m_data = new std::stringstream();
+
+  std::string request_url = s.str();
+
+  LT_LOG_TRACKER(DEBUG, "Tracker HTTP Request ---\n%*s\n---", request_url.size(), request_url.c_str());
+  
+  m_get->set_url(request_url);
+  m_get->set_stream(m_data);
+  m_get->set_timeout(2 * 60);
+
+  m_get->start();
 }
 
 void
