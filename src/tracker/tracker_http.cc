@@ -71,10 +71,17 @@ TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags)
 
   // Haven't considered if this needs any stronger error detection,
   // can dropping the '?' be used for malicious purposes?
-  size_t delim = url.rfind('?');
+  size_t delim_options = url.rfind('?');
 
-  m_dropDeliminator = delim != std::string::npos &&
-    url.find('/', delim) == std::string::npos;
+  m_dropDeliminator = delim_options != std::string::npos &&
+    url.find('/', delim_options) == std::string::npos;
+
+  // Check the url if we can use scrape.
+  size_t delim_slash = url.rfind('/');
+
+  if (delim_slash != std::string::npos &&
+      url.find("/announce", delim_slash) == delim_slash)
+    m_flags |= flag_can_scrape;
 }
 
 TrackerHttp::~TrackerHttp() {

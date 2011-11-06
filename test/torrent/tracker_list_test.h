@@ -11,6 +11,7 @@ class tracker_list_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_tracker_flags);
   CPPUNIT_TEST(test_find_url);
+  CPPUNIT_TEST(test_can_scrape);
 
   CPPUNIT_TEST(test_single_success);
   CPPUNIT_TEST(test_single_failure);
@@ -32,6 +33,7 @@ public:
 
   void test_tracker_flags();
   void test_find_url();
+  void test_can_scrape();
 
   void test_single_success();
   void test_single_failure();

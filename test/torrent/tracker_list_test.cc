@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include "torrent/http.h"
 #include "net/address_list.h"
 
 #include "tracker_list_test.h"
@@ -20,6 +21,18 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
   tracker_list.insert(group, name);
 
 void increment_value(int* value) { (*value)++; }
+
+class http_get : public torrent::Http {
+public:
+  ~http_get() { }
+
+  // Start must never throw on bad input. Calling start/stop on an
+  // object in the wrong state should throw a torrent::internal_error.
+  void       start() { }
+  void       close() { }
+};
+
+torrent::Http* http_factory() { return new http_get; }
 
 bool
 TrackerTest::trigger_success() {
@@ -175,6 +188,33 @@ tracker_list_test::test_find_url() {
 
   CPPUNIT_ASSERT(tracker_list.find_url("http://3") != tracker_list.end());
   CPPUNIT_ASSERT(*tracker_list.find_url("http://3") == tracker_list[2]);
+}
+
+void
+tracker_list_test::test_can_scrape() {
+  TRACKER_SETUP();
+  torrent::Http::set_factory(sigc::ptr_fun(&http_factory));
+
+  tracker_list.insert_url(0, "http://example.com/announce"); // http://example.com/scrape
+  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+
+  tracker_list.insert_url(0, "http://example.com/x/announce"); // http://example.com/x/scrape
+  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+
+  tracker_list.insert_url(0, "http://example.com/announce.php"); // http://example.com/scrape.php
+  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+
+  tracker_list.insert_url(0, "http://example.com/a");
+  CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+
+  tracker_list.insert_url(0, "http://example.com/announce?x2%0644"); // http://example.com/scrape?x2%0644
+  CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+
+  tracker_list.insert_url(0, "http://example.com/announce?x=2/4");
+  CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
+
+  tracker_list.insert_url(0, "http://example.com/x%064announce");
+  CPPUNIT_ASSERT(!(tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));
 }
 
 void
