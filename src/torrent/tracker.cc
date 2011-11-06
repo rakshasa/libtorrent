@@ -98,4 +98,9 @@ Tracker::scrape_url_from(std::string url) {
   return url.replace(delim_slash, sizeof("/announce") - 1, "/scrape");
 }
 
+void
+Tracker::send_scrape() {
+  throw internal_error("Tracker type does not support scrape.");
+}
+
 }

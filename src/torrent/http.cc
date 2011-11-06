@@ -41,19 +41,19 @@
 
 namespace torrent {
 
-Http::SlotFactory Http::m_factory;
+Http::slot_factory Http::m_factory;
 
 Http::~Http() {
 }
 
 void
-Http::set_factory(const SlotFactory& f) {
+Http::set_factory(const slot_factory& f) {
   m_factory = f;
 }  
 
 Http*
 Http::call_factory() {
-  if (m_factory.empty())
+  if (!m_factory)
     throw internal_error("Http factory not set.");
 
   Http* h = m_factory();

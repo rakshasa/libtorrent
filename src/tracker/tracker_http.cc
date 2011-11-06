@@ -172,6 +172,10 @@ TrackerHttp::send_state(int state) {
 }
 
 void
+TrackerHttp::send_scrape() {
+}
+
+void
 TrackerHttp::close() {
   if (m_data == NULL)
     return;
@@ -213,6 +217,20 @@ TrackerHttp::receive_done() {
 			  b.get_key_string("failure reason") :
 			  std::string("failure reason not a string"))
 			 + "\"");
+
+  // Got scrape information...
+  if (b.has_key_map("files")) {
+    const Object::map_type& files = b.get_key_map("files");
+
+    if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
+      m_scrapeComplete   = std::max<int64_t>(b.get_key_value("complete"), 0);
+      m_scrapeIncomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
+      m_scrapeTimeLast   = rak::timer::current().seconds();
+
+      LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u.",
+                     files.size(), m_scrapeComplete, m_scrapeIncomplete);
+    }
+  }
 
   if (b.has_key_value("interval"))
     set_normal_interval(b.get_key_value("interval"));

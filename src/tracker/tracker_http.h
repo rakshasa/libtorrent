@@ -54,6 +54,7 @@ public:
   virtual bool        is_busy() const;
 
   virtual void        send_state(int state);
+  virtual void        send_scrape();
   virtual void        close();
 
   virtual Type        type() const;

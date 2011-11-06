@@ -39,6 +39,7 @@
 
 #include <string>
 #include <iosfwd>
+#include <tr1/functional>
 #include <sigc++/signal.h>
 #include <torrent/common.h>
 
@@ -52,7 +53,8 @@ class LIBTORRENT_EXPORT Http {
  public:
   typedef sigc::signal0<void>                     Signal;
   typedef sigc::signal1<void, const std::string&> SignalString;
-  typedef sigc::slot0<Http*>                      SlotFactory;
+
+  typedef std::tr1::function<Http* (void)> slot_factory;
 
   Http() : m_stream(NULL), m_timeout(0) {}
   virtual ~Http();
@@ -79,7 +81,7 @@ class LIBTORRENT_EXPORT Http {
   SignalString&      signal_failed()                      { return m_signalFailed; }
 
   // Set the factory function that constructs and returns a valid Http* object.
-  static void        set_factory(const SlotFactory& f);
+  static void        set_factory(const slot_factory& f);
 
   // Guaranteed to return a valid object or throw a internal_error. The
   // caller takes ownership of the returned object. Is there any
@@ -98,7 +100,7 @@ private:
   Http(const Http&);
   void               operator = (const Http&);
 
-  static SlotFactory m_factory;
+  static slot_factory m_factory;
 };
 
 }

@@ -119,6 +119,7 @@ protected:
   void operator = (const Tracker& t);
 
   virtual void        send_state(int state) = 0;
+  virtual void        send_scrape();
   virtual void        close() = 0;
 
   void                clear_stats() { m_success_counter = m_failed_counter = 0; }
