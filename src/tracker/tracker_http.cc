@@ -71,10 +71,17 @@ TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags)
 
   // Haven't considered if this needs any stronger error detection,
   // can dropping the '?' be used for malicious purposes?
-  size_t delim = url.rfind('?');
+  size_t delim_options = url.rfind('?');
 
-  m_dropDeliminator = delim != std::string::npos &&
-    url.find('/', delim) == std::string::npos;
+  m_dropDeliminator = delim_options != std::string::npos &&
+    url.find('/', delim_options) == std::string::npos;
+
+  // Check the url if we can use scrape.
+  size_t delim_slash = url.rfind('/');
+
+  if (delim_slash != std::string::npos &&
+      url.find("/announce", delim_slash) == delim_slash)
+    m_flags |= flag_can_scrape;
 }
 
 TrackerHttp::~TrackerHttp() {
@@ -85,6 +92,17 @@ TrackerHttp::~TrackerHttp() {
 bool
 TrackerHttp::is_busy() const {
   return m_data != NULL;
+}
+
+void
+TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
+  char hash[61];
+
+  *rak::copy_escape_html(m_parent->info()->hash().begin(),
+                         m_parent->info()->hash().end(), hash) = '\0';
+  *stream << url
+          << (m_dropDeliminator ? '&' : '?')
+          << "info_hash=" << hash;
 }
 
 void
@@ -99,24 +117,21 @@ TrackerHttp::send_state(int state) {
   std::stringstream s;
   s.imbue(std::locale::classic());
 
-  char hash[61];
   char localId[61];
 
   DownloadInfo* info = m_parent->info();
 
-  *rak::copy_escape_html(info->hash().begin(), info->hash().end(), hash) = '\0';
+  request_prefix(&s, m_url);
+
   *rak::copy_escape_html(info->local_id().begin(), info->local_id().end(), localId) = '\0';
 
-  s << m_url
-    << (m_dropDeliminator ? '&' : '?')
-    << "info_hash=" << hash
-    << "&peer_id=" << localId;
+  s << "&peer_id=" << localId;
 
   if (m_parent->key())
     s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_parent->key() << std::dec;
 
-  if (!m_trackerId.empty())
-    s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
+  if (!m_tracker_id.empty())
+    s << "&trackerid=" << rak::copy_escape_html(m_tracker_id);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
@@ -151,12 +166,35 @@ TrackerHttp::send_state(int state) {
     break;
   }
 
-  std::string request_url = s.str();
-
   m_data = new std::stringstream();
+
+  std::string request_url = s.str();
 
   LT_LOG_TRACKER(DEBUG, "Tracker HTTP Request ---\n%*s\n---", request_url.size(), request_url.c_str());
 
+  m_get->set_url(request_url);
+  m_get->set_stream(m_data);
+  m_get->set_timeout(2 * 60);
+
+  m_get->start();
+}
+
+void
+TrackerHttp::send_scrape() {
+  if (m_data != NULL)
+    return;
+
+  std::stringstream s;
+  s.imbue(std::locale::classic());
+
+  request_prefix(&s, scrape_url_from(m_url));
+
+  m_data = new std::stringstream();
+
+  std::string request_url = s.str();
+
+  LT_LOG_TRACKER(DEBUG, "Tracker HTTP Scrape ---\n%*s\n---", request_url.size(), request_url.c_str());
+  
   m_get->set_url(request_url);
   m_get->set_stream(m_data);
   m_get->set_timeout(2 * 60);
@@ -207,6 +245,32 @@ TrackerHttp::receive_done() {
 			  std::string("failure reason not a string"))
 			 + "\"");
 
+  // Got scrape information...
+  if (b.has_key_map("files")) {
+    // Add better validation here...
+    const Object& files = b.get_key("files");
+    const Object& stats = files.get_key(m_parent->info()->hash().str());
+
+    if (stats.has_key_value("complete"))
+      m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
+
+    if (stats.has_key_value("incomplete"))
+      m_scrape_incomplete = std::max<int64_t>(stats.get_key_value("incomplete"), 0);
+
+    if (stats.has_key_value("downloaded"))
+      m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
+
+    m_scrape_time_last = rak::timer::current().seconds();
+    m_scrape_counter++;
+    
+    LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
+                   files.as_map().size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);
+    AddressList l;
+    close();
+    m_parent->receive_success(this, &l);
+    return;
+  }
+
   if (b.has_key_value("interval"))
     set_normal_interval(b.get_key_value("interval"));
   
@@ -214,16 +278,16 @@ TrackerHttp::receive_done() {
     set_min_interval(b.get_key_value("min interval"));
 
   if (b.has_key_string("tracker id"))
-    m_trackerId = b.get_key_string("tracker id");
+    m_tracker_id = b.get_key_string("tracker id");
 
   if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
-    m_scrapeComplete   = std::max<int64_t>(b.get_key_value("complete"), 0);
-    m_scrapeIncomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
-    m_scrapeTimeLast   = rak::timer::current().seconds();
+    m_scrape_complete = std::max<int64_t>(b.get_key_value("complete"), 0);
+    m_scrape_incomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
+    m_scrape_time_last = rak::timer::current().seconds();
   }
 
   if (b.has_key_value("downloaded"))
-    m_scrapeDownloaded = std::max<int64_t>(b.get_key_value("downloaded"), 0);
+    m_scrape_downloaded = std::max<int64_t>(b.get_key_value("downloaded"), 0);
 
   AddressList l;
 

@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include "exceptions.h"
 #include "tracker.h"
 #include "tracker_list.h"
 
@@ -47,8 +48,8 @@ Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
   m_group(0),
   m_url(url),
 
-  m_normalInterval(1800),
-  m_minInterval(0),
+  m_normal_interval(1800),
+  m_min_interval(0),
 
   m_latest_event(EVENT_NONE),
 
@@ -58,10 +59,12 @@ Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
   m_failed_time_last(0),
   m_failed_counter(0),
 
-  m_scrapeTimeLast(0),
-  m_scrapeComplete(0),
-  m_scrapeIncomplete(0),
-  m_scrapeDownloaded(0) {
+  m_scrape_time_last(0),
+  m_scrape_counter(0),
+
+  m_scrape_complete(0),
+  m_scrape_incomplete(0),
+  m_scrape_downloaded(0) {
 }
 
 void
@@ -85,6 +88,21 @@ Tracker::disable() {
 
   if (m_parent->slot_tracker_disabled())
     m_parent->slot_tracker_disabled()(this);
+}
+
+std::string
+Tracker::scrape_url_from(std::string url) {
+  size_t delim_slash = url.rfind('/');
+
+  if (delim_slash == std::string::npos || url.find("/announce", delim_slash) != delim_slash)
+    throw internal_error("Tried to make scrape url from invalid url.");
+
+  return url.replace(delim_slash, sizeof("/announce") - 1, "/scrape");
+}
+
+void
+Tracker::send_scrape() {
+  throw internal_error("Tracker type does not support scrape.");
 }
 
 }

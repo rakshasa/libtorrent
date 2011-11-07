@@ -11,6 +11,7 @@ class tracker_list_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_tracker_flags);
   CPPUNIT_TEST(test_find_url);
+  CPPUNIT_TEST(test_can_scrape);
 
   CPPUNIT_TEST(test_single_success);
   CPPUNIT_TEST(test_single_failure);
@@ -32,6 +33,7 @@ public:
 
   void test_tracker_flags();
   void test_find_url();
+  void test_can_scrape();
 
   void test_single_success();
   void test_single_failure();
@@ -51,7 +53,8 @@ public:
     m_busy(false),
     m_open(false),
     m_close_on_done(true),
-    m_requesting_state(-1) {}
+    m_requesting_state(-1),
+    m_requesting_scrape(false) {}
 
   virtual bool        is_busy() const { return m_busy; }
   bool                is_open() const { return m_open; }
@@ -63,15 +66,19 @@ public:
   bool                trigger_success();
   bool                trigger_success(torrent::TrackerList::address_list* address_list);
   bool                trigger_failure();
+  bool                trigger_scrape();
 
   void                set_close_on_done(bool state) { m_close_on_done = state; }
+  void                set_can_scrape()              { m_flags |= flag_can_scrape; }
 
 private:
   virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = state; m_latest_event = state; }
+  virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_scrape = true; }
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = 0; }
 
   bool                m_busy;
   bool                m_open;
   bool                m_close_on_done;
   int                 m_requesting_state;
+  bool                m_requesting_scrape;
 };

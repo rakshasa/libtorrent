@@ -39,11 +39,14 @@
 #include <functional>
 #include <rak/functional.h>
 
+#include "net/address_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/log_files.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/download_info.h"
-#include "net/address_list.h"
+#include "tracker/tracker_dht.h"
+#include "tracker/tracker_http.h"
+#include "tracker/tracker_udp.h"
 
 #include "globals.h"
 #include "exceptions.h"
@@ -113,23 +116,28 @@ TrackerList::clear_stats() {
 }
 
 void
-TrackerList::send_state_idx(unsigned idx, int new_event) {
-  if (idx >= size())
-    throw internal_error("TrackerList::send_state_idx(...) got idx >= size().");
-    
-  send_state_tracker(begin() + idx, new_event);
+TrackerList::send_state(Tracker* tracker, int new_event) {
+  if (tracker->is_busy() || !tracker->is_usable())
+    return;
+
+  tracker->send_state(new_event);
+
+  LT_LOG_TRACKER(INFO, "Sending '%s' to group:%u url:'%s'.",
+                 option_as_string(OPTION_TRACKER_EVENT, new_event),
+                 tracker->group(), tracker->url().c_str());
 }
 
 void
-TrackerList::send_state_tracker(iterator itr, int new_event) {
-  if (itr == end() || !(*itr)->is_usable())
+TrackerList::send_scrape(Tracker* tracker) {
+  if (tracker->is_busy() || !tracker->is_usable())
     return;
 
-  (*itr)->send_state(new_event);
+  if (!(tracker->flags() & Tracker::flag_can_scrape))
+    return;
 
-  LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
-                 option_as_string(OPTION_TRACKER_EVENT, new_event),
-                 (*itr)->group(), (*itr)->url().c_str());
+  tracker->send_scrape();
+  LT_LOG_TRACKER(INFO, "Sending 'scrape' to group:%u url:'%s'.",
+                 tracker->group(), tracker->url().c_str());
 }
 
 TrackerList::iterator
@@ -142,6 +150,38 @@ TrackerList::insert(unsigned int group, Tracker* tracker) {
     m_slot_tracker_enabled(tracker);
 
   return itr;
+}
+
+// TODO: Use proper flags for insert options.
+void
+TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_tracker) {
+  Tracker* tracker;
+  int flags = Tracker::flag_enabled;
+
+  if (extra_tracker)
+    flags |= Tracker::flag_extra_tracker;
+
+  if (std::strncmp("http://", url.c_str(), 7) == 0 ||
+      std::strncmp("https://", url.c_str(), 8) == 0) {
+    tracker = new TrackerHttp(this, url, flags);
+
+  } else if (std::strncmp("udp://", url.c_str(), 6) == 0) {
+    tracker = new TrackerUdp(this, url, flags);
+
+  } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
+    tracker = new TrackerDht(this, url, flags);
+
+  } else {
+    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url: '%s'.", url.c_str());
+
+    if (extra_tracker)
+      throw torrent::input_error("Could find matching tracker protocol for url: '" + url + "'.");
+
+    return;
+  }
+  
+  LT_LOG_TRACKER(INFO, "Added tracker group:%i url:'%s'.", group, url.c_str());
+  insert(group, tracker);
 }
 
 TrackerList::iterator

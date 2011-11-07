@@ -33,6 +33,8 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_timeout_lacking_usable);
   CPPUNIT_TEST(test_disable_tracker);
 
+  CPPUNIT_TEST(test_scrape_basic);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -67,4 +69,6 @@ public:
 
   void test_timeout_lacking_usable();
   void test_disable_tracker();
+
+  void test_scrape_basic();
 };
