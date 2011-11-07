@@ -181,7 +181,8 @@ TrackerHttp::send_state(int state) {
 
 void
 TrackerHttp::send_scrape() {
-  // TODO: Throw if busy, etc?
+  if (m_data != NULL)
+    return;
 
   std::stringstream s;
   s.imbue(std::locale::classic());
@@ -192,7 +193,7 @@ TrackerHttp::send_scrape() {
 
   std::string request_url = s.str();
 
-  LT_LOG_TRACKER(DEBUG, "Tracker HTTP Request ---\n%*s\n---", request_url.size(), request_url.c_str());
+  LT_LOG_TRACKER(DEBUG, "Tracker HTTP Scrape ---\n%*s\n---", request_url.size(), request_url.c_str());
   
   m_get->set_url(request_url);
   m_get->set_stream(m_data);
