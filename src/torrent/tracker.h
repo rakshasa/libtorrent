@@ -90,11 +90,11 @@ public:
   const std::string&  url() const                           { return m_url; }
   void                set_url(const std::string& url)       { m_url = url; }
 
-  const std::string&  tracker_id() const                    { return m_trackerId; }
-  void                set_tracker_id(const std::string& id) { m_trackerId = id; }
+  const std::string&  tracker_id() const                    { return m_tracker_id; }
+  void                set_tracker_id(const std::string& id) { m_tracker_id = id; }
 
-  uint32_t            normal_interval() const               { return m_normalInterval; }
-  uint32_t            min_interval() const                  { return m_minInterval; }
+  uint32_t            normal_interval() const               { return m_normal_interval; }
+  uint32_t            min_interval() const                  { return m_min_interval; }
 
   int                 latest_event() const                  { return m_latest_event; }
 
@@ -104,10 +104,12 @@ public:
   uint32_t            failed_time_last() const              { return m_failed_time_last; }
   uint32_t            failed_counter() const                { return m_failed_counter; }
 
-  uint32_t            scrape_time_last() const              { return m_scrapeTimeLast; }
-  uint32_t            scrape_complete() const               { return m_scrapeComplete; }
-  uint32_t            scrape_incomplete() const             { return m_scrapeIncomplete; }
-  uint32_t            scrape_downloaded() const             { return m_scrapeDownloaded; }
+  uint32_t            scrape_time_last() const              { return m_scrape_time_last; }
+  uint32_t            scrape_counter() const                { return m_scrape_counter; }
+
+  uint32_t            scrape_complete() const               { return m_scrape_complete; }
+  uint32_t            scrape_incomplete() const             { return m_scrape_incomplete; }
+  uint32_t            scrape_downloaded() const             { return m_scrape_downloaded; }
 
   virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; } 
 
@@ -126,8 +128,8 @@ protected:
 
   void                set_group(uint32_t v)                 { m_group = v; }
 
-  void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normalInterval = v; }
-  void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_minInterval = v; }
+  void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normal_interval = v; }
+  void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_min_interval = v; }
 
   void                set_success_counter(uint32_t value)   { m_success_counter = value; }
   void                set_failed_counter(uint32_t value)    { m_failed_counter = value; }
@@ -139,22 +141,25 @@ protected:
 
   std::string         m_url;
 
-  std::string         m_trackerId;
+  std::string         m_tracker_id;
 
-  uint32_t            m_normalInterval;
-  uint32_t            m_minInterval;
+  uint32_t            m_normal_interval;
+  uint32_t            m_min_interval;
 
   int                 m_latest_event;
 
   uint32_t            m_success_time_last;
   uint32_t            m_success_counter;
+
   uint32_t            m_failed_time_last;
   uint32_t            m_failed_counter;
 
-  uint32_t            m_scrapeTimeLast;
-  uint32_t            m_scrapeComplete;
-  uint32_t            m_scrapeIncomplete;
-  uint32_t            m_scrapeDownloaded;
+  uint32_t            m_scrape_time_last;
+  uint32_t            m_scrape_counter;
+
+  uint32_t            m_scrape_complete;
+  uint32_t            m_scrape_incomplete;
+  uint32_t            m_scrape_downloaded;
 };
 
 }

@@ -130,8 +130,8 @@ TrackerHttp::send_state(int state) {
   if (m_parent->key())
     s << "&key=" << std::hex << std::setw(8) << std::setfill('0') << m_parent->key() << std::dec;
 
-  if (!m_trackerId.empty())
-    s << "&trackerid=" << rak::copy_escape_html(m_trackerId);
+  if (!m_tracker_id.empty())
+    s << "&trackerid=" << rak::copy_escape_html(m_tracker_id);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
@@ -249,14 +249,20 @@ TrackerHttp::receive_done() {
   if (b.has_key_map("files")) {
     const Object::map_type& files = b.get_key_map("files");
 
-    if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
-      m_scrapeComplete   = std::max<int64_t>(b.get_key_value("complete"), 0);
-      m_scrapeIncomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
-      m_scrapeTimeLast   = rak::timer::current().seconds();
+    if (b.has_key_value("complete"))
+      m_scrape_complete = std::max<int64_t>(b.get_key_value("complete"), 0);
 
-      LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u.",
-                     files.size(), m_scrapeComplete, m_scrapeIncomplete);
-    }
+    if (b.has_key_value("incomplete"))
+      m_scrape_incomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
+
+    if (b.has_key_value("downloaded"))
+      m_scrape_downloaded = std::max<int64_t>(b.get_key_value("downloaded"), 0);
+
+    m_scrape_time_last = rak::timer::current().seconds();
+    m_scrape_counter++;
+    
+    LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
+                   files.size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);
   }
 
   if (b.has_key_value("interval"))
@@ -266,16 +272,16 @@ TrackerHttp::receive_done() {
     set_min_interval(b.get_key_value("min interval"));
 
   if (b.has_key_string("tracker id"))
-    m_trackerId = b.get_key_string("tracker id");
+    m_tracker_id = b.get_key_string("tracker id");
 
   if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
-    m_scrapeComplete   = std::max<int64_t>(b.get_key_value("complete"), 0);
-    m_scrapeIncomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
-    m_scrapeTimeLast   = rak::timer::current().seconds();
+    m_scrape_complete = std::max<int64_t>(b.get_key_value("complete"), 0);
+    m_scrape_incomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
+    m_scrape_time_last = rak::timer::current().seconds();
   }
 
   if (b.has_key_value("downloaded"))
-    m_scrapeDownloaded = std::max<int64_t>(b.get_key_value("downloaded"), 0);
+    m_scrape_downloaded = std::max<int64_t>(b.get_key_value("downloaded"), 0);
 
   AddressList l;
 

@@ -106,6 +106,7 @@ public:
 
   void                send_state_idx(unsigned idx, int new_event);
   void                send_state_tracker(iterator itr, int new_event);
+  void                send_scrape(Tracker* tracker);
 
   DownloadInfo*       info()                                  { return m_info; }
   int                 state()                                 { return m_state; }

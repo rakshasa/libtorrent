@@ -50,10 +50,13 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_tracker_list->info(), "->tracker_controller: " log_fmt, __VA_ARGS__);
 
+namespace std { using namespace tr1; }
+
 namespace torrent {
 
 struct tracker_controller_private {
   rak::priority_item task_timeout;
+  rak::priority_item task_scrape;
 };
 
 // End temp hacks...
@@ -88,11 +91,13 @@ TrackerController::TrackerController(TrackerList* trackers) :
   m_failed_requests(0),
   m_private(new tracker_controller_private) {
 
-  m_private->task_timeout.set_slot(rak::mem_fn(this, &TrackerController::receive_timeout));
+  m_private->task_timeout.set_slot(rak::mem_fn(this, &TrackerController::do_timeout));
+  m_private->task_scrape.set_slot(rak::mem_fn(this, &TrackerController::do_scrape));
 }
 
 TrackerController::~TrackerController() {
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  priority_queue_erase(&taskScheduler, &m_private->task_scrape);
   delete m_private;
 }
 
@@ -101,14 +106,29 @@ TrackerController::task_timeout() {
   return &m_private->task_timeout;
 }
 
+rak::priority_item*
+TrackerController::task_scrape() {
+  return &m_private->task_scrape;
+}
+
 int64_t
 TrackerController::next_timeout() const {
   return m_private->task_timeout.time().usec();
 }
 
+int64_t
+TrackerController::next_scrape() const {
+  return m_private->task_scrape.time().usec();
+}
+
 uint32_t
 TrackerController::seconds_to_next_timeout() const {
   return std::max(m_private->task_timeout.time() - cachedTime, rak::timer()).seconds_ceiling();
+}
+
+uint32_t
+TrackerController::seconds_to_next_scrape() const {
+  return std::max(m_private->task_scrape.time() - cachedTime, rak::timer()).seconds_ceiling();
 }
 
 void
@@ -124,6 +144,16 @@ TrackerController::manual_request(bool request_now) {
   update_timeout(2);
 }
 
+void
+TrackerController::scrape_request(uint32_t seconds_to_request) {
+  rak::timer next_timeout = cachedTime;
+
+  if (seconds_to_request != 0)
+    next_timeout = (cachedTime + rak::timer::from_seconds(seconds_to_request)).round_seconds();
+
+  priority_queue_erase(&taskScheduler, &m_private->task_scrape);
+  priority_queue_insert(&taskScheduler, &m_private->task_scrape, next_timeout);
+}
 
 // The send_*_event() functions tries to ensure the relevant trackers
 // receive the event.
@@ -312,7 +342,7 @@ TrackerController::stop_requesting() {
 }
 
 void
-TrackerController::receive_timeout() {
+TrackerController::do_timeout() {
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
     return;
 
@@ -360,6 +390,12 @@ TrackerController::receive_timeout() {
   // There should be no timeout when we don't have any active trackers, etc.
   // if (!m_tracker_list->has_active())
   //   update_timeout(30);
+}
+
+void
+TrackerController::do_scrape() {
+  std::for_each(m_tracker_list->begin(), m_tracker_list->end(),
+                std::bind(&TrackerList::send_scrape, m_tracker_list, std::placeholders::_1));
 }
 
 void

@@ -85,9 +85,12 @@ public:
   uint32_t            failed_requests() const { return m_failed_requests; }
 
   int64_t             next_timeout() const;
+  int64_t             next_scrape() const;
   uint32_t            seconds_to_next_timeout() const;
+  uint32_t            seconds_to_next_scrape() const;
 
   void                manual_request(bool request_now);
+  void                scrape_request(uint32_t seconds_to_request);
 
   //protected:
   void                send_start_event();
@@ -118,11 +121,13 @@ public:
 
   // TEMP:
   rak::priority_item* task_timeout();
+  rak::priority_item* task_scrape();
 
   void                set_failed_requests(uint32_t value) { m_failed_requests = value; }
 
 private:
-  void                receive_timeout();
+  void                do_timeout();
+  void                do_scrape();
 
   void                update_timeout(uint32_t seconds_to_next);
 

@@ -68,6 +68,16 @@ TrackerTest::trigger_failure() {
   return true;
 }
 
+bool
+TrackerTest::trigger_scrape() {
+  if (parent() == NULL || !is_busy() || !is_open())
+    return false;
+
+  m_scrape_time_last = rak::timer::current().seconds();
+  m_scrape_counter++;
+  return trigger_success();
+}
+
 void
 tracker_list_test::test_basic() {
   TRACKER_SETUP();

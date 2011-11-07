@@ -125,14 +125,27 @@ TrackerList::send_state_idx(unsigned idx, int new_event) {
 
 void
 TrackerList::send_state_tracker(iterator itr, int new_event) {
-  if (itr == end() || !(*itr)->is_usable())
+  if (itr == end() || (*itr)->is_busy() || !(*itr)->is_usable())
     return;
 
   (*itr)->send_state(new_event);
 
-  LT_LOG_TRACKER(DEBUG, "Sending '%s' to group:%u url:'%s'.",
+  LT_LOG_TRACKER(INFO, "Sending '%s' to group:%u url:'%s'.",
                  option_as_string(OPTION_TRACKER_EVENT, new_event),
                  (*itr)->group(), (*itr)->url().c_str());
+}
+
+void
+TrackerList::send_scrape(Tracker* tracker) {
+  if (tracker->is_busy() || !tracker->is_usable())
+    return;
+
+  if (!(tracker->flags() & Tracker::flag_can_scrape))
+    return;
+
+  tracker->send_scrape();
+  LT_LOG_TRACKER(INFO, "Sending 'scrape' to group:%u url:'%s'.",
+                 tracker->group(), tracker->url().c_str());
 }
 
 TrackerList::iterator
