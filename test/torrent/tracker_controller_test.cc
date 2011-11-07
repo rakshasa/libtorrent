@@ -615,6 +615,10 @@ tracker_controller_test::test_scrape_basic() {
   TEST_SINGLE_END(2, 0);
 }
 
+// Test to make sure that when we try sending a 'real' request, it
+// closes any scrape requests.
+
+// We should not request scrape from more than one tracker per group.
 
 
 // Add new function for finding the first tracker that will time out,
