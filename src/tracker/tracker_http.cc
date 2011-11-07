@@ -249,6 +249,10 @@ TrackerHttp::receive_done() {
   if (b.has_key_map("files")) {
     // Add better validation here...
     const Object& files = b.get_key("files");
+
+    if (!files.has_key_map(m_parent->info()->hash().str()))
+      return receive_failed("Tracker scrape replay did not contain infohash.");
+
     const Object& stats = files.get_key(m_parent->info()->hash().str());
 
     if (stats.has_key_value("complete"))
