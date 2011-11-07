@@ -104,8 +104,10 @@ public:
   iterator            insert(unsigned int group, Tracker* tracker);
   void                insert_url(unsigned int group, const std::string& url, bool extra_tracker = false);
 
+  void                send_state(Tracker* tracker, int new_event);
   void                send_state_idx(unsigned idx, int new_event);
-  void                send_state_tracker(iterator itr, int new_event);
+  void                send_state_itr(iterator itr, int new_event);
+
   void                send_scrape(Tracker* tracker);
 
   DownloadInfo*       info()                                  { return m_info; }
@@ -168,6 +170,19 @@ private:
   slot_tracker        m_slot_tracker_enabled;
   slot_tracker        m_slot_tracker_disabled;
 };
+
+inline void
+TrackerList::send_state_idx(unsigned idx, int new_event) {
+  send_state(at(idx), new_event);
+}
+
+inline void
+TrackerList::send_state_itr(iterator itr, int new_event) {
+  if (itr == end())
+    return;
+    
+  send_state(*itr, new_event);
+}
 
 }
 

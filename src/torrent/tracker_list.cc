@@ -116,23 +116,15 @@ TrackerList::clear_stats() {
 }
 
 void
-TrackerList::send_state_idx(unsigned idx, int new_event) {
-  if (idx >= size())
-    throw internal_error("TrackerList::send_state_idx(...) got idx >= size().");
-    
-  send_state_tracker(begin() + idx, new_event);
-}
-
-void
-TrackerList::send_state_tracker(iterator itr, int new_event) {
-  if (itr == end() || (*itr)->is_busy() || !(*itr)->is_usable())
+TrackerList::send_state(Tracker* tracker, int new_event) {
+  if (tracker->is_busy() || !tracker->is_usable())
     return;
 
-  (*itr)->send_state(new_event);
+  tracker->send_state(new_event);
 
   LT_LOG_TRACKER(INFO, "Sending '%s' to group:%u url:'%s'.",
                  option_as_string(OPTION_TRACKER_EVENT, new_event),
-                 (*itr)->group(), (*itr)->url().c_str());
+                 tracker->group(), tracker->url().c_str());
 }
 
 void
