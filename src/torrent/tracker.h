@@ -61,7 +61,8 @@ public:
     EVENT_NONE,
     EVENT_COMPLETED,
     EVENT_STARTED,
-    EVENT_STOPPED
+    EVENT_STOPPED,
+    EVENT_SCRAPE
   };
 
   static const int flag_enabled = 0x1;

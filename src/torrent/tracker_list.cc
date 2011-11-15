@@ -135,6 +135,9 @@ TrackerList::send_scrape(Tracker* tracker) {
   if (!(tracker->flags() & Tracker::flag_can_scrape))
     return;
 
+  if (rak::timer::from_seconds(tracker->scrape_time_last()) + rak::timer::from_seconds(10 * 60) > rak::timer::current() )
+    return;
+
   tracker->send_scrape();
   LT_LOG_TRACKER(INFO, "Sending 'scrape' to group:%u url:'%s'.",
                  tracker->group(), tracker->url().c_str());

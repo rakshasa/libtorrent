@@ -53,8 +53,7 @@ public:
     m_busy(false),
     m_open(false),
     m_close_on_done(true),
-    m_requesting_state(-1),
-    m_requesting_scrape(false) {}
+    m_requesting_state(-1) {}
 
   virtual bool        is_busy() const { return m_busy; }
   bool                is_open() const { return m_open; }
@@ -73,12 +72,11 @@ public:
 
 private:
   virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = state; m_latest_event = state; }
-  virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_scrape = true; }
-  virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = 0; }
+  virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_state = torrent::Tracker::EVENT_SCRAPE; }
+  virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
 
   bool                m_busy;
   bool                m_open;
   bool                m_close_on_done;
   int                 m_requesting_state;
-  bool                m_requesting_scrape;
 };
