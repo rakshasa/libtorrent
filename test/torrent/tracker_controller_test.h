@@ -17,6 +17,7 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_send_start);
   CPPUNIT_TEST(test_send_stop_normal);
   CPPUNIT_TEST(test_send_completed_normal);
+  CPPUNIT_TEST(test_send_update_normal);
   CPPUNIT_TEST(test_send_task_timeout);
   CPPUNIT_TEST(test_send_close_on_enable);
 
@@ -34,6 +35,7 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_disable_tracker);
 
   CPPUNIT_TEST(test_scrape_basic);
+  CPPUNIT_TEST(test_scrape_priority);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -54,6 +56,7 @@ public:
   void test_send_start();
   void test_send_stop_normal();
   void test_send_completed_normal();
+  void test_send_update_normal();
   void test_send_task_timeout();
   void test_send_close_on_enable();
 
@@ -71,4 +74,5 @@ public:
   void test_disable_tracker();
 
   void test_scrape_basic();
+  void test_scrape_priority();
 };

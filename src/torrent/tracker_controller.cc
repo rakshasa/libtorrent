@@ -269,12 +269,12 @@ TrackerController::send_update_event() {
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
     return;
 
-  if ((m_flags & mask_send) || m_tracker_list->has_active())
+  if ((m_flags & mask_send) && m_tracker_list->has_active())
     return;
 
   LT_LOG_TRACKER(INFO, "Sending update event.", 0);
 
-  m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_STARTED);
+  m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_NONE);
 
   if (m_tracker_list->has_active())
     priority_queue_erase(&taskScheduler, &m_private->task_timeout);

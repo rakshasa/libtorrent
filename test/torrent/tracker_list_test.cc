@@ -47,11 +47,11 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list) {
     return false;
 
   m_busy = false;
-  m_open = !m_close_on_done;
+  m_open = !(m_flags & flag_close_on_done);
   m_success_time_last = rak::timer::current().seconds();
   parent()->receive_success(this, address_list);
 
-  m_requesting_state = 0;
+  m_requesting_state = -1;
   return true;
 }
 
@@ -61,10 +61,10 @@ TrackerTest::trigger_failure() {
     return false;
 
   m_busy = false;
-  m_open = !m_close_on_done;
+  m_open = !(m_flags & flag_close_on_done);
   m_failed_time_last = rak::timer::current().seconds();
   parent()->receive_failed(this, "failed");
-  m_requesting_state = 0;
+  m_requesting_state = -1;
   return true;
 }
 
@@ -173,11 +173,11 @@ tracker_list_test::test_tracker_flags() {
   tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_extra_tracker));
   tracker_list.insert(0, new TrackerTest(&tracker_list, "", torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker));
 
-  CPPUNIT_ASSERT(tracker_list[0]->flags() == torrent::Tracker::flag_enabled);
-  CPPUNIT_ASSERT(tracker_list[1]->flags() == 0);
-  CPPUNIT_ASSERT(tracker_list[2]->flags() == torrent::Tracker::flag_enabled);
-  CPPUNIT_ASSERT(tracker_list[3]->flags() == torrent::Tracker::flag_extra_tracker);
-  CPPUNIT_ASSERT(tracker_list[4]->flags() == torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker);
+  CPPUNIT_ASSERT((tracker_list[0]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_enabled);
+  CPPUNIT_ASSERT((tracker_list[1]->flags() & torrent::Tracker::mask_base_flags) == 0);
+  CPPUNIT_ASSERT((tracker_list[2]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_enabled);
+  CPPUNIT_ASSERT((tracker_list[3]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_extra_tracker);
+  CPPUNIT_ASSERT((tracker_list[4]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker);
 }
 
 void
@@ -256,7 +256,7 @@ tracker_list_test::test_single_success() {
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == 0);
+  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
   CPPUNIT_ASSERT(tracker_0->latest_event() == torrent::Tracker::EVENT_STARTED);
   
   CPPUNIT_ASSERT(success_counter == 1 && failure_counter == 0);
@@ -274,7 +274,7 @@ tracker_list_test::test_single_failure() {
 
   CPPUNIT_ASSERT(!tracker_0->is_busy());
   CPPUNIT_ASSERT(!tracker_0->is_open());
-  CPPUNIT_ASSERT(tracker_0->requesting_state() == 0);
+  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
 
   CPPUNIT_ASSERT(success_counter == 0 && failure_counter == 1);
   CPPUNIT_ASSERT(tracker_0->success_counter() == 0);

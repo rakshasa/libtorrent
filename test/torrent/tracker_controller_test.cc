@@ -300,6 +300,19 @@ tracker_controller_test::test_send_completed_normal() {
 }
 
 void
+tracker_controller_test::test_send_update_normal() {
+  TEST_SINGLE_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_0_0->latest_event() == torrent::Tracker::EVENT_NONE);
+
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+
+  TEST_SEND_SINGLE_END(1, 0);
+}
+
+void
 tracker_controller_test::test_send_task_timeout() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
@@ -595,12 +608,16 @@ tracker_controller_test::test_scrape_basic() {
   TEST_MULTI3_IS_BUSY("00000");
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(tracker_controller.task_scrape()->is_queued());
+  CPPUNIT_ASSERT(tracker_0_1->latest_event() == torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_1_0->latest_event() == torrent::Tracker::EVENT_NONE);
 
   TEST_GOTO_NEXT_SCRAPE(0);
 
   TEST_MULTI3_IS_BUSY("01100");
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(!tracker_controller.task_scrape()->is_queued());
+  CPPUNIT_ASSERT(tracker_0_1->latest_event() == torrent::Tracker::EVENT_SCRAPE);
+  CPPUNIT_ASSERT(tracker_1_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
 
   CPPUNIT_ASSERT(tracker_0_1->trigger_scrape());
   CPPUNIT_ASSERT(tracker_1_0->trigger_scrape());
@@ -615,8 +632,32 @@ tracker_controller_test::test_scrape_basic() {
   TEST_SINGLE_END(2, 0);
 }
 
-// Test to make sure that when we try sending a 'real' request, it
-// closes any scrape requests.
+void
+tracker_controller_test::test_scrape_priority() {
+  TEST_SINGLE_BEGIN();
+  TEST_GOTO_NEXT_TIMEOUT(0);
+  tracker_0_0->trigger_success();
+  tracker_0_0->set_can_scrape();
+
+  tracker_controller.scrape_request(0);
+
+  TEST_GOTO_NEXT_SCRAPE(0);
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
+
+  // Check the other event types too?
+  tracker_controller.send_update_event();
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_0->latest_event() == torrent::Tracker::EVENT_NONE);
+
+  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(!tracker_controller.task_scrape()->is_queued());
+
+  // TODO: Test priority also with timeout...
+
+  TEST_SINGLE_END(1, 0);
+}
 
 // We should not request scrape from more than one tracker per group.
 

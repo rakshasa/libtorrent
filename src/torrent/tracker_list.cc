@@ -117,8 +117,15 @@ TrackerList::clear_stats() {
 
 void
 TrackerList::send_state(Tracker* tracker, int new_event) {
-  if (tracker->is_busy() || !tracker->is_usable())
+  if (!tracker->is_usable() || new_event == Tracker::EVENT_SCRAPE)
     return;
+
+  if (tracker->is_busy()) {
+    if (tracker->latest_event() != Tracker::EVENT_SCRAPE)
+      return;
+
+    tracker->close();
+  }
 
   tracker->send_state(new_event);
 
