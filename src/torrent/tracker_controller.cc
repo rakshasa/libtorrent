@@ -368,7 +368,7 @@ TrackerController::do_timeout() {
     TrackerList::iterator preferred = itr;
 
     for (; itr != m_tracker_list->end(); itr++) {
-      if ((*itr)->is_busy() || !(*itr)->is_usable())
+      if (((*itr)->is_busy() && (*itr)->latest_event() != Tracker::EVENT_SCRAPE) || !(*itr)->is_usable())
         continue;
 
       if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&

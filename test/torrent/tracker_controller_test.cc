@@ -81,8 +81,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
                  failure_counter == failure_counter);
 
-#define TEST_IS_BUSY(tracker, state)                    \
-  CPPUNIT_ASSERT(state == '0' || tracker->is_busy());   \
+#define TEST_IS_BUSY(tracker, state)                                    \
+  CPPUNIT_ASSERT(state == '0' ||  tracker->is_busy());                  \
   CPPUNIT_ASSERT(state == '1' || !tracker->is_busy());
 
 #define TEST_MULTI3_IS_BUSY(bitmap)             \
@@ -654,9 +654,25 @@ tracker_controller_test::test_scrape_priority() {
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(!tracker_controller.task_scrape()->is_queued());
 
-  // TODO: Test priority also with timeout...
+  tracker_0_0->trigger_success();
 
-  TEST_SINGLE_END(1, 0);
+  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() > 1);
+
+  torrent::cachedTime += rak::timer::from_seconds(tracker_controller.seconds_to_next_timeout() - 1);
+  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
+
+  tracker_controller.scrape_request(0);
+  TEST_GOTO_NEXT_SCRAPE(0);
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
+
+  TEST_GOTO_NEXT_TIMEOUT(1);
+
+  CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  CPPUNIT_ASSERT(tracker_0_0->latest_event() == torrent::Tracker::EVENT_NONE);
+
+  TEST_SINGLE_END(2, 0);
 }
 
 // We should not request scrape from more than one tracker per group.
