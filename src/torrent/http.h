@@ -39,8 +39,8 @@
 
 #include <string>
 #include <iosfwd>
+#include <list>
 #include <tr1/functional>
-#include <sigc++/signal.h>
 #include <torrent/common.h>
 
 namespace torrent {
@@ -51,10 +51,12 @@ namespace torrent {
 // Keep in mind that these objects get reused.
 class LIBTORRENT_EXPORT Http {
  public:
-  typedef sigc::signal0<void>                     Signal;
-  typedef sigc::signal1<void, const std::string&> SignalString;
+  typedef std::tr1::function<void ()>                   slot_void;
+  typedef std::tr1::function<void (const std::string&)> slot_string;
+  typedef std::tr1::function<Http* (void)>              slot_factory;
 
-  typedef std::tr1::function<Http* (void)> slot_factory;
+  typedef std::list<slot_void>   signal_void;
+  typedef std::list<slot_string> signal_string;
 
   Http() : m_stream(NULL), m_timeout(0) {}
   virtual ~Http();
@@ -77,8 +79,8 @@ class LIBTORRENT_EXPORT Http {
   // The owner of the Http object must close it as soon as possible
   // after receiving the signal, as the implementation may allocate
   // limited resources during its lifetime.
-  Signal&            signal_done()                        { return m_signalDone; }
-  SignalString&      signal_failed()                      { return m_signalFailed; }
+  signal_void&       signal_done()                        { return m_signal_done; }
+  signal_string&     signal_failed()                      { return m_signal_failed; }
 
   // Set the factory function that constructs and returns a valid Http* object.
   static void        set_factory(const slot_factory& f);
@@ -93,8 +95,8 @@ protected:
   std::iostream*     m_stream;
   uint32_t           m_timeout;
 
-  Signal             m_signalDone;
-  SignalString       m_signalFailed;
+  signal_void        m_signal_done;
+  signal_string      m_signal_failed;
 
 private:
   Http(const Http&);
