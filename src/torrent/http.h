@@ -45,6 +45,40 @@
 
 namespace torrent {
 
+template <typename Slot>
+void
+slot_list_call(const std::list<Slot>& slot_list) {
+  if (slot_list.empty())
+    return;
+
+  typename std::list<Slot>::const_iterator first = slot_list.begin();
+  typename std::list<Slot>::const_iterator next = slot_list.begin();
+
+  while (++next != slot_list.end()) {
+    (*first)();
+    first = next;
+  }
+
+  (*first)();
+}
+
+template <typename Slot, typename Arg1>
+void
+slot_list_call(const std::list<Slot>& slot_list, Arg1 arg1) {
+  if (slot_list.empty())
+    return;
+
+  typename std::list<Slot>::const_iterator first = slot_list.begin();
+  typename std::list<Slot>::const_iterator next = slot_list.begin();
+
+  while (++next != slot_list.end()) {
+    (*first)(arg1);
+    first = next;
+  }
+
+  (*first)(arg1);
+}
+
 // The client should set the user agent to something like
 // "CLIENT_NAME/CLIENT_VERSION/LIBRARY_VERSION".
 
