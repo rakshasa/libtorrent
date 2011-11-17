@@ -94,8 +94,6 @@ resume_load_progress(Download download, const Object& object) {
   }
 
   Object::list_const_iterator filesItr  = files.begin();
-  Object::list_const_iterator filesLast = files.end();
-
   FileList* fileList = download.file_list();
 
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {

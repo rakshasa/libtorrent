@@ -401,8 +401,8 @@ ProtocolExtension::send_metadata_piece(size_t piece) {
   // These messages will be rare, so we'll just build the
   // metadata here instead of caching it uselessly.
   char* buffer = new char[metadataSize];
-  object_buffer_t result = object_write_bencode_c(object_write_to_buffer, NULL, object_buffer_t(buffer, buffer + metadataSize), 
-                                                 &(*manager->download_manager()->find(m_download->info()))->bencode()->get_key("info"));
+  object_write_bencode_c(object_write_to_buffer, NULL, object_buffer_t(buffer, buffer + metadataSize), 
+                         &(*manager->download_manager()->find(m_download->info()))->bencode()->get_key("info"));
 
   // data: { "msg_type" => 1, "piece" => ..., "total_size" => ... } followed by piece data (outside of dictionary)
   size_t length = piece == pieceEnd - 1 ? m_download->info()->metadata_size() % metadata_piece_size : metadata_piece_size;

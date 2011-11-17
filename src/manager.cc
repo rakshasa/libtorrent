@@ -59,7 +59,7 @@
 
 #include "manager.h"
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 

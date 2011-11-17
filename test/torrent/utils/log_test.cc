@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <tr1/functional>
@@ -10,7 +12,7 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_log_test);
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 const char* expected_output = NULL;
 unsigned int output_mask;
@@ -18,8 +20,8 @@ unsigned int output_mask;
 static void
 test_output(const char* output, unsigned int length, unsigned int mask) {
   CPPUNIT_ASSERT_MESSAGE("'" + std::string(output) + "' != '" + std::string(expected_output) + "'",
-                         strcmp(output, expected_output) == 0);
-  CPPUNIT_ASSERT_MESSAGE("'" + std::string(output) + "'", strlen(output) == length);
+                         std::strcmp(output, expected_output) == 0);
+  CPPUNIT_ASSERT_MESSAGE("'" + std::string(output) + "'", std::strlen(output) == length);
   output_mask |= mask;
 }
 
@@ -68,7 +70,15 @@ utils_log_test::test_output_open() {
   CPPUNIT_ASSERT(torrent::log_groups[0].size_outputs() == 1);
 
   // Test inserting duplicate names, should catch.
-  CPPUNIT_ASSERT_THROW(torrent::log_open_output("test_output_1", torrent::log_slot());, torrent::input_error);
+  // CPPUNIT_ASSERT_THROW(torrent::log_open_output("test_output_1", torrent::log_slot());, torrent::input_error);
+
+  try {
+    torrent::log_open_output("test_output_1", torrent::log_slot());
+  } catch (torrent::input_error& e) {
+    return;
+  }
+
+  CPPUNIT_ASSERT(false);
 
   // Test more than 64 entries.
 }

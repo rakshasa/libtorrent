@@ -91,9 +91,7 @@ AvailableList::erase(const rak::socket_address& sa) {
   iterator itr = std::find(begin(), end(), sa);
 
   if (itr != end()) {
-    value_type tmp = *itr;
     *itr = back();
-
     pop_back();
   }
 }

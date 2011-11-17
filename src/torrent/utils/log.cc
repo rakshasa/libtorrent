@@ -53,7 +53,7 @@
 #include <tr1/functional>
 #include <tr1/memory>
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -160,8 +160,8 @@ log_group::internal_print(const char* fmt, ...) {
   va_end(ap);
 
   if (count >= 0)
-    std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
-                                             std::placeholders::_1, buffer,
+    std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
+                                             tr1::placeholders::_1, buffer,
                                              std::min<unsigned int>(count, buffer_size - 1),
                                              std::distance(log_groups.begin(), this)));
 }
@@ -178,8 +178,8 @@ log_group::internal_print_info(const DownloadInfo* info, const char* fmt, ...) {
   va_end(ap);
 
   if (count >= 0)
-    std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
-                                             std::placeholders::_1, buffer,
+    std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
+                                             tr1::placeholders::_1, buffer,
                                              std::min<unsigned int>(count, buffer_size - 1),
                                              std::distance(log_groups.begin(), this)));
 }
@@ -255,7 +255,7 @@ void
 log_open_output(const char* name, log_slot slot) {
   if (log_outputs.size() >= (size_t)std::numeric_limits<uint64_t>::digits)
     throw input_error("Cannot open more than 64 log output handlers.");
-
+  
   if (log_find_output_name(name) != log_outputs.end())
     throw input_error("Log name already used.");
 

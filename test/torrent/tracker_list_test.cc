@@ -5,8 +5,6 @@
 
 #include "tracker_list_test.h"
 
-namespace std { using namespace tr1; }
-
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
 
 #define TRACKER_SETUP()                                                 \
@@ -177,7 +175,7 @@ tracker_list_test::test_tracker_flags() {
   CPPUNIT_ASSERT((tracker_list[1]->flags() & torrent::Tracker::mask_base_flags) == 0);
   CPPUNIT_ASSERT((tracker_list[2]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_enabled);
   CPPUNIT_ASSERT((tracker_list[3]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_extra_tracker);
-  CPPUNIT_ASSERT((tracker_list[4]->flags() & torrent::Tracker::mask_base_flags) == torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker);
+  CPPUNIT_ASSERT((tracker_list[4]->flags() & torrent::Tracker::mask_base_flags) == (torrent::Tracker::flag_enabled | torrent::Tracker::flag_extra_tracker));
 }
 
 void
@@ -203,7 +201,7 @@ tracker_list_test::test_find_url() {
 void
 tracker_list_test::test_can_scrape() {
   TRACKER_SETUP();
-  torrent::Http::set_factory(sigc::ptr_fun(&http_factory));
+  torrent::Http::set_factory(std::tr1::bind(&http_factory));
 
   tracker_list.insert_url(0, "http://example.com/announce");
   CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));

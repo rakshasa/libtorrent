@@ -189,12 +189,6 @@ public:
 };
 #endif // HAVE_TR1
 
-inline
-DhtNode* DhtNodeList::add_node(DhtNode* n) {
-  insert(std::make_pair<const HashString*, DhtNode*>(n, n));
-  return n;
-}
-
 }
 
 #endif

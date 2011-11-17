@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <iostream>
+#include <tr1/functional>
 #include <torrent/tracker_controller.h>
 
 #include "rak/priority_queue_default.h"
@@ -9,7 +10,7 @@
 #include "tracker_list_test.h"
 #include "tracker_controller_test.h"
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
 

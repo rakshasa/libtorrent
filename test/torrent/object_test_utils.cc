@@ -4,7 +4,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include "torrent/object_stream.h"
 
-#import "object_test_utils.h"
+#include "object_test_utils.h"
 
 torrent::Object
 create_bencode(const char* str) {

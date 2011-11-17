@@ -5,8 +5,8 @@
 #include "torrent/object_static_map.h"
 #include "protocol/extensions.h"
 
-#import "object_test_utils.h"
-#import "object_static_map_test.h"
+#include "object_test_utils.h"
+#include "object_static_map_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectStaticMapTest);
 
