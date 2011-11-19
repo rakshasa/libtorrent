@@ -284,6 +284,7 @@ choke_queue::cycle(uint32_t quota) {
 
   uint32_t adjust = (unchoked.size() < quota) ? (quota - unchoked.size()) : 0; 
   adjust = std::max(adjust, alternate);
+  adjust = std::min(adjust, quota);
 
   if (log_files[LOG_CHOKE_CHANGES].is_open())
     log_choke_changes_func_new(this, "cycle", quota, adjust);
