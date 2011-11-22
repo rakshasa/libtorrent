@@ -300,4 +300,40 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
   m_slot_failed(tb, msg);
 }
 
+void
+TrackerList::receive_scrape_success(Tracker* tb) {
+  iterator itr = find(tb);
+
+  if (itr == end() || (*itr)->is_busy())
+    throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
+
+  // // Promote the tracker to the front of the group since it was
+  // // successfull.
+  // itr = promote(itr);
+
+  // l->sort();
+  // l->erase(std::unique(l->begin(), l->end()), l->end());
+
+  // LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
+
+  // tb->set_success_counter(tb->success_counter() + 1);
+  // tb->set_failed_counter(0);
+
+  // set_time_last_connection(cachedTime.seconds());
+  // m_slot_success(tb, l);
+}
+
+void
+TrackerList::receive_scrape_failed(Tracker* tb, const std::string& msg) {
+  iterator itr = find(tb);
+
+  if (itr == end() || tb->is_busy())
+    throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
+
+  // LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
+
+  // tb->set_failed_counter(tb->failed_counter() + 1);
+  // m_slot_failed(tb, msg);
+}
+
 }
