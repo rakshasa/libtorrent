@@ -263,8 +263,13 @@ TrackerHttp::receive_failed(std::string msg) {
   }
 
   close();
-  m_failed_time_last = rak::timer::current().seconds();
-  m_parent->receive_failed(this, msg);
+
+  if (m_latest_event == EVENT_SCRAPE) {
+    m_parent->receive_scrape_failed(this, msg);
+  } else {
+    m_failed_time_last = rak::timer::current().seconds();
+    m_parent->receive_failed(this, msg);
+  }
 }
 
 void
@@ -330,7 +335,6 @@ TrackerHttp::process_scrape(const Object& object) {
     m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
 
   m_scrape_time_last = rak::timer::current().seconds();
-  m_scrape_counter++;
     
   LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
                  files.as_map().size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);

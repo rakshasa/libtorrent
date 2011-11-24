@@ -137,6 +137,7 @@ protected:
 
   void                set_success_counter(uint32_t value)   { m_success_counter = value; }
   void                set_failed_counter(uint32_t value)    { m_failed_counter = value; }
+  void                set_scrape_counter(uint32_t value)    { m_scrape_counter = value; }
 
   int                 m_flags;
 
