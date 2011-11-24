@@ -108,6 +108,7 @@ public:
 
   void                receive_success(Tracker* tb, address_list* l);
   void                receive_failure(Tracker* tb, const std::string& msg);
+  void                receive_scrape(Tracker* tb);
 
   void                receive_tracker_enabled(Tracker* tb);
   void                receive_tracker_disabled(Tracker* tb);

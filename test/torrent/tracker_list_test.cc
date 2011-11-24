@@ -53,13 +53,10 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list) {
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
 
-  if (m_latest_event == EVENT_SCRAPE) {
-    m_scrape_time_last = rak::timer::current().seconds();
+  if (m_latest_event == EVENT_SCRAPE)
     parent()->receive_scrape_success(this);
-  } else {
-    m_success_time_last = rak::timer::current().seconds();
+  else
     parent()->receive_success(this, address_list);
-  }
 
   m_requesting_state = -1;
   return true;
@@ -73,12 +70,10 @@ TrackerTest::trigger_failure() {
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
 
-  if (m_latest_event == EVENT_SCRAPE) {
+  if (m_latest_event == EVENT_SCRAPE)
     parent()->receive_scrape_failed(this, "failed");
-  } else {
-    m_failed_time_last = rak::timer::current().seconds();
+  else
     parent()->receive_failed(this, "failed");
-  }
 
   m_requesting_state = -1;
   return true;
@@ -406,6 +401,28 @@ tracker_list_test::test_scrape_success() {
   CPPUNIT_ASSERT(tracker_0->success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->failed_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->scrape_counter() == 1);
+}
+
+void
+tracker_list_test::test_scrape_failure() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  
+  tracker_0->set_can_scrape();
+  tracker_list.send_scrape(tracker_0);
+
+  CPPUNIT_ASSERT(tracker_0->trigger_failure());
+
+  CPPUNIT_ASSERT(!tracker_0->is_busy());
+  CPPUNIT_ASSERT(!tracker_0->is_open());
+  CPPUNIT_ASSERT(tracker_0->requesting_state() == -1);
+  CPPUNIT_ASSERT(tracker_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
+  
+  CPPUNIT_ASSERT(success_counter == 0 && failure_counter == 0);
+  CPPUNIT_ASSERT(scrape_success_counter == 0 && scrape_failure_counter == 1);
+  CPPUNIT_ASSERT(tracker_0->success_counter() == 0);
+  CPPUNIT_ASSERT(tracker_0->failed_counter() == 0);
+  CPPUNIT_ASSERT(tracker_0->scrape_counter() == 0);
 }
 
 // test last_connect timer.

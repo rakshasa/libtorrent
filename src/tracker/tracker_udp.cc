@@ -161,8 +161,6 @@ TrackerUdp::type() const {
 void
 TrackerUdp::receive_failed(const std::string& msg) {
   close();
-
-  m_failed_time_last = rak::timer::current().seconds();
   m_parent->receive_failed(this, msg);
 }
 
@@ -314,7 +312,6 @@ TrackerUdp::process_announce_output() {
   m_scrape_incomplete = m_readBuffer->read_32(); // leechers
   m_scrape_complete   = m_readBuffer->read_32(); // seeders
   m_scrape_time_last  = rak::timer::current().seconds();
-  m_success_time_last = rak::timer::current().seconds();
 
   AddressList l;
 
