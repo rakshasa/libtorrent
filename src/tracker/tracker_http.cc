@@ -334,9 +334,8 @@ TrackerHttp::process_scrape(const Object& object) {
   LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
                  files.as_map().size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);
 
-  AddressList l;
   close();
-  m_parent->receive_success(this, &l);
+  m_parent->receive_scrape_success(this);
 }
 
 }
