@@ -134,14 +134,18 @@ public:
   iterator            promote(iterator itr);
   void                randomize_group_entries();
 
-  uint32_t            time_last_connection() const            { return m_timeLastConnection; }
-
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
+
+  void                receive_scrape_success(Tracker* tb);
+  void                receive_scrape_failed(Tracker* tb, const std::string& msg);
 
   // Used by libtorrent internally.
   slot_address_list&  slot_success()                          { return m_slot_success; }
   slot_string&        slot_failure()                          { return m_slot_failed; }
+
+  slot_tracker&       slot_scrape_success()                   { return m_slot_scrape_success; }
+  slot_string&        slot_scrape_failure()                   { return m_slot_scrape_failed; }
 
   slot_tracker&       slot_tracker_enabled()                  { return m_slot_tracker_enabled; }
   slot_tracker&       slot_tracker_disabled()                 { return m_slot_tracker_disabled; }
@@ -150,7 +154,6 @@ protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
 
   void                set_state(int s)                        { m_state = s; }
-  void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
 
 private:
   TrackerList(const TrackerList&) LIBTORRENT_NO_EXPORT;
@@ -162,10 +165,11 @@ private:
   uint32_t            m_key;
   int32_t             m_numwant;
 
-  uint32_t            m_timeLastConnection;
-
   slot_address_list   m_slot_success;
   slot_string         m_slot_failed;
+
+  slot_tracker        m_slot_scrape_success;
+  slot_string         m_slot_scrape_failed;
 
   slot_tracker        m_slot_tracker_enabled;
   slot_tracker        m_slot_tracker_disabled;

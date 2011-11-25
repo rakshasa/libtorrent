@@ -19,6 +19,9 @@ class tracker_list_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_multiple_success);
 
+  CPPUNIT_TEST(test_scrape_success);
+  CPPUNIT_TEST(test_scrape_failure);
+
   CPPUNIT_TEST(test_has_active);
   CPPUNIT_TEST(test_count_active);
   CPPUNIT_TEST_SUITE_END();
@@ -41,20 +44,24 @@ public:
 
   void test_multiple_success();
 
+  void test_scrape_success();
+  void test_scrape_failure();
+
   void test_has_active();
   void test_count_active();
 };
 
 class TrackerTest : public torrent::Tracker {
 public:
+  static const int flag_close_on_done = max_flag_size << 0;
+  static const int flag_scrape_on_success = max_flag_size << 1;
+
   // TODO: Clean up tracker related enums.
   TrackerTest(torrent::TrackerList* parent, const std::string& url, int flags = torrent::Tracker::flag_enabled) :
     torrent::Tracker(parent, url, flags),
     m_busy(false),
     m_open(false),
-    m_close_on_done(true),
-    m_requesting_state(-1),
-    m_requesting_scrape(false) {}
+    m_requesting_state(-1) { m_flags |= flag_close_on_done; }
 
   virtual bool        is_busy() const { return m_busy; }
   bool                is_open() const { return m_open; }
@@ -68,17 +75,16 @@ public:
   bool                trigger_failure();
   bool                trigger_scrape();
 
-  void                set_close_on_done(bool state) { m_close_on_done = state; }
+  void                set_close_on_done(bool state) { if (state) m_flags |= flag_close_on_done; else m_flags &= ~flag_close_on_done; }
+  void                set_scrape_on_success(bool state) { if (state) m_flags |= flag_scrape_on_success; else m_flags &= ~flag_scrape_on_success; }
   void                set_can_scrape()              { m_flags |= flag_can_scrape; }
 
 private:
-  virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = state; m_latest_event = state; }
-  virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_scrape = true; }
-  virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = 0; }
+  virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = m_latest_event = state; }
+  virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_state = m_latest_event = torrent::Tracker::EVENT_SCRAPE; }
+  virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
 
   bool                m_busy;
   bool                m_open;
-  bool                m_close_on_done;
   int                 m_requesting_state;
-  bool                m_requesting_scrape;
 };

@@ -65,8 +65,7 @@ TrackerList::TrackerList() :
   m_state(DownloadInfo::STOPPED),
 
   m_key(0),
-  m_numwant(-1),
-  m_timeLastConnection(0) {
+  m_numwant(-1) {
 }
 
 bool
@@ -117,8 +116,15 @@ TrackerList::clear_stats() {
 
 void
 TrackerList::send_state(Tracker* tracker, int new_event) {
-  if (tracker->is_busy() || !tracker->is_usable())
+  if (!tracker->is_usable() || new_event == Tracker::EVENT_SCRAPE)
     return;
+
+  if (tracker->is_busy()) {
+    if (tracker->latest_event() != Tracker::EVENT_SCRAPE)
+      return;
+
+    tracker->close();
+  }
 
   tracker->send_state(new_event);
 
@@ -133,6 +139,9 @@ TrackerList::send_scrape(Tracker* tracker) {
     return;
 
   if (!(tracker->flags() & Tracker::flag_can_scrape))
+    return;
+
+  if (rak::timer::from_seconds(tracker->scrape_time_last()) + rak::timer::from_seconds(10 * 60) > rak::timer::current() )
     return;
 
   tracker->send_scrape();
@@ -258,7 +267,7 @@ void
 TrackerList::receive_success(Tracker* tb, AddressList* l) {
   iterator itr = find(tb);
 
-  if (itr == end() || (*itr)->is_busy())
+  if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
   // Promote the tracker to the front of the group since it was
@@ -270,10 +279,10 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
 
   LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
 
-  tb->set_success_counter(tb->success_counter() + 1);
-  tb->set_failed_counter(0);
+  tb->m_success_time_last = rak::timer::current().seconds();
+  tb->m_success_counter++;
+  tb->m_failed_counter = 0;
 
-  set_time_last_connection(cachedTime.seconds());
   m_slot_success(tb, l);
 }
 
@@ -286,8 +295,38 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
 
   LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
-  tb->set_failed_counter(tb->failed_counter() + 1);
+  tb->m_failed_time_last = rak::timer::current().seconds();
+  tb->m_failed_counter++;
   m_slot_failed(tb, msg);
+}
+
+void
+TrackerList::receive_scrape_success(Tracker* tb) {
+  iterator itr = find(tb);
+
+  if (itr == end() || tb->is_busy())
+    throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
+
+  LT_LOG_TRACKER(INFO, "Received scrape from tracker url:'%s'.", tb->url().c_str());
+
+  tb->m_scrape_time_last = rak::timer::current().seconds();
+  tb->m_scrape_counter++;
+
+  if (m_slot_scrape_success)
+    m_slot_scrape_success(tb);
+}
+
+void
+TrackerList::receive_scrape_failed(Tracker* tb, const std::string& msg) {
+  iterator itr = find(tb);
+
+  if (itr == end() || tb->is_busy())
+    throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
+
+  LT_LOG_TRACKER(INFO, "Failed to scrape tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
+
+  if (m_slot_scrape_failed)
+    m_slot_scrape_failed(tb, msg);
 }
 
 }

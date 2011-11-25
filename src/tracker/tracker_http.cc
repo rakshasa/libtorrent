@@ -58,6 +58,8 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
 
+namespace std { using namespace tr1; }
+
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags) :
@@ -66,8 +68,8 @@ TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags)
   m_get(Http::call_factory()),
   m_data(NULL) {
 
-  m_get->signal_done().connect(sigc::mem_fun(*this, &TrackerHttp::receive_done));
-  m_get->signal_failed().connect(sigc::mem_fun(*this, &TrackerHttp::receive_failed));
+  m_get->signal_done().push_back(std::bind(&TrackerHttp::receive_done, this));
+  m_get->signal_failed().push_back(std::bind(&TrackerHttp::receive_failed, this, std::placeholders::_1));
 
   // Haven't considered if this needs any stronger error detection,
   // can dropping the '?' be used for malicious purposes?
@@ -184,6 +186,8 @@ TrackerHttp::send_scrape() {
   if (m_data != NULL)
     return;
 
+  m_latest_event = EVENT_SCRAPE;
+
   std::stringstream s;
   s.imbue(std::locale::classic());
 
@@ -245,68 +249,10 @@ TrackerHttp::receive_done() {
 			  std::string("failure reason not a string"))
 			 + "\"");
 
-  // Got scrape information...
-  if (b.has_key_map("files")) {
-    // Add better validation here...
-    const Object& files = b.get_key("files");
-    const Object& stats = files.get_key(m_parent->info()->hash().str());
-
-    if (stats.has_key_value("complete"))
-      m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
-
-    if (stats.has_key_value("incomplete"))
-      m_scrape_incomplete = std::max<int64_t>(stats.get_key_value("incomplete"), 0);
-
-    if (stats.has_key_value("downloaded"))
-      m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
-
-    m_scrape_time_last = rak::timer::current().seconds();
-    m_scrape_counter++;
-    
-    LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
-                   files.as_map().size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);
-    AddressList l;
-    close();
-    m_parent->receive_success(this, &l);
-    return;
-  }
-
-  if (b.has_key_value("interval"))
-    set_normal_interval(b.get_key_value("interval"));
-  
-  if (b.has_key_value("min interval"))
-    set_min_interval(b.get_key_value("min interval"));
-
-  if (b.has_key_string("tracker id"))
-    m_tracker_id = b.get_key_string("tracker id");
-
-  if (b.has_key_value("complete") && b.has_key_value("incomplete")) {
-    m_scrape_complete = std::max<int64_t>(b.get_key_value("complete"), 0);
-    m_scrape_incomplete = std::max<int64_t>(b.get_key_value("incomplete"), 0);
-    m_scrape_time_last = rak::timer::current().seconds();
-  }
-
-  if (b.has_key_value("downloaded"))
-    m_scrape_downloaded = std::max<int64_t>(b.get_key_value("downloaded"), 0);
-
-  AddressList l;
-
-  try {
-    // Due to some trackers sending the wrong type when no peers are
-    // available, don't bork on it.
-    if (b.get_key("peers").is_string())
-      l.parse_address_compact(b.get_key_string("peers"));
-
-    else if (b.get_key("peers").is_list())
-      l.parse_address_normal(b.get_key_list("peers"));
-
-  } catch (bencode_error& e) {
-    return receive_failed(e.what());
-  }
-
-  close();
-  m_success_time_last = rak::timer::current().seconds();
-  m_parent->receive_success(this, &l);
+  if (m_latest_event == EVENT_SCRAPE)
+    process_scrape(b);
+  else
+    process_success(b);
 }
 
 void
@@ -317,8 +263,79 @@ TrackerHttp::receive_failed(std::string msg) {
   }
 
   close();
-  m_failed_time_last = rak::timer::current().seconds();
-  m_parent->receive_failed(this, msg);
+
+  if (m_latest_event == EVENT_SCRAPE)
+    m_parent->receive_scrape_failed(this, msg);
+  else
+    m_parent->receive_failed(this, msg);
+}
+
+void
+TrackerHttp::process_success(const Object& object) {
+  if (object.has_key_value("interval"))
+    set_normal_interval(object.get_key_value("interval"));
+  
+  if (object.has_key_value("min interval"))
+    set_min_interval(object.get_key_value("min interval"));
+
+  if (object.has_key_string("tracker id"))
+    m_tracker_id = object.get_key_string("tracker id");
+
+  if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
+    m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
+    m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
+    m_scrape_time_last = rak::timer::current().seconds();
+  }
+
+  if (object.has_key_value("downloaded"))
+    m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
+
+  AddressList l;
+
+  try {
+    // Due to some trackers sending the wrong type when no peers are
+    // available, don't bork on it.
+    if (object.get_key("peers").is_string())
+      l.parse_address_compact(object.get_key_string("peers"));
+
+    else if (object.get_key("peers").is_list())
+      l.parse_address_normal(object.get_key_list("peers"));
+
+  } catch (bencode_error& e) {
+    return receive_failed(e.what());
+  }
+
+  close();
+  m_parent->receive_success(this, &l);
+}
+
+void
+TrackerHttp::process_scrape(const Object& object) {
+  if (!object.has_key_map("files"))
+    return receive_failed("Tracker scrape does not have files entry.");
+
+  // Add better validation here...
+  const Object& files = object.get_key("files");
+
+  if (!files.has_key_map(m_parent->info()->hash().str()))
+    return receive_failed("Tracker scrape replay did not contain infohash.");
+
+  const Object& stats = files.get_key(m_parent->info()->hash().str());
+
+  if (stats.has_key_value("complete"))
+    m_scrape_complete = std::max<int64_t>(stats.get_key_value("complete"), 0);
+
+  if (stats.has_key_value("incomplete"))
+    m_scrape_incomplete = std::max<int64_t>(stats.get_key_value("incomplete"), 0);
+
+  if (stats.has_key_value("downloaded"))
+    m_scrape_downloaded = std::max<int64_t>(stats.get_key_value("downloaded"), 0);
+
+  LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
+                 files.as_map().size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);
+
+  close();
+  m_parent->receive_scrape_success(this);
 }
 
 }

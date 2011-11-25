@@ -39,8 +39,8 @@
 
 #include <string>
 #include <iosfwd>
+#include <list>
 #include <tr1/functional>
-#include <sigc++/signal.h>
 #include <torrent/common.h>
 
 namespace torrent {
@@ -51,18 +51,28 @@ namespace torrent {
 // Keep in mind that these objects get reused.
 class LIBTORRENT_EXPORT Http {
  public:
-  typedef sigc::signal0<void>                     Signal;
-  typedef sigc::signal1<void, const std::string&> SignalString;
+  typedef std::tr1::function<void ()>                   slot_void;
+  typedef std::tr1::function<void (const std::string&)> slot_string;
+  typedef std::tr1::function<Http* (void)>              slot_factory;
 
-  typedef std::tr1::function<Http* (void)> slot_factory;
+  typedef std::list<slot_void>   signal_void;
+  typedef std::list<slot_string> signal_string;
 
-  Http() : m_stream(NULL), m_timeout(0) {}
+  static const int flag_delete_self   = 0x1;
+  static const int flag_delete_stream = 0x2;
+
+  Http() : m_flags(0), m_stream(NULL), m_timeout(0) {}
   virtual ~Http();
 
   // Start must never throw on bad input. Calling start/stop on an
   // object in the wrong state should throw a torrent::internal_error.
   virtual void       start() = 0;
   virtual void       close() = 0;
+
+  int                flags() const                        { return m_flags; }
+
+  void               set_delete_self()                    { m_flags |= flag_delete_self; }
+  void               set_delete_stream()                  { m_flags |= flag_delete_stream; }
 
   const std::string& url() const                          { return m_url; }
   void               set_url(const std::string& url)      { m_url = url; }
@@ -77,11 +87,11 @@ class LIBTORRENT_EXPORT Http {
   // The owner of the Http object must close it as soon as possible
   // after receiving the signal, as the implementation may allocate
   // limited resources during its lifetime.
-  Signal&            signal_done()                        { return m_signalDone; }
-  SignalString&      signal_failed()                      { return m_signalFailed; }
+  signal_void&       signal_done()                        { return m_signal_done; }
+  signal_string&     signal_failed()                      { return m_signal_failed; }
 
   // Set the factory function that constructs and returns a valid Http* object.
-  static void        set_factory(const slot_factory& f);
+  static void        set_factory(const slot_factory& f)   { m_factory = f; }
 
   // Guaranteed to return a valid object or throw a internal_error. The
   // caller takes ownership of the returned object. Is there any
@@ -89,12 +99,16 @@ class LIBTORRENT_EXPORT Http {
   static Http*       call_factory();
 
 protected:
+  void               trigger_done();
+  void               trigger_failed(const std::string& message);
+
+  int                m_flags;
   std::string        m_url;
   std::iostream*     m_stream;
   uint32_t           m_timeout;
 
-  Signal             m_signalDone;
-  SignalString       m_signalFailed;
+  signal_void        m_signal_done;
+  signal_string      m_signal_failed;
 
 private:
   Http(const Http&);

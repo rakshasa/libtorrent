@@ -82,8 +82,6 @@ public:
   TrackerList*        tracker_list()        { return m_tracker_list; }
   TrackerList*        tracker_list() const  { return m_tracker_list; }
 
-  uint32_t            failed_requests() const { return m_failed_requests; }
-
   int64_t             next_timeout() const;
   int64_t             next_scrape() const;
   uint32_t            seconds_to_next_timeout() const;
@@ -108,6 +106,7 @@ public:
 
   void                receive_success(Tracker* tb, address_list* l);
   void                receive_failure(Tracker* tb, const std::string& msg);
+  void                receive_scrape(Tracker* tb);
 
   void                receive_tracker_enabled(Tracker* tb);
   void                receive_tracker_disabled(Tracker* tb);
@@ -123,8 +122,6 @@ public:
   rak::priority_item* task_timeout();
   rak::priority_item* task_scrape();
 
-  void                set_failed_requests(uint32_t value) { m_failed_requests = value; }
-
 private:
   void                do_timeout();
   void                do_scrape();
@@ -138,8 +135,6 @@ private:
 
   int                 m_flags;
   TrackerList*        m_tracker_list;
-
-  uint32_t            m_failed_requests;
 
   slot_void           m_slot_timeout;
   slot_address_list   m_slot_success;

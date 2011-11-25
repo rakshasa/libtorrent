@@ -36,20 +36,51 @@
 
 #include "config.h"
 
+#include <iostream>
+
 #include "torrent/exceptions.h"
 #include "http.h"
 
 namespace torrent {
 
+template <typename Slot>
+inline void
+slot_list_call(const std::list<Slot>& slot_list) {
+  if (slot_list.empty())
+    return;
+
+  typename std::list<Slot>::const_iterator first = slot_list.begin();
+  typename std::list<Slot>::const_iterator next = slot_list.begin();
+
+  while (++next != slot_list.end()) {
+    (*first)();
+    first = next;
+  }
+
+  (*first)();
+}
+
+template <typename Slot, typename Arg1>
+inline void
+slot_list_call(const std::list<Slot>& slot_list, Arg1 arg1) {
+  if (slot_list.empty())
+    return;
+
+  typename std::list<Slot>::const_iterator first = slot_list.begin();
+  typename std::list<Slot>::const_iterator next = slot_list.begin();
+
+  while (++next != slot_list.end()) {
+    (*first)(arg1);
+    first = next;
+  }
+
+  (*first)(arg1);
+}
+
 Http::slot_factory Http::m_factory;
 
 Http::~Http() {
 }
-
-void
-Http::set_factory(const slot_factory& f) {
-  m_factory = f;
-}  
 
 Http*
 Http::call_factory() {
@@ -62,6 +93,32 @@ Http::call_factory() {
     throw internal_error("Http factory returned a NULL object.");
 
   return h;
+}
+
+void
+Http::trigger_done() {
+  torrent::slot_list_call(signal_done());
+
+  if (m_flags & flag_delete_stream) {
+    delete m_stream;
+    m_stream = NULL;
+  }
+
+  if (m_flags & flag_delete_self)
+    delete this;
+}
+
+void
+Http::trigger_failed(const std::string& message) {
+  torrent::slot_list_call(signal_failed(), message);
+
+  if (m_flags & flag_delete_stream) {
+    delete m_stream;
+    m_stream = NULL;
+  }
+
+  if (m_flags & flag_delete_self)
+    delete this;
 }
 
 }

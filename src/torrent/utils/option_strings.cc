@@ -196,6 +196,7 @@ const char* option_list_tracker_event[] = {
   "completed",
   "started",
   "stopped",
+  "scrape",
 
   NULL
 };

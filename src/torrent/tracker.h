@@ -61,12 +61,16 @@ public:
     EVENT_NONE,
     EVENT_COMPLETED,
     EVENT_STARTED,
-    EVENT_STOPPED
+    EVENT_STOPPED,
+    EVENT_SCRAPE
   };
 
   static const int flag_enabled = 0x1;
   static const int flag_extra_tracker = 0x2;
   static const int flag_can_scrape = 0x4;
+
+  static const int max_flag_size   = 0x10;
+  static const int mask_base_flags = 0x10 - 1;
 
   virtual ~Tracker() {}
 
@@ -130,9 +134,6 @@ protected:
 
   void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normal_interval = v; }
   void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_min_interval = v; }
-
-  void                set_success_counter(uint32_t value)   { m_success_counter = value; }
-  void                set_failed_counter(uint32_t value)    { m_failed_counter = value; }
 
   int                 m_flags;
 
