@@ -53,8 +53,7 @@ namespace torrent {
 
 log_file log_files[LOG_MAX_SIZE] = {
   log_file("mincore_stats"),
-  log_file("choke_changes"),
-  log_file("tracker")
+  log_file("choke_changes")
 };
 
 bool
@@ -196,18 +195,6 @@ log_choke_changes_func_allocate(void* address, const char* title, unsigned int i
   char buffer[256];
   unsigned int buf_length = snprintf(buffer, 256, "%p %i %s %u %u %i\n",
                                      address, lf->last_update(), title, index, count, dist);
-
-  int __UNUSED result = write(lf->file_descriptor(), buffer, buf_length);
-}
-
-void
-log_tracker_append(void* address, unsigned int group, void* tracker_id, unsigned int new_peers, const char* title, const char* type) {
-  log_file* lf = &log_files[LOG_TRACKER];
-
-  char buffer[256];
-  unsigned int buf_length = snprintf(buffer, 256, "%i %p %u %p %u %s %s\n",
-                                     rak::timer::current().seconds(), 
-                                     address, group, tracker_id, new_peers, title, type);
 
   int __UNUSED result = write(lf->file_descriptor(), buffer, buf_length);
 }

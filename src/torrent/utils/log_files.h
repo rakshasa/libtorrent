@@ -67,7 +67,6 @@ private:
 enum {
   LOG_MINCORE_STATS,
   LOG_CHOKE_CHANGES,
-  LOG_TRACKER,
   LOG_MAX_SIZE
 };
 
@@ -94,8 +93,6 @@ struct weighted_connection;
 void log_choke_changes_func_new(void* address, const char* title, int quota, int adjust);
 void log_choke_changes_func_peer(void* address, const char* title, weighted_connection* data);
 void log_choke_changes_func_allocate(void* address, const char* title, unsigned int index, uint32_t count, int dist);
-
-void log_tracker_append(void* address, unsigned int group, void* tracker_id, unsigned int new_peers, const char* title, const char* type);
 
 }
 

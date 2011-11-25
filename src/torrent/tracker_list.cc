@@ -268,7 +268,7 @@ void
 TrackerList::receive_success(Tracker* tb, AddressList* l) {
   iterator itr = find(tb);
 
-  if (itr == end() || (*itr)->is_busy())
+  if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
   // Promote the tracker to the front of the group since it was
@@ -284,7 +284,6 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   tb->m_success_counter++;
   tb->m_failed_counter = 0;
 
-  set_time_last_connection(cachedTime.seconds());
   m_slot_success(tb, l);
 }
 
@@ -306,7 +305,7 @@ void
 TrackerList::receive_scrape_success(Tracker* tb) {
   iterator itr = find(tb);
 
-  if (itr == end() || (*itr)->is_busy())
+  if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
   LT_LOG_TRACKER(INFO, "Received scrape from tracker url:'%s'.", tb->url().c_str());
