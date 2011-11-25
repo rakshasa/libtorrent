@@ -23,6 +23,8 @@ LibTorrentTest_SOURCES = \
 	rak/ranges_test.h \
 	torrent/extents_test.cc \
 	torrent/extents_test.h \
+	torrent/http_test.cc \
+	torrent/http_test.h \
 	torrent/object_test.cc \
 	torrent/object_test.h \
 	torrent/object_test_utils.cc \

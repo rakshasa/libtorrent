@@ -5,6 +5,7 @@
 class tracker_http_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(tracker_http_test);
   CPPUNIT_TEST(test_basic);
+  CPPUNIT_TEST(test_scrape);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -12,4 +13,6 @@ public:
   void tearDown();
 
   void test_basic();
+
+  void test_scrape();
 };

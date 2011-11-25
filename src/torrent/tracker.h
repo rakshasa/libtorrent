@@ -135,9 +135,6 @@ protected:
   void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normal_interval = v; }
   void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_min_interval = v; }
 
-  void                set_success_counter(uint32_t value)   { m_success_counter = value; }
-  void                set_failed_counter(uint32_t value)    { m_failed_counter = value; }
-
   int                 m_flags;
 
   TrackerList*        m_parent;

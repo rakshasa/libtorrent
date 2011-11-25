@@ -88,7 +88,6 @@ TrackerController::current_send_state() const {
 TrackerController::TrackerController(TrackerList* trackers) :
   m_flags(0),
   m_tracker_list(trackers),
-  m_failed_requests(0),
   m_private(new tracker_controller_private) {
 
   m_private->task_timeout.set_slot(rak::mem_fn(this, &TrackerController::do_timeout));
@@ -137,10 +136,6 @@ TrackerController::manual_request(bool request_now) {
     return;
 
   // Add functions to get the lowest timeout, etc...
-
-  // if (!force)
-  //   t = std::max(t, rak::timer::from_seconds(m_tracker_list->time_last_connection() + m_tracker_list->focus_min_interval()));
-
   update_timeout(2);
 }
 
@@ -283,7 +278,6 @@ TrackerController::send_update_event() {
 // Currently being used by send_state, fixme.
 void
 TrackerController::close() {
-  m_failed_requests = 0;
   m_flags &= ~(flag_requesting | flag_promiscuous_mode);
 
   m_tracker_list->close_all();
@@ -400,8 +394,6 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
     return;
   }
 
-  m_failed_requests = 0;
-
   // if (<check if we have multiple trackers to send this event to, before we declare success>) {
   m_flags &= ~(mask_send | flag_promiscuous_mode);
   // }
@@ -468,6 +460,30 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
 
   update_timeout(next_request);
   m_slot_failure(msg);
+}
+
+void
+TrackerController::receive_scrape(Tracker* tb) {
+  if (!(m_flags & flag_active)) {
+    return;
+  }
+
+  // If we still have active trackers, skip the timeout.
+
+  // Calculate the next timeout according to a list of in-use
+  // trackers, with the first timeout as the interval.
+
+  // if (!m_tracker_list->has_active()) {
+  //   // For the moment, just use the last tracker...
+  //   unsigned int next_request = tb->normal_interval();
+
+  //   // Also make this check how many new peers we got, and how often
+  //   // we've reconnected this time.
+  //   if (m_flags & flag_requesting)
+  //     next_request = 30;
+
+  //   update_timeout(next_request);
+  // }
 }
 
 void

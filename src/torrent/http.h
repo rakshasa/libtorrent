@@ -45,40 +45,6 @@
 
 namespace torrent {
 
-template <typename Slot>
-void
-slot_list_call(const std::list<Slot>& slot_list) {
-  if (slot_list.empty())
-    return;
-
-  typename std::list<Slot>::const_iterator first = slot_list.begin();
-  typename std::list<Slot>::const_iterator next = slot_list.begin();
-
-  while (++next != slot_list.end()) {
-    (*first)();
-    first = next;
-  }
-
-  (*first)();
-}
-
-template <typename Slot, typename Arg1>
-void
-slot_list_call(const std::list<Slot>& slot_list, Arg1 arg1) {
-  if (slot_list.empty())
-    return;
-
-  typename std::list<Slot>::const_iterator first = slot_list.begin();
-  typename std::list<Slot>::const_iterator next = slot_list.begin();
-
-  while (++next != slot_list.end()) {
-    (*first)(arg1);
-    first = next;
-  }
-
-  (*first)(arg1);
-}
-
 // The client should set the user agent to something like
 // "CLIENT_NAME/CLIENT_VERSION/LIBRARY_VERSION".
 
@@ -92,13 +58,21 @@ class LIBTORRENT_EXPORT Http {
   typedef std::list<slot_void>   signal_void;
   typedef std::list<slot_string> signal_string;
 
-  Http() : m_stream(NULL), m_timeout(0) {}
+  static const int flag_delete_self   = 0x1;
+  static const int flag_delete_stream = 0x2;
+
+  Http() : m_flags(0), m_stream(NULL), m_timeout(0) {}
   virtual ~Http();
 
   // Start must never throw on bad input. Calling start/stop on an
   // object in the wrong state should throw a torrent::internal_error.
   virtual void       start() = 0;
   virtual void       close() = 0;
+
+  int                flags() const                        { return m_flags; }
+
+  void               set_delete_self()                    { m_flags |= flag_delete_self; }
+  void               set_delete_stream()                  { m_flags |= flag_delete_stream; }
 
   const std::string& url() const                          { return m_url; }
   void               set_url(const std::string& url)      { m_url = url; }
@@ -117,7 +91,7 @@ class LIBTORRENT_EXPORT Http {
   signal_string&     signal_failed()                      { return m_signal_failed; }
 
   // Set the factory function that constructs and returns a valid Http* object.
-  static void        set_factory(const slot_factory& f);
+  static void        set_factory(const slot_factory& f)   { m_factory = f; }
 
   // Guaranteed to return a valid object or throw a internal_error. The
   // caller takes ownership of the returned object. Is there any
@@ -125,6 +99,10 @@ class LIBTORRENT_EXPORT Http {
   static Http*       call_factory();
 
 protected:
+  void               trigger_done();
+  void               trigger_failed(const std::string& message);
+
+  int                m_flags;
   std::string        m_url;
   std::iostream*     m_stream;
   uint32_t           m_timeout;

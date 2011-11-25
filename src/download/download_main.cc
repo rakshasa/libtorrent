@@ -105,6 +105,7 @@ DownloadMain::DownloadMain() :
 
   m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
   m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_scrape_success() = std::bind(&TrackerController::receive_scrape, m_tracker_controller, std::placeholders::_1);
   m_tracker_list->slot_tracker_enabled()  = std::bind(&TrackerController::receive_tracker_enabled, m_tracker_controller, std::placeholders::_1);
   m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, m_tracker_controller, std::placeholders::_1);
 
