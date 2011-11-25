@@ -65,8 +65,7 @@ TrackerList::TrackerList() :
   m_state(DownloadInfo::STOPPED),
 
   m_key(0),
-  m_numwant(-1),
-  m_timeLastConnection(0) {
+  m_numwant(-1) {
 }
 
 bool

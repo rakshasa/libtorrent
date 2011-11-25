@@ -24,7 +24,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \
   tracker_list.insert(group, name);
 
-void increment_value(int* value) { (*value)++; }
+static void increment_value(int* value) { (*value)++; }
 
 class http_get : public torrent::Http {
 public:

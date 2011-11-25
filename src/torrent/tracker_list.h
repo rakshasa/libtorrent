@@ -134,8 +134,6 @@ public:
   iterator            promote(iterator itr);
   void                randomize_group_entries();
 
-  uint32_t            time_last_connection() const            { return m_timeLastConnection; }
-
   void                receive_success(Tracker* tb, AddressList* l);
   void                receive_failed(Tracker* tb, const std::string& msg);
 
@@ -156,7 +154,6 @@ protected:
   void                set_info(DownloadInfo* info)            { m_info = info; }
 
   void                set_state(int s)                        { m_state = s; }
-  void                set_time_last_connection(uint32_t v)    { m_timeLastConnection = v; }
 
 private:
   TrackerList(const TrackerList&) LIBTORRENT_NO_EXPORT;
@@ -167,8 +164,6 @@ private:
 
   uint32_t            m_key;
   int32_t             m_numwant;
-
-  uint32_t            m_timeLastConnection;
 
   slot_address_list   m_slot_success;
   slot_string         m_slot_failed;
