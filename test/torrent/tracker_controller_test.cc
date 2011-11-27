@@ -350,9 +350,6 @@ tracker_controller_test::test_multiple_success() {
 
   TEST_MULTI3_IS_BUSY("10000");
 
-  CPPUNIT_ASSERT(std::find_if(tracker_list.begin() + 1, tracker_list.end(),
-                              std::mem_fun(&torrent::Tracker::is_busy)) == tracker_list.end());
-
   CPPUNIT_ASSERT(tracker_0_0->trigger_success());
   
   CPPUNIT_ASSERT(!tracker_list.has_active());
@@ -377,14 +374,30 @@ tracker_controller_test::test_multiple_failure() {
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
 
   TEST_GOTO_NEXT_TIMEOUT(5);
-  
   TEST_MULTI3_IS_BUSY("00100");
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
 
-  // Also verify the next time out, etc...
+  TEST_GOTO_NEXT_TIMEOUT(tracker_0_0->normal_interval());
+  TEST_MULTI3_IS_BUSY("10000");
+  CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+  CPPUNIT_ASSERT(tracker_0_0->failed_counter() != 0);
+
+  TEST_GOTO_NEXT_TIMEOUT(10);
+  TEST_MULTI3_IS_BUSY("01000");
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+
+  // for (int i = 0; i < 5; i++)
+  //   std::cout << std::endl << i << ": "
+  //             << tracker_list[i]->activity_time_last() << ' ' 
+  //             << tracker_list[i]->success_time_last() << ' '
+  //             << tracker_list[i]->failed_time_last() << std::endl;
+
+  TEST_GOTO_NEXT_TIMEOUT(tracker_list[0]->normal_interval());
+  TEST_MULTI3_IS_BUSY("01000");
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
 
   CPPUNIT_ASSERT(tracker_list.count_active() == 0);
-  TEST_MULTIPLE_END(1, 2);
+  TEST_MULTIPLE_END(3, 3);
 }
 
 void

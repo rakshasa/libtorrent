@@ -284,7 +284,7 @@ TrackerHttp::process_success(const Object& object) {
   if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
     m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
     m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
-    m_scrape_time_last = rak::timer::current().seconds();
+    m_scrape_time_last = cachedTime.seconds();
   }
 
   if (object.has_key_value("downloaded"))

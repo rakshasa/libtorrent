@@ -108,6 +108,8 @@ public:
   uint32_t            failed_time_last() const              { return m_failed_time_last; }
   uint32_t            failed_counter() const                { return m_failed_counter; }
 
+  uint32_t            activity_time_last() const            { return failed_counter() ? m_failed_time_last : m_success_time_last; }
+
   uint32_t            scrape_time_last() const              { return m_scrape_time_last; }
   uint32_t            scrape_counter() const                { return m_scrape_counter; }
 

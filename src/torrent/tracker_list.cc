@@ -141,7 +141,7 @@ TrackerList::send_scrape(Tracker* tracker) {
   if (!(tracker->flags() & Tracker::flag_can_scrape))
     return;
 
-  if (rak::timer::from_seconds(tracker->scrape_time_last()) + rak::timer::from_seconds(10 * 60) > rak::timer::current() )
+  if (rak::timer::from_seconds(tracker->scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
     return;
 
   tracker->send_scrape();
@@ -279,7 +279,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
 
   LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
 
-  tb->m_success_time_last = rak::timer::current().seconds();
+  tb->m_success_time_last = cachedTime.seconds();
   tb->m_success_counter++;
   tb->m_failed_counter = 0;
 
@@ -295,7 +295,7 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
 
   LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
-  tb->m_failed_time_last = rak::timer::current().seconds();
+  tb->m_failed_time_last = cachedTime.seconds();
   tb->m_failed_counter++;
   m_slot_failed(tb, msg);
 }
@@ -309,7 +309,7 @@ TrackerList::receive_scrape_success(Tracker* tb) {
 
   LT_LOG_TRACKER(INFO, "Received scrape from tracker url:'%s'.", tb->url().c_str());
 
-  tb->m_scrape_time_last = rak::timer::current().seconds();
+  tb->m_scrape_time_last = cachedTime.seconds();
   tb->m_scrape_counter++;
 
   if (m_slot_scrape_success)

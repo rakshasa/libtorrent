@@ -305,7 +305,7 @@ TrackerController::disable() {
     return;
 
   // Disable other flags?...
-  m_flags &= ~(flag_active | flag_requesting | flag_requesting | flag_promiscuous_mode);
+  m_flags &= ~(flag_active | flag_requesting | flag_promiscuous_mode);
 
   m_tracker_list->close_all_excluding((1 << Tracker::EVENT_STOPPED) | (1 << Tracker::EVENT_COMPLETED));
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
@@ -365,9 +365,48 @@ TrackerController::do_timeout() {
       if (((*itr)->is_busy() && (*itr)->latest_event() != Tracker::EVENT_SCRAPE) || !(*itr)->is_usable())
         continue;
 
-      if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
-          (*itr)->failed_time_last() < (*preferred)->failed_time_last())
-        preferred = itr;
+      if ((m_flags & flag_requesting)) {
+        // Try to connect to all the trackers in turn.
+
+        // if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
+        //     (*itr)->failed_time_last() < (*preferred)->failed_time_last())
+        //   preferred = itr;
+
+        if ((*preferred)->failed_counter()) {
+          if ((*itr)->activity_time_last() < (*preferred)->failed_time_last())
+            preferred = itr;
+
+        } else {
+          if ((*itr)->activity_time_last() < (*preferred)->success_time_last())
+            preferred = itr;
+        }
+
+        // (TODO) Always prefer the trackers that last sent us the
+        // most new peers.
+
+        // Until supported, go for the oldest tracker with no failed
+        // counter, in addition request from all failed trackers older
+        // than oldest successful.
+        //
+        // If all trackers are failed, try them all.
+
+      } else {
+        // Try to find the first tracker that we can connect to.
+
+        if ((*preferred)->failed_counter()) {
+          if ((*itr)->activity_time_last() < (*preferred)->failed_time_last())
+            preferred = itr;
+
+          if ((*itr)->failed_counter() == 0)
+            break;
+          
+        } else {
+          // Always prefer the first we find that has not failed, break.
+          //
+          // We might want to compare received peers counters.
+          break;
+        }
+      }
     }
 
     m_tracker_list->send_state_itr(preferred, send_state);
