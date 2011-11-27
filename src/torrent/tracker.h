@@ -101,6 +101,7 @@ public:
   uint32_t            min_interval() const                  { return m_min_interval; }
 
   int                 latest_event() const                  { return m_latest_event; }
+  uint32_t            latest_new_peers() const              { return m_latest_new_peers; }
 
   uint32_t            success_time_last() const             { return m_success_time_last; }
   uint32_t            success_counter() const               { return m_success_counter; }
@@ -150,6 +151,7 @@ protected:
   uint32_t            m_min_interval;
 
   int                 m_latest_event;
+  uint32_t            m_latest_new_peers;
 
   uint32_t            m_success_time_last;
   uint32_t            m_success_counter;

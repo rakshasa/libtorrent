@@ -22,6 +22,7 @@ class tracker_list_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_scrape_success);
   CPPUNIT_TEST(test_scrape_failure);
 
+  CPPUNIT_TEST(test_new_peers);
   CPPUNIT_TEST(test_has_active);
   CPPUNIT_TEST(test_count_active);
   CPPUNIT_TEST_SUITE_END();
@@ -47,6 +48,7 @@ public:
   void test_scrape_success();
   void test_scrape_failure();
 
+  void test_new_peers();
   void test_has_active();
   void test_count_active();
 };
@@ -70,8 +72,8 @@ public:
 
   int                 requesting_state() const { return m_requesting_state; }
 
-  bool                trigger_success();
-  bool                trigger_success(torrent::TrackerList::address_list* address_list);
+  bool                trigger_success(uint32_t new_peers = 0);
+  bool                trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers = 0);
   bool                trigger_failure();
   bool                trigger_scrape();
 
@@ -88,3 +90,6 @@ private:
   bool                m_open;
   int                 m_requesting_state;
 };
+
+extern uint32_t return_new_peers;
+inline uint32_t increment_value(int* value) { (*value)++; return return_new_peers; }

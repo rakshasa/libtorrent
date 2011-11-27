@@ -24,7 +24,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \
   tracker_list.insert(group, name);
 
-static void increment_value(int* value) { (*value)++; }
+uint32_t return_new_peers = 0xdeadbeef;
 
 class http_get : public torrent::Http {
 public:
@@ -39,19 +39,20 @@ public:
 torrent::Http* http_factory() { return new http_get; }
 
 bool
-TrackerTest::trigger_success() {
+TrackerTest::trigger_success(uint32_t new_peers) {
   torrent::TrackerList::address_list address_list;
 
-  return trigger_success(&address_list);
+  return trigger_success(&address_list, new_peers);
 }
 
 bool
-TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list) {
+TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers) {
   if (parent() == NULL || !is_busy() || !is_open())
     return false;
 
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
+  return_new_peers = new_peers;
 
   if (m_latest_event == EVENT_SCRAPE)
     parent()->receive_scrape_success(this);
@@ -69,6 +70,7 @@ TrackerTest::trigger_failure() {
 
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
+  return_new_peers = 0;
 
   if (m_latest_event == EVENT_SCRAPE)
     parent()->receive_scrape_failed(this, "failed");
@@ -423,6 +425,22 @@ tracker_list_test::test_scrape_failure() {
   CPPUNIT_ASSERT(tracker_0->success_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->failed_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->scrape_counter() == 0);
+}
+
+void
+tracker_list_test::test_new_peers() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 0);
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0->trigger_success(10));
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0->trigger_failure());
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
 }
 
 // test last_connect timer.

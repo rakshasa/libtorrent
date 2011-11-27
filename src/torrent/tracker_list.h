@@ -66,7 +66,7 @@ public:
 
   typedef std::tr1::function<void (Tracker*)>                     slot_tracker;
   typedef std::tr1::function<void (Tracker*, const std::string&)> slot_string;
-  typedef std::tr1::function<void (Tracker*, AddressList*)>       slot_address_list;
+  typedef std::tr1::function<uint32_t (Tracker*, AddressList*)>   slot_address_list;
 
   using base_type::value_type;
 

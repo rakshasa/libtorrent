@@ -104,9 +104,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   torrent::cachedTime += rak::timer::from_seconds(tracker_controller.seconds_to_next_scrape()); \
   rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
 
-
-static void increment_value(int* value) { (*value)++; }
-
 void
 tracker_controller_test::setUp() {
   torrent::cachedTime = rak::timer::current();
@@ -602,6 +599,23 @@ tracker_controller_test::test_disable_tracker() {
   CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
 
   TEST_SINGLE_END(0, 0);
+}
+
+void
+tracker_controller_test::test_new_peers() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+
+  CPPUNIT_ASSERT(tracker_0->trigger_success(10));
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
+
+  tracker_controller.enable();
+
+  TEST_GOTO_NEXT_TIMEOUT(0);
+  CPPUNIT_ASSERT(tracker_0->trigger_success(20));
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 20);
 }
 
 void

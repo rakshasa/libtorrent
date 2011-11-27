@@ -426,12 +426,10 @@ TrackerController::do_scrape() {
                 std::bind(&TrackerList::send_scrape, m_tracker_list, std::placeholders::_1));
 }
 
-void
+uint32_t
 TrackerController::receive_success(Tracker* tb, TrackerController::address_list* l) {
-  if (!(m_flags & flag_active)) {
-    m_slot_success(l);
-    return;
-  }
+  if (!(m_flags & flag_active))
+    return m_slot_success(l);
 
   // if (<check if we have multiple trackers to send this event to, before we declare success>) {
   m_flags &= ~(mask_send | flag_promiscuous_mode);
@@ -456,7 +454,7 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
     update_timeout(next_request);
   }
 
-  m_slot_success(l);
+  return m_slot_success(l);
 }
 
 void

@@ -56,7 +56,7 @@ public:
 
   typedef std::tr1::function<void (void)>               slot_void;
   typedef std::tr1::function<void (const std::string&)> slot_string;
-  typedef std::tr1::function<void (AddressList*)>       slot_address_list;
+  typedef std::tr1::function<uint32_t (AddressList*)>   slot_address_list;
   typedef std::tr1::function<void (Tracker*)>           slot_tracker;
 
   static const int flag_send_update      = 0x0; // Fake flag, don't use.
@@ -104,7 +104,7 @@ public:
   void                start_requesting();
   void                stop_requesting();
 
-  void                receive_success(Tracker* tb, address_list* l);
+  uint32_t            receive_success(Tracker* tb, address_list* l);
   void                receive_failure(Tracker* tb, const std::string& msg);
   void                receive_scrape(Tracker* tb);
 
