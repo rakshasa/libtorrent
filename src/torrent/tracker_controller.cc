@@ -346,6 +346,8 @@ TrackerController::do_timeout() {
   // the timeout for? Seems reasonable, as that allows us to do
   // iteration through multiple trackers.
 
+  // Add a variable that takes the min timeout we should use.
+
   int send_state = current_send_state();
 
   if ((m_flags & flag_promiscuous_mode)) {

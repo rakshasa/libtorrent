@@ -283,6 +283,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   tb->m_success_counter++;
   tb->m_failed_counter = 0;
 
+  tb->m_latest_sum_peers = l->size();
   tb->m_latest_new_peers = m_slot_success(tb, l);
 }
 

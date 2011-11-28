@@ -102,6 +102,7 @@ public:
 
   int                 latest_event() const                  { return m_latest_event; }
   uint32_t            latest_new_peers() const              { return m_latest_new_peers; }
+  uint32_t            latest_sum_peers() const              { return m_latest_sum_peers; }
 
   uint32_t            success_time_last() const             { return m_success_time_last; }
   uint32_t            success_counter() const               { return m_success_counter; }
@@ -152,6 +153,7 @@ protected:
 
   int                 m_latest_event;
   uint32_t            m_latest_new_peers;
+  uint32_t            m_latest_sum_peers;
 
   uint32_t            m_success_time_last;
   uint32_t            m_success_counter;

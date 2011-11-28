@@ -53,6 +53,7 @@ Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
 
   m_latest_event(EVENT_NONE),
   m_latest_new_peers(0),
+  m_latest_sum_peers(0),
 
   m_success_time_last(0),
   m_success_counter(0),

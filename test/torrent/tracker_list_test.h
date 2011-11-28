@@ -72,7 +72,7 @@ public:
 
   int                 requesting_state() const { return m_requesting_state; }
 
-  bool                trigger_success(uint32_t new_peers = 0);
+  bool                trigger_success(uint32_t new_peers = 0, uint32_t sum_peers = 0);
   bool                trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers = 0);
   bool                trigger_failure();
   bool                trigger_scrape();

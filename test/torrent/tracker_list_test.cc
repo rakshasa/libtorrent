@@ -39,8 +39,13 @@ public:
 torrent::Http* http_factory() { return new http_get; }
 
 bool
-TrackerTest::trigger_success(uint32_t new_peers) {
+TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
   torrent::TrackerList::address_list address_list;
+
+  for (unsigned int i = 0; i != sum_peers; i++) {
+    rak::socket_address sa; sa.sa_inet()->clear(); sa.sa_inet()->set_port(0x100 + i);
+    address_list.push_back(sa);
+  }
 
   return trigger_success(&address_list, new_peers);
 }
@@ -433,14 +438,17 @@ tracker_list_test::test_new_peers() {
   TRACKER_INSERT(0, tracker_0);
   
   CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 0);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 0);
 
   tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
-  CPPUNIT_ASSERT(tracker_0->trigger_success(10));
+  CPPUNIT_ASSERT(tracker_0->trigger_success(10, 20));
   CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 20);
 
   tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 20);
 }
 
 // test last_connect timer.
