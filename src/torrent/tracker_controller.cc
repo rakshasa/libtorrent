@@ -292,6 +292,7 @@ TrackerController::enable() {
   m_flags |= flag_active;
 
   m_tracker_list->close_all_excluding((1 << Tracker::EVENT_COMPLETED));
+  m_tracker_list->clear_stats();
   LT_LOG_TRACKER(INFO, "Called enable with %u trackers.", m_tracker_list->size());
 
   // Adding of the tracker requests gets done after the caller has had
@@ -358,6 +359,41 @@ TrackerController::do_timeout() {
     std::for_each(m_tracker_list->begin(), m_tracker_list->end(),
                   std::bind(&TrackerList::send_state, m_tracker_list, std::placeholders::_1, send_state));
 
+  } else if ((m_flags & flag_requesting)) {
+    // Find the next tracker to try...
+    uint32_t next_timeout = ~uint32_t();
+
+    for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
+      if (((*itr)->is_busy() && (*itr)->latest_event() != Tracker::EVENT_SCRAPE) || !(*itr)->is_usable())
+        continue;
+
+      uint32_t tracker_timeout;
+
+      if ((*itr)->failed_counter()) {
+        tracker_timeout = (*itr)->activity_time_last() + (5 << std::min<int>((*itr)->failed_counter() - 1, 6));
+
+      } else if ((*itr)->latest_sum_peers() < 10) {
+        tracker_timeout = (*itr)->activity_time_last()
+          + std::min<uint32_t>((*itr)->min_interval(), (15 << std::min<uint32_t>((*itr)->success_counter() - 1, 8)));
+
+      } else if ((*itr)->latest_new_peers() < 10) {
+        tracker_timeout = (*itr)->activity_time_last()
+          + std::min<uint32_t>((*itr)->normal_interval(), (60 << std::min<uint32_t>((*itr)->success_counter() - 1, 8)));
+
+      } else {
+        tracker_timeout = (*itr)->activity_time_last()
+          + std::min<uint32_t>((*itr)->normal_interval(), (10 << std::min<uint32_t>((*itr)->success_counter() - 1, 8)));
+      }
+
+      if (tracker_timeout <= (uint32_t)cachedTime.seconds())
+        m_tracker_list->send_state_itr(itr, send_state);
+      else
+        next_timeout = std::min(tracker_timeout, next_timeout);
+    }
+
+    if (next_timeout != ~uint32_t())
+      update_timeout(next_timeout);
+
   } else {
     // Find the next tracker to try...
     TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
@@ -367,47 +403,20 @@ TrackerController::do_timeout() {
       if (((*itr)->is_busy() && (*itr)->latest_event() != Tracker::EVENT_SCRAPE) || !(*itr)->is_usable())
         continue;
 
-      if ((m_flags & flag_requesting)) {
-        // Try to connect to all the trackers in turn.
+      // Try to find the first tracker that we can connect to.
 
-        // if ((*itr)->failed_counter() <= (*preferred)->failed_counter() &&
-        //     (*itr)->failed_time_last() < (*preferred)->failed_time_last())
-        //   preferred = itr;
+      if ((*preferred)->failed_counter()) {
+        if ((*itr)->activity_time_last() < (*preferred)->failed_time_last())
+          preferred = itr;
 
-        if ((*preferred)->failed_counter()) {
-          if ((*itr)->activity_time_last() < (*preferred)->failed_time_last())
-            preferred = itr;
-
-        } else {
-          if ((*itr)->activity_time_last() < (*preferred)->success_time_last())
-            preferred = itr;
-        }
-
-        // (TODO) Always prefer the trackers that last sent us the
-        // most new peers.
-
-        // Until supported, go for the oldest tracker with no failed
-        // counter, in addition request from all failed trackers older
-        // than oldest successful.
-        //
-        // If all trackers are failed, try them all.
-
-      } else {
-        // Try to find the first tracker that we can connect to.
-
-        if ((*preferred)->failed_counter()) {
-          if ((*itr)->activity_time_last() < (*preferred)->failed_time_last())
-            preferred = itr;
-
-          if ((*itr)->failed_counter() == 0)
-            break;
-          
-        } else {
-          // Always prefer the first we find that has not failed, break.
-          //
-          // We might want to compare received peers counters.
+        if ((*itr)->failed_counter() == 0)
           break;
-        }
+          
+      } else {
+        // Always prefer the first we find that has not failed, break.
+        //
+        // We might want to compare received peers counters.
+        break;
       }
     }
 
@@ -416,10 +425,6 @@ TrackerController::do_timeout() {
 
   if (m_slot_timeout)
     m_slot_timeout();
-
-  // There should be no timeout when we don't have any active trackers, etc.
-  // if (!m_tracker_list->has_active())
-  //   update_timeout(30);
 }
 
 void

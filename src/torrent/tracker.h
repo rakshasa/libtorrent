@@ -132,12 +132,12 @@ protected:
   virtual void        send_scrape();
   virtual void        close() = 0;
 
-  void                clear_stats() { m_success_counter = m_failed_counter = 0; }
+  void                clear_stats();
 
   void                set_group(uint32_t v)                 { m_group = v; }
 
-  void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normal_interval = v; }
-  void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_min_interval = v; }
+  void                set_normal_interval(int v)            { if (v >= 600 && v <= 3600) m_normal_interval = v; }
+  void                set_min_interval(int v)               { if (v >= 300 && v <= 1800) m_min_interval = v; }
 
   int                 m_flags;
 
@@ -145,7 +145,6 @@ protected:
   uint32_t            m_group;
 
   std::string         m_url;
-
   std::string         m_tracker_id;
 
   uint32_t            m_normal_interval;

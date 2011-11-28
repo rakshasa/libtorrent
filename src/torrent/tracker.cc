@@ -49,7 +49,7 @@ Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
   m_url(url),
 
   m_normal_interval(1800),
-  m_min_interval(0),
+  m_min_interval(600),
 
   m_latest_event(EVENT_NONE),
   m_latest_new_peers(0),
@@ -105,6 +105,16 @@ Tracker::scrape_url_from(std::string url) {
 void
 Tracker::send_scrape() {
   throw internal_error("Tracker type does not support scrape.");
+}
+
+void
+Tracker::clear_stats() {
+  m_latest_new_peers = 0;
+  m_latest_sum_peers = 0;
+
+  m_success_counter = 0;
+  m_failed_counter = 0;
+  m_scrape_counter = 0;
 }
 
 }
