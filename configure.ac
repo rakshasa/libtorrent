@@ -56,6 +56,10 @@ TORRENT_WITHOUT_STATFS
 
 CC_ATTRIBUTE_VISIBILITY
 
+ACX_PTHREAD(CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS";
+            LIBS="$PTHREAD_LIBS $LIBS"
+)
+
 AC_ARG_ENABLE(openssl,
   [  --disable-openssl       Don't use OpenSSL's SHA1 implementation.],
   [
