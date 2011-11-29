@@ -192,8 +192,6 @@ private:
   FileList            m_fileList;
   PeerList            m_peerList;
 
-  uint32_t            m_lastConnectedSize;
-
   DataBuffer          m_ut_pex_delta;
   DataBuffer          m_ut_pex_initial;
   pex_list            m_ut_pex_list;

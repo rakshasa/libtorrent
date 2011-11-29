@@ -341,14 +341,6 @@ TrackerController::do_timeout() {
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
     return;
 
-  // Handle the different states properly...
-
-  // Do we want the timeout function to know what tracker we queued
-  // the timeout for? Seems reasonable, as that allows us to do
-  // iteration through multiple trackers.
-
-  // Add a variable that takes the min timeout we should use.
-
   int send_state = current_send_state();
 
   if ((m_flags & flag_promiscuous_mode)) {
@@ -370,25 +362,21 @@ TrackerController::do_timeout() {
       uint32_t tracker_timeout;
 
       if ((*itr)->failed_counter()) {
-        tracker_timeout = (*itr)->activity_time_last() + (5 << std::min<int>((*itr)->failed_counter() - 1, 6));
-
+        tracker_timeout = (5 << std::min<int>((*itr)->failed_counter() - 1, 6));
       } else if ((*itr)->latest_sum_peers() < 10) {
-        tracker_timeout = (*itr)->activity_time_last()
-          + std::min<uint32_t>((*itr)->min_interval(), (15 << std::min<uint32_t>((*itr)->success_counter() - 1, 8)));
-
+        tracker_timeout = std::min<uint32_t>((*itr)->min_interval(), (10 << std::min<uint32_t>((*itr)->success_counter(), 8)));
       } else if ((*itr)->latest_new_peers() < 10) {
-        tracker_timeout = (*itr)->activity_time_last()
-          + std::min<uint32_t>((*itr)->normal_interval(), (60 << std::min<uint32_t>((*itr)->success_counter() - 1, 8)));
-
+        tracker_timeout = std::min<uint32_t>((*itr)->normal_interval(), (30 << std::min<uint32_t>((*itr)->success_counter(), 8)));
       } else {
-        tracker_timeout = (*itr)->activity_time_last()
-          + std::min<uint32_t>((*itr)->normal_interval(), (10 << std::min<uint32_t>((*itr)->success_counter() - 1, 8)));
+        tracker_timeout = std::min<uint32_t>((*itr)->normal_interval(), (5 << std::min<uint32_t>((*itr)->success_counter(), 8)));
       }
 
-      if (tracker_timeout <= (uint32_t)cachedTime.seconds())
+      int32_t since_last = cachedTime.seconds() - (int32_t)(*itr)->activity_time_last();
+
+      if (since_last >= (int32_t)tracker_timeout)
         m_tracker_list->send_state_itr(itr, send_state);
       else
-        next_timeout = std::min(tracker_timeout, next_timeout);
+        next_timeout = std::min(tracker_timeout - since_last, next_timeout);
     }
 
     if (next_timeout != ~uint32_t())

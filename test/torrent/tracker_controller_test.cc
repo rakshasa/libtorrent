@@ -472,18 +472,22 @@ tracker_controller_test::test_multiple_send_stop() {
 }
 
 void
-tracker_controller_test::test_multiple_requesting() {
+tracker_controller_test::test_requesting_basic() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
-  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success(10, 20));
 
   tracker_controller.start_requesting();
   TEST_GOTO_NEXT_TIMEOUT(0);
 
-  TEST_MULTI3_IS_BUSY("10000", "10000");
+  // TEST_MULTI3_IS_BUSY("10000", "10000");
+  TEST_MULTI3_IS_BUSY("01111", "01111");
 
-  CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  CPPUNIT_ASSERT(tracker_1_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_2_0->trigger_success());
+  CPPUNIT_ASSERT(tracker_3_0->trigger_success());
 
   // TODO: Change this so that requesting state results in tracker
   // requests from many peers. Also, add a limit so we don't keep
@@ -500,6 +504,41 @@ tracker_controller_test::test_multiple_requesting() {
 
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0->normal_interval());
   TEST_MULTIPLE_END(3, 0);
+}
+
+void
+tracker_controller_test::test_requesting_timeout() {
+  TEST_MULTI3_BEGIN();
+  TEST_SEND_SINGLE_BEGIN(update);
+
+  tracker_controller.start_requesting();
+  TEST_GOTO_NEXT_TIMEOUT(0);
+
+  std::cout << std::endl << tracker_list.has_active() << ' ' << tracker_controller.seconds_to_next_timeout() << std::endl;
+
+  // TEST_MULTI3_IS_BUSY("10000", "10000");
+  // TEST_MULTI3_IS_BUSY("01111", "01111");
+
+  // CPPUNIT_ASSERT(tracker_0_1->trigger_success());
+  // CPPUNIT_ASSERT(tracker_1_0->trigger_success());
+  // CPPUNIT_ASSERT(tracker_2_0->trigger_success());
+  // CPPUNIT_ASSERT(tracker_3_0->trigger_success());
+
+  // TODO: Change this so that requesting state results in tracker
+  // requests from many peers. Also, add a limit so we don't keep
+  // requesting from spent trackers.
+
+  // Next timeout should be soon...
+  // TEST_GOTO_NEXT_TIMEOUT(30);
+
+  // TEST_MULTI3_IS_BUSY("10000", "10000");
+
+  // CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+
+  // tracker_controller.stop_requesting();
+
+  // CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == tracker_0_0->normal_interval());
+  // TEST_MULTIPLE_END(3, 0);
 }
 
 void

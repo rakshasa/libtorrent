@@ -449,6 +449,10 @@ tracker_list_test::test_new_peers() {
   CPPUNIT_ASSERT(tracker_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
   CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 20);
+
+  tracker_list.clear_stats();
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 0);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 0);
 }
 
 // test last_connect timer.
