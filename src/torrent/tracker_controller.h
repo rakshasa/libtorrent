@@ -74,10 +74,12 @@ public:
   TrackerController(TrackerList* trackers);
   ~TrackerController();
 
-  int                 flags() const         { return m_flags; }
+  int                 flags() const               { return m_flags; }
 
-  bool                is_active() const     { return m_flags & flag_active; }
-  bool                is_requesting() const { return m_flags & flag_requesting; }
+  bool                is_active() const           { return m_flags & flag_active; }
+  bool                is_requesting() const       { return m_flags & flag_requesting; }
+  bool                is_failure_mode() const     { return m_flags & flag_failure_mode; }
+  bool                is_promiscuous_mode() const { return m_flags & flag_promiscuous_mode; }
 
   TrackerList*        tracker_list()        { return m_tracker_list; }
   TrackerList*        tracker_list() const  { return m_tracker_list; }

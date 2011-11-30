@@ -359,24 +359,25 @@ TrackerController::do_timeout() {
       if (((*itr)->is_busy() && (*itr)->latest_event() != Tracker::EVENT_SCRAPE) || !(*itr)->is_usable())
         continue;
 
-      uint32_t tracker_timeout;
+      int32_t multiplier;
 
-      if ((*itr)->failed_counter()) {
-        tracker_timeout = (5 << std::min<int>((*itr)->failed_counter() - 1, 6));
-      } else if ((*itr)->latest_sum_peers() < 10) {
-        tracker_timeout = std::min<uint32_t>((*itr)->min_interval(), (10 << std::min<uint32_t>((*itr)->success_counter(), 8)));
-      } else if ((*itr)->latest_new_peers() < 10) {
-        tracker_timeout = std::min<uint32_t>((*itr)->normal_interval(), (30 << std::min<uint32_t>((*itr)->success_counter(), 8)));
-      } else {
-        tracker_timeout = std::min<uint32_t>((*itr)->normal_interval(), (5 << std::min<uint32_t>((*itr)->success_counter(), 8)));
-      }
+      if ((*itr)->failed_counter())
+        multiplier = 5;
+      else if ((*itr)->latest_sum_peers() < 10)
+        multiplier = 10;
+      else if ((*itr)->latest_new_peers() < 10)
+        multiplier = 30;
+      else
+        multiplier = 5;
+
+      int32_t tracker_timeout = std::min((int32_t)(*itr)->min_interval(), (multiplier << std::min((int)(*itr)->success_counter(), 8)));
 
       int32_t since_last = cachedTime.seconds() - (int32_t)(*itr)->activity_time_last();
 
-      if (since_last >= (int32_t)tracker_timeout)
+      if (since_last >= tracker_timeout)
         m_tracker_list->send_state_itr(itr, send_state);
       else
-        next_timeout = std::min(tracker_timeout - since_last, next_timeout);
+        next_timeout = std::min((uint32_t)(tracker_timeout - since_last), next_timeout);
     }
 
     if (next_timeout != ~uint32_t())
@@ -467,6 +468,7 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
 
   m_flags |= flag_failure_mode;
 
+  // Use timeout here instead...
   if ((m_flags & flag_promiscuous_mode)) {
     int send_state = current_send_state();
     TrackerList::iterator itr = m_tracker_list->begin();
