@@ -149,6 +149,8 @@ private:
   tracker_controller_private* m_private;
 };
 
+uint32_t tracker_next_timeout(Tracker* tracker, int controller_flags);
+
 }
 
 #endif

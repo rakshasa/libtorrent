@@ -336,6 +336,46 @@ TrackerController::stop_requesting() {
     update_timeout((*m_tracker_list->find_usable(m_tracker_list->begin()))->normal_interval());
 }
 
+uint32_t
+tracker_next_timeout(Tracker* tracker, int controller_flags) {
+  if ((tracker->is_busy() && tracker->latest_event() != Tracker::EVENT_SCRAPE) ||
+      !tracker->is_usable())
+    return ~uint32_t();
+
+  if ((controller_flags & TrackerController::flag_promiscuous_mode))
+    return 0;
+  
+  if ((controller_flags & TrackerController::flag_requesting)) {
+    std::pair<int, int> timeout_base;
+
+    if (tracker->failed_counter())
+      timeout_base = std::make_pair(5, tracker->failed_counter() - 1);
+    else if (tracker->latest_sum_peers() < 10)
+      timeout_base = std::make_pair(10, tracker->success_counter());
+    else if (tracker->latest_new_peers() < 10)
+      timeout_base = std::make_pair(30, tracker->success_counter());
+    else
+      // We got peers from this tracker, re-request a bit sooner.
+      timeout_base = std::make_pair(5, tracker->success_counter());
+
+    int32_t min_interval = std::min((int)tracker->min_interval(), 600);
+
+    int32_t tracker_timeout = std::min(min_interval, (timeout_base.first << std::min(timeout_base.second, 6)));
+    int32_t since_last = cachedTime.seconds() - (int32_t)tracker->activity_time_last();
+
+    return std::max(tracker_timeout - since_last, 0);
+  }
+
+  // if (tracker->success_counter() == 0 && tracker->failed_counter() == 0)
+  //   return 0;
+
+  int32_t last_activity = cachedTime.seconds() - tracker->activity_time_last();
+
+  // TODO: Use min interval if we're requesting manual update.
+
+  return tracker->normal_interval() - std::min(last_activity, (int32_t)tracker->normal_interval());
+}
+
 void
 TrackerController::do_timeout() {
   if (!(m_flags & flag_active) || !m_tracker_list->has_usable())
