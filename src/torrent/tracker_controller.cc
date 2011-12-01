@@ -81,6 +81,7 @@ TrackerController::current_send_state() const {
   case flag_send_start:     return Tracker::EVENT_STARTED;
   case flag_send_stop:      return Tracker::EVENT_STOPPED;
   case flag_send_completed: return Tracker::EVENT_COMPLETED;
+  case flag_send_update:
   default:                  return Tracker::EVENT_NONE;
   }
 }
@@ -267,6 +268,10 @@ TrackerController::send_update_event() {
   if ((m_flags & mask_send) && m_tracker_list->has_active())
     return;
 
+  // We can lose a state here...
+  if (!(m_flags & mask_send))
+    m_flags |= flag_send_update;
+
   LT_LOG_TRACKER(INFO, "Sending update event.", 0);
 
   m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_NONE);
@@ -348,6 +353,9 @@ tracker_next_timeout(Tracker* tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_promiscuous_mode))
     return 0;
   
+  if ((controller_flags & TrackerController::flag_send_update))
+    return tracker_next_timeout_update(tracker);
+
   // if (tracker->success_counter() == 0 && tracker->failed_counter() == 0)
   //   return 0;
 
@@ -356,6 +364,18 @@ tracker_next_timeout(Tracker* tracker, int controller_flags) {
   // TODO: Use min interval if we're requesting manual update.
 
   return tracker->normal_interval() - std::min(last_activity, (int32_t)tracker->normal_interval());
+}
+
+uint32_t
+tracker_next_timeout_update(Tracker* tracker) {
+  if ((tracker->is_busy() && tracker->latest_event() != Tracker::EVENT_SCRAPE) ||
+      !tracker->is_usable())
+    return ~uint32_t();
+
+  // Make sure we don't request _too_ often, check last activity.
+  // int32_t last_activity = cachedTime.seconds() - tracker->activity_time_last();
+
+  return 0;
 }
 
 uint32_t
