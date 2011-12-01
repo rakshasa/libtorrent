@@ -338,6 +338,9 @@ TrackerController::stop_requesting() {
 
 uint32_t
 tracker_next_timeout(Tracker* tracker, int controller_flags) {
+  if ((controller_flags & TrackerController::flag_requesting))
+    return tracker_next_timeout_promiscuous(tracker);
+
   if ((tracker->is_busy() && tracker->latest_event() != Tracker::EVENT_SCRAPE) ||
       !tracker->is_usable())
     return ~uint32_t();
@@ -345,27 +348,6 @@ tracker_next_timeout(Tracker* tracker, int controller_flags) {
   if ((controller_flags & TrackerController::flag_promiscuous_mode))
     return 0;
   
-  if ((controller_flags & TrackerController::flag_requesting)) {
-    std::pair<int, int> timeout_base;
-
-    if (tracker->failed_counter())
-      timeout_base = std::make_pair(5, tracker->failed_counter() - 1);
-    else if (tracker->latest_sum_peers() < 10)
-      timeout_base = std::make_pair(10, tracker->success_counter());
-    else if (tracker->latest_new_peers() < 10)
-      timeout_base = std::make_pair(30, tracker->success_counter());
-    else
-      // We got peers from this tracker, re-request a bit sooner.
-      timeout_base = std::make_pair(5, tracker->success_counter());
-
-    int32_t min_interval = std::min((int)tracker->min_interval(), 600);
-
-    int32_t tracker_timeout = std::min(min_interval, (timeout_base.first << std::min(timeout_base.second, 6)));
-    int32_t since_last = cachedTime.seconds() - (int32_t)tracker->activity_time_last();
-
-    return std::max(tracker_timeout - since_last, 0);
-  }
-
   // if (tracker->success_counter() == 0 && tracker->failed_counter() == 0)
   //   return 0;
 
@@ -374,6 +356,32 @@ tracker_next_timeout(Tracker* tracker, int controller_flags) {
   // TODO: Use min interval if we're requesting manual update.
 
   return tracker->normal_interval() - std::min(last_activity, (int32_t)tracker->normal_interval());
+}
+
+uint32_t
+tracker_next_timeout_promiscuous(Tracker* tracker) {
+  if ((tracker->is_busy() && tracker->latest_event() != Tracker::EVENT_SCRAPE) ||
+      !tracker->is_usable())
+    return ~uint32_t();
+
+  std::pair<int, int> timeout_base;
+
+  if (tracker->failed_counter())
+    timeout_base = std::make_pair(5, tracker->failed_counter() - 1);
+  else if (tracker->latest_sum_peers() < 10)
+    timeout_base = std::make_pair(10, tracker->success_counter());
+  else if (tracker->latest_new_peers() < 10)
+    timeout_base = std::make_pair(30, tracker->success_counter());
+  else
+    // We got peers from this tracker, re-request a bit sooner.
+    timeout_base = std::make_pair(5, tracker->success_counter());
+
+  int32_t min_interval = std::min((int)tracker->min_interval(), 600);
+
+  int32_t tracker_timeout = std::min(min_interval, (timeout_base.first << std::min(timeout_base.second, 6)));
+  int32_t since_last = cachedTime.seconds() - (int32_t)tracker->activity_time_last();
+
+  return std::max(tracker_timeout - since_last, 0);
 }
 
 void
@@ -396,28 +404,12 @@ TrackerController::do_timeout() {
     uint32_t next_timeout = ~uint32_t();
 
     for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
-      if (((*itr)->is_busy() && (*itr)->latest_event() != Tracker::EVENT_SCRAPE) || !(*itr)->is_usable())
-        continue;
+      uint32_t tracker_timeout = tracker_next_timeout_promiscuous(*itr);
 
-      int32_t multiplier;
-
-      if ((*itr)->failed_counter())
-        multiplier = 5;
-      else if ((*itr)->latest_sum_peers() < 10)
-        multiplier = 10;
-      else if ((*itr)->latest_new_peers() < 10)
-        multiplier = 30;
-      else
-        multiplier = 5;
-
-      int32_t tracker_timeout = std::min((int32_t)(*itr)->min_interval(), (multiplier << std::min((int)(*itr)->success_counter(), 8)));
-
-      int32_t since_last = cachedTime.seconds() - (int32_t)(*itr)->activity_time_last();
-
-      if (since_last >= tracker_timeout)
+      if (tracker_timeout == 0)
         m_tracker_list->send_state_itr(itr, send_state);
       else
-        next_timeout = std::min((uint32_t)(tracker_timeout - since_last), next_timeout);
+        next_timeout = std::min(tracker_timeout, next_timeout);
     }
 
     if (next_timeout != ~uint32_t())

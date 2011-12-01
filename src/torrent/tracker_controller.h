@@ -150,6 +150,7 @@ private:
 };
 
 uint32_t tracker_next_timeout(Tracker* tracker, int controller_flags);
+uint32_t tracker_next_timeout_promiscuous(Tracker* tracker);
 
 }
 
