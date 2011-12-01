@@ -216,6 +216,24 @@ TrackerList::find_usable(const_iterator itr) const {
 }
 
 TrackerList::iterator
+TrackerList::find_next_to_request(iterator itr) {
+  TrackerList::iterator preferred = itr = std::find_if(itr, end(), std::mem_fun(&Tracker::can_request_state));
+
+  for (; itr != end(); itr++) {
+    if (!(*itr)->can_request_state())
+      continue;
+
+    if ((*itr)->activity_time_last() < (*preferred)->activity_time_last())
+      preferred = itr;
+
+    if ((*itr)->failed_counter() == 0)
+      break;
+  }
+
+  return preferred;
+}
+
+TrackerList::iterator
 TrackerList::begin_group(unsigned int group) {
   return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
 }

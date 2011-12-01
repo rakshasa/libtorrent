@@ -83,6 +83,8 @@ public:
   virtual bool        is_busy() const = 0;
   virtual bool        is_usable() const { return is_enabled(); }
 
+  bool                can_request_state() const;
+
   void                enable();
   void                disable();
 
@@ -167,6 +169,11 @@ protected:
   uint32_t            m_scrape_incomplete;
   uint32_t            m_scrape_downloaded;
 };
+
+inline bool
+Tracker::can_request_state() const {
+  return !(is_busy() && latest_event() != EVENT_SCRAPE) && is_usable();
+}
 
 }
 

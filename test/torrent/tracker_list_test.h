@@ -24,6 +24,7 @@ class tracker_list_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_new_peers);
   CPPUNIT_TEST(test_has_active);
+  CPPUNIT_TEST(test_find_next_to_request);
   CPPUNIT_TEST(test_count_active);
   CPPUNIT_TEST_SUITE_END();
 
@@ -50,6 +51,7 @@ public:
 
   void test_new_peers();
   void test_has_active();
+  void test_find_next_to_request();
   void test_count_active();
 };
 

@@ -3,6 +3,7 @@
 #include "torrent/http.h"
 #include "net/address_list.h"
 
+#include "globals.h"
 #include "tracker_list_test.h"
 
 namespace std { using namespace tr1; }
@@ -481,6 +482,45 @@ tracker_list_test::test_has_active() {
   tracker_list.send_state_idx(1, 1);
   tracker_0_0->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_0_1->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
+}
+
+void
+tracker_list_test::test_find_next_to_request() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(0, tracker_1);
+  TRACKER_INSERT(0, tracker_2);
+  TRACKER_INSERT(0, tracker_3);
+
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin() + 1) == tracker_list.begin() + 1);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.end()) == tracker_list.end());
+
+  tracker_0->disable();
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
+
+  tracker_0->enable();
+  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
+  
+  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 3);
+
+  tracker_3->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
+
+  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 3);
+  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 2);
+  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 4);
+  tracker_3->set_failed(1, torrent::cachedTime.seconds() - 2);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 2);
+
+  tracker_1->set_failed(0, torrent::cachedTime.seconds() - 1);
+  tracker_1->set_success(1, torrent::cachedTime.seconds() - 1);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
+  tracker_1->set_success(1, torrent::cachedTime.seconds() - 4);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 }
 
 void

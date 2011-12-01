@@ -125,6 +125,8 @@ public:
   iterator            find_usable(iterator itr);
   const_iterator      find_usable(const_iterator itr) const;
 
+  iterator            find_next_to_request(iterator itr);
+
   iterator            begin_group(unsigned int group);
   iterator            end_group(unsigned int group)           { return begin_group(group + 1); }
 

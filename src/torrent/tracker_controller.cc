@@ -436,32 +436,9 @@ TrackerController::do_timeout() {
       update_timeout(next_timeout);
 
   } else {
-    // Find the next tracker to try...
-    TrackerList::iterator itr = m_tracker_list->find_usable(m_tracker_list->begin());
-    TrackerList::iterator preferred = itr;
+    TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
 
-    for (; itr != m_tracker_list->end(); itr++) {
-      if (((*itr)->is_busy() && (*itr)->latest_event() != Tracker::EVENT_SCRAPE) || !(*itr)->is_usable())
-        continue;
-
-      // Try to find the first tracker that we can connect to.
-
-      if ((*preferred)->failed_counter()) {
-        if ((*itr)->activity_time_last() < (*preferred)->failed_time_last())
-          preferred = itr;
-
-        if ((*itr)->failed_counter() == 0)
-          break;
-          
-      } else {
-        // Always prefer the first we find that has not failed, break.
-        //
-        // We might want to compare received peers counters.
-        break;
-      }
-    }
-
-    m_tracker_list->send_state_itr(preferred, send_state);
+    m_tracker_list->send_state_itr(itr, send_state);
   }
 
   if (m_slot_timeout)
