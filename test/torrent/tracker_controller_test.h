@@ -67,6 +67,7 @@ public:
   void test_multiple_cycle();
   void test_multiple_cycle_second_group();
   void test_multiple_send_stop();
+  void test_multiple_send_update();
 
   void test_requesting_basic();
   void test_requesting_timeout();

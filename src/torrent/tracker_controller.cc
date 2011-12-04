@@ -435,10 +435,23 @@ TrackerController::do_timeout() {
     if (next_timeout != ~uint32_t())
       update_timeout(next_timeout);
 
+  // TODO: Send for start/completed also?
+  } else if ((m_flags & flag_send_update)) {
+    TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
+
+    // TODO: Also watch out for failed trackers requiring timeouts.
+
+    m_tracker_list->send_state_itr(itr, send_state);
+
   } else {
     TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
 
-    m_tracker_list->send_state_itr(itr, send_state);
+    int32_t next_timeout = (*itr)->failed_counter() == 0 ? (*itr)->success_time_next() : (*itr)->failed_time_next();
+
+    if (next_timeout <= cachedTime.seconds())
+      m_tracker_list->send_state_itr(itr, send_state);
+    else
+      update_timeout(next_timeout - cachedTime.seconds());
   }
 
   if (m_slot_timeout)
@@ -460,24 +473,15 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
   m_flags &= ~(mask_send | flag_promiscuous_mode);
   // }
 
-  //unsigned int next_request = m_tracker_list->focus_normal_interval();
-
   // If we still have active trackers, skip the timeout.
 
   // Calculate the next timeout according to a list of in-use
   // trackers, with the first timeout as the interval.
 
-  if (!m_tracker_list->has_active()) {
-    // For the moment, just use the last tracker...
-    unsigned int next_request = tb->normal_interval();
-
-    // Also make this check how many new peers we got, and how often
-    // we've reconnected this time.
-    if (m_flags & flag_requesting)
-      next_request = 30;
-
-    update_timeout(next_request);
-  }
+  if ((m_flags & flag_requesting))
+    update_timeout(30);
+  else
+    update_timeout(tb->normal_interval());
 
   return m_slot_success(l);
 }
@@ -498,30 +502,32 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
   m_flags |= flag_failure_mode;
 
   // Use timeout here instead...
-  if ((m_flags & flag_promiscuous_mode)) {
-    int send_state = current_send_state();
-    TrackerList::iterator itr = m_tracker_list->begin();
+  // if ((m_flags & flag_promiscuous_mode)) {
+  //   int send_state = current_send_state();
+  //   TrackerList::iterator itr = m_tracker_list->begin();
 
-    for (; itr != m_tracker_list->end(); itr++) {
-      // The first time a tracker failes during promiscious requests
-      // we send to all trackers.
-      if ((*itr)->failed_counter() != 0)
-        continue;
+  //   for (; itr != m_tracker_list->end(); itr++) {
+  //     // The first time a tracker failes during promiscious requests
+  //     // we send to all trackers.
+  //     if ((*itr)->failed_counter() != 0)
+  //       continue;
 
-      m_tracker_list->send_state(*itr, send_state);
-    }
+  //     m_tracker_list->send_state(*itr, send_state);
+  //   }
 
-    if (m_tracker_list->has_active()) {
-      priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-      m_slot_failure(msg);
-      return;
-    }
-  }
+  //   if (m_tracker_list->has_active()) {
+  //     priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  //     m_slot_failure(msg);
+  //     return;
+  //   }
+  // }
 
   // For the moment, just use the last tracker...
-  unsigned int next_request = 5 << std::min<int>(tb->failed_counter() - 1, 6);
+  // unsigned int next_request = 5 << std::min<int>(tb->failed_counter() - 1, 6);
 
-  update_timeout(next_request);
+  // update_timeout(next_request);
+  do_timeout();
+
   m_slot_failure(msg);
 }
 

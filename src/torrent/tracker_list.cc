@@ -219,15 +219,23 @@ TrackerList::iterator
 TrackerList::find_next_to_request(iterator itr) {
   TrackerList::iterator preferred = itr = std::find_if(itr, end(), std::mem_fun(&Tracker::can_request_state));
 
-  for (; itr != end(); itr++) {
+  if (preferred == end() || (*preferred)->failed_counter() == 0)
+    return preferred;
+
+  while (++itr != end()) {
     if (!(*itr)->can_request_state())
       continue;
 
-    if ((*itr)->activity_time_last() < (*preferred)->activity_time_last())
-      preferred = itr;
+    if ((*itr)->failed_counter() != 0) {
+      if ((*itr)->failed_time_next() < (*preferred)->failed_time_next())
+        preferred = itr;
 
-    if ((*itr)->failed_counter() == 0)
+    } else {
+      if ((*itr)->success_time_next() < (*preferred)->failed_time_next())
+        preferred = itr;
+
       break;
+    }
   }
 
   return preferred;

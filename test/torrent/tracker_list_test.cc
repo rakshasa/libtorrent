@@ -519,7 +519,7 @@ tracker_list_test::test_find_next_to_request() {
   tracker_1->set_failed(0, torrent::cachedTime.seconds() - 1);
   tracker_1->set_success(1, torrent::cachedTime.seconds() - 1);
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
-  tracker_1->set_success(1, torrent::cachedTime.seconds() - 4);
+  tracker_1->set_success(1, torrent::cachedTime.seconds() - (tracker_1->normal_interval() - 1));
   CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 }
 

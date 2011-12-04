@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "exceptions.h"
+#include "globals.h"
 #include "tracker.h"
 #include "tracker_list.h"
 
@@ -90,6 +91,22 @@ Tracker::disable() {
 
   if (m_parent->slot_tracker_disabled())
     m_parent->slot_tracker_disabled()(this);
+}
+
+uint32_t
+Tracker::success_time_next() const {
+  if (m_success_counter == 0)
+    return 0;
+
+  return m_success_time_last + m_normal_interval;
+}
+
+uint32_t
+Tracker::failed_time_next() const {
+  if (m_failed_counter == 0)
+    return 0;
+
+  return m_failed_time_last + (5 << std::min(m_failed_counter - 1, (uint32_t)6));
 }
 
 std::string
