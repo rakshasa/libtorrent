@@ -79,7 +79,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   tracker_controller.disable();                                         \
   CPPUNIT_ASSERT(!tracker_list.has_active());                           \
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
-                 failure_counter == failure_counter);
+                 failure_counter == failed);
 
 #define TEST_IS_BUSY(tracker, state)                                    \
   CPPUNIT_ASSERT(state == '0' ||  tracker->is_busy());                  \
@@ -619,21 +619,23 @@ tracker_controller_test::test_multiple_promiscious_failed() {
   TEST_MULTI3_IS_BUSY("01111", "01111");
   CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
 
-  CPPUNIT_ASSERT(tracker_2_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_3_0->trigger_failure());
+  torrent::cachedTime += rak::timer::from_seconds(2);
+  CPPUNIT_ASSERT(tracker_2_0->trigger_failure());
 
   TEST_MULTI3_IS_BUSY("01100", "01100");
-  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
+  TEST_GOTO_NEXT_TIMEOUT(3);
+  TEST_MULTI3_IS_BUSY("11101", "11101");
 
+  CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
   CPPUNIT_ASSERT(tracker_1_0->trigger_failure());
-
-  // TODO: Verify reconnection timers.
+  CPPUNIT_ASSERT(tracker_3_0->trigger_failure());
 
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
 
-  TEST_MULTIPLE_END(0, 5);
+  TEST_MULTIPLE_END(0, 7);
 }
 
 // Test timeout called, no usable trackers at all which leads to
