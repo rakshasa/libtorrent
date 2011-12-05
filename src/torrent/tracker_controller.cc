@@ -416,11 +416,25 @@ TrackerController::do_timeout() {
     // possible, so every available tracker is requested. The
     // promiscious mode only gets acted upon in the timeout handler so
     // as to give the primary tracker a few seconds to reply.
-    std::for_each(m_tracker_list->begin(), m_tracker_list->end(),
-                  std::bind(&TrackerList::send_state, m_tracker_list, std::placeholders::_1, send_state));
+    // std::for_each(m_tracker_list->begin(), m_tracker_list->end(),
+    //               std::bind(&TrackerList::send_state, m_tracker_list, std::placeholders::_1, send_state));
+
+    uint32_t next_timeout = ~uint32_t();
+
+    for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
+      uint32_t tracker_timeout = tracker_next_timeout_promiscuous(*itr);
+
+      if (tracker_timeout == 0)
+        m_tracker_list->send_state_itr(itr, send_state);
+      else
+        next_timeout = std::min(tracker_timeout, next_timeout);
+    }
+
+    if (next_timeout != ~uint32_t())
+      update_timeout(next_timeout);
+
 
   } else if ((m_flags & flag_requesting)) {
-    // Find the next tracker to try...
     uint32_t next_timeout = ~uint32_t();
 
     for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
@@ -480,7 +494,8 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
 
   if ((m_flags & flag_requesting))
     update_timeout(30);
-  else
+  else if (!m_tracker_list->has_active())
+    // TODO: Instead find the lowest timeout, correct timeout?
     update_timeout(tb->normal_interval());
 
   return m_slot_success(l);

@@ -617,16 +617,18 @@ tracker_controller_test::test_multiple_promiscious_failed() {
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::flag_promiscuous_mode));
 
   TEST_MULTI3_IS_BUSY("01111", "01111");
-  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
 
   CPPUNIT_ASSERT(tracker_2_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_3_0->trigger_failure());
 
   TEST_MULTI3_IS_BUSY("01100", "01100");
-  CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
+  CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
 
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
   CPPUNIT_ASSERT(tracker_1_0->trigger_failure());
+
+  // TODO: Verify reconnection timers.
 
   CPPUNIT_ASSERT(!tracker_list.has_active());
   CPPUNIT_ASSERT(tracker_controller.task_timeout()->is_queued());
