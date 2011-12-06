@@ -137,7 +137,7 @@ TrackerController::manual_request(bool request_now) {
     return;
 
   // Add functions to get the lowest timeout, etc...
-  update_timeout(2);
+  send_update_event();
 }
 
 void
@@ -503,23 +503,6 @@ TrackerController::receive_scrape(Tracker* tb) {
   if (!(m_flags & flag_active)) {
     return;
   }
-
-  // If we still have active trackers, skip the timeout.
-
-  // Calculate the next timeout according to a list of in-use
-  // trackers, with the first timeout as the interval.
-
-  // if (!m_tracker_list->has_active()) {
-  //   // For the moment, just use the last tracker...
-  //   unsigned int next_request = tb->normal_interval();
-
-  //   // Also make this check how many new peers we got, and how often
-  //   // we've reconnected this time.
-  //   if (m_flags & flag_requesting)
-  //     next_request = 30;
-
-  //   update_timeout(next_request);
-  // }
 }
 
 void
