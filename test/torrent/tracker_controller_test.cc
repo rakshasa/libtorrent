@@ -230,10 +230,6 @@ tracker_controller_test::test_send_start() {
 
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
 
-  // We might want some different types of timeouts... Move these test to a promicious unit test...
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 0);
-  //CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() != 0);
-
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
   CPPUNIT_ASSERT(tracker_0_0->requesting_state() == torrent::Tracker::EVENT_STARTED);
 
@@ -241,7 +237,6 @@ tracker_controller_test::test_send_start() {
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::mask_send));
 
   CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() != 0);
-  //CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() != 0);
 
   tracker_controller.send_start_event();
   tracker_controller.disable();
@@ -378,6 +373,7 @@ tracker_controller_test::test_multiple_failure() {
   TEST_SEND_SINGLE_BEGIN(update);
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+  CPPUNIT_ASSERT(!tracker_controller.is_failure_mode());
   
   TEST_MULTI3_IS_BUSY("01000", "01000");
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
@@ -387,11 +383,14 @@ tracker_controller_test::test_multiple_failure() {
   TEST_GOTO_NEXT_TIMEOUT(tracker_0_0->normal_interval());
   TEST_MULTI3_IS_BUSY("10000", "10000");
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
-
   TEST_MULTI3_IS_BUSY("01000", "01000");
   CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
+
+  CPPUNIT_ASSERT(!tracker_controller.is_failure_mode());
   TEST_MULTI3_IS_BUSY("00100", "00100");
   CPPUNIT_ASSERT(tracker_1_0->trigger_failure());
+  CPPUNIT_ASSERT(tracker_controller.is_failure_mode());
+
   TEST_MULTI3_IS_BUSY("00010", "00010");
   CPPUNIT_ASSERT(tracker_2_0->trigger_failure());
   TEST_MULTI3_IS_BUSY("00001", "00001");
@@ -411,6 +410,7 @@ tracker_controller_test::test_multiple_failure() {
   // TEST_MULTI3_IS_BUSY("00001", "00001"); // ????
   TEST_MULTI3_IS_BUSY("00100", "00100");
   CPPUNIT_ASSERT(tracker_1_0->trigger_success());
+  CPPUNIT_ASSERT(!tracker_controller.is_failure_mode());
 
   // TEST_GOTO_NEXT_TIMEOUT(tracker_list[0]->normal_interval());
   // TEST_MULTI3_IS_BUSY("01000", "10000");
@@ -581,7 +581,7 @@ tracker_controller_test::test_requesting_timeout() {
 }
 
 void
-tracker_controller_test::test_multiple_promiscious_timeout() {
+tracker_controller_test::test_promiscious_timeout() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 
@@ -609,7 +609,7 @@ tracker_controller_test::test_multiple_promiscious_timeout() {
 // situations. This includes fixing old tests.
 
 void
-tracker_controller_test::test_multiple_promiscious_failed() {
+tracker_controller_test::test_promiscious_failed() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(start);
 

@@ -411,30 +411,7 @@ TrackerController::do_timeout() {
 
   int send_state = current_send_state();
 
-  if ((m_flags & flag_promiscuous_mode)) {
-    // When in promiscious mode we want as many peers as quickly as
-    // possible, so every available tracker is requested. The
-    // promiscious mode only gets acted upon in the timeout handler so
-    // as to give the primary tracker a few seconds to reply.
-    // std::for_each(m_tracker_list->begin(), m_tracker_list->end(),
-    //               std::bind(&TrackerList::send_state, m_tracker_list, std::placeholders::_1, send_state));
-
-    uint32_t next_timeout = ~uint32_t();
-
-    for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
-      uint32_t tracker_timeout = tracker_next_timeout_promiscuous(*itr);
-
-      if (tracker_timeout == 0)
-        m_tracker_list->send_state_itr(itr, send_state);
-      else
-        next_timeout = std::min(tracker_timeout, next_timeout);
-    }
-
-    if (next_timeout != ~uint32_t())
-      update_timeout(next_timeout);
-
-
-  } else if ((m_flags & flag_requesting)) {
+  if ((m_flags & (flag_promiscuous_mode | flag_requesting))) {
     uint32_t next_timeout = ~uint32_t();
 
     for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
@@ -484,7 +461,7 @@ TrackerController::receive_success(Tracker* tb, TrackerController::address_list*
     return m_slot_success(l);
 
   // if (<check if we have multiple trackers to send this event to, before we declare success>) {
-  m_flags &= ~(mask_send | flag_promiscuous_mode);
+  m_flags &= ~(mask_send | flag_promiscuous_mode | flag_failure_mode);
   // }
 
   // If we still have active trackers, skip the timeout.
@@ -514,35 +491,10 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
     return;
   }
 
-  m_flags |= flag_failure_mode;
+  if (tb->failed_counter() == 1 && tb->success_counter() > 0)
+    m_flags |= flag_failure_mode;
 
-  // Use timeout here instead...
-  // if ((m_flags & flag_promiscuous_mode)) {
-  //   int send_state = current_send_state();
-  //   TrackerList::iterator itr = m_tracker_list->begin();
-
-  //   for (; itr != m_tracker_list->end(); itr++) {
-  //     // The first time a tracker failes during promiscious requests
-  //     // we send to all trackers.
-  //     if ((*itr)->failed_counter() != 0)
-  //       continue;
-
-  //     m_tracker_list->send_state(*itr, send_state);
-  //   }
-
-  //   if (m_tracker_list->has_active()) {
-  //     priority_queue_erase(&taskScheduler, &m_private->task_timeout);
-  //     m_slot_failure(msg);
-  //     return;
-  //   }
-  // }
-
-  // For the moment, just use the last tracker...
-  // unsigned int next_request = 5 << std::min<int>(tb->failed_counter() - 1, 6);
-
-  // update_timeout(next_request);
   do_timeout();
-
   m_slot_failure(msg);
 }
 
