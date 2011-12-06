@@ -83,6 +83,8 @@ public:
   virtual bool        is_busy() const = 0;
   virtual bool        is_usable() const { return is_enabled(); }
 
+  bool                can_request_state() const;
+
   void                enable();
   void                disable();
 
@@ -101,12 +103,18 @@ public:
   uint32_t            min_interval() const                  { return m_min_interval; }
 
   int                 latest_event() const                  { return m_latest_event; }
+  uint32_t            latest_new_peers() const              { return m_latest_new_peers; }
+  uint32_t            latest_sum_peers() const              { return m_latest_sum_peers; }
 
   uint32_t            success_time_last() const             { return m_success_time_last; }
   uint32_t            success_counter() const               { return m_success_counter; }
 
   uint32_t            failed_time_last() const              { return m_failed_time_last; }
   uint32_t            failed_counter() const                { return m_failed_counter; }
+
+  uint32_t            activity_time_last() const            { return failed_counter() ? m_failed_time_last : m_success_time_last; }
+  uint32_t            success_time_next() const;
+  uint32_t            failed_time_next() const;
 
   uint32_t            scrape_time_last() const              { return m_scrape_time_last; }
   uint32_t            scrape_counter() const                { return m_scrape_counter; }
@@ -128,12 +136,12 @@ protected:
   virtual void        send_scrape();
   virtual void        close() = 0;
 
-  void                clear_stats() { m_success_counter = m_failed_counter = 0; }
+  void                clear_stats();
 
   void                set_group(uint32_t v)                 { m_group = v; }
 
-  void                set_normal_interval(int v)            { if (v >= 60 && v <= 3600) m_normal_interval = v; }
-  void                set_min_interval(int v)               { if (v >= 0 && v <= 600)   m_min_interval = v; }
+  void                set_normal_interval(int v)            { if (v >= 600 && v <= 3600) m_normal_interval = v; }
+  void                set_min_interval(int v)               { if (v >= 300 && v <= 1800) m_min_interval = v; }
 
   int                 m_flags;
 
@@ -141,13 +149,14 @@ protected:
   uint32_t            m_group;
 
   std::string         m_url;
-
   std::string         m_tracker_id;
 
   uint32_t            m_normal_interval;
   uint32_t            m_min_interval;
 
   int                 m_latest_event;
+  uint32_t            m_latest_new_peers;
+  uint32_t            m_latest_sum_peers;
 
   uint32_t            m_success_time_last;
   uint32_t            m_success_counter;
@@ -162,6 +171,11 @@ protected:
   uint32_t            m_scrape_incomplete;
   uint32_t            m_scrape_downloaded;
 };
+
+inline bool
+Tracker::can_request_state() const {
+  return !(is_busy() && latest_event() != EVENT_SCRAPE) && is_usable();
+}
 
 }
 

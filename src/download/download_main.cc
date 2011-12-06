@@ -209,8 +209,6 @@ void DownloadMain::start() {
   info()->set_flags(DownloadInfo::flag_active);
   chunk_list()->set_flags(ChunkList::flag_active);
 
-  m_lastConnectedSize = 0;
-
   m_delegator.set_aggressive(false);
   update_endgame();  
 
@@ -354,15 +352,12 @@ DownloadMain::receive_tracker_success() {
 
 void
 DownloadMain::receive_tracker_request() {
-  if (connection_list()->size() >= connection_list()->min_size())
+  if (connection_list()->size() + peer_list()->available_list()->size() / 2 >= connection_list()->min_size()) {
+    m_tracker_controller->stop_requesting();
     return;
+  }
 
-  // if (m_info->is_pex_enabled() || connection_list()->size() < m_lastConnectedSize + 10)
-  //   m_trackerManager->request_next();
-  // else if (!m_trackerManager->request_current())
-  //   m_trackerManager->request_next();
-
-  m_lastConnectedSize = connection_list()->size();
+  m_tracker_controller->start_requesting();
 }
 
 struct SocketAddressCompact_less {

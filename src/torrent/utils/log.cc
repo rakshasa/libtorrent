@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include "log.h"
+#include "globals.h"
 #include "rak/algorithm.h"
 #include "rak/timer.h"
 #include "torrent/exceptions.h"
@@ -268,7 +269,7 @@ char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
 void
 log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
-  *outfile << rak::timer::current().seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
+  *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
 }
 
 // TODO: Allow for different write functions that prepend timestamps,

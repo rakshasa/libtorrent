@@ -27,12 +27,14 @@ class tracker_controller_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_multiple_cycle_second_group);
   CPPUNIT_TEST(test_multiple_send_stop);
 
-  CPPUNIT_TEST(test_multiple_requesting);
-  CPPUNIT_TEST(test_multiple_promiscious_timeout);
-  CPPUNIT_TEST(test_multiple_promiscious_failed);
+  CPPUNIT_TEST(test_requesting_basic);
+  CPPUNIT_TEST(test_requesting_timeout);
+  CPPUNIT_TEST(test_promiscious_timeout);
+  CPPUNIT_TEST(test_promiscious_failed);
 
   CPPUNIT_TEST(test_timeout_lacking_usable);
   CPPUNIT_TEST(test_disable_tracker);
+  CPPUNIT_TEST(test_new_peers);
 
   CPPUNIT_TEST(test_scrape_basic);
   CPPUNIT_TEST(test_scrape_priority);
@@ -65,13 +67,16 @@ public:
   void test_multiple_cycle();
   void test_multiple_cycle_second_group();
   void test_multiple_send_stop();
+  void test_multiple_send_update();
 
-  void test_multiple_requesting();
-  void test_multiple_promiscious_timeout();
-  void test_multiple_promiscious_failed();
+  void test_requesting_basic();
+  void test_requesting_timeout();
+  void test_promiscious_timeout();
+  void test_promiscious_failed();
 
   void test_timeout_lacking_usable();
   void test_disable_tracker();
+  void test_new_peers();
 
   void test_scrape_basic();
   void test_scrape_priority();

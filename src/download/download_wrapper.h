@@ -105,7 +105,7 @@ public:
   void                check_chunk_hash(ChunkHandle handle);
 
   void                receive_storage_error(const std::string& str);
-  void                receive_tracker_success(AddressList* l);
+  uint32_t            receive_tracker_success(AddressList* l);
   void                receive_tracker_failed(const std::string& msg);
 
   void                receive_tick(uint32_t ticks);

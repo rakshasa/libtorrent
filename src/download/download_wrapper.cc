@@ -260,13 +260,14 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
   info()->signal_storage_error().emit(str);
 }
 
-void
+uint32_t
 DownloadWrapper::receive_tracker_success(AddressList* l) {
-  m_main->peer_list()->insert_available(l);
+  uint32_t inserted = m_main->peer_list()->insert_available(l);
   m_main->receive_connect_peers();
   m_main->receive_tracker_success();
 
   info()->signal_tracker_success().emit();
+  return inserted;
 }
 
 void
