@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#import "http_test.h"
+#include "http_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(HttpTest);
 
