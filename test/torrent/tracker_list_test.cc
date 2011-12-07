@@ -3,6 +3,7 @@
 #include "torrent/http.h"
 #include "net/address_list.h"
 
+#include "globals.h"
 #include "tracker_list_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
@@ -22,7 +23,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \
   tracker_list.insert(group, name);
 
-static void increment_value(int* value) { (*value)++; }
+uint32_t return_new_peers = 0xdeadbeef;
 
 class http_get : public torrent::Http {
 public:
@@ -37,19 +38,25 @@ public:
 torrent::Http* http_factory() { return new http_get; }
 
 bool
-TrackerTest::trigger_success() {
+TrackerTest::trigger_success(uint32_t new_peers, uint32_t sum_peers) {
   torrent::TrackerList::address_list address_list;
 
-  return trigger_success(&address_list);
+  for (unsigned int i = 0; i != sum_peers; i++) {
+    rak::socket_address sa; sa.sa_inet()->clear(); sa.sa_inet()->set_port(0x100 + i);
+    address_list.push_back(sa);
+  }
+
+  return trigger_success(&address_list, new_peers);
 }
 
 bool
-TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list) {
+TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers) {
   if (parent() == NULL || !is_busy() || !is_open())
     return false;
 
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
+  return_new_peers = new_peers;
 
   if (m_latest_event == EVENT_SCRAPE)
     parent()->receive_scrape_success(this);
@@ -67,6 +74,7 @@ TrackerTest::trigger_failure() {
 
   m_busy = false;
   m_open = !(m_flags & flag_close_on_done);
+  return_new_peers = 0;
 
   if (m_latest_event == EVENT_SCRAPE)
     parent()->receive_scrape_failed(this, "failed");
@@ -423,6 +431,29 @@ tracker_list_test::test_scrape_failure() {
   CPPUNIT_ASSERT(tracker_0->scrape_counter() == 0);
 }
 
+void
+tracker_list_test::test_new_peers() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 0);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 0);
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0->trigger_success(10, 20));
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 20);
+
+  tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0->trigger_failure());
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 10);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 20);
+
+  tracker_list.clear_stats();
+  CPPUNIT_ASSERT(tracker_0->latest_new_peers() == 0);
+  CPPUNIT_ASSERT(tracker_0->latest_sum_peers() == 0);
+}
+
 // test last_connect timer.
 
 
@@ -449,6 +480,45 @@ tracker_list_test::test_has_active() {
   tracker_list.send_state_idx(1, 1);
   tracker_0_0->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_0_1->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
+}
+
+void
+tracker_list_test::test_find_next_to_request() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(0, tracker_1);
+  TRACKER_INSERT(0, tracker_2);
+  TRACKER_INSERT(0, tracker_3);
+
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin() + 1) == tracker_list.begin() + 1);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.end()) == tracker_list.end());
+
+  tracker_0->disable();
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
+
+  tracker_0->enable();
+  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
+  
+  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 0);
+  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 3);
+
+  tracker_3->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
+
+  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 3);
+  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 2);
+  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 4);
+  tracker_3->set_failed(1, torrent::cachedTime.seconds() - 2);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 2);
+
+  tracker_1->set_failed(0, torrent::cachedTime.seconds() - 1);
+  tracker_1->set_success(1, torrent::cachedTime.seconds() - 1);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 0);
+  tracker_1->set_success(1, torrent::cachedTime.seconds() - (tracker_1->normal_interval() - 1));
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
 }
 
 void

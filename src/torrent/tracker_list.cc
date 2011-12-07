@@ -141,7 +141,7 @@ TrackerList::send_scrape(Tracker* tracker) {
   if (!(tracker->flags() & Tracker::flag_can_scrape))
     return;
 
-  if (rak::timer::from_seconds(tracker->scrape_time_last()) + rak::timer::from_seconds(10 * 60) > rak::timer::current() )
+  if (rak::timer::from_seconds(tracker->scrape_time_last()) + rak::timer::from_seconds(10 * 60) > cachedTime )
     return;
 
   tracker->send_scrape();
@@ -216,6 +216,32 @@ TrackerList::find_usable(const_iterator itr) const {
 }
 
 TrackerList::iterator
+TrackerList::find_next_to_request(iterator itr) {
+  TrackerList::iterator preferred = itr = std::find_if(itr, end(), std::mem_fun(&Tracker::can_request_state));
+
+  if (preferred == end() || (*preferred)->failed_counter() == 0)
+    return preferred;
+
+  while (++itr != end()) {
+    if (!(*itr)->can_request_state())
+      continue;
+
+    if ((*itr)->failed_counter() != 0) {
+      if ((*itr)->failed_time_next() < (*preferred)->failed_time_next())
+        preferred = itr;
+
+    } else {
+      if ((*itr)->success_time_next() < (*preferred)->failed_time_next())
+        preferred = itr;
+
+      break;
+    }
+  }
+
+  return preferred;
+}
+
+TrackerList::iterator
 TrackerList::begin_group(unsigned int group) {
   return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
 }
@@ -279,11 +305,12 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
 
   LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
 
-  tb->m_success_time_last = rak::timer::current().seconds();
+  tb->m_success_time_last = cachedTime.seconds();
   tb->m_success_counter++;
   tb->m_failed_counter = 0;
 
-  m_slot_success(tb, l);
+  tb->m_latest_sum_peers = l->size();
+  tb->m_latest_new_peers = m_slot_success(tb, l);
 }
 
 void
@@ -295,7 +322,7 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
 
   LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
 
-  tb->m_failed_time_last = rak::timer::current().seconds();
+  tb->m_failed_time_last = cachedTime.seconds();
   tb->m_failed_counter++;
   m_slot_failed(tb, msg);
 }
@@ -309,7 +336,7 @@ TrackerList::receive_scrape_success(Tracker* tb) {
 
   LT_LOG_TRACKER(INFO, "Received scrape from tracker url:'%s'.", tb->url().c_str());
 
-  tb->m_scrape_time_last = rak::timer::current().seconds();
+  tb->m_scrape_time_last = cachedTime.seconds();
   tb->m_scrape_counter++;
 
   if (m_slot_scrape_success)

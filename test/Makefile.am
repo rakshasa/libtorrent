@@ -37,6 +37,8 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_controller_test.h \
 	torrent/tracker_list_test.cc \
 	torrent/tracker_list_test.h \
+	torrent/tracker_timeout_test.cc \
+	torrent/tracker_timeout_test.h \
 	torrent/utils/log_test.cc \
 	torrent/utils/log_test.h \
 	torrent/utils/option_strings_test.cc \

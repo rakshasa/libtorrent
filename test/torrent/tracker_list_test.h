@@ -22,7 +22,9 @@ class tracker_list_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_scrape_success);
   CPPUNIT_TEST(test_scrape_failure);
 
+  CPPUNIT_TEST(test_new_peers);
   CPPUNIT_TEST(test_has_active);
+  CPPUNIT_TEST(test_find_next_to_request);
   CPPUNIT_TEST(test_count_active);
   CPPUNIT_TEST_SUITE_END();
 
@@ -47,7 +49,9 @@ public:
   void test_scrape_success();
   void test_scrape_failure();
 
+  void test_new_peers();
   void test_has_active();
+  void test_find_next_to_request();
   void test_count_active();
 };
 
@@ -70,8 +74,8 @@ public:
 
   int                 requesting_state() const { return m_requesting_state; }
 
-  bool                trigger_success();
-  bool                trigger_success(torrent::TrackerList::address_list* address_list);
+  bool                trigger_success(uint32_t new_peers = 0, uint32_t sum_peers = 0);
+  bool                trigger_success(torrent::TrackerList::address_list* address_list, uint32_t new_peers = 0);
   bool                trigger_failure();
   bool                trigger_scrape();
 
@@ -79,12 +83,20 @@ public:
   void                set_scrape_on_success(bool state) { if (state) m_flags |= flag_scrape_on_success; else m_flags &= ~flag_scrape_on_success; }
   void                set_can_scrape()              { m_flags |= flag_can_scrape; }
 
-private:
+  void                set_success(uint32_t counter, uint32_t time_last) { m_success_counter = counter; m_success_time_last = time_last; }
+  void                set_failed(uint32_t counter, uint32_t time_last)  { m_failed_counter = counter; m_failed_time_last = time_last; }
+  void                set_latest_new_peers(uint32_t peers)              { m_latest_new_peers = peers; }
+  void                set_latest_sum_peers(uint32_t peers)              { m_latest_sum_peers = peers; }
+
   virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = m_latest_event = state; }
   virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_state = m_latest_event = torrent::Tracker::EVENT_SCRAPE; }
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
 
+private:
   bool                m_busy;
   bool                m_open;
   int                 m_requesting_state;
 };
+
+extern uint32_t return_new_peers;
+inline uint32_t increment_value(int* value) { (*value)++; return return_new_peers; }

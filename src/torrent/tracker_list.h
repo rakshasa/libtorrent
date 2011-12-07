@@ -66,7 +66,7 @@ public:
 
   typedef std::tr1::function<void (Tracker*)>                     slot_tracker;
   typedef std::tr1::function<void (Tracker*, const std::string&)> slot_string;
-  typedef std::tr1::function<void (Tracker*, AddressList*)>       slot_address_list;
+  typedef std::tr1::function<uint32_t (Tracker*, AddressList*)>   slot_address_list;
 
   using base_type::value_type;
 
@@ -124,6 +124,8 @@ public:
 
   iterator            find_usable(iterator itr);
   const_iterator      find_usable(const_iterator itr) const;
+
+  iterator            find_next_to_request(iterator itr);
 
   iterator            begin_group(unsigned int group);
   iterator            end_group(unsigned int group)           { return begin_group(group + 1); }

@@ -56,28 +56,31 @@ public:
 
   typedef std::tr1::function<void (void)>               slot_void;
   typedef std::tr1::function<void (const std::string&)> slot_string;
-  typedef std::tr1::function<void (AddressList*)>       slot_address_list;
+  typedef std::tr1::function<uint32_t (AddressList*)>   slot_address_list;
   typedef std::tr1::function<void (Tracker*)>           slot_tracker;
 
-  static const int flag_send_update      = 0x0; // Fake flag, don't use.
-  static const int flag_send_completed   = 0x1;
-  static const int flag_send_start       = 0x2;
-  static const int flag_send_stop        = 0x4;
+  static const int flag_send_update      = 0x1;
+  // static const int flag_send_update      = 0x0;
+  static const int flag_send_completed   = 0x2;
+  static const int flag_send_start       = 0x4;
+  static const int flag_send_stop        = 0x8;
 
   static const int flag_active           = 0x10;
   static const int flag_requesting       = 0x20;
   static const int flag_failure_mode     = 0x40;
   static const int flag_promiscuous_mode = 0x80;
 
-  static const int mask_send = flag_send_start | flag_send_stop | flag_send_completed;
+  static const int mask_send = flag_send_update | flag_send_start | flag_send_stop | flag_send_completed;
 
   TrackerController(TrackerList* trackers);
   ~TrackerController();
 
-  int                 flags() const         { return m_flags; }
+  int                 flags() const               { return m_flags; }
 
-  bool                is_active() const     { return m_flags & flag_active; }
-  bool                is_requesting() const { return m_flags & flag_requesting; }
+  bool                is_active() const           { return m_flags & flag_active; }
+  bool                is_requesting() const       { return m_flags & flag_requesting; }
+  bool                is_failure_mode() const     { return m_flags & flag_failure_mode; }
+  bool                is_promiscuous_mode() const { return m_flags & flag_promiscuous_mode; }
 
   TrackerList*        tracker_list()        { return m_tracker_list; }
   TrackerList*        tracker_list() const  { return m_tracker_list; }
@@ -104,7 +107,7 @@ public:
   void                start_requesting();
   void                stop_requesting();
 
-  void                receive_success(Tracker* tb, address_list* l);
+  uint32_t            receive_success(Tracker* tb, address_list* l);
   void                receive_failure(Tracker* tb, const std::string& msg);
   void                receive_scrape(Tracker* tb);
 
@@ -146,6 +149,10 @@ private:
   // Refactor this out.
   tracker_controller_private* m_private;
 };
+
+uint32_t tracker_next_timeout(Tracker* tracker, int controller_flags);
+uint32_t tracker_next_timeout_update(Tracker* tracker);
+uint32_t tracker_next_timeout_promiscuous(Tracker* tracker);
 
 }
 
