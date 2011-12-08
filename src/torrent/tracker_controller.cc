@@ -187,9 +187,6 @@ TrackerController::send_start_event() {
 
   // Do we use the old 'focus' thing?... Rather react on no reply,
   // go into promiscious.
-
-  // Do we really want to close all here? Probably, as we're sending
-  // a new event.
   LT_LOG_TRACKER(INFO, "Sending started event.", 0);
 
   close();
@@ -220,11 +217,12 @@ TrackerController::send_stop_event() {
   LT_LOG_TRACKER(INFO, "Sending stopped event.", 0);
 
   close();
-  TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
 
-  while (itr != m_tracker_list->end()) {
+  for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
+    if (!(*itr)->is_in_use())
+      continue;
+
     m_tracker_list->send_state(*itr, Tracker::EVENT_STOPPED);
-    itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
   }
 
   // Timer...
@@ -250,11 +248,12 @@ TrackerController::send_completed_event() {
   // Send to all trackers that would want to know.
 
   close();
-  TrackerList::iterator itr = std::find_if(m_tracker_list->begin(), m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
 
-  while (itr != m_tracker_list->end()) {
+  for (TrackerList::iterator itr = m_tracker_list->begin(); itr != m_tracker_list->end(); itr++) {
+    if (!(*itr)->is_in_use())
+      continue;
+
     m_tracker_list->send_state(*itr, Tracker::EVENT_COMPLETED);
-    itr = std::find_if(itr + 1, m_tracker_list->end(), std::mem_fun(&Tracker::is_in_use));
   }
 
   // Timer...
@@ -276,8 +275,8 @@ TrackerController::send_update_event() {
 
   m_tracker_list->send_state_itr(m_tracker_list->find_usable(m_tracker_list->begin()), Tracker::EVENT_NONE);
 
-  if (m_tracker_list->has_active())
-    priority_queue_erase(&taskScheduler, &m_private->task_timeout);
+  // if (m_tracker_list->has_active())
+  //   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
 }
 
 // Currently being used by send_state, fixme.
@@ -325,7 +324,6 @@ TrackerController::start_requesting() {
     return;
 
   m_flags |= flag_requesting;
-
   update_timeout(0);
 }
 
@@ -335,10 +333,6 @@ TrackerController::stop_requesting() {
     return;
 
   m_flags &= ~flag_requesting;
-
-  // Should check if timeout is set?
-  if (!m_tracker_list->has_active() && m_tracker_list->has_usable())
-    update_timeout((*m_tracker_list->find_usable(m_tracker_list->begin()))->normal_interval());
 }
 
 uint32_t

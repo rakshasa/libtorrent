@@ -60,7 +60,6 @@ public:
   typedef std::tr1::function<void (Tracker*)>           slot_tracker;
 
   static const int flag_send_update      = 0x1;
-  // static const int flag_send_update      = 0x0;
   static const int flag_send_completed   = 0x2;
   static const int flag_send_start       = 0x4;
   static const int flag_send_stop        = 0x8;
