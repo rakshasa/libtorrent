@@ -293,7 +293,10 @@ TrackerController::enable() {
   if ((m_flags & flag_active))
     return;
 
+  // Clearing send stop here in case we cycle disable/enable too
+  // fast. In the future do this based on flags passed.
   m_flags |= flag_active;
+  m_flags &= ~flag_send_stop;
 
   m_tracker_list->close_all_excluding((1 << Tracker::EVENT_COMPLETED));
   m_tracker_list->clear_stats();
