@@ -116,7 +116,8 @@ ConnectionList::erase(iterator pos, int flags) {
 
   if (flags & disconnect_delayed) {
     m_disconnectQueue.push_back((*pos)->id());
-    priority_queue_insert(&taskScheduler, &m_download->delay_disconnect_peers(), cachedTime);
+    if (!m_download->delay_disconnect_peers().is_queued())
+      priority_queue_insert(&taskScheduler, &m_download->delay_disconnect_peers(), cachedTime);
     return pos;
   }
 

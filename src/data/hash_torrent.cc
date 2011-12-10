@@ -188,7 +188,7 @@ HashTorrent::queue(bool quick) {
 
       m_errno = handle.error_number().value();
 
-      //         rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
+      rak::priority_queue_erase(&taskScheduler, &m_delayChecked);
       rak::priority_queue_insert(&taskScheduler, &m_delayChecked, cachedTime);
       return;
     }
