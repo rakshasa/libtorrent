@@ -186,7 +186,7 @@ PollEPoll::do_poll(int flags) {
   if (!(flags & poll_worker_thread))
     torrent::perform();
 
-  timeout = std::min(timeout, rak::timer(next_timeout())) + 1000;
+  rak::timer timeout = std::min(timeout, rak::timer(next_timeout())) + 1000;
 
   if (!(flags & poll_worker_thread)) {
     thread_base::release_global_lock();

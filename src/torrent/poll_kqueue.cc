@@ -247,18 +247,18 @@ PollKQueue::do_poll(int flags) {
   if (!(flags & poll_worker_thread))
     torrent::perform();
 
-  timeout = std::min(timeout, rak::timer(torrent::next_timeout())) + 1000;
+  rak::timer timeout = std::min(timeout, rak::timer(torrent::next_timeout())) + 1000;
 
   if (!(flags & poll_worker_thread)) {
-    ThreadBase::release_global_lock();
-    ThreadBase::entering_main_polling();
+    thread_base::release_global_lock();
+    thread_base::entering_main_polling();
   }
 
   int status = poll((timeout.usec() + 999) / 1000);
 
   if (!(flags & poll_worker_thread)) {
-    ThreadBase::leaving_main_polling();
-    ThreadBase::acquire_global_lock();
+    thread_base::leaving_main_polling();
+    thread_base::acquire_global_lock();
   }
 
   if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
