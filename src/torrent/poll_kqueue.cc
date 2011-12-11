@@ -241,13 +241,13 @@ PollKQueue::perform() {
 }
 
 void
-PollKQueue::do_poll(int flags) {
+PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   // Add 1ms to ensure we don't idle loop due to the lack of
   // resolution.
   if (!(flags & poll_worker_thread))
     torrent::perform();
 
-  rak::timer timeout = std::min(timeout, rak::timer(torrent::next_timeout())) + 1000;
+  rak::timer timeout = std::min(rak::timer(timeout_usec), rak::timer(torrent::next_timeout())) + 1000;
 
   if (!(flags & poll_worker_thread)) {
     thread_base::release_global_lock();
@@ -428,7 +428,7 @@ PollKQueue::perform() {
 }
 
 void
-PollKQueue::do_poll(int flags) {
+PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 

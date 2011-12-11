@@ -208,11 +208,11 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 }
 
 void
-PollSelect::do_poll(int flags) {
+PollSelect::do_poll(int64_t timeout_usec, int flags) {
   if (!(flags & poll_worker_thread))
     torrent::perform();
 
-  rak::timer timeout = std::min(timeout, rak::timer(next_timeout())) + 1000;
+  rak::timer timeout = std::min(rak::timer(timeout_usec), rak::timer(next_timeout())) + 1000;
 
   uint32_t set_size = open_max();
 

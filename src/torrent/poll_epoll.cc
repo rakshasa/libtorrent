@@ -180,13 +180,13 @@ PollEPoll::perform() {
 }
 
 void
-PollEPoll::do_poll(int flags) {
+PollEPoll::do_poll(int64_t timeout_usec, int flags) {
   // Add 1ms to ensure we don't idle loop due to the lack of
   // resolution.
   if (!(flags & poll_worker_thread))
     torrent::perform();
 
-  rak::timer timeout = std::min(timeout, rak::timer(next_timeout())) + 1000;
+  rak::timer timeout = std::min(rak::timer(timeout_usec), rak::timer(next_timeout())) + 1000;
 
   if (!(flags & poll_worker_thread)) {
     thread_base::release_global_lock();
@@ -313,7 +313,7 @@ PollEPoll::~PollEPoll() {}
 
 int PollEPoll::poll(int msec) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 void PollEPoll::perform() { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-void PollEPoll::do_poll(int flags) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
+void PollEPoll::do_poll(int64_t timeout_usec, int flags) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 uint32_t PollEPoll::open_max() const { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 
 void PollEPoll::open(torrent::Event* event) {}

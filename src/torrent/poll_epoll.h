@@ -54,7 +54,7 @@ public:
   int                 poll(int msec);
   void                perform();
 
-  void                do_poll(int flags = 0);
+  void                do_poll(int64_t timeout_usec, int flags = 0);
 
   int                 file_descriptor() { return m_fd; }
 
