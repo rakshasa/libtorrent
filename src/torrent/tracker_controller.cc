@@ -289,7 +289,7 @@ TrackerController::close() {
 }
 
 void
-TrackerController::enable() {
+TrackerController::enable(int enable_flags) {
   if ((m_flags & flag_active))
     return;
 
@@ -299,7 +299,10 @@ TrackerController::enable() {
   m_flags &= ~flag_send_stop;
 
   m_tracker_list->close_all_excluding((1 << Tracker::EVENT_COMPLETED));
-  m_tracker_list->clear_stats();
+  
+  if (!(enable_flags & enable_dont_reset_stats))
+    m_tracker_list->clear_stats();
+
   LT_LOG_TRACKER(INFO, "Called enable with %u trackers.", m_tracker_list->size());
 
   // Adding of the tracker requests gets done after the caller has had

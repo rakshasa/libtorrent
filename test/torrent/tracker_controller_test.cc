@@ -481,9 +481,22 @@ tracker_controller_test::test_multiple_send_stop() {
   tracker_controller.send_stop_event();
   tracker_controller.disable();
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == torrent::TrackerController::flag_send_stop);
+  TEST_MULTI3_IS_BUSY("01011", "10011");
 
-  tracker_controller.enable();
+  tracker_controller.enable(torrent::TrackerController::enable_dont_reset_stats);
+  TEST_MULTI3_IS_BUSY("00000", "00000");
   CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == 0);
+
+  tracker_controller.send_stop_event();
+  TEST_MULTI3_IS_BUSY("01011", "10011");
+
+  tracker_controller.disable();
+  tracker_controller.enable();
+  TEST_MULTI3_IS_BUSY("00000", "00000");
+  CPPUNIT_ASSERT((tracker_controller.flags() & torrent::TrackerController::mask_send) == 0);
+
+  tracker_controller.send_stop_event();
+  TEST_MULTI3_IS_BUSY("00000", "00000");
 
   // Test also that after closing the tracker controller, and
   // reopening it a 'send stop' event causes no tracker to be busy.

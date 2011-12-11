@@ -71,6 +71,8 @@ public:
 
   static const int mask_send = flag_send_update | flag_send_start | flag_send_stop | flag_send_completed;
 
+  static const int enable_dont_reset_stats = 0x1;
+
   TrackerController(TrackerList* trackers);
   ~TrackerController();
 
@@ -100,7 +102,7 @@ public:
 
   void                close();
 
-  void                enable();
+  void                enable(int enable_flags = 0);
   void                disable();
 
   void                start_requesting();

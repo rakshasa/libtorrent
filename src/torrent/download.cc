@@ -134,7 +134,7 @@ Download::start(int flags) {
   }
 
   m_ptr->main()->start();
-  m_ptr->main()->tracker_controller()->enable();
+  m_ptr->main()->tracker_controller()->enable((flags & start_skip_tracker) ? TrackerController::enable_dont_reset_stats : 0);
 
   // Reset the uploaded/download baseline when we restart the download
   // so that broken trackers get the right uploaded ratio.
