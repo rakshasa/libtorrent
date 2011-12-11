@@ -73,9 +73,9 @@ static void increment_value(int* value) { (*value)++; }
 
 void
 HttpTest::test_basic() {
-  torrent::Http::set_factory(std::tr1::bind(&create_test_http));
+  torrent::Http::slot_factory() = std::tr1::bind(&create_test_http);
 
-  torrent::Http* http = torrent::Http::call_factory();
+  torrent::Http* http = torrent::Http::slot_factory()();
   std::stringstream* http_stream = new std::stringstream;
 
   http->set_url("http://example.com");
