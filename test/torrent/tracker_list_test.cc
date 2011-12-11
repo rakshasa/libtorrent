@@ -474,10 +474,15 @@ tracker_list_test::test_has_active() {
   TRACKER_INSERT(1, tracker_1_0);
 
   CPPUNIT_ASSERT(!tracker_list.has_active());
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
 
-  tracker_list.send_state_idx(0, 1); CPPUNIT_ASSERT(tracker_list.has_active());
-  tracker_0_0->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
-  
+  tracker_list.send_state_idx(0, 1);
+  CPPUNIT_ASSERT(tracker_list.has_active());
+  CPPUNIT_ASSERT(tracker_list.has_active_not_scrape());
+  tracker_0_0->trigger_success();
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
+
   tracker_list.send_state_idx(2, 1); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_1_0->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
 
@@ -487,6 +492,11 @@ tracker_list_test::test_has_active() {
   tracker_list.send_state_idx(1, 1);
   tracker_0_0->trigger_success(); CPPUNIT_ASSERT(tracker_list.has_active());
   tracker_0_1->trigger_success(); CPPUNIT_ASSERT(!tracker_list.has_active());
+
+  tracker_list.send_scrape(tracker_1_0);
+  CPPUNIT_ASSERT(tracker_list.has_active());
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
+
 }
 
 void
