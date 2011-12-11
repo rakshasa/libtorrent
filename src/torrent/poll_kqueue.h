@@ -58,6 +58,8 @@ public:
   int                 poll(int msec);
   void                perform();
 
+  void                do_poll(int flags = 0);
+
   int                 file_descriptor() { return m_fd; }
 
   virtual uint32_t    open_max() const;

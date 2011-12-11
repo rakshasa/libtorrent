@@ -40,12 +40,15 @@
 #include <cstring>
 #include <cstdio>
 
+#include <stdexcept>
 #include <unistd.h>
 #include <torrent/exceptions.h>
 #include <torrent/event.h>
 
+#include "torrent.h"
 #include "poll_epoll.h"
 #include "utils/thread_base.h"
+#include "rak/error_number.h"
 
 #ifdef USE_EPOLL
 #include <sys/epoll.h>
@@ -176,6 +179,36 @@ PollEPoll::perform() {
   m_waitingEvents = 0;
 }
 
+void
+PollEPoll::do_poll(int flags) {
+  // Add 1ms to ensure we don't idle loop due to the lack of
+  // resolution.
+  if (!(flags & poll_worker_thread))
+    torrent::perform();
+
+  timeout = std::min(timeout, rak::timer(next_timeout())) + 1000;
+
+  if (!(flags & poll_worker_thread)) {
+    thread_base::release_global_lock();
+    thread_base::entering_main_polling();
+  }
+
+  int status = poll((timeout.usec() + 999) / 1000);
+
+  if (!(flags & poll_worker_thread)) {
+    thread_base::leaving_main_polling();
+    thread_base::acquire_global_lock();
+  }
+
+  if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
+    throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
+
+  if (!(flags & poll_worker_thread))
+    torrent::perform();
+
+  perform();
+}
+
 uint32_t
 PollEPoll::open_max() const {
   return m_table.size();
@@ -280,6 +313,7 @@ PollEPoll::~PollEPoll() {}
 
 int PollEPoll::poll(int msec) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 void PollEPoll::perform() { throw internal_error("An PollEPoll function was called, but it is disabled."); }
+void PollEPoll::do_poll(int flags) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 uint32_t PollEPoll::open_max() const { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 
 void PollEPoll::open(torrent::Event* event) {}
