@@ -81,6 +81,7 @@ public:
   bool                is_in_use() const         { return is_enabled() && m_success_counter != 0; }
 
   virtual bool        is_busy() const = 0;
+  virtual bool        is_busy_not_scrape() const { return m_latest_event != EVENT_SCRAPE && is_busy(); }
   virtual bool        is_usable() const { return is_enabled(); }
 
   bool                can_request_state() const;
