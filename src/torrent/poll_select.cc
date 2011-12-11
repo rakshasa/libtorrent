@@ -47,7 +47,7 @@
 #include "event.h"
 #include "exceptions.h"
 #include "poll_select.h"
-#include "thread_base.h"
+#include "utils/thread_base.h"
 
 namespace torrent {
 
@@ -71,8 +71,8 @@ struct poll_check_t {
       // We waive the global lock after an event has been processed in
       // order to ensure that 's' doesn't get removed before the op is
       // called.
-      if ((m_poll->flags() & Poll::flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
-        ThreadBase::waive_global_lock();
+      if ((m_poll->flags() & Poll::flag_waive_global_lock) && thread_base::global_queue_size() != 0)
+        thread_base::waive_global_lock();
     }
   }
 

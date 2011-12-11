@@ -10,7 +10,9 @@ libsub_torrentutils_la_SOURCES = \
 	option_strings.h \
 	ranges.h \
 	resume.cc \
-	resume.h
+	resume.h \
+	thread_base.cc \
+	thread_base.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
@@ -21,4 +23,5 @@ libtorrentinclude_HEADERS = \
 	log_files.h \
 	option_strings.h \
 	ranges.h \
-	resume.h
+	resume.h \
+	thread_base.h

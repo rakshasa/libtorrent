@@ -36,10 +36,19 @@
 
 #include "config.h"
 
+#include <cstring>
+
 #include "thread_base.h"
 
 namespace torrent {
 
-ThreadBase::global_lock_type lt_cacheline_aligned ThreadBase::m_global = { 0, 0, PTHREAD_MUTEX_INITIALIZER };
+thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, 0, PTHREAD_MUTEX_INITIALIZER };
+
+thread_base::thread_base() :
+  m_state(STATE_UNKNOWN),
+  m_poll(NULL)
+{
+  std::memset(&m_thread, 0, sizeof(pthread_t));
+}
 
 }
