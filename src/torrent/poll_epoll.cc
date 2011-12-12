@@ -49,6 +49,7 @@
 #include "poll_epoll.h"
 #include "utils/thread_base.h"
 #include "rak/error_number.h"
+#include "rak/timer.h"
 
 #ifdef USE_EPOLL
 #include <sys/epoll.h>
