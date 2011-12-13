@@ -42,7 +42,6 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <rak/error_number.h>
-#include <rak/functional.h>
 #include <torrent/exceptions.h>
 #include <torrent/event.h>
 

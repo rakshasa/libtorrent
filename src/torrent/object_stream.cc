@@ -41,7 +41,6 @@
 #include <cmath>
 #include <limits>
 #include <rak/algorithm.h>
-#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "utils/sha1.h"

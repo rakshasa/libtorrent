@@ -39,7 +39,6 @@
 #define __STDC_FORMAT_MACROS
 
 #include <inttypes.h>
-#include <rak/functional.h>
 #include <sigc++/adaptors/bind.h>
 #include <sigc++/adaptors/hide.h>
 

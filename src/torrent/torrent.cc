@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <rak/address_info.h>
-#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "exceptions.h"
