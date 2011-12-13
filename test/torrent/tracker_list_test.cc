@@ -6,6 +6,8 @@
 #include "globals.h"
 #include "tracker_list_test.h"
 
+namespace tr1 { using namespace std::tr1; }
+
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
 
 #define TRACKER_SETUP()                                                 \
@@ -14,10 +16,10 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
   int failure_counter = 0;                                              \
   int scrape_success_counter = 0;                                       \
   int scrape_failure_counter = 0;                                       \
-  tracker_list.slot_success() = std::bind(&increment_value, &success_counter); \
-  tracker_list.slot_failure() = std::bind(&increment_value, &failure_counter); \
-  tracker_list.slot_scrape_success() = std::bind(&increment_value, &scrape_success_counter); \
-  tracker_list.slot_scrape_failure() = std::bind(&increment_value, &scrape_failure_counter);
+  tracker_list.slot_success() = tr1::bind(&increment_value, &success_counter); \
+  tracker_list.slot_failure() = tr1::bind(&increment_value, &failure_counter); \
+  tracker_list.slot_scrape_success() = tr1::bind(&increment_value, &scrape_success_counter); \
+  tracker_list.slot_scrape_failure() = tr1::bind(&increment_value, &scrape_failure_counter);
 
 #define TRACKER_INSERT(group, name)                             \
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \
@@ -114,8 +116,8 @@ tracker_list_test::test_enable() {
   int enabled_counter = 0;
   int disabled_counter = 0;
 
-  tracker_list.slot_tracker_enabled() = std::bind(&increment_value, &enabled_counter);
-  tracker_list.slot_tracker_disabled() = std::bind(&increment_value, &disabled_counter);
+  tracker_list.slot_tracker_enabled() = tr1::bind(&increment_value, &enabled_counter);
+  tracker_list.slot_tracker_disabled() = tr1::bind(&increment_value, &disabled_counter);
 
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(1, tracker_1);

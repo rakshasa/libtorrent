@@ -47,12 +47,12 @@ utils_log_test::test_basic() {
   CPPUNIT_ASSERT(torrent::log_groups.size() == torrent::LOG_GROUP_MAX_SIZE);
 
   CPPUNIT_ASSERT(std::find_if(torrent::log_groups.begin(), torrent::log_groups.end(),
-                              std::bind(&torrent::log_group::valid, std::placeholders::_1)) == torrent::log_groups.end());
+                              tr1::bind(&torrent::log_group::valid, tr1::placeholders::_1)) == torrent::log_groups.end());
 }
 
 inline void
 open_output(const char* name, int mask = 0) {
-  torrent::log_open_output(name, std::bind(&::test_output, std::placeholders::_1, std::placeholders::_2, mask));
+  torrent::log_open_output(name, tr1::bind(&::test_output, tr1::placeholders::_1, tr1::placeholders::_2, mask));
 }
 
 void
