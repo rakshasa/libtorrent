@@ -34,8 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_THREAD_BASE_H
-#define LIBTORRENT_THREAD_BASE_H
+#ifndef LIBTORRENT_UTILS_THREAD_BASE_H
+#define LIBTORRENT_UTILS_THREAD_BASE_H
 
 #include <pthread.h>
 #include <sys/types.h>
@@ -43,10 +43,23 @@
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT ThreadBase {
+class Poll;
+
+class LIBTORRENT_EXPORT thread_base {
 public:
-  ThreadBase() {}
-  virtual ~ThreadBase() {}
+  enum state_type {
+    STATE_UNKNOWN,
+    STATE_INITIALIZED,
+    STATE_ACTIVE,
+    STATE_INACTIVE
+  };
+
+  thread_base();
+  virtual ~thread_base() {}
+
+  bool                is_active() const { return m_state == STATE_ACTIVE; }
+
+  Poll*               poll() { return m_poll; }
 
   static inline int   global_queue_size() { return m_global.waiting; }
 
@@ -59,7 +72,6 @@ public:
   static inline void  leaving_main_polling();
 
 protected:
-
   struct global_lock_type {
     int             waiting;
     int             main_polling;
@@ -67,23 +79,28 @@ protected:
   };
 
   static global_lock_type m_global;
+
+  pthread_t           m_thread;
+  state_type          m_state;
+
+  Poll*               m_poll;
 };
 
 inline void
-ThreadBase::acquire_global_lock() {
-  __sync_add_and_fetch(&ThreadBase::m_global.waiting, 1);
-  pthread_mutex_lock(&ThreadBase::m_global.lock);
-  __sync_sub_and_fetch(&ThreadBase::m_global.waiting, 1);
+thread_base::acquire_global_lock() {
+  __sync_add_and_fetch(&thread_base::m_global.waiting, 1);
+  pthread_mutex_lock(&thread_base::m_global.lock);
+  __sync_sub_and_fetch(&thread_base::m_global.waiting, 1);
 }
 
 inline void
-ThreadBase::release_global_lock() {
-  pthread_mutex_unlock(&ThreadBase::m_global.lock);
+thread_base::release_global_lock() {
+  pthread_mutex_unlock(&thread_base::m_global.lock);
 }
 
 inline void
-ThreadBase::waive_global_lock() {
-  pthread_mutex_unlock(&ThreadBase::m_global.lock);
+thread_base::waive_global_lock() {
+  pthread_mutex_unlock(&thread_base::m_global.lock);
 
   // Do we need to sleep here? Make a CppUnit test for this.
   acquire_global_lock();
@@ -97,13 +114,13 @@ ThreadBase::waive_global_lock() {
 // change poll'ed sockets on the main thread it should call
 // 'interrupt_main_polling' unless 'is_main_polling() == false'.
 inline void
-ThreadBase::entering_main_polling() {
-  __sync_lock_test_and_set(&ThreadBase::m_global.main_polling, 1);
+thread_base::entering_main_polling() {
+  __sync_lock_test_and_set(&thread_base::m_global.main_polling, 1);
 }
 
 inline void
-ThreadBase::leaving_main_polling() {
-  __sync_lock_test_and_set(&ThreadBase::m_global.main_polling, 0);
+thread_base::leaving_main_polling() {
+  __sync_lock_test_and_set(&thread_base::m_global.main_polling, 0);
 }
 
 }  

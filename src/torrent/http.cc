@@ -77,22 +77,9 @@ slot_list_call(const std::list<Slot>& slot_list, Arg1 arg1) {
   (*first)(arg1);
 }
 
-Http::slot_factory Http::m_factory;
+Http::slot_http Http::m_factory;
 
 Http::~Http() {
-}
-
-Http*
-Http::call_factory() {
-  if (!m_factory)
-    throw internal_error("Http factory not set.");
-
-  Http* h = m_factory();
-
-  if (h == NULL)
-    throw internal_error("Http factory returned a NULL object.");
-
-  return h;
 }
 
 void

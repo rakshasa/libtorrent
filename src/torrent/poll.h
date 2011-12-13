@@ -45,6 +45,7 @@ class Event;
 
 class LIBTORRENT_EXPORT Poll {
 public:
+  static const int poll_worker_thread = 0x1;
   static const uint32_t flag_waive_global_lock = 0x1;
 
   Poll() : m_flags(0) {}
@@ -52,6 +53,8 @@ public:
 
   uint32_t            flags() const { return m_flags; }
   void                set_flags(uint32_t flags) { m_flags = flags; }
+
+  virtual void        do_poll(int64_t timeout_usec, int flags = 0) = 0;
 
   // The open max value is used when initializing libtorrent, it
   // should be less than or equal to sysconf(_SC_OPEN_MAX).

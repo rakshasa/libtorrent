@@ -39,7 +39,7 @@
 #include <functional>
 
 #include "torrent/exceptions.h"
-#include "torrent/thread_base.h"
+#include "torrent/utils/thread_base.h"
 
 #include "hash_queue.h"
 #include "hash_chunk.h"
@@ -165,7 +165,7 @@ HashQueue::work() {
 
     // If we got any XMLRPC calls to handle we need to break
     // here.
-    if (ThreadBase::global_queue_size() != 0)
+    if (thread_base::global_queue_size() != 0)
       break;
   }
 

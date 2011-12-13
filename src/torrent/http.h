@@ -53,7 +53,7 @@ class LIBTORRENT_EXPORT Http {
  public:
   typedef std::tr1::function<void ()>                   slot_void;
   typedef std::tr1::function<void (const std::string&)> slot_string;
-  typedef std::tr1::function<Http* (void)>              slot_factory;
+  typedef std::tr1::function<Http* (void)>              slot_http;
 
   typedef std::list<slot_void>   signal_void;
   typedef std::list<slot_string> signal_string;
@@ -90,13 +90,9 @@ class LIBTORRENT_EXPORT Http {
   signal_void&       signal_done()                        { return m_signal_done; }
   signal_string&     signal_failed()                      { return m_signal_failed; }
 
-  // Set the factory function that constructs and returns a valid Http* object.
-  static void        set_factory(const slot_factory& f)   { m_factory = f; }
-
   // Guaranteed to return a valid object or throw a internal_error. The
-  // caller takes ownership of the returned object. Is there any
-  // interest in making a destructor slot?
-  static Http*       call_factory();
+  // caller takes ownership of the returned object.
+  static slot_http&  slot_factory()                       { return m_factory; }
 
 protected:
   void               trigger_done();
@@ -114,7 +110,7 @@ private:
   Http(const Http&);
   void               operator = (const Http&);
 
-  static slot_factory m_factory;
+  static slot_http   m_factory;
 };
 
 }

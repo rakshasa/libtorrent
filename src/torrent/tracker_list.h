@@ -90,6 +90,7 @@ public:
   TrackerList();
 
   bool                has_active() const;
+  bool                has_active_not_scrape() const;
   bool                has_usable() const;
 
   unsigned int        count_active() const;
