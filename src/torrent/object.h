@@ -297,7 +297,7 @@ public:
   };
 
 #else
-#error "WTF we're testing C++11 now."
+  // #error "WTF we're testing C++11 now."
 
   value_type&         _value()             { return reinterpret_cast<value_type&>(t_pod); }
   const value_type&   _value() const       { return reinterpret_cast<const value_type&>(t_pod); }

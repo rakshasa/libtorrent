@@ -131,7 +131,7 @@ log_rebuild_cache() {
 
     log_cache_list::iterator cache_itr = 
       std::find_if(log_cache.begin(), log_cache.end(),
-                   std::bind(&log_cache_entry::equal_outputs, std::placeholders::_1, use_outputs));
+                   tr1::bind(&log_cache_entry::equal_outputs, tr1::placeholders::_1, use_outputs));
     
     if (cache_itr == log_cache.end()) {
       cache_itr = log_cache.insert(log_cache.end(), log_cache_entry());
@@ -267,7 +267,7 @@ log_open_output(const char* name, log_slot slot) {
 char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
 
 void
-log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
+log_file_write(tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
   *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
 }
@@ -276,13 +276,13 @@ log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t
 // etc.
 void
 log_open_file_output(const char* name, const char* filename) {
-  std::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
+  tr1::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
 
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
-  //  log_open_output(name, std::bind(&std::ofstream::write, outfile, std::placeholders::_1, std::placeholders::_2));
-  log_open_output(name, std::bind(&log_file_write, outfile, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  //  log_open_output(name, tr1::bind(&std::ofstream::write, outfile, tr1::placeholders::_1, tr1::placeholders::_2));
+  log_open_output(name, tr1::bind(&log_file_write, outfile, tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3));
 }
 
 void
