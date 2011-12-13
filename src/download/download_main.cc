@@ -119,8 +119,8 @@ DownloadMain::DownloadMain() :
   m_delegator.transfer_list()->slot_completed(std::bind1st(std::mem_fun(&DownloadMain::receive_chunk_done), this));
   m_delegator.transfer_list()->slot_corrupt(std::bind1st(std::mem_fun(&DownloadMain::receive_corrupt_chunk), this));
 
-  m_delayDisconnectPeers.set_slot(rak::mem_fn(m_connectionList, &ConnectionList::disconnect_queued));
-  m_taskTrackerRequest.set_slot(rak::mem_fn(this, &DownloadMain::receive_tracker_request));
+  m_delayDisconnectPeers.slot() = std::tr1::bind(&ConnectionList::disconnect_queued, m_connectionList);
+  m_taskTrackerRequest.slot() = std::tr1::bind(&DownloadMain::receive_tracker_request, this);
 
   m_chunkList->slot_create_chunk(rak::make_mem_fun(file_list(), &FileList::create_chunk_index));
   m_chunkList->slot_free_diskspace(rak::make_mem_fun(file_list(), &FileList::free_diskspace));

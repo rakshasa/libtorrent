@@ -73,7 +73,7 @@ DownloadWrapper::DownloadWrapper() :
   m_hashChecker(NULL),
   m_connectionType(0) {
 
-  m_main->delay_download_done().set_slot(rak::mem_fn(data(), &download_data::call_download_done));
+  m_main->delay_download_done().slot() = std::tr1::bind(&download_data::call_download_done, data());
 
   m_main->tracker_list()->set_info(info());
   m_main->tracker_controller()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
@@ -120,7 +120,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   m_hashChecker->slot_check(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 //   m_hashChecker->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 
-  m_hashChecker->delay_checked().set_slot(rak::mem_fn(this, &DownloadWrapper::receive_initial_hash));
+  m_hashChecker->delay_checked().slot() = std::tr1::bind(&DownloadWrapper::receive_initial_hash, this);
 }
 
 void

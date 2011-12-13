@@ -135,7 +135,7 @@ perform() {
     taskScheduler.pop();
 
     v->clear_time();
-    v->call();
+    v->slot()();
   }
 
   // Update the timer again to ensure we get accurate triggering of

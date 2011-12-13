@@ -61,7 +61,7 @@ ThrottleInternal::ThrottleInternal(int flags) :
   m_timeLastTick(cachedTime) {
 
   if (is_root())
-    m_taskTick.set_slot(rak::mem_fn(this, &ThrottleInternal::receive_tick));
+    m_taskTick.slot() = std::tr1::bind(&ThrottleInternal::receive_tick, this);
 }
 
 ThrottleInternal::~ThrottleInternal() {

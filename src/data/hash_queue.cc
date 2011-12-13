@@ -76,7 +76,7 @@ HashQueue::HashQueue() :
   m_interval(2000),
   m_maxTries(5) {
 
-  m_taskWork.set_slot(rak::mem_fn(this, &HashQueue::work));
+  m_taskWork.slot() = std::tr1::bind(&HashQueue::work, this);
 }
 
 

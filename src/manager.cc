@@ -84,7 +84,7 @@ Manager::Manager() :
 
   m_ticks(0) {
 
-  m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
+  m_taskTick.slot() = std::tr1::bind(&Manager::receive_tick, this);
 
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 

@@ -65,7 +65,7 @@ TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
 
-  m_taskTimeout.set_slot(rak::mem_fn(this, &TrackerUdp::receive_timeout));
+  m_taskTimeout.slot() = std::tr1::bind(&TrackerUdp::receive_timeout, this);
 }
 
 TrackerUdp::~TrackerUdp() {
