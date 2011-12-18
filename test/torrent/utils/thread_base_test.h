@@ -5,6 +5,7 @@
 class utils_thread_base_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(utils_thread_base_test);
   CPPUNIT_TEST(test_basic);
+  CPPUNIT_TEST(test_lifecycle);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -12,4 +13,5 @@ public:
   void tearDown();
 
   void test_basic();
+  void test_lifecycle();
 };

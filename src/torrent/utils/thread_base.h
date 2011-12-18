@@ -47,6 +47,8 @@ class Poll;
 
 class LIBTORRENT_EXPORT thread_base {
 public:
+  typedef void* (*pthread_func)(void*);
+
   enum state_type {
     STATE_UNKNOWN,
     STATE_INITIALIZED,
@@ -58,8 +60,14 @@ public:
   virtual ~thread_base() {}
 
   bool                is_active() const { return m_state == STATE_ACTIVE; }
+  state_type          state() const     { return m_state; }
 
   Poll*               poll() { return m_poll; }
+
+  virtual void        init_thread() = 0;
+
+  virtual void        start_thread();
+  //  virtual void        stop_thread();
 
   static inline int   global_queue_size() { return m_global.waiting; }
 
@@ -71,12 +79,17 @@ public:
   static inline void  entering_main_polling();
   static inline void  leaving_main_polling();
 
+  static void*        event_loop(thread_base* thread);
+
 protected:
   struct global_lock_type {
     int             waiting;
     int             main_polling;
     pthread_mutex_t lock;
   };
+
+  virtual void        call_events() = 0;
+  virtual int64_t     next_timeout_usec() = 0;
 
   static global_lock_type m_global;
 

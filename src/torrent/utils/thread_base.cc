@@ -38,7 +38,10 @@
 
 #include <cstring>
 
+#include "exceptions.h"
+#include "poll.h"
 #include "thread_base.h"
+#include "utils/log.h"
 
 namespace torrent {
 
@@ -49,6 +52,40 @@ thread_base::thread_base() :
   m_poll(NULL)
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
+}
+
+void
+thread_base::start_thread() {
+  if (m_poll == NULL)
+    throw internal_error("No poll object for thread defined.");
+
+  if (m_state != STATE_INITIALIZED ||
+      pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
+    throw internal_error("Failed to create thread.");
+}
+
+void*
+thread_base::event_loop(thread_base* thread) {
+  thread->m_state = STATE_ACTIVE;
+  __sync_synchronize();
+  
+  try {
+
+    while (true) {
+      thread->call_events();
+      thread->m_poll->do_poll(thread->next_timeout_usec(), torrent::Poll::poll_worker_thread);
+    }
+
+  } catch (torrent::shutdown_exception& e) {
+    acquire_global_lock();
+    lt_log_print(torrent::LOG_THREAD_NOTICE, "Shutting down thread.");
+    release_global_lock();
+  }
+
+  thread->m_state = STATE_INACTIVE;
+  __sync_synchronize();
+
+  return NULL;
 }
 
 }
