@@ -67,11 +67,11 @@ public:
   virtual void        init_thread() = 0;
 
   virtual void        start_thread();
-  //  virtual void        stop_thread();
 
   static inline int   global_queue_size() { return m_global.waiting; }
 
   static inline void  acquire_global_lock();
+  static inline bool  trylock_global_lock();
   static inline void  release_global_lock();
   static inline void  waive_global_lock();
 
@@ -104,6 +104,11 @@ thread_base::acquire_global_lock() {
   __sync_add_and_fetch(&thread_base::m_global.waiting, 1);
   pthread_mutex_lock(&thread_base::m_global.lock);
   __sync_sub_and_fetch(&thread_base::m_global.waiting, 1);
+}
+
+inline bool
+thread_base::trylock_global_lock() {
+  return pthread_mutex_trylock(&thread_base::m_global.lock) == 0;
 }
 
 inline void

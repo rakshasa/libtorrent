@@ -66,8 +66,7 @@ thread_base::start_thread() {
 
 void*
 thread_base::event_loop(thread_base* thread) {
-  thread->m_state = STATE_ACTIVE;
-  __sync_synchronize();
+  __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
   
   try {
 
@@ -82,9 +81,7 @@ thread_base::event_loop(thread_base* thread) {
     release_global_lock();
   }
 
-  thread->m_state = STATE_INACTIVE;
-  __sync_synchronize();
-
+  __sync_lock_test_and_set(&thread->m_state, STATE_INACTIVE);
   return NULL;
 }
 
