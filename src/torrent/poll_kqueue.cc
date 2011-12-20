@@ -246,7 +246,12 @@ PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   if (!(flags & poll_worker_thread))
     torrent::perform();
 
-  rak::timer timeout = std::min(rak::timer(timeout_usec), rak::timer(torrent::next_timeout())) + 1000;
+  rak::timer timeout = rak::timer(timeout_usec);
+
+  if (!(flags & poll_worker_thread))
+    timeout = std::min(timeout, rak::timer(torrent::next_timeout()));
+
+  timeout += 10;
 
   if (!(flags & poll_worker_thread)) {
     thread_base::release_global_lock();

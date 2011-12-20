@@ -55,6 +55,8 @@
 
 namespace torrent {
 
+Poll::slot_poll Poll::m_slot_create_poll;
+
 template <typename _Operation>
 struct poll_check_t {
   poll_check_t(Poll* p, fd_set* s, _Operation op) : m_poll(p), m_set(s), m_op(op) {}
@@ -212,7 +214,12 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
   if (!(flags & poll_worker_thread))
     torrent::perform();
 
-  rak::timer timeout = std::min(rak::timer(timeout_usec), rak::timer(next_timeout())) + 1000;
+  rak::timer timeout = rak::timer(timeout_usec);
+
+  if (!(flags & poll_worker_thread))
+    timeout = std::min(timeout, rak::timer(torrent::next_timeout()));
+
+  timeout += 10;
 
   uint32_t set_size = open_max();
 
