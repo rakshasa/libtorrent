@@ -107,6 +107,9 @@ initialize(Poll* poll) {
 
   manager->connection_manager()->set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
+
+  manager->main_thread_disk()->init_thread();
+  manager->main_thread_disk()->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -115,6 +118,10 @@ void
 cleanup() {
   if (manager == NULL)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
+
+  // manager->thread_disk()->stop_thread();
+
+  // TODO: Wait for thread shutdown?
 
   delete manager;
   manager = NULL;

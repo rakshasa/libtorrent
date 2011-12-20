@@ -117,6 +117,13 @@ enum {
 #define lt_log_print_info(log_group, log_info, ...) { if (torrent::log_groups[log_group].valid()) torrent::log_groups[log_group].internal_print_info(log_info, __VA_ARGS__); }
 #define lt_log_is_valid(log_group) (torrent::log_groups[log_group].valid())
 
+#define lt_log_print_locked(log_group, ...)                             \
+    if (torrent::log_groups[log_group].valid()) {                       \
+      acquire_global_lock();                                            \
+      torrent::log_groups[log_group].internal_print(__VA_ARGS__);       \
+      release_global_lock();                                            \
+    }
+
 struct log_cached_outputs;
 class DownloadInfo;
 

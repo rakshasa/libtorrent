@@ -67,6 +67,7 @@ thread_base::start_thread() {
 void*
 thread_base::event_loop(thread_base* thread) {
   __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
+  lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Starting thread.");
   
   try {
 
@@ -76,9 +77,7 @@ thread_base::event_loop(thread_base* thread) {
     }
 
   } catch (torrent::shutdown_exception& e) {
-    acquire_global_lock();
-    lt_log_print(torrent::LOG_THREAD_NOTICE, "Shutting down thread.");
-    release_global_lock();
+    lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Shutting down thread.");
   }
 
   __sync_lock_test_and_set(&thread->m_state, STATE_INACTIVE);
