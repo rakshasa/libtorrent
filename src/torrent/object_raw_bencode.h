@@ -61,7 +61,7 @@ public:
   raw_object() : m_data(), m_size() {}
   raw_object(value_type* src_data, size_type src_size) : m_data(src_data), m_size(src_size) {}
 
-  bool        empty() const { return m_size == 0;; }
+  bool        empty() const { return m_size == 0; }
   size_type   size() const { return m_size; }
 
   iterator    begin() const { return m_data; }
