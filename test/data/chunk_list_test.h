@@ -5,6 +5,7 @@
 class ChunkListTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(ChunkListTest);
   CPPUNIT_TEST(test_basic);
+  CPPUNIT_TEST(test_get_release);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -12,5 +13,7 @@ public:
   void tearDown() {}
 
   void test_basic();
+
+  void test_get_release();
 };
 

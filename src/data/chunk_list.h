@@ -74,6 +74,7 @@ public:
   using base_type::end;
   using base_type::size;
   using base_type::empty;
+  using base_type::operator[];
 
   static const int sync_all          = (1 << 0);
   static const int sync_force        = (1 << 1);
