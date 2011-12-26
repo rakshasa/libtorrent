@@ -65,6 +65,7 @@
 #include "download_wrapper.h"
 
 namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -122,8 +123,8 @@ DownloadMain::DownloadMain() :
   m_delayDisconnectPeers.slot() = std::tr1::bind(&ConnectionList::disconnect_queued, m_connectionList);
   m_taskTrackerRequest.slot() = std::tr1::bind(&DownloadMain::receive_tracker_request, this);
 
-  m_chunkList->slot_create_chunk(rak::make_mem_fun(file_list(), &FileList::create_chunk_index));
-  m_chunkList->slot_free_diskspace(rak::make_mem_fun(file_list(), &FileList::free_diskspace));
+  m_chunkList->slot_create_chunk() = tr1::bind(&FileList::create_chunk_index, file_list(), tr1::placeholders::_1, tr1::placeholders::_2);
+  m_chunkList->slot_free_diskspace() = tr1::bind(&FileList::free_diskspace, file_list());
 }
 
 DownloadMain::~DownloadMain() {

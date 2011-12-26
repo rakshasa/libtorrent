@@ -63,6 +63,7 @@
 #include "download_wrapper.h"
 
 namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -79,7 +80,7 @@ DownloadWrapper::DownloadWrapper() :
   m_main->tracker_controller()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
   m_main->tracker_controller()->slot_failure() = std::bind(&DownloadWrapper::receive_tracker_failed, this, std::placeholders::_1);
 
-  m_main->chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
+  m_main->chunk_list()->slot_storage_error() = tr1::bind(&DownloadWrapper::receive_storage_error, this, tr1::placeholders::_1);
 }
 
 DownloadWrapper::~DownloadWrapper() {

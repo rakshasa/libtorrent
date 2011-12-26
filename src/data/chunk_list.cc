@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <rak/error_number.h>
+
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/utils/log_files.h"
@@ -121,7 +123,7 @@ ChunkList::get(size_type index, int flags) {
     if (!m_manager->allocate(m_chunk_size, allocate_flags))
       return ChunkHandle::from_error(rak::error_number::e_nomem);
 
-    Chunk* chunk = m_slotCreateChunk(index, prot_flags);
+    Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
     if (chunk == NULL) {
       m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);
@@ -132,7 +134,7 @@ ChunkList::get(size_type index, int flags) {
     node->set_time_modified(rak::timer());
 
   } else if (flags & get_writable && !node->chunk()->is_writable()) {
-    Chunk* chunk = m_slotCreateChunk(index, prot_flags);
+    Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
     if (chunk == NULL)
       return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
@@ -254,7 +256,7 @@ ChunkList::sync_chunks(int flags) {
   // If we got enough diskspace and have not requested safe syncing,
   // then sync all chunks with MS_ASYNC.
   if (!(flags & (sync_safe | sync_sloppy))) {
-    if (m_manager->safe_sync() || m_slotFreeDiskspace() <= m_manager->safe_free_diskspace())
+    if (m_manager->safe_sync() || m_slot_free_diskspace() <= m_manager->safe_free_diskspace())
       flags |= sync_safe;
     else
       flags |= sync_force;
@@ -302,7 +304,7 @@ ChunkList::sync_chunks(int flags) {
   // The caller must either make sure that it is safe to close the
   // download or set the sync_ignore_error flag.
   if (failed && !(flags & sync_ignore_error))
-    m_slotStorageError("Could not sync chunk: " + std::string(rak::error_number::current().c_str()));
+    m_slot_storage_error("Could not sync chunk: " + std::string(rak::error_number::current().c_str()));
 
   return failed;
 }
