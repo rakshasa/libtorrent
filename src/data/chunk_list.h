@@ -91,6 +91,8 @@ public:
   ChunkList() : m_manager(NULL), m_flags(0), m_chunk_size(0) {}
   ~ChunkList() { clear(); }
 
+  int                 flags() const                       { return m_flags; }
+
   void                set_flags(int flags)                { m_flags |= flags; }
   void                unset_flags(int flags)              { m_flags &= ~flags; }
   void                change_flags(int flags, bool state) { if (state) set_flags(flags); else unset_flags(flags); }

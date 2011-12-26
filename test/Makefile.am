@@ -17,6 +17,8 @@ LibTorrentTest_LDADD = \
 	../src/utils/libsub_utils.la
 
 LibTorrentTest_SOURCES = \
+	data/chunk_list_test.cc \
+	data/chunk_list_test.h \
 	rak/allocators_test.cc \
 	rak/allocators_test.h \
 	rak/ranges_test.cc \
