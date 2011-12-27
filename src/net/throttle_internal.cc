@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <rak/functional.h>
 #include <rak/timer.h> 
 #include <rak/priority_queue_default.h> 
 

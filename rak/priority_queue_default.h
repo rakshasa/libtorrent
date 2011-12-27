@@ -40,7 +40,6 @@
 #include <stdexcept>
 #include <tr1/functional>
 #include <rak/allocators.h>
-#include <rak/functional.h>
 #include <rak/priority_queue.h>
 #include <rak/timer.h>
 
