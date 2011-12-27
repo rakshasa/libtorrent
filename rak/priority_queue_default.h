@@ -59,7 +59,7 @@ public:
     m_slot = slot_void();
   }
 
-  bool                is_valid() const              { return m_slot; }
+  bool                is_valid() const              { return (bool)m_slot; }
   bool                is_queued() const             { return m_time != timer(); }
 
   slot_void&          slot()                        { return m_slot; }
