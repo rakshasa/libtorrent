@@ -80,10 +80,12 @@ ChunkListTest::test_get_release() {
   CPPUNIT_ASSERT(handle_0.object()->index() == 0);
   CPPUNIT_ASSERT(handle_0.index() == 0);
   CPPUNIT_ASSERT(!handle_0.is_writable());
+  CPPUNIT_ASSERT(!handle_0.is_blocking());
 
   CPPUNIT_ASSERT((*chunk_list)[0].is_valid());
   CPPUNIT_ASSERT((*chunk_list)[0].references() == 1);
   CPPUNIT_ASSERT((*chunk_list)[0].writable() == 0);
+  CPPUNIT_ASSERT((*chunk_list)[0].blocking() == 0);
 
   chunk_list->release(&handle_0);
 
@@ -93,12 +95,31 @@ ChunkListTest::test_get_release() {
   CPPUNIT_ASSERT(handle_1.object()->index() == 1);
   CPPUNIT_ASSERT(handle_1.index() == 1);
   CPPUNIT_ASSERT(handle_1.is_writable());
+  CPPUNIT_ASSERT(!handle_1.is_blocking());
 
   CPPUNIT_ASSERT((*chunk_list)[1].is_valid());
   CPPUNIT_ASSERT((*chunk_list)[1].references() == 1);
   CPPUNIT_ASSERT((*chunk_list)[1].writable() == 1);
+  CPPUNIT_ASSERT((*chunk_list)[1].blocking() == 0);
 
   chunk_list->release(&handle_1);
 
+  torrent::ChunkHandle handle_2 = chunk_list->get(2, torrent::ChunkList::get_blocking);
+
+  CPPUNIT_ASSERT(handle_2.object() != NULL);
+  CPPUNIT_ASSERT(handle_2.object()->index() == 2);
+  CPPUNIT_ASSERT(handle_2.index() == 2);
+  CPPUNIT_ASSERT(!handle_2.is_writable());
+  CPPUNIT_ASSERT(handle_2.is_blocking());
+
+  CPPUNIT_ASSERT((*chunk_list)[2].is_valid());
+  CPPUNIT_ASSERT((*chunk_list)[2].references() == 1);
+  CPPUNIT_ASSERT((*chunk_list)[2].writable() == 0);
+  CPPUNIT_ASSERT((*chunk_list)[2].blocking() == 1);
+
+  chunk_list->release(&handle_2);
+
   CLEANUP_CHUNK_LIST();
 }
+
+// Make sure we can't go into writable when blocking, etc.

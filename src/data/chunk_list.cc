@@ -111,6 +111,9 @@ ChunkList::clear() {
   if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::writable)) != end())
     throw internal_error("ChunkList::clear() called but a node with writable != 0 was found.");
 
+  if (std::find_if(begin(), end(), std::mem_fun_ref(&ChunkListNode::blocking)) != end())
+    throw internal_error("ChunkList::clear() called but a node with blocking != 0 was found.");
+
   base_type::clear();
 }
 
@@ -138,6 +141,10 @@ ChunkList::get(size_type index, int flags) {
     node->set_time_modified(rak::timer());
 
   } else if (flags & get_writable && !node->chunk()->is_writable()) {
+    if (node->blocking() != 0) {
+      // Do something here...
+    }
+
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
     if (chunk == NULL)
@@ -159,7 +166,11 @@ ChunkList::get(size_type index, int flags) {
     node->set_sync_triggered(false);
   }
 
-  return ChunkHandle(node, flags & get_writable);
+  if (flags & get_blocking) {
+    node->inc_blocking();
+  }
+
+  return ChunkHandle(node, flags & get_writable, flags & get_blocking);
 }
 
 // The chunks in 'm_queue' have been modified and need to be synced
@@ -174,8 +185,14 @@ ChunkList::release(ChunkHandle* handle, int flags) {
   if (handle->object() < &*begin() || handle->object() >= &*end())
     throw internal_error("ChunkList::release(...) received an unknown handle.");
 
-  if (handle->object()->references() <= 0 || (handle->is_writable() && handle->object()->writable() <= 0))
+  if (handle->object()->references() <= 0 ||
+      (handle->is_writable() && handle->object()->writable() <= 0) ||
+      (handle->is_blocking() && handle->object()->blocking() <= 0))
     throw internal_error("ChunkList::release(...) received a node with bad reference count.");
+
+  if (handle->is_blocking()) {
+    handle->object()->dec_blocking();
+  }
 
   if (handle->is_writable()) {
 

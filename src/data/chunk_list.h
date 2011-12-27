@@ -84,7 +84,8 @@ public:
   static const int sync_ignore_error = (1 << 5);
 
   static const int get_writable      = (1 << 0);
-  static const int get_dont_log      = (1 << 1);
+  static const int get_blocking      = (1 << 1);
+  static const int get_dont_log      = (1 << 2);
 
   static const int flag_active       = (1 << 0);
 
