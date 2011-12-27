@@ -15,7 +15,9 @@ namespace tr1 { using namespace std::tr1; }
   chunk_list->set_manager(chunk_manager);                                \
   chunk_list->slot_create_chunk() = std::tr1::bind(&func_create_chunk, chunk_list, tr1::placeholders::_1, tr1::placeholders::_2); \
   chunk_list->slot_free_diskspace() = std::tr1::bind(&func_free_diskspace, chunk_list); \
-  chunk_list->slot_storage_error() = std::tr1::bind(&func_storage_error, chunk_list, tr1::placeholders::_1);
+  chunk_list->slot_storage_error() = std::tr1::bind(&func_storage_error, chunk_list, tr1::placeholders::_1); \
+  chunk_list->set_chunk_size(1 << 16);                                  \
+  chunk_list->resize(32);
 
 #define CLEANUP_CHUNK_LIST()                    \
   delete chunk_list;                            \
@@ -69,9 +71,6 @@ void
 ChunkListTest::test_get_release() {
   SETUP_CHUNK_LIST();
 
-  chunk_list->set_chunk_size(1 << 16);
-  chunk_list->resize(32);
-
   CPPUNIT_ASSERT(!(*chunk_list)[0].is_valid());
 
   torrent::ChunkHandle handle_0 = chunk_list->get(0);
@@ -119,7 +118,33 @@ ChunkListTest::test_get_release() {
 
   chunk_list->release(&handle_2);
 
+  // Test ro->wr, etc.
+
   CLEANUP_CHUNK_LIST();
 }
 
 // Make sure we can't go into writable when blocking, etc.
+void
+ChunkListTest::test_blocking() {
+  SETUP_CHUNK_LIST();
+
+  torrent::ChunkHandle handle_0_ro = chunk_list->get(0, torrent::ChunkList::get_blocking);
+  CPPUNIT_ASSERT(handle_0_ro.is_valid());
+
+  // Test writable, etc, on blocking without get_nonblock using a
+  // timer on other thread.
+  // torrent::ChunkHandle handle_1 = chunk_list->get(0, torrent::ChunkList::get_writable);
+  
+  torrent::ChunkHandle handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_writable | torrent::ChunkList::get_nonblock);
+  CPPUNIT_ASSERT(!handle_0_rw.is_valid());
+  CPPUNIT_ASSERT(handle_0_rw.error_number() == rak::error_number::e_again);
+
+  chunk_list->release(&handle_0_ro);
+
+  handle_0_rw = chunk_list->get(0, torrent::ChunkList::get_writable);
+  CPPUNIT_ASSERT(handle_0_rw.is_valid());
+
+  chunk_list->release(&handle_0_rw);
+
+  CLEANUP_CHUNK_LIST();
+}

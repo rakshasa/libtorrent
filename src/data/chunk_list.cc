@@ -143,7 +143,10 @@ ChunkList::get(size_type index, int flags) {
 
   } else if (flags & get_writable && !node->chunk()->is_writable()) {
     if (node->blocking() != 0) {
-      // Do something here...
+      if ((flags & get_nonblock))
+        return ChunkHandle::from_error(rak::error_number::e_again);
+
+      throw internal_error("No support yet for unblocking chunk.");
     }
 
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
