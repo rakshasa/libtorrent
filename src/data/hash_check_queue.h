@@ -39,8 +39,10 @@
 
 #include <deque>
 #include <pthread.h>
+#include <tr1/functional>
 
 #include "rak/allocators.h"
+#include "data/chunk_handle.h"
 
 namespace torrent {
 
@@ -63,10 +65,12 @@ public:
 
   using base_type::begin;
   using base_type::end;
+  using base_type::front;
+  using base_type::back;
   
   // Guarded functions for adding new...
 
-  void push_back(const ChunkHandle& handle, HashCheckQueue* node);
+  void push_back(const ChunkHandle& handle, HashQueueNode* node);
 
   void perform();
 

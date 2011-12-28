@@ -41,7 +41,18 @@
 namespace torrent {
 
 void
-HashCheckQueue::push_back(const ChunkHandle& handle, HashCheckQueue* node) {
+HashCheckQueue::push_back(const ChunkHandle& handle, HashQueueNode* node) {
+  // Get lock...
+
+  // Set blocking...(? this needs to be possible to do after getting
+  // the chunk) When doing this make sure we verify that the handle is
+  // not previously blocked.
+
+  hash_check_queue_node entry = { handle, node };
+
+  base_type::push_back(entry);
+
+  // Release lock...
 }
 
 // Lock the chunk list and increment blocking only when starting the

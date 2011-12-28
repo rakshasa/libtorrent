@@ -21,14 +21,16 @@ HashCheckQueueTest::test_basic() {
 void
 HashCheckQueueTest::test_single() {
   SETUP_CHUNK_LIST();
-
   torrent::HashCheckQueue hash_queue;
   
-  torrent::ChunkHandle handle_0 = chunk_list->get(0);
+  torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
+  hash_queue.push_back(handle_0, NULL);
   
+  CPPUNIT_ASSERT(hash_queue.size() == 1);
+  CPPUNIT_ASSERT(hash_queue.front().handle.is_blocking());
+  CPPUNIT_ASSERT(hash_queue.front().handle.object() == &((*chunk_list)[0]));
 
-  
   chunk_list->release(&handle_0);
   
   CLEANUP_CHUNK_LIST();
