@@ -54,7 +54,7 @@ bool
 compare_bencode(const torrent::Object& obj, const char* str, uint32_t skip_mask) {
   char buffer[256];
   std::memset(buffer, 0, 256);
-  torrent::object_write_bencode(buffer, buffer + 256, &obj, skip_mask).second;
+  torrent::object_write_bencode(buffer, buffer + 256, &obj, skip_mask);
 
   return strcmp(buffer, str) == 0;
 }

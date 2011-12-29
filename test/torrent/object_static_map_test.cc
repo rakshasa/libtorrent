@@ -154,9 +154,9 @@ ObjectStaticMapTest::test_read() {
 
 enum ext_test_keys {
   key_e,
-  key_m_utMetadata,
+  // key_m_utMetadata,
   key_m_utPex,
-  key_metadataSize,
+  // key_metadataSize,
   key_p,
   key_reqq,
   key_v,
