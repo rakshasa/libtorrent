@@ -11,10 +11,13 @@ namespace tr1 { using namespace std::tr1; }
 
 torrent::Chunk*
 func_create_chunk(uint32_t index, int prot_flags) {
-  char* memory_part1 = (char*)mmap(NULL, 10, PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);
+  // Do proper handling of prot_flags...
+  char* memory_part1 = (char*)mmap(NULL, 10, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 
   if (memory_part1 == MAP_FAILED)
     throw torrent::internal_error("func_create_chunk() failed: " + std::string(strerror(errno)));
+
+  std::memset(memory_part1, index, 10);
 
   torrent::Chunk* chunk = new torrent::Chunk();
   chunk->push_back(torrent::ChunkPart::MAPPED_MMAP, torrent::MemoryChunk(memory_part1, memory_part1, memory_part1 + 10, torrent::MemoryChunk::prot_read, 0));

@@ -38,6 +38,9 @@
 
 #include "hash_check_queue.h"
 
+#include "data/hash_queue_node.h"
+#include "torrent/hash_string.h"
+
 namespace torrent {
 
 void
@@ -62,8 +65,42 @@ HashCheckQueue::push_back(const ChunkHandle& handle, HashQueueNode* node) {
 
 void
 HashCheckQueue::perform() {
-  // Free the blocking state once done.
+  if (empty())
+    return;
 
+  // Lock.
+
+  // While not end...
+  while (!empty()) {
+    hash_check_queue_node entry = base_type::front();
+    base_type::pop_front();
+    
+    if (!entry.handle.is_valid())
+      throw internal_error("HashCheckQueue::perform(): !entry.node->is_valid().");
+
+    // Release lock.
+
+    // Do work...
+
+    // Use handle or node?
+    HashChunk hash_chunk(entry.handle);
+
+    if (!hash_chunk.perform(~uint32_t(), true))
+      throw internal_error("HashCheckQueue::perform(): !hash_chunk.perform(~uint32_t(), true).");
+
+    HashString hash;
+    hash_chunk.hash_c(hash.data());
+
+    // Acquire lock.
+
+    // Call slot.
+    m_slot_chunk_done(entry.handle, entry.node, hash);
+
+    // Free the blocking state once done.
+    // delete chunk;
+  }
+
+  // Unlock...
 }
 
 }

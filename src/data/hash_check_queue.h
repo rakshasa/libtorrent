@@ -46,6 +46,7 @@
 
 namespace torrent {
 
+class HashString;
 class HashQueueNode;
 
 struct hash_check_queue_node {
@@ -56,7 +57,7 @@ struct hash_check_queue_node {
 class lt_cacheline_aligned HashCheckQueue : private std::deque<hash_check_queue_node, rak::cacheline_allocator<hash_check_queue_node> > {
 public:
   typedef std::deque<hash_check_queue_node, rak::cacheline_allocator<hash_check_queue_node> > base_type;
-  typedef std::tr1::function<void (const ChunkHandle&, HashQueueNode*)> slot_chunk_handle;
+  typedef std::tr1::function<void (const ChunkHandle&, HashQueueNode*, const HashString&)> slot_chunk_handle;
 
   using base_type::iterator;
 
