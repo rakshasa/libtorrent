@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_THREAD_DISK_H
 #define LIBTORRENT_THREAD_DISK_H
 
+#include "data/hash_check_queue.h"
 #include "torrent/utils/thread_base.h"
 
 namespace torrent {
@@ -45,9 +46,13 @@ class thread_disk : public thread_base {
 public:
   virtual void        init_thread();
 
+  HashCheckQueue&     hash_queue() { return m_hash_queue; }
+
 protected:
   virtual void        call_events();
   virtual int64_t     next_timeout_usec();
+
+  HashCheckQueue      m_hash_queue;
 };
 
 }

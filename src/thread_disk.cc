@@ -58,6 +58,8 @@ thread_disk::init_thread() {
 void
 thread_disk::call_events() {
   lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
+
+  m_hash_queue.perform();
 }
 
 int64_t
