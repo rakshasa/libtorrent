@@ -45,17 +45,18 @@ namespace torrent {
 
 void
 HashCheckQueue::push_back(const ChunkHandle& handle, HashQueueNode* node) {
-  // Get lock...
+  pthread_mutex_lock(&m_lock);
 
   // Set blocking...(? this needs to be possible to do after getting
   // the chunk) When doing this make sure we verify that the handle is
   // not previously blocked.
 
   hash_check_queue_node entry = { handle, node };
-
   base_type::push_back(entry);
 
-  // Release lock...
+  // TODO: Poke thread.
+
+  pthread_mutex_unlock(&m_lock);
 }
 
 // Lock the chunk list and increment blocking only when starting the
@@ -65,10 +66,11 @@ HashCheckQueue::push_back(const ChunkHandle& handle, HashQueueNode* node) {
 
 void
 HashCheckQueue::perform() {
+  // Use an atomic/safer way of checking?
   if (empty())
     return;
 
-  // Lock.
+  pthread_mutex_lock(&m_lock);
 
   // While not end...
   while (!empty()) {
@@ -78,7 +80,7 @@ HashCheckQueue::perform() {
     if (!entry.handle.is_valid())
       throw internal_error("HashCheckQueue::perform(): !entry.node->is_valid().");
 
-    // Release lock.
+    pthread_mutex_unlock(&m_lock);
 
     // Do work...
 
@@ -91,16 +93,16 @@ HashCheckQueue::perform() {
     HashString hash;
     hash_chunk.hash_c(hash.data());
 
-    // Acquire lock.
+    pthread_mutex_lock(&m_lock);
 
-    // Call slot.
+    // Call slot. (TODO: Needs to grab global lock?)
     m_slot_chunk_done(entry.handle, entry.node, hash);
 
     // Free the blocking state once done.
     // delete chunk;
   }
 
-  // Unlock...
+  pthread_mutex_unlock(&m_lock);
 }
 
 }

@@ -49,6 +49,7 @@ thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, 
 
 thread_base::thread_base() :
   m_state(STATE_UNKNOWN),
+  m_flags(0),
   m_poll(NULL)
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
@@ -62,6 +63,12 @@ thread_base::start_thread() {
   if (m_state != STATE_INITIALIZED ||
       pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
     throw internal_error("Failed to create thread.");
+}
+
+void
+thread_base::stop_thread() {
+  __sync_fetch_and_or(&m_flags, flag_do_shutdown);
+  interrupt();
 }
 
 void*

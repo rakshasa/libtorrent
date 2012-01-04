@@ -19,3 +19,5 @@ public:
 
   void test_global_lock_basic();
 };
+
+bool wait_for_true(std::tr1::function<bool ()> test_function);
