@@ -38,14 +38,18 @@
 #define LIBTORRENT_DATA_HASH_QUEUE_H
 
 #include <deque>
+#include <map>
+#include <pthread.h>
 #include <rak/priority_queue_default.h>
 
+#include "torrent/hash_string.h"
 #include "hash_queue_node.h"
 #include "chunk_handle.h"
 
 namespace torrent {
 
 class HashChunk;
+class thread_disk;
 
 // Calculating hash of incore memory is blindingly fast, it's always
 // the loading from swap/disk that takes time. So with the exception
@@ -55,8 +59,10 @@ class HashChunk;
 
 class HashQueue : private std::deque<HashQueueNode> {
 public:
-  typedef std::deque<HashQueueNode>     base_type;
-  typedef HashQueueNode::slot_done_type slot_done_type;
+  typedef std::deque<HashQueueNode>                     base_type;
+  typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
+
+  typedef HashQueueNode::slot_done_type      slot_done_type;
 
   using base_type::iterator;
 
@@ -66,7 +72,7 @@ public:
   using base_type::begin;
   using base_type::end;
 
-  HashQueue();
+  HashQueue(thread_disk* thread);
   ~HashQueue() { clear(); }
 
   void                push_back(ChunkHandle handle, slot_done_type d);
@@ -90,8 +96,14 @@ public:
 
 private:
   bool                check(bool force);
+  void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
 
   inline void         willneed(int bytes);
+
+  thread_disk*        m_thread_disk;
+
+  done_chunks_type    m_done_chunks;
+  pthread_mutex_t     m_done_chunks_lock;
 
   uint16_t            m_tries;
   rak::priority_item  m_taskWork;

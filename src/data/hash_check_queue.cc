@@ -38,21 +38,20 @@
 
 #include "hash_check_queue.h"
 
-#include "data/hash_queue_node.h"
+#include "data/hash_chunk.h"
 #include "torrent/hash_string.h"
 
 namespace torrent {
 
 void
-HashCheckQueue::push_back(const ChunkHandle& handle, HashQueueNode* node) {
+HashCheckQueue::push_back(HashChunk* hash_chunk) {
   pthread_mutex_lock(&m_lock);
 
   // Set blocking...(? this needs to be possible to do after getting
   // the chunk) When doing this make sure we verify that the handle is
   // not previously blocked.
 
-  hash_check_queue_node entry = { handle, node };
-  base_type::push_back(entry);
+  base_type::push_back(hash_chunk);
 
   // TODO: Poke thread.
 
@@ -73,27 +72,24 @@ HashCheckQueue::perform() {
   pthread_mutex_lock(&m_lock);
 
   while (!empty()) {
-    hash_check_queue_node entry = base_type::front();
+    HashChunk* hash_chunk = base_type::front();
     base_type::pop_front();
     
-    if (!entry.handle.is_valid())
+    if (!hash_chunk->chunk()->is_valid())
       throw internal_error("HashCheckQueue::perform(): !entry.node->is_valid().");
 
     pthread_mutex_unlock(&m_lock);
 
-    // Use handle or node?
-    HashChunk hash_chunk(entry.handle);
-
-    if (!hash_chunk.perform(~uint32_t(), true))
+    if (!hash_chunk->perform(~uint32_t(), true))
       throw internal_error("HashCheckQueue::perform(): !hash_chunk.perform(~uint32_t(), true).");
 
     HashString hash;
-    hash_chunk.hash_c(hash.data());
+    hash_chunk->hash_c(hash.data());
 
     pthread_mutex_lock(&m_lock);
 
     // Call slot. (TODO: Needs to grab global lock?)
-    m_slot_chunk_done(entry.handle, entry.node, hash);
+    m_slot_chunk_done(hash_chunk, hash);
 
     // Free the blocking state once done.
     // delete chunk;

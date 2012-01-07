@@ -2,6 +2,7 @@
 
 #include <tr1/functional>
 
+#include "data/hash_queue_node.h"
 #include "utils/sha1.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
@@ -21,11 +22,11 @@ typedef std::map<int, torrent::HashString> done_chunks_type;
 pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void
-chunk_done(done_chunks_type* done_chunks, const torrent::ChunkHandle& handle, torrent::HashQueueNode* node, const torrent::HashString& hash_value) {
+chunk_done(done_chunks_type* done_chunks, torrent::HashChunk* hash_chunk, const torrent::HashString& hash_value) {
   // std::cout << std::endl << "done chunk: " << handle.index() << " " << torrent::hash_string_to_hex_str(hash_value) << std::endl;
   
   pthread_mutex_lock(&done_chunks_lock);
-  (*done_chunks)[handle.index()] = hash_value;
+  (*done_chunks)[hash_chunk->handle().index()] = hash_value;
   pthread_mutex_unlock(&done_chunks_lock);
 }
 
@@ -95,22 +96,22 @@ HashCheckQueueTest::test_single() {
   torrent::HashCheckQueue hash_queue;
 
   done_chunks_type done_chunks;
-  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3);
+  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
   
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
-  hash_queue.push_back(handle_0, NULL);
+  hash_queue.push_back(new torrent::HashChunk(handle_0));
   
   CPPUNIT_ASSERT(hash_queue.size() == 1);
-  CPPUNIT_ASSERT(hash_queue.front().handle.is_blocking());
-  CPPUNIT_ASSERT(hash_queue.front().handle.object() == &((*chunk_list)[0]));
+  CPPUNIT_ASSERT(hash_queue.front()->handle().is_blocking());
+  CPPUNIT_ASSERT(hash_queue.front()->handle().object() == &((*chunk_list)[0]));
 
   hash_queue.perform();
 
   CPPUNIT_ASSERT(done_chunks.find(0) != done_chunks.end());
   CPPUNIT_ASSERT(done_chunks[0] == hash_for_index(0));
 
-  // Should not be needed...
+  // Should not be needed... Also verify that HashChunk gets deleted.
   chunk_list->release(&handle_0);
   
   CLEANUP_CHUNK_LIST();
@@ -124,18 +125,18 @@ HashCheckQueueTest::test_multiple() {
   torrent::HashCheckQueue hash_queue;
 
   done_chunks_type done_chunks;
-  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3);
+  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
   
   handle_list handles;
 
   for (unsigned int i = 0; i < 20; i++) {
     handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
 
-    hash_queue.push_back(handles.back(), NULL);
+    hash_queue.push_back(new torrent::HashChunk(handles.back()));
 
     CPPUNIT_ASSERT(hash_queue.size() == i + 1);
-    CPPUNIT_ASSERT(hash_queue.back().handle.is_blocking());
-    CPPUNIT_ASSERT(hash_queue.back().handle.object() == &((*chunk_list)[i]));
+    CPPUNIT_ASSERT(hash_queue.back()->handle().is_blocking());
+    CPPUNIT_ASSERT(hash_queue.back()->handle().object() == &((*chunk_list)[i]));
   }
 
   hash_queue.perform();
@@ -156,10 +157,10 @@ HashCheckQueueTest::test_thread() {
   SETUP_CHUNK_LIST();
 
   torrent::thread_disk* thread_disk = new torrent::thread_disk;
-  torrent::HashCheckQueue& hash_queue = thread_disk->hash_queue();
+  torrent::HashCheckQueue* hash_queue = thread_disk->hash_queue();
 
   done_chunks_type done_chunks;
-  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3);
+  hash_queue->slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
   
   thread_disk->init_thread();
   thread_disk->start_thread();
@@ -171,7 +172,7 @@ HashCheckQueueTest::test_thread() {
 
     torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
-    hash_queue.push_back(handle_0, NULL);
+    hash_queue->push_back(new torrent::HashChunk(handle_0));
     thread_disk->interrupt();
 
     CPPUNIT_ASSERT(wait_for_true(tr1::bind(&verify_hash, &done_chunks, 0, hash_for_index(0))));

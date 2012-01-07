@@ -57,6 +57,7 @@ public:
     m_chunk(c), m_willneed(false), m_slotDone(d) {}
 
   id_type             id() const                    { return m_slotDone.object(); }
+  ChunkHandle&        handle()                      { return *m_chunk->chunk(); }
 
   uint32_t            get_index() const;
 

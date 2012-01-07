@@ -46,7 +46,7 @@ class thread_disk : public thread_base {
 public:
   virtual void        init_thread();
 
-  HashCheckQueue&     hash_queue() { return m_hash_queue; }
+  HashCheckQueue*     hash_queue() { return &m_hash_queue; }
 
 protected:
   virtual void        call_events();

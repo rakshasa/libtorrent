@@ -46,6 +46,9 @@
 #include "chunk.h"
 #include "chunk_list_node.h"
 #include "globals.h"
+#include "thread_disk.h"
+
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -71,12 +74,17 @@ struct HashQueueWillneed {
 // disk usage. But this may cause too much blocking as it will think
 // everything is in memory, thus we need to throttle.
 
-HashQueue::HashQueue() :
+HashQueue::HashQueue(thread_disk* thread) :
+  m_thread_disk(thread),
+
   m_readAhead(10 << 20),
   m_interval(2000),
   m_maxTries(5) {
 
-  m_taskWork.slot() = std::tr1::bind(&HashQueue::work, this);
+  pthread_mutex_init(&m_done_chunks_lock, NULL);
+  m_thread_disk->hash_queue()->slot_chunk_done() = tr1::bind(&HashQueue::chunk_done, this, tr1::placeholders::_1, tr1::placeholders::_2);
+
+  m_taskWork.slot() = tr1::bind(&HashQueue::work, this);
 }
 
 
@@ -108,15 +116,6 @@ HashQueue::push_back(ChunkHandle handle, slot_done_type d) {
   // newly downloaded chunk doesn't get swapped out when downloading
   // at high speeds / low memory.
   base_type::back().perform_remaining(false);
-
-  // Properly adjust this so it doesn't willneed on already hashed
-  // memory regions.
-  //
-  // Since we're already doing willneed in the hash checker, don't do
-  // willneed here as both the initial hash check and newly downloaded
-  // chunks use push_back(...).
-  //
-  // willneed(m_readAhead);
 }
 
 bool
@@ -175,29 +174,42 @@ HashQueue::work() {
 
 bool
 HashQueue::check(bool force) {
-  // Force hash check when the queue is more than 100 chunks, as that
-  // is indicative of the hash queue falling behind on hashing
-  // downloaded chunks.
-  force = force || size() > 50;
+  HashString hash_value;
+  HashChunk* chunk = base_type::front().get_chunk();
 
-  // TODO: The read-ahead algorithm here calls msync will-need, yet we
-  // are only trying to hash the first chunk. Fix this so that only
-  // whole chunks are called with will-need and that we check mincore
-  // for all those chunks in case we can hash them.
-  if (base_type::front().get_chunk()->remaining() != 0 && !base_type::front().perform_remaining(force)) {
-    willneed(m_readAhead);
-    return false;
+  if (!m_done_chunks.empty())
+    throw internal_error("FOOOOOOO");
+
+  m_thread_disk->hash_queue()->push_back(chunk);
+  m_thread_disk->interrupt();
+
+  thread_base::release_global_lock();
+
+  while (true) {
+    pthread_mutex_lock(&m_done_chunks_lock);
+    
+    if (!m_done_chunks.empty()) {
+      if (m_done_chunks.begin()->first != chunk)
+        throw internal_error("BAAAAAAAR");
+
+      hash_value = m_done_chunks.begin()->second;
+
+      m_done_chunks.erase(m_done_chunks.begin());
+      pthread_mutex_unlock(&m_done_chunks_lock);
+      break;
+    }
+
+    pthread_mutex_unlock(&m_done_chunks_lock);
+    usleep(100);
   }
 
-  HashChunk* chunk                       = base_type::front().get_chunk();
+  thread_base::acquire_global_lock();
+
   HashQueueNode::slot_done_type slotDone = base_type::front().slot_done();
 
   base_type::pop_front();
 
-  char buffer[20];
-  chunk->hash_c(buffer);
-
-  slotDone(*chunk->chunk(), buffer);
+  slotDone(*chunk->chunk(), hash_value.c_str());
   delete chunk;
 
   // This should be a few chunks ahead.
@@ -206,5 +218,13 @@ HashQueue::check(bool force) {
 
   return true;
 }
+
+void
+HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
+  pthread_mutex_lock(&m_done_chunks_lock);
+  m_done_chunks[hash_chunk] = hash_value;
+  pthread_mutex_unlock(&m_done_chunks_lock);
+}
+
 
 }

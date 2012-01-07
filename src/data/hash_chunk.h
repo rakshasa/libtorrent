@@ -59,6 +59,7 @@ public:
   void                set_chunk(ChunkHandle h)                { m_position = 0; m_chunk = h; m_hash.init(); }
 
   ChunkHandle*        chunk()                                 { return &m_chunk; }
+  ChunkHandle&        handle()                                { return m_chunk; }
   void                hash_c(char* buffer)                    { m_hash.final_c(buffer); }
 
   // If force is true, then the return value is always true.

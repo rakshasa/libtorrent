@@ -42,22 +42,16 @@
 #include <tr1/functional>
 
 #include "rak/allocators.h"
-#include "data/chunk_handle.h"
 
 namespace torrent {
 
 class HashString;
-class HashQueueNode;
+class HashChunk;
 
-struct hash_check_queue_node {
-  ChunkHandle    handle;
-  HashQueueNode* node;
-};
-
-class lt_cacheline_aligned HashCheckQueue : private std::deque<hash_check_queue_node, rak::cacheline_allocator<hash_check_queue_node> > {
+class lt_cacheline_aligned HashCheckQueue : private std::deque<HashChunk*, rak::cacheline_allocator<HashChunk*> > {
 public:
-  typedef std::deque<hash_check_queue_node, rak::cacheline_allocator<hash_check_queue_node> > base_type;
-  typedef std::tr1::function<void (const ChunkHandle&, HashQueueNode*, const HashString&)> slot_chunk_handle;
+  typedef std::deque<HashChunk*, rak::cacheline_allocator<HashChunk*> > base_type;
+  typedef std::tr1::function<void (HashChunk*, const HashString&)>      slot_chunk_handle;
 
   using base_type::iterator;
 
@@ -71,17 +65,14 @@ public:
   
   // Guarded functions for adding new...
 
-  void push_back(const ChunkHandle& handle, HashQueueNode* node);
-
+  void push_back(HashChunk* node);
   void perform();
 
   slot_chunk_handle&  slot_chunk_done() { return m_slot_chunk_done; }
 
 private:
   iterator            m_current;
-
   slot_chunk_handle   m_slot_chunk_done;
-
   pthread_mutex_t     m_lock;
 };
 
