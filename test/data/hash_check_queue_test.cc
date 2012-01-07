@@ -18,12 +18,15 @@ CPPUNIT_TEST_SUITE_REGISTRATION(HashCheckQueueTest);
 namespace tr1 { using namespace std::tr1; }
 
 typedef std::map<int, torrent::HashString> done_chunks_type;
+pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void
 chunk_done(done_chunks_type* done_chunks, const torrent::ChunkHandle& handle, torrent::HashQueueNode* node, const torrent::HashString& hash_value) {
   // std::cout << std::endl << "done chunk: " << handle.index() << " " << torrent::hash_string_to_hex_str(hash_value) << std::endl;
+  
+  pthread_mutex_lock(&done_chunks_lock);
   (*done_chunks)[handle.index()] = hash_value;
-  __sync_synchronize();
+  pthread_mutex_unlock(&done_chunks_lock);
 }
 
 torrent::HashString
@@ -42,17 +45,26 @@ hash_for_index(uint32_t index) {
 
 bool
 verify_hash(const done_chunks_type* done_chunks, int index, const torrent::HashString& hash) {
+  pthread_mutex_lock(&done_chunks_lock);
   done_chunks_type::const_iterator itr = done_chunks->find(index);
 
-  // if (itr == done_chunks->end())
-  //   std::cout << "no such index: " << index << std::endl;
-  // else
-  //   std::cout << "chunk compare: " << index << " "
-  //             << torrent::hash_string_to_hex_str(itr->second) << ' ' << torrent::hash_string_to_hex_str(hash) << ' '
-  //             << (itr != done_chunks->end() && itr->second == hash)
-  //             << std::endl;
+  if (itr == done_chunks->end()) {
+    pthread_mutex_unlock(&done_chunks_lock);
+    return false;
+  }
 
-  return itr != done_chunks->end() && itr->second == hash;
+  bool matches = itr->second == hash;
+  pthread_mutex_unlock(&done_chunks_lock);
+
+  if (!matches) {
+    // std::cout << "chunk compare: " << index << " "
+    //           << torrent::hash_string_to_hex_str(itr->second) << ' ' << torrent::hash_string_to_hex_str(hash) << ' '
+    //           << (itr != done_chunks->end() && itr->second == hash)
+    //           << std::endl;
+    throw torrent::internal_error("Could not verify hash...");
+  }
+
+  return true;
 }
 
 torrent::Poll* create_select_poll() { return torrent::PollSelect::create(256); }
@@ -104,6 +116,41 @@ HashCheckQueueTest::test_single() {
   CLEANUP_CHUNK_LIST();
 }
 
+typedef std::vector<torrent::ChunkHandle> handle_list;
+
+void
+HashCheckQueueTest::test_multiple() {
+  SETUP_CHUNK_LIST();
+  torrent::HashCheckQueue hash_queue;
+
+  done_chunks_type done_chunks;
+  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3);
+  
+  handle_list handles;
+
+  for (unsigned int i = 0; i < 20; i++) {
+    handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
+
+    hash_queue.push_back(handles.back(), NULL);
+
+    CPPUNIT_ASSERT(hash_queue.size() == i + 1);
+    CPPUNIT_ASSERT(hash_queue.back().handle.is_blocking());
+    CPPUNIT_ASSERT(hash_queue.back().handle.object() == &((*chunk_list)[i]));
+  }
+
+  hash_queue.perform();
+
+  for (unsigned int i = 0; i < 20; i++) {
+    CPPUNIT_ASSERT(done_chunks.find(i) != done_chunks.end());
+    CPPUNIT_ASSERT(done_chunks[i] == hash_for_index(i));
+
+    // Should not be needed...
+    chunk_list->release(&handles[i]);
+  }
+
+  CLEANUP_CHUNK_LIST();
+}
+
 void
 HashCheckQueueTest::test_thread() {
   SETUP_CHUNK_LIST();
@@ -117,20 +164,23 @@ HashCheckQueueTest::test_thread() {
   thread_disk->init_thread();
   thread_disk->start_thread();
 
-  torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
+  for (int i = 0; i < 1000 * 10; i++) {
+    pthread_mutex_lock(&done_chunks_lock);
+    done_chunks.erase(0);
+    pthread_mutex_unlock(&done_chunks_lock);
 
-  hash_queue.push_back(handle_0, NULL);
-  thread_disk->interrupt();
-  
-  // Add argument for wait period...
-  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&verify_hash, &done_chunks, 0, hash_for_index(0))));
+    torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
+
+    hash_queue.push_back(handle_0, NULL);
+    thread_disk->interrupt();
+
+    CPPUNIT_ASSERT(wait_for_true(tr1::bind(&verify_hash, &done_chunks, 0, hash_for_index(0))));
+    chunk_list->release(&handle_0);
+  }  
 
   thread_disk->stop_thread();
   CPPUNIT_ASSERT(wait_for_true(tr1::bind(&torrent::thread_base::is_inactive, thread_disk)));
 
-  // Should not be needed...
-  chunk_list->release(&handle_0);
-  
   CLEANUP_CHUNK_LIST();
   delete thread_disk;
 }

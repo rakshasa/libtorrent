@@ -67,12 +67,11 @@ HashCheckQueue::push_back(const ChunkHandle& handle, HashQueueNode* node) {
 void
 HashCheckQueue::perform() {
   // Use an atomic/safer way of checking?
-  if (empty())
-    return;
+  // if (empty())
+  //   return;
 
   pthread_mutex_lock(&m_lock);
 
-  // While not end...
   while (!empty()) {
     hash_check_queue_node entry = base_type::front();
     base_type::pop_front();
@@ -81,8 +80,6 @@ HashCheckQueue::perform() {
       throw internal_error("HashCheckQueue::perform(): !entry.node->is_valid().");
 
     pthread_mutex_unlock(&m_lock);
-
-    // Do work...
 
     // Use handle or node?
     HashChunk hash_chunk(entry.handle);
