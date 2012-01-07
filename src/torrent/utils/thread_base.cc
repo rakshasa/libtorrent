@@ -71,6 +71,20 @@ thread_base::stop_thread() {
   interrupt();
 }
 
+void
+thread_base::interrupt() {
+  __sync_fetch_and_or(&m_flags, flag_no_timeout);
+
+  while (is_polling() && has_no_timeout()) {
+    pthread_kill(m_thread, SIGUSR1);
+
+    if (!(is_polling() && has_no_timeout()))
+      return;
+
+    usleep(0);
+  }
+}
+
 void*
 thread_base::event_loop(thread_base* thread) {
   __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
@@ -80,7 +94,21 @@ thread_base::event_loop(thread_base* thread) {
 
     while (true) {
       thread->call_events();
-      thread->m_poll->do_poll(thread->next_timeout_usec(), torrent::Poll::poll_worker_thread);
+
+      __sync_fetch_and_or(&thread->m_flags, flag_polling);
+
+      int64_t next_timeout = 0;
+
+      if ((thread->m_flags & flag_no_timeout))
+        __sync_fetch_and_and(&thread->m_flags, ~flag_no_timeout);
+      else
+        next_timeout = thread->next_timeout_usec();
+
+      // Add the sleep call when testing interrupts, etc.
+      // usleep(50);
+
+      thread->m_poll->do_poll(next_timeout, torrent::Poll::poll_worker_thread);
+      __sync_fetch_and_and(&thread->m_flags, ~flag_polling);
     }
 
   } catch (torrent::shutdown_exception& e) {

@@ -8,6 +8,7 @@ class utils_thread_base_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_lifecycle);
 
   CPPUNIT_TEST(test_global_lock_basic);
+  CPPUNIT_TEST(test_interrupt);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -18,6 +19,7 @@ public:
   void test_lifecycle();
 
   void test_global_lock_basic();
+  void test_interrupt();
 };
 
 bool wait_for_true(std::tr1::function<bool ()> test_function);

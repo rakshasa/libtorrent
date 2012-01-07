@@ -58,6 +58,8 @@ public:
 
   static const int flag_do_shutdown  = 0x1;
   static const int flag_did_shutdown = 0x2;
+  static const int flag_no_timeout   = 0x4;
+  static const int flag_polling      = 0x8;
 
   thread_base();
   virtual ~thread_base() {}
@@ -66,7 +68,10 @@ public:
   bool                is_active()      const { return m_state == STATE_ACTIVE; }
   bool                is_inactive()    const { return m_state == STATE_INACTIVE; }
 
-  bool                has_do_shutdown() const  { return (m_flags & flag_do_shutdown); }
+  bool                is_polling()     const { return (m_flags & flag_polling); }
+
+  bool                has_no_timeout()   const { return (m_flags & flag_no_timeout); }
+  bool                has_do_shutdown()  const { return (m_flags & flag_do_shutdown); }
   bool                has_did_shutdown() const { return (m_flags & flag_did_shutdown); }
 
   state_type          state() const { return m_state; }
@@ -112,11 +117,6 @@ protected:
 
   Poll*               m_poll;
 };
-
-inline void
-thread_base::interrupt() {
-  pthread_kill(m_thread, SIGUSR1);
-}
 
 inline void
 thread_base::acquire_global_lock() {
