@@ -97,18 +97,13 @@ thread_base::event_loop(thread_base* thread) {
 
       __sync_fetch_and_or(&thread->m_flags, flag_polling);
 
-      int64_t next_timeout = 0;
-
-      if ((thread->m_flags & flag_no_timeout))
-        __sync_fetch_and_and(&thread->m_flags, ~flag_no_timeout);
-      else
-        next_timeout = thread->next_timeout_usec();
+      int64_t next_timeout = !(thread->m_flags & flag_no_timeout) ? thread->next_timeout_usec() : 0;
 
       // Add the sleep call when testing interrupts, etc.
       // usleep(50);
 
       thread->m_poll->do_poll(next_timeout, torrent::Poll::poll_worker_thread);
-      __sync_fetch_and_and(&thread->m_flags, ~flag_polling);
+      __sync_fetch_and_and(&thread->m_flags, ~(flag_polling | flag_no_timeout));
     }
 
   } catch (torrent::shutdown_exception& e) {
