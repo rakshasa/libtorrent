@@ -169,6 +169,8 @@ utils_thread_base_test::test_global_lock_basic() {
   thread->init_thread();
   thread->start_thread();
   
+  CPPUNIT_ASSERT(torrent::thread_base::global_queue_size() == 0);
+
   // Acquire main thread...
   CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
   CPPUNIT_ASSERT(!torrent::thread_base::trylock_global_lock());
@@ -192,6 +194,8 @@ utils_thread_base_test::test_global_lock_basic() {
   CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
 
   // Test waive (loop).
+
+  CPPUNIT_ASSERT(torrent::thread_base::global_queue_size() == 0);
 
   thread->stop_thread();
   CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_state, thread, thread_test::STATE_INACTIVE)));

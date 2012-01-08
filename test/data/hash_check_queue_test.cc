@@ -6,7 +6,6 @@
 #include "utils/sha1.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
-#include "torrent/hash_string.h"
 #include "torrent/poll_select.h"
 #include "torrent/utils/thread_base_test.h"
 #include "thread_disk.h"
@@ -18,7 +17,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION(HashCheckQueueTest);
 
 namespace tr1 { using namespace std::tr1; }
 
-typedef std::map<int, torrent::HashString> done_chunks_type;
 pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void
@@ -68,7 +66,7 @@ verify_hash(const done_chunks_type* done_chunks, int index, const torrent::HashS
   return true;
 }
 
-torrent::Poll* create_select_poll() { return torrent::PollSelect::create(256); }
+static torrent::Poll* create_select_poll() { return torrent::PollSelect::create(256); }
 
 static void do_nothing() {}
 
@@ -155,16 +153,14 @@ HashCheckQueueTest::test_multiple() {
 void
 HashCheckQueueTest::test_thread() {
   SETUP_CHUNK_LIST();
+  SETUP_THREAD();
+  thread_disk->start_thread();
 
-  torrent::thread_disk* thread_disk = new torrent::thread_disk;
   torrent::HashCheckQueue* hash_queue = thread_disk->hash_queue();
 
   done_chunks_type done_chunks;
   hash_queue->slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
   
-  thread_disk->init_thread();
-  thread_disk->start_thread();
-
   for (int i = 0; i < 1000 * 10; i++) {
     pthread_mutex_lock(&done_chunks_lock);
     done_chunks.erase(0);
@@ -180,8 +176,6 @@ HashCheckQueueTest::test_thread() {
   }  
 
   thread_disk->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&torrent::thread_base::is_inactive, thread_disk)));
-
+  CLEANUP_THREAD();
   CLEANUP_CHUNK_LIST();
-  delete thread_disk;
 }

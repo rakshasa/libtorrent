@@ -59,10 +59,10 @@ class thread_disk;
 
 class HashQueue : private std::deque<HashQueueNode> {
 public:
-  typedef std::deque<HashQueueNode>                     base_type;
+  typedef std::deque<HashQueueNode>                 base_type;
   typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
 
-  typedef HashQueueNode::slot_done_type      slot_done_type;
+  typedef HashQueueNode::slot_done_type slot_done_type;
 
   using base_type::iterator;
 
@@ -71,11 +71,13 @@ public:
 
   using base_type::begin;
   using base_type::end;
+  using base_type::front;
+  using base_type::back;
 
   HashQueue(thread_disk* thread);
   ~HashQueue() { clear(); }
 
-  void                push_back(ChunkHandle handle, slot_done_type d);
+  void                push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d);
 
   bool                has(HashQueueNode::id_type id);
   bool                has(HashQueueNode::id_type id, uint32_t index);

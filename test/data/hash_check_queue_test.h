@@ -1,6 +1,9 @@
+#include <map>
 #include <cppunit/extensions/HelperMacros.h>
 
 #include "data/hash_check_queue.h"
+#include "torrent/hash_string.h"
+
 
 class HashCheckQueueTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(HashCheckQueueTest);
@@ -22,3 +25,8 @@ public:
   void test_thread();
 };
 
+typedef std::map<int, torrent::HashString> done_chunks_type;
+
+torrent::HashString hash_for_index(uint32_t index);
+
+bool verify_hash(const done_chunks_type* done_chunks, int index, const torrent::HashString& hash);

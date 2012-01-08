@@ -28,6 +28,8 @@ LibTorrentTest_SOURCES = \
 	data/chunk_list_test.h \
 	data/hash_check_queue_test.cc \
 	data/hash_check_queue_test.h \
+	data/hash_queue_test.cc \
+	data/hash_queue_test.h \
 	torrent/extents_test.cc \
 	torrent/extents_test.h \
 	torrent/http_test.cc \

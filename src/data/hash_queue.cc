@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <functional>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/utils/thread_base.h"
@@ -96,7 +97,7 @@ HashQueue::willneed(int bytes) {
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
-HashQueue::push_back(ChunkHandle handle, slot_done_type d) {
+HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d) {
   if (!handle.is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
@@ -110,7 +111,7 @@ HashQueue::push_back(ChunkHandle handle, slot_done_type d) {
     priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1);
   }
 
-  base_type::push_back(HashQueueNode(hc, d));
+  base_type::push_back(HashQueueNode(id, hc, d));
 
   // Try to hash as much as possible immediately if incore, so that a
   // newly downloaded chunk doesn't get swapped out when downloading
@@ -151,7 +152,7 @@ HashQueue::clear() {
   // Replace with a dtor check to ensure it is empty?
 //   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
 //   base_type::clear();
-//   priority_queue_erase(&taskScheduler, &m_taskWork);
+  priority_queue_erase(&taskScheduler, &m_taskWork);
 }
 
 void
