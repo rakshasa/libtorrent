@@ -81,18 +81,13 @@ HashCheckQueue::perform() {
     pthread_mutex_unlock(&m_lock);
 
     if (!hash_chunk->perform(~uint32_t(), true))
-      throw internal_error("HashCheckQueue::perform(): !hash_chunk.perform(~uint32_t(), true).");
+      throw internal_error("HashCheckQueue::perform(): !hash_chunk->perform(~uint32_t(), true).");
 
     HashString hash;
     hash_chunk->hash_c(hash.data());
 
-    pthread_mutex_lock(&m_lock);
-
-    // Call slot. (TODO: Needs to grab global lock?)
     m_slot_chunk_done(hash_chunk, hash);
-
-    // Free the blocking state once done.
-    // delete chunk;
+    pthread_mutex_lock(&m_lock);
   }
 
   pthread_mutex_unlock(&m_lock);

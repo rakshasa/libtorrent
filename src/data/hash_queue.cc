@@ -76,11 +76,7 @@ struct HashQueueWillneed {
 // everything is in memory, thus we need to throttle.
 
 HashQueue::HashQueue(thread_disk* thread) :
-  m_thread_disk(thread),
-
-  m_readAhead(10 << 20),
-  m_interval(2000),
-  m_maxTries(5) {
+  m_thread_disk(thread) {
 
   pthread_mutex_init(&m_done_chunks_lock, NULL);
   m_thread_disk->hash_queue()->slot_chunk_done() = tr1::bind(&HashQueue::chunk_done, this, tr1::placeholders::_1, tr1::placeholders::_2);
@@ -89,11 +85,6 @@ HashQueue::HashQueue(thread_disk* thread) :
 }
 
 
-inline void
-HashQueue::willneed(int bytes) {
-  std::find_if(begin(), end(), HashQueueWillneed(bytes));
-}
-
 // If we're done immediately, move the chunk to the front of the list so
 // the next work cycle gets stuff done.
 void
@@ -101,19 +92,20 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
   if (!handle.is_valid())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
-  HashChunk* hc = new HashChunk(handle);
+  HashChunk* hash_chunk = new HashChunk(handle);
 
   if (empty()) {
     if (m_taskWork.is_queued())
       throw internal_error("Empty HashQueue is still in task schedule");
 
     m_tries = 0;
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1);
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1000);
   }
 
-  base_type::push_back(HashQueueNode(id, hc, d));
+  base_type::push_back(HashQueueNode(id, hash_chunk, d));
 
-  // TODO: Poke disk thread?
+  m_thread_disk->hash_queue()->push_back(hash_chunk);
+  m_thread_disk->interrupt();
 }
 
 bool
@@ -154,67 +146,39 @@ HashQueue::clear() {
 
 void
 HashQueue::work() {
-  while (!empty()) {
-    if (!check(++m_tries >= m_maxTries))
-      return priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + m_interval);
-    
-    m_tries = std::max(0, (int)(m_tries - 2));
-
-    // If we got any XMLRPC calls to handle we need to break
-    // here.
-    if (thread_base::global_queue_size() != 0)
-      break;
-  }
+  check();
 
   if (!empty() && !m_taskWork.is_queued())
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1);
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1000);
 }
 
-bool
-HashQueue::check(bool force) {
-  HashString hash_value;
-  HashChunk* chunk = base_type::front().get_chunk();
-
-  if (!m_done_chunks.empty())
-    throw internal_error("FOOOOOOO");
-
-  m_thread_disk->hash_queue()->push_back(chunk);
-  m_thread_disk->interrupt();
-
-  thread_base::release_global_lock();
-
-  while (true) {
-    pthread_mutex_lock(&m_done_chunks_lock);
+void
+HashQueue::check() {
+  pthread_mutex_lock(&m_done_chunks_lock);
     
-    if (!m_done_chunks.empty()) {
-      if (m_done_chunks.begin()->first != chunk)
-        throw internal_error("BAAAAAAAR");
+  while (!m_done_chunks.empty()) {
+    HashChunk* hash_chunk = m_done_chunks.begin()->first;
+    HashString hash_value = m_done_chunks.begin()->second;
+    m_done_chunks.erase(m_done_chunks.begin());
 
-      hash_value = m_done_chunks.begin()->second;
+    // TODO: This is not optimal as we jump around... Check for front
+    // of HashQueue in done_chunks instead.
 
-      m_done_chunks.erase(m_done_chunks.begin());
-      pthread_mutex_unlock(&m_done_chunks_lock);
-      break;
-    }
+    iterator itr = std::find_if(begin(), end(), tr1::bind(std::equal_to<HashChunk*>(),
+                                                          hash_chunk,
+                                                          tr1::bind(&HashQueueNode::get_chunk, tr1::placeholders::_1)));
 
-    pthread_mutex_unlock(&m_done_chunks_lock);
-    usleep(100);
+    if (itr == end())
+      throw internal_error("Could not find done chunk's node.");
+
+    HashQueueNode::slot_done_type slotDone = itr->slot_done();
+    base_type::erase(itr);
+
+    slotDone(hash_chunk->handle(), hash_value.c_str());
+    delete hash_chunk;
   }
 
-  thread_base::acquire_global_lock();
-
-  HashQueueNode::slot_done_type slotDone = base_type::front().slot_done();
-
-  base_type::pop_front();
-
-  slotDone(*chunk->chunk(), hash_value.c_str());
-  delete chunk;
-
-  // This should be a few chunks ahead.
-  if (!empty())
-    willneed(m_readAhead);
-
-  return true;
+  pthread_mutex_unlock(&m_done_chunks_lock);
 }
 
 void
