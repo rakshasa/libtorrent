@@ -8,6 +8,7 @@
 #include "torrent/hash_string.h"
 #include "torrent/poll_select.h"
 #include "torrent/utils/thread_base_test.h"
+#include "globals.h"
 #include "thread_disk.h"
 
 #include "chunk_list_test.h"
@@ -31,13 +32,15 @@ static void do_nothing() {}
 
 void
 HashQueueTest::setUp() {
-  torrent::Poll::slot_create_poll() = tr1::bind(&create_select_poll);
+  CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
+  torrent::Poll::slot_create_poll() = tr1::bind(&create_select_poll);
   signal(SIGUSR1, (sig_t)&do_nothing);
 }
 
 void
 HashQueueTest::tearDown() {
+  torrent::taskScheduler.clear();
 }
 
 void
@@ -87,3 +90,42 @@ HashQueueTest::test_single() {
   CLEANUP_THREAD();
   CLEANUP_CHUNK_LIST();
 }
+
+void
+HashQueueTest::test_multiple() {
+  SETUP_CHUNK_LIST();
+  SETUP_THREAD();
+  thread_disk->start_thread();
+
+  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+
+  done_chunks_type done_chunks;
+
+  handle_list handles;
+
+  for (unsigned int i = 0; i < 20; i++) {
+    handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
+    hash_queue->push_back(handles.back(), NULL, tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2));
+
+    CPPUNIT_ASSERT(hash_queue->size() == i + 1);
+    CPPUNIT_ASSERT(hash_queue->back().handle().is_blocking());
+    CPPUNIT_ASSERT(hash_queue->back().handle().object() == &((*chunk_list)[i]));
+  }
+
+  hash_queue->work();
+
+  for (unsigned int i = 0; i < 20; i++) {
+    CPPUNIT_ASSERT(done_chunks.find(i) != done_chunks.end());
+    CPPUNIT_ASSERT(done_chunks[i] == hash_for_index(i));
+
+    // Should not be needed...
+    chunk_list->release(&handles[i]);
+  }
+  
+  delete hash_queue;
+
+  thread_disk->stop_thread();
+  CLEANUP_THREAD();
+  CLEANUP_CHUNK_LIST();
+}
+

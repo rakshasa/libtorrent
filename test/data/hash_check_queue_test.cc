@@ -115,8 +115,6 @@ HashCheckQueueTest::test_single() {
   CLEANUP_CHUNK_LIST();
 }
 
-typedef std::vector<torrent::ChunkHandle> handle_list;
-
 void
 HashCheckQueueTest::test_multiple() {
   SETUP_CHUNK_LIST();

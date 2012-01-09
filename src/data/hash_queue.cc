@@ -113,10 +113,7 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
 
   base_type::push_back(HashQueueNode(id, hc, d));
 
-  // Try to hash as much as possible immediately if incore, so that a
-  // newly downloaded chunk doesn't get swapped out when downloading
-  // at high speeds / low memory.
-  base_type::back().perform_remaining(false);
+  // TODO: Poke disk thread?
 }
 
 bool

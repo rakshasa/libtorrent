@@ -1,4 +1,5 @@
 #include <map>
+#include <vector>
 #include <cppunit/extensions/HelperMacros.h>
 
 #include "data/hash_check_queue.h"
@@ -26,6 +27,7 @@ public:
 };
 
 typedef std::map<int, torrent::HashString> done_chunks_type;
+typedef std::vector<torrent::ChunkHandle> handle_list;
 
 torrent::HashString hash_for_index(uint32_t index);
 

@@ -112,11 +112,14 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
 
 void
 tracker_controller_test::setUp() {
+  CPPUNIT_ASSERT(torrent::taskScheduler.empty());
+
   torrent::cachedTime = rak::timer::current();
 }
 
 void
 tracker_controller_test::tearDown() {
+  torrent::taskScheduler.clear();
 }
 
 void
