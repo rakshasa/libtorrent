@@ -83,9 +83,6 @@ HashCheckQueueTest::tearDown() {
 
 void
 HashCheckQueueTest::test_basic() {
-  // torrent::HashCheckQueue hash_queue;
-
-  // Test done_chunks here?..
 }
 
 void
@@ -146,6 +143,39 @@ HashCheckQueueTest::test_multiple() {
   }
 
   CLEANUP_CHUNK_LIST();
+}
+
+void
+HashCheckQueueTest::test_erase() {
+  // SETUP_CHUNK_LIST();
+  // torrent::HashCheckQueue hash_queue;
+
+  // done_chunks_type done_chunks;
+  // hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
+  
+  // handle_list handles;
+
+  // for (unsigned int i = 0; i < 20; i++) {
+  //   handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
+
+  //   hash_queue.push_back(new torrent::HashChunk(handles.back()));
+
+  //   CPPUNIT_ASSERT(hash_queue.size() == i + 1);
+  //   CPPUNIT_ASSERT(hash_queue.back()->handle().is_blocking());
+  //   CPPUNIT_ASSERT(hash_queue.back()->handle().object() == &((*chunk_list)[i]));
+  // }
+
+  // hash_queue.perform();
+
+  // for (unsigned int i = 0; i < 20; i++) {
+  //   CPPUNIT_ASSERT(done_chunks.find(i) != done_chunks.end());
+  //   CPPUNIT_ASSERT(done_chunks[i] == hash_for_index(i));
+
+  //   // Should not be needed...
+  //   chunk_list->release(&handles[i]);
+  // }
+
+  // CLEANUP_CHUNK_LIST();
 }
 
 void

@@ -65,8 +65,10 @@ public:
   
   // Guarded functions for adding new...
 
-  void push_back(HashChunk* node);
-  void perform();
+  void                push_back(HashChunk* node);
+  void                perform();
+
+  bool                remove(HashChunk* node);
 
   slot_chunk_handle&  slot_chunk_done() { return m_slot_chunk_done; }
 

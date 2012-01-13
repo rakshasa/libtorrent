@@ -99,7 +99,7 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
       throw internal_error("Empty HashQueue is still in task schedule");
 
     m_tries = 0;
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1000);
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 100 * 1000);
   }
 
   base_type::push_back(HashQueueNode(id, hash_chunk, d));
@@ -123,7 +123,28 @@ HashQueue::remove(HashQueueNode::id_type id) {
   iterator itr = begin();
   
   while ((itr = std::find_if(itr, end(), rak::equal(id, std::mem_fun_ref(&HashQueueNode::id)))) != end()) {
-    itr->slot_done()(*itr->get_chunk()->chunk(), NULL);
+    HashChunk *hash_chunk = itr->get_chunk();
+
+    thread_base::release_global_lock();
+    bool result = m_thread_disk->hash_queue()->remove(hash_chunk);
+    thread_base::acquire_global_lock();
+
+    // The hash chunk was not found, so we need to wait until the hash
+    // check finishes.
+    if (!result) {
+      do {
+        pthread_mutex_lock(&m_done_chunks_lock);
+        bool finished = m_done_chunks.find(hash_chunk) != m_done_chunks.end();
+        pthread_mutex_unlock(&m_done_chunks_lock);
+
+        if (finished)
+          break;
+
+        usleep(10 * 1000);
+      } while (true);
+    }
+
+    itr->slot_done()(*hash_chunk->chunk(), NULL);
 
     itr->clear();
     itr = erase(itr);
@@ -149,7 +170,7 @@ HashQueue::work() {
   check();
 
   if (!empty() && !m_taskWork.is_queued())
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 1000);
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + rak::timer::from_seconds(1));
 }
 
 void
@@ -168,6 +189,7 @@ HashQueue::check() {
                                                           hash_chunk,
                                                           tr1::bind(&HashQueueNode::get_chunk, tr1::placeholders::_1)));
 
+    // TODO: Fix this...
     if (itr == end())
       throw internal_error("Could not find done chunk's node.");
 

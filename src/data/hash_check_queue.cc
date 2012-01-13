@@ -58,10 +58,37 @@ HashCheckQueue::push_back(HashChunk* hash_chunk) {
   pthread_mutex_unlock(&m_lock);
 }
 
+// erase...
+//
+// The erasing function should call slot, perhaps return a bool if we
+// deleted, or in the rare case it has already been hashed and will
+// arraive in the near future?
+//
+// We could handle this by polling the done chunks on false return
+// values.
+
 // Lock the chunk list and increment blocking only when starting the
 // checking.
 
 // No removal of entries, only clearing.
+
+bool
+HashCheckQueue::remove(HashChunk* hash_chunk) {
+  pthread_mutex_lock(&m_lock);
+
+  bool result;
+  iterator itr = std::find(begin(), end(), hash_chunk);
+
+  if (itr != end()) {
+    base_type::erase(itr);
+    result = true;
+  } else {
+    result = false;
+  }
+
+  pthread_mutex_unlock(&m_lock);
+  return result;
+}
 
 void
 HashCheckQueue::perform() {

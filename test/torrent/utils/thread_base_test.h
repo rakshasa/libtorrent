@@ -22,14 +22,18 @@ public:
   void test_interrupt();
 };
 
+struct thread_management_type {
+  thread_management_type() { CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock()); }
+  ~thread_management_type() { torrent::thread_base::release_global_lock(); }
+};
+
 #define SETUP_THREAD()                                                  \
+  thread_management_type thread_management;                             \
   torrent::thread_disk* thread_disk = new torrent::thread_disk();       \
-  torrent::thread_base::acquire_global_lock();                          \
   thread_disk->init_thread();
 
 #define CLEANUP_THREAD()                                                \
   CPPUNIT_ASSERT(wait_for_true(tr1::bind(&torrent::thread_base::is_inactive, thread_disk))); \
-  torrent::thread_base::release_global_lock();                          \
   delete thread_disk;
 
 bool wait_for_true(std::tr1::function<bool ()> test_function);

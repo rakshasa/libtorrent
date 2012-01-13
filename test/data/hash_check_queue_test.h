@@ -11,6 +11,7 @@ class HashCheckQueueTest : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_single);
   CPPUNIT_TEST(test_multiple);
+  CPPUNIT_TEST(test_erase);
 
   CPPUNIT_TEST(test_thread);
   CPPUNIT_TEST_SUITE_END();
@@ -22,6 +23,7 @@ public:
   void test_basic();
   void test_single();
   void test_multiple();
+  void test_erase();
 
   void test_thread();
 };

@@ -23,6 +23,9 @@ typedef std::map<int, torrent::HashString> done_chunks_type;
 
 static void
 chunk_done(done_chunks_type* done_chunks, torrent::ChunkHandle handle, const char* hash_value) {
+  if (hash_value == NULL)
+    return;
+
   (*done_chunks)[handle.index()] = *torrent::HashString::cast_from(hash_value);
 }
 
@@ -66,9 +69,8 @@ HashQueueTest::test_single() {
   SETUP_THREAD();
   thread_disk->start_thread();
 
-  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
-
   done_chunks_type done_chunks;
+  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
 
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
   hash_queue->push_back(handle_0, NULL, tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2));
@@ -84,6 +86,7 @@ HashQueueTest::test_single() {
 
   chunk_list->release(&handle_0);
   
+  CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
   delete hash_queue;
 
   thread_disk->stop_thread();
@@ -97,11 +100,9 @@ HashQueueTest::test_multiple() {
   SETUP_THREAD();
   thread_disk->start_thread();
 
-  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
-
-  done_chunks_type done_chunks;
-
   handle_list handles;
+  done_chunks_type done_chunks;
+  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
 
   for (unsigned int i = 0; i < 20; i++) {
     handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
@@ -122,6 +123,7 @@ HashQueueTest::test_multiple() {
     chunk_list->release(&handles[i]);
   }
   
+  CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
   delete hash_queue;
 
   thread_disk->stop_thread();
@@ -129,3 +131,43 @@ HashQueueTest::test_multiple() {
   CLEANUP_CHUNK_LIST();
 }
 
+void
+HashQueueTest::test_erase() {
+  SETUP_CHUNK_LIST();
+  SETUP_THREAD();
+  thread_disk->start_thread();
+
+  torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+
+  handle_list handles;
+  done_chunks_type done_chunks;
+
+  for (unsigned int i = 0; i < 20; i++) {
+    handles.push_back(chunk_list->get(i, torrent::ChunkList::get_blocking));
+    hash_queue->push_back(handles.back(), NULL, tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2));
+
+    CPPUNIT_ASSERT(hash_queue->size() == i + 1);
+  }
+
+  hash_queue->remove(NULL);
+  CPPUNIT_ASSERT(hash_queue->empty());
+
+  for (unsigned int i = 0; i < 20; i++) {
+    chunk_list->release(&handles[i]);
+  }
+  
+  // TODO: Even if we erase, this might still have a chunk in queue?
+
+  CPPUNIT_ASSERT(thread_disk->hash_queue()->empty());
+  delete hash_queue;
+
+  thread_disk->stop_thread();
+  CLEANUP_THREAD();
+  CLEANUP_CHUNK_LIST();
+}
+
+// Test erase of different id's.
+
+// Stress test erase with running thread.
+
+// Current code doesn't work well if we remove a hash...
