@@ -29,6 +29,12 @@ chunk_done(done_chunks_type* done_chunks, torrent::ChunkHandle handle, const cha
   (*done_chunks)[handle.index()] = *torrent::HashString::cast_from(hash_value);
 }
 
+bool
+check_for_chunk_done(torrent::HashQueue* hash_queue, done_chunks_type* done_chunks, int index) {
+  hash_queue->work();
+  return done_chunks->find(index) != done_chunks->end();
+}
+
 static torrent::Poll* create_select_poll() { return torrent::PollSelect::create(256); }
 
 static void do_nothing() {}
@@ -81,7 +87,7 @@ HashQueueTest::test_single() {
 
   hash_queue->work();
 
-  CPPUNIT_ASSERT(done_chunks.find(0) != done_chunks.end());
+  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&check_for_chunk_done, hash_queue, &done_chunks, 0)));
   CPPUNIT_ASSERT(done_chunks[0] == hash_for_index(0));
 
   chunk_list->release(&handle_0);
@@ -113,10 +119,8 @@ HashQueueTest::test_multiple() {
     CPPUNIT_ASSERT(hash_queue->back().handle().object() == &((*chunk_list)[i]));
   }
 
-  hash_queue->work();
-
   for (unsigned int i = 0; i < 20; i++) {
-    CPPUNIT_ASSERT(done_chunks.find(i) != done_chunks.end());
+    CPPUNIT_ASSERT(wait_for_true(tr1::bind(&check_for_chunk_done, hash_queue, &done_chunks, i)));
     CPPUNIT_ASSERT(done_chunks[i] == hash_for_index(i));
 
     // Should not be needed...
@@ -148,6 +152,8 @@ HashQueueTest::test_erase() {
 
     CPPUNIT_ASSERT(hash_queue->size() == i + 1);
   }
+
+  // Not working properly...
 
   hash_queue->remove(NULL);
   CPPUNIT_ASSERT(hash_queue->empty());
