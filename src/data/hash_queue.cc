@@ -89,7 +89,7 @@ HashQueue::HashQueue(thread_disk* thread) :
 // the next work cycle gets stuff done.
 void
 HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d) {
-  if (!handle.is_valid())
+  if (!handle.is_loaded())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
   HashChunk* hash_chunk = new HashChunk(handle);
@@ -98,7 +98,6 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
     if (m_taskWork.is_queued())
       throw internal_error("Empty HashQueue is still in task schedule");
 
-    m_tries = 0;
     priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 100 * 1000);
   }
 
@@ -132,21 +131,22 @@ HashQueue::remove(HashQueueNode::id_type id) {
     // The hash chunk was not found, so we need to wait until the hash
     // check finishes.
     if (!result) {
-      do {
-        pthread_mutex_lock(&m_done_chunks_lock);
-        bool finished = m_done_chunks.find(hash_chunk) != m_done_chunks.end();
+      pthread_mutex_lock(&m_done_chunks_lock);
+      done_chunks_type::iterator done_itr;
+
+      while ((done_itr = m_done_chunks.find(hash_chunk)) == m_done_chunks.end()) {
         pthread_mutex_unlock(&m_done_chunks_lock);
+        usleep(1000);
+        pthread_mutex_lock(&m_done_chunks_lock);
+      }
 
-        if (finished)
-          break;
-
-        usleep(10 * 1000);
-      } while (true);
+      m_done_chunks.erase(done_itr);
+      pthread_mutex_unlock(&m_done_chunks_lock);
     }
 
     itr->slot_done()(*hash_chunk->chunk(), NULL);
-
     itr->clear();
+
     itr = erase(itr);
   }
 
@@ -209,6 +209,5 @@ HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
   m_done_chunks[hash_chunk] = hash_value;
   pthread_mutex_unlock(&m_done_chunks_lock);
 }
-
 
 }

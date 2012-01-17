@@ -43,8 +43,19 @@
 
 namespace torrent {
 
+HashCheckQueue::HashCheckQueue() {
+  pthread_mutex_init(&m_lock, NULL);
+}
+
+HashCheckQueue::~HashCheckQueue() {
+  pthread_mutex_destroy(&m_lock);
+}
+
 void
 HashCheckQueue::push_back(HashChunk* hash_chunk) {
+  if (hash_chunk == NULL || !hash_chunk->chunk()->is_loaded() || !hash_chunk->chunk()->is_blocking())
+    throw internal_error("Invalid hash chunk passed to HashCheckQueue.");
+
   pthread_mutex_lock(&m_lock);
 
   // Set blocking...(? this needs to be possible to do after getting
@@ -92,18 +103,14 @@ HashCheckQueue::remove(HashChunk* hash_chunk) {
 
 void
 HashCheckQueue::perform() {
-  // Use an atomic/safer way of checking?
-  // if (empty())
-  //   return;
-
   pthread_mutex_lock(&m_lock);
 
   while (!empty()) {
     HashChunk* hash_chunk = base_type::front();
     base_type::pop_front();
     
-    if (!hash_chunk->chunk()->is_valid())
-      throw internal_error("HashCheckQueue::perform(): !entry.node->is_valid().");
+    if (!hash_chunk->chunk()->is_loaded())
+      throw internal_error("HashCheckQueue::perform(): !entry.node->is_loaded().");
 
     pthread_mutex_unlock(&m_lock);
 

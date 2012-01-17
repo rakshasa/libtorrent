@@ -63,6 +63,9 @@ public:
   using base_type::front;
   using base_type::back;
   
+  HashCheckQueue();
+  ~HashCheckQueue();
+
   // Guarded functions for adding new...
 
   void                push_back(HashChunk* node);
@@ -73,7 +76,6 @@ public:
   slot_chunk_handle&  slot_chunk_done() { return m_slot_chunk_done; }
 
 private:
-  iterator            m_current;
   slot_chunk_handle   m_slot_chunk_done;
   pthread_mutex_t     m_lock;
 };

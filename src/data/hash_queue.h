@@ -75,7 +75,7 @@ public:
   using base_type::back;
 
   HashQueue(thread_disk* thread);
-  ~HashQueue() { clear(); }
+  ~HashQueue() { clear(); pthread_mutex_destroy(&m_done_chunks_lock); }
 
   void                push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d);
 
@@ -92,12 +92,10 @@ private:
   void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
 
   thread_disk*        m_thread_disk;
+  rak::priority_item  m_taskWork;
 
   done_chunks_type    m_done_chunks;
-  pthread_mutex_t     m_done_chunks_lock;
-
-  uint16_t            m_tries;
-  rak::priority_item  m_taskWork;
+  pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
 };
 
 }

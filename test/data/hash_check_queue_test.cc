@@ -21,8 +21,6 @@ pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void
 chunk_done(done_chunks_type* done_chunks, torrent::HashChunk* hash_chunk, const torrent::HashString& hash_value) {
-  // std::cout << std::endl << "done chunk: " << handle.index() << " " << torrent::hash_string_to_hex_str(hash_value) << std::endl;
-  
   pthread_mutex_lock(&done_chunks_lock);
   (*done_chunks)[hash_chunk->handle().index()] = hash_value;
   pthread_mutex_unlock(&done_chunks_lock);

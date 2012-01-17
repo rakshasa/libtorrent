@@ -86,7 +86,7 @@ HashChunk::remaining_part(Chunk::iterator itr, uint32_t pos) {
 
 inline uint32_t
 HashChunk::remaining() {
-  if (!m_chunk.is_valid())
+  if (!m_chunk.is_loaded())
     throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
 
   return m_chunk.chunk()->chunk_size() - m_position;

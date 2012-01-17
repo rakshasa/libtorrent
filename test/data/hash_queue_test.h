@@ -9,6 +9,7 @@ class HashQueueTest : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_single);
   CPPUNIT_TEST(test_multiple);
   CPPUNIT_TEST(test_erase);
+  CPPUNIT_TEST(test_erase_stress);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -21,5 +22,6 @@ public:
   void test_single();
   void test_multiple();
   void test_erase();
+  void test_erase_stress();
 };
 
