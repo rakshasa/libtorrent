@@ -41,6 +41,7 @@
 
 #include <torrent/common.h>
 #include <torrent/bitfield.h>
+#include <torrent/hash_string.h>
 #include <torrent/utils/ranges.h>
 
 namespace torrent {
@@ -59,6 +60,8 @@ public:
   typedef std::tr1::function<function_void> slot_void;
 
   download_data() : m_wanted_chunks(0) {}
+
+  const HashString&      hash() const                  { return m_hash; }
 
   bool                   is_partially_done() const     { return m_wanted_chunks == 0; }
   bool                   is_not_partially_done() const { return m_wanted_chunks != 0; }
@@ -85,20 +88,24 @@ protected:
   friend class DownloadWrapper;
   friend class FileList;
 
+  HashString&            mutable_hash()                { return m_hash; }
+
   Bitfield*              mutable_completed_bitfield()  { return &m_completed_bitfield; }
   Bitfield*              mutable_untouched_bitfield()  { return &m_untouched_bitfield; }
 
   priority_ranges*       mutable_high_priority()       { return &m_high_priority; }
   priority_ranges*       mutable_normal_priority()     { return &m_normal_priority; }
 
-  void                update_wanted_chunks()        { m_wanted_chunks = calc_wanted_chunks(); }
-  void                set_wanted_chunks(uint32_t n) { m_wanted_chunks = n; }
+  void                   update_wanted_chunks()        { m_wanted_chunks = calc_wanted_chunks(); }
+  void                   set_wanted_chunks(uint32_t n) { m_wanted_chunks = n; }
 
   void                   call_download_done()          { if (m_slot_download_done) m_slot_download_done(); }
   void                   call_partially_done()         { if (m_slot_partially_done) m_slot_partially_done(); }
   void                   call_partially_restarted()    { if (m_slot_partially_restarted) m_slot_partially_restarted(); }
 
 private:
+  HashString             m_hash;
+
   Bitfield               m_completed_bitfield;
   Bitfield               m_untouched_bitfield;
 

@@ -112,6 +112,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   info()->slot_left() = sigc::mem_fun(m_main->file_list(), &FileList::left_bytes);
   info()->slot_completed() = sigc::mem_fun(m_main->file_list(), &FileList::completed_bytes);
 
+  file_list()->mutable_data()->mutable_hash().assign(hash.c_str());
+
   m_main->slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
   // Info hash must be calculate from here on.

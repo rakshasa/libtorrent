@@ -42,6 +42,7 @@
 #include "rak/timer.h"
 #include "torrent/exceptions.h"
 #include "torrent/download_info.h"
+#include "torrent/data/download_data.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,7 +176,25 @@ log_group::internal_print_info(const DownloadInfo* info, const char* fmt, ...) {
   char* first = hash_string_to_hex(info->hash(), buffer);
 
   va_start(ap, fmt);
-  int count = vsnprintf(first, 4096 - (first - buffer) , fmt, ap);
+  int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);
+  va_end(ap);
+
+  if (count >= 0)
+    std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
+                                             tr1::placeholders::_1, buffer,
+                                             std::min<unsigned int>(count, buffer_size - 1),
+                                             std::distance(log_groups.begin(), this)));
+}
+
+void
+log_group::internal_print_data(const download_data* data, const char* fmt, ...) {
+  va_list ap;
+  unsigned int buffer_size = 4096;
+  char buffer[buffer_size];
+  char* first = hash_string_to_hex(data->hash(), buffer);
+
+  va_start(ap, fmt);
+  int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);
   va_end(ap);
 
   if (count >= 0)
@@ -217,13 +236,13 @@ log_initialize() {
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_CONNECTION_CRITICAL);
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_DHT_CRITICAL);
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_RPC_CRITICAL);
-  LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_STORAGE_CRITICAL);
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_THREAD_CRITICAL);
   LOG_CHILDREN_SUBGROUP(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
 
   // Some groups are too verbose, and as such the parent is matched
   // against the log output level one above.
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_PEER_CRITICAL);
+  LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_STORAGE_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TRACKER_CRITICAL);
 
   std::sort(log_children.begin(), log_children.end());
