@@ -154,7 +154,7 @@ DhtServer::start(int port) {
     throw;
   }
 
-  m_taskTimeout.set_slot(rak::mem_fn(this, &DhtServer::receive_timeout));
+  m_taskTimeout.slot() = std::tr1::bind(&DhtServer::receive_timeout, this);
 
   m_uploadNode.set_list_iterator(m_uploadThrottle->end());
   m_uploadNode.slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_up_activate));

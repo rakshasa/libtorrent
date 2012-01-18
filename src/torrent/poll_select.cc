@@ -38,6 +38,7 @@
 
 #include <algorithm>
 
+#include <stdexcept>
 #include <unistd.h>
 #include <sys/time.h>
 
@@ -47,9 +48,14 @@
 #include "event.h"
 #include "exceptions.h"
 #include "poll_select.h"
-#include "thread_base.h"
+#include "torrent.h"
+#include "rak/timer.h"
+#include "rak/error_number.h"
+#include "utils/thread_base.h"
 
 namespace torrent {
+
+Poll::slot_poll Poll::m_slot_create_poll;
 
 template <typename _Operation>
 struct poll_check_t {
@@ -71,8 +77,8 @@ struct poll_check_t {
       // We waive the global lock after an event has been processed in
       // order to ensure that 's' doesn't get removed before the op is
       // called.
-      if ((m_poll->flags() & Poll::flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
-        ThreadBase::waive_global_lock();
+      if ((m_poll->flags() & Poll::flag_waive_global_lock) && thread_base::global_queue_size() != 0)
+        thread_base::waive_global_lock();
     }
   }
 
@@ -201,6 +207,54 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   m_writeSet->prepare();
   std::for_each(m_writeSet->begin(), m_writeSet->end(),
 		poll_check(this, writeSet, std::mem_fun(&Event::event_write)));
+}
+
+void
+PollSelect::do_poll(int64_t timeout_usec, int flags) {
+  if (!(flags & poll_worker_thread))
+    torrent::perform();
+
+  rak::timer timeout = rak::timer(timeout_usec);
+
+  if (!(flags & poll_worker_thread))
+    timeout = std::min(timeout, rak::timer(torrent::next_timeout()));
+
+  timeout += 10;
+
+  uint32_t set_size = open_max();
+
+  char read_set_buffer[set_size];
+  char write_set_buffer[set_size];
+  char error_set_buffer[set_size];
+  fd_set* read_set = (fd_set*)read_set_buffer;
+  fd_set* write_set = (fd_set*)write_set_buffer;
+  fd_set* error_set = (fd_set*)error_set_buffer;
+  std::memset(read_set_buffer, 0, set_size);
+  std::memset(write_set_buffer, 0, set_size);
+  std::memset(error_set_buffer, 0, set_size);
+
+  unsigned int maxFd = fdset(read_set, write_set, error_set);
+  timeval t = timeout.tval();
+
+  if (!(flags & poll_worker_thread)) {
+    thread_base::entering_main_polling();
+    thread_base::release_global_lock();
+  }
+
+  int status = select(maxFd + 1, read_set, write_set, error_set, &t);
+
+  if (!(flags & poll_worker_thread)) {
+    thread_base::leaving_main_polling();
+    thread_base::acquire_global_lock();
+  }
+
+  if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
+    throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
+
+  if (!(flags & poll_worker_thread))
+    torrent::perform();
+
+  perform(read_set, write_set, error_set);
 }
 
 inline static void

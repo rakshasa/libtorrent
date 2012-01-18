@@ -248,6 +248,57 @@ public:
 
   uint32_t            m_flags;
 
+#ifdef HAVE_CXX11
+  value_type&         _value()             { return t_value; }
+  const value_type&   _value() const       { return t_value; }
+  string_type&        _string()            { return t_string; }
+  const string_type&  _string() const      { return t_string; }
+  list_type&          _list()              { return t_list; }
+  const list_type&    _list() const        { return t_list; }
+  map_type&           _map()               { return *t_map; }
+  const map_type&     _map() const         { return *t_map; }
+  map_ptr_type&       _map_ptr()           { return t_map; }
+  const map_ptr_type& _map_ptr() const     { return t_map; }
+  dict_key_type&       _dict_key()         { return t_dict_key; }
+  const dict_key_type& _dict_key() const   { return t_dict_key; }
+  raw_object&         _raw_object()        { return t_raw_object; }
+  const raw_object&   _raw_object() const  { return t_raw_object; }
+  raw_bencode&        _raw_bencode()       { return t_raw_bencode; }
+  const raw_bencode&  _raw_bencode() const { return t_raw_bencode; }
+  raw_string&         _raw_string()        { return t_raw_string; }
+  const raw_string&   _raw_string() const  { return t_raw_string; }
+  raw_list&           _raw_list()          { return t_raw_list; }
+  const raw_list&     _raw_list() const    { return t_raw_list; }
+  raw_map&            _raw_map()           { return t_raw_map; }
+  const raw_map&      _raw_map() const     { return t_raw_map; }
+
+  union pod_types {
+    value_type    t_value;
+    raw_object    t_raw_object;
+    raw_bencode   t_raw_bencode;
+    raw_string    t_raw_string;
+    raw_list      t_raw_list;
+    raw_map       t_raw_map;
+  };
+
+  union {
+    pod_types     t_pod;
+
+    value_type    t_value;
+    string_type   t_string;
+    list_type     t_list;
+    map_type*     t_map;
+    dict_key_type t_dict_key;
+    raw_object    t_raw_object;
+    raw_bencode   t_raw_bencode;
+    raw_string    t_raw_string;
+    raw_list      t_raw_list;
+    raw_map       t_raw_map;
+  };
+
+#else
+  // #error "WTF we're testing C++11 now."
+
   value_type&         _value()             { return reinterpret_cast<value_type&>(t_pod); }
   const value_type&   _value() const       { return reinterpret_cast<const value_type&>(t_pod); }
   string_type&        _string()            { return reinterpret_cast<string_type&>(t_string); }
@@ -283,6 +334,7 @@ public:
     char      t_list[sizeof(list_type)];
     char      t_dict_key[sizeof(dict_key_type)];
   };
+#endif
 };
 
 inline

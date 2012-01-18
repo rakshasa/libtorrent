@@ -39,8 +39,7 @@
 
 #include <string>
 #include <vector>
-#include <rak/error_number.h>
-#include <rak/functional.h>
+#include <tr1/functional>
 
 #include "chunk.h"
 #include "chunk_handle.h"
@@ -59,9 +58,9 @@ public:
   typedef std::vector<ChunkListNode>          base_type;
   typedef std::vector<ChunkListNode*>         Queue;
 
-  typedef rak::mem_fun2<FileList, Chunk*, uint32_t, int>           SlotCreateChunk;
-  typedef rak::const_mem_fun0<FileList, uint64_t>                  SlotFreeDiskspace;
-  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> SlotStorageError;
+  typedef std::tr1::function<Chunk* (uint32_t, int)>    slot_chunk_index;
+  typedef std::tr1::function<uint64_t ()>               slot_value;
+  typedef std::tr1::function<void (const std::string&)> slot_string;
 
   using base_type::value_type;
   using base_type::reference;
@@ -75,6 +74,7 @@ public:
   using base_type::end;
   using base_type::size;
   using base_type::empty;
+  using base_type::operator[];
 
   static const int sync_all          = (1 << 0);
   static const int sync_force        = (1 << 1);
@@ -84,12 +84,16 @@ public:
   static const int sync_ignore_error = (1 << 5);
 
   static const int get_writable      = (1 << 0);
-  static const int get_dont_log      = (1 << 1);
+  static const int get_blocking      = (1 << 1);
+  static const int get_dont_log      = (1 << 2);
+  static const int get_nonblock      = (1 << 3);
 
   static const int flag_active       = (1 << 0);
 
   ChunkList() : m_manager(NULL), m_flags(0), m_chunk_size(0) {}
   ~ChunkList() { clear(); }
+
+  int                 flags() const                       { return m_flags; }
 
   void                set_flags(int flags)                { m_flags |= flags; }
   void                unset_flags(int flags)              { m_flags &= ~flags; }
@@ -117,9 +121,9 @@ public:
   // Returns the number of failed syncs.
   uint32_t            sync_chunks(int flags);
 
-  void                slot_storage_error(SlotStorageError s)   { m_slotStorageError = s; }
-  void                slot_create_chunk(SlotCreateChunk s)     { m_slotCreateChunk = s; }
-  void                slot_free_diskspace(SlotFreeDiskspace s) { m_slotFreeDiskspace = s; }
+  slot_string&        slot_storage_error()  { return m_slot_storage_error; }
+  slot_chunk_index&   slot_create_chunk()   { return m_slot_create_chunk; }
+  slot_value&         slot_free_diskspace() { return m_slot_free_diskspace; }
 
   typedef std::pair<iterator, Chunk::iterator> chunk_address_result;
 
@@ -144,9 +148,9 @@ private:
   int                 m_flags;
   uint32_t            m_chunk_size;
 
-  SlotStorageError    m_slotStorageError;
-  SlotCreateChunk     m_slotCreateChunk;
-  SlotFreeDiskspace   m_slotFreeDiskspace;
+  slot_string         m_slot_storage_error;
+  slot_chunk_index    m_slot_create_chunk;
+  slot_value          m_slot_free_diskspace;
 };
 
 }

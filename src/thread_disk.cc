@@ -34,47 +34,46 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_CHUNK_HANDLE_H
-#define LIBTORRENT_DATA_CHUNK_HANDLE_H
+#include "config.h"
 
-#include <rak/error_number.h>
+#include <rak/timer.h>
 
-#include "chunk_list_node.h"
+#include "thread_disk.h"
+
+#include "torrent/exceptions.h"
+#include "torrent/poll.h"
+#include "torrent/utils/log.h"
 
 namespace torrent {
 
-class ChunkListNode;
+void
+thread_disk::init_thread() {
+  if (!Poll::slot_create_poll())
+    throw internal_error("thread_disk::init_thread(): Poll::slot_create_poll() not valid.");
 
-class ChunkHandle {
-public:
-  ChunkHandle(ChunkListNode* c = NULL, bool wr = false, bool blk = false) :
-    m_node(c), m_writable(wr), m_blocking(blk) {}
-
-  bool                is_valid() const                      { return m_node != NULL; }
-  bool                is_loaded() const                     { return m_node != NULL && m_node->is_valid(); }
-  bool                is_writable() const                   { return m_writable; }
-  bool                is_blocking() const                   { return m_blocking; }
-  
-  void                clear()                               { m_node = NULL; m_writable = false; m_blocking = false; }
-
-  rak::error_number   error_number() const                  { return m_errorNumber; }
-  void                set_error_number(rak::error_number e) { m_errorNumber = e; }
-
-  ChunkListNode*      object() const                        { return m_node; }
-  Chunk*              chunk() const                         { return m_node->chunk(); }
-
-  uint32_t            index() const                         { return m_node->index(); }
-
-  static ChunkHandle  from_error(rak::error_number e)       { ChunkHandle h; h.set_error_number(e); return h; }
-
-private:
-  ChunkListNode*      m_node;
-  bool                m_writable;
-  bool                m_blocking;
-
-  rak::error_number   m_errorNumber;
-};
-
+  m_poll = Poll::slot_create_poll()();
+  m_state = STATE_INITIALIZED;
 }
 
-#endif
+void
+thread_disk::call_events() {
+  lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Got thread_disk tick.");
+
+  // TODO: Consider moving this into timer events instead.
+  if ((m_flags & flag_do_shutdown)) {
+    if ((m_flags & flag_did_shutdown))
+      throw internal_error("Already trigged shutdown.");
+
+    __sync_or_and_fetch(&m_flags, flag_did_shutdown);
+    throw shutdown_exception();
+  }
+
+  m_hash_queue.perform();
+}
+
+int64_t
+thread_disk::next_timeout_usec() {
+  return rak::timer::from_seconds(10).usec();
+}
+
+}

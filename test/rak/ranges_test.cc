@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#import "ranges_test.h"
+#include "ranges_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(RangesTest);
 

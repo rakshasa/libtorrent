@@ -131,7 +131,7 @@ DhtRouter::start(int port) {
   m_server.start(port);
 
   // Set timeout slot and schedule it to be called immediately for initial bootstrapping if necessary.
-  m_taskTimeout.set_slot(rak::mem_fn(this, &DhtRouter::receive_timeout_bootstrap));
+  m_taskTimeout.slot() = std::tr1::bind(&DhtRouter::receive_timeout_bootstrap, this);
   priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(1)).round_seconds());
 }
 
@@ -410,7 +410,7 @@ DhtRouter::receive_timeout_bootstrap() {
     delete m_contacts;
     m_contacts = NULL;
 
-    m_taskTimeout.set_slot(rak::mem_fn(this, &DhtRouter::receive_timeout));
+    m_taskTimeout.slot() = std::tr1::bind(&DhtRouter::receive_timeout, this);
 
     if (!m_numRefresh) {
       // If we're still in the startup, do the usual refreshing too.

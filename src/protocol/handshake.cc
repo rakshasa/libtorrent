@@ -100,7 +100,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_writeBuffer.reset();      
 
   m_taskTimeout.clear_time();
-  m_taskTimeout.set_slot(rak::bind_mem_fn(m, &HandshakeManager::receive_timeout, this));
+  m_taskTimeout.slot() = std::tr1::bind(&HandshakeManager::receive_timeout, m, this);
 }
 
 Handshake::~Handshake() {

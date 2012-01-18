@@ -143,6 +143,21 @@ AC_DEFUN([TORRENT_WITH_KQUEUE], [
 ])
 
 
+AC_DEFUN([TORRENT_WITHOUT_KQUEUE], [
+  AC_ARG_WITH(kqueue,
+    [  --without-kqueue         Do not check for kqueue support.],
+    [
+      if test "$withval" = "yes"; then
+        TORRENT_CHECK_KQUEUE
+        TORRENT_CHECK_KQUEUE_SOCKET_ONLY
+      fi
+    ], [
+        TORRENT_CHECK_KQUEUE
+        TORRENT_CHECK_KQUEUE_SOCKET_ONLY
+    ])
+])
+
+
 AC_DEFUN([TORRENT_WITHOUT_VARIABLE_FDSET], [
   AC_ARG_WITH(variable-fdset,
 
@@ -372,6 +387,30 @@ AC_DEFUN([TORRENT_CHECK_TR1], [
     [
       AC_MSG_RESULT(yes)
       AC_DEFINE(HAVE_TR1, 1, Define to 1 if your C++ library supports the extensions from Technical Report 1)
+    ],
+    [
+      AC_MSG_RESULT(no)
+    ]
+  )
+
+  AC_LANG_POP(C++)
+])
+
+AC_DEFUN([TORRENT_CHECK_CXX11], [
+  AC_LANG_PUSH(C++)
+  AC_MSG_CHECKING(for C++11 support)
+
+  AC_COMPILE_IFELSE(
+    [[#include <functional>
+      #include <unordered_map>
+      class Foo;
+      typedef std::unordered_map<Foo*, int> Bar;
+
+      union test { Bar b1; };
+    ]],
+    [
+      AC_MSG_RESULT(yes)
+      AC_DEFINE(HAVE_CXX11, 1, Define to 1 if your C++ compiler has support for C++11.)
     ],
     [
       AC_MSG_RESULT(no)

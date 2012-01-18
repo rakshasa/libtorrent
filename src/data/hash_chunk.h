@@ -59,6 +59,7 @@ public:
   void                set_chunk(ChunkHandle h)                { m_position = 0; m_chunk = h; m_hash.init(); }
 
   ChunkHandle*        chunk()                                 { return &m_chunk; }
+  ChunkHandle&        handle()                                { return m_chunk; }
   void                hash_c(char* buffer)                    { m_hash.final_c(buffer); }
 
   // If force is true, then the return value is always true.
@@ -85,7 +86,7 @@ HashChunk::remaining_part(Chunk::iterator itr, uint32_t pos) {
 
 inline uint32_t
 HashChunk::remaining() {
-  if (!m_chunk.is_valid())
+  if (!m_chunk.is_loaded())
     throw internal_error("HashChunk::remaining(...) called on an invalid chunk");
 
   return m_chunk.chunk()->chunk_size() - m_position;

@@ -59,7 +59,7 @@
 
 #include "manager.h"
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -69,7 +69,6 @@ Manager::Manager() :
   m_downloadManager(new DownloadManager),
   m_fileManager(new FileManager),
   m_handshakeManager(new HandshakeManager),
-  m_hashQueue(new HashQueue),
   m_resourceManager(new ResourceManager),
 
   m_chunkManager(new ChunkManager),
@@ -84,7 +83,9 @@ Manager::Manager() :
 
   m_ticks(0) {
 
-  m_taskTick.set_slot(rak::mem_fn(this, &Manager::receive_tick));
+  m_hashQueue = new HashQueue(&m_main_thread_disk);
+
+  m_taskTick.slot() = std::tr1::bind(&Manager::receive_tick, this);
 
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 

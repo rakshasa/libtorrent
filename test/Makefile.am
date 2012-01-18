@@ -17,10 +17,19 @@ LibTorrentTest_LDADD = \
 	../src/utils/libsub_utils.la
 
 LibTorrentTest_SOURCES = \
+	../src/thread_disk.cc \
+	../src/thread_disk.h \
+	\
 	rak/allocators_test.cc \
 	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
+	data/chunk_list_test.cc \
+	data/chunk_list_test.h \
+	data/hash_check_queue_test.cc \
+	data/hash_check_queue_test.h \
+	data/hash_queue_test.cc \
+	data/hash_queue_test.h \
 	torrent/extents_test.cc \
 	torrent/extents_test.h \
 	torrent/http_test.cc \
@@ -43,6 +52,8 @@ LibTorrentTest_SOURCES = \
 	torrent/utils/log_test.h \
 	torrent/utils/option_strings_test.cc \
 	torrent/utils/option_strings_test.h \
+	torrent/utils/thread_base_test.cc \
+	torrent/utils/thread_base_test.h \
 	tracker/tracker_http_test.cc \
 	tracker/tracker_http_test.h \
 	main.cc

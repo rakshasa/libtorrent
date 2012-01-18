@@ -63,6 +63,7 @@
 #include "download_wrapper.h"
 
 namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -73,13 +74,13 @@ DownloadWrapper::DownloadWrapper() :
   m_hashChecker(NULL),
   m_connectionType(0) {
 
-  m_main->delay_download_done().set_slot(rak::mem_fn(data(), &download_data::call_download_done));
+  m_main->delay_download_done().slot() = std::tr1::bind(&download_data::call_download_done, data());
 
   m_main->tracker_list()->set_info(info());
   m_main->tracker_controller()->slot_success() = std::bind(&DownloadWrapper::receive_tracker_success, this, std::placeholders::_1);
   m_main->tracker_controller()->slot_failure() = std::bind(&DownloadWrapper::receive_tracker_failed, this, std::placeholders::_1);
 
-  m_main->chunk_list()->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
+  m_main->chunk_list()->slot_storage_error() = tr1::bind(&DownloadWrapper::receive_storage_error, this, tr1::placeholders::_1);
 }
 
 DownloadWrapper::~DownloadWrapper() {
@@ -111,6 +112,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   info()->slot_left() = sigc::mem_fun(m_main->file_list(), &FileList::left_bytes);
   info()->slot_completed() = sigc::mem_fun(m_main->file_list(), &FileList::completed_bytes);
 
+  file_list()->mutable_data()->mutable_hash().assign(hash.c_str());
+
   m_main->slot_hash_check_add(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 
   // Info hash must be calculate from here on.
@@ -120,7 +123,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   m_hashChecker->slot_check(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
 //   m_hashChecker->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
 
-  m_hashChecker->delay_checked().set_slot(rak::mem_fn(this, &DownloadWrapper::receive_initial_hash));
+  m_hashChecker->delay_checked().slot() = std::tr1::bind(&DownloadWrapper::receive_initial_hash, this);
 }
 
 void
@@ -245,8 +248,11 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
 
 void
 DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
-  // Using HashTorrent's queue temporarily.
-  hash_queue()->push_back(handle, rak::make_mem_fun(this, &DownloadWrapper::receive_hash_done));
+  // TODO: Hack...
+  ChunkHandle new_handle = m_main->chunk_list()->get(handle.index(), ChunkList::get_blocking);
+  m_main->chunk_list()->release(&handle);
+
+  hash_queue()->push_back(new_handle, this, tr1::bind(&DownloadWrapper::receive_hash_done, this, tr1::placeholders::_1, tr1::placeholders::_2));
 }
 
 void

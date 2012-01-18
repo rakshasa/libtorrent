@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <rak/address_info.h>
-#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "exceptions.h"
@@ -108,6 +107,9 @@ initialize(Poll* poll) {
 
   manager->connection_manager()->set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
+
+  manager->main_thread_disk()->init_thread();
+  manager->main_thread_disk()->start_thread();
 }
 
 // Clean up and close stuff. Stopping all torrents and waiting for
@@ -116,6 +118,8 @@ void
 cleanup() {
   if (manager == NULL)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
+
+  manager->main_thread_disk()->stop_thread_wait();
 
   delete manager;
   manager = NULL;
@@ -135,7 +139,7 @@ perform() {
     taskScheduler.pop();
 
     v->clear_time();
-    v->call();
+    v->slot()();
   }
 
   // Update the timer again to ensure we get accurate triggering of
@@ -180,41 +184,6 @@ const Rate* up_rate() { return manager->upload_throttle()->rate(); }
 const char* version() { return VERSION; }
 
 uint32_t hash_queue_size() { return manager->hash_queue()->size(); }
-uint32_t hash_read_ahead() { return manager->hash_queue()->read_ahead(); }
-
-void
-set_hash_read_ahead(uint32_t bytes) {
-  if (bytes < (1 << 20) || bytes > (64 << 20))
-    throw input_error("Hash read ahead must be between 1 and 64 MB.");
-
-  manager->hash_queue()->set_read_ahead(bytes);
-}
-
-uint32_t
-hash_interval() {
-  return manager->hash_queue()->interval();
-}
-
-void
-set_hash_interval(uint32_t usec) {
-  if (usec < (1 * 1000) || usec > (1000 * 1000))
-    throw input_error("Hash interval must be between 1 and 1000 ms.");
-
-  manager->hash_queue()->set_interval(usec);
-}
-
-uint32_t
-hash_max_tries() {
-  return manager->hash_queue()->max_tries();
-}
-
-void
-set_hash_max_tries(uint32_t tries) {
-  if (tries > 100)
-    throw input_error("Hash max tries must be between 0 and 100.");
-
-  manager->hash_queue()->set_max_tries(tries);
-}  
 
 EncodingList*
 encoding_list() {

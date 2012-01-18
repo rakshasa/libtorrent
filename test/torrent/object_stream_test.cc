@@ -3,8 +3,8 @@
 #include <sstream>
 #include <torrent/object.h>
 
-#import "object_stream_test.h"
-#import "object_test_utils.h"
+#include "object_stream_test.h"
+#include "object_test_utils.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectStreamTest);
 
@@ -81,7 +81,7 @@ ObjectStreamTest::testReadBencodeC() {
 
 bool object_write_bencode(const torrent::Object& obj, const char* original) {
   try {
-    char buffer[1023];
+    char buffer[1025];
     char* last = torrent::object_write_bencode(buffer, buffer + 1024, &obj).first;
     return std::strncmp(buffer, original, std::distance(buffer, last)) == 0;
 

@@ -115,10 +115,19 @@ enum {
 
 #define lt_log_print(log_group, ...) { if (torrent::log_groups[log_group].valid()) torrent::log_groups[log_group].internal_print(__VA_ARGS__); }
 #define lt_log_print_info(log_group, log_info, ...) { if (torrent::log_groups[log_group].valid()) torrent::log_groups[log_group].internal_print_info(log_info, __VA_ARGS__); }
+#define lt_log_print_data(log_group, log_data, ...) { if (torrent::log_groups[log_group].valid()) torrent::log_groups[log_group].internal_print_data(log_data, __VA_ARGS__); }
 #define lt_log_is_valid(log_group) (torrent::log_groups[log_group].valid())
+
+#define lt_log_print_locked(log_group, ...)                             \
+    if (torrent::log_groups[log_group].valid()) {                       \
+      acquire_global_lock();                                            \
+      torrent::log_groups[log_group].internal_print(__VA_ARGS__);       \
+      release_global_lock();                                            \
+    }
 
 struct log_cached_outputs;
 class DownloadInfo;
+class download_data;
 
 typedef std::tr1::function<void (const char*, unsigned int, int)> log_slot;
 typedef std::vector<std::pair<std::string, log_slot> >            log_output_list;
@@ -135,6 +144,7 @@ public:
   // Internal:
   void                internal_print(const char* fmt, ...);
   void                internal_print_info(const DownloadInfo* info, const char* fmt, ...);
+  void                internal_print_data(const download_data* data, const char* fmt, ...);
 
   uint64_t            outputs() const                    { return m_outputs; }
   uint64_t            cached_outputs() const             { return m_cached_outputs; }

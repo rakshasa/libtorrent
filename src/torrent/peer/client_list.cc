@@ -37,8 +37,8 @@
 #include "config.h"
 
 #include <algorithm>
-#include <rak/functional.h>
 #include <rak/string_manip.h>
+#include <tr1/functional>
 
 #include "client_list.h"
 #include "exceptions.h"
@@ -227,7 +227,7 @@ ClientList::retrieve_id(ClientInfo* dest, const HashString& id) const {
     return false;
   }
 
-  const_iterator itr = std::find_if(begin() + 1, end(), rak::bind1st(std::ptr_fun(&ClientInfo::intersects), *dest));
+  const_iterator itr = std::find_if(begin() + 1, end(), std::tr1::bind(&ClientInfo::intersects, *dest, std::tr1::placeholders::_1));
 
   if (itr == end())
     dest->set_info(begin()->info());

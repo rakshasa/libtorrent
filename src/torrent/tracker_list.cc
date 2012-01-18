@@ -73,6 +73,11 @@ TrackerList::has_active() const {
   return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_busy)) != end();
 }
 
+bool
+TrackerList::has_active_not_scrape() const {
+  return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_busy_not_scrape)) != end();
+}
+
 // Need a custom predicate because the is_usable function is virtual.
 struct tracker_usable_t : public std::unary_function<TrackerList::value_type, bool> {
   bool operator () (const TrackerList::value_type& value) const { return value->is_usable(); }

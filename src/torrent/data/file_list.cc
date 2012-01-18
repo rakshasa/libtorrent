@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <algorithm>
 #include <cstring>
 #include <functional>
@@ -53,6 +55,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/path.h"
+#include "torrent/utils/log.h"
 
 #include "file.h"
 #include "file_list.h"
@@ -396,6 +399,8 @@ void
 FileList::open(int flags) {
   typedef std::set<const char*, file_list_cstr_less> path_set;
 
+  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Opening.");
+
   if (m_rootDir.empty())
     throw internal_error("FileList::open() m_rootDir.empty().");
 
@@ -489,6 +494,8 @@ void
 FileList::close() {
   if (!is_open())
     return;
+
+  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Closing.");
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
     (*itr)->unset_flags_protected(File::flag_active);
@@ -627,14 +634,22 @@ FileList::create_chunk_index(uint32_t index, int prot) {
 
 void
 FileList::mark_completed(uint32_t index) {
+  if (index >= size_chunks() || completed_chunks() >= size_chunks())
+    throw internal_error("FileList::mark_completed(...) received an invalid index.");
+
+  if (bitfield()->empty())
+    throw internal_error("FileList::mark_completed(...) bitfield is empty.");
+
+  if (bitfield()->size_bits() != size_chunks())
+    throw internal_error("FileList::mark_completed(...) bitfield is not the right size.");
+
   if (bitfield()->get(index))
     throw internal_error("FileList::mark_completed(...) received a chunk that has already been finished.");
 
   if (bitfield()->size_set() >= bitfield()->size_bits())
     throw internal_error("FileList::mark_completed(...) bitfield()->size_set() >= bitfield()->size_bits().");
 
-  if (index >= size_chunks() || completed_chunks() >= size_chunks())
-    throw internal_error("FileList::mark_completed(...) received an invalid index.");
+  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Done chunk: index:%" PRIu32 ".", index);
 
   m_data.mutable_completed_bitfield()->set(index);
   inc_completed(begin(), index);
@@ -694,11 +709,17 @@ FileList::update_completed() {
 
 void
 FileList::reset_filesize(int64_t size) {
+  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Resetting torrent size: size:%" PRIi64 ".", size);
+
   close();
   m_chunkSize = size;
   m_torrentSize = size;
   (*begin())->set_size_bytes(size);
   (*begin())->set_range(m_chunkSize);
+
+  m_data.mutable_completed_bitfield()->allocate();
+  m_data.mutable_completed_bitfield()->unset_all();
+  
   open(open_no_create);
 }
 

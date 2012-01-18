@@ -5,8 +5,8 @@
 #include "torrent/object_static_map.h"
 #include "protocol/extensions.h"
 
-#import "object_test_utils.h"
-#import "object_static_map_test.h"
+#include "object_test_utils.h"
+#include "object_static_map_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectStaticMapTest);
 
@@ -152,8 +152,21 @@ ObjectStaticMapTest::test_read() {
    CPPUNIT_ASSERT(static_map_read_bencode(test_skip_map, test_read_skip_bencode));
 }
 
+enum ext_test_keys {
+  key_e,
+  // key_m_utMetadata,
+  key_m_utPex,
+  // key_metadataSize,
+  key_p,
+  key_reqq,
+  key_v,
+  key_test_LAST
+};
+
+typedef torrent::static_map_type<ext_test_keys, key_test_LAST> ext_test_message;
+
 template <>
-const torrent::ExtHandshakeMessage::key_list_type torrent::ExtHandshakeMessage::keys = {
+const ext_test_message::key_list_type ext_test_message::keys = {
   { key_e,            "e" },
   { key_m_utPex,      "m::ut_pex" },
   { key_p,            "p" },
@@ -163,7 +176,7 @@ const torrent::ExtHandshakeMessage::key_list_type torrent::ExtHandshakeMessage::
 
 void
 ObjectStaticMapTest::test_read_extensions() {
-  torrent::ExtHandshakeMessage test_ext;
+  ext_test_message test_ext;
 
   CPPUNIT_ASSERT(static_map_read_bencode(test_ext, "d1:ai1ee"));
 

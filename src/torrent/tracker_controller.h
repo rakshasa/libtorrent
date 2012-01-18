@@ -60,7 +60,6 @@ public:
   typedef std::tr1::function<void (Tracker*)>           slot_tracker;
 
   static const int flag_send_update      = 0x1;
-  // static const int flag_send_update      = 0x0;
   static const int flag_send_completed   = 0x2;
   static const int flag_send_start       = 0x4;
   static const int flag_send_stop        = 0x8;
@@ -71,6 +70,8 @@ public:
   static const int flag_promiscuous_mode = 0x80;
 
   static const int mask_send = flag_send_update | flag_send_start | flag_send_stop | flag_send_completed;
+
+  static const int enable_dont_reset_stats = 0x1;
 
   TrackerController(TrackerList* trackers);
   ~TrackerController();
@@ -101,7 +102,7 @@ public:
 
   void                close();
 
-  void                enable();
+  void                enable(int enable_flags = 0);
   void                disable();
 
   void                start_requesting();

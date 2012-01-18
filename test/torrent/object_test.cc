@@ -3,8 +3,8 @@
 #include <iostream>
 #include <torrent/object.h>
 
-#import "object_test.h"
-#import "object_test_utils.h"
+#include "object_test.h"
+#include "object_test_utils.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectTest);
 

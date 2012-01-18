@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_TORRENT_POLL_H
 #define LIBTORRENT_TORRENT_POLL_H
 
+#include <tr1/functional>
 #include <torrent/common.h>
 
 namespace torrent {
@@ -45,6 +46,9 @@ class Event;
 
 class LIBTORRENT_EXPORT Poll {
 public:
+  typedef std::tr1::function<Poll* ()> slot_poll;
+
+  static const int poll_worker_thread = 0x1;
   static const uint32_t flag_waive_global_lock = 0x1;
 
   Poll() : m_flags(0) {}
@@ -52,6 +56,8 @@ public:
 
   uint32_t            flags() const { return m_flags; }
   void                set_flags(uint32_t flags) { m_flags = flags; }
+
+  virtual void        do_poll(int64_t timeout_usec, int flags = 0) = 0;
 
   // The open max value is used when initializing libtorrent, it
   // should be less than or equal to sysconf(_SC_OPEN_MAX).
@@ -84,7 +90,12 @@ public:
   virtual void        remove_error(Event* event) = 0;
 
   // Add one for HUP? Or would that be in event?
+
+  static slot_poll&   slot_create_poll() { return m_slot_create_poll; }
+
 private:
+  static slot_poll    m_slot_create_poll;
+
   uint32_t            m_flags;
 };
 

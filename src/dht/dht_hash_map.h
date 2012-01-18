@@ -191,7 +191,7 @@ public:
 
 inline
 DhtNode* DhtNodeList::add_node(DhtNode* n) {
-  insert(std::make_pair<const HashString*, DhtNode*>(n, n));
+  insert(std::make_pair((const HashString*)n, (DhtNode*)n));
   return n;
 }
 

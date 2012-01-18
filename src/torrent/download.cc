@@ -39,7 +39,6 @@
 #define __STDC_FORMAT_MACROS
 
 #include <inttypes.h>
-#include <rak/functional.h>
 #include <sigc++/adaptors/bind.h>
 #include <sigc++/adaptors/hide.h>
 
@@ -80,6 +79,8 @@ Download::open(int flags) {
   if (m_ptr->info()->is_open())
     return;
 
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Opening torrent.");
+
   // Currently always open with no_create, as start will make sure
   // they are created. Need to fix this.
   m_ptr->main()->open(FileList::open_no_create);
@@ -103,6 +104,7 @@ Download::close(int flags) {
   if (m_ptr->info()->is_active())
     stop(0);
 
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Closing torrent.");
   m_ptr->close();
 }
 
@@ -116,8 +118,13 @@ Download::start(int flags) {
   if (!info->is_open())
     throw internal_error("Tried to start a closed download.");
 
+  if (m_ptr->data()->mutable_completed_bitfield()->empty())
+    throw internal_error("Tried to start a download with empty bitfield.");
+
   if (info->is_active())
     return;
+
+  lt_log_print_info(LOG_TORRENT_INFO, info, "->download: Starting torrent.");
 
   m_ptr->data()->verify_wanted_chunks("Download::start(...)");
 
@@ -134,7 +141,7 @@ Download::start(int flags) {
   }
 
   m_ptr->main()->start();
-  m_ptr->main()->tracker_controller()->enable();
+  m_ptr->main()->tracker_controller()->enable((flags & start_skip_tracker) ? TrackerController::enable_dont_reset_stats : 0);
 
   // Reset the uploaded/download baseline when we restart the download
   // so that broken trackers get the right uploaded ratio.
@@ -156,6 +163,8 @@ Download::stop(int flags) {
   if (!m_ptr->info()->is_active())
     return;
 
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Stopping torrent.");
+
   m_ptr->main()->stop();
   m_ptr->main()->tracker_controller()->disable();
 
@@ -176,6 +185,8 @@ Download::hash_check(bool tryQuick) {
 
   Bitfield* bitfield = m_ptr->data()->mutable_completed_bitfield();
 
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Checking hash: allocated:%i.", !bitfield->empty());
+
   if (bitfield->empty()) {
     // The bitfield still hasn't been allocated, so no resume data was
     // given. 
@@ -195,6 +206,8 @@ void
 Download::hash_stop() {
   if (!m_ptr->hash_checker()->is_checking())
     return;
+
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Hashing stopped.");
 
   m_ptr->hash_checker()->hashing_ranges().erase(0, m_ptr->hash_checker()->position());
   m_ptr->hash_queue()->remove(m_ptr);

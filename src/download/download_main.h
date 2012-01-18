@@ -83,9 +83,9 @@ public:
   void                start();
   void                stop();
 
-  struct choke_group*       choke_group()                        { return m_choke_group; }
-  const struct choke_group* c_choke_group() const                { return m_choke_group; }
-  void                set_choke_group(struct choke_group* grp)   { m_choke_group = grp; }
+  class choke_group*       choke_group()                              { return m_choke_group; }
+  const class choke_group* c_choke_group() const                      { return m_choke_group; }
+  void                set_choke_group(class choke_group* grp)         { m_choke_group = grp; }
 
   TrackerController*  tracker_controller()                       { return m_tracker_controller; }
   TrackerList*        tracker_list()                             { return m_tracker_list; }
@@ -175,7 +175,7 @@ private:
   TrackerController*  m_tracker_controller;
   TrackerList*        m_tracker_list;
 
-  struct choke_group* m_choke_group;
+  class choke_group*  m_choke_group;
 
   group_entry         m_up_group_entry;
   group_entry         m_down_group_entry;

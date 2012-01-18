@@ -40,13 +40,16 @@
 
 #include <algorithm>
 #include <unistd.h>
+#include <stdexcept>
 #include <rak/error_number.h>
-#include <rak/functional.h>
 #include <torrent/exceptions.h>
 #include <torrent/event.h>
 
 #include "poll_kqueue.h"
-#include "thread_base.h"
+#include "torrent.h"
+#include "rak/timer.h"
+#include "rak/error_number.h"
+#include "utils/thread_base.h"
 
 #ifdef USE_KQUEUE
 #include <sys/types.h>
@@ -213,8 +216,8 @@ PollKQueue::perform() {
     if (itr->ident >= m_table.size())
       continue;
 
-    if ((flags() & flag_waive_global_lock) && ThreadBase::global_queue_size() != 0)
-      ThreadBase::waive_global_lock();
+    if ((flags() & flag_waive_global_lock) && thread_base::global_queue_size() != 0)
+      thread_base::waive_global_lock();
 
     Table::iterator evItr = m_table.begin() + itr->ident;
 
@@ -234,6 +237,41 @@ PollKQueue::perform() {
   }
 
   m_waitingEvents = 0;
+}
+
+void
+PollKQueue::do_poll(int64_t timeout_usec, int flags) {
+  // Add 1ms to ensure we don't idle loop due to the lack of
+  // resolution.
+  if (!(flags & poll_worker_thread))
+    torrent::perform();
+
+  rak::timer timeout = rak::timer(timeout_usec);
+
+  if (!(flags & poll_worker_thread))
+    timeout = std::min(timeout, rak::timer(torrent::next_timeout()));
+
+  timeout += 10;
+
+  if (!(flags & poll_worker_thread)) {
+    thread_base::release_global_lock();
+    thread_base::entering_main_polling();
+  }
+
+  int status = poll((timeout.usec() + 999) / 1000);
+
+  if (!(flags & poll_worker_thread)) {
+    thread_base::leaving_main_polling();
+    thread_base::acquire_global_lock();
+  }
+
+  if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
+    throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
+
+  if (!(flags & poll_worker_thread))
+    torrent::perform();
+
+  perform();
 }
 
 uint32_t
@@ -390,6 +428,11 @@ PollKQueue::poll(__UNUSED int msec) {
 
 void
 PollKQueue::perform() {
+  throw internal_error("An PollKQueue function was called, but it is disabled.");
+}
+
+void
+PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 

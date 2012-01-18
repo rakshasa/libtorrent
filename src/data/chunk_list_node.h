@@ -60,6 +60,7 @@ public:
     m_chunk(NULL),
     m_references(0),
     m_writable(0),
+    m_blocking(0),
     m_asyncTriggered(false) {}
 
   bool                is_valid() const               { return m_chunk != NULL; }
@@ -87,6 +88,10 @@ public:
   int                 dec_writable()                 { return --m_writable; }
   int                 inc_writable()                 { return ++m_writable; }
 
+  int                 blocking() const               { return m_blocking; }
+  int                 dec_blocking()                 { return --m_blocking; }
+  int                 inc_blocking()                 { return ++m_blocking; }
+
   void                inc_rw()                       { inc_writable(); inc_references(); }
   void                dec_rw()                       { dec_writable(); dec_references(); }
 
@@ -96,6 +101,7 @@ private:
 
   int                 m_references;
   int                 m_writable;
+  int                 m_blocking;
 
   bool                m_asyncTriggered;
 
