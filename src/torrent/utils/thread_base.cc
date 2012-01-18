@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <cstring>
+#include <signal.h>
 
 #include "exceptions.h"
 #include "poll.h"
