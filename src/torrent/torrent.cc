@@ -119,9 +119,7 @@ cleanup() {
   if (manager == NULL)
     throw internal_error("torrent::cleanup() called but the library is not initialized.");
 
-  // manager->thread_disk()->stop_thread();
-
-  // TODO: Wait for thread shutdown?
+  manager->main_thread_disk()->stop_thread_wait();
 
   delete manager;
   manager = NULL;
@@ -186,41 +184,6 @@ const Rate* up_rate() { return manager->upload_throttle()->rate(); }
 const char* version() { return VERSION; }
 
 uint32_t hash_queue_size() { return manager->hash_queue()->size(); }
-uint32_t hash_read_ahead() { return manager->hash_queue()->read_ahead(); }
-
-void
-set_hash_read_ahead(uint32_t bytes) {
-  if (bytes < (1 << 20) || bytes > (64 << 20))
-    throw input_error("Hash read ahead must be between 1 and 64 MB.");
-
-  manager->hash_queue()->set_read_ahead(bytes);
-}
-
-uint32_t
-hash_interval() {
-  return manager->hash_queue()->interval();
-}
-
-void
-set_hash_interval(uint32_t usec) {
-  if (usec < (1 * 1000) || usec > (1000 * 1000))
-    throw input_error("Hash interval must be between 1 and 1000 ms.");
-
-  manager->hash_queue()->set_interval(usec);
-}
-
-uint32_t
-hash_max_tries() {
-  return manager->hash_queue()->max_tries();
-}
-
-void
-set_hash_max_tries(uint32_t tries) {
-  if (tries > 100)
-    throw input_error("Hash max tries must be between 0 and 100.");
-
-  manager->hash_queue()->set_max_tries(tries);
-}  
 
 EncodingList*
 encoding_list() {

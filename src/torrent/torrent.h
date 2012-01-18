@@ -85,15 +85,6 @@ const char*         version() LIBTORRENT_EXPORT;
 // Disk access tuning.
 uint32_t            hash_queue_size() LIBTORRENT_EXPORT;
 
-uint32_t            hash_read_ahead() LIBTORRENT_EXPORT;
-void                set_hash_read_ahead(uint32_t bytes) LIBTORRENT_EXPORT;
-
-uint32_t            hash_interval() LIBTORRENT_EXPORT;
-void                set_hash_interval(uint32_t usec) LIBTORRENT_EXPORT;
-
-uint32_t            hash_max_tries() LIBTORRENT_EXPORT;
-void                set_hash_max_tries(uint32_t tries) LIBTORRENT_EXPORT;
-
 typedef std::list<Download> DList;
 typedef std::list<std::string> EncodingList;
 

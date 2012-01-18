@@ -69,7 +69,6 @@ Manager::Manager() :
   m_downloadManager(new DownloadManager),
   m_fileManager(new FileManager),
   m_handshakeManager(new HandshakeManager),
-  m_hashQueue(new HashQueue),
   m_resourceManager(new ResourceManager),
 
   m_chunkManager(new ChunkManager),
@@ -83,6 +82,8 @@ Manager::Manager() :
   m_downloadThrottle(Throttle::create_throttle()),
 
   m_ticks(0) {
+
+  m_hashQueue = new HashQueue(&m_main_thread_disk);
 
   m_taskTick.slot() = std::tr1::bind(&Manager::receive_tick, this);
 

@@ -45,7 +45,7 @@ namespace torrent {
 
 class Poll;
 
-class LIBTORRENT_EXPORT thread_base {
+class LIBTORRENT_EXPORT lt_cacheline_aligned thread_base {
 public:
   typedef void* (*pthread_func)(void*);
 
@@ -56,17 +56,36 @@ public:
     STATE_INACTIVE
   };
 
+  static const int flag_do_shutdown  = 0x1;
+  static const int flag_did_shutdown = 0x2;
+  static const int flag_no_timeout   = 0x4;
+  static const int flag_polling      = 0x8;
+
   thread_base();
   virtual ~thread_base() {}
 
-  bool                is_active() const { return m_state == STATE_ACTIVE; }
-  state_type          state() const     { return m_state; }
+  bool                is_initialized() const { return m_state == STATE_INITIALIZED; }
+  bool                is_active()      const { return m_state == STATE_ACTIVE; }
+  bool                is_inactive()    const { return m_state == STATE_INACTIVE; }
+
+  bool                is_polling()     const { return (m_flags & flag_polling); }
+
+  bool                has_no_timeout()   const { return (m_flags & flag_no_timeout); }
+  bool                has_do_shutdown()  const { return (m_flags & flag_do_shutdown); }
+  bool                has_did_shutdown() const { return (m_flags & flag_did_shutdown); }
+
+  state_type          state() const { return m_state; }
+  int                 flags() const { return m_flags; }
 
   Poll*               poll() { return m_poll; }
 
   virtual void        init_thread() = 0;
 
   virtual void        start_thread();
+  virtual void        stop_thread();
+  void                stop_thread_wait();
+
+  void                interrupt();
 
   static inline int   global_queue_size() { return m_global.waiting; }
 
@@ -95,6 +114,7 @@ protected:
 
   pthread_t           m_thread;
   state_type          m_state;
+  int                 m_flags;
 
   Poll*               m_poll;
 };

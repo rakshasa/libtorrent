@@ -9,32 +9,21 @@ CPPUNIT_TEST_SUITE_REGISTRATION(ChunkListTest);
 
 namespace tr1 { using namespace std::tr1; }
 
-#define SETUP_CHUNK_LIST()                                              \
-  torrent::ChunkManager* chunk_manager = new torrent::ChunkManager;     \
-  torrent::ChunkList* chunk_list = new torrent::ChunkList;              \
-  chunk_list->set_manager(chunk_manager);                                \
-  chunk_list->slot_create_chunk() = std::tr1::bind(&func_create_chunk, chunk_list, tr1::placeholders::_1, tr1::placeholders::_2); \
-  chunk_list->slot_free_diskspace() = std::tr1::bind(&func_free_diskspace, chunk_list); \
-  chunk_list->slot_storage_error() = std::tr1::bind(&func_storage_error, chunk_list, tr1::placeholders::_1); \
-  chunk_list->set_chunk_size(1 << 16);                                  \
-  chunk_list->resize(32);
-
-#define CLEANUP_CHUNK_LIST()                    \
-  delete chunk_list;                            \
-  delete chunk_manager;
-
 torrent::Chunk*
-func_create_chunk(torrent::ChunkList* chunk_list, uint32_t index, int prot_flags) {
-  if (index >= chunk_list->size())
-    return NULL; // Throw instead.
-
-  char* memory_part1 = (char*)mmap(NULL, 10, PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);
+func_create_chunk(uint32_t index, int prot_flags) {
+  // Do proper handling of prot_flags...
+  char* memory_part1 = (char*)mmap(NULL, 10, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 
   if (memory_part1 == MAP_FAILED)
     throw torrent::internal_error("func_create_chunk() failed: " + std::string(strerror(errno)));
 
+  std::memset(memory_part1, index, 10);
+
   torrent::Chunk* chunk = new torrent::Chunk();
   chunk->push_back(torrent::ChunkPart::MAPPED_MMAP, torrent::MemoryChunk(memory_part1, memory_part1, memory_part1 + 10, torrent::MemoryChunk::prot_read, 0));
+
+  if (chunk == NULL)
+    throw torrent::internal_error("func_create_chunk() failed: chunk == NULL.");
 
   return chunk;
 }

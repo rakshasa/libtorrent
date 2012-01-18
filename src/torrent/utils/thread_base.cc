@@ -49,6 +49,7 @@ thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, 
 
 thread_base::thread_base() :
   m_state(STATE_UNKNOWN),
+  m_flags(0),
   m_poll(NULL)
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
@@ -64,6 +65,39 @@ thread_base::start_thread() {
     throw internal_error("Failed to create thread.");
 }
 
+void
+thread_base::stop_thread() {
+  __sync_fetch_and_or(&m_flags, flag_do_shutdown);
+  interrupt();
+}
+
+void
+thread_base::stop_thread_wait() {
+  stop_thread();
+
+  release_global_lock();
+
+  while (!is_inactive()) {
+    usleep(1000);
+  }  
+
+  acquire_global_lock();
+}
+
+void
+thread_base::interrupt() {
+  __sync_fetch_and_or(&m_flags, flag_no_timeout);
+
+  while (is_polling() && has_no_timeout()) {
+    pthread_kill(m_thread, SIGUSR1);
+
+    if (!(is_polling() && has_no_timeout()))
+      return;
+
+    usleep(0);
+  }
+}
+
 void*
 thread_base::event_loop(thread_base* thread) {
   __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
@@ -73,7 +107,16 @@ thread_base::event_loop(thread_base* thread) {
 
     while (true) {
       thread->call_events();
-      thread->m_poll->do_poll(thread->next_timeout_usec(), torrent::Poll::poll_worker_thread);
+
+      __sync_fetch_and_or(&thread->m_flags, flag_polling);
+
+      int64_t next_timeout = !(thread->m_flags & flag_no_timeout) ? thread->next_timeout_usec() : 0;
+
+      // Add the sleep call when testing interrupts, etc.
+      // usleep(50);
+
+      thread->m_poll->do_poll(next_timeout, torrent::Poll::poll_worker_thread);
+      __sync_fetch_and_and(&thread->m_flags, ~(flag_polling | flag_no_timeout));
     }
 
   } catch (torrent::shutdown_exception& e) {

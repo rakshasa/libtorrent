@@ -38,8 +38,8 @@
 #define LIBTORRENT_DATA_HASH_QUEUE_NODE_H
 
 #include <string>
+#include <tr1/functional>
 #include <inttypes.h>
-#include <rak/functional.h>
 
 #include "chunk_handle.h"
 #include "hash_chunk.h"
@@ -50,13 +50,14 @@ class DownloadWrapper;
 
 class HashQueueNode {
 public:
-  typedef rak::mem_fun2<DownloadWrapper, void, ChunkHandle, const char*> slot_done_type;
-  typedef const slot_done_type::object_type*                             id_type;
+  typedef std::tr1::function<void (ChunkHandle, const char*)> slot_done_type;
+  typedef DownloadWrapper* id_type;
 
-  HashQueueNode(HashChunk* c, slot_done_type d) :
-    m_chunk(c), m_willneed(false), m_slotDone(d) {}
+  HashQueueNode(id_type id, HashChunk* c, slot_done_type d) :
+    m_id(id), m_chunk(c), m_willneed(false), m_slot_done(d) {}
 
-  id_type             id() const                    { return m_slotDone.object(); }
+  id_type             id() const                    { return m_id; }
+  ChunkHandle&        handle()                      { return *m_chunk->chunk(); }
 
   uint32_t            get_index() const;
 
@@ -71,13 +72,14 @@ public:
   // number of bytes not checked in this chunk.
   uint32_t            call_willneed();
 
-  slot_done_type&     slot_done()                   { return m_slotDone; }
+  slot_done_type&     slot_done()                   { return m_slot_done; }
 
 private:
+  id_type             m_id;
   HashChunk*          m_chunk;
   bool                m_willneed;
 
-  slot_done_type      m_slotDone;
+  slot_done_type      m_slot_done;
 };
 
 }

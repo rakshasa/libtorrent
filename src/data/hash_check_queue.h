@@ -34,45 +34,50 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_DATA_CHUNK_HANDLE_H
-#define LIBTORRENT_DATA_CHUNK_HANDLE_H
+#ifndef LIBTORRENT_DATA_HASH_CHECK_QUEUE_H
+#define LIBTORRENT_DATA_HASH_CHECK_QUEUE_H
 
-#include <rak/error_number.h>
+#include <deque>
+#include <pthread.h>
+#include <tr1/functional>
 
-#include "chunk_list_node.h"
+#include "rak/allocators.h"
 
 namespace torrent {
 
-class ChunkListNode;
+class HashString;
+class HashChunk;
 
-class ChunkHandle {
+class lt_cacheline_aligned HashCheckQueue : private std::deque<HashChunk*, rak::cacheline_allocator<HashChunk*> > {
 public:
-  ChunkHandle(ChunkListNode* c = NULL, bool wr = false, bool blk = false) :
-    m_node(c), m_writable(wr), m_blocking(blk) {}
+  typedef std::deque<HashChunk*, rak::cacheline_allocator<HashChunk*> > base_type;
+  typedef std::tr1::function<void (HashChunk*, const HashString&)>      slot_chunk_handle;
 
-  bool                is_valid() const                      { return m_node != NULL; }
-  bool                is_loaded() const                     { return m_node != NULL && m_node->is_valid(); }
-  bool                is_writable() const                   { return m_writable; }
-  bool                is_blocking() const                   { return m_blocking; }
+  using base_type::iterator;
+
+  using base_type::empty;
+  using base_type::size;
+
+  using base_type::begin;
+  using base_type::end;
+  using base_type::front;
+  using base_type::back;
   
-  void                clear()                               { m_node = NULL; m_writable = false; m_blocking = false; }
+  HashCheckQueue();
+  ~HashCheckQueue();
 
-  rak::error_number   error_number() const                  { return m_errorNumber; }
-  void                set_error_number(rak::error_number e) { m_errorNumber = e; }
+  // Guarded functions for adding new...
 
-  ChunkListNode*      object() const                        { return m_node; }
-  Chunk*              chunk() const                         { return m_node->chunk(); }
+  void                push_back(HashChunk* node);
+  void                perform();
 
-  uint32_t            index() const                         { return m_node->index(); }
+  bool                remove(HashChunk* node);
 
-  static ChunkHandle  from_error(rak::error_number e)       { ChunkHandle h; h.set_error_number(e); return h; }
+  slot_chunk_handle&  slot_chunk_done() { return m_slot_chunk_done; }
 
 private:
-  ChunkListNode*      m_node;
-  bool                m_writable;
-  bool                m_blocking;
-
-  rak::error_number   m_errorNumber;
+  slot_chunk_handle   m_slot_chunk_done;
+  pthread_mutex_t     m_lock;
 };
 
 }

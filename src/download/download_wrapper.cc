@@ -238,8 +238,11 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
 
 void
 DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
-  // Using HashTorrent's queue temporarily.
-  hash_queue()->push_back(handle, rak::make_mem_fun(this, &DownloadWrapper::receive_hash_done));
+  // TODO: Hack...
+  ChunkHandle new_handle = m_main->chunk_list()->get(handle.index(), ChunkList::get_blocking);
+  m_main->chunk_list()->release(&handle);
+
+  hash_queue()->push_back(new_handle, this, tr1::bind(&DownloadWrapper::receive_hash_done, this, tr1::placeholders::_1, tr1::placeholders::_2));
 }
 
 void

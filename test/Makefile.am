@@ -17,12 +17,19 @@ LibTorrentTest_LDADD = \
 	../src/utils/libsub_utils.la
 
 LibTorrentTest_SOURCES = \
-	data/chunk_list_test.cc \
-	data/chunk_list_test.h \
+	../src/thread_disk.cc \
+	../src/thread_disk.h \
+	\
 	rak/allocators_test.cc \
 	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
+	data/chunk_list_test.cc \
+	data/chunk_list_test.h \
+	data/hash_check_queue_test.cc \
+	data/hash_check_queue_test.h \
+	data/hash_queue_test.cc \
+	data/hash_queue_test.h \
 	torrent/extents_test.cc \
 	torrent/extents_test.h \
 	torrent/http_test.cc \
