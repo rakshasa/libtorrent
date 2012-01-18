@@ -72,6 +72,19 @@ thread_base::stop_thread() {
 }
 
 void
+thread_base::stop_thread_wait() {
+  stop_thread();
+
+  release_global_lock();
+
+  while (!is_inactive()) {
+    usleep(1000);
+  }  
+
+  acquire_global_lock();
+}
+
+void
 thread_base::interrupt() {
   __sync_fetch_and_or(&m_flags, flag_no_timeout);
 

@@ -9,6 +9,7 @@ class utils_thread_base_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_global_lock_basic);
   CPPUNIT_TEST(test_interrupt);
+  CPPUNIT_TEST(test_stop);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -20,6 +21,7 @@ public:
 
   void test_global_lock_basic();
   void test_interrupt();
+  void test_stop();
 };
 
 struct thread_management_type {

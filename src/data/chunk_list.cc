@@ -146,7 +146,7 @@ ChunkList::get(size_type index, int flags) {
       if ((flags & get_nonblock))
         return ChunkHandle::from_error(rak::error_number::e_again);
 
-      throw internal_error("No support yet for unblocking chunk.");
+      throw internal_error("No support yet for getting write permission for blocked chunk.");
     }
 
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);

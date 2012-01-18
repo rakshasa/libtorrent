@@ -187,7 +187,7 @@ HashCheckQueueTest::test_thread() {
   done_chunks_type done_chunks;
   hash_queue->slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
   
-  for (int i = 0; i < 1000 * 10; i++) {
+  for (int i = 0; i < 1000; i++) {
     pthread_mutex_lock(&done_chunks_lock);
     done_chunks.erase(0);
     pthread_mutex_unlock(&done_chunks_lock);

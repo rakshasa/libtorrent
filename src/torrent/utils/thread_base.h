@@ -83,6 +83,7 @@ public:
 
   virtual void        start_thread();
   virtual void        stop_thread();
+  void                stop_thread_wait();
 
   void                interrupt();
 
