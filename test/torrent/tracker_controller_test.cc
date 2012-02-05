@@ -14,7 +14,7 @@ namespace tr1 { using namespace std::tr1; }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
 
-#define TRACKER_SETUP()                                                 \
+#define TRACKER_CONTROLLER_SETUP()                                                 \
   torrent::TrackerList tracker_list;                                    \
   torrent::TrackerController tracker_controller(&tracker_list);         \
                                                                         \
@@ -35,12 +35,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   tracker_list.slot_tracker_enabled()  = tr1::bind(&torrent::TrackerController::receive_tracker_enabled, &tracker_controller, tr1::placeholders::_1); \
   tracker_list.slot_tracker_disabled() = tr1::bind(&torrent::TrackerController::receive_tracker_disabled, &tracker_controller, tr1::placeholders::_1);
 
-#define TRACKER_INSERT(group, name)                             \
-  TrackerTest* name = new TrackerTest(&tracker_list, "");       \
-  tracker_list.insert(group, name);
-
 #define TEST_SINGLE_BEGIN()                                             \
-  TRACKER_SETUP();                                                      \
+  TRACKER_CONTROLLER_SETUP();                                                      \
   TRACKER_INSERT(0, tracker_0_0);                                       \
                                                                         \
   tracker_controller.enable();                                          \
@@ -66,7 +62,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
   //CPPUNIT_ASSERT(tracker_controller.seconds_to_promicious_mode() != 0);
 
 #define TEST_MULTI3_BEGIN()                                             \
-  TRACKER_SETUP();                                                      \
+  TRACKER_CONTROLLER_SETUP();                                                      \
   TRACKER_INSERT(0, tracker_0_0);                                       \
   TRACKER_INSERT(0, tracker_0_1);                                       \
   TRACKER_INSERT(1, tracker_1_0);                                       \
@@ -161,7 +157,7 @@ tracker_controller_test::test_requesting() {
 
 void
 tracker_controller_test::test_timeout() {
-  TRACKER_SETUP();
+  TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);
 
   CPPUNIT_ASSERT(enabled_counter == 1);
@@ -328,7 +324,7 @@ tracker_controller_test::test_send_task_timeout() {
 
 void
 tracker_controller_test::test_send_close_on_enable() {
-  TRACKER_SETUP();
+  TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(0, tracker_1);
   TRACKER_INSERT(0, tracker_2);
@@ -701,7 +697,7 @@ tracker_controller_test::test_disable_tracker() {
 
 void
 tracker_controller_test::test_new_peers() {
-  TRACKER_SETUP();
+  TRACKER_CONTROLLER_SETUP();
   TRACKER_INSERT(0, tracker_0);
 
   tracker_list.send_state_idx(0, torrent::Tracker::EVENT_NONE);

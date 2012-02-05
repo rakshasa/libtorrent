@@ -137,6 +137,9 @@ protected:
   virtual void        send_scrape();
   virtual void        close() = 0;
 
+  // Safeguard to catch bugs that lead to hammering of trackers.
+  void                inc_request_counter();
+
   void                clear_stats();
 
   void                set_group(uint32_t v)                 { m_group = v; }
@@ -171,6 +174,11 @@ protected:
   uint32_t            m_scrape_complete;
   uint32_t            m_scrape_incomplete;
   uint32_t            m_scrape_downloaded;
+
+  // Timing of the last request, and a counter for how many requests
+  // there's been in the recent past.
+  uint32_t            m_request_time_last;
+  uint32_t            m_request_counter;
 };
 
 inline bool

@@ -21,11 +21,6 @@ class tracker_list_test : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_scrape_success);
   CPPUNIT_TEST(test_scrape_failure);
-
-  CPPUNIT_TEST(test_new_peers);
-  CPPUNIT_TEST(test_has_active);
-  CPPUNIT_TEST(test_find_next_to_request);
-  CPPUNIT_TEST(test_count_active);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -48,11 +43,6 @@ public:
 
   void test_scrape_success();
   void test_scrape_failure();
-
-  void test_new_peers();
-  void test_has_active();
-  void test_find_next_to_request();
-  void test_count_active();
 };
 
 class TrackerTest : public torrent::Tracker {
@@ -100,3 +90,18 @@ private:
 
 extern uint32_t return_new_peers;
 inline uint32_t increment_value(int* value) { (*value)++; return return_new_peers; }
+
+#define TRACKER_SETUP()                                                 \
+  torrent::TrackerList tracker_list;                                    \
+  int success_counter = 0;                                              \
+  int failure_counter = 0;                                              \
+  int scrape_success_counter = 0;                                       \
+  int scrape_failure_counter = 0;                                       \
+  tracker_list.slot_success() = tr1::bind(&increment_value, &success_counter); \
+  tracker_list.slot_failure() = tr1::bind(&increment_value, &failure_counter); \
+  tracker_list.slot_scrape_success() = tr1::bind(&increment_value, &scrape_success_counter); \
+  tracker_list.slot_scrape_failure() = tr1::bind(&increment_value, &scrape_failure_counter);
+
+#define TRACKER_INSERT(group, name)                             \
+  TrackerTest* name = new TrackerTest(&tracker_list, "");       \
+  tracker_list.insert(group, name);
