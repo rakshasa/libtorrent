@@ -132,6 +132,7 @@ TrackerList::send_state(Tracker* tracker, int new_event) {
   }
 
   tracker->send_state(new_event);
+  tracker->inc_request_counter();
 
   LT_LOG_TRACKER(INFO, "Sending '%s' to group:%u url:'%s'.",
                  option_as_string(OPTION_TRACKER_EVENT, new_event),
@@ -150,6 +151,8 @@ TrackerList::send_scrape(Tracker* tracker) {
     return;
 
   tracker->send_scrape();
+  tracker->inc_request_counter();
+
   LT_LOG_TRACKER(INFO, "Sending 'scrape' to group:%u url:'%s'.",
                  tracker->group(), tracker->url().c_str());
 }

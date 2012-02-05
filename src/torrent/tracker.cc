@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <algorithm>
+
 #include "exceptions.h"
 #include "globals.h"
 #include "tracker.h"
@@ -67,7 +69,11 @@ Tracker::Tracker(TrackerList* parent, const std::string& url, int flags) :
 
   m_scrape_complete(0),
   m_scrape_incomplete(0),
-  m_scrape_downloaded(0) {
+  m_scrape_downloaded(0),
+
+  m_request_time_last(torrent::cachedTime.seconds()),
+  m_request_counter(0)
+{
 }
 
 void
@@ -122,6 +128,16 @@ Tracker::scrape_url_from(std::string url) {
 void
 Tracker::send_scrape() {
   throw internal_error("Tracker type does not support scrape.");
+}
+
+void
+Tracker::inc_request_counter() {
+  m_request_counter -= std::min(m_request_counter, (uint32_t)cachedTime.seconds() - m_request_time_last);
+  m_request_counter++;
+  m_request_time_last = cachedTime.seconds();
+
+  if (m_request_counter >= 10)
+    throw internal_error("Tracker request had more than 10 requests in 10 seconds.");
 }
 
 void

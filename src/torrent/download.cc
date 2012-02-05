@@ -79,7 +79,7 @@ Download::open(int flags) {
   if (m_ptr->info()->is_open())
     return;
 
-  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Opening torrent.");
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Opening torrent: flags:%0x.", flags);
 
   // Currently always open with no_create, as start will make sure
   // they are created. Need to fix this.
@@ -104,7 +104,7 @@ Download::close(int flags) {
   if (m_ptr->info()->is_active())
     stop(0);
 
-  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Closing torrent.");
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Closing torrent: flags:%0x.", flags);
   m_ptr->close();
 }
 
@@ -124,7 +124,7 @@ Download::start(int flags) {
   if (info->is_active())
     return;
 
-  lt_log_print_info(LOG_TORRENT_INFO, info, "->download: Starting torrent.");
+  lt_log_print_info(LOG_TORRENT_INFO, info, "->download: Starting torrent: flags:%0x.", flags);
 
   m_ptr->data()->verify_wanted_chunks("Download::start(...)");
 
@@ -163,7 +163,7 @@ Download::stop(int flags) {
   if (!m_ptr->info()->is_active())
     return;
 
-  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Stopping torrent.");
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Stopping torrent: flags:%0x.", flags);
 
   m_ptr->main()->stop();
   m_ptr->main()->tracker_controller()->disable();
@@ -185,7 +185,7 @@ Download::hash_check(bool tryQuick) {
 
   Bitfield* bitfield = m_ptr->data()->mutable_completed_bitfield();
 
-  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Checking hash: allocated:%i.", !bitfield->empty());
+  lt_log_print_info(LOG_TORRENT_INFO, m_ptr->info(), "->download: Checking hash: allocated:%i try_quick:%i.", !bitfield->empty(), (int)tryQuick);
 
   if (bitfield->empty()) {
     // The bitfield still hasn't been allocated, so no resume data was
