@@ -98,7 +98,7 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
     if (m_taskWork.is_queued())
       throw internal_error("Empty HashQueue is still in task schedule");
 
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + 100 * 1000);
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + rak::timer::from_milliseconds(50));
   }
 
   base_type::push_back(HashQueueNode(id, hash_chunk, d));
@@ -170,7 +170,7 @@ HashQueue::work() {
   check();
 
   if (!empty() && !m_taskWork.is_queued())
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + rak::timer::from_seconds(1));
+    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + rak::timer::from_milliseconds(50));
 }
 
 void

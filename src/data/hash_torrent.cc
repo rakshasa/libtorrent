@@ -132,7 +132,7 @@ HashTorrent::queue(bool quick) {
     throw internal_error("HashTorrent::queue() called but it's not running.");
 
   while (m_position < m_chunkList->size()) {
-    if (m_outstanding >= 30)
+    if (m_outstanding > 10 && m_outstanding * m_chunkList->chunk_size() > (128 << 20))
       return;
 
     // Not very efficient, but this is seldomly done.

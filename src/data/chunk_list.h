@@ -100,6 +100,7 @@ public:
   void                change_flags(int flags, bool state) { if (state) set_flags(flags); else unset_flags(flags); }
 
   uint32_t            chunk_size() const                  { return m_chunk_size; }
+  size_type           queue_size() const                  { return m_queue.size(); }
 
   void                set_manager(ChunkManager* manager)  { m_manager = manager; }
   void                set_chunk_size(uint32_t cs)         { m_chunk_size = cs; }
@@ -111,8 +112,6 @@ public:
 
   ChunkHandle         get(size_type index, int flags = 0);
   void                release(ChunkHandle* handle, int flags = 0);
-
-  size_type           queue_size() const                      { return m_queue.size(); }
 
   // Replace use_timeout with something like performance related
   // keyword. Then use that flag to decide if we should skip
