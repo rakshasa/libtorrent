@@ -54,6 +54,8 @@ LibTorrentTest_SOURCES = \
 	torrent/utils/log_test.h \
 	torrent/utils/option_strings_test.cc \
 	torrent/utils/option_strings_test.h \
+	torrent/utils/signal_bitfield_test.cc \
+	torrent/utils/signal_bitfield_test.h \
 	torrent/utils/thread_base_test.cc \
 	torrent/utils/thread_base_test.h \
 	tracker/tracker_http_test.cc \
