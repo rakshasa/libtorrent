@@ -42,10 +42,6 @@
 
 namespace torrent {
 
-void
-signal_bitfield::signal(unsigned int index, bool interrupt) {
-}
-  
 // Only the thread owning this signal bitfield should add signals.
 unsigned int
 signal_bitfield::add_signal(slot_type slot) {
@@ -60,6 +56,25 @@ signal_bitfield::add_signal(slot_type slot) {
 
   m_slots[index] = slot;
   return index;
+}
+
+void
+signal_bitfield::work() {
+  bitfield_type bitfield;
+
+  while (!__sync_bool_compare_and_swap(&m_bitfield, (bitfield = m_bitfield), 0))
+    ; // Do nothing.
+
+  unsigned int i = 0;
+
+  while (bitfield) {
+    if ((bitfield & (1 << i))) {
+      m_slots[i]();
+      bitfield = bitfield & ~(1 << i);
+    }
+
+    i++;
+  }
 }
 
 }

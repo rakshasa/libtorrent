@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT signal_bitfield {
+class LIBTORRENT_EXPORT lt_cacheline_aligned signal_bitfield {
 public:
   typedef uint32_t                    bitfield_type;
   typedef std::tr1::function<void ()> slot_type;
@@ -51,14 +51,17 @@ public:
 
   signal_bitfield() : m_bitfield(0), m_size(0) {}
   
-  void          signal(unsigned int index, bool interrupt = true);
-  
+  // Do the interrupt from the thread?
+  void          signal(unsigned int index) { __sync_or_and_fetch(&m_bitfield, 1 << index); }
+  void          work();
+
   unsigned int  add_signal(slot_type slot);
 
 private:
-  bitfield_type m_bitfield lt_cacheline_aligned;
-  unsigned int  m_size     lt_cacheline_aligned;
-  slot_type     m_slots[max_size];
+
+  bitfield_type m_bitfield;
+  unsigned int  m_size;
+  slot_type     m_slots[max_size] lt_cacheline_aligned;
 };
 
 }

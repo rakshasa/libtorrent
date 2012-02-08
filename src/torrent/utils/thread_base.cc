@@ -108,8 +108,13 @@ thread_base::event_loop(thread_base* thread) {
 
     while (true) {
       thread->call_events();
+      thread->signal_bitfield()->work();
 
       __sync_fetch_and_or(&thread->m_flags, flag_polling);
+
+      // Call again after setting flag_polling to ensure we process
+      // any events set while it was working.
+      thread->signal_bitfield()->work();
 
       int64_t next_timeout = !(thread->m_flags & flag_no_timeout) ? thread->next_timeout_usec() : 0;
 

@@ -40,6 +40,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <torrent/common.h>
+#include <torrent/utils/signal_bitfield.h>
 
 namespace torrent {
 
@@ -77,7 +78,8 @@ public:
   state_type          state() const { return m_state; }
   int                 flags() const { return m_flags; }
 
-  Poll*               poll() { return m_poll; }
+  Poll*                  poll()            { return m_poll; }
+  class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
 
   virtual void        init_thread() = 0;
 
@@ -116,7 +118,8 @@ protected:
   state_type          m_state;
   int                 m_flags;
 
-  Poll*               m_poll;
+  Poll*                 m_poll;
+  class signal_bitfield m_signal_bitfield;
 };
 
 inline void
