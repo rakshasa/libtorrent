@@ -78,6 +78,8 @@ public:
   state_type          state() const { return m_state; }
   int                 flags() const { return m_flags; }
 
+  virtual const char* name() const = 0;
+
   Poll*                  poll()            { return m_poll; }
   class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
 

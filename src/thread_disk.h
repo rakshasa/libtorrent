@@ -44,6 +44,8 @@ namespace torrent {
 
 class thread_disk : public thread_base {
 public:
+  const char*         name() const { return "worker_disk"; }
+
   virtual void        init_thread();
 
   HashCheckQueue*     hash_queue() { return &m_hash_queue; }
