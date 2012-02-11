@@ -50,7 +50,7 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_tracker_list->info(), "->tracker_controller: " log_fmt, __VA_ARGS__);
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -452,7 +452,7 @@ TrackerController::do_timeout() {
 void
 TrackerController::do_scrape() {
   std::for_each(m_tracker_list->begin(), m_tracker_list->end(),
-                std::bind(&TrackerList::send_scrape, m_tracker_list, std::placeholders::_1));
+                tr1::bind(&TrackerList::send_scrape, m_tracker_list, tr1::placeholders::_1));
 }
 
 uint32_t

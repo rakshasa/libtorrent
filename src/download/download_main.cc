@@ -64,7 +64,6 @@
 #include "download_main.h"
 #include "download_wrapper.h"
 
-namespace std { using namespace tr1; }
 namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
@@ -104,11 +103,11 @@ DownloadMain::DownloadMain() :
   m_tracker_list = new TrackerList();
   m_tracker_controller = new TrackerController(m_tracker_list);
 
-  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
-  m_tracker_list->slot_scrape_success() = std::bind(&TrackerController::receive_scrape, m_tracker_controller, std::placeholders::_1);
-  m_tracker_list->slot_tracker_enabled()  = std::bind(&TrackerController::receive_tracker_enabled, m_tracker_controller, std::placeholders::_1);
-  m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, m_tracker_controller, std::placeholders::_1);
+  m_tracker_list->slot_success() = tr1::bind(&TrackerController::receive_success, m_tracker_controller, tr1::placeholders::_1, tr1::placeholders::_2);
+  m_tracker_list->slot_failure() = tr1::bind(&TrackerController::receive_failure, m_tracker_controller, tr1::placeholders::_1, tr1::placeholders::_2);
+  m_tracker_list->slot_scrape_success() = tr1::bind(&TrackerController::receive_scrape, m_tracker_controller, tr1::placeholders::_1);
+  m_tracker_list->slot_tracker_enabled()  = tr1::bind(&TrackerController::receive_tracker_enabled, m_tracker_controller, tr1::placeholders::_1);
+  m_tracker_list->slot_tracker_disabled() = tr1::bind(&TrackerController::receive_tracker_disabled, m_tracker_controller, tr1::placeholders::_1);
 
   m_connectionList = new ConnectionList(this);
 
