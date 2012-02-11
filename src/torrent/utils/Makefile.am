@@ -11,6 +11,8 @@ libsub_torrentutils_la_SOURCES = \
 	ranges.h \
 	resume.cc \
 	resume.h \
+	signal_bitfield.cc \
+	signal_bitfield.h \
 	thread_base.cc \
 	thread_base.h
 
@@ -24,4 +26,5 @@ libtorrentinclude_HEADERS = \
 	option_strings.h \
 	ranges.h \
 	resume.h \
+	signal_bitfield.h \
 	thread_base.h
