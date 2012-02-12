@@ -45,25 +45,19 @@
 namespace torrent {
 
 // Make sure you seed srandom and srand48 if available.
-void                initialize(Poll* poll) LIBTORRENT_EXPORT;
+void                initialize() LIBTORRENT_EXPORT;
 
 // Clean up and close stuff. Stopping all torrents and waiting for
 // them to finish is not required, but recommended.
 void                cleanup() LIBTORRENT_EXPORT;
 
-int64_t             next_timeout() LIBTORRENT_EXPORT;
-
-// Calls this function when get_next_timeout() is zero or at
-// semi-regular intervals when socket events accure. It updates the
-// cached time and performs scheduled tasks.
-//
-// Bad name, find something better.
-void                perform() LIBTORRENT_EXPORT;
-
 bool                is_inactive() LIBTORRENT_EXPORT;
 
 class FileManager;
 class ResourceManager;
+class thread_base;
+
+thread_base*        main_thread() LIBTORRENT_EXPORT;
 
 ChunkManager*       chunk_manager() LIBTORRENT_EXPORT;
 ClientList*         client_list() LIBTORRENT_EXPORT;
