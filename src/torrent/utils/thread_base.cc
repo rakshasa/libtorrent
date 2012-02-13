@@ -102,11 +102,14 @@ thread_base::interrupt() {
 void*
 thread_base::event_loop(thread_base* thread) {
   __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
-  lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Starting thread.");
+  lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
   
   try {
 
     while (true) {
+      if (thread->m_slot_do_work)
+        thread->m_slot_do_work();
+
       thread->call_events();
       thread->signal_bitfield()->work();
 
@@ -114,9 +117,20 @@ thread_base::event_loop(thread_base* thread) {
 
       // Call again after setting flag_polling to ensure we process
       // any events set while it was working.
+      if (thread->m_slot_do_work)
+        thread->m_slot_do_work();
+
+      thread->call_events();
       thread->signal_bitfield()->work();
 
-      int64_t next_timeout = !(thread->m_flags & flag_no_timeout) ? thread->next_timeout_usec() : 0;
+      uint64_t next_timeout = 0;
+
+      if (!(thread->m_flags & flag_no_timeout)) {
+        next_timeout = thread->next_timeout_usec();
+
+        if (thread->m_slot_next_timeout)
+          next_timeout = std::min(next_timeout, thread->m_slot_next_timeout());
+      }
 
       // Add the sleep call when testing interrupts, etc.
       // usleep(50);
@@ -126,7 +140,7 @@ thread_base::event_loop(thread_base* thread) {
     }
 
   } catch (torrent::shutdown_exception& e) {
-    lt_log_print_locked(torrent::LOG_THREAD_NOTICE, "Shutting down thread.");
+    lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", thread->name());
   }
 
   __sync_lock_test_and_set(&thread->m_state, STATE_INACTIVE);

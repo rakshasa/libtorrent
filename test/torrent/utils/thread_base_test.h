@@ -67,6 +67,8 @@ public:
   bool                is_test_flags(int flags) const { return (m_test_flags & flags) == flags; }
   bool                is_not_test_flags(int flags) const { return !(m_test_flags & flags); }
 
+  const char*         name() const { return "test_thread"; }
+
   void                init_thread();
 
   void                set_pre_stop() { __sync_or_and_fetch(&m_test_flags, test_flag_pre_stop); }

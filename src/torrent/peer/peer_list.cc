@@ -201,18 +201,25 @@ PeerList::available_list_size() const {
 
 PeerInfo*
 PeerList::connected(const sockaddr* sa, int flags) {
+  const rak::socket_address* address = rak::socket_address::cast_from(sa);
+
   if (!socket_address_key::is_comparable(sa))
     return NULL;
 
-  PeerInfo* peerInfo;
-  const rak::socket_address* address = rak::socket_address::cast_from(sa);
+  int filter_value = m_ipv4_table.at(address->sa_inet()->address_h());
 
+  // We should also remove any PeerInfo objects already for this
+  // address.
+  if ((filter_value & PeerInfo::flag_unwanted))
+    return NULL;
+
+  PeerInfo* peerInfo;
   range_type range = base_type::equal_range(sa);
 
   if (range.first == range.second) {
     // Create a new entry.
     peerInfo = new PeerInfo(sa);
-    peerInfo->set_flags(m_ipv4_table.at(address->sa_inet()->address_h()) & PeerInfo::mask_ip_table);
+    peerInfo->set_flags(filter_value & PeerInfo::mask_ip_table);
 
     base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
 

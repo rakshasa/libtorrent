@@ -91,21 +91,19 @@ calculate_reserved(uint32_t openMax) {
 }    
 
 void
-initialize(Poll* poll) {
+initialize() {
   if (manager != NULL)
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
-
-  if (poll->open_max() < 64)
-    throw internal_error("Could not initialize libtorrent, Poll::open_max() < 64.");
 
   cachedTime = rak::timer::current();
 
   manager = new Manager;
-  manager->set_poll(poll);
+  manager->main_thread_disk()->init_thread();
+  manager->set_poll(manager->main_thread_disk()->poll());
 
-  uint32_t maxFiles = calculate_max_open_files(poll->open_max());
+  uint32_t maxFiles = calculate_max_open_files(manager->main_thread_disk()->poll()->open_max());
 
-  manager->connection_manager()->set_max_size(poll->open_max() - maxFiles - calculate_reserved(poll->open_max()));
+  manager->connection_manager()->set_max_size(manager->main_thread_disk()->poll()->open_max() - maxFiles - calculate_reserved(manager->main_thread_disk()->poll()->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
 
   manager->main_thread_disk()->init_thread();
@@ -125,33 +123,16 @@ cleanup() {
   manager = NULL;
 }
 
-void
-perform() {
-  cachedTime = rak::timer::current();
-
-  // Ensure we don't call rak::timer::current() twice if there was no
-  // scheduled tasks called.
-  if (taskScheduler.empty() || taskScheduler.top()->time() > cachedTime)
-    return;
-
-  while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
-    rak::priority_item* v = taskScheduler.top();
-    taskScheduler.pop();
-
-    v->clear_time();
-    v->slot()();
-  }
-
-  // Update the timer again to ensure we get accurate triggering of
-  // msec timers.
-  cachedTime = rak::timer::current();
-}
-
 bool
 is_inactive() {
   return manager == NULL ||
     std::find_if(manager->download_manager()->begin(), manager->download_manager()->end(), std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
     == manager->download_manager()->end();
+}
+
+thread_base*
+main_thread() {
+  return manager->main_thread_main();
 }
 
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
@@ -164,16 +145,6 @@ ResourceManager*   resource_manager() { return manager->resource_manager(); }
 uint32_t
 total_handshakes() {
   return manager->handshake_manager()->size();
-}
-
-int64_t
-next_timeout() {
-  cachedTime = rak::timer::current();
-
-  if (!taskScheduler.empty())
-    return std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
-  else
-    return rak::timer::from_seconds(60).usec();
 }
 
 Throttle* down_throttle_global() { return manager->download_throttle(); }

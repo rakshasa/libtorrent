@@ -34,29 +34,63 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_THREAD_DISK_H
-#define LIBTORRENT_THREAD_DISK_H
+#include "config.h"
 
-#include "data/hash_check_queue.h"
-#include "torrent/utils/thread_base.h"
+#include <rak/timer.h>
+
+#include "thread_main.h"
+
+#include "globals.h"
+#include "torrent/exceptions.h"
+#include "torrent/poll.h"
+#include "torrent/utils/log.h"
 
 namespace torrent {
 
-class thread_disk : public thread_base {
-public:
-  const char*         name() const { return "worker_disk"; }
+void
+thread_main::init_thread() {
+  acquire_global_lock();
 
-  virtual void        init_thread();
+  if (!Poll::slot_create_poll())
+    throw internal_error("thread_main::init_thread(): Poll::slot_create_poll() not valid.");
 
-  HashCheckQueue*     hash_queue() { return &m_hash_queue; }
+  m_poll = Poll::slot_create_poll()();
+  m_poll->set_flags(Poll::flag_waive_global_lock);
 
-protected:
-  virtual void        call_events();
-  virtual int64_t     next_timeout_usec();
-
-  HashCheckQueue      m_hash_queue;
-};
-
+  m_state = STATE_INITIALIZED;
+  m_thread = pthread_self();
 }
 
-#endif
+void
+thread_main::call_events() {
+  cachedTime = rak::timer::current();
+
+  // Ensure we don't call rak::timer::current() twice if there was no
+  // scheduled tasks called.
+  if (taskScheduler.empty() || taskScheduler.top()->time() > cachedTime)
+    return;
+
+  while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
+    rak::priority_item* v = taskScheduler.top();
+    taskScheduler.pop();
+
+    v->clear_time();
+    v->slot()();
+  }
+
+  // Update the timer again to ensure we get accurate triggering of
+  // msec timers.
+  cachedTime = rak::timer::current();
+}
+
+int64_t
+thread_main::next_timeout_usec() {
+  cachedTime = rak::timer::current();
+
+  if (!taskScheduler.empty())
+    return std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
+  else
+    return rak::timer::from_seconds(60).usec();
+}
+
+}

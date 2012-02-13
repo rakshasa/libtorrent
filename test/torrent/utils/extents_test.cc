@@ -5,7 +5,7 @@
 #include <torrent/utils/extents.h>
 #include <iostream>
 
-// CPPUNIT_TEST_SUITE_REGISTRATION(ExtentsTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(ExtentsTest);
 
 void
 ExtentsTest::setUp() {

@@ -10,7 +10,7 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_thread_base_test);
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 void throw_shutdown_exception() { throw torrent::shutdown_exception(); }
 
@@ -108,15 +108,15 @@ utils_thread_base_test::test_lifecycle() {
   CPPUNIT_ASSERT(thread->test_state() == thread_test::TEST_PRE_START);
 
   thread->set_pre_stop();
-  CPPUNIT_ASSERT(!wait_for_true(std::bind(&thread_test::is_test_state, thread, thread_test::TEST_PRE_STOP)));
+  CPPUNIT_ASSERT(!wait_for_true(tr1::bind(&thread_test::is_test_state, thread, thread_test::TEST_PRE_STOP)));
 
   thread->start_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_state, thread, thread_test::STATE_ACTIVE)));
+  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&thread_test::is_state, thread, thread_test::STATE_ACTIVE)));
   CPPUNIT_ASSERT(thread->is_active());
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_test_state, thread, thread_test::TEST_PRE_STOP)));
+  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&thread_test::is_test_state, thread, thread_test::TEST_PRE_STOP)));
 
   thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_state, thread, thread_test::STATE_INACTIVE)));
+  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&thread_test::is_state, thread, thread_test::STATE_INACTIVE)));
   CPPUNIT_ASSERT(thread->is_inactive());
 
   delete thread;
@@ -144,10 +144,10 @@ utils_thread_base_test::test_global_lock_basic() {
   CPPUNIT_ASSERT(!torrent::thread_base::trylock_global_lock());
 
   thread->set_acquire_global();
-  CPPUNIT_ASSERT(!wait_for_true(std::bind(&thread_test::is_test_flags, thread, thread_test::test_flag_has_global)));
+  CPPUNIT_ASSERT(!wait_for_true(tr1::bind(&thread_test::is_test_flags, thread, thread_test::test_flag_has_global)));
   
   torrent::thread_base::release_global_lock();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_test_flags, thread, thread_test::test_flag_has_global)));
+  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&thread_test::is_test_flags, thread, thread_test::test_flag_has_global)));
 
   CPPUNIT_ASSERT(!torrent::thread_base::trylock_global_lock());
   torrent::thread_base::release_global_lock();
@@ -159,7 +159,7 @@ utils_thread_base_test::test_global_lock_basic() {
 
   torrent::thread_base::release_global_lock();
   thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_state, thread, thread_test::STATE_INACTIVE)));
+  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&thread_test::is_state, thread, thread_test::STATE_INACTIVE)));
 
   delete thread;
 }
@@ -182,11 +182,11 @@ utils_thread_base_test::test_interrupt() {
     thread->interrupt();
 
     // Wait for flag to clear.
-    CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_not_test_flags, thread, thread_test::test_flag_do_work)));
+    CPPUNIT_ASSERT(wait_for_true(tr1::bind(&thread_test::is_not_test_flags, thread, thread_test::test_flag_do_work)));
   }
 
   thread->stop_thread();
-  CPPUNIT_ASSERT(wait_for_true(std::bind(&thread_test::is_state, thread, thread_test::STATE_INACTIVE)));
+  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&thread_test::is_state, thread, thread_test::STATE_INACTIVE)));
 
   delete thread;
 }
