@@ -66,6 +66,8 @@ public:
   static const int flag_no_timeout   = 0x4;
   static const int flag_polling      = 0x8;
 
+  static const int flag_main_thread  = 0x10;
+
   thread_base();
   virtual ~thread_base() {}
 
