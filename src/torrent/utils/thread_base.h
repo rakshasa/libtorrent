@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
+#include <tr1/functional>
 
 namespace torrent {
 
@@ -49,6 +50,9 @@ class Poll;
 class LIBTORRENT_EXPORT lt_cacheline_aligned thread_base {
 public:
   typedef void* (*pthread_func)(void*);
+  typedef std::tr1::function<void ()>     slot_void;
+  typedef std::tr1::function<uint64_t ()> slot_timer;
+  typedef class signal_bitfield           signal_type;
 
   enum state_type {
     STATE_UNKNOWN,
@@ -80,8 +84,9 @@ public:
 
   virtual const char* name() const = 0;
 
-  Poll*                  poll()            { return m_poll; }
-  class signal_bitfield* signal_bitfield() { return &m_signal_bitfield; }
+  Poll*               poll()            { return m_poll; }
+  signal_type*        signal_bitfield() { return &m_signal_bitfield; }
+  pthread_t           pthread()         { return m_thread; }
 
   virtual void        init_thread() = 0;
 
@@ -90,6 +95,9 @@ public:
   void                stop_thread_wait();
 
   void                interrupt();
+
+  slot_void&          slot_do_work()      { return m_slot_do_work; }
+  slot_timer&         slot_next_timeout() { return m_slot_next_timeout; }
 
   static inline int   global_queue_size() { return m_global.waiting; }
 
@@ -120,8 +128,11 @@ protected:
   state_type          m_state;
   int                 m_flags;
 
-  Poll*                 m_poll;
-  class signal_bitfield m_signal_bitfield;
+  Poll*               m_poll;
+  signal_type         m_signal_bitfield;
+
+  slot_void           m_slot_do_work;
+  slot_timer          m_slot_next_timeout;
 };
 
 inline void

@@ -211,13 +211,7 @@ PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 
 void
 PollSelect::do_poll(int64_t timeout_usec, int flags) {
-  if (!(flags & poll_worker_thread))
-    torrent::perform();
-
   rak::timer timeout = rak::timer(timeout_usec);
-
-  if (!(flags & poll_worker_thread))
-    timeout = std::min(timeout, rak::timer(torrent::next_timeout()));
 
   timeout += 10;
 
@@ -250,9 +244,6 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
 
   if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
     throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
-
-  if (!(flags & poll_worker_thread))
-    torrent::perform();
 
   perform(read_set, write_set, error_set);
 }

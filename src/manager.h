@@ -42,6 +42,7 @@
 #include <rak/priority_queue_default.h>
 
 #include "thread_disk.h"
+#include "thread_main.h"
 #include "net/socket_fd.h"
 
 namespace torrent {
@@ -82,6 +83,7 @@ public:
   Poll*               poll()                                    { return m_poll; }
   void                set_poll(Poll* p)                         { m_poll = p; }
 
+  thread_main*        main_thread_main()                        { return &m_main_thread_main; }
   thread_disk*        main_thread_disk()                        { return &m_main_thread_disk; }
 
   EncodingList*       encoding_list()                           { return &m_encodingList; }
@@ -107,6 +109,7 @@ private:
   DhtManager*         m_dhtManager;
   Poll*               m_poll;
 
+  thread_main         m_main_thread_main;
   thread_disk         m_main_thread_disk;
 
   EncodingList        m_encodingList;
