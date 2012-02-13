@@ -59,6 +59,7 @@ thread_main::init_thread() {
 
   m_state = STATE_INITIALIZED;
   m_thread = pthread_self();
+  m_flags |= flag_main_thread;
 }
 
 void

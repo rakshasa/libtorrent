@@ -135,7 +135,12 @@ thread_base::event_loop(thread_base* thread) {
       // Add the sleep call when testing interrupts, etc.
       // usleep(50);
 
-      thread->m_poll->do_poll(next_timeout, torrent::Poll::poll_worker_thread);
+      int poll_flags = 0;
+
+      if (!(thread->m_flags & flag_main_thread))
+        poll_flags = torrent::Poll::poll_worker_thread;
+
+      thread->m_poll->do_poll(next_timeout, poll_flags);
       __sync_fetch_and_and(&thread->m_flags, ~(flag_polling | flag_no_timeout));
     }
 
