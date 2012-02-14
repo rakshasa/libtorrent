@@ -49,6 +49,7 @@
 #include "torrent.h"
 #include "rak/timer.h"
 #include "rak/error_number.h"
+#include "utils/log.h"
 #include "utils/thread_base.h"
 
 #ifdef USE_KQUEUE
@@ -59,6 +60,9 @@
 #endif
 
 #include <assert.h>
+
+#define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
+  lt_log_print(LOG_SOCKET_##log_level, "kqueue->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -93,6 +97,8 @@ PollKQueue::flush_events() {
 
 void
 PollKQueue::modify(Event* event, unsigned short op, short mask) {
+  LT_LOG_EVENT(event, DEBUG, "Modify event: op:%hx mask:%hx changed:%u.", op, mask, m_changedEvents);
+
   // Flush the changed filters to the kernel if the buffer is full.
   if (m_changedEvents == m_maxEvents) {
     if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
@@ -269,12 +275,16 @@ PollKQueue::open_max() const {
 
 void
 PollKQueue::open(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Open event.", 0);
+
   if (event_mask(event) != 0)
     throw internal_error("PollKQueue::open(...) called but the file descriptor is active");
 }
 
 void
 PollKQueue::close(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Close event.", 0);
+
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
     m_stdinEvent = NULL;
@@ -299,6 +309,8 @@ PollKQueue::close(Event* event) {
 
 void
 PollKQueue::closed(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Closed event.", 0);
+
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
     m_stdinEvent = NULL;
@@ -344,6 +356,7 @@ PollKQueue::insert_read(Event* event) {
   if (event_mask(event) & flag_read)
     return;
 
+  LT_LOG_EVENT(event, DEBUG, "Insert read.", 0);
   set_event_mask(event, event_mask(event) | flag_read);
 
 #if KQUEUE_SOCKET_ONLY
@@ -361,12 +374,14 @@ PollKQueue::insert_write(Event* event) {
   if (event_mask(event) & flag_write)
     return;
 
+  LT_LOG_EVENT(event, DEBUG, "Insert write.", 0);
   set_event_mask(event, event_mask(event) | flag_write);
   modify(event, EV_ADD, EVFILT_WRITE);
 }
 
 void
 PollKQueue::insert_error(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Insert error.", 0);
 }
 
 void
@@ -374,6 +389,7 @@ PollKQueue::remove_read(Event* event) {
   if (!(event_mask(event) & flag_read))
     return;
 
+  LT_LOG_EVENT(event, DEBUG, "Remove read.", 0);
   set_event_mask(event, event_mask(event) & ~flag_read);
 
 #if KQUEUE_SOCKET_ONLY
@@ -391,12 +407,14 @@ PollKQueue::remove_write(Event* event) {
   if (!(event_mask(event) & flag_write))
     return;
 
+  LT_LOG_EVENT(event, DEBUG, "Remove write.", 0);
   set_event_mask(event, event_mask(event) & ~flag_write);
   modify(event, EV_DELETE, EVFILT_WRITE);
 }
 
 void
 PollKQueue::remove_error(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Remove error.", 0);
 }
 
 #else // USE_QUEUE

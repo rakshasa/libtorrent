@@ -96,6 +96,8 @@ public:
   Handshake(SocketFd fd, HandshakeManager* m, int encryption_options);
   ~Handshake();
 
+  const char*         type_name() const { return "handshake"; }
+
   bool                is_active() const             { return m_state != INACTIVE; }
 
   State               state() const                 { return m_state; }
