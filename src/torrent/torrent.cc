@@ -98,12 +98,11 @@ initialize() {
   cachedTime = rak::timer::current();
 
   manager = new Manager;
-  manager->main_thread_disk()->init_thread();
-  manager->set_poll(manager->main_thread_disk()->poll());
+  manager->main_thread_main()->init_thread();
 
-  uint32_t maxFiles = calculate_max_open_files(manager->main_thread_disk()->poll()->open_max());
+  uint32_t maxFiles = calculate_max_open_files(manager->poll()->open_max());
 
-  manager->connection_manager()->set_max_size(manager->main_thread_disk()->poll()->open_max() - maxFiles - calculate_reserved(manager->main_thread_disk()->poll()->open_max()));
+  manager->connection_manager()->set_max_size(manager->poll()->open_max() - maxFiles - calculate_reserved(manager->poll()->open_max()));
   manager->file_manager()->set_max_open_files(maxFiles);
 
   manager->main_thread_disk()->init_thread();

@@ -76,8 +76,6 @@ Manager::Manager() :
   m_connectionManager(new ConnectionManager),
   m_dhtManager(new DhtManager),
 
-  m_poll(NULL),
-
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle()),
 
