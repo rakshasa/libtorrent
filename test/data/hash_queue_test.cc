@@ -69,6 +69,10 @@ HashQueueTest::test_basic() {
   // CLEANUP_CHUNK_LIST();
 }
 
+static void
+fill_queue() {
+}
+
 void
 HashQueueTest::test_single() {
   SETUP_CHUNK_LIST();
@@ -77,6 +81,7 @@ HashQueueTest::test_single() {
 
   done_chunks_type done_chunks;
   torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  hash_queue->slot_fill_queue() = tr1::bind(&fill_queue);
 
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
   hash_queue->push_back(handle_0, NULL, tr1::bind(&chunk_done, chunk_list, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2));
@@ -108,6 +113,7 @@ HashQueueTest::test_multiple() {
 
   done_chunks_type done_chunks;
   torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  hash_queue->slot_fill_queue() = tr1::bind(&fill_queue);
 
   for (unsigned int i = 0; i < 20; i++) {
     hash_queue->push_back(chunk_list->get(i, torrent::ChunkList::get_blocking),
@@ -137,6 +143,7 @@ HashQueueTest::test_erase() {
   SETUP_THREAD();
 
   torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  hash_queue->slot_fill_queue() = tr1::bind(&fill_queue);
 
   done_chunks_type done_chunks;
 
@@ -164,6 +171,7 @@ HashQueueTest::test_erase_stress() {
   thread_disk->start_thread();
 
   torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
+  hash_queue->slot_fill_queue() = tr1::bind(&fill_queue);
 
   done_chunks_type done_chunks;
 

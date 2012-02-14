@@ -80,8 +80,6 @@ HashQueue::HashQueue(thread_disk* thread) :
 
   pthread_mutex_init(&m_done_chunks_lock, NULL);
   m_thread_disk->hash_queue()->slot_chunk_done() = tr1::bind(&HashQueue::chunk_done, this, tr1::placeholders::_1, tr1::placeholders::_2);
-
-  m_taskWork.slot() = tr1::bind(&HashQueue::work, this);
 }
 
 
@@ -93,13 +91,6 @@ HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_ty
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
   HashChunk* hash_chunk = new HashChunk(handle);
-
-  if (empty()) {
-    if (m_taskWork.is_queued())
-      throw internal_error("Empty HashQueue is still in task schedule");
-
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + rak::timer::from_milliseconds(50));
-  }
 
   base_type::push_back(HashQueueNode(id, hash_chunk, d));
 
@@ -136,7 +127,7 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
       while ((done_itr = m_done_chunks.find(hash_chunk)) == m_done_chunks.end()) {
         pthread_mutex_unlock(&m_done_chunks_lock);
-        usleep(1000);
+        usleep(100);
         pthread_mutex_lock(&m_done_chunks_lock);
       }
 
@@ -149,9 +140,6 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
     itr = erase(itr);
   }
-
-  if (empty())
-    priority_queue_erase(&taskScheduler, &m_taskWork);
 }
 
 void
@@ -162,19 +150,10 @@ HashQueue::clear() {
   // Replace with a dtor check to ensure it is empty?
 //   std::for_each(begin(), end(), std::mem_fun_ref(&HashQueueNode::clear));
 //   base_type::clear();
-  priority_queue_erase(&taskScheduler, &m_taskWork);
 }
 
 void
 HashQueue::work() {
-  check();
-
-  if (!empty() && !m_taskWork.is_queued())
-    priority_queue_insert(&taskScheduler, &m_taskWork, cachedTime + rak::timer::from_milliseconds(50));
-}
-
-void
-HashQueue::check() {
   pthread_mutex_lock(&m_done_chunks_lock);
     
   while (!m_done_chunks.empty()) {
@@ -206,6 +185,10 @@ HashQueue::check() {
 void
 HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
   pthread_mutex_lock(&m_done_chunks_lock);
+
+  if (m_done_chunks.empty())
+    m_slot_fill_queue();
+
   m_done_chunks[hash_chunk] = hash_value;
   pthread_mutex_unlock(&m_done_chunks_lock);
 }
