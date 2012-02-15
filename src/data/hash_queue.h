@@ -40,7 +40,7 @@
 #include <deque>
 #include <map>
 #include <pthread.h>
-#include <rak/priority_queue_default.h>
+#include <tr1/functional>
 
 #include "torrent/hash_string.h"
 #include "hash_queue_node.h"
@@ -63,6 +63,7 @@ public:
   typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
 
   typedef HashQueueNode::slot_done_type slot_done_type;
+  typedef std::tr1::function<void ()>   slot_void;
 
   using base_type::iterator;
 
@@ -87,15 +88,17 @@ public:
 
   void                work();
 
+  slot_void&          slot_has_work() { return m_slot_has_work; }
+
 private:
-  void                check();
   void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
 
   thread_disk*        m_thread_disk;
-  rak::priority_item  m_taskWork;
 
   done_chunks_type    m_done_chunks;
   pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
+
+  slot_void           m_slot_has_work;
 };
 
 }

@@ -82,6 +82,7 @@ Manager::Manager() :
   m_ticks(0) {
 
   m_hashQueue = new HashQueue(&m_main_thread_disk);
+  m_hashQueue->slot_has_work() = tr1::bind(&thread_base::interrupt, &m_main_thread_main);
 
   m_taskTick.slot() = std::tr1::bind(&Manager::receive_tick, this);
 
