@@ -57,6 +57,8 @@ public:
   TrackerUdp(TrackerList* parent, const std::string& url, int flags);
   ~TrackerUdp();
   
+  const char*         type_name() const { return "tracker_udp"; }
+
   virtual bool        is_busy() const;
 
   virtual void        send_state(int state);

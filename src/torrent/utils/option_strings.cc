@@ -160,6 +160,13 @@ const char* option_list_log_group[] = {
   "rpc_info",
   "rpc_debug",
   
+  "socket_critical",
+  "socket_error",
+  "socket_warn",
+  "socket_notice",
+  "socket_info",
+  "socket_debug",
+
   "storage_critical",
   "storage_error",
   "storage_warn",

@@ -66,6 +66,8 @@ public:
   DhtServer(DhtRouter* self);
   ~DhtServer();
 
+  const char*         type_name() const { return "dht"; }
+
   void                start(int port);
   void                stop();
   bool                is_active() const                  { return get_fd().is_valid(); }

@@ -53,6 +53,9 @@ public:
   virtual void        event_write() = 0;
   virtual void        event_error() = 0;
 
+  // Require all event types to define this function.
+  virtual const char* type_name() const { return "default"; }
+
   // Event closed?
 
 protected:

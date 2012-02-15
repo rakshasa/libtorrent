@@ -47,6 +47,7 @@
 
 #include "torrent.h"
 #include "poll_epoll.h"
+#include "utils/log.h"
 #include "utils/thread_base.h"
 #include "rak/error_number.h"
 #include "rak/timer.h"
@@ -54,6 +55,9 @@
 #ifdef USE_EPOLL
 #include <sys/epoll.h>
 #endif
+
+#define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
+  lt_log_print(LOG_SOCKET_##log_level, "epoll->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -74,6 +78,8 @@ inline void
 PollEPoll::modify(Event* event, int op, uint32_t mask) {
   if (event_mask(event) == mask)
     return;
+
+  LT_LOG_EVENT(event, DEBUG, "Modify event: op:%hx mask:%hx.", op, mask);
 
   epoll_event e;
   e.data.u64 = 0; // Make valgrind happy? Remove please.
@@ -211,12 +217,16 @@ PollEPoll::open_max() const {
 
 void
 PollEPoll::open(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Open event.", 0);
+
   if (event_mask(event) != 0)
     throw internal_error("PollEPoll::open(...) called but the file descriptor is active");
 }
 
 void
 PollEPoll::close(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Close event.", 0);
+
   if (event_mask(event) != 0)
     throw internal_error("PollEPoll::close(...) called but the file descriptor is active");
 
@@ -231,6 +241,8 @@ PollEPoll::close(Event* event) {
 
 void
 PollEPoll::closed(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Closed event.", 0);
+
   // Kernel removes closed FDs automatically, so just clear the mask and remove it from pending calls.
   // Don't touch if the FD was re-used before we received the close notification.
   if (m_table[event->file_descriptor()].second == event)
@@ -261,6 +273,8 @@ PollEPoll::in_error(Event* event) {
 
 void
 PollEPoll::insert_read(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Insert read.", 0);
+
   modify(event,
 	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
 	 event_mask(event) | EPOLLIN);
@@ -268,6 +282,8 @@ PollEPoll::insert_read(Event* event) {
 
 void
 PollEPoll::insert_write(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Insert write.", 0);
+
   modify(event,
 	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
 	 event_mask(event) | EPOLLOUT);
@@ -275,6 +291,8 @@ PollEPoll::insert_write(Event* event) {
 
 void
 PollEPoll::insert_error(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Insert error.", 0);
+
   modify(event,
 	 event_mask(event) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
 	 event_mask(event) | EPOLLERR);
@@ -282,22 +300,25 @@ PollEPoll::insert_error(Event* event) {
 
 void
 PollEPoll::remove_read(Event* event) {
-  uint32_t mask = event_mask(event) & ~EPOLLIN;
+  LT_LOG_EVENT(event, DEBUG, "Remove read.", 0);
 
+  uint32_t mask = event_mask(event) & ~EPOLLIN;
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
 void
 PollEPoll::remove_write(Event* event) {
-  uint32_t mask = event_mask(event) & ~EPOLLOUT;
+  LT_LOG_EVENT(event, DEBUG, "Remove write.", 0);
 
+  uint32_t mask = event_mask(event) & ~EPOLLOUT;
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 
 void
 PollEPoll::remove_error(Event* event) {
-  uint32_t mask = event_mask(event) & ~EPOLLERR;
+  LT_LOG_EVENT(event, DEBUG, "Remove error.", 0);
 
+  uint32_t mask = event_mask(event) & ~EPOLLERR;
   modify(event, mask ? EPOLL_CTL_MOD : EPOLL_CTL_DEL, mask);
 }
 

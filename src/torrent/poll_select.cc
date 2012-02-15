@@ -51,7 +51,11 @@
 #include "torrent.h"
 #include "rak/timer.h"
 #include "rak/error_number.h"
+#include "utils/log.h"
 #include "utils/thread_base.h"
+
+#define LT_LOG_EVENT(event, log_level, log_fmt, ...)                    \
+  lt_log_print(LOG_SOCKET_##log_level, "select->%s(%i): " log_fmt, event->type_name(), event->file_descriptor(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -269,6 +273,8 @@ log_poll_open(Event* event) {
 
 void
 PollSelect::open(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Open event.", 0);
+
   if ((uint32_t)event->file_descriptor() >= m_readSet->max_size())
     throw internal_error("Tried to add a socket to PollSelect that is larger than PollSelect::get_open_max()");
 
@@ -278,6 +284,8 @@ PollSelect::open(Event* event) {
 
 void
 PollSelect::close(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Close event.", 0);
+
   if ((uint32_t)event->file_descriptor() >= m_readSet->max_size())
     throw internal_error("PollSelect::close(...) called with an invalid file descriptor");
 
@@ -287,6 +295,8 @@ PollSelect::close(Event* event) {
 
 void
 PollSelect::closed(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Closed event.", 0);
+
   // event->get_fd() was closed, remove it from the sets.
   m_readSet->erase(event);
   m_writeSet->erase(event);
@@ -310,31 +320,37 @@ PollSelect::in_error(Event* event) {
 
 void
 PollSelect::insert_read(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Insert read.", 0);
   m_readSet->insert(event);
 }
 
 void
 PollSelect::insert_write(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Insert write.", 0);
   m_writeSet->insert(event);
 }
 
 void
 PollSelect::insert_error(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Insert error.", 0);
   m_exceptSet->insert(event);
 }
 
 void
 PollSelect::remove_read(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Remove read.", 0);
   m_readSet->erase(event);
 }
 
 void
 PollSelect::remove_write(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Remove write.", 0);
   m_writeSet->erase(event);
 }
 
 void
 PollSelect::remove_error(Event* event) {
+  LT_LOG_EVENT(event, DEBUG, "Remove error.", 0);
   m_exceptSet->erase(event);
 }
 

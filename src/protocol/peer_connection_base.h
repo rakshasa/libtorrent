@@ -88,6 +88,8 @@ public:
   PeerConnectionBase();
   virtual ~PeerConnectionBase();
   
+  const char*         type_name() const { return "pcb"; }
+
   void                initialize(DownloadMain* download, PeerInfo* p, SocketFd fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions);
   void                cleanup();
 
