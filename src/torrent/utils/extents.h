@@ -88,7 +88,7 @@ public:
   typedef typename base_type::range_type        range_type;
   typedef typename base_type::mapped_type       mapped_type;
   typedef typename base_type::mapped_value_type mapped_value_type;
-  //  typedef std::pair<key_type, mapped_type> value_type;
+  typedef typename base_type::table_type        table_type;
 
   static const key_type mask_bits  = MaskBits;
   static const key_type table_bits = TableBits;
