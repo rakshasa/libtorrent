@@ -97,6 +97,7 @@ public:
   void                stop_thread_wait();
 
   void                interrupt();
+  void                send_event_signal(unsigned int index, bool interrupt = true);
 
   slot_void&          slot_do_work()      { return m_slot_do_work; }
   slot_timer&         slot_next_timeout() { return m_slot_next_timeout; }
@@ -136,6 +137,14 @@ protected:
   slot_void           m_slot_do_work;
   slot_timer          m_slot_next_timeout;
 };
+
+inline void
+thread_base::send_event_signal(unsigned int index, bool do_interrupt) {
+  m_signal_bitfield.signal(index);
+
+  if (do_interrupt)
+    interrupt();
+}
 
 inline void
 thread_base::acquire_global_lock() {
