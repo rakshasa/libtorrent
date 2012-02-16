@@ -56,6 +56,9 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
 
+#define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
+  lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
+
 namespace torrent {
 
 TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
@@ -193,7 +196,7 @@ TrackerUdp::event_read() {
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP reply ---\n%*c\n---", s, (const char*)m_readBuffer->begin());
+  LT_LOG_TRACKER_DUMP(DEBUG, (const char*)m_readBuffer->begin(), s, "Tracker UDP reply.", 0);
 
   if (s < 4)
     return;
@@ -239,7 +242,7 @@ TrackerUdp::event_write() {
 
   int __UNUSED s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP request ---\n%*c\n---", m_readBuffer->size_end(), (const char*)m_readBuffer->begin());
+  LT_LOG_TRACKER_DUMP(DEBUG, m_readBuffer->begin(), m_readBuffer->size_end(), "Tracker UDP request.", 0);
 
   // TODO: If send failed, retry shortly or do i call receive_failed?
   // if (s != m_writeBuffer->size_end())

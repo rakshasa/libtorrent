@@ -204,6 +204,12 @@ log_group::internal_print_data(const download_data* data, const char* fmt, ...) 
                                              std::distance(log_groups.begin(), this)));
 }
 
+void
+log_group::internal_dump(const void* dump_data, size_t dump_size) {
+  std::for_each(m_first, m_last,
+                tr1::bind(&log_slot::operator(), tr1::placeholders::_1, (const char*)dump_data, dump_size, -1));
+}
+
 #define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
 
 #define LOG_CHILDREN_CASCADE(parent, subgroup)                          \
@@ -290,7 +296,18 @@ char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
 void
 log_file_write(tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
-  *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
+
+  // Normal groups are nul-terminated strings.
+  if (group >= 0) {
+    *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
+  } else if (group == -1) {
+    *outfile << "---DUMP---" << std::endl;
+    if (length != 0) {
+      outfile->rdbuf()->sputn(data, length);
+      *outfile << std::endl;
+    }
+    *outfile << "---END---" << std::endl;
+  }
 }
 
 // TODO: Allow for different write functions that prepend timestamps,
