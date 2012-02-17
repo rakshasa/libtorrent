@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <signal.h>
 #include <tr1/functional>
 
 #include "data/hash_queue_node.h"
