@@ -2,8 +2,9 @@
 
 #include "extents_test.h"
 
-#include <torrent/utils/extents.h>
+#include <inttypes.h>
 #include <iostream>
+#include <torrent/utils/extents.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ExtentsTest);
 

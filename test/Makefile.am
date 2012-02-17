@@ -7,14 +7,14 @@ LibTorrentTest_LDADD = \
 	../src/torrent/data/libsub_torrentdata.la \
 	../src/torrent/download/libsub_torrentdownload.la \
 	../src/torrent/peer/libsub_torrentpeer.la \
-	../src/torrent/utils/libsub_torrentutils.la \
 	../src/data/libsub_data.la \
 	../src/dht/libsub_dht.la \
 	../src/download/libsub_download.la \
 	../src/net/libsub_net.la \
 	../src/protocol/libsub_protocol.la \
 	../src/tracker/libsub_tracker.la \
-	../src/utils/libsub_utils.la
+	../src/utils/libsub_utils.la \
+	../src/torrent/utils/libsub_torrentutils.la
 
 LibTorrentTest_SOURCES = \
 	../src/thread_disk.cc \
