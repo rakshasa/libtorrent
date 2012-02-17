@@ -153,9 +153,13 @@ TrackerHttp::send_state(int state) {
   if (manager->connection_manager()->listen_port())
     s << "&port=" << manager->connection_manager()->listen_port();
 
-  s << "&uploaded=" << info->uploaded_adjusted()
-    << "&downloaded=" << info->completed_adjusted()
-    << "&left=" << info->slot_left()();
+  uint64_t uploaded_adjusted = info->uploaded_adjusted();
+  uint64_t completed_adjusted = info->completed_adjusted();
+  uint64_t download_left = info->slot_left()();
+
+  s << "&uploaded=" << uploaded_adjusted
+    << "&downloaded=" << completed_adjusted
+    << "&left=" << download_left;
 
   switch(state) {
   case DownloadInfo::STARTED:
@@ -175,7 +179,9 @@ TrackerHttp::send_state(int state) {
 
   std::string request_url = s.str();
 
-  LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(), "Tracker HTTP request.", 0);
+  LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(),
+                      "Tracker HTTP request: up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      uploaded_adjusted, completed_adjusted, download_left);
 
   m_get->set_url(request_url);
   m_get->set_stream(m_data);
