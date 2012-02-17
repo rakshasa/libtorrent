@@ -58,6 +58,9 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
 
+#define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
+  lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
+
 namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
@@ -150,9 +153,13 @@ TrackerHttp::send_state(int state) {
   if (manager->connection_manager()->listen_port())
     s << "&port=" << manager->connection_manager()->listen_port();
 
-  s << "&uploaded=" << info->uploaded_adjusted()
-    << "&downloaded=" << info->completed_adjusted()
-    << "&left=" << info->slot_left()();
+  uint64_t uploaded_adjusted = info->uploaded_adjusted();
+  uint64_t completed_adjusted = info->completed_adjusted();
+  uint64_t download_left = info->slot_left()();
+
+  s << "&uploaded=" << uploaded_adjusted
+    << "&downloaded=" << completed_adjusted
+    << "&left=" << download_left;
 
   switch(state) {
   case DownloadInfo::STARTED:
@@ -172,7 +179,9 @@ TrackerHttp::send_state(int state) {
 
   std::string request_url = s.str();
 
-  LT_LOG_TRACKER(DEBUG, "Tracker HTTP request ---\n%*c\n---", request_url.size(), request_url.c_str());
+  LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(),
+                      "Tracker HTTP request: up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      uploaded_adjusted, completed_adjusted, download_left);
 
   m_get->set_url(request_url);
   m_get->set_stream(m_data);
@@ -197,7 +206,7 @@ TrackerHttp::send_scrape() {
 
   std::string request_url = s.str();
 
-  LT_LOG_TRACKER(DEBUG, "Tracker HTTP scrape ---\n%*c\n---", request_url.size(), request_url.c_str());
+  LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(), "Tracker HTTP scrape.", 0);
   
   m_get->set_url(request_url);
   m_get->set_stream(m_data);
@@ -230,7 +239,7 @@ TrackerHttp::receive_done() {
 
   if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
     std::string dump = m_data->str();
-    LT_LOG_TRACKER(DEBUG, "Tracker HTTP reply ---\n%*c\n---", dump.size(), dump.c_str());
+    LT_LOG_TRACKER_DUMP(DEBUG, dump.c_str(), dump.size(), "Tracker HTTP reply.", 0);
   }
 
   Object b;
@@ -259,7 +268,7 @@ void
 TrackerHttp::receive_failed(std::string msg) {
   if (lt_log_is_valid(LOG_TRACKER_DEBUG)) {
     std::string dump = m_data->str();
-    LT_LOG_TRACKER(DEBUG, "Tracker HTTP failed ---\n%*c\n---", dump.size(), dump.c_str());
+    LT_LOG_TRACKER_DUMP(DEBUG, dump.c_str(), dump.size(), "Tracker HTTP failed.", 0);
   }
 
   close();

@@ -125,12 +125,24 @@ enum {
 #define lt_log_print_data(log_group, log_data, ...) { if (torrent::log_groups[log_group].valid()) torrent::log_groups[log_group].internal_print_data(log_data, __VA_ARGS__); }
 #define lt_log_is_valid(log_group) (torrent::log_groups[log_group].valid())
 
+#define lt_log_print_dump(log_group, log_dump_data, log_dump_size, ...) \
+  if (torrent::log_groups[log_group].valid()) {                         \
+    torrent::log_groups[log_group].internal_print(__VA_ARGS__);         \
+    torrent::log_groups[log_group].internal_dump(log_dump_data, log_dump_size); \
+  }                                                                     \
+
+#define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, ...) \
+  if (torrent::log_groups[log_group].valid()) {                         \
+    torrent::log_groups[log_group].internal_print_info(log_info, __VA_ARGS__); \
+    torrent::log_groups[log_group].internal_dump(log_dump_data, log_dump_size); \
+  }                                                                     \
+
 #define lt_log_print_locked(log_group, ...)                             \
-    if (torrent::log_groups[log_group].valid()) {                       \
-      acquire_global_lock();                                            \
-      torrent::log_groups[log_group].internal_print(__VA_ARGS__);       \
-      release_global_lock();                                            \
-    }
+  if (torrent::log_groups[log_group].valid()) {                         \
+    acquire_global_lock();                                              \
+    torrent::log_groups[log_group].internal_print(__VA_ARGS__);         \
+    release_global_lock();                                              \
+  }
 
 struct log_cached_outputs;
 class DownloadInfo;
@@ -152,6 +164,8 @@ public:
   void                internal_print(const char* fmt, ...);
   void                internal_print_info(const DownloadInfo* info, const char* fmt, ...);
   void                internal_print_data(const download_data* data, const char* fmt, ...);
+
+  void                internal_dump(const void* dump_data, size_t dump_size);
 
   uint64_t            outputs() const                    { return m_outputs; }
   uint64_t            cached_outputs() const             { return m_cached_outputs; }

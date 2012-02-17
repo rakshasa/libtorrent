@@ -186,10 +186,9 @@ void
 HashQueue::chunk_done(HashChunk* hash_chunk, const HashString& hash_value) {
   pthread_mutex_lock(&m_done_chunks_lock);
 
-  if (m_done_chunks.empty())
-    m_slot_fill_queue();
-
   m_done_chunks[hash_chunk] = hash_value;
+  m_slot_has_work(m_done_chunks.empty());
+
   pthread_mutex_unlock(&m_done_chunks_lock);
 }
 

@@ -56,6 +56,9 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
 
+#define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
+  lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "->tracker[%u]: " log_fmt, group(), __VA_ARGS__);
+
 namespace torrent {
 
 TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
@@ -193,7 +196,7 @@ TrackerUdp::event_read() {
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP reply ---\n%*c\n---", s, (const char*)m_readBuffer->begin());
+  LT_LOG_TRACKER_DUMP(DEBUG, (const char*)m_readBuffer->begin(), s, "Tracker UDP reply.", 0);
 
   if (s < 4)
     return;
@@ -239,8 +242,6 @@ TrackerUdp::event_write() {
 
   int __UNUSED s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP request ---\n%*c\n---", m_readBuffer->size_end(), (const char*)m_readBuffer->begin());
-
   // TODO: If send failed, retry shortly or do i call receive_failed?
   // if (s != m_writeBuffer->size_end())
   //   ;
@@ -258,6 +259,9 @@ TrackerUdp::prepare_connect_input() {
   m_writeBuffer->write_64(m_connectionId = magic_connection_id);
   m_writeBuffer->write_32(m_action = 0);
   m_writeBuffer->write_32(m_transactionId = random());
+
+  LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
+                      "Tracker UDP connect: id:%" PRIx32 ".", m_transactionId);
 }
 
 void
@@ -273,9 +277,13 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_range(info->hash().begin(), info->hash().end());
   m_writeBuffer->write_range(info->local_id().begin(), info->local_id().end());
 
-  m_writeBuffer->write_64(info->completed_adjusted());
-  m_writeBuffer->write_64(info->slot_left()());
-  m_writeBuffer->write_64(info->uploaded_adjusted());
+  uint64_t uploaded_adjusted = info->uploaded_adjusted();
+  uint64_t completed_adjusted = info->completed_adjusted();
+  uint64_t download_left = info->slot_left()();
+
+  m_writeBuffer->write_64(completed_adjusted);
+  m_writeBuffer->write_64(download_left);
+  m_writeBuffer->write_64(uploaded_adjusted);
   m_writeBuffer->write_32(m_sendState);
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
@@ -291,6 +299,10 @@ TrackerUdp::prepare_announce_input() {
 
   if (m_writeBuffer->size_end() != 98)
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
+
+  LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
+                      "Tracker UDP announce: id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      m_transactionId, uploaded_adjusted, completed_adjusted, download_left);
 }
 
 bool

@@ -62,8 +62,8 @@ public:
   typedef std::deque<HashQueueNode>                 base_type;
   typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
 
-  typedef HashQueueNode::slot_done_type slot_done_type;
-  typedef std::tr1::function<void ()>   slot_void;
+  typedef HashQueueNode::slot_done_type   slot_done_type;
+  typedef std::tr1::function<void (bool)> slot_bool;
 
   using base_type::iterator;
 
@@ -88,7 +88,7 @@ public:
 
   void                work();
 
-  slot_void&          slot_fill_queue() { return m_slot_fill_queue; }
+  slot_bool&          slot_has_work() { return m_slot_has_work; }
 
 private:
   void                chunk_done(HashChunk* hash_chunk, const HashString& hash_value);
@@ -98,7 +98,7 @@ private:
   done_chunks_type    m_done_chunks;
   pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
 
-  slot_void           m_slot_fill_queue;
+  slot_bool           m_slot_has_work;
 };
 
 }

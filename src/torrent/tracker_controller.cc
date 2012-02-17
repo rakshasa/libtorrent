@@ -331,6 +331,8 @@ TrackerController::start_requesting() {
 
   m_flags |= flag_requesting;
   update_timeout(0);
+
+  LT_LOG_TRACKER(INFO, "Start requesting.", 0);
 }
 
 void
@@ -339,6 +341,8 @@ TrackerController::stop_requesting() {
     return;
 
   m_flags &= ~flag_requesting;
+
+  LT_LOG_TRACKER(INFO, "Stop requesting.", 0);
 }
 
 uint32_t
