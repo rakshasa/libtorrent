@@ -192,7 +192,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       if (std::memcmp(hash, chunk_hash(handle.index()), 20) == 0)
         m_main->file_list()->mark_completed(handle.index());
 
-      m_hashChecker->receive_chunkdone();
+      m_hashChecker->receive_chunkdone(handle.index());
     }
 
     m_main->chunk_list()->release(&handle, ChunkList::get_dont_log);

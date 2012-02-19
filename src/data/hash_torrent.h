@@ -60,7 +60,7 @@ public:
   HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }
 
-  bool                start(bool tryQuick);
+  bool                start(bool try_quick);
   void                clear();
 
   bool                is_checking()                          { return m_outstanding >= 0; }
@@ -79,7 +79,7 @@ public:
 
   rak::priority_item& delay_checked()                        { return m_delayChecked; }
 
-  void                receive_chunkdone();
+  void                receive_chunkdone(uint32_t index);
   void                receive_chunk_cleared(uint32_t index);
   
 private:
@@ -91,7 +91,7 @@ private:
 
   int                 m_errno;
 
-  ChunkList*          m_chunkList;
+  ChunkList*          m_chunk_list;
 
   slot_check_type     m_slotCheck;
   slot_error_type     m_slotError;

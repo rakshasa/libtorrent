@@ -83,6 +83,7 @@ public:
   slot_void&             slot_partially_restarted() const { return m_slot_partially_restarted; }
 
 protected:
+  friend class ChunkList;
   friend class ChunkSelector;
   friend class Download;
   friend class DownloadWrapper;
