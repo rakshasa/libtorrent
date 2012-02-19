@@ -36,16 +36,22 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <rak/error_number.h>
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
+#include "torrent/utils/log.h"
 #include "torrent/utils/log_files.h"
 
 #include "chunk_list.h"
 #include "chunk.h"
 #include "globals.h"
+
+#define LT_LOG_CL(log_level, log_fmt, ...)                              \
+  lt_log_print_data(LOG_STORAGE_##log_level, m_data, "->chunk_list: " log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -77,11 +83,13 @@ ChunkList::has_chunk(size_type index, int prot) const {
 }
 
 void
-ChunkList::resize(size_type s) {
+ChunkList::resize(size_type to_size) {
+  LT_LOG_CL(INFO, "Resizing: from:%" PRIu32 " to:%" PRIu32 ".", size(), to_size);
+  
   if (!empty())
     throw internal_error("ChunkList::resize(...) called on an non-empty object.");
 
-  base_type::resize(s);
+  base_type::resize(to_size);
 
   uint32_t index = 0;
 
@@ -91,6 +99,8 @@ ChunkList::resize(size_type s) {
 
 void
 ChunkList::clear() {
+  LT_LOG_CL(INFO, "Clearing.", 0);
+
   // Don't do any sync'ing as whomever decided to shut down really
   // doesn't care, so just de-reference all chunks in queue.
   for (Queue::iterator itr = m_queue.begin(), last = m_queue.end(); itr != last; ++itr) {
@@ -120,6 +130,8 @@ ChunkList::clear() {
 
 ChunkHandle
 ChunkList::get(size_type index, int flags) {
+  LT_LOG_CL(DEBUG, "Get: index:%" PRIu32 " flags:%#x.", index, flags);
+
   rak::error_number::clear_global();
 
   ChunkListNode* node = &base_type::at(index);
@@ -183,6 +195,8 @@ ChunkList::get(size_type index, int flags) {
 
 void
 ChunkList::release(ChunkHandle* handle, int flags) {
+  LT_LOG_CL(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", index, flags);
+ 
   if (!handle->is_valid())
     throw internal_error("ChunkList::release(...) received an invalid handle.");
 
@@ -263,6 +277,8 @@ ChunkList::sync_chunk(ChunkListNode* node, std::pair<int,bool> options) {
 
 uint32_t
 ChunkList::sync_chunks(int flags) {
+  LT_LOG_CL(DEBUG, "Sync chunks: flags:%#x.", flags);
+
   Queue::iterator split;
 
   if (flags & sync_all)

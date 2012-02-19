@@ -63,6 +63,9 @@
 #include "manager.h"
 #include "piece.h"
 
+#define LT_LOG_FL(log_level, log_fmt, ...)                              \
+  lt_log_print_data(LOG_STORAGE_##log_level, &m_data, "->file_list: " log_fmt, __VA_ARGS__);
+
 namespace torrent {
 
 void
@@ -399,7 +402,7 @@ void
 FileList::open(int flags) {
   typedef std::set<const char*, file_list_cstr_less> path_set;
 
-  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Opening.");
+  LT_LOG_FL(INFO, "Opening.", 0);
 
   if (m_rootDir.empty())
     throw internal_error("FileList::open() m_rootDir.empty().");
@@ -495,7 +498,7 @@ FileList::close() {
   if (!is_open())
     return;
 
-  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Closing.");
+  LT_LOG_FL(INFO, "Closing.", 0);
 
   for (iterator itr = begin(), last = end(); itr != last; ++itr) {
     (*itr)->unset_flags_protected(File::flag_active);
@@ -649,7 +652,7 @@ FileList::mark_completed(uint32_t index) {
   if (bitfield()->size_set() >= bitfield()->size_bits())
     throw internal_error("FileList::mark_completed(...) bitfield()->size_set() >= bitfield()->size_bits().");
 
-  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Done chunk: index:%" PRIu32 ".", index);
+  LT_LOG_FL(INFO, "Done chunk: index:%" PRIu32 ".", index);
 
   m_data.mutable_completed_bitfield()->set(index);
   inc_completed(begin(), index);
@@ -709,7 +712,7 @@ FileList::update_completed() {
 
 void
 FileList::reset_filesize(int64_t size) {
-  lt_log_print_data(LOG_STORAGE_INFO, &m_data, "->file_list: Resetting torrent size: size:%" PRIi64 ".", size);
+  LT_LOG_FL(INFO, "Resetting torrent size: size:%" PRIi64 ".", size);
 
   close();
   m_chunkSize = size;

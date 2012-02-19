@@ -49,6 +49,7 @@ namespace torrent {
 
 class ChunkManager;
 class Content;
+class download_data;
 class DownloadWrapper;
 class FileList;
 
@@ -90,7 +91,7 @@ public:
 
   static const int flag_active       = (1 << 0);
 
-  ChunkList() : m_manager(NULL), m_flags(0), m_chunk_size(0) {}
+  ChunkList() : m_data(NULL), m_manager(NULL), m_flags(0), m_chunk_size(0) {}
   ~ChunkList() { clear(); }
 
   int                 flags() const                       { return m_flags; }
@@ -102,12 +103,15 @@ public:
   uint32_t            chunk_size() const                  { return m_chunk_size; }
   size_type           queue_size() const                  { return m_queue.size(); }
 
+  download_data*      data()                              { return m_data; }
+
+  void                set_data(download_data* data)       { m_data = data; }
   void                set_manager(ChunkManager* manager)  { m_manager = manager; }
   void                set_chunk_size(uint32_t cs)         { m_chunk_size = cs; }
 
   bool                has_chunk(size_type index, int prot) const;
 
-  void                resize(size_type s);
+  void                resize(size_type to_size);
   void                clear();
 
   ChunkHandle         get(size_type index, int flags = 0);
@@ -141,6 +145,7 @@ private:
 
   std::pair<int,bool> sync_options(ChunkListNode* node, int flags);
 
+  download_data*      m_data;
   ChunkManager*       m_manager;
   Queue               m_queue;
 
