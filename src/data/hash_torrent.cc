@@ -176,11 +176,15 @@ HashTorrent::queue(bool quick) {
       if (m_outstanding != 0)
         throw internal_error("HashTorrent::queue() quick hashing but m_outstanding != 0.");
 
-      if (handle.is_valid())
+      if (handle.is_valid()) {
+        LT_LOG_THIS(DEBUG, "Return on handle.is_valid(): position:%u.", m_position);
         return m_chunk_list->release(&handle, ChunkList::get_dont_log);
+      }
       
-      if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent)
+      if (handle.error_number().is_valid() && handle.error_number().value() != rak::error_number::e_noent) {
+        LT_LOG_THIS(DEBUG, "Return on handle errno == E_NOENT: position:%u.", m_position);
         return;
+      }
 
       m_position++;
       continue;
