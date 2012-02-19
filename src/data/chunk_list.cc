@@ -50,7 +50,7 @@
 #include "chunk.h"
 #include "globals.h"
 
-#define LT_LOG_CL(log_level, log_fmt, ...)                              \
+#define LT_LOG_THIS(log_level, log_fmt, ...)                              \
   lt_log_print_data(LOG_STORAGE_##log_level, m_data, "->chunk_list: " log_fmt, __VA_ARGS__);
 
 namespace torrent {
@@ -84,7 +84,7 @@ ChunkList::has_chunk(size_type index, int prot) const {
 
 void
 ChunkList::resize(size_type to_size) {
-  LT_LOG_CL(INFO, "Resizing: from:%" PRIu32 " to:%" PRIu32 ".", size(), to_size);
+  LT_LOG_THIS(INFO, "Resizing: from:%" PRIu32 " to:%" PRIu32 ".", size(), to_size);
   
   if (!empty())
     throw internal_error("ChunkList::resize(...) called on an non-empty object.");
@@ -99,7 +99,7 @@ ChunkList::resize(size_type to_size) {
 
 void
 ChunkList::clear() {
-  LT_LOG_CL(INFO, "Clearing.", 0);
+  LT_LOG_THIS(INFO, "Clearing.", 0);
 
   // Don't do any sync'ing as whomever decided to shut down really
   // doesn't care, so just de-reference all chunks in queue.
@@ -130,7 +130,7 @@ ChunkList::clear() {
 
 ChunkHandle
 ChunkList::get(size_type index, int flags) {
-  LT_LOG_CL(DEBUG, "Get: index:%" PRIu32 " flags:%#x.", index, flags);
+  LT_LOG_THIS(DEBUG, "Get: index:%" PRIu32 " flags:%#x.", index, flags);
 
   rak::error_number::clear_global();
 
@@ -140,12 +140,18 @@ ChunkList::get(size_type index, int flags) {
   int prot_flags = MemoryChunk::prot_read | ((flags & get_writable) ? MemoryChunk::prot_write : 0);
 
   if (!node->is_valid()) {
-    if (!m_manager->allocate(m_chunk_size, allocate_flags))
+    if (!m_manager->allocate(m_chunk_size, allocate_flags)) {
+      LT_LOG_THIS(DEBUG, "Could not allocate: memory:%" PRIu64 " block:%" PRIu32 ".",
+                  m_manager->memory_usage(), m_manager->memory_block_count());
       return ChunkHandle::from_error(rak::error_number::e_nomem);
+    }
 
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
     if (chunk == NULL) {
+      LT_LOG_THIS(DEBUG, "Could not create: memory:%" PRIu64 " block:%" PRIu32 " errno:%i errmsg:%s.",
+                  m_manager->memory_usage(), m_manager->memory_block_count(),
+                  rak::error_number::current().value(), rak::error_number::current().c_str());
       m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);
       return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
     }
@@ -195,7 +201,7 @@ ChunkList::get(size_type index, int flags) {
 
 void
 ChunkList::release(ChunkHandle* handle, int flags) {
-  LT_LOG_CL(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", index, flags);
+  LT_LOG_THIS(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", index, flags);
  
   if (!handle->is_valid())
     throw internal_error("ChunkList::release(...) received an invalid handle.");
@@ -277,7 +283,7 @@ ChunkList::sync_chunk(ChunkListNode* node, std::pair<int,bool> options) {
 
 uint32_t
 ChunkList::sync_chunks(int flags) {
-  LT_LOG_CL(DEBUG, "Sync chunks: flags:%#x.", flags);
+  LT_LOG_THIS(DEBUG, "Sync chunks: flags:%#x.", flags);
 
   Queue::iterator split;
 
