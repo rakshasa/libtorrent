@@ -200,15 +200,15 @@ ChunkList::get(size_type index, int flags) {
 // will allow us to schedule writes at more resonable intervals.
 
 void
-ChunkList::release(ChunkHandle* handle, int flags) {
-  LT_LOG_THIS(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", index, flags);
- 
+ChunkList::release(ChunkHandle* handle, int release_flags) {
   if (!handle->is_valid())
     throw internal_error("ChunkList::release(...) received an invalid handle.");
 
   if (handle->object() < &*begin() || handle->object() >= &*end())
     throw internal_error("ChunkList::release(...) received an unknown handle.");
 
+  LT_LOG_THIS(DEBUG, "Release: index:%" PRIu32 " flags:%#x.", handle->index(), release_flags);
+ 
   if (handle->object()->references() <= 0 ||
       (handle->is_writable() && handle->object()->writable() <= 0) ||
       (handle->is_blocking() && handle->object()->blocking() <= 0))
@@ -239,7 +239,7 @@ ChunkList::release(ChunkHandle* handle, int flags) {
       if (is_queued(handle->object()))
         throw internal_error("ChunkList::release(...) tried to unmap a queued chunk.");
 
-      clear_chunk(handle->object(), flags);
+      clear_chunk(handle->object(), release_flags);
     }
   }
 
