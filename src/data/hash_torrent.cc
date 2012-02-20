@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include "data/chunk_list.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
