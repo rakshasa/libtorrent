@@ -64,7 +64,7 @@
 #include "piece.h"
 
 #define LT_LOG_FL(log_level, log_fmt, ...)                              \
-  lt_log_print_data(LOG_STORAGE_##log_level, &m_data, "->file_list: " log_fmt, __VA_ARGS__);
+  lt_log_print_data(LOG_STORAGE_##log_level, (&m_data), "file_list", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 

@@ -152,46 +152,16 @@ log_rebuild_cache() {
 }
 
 void
-log_group::internal_print(const char* fmt, ...) {
+log_group::internal_print(const HashString* hash, const char* subsystem, const char* fmt, ...) {
   va_list ap;
   unsigned int buffer_size = 4096;
   char buffer[buffer_size];
+  char* first = buffer;
 
-  va_start(ap, fmt);
-  int count = vsnprintf(buffer, 4096, fmt, ap);
-  va_end(ap);
-
-  if (count >= 0)
-    std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
-                                             tr1::placeholders::_1, buffer,
-                                             std::min<unsigned int>(count, buffer_size - 1),
-                                             std::distance(log_groups.begin(), this)));
-}
-
-void
-log_group::internal_print_info(const DownloadInfo* info, const char* fmt, ...) {
-  va_list ap;
-  unsigned int buffer_size = 4096;
-  char buffer[buffer_size];
-  char* first = hash_string_to_hex(info->hash(), buffer);
-
-  va_start(ap, fmt);
-  int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);
-  va_end(ap);
-
-  if (count >= 0)
-    std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
-                                             tr1::placeholders::_1, buffer,
-                                             std::min<unsigned int>(count, buffer_size - 1),
-                                             std::distance(log_groups.begin(), this)));
-}
-
-void
-log_group::internal_print_data(const download_data* data, const char* fmt, ...) {
-  va_list ap;
-  unsigned int buffer_size = 4096;
-  char buffer[buffer_size];
-  char* first = hash_string_to_hex(data->hash(), buffer);
+  if (hash != NULL && subsystem != NULL) {
+    first = hash_string_to_hex(*hash, first);
+    first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
+  }
 
   va_start(ap, fmt);
   int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);

@@ -43,6 +43,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
+#include "torrent/data/download_data.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/log_files.h"
 
@@ -51,7 +52,7 @@
 #include "globals.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                              \
-  lt_log_print_data(LOG_STORAGE_##log_level, m_data, "->chunk_list: " log_fmt, __VA_ARGS__);
+  lt_log_print_data(LOG_STORAGE_##log_level, m_data, "chunk_list", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
