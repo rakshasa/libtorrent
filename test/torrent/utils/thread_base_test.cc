@@ -45,16 +45,16 @@ thread_test::call_events() {
     throw torrent::shutdown_exception();
   }
 
-  if ((m_test_flags & test_flag_pre_poke))
-    ;
+  if ((m_test_flags & test_flag_pre_poke)) {
+  }
 
   if ((m_test_flags & test_flag_do_work)) {
     usleep(10 * 1000); // TODO: Don't just sleep, as that give up core.
     __sync_and_and_fetch(&m_test_flags, ~test_flag_do_work);
   }
 
-  if ((m_test_flags & test_flag_post_poke))
-    ;
+  if ((m_test_flags & test_flag_post_poke)) {
+  }
 }
 
 bool
