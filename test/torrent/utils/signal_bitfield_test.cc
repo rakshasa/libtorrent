@@ -99,7 +99,7 @@ utils_signal_bitfield_test::test_multiple() {
   CPPUNIT_ASSERT(marked_bitfield == 0x0);
   
   signal_bitfield.work();
-  CPPUNIT_ASSERT(marked_bitfield == (1 << 2) | (1 << 31));
+  CPPUNIT_ASSERT(marked_bitfield == (((unsigned int)1 << 2) | ((unsigned int)1 << 31)));
 
   marked_bitfield = 0;
 

@@ -43,6 +43,7 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
+#include "torrent/data/download_data.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/log_files.h"
 
@@ -51,7 +52,7 @@
 #include "globals.h"
 
 #define LT_LOG_THIS(log_level, log_fmt, ...)                              \
-  lt_log_print_data(LOG_STORAGE_##log_level, m_data, "->chunk_list: " log_fmt, __VA_ARGS__);
+  lt_log_print_data(LOG_STORAGE_##log_level, m_data, "chunk_list", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -149,11 +150,13 @@ ChunkList::get(size_type index, int flags) {
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
     if (chunk == NULL) {
+      rak::error_number current_error = rak::error_number::current();
+
       LT_LOG_THIS(DEBUG, "Could not create: memory:%" PRIu64 " block:%" PRIu32 " errno:%i errmsg:%s.",
                   m_manager->memory_usage(), m_manager->memory_block_count(),
-                  rak::error_number::current().value(), rak::error_number::current().c_str());
+                  current_error.value(), current_error.c_str());
       m_manager->deallocate(m_chunk_size, allocate_flags | ChunkManager::allocate_revert_log);
-      return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
+      return ChunkHandle::from_error(current_error.is_valid() ? current_error : rak::error_number::e_noent);
     }
 
     node->set_chunk(chunk);
