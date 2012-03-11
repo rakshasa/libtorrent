@@ -37,6 +37,8 @@
 #include "config.h"
 
 #include "log.h"
+#include "log_buffer.h"
+
 #include "globals.h"
 #include "rak/algorithm.h"
 #include "rak/timer.h"
@@ -165,6 +167,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 
   va_start(ap, fmt);
   int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);
+  first += std::min<unsigned int>(count, buffer_size - 1);
   va_end(ap);
 
   if (count <= 0)
@@ -172,8 +175,9 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 
   pthread_mutex_lock(&log_mutex);
   std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
-                                           tr1::placeholders::_1, buffer,
-                                           std::min<unsigned int>(count, buffer_size - 1),
+                                           tr1::placeholders::_1,
+                                           buffer,
+                                           std::distance(buffer, first),
                                            std::distance(log_groups.begin(), this)));
   if (dump_data != NULL)
     std::for_each(m_first, m_last,
@@ -277,38 +281,6 @@ log_open_output(const char* name, log_slot slot) {
   pthread_mutex_unlock(&log_mutex);
 }
 
-char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
-
-void
-log_file_write(tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
-  // Add group name, data, etc as flags.
-
-  // Normal groups are nul-terminated strings.
-  if (group >= 0) {
-    *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
-  } else if (group == -1) {
-    *outfile << "---DUMP---" << std::endl;
-    if (length != 0) {
-      outfile->rdbuf()->sputn(data, length);
-      *outfile << std::endl;
-    }
-    *outfile << "---END---" << std::endl;
-  }
-}
-
-// TODO: Allow for different write functions that prepend timestamps,
-// etc.
-void
-log_open_file_output(const char* name, const char* filename) {
-  tr1::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
-
-  if (!outfile->good())
-    throw input_error("Could not open log file '" + std::string(filename) + "'.");
-
-  //  log_open_output(name, tr1::bind(&std::ofstream::write, outfile, tr1::placeholders::_1, tr1::placeholders::_2));
-  log_open_output(name, tr1::bind(&log_file_write, outfile, tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3));
-}
-
 void
 log_close_output(const char* name) {
 }
@@ -350,6 +322,54 @@ log_add_child(int group, int child) {
 void
 log_remove_child(int group, int child) {
   // Remove from all groups, then modify all outputs.
+}
+
+const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
+
+void
+log_file_write(tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
+  // Add group name, data, etc as flags.
+
+  // Normal groups are nul-terminated strings.
+  if (group >= 0) {
+    *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
+  } else if (group == -1) {
+    *outfile << "---DUMP---" << std::endl;
+    if (length != 0) {
+      outfile->rdbuf()->sputn(data, length);
+      *outfile << std::endl;
+    }
+    *outfile << "---END---" << std::endl;
+  }
+}
+
+// TODO: Allow for different write functions that prepend timestamps,
+// etc.
+void
+log_open_file_output(const char* name, const char* filename) {
+  tr1::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
+
+  if (!outfile->good())
+    throw input_error("Could not open log file '" + std::string(filename) + "'.");
+
+  //  log_open_output(name, tr1::bind(&std::ofstream::write, outfile, tr1::placeholders::_1, tr1::placeholders::_2));
+  log_open_output(name, tr1::bind(&log_file_write, outfile,
+                                  tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3));
+}
+
+log_buffer*
+log_open_log_buffer(const char* name) {
+  log_buffer* buffer = new log_buffer;
+
+  try {
+    log_open_output(name, tr1::bind(&log_buffer::lock_and_push_log, buffer,
+                                    tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3));
+    return buffer;
+
+  } catch (torrent::input_error& e) {
+    delete buffer;
+    throw;
+  }
 }
 
 }

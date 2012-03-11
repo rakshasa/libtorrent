@@ -145,6 +145,7 @@ enum {
 struct log_cached_outputs;
 class DownloadInfo;
 class download_data;
+class log_buffer;
 
 typedef std::tr1::function<void (const char*, unsigned int, int)> log_slot;
 typedef std::vector<std::pair<std::string, log_slot> >            log_output_list;
@@ -196,13 +197,14 @@ void log_cleanup() LIBTORRENT_EXPORT;
 void log_open_output(const char* name, log_slot slot) LIBTORRENT_EXPORT;
 void log_close_output(const char* name) LIBTORRENT_EXPORT;
 
-void log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
-
 void log_add_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 
 void log_add_child(int group, int child) LIBTORRENT_EXPORT;
 void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
+
+void        log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
+log_buffer* log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
 
 }
 
