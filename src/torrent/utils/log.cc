@@ -37,6 +37,8 @@
 #include "config.h"
 
 #include "log.h"
+#include "log_buffer.h"
+
 #include "globals.h"
 #include "rak/algorithm.h"
 #include "rak/timer.h"
@@ -80,6 +82,8 @@ log_child_list  log_children;
 log_cache_list  log_cache;
 log_group_list  log_groups;
 
+pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 // Removing logs always triggers a check if we got any un-used
 // log_output objects.
 
@@ -120,8 +124,6 @@ log_rebuild_cache() {
   std::for_each(log_cache.begin(), log_cache.end(), std::mem_fun_ref(&log_cache_entry::clear));
   log_cache.clear();
 
-  //for (log_group_list::iterator itr = log_groups.begin(), last = log_groups.end(); itr != last; itr++) {
-
   for (int idx = 0, last = log_groups.size(); idx != last; idx++) {
     uint64_t use_outputs = log_groups[idx].cached_outputs();
 
@@ -152,7 +154,7 @@ log_rebuild_cache() {
 }
 
 void
-log_group::internal_print(const HashString* hash, const char* subsystem, const char* fmt, ...) {
+log_group::internal_print(const HashString* hash, const char* subsystem, const void* dump_data, size_t dump_size, const char* fmt, ...) {
   va_list ap;
   unsigned int buffer_size = 4096;
   char buffer[buffer_size];
@@ -165,19 +167,22 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const c
 
   va_start(ap, fmt);
   int count = vsnprintf(first, 4096 - (first - buffer), fmt, ap);
+  first += std::min<unsigned int>(count, buffer_size - 1);
   va_end(ap);
 
-  if (count >= 0)
-    std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
-                                             tr1::placeholders::_1, buffer,
-                                             std::min<unsigned int>(count, buffer_size - 1),
-                                             std::distance(log_groups.begin(), this)));
-}
+  if (count <= 0)
+    return;
 
-void
-log_group::internal_dump(const void* dump_data, size_t dump_size) {
-  std::for_each(m_first, m_last,
-                tr1::bind(&log_slot::operator(), tr1::placeholders::_1, (const char*)dump_data, dump_size, -1));
+  pthread_mutex_lock(&log_mutex);
+  std::for_each(m_first, m_last, tr1::bind(&log_slot::operator(),
+                                           tr1::placeholders::_1,
+                                           buffer,
+                                           std::distance(buffer, first),
+                                           std::distance(log_groups.begin(), this)));
+  if (dump_data != NULL)
+    std::for_each(m_first, m_last,
+                  tr1::bind(&log_slot::operator(), tr1::placeholders::_1, (const char*)dump_data, dump_size, -1));
+  pthread_mutex_unlock(&log_mutex);
 }
 
 #define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
@@ -199,6 +204,8 @@ log_group::internal_dump(const void* dump_data, size_t dump_size) {
 
 void
 log_initialize() {
+  pthread_mutex_lock(&log_mutex);
+
   LOG_CASCADE(LOG_CRITICAL);
   LOG_CASCADE(LOG_CONNECTION_CRITICAL);
   LOG_CASCADE(LOG_DHT_CRITICAL);
@@ -224,17 +231,23 @@ log_initialize() {
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TRACKER_CRITICAL);
 
   std::sort(log_children.begin(), log_children.end());
+
   log_rebuild_cache();
+  pthread_mutex_unlock(&log_mutex);
 }
 
 void
 log_cleanup() {
+  pthread_mutex_lock(&log_mutex);
+
   log_groups.assign(log_group());
   log_outputs.clear();
   log_children.clear();
 
   std::for_each(log_cache.begin(), log_cache.end(), std::mem_fun_ref(&log_cache_entry::clear));
   log_cache.clear();
+
+  pthread_mutex_unlock(&log_mutex);
 }
 
 log_output_list::iterator
@@ -251,17 +264,67 @@ log_find_output_name(const char* name) {
 // Add limit of 64 log entities...
 void
 log_open_output(const char* name, log_slot slot) {
-  if (log_outputs.size() >= (size_t)std::numeric_limits<uint64_t>::digits)
+  pthread_mutex_lock(&log_mutex);
+
+  if (log_outputs.size() >= (size_t)std::numeric_limits<uint64_t>::digits) {
+    pthread_mutex_unlock(&log_mutex);
     throw input_error("Cannot open more than 64 log output handlers.");
+  }
   
-  if (log_find_output_name(name) != log_outputs.end())
+  if (log_find_output_name(name) != log_outputs.end()) {
+    pthread_mutex_unlock(&log_mutex);
     throw input_error("Log name already used.");
+  }
 
   log_outputs.push_back(std::make_pair(name, slot));
   log_rebuild_cache();
+  pthread_mutex_unlock(&log_mutex);
 }
 
-char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
+void
+log_close_output(const char* name) {
+}
+
+void
+log_add_group_output(int group, const char* name) {
+  pthread_mutex_lock(&log_mutex);
+  log_output_list::iterator itr = log_find_output_name(name);
+
+  if (itr == log_outputs.end()) {
+    pthread_mutex_unlock(&log_mutex);
+    throw input_error("Log name not found.");
+  }
+  
+  log_groups[group].set_outputs(log_groups[group].outputs() | (0x1 << std::distance(log_outputs.begin(), itr)));
+  log_rebuild_cache();
+  pthread_mutex_unlock(&log_mutex);
+}
+
+void
+log_remove_group_output(int group, const char* name) {
+}
+
+// The log_children list is <child, group> since we build the output
+// cache by crawling from child to parent.
+void
+log_add_child(int group, int child) {
+  pthread_mutex_lock(&log_mutex);
+  if (std::find(log_children.begin(), log_children.end(), std::make_pair(group, child)) != log_children.end())
+    return;
+
+  log_children.push_back(std::make_pair(group, child));
+  std::sort(log_children.begin(), log_children.end());
+
+  log_rebuild_cache();
+  pthread_mutex_unlock(&log_mutex);
+}
+
+void
+log_remove_child(int group, int child) {
+  // Remove from all groups, then modify all outputs.
+}
+
+const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
 
 void
 log_file_write(tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
@@ -290,43 +353,23 @@ log_open_file_output(const char* name, const char* filename) {
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
   //  log_open_output(name, tr1::bind(&std::ofstream::write, outfile, tr1::placeholders::_1, tr1::placeholders::_2));
-  log_open_output(name, tr1::bind(&log_file_write, outfile, tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3));
+  log_open_output(name, tr1::bind(&log_file_write, outfile,
+                                  tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3));
 }
 
-void
-log_close_output(const char* name) {
-}
+log_buffer*
+log_open_log_buffer(const char* name) {
+  log_buffer* buffer = new log_buffer;
 
-void
-log_add_group_output(int group, const char* name) {
-  log_output_list::iterator itr = log_find_output_name(name);
+  try {
+    log_open_output(name, tr1::bind(&log_buffer::lock_and_push_log, buffer,
+                                    tr1::placeholders::_1, tr1::placeholders::_2, tr1::placeholders::_3));
+    return buffer;
 
-  if (itr == log_outputs.end())
-    throw input_error("Log name not found.");
-  
-  log_groups[group].set_outputs(log_groups[group].outputs() | (0x1 << std::distance(log_outputs.begin(), itr)));
-  log_rebuild_cache();
-}
-
-void
-log_remove_group_output(int group, const char* name) {
-}
-
-// The log_children list is <child, group> since we build the output
-// cache by crawling from child to parent.
-void
-log_add_child(int group, int child) {
-  if (std::find(log_children.begin(), log_children.end(), std::make_pair(group, child)) != log_children.end())
-    return;
-
-  log_children.push_back(std::make_pair(group, child));
-  std::sort(log_children.begin(), log_children.end());
-  log_rebuild_cache();
-}
-
-void
-log_remove_child(int group, int child) {
-  // Remove from all groups, then modify all outputs.
+  } catch (torrent::input_error& e) {
+    delete buffer;
+    throw;
+  }
 }
 
 }

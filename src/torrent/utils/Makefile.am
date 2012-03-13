@@ -4,6 +4,8 @@ libsub_torrentutils_la_SOURCES = \
 	extents.h \
 	log.cc \
 	log.h \
+	log_buffer.cc \
+	log_buffer.h \
 	log_files.cc \
 	log_files.h \
 	option_strings.cc \
@@ -22,6 +24,7 @@ libtorrentincludedir = $(includedir)/torrent/utils
 libtorrentinclude_HEADERS = \
 	extents.h \
 	log.h \
+	log_buffer.h \
 	log_files.h \
 	option_strings.h \
 	ranges.h \
