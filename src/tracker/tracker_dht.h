@@ -63,6 +63,7 @@ public:
 
   virtual void        send_state(int state);
   virtual void        close();
+  virtual void        disown();
 
   virtual Type        type() const;
 

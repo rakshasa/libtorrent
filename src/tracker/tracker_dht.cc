@@ -115,6 +115,11 @@ TrackerDht::close() {
     manager->dht_manager()->router()->cancel_announce(m_parent->info(), this);
 }
 
+void
+TrackerDht::disown() {
+  close();
+}
+
 TrackerDht::Type
 TrackerDht::type() const {
   return TRACKER_DHT;

@@ -281,8 +281,11 @@ TrackerController::send_update_event() {
 
 // Currently being used by send_state, fixme.
 void
-TrackerController::close() {
+TrackerController::close(int flags) {
   m_flags &= ~(flag_requesting | flag_promiscuous_mode);
+
+  if ((flags & (close_disown_stop | close_disown_completed)))
+    m_tracker_list->disown_all_including(close_disown_stop | close_disown_completed);
 
   m_tracker_list->close_all();
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);

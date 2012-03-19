@@ -136,6 +136,7 @@ protected:
   virtual void        send_state(int state) = 0;
   virtual void        send_scrape();
   virtual void        close() = 0;
+  virtual void        disown() = 0;
 
   // Safeguard to catch bugs that lead to hammering of trackers.
   void                inc_request_counter();
