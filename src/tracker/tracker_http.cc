@@ -224,10 +224,28 @@ TrackerHttp::close() {
   if (m_data == NULL)
     return;
 
-  LT_LOG_TRACKER(DEBUG, "Tracker HTTP request cancelled: state:%s.",
-                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event));
+  LT_LOG_TRACKER(DEBUG, "Tracker HTTP request cancelled: state:%s url:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
 
   close_directly();
+}
+
+void
+TrackerHttp::disown() {
+  if (m_data == NULL)
+    return;
+
+  LT_LOG_TRACKER(DEBUG, "Tracker HTTP request disowned: state:%s url:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
+  
+  m_get->set_delete_self();
+  m_get->set_delete_stream();
+  m_get->signal_done().clear();
+  m_get->signal_failed().clear();
+
+  // Allocate this dynamically, so that we don't need to do this here.
+  m_get = Http::slot_factory()();
+  m_data = NULL;
 }
 
 TrackerHttp::Type

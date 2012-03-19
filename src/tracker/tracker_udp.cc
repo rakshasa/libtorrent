@@ -145,8 +145,19 @@ TrackerUdp::close() {
   if (!get_fd().is_valid())
     return;
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP request cancelled: state:%s.",
-                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event));
+  LT_LOG_TRACKER(DEBUG, "Tracker UDP request cancelled: state:%s url:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
+
+  close_directly();
+}
+
+void
+TrackerUdp::disown() {
+  if (!get_fd().is_valid())
+    return;
+
+  LT_LOG_TRACKER(DEBUG, "Tracker UDP request disowned: state:%s url:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
 
   close_directly();
 }

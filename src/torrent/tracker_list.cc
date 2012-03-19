@@ -109,6 +109,14 @@ TrackerList::close_all_excluding(int event_bitmap) {
 }
 
 void
+TrackerList::disown_all_including(int event_bitmap) {
+  for (iterator itr = begin(); itr != end(); itr++) {
+    if ((event_bitmap & (1 << (*itr)->latest_event())))
+      (*itr)->disown();
+  }
+}
+
+void
 TrackerList::clear() {
   std::for_each(begin(), end(), rak::call_delete<Tracker>());
   base_type::clear();

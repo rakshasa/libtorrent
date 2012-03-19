@@ -81,6 +81,7 @@ public:
   virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = m_latest_event = state; }
   virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_state = m_latest_event = torrent::Tracker::EVENT_SCRAPE; }
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }
+  virtual void        disown()              { m_busy = false; m_open = false; m_requesting_state = -1; }
 
 private:
   bool                m_busy;
