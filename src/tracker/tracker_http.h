@@ -60,6 +60,8 @@ public:
   virtual Type        type() const;
 
 private:
+  void                close_directly();
+
   void                request_prefix(std::stringstream* stream, const std::string& url);
 
   void                receive_done();

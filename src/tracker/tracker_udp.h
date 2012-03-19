@@ -72,6 +72,8 @@ public:
   virtual void        event_error();
 
 private:
+  void                close_directly();
+
   void                receive_failed(const std::string& msg);
   void                receive_timeout();
 

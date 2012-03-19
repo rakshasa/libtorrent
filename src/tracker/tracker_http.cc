@@ -51,6 +51,7 @@
 #include "torrent/object_stream.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/option_strings.h"
 
 #include "tracker_http.h"
 
@@ -114,7 +115,7 @@ TrackerHttp::request_prefix(std::stringstream* stream, const std::string& url) {
 
 void
 TrackerHttp::send_state(int state) {
-  close();
+  close_directly();
 
   if (m_parent == NULL)
     throw internal_error("TrackerHttp::send_state(...) does not have a valid m_parent.");
@@ -182,7 +183,8 @@ TrackerHttp::send_state(int state) {
   std::string request_url = s.str();
 
   LT_LOG_TRACKER_DUMP(DEBUG, request_url.c_str(), request_url.size(),
-                      "Tracker HTTP request: up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      "Tracker HTTP request: state:%s up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      option_as_string(OPTION_TRACKER_EVENT, state),
                       uploaded_adjusted, completed_adjusted, download_left);
 
   m_get->set_url(request_url);
@@ -222,16 +224,27 @@ TrackerHttp::close() {
   if (m_data == NULL)
     return;
 
-  m_get->close();
-  m_get->set_stream(NULL);
+  LT_LOG_TRACKER(DEBUG, "Tracker HTTP request cancelled: state:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event));
 
-  delete m_data;
-  m_data = NULL;
+  close_directly();
 }
 
 TrackerHttp::Type
 TrackerHttp::type() const {
   return TRACKER_HTTP;
+}
+
+void
+TrackerHttp::close_directly() {
+  if (m_data == NULL)
+    return;
+
+  m_get->close();
+  m_get->set_stream(NULL);
+
+  delete m_data;
+  m_data = NULL;
 }
 
 void
@@ -273,7 +286,7 @@ TrackerHttp::receive_failed(std::string msg) {
     LT_LOG_TRACKER_DUMP(DEBUG, dump.c_str(), dump.size(), "Tracker HTTP failed.", 0);
   }
 
-  close();
+  close_directly();
 
   if (m_latest_event == EVENT_SCRAPE)
     m_parent->receive_scrape_failed(this, msg);
@@ -316,7 +329,7 @@ TrackerHttp::process_success(const Object& object) {
     return receive_failed(e.what());
   }
 
-  close();
+  close_directly();
   m_parent->receive_success(this, &l);
 }
 
@@ -345,7 +358,7 @@ TrackerHttp::process_scrape(const Object& object) {
   LT_LOG_TRACKER(INFO, "Tracker scrape for %u torrents: complete:%u incomplete:%u downloaded:%u.",
                  files.as_map().size(), m_scrape_complete, m_scrape_incomplete, m_scrape_downloaded);
 
-  close();
+  close_directly();
   m_parent->receive_scrape_success(this);
 }
 
