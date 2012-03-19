@@ -51,6 +51,7 @@
 #include "torrent/poll.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/option_strings.h"
 
 #include "tracker_udp.h"
 #include "manager.h"
@@ -77,7 +78,7 @@ TrackerUdp::~TrackerUdp() {
   if (m_slotResolver != NULL)
     static_cast<ConnectionManager::slot_resolver_result_type*>(m_slotResolver)->blocked();
 
-  close();
+  close_directly();
 }
   
 bool
@@ -87,7 +88,7 @@ TrackerUdp::is_busy() const {
 
 void
 TrackerUdp::send_state(int state) {
-  close();
+  close_directly();
   m_latest_event = state;
 
   char hostname[1024];
@@ -144,6 +145,17 @@ TrackerUdp::close() {
   if (!get_fd().is_valid())
     return;
 
+  LT_LOG_TRACKER(DEBUG, "Tracker UDP request cancelled: state:%s.",
+                 option_as_string(OPTION_TRACKER_EVENT, m_latest_event));
+
+  close_directly();
+}
+
+void
+TrackerUdp::close_directly() {
+  if (!get_fd().is_valid())
+    return;
+
   delete m_readBuffer;
   delete m_writeBuffer;
 
@@ -168,7 +180,7 @@ TrackerUdp::type() const {
 
 void
 TrackerUdp::receive_failed(const std::string& msg) {
-  close();
+  close_directly();
   m_parent->receive_failed(this, msg);
 }
 
@@ -303,7 +315,8 @@ TrackerUdp::prepare_announce_input() {
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
 
   LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
-                      "Tracker UDP announce: id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      "Tracker UDP announce: state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      option_as_string(OPTION_TRACKER_EVENT, m_sendState),
                       m_transactionId, uploaded_adjusted, completed_adjusted, download_left);
 }
 
@@ -338,7 +351,7 @@ TrackerUdp::process_announce_output() {
 
   // Some logic here to decided on whetever we're going to close the
   // connection or not?
-  close();
+  close_directly();
   m_parent->receive_success(this, &l);
 
   return true;
