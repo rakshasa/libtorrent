@@ -412,11 +412,13 @@ FileList::open(int flags) {
   Path lastPath;
   path_set pathSet;
 
+  iterator itr = end();
+
   try {
     if (!(flags & open_no_create) && !make_root_path())
       throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
   
-    for (iterator itr = begin(), last = end(); itr != last; ++itr) {
+    for (itr = begin(); itr != end(); ++itr) {
       File* entry = *itr;
 
       // We no longer consider it an error to open a previously opened
@@ -436,13 +438,13 @@ FileList::open(int flags) {
         entry->set_frozen_path(m_rootDir + entry->path()->as_string());
 
       if (!pathSet.insert(entry->frozen_path().c_str()).second)
-        throw storage_error("Found a duplicate filename.");
+        throw storage_error("Duplicate filename found.");
 
       if (entry->size_bytes() > m_maxFileSize)
-        throw storage_error("Found a file exceeding max file size.");
+        throw storage_error("File exceedes the configured max file size.");
 
       if (entry->path()->empty())
-        throw storage_error("Found an empty filename.");
+        throw storage_error("Empty filename is not allowed.");
 
       // Handle directory creation outside of open_file, so we can do
       // it here if necessary.
@@ -454,7 +456,7 @@ FileList::open(int flags) {
         // being set or not.
         if (!(flags & open_no_create))
           // Also check if open_require_all_open is set.
-          throw storage_error("Could not open file \"" + m_rootDir + entry->path()->as_string() + "\": " + rak::error_number::current().c_str());
+          throw storage_error("Could not open file: " + std::string(rak::error_number::current().c_str()));
 
         // Don't set the lastPath as we haven't created the directory.
         continue;
@@ -467,6 +469,12 @@ FileList::open(int flags) {
     for (iterator itr = begin(), last = end(); itr != last; ++itr) {
       (*itr)->unset_flags_protected(File::flag_active);
       manager->file_manager()->close(*itr);
+    }
+
+    if (itr == end()) {
+      LT_LOG_FL(ERROR, "Failed to prepare file list: %s", e.what());
+    } else {
+      LT_LOG_FL(ERROR, "Failed to prepare file '%s': %s", (*itr)->path()->as_string().c_str(), e.what());
     }
 
     // Set to false here in case we tried to open the FileList for the
@@ -652,7 +660,7 @@ FileList::mark_completed(uint32_t index) {
   if (bitfield()->size_set() >= bitfield()->size_bits())
     throw internal_error("FileList::mark_completed(...) bitfield()->size_set() >= bitfield()->size_bits().");
 
-  LT_LOG_FL(INFO, "Done chunk: index:%" PRIu32 ".", index);
+  LT_LOG_FL(DEBUG, "Done chunk: index:%" PRIu32 ".", index);
 
   m_data.mutable_completed_bitfield()->set(index);
   inc_completed(begin(), index);

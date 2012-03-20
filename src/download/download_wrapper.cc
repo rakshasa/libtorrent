@@ -135,7 +135,7 @@ DownloadWrapper::close() {
 
   // Clear after m_hashChecker to ensure that the empty hash done signal does
   // not get passed to HashTorrent.
-  hash_queue()->remove(this);
+  hash_queue()->remove(data());
 
   // This could/should be async as we do not care that much if it
   // succeeds or not, any chunks not included in that last
@@ -166,7 +166,7 @@ DownloadWrapper::receive_initial_hash() {
   } else {
     m_hashChecker->confirm_checked();
 
-    if (hash_queue()->has(this))
+    if (hash_queue()->has(data()))
       throw internal_error("DownloadWrapper::receive_initial_hash() found a chunk in the HashQueue.");
 
     // Initialize the ChunkSelector here so that no chunks will be
@@ -253,7 +253,7 @@ DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
   ChunkHandle new_handle = m_main->chunk_list()->get(handle.index(), ChunkList::get_blocking);
   m_main->chunk_list()->release(&handle);
 
-  hash_queue()->push_back(new_handle, this, tr1::bind(&DownloadWrapper::receive_hash_done, this, tr1::placeholders::_1, tr1::placeholders::_2));
+  hash_queue()->push_back(new_handle, data(), tr1::bind(&DownloadWrapper::receive_hash_done, this, tr1::placeholders::_1, tr1::placeholders::_2));
 }
 
 void
