@@ -36,10 +36,14 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <functional>
 #include <rak/functional.h>
 
 #include "torrent/exceptions.h"
+#include "torrent/data/download_data.h"
+#include "torrent/utils/log.h"
 #include "torrent/utils/thread_base.h"
 
 #include "hash_queue.h"
@@ -48,6 +52,9 @@
 #include "chunk_list_node.h"
 #include "globals.h"
 #include "thread_disk.h"
+
+#define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
+  lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
 
 namespace tr1 { using namespace std::tr1; }
 
@@ -87,6 +94,8 @@ HashQueue::HashQueue(thread_disk* thread) :
 // the next work cycle gets stuff done.
 void
 HashQueue::push_back(ChunkHandle handle, HashQueueNode::id_type id, slot_done_type d) {
+  LT_LOG_DATA(id, DEBUG, "Adding index:%" PRIu32 " to queue.", handle.index());
+
   if (!handle.is_loaded())
     throw internal_error("HashQueue::add(...) received an invalid chunk");
 
@@ -114,6 +123,8 @@ HashQueue::remove(HashQueueNode::id_type id) {
   
   while ((itr = std::find_if(itr, end(), rak::equal(id, std::mem_fun_ref(&HashQueueNode::id)))) != end()) {
     HashChunk *hash_chunk = itr->get_chunk();
+
+    LT_LOG_DATA(id, DEBUG, "Removing index:%" PRIu32 " from queue.", hash_chunk->handle().index());
 
     thread_base::release_global_lock();
     bool result = m_thread_disk->hash_queue()->remove(hash_chunk);
@@ -171,6 +182,10 @@ HashQueue::work() {
     // TODO: Fix this...
     if (itr == end())
       throw internal_error("Could not find done chunk's node.");
+
+    LT_LOG_DATA(itr->id(), DEBUG, "Passing index:%" PRIu32 " to owner: %s.",
+                hash_chunk->handle().index(),
+                hash_string_to_hex_str(hash_value).c_str());
 
     HashQueueNode::slot_done_type slotDone = itr->slot_done();
     base_type::erase(itr);
