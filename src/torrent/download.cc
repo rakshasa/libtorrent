@@ -213,7 +213,7 @@ Download::hash_stop() {
   LT_LOG_THIS(INFO, "Hashing stopped.", 0);
 
   m_ptr->hash_checker()->hashing_ranges().erase(0, m_ptr->hash_checker()->position());
-  m_ptr->hash_queue()->remove(m_ptr);
+  m_ptr->hash_queue()->remove(m_ptr->data());
 
   m_ptr->hash_checker()->clear();
 }

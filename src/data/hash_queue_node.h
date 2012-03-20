@@ -46,12 +46,12 @@
 
 namespace torrent {
 
-class DownloadWrapper;
+class download_data;
 
 class HashQueueNode {
 public:
   typedef std::tr1::function<void (ChunkHandle, const char*)> slot_done_type;
-  typedef DownloadWrapper* id_type;
+  typedef download_data* id_type;
 
   HashQueueNode(id_type id, HashChunk* c, slot_done_type d) :
     m_id(id), m_chunk(c), m_willneed(false), m_slot_done(d) {}
