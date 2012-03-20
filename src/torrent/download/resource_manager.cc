@@ -52,7 +52,7 @@
 #include "choke_queue.h"
 #include "resource_manager.h"
 
-namespace std { using namespace tr1; }
+namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -169,12 +169,12 @@ ResourceManager::push_group(const std::string& name) {
   choke_base_type::back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
   choke_base_type::back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 
-  choke_base_type::back()->up_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_upload_unchoke, this, std::placeholders::_1));
-  choke_base_type::back()->down_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_download_unchoke, this, std::placeholders::_1));
-  choke_base_type::back()->up_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_upload_can_unchoke, this));
-  choke_base_type::back()->down_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_download_can_unchoke, this));
-  choke_base_type::back()->up_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_upload_choke, std::placeholders::_1, std::placeholders::_2));
-  choke_base_type::back()->down_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_download_choke, std::placeholders::_1, std::placeholders::_2));
+  choke_base_type::back()->up_queue()->set_slot_unchoke(tr1::bind(&ResourceManager::receive_upload_unchoke, this, tr1::placeholders::_1));
+  choke_base_type::back()->down_queue()->set_slot_unchoke(tr1::bind(&ResourceManager::receive_download_unchoke, this, tr1::placeholders::_1));
+  choke_base_type::back()->up_queue()->set_slot_can_unchoke(tr1::bind(&ResourceManager::retrieve_upload_can_unchoke, this));
+  choke_base_type::back()->down_queue()->set_slot_can_unchoke(tr1::bind(&ResourceManager::retrieve_download_can_unchoke, this));
+  choke_base_type::back()->up_queue()->set_slot_connection(tr1::bind(&PeerConnectionBase::receive_upload_choke, tr1::placeholders::_1, tr1::placeholders::_2));
+  choke_base_type::back()->down_queue()->set_slot_connection(tr1::bind(&PeerConnectionBase::receive_download_choke, tr1::placeholders::_1, tr1::placeholders::_2));
 }
 
 ResourceManager::iterator
@@ -328,12 +328,12 @@ ResourceManager::receive_tick() {
   m_currentlyDownloadUnchoked += balance_unchoked(choke_base_type::size(), m_maxDownloadUnchoked, false);
 
   unsigned int up_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0,
-                                             std::bind(std::plus<unsigned int>(), std::placeholders::_1,
-                                                       std::bind(&choke_group::up_unchoked, std::placeholders::_2)));
+                                             tr1::bind(std::plus<unsigned int>(), tr1::placeholders::_1,
+                                                       tr1::bind(&choke_group::up_unchoked, tr1::placeholders::_2)));
 
   unsigned int down_unchoked = std::accumulate(choke_base_type::begin(), choke_base_type::end(), 0,
-                                               std::bind(std::plus<unsigned int>(), std::placeholders::_1,
-                                                         std::bind(&choke_group::down_unchoked, std::placeholders::_2)));
+                                               tr1::bind(std::plus<unsigned int>(), tr1::placeholders::_1,
+                                                         tr1::bind(&choke_group::down_unchoked, tr1::placeholders::_2)));
 
   if (m_currentlyUploadUnchoked != up_unchoked)
     throw torrent::internal_error("m_currentlyUploadUnchoked != choke_base_type::back()->up_queue()->size_unchoked()");
@@ -387,14 +387,14 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
   choke_group** group_last = choke_groups + group_size();
 
   if (is_up) {
-    std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
-                                                 std::bind(&choke_group::up_requested, std::placeholders::_1),
-                                                 std::bind(&choke_group::up_requested, std::placeholders::_2)));
+    std::sort(group_first, group_last, tr1::bind(std::less<uint32_t>(),
+                                                 tr1::bind(&choke_group::up_requested, tr1::placeholders::_1),
+                                                 tr1::bind(&choke_group::up_requested, tr1::placeholders::_2)));
     lt_log_print(LOG_PEER_DEBUG, "Upload unchoked slots cycle; currently:%u adjusted:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
   } else {
-    std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
-                                                 std::bind(&choke_group::down_requested, std::placeholders::_1),
-                                                 std::bind(&choke_group::down_requested, std::placeholders::_2)));
+    std::sort(group_first, group_last, tr1::bind(std::less<uint32_t>(),
+                                                 tr1::bind(&choke_group::down_requested, tr1::placeholders::_1),
+                                                 tr1::bind(&choke_group::down_requested, tr1::placeholders::_2)));
     lt_log_print(LOG_PEER_DEBUG, "Download unchoked slots cycle; currently:%u adjusted:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
   }
 
