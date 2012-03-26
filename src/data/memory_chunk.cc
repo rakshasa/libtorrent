@@ -44,6 +44,14 @@
 #include "torrent/exceptions.h"
 #include "memory_chunk.h"
 
+#ifdef __sun__
+extern "C" int madvise(void *, size_t, int);
+//#include <sys/mman.h>
+//Should be the include line instead, but Solaris
+//has an annoying bug wherein it doesn't declare
+//madvise for C++.
+#endif
+
 namespace torrent {
 
 uint32_t MemoryChunk::m_pagesize = getpagesize();
