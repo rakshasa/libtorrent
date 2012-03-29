@@ -307,5 +307,6 @@ AC_DEFUN([TORRENT_ENABLE_CXX11], [
       fi
     ],[
         TORRENT_CHECK_CXX11()
-    ])
+    ]
+  )
 ])
