@@ -1,6 +1,8 @@
 noinst_LTLIBRARIES = libsub_torrentutils.la
 
 libsub_torrentutils_la_SOURCES = \
+	directory_events.cc \
+	directory_events.h \
 	extents.h \
 	log.cc \
 	log.h \
@@ -22,6 +24,7 @@ INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent/utils
 libtorrentinclude_HEADERS = \
+	directory_events.h \
 	extents.h \
 	log.h \
 	log_buffer.h \
