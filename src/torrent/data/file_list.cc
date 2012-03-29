@@ -466,9 +466,9 @@ FileList::open(int flags) {
     }
 
   } catch (local_error& e) {
-    for (iterator itr = begin(), last = end(); itr != last; ++itr) {
-      (*itr)->unset_flags_protected(File::flag_active);
-      manager->file_manager()->close(*itr);
+    for (iterator itr2 = begin(), last = end(); itr2 != last; ++itr2) {
+      (*itr2)->unset_flags_protected(File::flag_active);
+      manager->file_manager()->close(*itr2);
     }
 
     if (itr == end()) {
