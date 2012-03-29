@@ -59,6 +59,8 @@ directory_events::open() {
   if (m_fileDesc != -1)
     return true;
 
+  rak::error_number::current().clear_global();
+
 #ifdef HAVE_INOTIFY
   m_fileDesc = inotify_init1(IN_NONBLOCK);
 #endif
