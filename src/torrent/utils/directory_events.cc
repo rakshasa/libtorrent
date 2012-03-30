@@ -93,7 +93,11 @@ directory_events::notify_on(const std::string& path, int flags, const slot_strin
     throw input_error("Cannot add notification event for empty paths.");
 
 #ifdef HAVE_INOTIFY
-  int in_flags = IN_MASK_ADD | IN_EXCL_UNLINK;
+  int in_flags = IN_MASK_ADD;
+
+#ifdef IN_EXCL_UNLINK
+  in_flags |= IN_EXCL_UNLINK;
+#endif
 
 #ifdef IN_ONLYDIR
   in_flags |= IN_ONLYDIR;
