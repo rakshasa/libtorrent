@@ -38,6 +38,7 @@
 
 #include <cstring>
 #include <signal.h>
+#include <unistd.h>
 
 #include "exceptions.h"
 #include "poll.h"

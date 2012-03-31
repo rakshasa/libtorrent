@@ -40,6 +40,7 @@
 
 #include <functional>
 #include <rak/functional.h>
+#include <unistd.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/data/download_data.h"
