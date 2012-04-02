@@ -434,22 +434,26 @@ TrackerController::do_timeout() {
       update_timeout(next_timeout);
 
   // TODO: Send for start/completed also?
-  } else if ((m_flags & flag_send_update)) {
-    TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
-
-    // TODO: Also watch out for failed trackers requiring timeouts.
-
-    m_tracker_list->send_state_itr(itr, send_state);
-
   } else {
     TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
 
-    int32_t next_timeout = (*itr)->failed_counter() == 0 ? (*itr)->success_time_next() : (*itr)->failed_time_next();
+    if (itr == m_tracker_list->end())
+      return;
 
-    if (next_timeout <= cachedTime.seconds())
+    if ((m_flags & flag_send_update)) {
+      // TODO: Also watch out for failed trackers requiring timeouts.
       m_tracker_list->send_state_itr(itr, send_state);
-    else
-      update_timeout(next_timeout - cachedTime.seconds());
+
+    } else {
+      TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
+
+      int32_t next_timeout = (*itr)->failed_counter() == 0 ? (*itr)->success_time_next() : (*itr)->failed_time_next();
+
+      if (next_timeout <= cachedTime.seconds())
+        m_tracker_list->send_state_itr(itr, send_state);
+      else
+        update_timeout(next_timeout - cachedTime.seconds());
+    }
   }
 
   if (m_slot_timeout)
