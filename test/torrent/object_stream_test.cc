@@ -1,13 +1,14 @@
 #include "config.h"
 
+#define __STDC_CONSTANT_MACROS
+
 #include <iostream>
 #include <sstream>
+#include <inttypes.h>
 #include <torrent/object.h>
 
 #include "object_stream_test.h"
 #include "object_test_utils.h"
-
-#define __STDC_CONSTANT_MACROS
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ObjectStreamTest);
 
