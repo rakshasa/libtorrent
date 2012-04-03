@@ -80,9 +80,11 @@ public:
   bool                is_extra_tracker() const  { return (m_flags & flag_extra_tracker); }
   bool                is_in_use() const         { return is_enabled() && m_success_counter != 0; }
 
+  bool                can_scrape() const        { return (m_flags & flag_can_scrape); }
+
   virtual bool        is_busy() const = 0;
   bool                is_busy_not_scrape() const { return m_latest_event != EVENT_SCRAPE && is_busy(); }
-  virtual bool        is_usable() const { return is_enabled(); }
+  virtual bool        is_usable() const          { return is_enabled(); }
 
   bool                can_request_state() const;
 
