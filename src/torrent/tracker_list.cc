@@ -78,6 +78,16 @@ TrackerList::has_active_not_scrape() const {
   return std::find_if(begin(), end(), std::mem_fun(&Tracker::is_busy_not_scrape)) != end();
 }
 
+bool
+TrackerList::has_active_in_group(uint32_t group) const {
+  return std::find_if(begin_group(group), end_group(group), std::mem_fun(&Tracker::is_busy)) != end_group(group);
+}
+
+bool
+TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
+  return std::find_if(begin_group(group), end_group(group), std::mem_fun(&Tracker::is_busy_not_scrape)) != end_group(group);
+}
+
 // Need a custom predicate because the is_usable function is virtual.
 struct tracker_usable_t : public std::unary_function<TrackerList::value_type, bool> {
   bool operator () (const TrackerList::value_type& value) const { return value->is_usable(); }
@@ -259,6 +269,11 @@ TrackerList::find_next_to_request(iterator itr) {
 
 TrackerList::iterator
 TrackerList::begin_group(unsigned int group) {
+  return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
+}
+
+TrackerList::const_iterator
+TrackerList::begin_group(unsigned int group) const {
   return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
 }
 

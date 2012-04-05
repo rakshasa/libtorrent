@@ -422,3 +422,117 @@ tracker_list_test::test_scrape_failure() {
   CPPUNIT_ASSERT(tracker_0->failed_counter() == 0);
   CPPUNIT_ASSERT(tracker_0->scrape_counter() == 0);
 }
+
+void
+tracker_list_test::test_has_active() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(0, tracker_1);
+  TRACKER_INSERT(1, tracker_2);
+  TRACKER_INSERT(3, tracker_3);
+  TRACKER_INSERT(4, tracker_4);
+
+  TEST_TRACKERS_IS_BUSY_5("00000", "00000");
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(5));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(5));
+
+  tracker_list.send_state_idx(0, 1);
+  TEST_TRACKERS_IS_BUSY_5("10000", "10000");
+  CPPUNIT_ASSERT( tracker_list.has_active());
+  CPPUNIT_ASSERT( tracker_list.has_active_not_scrape());
+  CPPUNIT_ASSERT( tracker_list.has_active_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(5));
+  CPPUNIT_ASSERT( tracker_list.has_active_not_scrape_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(5));
+
+  CPPUNIT_ASSERT(tracker_0->trigger_success());
+  TEST_TRACKERS_IS_BUSY_5("00000", "00000");
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(5));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(5));
+
+  tracker_list.send_state_idx(1, 1);
+  tracker_list.send_state_idx(3, 1);
+  TEST_TRACKERS_IS_BUSY_5("01010", "01010");
+  CPPUNIT_ASSERT( tracker_list.has_active());
+  CPPUNIT_ASSERT( tracker_list.has_active_not_scrape());
+  CPPUNIT_ASSERT( tracker_list.has_active_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(2));
+  CPPUNIT_ASSERT( tracker_list.has_active_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(5));
+  CPPUNIT_ASSERT( tracker_list.has_active_not_scrape_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(2));
+  CPPUNIT_ASSERT( tracker_list.has_active_not_scrape_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(5));
+
+  CPPUNIT_ASSERT(tracker_1->trigger_success());
+  TEST_TRACKERS_IS_BUSY_5("00010", "00010");
+  CPPUNIT_ASSERT( tracker_list.has_active());
+  CPPUNIT_ASSERT( tracker_list.has_active_not_scrape());
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(2));
+  CPPUNIT_ASSERT( tracker_list.has_active_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(5));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(2));
+  CPPUNIT_ASSERT( tracker_list.has_active_not_scrape_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(5));
+
+  CPPUNIT_ASSERT(tracker_3->trigger_success());
+  TEST_TRACKERS_IS_BUSY_5("00000", "00000");
+  CPPUNIT_ASSERT(!tracker_list.has_active());
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape());
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_in_group(5));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(0));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(1));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(2));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(3));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(4));
+  CPPUNIT_ASSERT(!tracker_list.has_active_not_scrape_in_group(5));
+
+  CPPUNIT_ASSERT(success_counter == 3 && failure_counter == 0);
+}
