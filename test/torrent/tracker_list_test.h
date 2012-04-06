@@ -96,6 +96,8 @@ private:
 extern uint32_t return_new_peers;
 inline uint32_t increment_value(int* value) { (*value)++; return return_new_peers; }
 
+bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* states, bool scrape);
+
 #define TRACKER_SETUP()                                                 \
   torrent::TrackerList tracker_list;                                    \
   int success_counter = 0;                                              \
