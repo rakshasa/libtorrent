@@ -223,12 +223,12 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       else
         m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
 
-      info()->signal_chunk_passed().emit(handle.index());
+      rak::slot_list_call(info()->signal_chunk_passed(), handle.index());
 
     } else {
       // This needs to ensure the chunk is still valid.
       m_main->delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
-      info()->signal_chunk_failed().emit(handle.index());
+      rak::slot_list_call(info()->signal_chunk_failed(), handle.index());
     }
   }
 
@@ -252,7 +252,7 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
   m_main->tracker_controller()->disable();
   m_main->tracker_controller()->close();
 
-  info()->signal_storage_error().emit(str);
+  rak::slot_list_call(info()->signal_storage_error(), str);
 }
 
 uint32_t
@@ -261,13 +261,13 @@ DownloadWrapper::receive_tracker_success(AddressList* l) {
   m_main->receive_connect_peers();
   m_main->receive_tracker_success();
 
-  info()->signal_tracker_success().emit();
+  rak::slot_list_call(info()->signal_tracker_success());
   return inserted;
 }
 
 void
 DownloadWrapper::receive_tracker_failed(const std::string& msg) {
-  info()->signal_tracker_failed().emit(msg);
+  rak::slot_list_call(info()->signal_tracker_failed(), msg);
 }
 
 void
