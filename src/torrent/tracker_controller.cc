@@ -416,7 +416,7 @@ tracker_find_preferred(TrackerList::iterator first, TrackerList::iterator last, 
   TrackerList::iterator preferred = last;
   uint32_t preferred_time_last = ~uint32_t();
 
-  do {
+  for (; first != last; first++) {
     uint32_t tracker_timeout = tracker_next_timeout_promiscuous(*first);
 
     if (tracker_timeout != 0) {
@@ -428,8 +428,7 @@ tracker_find_preferred(TrackerList::iterator first, TrackerList::iterator last, 
       preferred = first;
       preferred_time_last = (*first)->activity_time_last();
     }
-
-  } while (++first != last);
+  }
 
   return preferred;
 }
@@ -457,7 +456,21 @@ TrackerController::do_timeout() {
       }
 
       TrackerList::iterator group_end = m_tracker_list->end_group((*itr)->group());
-      TrackerList::iterator preferred = tracker_find_preferred(itr, group_end, &next_timeout);
+      TrackerList::iterator preferred = itr;
+
+      if (!(*itr)->is_usable() || (*itr)->failed_counter()) {
+        // The selected tracker in the group is either disabled or not
+        // reachable, try the others to find a new one to use.
+        preferred = tracker_find_preferred(preferred, group_end, &next_timeout);
+
+      } else {
+        uint32_t tracker_timeout = tracker_next_timeout_promiscuous(*preferred);
+
+        if (tracker_timeout != 0) {
+          next_timeout = std::min(tracker_timeout, next_timeout);
+          preferred = group_end;
+        }
+      }
 
       if (preferred != group_end)
         m_tracker_list->send_state_itr(preferred, send_state);
@@ -482,7 +495,7 @@ TrackerController::do_timeout() {
     } else {
       TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
 
-      int32_t next_timeout = (*itr)->failed_counter() == 0 ? (*itr)->success_time_next() : (*itr)->failed_time_next();
+      int32_t next_timeout = (*itr)->activity_time_next();
 
       if (next_timeout <= cachedTime.seconds())
         m_tracker_list->send_state_itr(itr, send_state);

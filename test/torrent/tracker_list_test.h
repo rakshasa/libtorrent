@@ -129,6 +129,20 @@ bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const c
   TEST_TRACKER_IS_BUSY(tracker_list[3], rearranged[3]);           \
   TEST_TRACKER_IS_BUSY(tracker_list[4], rearranged[4]);
 
+#define TEST_GROUP_IS_BUSY(original, rearranged)                  \
+  TEST_TRACKER_IS_BUSY(tracker_0_0, original[0]);                 \
+  TEST_TRACKER_IS_BUSY(tracker_0_1, original[1]);                 \
+  TEST_TRACKER_IS_BUSY(tracker_0_2, original[2]);                 \
+  TEST_TRACKER_IS_BUSY(tracker_1_0, original[3]);                 \
+  TEST_TRACKER_IS_BUSY(tracker_1_1, original[4]);                 \
+  TEST_TRACKER_IS_BUSY(tracker_2_0, original[5]);                 \
+  TEST_TRACKER_IS_BUSY(tracker_list[0], rearranged[0]);           \
+  TEST_TRACKER_IS_BUSY(tracker_list[1], rearranged[1]);           \
+  TEST_TRACKER_IS_BUSY(tracker_list[2], rearranged[2]);           \
+  TEST_TRACKER_IS_BUSY(tracker_list[3], rearranged[3]);           \
+  TEST_TRACKER_IS_BUSY(tracker_list[4], rearranged[4]);           \
+  TEST_TRACKER_IS_BUSY(tracker_list[5], rearranged[5]);
+
 #define TEST_TRACKERS_IS_BUSY_5(original, rearranged)   \
   TEST_TRACKER_IS_BUSY(tracker_0, original[0]);         \
   TEST_TRACKER_IS_BUSY(tracker_1, original[1]);         \
