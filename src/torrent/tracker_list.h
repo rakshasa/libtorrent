@@ -91,6 +91,8 @@ public:
 
   bool                has_active() const;
   bool                has_active_not_scrape() const;
+  bool                has_active_in_group(uint32_t group) const;
+  bool                has_active_not_scrape_in_group(uint32_t group) const;
   bool                has_usable() const;
 
   unsigned int        count_active() const;
@@ -131,7 +133,9 @@ public:
   iterator            find_next_to_request(iterator itr);
 
   iterator            begin_group(unsigned int group);
+  const_iterator      begin_group(unsigned int group) const;
   iterator            end_group(unsigned int group)           { return begin_group(group + 1); }
+  const_iterator      end_group(unsigned int group) const     { return begin_group(group + 1); }
 
   size_type           size_group() const;
   void                cycle_group(unsigned int group);

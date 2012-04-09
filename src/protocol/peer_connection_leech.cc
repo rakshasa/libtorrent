@@ -38,6 +38,7 @@
 
 #include <cstring>
 #include <sstream>
+#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "data/chunk_list_node.h"
@@ -456,16 +457,16 @@ PeerConnection<type>::event_read() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    m_download->info()->signal_network_log().emit("Momentarily blocked read connection.");
+    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked read connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
-    m_download->info()->signal_network_log().emit((rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str() + " " + rak::copy_escape_html(std::string(m_peerInfo->id().c_str(), 8)) + ": " + e.what()).c_str());
+    rak::slot_list_call(m_download->info()->signal_network_log(), (rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str() + " " + rak::copy_escape_html(std::string(m_peerInfo->id().c_str(), 8)) + ": " + e.what()).c_str());
 
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    m_download->info()->signal_storage_error().emit(e.what());
+    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {
@@ -636,15 +637,15 @@ PeerConnection<type>::event_write() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    m_download->info()->signal_network_log().emit("Momentarily blocked write connection.");
+    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked write connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
-    m_download->info()->signal_network_log().emit(e.what());
+    rak::slot_list_call(m_download->info()->signal_network_log(), e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    m_download->info()->signal_storage_error().emit(e.what());
+    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {

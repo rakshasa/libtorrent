@@ -40,7 +40,7 @@
 #include <list>
 #include <string>
 #include <inttypes.h>
-#include <sigc++/signal.h>
+#include <tr1/functional>
 
 #include <torrent/rate.h>
 #include <torrent/hash_string.h>
@@ -54,11 +54,13 @@ class DownloadMain;
 
 class DownloadInfo {
 public:
-  typedef sigc::slot0<uint64_t>                                        slot_stat_type;
-  typedef sigc::signal0<void>                                          signal_void_type;
-  typedef sigc::signal1<void, const std::string&>                      signal_string_type;
-  typedef sigc::signal1<void, uint32_t>                                signal_chunk_type;
-  typedef sigc::signal3<void, const std::string&, const char*, size_t> signal_dump_type;
+  typedef std::tr1::function<uint64_t ()>                              slot_stat_type;
+  typedef std::tr1::function<void (uint32_t)>                          slot_chunk_type;
+
+  typedef std::list<std::tr1::function<void ()> >                      signal_void_type;
+  typedef std::list<std::tr1::function<void (const std::string&)> >    signal_string_type;
+  typedef std::list<slot_chunk_type>                                   signal_chunk_type;
+  typedef std::list<std::tr1::function<void (const std::string&, const char*, size_t)> > signal_dump_type;
 
   enum State {
     NONE,

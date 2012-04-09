@@ -39,6 +39,7 @@
 #include <cstdio>
 #include <fcntl.h>
 #include <rak/error_number.h>
+#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "data/chunk_iterator.h"
@@ -424,7 +425,7 @@ bool
 PeerConnectionBase::down_chunk_start(const Piece& piece) {
   if (!download_queue()->downloading(piece)) {
     if (piece.length() == 0)
-      m_download->info()->signal_network_log().emit("Received piece with length zero.");
+      rak::slot_list_call(m_download->info()->signal_network_log(), "Received piece with length zero.");
 
     return false;
   }
@@ -629,7 +630,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   // The data doesn't match with what has previously been downloaded,
   // bork this transfer.
   if (!m_downChunk.chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
-    m_download->info()->signal_network_log().emit("Data does not match what was previously downloaded.");
+    rak::slot_list_call(m_download->info()->signal_network_log(), "Data does not match what was previously downloaded.");
     
     m_downloadQueue.transfer_dissimilar();
     m_downloadQueue.transfer()->adjust_position(length);

@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <rak/functional.h>
 #include <rak/socket_address.h>
 
 #include "download/download_main.h"
@@ -104,7 +105,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
   base_type::push_back(peerConnection);
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  m_signalConnected(peerConnection);
+  rak::slot_list_call(m_signalConnected, peerConnection);
 
   return peerConnection;
 }
@@ -130,7 +131,7 @@ ConnectionList::erase(iterator pos, int flags) {
   base_type::pop_back();
 
   m_download->info()->change_flags(DownloadInfo::flag_accepting_new_peers, size() < m_maxSize);
-  m_signalDisconnected(peerConnection);
+  rak::slot_list_call(m_signalDisconnected, peerConnection);
 
   // Before of after the signal?
   peerConnection->cleanup();
