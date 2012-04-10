@@ -391,24 +391,21 @@ tracker_next_timeout_promiscuous(Tracker* tracker) {
       !tracker->is_usable())
     return ~uint32_t();
 
-  std::pair<int, int> timeout_base;
+  int32_t interval;
 
   if (tracker->failed_counter())
-    timeout_base = std::make_pair(5, tracker->failed_counter() - 1);
-  else if (tracker->latest_sum_peers() < 10)
-    timeout_base = std::make_pair(10, tracker->success_counter());
-  else if (tracker->latest_new_peers() < 10)
-    timeout_base = std::make_pair(30, tracker->success_counter());
+    interval = 5 << std::min<int>(tracker->failed_counter() - 1, 6);
+  else if (tracker->success_counter() < 2 && tracker->latest_sum_peers() < 10)
+    interval = 10 << tracker->success_counter();
   else
-    // We got peers from this tracker, re-request a bit sooner.
-    timeout_base = std::make_pair(5, tracker->success_counter());
+    interval = tracker->normal_interval();
 
-  int32_t min_interval = std::min((int)tracker->min_interval(), 600);
+  int32_t min_interval = std::min(tracker->min_interval(), (uint32_t)600);
+  int32_t use_interval = std::min(interval, min_interval);
 
-  int32_t tracker_timeout = std::min(min_interval, (timeout_base.first << std::min(timeout_base.second, 6)));
   int32_t since_last = cachedTime.seconds() - (int32_t)tracker->activity_time_last();
 
-  return std::max(tracker_timeout - since_last, 0);
+  return std::max(use_interval - since_last, 0);
 }
 
 TrackerList::iterator

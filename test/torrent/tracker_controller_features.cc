@@ -30,7 +30,7 @@ tracker_controller_features::test_requesting_basic() {
   TEST_MULTI3_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
 
-  CPPUNIT_ASSERT(tracker_0_0->trigger_success(10, 20));
+  CPPUNIT_ASSERT(tracker_0_0->trigger_success(8, 9));
 
   tracker_controller.start_requesting();
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 0));
