@@ -122,16 +122,19 @@ tracker_timeout_test::test_timeout_requesting() {
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 10);
   tracker.set_success(1, torrent::cachedTime.seconds());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 20);
-  tracker.set_success(5, torrent::cachedTime.seconds());
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 320);
+  tracker.set_success(2, torrent::cachedTime.seconds());
+  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
   tracker.set_success(6, torrent::cachedTime.seconds());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
   
+  tracker.set_success(1, torrent::cachedTime.seconds());
+  tracker.set_latest_sum_peers(9);
+  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 20);
   tracker.set_latest_sum_peers(10);
-  tracker.set_success(0, torrent::cachedTime.seconds());
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 30);
+  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
 
+  tracker.set_latest_sum_peers(10);
   tracker.set_latest_new_peers(10);
-  tracker.set_success(0, torrent::cachedTime.seconds());
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 5);
+  tracker.set_success(1, torrent::cachedTime.seconds());
+  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
 }
