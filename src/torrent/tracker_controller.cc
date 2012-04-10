@@ -510,8 +510,29 @@ TrackerController::do_timeout() {
 
 void
 TrackerController::do_scrape() {
-  std::for_each(m_tracker_list->begin(), m_tracker_list->end(),
-                tr1::bind(&TrackerList::send_scrape, m_tracker_list, tr1::placeholders::_1));
+  TrackerList::iterator itr = m_tracker_list->begin();
+
+  while (itr != m_tracker_list->end()) {
+    uint32_t group = (*itr)->group();
+
+    if (m_tracker_list->has_active_in_group(group)) {
+      itr = m_tracker_list->end_group(group);
+      continue;
+    }
+
+    TrackerList::iterator group_end = m_tracker_list->end_group((*itr)->group());
+
+    while (itr != group_end) {
+      if ((*itr)->can_scrape() && (*itr)->is_usable()) {
+        m_tracker_list->send_scrape(*itr);
+        break;
+      }
+
+      itr++;
+    }
+
+    itr = group_end;
+  }  
 }
 
 uint32_t

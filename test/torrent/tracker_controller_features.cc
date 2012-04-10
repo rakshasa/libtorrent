@@ -282,19 +282,26 @@ tracker_controller_features::test_groups_scrape() {
   TEST_GROUP_IS_BUSY("000000", "000000");
   TEST_GOTO_NEXT_SCRAPE(0);
   CPPUNIT_ASSERT(tracker_0_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
-  CPPUNIT_ASSERT(tracker_0_1->latest_event() == torrent::Tracker::EVENT_SCRAPE);
-  CPPUNIT_ASSERT(tracker_0_2->latest_event() == torrent::Tracker::EVENT_SCRAPE);
+  CPPUNIT_ASSERT(tracker_0_1->latest_event() == torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_2->latest_event() == torrent::Tracker::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_1_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
-  CPPUNIT_ASSERT(tracker_1_1->latest_event() == torrent::Tracker::EVENT_SCRAPE);
+  CPPUNIT_ASSERT(tracker_1_1->latest_event() == torrent::Tracker::EVENT_NONE);
   CPPUNIT_ASSERT(tracker_2_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
 
-  TEST_GROUP_IS_BUSY("111111", "111111");
+  TEST_GROUP_IS_BUSY("100101", "100101");
   CPPUNIT_ASSERT(tracker_0_0->trigger_scrape());
-  CPPUNIT_ASSERT(tracker_0_1->trigger_scrape());
-  CPPUNIT_ASSERT(tracker_0_2->trigger_scrape());
   CPPUNIT_ASSERT(tracker_1_0->trigger_scrape());
-  CPPUNIT_ASSERT(tracker_1_1->trigger_scrape());
   CPPUNIT_ASSERT(tracker_2_0->trigger_scrape());
+
+  // Test with a non-can_scrape !busy tracker?
+
+  // TEST_GROUP_IS_BUSY("100101", "100101");
+  // CPPUNIT_ASSERT(tracker_0_0->trigger_scrape());
+  // CPPUNIT_ASSERT(tracker_0_1->trigger_scrape());
+  // CPPUNIT_ASSERT(tracker_0_2->trigger_scrape());
+  // CPPUNIT_ASSERT(tracker_1_0->trigger_scrape());
+  // CPPUNIT_ASSERT(tracker_1_1->trigger_scrape());
+  // CPPUNIT_ASSERT(tracker_2_0->trigger_scrape());
 
   TEST_GROUP_IS_BUSY("000000", "000000");
 
