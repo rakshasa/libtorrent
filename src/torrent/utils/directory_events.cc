@@ -39,6 +39,7 @@
 #include "directory_events.h"
 
 #include <string>
+#include <errno.h>
 #include <unistd.h>
 
 #ifdef HAVE_INOTIFY
@@ -63,6 +64,8 @@ directory_events::open() {
 
 #ifdef HAVE_INOTIFY
   m_fileDesc = inotify_init1(IN_NONBLOCK);
+#else
+  errno = ENODEV;
 #endif
 
   if (m_fileDesc == -1)
