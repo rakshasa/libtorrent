@@ -65,7 +65,7 @@ directory_events::open() {
 #ifdef HAVE_INOTIFY
   m_fileDesc = inotify_init1(IN_NONBLOCK);
 #else
-  errno = ENODEV;
+  rak::error_number::set_global(rak::error_number::e_nodev);
 #endif
 
   if (m_fileDesc == -1)
