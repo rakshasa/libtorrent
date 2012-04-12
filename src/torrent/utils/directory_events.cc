@@ -47,6 +47,7 @@
 #endif
 
 #include "rak/error_number.h"
+#include "net/socket_fd.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "manager.h"
@@ -63,7 +64,12 @@ directory_events::open() {
   rak::error_number::current().clear_global();
 
 #ifdef HAVE_INOTIFY
-  m_fileDesc = inotify_init1(IN_NONBLOCK);
+  m_fileDesc = inotify_init();
+
+  if (!SocketFd(m_fileDesc).set_nonblock()) {
+    SocketFd(m_fileDesc).close();
+    m_fileDesc = -1;
+  }
 #else
   rak::error_number::set_global(rak::error_number::e_nodev);
 #endif
