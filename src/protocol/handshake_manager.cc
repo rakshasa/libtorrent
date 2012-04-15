@@ -114,7 +114,11 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
     return;
   }
 
-  manager->connection_manager()->signal_handshake_log().emit(sa.c_sockaddr(), ConnectionManager::handshake_incoming, e_none, NULL);
+  rak::slot_list_call(manager->connection_manager()->signal_handshake_log(),
+                      sa.c_sockaddr(),
+                      (int)ConnectionManager::handshake_incoming,
+                      (int)e_none,
+                      (HashString*)NULL);
   manager->connection_manager()->inc_socket_count();
 
   Handshake* h = new Handshake(fd, this, manager->connection_manager()->encryption_options());
@@ -174,7 +178,11 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   else
     message = ConnectionManager::handshake_outgoing;
 
-  manager->connection_manager()->signal_handshake_log().emit(sa.c_sockaddr(), message, e_none, &download->info()->hash());
+  rak::slot_list_call(manager->connection_manager()->signal_handshake_log(),
+                      sa.c_sockaddr(),
+                      message,
+                      (int)e_none,
+                      &download->info()->hash());
   manager->connection_manager()->inc_socket_count();
 
   Handshake* handshake = new Handshake(fd, this, encryptionOptions);
@@ -204,10 +212,11 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
                                                  handshake->extensions())) != NULL) {
     
     manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
-    manager->connection_manager()->signal_handshake_log().emit(handshake->peer_info()->socket_address(),
-                                                               ConnectionManager::handshake_success,
-                                                               e_none,
-                                                               &download->info()->hash());
+    rak::slot_list_call(manager->connection_manager()->signal_handshake_log(),
+                        handshake->peer_info()->socket_address(),
+                        (int)ConnectionManager::handshake_success,
+                        (int)e_none,
+                        &download->info()->hash());
 
     pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
 
@@ -231,10 +240,11 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
     else
       reason = e_handshake_duplicate;
 
-    manager->connection_manager()->signal_handshake_log().emit(handshake->peer_info()->socket_address(),
-                                                               ConnectionManager::handshake_dropped,
-                                                               reason,
-                                                               &download->info()->hash());
+    rak::slot_list_call(manager->connection_manager()->signal_handshake_log(),
+                        handshake->peer_info()->socket_address(),
+                        (int)ConnectionManager::handshake_dropped,
+                        reason,
+                        &download->info()->hash());
     handshake->destroy_connection();
   }
 
@@ -252,20 +262,24 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   handshake->deactivate_connection();
   handshake->destroy_connection();
 
-  manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(),
-                                                             message,
-                                                             error,
-                                                             handshake->download() != NULL ? &handshake->download()->info()->hash() : NULL);
+  rak::slot_list_call(manager->connection_manager()->signal_handshake_log(),
+                      sa->c_sockaddr(),
+                      message,
+                      error,
+                      handshake->download() != NULL ?
+                      &handshake->download()->info()->hash() :
+                      (HashString*)NULL);
   if (handshake->encryption()->should_retry()) {
     int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    manager->connection_manager()->signal_handshake_log().emit(sa->c_sockaddr(),
-                                                               retry_options & ConnectionManager::encryption_try_outgoing ?
-                                                               ConnectionManager::handshake_retry_encrypted :
-                                                               ConnectionManager::handshake_retry_plaintext,
-                                                               e_none,
-                                                               &download->info()->hash());
+    rak::slot_list_call(manager->connection_manager()->signal_handshake_log(),
+                        sa->c_sockaddr(),
+                        retry_options & ConnectionManager::encryption_try_outgoing ?
+                        (int)ConnectionManager::handshake_retry_encrypted :
+                        (int)ConnectionManager::handshake_retry_plaintext,
+                        (int)e_none,
+                        &download->info()->hash());
 
     create_outgoing(*sa, download, retry_options);
   }

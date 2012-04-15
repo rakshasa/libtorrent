@@ -34,20 +34,19 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-// Add some helpfull words here.
+// Add some helpfull words here. (These are some words, hope they are
+// helpful)
 
 #ifndef LIBTORRENT_CONNECTION_MANAGER_H
 #define LIBTORRENT_CONNECTION_MANAGER_H
 
-#include <sys/socket.h>
+#include <list>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <sigc++/connection.h>
-#include <sigc++/signal.h>
-#include <sigc++/functors/slot.h>
-
+#include <sys/socket.h>
+#include <tr1/functional>
 #include <torrent/common.h>
 
 namespace torrent {
@@ -58,10 +57,9 @@ typedef std::pair<Throttle*, Throttle*> ThrottlePair;
 
 class LIBTORRENT_EXPORT ConnectionManager {
 public:
-  typedef uint32_t                              size_type;
-  typedef uint16_t                              port_type;
-  typedef uint8_t                               priority_type;
-  typedef sigc::slot<uint32_t, const sockaddr*> slot_filter_type;
+  typedef uint32_t size_type;
+  typedef uint16_t port_type;
+  typedef uint8_t  priority_type;
 
   static const priority_type iptos_default     = 0;
   static const priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
@@ -100,14 +98,15 @@ public:
     handshake_retry_encrypted    = 9
   };
 
+  typedef std::tr1::function<uint32_t (const sockaddr*)>     slot_filter_type;
+  typedef std::tr1::function<ThrottlePair (const sockaddr*)> slot_throttle_type;
+
+  typedef std::tr1::function<void (const sockaddr*, int, int, const HashString*)> slot_handshake_type;
+  typedef std::list<slot_handshake_type>                                          signal_handshake_type;
+
   // The sockaddr argument in the result slot call is NULL if the resolve failed, and the int holds the errno.
-  typedef sigc::slot2<void, const sockaddr*, int>                                                   slot_resolver_result_type;
-  typedef sigc::slot4<slot_resolver_result_type*, const char*, int, int, slot_resolver_result_type> slot_resolver_type;
-
-  typedef sigc::slot4<void, const sockaddr*, int, int, const HashString*>   slot_handshake_type;
-  typedef sigc::signal4<void, const sockaddr*, int, int, const HashString*> signal_handshake_type;
-
-  typedef sigc::slot1<ThrottlePair, const sockaddr*>  slot_address_throttle_type;
+  typedef std::tr1::function<void (const sockaddr*, int)> slot_resolver_result_type;
+  typedef std::tr1::function<slot_resolver_result_type* (const char*, int, int, slot_resolver_result_type)> slot_resolver_type;
 
   ConnectionManager();
   ~ConnectionManager();
@@ -146,20 +145,10 @@ public:
   void                set_proxy_address(const sockaddr* sa);
 
   uint32_t            filter(const sockaddr* sa);
-  void                set_filter(const slot_filter_type& s)   { m_slotFilter = s; }
+  void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
 
   bool                listen_open(port_type begin, port_type end);
   void                listen_close();  
-
-  signal_handshake_type& signal_handshake_log()                          { return m_signalHandshakeLog; }
-  sigc::connection       set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
-
-  // The resolver returns a pointer to its copy of the result slot
-  // which the caller may set blocked to prevent the slot from being
-  // called. The pointer must be NULL if the result slot was already
-  // called because the resolve was synchronous.
-  const slot_resolver_type& resolver() const                             { return m_slotResolver; }
-  void                      set_resolver(const slot_resolver_type& s)    { m_slotResolver = s; }
 
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,
@@ -167,14 +156,20 @@ public:
   port_type           listen_port() const                     { return m_listenPort; }
   void                set_listen_port(port_type p)            { m_listenPort = p; }
 
-  // The slot returns a ThrottlePair to use for the given address, or NULLs to use the default throttle.
-  const slot_address_throttle_type&
-                      address_throttle() const                { return m_slotAddressThrottle; }
-  void                set_address_throttle(const slot_address_throttle_type& s)
-                                                              { m_slotAddressThrottle = s; }
+  signal_handshake_type& signal_handshake_log()               { return m_signal_handshake_log; }
+
+  // The resolver returns a pointer to its copy of the result slot
+  // which the caller may set blocked to prevent the slot from being
+  // called. The pointer must be NULL if the result slot was already
+  // called because the resolve was synchronous.
+  slot_resolver_type& resolver()          { return m_slot_resolver; }
+
+  // The slot returns a ThrottlePair to use for the given address, or
+  // NULLs to use the default throttle.
+  slot_throttle_type& address_throttle()  { return m_slot_address_throttle; }
 
   // For internal usage.
-  Listen*             listen()                                { return m_listen; }
+  Listen*             listen()            { return m_listen; }
 
 private:
   ConnectionManager(const ConnectionManager&);
@@ -195,10 +190,11 @@ private:
   Listen*             m_listen;
   port_type           m_listenPort;
 
-  slot_filter_type      m_slotFilter;
-  signal_handshake_type m_signalHandshakeLog;
-  slot_resolver_type    m_slotResolver;
-  slot_address_throttle_type  m_slotAddressThrottle;
+  slot_filter_type      m_slot_filter;
+  slot_resolver_type    m_slot_resolver;
+  slot_throttle_type    m_slot_address_throttle;
+
+  signal_handshake_type m_signal_handshake_log;
 };
 
 }

@@ -47,8 +47,11 @@
 #include "error.h"
 #include "exceptions.h"
 
+namespace tr1 { using namespace std::tr1; }
+
 namespace torrent {
 
+// Fix TrackerUdp, etc, if this is made async.
 static ConnectionManager::slot_resolver_result_type*
 resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
   rak::address_info* ai;
@@ -76,8 +79,7 @@ ConnectionManager::ConnectionManager() :
   m_encryptionOptions(encryption_none),
 
   m_listen(new Listen),
-  m_listenPort(0),
-  m_slotResolver(&resolve_host) {
+  m_listenPort(0) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();
@@ -87,6 +89,12 @@ ConnectionManager::ConnectionManager() :
 
   m_proxyAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_proxyAddress)->sa_inet()->clear();
+
+  m_slot_resolver = tr1::bind(&resolve_host,
+                              tr1::placeholders::_1,
+                              tr1::placeholders::_2,
+                              tr1::placeholders::_3,
+                              tr1::placeholders::_4);
 }
 
 ConnectionManager::~ConnectionManager() {
@@ -153,10 +161,10 @@ ConnectionManager::set_proxy_address(const sockaddr* sa) {
 
 uint32_t
 ConnectionManager::filter(const sockaddr* sa) {
-  if (m_slotFilter.empty())
+  if (!m_slot_filter)
     return 1;
   else
-    return m_slotFilter(sa);
+    return m_slot_filter(sa);
 }
 
 bool

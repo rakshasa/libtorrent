@@ -155,7 +155,7 @@ std::pair<ThrottleList*, ThrottleList*>
 DownloadMain::throttles(const sockaddr* sa) {
   ThrottlePair pair = ThrottlePair(NULL, NULL);
 
-  if (!manager->connection_manager()->address_throttle().empty())
+  if (manager->connection_manager()->address_throttle())
     pair = manager->connection_manager()->address_throttle()(sa);
 
   return std::make_pair(pair.first == NULL ? upload_throttle() : pair.first->throttle_list(),
