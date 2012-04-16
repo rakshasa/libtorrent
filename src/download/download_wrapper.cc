@@ -39,7 +39,6 @@
 #include <iterator>
 #include <stdlib.h>
 #include <rak/file_stat.h>
-#include <sigc++/adaptors/bind.h>
 
 #include "data/chunk_list.h"
 #include "data/hash_queue.h"
@@ -108,8 +107,8 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   info()->mutable_local_id().assign(id.c_str());
 
-  info()->slot_left() = sigc::mem_fun(m_main->file_list(), &FileList::left_bytes);
-  info()->slot_completed() = sigc::mem_fun(m_main->file_list(), &FileList::completed_bytes);
+  info()->slot_left()      = tr1::bind(&FileList::left_bytes, m_main->file_list());
+  info()->slot_completed() = tr1::bind(&FileList::completed_bytes, m_main->file_list());
 
   file_list()->mutable_data()->mutable_hash().assign(hash.c_str());
 

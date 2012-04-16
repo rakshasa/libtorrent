@@ -20,8 +20,7 @@ to the mailinglist.
 
 LIBRARY DEPENDENCIES
 
-  libsigc++ 2.0 (deb: libsigc++-2.0-dev)
-  g++ >= 3.3
+  g++ >= 4.2.1
 
 SIGC++
 
