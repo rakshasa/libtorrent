@@ -148,7 +148,9 @@ directory_events::event_read() {
   struct inotify_event* event = (struct inotify_event*)buffer;
   
   while (event + 1 <= (struct inotify_event*)(buffer + result)) {
-    if (event->len == 0 || (char*)event + event->len > buffer + 2048)
+    char* next_event = (char*)event + sizeof(struct inotify_event) + event->len;
+
+    if (event->len == 0 || next_event > buffer + 2048)
       return;
 
     wd_list::const_iterator itr = std::find_if(m_wd_list.begin(), m_wd_list.end(),
@@ -157,7 +159,7 @@ directory_events::event_read() {
     if (itr != m_wd_list.end())
       itr->slot(itr->path + event->name);
 
-    event = (struct inotify_event*)(event->name + event->len);
+    event = (struct inotify_event*)(next_event);
   }
 #endif
 }
