@@ -65,12 +65,14 @@ public:
   virtual ~internal_error() throw() {}
 
   virtual const char* what() const throw() { return m_msg.c_str(); }
+  const std::string&  backtrace() const throw() { return m_backtrace; }
 
 private:
   // Use this function for breaking on throws.
   void initialize(const std::string& msg);
 
   std::string m_msg;
+  std::string m_backtrace;
 };
 
 // For some reason we couldn't talk with a protocol/tracker, migth be a
