@@ -38,7 +38,12 @@
 
 #include <cerrno>
 #include <cstring>
+#include <sstream>
 #include <unistd.h>
+
+#ifdef USE_EXECINFO
+#include <execinfo.h>
+#endif
 
 #include "exceptions.h"
 
@@ -48,7 +53,6 @@ namespace torrent {
 // exceptions. This allows us to create breakpoints at throws. This is
 // limited to rarely thrown exceptions.
 
-void internal_error::initialize(const std::string& msg) { m_msg = msg; } // while (true) sleep(1); }
 void communication_error::initialize(const std::string& msg) { m_msg = msg; }
 void storage_error::initialize(const std::string& msg) { m_msg = msg; }
 void resource_error::initialize(const std::string& msg) { m_msg = msg; }
@@ -57,6 +61,29 @@ void input_error::initialize(const std::string& msg) { m_msg = msg; }
 const char*
 connection_error::what() const throw() {
   return std::strerror(m_errno);
+}
+
+void
+internal_error::initialize(const std::string& msg) {
+  m_msg = msg;
+
+  std::stringstream output;
+
+#ifdef USE_EXECINFO
+  void* stackPtrs[20];
+
+  // Print the stack and exit.
+  int stackSize = ::backtrace(stackPtrs, 20);
+  char** stackStrings = backtrace_symbols(stackPtrs, stackSize);
+
+  for (int i = 0; i < stackSize; ++i)
+    output << stackStrings[i] << std::endl;
+
+#else
+  output << "Stack dump not enabled." << std::endl;
+#endif
+
+  m_backtrace = output.str();
 }
 
 }
