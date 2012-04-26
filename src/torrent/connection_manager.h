@@ -104,9 +104,6 @@ public:
   typedef sigc::slot2<void, const sockaddr*, int>                                                   slot_resolver_result_type;
   typedef sigc::slot4<slot_resolver_result_type*, const char*, int, int, slot_resolver_result_type> slot_resolver_type;
 
-  typedef sigc::slot4<void, const sockaddr*, int, int, const HashString*>   slot_handshake_type;
-  typedef sigc::signal4<void, const sockaddr*, int, int, const HashString*> signal_handshake_type;
-
   typedef sigc::slot1<ThrottlePair, const sockaddr*>  slot_address_throttle_type;
 
   ConnectionManager();
@@ -153,9 +150,6 @@ public:
 
   bool                listen_is_open() const;
 
-  signal_handshake_type& signal_handshake_log()                          { return m_signalHandshakeLog; }
-  sigc::connection       set_signal_handshake_log(slot_handshake_type s) { return m_signalHandshakeLog.connect(s); }
-
   // The resolver returns a pointer to its copy of the result slot
   // which the caller may set blocked to prevent the slot from being
   // called. The pointer must be NULL if the result slot was already
@@ -198,7 +192,6 @@ private:
   port_type           m_listenPort;
 
   slot_filter_type      m_slotFilter;
-  signal_handshake_type m_signalHandshakeLog;
   slot_resolver_type    m_slotResolver;
   slot_address_throttle_type  m_slotAddressThrottle;
 };
