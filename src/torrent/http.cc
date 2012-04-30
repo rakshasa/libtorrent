@@ -40,7 +40,8 @@
 
 #include "rak/functional.h"
 #include "torrent/exceptions.h"
-#include "http.h"
+#include "torrent/http.h"
+#include "torrent/utils/log.h"
 
 namespace torrent {
 
@@ -51,6 +52,9 @@ Http::~Http() {
 
 void
 Http::trigger_done() {
+  if (signal_done().empty())
+    lt_log_print(LOG_TRACKER_INFO, "Disowned tracker done: url:'%s'.", m_url.c_str());
+
   rak::slot_list_call(signal_done());
 
   if (m_flags & flag_delete_stream) {
@@ -64,6 +68,9 @@ Http::trigger_done() {
 
 void
 Http::trigger_failed(const std::string& message) {
+  if (signal_done().empty())
+    lt_log_print(LOG_TRACKER_INFO, "Disowned tracker failed: url:'%s'.", m_url.c_str());
+
   rak::slot_list_call(signal_failed(), message);
 
   if (m_flags & flag_delete_stream) {
