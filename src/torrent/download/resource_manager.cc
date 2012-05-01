@@ -205,7 +205,7 @@ ResourceManager::set_max_download_unchoked(unsigned int m) {
 // possibly multiple calls of this function.
 void
 ResourceManager::receive_upload_unchoke(int num) {
-  lt_log_print(LOG_PEER_DEBUG, "Upload unchoked slots adjust; currently:%u adjust:%i", m_currentlyUploadUnchoked, num);
+  lt_log_print(LOG_PEER_INFO, "Upload unchoked slots adjust; currently:%u adjust:%i", m_currentlyUploadUnchoked, num);
 
   if ((int)m_currentlyUploadUnchoked + num < 0)
     throw internal_error("ResourceManager::receive_upload_unchoke(...) received an invalid value.");
@@ -215,7 +215,7 @@ ResourceManager::receive_upload_unchoke(int num) {
 
 void
 ResourceManager::receive_download_unchoke(int num) {
-  lt_log_print(LOG_PEER_DEBUG, "Download unchoked slots adjust; currently:%u adjust:%i", m_currentlyDownloadUnchoked, num);
+  lt_log_print(LOG_PEER_INFO, "Download unchoked slots adjust; currently:%u adjust:%i", m_currentlyDownloadUnchoked, num);
 
   if ((int)m_currentlyDownloadUnchoked + num < 0)
     throw internal_error("ResourceManager::receive_download_unchoke(...) received an invalid value.");
