@@ -39,7 +39,6 @@
 
 #include <deque>
 #include <rak/functional.h>
-#include <sigc++/signal.h>
 
 #include "globals.h"
 

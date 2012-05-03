@@ -40,7 +40,6 @@
 
 #include <sys/types.h>
 
-#include <sigc++/adaptors/bind.h>
 #include <torrent/connection_manager.h>
 #include <cstdio>
 
@@ -56,6 +55,8 @@
 #include "tracker_udp.h"
 #include "manager.h"
 
+namespace tr1 { using namespace std::tr1; }
+
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
 
@@ -67,7 +68,7 @@ namespace torrent {
 TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
   Tracker(parent, url, flags),
 
-  m_slotResolver(NULL),
+  m_slot_resolver(NULL),
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
 
@@ -75,8 +76,10 @@ TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
 }
 
 TrackerUdp::~TrackerUdp() {
-  if (m_slotResolver != NULL)
-    static_cast<ConnectionManager::slot_resolver_result_type*>(m_slotResolver)->blocked();
+  if (m_slot_resolver != NULL) {
+    *m_slot_resolver = resolver_type();
+    m_slot_resolver = NULL;
+  }
 
   close_directly();
 }
@@ -100,17 +103,25 @@ TrackerUdp::send_state(int state) {
 
   // Because we can only remember one slot, set any pending resolves blocked
   // so that if this tracker is deleted, the member function won't be called.
-  if (m_slotResolver != NULL)
-    static_cast<ConnectionManager::slot_resolver_result_type*>(m_slotResolver)->blocked();
+  if (m_slot_resolver != NULL) {
+    *m_slot_resolver = resolver_type();
+    m_slot_resolver = NULL;
+  }
 
   m_sendState = state;
-  m_slotResolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
-                                                             sigc::mem_fun(this, &TrackerUdp::start_announce));
+  m_slot_resolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
+                                                              tr1::bind(&TrackerUdp::start_announce,
+                                                                        this,
+                                                                        tr1::placeholders::_1,
+                                                                        tr1::placeholders::_2));
 }
 
 void
 TrackerUdp::start_announce(const sockaddr* sa, int err) {
-  m_slotResolver = NULL;
+  if (m_slot_resolver != NULL) {
+    *m_slot_resolver = resolver_type();
+    m_slot_resolver = NULL;
+  }
 
   if (sa == NULL)
     return receive_failed("Could not resolve hostname.");
