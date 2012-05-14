@@ -96,10 +96,6 @@ AC_ARG_ENABLE(cyrus-rc4,
   ]
 )
 
-PKG_CHECK_MODULES(STUFF, sigc++-2.0,
-	          CXXFLAGS="$CXXFLAGS $STUFF_CFLAGS";
-		  LIBS="$LIBS $STUFF_LIBS")
-
 AC_CHECK_FUNCS(posix_memalign)
 
 TORRENT_CHECK_MADVISE()

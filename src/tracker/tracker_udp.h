@@ -41,6 +41,7 @@
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
+#include "torrent/connection_manager.h"
 #include "torrent/tracker.h"
 
 #include "globals.h"
@@ -51,6 +52,8 @@ class TrackerUdp : public SocketDatagram, public Tracker {
 public:
   typedef ProtocolBuffer<512> ReadBuffer;
   typedef ProtocolBuffer<512> WriteBuffer;
+
+  typedef ConnectionManager::slot_resolver_result_type resolver_type;
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 
@@ -92,7 +95,7 @@ private:
 
   int                 m_sendState;
 
-  void*               m_slotResolver;
+  resolver_type*      m_slot_resolver;
 
   uint32_t            m_action;
   uint64_t            m_connectionId;

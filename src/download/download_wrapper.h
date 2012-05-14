@@ -37,11 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_WRAPPER_H
 #define LIBTORRENT_DOWNLOAD_WRAPPER_H
 
-#include <sigc++/connection.h>
-#include <sigc++/signal.h>
-
 #include "data/chunk_handle.h"
-
 #include "download_main.h"
 
 namespace torrent {
@@ -59,10 +55,6 @@ class Peer;
 
 class DownloadWrapper {
 public:
-  typedef sigc::signal0<void>                     Signal;
-  typedef sigc::signal1<void, uint32_t>           SignalChunk;
-  typedef sigc::signal1<void, const std::string&> SignalString;
-
   DownloadWrapper();
   ~DownloadWrapper();
 
@@ -126,9 +118,6 @@ private:
   std::string         m_hash;
 
   int                 m_connectionType;
-
-  sigc::connection    m_connectionChunkPassed;
-  sigc::connection    m_connectionChunkFailed;
 };
 
 }

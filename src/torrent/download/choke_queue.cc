@@ -547,7 +547,7 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
 
   if (log_files[LOG_CHOKE_CHANGES].is_open())
     for (uint32_t i = 0; i < choke_queue::order_max_size; i++)
-      log_choke_changes_func_allocate(this, "unchoke" + 2*is_choke, i, target[i].first, std::distance(target[i].second, target[i + 1].second));
+      log_choke_changes_func_allocate(this, (const char*)"unchoke" + 2*is_choke, i, target[i].first, std::distance(target[i].second, target[i + 1].second));
 
   // Now do the actual unchoking.
   uint32_t count = 0;
@@ -595,7 +595,7 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
       if (!log_files[LOG_CHOKE_CHANGES].is_open())
         continue;
 
-      log_choke_changes_func_peer(this, "unchoke" + 2*is_choke, &*itr_adjust);
+      log_choke_changes_func_peer(this, (const char*)"unchoke" + 2*is_choke, &*itr_adjust);
     }
 
     // The 'target' iterators remain valid after erase since we're
