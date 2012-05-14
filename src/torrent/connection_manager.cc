@@ -182,9 +182,4 @@ ConnectionManager::listen_close() {
   m_listen->close();
 }
 
-bool
-ConnectionManager::listen_is_open() const {
-  return m_listen->is_open();
-}
-
 }
