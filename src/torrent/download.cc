@@ -166,10 +166,11 @@ Download::stop(int flags) {
 
   LT_LOG_THIS(INFO, "Stopping torrent: flags:%0x.", flags);
 
+  m_ptr->main()->stop();
+
   if (!(flags & stop_skip_tracker))
     m_ptr->main()->tracker_controller()->send_stop_event();
 
-  m_ptr->main()->stop();
   m_ptr->main()->tracker_controller()->disable();
 }
 
