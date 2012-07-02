@@ -79,8 +79,8 @@ public:
 
   log_buffer() : m_max_size(200) { pthread_mutex_init(&m_lock, NULL); }
 
-  int                 max_size() const { return m_max_size; }
-
+  unsigned int        max_size() const { return m_max_size; }
+  
   // Always lock before calling any function.
   void                lock()   { pthread_mutex_lock(&m_lock); }
   void                unlock() { pthread_mutex_unlock(&m_lock); }
@@ -93,7 +93,7 @@ public:
 
 private:
   pthread_mutex_t     m_lock;
-  int                 m_max_size;
+  unsigned int        m_max_size;
   slot_void           m_slot_update;
 };
 
