@@ -237,6 +237,19 @@ tracker_controller_test::test_send_update_normal() {
 }
 
 void
+tracker_controller_test::test_send_update_failure() {
+  torrent::cachedTime = rak::timer::from_seconds(1 << 20);
+  TEST_SINGLE_BEGIN();
+
+  tracker_controller.send_update_event();
+
+  TEST_SINGLE_FAILURE_TIMEOUT(5);
+  TEST_SINGLE_FAILURE_TIMEOUT(10);
+
+  TEST_SINGLE_END(0, 2);
+}
+
+void
 tracker_controller_test::test_send_task_timeout() {
   TEST_SINGLE_BEGIN();
   TEST_SEND_SINGLE_BEGIN(update);
