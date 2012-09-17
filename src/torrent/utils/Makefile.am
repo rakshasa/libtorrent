@@ -8,6 +8,8 @@ libsub_torrentutils_la_SOURCES = \
 	log_buffer.h \
 	log_files.cc \
 	log_files.h \
+	net.cc \
+	net.h \
 	option_strings.cc \
 	option_strings.h \
 	ranges.h \
@@ -26,6 +28,7 @@ libtorrentinclude_HEADERS = \
 	log.h \
 	log_buffer.h \
 	log_files.h \
+	net.h \
 	option_strings.h \
 	ranges.h \
 	resume.h \

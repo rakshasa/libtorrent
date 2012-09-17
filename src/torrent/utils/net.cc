@@ -36,60 +36,35 @@
 
 #include "config.h"
 
-#include <cerrno>
-#include <cstring>
-#include <netdb.h>
-#include <sstream>
-#include <unistd.h>
-
-#ifdef USE_EXECINFO
-#include <execinfo.h>
-#endif
-
+#include "net.h"
 #include "exceptions.h"
 
 namespace torrent {
 
-// Use actual functions, instead of inlined, for the ctor of
-// exceptions. This allows us to create breakpoints at throws. This is
-// limited to rarely thrown exceptions.
+addrinfo*
+address_info_lookup(const char* hostname, int family, int socktype) {
+  addrinfo hints;
+  std::memset(&hints, 0, sizeof(addrinfo));
+  hints.ai_family = family;
+  hints.ai_socktype = socktype;
+  
+  addrinfo* res = NULL;
+  int err = ::getaddrinfo(hostname, NULL, &hints, &res);
 
-void communication_error::initialize(const std::string& msg) { m_msg = msg; }
-void storage_error::initialize(const std::string& msg) { m_msg = msg; }
-void resource_error::initialize(const std::string& msg) { m_msg = msg; }
-void input_error::initialize(const std::string& msg) { m_msg = msg; }
+  if (err)
+    throw address_info_error(err);
 
-const char*
-connection_error::what() const throw() {
-  return std::strerror(m_errno);
+  return res;
 }
 
-const char*
-address_info_error::what() const throw() {
-  return ::gai_strerror(m_errno);
-}
+bool
+address_info_call(addrinfo* ai, int flags, slot_ai_success slot_success) {
+  while (ai != NULL) {
+    slot_success(ai->ai_addr, ai->ai_addrlen);
+    return true;
+  }
 
-void
-internal_error::initialize(const std::string& msg) {
-  m_msg = msg;
-
-  std::stringstream output;
-
-#ifdef USE_EXECINFO
-  void* stackPtrs[20];
-
-  // Print the stack and exit.
-  int stackSize = ::backtrace(stackPtrs, 20);
-  char** stackStrings = backtrace_symbols(stackPtrs, stackSize);
-
-  for (int i = 0; i < stackSize; ++i)
-    output << stackStrings[i] << std::endl;
-
-#else
-  output << "Stack dump not enabled." << std::endl;
-#endif
-
-  m_backtrace = output.str();
+  return false;
 }
 
 }

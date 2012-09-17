@@ -104,6 +104,21 @@ public:
 
   virtual const char* what() const throw();
 
+  int get_errno() const { return m_errno; }
+
+private:
+  int m_errno;
+};
+
+class LIBTORRENT_EXPORT address_info_error : public network_error {
+public:
+  address_info_error(int err) : m_errno(err) {}
+  virtual ~address_info_error() throw() {}
+
+  virtual const char* what() const throw();
+
+  int get_errno() const { return m_errno; }
+
 private:
   int m_errno;
 };
