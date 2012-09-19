@@ -90,13 +90,13 @@ public:
   tracker_list.slot_tracker_disabled() = tr1::bind(&torrent::TrackerController::receive_tracker_disabled, &tracker_controller, tr1::placeholders::_1);
 
 #define TEST_SINGLE_BEGIN()                                             \
-  TRACKER_CONTROLLER_SETUP();                                                      \
+  TRACKER_CONTROLLER_SETUP();                                           \
   TRACKER_INSERT(0, tracker_0_0);                                       \
                                                                         \
   tracker_controller.enable();                                          \
   CPPUNIT_ASSERT(!(tracker_controller.flags() & torrent::TrackerController::mask_send)); \
 
-#define TEST_SINGLE_END(succeeded, failed)            \
+#define TEST_SINGLE_END(succeeded, failed)                              \
   tracker_controller.disable();                                         \
   CPPUNIT_ASSERT(!tracker_list.has_active());                           \
   CPPUNIT_ASSERT(success_counter == succeeded &&                        \
@@ -147,7 +147,6 @@ public:
 #define TEST_GOTO_NEXT_SCRAPE(assumed_scrape)                           \
   CPPUNIT_ASSERT(tracker_controller.task_scrape()->is_queued());        \
   CPPUNIT_ASSERT(assumed_scrape == tracker_controller.seconds_to_next_scrape()); \
-  torrent::cachedTime += rak::timer::from_seconds(tracker_controller.seconds_to_next_scrape()); \
-  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
+  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, assumed_scrape, true));
 
-bool test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout);
+bool test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout, bool is_scrape = false);

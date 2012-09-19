@@ -14,18 +14,38 @@ namespace tr1 { using namespace std::tr1; }
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
 
 bool
-test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout) {
-  if (!tracker_controller->task_timeout()->is_queued()) {
+test_goto_next_timeout(torrent::TrackerController* tracker_controller, uint32_t assumed_timeout, bool is_scrape) {
+  uint32_t next_timeout = tracker_controller->task_timeout()->is_queued() ? tracker_controller->seconds_to_next_timeout() : ~uint32_t();
+  uint32_t next_scrape  = tracker_controller->task_scrape()->is_queued()  ? tracker_controller->seconds_to_next_scrape()  : ~uint32_t();
+
+  if (next_timeout == next_scrape && next_timeout == ~uint32_t()) {
     std::cout << "(nq)";
     return false;
   }
 
-  if (assumed_timeout != tracker_controller->seconds_to_next_timeout()) {
-    std::cout << '(' << assumed_timeout << "!=" << tracker_controller->seconds_to_next_timeout() << ')';
-    return false;
+  if (next_timeout < next_scrape) {
+    if (is_scrape) {
+      std::cout << "(t" << next_timeout << "<s" << next_scrape << ")";
+      return false;
+    }
+
+    if (assumed_timeout != next_timeout) {
+      std::cout << '(' << assumed_timeout << "!=t" << next_timeout << ')';
+      return false;
+    }
+  } else if (next_scrape < next_timeout) {
+    if (!is_scrape) {
+      std::cout << "(s" << next_scrape << "<t" << next_timeout << ")";
+      return false;
+    }
+
+    if (assumed_timeout != next_scrape) {
+      std::cout << '(' << assumed_timeout << "!=s" << next_scrape << ')';
+      return false;
+    }
   }
 
-  torrent::cachedTime += rak::timer::from_seconds(tracker_controller->seconds_to_next_timeout());
+  torrent::cachedTime += rak::timer::from_seconds(is_scrape ? next_scrape : next_timeout);
   rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
   return true;
 }
