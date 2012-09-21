@@ -49,10 +49,18 @@ do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t mi
   CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0->min_interval()));
   
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
-  CPPUNIT_ASSERT(success2 ? tracker_0_0->trigger_success() : tracker_0_0->trigger_failure());
 
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 30));
-  CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0->min_interval() - 30));
+  if (success2) {
+    CPPUNIT_ASSERT(tracker_0_0->trigger_success());
+
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 30));
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, tracker_0_0->min_interval() - 30));
+  } else {
+    CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
+
+    CPPUNIT_ASSERT(test_goto_next_timeout(&tracker_controller, 5));
+    CPPUNIT_ASSERT(tracker_0_0->is_busy());
+  }
 
   tracker_controller.stop_requesting();
 
@@ -68,17 +76,28 @@ tracker_controller_requesting::test_hammering_basic_success() {
 }
 
 void
-tracker_controller_requesting::test_hammering_basic_success_new_timeout() {
+tracker_controller_requesting::test_hammering_basic_success_long_timeout() {
   do_test_hammering_basic(true, true, true, 1000);
+}
+
+void
+tracker_controller_requesting::test_hammering_basic_success_short_timeout() {
+  do_test_hammering_basic(true, true, true, 300);
 }
 
 void
 tracker_controller_requesting::test_hammering_basic_failure() {
   do_test_hammering_basic(true, false, false);
 }
+
 void
-tracker_controller_requesting::test_hammering_basic_failure_new_timeout() {
+tracker_controller_requesting::test_hammering_basic_failure_long_timeout() {
   do_test_hammering_basic(true, false, false, 1000);
+}
+
+void
+tracker_controller_requesting::test_hammering_basic_failure_short_timeout() {
+  do_test_hammering_basic(true, false, false, 300);
 }
 
 // Differentiate between failure connection / http error and tracker returned error.
