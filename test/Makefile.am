@@ -44,6 +44,8 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_controller_test.h \
 	torrent/tracker_controller_features.cc \
 	torrent/tracker_controller_features.h \
+	torrent/tracker_controller_requesting.cc \
+	torrent/tracker_controller_requesting.h \
 	torrent/tracker_list_test.cc \
 	torrent/tracker_list_test.h \
 	torrent/tracker_list_features_test.cc \
