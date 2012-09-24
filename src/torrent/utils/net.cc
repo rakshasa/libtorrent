@@ -39,6 +39,8 @@
 #include "net.h"
 #include "exceptions.h"
 
+#include <cstring>
+
 namespace torrent {
 
 addrinfo*
