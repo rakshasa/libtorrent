@@ -24,6 +24,23 @@ tracker_timeout_test::tearDown() {
 }
 
 void
+tracker_timeout_test::test_set_timeout() {
+  TrackerTest tracker(NULL, "");
+
+  CPPUNIT_ASSERT(tracker.normal_interval() == 1800);
+
+  tracker.set_new_normal_interval(100);
+  CPPUNIT_ASSERT(tracker.normal_interval() == 600);
+  tracker.set_new_normal_interval(4000);
+  CPPUNIT_ASSERT(tracker.normal_interval() == 3600);
+
+  tracker.set_new_min_interval(100);
+  CPPUNIT_ASSERT(tracker.min_interval() == 300);
+  tracker.set_new_min_interval(4000);
+  CPPUNIT_ASSERT(tracker.min_interval() == 1800);
+}
+
+void
 tracker_timeout_test::test_timeout_tracker() {
   TrackerTest tracker(NULL, "");
   int flags = 0;
