@@ -12,6 +12,13 @@ class tracker_controller_requesting : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_hammering_basic_failure_long_timeout);
   CPPUNIT_TEST(test_hammering_basic_failure_short_timeout);
 
+  CPPUNIT_TEST(test_hammering_multi_success);
+  CPPUNIT_TEST(test_hammering_multi_success_long_timeout);
+  CPPUNIT_TEST(test_hammering_multi_success_short_timeout);
+  CPPUNIT_TEST(test_hammering_multi_failure);
+  // CPPUNIT_TEST(test_hammering_multi_failure_long_timeout);
+  // CPPUNIT_TEST(test_hammering_multi_failure_short_timeout);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -24,4 +31,11 @@ public:
   void test_hammering_basic_failure();
   void test_hammering_basic_failure_long_timeout();
   void test_hammering_basic_failure_short_timeout();
+
+  void test_hammering_multi_success();
+  void test_hammering_multi_success_long_timeout();
+  void test_hammering_multi_success_short_timeout();
+  void test_hammering_multi_failure();
+  void test_hammering_multi_failure_long_timeout();
+  void test_hammering_multi_failure_short_timeout();
 };
