@@ -152,40 +152,44 @@ tracker_controller_features::test_promiscious_failed() {
 
 void
 tracker_controller_features::test_scrape_basic() {
-  TEST_MULTI3_BEGIN();
+  TEST_GROUP_BEGIN();
   tracker_controller.disable();
 
   CPPUNIT_ASSERT(!tracker_controller.task_scrape()->is_queued());
   tracker_0_1->set_can_scrape();
-  tracker_1_0->set_can_scrape();
+  tracker_0_2->set_can_scrape();
+  tracker_2_0->set_can_scrape();
   
   tracker_controller.scrape_request(0);
 
-  TEST_MULTI3_IS_BUSY("00000", "00000");
+  TEST_GROUP_IS_BUSY("000000", "000000");
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(tracker_controller.task_scrape()->is_queued());
   CPPUNIT_ASSERT(tracker_0_1->latest_event() == torrent::Tracker::EVENT_NONE);
-  CPPUNIT_ASSERT(tracker_1_0->latest_event() == torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_0_2->latest_event() == torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_2_0->latest_event() == torrent::Tracker::EVENT_NONE);
 
   TEST_GOTO_NEXT_SCRAPE(0);
 
-  TEST_MULTI3_IS_BUSY("01100", "01100");
+  TEST_GROUP_IS_BUSY("010001", "010001");
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(!tracker_controller.task_scrape()->is_queued());
   CPPUNIT_ASSERT(tracker_0_1->latest_event() == torrent::Tracker::EVENT_SCRAPE);
-  CPPUNIT_ASSERT(tracker_1_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
+  CPPUNIT_ASSERT(tracker_0_2->latest_event() == torrent::Tracker::EVENT_NONE);
+  CPPUNIT_ASSERT(tracker_2_0->latest_event() == torrent::Tracker::EVENT_SCRAPE);
 
   CPPUNIT_ASSERT(tracker_0_1->trigger_scrape());
-  CPPUNIT_ASSERT(tracker_1_0->trigger_scrape());
+  CPPUNIT_ASSERT(tracker_2_0->trigger_scrape());
 
-  TEST_MULTI3_IS_BUSY("00000", "00000");
+  TEST_GROUP_IS_BUSY("000000", "000000");
   CPPUNIT_ASSERT(!tracker_controller.task_timeout()->is_queued());
   CPPUNIT_ASSERT(!tracker_controller.task_scrape()->is_queued());
 
   CPPUNIT_ASSERT(tracker_0_1->scrape_time_last() != 0);
-  CPPUNIT_ASSERT(tracker_1_0->scrape_time_last() != 0);
+  CPPUNIT_ASSERT(tracker_0_2->scrape_time_last() == 0);
+  CPPUNIT_ASSERT(tracker_2_0->scrape_time_last() != 0);
 
-  TEST_SINGLE_END(0, 0);
+  TEST_MULTIPLE_END(0, 0);
 }
 
 void
