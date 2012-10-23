@@ -1,12 +1,12 @@
-AC_INIT(libtorrent, 0.13.2, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.13.3, jaris@ifi.uio.no)
 
 LT_INIT([disable-static])
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME, "-lt0D20-", Identifier that is part of the default peer id)
-AC_DEFINE(PEER_VERSION, "lt\x0D\x20", 4 byte client and version identifier for DHT)
+AC_DEFINE(PEER_NAME, "-lt0D30-", Identifier that is part of the default peer id)
+AC_DEFINE(PEER_VERSION, "lt\x0D\x30", 4 byte client and version identifier for DHT)
 
-LIBTORRENT_CURRENT=16
+LIBTORRENT_CURRENT=17
 LIBTORRENT_REVISION=4
 LIBTORRENT_AGE=0
 
