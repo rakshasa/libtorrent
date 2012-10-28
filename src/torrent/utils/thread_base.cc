@@ -65,6 +65,8 @@ thread_base::start_thread() {
   if (m_state != STATE_INITIALIZED ||
       pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
     throw internal_error("Failed to create thread.");
+
+  pthread_setname_np(m_thread, name());
 }
 
 void
