@@ -82,6 +82,9 @@ public:
   void                set_latest_new_peers(uint32_t peers)              { m_latest_new_peers = peers; }
   void                set_latest_sum_peers(uint32_t peers)              { m_latest_sum_peers = peers; }
 
+  void                set_new_normal_interval(uint32_t timeout)         { set_normal_interval(timeout); }
+  void                set_new_min_interval(uint32_t timeout)            { set_min_interval(timeout); }
+
   virtual void        send_state(int state) { m_busy = true; m_open = true; m_requesting_state = m_latest_event = state; }
   virtual void        send_scrape()         { m_busy = true; m_open = true; m_requesting_state = m_latest_event = torrent::Tracker::EVENT_SCRAPE; }
   virtual void        close()               { m_busy = false; m_open = false; m_requesting_state = -1; }

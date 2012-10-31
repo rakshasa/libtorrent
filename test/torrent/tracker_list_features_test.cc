@@ -125,6 +125,29 @@ tracker_list_features_test::test_find_next_to_request() {
 }
 
 void
+tracker_list_features_test::test_find_next_to_request_groups() {
+  TRACKER_SETUP();
+  TRACKER_INSERT(0, tracker_0);
+  TRACKER_INSERT(0, tracker_1);
+  TRACKER_INSERT(1, tracker_2);
+  TRACKER_INSERT(1, tracker_3);
+
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin());
+
+  tracker_0->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
+
+  tracker_1->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 2);
+
+  tracker_2->set_failed(1, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 3);
+
+  tracker_1->set_failed(0, torrent::cachedTime.seconds() - 0);
+  CPPUNIT_ASSERT(tracker_list.find_next_to_request(tracker_list.begin()) == tracker_list.begin() + 1);
+}
+
+void
 tracker_list_features_test::test_count_active() {
   TRACKER_SETUP();
   TRACKER_INSERT(0, tracker_0_0);

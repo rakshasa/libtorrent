@@ -44,6 +44,8 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_controller_test.h \
 	torrent/tracker_controller_features.cc \
 	torrent/tracker_controller_features.h \
+	torrent/tracker_controller_requesting.cc \
+	torrent/tracker_controller_requesting.h \
 	torrent/tracker_list_test.cc \
 	torrent/tracker_list_test.h \
 	torrent/tracker_list_features_test.cc \
@@ -56,6 +58,8 @@ LibTorrentTest_SOURCES = \
 	torrent/utils/log_test.h \
 	torrent/utils/log_buffer_test.cc \
 	torrent/utils/log_buffer_test.h \
+	torrent/utils/net_test.cc \
+	torrent/utils/net_test.h \
 	torrent/utils/option_strings_test.cc \
 	torrent/utils/option_strings_test.h \
 	torrent/utils/signal_bitfield_test.cc \

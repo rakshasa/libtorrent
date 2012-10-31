@@ -34,62 +34,23 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_UTILS_NET_H
+#define LIBTORRENT_UTILS_NET_H
 
-#include <cerrno>
-#include <cstring>
 #include <netdb.h>
-#include <sstream>
-#include <unistd.h>
-
-#ifdef USE_EXECINFO
-#include <execinfo.h>
-#endif
-
-#include "exceptions.h"
+#include <tr1/functional>
 
 namespace torrent {
 
-// Use actual functions, instead of inlined, for the ctor of
-// exceptions. This allows us to create breakpoints at throws. This is
-// limited to rarely thrown exceptions.
+typedef std::tr1::function<void (sockaddr*, socklen_t)> slot_ai_success;
+//typedef std::tr1::function<void (const char*, int)>     slot_ai_failure;
 
-void communication_error::initialize(const std::string& msg) { m_msg = msg; }
-void storage_error::initialize(const std::string& msg) { m_msg = msg; }
-void resource_error::initialize(const std::string& msg) { m_msg = msg; }
-void input_error::initialize(const std::string& msg) { m_msg = msg; }
+// Throws address_info_error on lookup failure.
+addrinfo*   address_info_lookup(const char* hostname, int family, int socktype);
+inline void address_info_free(addrinfo* ai) { ::freeaddrinfo(ai); }
 
-const char*
-connection_error::what() const throw() {
-  return std::strerror(m_errno);
+bool        address_info_call(addrinfo* ai, int flags, slot_ai_success slot_success);
+
 }
 
-const char*
-address_info_error::what() const throw() {
-  return ::gai_strerror(m_errno);
-}
-
-void
-internal_error::initialize(const std::string& msg) {
-  m_msg = msg;
-
-  std::stringstream output;
-
-#ifdef USE_EXECINFO
-  void* stackPtrs[20];
-
-  // Print the stack and exit.
-  int stackSize = ::backtrace(stackPtrs, 20);
-  char** stackStrings = backtrace_symbols(stackPtrs, stackSize);
-
-  for (int i = 0; i < stackSize; ++i)
-    output << stackStrings[i] << std::endl;
-
-#else
-  output << "Stack dump not enabled." << std::endl;
 #endif
-
-  m_backtrace = output.str();
-}
-
-}

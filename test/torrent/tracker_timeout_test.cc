@@ -24,6 +24,23 @@ tracker_timeout_test::tearDown() {
 }
 
 void
+tracker_timeout_test::test_set_timeout() {
+  TrackerTest tracker(NULL, "");
+
+  CPPUNIT_ASSERT(tracker.normal_interval() == 1800);
+
+  tracker.set_new_normal_interval(100);
+  CPPUNIT_ASSERT(tracker.normal_interval() == 600);
+  tracker.set_new_normal_interval(4000);
+  CPPUNIT_ASSERT(tracker.normal_interval() == 3600);
+
+  tracker.set_new_min_interval(100);
+  CPPUNIT_ASSERT(tracker.min_interval() == 300);
+  tracker.set_new_min_interval(4000);
+  CPPUNIT_ASSERT(tracker.min_interval() == 1800);
+}
+
+void
 tracker_timeout_test::test_timeout_tracker() {
   TrackerTest tracker(NULL, "");
   int flags = 0;
@@ -119,17 +136,17 @@ tracker_timeout_test::test_timeout_requesting() {
 
   tracker.set_failed(0, torrent::cachedTime.seconds());
   tracker.set_success(0, torrent::cachedTime.seconds());
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 10);
-  tracker.set_success(1, torrent::cachedTime.seconds());
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 20);
-  tracker.set_success(2, torrent::cachedTime.seconds());
+  // CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 10);
+  // tracker.set_success(1, torrent::cachedTime.seconds());
+  // CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 20);
+  // tracker.set_success(2, torrent::cachedTime.seconds());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
   tracker.set_success(6, torrent::cachedTime.seconds());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
   
   tracker.set_success(1, torrent::cachedTime.seconds());
-  tracker.set_latest_sum_peers(9);
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 20);
+  // tracker.set_latest_sum_peers(9);
+  // CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 20);
   tracker.set_latest_sum_peers(10);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 600);
 

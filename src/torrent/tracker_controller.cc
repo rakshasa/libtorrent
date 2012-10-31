@@ -395,12 +395,10 @@ tracker_next_timeout_promiscuous(Tracker* tracker) {
 
   if (tracker->failed_counter())
     interval = 5 << std::min<int>(tracker->failed_counter() - 1, 6);
-  else if (tracker->success_counter() < 2 && tracker->latest_sum_peers() < 10)
-    interval = 10 << tracker->success_counter();
   else
     interval = tracker->normal_interval();
 
-  int32_t min_interval = std::min(tracker->min_interval(), (uint32_t)600);
+  int32_t min_interval = std::max(tracker->min_interval(), (uint32_t)300);
   int32_t use_interval = std::min(interval, min_interval);
 
   int32_t since_last = cachedTime.seconds() - (int32_t)tracker->activity_time_last();
@@ -485,20 +483,12 @@ TrackerController::do_timeout() {
     if (itr == m_tracker_list->end())
       return;
 
-    if ((m_flags & flag_send_update)) {
-      // TODO: Also watch out for failed trackers requiring timeouts.
+    int32_t next_timeout = (*itr)->activity_time_next();
+
+    if (next_timeout <= cachedTime.seconds())
       m_tracker_list->send_state_itr(itr, send_state);
-
-    } else {
-      TrackerList::iterator itr = m_tracker_list->find_next_to_request(m_tracker_list->begin());
-
-      int32_t next_timeout = (*itr)->activity_time_next();
-
-      if (next_timeout <= cachedTime.seconds())
-        m_tracker_list->send_state_itr(itr, send_state);
-      else
-        update_timeout(next_timeout - cachedTime.seconds());
-    }
+    else
+      update_timeout(next_timeout - cachedTime.seconds());
   }
 
   if (m_slot_timeout)
