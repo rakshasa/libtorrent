@@ -34,62 +34,33 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_SOCKET_FD_H
-#define LIBTORRENT_NET_SOCKET_FD_H
+#ifndef LIBTORRENT_UTILS_THREAD_INTERRUPT_H
+#define LIBTORRENT_UTILS_THREAD_INTERRUPT_H
 
-#include <unistd.h>
-
-namespace rak {
-  class socket_address;
-}
+#include <utility>
+#include <torrent/event.h>
 
 namespace torrent {
 
-class SocketFd {
+class SocketFd;
+
+class LIBTORRENT_EXPORT lt_cacheline_aligned thread_interrupt : public Event {
 public:
-  typedef uint8_t priority_type;
+  typedef std::pair<thread_interrupt*,thread_interrupt*> pair_type;
 
-  SocketFd() : m_fd(-1) {}
-  explicit SocketFd(int fd) : m_fd(fd) {}
+  ~thread_interrupt();
 
-  bool                is_valid() const                        { return m_fd >= 0; }
-  
-  int                 get_fd() const                          { return m_fd; }
-  void                set_fd(int fd)                          { m_fd = fd; }
+  static pair_type    create_pair();
 
-  bool                set_nonblock();
-  bool                set_reuse_address(bool state);
+  SocketFd&           get_fd() { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
+  bool                poke();
 
-  bool                set_priority(priority_type p);
-
-  bool                set_send_buffer_size(uint32_t s);
-  bool                set_receive_buffer_size(uint32_t s);
-
-  int                 get_error() const;
-
-  bool                open_stream();
-  bool                open_datagram();
-  bool                open_local();
-
-  static bool         open_socket_pair(int& fd1, int& fd2);
-
-  void                close();
-  void                clear() { m_fd = -1; }
-
-  bool                bind(const rak::socket_address& sa);
-  bool                bind(const rak::socket_address& sa, unsigned int length);
-  bool                connect(const rak::socket_address& sa);
-
-  bool                listen(int size);
-  SocketFd            accept(rak::socket_address* sa);
-
-//   unsigned int        get_read_queue_size() const;
-//   unsigned int        get_write_queue_size() const;
+  void                event_read();
+  void                event_write() {}
+  void                event_error() {}
 
 private:
-  inline void         check_valid() const;
-
-  int                 m_fd;
+  thread_interrupt(int fd) { m_fileDesc = fd; }
 };
 
 }

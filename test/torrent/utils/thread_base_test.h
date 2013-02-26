@@ -21,6 +21,7 @@ public:
 
   void test_global_lock_basic();
   void test_interrupt();
+  void test_interrupt_legacy();
   void test_stop();
 };
 

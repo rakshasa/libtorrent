@@ -46,6 +46,7 @@
 namespace torrent {
 
 class Poll;
+class thread_interrupt;
 
 class LIBTORRENT_EXPORT lt_cacheline_aligned thread_base {
 public:
@@ -69,7 +70,7 @@ public:
   static const int flag_main_thread  = 0x10;
 
   thread_base();
-  virtual ~thread_base() {}
+  virtual ~thread_base();
 
   bool                is_initialized() const { return m_state == STATE_INITIALIZED; }
   bool                is_active()      const { return m_state == STATE_ACTIVE; }
@@ -136,6 +137,9 @@ protected:
 
   slot_void           m_slot_do_work;
   slot_timer          m_slot_next_timeout;
+
+  thread_interrupt*   m_interrupt_sender;
+  thread_interrupt*   m_interrupt_receiver;
 };
 
 inline void

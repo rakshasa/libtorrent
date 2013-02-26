@@ -43,6 +43,7 @@
 #include "exceptions.h"
 #include "poll.h"
 #include "thread_base.h"
+#include "thread_interrupt.h"
 #include "utils/log.h"
 
 namespace torrent {
@@ -52,9 +53,23 @@ thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, 
 thread_base::thread_base() :
   m_state(STATE_UNKNOWN),
   m_flags(0),
-  m_poll(NULL)
+  m_poll(NULL),
+  m_interrupt_sender(NULL),
+  m_interrupt_receiver(NULL)
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
+
+#ifdef USE_INTERRUPT_SOCKET
+  thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
+
+  m_interrupt_sender = interrupt_sockets.first;
+  m_interrupt_receiver = interrupt_sockets.second;
+#endif
+}
+
+thread_base::~thread_base() {
+  delete m_interrupt_sender;
+  delete m_interrupt_receiver;
 }
 
 void
@@ -91,7 +106,11 @@ thread_base::interrupt() {
   __sync_fetch_and_or(&m_flags, flag_no_timeout);
 
   while (is_polling() && has_no_timeout()) {
+#ifndef USE_INTERRUPT_SOCKET
     pthread_kill(m_thread, SIGUSR1);
+#else
+    m_interrupt_sender->poke();
+#endif
 
     if (!(is_polling() && has_no_timeout()))
       return;
@@ -107,6 +126,10 @@ thread_base::event_loop(thread_base* thread) {
   lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
   
   try {
+
+#ifdef USE_INTERRUPT_SOCKET
+    thread->m_poll->insert_write(thread->m_interrupt_receiver);
+#endif
 
     while (true) {
       if (thread->m_slot_do_work)
@@ -145,6 +168,10 @@ thread_base::event_loop(thread_base* thread) {
       thread->m_poll->do_poll(next_timeout, poll_flags);
       __sync_fetch_and_and(&thread->m_flags, ~(flag_polling | flag_no_timeout));
     }
+
+#ifdef USE_INTERRUPT_SOCKET
+    thread->m_poll->remove_write(thread->m_interrupt_receiver);
+#endif
 
   } catch (torrent::shutdown_exception& e) {
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", thread->name());

@@ -270,6 +270,18 @@ AC_DEFUN([TORRENT_ENABLE_ALIGNED], [
 ])
 
 
+AC_DEFUN([TORRENT_ENABLE_INTERRUPT_SOCKET], [
+  AC_ARG_ENABLE(interrupt_socket,
+    [  --enable-interrupt_socket   enable interrupt socket [[default=off]]],
+    [
+      if test "$enableval" = "yes"; then
+        AC_DEFINE(USE_INTERRUPT_SOCKET, 1, Use interrupt socket instead of pthread_kill)
+      fi
+    ]
+  )
+])
+
+
 AC_DEFUN([TORRENT_DISABLE_IPV6], [
   AC_ARG_ENABLE(ipv6,
     [  --enable-ipv6           disable ipv6 [[default=no]]],
