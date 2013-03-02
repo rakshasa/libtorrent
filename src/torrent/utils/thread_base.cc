@@ -103,20 +103,20 @@ thread_base::stop_thread_wait() {
 
 void
 thread_base::interrupt() {
+#ifndef USE_INTERRUPT_SOCKET
   __sync_fetch_and_or(&m_flags, flag_no_timeout);
 
   while (is_polling() && has_no_timeout()) {
-#ifndef USE_INTERRUPT_SOCKET
     pthread_kill(m_thread, SIGUSR1);
-#else
-    m_interrupt_sender->poke();
-#endif
 
     if (!(is_polling() && has_no_timeout()))
       return;
 
     usleep(0);
   }
+#else
+  m_interrupt_sender->poke();
+#endif
 }
 
 bool
