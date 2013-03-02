@@ -55,7 +55,10 @@ thread_interrupt::~thread_interrupt() {
 
 bool
 thread_interrupt::poke() {
-  if (::send(m_fileDesc, "a", 1, 0) != 1)
+  int result = ::send(m_fileDesc, "a", 1, 0);
+
+  if (result == 0 ||
+      (result == -1 && !rak::error_number::current().is_blocked_momentary()))
     throw internal_error("Invalid result writing to thread_interrupt socket.");
 
   return true;
@@ -72,14 +75,19 @@ thread_interrupt::create_pair() {
   thread_interrupt* t1 = new thread_interrupt(fd1);
   thread_interrupt* t2 = new thread_interrupt(fd2);
 
+  t1->get_fd().set_nonblock();
+  t2->get_fd().set_nonblock();
+
   return pair_type(t1, t2);
 }
 
 void
 thread_interrupt::event_read() {
   char buffer[256];
+  int result = ::recv(m_fileDesc, buffer, 256, 0) <= 0;
 
-  if (::recv(m_fileDesc, buffer, 256, 0) <= 0)
+  if (result == 0 ||
+      (result == -1 && !rak::error_number::current().is_blocked_momentary()))
     throw internal_error("Invalid result reading from thread_interrupt socket.");
 }
 

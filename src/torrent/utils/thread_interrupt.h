@@ -52,7 +52,6 @@ public:
 
   static pair_type    create_pair();
 
-  SocketFd&           get_fd() { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
   bool                poke();
 
   void                event_read();
@@ -60,6 +59,8 @@ public:
   void                event_error() {}
 
 private:
+  SocketFd&           get_fd() { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
+
   thread_interrupt(int fd) { m_fileDesc = fd; }
 };
 

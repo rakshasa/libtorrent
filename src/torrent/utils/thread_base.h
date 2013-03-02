@@ -114,6 +114,8 @@ public:
   static inline void  entering_main_polling();
   static inline void  leaving_main_polling();
 
+  static bool         should_handle_sigusr1();
+
   static void*        event_loop(thread_base* thread);
 
 protected:

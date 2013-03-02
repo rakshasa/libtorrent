@@ -119,6 +119,15 @@ thread_base::interrupt() {
   }
 }
 
+bool
+thread_base::should_handle_sigusr1() {
+#ifndef USE_INTERRUPT_SOCKET
+  return true;
+#else
+  return false;
+#endif
+}
+
 void*
 thread_base::event_loop(thread_base* thread) {
   __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
