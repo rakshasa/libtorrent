@@ -132,6 +132,12 @@ void*
 thread_base::event_loop(thread_base* thread) {
   __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
 
+#if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
+  pthread_setname_np(thread->name());
+#elif defined(HAS_PTHREAD_SETNAME_NP_GENERIC)
+  pthread_setname_np(thread->m_thread, thread->name());
+#endif
+
   lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
   
   try {
