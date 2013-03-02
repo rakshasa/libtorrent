@@ -143,7 +143,7 @@ thread_base::event_loop(thread_base* thread) {
   try {
 
 #ifdef USE_INTERRUPT_SOCKET
-    thread->m_poll->insert_write(thread->m_interrupt_receiver);
+    thread->m_poll->insert_read(thread->m_interrupt_receiver);
 #endif
 
     while (true) {

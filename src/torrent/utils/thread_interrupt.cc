@@ -84,7 +84,7 @@ thread_interrupt::create_pair() {
 void
 thread_interrupt::event_read() {
   char buffer[256];
-  int result = ::recv(m_fileDesc, buffer, 256, 0) <= 0;
+  int result = ::recv(m_fileDesc, buffer, 256, 0);
 
   if (result == 0 ||
       (result == -1 && !rak::error_number::current().is_blocked_momentary()))
