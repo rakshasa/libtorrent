@@ -67,6 +67,8 @@ private:
 
 #ifdef USE_OPENSSL
   DH*                 m_dh;
+#else
+  void*               m_void;
 #endif
   char*               m_secret;
   unsigned int        m_size;
