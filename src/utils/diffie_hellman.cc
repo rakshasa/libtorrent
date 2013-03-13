@@ -70,6 +70,15 @@ DiffieHellman::~DiffieHellman() {
 #endif
 };
 
+bool
+DiffieHellman::is_valid() const {
+#ifdef USE_OPENSSL
+  return m_dh != NULL && m_dh->pub_key != NULL;
+#else
+  return false;
+#endif
+}
+
 void
 DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) {
 #ifdef USE_OPENSSL

@@ -56,6 +56,8 @@ public:
   void                compute_secret(const unsigned char pubkey[], unsigned int length);
   void                store_pub_key(unsigned char* dest, unsigned int length);
 
+  bool                is_valid() const;
+
   unsigned int        size() const         { return m_size; }
 
   const char*         c_str() const        { return m_secret; }
