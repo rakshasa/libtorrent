@@ -52,6 +52,8 @@ public:
 
   static pair_type    create_pair();
 
+  bool                is_poking() const;
+
   bool                poke();
 
   void                event_read();
@@ -59,10 +61,19 @@ public:
   void                event_error() {}
 
 private:
+  thread_interrupt(int fd);
+
   SocketFd&           get_fd() { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
 
-  thread_interrupt(int fd) { m_fileDesc = fd; }
+  thread_interrupt*   m_other;
+  bool                m_poking lt_cacheline_aligned;
 };
+
+inline bool
+thread_interrupt::is_poking() const {
+  __sync_synchronize();
+  return m_poking;
+}
 
 }
 
