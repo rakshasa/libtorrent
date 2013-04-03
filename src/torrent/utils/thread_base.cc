@@ -59,12 +59,12 @@ thread_base::thread_base() :
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
 
-#ifdef USE_INTERRUPT_SOCKET
+// #ifdef USE_INTERRUPT_SOCKET
   thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
 
   m_interrupt_sender = interrupt_sockets.first;
   m_interrupt_receiver = interrupt_sockets.second;
-#endif
+// #endif
 }
 
 thread_base::~thread_base() {
@@ -77,8 +77,7 @@ thread_base::start_thread() {
   if (m_poll == NULL)
     throw internal_error("No poll object for thread defined.");
 
-  if (m_state != STATE_INITIALIZED ||
-      pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
+  if (!is_initialized() || pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
     throw internal_error("Failed to create thread.");
 }
 
@@ -101,31 +100,17 @@ thread_base::stop_thread_wait() {
   acquire_global_lock();
 }
 
+// Fix interrupting when shutting down thread.
 void
 thread_base::interrupt() {
-#ifndef USE_INTERRUPT_SOCKET
-  __sync_fetch_and_or(&m_flags, flag_no_timeout);
-
-  while (is_polling() && has_no_timeout()) {
-    pthread_kill(m_thread, SIGUSR1);
-
-    if (!(is_polling() && has_no_timeout()))
-      return;
-
-    usleep(0);
-  }
-#else
-  m_interrupt_sender->poke();
-#endif
+  // Only poke when polling, set no_timeout
+  if (is_polling())
+    m_interrupt_sender->poke();
 }
 
 bool
 thread_base::should_handle_sigusr1() {
-#ifndef USE_INTERRUPT_SOCKET
-  return true;
-#else
   return false;
-#endif
 }
 
 void*
@@ -142,9 +127,9 @@ thread_base::event_loop(thread_base* thread) {
   
   try {
 
-#ifdef USE_INTERRUPT_SOCKET
+// #ifdef USE_INTERRUPT_SOCKET
     thread->m_poll->insert_read(thread->m_interrupt_receiver);
-#endif
+// #endif
 
     while (true) {
       if (thread->m_slot_do_work)
@@ -165,7 +150,7 @@ thread_base::event_loop(thread_base* thread) {
 
       uint64_t next_timeout = 0;
 
-      if (!(thread->m_flags & flag_no_timeout)) {
+      if (!thread->has_no_timeout()) {
         next_timeout = thread->next_timeout_usec();
 
         if (thread->m_slot_next_timeout)
@@ -177,16 +162,17 @@ thread_base::event_loop(thread_base* thread) {
 
       int poll_flags = 0;
 
-      if (!(thread->m_flags & flag_main_thread))
+      if (!(thread->flags() & flag_main_thread))
         poll_flags = torrent::Poll::poll_worker_thread;
 
       thread->m_poll->do_poll(next_timeout, poll_flags);
+
       __sync_fetch_and_and(&thread->m_flags, ~(flag_polling | flag_no_timeout));
     }
 
-#ifdef USE_INTERRUPT_SOCKET
+// #ifdef USE_INTERRUPT_SOCKET
     thread->m_poll->remove_write(thread->m_interrupt_receiver);
-#endif
+// #endif
 
   } catch (torrent::shutdown_exception& e) {
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", thread->name());
