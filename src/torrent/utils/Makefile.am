@@ -22,7 +22,7 @@ libsub_torrentutils_la_SOURCES = \
 	thread_interrupt.cc \
 	thread_interrupt.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent/utils
 libtorrentinclude_HEADERS = \

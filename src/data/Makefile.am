@@ -25,4 +25,4 @@ libsub_data_la_SOURCES = \
 	socket_file.cc \
 	socket_file.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

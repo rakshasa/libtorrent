@@ -57,7 +57,7 @@ libsub_torrent_la_SOURCES = \
 	tracker_list.cc \
 	tracker_list.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \

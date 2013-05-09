@@ -15,4 +15,4 @@ libsub_dht_la_SOURCES = \
 	dht_transaction.cc \
 	dht_transaction.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

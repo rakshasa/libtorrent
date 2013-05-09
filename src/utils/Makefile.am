@@ -8,4 +8,4 @@ libsub_utils_la_SOURCES = \
 	sha_fast.cc \
 	sha_fast.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
