@@ -46,6 +46,7 @@
 namespace torrent {
 
 class Poll;
+class thread_interrupt;
 
 class LIBTORRENT_EXPORT lt_cacheline_aligned thread_base {
 public:
@@ -69,20 +70,20 @@ public:
   static const int flag_main_thread  = 0x10;
 
   thread_base();
-  virtual ~thread_base() {}
+  virtual ~thread_base();
 
-  bool                is_initialized() const { return m_state == STATE_INITIALIZED; }
-  bool                is_active()      const { return m_state == STATE_ACTIVE; }
-  bool                is_inactive()    const { return m_state == STATE_INACTIVE; }
+  bool                is_initialized() const { return state() == STATE_INITIALIZED; }
+  bool                is_active()      const { return state() == STATE_ACTIVE; }
+  bool                is_inactive()    const { return state() == STATE_INACTIVE; }
 
-  bool                is_polling()     const { return (m_flags & flag_polling); }
+  bool                is_polling()     const { return (flags() & flag_polling); }
 
-  bool                has_no_timeout()   const { return (m_flags & flag_no_timeout); }
-  bool                has_do_shutdown()  const { return (m_flags & flag_do_shutdown); }
-  bool                has_did_shutdown() const { return (m_flags & flag_did_shutdown); }
+  bool                has_no_timeout()   const { return (flags() & flag_no_timeout); }
+  bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
+  bool                has_did_shutdown() const { return (flags() & flag_did_shutdown); }
 
-  state_type          state() const { return m_state; }
-  int                 flags() const { return m_flags; }
+  state_type          state() const;
+  int                 flags() const;
 
   virtual const char* name() const = 0;
 
@@ -113,10 +114,12 @@ public:
   static inline void  entering_main_polling();
   static inline void  leaving_main_polling();
 
+  static bool         should_handle_sigusr1();
+
   static void*        event_loop(thread_base* thread);
 
 protected:
-  struct global_lock_type {
+  struct lt_cacheline_aligned global_lock_type {
     int             waiting;
     int             main_polling;
     pthread_mutex_t lock;
@@ -128,15 +131,30 @@ protected:
   static global_lock_type m_global;
 
   pthread_t           m_thread;
-  state_type          m_state;
-  int                 m_flags;
+  state_type          m_state lt_cacheline_aligned;
+  int                 m_flags lt_cacheline_aligned;
 
   Poll*               m_poll;
   signal_type         m_signal_bitfield;
 
   slot_void           m_slot_do_work;
   slot_timer          m_slot_next_timeout;
+
+  thread_interrupt*   m_interrupt_sender;
+  thread_interrupt*   m_interrupt_receiver;
 };
+
+inline int
+thread_base::flags() const {
+  __sync_synchronize();
+  return m_flags;
+}
+
+inline thread_base::state_type
+thread_base::state() const {
+  __sync_synchronize();
+  return m_state;
+}
 
 inline void
 thread_base::send_event_signal(unsigned int index, bool do_interrupt) {

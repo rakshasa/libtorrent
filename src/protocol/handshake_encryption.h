@@ -98,7 +98,7 @@ public:
   unsigned int        length_ia() const                            { return m_lengthIA; }
   void                set_length_ia(unsigned int len)              { m_lengthIA = len; }
 
-  void                initialize();
+  bool                initialize();
   void                cleanup();
 
   void                initialize_decrypt(const char* origHash, bool incoming);

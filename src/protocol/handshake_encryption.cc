@@ -69,9 +69,11 @@ HandshakeEncryption::should_retry() const {
   return (m_options & ConnectionManager::encryption_enable_retry) != 0 && m_retry != HandshakeEncryption::RETRY_NONE;
 }
 
-void
+bool
 HandshakeEncryption::initialize() {
   m_key = new DiffieHellman(dh_prime, dh_prime_length, dh_generator, dh_generator_length);
+
+  return m_key->is_valid();
 }
 
 void

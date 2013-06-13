@@ -20,7 +20,9 @@ libsub_torrentutils_la_SOURCES = \
 	signal_bitfield.cc \
 	signal_bitfield.h \
 	thread_base.cc \
-	thread_base.h
+	thread_base.h \
+	thread_interrupt.cc \
+	thread_interrupt.h
 
 INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
@@ -36,4 +38,5 @@ libtorrentinclude_HEADERS = \
 	ranges.h \
 	resume.h \
 	signal_bitfield.h \
-	thread_base.h
+	thread_base.h \
+	thread_interrupt.h

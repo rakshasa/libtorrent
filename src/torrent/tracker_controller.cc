@@ -329,18 +329,20 @@ TrackerController::disable() {
 
 void
 TrackerController::start_requesting() {
-  if (!(m_flags & flag_active) || (m_flags & flag_requesting))
+  if ((m_flags & flag_requesting))
     return;
 
   m_flags |= flag_requesting;
-  update_timeout(0);
+
+  if ((m_flags & flag_active))
+    update_timeout(0);
 
   LT_LOG_TRACKER(INFO, "Start requesting.", 0);
 }
 
 void
 TrackerController::stop_requesting() {
-  if (!(m_flags & flag_active) || !(m_flags & flag_requesting))
+  if (!(m_flags & flag_requesting))
     return;
 
   m_flags &= ~flag_requesting;

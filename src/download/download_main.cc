@@ -348,17 +348,24 @@ DownloadMain::receive_tracker_success() {
     return;
 
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
-  priority_queue_insert(&taskScheduler, &m_taskTrackerRequest, (cachedTime + rak::timer::from_seconds(30)).round_seconds());
+  priority_queue_insert(&taskScheduler, &m_taskTrackerRequest, (cachedTime + rak::timer::from_seconds(10)).round_seconds());
 }
 
 void
 DownloadMain::receive_tracker_request() {
-  if (connection_list()->size() + peer_list()->available_list()->size() / 2 >= connection_list()->min_size()) {
-    m_tracker_controller->stop_requesting();
-    return;
-  }
+  bool should_stop = false;
+  bool should_start = false;
 
-  m_tracker_controller->start_requesting();
+  if (info()->is_pex_enabled() && info()->size_pex() > 0)
+    should_stop = true;
+
+  if (connection_list()->size() + peer_list()->available_list()->size() / 2 < connection_list()->min_size())
+    should_start = true;
+
+  if (should_stop)
+    m_tracker_controller->stop_requesting();
+  else if (should_start)
+    m_tracker_controller->start_requesting();
 }
 
 struct SocketAddressCompact_less {

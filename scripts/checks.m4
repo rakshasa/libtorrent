@@ -508,3 +508,33 @@ AC_DEFUN([TORRENT_WITH_INOTIFY], [
 
   AC_LANG_POP(C++)
 ])
+
+AC_DEFUN([TORRENT_CHECK_PTHREAD_SETNAME_NP], [
+  AC_CHECK_HEADERS(pthread.h)
+
+  AC_MSG_CHECKING(for pthread_setname_np type)
+
+  AC_TRY_LINK([
+    #include <pthread.h>
+    #include <sys/types.h>
+  ],[
+    pthread_t t;
+    pthread_setname_np(t, "foo");
+  ],[
+    AC_DEFINE(HAS_PTHREAD_SETNAME_NP_GENERIC, 1, The function to set pthread name has a pthread_t argumet.)
+    AC_MSG_RESULT(generic)
+  ],[
+    AC_TRY_LINK([
+      #include <pthread.h>
+      #include <sys/types.h>
+    ],[
+      pthread_t t;
+      pthread_setname_np("foo");
+    ],[
+      AC_DEFINE(HAS_PTHREAD_SETNAME_NP_DARWIN, 1, The function to set pthread name has no pthread argument.)
+      AC_MSG_RESULT(darwin)
+    ],[
+      AC_MSG_RESULT(no)
+    ])
+  ])
+])

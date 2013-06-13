@@ -125,6 +125,19 @@ SocketFd::open_local() {
   return (m_fd = socket(rak::socket_address::pf_local, SOCK_STREAM, 0)) != -1;
 }
 
+bool
+SocketFd::open_socket_pair(int& fd1, int& fd2) {
+  int result[2];
+
+  if (socketpair(rak::socket_address::pf_local, SOCK_STREAM, 0, result) == -1)
+    return false;
+
+  fd1 = result[0];
+  fd2 = result[1];
+
+  return true;
+}
+
 void
 SocketFd::close() {
   if (::close(m_fd) && errno == EBADF)

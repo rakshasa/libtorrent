@@ -979,7 +979,8 @@ Handshake::prepare_proxy_connect() {
 
 void
 Handshake::prepare_key_plus_pad() {
-  m_encryption.initialize();
+  if (!m_encryption.initialize())
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
   m_encryption.key()->store_pub_key(m_writeBuffer.end(), 96);
   m_writeBuffer.move_end(96);
