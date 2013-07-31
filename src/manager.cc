@@ -45,6 +45,7 @@
 #include "protocol/handshake_manager.h"
 #include "data/hash_queue.h"
 #include "net/listen.h"
+#include "utils/instrumentation.h"
 
 #include "torrent/chunk_manager.h"
 #include "torrent/connection_manager.h"
@@ -155,6 +156,8 @@ Manager::cleanup_download(DownloadWrapper* d) {
 void
 Manager::receive_tick() {
   m_ticks++;
+
+  instrumentation_tick();
 
   m_resourceManager->receive_tick();
   m_chunkManager->periodic_sync();

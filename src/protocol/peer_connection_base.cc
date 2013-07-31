@@ -58,7 +58,8 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/connection_list.h"
-#include "torrent/utils/log_files.h"
+#include "torrent/utils/log.h"
+#include "utils/instrumentation.h"
 
 #include "extensions.h"
 #include "peer_connection_base.h"
@@ -66,6 +67,27 @@
 #include "manager.h"
 
 namespace torrent {
+
+inline void
+log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
+  if (!new_index && is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_TOUCHED, 1);
+  }
+  if (new_index && is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_NEW, 1);
+  }
+  if (!new_index && !is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_NOT_INCORE_TOUCHED, 1);
+  }
+  if (new_index && !is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_NOT_INCORE_NEW, 1);
+  }
+  if (continous && !is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_BREAK, 1);
+  }
+
+  continous = is_incore;
+}
 
 PeerConnectionBase::PeerConnectionBase() :
   m_download(NULL),
@@ -344,7 +366,7 @@ PeerConnectionBase::load_up_chunk() {
     // Better checking needed.
     //     m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->size());
 
-    if (log_files[LOG_MINCORE_STATS].is_open())
+    if (lt_log_is_valid(LOG_INSTRUMENTATION_MINCORE))
       log_mincore_stats_func(m_upChunk.chunk()->is_incore(m_upPiece.offset(), m_upPiece.length()), false, m_incoreContinous);
 
     return;
@@ -364,7 +386,7 @@ PeerConnectionBase::load_up_chunk() {
 
   m_incoreContinous = false;
 
-  if (log_files[LOG_MINCORE_STATS].is_open())
+  if (lt_log_is_valid(LOG_INSTRUMENTATION_MINCORE))
     log_mincore_stats_func(m_upChunk.chunk()->is_incore(m_upPiece.offset(), m_upPiece.length()), true, m_incoreContinous);
 
   m_incoreContinous = true;

@@ -57,6 +57,7 @@
 #include "download/download_constructor.h"
 #include "download/download_manager.h"
 #include "download/download_wrapper.h"
+#include "utils/instrumentation.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/download/resource_manager.h"
 
@@ -96,6 +97,8 @@ initialize() {
     throw internal_error("torrent::initialize(...) called but the library has already been initialized");
 
   cachedTime = rak::timer::current();
+
+  instrumentation_initialize();
 
   manager = new Manager;
   manager->main_thread_main()->init_thread();

@@ -195,6 +195,12 @@ const char* option_list_log_group[] = {
   "torrent_info",
   "torrent_debug",
 
+  "instrumentation_dummy",
+
+  "instrumentation_memory",
+  "instrumentation_mincore",
+  "instrumentation_choke",
+
   NULL
 };
 
