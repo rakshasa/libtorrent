@@ -200,6 +200,7 @@ const char* option_list_log_group[] = {
   "instrumentation_memory",
   "instrumentation_mincore",
   "instrumentation_choke",
+  "instrumentation_polling",
 
   NULL
 };

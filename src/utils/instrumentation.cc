@@ -73,6 +73,23 @@ instrumentation_tick() {
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_ALLOC_FAILED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_ALLOCATIONS),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_DEALLOCATIONS));
+
+  lt_log_print(LOG_INSTRUMENTATION_POLLING,
+               "%"  PRIu64 " %" PRIu64
+               " %"  PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
+               " %"  PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_INTERRUPT_POKE),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_INTERRUPT_READ_EVENT),
+
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_DO_POLL),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_DO_POLL_MAIN),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_DO_POLL_DISK),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_DO_POLL_OTHERS),
+
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS_MAIN),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS_DISK),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS_OTHERS));
 }
 
 }

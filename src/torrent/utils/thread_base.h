@@ -134,6 +134,8 @@ protected:
   state_type          m_state lt_cacheline_aligned;
   int                 m_flags lt_cacheline_aligned;
 
+  int                 m_instrumentation_index;
+
   Poll*               m_poll;
   signal_type         m_signal_bitfield;
 

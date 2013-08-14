@@ -156,8 +156,10 @@ PollEPoll::poll(int msec) {
 //
 // TODO: Do we want to guarantee if the Event has been removed from
 // some event but not closed, it won't call that event? Think so...
-void
+unsigned int
 PollEPoll::perform() {
+  unsigned int count = 0;
+
   for (epoll_event *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->data.fd < 0 || (size_t)itr->data.fd >= m_table.size())
       continue;
@@ -173,20 +175,27 @@ PollEPoll::perform() {
     // TODO: Make it so that it checks that read/write is wanted, that
     // it wasn't removed from one of them but not closed.
 
-    if (itr->events & EPOLLERR && evItr->second != NULL && evItr->first & EPOLLERR)
+    if (itr->events & EPOLLERR && evItr->second != NULL && evItr->first & EPOLLERR) {
+      count++;
       evItr->second->event_error();
+    }
 
-    if (itr->events & EPOLLIN && evItr->second != NULL && evItr->first & EPOLLIN)
+    if (itr->events & EPOLLIN && evItr->second != NULL && evItr->first & EPOLLIN) {
+      count++;
       evItr->second->event_read();
+    }
 
-    if (itr->events & EPOLLOUT && evItr->second != NULL && evItr->first & EPOLLOUT)
+    if (itr->events & EPOLLOUT && evItr->second != NULL && evItr->first & EPOLLOUT) {
+      count++;
       evItr->second->event_write();
+    }
   }
 
   m_waitingEvents = 0;
+  return count;
 }
 
-void
+unsigned int
 PollEPoll::do_poll(int64_t timeout_usec, int flags) {
   rak::timer timeout = rak::timer(timeout_usec);
 
@@ -207,7 +216,7 @@ PollEPoll::do_poll(int64_t timeout_usec, int flags) {
   if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
     throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
 
-  perform();
+  return perform();
 }
 
 uint32_t
@@ -328,8 +337,8 @@ PollEPoll* PollEPoll::create(int maxOpenSockets) { return NULL; }
 PollEPoll::~PollEPoll() {}
 
 int PollEPoll::poll(int msec) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-void PollEPoll::perform() { throw internal_error("An PollEPoll function was called, but it is disabled."); }
-void PollEPoll::do_poll(int64_t timeout_usec, int flags) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
+unsigned int PollEPoll::perform() { throw internal_error("An PollEPoll function was called, but it is disabled."); }
+unsigned int PollEPoll::do_poll(int64_t timeout_usec, int flags) { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 uint32_t PollEPoll::open_max() const { throw internal_error("An PollEPoll function was called, but it is disabled."); }
 
 void PollEPoll::open(torrent::Event* event) {}
