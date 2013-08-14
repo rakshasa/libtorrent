@@ -76,7 +76,7 @@ thread_disk::call_events() {
 
 int64_t
 thread_disk::next_timeout_usec() {
-  return rak::timer::from_seconds(10).usec();
+  return rak::timer::from_seconds(10).round_seconds().usec();
 }
 
 }
