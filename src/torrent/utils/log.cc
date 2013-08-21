@@ -337,7 +337,7 @@ log_file_write(tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t
   // Add group name, data, etc as flags.
 
   // Normal groups are nul-terminated strings.
-  if (group >= LOG_INSTRUMENTATION) {
+  if (group >= LOG_NON_CASCADING) {
     *outfile << cachedTime.seconds() << ' ' << data << std::endl;
   } else if (group >= 0) {
     *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;

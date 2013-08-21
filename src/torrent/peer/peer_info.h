@@ -75,6 +75,8 @@ public:
   int                 flags() const                         { return m_flags; }
 
   const HashString&   id() const                            { return m_id; }
+  const char*         id_hex() const                        { return m_id_hex; }
+
   const ClientInfo&   client_info() const                   { return m_clientInfo; }
 
   const char*         options() const                       { return m_options; }
@@ -105,6 +107,7 @@ protected:
   void                unset_flags(int flags)                { m_flags &= ~flags; }
 
   HashString&         mutable_id()                          { return m_id; }
+  char*               mutable_id_hex()                      { return m_id_hex; }
   ClientInfo&         mutable_client_info()                 { return m_clientInfo; }
 
   void                set_port(uint16_t port) LIBTORRENT_NO_EXPORT;
@@ -120,6 +123,8 @@ private:
   // Replace id with a char buffer, or a cheap struct?
   int                 m_flags;
   HashString          m_id;
+  char                m_id_hex[40];
+
   ClientInfo          m_clientInfo;
 
   char                m_options[8];

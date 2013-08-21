@@ -1069,8 +1069,11 @@ Handshake::prepare_peer_info() {
   }
 
   std::memcpy(m_peerInfo->set_options(), m_options, 8);
+
   m_peerInfo->mutable_id().assign((const char*)m_readBuffer.position());
   m_readBuffer.consume(20);
+
+  hash_string_to_hex(m_peerInfo->id(), m_peerInfo->mutable_id_hex());
 
   // For meta downloads, we require support of the extension protocol.
   if (m_download->info()->is_meta_download() && !m_peerInfo->supports_extensions())
