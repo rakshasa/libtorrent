@@ -25,7 +25,7 @@ libsub_torrentdata_la_SOURCES = \
 	transfer_list.cc \
 	transfer_list.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent/data
 libtorrentinclude_HEADERS = \

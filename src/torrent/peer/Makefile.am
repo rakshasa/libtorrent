@@ -15,7 +15,7 @@ libsub_torrentpeer_la_SOURCES = \
 	peer_list.cc \
 	peer_list.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
 libtorrentincludedir = $(includedir)/torrent/peer
 libtorrentinclude_HEADERS = \

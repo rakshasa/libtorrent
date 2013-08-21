@@ -73,4 +73,4 @@ LibTorrentTest_SOURCES = \
 LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrentTest_LDFLAGS = $(CPPUNIT_LIBS)  -ldl
 
-INCLUDES = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/src
