@@ -25,4 +25,4 @@ libsub_protocol_la_SOURCES = \
 	request_list.cc \
 	request_list.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

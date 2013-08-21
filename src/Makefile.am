@@ -35,4 +35,4 @@ libtorrent_la_SOURCES = \
 	thread_main.cc \
 	thread_main.h
 
-INCLUDES = -I$(srcdir) -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir)
