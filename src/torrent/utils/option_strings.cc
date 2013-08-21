@@ -203,6 +203,9 @@ const char* option_list_log_group[] = {
   "instrumentation_polling",
 
   "protocol_piece_events",
+  "protocol_metadata_events",
+  "protocol_network_errors",
+  "protocol_storage_errors",
 
   NULL
 };

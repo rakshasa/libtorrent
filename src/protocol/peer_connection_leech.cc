@@ -51,10 +51,16 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/utils/log.h"
 
 #include "extensions.h"
 #include "initial_seed.h"
 #include "peer_connection_leech.h"
+
+#define LT_LOG_NETWORK_ERRORS(log_fmt, ...)                              \
+  lt_log_print_info(LOG_PROTOCOL_NETWORK_ERRORS, this->download()->info(), "network_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                              \
+  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->download()->info(), "storage_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -457,16 +463,16 @@ PeerConnection<type>::event_read() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked read connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), (rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str() + " " + rak::copy_escape_html(std::string(m_peerInfo->id().c_str(), 8)) + ": " + e.what()).c_str());
-
+    LT_LOG_NETWORK_ERRORS("%s network read error: %s",
+                          rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
+                          e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
+    LT_LOG_NETWORK_ERRORS("storage read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {
@@ -637,15 +643,16 @@ PeerConnection<type>::event_write() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked write connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), e.what());
+    LT_LOG_NETWORK_ERRORS("%s write error: %s",
+                          rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
+                          e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
+    LT_LOG_STORAGE_ERRORS("write error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {

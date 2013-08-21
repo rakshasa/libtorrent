@@ -158,9 +158,6 @@ public:
   uint32_t            upload_unchoked() const                      { return m_upload_unchoked; }
   uint32_t            download_unchoked() const                    { return m_download_unchoked; }
 
-  signal_string_type& signal_network_log() const                   { return m_signalNetworkLog; }
-  signal_string_type& signal_storage_error() const                 { return m_signalStorageError; }
-
   // The list of addresses is guaranteed to be sorted and unique.
   signal_void_type&   signal_tracker_success() const               { return m_signalTrackerSuccess; }
   signal_string_type& signal_tracker_failed() const                { return m_signalTrackerFailed; }
@@ -206,9 +203,6 @@ private:
 
   slot_stat_type      m_slotStatLeft;
   slot_stat_type      m_slotStatCompleted;
-
-  mutable signal_string_type  m_signalNetworkLog;
-  mutable signal_string_type  m_signalStorageError;
 
   mutable signal_void_type    m_signalTrackerSuccess;
   mutable signal_string_type  m_signalTrackerFailed;

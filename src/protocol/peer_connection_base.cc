@@ -451,11 +451,14 @@ PeerConnectionBase::should_connection_unchoke(choke_queue* cq) const {
 bool
 PeerConnectionBase::down_chunk_start(const Piece& piece) {
   if (!download_queue()->downloading(piece)) {
-    if (piece.length() == 0)
-      rak::slot_list_call(m_download->info()->signal_network_log(), "Received piece with length zero.");
+    if (piece.length() == 0) {
+      LT_LOG_PIECE_EVENTS("(down) skipping empty %" PRIu32 " %" PRIu32 " %" PRIu32,
+                          piece.index(), piece.offset(), piece.length());
+    } else {
+      LT_LOG_PIECE_EVENTS("(down) skipping unneeded %" PRIu32 " %" PRIu32 " %" PRIu32,
+                          piece.index(), piece.offset(), piece.length());
+    }
 
-    LT_LOG_PIECE_EVENTS("(down) skipping unneeded %" PRIu32 " %" PRIu32 " %" PRIu32,
-                        piece.index(), piece.offset(), piece.length());
     return false;
   }
 
@@ -669,7 +672,8 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   // The data doesn't match with what has previously been downloaded,
   // bork this transfer.
   if (!m_downChunk.chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Data does not match what was previously downloaded.");
+    LT_LOG_PIECE_EVENTS("(down) download data mismatch %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
     
     m_downloadQueue.transfer_dissimilar();
     m_downloadQueue.transfer()->adjust_position(length);

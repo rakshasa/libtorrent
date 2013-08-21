@@ -49,9 +49,15 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
 #include "rak/functional.h"
+#include "torrent/utils/log.h"
 
 #include "extensions.h"
 #include "peer_connection_metadata.h"
+
+#define LT_LOG_METADATA_EVENTS(log_fmt, ...)                            \
+  lt_log_print_info(LOG_PROTOCOL_METADATA_EVENTS, this->download()->info(), "metadata_events", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                              \
+  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->download()->info(), "storage_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -162,7 +168,7 @@ PeerConnectionMetadata::read_message() {
     return true;
 
   case ProtocolBase::EXTENSION_PROTOCOL:
-    rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::read_message() case ProtocolBase::EXTENSION_PROTOCOL:");
+    LT_LOG_METADATA_EVENTS("protocol extension message", 0);
 
     if (!m_down->can_read_extension_body())
       break;
@@ -181,7 +187,7 @@ PeerConnectionMetadata::read_message() {
     if (!down_extension())
       return false;
 
-    rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::read_message() case ProtocolBase::EXTENSION_PROTOCOL: finished");
+    LT_LOG_METADATA_EVENTS("protocol extension done", 0);
 
     // Drop peer if it disabled the metadata extension.
     if (!m_extensions->is_remote_supported(ProtocolExtension::UT_METADATA))
@@ -259,7 +265,7 @@ PeerConnectionMetadata::event_read() {
         if (!m_extensions->is_remote_supported(ProtocolExtension::UT_METADATA))
           throw close_connection();
 
-        rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::event_read() case ProtocolRead::READ_EXTENSION:");
+        LT_LOG_METADATA_EVENTS("reading extension message", 0);
 
         m_down->set_state(ProtocolRead::IDLE);
         m_tryRequest = true;
@@ -288,14 +294,13 @@ PeerConnectionMetadata::event_read() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked read connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
+    LT_LOG_STORAGE_ERRORS("read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {
@@ -375,14 +380,13 @@ PeerConnectionMetadata::event_write() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked write connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
+    LT_LOG_STORAGE_ERRORS("read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {
@@ -440,14 +444,12 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
   if (!m_download->file_list()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->index()))
     throw internal_error("PeerConnectionMetadata::try_request_metadata_pieces() tried to use an invalid piece.");
 
-//   return m_extensions->request_metadata_piece(p);
-  
   // DEBUG:
   if (m_extensions->request_metadata_piece(p)) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::try_request_metadata_pieces() succeded.");
+    LT_LOG_METADATA_EVENTS("request metadata piece succeded", 0);
     return true;
   } else {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::try_request_metadata_pieces() failed.");
+    LT_LOG_METADATA_EVENTS("request metadata piece failed", 0);
     return false;
   }
 }
@@ -464,15 +466,15 @@ PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data,
     m_tryRequest = false;
     read_cancel_piece(Piece(0, piece << ProtocolExtension::metadata_piece_shift, length));
 
-    rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::receive_metadata_piece reject.");
+    LT_LOG_METADATA_EVENTS("rejected metadata piece", 0);
     return;
   }
 
   if (!down_chunk_start(Piece(0, piece << ProtocolExtension::metadata_piece_shift, length))) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::receive_metadata_piece skip.");
+    LT_LOG_METADATA_EVENTS("skipped metadata piece", 0);
     down_chunk_skip_process(data, length);
   } else {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "PeerConnectionMetadata::receive_metadata_piece process.");
+    LT_LOG_METADATA_EVENTS("processed metadata piece", 0);
     down_chunk_process(data, length);
   }
 
