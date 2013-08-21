@@ -226,12 +226,9 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       else
         m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
 
-      rak::slot_list_call(info()->signal_chunk_passed(), handle.index());
-
     } else {
       // This needs to ensure the chunk is still valid.
       m_main->delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
-      rak::slot_list_call(info()->signal_chunk_failed(), handle.index());
     }
   }
 

@@ -59,7 +59,6 @@ public:
 
   typedef std::list<std::tr1::function<void ()> >                      signal_void_type;
   typedef std::list<std::tr1::function<void (const std::string&)> >    signal_string_type;
-  typedef std::list<slot_chunk_type>                                   signal_chunk_type;
   typedef std::list<std::tr1::function<void (const std::string&, const char*, size_t)> > signal_dump_type;
 
   enum State {
@@ -162,9 +161,6 @@ public:
   signal_void_type&   signal_tracker_success() const               { return m_signalTrackerSuccess; }
   signal_string_type& signal_tracker_failed() const                { return m_signalTrackerFailed; }
 
-  signal_chunk_type&  signal_chunk_passed() const                  { return m_signalChunkPassed; }
-  signal_chunk_type&  signal_chunk_failed() const                  { return m_signalChunkFailed; }
-
   //
   // Libtorrent internal:
   //
@@ -206,9 +202,6 @@ private:
 
   mutable signal_void_type    m_signalTrackerSuccess;
   mutable signal_string_type  m_signalTrackerFailed;
-
-  mutable signal_chunk_type   m_signalChunkPassed;
-  mutable signal_chunk_type   m_signalChunkFailed;
 };
 
 }
