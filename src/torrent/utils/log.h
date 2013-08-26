@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_UTILS_LOG_H
 #define LIBTORRENT_UTILS_LOG_H
 
+#include <bitset>
 #include <string>
 #include <vector>
 #include <tr1/array>
@@ -117,6 +118,19 @@ enum {
   LOG_TORRENT_INFO,
   LOG_TORRENT_DEBUG,
 
+  LOG_NON_CASCADING,
+
+  LOG_INSTRUMENTATION_MEMORY,
+  LOG_INSTRUMENTATION_MINCORE,
+  LOG_INSTRUMENTATION_CHOKE,
+
+  LOG_INSTRUMENTATION_POLLING,
+
+  LOG_PROTOCOL_PIECE_EVENTS,
+  LOG_PROTOCOL_METADATA_EVENTS,
+  LOG_PROTOCOL_NETWORK_ERRORS,
+  LOG_PROTOCOL_STORAGE_ERRORS,
+
   LOG_GROUP_MAX_SIZE
 };
 
@@ -152,12 +166,19 @@ typedef std::vector<std::pair<std::string, log_slot> >            log_output_lis
 
 class LIBTORRENT_EXPORT log_group {
 public:
-  log_group() : m_outputs(0), m_cached_outputs(0), m_first(NULL), m_last(NULL) {}
+  typedef std::bitset<64> outputs_type;
+
+  log_group() : m_first(NULL), m_last(NULL) {
+    m_outputs.reset();
+    m_cached_outputs.reset();
+  }
 
   bool                valid() const { return m_first != NULL; }
   bool                empty() const { return m_first == NULL; }
 
   size_t              size_outputs() const { return std::distance(m_first, m_last); }
+
+  static size_t       max_size_outputs() { return 64; }
 
   //
   // Internal:
@@ -167,19 +188,21 @@ public:
                                      const void* dump_data, size_t dump_size,
                                      const char* fmt, ...);
 
-  uint64_t            outputs() const                    { return m_outputs; }
-  uint64_t            cached_outputs() const             { return m_cached_outputs; }
+  const outputs_type& outputs() const                    { return m_outputs; }
+  const outputs_type& cached_outputs() const             { return m_cached_outputs; }
 
   void                clear_cached_outputs()             { m_cached_outputs = m_outputs; }
 
-  void                set_outputs(uint64_t val)          { m_outputs = val; }
-  void                set_cached_outputs(uint64_t val)   { m_cached_outputs = val; }
+  void                set_outputs(const outputs_type& val)        { m_outputs = val; }
+  void                set_cached_outputs(const outputs_type& val) { m_cached_outputs = val; }
 
-  void                set_cached(log_slot* f, log_slot* l) { m_first = f; m_last = l; }
+  void                set_output_at(size_t index, bool val)       { m_outputs[index] = val; }
+
+  void                set_cached(log_slot* f, log_slot* l)        { m_first = f; m_last = l; }
 
 private:
-  uint64_t            m_outputs;
-  uint64_t            m_cached_outputs;
+  outputs_type        m_outputs;
+  outputs_type        m_cached_outputs;
 
   log_slot*           m_first;
   log_slot*           m_last;

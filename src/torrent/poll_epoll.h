@@ -52,9 +52,9 @@ public:
   virtual ~PollEPoll();
 
   int                 poll(int msec);
-  void                perform();
+  unsigned int        perform();
 
-  void                do_poll(int64_t timeout_usec, int flags = 0);
+  unsigned int        do_poll(int64_t timeout_usec, int flags = 0);
 
   int                 file_descriptor() { return m_fd; }
 

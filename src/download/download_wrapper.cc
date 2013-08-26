@@ -55,11 +55,15 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
+#include "torrent/utils/log.h"
 
 #include "available_list.h"
 #include "chunk_selector.h"
 
 #include "download_wrapper.h"
+
+#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                             \
+  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->info(), "storage_errors", log_fmt, __VA_ARGS__);
 
 namespace tr1 { using namespace std::tr1; }
 
@@ -234,12 +238,9 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       else
         m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
 
-      rak::slot_list_call(info()->signal_chunk_passed(), handle.index());
-
     } else {
       // This needs to ensure the chunk is still valid.
       m_main->delegator()->transfer_list()->hash_failed(handle.index(), handle.chunk());
-      rak::slot_list_call(info()->signal_chunk_failed(), handle.index());
     }
   }
 
@@ -263,7 +264,7 @@ DownloadWrapper::receive_storage_error(const std::string& str) {
   m_main->tracker_controller()->disable();
   m_main->tracker_controller()->close();
 
-  rak::slot_list_call(info()->signal_storage_error(), str);
+  LT_LOG_STORAGE_ERRORS("%s", str.c_str());
 }
 
 uint32_t

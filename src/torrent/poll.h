@@ -57,7 +57,7 @@ public:
   uint32_t            flags() const { return m_flags; }
   void                set_flags(uint32_t flags) { m_flags = flags; }
 
-  virtual void        do_poll(int64_t timeout_usec, int flags = 0) = 0;
+  virtual unsigned int do_poll(int64_t timeout_usec, int flags = 0) = 0;
 
   // The open max value is used when initializing libtorrent, it
   // should be less than or equal to sysconf(_SC_OPEN_MAX).

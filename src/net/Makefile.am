@@ -23,4 +23,4 @@ libsub_net_la_SOURCES = \
 	throttle_list.h \
 	throttle_node.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

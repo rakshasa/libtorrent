@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <cstdio>
 #include <fcntl.h>
 #include <rak/error_number.h>
@@ -58,14 +60,39 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/connection_list.h"
-#include "torrent/utils/log_files.h"
+#include "torrent/utils/log.h"
+#include "utils/instrumentation.h"
 
 #include "extensions.h"
 #include "peer_connection_base.h"
 
 #include "manager.h"
 
+#define LT_LOG_PIECE_EVENTS(log_fmt, ...)                               \
+  lt_log_print_info(LOG_PROTOCOL_PIECE_EVENTS, this->download()->info(), "piece_events", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+
 namespace torrent {
+
+inline void
+log_mincore_stats_func(bool is_incore, bool new_index, bool& continous) {
+  if (!new_index && is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_TOUCHED, 1);
+  }
+  if (new_index && is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_NEW, 1);
+  }
+  if (!new_index && !is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_NOT_INCORE_TOUCHED, 1);
+  }
+  if (new_index && !is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_NOT_INCORE_NEW, 1);
+  }
+  if (continous && !is_incore) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_INCORE_BREAK, 1);
+  }
+
+  continous = is_incore;
+}
 
 PeerConnectionBase::PeerConnectionBase() :
   m_download(NULL),
@@ -344,7 +371,7 @@ PeerConnectionBase::load_up_chunk() {
     // Better checking needed.
     //     m_upChunk.chunk()->preload(m_upPiece.offset(), m_upChunk.chunk()->size());
 
-    if (log_files[LOG_MINCORE_STATS].is_open())
+    if (lt_log_is_valid(LOG_INSTRUMENTATION_MINCORE))
       log_mincore_stats_func(m_upChunk.chunk()->is_incore(m_upPiece.offset(), m_upPiece.length()), false, m_incoreContinous);
 
     return;
@@ -364,7 +391,7 @@ PeerConnectionBase::load_up_chunk() {
 
   m_incoreContinous = false;
 
-  if (log_files[LOG_MINCORE_STATS].is_open())
+  if (lt_log_is_valid(LOG_INSTRUMENTATION_MINCORE))
     log_mincore_stats_func(m_upChunk.chunk()->is_incore(m_upPiece.offset(), m_upPiece.length()), true, m_incoreContinous);
 
   m_incoreContinous = true;
@@ -424,8 +451,13 @@ PeerConnectionBase::should_connection_unchoke(choke_queue* cq) const {
 bool
 PeerConnectionBase::down_chunk_start(const Piece& piece) {
   if (!download_queue()->downloading(piece)) {
-    if (piece.length() == 0)
-      rak::slot_list_call(m_download->info()->signal_network_log(), "Received piece with length zero.");
+    if (piece.length() == 0) {
+      LT_LOG_PIECE_EVENTS("(down) skipping empty %" PRIu32 " %" PRIu32 " %" PRIu32,
+                          piece.index(), piece.offset(), piece.length());
+    } else {
+      LT_LOG_PIECE_EVENTS("(down) skipping unneeded %" PRIu32 " %" PRIu32 " %" PRIu32,
+                          piece.index(), piece.offset(), piece.length());
+    }
 
     return false;
   }
@@ -441,7 +473,11 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
       throw storage_error("File chunk write error: " + std::string(m_downChunk.error_number().c_str()) + ".");
   }
 
-  return m_downloadQueue.transfer()->is_leader();
+  LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,
+                      download_queue()->transfer()->is_leader() ? "started on" : "skipping partial",
+                      piece.index(), piece.offset(), piece.length());
+
+  return download_queue()->transfer()->is_leader();
 }
 
 void
@@ -449,7 +485,13 @@ PeerConnectionBase::down_chunk_finished() {
   if (!download_queue()->transfer()->is_finished())
     throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer not finished.");
 
-  if (download_queue()->transfer()->is_leader()) {
+  BlockTransfer* transfer = download_queue()->transfer();
+  
+  LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,
+                      transfer->is_leader() ? "completed " : "skipped  ",
+                      transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
+
+  if (transfer->is_leader()) {
     if (!m_downChunk.is_valid())
       throw internal_error("PeerConnectionBase::down_chunk_finished() Transfer is the leader, but no chunk allocated.");
 
@@ -630,7 +672,8 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   // The data doesn't match with what has previously been downloaded,
   // bork this transfer.
   if (!m_downChunk.chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Data does not match what was previously downloaded.");
+    LT_LOG_PIECE_EVENTS("(down) download data mismatch %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
     
     m_downloadQueue.transfer_dissimilar();
     m_downloadQueue.transfer()->adjust_position(length);
@@ -818,21 +861,38 @@ PeerConnectionBase::up_chunk_release() {
 
 void
 PeerConnectionBase::read_request_piece(const Piece& p) {
-  PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(), m_peerChunks.upload_queue()->end(), p);
+  PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(),
+                                                        m_peerChunks.upload_queue()->end(),
+                                                        p);
   
-  if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17))
+  if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17)) {
+    LT_LOG_PIECE_EVENTS("(up)   request ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        p.index(), p.offset(), p.length());
     return;
+  }
 
   m_peerChunks.upload_queue()->push_back(p);
   write_insert_poll_safe();
+
+  LT_LOG_PIECE_EVENTS("(up)   request added    %" PRIu32 " %" PRIu32 " %" PRIu32,
+                      p.index(), p.offset(), p.length());
 }
 
 void
 PeerConnectionBase::read_cancel_piece(const Piece& p) {
-  PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(), m_peerChunks.upload_queue()->end(), p);
+  PeerChunks::piece_list_type::iterator itr = std::find(m_peerChunks.upload_queue()->begin(),
+                                                        m_peerChunks.upload_queue()->end(),
+                                                        p);
   
-  if (itr != m_peerChunks.upload_queue()->end())
+  if (itr != m_peerChunks.upload_queue()->end()) {
     m_peerChunks.upload_queue()->erase(itr);
+
+    LT_LOG_PIECE_EVENTS("(up)   cancel requested %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        p.index(), p.offset(), p.length());
+  } else {
+    LT_LOG_PIECE_EVENTS("(up)   cancel ignored   %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        p.index(), p.offset(), p.length());
+  }
 }  
 
 void
@@ -844,12 +904,20 @@ PeerConnectionBase::write_prepare_piece() {
   if (!m_download->file_list()->is_valid_piece(m_upPiece) ||
       !m_download->file_list()->bitfield()->get(m_upPiece.index())) {
     char buffer[128];
-    snprintf(buffer, 128, "Peer requested an invalid piece: %u %u %u", m_upPiece.index(), m_upPiece.length(), m_upPiece.offset());
+
+    snprintf(buffer, 128, "Peer requested an invalid piece: %u %u %u",
+             m_upPiece.index(), m_upPiece.length(), m_upPiece.offset());
+
+    LT_LOG_PIECE_EVENTS("(up)   invalid piece in upload queue %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        m_upPiece.index(), m_upPiece.length(), m_upPiece.offset());
 
     throw communication_error(buffer);
   }
   
   m_up->write_piece(m_upPiece);
+
+  LT_LOG_PIECE_EVENTS("(up)   prepared         %" PRIu32 " %" PRIu32 " %" PRIu32,
+                      m_upPiece.index(), m_upPiece.length(), m_upPiece.offset());
 }
 
 void
@@ -914,6 +982,8 @@ PeerConnectionBase::try_request_pieces() {
 
     m_up->write_request(*p);
 
+    LT_LOG_PIECE_EVENTS("(down) requesting %" PRIu32 " %" PRIu32 " %" PRIu32,
+                        p->index(), p->offset(), p->length());
     success = true;
   }
 

@@ -45,7 +45,7 @@
 #include "torrent/chunk_manager.h"
 #include "torrent/data/download_data.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/log_files.h"
+#include "utils/instrumentation.h"
 
 #include "chunk_list.h"
 #include "chunk.h"
@@ -342,11 +342,11 @@ ChunkList::sync_chunks(int flags) {
       std::iter_swap(itr, split++);
   }
 
-  if (log_files[LOG_MINCORE_STATS].is_open()) {
-    log_mincore_stats_func_sync_success(std::distance(split, m_queue.end()));
-    log_mincore_stats_func_sync_failed(failed);
-    log_mincore_stats_func_sync_not_synced(std::distance(m_queue.begin(), split));
-    log_mincore_stats_func_sync_not_deallocated(std::count_if(split, m_queue.end(), std::mem_fun(&ChunkListNode::is_valid)));
+  if (lt_log_is_valid(LOG_INSTRUMENTATION_MINCORE)) {
+    instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_SUCCESS, std::distance(split, m_queue.end()));
+    instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_FAILED, failed);
+    instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_NOT_SYNCED, std::distance(m_queue.begin(), split));
+    instrumentation_update(INSTRUMENTATION_MINCORE_SYNC_NOT_DEALLOCATED, std::count_if(split, m_queue.end(), std::mem_fun(&ChunkListNode::is_valid)));
   }
 
   m_queue.erase(split, m_queue.end());

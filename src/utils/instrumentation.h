@@ -34,67 +34,68 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_UTILS_INSTRUMENTATION_H
+#define LIBTORRENT_UTILS_INSTRUMENTATION_H
 
-#include <rak/timer.h>
+#include <tr1/array>
 
-#include "thread_main.h"
-
-#include "globals.h"
-#include "torrent/exceptions.h"
-#include "torrent/poll.h"
+#include "torrent/common.h"
 #include "torrent/utils/log.h"
-#include "utils/instrumentation.h"
 
 namespace torrent {
 
-void
-thread_main::init_thread() {
-  acquire_global_lock();
+enum instrumentation_enum {
+  INSTRUMENTATION_MEMORY_BITFIELDS,
 
-  if (!Poll::slot_create_poll())
-    throw internal_error("thread_main::init_thread(): Poll::slot_create_poll() not valid.");
+  INSTRUMENTATION_MINCORE_INCORE_TOUCHED,
+  INSTRUMENTATION_MINCORE_INCORE_NEW,
+  INSTRUMENTATION_MINCORE_NOT_INCORE_TOUCHED,
+  INSTRUMENTATION_MINCORE_NOT_INCORE_NEW,
+  INSTRUMENTATION_MINCORE_INCORE_BREAK,
+  INSTRUMENTATION_MINCORE_SYNC_SUCCESS,
+  INSTRUMENTATION_MINCORE_SYNC_FAILED,
+  INSTRUMENTATION_MINCORE_SYNC_NOT_SYNCED,
+  INSTRUMENTATION_MINCORE_SYNC_NOT_DEALLOCATED,
+  INSTRUMENTATION_MINCORE_ALLOC_FAILED,
+  INSTRUMENTATION_MINCORE_ALLOCATIONS,
+  INSTRUMENTATION_MINCORE_DEALLOCATIONS,
 
-  m_poll = Poll::slot_create_poll()();
-  m_poll->set_flags(Poll::flag_waive_global_lock);
+  INSTRUMENTATION_POLLING_INTERRUPT_POKE,
+  INSTRUMENTATION_POLLING_INTERRUPT_READ_EVENT,
 
-  m_state = STATE_INITIALIZED;
-  m_thread = pthread_self();
-  m_flags |= flag_main_thread;
+  INSTRUMENTATION_POLLING_DO_POLL,
+  INSTRUMENTATION_POLLING_DO_POLL_MAIN,
+  INSTRUMENTATION_POLLING_DO_POLL_DISK,
+  INSTRUMENTATION_POLLING_DO_POLL_OTHERS,
 
-  m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
+  INSTRUMENTATION_POLLING_EVENTS,
+  INSTRUMENTATION_POLLING_EVENTS_MAIN,
+  INSTRUMENTATION_POLLING_EVENTS_DISK,
+  INSTRUMENTATION_POLLING_EVENTS_OTHERS,
+
+  INSTRUMENTATION_MAX_SIZE
+};
+
+extern std::tr1::array<uint64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
+
+void instrumentation_initialize();
+void instrumentation_update(instrumentation_enum type, uint64_t change);
+void instrumentation_tick();
+
+//
+// Implementation:
+//
+
+inline void
+instrumentation_initialize() {
+  instrumentation_values.assign(uint64_t());
 }
 
-void
-thread_main::call_events() {
-  cachedTime = rak::timer::current();
-
-  // Ensure we don't call rak::timer::current() twice if there was no
-  // scheduled tasks called.
-  if (taskScheduler.empty() || taskScheduler.top()->time() > cachedTime)
-    return;
-
-  while (!taskScheduler.empty() && taskScheduler.top()->time() <= cachedTime) {
-    rak::priority_item* v = taskScheduler.top();
-    taskScheduler.pop();
-
-    v->clear_time();
-    v->slot()();
-  }
-
-  // Update the timer again to ensure we get accurate triggering of
-  // msec timers.
-  cachedTime = rak::timer::current();
-}
-
-int64_t
-thread_main::next_timeout_usec() {
-  cachedTime = rak::timer::current();
-
-  if (!taskScheduler.empty())
-    return std::max(taskScheduler.top()->time() - cachedTime, rak::timer()).usec();
-  else
-    return rak::timer::from_seconds(60).usec();
+inline void
+instrumentation_update(instrumentation_enum type, uint64_t change) {
+  __sync_add_and_fetch(&instrumentation_values.at(type), change);
 }
 
 }
+
+#endif

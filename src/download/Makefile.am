@@ -16,4 +16,4 @@ libsub_download_la_SOURCES = \
 	download_wrapper.cc \
 	download_wrapper.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

@@ -216,8 +216,8 @@ protected:
   //
   // In the downlod object, 'queued' now means the same as the spec's
   // 'unchoked', while 'unchoked' means we start requesting pieces.
-  choke_status    m_upChoke;
-  choke_status    m_downChoke;
+  choke_status        m_upChoke;
+  choke_status        m_downChoke;
 
   bool                m_downInterested;
   bool                m_downUnchoked;

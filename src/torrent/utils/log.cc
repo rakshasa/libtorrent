@@ -64,14 +64,16 @@ namespace torrent {
 typedef std::vector<log_slot> log_slot_list;
 
 struct log_cache_entry {
-  bool equal_outputs(uint64_t out) const { return out == outputs; }
+  typedef log_group::outputs_type outputs_type;
+
+  bool equal_outputs(const outputs_type& out) const { return out == outputs; }
 
   void allocate(unsigned int count) { cache_first = new log_slot[count]; cache_last = cache_first + count; }
   void clear()                      { delete [] cache_first; cache_first = NULL; cache_last = NULL; }
 
-  uint64_t      outputs;
-  log_slot*     cache_first;
-  log_slot*     cache_last;
+  outputs_type outputs;
+  log_slot*    cache_first;
+  log_slot*    cache_last;
 };
 
 typedef std::vector<log_cache_entry>      log_cache_list;
@@ -96,7 +98,7 @@ log_update_child_cache(int index) {
   if (first == log_children.end())
     return;
 
-  uint64_t outputs = log_groups[index].cached_outputs();
+  const log_group::outputs_type& outputs = log_groups[index].cached_outputs();
 
   while (first != log_children.end() && first->first == index) {
     if ((outputs & log_groups[first->second].cached_outputs()) != outputs) {
@@ -125,7 +127,7 @@ log_rebuild_cache() {
   log_cache.clear();
 
   for (int idx = 0, last = log_groups.size(); idx != last; idx++) {
-    uint64_t use_outputs = log_groups[idx].cached_outputs();
+    const log_group::outputs_type& use_outputs = log_groups[idx].cached_outputs();
 
     if (use_outputs == 0) {
       log_groups[idx].set_cached(NULL, NULL);
@@ -139,13 +141,13 @@ log_rebuild_cache() {
     if (cache_itr == log_cache.end()) {
       cache_itr = log_cache.insert(log_cache.end(), log_cache_entry());
       cache_itr->outputs = use_outputs;
-      cache_itr->allocate(rak::popcount_wrapper(use_outputs));
+      cache_itr->allocate(use_outputs.count());
 
       log_slot* dest_itr = cache_itr->cache_first;
 
-      for (log_output_list::iterator itr = log_outputs.begin(), last = log_outputs.end(); itr != last; itr++, use_outputs >>= 1) {
-        if (use_outputs & 0x1)
-          *dest_itr++ = itr->second;
+      for (size_t index = 0; index < log_outputs.size(); index++) {
+        if (use_outputs[index])
+          *dest_itr++ = log_outputs[index].second;
       }
     }
 
@@ -209,7 +211,6 @@ log_initialize() {
   LOG_CASCADE(LOG_CRITICAL);
 
   LOG_CASCADE(LOG_CONNECTION_CRITICAL);
-  LOG_CASCADE(LOG_DHT_CRITICAL);
   LOG_CASCADE(LOG_PEER_CRITICAL);
   LOG_CASCADE(LOG_RPC_CRITICAL);
   LOG_CASCADE(LOG_SOCKET_CRITICAL);
@@ -219,7 +220,6 @@ log_initialize() {
   LOG_CASCADE(LOG_TORRENT_CRITICAL);
 
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_CONNECTION_CRITICAL);
-  LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_DHT_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_PEER_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_RPC_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_SOCKET_CRITICAL);
@@ -259,12 +259,11 @@ log_find_output_name(const char* name) {
   return itr;
 }
 
-// Add limit of 64 log entities...
 void
 log_open_output(const char* name, log_slot slot) {
   pthread_mutex_lock(&log_mutex);
 
-  if (log_outputs.size() >= (size_t)std::numeric_limits<uint64_t>::digits) {
+  if (log_outputs.size() >= log_group::max_size_outputs()) {
     pthread_mutex_unlock(&log_mutex);
     throw input_error("Cannot open more than 64 log output handlers.");
   }
@@ -276,6 +275,7 @@ log_open_output(const char* name, log_slot slot) {
 
   log_outputs.push_back(std::make_pair(name, slot));
   log_rebuild_cache();
+
   pthread_mutex_unlock(&log_mutex);
 }
 
@@ -286,15 +286,23 @@ log_close_output(const char* name) {
 void
 log_add_group_output(int group, const char* name) {
   pthread_mutex_lock(&log_mutex);
+
   log_output_list::iterator itr = log_find_output_name(name);
+  size_t index = std::distance(log_outputs.begin(), itr);
 
   if (itr == log_outputs.end()) {
     pthread_mutex_unlock(&log_mutex);
     throw input_error("Log name not found.");
   }
-  
-  log_groups[group].set_outputs(log_groups[group].outputs() | (0x1 << std::distance(log_outputs.begin(), itr)));
+
+  if (index >= log_group::max_size_outputs()) {
+    pthread_mutex_unlock(&log_mutex);
+    throw input_error("Cannot add more log group outputs.");
+  }
+
+  log_groups[group].set_output_at(index, true);
   log_rebuild_cache();
+
   pthread_mutex_unlock(&log_mutex);
 }
 
@@ -329,7 +337,9 @@ log_file_write(tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t
   // Add group name, data, etc as flags.
 
   // Normal groups are nul-terminated strings.
-  if (group >= 0) {
+  if (group >= LOG_NON_CASCADING) {
+    *outfile << cachedTime.seconds() << ' ' << data << std::endl;
+  } else if (group >= 0) {
     *outfile << cachedTime.seconds() << ' ' << log_level_char[group % 6] << ' ' << data << std::endl;
   } else if (group == -1) {
     *outfile << "---DUMP---" << std::endl;

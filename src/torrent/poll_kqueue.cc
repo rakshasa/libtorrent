@@ -216,8 +216,10 @@ PollKQueue::poll_select(int msec) {
 }
 #endif
 
-void
+unsigned int
 PollKQueue::perform() {
+  unsigned int count = 0;
+
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->ident >= m_table.size())
       continue;
@@ -230,22 +232,29 @@ PollKQueue::perform() {
     if ((itr->flags & EV_ERROR) && evItr->second != NULL) {
       if (evItr->first & flag_error)
         evItr->second->event_error();
+
+      count++;
       continue;
     }
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & flag_read)
+    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & flag_read) {
+      count++;
       evItr->second->event_read();
+    }
 
-    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & flag_write)
+    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & flag_write) {
+      count++;
       evItr->second->event_write();
+    }
   }
 
   m_waitingEvents = 0;
+  return count;
 }
 
-void
+unsigned int
 PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   rak::timer timeout = rak::timer(timeout_usec);
   timeout += 10;
@@ -265,7 +274,7 @@ PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
     throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
 
-  perform();
+  return perform();
 }
 
 uint32_t
@@ -432,12 +441,12 @@ PollKQueue::poll(__UNUSED int msec) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
-void
+unsigned int
 PollKQueue::perform() {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
-void
+unsigned int
 PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }

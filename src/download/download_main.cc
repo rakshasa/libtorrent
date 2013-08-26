@@ -57,12 +57,16 @@
 #include "torrent/peer/peer_info.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
+#include "torrent/utils/log.h"
 
 #include "available_list.h"
 #include "chunk_selector.h"
 #include "chunk_statistics.h"
 #include "download_main.h"
 #include "download_wrapper.h"
+
+#define LT_LOG_THIS(log_level, log_fmt, ...)                         \
+  lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
 namespace tr1 { using namespace std::tr1; }
 
