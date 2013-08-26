@@ -55,11 +55,9 @@ class DownloadMain;
 class DownloadInfo {
 public:
   typedef std::tr1::function<uint64_t ()>                              slot_stat_type;
-  typedef std::tr1::function<void (uint32_t)>                          slot_chunk_type;
 
   typedef std::list<std::tr1::function<void ()> >                      signal_void_type;
   typedef std::list<std::tr1::function<void (const std::string&)> >    signal_string_type;
-  typedef std::list<std::tr1::function<void (const std::string&, const char*, size_t)> > signal_dump_type;
 
   enum State {
     NONE,
