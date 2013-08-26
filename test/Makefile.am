@@ -1,5 +1,6 @@
-
 TESTS = LibTorrentTest
+AUTOMAKE_OPTIONS = subdir-objects
+
 check_PROGRAMS = $(TESTS)
 LibTorrentTest_LDADD = \
 	../src/libtorrent.la \
