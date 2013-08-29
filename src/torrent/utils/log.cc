@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <zlib.h>
 
 #include <algorithm>
 #include <fstream>
@@ -69,6 +70,15 @@ struct log_cache_entry {
   log_slot*    cache_last;
 };
 
+struct log_gz_output {
+  log_gz_output(const char* filename) { gz_file = gzopen(filename, "wh"); }
+  ~log_gz_output() { if (gz_file != NULL) gzclose(gz_file); }
+
+  bool is_valid() { return gz_file != Z_NULL; }
+
+  gzFile gz_file;
+};
+
 typedef std::vector<log_cache_entry>                   log_cache_list;
 typedef std::vector<std::pair<int, int> >              log_child_list;
 typedef std::vector<log_slot>                          log_slot_list;
@@ -80,6 +90,8 @@ log_cache_list  log_cache;
 log_group_list  log_groups;
 
 pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
 
 // Removing logs always triggers a check if we got any un-used
 // log_output objects.
@@ -328,8 +340,6 @@ log_remove_child(int group, int child) {
   // Remove from all groups, then modify all outputs.
 }
 
-const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
-
 void
 log_file_write(std::tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
@@ -349,8 +359,34 @@ log_file_write(std::tr1::shared_ptr<std::ofstream>& outfile, const char* data, s
   }
 }
 
-// TODO: Allow for different write functions that prepend timestamps,
-// etc.
+void
+log_gz_file_write(std::tr1::shared_ptr<log_gz_output>& outfile, const char* data, size_t length, int group) {
+  char buffer[64];
+
+  // Normal groups are nul-terminated strings.
+  if (group >= 0) {
+    const char* fmt = (group >= LOG_NON_CASCADING) ? ("%" PRIu64) : ("%" PRIu64 " %c");
+
+    int buffer_length = snprintf(buffer, 64, fmt,
+                                 cachedTime.seconds(),
+                                 log_level_char[group % 6]);
+    
+    if (buffer_length > 0)
+      gzwrite(outfile->gz_file, buffer, buffer_length);
+
+    gzwrite(outfile->gz_file, data, length);
+    gzwrite(outfile->gz_file, "\n", 1);
+
+  } else if (group == -1) {
+    gzwrite(outfile->gz_file, "---DUMP---\n", sizeof("---DUMP---\n") - 1);
+    
+    if (length != 0)
+      gzwrite(outfile->gz_file, data, length);
+
+    gzwrite(outfile->gz_file, "---END---\n", sizeof("---END---\n") - 1);
+  }
+}
+
 void
 log_open_file_output(const char* name, const char* filename) {
   std::tr1::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
@@ -359,6 +395,19 @@ log_open_file_output(const char* name, const char* filename) {
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
   log_open_output(name, std::tr1::bind(&log_file_write, outfile,
+                                       std::tr1::placeholders::_1,
+                                       std::tr1::placeholders::_2,
+                                       std::tr1::placeholders::_3));
+}
+
+void
+log_open_gz_file_output(const char* name, const char* filename) {
+  std::tr1::shared_ptr<log_gz_output> outfile(new log_gz_output(filename));
+
+  if (!outfile->is_valid())
+    throw input_error("Could not open log gzip file '" + std::string(filename) + "'.");
+
+  log_open_output(name, std::tr1::bind(&log_gz_file_write, outfile,
                                        std::tr1::placeholders::_1,
                                        std::tr1::placeholders::_2,
                                        std::tr1::placeholders::_3));

@@ -221,6 +221,7 @@ void log_add_child(int group, int child) LIBTORRENT_EXPORT;
 void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
 
 void        log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
+void        log_open_gz_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
 log_buffer* log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
 
 }
