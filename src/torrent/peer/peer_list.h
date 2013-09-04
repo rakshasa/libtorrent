@@ -43,7 +43,7 @@
 
 namespace torrent {
 
-typedef extents<uint32_t, int, 32, 256, 8> ipv4_table;
+typedef extents<uint32_t, int> ipv4_table;
 
 bool socket_address_less(const sockaddr* s1, const sockaddr* s2);
 
