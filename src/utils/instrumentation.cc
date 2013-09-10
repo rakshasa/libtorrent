@@ -42,11 +42,11 @@
 
 namespace torrent {
 
-std::tr1::array<uint64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
+std::tr1::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
 
-inline uint64_t
+inline int64_t
 instrumentation_fetch_and_clear(instrumentation_enum type) {
-  return __sync_fetch_and_and(&instrumentation_values.at(type), uint64_t());
+  return __sync_fetch_and_and(&instrumentation_values.at(type), int64_t());
 }
 
 void
@@ -54,13 +54,13 @@ instrumentation_tick() {
   // Since the values are updated with __sync_add, they can be read
   // without any memory barriers.
   lt_log_print(LOG_INSTRUMENTATION_MEMORY,
-               "%" PRIu64,
+               "%" PRIi64,
                instrumentation_values[INSTRUMENTATION_MEMORY_BITFIELDS]);
 
   lt_log_print(LOG_INSTRUMENTATION_MINCORE,
-               "%"  PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-               " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-               " %" PRIu64 " %" PRIu64,
+               "%"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %" PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %" PRIi64 " %" PRIi64,
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_INCORE_TOUCHED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_INCORE_NEW),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_NOT_INCORE_TOUCHED),
@@ -75,9 +75,9 @@ instrumentation_tick() {
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_DEALLOCATIONS));
 
   lt_log_print(LOG_INSTRUMENTATION_POLLING,
-               "%"  PRIu64 " %" PRIu64
-               " %"  PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64
-               " %"  PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64,
+               "%"  PRIi64 " %" PRIi64
+               " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64,
                instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_INTERRUPT_POKE),
                instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_INTERRUPT_READ_EVENT),
 

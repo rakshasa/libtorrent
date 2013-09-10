@@ -367,7 +367,7 @@ log_gz_file_write(std::tr1::shared_ptr<log_gz_output>& outfile, const char* data
 
   // Normal groups are nul-terminated strings.
   if (group >= 0) {
-    const char* fmt = (group >= LOG_NON_CASCADING) ? ("%" PRIu64) : ("%" PRIu64 " %c");
+    const char* fmt = (group >= LOG_NON_CASCADING) ? ("%" PRIi32 " ") : ("%" PRIi32 " %c");
 
     int buffer_length = snprintf(buffer, 64, fmt,
                                  cachedTime.seconds(),

@@ -222,7 +222,9 @@ struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, b
 
 bool
 RequestList::is_interested_in_active() const {
-  for (TransferList::const_iterator itr = m_delegator->transfer_list()->begin(), last = m_delegator->transfer_list()->end(); itr != last; ++itr)
+  for (TransferList::const_iterator
+         itr = m_delegator->transfer_list()->begin(),
+         last = m_delegator->transfer_list()->end(); itr != last; ++itr)
     if (m_peerChunks->bitfield()->get((*itr)->index()))
       return true;
 
@@ -245,6 +247,9 @@ RequestList::cancel_range(ReserveeList::iterator end) {
   //
   // Add some extra checks here to avoid clearing too often.
   if (!m_canceled.empty()) {
+
+    // Not good...
+
     std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));
     m_canceled.clear();
   }

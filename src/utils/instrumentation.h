@@ -76,10 +76,10 @@ enum instrumentation_enum {
   INSTRUMENTATION_MAX_SIZE
 };
 
-extern std::tr1::array<uint64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
+extern std::tr1::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
 
 void instrumentation_initialize();
-void instrumentation_update(instrumentation_enum type, uint64_t change);
+void instrumentation_update(instrumentation_enum type, int64_t change);
 void instrumentation_tick();
 
 //
@@ -88,11 +88,11 @@ void instrumentation_tick();
 
 inline void
 instrumentation_initialize() {
-  instrumentation_values.assign(uint64_t());
+  instrumentation_values.assign(int64_t());
 }
 
 inline void
-instrumentation_update(instrumentation_enum type, uint64_t change) {
+instrumentation_update(instrumentation_enum type, int64_t change) {
   __sync_add_and_fetch(&instrumentation_values.at(type), change);
 }
 
