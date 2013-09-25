@@ -54,9 +54,11 @@ instrumentation_tick() {
   // Since the values are updated with __sync_add, they can be read
   // without any memory barriers.
   lt_log_print(LOG_INSTRUMENTATION_MEMORY,
-               "%" PRIi64 " %" PRIi64 " %" PRIi64,
+               "%" PRIi64 " %" PRIi64 " %" PRIi64  " %" PRIi64 " %" PRIi64,
                instrumentation_values[INSTRUMENTATION_MEMORY_CHUNK_USAGE],
                instrumentation_values[INSTRUMENTATION_MEMORY_CHUNK_COUNT],
+               instrumentation_values[INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE],
+               instrumentation_values[INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT],
                instrumentation_values[INSTRUMENTATION_MEMORY_BITFIELDS]);
 
   lt_log_print(LOG_INSTRUMENTATION_MINCORE,
@@ -68,11 +70,13 @@ instrumentation_tick() {
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_NOT_INCORE_TOUCHED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_NOT_INCORE_NEW),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_INCORE_BREAK),
+
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_SYNC_SUCCESS),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_SYNC_FAILED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_SYNC_NOT_SYNCED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_SYNC_NOT_DEALLOCATED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_ALLOC_FAILED),
+
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_ALLOCATIONS),
                instrumentation_fetch_and_clear(INSTRUMENTATION_MINCORE_DEALLOCATIONS));
 

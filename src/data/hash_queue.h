@@ -96,9 +96,9 @@ private:
   thread_disk*        m_thread_disk;
 
   done_chunks_type    m_done_chunks;
-  pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
-
   slot_bool           m_slot_has_work;
+
+  pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
 };
 
 }
