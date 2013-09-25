@@ -157,7 +157,8 @@ void
 Manager::receive_tick() {
   m_ticks++;
 
-  instrumentation_tick();
+  if (m_ticks % 2 == 0)
+    instrumentation_tick();
 
   m_resourceManager->receive_tick();
   m_chunkManager->periodic_sync();

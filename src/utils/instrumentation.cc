@@ -54,7 +54,9 @@ instrumentation_tick() {
   // Since the values are updated with __sync_add, they can be read
   // without any memory barriers.
   lt_log_print(LOG_INSTRUMENTATION_MEMORY,
-               "%" PRIi64,
+               "%" PRIi64 " %" PRIi64 " %" PRIi64,
+               instrumentation_values[INSTRUMENTATION_MEMORY_CHUNK_USAGE],
+               instrumentation_values[INSTRUMENTATION_MEMORY_CHUNK_COUNT],
                instrumentation_values[INSTRUMENTATION_MEMORY_BITFIELDS]);
 
   lt_log_print(LOG_INSTRUMENTATION_MINCORE,
