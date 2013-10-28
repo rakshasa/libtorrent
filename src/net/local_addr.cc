@@ -132,6 +132,7 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
   if (getifaddrs(&ifaddrs)) {
     return false;
   }
+  freeifaddrs(ifaddrs);
 
   rak::socket_address best_addr;
   switch (family) {
