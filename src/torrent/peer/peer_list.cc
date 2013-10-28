@@ -67,15 +67,23 @@ socket_address_less(const sockaddr* s1, const sockaddr* s2) {
     // humans.
     return sa1->sa_inet()->address_h() < sa2->sa_inet()->address_h();
 
+#ifdef RAK_USE_INET6
+  else {
+    const in6_addr addr1 = sa1->sa_inet6()->address();
+    const in6_addr addr2 = sa2->sa_inet6()->address();
+    return memcmp(&addr1, &addr2, sizeof(in6_addr)) < 0;
+  }
+#else
   else
-    // When we implement INET6 handling, embed the ipv4 address in
-    // the ipv6 address.
     throw internal_error("socket_address_key(...) tried to compare an invalid family type.");
+#endif
+
 }
 
 inline bool
 socket_address_key::is_comparable(const sockaddr* sa) {
-  return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet;
+  return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet ||
+    rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet6;
 }
 
 struct peer_list_equal_port : public std::binary_function<PeerList::reference, uint16_t, bool> {
