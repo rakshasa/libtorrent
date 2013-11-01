@@ -57,7 +57,7 @@ namespace {
 // IPv4 priority, from highest to lowest:
 //
 //   1. Everything else (global address)
-//   2. Private address space (10.0.0.0/8, 172.16.0.0/16, 192.168.0.0/24)
+//   2. Private address space (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
 //   3. Empty/INADDR_ANY (0.0.0.0)
 //   4. Link-local address (169.254.0.0/16)
 //   5. Localhost (127.0.0.0/8)
@@ -66,13 +66,13 @@ int get_priority_ipv4(const in_addr& addr) {
     return 5;
   }
   if (addr.s_addr == htonl(0)) {
-    return 4;
-  }
-  if ((addr.s_addr & htonl(0xffff0000U)) == htonl(0xa9fe0000U)) {
     return 3;
   }
+  if ((addr.s_addr & htonl(0xffff0000U)) == htonl(0xa9fe0000U)) {
+    return 4;
+  }
   if ((addr.s_addr & htonl(0xff000000U)) == htonl(0x0a000000U) ||
-      (addr.s_addr & htonl(0xffff0000U)) == htonl(0xac100000U) ||
+      (addr.s_addr & htonl(0xfff00000U)) == htonl(0xac100000U) ||
       (addr.s_addr & htonl(0xffff0000U)) == htonl(0xc0a80000U)) {
     return 2;
   }
