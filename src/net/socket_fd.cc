@@ -129,11 +129,11 @@ SocketFd::open_stream() {
 // Linux requires this syscall to be called for ipv6-only sockets to prevent "Address already in use" error
 #ifdef __linux__
   int zero = 0;
-  bool res = setsockopt(m_fd, IPPROTO_IPV6, IPV6_V6ONLY, &zero, sizeof(zero)) != -1;
+  return setsockopt(m_fd, IPPROTO_IPV6, IPV6_V6ONLY, &zero, sizeof(zero)) != -1;
 #endif
 
 // OpenBSD doesn't require that syscall, pf_inet6-based sockets are ipv6-only already
-return m_ipv6_socket;
+  return m_ipv6_socket;
 
 #else
   return (m_fd = socket(rak::socket_address::pf_inet, SOCK_STREAM, IPPROTO_TCP)) != -1;
@@ -155,7 +155,7 @@ SocketFd::open_datagram() {
   return setsockopt(m_fd, IPPROTO_IPV6, IPV6_V6ONLY, &zero, sizeof(zero)) != -1;
 #endif
 
-return m_ipv6_socket;
+  return m_ipv6_socket;
 #else
   return (m_fd = socket(rak::socket_address::pf_inet, SOCK_DGRAM, 0)) != -1;
 #endif
