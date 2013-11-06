@@ -207,6 +207,8 @@ const char* option_list_log_group[] = {
   "protocol_network_errors",
   "protocol_storage_errors",
 
+  "ui_events",
+
   NULL
 };
 
