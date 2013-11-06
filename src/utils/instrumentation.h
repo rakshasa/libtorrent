@@ -97,7 +97,7 @@ instrumentation_initialize() {
 
 inline void
 instrumentation_update(instrumentation_enum type, int64_t change) {
-  __sync_add_and_fetch(&instrumentation_values.at(type), change);
+  __sync_add_and_fetch(&instrumentation_values[type], change);
 }
 
 }

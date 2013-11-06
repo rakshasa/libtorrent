@@ -260,9 +260,9 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
   return perform(read_set, write_set, error_set);
 }
 
+#ifdef LT_LOG_POLL_OPEN
 inline static void
 log_poll_open(Event* event) {
-#ifdef LT_LOG_POLL_OPEN
   static int log_fd = -1;
   char buffer[256];
 
@@ -276,8 +276,8 @@ log_poll_open(Event* event) {
   unsigned int buf_lenght = snprintf(buffer, 256, "open %i\n",
                                      event->fd());
 
-#endif
 }
+#endif
 
 void
 PollSelect::open(Event* event) {

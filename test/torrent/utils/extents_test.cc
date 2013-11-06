@@ -44,8 +44,8 @@ static const int      val_empty[] = {0, 1};
 static const uint32_t idx_basic_1[] = {0, 1, 255, 256, 256};
 static const int      val_basic_1[] = {1, 0, 1};
 
-static const uint32_t idx_basic_2[] = {0, 1, 16, 255, 256, 256};
-static const int      val_basic_2[] = {1, 0, 2, 1};
+// static const uint32_t idx_basic_2[] = {0, 1, 16, 255, 256, 256};
+// static const int      val_basic_2[] = {1, 0, 2, 1};
 
 void
 ExtentsTest::test_basic() {
