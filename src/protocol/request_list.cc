@@ -45,6 +45,7 @@
 #include "torrent/data/block_list.h"
 #include "torrent/exceptions.h"
 #include "download/delegator.h"
+#include "utils/instrumentation.h"
 
 #include "peer_chunks.h"
 #include "request_list.h"
@@ -64,13 +65,91 @@ struct request_list_same_piece {
   Piece m_piece;
 };
 
+inline BlockTransfer*
+RequestList::pop_front_queued() {
+  BlockTransfer* transfer = m_queued.front();
+  m_queued.pop_front();
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, 1);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, -1);
+
+  return transfer;
+}
+
+inline void
+RequestList::push_back_queued(BlockTransfer* r) {
+  m_queued.push_back(r);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED, 1);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, 1);
+}
+
+inline void
+RequestList::push_back_canceled(BlockTransfer* r) {
+  m_canceled.push_back(r);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED, 1);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, 1);
+}
+
+inline void
+RequestList::release_queued_range(ReserveeList::iterator begin, ReserveeList::iterator end) {
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, std::distance(begin, end));
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, -(int64_t)std::distance(begin, end));
+
+  std::for_each(begin, end, std::ptr_fun(&Block::release));
+  m_queued.erase(begin, end);
+}
+
+inline void
+RequestList::release_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end) {
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED, std::distance(begin, end));
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, -(int64_t)std::distance(begin, end));
+
+  std::for_each(begin, end, std::ptr_fun(&Block::release));
+  m_canceled.erase(begin, end);
+}
+
+inline void
+RequestList::move_to_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end) {
+  int64_t range_size = std::distance(begin, end);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED, range_size);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, range_size);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, range_size);
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,  -range_size);
+
+  std::for_each(begin, end, std::ptr_fun(&Block::stalled));
+
+  if (m_canceled.empty() && begin == m_queued.begin() && end == m_queued.end()) {
+    m_canceled.swap(m_queued);
+  } else {
+    m_canceled.insert(m_canceled.end(), begin, end);
+    m_queued.erase(begin, end);
+  }
+}
+
+inline void
+RequestList::move_queued_to_transferring(ReserveeList::iterator itr) {
+  m_transfer = *itr;
+  m_queued.erase(itr);
+
+  // When we start a normal transfer we don't count it as removed.
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, -1);
+}
+
+inline void
+RequestList::move_canceled_to_transferring(ReserveeList::iterator itr) {
+  m_transfer = *itr;
+  m_canceled.erase(itr);
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, -1);
+}
+
 const Piece*
 RequestList::delegate() {
   BlockTransfer* r = m_delegator->delegate(m_peerChunks, m_affinity);
 
   if (r) {
     m_affinity = r->index();
-    m_queued.push_back(r);
+    push_back_queued(r);
 
     return &r->piece();
 
@@ -86,12 +165,8 @@ RequestList::delegate() {
 // them out?
 void
 RequestList::cancel() {
-  std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));
-  m_canceled.clear();
-
-  std::for_each(m_queued.begin(), m_queued.end(), std::ptr_fun(&Block::stalled));
-
-  m_canceled.swap(m_queued);
+  release_canceled_range(m_canceled.begin(), m_canceled.end());
+  move_to_canceled_range(m_queued.begin(), m_queued.end());
 }
 
 void
@@ -107,11 +182,8 @@ RequestList::clear() {
   if (is_downloading())
     skipped();
 
-  std::for_each(m_queued.begin(), m_queued.end(), std::ptr_fun(&Block::release));
-  m_queued.clear();
-
-  std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));
-  m_canceled.clear();
+  release_queued_range(m_queued.begin(), m_queued.end());
+  release_canceled_range(m_canceled.begin(), m_canceled.end());
 }
 
 bool
@@ -126,16 +198,18 @@ RequestList::downloading(const Piece& piece) {
 
     if (itr == m_canceled.end()) {
       // Consider counting these pieces as spam.
+      instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
       goto downloading_error;
     }
 
-    m_transfer = *itr;
-    m_canceled.erase(itr);
+    move_canceled_to_transferring(itr);
+
+  } else if (itr == m_queued.end()) {
+    move_queued_to_transferring(itr);
 
   } else {
-    m_transfer = *itr;
     cancel_range(itr);
-    m_queued.pop_front();
+    move_queued_to_transferring(itr);
   }
   
   // We received an invalid piece length, propably zero length due to
@@ -148,8 +222,12 @@ RequestList::downloading(const Piece& piece) {
       throw communication_error("Peer sent a piece with wrong, non-zero, length.");
 
     Block::release(m_transfer);
+
+    instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
     goto downloading_error;
   }
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING, 1);
 
   // Check if piece isn't wanted anymore. Do this after the length
   // check to ensure we return a correct BlockTransfer.
@@ -181,6 +259,8 @@ RequestList::finished() {
   m_transfer = NULL;
 
   m_delegator->transfer_list()->finished(transfer);
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_FINISHED, 1);
 }
 
 void
@@ -190,6 +270,8 @@ RequestList::skipped() {
 
   Block::release(m_transfer);
   m_transfer = NULL;
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_SKIPPED, 1);
 }
 
 // Data downloaded by this non-leading transfer does not match what we
@@ -206,13 +288,6 @@ RequestList::transfer_dissimilar() {
   m_transfer->block()->transfer_dissimilar(m_transfer);
   m_transfer = dummy;
 }
-
-// void
-// RequestList::cancel_transfer(BlockTransfer* transfer) {
-// //   ReserveeList itr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(piece));
-
-// //   ReserveeList itr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(piece));
-// }
 
 struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, bool> {
   bool operator () (BlockTransfer* r, uint32_t index) const {
@@ -247,20 +322,18 @@ RequestList::cancel_range(ReserveeList::iterator end) {
   //
   // Add some extra checks here to avoid clearing too often.
   if (!m_canceled.empty()) {
-
     // Not good...
-
-    std::for_each(m_canceled.begin(), m_canceled.end(), std::ptr_fun(&Block::release));
-    m_canceled.clear();
+    release_canceled_range(m_canceled.begin(),
+                           m_canceled.end() - std::min(m_canceled.size(), (size_t)512));
   }
 
   while (m_queued.begin() != end) {
-    BlockTransfer* transfer = m_queued.front();
-    m_queued.pop_front();
+    BlockTransfer* transfer = pop_front_queued();
 
     if (transfer->is_valid()) {
       Block::stalled(transfer);
-      m_canceled.push_back(transfer);
+      push_back_canceled(transfer);
+
     } else {
       Block::release(transfer);
     }

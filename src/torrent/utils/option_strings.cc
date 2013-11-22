@@ -201,6 +201,7 @@ const char* option_list_log_group[] = {
   "instrumentation_mincore",
   "instrumentation_choke",
   "instrumentation_polling",
+  "instrumentation_transfers",
 
   "protocol_piece_events",
   "protocol_metadata_events",

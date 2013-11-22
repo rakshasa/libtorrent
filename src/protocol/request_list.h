@@ -102,6 +102,18 @@ public:
 private:
   void                 cancel_range(ReserveeList::iterator end);
 
+  inline BlockTransfer* pop_front_queued();
+
+  inline void          push_back_queued(BlockTransfer* r);
+  inline void          push_back_canceled(BlockTransfer* r);
+
+  inline void          release_queued_range(ReserveeList::iterator begin, ReserveeList::iterator end);
+  inline void          release_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end);
+  inline void          move_to_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end);
+
+  inline void          move_queued_to_transferring(ReserveeList::iterator itr);
+  inline void          move_canceled_to_transferring(ReserveeList::iterator itr);
+
   Delegator*           m_delegator;
   PeerChunks*          m_peerChunks;
 
