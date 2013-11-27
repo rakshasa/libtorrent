@@ -452,10 +452,10 @@ bool
 PeerConnectionBase::down_chunk_start(const Piece& piece) {
   if (!download_queue()->downloading(piece)) {
     if (piece.length() == 0) {
-      LT_LOG_PIECE_EVENTS("(down) skipping empty %" PRIu32 " %" PRIu32 " %" PRIu32,
+      LT_LOG_PIECE_EVENTS("(down) skipping_empty %" PRIu32 " %" PRIu32 " %" PRIu32,
                           piece.index(), piece.offset(), piece.length());
     } else {
-      LT_LOG_PIECE_EVENTS("(down) skipping unneeded %" PRIu32 " %" PRIu32 " %" PRIu32,
+      LT_LOG_PIECE_EVENTS("(down) skipping_unneeded %" PRIu32 " %" PRIu32 " %" PRIu32,
                           piece.index(), piece.offset(), piece.length());
     }
 
@@ -474,7 +474,7 @@ PeerConnectionBase::down_chunk_start(const Piece& piece) {
   }
 
   LT_LOG_PIECE_EVENTS("(down) %s %" PRIu32 " %" PRIu32 " %" PRIu32,
-                      download_queue()->transfer()->is_leader() ? "started on" : "skipping partial",
+                      download_queue()->transfer()->is_leader() ? "started_on" : "skipping_partial",
                       piece.index(), piece.offset(), piece.length());
 
   return download_queue()->transfer()->is_leader();
@@ -672,7 +672,7 @@ PeerConnectionBase::down_chunk_skip_process(const void* buffer, uint32_t length)
   // The data doesn't match with what has previously been downloaded,
   // bork this transfer.
   if (!m_downChunk.chunk()->compare_buffer(buffer, transfer->piece().offset() + transfer->position(), compareLength)) {
-    LT_LOG_PIECE_EVENTS("(down) download data mismatch %" PRIu32 " %" PRIu32 " %" PRIu32,
+    LT_LOG_PIECE_EVENTS("(down) download_data_mismatch %" PRIu32 " %" PRIu32 " %" PRIu32,
                         transfer->piece().index(), transfer->piece().offset(), transfer->piece().length());
     
     m_downloadQueue.transfer_dissimilar();
@@ -866,7 +866,7 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
                                                         p);
   
   if (m_upChoke.choked() || itr != m_peerChunks.upload_queue()->end() || p.length() > (1 << 17)) {
-    LT_LOG_PIECE_EVENTS("(up)   request ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
+    LT_LOG_PIECE_EVENTS("(up)   request_ignored  %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
     return;
   }
@@ -874,7 +874,7 @@ PeerConnectionBase::read_request_piece(const Piece& p) {
   m_peerChunks.upload_queue()->push_back(p);
   write_insert_poll_safe();
 
-  LT_LOG_PIECE_EVENTS("(up)   request added    %" PRIu32 " %" PRIu32 " %" PRIu32,
+  LT_LOG_PIECE_EVENTS("(up)   request_added    %" PRIu32 " %" PRIu32 " %" PRIu32,
                       p.index(), p.offset(), p.length());
 }
 
@@ -887,10 +887,10 @@ PeerConnectionBase::read_cancel_piece(const Piece& p) {
   if (itr != m_peerChunks.upload_queue()->end()) {
     m_peerChunks.upload_queue()->erase(itr);
 
-    LT_LOG_PIECE_EVENTS("(up)   cancel requested %" PRIu32 " %" PRIu32 " %" PRIu32,
+    LT_LOG_PIECE_EVENTS("(up)   cancel_requested %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
   } else {
-    LT_LOG_PIECE_EVENTS("(up)   cancel ignored   %" PRIu32 " %" PRIu32 " %" PRIu32,
+    LT_LOG_PIECE_EVENTS("(up)   cancel_ignored   %" PRIu32 " %" PRIu32 " %" PRIu32,
                         p.index(), p.offset(), p.length());
   }
 }  
@@ -908,7 +908,7 @@ PeerConnectionBase::write_prepare_piece() {
     snprintf(buffer, 128, "Peer requested an invalid piece: %u %u %u",
              m_upPiece.index(), m_upPiece.length(), m_upPiece.offset());
 
-    LT_LOG_PIECE_EVENTS("(up)   invalid piece in upload queue %" PRIu32 " %" PRIu32 " %" PRIu32,
+    LT_LOG_PIECE_EVENTS("(up)   invalid_piece_in_upload_queue %" PRIu32 " %" PRIu32 " %" PRIu32,
                         m_upPiece.index(), m_upPiece.length(), m_upPiece.offset());
 
     throw communication_error(buffer);
