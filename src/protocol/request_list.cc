@@ -322,9 +322,15 @@ RequestList::cancel_range(ReserveeList::iterator end) {
   //
   // Add some extra checks here to avoid clearing too often.
   if (!m_canceled.empty()) {
-    // Not good...
-    release_canceled_range(m_canceled.begin(),
-                           m_canceled.end() - std::min(m_canceled.size(), (size_t)512));
+    // Old buggy...
+    release_canceled_range(m_canceled.begin(), m_canceled.end());
+
+    // Bad solution...
+    // release_canceled_range(m_canceled.begin(),
+    //                        m_canceled.end() - std::min(m_canceled.size(), (size_t)512));
+
+    // Only release if !valid or... if we've been choked/unchoked
+    // since last time, include a timer for both choke and unchoke.
   }
 
   while (m_queued.begin() != end) {
