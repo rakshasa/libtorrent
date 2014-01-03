@@ -52,6 +52,16 @@
 
 namespace torrent {
 
+// TODO: Add a to-be-cancelled list, timer, and use that to avoid
+// cancelling pieces on CHOKE->UNCHOKE weirdness in some clients.
+//
+// Right after this the client should always be allowed to queue more
+// pieces, perhaps add a timer for last choke and check the request
+// time on the queued pieces. This makes it possible to get going
+// again if the remote queue got cleared.
+//
+// Add unit tests...
+
 // It is assumed invalid transfers have been removed.
 struct request_list_same_piece {
   request_list_same_piece(const Piece& p) : m_piece(p) {}
@@ -311,6 +321,12 @@ RequestList::has_index(uint32_t index) {
   return std::find_if(m_queued.begin(), m_queued.end(), std::bind2nd(equals_reservee(), index)) != m_queued.end();
 }
 
+struct request_list_keep_request {
+  bool operator () (const BlockTransfer* d) {
+    return d->is_valid();
+  }
+};
+
 void
 RequestList::cancel_range(ReserveeList::iterator end) {
   // This only gets called when it's downloading a non-canceled piece,
@@ -323,20 +339,22 @@ RequestList::cancel_range(ReserveeList::iterator end) {
   // Add some extra checks here to avoid clearing too often.
   if (!m_canceled.empty()) {
     // Old buggy...
-    release_canceled_range(m_canceled.begin(), m_canceled.end());
+    // release_canceled_range(m_canceled.begin(), m_canceled.end());
 
-    // Bad solution...
-    // release_canceled_range(m_canceled.begin(),
-    //                        m_canceled.end() - std::min(m_canceled.size(), (size_t)512));
 
     // Only release if !valid or... if we've been choked/unchoked
     // since last time, include a timer for both choke and unchoke.
+
+    // First remove all the !valid pieces...
+    ReserveeList::iterator itr = std::partition(m_canceled.begin(), m_canceled.end(), request_list_keep_request());
+
+    release_canceled_range(itr, m_canceled.end());
   }
 
   while (m_queued.begin() != end) {
     BlockTransfer* transfer = pop_front_queued();
 
-    if (transfer->is_valid()) {
+    if (request_list_keep_request()(transfer)) {
       Block::stalled(transfer);
       push_back_canceled(transfer);
 
