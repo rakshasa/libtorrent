@@ -76,6 +76,7 @@ public:
   const Piece&        piece() const                 { return m_piece; }
   uint32_t            index() const                 { return m_piece.index(); }
   state_type          state() const                 { return m_state; }
+  int32_t             request_time() const          { return m_request_time; }
 
   // Adjust the position after any actions like erasing it from a
   // Block, but before if finishing.
@@ -87,6 +88,7 @@ public:
   void                set_block(Block* b)           { m_block = b; }
   void                set_piece(const Piece& p)     { m_piece = p; }
   void                set_state(state_type s)       { m_state = s; }
+  void                set_request_time(int32_t t)   { m_request_time = t; }
 
   void                set_position(uint32_t p)      { m_position = p; }
   void                adjust_position(uint32_t p)   { m_position += p; }
@@ -103,6 +105,7 @@ private:
   Piece               m_piece;
 
   state_type          m_state;
+  int32_t             m_request_time;
 
   uint32_t            m_position;
   uint32_t            m_stall;

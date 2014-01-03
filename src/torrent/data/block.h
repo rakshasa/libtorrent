@@ -105,7 +105,7 @@ public:
 
   void                      transfer_dissimilar(BlockTransfer* transfer);
 
-  static void               stalled(BlockTransfer* transfer)             { if (!transfer->is_valid()) return; transfer->block()->stalled_transfer(transfer); }
+  static inline void        stalled(BlockTransfer* transfer);
   void                      stalled_transfer(BlockTransfer* transfer);
 
   void                      change_leader(BlockTransfer* transfer);
@@ -161,6 +161,14 @@ Block::find(const PeerInfo* p) const {
     return transfer;
   else
     return find_transfer(p);
+}
+
+inline void
+Block::stalled(BlockTransfer* transfer) {
+  if (!transfer->is_valid())
+    return;
+  
+  transfer->block()->stalled_transfer(transfer);
 }
 
 }

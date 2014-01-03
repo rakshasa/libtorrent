@@ -79,6 +79,7 @@ Block::insert(PeerInfo* peerInfo) {
   (*itr)->set_block(this);
   (*itr)->set_piece(m_piece);
   (*itr)->set_state(BlockTransfer::STATE_QUEUED);
+  (*itr)->set_request_time(cachedTime.seconds());
   (*itr)->set_position(0);
   (*itr)->set_stall(0);
   (*itr)->set_failed_index(BlockFailed::invalid_index);
