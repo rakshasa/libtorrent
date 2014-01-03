@@ -37,9 +37,9 @@
 #ifndef LIBTORRENT_TRANSFER_LIST_H
 #define LIBTORRENT_TRANSFER_LIST_H
 
-#include <functional>
 #include <vector>
 #include <torrent/common.h>
+#include <tr1/functional>
 
 namespace torrent {
 
@@ -88,23 +88,13 @@ public:
   void                hash_succeeded(uint32_t index, Chunk* chunk);
   void                hash_failed(uint32_t index, Chunk* chunk);
 
-  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_canceled_op;
-  typedef std::binder1st<slot_canceled_op>               slot_canceled_type;
+  typedef std::tr1::function<void (uint32_t)>  slot_chunk_index;
+  typedef std::tr1::function<void (PeerInfo*)> slot_peer_info;
 
-  typedef std::mem_fun1_t<void, DownloadMain, uint32_t>  slot_completed_op;
-  typedef std::binder1st<slot_completed_op>              slot_completed_type;
-
-  typedef std::mem_fun1_t<void, ChunkSelector, uint32_t> slot_queued_op;
-  typedef std::binder1st<slot_queued_op>                 slot_queued_type;
-
-  typedef std::mem_fun1_t<void, DownloadMain, PeerInfo*> slot_corrupt_op;
-  typedef std::binder1st<slot_corrupt_op>                slot_corrupt_type;
-
-  void                slot_canceled(slot_canceled_type s)   { m_slotCanceled = s; }
-  void                slot_completed(slot_completed_type s) { m_slotCompleted = s; }
-  void                slot_queued(slot_queued_type s)       { m_slotQueued = s; }
-
-  void                slot_corrupt(slot_corrupt_type s)     { m_slotCorrupt = s; }
+  slot_chunk_index&   slot_canceled()  { return m_slot_canceled; }
+  slot_chunk_index&   slot_completed() { return m_slot_completed; }
+  slot_chunk_index&   slot_queued()    { return m_slot_queued; }
+  slot_peer_info&     slot_corrupt()   { return m_slot_corrupt; }
 
 private:
   TransferList(const TransferList&);
@@ -115,10 +105,10 @@ private:
 
   void                retry_most_popular(BlockList* blockList, Chunk* chunk);
 
-  slot_canceled_type  m_slotCanceled;
-  slot_completed_type m_slotCompleted;
-  slot_queued_type    m_slotQueued;
-  slot_corrupt_type   m_slotCorrupt;
+  slot_chunk_index    m_slot_canceled;
+  slot_chunk_index    m_slot_completed;
+  slot_chunk_index    m_slot_queued;
+  slot_peer_info      m_slot_corrupt;
 
   completed_list_type m_completedList;
 
