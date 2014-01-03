@@ -115,8 +115,8 @@ DownloadMain::DownloadMain() :
 
   m_connectionList = new ConnectionList(this);
 
-  m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
-  m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));
+  m_delegator.slot_chunk_find() = std::tr1::bind(&ChunkSelector::find, m_chunkSelector, tr1::placeholders::_1, tr1::placeholders::_2);
+  m_delegator.slot_chunk_size() = std::tr1::bind(&FileList::chunk_index_size, file_list(), tr1::placeholders::_1);
 
   m_delegator.transfer_list()->slot_canceled(std::bind1st(std::mem_fun(&ChunkSelector::not_using_index), m_chunkSelector));
   m_delegator.transfer_list()->slot_queued(std::bind1st(std::mem_fun(&ChunkSelector::using_index), m_chunkSelector));
