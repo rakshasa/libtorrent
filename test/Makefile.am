@@ -31,6 +31,8 @@ LibTorrentTest_SOURCES = \
 	data/hash_check_queue_test.h \
 	data/hash_queue_test.cc \
 	data/hash_queue_test.h \
+	protocol/test_request_list.cc \
+	protocol/test_request_list.h \
 	torrent/http_test.cc \
 	torrent/http_test.h \
 	torrent/object_test.cc \

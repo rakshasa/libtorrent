@@ -48,6 +48,8 @@
 namespace torrent {
 
 // Move this to peer_info.cc when these are made into the public API.
+//
+// TODO: Use a safer socket address parameter.
 PeerInfo::PeerInfo(const sockaddr* address) : 
   m_flags(0),
 

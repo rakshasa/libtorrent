@@ -48,12 +48,9 @@ namespace torrent {
 class Block;
 class BlockList;
 class BlockTransfer;
-class FileList;
-class DownloadMain;
 class Piece;
 class PeerChunks;
 class PeerInfo;
-class ChunkSelector;
 
 class Delegator {
 public:
