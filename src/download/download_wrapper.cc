@@ -78,6 +78,7 @@ DownloadWrapper::DownloadWrapper() :
 
   m_main->delay_download_done().slot() = std::tr1::bind(&download_data::call_download_done, data());
 
+  m_main->peer_list()->set_info(info());
   m_main->tracker_list()->set_info(info());
   m_main->tracker_controller()->slot_success() = tr1::bind(&DownloadWrapper::receive_tracker_success, this, tr1::placeholders::_1);
   m_main->tracker_controller()->slot_failure() = tr1::bind(&DownloadWrapper::receive_tracker_failed, this, tr1::placeholders::_1);
