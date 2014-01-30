@@ -1,4 +1,4 @@
-AC_INIT(libtorrent, 0.13.3, jaris@ifi.uio.no)
+AC_INIT(libtorrent, 0.13.3, sundell.software@gmail.com)
 
 LT_INIT([disable-static])
 
