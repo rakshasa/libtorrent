@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <algorithm>
 #include <functional>
 #include <rak/functional.h>
@@ -334,6 +336,13 @@ PeerList::disconnected(iterator itr, int flags) {
 
   if (!itr->second->is_connected())
     throw internal_error("PeerList::disconnected(...) !itr->is_connected().");
+
+  if (itr->second->transfer_counter() != 0) {
+    // Currently we only log these as it only affects the culling of
+    // peers.
+    LT_LOG_EVENTS("disconnected with non-zero transfer counter (%" PRIu32 ") for peer %40s",
+                  itr->second->transfer_counter(), itr->second->id_hex());
+  }
 
   itr->second->unset_flags(PeerInfo::flag_connected);
 
