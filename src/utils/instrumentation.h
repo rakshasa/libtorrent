@@ -108,7 +108,9 @@ instrumentation_initialize() {
 
 inline void
 instrumentation_update(instrumentation_enum type, int64_t change) {
+#ifdef LT_INSTRUMENTATION
   __sync_add_and_fetch(&instrumentation_values[type], change);
+#endif
 }
 
 }

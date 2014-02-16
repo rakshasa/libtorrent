@@ -46,7 +46,9 @@ std::tr1::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cac
 
 inline int64_t
 instrumentation_fetch_and_clear(instrumentation_enum type) {
+#ifdef LT_INSTRUMENTATION
   return __sync_fetch_and_and(&instrumentation_values[type], int64_t());
+#endif
 }
 
 void
