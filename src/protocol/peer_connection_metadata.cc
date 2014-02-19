@@ -478,7 +478,7 @@ PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data,
     down_chunk_process(data, length);
   }
 
-  if (!m_downloadQueue.transfer()->is_finished())
+  if (m_downloadQueue.transfer() != NULL && !m_downloadQueue.transfer()->is_finished())
     throw internal_error("PeerConnectionMetadata::receive_metadata_piece did not have complete piece.");
 
   m_tryRequest = true;
