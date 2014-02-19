@@ -48,6 +48,8 @@ inline int64_t
 instrumentation_fetch_and_clear(instrumentation_enum type) {
 #ifdef LT_INSTRUMENTATION
   return __sync_fetch_and_and(&instrumentation_values[type], int64_t());
+#else
+  return 0;
 #endif
 }
 
