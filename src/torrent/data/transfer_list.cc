@@ -59,6 +59,13 @@ TransferList::TransferList() :
   m_succeededCount(0),
   m_failedCount(0) { }
 
+// TODO: Derp if transfer list isn't cleared...
+
+TransferList::~TransferList() {
+  if (!base_type::empty())
+    throw internal_error("TransferList::~TransferList() called on an non-empty object");
+}
+
 TransferList::iterator
 TransferList::find(uint32_t index) {
   return std::find_if(begin(), end(), rak::equal(index, std::mem_fun(&BlockList::index)));
@@ -88,6 +95,8 @@ TransferList::insert(const Piece& piece, uint32_t blockSize) {
 
   return base_type::insert(end(), blockList);
 }
+
+// TODO: Create a destructor to ensure all blocklists have been cleared/invaldiated?
 
 TransferList::iterator
 TransferList::erase(iterator itr) {
