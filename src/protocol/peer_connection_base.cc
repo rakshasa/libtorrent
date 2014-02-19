@@ -211,6 +211,7 @@ PeerConnectionBase::cleanup() {
   if (m_download == NULL)
     throw internal_error("PeerConnection::~PeerConnection() m_fd is valid but m_state and/or m_net is NULL");
 
+  // TODO: Verify that transfer counter gets modified by this...
   m_downloadQueue.clear();
 
   up_chunk_release();
@@ -419,7 +420,10 @@ PeerConnectionBase::load_up_chunk() {
 void
 PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
   if (!get_fd().is_valid())
-    throw internal_error("PeerConnectionBase::cancel_transfer(...) !get_fd().is_valid().");
+    throw internal_error("PeerConnectionBase::cancel_transfer(...) !get_fd().is_valid()");
+
+  if (transfer->peer_info() != peer_info())
+    throw internal_error("PeerConnectionBase::cancel_transfer(...) peer info doesn't match");
 
   // We don't send cancel messages if the transfer has already
   // started.
@@ -429,7 +433,6 @@ PeerConnectionBase::cancel_transfer(BlockTransfer* transfer) {
   write_insert_poll_safe();
 
   m_peerChunks.cancel_queue()->push_back(transfer->piece());
-//   m_downloadQueue.cancel_transfer(transfer);
 }
 
 void
