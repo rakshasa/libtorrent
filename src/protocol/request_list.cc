@@ -141,7 +141,7 @@ RequestList::move_queued_to_transferring(ReserveeList::iterator itr) {
   m_transfer = *itr;
   m_queued.erase(itr);
 
-  // When we start a normal transfer we don't count it as removed.
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, 1);
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, -1);
 }
 
@@ -150,6 +150,7 @@ RequestList::move_canceled_to_transferring(ReserveeList::iterator itr) {
   m_transfer = *itr;
   m_canceled.erase(itr);
 
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED, 1);
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, -1);
 }
 
@@ -201,6 +202,8 @@ RequestList::downloading(const Piece& piece) {
   if (m_transfer != NULL)
     throw internal_error("RequestList::downloading(...) m_transfer != NULL.");
 
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING, 1);
+
   ReserveeList::iterator itr = std::find_if(m_queued.begin(), m_queued.end(), request_list_same_piece(piece));
 
   if (itr == m_queued.end()) {
@@ -236,8 +239,6 @@ RequestList::downloading(const Piece& piece) {
     instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
     goto downloading_error;
   }
-
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING, 1);
 
   // Check if piece isn't wanted anymore. Do this after the length
   // check to ensure we return a correct BlockTransfer.
@@ -295,6 +296,7 @@ RequestList::transfer_dissimilar() {
   Block::create_dummy(dummy, m_peerChunks->peer_info(), m_transfer->piece());
   dummy->set_position(m_transfer->position());
 
+  // TODO.... peer_info still on a block we no longer control?..
   m_transfer->block()->transfer_dissimilar(m_transfer);
   m_transfer = dummy;
 }
