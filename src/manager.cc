@@ -122,6 +122,8 @@ Manager::~Manager() {
 
   Throttle::destroy_throttle(m_uploadThrottle);
   Throttle::destroy_throttle(m_downloadThrottle);
+
+  instrumentation_tick();
 }
 
 void
