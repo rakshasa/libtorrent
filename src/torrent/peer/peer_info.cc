@@ -41,6 +41,7 @@
 
 #include "protocol/extensions.h"
 #include "protocol/peer_connection_base.h"
+#include "utils/instrumentation.h"
 
 #include "exceptions.h"
 #include "peer_info.h"
@@ -68,8 +69,10 @@ PeerInfo::PeerInfo(const sockaddr* address) :
 }
 
 PeerInfo::~PeerInfo() {
-  if (m_transferCounter != 0)
-    throw internal_error("PeerInfo::~PeerInfo() m_transferCounter != 0.");
+  // if (m_transferCounter != 0)
+  //   throw internal_error("PeerInfo::~PeerInfo() m_transferCounter != 0.");
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_PEER_INFO_UNACCOUNTED, m_transferCounter);
 
   if (is_blocked())
     throw internal_error("PeerInfo::~PeerInfo() peer is blocked.");
