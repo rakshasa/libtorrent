@@ -168,8 +168,8 @@ ConnectionManager::filter(const sockaddr* sa) {
 }
 
 bool
-ConnectionManager::listen_open(port_type begin, port_type end) {
-  if (!m_listen->open(begin, end, rak::socket_address::cast_from(m_bindAddress)))
+ConnectionManager::listen_open(port_type begin, port_type end, int backlog) {
+  if (!m_listen->open(begin, end, backlog, rak::socket_address::cast_from(m_bindAddress)))
     return false;
 
   m_listenPort = m_listen->port();
