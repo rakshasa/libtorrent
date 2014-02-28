@@ -55,7 +55,13 @@ public:
   typedef std::vector<BlockTransfer*>              transfer_list_type;
   typedef uint32_t                                 size_type;
 
-  Block() : m_notStalled(0), m_leader(NULL), m_failedList(NULL) { }
+  typedef enum {
+    STATE_INCOMPLETE,
+    STATE_COMPLETED,
+    STATE_INVALID
+  } state_type;
+
+  Block();
   ~Block();
 
   bool                      is_stalled() const                           { return m_notStalled == 0; }
@@ -122,8 +128,8 @@ public:
   static void               release(BlockTransfer* transfer);
 
 private:
-//   Block(const Block&);
-//   void operator = (const Block&);
+  Block(const Block&);
+  void operator = (const Block&);
 
   void                      invalidate_transfer(BlockTransfer* transfer) LIBTORRENT_NO_EXPORT;
 
@@ -133,6 +139,7 @@ private:
   BlockList*                m_parent;
   Piece                     m_piece;
   
+  state_type                m_state;
   uint32_t                  m_notStalled;
 
   transfer_list_type        m_queued;
@@ -142,6 +149,13 @@ private:
 
   BlockFailed*              m_failedList;
 };
+
+inline
+Block::Block() :
+  m_state(STATE_INCOMPLETE),
+  m_notStalled(0),
+  m_leader(NULL),
+  m_failedList(NULL) { }
 
 inline BlockTransfer*
 Block::find(const PeerInfo* p) {

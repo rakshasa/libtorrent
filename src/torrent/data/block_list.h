@@ -44,24 +44,64 @@
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT BlockList : public std::vector<Block> {
+// Temporary workaround until we can use C++11's std::vector::emblace_back.
+template <typename Type>
+class no_copy_vector {
 public:
-  typedef std::vector<Block> base_type;
-  typedef uint32_t           size_type;
+  typedef Type        value_type;
+  typedef size_t      size_type;
+  typedef value_type& reference;
+  typedef ptrdiff_t   difference_type;
+
+  typedef value_type*       iterator;
+  typedef const value_type* const_iterator;
+
+  no_copy_vector() : m_size(0), m_values(NULL) {}
+  ~no_copy_vector() { clear(); }
+
+  size_type size() const { return m_size; }
+  bool      empty() const { return m_size == 0; }
+
+  void resize(size_type s) { clear(); m_size = s; m_values = new value_type[s]; }
+
+  void clear() { delete [] m_values; m_values = NULL; m_size = 0; }
+
+  iterator       begin() { return m_values; }
+  const_iterator begin() const { return m_values; }
+
+  iterator       end() { return m_values + m_size; }
+  const_iterator end() const { return m_values + m_size; }
+
+  value_type&    back() { return *(m_values + m_size - 1); }
+
+  value_type&    operator[](size_type idx) { return m_values[idx]; }
+
+private:
+  no_copy_vector(const no_copy_vector&);
+  void operator = (const no_copy_vector&);
+
+  size_type m_size;
+  Block*    m_values;
+};
+
+class LIBTORRENT_EXPORT BlockList : public no_copy_vector<Block> {
+public:
+  typedef no_copy_vector<Block> base_type;
+  typedef uint32_t              size_type;
 
   using base_type::value_type;
   using base_type::reference;
   using base_type::difference_type;
 
   using base_type::iterator;
-  using base_type::reverse_iterator;
+  // using base_type::reverse_iterator;
   using base_type::size;
   using base_type::empty;
 
   using base_type::begin;
   using base_type::end;
-  using base_type::rbegin;
-  using base_type::rend;
+  // using base_type::rbegin;
+  // using base_type::rend;
 
   using base_type::operator[];
 

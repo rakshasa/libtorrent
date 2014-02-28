@@ -38,7 +38,9 @@
 #define LIBTORRENT_BLOCK_TRANSFER_H
 
 #include <torrent/common.h>
+#include <torrent/exceptions.h>
 #include <torrent/data/piece.h>
+#include <torrent/peer/peer_info.h>
 #include <cstdlib>
 
 namespace torrent {
@@ -56,8 +58,10 @@ public:
     STATE_NOT_LEADER
   } state_type;
 
-  BlockTransfer() {}
+  BlockTransfer();
+  ~BlockTransfer();
 
+  // TODO: Do we need to also check for peer_info?...
   bool                is_valid() const              { return m_block != NULL; }
 
   bool                is_erased() const             { return m_state == STATE_ERASED; }
@@ -67,8 +71,8 @@ public:
 
   bool                is_finished() const           { return m_position == m_piece.length(); }
 
-  key_type            peer_info()                   { return m_peerInfo; }
-  const key_type      const_peer_info() const       { return m_peerInfo; }
+  key_type            peer_info()                   { return m_peer_info; }
+  const key_type      const_peer_info() const       { return m_peer_info; }
 
   Block*              block()                       { return m_block; }
   const Block*        const_block() const           { return m_block; }
@@ -84,7 +88,7 @@ public:
   uint32_t            stall() const                 { return m_stall; }
   uint32_t            failed_index() const          { return m_failedIndex; }
 
-  void                set_peer_info(key_type p)     { m_peerInfo = p; }
+  void                set_peer_info(key_type p);
   void                set_block(Block* b)           { m_block = b; }
   void                set_piece(const Piece& p)     { m_piece = p; }
   void                set_state(state_type s)       { m_state = s; }
@@ -100,7 +104,7 @@ private:
   BlockTransfer(const BlockTransfer&);
   void operator = (const BlockTransfer&);
 
-  key_type            m_peerInfo;
+  key_type            m_peer_info;
   Block*              m_block;
   Piece               m_piece;
 
@@ -111,6 +115,33 @@ private:
   uint32_t            m_stall;
   uint32_t            m_failedIndex;
 };
+
+inline
+BlockTransfer::BlockTransfer() :
+  m_peer_info(NULL),
+  m_block(NULL)
+{
+}
+
+inline
+BlockTransfer::~BlockTransfer() {
+  if (m_block != NULL)
+    throw internal_error("BlockTransfer::~BlockTransfer() block not NULL");
+
+  if (m_peer_info != NULL)
+    throw internal_error("BlockTransfer::~BlockTransfer() peer_info not NULL");
+}
+
+inline void
+BlockTransfer::set_peer_info(key_type p) {
+  if (m_peer_info != NULL)
+    m_peer_info->dec_transfer_counter();
+
+  m_peer_info = p;
+
+  if (m_peer_info != NULL)
+    m_peer_info->inc_transfer_counter();
+}
 
 }
 
