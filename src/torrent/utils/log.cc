@@ -73,10 +73,12 @@ struct log_cache_entry {
 };
 
 struct log_gz_output {
-  log_gz_output(const char* filename) { gz_file = gzopen(filename, "wh"); }
+  log_gz_output(const char* filename) { gz_file = gzopen(filename, "w"); }
   ~log_gz_output() { if (gz_file != NULL) gzclose(gz_file); }
 
   bool is_valid() { return gz_file != Z_NULL; }
+
+  bool set_buffer(unsigned size) { return gzbuffer(gz_file, size) == 0; }
 
   gzFile gz_file;
 };
@@ -408,6 +410,9 @@ log_open_gz_file_output(const char* name, const char* filename) {
 
   if (!outfile->is_valid())
     throw input_error("Could not open log gzip file '" + std::string(filename) + "'.");
+
+  // if (!outfile->set_buffer(1 << 14))
+  //   throw input_error("Could not set gzip log file buffer size.");
 
   log_open_output(name, std::tr1::bind(&log_gz_file_write, outfile,
                                        std::tr1::placeholders::_1,
