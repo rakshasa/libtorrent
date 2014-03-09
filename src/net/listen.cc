@@ -52,13 +52,13 @@
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress) {
+Listen::open(uint16_t first, uint16_t last, uint32_t backlog, const rak::socket_address* bindAddress) {
   close();
 
   if (first == 0 || last == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
-  if (backlog < 0)
+  if (backlog >= (uint32_t)1 << 31)
     throw input_error("Tried to open listening port with an invalid backlog.");
 
   if (bindAddress->family() != rak::socket_address::af_inet &&
