@@ -55,6 +55,7 @@ public:
     m_peerChunks(NULL),
     m_transfer(NULL),
     m_affinity(-1) {}
+  ~RequestList();
 
   // Some parameters here, like how fast we are downloading and stuff
   // when we start considering those.

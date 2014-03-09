@@ -169,6 +169,17 @@ RequestList::delegate() {
   }
 }
 
+RequestList::~RequestList() {
+  if (m_transfer != NULL)
+    throw internal_error("request dtor m_transfer != NULL");
+
+  if (!m_queued.empty())
+    throw internal_error("request dtor m_queued not empty");
+
+  if (!m_canceled.empty())
+    throw internal_error("request dtor m_queued not empty");
+}
+
 // Replace m_canceled with m_queued and set them to stalled.
 //
 // This doesn't seem entirely correct... Perhaps canceled requests
