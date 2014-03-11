@@ -6,6 +6,7 @@ class TestRequestList : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(TestRequestList);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_single_request);
+  CPPUNIT_TEST(test_single_canceled);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -15,4 +16,5 @@ public:
   void test_basic();
 
   void test_single_request();
+  void test_single_canceled();
 };
