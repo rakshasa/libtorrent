@@ -144,7 +144,7 @@ public:
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
 
-  bool                listen_open(port_type begin, port_type end);
+  bool                listen_open(port_type begin, port_type end, int backlog = SOMAXCONN);
   void                listen_close();  
 
   // Since trackers need our port number, it doesn't get cleared after
