@@ -97,6 +97,7 @@ extern std::tr1::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values
 void instrumentation_initialize();
 void instrumentation_update(instrumentation_enum type, int64_t change);
 void instrumentation_tick();
+void instrumentation_reset();
 
 //
 // Implementation:
