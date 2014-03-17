@@ -326,6 +326,7 @@ Block::release(BlockTransfer* transfer) {
   if (!transfer->is_valid())
     delete transfer;
   else
+    // TODO: Do we need to verify that the block is 'this'?
     transfer->block()->erase(transfer);
 }
 

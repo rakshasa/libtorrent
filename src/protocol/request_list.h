@@ -40,6 +40,7 @@
 #include <deque>
 
 #include "torrent/data/block_transfer.h"
+#include "utils/queue_buckets.h"
 
 namespace torrent {
 
@@ -49,6 +50,8 @@ class Delegator;
 class RequestList {
 public:
   typedef std::deque<BlockTransfer*> ReserveeList;
+
+  typedef torrent::queue_buckets<BlockTransfer*, test_constants> buckets_type;
 
   RequestList() :
     m_delegator(NULL),
@@ -125,6 +128,8 @@ private:
 
   ReserveeList         m_queued;
   ReserveeList         m_canceled;
+
+  buckets_type         m_buckets;
 };
 
 }

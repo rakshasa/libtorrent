@@ -50,6 +50,20 @@
 #include "peer_chunks.h"
 #include "request_list.h"
 
+// CLEANUP:
+const torrent::instrumentation_enum test_constants::instrumentation_added[bucket_count] = {
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED
+};
+const torrent::instrumentation_enum test_constants::instrumentation_removed[bucket_count] = {
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED,
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED
+};
+const torrent::instrumentation_enum test_constants::instrumentation_total[bucket_count] = {
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL
+};
+
 namespace torrent {
 
 // TODO: Add a to-be-cancelled list, timer, and use that to avoid

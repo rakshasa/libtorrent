@@ -65,6 +65,8 @@ LibTorrentTest_SOURCES = \
 	torrent/utils/net_test.h \
 	torrent/utils/option_strings_test.cc \
 	torrent/utils/option_strings_test.h \
+	torrent/utils/test_queue_buckets.cc \
+	torrent/utils/test_queue_buckets.h \
 	torrent/utils/signal_bitfield_test.cc \
 	torrent/utils/signal_bitfield_test.h \
 	torrent/utils/thread_base_test.cc \
