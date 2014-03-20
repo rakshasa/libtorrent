@@ -83,6 +83,9 @@ public:
   void pop_front(int idx);
   void pop_back(int idx);
 
+  value_type pop_and_front(int idx);
+  value_type pop_and_back(int idx);
+
   void push_front(int idx, const value_type& value_type);
   void push_back(int idx, const value_type& value_type);
 
@@ -119,6 +122,22 @@ queue_buckets<Type, Constants>::pop_back(int idx) {
 
   instrumentation_update(constants::instrumentation_removed[idx], 1);
   instrumentation_update(constants::instrumentation_total[idx], -1);
+}
+
+template <typename Type, typename Constants>
+inline typename queue_buckets<Type, Constants>::value_type
+queue_buckets<Type, Constants>::pop_and_front(int idx) {
+  value_type v = front(idx);
+  pop_front(idx);
+  return v;
+}
+
+template <typename Type, typename Constants>
+inline typename queue_buckets<Type, Constants>::value_type
+queue_buckets<Type, Constants>::pop_and_back(int idx) {
+  value_type v = back(idx);
+  pop_back(idx);
+  return v;
 }
 
 template <typename Type, typename Constants>
