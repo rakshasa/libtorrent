@@ -50,21 +50,27 @@
 #include "peer_chunks.h"
 #include "request_list.h"
 
-// CLEANUP:
-const torrent::instrumentation_enum test_constants::instrumentation_added[bucket_count] = {
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED
+namespace torrent {
+
+const instrumentation_enum request_list_constants::instrumentation_added[bucket_count] = {
+  INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED
 };
-const torrent::instrumentation_enum test_constants::instrumentation_removed[bucket_count] = {
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED,
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED
+const instrumentation_enum request_list_constants::instrumentation_removed[bucket_count] = {
+  INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED
 };
-const torrent::instrumentation_enum test_constants::instrumentation_total[bucket_count] = {
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL
+const instrumentation_enum request_list_constants::instrumentation_total[bucket_count] = {
+  INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL
 };
 
-namespace torrent {
+// Make inline...
+template <>
+void
+request_list_constants::destroy<BlockTransfer*>(BlockTransfer*& obj) {
+  Block::release(obj);
+}
 
 // TODO: Add a to-be-cancelled list, timer, and use that to avoid
 // cancelling pieces on CHOKE->UNCHOKE weirdness in some clients.
@@ -89,92 +95,13 @@ struct request_list_same_piece {
   Piece m_piece;
 };
 
-inline BlockTransfer*
-RequestList::pop_front_queued() {
-  BlockTransfer* transfer = m_queued.front();
-  m_queued.pop_front();
-
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, 1);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, -1);
-
-  return transfer;
-}
-
-inline void
-RequestList::push_back_queued(BlockTransfer* r) {
-  m_queued.push_back(r);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED, 1);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, 1);
-}
-
-inline void
-RequestList::push_back_canceled(BlockTransfer* r) {
-  m_canceled.push_back(r);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED, 1);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, 1);
-}
-
-inline void
-RequestList::release_queued_range(ReserveeList::iterator begin, ReserveeList::iterator end) {
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, std::distance(begin, end));
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, -(int64_t)std::distance(begin, end));
-
-  std::for_each(begin, end, std::ptr_fun(&Block::release));
-  m_queued.erase(begin, end);
-}
-
-inline void
-RequestList::release_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end) {
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED, std::distance(begin, end));
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, -(int64_t)std::distance(begin, end));
-
-  std::for_each(begin, end, std::ptr_fun(&Block::release));
-  m_canceled.erase(begin, end);
-}
-
-inline void
-RequestList::move_to_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end) {
-  int64_t range_size = std::distance(begin, end);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED, range_size);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, range_size);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, range_size);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,  -range_size);
-
-  std::for_each(begin, end, std::ptr_fun(&Block::stalled));
-
-  if (m_canceled.empty() && begin == m_queued.begin() && end == m_queued.end()) {
-    m_canceled.swap(m_queued);
-  } else {
-    m_canceled.insert(m_canceled.end(), begin, end);
-    m_queued.erase(begin, end);
-  }
-}
-
-inline void
-RequestList::move_queued_to_transferring(ReserveeList::iterator itr) {
-  m_transfer = *itr;
-  m_queued.erase(itr);
-
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED, 1);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL, -1);
-}
-
-inline void
-RequestList::move_canceled_to_transferring(ReserveeList::iterator itr) {
-  m_transfer = *itr;
-  m_canceled.erase(itr);
-
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED, 1);
-  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL, -1);
-}
-
 const Piece*
 RequestList::delegate() {
   BlockTransfer* r = m_delegator->delegate(m_peerChunks, m_affinity);
 
   if (r) {
     m_affinity = r->index();
-    push_back_queued(r);
+    m_queues.push_back(bucket_queued, r);
 
     return &r->piece();
 
@@ -187,11 +114,8 @@ RequestList::~RequestList() {
   if (m_transfer != NULL)
     throw internal_error("request dtor m_transfer != NULL");
 
-  if (!m_queued.empty())
-    throw internal_error("request dtor m_queued not empty");
-
-  if (!m_canceled.empty())
-    throw internal_error("request dtor m_queued not empty");
+  if (!m_queues.queue_empty(bucket_queued) || !m_queues.queue_empty(bucket_canceled))
+    throw internal_error("request dtor m_queues not empty");
 }
 
 // Replace m_canceled with m_queued and set them to stalled.
@@ -201,8 +125,10 @@ RequestList::~RequestList() {
 // them out?
 void
 RequestList::cancel() {
-  release_canceled_range(m_canceled.begin(), m_canceled.end());
-  move_to_canceled_range(m_queued.begin(), m_queued.end());
+  m_queues.clear(bucket_canceled);
+
+  queue_bucket_for_all_in_queue(m_queues, bucket_canceled, std::ptr_fun(&Block::stalled));
+  m_queues.move_all_to(bucket_queued, bucket_canceled);
 }
 
 void
@@ -210,7 +136,7 @@ RequestList::stall() {
   if (m_transfer != NULL)
     Block::stalled(m_transfer);
 
-  std::for_each(m_queued.begin(), m_queued.end(), std::ptr_fun(&Block::stalled));
+  queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
 }
 
 void
@@ -218,8 +144,8 @@ RequestList::clear() {
   if (is_downloading())
     skipped();
 
-  release_queued_range(m_queued.begin(), m_queued.end());
-  release_canceled_range(m_canceled.begin(), m_canceled.end());
+  m_queues.clear(bucket_queued);
+  m_queues.clear(bucket_canceled);
 }
 
 bool
@@ -229,25 +155,25 @@ RequestList::downloading(const Piece& piece) {
 
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING, 1);
 
-  ReserveeList::iterator itr = std::find_if(m_queued.begin(), m_queued.end(), request_list_same_piece(piece));
+  queues_type::iterator itr = queue_bucket_find_if_in_queue(m_queues, bucket_queued, request_list_same_piece(piece));
 
-  if (itr == m_queued.end()) {
-    itr = std::find_if(m_canceled.begin(), m_canceled.end(), request_list_same_piece(piece));
+  if (itr == m_queues.end(bucket_queued)) {
+    itr = queue_bucket_find_if_in_queue(m_queues, bucket_canceled, request_list_same_piece(piece));
 
-    if (itr == m_canceled.end()) {
+    if (itr == m_queues.end(bucket_canceled)) {
       // Consider counting these pieces as spam.
       instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
       goto downloading_error;
     }
 
-    move_canceled_to_transferring(itr);
+    m_transfer = m_queues.take(bucket_canceled, itr);
 
-  } else if (itr == m_queued.end()) {
-    move_queued_to_transferring(itr);
+  } else if (itr == m_queues.end(bucket_queued)) {
+    m_transfer = m_queues.take(bucket_queued, itr);
 
   } else {
     cancel_range(itr);
-    move_queued_to_transferring(itr);
+    m_transfer = m_queues.take(bucket_queued, itr);
   }
   
   // We received an invalid piece length, propably zero length due to
@@ -345,7 +271,8 @@ RequestList::is_interested_in_active() const {
 
 bool
 RequestList::has_index(uint32_t index) {
-  return std::find_if(m_queued.begin(), m_queued.end(), std::bind2nd(equals_reservee(), index)) != m_queued.end();
+  return queue_bucket_find_if_in_queue(m_queues, bucket_queued, std::bind2nd(equals_reservee(), index))
+    != m_queues.end(bucket_queued);
 }
 
 struct request_list_keep_request {
@@ -355,7 +282,7 @@ struct request_list_keep_request {
 };
 
 void
-RequestList::cancel_range(ReserveeList::iterator end) {
+RequestList::cancel_range(queues_type::iterator end) {
   // This only gets called when it's downloading a non-canceled piece,
   // so to avoid a backlog of canceled pieces we need to empty it
   // here.
@@ -364,26 +291,27 @@ RequestList::cancel_range(ReserveeList::iterator end) {
   // reordering.
   //
   // Add some extra checks here to avoid clearing too often.
-  if (!m_canceled.empty()) {
+  if (!m_queues.queue_empty(bucket_canceled)) {
     // Old buggy...
-    // release_canceled_range(m_canceled.begin(), m_canceled.end());
+    // release_canceled_range(m_canceled.begin(), m_queues.end(bucket_canceled));
 
 
     // Only release if !valid or... if we've been choked/unchoked
     // since last time, include a timer for both choke and unchoke.
 
     // First remove all the !valid pieces...
-    ReserveeList::iterator itr = std::partition(m_canceled.begin(), m_canceled.end(), request_list_keep_request());
+    queues_type::iterator itr = std::partition(m_queues.begin(bucket_canceled), m_queues.end(bucket_canceled),
+                                                request_list_keep_request());
 
-    release_canceled_range(itr, m_canceled.end());
+    m_queues.destroy(bucket_canceled, itr, m_queues.end(bucket_canceled));
   }
 
-  while (m_queued.begin() != end) {
-    BlockTransfer* transfer = pop_front_queued();
+  while (m_queues.begin(bucket_queued) != end) {
+    BlockTransfer* transfer = m_queues.pop_and_front(bucket_queued);
 
     if (request_list_keep_request()(transfer)) {
       Block::stalled(transfer);
-      push_back_canceled(transfer);
+      m_queues.push_back(bucket_canceled, transfer);
 
     } else {
       Block::release(transfer);

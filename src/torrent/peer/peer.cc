@@ -84,7 +84,7 @@ Peer::transfer() const {
     return c_ptr()->download_queue()->transfer();
 
   else if (!c_ptr()->download_queue()->queued_empty())
-    return c_ptr()->download_queue()->queued_transfer(0);
+    return c_ptr()->download_queue()->queued_front();
 
   else
     return NULL;

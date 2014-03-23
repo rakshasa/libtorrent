@@ -40,6 +40,7 @@
 #include <deque>
 
 #include "torrent/data/block_transfer.h"
+#include "utils/instrumentation.h"
 #include "utils/queue_buckets.h"
 
 namespace torrent {
@@ -47,11 +48,23 @@ namespace torrent {
 class PeerChunks;
 class Delegator;
 
+struct request_list_constants {
+  static const int bucket_count = 2;
+
+  static const torrent::instrumentation_enum instrumentation_added[bucket_count];
+  static const torrent::instrumentation_enum instrumentation_removed[bucket_count];
+  static const torrent::instrumentation_enum instrumentation_total[bucket_count];
+
+  template <typename Type>
+  static void destroy(Type& obj);
+};
+
 class RequestList {
 public:
-  typedef std::deque<BlockTransfer*> ReserveeList;
+  typedef torrent::queue_buckets<BlockTransfer*, request_list_constants> queues_type;
 
-  typedef torrent::queue_buckets<BlockTransfer*, test_constants> buckets_type;
+  static const int bucket_queued = 0;
+  static const int bucket_canceled = 1;
 
   RequestList() :
     m_delegator(NULL),
@@ -80,18 +93,17 @@ public:
 
 //   void                 cancel_transfer(BlockTransfer* transfer);
 
-  bool                 is_downloading()                  { return m_transfer != NULL; }
+  bool                 is_downloading()                   { return m_transfer != NULL; }
   bool                 is_interested_in_active() const;
 
   bool                 has_index(uint32_t i);
 
-  bool                 queued_empty() const               { return m_queued.empty(); }
-  size_t               queued_size() const                { return m_queued.size(); }
+  const Piece&         next_queued_piece() const          { return m_queues.front(bucket_queued)->piece(); }
 
-  const Piece&         next_queued_piece() const          { return m_queued.front()->piece(); }
-
-  bool                 canceled_empty() const             { return m_canceled.empty(); }
-  size_t               canceled_size() const              { return m_queued.size(); }
+  bool                 queued_empty() const               { return m_queues.queue_empty(bucket_queued); }
+  size_t               queued_size() const                { return m_queues.queue_size(bucket_queued); }
+  bool                 canceled_empty() const             { return m_queues.queue_empty(bucket_canceled); }
+  size_t               canceled_size() const              { return m_queues.queue_size(bucket_canceled); }
 
   uint32_t             calculate_pipe_size(uint32_t rate);
 
@@ -101,35 +113,19 @@ public:
   BlockTransfer*       transfer()                        { return m_transfer; }
   const BlockTransfer* transfer() const                  { return m_transfer; }
 
-  const BlockTransfer* queued_transfer(uint32_t i) const { return m_queued[i]; }
+  const BlockTransfer* queued_front() const              { return m_queues.front(bucket_queued); }
 
 private:
-  void                 cancel_range(ReserveeList::iterator end);
-
-  inline BlockTransfer* pop_front_queued();
-
-  inline void          push_back_queued(BlockTransfer* r);
-  inline void          push_back_canceled(BlockTransfer* r);
-
-  inline void          release_queued_range(ReserveeList::iterator begin, ReserveeList::iterator end);
-  inline void          release_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end);
-  inline void          move_to_canceled_range(ReserveeList::iterator begin, ReserveeList::iterator end);
-
-  inline void          move_queued_to_transferring(ReserveeList::iterator itr);
-  inline void          move_canceled_to_transferring(ReserveeList::iterator itr);
+  void                 cancel_range(queues_type::iterator end);
 
   Delegator*           m_delegator;
   PeerChunks*          m_peerChunks;
 
   BlockTransfer*       m_transfer;
 
-  // Replace m_downloading with a pointer to BlockTransfer.
   int32_t              m_affinity;
 
-  ReserveeList         m_queued;
-  ReserveeList         m_canceled;
-
-  buckets_type         m_buckets;
+  queues_type          m_queues;
 };
 
 }
