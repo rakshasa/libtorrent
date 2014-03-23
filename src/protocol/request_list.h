@@ -91,8 +91,6 @@ public:
 
   void                 transfer_dissimilar();
 
-//   void                 cancel_transfer(BlockTransfer* transfer);
-
   bool                 is_downloading()                   { return m_transfer != NULL; }
   bool                 is_interested_in_active() const;
 

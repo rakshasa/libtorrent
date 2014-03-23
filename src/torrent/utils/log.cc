@@ -78,7 +78,7 @@ struct log_gz_output {
 
   bool is_valid() { return gz_file != Z_NULL; }
 
-  bool set_buffer(unsigned size) { return gzbuffer(gz_file, size) == 0; }
+  // bool set_buffer(unsigned size) { return gzbuffer(gz_file, size) == 0; }
 
   gzFile gz_file;
 };
