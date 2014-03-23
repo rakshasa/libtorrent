@@ -45,6 +45,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
+#include "torrent/utils/log.h"
 
 #include "listen.h"
 #include "manager.h"
@@ -52,7 +53,7 @@
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddress) {
+Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress) {
   close();
 
   if (first == 0 || last == 0 || first > last)
@@ -73,7 +74,7 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
   for (uint16_t i = first; i <= last; ++i) {
     sa.set_port(i);
 
-    if (get_fd().bind(sa) && get_fd().listen(50)) {
+    if (get_fd().bind(sa) && get_fd().listen(backlog)) {
       m_port = i;
 
       manager->connection_manager()->inc_socket_count();
@@ -82,6 +83,9 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
       manager->poll()->insert_read(this);
       manager->poll()->insert_error(this);
 
+      lt_log_print(LOG_CONNECTION_INFO, "listen port %" PRIu16 " opened with backlog set to %i",
+                   m_port, backlog);
+
       return true;
     }
   }
@@ -89,6 +93,8 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
   // This needs to be done if local_error is thrown too...
   get_fd().close();
   get_fd().clear();
+
+  lt_log_print(LOG_CONNECTION_INFO, "failed to open listen port");
 
   return false;
 }

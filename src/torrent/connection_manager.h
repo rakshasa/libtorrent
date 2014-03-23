@@ -150,9 +150,10 @@ public:
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,
   // but do note that it gets overwritten after 'listen_open(...)'.
-  port_type           listen_port() const                     { return m_listenPort; }
-  void                set_listen_port(port_type p)            { m_listenPort = p; }
-
+  port_type           listen_port() const                     { return m_listen_port; }
+  int                 listen_backlog() const                  { return m_listen_backlog; }
+  void                set_listen_port(port_type p)            { m_listen_port = p; }
+  void                set_listen_backlog(int v);
 
   // The resolver returns a pointer to its copy of the result slot
   // which the caller may set blocked to prevent the slot from being
@@ -184,11 +185,12 @@ private:
   sockaddr*           m_proxyAddress;
 
   Listen*             m_listen;
-  port_type           m_listenPort;
+  port_type           m_listen_port;
+  uint32_t            m_listen_backlog;
 
-  slot_filter_type      m_slot_filter;
-  slot_resolver_type    m_slot_resolver;
-  slot_throttle_type    m_slot_address_throttle;
+  slot_filter_type    m_slot_filter;
+  slot_resolver_type  m_slot_resolver;
+  slot_throttle_type  m_slot_address_throttle;
 };
 
 }
