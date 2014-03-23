@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "extents_test.h"
+#include "test_extents.h"
 
 #include <inttypes.h>
 #include <iostream>
