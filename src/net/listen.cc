@@ -56,7 +56,7 @@ bool
 Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress) {
   close();
 
-  if (first == 0 || last == 0 || first > last)
+  if (first == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
   if (bindAddress->family() != rak::socket_address::af_inet &&
@@ -71,11 +71,11 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
   rak::socket_address sa;
   sa.copy(*bindAddress, bindAddress->length());
 
-  for (uint16_t i = first; i <= last; ++i) {
-    sa.set_port(i);
+  do {
+    sa.set_port(first);
 
     if (get_fd().bind(sa) && get_fd().listen(backlog)) {
-      m_port = i;
+      m_port = first;
 
       manager->connection_manager()->inc_socket_count();
 
@@ -87,8 +87,9 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
                    m_port, backlog);
 
       return true;
+
     }
-  }
+  } while (first++ < last);
 
   // This needs to be done if local_error is thrown too...
   get_fd().close();
@@ -121,7 +122,7 @@ Listen::event_read() {
   SocketFd fd;
 
   while ((fd = get_fd().accept(&sa)).is_valid())
-    m_slotIncoming(fd, sa);
+    m_slot_accepted(fd, sa);
 }
 
 void

@@ -93,9 +93,12 @@ Manager::Manager() :
 
   priority_queue_insert(&taskScheduler, &m_taskTick, cachedTime.round_seconds());
 
-  m_handshakeManager->slot_download_id(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main));
-  m_handshakeManager->slot_download_id_obfuscated(rak::make_mem_fun(m_downloadManager, &DownloadManager::find_main_obfuscated));
-  m_connectionManager->listen()->slot_incoming(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_incoming));
+  m_handshakeManager->slot_download_id() =
+    std::tr1::bind(&DownloadManager::find_main, m_downloadManager, std::tr1::placeholders::_1);
+  m_handshakeManager->slot_download_obfuscated() =
+    std::tr1::bind(&DownloadManager::find_main_obfuscated, m_downloadManager, std::tr1::placeholders::_1);
+  m_connectionManager->listen()->slot_accepted() =
+    std::tr1::bind(&HandshakeManager::add_incoming, m_handshakeManager, std::tr1::placeholders::_1, std::tr1::placeholders::_2);
 
   // m_resourceManager->push_group("default");
   // m_resourceManager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);

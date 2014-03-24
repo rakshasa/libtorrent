@@ -41,6 +41,7 @@
 #include <numeric>
 #include <cstdlib>
 #include <tr1/functional>
+#include <rak/functional.h>
 
 #include "protocol/peer_connection_base.h"
 #include "torrent/download/group_entry.h"

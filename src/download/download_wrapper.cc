@@ -123,9 +123,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   m_hashChecker = new HashTorrent(m_main->chunk_list());
 
   // Connect various signals and slots.
-  m_hashChecker->slot_check(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
-//   m_hashChecker->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
-
+  m_hashChecker->slot_check_chunk() = std::tr1::bind(&DownloadWrapper::check_chunk_hash, this, std::tr1::placeholders::_1);
   m_hashChecker->delay_checked().slot() = std::tr1::bind(&DownloadWrapper::receive_initial_hash, this);
 }
 
