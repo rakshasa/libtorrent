@@ -136,7 +136,7 @@ queue_buckets<Type, Constants>::pop_back(int idx) {
 template <typename Type, typename Constants>
 inline typename queue_buckets<Type, Constants>::value_type
 queue_buckets<Type, Constants>::pop_and_front(int idx) {
-  value_type v = front(idx);
+  value_type v = queue_at(idx).front();
   pop_front(idx);
   return v;
 }
@@ -144,7 +144,7 @@ queue_buckets<Type, Constants>::pop_and_front(int idx) {
 template <typename Type, typename Constants>
 inline typename queue_buckets<Type, Constants>::value_type
 queue_buckets<Type, Constants>::pop_and_back(int idx) {
-  value_type v = back(idx);
+  value_type v = queue_at(idx).back();
   pop_back(idx);
   return v;
 }
@@ -223,7 +223,7 @@ queue_buckets<Type, Constants>::move_to(int src_idx, iterator src_begin, iterato
 template <typename Type, typename Constants>
 inline void
 queue_buckets<Type, Constants>::move_all_to(int src_idx, int dst_idx) {
-  move_to(src_idx, begin(src_idx), end(src_idx), dst_idx);
+  move_to(src_idx, queue_at(src_idx).begin(), queue_at(src_idx).end(), dst_idx);
 }
 
 }
