@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
