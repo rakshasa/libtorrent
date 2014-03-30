@@ -103,9 +103,9 @@ TestRequestList::test_basic() {
   CPPUNIT_ASSERT(!request_list->is_downloading());
   CPPUNIT_ASSERT(!request_list->is_interested_in_active());
 
-  CPPUNIT_ASSERT(!request_list->has_index(0));
-  CPPUNIT_ASSERT(!request_list->has_index(1));
-  CPPUNIT_ASSERT(!request_list->has_index(1024));
+  // CPPUNIT_ASSERT(!request_list->has_index(0));
+  // CPPUNIT_ASSERT(!request_list->has_index(1));
+  // CPPUNIT_ASSERT(!request_list->has_index(1024));
 
   CPPUNIT_ASSERT(request_list->queued_empty());
   CPPUNIT_ASSERT(request_list->queued_size() == 0);

@@ -95,27 +95,41 @@ struct request_list_same_piece {
   Piece m_piece;
 };
 
-const Piece*
-RequestList::delegate() {
-  BlockTransfer* r = m_delegator->delegate(m_peerChunks, m_affinity);
-
-  if (r) {
-    m_affinity = r->index();
-    m_queues.push_back(bucket_queued, r);
-
-    return &r->piece();
-
-  } else {
-    return NULL;
-  }
-}
-
 RequestList::~RequestList() {
   if (m_transfer != NULL)
     throw internal_error("request dtor m_transfer != NULL");
 
   if (!m_queues.queue_empty(bucket_queued) || !m_queues.queue_empty(bucket_canceled))
     throw internal_error("request dtor m_queues not empty");
+}
+
+const Piece*
+RequestList::delegate() {
+  BlockTransfer* transfer = m_delegator->delegate(m_peerChunks, m_affinity);
+
+  if (transfer == NULL)
+    return NULL;
+
+  m_affinity = transfer->index();
+  m_queues.push_back(bucket_queued, transfer);
+
+  return &transfer->piece();
+}
+
+void
+RequestList::stall_initial() {
+  m_queues.clear(bucket_canceled);
+
+  queue_bucket_for_all_in_queue(m_queues, bucket_canceled, std::ptr_fun(&Block::stalled));
+  m_queues.move_all_to(bucket_queued, bucket_canceled);
+}
+
+void
+RequestList::stall_prolonged() {
+  if (m_transfer != NULL)
+    Block::stalled(m_transfer);
+
+  queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
 }
 
 // Replace m_canceled with m_queued and set them to stalled.
@@ -129,14 +143,6 @@ RequestList::cancel() {
 
   queue_bucket_for_all_in_queue(m_queues, bucket_canceled, std::ptr_fun(&Block::stalled));
   m_queues.move_all_to(bucket_queued, bucket_canceled);
-}
-
-void
-RequestList::stall() {
-  if (m_transfer != NULL)
-    Block::stalled(m_transfer);
-
-  queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
 }
 
 void
@@ -269,11 +275,11 @@ RequestList::is_interested_in_active() const {
   return false;
 }
 
-bool
-RequestList::has_index(uint32_t index) {
-  return queue_bucket_find_if_in_queue(m_queues, bucket_queued, std::bind2nd(equals_reservee(), index))
-    != m_queues.end(bucket_queued);
-}
+// bool
+// RequestList::has_index(uint32_t index) {
+//   return queue_bucket_find_if_in_queue(m_queues, bucket_queued, std::bind2nd(equals_reservee(), index))
+//     != m_queues.end(bucket_queued);
+// }
 
 struct request_list_keep_request {
   bool operator () (const BlockTransfer* d) {

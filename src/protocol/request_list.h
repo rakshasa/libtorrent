@@ -77,10 +77,11 @@ public:
   // when we start considering those.
   const Piece*         delegate();
 
+  void                 stall_initial();
+  void                 stall_prolonged();
+
   // If is downloading, call skip before cancel.
   void                 cancel();
-  void                 stall();
-
   void                 clear();
 
   // The returned transfer must still be valid.
@@ -94,7 +95,7 @@ public:
   bool                 is_downloading()                   { return m_transfer != NULL; }
   bool                 is_interested_in_active() const;
 
-  bool                 has_index(uint32_t i);
+  // bool                 has_index(uint32_t i);
 
   const Piece&         next_queued_piece() const          { return m_queues.front(bucket_queued)->piece(); }
 
