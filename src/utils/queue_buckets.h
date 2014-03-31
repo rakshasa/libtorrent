@@ -94,6 +94,10 @@ private:
   const queue_type& queue_at(int idx) const { return base_type::operator[](idx); }
 };
 
+//
+// Helper methods:
+//
+
 template<typename QueueBucket, typename Ftor>
 void
 queue_bucket_for_all_in_queue(QueueBucket& queues, int idx, Ftor ftor) {
@@ -101,9 +105,49 @@ queue_bucket_for_all_in_queue(QueueBucket& queues, int idx, Ftor ftor) {
 }
 
 template<typename QueueBucket, typename Ftor>
+void
+queue_bucket_for_all_in_queue(const QueueBucket& queues, int idx, Ftor ftor) {
+  std::for_each(queues.begin(idx), queues.end(idx), ftor);
+}
+
+template<typename QueueBucket, typename Ftor>
 inline typename QueueBucket::iterator
 queue_bucket_find_if_in_queue(QueueBucket& queues, int idx, Ftor ftor) {
   return std::find_if(queues.begin(idx), queues.end(idx), ftor);
+}
+
+template<typename QueueBucket, typename Ftor>
+inline typename QueueBucket::const_iterator
+queue_bucket_find_if_in_queue(const QueueBucket& queues, int idx, Ftor ftor) {
+  return std::find_if(queues.begin(idx), queues.end(idx), ftor);
+}
+
+template<typename QueueBucket, typename Ftor>
+inline std::pair<int, typename QueueBucket::iterator>
+queue_bucket_find_if_in_any(QueueBucket& queues, Ftor ftor) {
+  for (int i = 0; i < QueueBucket::constants::bucket_count; i++) {
+    typename QueueBucket::iterator itr = std::find_if(queues.begin(i), queues.end(i), ftor);
+
+    if (itr != queues.end(i))
+      return std::make_pair(i, itr);
+  }
+
+  return std::make_pair(QueueBucket::constants::bucket_count,
+                        queues.end(QueueBucket::constants::bucket_count - 1));
+}
+
+template<typename QueueBucket, typename Ftor>
+inline std::pair<int, typename QueueBucket::const_iterator>
+queue_bucket_find_if_in_any(const QueueBucket& queues, Ftor ftor) {
+  for (int i = 0; i < QueueBucket::constants::bucket_count; i++) {
+    typename QueueBucket::const_iterator itr = std::find_if(queues.begin(i), queues.end(i), ftor);
+
+    if (itr != queues.end(i))
+      return std::make_pair(i, itr);
+  }
+
+  return std::make_pair(QueueBucket::constants::bucket_count,
+                        queues.end(QueueBucket::constants::bucket_count - 1));
 }
 
 //

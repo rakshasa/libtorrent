@@ -46,11 +46,21 @@ test_constants::destroy<int>(__UNUSED int& obj) {
   items_destroyed++;
 }
 
+struct test_queue_bucket_compare {
+  test_queue_bucket_compare(int v) : m_v(v) {}
+
+  bool operator () (int obj) {
+    return m_v == obj;
+  }
+
+  int m_v;
+};
+
 #define FILL_BUCKETS(s_0, s_1)                  \
   for (int i = 0; i < s_0; i++)                 \
-    buckets.push_front(0, i);                   \
+    buckets.push_back(0, i);                    \
   for (int i = 0; i < s_1; i++)                 \
-    buckets.push_front(1, s_0 + i);
+    buckets.push_back(1, s_0 + i);
 
 #define VERIFY_QUEUE_SIZES(s_0, s_1)            \
   CPPUNIT_ASSERT(buckets.queue_size(0) == s_0); \
@@ -128,6 +138,37 @@ TestQueueBuckets::test_erase() {
   VERIFY_ITEMS_DESTROYED(5);
   VERIFY_QUEUE_SIZES(6, 0);
   VERIFY_INSTRUMENTATION(10, 0, 4, 6, 5, 0, 5, 0);
+}
+
+static buckets_type::const_iterator
+bucket_queue_find_in_queue(const buckets_type& buckets, int idx, int value) {
+  return torrent::queue_bucket_find_if_in_queue(buckets, idx, test_queue_bucket_compare(value));
+}
+
+static std::pair<int, buckets_type::const_iterator>
+bucket_queue_find_in_any(const buckets_type& buckets, int value) {
+  return torrent::queue_bucket_find_if_in_any(buckets, test_queue_bucket_compare(value));
+}
+
+void
+TestQueueBuckets::test_find() {
+  items_destroyed = 0;
+  torrent::instrumentation_initialize();
+
+  buckets_type buckets;
+
+  FILL_BUCKETS(10, 5);
+
+  CPPUNIT_ASSERT(bucket_queue_find_in_queue(buckets, 0, 0)  == buckets.begin(0));
+  CPPUNIT_ASSERT(bucket_queue_find_in_queue(buckets, 0, 10) == buckets.end(0));
+  CPPUNIT_ASSERT(bucket_queue_find_in_queue(buckets, 1, 10) == buckets.begin(1));
+  
+  CPPUNIT_ASSERT(bucket_queue_find_in_any(buckets, 0).first == 0);
+  CPPUNIT_ASSERT(bucket_queue_find_in_any(buckets, 0).second == buckets.begin(0));
+  CPPUNIT_ASSERT(bucket_queue_find_in_any(buckets, 10).first == 1);
+  CPPUNIT_ASSERT(bucket_queue_find_in_any(buckets, 10).second == buckets.begin(1));
+  CPPUNIT_ASSERT(bucket_queue_find_in_any(buckets, 20).first == 2);
+  CPPUNIT_ASSERT(bucket_queue_find_in_any(buckets, 20).second == buckets.end(1));
 }
 
 void
