@@ -39,6 +39,7 @@
 
 #include <deque>
 
+#include "rak/timer.h"
 #include "torrent/data/block_transfer.h"
 #include "utils/instrumentation.h"
 #include "utils/queue_buckets.h"
@@ -49,9 +50,10 @@ class PeerChunks;
 class Delegator;
 
 struct request_list_constants {
-  static const int bucket_count = 2;
+  static const int bucket_count = 3;
 
   static const torrent::instrumentation_enum instrumentation_added[bucket_count];
+  static const torrent::instrumentation_enum instrumentation_moved[bucket_count];
   static const torrent::instrumentation_enum instrumentation_removed[bucket_count];
   static const torrent::instrumentation_enum instrumentation_total[bucket_count];
 
@@ -63,14 +65,11 @@ class RequestList {
 public:
   typedef torrent::queue_buckets<BlockTransfer*, request_list_constants> queues_type;
 
-  static const int bucket_queued = 0;
+  static const int bucket_queued   = 0;
   static const int bucket_canceled = 1;
+  static const int bucket_choked   = 2;
 
-  RequestList() :
-    m_delegator(NULL),
-    m_peerChunks(NULL),
-    m_transfer(NULL),
-    m_affinity(-1) {}
+  RequestList();
   ~RequestList();
 
   // Some parameters here, like how fast we are downloading and stuff
@@ -80,8 +79,9 @@ public:
   void                 stall_initial();
   void                 stall_prolonged();
 
-  // If is downloading, call skip before cancel.
-  void                 cancel();
+  void                 choked();
+  void                 unchoked();
+
   void                 clear();
 
   // The returned transfer must still be valid.
@@ -122,10 +122,19 @@ private:
 
   BlockTransfer*       m_transfer;
 
-  int32_t              m_affinity;
-
   queues_type          m_queues;
+
+  int32_t              m_affinity;
+  rak::timer           m_last_choke;
 };
+
+inline
+RequestList::RequestList() :
+  m_delegator(NULL),
+  m_peerChunks(NULL),
+  m_transfer(NULL),
+  m_affinity(-1)
+{}
 
 }
 

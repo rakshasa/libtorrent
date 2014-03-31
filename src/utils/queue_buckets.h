@@ -204,7 +204,7 @@ inline void
 queue_buckets<Type, Constants>::move_to(int src_idx, iterator src_begin, iterator src_end,
                                         int dst_idx) {
   difference_type difference = std::distance(src_begin, src_end);
-  instrumentation_update(constants::instrumentation_removed[src_idx], difference);
+  instrumentation_update(constants::instrumentation_moved[src_idx], difference);
   instrumentation_update(constants::instrumentation_total[src_idx], -difference);
   instrumentation_update(constants::instrumentation_added[dst_idx], difference);
   instrumentation_update(constants::instrumentation_total[dst_idx], difference);

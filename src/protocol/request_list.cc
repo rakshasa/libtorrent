@@ -54,15 +54,23 @@ namespace torrent {
 
 const instrumentation_enum request_list_constants::instrumentation_added[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
-  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED
+  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_ADDED
+};
+const instrumentation_enum request_list_constants::instrumentation_moved[bucket_count] = {
+  INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_MOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_MOVED
 };
 const instrumentation_enum request_list_constants::instrumentation_removed[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED,
-  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED
+  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_REMOVED
 };
 const instrumentation_enum request_list_constants::instrumentation_total[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,
-  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL
+  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL,
+  INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_TOTAL
 };
 
 // Make inline...
@@ -107,6 +115,8 @@ const Piece*
 RequestList::delegate() {
   BlockTransfer* transfer = m_delegator->delegate(m_peerChunks, m_affinity);
 
+  // TODO: Instrumentation for delegated...
+
   if (transfer == NULL)
     return NULL;
 
@@ -132,17 +142,21 @@ RequestList::stall_prolonged() {
   queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
 }
 
-// Replace m_canceled with m_queued and set them to stalled.
-//
-// This doesn't seem entirely correct... Perhaps canceled requests
-// should be kept around until we hit a safe state where we may throw
-// them out?
 void
-RequestList::cancel() {
+RequestList::choked() {
   m_queues.clear(bucket_canceled);
 
   queue_bucket_for_all_in_queue(m_queues, bucket_canceled, std::ptr_fun(&Block::stalled));
   m_queues.move_all_to(bucket_queued, bucket_canceled);
+}
+
+// TODO: If done within a shot period, add cancelled transfers back to queued...
+// TODO: Log the time between choke and unchoke...
+// TODO: Wait with reverting the 'choked' requests until the peer sends us a piece?
+// TODO: Need to not mix old requests and new...
+
+void
+RequestList::unchoked() {
 }
 
 void
@@ -152,6 +166,7 @@ RequestList::clear() {
 
   m_queues.clear(bucket_queued);
   m_queues.clear(bucket_canceled);
+  m_queues.clear(bucket_choked);
 }
 
 bool

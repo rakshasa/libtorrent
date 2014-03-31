@@ -227,7 +227,7 @@ PeerConnection<type>::read_message() {
 
     down_chunk_release();
 
-    request_list()->cancel();
+    request_list()->choked();
     m_download->choke_group()->down_queue()->set_not_queued(this, &m_downChoke);
     m_down->throttle()->erase(m_peerChunks.download_throttle());
 
@@ -244,6 +244,7 @@ PeerConnection<type>::read_message() {
     if (!m_downInterested)
       return true;
 
+    request_list()->unchoked();
     m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
     return true;
 

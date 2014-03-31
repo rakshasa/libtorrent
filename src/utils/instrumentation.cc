@@ -102,22 +102,33 @@ instrumentation_tick() {
                instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS_OTHERS));
 
   lt_log_print(LOG_INSTRUMENTATION_TRANSFERS,
-               "%"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
-               " %"  PRIi64 " %" PRIi64 " %" PRIi64
-               " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64,
+               "%"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %" PRIi64,
 
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_DELEGATED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_FINISHED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_SKIPPED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN),
 
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED),
                instrumentation_values[INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL],
 
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_MOVED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED),
                instrumentation_values[INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL],
+
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_ADDED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_MOVED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_REMOVED),
+               instrumentation_values[INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_TOTAL],
+
                instrumentation_values[INSTRUMENTATION_TRANSFER_PEER_INFO_UNACCOUNTED]);
 }
 
@@ -151,16 +162,21 @@ instrumentation_reset() {
   instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS_DISK);
   instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS_OTHERS);
 
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_DELEGATED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_FINISHED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_SKIPPED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN);
 
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED);
-
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_MOVED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_ADDED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_MOVED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_REMOVED);
 }
 
 }
