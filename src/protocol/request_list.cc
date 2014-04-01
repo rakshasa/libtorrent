@@ -87,8 +87,6 @@ request_list_constants::destroy<BlockTransfer*>(BlockTransfer*& obj) {
 // pieces, perhaps add a timer for last choke and check the request
 // time on the queued pieces. This makes it possible to get going
 // again if the remote queue got cleared.
-//
-// Add unit tests...
 
 // It is assumed invalid transfers have been removed.
 struct request_list_same_piece {
@@ -109,13 +107,15 @@ RequestList::~RequestList() {
 
   if (!m_queues.queue_empty(bucket_queued) || !m_queues.queue_empty(bucket_canceled))
     throw internal_error("request dtor m_queues not empty");
+
+  priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
 }
 
 const Piece*
 RequestList::delegate() {
   BlockTransfer* transfer = m_delegator->delegate(m_peerChunks, m_affinity);
 
-  // TODO: Instrumentation for delegated...
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DELEGATED, 1);
 
   if (transfer == NULL)
     return NULL;
@@ -144,19 +144,42 @@ RequestList::stall_prolonged() {
 
 void
 RequestList::choked() {
-  m_queues.clear(bucket_canceled);
+  // Check if we want to update the choke timer; if non-zero and
+  // updated within a short timespan?
 
-  queue_bucket_for_all_in_queue(m_queues, bucket_canceled, std::ptr_fun(&Block::stalled));
-  m_queues.move_all_to(bucket_queued, bucket_canceled);
+  m_last_choke = cachedTime;
+
+  if (m_queues.queue_empty(bucket_queued) && m_queues.queue_empty(bucket_canceled))
+    return;
+
+  m_queues.move_all_to(bucket_queued, bucket_choked);
+  m_queues.move_all_to(bucket_canceled, bucket_choked);
+
+  if (!m_delay_remove_choked.is_queued())
+    priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
+                          (cachedTime + rak::timer::from_seconds(6)).round_seconds());
 }
-
-// TODO: If done within a shot period, add cancelled transfers back to queued...
-// TODO: Log the time between choke and unchoke...
-// TODO: Wait with reverting the 'choked' requests until the peer sends us a piece?
-// TODO: Need to not mix old requests and new...
 
 void
 RequestList::unchoked() {
+  m_last_unchoke = cachedTime;
+
+  priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
+
+  // Clear choked queue if the peer doesn't start sending previously
+  // requested pieces.
+  //
+  // This handles the case where a peer does a choke immediately
+  // followed unchoke before starting to send pieces.
+  if (!m_queues.queue_empty(bucket_choked)) {
+    priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
+                          (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+  }
+}
+
+void
+RequestList::delay_remove_choked() {
+  m_queues.clear(bucket_choked);
 }
 
 void
@@ -176,27 +199,32 @@ RequestList::downloading(const Piece& piece) {
 
   instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_DOWNLOADING, 1);
 
-  queues_type::iterator itr = queue_bucket_find_if_in_queue(m_queues, bucket_queued, request_list_same_piece(piece));
+  std::pair<int, queues_type::iterator> itr =
+    queue_bucket_find_if_in_any(m_queues, request_list_same_piece(piece));
 
-  if (itr == m_queues.end(bucket_queued)) {
-    itr = queue_bucket_find_if_in_queue(m_queues, bucket_canceled, request_list_same_piece(piece));
+  switch (itr.first) {
+  case bucket_queued:
+    if (itr.second != m_queues.begin(bucket_queued))
+      cancel_range(itr.second);
 
-    if (itr == m_queues.end(bucket_canceled)) {
-      // Consider counting these pieces as spam.
-      instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
-      goto downloading_error;
-    }
+    m_transfer = m_queues.take(itr.first, itr.second);
+    break;
+  case bucket_canceled:
+    m_transfer = m_queues.take(itr.first, itr.second);
+    break;
+  case bucket_choked:
+    m_transfer = m_queues.take(itr.first, itr.second);
 
-    m_transfer = m_queues.take(bucket_canceled, itr);
+    // We make sure that the choked queue eventually gets cleared if
+    // the peer has skipped sending some pieces from the choked queue.
+    priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
+    priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
+                          (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+    break;
+  default:
+    goto downloading_error;
+  };
 
-  } else if (itr == m_queues.end(bucket_queued)) {
-    m_transfer = m_queues.take(bucket_queued, itr);
-
-  } else {
-    cancel_range(itr);
-    m_transfer = m_queues.take(bucket_queued, itr);
-  }
-  
   // We received an invalid piece length, propably zero length due to
   // the peer not being able to transfer the requested piece.
   //
@@ -207,8 +235,6 @@ RequestList::downloading(const Piece& piece) {
       throw communication_error("Peer sent a piece with wrong, non-zero, length.");
 
     Block::release(m_transfer);
-
-    instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
     goto downloading_error;
   }
 
@@ -225,6 +251,8 @@ RequestList::downloading(const Piece& piece) {
   // information.
   m_transfer = new BlockTransfer();
   Block::create_dummy(m_transfer, m_peerChunks->peer_info(), piece);
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN, 1);
 
   return false;
 }
@@ -289,12 +317,6 @@ RequestList::is_interested_in_active() const {
 
   return false;
 }
-
-// bool
-// RequestList::has_index(uint32_t index) {
-//   return queue_bucket_find_if_in_queue(m_queues, bucket_queued, std::bind2nd(equals_reservee(), index))
-//     != m_queues.end(bucket_queued);
-// }
 
 struct request_list_keep_request {
   bool operator () (const BlockTransfer* d) {

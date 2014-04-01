@@ -39,10 +39,11 @@
 
 #include <deque>
 
-#include "rak/timer.h"
 #include "torrent/data/block_transfer.h"
 #include "utils/instrumentation.h"
 #include "utils/queue_buckets.h"
+
+#include "globals.h"
 
 namespace torrent {
 
@@ -65,6 +66,7 @@ class RequestList {
 public:
   typedef torrent::queue_buckets<BlockTransfer*, request_list_constants> queues_type;
 
+  // TODO: Rename canceled to skipped?...
   static const int bucket_queued   = 0;
   static const int bucket_canceled = 1;
   static const int bucket_choked   = 2;
@@ -103,6 +105,8 @@ public:
   size_t               queued_size() const                { return m_queues.queue_size(bucket_queued); }
   bool                 canceled_empty() const             { return m_queues.queue_empty(bucket_canceled); }
   size_t               canceled_size() const              { return m_queues.queue_size(bucket_canceled); }
+  bool                 choked_empty() const               { return m_queues.queue_empty(bucket_choked); }
+  size_t               choked_size() const                { return m_queues.queue_size(bucket_choked); }
 
   uint32_t             calculate_pipe_size(uint32_t rate);
 
@@ -117,6 +121,8 @@ public:
 private:
   void                 cancel_range(queues_type::iterator end);
 
+  void                 delay_remove_choked();
+
   Delegator*           m_delegator;
   PeerChunks*          m_peerChunks;
 
@@ -126,6 +132,9 @@ private:
 
   int32_t              m_affinity;
   rak::timer           m_last_choke;
+  rak::timer           m_last_unchoke;
+
+  rak::priority_item   m_delay_remove_choked;
 };
 
 inline
@@ -133,8 +142,9 @@ RequestList::RequestList() :
   m_delegator(NULL),
   m_peerChunks(NULL),
   m_transfer(NULL),
-  m_affinity(-1)
-{}
+  m_affinity(-1) {
+  m_delay_remove_choked.slot() = std::tr1::bind(&RequestList::delay_remove_choked, this);
+}
 
 }
 

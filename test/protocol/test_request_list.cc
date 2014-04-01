@@ -59,32 +59,49 @@ transfer_list_completed(torrent::TransferList* transfer_list, uint32_t index) {
   request_list->set_peer_chunks(peer_chunks);
 
 #define SETUP_ALL(fpc_prefix)                   \
+  SET_CACHED_TIME(0);                           \
   SETUP_DELEGATOR(basic);                       \
   SETUP_PEER_CHUNKS();                          \
   SETUP_REQUEST_LIST();
   
+#define SETUP_ALL_WITH_3(fpc_prefix)                            \
+  SETUP_ALL(fpc_prefix);                                        \
+  const torrent::Piece* piece_1 = request_list->delegate();     \
+  const torrent::Piece* piece_2 = request_list->delegate();     \
+  const torrent::Piece* piece_3 = request_list->delegate();     \
+  CPPUNIT_ASSERT(piece_1 && piece_2 && piece_3);
+
 #define CLEANUP_ALL(fpc_prefix)                 \
   CLEANUP_PEER_CHUNKS();                        \
   delete delegator;                             \
   delete request_list;
 
-#define CLEAR_TRANSFERS(fpc_prefix)           \
+#define CLEAR_TRANSFERS(fpc_prefix)             \
   delegator->transfer_list()->clear();
 
 //
 //
 //
 
+#define VERIFY_QUEUE_SIZES(s_0, s_1, s_2)                               \
+  CPPUNIT_ASSERT(request_list->queued_size() == s_0);                   \
+  CPPUNIT_ASSERT(request_list->canceled_size() == s_1);                 \
+  CPPUNIT_ASSERT(request_list->choked_size() == s_2);                   \
+
 #define VERIFY_PIECE_IS_LEADER(piece)                                   \
-  CPPUNIT_ASSERT(request_list->transfer() != NULL);                      \
-  CPPUNIT_ASSERT(request_list->transfer()->is_leader());                 \
-  CPPUNIT_ASSERT(request_list->transfer()->peer_info() != NULL);         \
+  CPPUNIT_ASSERT(request_list->transfer() != NULL);                     \
+  CPPUNIT_ASSERT(request_list->transfer()->is_leader());                \
+  CPPUNIT_ASSERT(request_list->transfer()->peer_info() != NULL);        \
   CPPUNIT_ASSERT(request_list->transfer()->peer_info() == peer_info);
 
 #define VERIFY_TRANSFER_COUNTER(transfer, count)                        \
   CPPUNIT_ASSERT(transfer != NULL);                                     \
   CPPUNIT_ASSERT(transfer->peer_info() != NULL);                        \
   CPPUNIT_ASSERT(transfer->peer_info()->transfer_counter() == count);
+
+#define SET_CACHED_TIME(seconds)                                        \
+  torrent::cachedTime = rak::timer::from_seconds(1000 + seconds);       \
+  rak::priority_queue_perform(&torrent::taskScheduler, torrent::cachedTime);
 
 
 //
@@ -93,7 +110,9 @@ transfer_list_completed(torrent::TransferList* transfer_list, uint32_t index) {
 
 static uint32_t
 basic_find_peer_chunk(torrent::PeerChunks* peerChunk, bool highPriority) {
-  return 0;
+  static int next_index = 0;
+
+  return next_index++;
 }
 
 void
@@ -170,6 +189,71 @@ TestRequestList::test_single_canceled() {
   // make transfer list delete Block's(?) with those before dtor...
 
   CPPUNIT_ASSERT(peer_info->transfer_counter() == 0);
+
+  CLEAR_TRANSFERS();
+  CLEANUP_ALL();
+}
+
+void
+TestRequestList::test_choke_normal() {
+  SETUP_ALL_WITH_3(basic);
+  VERIFY_QUEUE_SIZES(3, 0, 0);
+
+  request_list->choked();
+  
+  SET_CACHED_TIME(1);
+  VERIFY_QUEUE_SIZES(0, 0, 3);
+
+  SET_CACHED_TIME(6);
+  VERIFY_QUEUE_SIZES(0, 0, 0);
+
+  CLEAR_TRANSFERS();
+  CLEANUP_ALL();
+}
+
+void
+TestRequestList::test_choke_unchoke_discard() {
+  SETUP_ALL_WITH_3(basic);
+
+  request_list->choked();
+  
+  SET_CACHED_TIME(5);
+  request_list->unchoked();
+  
+  SET_CACHED_TIME(10);
+  VERIFY_QUEUE_SIZES(0, 0, 3);
+
+  SET_CACHED_TIME(65);
+  VERIFY_QUEUE_SIZES(0, 0, 0);
+
+  CLEAR_TRANSFERS();
+  CLEANUP_ALL();
+}
+
+void
+TestRequestList::test_choke_unchoke_transfer() {
+  SETUP_ALL_WITH_3(basic);
+
+  request_list->choked();
+  SET_CACHED_TIME(4);
+  request_list->unchoked();
+
+  SET_CACHED_TIME(50);
+  CPPUNIT_ASSERT(request_list->downloading(*piece_1));
+  request_list->transfer()->adjust_position(piece_1->length());
+  request_list->finished();
+
+  SET_CACHED_TIME(100);
+  CPPUNIT_ASSERT(request_list->downloading(*piece_2));
+  request_list->transfer()->adjust_position(piece_2->length());
+  request_list->finished();
+
+  SET_CACHED_TIME(150);
+  CPPUNIT_ASSERT(request_list->downloading(*piece_3));
+  request_list->transfer()->adjust_position(piece_3->length());
+  request_list->finished();
+
+  VERIFY_QUEUE_SIZES(0, 0, 0);
 
   CLEAR_TRANSFERS();
   CLEANUP_ALL();
