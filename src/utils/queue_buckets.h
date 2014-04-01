@@ -47,7 +47,7 @@ namespace torrent {
 template <typename Type, typename Constants>
 class queue_buckets : private std::tr1::array<std::deque<Type>, Constants::bucket_count> {
 public:
-  typedef std::deque<Type>                                      queue_type;
+  typedef std::deque<Type>                                     queue_type;
   typedef std::tr1::array<queue_type, Constants::bucket_count> base_type;
 
   typedef Constants constants;
@@ -61,6 +61,8 @@ public:
 
   size_type queue_size(int idx)  const { return queue_at(idx).size(); }
   bool      queue_empty(int idx) const { return queue_at(idx).empty(); }
+
+  bool             empty() const;
 
   iterator         begin(int idx)       { return queue_at(idx).begin(); }
   iterator         end(int idx)         { return queue_at(idx).end(); }
@@ -158,6 +160,16 @@ queue_bucket_find_if_in_any(const QueueBucket& queues, Ftor ftor) {
 
 // TODO: when adding removal/etc of element or ranges do logging on if
 // it hit the first element or had to search.
+
+template <typename Type, typename Constants>
+inline bool
+queue_buckets<Type, Constants>::empty() const {
+  for (int i = 0; i < constants::bucket_count; i++)
+    if (!queue_empty(i))
+      return false;
+
+  return true;
+}
 
 template <typename Type, typename Constants>
 inline void

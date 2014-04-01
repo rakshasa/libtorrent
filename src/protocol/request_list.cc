@@ -54,22 +54,26 @@ namespace torrent {
 
 const instrumentation_enum request_list_constants::instrumentation_added[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
-  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_ADDED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_ADDED,
   INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_ADDED
 };
 const instrumentation_enum request_list_constants::instrumentation_moved[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED,
-  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_MOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_MOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_MOVED,
   INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_MOVED
 };
 const instrumentation_enum request_list_constants::instrumentation_removed[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED,
-  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_REMOVED,
+  INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_REMOVED,
   INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_REMOVED
 };
 const instrumentation_enum request_list_constants::instrumentation_total[bucket_count] = {
   INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,
-  INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL,
+  INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_TOTAL,
+  INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_TOTAL,
   INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_TOTAL
 };
 
@@ -105,10 +109,11 @@ RequestList::~RequestList() {
   if (m_transfer != NULL)
     throw internal_error("request dtor m_transfer != NULL");
 
-  if (!m_queues.queue_empty(bucket_queued) || !m_queues.queue_empty(bucket_canceled))
+  if (!m_queues.empty())
     throw internal_error("request dtor m_queues not empty");
 
   priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
+  priority_queue_erase(&taskScheduler, &m_delay_process_unordered);
 }
 
 const Piece*
@@ -128,10 +133,10 @@ RequestList::delegate() {
 
 void
 RequestList::stall_initial() {
-  m_queues.clear(bucket_canceled);
+  m_queues.clear(bucket_unordered);
 
-  queue_bucket_for_all_in_queue(m_queues, bucket_canceled, std::ptr_fun(&Block::stalled));
-  m_queues.move_all_to(bucket_queued, bucket_canceled);
+  queue_bucket_for_all_in_queue(m_queues, bucket_unordered, std::ptr_fun(&Block::stalled));
+  m_queues.move_all_to(bucket_queued, bucket_unordered);
 }
 
 void
@@ -149,11 +154,12 @@ RequestList::choked() {
 
   m_last_choke = cachedTime;
 
-  if (m_queues.queue_empty(bucket_queued) && m_queues.queue_empty(bucket_canceled))
+  if (m_queues.queue_empty(bucket_queued) && m_queues.queue_empty(bucket_unordered))
     return;
 
   m_queues.move_all_to(bucket_queued, bucket_choked);
-  m_queues.move_all_to(bucket_canceled, bucket_choked);
+  m_queues.move_all_to(bucket_unordered, bucket_choked);
+  m_queues.move_all_to(bucket_stalled, bucket_choked);
 
   if (!m_delay_remove_choked.is_queued())
     priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
@@ -183,12 +189,19 @@ RequestList::delay_remove_choked() {
 }
 
 void
+RequestList::delay_process_unordered() {
+
+  // Remove requests 
+}
+
+void
 RequestList::clear() {
   if (is_downloading())
     skipped();
 
   m_queues.clear(bucket_queued);
-  m_queues.clear(bucket_canceled);
+  m_queues.clear(bucket_unordered);
+  m_queues.clear(bucket_stalled);
   m_queues.clear(bucket_choked);
 }
 
@@ -209,7 +222,10 @@ RequestList::downloading(const Piece& piece) {
 
     m_transfer = m_queues.take(itr.first, itr.second);
     break;
-  case bucket_canceled:
+  case bucket_unordered:
+    m_transfer = m_queues.take(itr.first, itr.second);
+    break;
+  case bucket_stalled:
     m_transfer = m_queues.take(itr.first, itr.second);
     break;
   case bucket_choked:
@@ -326,27 +342,27 @@ struct request_list_keep_request {
 
 void
 RequestList::cancel_range(queues_type::iterator end) {
-  // This only gets called when it's downloading a non-canceled piece,
-  // so to avoid a backlog of canceled pieces we need to empty it
+  // This only gets called when it's downloading a non-unordered piece,
+  // so to avoid a backlog of unordered pieces we need to empty it
   // here.
   //
   // This may cause us to skip pieces if the peer does some strange
   // reordering.
   //
   // Add some extra checks here to avoid clearing too often.
-  if (!m_queues.queue_empty(bucket_canceled)) {
+  if (!m_queues.queue_empty(bucket_unordered)) {
     // Old buggy...
-    // release_canceled_range(m_canceled.begin(), m_queues.end(bucket_canceled));
+    // release_unordered_range(m_unordered.begin(), m_queues.end(bucket_unordered));
 
 
     // Only release if !valid or... if we've been choked/unchoked
     // since last time, include a timer for both choke and unchoke.
 
     // First remove all the !valid pieces...
-    queues_type::iterator itr = std::partition(m_queues.begin(bucket_canceled), m_queues.end(bucket_canceled),
+    queues_type::iterator itr = std::partition(m_queues.begin(bucket_unordered), m_queues.end(bucket_unordered),
                                                 request_list_keep_request());
 
-    m_queues.destroy(bucket_canceled, itr, m_queues.end(bucket_canceled));
+    m_queues.destroy(bucket_unordered, itr, m_queues.end(bucket_unordered));
   }
 
   while (m_queues.begin(bucket_queued) != end) {
@@ -354,7 +370,7 @@ RequestList::cancel_range(queues_type::iterator end) {
 
     if (request_list_keep_request()(transfer)) {
       Block::stalled(transfer);
-      m_queues.push_back(bucket_canceled, transfer);
+      m_queues.push_back(bucket_unordered, transfer);
 
     } else {
       Block::release(transfer);

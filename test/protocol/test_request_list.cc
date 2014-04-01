@@ -83,10 +83,11 @@ transfer_list_completed(torrent::TransferList* transfer_list, uint32_t index) {
 //
 //
 
-#define VERIFY_QUEUE_SIZES(s_0, s_1, s_2)                               \
+#define VERIFY_QUEUE_SIZES(s_0, s_1, s_2, s_3)                          \
   CPPUNIT_ASSERT(request_list->queued_size() == s_0);                   \
-  CPPUNIT_ASSERT(request_list->canceled_size() == s_1);                 \
-  CPPUNIT_ASSERT(request_list->choked_size() == s_2);                   \
+  CPPUNIT_ASSERT(request_list->unordered_size() == s_1);                \
+  CPPUNIT_ASSERT(request_list->stalled_size() == s_2);                  \
+  CPPUNIT_ASSERT(request_list->choked_size() == s_3);
 
 #define VERIFY_PIECE_IS_LEADER(piece)                                   \
   CPPUNIT_ASSERT(request_list->transfer() != NULL);                     \
@@ -122,14 +123,7 @@ TestRequestList::test_basic() {
   CPPUNIT_ASSERT(!request_list->is_downloading());
   CPPUNIT_ASSERT(!request_list->is_interested_in_active());
 
-  // CPPUNIT_ASSERT(!request_list->has_index(0));
-  // CPPUNIT_ASSERT(!request_list->has_index(1));
-  // CPPUNIT_ASSERT(!request_list->has_index(1024));
-
-  CPPUNIT_ASSERT(request_list->queued_empty());
-  CPPUNIT_ASSERT(request_list->queued_size() == 0);
-  CPPUNIT_ASSERT(request_list->canceled_empty());
-  CPPUNIT_ASSERT(request_list->canceled_size() == 0);
+  VERIFY_QUEUE_SIZES(0, 0, 0, 0);
 
   CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 0) == 2);
   CPPUNIT_ASSERT(request_list->calculate_pipe_size(1024 * 10) == 12);
@@ -197,15 +191,15 @@ TestRequestList::test_single_canceled() {
 void
 TestRequestList::test_choke_normal() {
   SETUP_ALL_WITH_3(basic);
-  VERIFY_QUEUE_SIZES(3, 0, 0);
+  VERIFY_QUEUE_SIZES(3, 0, 0, 0);
 
   request_list->choked();
   
   SET_CACHED_TIME(1);
-  VERIFY_QUEUE_SIZES(0, 0, 3);
+  VERIFY_QUEUE_SIZES(0, 0, 0, 3);
 
   SET_CACHED_TIME(6);
-  VERIFY_QUEUE_SIZES(0, 0, 0);
+  VERIFY_QUEUE_SIZES(0, 0, 0, 0);
 
   CLEAR_TRANSFERS();
   CLEANUP_ALL();
@@ -221,10 +215,10 @@ TestRequestList::test_choke_unchoke_discard() {
   request_list->unchoked();
   
   SET_CACHED_TIME(10);
-  VERIFY_QUEUE_SIZES(0, 0, 3);
+  VERIFY_QUEUE_SIZES(0, 0, 0, 3);
 
   SET_CACHED_TIME(65);
-  VERIFY_QUEUE_SIZES(0, 0, 0);
+  VERIFY_QUEUE_SIZES(0, 0, 0, 0);
 
   CLEAR_TRANSFERS();
   CLEANUP_ALL();
@@ -253,7 +247,7 @@ TestRequestList::test_choke_unchoke_transfer() {
   request_list->transfer()->adjust_position(piece_3->length());
   request_list->finished();
 
-  VERIFY_QUEUE_SIZES(0, 0, 0);
+  VERIFY_QUEUE_SIZES(0, 0, 0, 0);
 
   CLEAR_TRANSFERS();
   CLEANUP_ALL();

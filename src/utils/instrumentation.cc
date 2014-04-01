@@ -106,6 +106,7 @@ instrumentation_tick() {
                " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
                " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
                " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
                " %" PRIi64,
 
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_DELEGATED),
@@ -119,10 +120,15 @@ instrumentation_tick() {
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED),
                instrumentation_values[INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL],
 
-               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED),
-               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_MOVED),
-               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED),
-               instrumentation_values[INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL],
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_ADDED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_MOVED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_REMOVED),
+               instrumentation_values[INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_TOTAL],
+
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_ADDED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_MOVED),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_REMOVED),
+               instrumentation_values[INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_TOTAL],
 
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_ADDED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_MOVED),
@@ -171,9 +177,12 @@ instrumentation_reset() {
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED);
-  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED);
-  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_MOVED);
-  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_ADDED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_MOVED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_REMOVED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_ADDED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_MOVED);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_STALLED_REMOVED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_ADDED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_MOVED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_CHOKED_REMOVED);

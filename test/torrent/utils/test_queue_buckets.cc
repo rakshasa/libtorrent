@@ -21,19 +21,19 @@ struct test_constants {
 
 const torrent::instrumentation_enum test_constants::instrumentation_added[bucket_count] = {
   torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_ADDED
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_ADDED
 };
 const torrent::instrumentation_enum test_constants::instrumentation_moved[bucket_count] = {
   torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED,
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_MOVED
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_MOVED
 };
 const torrent::instrumentation_enum test_constants::instrumentation_removed[bucket_count] = {
   torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_REMOVED,
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_REMOVED
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_REMOVED
 };
 const torrent::instrumentation_enum test_constants::instrumentation_total[bucket_count] = {
   torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_TOTAL,
-  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_CANCELED_TOTAL
+  torrent::INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_TOTAL
 };
 
 typedef torrent::queue_buckets<int, test_constants> buckets_type;
@@ -91,6 +91,7 @@ TestQueueBuckets::test_basic() {
   buckets_type buckets;
 
   VERIFY_QUEUE_SIZES(0, 0);
+  CPPUNIT_ASSERT(buckets.empty());
 
   buckets.push_front(0, int());
   VERIFY_QUEUE_SIZES(1, 0);
@@ -98,11 +99,15 @@ TestQueueBuckets::test_basic() {
   VERIFY_QUEUE_SIZES(2, 0);
   VERIFY_INSTRUMENTATION(2, 0, 0, 2, 0, 0, 0, 0);  
 
+  CPPUNIT_ASSERT(!buckets.empty());
+
   buckets.push_front(1, int());
   VERIFY_QUEUE_SIZES(2, 1);
   buckets.push_back(1, int());
   VERIFY_QUEUE_SIZES(2, 2);
   VERIFY_INSTRUMENTATION(2, 0, 0, 2, 2, 0, 0, 2);  
+
+  CPPUNIT_ASSERT(!buckets.empty());
 
   buckets.pop_front(0);
   VERIFY_QUEUE_SIZES(1, 2);
@@ -110,11 +115,15 @@ TestQueueBuckets::test_basic() {
   VERIFY_QUEUE_SIZES(0, 2);
   VERIFY_INSTRUMENTATION(2, 0, 2, 0, 2, 0, 0, 2);  
 
+  CPPUNIT_ASSERT(!buckets.empty());
+
   buckets.pop_front(1);
   VERIFY_QUEUE_SIZES(0, 1);
   buckets.pop_back(1);
   VERIFY_QUEUE_SIZES(0, 0);
   VERIFY_INSTRUMENTATION(2, 0, 2, 0, 2, 0, 2, 0);  
+
+  CPPUNIT_ASSERT(buckets.empty());
 }
 
 void
