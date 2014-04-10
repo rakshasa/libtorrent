@@ -71,6 +71,10 @@ public:
   static const int bucket_stalled   = 2;
   static const int bucket_choked    = 3;
 
+  static const int timeout_remove_choked = 6;
+  static const int timeout_choked_received = 60;
+  static const int timeout_process_unordered = 60;
+
   RequestList();
   ~RequestList();
 
@@ -110,6 +114,7 @@ public:
   bool                 choked_empty() const               { return m_queues.queue_empty(bucket_choked); }
   size_t               choked_size() const                { return m_queues.queue_size(bucket_choked); }
 
+  uint32_t             pipe_size() const;
   uint32_t             calculate_pipe_size(uint32_t rate);
 
   void                 set_delegator(Delegator* d)       { m_delegator = d; }
@@ -121,9 +126,9 @@ public:
   const BlockTransfer* queued_front() const              { return m_queues.front(bucket_queued); }
 
 private:
-  void                 cancel_range(queues_type::iterator end);
-
   void                 delay_remove_choked();
+
+  void                 prepare_process_unordered(queues_type::iterator itr);
   void                 delay_process_unordered();
 
   Delegator*           m_delegator;
@@ -134,6 +139,8 @@ private:
   queues_type          m_queues;
 
   int32_t              m_affinity;
+  unsigned int         m_last_unordered_position;
+
   rak::timer           m_last_choke;
   rak::timer           m_last_unchoke;
 
@@ -146,9 +153,16 @@ RequestList::RequestList() :
   m_delegator(NULL),
   m_peerChunks(NULL),
   m_transfer(NULL),
-  m_affinity(-1) {
+  m_affinity(-1),
+  m_last_unordered_position(0) {
   m_delay_remove_choked.slot() = std::tr1::bind(&RequestList::delay_remove_choked, this);
   m_delay_process_unordered.slot() = std::tr1::bind(&RequestList::delay_process_unordered, this);
+}
+
+// TODO: Make sure queued_size is never too small.
+inline uint32_t
+RequestList::pipe_size() const {
+  return queued_size() + stalled_size() + unordered_size() / 4;
 }
 
 }

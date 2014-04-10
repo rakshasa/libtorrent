@@ -105,6 +105,12 @@ struct request_list_same_piece {
   Piece m_piece;
 };
 
+struct request_list_keep_request {
+  bool operator () (const BlockTransfer* d) {
+    return d->is_valid();
+  }
+};
+
 RequestList::~RequestList() {
   if (m_transfer != NULL)
     throw internal_error("request dtor m_transfer != NULL");
@@ -133,10 +139,10 @@ RequestList::delegate() {
 
 void
 RequestList::stall_initial() {
-  m_queues.clear(bucket_unordered);
-
+  queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
+  m_queues.move_all_to(bucket_queued, bucket_stalled);
   queue_bucket_for_all_in_queue(m_queues, bucket_unordered, std::ptr_fun(&Block::stalled));
-  m_queues.move_all_to(bucket_queued, bucket_unordered);
+  m_queues.move_all_to(bucket_unordered, bucket_stalled);
 }
 
 void
@@ -145,6 +151,11 @@ RequestList::stall_prolonged() {
     Block::stalled(m_transfer);
 
   queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
+  m_queues.move_all_to(bucket_queued, bucket_stalled);
+  queue_bucket_for_all_in_queue(m_queues, bucket_unordered, std::ptr_fun(&Block::stalled));
+  m_queues.move_all_to(bucket_unordered, bucket_stalled);
+
+  // Currently leave the the requests until the peer gets disconnected. (?)
 }
 
 void
@@ -163,7 +174,7 @@ RequestList::choked() {
 
   if (!m_delay_remove_choked.is_queued())
     priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
-                          (cachedTime + rak::timer::from_seconds(6)).round_seconds());
+                          (cachedTime + rak::timer::from_seconds(timeout_remove_choked)).round_seconds());
 }
 
 void
@@ -179,7 +190,7 @@ RequestList::unchoked() {
   // followed unchoke before starting to send pieces.
   if (!m_queues.queue_empty(bucket_choked)) {
     priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
-                          (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+                          (cachedTime + rak::timer::from_seconds(timeout_remove_choked)).round_seconds());
   }
 }
 
@@ -189,9 +200,33 @@ RequestList::delay_remove_choked() {
 }
 
 void
-RequestList::delay_process_unordered() {
+RequestList::prepare_process_unordered(queues_type::iterator itr) {
+  m_queues.move_to(bucket_queued, m_queues.begin(bucket_queued), itr,
+                   bucket_unordered);
 
-  // Remove requests 
+  if (m_delay_process_unordered.is_queued())
+    return;
+
+  priority_queue_insert(&taskScheduler, &m_delay_process_unordered,
+                        (cachedTime + rak::timer::from_seconds(timeout_process_unordered)).round_seconds());
+
+  m_last_unordered_position = unordered_size();
+}
+
+void
+RequestList::delay_process_unordered() {
+  if (m_last_unordered_position < unordered_size())
+    m_queues.destroy(bucket_unordered,
+                     m_queues.begin(bucket_unordered),
+                     m_queues.begin(bucket_unordered) + m_last_unordered_position);
+  else
+    m_queues.clear(bucket_unordered);
+
+  m_last_unordered_position = unordered_size();
+
+  if (m_last_unordered_position != 0)
+    priority_queue_insert(&taskScheduler, &m_delay_process_unordered,
+                          (cachedTime + rak::timer::from_seconds(timeout_process_unordered / 2)).round_seconds());
 }
 
 void
@@ -218,14 +253,23 @@ RequestList::downloading(const Piece& piece) {
   switch (itr.first) {
   case bucket_queued:
     if (itr.second != m_queues.begin(bucket_queued))
-      cancel_range(itr.second);
+      prepare_process_unordered(itr.second);
 
     m_transfer = m_queues.take(itr.first, itr.second);
     break;
   case bucket_unordered:
+    // Do unordered take of element here to avoid copy shifting the whole deque. (?)
+    //
+    // Alternatively, move back some elements to bucket_queued.
+
+    if (std::distance(m_queues.begin(itr.first), itr.second) < m_last_unordered_position)
+      m_last_unordered_position--;
+
     m_transfer = m_queues.take(itr.first, itr.second);
     break;
   case bucket_stalled:
+    // Do special handling of unordered pieces.
+
     m_transfer = m_queues.take(itr.first, itr.second);
     break;
   case bucket_choked:
@@ -235,7 +279,7 @@ RequestList::downloading(const Piece& piece) {
     // the peer has skipped sending some pieces from the choked queue.
     priority_queue_erase(&taskScheduler, &m_delay_remove_choked);
     priority_queue_insert(&taskScheduler, &m_delay_remove_choked,
-                          (cachedTime + rak::timer::from_seconds(60)).round_seconds());
+                          (cachedTime + rak::timer::from_seconds(timeout_choked_received)).round_seconds());
     break;
   default:
     goto downloading_error;
@@ -332,50 +376,6 @@ RequestList::is_interested_in_active() const {
       return true;
 
   return false;
-}
-
-struct request_list_keep_request {
-  bool operator () (const BlockTransfer* d) {
-    return d->is_valid();
-  }
-};
-
-void
-RequestList::cancel_range(queues_type::iterator end) {
-  // This only gets called when it's downloading a non-unordered piece,
-  // so to avoid a backlog of unordered pieces we need to empty it
-  // here.
-  //
-  // This may cause us to skip pieces if the peer does some strange
-  // reordering.
-  //
-  // Add some extra checks here to avoid clearing too often.
-  if (!m_queues.queue_empty(bucket_unordered)) {
-    // Old buggy...
-    // release_unordered_range(m_unordered.begin(), m_queues.end(bucket_unordered));
-
-
-    // Only release if !valid or... if we've been choked/unchoked
-    // since last time, include a timer for both choke and unchoke.
-
-    // First remove all the !valid pieces...
-    queues_type::iterator itr = std::partition(m_queues.begin(bucket_unordered), m_queues.end(bucket_unordered),
-                                                request_list_keep_request());
-
-    m_queues.destroy(bucket_unordered, itr, m_queues.end(bucket_unordered));
-  }
-
-  while (m_queues.begin(bucket_queued) != end) {
-    BlockTransfer* transfer = m_queues.pop_and_front(bucket_queued);
-
-    if (request_list_keep_request()(transfer)) {
-      Block::stalled(transfer);
-      m_queues.push_back(bucket_unordered, transfer);
-
-    } else {
-      Block::release(transfer);
-    }
-  }
 }
 
 uint32_t
