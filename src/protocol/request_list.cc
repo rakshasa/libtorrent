@@ -215,12 +215,13 @@ RequestList::prepare_process_unordered(queues_type::iterator itr) {
 
 void
 RequestList::delay_process_unordered() {
-  if (m_last_unordered_position < unordered_size())
-    m_queues.destroy(bucket_unordered,
-                     m_queues.begin(bucket_unordered),
-                     m_queues.begin(bucket_unordered) + m_last_unordered_position);
-  else
-    m_queues.clear(bucket_unordered);
+  m_last_unordered_position = std::min(m_last_unordered_position, unordered_size());
+
+  instrumentation_update(INSTRUMENTATION_TRANSFER_REQUESTS_FINISHED, m_last_unordered_position);
+
+  m_queues.destroy(bucket_unordered,
+                   m_queues.begin(bucket_unordered),
+                   m_queues.begin(bucket_unordered) + m_last_unordered_position);
 
   m_last_unordered_position = unordered_size();
 

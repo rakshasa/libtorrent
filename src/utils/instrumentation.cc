@@ -102,7 +102,7 @@ instrumentation_tick() {
                instrumentation_fetch_and_clear(INSTRUMENTATION_POLLING_EVENTS_OTHERS));
 
   lt_log_print(LOG_INSTRUMENTATION_TRANSFERS,
-               "%"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
+               "%"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
                " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
                " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
                " %"  PRIi64 " %" PRIi64 " %" PRIi64 " %" PRIi64
@@ -114,6 +114,7 @@ instrumentation_tick() {
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_FINISHED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_SKIPPED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN),
+               instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED),
 
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED),
                instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED),
@@ -173,6 +174,7 @@ instrumentation_reset() {
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_FINISHED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_SKIPPED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNKNOWN);
+  instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED);
 
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED);
   instrumentation_fetch_and_clear(INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_MOVED);

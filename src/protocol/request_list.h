@@ -139,10 +139,10 @@ private:
   queues_type          m_queues;
 
   int32_t              m_affinity;
-  unsigned int         m_last_unordered_position;
 
   rak::timer           m_last_choke;
   rak::timer           m_last_unchoke;
+  size_t               m_last_unordered_position;
 
   rak::priority_item   m_delay_remove_choked;
   rak::priority_item   m_delay_process_unordered;
