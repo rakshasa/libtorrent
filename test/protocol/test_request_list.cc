@@ -229,20 +229,20 @@ TestRequestList::test_choke_unchoke_transfer() {
   SETUP_ALL_WITH_3(basic);
 
   request_list->choked();
-  SET_CACHED_TIME(4);
+  SET_CACHED_TIME(5);
   request_list->unchoked();
 
-  SET_CACHED_TIME(50);
+  SET_CACHED_TIME(10);
   CPPUNIT_ASSERT(request_list->downloading(*piece_1));
   request_list->transfer()->adjust_position(piece_1->length());
   request_list->finished();
 
-  SET_CACHED_TIME(100);
+  SET_CACHED_TIME(60);
   CPPUNIT_ASSERT(request_list->downloading(*piece_2));
   request_list->transfer()->adjust_position(piece_2->length());
   request_list->finished();
 
-  SET_CACHED_TIME(150);
+  SET_CACHED_TIME(110);
   CPPUNIT_ASSERT(request_list->downloading(*piece_3));
   request_list->transfer()->adjust_position(piece_3->length());
   request_list->finished();
