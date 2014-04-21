@@ -39,6 +39,7 @@
 
 #include <string>
 #include <inttypes.h>
+#include <tr1/functional>
 #include <rak/functional.h>
 #include <rak/unordered_vector.h>
 #include <rak/socket_address.h>
@@ -58,7 +59,7 @@ public:
   typedef rak::unordered_vector<Handshake*> base_type;
   typedef uint32_t                          size_type;
 
-  typedef rak::mem_fun1<DownloadManager, DownloadMain*, const char*> SlotDownloadId;
+  typedef std::tr1::function<DownloadMain* (const char*)> slot_download;
 
   // Do not connect to peers with this many or more failed chunks.
   static const unsigned int max_failed = 3;
@@ -81,16 +82,16 @@ public:
   void                add_incoming(SocketFd fd, const rak::socket_address& sa);
   void                add_outgoing(const rak::socket_address& sa, DownloadMain* info);
 
-  void                slot_download_id(SlotDownloadId s)                { m_slotDownloadId = s; }
-  void                slot_download_id_obfuscated(SlotDownloadId s)     { m_slotDownloadIdObfuscated = s; }
+  slot_download&      slot_download_id()         { return m_slot_download_id; }
+  slot_download&      slot_download_obfuscated() { return m_slot_download_obfuscated; }
+
+  // This needs to be filterable slot.
+  DownloadMain*       download_info(const char* hash)                   { return m_slot_download_id(hash); }
+  DownloadMain*       download_info_obfuscated(const char* hash)        { return m_slot_download_obfuscated(hash); }
 
   void                receive_succeeded(Handshake* h);
   void                receive_failed(Handshake* h, int message, int error);
   void                receive_timeout(Handshake* h);
-
-  // This needs to be filterable slot.
-  DownloadMain*       download_info(const char* hash)                   { return m_slotDownloadId(hash); }
-  DownloadMain*       download_info_obfuscated(const char* hash)        { return m_slotDownloadIdObfuscated(hash); }
 
   ProtocolExtension*  default_extensions() const                        { return &DefaultExtensions; }
 
@@ -102,8 +103,8 @@ private:
 
   static ProtocolExtension DefaultExtensions;
 
-  SlotDownloadId      m_slotDownloadId;
-  SlotDownloadId      m_slotDownloadIdObfuscated;
+  slot_download       m_slot_download_id;
+  slot_download       m_slot_download_obfuscated;
 };
 
 }

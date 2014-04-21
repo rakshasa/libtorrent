@@ -57,7 +57,7 @@ class thread_disk;
 // helps us in getting as much done as possible while the pages are in
 // memory.
 
-class HashQueue : private std::deque<HashQueueNode> {
+class lt_cacheline_aligned HashQueue : private std::deque<HashQueueNode> {
 public:
   typedef std::deque<HashQueueNode>                 base_type;
   typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
@@ -96,9 +96,9 @@ private:
   thread_disk*        m_thread_disk;
 
   done_chunks_type    m_done_chunks;
-  pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
-
   slot_bool           m_slot_has_work;
+
+  pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
 };
 
 }

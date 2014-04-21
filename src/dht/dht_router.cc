@@ -121,9 +121,15 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
 DhtRouter::~DhtRouter() {
   stop();
   delete m_contacts;
-  std::for_each(m_routingTable.begin(), m_routingTable.end(), rak::on(rak::mem_ref(&DhtBucketList::value_type::second), rak::call_delete<DhtBucket>()));
-  std::for_each(m_trackers.begin(), m_trackers.end(), rak::on(rak::mem_ref(&DhtTrackerList::value_type::second), rak::call_delete<DhtTracker>()));
-  std::for_each(m_nodes.begin(), m_nodes.end(), rak::on(rak::mem_ref(&DhtNodeList::value_type::second), rak::call_delete<DhtNode>()));
+
+  for (DhtBucketList::iterator itr = m_routingTable.begin(), last = m_routingTable.end(); itr != last; itr++)
+    delete itr->second;
+
+  for (DhtTrackerList::iterator itr = m_trackers.begin(), last = m_trackers.end(); itr != last; itr++)
+    delete itr->second;
+
+  for (DhtNodeList::iterator itr = m_nodes.begin(), last = m_nodes.end(); itr != last; itr++)
+    delete itr->second;
 }
 
 void

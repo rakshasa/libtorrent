@@ -74,17 +74,17 @@ const Rate*       Peer::peer_rate() const  { return c_ptr()->c_peer_chunks()->pe
 
 const Bitfield*   Peer::bitfield() const   { return c_ptr()->c_peer_chunks()->bitfield(); }
 
-uint32_t Peer::incoming_queue_size() const { return c_ptr()->download_queue()->queued_size(); }
+uint32_t Peer::incoming_queue_size() const { return c_ptr()->request_list()->queued_size(); }
 uint32_t Peer::outgoing_queue_size() const { return c_ptr()->c_peer_chunks()->upload_queue()->size(); }  
 uint32_t Peer::chunks_done() const         { return c_ptr()->c_peer_chunks()->bitfield()->size_set(); }  
 
 const BlockTransfer*
 Peer::transfer() const {
-  if (c_ptr()->download_queue()->transfer() != NULL)
-    return c_ptr()->download_queue()->transfer();
+  if (c_ptr()->request_list()->transfer() != NULL)
+    return c_ptr()->request_list()->transfer();
 
-  else if (!c_ptr()->download_queue()->queued_empty())
-    return c_ptr()->download_queue()->queued_transfer(0);
+  else if (!c_ptr()->request_list()->queued_empty())
+    return c_ptr()->request_list()->queued_front();
 
   else
     return NULL;

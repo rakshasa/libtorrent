@@ -156,10 +156,13 @@ PeerConnection<type>::receive_keepalive() {
   // Do we also need to remove from download throttle? Check how it
   // worked again.
 
-  if (!download_queue()->canceled_empty() && m_downStall >= 2)
-    download_queue()->cancel();
-  else if (!download_queue()->queued_empty() && m_downStall++ != 0)
-    download_queue()->stall();
+  // if (request_list()->empty())
+  //   return true;
+
+  if (m_downStall >= 2)
+    request_list()->stall_prolonged();
+  else if (m_downStall++ != 0)
+    request_list()->stall_initial();
 
   return true;
 }
@@ -224,7 +227,7 @@ PeerConnection<type>::read_message() {
 
     down_chunk_release();
 
-    download_queue()->cancel();
+    request_list()->choked();
     m_download->choke_group()->down_queue()->set_not_queued(this, &m_downChoke);
     m_down->throttle()->erase(m_peerChunks.download_throttle());
 
@@ -241,6 +244,7 @@ PeerConnection<type>::read_message() {
     if (!m_downInterested)
       return true;
 
+    request_list()->unchoked();
     m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
     return true;
 
@@ -407,10 +411,10 @@ PeerConnection<type>::event_read() {
         if (type != Download::CONNECTION_LEECH)
           return;
 
-        if (!download_queue()->is_downloading())
+        if (!request_list()->is_downloading())
           throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading.");
 
-        if (!m_downloadQueue.transfer()->is_valid() || !m_downloadQueue.transfer()->is_leader()) {
+        if (!m_request_list.transfer()->is_valid() || !m_request_list.transfer()->is_leader()) {
           m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
           break;
         }
@@ -427,7 +431,7 @@ PeerConnection<type>::event_read() {
         if (type != Download::CONNECTION_LEECH)
           return;
 
-        if (download_queue()->transfer()->is_leader()) {
+        if (request_list()->transfer()->is_leader()) {
           m_down->set_state(ProtocolRead::READ_PIECE);
           break;
         }
@@ -525,7 +529,7 @@ PeerConnection<type>::fill_write_buffer() {
     if (!(m_tryRequest = !should_request()) &&
         !(m_tryRequest = try_request_pieces()) &&
 
-        !download_queue()->is_interested_in_active()) {
+        !request_list()->is_interested_in_active()) {
       m_sendInterested = true;
       m_downInterested = false;
 

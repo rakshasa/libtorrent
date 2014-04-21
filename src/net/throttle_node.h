@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_NET_THROTTLE_NODE_H
 #define LIBTORRENT_NET_THROTTLE_NODE_H
 
-#include <rak/functional.h>
+#include <tr1/functional>
 
 #include "torrent/rate.h"
 
@@ -51,7 +51,8 @@ class ThrottleNode {
 public:
   typedef ThrottleList::iterator                  iterator;
   typedef ThrottleList::const_iterator            const_iterator;
-  typedef rak::mem_fun0<SocketBase, void>         SlotActivate;
+
+  typedef std::tr1::function<void ()> slot_void;
 
   ThrottleNode(uint32_t rateSpan) : m_rate(rateSpan)  { clear_quota(); }
 
@@ -66,9 +67,9 @@ public:
   const_iterator      list_iterator() const           { return m_listIterator; }
   void                set_list_iterator(iterator itr) { m_listIterator = itr; }
 
-  void                activate()                      { m_slotActivate(); }
+  void                activate()                      { if (m_slot_activate) m_slot_activate(); }
 
-  void                slot_activate(SlotActivate s)   { m_slotActivate = s; }
+  slot_void&          slot_activate()                 { return m_slot_activate; }
 
 private:
   ThrottleNode(const ThrottleNode&);
@@ -78,7 +79,7 @@ private:
   iterator            m_listIterator;
 
   Rate                m_rate;
-  SlotActivate        m_slotActivate;
+  slot_void           m_slot_activate;
 };
 
 }

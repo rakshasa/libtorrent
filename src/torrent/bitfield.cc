@@ -69,7 +69,7 @@ Bitfield::allocate() {
 
   m_data = new value_type[size_bytes()];
 
-  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, size_bytes());
+  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, (int64_t)size_bytes());
 }
 
 void
@@ -80,7 +80,7 @@ Bitfield::unallocate() {
   delete [] m_data;
   m_data = NULL;
 
-  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, -size_bytes());
+  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, -(int64_t)size_bytes());
 }
 
 void

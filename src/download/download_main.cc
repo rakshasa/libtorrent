@@ -115,13 +115,13 @@ DownloadMain::DownloadMain() :
 
   m_connectionList = new ConnectionList(this);
 
-  m_delegator.slot_chunk_find(rak::make_mem_fun(m_chunkSelector, &ChunkSelector::find));
-  m_delegator.slot_chunk_size(rak::make_mem_fun(file_list(), &FileList::chunk_index_size));
+  m_delegator.slot_chunk_find() = std::tr1::bind(&ChunkSelector::find, m_chunkSelector, tr1::placeholders::_1, tr1::placeholders::_2);
+  m_delegator.slot_chunk_size() = std::tr1::bind(&FileList::chunk_index_size, file_list(), tr1::placeholders::_1);
 
-  m_delegator.transfer_list()->slot_canceled(std::bind1st(std::mem_fun(&ChunkSelector::not_using_index), m_chunkSelector));
-  m_delegator.transfer_list()->slot_queued(std::bind1st(std::mem_fun(&ChunkSelector::using_index), m_chunkSelector));
-  m_delegator.transfer_list()->slot_completed(std::bind1st(std::mem_fun(&DownloadMain::receive_chunk_done), this));
-  m_delegator.transfer_list()->slot_corrupt(std::bind1st(std::mem_fun(&DownloadMain::receive_corrupt_chunk), this));
+  m_delegator.transfer_list()->slot_canceled()  = std::tr1::bind(&ChunkSelector::not_using_index, m_chunkSelector, tr1::placeholders::_1);
+  m_delegator.transfer_list()->slot_queued()    = std::tr1::bind(&ChunkSelector::using_index, m_chunkSelector, tr1::placeholders::_1);
+  m_delegator.transfer_list()->slot_completed() = std::tr1::bind(&DownloadMain::receive_chunk_done, this, tr1::placeholders::_1);
+  m_delegator.transfer_list()->slot_corrupt()   = std::tr1::bind(&DownloadMain::receive_corrupt_chunk, this, tr1::placeholders::_1);
 
   m_delayDisconnectPeers.slot() = std::tr1::bind(&ConnectionList::disconnect_queued, m_connectionList);
   m_taskTrackerRequest.slot() = std::tr1::bind(&DownloadMain::receive_tracker_request, this);

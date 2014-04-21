@@ -43,6 +43,8 @@
 
 namespace torrent {
 
+class DownloadInfo;
+
 typedef extents<uint32_t, int, 32, 256, 8> ipv4_table;
 
 bool socket_address_less(const sockaddr* s1, const sockaddr* s2);
@@ -62,6 +64,7 @@ private:
 
 class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, PeerInfo*> {
 public:
+  friend class DownloadWrapper;
   friend class Handshake;
   friend class HandshakeManager;
   friend class ConnectionList;
@@ -106,7 +109,7 @@ public:
 
   static ipv4_table*  ipv4_filter() { return &m_ipv4_table; }
 
-  AvailableList*      available_list()  { return m_availableList; }
+  AvailableList*      available_list()  { return m_available_list; }
   uint32_t            available_list_size() const;
 
   uint32_t            cull_peers(int flags);
@@ -117,6 +120,8 @@ public:
   const_reverse_iterator rend() const   { return base_type::rend(); }
 
 protected:
+  void                set_info(DownloadInfo* info) LIBTORRENT_NO_EXPORT;
+
   // Insert, or find a PeerInfo with socket address 'sa'. Returns end
   // if no more connections are allowed from that host.
   PeerInfo*           connected(const sockaddr* sa, int flags) LIBTORRENT_NO_EXPORT;
@@ -129,7 +134,9 @@ private:
   void operator = (const PeerList&);
 
   static ipv4_table   m_ipv4_table;
-  AvailableList*      m_availableList;
+
+  DownloadInfo*       m_info;
+  AvailableList*      m_available_list;
 };
 
 }

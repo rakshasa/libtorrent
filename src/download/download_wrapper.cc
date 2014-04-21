@@ -80,6 +80,7 @@ DownloadWrapper::DownloadWrapper() :
   m_main->delay_partially_done().slot()      = std::tr1::bind(&download_data::call_partially_done, data());
   m_main->delay_partially_restarted().slot() = std::tr1::bind(&download_data::call_partially_restarted, data());
 
+  m_main->peer_list()->set_info(info());
   m_main->tracker_list()->set_info(info());
   m_main->tracker_controller()->slot_success() = tr1::bind(&DownloadWrapper::receive_tracker_success, this, tr1::placeholders::_1);
   m_main->tracker_controller()->slot_failure() = tr1::bind(&DownloadWrapper::receive_tracker_failed, this, tr1::placeholders::_1);
@@ -124,9 +125,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
   m_hashChecker = new HashTorrent(m_main->chunk_list());
 
   // Connect various signals and slots.
-  m_hashChecker->slot_check(rak::make_mem_fun(this, &DownloadWrapper::check_chunk_hash));
-//   m_hashChecker->slot_storage_error(rak::make_mem_fun(this, &DownloadWrapper::receive_storage_error));
-
+  m_hashChecker->slot_check_chunk() = std::tr1::bind(&DownloadWrapper::check_chunk_hash, this, std::tr1::placeholders::_1);
   m_hashChecker->delay_checked().slot() = std::tr1::bind(&DownloadWrapper::receive_initial_hash, this);
 }
 

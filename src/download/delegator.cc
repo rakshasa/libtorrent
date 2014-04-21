@@ -188,12 +188,12 @@ Delegator::delegate_seeder(PeerChunks* peerChunks) {
 
 Block*
 Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
-  uint32_t index = m_slotChunkFind(pc, highPriority);
+  uint32_t index = m_slot_chunk_find(pc, highPriority);
 
   if (index == ~(uint32_t)0)
     return NULL;
 
-  TransferList::iterator itr = m_transfers.insert(Piece(index, 0, m_slotChunkSize(index)), block_size);
+  TransferList::iterator itr = m_transfers.insert(Piece(index, 0, m_slot_chunk_size(index)), block_size);
 
   (*itr)->set_by_seeder(pc->is_seeder());
 

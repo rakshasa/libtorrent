@@ -154,6 +154,9 @@ Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, P
 
 void
 Handshake::deactivate_connection() {
+  if (!get_fd().is_valid())
+    throw internal_error("Handshake::deactivate_connection called but m_fd is not open.");
+
   m_state = INACTIVE;
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
@@ -166,6 +169,9 @@ Handshake::deactivate_connection() {
 
 void
 Handshake::release_connection() {
+  if (!get_fd().is_valid())
+    throw internal_error("Handshake::release_connection called but m_fd is not open.");
+
   m_peerInfo->unset_flags(PeerInfo::flag_handshake);
   m_peerInfo = NULL;
 
@@ -174,6 +180,9 @@ Handshake::release_connection() {
 
 void
 Handshake::destroy_connection() {
+  if (!get_fd().is_valid())
+    throw internal_error("Handshake::destroy_connection called but m_fd is not open.");
+
   manager->connection_manager()->dec_socket_count();
 
   get_fd().close();

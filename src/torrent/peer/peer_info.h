@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_PEER_INFO_H
 #define LIBTORRENT_PEER_INFO_H
 
+#include <torrent/exceptions.h>
 #include <torrent/hash_string.h>
 #include <torrent/peer/client_info.h>
 
@@ -88,7 +89,6 @@ public:
   void                set_failed_counter(uint32_t c)        { m_failedCounter = c; }
 
   uint32_t            transfer_counter() const              { return m_transferCounter; }
-  void                set_transfer_counter(uint32_t c)      { m_transferCounter = c; }
 
   uint32_t            last_connection() const               { return m_lastConnection; }
   void                set_last_connection(uint32_t tvsec)   { m_lastConnection = tvsec; }
@@ -99,8 +99,14 @@ public:
   bool                supports_dht() const                  { return m_options[7] & 0x01; }
   bool                supports_extensions() const           { return m_options[5] & 0x10; }
 
+  //
   // Internal to libTorrent:
+  //
+
   PeerConnectionBase* connection()                          { return m_connection; }
+
+  void                inc_transfer_counter();
+  void                dec_transfer_counter();
 
 protected:
   void                set_flags(int flags)                  { m_flags |= flags; }
@@ -142,6 +148,22 @@ private:
 
   PeerConnectionBase* m_connection;
 };
+
+inline void
+PeerInfo::inc_transfer_counter() {
+  if (m_transferCounter == ~uint32_t())
+    throw internal_error("PeerInfo::inc_transfer_counter() m_transferCounter overflow");
+
+  m_transferCounter++;
+}
+
+inline void
+PeerInfo::dec_transfer_counter() {
+  if (m_transferCounter == 0)
+    throw internal_error("PeerInfo::dec_transfer_counter() m_transferCounter underflow");
+
+  m_transferCounter--;
+}
 
 }
 

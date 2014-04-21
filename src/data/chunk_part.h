@@ -43,7 +43,7 @@ namespace torrent {
 
 class File;
 
-class ChunkPart {
+class lt_cacheline_aligned ChunkPart {
 public:
   typedef enum {
     MAPPED_MMAP,

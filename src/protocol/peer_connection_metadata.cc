@@ -422,21 +422,21 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
   if (m_download->file_list()->chunk_size() == 1 || !m_extensions->is_remote_supported(ProtocolExtension::UT_METADATA))
     return false;
 
-  if (download_queue()->queued_empty())
+  if (request_list()->queued_empty())
     m_downStall = 0;
 
-  uint32_t pipeSize = download_queue()->calculate_pipe_size(m_peerChunks.download_throttle()->rate()->rate());
+  uint32_t pipeSize = request_list()->calculate_pipe_size(m_peerChunks.download_throttle()->rate()->rate());
 
   // Don't start requesting if we can't do it in large enough chunks.
-  if (download_queue()->queued_size() >= (pipeSize + 10) / 2)
+  if (request_list()->pipe_size() >= (pipeSize + 10) / 2)
     return false;
 
   // DEBUG:
-//   if (!download_queue()->queued_size() < pipeSize || !m_up->can_write_extension() ||
+//   if (!request_list()->queued_size() < pipeSize || !m_up->can_write_extension() ||
   if (!m_up->can_write_extension() || m_extensions->has_pending_message())
     return false;
 
-  const Piece* p = download_queue()->delegate();
+  const Piece* p = request_list()->delegate();
 
   if (p == NULL)
     return false;
@@ -478,7 +478,7 @@ PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data,
     down_chunk_process(data, length);
   }
 
-  if (!m_downloadQueue.transfer()->is_finished())
+  if (m_request_list.transfer() != NULL && !m_request_list.transfer()->is_finished())
     throw internal_error("PeerConnectionMetadata::receive_metadata_piece did not have complete piece.");
 
   m_tryRequest = true;

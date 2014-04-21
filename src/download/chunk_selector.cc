@@ -193,7 +193,7 @@ ChunkSelector::not_using_index(uint32_t index) {
 }
 
 // This could propably be split into two functions, one for checking
-// if it shoul insert into the download_queue(), and the other
+// if it shoul insert into the request_list(), and the other
 // whetever we are interested in the new piece.
 //
 // Since this gets called whenever a new piece arrives, we can skip

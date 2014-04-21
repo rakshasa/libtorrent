@@ -51,7 +51,7 @@ class Chunk;
 // ChunkList will make sure all the nodes are cleaned up properly, so
 // no dtor is needed.
 
-class ChunkListNode {
+class lt_cacheline_aligned ChunkListNode {
 public:
   static const uint32_t invalid_index = ~uint32_t();
 

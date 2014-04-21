@@ -158,6 +158,9 @@ ChunkManager::allocate(uint32_t size, int flags) {
   m_memoryUsage += size;
   m_memoryBlockCount++;
 
+  instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_COUNT, 1);
+  instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_USAGE, size);
+
   return true;
 }
 
@@ -175,6 +178,9 @@ ChunkManager::deallocate(uint32_t size, int flags) {
 
   m_memoryUsage -= size;
   m_memoryBlockCount--;
+
+  instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_COUNT, -1);
+  instrumentation_update(INSTRUMENTATION_MEMORY_CHUNK_USAGE, -(int64_t)size);
 }
 
 void

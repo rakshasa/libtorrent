@@ -75,6 +75,7 @@ BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
 }
 
 BlockList::~BlockList() {
+  // The default dtor's handles cleaning up the blocks and block transfers.
 }
 
 }

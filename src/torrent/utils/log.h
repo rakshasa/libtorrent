@@ -125,11 +125,16 @@ enum {
   LOG_INSTRUMENTATION_CHOKE,
 
   LOG_INSTRUMENTATION_POLLING,
+  LOG_INSTRUMENTATION_TRANSFERS,
+
+  LOG_PEER_LIST_EVENTS,
 
   LOG_PROTOCOL_PIECE_EVENTS,
   LOG_PROTOCOL_METADATA_EVENTS,
   LOG_PROTOCOL_NETWORK_ERRORS,
   LOG_PROTOCOL_STORAGE_ERRORS,
+
+  LOG_UI_EVENTS,
 
   LOG_GROUP_MAX_SIZE
 };
@@ -156,13 +161,9 @@ enum {
   if (torrent::log_groups[log_group].valid())                           \
     torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); \
 
-struct log_cached_outputs;
-class DownloadInfo;
-class download_data;
 class log_buffer;
 
 typedef std::tr1::function<void (const char*, unsigned int, int)> log_slot;
-typedef std::vector<std::pair<std::string, log_slot> >            log_output_list;
 
 class LIBTORRENT_EXPORT log_group {
 public:
@@ -211,9 +212,7 @@ private:
 typedef std::tr1::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
 
 extern log_group_list  log_groups LIBTORRENT_EXPORT;
-extern log_output_list log_outputs LIBTORRENT_EXPORT;
 
-// Called by torrent::initialize().
 void log_initialize() LIBTORRENT_EXPORT;
 void log_cleanup() LIBTORRENT_EXPORT;
 
@@ -227,6 +226,7 @@ void log_add_child(int group, int child) LIBTORRENT_EXPORT;
 void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
 
 void        log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
+void        log_open_gz_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
 log_buffer* log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
 
 }

@@ -39,7 +39,7 @@
 
 #include <string>
 #include <vector>
-#include <rak/functional.h>
+#include <tr1/functional>
 
 #include "torrent/data/transfer_list.h"
 
@@ -48,18 +48,14 @@ namespace torrent {
 class Block;
 class BlockList;
 class BlockTransfer;
-class FileList;
-class DownloadMain;
 class Piece;
 class PeerChunks;
 class PeerInfo;
-class ChunkSelector;
 
 class Delegator {
 public:
-  typedef rak::mem_fun1<ChunkSelector, void, uint32_t>              SlotChunkIndex;
-  typedef rak::mem_fun2<ChunkSelector, uint32_t, PeerChunks*, bool> SlotChunkFind;
-  typedef rak::const_mem_fun1<FileList, uint32_t, uint32_t>         SlotChunkSize;
+  typedef std::tr1::function<uint32_t (PeerChunks*, bool)> slot_peer_chunk;
+  typedef std::tr1::function<uint32_t (uint32_t)>          slot_size;
 
   static const unsigned int block_size = 1 << 14;
 
@@ -73,8 +69,8 @@ public:
   bool               get_aggressive()                     { return m_aggressive; }
   void               set_aggressive(bool a)               { m_aggressive = a; }
 
-  void               slot_chunk_find(SlotChunkFind s)     { m_slotChunkFind = s; }
-  void               slot_chunk_size(SlotChunkSize s)     { m_slotChunkSize = s; }
+  slot_peer_chunk&   slot_chunk_find()                    { return m_slot_chunk_find; }
+  slot_size&         slot_chunk_size()                    { return m_slot_chunk_size; }
 
   // Don't call this from the outside.
   Block*             delegate_piece(BlockList* c, const PeerInfo* peerInfo);
@@ -93,8 +89,8 @@ private:
 
   // Propably should add a m_slotChunkStart thing, which will take
   // care of enabling etc, and will be possible to listen to.
-  SlotChunkFind      m_slotChunkFind;
-  SlotChunkSize      m_slotChunkSize;
+  slot_peer_chunk    m_slot_chunk_find;
+  slot_size          m_slot_chunk_size;
 };
 
 }

@@ -10,6 +10,11 @@
 
 #include "log_test.h"
 
+namespace torrent {
+typedef std::vector<std::pair<std::string, log_slot> > log_output_list;
+extern log_output_list log_outputs;
+}
+
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_log_test);
 
 namespace tr1 { using namespace std::tr1; }

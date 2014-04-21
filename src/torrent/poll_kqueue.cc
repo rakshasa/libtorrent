@@ -47,6 +47,7 @@
 
 #include "poll_kqueue.h"
 #include "torrent.h"
+#include "rak/functional.h"
 #include "rak/timer.h"
 #include "rak/error_number.h"
 #include "utils/log.h"
@@ -110,7 +111,7 @@ PollKQueue::modify(Event* event, unsigned short op, short mask) {
   struct kevent* itr = m_changes + (m_changedEvents++);
 
   assert(event == m_table[event->file_descriptor()].second);
-  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, NULL);
+  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
 }
 
 PollKQueue*
@@ -292,7 +293,7 @@ PollKQueue::open(Event* event) {
 
 void
 PollKQueue::close(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Close event.", 0);
+  LT_LOG_EVENT(event, DEBUG, "close event", 0);
 
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
@@ -306,19 +307,18 @@ PollKQueue::close(Event* event) {
 
   m_table[event->file_descriptor()] = Table::value_type();
 
-  /*
-  Shouldn't be needed anymore.
+  // Shouldn't be needed anymore.
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = NULL;
 
-  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
-  */
+  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
+                                   rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
 }
 
 void
 PollKQueue::closed(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Closed event.", 0);
+  LT_LOG_EVENT(event, DEBUG, "closed event", 0);
 
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
@@ -333,14 +333,13 @@ PollKQueue::closed(Event* event) {
   if (m_table[event->file_descriptor()].second == event)
     m_table[event->file_descriptor()] = Table::value_type();
 
-  /*
-  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+  // Shouldn't be needed anymore.
+  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = NULL;
-  }
 
-  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
-  */
+  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
+                                   rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
 }
 
 // Use custom defines for EPOLL* to make the below code compile with

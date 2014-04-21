@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT File {
+class LIBTORRENT_EXPORT lt_cacheline_aligned File {
 public:
   friend class FileList;
 
