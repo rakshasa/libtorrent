@@ -105,11 +105,10 @@ public:
   void                      erase(BlockTransfer* transfer);
 
   bool                      transfering(BlockTransfer* transfer);
-
-  // Return true if all blocks in the chunk are finished.
-  bool                      completed(BlockTransfer* transfer);
-
   void                      transfer_dissimilar(BlockTransfer* transfer);
+
+  bool                      completed(BlockTransfer* transfer);
+  void                      retry_transfer();
 
   static inline void        stalled(BlockTransfer* transfer);
   void                      stalled_transfer(BlockTransfer* transfer);
