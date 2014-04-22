@@ -136,6 +136,8 @@ public:
   bool                by_seeder() const             { return m_bySeeder; }
   void                set_by_seeder(bool state)     { m_bySeeder = state; }
 
+  void                do_all_failed();
+
 private:
   BlockList(const BlockList&);
   void operator = (const BlockList&);

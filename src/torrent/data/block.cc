@@ -127,6 +127,9 @@ Block::erase(BlockTransfer* transfer) {
 
     if (transfer == m_leader) {
 
+      if (m_state == STATE_COMPLETED)
+        throw internal_error("Block::erase with 'transfer == m_transfer && m_state == STATE_COMPLETED'");
+
       // When the leader is erased then any non-leading transfer must
       // be promoted. These non-leading transfers are guaranteed to
       // have the same data up to their position. PeerConnectionBase
@@ -244,6 +247,11 @@ Block::completed(BlockTransfer* transfer) {
   m_state = STATE_COMPLETED;
 
   return m_parent->is_all_finished();
+}
+
+void
+Block::retry_transfer() {
+  m_state = STATE_INCOMPLETE;
 }
 
 // Mark a non-leading transfer as having received dissimilar data to

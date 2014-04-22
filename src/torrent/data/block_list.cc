@@ -78,4 +78,14 @@ BlockList::~BlockList() {
   // The default dtor's handles cleaning up the blocks and block transfers.
 }
 
+void
+BlockList::do_all_failed() {
+  clear_finished();
+  set_attempt(0);
+
+  // Clear leaders when we want to redownload the chunk.
+  std::for_each(begin(), end(), std::mem_fun_ref(&Block::failed_leader));
+  std::for_each(begin(), end(), std::mem_fun_ref(&Block::retry_transfer));
+}
+
 }

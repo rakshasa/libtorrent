@@ -201,11 +201,7 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
   // before, and just clear those first?
 
   // Re-download the blocks.
-  (*blockListItr)->clear_finished();
-  (*blockListItr)->set_attempt(0);
-
-  // Clear leaders when we want to redownload the chunk.
-  std::for_each((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::failed_leader));
+  (*blockListItr)->do_all_failed();
 }
 
 // update_failed(...) either increments the reference count of a
