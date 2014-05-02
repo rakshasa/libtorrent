@@ -153,13 +153,6 @@ const char* option_list_log_group[] = {
   "peer_info",
   "peer_debug",
   
-  "rpc_critical",
-  "rpc_error",
-  "rpc_warn",
-  "rpc_notice",
-  "rpc_info",
-  "rpc_debug",
-  
   "socket_critical",
   "socket_error",
   "socket_warn",
@@ -209,6 +202,9 @@ const char* option_list_log_group[] = {
   "protocol_metadata_events",
   "protocol_network_errors",
   "protocol_storage_errors",
+
+  "rpc_events",
+  "rpc_dump",
 
   "ui_events",
 
