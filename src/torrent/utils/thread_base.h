@@ -76,7 +76,8 @@ public:
   bool                is_active()      const { return state() == STATE_ACTIVE; }
   bool                is_inactive()    const { return state() == STATE_INACTIVE; }
 
-  bool                is_polling()     const { return (flags() & flag_polling); }
+  bool                is_polling() const;
+  bool                is_current() const;
 
   bool                has_no_timeout()   const { return (flags() & flag_no_timeout); }
   bool                has_do_shutdown()  const { return (flags() & flag_do_shutdown); }
@@ -145,6 +146,16 @@ protected:
   thread_interrupt*   m_interrupt_sender;
   thread_interrupt*   m_interrupt_receiver;
 };
+
+inline bool
+thread_base::is_polling() const {
+  return (flags() & flag_polling);
+}
+
+inline bool
+thread_base::is_current() const {
+  return m_thread == pthread_self();
+}
 
 inline int
 thread_base::flags() const {
