@@ -137,16 +137,18 @@ utils_log_test::test_children() {
 
 void
 utils_log_test::test_file_output() {
-  char* filename = tmpnam(NULL);
+  std::string filename = "utils_log_test.XXXXXX";
 
-  torrent::log_open_file_output("test_file", filename);
+  mktemp(&*filename.begin());
+
+  torrent::log_open_file_output("test_file", filename.c_str());
   torrent::log_add_group_output(GROUP_PARENT_1, "test_file");
   
   lt_log_print(GROUP_PARENT_1, "test_file");
 
   torrent::log_cleanup(); // To ensure we flush the buffers.
 
-  std::ifstream temp_file(filename);
+  std::ifstream temp_file(filename.c_str());
 
   CPPUNIT_ASSERT(temp_file.good());
   
