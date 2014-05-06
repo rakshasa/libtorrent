@@ -48,6 +48,7 @@
 
 namespace torrent {
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
                              const unsigned char *generator, int generatorLength) :
   m_secret(NULL), m_size(0) {
