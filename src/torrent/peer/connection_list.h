@@ -39,7 +39,7 @@
 
 #include <list>
 #include <vector>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/common.h>
 #include <torrent/hash_string.h>
 
@@ -66,7 +66,7 @@ public:
   typedef std::vector<Peer*>         base_type;
   typedef std::vector<HashString>    queue_type;
   typedef uint32_t                   size_type;
-  typedef std::tr1::function<void (Peer*)> slot_peer_type;
+  typedef std::function<void (Peer*)> slot_peer_type;
   typedef std::list<slot_peer_type>        signal_peer_type;
 
   typedef PeerConnectionBase* (*slot_new_conn_type)(bool encrypted);

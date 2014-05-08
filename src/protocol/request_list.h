@@ -155,8 +155,8 @@ RequestList::RequestList() :
   m_transfer(NULL),
   m_affinity(-1),
   m_last_unordered_position(0) {
-  m_delay_remove_choked.slot() = std::tr1::bind(&RequestList::delay_remove_choked, this);
-  m_delay_process_unordered.slot() = std::tr1::bind(&RequestList::delay_process_unordered, this);
+  m_delay_remove_choked.slot() = std::bind(&RequestList::delay_remove_choked, this);
+  m_delay_process_unordered.slot() = std::bind(&RequestList::delay_process_unordered, this);
 }
 
 // TODO: Make sure queued_size is never too small.

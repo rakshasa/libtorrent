@@ -39,7 +39,7 @@
 
 #include <string>
 #include <inttypes.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <rak/functional.h>
 #include <rak/unordered_vector.h>
 #include <rak/socket_address.h>
@@ -59,7 +59,7 @@ public:
   typedef rak::unordered_vector<Handshake*> base_type;
   typedef uint32_t                          size_type;
 
-  typedef std::tr1::function<DownloadMain* (const char*)> slot_download;
+  typedef std::function<DownloadMain* (const char*)> slot_download;
 
   // Do not connect to peers with this many or more failed chunks.
   static const unsigned int max_failed = 3;

@@ -39,7 +39,7 @@
 
 #include <string>
 #include <inttypes.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <rak/priority_queue_default.h>
 
 #include "data/chunk_handle.h"
@@ -53,7 +53,7 @@ class HashTorrent {
 public:
   typedef ranges<uint32_t> Ranges;
 
-  typedef std::tr1::function<void (ChunkHandle)> slot_chunk_handle;
+  typedef std::function<void (ChunkHandle)> slot_chunk_handle;
 
   HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }

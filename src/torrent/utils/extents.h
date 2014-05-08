@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_UTILS_EXTENTS_H
 #define LIBTORRENT_UTILS_EXTENTS_H
 
-#include <tr1/array>
+#include lt_tr1_array
 
 namespace torrent {
 
@@ -48,12 +48,12 @@ struct extents_base {
   typedef std::pair<extents_base*, Tp> mapped_type;
   typedef Tp                           mapped_value_type;
 
-  typedef std::tr1::array<mapped_type, TableSize> table_type;
+  typedef std::array<mapped_type, TableSize> table_type;
   
   extents_base(key_type pos, unsigned int mb, mapped_value_type val) :
-    mask_bits(mb), position(pos) { table.assign(mapped_type(NULL, mapped_value_type())); }
+    mask_bits(mb), position(pos) { table.fill(mapped_type(NULL, mapped_value_type())); }
   extents_base(extents_base* parent, typename table_type::const_iterator itr) :
-    mask_bits(parent->mask_bits - TableBits), position(parent->partition_pos(itr)) { table.assign(mapped_type(NULL, itr->second)); }
+    mask_bits(parent->mask_bits - TableBits), position(parent->partition_pos(itr)) { table.fill(mapped_type(NULL, itr->second)); }
   ~extents_base();
 
   bool         is_divisible(key_type key) const { return key % mask_bits == 0; }

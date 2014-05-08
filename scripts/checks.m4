@@ -418,7 +418,11 @@ AC_DEFUN([TORRENT_CHECK_TR1_LIB], [
   ], [
       AC_MSG_RESULT(no)
       AC_DEFINE(USE_TR1_LIB, 0, Define to 1 if you need to use TR1 containers.)
-      AC_DEFINE(lt_tr1_, "", [Prefix to use for headers first included with TR1.])
+
+      AC_DEFINE([lt_tr1_array], [<array>], [TR1 array])
+      AC_DEFINE([lt_tr1_functional], [<functional>], [TR1 functional])
+      AC_DEFINE([lt_tr1_memory], [<memory>], [TR1 memory])
+
   ], [
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([
         #include <tr1/unordered_map>
@@ -428,13 +432,17 @@ AC_DEFUN([TORRENT_CHECK_TR1_LIB], [
     ], [
         AC_MSG_RESULT([yes])
         AC_DEFINE(USE_TR1_LIB, 1, Define to 1 if you need to use TR1 containers.)
-        AC_DEFINE(lt_tr1_, "tr1/", [Prefix to use for headers first included with TR1.])
 
-        AH_BOTTOM([namespace std { namespace tr1 {} using namespace tr1; }])
     ], [
         AC_MSG_ERROR([No support for C++11 standard library nor TR1 extensions found.])
     ])
   ])
+
+  AH_VERBATIM(lt_tr1_zzz, [
+#if USE_TR1_LIB == 1
+namespace std { namespace tr1 {} using namespace tr1; }
+#endif
+])
 
   AC_LANG_POP(C++)
 ])

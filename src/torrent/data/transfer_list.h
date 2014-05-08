@@ -39,7 +39,7 @@
 
 #include <vector>
 #include <torrent/common.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 namespace torrent {
 
@@ -89,8 +89,8 @@ public:
   void                hash_succeeded(uint32_t index, Chunk* chunk);
   void                hash_failed(uint32_t index, Chunk* chunk);
 
-  typedef std::tr1::function<void (uint32_t)>  slot_chunk_index;
-  typedef std::tr1::function<void (PeerInfo*)> slot_peer_info;
+  typedef std::function<void (uint32_t)>  slot_chunk_index;
+  typedef std::function<void (PeerInfo*)> slot_peer_info;
 
   slot_chunk_index&   slot_canceled()  { return m_slot_canceled; }
   slot_chunk_index&   slot_completed() { return m_slot_completed; }

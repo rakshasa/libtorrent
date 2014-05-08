@@ -41,7 +41,7 @@
 #include <string>
 #include <vector>
 #include <torrent/common.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 namespace torrent {
 
@@ -64,9 +64,9 @@ public:
   typedef std::vector<Tracker*> base_type;
   typedef AddressList           address_list;
 
-  typedef std::tr1::function<void (Tracker*)>                     slot_tracker;
-  typedef std::tr1::function<void (Tracker*, const std::string&)> slot_string;
-  typedef std::tr1::function<uint32_t (Tracker*, AddressList*)>   slot_address_list;
+  typedef std::function<void (Tracker*)>                     slot_tracker;
+  typedef std::function<void (Tracker*, const std::string&)> slot_string;
+  typedef std::function<uint32_t (Tracker*, AddressList*)>   slot_address_list;
 
   using base_type::value_type;
 

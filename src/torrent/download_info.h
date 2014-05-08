@@ -40,7 +40,7 @@
 #include <list>
 #include <string>
 #include <inttypes.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include <torrent/rate.h>
 #include <torrent/hash_string.h>
@@ -54,10 +54,10 @@ class DownloadMain;
 
 class DownloadInfo {
 public:
-  typedef std::tr1::function<uint64_t ()>                              slot_stat_type;
+  typedef std::function<uint64_t ()>                              slot_stat_type;
 
-  typedef std::list<std::tr1::function<void ()> >                      signal_void_type;
-  typedef std::list<std::tr1::function<void (const std::string&)> >    signal_string_type;
+  typedef std::list<std::function<void ()> >                      signal_void_type;
+  typedef std::list<std::function<void (const std::string&)> >    signal_string_type;
 
   enum State {
     NONE,

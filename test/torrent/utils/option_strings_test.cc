@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/exceptions.h>
 #include <torrent/utils/option_strings.h>
 
@@ -17,7 +17,7 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(option_strings_test);
 
-namespace tr1 { using namespace std::tr1; }
+namespace tr1 { using namespace std; }
 
 void
 option_strings_test::test_basic() {

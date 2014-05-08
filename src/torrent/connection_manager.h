@@ -46,7 +46,7 @@
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/common.h>
 
 namespace torrent {
@@ -98,12 +98,12 @@ public:
     handshake_retry_encrypted    = 9
   };
 
-  typedef std::tr1::function<uint32_t (const sockaddr*)>     slot_filter_type;
-  typedef std::tr1::function<ThrottlePair (const sockaddr*)> slot_throttle_type;
+  typedef std::function<uint32_t (const sockaddr*)>     slot_filter_type;
+  typedef std::function<ThrottlePair (const sockaddr*)> slot_throttle_type;
 
   // The sockaddr argument in the result slot call is NULL if the resolve failed, and the int holds the errno.
-  typedef std::tr1::function<void (const sockaddr*, int)> slot_resolver_result_type;
-  typedef std::tr1::function<slot_resolver_result_type* (const char*, int, int, slot_resolver_result_type)> slot_resolver_type;
+  typedef std::function<void (const sockaddr*, int)> slot_resolver_result_type;
+  typedef std::function<slot_resolver_result_type* (const char*, int, int, slot_resolver_result_type)> slot_resolver_type;
 
   ConnectionManager();
   ~ConnectionManager();

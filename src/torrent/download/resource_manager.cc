@@ -38,7 +38,7 @@
 
 #include <algorithm>
 #include <functional>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <limits>
 #include <rak/functional.h>
 
@@ -51,7 +51,7 @@
 #include "choke_queue.h"
 #include "resource_manager.h"
 
-namespace tr1 { using namespace std::tr1; }
+namespace tr1 { using namespace std; }
 
 namespace torrent {
 
@@ -73,12 +73,12 @@ ResourceManager::ResourceManager() :
   choke_base_type::back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
   choke_base_type::back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 
-  choke_base_type::back()->up_queue()->set_slot_unchoke(tr1::bind(&ResourceManager::receive_upload_unchoke, this, tr1::placeholders::_1));
-  choke_base_type::back()->down_queue()->set_slot_unchoke(tr1::bind(&ResourceManager::receive_download_unchoke, this, tr1::placeholders::_1));
-  choke_base_type::back()->up_queue()->set_slot_can_unchoke(tr1::bind(&ResourceManager::retrieve_upload_can_unchoke, this));
-  choke_base_type::back()->down_queue()->set_slot_can_unchoke(tr1::bind(&ResourceManager::retrieve_download_can_unchoke, this));
-  choke_base_type::back()->up_queue()->set_slot_connection(tr1::bind(&PeerConnectionBase::receive_upload_choke, tr1::placeholders::_1, tr1::placeholders::_2));
-  choke_base_type::back()->down_queue()->set_slot_connection(tr1::bind(&PeerConnectionBase::receive_download_choke, tr1::placeholders::_1, tr1::placeholders::_2));
+  choke_base_type::back()->up_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_upload_unchoke, this, std::placeholders::_1));
+  choke_base_type::back()->down_queue()->set_slot_unchoke(std::bind(&ResourceManager::receive_download_unchoke, this, std::placeholders::_1));
+  choke_base_type::back()->up_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_upload_can_unchoke, this));
+  choke_base_type::back()->down_queue()->set_slot_can_unchoke(std::bind(&ResourceManager::retrieve_download_can_unchoke, this));
+  choke_base_type::back()->up_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_upload_choke, std::placeholders::_1, std::placeholders::_2));
+  choke_base_type::back()->down_queue()->set_slot_connection(std::bind(&PeerConnectionBase::receive_download_choke, std::placeholders::_1, std::placeholders::_2));
 }
 
 ResourceManager::~ResourceManager() {

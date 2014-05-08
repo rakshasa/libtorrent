@@ -39,16 +39,16 @@
 
 #include <algorithm>
 #include <deque>
-#include <tr1/functional>
-#include <tr1/array>
+#include lt_tr1_functional
+#include lt_tr1_array
 
 namespace torrent {
 
 template <typename Type, typename Constants>
-class queue_buckets : private std::tr1::array<std::deque<Type>, Constants::bucket_count> {
+class queue_buckets : private std::array<std::deque<Type>, Constants::bucket_count> {
 public:
-  typedef std::deque<Type>                                     queue_type;
-  typedef std::tr1::array<queue_type, Constants::bucket_count> base_type;
+  typedef std::deque<Type>                                queue_type;
+  typedef std::array<queue_type, Constants::bucket_count> base_type;
 
   typedef Constants constants;
 
@@ -251,7 +251,7 @@ queue_buckets<Type, Constants>::destroy(int idx, iterator begin, iterator end) {
   instrumentation_update(constants::instrumentation_total[idx], -difference);
 
   // Consider moving these to a temporary dequeue before releasing:
-  std::for_each(begin, end, std::tr1::function<void (value_type)>(&constants::template destroy<value_type>));
+  std::for_each(begin, end, std::function<void (value_type&)>(&constants::template destroy<value_type>));
   queue_at(idx).erase(begin, end);
 }
 

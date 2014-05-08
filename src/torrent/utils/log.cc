@@ -54,8 +54,8 @@
 #include <fstream>
 #include <functional>
 #include <memory>
-#include <tr1/functional>
-#include <tr1/memory>
+#include lt_tr1_functional
+#include lt_tr1_memory
 
 namespace torrent {
 
@@ -147,7 +147,7 @@ log_rebuild_cache() {
 
     log_cache_list::iterator cache_itr = 
       std::find_if(log_cache.begin(), log_cache.end(),
-                   std::tr1::bind(&log_cache_entry::equal_outputs, std::tr1::placeholders::_1, use_outputs));
+                   std::bind(&log_cache_entry::equal_outputs, std::placeholders::_1, use_outputs));
     
     if (cache_itr == log_cache.end()) {
       cache_itr = log_cache.insert(log_cache.end(), log_cache_entry());
@@ -187,17 +187,20 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
     return;
 
   pthread_mutex_lock(&log_mutex);
-  std::for_each(m_first, m_last, std::tr1::bind(&log_slot::operator(),
-                                                std::tr1::placeholders::_1,
-                                                buffer,
-                                                std::distance(buffer, first),
-                                                std::distance(log_groups.begin(), this)));
-  if (dump_data != NULL)
-    std::for_each(m_first, m_last, std::tr1::bind(&log_slot::operator(),
-                                                  std::tr1::placeholders::_1,
-                                                  (const char*)dump_data,
-                                                  dump_size,
-                                                  -1));
+
+  std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
+                                           std::placeholders::_1,
+                                           (const char*)buffer,
+                                           std::distance(buffer, first),
+                                           std::distance(log_groups.begin(), this)));
+  if (dump_data != NULL) {
+    std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
+                                             std::placeholders::_1,
+                                             (const char*)dump_data,
+                                             dump_size,
+                                             -1));
+  }
+
   pthread_mutex_unlock(&log_mutex);
 }
 
@@ -250,7 +253,7 @@ void
 log_cleanup() {
   pthread_mutex_lock(&log_mutex);
 
-  log_groups.assign(log_group());
+  log_groups.fill(log_group());
   log_outputs.clear();
   log_children.clear();
 
@@ -343,7 +346,7 @@ log_remove_child(int group, int child) {
 }
 
 void
-log_file_write(std::tr1::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
+log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
 
   // Normal groups are nul-terminated strings.
@@ -362,7 +365,7 @@ log_file_write(std::tr1::shared_ptr<std::ofstream>& outfile, const char* data, s
 }
 
 void
-log_gz_file_write(std::tr1::shared_ptr<log_gz_output>& outfile, const char* data, size_t length, int group) {
+log_gz_file_write(std::shared_ptr<log_gz_output>& outfile, const char* data, size_t length, int group) {
   char buffer[64];
 
   // Normal groups are nul-terminated strings.
@@ -391,20 +394,20 @@ log_gz_file_write(std::tr1::shared_ptr<log_gz_output>& outfile, const char* data
 
 void
 log_open_file_output(const char* name, const char* filename) {
-  std::tr1::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
+  std::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
 
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
-  log_open_output(name, std::tr1::bind(&log_file_write, outfile,
-                                       std::tr1::placeholders::_1,
-                                       std::tr1::placeholders::_2,
-                                       std::tr1::placeholders::_3));
+  log_open_output(name, std::bind(&log_file_write, outfile,
+                                       std::placeholders::_1,
+                                       std::placeholders::_2,
+                                       std::placeholders::_3));
 }
 
 void
 log_open_gz_file_output(const char* name, const char* filename) {
-  std::tr1::shared_ptr<log_gz_output> outfile(new log_gz_output(filename));
+  std::shared_ptr<log_gz_output> outfile(new log_gz_output(filename));
 
   if (!outfile->is_valid())
     throw input_error("Could not open log gzip file '" + std::string(filename) + "'.");
@@ -412,10 +415,10 @@ log_open_gz_file_output(const char* name, const char* filename) {
   // if (!outfile->set_buffer(1 << 14))
   //   throw input_error("Could not set gzip log file buffer size.");
 
-  log_open_output(name, std::tr1::bind(&log_gz_file_write, outfile,
-                                       std::tr1::placeholders::_1,
-                                       std::tr1::placeholders::_2,
-                                       std::tr1::placeholders::_3));
+  log_open_output(name, std::bind(&log_gz_file_write, outfile,
+                                       std::placeholders::_1,
+                                       std::placeholders::_2,
+                                       std::placeholders::_3));
 }
 
 log_buffer*
@@ -423,10 +426,10 @@ log_open_log_buffer(const char* name) {
   log_buffer* buffer = new log_buffer;
 
   try {
-    log_open_output(name, std::tr1::bind(&log_buffer::lock_and_push_log, buffer,
-                                         std::tr1::placeholders::_1,
-                                         std::tr1::placeholders::_2,
-                                         std::tr1::placeholders::_3));
+    log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer,
+                                         std::placeholders::_1,
+                                         std::placeholders::_2,
+                                         std::placeholders::_3));
     return buffer;
 
   } catch (torrent::input_error& e) {

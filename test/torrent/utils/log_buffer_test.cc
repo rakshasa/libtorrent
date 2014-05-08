@@ -7,7 +7,7 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_log_buffer_test);
 
-namespace tr1 { using namespace std::tr1; }
+namespace tr1 { using namespace std; }
 
 void
 utils_log_buffer_test::setUp() {

@@ -68,7 +68,7 @@
 #define LT_LOG_THIS(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TORRENT_##log_level, m_ptr->info(), "download", log_fmt, __VA_ARGS__);
 
-namespace tr1 { using namespace std::tr1; }
+namespace tr1 { using namespace std; }
 
 namespace torrent {
 
@@ -107,28 +107,28 @@ DownloadMain::DownloadMain() :
   m_tracker_list = new TrackerList();
   m_tracker_controller = new TrackerController(m_tracker_list);
 
-  m_tracker_list->slot_success() = tr1::bind(&TrackerController::receive_success, m_tracker_controller, tr1::placeholders::_1, tr1::placeholders::_2);
-  m_tracker_list->slot_failure() = tr1::bind(&TrackerController::receive_failure, m_tracker_controller, tr1::placeholders::_1, tr1::placeholders::_2);
-  m_tracker_list->slot_scrape_success() = tr1::bind(&TrackerController::receive_scrape, m_tracker_controller, tr1::placeholders::_1);
-  m_tracker_list->slot_tracker_enabled()  = tr1::bind(&TrackerController::receive_tracker_enabled, m_tracker_controller, tr1::placeholders::_1);
-  m_tracker_list->slot_tracker_disabled() = tr1::bind(&TrackerController::receive_tracker_disabled, m_tracker_controller, tr1::placeholders::_1);
+  m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
+  m_tracker_list->slot_scrape_success() = std::bind(&TrackerController::receive_scrape, m_tracker_controller, std::placeholders::_1);
+  m_tracker_list->slot_tracker_enabled()  = std::bind(&TrackerController::receive_tracker_enabled, m_tracker_controller, std::placeholders::_1);
+  m_tracker_list->slot_tracker_disabled() = std::bind(&TrackerController::receive_tracker_disabled, m_tracker_controller, std::placeholders::_1);
 
   m_connectionList = new ConnectionList(this);
 
-  m_delegator.slot_chunk_find() = std::tr1::bind(&ChunkSelector::find, m_chunkSelector, tr1::placeholders::_1, tr1::placeholders::_2);
-  m_delegator.slot_chunk_size() = std::tr1::bind(&FileList::chunk_index_size, file_list(), tr1::placeholders::_1);
+  m_delegator.slot_chunk_find() = std::bind(&ChunkSelector::find, m_chunkSelector, std::placeholders::_1, std::placeholders::_2);
+  m_delegator.slot_chunk_size() = std::bind(&FileList::chunk_index_size, file_list(), std::placeholders::_1);
 
-  m_delegator.transfer_list()->slot_canceled()  = std::tr1::bind(&ChunkSelector::not_using_index, m_chunkSelector, tr1::placeholders::_1);
-  m_delegator.transfer_list()->slot_queued()    = std::tr1::bind(&ChunkSelector::using_index, m_chunkSelector, tr1::placeholders::_1);
-  m_delegator.transfer_list()->slot_completed() = std::tr1::bind(&DownloadMain::receive_chunk_done, this, tr1::placeholders::_1);
-  m_delegator.transfer_list()->slot_corrupt()   = std::tr1::bind(&DownloadMain::receive_corrupt_chunk, this, tr1::placeholders::_1);
+  m_delegator.transfer_list()->slot_canceled()  = std::bind(&ChunkSelector::not_using_index, m_chunkSelector, std::placeholders::_1);
+  m_delegator.transfer_list()->slot_queued()    = std::bind(&ChunkSelector::using_index, m_chunkSelector, std::placeholders::_1);
+  m_delegator.transfer_list()->slot_completed() = std::bind(&DownloadMain::receive_chunk_done, this, std::placeholders::_1);
+  m_delegator.transfer_list()->slot_corrupt()   = std::bind(&DownloadMain::receive_corrupt_chunk, this, std::placeholders::_1);
 
-  m_delayDisconnectPeers.slot() = std::tr1::bind(&ConnectionList::disconnect_queued, m_connectionList);
-  m_taskTrackerRequest.slot() = std::tr1::bind(&DownloadMain::receive_tracker_request, this);
+  m_delayDisconnectPeers.slot() = std::bind(&ConnectionList::disconnect_queued, m_connectionList);
+  m_taskTrackerRequest.slot() = std::bind(&DownloadMain::receive_tracker_request, this);
 
   m_chunkList->set_data(file_list()->mutable_data());
-  m_chunkList->slot_create_chunk() = tr1::bind(&FileList::create_chunk_index, file_list(), tr1::placeholders::_1, tr1::placeholders::_2);
-  m_chunkList->slot_free_diskspace() = tr1::bind(&FileList::free_diskspace, file_list());
+  m_chunkList->slot_create_chunk() = std::bind(&FileList::create_chunk_index, file_list(), std::placeholders::_1, std::placeholders::_2);
+  m_chunkList->slot_free_diskspace() = std::bind(&FileList::free_diskspace, file_list());
 }
 
 DownloadMain::~DownloadMain() {
