@@ -56,6 +56,22 @@ namespace torrent {
 
 uint32_t MemoryChunk::m_pagesize = getpagesize();
 
+const int MemoryChunk::sync_sync;
+const int MemoryChunk::sync_async;
+const int MemoryChunk::sync_invalidate;
+
+const int MemoryChunk::prot_exec;
+const int MemoryChunk::prot_read;
+const int MemoryChunk::prot_write;
+const int MemoryChunk::prot_none;
+const int MemoryChunk::map_shared;
+
+const int MemoryChunk::advice_normal;
+const int MemoryChunk::advice_random;
+const int MemoryChunk::advice_sequential;
+const int MemoryChunk::advice_willneed;
+const int MemoryChunk::advice_dontneed;
+
 inline void
 MemoryChunk::align_pair(uint32_t* offset, uint32_t* length) const {
   *offset += page_align();

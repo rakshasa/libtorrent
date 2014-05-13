@@ -433,6 +433,10 @@ AC_DEFUN([TORRENT_CHECK_TR1_LIB], [
         AC_MSG_RESULT([yes])
         AC_DEFINE(USE_TR1_LIB, 1, Define to 1 if you need to use TR1 containers.)
 
+        AC_DEFINE([lt_tr1_array], [<tr1/array>], [TR1 array])
+        AC_DEFINE([lt_tr1_functional], [<tr1/functional>], [TR1 functional])
+        AC_DEFINE([lt_tr1_memory], [<tr1/memory>], [TR1 memory])
+
     ], [
         AC_MSG_ERROR([No support for C++11 standard library nor TR1 extensions found.])
     ])

@@ -101,8 +101,8 @@ tracker_list_test::test_enable() {
   int enabled_counter = 0;
   int disabled_counter = 0;
 
-  tracker_list.slot_tracker_enabled() = std::bind(&increment_value, &enabled_counter);
-  tracker_list.slot_tracker_disabled() = std::bind(&increment_value, &disabled_counter);
+  tracker_list.slot_tracker_enabled() = std::bind(&increment_value_void, &enabled_counter);
+  tracker_list.slot_tracker_disabled() = std::bind(&increment_value_void, &disabled_counter);
 
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(1, tracker_1);

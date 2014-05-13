@@ -110,10 +110,10 @@ bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const c
   int failure_counter = 0;                                              \
   int scrape_success_counter = 0;                                       \
   int scrape_failure_counter = 0;                                       \
-  tracker_list.slot_success() = std::bind(&increment_value, &success_counter); \
-  tracker_list.slot_failure() = std::bind(&increment_value, &failure_counter); \
-  tracker_list.slot_scrape_success() = std::bind(&increment_value, &scrape_success_counter); \
-  tracker_list.slot_scrape_failure() = std::bind(&increment_value, &scrape_failure_counter);
+  tracker_list.slot_success() = std::bind(&increment_value_uint, &success_counter); \
+  tracker_list.slot_failure() = std::bind(&increment_value_void, &failure_counter); \
+  tracker_list.slot_scrape_success() = std::bind(&increment_value_void, &scrape_success_counter); \
+  tracker_list.slot_scrape_failure() = std::bind(&increment_value_void, &scrape_failure_counter);
 
 #define TRACKER_INSERT(group, name)                             \
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \

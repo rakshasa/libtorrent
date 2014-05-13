@@ -32,7 +32,7 @@ utils_signal_bitfield_test::tearDown() {
 }
 
 static bool
-verify_did_internal_error(std::function<void ()> func, bool should_throw) {
+verify_did_internal_error(std::function<unsigned int ()> func, bool should_throw) {
   bool did_throw = false;
 
   try {

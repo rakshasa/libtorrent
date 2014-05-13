@@ -19,6 +19,8 @@ struct test_constants {
   static void destroy(Type& obj);
 };
 
+const int test_constants::bucket_count;
+
 const torrent::instrumentation_enum test_constants::instrumentation_added[bucket_count] = {
   torrent::INSTRUMENTATION_TRANSFER_REQUESTS_QUEUED_ADDED,
   torrent::INSTRUMENTATION_TRANSFER_REQUESTS_UNORDERED_ADDED

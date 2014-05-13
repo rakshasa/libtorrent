@@ -10,7 +10,15 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_thread_base_test);
 
-namespace tr1 { using namespace std; }
+const int thread_test::test_flag_pre_stop;
+const int thread_test::test_flag_long_timeout;
+
+const int thread_test::test_flag_acquire_global;
+const int thread_test::test_flag_has_global;
+
+const int thread_test::test_flag_do_work;
+const int thread_test::test_flag_pre_poke;
+const int thread_test::test_flag_post_poke;
 
 void throw_shutdown_exception() { throw torrent::shutdown_exception(); }
 
