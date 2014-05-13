@@ -253,7 +253,8 @@ void
 log_cleanup() {
   pthread_mutex_lock(&log_mutex);
 
-  log_groups.fill(log_group());
+  std::fill(log_groups.begin(), log_groups.end(), log_group());
+
   log_outputs.clear();
   log_children.clear();
 

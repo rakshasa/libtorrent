@@ -39,6 +39,8 @@
 
 #include lt_tr1_array
 
+#include <algorithm>
+
 #include "torrent/common.h"
 #include "torrent/utils/log.h"
 
@@ -118,7 +120,7 @@ void instrumentation_reset();
 
 inline void
 instrumentation_initialize() {
-  instrumentation_values.fill(int64_t());
+  std::fill(instrumentation_values.begin(), instrumentation_values.end(), int64_t());
 }
 
 inline void

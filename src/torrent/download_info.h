@@ -52,7 +52,7 @@ class DownloadMain;
 
 // This will become a Download 'handle' of kinds.
 
-class DownloadInfo {
+class LIBTORRENT_EXPORT DownloadInfo {
 public:
   typedef std::function<uint64_t ()>                              slot_stat_type;
 

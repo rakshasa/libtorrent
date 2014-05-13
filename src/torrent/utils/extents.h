@@ -39,6 +39,8 @@
 
 #include lt_tr1_array
 
+#include <algorithm>
+
 namespace torrent {
 
 template <typename Key, typename Tp, unsigned int TableSize, unsigned int TableBits>
@@ -50,10 +52,8 @@ struct extents_base {
 
   typedef std::array<mapped_type, TableSize> table_type;
   
-  extents_base(key_type pos, unsigned int mb, mapped_value_type val) :
-    mask_bits(mb), position(pos) { table.fill(mapped_type(NULL, mapped_value_type())); }
-  extents_base(extents_base* parent, typename table_type::const_iterator itr) :
-    mask_bits(parent->mask_bits - TableBits), position(parent->partition_pos(itr)) { table.fill(mapped_type(NULL, itr->second)); }
+  extents_base(key_type pos, unsigned int mb, mapped_value_type val);
+  extents_base(extents_base* parent, typename table_type::const_iterator itr);
   ~extents_base();
 
   bool         is_divisible(key_type key) const { return key % mask_bits == 0; }
@@ -105,6 +105,18 @@ public:
 
   base_type* data() { return this; }
 };
+
+template <typename Key, typename Tp, unsigned int TableSize, unsigned int TableBits>
+extents_base<Key, Tp, TableSize, TableBits>::extents_base(key_type pos, unsigned int mb, mapped_value_type val) :
+  mask_bits(mb), position(pos) {
+  std::fill(table.begin(), table.end(), mapped_type(NULL, mapped_value_type()));
+}
+
+template <typename Key, typename Tp, unsigned int TableSize, unsigned int TableBits>
+extents_base<Key, Tp, TableSize, TableBits>::extents_base(extents_base* parent, typename table_type::const_iterator itr) :
+  mask_bits(parent->mask_bits - TableBits), position(parent->partition_pos(itr)) {
+  std::fill(table.begin(), table.end(), mapped_type(NULL, itr->second));
+}
 
 template <typename Key, typename Tp, unsigned int MaskBits, unsigned int TableSize, unsigned int TableBits>
 extents<Key, Tp, MaskBits, TableSize, TableBits>::extents() :

@@ -60,6 +60,11 @@
 
 namespace torrent {
 
+const int ConnectionList::disconnect_available;
+const int ConnectionList::disconnect_quick;
+const int ConnectionList::disconnect_unwanted;
+const int ConnectionList::disconnect_delayed;
+
 ConnectionList::ConnectionList(DownloadMain* download) :
   m_download(download), m_minSize(50), m_maxSize(100) {
 }
