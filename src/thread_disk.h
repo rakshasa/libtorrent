@@ -44,7 +44,7 @@ namespace torrent {
 
 class thread_disk : public thread_base {
 public:
-  const char*         name() const { return "worker_disk"; }
+  const char*         name() const { return "rtorrent disk"; }
 
   virtual void        init_thread();
 
