@@ -10,9 +10,9 @@ LibTorrentTest_LDADD = \
 	../src/torrent/peer/libsub_torrentpeer.la \
 	../src/data/libsub_data.la \
 	../src/dht/libsub_dht.la \
-	../src/download/libsub_download.la \
 	../src/net/libsub_net.la \
 	../src/protocol/libsub_protocol.la \
+	../src/download/libsub_download.la \
 	../src/tracker/libsub_tracker.la \
 	../src/utils/libsub_utils.la \
 	../src/torrent/utils/libsub_torrentutils.la
