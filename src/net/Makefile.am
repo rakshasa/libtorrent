@@ -4,6 +4,8 @@ libsub_net_la_SOURCES = \
 	address_list.cc \
 	address_list.h \
 	data_buffer.h \
+	local_addr.cc \
+	local_addr.h \
 	listen.cc \
 	listen.h \
 	protocol_buffer.h \

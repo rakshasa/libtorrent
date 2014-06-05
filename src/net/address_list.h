@@ -54,6 +54,9 @@ public:
 
   void                        parse_address_compact(raw_string s);
   void                        parse_address_compact(const std::string& s);
+#ifdef RAK_USE_INET6
+  void                        parse_address_compact_ipv6(const std::string& s);
+#endif
 
 private:
   static rak::socket_address  parse_address(const Object& b);
@@ -98,6 +101,28 @@ struct SocketAddressCompact {
 
   const char*         c_str() const { return reinterpret_cast<const char*>(this); }
 } __attribute__ ((packed));
+
+#ifdef RAK_USE_INET6
+struct SocketAddressCompact6 {
+  SocketAddressCompact6() {}
+  SocketAddressCompact6(in6_addr a, uint16_t p) : addr(a), port(p) {}
+  SocketAddressCompact6(const rak::socket_address_inet6* sa) : addr(sa->address()), port(sa->port_n()) {}
+
+  operator rak::socket_address () const {
+    rak::socket_address sa;
+    sa.sa_inet6()->clear();
+    sa.sa_inet6()->set_port_n(port);
+    sa.sa_inet6()->set_address(addr);
+
+    return sa;
+  }
+
+  in6_addr addr;
+  uint16_t port;
+
+  const char*         c_str() const { return reinterpret_cast<const char*>(this); }
+} __attribute__ ((packed));
+#endif
 
 }
 

@@ -1,5 +1,5 @@
 // libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
+// Copyright (C) 2005-2007, Jari Sundell
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,38 +34,31 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_TORRENT_EVENT_H
-#define LIBTORRENT_TORRENT_EVENT_H
+// A routine to get a local IP address that can be presented to a tracker.
+// (Does not use UPnP etc., so will not understand NAT.)
+// On a machine with multiple network cards, address selection can be a
+// complex process, and in general what's selected is a source/destination
+// address pair. However, this routine will give an approximation that will
+// be good enough for most purposes and users.
 
-#include <torrent/common.h>
+#ifndef LIBTORRENT_NET_LOCAL_ADDR_H
+#define LIBTORRENT_NET_LOCAL_ADDR_H
+
+#include <unistd.h>
+
+namespace rak {
+  class socket_address;
+}
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT Event {
-public:
-  virtual ~Event() {}
-
-  // These are not virtual as the fd is heavily used in select based
-  // polling, thus fast access is critical to performance.
-  int                 file_descriptor() const { return m_fileDesc; }
-
-  virtual void        event_read() = 0;
-  virtual void        event_write() = 0;
-  virtual void        event_error() = 0;
-
-  // Require all event types to define this function.
-  virtual const char* type_name() const { return "default"; }
-
-  // Event closed?
-
-protected:
-  int                 m_fileDesc;
-
-#ifdef RAK_USE_INET6
-  bool                m_ipv6_socket;
-#endif
-};
+// Note: family must currently be rak::af_inet or rak::af_inet6
+// (rak::af_unspec won't do); anything else will throw an exception.
+// Returns false if no address of the given family could be found,
+// either because there are none, or because something went wrong in
+// the process (e.g., no free file descriptors).
+bool get_local_address(sa_family_t family, rak::socket_address *address);
 
 }
 
-#endif
+#endif /* LIBTORRENT_NET_LOCAL_ADDR_H */
