@@ -134,14 +134,10 @@ Listen::event_write() {
 
 void
 Listen::event_error() {
-  int socket = get_fd().get_fd();
-  int error = 0;
-  socklen_t errorLen = sizeof(error);
+  int error = get_fd().get_error();
 
-  if (getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &errorLen) != -1 && error != 0) {
-    std::string errorMsg = std::string("Listener port received an error event: ") + strerror(error);
-    throw internal_error(errorMsg.c_str());
-  }
+  if (error != 0)
+    throw internal_error("Listener port received an error event: " + std::string(std::strerror(error)));
 }
 
 }
