@@ -134,7 +134,10 @@ Listen::event_write() {
 
 void
 Listen::event_error() {
-  throw internal_error("Listener port received an error event.");
+  int error = get_fd().get_error();
+
+  if (error != 0)
+    throw internal_error("Listener port received an error event: " + std::string(std::strerror(error)));
 }
 
 }

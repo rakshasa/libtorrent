@@ -44,7 +44,7 @@ namespace torrent {
 
 class thread_main : public thread_base {
 public:
-  const char*         name() const { return "main"; }
+  const char*         name() const { return "rtorrent main"; }
 
   virtual void        init_thread();
 
