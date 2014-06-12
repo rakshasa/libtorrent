@@ -46,7 +46,7 @@ class SocketFd;
 
 class LIBTORRENT_EXPORT lt_cacheline_aligned thread_interrupt : public Event {
 public:
-  typedef std::pair<thread_interrupt*,thread_interrupt*> pair_type;
+  typedef std::pair<thread_interrupt*, thread_interrupt*> pair_type;
 
   ~thread_interrupt();
 
@@ -71,7 +71,6 @@ private:
 
 inline bool
 thread_interrupt::is_poking() const {
-  __sync_synchronize();
   return m_poking;
 }
 

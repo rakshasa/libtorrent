@@ -228,7 +228,9 @@ HashTorrent::queue(bool quick) {
     if (!handle.is_valid())
       continue;
 
-    m_slotCheck(handle);
+    if (m_slot_check_chunk)
+      m_slot_check_chunk(handle);
+
     m_outstanding++;
   }
 

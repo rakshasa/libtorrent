@@ -44,6 +44,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
+#include "utils/instrumentation.h"
 
 namespace torrent {
 
@@ -60,6 +61,8 @@ thread_main::init_thread() {
   m_state = STATE_INITIALIZED;
   m_thread = pthread_self();
   m_flags |= flag_main_thread;
+
+  m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_MAIN - INSTRUMENTATION_POLLING_DO_POLL;
 }
 
 void

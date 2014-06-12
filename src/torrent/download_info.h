@@ -55,12 +55,9 @@ class DownloadMain;
 class DownloadInfo {
 public:
   typedef std::tr1::function<uint64_t ()>                              slot_stat_type;
-  typedef std::tr1::function<void (uint32_t)>                          slot_chunk_type;
 
   typedef std::list<std::tr1::function<void ()> >                      signal_void_type;
   typedef std::list<std::tr1::function<void (const std::string&)> >    signal_string_type;
-  typedef std::list<slot_chunk_type>                                   signal_chunk_type;
-  typedef std::list<std::tr1::function<void (const std::string&, const char*, size_t)> > signal_dump_type;
 
   enum State {
     NONE,
@@ -158,15 +155,9 @@ public:
   uint32_t            upload_unchoked() const                      { return m_upload_unchoked; }
   uint32_t            download_unchoked() const                    { return m_download_unchoked; }
 
-  signal_string_type& signal_network_log() const                   { return m_signalNetworkLog; }
-  signal_string_type& signal_storage_error() const                 { return m_signalStorageError; }
-
   // The list of addresses is guaranteed to be sorted and unique.
   signal_void_type&   signal_tracker_success() const               { return m_signalTrackerSuccess; }
   signal_string_type& signal_tracker_failed() const                { return m_signalTrackerFailed; }
-
-  signal_chunk_type&  signal_chunk_passed() const                  { return m_signalChunkPassed; }
-  signal_chunk_type&  signal_chunk_failed() const                  { return m_signalChunkFailed; }
 
   //
   // Libtorrent internal:
@@ -207,14 +198,8 @@ private:
   slot_stat_type      m_slotStatLeft;
   slot_stat_type      m_slotStatCompleted;
 
-  mutable signal_string_type  m_signalNetworkLog;
-  mutable signal_string_type  m_signalStorageError;
-
   mutable signal_void_type    m_signalTrackerSuccess;
   mutable signal_string_type  m_signalTrackerFailed;
-
-  mutable signal_chunk_type   m_signalChunkPassed;
-  mutable signal_chunk_type   m_signalChunkFailed;
 };
 
 }

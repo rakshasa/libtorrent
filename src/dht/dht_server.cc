@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
@@ -157,7 +158,7 @@ DhtServer::start(int port) {
   m_taskTimeout.slot() = std::tr1::bind(&DhtServer::receive_timeout, this);
 
   m_uploadNode.set_list_iterator(m_uploadThrottle->end());
-  m_uploadNode.slot_activate(rak::make_mem_fun(static_cast<SocketBase*>(this), &SocketBase::receive_throttle_up_activate));
+  m_uploadNode.slot_activate() = std::tr1::bind(&SocketBase::receive_throttle_up_activate, static_cast<SocketBase*>(this));
 
   m_downloadNode.set_list_iterator(m_downloadThrottle->end());
   m_downloadThrottle->insert(&m_downloadNode);
@@ -676,9 +677,9 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
 void
 DhtServer::clear_transactions() {
-  std::for_each(m_transactions.begin(), m_transactions.end(),
-                rak::on(rak::mem_ref(&transaction_map::value_type::second),
-                        rak::call_delete<DhtTransaction>()));
+  for (transaction_map::iterator itr = m_transactions.begin(), last = m_transactions.end(); itr != last; itr++)
+    delete itr->second;
+
   m_transactions.clear();
 }
 

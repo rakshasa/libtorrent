@@ -39,9 +39,11 @@
 #include "thread_interrupt.h"
 
 #include <sys/socket.h>
+
 #include "net/socket_fd.h"
 #include "rak/error_number.h"
 #include "torrent/exceptions.h"
+#include "utils/instrumentation.h"
 
 namespace torrent {
 
@@ -61,16 +63,16 @@ thread_interrupt::~thread_interrupt() {
 
 bool
 thread_interrupt::poke() {
-  if (is_poking())
+  if (!__sync_bool_compare_and_swap(&m_other->m_poking, false, true))
     return true;
-
-  __sync_bool_compare_and_swap(&m_other->m_poking, false, true);
 
   int result = ::send(m_fileDesc, "a", 1, 0);
 
   if (result == 0 ||
       (result == -1 && !rak::error_number::current().is_blocked_momentary()))
     throw internal_error("Invalid result writing to thread_interrupt socket.");
+
+  instrumentation_update(INSTRUMENTATION_POLLING_INTERRUPT_POKE, 1);
 
   return true;
 }
@@ -99,6 +101,8 @@ thread_interrupt::event_read() {
   if (result == 0 ||
       (result == -1 && !rak::error_number::current().is_blocked_momentary()))
     throw internal_error("Invalid result reading from thread_interrupt socket.");
+
+  instrumentation_update(INSTRUMENTATION_POLLING_INTERRUPT_READ_EVENT, 1);
 
   __sync_bool_compare_and_swap(&m_poking, true, false);
 }

@@ -8,4 +8,4 @@ libsub_tracker_la_SOURCES = \
 	tracker_udp.cc \
 	tracker_udp.h
 
-INCLUDES = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)

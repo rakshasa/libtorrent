@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#define __STDC_FORMAT_MACROS
+
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -45,6 +47,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
+#include "torrent/utils/log.h"
 
 #include "listen.h"
 #include "manager.h"
@@ -52,10 +55,10 @@
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddress) {
+Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress) {
   close();
 
-  if (first == 0 || last == 0 || first > last)
+  if (first == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
   if (bindAddress->family() != rak::socket_address::af_inet &&
@@ -70,11 +73,11 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
   rak::socket_address sa;
   sa.copy(*bindAddress, bindAddress->length());
 
-  for (uint16_t i = first; i <= last; ++i) {
-    sa.set_port(i);
+  do {
+    sa.set_port(first);
 
-    if (get_fd().bind(sa) && get_fd().listen(50)) {
-      m_port = i;
+    if (get_fd().bind(sa) && get_fd().listen(backlog)) {
+      m_port = first;
 
       manager->connection_manager()->inc_socket_count();
 
@@ -82,13 +85,19 @@ Listen::open(uint16_t first, uint16_t last, const rak::socket_address* bindAddre
       manager->poll()->insert_read(this);
       manager->poll()->insert_error(this);
 
+      lt_log_print(LOG_CONNECTION_INFO, "listen port %" PRIu16 " opened with backlog set to %i",
+                   m_port, backlog);
+
       return true;
+
     }
-  }
+  } while (first++ < last);
 
   // This needs to be done if local_error is thrown too...
   get_fd().close();
   get_fd().clear();
+
+  lt_log_print(LOG_CONNECTION_INFO, "failed to open listen port");
 
   return false;
 }
@@ -115,7 +124,7 @@ Listen::event_read() {
   SocketFd fd;
 
   while ((fd = get_fd().accept(&sa)).is_valid())
-    m_slotIncoming(fd, sa);
+    m_slot_accepted(fd, sa);
 }
 
 void

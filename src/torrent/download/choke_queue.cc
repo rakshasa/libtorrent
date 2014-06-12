@@ -41,13 +41,13 @@
 #include <numeric>
 #include <cstdlib>
 #include <tr1/functional>
+#include <rak/functional.h>
 
 #include "protocol/peer_connection_base.h"
 #include "torrent/download/group_entry.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/choke_status.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/log_files.h"
 
 #include "choke_queue.h"
 
@@ -60,6 +60,15 @@ struct choke_manager_less {
 static inline bool
 should_connection_unchoke(choke_queue* cq, PeerConnectionBase* pcb) {
   return pcb->should_connection_unchoke(cq);
+}
+
+static inline void
+log_choke_changes_func_new(void* address, const char* title, int quota, int adjust) {
+  lt_log_print(LOG_INSTRUMENTATION_CHOKE,
+               "%p %i %s %i %i",
+               address,
+               0, //lf->last_update(),
+               title, quota, adjust);
 }
 
 choke_queue::~choke_queue() {
@@ -214,8 +223,7 @@ choke_queue::balance() {
   int adjust = max_unchoked - (int)(unchoked.size() + gs.now_unchoked);
   adjust = std::min(adjust, can_unchoke);
 
-  if (log_files[LOG_CHOKE_CHANGES].is_open())
-    log_choke_changes_func_new(this, "balance", m_maxUnchoked, adjust);
+  log_choke_changes_func_new(this, "balance", m_maxUnchoked, adjust);
 
   int result = 0;
 
@@ -286,8 +294,7 @@ choke_queue::cycle(uint32_t quota) {
   adjust = std::max(adjust, alternate);
   adjust = std::min(adjust, quota);
 
-  if (log_files[LOG_CHOKE_CHANGES].is_open())
-    log_choke_changes_func_new(this, "cycle", quota, adjust);
+  log_choke_changes_func_new(this, "cycle", quota, adjust);
 
   lt_log_print(LOG_PEER_DEBUG, "Called cycle; quota:%u adjust:%i alternate:%i queued:%u unchoked:%u.",
                quota, adjust, alternate, (unsigned)queued.size(), (unsigned)unchoked.size());
@@ -545,9 +552,17 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
     choke_manager_allocate_slots(first, last, max, m_heuristics_list[m_heuristics].unchoke_weight, target);
   }
 
-  if (log_files[LOG_CHOKE_CHANGES].is_open())
+  if (lt_log_is_valid(LOG_INSTRUMENTATION_CHOKE)) {
     for (uint32_t i = 0; i < choke_queue::order_max_size; i++)
-      log_choke_changes_func_allocate(this, (const char*)"unchoke" + 2*is_choke, i, target[i].first, std::distance(target[i].second, target[i + 1].second));
+      lt_log_print(LOG_INSTRUMENTATION_CHOKE,
+                   "%p %i %s %u %u %i",
+                   this,
+                   0, //lf->last_update(),
+                   (const char*)"unchoke" + 2*is_choke,
+                   i,
+                   target[i].first,
+                   std::distance(target[i].second, target[i + 1].second));
+  }
 
   // Now do the actual unchoking.
   uint32_t count = 0;
@@ -592,10 +607,15 @@ choke_queue::adjust_choke_range(iterator first, iterator last,
       m_slotConnection(itr_adjust->connection, is_choke);
       count++;
 
-      if (!log_files[LOG_CHOKE_CHANGES].is_open())
-        continue;
-
-      log_choke_changes_func_peer(this, (const char*)"unchoke" + 2*is_choke, &*itr_adjust);
+      lt_log_print(LOG_INSTRUMENTATION_CHOKE,
+                   "%p %i %s %p %X %llu %llu",
+                   this, 
+                   0, //lf->last_update(),
+                   (const char*)"unchoke" + 2*is_choke,
+                   itr_adjust->connection,
+                   itr_adjust->weight,
+                   (long long unsigned int)itr_adjust->connection->up_rate()->rate(),
+                   (long long unsigned int)itr_adjust->connection->down_rate()->rate());
     }
 
     // The 'target' iterators remain valid after erase since we're

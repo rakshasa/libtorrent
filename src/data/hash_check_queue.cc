@@ -40,6 +40,7 @@
 
 #include "data/hash_chunk.h"
 #include "torrent/hash_string.h"
+#include "utils/instrumentation.h"
 
 namespace torrent {
 
@@ -51,6 +52,7 @@ HashCheckQueue::~HashCheckQueue() {
   pthread_mutex_destroy(&m_lock);
 }
 
+// Always poke thread_disk after calling this.
 void
 HashCheckQueue::push_back(HashChunk* hash_chunk) {
   if (hash_chunk == NULL || !hash_chunk->chunk()->is_loaded() || !hash_chunk->chunk()->is_blocking())
@@ -64,7 +66,9 @@ HashCheckQueue::push_back(HashChunk* hash_chunk) {
 
   base_type::push_back(hash_chunk);
 
-  // TODO: Poke thread.
+  int64_t size = hash_chunk->chunk()->chunk()->chunk_size();
+  instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT, 1);
+  instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, size);
 
   pthread_mutex_unlock(&m_lock);
 }
@@ -93,6 +97,11 @@ HashCheckQueue::remove(HashChunk* hash_chunk) {
   if (itr != end()) {
     base_type::erase(itr);
     result = true;
+
+    int64_t size = hash_chunk->chunk()->chunk()->chunk_size();
+    instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT, -1);
+    instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, -size);
+
   } else {
     result = false;
   }
@@ -111,6 +120,10 @@ HashCheckQueue::perform() {
     
     if (!hash_chunk->chunk()->is_loaded())
       throw internal_error("HashCheckQueue::perform(): !entry.node->is_loaded().");
+
+    int64_t size = hash_chunk->chunk()->chunk()->chunk_size();
+    instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_COUNT, -1);
+    instrumentation_update(INSTRUMENTATION_MEMORY_HASHING_CHUNK_USAGE, -size);
 
     pthread_mutex_unlock(&m_lock);
 

@@ -39,6 +39,7 @@
 #include <algorithm>
 
 #include "rak/algorithm.h"
+#include "utils/instrumentation.h"
 
 #include "bitfield.h"
 #include "exceptions.h"
@@ -59,6 +60,27 @@ Bitfield::set_size_set(size_type s) {
     throw internal_error("Bitfield::set_size_set(size_type s) s > m_size.");
 
   m_set = s;
+}
+
+void
+Bitfield::allocate() { 
+  if (m_data != NULL)
+    return;
+
+  m_data = new value_type[size_bytes()];
+
+  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, (int64_t)size_bytes());
+}
+
+void
+Bitfield::unallocate() {
+  if (m_data == NULL)
+    return;
+
+  delete [] m_data;
+  m_data = NULL;
+
+  instrumentation_update(INSTRUMENTATION_MEMORY_BITFIELDS, -(int64_t)size_bytes());
 }
 
 void
@@ -83,15 +105,15 @@ Bitfield::update() {
 
 void
 Bitfield::copy(const Bitfield& bf) {
+  unallocate();
+
   m_size = bf.m_size;
   m_set = bf.m_set;
 
   if (bf.m_data == NULL) {
     m_data = NULL;
-
   } else {
-    m_data = new value_type[size_bytes()];
-
+    allocate();
     std::memcpy(m_data, bf.m_data, size_bytes());
   }
 }

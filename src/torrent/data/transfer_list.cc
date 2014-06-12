@@ -56,12 +56,15 @@
 namespace torrent {
 
 TransferList::TransferList() :
-  m_slotCanceled(slot_canceled_type(slot_canceled_op(NULL), NULL)),
-  m_slotCompleted(slot_completed_type(slot_completed_op(NULL), NULL)),
-  m_slotQueued(slot_queued_type(slot_queued_op(NULL), NULL)),
-  m_slotCorrupt(slot_corrupt_type(slot_corrupt_op(NULL), NULL)),
   m_succeededCount(0),
   m_failedCount(0) { }
+
+// TODO: Derp if transfer list isn't cleared...
+
+TransferList::~TransferList() {
+  if (!base_type::empty())
+    throw internal_error("TransferList::~TransferList() called on an non-empty object");
+}
 
 TransferList::iterator
 TransferList::find(uint32_t index) {
@@ -75,7 +78,7 @@ TransferList::find(uint32_t index) const {
 
 void
 TransferList::clear() {
-  std::for_each(begin(), end(), rak::on(std::mem_fun(&BlockList::index), m_slotCanceled));
+  std::for_each(begin(), end(), std::tr1::bind(m_slot_canceled, std::tr1::bind(&BlockList::index, std::tr1::placeholders::_1)));
   std::for_each(begin(), end(), rak::call_delete<BlockList>());
 
   base_type::clear();
@@ -88,10 +91,12 @@ TransferList::insert(const Piece& piece, uint32_t blockSize) {
 
   BlockList* blockList = new BlockList(piece, blockSize);
   
-  m_slotQueued(piece.index());
+  m_slot_queued(piece.index());
 
   return base_type::insert(end(), blockList);
 }
+
+// TODO: Create a destructor to ensure all blocklists have been cleared/invaldiated?
 
 TransferList::iterator
 TransferList::erase(iterator itr) {
@@ -112,7 +117,7 @@ TransferList::finished(BlockTransfer* transfer) {
 
   // Marks the transfer as complete and erases it.
   if (transfer->block()->completed(transfer))
-    m_slotCompleted(index);
+    m_slot_completed(index);
 }
 
 void
@@ -196,11 +201,7 @@ TransferList::hash_failed(uint32_t index, Chunk* chunk) {
   // before, and just clear those first?
 
   // Re-download the blocks.
-  (*blockListItr)->clear_finished();
-  (*blockListItr)->set_attempt(0);
-
-  // Clear leaders when we want to redownload the chunk.
-  std::for_each((*blockListItr)->begin(), (*blockListItr)->end(), std::mem_fun_ref(&Block::failed_leader));
+  (*blockListItr)->do_all_failed();
 }
 
 // update_failed(...) either increments the reference count of a
@@ -264,7 +265,7 @@ TransferList::mark_failed_peers(BlockList* blockList, Chunk* chunk) {
         badPeers.insert((*itr2)->peer_info());
   }
 
-  std::for_each(badPeers.begin(), badPeers.end(), m_slotCorrupt);
+  std::for_each(badPeers.begin(), badPeers.end(), m_slot_corrupt);
 }
 
 // Copy the stored data to the chunk from the failed entries with
@@ -289,7 +290,7 @@ TransferList::retry_most_popular(BlockList* blockList, Chunk* chunk) {
     itr->failed_list()->set_current(failedItr);
   }
 
-  m_slotCompleted(blockList->index());
+  m_slot_completed(blockList->index());
 }
 
 }

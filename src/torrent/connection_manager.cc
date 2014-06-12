@@ -46,6 +46,7 @@
 #include "connection_manager.h"
 #include "error.h"
 #include "exceptions.h"
+#include "manager.h"
 
 namespace tr1 { using namespace std::tr1; }
 
@@ -54,9 +55,16 @@ namespace torrent {
 // Fix TrackerUdp, etc, if this is made async.
 static ConnectionManager::slot_resolver_result_type*
 resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
+  if (manager->main_thread_main()->is_current())
+    thread_base::release_global_lock();
+
   rak::address_info* ai;
   int err;
+
   if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
+    if (manager->main_thread_main()->is_current())
+      thread_base::acquire_global_lock();
+
     slot(NULL, err);
     return NULL;
   }
@@ -64,7 +72,10 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
   rak::socket_address sa;
   sa.copy(*ai->address(), ai->length());
   rak::address_info::free_address_info(ai);
-
+  
+  if (manager->main_thread_main()->is_current())
+    thread_base::acquire_global_lock();
+  
   slot(sa.c_sockaddr(), 0);
   return NULL;
 }
@@ -79,7 +90,8 @@ ConnectionManager::ConnectionManager() :
   m_encryptionOptions(encryption_none),
 
   m_listen(new Listen),
-  m_listenPort(0) {
+  m_listen_port(0),
+  m_listen_backlog(SOMAXCONN) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();
@@ -169,10 +181,10 @@ ConnectionManager::filter(const sockaddr* sa) {
 
 bool
 ConnectionManager::listen_open(port_type begin, port_type end) {
-  if (!m_listen->open(begin, end, rak::socket_address::cast_from(m_bindAddress)))
+  if (!m_listen->open(begin, end, m_listen_backlog, rak::socket_address::cast_from(m_bindAddress)))
     return false;
 
-  m_listenPort = m_listen->port();
+  m_listen_port = m_listen->port();
 
   return true;
 }
@@ -180,6 +192,17 @@ ConnectionManager::listen_open(port_type begin, port_type end) {
 void
 ConnectionManager::listen_close() {
   m_listen->close();
+}
+
+void
+ConnectionManager::set_listen_backlog(int v) {
+  if (v < 1 || v >= (1 << 16))
+    throw input_error("backlog value out of bounds");
+
+  if (m_listen->is_open())
+    throw input_error("backlog value must be set before listen port is opened");
+
+  m_listen_backlog = v;
 }
 
 }

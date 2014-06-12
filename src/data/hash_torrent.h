@@ -39,7 +39,7 @@
 
 #include <string>
 #include <inttypes.h>
-#include <rak/functional.h>
+#include <tr1/functional>
 #include <rak/priority_queue_default.h>
 
 #include "data/chunk_handle.h"
@@ -48,15 +48,13 @@
 namespace torrent {
 
 class ChunkList;
-class DownloadWrapper;
 
 class HashTorrent {
 public:
   typedef ranges<uint32_t> Ranges;
 
-  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>        slot_check_type;
-  typedef rak::mem_fun1<DownloadWrapper, void, const std::string&> slot_error_type;
-  
+  typedef std::tr1::function<void (ChunkHandle)> slot_chunk_handle;
+
   HashTorrent(ChunkList* c);
   ~HashTorrent() { clear(); }
 
@@ -74,8 +72,7 @@ public:
 
   int                 error_number() const                   { return m_errno; }
 
-  void                slot_check(slot_check_type s)          { m_slotCheck = s; }
-//   void                slot_error(slot_error_type s)          { m_slotError = s; }
+  slot_chunk_handle&  slot_check_chunk() { return m_slot_check_chunk; }
 
   rak::priority_item& delay_checked()                        { return m_delayChecked; }
 
@@ -93,8 +90,7 @@ private:
 
   ChunkList*          m_chunk_list;
 
-  slot_check_type     m_slotCheck;
-  slot_error_type     m_slotError;
+  slot_chunk_handle   m_slot_check_chunk;
 
   rak::priority_item  m_delayChecked;
 };

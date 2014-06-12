@@ -43,6 +43,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
 #include "torrent/utils/log.h"
+#include "utils/instrumentation.h"
 
 namespace torrent {
 
@@ -53,6 +54,8 @@ thread_disk::init_thread() {
 
   m_poll = Poll::slot_create_poll()();
   m_state = STATE_INITIALIZED;
+
+  m_instrumentation_index = INSTRUMENTATION_POLLING_DO_POLL_DISK - INSTRUMENTATION_POLLING_DO_POLL;
 }
 
 void
@@ -73,7 +76,7 @@ thread_disk::call_events() {
 
 int64_t
 thread_disk::next_timeout_usec() {
-  return rak::timer::from_seconds(10).usec();
+  return rak::timer::from_seconds(10).round_seconds().usec();
 }
 
 }

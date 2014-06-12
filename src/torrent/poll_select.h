@@ -58,9 +58,9 @@ public:
 
   // Returns the largest fd marked.
   unsigned int        fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
-  void                perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
+  unsigned int        perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet);
 
-  void                do_poll(int64_t timeout_usec, int flags = 0);
+  unsigned int        do_poll(int64_t timeout_usec, int flags = 0);
 
   virtual void        open(Event* event);
   virtual void        close(Event* event);

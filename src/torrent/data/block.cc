@@ -52,7 +52,18 @@
 namespace torrent {
 
 Block::~Block() {
+  if (m_state != STATE_INCOMPLETE && m_state != STATE_COMPLETED)
+    throw internal_error("Block dtor with 'm_state != STATE_INCOMPLETE && m_state != STATE_COMPLETED'");
+
+  if (m_state == STATE_COMPLETED) {
+    if (m_leader == NULL)
+      throw internal_error("Block dtor with 'm_state == STATE_COMPLETED && m_leader == NULL'");
+
+    m_leader->set_peer_info(NULL);
+  }
+
   m_leader = NULL;
+  m_state = STATE_INVALID;
 
   std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
   m_queued.clear();
@@ -79,11 +90,10 @@ Block::insert(PeerInfo* peerInfo) {
   (*itr)->set_block(this);
   (*itr)->set_piece(m_piece);
   (*itr)->set_state(BlockTransfer::STATE_QUEUED);
+  (*itr)->set_request_time(cachedTime.seconds());
   (*itr)->set_position(0);
   (*itr)->set_stall(0);
   (*itr)->set_failed_index(BlockFailed::invalid_index);
-
-  peerInfo->set_transfer_counter(peerInfo->transfer_counter() + 1);
 
   return (*itr);
 }
@@ -91,7 +101,10 @@ Block::insert(PeerInfo* peerInfo) {
 void
 Block::erase(BlockTransfer* transfer) {
   if (transfer->is_erased())
-    throw internal_error("Block::erase(...) transfer already erased.");
+    throw internal_error("Block::erase(...) transfer already erased");
+
+  if (transfer->peer_info() != NULL)
+    throw internal_error("Block::erase(...) transfer has non-null peer info");
 
   m_notStalled -= transfer->stall() == 0;
 
@@ -113,6 +126,9 @@ Block::erase(BlockTransfer* transfer) {
     m_transfers.erase(itr);
 
     if (transfer == m_leader) {
+
+      if (m_state == STATE_COMPLETED)
+        throw internal_error("Block::erase with 'transfer == m_transfer && m_state == STATE_COMPLETED'");
 
       // When the leader is erased then any non-leading transfer must
       // be promoted. These non-leading transfers are guaranteed to
@@ -145,8 +161,7 @@ Block::erase(BlockTransfer* transfer) {
     throw internal_error("Block::erase(...) Transfer is finished.");
   }
 
-  if (transfer->peer_info() != NULL)
-    transfer->peer_info()->set_transfer_counter(transfer->peer_info()->transfer_counter() - 1);
+  // Check if we need to check for peer_info not being null.
 
   transfer->set_block(NULL);
   delete transfer;
@@ -182,6 +197,8 @@ Block::transfering(BlockTransfer* transfer) {
   }
 }
 
+// TODO: Don't depend on m_leader for access to block transfer data of
+// done peer_info, etc.
 bool
 Block::completed(BlockTransfer* transfer) {
   if (!transfer->is_valid())
@@ -222,10 +239,19 @@ Block::completed(BlockTransfer* transfer) {
   // finished for later reference.
   remove_non_leader_transfers();
   
+  // We now know that all transfers except the current leader we're
+  // handling has been invalidated.
   if (m_transfers.empty() || m_transfers.back() != transfer)
     throw internal_error("Block::completed(...) m_transfers.empty() || m_transfers.back() != transfer.");
 
+  m_state = STATE_COMPLETED;
+
   return m_parent->is_all_finished();
+}
+
+void
+Block::retry_transfer() {
+  m_state = STATE_INCOMPLETE;
 }
 
 // Mark a non-leading transfer as having received dissimilar data to
@@ -292,9 +318,6 @@ void
 Block::create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& piece) {
   transfer->set_peer_info(peerInfo);
 
-  if (peerInfo != NULL)
-    peerInfo->set_transfer_counter(peerInfo->transfer_counter() + 1);
-
   transfer->set_block(NULL);
   transfer->set_piece(piece);
   transfer->set_state(BlockTransfer::STATE_ERASED);
@@ -306,37 +329,38 @@ Block::create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& pi
 
 void
 Block::release(BlockTransfer* transfer) {
-  if (!transfer->is_valid()) {
-    if (transfer->peer_info() != NULL)
-      transfer->peer_info()->set_transfer_counter(transfer->peer_info()->transfer_counter() - 1);
+  transfer->set_peer_info(NULL);
 
+  if (!transfer->is_valid())
     delete transfer;
-  } else {
+  else
+    // TODO: Do we need to verify that the block is 'this'?
     transfer->block()->erase(transfer);
-  }
 }
+
+//
+// Private:
+//
 
 void
 Block::invalidate_transfer(BlockTransfer* transfer) {
   if (transfer == m_leader)
     throw internal_error("Block::invalidate_transfer(...) transfer == m_leader.");
 
-  // FIXME: Various other accounting like position and counters.
-  if (!transfer->is_valid()) {
-    if (transfer->peer_info() != NULL)
-      transfer->peer_info()->set_transfer_counter(transfer->peer_info()->transfer_counter() - 1);
+  // Check if the block is this.
 
+  transfer->set_block(NULL);
+
+  if (transfer->peer_info() == NULL) {
     delete transfer;
-
-  } else {
-    m_notStalled -= transfer->stall() == 0;
-
-    transfer->set_block(NULL);
-
-    // Do the canceling magic here. 
-    if (transfer->peer_info()->connection() != NULL)
-      transfer->peer_info()->connection()->cancel_transfer(transfer);
+    return; // Consider if this should be an exception.
   }
+
+  m_notStalled -= (transfer->stall() == 0);
+
+  // Do the canceling magic here. 
+  if (transfer->peer_info()->connection() != NULL)
+    transfer->peer_info()->connection()->cancel_transfer(transfer);
 }
 
 void

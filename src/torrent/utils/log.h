@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_UTILS_LOG_H
 #define LIBTORRENT_UTILS_LOG_H
 
+#include <bitset>
 #include <string>
 #include <vector>
 #include <tr1/array>
@@ -75,13 +76,6 @@ enum {
   LOG_PEER_INFO,
   LOG_PEER_DEBUG,
 
-  LOG_RPC_CRITICAL,
-  LOG_RPC_ERROR,
-  LOG_RPC_WARN,
-  LOG_RPC_NOTICE,
-  LOG_RPC_INFO,
-  LOG_RPC_DEBUG,
-
   LOG_SOCKET_CRITICAL,
   LOG_SOCKET_ERROR,
   LOG_SOCKET_WARN,
@@ -117,6 +111,27 @@ enum {
   LOG_TORRENT_INFO,
   LOG_TORRENT_DEBUG,
 
+  LOG_NON_CASCADING,
+
+  LOG_INSTRUMENTATION_MEMORY,
+  LOG_INSTRUMENTATION_MINCORE,
+  LOG_INSTRUMENTATION_CHOKE,
+
+  LOG_INSTRUMENTATION_POLLING,
+  LOG_INSTRUMENTATION_TRANSFERS,
+
+  LOG_PEER_LIST_EVENTS,
+
+  LOG_PROTOCOL_PIECE_EVENTS,
+  LOG_PROTOCOL_METADATA_EVENTS,
+  LOG_PROTOCOL_NETWORK_ERRORS,
+  LOG_PROTOCOL_STORAGE_ERRORS,
+
+  LOG_RPC_EVENTS,
+  LOG_RPC_DUMP,
+
+  LOG_UI_EVENTS,
+
   LOG_GROUP_MAX_SIZE
 };
 
@@ -142,22 +157,25 @@ enum {
   if (torrent::log_groups[log_group].valid())                           \
     torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); \
 
-struct log_cached_outputs;
-class DownloadInfo;
-class download_data;
 class log_buffer;
 
 typedef std::tr1::function<void (const char*, unsigned int, int)> log_slot;
-typedef std::vector<std::pair<std::string, log_slot> >            log_output_list;
 
 class LIBTORRENT_EXPORT log_group {
 public:
-  log_group() : m_outputs(0), m_cached_outputs(0), m_first(NULL), m_last(NULL) {}
+  typedef std::bitset<64> outputs_type;
+
+  log_group() : m_first(NULL), m_last(NULL) {
+    m_outputs.reset();
+    m_cached_outputs.reset();
+  }
 
   bool                valid() const { return m_first != NULL; }
   bool                empty() const { return m_first == NULL; }
 
   size_t              size_outputs() const { return std::distance(m_first, m_last); }
+
+  static size_t       max_size_outputs() { return 64; }
 
   //
   // Internal:
@@ -167,19 +185,21 @@ public:
                                      const void* dump_data, size_t dump_size,
                                      const char* fmt, ...);
 
-  uint64_t            outputs() const                    { return m_outputs; }
-  uint64_t            cached_outputs() const             { return m_cached_outputs; }
+  const outputs_type& outputs() const                    { return m_outputs; }
+  const outputs_type& cached_outputs() const             { return m_cached_outputs; }
 
   void                clear_cached_outputs()             { m_cached_outputs = m_outputs; }
 
-  void                set_outputs(uint64_t val)          { m_outputs = val; }
-  void                set_cached_outputs(uint64_t val)   { m_cached_outputs = val; }
+  void                set_outputs(const outputs_type& val)        { m_outputs = val; }
+  void                set_cached_outputs(const outputs_type& val) { m_cached_outputs = val; }
 
-  void                set_cached(log_slot* f, log_slot* l) { m_first = f; m_last = l; }
+  void                set_output_at(size_t index, bool val)       { m_outputs[index] = val; }
+
+  void                set_cached(log_slot* f, log_slot* l)        { m_first = f; m_last = l; }
 
 private:
-  uint64_t            m_outputs;
-  uint64_t            m_cached_outputs;
+  outputs_type        m_outputs;
+  outputs_type        m_cached_outputs;
 
   log_slot*           m_first;
   log_slot*           m_last;
@@ -188,9 +208,7 @@ private:
 typedef std::tr1::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
 
 extern log_group_list  log_groups LIBTORRENT_EXPORT;
-extern log_output_list log_outputs LIBTORRENT_EXPORT;
 
-// Called by torrent::initialize().
 void log_initialize() LIBTORRENT_EXPORT;
 void log_cleanup() LIBTORRENT_EXPORT;
 
@@ -204,6 +222,7 @@ void log_add_child(int group, int child) LIBTORRENT_EXPORT;
 void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
 
 void        log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
+void        log_open_gz_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
 log_buffer* log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
 
 }

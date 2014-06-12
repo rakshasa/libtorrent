@@ -38,31 +38,29 @@
 #define LIBTORRENT_LISTEN_H
 
 #include <inttypes.h>
-#include <rak/functional.h>
-
+#include <tr1/functional>
 #include <rak/socket_address.h>
+
 #include "socket_base.h"
 #include "socket_fd.h"
 
 namespace torrent {
 
-class HandshakeManager;
-
 class Listen : public SocketBase {
 public:
-  typedef rak::mem_fun2<HandshakeManager, void, SocketFd, const rak::socket_address&> SlotIncoming;
+  typedef std::tr1::function<void (SocketFd, const rak::socket_address&)> slot_connection;
 
   Listen() : m_port(0) {}
   ~Listen() { close(); }
 
-  bool                open(uint16_t first, uint16_t last, const rak::socket_address* bindAddress);
+  bool                open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress);
   void                close();
 
-  bool                is_open()                            { return get_fd().is_valid(); }
+  bool                is_open() const { return get_fd().is_valid(); }
 
-  uint16_t            port() const                         { return m_port; }
+  uint16_t            port() const { return m_port; }
 
-  void                slot_incoming(const SlotIncoming& s) { m_slotIncoming = s; }
+  slot_connection&    slot_accepted() { return m_slot_accepted; }
 
   virtual void        event_read();
   virtual void        event_write();
@@ -70,7 +68,8 @@ public:
 
 private:
   uint64_t            m_port;
-  SlotIncoming        m_slotIncoming;
+
+  slot_connection     m_slot_accepted;
 };
 
 } // namespace torrent

@@ -55,7 +55,13 @@ public:
   typedef std::vector<BlockTransfer*>              transfer_list_type;
   typedef uint32_t                                 size_type;
 
-  Block() : m_notStalled(0), m_leader(NULL), m_failedList(NULL) { }
+  typedef enum {
+    STATE_INCOMPLETE,
+    STATE_COMPLETED,
+    STATE_INVALID
+  } state_type;
+
+  Block();
   ~Block();
 
   bool                      is_stalled() const                           { return m_notStalled == 0; }
@@ -99,13 +105,12 @@ public:
   void                      erase(BlockTransfer* transfer);
 
   bool                      transfering(BlockTransfer* transfer);
-
-  // Return true if all blocks in the chunk are finished.
-  bool                      completed(BlockTransfer* transfer);
-
   void                      transfer_dissimilar(BlockTransfer* transfer);
 
-  static void               stalled(BlockTransfer* transfer)             { if (!transfer->is_valid()) return; transfer->block()->stalled_transfer(transfer); }
+  bool                      completed(BlockTransfer* transfer);
+  void                      retry_transfer();
+
+  static inline void        stalled(BlockTransfer* transfer);
   void                      stalled_transfer(BlockTransfer* transfer);
 
   void                      change_leader(BlockTransfer* transfer);
@@ -122,8 +127,8 @@ public:
   static void               release(BlockTransfer* transfer);
 
 private:
-//   Block(const Block&);
-//   void operator = (const Block&);
+  Block(const Block&);
+  void operator = (const Block&);
 
   void                      invalidate_transfer(BlockTransfer* transfer) LIBTORRENT_NO_EXPORT;
 
@@ -133,6 +138,7 @@ private:
   BlockList*                m_parent;
   Piece                     m_piece;
   
+  state_type                m_state;
   uint32_t                  m_notStalled;
 
   transfer_list_type        m_queued;
@@ -142,6 +148,13 @@ private:
 
   BlockFailed*              m_failedList;
 };
+
+inline
+Block::Block() :
+  m_state(STATE_INCOMPLETE),
+  m_notStalled(0),
+  m_leader(NULL),
+  m_failedList(NULL) { }
 
 inline BlockTransfer*
 Block::find(const PeerInfo* p) {
@@ -161,6 +174,14 @@ Block::find(const PeerInfo* p) const {
     return transfer;
   else
     return find_transfer(p);
+}
+
+inline void
+Block::stalled(BlockTransfer* transfer) {
+  if (!transfer->is_valid())
+    return;
+  
+  transfer->block()->stalled_transfer(transfer);
 }
 
 }

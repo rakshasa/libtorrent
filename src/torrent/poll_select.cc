@@ -65,11 +65,11 @@ template <typename _Operation>
 struct poll_check_t {
   poll_check_t(Poll* p, fd_set* s, _Operation op) : m_poll(p), m_set(s), m_op(op) {}
 
-  void operator () (Event* s) {
+  bool operator () (Event* s) {
     // This check is nessesary as other events may remove a socket
     // from the set.
     if (s == NULL)
-      return;
+      return false;
 
     // This check is not nessesary, just for debugging.
     if (s->file_descriptor() < 0)
@@ -83,6 +83,10 @@ struct poll_check_t {
       // called.
       if ((m_poll->flags() & Poll::flag_waive_global_lock) && thread_base::global_queue_size() != 0)
         thread_base::waive_global_lock();
+
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -196,24 +200,28 @@ PollSelect::fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
   return maxFd;
 }
 
-void
+unsigned int
 PollSelect::perform(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
+  unsigned int count = 0;
+
   // Make sure we don't do read/write on fd's that are in except. This should
   // not be a problem as any except call should remove it from the m_*Set's.
   m_exceptSet->prepare();
-  std::for_each(m_exceptSet->begin(), m_exceptSet->end(),
-		poll_check(this, exceptSet, std::mem_fun(&Event::event_error)));
+  count += std::count_if(m_exceptSet->begin(), m_exceptSet->end(),
+                         poll_check(this, exceptSet, std::mem_fun(&Event::event_error)));
 
   m_readSet->prepare();
-  std::for_each(m_readSet->begin(), m_readSet->end(),
-		poll_check(this, readSet, std::mem_fun(&Event::event_read)));
+  count += std::count_if(m_readSet->begin(), m_readSet->end(),
+                         poll_check(this, readSet, std::mem_fun(&Event::event_read)));
 
   m_writeSet->prepare();
-  std::for_each(m_writeSet->begin(), m_writeSet->end(),
-		poll_check(this, writeSet, std::mem_fun(&Event::event_write)));
+  count += std::count_if(m_writeSet->begin(), m_writeSet->end(),
+                         poll_check(this, writeSet, std::mem_fun(&Event::event_write)));
+
+  return count;
 }
 
-void
+unsigned int
 PollSelect::do_poll(int64_t timeout_usec, int flags) {
   rak::timer timeout = rak::timer(timeout_usec);
 
@@ -249,12 +257,12 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
   if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
     throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
 
-  perform(read_set, write_set, error_set);
+  return perform(read_set, write_set, error_set);
 }
 
+#ifdef LT_LOG_POLL_OPEN
 inline static void
 log_poll_open(Event* event) {
-#ifdef LT_LOG_POLL_OPEN
   static int log_fd = -1;
   char buffer[256];
 
@@ -268,8 +276,8 @@ log_poll_open(Event* event) {
   unsigned int buf_lenght = snprintf(buffer, 256, "open %i\n",
                                      event->fd());
 
-#endif
 }
+#endif
 
 void
 PollSelect::open(Event* event) {

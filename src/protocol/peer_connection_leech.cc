@@ -51,10 +51,16 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
+#include "torrent/utils/log.h"
 
 #include "extensions.h"
 #include "initial_seed.h"
 #include "peer_connection_leech.h"
+
+#define LT_LOG_NETWORK_ERRORS(log_fmt, ...)                              \
+  lt_log_print_info(LOG_PROTOCOL_NETWORK_ERRORS, this->download()->info(), "network_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
+#define LT_LOG_STORAGE_ERRORS(log_fmt, ...)                              \
+  lt_log_print_info(LOG_PROTOCOL_STORAGE_ERRORS, this->download()->info(), "storage_errors", "%40s " log_fmt, this->peer_info()->id_hex(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -150,10 +156,13 @@ PeerConnection<type>::receive_keepalive() {
   // Do we also need to remove from download throttle? Check how it
   // worked again.
 
-  if (!download_queue()->canceled_empty() && m_downStall >= 6)
-    download_queue()->cancel();
-  else if (!download_queue()->queued_empty() && m_downStall++ != 0)
-    download_queue()->stall();
+  // if (request_list()->empty())
+  //   return true;
+
+  if (m_downStall >= 2)
+    request_list()->stall_prolonged();
+  else if (m_downStall++ != 0)
+    request_list()->stall_initial();
 
   return true;
 }
@@ -218,7 +227,7 @@ PeerConnection<type>::read_message() {
 
     down_chunk_release();
 
-    download_queue()->cancel();
+    request_list()->choked();
     m_download->choke_group()->down_queue()->set_not_queued(this, &m_downChoke);
     m_down->throttle()->erase(m_peerChunks.download_throttle());
 
@@ -235,6 +244,7 @@ PeerConnection<type>::read_message() {
     if (!m_downInterested)
       return true;
 
+    request_list()->unchoked();
     m_download->choke_group()->down_queue()->set_queued(this, &m_downChoke);
     return true;
 
@@ -401,10 +411,10 @@ PeerConnection<type>::event_read() {
         if (type != Download::CONNECTION_LEECH)
           return;
 
-        if (!download_queue()->is_downloading())
+        if (!request_list()->is_downloading())
           throw internal_error("ProtocolRead::READ_PIECE state but RequestList is not downloading.");
 
-        if (!m_downloadQueue.transfer()->is_valid() || !m_downloadQueue.transfer()->is_leader()) {
+        if (!m_request_list.transfer()->is_valid() || !m_request_list.transfer()->is_leader()) {
           m_down->set_state(ProtocolRead::READ_SKIP_PIECE);
           break;
         }
@@ -421,7 +431,7 @@ PeerConnection<type>::event_read() {
         if (type != Download::CONNECTION_LEECH)
           return;
 
-        if (download_queue()->transfer()->is_leader()) {
+        if (request_list()->transfer()->is_leader()) {
           m_down->set_state(ProtocolRead::READ_PIECE);
           break;
         }
@@ -457,16 +467,16 @@ PeerConnection<type>::event_read() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked read connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), (rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str() + " " + rak::copy_escape_html(std::string(m_peerInfo->id().c_str(), 8)) + ": " + e.what()).c_str());
-
+    LT_LOG_NETWORK_ERRORS("%s network read error: %s",
+                          rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
+                          e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
+    LT_LOG_NETWORK_ERRORS("storage read error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {
@@ -519,7 +529,7 @@ PeerConnection<type>::fill_write_buffer() {
     if (!(m_tryRequest = !should_request()) &&
         !(m_tryRequest = try_request_pieces()) &&
 
-        !download_queue()->is_interested_in_active()) {
+        !request_list()->is_interested_in_active()) {
       m_sendInterested = true;
       m_downInterested = false;
 
@@ -637,15 +647,16 @@ PeerConnection<type>::event_write() {
     m_download->connection_list()->erase(this, 0);
 
   } catch (blocked_connection& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), "Momentarily blocked write connection.");
     m_download->connection_list()->erase(this, 0);
 
   } catch (network_error& e) {
-    rak::slot_list_call(m_download->info()->signal_network_log(), e.what());
+    LT_LOG_NETWORK_ERRORS("%s write error: %s",
+                          rak::socket_address::cast_from(m_peerInfo->socket_address())->address_str().c_str(),
+                          e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (storage_error& e) {
-    rak::slot_list_call(m_download->info()->signal_storage_error(), e.what());
+    LT_LOG_STORAGE_ERRORS("write error: %s", e.what());
     m_download->connection_list()->erase(this, 0);
 
   } catch (base_error& e) {

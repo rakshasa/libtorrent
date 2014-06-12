@@ -45,6 +45,7 @@
 #include "thread_base.h"
 #include "thread_interrupt.h"
 #include "utils/log.h"
+#include "utils/instrumentation.h"
 
 namespace torrent {
 
@@ -53,6 +54,8 @@ thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, 
 thread_base::thread_base() :
   m_state(STATE_UNKNOWN),
   m_flags(0),
+  m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
+
   m_poll(NULL),
   m_interrupt_sender(NULL),
   m_interrupt_receiver(NULL)
@@ -165,7 +168,13 @@ thread_base::event_loop(thread_base* thread) {
       if (!(thread->flags() & flag_main_thread))
         poll_flags = torrent::Poll::poll_worker_thread;
 
-      thread->m_poll->do_poll(next_timeout, poll_flags);
+      instrumentation_update(INSTRUMENTATION_POLLING_DO_POLL, 1);
+      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_DO_POLL + thread->m_instrumentation_index), 1);
+
+      int event_count = thread->m_poll->do_poll(next_timeout, poll_flags);
+
+      instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
+      instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + thread->m_instrumentation_index), event_count);
 
       __sync_fetch_and_and(&thread->m_flags, ~(flag_polling | flag_no_timeout));
     }

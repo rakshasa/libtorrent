@@ -75,8 +75,8 @@ public:
   // Resize clears the data?
   void                update();
 
-  void                allocate()                    { if (m_data == NULL) m_data = new value_type[size_bytes()]; }
-  void                unallocate()                  { delete [] m_data; m_data = NULL; }
+  void                allocate();
+  void                unallocate();
 
   void                clear()                       { unallocate(); m_size = 0; m_set = 0; }
   void                clear_tail()                  { if (m_size % 8) *(end() - 1) &= mask_before(m_size % 8); }

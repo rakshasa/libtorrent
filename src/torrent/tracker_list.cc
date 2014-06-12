@@ -41,7 +41,6 @@
 
 #include "net/address_list.h"
 #include "torrent/utils/log.h"
-#include "torrent/utils/log_files.h"
 #include "torrent/utils/option_strings.h"
 #include "torrent/download_info.h"
 #include "tracker/tracker_dht.h"

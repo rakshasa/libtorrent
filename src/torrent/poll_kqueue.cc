@@ -47,6 +47,7 @@
 
 #include "poll_kqueue.h"
 #include "torrent.h"
+#include "rak/functional.h"
 #include "rak/timer.h"
 #include "rak/error_number.h"
 #include "utils/log.h"
@@ -110,7 +111,7 @@ PollKQueue::modify(Event* event, unsigned short op, short mask) {
   struct kevent* itr = m_changes + (m_changedEvents++);
 
   assert(event == m_table[event->file_descriptor()].second);
-  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, NULL);
+  EV_SET(itr, event->file_descriptor(), mask, op, 0, 0, event);
 }
 
 PollKQueue*
@@ -216,8 +217,10 @@ PollKQueue::poll_select(int msec) {
 }
 #endif
 
-void
+unsigned int
 PollKQueue::perform() {
+  unsigned int count = 0;
+
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
     if (itr->ident >= m_table.size())
       continue;
@@ -230,22 +233,29 @@ PollKQueue::perform() {
     if ((itr->flags & EV_ERROR) && evItr->second != NULL) {
       if (evItr->first & flag_error)
         evItr->second->event_error();
+
+      count++;
       continue;
     }
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & flag_read)
+    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & flag_read) {
+      count++;
       evItr->second->event_read();
+    }
 
-    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & flag_write)
+    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & flag_write) {
+      count++;
       evItr->second->event_write();
+    }
   }
 
   m_waitingEvents = 0;
+  return count;
 }
 
-void
+unsigned int
 PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   rak::timer timeout = rak::timer(timeout_usec);
   timeout += 10;
@@ -265,7 +275,7 @@ PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
     throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
 
-  perform();
+  return perform();
 }
 
 uint32_t
@@ -283,7 +293,7 @@ PollKQueue::open(Event* event) {
 
 void
 PollKQueue::close(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Close event.", 0);
+  LT_LOG_EVENT(event, DEBUG, "close event", 0);
 
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
@@ -297,19 +307,18 @@ PollKQueue::close(Event* event) {
 
   m_table[event->file_descriptor()] = Table::value_type();
 
-  /*
-  Shouldn't be needed anymore.
+  // Shouldn't be needed anymore.
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = NULL;
 
-  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
-  */
+  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
+                                   rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
 }
 
 void
 PollKQueue::closed(Event* event) {
-  LT_LOG_EVENT(event, DEBUG, "Closed event.", 0);
+  LT_LOG_EVENT(event, DEBUG, "closed event", 0);
 
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
@@ -324,14 +333,13 @@ PollKQueue::closed(Event* event) {
   if (m_table[event->file_descriptor()].second == event)
     m_table[event->file_descriptor()] = Table::value_type();
 
-  /*
-  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr) {
+  // Shouldn't be needed anymore.
+  for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
       itr->udata = NULL;
-  }
 
-  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents, rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
-  */
+  m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
+                                   rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
 }
 
 // Use custom defines for EPOLL* to make the below code compile with
@@ -432,12 +440,12 @@ PollKQueue::poll(__UNUSED int msec) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
-void
+unsigned int
 PollKQueue::perform() {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 
-void
+unsigned int
 PollKQueue::do_poll(int64_t timeout_usec, int flags) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }

@@ -119,8 +119,8 @@ public:
   choke_status*       down_choke()                    { return &m_downChoke; }
 
   DownloadMain*       download()                      { return m_download; }
-  RequestList*        download_queue()                { return &m_downloadQueue; }
-  const RequestList*  download_queue() const          { return &m_downloadQueue; }
+  RequestList*        request_list()                { return &m_request_list; }
+  const RequestList*  request_list() const          { return &m_request_list; }
 
   ProtocolExtension*  extensions()                    { return m_extensions; }
   DataBuffer*         extension_message()             { return &m_extensionMessage; }
@@ -199,7 +199,7 @@ protected:
 
   PeerChunks          m_peerChunks;
 
-  RequestList         m_downloadQueue;
+  RequestList         m_request_list;
   ChunkHandle         m_downChunk;
   uint32_t            m_downStall;
 
@@ -216,8 +216,8 @@ protected:
   //
   // In the downlod object, 'queued' now means the same as the spec's
   // 'unchoked', while 'unchoked' means we start requesting pieces.
-  choke_status    m_upChoke;
-  choke_status    m_downChoke;
+  choke_status        m_upChoke;
+  choke_status        m_downChoke;
 
   bool                m_downInterested;
   bool                m_downUnchoked;

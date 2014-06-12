@@ -51,7 +51,7 @@ namespace torrent {
 
 class ChunkListNode;
 
-class HashChunk {
+class lt_cacheline_aligned HashChunk {
 public:
   HashChunk()         {}
   HashChunk(ChunkHandle h)  { set_chunk(h); }

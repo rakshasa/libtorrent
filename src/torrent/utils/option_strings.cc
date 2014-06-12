@@ -153,13 +153,6 @@ const char* option_list_log_group[] = {
   "peer_info",
   "peer_debug",
   
-  "rpc_critical",
-  "rpc_error",
-  "rpc_warn",
-  "rpc_notice",
-  "rpc_info",
-  "rpc_debug",
-  
   "socket_critical",
   "socket_error",
   "socket_warn",
@@ -194,6 +187,26 @@ const char* option_list_log_group[] = {
   "torrent_notice",
   "torrent_info",
   "torrent_debug",
+
+  "__non_cascading__",
+
+  "instrumentation_memory",
+  "instrumentation_mincore",
+  "instrumentation_choke",
+  "instrumentation_polling",
+  "instrumentation_transfers",
+
+  "peer_list_events",
+
+  "protocol_piece_events",
+  "protocol_metadata_events",
+  "protocol_network_errors",
+  "protocol_storage_errors",
+
+  "rpc_events",
+  "rpc_dump",
+
+  "ui_events",
 
   NULL
 };

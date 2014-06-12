@@ -106,7 +106,8 @@ HandshakeManager::find(const rak::socket_address& sa) {
 
 void
 HandshakeManager::erase_download(DownloadMain* info) {
-  iterator split = std::partition(base_type::begin(), base_type::end(), rak::not_equal(info, std::mem_fun(&Handshake::download)));
+  iterator split = std::partition(base_type::begin(), base_type::end(),
+                                  rak::not_equal(info, std::mem_fun(&Handshake::download)));
 
   std::for_each(split, base_type::end(), std::ptr_fun(&handshake_manager_delete_handshake));
   base_type::erase(split, base_type::end());
