@@ -51,6 +51,8 @@ public:
 
   signal_bitfield() : m_bitfield(0), m_size(0) {}
   
+  bool          has_signal(unsigned int index) const { return m_bitfield & (1 << index); }
+
   // Do the interrupt from the thread?
   void          signal(unsigned int index) { __sync_or_and_fetch(&m_bitfield, 1 << index); }
   void          work();

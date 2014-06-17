@@ -9,8 +9,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_signal_bitfield_test);
 
-namespace tr1 { using namespace std; }
-
 static void
 mark_index(uint32_t* bitfield, unsigned int index) {
   __sync_fetch_and_or(bitfield, 1 << index);

@@ -17,8 +17,6 @@ extern log_output_list log_outputs;
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_log_test);
 
-namespace tr1 { using namespace std; }
-
 const char* expected_output = NULL;
 unsigned int output_mask;
 

@@ -64,8 +64,6 @@
 #define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
   lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
 
-namespace tr1 { using namespace std; }
-
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags) :

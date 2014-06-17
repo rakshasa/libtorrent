@@ -7,8 +7,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_net_test);
 
-namespace tr1 { using namespace std; }
-
 static void inc_value(int* value) { (*value)++; }
 
 #define LTUNIT_AI_CALL(lt_ai, lt_flags) {                               \

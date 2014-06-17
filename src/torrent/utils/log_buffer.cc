@@ -43,8 +43,6 @@
 
 #include "globals.h"
 
-namespace tr1 { using namespace std; }
-
 namespace torrent {
 
 // Rename function/args?

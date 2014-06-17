@@ -16,8 +16,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(HashCheckQueueTest);
 
-namespace tr1 { using namespace std; }
-
 pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void

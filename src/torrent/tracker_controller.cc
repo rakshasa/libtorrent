@@ -50,8 +50,6 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_tracker_list->info(), "tracker_controller", log_fmt, __VA_ARGS__);
 
-namespace tr1 { using namespace std; }
-
 namespace torrent {
 
 struct tracker_controller_private {

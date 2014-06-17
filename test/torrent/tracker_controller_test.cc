@@ -9,8 +9,6 @@
 #include "tracker_list_test.h"
 #include "tracker_controller_test.h"
 
-namespace tr1 { using namespace std; }
-
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_controller_test);
 
 bool

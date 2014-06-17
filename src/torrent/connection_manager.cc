@@ -48,8 +48,6 @@
 #include "exceptions.h"
 #include "manager.h"
 
-namespace tr1 { using namespace std; }
-
 namespace torrent {
 
 // Fix TrackerUdp, etc, if this is made async.

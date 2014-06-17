@@ -18,8 +18,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(HashQueueTest);
 
-namespace tr1 { using namespace std; }
-
 typedef std::map<int, torrent::HashString> done_chunks_type;
 
 static void

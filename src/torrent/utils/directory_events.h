@@ -34,39 +34,53 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#include "config.h"
+#ifndef LIBTORRENT_DIRECTORY_EVENTS_H
+#define LIBTORRENT_DIRECTORY_EVENTS_H
 
-#include <algorithm>
-#include lt_tr1_functional
-
-#include "choke_group.h"
-#include "choke_queue.h"
-
-// TODO: Put resource_manager_entry in a separate file.
-#include "resource_manager.h"
-
-#include "torrent/exceptions.h"
-#include "download/download_main.h"
+#include <string>
+#include <vector>
+#include <tr1/functional>
+#include <torrent/event.h>
 
 namespace torrent {
 
-choke_group::choke_group() :
-  m_tracker_mode(TRACKER_MODE_NORMAL),
-  m_down_queue(choke_queue::flag_unchoke_all_new),
-  m_first(NULL), m_last(NULL) { }
+struct watch_descriptor {
+  typedef std::tr1::function<void (const std::string&)> slot_string;
 
-uint64_t
-choke_group::up_rate() const {
-  return
-    std::for_each(m_first, m_last, 
-                  rak::accumulate((uint64_t)0, std::bind(&Rate::rate, std::bind(&resource_manager_entry::up_rate, std::placeholders::_1)))).result;
+  bool compare_desc(int desc) const { return desc == descriptor; }
+
+  int         descriptor;
+  std::string path;
+  slot_string slot;
+};
+
+class LIBTORRENT_EXPORT directory_events : public Event {
+public:
+  typedef std::vector<watch_descriptor> wd_list;
+  typedef watch_descriptor::slot_string slot_string;
+
+  static const int flag_on_added   = 0x1;
+  static const int flag_on_removed = 0x2;
+  static const int flag_on_updated = 0x3;
+
+  directory_events() { m_fileDesc = -1; }
+  ~directory_events() {}
+
+  bool                open();
+  void                close();
+
+  void                notify_on(const std::string& path, int flags, const slot_string& slot);
+
+  virtual void        event_read();
+  virtual void        event_write();
+  virtual void        event_error();
+
+  virtual const char* type_name() const { return "directory_events"; }
+
+private:
+  wd_list             m_wd_list;
+};
+
 }
 
-uint64_t
-choke_group::down_rate() const {
-  return
-    std::for_each(m_first, m_last, 
-                  rak::accumulate((uint64_t)0, std::bind(&Rate::rate, std::bind(&resource_manager_entry::down_rate, std::placeholders::_1)))).result;
-}
-
-}
+#endif

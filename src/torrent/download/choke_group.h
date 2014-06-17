@@ -81,6 +81,9 @@ public:
   uint64_t            up_rate() const;
   uint64_t            down_rate() const;
 
+  unsigned int        up_unchoked() const   { return m_up_queue.size_unchoked(); }
+  unsigned int        down_unchoked() const { return m_down_queue.size_unchoked(); }
+
   // Internal:
 
   resource_manager_entry* first() { return m_first; }

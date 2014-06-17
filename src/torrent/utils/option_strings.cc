@@ -72,22 +72,22 @@ option_pair option_list_connection[] = {
 
 option_pair option_list_heuristics[] = {
   { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
-  { "upload_leech_dummy",        choke_queue::HEURISTICS_UPLOAD_LEECH_DUMMY },
+  { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
   { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
-  { "download_leech_dummy",      choke_queue::HEURISTICS_DOWNLOAD_LEECH_DUMMY },
   { "invalid",                   choke_queue::HEURISTICS_MAX_SIZE },
   { NULL, 0 }
 };
 
 option_pair option_list_heuristics_download[] = {
   { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
-  { "download_leech_dummy",      choke_queue::HEURISTICS_DOWNLOAD_LEECH_DUMMY },
   { NULL, 0 }
 };
 
 option_pair option_list_heuristics_upload[] = {
   { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
-  { "upload_leech_dummy",        choke_queue::HEURISTICS_UPLOAD_LEECH_DUMMY },
+  { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
+  { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
   { NULL, 0 }
 };
 
@@ -202,6 +202,8 @@ const char* option_list_log_group[] = {
   "protocol_metadata_events",
   "protocol_network_errors",
   "protocol_storage_errors",
+
+  "resume_data",
 
   "rpc_events",
   "rpc_dump",

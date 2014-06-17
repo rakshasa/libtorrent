@@ -55,8 +55,6 @@
 #include "tracker_udp.h"
 #include "manager.h"
 
-namespace tr1 { using namespace std; }
-
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
 

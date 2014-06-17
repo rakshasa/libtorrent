@@ -34,8 +34,7 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-// Add some helpfull words here. (These are some words, hope they are
-// helpful)
+// Add some helpfull words here.
 
 #ifndef LIBTORRENT_CONNECTION_MANAGER_H
 #define LIBTORRENT_CONNECTION_MANAGER_H

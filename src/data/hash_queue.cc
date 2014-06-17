@@ -57,8 +57,6 @@
 #define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
   lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
 
-namespace tr1 { using namespace std; }
-
 namespace torrent {
 
 struct HashQueueEqual {
