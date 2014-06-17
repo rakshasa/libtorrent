@@ -52,8 +52,6 @@
 #include "torrent/poll.h"
 #include "manager.h"
 
-namespace tr1 { using namespace std::tr1; }
-
 namespace torrent {
 
 bool
@@ -154,7 +152,7 @@ directory_events::event_read() {
       return;
 
     wd_list::const_iterator itr = std::find_if(m_wd_list.begin(), m_wd_list.end(),
-                                               tr1::bind(&watch_descriptor::compare_desc, tr1::placeholders::_1, event->wd));
+                                               std::bind(&watch_descriptor::compare_desc, std::placeholders::_1, event->wd));
 
     if (itr != m_wd_list.end())
       itr->slot(itr->path + event->name);

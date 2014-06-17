@@ -39,13 +39,13 @@
 
 #include <string>
 #include <vector>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/event.h>
 
 namespace torrent {
 
 struct watch_descriptor {
-  typedef std::tr1::function<void (const std::string&)> slot_string;
+  typedef std::function<void (const std::string&)> slot_string;
 
   bool compare_desc(int desc) const { return desc == descriptor; }
 
