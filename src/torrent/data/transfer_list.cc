@@ -78,7 +78,7 @@ TransferList::find(uint32_t index) const {
 
 void
 TransferList::clear() {
-  std::for_each(begin(), end(), std::tr1::bind(m_slot_canceled, std::tr1::bind(&BlockList::index, std::tr1::placeholders::_1)));
+  std::for_each(begin(), end(), std::bind(m_slot_canceled, std::bind(&BlockList::index, std::placeholders::_1)));
   std::for_each(begin(), end(), rak::call_delete<BlockList>());
 
   base_type::clear();

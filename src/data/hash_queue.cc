@@ -57,8 +57,6 @@
 #define LT_LOG_DATA(data, log_level, log_fmt, ...)                       \
   lt_log_print_data(LOG_STORAGE_##log_level, data, "hash_queue", log_fmt, __VA_ARGS__);
 
-namespace tr1 { using namespace std::tr1; }
-
 namespace torrent {
 
 struct HashQueueEqual {
@@ -87,7 +85,7 @@ HashQueue::HashQueue(thread_disk* thread) :
   m_thread_disk(thread) {
 
   pthread_mutex_init(&m_done_chunks_lock, NULL);
-  m_thread_disk->hash_queue()->slot_chunk_done() = tr1::bind(&HashQueue::chunk_done, this, tr1::placeholders::_1, tr1::placeholders::_2);
+  m_thread_disk->hash_queue()->slot_chunk_done() = std::bind(&HashQueue::chunk_done, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 
@@ -176,9 +174,9 @@ HashQueue::work() {
     // TODO: This is not optimal as we jump around... Check for front
     // of HashQueue in done_chunks instead.
 
-    iterator itr = std::find_if(begin(), end(), tr1::bind(std::equal_to<HashChunk*>(),
+    iterator itr = std::find_if(begin(), end(), std::bind(std::equal_to<HashChunk*>(),
                                                           hash_chunk,
-                                                          tr1::bind(&HashQueueNode::get_chunk, tr1::placeholders::_1)));
+                                                          std::bind(&HashQueueNode::get_chunk, std::placeholders::_1)));
 
     // TODO: Fix this...
     if (itr == end())

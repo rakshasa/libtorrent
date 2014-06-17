@@ -50,8 +50,6 @@
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_tracker_list->info(), "tracker_controller", log_fmt, __VA_ARGS__);
 
-namespace tr1 { using namespace std::tr1; }
-
 namespace torrent {
 
 struct tracker_controller_private {
@@ -91,8 +89,8 @@ TrackerController::TrackerController(TrackerList* trackers) :
   m_tracker_list(trackers),
   m_private(new tracker_controller_private) {
 
-  m_private->task_timeout.slot() = std::tr1::bind(&TrackerController::do_timeout, this);
-  m_private->task_scrape.slot() = std::tr1::bind(&TrackerController::do_scrape, this);
+  m_private->task_timeout.slot() = std::bind(&TrackerController::do_timeout, this);
+  m_private->task_scrape.slot() = std::bind(&TrackerController::do_scrape, this);
 }
 
 TrackerController::~TrackerController() {

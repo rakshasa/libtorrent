@@ -40,7 +40,7 @@
 #include <string>
 #include <iosfwd>
 #include <list>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/common.h>
 
 namespace torrent {
@@ -51,9 +51,9 @@ namespace torrent {
 // Keep in mind that these objects get reused.
 class LIBTORRENT_EXPORT Http {
  public:
-  typedef std::tr1::function<void ()>                   slot_void;
-  typedef std::tr1::function<void (const std::string&)> slot_string;
-  typedef std::tr1::function<Http* (void)>              slot_http;
+  typedef std::function<void ()>                   slot_void;
+  typedef std::function<void (const std::string&)> slot_string;
+  typedef std::function<Http* (void)>              slot_http;
 
   typedef std::list<slot_void>   signal_void;
   typedef std::list<slot_string> signal_string;

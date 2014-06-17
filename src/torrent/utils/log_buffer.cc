@@ -39,11 +39,9 @@
 #include "log_buffer.h"
 
 #include <functional>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "globals.h"
-
-namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -53,7 +51,7 @@ log_buffer::find_older(int32_t older_than) {
   if (empty() || !back().is_younger_than(older_than))
     return end();
 
-  return std::find_if(begin(), end(), tr1::bind(&log_entry::is_younger_or_same, tr1::placeholders::_1, older_than));
+  return std::find_if(begin(), end(), std::bind(&log_entry::is_younger_or_same, std::placeholders::_1, older_than));
 }
 
 void

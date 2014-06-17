@@ -85,6 +85,7 @@ private:
   SHA_CTX m_ctx;
 };
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 inline void
 Sha1::init() {
   SHA1_Init(&m_ctx);

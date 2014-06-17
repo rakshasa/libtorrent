@@ -42,7 +42,7 @@
 
 namespace torrent {
 
-std::tr1::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
+std::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
 
 inline int64_t
 instrumentation_fetch_and_clear(instrumentation_enum type) {

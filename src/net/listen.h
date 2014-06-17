@@ -38,7 +38,7 @@
 #define LIBTORRENT_LISTEN_H
 
 #include <inttypes.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <rak/socket_address.h>
 
 #include "socket_base.h"
@@ -48,7 +48,7 @@ namespace torrent {
 
 class Listen : public SocketBase {
 public:
-  typedef std::tr1::function<void (SocketFd, const rak::socket_address&)> slot_connection;
+  typedef std::function<void (SocketFd, const rak::socket_address&)> slot_connection;
 
   Listen() : m_port(0) {}
   ~Listen() { close(); }

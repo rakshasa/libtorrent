@@ -38,7 +38,7 @@
 #define LIBTORRENT_DATA_HASH_QUEUE_NODE_H
 
 #include <string>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <inttypes.h>
 
 #include "chunk_handle.h"
@@ -50,7 +50,7 @@ class download_data;
 
 class HashQueueNode {
 public:
-  typedef std::tr1::function<void (ChunkHandle, const char*)> slot_done_type;
+  typedef std::function<void (ChunkHandle, const char*)> slot_done_type;
   typedef download_data* id_type;
 
   HashQueueNode(id_type id, HashChunk* c, slot_done_type d) :

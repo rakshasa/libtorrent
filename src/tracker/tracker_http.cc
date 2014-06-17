@@ -64,8 +64,6 @@
 #define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
   lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
 
-namespace tr1 { using namespace std::tr1; }
-
 namespace torrent {
 
 TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags) :
@@ -74,8 +72,8 @@ TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags)
   m_get(Http::slot_factory()()),
   m_data(NULL) {
 
-  m_get->signal_done().push_back(tr1::bind(&TrackerHttp::receive_done, this));
-  m_get->signal_failed().push_back(tr1::bind(&TrackerHttp::receive_failed, this, tr1::placeholders::_1));
+  m_get->signal_done().push_back(std::bind(&TrackerHttp::receive_done, this));
+  m_get->signal_failed().push_back(std::bind(&TrackerHttp::receive_failed, this, std::placeholders::_1));
 
   // Haven't considered if this needs any stronger error detection,
   // can dropping the '?' be used for malicious purposes?

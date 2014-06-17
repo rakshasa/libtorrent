@@ -40,8 +40,8 @@
 #include <bitset>
 #include <string>
 #include <vector>
-#include <tr1/array>
-#include <tr1/functional>
+#include lt_tr1_array
+#include lt_tr1_functional
 #include <torrent/common.h>
 
 namespace torrent {
@@ -161,7 +161,7 @@ enum {
 
 class log_buffer;
 
-typedef std::tr1::function<void (const char*, unsigned int, int)> log_slot;
+typedef std::function<void (const char*, unsigned int, int)> log_slot;
 
 class LIBTORRENT_EXPORT log_group {
 public:
@@ -207,7 +207,7 @@ private:
   log_slot*           m_last;
 };
 
-typedef std::tr1::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
+typedef std::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
 
 extern log_group_list  log_groups LIBTORRENT_EXPORT;
 

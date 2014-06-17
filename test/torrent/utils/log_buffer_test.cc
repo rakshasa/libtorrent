@@ -7,8 +7,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(utils_log_buffer_test);
 
-namespace tr1 { using namespace std::tr1; }
-
 void
 utils_log_buffer_test::setUp() {
   torrent::cachedTime = rak::timer::from_seconds(1000);

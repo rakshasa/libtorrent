@@ -38,12 +38,12 @@
 #define LIBTORRENT_UTILS_NET_H
 
 #include <netdb.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 namespace torrent {
 
-typedef std::tr1::function<void (sockaddr*, socklen_t)> slot_ai_success;
-//typedef std::tr1::function<void (const char*, int)>     slot_ai_failure;
+typedef std::function<void (sockaddr*, socklen_t)> slot_ai_success;
+//typedef std::function<void (const char*, int)>     slot_ai_failure;
 
 // Throws address_info_error on lookup failure.
 addrinfo*   address_info_lookup(const char* hostname, int family, int socktype);

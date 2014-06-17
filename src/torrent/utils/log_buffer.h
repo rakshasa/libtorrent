@@ -40,7 +40,7 @@
 #include <string>
 #include <deque>
 #include <pthread.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/common.h>
 
 namespace torrent {
@@ -60,7 +60,7 @@ struct log_entry {
 class LIBTORRENT_EXPORT log_buffer : private std::deque<log_entry> {
 public:
   typedef std::deque<log_entry>       base_type;
-  typedef std::tr1::function<void ()> slot_void;
+  typedef std::function<void ()> slot_void;
 
   using base_type::iterator;
   using base_type::const_iterator;

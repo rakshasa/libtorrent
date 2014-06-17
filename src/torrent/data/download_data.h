@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_DATA_DOWNLOAD_DATA_H
 #define LIBTORRENT_DATA_DOWNLOAD_DATA_H
 
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include <torrent/common.h>
 #include <torrent/bitfield.h>
@@ -57,7 +57,7 @@ public:
 
   typedef void (function_void)(void);
 
-  typedef std::tr1::function<function_void> slot_void;
+  typedef std::function<function_void> slot_void;
 
   download_data() : m_wanted_chunks(0) {}
 

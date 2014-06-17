@@ -6,8 +6,6 @@
 #include "globals.h"
 #include "tracker_list_test.h"
 
-namespace tr1 { using namespace std::tr1; }
-
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_test);
 
 uint32_t return_new_peers = 0xdeadbeef;
@@ -101,8 +99,8 @@ tracker_list_test::test_enable() {
   int enabled_counter = 0;
   int disabled_counter = 0;
 
-  tracker_list.slot_tracker_enabled() = tr1::bind(&increment_value, &enabled_counter);
-  tracker_list.slot_tracker_disabled() = tr1::bind(&increment_value, &disabled_counter);
+  tracker_list.slot_tracker_enabled() = std::bind(&increment_value_void, &enabled_counter);
+  tracker_list.slot_tracker_disabled() = std::bind(&increment_value_void, &disabled_counter);
 
   TRACKER_INSERT(0, tracker_0);
   TRACKER_INSERT(1, tracker_1);
@@ -208,7 +206,7 @@ tracker_list_test::test_find_url() {
 void
 tracker_list_test::test_can_scrape() {
   TRACKER_SETUP();
-  torrent::Http::slot_factory() = std::tr1::bind(&http_factory);
+  torrent::Http::slot_factory() = std::bind(&http_factory);
 
   tracker_list.insert_url(0, "http://example.com/announce");
   CPPUNIT_ASSERT((tracker_list.back()->flags() & torrent::Tracker::flag_can_scrape));

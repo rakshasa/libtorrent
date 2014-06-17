@@ -7,8 +7,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ChunkListTest);
 
-namespace tr1 { using namespace std::tr1; }
-
 torrent::Chunk*
 func_create_chunk(uint32_t index, int prot_flags) {
   // Do proper handling of prot_flags...
