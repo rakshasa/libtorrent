@@ -42,7 +42,7 @@
 #include <list>
 #include <vector>
 #include <inttypes.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/download/group_entry.h>
 
 namespace torrent {
@@ -66,9 +66,9 @@ struct group_stats {
 
 class LIBTORRENT_EXPORT choke_queue {
 public:
-  typedef std::tr1::function<void (int)>                         slot_unchoke;
-  typedef std::tr1::function<int ()>                             slot_can_unchoke;
-  typedef std::tr1::function<bool (PeerConnectionBase*, bool)>   slot_connection;
+  typedef std::function<void (int)>                         slot_unchoke;
+  typedef std::function<int ()>                             slot_can_unchoke;
+  typedef std::function<bool (PeerConnectionBase*, bool)>   slot_connection;
 
   typedef std::vector<weighted_connection>                       container_type;
   typedef container_type::value_type                             value_type;

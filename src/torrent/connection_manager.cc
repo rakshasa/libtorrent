@@ -48,8 +48,6 @@
 #include "exceptions.h"
 #include "manager.h"
 
-namespace tr1 { using namespace std::tr1; }
-
 namespace torrent {
 
 // Fix TrackerUdp, etc, if this is made async.
@@ -102,11 +100,11 @@ ConnectionManager::ConnectionManager() :
   m_proxyAddress = (new rak::socket_address())->c_sockaddr();
   rak::socket_address::cast_from(m_proxyAddress)->sa_inet()->clear();
 
-  m_slot_resolver = tr1::bind(&resolve_host,
-                              tr1::placeholders::_1,
-                              tr1::placeholders::_2,
-                              tr1::placeholders::_3,
-                              tr1::placeholders::_4);
+  m_slot_resolver = std::bind(&resolve_host,
+                              std::placeholders::_1,
+                              std::placeholders::_2,
+                              std::placeholders::_3,
+                              std::placeholders::_4);
 }
 
 ConnectionManager::~ConnectionManager() {

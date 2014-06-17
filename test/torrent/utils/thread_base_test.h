@@ -36,10 +36,10 @@ struct thread_management_type {
   thread_disk->init_thread();
 
 #define CLEANUP_THREAD()                                                \
-  CPPUNIT_ASSERT(wait_for_true(tr1::bind(&torrent::thread_base::is_inactive, thread_disk))); \
+  CPPUNIT_ASSERT(wait_for_true(std::bind(&torrent::thread_base::is_inactive, thread_disk))); \
   delete thread_disk;
 
-bool wait_for_true(std::tr1::function<bool ()> test_function);
+bool wait_for_true(std::function<bool ()> test_function);
 
 class thread_test : public torrent::thread_base {
 public:

@@ -66,6 +66,7 @@ private:
 
 #else
 #ifdef USE_OPENSSL
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   RC4(const unsigned char key[], int len)                             { RC4_set_key(&m_key, len, key); }
 
   void crypt(const void* indata, void* outdata, unsigned int length)  { ::RC4(&m_key, length, (const unsigned char*)indata, (unsigned char*)outdata); }

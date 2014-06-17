@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_NET_THROTTLE_NODE_H
 #define LIBTORRENT_NET_THROTTLE_NODE_H
 
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "torrent/rate.h"
 
@@ -52,7 +52,7 @@ public:
   typedef ThrottleList::iterator                  iterator;
   typedef ThrottleList::const_iterator            const_iterator;
 
-  typedef std::tr1::function<void ()> slot_void;
+  typedef std::function<void ()> slot_void;
 
   ThrottleNode(uint32_t rateSpan) : m_rate(rateSpan)  { clear_quota(); }
 

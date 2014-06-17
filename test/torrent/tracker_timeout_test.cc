@@ -9,8 +9,6 @@
 #include "tracker_list_test.h"
 #include "tracker_timeout_test.h"
 
-namespace tr1 { using namespace std::tr1; }
-
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_timeout_test);
 
 void

@@ -72,6 +72,20 @@
 
 namespace torrent {
 
+const int DownloadInfo::flag_open;
+const int DownloadInfo::flag_active;
+const int DownloadInfo::flag_compact;
+const int DownloadInfo::flag_accepting_new_peers;
+const int DownloadInfo::flag_accepting_seeders;
+const int DownloadInfo::flag_private;
+const int DownloadInfo::flag_meta_download;
+const int DownloadInfo::flag_pex_enabled;
+const int DownloadInfo::flag_pex_active;
+
+const int DownloadInfo::public_flags;
+
+const uint32_t DownloadInfo::unlimited;
+
 const DownloadInfo* Download::info() const { return m_ptr->info(); }
 const download_data* Download::data() const { return m_ptr->data(); }
 

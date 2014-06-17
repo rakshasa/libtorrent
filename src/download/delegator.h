@@ -39,7 +39,7 @@
 
 #include <string>
 #include <vector>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "torrent/data/transfer_list.h"
 
@@ -54,8 +54,8 @@ class PeerInfo;
 
 class Delegator {
 public:
-  typedef std::tr1::function<uint32_t (PeerChunks*, bool)> slot_peer_chunk;
-  typedef std::tr1::function<uint32_t (uint32_t)>          slot_size;
+  typedef std::function<uint32_t (PeerChunks*, bool)> slot_peer_chunk;
+  typedef std::function<uint32_t (uint32_t)>          slot_size;
 
   static const unsigned int block_size = 1 << 14;
 

@@ -40,7 +40,7 @@
 #include "config.h"
 
 #if HAVE_TR1
-#include <tr1/unordered_map>
+#include <lt_tr1_unordered_map>
 #else
 #include <map>
 #endif
@@ -104,9 +104,9 @@ struct hashstring_ptr_equal : public std::binary_function<const HashString*, con
   { return *one == *two; }
 };
 
-class DhtNodeList : public std::tr1::unordered_map<const HashString*, DhtNode*, hashstring_ptr_hash, hashstring_ptr_equal> {
+class DhtNodeList : public std::unordered_map<const HashString*, DhtNode*, hashstring_ptr_hash, hashstring_ptr_equal> {
 public:
-  typedef std::tr1::unordered_map<const HashString*, DhtNode*, hashstring_ptr_hash, hashstring_ptr_equal> base_type;
+  typedef std::unordered_map<const HashString*, DhtNode*, hashstring_ptr_hash, hashstring_ptr_equal> base_type;
 
   // Define accessor iterator with more convenient access to the key and
   // element values.  Allows changing the map definition more easily if needed.
@@ -125,9 +125,9 @@ public:
 
 };
 
-class DhtTrackerList : public std::tr1::unordered_map<HashString, DhtTracker*, hashstring_hash> {
+class DhtTrackerList : public std::unordered_map<HashString, DhtTracker*, hashstring_hash> {
 public:
-  typedef std::tr1::unordered_map<HashString, DhtTracker*, hashstring_hash> base_type;
+  typedef std::unordered_map<HashString, DhtTracker*, hashstring_hash> base_type;
 
   template<typename T>
   struct accessor_wrapper : public T {

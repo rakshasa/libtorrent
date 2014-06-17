@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "choke_group.h"
 #include "choke_queue.h"
@@ -47,8 +47,6 @@
 
 #include "torrent/exceptions.h"
 #include "download/download_main.h"
-
-namespace tr1 { using namespace std::tr1; }
 
 namespace torrent {
 
@@ -61,14 +59,14 @@ uint64_t
 choke_group::up_rate() const {
   return
     std::for_each(m_first, m_last, 
-                  rak::accumulate((uint64_t)0, tr1::bind(&Rate::rate, tr1::bind(&resource_manager_entry::up_rate, tr1::placeholders::_1)))).result;
+                  rak::accumulate((uint64_t)0, std::bind(&Rate::rate, std::bind(&resource_manager_entry::up_rate, std::placeholders::_1)))).result;
 }
 
 uint64_t
 choke_group::down_rate() const {
   return
     std::for_each(m_first, m_last, 
-                  rak::accumulate((uint64_t)0, tr1::bind(&Rate::rate, tr1::bind(&resource_manager_entry::down_rate, tr1::placeholders::_1)))).result;
+                  rak::accumulate((uint64_t)0, std::bind(&Rate::rate, std::bind(&resource_manager_entry::down_rate, std::placeholders::_1)))).result;
 }
 
 }

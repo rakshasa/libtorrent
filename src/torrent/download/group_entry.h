@@ -39,7 +39,7 @@
 
 #include <algorithm>
 #include <vector>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
 
@@ -104,7 +104,7 @@ private:
 
 inline void group_entry::connection_unchoked(PeerConnectionBase* pcb) {
   container_type::iterator itr = std::find_if(m_unchoked.begin(), m_unchoked.end(),
-                                              std::tr1::bind(&weighted_connection::operator==, std::tr1::placeholders::_1, pcb));
+                                              std::bind(&weighted_connection::operator==, std::placeholders::_1, pcb));
 
   if (itr != m_unchoked.end()) throw internal_error("group_entry::connection_unchoked(pcb) failed.");
 
@@ -113,7 +113,7 @@ inline void group_entry::connection_unchoked(PeerConnectionBase* pcb) {
 
 inline void group_entry::connection_queued(PeerConnectionBase* pcb) {
   container_type::iterator itr = std::find_if(m_queued.begin(), m_queued.end(),
-                                              std::tr1::bind(&weighted_connection::operator==, std::tr1::placeholders::_1, pcb));
+                                              std::bind(&weighted_connection::operator==, std::placeholders::_1, pcb));
 
   if (itr != m_queued.end()) throw internal_error("group_entry::connection_queued(pcb) failed.");
 
@@ -123,7 +123,7 @@ inline void group_entry::connection_queued(PeerConnectionBase* pcb) {
 inline void
 group_entry::connection_choked(PeerConnectionBase* pcb) {
   container_type::iterator itr = std::find_if(m_unchoked.begin(), m_unchoked.end(),
-                                              std::tr1::bind(&weighted_connection::operator==, std::tr1::placeholders::_1, pcb));
+                                              std::bind(&weighted_connection::operator==, std::placeholders::_1, pcb));
 
   if (itr == m_unchoked.end()) throw internal_error("group_entry::connection_choked(pcb) failed.");
 
@@ -134,7 +134,7 @@ group_entry::connection_choked(PeerConnectionBase* pcb) {
 inline void
 group_entry::connection_unqueued(PeerConnectionBase* pcb) {
   container_type::iterator itr = std::find_if(m_queued.begin(), m_queued.end(),
-                                              std::tr1::bind(&weighted_connection::operator==, std::tr1::placeholders::_1, pcb));
+                                              std::bind(&weighted_connection::operator==, std::placeholders::_1, pcb));
 
   if (itr == m_queued.end()) throw internal_error("group_entry::connection_unqueued(pcb) failed.");
 

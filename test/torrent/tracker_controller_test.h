@@ -78,16 +78,16 @@ public:
   int enabled_counter = 0;                                              \
   int disabled_counter = 0;                                             \
                                                                         \
-  tracker_controller.slot_success() = tr1::bind(&increment_value, &success_counter); \
-  tracker_controller.slot_failure() = tr1::bind(&increment_value, &failure_counter); \
-  tracker_controller.slot_timeout() = tr1::bind(&increment_value, &timeout_counter); \
-  tracker_controller.slot_tracker_enabled() = tr1::bind(&increment_value, &enabled_counter); \
-  tracker_controller.slot_tracker_disabled() = tr1::bind(&increment_value, &disabled_counter); \
+  tracker_controller.slot_success() = std::bind(&increment_value_uint, &success_counter); \
+  tracker_controller.slot_failure() = std::bind(&increment_value_void, &failure_counter); \
+  tracker_controller.slot_timeout() = std::bind(&increment_value_void, &timeout_counter); \
+  tracker_controller.slot_tracker_enabled() = std::bind(&increment_value_void, &enabled_counter); \
+  tracker_controller.slot_tracker_disabled() = std::bind(&increment_value_void, &disabled_counter); \
                                                                         \
-  tracker_list.slot_success() = tr1::bind(&torrent::TrackerController::receive_success, &tracker_controller, tr1::placeholders::_1, tr1::placeholders::_2); \
-  tracker_list.slot_failure() = tr1::bind(&torrent::TrackerController::receive_failure, &tracker_controller, tr1::placeholders::_1, tr1::placeholders::_2); \
-  tracker_list.slot_tracker_enabled()  = tr1::bind(&torrent::TrackerController::receive_tracker_enabled, &tracker_controller, tr1::placeholders::_1); \
-  tracker_list.slot_tracker_disabled() = tr1::bind(&torrent::TrackerController::receive_tracker_disabled, &tracker_controller, tr1::placeholders::_1);
+  tracker_list.slot_success() = std::bind(&torrent::TrackerController::receive_success, &tracker_controller, std::placeholders::_1, std::placeholders::_2); \
+  tracker_list.slot_failure() = std::bind(&torrent::TrackerController::receive_failure, &tracker_controller, std::placeholders::_1, std::placeholders::_2); \
+  tracker_list.slot_tracker_enabled()  = std::bind(&torrent::TrackerController::receive_tracker_enabled, &tracker_controller, std::placeholders::_1); \
+  tracker_list.slot_tracker_disabled() = std::bind(&torrent::TrackerController::receive_tracker_disabled, &tracker_controller, std::placeholders::_1);
 
 #define TEST_SINGLE_BEGIN()                                             \
   TRACKER_CONTROLLER_SETUP();                                           \

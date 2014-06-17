@@ -18,8 +18,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(HttpTest);
   int failed_counter = 0;                                               \
                                                                         \
   http->set_stream(http_stream);                                        \
-  http->signal_done().push_back(std::tr1::bind(&increment_value, &done_counter)); \
-  http->signal_failed().push_back(std::tr1::bind(&increment_value, &failed_counter));
+  http->signal_done().push_back(std::bind(&increment_value, &done_counter)); \
+  http->signal_failed().push_back(std::bind(&increment_value, &failed_counter));
 
 class StringStream : public std::stringstream {
 public:
@@ -73,7 +73,7 @@ static void increment_value(int* value) { (*value)++; }
 
 void
 HttpTest::test_basic() {
-  torrent::Http::slot_factory() = std::tr1::bind(&create_test_http);
+  torrent::Http::slot_factory() = std::bind(&create_test_http);
 
   torrent::Http* http = torrent::Http::slot_factory()();
   std::stringstream* http_stream = new std::stringstream;

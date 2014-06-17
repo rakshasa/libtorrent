@@ -39,7 +39,7 @@
 
 #include <string>
 #include <vector>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "chunk.h"
 #include "chunk_handle.h"
@@ -59,9 +59,9 @@ public:
   typedef std::vector<ChunkListNode>          base_type;
   typedef std::vector<ChunkListNode*>         Queue;
 
-  typedef std::tr1::function<Chunk* (uint32_t, int)>    slot_chunk_index;
-  typedef std::tr1::function<uint64_t ()>               slot_value;
-  typedef std::tr1::function<void (const std::string&)> slot_string;
+  typedef std::function<Chunk* (uint32_t, int)>    slot_chunk_index;
+  typedef std::function<uint64_t ()>               slot_value;
+  typedef std::function<void (const std::string&)> slot_string;
 
   using base_type::value_type;
   using base_type::reference;

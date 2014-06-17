@@ -40,7 +40,7 @@
 #include <deque>
 #include <map>
 #include <pthread.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "torrent/hash_string.h"
 #include "hash_queue_node.h"
@@ -63,7 +63,7 @@ public:
   typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
 
   typedef HashQueueNode::slot_done_type   slot_done_type;
-  typedef std::tr1::function<void (bool)> slot_bool;
+  typedef std::function<void (bool)> slot_bool;
 
   using base_type::iterator;
 

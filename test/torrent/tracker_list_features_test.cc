@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "torrent/http.h"
 #include "net/address_list.h"
@@ -8,8 +8,6 @@
 #include "globals.h"
 #include "tracker_list_test.h"
 #include "tracker_list_features_test.h"
-
-namespace tr1 { using namespace std::tr1; }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(tracker_list_features_test);
 
@@ -182,7 +180,7 @@ tracker_list_features_test::test_count_active() {
 
 
 bool
-verify_did_internal_error(tr1::function<void ()> func, bool should_throw) {
+verify_did_internal_error(std::function<void ()> func, bool should_throw) {
   bool did_throw = false;
 
   try {
@@ -203,28 +201,28 @@ tracker_list_features_test::test_request_safeguard() {
   TRACKER_INSERT(0, tracker_foo);
 
   for (unsigned int i = 0; i < 9; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(tr1::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_1, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_1, 1), false));
     CPPUNIT_ASSERT(tracker_1->trigger_success());
     CPPUNIT_ASSERT(tracker_1->success_counter() == (i + 1));
   }
 
-  CPPUNIT_ASSERT(verify_did_internal_error(tr1::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_1, 1), true));
+  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_1, 1), true));
   CPPUNIT_ASSERT(tracker_1->trigger_success());
   
   torrent::cachedTime += rak::timer::from_seconds(1000);
 
   for (unsigned int i = 0; i < 9; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(tr1::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_foo, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_foo, 1), false));
     CPPUNIT_ASSERT(tracker_foo->trigger_success());
     CPPUNIT_ASSERT(tracker_foo->success_counter() == (i + 1));
     CPPUNIT_ASSERT(tracker_foo->is_usable());
   }
 
-  CPPUNIT_ASSERT(verify_did_internal_error(tr1::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_foo, 1), true));
+  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_foo, 1), true));
   CPPUNIT_ASSERT(tracker_foo->trigger_success());
   
   for (unsigned int i = 0; i < 40; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(tr1::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_2, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_2, 1), false));
     CPPUNIT_ASSERT(tracker_2->trigger_success());
     CPPUNIT_ASSERT(tracker_2->success_counter() == (i + 1));
 
@@ -232,7 +230,7 @@ tracker_list_features_test::test_request_safeguard() {
   }
   
   for (unsigned int i = 0; i < 17; i++) {
-    CPPUNIT_ASSERT(verify_did_internal_error(tr1::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_3, 1), false));
+    CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_3, 1), false));
     CPPUNIT_ASSERT(tracker_3->trigger_success());
     CPPUNIT_ASSERT(tracker_3->success_counter() == (i + 1));
 
@@ -240,6 +238,6 @@ tracker_list_features_test::test_request_safeguard() {
       torrent::cachedTime += rak::timer::from_seconds(1);
   }
   
-  CPPUNIT_ASSERT(verify_did_internal_error(tr1::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_3, 1), true));
+  CPPUNIT_ASSERT(verify_did_internal_error(std::bind(&torrent::TrackerList::send_state, &tracker_list, tracker_3, 1), true));
   CPPUNIT_ASSERT(tracker_3->trigger_success());
 }

@@ -38,7 +38,7 @@
 #define LIBTORRENT_TRACKER_CONTROLLER_H
 
 #include <string>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <torrent/common.h>
 #include <torrent/tracker.h>
 
@@ -55,10 +55,10 @@ class LIBTORRENT_EXPORT TrackerController {
 public:
   typedef AddressList address_list;
 
-  typedef std::tr1::function<void (void)>               slot_void;
-  typedef std::tr1::function<void (const std::string&)> slot_string;
-  typedef std::tr1::function<uint32_t (AddressList*)>   slot_address_list;
-  typedef std::tr1::function<void (Tracker*)>           slot_tracker;
+  typedef std::function<void (void)>               slot_void;
+  typedef std::function<void (const std::string&)> slot_string;
+  typedef std::function<uint32_t (AddressList*)>   slot_address_list;
+  typedef std::function<void (Tracker*)>           slot_tracker;
 
   static const int flag_send_update      = 0x1;
   static const int flag_send_completed   = 0x2;

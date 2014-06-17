@@ -41,7 +41,7 @@
 #include <sys/types.h>
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 namespace torrent {
 
@@ -51,8 +51,8 @@ class thread_interrupt;
 class LIBTORRENT_EXPORT lt_cacheline_aligned thread_base {
 public:
   typedef void* (*pthread_func)(void*);
-  typedef std::tr1::function<void ()>     slot_void;
-  typedef std::tr1::function<uint64_t ()> slot_timer;
+  typedef std::function<void ()>     slot_void;
+  typedef std::function<uint64_t ()> slot_timer;
   typedef class signal_bitfield           signal_type;
 
   enum state_type {

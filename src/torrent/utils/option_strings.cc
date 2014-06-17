@@ -203,6 +203,8 @@ const char* option_list_log_group[] = {
   "protocol_network_errors",
   "protocol_storage_errors",
 
+  "resume_data",
+
   "rpc_events",
   "rpc_dump",
 

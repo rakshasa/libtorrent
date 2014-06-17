@@ -1,7 +1,7 @@
 #include "config.h"
 
 #include <signal.h>
-#include <tr1/functional>
+#include lt_tr1_functional
 
 #include "data/hash_queue_node.h"
 #include "utils/sha1.h"
@@ -15,8 +15,6 @@
 #include "hash_check_queue_test.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(HashCheckQueueTest);
-
-namespace tr1 { using namespace std::tr1; }
 
 pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -71,7 +69,7 @@ static void do_nothing() {}
 
 void
 HashCheckQueueTest::setUp() {
-  torrent::Poll::slot_create_poll() = tr1::bind(&create_select_poll);
+  torrent::Poll::slot_create_poll() = std::bind(&create_select_poll);
 
   signal(SIGUSR1, (sig_t)&do_nothing);
 }
@@ -90,7 +88,7 @@ HashCheckQueueTest::test_single() {
   torrent::HashCheckQueue hash_queue;
 
   done_chunks_type done_chunks;
-  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
+  hash_queue.slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
   
   torrent::ChunkHandle handle_0 = chunk_list->get(0, torrent::ChunkList::get_blocking);
 
@@ -117,7 +115,7 @@ HashCheckQueueTest::test_multiple() {
   torrent::HashCheckQueue hash_queue;
 
   done_chunks_type done_chunks;
-  hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
+  hash_queue.slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
   
   handle_list handles;
 
@@ -150,7 +148,7 @@ HashCheckQueueTest::test_erase() {
   // torrent::HashCheckQueue hash_queue;
 
   // done_chunks_type done_chunks;
-  // hash_queue.slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
+  // hash_queue.slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
   
   // handle_list handles;
 
@@ -186,7 +184,7 @@ HashCheckQueueTest::test_thread() {
   torrent::HashCheckQueue* hash_queue = thread_disk->hash_queue();
 
   done_chunks_type done_chunks;
-  hash_queue->slot_chunk_done() = tr1::bind(&chunk_done, &done_chunks, tr1::placeholders::_1, tr1::placeholders::_2);
+  hash_queue->slot_chunk_done() = std::bind(&chunk_done, &done_chunks, std::placeholders::_1, std::placeholders::_2);
   
   for (int i = 0; i < 1000; i++) {
     pthread_mutex_lock(&done_chunks_lock);
@@ -198,7 +196,7 @@ HashCheckQueueTest::test_thread() {
     hash_queue->push_back(new torrent::HashChunk(handle_0));
     thread_disk->interrupt();
 
-    CPPUNIT_ASSERT(wait_for_true(tr1::bind(&verify_hash, &done_chunks, 0, hash_for_index(0))));
+    CPPUNIT_ASSERT(wait_for_true(std::bind(&verify_hash, &done_chunks, 0, hash_for_index(0))));
     chunk_list->release(&handle_0);
   }  
 

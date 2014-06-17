@@ -37,7 +37,9 @@
 #ifndef LIBTORRENT_UTILS_INSTRUMENTATION_H
 #define LIBTORRENT_UTILS_INSTRUMENTATION_H
 
-#include <tr1/array>
+#include lt_tr1_array
+
+#include <algorithm>
 
 #include "torrent/common.h"
 #include "torrent/utils/log.h"
@@ -105,7 +107,7 @@ enum instrumentation_enum {
   INSTRUMENTATION_MAX_SIZE
 };
 
-extern std::tr1::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
+extern std::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
 
 void instrumentation_initialize();
 void instrumentation_update(instrumentation_enum type, int64_t change);
@@ -118,7 +120,7 @@ void instrumentation_reset();
 
 inline void
 instrumentation_initialize() {
-  instrumentation_values.assign(int64_t());
+  std::fill(instrumentation_values.begin(), instrumentation_values.end(), int64_t());
 }
 
 inline void

@@ -99,6 +99,9 @@ private:
 extern uint32_t return_new_peers;
 inline uint32_t increment_value(int* value) { (*value)++; return return_new_peers; }
 
+inline void increment_value_void(int* value) { (*value)++; }
+inline unsigned int increment_value_uint(int* value) { (*value)++; return return_new_peers; }
+
 bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const char* states, bool scrape);
 
 #define TRACKER_SETUP()                                                 \
@@ -107,10 +110,10 @@ bool check_has_active_in_group(const torrent::TrackerList* tracker_list, const c
   int failure_counter = 0;                                              \
   int scrape_success_counter = 0;                                       \
   int scrape_failure_counter = 0;                                       \
-  tracker_list.slot_success() = tr1::bind(&increment_value, &success_counter); \
-  tracker_list.slot_failure() = tr1::bind(&increment_value, &failure_counter); \
-  tracker_list.slot_scrape_success() = tr1::bind(&increment_value, &scrape_success_counter); \
-  tracker_list.slot_scrape_failure() = tr1::bind(&increment_value, &scrape_failure_counter);
+  tracker_list.slot_success() = std::bind(&increment_value_uint, &success_counter); \
+  tracker_list.slot_failure() = std::bind(&increment_value_void, &failure_counter); \
+  tracker_list.slot_scrape_success() = std::bind(&increment_value_void, &scrape_success_counter); \
+  tracker_list.slot_scrape_failure() = std::bind(&increment_value_void, &scrape_failure_counter);
 
 #define TRACKER_INSERT(group, name)                             \
   TrackerTest* name = new TrackerTest(&tracker_list, "");       \

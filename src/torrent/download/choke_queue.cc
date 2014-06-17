@@ -40,7 +40,7 @@
 #include <functional>
 #include <numeric>
 #include <cstdlib>
-#include <tr1/functional>
+#include lt_tr1_functional
 #include <rak/functional.h>
 
 #include "protocol/peer_connection_base.h"
