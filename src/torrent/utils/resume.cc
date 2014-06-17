@@ -34,6 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
+#define __STDC_FORMAT_MACROS
+
 #include "config.h"
 
 #include <rak/file_stat.h>
@@ -69,6 +71,9 @@
                     file_index, __VA_ARGS__);
 #define LT_LOG_SAVE(log_fmt, ...)                                       \
   lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save", log_fmt, __VA_ARGS__);
+#define LT_LOG_SAVE_FILE(log_fmt, ...)                                  \
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save", "file[%u]: " log_fmt, \
+                    file_index, __VA_ARGS__);
 
 namespace torrent {
 
@@ -86,36 +91,7 @@ resume_load_progress(Download download, const Object& object) {
     return;
   }
 
-  if (object.has_key_string("bitfield")) {
-    const Object::string_type& bitfield = object.get_key_string("bitfield");
-
-    if (bitfield.size() != download.file_list()->bitfield()->size_bytes()) {
-      LT_LOG_LOAD_INVALID("size of resumable bitfield does not match bitfield size of torrent", 0);
-      return;
-    }
-
-    LT_LOG_LOAD("restoring partial bitfield", 0);
-
-    download.set_bitfield((uint8_t*)bitfield.c_str(), (uint8_t*)(bitfield.c_str() + bitfield.size()));
-
-  } else if (object.has_key_value("bitfield")) {
-    Object::value_type chunksDone = object.get_key_value("bitfield");
-
-    if (chunksDone == download.file_list()->bitfield()->size_bits()) {
-      LT_LOG_LOAD("restoring completed bitfield", 0);
-      download.set_bitfield(true);
-    } else if (chunksDone == 0) {
-      LT_LOG_LOAD("restoring empty bitfield", 0);
-      download.set_bitfield(false);
-    } else {
-      LT_LOG_LOAD_INVALID("restoring empty bitfield", 0);
-      return;
-    }
-
-  } else {
-    LT_LOG_LOAD_INVALID("valid 'bitfield' not found", 0);
-    return;
-  }
+  resume_load_bitfield(download, object);
 
   Object::list_const_iterator filesItr  = files.begin();
   FileList* fileList = download.file_list();
@@ -220,13 +196,17 @@ void
 resume_save_progress(Download download, Object& object) {
   // We don't remove the old hash data since it might still be valid,
   // just that the client didn't finish the check this time.
-  if (!download.is_hash_checked())
+  if (!download.is_hash_checked()) {
+    LT_LOG_SAVE("hash not checked, no progress saved", 0);
     return;
+  }
 
   download.sync_chunks();
 
   // If syncing failed, invalidate all resume data and return.
   if (!download.is_hash_checked()) {
+    LT_LOG_SAVE("sync failed, invalidating resume data", 0);
+
     if (!object.has_key_list("files"))
       return;
 
@@ -238,12 +218,7 @@ resume_save_progress(Download download, Object& object) {
     return;
   }
 
-  const Bitfield* bitfield = download.file_list()->bitfield();
-
-  if (bitfield->is_all_set() || bitfield->is_all_unset())
-    object.insert_key("bitfield", bitfield->size_set());
-  else
-    object.insert_key("bitfield", std::string((char*)bitfield->begin(), bitfield->size_bytes()));
+  resume_save_bitfield(download, object);
   
   Object::list_type&    files    = object.insert_preserve_copy("files", Object::create_list()).first->second.as_list();
   Object::list_iterator filesItr = files.begin();
@@ -251,6 +226,8 @@ resume_save_progress(Download download, Object& object) {
   FileList* fileList = download.file_list();
 
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
+    unsigned int file_index = std::distance(fileList->begin(), listItr);
+
     if (filesItr == files.end())
       filesItr = files.insert(filesItr, Object::create_map());
     else if (!filesItr->is_map())
@@ -263,35 +240,39 @@ resume_save_progress(Download download, Object& object) {
 
     if (!fileExists) {
       
-      if ((*listItr)->is_create_queued())
+      if ((*listItr)->is_create_queued()) {
         // ~0 means the file still needs to be created.
         filesItr->insert_key("mtime", ~int64_t(0));
-      else
+        LT_LOG_SAVE_FILE("file not created, create queued", 0);
+      } else {
         // ~1 means the file shouldn't be created.
         filesItr->insert_key("mtime", ~int64_t(1));
+        LT_LOG_SAVE_FILE("file not created, create not queued", 0);
+      }
 
       //    } else if ((*listItr)->completed_chunks() == (*listItr)->size_chunks()) {
-    } else if (bitfield->is_all_set()) {
 
-
+    } else if (fileList->bitfield()->is_all_set()) {
       // Currently only checking if we're finished. This needs to be
       // smarter when it comes to downloading partial torrents, etc.
 
       // This assumes the syncs are properly called before
       // resume_save_progress gets called after finishing a torrent.
       filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+      LT_LOG_SAVE_FILE("file completed, mtime:%" PRIi64, (int64_t)fs.modified_time());
 
     } else if (!download.info()->is_active()) {
-
       // When stopped, all chunks should have received sync, thus the
       // file's mtime will be correct. (We hope)
       filesItr->insert_key("mtime", (int64_t)fs.modified_time());
+      LT_LOG_SAVE_FILE("file inactive and assumed sync'ed, mtime:%" PRIi64, (int64_t)fs.modified_time());
 
     } else {
       // If the torrent isn't done and we've not shut down, then set
       // 'mtime' to ~3 so as to indicate that the 'mtime' is not to be
       // trusted, yet we have a partial bitfield for the file.
       filesItr->insert_key("mtime", ~int64_t(3));
+      LT_LOG_SAVE_FILE("file actively downloading", 0);
     }
   }
 }
@@ -302,14 +283,69 @@ resume_clear_progress(Download download, Object& object) {
 }
 
 void
+resume_load_bitfield(Download download, const Object& object) {
+  if (object.has_key_string("bitfield")) {
+    const Object::string_type& bitfield = object.get_key_string("bitfield");
+
+    if (bitfield.size() != download.file_list()->bitfield()->size_bytes()) {
+      LT_LOG_LOAD_INVALID("size of resumable bitfield does not match bitfield size of torrent", 0);
+      return;
+    }
+
+    LT_LOG_LOAD("restoring partial bitfield", 0);
+
+    download.set_bitfield((uint8_t*)bitfield.c_str(), (uint8_t*)(bitfield.c_str() + bitfield.size()));
+
+  } else if (object.has_key_value("bitfield")) {
+    Object::value_type chunksDone = object.get_key_value("bitfield");
+
+    if (chunksDone == download.file_list()->bitfield()->size_bits()) {
+      LT_LOG_LOAD("restoring completed bitfield", 0);
+      download.set_bitfield(true);
+    } else if (chunksDone == 0) {
+      LT_LOG_LOAD("restoring empty bitfield", 0);
+      download.set_bitfield(false);
+    } else {
+      LT_LOG_LOAD_INVALID("restoring empty bitfield", 0);
+      return;
+    }
+
+  } else {
+    LT_LOG_LOAD_INVALID("valid 'bitfield' not found", 0);
+    return;
+  }
+}
+
+void
+resume_save_bitfield(Download download, Object& object) {
+  const Bitfield* bitfield = download.file_list()->bitfield();
+
+  if (bitfield->is_all_set() || bitfield->is_all_unset()) {
+    LT_LOG_SAVE("uniform bitfield, saving size only", 0);
+    object.insert_key("bitfield", bitfield->size_set());
+  } else {
+    LT_LOG_SAVE("saving bitfield", 0);
+    object.insert_key("bitfield", std::string((char*)bitfield->begin(), bitfield->size_bytes()));
+  }
+}
+
+void
 resume_load_uncertain_pieces(Download download, const Object& object) {
   // Don't rehash when loading resume data within the same session.
-  if (!object.has_key_string("uncertain_pieces") ||
-      !object.has_key_value("uncertain_pieces.timestamp") ||
-      object.get_key_value("uncertain_pieces.timestamp") >= (int64_t)download.info()->load_date())
+  if (!object.has_key_string("uncertain_pieces")) {
+    LT_LOG_LOAD("no uncertain pieces marked", 0);
     return;
+  }
+
+  if(!object.has_key_value("uncertain_pieces.timestamp") ||
+     object.get_key_value("uncertain_pieces.timestamp") >= (int64_t)download.info()->load_date()) {
+    LT_LOG_LOAD_INVALID("invalid information on uncertain pieces", 0);
+    return;
+  }
 
   const Object::string_type& uncertain = object.get_key_string("uncertain_pieces");
+
+  LT_LOG_LOAD("found %zu uncertain pieces", uncertain.size() / 2);
 
   for (const char* itr = uncertain.c_str(), *last = uncertain.c_str() + uncertain.size();
        itr + sizeof(uint32_t) <= last; itr += sizeof(uint32_t)) {
