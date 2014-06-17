@@ -41,6 +41,7 @@
 
 #include "peer/peer_info.h"
 #include "peer/peer_list.h"
+#include "torrent/utils/log.h"
 
 #include "data/file.h"
 #include "data/file_list.h"
@@ -59,37 +60,60 @@
 
 #include "resume.h"
 
+#define LT_LOG_LOAD(log_fmt, ...)                                       \
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", log_fmt, __VA_ARGS__);
+#define LT_LOG_LOAD_INVALID(log_fmt, ...)                               \
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", "invalid resume data: " log_fmt, __VA_ARGS__);
+#define LT_LOG_LOAD_FILE(log_fmt, ...)                                  \
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_load", "file[%u]: " log_fmt, \
+                    file_index, __VA_ARGS__);
+#define LT_LOG_SAVE(log_fmt, ...)                                       \
+  lt_log_print_info(LOG_RESUME_DATA, download.info(), "resume_save", log_fmt, __VA_ARGS__);
+
 namespace torrent {
 
 void
 resume_load_progress(Download download, const Object& object) {
-  if (!object.has_key_list("files"))
+  if (!object.has_key_list("files")) {
+    LT_LOG_LOAD("could not find 'files' key", 0);
     return;
+  }
 
   const Object::list_type& files = object.get_key_list("files");
 
-  if (files.size() != download.file_list()->size_files())
+  if (files.size() != download.file_list()->size_files()) {
+    LT_LOG_LOAD_INVALID("number of resumable files does not match files in torrent", 0);
     return;
+  }
 
   if (object.has_key_string("bitfield")) {
     const Object::string_type& bitfield = object.get_key_string("bitfield");
 
-    if (bitfield.size() != download.file_list()->bitfield()->size_bytes())
+    if (bitfield.size() != download.file_list()->bitfield()->size_bytes()) {
+      LT_LOG_LOAD_INVALID("size of resumable bitfield does not match bitfield size of torrent", 0);
       return;
+    }
+
+    LT_LOG_LOAD("restoring partial bitfield", 0);
 
     download.set_bitfield((uint8_t*)bitfield.c_str(), (uint8_t*)(bitfield.c_str() + bitfield.size()));
 
   } else if (object.has_key_value("bitfield")) {
     Object::value_type chunksDone = object.get_key_value("bitfield");
 
-    if (chunksDone == download.file_list()->bitfield()->size_bits())
+    if (chunksDone == download.file_list()->bitfield()->size_bits()) {
+      LT_LOG_LOAD("restoring completed bitfield", 0);
       download.set_bitfield(true);
-    else if (chunksDone == 0)
+    } else if (chunksDone == 0) {
+      LT_LOG_LOAD("restoring empty bitfield", 0);
       download.set_bitfield(false);
-    else
+    } else {
+      LT_LOG_LOAD_INVALID("restoring empty bitfield", 0);
       return;
+    }
 
   } else {
+    LT_LOG_LOAD_INVALID("valid 'bitfield' not found", 0);
     return;
   }
 
@@ -97,9 +121,14 @@ resume_load_progress(Download download, const Object& object) {
   FileList* fileList = download.file_list();
 
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
+    std::string file_path = (*listItr)->path()->as_string();
+    unsigned int file_index = std::distance(fileList->begin(), listItr);
+
     rak::file_stat fs;
 
     if (!filesItr->has_key_value("mtime")) {
+      LT_LOG_LOAD_FILE("no mtime found, file:create|resize range:clear|recheck", 0);
+
       // If 'mtime' is erased, it means we should start hashing and
       // downloading the file as if it was a new torrent.
       (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
@@ -127,8 +156,12 @@ resume_load_progress(Download download, const Object& object) {
       // creating the file. It will just fail on the mtime check
       // later, so we don't need to handle it explicitly.
 
-      if (mtimeValue == ~int64_t(0))
+      if (mtimeValue == ~int64_t(0)) {
+        LT_LOG_LOAD_FILE("file not created by client, file:create|resize range:clear|(recheck)", 0);
         (*listItr)->set_flags(File::flag_create_queued | File::flag_resize_queued);
+      } else {
+        LT_LOG_LOAD_FILE("do not create file, file:- range:clear|(recheck)", 0);
+      }
 
       // Ensure the bitfield range is cleared so that stray resume
       // data doesn't get counted.
@@ -140,6 +173,12 @@ resume_load_progress(Download download, const Object& object) {
     // If the file is the wrong size, queue resize and clear resume
     // data for that file.
     if ((uint64_t)fs.size() != (*listItr)->size_bytes()) {
+      if (fs.size() == 0) {
+        LT_LOG_LOAD_FILE("zero-length file found, file:resize range:clear|recheck", 0);
+      } else {
+        LT_LOG_LOAD_FILE("file has the wrong size, file:resize range:clear|recheck", 0);
+      }
+
       (*listItr)->set_flags(File::flag_resize_queued);
       download.update_range(Download::update_range_clear | Download::update_range_recheck,
                             (*listItr)->range().first, (*listItr)->range().second);
@@ -151,8 +190,10 @@ resume_load_progress(Download download, const Object& object) {
     // chunks that might not have been completely written to disk.
     //
     // This gets handled below, so just skip to the next file.
-    if (mtimeValue == ~int64_t(3))
+    if (mtimeValue == ~int64_t(3)) {
+      LT_LOG_LOAD_FILE("file was downloading", 0);
       continue;
+    }
 
     // An 'mtime' of ~2 indicates that the resume data was made by an
     // old rtorrent version which does not include 'uncertain_pieces'
@@ -163,10 +204,13 @@ resume_load_progress(Download download, const Object& object) {
     // files that have completed and got no indices in
     // TransferList::completed_list().
     if (mtimeValue == ~int64_t(2) || mtimeValue != fs.modified_time()) {
+      LT_LOG_LOAD_FILE("resume data doesn't include uncertain pieces, range:clear|recheck", 0);
       download.update_range(Download::update_range_clear | Download::update_range_recheck,
                             (*listItr)->range().first, (*listItr)->range().second);
       continue;
     }
+
+    LT_LOG_LOAD_FILE("no recheck needed", 0);
   }
 
   resume_load_uncertain_pieces(download, object);
