@@ -91,9 +91,11 @@ resume_load_progress(Download download, const Object& object) {
     return;
   }
 
-  resume_load_bitfield(download, object);
+  if (!resume_load_bitfield(download, object))
+    return;
 
   Object::list_const_iterator filesItr  = files.begin();
+
   FileList* fileList = download.file_list();
 
   for (FileList::iterator listItr = fileList->begin(), listLast = fileList->end(); listItr != listLast; ++listItr, ++filesItr) {
@@ -282,14 +284,14 @@ resume_clear_progress(Download download, Object& object) {
   object.erase_key("bitfield");
 }
 
-void
+bool
 resume_load_bitfield(Download download, const Object& object) {
   if (object.has_key_string("bitfield")) {
     const Object::string_type& bitfield = object.get_key_string("bitfield");
 
     if (bitfield.size() != download.file_list()->bitfield()->size_bytes()) {
       LT_LOG_LOAD_INVALID("size of resumable bitfield does not match bitfield size of torrent", 0);
-      return;
+      return false;
     }
 
     LT_LOG_LOAD("restoring partial bitfield", 0);
@@ -307,13 +309,15 @@ resume_load_bitfield(Download download, const Object& object) {
       download.set_bitfield(false);
     } else {
       LT_LOG_LOAD_INVALID("restoring empty bitfield", 0);
-      return;
+      return false;
     }
 
   } else {
     LT_LOG_LOAD_INVALID("valid 'bitfield' not found", 0);
-    return;
+    return false;
   }
+
+  return true;
 }
 
 void

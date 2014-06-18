@@ -57,7 +57,7 @@ void resume_load_progress(Download download, const Object& object) LIBTORRENT_EX
 void resume_save_progress(Download download, Object& object) LIBTORRENT_EXPORT;
 void resume_clear_progress(Download download, Object& object) LIBTORRENT_EXPORT;
 
-void resume_load_bitfield(Download download, const Object& object) LIBTORRENT_EXPORT;
+bool resume_load_bitfield(Download download, const Object& object) LIBTORRENT_EXPORT;
 void resume_save_bitfield(Download download, Object& object) LIBTORRENT_EXPORT;
 
 // Do not call 'resume_load_uncertain_pieces' directly.

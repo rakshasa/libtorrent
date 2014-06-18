@@ -374,9 +374,11 @@ Download::set_bitfield(uint8_t* first, uint8_t* last) {
 void
 Download::update_range(int flags, uint32_t first, uint32_t last) {
   if (m_ptr->hash_checker()->is_checked() ||
-      m_ptr->hash_checker()->is_checking() ||
-      m_ptr->main()->file_list()->bitfield()->empty())
-    throw input_error("Download::clear_range(...) Download in invalid state.");
+      m_ptr->hash_checker()->is_checking())
+    throw input_error("Download::clear_range(...) Download is hash checked/checking.");
+
+  if (m_ptr->main()->file_list()->bitfield()->empty())
+    throw input_error("Download::clear_range(...) Bitfield is empty.");
 
   if (flags & update_range_recheck)
     m_ptr->hash_checker()->hashing_ranges().insert(first, last);
