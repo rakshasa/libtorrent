@@ -64,6 +64,7 @@ TAGS
 
 # LibTorrent specific files
 ###########################
+test/utils_log_test.*
 test/LibTorrentTest
 test/LibTorrentTest.trs
 test-driver
