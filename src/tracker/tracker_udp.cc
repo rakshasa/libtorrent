@@ -106,6 +106,8 @@ TrackerUdp::send_state(int state) {
     m_slot_resolver = NULL;
   }
 
+  LT_LOG_TRACKER(DEBUG, "Tracker UDP hostname lookup for '%s'", hostname);
+
   m_sendState = state;
   m_slot_resolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
                                                               std::bind(&TrackerUdp::start_announce,
@@ -126,6 +128,8 @@ TrackerUdp::start_announce(const sockaddr* sa, int err) {
 
   m_connectAddress = *rak::socket_address::cast_from(sa);
   m_connectAddress.set_port(m_port);
+
+  LT_LOG_TRACKER(DEBUG, "Tracker UDP address found '%s'", m_connectAddress.address_str().c_str());
 
   if (!m_connectAddress.is_valid())
     return receive_failed("Invalid tracker address.");
