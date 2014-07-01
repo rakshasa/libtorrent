@@ -20,7 +20,9 @@ libsub_torrentutils_la_SOURCES = \
 	thread_base.cc \
 	thread_base.h \
 	thread_interrupt.cc \
-	thread_interrupt.h
+	thread_interrupt.h \
+	uri_parser.cc \
+	uri_parser.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
@@ -36,4 +38,5 @@ libtorrentinclude_HEADERS = \
 	resume.h \
 	signal_bitfield.h \
 	thread_base.h \
-	thread_interrupt.h
+	thread_interrupt.h \
+	uri_parser.h
