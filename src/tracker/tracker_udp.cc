@@ -51,6 +51,7 @@
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
+#include "torrent/utils/uri_parser.h"
 
 #include "tracker_udp.h"
 #include "manager.h"
@@ -65,6 +66,8 @@ namespace torrent {
 
 TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
   Tracker(parent, url, flags),
+
+  m_port(0),
 
   m_slot_resolver(NULL),
   m_readBuffer(NULL),
@@ -91,6 +94,14 @@ void
 TrackerUdp::send_state(int state) {
   close_directly();
   m_latest_event = state;
+
+  // try {
+  //   utils::uri_state uri_state;
+  //   uri_parse_str(m_url, uri_state);
+
+  // } catch (utils::uri_error& e) {
+  //   return receive_failed("Could not parse UDP hostname or port: " + std::string(e.what()));
+  // }
 
   char hostname[1024];
       

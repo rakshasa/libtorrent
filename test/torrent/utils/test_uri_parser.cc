@@ -19,7 +19,7 @@ UriParserTest::tearDown() {
 void
 test_print_uri_state(torrent::utils::uri_state state) {
   std::cerr << "state.uri: " << state.uri << std::endl;
-  std::cerr << "state.schema: " << state.schema << std::endl;
+  std::cerr << "state.scheme: " << state.scheme << std::endl;
   std::cerr << "state.resource: " << state.resource << std::endl;
   std::cerr << "state.query: " << state.query << std::endl;
   std::cerr << "state.fragment: " << state.fragment << std::endl;
@@ -47,7 +47,7 @@ UriParserTest::test_basic_magnet() {
   CPPUNIT_ASSERT(state.state == torrent::utils::uri_state::state_valid);
 
   CPPUNIT_ASSERT(state.uri == MAGNET_BASIC);
-  CPPUNIT_ASSERT(state.schema == "magnet");
+  CPPUNIT_ASSERT(state.scheme == "magnet");
   CPPUNIT_ASSERT(state.resource == "");
   CPPUNIT_ASSERT(state.query == "xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C");
   CPPUNIT_ASSERT(state.fragment == "");
@@ -74,7 +74,7 @@ UriParserTest::test_query_magnet() {
   CPPUNIT_ASSERT(state.state == torrent::utils::uri_state::state_valid);
 
   CPPUNIT_ASSERT(state.uri == QUERY_MAGNET);
-  CPPUNIT_ASSERT(state.schema == "magnet");
+  CPPUNIT_ASSERT(state.scheme == "magnet");
   CPPUNIT_ASSERT(state.resource == "");
   CPPUNIT_ASSERT(state.query == QUERY_MAGNET_QUERY);
   CPPUNIT_ASSERT(state.fragment == "");

@@ -44,6 +44,9 @@
 
 namespace torrent { namespace utils {
 
+typedef std::vector<std::string> uri_resource_list;
+typedef std::vector<std::string> uri_query_list;
+
 struct uri_base_state {
   static const int state_empty = 0;
   static const int state_valid = 1;
@@ -56,30 +59,37 @@ struct uri_base_state {
 
 struct uri_state : uri_base_state {
   std::string uri;
-  std::string schema;
+  std::string scheme;
   std::string resource;
-  std::string query; // Replace with state.
+  std::string query;
   std::string fragment;
 };
 
-typedef std::vector<std::string> uri_query_list;
+struct uri_resource_state : public uri_base_state {
+  std::string resource;
+  uri_resource_list path;
+};
 
 struct uri_query_state : public uri_base_state {
   std::string query;
   uri_query_list elements;
 };
 
+void uri_parse_str(std::string uri, uri_state& state) LIBTORRENT_EXPORT;
+void uri_parse_c_str(const char* uri, uri_state& state) LIBTORRENT_EXPORT;
+
+void uri_parse_resource(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+void uri_parse_resource_authority(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+void uri_parse_resource_path(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+
+void uri_parse_query_str(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
+void uri_parse_query_c_str(const char* query, uri_query_state& state) LIBTORRENT_EXPORT;
+
 class LIBTORRENT_EXPORT uri_error : public ::torrent::input_error {
 public:
   uri_error(const char* msg) : ::torrent::input_error(msg) {}
   uri_error(const std::string& msg) : ::torrent::input_error(msg) {}
 };
-
-void uri_parse_str(std::string uri, uri_state& state) LIBTORRENT_EXPORT;
-void uri_parse_c_str(const char* uri, uri_state& state) LIBTORRENT_EXPORT;
-
-void uri_parse_query_str(std::string query, uri_query_state& state) LIBTORRENT_EXPORT;
-void uri_parse_query_c_str(const char* query, uri_query_state& state) LIBTORRENT_EXPORT;
 
 }}
 

@@ -89,16 +89,6 @@ is_not_unreserved_uri_query_char(char c) {
   return !is_unreserved_uri_query_char(c);
 }
 
-template<typename MPtr, typename Ftor>
-inline std::string::const_iterator
-uri_parse_copy_until(std::string::const_iterator first, std::string::const_iterator last,
-                     MPtr mptr, uri_state& state, Ftor check) {
-  std::string::const_iterator next = std::find_if(first, last, check);
-
-  state.*mptr = std::string(first, next);
-  return next;
-}
-
 template<typename Ftor>
 inline std::string::const_iterator
 uri_string_copy_until(std::string::const_iterator first, std::string::const_iterator last,
@@ -129,17 +119,17 @@ uri_parse_str(std::string uri, uri_state& state) {
   std::string::const_iterator first = state.uri.begin();
   std::string::const_iterator last = state.uri.end();
 
-  // Parse schema:
-  first = uri_parse_copy_until(first, last, &uri_state::schema, state, std::ptr_fun(&is_not_unreserved_uri_char));
+  // Parse scheme:
+  first = uri_string_copy_until(first, last, state.scheme, std::ptr_fun(&is_not_unreserved_uri_char));
 
   if (first == last)
     goto uri_parse_success;
 
   if (*first++ != ':')
-    uri_parse_throw_error("could not find ':' after schema, found character 0x", *--first);
+    uri_parse_throw_error("could not find ':' after scheme, found character 0x", *--first);
 
   // Parse resource:
-  first = uri_parse_copy_until(first, last, &uri_state::resource, state, std::ptr_fun(&is_not_unreserved_uri_char));
+  first = uri_string_copy_until(first, last, state.resource, std::ptr_fun(&is_not_unreserved_uri_char));
 
   if (first == last)
     goto uri_parse_success;
@@ -148,7 +138,7 @@ uri_parse_str(std::string uri, uri_state& state) {
     uri_parse_throw_error("could not find '?' after resource, found character 0x", *--first);
 
   // Parse query:
-  first = uri_parse_copy_until(first, last, &uri_state::query, state, std::ptr_fun(&is_not_valid_uri_query_char));
+  first = uri_string_copy_until(first, last, state.query, std::ptr_fun(&is_not_valid_uri_query_char));
 
   if (first == last)
     goto uri_parse_success;
