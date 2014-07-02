@@ -29,6 +29,7 @@ AC_DEFUN([RAK_CHECK_TR1_LIB], [
       AC_DEFINE([lt_tr1_array], [<array>], [TR1 array])
       AC_DEFINE([lt_tr1_functional], [<functional>], [TR1 functional])
       AC_DEFINE([lt_tr1_memory], [<memory>], [TR1 memory])
+      AC_DEFINE([lt_tr1_unordered_map], [<unordered_map>], [TR1 unordered_map])
 
   ], [
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([
@@ -43,6 +44,7 @@ AC_DEFUN([RAK_CHECK_TR1_LIB], [
         AC_DEFINE([lt_tr1_array], [<tr1/array>], [TR1 array])
         AC_DEFINE([lt_tr1_functional], [<tr1/functional>], [TR1 functional])
         AC_DEFINE([lt_tr1_memory], [<tr1/memory>], [TR1 memory])
+        AC_DEFINE([lt_tr1_unordered_map], [<tr1/unordered_map>], [TR1 unordered_map])
 
     ], [
         AC_MSG_ERROR([No support for C++11 standard library nor TR1 extensions found.])
