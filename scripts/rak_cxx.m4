@@ -1,4 +1,4 @@
-AC_DEFUN([RAK_ENABLE_CXX0X], [
+AC_DEFUN([RAK_CHECK_CXX11], [
   AC_ARG_ENABLE([std_c++0x],
     AC_HELP_STRING([--enable-c++0x], [compile with C++0x (unsupported)]),
     [

@@ -28,13 +28,14 @@
 #   Copyright (c) 2012 Zack Weinberg <zackw@panix.com>
 #   Copyright (c) 2013 Roy Stogner <roystgnr@ices.utexas.edu>
 #   Copyright (c) 2014 Alexey Sokolov <sokolov@google.com>
+#   Copyright (c) 2014 Jari Sundell <sundell.software@gmail.com>
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
 #   and this notice are preserved. This file is offered as-is, without any
 #   warranty.
 
-#serial 4
+#serial 5
 
 m4_define([_AX_CXX_COMPILE_STDCXX_11_testbody], [[
   template <typename T>
@@ -61,6 +62,10 @@ m4_define([_AX_CXX_COMPILE_STDCXX_11_testbody], [[
 
     auto d = a;
     auto l = [](){};
+
+    void unused() {
+      l();
+    }
 ]])
 
 AC_DEFUN([AX_CXX_COMPILE_STDCXX_11], [dnl
