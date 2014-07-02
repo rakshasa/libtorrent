@@ -20,7 +20,7 @@
 #   and this notice are preserved. This file is offered as-is, without any
 #   warranty.
 
-#serial 7
+#serial 7 (+1)
 
 AU_ALIAS([AC_CXX_COMPILE_STDCXX_0X], [AX_CXX_COMPILE_STDCXX_0X])
 AC_DEFUN([AX_CXX_COMPILE_STDCXX_0X], [
@@ -99,9 +99,8 @@ AC_DEFUN([AX_CXX_COMPILE_STDCXX_0X], [
   AC_LANG_RESTORE
   ])
 
-  if test "$ax_cv_cxx_compile_cxx0x_native" = yes ||
-     test "$ax_cv_cxx_compile_cxx0x_cxx" = yes ||
-     test "$ax_cv_cxx_compile_cxx0x_gxx" = yes; then
-    AC_DEFINE(HAVE_STDCXX_0X,,[Define if g++ supports C++0x features. ])
+  if test "$ax_cv_cxx_compile_cxx0x_cxx" = yes; then  
+    AC_DEFINE(HAVE_STDCXX_0X,, [Define if compiler supports C++0x features.])
+    CXXFLAGS="$CXXFLAGS -std=c++0x"
   fi
 ])
