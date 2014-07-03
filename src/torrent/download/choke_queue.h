@@ -109,8 +109,7 @@ public:
     m_heuristics(HEURISTICS_MAX_SIZE),
     m_maxUnchoked(unlimited),
     m_currently_queued(0),
-    m_currently_unchoked(0),
-    m_slotConnection(NULL) {}
+    m_currently_unchoked(0) {}
   ~choke_queue();
   
   bool                is_full() const                         { return !is_unlimited() && size_unchoked() >= m_maxUnchoked; }
