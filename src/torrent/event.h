@@ -60,10 +60,7 @@ public:
 
 protected:
   int                 m_fileDesc;
-
-#ifdef RAK_USE_INET6
   bool                m_ipv6_socket;
-#endif
 };
 
 }

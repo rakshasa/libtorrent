@@ -145,13 +145,11 @@ TrackerHttp::send_state(int state) {
   if (!localAddress->is_address_any())
     s << "&ip=" << localAddress->address_str();
   
-#ifdef RAK_USE_INET6
   if (localAddress->is_address_any() || localAddress->family() != rak::socket_address::pf_inet6) {
     rak::socket_address local_v6;
     if (get_local_address(rak::socket_address::af_inet6, &local_v6))
       s << "&ipv6=" << rak::copy_escape_html(local_v6.address_str());
   }
-#endif
 
   if (info->is_compact())
     s << "&compact=1";
@@ -340,13 +338,8 @@ TrackerHttp::process_success(const Object& object) {
 
   AddressList l;
 
-  if (!object.has_key("peers")
-#ifdef RAK_USE_INET6
-      && !object.has_key("peers6")
-#endif
-  ) {
+  if (!object.has_key("peers") && !object.has_key("peers6"))
     return receive_failed("No peers returned");
-  }
 
   if (object.has_key("peers")) {
     try {
@@ -363,11 +356,8 @@ TrackerHttp::process_success(const Object& object) {
     }
   }
 
-#ifdef RAK_USE_INET6
-  if (object.has_key("peers6")) {
+  if (object.has_key("peers6"))
     l.parse_address_compact_ipv6(object.get_key_string("peers6"));
-  }
-#endif
 
   close_directly();
   m_parent->receive_success(this, &l);

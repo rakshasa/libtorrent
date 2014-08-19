@@ -77,7 +77,6 @@ AddressList::parse_address_compact(raw_string s) {
 	    std::back_inserter(*this));
 }
 
-#ifdef RAK_USE_INET6
 void
 AddressList::parse_address_compact_ipv6(const std::string& s) {
   if (sizeof(const SocketAddressCompact6) != 18)
@@ -87,7 +86,6 @@ AddressList::parse_address_compact_ipv6(const std::string& s) {
             reinterpret_cast<const SocketAddressCompact6*>(s.c_str() + s.size() - s.size() % sizeof(SocketAddressCompact6)),
             std::back_inserter(*this));
 }
-#endif
 
 void
 AddressList::parse_address_bencode(raw_list s) {

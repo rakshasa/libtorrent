@@ -701,12 +701,10 @@ DhtServer::event_read() {
       if (read < 0)
         break;
 
-#ifdef RAK_USE_INET6
       // We can currently only process mapped-IPv4 addresses, not real IPv6.
       // Translate them to an af_inet socket_address.
       if (sa.family() == rak::socket_address::af_inet6)
         sa = sa.sa_inet6()->normalize_address();
-#endif
 
       if (sa.family() != rak::socket_address::af_inet)
         continue;

@@ -91,9 +91,7 @@ private:
   inline void         check_valid() const;
 
   int                 m_fd;
-#ifdef RAK_USE_INET6
   bool                m_ipv6_socket;
-#endif
 };
 
 }

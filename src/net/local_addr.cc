@@ -52,6 +52,9 @@
 #include "local_addr.h"
 
 namespace torrent {
+
+#ifdef __linux__
+
 namespace {
 
 // IPv4 priority, from highest to lowest:
@@ -61,7 +64,8 @@ namespace {
 //   3. Empty/INADDR_ANY (0.0.0.0)
 //   4. Link-local address (169.254.0.0/16)
 //   5. Localhost (127.0.0.0/8)
-int get_priority_ipv4(const in_addr& addr) {
+int
+get_priority_ipv4(const in_addr& addr) {
   if ((addr.s_addr & htonl(0xff000000U)) == htonl(0x7f000000U)) {
     return 5;
   }
@@ -79,7 +83,6 @@ int get_priority_ipv4(const in_addr& addr) {
   return 1;
 }
 
-#ifdef RAK_USE_INET6
 // IPv6 priority, from highest to lowest:
 //
 //  1. Global address (2000::/16 not in 6to4 or Teredo)
@@ -87,7 +90,8 @@ int get_priority_ipv4(const in_addr& addr) {
 //  3. Teredo (2001::/32)
 //  4. Empty/INADDR_ANY (::)
 //  5. Everything else (link-local, ULA, etc.)
-int get_priority_ipv6(const in6_addr& addr) {
+int
+get_priority_ipv6(const in6_addr& addr) {
   const uint32_t *addr32 = reinterpret_cast<const uint32_t *>(addr.s6_addr);
   if (addr32[0] == htonl(0) &&
       addr32[1] == htonl(0) &&
@@ -106,24 +110,20 @@ int get_priority_ipv6(const in6_addr& addr) {
   }
   return 5;
 }
-#endif
 
-int get_priority(const rak::socket_address& addr) {
+int
+get_priority(const rak::socket_address& addr) {
   switch (addr.family()) {
   case AF_INET:
     return get_priority_ipv4(addr.c_sockaddr_inet()->sin_addr);
-#ifdef RAK_USE_INET6
   case AF_INET6:
     return get_priority_ipv6(addr.c_sockaddr_inet6()->sin6_addr);
-#endif
   default:
     throw torrent::internal_error("Unknown address family given to compare");
   }
 }
 
 }
-
-#ifdef __linux__
 
 // Linux-specific implementation that understands how to filter away
 // understands how to filter away secondary addresses.
@@ -138,11 +138,9 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
   case AF_INET:
     best_addr.sa_inet()->clear();
     break;
-#ifdef RAK_USE_INET6
   case AF_INET6:
     best_addr.sa_inet6()->clear();
     break;
-#endif
   default:
     throw torrent::internal_error("Unknown address family given to get_local_address");
   }
@@ -263,12 +261,10 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
           this_addr.sa_inet()->clear();
           this_addr.sa_inet()->set_address(*(const in_addr *)RTA_DATA(rta));
           break;
-#ifdef RAK_USE_INET6
         case AF_INET6:
           this_addr.sa_inet6()->clear();
           this_addr.sa_inet6()->set_address(*(const in6_addr *)RTA_DATA(rta));
           break;
-#endif
         }
       }
       if (!seen_addr)
@@ -298,7 +294,8 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
 #else
 
 // Generic POSIX variant.
-bool get_local_address(sa_family_t family, rak::socket_address *address) {
+bool
+get_local_address(sa_family_t family, rak::socket_address *address) {
   SocketFd sock;
   if (!sock.open_datagram()) {
     return false;
@@ -311,14 +308,13 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
   case rak::socket_address::af_inet:
     dummy_dest.set_address_c_str("4.0.0.0"); 
     break;
-#ifdef RAK_USE_INET6
   case rak::socket_address::af_inet6:
     dummy_dest.set_address_c_str("2001:700::"); 
     break;
-#endif
   default:
     throw internal_error("Unknown address family");
   }
+
   dummy_dest.set_port(80);
 
   if (!sock.connect(dummy_dest)) {
@@ -328,6 +324,7 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
 
   bool ret = sock.getsockname(address);
   sock.close();
+
   return ret;
 }
 
