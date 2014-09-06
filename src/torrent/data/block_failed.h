@@ -85,8 +85,8 @@ private:
   BlockFailed(const BlockFailed&);
   void operator = (const BlockFailed&);
 
-  static void         delete_entry(const reference e)                         { delete [] e.first; }
-  static bool         compare_entries(const reference e1, const reference e2) { return e1.second < e2.second; }
+  static void         delete_entry(value_type e)                    { delete [] e.first; }
+  static bool         compare_entries(value_type e1, value_type e2) { return e1.second < e2.second; }
 
   size_type           m_current;
 };
