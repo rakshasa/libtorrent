@@ -205,6 +205,7 @@ public:
   void                set_port_n(uint16_t p)                  { m_sockaddr.sin6_port = p; }
 
   in6_addr            address() const                         { return m_sockaddr.sin6_addr; }
+  const in6_addr*     address_ptr() const                     { return &m_sockaddr.sin6_addr; }
   std::string         address_str() const;
   bool                address_c_str(char* buf, socklen_t size) const;
 
@@ -235,42 +236,51 @@ private:
 // Unique key for the address, excluding port numbers etc.
 class socket_address_key {
 public:
-//   socket_address_host_key() {}
 
-  socket_address_key(const socket_address& sa) {
+  socket_address_key(socket_address sa) {
     *this = sa;
   }
 
   socket_address_key& operator = (const socket_address& sa) {
-    if (sa.family() == 0) {
-      std::memset(this, 0, sizeof(socket_address_key));
+    // Set all to 0 so we can use memcmp on the whole struct, instead
+    // of branching.
+    std::memset(this, 0, sizeof(socket_address_key));
 
-    } else if (sa.family() == socket_address::af_inet) {
-      // Using hardware order as we use operator < to compare when
-      // using inet only.
+    m_family = sa.family();
+
+    if (sa.family() == socket_address::af_inet) {
+      // Using hardware order as we use operator < to compare in
+      // lexical order.
       m_addr.s_addr = sa.sa_inet()->address_h();
 
+    } else if (sa.family() == socket_address::af_inet6) {
+      std::memcpy(&m_addr6, sa.sa_inet6()->address_ptr(), sizeof(in6_addr));
+
     } else {
-      // When we implement INET6 handling, embed the ipv4 address in
-      // the ipv6 address.
       throw std::logic_error("socket_address_key(...) received an unsupported protocol family.");
     }
 
     return *this;
   }
 
-//   socket_address_key& operator = (const socket_address_key& sa) {
-//   }
-
   bool operator < (const socket_address_key& sa) const {
-    // Compare the memory area instead.
-    return m_addr.s_addr < sa.m_addr.s_addr;
-  }    
+    return std::memcmp(this, &sa, sizeof(socket_address_key)) < 0;
+  }
+
+  bool operator > (const socket_address_key& sa) const {
+    return std::memcmp(this, &sa, sizeof(socket_address_key)) > 0;
+  }
+
+  bool operator == (const socket_address_key& sa) const {
+    return std::memcmp(this, &sa, sizeof(socket_address_key)) == 0;
+  }
 
 private:
+  sa_family_t m_family;
+
   union {
     in_addr m_addr;
-//     in_addr6 m_addr6;
+    in6_addr m_addr6;
   };
 };
 
