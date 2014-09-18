@@ -62,6 +62,7 @@ namespace torrent {
 
 ipv4_table PeerList::m_ipv4_table;
 
+// Clean up...
 bool
 socket_address_less(const sockaddr* s1, const sockaddr* s2) {
   const rak::socket_address* sa1 = rak::socket_address::cast_from(s1);
@@ -86,11 +87,11 @@ socket_address_less(const sockaddr* s1, const sockaddr* s2) {
   }
 }
 
-inline bool
-socket_address_key::is_comparable(const sockaddr* sa) {
-  return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet ||
-    rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet6;
-}
+// inline bool
+// socket_address_key::is_comparable(const sockaddr* sa) {
+//   return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet ||
+//     rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet6;
+// }
 
 struct peer_list_equal_port : public std::binary_function<PeerList::reference, uint16_t, bool> {
   bool operator () (PeerList::reference p, uint16_t port) {
@@ -126,14 +127,17 @@ PeerList::set_info(DownloadInfo* info) {
 
 PeerInfo*
 PeerList::insert_address(const sockaddr* sa, int flags) {
-  if (!socket_address_key::is_comparable(sa)) {
+  socket_address_key sock_key = socket_address_key::from_sockaddr(sa);
+
+  if (sock_key.is_valid() &&
+      !socket_address_key::is_comparable_sockaddr(sa)) {
     LT_LOG_EVENTS("address not comparable", 0);
     return NULL;
   }
 
   const rak::socket_address* address = rak::socket_address::cast_from(sa);
 
-  range_type range = base_type::equal_range(sa);
+  range_type range = base_type::equal_range(sock_key);
 
   // Do some special handling if we got a new port number but the
   // address was present.
@@ -152,7 +156,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   
   manager->client_list()->retrieve_unknown(&peerInfo->mutable_client_info());
 
-  base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
+  base_type::insert(range.second, value_type(sock_key, peerInfo));
 
   if ((flags & address_available) && peerInfo->listen_port() != 0) {
     m_available_list->push_back(address);
@@ -192,7 +196,7 @@ PeerList::insert_available(const void* al) {
   AvailableList::const_iterator availLast = m_available_list->end();
 
   for (; itr != last; itr++) {
-    if (!socket_address_key::is_comparable(itr->c_sockaddr()) || itr->port() == 0) {
+    if (!socket_address_key::is_comparable_sockaddr(itr->c_sockaddr()) || itr->port() == 0) {
       invalid++;
       continue;
     }
@@ -206,11 +210,13 @@ PeerList::insert_available(const void* al) {
       continue;
     }
 
+    socket_address_key sock_key = socket_address_key::from_sockaddr(itr->c_sockaddr());
+
     // Check if the peerinfo exists, if it does, check if we would
     // ever want to connect. Just update the timer for the last
     // availability notice if the peer isn't really ideal, but might
     // be used in an emergency.
-    range_type range = base_type::equal_range(itr->c_sockaddr());
+    range_type range = base_type::equal_range(sock_key);
 
     if (range.first != range.second) {
       // Add some logic here to select the best PeerInfo, but for now
@@ -258,8 +264,10 @@ PeerList::available_list_size() const {
 PeerInfo*
 PeerList::connected(const sockaddr* sa, int flags) {
   const rak::socket_address* address = rak::socket_address::cast_from(sa);
+  socket_address_key sock_key = socket_address_key::from_sockaddr(sa);
 
-  if (!socket_address_key::is_comparable(sa))
+  if (!sock_key.is_valid() ||
+      !socket_address_key::is_comparable_sockaddr(sa))
     return NULL;
 
   int filter_value = m_ipv4_table.at(address->sa_inet()->address_h());
@@ -270,14 +278,14 @@ PeerList::connected(const sockaddr* sa, int flags) {
     return NULL;
 
   PeerInfo* peerInfo;
-  range_type range = base_type::equal_range(sa);
+  range_type range = base_type::equal_range(sock_key);
 
   if (range.first == range.second) {
     // Create a new entry.
     peerInfo = new PeerInfo(sa);
     peerInfo->set_flags(filter_value & PeerInfo::mask_ip_table);
 
-    base_type::insert(range.second, value_type(socket_address_key(peerInfo->socket_address()), peerInfo));
+    base_type::insert(range.second, value_type(sock_key, peerInfo));
 
   } else if (!range.first->second->is_connected()) {
     // Use an old entry.
@@ -321,7 +329,9 @@ PeerList::connected(const sockaddr* sa, int flags) {
 
 void
 PeerList::disconnected(PeerInfo* p, int flags) {
-  range_type range = base_type::equal_range(p->socket_address());
+  socket_address_key sock_key = socket_address_key::from_sockaddr(p->socket_address());
+
+  range_type range = base_type::equal_range(sock_key);
   
   iterator itr = std::find_if(range.first, range.second, rak::equal(p, rak::mem_ref(&value_type::second)));
 
