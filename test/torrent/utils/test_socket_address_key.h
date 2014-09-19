@@ -2,8 +2,8 @@
 
 #include "protocol/request_list.h"
 
-class TestSocketAddressKey : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(TestSocketAddressKey);
+class test_socket_address_key : public CppUnit::TestFixture {
+  CPPUNIT_TEST_SUITE(test_socket_address_key);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST_SUITE_END();
 

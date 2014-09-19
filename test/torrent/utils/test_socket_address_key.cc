@@ -9,7 +9,7 @@
 #include "torrent/utils/net.h"
 #include "torrent/utils/socket_address_key.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TestSocketAddressKey);
+CPPUNIT_TEST_SUITE_REGISTRATION(test_socket_address_key);
 
 // TODO: Move into a test utilities header:
 
@@ -67,7 +67,7 @@ test_create_inet6(const char* hostname) {
 //
 
 void
-TestSocketAddressKey::test_basic() {
+test_socket_address_key::test_basic() {
   CPPUNIT_ASSERT(test_create_inet("1.1.1.1").is_valid());
   CPPUNIT_ASSERT(test_create_inet_throws("1.1.1.300"));
 

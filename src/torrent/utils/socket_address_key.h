@@ -62,9 +62,10 @@ socket_address_key::from_sockaddr(const sockaddr* sa) {
     result.m_addr.s_addr = ntohl(reinterpret_cast<const struct sockaddr_in*>(sa)->sin_addr.s_addr);
     break;
 
-  // case AF_INET6:
-  //   result.m_family = AF_INET6;
-    // result.m_addr.s_addr = sa.sa_inet()->address_h();
+  case AF_INET6:
+    result.m_family = AF_INET6;
+    result.m_addr6 = reinterpret_cast<const struct sockaddr_in6*>(sa)->sin6_addr;
+    break;
    
   default:
     break;
@@ -72,6 +73,8 @@ socket_address_key::from_sockaddr(const sockaddr* sa) {
 
   return result;
 }
+
+// TODO: Add sockaddr_in/in6.
 
 inline bool
 socket_address_key::operator < (const socket_address_key& sa) const {
