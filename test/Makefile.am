@@ -67,6 +67,8 @@ LibTorrentTest_SOURCES = \
 	torrent/utils/test_extents.h \
 	torrent/utils/test_queue_buckets.cc \
 	torrent/utils/test_queue_buckets.h \
+	torrent/utils/test_socket_address_key.cc \
+	torrent/utils/test_socket_address_key.h \
 	torrent/utils/test_uri_parser.cc \
 	torrent/utils/test_uri_parser.h \
 	torrent/utils/signal_bitfield_test.cc \

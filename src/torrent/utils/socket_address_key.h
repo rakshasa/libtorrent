@@ -42,6 +42,8 @@ socket_address_key::is_comparable_sockaddr(const sockaddr* sa) {
   return sa != NULL && (sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
 }
 
+// TODO: Require socket length?
+
 inline socket_address_key
 socket_address_key::from_sockaddr(const sockaddr* sa) {
   socket_address_key result;
