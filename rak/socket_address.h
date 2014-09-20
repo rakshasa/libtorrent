@@ -233,57 +233,6 @@ private:
   struct sockaddr_in6 m_sockaddr;
 };
 
-// Unique key for the address, excluding port numbers etc.
-class socket_address_key {
-public:
-
-  socket_address_key(socket_address sa) {
-    *this = sa;
-  }
-
-  socket_address_key& operator = (const socket_address& sa) {
-    // Set all to 0 so we can use memcmp on the whole struct, instead
-    // of branching.
-    std::memset(this, 0, sizeof(socket_address_key));
-
-    m_family = sa.family();
-
-    if (sa.family() == socket_address::af_inet) {
-      // Using hardware order as we use operator < to compare in
-      // lexical order.
-      m_addr.s_addr = sa.sa_inet()->address_h();
-
-    } else if (sa.family() == socket_address::af_inet6) {
-      std::memcpy(&m_addr6, sa.sa_inet6()->address_ptr(), sizeof(in6_addr));
-
-    } else {
-      throw std::logic_error("socket_address_key(...) received an unsupported protocol family.");
-    }
-
-    return *this;
-  }
-
-  bool operator < (const socket_address_key& sa) const {
-    return std::memcmp(this, &sa, sizeof(socket_address_key)) < 0;
-  }
-
-  bool operator > (const socket_address_key& sa) const {
-    return std::memcmp(this, &sa, sizeof(socket_address_key)) > 0;
-  }
-
-  bool operator == (const socket_address_key& sa) const {
-    return std::memcmp(this, &sa, sizeof(socket_address_key)) == 0;
-  }
-
-private:
-  sa_family_t m_family;
-
-  union {
-    in_addr m_addr;
-    in6_addr m_addr6;
-  };
-};
-
 inline bool
 socket_address::is_valid() const {
   switch (family()) {
