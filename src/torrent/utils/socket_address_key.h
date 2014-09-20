@@ -22,7 +22,10 @@ public:
 
   // TODO: Make from_sockaddr an rvalue reference.
   static bool is_comparable_sockaddr(const sockaddr* sa);
+
   static socket_address_key from_sockaddr(const sockaddr* sa);
+  static socket_address_key from_sin_addr(const sockaddr_in& sa);
+  static socket_address_key from_sin6_addr(const sockaddr_in6& sa);
 
   bool operator < (const socket_address_key& sa) const;
   bool operator > (const socket_address_key& sa) const;
@@ -48,8 +51,9 @@ inline socket_address_key
 socket_address_key::from_sockaddr(const sockaddr* sa) {
   socket_address_key result;
 
-  result.m_family = AF_UNSPEC;
   std::memset(&result, 0, sizeof(socket_address_key));
+
+  result.m_family = AF_UNSPEC;
 
   if (sa == NULL)
     return result;
@@ -74,7 +78,29 @@ socket_address_key::from_sockaddr(const sockaddr* sa) {
   return result;
 }
 
-// TODO: Add sockaddr_in/in6.
+inline socket_address_key
+socket_address_key::from_sin_addr(const sockaddr_in& sa) {
+  socket_address_key result;
+
+  std::memset(&result, 0, sizeof(socket_address_key));
+
+  result.m_family = AF_INET;
+  result.m_addr.s_addr = ntohl(sa.sin_addr.s_addr);
+
+  return result;
+}
+
+inline socket_address_key
+socket_address_key::from_sin6_addr(const sockaddr_in6& sa) {
+  socket_address_key result;
+
+  std::memset(&result, 0, sizeof(socket_address_key));
+
+  result.m_family = AF_INET6;
+  result.m_addr6 = sa.sin6_addr;
+
+  return result;
+}
 
 inline bool
 socket_address_key::operator < (const socket_address_key& sa) const {
