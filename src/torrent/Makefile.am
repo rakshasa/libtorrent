@@ -1,6 +1,7 @@
 SUBDIRS = \
 	data \
 	download \
+	net \
 	peer \
 	utils
 

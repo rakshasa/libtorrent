@@ -39,8 +39,8 @@
 
 #include <map>
 #include <torrent/common.h>
+#include <torrent/net/socket_address_key.h>
 #include <torrent/utils/extents.h>
-#include <torrent/utils/socket_address_key.h>
 
 namespace torrent {
 

@@ -7,7 +7,7 @@
 #include "test_socket_address_key.h"
 
 #include "torrent/utils/net.h"
-#include "torrent/utils/socket_address_key.h"
+#include "torrent/net/socket_address_key.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(test_socket_address_key);
 

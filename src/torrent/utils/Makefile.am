@@ -17,7 +17,6 @@ libsub_torrentutils_la_SOURCES = \
 	resume.h \
 	signal_bitfield.cc \
 	signal_bitfield.h \
-	socket_address_key.h \
 	thread_base.cc \
 	thread_base.h \
 	thread_interrupt.cc \
@@ -38,7 +37,6 @@ libtorrentinclude_HEADERS = \
 	ranges.h \
 	resume.h \
 	signal_bitfield.h \
-	socket_address_key.h \
 	thread_base.h \
 	thread_interrupt.h \
 	uri_parser.h

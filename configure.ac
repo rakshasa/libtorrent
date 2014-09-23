@@ -125,9 +125,10 @@ AC_OUTPUT([
 	Makefile
 	src/Makefile
 	src/torrent/Makefile
-	src/torrent/peer/Makefile
 	src/torrent/data/Makefile
 	src/torrent/download/Makefile
+	src/torrent/net/Makefile
+	src/torrent/peer/Makefile
 	src/torrent/utils/Makefile
 	src/data/Makefile
 	src/dht/Makefile
