@@ -4,13 +4,17 @@
 #ifndef LIBTORRENT_UTILS_SOCKET_ADDRESS_KEY_H
 #define LIBTORRENT_UTILS_SOCKET_ADDRESS_KEY_H
 
+#include <string>
+#include <inttypes.h>
+#include <netinet/in.h>
+
 // Unique key for the socket address, excluding port numbers, etc.
 
 // TODO: Add include files...
 
 namespace torrent {
 
-class LIBTORRENT_EXPORT socket_address_key {
+class socket_address_key {
 public:
   // TODO: Disable default ctor?
 

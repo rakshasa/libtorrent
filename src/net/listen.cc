@@ -61,7 +61,8 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
   if (first == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
-  if (bindAddress->family() != rak::socket_address::af_inet &&
+  if (bindAddress->family() != 0 &&
+      bindAddress->family() != rak::socket_address::af_inet &&
       bindAddress->family() != rak::socket_address::af_inet6)
     throw input_error("Listening socket must be bound to an inet or inet6 address.");
 
@@ -71,7 +72,13 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
     throw resource_error("Could not allocate socket for listening.");
 
   rak::socket_address sa;
-  sa.copy(*bindAddress, bindAddress->length());
+
+  // TODO: Temporary until we refactor:
+  if (bindAddress->family() == 0) {
+    sa.sa_inet6()->clear();
+  } else {
+    sa.copy(*bindAddress, bindAddress->length());
+  }
 
   do {
     sa.set_port(first);

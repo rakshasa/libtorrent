@@ -62,7 +62,7 @@ namespace torrent {
 
 ipv4_table PeerList::m_ipv4_table;
 
-// Clean up...
+// TODO: Clean up...
 bool
 socket_address_less(const sockaddr* s1, const sockaddr* s2) {
   const rak::socket_address* sa1 = rak::socket_address::cast_from(s1);
@@ -86,12 +86,6 @@ socket_address_less(const sockaddr* s1, const sockaddr* s2) {
     throw internal_error("socket_address_key(...) tried to compare an invalid family type.");
   }
 }
-
-// inline bool
-// socket_address_key::is_comparable(const sockaddr* sa) {
-//   return rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet ||
-//     rak::socket_address::cast_from(sa)->family() == rak::socket_address::af_inet6;
-// }
 
 struct peer_list_equal_port : public std::binary_function<PeerList::reference, uint16_t, bool> {
   bool operator () (PeerList::reference p, uint16_t port) {
