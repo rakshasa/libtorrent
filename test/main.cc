@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include <cppunit/BriefTestProgressListener.h>
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/TestResult.h>

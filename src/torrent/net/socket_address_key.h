@@ -4,7 +4,7 @@
 #ifndef LIBTORRENT_UTILS_SOCKET_ADDRESS_KEY_H
 #define LIBTORRENT_UTILS_SOCKET_ADDRESS_KEY_H
 
-#include <string>
+#include <cstring>
 #include <inttypes.h>
 #include <netinet/in.h>
 
