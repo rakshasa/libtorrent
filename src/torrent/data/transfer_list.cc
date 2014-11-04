@@ -159,7 +159,7 @@ TransferList::hash_succeeded(uint32_t index, Chunk* chunk) {
 struct transfer_list_compare_data {
   transfer_list_compare_data(Chunk* chunk, const Piece& p) : m_chunk(chunk), m_piece(p) { }
 
-  bool operator () (const BlockFailed::reference failed) {
+  bool operator () (BlockFailed::value_type failed) {
     return m_chunk->compare_buffer(failed.first, m_piece.offset(), m_piece.length());
   }
 
