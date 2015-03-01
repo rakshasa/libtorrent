@@ -42,7 +42,7 @@
 #include <list>
 #include <vector>
 #include <inttypes.h>
-#include lt_tr1_functional
+#include <functional>
 #include <torrent/download/group_entry.h>
 
 namespace torrent {

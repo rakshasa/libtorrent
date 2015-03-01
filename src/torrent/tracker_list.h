@@ -41,7 +41,7 @@
 #include <string>
 #include <vector>
 #include <torrent/common.h>
-#include lt_tr1_functional
+#include <functional>
 
 namespace torrent {
 

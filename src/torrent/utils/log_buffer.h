@@ -40,7 +40,7 @@
 #include <string>
 #include <deque>
 #include <pthread.h>
-#include lt_tr1_functional
+#include <functional>
 #include <torrent/common.h>
 
 namespace torrent {

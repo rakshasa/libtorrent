@@ -40,8 +40,8 @@
 #include <bitset>
 #include <string>
 #include <vector>
-#include lt_tr1_array
-#include lt_tr1_functional
+#include <array>
+#include <functional>
 #include <torrent/common.h>
 
 namespace torrent {

@@ -39,7 +39,7 @@
 #include "log_buffer.h"
 
 #include <functional>
-#include lt_tr1_functional
+#include <functional>
 
 #include "globals.h"
 

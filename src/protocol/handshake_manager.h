@@ -39,7 +39,7 @@
 
 #include <string>
 #include <inttypes.h>
-#include lt_tr1_functional
+#include <functional>
 #include <rak/functional.h>
 #include <rak/unordered_vector.h>
 #include <rak/socket_address.h>

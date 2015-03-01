@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_UTILS_INSTRUMENTATION_H
 #define LIBTORRENT_UTILS_INSTRUMENTATION_H
 
-#include lt_tr1_array
+#include <array>
 
 #include <algorithm>
 

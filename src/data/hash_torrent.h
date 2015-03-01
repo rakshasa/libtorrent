@@ -39,7 +39,7 @@
 
 #include <string>
 #include <inttypes.h>
-#include lt_tr1_functional
+#include <functional>
 #include <rak/priority_queue_default.h>
 
 #include "data/chunk_handle.h"

@@ -39,7 +39,7 @@
 
 #include <deque>
 #include <pthread.h>
-#include lt_tr1_functional
+#include <functional>
 
 #include "rak/allocators.h"
 
