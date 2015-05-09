@@ -53,7 +53,7 @@ public:
                 const unsigned char generator[], int generatorLength);
   ~DiffieHellman();
 
-  void                compute_secret(const unsigned char pubkey[], unsigned int length);
+  bool                compute_secret(const unsigned char pubkey[], unsigned int length);
   void                store_pub_key(unsigned char* dest, unsigned int length);
 
   bool                is_valid() const;
