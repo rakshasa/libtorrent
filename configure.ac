@@ -1,10 +1,10 @@
-AC_INIT(libtorrent, 0.13.4, sundell.software@gmail.com)
+AC_INIT(libtorrent, 0.13.5, sundell.software@gmail.com)
 
 LT_INIT([disable-static])
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME, "-lt0D40-", Identifier that is part of the default peer id)
-AC_DEFINE(PEER_VERSION, "lt\x0D\x40", 4 byte client and version identifier for DHT)
+AC_DEFINE(PEER_NAME, "-lt0D50-", Identifier that is part of the default peer id)
+AC_DEFINE(PEER_VERSION, "lt\x0D\x50", 4 byte client and version identifier for DHT)
 
 LIBTORRENT_CURRENT=18
 LIBTORRENT_REVISION=0
