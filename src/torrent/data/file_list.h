@@ -151,6 +151,8 @@ public:
   bool                make_root_path();
   bool                make_all_paths();
 
+  void                sort();
+
 protected:
   static const int open_no_create        = (1 << 0);
   static const int open_require_all_open = (1 << 1);
