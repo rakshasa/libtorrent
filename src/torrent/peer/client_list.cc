@@ -61,6 +61,7 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_AZUREUS, "KT", NULL, NULL, "KTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "LT", NULL, NULL, "libtorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "lt", NULL, NULL, "libTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "UM", NULL, NULL, "uTorrent Mac");
   insert_helper(ClientInfo::TYPE_AZUREUS, "UT", NULL, NULL, "uTorrent");
 
   insert_helper(ClientInfo::TYPE_MAINLINE, "M", NULL, NULL, "Mainline");
@@ -72,6 +73,7 @@ ClientList::ClientList() {
   insert_helper(ClientInfo::TYPE_AZUREUS, "BB", NULL, NULL, "BitBuddy");
   insert_helper(ClientInfo::TYPE_AZUREUS, "BX", NULL, NULL, "Bittorrent X");
   insert_helper(ClientInfo::TYPE_AZUREUS, "BS", NULL, NULL, "BTSlave");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BT", NULL, NULL, "BBTor");
   insert_helper(ClientInfo::TYPE_AZUREUS, "CT", NULL, NULL, "CTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "DE", NULL, NULL, "DelugeTorrent");
   insert_helper(ClientInfo::TYPE_AZUREUS, "ES", NULL, NULL, "Electric Sheep");
