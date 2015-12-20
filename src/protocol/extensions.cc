@@ -394,7 +394,7 @@ ProtocolExtension::send_metadata_piece(size_t piece) {
   if (m_download->info()->is_meta_download() || piece >= pieceEnd) {
     // reject: { "msg_type" => 2, "piece" => ... }
     m_pendingType = UT_METADATA;
-    m_pending = build_bencode(sizeof(size_t) + 36), "d8:msg_typei2e5:piecei%zuee", piece);
+    m_pending = build_bencode(sizeof(size_t) + 36, "d8:msg_typei2e5:piecei%zuee", piece);
     return;
   }
 
