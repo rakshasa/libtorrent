@@ -738,7 +738,7 @@ restart:
         break;
 
       if (m_readBuffer.remaining() > m_encryption.length_ia())
-        throw internal_error("Read past initial payload after incoming encrypted handshake.");
+        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
       if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4)
         m_encryption.info()->set_obfuscated();
