@@ -15,19 +15,8 @@ compiled if the user wishes to avoid using OpenSSL.
 
 CONTACT
 
- Send bug reports, suggestions and patches to <jaris@ifi.uio.no> or
-to the mailinglist.
-
-LIBRARY DEPENDENCIES
-
-  g++ >= 4.2.1
-
-SIGC++
-
- The API will use sigc++ signals to give the client a simple, yet
-powerful way of reacting to events from the library. The client can
-hook multiple slots on each signal and modify the parameters to suit
-the functions. This avoids lots of unnecessary code in the client.
+ Send bug reports, suggestions and patches to
+<sundell.software@gmail.com> or to the mailinglist.
 
 POLLING
 
