@@ -606,30 +606,37 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
 
   std::auto_ptr<Chunk> chunk(new Chunk);
 
-  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun(&File::is_valid_position), offset)); length != 0; ++itr) {
+  while (length != 0) {
+    bool found = false;
+    for (iterator itr = begin(); itr != end(); ++itr) {
+	if (!(*itr)->is_valid_position(offset))
+	  continue;
 
-    if (itr == end())
+	if ((*itr)->size_bytes() == 0)
+	  continue;
+
+	found = true;
+
+	MemoryChunk mc = create_chunk_part(itr, offset, length, prot);
+
+	if (!mc.is_valid())
+	  return NULL;
+
+	if (mc.size() == 0)
+	  throw internal_error("FileList::create_chunk(...) mc.size() == 0.");
+
+	if (mc.size() > length)
+	  throw internal_error("FileList::create_chunk(...) mc.size() > length.");
+
+	chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
+	chunk->back().set_file(*itr, offset - (*itr)->offset());
+
+	offset += mc.size();
+	length -= mc.size();
+    }
+    
+    if (!found)
       throw internal_error("FileList could not find a valid file for chunk");
-
-    if ((*itr)->size_bytes() == 0)
-      continue;
-
-    MemoryChunk mc = create_chunk_part(itr, offset, length, prot);
-
-    if (!mc.is_valid())
-      return NULL;
-
-    if (mc.size() == 0)
-      throw internal_error("FileList::create_chunk(...) mc.size() == 0.");
-
-    if (mc.size() > length)
-      throw internal_error("FileList::create_chunk(...) mc.size() > length.");
-
-    chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
-    chunk->back().set_file(*itr, offset - (*itr)->offset());
-
-    offset += mc.size();
-    length -= mc.size();
   }
 
   if (chunk->empty())
@@ -676,18 +683,16 @@ FileList::mark_completed(uint32_t index) {
 
 FileList::iterator
 FileList::inc_completed(iterator firstItr, uint32_t index) {
-  firstItr         = std::find_if(firstItr, end(), rak::less(index, std::mem_fun(&File::range_second)));
-  iterator lastItr = std::find_if(firstItr, end(), rak::less(index + 1, std::mem_fun(&File::range_second)));
-
-  if (firstItr == end())
-    throw internal_error("FileList::inc_completed() first == m_entryList->end().");
-
-  // TODO: Check if this works right for zero-length files.
-  std::for_each(firstItr,
-                lastItr == end() ? end() : (lastItr + 1),
-                std::mem_fun(&File::inc_completed_protected));
-
-  return lastItr;
+  for (iterator itr = begin(); itr != end(); ++itr) {
+    if ((*itr)->range_first() > index)
+      continue;
+    
+    if ((*itr)->range_second() <= index)
+      continue;
+    
+    (*itr)->inc_completed_protected();
+  }
+  return end();
 }
 
 void
@@ -732,6 +737,16 @@ FileList::reset_filesize(int64_t size) {
   m_data.mutable_completed_bitfield()->unset_all();
   
   open(open_no_create);
+}
+
+static bool
+file_cmp(const File *x, const File *y) {
+    return x->path()->as_string() < y->path()->as_string();
+}
+
+void
+FileList::sort() {
+  std::sort(begin(), end(), file_cmp);
 }
 
 }

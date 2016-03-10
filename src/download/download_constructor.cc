@@ -331,6 +331,7 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
 
   fileList->initialize(torrentSize, chunkSize);
   fileList->split(fileList->begin(), &*splitList.begin(), &*splitList.end());
+  fileList->sort();
   fileList->update_paths(fileList->begin(), fileList->end());  
 }
 
