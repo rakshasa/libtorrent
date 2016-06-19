@@ -254,8 +254,13 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
     thread_base::acquire_global_lock();
   }
 
-  if (status == -1 && rak::error_number::current().value() != rak::error_number::e_intr)
-    throw std::runtime_error("Poll::work(): " + std::string(rak::error_number::current().c_str()));
+  if (status == -1) {
+    if (rak::error_number::current().value() != rak::error_number::e_intr) {
+      throw std::runtime_error("PollSelect::work(): " + std::string(rak::error_number::current().c_str()));
+    }
+
+    return 0;
+  }
 
   return perform(read_set, write_set, error_set);
 }
