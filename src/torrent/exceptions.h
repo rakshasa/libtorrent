@@ -46,6 +46,7 @@
 #include <exception>
 #include <string>
 #include <torrent/common.h>
+#include <torrent/hash_string.h>
 
 namespace torrent {
 
@@ -61,6 +62,10 @@ public:
 class LIBTORRENT_EXPORT internal_error : public base_error {
 public:
   internal_error(const char* msg)        { initialize(msg); }
+  internal_error(const char* msg, const std::string& context) {
+    initialize(std::string(msg) + " [" + context + "]"); }
+  internal_error(const char* msg, const HashString& hash) {
+    initialize(std::string(msg) + " [#" + hash_string_to_hex_str(hash) + "]"); }
   internal_error(const std::string& msg) { initialize(msg); }
   virtual ~internal_error() throw() {}
 

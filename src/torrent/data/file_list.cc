@@ -71,15 +71,15 @@ namespace torrent {
 void
 verify_file_list(const FileList* fl) {
   if (fl->empty())
-    throw internal_error("verify_file_list() 1.");
+    throw internal_error("verify_file_list() 1.", fl->data()->hash());
 
   if ((*fl->begin())->match_depth_prev() != 0 || (*fl->rbegin())->match_depth_next() != 0)
-    throw internal_error("verify_file_list() 2.");
+    throw internal_error("verify_file_list() 2.", fl->data()->hash());
 
   for (FileList::const_iterator itr = fl->begin(), last = fl->end() - 1; itr != last; itr++)
     if ((*itr)->match_depth_next() != (*(itr + 1))->match_depth_prev() ||
         (*itr)->match_depth_next() >= (*itr)->path()->size())
-      throw internal_error("verify_file_list() 3.");
+      throw internal_error("verify_file_list() 3.", fl->data()->hash());
 }
 
 FileList::FileList() :
@@ -145,7 +145,7 @@ FileList::completed_bytes() const {
 
   } else {
     if (completed_chunks() == 0)
-      throw internal_error("FileList::bytes_completed() completed_chunks() == 0.");
+      throw internal_error("FileList::bytes_completed() completed_chunks() == 0.", data()->hash());
 
     return (completed_chunks() - 1) * cs + size_bytes() % cs;
   }
@@ -156,10 +156,10 @@ FileList::left_bytes() const {
   uint64_t left = size_bytes() - completed_bytes();
 
   if (left > ((uint64_t)1 << 60))
-    throw internal_error("FileList::bytes_left() is too large."); 
+    throw internal_error("FileList::bytes_left() is too large.", data()->hash());
 
   if (completed_chunks() == size_chunks() && left != 0)
-    throw internal_error("FileList::bytes_left() has an invalid size."); 
+    throw internal_error("FileList::bytes_left() has an invalid size.", data()->hash());
 
   return left;
 }
@@ -214,10 +214,10 @@ FileList::free_diskspace() const {
 FileList::iterator_range
 FileList::split(iterator position, split_type* first, split_type* last) {
   if (is_open())
-    throw internal_error("FileList::split(...) is_open().");
+    throw internal_error("FileList::split(...) is_open().", data()->hash());
   
   if (first == last || position == end())
-    throw internal_error("FileList::split(...) invalid arguments.");
+    throw internal_error("FileList::split(...) invalid arguments.", data()->hash());
 
   if (position != begin())
     (*(position - 1))->set_match_depth_next(0);
@@ -252,7 +252,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
   }
 
   if (offset != oldFile->offset() + oldFile->size_bytes())
-    throw internal_error("FileList::split(...) split size does not match the old size.");
+    throw internal_error("FileList::split(...) split size does not match the old size.", data()->hash());
 
   delete oldFile;
   return iterator_range(position, itr);
@@ -369,10 +369,10 @@ FileList::make_all_paths() {
 void
 FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
   if (sizeof(off_t) != 8)
-    throw internal_error("Last minute panic; sizeof(off_t) != 8.");
+    throw internal_error("Last minute panic; sizeof(off_t) != 8.", data()->hash());
 
   if (chunkSize == 0)
-    throw internal_error("FileList::initialize() chunk_size() == 0.");
+    throw internal_error("FileList::initialize() chunk_size() == 0.", data()->hash());
 
   m_chunkSize = chunkSize;
   m_torrentSize = torrentSize;
@@ -405,7 +405,7 @@ FileList::open(int flags) {
   LT_LOG_FL(INFO, "Opening.", 0);
 
   if (m_rootDir.empty())
-    throw internal_error("FileList::open() m_rootDir.empty().");
+    throw internal_error("FileList::open() m_rootDir.empty().", data()->hash());
 
   m_indirectLinks.push_back(m_rootDir);
 
@@ -589,7 +589,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   length = std::min<uint64_t>(length, (*itr)->size_bytes() - offset);
 
   if ((int64_t)offset < 0)
-    throw internal_error("FileList::chunk_part(...) caught a negative offset");
+    throw internal_error("FileList::chunk_part(...) caught a negative offset", data()->hash());
 
   // Check that offset != length of file.
 
@@ -602,14 +602,14 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
 Chunk*
 FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
   if (offset + length > m_torrentSize)
-    throw internal_error("Tried to access chunk out of range in FileList");
+    throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
   std::auto_ptr<Chunk> chunk(new Chunk);
 
   for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun(&File::is_valid_position), offset)); length != 0; ++itr) {
 
     if (itr == end())
-      throw internal_error("FileList could not find a valid file for chunk");
+      throw internal_error("FileList could not find a valid file for chunk", data()->hash());
 
     if ((*itr)->size_bytes() == 0)
       continue;
@@ -620,10 +620,10 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
       return NULL;
 
     if (mc.size() == 0)
-      throw internal_error("FileList::create_chunk(...) mc.size() == 0.");
+      throw internal_error("FileList::create_chunk(...) mc.size() == 0.", data()->hash());
 
     if (mc.size() > length)
-      throw internal_error("FileList::create_chunk(...) mc.size() > length.");
+      throw internal_error("FileList::create_chunk(...) mc.size() > length.", data()->hash());
 
     chunk->push_back(ChunkPart::MAPPED_MMAP, mc);
     chunk->back().set_file(*itr, offset - (*itr)->offset());
@@ -646,19 +646,19 @@ FileList::create_chunk_index(uint32_t index, int prot) {
 void
 FileList::mark_completed(uint32_t index) {
   if (index >= size_chunks() || completed_chunks() >= size_chunks())
-    throw internal_error("FileList::mark_completed(...) received an invalid index.");
+    throw internal_error("FileList::mark_completed(...) received an invalid index.", data()->hash());
 
   if (bitfield()->empty())
-    throw internal_error("FileList::mark_completed(...) bitfield is empty.");
+    throw internal_error("FileList::mark_completed(...) bitfield is empty.", data()->hash());
 
   if (bitfield()->size_bits() != size_chunks())
-    throw internal_error("FileList::mark_completed(...) bitfield is not the right size.");
+    throw internal_error("FileList::mark_completed(...) bitfield is not the right size.", data()->hash());
 
   if (bitfield()->get(index))
-    throw internal_error("FileList::mark_completed(...) received a chunk that has already been finished.");
+    throw internal_error("FileList::mark_completed(...) received a chunk that has already been finished.", data()->hash());
 
   if (bitfield()->size_set() >= bitfield()->size_bits())
-    throw internal_error("FileList::mark_completed(...) bitfield()->size_set() >= bitfield()->size_bits().");
+    throw internal_error("FileList::mark_completed(...) bitfield()->size_set() >= bitfield()->size_bits().", data()->hash());
 
   LT_LOG_FL(DEBUG, "Done chunk: index:%" PRIu32 ".", index);
 
@@ -668,7 +668,7 @@ FileList::mark_completed(uint32_t index) {
   // TODO: Remember to validate 'wanted_chunks'.
   if (m_data.normal_priority()->has(index) || m_data.high_priority()->has(index)) {
     if (m_data.wanted_chunks() == 0)
-      throw internal_error("FileList::mark_completed(...) m_data.wanted_chunks() == 0.");
+      throw internal_error("FileList::mark_completed(...) m_data.wanted_chunks() == 0.", data()->hash());
     
     m_data.set_wanted_chunks(m_data.wanted_chunks() - 1);
   }
@@ -680,7 +680,7 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
   iterator lastItr = std::find_if(firstItr, end(), rak::less(index + 1, std::mem_fun(&File::range_second)));
 
   if (firstItr == end())
-    throw internal_error("FileList::inc_completed() first == m_entryList->end().");
+    throw internal_error("FileList::inc_completed() first == m_entryList->end().", data()->hash());
 
   // TODO: Check if this works right for zero-length files.
   std::for_each(firstItr,
@@ -693,7 +693,7 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
 void
 FileList::update_completed() {
   if (!bitfield()->is_tail_cleared())
-    throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.");
+    throw internal_error("Content::update_done() called but m_bitfield's tail isn't cleared.", data()->hash());
 
   m_data.update_wanted_chunks();
 
