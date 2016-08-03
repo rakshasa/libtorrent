@@ -241,6 +241,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
     }
   }
 
+    data()->call_chunk_done(handle.object());
   m_main->chunk_list()->release(&handle);
 }  
 
