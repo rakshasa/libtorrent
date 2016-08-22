@@ -177,13 +177,14 @@ File::resize_file() {
   if (m_size == SocketFile(m_fd).size())
     return true;
 
-  // For now make it so that the fallocate flag indicates if we want
-  // to do potentially blocking allocation, while FS supported
-  // non-blocking allocation is done always.
-  int flags = SocketFile::flag_fallocate;
+  int flags = 0;
 
-  if (m_flags & flag_fallocate)
+  // Set FS supported non-blocking allocation flag and potentially
+  // blocking allocation flag if fallocate flag is set.
+  if (m_flags & flag_fallocate) {
+    flags |= SocketFile::flag_fallocate;
     flags |= SocketFile::flag_fallocate_blocking;
+  }
 
   return SocketFile(m_fd).set_size(m_size, flags);
 }
