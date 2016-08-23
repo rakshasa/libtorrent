@@ -145,9 +145,9 @@ Download::start(int flags) {
 
 //   file_list()->open(flags);
 
-  // If the FileList::open_no_create flag was not set, our new
-  // behavior is to create all zero-length files with
-  // flag_queued_create set.
+  // If the open_enable_fallocate or the FileList::open_no_create
+  // flag was not set, then create all zero-length files with
+  // flag_create_queued set.
   file_list()->open(flags & ~FileList::open_no_create);
 
   if (m_ptr->connection_type() == CONNECTION_INITIAL_SEED) {

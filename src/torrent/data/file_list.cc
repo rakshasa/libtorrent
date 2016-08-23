@@ -580,7 +580,12 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
     return false;
   }
 
-  return node->prepare(MemoryChunk::prot_read, 0);
+  // File allocation will be done if fallocate flag is set,
+  // create zero-length file otherwise.
+  if (node->has_flags(File::flag_fallocate))
+    return node->prepare(MemoryChunk::prot_write, 0);
+  else
+    return node->prepare(MemoryChunk::prot_read, 0);
 }
 
 MemoryChunk
