@@ -39,12 +39,22 @@
 #include <cstring>
 #include <algorithm>
 #include <functional>
-#include <cstring>
+#include <csignal>
+#include <csetjmp>
 
 #include "torrent/exceptions.h"
 
 #include "chunk.h"
 #include "chunk_iterator.h"
+
+jmp_buf jmp_disk_full;
+
+void
+bus_handler(int sig, siginfo_t *si, void *vuctx)
+{
+    if (si->si_code == BUS_ADRERR)
+        longjmp(jmp_disk_full, 1);
+}
 
 namespace torrent {
 
@@ -226,6 +236,13 @@ Chunk::to_buffer(void* buffer, uint32_t position, uint32_t length) {
 // matching.
 bool
 Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
+  struct sigaction sa, oldact;
+  std::memset(&sa, 0, sizeof(sa));
+  sa.sa_sigaction = bus_handler;
+  sa.sa_flags = SA_SIGINFO;
+  sigfillset(&sa.sa_mask);
+  sigaction(SIGBUS, &sa, &oldact);
+
   if (position + length > m_chunkSize)
     throw internal_error("Chunk::from_buffer(...) position + length > m_chunkSize.");
 
@@ -235,12 +252,18 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
   Chunk::data_type data;
   ChunkIterator itr(this, position, position + length);
 
-  do {
-    data = itr.data();
-    std::memcpy(data.first, buffer, data.second);
+  if (setjmp(jmp_disk_full) == 0) {
+      do {
+        data = itr.data();
+        std::memcpy(data.first, buffer, data.second);
 
-    buffer = static_cast<const char*>(buffer) + data.second;
-  } while (itr.next());
+        buffer = static_cast<const char*>(buffer) + data.second;
+      } while (itr.next());
+  } else {
+      throw storage_error("no space left on disk");
+  }
+
+  sigaction(SIGBUS, &oldact, NULL);
   
   return true;
 }

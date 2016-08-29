@@ -45,7 +45,7 @@
 #include <torrent/utils/ranges.h>
 
 namespace torrent {
-
+class ChunkListNode;
 class ChunkSelector;
 class Download;
 class DownloadWrapper;
@@ -59,6 +59,8 @@ public:
 
   typedef std::function<function_void> slot_void;
 
+  typedef void (function_chunk_list_node_p)(ChunkListNode *); 
+  typedef std::function<function_chunk_list_node_p> slot_chunk_list_node_p;
   download_data() : m_wanted_chunks(0) {}
 
   const HashString&      hash() const                  { return m_hash; }
@@ -81,6 +83,7 @@ public:
   slot_void&             slot_download_done() const       { return m_slot_download_done; }
   slot_void&             slot_partially_done() const      { return m_slot_partially_done; }
   slot_void&             slot_partially_restarted() const { return m_slot_partially_restarted; }
+  slot_chunk_list_node_p& slot_chunk_done() const          {return m_slot_chunk_done;}
 
 protected:
   friend class ChunkList;
@@ -103,7 +106,7 @@ protected:
   void                   call_download_done()          { if (m_slot_download_done) m_slot_download_done(); }
   void                   call_partially_done()         { if (m_slot_partially_done) m_slot_partially_done(); }
   void                   call_partially_restarted()    { if (m_slot_partially_restarted) m_slot_partially_restarted(); }
-
+  void                   call_chunk_done(ChunkListNode* chunk_ptr) {if(m_slot_chunk_done) m_slot_chunk_done(chunk_ptr);}
 private:
   HashString             m_hash;
 
@@ -119,6 +122,7 @@ private:
   mutable slot_void      m_slot_download_done;
   mutable slot_void      m_slot_partially_done;
   mutable slot_void      m_slot_partially_restarted;
+  mutable slot_chunk_list_node_p m_slot_chunk_done;
 };
 
 }

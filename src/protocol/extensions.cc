@@ -394,7 +394,7 @@ ProtocolExtension::send_metadata_piece(size_t piece) {
   if (m_download->info()->is_meta_download() || piece >= pieceEnd) {
     // reject: { "msg_type" => 2, "piece" => ... }
     m_pendingType = UT_METADATA;
-    m_pending = build_bencode(40, "d8:msg_typei2e5:piecei%zuee", piece);
+    m_pending = build_bencode(sizeof(size_t) + 36, "d8:msg_typei2e5:piecei%zuee", piece);
     return;
   }
 
@@ -407,7 +407,7 @@ ProtocolExtension::send_metadata_piece(size_t piece) {
   // data: { "msg_type" => 1, "piece" => ..., "total_size" => ... } followed by piece data (outside of dictionary)
   size_t length = piece == pieceEnd - 1 ? m_download->info()->metadata_size() % metadata_piece_size : metadata_piece_size;
   m_pendingType = UT_METADATA;
-  m_pending = build_bencode(length + 128, "d8:msg_typei1e5:piecei%zue10:total_sizei%zuee", piece, metadataSize);
+  m_pending = build_bencode((2 * sizeof(size_t)) + length + 120, "d8:msg_typei1e5:piecei%zue10:total_sizei%zuee", piece, metadataSize);
 
   memcpy(m_pending.end(), buffer + (piece << metadata_piece_shift), length);
   m_pending.set(m_pending.data(), m_pending.end() + length, m_pending.owned());

@@ -104,7 +104,8 @@ object_read_bencode_c_string(const char* first, const char* last) {
   while (first != last && *first >= '0' && *first <= '9')
     length = length * 10 + (*first++ - '0');
 
-  if (length + 1 > (unsigned int)std::distance(first, last) || *first++ != ':')
+  if (length + 1 > (unsigned int)std::distance(first, last) || *first++ != ':'
+		  || length + 1 == 0)
     throw torrent::bencode_error("Invalid bencode data.");
   
   return raw_string(first, length);

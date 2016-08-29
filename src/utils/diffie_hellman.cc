@@ -80,7 +80,7 @@ DiffieHellman::is_valid() const {
 #endif
 }
 
-void
+bool
 DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) {
 #ifdef USE_OPENSSL
   BIGNUM* k = BN_bin2bn(pubkey, length, NULL);
@@ -91,6 +91,10 @@ DiffieHellman::compute_secret(const unsigned char *pubkey, unsigned int length) 
   m_size = DH_compute_key((unsigned char*)m_secret, k, m_dh);
   
   BN_free(k);
+
+  return m_size != -1;
+#else
+  return false;
 #endif
 };
 

@@ -804,6 +804,9 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
 
   while (!queue.empty()) {
     DhtTransactionPacket* packet = queue.front();
+    DhtTransaction::key_type transactionKey = 0;
+    if(packet->has_transaction())
+      transactionKey = packet->transaction()->key(packet->id());
 
     // Make sure its transaction hasn't timed out yet, if it has/had one
     // and don't bother sending non-transaction packets (replies) after 
@@ -836,7 +839,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
     } catch (network_error& e) {
       // Couldn't write packet, maybe something wrong with node address or routing, so mark node as bad.
       if (packet->has_transaction()) {
-        transaction_itr itr = m_transactions.find(packet->transaction()->key(packet->id()));
+        transaction_itr itr = m_transactions.find(transactionKey);
         if (itr == m_transactions.end())
           throw internal_error("DhtServer::process_queue could not find transaction.");
 
@@ -844,8 +847,12 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
       }
     }
 
-    if (packet->has_transaction())
-      packet->transaction()->set_packet(NULL);
+    if (packet->has_transaction()) {
+      // here transaction can be already deleted by failed_transaction.
+      transaction_itr itr = m_transactions.find(transactionKey);
+      if (itr != m_transactions.end())
+        packet->transaction()->set_packet(NULL);
+    }
 
     delete packet;
   }

@@ -289,7 +289,8 @@ Handshake::read_encryption_key() {
   if (m_incoming)
     prepare_key_plus_pad();
 
-  m_encryption.key()->compute_secret(m_readBuffer.position(), 96);
+  if(!m_encryption.key()->compute_secret(m_readBuffer.position(), 96))
+    throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_encryption);
   m_readBuffer.consume(96);
 
   // Determine the synchronisation string.
@@ -737,7 +738,7 @@ restart:
         break;
 
       if (m_readBuffer.remaining() > m_encryption.length_ia())
-        throw internal_error("Read past initial payload after incoming encrypted handshake.");
+        throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
 
       if (m_encryption.crypto() != HandshakeEncryption::crypto_rc4)
         m_encryption.info()->set_obfuscated();
