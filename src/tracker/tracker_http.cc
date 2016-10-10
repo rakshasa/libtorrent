@@ -44,6 +44,7 @@
 #include <rak/string_manip.h>
 
 #include "net/address_list.h"
+#include "net/local_addr.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
@@ -141,9 +142,14 @@ TrackerHttp::send_state(int state) {
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
-  if (localAddress->family() == rak::socket_address::af_inet &&
-      !localAddress->sa_inet()->is_address_any())
+  if (!localAddress->is_address_any())
     s << "&ip=" << localAddress->address_str();
+  
+  if (localAddress->is_address_any() || localAddress->family() != rak::socket_address::pf_inet6) {
+    rak::socket_address local_v6;
+    if (get_local_address(rak::socket_address::af_inet6, &local_v6))
+      s << "&ipv6=" << rak::copy_escape_html(local_v6.address_str());
+  }
 
   if (info->is_compact())
     s << "&compact=1";
@@ -332,18 +338,26 @@ TrackerHttp::process_success(const Object& object) {
 
   AddressList l;
 
-  try {
-    // Due to some trackers sending the wrong type when no peers are
-    // available, don't bork on it.
-    if (object.get_key("peers").is_string())
-      l.parse_address_compact(object.get_key_string("peers"));
+  if (!object.has_key("peers") && !object.has_key("peers6"))
+    return receive_failed("No peers returned");
 
-    else if (object.get_key("peers").is_list())
-      l.parse_address_normal(object.get_key_list("peers"));
+  if (object.has_key("peers")) {
+    try {
+      // Due to some trackers sending the wrong type when no peers are
+      // available, don't bork on it.
+      if (object.get_key("peers").is_string())
+        l.parse_address_compact(object.get_key_string("peers"));
 
-  } catch (bencode_error& e) {
-    return receive_failed(e.what());
+      else if (object.get_key("peers").is_list())
+        l.parse_address_normal(object.get_key_list("peers"));
+
+    } catch (bencode_error& e) {
+      return receive_failed(e.what());
+    }
   }
+
+  if (object.has_key("peers6"))
+    l.parse_address_compact_ipv6(object.get_key_string("peers6"));
 
   close_directly();
   m_parent->receive_success(this, &l);

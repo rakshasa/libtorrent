@@ -73,7 +73,12 @@ SocketDatagram::write_datagram(const void* buffer, unsigned int length, rak::soc
   int r;
 
   if (sa != NULL) {
-    r = ::sendto(m_fileDesc, buffer, length, 0, sa->sa_inet()->c_sockaddr(), sizeof(rak::socket_address_inet));
+    if (m_ipv6_socket && sa->family() == rak::socket_address::pf_inet) {
+      rak::socket_address_inet6 sa_mapped = sa->sa_inet()->to_mapped_address();
+      r = ::sendto(m_fileDesc, buffer, length, 0, sa_mapped.c_sockaddr(), sizeof(rak::socket_address_inet6));
+    } else {
+      r = ::sendto(m_fileDesc, buffer, length, 0, sa->c_sockaddr(), sa->length());
+    }
   } else {
     r = ::send(m_fileDesc, buffer, length, 0);
   }

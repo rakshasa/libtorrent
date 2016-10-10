@@ -92,13 +92,12 @@ ConnectionManager::ConnectionManager() :
   m_listen_backlog(SOMAXCONN) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
-  rak::socket_address::cast_from(m_bindAddress)->sa_inet()->clear();
-
   m_localAddress = (new rak::socket_address())->c_sockaddr();
-  rak::socket_address::cast_from(m_localAddress)->sa_inet()->clear();
-
   m_proxyAddress = (new rak::socket_address())->c_sockaddr();
-  rak::socket_address::cast_from(m_proxyAddress)->sa_inet()->clear();
+
+  rak::socket_address::cast_from(m_bindAddress)->clear();
+  rak::socket_address::cast_from(m_localAddress)->clear();
+  rak::socket_address::cast_from(m_proxyAddress)->clear();
 
   m_slot_resolver = std::bind(&resolve_host,
                               std::placeholders::_1,

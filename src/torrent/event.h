@@ -60,6 +60,7 @@ public:
 
 protected:
   int                 m_fileDesc;
+  bool                m_ipv6_socket;
 };
 
 }

@@ -33,6 +33,29 @@ LibTorrentTest_SOURCES = \
 	data/hash_queue_test.h \
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h \
+	\
+	torrent/net/test_socket_address_key.cc \
+	torrent/net/test_socket_address_key.h \
+	\
+	torrent/utils/log_test.cc \
+	torrent/utils/log_test.h \
+	torrent/utils/log_buffer_test.cc \
+	torrent/utils/log_buffer_test.h \
+	torrent/utils/net_test.cc \
+	torrent/utils/net_test.h \
+	torrent/utils/option_strings_test.cc \
+	torrent/utils/option_strings_test.h \
+	torrent/utils/test_extents.cc \
+	torrent/utils/test_extents.h \
+	torrent/utils/test_queue_buckets.cc \
+	torrent/utils/test_queue_buckets.h \
+	torrent/utils/test_uri_parser.cc \
+	torrent/utils/test_uri_parser.h \
+	torrent/utils/signal_bitfield_test.cc \
+	torrent/utils/signal_bitfield_test.h \
+	torrent/utils/thread_base_test.cc \
+	torrent/utils/thread_base_test.h \
+	\
 	torrent/http_test.cc \
 	torrent/http_test.h \
 	torrent/object_test.cc \
@@ -55,24 +78,6 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_list_features_test.h \
 	torrent/tracker_timeout_test.cc \
 	torrent/tracker_timeout_test.h \
-	torrent/utils/log_test.cc \
-	torrent/utils/log_test.h \
-	torrent/utils/log_buffer_test.cc \
-	torrent/utils/log_buffer_test.h \
-	torrent/utils/net_test.cc \
-	torrent/utils/net_test.h \
-	torrent/utils/option_strings_test.cc \
-	torrent/utils/option_strings_test.h \
-	torrent/utils/test_extents.cc \
-	torrent/utils/test_extents.h \
-	torrent/utils/test_queue_buckets.cc \
-	torrent/utils/test_queue_buckets.h \
-	torrent/utils/test_uri_parser.cc \
-	torrent/utils/test_uri_parser.h \
-	torrent/utils/signal_bitfield_test.cc \
-	torrent/utils/signal_bitfield_test.h \
-	torrent/utils/thread_base_test.cc \
-	torrent/utils/thread_base_test.h \
 	tracker/tracker_http_test.cc \
 	tracker/tracker_http_test.h \
 	main.cc

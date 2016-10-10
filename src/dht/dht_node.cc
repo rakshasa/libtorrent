@@ -54,8 +54,9 @@ DhtNode::DhtNode(const HashString& id, const rak::socket_address* sa) :
   m_recentlyInactive(0),
   m_bucket(NULL) {
 
-  if (sa->family() != rak::socket_address::af_inet)
-    throw resource_error("Address not af_inet");
+  if (sa->family() != rak::socket_address::af_inet &&
+      (sa->family() != rak::socket_address::af_inet6 || !sa->sa_inet6()->is_any()))
+    throw resource_error("Addres not af_inet or in6addr_any");
 }
 
 DhtNode::DhtNode(const std::string& id, const Object& cache) :
@@ -84,8 +85,19 @@ DhtNode::store_compact(char* buffer) const {
 
 Object*
 DhtNode::store_cache(Object* container) const {
-  container->insert_key("i", m_socketAddress.sa_inet()->address_h());
-  container->insert_key("p", m_socketAddress.sa_inet()->port());
+  if (m_socketAddress.family() == rak::socket_address::af_inet6) {
+    // Currently, all we support is in6addr_any (checked in the constructor),
+    // which is effectively equivalent to this. Note that we need to specify
+    // int64_t explicitly here because a zero constant is special in C++ and
+    // thus we need an explicit match.
+    container->insert_key("i", int64_t(0));
+    container->insert_key("p", m_socketAddress.sa_inet6()->port());
+
+  } else {
+    container->insert_key("i", m_socketAddress.sa_inet()->address_h());
+    container->insert_key("p", m_socketAddress.sa_inet()->port());
+  }
+
   container->insert_key("t", m_lastSeen);
   return container;
 }

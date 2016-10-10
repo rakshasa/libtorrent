@@ -337,11 +337,12 @@ TrackerUdp::prepare_announce_input() {
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
-  // This code assumes we're have a inet address.
-  if (localAddress->family() != rak::socket_address::af_inet)
-    throw internal_error("TrackerUdp::prepare_announce_input() info->local_address() not of family AF_INET.");
+  uint32_t local_addr = 0;
 
-  m_writeBuffer->write_32_n(localAddress->sa_inet()->address_n());
+  if (localAddress->family() == rak::socket_address::af_inet)
+    local_addr = localAddress->sa_inet()->address_n();
+
+  m_writeBuffer->write_32_n(local_addr);
   m_writeBuffer->write_32(m_parent->key());
   m_writeBuffer->write_32(m_parent->numwant());
   m_writeBuffer->write_16(manager->connection_manager()->listen_port());

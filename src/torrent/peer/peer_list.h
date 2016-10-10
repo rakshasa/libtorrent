@@ -39,6 +39,7 @@
 
 #include <map>
 #include <torrent/common.h>
+#include <torrent/net/socket_address_key.h>
 #include <torrent/utils/extents.h>
 
 namespace torrent {
@@ -46,21 +47,6 @@ namespace torrent {
 class DownloadInfo;
 
 typedef extents<uint32_t, int, 32, 256, 8> ipv4_table;
-
-bool socket_address_less(const sockaddr* s1, const sockaddr* s2);
-
-// Unique key for the address, excluding port numbers etc.
-class LIBTORRENT_EXPORT socket_address_key {
-public:
-  socket_address_key(const sockaddr* sa) : m_sockaddr(sa) {}
-
-  inline static bool is_comparable(const sockaddr* sa);
-
-  bool operator < (const socket_address_key& sa) const { return socket_address_less(m_sockaddr, sa.m_sockaddr); }
-
-private:
-  const sockaddr*     m_sockaddr;
-};
 
 class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, PeerInfo*> {
 public:

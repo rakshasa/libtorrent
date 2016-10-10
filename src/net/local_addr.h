@@ -1,5 +1,5 @@
 // libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
+// Copyright (C) 2005-2007, Jari Sundell
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,8 +34,15 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_NET_SOCKET_FD_H
-#define LIBTORRENT_NET_SOCKET_FD_H
+// A routine to get a local IP address that can be presented to a tracker.
+// (Does not use UPnP etc., so will not understand NAT.)
+// On a machine with multiple network cards, address selection can be a
+// complex process, and in general what's selected is a source/destination
+// address pair. However, this routine will give an approximation that will
+// be good enough for most purposes and users.
+
+#ifndef LIBTORRENT_NET_LOCAL_ADDR_H
+#define LIBTORRENT_NET_LOCAL_ADDR_H
 
 #include <unistd.h>
 
@@ -45,55 +52,13 @@ namespace rak {
 
 namespace torrent {
 
-class SocketFd {
-public:
-  typedef uint8_t priority_type;
-
-  SocketFd() : m_fd(-1) {}
-  explicit SocketFd(int fd) : m_fd(fd) {}
-
-  bool                is_valid() const                        { return m_fd >= 0; }
-  
-  int                 get_fd() const                          { return m_fd; }
-  void                set_fd(int fd)                          { m_fd = fd; }
-
-  bool                set_nonblock();
-  bool                set_reuse_address(bool state);
-
-  bool                set_priority(priority_type p);
-
-  bool                set_send_buffer_size(uint32_t s);
-  bool                set_receive_buffer_size(uint32_t s);
-
-  int                 get_error() const;
-
-  bool                open_stream();
-  bool                open_datagram();
-  bool                open_local();
-
-  static bool         open_socket_pair(int& fd1, int& fd2);
-
-  void                close();
-  void                clear() { m_fd = -1; }
-
-  bool                bind(const rak::socket_address& sa);
-  bool                bind(const rak::socket_address& sa, unsigned int length);
-  bool                connect(const rak::socket_address& sa);
-  bool                getsockname(rak::socket_address* sa);
-
-  bool                listen(int size);
-  SocketFd            accept(rak::socket_address* sa);
-
-//   unsigned int        get_read_queue_size() const;
-//   unsigned int        get_write_queue_size() const;
-
-private:
-  inline void         check_valid() const;
-
-  int                 m_fd;
-  bool                m_ipv6_socket;
-};
+// Note: family must currently be rak::af_inet or rak::af_inet6
+// (rak::af_unspec won't do); anything else will throw an exception.
+// Returns false if no address of the given family could be found,
+// either because there are none, or because something went wrong in
+// the process (e.g., no free file descriptors).
+bool get_local_address(sa_family_t family, rak::socket_address *address);
 
 }
 
-#endif
+#endif /* LIBTORRENT_NET_LOCAL_ADDR_H */

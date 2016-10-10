@@ -1,5 +1,7 @@
 LibTorrent
 
+Copyright (C) 2005-2014, Jari Sundell
+
 LICENSE
 
  GNU GPL, see COPYING. "libtorrent/src/utils/sha_fast.{cc,h}" is
@@ -15,11 +17,11 @@ compiled if the user wishes to avoid using OpenSSL.
 
 CONTACT
 
+ Jari Sundell
+
+ Skomakerveien 33
+ 3185 Skoppum, NORWAY
+
  Send bug reports, suggestions and patches to
 <sundell.software@gmail.com> or to the mailinglist.
 
-POLLING
-
- "libtorrent/src/torrent/poll.h" provides an abstract class for
-implementing any kind of polling the client wishes to use. Currently
-epoll and select based polling is included.
