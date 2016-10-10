@@ -410,7 +410,7 @@ DownloadMain::do_peer_exchange() {
     const rak::socket_address* sa = rak::socket_address::cast_from(pcb->peer_info()->socket_address());
 
     if (pcb->peer_info()->listen_port() != 0 && sa->family() == rak::socket_address::af_inet)
-      current.push_back(SocketAddressCompact(sa->sa_inet()->address_n(), pcb->peer_info()->listen_port()));
+      current.push_back(SocketAddressCompact(sa->sa_inet()->address_n(), htons(pcb->peer_info()->listen_port())));
 
     if (!pcb->extensions()->is_remote_supported(ProtocolExtension::UT_PEX))
       continue;
