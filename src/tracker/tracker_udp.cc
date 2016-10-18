@@ -57,10 +57,10 @@
 #include "manager.h"
 
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
-  lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
+  lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker_udp", "[%u] " log_fmt, group(), __VA_ARGS__);
 
 #define LT_LOG_TRACKER_DUMP(log_level, log_dump_data, log_dump_size, log_fmt, ...)                   \
-  lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
+  lt_log_print_info_dump(LOG_TRACKER_##log_level, log_dump_data, log_dump_size, m_parent->info(), "tracker_udp", "[%u] " log_fmt, group(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -117,7 +117,7 @@ TrackerUdp::send_state(int state) {
     m_slot_resolver = NULL;
   }
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP hostname lookup for '%s'", hostname);
+  LT_LOG_TRACKER(DEBUG, "hostname lookup (address:'%s')", hostname);
 
   m_sendState = state;
   m_slot_resolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
@@ -140,7 +140,7 @@ TrackerUdp::start_announce(const sockaddr* sa, int err) {
   m_connectAddress = *rak::socket_address::cast_from(sa);
   m_connectAddress.set_port(m_port);
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP address found '%s'", m_connectAddress.address_str().c_str());
+  LT_LOG_TRACKER(DEBUG, "address found (address:'%s')", m_connectAddress.address_str().c_str());
 
   if (!m_connectAddress.is_valid())
     return receive_failed("Invalid tracker address.");
@@ -169,7 +169,7 @@ TrackerUdp::close() {
   if (!get_fd().is_valid())
     return;
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP request cancelled: state:%s url:%s.",
+  LT_LOG_TRACKER(DEBUG, "request cancelled (state:%s url:%s)",
                  option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
 
   close_directly();
@@ -180,7 +180,7 @@ TrackerUdp::disown() {
   if (!get_fd().is_valid())
     return;
 
-  LT_LOG_TRACKER(DEBUG, "Tracker UDP request disowned: state:%s url:%s.",
+  LT_LOG_TRACKER(DEBUG, "request disowned (state:%s url:%s)",
                  option_as_string(OPTION_TRACKER_EVENT, m_latest_event), m_url.c_str());
 
   close_directly();
@@ -245,7 +245,7 @@ TrackerUdp::event_read() {
   m_readBuffer->reset_position();
   m_readBuffer->set_end(s);
 
-  LT_LOG_TRACKER_DUMP(DEBUG, (const char*)m_readBuffer->begin(), s, "Tracker UDP reply.", 0);
+  LT_LOG_TRACKER_DUMP(DEBUG, (const char*)m_readBuffer->begin(), s, "received reply", 0);
 
   if (s < 4)
     return;
@@ -310,7 +310,7 @@ TrackerUdp::prepare_connect_input() {
   m_writeBuffer->write_32(m_transactionId = random());
 
   LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
-                      "Tracker UDP connect: id:%" PRIx32 ".", m_transactionId);
+                      "prepare connect (id:%" PRIx32 ")", m_transactionId);
 }
 
 void
@@ -351,7 +351,7 @@ TrackerUdp::prepare_announce_input() {
     throw internal_error("TrackerUdp::prepare_announce_input() ended up with the wrong size");
 
   LT_LOG_TRACKER_DUMP(DEBUG, m_writeBuffer->begin(), m_writeBuffer->size_end(),
-                      "Tracker UDP announce: state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ".",
+                      "prepare announce (state:%s id:%" PRIx32 " up_adj:%" PRIu64 " completed_adj:%" PRIu64 " left_adj:%" PRIu64 ")",
                       option_as_string(OPTION_TRACKER_EVENT, m_sendState),
                       m_transactionId, uploaded_adjusted, completed_adjusted, download_left);
 }
