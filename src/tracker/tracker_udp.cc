@@ -96,12 +96,14 @@ TrackerUdp::send_state(int state) {
   close_directly();
   m_latest_event = state;
 
-  char hostname[1024];
-      
-  if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname, &m_port) != 2 ||
-      hostname[0] == '\0' ||
-      m_port <= 0 || m_port >= (1 << 16))
-    return receive_failed("could not parse UDP hostname or port");
+  hostname_type hostname;
+
+  if (!parse_udp_url(m_url, hostname, m_port))
+    return receive_failed("could not parse hostname or port");
+
+  LT_LOG_TRACKER(DEBUG, "hostname lookup (address:%s)", hostname.data());
+
+  m_sendState = state;
 
   // Because we can only remember one slot, set any pending resolves blocked
   // so that if this tracker is deleted, the member function won't be called.
@@ -110,14 +112,29 @@ TrackerUdp::send_state(int state) {
     m_slot_resolver = NULL;
   }
 
-  LT_LOG_TRACKER(DEBUG, "hostname lookup (address:%s)", hostname);
+  m_slot_resolver = make_resolver_slot(hostname);
+}
 
-  m_sendState = state;
-  m_slot_resolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
-                                                              std::bind(&TrackerUdp::start_announce,
-                                                                        this,
-                                                                        std::placeholders::_1,
-                                                                        std::placeholders::_2));
+bool
+TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const {
+  if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
+      port > 0 && port < (1 << 16))
+    return true;
+
+  if (std::sscanf(m_url.c_str(), "udp://[%1023[^]]]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
+      port > 0 && port < (1 << 16))
+    return true;
+
+  return false;
+}
+
+TrackerUdp::resolver_type*
+TrackerUdp::make_resolver_slot(const hostname_type& hostname) {
+  return manager->connection_manager()->resolver()(hostname.data(), PF_UNSPEC, SOCK_DGRAM,
+                                                   std::bind(&TrackerUdp::start_announce,
+                                                             this,
+                                                             std::placeholders::_1,
+                                                             std::placeholders::_2));
 }
 
 void

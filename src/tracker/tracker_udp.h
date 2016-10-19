@@ -37,6 +37,7 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_UDP_H
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
+#include <array>
 #include <rak/socket_address.h>
 
 #include "net/protocol_buffer.h"
@@ -50,6 +51,8 @@ namespace torrent {
 
 class TrackerUdp : public SocketDatagram, public Tracker {
 public:
+  typedef std::array<char, 1024> hostname_type;
+
   typedef ProtocolBuffer<512> ReadBuffer;
   typedef ProtocolBuffer<512> WriteBuffer;
 
@@ -89,6 +92,9 @@ private:
   bool                process_connect_output();
   bool                process_announce_output();
   bool                process_error_output();
+
+  bool                parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const;
+  resolver_type*      make_resolver_slot(const hostname_type& hostname);
 
   rak::socket_address m_connectAddress;
   int                 m_port;

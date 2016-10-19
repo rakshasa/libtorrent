@@ -207,7 +207,7 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     LT_LOG_TRACKER(WARN, "could find matching tracker protocol (url:%s)", url.c_str());
 
     if (extra_tracker)
-      throw torrent::input_error("Could find matching tracker protocol for url: '" + url + "'.");
+      throw torrent::input_error("could find matching tracker protocol (url:" + url + ")");
 
     return;
   }
