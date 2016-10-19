@@ -40,8 +40,9 @@
 
 #include <sys/types.h>
 
-#include <torrent/connection_manager.h>
 #include <cstdio>
+
+#include "rak/error_number.h"
 
 #include "net/address_list.h"
 #include "torrent/exceptions.h"
@@ -95,20 +96,12 @@ TrackerUdp::send_state(int state) {
   close_directly();
   m_latest_event = state;
 
-  // try {
-  //   utils::uri_state uri_state;
-  //   uri_parse_str(m_url, uri_state);
-
-  // } catch (utils::uri_error& e) {
-  //   return receive_failed("Could not parse UDP hostname or port: " + std::string(e.what()));
-  // }
-
   char hostname[1024];
       
   if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname, &m_port) != 2 ||
       hostname[0] == '\0' ||
       m_port <= 0 || m_port >= (1 << 16))
-    return receive_failed("Could not parse UDP hostname or port.");
+    return receive_failed("could not parse UDP hostname or port");
 
   // Because we can only remember one slot, set any pending resolves blocked
   // so that if this tracker is deleted, the member function won't be called.
@@ -117,7 +110,7 @@ TrackerUdp::send_state(int state) {
     m_slot_resolver = NULL;
   }
 
-  LT_LOG_TRACKER(DEBUG, "hostname lookup (address:'%s')", hostname);
+  LT_LOG_TRACKER(DEBUG, "hostname lookup (address:%s)", hostname);
 
   m_sendState = state;
   m_slot_resolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
@@ -135,20 +128,24 @@ TrackerUdp::start_announce(const sockaddr* sa, int err) {
   }
 
   if (sa == NULL)
-    return receive_failed("Could not resolve hostname.");
+    return receive_failed("could not resolve hostname");
 
   m_connectAddress = *rak::socket_address::cast_from(sa);
   m_connectAddress.set_port(m_port);
 
-  LT_LOG_TRACKER(DEBUG, "address found (address:'%s')", m_connectAddress.address_str().c_str());
+  LT_LOG_TRACKER(DEBUG, "address found (address:%s)", m_connectAddress.address_str().c_str());
 
   if (!m_connectAddress.is_valid())
-    return receive_failed("Invalid tracker address.");
+    return receive_failed("invalid tracker address");
 
-  if (!get_fd().open_datagram() ||
-      !get_fd().set_nonblock() ||
-      !get_fd().bind(*rak::socket_address::cast_from(manager->connection_manager()->bind_address())))
-    return receive_failed("Could not open UDP socket.");
+  // TODO: Make each of these a separate error... at the very least separate open and bind.
+  if (!get_fd().open_datagram() || !get_fd().set_nonblock())
+    return receive_failed("could not open UDP socket");
+
+  auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+
+  if (bind_address->is_bindable() && !get_fd().bind(*bind_address))
+    return receive_failed("failed to bind socket to udp address '" + bind_address->pretty_address_str() + "' with error '" + rak::error_number::current().c_str() + "'");
 
   m_readBuffer = new ReadBuffer;
   m_writeBuffer = new WriteBuffer;
@@ -225,7 +222,7 @@ TrackerUdp::receive_timeout() {
     throw internal_error("TrackerUdp::receive_timeout() called but m_taskTimeout is still scheduled.");
 
   if (--m_tries == 0) {
-    receive_failed("Unable to connect to UDP tracker.");
+    receive_failed("unable to connect to UDP tracker");
   } else {
     priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
 
@@ -290,10 +287,6 @@ TrackerUdp::event_write() {
     throw internal_error("TrackerUdp::write() called but the write buffer is empty.");
 
   int __UNUSED s = write_datagram(m_writeBuffer->begin(), m_writeBuffer->size_end(), &m_connectAddress);
-
-  // TODO: If send failed, retry shortly or do i call receive_failed?
-  // if (s != m_writeBuffer->size_end())
-  //   ;
 
   manager->poll()->remove_write(this);
 }
@@ -399,7 +392,7 @@ TrackerUdp::process_error_output() {
       m_readBuffer->read_32() != m_transactionId)
     return false;
 
-  receive_failed("Received error message: " + std::string(m_readBuffer->position(), m_readBuffer->end()));
+  receive_failed("received error message: " + std::string(m_readBuffer->position(), m_readBuffer->end()));
   return true;
 }
 
