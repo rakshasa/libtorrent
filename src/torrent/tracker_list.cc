@@ -149,7 +149,7 @@ TrackerList::send_state(Tracker* tracker, int new_event) {
   tracker->send_state(new_event);
   tracker->inc_request_counter();
 
-  LT_LOG_TRACKER(INFO, "Sending '%s' to group:%u url:'%s'.",
+  LT_LOG_TRACKER(INFO, "sending '%s (group:%u url:%s)",
                  option_as_string(OPTION_TRACKER_EVENT, new_event),
                  tracker->group(), tracker->url().c_str());
 }
@@ -168,7 +168,7 @@ TrackerList::send_scrape(Tracker* tracker) {
   tracker->send_scrape();
   tracker->inc_request_counter();
 
-  LT_LOG_TRACKER(INFO, "Sending 'scrape' to group:%u url:'%s'.",
+  LT_LOG_TRACKER(INFO, "sending 'scrape' (group:%u url:%s)",
                  tracker->group(), tracker->url().c_str());
 }
 
@@ -204,15 +204,15 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
     tracker = new TrackerDht(this, url, flags);
 
   } else {
-    LT_LOG_TRACKER(WARN, "Could find matching tracker protocol for url: '%s'.", url.c_str());
+    LT_LOG_TRACKER(WARN, "could find matching tracker protocol (url:%s)", url.c_str());
 
     if (extra_tracker)
-      throw torrent::input_error("Could find matching tracker protocol for url: '" + url + "'.");
+      throw torrent::input_error("could find matching tracker protocol (url:" + url + ")");
 
     return;
   }
   
-  LT_LOG_TRACKER(INFO, "Added tracker group:%i url:'%s'.", group, url.c_str());
+  LT_LOG_TRACKER(INFO, "added tracker (group:%i url:%s)", group, url.c_str());
   insert(group, tracker);
 }
 
@@ -331,7 +331,7 @@ TrackerList::receive_success(Tracker* tb, AddressList* l) {
   l->sort();
   l->erase(std::unique(l->begin(), l->end()), l->end());
 
-  LT_LOG_TRACKER(INFO, "Received %u peers from tracker url:'%s'.", l->size(), tb->url().c_str());
+  LT_LOG_TRACKER(INFO, "received %u peers (url:%s)", l->size(), tb->url().c_str());
 
   tb->m_success_time_last = cachedTime.seconds();
   tb->m_success_counter++;
@@ -348,7 +348,7 @@ TrackerList::receive_failed(Tracker* tb, const std::string& msg) {
   if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "Failed to connect to tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
+  LT_LOG_TRACKER(INFO, "failed to connect to tracker (url:%s msg:%s)", tb->url().c_str(), msg.c_str());
 
   tb->m_failed_time_last = cachedTime.seconds();
   tb->m_failed_counter++;
@@ -362,7 +362,7 @@ TrackerList::receive_scrape_success(Tracker* tb) {
   if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_success(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "Received scrape from tracker url:'%s'.", tb->url().c_str());
+  LT_LOG_TRACKER(INFO, "received scrape from tracker (url:%s)", tb->url().c_str());
 
   tb->m_scrape_time_last = cachedTime.seconds();
   tb->m_scrape_counter++;
@@ -378,7 +378,7 @@ TrackerList::receive_scrape_failed(Tracker* tb, const std::string& msg) {
   if (itr == end() || tb->is_busy())
     throw internal_error("TrackerList::receive_failed(...) called but the iterator is invalid.");
 
-  LT_LOG_TRACKER(INFO, "Failed to scrape tracker url:'%s' msg:'%s'.", tb->url().c_str(), msg.c_str());
+  LT_LOG_TRACKER(INFO, "failed to scrape tracker (url:%s msg:%s)", tb->url().c_str(), msg.c_str());
 
   if (m_slot_scrape_failed)
     m_slot_scrape_failed(tb, msg);

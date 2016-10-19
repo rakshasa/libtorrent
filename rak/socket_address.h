@@ -77,6 +77,7 @@ public:
   static const int         pf_local  = PF_UNIX;
 #endif
 
+  bool                is_any() const;
   bool                is_valid() const;
   bool                is_bindable() const;
   bool                is_address_any() const;
@@ -92,6 +93,8 @@ public:
 
   std::string         address_str() const;
   bool                address_c_str(char* buf, socklen_t size) const;
+
+  std::string         pretty_address_str() const;
 
   // Attemts to set it as an inet, then an inet6 address. It will
   // never set anything but net addresses, no local/unix.
@@ -234,6 +237,18 @@ private:
 };
 
 inline bool
+socket_address::is_any() const {
+  switch (family()) {
+  case af_inet:
+    return sa_inet()->is_any();
+  case af_inet6:
+    return sa_inet6()->is_any();
+  default:
+    return false;
+  }
+}
+
+inline bool
 socket_address::is_valid() const {
   switch (family()) {
   case af_inet:
@@ -316,6 +331,22 @@ socket_address::address_c_str(char* buf, socklen_t size) const {
     return false;
   }
 }
+
+inline std::string
+socket_address::pretty_address_str() const {
+  switch (family()) {
+  case af_inet:
+    return sa_inet()->address_str();
+  case af_inet6:
+    return sa_inet6()->address_str();
+  default:
+    if (port() == 0)
+      return std::string("no family");
+    else
+      return std::string("no family with port");
+  }
+}
+
 
 inline bool
 socket_address::set_address_c_str(const char* a) {

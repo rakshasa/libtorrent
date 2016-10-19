@@ -26,6 +26,7 @@ config.status
 confdefs.h
 conftest.dir
 configure
+conftest.*
 depcomp
 install-sh
 libtool
