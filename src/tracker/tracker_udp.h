@@ -37,12 +37,15 @@
 #ifndef LIBTORRENT_TRACKER_TRACKER_UDP_H
 #define LIBTORRENT_TRACKER_TRACKER_UDP_H
 
+#include <udns.h>
+
 #include <rak/socket_address.h>
 
 #include "net/protocol_buffer.h"
 #include "net/socket_datagram.h"
 #include "torrent/connection_manager.h"
 #include "torrent/tracker.h"
+#include "torrent/utils/udnsevent.h"
 
 #include "globals.h"
 
@@ -52,8 +55,6 @@ class TrackerUdp : public SocketDatagram, public Tracker {
 public:
   typedef ProtocolBuffer<512> ReadBuffer;
   typedef ProtocolBuffer<512> WriteBuffer;
-
-  typedef ConnectionManager::slot_resolver_result_type resolver_type;
 
   static const uint64_t magic_connection_id = 0x0000041727101980ll;
 
@@ -95,7 +96,8 @@ private:
 
   int                 m_sendState;
 
-  resolver_type*      m_slot_resolver;
+  UdnsEvent::a4_callback_type  m_udns_callback;
+  struct ::dns_query*          m_udns_query;
 
   uint32_t            m_action;
   uint64_t            m_connectionId;

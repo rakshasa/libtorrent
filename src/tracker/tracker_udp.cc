@@ -69,17 +69,17 @@ TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
 
   m_port(0),
 
-  m_slot_resolver(NULL),
   m_readBuffer(NULL),
   m_writeBuffer(NULL) {
 
   m_taskTimeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
+  m_udns_callback = std::bind(&TrackerUdp::start_announce, this, std::placeholders::_1, std::placeholders::_2);
+  m_udns_query = NULL;
 }
 
 TrackerUdp::~TrackerUdp() {
-  if (m_slot_resolver != NULL) {
-    *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
+  if (m_udns_query != NULL) {
+      manager->udnsevent.cancel(m_udns_query);
   }
 
   close_directly();
@@ -87,7 +87,7 @@ TrackerUdp::~TrackerUdp() {
   
 bool
 TrackerUdp::is_busy() const {
-  return get_fd().is_valid();
+  return get_fd().is_valid() || (m_udns_query != NULL);
 }
 
 void
@@ -110,29 +110,16 @@ TrackerUdp::send_state(int state) {
       m_port <= 0 || m_port >= (1 << 16))
     return receive_failed("Could not parse UDP hostname or port.");
 
-  // Because we can only remember one slot, set any pending resolves blocked
-  // so that if this tracker is deleted, the member function won't be called.
-  if (m_slot_resolver != NULL) {
-    *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
-  }
-
   LT_LOG_TRACKER(DEBUG, "Tracker UDP hostname lookup for '%s'", hostname);
 
   m_sendState = state;
-  m_slot_resolver = manager->connection_manager()->resolver()(hostname, PF_INET, SOCK_DGRAM,
-                                                              std::bind(&TrackerUdp::start_announce,
-                                                                        this,
-                                                                        std::placeholders::_1,
-                                                                        std::placeholders::_2));
+  m_udns_query = manager->udnsevent.resolve_in4(hostname, &m_udns_callback);
 }
 
 void
 TrackerUdp::start_announce(const sockaddr* sa, int err) {
-  if (m_slot_resolver != NULL) {
-    *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
-  }
+
+  m_udns_query = NULL;
 
   if (sa == NULL)
     return receive_failed("Could not resolve hostname.");

@@ -44,6 +44,7 @@
 #include "thread_disk.h"
 #include "thread_main.h"
 #include "net/socket_fd.h"
+#include "torrent/utils/udnsevent.h"
 
 namespace torrent {
 
@@ -90,6 +91,9 @@ public:
   Throttle*           upload_throttle()                         { return m_uploadThrottle; }
   Throttle*           download_throttle()                       { return m_downloadThrottle; }
 
+  // TODO put this somewhere better?
+  UdnsEvent           udnsevent;
+
   void                initialize_download(DownloadWrapper* d);
   void                cleanup_download(DownloadWrapper* d);
 
@@ -117,6 +121,7 @@ private:
 
   unsigned int        m_ticks;
   rak::priority_item  m_taskTick;
+
 };
 
 extern Manager* manager;

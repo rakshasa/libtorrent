@@ -610,6 +610,7 @@ void
 DhtRouter::bootstrap() {
   // Contact up to 8 nodes from the contact list (newest first).
   for (int count = 0; count < 8 && !m_contacts->empty(); count++) {
+    // TODO switch this to udns too, then clean up the old synchronous resolver
     manager->connection_manager()->resolver()(m_contacts->back().first.c_str(), (int)rak::socket_address::pf_inet, SOCK_DGRAM,
                                               contact_node_t(this, m_contacts->back().second));
     m_contacts->pop_back();
