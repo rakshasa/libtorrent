@@ -66,8 +66,6 @@ namespace torrent {
         // this actually sends the packet
         process_timeouts();
 
-        // these never get removed because the FD is shared and the insert operation
-        // is idempotent.
         // don't listen for writes --- all writes are done by ::dns_timeouts
         manager->poll()->insert_read(this);
         manager->poll()->insert_error(this);
@@ -81,6 +79,10 @@ namespace torrent {
         if (timeout != -1) {
             priority_queue_erase(&taskScheduler, &m_taskTimeout);
             priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(timeout)).round_seconds());
+        } else {
+            // no pending queries
+            manager->poll()->remove_read(this);
+            manager->poll()->remove_error(this);
         }
     }
 
