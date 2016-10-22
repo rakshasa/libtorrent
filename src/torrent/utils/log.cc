@@ -251,6 +251,7 @@ log_initialize() {
   LOG_LINK(LOG_DHT_ALL, LOG_DHT_MANAGER);
   LOG_LINK(LOG_DHT_ALL, LOG_DHT_NODE);
   LOG_LINK(LOG_DHT_ALL, LOG_DHT_ROUTER);
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_SERVER);
 
   std::sort(log_children.begin(), log_children.end());
 

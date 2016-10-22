@@ -85,6 +85,17 @@ SocketFd::set_reuse_address(bool state) {
 }
 
 bool
+SocketFd::set_ipv6_v6only(bool state) {
+  check_valid();
+
+  if (!m_ipv6_socket)
+    return false;
+
+  int opt = state;
+  return setsockopt(m_fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt)) == 0;
+}
+
+bool
 SocketFd::set_send_buffer_size(uint32_t s) {
   check_valid();
   int opt = s;
@@ -124,8 +135,12 @@ SocketFd::open_stream() {
 
   m_ipv6_socket = true;
 
-  int zero = 0;
-  return setsockopt(m_fd, IPPROTO_IPV6, IPV6_V6ONLY, &zero, sizeof(zero)) != -1;
+  if (!set_ipv6_v6only(false)) {
+    close();
+    return false;
+  }
+
+  return true;
 }
 
 bool
@@ -139,8 +154,12 @@ SocketFd::open_datagram() {
 
   m_ipv6_socket = true;
 
-  int zero = 0;
-  return setsockopt(m_fd, IPPROTO_IPV6, IPV6_V6ONLY, &zero, sizeof(zero)) != -1;
+  if (!set_ipv6_v6only(false)) {
+    close();
+    return false;
+  }
+
+  return true;
 }
 
 bool

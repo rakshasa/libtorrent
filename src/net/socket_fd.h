@@ -59,6 +59,7 @@ public:
 
   bool                set_nonblock();
   bool                set_reuse_address(bool state);
+  bool                set_ipv6_v6only(bool state);
 
   bool                set_priority(priority_type p);
 

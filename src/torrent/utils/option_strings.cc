@@ -192,6 +192,9 @@ const char* option_list_log_group[] = {
 
   "dht_all",
   "dht_manager",
+  "dht_node",
+  "dht_router",
+  "dht_server",
 
   "instrumentation_memory",
   "instrumentation_mincore",

@@ -49,6 +49,7 @@
 #include "torrent/poll.h"
 #include "torrent/object_static_map.h"
 #include "torrent/throttle.h"
+#include "torrent/utils/log.h"
 #include "tracker/tracker_dht.h"
 
 #include "dht_bucket.h"
@@ -56,6 +57,9 @@
 #include "dht_transaction.h"
 
 #include "manager.h"
+
+#define LT_LOG_THIS(log_fmt, ...)                                       \
+  lt_log_print_subsystem(torrent::LOG_DHT_SERVER, "dht_server", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -144,8 +148,15 @@ DhtServer::start(int port) {
       throw resource_error("Could not set listening port to reuse address.");
 
     rak::socket_address sa = *m_router->address();
+
+    if (sa.family() == rak::socket_address::af_unspec)
+      sa.sa_inet6()->clear();
+
     sa.set_port(port);
 
+    LT_LOG_THIS("starting (address:%s)", sa.pretty_address_str().c_str());
+
+    // Figure out how to bind to both inet and inet6.
     if (!get_fd().bind(sa))
       throw resource_error("Could not bind datagram socket.");
 
@@ -172,6 +183,8 @@ void
 DhtServer::stop() {
   if (!is_active())
     return;
+
+  LT_LOG_THIS("stopping", 0);
 
   clear_transactions();
 

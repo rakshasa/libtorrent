@@ -71,20 +71,32 @@ DhtManager::initialize(const Object& dhtCache) {
   }
 }
 
-void
+bool
 DhtManager::start(port_type port) {
+  LT_LOG_THIS("starting (port:%d)", port);
+
   if (m_router == NULL)
     throw internal_error("DhtManager::start called without initializing first.");
 
   m_port = port;
-  m_router->start(port);
-}
 
+  try {
+    m_router->start(port);
+  } catch (torrent::local_error& e) {
+    LT_LOG_THIS("start failed (error:%s)", e.what());
+    return false;
+  }
+
+  return true;
+}
 
 void
 DhtManager::stop() {
-  if (m_router != NULL)
-    m_router->stop();
+  if (m_router == NULL)
+    return;
+
+  LT_LOG_THIS("stopping", 0);
+  m_router->stop();
 }
 
 bool
