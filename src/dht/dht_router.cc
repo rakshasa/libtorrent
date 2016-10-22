@@ -43,6 +43,8 @@
 #include "torrent/dht_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/exceptions.h"
+#include "torrent/utils/log.h"
+
 #include "utils/sha1.h"
 #include "manager.h"
 
@@ -50,6 +52,9 @@
 #include "dht_router.h"
 #include "dht_tracker.h"
 #include "dht_transaction.h"
+
+#define LT_LOG_THIS(log_fmt, ...)                                       \
+  lt_log_print_hash(torrent::LOG_DHT_ROUTER, this->id(), "dht_router", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -88,11 +93,15 @@ DhtRouter::DhtRouter(const Object& cache, const rak::socket_address* sa) :
     sha.final_c(data());
   }
 
+  LT_LOG_THIS("creating (address:%s)", sa->pretty_address_str().c_str());
+
   set_bucket(new DhtBucket(zero_id, ones_id));
   m_routingTable.insert(std::make_pair(bucket()->id_range_end(), bucket()));
 
   if (cache.has_key("nodes")) {
     const Object::map_type& nodes = cache.get_key_map("nodes");
+
+    LT_LOG_THIS("adding nodes (size:%zu)", nodes.size());
 
     for (Object::map_type::const_iterator itr = nodes.begin(); itr != nodes.end(); ++itr) {
       if (itr->first.length() != HashString::size_data)
@@ -134,6 +143,8 @@ DhtRouter::~DhtRouter() {
 
 void
 DhtRouter::start(int port) {
+  LT_LOG_THIS("starting (port:%d)", port);
+
   m_server.start(port);
 
   // Set timeout slot and schedule it to be called immediately for initial bootstrapping if necessary.

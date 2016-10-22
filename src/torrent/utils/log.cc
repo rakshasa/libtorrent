@@ -173,9 +173,13 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
   char buffer[buffer_size];
   char* first = buffer;
 
-  if (hash != NULL && subsystem != NULL) {
-    first = hash_string_to_hex(*hash, first);
-    first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
+  if (subsystem != NULL) {
+    if (hash != NULL) {
+      first = hash_string_to_hex(*hash, first);
+      first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
+    } else {
+      first += snprintf(first, 4096 - (first - buffer), "%s: ", subsystem);
+    }
   }
 
   va_start(ap, fmt);
@@ -205,6 +209,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 }
 
 #define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
+#define LOG_LINK(parent, child) log_children.push_back(std::make_pair(parent, child))
 
 #define LOG_CHILDREN_CASCADE(parent, subgroup)                          \
   log_children.push_back(std::make_pair(parent + LOG_ERROR,    subgroup + LOG_CRITICAL)); \
@@ -242,6 +247,11 @@ log_initialize() {
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_THREAD_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TRACKER_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
+
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_MANAGER);
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_NODE);
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_ROUTER);
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_SERVER);
 
   std::sort(log_children.begin(), log_children.end());
 
@@ -401,9 +411,9 @@ log_open_file_output(const char* name, const char* filename) {
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
   log_open_output(name, std::bind(&log_file_write, outfile,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2,
-                                       std::placeholders::_3));
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3));
 }
 
 void
@@ -417,9 +427,9 @@ log_open_gz_file_output(const char* name, const char* filename) {
   //   throw input_error("Could not set gzip log file buffer size.");
 
   log_open_output(name, std::bind(&log_gz_file_write, outfile,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2,
-                                       std::placeholders::_3));
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3));
 }
 
 log_buffer*
@@ -428,9 +438,9 @@ log_open_log_buffer(const char* name) {
 
   try {
     log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3));
+                                    std::placeholders::_1,
+                                    std::placeholders::_2,
+                                    std::placeholders::_3));
     return buffer;
 
   } catch (torrent::input_error& e) {

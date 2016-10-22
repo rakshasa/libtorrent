@@ -113,10 +113,15 @@ enum {
 
   LOG_NON_CASCADING,
 
+  LOG_DHT_ALL,
+  LOG_DHT_MANAGER,
+  LOG_DHT_NODE,
+  LOG_DHT_ROUTER,
+  LOG_DHT_SERVER,
+
   LOG_INSTRUMENTATION_MEMORY,
   LOG_INSTRUMENTATION_MINCORE,
   LOG_INSTRUMENTATION_CHOKE,
-
   LOG_INSTRUMENTATION_POLLING,
   LOG_INSTRUMENTATION_TRANSFERS,
 
@@ -155,9 +160,17 @@ enum {
   if (torrent::log_groups[log_group].valid())                           \
     torrent::log_groups[log_group].internal_print(NULL, NULL, log_dump_data, log_dump_size, __VA_ARGS__); \
 
+#define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
+  if (torrent::log_groups[log_group].valid())                           \
+    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__);
+
 #define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, log_subsystem, ...) \
   if (torrent::log_groups[log_group].valid())                           \
     torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); \
+
+#define lt_log_print_subsystem(log_group, log_subsystem, ...)           \
+  if (torrent::log_groups[log_group].valid())                           \
+    torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__);
 
 class log_buffer;
 

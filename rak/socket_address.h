@@ -82,6 +82,8 @@ public:
   bool                is_bindable() const;
   bool                is_address_any() const;
 
+  bool                is_valid_inet_class() const             { return family() == af_inet || family() == af_inet6; }
+
   // Should we need to set AF_UNSPEC?
   void                clear()                                 { std::memset(this, 0, sizeof(socket_address)); set_family(); }
 
@@ -339,11 +341,10 @@ socket_address::pretty_address_str() const {
     return sa_inet()->address_str();
   case af_inet6:
     return sa_inet6()->address_str();
+  case af_unspec:
+    return std::string("unspec");
   default:
-    if (port() == 0)
-      return std::string("no family");
-    else
-      return std::string("no family with port");
+    return std::string("invalid");
   }
 }
 

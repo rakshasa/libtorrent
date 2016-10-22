@@ -38,11 +38,15 @@
 
 #include <torrent/exceptions.h>
 #include <torrent/throttle.h>
+#include <torrent/utils/log.h>
 
 #include "manager.h"
 #include "dht/dht_router.h"
 
 #include "dht_manager.h"
+
+#define LT_LOG_THIS(log_fmt, ...)                                       \
+  lt_log_print_subsystem(torrent::LOG_DHT_MANAGER, "dht_manager", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -53,26 +57,46 @@ DhtManager::~DhtManager() {
 
 void
 DhtManager::initialize(const Object& dhtCache) {
+  auto bind_address = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
+
+  LT_LOG_THIS("initializing (bind_address:%s)", bind_address->pretty_address_str().c_str());
+
   if (m_router != NULL)
     throw internal_error("DhtManager::initialize called with DHT already active.");
 
-  m_router = new DhtRouter(dhtCache, rak::socket_address::cast_from(manager->connection_manager()->bind_address()));
+  try {
+    m_router = new DhtRouter(dhtCache, bind_address);
+  } catch (torrent::local_error& e) {
+    LT_LOG_THIS("initialization failed (error:%s)", e.what());
+  }
 }
 
-void
+bool
 DhtManager::start(port_type port) {
+  LT_LOG_THIS("starting (port:%d)", port);
+
   if (m_router == NULL)
     throw internal_error("DhtManager::start called without initializing first.");
 
   m_port = port;
-  m_router->start(port);
-}
 
+  try {
+    m_router->start(port);
+  } catch (torrent::local_error& e) {
+    LT_LOG_THIS("start failed (error:%s)", e.what());
+    return false;
+  }
+
+  return true;
+}
 
 void
 DhtManager::stop() {
-  if (m_router != NULL)
-    m_router->stop();
+  if (m_router == NULL)
+    return;
+
+  LT_LOG_THIS("stopping", 0);
+  m_router->stop();
 }
 
 bool

@@ -82,7 +82,7 @@ public:
 
   void                initialize(const Object& dhtCache);
 
-  void                start(port_type port);
+  bool                start(port_type port);
   void                stop();
 
   // Store DHT cache in the given container and return the container.
