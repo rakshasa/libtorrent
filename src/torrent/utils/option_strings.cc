@@ -190,6 +190,8 @@ const char* option_list_log_group[] = {
 
   "__non_cascading__",
 
+  "dht_all",
+
   "instrumentation_memory",
   "instrumentation_mincore",
   "instrumentation_choke",

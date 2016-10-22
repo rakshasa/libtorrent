@@ -173,9 +173,13 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
   char buffer[buffer_size];
   char* first = buffer;
 
-  if (hash != NULL && subsystem != NULL) {
-    first = hash_string_to_hex(*hash, first);
-    first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
+  if (subsystem != NULL) {
+    if (hash != NULL) {
+      first = hash_string_to_hex(*hash, first);
+      first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
+    } else {
+      first += snprintf(first, 4096 - (first - buffer), "%s: ", subsystem);
+    }
   }
 
   va_start(ap, fmt);
@@ -401,9 +405,9 @@ log_open_file_output(const char* name, const char* filename) {
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
   log_open_output(name, std::bind(&log_file_write, outfile,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2,
-                                       std::placeholders::_3));
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3));
 }
 
 void
@@ -417,9 +421,9 @@ log_open_gz_file_output(const char* name, const char* filename) {
   //   throw input_error("Could not set gzip log file buffer size.");
 
   log_open_output(name, std::bind(&log_gz_file_write, outfile,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2,
-                                       std::placeholders::_3));
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3));
 }
 
 log_buffer*
@@ -428,9 +432,9 @@ log_open_log_buffer(const char* name) {
 
   try {
     log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3));
+                                    std::placeholders::_1,
+                                    std::placeholders::_2,
+                                    std::placeholders::_3));
     return buffer;
 
   } catch (torrent::input_error& e) {
