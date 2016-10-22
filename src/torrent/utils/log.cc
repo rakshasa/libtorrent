@@ -249,6 +249,8 @@ log_initialize() {
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
 
   LOG_LINK(LOG_DHT_ALL, LOG_DHT_MANAGER);
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_NODE);
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_ROUTER);
 
   std::sort(log_children.begin(), log_children.end());
 

@@ -51,6 +51,9 @@
 #include "dht_tracker.h"
 #include "dht_transaction.h"
 
+#define LT_LOG_THIS(log_fmt, ...)                                       \
+  lt_log_print_subsystem(torrent::LOG_DHT_ROUTER, "dht_router", log_fmt, __VA_ARGS__);
+
 namespace torrent {
 
 HashString DhtRouter::zero_id;
