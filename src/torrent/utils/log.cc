@@ -209,6 +209,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 }
 
 #define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
+#define LOG_LINK(parent, child) log_children.push_back(std::make_pair(parent, child))
 
 #define LOG_CHILDREN_CASCADE(parent, subgroup)                          \
   log_children.push_back(std::make_pair(parent + LOG_ERROR,    subgroup + LOG_CRITICAL)); \
@@ -246,6 +247,8 @@ log_initialize() {
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_THREAD_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TRACKER_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
+
+  LOG_LINK(LOG_DHT_ALL, LOG_DHT_MANAGER);
 
   std::sort(log_children.begin(), log_children.end());
 
