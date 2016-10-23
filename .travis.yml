@@ -24,7 +24,9 @@ matrix:
     env: COMPILER=clang++-3.7
     addons:
       apt:
-        sources: llvm-toolchain-precise-3.7
+        sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-precise-3.7
         packages:
         - clang-3.7
         - libcppunit-dev
@@ -32,7 +34,9 @@ matrix:
     env: COMPILER=clang++-3.8
     addons:
       apt:
-        sources: llvm-toolchain-precise-3.8
+        sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-precise-3.8
         packages:
         - clang-3.8
         - libcppunit-dev
@@ -40,7 +44,9 @@ matrix:
     env: COMPILER=clang++-3.9
     addons:
       apt:
-        sources: llvm-toolchain-precise-3.9
+        sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-precise-3.9
         packages:
         - clang-3.9
         - libcppunit-dev
