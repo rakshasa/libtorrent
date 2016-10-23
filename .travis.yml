@@ -4,14 +4,6 @@ language: cpp
 # - gcc
 # - clang
 
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-
-#     packages:
-#       - g++-4.7
-
 # env:
 #   global:
 #   matrix:
@@ -23,8 +15,8 @@ matrix:
   - compiler: gcc
     addons:
       apt:
-        # sources:
-        # - ubuntu-toolchain-r-test
+        sources:
+        - ubuntu-toolchain-r-test
         packages:
         - g++-4.7
     env:
