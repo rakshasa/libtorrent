@@ -2,30 +2,66 @@ language: cpp
 
 matrix:
   include:
+  - compiler: clang
+    env: COMPILER=clang++ SKIP_CHECK=true
+  - compiler: clang
+    env: COMPILER=clang++
+    addons:
+      apt:
+        packages:
+        - libcppunit-dev
+  - compiler: clang
+    env: COMPILER=clang++-3.6
+    addons:
+      apt:
+        packages:
+        - clang-3.6
+        - libcppunit-dev
+  - compiler: clang
+    env: COMPILER=clang++-3.7
+    addons:
+      apt:
+        packages:
+        - clang-3.7
+        - libcppunit-dev
+  - compiler: clang
+    env: COMPILER=clang++-3.8
+    addons:
+      apt:
+        packages:
+        - clang-3.8
+        - libcppunit-dev
+  - compiler: clang
+    env: COMPILER=clang++-3.9
+    addons:
+      apt:
+        packages:
+        - clang-3.9
+        - libcppunit-dev
   - compiler: gcc
+    env: COMPILER=g++-4.7 SKIP_CHECK=true
     addons:
       apt:
         sources: ubuntu-toolchain-r-test
         packages:
         - g++-4.7
-    env: COMPILER=g++-4.7 RUN_CHECK=false
   - compiler: gcc
+    env: COMPILER=g++-4.7
     addons:
       apt:
         sources: ubuntu-toolchain-r-test
         packages:
         - g++-4.7
         - libcppunit-dev
-    env: COMPILER=g++-4.7 RUN_CHECK=true
-  - compiler: clang
-    env: COMPILER=clang++ RUN_CHECK=false
-  - compiler: clang
+  - compiler: gcc
+    env: COMPILER=g++-4.8
     addons:
       apt:
+        sources: ubuntu-toolchain-r-test
         packages:
+        - g++-4.8
         - libcppunit-dev
-    env: COMPILER=clang++ RUN_CHECK=true
 
 script:
 - ./autogen.sh && CXX="$COMPILER" ./configure && make -j12
-- if $RUN_CHECK; then make -j12 check; fi
+- if [ ! $SKIP_CHECK ]; then make -j12 check; fi
