@@ -4,16 +4,18 @@ language: cpp
 # - gcc
 # - clang
 
-env:
-- ENABLE_CPPUNIT=true
-- ENABLE_CPPUNIT=false
-
 # addons:
 #   apt:
 #     sources:
 #       - ubuntu-toolchain-r-test
 #     packages:
 #       - g++-4.7
+
+env:
+  global:
+  matrix:
+  - ENABLE_CPPUNIT=true
+  - ENABLE_CPPUNIT=false
 
 matrix:
   include:
@@ -24,7 +26,8 @@ matrix:
         - ubuntu-toolchain-r-test
         packages:
         - g++-4.7
-    env: COMPILER=g++-4.7
+    env:
+    - COMPILER=g++-4.7
 
 before_install:
 #- sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
