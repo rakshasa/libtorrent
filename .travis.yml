@@ -14,7 +14,9 @@ matrix:
     env: COMPILER=clang++-3.6
     addons:
       apt:
-        sources: llvm-toolchain-precise-3.6
+        sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-precise-3.6
         packages:
         - clang-3.6
         - libcppunit-dev
