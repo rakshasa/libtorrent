@@ -27,6 +27,5 @@ matrix:
     env: COMPILER=clang++ RUN_CHECK=true
 
 script:
-- ./autogen.sh && CXX="$COMPILER" ./configure
+- ./autogen.sh && CXX="$COMPILER" ./configure && make -j12
 - if $RUN_CHECK; then make -j12 check; fi
-- sudo make install
