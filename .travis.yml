@@ -1,40 +1,21 @@
 language: cpp
 
-# compiler:
-# - gcc
-# - clang
-
-# env:
-#   global:
-#   matrix:
-#   - ENABLE_CPPUNIT=true
-#   - ENABLE_CPPUNIT=false
-
 matrix:
   include:
   - compiler: gcc
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
+        sources: ubuntu-toolchain-r-test
         packages:
         - g++-4.7
-    env:
-      global:
-      - COMPILER=g++-4.7
-      matrix:
-      - ENABLE_CPPUNIT=true
-      - ENABLE_CPPUNIT=false
+    env: COMPILER=g++-4.7
+  - compiler: gcc
+    addons:
+      apt:
+        sources: ubuntu-toolchain-r-test
+        packages:
+        - g++-4.7
+        - libcppunit-dev
+    env: COMPILER=g++-4.7
 
-before_install:
-#- sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-#- sudo apt-get update -qq
-#- sudo apt-get build-dep libtorrent-dev
-
-#  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.7; fi
-#  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.7" CC="gcc-4.7"; fi
-
-  - if $ENABLE_CPPUNIT; then sudo apt-get install libcppunit-dev; fi
-
-# Figure out how to fix the issue running 'make check'.
 script: ./autogen.sh && CXX="$COMPILER" ./configure && make -j12 check && sudo make install
