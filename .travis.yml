@@ -8,7 +8,7 @@ matrix:
         sources: ubuntu-toolchain-r-test
         packages:
         - g++-4.7
-    env: COMPILER=g++-4.7
+    env: COMPILER=g++-4.7 RUN_CHECK=false
   - compiler: gcc
     addons:
       apt:
@@ -16,18 +16,17 @@ matrix:
         packages:
         - g++-4.7
         - libcppunit-dev
-    env: COMPILER=g++-4.7
+    env: COMPILER=g++-4.7 RUN_CHECK=true
   - compiler: clang
-    env: COMPILER=clang++
+    env: COMPILER=clang++ RUN_CHECK=false
   - compiler: clang
     addons:
       apt:
         packages:
         - libcppunit-dev
-    env: COMPILER=clang++
+    env: COMPILER=clang++ RUN_CHECK=true
 
 script:
-- ./autogen.sh
-- CXX="$COMPILER" ./configure
-- make -j12 check
+- ./autogen.sh && CXX="$COMPILER" ./configure
+- if $RUN_CHECK; then make -j12 check; fi
 - sudo make install
