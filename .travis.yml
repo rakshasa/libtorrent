@@ -17,5 +17,14 @@ matrix:
         - g++-4.7
         - libcppunit-dev
     env: COMPILER=g++-4.7
+  - compiler: clang
+    env: COMPILER=clang++
+  - compiler: clang
+    addons:
+      apt:
+        sources: ubuntu-toolchain-r-test
+        packages:
+        - libcppunit-dev
+    env: COMPILER=clang++
 
 script: ./autogen.sh && CXX="$COMPILER" ./configure && make -j12 check && sudo make install
