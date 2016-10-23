@@ -4,30 +4,35 @@ language: cpp
 # - gcc
 # - clang
 
-# addons:
-#   apt:
-#     sources:
-#       - ubuntu-toolchain-r-test
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+
 #     packages:
 #       - g++-4.7
 
-env:
-  global:
-  matrix:
-  - ENABLE_CPPUNIT=true
-  - ENABLE_CPPUNIT=false
+# env:
+#   global:
+#   matrix:
+#   - ENABLE_CPPUNIT=true
+#   - ENABLE_CPPUNIT=false
 
 matrix:
   include:
   - compiler: gcc
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
+        # sources:
+        # - ubuntu-toolchain-r-test
         packages:
         - g++-4.7
     env:
-    - COMPILER=g++-4.7
+      global:
+      - COMPILER=g++-4.7
+      matrix:
+      - ENABLE_CPPUNIT=true
+      - ENABLE_CPPUNIT=false
 
 before_install:
 #- sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
