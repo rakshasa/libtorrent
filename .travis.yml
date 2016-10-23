@@ -37,4 +37,4 @@ before_install:
   - if $ENABLE_CPPUNIT; then sudo apt-get install libcppunit-dev; fi
 
 # Figure out how to fix the issue running 'make check'.
-script: ./autogen.sh && ./configure && make -j12 check && sudo make install
+script: ./autogen.sh && CXX="$COMPILER" ./configure && make -j12 check && sudo make install
