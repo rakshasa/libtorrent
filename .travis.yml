@@ -40,16 +40,6 @@ matrix:
         packages:
         - clang-3.8
         - libcppunit-dev
-  - compiler: clang
-    env: COMPILER=clang++-3.9
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        - llvm-toolchain-precise-3.9
-        packages:
-        - clang-3.9
-        - libcppunit-dev
   - compiler: gcc
     env: COMPILER=g++-4.7 SKIP_CHECK=true
     addons:
