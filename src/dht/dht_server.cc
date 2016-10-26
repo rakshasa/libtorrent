@@ -205,7 +205,7 @@ DhtServer::stop() {
 }
 
 void
-DhtServer::reset_statistics() { 
+DhtServer::reset_statistics() {
   m_queriesReceived = 0;
   m_queriesSent = 0;
   m_repliesReceived = 0;
@@ -532,6 +532,12 @@ DhtServer::add_packet(DhtTransactionPacket* packet, int priority) {
 }
 
 void
+DhtServer::drop_packet(DhtTransactionPacket* packet) {
+    m_highQueue.erase(std::remove(m_highQueue.begin(), m_highQueue.end(), packet), m_highQueue.end());
+    m_lowQueue.erase(std::remove(m_lowQueue.begin(), m_lowQueue.end(), packet), m_lowQueue.end());
+}
+
+void
 DhtServer::create_query(transaction_itr itr, int tID, const rak::socket_address* sa, int priority) {
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
@@ -670,6 +676,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
     } catch (std::exception& e) {
       if (!quick) {
+        drop_packet(transaction->packet());
         delete itr->second;
         m_transactions.erase(itr);
       }
@@ -682,6 +689,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
     return ++itr;         // don't actually delete the transaction until the final timeout
 
   } else {
+    drop_packet(transaction->packet());
     delete itr->second;
     m_transactions.erase(itr++);
     return itr;

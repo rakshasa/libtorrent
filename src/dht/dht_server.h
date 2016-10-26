@@ -149,6 +149,7 @@ private:
   void                find_node_next(DhtTransactionSearch* t);
 
   void                add_packet(DhtTransactionPacket* packet, int priority);
+  void                drop_packet(DhtTransactionPacket* packet);
   void                create_query(transaction_itr itr, int tID, const rak::socket_address* sa, int priority);
   void                create_response(const DhtMessage& req, const rak::socket_address* sa, DhtMessage& reply);
   void                create_error(const DhtMessage& req, const rak::socket_address* sa, int num, const char* msg);
