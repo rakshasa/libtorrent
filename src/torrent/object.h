@@ -248,7 +248,7 @@ public:
 
   uint32_t            m_flags;
 
-#ifdef HAVE_CXX11
+#ifndef HAVE_STDCXX_0X
   value_type&         _value()             { return t_value; }
   const value_type&   _value() const       { return t_value; }
   string_type&        _string()            { return t_string; }
