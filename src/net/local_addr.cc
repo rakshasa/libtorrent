@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <ifaddrs.h>
 #include <rak/socket_address.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -128,11 +127,6 @@ get_priority(const rak::socket_address& addr) {
 // Linux-specific implementation that understands how to filter away
 // understands how to filter away secondary addresses.
 bool get_local_address(sa_family_t family, rak::socket_address *address) {
-  ifaddrs *ifaddrs;
-  if (getifaddrs(&ifaddrs)) {
-    return false;
-  }
-
   rak::socket_address best_addr;
   switch (family) {
   case AF_INET:
