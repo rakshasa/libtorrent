@@ -58,6 +58,8 @@
 #include "torrent/peer/client_list.h"
 #include "torrent/throttle.h"
 
+#include "torrent/net/bind_manager.h"
+
 #include "manager.h"
 
 namespace torrent {
@@ -74,6 +76,8 @@ Manager::Manager() :
   m_clientList(new ClientList),
   m_connectionManager(new ConnectionManager),
   m_dhtManager(new DhtManager),
+
+  m_bind(new bind_manager),
 
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle()),
@@ -118,6 +122,8 @@ Manager::~Manager() {
   delete m_dhtManager;
   delete m_connectionManager;
   delete m_chunkManager;
+
+  delete m_bind;
 
   delete m_clientList;
 

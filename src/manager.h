@@ -62,6 +62,8 @@ class ConnectionManager;
 class Throttle;
 class DhtManager;
 
+class bind_manager;
+
 typedef std::list<std::string> EncodingList;
 
 class Manager {
@@ -80,6 +82,8 @@ public:
   ConnectionManager*  connection_manager()                      { return m_connectionManager; }
   DhtManager*         dht_manager()                             { return m_dhtManager; }
   
+  bind_manager*       bind()                                    { return m_bind; }
+
   Poll*               poll()                                    { return m_main_thread_main.poll(); }
 
   thread_main*        main_thread_main()                        { return &m_main_thread_main; }
@@ -106,6 +110,8 @@ private:
   ClientList*         m_clientList;
   ConnectionManager*  m_connectionManager;
   DhtManager*         m_dhtManager;
+
+  bind_manager*       m_bind;
 
   thread_main         m_main_thread_main;
   thread_disk         m_main_thread_disk;

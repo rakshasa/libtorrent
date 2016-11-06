@@ -48,6 +48,8 @@
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
 
+#include "torrent/net/bind_manager.h"
+
 #include "peer_connection_base.h"
 #include "handshake.h"
 #include "handshake_manager.h"
@@ -153,20 +155,18 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   if (peerInfo == NULL || peerInfo->failed_counter() > max_failed)
     return;
 
-  SocketFd fd;
-  const rak::socket_address* bindAddress = rak::socket_address::cast_from(manager->connection_manager()->bind_address());
-  const rak::socket_address* connectAddress = &sa;
+  const rak::socket_address* connect_addr = &sa;
 
   if (rak::socket_address::cast_from(manager->connection_manager()->proxy_address())->is_valid()) {
-    connectAddress = rak::socket_address::cast_from(manager->connection_manager()->proxy_address());
+    connect_addr = rak::socket_address::cast_from(manager->connection_manager()->proxy_address());
     encryptionOptions |= ConnectionManager::encryption_use_proxy;
   }
 
+  SocketFd fd;
+
   if (!fd.open_stream() ||
       !setup_socket(fd) ||
-      (bindAddress->is_bindable() && !fd.bind(*bindAddress)) ||
-      !fd.connect(*connectAddress)) {
-
+      !manager->bind()->connect_socket(fd.get_fd(), connect_addr->c_sockaddr(), 0)) {
     if (fd.is_valid())
       fd.close();
 
@@ -183,7 +183,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   else
     message = ConnectionManager::handshake_outgoing;
 
-  LT_LOG_SA(INFO, &sa, "Adding outcoming connection: encryption:%x message:%x.", encryptionOptions, message);
+  LT_LOG_SA(INFO, &sa, "Adding outgoing connection: encryption:%x message:%x.", encryptionOptions, message);
   manager->connection_manager()->inc_socket_count();
 
   Handshake* handshake = new Handshake(fd, this, encryptionOptions);
