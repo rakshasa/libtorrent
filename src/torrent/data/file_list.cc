@@ -155,9 +155,6 @@ uint64_t
 FileList::left_bytes() const {
   uint64_t left = size_bytes() - completed_bytes();
 
-  if (left > ((uint64_t)1 << 60))
-    throw internal_error("FileList::bytes_left() is too large.", data()->hash());
-
   if (completed_chunks() == size_chunks() && left != 0)
     throw internal_error("FileList::bytes_left() has an invalid size.", data()->hash());
 
