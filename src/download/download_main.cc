@@ -492,6 +492,9 @@ DownloadMain::do_peer_exchange() {
 void
 DownloadMain::set_metadata_size(size_t size) {
   if (m_info->is_meta_download()) {
+	if(size == 0)
+		throw communication_error("Peer-supplied metadata size of 0");
+
     if (m_fileList.size_bytes() < 2)
       file_list()->reset_filesize(size);
     else if (size != m_fileList.size_bytes())
