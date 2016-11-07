@@ -107,6 +107,9 @@ class TransferList;
   #define LIBTORRENT_EXPORT
 #endif
 
+// TODO this is a stub; make this a real autoconf thing
+#define HAVE_UDNS
+
 }
 
 #endif
