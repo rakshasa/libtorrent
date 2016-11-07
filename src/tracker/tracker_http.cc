@@ -356,7 +356,7 @@ TrackerHttp::process_success(const Object& object) {
     }
   }
 
-  if (object.has_key("peers6"))
+  if (object.has_key_string("peers6"))
     l.parse_address_compact_ipv6(object.get_key_string("peers6"));
 
   close_directly();
