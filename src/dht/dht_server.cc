@@ -743,6 +743,11 @@ DhtServer::event_read() {
       if (!message[key_t].is_raw_string())
         throw dht_error(dht_error_protocol, "No transaction ID");
 
+	  //Check transaction id length to avoid use of it in dht_error if invalid
+	  if(message[key_t].as_string().size() > 20) {
+		  throw network_error();
+	  }
+
       if (!message[key_y].is_raw_string())
         throw dht_error(dht_error_protocol, "No message type");
 
