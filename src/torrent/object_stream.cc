@@ -40,6 +40,7 @@
 #include <iostream>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <rak/algorithm.h>
 #include <rak/string_manip.h>
 
