@@ -48,6 +48,11 @@
 #include lt_tr1_functional
 #include <torrent/common.h>
 
+#include "torrent/utils/udnsevent.h"
+#ifndef HAVE_UDNS
+#include <list>
+#endif
+
 namespace torrent {
 
 // Standard pair of up/down throttles.
@@ -100,9 +105,7 @@ public:
   typedef std::function<uint32_t (const sockaddr*)>     slot_filter_type;
   typedef std::function<ThrottlePair (const sockaddr*)> slot_throttle_type;
 
-  // The sockaddr argument in the result slot call is NULL if the resolve failed, and the int holds the errno.
-  typedef std::function<void (const sockaddr*, int)> slot_resolver_result_type;
-  typedef std::function<slot_resolver_result_type* (const char*, int, int, slot_resolver_result_type)> slot_resolver_type;
+  typedef std::function<void (const char*, int, int, resolver_callback)> slot_resolver_type;
 
   ConnectionManager();
   ~ConnectionManager();
@@ -154,10 +157,23 @@ public:
   void                set_listen_port(port_type p)            { m_listen_port = p; }
   void                set_listen_backlog(int v);
 
-  // The resolver returns a pointer to its copy of the result slot
-  // which the caller may set blocked to prevent the slot from being
-  // called. The pointer must be NULL if the result slot was already
-  // called because the resolve was synchronous.
+  /* Async resolver interface.
+
+     In a build with HAVE_UDNS, these do genuine asynchronous DNS resolution.
+     In a build without it, they're stubbed out to use a synchronous getaddrinfo(3)
+     call, while exposing the same API.
+  */
+  // this queues a DNS resolve but doesn't send it. it doesn't execute any callbacks
+  // and returns control immediately. the return value is an opaque identifier that
+  // can be used to cancel the query (as long as the callback hasn't been executed yet):
+  void*               enqueue_async_resolve(const char *name, int family, resolver_callback *cbck);
+  // this sends any queued resolves. it can execute arbitrary callbacks
+  // before returning control:
+  void                flush_async_resolves();
+  // this cancels a pending async query (as long as the callback hasn't executed yet):
+  void                cancel_async_resolve(void *query);
+
+  /* Legacy synchronous resolver interface. */
   slot_resolver_type& resolver()          { return m_slot_resolver; }
 
   // The slot returns a ThrottlePair to use for the given address, or
@@ -190,6 +206,17 @@ private:
   slot_filter_type    m_slot_filter;
   slot_resolver_type  m_slot_resolver;
   slot_throttle_type  m_slot_address_throttle;
+
+#ifdef HAVE_UDNS
+  UdnsEvent           m_udnsevent;
+#else
+  struct MockResolve {
+      std::string hostname;
+      int family;
+      resolver_callback *callback;
+  };
+  std::list<MockResolve*> m_mock_resolve_queue;
+#endif
 };
 
 }

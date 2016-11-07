@@ -50,9 +50,8 @@
 
 namespace torrent {
 
-// Fix TrackerUdp, etc, if this is made async.
-static ConnectionManager::slot_resolver_result_type*
-resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
+static void
+resolve_host(const char* host, int family, int socktype, resolver_callback slot) {
   if (manager->main_thread_main()->is_current())
     thread_base::release_global_lock();
 
@@ -64,7 +63,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
       thread_base::acquire_global_lock();
 
     slot(NULL, err);
-    return NULL;
+    return;
   }
 
   rak::socket_address sa;
@@ -75,7 +74,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
     thread_base::acquire_global_lock();
   
   slot(sa.c_sockaddr(), 0);
-  return NULL;
+  return;
 }
 
 ConnectionManager::ConnectionManager() :
@@ -200,6 +199,49 @@ ConnectionManager::set_listen_backlog(int v) {
     throw input_error("backlog value must be set before listen port is opened");
 
   m_listen_backlog = v;
+}
+
+void *
+ConnectionManager::enqueue_async_resolve(const char *name, int family, resolver_callback *cbck) {
+#ifdef HAVE_UDNS
+    return m_udnsevent.enqueue_resolve(name, family, cbck);
+#else
+    MockResolve *mock_resolve = new MockResolve;
+    mock_resolve->hostname = std::string(name);
+    mock_resolve->family = family;
+    mock_resolve->callback = cbck;
+    m_mock_resolve_queue.push_back(mock_resolve);
+    return mock_resolve;
+#endif
+}
+
+void ConnectionManager::flush_async_resolves() {
+#ifdef HAVE_UDNS
+    m_udnsevent.flush_resolves();
+#else
+    // dequeue all callbacks and resolve them synchronously
+    while (!m_mock_resolve_queue.empty()) {
+        MockResolve *mock_resolve = m_mock_resolve_queue.front();
+        m_mock_resolve_queue.pop_front();
+        this->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
+        delete mock_resolve;
+    }
+#endif
+}
+
+void
+ConnectionManager::cancel_async_resolve(void *query) {
+#ifdef HAVE_UDNS
+    m_udnsevent.cancel((UdnsQuery *) query);
+#else
+    // O(n), meh; this should never get called in a non-udns build
+    MockResolve *mock_resolve = (MockResolve *) query;
+    auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);
+    if (it != std::end(m_mock_resolve_queue)) {
+        m_mock_resolve_queue.erase(it);
+        delete mock_resolve;
+    }
+#endif
 }
 
 }

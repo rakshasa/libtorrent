@@ -41,6 +41,7 @@ scripts/lt*.m4
 .#*
 \#*#
 *~
+*.swp
 
 # Packages #
 ############
