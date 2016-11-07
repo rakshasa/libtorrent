@@ -59,7 +59,12 @@ object_read_string(std::istream* input, std::string& str) {
   if (input->fail() || input->get() != ':')
     return false;
   
-  str.resize(size);
+  try {
+  	str.resize(size);
+  }
+  catch (std::length_error& e){ 
+	  return false;
+  }
 
   for (std::string::iterator itr = str.begin(); itr != str.end() && input->good(); ++itr)
     *itr = input->get();
