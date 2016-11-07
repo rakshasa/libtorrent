@@ -132,13 +132,6 @@ const char* option_list_log_group[] = {
   "info",
   "debug",
   
-  "connection_critical",
-  "connection_error",
-  "connection_warn",
-  "connection_notice",
-  "connection_info",
-  "connection_debug",
-  
   "dht_critical",
   "dht_error",
   "dht_warn",
@@ -189,6 +182,12 @@ const char* option_list_log_group[] = {
   "torrent_debug",
 
   "__non_cascading__",
+
+  "connection",
+  "connection_bind",
+  "connection_filter",
+  "connection_hanshake",
+  "connection_listen",
 
   "dht_all",
   "dht_manager",

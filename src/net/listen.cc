@@ -52,6 +52,9 @@
 #include "listen.h"
 #include "manager.h"
 
+#define LT_LOG_SA(sa, log_fmt, ...)                                     \
+  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
+
 namespace torrent {
 
 bool
@@ -92,8 +95,7 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
       manager->poll()->insert_read(this);
       manager->poll()->insert_error(this);
 
-      lt_log_print(LOG_CONNECTION_INFO, "listen port %" PRIu16 " opened with backlog set to %i",
-                   m_port, backlog);
+      LT_LOG_SA(bindAddress, "listen port %" PRIu16 " opened with backlog set to %i", m_port, backlog);
 
       return true;
 
@@ -104,7 +106,7 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
   get_fd().close();
   get_fd().clear();
 
-  lt_log_print(LOG_CONNECTION_INFO, "failed to open listen port");
+  LT_LOG_SA(bindAddress, "failed to open listen port", 0);
 
   return false;
 }

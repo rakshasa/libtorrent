@@ -56,11 +56,12 @@
 
 #include "manager.h"
 
-#define LT_LOG_SA(log_level, sa, log_fmt, ...)                          \
-  lt_log_print(LOG_CONNECTION_##log_level, "handshake_manager->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
-#define LT_LOG_SA_C(log_level, sa, log_fmt, ...)                        \
-  lt_log_print(LOG_CONNECTION_##log_level, "handshake_manager->%s: " log_fmt, \
-               reinterpret_cast<const rak::socket_address*>(sa)->address_str().c_str(), __VA_ARGS__);
+#define LT_LOG_SA(sa, log_fmt, ...)                                     \
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \
+               (sa)->address_str().c_str(), __VA_ARGS__);
+#define LT_LOG_SA_C(sa, log_fmt, ...)                                   \
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \
+               rak::socket_address::cast_from(sa)->address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -124,7 +125,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
     return;
   }
 
-  LT_LOG_SA(INFO, &sa, "Adding incoming connection: fd:%i.", fd.get_fd());
+  LT_LOG_SA(&sa, "incoming connection (fd:%i)", fd.get_fd());
 
   manager->connection_manager()->inc_socket_count();
 
@@ -183,7 +184,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   else
     message = ConnectionManager::handshake_outgoing;
 
-  LT_LOG_SA(INFO, &sa, "Adding outgoing connection: encryption:%x message:%x.", encryptionOptions, message);
+  LT_LOG_SA(&sa, "outgoing connection (encryption:%x message:%x)", encryptionOptions, message);
   manager->connection_manager()->inc_socket_count();
 
   Handshake* handshake = new Handshake(fd, this, encryptionOptions);
@@ -213,7 +214,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
                                                  handshake->extensions())) != NULL) {
     
     manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
-    LT_LOG_SA_C(INFO, handshake->peer_info()->socket_address(), "Handshake success.", 0);
+    LT_LOG_SA_C(handshake->peer_info()->socket_address(), "handshake success", 0);
 
     pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
 
@@ -237,7 +238,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
     else
       reason = e_handshake_duplicate;
 
-    LT_LOG_SA_C(INFO, handshake->peer_info()->socket_address(), "Handshake dropped: %s.", strerror(reason));
+    LT_LOG_SA_C(handshake->peer_info()->socket_address(), "handshake dropped (value:%i message:'%s')", reason, strerror(reason));
     handshake->destroy_connection();
   }
 
@@ -255,14 +256,13 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   handshake->deactivate_connection();
   handshake->destroy_connection();
 
-  LT_LOG_SA(INFO, sa, "Received error: message:%x %s.", message, strerror(error));
+  LT_LOG_SA(sa, "received error (value:%i message:'%s')", message, strerror(error));
 
   if (handshake->encryption()->should_retry()) {
     int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SA(INFO, sa, "Retrying %s.",
-              retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
+    LT_LOG_SA(sa, "retrying (%s)", retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
 
     create_outgoing(*sa, download, retry_options);
   }
