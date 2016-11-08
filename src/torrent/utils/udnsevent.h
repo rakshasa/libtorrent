@@ -23,6 +23,7 @@ struct UdnsQuery {
     struct ::dns_query *a4_query;
     struct ::dns_query *a6_query;
     resolver_callback  *callback;
+    int                 error;
 };
 
 class UdnsEvent : public Event {
@@ -48,8 +49,9 @@ public:
 protected:
   void                process_timeouts();
 
-  dns_ctx*            m_ctx;
-  rak::priority_item  m_taskTimeout;
+  dns_ctx*               m_ctx;
+  rak::priority_item     m_taskTimeout;
+  std::list<UdnsQuery *> m_malformed_queries;
 };
 
 }

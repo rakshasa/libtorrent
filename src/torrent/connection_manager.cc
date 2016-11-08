@@ -234,7 +234,6 @@ ConnectionManager::cancel_async_resolve(void *query) {
 #ifdef HAVE_UDNS
     m_udnsevent.cancel((UdnsQuery *) query);
 #else
-    // O(n), meh; this should never get called in a non-udns build
     MockResolve *mock_resolve = (MockResolve *) query;
     auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);
     if (it != std::end(m_mock_resolve_queue)) {

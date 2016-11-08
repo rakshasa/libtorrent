@@ -110,6 +110,10 @@ namespace torrent {
         priority_queue_erase(&taskScheduler, &m_taskTimeout);
         ::dns_close(m_ctx);
         ::dns_free(m_ctx);
+
+        for (auto it = std::begin(m_malformed_queries); it != std::end(m_malformed_queries); ++it) {
+            delete *it;
+        }
     }
 
     void UdnsEvent::event_read() {
@@ -130,12 +134,34 @@ namespace torrent {
 
         if (family == AF_INET || family == AF_UNSPEC) {
             query->a4_query = ::dns_submit_a4(m_ctx, name, 0, a4_callback_wrapper, query);
-            if (query->a4_query == NULL) throw new internal_error("dns_submit_a4 failed");
+            if (query->a4_query == NULL) {
+                // XXX udns does query parsing up front and will fail immediately
+                // during submission of malformed domain names, e.g., `..`. In order to
+                // maintain a clean interface, keep track of this query internally
+                // so we can call the callback later with a failure code
+                if (::dns_status(m_ctx) == DNS_E_BADQUERY) {
+                    // this is what getaddrinfo(3) would return:
+                    query->error = EAI_NONAME;
+                    m_malformed_queries.push_back(query);
+                    return query;
+                } else {
+                    // unrecoverable errors, like ENOMEM
+                    throw new internal_error("dns_submit_a4 failed");
+                }
+            }
         }
 
         if (family == AF_INET6 || family == AF_UNSPEC) {
             query->a6_query = ::dns_submit_a6(m_ctx, name, 0, a6_callback_wrapper, query);
-            if (query->a6_query == NULL) throw new internal_error("dns_submit_a6 failed");
+            if (query->a6_query == NULL) {
+                if (::dns_status(m_ctx) == DNS_E_BADQUERY) {
+                    query->error = EAI_NONAME;
+                    m_malformed_queries.push_back(query);
+                    return query;
+                } else {
+                    throw new internal_error("dns_submit_a6 failed");
+                }
+            }
         }
 
         return query;
@@ -143,6 +169,13 @@ namespace torrent {
 
     void
     UdnsEvent::flush_resolves() {
+        // first process any queries that were malformed
+        while (!m_malformed_queries.empty()) {
+            UdnsQuery *query = m_malformed_queries.front();
+            m_malformed_queries.pop_front();
+            (*(query->callback))(NULL, query->error);
+            delete query;
+        }
         process_timeouts();
     }
 
@@ -171,6 +204,10 @@ namespace torrent {
         }
         if (query->a6_query != NULL) {
             ::dns_cancel(m_ctx, query->a6_query);
+        }
+        auto it = std::find(std::begin(m_malformed_queries), std::end(m_malformed_queries), query);
+        if (it != std::end(m_malformed_queries)) {
+            m_malformed_queries.erase(it);
         }
         delete query;
     }
