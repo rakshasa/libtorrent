@@ -28,8 +28,7 @@ namespace torrent {
             case DNS_E_NOMEM:
                 return EAI_MEMORY;
             case DNS_E_BADQUERY:
-                // again, not quite right
-                return EAI_FAIL;
+                return EAI_NONAME;
             default:
                 return EAI_ADDRFAMILY;
         }
