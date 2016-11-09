@@ -53,7 +53,7 @@
 #include "manager.h"
 
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
-  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, (sa)->pretty_address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
 

@@ -220,6 +220,8 @@ public:
 
   void                set_address_any()                       { set_port(0); set_address(in6addr_any); }
 
+  std::string         pretty_address_str() const;
+
   sa_family_t         family() const                          { return m_sockaddr.sin6_family; }
   void                set_family()                            { m_sockaddr.sin6_family = AF_INET6; }
 
@@ -340,7 +342,7 @@ socket_address::pretty_address_str() const {
   case af_inet:
     return sa_inet()->address_str();
   case af_inet6:
-    return sa_inet6()->address_str();
+    return sa_inet6()->pretty_address_str();
   case af_unspec:
     return std::string("unspec");
   default:
@@ -486,6 +488,28 @@ socket_address_inet6::address_c_str(char* buf, socklen_t size) const {
 inline bool
 socket_address_inet6::set_address_c_str(const char* a) {
   return inet_pton(AF_INET6, a, &m_sockaddr.sin6_addr);
+}
+
+inline std::string
+socket_address_inet6::pretty_address_str() const {
+  char buf[INET6_ADDRSTRLEN + 2];
+
+  if (inet_ntop(family(), &m_sockaddr.sin6_addr, buf + 1, INET6_ADDRSTRLEN) == NULL)
+    return std::string();
+
+  buf[0] = '[';
+
+  char* last_char = (char*)std::memchr(buf + 1, 0, INET6_ADDRSTRLEN);
+
+  // TODO: Throw exception here.
+
+  if (last_char == NULL || last_char >= buf + 1 + INET6_ADDRSTRLEN)
+    throw std::logic_error("inet_ntop for inet6 returned bad buffer");
+
+  *last_char = ']';
+  *++last_char = '\0';
+
+  return std::string(buf);
 }
 
 inline socket_address

@@ -62,7 +62,7 @@ struct option_pair {
   unsigned int value;
 };
 
-option_pair option_list_connection[] = {
+option_pair option_list_connection_type[] = {
   { "leech",        Download::CONNECTION_LEECH },
   { "seed",         Download::CONNECTION_SEED },
   { "initial_seed", Download::CONNECTION_INITIAL_SEED },
@@ -122,6 +122,19 @@ option_pair option_list_tracker_mode[] = {
   { "normal",     choke_group::TRACKER_MODE_NORMAL },
   { "aggressive", choke_group::TRACKER_MODE_AGGRESSIVE },
   { NULL, 0 }
+};
+
+const char* option_list_handshake_connection[] = {
+  "none",
+  "incoming",
+  "outgoing_normal",
+  "outgoing_encrypted",
+  "outgoing_proxy",
+  "success",
+  "dropped",
+  "failed",
+  "retry_plaintext",
+  "retry_encrypted"
 };
 
 const char* option_list_log_group[] = {
@@ -229,7 +242,7 @@ const char* option_list_tracker_event[] = {
 };
 
 option_pair* option_pair_lists[OPTION_START_COMPACT] = {
-  option_list_connection,
+  option_list_connection_type,
   option_list_heuristics,
   option_list_heuristics_download,
   option_list_heuristics_upload,
@@ -243,6 +256,7 @@ option_pair* option_pair_lists[OPTION_START_COMPACT] = {
   { sizeof(single_name) / sizeof(const char*) - 1, single_name }
 
 option_single option_single_lists[OPTION_SINGLE_SIZE] = {
+  OPTION_SINGLE_ENTRY(option_list_handshake_connection),
   OPTION_SINGLE_ENTRY(option_list_log_group),
   OPTION_SINGLE_ENTRY(option_list_tracker_event),
 };
@@ -270,7 +284,7 @@ option_find_string(option_enum opt_enum, const char* name) {
 }
 
 const char*
-option_as_string(option_enum opt_enum, unsigned int value) {
+option_to_string(option_enum opt_enum, unsigned int value, const char* not_found) {
   if (opt_enum < OPTION_START_COMPACT) {
     option_pair* itr = option_pair_lists[opt_enum];
   
@@ -284,7 +298,27 @@ option_as_string(option_enum opt_enum, unsigned int value) {
       return option_single_lists[opt_enum - OPTION_START_COMPACT].name[value];
   }
 
-  throw input_error("Invalid option value.");  
+  return not_found;
+}
+
+const char*
+option_to_string_or_throw(option_enum opt_enum, unsigned int value, const char* not_found) {
+  const char* result = option_to_string(opt_enum, value, NULL);
+
+  if (result == NULL)
+    throw input_error(not_found);
+  else
+    return result;
+}
+
+const char*
+option_as_string(option_enum opt_enum, unsigned int value) {
+  const char* result = option_to_string(opt_enum, value, NULL);
+
+  if (result == NULL)
+    throw input_error("Invalid option value.");
+  else
+    return result;
 }
 
 torrent::Object

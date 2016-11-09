@@ -36,10 +36,19 @@
 
 #include "config.h"
 
+#include <cerrno>
+#include <cstring>
+
 #include "bind_manager.h"
 
 #include "net/socket_fd.h"
 #include "rak/socket_address.h"
+#include "torrent/utils/log.h"
+
+#define LT_LOG(log_fmt, ...)                                            \
+  lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
+#define LT_LOG_SA(sa, log_fmt, ...)                                     \
+  lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, (sa)->pretty_address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -50,13 +59,22 @@ bind_manager::connect_socket(int file_desc, const sockaddr* connect_sockaddr, in
   if (!empty()) {
     // Do stuff to bind socket.
     // (bindAddress->is_bindable() && !fd.bind(*bindAddress))
+
+    LT_LOG("bind foo (fd:%i)", file_desc);
   }
 
   if (connect_sockaddr != NULL) {
     const rak::socket_address* connect_socket_addr = rak::socket_address::cast_from(connect_sockaddr);
 
-    if (!sock_fd.connect(*connect_socket_addr))
+    if (!sock_fd.connect(*connect_socket_addr)) {
+      LT_LOG("connect failed (fd:%i address:%s errno:%i message:'%s')",
+             file_desc, connect_socket_addr->pretty_address_str().c_str(), errno, std::strerror(errno));
+
+      errno = 0;
       return false;
+    }
+
+    LT_LOG("connect success (fd:%i address:%s)", file_desc, connect_socket_addr->pretty_address_str().c_str());
   }
 
   return true;

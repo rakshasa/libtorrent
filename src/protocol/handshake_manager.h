@@ -96,7 +96,7 @@ public:
   ProtocolExtension*  default_extensions() const                        { return &DefaultExtensions; }
 
 private:
-  void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryptionOptions);
+  void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryption_options);
   void                erase(Handshake* handshake);
 
   bool                setup_socket(SocketFd fd);

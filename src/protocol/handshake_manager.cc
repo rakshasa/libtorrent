@@ -40,15 +40,17 @@
 
 #include "torrent/exceptions.h"
 #include "torrent/error.h"
-#include "download/download_main.h"
+
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
+#include "torrent/net/bind_manager.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/option_strings.h"
 
-#include "torrent/net/bind_manager.h"
+#include "download/download_main.h"
 
 #include "peer_connection_base.h"
 #include "handshake.h"
@@ -58,10 +60,10 @@
 
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \
-               (sa)->address_str().c_str(), __VA_ARGS__);
+               (sa)->pretty_address_str().c_str(), __VA_ARGS__);
 #define LT_LOG_SA_C(sa, log_fmt, ...)                                   \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \
-               rak::socket_address::cast_from(sa)->address_str().c_str(), __VA_ARGS__);
+               rak::socket_address::cast_from(sa)->pretty_address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -73,6 +75,20 @@ handshake_manager_delete_handshake(Handshake* h) {
   h->destroy_connection();
 
   delete h;
+}
+
+inline const char*
+outgoing_encryption_options_to_message(int encryption_options) {
+  int value;
+
+  if (encryption_options & ConnectionManager::encryption_use_proxy)
+    value = ConnectionManager::handshake_outgoing_proxy;
+  else if (encryption_options & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require))
+    value = ConnectionManager::handshake_outgoing_encrypted;
+  else
+    value = ConnectionManager::handshake_outgoing;
+
+  return option_to_string(OPTION_HANDSHAKE_CONNECTION, value);
 }
 
 HandshakeManager::size_type
@@ -145,10 +161,10 @@ HandshakeManager::add_outgoing(const rak::socket_address& sa, DownloadMain* down
 }
 
 void
-HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* download, int encryptionOptions) {
+HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* download, int encryption_options) {
   int connection_options = PeerList::connect_keep_handshakes;
 
-  if (!(encryptionOptions & ConnectionManager::encryption_retrying))
+  if (!(encryption_options & ConnectionManager::encryption_retrying))
     connection_options |= PeerList::connect_filter_recent;
 
   PeerInfo* peerInfo = download->peer_list()->connected(sa.c_sockaddr(), connection_options);
@@ -160,7 +176,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
 
   if (rak::socket_address::cast_from(manager->connection_manager()->proxy_address())->is_valid()) {
     connect_addr = rak::socket_address::cast_from(manager->connection_manager()->proxy_address());
-    encryptionOptions |= ConnectionManager::encryption_use_proxy;
+    encryption_options |= ConnectionManager::encryption_use_proxy;
   }
 
   SocketFd fd;
@@ -175,19 +191,12 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
     return;
   }
 
-  int message;
+  LT_LOG_SA(&sa, "outgoing connection (encryption:0x%x message:%s)",
+            encryption_options, outgoing_encryption_options_to_message(encryption_options));
 
-  if (encryptionOptions & ConnectionManager::encryption_use_proxy)
-    message = ConnectionManager::handshake_outgoing_proxy;
-  else if (encryptionOptions & (ConnectionManager::encryption_try_outgoing | ConnectionManager::encryption_require))
-    message = ConnectionManager::handshake_outgoing_encrypted;
-  else
-    message = ConnectionManager::handshake_outgoing;
-
-  LT_LOG_SA(&sa, "outgoing connection (encryption:%x message:%x)", encryptionOptions, message);
   manager->connection_manager()->inc_socket_count();
 
-  Handshake* handshake = new Handshake(fd, this, encryptionOptions);
+  Handshake* handshake = new Handshake(fd, this, encryption_options);
   handshake->initialize_outgoing(sa, download, peerInfo);
 
   base_type::push_back(handshake);
