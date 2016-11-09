@@ -78,7 +78,7 @@ handshake_manager_delete_handshake(Handshake* h) {
 }
 
 inline const char*
-outgoing_encryption_options_to_message(int encryption_options) {
+outgoing_encryption_options_to_string(int encryption_options) {
   int value;
 
   if (encryption_options & ConnectionManager::encryption_use_proxy)
@@ -191,8 +191,8 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
     return;
   }
 
-  LT_LOG_SA(&sa, "outgoing connection (encryption:0x%x message:%s)",
-            encryption_options, outgoing_encryption_options_to_message(encryption_options));
+  LT_LOG_SA(&sa, "outgoing connection (encryption:0x%x type:%s)",
+            encryption_options, outgoing_encryption_options_to_string(encryption_options));
 
   manager->connection_manager()->inc_socket_count();
 

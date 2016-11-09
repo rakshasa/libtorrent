@@ -39,13 +39,16 @@
 #ifndef LIBTORRENT_NET_BIND_MANAGER_H
 #define LIBTORRENT_NET_BIND_MANAGER_H
 
+#include <memory>
 #include <vector>
 #include <sys/socket.h>
 #include <torrent/common.h>
 
 namespace torrent {
 
+// Make const?
 struct bind {
+  std::unique_ptr<const sockaddr> address;
 };
 
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind> {
@@ -54,10 +57,12 @@ public:
 
   using base_type::empty;
 
+  bind_manager();
+
   bool connect_socket(int file_desc, const sockaddr* sock_address, int flags = 0) const;
 
 private:
-
+  std::unique_ptr<const sockaddr> m_default_address;
 };
   
 }

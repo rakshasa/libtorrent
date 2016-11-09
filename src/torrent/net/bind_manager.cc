@@ -47,34 +47,41 @@
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
-#define LT_LOG_SA(sa, log_fmt, ...)                                     \
+#define LT_LOG_SA(log_fmt, sa, ...)                                     \
   lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, (sa)->pretty_address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
 
+bind_manager::bind_manager() {
+  rak::socket_address* default_address = new rak::socket_address;
+  default_address->clear();
+
+  m_default_address = std::unique_ptr<const sockaddr>(default_address->c_sockaddr());
+}
+
 bool
 bind_manager::connect_socket(int file_desc, const sockaddr* connect_sockaddr, int flags) const {
-  SocketFd sock_fd(file_desc);
+  SocketFd socket_fd(file_desc);
+  const rak::socket_address* bind_address = rak::socket_address::cast_from(m_default_address.get());
 
   if (!empty()) {
     // Do stuff to bind socket.
     // (bindAddress->is_bindable() && !fd.bind(*bindAddress))
-
-    LT_LOG("bind foo (fd:%i)", file_desc);
   }
 
   if (connect_sockaddr != NULL) {
     const rak::socket_address* connect_socket_addr = rak::socket_address::cast_from(connect_sockaddr);
 
-    if (!sock_fd.connect(*connect_socket_addr)) {
-      LT_LOG("connect failed (fd:%i address:%s errno:%i message:'%s')",
-             file_desc, connect_socket_addr->pretty_address_str().c_str(), errno, std::strerror(errno));
+    if (!socket_fd.connect(*connect_socket_addr)) {
+      LT_LOG_SA("connect failed (fd:%i address:%s errno:%i message:'%s')",
+                bind_address, file_desc, connect_socket_addr->pretty_address_str().c_str(), errno, std::strerror(errno));
 
       errno = 0;
       return false;
     }
 
-    LT_LOG("connect success (fd:%i address:%s)", file_desc, connect_socket_addr->pretty_address_str().c_str());
+    LT_LOG_SA("connect success (fd:%i address:%s)",
+              bind_address, file_desc, connect_socket_addr->pretty_address_str().c_str());
   }
 
   return true;

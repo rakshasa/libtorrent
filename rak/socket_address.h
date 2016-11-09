@@ -84,7 +84,6 @@ public:
 
   bool                is_valid_inet_class() const             { return family() == af_inet || family() == af_inet6; }
 
-  // Should we need to set AF_UNSPEC?
   void                clear()                                 { std::memset(this, 0, sizeof(socket_address)); set_family(); }
 
   sa_family_t         family() const                          { return m_sockaddr.sa_family; }
