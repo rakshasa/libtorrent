@@ -123,6 +123,7 @@ public:
   // extranous bytes and ensure it does not go beyond the size of this
   // struct.
   void                copy(const socket_address& src, size_t length);
+  void                copy_sockaddr(const sockaddr* src);
 
   static socket_address*       cast_from(sockaddr* sa)        { return reinterpret_cast<socket_address*>(sa); }
   static const socket_address* cast_from(const sockaddr* sa)  { return reinterpret_cast<const socket_address*>(sa); }
@@ -381,13 +382,16 @@ socket_address::length() const {
 inline void
 socket_address::copy(const socket_address& src, size_t length) {
   length = std::min(length, sizeof(socket_address));
-  
-  // Does this get properly optimized?
+
   std::memset(this, 0, sizeof(socket_address));
   std::memcpy(this, &src, length);
 }
 
-// Should we be able to compare af_unspec?
+inline void
+socket_address::copy_sockaddr(const sockaddr* src) {
+  std::memset(this, 0, sizeof(socket_address));
+  std::memcpy(this, &src, socket_address::cast_from(src)->length());
+}
 
 inline bool
 socket_address::operator == (const socket_address& rhs) const {

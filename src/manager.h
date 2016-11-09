@@ -82,7 +82,7 @@ public:
   ConnectionManager*  connection_manager()                      { return m_connectionManager; }
   DhtManager*         dht_manager()                             { return m_dhtManager; }
   
-  bind_manager*       bind()                                    { return m_bind; }
+  bind_manager*       bind()                                    { return m_bind_manager; }
 
   Poll*               poll()                                    { return m_main_thread_main.poll(); }
 
@@ -111,7 +111,7 @@ private:
   ConnectionManager*  m_connectionManager;
   DhtManager*         m_dhtManager;
 
-  bind_manager*       m_bind;
+  bind_manager*       m_bind_manager;
 
   thread_main         m_main_thread_main;
   thread_disk         m_main_thread_disk;

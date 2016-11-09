@@ -46,20 +46,28 @@
 
 namespace torrent {
 
-// Make const?
-struct bind {
+struct bind_struct {
+  bind_struct(const sockaddr* a, int f);
+
+  int flags;
   std::unique_ptr<const sockaddr> address;
 };
 
-class LIBTORRENT_EXPORT bind_manager : private std::vector<bind> {
+class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
 public:
-  typedef std::vector<bind> base_type;
+  typedef std::vector<bind_struct> base_type;
 
   using base_type::empty;
 
+  static const int flag_ipv4 = 0x1;
+  static const int flag_ipv6 = 0x2;
+
   bind_manager();
 
-  bool connect_socket(int file_desc, const sockaddr* sock_address, int flags = 0) const;
+  // Temporary:
+  void add_bind(const sockaddr* bind_address, int flags);
+
+  bool connect_socket(int file_desc, const sockaddr* sock_addr, int flags = 0) const;
 
 private:
   std::unique_ptr<const sockaddr> m_default_address;

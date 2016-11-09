@@ -52,17 +52,38 @@
 
 namespace torrent {
 
+bind_struct::bind_struct(const sockaddr* a, int f) :
+  flags(f)
+{
+  auto addr = new rak::socket_address;
+  addr->copy_sockaddr(a);
+
+  address = std::unique_ptr<const sockaddr>(addr->c_sockaddr());
+}
+
 bind_manager::bind_manager() {
-  rak::socket_address* default_address = new rak::socket_address;
+  auto default_address = new rak::socket_address;
   default_address->clear();
 
   m_default_address = std::unique_ptr<const sockaddr>(default_address->c_sockaddr());
 }
 
+void
+bind_manager::add_bind(const sockaddr* bind_addr, int flags) {
+  auto bind_address = rak::socket_address::cast_from(bind_addr);
+
+  // TODO: Fail if not inet/inet6.
+
+  LT_LOG("add bind (flags:%i address:%s)", flags, bind_address->pretty_address_str().c_str());
+
+  base_type::push_back(bind_struct(bind_addr, 0));
+}
+
 bool
 bind_manager::connect_socket(int file_desc, const sockaddr* connect_sockaddr, int flags) const {
+  auto bind_address = rak::socket_address::cast_from(m_default_address.get());
+
   SocketFd socket_fd(file_desc);
-  const rak::socket_address* bind_address = rak::socket_address::cast_from(m_default_address.get());
 
   if (!empty()) {
     // Do stuff to bind socket.
@@ -70,7 +91,7 @@ bind_manager::connect_socket(int file_desc, const sockaddr* connect_sockaddr, in
   }
 
   if (connect_sockaddr != NULL) {
-    const rak::socket_address* connect_socket_addr = rak::socket_address::cast_from(connect_sockaddr);
+    auto connect_socket_addr = rak::socket_address::cast_from(connect_sockaddr);
 
     if (!socket_fd.connect(*connect_socket_addr)) {
       LT_LOG_SA("connect failed (fd:%i address:%s errno:%i message:'%s')",

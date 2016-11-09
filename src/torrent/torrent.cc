@@ -139,11 +139,12 @@ main_thread() {
 
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
 ClientList*        client_list() { return manager->client_list(); }
-FileManager*       file_manager() { return manager->file_manager(); }
-bind_manager*      bind_manager() { return manager->bind(); }
 ConnectionManager* connection_manager() { return manager->connection_manager(); }
+FileManager*       file_manager() { return manager->file_manager(); }
 DhtManager*        dht_manager() { return manager->dht_manager(); }
 ResourceManager*   resource_manager() { return manager->resource_manager(); }
+
+bind_manager*      bind() { return manager->bind(); }
 
 uint32_t
 total_handshakes() {

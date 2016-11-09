@@ -77,7 +77,7 @@ Manager::Manager() :
   m_connectionManager(new ConnectionManager),
   m_dhtManager(new DhtManager),
 
-  m_bind(new bind_manager),
+  m_bind_manager(new bind_manager),
 
   m_uploadThrottle(Throttle::create_throttle()),
   m_downloadThrottle(Throttle::create_throttle()),
@@ -113,6 +113,7 @@ Manager::~Manager() {
   m_handshakeManager->clear();
   m_downloadManager->clear();
 
+  // TODO: Replace with unique_ptr's.
   delete m_downloadManager;
   delete m_fileManager;
   delete m_handshakeManager;
@@ -123,7 +124,7 @@ Manager::~Manager() {
   delete m_connectionManager;
   delete m_chunkManager;
 
-  delete m_bind;
+  delete m_bind_manager;
 
   delete m_clientList;
 
