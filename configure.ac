@@ -88,6 +88,19 @@ AC_ARG_ENABLE(openssl,
   ]
 )
 
+AC_ARG_ENABLE(
+  [udns],
+  AS_HELP_STRING([--disable-udns], [Don't use udns, falling back to synchronous DNS resolution.])
+)
+dnl neither ubuntu nor fedora ships a pkgconfig file for udns
+AS_IF(
+    [test "x$enable_udns"  != "xno"],
+    [
+      AC_DEFINE(USE_UDNS, 1, Using udns.)
+      LIBS="$LIBS -ludns"
+    ]
+)
+
 AC_ARG_ENABLE(cyrus-rc4,
   [  --enable-cyrus-rc4=PFX  Use Cyrus RC4 implementation.],
   [
