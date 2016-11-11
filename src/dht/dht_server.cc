@@ -597,8 +597,7 @@ void
 DhtServer::create_error(const DhtMessage& req, const rak::socket_address* sa, int num, const char* msg) {
   DhtMessage error;
 
-  if ((req[key_t].is_raw_bencode() && req[key_t].as_raw_bencode().size() < 20) ||
-		  (req[key_t].is_raw_string() && req[key_t].as_raw_string().size() < 20))
+  if (req[key_t].is_raw_string() && req[key_t].as_raw_string().size() < 67)
     error[key_t] = req[key_t];
 
   error[key_y] = raw_bencode::from_c_str("1:e");
