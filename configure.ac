@@ -88,17 +88,28 @@ AC_ARG_ENABLE(openssl,
   ]
 )
 
-AC_ARG_ENABLE(
+AC_ARG_WITH(
   [udns],
-  AS_HELP_STRING([--disable-udns], [Don't use udns, falling back to synchronous DNS resolution.])
+  AS_HELP_STRING([--without-udns], [Don't use udns, falling back to synchronous DNS resolution.])
 )
 dnl neither ubuntu nor fedora ships a pkgconfig file for udns
 AS_IF(
-    [test "x$enable_udns"  != "xno"],
-    [
-      AC_DEFINE(USE_UDNS, 1, Using udns.)
-      LIBS="$LIBS -ludns"
-    ]
+  [test "x$with_udns"  != "xno"],
+  [AC_CHECK_HEADERS([udns.h], [have_udns=yes], [have_udns=no])],
+  [have_udns=no]
+)
+AS_IF(
+  [test "x$have_udns" = "xyes"],
+  [
+    AC_DEFINE(USE_UDNS, 1, Define to build with udns support.)
+    LIBS="$LIBS -ludns"
+  ],
+  [
+    AS_IF(
+      [test "x$with_udns" = "xyes"],
+      [AC_MSG_ERROR([udns requested but not found])]
+    )
+  ]
 )
 
 AC_ARG_ENABLE(cyrus-rc4,
