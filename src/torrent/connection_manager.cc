@@ -201,15 +201,19 @@ ConnectionManager::set_listen_backlog(int v) {
   m_listen_backlog = v;
 }
 
+#ifndef USE_UDNS
+ConnectionManager::MockResolve::MockResolve(const char *hostname_, int family_, resolver_callback *cbck_):
+    hostname(hostname_),
+    family(family_),
+    callback(cbck_) {}
+#endif
+
 void *
 ConnectionManager::enqueue_async_resolve(const char *name, int family, resolver_callback *cbck) {
 #ifdef USE_UDNS
     return m_udnsevent.enqueue_resolve(name, family, cbck);
 #else
-    MockResolve *mock_resolve = new MockResolve;
-    mock_resolve->hostname = std::string(name);
-    mock_resolve->family = family;
-    mock_resolve->callback = cbck;
+    MockResolve *mock_resolve = new MockResolve(name, family, cbck);
     m_mock_resolve_queue.push_back(mock_resolve);
     return mock_resolve;
 #endif

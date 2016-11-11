@@ -210,6 +210,8 @@ private:
   UdnsEvent           m_udnsevent;
 #else
   struct MockResolve {
+      MockResolve(const char *hostname, int family, resolver_callback *cbck);
+
       std::string hostname;
       int family;
       resolver_callback *callback;
