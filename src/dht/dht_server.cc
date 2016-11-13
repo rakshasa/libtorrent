@@ -263,6 +263,7 @@ DhtServer::cancel_announce(DownloadInfo* info, const TrackerDht* tracker) {
       DhtAnnounce* announce = static_cast<DhtAnnounce*>(itr->second->as_search()->search());
 
       if ((info == NULL || announce->target() == info->hash()) && (tracker == NULL || announce->tracker() == tracker)) {
+        drop_packet(itr->second->packet());
         delete itr->second;
         m_transactions.erase(itr++);
         continue;
@@ -409,6 +410,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
     m_router->node_replied(id, sa);
 
   } catch (std::exception& e) {
+    drop_packet(itr->second->packet());
     delete itr->second;
     m_transactions.erase(itr);
 
@@ -416,6 +418,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
     throw;
   }
 
+  drop_packet(itr->second->packet());
   delete itr->second;
   m_transactions.erase(itr);
 }
@@ -436,6 +439,7 @@ DhtServer::process_error(const rak::socket_address* sa, const DhtMessage& error)
   // If it consistently returns errors for valid queries it's probably broken.  But a
   // few error messages are acceptable. So we do nothing and pretend the query never happened.
 
+  drop_packet(itr->second->packet());
   delete itr->second;
   m_transactions.erase(itr);
 }
@@ -698,8 +702,10 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
 void
 DhtServer::clear_transactions() {
-  for (transaction_map::iterator itr = m_transactions.begin(), last = m_transactions.end(); itr != last; itr++)
+  for (transaction_map::iterator itr = m_transactions.begin(), last = m_transactions.end(); itr != last; itr++) {
+    drop_packet(itr->second->packet());
     delete itr->second;
+  }
 
   m_transactions.clear();
 }
