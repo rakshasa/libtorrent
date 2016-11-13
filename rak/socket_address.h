@@ -50,6 +50,8 @@
 #include <cstring>
 #include <string>
 #include <stdexcept>
+#include <inttypes.h>
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -390,7 +392,7 @@ socket_address::copy(const socket_address& src, size_t length) {
 inline void
 socket_address::copy_sockaddr(const sockaddr* src) {
   std::memset(this, 0, sizeof(socket_address));
-  std::memcpy(this, &src, socket_address::cast_from(src)->length());
+  std::memcpy(this, src, socket_address::cast_from(src)->length());
 }
 
 inline bool
@@ -495,7 +497,7 @@ socket_address_inet6::set_address_c_str(const char* a) {
 
 inline std::string
 socket_address_inet6::pretty_address_str() const {
-  char buf[INET6_ADDRSTRLEN + 2];
+  char buf[INET6_ADDRSTRLEN + 2 + 6];
 
   if (inet_ntop(family(), &m_sockaddr.sin6_addr, buf + 1, INET6_ADDRSTRLEN) == NULL)
     return std::string();
@@ -509,8 +511,15 @@ socket_address_inet6::pretty_address_str() const {
   if (last_char == NULL || last_char >= buf + 1 + INET6_ADDRSTRLEN)
     throw std::logic_error("inet_ntop for inet6 returned bad buffer");
 
-  *last_char = ']';
-  *++last_char = '\0';
+  *(last_char++) = ']';
+
+  if (!is_port_any()) {
+    if (snprintf(last_char, 7, ":%" PRIu16, port()) == -1)
+      return std::string("error"); // TODO: Throw here.
+
+  } else {
+    *last_char = '\0';
+  }
 
   return std::string(buf);
 }

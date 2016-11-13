@@ -61,6 +61,24 @@ bind_struct::bind_struct(const sockaddr* a, int f) :
   address = std::unique_ptr<const sockaddr>(addr->c_sockaddr());
 }
 
+inline const rak::socket_address*
+bind_struct_cast_address(const bind_struct& bs) {
+  return rak::socket_address::cast_from(bs.address.get());
+}
+
+inline bool
+bind_manager_is_bindable(const rak::socket_address* bind_address) {
+  switch (bind_address->family()) {
+  case AF_INET:
+    return !bind_address->sa_inet()->is_address_any() && bind_address->sa_inet()->is_port_any();
+  case AF_INET6:
+    return !bind_address->sa_inet6()->is_address_any() && bind_address->sa_inet6()->is_port_any();
+  case AF_UNSPEC:
+  default:
+    return false;
+  };
+}
+
 bind_manager::bind_manager() {
   auto default_address = new rak::socket_address;
   default_address->clear();
@@ -72,7 +90,13 @@ void
 bind_manager::add_bind(const sockaddr* bind_addr, int flags) {
   auto bind_address = rak::socket_address::cast_from(bind_addr);
 
-  // TODO: Fail if not inet/inet6.
+  if (bind_manager_is_bindable(bind_address)) {
+    LT_LOG("add bind failed, address is not bindable (flags:%i address:%s)",
+           flags, bind_address->pretty_address_str().c_str());
+
+    // Throw here?
+    return;
+  }
 
   LT_LOG("add bind (flags:%i address:%s)", flags, bind_address->pretty_address_str().c_str());
 
@@ -86,8 +110,17 @@ bind_manager::connect_socket(int file_desc, const sockaddr* connect_sockaddr, in
   SocketFd socket_fd(file_desc);
 
   if (!empty()) {
-    // Do stuff to bind socket.
-    // (bindAddress->is_bindable() && !fd.bind(*bindAddress))
+    auto itr = begin();
+    auto itr_address = bind_struct_cast_address(*itr);
+
+    if (!socket_fd.bind(*itr_address)) {
+      LT_LOG_SA("connect failed, bind unsuccessful (fd:%i errno:%i message:'%s')",
+                itr_address, file_desc, errno, std::strerror(errno));
+
+      return false;
+    }
+
+    bind_address = itr_address;
   }
 
   if (connect_sockaddr != NULL) {
