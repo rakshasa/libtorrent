@@ -597,7 +597,7 @@ void
 DhtServer::create_error(const DhtMessage& req, const rak::socket_address* sa, int num, const char* msg) {
   DhtMessage error;
 
-  if (req[key_t].is_raw_bencode() || req[key_t].is_raw_string())
+  if (req[key_t].is_raw_string() && req[key_t].as_raw_string().size() < 67)
     error[key_t] = req[key_t];
 
   error[key_y] = raw_bencode::from_c_str("1:e");
@@ -742,6 +742,11 @@ DhtServer::event_read() {
 
       if (!message[key_t].is_raw_string())
         throw dht_error(dht_error_protocol, "No transaction ID");
+
+      // Restrict the length of Transaction IDs. We echo them in our replies.
+      if(message[key_t].as_raw_string().size() > 20) {
+		  throw dht_error(dht_error_protocol, "Transaction ID length too long");
+      }
 
       if (!message[key_y].is_raw_string())
         throw dht_error(dht_error_protocol, "No message type");
