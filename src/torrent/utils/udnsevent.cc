@@ -126,9 +126,7 @@ namespace torrent {
 
     struct UdnsQuery *
     UdnsEvent::enqueue_resolve(const char *name, int family, resolver_callback *callback) {
-        struct UdnsQuery *query = new UdnsQuery;
-        query->a4_query = query->a6_query = NULL;
-        query->callback = callback;
+        struct UdnsQuery *query = new UdnsQuery { NULL, NULL, callback, 0 };
 
         if (family == AF_INET || family == AF_UNSPEC) {
             query->a4_query = ::dns_submit_a4(m_ctx, name, 0, a4_callback_wrapper, query);

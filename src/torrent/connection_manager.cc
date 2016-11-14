@@ -57,56 +57,56 @@ namespace torrent {
 /* Encapsulates whether we do genuine async resolution or fall back to sync. */
 struct AsyncResolver {
 
-    ConnectionManager *m_connection_manager;
+  ConnectionManager *m_connection_manager;
 #ifdef USE_UDNS
-    UdnsEvent           m_udnsevent;
+  UdnsEvent           m_udnsevent;
 #else
-    struct MockResolve {
-        std::string hostname;
-        int family;
-        resolver_callback *callback;
-    };
-    std::list<MockResolve*> m_mock_resolve_queue;
+  struct MockResolve {
+    std::string hostname;
+    int family;
+    resolver_callback *callback;
+  };
+  std::list<MockResolve*> m_mock_resolve_queue;
 #endif
 
-    AsyncResolver(ConnectionManager *cm): m_connection_manager(cm) {}
+  AsyncResolver(ConnectionManager *cm): m_connection_manager(cm) {}
 
-    void *enqueue_resolve(const char *name, int family, resolver_callback *cbck) {
+  void *enqueue_resolve(const char *name, int family, resolver_callback *cbck) {
 #ifdef USE_UDNS
-        return m_udnsevent.enqueue_resolve(name, family, cbck);
+    return m_udnsevent.enqueue_resolve(name, family, cbck);
 #else
-        MockResolve *mock_resolve = new MockResolve {name, family, cbck};
-        m_mock_resolve_queue.push_back(mock_resolve);
-        return mock_resolve;
+    MockResolve *mock_resolve = new MockResolve {name, family, cbck};
+    m_mock_resolve_queue.push_back(mock_resolve);
+    return mock_resolve;
 #endif
+  }
+
+  void flush_resolves() {
+#ifdef USE_UDNS
+    m_udnsevent.flush_resolves();
+#else
+    // dequeue all callbacks and resolve them synchronously
+    while (!m_mock_resolve_queue.empty()) {
+      MockResolve *mock_resolve = m_mock_resolve_queue.front();
+      m_mock_resolve_queue.pop_front();
+      m_connection_manager->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
+      delete mock_resolve;
     }
-
-    void flush_resolves() {
-#ifdef USE_UDNS
-        m_udnsevent.flush_resolves();
-#else
-        // dequeue all callbacks and resolve them synchronously
-        while (!m_mock_resolve_queue.empty()) {
-            MockResolve *mock_resolve = m_mock_resolve_queue.front();
-            m_mock_resolve_queue.pop_front();
-            m_connection_manager->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
-            delete mock_resolve;
-        }
 #endif
-    }
+  }
 
-    void cancel_resolve(void *query) {
+  void cancel_resolve(void *query) {
 #ifdef USE_UDNS
-        m_udnsevent.cancel(static_cast<UdnsQuery*>(query));
+    m_udnsevent.cancel(static_cast<UdnsQuery*>(query));
 #else
-        MockResolve *mock_resolve = static_cast<MockResolve*>(query);
-        auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);
-        if (it != std::end(m_mock_resolve_queue)) {
-            m_mock_resolve_queue.erase(it);
-            delete mock_resolve;
-        }
-#endif
+    MockResolve *mock_resolve = static_cast<MockResolve*>(query);
+    auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);
+    if (it != std::end(m_mock_resolve_queue)) {
+      m_mock_resolve_queue.erase(it);
+      delete mock_resolve;
     }
+#endif
+  }
 };
 
 static void
