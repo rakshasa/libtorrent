@@ -48,7 +48,66 @@
 #include "exceptions.h"
 #include "manager.h"
 
+#ifdef USE_UDNS
+#include "torrent/utils/udnsevent.h"
+#endif
+
 namespace torrent {
+
+/* Encapsulates whether we do genuine async resolution or fall back to sync. */
+struct AsyncResolver {
+
+    ConnectionManager *m_connection_manager;
+#ifdef USE_UDNS
+    UdnsEvent           m_udnsevent;
+#else
+    struct MockResolve {
+        std::string hostname;
+        int family;
+        resolver_callback *callback;
+    };
+    std::list<MockResolve*> m_mock_resolve_queue;
+#endif
+
+    AsyncResolver(ConnectionManager *cm): m_connection_manager(cm) {}
+
+    void *enqueue_resolve(const char *name, int family, resolver_callback *cbck) {
+#ifdef USE_UDNS
+        return m_udnsevent.enqueue_resolve(name, family, cbck);
+#else
+        MockResolve *mock_resolve = new MockResolve {name, family, cbck};
+        m_mock_resolve_queue.push_back(mock_resolve);
+        return mock_resolve;
+#endif
+    }
+
+    void flush_resolves() {
+#ifdef USE_UDNS
+        m_udnsevent.flush_resolves();
+#else
+        // dequeue all callbacks and resolve them synchronously
+        while (!m_mock_resolve_queue.empty()) {
+            MockResolve *mock_resolve = m_mock_resolve_queue.front();
+            m_mock_resolve_queue.pop_front();
+            m_connection_manager->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
+            delete mock_resolve;
+        }
+#endif
+    }
+
+    void cancel_resolve(void *query) {
+#ifdef USE_UDNS
+        m_udnsevent.cancel(static_cast<UdnsQuery*>(query));
+#else
+        MockResolve *mock_resolve = static_cast<MockResolve*>(query);
+        auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);
+        if (it != std::end(m_mock_resolve_queue)) {
+            m_mock_resolve_queue.erase(it);
+            delete mock_resolve;
+        }
+#endif
+    }
+};
 
 static void
 resolve_host(const char* host, int family, int socktype, resolver_callback slot) {
@@ -88,7 +147,8 @@ ConnectionManager::ConnectionManager() :
 
   m_listen(new Listen),
   m_listen_port(0),
-  m_listen_backlog(SOMAXCONN) {
+  m_listen_backlog(SOMAXCONN),
+  m_async_resolver(new AsyncResolver(this)) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   m_localAddress = (new rak::socket_address())->c_sockaddr();
@@ -201,50 +261,18 @@ ConnectionManager::set_listen_backlog(int v) {
   m_listen_backlog = v;
 }
 
-#ifndef USE_UDNS
-ConnectionManager::MockResolve::MockResolve(const char *hostname_, int family_, resolver_callback *cbck_):
-    hostname(hostname_),
-    family(family_),
-    callback(cbck_) {}
-#endif
-
 void *
 ConnectionManager::enqueue_async_resolve(const char *name, int family, resolver_callback *cbck) {
-#ifdef USE_UDNS
-    return m_udnsevent.enqueue_resolve(name, family, cbck);
-#else
-    MockResolve *mock_resolve = new MockResolve(name, family, cbck);
-    m_mock_resolve_queue.push_back(mock_resolve);
-    return mock_resolve;
-#endif
+  return m_async_resolver->enqueue_resolve(name, family, cbck);
 }
 
 void ConnectionManager::flush_async_resolves() {
-#ifdef USE_UDNS
-    m_udnsevent.flush_resolves();
-#else
-    // dequeue all callbacks and resolve them synchronously
-    while (!m_mock_resolve_queue.empty()) {
-        MockResolve *mock_resolve = m_mock_resolve_queue.front();
-        m_mock_resolve_queue.pop_front();
-        this->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
-        delete mock_resolve;
-    }
-#endif
+  m_async_resolver->flush_resolves();
 }
 
 void
 ConnectionManager::cancel_async_resolve(void *query) {
-#ifdef USE_UDNS
-    m_udnsevent.cancel((UdnsQuery *) query);
-#else
-    MockResolve *mock_resolve = (MockResolve *) query;
-    auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);
-    if (it != std::end(m_mock_resolve_queue)) {
-        m_mock_resolve_queue.erase(it);
-        delete mock_resolve;
-    }
-#endif
+  m_async_resolver->cancel_resolve(query);
 }
 
 }

@@ -44,19 +44,22 @@
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
+#include <list>
+#include <memory>
 #include lt_tr1_functional
 #include <torrent/common.h>
-
-#include "torrent/utils/udnsevent.h"
-#ifndef USE_UDNS
-#include <list>
-#endif
 
 namespace torrent {
 
 // Standard pair of up/down throttles.
 // First element is upload throttle, second element is download throttle.
 typedef std::pair<Throttle*, Throttle*> ThrottlePair;
+
+// The sockaddr argument in the result call is NULL if the resolve failed,
+// and the int holds the error code.
+typedef std::function<void (const sockaddr*, int)> resolver_callback;
+
+struct AsyncResolver;
 
 class LIBTORRENT_EXPORT ConnectionManager {
 public:
@@ -206,18 +209,7 @@ private:
   slot_resolver_type  m_slot_resolver;
   slot_throttle_type  m_slot_address_throttle;
 
-#ifdef USE_UDNS
-  UdnsEvent           m_udnsevent;
-#else
-  struct MockResolve {
-      MockResolve(const char *hostname, int family, resolver_callback *cbck);
-
-      std::string hostname;
-      int family;
-      resolver_callback *callback;
-  };
-  std::list<MockResolve*> m_mock_resolve_queue;
-#endif
+  std::unique_ptr<AsyncResolver> m_async_resolver;
 };
 
 }

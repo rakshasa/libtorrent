@@ -41,5 +41,4 @@ libtorrentinclude_HEADERS = \
 	signal_bitfield.h \
 	thread_base.h \
 	thread_interrupt.h \
-	udnsevent.h \
 	uri_parser.h

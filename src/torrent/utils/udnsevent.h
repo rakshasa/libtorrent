@@ -3,12 +3,6 @@
 
 #include lt_tr1_functional
 
-// The sockaddr argument in the result call is NULL if the resolve failed,
-// and the int holds the error code.
-typedef std::function<void (const sockaddr*, int)> resolver_callback;
-
-#ifdef USE_UDNS
-
 #include <list>
 #include <inttypes.h>
 
@@ -16,6 +10,7 @@ typedef std::function<void (const sockaddr*, int)> resolver_callback;
 
 #include <rak/priority_queue_default.h>
 #include "torrent/event.h"
+#include "torrent/connection_manager.h"
 
 namespace torrent {
 
@@ -56,5 +51,4 @@ protected:
 
 }
 
-#endif
 #endif
