@@ -151,6 +151,12 @@ TrackerHttp::send_state(int state) {
       s << "&ipv6=" << rak::copy_escape_html(local_v6.address_str());
   }
 
+  if (localAddress->is_address_any() || localAddress->family() != rak::socket_address::pf_inet) {
+    rak::socket_address local_v4;
+    if (get_local_address(rak::socket_address::af_inet, &local_v4))
+      s << "&ipv4=" << rak::copy_escape_html(local_v4.address_str());
+  }
+
   if (info->is_compact())
     s << "&compact=1";
 
