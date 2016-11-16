@@ -53,11 +53,11 @@ namespace torrent {
             sa.sin_family = AF_INET;
             sa.sin_port = 0;
             sa.sin_addr = result->dnsa4_addr[0];
-            (*query->callback)(sa_addr, 0);
             if (query->a6_query != NULL) {
                 ::dns_cancel(ctx, query->a6_query);
-                delete query;
             }
+            (*query->callback)(sa_addr, 0);
+            delete query;
         }
     }
 
@@ -79,11 +79,11 @@ namespace torrent {
             sa.sin6_family = AF_INET6;
             sa.sin6_port = 0;
             sa.sin6_addr = result->dnsa6_addr[0];
-            (*query->callback)(sa_addr, 0);
             if (query->a4_query != NULL) {
                 ::dns_cancel(ctx, query->a4_query);
-                delete query;
             }
+            (*query->callback)(sa_addr, 0);
+            delete query;
         }
     }
 
