@@ -21,8 +21,6 @@ libsub_torrentutils_la_SOURCES = \
 	thread_base.h \
 	thread_interrupt.cc \
 	thread_interrupt.h \
-	udnsevent.cc \
-	udnsevent.h \
 	uri_parser.cc \
 	uri_parser.h
 

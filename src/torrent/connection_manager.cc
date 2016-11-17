@@ -49,7 +49,7 @@
 #include "manager.h"
 
 #ifdef USE_UDNS
-#include "torrent/utils/udnsevent.h"
+#include "utils/udnsevent.h"
 #endif
 
 namespace torrent {
