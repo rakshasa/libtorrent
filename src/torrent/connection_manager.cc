@@ -61,12 +61,12 @@ struct AsyncResolver {
 #ifdef USE_UDNS
   UdnsEvent           m_udnsevent;
 #else
-  struct MockResolve {
+  struct mock_resolve {
     std::string hostname;
     int family;
     resolver_callback *callback;
   };
-  std::vector<MockResolve*> m_mock_resolve_queue;
+  std::vector<std::unique_ptr<mock_resolve>> m_mock_resolve_queue;
 #endif
 
   AsyncResolver(ConnectionManager *cm): m_connection_manager(cm) {}
@@ -75,9 +75,9 @@ struct AsyncResolver {
 #ifdef USE_UDNS
     return m_udnsevent.enqueue_resolve(name, family, cbck);
 #else
-    MockResolve *mock_resolve = new MockResolve {name, family, cbck};
-    m_mock_resolve_queue.push_back(mock_resolve);
-    return mock_resolve;
+    mock_resolve *mr = new mock_resolve {name, family, cbck};
+    m_mock_resolve_queue.emplace_back(mr);
+    return mr;
 #endif
   }
 
@@ -87,10 +87,9 @@ struct AsyncResolver {
 #else
     // dequeue all callbacks and resolve them synchronously
     while (!m_mock_resolve_queue.empty()) {
-      MockResolve *mock_resolve = m_mock_resolve_queue.back();
+      std::unique_ptr<mock_resolve> mock_resolve = std::move(m_mock_resolve_queue.back());
       m_mock_resolve_queue.pop_back();
       m_connection_manager->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
-      delete mock_resolve;
     }
 #endif
   }
@@ -99,12 +98,12 @@ struct AsyncResolver {
 #ifdef USE_UDNS
     m_udnsevent.cancel(static_cast<udns_query*>(query));
 #else
-    MockResolve *mock_resolve = static_cast<MockResolve*>(query);
-    auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);
-    if (it != std::end(m_mock_resolve_queue)) {
-      m_mock_resolve_queue.erase(it);
-      delete mock_resolve;
-    }
+    auto it = std::find(
+      std::begin(m_mock_resolve_queue),
+      std::end(m_mock_resolve_queue),
+      std::unique_ptr<mock_resolve>(static_cast<mock_resolve*>(query))
+    );
+    if (it != std::end(m_mock_resolve_queue)) m_mock_resolve_queue.erase(it);
 #endif
   }
 };
