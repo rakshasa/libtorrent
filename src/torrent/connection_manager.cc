@@ -66,7 +66,7 @@ struct AsyncResolver {
     int family;
     resolver_callback *callback;
   };
-  std::list<MockResolve*> m_mock_resolve_queue;
+  std::vector<MockResolve*> m_mock_resolve_queue;
 #endif
 
   AsyncResolver(ConnectionManager *cm): m_connection_manager(cm) {}
@@ -87,8 +87,8 @@ struct AsyncResolver {
 #else
     // dequeue all callbacks and resolve them synchronously
     while (!m_mock_resolve_queue.empty()) {
-      MockResolve *mock_resolve = m_mock_resolve_queue.front();
-      m_mock_resolve_queue.pop_front();
+      MockResolve *mock_resolve = m_mock_resolve_queue.back();
+      m_mock_resolve_queue.pop_back();
       m_connection_manager->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
       delete mock_resolve;
     }
@@ -97,7 +97,7 @@ struct AsyncResolver {
 
   void cancel_resolve(void *query) {
 #ifdef USE_UDNS
-    m_udnsevent.cancel(static_cast<UdnsQuery*>(query));
+    m_udnsevent.cancel(static_cast<udns_query*>(query));
 #else
     MockResolve *mock_resolve = static_cast<MockResolve*>(query);
     auto it = std::find(std::begin(m_mock_resolve_queue), std::end(m_mock_resolve_queue), mock_resolve);

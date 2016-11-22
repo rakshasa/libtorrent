@@ -16,7 +16,7 @@ matrix:
         - libcppunit-dev
         - libudns-dev
   - compiler: clang
-    env: COMPILER=clang++ SKIP_COVERAGE=true UDNS=--disable-udns
+    env: COMPILER=clang++ SKIP_COVERAGE=true
     addons:
       apt:
         packages:
@@ -72,7 +72,7 @@ matrix:
         - libcppunit-dev
         - libudns-dev
   - compiler: gcc
-    env: COMPILER=g++-4.7 SKIP_COVERAGE=true UDNS=--disable-udns
+    env: COMPILER=g++-4.7 SKIP_COVERAGE=true
     addons:
       apt:
         sources: ubuntu-toolchain-r-test
@@ -94,7 +94,7 @@ before_install:
 
 script:
 - if [ ! $SKIP_COVERAGE ]; then export CXXFLAGS="-ftest-coverage -fprofile-arcs"; fi
-- ./autogen.sh && CXX="$COMPILER" ./configure $UDNS && make -j12
+- ./autogen.sh && CXX="$COMPILER" ./configure && make -j12
 - if [ ! $SKIP_CHECK ]; then make -j12 check; fi
 
 after_success:

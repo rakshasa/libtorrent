@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include <udns.h>
+
 #include <torrent/common.h>
 #include "udnsevent.h"
 #include "globals.h"
@@ -33,12 +35,11 @@ int udnserror_to_gaierror(int udnserror) {
   }
 }
 
-/** Compatibility layers so udns can call std::function callbacks. */
+// Compatibility layers so udns can call std::function callbacks.
 
 void a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void *data) {
   struct sockaddr_in sa;
-  const sockaddr *sa_addr = (sockaddr *) &sa;
-  UdnsQuery *query = (UdnsQuery *) data;
+  udns_query *query = static_cast<udns_query*>(data);
   // udns will free the a4_query after this callback exits
   query->a4_query = NULL;
 
@@ -56,15 +57,14 @@ void a4_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a4 *result, void *data)
     if (query->a6_query != NULL) {
       ::dns_cancel(ctx, query->a6_query);
     }
-    (*query->callback)(sa_addr, 0);
+    (*query->callback)(reinterpret_cast<sockaddr*>(&sa), 0);
     delete query;
   }
 }
 
 void a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data) {
   struct sockaddr_in6 sa;
-  const sockaddr *sa_addr = (sockaddr *) &sa;
-  UdnsQuery *query = (UdnsQuery *) data;
+  udns_query *query = static_cast<udns_query*>(data);
   // udns will free the a6_query after this callback exits
   query->a6_query = NULL;
 
@@ -82,7 +82,7 @@ void a6_callback_wrapper(struct ::dns_ctx *ctx, ::dns_rr_a6 *result, void *data)
     if (query->a4_query != NULL) {
       ::dns_cancel(ctx, query->a4_query);
     }
-    (*query->callback)(sa_addr, 0);
+    (*query->callback)(reinterpret_cast<sockaddr*>(&sa), 0);
     delete query;
   }
 }
@@ -94,12 +94,8 @@ UdnsEvent::UdnsEvent() {
   ::dns_init(NULL, 0);
   // thread-safe context isolated to this object:
   m_ctx = ::dns_new(NULL);
-  int fd = ::dns_init(m_ctx, 1);
-  if (fd > 0) {
-    m_fileDesc = fd;
-  } else {
-    throw internal_error("dns_init failed");
-  }
+  m_fileDesc = ::dns_open(m_ctx);
+  if (m_fileDesc == -1) throw internal_error("dns_init failed");
 
   m_taskTimeout.slot() = std::bind(&UdnsEvent::process_timeouts, this);
 }
@@ -108,6 +104,7 @@ UdnsEvent::~UdnsEvent() {
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
   ::dns_close(m_ctx);
   ::dns_free(m_ctx);
+  m_fileDesc = -1;
 
   for (auto it = std::begin(m_malformed_queries); it != std::end(m_malformed_queries); ++it) {
     delete *it;
@@ -124,8 +121,8 @@ void UdnsEvent::event_write() {
 void UdnsEvent::event_error() {
 }
 
-struct UdnsQuery *UdnsEvent::enqueue_resolve(const char *name, int family, resolver_callback *callback) {
-  struct UdnsQuery *query = new UdnsQuery { NULL, NULL, callback, 0 };
+struct udns_query *UdnsEvent::enqueue_resolve(const char *name, int family, resolver_callback *callback) {
+  struct udns_query *query = new udns_query { NULL, NULL, callback, 0 };
 
   if (family == AF_INET || family == AF_UNSPEC) {
     query->a4_query = ::dns_submit_a4(m_ctx, name, 0, a4_callback_wrapper, query);
@@ -167,8 +164,8 @@ struct UdnsQuery *UdnsEvent::enqueue_resolve(const char *name, int family, resol
 void UdnsEvent::flush_resolves() {
   // first process any queries that were malformed
   while (!m_malformed_queries.empty()) {
-    UdnsQuery *query = m_malformed_queries.front();
-    m_malformed_queries.pop_front();
+    udns_query *query = m_malformed_queries.back();
+    m_malformed_queries.pop_back();
     (*(query->callback))(NULL, query->error);
     delete query;
   }
@@ -177,32 +174,28 @@ void UdnsEvent::flush_resolves() {
 
 void UdnsEvent::process_timeouts() {
   int timeout = ::dns_timeouts(m_ctx, -1, 0);
-  if (timeout != -1) {
+  if (timeout == -1) {
+    // no pending queries
+    manager->poll()->remove_read(this);
+    manager->poll()->remove_error(this);
+  } else {
     manager->poll()->insert_read(this);
     manager->poll()->insert_error(this);
     priority_queue_erase(&taskScheduler, &m_taskTimeout);
     priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(timeout)).round_seconds());
-  } else {
-    // no pending queries
-    manager->poll()->remove_read(this);
-    manager->poll()->remove_error(this);
   }
 }
 
-void UdnsEvent::cancel(struct UdnsQuery *query) {
-  if (query == NULL) {
-    return;
-  }
-  if (query->a4_query != NULL) {
-    ::dns_cancel(m_ctx, query->a4_query);
-  }
-  if (query->a6_query != NULL) {
-    ::dns_cancel(m_ctx, query->a6_query);
-  }
+void UdnsEvent::cancel(struct udns_query *query) {
+  if (query == NULL) return;
+
+  if (query->a4_query != NULL) ::dns_cancel(m_ctx, query->a4_query);
+
+  if (query->a6_query != NULL) ::dns_cancel(m_ctx, query->a6_query);
+
   auto it = std::find(std::begin(m_malformed_queries), std::end(m_malformed_queries), query);
-  if (it != std::end(m_malformed_queries)) {
-    m_malformed_queries.erase(it);
-  }
+  if (it != std::end(m_malformed_queries)) m_malformed_queries.erase(it);
+
   delete query;
 }
 
