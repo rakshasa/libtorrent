@@ -87,9 +87,9 @@ struct AsyncResolver {
 #else
     // dequeue all callbacks and resolve them synchronously
     while (!m_mock_resolve_queue.empty()) {
-      std::unique_ptr<mock_resolve> mock_resolve = std::move(m_mock_resolve_queue.back());
+      std::unique_ptr<mock_resolve> mr = std::move(m_mock_resolve_queue.back());
       m_mock_resolve_queue.pop_back();
-      m_connection_manager->resolver()(mock_resolve->hostname.c_str(), mock_resolve->family, 0, *(mock_resolve->callback));
+      m_connection_manager->resolver()(mr->hostname.c_str(), mr->family, 0, *(mr->callback));
     }
 #endif
   }
