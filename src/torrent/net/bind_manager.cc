@@ -98,16 +98,27 @@ bind_manager::add_bind(const sockaddr* bind_addr, int flags) {
     return;
   }
 
-  LT_LOG("add bind (flags:%i address:%s)", flags, bind_address->pretty_address_str().c_str());
+  LT_LOG("added bind (flags:%i address:%s)",
+         flags, bind_address->pretty_address_str().c_str());
 
-  base_type::push_back(bind_struct(bind_addr, 0));
+  // TODO: Add a way to set the order.
+  base_type::push_back(bind_struct(bind_addr, flags));
 }
 
-bool
-bind_manager::connect_socket(int file_desc, const sockaddr* connect_sockaddr, int flags) const {
-  auto bind_address = rak::socket_address::cast_from(m_default_address.get());
+int
+bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_fd_ftor alloc_fd) const {
+  int file_desc = alloc_fd();
+
+  if (file_desc == -1) {
+    LT_LOG("connect failed, could not allocate socket (errno:%i message:'%s')",
+           errno, std::strerror(errno));
+
+    return file_desc;
+  }
 
   SocketFd socket_fd(file_desc);
+
+  auto bind_address = rak::socket_address::cast_from(m_default_address.get());
 
   if (!empty()) {
     auto itr = begin();

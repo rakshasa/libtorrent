@@ -39,6 +39,7 @@
 #ifndef LIBTORRENT_NET_BIND_MANAGER_H
 #define LIBTORRENT_NET_BIND_MANAGER_H
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include <sys/socket.h>
@@ -56,6 +57,7 @@ struct bind_struct {
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
 public:
   typedef std::vector<bind_struct> base_type;
+  typedef std::function<int ()> alloc_fd_ftor;
 
   using base_type::empty;
 
@@ -67,7 +69,7 @@ public:
   // Temporary:
   void add_bind(const sockaddr* bind_address, int flags);
 
-  bool connect_socket(int file_desc, const sockaddr* sock_addr, int flags = 0) const;
+  int connect_socket(const sockaddr* sock_addr, int flags, alloc_fd_ftor alloc_fd) const;
 
 private:
   std::unique_ptr<const sockaddr> m_default_address;

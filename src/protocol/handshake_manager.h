@@ -99,7 +99,7 @@ private:
   void                create_outgoing(const rak::socket_address& sa, DownloadMain* info, int encryption_options);
   void                erase(Handshake* handshake);
 
-  bool                setup_socket(SocketFd fd);
+  static bool         setup_socket(SocketFd fd);
 
   static ProtocolExtension DefaultExtensions;
 

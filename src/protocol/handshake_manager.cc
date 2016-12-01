@@ -179,13 +179,24 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
     encryption_options |= ConnectionManager::encryption_use_proxy;
   }
 
-  SocketFd fd;
+  auto alloc_fd = []() {
+    SocketFd fd;
 
-  if (!fd.open_stream() ||
-      !setup_socket(fd) ||
-      !manager->bind()->connect_socket(fd.get_fd(), connect_addr->c_sockaddr(), 0)) {
-    if (fd.is_valid())
+    if (!fd.open_stream())
+      return -1;
+
+    if (!HandshakeManager::setup_socket(fd)) {
       fd.close();
+      return -1;
+    }
+
+    return fd.get_fd();
+  };
+
+  int file_desc = manager->bind()->connect_socket(connect_addr->c_sockaddr(), 0, alloc_fd);
+
+  if (file_desc == -1) {
+    // TODO: Add logging here.
 
     download->peer_list()->disconnected(peerInfo, 0);
     return;
@@ -196,7 +207,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
 
   manager->connection_manager()->inc_socket_count();
 
-  Handshake* handshake = new Handshake(fd, this, encryption_options);
+  Handshake* handshake = new Handshake(SocketFd(file_desc), this, encryption_options);
   handshake->initialize_outgoing(sa, download, peerInfo);
 
   base_type::push_back(handshake);
