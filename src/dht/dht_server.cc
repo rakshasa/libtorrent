@@ -263,6 +263,7 @@ DhtServer::cancel_announce(DownloadInfo* info, const TrackerDht* tracker) {
       DhtAnnounce* announce = static_cast<DhtAnnounce*>(itr->second->as_search()->search());
 
       if ((info == NULL || announce->target() == info->hash()) && (tracker == NULL || announce->tracker() == tracker)) {
+        drop_packet(itr->second->packet());
         delete itr->second;
         m_transactions.erase(itr++);
         continue;
@@ -409,6 +410,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
     m_router->node_replied(id, sa);
 
   } catch (std::exception& e) {
+    drop_packet(itr->second->packet());
     delete itr->second;
     m_transactions.erase(itr);
 
@@ -416,6 +418,7 @@ DhtServer::process_response(const HashString& id, const rak::socket_address* sa,
     throw;
   }
 
+  drop_packet(itr->second->packet());
   delete itr->second;
   m_transactions.erase(itr);
 }
@@ -436,6 +439,7 @@ DhtServer::process_error(const rak::socket_address* sa, const DhtMessage& error)
   // If it consistently returns errors for valid queries it's probably broken.  But a
   // few error messages are acceptable. So we do nothing and pretend the query never happened.
 
+  drop_packet(itr->second->packet());
   delete itr->second;
   m_transactions.erase(itr);
 }
@@ -597,7 +601,7 @@ void
 DhtServer::create_error(const DhtMessage& req, const rak::socket_address* sa, int num, const char* msg) {
   DhtMessage error;
 
-  if (req[key_t].is_raw_bencode() || req[key_t].is_raw_string())
+  if (req[key_t].is_raw_string() && req[key_t].as_raw_string().size() < 67)
     error[key_t] = req[key_t];
 
   error[key_y] = raw_bencode::from_c_str("1:e");
@@ -698,8 +702,10 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
 
 void
 DhtServer::clear_transactions() {
-  for (transaction_map::iterator itr = m_transactions.begin(), last = m_transactions.end(); itr != last; itr++)
+  for (transaction_map::iterator itr = m_transactions.begin(), last = m_transactions.end(); itr != last; itr++) {
+    drop_packet(itr->second->packet());
     delete itr->second;
+  }
 
   m_transactions.clear();
 }
@@ -742,6 +748,11 @@ DhtServer::event_read() {
 
       if (!message[key_t].is_raw_string())
         throw dht_error(dht_error_protocol, "No transaction ID");
+
+      // Restrict the length of Transaction IDs. We echo them in our replies.
+      if(message[key_t].as_raw_string().size() > 20) {
+		  throw dht_error(dht_error_protocol, "Transaction ID length too long");
+      }
 
       if (!message[key_y].is_raw_string())
         throw dht_error(dht_error_protocol, "No message type");
