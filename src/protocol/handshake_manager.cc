@@ -196,14 +196,14 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   int file_desc = manager->bind()->connect_socket(connect_addr->c_sockaddr(), 0, alloc_fd);
 
   if (file_desc == -1) {
-    // TODO: Add logging here.
+    LT_LOG_SA(&sa, "outgoing connection could not open socket", 0);
 
     download->peer_list()->disconnected(peerInfo, 0);
     return;
   }
 
-  LT_LOG_SA(&sa, "outgoing connection (encryption:0x%x type:%s)",
-            encryption_options, outgoing_encryption_options_to_string(encryption_options));
+  LT_LOG_SA(&sa, "outgoing connection (fd:%i encryption:0x%x type:%s)",
+            file_desc, encryption_options, outgoing_encryption_options_to_string(encryption_options));
 
   manager->connection_manager()->inc_socket_count();
 

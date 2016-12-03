@@ -47,18 +47,23 @@
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
-#define LT_LOG_SA(log_fmt, sa, ...)                                     \
-  lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, (sa)->pretty_address_str().c_str(), __VA_ARGS__);
+#define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
+  lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, sa_pretty_address_str(sa).c_str(), __VA_ARGS__);
 
 namespace torrent {
 
-bind_struct::bind_struct(const sockaddr* a, int f) :
-  flags(f)
-{
+bind_struct
+make_bind_struct(const sockaddr* a, int f) {
   auto addr = new rak::socket_address;
-  addr->copy_sockaddr(a);
 
-  address = std::unique_ptr<const sockaddr>(addr->c_sockaddr());
+  if (a == NULL)
+    addr->clear();
+  else
+    addr->copy_sockaddr(a);
+
+  bind_struct bs { f, std::unique_ptr<const sockaddr>(addr->c_sockaddr()), 0, 0 };
+
+  return bs;
 }
 
 inline const rak::socket_address*
@@ -67,7 +72,9 @@ bind_struct_cast_address(const bind_struct& bs) {
 }
 
 inline bool
-bind_manager_is_bindable(const rak::socket_address* bind_address) {
+sa_is_bindable(const sockaddr* sockaddr) {
+  auto bind_address = rak::socket_address::cast_from(sockaddr);
+
   switch (bind_address->family()) {
   case AF_INET:
     return !bind_address->sa_inet()->is_address_any() && bind_address->sa_inet()->is_port_any();
@@ -79,77 +86,91 @@ bind_manager_is_bindable(const rak::socket_address* bind_address) {
   };
 }
 
-bind_manager::bind_manager() {
-  auto default_address = new rak::socket_address;
-  default_address->clear();
+inline bool
+sa_is_default(const sockaddr* sockaddr) {
+  return sockaddr == NULL || sockaddr->sa_family == AF_UNSPEC;
+}
 
-  m_default_address = std::unique_ptr<const sockaddr>(default_address->c_sockaddr());
+inline std::string
+sa_pretty_address_str(const sockaddr* sockaddr) {
+  if (sockaddr == NULL)
+    return "unspec";
+
+  return rak::socket_address::cast_from(sockaddr)->pretty_address_str();
+}
+
+bind_manager::bind_manager() {
+  base_type::push_back(make_bind_struct(NULL, 0));
 }
 
 void
-bind_manager::add_bind(const sockaddr* bind_addr, int flags) {
-  auto bind_address = rak::socket_address::cast_from(bind_addr);
-
-  if (bind_manager_is_bindable(bind_address)) {
+bind_manager::add_bind(const sockaddr* bind_sockaddr, int flags) {
+  if (sa_is_bindable(bind_sockaddr)) {
     LT_LOG("add bind failed, address is not bindable (flags:%i address:%s)",
-           flags, bind_address->pretty_address_str().c_str());
+           flags, sa_pretty_address_str(bind_sockaddr).c_str());
 
     // Throw here?
     return;
   }
 
   LT_LOG("added bind (flags:%i address:%s)",
-         flags, bind_address->pretty_address_str().c_str());
+         flags, sa_pretty_address_str(bind_sockaddr).c_str());
 
   // TODO: Add a way to set the order.
-  base_type::push_back(bind_struct(bind_addr, flags));
+  base_type::push_back(make_bind_struct(bind_sockaddr, flags));
 }
 
-int
-bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_fd_ftor alloc_fd) const {
+static int
+attempt_connect(const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr, bind_manager::alloc_fd_ftor alloc_fd) {
   int file_desc = alloc_fd();
 
   if (file_desc == -1) {
     LT_LOG("connect failed, could not allocate socket (errno:%i message:'%s')",
            errno, std::strerror(errno));
 
-    return file_desc;
+    return -1;
   }
 
   SocketFd socket_fd(file_desc);
 
-  auto bind_address = rak::socket_address::cast_from(m_default_address.get());
+  if (!sa_is_default(bind_sockaddr) && !socket_fd.bind(*rak::socket_address::cast_from(bind_sockaddr))) {
+    LT_LOG_SOCKADDR("bind failed (fd:%i errno:%i message:'%s')",
+                    bind_sockaddr, file_desc, errno, std::strerror(errno));
 
-  if (!empty()) {
-    auto itr = begin();
-    auto itr_address = bind_struct_cast_address(*itr);
+    errno = 0;
+    socket_fd.close();
 
-    if (!socket_fd.bind(*itr_address)) {
-      LT_LOG_SA("connect failed, bind unsuccessful (fd:%i errno:%i message:'%s')",
-                itr_address, file_desc, errno, std::strerror(errno));
-
-      return false;
-    }
-
-    bind_address = itr_address;
+    return -1;
   }
 
-  if (connect_sockaddr != NULL) {
-    auto connect_socket_addr = rak::socket_address::cast_from(connect_sockaddr);
+  auto connect_address = rak::socket_address::cast_from(connect_sockaddr);
 
-    if (!socket_fd.connect(*connect_socket_addr)) {
-      LT_LOG_SA("connect failed (fd:%i address:%s errno:%i message:'%s')",
-                bind_address, file_desc, connect_socket_addr->pretty_address_str().c_str(), errno, std::strerror(errno));
+  if (!socket_fd.connect(*connect_address)) {
+    LT_LOG_SOCKADDR("connect failed (fd:%i address:%s errno:%i message:'%s')",
+                    bind_sockaddr, file_desc, connect_address->pretty_address_str().c_str(), errno, std::strerror(errno));
 
-      errno = 0;
-      return false;
-    }
+    errno = 0;
+    socket_fd.close();
 
-    LT_LOG_SA("connect success (fd:%i address:%s)",
-              bind_address, file_desc, connect_socket_addr->pretty_address_str().c_str());
+    return -1;
   }
 
-  return true;
+  LT_LOG_SOCKADDR("connect success (fd:%i address:%s)",
+                  bind_sockaddr, file_desc, connect_address->pretty_address_str().c_str());
+
+  return file_desc;
+}
+
+int
+bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_fd_ftor alloc_fd) const {
+  for (auto& itr : *this) {
+    int file_desc = attempt_connect(connect_sockaddr, itr.address.get(), alloc_fd);
+
+    if (file_desc != -1)
+      return file_desc;
+  }
+
+  return -1;
 }
 
 }
