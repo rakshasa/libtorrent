@@ -59,7 +59,24 @@ typedef std::pair<Throttle*, Throttle*> ThrottlePair;
 // and the int holds the error code.
 typedef std::function<void (const sockaddr*, int)> resolver_callback;
 
-struct AsyncResolver;
+// Encapsulates whether we do genuine async resolution or fall back to sync.
+// In a build with USE_UDNS, these do genuine asynchronous DNS resolution.
+// In a build without it, they're stubbed out to use a synchronous getaddrinfo(3)
+// call, while exposing the same API.
+class LIBTORRENT_EXPORT AsyncResolver {
+public:
+  AsyncResolver(ConnectionManager *);
+
+  // this queues a DNS resolve but doesn't send it. it doesn't execute any callbacks
+  // and returns control immediately. the return value is an opaque identifier that
+  // can be used to cancel the query (as long as the callback hasn't been executed yet):
+  virtual void*   enqueue(const char *name, int family, resolver_callback *cbck) = 0;
+  // this sends any queued resolves. it can execute arbitrary callbacks
+  // before returning control:
+  virtual void    flush() = 0;
+  // this cancels a pending async query (as long as the callback hasn't executed yet):
+  virtual void    cancel(void *query) = 0;
+};
 
 class LIBTORRENT_EXPORT ConnectionManager {
 public:
@@ -159,24 +176,15 @@ public:
   void                set_listen_port(port_type p)            { m_listen_port = p; }
   void                set_listen_backlog(int v);
 
-  /* Async resolver interface.
-
-     In a build with USE_UDNS, these do genuine asynchronous DNS resolution.
-     In a build without it, they're stubbed out to use a synchronous getaddrinfo(3)
-     call, while exposing the same API.
-  */
-  // this queues a DNS resolve but doesn't send it. it doesn't execute any callbacks
-  // and returns control immediately. the return value is an opaque identifier that
-  // can be used to cancel the query (as long as the callback hasn't been executed yet):
   void*               enqueue_async_resolve(const char *name, int family, resolver_callback *cbck);
-  // this sends any queued resolves. it can execute arbitrary callbacks
-  // before returning control:
   void                flush_async_resolves();
-  // this cancels a pending async query (as long as the callback hasn't executed yet):
   void                cancel_async_resolve(void *query);
 
-  /* Legacy synchronous resolver interface. */
+  // Legacy synchronous resolver interface.
   slot_resolver_type& resolver()          { return m_slot_resolver; }
+
+  // Asynchronous resolver interface.
+  AsyncResolver&      async_resolver()    { return *m_async_resolver; }
 
   // The slot returns a ThrottlePair to use for the given address, or
   // NULLs to use the default throttle.

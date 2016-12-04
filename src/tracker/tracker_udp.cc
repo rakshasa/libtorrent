@@ -101,12 +101,12 @@ TrackerUdp::send_state(int state) {
   LT_LOG_TRACKER(DEBUG, "hostname lookup (address:%s)", hostname.data());
 
   m_sendState = state;
-  m_resolver_query = manager->connection_manager()->enqueue_async_resolve(
+  m_resolver_query = manager->connection_manager()->async_resolver().enqueue(
       hostname.data(),
       AF_UNSPEC,
       &m_resolver_callback
   );
-  manager->connection_manager()->flush_async_resolves();
+  manager->connection_manager()->async_resolver().flush();
 }
 
 bool
@@ -178,7 +178,7 @@ TrackerUdp::disown() {
 
 void
 TrackerUdp::close_directly() {
-  manager->connection_manager()->cancel_async_resolve(m_resolver_query);
+  manager->connection_manager()->async_resolver().cancel(m_resolver_query);
   m_resolver_query = NULL;
 
   if (!get_fd().is_valid())

@@ -54,59 +54,70 @@
 
 namespace torrent {
 
-/* Encapsulates whether we do genuine async resolution or fall back to sync. */
-struct AsyncResolver {
+AsyncResolver::AsyncResolver(ConnectionManager *) {}
 
-  ConnectionManager *m_connection_manager;
 #ifdef USE_UDNS
+class UdnsAsyncResolver : public AsyncResolver {
+public:
+  UdnsAsyncResolver(ConnectionManager *cm) : AsyncResolver(cm) {}
+
+  void *enqueue(const char *name, int family, resolver_callback *cbck) {
+    return m_udnsevent.enqueue_resolve(name, family, cbck);
+  }
+
+  void flush() {
+    m_udnsevent.flush_resolves();
+  }
+
+  void cancel(void *query) {
+    m_udnsevent.cancel(static_cast<udns_query*>(query));
+  }
+
+protected:
   UdnsEvent           m_udnsevent;
+};
+#define ASYNC_RESOLVER_IMPL UdnsAsyncResolver
 #else
+class StubAsyncResolver : public AsyncResolver {
+public:
   struct mock_resolve {
     std::string hostname;
     int family;
     resolver_callback *callback;
   };
-  std::vector<std::unique_ptr<mock_resolve>> m_mock_resolve_queue;
-#endif
 
-  AsyncResolver(ConnectionManager *cm): m_connection_manager(cm) {}
+  StubAsyncResolver(ConnectionManager *cm): AsyncResolver(cm), m_connection_manager(cm) {}
 
-  void *enqueue_resolve(const char *name, int family, resolver_callback *cbck) {
-#ifdef USE_UDNS
-    return m_udnsevent.enqueue_resolve(name, family, cbck);
-#else
+  void *enqueue(const char *name, int family, resolver_callback *cbck) {
     mock_resolve *mr = new mock_resolve {name, family, cbck};
     m_mock_resolve_queue.emplace_back(mr);
     return mr;
-#endif
   }
 
-  void flush_resolves() {
-#ifdef USE_UDNS
-    m_udnsevent.flush_resolves();
-#else
+  void flush() {
     // dequeue all callbacks and resolve them synchronously
     while (!m_mock_resolve_queue.empty()) {
       std::unique_ptr<mock_resolve> mr = std::move(m_mock_resolve_queue.back());
       m_mock_resolve_queue.pop_back();
       m_connection_manager->resolver()(mr->hostname.c_str(), mr->family, 0, *(mr->callback));
     }
-#endif
   }
 
-  void cancel_resolve(void *query) {
-#ifdef USE_UDNS
-    m_udnsevent.cancel(static_cast<udns_query*>(query));
-#else
+  void cancel(void *query) {
     auto it = std::find(
       std::begin(m_mock_resolve_queue),
       std::end(m_mock_resolve_queue),
       std::unique_ptr<mock_resolve>(static_cast<mock_resolve*>(query))
     );
     if (it != std::end(m_mock_resolve_queue)) m_mock_resolve_queue.erase(it);
-#endif
   }
+
+protected:
+  ConnectionManager *m_connection_manager;
+  std::vector<std::unique_ptr<mock_resolve>> m_mock_resolve_queue;
 };
+#define ASYNC_RESOLVER_IMPL StubAsyncResolver
+#endif
 
 static void
 resolve_host(const char* host, int family, int socktype, resolver_callback slot) {
@@ -147,7 +158,7 @@ ConnectionManager::ConnectionManager() :
   m_listen(new Listen),
   m_listen_port(0),
   m_listen_backlog(SOMAXCONN),
-  m_async_resolver(new AsyncResolver(this)) {
+  m_async_resolver(new ASYNC_RESOLVER_IMPL(this)) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   m_localAddress = (new rak::socket_address())->c_sockaddr();
@@ -258,20 +269,6 @@ ConnectionManager::set_listen_backlog(int v) {
     throw input_error("backlog value must be set before listen port is opened");
 
   m_listen_backlog = v;
-}
-
-void *
-ConnectionManager::enqueue_async_resolve(const char *name, int family, resolver_callback *cbck) {
-  return m_async_resolver->enqueue_resolve(name, family, cbck);
-}
-
-void ConnectionManager::flush_async_resolves() {
-  m_async_resolver->flush_resolves();
-}
-
-void
-ConnectionManager::cancel_async_resolve(void *query) {
-  m_async_resolver->cancel_resolve(query);
 }
 
 }
