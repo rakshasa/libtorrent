@@ -52,6 +52,8 @@ struct bind_struct {
   int flags;
   std::unique_ptr<const sockaddr> address;
 
+  uint16_t priority;
+
   uint16_t listen_port_begin;
   uint16_t listen_port_end;
 };
@@ -61,6 +63,7 @@ public:
   typedef std::vector<bind_struct> base_type;
   typedef std::function<int ()> alloc_fd_ftor;
 
+  using base_type::clear;
   using base_type::empty;
 
   static const int flag_ipv4 = 0x1;

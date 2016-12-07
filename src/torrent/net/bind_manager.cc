@@ -53,7 +53,7 @@
 namespace torrent {
 
 bind_struct
-make_bind_struct(const sockaddr* a, int f) {
+make_bind_struct(const sockaddr* a, int f, uint16_t priority) {
   auto addr = new rak::socket_address;
 
   if (a == NULL)
@@ -61,9 +61,7 @@ make_bind_struct(const sockaddr* a, int f) {
   else
     addr->copy_sockaddr(a);
 
-  bind_struct bs { f, std::unique_ptr<const sockaddr>(addr->c_sockaddr()), 0, 0 };
-
-  return bs;
+  return bind_struct { f, std::unique_ptr<const sockaddr>(addr->c_sockaddr()), priority, 0, 0 };
 }
 
 inline const rak::socket_address*
@@ -100,12 +98,13 @@ sa_pretty_address_str(const sockaddr* sockaddr) {
 }
 
 bind_manager::bind_manager() {
-  base_type::push_back(make_bind_struct(NULL, 0));
+  // TODO: Move this to a different place.
+  base_type::push_back(make_bind_struct(NULL, 0, 0));
 }
 
 void
 bind_manager::add_bind(const sockaddr* bind_sockaddr, int flags) {
-  if (sa_is_bindable(bind_sockaddr)) {
+  if (!sa_is_bindable(bind_sockaddr)) {
     LT_LOG("add bind failed, address is not bindable (flags:%i address:%s)",
            flags, sa_pretty_address_str(bind_sockaddr).c_str());
 
@@ -113,11 +112,11 @@ bind_manager::add_bind(const sockaddr* bind_sockaddr, int flags) {
     return;
   }
 
-  LT_LOG("added bind (flags:%i address:%s)",
+  LT_LOG("bind added (flags:%i address:%s)",
          flags, sa_pretty_address_str(bind_sockaddr).c_str());
 
   // TODO: Add a way to set the order.
-  base_type::push_back(make_bind_struct(bind_sockaddr, flags));
+  base_type::push_back(make_bind_struct(bind_sockaddr, flags, 0));
 }
 
 static int
