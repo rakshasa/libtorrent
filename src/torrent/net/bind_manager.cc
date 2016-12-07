@@ -105,14 +105,14 @@ bind_manager::bind_manager() {
 void
 bind_manager::add_bind(const sockaddr* bind_sockaddr, int flags) {
   if (!sa_is_bindable(bind_sockaddr)) {
-    LT_LOG("add bind failed, address is not bindable (flags:%i address:%s)",
+    LT_LOG("add bind failed, address is not bindable (flags:0x%x address:%s)",
            flags, sa_pretty_address_str(bind_sockaddr).c_str());
 
     // Throw here?
     return;
   }
 
-  LT_LOG("bind added (flags:%i address:%s)",
+  LT_LOG("bind added (flags:0x%x address:%s)",
          flags, sa_pretty_address_str(bind_sockaddr).c_str());
 
   // TODO: Add a way to set the order.
