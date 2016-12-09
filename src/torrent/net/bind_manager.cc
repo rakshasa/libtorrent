@@ -43,6 +43,7 @@
 
 #include "net/socket_fd.h"
 #include "rak/socket_address.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -67,35 +68,6 @@ make_bind_struct(const sockaddr* a, int f, uint16_t priority) {
 inline const rak::socket_address*
 bind_struct_cast_address(const bind_struct& bs) {
   return rak::socket_address::cast_from(bs.address.get());
-}
-
-// TODO: Move to torrent/utils or torrent/net?
-inline bool
-sa_is_bindable(const sockaddr* sockaddr) {
-  auto bind_address = rak::socket_address::cast_from(sockaddr);
-
-  switch (bind_address->family()) {
-  case AF_INET:
-    return !bind_address->sa_inet()->is_address_any() && bind_address->sa_inet()->is_port_any();
-  case AF_INET6:
-    return !bind_address->sa_inet6()->is_address_any() && bind_address->sa_inet6()->is_port_any();
-  case AF_UNSPEC:
-  default:
-    return false;
-  };
-}
-
-inline bool
-sa_is_default(const sockaddr* sockaddr) {
-  return sockaddr == NULL || sockaddr->sa_family == AF_UNSPEC;
-}
-
-inline std::string
-sa_pretty_address_str(const sockaddr* sockaddr) {
-  if (sockaddr == NULL)
-    return "unspec";
-
-  return rak::socket_address::cast_from(sockaddr)->pretty_address_str();
 }
 
 bind_manager::bind_manager() {

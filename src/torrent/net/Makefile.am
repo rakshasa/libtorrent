@@ -3,6 +3,8 @@ noinst_LTLIBRARIES = libsub_torrentnet.la
 libsub_torrentnet_la_SOURCES = \
 	bind_manager.cc \
 	bind_manager.h \
+	socket_address.cc \
+	socket_address.h \
 	socket_address_key.cc \
 	socket_address_key.h
 
