@@ -69,6 +69,7 @@ bind_struct_cast_address(const bind_struct& bs) {
   return rak::socket_address::cast_from(bs.address.get());
 }
 
+// TODO: Move to torrent/utils or torrent/net?
 inline bool
 sa_is_bindable(const sockaddr* sockaddr) {
   auto bind_address = rak::socket_address::cast_from(sockaddr);
@@ -124,17 +125,17 @@ attempt_connect(const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr,
   int file_desc = alloc_fd();
 
   if (file_desc == -1) {
-    LT_LOG("connect failed, could not allocate socket (errno:%i message:'%s')",
-           errno, std::strerror(errno));
+    LT_LOG("open failed (address:%s errno:%i message:'%s')",
+           sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
 
     return -1;
   }
 
   SocketFd socket_fd(file_desc);
 
-  if (!sa_is_default(bind_sockaddr) && !socket_fd.bind(*rak::socket_address::cast_from(bind_sockaddr))) {
-    LT_LOG_SOCKADDR("bind failed (fd:%i errno:%i message:'%s')",
-                    bind_sockaddr, file_desc, errno, std::strerror(errno));
+  if (!sa_is_default(bind_sockaddr) && !socket_fd.bind_sa(bind_sockaddr)) {
+    LT_LOG_SOCKADDR("bind failed (fd:%i address:%s errno:%i message:'%s')",
+                    bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
 
     errno = 0;
     socket_fd.close();
@@ -142,11 +143,9 @@ attempt_connect(const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr,
     return -1;
   }
 
-  auto connect_address = rak::socket_address::cast_from(connect_sockaddr);
-
-  if (!socket_fd.connect(*connect_address)) {
+  if (!socket_fd.connect_sa(connect_sockaddr)) {
     LT_LOG_SOCKADDR("connect failed (fd:%i address:%s errno:%i message:'%s')",
-                    bind_sockaddr, file_desc, connect_address->pretty_address_str().c_str(), errno, std::strerror(errno));
+                    bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
 
     errno = 0;
     socket_fd.close();
@@ -155,21 +154,33 @@ attempt_connect(const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr,
   }
 
   LT_LOG_SOCKADDR("connect success (fd:%i address:%s)",
-                  bind_sockaddr, file_desc, connect_address->pretty_address_str().c_str());
+                  bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str());
 
   return file_desc;
 }
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_fd_ftor alloc_fd) const {
+  LT_LOG("connect_socket attempt (flags:0x%x address:%s)",
+         flags, sa_pretty_address_str(connect_sockaddr).c_str());
+
   for (auto& itr : *this) {
     int file_desc = attempt_connect(connect_sockaddr, itr.address.get(), alloc_fd);
 
-    if (file_desc != -1)
+    if (file_desc != -1) {
+      LT_LOG("connect_socket succeeded (flags:0x%x address:%s fd:%i)",
+             flags, sa_pretty_address_str(connect_sockaddr).c_str(), file_desc);
+
       return file_desc;
+    }
   }
+
+  LT_LOG("connect_socket failed (flags:0x%x address:%s)",
+         flags, sa_pretty_address_str(connect_sockaddr).c_str());
 
   return -1;
 }
+
+// Bind can reuse the socket until it is succesful, connect can't.
 
 }
