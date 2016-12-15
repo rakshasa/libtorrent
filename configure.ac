@@ -63,7 +63,8 @@ PKG_CHECK_MODULES([CPPUNIT], [cppunit],, [no_cppunit="yes"])
 
 CFLAGS="$PTHREAD_CFLAGS $CPPUNIT_CFLAGS $CFLAGS"
 CXXFLAGS="$PTHREAD_CFLAGS $CPPUNIT_CFLAGS $CXXFLAGS"
-LIBS="$PTHREAD_LIBS $CPPUNIT_LIBS $LIBS"
+dnl TODO stub change, add real autoconf changes to link against udns
+LIBS="$PTHREAD_LIBS $CPPUNIT_LIBS $LIBS -ludns"
 
 AC_ARG_ENABLE(openssl,
   [  --disable-openssl       Don't use OpenSSL's SHA1 implementation.],
