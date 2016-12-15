@@ -40,6 +40,11 @@
 
 #include <rak/address_info.h>
 #include <rak/socket_address.h>
+#include <rak/timer.h>
+
+#include <stdlib.h>
+#include <map>
+#include <string>
 
 #include "net/listen.h"
 
@@ -50,9 +55,48 @@
 
 namespace torrent {
 
+namespace {
+
+// This alleviates issue https://github.com/rakshasa/rtorrent/issues/180
+// Instead of waiting for the host to resolve over and over again, we remember the
+// failed host and skip it for 15 minutes.
+
+typedef std::map<std::string, uint32_t> HostNamesMap;
+typedef HostNamesMap::iterator HostNamesMapIter;
+
+HostNamesMap UnresolvedHosts;
+
+bool IsHostFailed(const std::string& host) {
+    HostNamesMapIter i = UnresolvedHosts.find(host);
+    if (i == UnresolvedHosts.end()) {
+        return false;
+    }
+    if (rak::timer::current_seconds() < i->second) {
+        return true;
+    }
+
+    // cache expired - remove the host
+    UnresolvedHosts.erase(i);
+    return false;
+}
+
+void RememberHostFailed(const std::string& host) {
+    // add 0..14 random seconds to avoid long stalls when all hosts get
+    // queried again
+    UnresolvedHosts[host] = rak::timer::current_seconds() + 60 * 15 + (::random() % 15);
+}
+
+} // anonymous namespace end
+
 // Fix TrackerUdp, etc, if this is made async.
 static ConnectionManager::slot_resolver_result_type*
 resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
+  // check cache first
+  if (IsHostFailed(host)) {
+    slot(NULL, -1); // maybe use some distinct error code.
+    return NULL;
+  }
+
   if (manager->main_thread_main()->is_current())
     thread_base::release_global_lock();
 
@@ -63,6 +107,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
     if (manager->main_thread_main()->is_current())
       thread_base::acquire_global_lock();
 
+    RememberHostFailed( host );
     slot(NULL, err);
     return NULL;
   }
