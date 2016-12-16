@@ -47,10 +47,11 @@
 #ifndef RAK_SOCKET_ADDRESS_H
 #define RAK_SOCKET_ADDRESS_H
 
+#include <cinttypes>
+#include <cstdint>
 #include <cstring>
-#include <string>
 #include <stdexcept>
-#include <inttypes.h>
+#include <string>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
