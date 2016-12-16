@@ -60,9 +60,9 @@ struct bind_struct {
 
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
 public:
-  typedef std::vector<bind_struct>            base_type;
-  typedef std::function<int ()>               alloc_fd_ftor;
-  typedef std::function<bool (int, uint16_t)> listen_fd_type;
+  typedef std::vector<bind_struct> base_type;
+  typedef std::function<int ()>    alloc_fd_ftor;
+  typedef std::function<bool (int, const sockaddr*)> listen_fd_type;
 
   using base_type::clear;
   using base_type::empty;

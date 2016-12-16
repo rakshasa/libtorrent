@@ -53,8 +53,14 @@
 #include "listen.h"
 #include "manager.h"
 
+#define LT_LOG(log_fmt, ...)                                            \
+  lt_log_print(LOG_CONNECTION_LISTEN, "listen: " log_fmt, __VA_ARGS__);
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
   lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, (sa)->pretty_address_str().c_str(), __VA_ARGS__);
+
+// TODO: Use the new pretty_address_str thing.
+#define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
+  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, rak::socket_address::cast_from(sa)->pretty_address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -80,17 +86,17 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
     return fd.get_fd();
   };
 
-  auto listen_fd = [this, bindAddress](int file_desc, uint16_t port) {
+  auto listen_fd = [this, backlog](int file_desc, const sockaddr* bind_address) {
     SocketFd socket_fd(file_desc);
 
-    if (!socket_fd.listen(128)) {
-      LT_LOG_SA(bindAddress, "listen port %" PRIu16 " failed FIXME", port);
+    if (!socket_fd.listen(backlog)) {
+      LT_LOG_SOCKADDR("listen call failed", bind_address, 0);
       return false;
     }
 
-    this->m_port = port;
-    
-    LT_LOG_SA(bindAddress, "listen port %" PRIu16 " opened with backlog set to %i", port, 128);
+    this->m_port = rak::socket_address::cast_from(bind_address)->port();
+
+    LT_LOG_SOCKADDR("listen port %" PRIu16 " opened with backlog set to %i", bind_address, this->m_port, backlog);
     return true;
   };
 

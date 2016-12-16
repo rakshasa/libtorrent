@@ -179,13 +179,13 @@ attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port
     sa.set_port(port);
 
     if (socket_fd.bind(sa)) {
-      if (!listen_fd(file_desc, port)) {
+      if (!listen_fd(file_desc, sa.c_sockaddr())) {
         LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
                         sa.c_sockaddr(), file_desc, 128, errno, std::strerror(errno));
         break;
       }
 
-      LT_LOG_SOCKADDR("listen success (fd:%i backlog:%i)", sa.c_sockaddr(), file_desc, 128);
+      LT_LOG_SOCKADDR("listen success (fd:%i)", sa.c_sockaddr(), file_desc);
 
       return socket_fd.get_fd();
     }
