@@ -47,6 +47,8 @@
 #ifndef RAK_SOCKET_ADDRESS_H
 #define RAK_SOCKET_ADDRESS_H
 
+#define __STDC_FORMAT_MACROS
+
 #include <cinttypes>
 #include <cstdint>
 #include <cstring>
