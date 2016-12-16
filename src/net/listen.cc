@@ -47,6 +47,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
+#include "torrent/net/bind_manager.h"
 #include "torrent/utils/log.h"
 
 #include "listen.h"
@@ -57,6 +58,7 @@
 
 namespace torrent {
 
+// TODO: Remove 'bindAddress'.
 bool
 Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress) {
   close();
@@ -64,51 +66,52 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
   if (first == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
-  if (bindAddress->family() != 0 &&
-      bindAddress->family() != rak::socket_address::af_inet &&
-      bindAddress->family() != rak::socket_address::af_inet6)
-    throw input_error("Listening socket must be bound to an inet or inet6 address.");
+  auto alloc_fd = []() {
+    SocketFd fd;
 
-  if (!get_fd().open_stream() ||
-      !get_fd().set_nonblock() ||
-      !get_fd().set_reuse_address(true))
-    throw resource_error("Could not allocate socket for listening.");
+    if (!fd.open_stream())
+      return -1;
 
-  rak::socket_address sa;
+    if (!fd.set_nonblock() || !fd.set_reuse_address(true)) {
+      fd.close();
+      return -1;
+    }
 
-  // TODO: Temporary until we refactor:
-  if (bindAddress->family() == 0) {
-    sa.sa_inet6()->clear();
-  } else {
-    sa.copy(*bindAddress, bindAddress->length());
+    return fd.get_fd();
+  };
+
+  auto listen_fd = [this, bindAddress](int file_desc, uint16_t port) {
+    SocketFd socket_fd(file_desc);
+
+    if (!socket_fd.listen(128)) {
+      LT_LOG_SA(bindAddress, "listen port %" PRIu16 " failed FIXME", port);
+      return false;
+    }
+
+    this->m_port = port;
+    
+    LT_LOG_SA(bindAddress, "listen port %" PRIu16 " opened with backlog set to %i", port, 128);
+    return true;
+  };
+
+  m_fileDesc = manager->bind()->listen_socket(first, last, 0, alloc_fd, listen_fd);
+
+  if (m_fileDesc == -1) {
+    get_fd().close();
+    get_fd().clear();
+
+    LT_LOG_SA(bindAddress, "failed to open listen port", 0);
+
+    return false;
   }
 
-  do {
-    sa.set_port(first);
+  manager->connection_manager()->inc_socket_count();
 
-    if (get_fd().bind(sa) && get_fd().listen(backlog)) {
-      m_port = first;
+  manager->poll()->open(this);
+  manager->poll()->insert_read(this);
+  manager->poll()->insert_error(this);
 
-      manager->connection_manager()->inc_socket_count();
-
-      manager->poll()->open(this);
-      manager->poll()->insert_read(this);
-      manager->poll()->insert_error(this);
-
-      LT_LOG_SA(bindAddress, "listen port %" PRIu16 " opened with backlog set to %i", m_port, backlog);
-
-      return true;
-
-    }
-  } while (first++ < last);
-
-  // This needs to be done if local_error is thrown too...
-  get_fd().close();
-  get_fd().clear();
-
-  LT_LOG_SA(bindAddress, "failed to open listen port", 0);
-
-  return false;
+  return true;
 }
 
 void Listen::close() {

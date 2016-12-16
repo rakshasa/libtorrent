@@ -38,6 +38,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <cinttypes>
 
 #include "bind_manager.h"
 
@@ -109,9 +110,7 @@ attempt_connect(const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr,
     LT_LOG_SOCKADDR("bind failed (fd:%i address:%s errno:%i message:'%s')",
                     bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
 
-    errno = 0;
     socket_fd.close();
-
     return -1;
   }
 
@@ -119,9 +118,7 @@ attempt_connect(const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr,
     LT_LOG_SOCKADDR("connect failed (fd:%i address:%s errno:%i message:'%s')",
                     bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
 
-    errno = 0;
     socket_fd.close();
-
     return -1;
   }
 
@@ -133,6 +130,8 @@ attempt_connect(const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr,
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_fd_ftor alloc_fd) const {
+  // Santitize flags.
+
   LT_LOG("connect_socket attempt (flags:0x%x address:%s)",
          flags, sa_pretty_address_str(connect_sockaddr).c_str());
 
@@ -153,6 +152,73 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_
   return -1;
 }
 
-// Bind can reuse the socket until it is succesful, connect can't.
+static int
+attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, bind_manager::alloc_fd_ftor alloc_fd, bind_manager::listen_fd_type listen_fd) {
+  // TODO: Move up.
+  int file_desc = alloc_fd();
+
+  if (file_desc == -1) {
+    LT_LOG_SOCKADDR("open failed (errno:%i message:'%s')",
+                    bind_sockaddr, errno, std::strerror(errno));
+
+    return -1;
+  }
+
+  SocketFd socket_fd(file_desc);
+  rak::socket_address sa;
+
+  if (!sa_is_default(bind_sockaddr)) {
+    sa.copy_sockaddr(bind_sockaddr);
+  } else {
+    // TODO: This will need to handle ipv4/6 difference.
+    // sa.sa_inet()->clear();
+    sa.sa_inet6()->clear();
+  }
+
+  for (uint16_t port = port_first; port != port_last; port++) {
+    sa.set_port(port);
+
+    if (socket_fd.bind(sa)) {
+      if (!listen_fd(file_desc, port)) {
+        LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
+                        sa.c_sockaddr(), file_desc, 128, errno, std::strerror(errno));
+        break;
+      }
+
+      LT_LOG_SOCKADDR("listen success (fd:%i backlog:%i)", sa.c_sockaddr(), file_desc, 128);
+
+      return socket_fd.get_fd();
+    }
+  }
+
+  LT_LOG_SOCKADDR("listen failed (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
+                  sa.c_sockaddr(), file_desc, port_first, port_last);
+
+  socket_fd.close();
+  return -1;
+}
+
+int
+bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int flags, alloc_fd_ftor alloc_fd, listen_fd_type listen_fd) const {
+  // TODO: Remove this log message.
+  LT_LOG("listen_socket attempt (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
+         flags, port_first, port_last);
+
+  for (auto& itr : *this) {
+    int file_desc = attempt_listen(itr.address.get(), port_first, port_last, alloc_fd, listen_fd);
+
+    if (file_desc != -1) {
+      LT_LOG("listen_socket succeeded (flags:0x%x fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
+             flags, file_desc, port_first, port_last);
+
+      return file_desc;
+    }
+  }
+
+  LT_LOG("listen_socket failed (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
+         flags, port_first, port_last);
+
+  return -1;
+}
 
 }

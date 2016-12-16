@@ -60,8 +60,9 @@ struct bind_struct {
 
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
 public:
-  typedef std::vector<bind_struct> base_type;
-  typedef std::function<int ()> alloc_fd_ftor;
+  typedef std::vector<bind_struct>            base_type;
+  typedef std::function<int ()>               alloc_fd_ftor;
+  typedef std::function<bool (int, uint16_t)> listen_fd_type;
 
   using base_type::clear;
   using base_type::empty;
@@ -76,9 +77,7 @@ public:
 
   int connect_socket(const sockaddr* sock_addr, int flags, alloc_fd_ftor alloc_fd) const;
 
-private:
-  // Deprectate:
-  std::unique_ptr<const sockaddr> m_default_address;
+  int listen_socket(uint16_t port_first, uint16_t port_last, int flags, alloc_fd_ftor alloc_fd, listen_fd_type listen_fd) const;
 };
   
 }
