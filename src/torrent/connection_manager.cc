@@ -178,7 +178,7 @@ ConnectionManager::filter(const sockaddr* sa) {
 
 bool
 ConnectionManager::listen_open(port_type begin, port_type end) {
-  if (!m_listen->open(begin, end, m_listen_backlog, rak::socket_address::cast_from(m_bindAddress)))
+  if (!m_listen->open(begin, end, m_listen_backlog))
     return false;
 
   m_listen_port = m_listen->port();

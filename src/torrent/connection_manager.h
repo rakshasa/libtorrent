@@ -143,15 +143,18 @@ public:
   uint32_t            filter(const sockaddr* sa);
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
 
+  // TODO: Change this.
   bool                listen_open(port_type begin, port_type end);
   void                listen_close();  
 
   // Since trackers need our port number, it doesn't get cleared after
   // 'listen_close()'. The client may change the reported port number,
   // but do note that it gets overwritten after 'listen_open(...)'.
+
+  // TODO: Add helper methods to easily get the IPv4 and IPv6 listen ports.
   port_type           listen_port() const                     { return m_listen_port; }
+
   int                 listen_backlog() const                  { return m_listen_backlog; }
-  void                set_listen_port(port_type p)            { m_listen_port = p; }
   void                set_listen_backlog(int v);
 
   // The resolver returns a pointer to its copy of the result slot
@@ -179,6 +182,7 @@ private:
   uint32_t            m_receiveBufferSize;
   int                 m_encryptionOptions;
 
+  // TODO: Deprecate bind, and local(?).
   sockaddr*           m_bindAddress;
   sockaddr*           m_localAddress;
   sockaddr*           m_proxyAddress;

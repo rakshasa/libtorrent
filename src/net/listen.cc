@@ -62,9 +62,8 @@
 
 namespace torrent {
 
-// TODO: Remove 'bindAddress'.
 bool
-Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_address* bindAddress) {
+Listen::open(uint16_t first, uint16_t last, int backlog) {
   close();
 
   if (first == 0 || first > last)
@@ -104,7 +103,7 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
     get_fd().close();
     get_fd().clear();
 
-    LT_LOG_SA(bindAddress, "failed to open listen port", 0);
+    LT_LOG("failed to open listen port", 0);
 
     return false;
   }

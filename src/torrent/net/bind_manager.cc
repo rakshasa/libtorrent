@@ -204,6 +204,7 @@ bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int flags, 
       return file_desc;
     }
 
+    // TODO: Add a helper fd method that checks (and throws/logs) if '::close' fails.
     ::close(file_desc);
   }
 
