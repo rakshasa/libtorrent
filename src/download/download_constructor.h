@@ -39,7 +39,7 @@
 
 #include <list>
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 
 namespace torrent {
 

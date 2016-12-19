@@ -38,7 +38,7 @@
 #define LIBTORRENT_TRACKER_H
 
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 #include <torrent/common.h>
 
 namespace torrent {

@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <inttypes.h>
+#include <cinttypes>
 #include <torrent/object.h>
 
 #include "object_stream_test.h"

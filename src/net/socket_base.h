@@ -38,7 +38,7 @@
 #define LIBTORRENT_NET_SOCKET_BASE_H
 
 #include <list>
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "torrent/event.h"
 #include "socket_fd.h"

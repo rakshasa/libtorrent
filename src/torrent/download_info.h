@@ -39,7 +39,7 @@
 
 #include <list>
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 #include lt_tr1_functional
 
 #include <torrent/rate.h>

@@ -38,7 +38,7 @@
 #define LIBTORRENT_NET_HANDSHAKE_MANAGER_H
 
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 #include lt_tr1_functional
 #include <rak/functional.h>
 #include <rak/unordered_vector.h>

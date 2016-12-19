@@ -2,7 +2,7 @@
 
 #include "test_uri_parser.h"
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <iostream>
 #include <torrent/utils/uri_parser.h>
 
