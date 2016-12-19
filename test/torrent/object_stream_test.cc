@@ -1,7 +1,5 @@
 #include "config.h"
 
-#define __STDC_CONSTANT_MACROS
-
 #include <iostream>
 #include <sstream>
 #include <cinttypes>

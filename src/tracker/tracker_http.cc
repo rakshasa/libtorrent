@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include <iomanip>
 #include <sstream>
 #include <rak/functional.h>
