@@ -38,7 +38,7 @@
 #define LIBTORRENT_DATA_MEMORY_CHUNK_H
 
 #include <algorithm>
-#include <inttypes.h>
+#include <cinttypes>
 #include <sys/mman.h>
 #include <cstddef>
 

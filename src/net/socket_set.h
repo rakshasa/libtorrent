@@ -39,7 +39,7 @@
 
 #include <list>
 #include <vector>
-#include <inttypes.h>
+#include <cinttypes>
 #include <rak/allocators.h>
 
 #include "torrent/exceptions.h"

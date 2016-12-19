@@ -38,7 +38,7 @@
 #define LIBTORRENT_SOCKET_FILE_H
 
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 #include <fcntl.h>
 #include <sys/types.h>
 

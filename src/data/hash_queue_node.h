@@ -39,7 +39,7 @@
 
 #include <string>
 #include lt_tr1_functional
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "chunk_handle.h"
 #include "hash_chunk.h"

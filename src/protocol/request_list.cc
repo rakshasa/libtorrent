@@ -38,7 +38,7 @@
 
 #include <algorithm>
 #include <functional>
-#include <inttypes.h>
+#include <cinttypes>
 #include <rak/functional.h>
 
 #include "torrent/data/block.h"

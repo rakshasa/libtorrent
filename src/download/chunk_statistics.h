@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_CHUNK_STATISTICS_H
 #define LIBTORRENT_DOWNLOAD_CHUNK_STATISTICS_H
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <vector>
 
 namespace torrent {

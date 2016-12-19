@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_LISTEN_H
 #define LIBTORRENT_LISTEN_H
 
-#include <inttypes.h>
+#include <cinttypes>
 #include lt_tr1_functional
 #include <rak/socket_address.h>
 

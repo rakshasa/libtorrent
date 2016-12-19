@@ -41,7 +41,7 @@
 
 #include <list>
 #include <vector>
-#include <inttypes.h>
+#include <cinttypes>
 #include lt_tr1_functional
 #include <torrent/download/group_entry.h>
 

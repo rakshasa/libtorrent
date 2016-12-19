@@ -34,8 +34,6 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#define __STDC_FORMAT_MACROS
-
 #include "config.h"
 
 #include <rak/file_stat.h>

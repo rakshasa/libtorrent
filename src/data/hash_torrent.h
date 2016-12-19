@@ -38,7 +38,7 @@
 #define LIBTORRENT_DATA_HASH_TORRENT_H
 
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 #include lt_tr1_functional
 #include <rak/priority_queue_default.h>
 

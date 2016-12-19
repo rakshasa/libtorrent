@@ -179,7 +179,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
     encryption_options |= ConnectionManager::encryption_use_proxy;
   }
 
-  auto alloc_fd = []() {
+  auto alloc_fd = [this]() {
     SocketFd fd;
 
     if (!fd.open_stream())

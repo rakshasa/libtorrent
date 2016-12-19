@@ -39,7 +39,7 @@
 #include "config.h"
 
 #include <algorithm>
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "torrent/exceptions.h"
 #include "torrent/bitfield.h"

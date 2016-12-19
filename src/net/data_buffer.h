@@ -38,7 +38,7 @@
 #define LIBTORRENT_NET_DATA_BUFFER_H
 
 #include <memory>
-#include <inttypes.h>
+#include <cinttypes>
 
 namespace torrent {
 
