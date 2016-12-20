@@ -69,12 +69,15 @@ AC_ARG_ENABLE(openssl,
   [  --disable-openssl       Don't use OpenSSL's SHA1 implementation.],
   [
     if test "$enableval" = "yes"; then
+dnl move to scripts.
       PKG_CHECK_MODULES(OPENSSL, libcrypto,
         CXXFLAGS="$CXXFLAGS $OPENSSL_CFLAGS";
         LIBS="$LIBS $OPENSSL_LIBS")
 
       AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
       AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
+      AC_CHECK_LIB([crypto], [DH_set0_pqg], [AC_DEFINE(USE_OPENSSL_1_1, 1, Using OpenSSL 1.1.)])
+
     else
       AC_DEFINE(USE_NSS_SHA, 1, Using Mozilla's SHA1 implementation.)
     fi
@@ -85,6 +88,7 @@ AC_ARG_ENABLE(openssl,
 
     AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
     AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
+    AC_CHECK_LIB([crypto], [DH_set0_pqg], [AC_DEFINE(USE_OPENSSL_1_1, 1, Using OpenSSL 1.1.)])
   ]
 )
 
