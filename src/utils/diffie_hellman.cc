@@ -54,11 +54,23 @@ DiffieHellman::DiffieHellman(const unsigned char *prime, int primeLength,
   m_secret(NULL), m_size(0) {
 
 #ifdef USE_OPENSSL
+
   m_dh = DH_new();
+
+#ifdef USE_OPENSSL_1_1
+  BIGNUM * const dh_p = BN_bin2bn(prime, primeLength, NULL);
+  BIGNUM * const dh_g = BN_bin2bn(generator, generatorLength, NULL);
+
+  if (dh_p == NULL || dh_g == NULL ||
+      !DH_set0_pqg(m_dh, dh_p, NULL, dh_g))
+	  throw internal_error("Could not generate Diffie-Hellman parameters");
+#else
   m_dh->p = BN_bin2bn(prime, primeLength, NULL);
   m_dh->g = BN_bin2bn(generator, generatorLength, NULL);
+#endif
 
   DH_generate_key(m_dh);
+
 #else
   throw internal_error("Compiled without encryption support.");
 #endif
@@ -74,7 +86,19 @@ DiffieHellman::~DiffieHellman() {
 bool
 DiffieHellman::is_valid() const {
 #ifdef USE_OPENSSL
+  if (m_dh == NULL)
+    return false;
+
+#ifdef USE_OPENSSL_1_1
+  const BIGNUM *pub_key;
+
+  DH_get0_key(m_dh, &pub_key, NULL);
+
+  return pub_key != NULL;
+#else
   return m_dh != NULL && m_dh->pub_key != NULL;
+#endif
+
 #else
   return false;
 #endif
@@ -103,8 +127,16 @@ DiffieHellman::store_pub_key(unsigned char* dest, unsigned int length) {
 #ifdef USE_OPENSSL
   std::memset(dest, 0, length);
 
-  if ((int)length >= BN_num_bytes(m_dh->pub_key))
-    BN_bn2bin(m_dh->pub_key, dest + length - BN_num_bytes(m_dh->pub_key));
+  const BIGNUM *pub_key;
+
+#ifdef USE_OPENSSL_1_1
+  DH_get0_key(m_dh, &pub_key, NULL);
+#else
+  pub_key = m_dh->pub_key;
+#endif
+
+  if ((int)length >= BN_num_bytes(pub_key))
+    BN_bn2bin(pub_key, dest + length - BN_num_bytes(pub_key));
 #endif
 }
 
