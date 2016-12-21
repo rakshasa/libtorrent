@@ -38,7 +38,7 @@
 #define LIBTORRENT_TRACKER_CONTROLLER_H
 
 #include <string>
-#include lt_tr1_functional
+#include <functional>
 #include <torrent/common.h>
 #include <torrent/tracker.h>
 

@@ -38,7 +38,7 @@
 #define LIBTORRENT_DATA_HASH_QUEUE_NODE_H
 
 #include <string>
-#include lt_tr1_functional
+#include <functional>
 #include <inttypes.h>
 
 #include "chunk_handle.h"

@@ -38,7 +38,7 @@
 
 #include <algorithm>
 #include <functional>
-#include lt_tr1_functional
+#include <functional>
 #include <limits>
 #include <numeric>
 #include <rak/functional.h>

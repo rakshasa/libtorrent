@@ -39,7 +39,7 @@
 
 #include <algorithm>
 #include <vector>
-#include lt_tr1_functional
+#include <functional>
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
 

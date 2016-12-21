@@ -38,7 +38,7 @@
 
 #include <algorithm>
 #include <rak/string_manip.h>
-#include lt_tr1_functional
+#include <functional>
 
 #include "client_list.h"
 #include "exceptions.h"

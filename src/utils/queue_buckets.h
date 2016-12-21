@@ -39,8 +39,8 @@
 
 #include <algorithm>
 #include <deque>
-#include lt_tr1_functional
-#include lt_tr1_array
+#include <functional>
+#include <array>
 
 namespace torrent {
 

@@ -45,7 +45,7 @@
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
-#include lt_tr1_functional
+#include <functional>
 #include <torrent/common.h>
 
 namespace torrent {

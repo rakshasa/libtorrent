@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_UTILS_EXTENTS_H
 #define LIBTORRENT_UTILS_EXTENTS_H
 
-#include lt_tr1_array
+#include <array>
 
 #include <algorithm>
 

@@ -38,7 +38,7 @@
 #define LIBTORRENT_UTILS_NET_H
 
 #include <netdb.h>
-#include lt_tr1_functional
+#include <functional>
 
 namespace torrent {
 

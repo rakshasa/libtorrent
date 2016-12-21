@@ -41,7 +41,7 @@
 #include <sys/types.h>
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
-#include lt_tr1_functional
+#include <functional>
 
 namespace torrent {
 
