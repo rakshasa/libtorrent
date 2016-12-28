@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <functional>
 #include <cstring>
+#include <cstddef>
 
 #include "torrent/connection_manager.h"
 #include "torrent/object.h"
