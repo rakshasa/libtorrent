@@ -121,6 +121,19 @@ CC_ATTRIBUTE_UNUSED(
 	AC_DEFINE([__UNUSED], [], [Null-wrapper if unused attribute is unsupported])
 )
 
+AC_CANONICAL_HOST
+AC_MSG_CHECKING(for Cygwin)
+case $host in
+	*cygwin*)
+		OS_CYGWIN=yes
+		CXXFLAGS="$CXXFLAGS -U__STRICT_ANSI__"
+		;;
+	*)
+		OS_CYGWIN=no
+		;;
+esac
+AC_MSG_RESULT($OS_CYGWIN)
+
 AC_OUTPUT([
 	libtorrent.pc
 	Makefile
