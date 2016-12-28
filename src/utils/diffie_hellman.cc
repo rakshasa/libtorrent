@@ -103,7 +103,7 @@ DiffieHellman::store_pub_key(unsigned char* dest, unsigned int length) {
 #ifdef USE_OPENSSL
   std::memset(dest, 0, length);
 
-  if ((int)length >= BN_num_bytes(m_dh->pub_key))
+  if (m_dh->pub_key && (int)length >= BN_num_bytes(m_dh->pub_key))
     BN_bn2bin(m_dh->pub_key, dest + length - BN_num_bytes(m_dh->pub_key));
 #endif
 }
