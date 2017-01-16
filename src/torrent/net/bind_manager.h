@@ -67,6 +67,8 @@ public:
   using base_type::clear;
   using base_type::empty;
 
+  static const int flag_default = (0x4 - 1);
+
   static const int flag_ipv4 = 0x1;
   static const int flag_ipv6 = 0x2;
 

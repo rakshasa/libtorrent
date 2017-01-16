@@ -52,7 +52,27 @@
 #define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
   lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, sa_pretty_address_str(sa).c_str(), __VA_ARGS__);
 
+#include "torrent/exceptions.h"
+
 namespace torrent {
+
+void
+fd_close(int fd) {
+  if (::close(fd) == -1)
+    throw internal_error("torrent::fd_close(...) failed: " + std::string(strerror(errno)));
+}
+
+bool
+fd_bind(int fd, const sockaddr* sa, bool use_inet6 = true) {
+  if (use_inet6 && sa->sa_family == AF_INET) {
+    sockaddr_in6 mapped;
+    sa_inet_mapped_inet6(reinterpret_cast<const sockaddr_in*>(sa), &mapped);
+
+    return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
+  }
+
+  return ::bind(fd, sa, sa_length(sa)) == 0;
+}
 
 bind_struct
 make_bind_struct(const sockaddr* a, int f, uint16_t priority) {
@@ -73,7 +93,7 @@ bind_struct_cast_address(const bind_struct& bs) {
 
 bind_manager::bind_manager() {
   // TODO: Move this to a different place.
-  base_type::push_back(make_bind_struct(NULL, 0, 0));
+  base_type::push_back(make_bind_struct(NULL, flag_default, 0));
 }
 
 void
@@ -139,7 +159,7 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_
       return file_desc;
     }
 
-    ::close(file_desc);
+    fd_close(file_desc);
   }
 
   LT_LOG("connect_socket failed (flags:0x%x address:%s)",
@@ -150,21 +170,21 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_
 
 static bool
 attempt_listen(int file_desc, const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, bind_manager::listen_fd_type listen_fd) {
-  SocketFd socket_fd(file_desc);
   rak::socket_address sa;
+  // sockaddr_storage sa;
 
-  if (!sa_is_default(bind_sockaddr)) {
-    sa.copy_sockaddr(bind_sockaddr);
-  } else {
+  if (sa_is_default(bind_sockaddr)) {
     // TODO: This will need to handle ipv4/6 difference.
     // sa.sa_inet()->clear();
     sa.sa_inet6()->clear();
+  } else {
+    sa.copy_sockaddr(bind_sockaddr);
   }
 
   for (uint16_t port = port_first; port != port_last; port++) {
     sa.set_port(port);
 
-    if (socket_fd.bind(sa)) {
+    if (fd_bind(file_desc, sa.c_sockaddr())) {
       if (!listen_fd(file_desc, sa.c_sockaddr())) {
         LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
                         sa.c_sockaddr(), file_desc, 128, errno, std::strerror(errno));
@@ -184,7 +204,6 @@ attempt_listen(int file_desc, const sockaddr* bind_sockaddr, uint16_t port_first
 
 int
 bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int flags, alloc_fd_ftor alloc_fd, listen_fd_type listen_fd) const {
-  // TODO: Remove this log message.
   LT_LOG("listen_socket attempt (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
          flags, port_first, port_last);
 
@@ -204,8 +223,7 @@ bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int flags, 
       return file_desc;
     }
 
-    // TODO: Add a helper fd method that checks (and throws/logs) if '::close' fails.
-    ::close(file_desc);
+    fd_close(file_desc);
   }
 
   LT_LOG("listen_socket failed (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",

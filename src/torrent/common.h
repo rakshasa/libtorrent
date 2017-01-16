@@ -41,6 +41,8 @@
 #include <cstddef>
 
 struct sockaddr;
+struct sockaddr_in;
+struct sockaddr_in6;
 
 namespace torrent {
 
