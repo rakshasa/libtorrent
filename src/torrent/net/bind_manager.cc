@@ -43,36 +43,20 @@
 #include "bind_manager.h"
 
 #include "net/socket_fd.h"
-#include "rak/socket_address.h"
+#include "torrent/exceptions.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
+
+// Deprecated.
+#include "rak/socket_address.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
 #define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
   lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, sa_pretty_address_str(sa).c_str(), __VA_ARGS__);
 
-#include "torrent/exceptions.h"
-
 namespace torrent {
-
-void
-fd_close(int fd) {
-  if (::close(fd) == -1)
-    throw internal_error("torrent::fd_close(...) failed: " + std::string(strerror(errno)));
-}
-
-bool
-fd_bind(int fd, const sockaddr* sa, bool use_inet6 = true) {
-  if (use_inet6 && sa->sa_family == AF_INET) {
-    sockaddr_in6 mapped;
-    sa_inet_mapped_inet6(reinterpret_cast<const sockaddr_in*>(sa), &mapped);
-
-    return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
-  }
-
-  return ::bind(fd, sa, sa_length(sa)) == 0;
-}
 
 bind_struct
 make_bind_struct(const sockaddr* a, int f, uint16_t priority) {

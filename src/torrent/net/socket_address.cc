@@ -2,6 +2,7 @@
 
 #include "socket_address.h"
 
+#include <cstring>
 #include <sys/socket.h>
 
 #include "rak/socket_address.h"
@@ -35,9 +36,61 @@ sa_length(const sockaddr* sa) {
     return sizeof(sockaddr_in);
   case AF_INET6:
     return sizeof(sockaddr_in6);
+  case AF_UNSPEC:
   default:
-    return 0;
+    return sizeof(sockaddr);
   }
+}
+
+std::unique_ptr<sockaddr>
+sa_make_unspec() {
+  std::unique_ptr<sockaddr> sa(new sockaddr);
+  std::memset(sa.get(), 0, sizeof(sockaddr));
+  sa.get()->sa_family = AF_UNSPEC;
+
+  return sa;
+}
+
+std::unique_ptr<sockaddr>
+sa_copy(const sockaddr* sa) {
+  if (sa == NULL)
+    return sa_make_unspec();
+
+  switch(sa->sa_family) {
+  case AF_INET:
+    return sa_copy_inet(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    return sa_copy_inet6(reinterpret_cast<const sockaddr_in6*>(sa));
+  case AF_UNSPEC:
+  default:
+    return sa_make_unspec();
+  }
+}
+
+std::unique_ptr<sockaddr>
+sa_copy_inet(const sockaddr_in* sa) {
+  return std::unique_ptr<sockaddr>(reinterpret_cast<sockaddr*>(sa_inet_copy(sa).release()));
+}
+
+std::unique_ptr<sockaddr>
+sa_copy_inet6(const sockaddr_in6* sa) {
+  return std::unique_ptr<sockaddr>(reinterpret_cast<sockaddr*>(sa_inet6_copy(sa).release()));
+}
+
+std::unique_ptr<sockaddr_in>
+sa_inet_copy(const sockaddr_in* sa) {
+  std::unique_ptr<sockaddr_in> result(new sockaddr_in);
+  std::memcpy(result.get(), sa, sizeof(sockaddr_in));
+
+  return result;
+}
+
+std::unique_ptr<sockaddr_in6>
+sa_inet6_copy(const sockaddr_in6* sa) {
+  std::unique_ptr<sockaddr_in6> result(new sockaddr_in6);
+  std::memcpy(result.get(), sa, sizeof(sockaddr_in));
+
+  return result;
 }
 
 std::string
