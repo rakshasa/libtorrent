@@ -59,20 +59,8 @@
 namespace torrent {
 
 bind_struct
-make_bind_struct(const sockaddr* a, int f, uint16_t priority) {
-  auto addr = new rak::socket_address;
-
-  if (a == NULL)
-    addr->clear();
-  else
-    addr->copy_sockaddr(a);
-
-  return bind_struct { f, std::unique_ptr<const sockaddr>(addr->c_sockaddr()), priority, 0, 0 };
-}
-
-inline const rak::socket_address*
-bind_struct_cast_address(const bind_struct& bs) {
-  return rak::socket_address::cast_from(bs.address.get());
+make_bind_struct(const sockaddr* sa, int f, uint16_t priority) {
+  return bind_struct { f, sa_copy(sa), priority, 0, 0 };
 }
 
 bind_manager::bind_manager() {
@@ -154,35 +142,32 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_
 
 static bool
 attempt_listen(int file_desc, const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, bind_manager::listen_fd_type listen_fd) {
-  rak::socket_address sa;
   // sockaddr_storage sa;
+  std::unique_ptr<sockaddr> sa;
 
-  if (sa_is_default(bind_sockaddr)) {
-    // TODO: This will need to handle ipv4/6 difference.
-    // sa.sa_inet()->clear();
-    sa.sa_inet6()->clear();
-  } else {
-    sa.copy_sockaddr(bind_sockaddr);
-  }
+  if (sa_is_default(bind_sockaddr))
+    sa = sa_make_inet6();
+  else
+    sa = sa_copy(bind_sockaddr);
 
   for (uint16_t port = port_first; port != port_last; port++) {
-    sa.set_port(port);
+    sa_set_port(sa.get(), port);
 
-    if (fd_bind(file_desc, sa.c_sockaddr())) {
-      if (!listen_fd(file_desc, sa.c_sockaddr())) {
+    if (fd_bind(file_desc, sa.get())) {
+      if (!listen_fd(file_desc, sa.get())) {
         LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
-                        sa.c_sockaddr(), file_desc, 128, errno, std::strerror(errno));
+                        sa.get(), file_desc, 128, errno, std::strerror(errno));
         break;
       }
 
-      LT_LOG_SOCKADDR("listen success (fd:%i)", sa.c_sockaddr(), file_desc);
+      LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), file_desc);
 
       return true;
     }
   }
 
   LT_LOG_SOCKADDR("listen failed (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-                  sa.c_sockaddr(), file_desc, port_first, port_last);
+                  sa.get(), file_desc, port_first, port_last);
   return false;
 }
 
