@@ -67,6 +67,7 @@ public:
   using base_type::clear;
   using base_type::empty;
 
+  // Change to a proper enum.
   static const int flag_default = (0x4 - 1);
 
   static const int flag_ipv4 = 0x1;
@@ -79,8 +80,7 @@ public:
 
   int connect_socket(const sockaddr* sock_addr, int flags, alloc_fd_ftor alloc_fd) const;
 
-  // int listen_socket(uint16_t port_first, uint16_t port_last, int flags, alloc_fd_ftor alloc_fd, listen_fd_type listen_fd) const;
-  int listen_socket(uint16_t port_first, uint16_t port_last, int flags, listen_fd_type listen_fd) const;
+  int listen_socket(uint16_t port_first, uint16_t port_last, int backlog, int flags, listen_fd_type listen_fd) const;
 };
   
 }

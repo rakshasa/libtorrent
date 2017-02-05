@@ -69,28 +69,17 @@ Listen::open(uint16_t first, uint16_t last, int backlog) {
   if (first == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
-  auto listen_fd = [this, backlog](int file_desc, const sockaddr* bind_address) {
-    SocketFd socket_fd(file_desc);
-
-    if (!socket_fd.listen(backlog)) {
-      LT_LOG_SOCKADDR("listen call failed", bind_address, 0);
-      return false;
-    }
-
+  auto listen_fd = [this, backlog](int fd, const sockaddr* bind_address) {
     this->m_port = rak::socket_address::cast_from(bind_address)->port();
 
     LT_LOG_SOCKADDR("listen port %" PRIu16 " opened with backlog set to %i", bind_address, this->m_port, backlog);
     return true;
   };
 
-  m_fileDesc = manager->bind()->listen_socket(first, last, 0, listen_fd);
+  m_fileDesc = manager->bind()->listen_socket(first, last, 128, 0, listen_fd);
 
   if (m_fileDesc == -1) {
-    get_fd().close();
-    get_fd().clear();
-
     LT_LOG("failed to open listen port", 0);
-
     return false;
   }
 

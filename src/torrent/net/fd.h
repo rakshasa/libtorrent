@@ -22,6 +22,8 @@ bool fd_set_v6only(int fd, bool state) LIBTORRENT_EXPORT;
 
 bool fd_bind(int fd, const sockaddr* sa, bool use_inet6 = true) LIBTORRENT_EXPORT;
 
+bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
+
 inline fd_flags
 operator |(fd_flags lhs, fd_flags rhs) {
   return static_cast<fd_flags>(static_cast<int>(lhs) | static_cast<int>(rhs));

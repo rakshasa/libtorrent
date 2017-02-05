@@ -98,4 +98,9 @@ fd_bind(int fd, const sockaddr* sa, bool use_inet6) {
   return ::bind(fd, sa, sa_length(sa)) == 0;
 }
 
+bool
+fd_listen(int fd, int backlog) {
+  return ::listen(fd, backlog) == 0;
+}
+
 }

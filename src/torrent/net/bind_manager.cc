@@ -141,7 +141,7 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_
 }
 
 static int
-attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, bind_manager::listen_fd_type listen_fd) {
+attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, int backlog, bind_manager::listen_fd_type listen_fd) {
   std::unique_ptr<sockaddr> sa;
 
   if (sa_is_default(bind_sockaddr))
@@ -160,17 +160,20 @@ attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port
   for (uint16_t port = port_first; port != port_last; port++) {
     sa_set_port(sa.get(), port);
 
-    if (fd_bind(fd, sa.get())) {
-      if (!listen_fd(fd, sa.get())) {
-        LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
-                        sa.get(), fd, 128, errno, std::strerror(errno));
-        break;
-      }
+    if (!fd_bind(fd, sa.get()))
+      continue;
 
-      LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), fd);
-
-      return fd;
+    if (!fd_listen(fd, backlog)) {
+      LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
+                      sa.get(), fd, backlog, errno, std::strerror(errno));
+      fd_close(fd);
+      return -1;
     }
+
+    listen_fd(fd, sa.get());
+
+    LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), fd);
+    return fd;
   }
 
   LT_LOG_SOCKADDR("listen failed (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
@@ -179,24 +182,23 @@ attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port
 }
 
 int
-bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int flags, listen_fd_type listen_fd) const {
+bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int backlog, int flags, listen_fd_type listen_fd) const {
   LT_LOG("listen_socket attempt (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
          flags, port_first, port_last);
 
   for (auto& itr : *this) {
-    int fd = attempt_listen(itr.address.get(), port_first, port_last, listen_fd);
+    int fd = attempt_listen(itr.address.get(), port_first, port_last, backlog, listen_fd);
 
-    if (fd != -1) {
-      LT_LOG("listen_socket succeeded (flags:0x%x fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-             flags, fd, port_first, port_last);
+    if (fd == -1)
+      continue;
 
-      return fd;
-    }
+    LT_LOG("listen_socket succeeded (flags:0x%x fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
+           flags, fd, port_first, port_last);
+    return fd;
   }
 
   LT_LOG("listen_socket failed (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
          flags, port_first, port_last);
-
   return -1;
 }
 
