@@ -54,8 +54,8 @@ struct bind_struct {
 
   uint16_t priority;
 
-  uint16_t listen_port_begin;
-  uint16_t listen_port_end;
+  uint16_t listen_port_first;
+  uint16_t listen_port_last;
 };
 
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
@@ -67,11 +67,10 @@ public:
   using base_type::clear;
   using base_type::empty;
 
-  // Change to a proper enum.
-  static const int flag_default = (0x4 - 1);
-
-  static const int flag_ipv4 = 0x1;
-  static const int flag_ipv6 = 0x2;
+  enum flags_type {
+    flag_v4only = 0x1,
+    flag_v6only = 0x2
+  };
 
   bind_manager();
 
@@ -80,7 +79,7 @@ public:
 
   int connect_socket(const sockaddr* sock_addr, int flags, alloc_fd_ftor alloc_fd) const;
 
-  int listen_socket(uint16_t port_first, uint16_t port_last, int backlog, int flags, listen_fd_type listen_fd) const;
+  int listen_socket(int flags, int backlog, listen_fd_type listen_fd) const;
 };
   
 }

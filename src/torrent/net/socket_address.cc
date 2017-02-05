@@ -30,6 +30,16 @@ sa_is_default(const sockaddr* sockaddr) {
   return sockaddr == NULL || sockaddr->sa_family == AF_UNSPEC;
 }
 
+bool
+sa_is_inet(const sockaddr* sockaddr) {
+  return sockaddr != NULL && sockaddr->sa_family == AF_INET;
+}
+
+bool
+sa_is_inet6(const sockaddr* sockaddr) {
+  return sockaddr != NULL && sockaddr->sa_family == AF_INET6;
+}
+
 size_t
 sa_length(const sockaddr* sa) {
   switch(sa->sa_family) {
@@ -53,9 +63,18 @@ sa_make_unspec() {
 }
 
 std::unique_ptr<sockaddr>
-sa_make_inet6() {
+sa_make_inet() {
   std::unique_ptr<sockaddr> sa(reinterpret_cast<sockaddr*>(new sockaddr_in));
   std::memset(sa.get(), 0, sizeof(sockaddr_in));
+  sa.get()->sa_family = AF_INET;
+
+  return sa;
+}
+
+std::unique_ptr<sockaddr>
+sa_make_inet6() {
+  std::unique_ptr<sockaddr> sa(reinterpret_cast<sockaddr*>(new sockaddr_in6));
+  std::memset(sa.get(), 0, sizeof(sockaddr_in6));
   sa.get()->sa_family = AF_INET6;
 
   return sa;

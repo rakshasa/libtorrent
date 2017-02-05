@@ -48,9 +48,6 @@
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
-// Deprecated.
-#include "rak/socket_address.h"
-
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
 #define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
@@ -58,14 +55,34 @@
 
 namespace torrent {
 
+static std::unique_ptr<sockaddr>
+prepare_sockaddr(const sockaddr* sa, int flags) {
+  if (sa_is_default(sa)) {
+    if ((flags & bind_manager::flag_v4only))
+      return sa_make_inet();
+
+    return sa_make_inet6();
+  }
+
+  if ((flags & bind_manager::flag_v4only) && !sa_is_inet(sa))
+    throw internal_error("(flags & flag_v4only) && !sa_is_inet(sa)");
+
+  if ((flags & bind_manager::flag_v6only) && !sa_is_inet6(sa))
+    throw internal_error("(flags & flag_v6only) && !sa_is_inet(sa)");
+
+  return sa_copy(sa);
+}
+
 bind_struct
-make_bind_struct(const sockaddr* sa, int f, uint16_t priority) {
-  return bind_struct { f, sa_copy(sa), priority, 0, 0 };
+make_bind_struct(const sockaddr* sa, int flags, uint16_t priority) {
+  return bind_struct { flags, prepare_sockaddr(sa, flags), priority, 6980, 6999 };
 }
 
 bind_manager::bind_manager() {
   // TODO: Move this to a different place.
-  base_type::push_back(make_bind_struct(NULL, flag_default, 0));
+  // base_type::push_back(make_bind_struct(NULL, 0, 0));
+
+  base_type::push_back(make_bind_struct(NULL, flag_v6only, 0));
 }
 
 void
@@ -141,15 +158,14 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_
 }
 
 static int
-attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, int backlog, bind_manager::listen_fd_type listen_fd) {
-  std::unique_ptr<sockaddr> sa;
+attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd_type listen_fd) {
+  std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
+  fd_flags open_flags = fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address;
 
-  if (sa_is_default(bind_sockaddr))
-    sa = sa_make_inet6();
-  else
-    sa = sa_copy(bind_sockaddr);
+  if ((bind_itr.flags & bind_manager::flag_v6only))
+    open_flags = open_flags | fd_flag_v6only;
 
-  int fd = fd_open(fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address);
+  int fd = fd_open(open_flags);
 
   if (fd == -1) {
     LT_LOG_SOCKADDR("listen_socket open failed (errno:%i message:'%s')",
@@ -157,7 +173,7 @@ attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port
     return -1;
   }
 
-  for (uint16_t port = port_first; port != port_last; port++) {
+  for (uint16_t port = bind_itr.listen_port_first; port != bind_itr.listen_port_last; port++) {
     sa_set_port(sa.get(), port);
 
     if (!fd_bind(fd, sa.get()))
@@ -177,28 +193,25 @@ attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port
   }
 
   LT_LOG_SOCKADDR("listen failed (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-                  sa.get(), fd, port_first, port_last);
+                  sa.get(), fd, bind_itr.listen_port_first, bind_itr.listen_port_last);
+  fd_close(fd);
   return -1;
 }
 
 int
-bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int backlog, int flags, listen_fd_type listen_fd) const {
-  LT_LOG("listen_socket attempt (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-         flags, port_first, port_last);
+bind_manager::listen_socket(int flags, int backlog, listen_fd_type listen_fd) const {
+  LT_LOG("listen_socket attempt (flags:0x%x)", flags);
 
   for (auto& itr : *this) {
-    int fd = attempt_listen(itr.address.get(), port_first, port_last, backlog, listen_fd);
+    int fd = attempt_listen(itr, backlog, listen_fd);
 
     if (fd == -1)
       continue;
 
-    LT_LOG("listen_socket succeeded (flags:0x%x fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-           flags, fd, port_first, port_last);
     return fd;
   }
 
-  LT_LOG("listen_socket failed (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-         flags, port_first, port_last);
+  LT_LOG("listen_socket failed (flags:0x%x)", flags);
   return -1;
 }
 

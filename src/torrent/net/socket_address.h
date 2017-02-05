@@ -10,9 +10,13 @@ namespace torrent {
 bool sa_is_bindable(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
 bool sa_is_default(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
 
+bool sa_is_inet(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
+bool sa_is_inet6(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
+
 size_t sa_length(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 std::unique_ptr<sockaddr> sa_make_unspec() LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr> sa_make_inet() LIBTORRENT_EXPORT;
 std::unique_ptr<sockaddr> sa_make_inet6() LIBTORRENT_EXPORT;
 
 std::unique_ptr<sockaddr> sa_copy(const sockaddr* sa) LIBTORRENT_EXPORT;

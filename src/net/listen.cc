@@ -76,7 +76,7 @@ Listen::open(uint16_t first, uint16_t last, int backlog) {
     return true;
   };
 
-  m_fileDesc = manager->bind()->listen_socket(first, last, 128, 0, listen_fd);
+  m_fileDesc = manager->bind()->listen_socket(0, 128, listen_fd);
 
   if (m_fileDesc == -1) {
     LT_LOG("failed to open listen port", 0);
