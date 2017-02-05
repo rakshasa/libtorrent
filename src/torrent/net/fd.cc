@@ -3,8 +3,11 @@
 #include "fd.h"
 
 #include <cerrno>
+#include <fcntl.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
 #include <sys/socket.h>
 
 #include "torrent/exceptions.h"
@@ -12,12 +15,77 @@
 
 namespace torrent {
 
+int
+fd_open(fd_flags flags) {
+  int domain;
+  int protocol;
+
+  if ((flags & fd_flag_stream)) {
+    domain = SOCK_STREAM;
+    protocol = IPPROTO_TCP;
+  } else {
+    errno = EINVAL;
+    return -1;
+  }
+
+  int fd = -1;
+  bool ipv6 = false;
+
+  if (true) {
+    fd = socket(AF_INET6, domain, protocol);
+    ipv6 = true;
+  }
+
+  if (fd == -1) {
+    fd = socket(AF_INET, domain, protocol);
+    ipv6 = false;
+  }
+
+  if (fd == -1)
+    return -1;
+
+  if ((flags & fd_flag_v6only) && ipv6 && !fd_set_v6only(fd, true)) {
+    fd_close(fd);
+    return -1;
+  }
+
+  if ((flags & fd_flag_nonblock) && !fd_set_nonblock(fd)) {
+    fd_close(fd);
+    return -1;
+  }
+
+  if ((flags & fd_flag_reuse_address) && !fd_set_reuse_address(fd, true)) {
+    fd_close(fd);
+    return -1;
+  }
+
+  return fd;
+}
+
 void
 fd_close(int fd) {
   if (::close(fd) == -1)
     throw internal_error("torrent::fd_close(...) failed: " + std::string(strerror(errno)));
 }
 
+bool
+fd_set_nonblock(int fd) {
+  return fcntl(fd, F_SETFL, O_NONBLOCK) == 0;
+}
+
+bool
+fd_set_reuse_address(int fd, bool state) {
+  int opt = state;
+  return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == 0;
+}
+
+bool
+fd_set_v6only(int fd, bool state) {
+  int opt = state;
+  return setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt)) == 0;
+}
+
+// Change to flags.
 bool
 fd_bind(int fd, const sockaddr* sa, bool use_inet6) {
   if (use_inet6 && sa->sa_family == AF_INET) {

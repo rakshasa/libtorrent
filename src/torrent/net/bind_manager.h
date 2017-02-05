@@ -79,7 +79,8 @@ public:
 
   int connect_socket(const sockaddr* sock_addr, int flags, alloc_fd_ftor alloc_fd) const;
 
-  int listen_socket(uint16_t port_first, uint16_t port_last, int flags, alloc_fd_ftor alloc_fd, listen_fd_type listen_fd) const;
+  // int listen_socket(uint16_t port_first, uint16_t port_last, int flags, alloc_fd_ftor alloc_fd, listen_fd_type listen_fd) const;
+  int listen_socket(uint16_t port_first, uint16_t port_last, int flags, listen_fd_type listen_fd) const;
 };
   
 }

@@ -140,9 +140,8 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_
   return -1;
 }
 
-static bool
-attempt_listen(int file_desc, const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, bind_manager::listen_fd_type listen_fd) {
-  // sockaddr_storage sa;
+static int
+attempt_listen(const sockaddr* bind_sockaddr, uint16_t port_first, uint16_t port_last, bind_manager::listen_fd_type listen_fd) {
   std::unique_ptr<sockaddr> sa;
 
   if (sa_is_default(bind_sockaddr))
@@ -150,49 +149,49 @@ attempt_listen(int file_desc, const sockaddr* bind_sockaddr, uint16_t port_first
   else
     sa = sa_copy(bind_sockaddr);
 
+  int fd = fd_open(fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address);
+
+  if (fd == -1) {
+    LT_LOG_SOCKADDR("listen_socket open failed (errno:%i message:'%s')",
+                    sa.get(), errno, std::strerror(errno));
+    return -1;
+  }
+
   for (uint16_t port = port_first; port != port_last; port++) {
     sa_set_port(sa.get(), port);
 
-    if (fd_bind(file_desc, sa.get())) {
-      if (!listen_fd(file_desc, sa.get())) {
+    if (fd_bind(fd, sa.get())) {
+      if (!listen_fd(fd, sa.get())) {
         LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
-                        sa.get(), file_desc, 128, errno, std::strerror(errno));
+                        sa.get(), fd, 128, errno, std::strerror(errno));
         break;
       }
 
-      LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), file_desc);
+      LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), fd);
 
-      return true;
+      return fd;
     }
   }
 
   LT_LOG_SOCKADDR("listen failed (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-                  sa.get(), file_desc, port_first, port_last);
-  return false;
+                  sa.get(), fd, port_first, port_last);
+  return -1;
 }
 
 int
-bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int flags, alloc_fd_ftor alloc_fd, listen_fd_type listen_fd) const {
+bind_manager::listen_socket(uint16_t port_first, uint16_t port_last, int flags, listen_fd_type listen_fd) const {
   LT_LOG("listen_socket attempt (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
          flags, port_first, port_last);
 
   for (auto& itr : *this) {
-    int file_desc = alloc_fd();
+    int fd = attempt_listen(itr.address.get(), port_first, port_last, listen_fd);
 
-    if (file_desc == -1) {
-      LT_LOG("listen_socket open failed (errno:%i message:'%s')",
-             errno, std::strerror(errno));
-      return -1;
-    }
-
-    if (attempt_listen(file_desc, itr.address.get(), port_first, port_last, listen_fd)) {
+    if (fd != -1) {
       LT_LOG("listen_socket succeeded (flags:0x%x fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-             flags, file_desc, port_first, port_last);
+             flags, fd, port_first, port_last);
 
-      return file_desc;
+      return fd;
     }
-
-    fd_close(file_desc);
   }
 
   LT_LOG("listen_socket failed (flags:0x%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",

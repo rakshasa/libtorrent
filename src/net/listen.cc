@@ -69,20 +69,6 @@ Listen::open(uint16_t first, uint16_t last, int backlog) {
   if (first == 0 || first > last)
     throw input_error("Tried to open listening port with an invalid range.");
 
-  auto alloc_fd = []() {
-    SocketFd fd;
-
-    if (!fd.open_stream())
-      return -1;
-
-    if (!fd.set_nonblock() || !fd.set_reuse_address(true)) {
-      fd.close();
-      return -1;
-    }
-
-    return fd.get_fd();
-  };
-
   auto listen_fd = [this, backlog](int file_desc, const sockaddr* bind_address) {
     SocketFd socket_fd(file_desc);
 
@@ -97,7 +83,7 @@ Listen::open(uint16_t first, uint16_t last, int backlog) {
     return true;
   };
 
-  m_fileDesc = manager->bind()->listen_socket(first, last, 0, alloc_fd, listen_fd);
+  m_fileDesc = manager->bind()->listen_socket(first, last, 0, listen_fd);
 
   if (m_fileDesc == -1) {
     get_fd().close();
