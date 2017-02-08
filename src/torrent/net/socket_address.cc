@@ -117,7 +117,7 @@ sa_in_copy(const sockaddr_in* sa) {
 std::unique_ptr<sockaddr_in6>
 sa_in6_copy(const sockaddr_in6* sa) {
   std::unique_ptr<sockaddr_in6> result(new sockaddr_in6);
-  std::memcpy(result.get(), sa, sizeof(sockaddr_in));
+  std::memcpy(result.get(), sa, sizeof(sockaddr_in6));
 
   return result;
 }

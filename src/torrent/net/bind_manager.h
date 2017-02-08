@@ -77,7 +77,7 @@ public:
   // Temporary:
   void add_bind(const sockaddr* bind_address, int flags);
 
-  int connect_socket(const sockaddr* sock_addr, int flags, alloc_fd_ftor alloc_fd) const;
+  int connect_socket(const sockaddr* sock_addr, int flags) const;
 
   int listen_socket(int flags, int backlog, listen_fd_type listen_fd) const;
 };

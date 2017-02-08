@@ -103,52 +103,52 @@ bind_manager::add_bind(const sockaddr* bind_sockaddr, int flags) {
 }
 
 static bool
-attempt_connect(int file_desc, const sockaddr* connect_sockaddr, const sockaddr* bind_sockaddr) {
+attempt_connect(const bind_struct& itr, int file_desc, const sockaddr* connect_sockaddr) {
   SocketFd socket_fd(file_desc);
 
-  if (!sa_is_default(bind_sockaddr) && !socket_fd.bind_sa(bind_sockaddr)) {
+  if (!sa_is_default(itr.address.get()) && !socket_fd.bind_sa(itr.address.get())) {
     LT_LOG_SOCKADDR("bind failed (fd:%i address:%s errno:%i message:'%s')",
-                    bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
+                    itr.address.get(), file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
     return false;
   }
 
   if (!socket_fd.connect_sa(connect_sockaddr)) {
     LT_LOG_SOCKADDR("connect failed (fd:%i address:%s errno:%i message:'%s')",
-                    bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
+                    itr.address.get(), file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
     return false;
   }
 
   LT_LOG_SOCKADDR("connect success (fd:%i address:%s)",
-                  bind_sockaddr, file_desc, sa_pretty_address_str(connect_sockaddr).c_str());
+                  itr.address.get(), file_desc, sa_pretty_address_str(connect_sockaddr).c_str());
 
   return true;
 }
 
 int
-bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags, alloc_fd_ftor alloc_fd) const {
-  // Santitize flags.
-
+bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const {
   LT_LOG("connect_socket attempt (flags:0x%x address:%s)",
          flags, sa_pretty_address_str(connect_sockaddr).c_str());
 
   for (auto& itr : *this) {
-    int file_desc = alloc_fd();
+    fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
 
-    if (file_desc == -1) {
+    int fd = fd_open(open_flags);
+
+    if (fd == -1) {
       LT_LOG("connect_socket open failed (address:%s errno:%i message:'%s')",
              sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
 
       return -1;
     }
 
-    if (attempt_connect(file_desc, connect_sockaddr, itr.address.get())) {
+    if (attempt_connect(itr, fd, connect_sockaddr)) {
       LT_LOG("connect_socket succeeded (flags:0x%x address:%s fd:%i)",
-             flags, sa_pretty_address_str(connect_sockaddr).c_str(), file_desc);
+             flags, sa_pretty_address_str(connect_sockaddr).c_str(), fd);
 
-      return file_desc;
+      return fd;
     }
 
-    fd_close(file_desc);
+    fd_close(fd);
   }
 
   LT_LOG("connect_socket failed (flags:0x%x address:%s)",
@@ -173,7 +173,7 @@ attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd
     return -1;
   }
 
-  for (uint16_t port = bind_itr.listen_port_first; port != bind_itr.listen_port_last; port++) {
+  for (uint16_t port = bind_itr.listen_port_first; port - 1 < bind_itr.listen_port_last; port++) {
     sa_set_port(sa.get(), port);
 
     if (!fd_bind(fd, sa.get()))

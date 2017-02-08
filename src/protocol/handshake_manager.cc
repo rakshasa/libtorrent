@@ -44,6 +44,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
 #include "torrent/net/bind_manager.h"
+#include "torrent/net/fd.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
@@ -179,26 +180,17 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
     encryption_options |= ConnectionManager::encryption_use_proxy;
   }
 
-  auto alloc_fd = [this]() {
-    SocketFd fd;
-
-    if (!fd.open_stream())
-      return -1;
-
-    if (!HandshakeManager::setup_socket(fd)) {
-      fd.close();
-      return -1;
-    }
-
-    return fd.get_fd();
-  };
-
-  int file_desc = manager->bind()->connect_socket(connect_addr->c_sockaddr(), 0, alloc_fd);
+  int file_desc = manager->bind()->connect_socket(connect_addr->c_sockaddr(), 0);
 
   if (file_desc == -1) {
     LT_LOG_SA(&sa, "outgoing connection could not open socket", 0);
 
     download->peer_list()->disconnected(peerInfo, 0);
+    return;
+  }
+
+  if (!HandshakeManager::setup_socket(SocketFd(file_desc))) {
+    fd_close(file_desc);
     return;
   }
 
@@ -300,9 +292,6 @@ HandshakeManager::receive_timeout(Handshake* h) {
 
 bool
 HandshakeManager::setup_socket(SocketFd fd) {
-  if (!fd.set_nonblock())
-    return false;
-
   ConnectionManager* m = manager->connection_manager();
 
   if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
