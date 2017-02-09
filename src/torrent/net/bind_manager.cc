@@ -80,9 +80,9 @@ make_bind_struct(const sockaddr* sa, int flags, uint16_t priority) {
 
 bind_manager::bind_manager() {
   // TODO: Move this to a different place.
-  // base_type::push_back(make_bind_struct(NULL, 0, 0));
+  base_type::push_back(make_bind_struct(NULL, 0, 0));
 
-  base_type::push_back(make_bind_struct(NULL, flag_v6only, 0));
+  // base_type::push_back(make_bind_struct(NULL, flag_v6only, 0));
 }
 
 void

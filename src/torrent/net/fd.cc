@@ -44,6 +44,7 @@ fd_open(fd_flags flags) {
   if (fd == -1)
     return -1;
 
+  // TODO: Remove ipv6 check?
   if ((flags & fd_flag_v6only) && ipv6 && !fd_set_v6only(fd, true)) {
     fd_close(fd);
     return -1;
