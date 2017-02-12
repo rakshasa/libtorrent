@@ -292,6 +292,10 @@ HandshakeManager::receive_timeout(Handshake* h) {
 
 bool
 HandshakeManager::setup_socket(SocketFd fd) {
+  // Called twice on outgoing connections.
+  if (!fd.set_nonblock())
+    return false;
+
   ConnectionManager* m = manager->connection_manager();
 
   if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
