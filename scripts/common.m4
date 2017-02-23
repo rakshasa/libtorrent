@@ -12,7 +12,7 @@ AC_DEFUN([TORRENT_WITH_SYSROOT], [
         AC_MSG_ERROR(The sysroot option must point to a directory, like f.ex "/Developer/SDKs/MacOSX10.4u.sdk".)
       else
         AC_MSG_RESULT($withval)
-        
+
         CXXFLAGS="$CXXFLAGS -isysroot $withval"
         LDFLAGS="$LDFLAGS -Wl,-syslibroot,$withval"
       fi
@@ -122,31 +122,6 @@ AC_DEFUN([TORRENT_CHECK_POPCOUNT], [
       AC_DEFINE(USE_BUILTIN_POPCOUNT, 1, Use __builtin_popcount.)
     ], [
       AC_MSG_RESULT(no)
-  ])
-])
-
-AC_DEFUN([TORRENT_CHECK_CACHELINE], [
-  AC_MSG_CHECKING(for cacheline)
-
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([
-      #include <stdlib.h>
-          #include <linux/cache.h>
-          void* vptr __cacheline_aligned;
-          void f() { posix_memalign(&vptr, SMP_CACHE_BYTES, 42); }
-      ])],
-    [
-      AC_MSG_RESULT(found builtin)
-dnl      AC_DEFINE(LT_SMP_CACHE_BYTES, SMP_CACHE_BYTES, Largest L1 cache size we know of, should work on all archs.)
-dnl      AC_DEFINE(lt_cacheline_aligned, __cacheline_aligned, LibTorrent defined cacheline aligned.)
-
-dnl   Need to fix this so that it uses the stuff defined by the system.
-
-      AC_DEFINE(LT_SMP_CACHE_BYTES, 128, Largest L1 cache size we know of should work on all archs.)
-      AC_DEFINE(lt_cacheline_aligned, __attribute__((__aligned__(LT_SMP_CACHE_BYTES))), LibTorrent defined cacheline aligned.)
-    ], [
-      AC_MSG_RESULT(using default 128 bytes)
-      AC_DEFINE(LT_SMP_CACHE_BYTES, 128, Largest L1 cache size we know of should work on all archs.)
-      AC_DEFINE(lt_cacheline_aligned, __attribute__((__aligned__(LT_SMP_CACHE_BYTES))), LibTorrent defined cacheline aligned.)
   ])
 ])
 

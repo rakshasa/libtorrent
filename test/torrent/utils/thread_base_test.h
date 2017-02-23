@@ -81,6 +81,6 @@ private:
   void                call_events();
   int64_t             next_timeout_usec() { return (m_test_flags & test_flag_long_timeout) ? (10000 * 1000) : (100 * 1000); }
 
-  int                 m_test_state lt_cacheline_aligned;
-  int                 m_test_flags lt_cacheline_aligned;
+  int                 m_test_state;
+  int                 m_test_flags;
 };

@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -43,7 +43,6 @@
 #include <sys/time.h>
 
 #include "net/socket_set.h"
-#include "rak/allocators.h"
 
 #include "event.h"
 #include "exceptions.h"
@@ -126,25 +125,11 @@ PollSelect::create(int maxOpenSockets) {
   if (maxOpenSockets <= 0)
     throw internal_error("PollSelect::set_open_max(...) received an invalid value");
 
-  // Just a temp hack, make some special template function for this...
-  //
-  // Also consider how portable this is for specialized C++
-  // allocators.
-  struct block_type {
-    PollSelect t1;
-    SocketSet t2;
-    SocketSet t3;
-    SocketSet t4;
-  };
+  PollSelect* p = new PollSelect;
 
-  rak::cacheline_allocator<Block*> cl_alloc;
-  block_type* block = new (cl_alloc) block_type;
-
-  PollSelect* p = new (&block->t1) PollSelect;
-
-  p->m_readSet = new (&block->t2) SocketSet;
-  p->m_writeSet = new (&block->t3) SocketSet;
-  p->m_exceptSet = new (&block->t4) SocketSet;
+  p->m_readSet = new SocketSet;
+  p->m_writeSet = new SocketSet;
+  p->m_exceptSet = new SocketSet;
 
   p->m_readSet->reserve(maxOpenSockets);
   p->m_writeSet->reserve(maxOpenSockets);
@@ -193,7 +178,7 @@ PollSelect::fdset(fd_set* readSet, fd_set* writeSet, fd_set* exceptSet) {
 
   m_writeSet->prepare();
   std::for_each(m_writeSet->begin(), m_writeSet->end(), poll_mark(writeSet, &maxFd));
-  
+
   m_exceptSet->prepare();
   std::for_each(m_exceptSet->begin(), m_exceptSet->end(), poll_mark(exceptSet, &maxFd));
 
@@ -273,7 +258,7 @@ log_poll_open(Event* event) {
 
   if (log_fd == -1) {
     snprintf(buffer, 256, LT_LOG_POLL_OPEN, getpid());
-    
+
     if ((log_fd = open(buffer, O_WRONLY | O_CREAT | O_TRUNC)) == -1)
       throw internal_error("Could not open poll open log file.");
   }
