@@ -8,7 +8,10 @@
 namespace torrent {
 
 bool sa_is_bindable(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
+
 bool sa_is_default(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
+bool sa_in_is_default(const sockaddr_in* sockaddr) LIBTORRENT_EXPORT;
+bool sa_in6_is_default(const sockaddr_in6* sockaddr) LIBTORRENT_EXPORT;
 
 bool sa_is_inet(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
 bool sa_is_inet6(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
