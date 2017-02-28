@@ -31,12 +31,12 @@ fd_open(fd_flags flags) {
   int fd = -1;
   bool ipv6 = false;
 
-  if (true) {
+  if (fd == -1 && !(flags & fd_flag_v4only)) {
     fd = socket(AF_INET6, domain, protocol);
     ipv6 = true;
   }
 
-  if (fd == -1) {
+  if (fd == -1 && !(flags & fd_flag_v6only)) {
     fd = socket(AF_INET, domain, protocol);
     ipv6 = false;
   }

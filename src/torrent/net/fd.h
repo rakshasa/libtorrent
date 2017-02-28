@@ -10,7 +10,8 @@ enum fd_flags : int {
   fd_flag_stream = 0x1,
   fd_flag_nonblock = 0x10,
   fd_flag_reuse_address = 0x20,
-  fd_flag_v6only = 0x40
+  fd_flag_v4only = 0x40,
+  fd_flag_v6only = 0x80
 };
 
 int fd_open(fd_flags flags) LIBTORRENT_EXPORT;

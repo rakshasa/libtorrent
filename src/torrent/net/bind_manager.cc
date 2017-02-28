@@ -80,9 +80,10 @@ make_bind_struct(const sockaddr* sa, int flags, uint16_t priority) {
 
 bind_manager::bind_manager() {
   // TODO: Move this to a different place.
-  base_type::push_back(make_bind_struct(NULL, 0, 0));
+  // base_type::push_back(make_bind_struct(NULL, 0, 0));
 
   // base_type::push_back(make_bind_struct(NULL, flag_v6only, 0));
+  base_type::push_back(make_bind_struct(NULL, flag_v4only, 0));
 }
 
 void
@@ -107,19 +108,19 @@ attempt_connect(const bind_struct& itr, int file_desc, const sockaddr* connect_s
   SocketFd socket_fd(file_desc);
 
   if (!sa_is_default(itr.address.get()) && !socket_fd.bind_sa(itr.address.get())) {
-    LT_LOG_SOCKADDR("bind failed (fd:%i address:%s errno:%i message:'%s')",
-                    itr.address.get(), file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
+    LT_LOG_SOCKADDR("bind failed (fd:%i flags:0x%x address:%s errno:%i message:'%s')",
+                    itr.address.get(), file_desc, itr.flags, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
     return false;
   }
 
   if (!socket_fd.connect_sa(connect_sockaddr)) {
-    LT_LOG_SOCKADDR("connect failed (fd:%i address:%s errno:%i message:'%s')",
-                    itr.address.get(), file_desc, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
+    LT_LOG_SOCKADDR("connect failed (fd:%i flags:0x%x address:%s errno:%i message:'%s')",
+                    itr.address.get(), file_desc, itr.flags, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
     return false;
   }
 
-  LT_LOG_SOCKADDR("connect success (fd:%i address:%s)",
-                  itr.address.get(), file_desc, sa_pretty_address_str(connect_sockaddr).c_str());
+  LT_LOG_SOCKADDR("connect success (fd:%i flags:0x%x address:%s)",
+                  itr.address.get(), file_desc, itr.flags, sa_pretty_address_str(connect_sockaddr).c_str());
 
   return true;
 }
@@ -131,6 +132,25 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
 
   for (auto& itr : *this) {
     fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
+
+    if ((itr.flags & flag_v4only) && (itr.flags & flag_v6only)) {
+      // TODO: Warn here, do something.
+      continue;
+    }
+
+    if ((itr.flags & flag_v4only)) {
+      if (!sa_is_inet(connect_sockaddr))
+        continue;
+
+      open_flags = open_flags | fd_flag_v4only;
+    }
+
+    if ((itr.flags & flag_v6only)) {
+      if (sa_is_inet6(connect_sockaddr))
+        continue;
+
+      open_flags = open_flags | fd_flag_v6only;
+    }
 
     int fd = fd_open(open_flags);
 

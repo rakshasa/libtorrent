@@ -52,6 +52,11 @@ sa_in6_is_default(const sockaddr_in6* sockaddr) {
 }
 
 bool
+sa_is_unspec(const sockaddr* sockaddr) {
+  return sockaddr != NULL && sockaddr->sa_family == AF_UNSPEC;
+}
+
+bool
 sa_is_inet(const sockaddr* sockaddr) {
   return sockaddr != NULL && sockaddr->sa_family == AF_INET;
 }
