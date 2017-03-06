@@ -565,32 +565,6 @@ Download::set_connection_type(ConnectionType t) {
   m_ptr->set_connection_type(t);
 }
 
-Download::HeuristicType
-Download::upload_choke_heuristic() const {
-  return (Download::HeuristicType)m_ptr->main()->choke_group()->up_queue()->heuristics();
-}
-
-void
-Download::set_upload_choke_heuristic(HeuristicType t) {
-  if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
-    throw input_error("Invalid heuristics value.");
-  
-  m_ptr->main()->choke_group()->up_queue()->set_heuristics((choke_queue::heuristics_enum)t);
-}
-
-Download::HeuristicType
-Download::download_choke_heuristic() const {
-  return (Download::HeuristicType)m_ptr->main()->choke_group()->down_queue()->heuristics();
-}
-
-void
-Download::set_download_choke_heuristic(HeuristicType t) {
-  if ((choke_queue::heuristics_enum)t >= choke_queue::HEURISTICS_MAX_SIZE)
-    throw input_error("Invalid heuristics value.");
-  
-  m_ptr->main()->choke_group()->down_queue()->set_heuristics((choke_queue::heuristics_enum)t);
-}
-
 void
 Download::update_priorities() {
   m_ptr->receive_update_priorities();

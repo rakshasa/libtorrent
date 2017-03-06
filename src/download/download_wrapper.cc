@@ -228,6 +228,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
         priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
         priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
         priority_queue_insert(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
+        finished_download();
       }
     
       if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
@@ -325,8 +326,10 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 
 void
 DownloadWrapper::receive_update_priorities() {
-  if (m_main->chunk_selector()->empty())
+  if (m_main->chunk_selector()->empty()) {
+    file_list()->set_selected_size_bytes();
     return;
+  }
 
   data()->mutable_high_priority()->clear();
   data()->mutable_normal_priority()->clear();
@@ -373,11 +376,15 @@ DownloadWrapper::receive_update_priorities() {
     priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
     priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
     
-    if (was_partial)
+    if (was_partial) {
       priority_queue_insert(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
-    else
+      finished_download();
+    } else {
       priority_queue_insert(&taskScheduler, &m_main->delay_partially_restarted(), cachedTime);
+    }
   }
+
+  file_list()->set_selected_size_bytes();
 }
 
 void

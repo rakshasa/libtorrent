@@ -232,7 +232,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
 
     if (!download->info()->is_active())
       reason = e_handshake_inactive_download;
-    else if (download->file_list()->is_done() && handshake->bitfield()->is_all_set())
+    else if (download->file_list()->data()->is_partially_done() && handshake->bitfield()->is_all_set())
       reason = e_handshake_unwanted_connection;
     else
       reason = e_handshake_duplicate;

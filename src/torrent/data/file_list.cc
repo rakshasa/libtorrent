@@ -86,6 +86,7 @@ FileList::FileList() :
   m_isOpen(false),
 
   m_torrentSize(0),
+  m_selectedSize(0),
   m_chunkSize(0),
   m_maxFileSize(~uint64_t()) {
 }
@@ -98,6 +99,7 @@ FileList::~FileList() {
 
   base_type::clear();
   m_torrentSize = 0;
+  m_selectedSize = 0;
 }
 
 bool
@@ -191,6 +193,60 @@ FileList::set_max_file_size(uint64_t size) {
     throw input_error("Tried to change the max file size for an open download.");
 
   m_maxFileSize = size;
+}
+
+// This function should be called from receive_update_priorities().
+// It offloads continous calculation by updating the m_selectedSize property.
+// Its purpose is to replace size_bytes() with selected_size_bytes()
+// by taking into account partial downloads.
+void
+FileList::set_selected_size_bytes() {
+  if (is_done()) {
+    m_selectedSize = m_torrentSize;
+    return;
+  }
+
+  uint64_t completedBytes = completed_bytes();
+
+  if (data()->is_partially_done()) {
+    m_selectedSize = completedBytes;
+    return;
+  }
+
+  uint32_t selectedSizeChunks = 0;
+  uint32_t prevChunk = -1;
+  bool areAllFilesSelected = true;
+  bool isLastFileSelected = false;
+
+  for (FileList::const_iterator itr = begin(), last = end(); itr != last; itr++) {
+
+    if ((*itr)->priority() != PRIORITY_OFF) {
+      selectedSizeChunks += (*itr)->size_chunks() - ((*itr)->range_first() == prevChunk ? 1 : 0);
+      prevChunk = (*itr)->range_second() - 1;
+
+      if (itr == end() - 1)
+        isLastFileSelected = true;
+    } else {
+      areAllFilesSelected = false;
+    }
+
+  }
+
+  if (areAllFilesSelected) {
+    m_selectedSize = m_torrentSize;
+    return;
+  }
+
+  uint64_t selectedSizeBytes = (uint64_t)(selectedSizeChunks * m_chunkSize);
+
+  // Dealing with size of last chunk as it's usually smaller than the rest.
+  uint64_t remainder = m_torrentSize % (uint64_t)m_chunkSize;
+
+  if (isLastFileSelected && remainder != 0)
+    selectedSizeBytes = selectedSizeBytes - (uint64_t)m_chunkSize + remainder;
+
+  // Set completed bytes if some files (e.g. all of them) were set to Off later.
+  m_selectedSize = (selectedSizeBytes < completedBytes ? completedBytes : selectedSizeBytes);
 }
 
 // This function should really ensure that we arn't dealing files
@@ -376,6 +432,7 @@ FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
 
   m_chunkSize = chunkSize;
   m_torrentSize = torrentSize;
+  m_selectedSize = torrentSize;
   m_rootDir = ".";
 
   m_data.mutable_completed_bitfield()->set_size_bits((size_bytes() + chunk_size() - 1) / chunk_size());
@@ -725,6 +782,7 @@ FileList::reset_filesize(int64_t size) {
   close();
   m_chunkSize = size;
   m_torrentSize = size;
+  m_selectedSize = size;
   (*begin())->set_size_bytes(size);
   (*begin())->set_range(m_chunkSize);
 
