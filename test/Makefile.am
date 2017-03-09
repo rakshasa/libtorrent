@@ -25,6 +25,10 @@ LibTorrentTest_SOURCES = \
 	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
+	\
+	utils/test_uniform_rng.cc \
+	utils/test_uniform_rng.h \
+	\
 	data/chunk_list_test.cc \
 	data/chunk_list_test.h \
 	data/hash_check_queue_test.cc \
