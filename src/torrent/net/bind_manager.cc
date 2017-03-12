@@ -162,8 +162,8 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
     }
 
     if (attempt_connect(itr, fd, connect_sockaddr)) {
-      LT_LOG("connect_socket succeeded (flags:0x%x address:%s fd:%i)",
-             flags, sa_pretty_address_str(connect_sockaddr).c_str(), fd);
+      LT_LOG("connect_socket succeeded (fd:%i flags:0x%x address:%s)",
+             fd, flags, sa_pretty_address_str(connect_sockaddr).c_str());
 
       return fd;
     }
