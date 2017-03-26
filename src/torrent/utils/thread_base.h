@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -48,7 +48,7 @@ namespace torrent {
 class Poll;
 class thread_interrupt;
 
-class LIBTORRENT_EXPORT lt_cacheline_aligned thread_base {
+class LIBTORRENT_EXPORT thread_base {
 public:
   typedef void* (*pthread_func)(void*);
   typedef std::function<void ()>     slot_void;
@@ -120,7 +120,7 @@ public:
   static void*        event_loop(thread_base* thread);
 
 protected:
-  struct lt_cacheline_aligned global_lock_type {
+  struct global_lock_type {
     int             waiting;
     int             main_polling;
     pthread_mutex_t lock;
@@ -132,8 +132,8 @@ protected:
   static global_lock_type m_global;
 
   pthread_t           m_thread;
-  state_type          m_state lt_cacheline_aligned;
-  int                 m_flags lt_cacheline_aligned;
+  state_type          m_state;
+  int                 m_flags;
 
   int                 m_instrumentation_index;
 
@@ -219,6 +219,6 @@ thread_base::leaving_main_polling() {
   __sync_lock_test_and_set(&thread_base::m_global.main_polling, 0);
 }
 
-}  
+}
 
 #endif

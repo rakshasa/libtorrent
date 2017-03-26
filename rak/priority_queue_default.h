@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -38,7 +38,6 @@
 #define RAK_PRIORITY_QUEUE_DEFAULT_H
 
 #include lt_tr1_functional
-#include <rak/allocators.h>
 #include <rak/priority_queue.h>
 #include <rak/timer.h>
 
@@ -86,7 +85,7 @@ struct priority_compare {
 
 typedef std::equal_to<priority_item*> priority_equal;
 typedef priority_queue<priority_item*, priority_compare, priority_equal,
-                       cacheline_allocator<priority_item*> > priority_queue_default;
+                       std::allocator<priority_item*> > priority_queue_default;
 
 inline void
 priority_queue_perform(priority_queue_default* queue, timer t) {
@@ -129,7 +128,7 @@ priority_queue_erase(priority_queue_default* queue, priority_item* item) {
 
   // Clear time before erasing to force it to the top.
   item->clear_time();
-  
+
   if (!queue->erase(item))
     throw torrent::internal_error("priority_queue_erase(...) could not find item in queue.");
 

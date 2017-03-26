@@ -21,8 +21,6 @@ LibTorrentTest_SOURCES = \
 	../src/thread_disk.cc \
 	../src/thread_disk.h \
 	\
-	rak/allocators_test.cc \
-	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
 	data/chunk_list_test.cc \

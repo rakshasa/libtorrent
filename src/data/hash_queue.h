@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -57,7 +57,7 @@ class thread_disk;
 // helps us in getting as much done as possible while the pages are in
 // memory.
 
-class lt_cacheline_aligned HashQueue : private std::deque<HashQueueNode> {
+class HashQueue : private std::deque<HashQueueNode> {
 public:
   typedef std::deque<HashQueueNode>                 base_type;
   typedef std::map<HashChunk*, torrent::HashString> done_chunks_type;
@@ -98,7 +98,7 @@ private:
   done_chunks_type    m_done_chunks;
   slot_bool           m_slot_has_work;
 
-  pthread_mutex_t     m_done_chunks_lock lt_cacheline_aligned;
+  pthread_mutex_t     m_done_chunks_lock;
 };
 
 }
