@@ -21,8 +21,8 @@ bool fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
 bool fd_set_reuse_address(int fd, bool state) LIBTORRENT_EXPORT;
 bool fd_set_v6only(int fd, bool state) LIBTORRENT_EXPORT;
 
-bool fd_bind(int fd, const sockaddr* sa, bool use_inet6 = true) LIBTORRENT_EXPORT;
-
+bool fd_connect(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
+bool fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
 inline fd_flags

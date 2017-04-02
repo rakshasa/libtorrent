@@ -52,6 +52,9 @@
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
 #define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
   lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, sa_pretty_address_str(sa).c_str(), __VA_ARGS__);
+#define LT_LOG_SOCKADDR_ERROR(log_fmt, bind_sa, flags)                  \
+  LT_LOG_SOCKADDR(log_fmt " (flags:0x%x fd:%i address:%s errno:%i message:'%s')", \
+                  bind_sa, flags, fd, sa_pretty_address_str(sockaddr).c_str(), errno, std::strerror(errno));
 
 namespace torrent {
 
@@ -76,6 +79,14 @@ prepare_sockaddr(const sockaddr* sa, int flags) {
 bind_struct
 make_bind_struct(const sockaddr* sa, int flags, uint16_t priority) {
   return bind_struct { flags, prepare_sockaddr(sa, flags), priority, 6980, 6999 };
+}
+
+static bool
+validate_bind_flags(int flags) {
+  if ((flags & bind_manager::flag_v4only) && (flags & bind_manager::flag_v6only))
+    return false;
+
+  return true;
 }
 
 bind_manager::bind_manager() {
@@ -103,26 +114,30 @@ bind_manager::add_bind(const sockaddr* bind_sockaddr, int flags) {
   base_type::push_back(make_bind_struct(bind_sockaddr, flags, 0));
 }
 
-static bool
-attempt_connect(const bind_struct& itr, int file_desc, const sockaddr* connect_sockaddr) {
-  SocketFd socket_fd(file_desc);
+static int
+attempt_open_connect(const bind_struct& itr, const sockaddr* sockaddr, fd_flags flags) {
+  int fd = fd_open(flags);
 
-  if (!sa_is_default(itr.address.get()) && !socket_fd.bind_sa(itr.address.get())) {
-    LT_LOG_SOCKADDR("bind failed (fd:%i flags:0x%x address:%s errno:%i message:'%s')",
-                    itr.address.get(), file_desc, itr.flags, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
-    return false;
+  if (fd == -1) {
+    LT_LOG_SOCKADDR_ERROR("open_connect open failed", itr.address.get(), flags);
+    return -1;
   }
 
-  if (!socket_fd.connect_sa(connect_sockaddr)) {
-    LT_LOG_SOCKADDR("connect failed (fd:%i flags:0x%x address:%s errno:%i message:'%s')",
-                    itr.address.get(), file_desc, itr.flags, sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
-    return false;
+  if (!sa_is_default(itr.address.get()) && !fd_bind(fd, itr.address.get())) {
+    LT_LOG_SOCKADDR_ERROR("open_connect bind failed", itr.address.get(), flags);
+    fd_close(fd);
+    return -1;
   }
 
-  LT_LOG_SOCKADDR("connect success (fd:%i flags:0x%x address:%s)",
-                  itr.address.get(), file_desc, itr.flags, sa_pretty_address_str(connect_sockaddr).c_str());
+  if (!fd_connect(fd, sockaddr)) {
+    LT_LOG_SOCKADDR_ERROR("open_connect connect failed", itr.address.get(), flags);
+    fd_close(fd);
+    return -1;
+  }
 
-  return true;
+  LT_LOG_SOCKADDR("open_connect succeeded (flags:0x%x fd:%i address:%s)",
+                  itr.address.get(), flags, fd, sa_pretty_address_str(sockaddr).c_str());
+  return fd;
 }
 
 int
@@ -130,45 +145,42 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
   LT_LOG("connect_socket attempt (flags:0x%x address:%s)",
          flags, sa_pretty_address_str(connect_sockaddr).c_str());
 
+  // TODO: Don't attempt connect if default sockaddr.
+
   for (auto& itr : *this) {
+    const sockaddr* sa = connect_sockaddr;
+
+    std::unique_ptr<sockaddr> sockaddr_ptr;
+
     fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
 
-    if ((itr.flags & flag_v4only) && (itr.flags & flag_v6only)) {
+    if (!validate_bind_flags(itr.flags)) {
       // TODO: Warn here, do something.
       continue;
     }
 
     if ((itr.flags & flag_v4only)) {
-      if (!sa_is_inet(connect_sockaddr))
+      // Foo...
+      if (sa_is_v4mapped(sa)) {
+      }
+
+      if (!sa_is_inet(sa))
         continue;
 
       open_flags = open_flags | fd_flag_v4only;
     }
 
     if ((itr.flags & flag_v6only)) {
-      if (sa_is_inet6(connect_sockaddr))
+      if (!sa_is_inet6(sa))
         continue;
 
       open_flags = open_flags | fd_flag_v6only;
     }
 
-    int fd = fd_open(open_flags);
+    int fd = attempt_open_connect(itr, sa, open_flags);
 
-    if (fd == -1) {
-      LT_LOG("connect_socket open failed (address:%s errno:%i message:'%s')",
-             sa_pretty_address_str(connect_sockaddr).c_str(), errno, std::strerror(errno));
-
-      return -1;
-    }
-
-    if (attempt_connect(itr, fd, connect_sockaddr)) {
-      LT_LOG("connect_socket succeeded (fd:%i flags:0x%x address:%s)",
-             fd, flags, sa_pretty_address_str(connect_sockaddr).c_str());
-
+    if (fd != -1)
       return fd;
-    }
-
-    fd_close(fd);
   }
 
   LT_LOG("connect_socket failed (flags:0x%x address:%s)",
@@ -180,7 +192,16 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
 static int
 attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd_type listen_fd) {
   std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
+
+  if (!validate_bind_flags(bind_itr.flags)) {
+    // TODO: Warn here, do something.
+    return -1;
+  }
+
   fd_flags open_flags = fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address;
+
+  if ((bind_itr.flags & bind_manager::flag_v4only))
+    open_flags = open_flags | fd_flag_v4only;
 
   if ((bind_itr.flags & bind_manager::flag_v6only))
     open_flags = open_flags | fd_flag_v6only;

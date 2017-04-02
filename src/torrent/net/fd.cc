@@ -65,6 +65,9 @@ fd_open(fd_flags flags) {
 
 void
 fd_close(int fd) {
+  if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
+    throw internal_error("torrent::fd_close(...) failed: tried to close stdin/out/err");
+
   if (::close(fd) == -1)
     throw internal_error("torrent::fd_close(...) failed: " + std::string(strerror(errno)));
 }
@@ -86,15 +89,19 @@ fd_set_v6only(int fd, bool state) {
   return setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt)) == 0;
 }
 
-// Change to flags.
 bool
-fd_bind(int fd, const sockaddr* sa, bool use_inet6) {
-  if (use_inet6 && sa->sa_family == AF_INET) {
-    sockaddr_in6 mapped;
-    sa_inet_mapped_inet6(reinterpret_cast<const sockaddr_in*>(sa), &mapped);
+fd_connect(int fd, const sockaddr* sa) {
+  return ::connect(fd, sa, sa_length(sa)) == 0 || errno == EINPROGRESS;
+}
 
-    return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
-  }
+bool
+fd_bind(int fd, const sockaddr* sa) {
+  // if (use_inet6 && sa->sa_family == AF_INET) {
+  //   sockaddr_in6 mapped;
+  //   sa_inet_mapped_inet6(reinterpret_cast<const sockaddr_in*>(sa), &mapped);
+
+  //   return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
+  // }
 
   return ::bind(fd, sa, sa_length(sa)) == 0;
 }

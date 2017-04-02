@@ -17,6 +17,9 @@ bool sa_is_unspec(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
 bool sa_is_inet(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
 bool sa_is_inet6(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
 
+bool sa_is_v4mapped(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
+bool sa_in6_is_v4mapped(const sockaddr_in6* sockaddr) LIBTORRENT_EXPORT;
+
 size_t sa_length(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 std::unique_ptr<sockaddr> sa_make_unspec() LIBTORRENT_EXPORT;
@@ -34,7 +37,7 @@ void sa_clear_inet6(sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 void sa_set_port(sockaddr* sa, uint16_t port) LIBTORRENT_EXPORT;
 
-// Rename:
+// Rename/replace:
 void sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) LIBTORRENT_EXPORT;
 
 std::string sa_pretty_address_str(const sockaddr* sockaddr) LIBTORRENT_EXPORT;

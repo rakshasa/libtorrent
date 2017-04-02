@@ -66,6 +66,16 @@ sa_is_inet6(const sockaddr* sockaddr) {
   return sockaddr != NULL && sockaddr->sa_family == AF_INET6;
 }
 
+bool
+sa_is_v4mapped(const sockaddr* sockaddr) {
+  return sockaddr != NULL && sockaddr->sa_family == AF_INET6 && sa_in6_is_default(reinterpret_cast<const sockaddr_in6*>(sockaddr));
+}
+
+bool
+sa_in6_is_v4mapped(const sockaddr_in6* sockaddr) {
+  return sockaddr != NULL && IN6_IS_ADDR_V4MAPPED(&sockaddr->sin6_addr);
+}
+
 size_t
 sa_length(const sockaddr* sa) {
   switch(sa->sa_family) {
