@@ -3,10 +3,16 @@
 #include "socket_address.h"
 
 #include <cstring>
+#include <netinet/in.h>
+
+// TODO: Needed?
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+// TODO: Deprecate.
 #include "rak/socket_address.h"
+
+#include "torrent/exceptions.h"
 
 namespace torrent {
 
@@ -68,7 +74,7 @@ sa_is_inet6(const sockaddr* sockaddr) {
 
 bool
 sa_is_v4mapped(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_INET6 && sa_in6_is_default(reinterpret_cast<const sockaddr_in6*>(sockaddr));
+  return sockaddr != NULL && sockaddr->sa_family == AF_INET6 && sa_in6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sockaddr));
 }
 
 bool
@@ -76,6 +82,8 @@ sa_in6_is_v4mapped(const sockaddr_in6* sockaddr) {
   return sockaddr != NULL && IN6_IS_ADDR_V4MAPPED(&sockaddr->sin6_addr);
 }
 
+// TODO: Technically not correct, use sa length and throw if
+// invalid. Also make sure the length is not larger than required.
 size_t
 sa_length(const sockaddr* sa) {
   switch(sa->sa_family) {
@@ -100,20 +108,12 @@ sa_make_unspec() {
 
 std::unique_ptr<sockaddr>
 sa_make_inet() {
-  std::unique_ptr<sockaddr> sa(reinterpret_cast<sockaddr*>(new sockaddr_in));
-  std::memset(sa.get(), 0, sizeof(sockaddr_in));
-  sa.get()->sa_family = AF_INET;
-
-  return sa;
+  return std::unique_ptr<sockaddr>(reinterpret_cast<sockaddr*>(sa_in_make().release()));
 }
 
 std::unique_ptr<sockaddr>
 sa_make_inet6() {
-  std::unique_ptr<sockaddr> sa(reinterpret_cast<sockaddr*>(new sockaddr_in6));
-  std::memset(sa.get(), 0, sizeof(sockaddr_in6));
-  sa.get()->sa_family = AF_INET6;
-
-  return sa;
+  return std::unique_ptr<sockaddr>(reinterpret_cast<sockaddr*>(sa_in6_make().release()));
 }
 
 std::unique_ptr<sockaddr>
@@ -132,6 +132,24 @@ sa_copy(const sockaddr* sa) {
   }
 }
 
+std::unique_ptr<sockaddr_in>
+sa_in_make() {
+  std::unique_ptr<sockaddr_in> sa(new sockaddr_in);
+  std::memset(sa.get(), 0, sizeof(sockaddr_in));
+  sa.get()->sin_family = AF_INET;
+
+  return sa;
+}
+
+std::unique_ptr<sockaddr_in6>
+sa_in6_make() {
+  std::unique_ptr<sockaddr_in6> sa(new sockaddr_in6);
+  std::memset(sa.get(), 0, sizeof(sockaddr_in6));
+  sa.get()->sin6_family = AF_INET6;
+
+  return sa;
+}
+
 std::unique_ptr<sockaddr>
 sa_copy_inet(const sockaddr_in* sa) {
   return std::unique_ptr<sockaddr>(reinterpret_cast<sockaddr*>(sa_in_copy(sa).release()));
@@ -142,6 +160,7 @@ sa_copy_inet6(const sockaddr_in6* sa) {
   return std::unique_ptr<sockaddr>(reinterpret_cast<sockaddr*>(sa_in6_copy(sa).release()));
 }
 
+// TODO: Use proper memset+memcpy length.
 std::unique_ptr<sockaddr_in>
 sa_in_copy(const sockaddr_in* sa) {
   std::unique_ptr<sockaddr_in> result(new sockaddr_in);
@@ -154,6 +173,34 @@ std::unique_ptr<sockaddr_in6>
 sa_in6_copy(const sockaddr_in6* sa) {
   std::unique_ptr<sockaddr_in6> result(new sockaddr_in6);
   std::memcpy(result.get(), sa, sizeof(sockaddr_in6));
+
+  return result;
+}
+
+std::unique_ptr<sockaddr>
+sa_from_v4mapped(const sockaddr* sa) {
+  // TODO: This needs to check if in6.
+  return std::unique_ptr<sockaddr>(reinterpret_cast<sockaddr*>(sa_in_from_in6_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa)).release()));
+}
+
+inline uint32_t
+sa_in6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
+  // TODO: Throw if >=4
+  // TODO: Use proper casting+htonl.
+  return
+    (sa->sin6_addr.s6_addr[index * 4] << 24) +
+    (sa->sin6_addr.s6_addr[index * 4 + 1] << 16) +
+    (sa->sin6_addr.s6_addr[index * 4 + 2] << 8) +
+    (sa->sin6_addr.s6_addr[index * 4 + 3]);
+}
+
+std::unique_ptr<sockaddr_in>
+sa_in_from_in6_v4mapped(const sockaddr_in6* sa) {
+  if (!sa_in6_is_v4mapped(sa))
+    throw internal_error("torrent::sa_in6_is_v4mapped: sockaddr_in6 is not v4mapped");
+
+  std::unique_ptr<sockaddr_in> result = sa_in_make();
+  result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sa_in6_addr32_index(sa, 3)));
 
   return result;
 }

@@ -32,12 +32,12 @@ fd_open(fd_flags flags) {
   bool ipv6 = false;
 
   if (fd == -1 && !(flags & fd_flag_v4only)) {
-    fd = socket(AF_INET6, domain, protocol);
+    fd = socket(PF_INET6, domain, protocol);
     ipv6 = true;
   }
 
   if (fd == -1 && !(flags & fd_flag_v6only)) {
-    fd = socket(AF_INET, domain, protocol);
+    fd = socket(PF_INET, domain, protocol);
     ipv6 = false;
   }
 
@@ -96,12 +96,12 @@ fd_connect(int fd, const sockaddr* sa) {
 
 bool
 fd_bind(int fd, const sockaddr* sa) {
-  // if (use_inet6 && sa->sa_family == AF_INET) {
-  //   sockaddr_in6 mapped;
-  //   sa_inet_mapped_inet6(reinterpret_cast<const sockaddr_in*>(sa), &mapped);
+  if (sa->sa_family == AF_INET) {
+    sockaddr_in6 mapped;
+    sa_inet_mapped_inet6(reinterpret_cast<const sockaddr_in*>(sa), &mapped);
 
-  //   return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
-  // }
+    return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
+  }
 
   return ::bind(fd, sa, sa_length(sa)) == 0;
 }

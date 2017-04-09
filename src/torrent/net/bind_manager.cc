@@ -160,9 +160,10 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
     }
 
     if ((itr.flags & flag_v4only)) {
-      // Foo...
-      if (sa_is_v4mapped(sa)) {
-      }
+      // if (sa_is_v4mapped(sa)) {
+      //   sockaddr_ptr = sa_from_v4mapped(sa);
+      //   sa = sockaddr_ptr.get();
+      // }
 
       if (!sa_is_inet(sa))
         continue;
@@ -171,6 +172,8 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
     }
 
     if ((itr.flags & flag_v6only)) {
+      // TODO: Map v4 addresses here? Check a flag.
+
       if (!sa_is_inet6(sa))
         continue;
 
@@ -200,8 +203,8 @@ attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd
 
   fd_flags open_flags = fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address;
 
-  if ((bind_itr.flags & bind_manager::flag_v4only))
-    open_flags = open_flags | fd_flag_v4only;
+  // if ((bind_itr.flags & bind_manager::flag_v4only))
+  //   open_flags = open_flags | fd_flag_v4only;
 
   if ((bind_itr.flags & bind_manager::flag_v6only))
     open_flags = open_flags | fd_flag_v6only;

@@ -5,6 +5,8 @@
 #include <string>
 #include <torrent/common.h>
 
+// TODO: Rename sa_in* to sin*?
+
 namespace torrent {
 
 bool sa_is_bindable(const sockaddr* sockaddr) LIBTORRENT_EXPORT;
@@ -22,16 +24,22 @@ bool sa_in6_is_v4mapped(const sockaddr_in6* sockaddr) LIBTORRENT_EXPORT;
 
 size_t sa_length(const sockaddr* sa) LIBTORRENT_EXPORT;
 
-std::unique_ptr<sockaddr> sa_make_unspec() LIBTORRENT_EXPORT;
-std::unique_ptr<sockaddr> sa_make_inet() LIBTORRENT_EXPORT;
-std::unique_ptr<sockaddr> sa_make_inet6() LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr>     sa_make_unspec() LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr>     sa_make_inet() LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr>     sa_make_inet6() LIBTORRENT_EXPORT;
 
-std::unique_ptr<sockaddr> sa_copy(const sockaddr* sa) LIBTORRENT_EXPORT;
-std::unique_ptr<sockaddr> sa_copy_inet(const sockaddr_in* sa) LIBTORRENT_EXPORT;
-std::unique_ptr<sockaddr> sa_copy_inet6(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr>     sa_copy(const sockaddr* sa) LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr>     sa_copy_inet(const sockaddr_in* sa) LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr>     sa_copy_inet6(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
+
+std::unique_ptr<sockaddr_in>  sa_in_make() LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr_in6> sa_in6_make() LIBTORRENT_EXPORT;
 
 std::unique_ptr<sockaddr_in>  sa_in_copy(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 std::unique_ptr<sockaddr_in6> sa_in6_copy(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
+
+std::unique_ptr<sockaddr>     sa_from_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
+std::unique_ptr<sockaddr_in>  sa_in_from_in6_v4mapped(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 void sa_clear_inet6(sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
