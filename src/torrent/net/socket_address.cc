@@ -17,6 +17,26 @@
 namespace torrent {
 
 bool
+sa_is_unspec(const sockaddr* sockaddr) {
+  return sockaddr != NULL && sockaddr->sa_family == AF_UNSPEC;
+}
+
+bool
+sa_is_inet(const sockaddr* sockaddr) {
+  return sockaddr != NULL && sockaddr->sa_family == AF_INET;
+}
+
+bool
+sa_is_inet6(const sockaddr* sockaddr) {
+  return sockaddr != NULL && sockaddr->sa_family == AF_INET6;
+}
+
+bool
+sa_is_inet_inet6(const sockaddr* sockaddr) {
+  return sockaddr != NULL && (sockaddr->sa_family == AF_INET || sockaddr->sa_family == AF_INET6);
+}
+
+bool
 sa_is_bindable(const sockaddr* sockaddr) {
   auto bind_address = rak::socket_address::cast_from(sockaddr);
 
@@ -55,21 +75,6 @@ sa_in_is_default(const sockaddr_in* sockaddr) {
 bool
 sa_in6_is_default(const sockaddr_in6* sockaddr) {
   return std::memcmp(&sockaddr->sin6_addr, &in6addr_any, sizeof(in6_addr)) == 0;
-}
-
-bool
-sa_is_unspec(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_UNSPEC;
-}
-
-bool
-sa_is_inet(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_INET;
-}
-
-bool
-sa_is_inet6(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_INET6;
 }
 
 bool
@@ -211,6 +216,10 @@ sa_clear_inet6(sockaddr_in6* sa) {
   sa->sin6_family = AF_INET6;
 }
 
+// uint16_t
+// sa_port(sockaddr* sa) {
+// }
+
 void
 sa_set_port(sockaddr* sa, uint16_t port) {
   switch(sa->sa_family) {
@@ -223,6 +232,83 @@ sa_set_port(sockaddr* sa, uint16_t port) {
     ; // Do something?
   }
 }
+
+std::string
+sa_addr_str(const sockaddr* sa) {
+  if (sa == NULL)
+    return "unspec";
+
+  switch (sa->sa_family) {
+  case AF_INET:
+    return sa_in_addr_str(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    return sa_in6_addr_str(reinterpret_cast<const sockaddr_in6*>(sa));
+  case AF_UNSPEC:
+    return "unspec";
+  default:
+    return "invalid";
+  }
+}
+
+std::string
+sa_in_addr_str(const sockaddr_in* sa) {
+  char buffer[INET_ADDRSTRLEN];
+
+  if (inet_ntop(AF_INET, &sa->sin_addr, buffer, INET_ADDRSTRLEN) == NULL)
+    return "inet_error";
+
+  return buffer;
+}
+
+
+std::string
+sa_in6_addr_str(const sockaddr_in6* sa) {
+  char buffer[INET6_ADDRSTRLEN];
+
+  if (inet_ntop(AF_INET6, &sa->sin6_addr, buffer, INET6_ADDRSTRLEN) == NULL)
+    return "inet6_error";
+
+  return buffer;
+}
+
+std::string
+sa_pretty_str(const sockaddr* sa) {
+  if (sa == NULL)
+    return "unspec";
+
+  switch (sa->sa_family) {
+  case AF_INET:
+    return sa_in_pretty_str(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    return sa_in6_pretty_str(reinterpret_cast<const sockaddr_in6*>(sa));
+  case AF_UNSPEC:
+    return "unspec";
+  default:
+    return "invalid";
+  }
+}
+
+std::string
+sa_in_pretty_str(const sockaddr_in* sa) {
+  auto result = sa_in_addr_str(sa);
+
+  if (sa->sin_port != 0)
+    result += ':' + std::to_string(sa->sin_port);
+
+  return result;
+}
+
+std::string
+sa_in6_pretty_str(const sockaddr_in6* sa) {
+  auto result = sa_in6_addr_str(sa);
+
+  if (sa->sin6_port != 0)
+    result = '[' + result + "]:" + std::to_string(sa->sin6_port);
+
+  return result;
+}
+
+// Deprecated:
 
 void
 sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) {
@@ -240,10 +326,7 @@ sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) {
 
 std::string
 sa_pretty_address_str(const sockaddr* sockaddr) {
-  if (sockaddr == NULL)
-    return "unspec";
-
-  return rak::socket_address::cast_from(sockaddr)->pretty_address_str();
+  return sa_pretty_str(sockaddr);
 }
 
 }

@@ -198,6 +198,7 @@ const char* option_list_log_group[] = {
 
   "connection",
   "connection_bind",
+  "connection_fd",
   "connection_filter",
   "connection_hanshake",
   "connection_listen",

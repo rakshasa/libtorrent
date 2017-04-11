@@ -49,6 +49,8 @@
 namespace torrent {
 
 struct bind_struct {
+  // TODO: Add helper methods.
+
   int flags;
   std::unique_ptr<const sockaddr> address;
 

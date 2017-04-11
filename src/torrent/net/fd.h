@@ -14,7 +14,7 @@ enum fd_flags : int {
   fd_flag_v6only = 0x80
 };
 
-int fd_open(fd_flags flags) LIBTORRENT_EXPORT;
+int  fd_open(fd_flags flags) LIBTORRENT_EXPORT;
 void fd_close(int fd) LIBTORRENT_EXPORT;
 
 bool fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
