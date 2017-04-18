@@ -206,8 +206,8 @@ attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd
 
   // TODO: Validate bind sa is v4 or v6 respectively.
 
-  // if ((bind_itr.flags & bind_manager::flag_v4only))
-  //   open_flags = open_flags | fd_flag_v4only;
+  if ((bind_itr.flags & bind_manager::flag_v4only))
+    open_flags = open_flags | fd_flag_v4only;
 
   if ((bind_itr.flags & bind_manager::flag_v6only))
     open_flags = open_flags | fd_flag_v6only;

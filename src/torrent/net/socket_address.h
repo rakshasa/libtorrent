@@ -44,7 +44,7 @@ std::unique_ptr<sockaddr_in>  sa_in_from_in6_v4mapped(const sockaddr_in6* sa) LI
 
 void sa_clear_inet6(sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
-uint16_t sa_port(sockaddr* sa) LIBTORRENT_EXPORT;
+uint16_t sa_port(const sockaddr* sa) LIBTORRENT_EXPORT;
 void     sa_set_port(sockaddr* sa, uint16_t port) LIBTORRENT_EXPORT;
 
 std::string sa_addr_str(const sockaddr* sockaddr) LIBTORRENT_EXPORT;

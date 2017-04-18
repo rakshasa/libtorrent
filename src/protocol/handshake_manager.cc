@@ -136,8 +136,14 @@ HandshakeManager::erase_download(DownloadMain* info) {
 void
 HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   if (!manager->connection_manager()->can_connect() ||
-      !manager->connection_manager()->filter(sa.c_sockaddr()) ||
-      !setup_socket(fd)) {
+      !manager->connection_manager()->filter(sa.c_sockaddr())) {
+    LT_LOG_SA(&sa, "incoming connection failed, out of resources or filtered (fd:%i)", fd.get_fd());
+    fd.close();
+    return;
+  }
+
+  if (!setup_socket(fd)) {
+    LT_LOG_SA(&sa, "incoming connection failed, setup unsuccessful (fd:%i)", fd.get_fd());
     fd.close();
     return;
   }
@@ -298,8 +304,9 @@ HandshakeManager::setup_socket(SocketFd fd) {
 
   ConnectionManager* m = manager->connection_manager();
 
-  if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
-    return false;
+  // TODO: Needs to be changed to support inet/inet6.
+  // if (m->priority() != ConnectionManager::iptos_default && !fd.set_priority(m->priority()))
+  //   return false;
 
   if (m->send_buffer_size() != 0 && !fd.set_send_buffer_size(m->send_buffer_size()))
     return false;

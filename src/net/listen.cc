@@ -46,6 +46,7 @@
 #include "torrent/connection_manager.h"
 #include "torrent/poll.h"
 #include "torrent/net/bind_manager.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
 #include "listen.h"
@@ -53,12 +54,8 @@
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_LISTEN, "listen: " log_fmt, __VA_ARGS__);
-#define LT_LOG_SA(sa, log_fmt, ...)                                     \
-  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, (sa)->pretty_address_str().c_str(), __VA_ARGS__);
-
-// TODO: Use the new pretty_address_str thing.
 #define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
-  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, rak::socket_address::cast_from(sa)->pretty_address_str().c_str(), __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, sa_pretty_str(sa).c_str(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -70,13 +67,13 @@ Listen::open(uint16_t first, uint16_t last, int backlog) {
     throw input_error("Tried to open listening port with an invalid range.");
 
   auto listen_fd = [this, backlog](int fd, const sockaddr* bind_address) {
-    this->m_port = rak::socket_address::cast_from(bind_address)->port();
+    this->m_port = sa_port(bind_address);
 
     LT_LOG_SOCKADDR("listen port %" PRIu16 " opened with backlog set to %i", bind_address, this->m_port, backlog);
     return true;
   };
 
-  m_fileDesc = manager->bind()->listen_socket(0, 128, listen_fd);
+  m_fileDesc = manager->bind()->listen_socket(0, backlog, listen_fd);
 
   if (m_fileDesc == -1) {
     LT_LOG("failed to open listen port", 0);
@@ -113,8 +110,11 @@ Listen::event_read() {
   rak::socket_address sa;
   SocketFd fd;
 
-  while ((fd = get_fd().accept(&sa)).is_valid())
+  while ((fd = get_fd().accept(&sa)).is_valid()) {
+    LT_LOG("accepted connection (fd:%i address:%s)", fd.get_fd(), sa_pretty_str(sa.c_sockaddr()).c_str());
+
     m_slot_accepted(fd, sa);
+  }
 }
 
 void
@@ -125,6 +125,8 @@ Listen::event_write() {
 void
 Listen::event_error() {
   int error = get_fd().get_error();
+
+  LT_LOG("event_error: %s", std::strerror(error));
 
   if (error != 0)
     throw internal_error("Listener port received an error event: " + std::string(std::strerror(error)));

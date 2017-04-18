@@ -216,9 +216,18 @@ sa_clear_inet6(sockaddr_in6* sa) {
   sa->sin6_family = AF_INET6;
 }
 
-// uint16_t
-// sa_port(sockaddr* sa) {
-// }
+uint16_t
+sa_port(const sockaddr* sa) {
+  switch(sa->sa_family) {
+  case AF_INET:
+    return ntohs(reinterpret_cast<const sockaddr_in*>(sa)->sin_port);
+  case AF_INET6:
+    return ntohs(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_port);
+  case AF_UNSPEC:
+  default:
+    return 0; // Do something?
+  }
+}
 
 void
 sa_set_port(sockaddr* sa, uint16_t port) {
@@ -293,7 +302,7 @@ sa_in_pretty_str(const sockaddr_in* sa) {
   auto result = sa_in_addr_str(sa);
 
   if (sa->sin_port != 0)
-    result += ':' + std::to_string(sa->sin_port);
+    result += ':' + std::to_string(htons(sa->sin_port));
 
   return result;
 }
@@ -303,7 +312,7 @@ sa_in6_pretty_str(const sockaddr_in6* sa) {
   auto result = sa_in6_addr_str(sa);
 
   if (sa->sin6_port != 0)
-    result = '[' + result + "]:" + std::to_string(sa->sin6_port);
+    result = '[' + result + "]:" + std::to_string(htons(sa->sin6_port));
 
   return result;
 }
