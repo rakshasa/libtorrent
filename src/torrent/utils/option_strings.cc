@@ -227,6 +227,8 @@ const char* option_list_log_group[] = {
   "rpc_events",
   "rpc_dump",
 
+  "system",
+
   "ui_events",
 
   NULL

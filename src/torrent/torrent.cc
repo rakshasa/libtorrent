@@ -191,8 +191,10 @@ download_add(Object* object) {
     download->main()->set_metadata_size(metadata_size);
   }
 
+  std::string local_id = PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size());
+
   download->set_hash_queue(manager->hash_queue());
-  download->initialize(infoHash, PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
+  download->initialize(infoHash, local_id);
 
   // Add trackers, etc, after setting the info hash so that log
   // entries look sane.

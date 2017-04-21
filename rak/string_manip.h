@@ -315,7 +315,7 @@ generate_random(size_t length) {
   Sequence s;
   s.reserve(length);
 
-  std::generate_n(std::back_inserter(s), length, &::random);
+  std::generate_n(std::back_inserter(s), length, &::mrand48);
 
   return s;
 }
