@@ -41,6 +41,7 @@
 #include <rak/address_info.h>
 #include <rak/socket_address.h>
 
+#include "net/bind_manager.h"
 #include "net/listen.h"
 
 #include "connection_manager.h"
@@ -146,6 +147,10 @@ ConnectionManager::set_bind_address(const sockaddr* sa) {
     throw input_error("Tried to set a bind address that is not an af_inet address.");
 
   rak::socket_address::cast_from(m_bindAddress)->copy(*rsa, rsa->length());
+
+  // TODO: This needs to leave bind in a proper state on failure.
+  manager->bind()->clear();
+  manager->bind()->add_bind(sa, 0);
 }
 
 void

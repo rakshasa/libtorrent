@@ -77,7 +77,7 @@ public:
   bind_manager();
 
   // Temporary:
-  void add_bind(const sockaddr* bind_address, int flags);
+  void add_bind(const sockaddr* sa, int flags);
 
   int connect_socket(const sockaddr* sock_addr, int flags) const;
 

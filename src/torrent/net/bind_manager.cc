@@ -98,20 +98,24 @@ bind_manager::bind_manager() {
 }
 
 void
-bind_manager::add_bind(const sockaddr* bind_sockaddr, int flags) {
-  if (!sa_is_bindable(bind_sockaddr)) {
+bind_manager::add_bind(const sockaddr* sa, int flags) {
+  if (!sa_is_bindable(sa)) {
     LT_LOG("add bind failed, address is not bindable (flags:0x%x address:%s)",
-           flags, sa_pretty_address_str(bind_sockaddr).c_str());
+           flags, sa_pretty_address_str(sa).c_str());
 
     // Throw here?
     return;
   }
 
+  // TODO: Verify bind flags. Also pass sa to verify that sockaddr is
+  // a valid sockaddr.
+
   LT_LOG("bind added (flags:0x%x address:%s)",
-         flags, sa_pretty_address_str(bind_sockaddr).c_str());
+         flags, sa_pretty_address_str(sa).c_str());
 
   // TODO: Add a way to set the order.
-  base_type::push_back(make_bind_struct(bind_sockaddr, flags, 0));
+  //base_type::push_back(make_bind_struct(sa, flags, 0));
+  base_type::push_back(make_bind_struct(sa, flag_v4only, 0));
 }
 
 static int
