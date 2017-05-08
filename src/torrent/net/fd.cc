@@ -60,18 +60,15 @@ fd_open(fd_flags flags) {
   }
 
   int fd = -1;
-  bool ipv6 = false;
 
   if (fd == -1 && !(flags & fd_flag_v4only)) {
     LT_LOG_FLAG("fd_open opening ipv6 socket");
     fd = socket(PF_INET6, domain, protocol);
-    ipv6 = true;
   }
 
   if (fd == -1 && !(flags & fd_flag_v6only)) {
     LT_LOG_FLAG("fd_open opening ipv4 socket");
     fd = socket(PF_INET, domain, protocol);
-    ipv6 = false;
   }
 
   if (fd == -1) {
@@ -79,8 +76,7 @@ fd_open(fd_flags flags) {
     return -1;
   }
 
-  // TODO: Remove ipv6 check? Or rather, error if inet.
-  if ((flags & fd_flag_v6only) && ipv6 && !fd_set_v6only(fd, true)) {
+  if ((flags & fd_flag_v6only) && !fd_set_v6only(fd, true)) {
     LT_LOG_FD_FLAG_ERROR("fd_open failed to set v6only");
     fd_close(fd);
     return -1;

@@ -90,11 +90,10 @@ validate_bind_flags(int flags) {
 }
 
 bind_manager::bind_manager() {
-  // TODO: Move this to a different place.
-  // base_type::push_back(make_bind_struct(NULL, 0, 0));
+  base_type::push_back(make_bind_struct(NULL, 0, 0));
 
   // base_type::push_back(make_bind_struct(NULL, flag_v6only, 0));
-  base_type::push_back(make_bind_struct(NULL, flag_v4only, 0));
+  // base_type::push_back(make_bind_struct(NULL, flag_v4only, 0));
 }
 
 void
@@ -156,10 +155,8 @@ bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
     const sockaddr* sa = connect_sa;
     fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
 
-    if (!validate_bind_flags(itr.flags)) {
-      // TODO: Warn here, do something.
-      continue;
-    }
+    if (!validate_bind_flags(itr.flags))
+      continue; // TODO: Warn here, do something.
 
     if ((itr.flags & flag_v4only)) {
       if (sa_is_v4mapped(sa))
@@ -169,15 +166,19 @@ bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
         continue;
 
       open_flags = open_flags | fd_flag_v4only;
-    }
 
-    if ((itr.flags & flag_v6only)) {
-      // TODO: Map v4 addresses here? Check a flag.
-
+    } else if ((itr.flags & flag_v6only)) {
       if (!sa_is_inet6(sa))
         continue;
 
       open_flags = open_flags | fd_flag_v6only;
+
+    } else {
+      if (sa_is_inet(sa))
+        sa = (tmp_sa = sa_to_v4mapped(sa)).get();
+
+      if (!sa_is_inet6(sa))
+        continue; // TODO: Exception here?
     }
 
     int fd = attempt_open_connect(itr, sa, open_flags);
