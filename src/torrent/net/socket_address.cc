@@ -206,6 +206,7 @@ sa_in_from_in6_v4mapped(const sockaddr_in6* sa) {
 
   std::unique_ptr<sockaddr_in> result = sa_in_make();
   result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sa_in6_addr32_index(sa, 3)));
+  result.get()->sin_port = sa->sin6_port;
 
   return result;
 }

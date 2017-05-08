@@ -145,17 +145,15 @@ attempt_open_connect(const bind_struct& itr, const sockaddr* sockaddr, fd_flags 
 }
 
 int
-bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const {
-  LT_LOG("connect_socket attempt (flags:0x%x address:%s)",
-         flags, sa_pretty_address_str(connect_sockaddr).c_str());
+bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
+  LT_LOG("connect_socket attempt (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
 
   // TODO: Don't attempt connect if default sockaddr.
 
   for (auto& itr : *this) {
-    const sockaddr* sa = connect_sockaddr;
+    std::unique_ptr<sockaddr> tmp_sa;
 
-    std::unique_ptr<sockaddr> sockaddr_ptr;
-
+    const sockaddr* sa = connect_sa;
     fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
 
     if (!validate_bind_flags(itr.flags)) {
@@ -164,10 +162,8 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
     }
 
     if ((itr.flags & flag_v4only)) {
-      // if (sa_is_v4mapped(sa)) {
-      //   sockaddr_ptr = sa_from_v4mapped(sa);
-      //   sa = sockaddr_ptr.get();
-      // }
+      if (sa_is_v4mapped(sa))
+        sa = (tmp_sa = sa_from_v4mapped(sa)).get();
 
       if (!sa_is_inet(sa))
         continue;
@@ -186,18 +182,17 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
 
     int fd = attempt_open_connect(itr, sa, open_flags);
 
-    if (fd != -1)
+    if (fd != -1) {
       return fd;
+    }
   }
 
-  LT_LOG("connect_socket failed (flags:0x%x address:%s)",
-         flags, sa_pretty_address_str(connect_sockaddr).c_str());
-
+  LT_LOG("connect_socket failed (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
   return -1;
 }
 
 static int
-attempt_listen_open(std::unique_ptr<sockaddr>& sa, int bind_flags) {
+attempt_listen_open(const sockaddr* bind_sa, int bind_flags) {
   if (!validate_bind_flags(bind_flags)) {
     // TODO: Warn here, do something.
     return -1;
@@ -207,7 +202,6 @@ attempt_listen_open(std::unique_ptr<sockaddr>& sa, int bind_flags) {
   fd_flags open_flags = fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address;
 
   // TODO: Validate bind sa is v4 or v6 respectively.
-
   if ((bind_flags & bind_manager::flag_v4only))
     open_flags = open_flags | fd_flag_v4only;
 
@@ -217,12 +211,11 @@ attempt_listen_open(std::unique_ptr<sockaddr>& sa, int bind_flags) {
   int fd = fd_open(open_flags);
 
   if (fd == -1) {
-    LT_LOG_SOCKADDR("listen open failed (flags:0x%x errno:%i message:'%s')",
-                    sa.get(), open_flags, errno, std::strerror(errno));
+    LT_LOG_SOCKADDR("listen open failed (flags:0x%x errno:%i message:'%s')", bind_sa, open_flags, errno, std::strerror(errno));
     return -1;
   }
 
-  LT_LOG_SOCKADDR("listen open successed (flags:0x%x)", sa.get(), open_flags);
+  LT_LOG_SOCKADDR("listen open successed (flags:0x%x)", bind_sa, open_flags);
   return fd;
 }
 
@@ -230,7 +223,7 @@ static int
 attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd_type listen_fd) {
   std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
 
-  int fd = attempt_listen_open(sa, bind_itr.flags);
+  int fd = attempt_listen_open(sa.get(), bind_itr.flags);
 
   if (fd == -1)
     return -1;
@@ -240,8 +233,7 @@ attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd
 
     if (!fd_bind(fd, sa.get())) {
       if (errno == EADDRNOTAVAIL || errno == EAFNOSUPPORT) {
-        LT_LOG_SOCKADDR("listen address not usable (fd:%i errno:%i message:'%s')",
-                        sa.get(), fd, errno, std::strerror(errno));
+        LT_LOG_SOCKADDR("listen address not usable (fd:%i errno:%i message:'%s')", sa.get(), fd, errno, std::strerror(errno));
         fd_close(fd);
         return -1;
       }
