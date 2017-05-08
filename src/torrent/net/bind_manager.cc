@@ -197,23 +197,21 @@ bind_manager::connect_socket(const sockaddr* connect_sockaddr, int flags) const 
 }
 
 static int
-attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd_type listen_fd) {
-  // TODO: Move logic to listen_socket?
-  std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
-
-  if (!validate_bind_flags(bind_itr.flags)) {
+attempt_listen_open(std::unique_ptr<sockaddr>& sa, int bind_flags) {
+  if (!validate_bind_flags(bind_flags)) {
     // TODO: Warn here, do something.
     return -1;
   }
 
+  // TODO: Move open_flags context to a helper method.
   fd_flags open_flags = fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address;
 
   // TODO: Validate bind sa is v4 or v6 respectively.
 
-  if ((bind_itr.flags & bind_manager::flag_v4only))
+  if ((bind_flags & bind_manager::flag_v4only))
     open_flags = open_flags | fd_flag_v4only;
 
-  if ((bind_itr.flags & bind_manager::flag_v6only))
+  if ((bind_flags & bind_manager::flag_v6only))
     open_flags = open_flags | fd_flag_v6only;
 
   int fd = fd_open(open_flags);
@@ -224,15 +222,32 @@ attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd
     return -1;
   }
 
-  // TODO: Create macro.
-  LT_LOG_SOCKADDR("listen open successed (flags:0x%x ports:%u-%u)",
-                  sa.get(), open_flags, (unsigned int)bind_itr.listen_port_first, (unsigned int)bind_itr.listen_port_last)
+  LT_LOG_SOCKADDR("listen open successed (flags:0x%x)", sa.get(), open_flags);
+  return fd;
+}
+
+static int
+attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd_type listen_fd) {
+  std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
+
+  int fd = attempt_listen_open(sa, bind_itr.flags);
+
+  if (fd == -1)
+    return -1;
 
   for (uint16_t port = bind_itr.listen_port_first; port - 1 < bind_itr.listen_port_last; port++) {
     sa_set_port(sa.get(), port);
 
-    if (!fd_bind(fd, sa.get()))
+    if (!fd_bind(fd, sa.get())) {
+      if (errno == EADDRNOTAVAIL || errno == EAFNOSUPPORT) {
+        LT_LOG_SOCKADDR("listen address not usable (fd:%i errno:%i message:'%s')",
+                        sa.get(), fd, errno, std::strerror(errno));
+        fd_close(fd);
+        return -1;
+      }
+
       continue;
+    }
 
     if (!fd_listen(fd, backlog)) {
       LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
@@ -247,7 +262,7 @@ attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd
     return fd;
   }
 
-  LT_LOG_SOCKADDR("listen failed (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
+  LT_LOG_SOCKADDR("listen ports exhausted (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
                   sa.get(), fd, bind_itr.listen_port_first, bind_itr.listen_port_last);
   fd_close(fd);
   return -1;
@@ -260,10 +275,8 @@ bind_manager::listen_socket(int flags, int backlog, listen_fd_type listen_fd) co
   for (auto& itr : *this) {
     int fd = attempt_listen(itr, backlog, listen_fd);
 
-    if (fd == -1)
-      continue;
-
-    return fd;
+    if (fd != -1)
+      return fd;
   }
 
   LT_LOG("listen_socket failed (flags:0x%x)", flags);
