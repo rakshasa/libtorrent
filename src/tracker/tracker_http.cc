@@ -290,7 +290,7 @@ TrackerHttp::receive_done() {
 
   if (m_data->fail()) {
     std::string dump = m_data->str();
-    return receive_failed("Could not parse bencoded data: " + rak::sanitize(dump).substr(0,99));
+    return receive_failed("Could not parse bencoded data: " + rak::sanitize(rak::striptags(dump)).substr(0,99));
   }
 
   if (!b.is_map())
