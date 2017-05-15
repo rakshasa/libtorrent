@@ -184,6 +184,7 @@ File::resize_file() {
   if (m_flags & flag_fallocate) {
     flags |= SocketFile::flag_fallocate;
     flags |= SocketFile::flag_fallocate_blocking;
+    m_flags &= ~flag_fallocate;
   }
 
   return SocketFile(m_fd).set_size(m_size, flags);

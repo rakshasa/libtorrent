@@ -107,6 +107,7 @@ public:
 
   size_t              size_files() const                              { return base_type::size(); }
   uint64_t            size_bytes() const                              { return m_torrentSize; }
+  uint64_t            allocatable_size_bytes() const;
   uint32_t            size_chunks() const                             { return bitfield()->size_bits(); }
 
   uint32_t            completed_chunks() const                        { return bitfield()->size_set(); }
@@ -131,6 +132,10 @@ public:
   // If the files span multiple disks, the one with the least amount
   // of free diskspace will be returned.
   uint64_t            free_diskspace() const;
+
+  // Determines whether there is enough disk space for fallocating
+  // selected files.
+  bool                is_enough_diskspace() const;
 
   // List of directories in the torrent that might be on different
   // volumes as they are links, including the root directory. Used by
