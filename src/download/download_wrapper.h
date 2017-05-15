@@ -64,7 +64,7 @@ public:
   ChunkList*          chunk_list()                            { return m_main->chunk_list(); }
 
   // Initialize hash checker and various download stuff.
-  void                initialize(const std::string& hash, const std::string& id);
+  void                initialize(const std::string& hash, const std::string& id, int flags = 0);
 
   void                close();
 
@@ -91,7 +91,7 @@ public:
   // Internal:
   //
 
-  void                receive_initial_hash();
+  void                receive_initial_hash(int flags = 0);
   void                receive_hash_done(ChunkHandle handle, const char* hash);
 
   void                check_chunk_hash(ChunkHandle handle);
@@ -102,7 +102,7 @@ public:
 
   void                receive_tick(uint32_t ticks);
 
-  void                receive_update_priorities();
+  void                receive_update_priorities(int flags = 0);
 
 private:
   DownloadWrapper(const DownloadWrapper&);
