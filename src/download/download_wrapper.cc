@@ -364,8 +364,6 @@ DownloadWrapper::receive_update_priorities(int flags) {
       data()->mutable_high_priority()->insert((*itr)->range().first, (*itr)->range().second);
       break;
     default:
-      // Unset fallocate flag if priority of a file is Off.
-      (*itr)->unset_flags(File::flag_fallocate);
       break;
     }
   }
