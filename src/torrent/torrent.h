@@ -93,7 +93,7 @@ EncodingList*       encoding_list() LIBTORRENT_EXPORT;
 // is done by 'download_remove'.
 //
 // Might consider redesigning that...
-Download            download_add(Object* s) LIBTORRENT_EXPORT;
+Download            download_add(Object* s, int flags = 0) LIBTORRENT_EXPORT;
 void                download_remove(Download d) LIBTORRENT_EXPORT;
 
 // Add all downloads to dlist. The client is responsible for clearing

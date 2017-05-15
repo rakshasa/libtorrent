@@ -46,6 +46,7 @@
 #include "protocol/handshake_manager.h"
 #include "protocol/peer_connection_base.h"
 #include "torrent/exceptions.h"
+#include "torrent/download.h"
 #include "torrent/object.h"
 #include "torrent/tracker_list.h"
 #include "torrent/data/file.h"
@@ -103,7 +104,7 @@ DownloadWrapper::~DownloadWrapper() {
 }
 
 void
-DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
+DownloadWrapper::initialize(const std::string& hash, const std::string& id, int flags) {
   char hashObfuscated[20];
   sha1_salt("req2", 4, hash.c_str(), hash.length(), hashObfuscated);
 
@@ -124,7 +125,7 @@ DownloadWrapper::initialize(const std::string& hash, const std::string& id) {
 
   // Connect various signals and slots.
   m_hashChecker->slot_check_chunk() = std::bind(&DownloadWrapper::check_chunk_hash, this, std::placeholders::_1);
-  m_hashChecker->delay_checked().slot() = std::bind(&DownloadWrapper::receive_initial_hash, this);
+  m_hashChecker->delay_checked().slot() = std::bind(&DownloadWrapper::receive_initial_hash, this, flags);
 }
 
 void
@@ -156,7 +157,7 @@ DownloadWrapper::is_stopped() const {
 }
 
 void
-DownloadWrapper::receive_initial_hash() {
+DownloadWrapper::receive_initial_hash(int flags) {
   if (info()->is_active())
     throw internal_error("DownloadWrapper::receive_initial_hash() but we're in a bad state.");
 
@@ -172,7 +173,7 @@ DownloadWrapper::receive_initial_hash() {
     // Initialize the ChunkSelector here so that no chunks will be
     // marked by HashTorrent that are not accounted for.
     m_main->chunk_selector()->initialize(m_main->chunk_statistics());
-    receive_update_priorities();
+    receive_update_priorities(flags);
   }
 
   if (data()->slot_initial_hash())
@@ -324,7 +325,7 @@ DownloadWrapper::receive_tick(uint32_t ticks) {
 }
 
 void
-DownloadWrapper::receive_update_priorities() {
+DownloadWrapper::receive_update_priorities(int flags) {
   if (m_main->chunk_selector()->empty())
     return;
 
@@ -332,9 +333,15 @@ DownloadWrapper::receive_update_priorities() {
   data()->mutable_normal_priority()->clear();
 
   for (FileList::iterator itr = m_main->file_list()->begin(); itr != m_main->file_list()->end(); ++itr) {
+      // Unset fallocate flag by default.
+      (*itr)->unset_flags(File::flag_fallocate);
+
     switch ((*itr)->priority()) {
     case PRIORITY_NORMAL:
     {
+      if (flags & torrent::Download::open_enable_fallocate)
+        (*itr)->set_flags(File::flag_fallocate);
+
       File::range_type range = (*itr)->range();
 
       if ((*itr)->has_flags(File::flag_prioritize_first) && range.first != range.second) {
@@ -351,6 +358,9 @@ DownloadWrapper::receive_update_priorities() {
       break;
     }
     case PRIORITY_HIGH:
+      if (flags & torrent::Download::open_enable_fallocate)
+        (*itr)->set_flags(File::flag_fallocate);
+
       data()->mutable_high_priority()->insert((*itr)->range().first, (*itr)->range().second);
       break;
     default:
