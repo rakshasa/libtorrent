@@ -49,7 +49,7 @@
 namespace torrent {
 
 struct bind_struct {
-  // TODO: Add helper methods.
+  std::string name;
 
   int flags;
   std::unique_ptr<const sockaddr> address;
@@ -66,7 +66,10 @@ public:
   typedef std::function<int ()>    alloc_fd_ftor;
   typedef std::function<bool (int, const sockaddr*)> listen_fd_type;
 
-  using base_type::clear;
+  using base_type::iterator;
+  using base_type::const_iterator;
+
+  // using base_type::clear;
   using base_type::empty;
 
   enum flags_type {
@@ -76,6 +79,11 @@ public:
 
   bind_manager();
 
+  void clear();
+
+  const_iterator begin() const { return base_type::begin(); }
+  const_iterator end() const { return base_type::end(); }
+
   // Temporary:
   void add_bind(const sockaddr* sa, int flags);
 
@@ -83,7 +91,10 @@ public:
 
   int listen_socket(int flags, int backlog, listen_fd_type listen_fd) const;
 };
-  
+
+inline bind_manager::const_iterator begin(const bind_manager& b) { return b.begin(); }
+inline bind_manager::const_iterator end(const bind_manager& b) { return b.end(); }
+
 }
 
 #endif // LIBTORRENT_NET_BIND_MANAGER_H

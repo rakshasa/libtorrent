@@ -77,8 +77,8 @@ prepare_sockaddr(const sockaddr* sa, int flags) {
 }
 
 bind_struct
-make_bind_struct(const sockaddr* sa, int flags, uint16_t priority) {
-  return bind_struct { flags, prepare_sockaddr(sa, flags), priority, 6980, 6999 };
+make_bind_struct(const std::string& name, const sockaddr* sa, int flags, uint16_t priority) {
+  return bind_struct { name, flags, prepare_sockaddr(sa, flags), priority, 6980, 6999 };
 }
 
 static bool
@@ -90,10 +90,17 @@ validate_bind_flags(int flags) {
 }
 
 bind_manager::bind_manager() {
-  base_type::push_back(make_bind_struct(NULL, 0, 0));
+  base_type::push_back(make_bind_struct("default", NULL, 0, 0));
 
   // base_type::push_back(make_bind_struct(NULL, flag_v6only, 0));
   // base_type::push_back(make_bind_struct(NULL, flag_v4only, 0));
+}
+
+void
+bind_manager::clear() {
+  LT_LOG("cleared all entries", 0);
+
+  base_type::clear();
 }
 
 void
@@ -114,7 +121,7 @@ bind_manager::add_bind(const sockaddr* sa, int flags) {
 
   // TODO: Add a way to set the order.
   //base_type::push_back(make_bind_struct(sa, flags, 0));
-  base_type::push_back(make_bind_struct(sa, flag_v4only, 0));
+  base_type::push_back(make_bind_struct("default", sa, flag_v4only, 0));
 }
 
 static int

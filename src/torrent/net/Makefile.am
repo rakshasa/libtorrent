@@ -16,4 +16,5 @@ libtorrentincludedir = $(includedir)/torrent/net
 libtorrentinclude_HEADERS = \
 	bind_manager.h \
 	fd.h \
+	socket_address.h \
 	socket_address_key.h
