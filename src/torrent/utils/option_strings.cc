@@ -44,6 +44,7 @@
 #include "torrent/object.h"
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
+#include "torrent/net/bind_manager.h"
 
 #include "exceptions.h"
 #include "download.h"
@@ -88,6 +89,12 @@ option_pair option_list_heuristics_upload[] = {
   { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
   { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
   { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
+  { NULL, 0 }
+};
+
+option_pair option_list_bind[] = {
+  { "v4only", bind_manager::flag_v4only },
+  { "v6only", bind_manager::flag_v6only },
   { NULL, 0 }
 };
 
@@ -249,6 +256,7 @@ option_pair* option_pair_lists[OPTION_START_COMPACT] = {
   option_list_heuristics,
   option_list_heuristics_download,
   option_list_heuristics_upload,
+  option_list_bind,
   option_list_encryption,
   option_list_ip_filter,
   option_list_ip_tos,
