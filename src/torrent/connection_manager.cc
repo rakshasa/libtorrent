@@ -142,10 +142,6 @@ ConnectionManager::set_encryption_options(uint32_t options) {
 void
 ConnectionManager::set_bind_address(const sockaddr* sa) {
   const rak::socket_address* rsa = rak::socket_address::cast_from(sa);
-
-  if (rsa->family() != rak::socket_address::af_inet)
-    throw input_error("Tried to set a bind address that is not an af_inet address.");
-
   rak::socket_address::cast_from(m_bindAddress)->copy(*rsa, rsa->length());
 
   // TODO: This needs to leave bind in a proper state on failure.

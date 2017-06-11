@@ -91,9 +91,6 @@ validate_bind_flags(int flags) {
 
 bind_manager::bind_manager() {
   base_type::push_back(make_bind_struct("default", NULL, 0, 0));
-
-  // base_type::push_back(make_bind_struct(NULL, flag_v6only, 0));
-  // base_type::push_back(make_bind_struct(NULL, flag_v4only, 0));
 }
 
 void
@@ -113,15 +110,22 @@ bind_manager::add_bind(const sockaddr* sa, int flags) {
     return;
   }
 
+  // TODO: Verify passed flags, etc.
+
   // TODO: Verify bind flags. Also pass sa to verify that sockaddr is
   // a valid sockaddr.
+
+  if (sa_is_inet(sa))
+    flags |= flag_v4only;
+
+  // if inet6, can't be v4only.
 
   LT_LOG("bind added (flags:0x%x address:%s)",
          flags, sa_pretty_address_str(sa).c_str());
 
   // TODO: Add a way to set the order.
   //base_type::push_back(make_bind_struct(sa, flags, 0));
-  base_type::push_back(make_bind_struct("default", sa, flag_v4only, 0));
+  base_type::push_back(make_bind_struct("default", sa, flags, 0));
 }
 
 static int
