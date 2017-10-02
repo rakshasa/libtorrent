@@ -287,4 +287,34 @@ bind_manager::listen_socket(int flags, int backlog, listen_fd_type listen_fd) co
   return -1;
 }
 
+const sockaddr*
+bind_manager::local_v6_address() const {
+  for (auto& itr : *this) {
+    if ((itr.flags & flag_v4only))
+      continue;
+
+    // TODO: Do two for loops?
+    if (sa_is_default(itr.address.get())) {
+      // TODO: Find suitable IPv6.
+      LT_LOG_SOCKADDR("local_v6_address has not implemented ipv6 lookup for any address", itr.address.get(), 0);
+      continue;
+    }
+
+    if (sa_is_inet(itr.address.get())) {
+      LT_LOG_SOCKADDR("local_v6_address skipping bound v4 socket entry with no v4only, v6 lookup for this not implemented", itr.address.get(), 0);
+      continue;
+    }
+
+    if (sa_is_inet6(itr.address.get())) {
+      LT_LOG_SOCKADDR("local_v6_address found ipv6 address", itr.address.get(), 0);
+      return itr.address.get();
+    }
+  }
+
+  // TODO: How do we handle ipv6 lookup?
+
+  LT_LOG("local_v6_address could not find any ipv6 address", 0);
+  return NULL;
+}
+
 }

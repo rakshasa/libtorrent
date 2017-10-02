@@ -90,6 +90,8 @@ public:
   int connect_socket(const sockaddr* sock_addr, int flags) const;
 
   int listen_socket(int flags, int backlog, listen_fd_type listen_fd) const;
+
+  const sockaddr* local_v6_address() const;
 };
 
 inline bind_manager::const_iterator begin(const bind_manager& b) { return b.begin(); }

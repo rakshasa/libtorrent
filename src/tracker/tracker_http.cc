@@ -49,6 +49,8 @@
 #include "torrent/http.h"
 #include "torrent/object_stream.h"
 #include "torrent/tracker_list.h"
+#include "torrent/net/bind_manager.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/option_strings.h"
 
@@ -142,18 +144,17 @@ TrackerHttp::send_state(int state) {
 
   if (!localAddress->is_address_any())
     s << "&ip=" << localAddress->address_str();
-  
-  // if (localAddress->is_address_any() || localAddress->family() != rak::socket_address::pf_inet6) {
-  //   rak::socket_address local_v6;
-  //   if (get_local_address(rak::socket_address::af_inet6, &local_v6))
-  //     s << "&ipv6=" << rak::copy_escape_html(local_v6.address_str());
-  // }
 
   // if (localAddress->is_address_any() || localAddress->family() != rak::socket_address::pf_inet) {
   //   rak::socket_address local_v4;
   //   if (get_local_address(rak::socket_address::af_inet, &local_v4))
   //     s << "&ipv4=" << rak::copy_escape_html(local_v4.address_str());
   // }
+
+  const sockaddr* local_v6_address = manager->bind()->local_v6_address();
+
+  if (local_v6_address != NULL)
+    s << "&ipv6=" << rak::copy_escape_html(sa_addr_str(local_v6_address));
 
   if (info->is_compact())
     s << "&compact=1";
