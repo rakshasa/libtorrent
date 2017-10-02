@@ -45,6 +45,7 @@
 #include <vector>
 #include <sys/socket.h>
 #include <torrent/common.h>
+#include <string>
 
 namespace torrent {
 
