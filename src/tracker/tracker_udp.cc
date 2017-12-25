@@ -128,11 +128,9 @@ TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& 
 
 TrackerUdp::resolver_type*
 TrackerUdp::make_resolver_slot(const hostname_type& hostname) {
+  // TODO: Needs to properly handle selection of ipv4/v6.
   return manager->connection_manager()->resolver()(hostname.data(), PF_UNSPEC, SOCK_DGRAM,
-                                                   std::bind(&TrackerUdp::start_announce,
-                                                             this,
-                                                             std::placeholders::_1,
-                                                             std::placeholders::_2));
+                                                   std::bind(&TrackerUdp::start_announce, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void
@@ -343,6 +341,7 @@ TrackerUdp::prepare_announce_input() {
   m_writeBuffer->write_64(uploaded_adjusted);
   m_writeBuffer->write_32(m_sendState);
 
+  // TODO: Use new sa.
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
   uint32_t local_addr = 0;
@@ -389,9 +388,17 @@ TrackerUdp::process_announce_output() {
 
   AddressList l;
 
-  std::copy(reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->position()),
-	    reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->end() - m_readBuffer->remaining() % sizeof(SocketAddressCompact)),
-	    std::back_inserter(l));
+  if (m_connectAddress.family() == rak::socket_address::af_inet) {
+    std::copy(reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->position()),
+              reinterpret_cast<const SocketAddressCompact*>(m_readBuffer->end() - m_readBuffer->remaining() % sizeof(SocketAddressCompact)),
+              std::back_inserter(l));
+  } else if (m_connectAddress.family() == rak::socket_address::af_inet6) {
+    std::copy(reinterpret_cast<const SocketAddressCompact6*>(m_readBuffer->position()),
+              reinterpret_cast<const SocketAddressCompact6*>(m_readBuffer->end() - m_readBuffer->remaining() % sizeof(SocketAddressCompact6)),
+              std::back_inserter(l));
+  } else {
+    LT_LOG_TRACKER(DEBUG, "invalid tracker address family", 0);
+  }
 
   // Some logic here to decided on whetever we're going to close the
   // connection or not?

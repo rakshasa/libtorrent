@@ -223,6 +223,7 @@ const char* option_list_log_group[] = {
   "instrumentation_transfers",
 
   "peer_list_events",
+  "peer_list_address",
 
   "protocol_piece_events",
   "protocol_metadata_events",
