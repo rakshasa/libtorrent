@@ -50,7 +50,7 @@ class Listen : public SocketBase {
 public:
   typedef std::function<void (SocketFd, const rak::socket_address&)> slot_connection;
 
-  Listen() : m_port(0) {}
+  Listen() {}
   ~Listen() { close(); }
 
   bool                open(uint16_t first, uint16_t last, int backlog);
@@ -58,7 +58,7 @@ public:
 
   bool                is_open() const { return get_fd().is_valid(); }
 
-  uint16_t            port() const { return m_port; }
+  uint16_t            port() const;
 
   slot_connection&    slot_accepted() { return m_slot_accepted; }
 
@@ -67,11 +67,11 @@ public:
   virtual void        event_error();
 
 private:
-  uint64_t            m_port;
+  std::unique_ptr<struct sockaddr> m_sockaddr;
 
   slot_connection     m_slot_accepted;
 };
 
-} // namespace torrent
+}
 
 #endif // LIBTORRENT_TORRENT_H

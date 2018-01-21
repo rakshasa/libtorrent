@@ -42,10 +42,10 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 #include <sys/socket.h>
 #include <torrent/common.h>
-#include <string>
 
 namespace torrent {
 
@@ -56,9 +56,13 @@ struct bind_struct {
   std::unique_ptr<const sockaddr> address;
 
   uint16_t priority;
-
   uint16_t listen_port_first;
   uint16_t listen_port_last;
+};
+
+struct listen_result_type {
+  int fd;
+  std::unique_ptr<struct sockaddr> sockaddr;
 };
 
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
@@ -70,12 +74,12 @@ public:
   using base_type::iterator;
   using base_type::const_iterator;
 
-  // using base_type::clear;
   using base_type::empty;
 
   enum flags_type {
     flag_v4only = 0x1,
-    flag_v6only = 0x2
+    flag_v6only = 0x2,
+    flag_use_listen_ports = 0x4,
   };
 
   bind_manager();
@@ -85,14 +89,24 @@ public:
   const_iterator begin() const { return base_type::begin(); }
   const_iterator end() const { return base_type::end(); }
 
-  // Temporary:
   void add_bind(const sockaddr* sa, int flags);
+  // void add_(std::string name, const sockaddr* sa, int flags);
 
   int connect_socket(const sockaddr* sock_addr, int flags) const;
 
-  int listen_socket(int flags, int backlog, listen_fd_type listen_fd) const;
+  listen_result_type listen_socket(int flags, int backlog, listen_fd_type listen_fd) const;
+
+  uint16_t listen_port_first() { return m_listen_port_first; }
+  uint16_t listen_port_last() { return m_listen_port_last; }
+  void set_listen_port_range(uint16_t port_first, uint16_t port_last, int flags = 0);
 
   const sockaddr* local_v6_address() const;
+
+private:
+  listen_result_type attempt_listen(const bind_struct& bind_itr, int backlog, listen_fd_type listen_fd) const;
+
+  uint16_t m_listen_port_first;
+  uint16_t m_listen_port_last;
 };
 
 inline bind_manager::const_iterator begin(const bind_manager& b) { return b.begin(); }

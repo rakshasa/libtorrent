@@ -78,7 +78,7 @@ prepare_sockaddr(const sockaddr* sa, int flags) {
 
 bind_struct
 make_bind_struct(const std::string& name, const sockaddr* sa, int flags, uint16_t priority) {
-  return bind_struct { name, flags, prepare_sockaddr(sa, flags), priority, 6980, 6999 };
+  return bind_struct { name, flags, prepare_sockaddr(sa, flags), priority, 0, 0 };
 }
 
 static bool
@@ -89,7 +89,10 @@ validate_bind_flags(int flags) {
   return true;
 }
 
-bind_manager::bind_manager() {
+bind_manager::bind_manager() :
+  m_listen_port_first(6881),
+  m_listen_port_last(6999)
+{
   base_type::push_back(make_bind_struct("default", NULL, 0, 0));
 }
 
@@ -231,23 +234,26 @@ attempt_listen_open(const sockaddr* bind_sa, int bind_flags) {
   return fd;
 }
 
-static int
-attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd_type listen_fd) {
+listen_result_type
+bind_manager::attempt_listen(const bind_struct& bind_itr, int backlog, listen_fd_type listen_fd) const {
   std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
+
+  uint16_t port_first = (bind_itr.flags & flag_use_listen_ports) ? bind_itr.listen_port_first : m_listen_port_first;
+  uint16_t port_last = (bind_itr.flags & flag_use_listen_ports) ? bind_itr.listen_port_last : m_listen_port_last;
 
   int fd = attempt_listen_open(sa.get(), bind_itr.flags);
 
   if (fd == -1)
-    return -1;
+    return listen_result_type{-1, NULL};
 
-  for (uint16_t port = bind_itr.listen_port_first; port - 1 < bind_itr.listen_port_last; port++) {
+  for (uint16_t port = port_first; port - 1 < port_last; port++) {
     sa_set_port(sa.get(), port);
 
     if (!fd_bind(fd, sa.get())) {
       if (errno == EADDRNOTAVAIL || errno == EAFNOSUPPORT) {
         LT_LOG_SOCKADDR("listen address not usable (fd:%i errno:%i message:'%s')", sa.get(), fd, errno, std::strerror(errno));
         fd_close(fd);
-        return -1;
+        return listen_result_type{-1, NULL};
       }
 
       continue;
@@ -257,34 +263,50 @@ attempt_listen(const bind_struct& bind_itr, int backlog, bind_manager::listen_fd
       LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
                       sa.get(), fd, backlog, errno, std::strerror(errno));
       fd_close(fd);
-      return -1;
+      return listen_result_type{-1, NULL};
     }
 
     listen_fd(fd, sa.get());
 
     LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), fd);
-    return fd;
+    return listen_result_type{fd, std::unique_ptr<struct sockaddr>(sa.release())};
   }
 
   LT_LOG_SOCKADDR("listen ports exhausted (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
-                  sa.get(), fd, bind_itr.listen_port_first, bind_itr.listen_port_last);
+                  sa.get(), fd, port_first, port_last);
   fd_close(fd);
-  return -1;
+  return listen_result_type{-1, NULL};
 }
 
-int
+listen_result_type
 bind_manager::listen_socket(int flags, int backlog, listen_fd_type listen_fd) const {
   LT_LOG("listen_socket attempt (flags:0x%x)", flags);
 
   for (auto& itr : *this) {
-    int fd = attempt_listen(itr, backlog, listen_fd);
+    listen_result_type result = attempt_listen(itr, backlog, listen_fd);
 
-    if (fd != -1)
-      return fd;
+    if (result.fd != -1)
+      return result;
   }
 
   LT_LOG("listen_socket failed (flags:0x%x)", flags);
-  return -1;
+  return listen_result_type{-1, NULL};
+}
+
+void
+bind_manager::set_listen_port_range(uint16_t port_first, uint16_t port_last, int flags) {
+  if (port_first > port_last) {
+    LT_LOG("could not set listen port range, invalid port range: %" PRIu16 "-%" PRIu16, 0);
+    throw input_error("could not set listen port range, invalid port range");
+  }
+
+  m_listen_port_first = port_first;
+  m_listen_port_last = port_last;
+
+  // Update based on flags.
+  // Flag to use default ports, set ports to 0-0.
+
+  // Open listen ports.
 }
 
 const sockaddr*
