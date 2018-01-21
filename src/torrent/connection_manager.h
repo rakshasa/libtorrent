@@ -144,7 +144,7 @@ public:
   void                set_filter(const slot_filter_type& s)   { m_slot_filter = s; }
 
   // TODO: Change this.
-  bool                listen_open(port_type begin, port_type end);
+  bool                listen_open();
   void                listen_close();  
 
   // Since trackers need our port number, it doesn't get cleared after
@@ -153,9 +153,6 @@ public:
 
   // TODO: Add helper methods to easily get the IPv4 and IPv6 listen ports.
   port_type           listen_port() const                     { return m_listen_port; }
-
-  int                 listen_backlog() const                  { return m_listen_backlog; }
-  void                set_listen_backlog(int v);
 
   // The resolver returns a pointer to its copy of the result slot
   // which the caller may set blocked to prevent the slot from being
@@ -189,7 +186,6 @@ private:
 
   Listen*             m_listen;
   port_type           m_listen_port;
-  uint32_t            m_listen_backlog;
 
   slot_filter_type    m_slot_filter;
   slot_resolver_type  m_slot_resolver;

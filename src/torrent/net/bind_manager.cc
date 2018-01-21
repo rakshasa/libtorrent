@@ -90,6 +90,7 @@ validate_bind_flags(int flags) {
 }
 
 bind_manager::bind_manager() :
+  m_listen_backlog(SOMAXCONN),
   m_listen_port_first(6881),
   m_listen_port_last(6999)
 {
@@ -235,7 +236,7 @@ attempt_listen_open(const sockaddr* bind_sa, int bind_flags) {
 }
 
 listen_result_type
-bind_manager::attempt_listen(const bind_struct& bind_itr, int backlog, listen_fd_type listen_fd) const {
+bind_manager::attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_fd) const {
   std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
 
   uint16_t port_first = (bind_itr.flags & flag_use_listen_ports) ? bind_itr.listen_port_first : m_listen_port_first;
@@ -259,9 +260,9 @@ bind_manager::attempt_listen(const bind_struct& bind_itr, int backlog, listen_fd
       continue;
     }
 
-    if (!fd_listen(fd, backlog)) {
+    if (!fd_listen(fd, m_listen_backlog)) {
       LT_LOG_SOCKADDR("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
-                      sa.get(), fd, backlog, errno, std::strerror(errno));
+                      sa.get(), fd, m_listen_backlog, errno, std::strerror(errno));
       fd_close(fd);
       return listen_result_type{-1, NULL};
     }
@@ -279,14 +280,18 @@ bind_manager::attempt_listen(const bind_struct& bind_itr, int backlog, listen_fd
 }
 
 listen_result_type
-bind_manager::listen_socket(int flags, int backlog, listen_fd_type listen_fd) const {
+bind_manager::listen_socket(int flags, listen_fd_type listen_fd) {
   LT_LOG("listen_socket attempt (flags:0x%x)", flags);
 
   for (auto& itr : *this) {
-    listen_result_type result = attempt_listen(itr, backlog, listen_fd);
+    listen_result_type result = attempt_listen(itr, listen_fd);
 
-    if (result.fd != -1)
+    if (result.fd != -1) {
+      // TODO: Needs to be smarter.
+      m_listen_port = sa_port(result.sockaddr.get());
+
       return result;
+    }
   }
 
   LT_LOG("listen_socket failed (flags:0x%x)", flags);
@@ -304,9 +309,7 @@ bind_manager::set_listen_port_range(uint16_t port_first, uint16_t port_last, int
   m_listen_port_last = port_last;
 
   // Update based on flags.
-  // Flag to use default ports, set ports to 0-0.
-
-  // Open listen ports.
+  // Open listen ports. (try the same port as before, when multiple share same)
 }
 
 const sockaddr*

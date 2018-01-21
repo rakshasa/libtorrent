@@ -89,8 +89,7 @@ ConnectionManager::ConnectionManager() :
   m_encryptionOptions(encryption_none),
 
   m_listen(new Listen),
-  m_listen_port(0),
-  m_listen_backlog(SOMAXCONN) {
+  m_listen_port(0) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   m_localAddress = (new rak::socket_address())->c_sockaddr();
@@ -178,8 +177,8 @@ ConnectionManager::filter(const sockaddr* sa) {
 }
 
 bool
-ConnectionManager::listen_open(port_type begin, port_type end) {
-  if (!m_listen->open(begin, end, m_listen_backlog))
+ConnectionManager::listen_open() {
+  if (!m_listen->open())
     return false;
 
   m_listen_port = m_listen->port();
@@ -190,17 +189,6 @@ ConnectionManager::listen_open(port_type begin, port_type end) {
 void
 ConnectionManager::listen_close() {
   m_listen->close();
-}
-
-void
-ConnectionManager::set_listen_backlog(int v) {
-  if (v < 1 || v >= (1 << 16))
-    throw input_error("backlog value out of bounds");
-
-  if (m_listen->is_open())
-    throw input_error("backlog value must be set before listen port is opened");
-
-  m_listen_backlog = v;
 }
 
 }

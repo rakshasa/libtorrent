@@ -60,19 +60,16 @@
 namespace torrent {
 
 bool
-Listen::open(uint16_t first, uint16_t last, int backlog) {
+Listen::open() {
   close();
 
-  if (first == 0 || first > last)
-    throw input_error("Tried to open listening port with an invalid range.");
-
   // TODO: No longer needed(?).
-  auto listen_fd = [this, backlog](int fd, const sockaddr* bind_address) {
-    LT_LOG_SOCKADDR("listen port %" PRIu16 " opened with backlog set to %i", bind_address, sa_port(bind_address), backlog);
+  auto listen_fd = [this](int fd, const sockaddr* bind_address) {
+    LT_LOG_SOCKADDR("listen port %" PRIu16 " opened", bind_address, sa_port(bind_address));
     return true;
   };
 
-  listen_result_type listen_result = manager->bind()->listen_socket(0, backlog, listen_fd);
+  listen_result_type listen_result = manager->bind()->listen_socket(0, listen_fd);
   m_fileDesc = listen_result.fd;
   m_sockaddr.swap(listen_result.sockaddr);
 

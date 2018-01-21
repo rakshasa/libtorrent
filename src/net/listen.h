@@ -53,7 +53,7 @@ public:
   Listen() {}
   ~Listen() { close(); }
 
-  bool                open(uint16_t first, uint16_t last, int backlog);
+  bool                open();
   void                close();
 
   bool                is_open() const { return get_fd().is_valid(); }

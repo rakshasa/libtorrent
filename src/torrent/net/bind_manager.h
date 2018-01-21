@@ -94,17 +94,24 @@ public:
 
   int connect_socket(const sockaddr* sock_addr, int flags) const;
 
-  listen_result_type listen_socket(int flags, int backlog, listen_fd_type listen_fd) const;
+  listen_result_type listen_socket(int flags, listen_fd_type listen_fd);
 
-  uint16_t listen_port_first() { return m_listen_port_first; }
-  uint16_t listen_port_last() { return m_listen_port_last; }
+  int      listen_backlog() const { return m_listen_backlog; }
+  uint16_t listen_port() const { return m_listen_port; }
+  //uint16_t listen_port_on_sockaddr() const;
+  uint16_t listen_port_first() const { return m_listen_port_first; }
+  uint16_t listen_port_last() const { return m_listen_port_last; }
+
+  void set_listen_backlog(int backlog) { m_listen_backlog = backlog; }
   void set_listen_port_range(uint16_t port_first, uint16_t port_last, int flags = 0);
 
   const sockaddr* local_v6_address() const;
 
 private:
-  listen_result_type attempt_listen(const bind_struct& bind_itr, int backlog, listen_fd_type listen_fd) const;
+  listen_result_type attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_fd) const;
 
+  int      m_listen_backlog;
+  uint16_t m_listen_port;
   uint16_t m_listen_port_first;
   uint16_t m_listen_port_last;
 };
@@ -114,4 +121,4 @@ inline bind_manager::const_iterator end(const bind_manager& b) { return b.end();
 
 }
 
-#endif // LIBTORRENT_NET_BIND_MANAGER_H
+#endif
