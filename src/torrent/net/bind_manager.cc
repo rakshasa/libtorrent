@@ -90,6 +90,7 @@ validate_bind_flags(int flags) {
 }
 
 bind_manager::bind_manager() :
+  m_flags(0),
   m_listen_backlog(SOMAXCONN),
   m_listen_port_first(6881),
   m_listen_port_last(6999)
@@ -102,6 +103,17 @@ bind_manager::clear() {
   LT_LOG("cleared all entries", 0);
 
   base_type::clear();
+}
+
+void
+bind_manager::set_port_randomize(bool flag) {
+  if (flag) {
+    LT_LOG("randomized listen port by default", 0);
+    m_flags |= flag_port_randomize;
+  } else {
+    LT_LOG("sequential listen port by default", 0);
+    m_flags &= ~flag_port_randomize;
+  }
 }
 
 void
@@ -235,20 +247,30 @@ attempt_listen_open(const sockaddr* bind_sa, int bind_flags) {
   return fd;
 }
 
+static std::tuple<uint16_t, uint16_t, uint16_t>
+get_bind_ports(const bind_manager* manager, const bind_struct& itr) {
+  uint16_t port_first = (itr.flags & bind_manager::flag_use_listen_ports) ? itr.listen_port_first : manager->listen_port_first();
+  uint16_t port_last = (itr.flags & bind_manager::flag_use_listen_ports) ? itr.listen_port_last : manager->listen_port_last();
+
+  uint16_t port_itr = port_first;
+
+  return std::make_tuple(port_first, port_last, port_itr);
+}
+
 listen_result_type
 bind_manager::attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_fd) const {
   std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
-
-  uint16_t port_first = (bind_itr.flags & flag_use_listen_ports) ? bind_itr.listen_port_first : m_listen_port_first;
-  uint16_t port_last = (bind_itr.flags & flag_use_listen_ports) ? bind_itr.listen_port_last : m_listen_port_last;
-
   int fd = attempt_listen_open(sa.get(), bind_itr.flags);
 
   if (fd == -1)
     return listen_result_type{-1, NULL};
 
-  for (uint16_t port = port_first; port - 1 < port_last; port++) {
-    sa_set_port(sa.get(), port);
+  uint16_t port_first, port_last, port_itr;
+  std::tie(port_first, port_last, port_itr) = get_bind_ports(this, bind_itr);
+  uint16_t port_stop = port_itr;
+
+  do {
+    sa_set_port(sa.get(), port_itr);
 
     if (!fd_bind(fd, sa.get())) {
       if (errno == EADDRNOTAVAIL || errno == EAFNOSUPPORT) {
@@ -256,6 +278,11 @@ bind_manager::attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_
         fd_close(fd);
         return listen_result_type{-1, NULL};
       }
+
+      if (port_itr == port_last)
+        port_itr = port_first;
+      else
+        port_itr++;
 
       continue;
     }
@@ -271,7 +298,8 @@ bind_manager::attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_
 
     LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), fd);
     return listen_result_type{fd, std::unique_ptr<struct sockaddr>(sa.release())};
-  }
+
+  } while (port_itr != port_stop);
 
   LT_LOG_SOCKADDR("listen ports exhausted (fd:%i port_first:%" PRIu16 " port_last:%" PRIu16 ")",
                   sa.get(), fd, port_first, port_last);
@@ -296,6 +324,22 @@ bind_manager::listen_socket(int flags, listen_fd_type listen_fd) {
 
   LT_LOG("listen_socket failed (flags:0x%x)", flags);
   return listen_result_type{-1, NULL};
+}
+
+void
+bind_manager::listen_open() {
+  if (m_flags & flag_listen_open)
+    return;
+
+  m_flags |= flag_listen_open;
+}
+
+void
+bind_manager::listen_close() {
+  if (m_flags | flag_listen_open)
+    return;
+
+  m_flags &= flag_listen_open;
 }
 
 void
