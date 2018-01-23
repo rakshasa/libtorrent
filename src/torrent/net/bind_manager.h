@@ -69,7 +69,7 @@ class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
 public:
   typedef std::vector<bind_struct> base_type;
   typedef std::function<int ()>    alloc_fd_ftor;
-  typedef std::function<bool (int, const sockaddr*)> listen_fd_type;
+  typedef std::function<void (int, const sockaddr*)> accepted_ftor;
 
   using base_type::iterator;
   using base_type::const_iterator;
@@ -100,7 +100,7 @@ public:
 
   int connect_socket(const sockaddr* sock_addr, int flags) const;
 
-  listen_result_type listen_socket(int flags, listen_fd_type listen_fd);
+  listen_result_type listen_socket(int flags);
 
   void     listen_open();
   void     listen_close();
@@ -117,8 +117,10 @@ public:
 
   const sockaddr* local_v6_address() const;
 
+  accepted_ftor&  slot_accepted();
+
 private:
-  listen_result_type attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_fd) const;
+  listen_result_type attempt_listen(const bind_struct& bind_itr) const;
 
   int      m_flags;
 
@@ -126,6 +128,8 @@ private:
   uint16_t m_listen_port;
   uint16_t m_listen_port_first;
   uint16_t m_listen_port_last;
+
+  accepted_ftor m_slot_accepted;
 };
 
 inline bind_manager::const_iterator begin(const bind_manager& b) { return b.begin(); }
@@ -138,6 +142,8 @@ inline bool bind_manager::is_listen_open() const { return m_flags & flag_listen_
 inline bool bind_manager::is_port_randomize() const { return m_flags & flag_port_randomize; }
 
 inline void bind_manager::set_listen_backlog(int backlog) { m_listen_backlog = backlog; }
+
+inline bind_manager::accepted_ftor& bind_manager::slot_accepted() { return m_slot_accepted; }
 
 }
 

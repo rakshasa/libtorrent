@@ -46,9 +46,10 @@
 
 namespace torrent {
 
+// TODO: Rename listen_socket.
 class Listen : public SocketBase {
 public:
-  typedef std::function<void (SocketFd, const rak::socket_address&)> slot_connection;
+  typedef std::function<void (int, const sockaddr*)> accepted_ftor;
 
   Listen() {}
   ~Listen() { close(); }
@@ -60,7 +61,7 @@ public:
 
   uint16_t            port() const;
 
-  slot_connection&    slot_accepted() { return m_slot_accepted; }
+  accepted_ftor&      slot_accepted() { return m_slot_accepted; }
 
   virtual void        event_read();
   virtual void        event_write();
@@ -69,7 +70,7 @@ public:
 private:
   std::unique_ptr<struct sockaddr> m_sockaddr;
 
-  slot_connection     m_slot_accepted;
+  accepted_ftor       m_slot_accepted;
 };
 
 }

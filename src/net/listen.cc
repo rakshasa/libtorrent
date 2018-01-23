@@ -63,13 +63,7 @@ bool
 Listen::open() {
   close();
 
-  // TODO: No longer needed(?).
-  auto listen_fd = [this](int fd, const sockaddr* bind_address) {
-    LT_LOG_SOCKADDR("listen port %" PRIu16 " opened", bind_address, sa_port(bind_address));
-    return true;
-  };
-
-  listen_result_type listen_result = manager->bind()->listen_socket(0, listen_fd);
+  listen_result_type listen_result = manager->bind()->listen_socket(0);
   m_fileDesc = listen_result.fd;
   m_sockaddr.swap(listen_result.sockaddr);
 
@@ -84,6 +78,7 @@ Listen::open() {
   manager->poll()->insert_read(this);
   manager->poll()->insert_error(this);
 
+  LT_LOG_SOCKADDR("listen port %" PRIu16 " opened", m_sockaddr.get(), sa_port(m_sockaddr.get()));
   return true;
 }
 
@@ -116,7 +111,7 @@ Listen::event_read() {
   while ((fd = get_fd().accept(&sa)).is_valid()) {
     LT_LOG("accepted connection (fd:%i address:%s)", fd.get_fd(), sa_pretty_str(sa.c_sockaddr()).c_str());
 
-    m_slot_accepted(fd, sa);
+    m_slot_accepted(fd.get_fd(), sa.c_sockaddr());
   }
 }
 

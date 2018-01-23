@@ -79,7 +79,7 @@ public:
   void                erase_download(DownloadMain* info);
 
   // Cleanup.
-  void                add_incoming(SocketFd fd, const rak::socket_address& sa);
+  void                add_incoming(int c_fd, const sockaddr* c_sockaddr);
   void                add_outgoing(const rak::socket_address& sa, DownloadMain* info);
 
   slot_download&      slot_download_id()         { return m_slot_download_id; }

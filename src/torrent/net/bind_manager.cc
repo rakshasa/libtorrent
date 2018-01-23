@@ -258,7 +258,7 @@ get_bind_ports(const bind_manager* manager, const bind_struct& itr) {
 }
 
 listen_result_type
-bind_manager::attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_fd) const {
+bind_manager::attempt_listen(const bind_struct& bind_itr) const {
   std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
   int fd = attempt_listen_open(sa.get(), bind_itr.flags);
 
@@ -294,8 +294,6 @@ bind_manager::attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_
       return listen_result_type{-1, NULL};
     }
 
-    listen_fd(fd, sa.get());
-
     LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), fd);
     return listen_result_type{fd, std::unique_ptr<struct sockaddr>(sa.release())};
 
@@ -308,11 +306,11 @@ bind_manager::attempt_listen(const bind_struct& bind_itr, listen_fd_type listen_
 }
 
 listen_result_type
-bind_manager::listen_socket(int flags, listen_fd_type listen_fd) {
+bind_manager::listen_socket(int flags) {
   LT_LOG("listen_socket attempt (flags:0x%x)", flags);
 
   for (auto& itr : *this) {
-    listen_result_type result = attempt_listen(itr, listen_fd);
+    listen_result_type result = attempt_listen(itr);
 
     if (result.fd != -1) {
       // TODO: Needs to be smarter.

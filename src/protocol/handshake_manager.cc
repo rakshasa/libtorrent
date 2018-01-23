@@ -134,7 +134,11 @@ HandshakeManager::erase_download(DownloadMain* info) {
 }
 
 void
-HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
+HandshakeManager::add_incoming(int c_fd, const sockaddr* c_sockaddr) {
+  SocketFd fd(c_fd);
+  rak::socket_address sa;
+  sa.copy_sockaddr(c_sockaddr);
+
   if (!manager->connection_manager()->can_connect() ||
       !manager->connection_manager()->filter(sa.c_sockaddr())) {
     LT_LOG_SA(&sa, "incoming connection failed, out of resources or filtered (fd:%i)", fd.get_fd());
