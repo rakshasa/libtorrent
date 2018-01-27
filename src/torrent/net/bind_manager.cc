@@ -117,6 +117,28 @@ bind_manager::set_port_randomize(bool flag) {
 }
 
 void
+bind_manager::set_block_accept(bool flag) {
+  if (flag) {
+    LT_LOG("block accept by default", 0);
+    m_flags |= flag_block_accept;
+  } else {
+    LT_LOG("allow accept by default", 0);
+    m_flags &= ~flag_block_accept;
+  }
+}
+
+void
+bind_manager::set_block_connect(bool flag) {
+  if (flag) {
+    LT_LOG("block connect by default", 0);
+    m_flags |= flag_block_connect;
+  } else {
+    LT_LOG("allow connect by default", 0);
+    m_flags &= ~flag_block_connect;
+  }
+}
+
+void
 bind_manager::add_bind(const sockaddr* sa, int flags) {
   if (!sa_is_bindable(sa)) {
     LT_LOG("add bind failed, address is not bindable (flags:0x%x address:%s)",
@@ -172,11 +194,19 @@ attempt_open_connect(const bind_struct& itr, const sockaddr* sockaddr, fd_flags 
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
+  if (m_flags & flag_block_connect) {
+    LT_LOG("connect_socket blocked (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+    return -1;
+  }
+
   LT_LOG("connect_socket attempt (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
 
   // TODO: Don't attempt connect if default sockaddr.
 
   for (auto& itr : *this) {
+    if (itr.flags & flag_block_connect)
+      continue;
+
     std::unique_ptr<sockaddr> tmp_sa;
 
     const sockaddr* sa = connect_sa;
@@ -252,7 +282,13 @@ get_bind_ports(const bind_manager* manager, const bind_struct& itr) {
   uint16_t port_first = (itr.flags & bind_manager::flag_use_listen_ports) ? itr.listen_port_first : manager->listen_port_first();
   uint16_t port_last = (itr.flags & bind_manager::flag_use_listen_ports) ? itr.listen_port_last : manager->listen_port_last();
 
-  uint16_t port_itr = port_first;
+  uint16_t port_itr;
+
+  // TODO: Check itr flag first.
+  if (manager->is_port_randomize())
+    port_itr = port_first + rand() % (port_last - port_first + 1);
+  else
+    port_itr = port_first;
 
   return std::make_tuple(port_first, port_last, port_itr);
 }
@@ -268,6 +304,8 @@ bind_manager::attempt_listen(const bind_struct& bind_itr) const {
   uint16_t port_first, port_last, port_itr;
   std::tie(port_first, port_last, port_itr) = get_bind_ports(this, bind_itr);
   uint16_t port_stop = port_itr;
+
+  // TODO: Error if port_first is 0.
 
   do {
     sa_set_port(sa.get(), port_itr);

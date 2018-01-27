@@ -95,6 +95,11 @@ option_pair option_list_heuristics_upload[] = {
 option_pair option_list_bind[] = {
   { "v4only", bind_manager::flag_v4only },
   { "v6only", bind_manager::flag_v6only },
+  { "use_listen_ports", bind_manager::flag_use_listen_ports },
+  { "listen_open", bind_manager::flag_listen_open },
+  { "port_randomize", bind_manager::flag_port_randomize },
+  { "block_accept", bind_manager::flag_block_accept },
+  { "block_connect", bind_manager::flag_block_connect },
   { NULL, 0 }
 };
 

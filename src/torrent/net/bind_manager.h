@@ -82,6 +82,8 @@ public:
     flag_use_listen_ports = 0x4,
     flag_listen_open = 0x8,
     flag_port_randomize = 0x10,
+    flag_block_accept = 0x20,
+    flag_block_connect = 0x40,
   };
 
   bind_manager();
@@ -93,7 +95,12 @@ public:
 
   bool is_listen_open() const;
   bool is_port_randomize() const;
+  bool is_block_accept() const;
+  bool is_block_connect() const;
+
   void set_port_randomize(bool flag);
+  void set_block_accept(bool flag);
+  void set_block_connect(bool flag);
 
   void add_bind(const sockaddr* sa, int flags);
   // void add_(std::string name, const sockaddr* sa, int flags);
@@ -140,6 +147,8 @@ inline bind_manager::const_iterator bind_manager::end() const { return base_type
 
 inline bool bind_manager::is_listen_open() const { return m_flags & flag_listen_open; }
 inline bool bind_manager::is_port_randomize() const { return m_flags & flag_port_randomize; }
+inline bool bind_manager::is_block_accept() const { return m_flags & flag_block_accept; }
+inline bool bind_manager::is_block_connect() const { return m_flags & flag_block_connect; }
 
 inline void bind_manager::set_listen_backlog(int backlog) { m_listen_backlog = backlog; }
 
