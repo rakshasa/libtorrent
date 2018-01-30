@@ -90,7 +90,7 @@ validate_bind_flags(int flags) {
 }
 
 bind_manager::bind_manager() :
-  m_flags(0),
+  m_flags(flag_port_randomize),
   m_listen_backlog(SOMAXCONN),
   m_listen_port_first(6881),
   m_listen_port_last(6999)
@@ -161,6 +161,8 @@ bind_manager::add_bind(const sockaddr* sa, int flags) {
   LT_LOG("bind added (flags:0x%x address:%s)",
          flags, sa_pretty_address_str(sa).c_str());
 
+  // TODO: Sanitize the flags.
+
   // TODO: Add a way to set the order.
   //base_type::push_back(make_bind_struct(sa, flags, 0));
   base_type::push_back(make_bind_struct("default", sa, flags, 0));
@@ -194,14 +196,17 @@ attempt_open_connect(const bind_struct& itr, const sockaddr* sockaddr, fd_flags 
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
+  if (sa_is_default(connect_sa)) {
+    LT_LOG("connect_socket called with invalid sockaddr (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+    return -1;
+  }
+
   if (m_flags & flag_block_connect) {
     LT_LOG("connect_socket blocked (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
     return -1;
   }
 
   LT_LOG("connect_socket attempt (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
-
-  // TODO: Don't attempt connect if default sockaddr.
 
   for (auto& itr : *this) {
     if (itr.flags & flag_block_connect)
@@ -281,14 +286,20 @@ static std::tuple<uint16_t, uint16_t, uint16_t>
 get_bind_ports(const bind_manager* manager, const bind_struct& itr) {
   uint16_t port_first = (itr.flags & bind_manager::flag_use_listen_ports) ? itr.listen_port_first : manager->listen_port_first();
   uint16_t port_last = (itr.flags & bind_manager::flag_use_listen_ports) ? itr.listen_port_last : manager->listen_port_last();
-
   uint16_t port_itr;
 
+  if (port_first == 0 || port_last == 0 || port_first > port_last)
+    return std::make_tuple(0, 0, 0);
+
   // TODO: Check itr flag first.
-  if (manager->is_port_randomize())
-    port_itr = port_first + rand() % (port_last - port_first + 1);
-  else
+  // TODO: Test that we can get the last port number.
+  if (!manager->is_port_randomize() || (port_last - port_first) == 0)
     port_itr = port_first;
+  else
+    port_itr = port_first + rand() % (port_last - port_first + 1);
+
+  if (port_itr == 0 || port_itr < port_first || port_itr > port_last)
+    return std::make_tuple(0, 0, 0);
 
   return std::make_tuple(port_first, port_last, port_itr);
 }
@@ -305,7 +316,10 @@ bind_manager::attempt_listen(const bind_struct& bind_itr) const {
   std::tie(port_first, port_last, port_itr) = get_bind_ports(this, bind_itr);
   uint16_t port_stop = port_itr;
 
-  // TODO: Error if port_first is 0.
+  if (port_first == 0) {
+    LT_LOG_SOCKADDR("listen got invalid port numbers (flags:0x%x)", sa.get(), bind_itr.flags);
+    return listen_result_type{-1, NULL};
+  }
 
   do {
     sa_set_port(sa.get(), port_itr);
