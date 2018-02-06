@@ -45,12 +45,16 @@
 
 #include <torrent/common.h>
 
+class WebseedControllerTest;
+
 namespace torrent {
 
 class ChunkPart;
 class PeerChunks;
 
 class LIBTORRENT_EXPORT WebseedController {
+  friend WebseedControllerTest;
+
 public:
   typedef std::string url_type;
   typedef std::list<url_type> url_list_type;
