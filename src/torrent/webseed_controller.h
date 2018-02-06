@@ -41,12 +41,14 @@
 #include <thread>
 #include <list>
 #include <atomic>
+#include <memory>
 
 #include <torrent/common.h>
 
 namespace torrent {
 
-struct tracker_controller_private;
+class ChunkPart;
+class PeerChunks;
 
 class LIBTORRENT_EXPORT WebseedController {
 public:
@@ -65,12 +67,24 @@ public:
   void doWebseed();
 
 private:
-  DownloadMain*    m_download;
+  void download_to_buffer
+  (
+    char* buffer,
+    const std::string& url,
+    const int offset,
+    const int length
+  );
 
+  void download_chunk_part(const ChunkPart& chunk_part);
+  void download_chunk(const uint32_t chunk_index);
+
+  DownloadMain*    m_download;
   url_list_type    m_url_list;
 
   std::atomic_bool m_thread_stop;
   std::thread      m_thread;
+
+  std::unique_ptr<PeerChunks> m_allChunks;
 };
 
 }

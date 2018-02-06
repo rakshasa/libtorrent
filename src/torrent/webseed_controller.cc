@@ -60,7 +60,7 @@
 
 namespace torrent {
 
-WebseedController::WebseedController(DownloadMain* download) : m_download(download)
+WebseedController::WebseedController(DownloadMain* download) : m_download(download), m_allChunks(new PeerChunks)
 {
 }
 
@@ -69,8 +69,7 @@ WebseedController::~WebseedController() {
   if (m_thread.joinable()) m_thread.join();
 }
 
-void
-WebseedController::add_url(const url_type& url) {
+void WebseedController::add_url(const url_type& url) {
   m_url_list.push_back(url);
 }
 
@@ -78,10 +77,9 @@ struct MemoryStruct {
   char* memory;
   size_t size;
 };
- 
+
 static size_t
-WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
+WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
   size_t realsize = size * nmemb;
   struct MemoryStruct *mem = (struct MemoryStruct *)userp;
  
@@ -92,7 +90,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
   return realsize;
 }
 
-void webseed_dl
+void WebseedController::download_to_buffer
 (
   char* buffer,
   const std::string& url,
@@ -106,7 +104,7 @@ void webseed_dl
   lt_log_print(LOG_DEBUG, "webseed: curl %s %s", url.c_str(), range_str.c_str());
 
   struct MemoryStruct chunk;
-  chunk.memory = buffer; 
+  chunk.memory = buffer;
   chunk.size = 0; 
  
   CURL* curl = curl_easy_init();
@@ -153,82 +151,69 @@ void WebseedController::doWebseed()
   lt_log_print(LOG_INFO, "webseed: thread started for %s", m_download->info()->name().c_str());
 
   //webseeds have all chunks
-  PeerChunks peerChunks;
-  peerChunks.bitfield()->copy(*m_download->file_list()->bitfield());
-  peerChunks.bitfield()->set_all();
+  m_allChunks->bitfield()->copy(*m_download->file_list()->bitfield());
+  m_allChunks->bitfield()->set_all();
 
   uint32_t chunk_index;
   while (!m_thread_stop && 
-         (chunk_index = m_download->chunk_selector()->find(&peerChunks, false)) != Piece::invalid_index)
+         (chunk_index = m_download->chunk_selector()->find(&(*m_allChunks), false)) != Piece::invalid_index)
   {
-    uint32_t chunk_size = m_download->file_list()->chunk_index_size(chunk_index);
-    Piece piece(chunk_index, 0, chunk_size);
-
-    TransferList::iterator blockListItr = m_download->delegator()->transfer_list()->insert(piece, Delegator::block_size);
-
-    lt_log_print(LOG_DEBUG, "webseed: getting chunk_index %u size %u", chunk_index, chunk_size);
-    
-    static const int chunk_flags = ChunkList::get_writable;
-    ChunkHandle chunk_handle = m_download->chunk_list()->get(chunk_index, chunk_flags);
-    
-    const std::string root_dir = m_download->file_list()->root_dir();
-
-    for (
-      Chunk::const_iterator chunk_part_itr = chunk_handle.chunk()->begin(), 
-        chunk_part_last = chunk_handle.chunk()->end();
-      chunk_part_itr != chunk_part_last; 
-      chunk_part_itr++)
-    {
-      const ChunkPart& chunk_part = *chunk_part_itr;
-
-      const std::string absolute_file_path = chunk_part.file()->frozen_path();
-      int file_offset = chunk_part.file_offset();
-      int chunk_part_offset = chunk_part.position();
-      int chunk_part_size = chunk_part.size();
-      char* chunk_part_buffer = chunk_part.chunk().begin();
-
-      std::string relative_file_path = absolute_file_path;
-      relative_file_path.replace(relative_file_path.find(root_dir),root_dir.length(),"");
-
-      lt_log_print(LOG_DEBUG, "webseed: chunk_part mapped to file %s offset %u length %u", 
-                                  relative_file_path.c_str(), file_offset, chunk_part_size);
-
-
-      std::string http_url = url_list()->front() + m_download->info()->name() + relative_file_path;
-      webseed_dl(chunk_part_buffer, http_url, file_offset, chunk_part_size);
-
-      m_download->info()->mutable_down_rate()->insert(chunk_part_size);
-      m_download->download_throttle()->node_used(peerChunks.download_throttle(), chunk_part_size);
-
-    }
- 
-    m_download->delegator()->transfer_list()->erase(blockListItr);
-
-
-    DownloadWrapper* wrapper = *manager->download_manager()->find(m_download->info());
-
-    static const int SHA1_LENGTH = 20;
-
-    char hash[SHA1_LENGTH];
-    HashChunk hash_chunk(chunk_handle);
-    hash_chunk.perform(hash_chunk.remaining(), false);
-    hash_chunk.hash_c(&hash[0]);
-    lt_log_print(LOG_DEBUG, "webseed: chunk hash check. should be %s was %s", 
-      hash_string_to_hex_str(*HashString::cast_from(wrapper->chunk_hash(chunk_handle.index()))).c_str(), 
-      hash_string_to_hex_str(*HashString::cast_from(hash)).c_str());
-
-    if (std::memcmp(hash, wrapper->chunk_hash(chunk_index), SHA1_LENGTH) == 0)
-      m_download->file_list()->mark_completed(chunk_index);
-
-    if (m_download->file_list()->is_done())
-      if (!m_download->delay_download_done().is_queued())
-        priority_queue_insert(&taskScheduler, &m_download->delay_download_done(), cachedTime);
-
-    m_download->chunk_list()->release(&chunk_handle, chunk_flags);
-
-
+    download_chunk(chunk_index);
   }
-}  
+} 
 
+void WebseedController::download_chunk(const uint32_t chunk_index)
+{
+  uint32_t chunk_size = m_download->file_list()->chunk_index_size(chunk_index);
+  Piece piece(chunk_index, 0, chunk_size);
+
+  TransferList::iterator blockListItr = m_download->delegator()->transfer_list()->insert(piece, Delegator::block_size);
+
+  lt_log_print(LOG_DEBUG, "webseed: getting chunk_index %u size %u", chunk_index, chunk_size);
+
+  static const int chunk_flags = ChunkList::get_writable;
+  ChunkHandle chunk_handle = m_download->chunk_list()->get(chunk_index, chunk_flags);
+
+  std::for_each(chunk_handle.chunk()->begin(), chunk_handle.chunk()->end(),
+                std::bind(&WebseedController::download_chunk_part, this, std::placeholders::_1));
+
+  m_download->delegator()->transfer_list()->erase(blockListItr);
+
+  DownloadWrapper* wrapper = *manager->download_manager()->find(m_download->info());
+
+  char hash[HashString::size_data];
+  HashChunk hash_chunk(chunk_handle);
+  hash_chunk.perform(hash_chunk.remaining(), false);
+  hash_chunk.hash_c(&hash[0]);
+  lt_log_print(LOG_DEBUG, "webseed: chunk hash check. should be %s was %s",
+    hash_string_to_hex_str(*HashString::cast_from(wrapper->chunk_hash(chunk_handle.index()))).c_str(),
+    hash_string_to_hex_str(*HashString::cast_from(hash)).c_str());
+
+  if (std::memcmp(hash, wrapper->chunk_hash(chunk_index), HashString::size_data) == 0)
+    m_download->file_list()->mark_completed(chunk_index);
+
+  if (m_download->file_list()->is_done())
+    if (!m_download->delay_download_done().is_queued())
+      priority_queue_insert(&taskScheduler, &m_download->delay_download_done(), cachedTime);
+
+  m_download->chunk_list()->release(&chunk_handle, chunk_flags);
+}
+
+void WebseedController::download_chunk_part(const ChunkPart& chunk_part)
+{
+  const std::string& absolute_file_path = chunk_part.file()->frozen_path();
+  const std::string& root_dir = m_download->file_list()->root_dir();
+  std::string relative_file_path = absolute_file_path;
+  relative_file_path.replace(relative_file_path.find(root_dir),root_dir.length(),"");
+
+  lt_log_print(LOG_DEBUG, "webseed: chunk_part mapped to file %s offset %u length %u",
+                          relative_file_path.c_str(), chunk_part.file_offset(), chunk_part.size());
+
+  std::string http_url = url_list()->front() + m_download->info()->name() + relative_file_path;
+  download_to_buffer(chunk_part.chunk().begin(), http_url, chunk_part.file_offset(), chunk_part.size());
+
+  m_download->info()->mutable_down_rate()->insert(chunk_part.size());
+  m_download->download_throttle()->node_used(m_allChunks->download_throttle(), chunk_part.size());
+} 
 
 }
