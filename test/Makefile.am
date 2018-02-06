@@ -80,6 +80,8 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_timeout_test.h \
 	tracker/tracker_http_test.cc \
 	tracker/tracker_http_test.h \
+        tracker/tracker_webseed_test.cc \
+        tracker/tracker_webseed_test.h \
 	main.cc
 
 LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)
