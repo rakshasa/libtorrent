@@ -39,7 +39,7 @@
 
 #include <string>
 #include <thread>
-#include <list>
+#include <vector>
 #include <atomic>
 #include <memory>
 
@@ -52,12 +52,26 @@ namespace torrent {
 class ChunkPart;
 class PeerChunks;
 
+class WebseedDownloadBuffer {
+public:
+  WebseedDownloadBuffer(char* buffer, size_t size);
+  static size_t receiveBytesCallback(void *contents, size_t size, size_t nmemb, void *userp);
+  size_t getBytesWritten() { return m_position; }
+
+private:
+  size_t receiveBytes(void* contents, size_t realsize);
+
+  char* m_buffer;
+  size_t m_buffer_size;
+  size_t m_position;
+};
+
 class LIBTORRENT_EXPORT WebseedController {
   friend WebseedControllerTest;
 
 public:
   typedef std::string url_type;
-  typedef std::list<url_type> url_list_type;
+  typedef std::vector<url_type> url_list_type;
 
   WebseedController(DownloadMain* download);
   ~WebseedController();
@@ -71,7 +85,7 @@ public:
   void doWebseed();
 
 private:
-  void download_to_buffer
+  bool download_to_buffer
   (
     char* buffer,
     const std::string& url,
@@ -79,11 +93,12 @@ private:
     const int length
   );
 
-  void download_chunk_part(const ChunkPart& chunk_part);
-  void download_chunk(const uint32_t chunk_index);
+  bool download_chunk_part(const ChunkPart& chunk_part, const std::string& url_base);
+  bool download_chunk(const uint32_t chunk_index, const std::string& url_base);
 
   DownloadMain*    m_download;
   url_list_type    m_url_list;
+  url_list_type    m_working_url_list;
 
   std::atomic_bool m_thread_stop;
   std::thread      m_thread;

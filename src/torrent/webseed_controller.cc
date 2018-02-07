@@ -39,9 +39,11 @@
 #include "config.h"
 
 #include <cstring>
+#include <algorithm>
+
+#include <curl/curl.h>
 
 #include "utils/log.h"
-#include <curl/curl.h>
 #include "torrent/utils/log.h"
 #include "protocol/peer_chunks.h"
 #include "download/download_main.h"
@@ -52,7 +54,6 @@
 #include "torrent/throttle.h"
 #include "data/chunk_list.h"
 #include "data/hash_chunk.h"
-#include "torrent/data/file_list.h"
 #include "protocol/request_list.h"
 #include "manager.h"
 #include "torrent/download/download_manager.h"
@@ -71,65 +72,6 @@ WebseedController::~WebseedController() {
 
 void WebseedController::add_url(const url_type& url) {
   m_url_list.push_back(url);
-}
-
-struct MemoryStruct {
-  char* memory;
-  size_t size;
-};
-
-static size_t
-WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-  size_t realsize = size * nmemb;
-  struct MemoryStruct *mem = (struct MemoryStruct *)userp;
- 
-  memcpy(&(mem->memory[mem->size]), contents, realsize);
-
-  mem->size += realsize;
- 
-  return realsize;
-}
-
-void WebseedController::download_to_buffer
-(
-  char* buffer,
-  const std::string& url,
-  const int offset,
-  const int length
-)
-{
-  int end = offset + length - 1;
-  std::string range_str = std::to_string(offset) + "-" + std::to_string(end);
-
-  lt_log_print(LOG_DEBUG, "webseed: curl %s %s", url.c_str(), range_str.c_str());
-
-  struct MemoryStruct chunk;
-  chunk.memory = buffer;
-  chunk.size = 0; 
- 
-  CURL* curl = curl_easy_init();
-  if (!curl) {
-    lt_log_print(LOG_ERROR, "webseed: curl init failed");
-  } else {
-    curl_easy_setopt(curl, CURLOPT_RANGE, range_str.c_str());
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
- 
-    CURLcode res = curl_easy_perform(curl);
-    /* Check for errors */ 
-    if(res != CURLE_OK) {
-      lt_log_print(LOG_ERROR, "webseed: curl failed to retreive %s: %s", url.c_str(), curl_easy_strerror(res));
-    } else {
-      lt_log_print(LOG_DEBUG, "webseed: curl received %u bytes", chunk.size);
-    }
-
-    /* always cleanup */ 
-    curl_easy_cleanup(curl);
-  }
-
 }
 
 void WebseedController::start()
@@ -154,52 +96,71 @@ void WebseedController::doWebseed()
   m_allChunks->bitfield()->copy(*m_download->file_list()->bitfield());
   m_allChunks->bitfield()->set_all();
 
+  m_working_url_list = m_url_list;
+  std::random_shuffle(m_working_url_list.begin(), m_working_url_list.end());
+
   uint32_t chunk_index;
-  while (!m_thread_stop && 
+  while (!m_thread_stop &&
+         !m_working_url_list.empty() &&  
          (chunk_index = m_download->chunk_selector()->find(&(*m_allChunks), false)) != Piece::invalid_index)
   {
-    download_chunk(chunk_index);
-  }
-} 
+    std::string url = m_working_url_list.front();
 
-void WebseedController::download_chunk(const uint32_t chunk_index)
+    bool success = download_chunk(chunk_index, url);
+
+    if (!success)
+    {
+      m_working_url_list.erase(m_working_url_list.begin());
+    }
+  }
+}
+
+bool WebseedController::download_chunk(const uint32_t chunk_index, const std::string& url_base)
 {
   uint32_t chunk_size = m_download->file_list()->chunk_index_size(chunk_index);
   Piece piece(chunk_index, 0, chunk_size);
 
-  TransferList::iterator blockListItr = m_download->delegator()->transfer_list()->insert(piece, Delegator::block_size);
-
-  lt_log_print(LOG_DEBUG, "webseed: getting chunk_index %u size %u", chunk_index, chunk_size);
-
   static const int chunk_flags = ChunkList::get_writable;
   ChunkHandle chunk_handle = m_download->chunk_list()->get(chunk_index, chunk_flags);
 
+  TransferList::iterator blockListItr = m_download->delegator()->transfer_list()->insert(piece, Delegator::block_size);
+
+  lt_log_print(LOG_DEBUG, "webseed: getting chunk_index %u size %u", chunk_index, chunk_size);
+  
+  bool success = true;
   std::for_each(chunk_handle.chunk()->begin(), chunk_handle.chunk()->end(),
-                std::bind(&WebseedController::download_chunk_part, this, std::placeholders::_1));
+                [&](const ChunkPart& part){ success &= download_chunk_part(part, url_base); });
 
   m_download->delegator()->transfer_list()->erase(blockListItr);
 
-  DownloadWrapper* wrapper = *manager->download_manager()->find(m_download->info());
+  if (success)
+  {
+    DownloadWrapper* wrapper = *manager->download_manager()->find(m_download->info());
 
-  char hash[HashString::size_data];
-  HashChunk hash_chunk(chunk_handle);
-  hash_chunk.perform(hash_chunk.remaining(), false);
-  hash_chunk.hash_c(&hash[0]);
-  lt_log_print(LOG_DEBUG, "webseed: chunk hash check. should be %s was %s",
-    hash_string_to_hex_str(*HashString::cast_from(wrapper->chunk_hash(chunk_handle.index()))).c_str(),
-    hash_string_to_hex_str(*HashString::cast_from(hash)).c_str());
+    char hash[HashString::size_data];
+    HashChunk hash_chunk(chunk_handle);
+    hash_chunk.perform(hash_chunk.remaining(), false);
+    hash_chunk.hash_c(&hash[0]);
+    lt_log_print(LOG_DEBUG, "webseed: chunk hash check. should be %s was %s",
+      hash_string_to_hex_str(*HashString::cast_from(wrapper->chunk_hash(chunk_handle.index()))).c_str(),
+      hash_string_to_hex_str(*HashString::cast_from(hash)).c_str());
 
-  if (std::memcmp(hash, wrapper->chunk_hash(chunk_index), HashString::size_data) == 0)
-    m_download->file_list()->mark_completed(chunk_index);
+    if (std::memcmp(hash, wrapper->chunk_hash(chunk_index), HashString::size_data) == 0)
+      m_download->file_list()->mark_completed(chunk_index);
+    else
+      success = false;
 
-  if (m_download->file_list()->is_done())
-    if (!m_download->delay_download_done().is_queued())
-      priority_queue_insert(&taskScheduler, &m_download->delay_download_done(), cachedTime);
+    if (m_download->file_list()->is_done())
+      if (!m_download->delay_download_done().is_queued())
+        priority_queue_insert(&taskScheduler, &m_download->delay_download_done(), cachedTime);
+  }
 
   m_download->chunk_list()->release(&chunk_handle, chunk_flags);
+
+  return success;
 }
 
-void WebseedController::download_chunk_part(const ChunkPart& chunk_part)
+bool WebseedController::download_chunk_part(const ChunkPart& chunk_part, const std::string& url_base)
 {
   const std::string& absolute_file_path = chunk_part.file()->frozen_path();
   const std::string& root_dir = m_download->file_list()->root_dir();
@@ -209,11 +170,75 @@ void WebseedController::download_chunk_part(const ChunkPart& chunk_part)
   lt_log_print(LOG_DEBUG, "webseed: chunk_part mapped to file %s offset %u length %u",
                           relative_file_path.c_str(), chunk_part.file_offset(), chunk_part.size());
 
-  std::string http_url = url_list()->front() + m_download->info()->name() + relative_file_path;
-  download_to_buffer(chunk_part.chunk().begin(), http_url, chunk_part.file_offset(), chunk_part.size());
+  std::string http_url = url_base + m_download->info()->name() + relative_file_path;
+  int success = download_to_buffer(chunk_part.chunk().begin(), http_url, chunk_part.file_offset(), chunk_part.size());
 
   m_download->info()->mutable_down_rate()->insert(chunk_part.size());
   m_download->download_throttle()->node_used(m_allChunks->download_throttle(), chunk_part.size());
+
+  return success;
 } 
+
+bool WebseedController::download_to_buffer
+(
+  char* buffer,
+  const std::string& url,
+  const int offset,
+  const int length
+)
+{
+  bool success = false;
+
+  int end = offset + length - 1;
+  std::string range_str = std::to_string(offset) + "-" + std::to_string(end);
+
+  lt_log_print(LOG_DEBUG, "webseed: curl %s %s", url.c_str(), range_str.c_str());
+
+  WebseedDownloadBuffer downloadBuffer(buffer, length);
+
+  CURL* curl = curl_easy_init();
+  if (!curl) {
+    lt_log_print(LOG_ERROR, "webseed: curl init failed");
+  } else {
+    curl_easy_setopt(curl, CURLOPT_RANGE, range_str.c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WebseedDownloadBuffer::receiveBytesCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&downloadBuffer);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    if(res != CURLE_OK) {
+      lt_log_print(LOG_ERROR, "webseed: curl failed to retreive %s: %s", url.c_str(), curl_easy_strerror(res));
+    } else {
+      lt_log_print(LOG_DEBUG, "webseed: curl received %u bytes", downloadBuffer.getBytesWritten());
+      success = true;
+    }
+
+    curl_easy_cleanup(curl);
+  }
+
+  return success;
+}
+
+
+WebseedDownloadBuffer::WebseedDownloadBuffer(char* buffer, size_t size) :
+  m_buffer(buffer), m_buffer_size(size), m_position(0)
+{ }
+
+size_t WebseedDownloadBuffer::receiveBytesCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+  WebseedDownloadBuffer* downloadBuffer = (WebseedDownloadBuffer*)userp;
+  return downloadBuffer->receiveBytes(contents, size * nmemb);
+}
+
+size_t WebseedDownloadBuffer::receiveBytes(void* contents, size_t realsize)
+{
+  if (m_position + realsize > m_buffer_size) return 0;
+
+  memcpy(&(m_buffer[m_position]), contents, realsize);
+  m_position += realsize;
+  return realsize;
+}
 
 }
