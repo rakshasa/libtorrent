@@ -210,10 +210,8 @@ DownloadConstructor::parse_tracker(const Object& b) {
     std::for_each(b.get_key_list("nodes").begin(), b.get_key_list("nodes").end(),
                   rak::make_mem_fun(this, &DownloadConstructor::add_dht_node));
 
-  if (b.has_key_list("url-list"))
-  {
-    std::for_each(b.get_key_list("url-list").begin(), b.get_key_list("url-list").end(), rak::make_mem_fun(this, &DownloadConstructor::add_webseed_url));
-  }
+  if (b.has_key("url-list"))
+    add_webseed_url(b.get_key("url-list"));
 
   m_download->main()->tracker_list()->randomize_group_entries();
 }
@@ -256,6 +254,9 @@ DownloadConstructor::add_dht_node(const Object& b) {
 
 void
 DownloadConstructor::add_webseed_url(const Object& b) {
+  if (b.is_list())
+    std::for_each(b.as_list().begin(), b.as_list().end(), rak::make_mem_fun(this, &DownloadConstructor::add_webseed_url));
+
   if (!b.is_string())
     return;
 
