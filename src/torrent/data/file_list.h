@@ -110,7 +110,7 @@ public:
   uint32_t            size_chunks() const                             { return bitfield()->size_bits(); }
 
   uint64_t            selected_size_bytes() const                     { return m_selectedSize; }
-  void                set_selected_size_bytes();
+  void                set_selected_size_bytes(uint64_t bytes = 0);
 
   uint32_t            completed_chunks() const                        { return bitfield()->size_set(); }
   uint64_t            completed_bytes() const;

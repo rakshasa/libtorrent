@@ -200,7 +200,12 @@ FileList::set_max_file_size(uint64_t size) {
 // Its purpose is to replace size_bytes() with selected_size_bytes()
 // by taking into account partial downloads.
 void
-FileList::set_selected_size_bytes() {
+FileList::set_selected_size_bytes(uint64_t bytes) {
+  if (bytes > 0) {
+    m_selectedSize = bytes;
+    return;
+  }
+
   if (is_done()) {
     m_selectedSize = m_torrentSize;
     return;
