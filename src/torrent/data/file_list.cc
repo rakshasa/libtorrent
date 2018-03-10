@@ -237,7 +237,7 @@ FileList::set_selected_size_bytes() {
     return;
   }
 
-  uint64_t selectedSizeBytes = (uint64_t)(selectedSizeChunks * m_chunkSize);
+  uint64_t selectedSizeBytes = (uint64_t)selectedSizeChunks * (uint64_t)m_chunkSize;
 
   // Dealing with size of last chunk as it's usually smaller than the rest.
   uint64_t remainder = m_torrentSize % (uint64_t)m_chunkSize;
