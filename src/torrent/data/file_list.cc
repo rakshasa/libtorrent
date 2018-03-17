@@ -249,7 +249,7 @@ FileList::allocatable_size_bytes() const {
   if (areAllFilesAllocatable)
     return m_torrentSize;
 
-  allocatableSizeBytes = (uint64_t)(allocatableSizeChunks * m_chunkSize);
+  allocatableSizeBytes = (uint64_t)allocatableSizeChunks * (uint64_t)m_chunkSize;
 
   // Dealing with size of last chunk as it's usually smaller than the rest.
   uint64_t reminder = m_torrentSize % (uint64_t)m_chunkSize;
