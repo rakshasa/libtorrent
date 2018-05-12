@@ -391,15 +391,16 @@ tracker_next_timeout_promiscuous(Tracker* tracker) {
       !tracker->is_usable())
     return ~uint32_t();
 
-  int32_t interval;
-
-  if (tracker->failed_counter())
-    interval = 5 << std::min<int>(tracker->failed_counter() - 1, 6);
-  else
-    interval = tracker->normal_interval();
-
+  int32_t interval, use_interval;
   int32_t min_interval = std::max(tracker->min_interval(), (uint32_t)300);
-  int32_t use_interval = std::min(interval, min_interval);
+
+  if (tracker->failed_counter()) {
+    interval = 5 << std::min<int>(tracker->failed_counter() - 1, 6);
+    use_interval = std::min(interval, min_interval);
+  } else {
+    interval = tracker->normal_interval();
+    use_interval = std::max(interval, min_interval);
+  }
 
   int32_t since_last = cachedTime.seconds() - (int32_t)tracker->activity_time_last();
 
