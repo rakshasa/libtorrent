@@ -145,13 +145,13 @@ TrackerHttp::send_state(int state) {
   if (!localAddress->is_address_any())
     s << "&ip=" << localAddress->address_str();
   
-  if (localAddress->is_address_any() || localAddress->family() != rak::socket_address::pf_inet6) {
+  if (localAddress->is_address_any() && localAddress->family() == rak::socket_address::pf_inet) {
     rak::socket_address local_v6;
     if (get_local_address(rak::socket_address::af_inet6, &local_v6))
       s << "&ipv6=" << rak::copy_escape_html(local_v6.address_str());
   }
 
-  if (localAddress->is_address_any() || localAddress->family() != rak::socket_address::pf_inet) {
+  if (localAddress->is_address_any() && localAddress->family() == rak::socket_address::pf_inet6) {
     rak::socket_address local_v4;
     if (get_local_address(rak::socket_address::af_inet, &local_v4))
       s << "&ipv4=" << local_v4.address_str();
