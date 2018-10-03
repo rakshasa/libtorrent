@@ -75,7 +75,10 @@ Listen::open(uint16_t first, uint16_t last, int backlog, const rak::socket_addre
 
   // TODO: Temporary until we refactor:
   if (bindAddress->family() == 0) {
-    sa.sa_inet6()->clear();
+    if (m_ipv6_socket)
+      sa.sa_inet6()->clear();
+    else
+      sa.sa_inet()->clear();
   } else {
     sa.copy(*bindAddress, bindAddress->length());
   }
