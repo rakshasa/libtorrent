@@ -288,8 +288,10 @@ TrackerHttp::receive_done() {
   Object b;
   *m_data >> b;
 
-  if (m_data->fail())
-    return receive_failed("Could not parse bencoded data");
+  if (m_data->fail()) {
+    std::string dump = m_data->str();
+    return receive_failed("Could not parse bencoded data: " + rak::sanitize(rak::striptags(dump)).substr(0,99));
+  }
 
   if (!b.is_map())
     return receive_failed("Root not a bencoded map");
