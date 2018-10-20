@@ -371,6 +371,51 @@ is_all_name(const Sequence& src) {
   return is_all_name(src.begin(), src.end());
 }
 
+template <typename Iterator>
+std::string
+sanitize(Iterator first, Iterator last) {
+  std::string dest;
+  for (; first != last; ++first) {
+    if (std::isprint(*first) && *first != '\r' && *first != '\n' && *first != '\t')
+      dest += *first;
+    else
+      dest += " ";
+  }
+
+  return dest;
+}
+
+template <typename Sequence>
+std::string
+sanitize(const Sequence& src) {
+    return trim(sanitize(src.begin(), src.end()));
+}
+
+template <typename Iterator>
+std::string striptags(Iterator first, Iterator last) {
+  bool copychar = true;
+  std::string dest;
+
+  for (; first != last; ++first) {
+    if (std::isprint(*first) && *first == '<') {
+      copychar = false;
+    } else if (std::isprint(*first) && *first == '>') {
+      copychar = true;
+      continue;
+    }
+
+    if (copychar)
+      dest += *first;
+  }
+
+  return dest;
+}
+
+template <typename Sequence>
+std::string striptags(const Sequence& src) {
+    return striptags(src.begin(), src.end());
+}
+
 }
 
 #endif
