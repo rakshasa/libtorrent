@@ -119,10 +119,10 @@ bind_manager::set_port_randomize(bool flag) {
 void
 bind_manager::set_block_accept(bool flag) {
   if (flag) {
-    LT_LOG("block accept by default", 0);
+    LT_LOG("block accept for all binds", 0);
     m_flags |= flag_block_accept;
   } else {
-    LT_LOG("allow accept by default", 0);
+    LT_LOG("allow accept for all binds", 0);
     m_flags &= ~flag_block_accept;
   }
 }
@@ -130,16 +130,16 @@ bind_manager::set_block_accept(bool flag) {
 void
 bind_manager::set_block_connect(bool flag) {
   if (flag) {
-    LT_LOG("block connect by default", 0);
+    LT_LOG("block connect for all binds", 0);
     m_flags |= flag_block_connect;
   } else {
-    LT_LOG("allow connect by default", 0);
+    LT_LOG("allow connect for all binds", 0);
     m_flags &= ~flag_block_connect;
   }
 }
 
 void
-bind_manager::add_bind(const sockaddr* sa, int flags) {
+bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* sa, int flags) {
   if (!sa_is_bindable(sa)) {
     LT_LOG("add bind failed, address is not bindable (flags:0x%x address:%s)",
            flags, sa_pretty_address_str(sa).c_str());
@@ -149,7 +149,6 @@ bind_manager::add_bind(const sockaddr* sa, int flags) {
   }
 
   // TODO: Verify passed flags, etc.
-
   // TODO: Verify bind flags. Also pass sa to verify that sockaddr is
   // a valid sockaddr.
 
@@ -162,10 +161,10 @@ bind_manager::add_bind(const sockaddr* sa, int flags) {
          flags, sa_pretty_address_str(sa).c_str());
 
   // TODO: Sanitize the flags.
-
   // TODO: Add a way to set the order.
-  //base_type::push_back(make_bind_struct(sa, flags, 0));
-  base_type::push_back(make_bind_struct("default", sa, flags, 0));
+  // TODO: Verify unique name.
+
+  base_type::push_back(make_bind_struct(name, sa, flags, priority));
 }
 
 static int

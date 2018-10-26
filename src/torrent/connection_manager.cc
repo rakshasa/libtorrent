@@ -145,7 +145,7 @@ ConnectionManager::set_bind_address(const sockaddr* sa) {
 
   // TODO: This needs to leave bind in a proper state on failure.
   manager->bind()->clear();
-  manager->bind()->add_bind(sa, 0);
+  manager->bind()->add_bind("default", 0, sa, 0);
 }
 
 void

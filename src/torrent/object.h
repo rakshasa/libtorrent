@@ -37,8 +37,9 @@
 #ifndef LIBTORRENT_OBJECT_H
 #define LIBTORRENT_OBJECT_H
 
-#include <string>
+#include <limits>
 #include <map>
+#include <string>
 #include <vector>
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
@@ -179,6 +180,8 @@ public:
   raw_map&            as_raw_map()                            { check_throw(TYPE_RAW_MAP); return _raw_map(); }
   const raw_map&      as_raw_map() const                      { check_throw(TYPE_RAW_MAP); return _raw_map(); }
 
+  template <typename T> T as_value_type(const char* err_msg) const { check_value_throw<T>(err_msg); return _value(); }
+
   bool                has_key(const key_type& k) const        { check_throw(TYPE_MAP); return _map().find(k) != _map().end(); }
   bool                has_key_value(const key_type& k) const  { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_VALUE); }
   bool                has_key_string(const key_type& k) const { check_throw(TYPE_MAP); return check(_map().find(k), TYPE_STRING); }
@@ -245,6 +248,8 @@ public:
  private:
   inline bool         check(map_type::const_iterator itr, type_type t) const { return itr != _map().end() && itr->second.type() == t; }
   inline void         check_throw(type_type t) const                         { if (t != type()) throw bencode_error("Wrong object type."); }
+
+  template <typename T> void check_value_throw(const char* err_msg) const;
 
   uint32_t            m_flags;
 
@@ -482,6 +487,19 @@ object_equal(const Object& left, const Object& right) {
   case Object::TYPE_STRING:      return left.as_string() == right.as_string();
   default: return false;
   }
+}
+
+template <typename T>
+inline void
+Object::check_value_throw(const char* err_msg) const {
+  if (!std::numeric_limits<T>::is_integer)
+    throw internal_error("Tried to check value with non-integer type.");
+
+  if (!is_value())
+    throw bencode_error(err_msg);
+
+  if (!(_value() >= std::numeric_limits<T>::min() && _value() <= std::numeric_limits<T>::max()))
+    throw bencode_error(err_msg);
 }
 
 }

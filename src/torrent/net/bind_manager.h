@@ -60,6 +60,7 @@ struct bind_struct {
   uint16_t listen_port_last;
 };
 
+// Move listen to bind_struct.
 struct listen_result_type {
   int fd;
   std::unique_ptr<struct sockaddr> sockaddr;
@@ -76,6 +77,8 @@ public:
 
   using base_type::empty;
 
+  // TODO: Add block_* flag that can override global block setting.
+  // TODO: Add http bind support.
   enum flags_type {
     flag_v4only = 0x1,
     flag_v6only = 0x2,
@@ -102,8 +105,8 @@ public:
   void set_block_accept(bool flag);
   void set_block_connect(bool flag);
 
-  void add_bind(const sockaddr* sa, int flags);
-  // void add_(std::string name, const sockaddr* sa, int flags);
+  // TODO: Rename.
+  void add_bind(const std::string& name, uint16_t priority, const sockaddr* sa, int flags);
 
   int connect_socket(const sockaddr* sock_addr, int flags) const;
 

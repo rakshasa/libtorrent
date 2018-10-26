@@ -297,7 +297,7 @@ option_find_string(option_enum opt_enum, const char* name) {
     } while (*++itr != NULL);
   }
 
-  throw input_error("Invalid option name.");  
+  throw input_error("Invalid option name.");
 }
 
 const char*
