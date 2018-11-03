@@ -51,6 +51,7 @@ public:
 
   SocketFd() : m_fd(-1) {}
   explicit SocketFd(int fd) : m_fd(fd) {}
+  SocketFd(int fd, bool ipv6_socket) : m_fd(fd), m_ipv6_socket(ipv6_socket) {}
 
   bool                is_valid() const                        { return m_fd >= 0; }
   
