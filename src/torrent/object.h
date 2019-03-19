@@ -163,6 +163,7 @@ public:
   string_type&        as_string()                             { check_throw(TYPE_STRING); return _string(); }
   const string_type&  as_string() const                       { check_throw(TYPE_STRING); return _string(); }
   const string_type&  as_string_c() const                     { check_throw(TYPE_STRING); return _string(); }
+  const char*         as_c_str() const                        { check_throw(TYPE_STRING); return _string().c_str(); }
   list_type&          as_list()                               { check_throw(TYPE_LIST); return _list(); }
   const list_type&    as_list() const                         { check_throw(TYPE_LIST); return _list(); }
   map_type&           as_map()                                { check_throw(TYPE_MAP); return _map(); }
