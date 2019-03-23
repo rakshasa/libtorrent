@@ -34,6 +34,8 @@ LibTorrentTest_SOURCES = \
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h \
 	\
+	torrent/net/test_address_info.cc \
+	torrent/net/test_address_info.h \
 	torrent/net/test_socket_address_key.cc \
 	torrent/net/test_socket_address_key.h \
 	\

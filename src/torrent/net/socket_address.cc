@@ -83,15 +83,15 @@ sa_is_bindable(const sockaddr* sockaddr) {
 }
 
 bool
-sa_is_default(const sockaddr* sockaddr) {
+sa_is_any(const sockaddr* sockaddr) {
   if (sockaddr == NULL)
     return true;
 
   switch (sockaddr->sa_family) {
   case AF_INET:
-    return sa_in_is_default(reinterpret_cast<const sockaddr_in*>(sockaddr));
+    return sa_in_is_any(reinterpret_cast<const sockaddr_in*>(sockaddr));
   case AF_INET6:
-    return sa_in6_is_default(reinterpret_cast<const sockaddr_in6*>(sockaddr));
+    return sa_in6_is_any(reinterpret_cast<const sockaddr_in6*>(sockaddr));
   case AF_UNSPEC:
   default:
     return true;
@@ -99,12 +99,12 @@ sa_is_default(const sockaddr* sockaddr) {
 }
 
 bool
-sa_in_is_default(const sockaddr_in* sockaddr) {
+sa_in_is_any(const sockaddr_in* sockaddr) {
   return sockaddr->sin_addr.s_addr == htonl(INADDR_ANY);
 }
 
 bool
-sa_in6_is_default(const sockaddr_in6* sockaddr) {
+sa_in6_is_any(const sockaddr_in6* sockaddr) {
   return std::memcmp(&sockaddr->sin6_addr, &in6addr_any, sizeof(in6_addr)) == 0;
 }
 

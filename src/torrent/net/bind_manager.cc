@@ -60,7 +60,7 @@ namespace torrent {
 
 static std::unique_ptr<sockaddr>
 prepare_sockaddr(const sockaddr* sa, int flags) {
-  if (sa_is_default(sa)) {
+  if (sa_is_any(sa)) {
     if ((flags & bind_manager::flag_v4only))
       return sa_make_inet();
 
@@ -176,7 +176,7 @@ attempt_open_connect(const bind_struct& itr, const sockaddr* sockaddr, fd_flags 
     return -1;
   }
 
-  if (!sa_is_default(itr.address.get()) && !fd_bind(fd, itr.address.get())) {
+  if (!sa_is_any(itr.address.get()) && !fd_bind(fd, itr.address.get())) {
     LT_LOG_SOCKADDR_ERROR("open_connect bind failed", itr.address.get(), flags);
     fd_close(fd);
     return -1;
@@ -195,7 +195,7 @@ attempt_open_connect(const bind_struct& itr, const sockaddr* sockaddr, fd_flags 
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
-  if (sa_is_default(connect_sa)) {
+  if (sa_is_any(connect_sa)) {
     LT_LOG("connect_socket called with invalid sockaddr (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
     return -1;
   }
@@ -412,7 +412,7 @@ bind_manager::local_v6_address() const {
       continue;
 
     // TODO: Do two for loops?
-    if (sa_is_default(itr.address.get())) {
+    if (sa_is_any(itr.address.get())) {
       // TODO: Find suitable IPv6.
       LT_LOG_SOCKADDR("local_v6_address has not implemented ipv6 lookup for any address", itr.address.get(), 0);
       continue;

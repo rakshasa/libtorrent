@@ -7,8 +7,6 @@
 #include <netdb.h>
 #include <torrent/common.h>
 
-// Replaces <rak/address_info.h>.
-
 namespace torrent {
 
 struct ai_deleter {
