@@ -41,6 +41,7 @@
 #include <rak/address_info.h>
 #include <rak/socket_address.h>
 
+#include "net/address_info.h"
 #include "net/bind_manager.h"
 #include "net/listen.h"
 
@@ -57,10 +58,9 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
   if (manager->main_thread_main()->is_current())
     thread_base::release_global_lock();
 
-  rak::address_info* ai;
-  int err;
+  ai_unique_ptr ai;
 
-  if ((err = rak::address_info::get_address_info(host, family, socktype, &ai)) != 0) {
+  if (int err = ai_getaddrinfo(host, NULL, ai_make_hint(family, socktype).get(), ai)) {
     if (manager->main_thread_main()->is_current())
       thread_base::acquire_global_lock();
 
@@ -68,14 +68,10 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
     return NULL;
   }
 
-  rak::socket_address sa;
-  sa.copy(*ai->address(), ai->length());
-  rak::address_info::free_address_info(ai);
-  
   if (manager->main_thread_main()->is_current())
     thread_base::acquire_global_lock();
   
-  slot(sa.c_sockaddr(), 0);
+  slot(ai->ai_addr, 0);
   return NULL;
 }
 
