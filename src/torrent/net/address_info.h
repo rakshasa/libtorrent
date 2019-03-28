@@ -2,6 +2,7 @@
 #define LIBTORRENT_NET_ADDRESS_INFO_H
 
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <string>
 #include <netdb.h>

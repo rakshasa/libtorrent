@@ -2,8 +2,6 @@
 
 #include "address_info.h"
 
-#include <cstring>
-
 namespace torrent {
 
 int
