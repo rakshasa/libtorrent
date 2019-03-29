@@ -52,9 +52,9 @@
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
 #define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
   lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, sa_pretty_address_str(sa).c_str(), __VA_ARGS__);
-#define LT_LOG_SOCKADDR_ERROR(log_fmt, bind_sa, flags)                  \
+#define LT_LOG_SOCKADDR_ERROR(log_fmt, bind_sa, flags, address)         \
   LT_LOG_SOCKADDR(log_fmt " (flags:0x%x fd:%i address:%s errno:%i message:'%s')", \
-                  bind_sa, flags, fd, sa_pretty_address_str(sockaddr).c_str(), errno, std::strerror(errno));
+                  bind_sa, flags, fd, sa_pretty_address_str(address).c_str(), errno, std::strerror(errno));
 
 namespace torrent {
 
@@ -92,10 +92,11 @@ validate_bind_flags(int flags) {
 bind_manager::bind_manager() :
   m_flags(flag_port_randomize),
   m_listen_backlog(SOMAXCONN),
+  m_listen_port(0),
   m_listen_port_first(6881),
   m_listen_port_last(6999)
 {
-  base_type::push_back(make_bind_struct("default", NULL, 0, 0));
+  base_type::push_back(make_bind_struct("default", sa_make_unspec().get(), 0, 0));
 }
 
 void
@@ -141,10 +142,10 @@ bind_manager::set_block_connect(bool flag) {
 void
 bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* sa, int flags) {
   if (!sa_is_bindable(sa)) {
-    LT_LOG("add bind failed, address is not bindable (flags:0x%x address:%s)",
-           flags, sa_pretty_address_str(sa).c_str());
+    LT_LOG("add bind failed, address is not bindable (name:%s priority:%" PRIu16 " flags:0x%x address:%s)",
+           name.c_str(), priority, flags, sa_pretty_address_str(sa).c_str());
 
-    // Throw here?
+    // throw input_error("Add bind failed, ");
     return;
   }
 
@@ -168,28 +169,28 @@ bind_manager::add_bind(const std::string& name, uint16_t priority, const sockadd
 }
 
 static int
-attempt_open_connect(const bind_struct& itr, const sockaddr* sockaddr, fd_flags flags) {
+attempt_open_connect(const bind_struct& bs, const sockaddr* sockaddr, fd_flags flags) {
   int fd = fd_open(flags);
 
   if (fd == -1) {
-    LT_LOG_SOCKADDR_ERROR("open_connect open failed", itr.address.get(), flags);
+    LT_LOG_SOCKADDR_ERROR("open_connect open failed", bs.address.get(), flags, sockaddr);
     return -1;
   }
 
-  if (!sa_is_any(itr.address.get()) && !fd_bind(fd, itr.address.get())) {
-    LT_LOG_SOCKADDR_ERROR("open_connect bind failed", itr.address.get(), flags);
+  if (!sa_is_any(bs.address.get()) && !fd_bind(fd, bs.address.get())) {
+    LT_LOG_SOCKADDR_ERROR("open_connect bind failed", bs.address.get(), flags, sockaddr);
     fd_close(fd);
     return -1;
   }
 
   if (!fd_connect(fd, sockaddr)) {
-    LT_LOG_SOCKADDR_ERROR("open_connect connect failed", itr.address.get(), flags);
+    LT_LOG_SOCKADDR_ERROR("open_connect connect failed", bs.address.get(), flags, sockaddr);
     fd_close(fd);
     return -1;
   }
 
   LT_LOG_SOCKADDR("open_connect succeeded (flags:0x%x fd:%i address:%s)",
-                  itr.address.get(), flags, fd, sa_pretty_address_str(sockaddr).c_str());
+                  bs.address.get(), flags, fd, sa_pretty_address_str(sockaddr).c_str());
   return fd;
 }
 
@@ -304,19 +305,19 @@ get_bind_ports(const bind_manager* manager, const bind_struct& itr) {
 }
 
 listen_result_type
-bind_manager::attempt_listen(const bind_struct& bind_itr) const {
-  std::unique_ptr<sockaddr> sa = sa_copy(bind_itr.address.get());
-  int fd = attempt_listen_open(sa.get(), bind_itr.flags);
+bind_manager::attempt_listen(const bind_struct& bs) const {
+  std::unique_ptr<sockaddr> sa = sa_copy(bs.address.get());
+  int fd = attempt_listen_open(sa.get(), bs.flags);
 
   if (fd == -1)
     return listen_result_type{-1, NULL};
 
   uint16_t port_first, port_last, port_itr;
-  std::tie(port_first, port_last, port_itr) = get_bind_ports(this, bind_itr);
+  std::tie(port_first, port_last, port_itr) = get_bind_ports(this, bs);
   uint16_t port_stop = port_itr;
 
   if (port_first == 0) {
-    LT_LOG_SOCKADDR("listen got invalid port numbers (flags:0x%x)", sa.get(), bind_itr.flags);
+    LT_LOG_SOCKADDR("listen got invalid port numbers (flags:0x%x)", sa.get(), bs.flags);
     return listen_result_type{-1, NULL};
   }
 
@@ -365,7 +366,7 @@ bind_manager::listen_socket(int flags) {
 
     if (result.fd != -1) {
       // TODO: Needs to be smarter.
-      m_listen_port = sa_port(result.sockaddr.get());
+      m_listen_port = sa_port(result.address.get());
 
       return result;
     }
@@ -392,10 +393,27 @@ bind_manager::listen_close() {
 }
 
 void
+bind_manager::set_listen_backlog(int backlog) {
+  if (backlog < 0) {
+    LT_LOG("could not set listen backlog, value less than zero (backlog:%i)", backlog);
+    throw input_error("Could not set listen backlog, negative value not valid");
+  }
+
+  if (backlog > SOMAXCONN) {
+    LT_LOG("could not set listen backlog, value greater than SOMAXCONN (backlog:%i SOMAXCONN:%i)",
+           backlog, SOMAXCONN);
+    throw input_error("Could not set listen backlog, value greater than SOMAXCONN");
+  }
+
+  m_listen_backlog = backlog;
+}
+
+void
 bind_manager::set_listen_port_range(uint16_t port_first, uint16_t port_last, int flags) {
   if (port_first > port_last) {
-    LT_LOG("could not set listen port range, invalid port range: %" PRIu16 "-%" PRIu16, 0);
-    throw input_error("could not set listen port range, invalid port range");
+    LT_LOG("could not set listen port range, invalid port range (port_first:%" PRIu16 " port_last:%" PRIu16 " flags:%i",
+           port_first, port_last, flags);
+    throw input_error("Could not set listen port range, invalid port range");
   }
 
   m_listen_port_first = port_first;

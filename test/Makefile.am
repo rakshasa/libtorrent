@@ -36,8 +36,8 @@ LibTorrentTest_SOURCES = \
 	\
 	torrent/net/test_address_info.cc \
 	torrent/net/test_address_info.h \
-	torrent/net/test_socket_address_key.cc \
-	torrent/net/test_socket_address_key.h \
+	torrent/net/test_bind_manager.cc \
+	torrent/net/test_bind_manager.h \
 	\
 	torrent/utils/log_test.cc \
 	torrent/utils/log_test.h \

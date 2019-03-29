@@ -63,7 +63,7 @@ struct bind_struct {
 // Move listen to bind_struct.
 struct listen_result_type {
   int fd;
-  std::unique_ptr<struct sockaddr> sockaddr;
+  std::unique_ptr<struct sockaddr> address;
 };
 
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
@@ -75,7 +75,10 @@ public:
   using base_type::iterator;
   using base_type::const_iterator;
 
+  using base_type::back;
+  using base_type::front;
   using base_type::empty;
+  using base_type::size;
 
   // TODO: Add block_* flag that can override global block setting.
   // TODO: Add http bind support.
@@ -95,6 +98,8 @@ public:
 
   const_iterator begin() const;
   const_iterator end() const;
+
+  int flags();
 
   bool is_listen_open() const;
   bool is_port_randomize() const;
@@ -148,12 +153,12 @@ inline bind_manager::const_iterator end(const bind_manager& b) { return b.end();
 inline bind_manager::const_iterator bind_manager::begin() const { return base_type::begin(); }
 inline bind_manager::const_iterator bind_manager::end() const { return base_type::end(); }
 
+inline int bind_manager::flags() { return m_flags; }
+
 inline bool bind_manager::is_listen_open() const { return m_flags & flag_listen_open; }
 inline bool bind_manager::is_port_randomize() const { return m_flags & flag_port_randomize; }
 inline bool bind_manager::is_block_accept() const { return m_flags & flag_block_accept; }
 inline bool bind_manager::is_block_connect() const { return m_flags & flag_block_connect; }
-
-inline void bind_manager::set_listen_backlog(int backlog) { m_listen_backlog = backlog; }
 
 inline bind_manager::accepted_ftor& bind_manager::slot_accepted() { return m_slot_accepted; }
 

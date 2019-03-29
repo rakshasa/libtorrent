@@ -65,7 +65,7 @@ Listen::open() {
 
   listen_result_type listen_result = manager->bind()->listen_socket(0);
   m_fileDesc = listen_result.fd;
-  m_sockaddr.swap(listen_result.sockaddr);
+  m_sockaddr.swap(listen_result.address);
 
   if (m_fileDesc == -1) {
     LT_LOG("failed to open listen port", 0);
