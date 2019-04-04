@@ -96,6 +96,7 @@ bind_manager::bind_manager() :
   m_listen_port_first(6881),
   m_listen_port_last(6999)
 {
+  // TODO: Move to rtorrent.
   base_type::push_back(make_bind_struct("default", sa_make_unspec().get(), 0, 0));
 }
 
@@ -141,18 +142,27 @@ bind_manager::set_block_connect(bool flag) {
 
 void
 bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* sa, int flags) {
-  if (!sa_is_bindable(sa)) {
-    LT_LOG("add bind failed, address is not bindable (name:%s priority:%" PRIu16 " flags:0x%x address:%s)",
-           name.c_str(), priority, flags, sa_pretty_address_str(sa).c_str());
+  if (sa == nullptr || !(sa_is_inet(sa) || sa_is_inet6(sa)))
+    throw input_error("Called bind_manager::add_bind with " + sa_pretty_str(sa) + " as sockaddr");
 
-    // throw input_error("Add bind failed, ");
-    return;
-  }
+  if (!sa_is_port_any(sa))
+    throw input_error("Called bind_manager::add_bind with non-zero port in sockaddr");
+
+  if (find_name(name) != end())
+    throw input_error("Called bind_manager::add_bind with duplicate name");
+
+  // if (sa_) {
+  //   LT_LOG("add bind failed, address is not bindable (name:%s priority:%" PRIu16 " flags:0x%x address:%s)",
+  //          name.c_str(), priority, flags, sa_pretty_address_str(sa).c_str());
+
+  //   throw input_error("Add bind failed, address '" + sa_pretty_address_str(sa) + "' is not bindable");
+  // }
 
   // TODO: Verify passed flags, etc.
   // TODO: Verify bind flags. Also pass sa to verify that sockaddr is
   // a valid sockaddr.
 
+  // TODO: Do we deal with '0.0.0.0' as special?
   if (sa_is_inet(sa))
     flags |= flag_v4only;
 
@@ -165,6 +175,7 @@ bind_manager::add_bind(const std::string& name, uint16_t priority, const sockadd
   // TODO: Add a way to set the order.
   // TODO: Verify unique name.
 
+  // TODO: Push to back of priority.
   base_type::push_back(make_bind_struct(name, sa, flags, priority));
 }
 

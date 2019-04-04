@@ -60,18 +60,18 @@ test_valid_ai_ref_err(test_ai_ref ftor, int expect_err) {
 
 void
 test_address_info::test_basic() {
-  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet|aif_any> (std::bind(torrent::ai_getaddrinfo, "0.0.0.0", nullptr, nullptr, std::placeholders::_1)));
-  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6|aif_any>(std::bind(torrent::ai_getaddrinfo, "::", nullptr, nullptr, std::placeholders::_1)));
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet|aif_any> (std::bind(torrent::ai_get_addrinfo, "0.0.0.0", nullptr, nullptr, std::placeholders::_1)));
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6|aif_any>(std::bind(torrent::ai_get_addrinfo, "::", nullptr, nullptr, std::placeholders::_1)));
 
-  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet> (std::bind(torrent::ai_getaddrinfo, "1.1.1.1", nullptr, nullptr, std::placeholders::_1)));
-  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6>(std::bind(torrent::ai_getaddrinfo, "ff01::1", nullptr, nullptr, std::placeholders::_1)));
-  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6>(std::bind(torrent::ai_getaddrinfo, "2001:0db8:85a3:0000:0000:8a2e:0370:7334", nullptr, nullptr, std::placeholders::_1)));
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet> (std::bind(torrent::ai_get_addrinfo, "1.1.1.1", nullptr, nullptr, std::placeholders::_1)));
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6>(std::bind(torrent::ai_get_addrinfo, "ff01::1", nullptr, nullptr, std::placeholders::_1)));
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6>(std::bind(torrent::ai_get_addrinfo, "2001:0db8:85a3:0000:0000:8a2e:0370:7334", nullptr, nullptr, std::placeholders::_1)));
 
-  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet> (std::bind(torrent::ai_getaddrinfo, "1.1.1.1", "22123", nullptr, std::placeholders::_1), 22123));
-  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6>(std::bind(torrent::ai_getaddrinfo, "2001:db8:a::", "22123", nullptr, std::placeholders::_1), 22123));
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet> (std::bind(torrent::ai_get_addrinfo, "1.1.1.1", "22123", nullptr, std::placeholders::_1), 22123));
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6>(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::", "22123", nullptr, std::placeholders::_1), 22123));
 
-  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_getaddrinfo, "1.1.1.300", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
-  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_getaddrinfo, "2001:db8:a::22123", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
+  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "1.1.1.300", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
+  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::22123", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
 }
 
 void

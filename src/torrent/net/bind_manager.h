@@ -39,6 +39,7 @@
 #ifndef LIBTORRENT_NET_BIND_MANAGER_H
 #define LIBTORRENT_NET_BIND_MANAGER_H
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -74,6 +75,7 @@ public:
 
   using base_type::iterator;
   using base_type::const_iterator;
+  using base_type::value_type;
 
   using base_type::back;
   using base_type::front;
@@ -98,6 +100,8 @@ public:
 
   const_iterator begin() const;
   const_iterator end() const;
+
+  const_iterator find_name(const std::string& name) const;
 
   int flags();
 
@@ -147,6 +151,8 @@ private:
   accepted_ftor m_slot_accepted;
 };
 
+// Implementation:
+
 inline bind_manager::const_iterator begin(const bind_manager& b) { return b.begin(); }
 inline bind_manager::const_iterator end(const bind_manager& b) { return b.end(); }
 
@@ -161,6 +167,11 @@ inline bool bind_manager::is_block_accept() const { return m_flags & flag_block_
 inline bool bind_manager::is_block_connect() const { return m_flags & flag_block_connect; }
 
 inline bind_manager::accepted_ftor& bind_manager::slot_accepted() { return m_slot_accepted; }
+
+inline bind_manager::const_iterator
+bind_manager::find_name(const std::string& name) const {
+  return std::find_if(begin(), end(), [&name](const value_type& itr)->bool { return itr.name == name; });
+}
 
 }
 

@@ -5,6 +5,8 @@ class test_bind_manager : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_backlog);
   CPPUNIT_TEST(test_flags);
+
+  CPPUNIT_TEST(test_add_bind);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -14,4 +16,6 @@ public:
   void test_basic();
   void test_backlog();
   void test_flags();
+
+  void test_add_bind();
 };

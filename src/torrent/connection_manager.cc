@@ -60,7 +60,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
 
   ai_unique_ptr ai;
 
-  if (int err = ai_getaddrinfo(host, NULL, ai_make_hint(family, socktype).get(), ai)) {
+  if (int err = ai_get_addrinfo(host, NULL, ai_make_hint(family, socktype).get(), ai)) {
     if (manager->main_thread_main()->is_current())
       thread_base::acquire_global_lock();
 
