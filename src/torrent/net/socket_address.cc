@@ -142,7 +142,6 @@ sa_copy(const sockaddr* sa) {
   if (sa == NULL)
     return sa_make_unspec();
 
-  // TODO: Verify correct length.
   switch(sa->sa_family) {
   case AF_INET:
     return sa_copy_inet(reinterpret_cast<const sockaddr_in*>(sa));

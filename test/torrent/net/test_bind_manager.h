@@ -7,6 +7,7 @@ class test_bind_manager : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_flags);
 
   CPPUNIT_TEST(test_add_bind);
+  CPPUNIT_TEST(test_priority);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -18,4 +19,5 @@ public:
   void test_flags();
 
   void test_add_bind();
+  void test_priority();
 };

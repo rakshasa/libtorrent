@@ -7,6 +7,7 @@
 
 namespace torrent {
 
+// TODO: Rename sa_in* to sin*.
 typedef std::unique_ptr<sockaddr> sa_unique_ptr;
 typedef std::unique_ptr<sockaddr_in> sa_in_unique_ptr;
 typedef std::unique_ptr<sockaddr_in6> sa_in6_unique_ptr;

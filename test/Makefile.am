@@ -18,6 +18,8 @@ LibTorrentTest_LDADD = \
 	../src/torrent/utils/libsub_torrentutils.la
 
 LibTorrentTest_SOURCES = \
+	helpers/address_info.h \
+	\
 	../src/thread_disk.cc \
 	../src/thread_disk.h \
 	\
@@ -38,6 +40,8 @@ LibTorrentTest_SOURCES = \
 	torrent/net/test_address_info.h \
 	torrent/net/test_bind_manager.cc \
 	torrent/net/test_bind_manager.h \
+	torrent/net/test_socket_address.cc \
+	torrent/net/test_socket_address.h \
 	\
 	torrent/utils/log_test.cc \
 	torrent/utils/log_test.h \
