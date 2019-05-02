@@ -29,8 +29,8 @@ test_bind_manager::test_basic() {
   CPPUNIT_ASSERT(bm.front().listen_port_first == 0);
   CPPUNIT_ASSERT(bm.front().listen_port_first == 0);
 
-  CPPUNIT_ASSERT(torrent::sa_is_any(bm.front().address.get()));
-  CPPUNIT_ASSERT(torrent::sa_is_inet6(bm.front().address.get()));
+  CPPUNIT_ASSERT(torrent::sap_is_any(bm.front().address));
+  CPPUNIT_ASSERT(torrent::sap_is_inet6(bm.front().address));
 
   bm.clear();
 
@@ -103,9 +103,9 @@ test_bind_manager::test_add_bind() {
   CPPUNIT_ASSERT(bm.back().priority == 100);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(torrent::sa_is_inet(bm.back().address.get()));
-  CPPUNIT_ASSERT(torrent::sa_is_any(bm.back().address.get()));
-  CPPUNIT_ASSERT(torrent::sa_is_port_any(bm.back().address.get()));
+  CPPUNIT_ASSERT(torrent::sap_is_inet(bm.back().address));
+  CPPUNIT_ASSERT(torrent::sap_is_any(bm.back().address));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv6_zero", 100, wrap_ai_get_first_sa("::").get(), 0));
 
@@ -115,9 +115,9 @@ test_bind_manager::test_add_bind() {
   CPPUNIT_ASSERT(bm.back().priority == 100);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(torrent::sa_is_inet6(bm.back().address.get()));
-  CPPUNIT_ASSERT(torrent::sa_is_any(bm.back().address.get()));
-  CPPUNIT_ASSERT(torrent::sa_is_port_any(bm.back().address.get()));
+  CPPUNIT_ASSERT(torrent::sap_is_inet6(bm.back().address));
+  CPPUNIT_ASSERT(torrent::sap_is_any(bm.back().address));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv4_lo", 100, wrap_ai_get_first_sa("127.0.0.1").get(), 0));
 
@@ -127,11 +127,10 @@ test_bind_manager::test_add_bind() {
   CPPUNIT_ASSERT(bm.back().priority == 100);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(torrent::sa_is_inet(bm.back().address.get()));
-  CPPUNIT_ASSERT(!torrent::sa_is_any(bm.back().address.get()));
-  // TODO: add sa_compare.
-  // CPPUNIT_ASSERT(bm.back().address.get()));
-  CPPUNIT_ASSERT(torrent::sa_is_port_any(bm.back().address.get()));
+  CPPUNIT_ASSERT(torrent::sap_is_inet(bm.back().address));
+  CPPUNIT_ASSERT(!torrent::sap_is_any(bm.back().address));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("127.0.0.1")));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv6_lo", 100, wrap_ai_get_first_sa("::1").get(), 0));
 
@@ -141,11 +140,10 @@ test_bind_manager::test_add_bind() {
   CPPUNIT_ASSERT(bm.back().priority == 100);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
   CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(torrent::sa_is_inet6(bm.back().address.get()));
-  CPPUNIT_ASSERT(!torrent::sa_is_any(bm.back().address.get()));
-  // TODO: add sa_compare.
-  // CPPUNIT_ASSERT(bm.back().address.get()));
-  CPPUNIT_ASSERT(torrent::sa_is_port_any(bm.back().address.get()));
+  CPPUNIT_ASSERT(torrent::sap_is_inet6(bm.back().address));
+  CPPUNIT_ASSERT(!torrent::sap_is_any(bm.back().address));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("::1")));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 }
 
 // TODO: Test add_bind with flags.

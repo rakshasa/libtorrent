@@ -188,7 +188,7 @@ attempt_open_connect(const bind_struct& bs, const sockaddr* sockaddr, fd_flags f
     return -1;
   }
 
-  if (!sa_is_any(bs.address.get()) && !fd_bind(fd, bs.address.get())) {
+  if (!sap_is_any(bs.address) && !fd_bind(fd, bs.address.get())) {
     LT_LOG_SOCKADDR_ERROR("open_connect bind failed", bs.address.get(), flags, sockaddr);
     fd_close(fd);
     return -1;
@@ -317,7 +317,7 @@ get_bind_ports(const bind_manager* manager, const bind_struct& itr) {
 
 listen_result_type
 bind_manager::attempt_listen(const bind_struct& bs) const {
-  std::unique_ptr<sockaddr> sa = sa_copy(bs.address.get());
+  sa_unique_ptr sa = sap_copy(bs.address);
   int fd = attempt_listen_open(sa.get(), bs.flags);
 
   if (fd == -1)
@@ -333,7 +333,7 @@ bind_manager::attempt_listen(const bind_struct& bs) const {
   }
 
   do {
-    sa_set_port(sa.get(), port_itr);
+    sap_set_port(sa, port_itr);
 
     if (!fd_bind(fd, sa.get())) {
       if (errno == EADDRNOTAVAIL || errno == EAFNOSUPPORT) {
@@ -377,7 +377,7 @@ bind_manager::listen_socket(int flags) {
 
     if (result.fd != -1) {
       // TODO: Needs to be smarter.
-      m_listen_port = sa_port(result.address.get());
+      m_listen_port = sap_port(result.address);
 
       return result;
     }
@@ -441,18 +441,18 @@ bind_manager::local_v6_address() const {
       continue;
 
     // TODO: Do two for loops?
-    if (sa_is_any(itr.address.get())) {
+    if (sap_is_any(itr.address)) {
       // TODO: Find suitable IPv6.
       LT_LOG_SOCKADDR("local_v6_address has not implemented ipv6 lookup for any address", itr.address.get(), 0);
       continue;
     }
 
-    if (sa_is_inet(itr.address.get())) {
+    if (sap_is_inet(itr.address)) {
       LT_LOG_SOCKADDR("local_v6_address skipping bound v4 socket entry with no v4only, v6 lookup for this not implemented", itr.address.get(), 0);
       continue;
     }
 
-    if (sa_is_inet6(itr.address.get())) {
+    if (sap_is_inet6(itr.address)) {
       LT_LOG_SOCKADDR("local_v6_address found ipv6 address", itr.address.get(), 0);
       return itr.address.get();
     }

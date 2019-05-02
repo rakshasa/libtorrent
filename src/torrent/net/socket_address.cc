@@ -5,9 +5,9 @@
 #include <cstring>
 #include <netinet/in.h>
 
-// TODO: Needed?
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 
 // TODO: Deprecate.
 #include "rak/socket_address.h"
@@ -18,7 +18,7 @@ namespace torrent {
 
 // TODO: Cleanup.
 inline uint32_t
-sa_in6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
+sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
   // TODO: Throw if >=4
   // TODO: Use proper casting+htonl.
   return
@@ -29,7 +29,7 @@ sa_in6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
 }
 
 inline void
-sa_in6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
+sin6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
   sa->sin6_addr.s6_addr[index * 4 + 0] = (value >> 24);
   sa->sin6_addr.s6_addr[index * 4 + 1] = (value >> 16);
   sa->sin6_addr.s6_addr[index * 4 + 2] = (value >> 8);
@@ -37,7 +37,7 @@ sa_in6_addr32_set(sockaddr_in6* sa, unsigned int index, uint32_t value) {
 }
 
 inline in6_addr
-sa_in6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr3) {
+sin6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr3) {
   uint32_t addr32[4];
   addr32[0] = htonl(addr0);
   addr32[1] = htonl(addr1);
@@ -48,35 +48,35 @@ sa_in6_make_addr32(uint32_t addr0, uint32_t addr1, uint32_t addr2, uint32_t addr
 }
 
 bool
-sa_is_unspec(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_UNSPEC;
+sa_is_unspec(const sockaddr* sa) {
+  return sa != NULL && sa->sa_family == AF_UNSPEC;
 }
 
 bool
-sa_is_inet(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_INET;
+sa_is_inet(const sockaddr* sa) {
+  return sa != NULL && sa->sa_family == AF_INET;
 }
 
 bool
-sa_is_inet6(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_INET6;
+sa_is_inet6(const sockaddr* sa) {
+  return sa != NULL && sa->sa_family == AF_INET6;
 }
 
 bool
-sa_is_inet_inet6(const sockaddr* sockaddr) {
-  return sockaddr != NULL && (sockaddr->sa_family == AF_INET || sockaddr->sa_family == AF_INET6);
+sa_is_inet_inet6(const sockaddr* sa) {
+  return sa != NULL && (sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
 }
 
 bool
-sa_is_any(const sockaddr* sockaddr) {
-  if (sockaddr == NULL)
+sa_is_any(const sockaddr* sa) {
+  if (sa == NULL)
     return true;
 
-  switch (sockaddr->sa_family) {
+  switch (sa->sa_family) {
   case AF_INET:
-    return sa_in_is_any(reinterpret_cast<const sockaddr_in*>(sockaddr));
+    return sin_is_any(reinterpret_cast<const sockaddr_in*>(sa));
   case AF_INET6:
-    return sa_in6_is_any(reinterpret_cast<const sockaddr_in6*>(sockaddr));
+    return sin6_is_any(reinterpret_cast<const sockaddr_in6*>(sa));
   case AF_UNSPEC:
   default:
     return true;
@@ -84,23 +84,28 @@ sa_is_any(const sockaddr* sockaddr) {
 }
 
 bool
-sa_in_is_any(const sockaddr_in* sockaddr) {
-  return sockaddr->sin_addr.s_addr == htonl(INADDR_ANY);
+sin_is_any(const sockaddr_in* sa) {
+  return sa->sin_addr.s_addr == htonl(INADDR_ANY);
 }
 
 bool
-sa_in6_is_any(const sockaddr_in6* sockaddr) {
-  return std::memcmp(&sockaddr->sin6_addr, &in6addr_any, sizeof(in6_addr)) == 0;
+sin6_is_any(const sockaddr_in6* sa) {
+  return std::memcmp(&sa->sin6_addr, &in6addr_any, sizeof(in6_addr)) == 0;
 }
 
 bool
-sa_is_v4mapped(const sockaddr* sockaddr) {
-  return sockaddr != NULL && sockaddr->sa_family == AF_INET6 && sa_in6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sockaddr));
+sa_is_v4mapped(const sockaddr* sa) {
+  return sa != NULL && sa->sa_family == AF_INET6 && sin6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa));
 }
 
 bool
-sa_in6_is_v4mapped(const sockaddr_in6* sockaddr) {
-  return sockaddr != NULL && IN6_IS_ADDR_V4MAPPED(&sockaddr->sin6_addr);
+sin6_is_v4mapped(const sockaddr_in6* sa) {
+  return sa != NULL && IN6_IS_ADDR_V4MAPPED(&sa->sin6_addr);
+}
+
+bool
+sa_is_port_any(const sockaddr* sa) {
+  return sa_port(sa) == 0;
 }
 
 // TODO: Technically not correct, use sa length and throw if
@@ -114,14 +119,15 @@ sa_length(const sockaddr* sa) {
     return sizeof(sockaddr_in6);
   case AF_UNSPEC:
   default:
-    return sizeof(sockaddr);
+    return sizeof(sa);
   }
 }
 
 sa_unique_ptr
 sa_make_unspec() {
   sa_unique_ptr sa(new sockaddr);
-  std::memset(sa.get(), 0, sizeof(sockaddr));
+
+  std::memset(sa.get(), 0, sizeof(sa));
   sa.get()->sa_family = AF_UNSPEC;
 
   return sa;
@@ -129,12 +135,26 @@ sa_make_unspec() {
 
 sa_unique_ptr
 sa_make_inet() {
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sa_in_make().release()));
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin_make().release()));
 }
 
 sa_unique_ptr
 sa_make_inet6() {
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sa_in6_make().release()));
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_make().release()));
+}
+
+sa_unique_ptr
+sa_make_unix(const std::string& pathname) {
+  if (!pathname.empty())
+    throw internal_error("torrent::sa_make_unix: function not implemented");
+
+  sun_unique_ptr sunp(new sockaddr_un);
+
+  std::memset(sunp.get(), 0, sizeof(sockaddr_un));
+  sunp->sun_family = AF_UNIX;
+  // TODO: verify length, copy pathname
+
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sunp.release()));
 }
 
 sa_unique_ptr
@@ -144,27 +164,27 @@ sa_copy(const sockaddr* sa) {
 
   switch(sa->sa_family) {
   case AF_INET:
-    return sa_copy_inet(reinterpret_cast<const sockaddr_in*>(sa));
+    return sa_copy_in(reinterpret_cast<const sockaddr_in*>(sa));
   case AF_INET6:
-    return sa_copy_inet6(reinterpret_cast<const sockaddr_in6*>(sa));
+    return sa_copy_in6(reinterpret_cast<const sockaddr_in6*>(sa));
   case AF_UNSPEC:
   default:
     return sa_make_unspec();
   }
 }
 
-sa_in_unique_ptr
-sa_in_make() {
-  sa_in_unique_ptr sa(new sockaddr_in);
+sin_unique_ptr
+sin_make() {
+  sin_unique_ptr sa(new sockaddr_in);
   std::memset(sa.get(), 0, sizeof(sockaddr_in));
   sa.get()->sin_family = AF_INET;
 
   return sa;
 }
 
-sa_in6_unique_ptr
-sa_in6_make() {
-  sa_in6_unique_ptr sa(new sockaddr_in6);
+sin6_unique_ptr
+sin6_make() {
+  sin6_unique_ptr sa(new sockaddr_in6);
   std::memset(sa.get(), 0, sizeof(sockaddr_in6));
   sa.get()->sin6_family = AF_INET6;
 
@@ -172,27 +192,26 @@ sa_in6_make() {
 }
 
 sa_unique_ptr
-sa_copy_inet(const sockaddr_in* sa) {
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sa_in_copy(sa).release()));
+sa_copy_in(const sockaddr_in* sa) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin_copy(sa).release()));
 }
 
 sa_unique_ptr
-sa_copy_inet6(const sockaddr_in6* sa) {
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sa_in6_copy(sa).release()));
+sa_copy_in6(const sockaddr_in6* sa) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_copy(sa).release()));
 }
 
-// TODO: Use proper memset+memcpy length.
-sa_in_unique_ptr
-sa_in_copy(const sockaddr_in* sa) {
-  sa_in_unique_ptr result(new sockaddr_in);
+sin_unique_ptr
+sin_copy(const sockaddr_in* sa) {
+  sin_unique_ptr result(new sockaddr_in);
   std::memcpy(result.get(), sa, sizeof(sockaddr_in));
 
   return result;
 }
 
-sa_in6_unique_ptr
-sa_in6_copy(const sockaddr_in6* sa) {
-  sa_in6_unique_ptr result(new sockaddr_in6);
+sin6_unique_ptr
+sin6_copy(const sockaddr_in6* sa) {
+  sin6_unique_ptr result(new sockaddr_in6);
   std::memcpy(result.get(), sa, sizeof(sockaddr_in6));
 
   return result;
@@ -201,51 +220,67 @@ sa_in6_copy(const sockaddr_in6* sa) {
 sa_unique_ptr
 sa_from_v4mapped(const sockaddr* sa) {
   // TODO: This needs to check if in6. Use a safe sa cast.
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sa_in_from_in6_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa)).release()));
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin_from_in6_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa)).release()));
 }
 
 sa_unique_ptr
 sa_to_v4mapped(const sockaddr* sa) {
   // TODO: This needs to check if in. Use a safe sa cast.
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sa_in6_to_in_v4mapped(reinterpret_cast<const sockaddr_in*>(sa)).release()));
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_to_in_v4mapped(reinterpret_cast<const sockaddr_in*>(sa)).release()));
 }
 
-sa_in_unique_ptr
-sa_in_from_in6_v4mapped(const sockaddr_in6* sa) {
-  if (!sa_in6_is_v4mapped(sa))
-    throw internal_error("torrent::sa_in6_is_v4mapped: sockaddr_in6 is not v4mapped");
+sin_unique_ptr
+sin_from_in6_v4mapped(const sockaddr_in6* sa) {
+  if (!sin6_is_v4mapped(sa))
+    throw internal_error("torrent::sin6_is_v4mapped: sockaddr_in6 is not v4mapped");
 
-  sa_in_unique_ptr result = sa_in_make();
-  result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sa_in6_addr32_index(sa, 3)));
+  sin_unique_ptr result = sin_make();
+  result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sa, 3)));
   result.get()->sin_port = sa->sin6_port;
 
   return result;
 }
 
-sa_in6_unique_ptr
-sa_in6_to_in_v4mapped(const sockaddr_in* sa) {
-  sa_in6_unique_ptr result = sa_in6_make();
+sin6_unique_ptr
+sin6_to_in_v4mapped(const sockaddr_in* sa) {
+  sin6_unique_ptr result = sin6_make();
 
-  result.get()->sin6_addr = sa_in6_make_addr32(0, 0, 0xffff, ntohl(sa->sin_addr.s_addr));
+  result.get()->sin6_addr = sin6_make_addr32(0, 0, 0xffff, ntohl(sa->sin_addr.s_addr));
   result.get()->sin6_port = sa->sin_port;
 
   return result;
 }
 
-sa_in_unique_ptr
+sin_unique_ptr
 sin_from_sa(sa_unique_ptr&& sap) {
-  if (!sa_is_inet(sap.get()))
+  if (!sap_is_inet(sap))
     throw internal_error("torrent::sin_from_sa: sockaddr is nullptr or not inet");
 
-  return sa_in_unique_ptr(reinterpret_cast<sockaddr_in*>(sap.release()));
+  return sin_unique_ptr(reinterpret_cast<sockaddr_in*>(sap.release()));
 }
 
-sa_in6_unique_ptr
+sin6_unique_ptr
 sin6_from_sa(sa_unique_ptr&& sap) {
-  if (!sa_is_inet6(sap.get()))
+  if (!sap_is_inet6(sap))
     throw internal_error("torrent::sin6_from_sa: sockaddr is nullptr or not inet6");
 
-  return sa_in6_unique_ptr(reinterpret_cast<sockaddr_in6*>(sap.release()));
+  return sin6_unique_ptr(reinterpret_cast<sockaddr_in6*>(sap.release()));
+}
+
+c_sin_unique_ptr
+sin_from_c_sa(c_sa_unique_ptr&& sap) {
+  if (!sap_is_inet(sap))
+    throw internal_error("torrent::sin_from_c_sa: sockaddr is nullptr or not inet");
+
+  return c_sin_unique_ptr(reinterpret_cast<const sockaddr_in*>(sap.release()));
+}
+
+c_sin6_unique_ptr
+sin6_from_c_sa(sa_unique_ptr&& sap) {
+  if (!sap_is_inet6(sap))
+    throw internal_error("torrent::sin6_from_c_sa: sockaddr is nullptr or not inet6");
+
+  return c_sin6_unique_ptr(reinterpret_cast<const sockaddr_in6*>(sap.release()));
 }
 
 void
@@ -281,16 +316,38 @@ sa_set_port(sockaddr* sa, uint16_t port) {
 }
 
 bool
-sa_is_port_any(const sockaddr* sa) {
-  switch(sa->sa_family) {
+sa_equal_addr(const sockaddr* lhs, const sockaddr* rhs) {
+  switch(rhs->sa_family) {
   case AF_INET:
-    return ntohs(reinterpret_cast<const sockaddr_in*>(sa)->sin_port) == 0;
   case AF_INET6:
-    return ntohs(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_port) == 0;
   case AF_UNSPEC:
+    break;
   default:
-    return true;
+    throw internal_error("torrent::sa_equal_addr: rhs sockaddr is not a valid family");
   }
+
+  switch(lhs->sa_family) {
+  case AF_INET:
+    return lhs->sa_family == rhs->sa_family &&
+      sin_equal_addr(reinterpret_cast<const sockaddr_in*>(lhs), reinterpret_cast<const sockaddr_in*>(rhs));
+  case AF_INET6:
+    return lhs->sa_family == rhs->sa_family &&
+      sin6_equal_addr(reinterpret_cast<const sockaddr_in6*>(lhs), reinterpret_cast<const sockaddr_in6*>(rhs));
+  case AF_UNSPEC:
+    return lhs->sa_family == rhs->sa_family;
+  default:
+    throw internal_error("torrent::sa_equal_addr: lhs sockaddr is not a valid family");
+  }
+}
+
+bool
+sin_equal_addr(const sockaddr_in* lhs, const sockaddr_in* rhs) {
+  return lhs->sin_addr.s_addr == rhs->sin_addr.s_addr;
+}
+
+bool
+sin6_equal_addr(const sockaddr_in6* lhs, const sockaddr_in6* rhs) {
+  return std::equal(lhs->sin6_addr.s6_addr, lhs->sin6_addr.s6_addr + 16, rhs->sin6_addr.s6_addr);
 }
 
 std::string
@@ -300,9 +357,9 @@ sa_addr_str(const sockaddr* sa) {
 
   switch (sa->sa_family) {
   case AF_INET:
-    return sa_in_addr_str(reinterpret_cast<const sockaddr_in*>(sa));
+    return sin_addr_str(reinterpret_cast<const sockaddr_in*>(sa));
   case AF_INET6:
-    return sa_in6_addr_str(reinterpret_cast<const sockaddr_in6*>(sa));
+    return sin6_addr_str(reinterpret_cast<const sockaddr_in6*>(sa));
   case AF_UNSPEC:
     return "unspec";
   default:
@@ -311,7 +368,7 @@ sa_addr_str(const sockaddr* sa) {
 }
 
 std::string
-sa_in_addr_str(const sockaddr_in* sa) {
+sin_addr_str(const sockaddr_in* sa) {
   char buffer[INET_ADDRSTRLEN];
 
   if (inet_ntop(AF_INET, &sa->sin_addr, buffer, INET_ADDRSTRLEN) == NULL)
@@ -322,7 +379,7 @@ sa_in_addr_str(const sockaddr_in* sa) {
 
 
 std::string
-sa_in6_addr_str(const sockaddr_in6* sa) {
+sin6_addr_str(const sockaddr_in6* sa) {
   char buffer[INET6_ADDRSTRLEN];
 
   if (inet_ntop(AF_INET6, &sa->sin6_addr, buffer, INET6_ADDRSTRLEN) == NULL)
@@ -338,9 +395,9 @@ sa_pretty_str(const sockaddr* sa) {
 
   switch (sa->sa_family) {
   case AF_INET:
-    return sa_in_pretty_str(reinterpret_cast<const sockaddr_in*>(sa));
+    return sin_pretty_str(reinterpret_cast<const sockaddr_in*>(sa));
   case AF_INET6:
-    return sa_in6_pretty_str(reinterpret_cast<const sockaddr_in6*>(sa));
+    return sin6_pretty_str(reinterpret_cast<const sockaddr_in6*>(sa));
   case AF_UNSPEC:
     return "unspec";
   default:
@@ -349,8 +406,8 @@ sa_pretty_str(const sockaddr* sa) {
 }
 
 std::string
-sa_in_pretty_str(const sockaddr_in* sa) {
-  auto result = sa_in_addr_str(sa);
+sin_pretty_str(const sockaddr_in* sa) {
+  auto result = sin_addr_str(sa);
 
   if (sa->sin_port != 0)
     result += ':' + std::to_string(ntohs(sa->sin_port));
@@ -359,8 +416,8 @@ sa_in_pretty_str(const sockaddr_in* sa) {
 }
 
 std::string
-sa_in6_pretty_str(const sockaddr_in6* sa) {
-  auto result = "[" + sa_in6_addr_str(sa) + "]";
+sin6_pretty_str(const sockaddr_in6* sa) {
+  auto result = "[" + sin6_addr_str(sa) + "]";
 
   if (sa->sin6_port != 0)
     result += ':' + std::to_string(ntohs(sa->sin6_port));
@@ -385,8 +442,8 @@ sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) {
 }
 
 std::string
-sa_pretty_address_str(const sockaddr* sockaddr) {
-  return sa_pretty_str(sockaddr);
+sa_pretty_address_str(const sockaddr* sa) {
+  return sa_pretty_str(sa);
 }
 
 }

@@ -18,7 +18,7 @@ LibTorrentTest_LDADD = \
 	../src/torrent/utils/libsub_torrentutils.la
 
 LibTorrentTest_SOURCES = \
-	helpers/address_info.h \
+	helpers/network.h \
 	\
 	../src/thread_disk.cc \
 	../src/thread_disk.h \
