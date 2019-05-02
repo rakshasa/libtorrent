@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <iostream>
-#include lt_tr1_functional
+
 #include <torrent/exceptions.h>
 #include <torrent/utils/log.h>
 

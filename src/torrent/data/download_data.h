@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_DATA_DOWNLOAD_DATA_H
 #define LIBTORRENT_DATA_DOWNLOAD_DATA_H
 
-#include lt_tr1_functional
+#include <functional>
 
 #include <torrent/common.h>
 #include <torrent/bitfield.h>

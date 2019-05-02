@@ -37,11 +37,12 @@
 #ifndef LIBTORRENT_UTILS_LOG_H
 #define LIBTORRENT_UTILS_LOG_H
 
+#include <array>
 #include <bitset>
+#include <functional>
 #include <string>
 #include <vector>
-#include lt_tr1_array
-#include lt_tr1_functional
+
 #include <torrent/common.h>
 
 namespace torrent {

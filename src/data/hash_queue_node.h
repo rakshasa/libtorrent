@@ -37,9 +37,9 @@
 #ifndef LIBTORRENT_DATA_HASH_QUEUE_NODE_H
 #define LIBTORRENT_DATA_HASH_QUEUE_NODE_H
 
-#include <string>
-#include lt_tr1_functional
 #include <cinttypes>
+#include <functional>
+#include <string>
 
 #include "chunk_handle.h"
 #include "hash_chunk.h"

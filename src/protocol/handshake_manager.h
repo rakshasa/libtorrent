@@ -37,9 +37,10 @@
 #ifndef LIBTORRENT_NET_HANDSHAKE_MANAGER_H
 #define LIBTORRENT_NET_HANDSHAKE_MANAGER_H
 
-#include <string>
 #include <cinttypes>
-#include lt_tr1_functional
+#include <functional>
+#include <string>
+
 #include <rak/functional.h>
 #include <rak/unordered_vector.h>
 #include <rak/socket_address.h>

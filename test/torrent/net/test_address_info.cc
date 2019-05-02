@@ -2,8 +2,9 @@
 
 #include "test_address_info.h"
 
+#include <functional>
+
 #include "helpers/network.h"
-#include lt_tr1_functional
 #include "torrent/net/address_info.h"
 #include "torrent/net/socket_address.h"
 

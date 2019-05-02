@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
-#include lt_tr1_functional
+#include <functional>
 
 #include "choke_group.h"
 #include "choke_queue.h"

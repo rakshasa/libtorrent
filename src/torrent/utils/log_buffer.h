@@ -39,8 +39,9 @@
 
 #include <string>
 #include <deque>
+#include <functional>
 #include <pthread.h>
-#include lt_tr1_functional
+
 #include <torrent/common.h>
 
 namespace torrent {

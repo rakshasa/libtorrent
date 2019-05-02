@@ -38,9 +38,9 @@
 #define LIBTORRENT_DATA_HASH_QUEUE_H
 
 #include <deque>
+#include <functional>
 #include <map>
 #include <pthread.h>
-#include lt_tr1_functional
 
 #include "torrent/hash_string.h"
 #include "hash_queue_node.h"

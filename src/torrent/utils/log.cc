@@ -52,8 +52,6 @@
 #include <fstream>
 #include <functional>
 #include <memory>
-#include lt_tr1_functional
-#include lt_tr1_memory
 
 namespace torrent {
 
