@@ -46,6 +46,9 @@ sa_unique_ptr     sa_to_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
 sa_in_unique_ptr  sa_in_from_in6_v4mapped(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 sa_in6_unique_ptr sa_in6_to_in_v4mapped(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 
+sa_in_unique_ptr  sin_from_sa(sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
+sa_in6_unique_ptr sin6_from_sa(sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
+
 void        sa_clear_inet6(sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 uint16_t    sa_port(const sockaddr* sa) LIBTORRENT_EXPORT;

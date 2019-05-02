@@ -232,6 +232,22 @@ sa_in6_to_in_v4mapped(const sockaddr_in* sa) {
   return result;
 }
 
+sa_in_unique_ptr
+sin_from_sa(sa_unique_ptr&& sap) {
+  if (!sa_is_inet(sap.get()))
+    throw internal_error("torrent::sin_from_sa: sockaddr is nullptr or not inet");
+
+  return sa_in_unique_ptr(reinterpret_cast<sockaddr_in*>(sap.release()));
+}
+
+sa_in6_unique_ptr
+sin6_from_sa(sa_unique_ptr&& sap) {
+  if (!sa_is_inet6(sap.get()))
+    throw internal_error("torrent::sin6_from_sa: sockaddr is nullptr or not inet6");
+
+  return sa_in6_unique_ptr(reinterpret_cast<sockaddr_in6*>(sap.release()));
+}
+
 void
 sa_clear_inet6(sockaddr_in6* sa) {
   std::memset(sa, 0, sizeof(sockaddr_in6));

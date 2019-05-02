@@ -2,7 +2,7 @@
 
 #include "test_bind_manager.h"
 
-#include "helpers/address_info.h"
+#include "helpers/network.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/net/bind_manager.h"

@@ -2,6 +2,7 @@
 
 #include "test_address_info.h"
 
+#include "helpers/network.h"
 #include lt_tr1_functional
 #include "torrent/net/address_info.h"
 #include "torrent/net/socket_address.h"
@@ -76,4 +77,17 @@ test_address_info::test_basic() {
 
 void
 test_address_info::test_helpers() {
+  torrent::sa_in_unique_ptr sin_inet_zero = torrent::sin_from_sa(wrap_ai_get_first_sa("0.0.0.0"));
+
+  CPPUNIT_ASSERT(sin_inet_zero != nullptr);
+  CPPUNIT_ASSERT(sin_inet_zero->sin_family == AF_INET);
+  CPPUNIT_ASSERT(sin_inet_zero->sin_port == 0);
+  CPPUNIT_ASSERT(sin_inet_zero->sin_addr.s_addr == in_addr().s_addr);
+
+  torrent::sa_in_unique_ptr sin_inet_1 = torrent::sin_from_sa(wrap_ai_get_first_sa("1.2.3.4"));
+
+  CPPUNIT_ASSERT(sin_inet_1 != nullptr);
+  CPPUNIT_ASSERT(sin_inet_1->sin_family == AF_INET);
+  CPPUNIT_ASSERT(sin_inet_1->sin_port == 0);
+  CPPUNIT_ASSERT(sin_inet_1->sin_addr.s_addr == htonl(0x01020304));
 }
