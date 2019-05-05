@@ -33,10 +33,24 @@ test_socket_address::test_make() {
   CPPUNIT_ASSERT(sin6_inet6->sin6_flowinfo == 0);
   CPPUNIT_ASSERT(compare_sin6_addr(sin6_inet6->sin6_addr, in6_addr{0}));
   CPPUNIT_ASSERT(sin6_inet6->sin6_scope_id == 0);
+
+  torrent::sa_unique_ptr sa_unix = torrent::sa_make_unix("");
+  CPPUNIT_ASSERT(sa_unix != nullptr);
+  CPPUNIT_ASSERT(sa_unix->sa_family == AF_UNIX);
 }
 
 void
 test_socket_address::test_sin_from_sa() {
+  torrent::sa_unique_ptr sa_zero = wrap_ai_get_first_sa("0.0.0.0");
+  torrent::sin_unique_ptr sin_zero;
+
+  CPPUNIT_ASSERT(sa_zero != nullptr);
+  CPPUNIT_ASSERT_NO_THROW({ sin_zero = torrent::sin_from_sa(std::move(sa_zero)); });
+  CPPUNIT_ASSERT(sa_zero == nullptr);
+  CPPUNIT_ASSERT(sin_zero != nullptr);
+
+  CPPUNIT_ASSERT(sin_zero->sin_addr.s_addr == htonl(0x0));
+
   torrent::sa_unique_ptr sa_inet = wrap_ai_get_first_sa("1.2.3.4");
   torrent::sin_unique_ptr sin_inet;
 
@@ -47,6 +61,25 @@ test_socket_address::test_sin_from_sa() {
 
   CPPUNIT_ASSERT(sin_inet->sin_addr.s_addr == htonl(0x01020304));
   
+  CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_unique_ptr()), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_make_unspec()), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_make_inet6()), torrent::internal_error);
+}
+
+void
+test_socket_address::test_sin6_from_sa() {
+  torrent::sa_unique_ptr sa_zero = wrap_ai_get_first_sa("::");
+  torrent::sin6_unique_ptr sin6_zero;
+
+  CPPUNIT_ASSERT(sa_zero != nullptr);
+  CPPUNIT_ASSERT_NO_THROW({ sin6_zero = torrent::sin6_from_sa(std::move(sa_zero)); });
+  CPPUNIT_ASSERT(sa_zero == nullptr);
+  CPPUNIT_ASSERT(sin6_zero != nullptr);
+
+  CPPUNIT_ASSERT(sin6_zero->sin6_addr.s6_addr[0] == 0x0);
+  CPPUNIT_ASSERT(sin6_zero->sin6_addr.s6_addr[1] == 0x0);
+  CPPUNIT_ASSERT(sin6_zero->sin6_addr.s6_addr[15] == 0x0);
+
   torrent::sa_unique_ptr sa_inet6 = wrap_ai_get_first_sa("ff01::1");
   torrent::sin6_unique_ptr sin6_inet6;
 
@@ -58,10 +91,6 @@ test_socket_address::test_sin_from_sa() {
   CPPUNIT_ASSERT(sin6_inet6->sin6_addr.s6_addr[0] == 0xff);
   CPPUNIT_ASSERT(sin6_inet6->sin6_addr.s6_addr[1] == 0x01);
   CPPUNIT_ASSERT(sin6_inet6->sin6_addr.s6_addr[15] == 0x01);
-
-  CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_unique_ptr()), torrent::internal_error);
-  CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_make_unspec()), torrent::internal_error);
-  CPPUNIT_ASSERT_THROW(torrent::sin_from_sa(torrent::sa_make_inet6()), torrent::internal_error);
 
   CPPUNIT_ASSERT_THROW(torrent::sin6_from_sa(torrent::sa_unique_ptr()), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(torrent::sin6_from_sa(torrent::sa_make_unspec()), torrent::internal_error);
@@ -102,4 +131,23 @@ test_socket_address::test_sa_equal_addr() {
   CPPUNIT_ASSERT_THROW(torrent::sap_equal_addr(torrent::sa_make_unix(""), torrent::sa_make_unix("")), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(torrent::sap_equal_addr(torrent::sa_make_unix(""), wrap_ai_get_first_sa("ff01::1")), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(torrent::sap_equal_addr(wrap_ai_get_first_sa("ff01::1"), torrent::sa_make_unix("")), torrent::internal_error);
+}
+
+void
+test_socket_address::test_sa_from_v4mapped() {
+}
+
+void
+test_socket_address::test_sa_to_v4mapped() {
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("0.0.0.0")), wrap_ai_get_first_sa("::ffff:0.0.0.0")));
+  CPPUNIT_ASSERT(torrent::sap_is_v4mapped(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("0.0.0.0"))));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("0.0.0.0"))));
+
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("1.2.3.4")), wrap_ai_get_first_sa("::ffff:1.2.3.4")));
+  CPPUNIT_ASSERT(torrent::sap_is_v4mapped(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("1.2.3.4"))));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("1.2.3.4"))));
+
+  CPPUNIT_ASSERT_THROW(torrent::sap_to_v4mapped(torrent::sa_make_unspec()), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_to_v4mapped(torrent::sa_make_inet6()), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_to_v4mapped(torrent::sa_make_unix("")), torrent::internal_error);
 }

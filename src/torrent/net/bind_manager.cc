@@ -58,6 +58,21 @@
 
 namespace torrent {
 
+inline bind_manager::iterator
+bind_manager::m_find_name(const std::string& name) {
+  return std::find_if(base_type::begin(), base_type::end(), [&name](reference itr)->bool { return itr.name == name; });
+}
+
+inline bind_manager::iterator
+bind_manager::m_lower_bound_priority(uint16_t priority) {
+  return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority >= priority; });
+}
+
+inline bind_manager::iterator
+bind_manager::m_upper_bound_priority(uint16_t priority) {
+  return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority > priority; });
+}
+
 static std::unique_ptr<sockaddr>
 prepare_sockaddr(const sockaddr* sa, int flags) {
   if (sa_is_any(sa)) {
@@ -85,6 +100,8 @@ static bool
 validate_bind_flags(int flags) {
   if ((flags & bind_manager::flag_v4only) && (flags & bind_manager::flag_v6only))
     return false;
+
+  // TODO: Detect unknown flags.
 
   return true;
 }
@@ -142,14 +159,14 @@ bind_manager::set_block_connect(bool flag) {
 
 void
 bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* sa, int flags) {
+  if (find_name(name) != end())
+    throw input_error("add_bind with duplicate name");
+
   if (sa == nullptr || !(sa_is_inet(sa) || sa_is_inet6(sa)))
-    throw input_error("Called bind_manager::add_bind with " + sa_pretty_str(sa) + " as sockaddr");
+    throw input_error("add_bind with " + sa_pretty_str(sa) + " as sockaddr");
 
   if (!sa_is_port_any(sa))
-    throw input_error("Called bind_manager::add_bind with non-zero port in sockaddr");
-
-  if (find_name(name) != end())
-    throw input_error("Called bind_manager::add_bind with duplicate name");
+    throw input_error("add_bind with non-zero port in sockaddr");
 
   // if (sa_) {
   //   LT_LOG("add bind failed, address is not bindable (name:%s priority:%" PRIu16 " flags:0x%x address:%s)",
@@ -162,9 +179,19 @@ bind_manager::add_bind(const std::string& name, uint16_t priority, const sockadd
   // TODO: Verify bind flags. Also pass sa to verify that sockaddr is
   // a valid sockaddr.
 
-  // TODO: Do we deal with '0.0.0.0' as special?
-  if (sa_is_inet(sa))
+  if (sa_is_inet(sa)) {
+    if ((flags & flag_v6only))
+      throw input_error("add_bind with " + sa_pretty_str(sa) + " and incompatible v6only flag");
+
     flags |= flag_v4only;
+  }
+
+  if (sa_is_inet6(sa)) {
+    if ((flags & flag_v4only))
+      throw input_error("add_bind with " + sa_pretty_str(sa) + " and incompatible v4only flag");
+
+    //flags |= flag_v6only;
+  }
 
   // if inet6, can't be v4only.
 
@@ -173,10 +200,10 @@ bind_manager::add_bind(const std::string& name, uint16_t priority, const sockadd
 
   // TODO: Sanitize the flags.
   // TODO: Add a way to set the order.
-  // TODO: Verify unique name.
 
-  // TODO: Push to back of priority.
-  base_type::push_back(make_bind_struct(name, sa, flags, priority));
+  // base_type::push_back(make_bind_struct(name, sa, flags, priority));
+
+  base_type::insert(m_upper_bound_priority(priority), make_bind_struct(name, sa, flags, priority));
 }
 
 static int

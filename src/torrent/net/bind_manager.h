@@ -75,10 +75,12 @@ public:
 
   using base_type::iterator;
   using base_type::const_iterator;
-  using base_type::value_type;
+  using base_type::reference;
+  using base_type::const_reference;
 
-  using base_type::back;
-  using base_type::front;
+  using base_type::value_type;
+  using base_type::size_type;
+
   using base_type::empty;
   using base_type::size;
 
@@ -101,7 +103,13 @@ public:
   const_iterator begin() const;
   const_iterator end() const;
 
+  const_reference front() const;
+  const_reference back() const;
+  const_reference operator[](size_type pos) const;
+
   const_iterator find_name(const std::string& name) const;
+  const_iterator lower_bound_priority(uint16_t priority) const;
+  const_iterator upper_bound_priority(uint16_t priority) const;
 
   int flags();
 
@@ -139,6 +147,10 @@ public:
   accepted_ftor&  slot_accepted();
 
 private:
+  iterator m_find_name(const std::string& name);
+  iterator m_lower_bound_priority(uint16_t priority);
+  iterator m_upper_bound_priority(uint16_t priority);
+
   listen_result_type attempt_listen(const bind_struct& bind_itr) const;
 
   int      m_flags;
@@ -159,6 +171,10 @@ inline bind_manager::const_iterator end(const bind_manager& b) { return b.end();
 inline bind_manager::const_iterator bind_manager::begin() const { return base_type::begin(); }
 inline bind_manager::const_iterator bind_manager::end() const { return base_type::end(); }
 
+inline bind_manager::const_reference bind_manager::front() const { return base_type::front(); }
+inline bind_manager::const_reference bind_manager::back() const { return base_type::back(); }
+inline bind_manager::const_reference bind_manager::operator[](bind_manager::size_type pos) const { return base_type::operator[](pos); }
+
 inline int bind_manager::flags() { return m_flags; }
 
 inline bool bind_manager::is_listen_open() const { return m_flags & flag_listen_open; }
@@ -170,7 +186,17 @@ inline bind_manager::accepted_ftor& bind_manager::slot_accepted() { return m_slo
 
 inline bind_manager::const_iterator
 bind_manager::find_name(const std::string& name) const {
-  return std::find_if(begin(), end(), [&name](const value_type& itr)->bool { return itr.name == name; });
+  return std::find_if(begin(), end(), [&name](const_reference itr)->bool { return itr.name == name; });
+}
+
+inline bind_manager::const_iterator
+bind_manager::lower_bound_priority(uint16_t priority) const {
+  return std::find_if(begin(), end(), [priority](const_reference itr)->bool { return itr.priority >= priority; });
+}
+
+inline bind_manager::const_iterator
+bind_manager::upper_bound_priority(uint16_t priority) const {
+  return std::find_if(begin(), end(), [priority](const_reference itr)->bool { return itr.priority > priority; });
 }
 
 }

@@ -84,15 +84,7 @@ void
 test_bind_manager::test_add_bind() {
   torrent::bind_manager bm;
 
-  CPPUNIT_ASSERT_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0), torrent::input_error);
-
   bm.clear();
-
-  CPPUNIT_ASSERT_THROW(bm.add_bind("fail1", 100, nullptr, 0), torrent::input_error);
-  CPPUNIT_ASSERT_THROW(bm.add_bind("fail2", 100, torrent::sa_make_unspec().get(), 0), torrent::input_error);
-  CPPUNIT_ASSERT_THROW(bm.add_bind("fail3", 100, wrap_ai_get_first_sa("0.0.0.0", "2000").get(), 0), torrent::input_error);
-  CPPUNIT_ASSERT_THROW(bm.add_bind("fail4", 100, wrap_ai_get_first_sa("::", "2000").get(), 0), torrent::input_error);
-
   CPPUNIT_ASSERT(bm.empty());
 
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv4_zero", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0));
@@ -152,13 +144,53 @@ test_bind_manager::test_add_bind() {
 // TODO: Test add not lexical, do we sort by name?
 // TODO: Add option to generate random default name.
 
+// TODO: Restrict characters in names.
+
+// TODO: Add tests for ipv4-mapped addresses.
+// TODO: Allow v4 when default or mapped.
+// TODO: Set v6only when not mapped or default.
+
 void
-test_bind_manager::test_priority() {
+test_bind_manager::test_add_bind_error() {
   torrent::bind_manager bm;
 
-  // TODO: Add default priority.
-  // TODO: Test no lexical ordering.
+  CPPUNIT_ASSERT_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0), torrent::input_error);
 
-  // CPPUNIT_ASSERT_NO_THROW(bm.add_bind("test0_1", 0, wrap_ai_get_first_sa("127.0.0.1").get(), 0));
+  bm.clear();
 
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_nullptr", 100, nullptr, 0), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_unspec", 100, torrent::sa_make_unspec().get(), 0), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_unix", 100, torrent::sa_make_unix("").get(), 0), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin_has_port", 100, wrap_ai_get_first_sa("0.0.0.0", "2000").get(), 0), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_has_port", 100, wrap_ai_get_first_sa("::", "2000").get(), 0), torrent::input_error);
+
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin_v6only", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v6only), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_v4only", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v4only), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin_v4only_v6only", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v4only | torrent::bind_manager::flag_v6only), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_v4only_v6only", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v4only | torrent::bind_manager::flag_v6only), torrent::input_error);
+
+  CPPUNIT_ASSERT(bm.empty());
+}
+
+void
+test_bind_manager::test_add_bind_priority() {
+  torrent::bind_manager bm;
+  torrent::sa_unique_ptr sa = wrap_ai_get_first_sa("0.0.0.0");
+
+  bm.clear();
+
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("c_1", 100, sa.get(), 0));
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("c_2", 100, sa.get(), 0));
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("a_3", 100, sa.get(), 0));
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("c_4", 0, sa.get(), 0));
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("a_5", 0, sa.get(), 0));
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("c_6", 200, sa.get(), 0));
+
+  CPPUNIT_ASSERT(bm.size() == 6);
+  CPPUNIT_ASSERT(bm[0].name == "c_4");
+  CPPUNIT_ASSERT(bm[1].name == "a_5");
+  CPPUNIT_ASSERT(bm[2].name == "c_1");
+  CPPUNIT_ASSERT(bm[3].name == "c_2");
+  CPPUNIT_ASSERT(bm[4].name == "a_3");
+  CPPUNIT_ASSERT(bm[5].name == "c_6");
 }

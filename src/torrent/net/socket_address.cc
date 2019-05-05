@@ -219,34 +219,38 @@ sin6_copy(const sockaddr_in6* sa) {
 
 sa_unique_ptr
 sa_from_v4mapped(const sockaddr* sa) {
-  // TODO: This needs to check if in6. Use a safe sa cast.
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin_from_in6_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa)).release()));
+  if (!sa_is_inet6(sa))
+    throw internal_error("torrent::sa_from_v4mapped: sockaddr is not inet6");
+
+  return sa_from_in(sin_from_v4mapped_in6(reinterpret_cast<const sockaddr_in6*>(sa)));
 }
 
 sa_unique_ptr
 sa_to_v4mapped(const sockaddr* sa) {
-  // TODO: This needs to check if in. Use a safe sa cast.
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6_to_in_v4mapped(reinterpret_cast<const sockaddr_in*>(sa)).release()));
+  if (!sa_is_inet(sa))
+    throw internal_error("torrent::sa_to_v4mapped: sockaddr is not inet");
+
+  return sa_from_in6(sin6_to_v4mapped_in(reinterpret_cast<const sockaddr_in*>(sa)));
 }
 
 sin_unique_ptr
-sin_from_in6_v4mapped(const sockaddr_in6* sa) {
-  if (!sin6_is_v4mapped(sa))
+sin_from_v4mapped_in6(const sockaddr_in6* sin6) {
+  if (!sin6_is_v4mapped(sin6))
     throw internal_error("torrent::sin6_is_v4mapped: sockaddr_in6 is not v4mapped");
 
   sin_unique_ptr result = sin_make();
-  result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sa, 3)));
-  result.get()->sin_port = sa->sin6_port;
+  result.get()->sin_addr.s_addr = reinterpret_cast<in_addr_t>(htonl(sin6_addr32_index(sin6, 3)));
+  result.get()->sin_port = sin6->sin6_port;
 
   return result;
 }
 
 sin6_unique_ptr
-sin6_to_in_v4mapped(const sockaddr_in* sa) {
+sin6_to_v4mapped_in(const sockaddr_in* sin) {
   sin6_unique_ptr result = sin6_make();
 
-  result.get()->sin6_addr = sin6_make_addr32(0, 0, 0xffff, ntohl(sa->sin_addr.s_addr));
-  result.get()->sin6_port = sa->sin_port;
+  result.get()->sin6_addr = sin6_make_addr32(0, 0, 0xffff, ntohl(sin->sin_addr.s_addr));
+  result.get()->sin6_port = sin->sin_port;
 
   return result;
 }

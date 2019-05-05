@@ -50,10 +50,13 @@ sin6_unique_ptr sin6_copy(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 sa_unique_ptr   sa_from_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_to_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
+sin_unique_ptr  sin_from_v4mapped_in6(const sockaddr_in6* sin6) LIBTORRENT_EXPORT;
+sin6_unique_ptr sin6_to_v4mapped_in(const sockaddr_in* sin) LIBTORRENT_EXPORT;
 
-sin_unique_ptr  sin_from_in6_v4mapped(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
-sin6_unique_ptr sin6_to_in_v4mapped(const sockaddr_in* sa) LIBTORRENT_EXPORT;
-
+sa_unique_ptr     sa_from_in(sin_unique_ptr&& sinp) LIBTORRENT_EXPORT;
+c_sa_unique_ptr   sa_from_in(c_sin_unique_ptr&& sinp) LIBTORRENT_EXPORT;
+sa_unique_ptr     sa_from_in6(sin6_unique_ptr&& sin6p) LIBTORRENT_EXPORT;
+c_sa_unique_ptr   sa_from_in6(c_sin6_unique_ptr&& sin6p) LIBTORRENT_EXPORT;
 sin_unique_ptr    sin_from_sa(sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
 sin6_unique_ptr   sin6_from_sa(sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
 c_sin_unique_ptr  sin_from_c_sa(c_sa_unique_ptr&& sap) LIBTORRENT_EXPORT;
@@ -80,6 +83,30 @@ std::string sin6_pretty_str(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 void sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) LIBTORRENT_EXPORT;
 
 std::string sa_pretty_address_str(const sockaddr* sa) LIBTORRENT_EXPORT;
+
+//
+// Implementations:
+//
+
+inline sa_unique_ptr
+sa_from_in(sin_unique_ptr&& sinp) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sinp.release()));
+}
+
+inline c_sa_unique_ptr
+sa_from_in(c_sin_unique_ptr&& sinp) {
+  return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sinp.release()));
+}
+
+inline sa_unique_ptr
+sa_from_in6(sin6_unique_ptr&& sin6p) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6p.release()));
+}
+
+inline c_sa_unique_ptr
+sa_from_in6(c_sin6_unique_ptr&& sin6p) {
+  return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sin6p.release()));
+}
 
 //
 // Safe conversion from unique_ptr arguments:
@@ -118,6 +145,15 @@ inline sa_unique_ptr sap_copy_in(const sin_unique_ptr& sinp) { return sa_copy_in
 inline sa_unique_ptr sap_copy_in(const c_sin_unique_ptr& sinp) { return sa_copy_in(sinp.get()); }
 inline sa_unique_ptr sap_copy_in6(const sin6_unique_ptr& sin6p) { return sa_copy_in6(sin6p.get()); }
 inline sa_unique_ptr sap_copy_in6(const c_sin6_unique_ptr& sin6p) { return sa_copy_in6(sin6p.get()); }
+
+inline sa_unique_ptr   sap_from_v4mapped(const sa_unique_ptr& sap) { return sa_from_v4mapped(sap.get()); }
+inline sa_unique_ptr   sap_from_v4mapped(const c_sa_unique_ptr& sap) { return sa_from_v4mapped(sap.get()); }
+inline sa_unique_ptr   sap_to_v4mapped(const sa_unique_ptr& sap) { return sa_to_v4mapped(sap.get()); }
+inline sa_unique_ptr   sap_to_v4mapped(const c_sa_unique_ptr& sap) { return sa_to_v4mapped(sap.get()); }
+// inline sin_unique_ptr  sinp_from_v4mapped_in6(const sin6_unique_ptr& sin6p) { return sin_from_v4mapped_in6(sin6p.get()); }
+// inline sin_unique_ptr  sinp_from_v4mapped_in6(const c_sin6_unique_ptr& sin6p) { return sin_from_v4mapped_in6(sin6p.get()); }
+// inline sin6_unique_ptr sin6p_to_v4mapped_in(const sin_unique_ptr& sinp) { return sin6_to_v4mapped_in(sinp.get()); }
+// inline sin6_unique_ptr sin6p_to_v4mapped_in(const c_sin_unique_ptr& sinp) { return sin6_to_v4mapped_in(sinp.get()); }
 
 inline uint16_t sap_port(const sa_unique_ptr& sap) { return sa_port(sap.get()); }
 inline uint16_t sap_port(const c_sa_unique_ptr& sap) { return sa_port(sap.get()); }
