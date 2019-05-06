@@ -10,6 +10,19 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(test_bind_manager);
 
+inline bool
+compare_bind_base(const torrent::bind_struct& bs,
+                  uint16_t priority = 0,
+                  int flags = 0,
+                  uint16_t listen_port_first = 0,
+                  uint16_t listen_port_last = 0) {
+  return
+    priority == bs.priority &&
+    flags == bs.flags &&
+    listen_port_first == bs.listen_port_first &&
+    listen_port_last == bs.listen_port_last;
+}
+
 void
 test_bind_manager::test_basic() {
   torrent::bind_manager bm;
@@ -21,16 +34,12 @@ test_bind_manager::test_basic() {
   CPPUNIT_ASSERT(bm.listen_port_last() == 6999);
 
   CPPUNIT_ASSERT(!bm.empty());
+
   CPPUNIT_ASSERT(bm.size() == 1);
-
-  CPPUNIT_ASSERT(bm.front().name == "default");
-  CPPUNIT_ASSERT(bm.front().flags == 0);
-  CPPUNIT_ASSERT(bm.front().priority == 0);
-  CPPUNIT_ASSERT(bm.front().listen_port_first == 0);
-  CPPUNIT_ASSERT(bm.front().listen_port_first == 0);
-
-  CPPUNIT_ASSERT(torrent::sap_is_any(bm.front().address));
-  CPPUNIT_ASSERT(torrent::sap_is_inet6(bm.front().address));
+  CPPUNIT_ASSERT(bm.back().name == "default");
+  CPPUNIT_ASSERT(compare_bind_base(bm.back()));
+  CPPUNIT_ASSERT(torrent::sap_is_any(bm.back().address));
+  CPPUNIT_ASSERT(torrent::sap_is_inet6(bm.back().address));
 
   bm.clear();
 
@@ -91,10 +100,7 @@ test_bind_manager::test_add_bind() {
 
   CPPUNIT_ASSERT(bm.size() == 1);
   CPPUNIT_ASSERT(bm.back().name == "ipv4_zero");
-  CPPUNIT_ASSERT(bm.back().flags == torrent::bind_manager::flag_v4only);
-  CPPUNIT_ASSERT(bm.back().priority == 100);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
+  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("0.0.0.0")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
@@ -102,10 +108,7 @@ test_bind_manager::test_add_bind() {
 
   CPPUNIT_ASSERT(bm.size() == 2);
   CPPUNIT_ASSERT(bm.back().name == "ipv6_zero");
-  CPPUNIT_ASSERT(bm.back().flags == 0);
-  CPPUNIT_ASSERT(bm.back().priority == 100);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
+  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("::")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
@@ -113,10 +116,7 @@ test_bind_manager::test_add_bind() {
 
   CPPUNIT_ASSERT(bm.size() == 3);
   CPPUNIT_ASSERT(bm.back().name == "ipv4_lo");
-  CPPUNIT_ASSERT(bm.back().flags == torrent::bind_manager::flag_v4only);
-  CPPUNIT_ASSERT(bm.back().priority == 100);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
+  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("127.0.0.1")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
@@ -124,10 +124,7 @@ test_bind_manager::test_add_bind() {
 
   CPPUNIT_ASSERT(bm.size() == 4);
   CPPUNIT_ASSERT(bm.back().name == "ipv6_lo");
-  CPPUNIT_ASSERT(bm.back().flags == torrent::bind_manager::flag_v6only);
-  CPPUNIT_ASSERT(bm.back().priority == 100);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
-  CPPUNIT_ASSERT(bm.back().listen_port_first == 0);
+  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v6only));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("::1")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 }
@@ -136,7 +133,6 @@ test_bind_manager::test_add_bind() {
 // TODO: Test remove bind.
 // TODO: Restrict characters in names.
 // TODO: Create fd_socket with attribute weak to mock fd_.
-// TODO: sa_copy should not accept null?
 
 void
 test_bind_manager::test_add_bind_error() {
@@ -192,14 +188,14 @@ test_bind_manager::test_add_bind_v4mapped() {
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("v4mapped_zero", 100, wrap_ai_get_first_sa("::ffff:0.0.0.0").get(), 0));
 
   CPPUNIT_ASSERT(bm.back().name == "v4mapped_zero");
-  CPPUNIT_ASSERT(bm.back().flags == torrent::bind_manager::flag_v4only);
+  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, torrent::sa_make_inet()));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("v4mapped_1", 100, wrap_ai_get_first_sa("::ffff:1.2.3.4").get(), 0));
 
   CPPUNIT_ASSERT(bm.back().name == "v4mapped_1");
-  CPPUNIT_ASSERT(bm.back().flags == torrent::bind_manager::flag_v4only);
+  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("1.2.3.4")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
