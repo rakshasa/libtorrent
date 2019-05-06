@@ -3,10 +3,7 @@
 #include "socket_address.h"
 
 #include <cstring>
-#include <netinet/in.h>
-
 #include <arpa/inet.h>
-#include <sys/socket.h>
 #include <sys/un.h>
 
 // TODO: Deprecate.
@@ -94,6 +91,26 @@ sin6_is_any(const sockaddr_in6* sa) {
 }
 
 bool
+sa_is_broadcast(const sockaddr* sa) {
+  if (sa == NULL)
+    return false;
+
+  switch (sa->sa_family) {
+  case AF_INET:
+    return sin_is_broadcast(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+  case AF_UNSPEC:
+  default:
+    return false;
+  }
+}
+
+bool
+sin_is_broadcast(const sockaddr_in* sa) {
+  return sa->sin_addr.s_addr == htonl(INADDR_BROADCAST);
+}
+
+bool
 sa_is_v4mapped(const sockaddr* sa) {
   return sa != NULL && sa->sa_family == AF_INET6 && sin6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa));
 }
@@ -155,6 +172,25 @@ sa_make_unix(const std::string& pathname) {
   // TODO: verify length, copy pathname
 
   return sa_unique_ptr(reinterpret_cast<sockaddr*>(sunp.release()));
+}
+
+sa_unique_ptr
+sa_convert(const sockaddr* sa) {
+  if (sa == NULL)
+    return sa_make_unspec();
+
+  switch(sa->sa_family) {
+  case AF_INET:
+    return sa_copy_in(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    if (sin6_is_v4mapped(reinterpret_cast<const sockaddr_in6*>(sa)))
+      return sa_from_v4mapped_in6(reinterpret_cast<const sockaddr_in6*>(sa));
+
+    return sa_copy_in6(reinterpret_cast<const sockaddr_in6*>(sa));
+  case AF_UNSPEC:
+  default:
+    return sa_make_unspec();
+  }
 }
 
 sa_unique_ptr

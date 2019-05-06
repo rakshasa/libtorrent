@@ -8,6 +8,8 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(test_address_info);
 
+// TODO: Test AI_NUMERICSERV, etc.
+
 void
 test_address_info::test_basic() {
   CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet|aif_any> (std::bind(torrent::ai_get_addrinfo, "0.0.0.0", nullptr, nullptr, std::placeholders::_1)));

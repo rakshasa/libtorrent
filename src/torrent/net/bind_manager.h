@@ -45,8 +45,9 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <sys/socket.h>
+
 #include <torrent/common.h>
+#include <torrent/net/socket_address.h>
 
 namespace torrent {
 
@@ -54,7 +55,7 @@ struct bind_struct {
   std::string name;
 
   int flags;
-  std::unique_ptr<const sockaddr> address;
+  c_sa_unique_ptr address;
 
   uint16_t priority;
   uint16_t listen_port_first;
@@ -64,7 +65,7 @@ struct bind_struct {
 // Move listen to bind_struct.
 struct listen_result_type {
   int fd;
-  std::unique_ptr<struct sockaddr> address;
+  sa_unique_ptr address;
 };
 
 class LIBTORRENT_EXPORT bind_manager : private std::vector<bind_struct> {
@@ -122,10 +123,10 @@ public:
   void set_block_accept(bool flag);
   void set_block_connect(bool flag);
 
-  // TODO: Rename.
-  void add_bind(const std::string& name, uint16_t priority, const sockaddr* sa, int flags);
+  void add_bind(const std::string& name, uint16_t priority, const sockaddr* bind_sa, int flags);
 
-  int connect_socket(const sockaddr* sock_addr, int flags) const;
+  int connect_socket(const sockaddr* connect_sa, int flags) const;
+  // void connect(const sockaddr* connect_sa, int flags, accepted_ftor ftor) const;
 
   listen_result_type listen_socket(int flags);
 

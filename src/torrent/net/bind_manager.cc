@@ -45,7 +45,6 @@
 #include "net/socket_fd.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
-#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
@@ -73,27 +72,15 @@ bind_manager::m_upper_bound_priority(uint16_t priority) {
   return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority > priority; });
 }
 
-static std::unique_ptr<sockaddr>
-prepare_sockaddr(const sockaddr* sa, int flags) {
-  if (sa_is_any(sa)) {
-    if ((flags & bind_manager::flag_v4only))
-      return sa_make_inet();
-
-    return sa_make_inet6();
-  }
-
-  if ((flags & bind_manager::flag_v4only) && !sa_is_inet(sa))
+bind_struct
+make_bind_struct(const std::string& name, c_sa_unique_ptr&& sap, int flags, uint16_t priority) {
+  if ((flags & bind_manager::flag_v4only) && !sap_is_inet(sap))
     throw internal_error("(flags & flag_v4only) && !sa_is_inet(sa)");
 
-  if ((flags & bind_manager::flag_v6only) && !sa_is_inet6(sa))
+  if ((flags & bind_manager::flag_v6only) && !sap_is_inet6(sap))
     throw internal_error("(flags & flag_v6only) && !sa_is_inet(sa)");
 
-  return sa_copy(sa);
-}
-
-bind_struct
-make_bind_struct(const std::string& name, const sockaddr* sa, int flags, uint16_t priority) {
-  return bind_struct { name, flags, prepare_sockaddr(sa, flags), priority, 0, 0 };
+  return bind_struct{ name, flags, std::move(sap), priority, 0, 0 };
 }
 
 static bool
@@ -114,7 +101,7 @@ bind_manager::bind_manager() :
   m_listen_port_last(6999)
 {
   // TODO: Move to rtorrent.
-  base_type::push_back(make_bind_struct("default", sa_make_unspec().get(), 0, 0));
+  base_type::push_back(make_bind_struct("default", sa_make_inet6(), 0, 0));
 }
 
 void
@@ -158,52 +145,43 @@ bind_manager::set_block_connect(bool flag) {
 }
 
 void
-bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* sa, int flags) {
+bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* bind_sa, int flags) {
   if (find_name(name) != end())
     throw input_error("add_bind with duplicate name");
 
-  if (sa == nullptr || !(sa_is_inet(sa) || sa_is_inet6(sa)))
-    throw input_error("add_bind with " + sa_pretty_str(sa) + " as sockaddr");
+  if (bind_sa == nullptr)
+    throw input_error("add_bind with null sockaddr");
 
-  if (!sa_is_port_any(sa))
+  auto sap = sa_convert(bind_sa);
+
+  if (!(sap_is_inet(sap) || sap_is_inet6(sap)) || sap_is_broadcast(sap))
+    throw input_error("add_bind with " + sap_pretty_str(sap) + " as sockaddr");
+
+  if (!sap_is_port_any(sap))
     throw input_error("add_bind with non-zero port in sockaddr");
 
-  // if (sa_) {
-  //   LT_LOG("add bind failed, address is not bindable (name:%s priority:%" PRIu16 " flags:0x%x address:%s)",
-  //          name.c_str(), priority, flags, sa_pretty_address_str(sa).c_str());
-
-  //   throw input_error("Add bind failed, address '" + sa_pretty_address_str(sa) + "' is not bindable");
-  // }
-
-  // TODO: Verify passed flags, etc.
-  // TODO: Verify bind flags. Also pass sa to verify that sockaddr is
-  // a valid sockaddr.
-
-  if (sa_is_inet(sa)) {
+  if (sap_is_inet(sap)) {
     if ((flags & flag_v6only))
-      throw input_error("add_bind with " + sa_pretty_str(sa) + " and incompatible v6only flag");
+      throw input_error("add_bind with " + sap_pretty_str(sap) + " and incompatible v6only flag");
 
     flags |= flag_v4only;
   }
 
-  if (sa_is_inet6(sa)) {
+  if (sap_is_inet6(sap)) {
     if ((flags & flag_v4only))
-      throw input_error("add_bind with " + sa_pretty_str(sa) + " and incompatible v4only flag");
+      throw input_error("add_bind with " + sap_pretty_str(sap) + " and incompatible v4only flag");
 
-    //flags |= flag_v6only;
+    if (!sap_is_any(sap))
+      flags |= flag_v6only;
   }
 
-  // if inet6, can't be v4only.
+  LT_LOG("bind added (flags:0x%x address:%s)", flags, sap_pretty_str(sap).c_str());
 
-  LT_LOG("bind added (flags:0x%x address:%s)",
-         flags, sa_pretty_address_str(sa).c_str());
-
+  // TODO: Verify passed flags, etc.
   // TODO: Sanitize the flags.
-  // TODO: Add a way to set the order.
 
-  // base_type::push_back(make_bind_struct(name, sa, flags, priority));
-
-  base_type::insert(m_upper_bound_priority(priority), make_bind_struct(name, sa, flags, priority));
+  base_type::insert(m_upper_bound_priority(priority),
+                    make_bind_struct(name, std::move(sap), flags, priority));
 }
 
 static int
@@ -234,12 +212,12 @@ attempt_open_connect(const bind_struct& bs, const sockaddr* sockaddr, fd_flags f
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
-  if (sa_is_any(connect_sa)) {
+  if (sa_is_any(connect_sa) || !(sa_is_inet(connect_sa) || sa_is_inet6(connect_sa))) {
     LT_LOG("connect_socket called with invalid sockaddr (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
     return -1;
   }
 
-  if (m_flags & flag_block_connect) {
+  if ((m_flags & flag_block_connect)) {
     LT_LOG("connect_socket blocked (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
     return -1;
   }
@@ -250,7 +228,7 @@ bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
     if (itr.flags & flag_block_connect)
       continue;
 
-    std::unique_ptr<sockaddr> tmp_sa;
+    sa_unique_ptr tmp_sa;
 
     const sockaddr* sa = connect_sa;
     fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
@@ -385,7 +363,7 @@ bind_manager::attempt_listen(const bind_struct& bs) const {
     }
 
     LT_LOG_SOCKADDR("listen success (fd:%i)", sa.get(), fd);
-    return listen_result_type{fd, std::unique_ptr<struct sockaddr>(sa.release())};
+    return listen_result_type{fd, sa_unique_ptr(sa.release())};
 
   } while (port_itr != port_stop);
 

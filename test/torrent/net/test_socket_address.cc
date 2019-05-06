@@ -135,19 +135,43 @@ test_socket_address::test_sa_equal_addr() {
 
 void
 test_socket_address::test_sa_from_v4mapped() {
+  torrent::sa_unique_ptr sa_zero = torrent::sap_from_v4mapped(wrap_ai_get_first_sa("::ffff:0.0.0.0"));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(sa_zero, wrap_ai_get_first_sa("0.0.0.0")));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(sa_zero));
+
+  torrent::sa_unique_ptr sa_1 = torrent::sap_from_v4mapped(wrap_ai_get_first_sa("::ffff:1.2.3.4"));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(sa_1, wrap_ai_get_first_sa("1.2.3.4")));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(sa_1));
+
+  torrent::sa_unique_ptr sa_bc = torrent::sap_from_v4mapped(wrap_ai_get_first_sa("::ffff:255.255.255.255"));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(sa_bc, wrap_ai_get_first_sa("255.255.255.255")));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(sa_bc));
+
+  CPPUNIT_ASSERT_THROW(torrent::sap_from_v4mapped(torrent::sa_make_unspec()), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_from_v4mapped(torrent::sa_make_inet()), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_from_v4mapped(torrent::sa_make_unix("")), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_from_v4mapped(wrap_ai_get_first_sa("1.2.3.4")), torrent::internal_error);
 }
 
 void
 test_socket_address::test_sa_to_v4mapped() {
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("0.0.0.0")), wrap_ai_get_first_sa("::ffff:0.0.0.0")));
-  CPPUNIT_ASSERT(torrent::sap_is_v4mapped(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("0.0.0.0"))));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("0.0.0.0"))));
+  torrent::sa_unique_ptr sa_zero = torrent::sap_to_v4mapped(wrap_ai_get_first_sa("0.0.0.0"));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(sa_zero, wrap_ai_get_first_sa("::ffff:0.0.0.0")));
+  CPPUNIT_ASSERT(torrent::sap_is_v4mapped(sa_zero));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(sa_zero));
 
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("1.2.3.4")), wrap_ai_get_first_sa("::ffff:1.2.3.4")));
-  CPPUNIT_ASSERT(torrent::sap_is_v4mapped(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("1.2.3.4"))));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("1.2.3.4"))));
+  torrent::sa_unique_ptr sa_1 = torrent::sap_to_v4mapped(wrap_ai_get_first_sa("1.2.3.4"));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(sa_1, wrap_ai_get_first_sa("::ffff:1.2.3.4")));
+  CPPUNIT_ASSERT(torrent::sap_is_v4mapped(sa_1));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(sa_1));
+
+  torrent::sa_unique_ptr sa_bc = torrent::sap_to_v4mapped(wrap_ai_get_first_sa("255.255.255.255"));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(sa_bc, wrap_ai_get_first_sa("::ffff:255.255.255.255")));
+  CPPUNIT_ASSERT(torrent::sap_is_v4mapped(sa_bc));
+  CPPUNIT_ASSERT(torrent::sap_is_port_any(sa_bc));
 
   CPPUNIT_ASSERT_THROW(torrent::sap_to_v4mapped(torrent::sa_make_unspec()), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(torrent::sap_to_v4mapped(torrent::sa_make_inet6()), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(torrent::sap_to_v4mapped(torrent::sa_make_unix("")), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_to_v4mapped(wrap_ai_get_first_sa("::ffff:1.2.3.4")), torrent::internal_error);
 }
