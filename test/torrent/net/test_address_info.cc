@@ -20,15 +20,18 @@ test_address_info::test_basic() {
   CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet> (std::bind(torrent::ai_get_addrinfo, "1.1.1.1", "22123", nullptr, std::placeholders::_1), 22123));
   CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet6>(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::", "22123", nullptr, std::placeholders::_1), 22123));
 
-  // Test v4mapped.
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_none> (std::bind(torrent::ai_get_addrinfo, "localhost", nullptr, nullptr, std::placeholders::_1)));
 
   CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "1.1.1.300", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
   CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "2001:db8:a::22123", nullptr, nullptr, std::placeholders::_1), EAI_NONAME));
 }
 
-// TODO: Test AI_NUMERICSERV, etc.
-// TODO: Helper to create nuemericserv hints.
-// TODO: Lookup 'localhost', fail on numericserv.
+void
+test_address_info::test_numericserv() {
+  CPPUNIT_ASSERT(test_valid_ai_ref<aif_inet> (std::bind(torrent::ai_get_addrinfo, "1.1.1.1", nullptr, torrent::ai_make_hint(AI_NUMERICHOST, 0, 0).get(), std::placeholders::_1)));
+
+  CPPUNIT_ASSERT(test_valid_ai_ref_err(std::bind(torrent::ai_get_addrinfo, "localhost", nullptr, torrent::ai_make_hint(AI_NUMERICHOST, 0, 0).get(), std::placeholders::_1), EAI_NONAME));
+}
 
 void
 test_address_info::test_helpers() {

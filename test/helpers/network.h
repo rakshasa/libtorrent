@@ -37,6 +37,7 @@ wrap_ai_get_first_c_sa(const char* nodename, const char* servname = nullptr, con
 typedef std::function<int (torrent::ai_unique_ptr&)> test_ai_ref;
 
 enum ai_flags_enum : int {
+      aif_none = 0x0,
       aif_inet = 0x1,
       aif_inet6 = 0x2,
       aif_any = 0x4,
