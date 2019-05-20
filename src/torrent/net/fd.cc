@@ -45,6 +45,11 @@
 
 namespace torrent {
 
+extern "C" {
+  int fd__close(int fildes) { return close(fildes); }
+  int fd__socket(int domain, int type, int protocol) { return socket(domain, type, protocol); }
+}
+
 int
 fd_open(fd_flags flags) {
   int domain;
@@ -63,12 +68,12 @@ fd_open(fd_flags flags) {
 
   if (fd == -1 && !(flags & fd_flag_v4only)) {
     LT_LOG_FLAG("fd_open opening ipv6 socket");
-    fd = socket(PF_INET6, domain, protocol);
+    fd = fd__socket(PF_INET6, domain, protocol);
   }
 
   if (fd == -1 && !(flags & fd_flag_v6only)) {
     LT_LOG_FLAG("fd_open opening ipv4 socket");
-    fd = socket(PF_INET, domain, protocol);
+    fd = fd__socket(PF_INET, domain, protocol);
   }
 
   if (fd == -1) {
@@ -103,7 +108,7 @@ fd_close(int fd) {
   if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
     throw internal_error("torrent::fd_close(...) failed: tried to close stdin/out/err");
 
-  if (::close(fd) == -1)
+  if (fd__close(fd) == -1)
     throw internal_error("torrent::fd_close(...) failed: " + std::string(strerror(errno)));
 
   LT_LOG_FD("fd_close succeeded");

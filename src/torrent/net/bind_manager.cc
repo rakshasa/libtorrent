@@ -100,8 +100,6 @@ bind_manager::bind_manager() :
   m_listen_port_first(6881),
   m_listen_port_last(6999)
 {
-  // TODO: Move to rtorrent.
-  base_type::push_back(make_bind_struct("default", sa_make_inet6(), 0, 0));
 }
 
 void

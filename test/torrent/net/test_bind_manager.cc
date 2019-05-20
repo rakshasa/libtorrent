@@ -2,18 +2,20 @@
 
 #include "test_bind_manager.h"
 
+#include "helpers/mock_function.h"
 #include "helpers/network.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/net/bind_manager.h"
+#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(test_bind_manager);
 
 inline bool
 compare_bind_base(const torrent::bind_struct& bs,
-                  uint16_t priority = 0,
-                  int flags = 0,
+                  uint16_t priority,
+                  int flags,
                   uint16_t listen_port_first = 0,
                   uint16_t listen_port_last = 0) {
   return
@@ -32,16 +34,6 @@ test_bind_manager::test_basic() {
   CPPUNIT_ASSERT(bm.listen_port() == 0);
   CPPUNIT_ASSERT(bm.listen_port_first() == 6881);
   CPPUNIT_ASSERT(bm.listen_port_last() == 6999);
-
-  CPPUNIT_ASSERT(!bm.empty());
-
-  CPPUNIT_ASSERT(bm.size() == 1);
-  CPPUNIT_ASSERT(bm.back().name == "default");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back()));
-  CPPUNIT_ASSERT(torrent::sap_is_any(bm.back().address));
-  CPPUNIT_ASSERT(torrent::sap_is_inet6(bm.back().address));
-
-  bm.clear();
 
   CPPUNIT_ASSERT(bm.empty());
   CPPUNIT_ASSERT(bm.size() == 0);
@@ -93,9 +85,6 @@ void
 test_bind_manager::test_add_bind() {
   torrent::bind_manager bm;
 
-  bm.clear();
-  CPPUNIT_ASSERT(bm.empty());
-
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv4_zero", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0));
 
   CPPUNIT_ASSERT(bm.size() == 1);
@@ -108,7 +97,7 @@ test_bind_manager::test_add_bind() {
 
   CPPUNIT_ASSERT(bm.size() == 2);
   CPPUNIT_ASSERT(bm.back().name == "ipv6_zero");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100));
+  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, 0));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("::")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
@@ -120,12 +109,12 @@ test_bind_manager::test_add_bind() {
   CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("127.0.0.1")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv6_lo", 100, wrap_ai_get_first_sa("::1").get(), 0));
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv6_lo", 100, wrap_ai_get_first_sa("ff01::1").get(), 0));
 
   CPPUNIT_ASSERT(bm.size() == 4);
   CPPUNIT_ASSERT(bm.back().name == "ipv6_lo");
   CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v6only));
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("::1")));
+  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("ff01::1")));
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 }
 
@@ -138,6 +127,7 @@ void
 test_bind_manager::test_add_bind_error() {
   torrent::bind_manager bm;
 
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0));
   CPPUNIT_ASSERT_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0), torrent::input_error);
 
   bm.clear();
@@ -162,8 +152,6 @@ void
 test_bind_manager::test_add_bind_priority() {
   torrent::bind_manager bm;
   torrent::sa_unique_ptr sa = wrap_ai_get_first_sa("0.0.0.0");
-
-  bm.clear();
 
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("c_1", 100, sa.get(), 0));
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("c_2", 100, sa.get(), 0));
@@ -200,4 +188,36 @@ test_bind_manager::test_add_bind_v4mapped() {
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin_v4mapped_bc", 100, wrap_ai_get_first_sa("::ffff:255.255.255.255").get(), 0), torrent::input_error);
+}
+
+int
+mock_fd__close(int fildes) {
+  return mock_call<int>(&torrent::fd__close, fildes);
+}
+
+int
+mock_fd__socket(int domain, int type, int protocol) {
+  return mock_call<int>(&torrent::fd__socket, domain, type, protocol);
+}
+
+void
+test_bind_manager::test_connect_socket() {
+  // mock_init_map(&torrent::fd__close);
+  // mock_expect(&torrent::fd__close, -1, 20);
+  // mock_expect(&torrent::fd__close, 0, 10);
+
+  // CPPUNIT_ASSERT(mock_fd__close(20) == -1);
+  // CPPUNIT_ASSERT(mock_fd__close(10) == 0);
+
+  mock_init_map(&torrent::fd__socket);
+  mock_expect(&torrent::fd__socket, -1, 0, 0, 0);
+
+  CPPUNIT_ASSERT(mock_fd__socket(0, 0, 0) == -1);
+
+  // torrent::bind_manager bm;
+  // bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
+
+  // CPPUNIT_ASSERT(bm.connect_socket(wrap_ai_get_first_sa("1.2.3.4").get(), 0) == -1);
+
+  mock_cleanup_map(&torrent::fd__socket);
 }

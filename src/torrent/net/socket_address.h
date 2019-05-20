@@ -198,6 +198,8 @@ inline bool sin6p_equal_addr(const sin6_unique_ptr& lhs, const c_sin6_unique_ptr
 inline bool sin6p_equal_addr(const c_sin6_unique_ptr& lhs, const sin6_unique_ptr& rhs) { return sin6_equal_addr(lhs.get(), rhs.get()); }
 inline bool sin6p_equal_addr(const c_sin6_unique_ptr& lhs, const c_sin6_unique_ptr& rhs) { return sin6_equal_addr(lhs.get(), rhs.get()); }
 
+inline std::string sap_addr_str(const sa_unique_ptr& sap) { return sa_addr_str(sap.get()); }
+inline std::string sap_addr_str(const c_sa_unique_ptr& sap) { return sa_addr_str(sap.get()); }
 inline std::string sap_pretty_str(const sa_unique_ptr& sap) { return sa_pretty_str(sap.get()); }
 inline std::string sap_pretty_str(const c_sa_unique_ptr& sap) { return sa_pretty_str(sap.get()); }
 

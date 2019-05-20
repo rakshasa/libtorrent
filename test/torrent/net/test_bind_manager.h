@@ -12,6 +12,8 @@ class test_bind_manager : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_add_bind_priority);
   CPPUNIT_TEST(test_add_bind_v4mapped);
 
+  CPPUNIT_TEST(test_connect_socket);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -26,4 +28,6 @@ public:
   void test_add_bind_error();
   void test_add_bind_priority();
   void test_add_bind_v4mapped();
+
+  void test_connect_socket();
 };

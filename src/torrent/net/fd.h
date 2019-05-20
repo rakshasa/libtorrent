@@ -25,6 +25,11 @@ bool fd_connect(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
+extern "C" {
+  [[gnu::weak]] int fd__close(int fildes) LIBTORRENT_EXPORT;
+  [[gnu::weak]] int fd__socket(int domain, int type, int protocol) LIBTORRENT_EXPORT;
+}
+
 inline fd_flags
 operator |(fd_flags lhs, fd_flags rhs) {
   return static_cast<fd_flags>(static_cast<int>(lhs) | static_cast<int>(rhs));

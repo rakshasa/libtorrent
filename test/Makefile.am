@@ -18,6 +18,8 @@ LibTorrentTest_LDADD = \
 	../src/torrent/utils/libsub_torrentutils.la
 
 LibTorrentTest_SOURCES = \
+	helpers/mock_function.cc \
+	helpers/mock_function.h \
 	helpers/network.h \
 	\
 	../src/thread_disk.cc \
