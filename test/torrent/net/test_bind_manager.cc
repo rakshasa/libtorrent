@@ -2,6 +2,8 @@
 
 #include "test_bind_manager.h"
 
+#include <fcntl.h>
+
 #include "helpers/mock_function.h"
 #include "helpers/network.h"
 
@@ -190,34 +192,21 @@ test_bind_manager::test_add_bind_v4mapped() {
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin_v4mapped_bc", 100, wrap_ai_get_first_sa("::ffff:255.255.255.255").get(), 0), torrent::input_error);
 }
 
-int
-mock_fd__close(int fildes) {
-  return mock_call<int>(&torrent::fd__close, fildes);
-}
-
-int
-mock_fd__socket(int domain, int type, int protocol) {
-  return mock_call<int>(&torrent::fd__socket, domain, type, protocol);
-}
-
 void
 test_bind_manager::test_connect_socket() {
-  // mock_init_map(&torrent::fd__close);
-  // mock_expect(&torrent::fd__close, -1, 20);
-  // mock_expect(&torrent::fd__close, 0, 10);
-
-  // CPPUNIT_ASSERT(mock_fd__close(20) == -1);
-  // CPPUNIT_ASSERT(mock_fd__close(10) == 0);
+  // TODO: Expect helper methods.
 
   mock_init_map(&torrent::fd__socket);
-  mock_expect(&torrent::fd__socket, -1, 0, 0, 0);
+  mock_init_map(&torrent::fd__fcntl_int);
+  mock_expect(&torrent::fd__socket, 10, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+  mock_expect(&torrent::fd__fcntl_int, 0, 10, F_SETFL, O_NONBLOCK);
 
-  CPPUNIT_ASSERT(mock_fd__socket(0, 0, 0) == -1);
+  torrent::bind_manager bm;
+  bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
 
-  // torrent::bind_manager bm;
-  // bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
-
-  // CPPUNIT_ASSERT(bm.connect_socket(wrap_ai_get_first_sa("1.2.3.4").get(), 0) == -1);
+  // TODO: require flag_stream, non_block.
+  CPPUNIT_ASSERT(bm.connect_socket(wrap_ai_get_first_sa("1.2.3.4").get(), 0) == 10);
 
   mock_cleanup_map(&torrent::fd__socket);
+  mock_cleanup_map(&torrent::fd__fcntl_int);
 }

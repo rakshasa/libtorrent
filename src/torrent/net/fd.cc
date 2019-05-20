@@ -47,6 +47,7 @@ namespace torrent {
 
 extern "C" {
   int fd__close(int fildes) { return close(fildes); }
+  int fd__fcntl_int(int fildes, int cmd, int arg) { return fcntl(fildes, cmd, arg); }
   int fd__socket(int domain, int type, int protocol) { return socket(domain, type, protocol); }
 }
 
@@ -116,7 +117,7 @@ fd_close(int fd) {
 
 bool
 fd_set_nonblock(int fd) {
-  if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
+  if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
     LT_LOG_FD_ERROR("fd_set_nonblock failed");
     return false;
   }

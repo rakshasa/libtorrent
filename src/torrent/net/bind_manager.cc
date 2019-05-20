@@ -226,42 +226,30 @@ bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
     if (itr.flags & flag_block_connect)
       continue;
 
-    sa_unique_ptr tmp_sa;
-
-    const sockaddr* sa = connect_sa;
-    fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
-
     if (!validate_bind_flags(itr.flags))
       continue; // TODO: Warn here, do something.
 
-    if ((itr.flags & flag_v4only)) {
-      if (sa_is_v4mapped(sa))
-        sa = (tmp_sa = sa_from_v4mapped(sa)).get();
+    fd_flags open_flags = fd_flag_stream | fd_flag_nonblock;
+    sa_unique_ptr current_sap = sa_convert(connect_sa);
 
-      if (!sa_is_inet(sa))
+    if ((itr.flags & flag_v4only)) {
+      if (!sap_is_inet(current_sap))
         continue;
 
       open_flags = open_flags | fd_flag_v4only;
+    }
 
-    } else if ((itr.flags & flag_v6only)) {
-      if (!sa_is_inet6(sa))
+    if ((itr.flags & flag_v6only)) {
+      if (!sap_is_inet6(current_sap))
         continue;
 
       open_flags = open_flags | fd_flag_v6only;
-
-    } else {
-      if (sa_is_inet(sa))
-        sa = (tmp_sa = sa_to_v4mapped(sa)).get();
-
-      if (!sa_is_inet6(sa))
-        continue; // TODO: Exception here?
     }
 
-    int fd = attempt_open_connect(itr, sa, open_flags);
+    int fd = attempt_open_connect(itr, current_sap.get(), open_flags);
 
-    if (fd != -1) {
+    if (fd != -1)
       return fd;
-    }
   }
 
   LT_LOG("connect_socket failed (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
