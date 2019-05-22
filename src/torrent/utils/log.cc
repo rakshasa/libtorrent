@@ -432,21 +432,16 @@ log_open_gz_file_output(const char* name, const char* filename) {
                                   std::placeholders::_3));
 }
 
-log_buffer*
+std::unique_ptr<log_buffer>
 log_open_log_buffer(const char* name) {
-  log_buffer* buffer = new log_buffer;
+  // TODO: Deregister when deleting.
+  auto buffer = std::unique_ptr<log_buffer>(new log_buffer);
 
-  try {
-    log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer,
-                                    std::placeholders::_1,
-                                    std::placeholders::_2,
-                                    std::placeholders::_3));
-    return buffer;
-
-  } catch (torrent::input_error& e) {
-    delete buffer;
-    throw;
-  }
+  log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer.get(),
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3));
+  return buffer;
 }
 
 }

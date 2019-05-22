@@ -6,7 +6,7 @@
 #include "torrent/net/address_info.h"
 #include "torrent/net/socket_address.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(test_address_info);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_address_info, "torrent/net");
 
 void
 test_address_info::test_basic() {

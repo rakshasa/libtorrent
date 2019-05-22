@@ -3,28 +3,32 @@
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/TestResult.h>
 #include <cppunit/TestResultCollector.h>
+#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
+
+#include "helpers/progress_listener.h"
+
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/net");
 
 int main(int argc, char* argv[])
 {
   CppUnit::TestResult controller;
   CppUnit::TestResultCollector result;
-  CppUnit::BriefTestProgressListener progressListener;
+  progress_listener progress;
 
   controller.addListener( &result );        
-  controller.addListener( &progressListener );
-
-  // Get the top level suite from the registry
-  CppUnit::Test *suite = CppUnit::TestFactoryRegistry::getRegistry().makeTest();
+  controller.addListener( &progress );
 
   // Adds the test to the list of test to run
   CppUnit::TextUi::TestRunner runner;
-  runner.addTest( suite );
+
+  runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
 
   // Change the default outputter to a compiler error format outputter
-  runner.setOutputter( new CppUnit::CompilerOutputter( &runner.result(),
-                                                       std::cerr ) );
+  // runner.setOutputter( new CppUnit::CompilerOutputter( &runner.result(),
+  //                                                      std::cerr ) );
+
   try {
     std::cout << "Running ";
     runner.run( controller );

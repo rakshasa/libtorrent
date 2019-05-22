@@ -3,13 +3,13 @@
 
 #include <functional>
 #include <map>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <cppunit/extensions/HelperMacros.h>
 
 template<typename R, typename... Args>
 struct mock_function_map {
-  // TODO: Add string name?
   typedef std::tuple<R, Args...> call_type;
   typedef std::vector<call_type> call_list_type;
   typedef std::map<void*, call_list_type> func_map_type;
@@ -20,11 +20,8 @@ struct mock_function_map {
     // Add std::function to size and clear queue.
   }
 
-  static void cleanup(void* fn) {
-    auto itr = functions.find(fn);
-
-    CPPUNIT_ASSERT_MESSAGE("mock_cleanup_map expected function calls not completed",
-                           itr == functions.end());
+  static bool cleanup(void* fn) {
+    return functions.erase(fn) == 0;
   }
 
   static R ret_erase(void* fn) {
@@ -68,16 +65,13 @@ struct mock_function_type<void, Args...> {
   static void ret_erase(void* fn) { type::ret_erase(fn); }
 };
 
-template<typename R, typename... Args>
-void
-mock_init_map(R fn[[gnu::unused]](Args...)) {
-  mock_function_type<R, Args...>::type::functions.clear();
-}
+void mock_init();
+void mock_cleanup();
 
 template<typename R, typename... Args>
-void
+bool
 mock_cleanup_map(R fn[[gnu::unused]](Args...)) {
-  mock_function_type<R, Args...>::type::cleanup(reinterpret_cast<void*>(fn));
+  return mock_function_type<R, Args...>::type::cleanup(reinterpret_cast<void*>(fn));
 }
 
 template<typename R, typename... Args>
@@ -96,14 +90,13 @@ mock_expect(void fn(Args...), Args... args) {
 
 template<typename R, typename... Args>
 auto
-mock_call(R fn(Args...), Args... args) -> decltype(fn(args...)) {
+mock_call(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)) {
   typedef mock_function_type<R, Args...> mock_type;
-
   auto itr = mock_type::type::functions.find(reinterpret_cast<void*>(fn));
 
-  CPPUNIT_ASSERT_MESSAGE("mock_call expected function calls exhausted",
+  CPPUNIT_ASSERT_MESSAGE(("mock_call expected function calls exhausted by '" + name + "'").c_str(),
                          itr != mock_type::type::functions.end());
-  CPPUNIT_ASSERT_MESSAGE("mock_call expected function call arguments mismatch",
+  CPPUNIT_ASSERT_MESSAGE(("mock_call expected function call arguments mismatch for '" + name + "'").c_str(),
                          mock_type::compare_expected(itr->second.front(), args...));
 
   return mock_type::ret_erase(reinterpret_cast<void*>(fn));

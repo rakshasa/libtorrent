@@ -227,6 +227,8 @@ const char* option_list_log_group[] = {
   "instrumentation_polling",
   "instrumentation_transfers",
 
+  "mock_calls",
+
   "peer_list_events",
   "peer_list_address",
 

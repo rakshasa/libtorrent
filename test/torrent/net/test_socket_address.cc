@@ -6,7 +6,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(test_socket_address);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_socket_address, "torrent/net");
 
 void
 test_socket_address::test_make() {

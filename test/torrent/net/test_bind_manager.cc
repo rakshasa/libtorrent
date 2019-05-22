@@ -11,8 +11,9 @@
 #include "torrent/net/bind_manager.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/utils/log.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(test_bind_manager);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_bind_manager, "torrent/net");
 
 inline bool
 compare_bind_base(const torrent::bind_struct& bs,
@@ -194,12 +195,13 @@ test_bind_manager::test_add_bind_v4mapped() {
 
 void
 test_bind_manager::test_connect_socket() {
-  // TODO: Expect helper methods.
+  // TODO: Add log linking helper methods.
+  log_add_group_output(torrent::LOG_CONNECTION_BIND, "test_output");
+  log_add_group_output(torrent::LOG_CONNECTION_FD, "test_output");
 
-  mock_init_map(&torrent::fd__socket);
-  mock_init_map(&torrent::fd__fcntl_int);
-  mock_expect(&torrent::fd__socket, 10, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 10, F_SETFL, O_NONBLOCK);
+  mock_init();
+  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
 
   torrent::bind_manager bm;
   bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
@@ -207,6 +209,5 @@ test_bind_manager::test_connect_socket() {
   // TODO: require flag_stream, non_block.
   CPPUNIT_ASSERT(bm.connect_socket(wrap_ai_get_first_sa("1.2.3.4").get(), 0) == 10);
 
-  mock_cleanup_map(&torrent::fd__socket);
-  mock_cleanup_map(&torrent::fd__fcntl_int);
+  mock_cleanup();
 }

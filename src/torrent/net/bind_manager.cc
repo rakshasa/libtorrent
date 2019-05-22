@@ -173,7 +173,7 @@ bind_manager::add_bind(const std::string& name, uint16_t priority, const sockadd
       flags |= flag_v6only;
   }
 
-  LT_LOG("bind added (flags:0x%x address:%s)", flags, sap_pretty_str(sap).c_str());
+  LT_LOG("added binding (flags:0x%x address:%s)", flags, sap_pretty_str(sap).c_str());
 
   // TODO: Verify passed flags, etc.
   // TODO: Sanitize the flags.

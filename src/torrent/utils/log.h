@@ -40,6 +40,7 @@
 #include <array>
 #include <bitset>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -126,6 +127,8 @@ enum {
   LOG_INSTRUMENTATION_CHOKE,
   LOG_INSTRUMENTATION_POLLING,
   LOG_INSTRUMENTATION_TRANSFERS,
+
+  LOG_MOCK_CALLS,
 
   LOG_PEER_LIST_EVENTS,
   LOG_PEER_LIST_ADDRESS,
@@ -227,7 +230,7 @@ private:
 
 typedef std::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
 
-extern log_group_list  log_groups LIBTORRENT_EXPORT;
+extern log_group_list log_groups LIBTORRENT_EXPORT;
 
 void log_initialize() LIBTORRENT_EXPORT;
 void log_cleanup() LIBTORRENT_EXPORT;
@@ -241,9 +244,10 @@ void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_add_child(int group, int child) LIBTORRENT_EXPORT;
 void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
 
-void        log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
-void        log_open_gz_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
-log_buffer* log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
+void log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
+void log_open_gz_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
+
+std::unique_ptr<log_buffer> log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
 
 }
 

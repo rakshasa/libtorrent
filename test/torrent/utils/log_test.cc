@@ -38,6 +38,7 @@ void
 utils_log_test::setUp() {
   // Don't initialize since this creates the group->child connections.
   //  torrent::log_initialize();
+  torrent::log_cleanup();
 }
 
 void
