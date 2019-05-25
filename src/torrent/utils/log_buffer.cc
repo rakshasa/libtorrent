@@ -38,8 +38,7 @@
 
 #include "log_buffer.h"
 
-#include <functional>
-
+#include "log.h"
 #include "globals.h"
 
 namespace torrent {
@@ -69,6 +68,19 @@ log_buffer::lock_and_push_log(const char* data, size_t length, int group) {
     m_slot_update();
 
   unlock();
+}
+
+
+std::unique_ptr<log_buffer>
+log_open_log_buffer(const char* name) {
+  // TODO: Deregister when deleting.
+  auto buffer = std::unique_ptr<log_buffer>(new log_buffer);
+
+  log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer.get(),
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3));
+  return buffer;
 }
 
 }
