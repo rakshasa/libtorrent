@@ -11,6 +11,38 @@
 
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/net");
 
+#include <algorithm>
+
+static void
+dump_failure_log(const failure_type& failure) {
+  if (failure.log->empty())
+    return;
+
+  std::cout << std::endl << failure.test->failedTestName() << std::endl;
+
+  // Doesn't print dump messages as log_buffer drops them.
+  std::for_each(failure.log->begin(), failure.log->end(), [](const torrent::log_entry& entry) {
+      std::cout << entry.timestamp << ' ' << entry.message << '\n';
+    });
+
+  std::cout << std::flush;
+}
+
+static void
+dump_failures(const failure_list_type& failures) {
+  if (failures.empty())
+    return;
+
+  std::cout << std::endl
+            << "=================" << std::endl
+            << "Failed Test Logs:" << std::endl
+            << "=================" << std::endl;
+
+  std::for_each(failures.begin(), failures.end(), [](const failure_type& failure) {
+      dump_failure_log(failure);
+    });
+}
+
 int main(int argc, char* argv[])
 {
   CppUnit::TestResult controller;
@@ -32,9 +64,12 @@ int main(int argc, char* argv[])
   try {
     std::cout << "Running ";
     runner.run( controller );
- 
     std::cerr << std::endl;
  
+    // TODO: Make outputter.
+    dump_failures(progress.failures());
+    std::cerr << std::endl;
+
     // Print test in a compiler compatible format.
     CppUnit::CompilerOutputter outputter( &result, std::cerr );
     outputter.write();                      

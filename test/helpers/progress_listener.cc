@@ -22,22 +22,21 @@ progress_listener::startTest(CppUnit::Test *test) {
 void
 progress_listener::addFailure(const CppUnit::TestFailure &failure) {
   std::cout << " : " << (failure.isError() ? "error" : "assertion");
+
   m_last_test_failed = true;
+  m_failures.push_back(std::move(failure_type{test_failure_p(failure.clone()), std::move(m_current_log_buffer)}));
 }
 
 void
 progress_listener::endTest(CppUnit::Test *test) {
   std::cout << (m_last_test_failed ? "" : " : OK") << std::endl;
 
-  if (!m_current_log_buffer->empty()) {
-    // Doesn't print dump messages as log_buffer drops them.
-    std::for_each(m_current_log_buffer->begin(), m_current_log_buffer->end(), [](const torrent::log_entry& entry) {
-        std::cout << entry.timestamp << ' ' << entry.message << '\n';
-      });
-
-    std::cout << std::flush;
-  }
-
   m_current_log_buffer.reset();
   torrent::log_cleanup();
+}
+
+void
+progress_listener::startSuite(CppUnit::Test *suite) {
+  // TODO: When suite is a namespace handle differently.
+  std::cout << std::endl << suite->getName() << " Suite:" << std::endl;
 }
