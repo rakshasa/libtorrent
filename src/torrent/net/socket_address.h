@@ -76,6 +76,10 @@ void        sa_clear_inet6(sockaddr_in6* sa) LIBTORRENT_EXPORT;
 uint16_t    sa_port(const sockaddr* sa) LIBTORRENT_EXPORT;
 void        sa_set_port(sockaddr* sa, uint16_t port) LIBTORRENT_EXPORT;
 
+bool        sa_equal(const sockaddr* lhs, const sockaddr* rhs) LIBTORRENT_EXPORT;
+bool        sin_equal(const sockaddr_in* lhs, const sockaddr_in* rhs) LIBTORRENT_EXPORT;
+bool        sin6_equal(const sockaddr_in6* lhs, const sockaddr_in6* rhs) LIBTORRENT_EXPORT;
+
 bool        sa_equal_addr(const sockaddr* lhs, const sockaddr* rhs) LIBTORRENT_EXPORT;
 bool        sin_equal_addr(const sockaddr_in* lhs, const sockaddr_in* rhs) LIBTORRENT_EXPORT;
 bool        sin6_equal_addr(const sockaddr_in6* lhs, const sockaddr_in6* rhs) LIBTORRENT_EXPORT;
@@ -183,16 +187,27 @@ inline uint16_t sap_port(const sa_unique_ptr& sap) { return sa_port(sap.get()); 
 inline uint16_t sap_port(const c_sa_unique_ptr& sap) { return sa_port(sap.get()); }
 inline void sap_set_port(const sa_unique_ptr& sap, uint16_t port) { sa_set_port(sap.get(), port); }
 
+inline bool sap_equal(const sa_unique_ptr& lhs, const sa_unique_ptr& rhs) { return sa_equal(lhs.get(), rhs.get()); }
+inline bool sap_equal(const sa_unique_ptr& lhs, const c_sa_unique_ptr& rhs) { return sa_equal(lhs.get(), rhs.get()); }
+inline bool sap_equal(const c_sa_unique_ptr& lhs, const sa_unique_ptr& rhs) { return sa_equal(lhs.get(), rhs.get()); }
+inline bool sap_equal(const c_sa_unique_ptr& lhs, const c_sa_unique_ptr& rhs) { return sa_equal(lhs.get(), rhs.get()); }
+inline bool sinp_equal(const sin_unique_ptr& lhs, const sin_unique_ptr& rhs) { return sin_equal(lhs.get(), rhs.get()); }
+inline bool sinp_equal(const sin_unique_ptr& lhs, const c_sin_unique_ptr& rhs) { return sin_equal(lhs.get(), rhs.get()); }
+inline bool sinp_equal(const c_sin_unique_ptr& lhs, const sin_unique_ptr& rhs) { return sin_equal(lhs.get(), rhs.get()); }
+inline bool sinp_equal(const c_sin_unique_ptr& lhs, const c_sin_unique_ptr& rhs) { return sin_equal(lhs.get(), rhs.get()); }
+inline bool sin6p_equal(const sin6_unique_ptr& lhs, const sin6_unique_ptr& rhs) { return sin6_equal(lhs.get(), rhs.get()); }
+inline bool sin6p_equal(const sin6_unique_ptr& lhs, const c_sin6_unique_ptr& rhs) { return sin6_equal(lhs.get(), rhs.get()); }
+inline bool sin6p_equal(const c_sin6_unique_ptr& lhs, const sin6_unique_ptr& rhs) { return sin6_equal(lhs.get(), rhs.get()); }
+inline bool sin6p_equal(const c_sin6_unique_ptr& lhs, const c_sin6_unique_ptr& rhs) { return sin6_equal(lhs.get(), rhs.get()); }
+
 inline bool sap_equal_addr(const sa_unique_ptr& lhs, const sa_unique_ptr& rhs) { return sa_equal_addr(lhs.get(), rhs.get()); }
 inline bool sap_equal_addr(const sa_unique_ptr& lhs, const c_sa_unique_ptr& rhs) { return sa_equal_addr(lhs.get(), rhs.get()); }
 inline bool sap_equal_addr(const c_sa_unique_ptr& lhs, const sa_unique_ptr& rhs) { return sa_equal_addr(lhs.get(), rhs.get()); }
 inline bool sap_equal_addr(const c_sa_unique_ptr& lhs, const c_sa_unique_ptr& rhs) { return sa_equal_addr(lhs.get(), rhs.get()); }
-
 inline bool sinp_equal_addr(const sin_unique_ptr& lhs, const sin_unique_ptr& rhs) { return sin_equal_addr(lhs.get(), rhs.get()); }
 inline bool sinp_equal_addr(const sin_unique_ptr& lhs, const c_sin_unique_ptr& rhs) { return sin_equal_addr(lhs.get(), rhs.get()); }
 inline bool sinp_equal_addr(const c_sin_unique_ptr& lhs, const sin_unique_ptr& rhs) { return sin_equal_addr(lhs.get(), rhs.get()); }
 inline bool sinp_equal_addr(const c_sin_unique_ptr& lhs, const c_sin_unique_ptr& rhs) { return sin_equal_addr(lhs.get(), rhs.get()); }
-
 inline bool sin6p_equal_addr(const sin6_unique_ptr& lhs, const sin6_unique_ptr& rhs) { return sin6_equal_addr(lhs.get(), rhs.get()); }
 inline bool sin6p_equal_addr(const sin6_unique_ptr& lhs, const c_sin6_unique_ptr& rhs) { return sin6_equal_addr(lhs.get(), rhs.get()); }
 inline bool sin6p_equal_addr(const c_sin6_unique_ptr& lhs, const sin6_unique_ptr& rhs) { return sin6_equal_addr(lhs.get(), rhs.get()); }

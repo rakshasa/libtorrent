@@ -356,6 +356,41 @@ sa_set_port(sockaddr* sa, uint16_t port) {
 }
 
 bool
+sa_equal(const sockaddr* lhs, const sockaddr* rhs) {
+  switch(rhs->sa_family) {
+  case AF_INET:
+  case AF_INET6:
+  case AF_UNSPEC:
+    break;
+  default:
+    throw internal_error("torrent::sa_equal: rhs sockaddr is not a valid family");
+  }
+
+  switch(lhs->sa_family) {
+  case AF_INET:
+    return lhs->sa_family == rhs->sa_family &&
+      sin_equal(reinterpret_cast<const sockaddr_in*>(lhs), reinterpret_cast<const sockaddr_in*>(rhs));
+  case AF_INET6:
+    return lhs->sa_family == rhs->sa_family &&
+      sin6_equal(reinterpret_cast<const sockaddr_in6*>(lhs), reinterpret_cast<const sockaddr_in6*>(rhs));
+  case AF_UNSPEC:
+    return lhs->sa_family == rhs->sa_family;
+  default:
+    throw internal_error("torrent::sa_equal: lhs sockaddr is not a valid family");
+  }
+}
+
+bool
+sin_equal(const sockaddr_in* lhs, const sockaddr_in* rhs) {
+  return lhs->sin_port == rhs->sin_port && lhs->sin_addr.s_addr == rhs->sin_addr.s_addr;
+}
+
+bool
+sin6_equal(const sockaddr_in6* lhs, const sockaddr_in6* rhs) {
+  return lhs->sin6_port == rhs->sin6_port && std::equal(lhs->sin6_addr.s6_addr, lhs->sin6_addr.s6_addr + 16, rhs->sin6_addr.s6_addr);
+}
+
+bool
 sa_equal_addr(const sockaddr* lhs, const sockaddr* rhs) {
   switch(rhs->sa_family) {
   case AF_INET:

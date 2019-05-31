@@ -1,6 +1,6 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "helpers/test_fixture.h"
 
-class test_bind_manager : public CppUnit::TestFixture {
+class test_bind_manager : public test_fixture {
   CPPUNIT_TEST_SUITE(test_bind_manager);
 
   CPPUNIT_TEST(test_basic);
@@ -13,13 +13,11 @@ class test_bind_manager : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_add_bind_v4mapped);
 
   CPPUNIT_TEST(test_connect_socket);
+  CPPUNIT_TEST(test_connect_socket_error);
 
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp() {}
-  void tearDown() {}
-
   void test_basic();
   void test_backlog();
   void test_flags();
@@ -30,4 +28,5 @@ public:
   void test_add_bind_v4mapped();
 
   void test_connect_socket();
+  void test_connect_socket_error();
 };

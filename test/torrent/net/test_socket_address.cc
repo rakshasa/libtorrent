@@ -98,6 +98,49 @@ test_socket_address::test_sin6_from_sa() {
 }
 
 void
+test_socket_address::test_sa_equal() {
+  CPPUNIT_ASSERT(torrent::sap_equal(torrent::sa_make_unspec(), torrent::sa_make_unspec()));
+  CPPUNIT_ASSERT(torrent::sap_equal(torrent::sa_make_inet(), torrent::sa_make_inet()));
+  CPPUNIT_ASSERT(torrent::sap_equal(torrent::sa_make_inet6(), torrent::sa_make_inet6()));
+
+  CPPUNIT_ASSERT(!torrent::sap_equal(torrent::sa_make_unspec(), torrent::sa_make_inet()));
+  CPPUNIT_ASSERT(!torrent::sap_equal(torrent::sa_make_unspec(), torrent::sa_make_inet6()));
+  CPPUNIT_ASSERT(!torrent::sap_equal(torrent::sa_make_inet(), torrent::sa_make_inet6()));
+  CPPUNIT_ASSERT(!torrent::sap_equal(torrent::sa_make_inet6(), torrent::sa_make_inet()));
+
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_sa("1.2.3.4"), wrap_ai_get_first_sa("1.2.3.4")));
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_sa("1.2.3.4"), wrap_ai_get_first_c_sa("1.2.3.4")));
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_c_sa("1.2.3.4"), wrap_ai_get_first_sa("1.2.3.4")));
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_c_sa("1.2.3.4"), wrap_ai_get_first_c_sa("1.2.3.4")));
+
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("1.2.3.4"), wrap_ai_get_first_sa("100.2.3.4")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("1.2.3.4"), wrap_ai_get_first_c_sa("100.2.3.4")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_c_sa("1.2.3.4"), wrap_ai_get_first_sa("100.2.3.4")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_c_sa("1.2.3.4"), wrap_ai_get_first_c_sa("100.2.3.4")));
+
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_sa("ff01::1"), wrap_ai_get_first_sa("ff01::1")));
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_sa("ff01::1"), wrap_ai_get_first_c_sa("ff01::1")));
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_c_sa("ff01::1"), wrap_ai_get_first_sa("ff01::1")));
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_c_sa("ff01::1"), wrap_ai_get_first_c_sa("ff01::1")));
+
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("ff01::1"), wrap_ai_get_first_sa("ff01::100")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("ff01::1"), wrap_ai_get_first_c_sa("ff01::100")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_c_sa("ff01::1"), wrap_ai_get_first_sa("ff01::100")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_c_sa("ff01::1"), wrap_ai_get_first_c_sa("ff01::100")));
+
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_sa("1.2.3.4", "5555"), wrap_ai_get_first_sa("1.2.3.4", "5555")));
+  CPPUNIT_ASSERT(torrent::sap_equal(wrap_ai_get_first_sa("ff01::1", "5555"), wrap_ai_get_first_sa("ff01::1", "5555")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("1.2.3.4", "5555"), wrap_ai_get_first_sa("1.2.3.4", "5556")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("ff01::1", "5555"), wrap_ai_get_first_sa("ff01::1", "5556")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("1.2.3.4", "5555"), wrap_ai_get_first_sa("100.2.3.4", "5555")));
+  CPPUNIT_ASSERT(!torrent::sap_equal(wrap_ai_get_first_sa("ff01::1", "5555"), wrap_ai_get_first_sa("ff01::100", "5555")));
+
+  CPPUNIT_ASSERT_THROW(torrent::sap_equal(torrent::sa_make_unix(""), torrent::sa_make_unix("")), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_equal(torrent::sa_make_unix(""), wrap_ai_get_first_sa("ff01::1")), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(torrent::sap_equal(wrap_ai_get_first_sa("ff01::1"), torrent::sa_make_unix("")), torrent::internal_error);
+}
+
+void
 test_socket_address::test_sa_equal_addr() {
   CPPUNIT_ASSERT(torrent::sap_equal_addr(torrent::sa_make_unspec(), torrent::sa_make_unspec()));
   CPPUNIT_ASSERT(torrent::sap_equal_addr(torrent::sa_make_inet(), torrent::sa_make_inet()));

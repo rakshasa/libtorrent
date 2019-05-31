@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <stdexcept>
 #include <cppunit/BriefTestProgressListener.h>
 #include <cppunit/CompilerOutputter.h>
@@ -55,7 +56,12 @@ int main(int argc, char* argv[])
   // Adds the test to the list of test to run
   CppUnit::TextUi::TestRunner runner;
 
-  runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
+  auto test_name = std::getenv("TEST_NAME");
+
+  if (test_name != NULL)
+    runner.addTest(CppUnit::TestFactoryRegistry::getRegistry(test_name).makeTest());
+  else
+    runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
 
   // Change the default outputter to a compiler error format outputter
   // runner.setOutputter( new CppUnit::CompilerOutputter( &runner.result(),

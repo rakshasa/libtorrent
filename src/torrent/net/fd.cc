@@ -47,6 +47,7 @@ namespace torrent {
 
 extern "C" {
   int fd__close(int fildes) { return close(fildes); }
+  int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return connect(socket, address, address_len); }
   int fd__fcntl_int(int fildes, int cmd, int arg) { return fcntl(fildes, cmd, arg); }
   int fd__socket(int domain, int type, int protocol) { return socket(domain, type, protocol); }
 }
@@ -154,7 +155,7 @@ fd_set_v6only(int fd, bool state) {
 
 bool
 fd_connect(int fd, const sockaddr* sa) {
-  if (::connect(fd, sa, sa_length(sa)) == 0) {
+  if (fd__connect(fd, sa, sa_length(sa)) == 0) {
     LT_LOG_FD_SOCKADDR("fd_connect succeeded");
     return true;
   }

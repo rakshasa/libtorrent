@@ -23,6 +23,8 @@ LibTorrentTest_SOURCES = \
 	helpers/network.h \
 	helpers/progress_listener.cc \
 	helpers/progress_listener.h \
+	helpers/test_fixture.cc \
+	helpers/test_fixture.h \
 	\
 	../src/thread_disk.cc \
 	../src/thread_disk.h \

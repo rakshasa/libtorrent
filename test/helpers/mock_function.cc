@@ -4,6 +4,7 @@
 
 #include <fcntl.h>
 #include <iostream>
+#include <torrent/net/socket_address.h>
 #include <torrent/net/fd.h>
 #include <torrent/utils/log.h>
 
@@ -34,6 +35,11 @@ extern "C" {
   int fd__close(int fildes) {
     MOCK_LOG("filedes:%i", fildes);
     return mock_call<int>(__func__, &torrent::fd__close, fildes);
+  }
+
+  int fd__connect(int socket, const sockaddr *address, socklen_t address_len) {
+    MOCK_LOG("socket:%i address:%s address_len:%u", socket, torrent::sa_pretty_str(address).c_str(), (unsigned int)address_len);
+    return mock_call<int>(__func__, &torrent::fd__connect, socket, address, address_len);
   }
 
   int fd__fcntl_int(int fildes, int cmd, int arg) {

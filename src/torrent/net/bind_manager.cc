@@ -210,8 +210,13 @@ attempt_open_connect(const bind_struct& bs, const sockaddr* sockaddr, fd_flags f
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
-  if (sa_is_any(connect_sa) || !(sa_is_inet(connect_sa) || sa_is_inet6(connect_sa))) {
+  if (!sa_is_inet(connect_sa) && !sa_is_inet6(connect_sa)) {
     LT_LOG("connect_socket called with invalid sockaddr (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+    return -1;
+  }
+
+  if (sa_is_any(connect_sa) || sa_port(connect_sa) == 0) {
+    LT_LOG("connect_socket called with invalid address (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
     return -1;
   }
 

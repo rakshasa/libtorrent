@@ -5,8 +5,10 @@
 #include <map>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <cppunit/extensions/HelperMacros.h>
+#include <torrent/net/socket_address.h>
 
 template<typename R, typename... Args>
 struct mock_function_map {
@@ -36,19 +38,40 @@ struct mock_function_map {
   }
 };
 
-struct mock_void {
-  bool operator == (mock_void rhs) const { return true; }
-};
-
 template<typename R, typename... Args>
 typename mock_function_map<R, Args...>::func_map_type mock_function_map<R, Args...>::functions;
+
+struct mock_void {};
+
+template <typename Arg>
+inline bool mock_compare_arg(const Arg& lhs, const Arg& rhs) { return lhs == rhs; }
+inline bool mock_compare_arg(const sockaddr* lhs, const sockaddr* rhs) {
+  return lhs != nullptr && rhs != nullptr && torrent::sa_equal(lhs, rhs);
+}
+
+template <int I, typename A, typename... Args>
+typename std::enable_if<I == 1, int>::type
+mock_compare_tuple(const std::tuple<A, Args...>& lhs, const std::tuple<Args...>& rhs) {
+  return mock_compare_arg(std::get<I>(lhs), std::get<I - 1>(rhs)) ? 0 : 1;
+}
+
+template <int I, typename A, typename... Args>
+typename std::enable_if<1 < I, int>::type
+mock_compare_tuple(const std::tuple<A, Args...>& lhs, const std::tuple<Args...>& rhs) {
+  auto res = mock_compare_tuple<I - 1>(lhs, rhs);
+
+  if (res != 0)
+    return res;
+
+  return mock_compare_arg(std::get<I>(lhs), std::get<I - 1>(rhs)) ? 0 : I;
+}
 
 template<typename R, typename... Args>
 struct mock_function_type {
   typedef mock_function_map<R, Args...> type;
 
-  static bool compare_expected(typename type::call_type lhs, Args... rhs) {
-    return lhs == std::tuple_cat(std::tuple<R>(std::get<0>(lhs)), std::tuple<Args...>(rhs...));
+  static int compare_expected(typename type::call_type lhs, Args... rhs) {
+    return mock_compare_tuple<sizeof...(Args)>(lhs, std::make_tuple(rhs...));
   }
 
   static R ret_erase(void* fn) { return type::ret_erase(fn); }
@@ -58,8 +81,8 @@ template<typename... Args>
 struct mock_function_type<void, Args...> {
   typedef mock_function_map<mock_void, Args...> type;
 
-  static bool compare_expected(typename type::call_type lhs, Args... rhs) {
-    return lhs == std::tuple_cat(std::make_tuple(mock_void()), std::tuple<Args...>(rhs...));
+  static int compare_expected(typename type::call_type lhs, Args... rhs) {
+    return mock_compare_tuple<sizeof...(Args)>(lhs, std::make_tuple(rhs...));
   }
 
   static void ret_erase(void* fn) { type::ret_erase(fn); }
@@ -96,8 +119,10 @@ mock_call(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)
 
   CPPUNIT_ASSERT_MESSAGE(("mock_call expected function calls exhausted by '" + name + "'").c_str(),
                          itr != mock_type::type::functions.end());
-  CPPUNIT_ASSERT_MESSAGE(("mock_call expected function call arguments mismatch for '" + name + "'").c_str(),
-                         mock_type::compare_expected(itr->second.front(), args...));
+
+  auto mismatch_arg = mock_type::compare_expected(itr->second.front(), args...);
+  CPPUNIT_ASSERT_MESSAGE(("mock_call expected function call argument " + std::to_string(mismatch_arg) + " mismatch for '" + name + "'").c_str(),
+                         mismatch_arg == 0);
 
   return mock_type::ret_erase(reinterpret_cast<void*>(fn));
 }

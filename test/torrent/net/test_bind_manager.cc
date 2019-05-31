@@ -4,14 +4,12 @@
 
 #include <fcntl.h>
 
-#include "helpers/mock_function.h"
 #include "helpers/network.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/net/bind_manager.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
-#include "torrent/utils/log.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_bind_manager, "torrent/net");
 
@@ -195,19 +193,29 @@ test_bind_manager::test_add_bind_v4mapped() {
 
 void
 test_bind_manager::test_connect_socket() {
-  // TODO: Add log linking helper methods.
-  log_add_group_output(torrent::LOG_CONNECTION_BIND, "test_output");
-  log_add_group_output(torrent::LOG_CONNECTION_FD, "test_output");
-
-  mock_init();
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-
   torrent::bind_manager bm;
   bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
 
-  // TODO: require flag_stream, non_block.
-  CPPUNIT_ASSERT(bm.connect_socket(wrap_ai_get_first_sa("1.2.3.4").get(), 0) == 10);
+  auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
+  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin_test.get(), (socklen_t)sizeof(sockaddr_in));
+  CPPUNIT_ASSERT(bm.connect_socket(sin_test.get(), 0) == 1000);
 
-  mock_cleanup();
+  auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
+  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_test.get(), (socklen_t)sizeof(sockaddr_in6));
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_test.get(), 0) == 1000);
+}
+
+void
+test_bind_manager::test_connect_socket_error() {
+  torrent::bind_manager bm;
+  bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
+
+  auto sin_no_port = wrap_ai_get_first_sa("1.2.3.4");
+  auto sin6_no_port = wrap_ai_get_first_sa("ff01::1");
+  CPPUNIT_ASSERT(bm.connect_socket(sin_no_port.get(), 0) == -1);
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_no_port.get(), 0) == -1);
 }

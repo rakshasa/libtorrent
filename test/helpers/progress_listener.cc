@@ -38,5 +38,5 @@ progress_listener::endTest(CppUnit::Test *test) {
 void
 progress_listener::startSuite(CppUnit::Test *suite) {
   // TODO: When suite is a namespace handle differently.
-  std::cout << std::endl << suite->getName() << " Suite:" << std::endl;
+  std::cout << std::endl << suite->getName() << " suite:" << std::endl;
 }

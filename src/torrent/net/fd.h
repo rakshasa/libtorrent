@@ -2,6 +2,7 @@
 #define LIBTORRENT_NET_FD_H
 
 #include <string>
+#include <sys/socket.h>
 #include <torrent/common.h>
 
 namespace torrent {
@@ -27,6 +28,7 @@ bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
 extern "C" {
   [[gnu::weak]] int fd__close(int fildes) LIBTORRENT_EXPORT;
+  [[gnu::weak]] int fd__connect(int socket, const sockaddr *address, socklen_t address_len) LIBTORRENT_EXPORT;
   [[gnu::weak]] int fd__fcntl_int(int fildes, int cmd, int arg) LIBTORRENT_EXPORT;
   [[gnu::weak]] int fd__socket(int domain, int type, int protocol) LIBTORRENT_EXPORT;
 }
