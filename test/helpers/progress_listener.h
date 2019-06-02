@@ -6,14 +6,13 @@
 
 #include "torrent/utils/log_buffer.h"
 
-typedef std::unique_ptr<CppUnit::TestFailure> test_failure_p;
-
 struct failure_type {
-  test_failure_p test;
+  std::string name;
   torrent::log_buffer_p log;
 };
 
-// typedef std::tuple<CppUnit::TestFailure, torrent::log_buffer_p> failure_type;
+typedef std::unique_ptr<CppUnit::TestFailure> test_failure_p;
+typedef std::vector<CppUnit::Test*> test_list_type;
 typedef std::vector<failure_type> failure_list_type;
 
 class progress_listener : public CppUnit::TestListener {
@@ -26,7 +25,7 @@ public:
   virtual void endTest(CppUnit::Test *test);
 
   virtual void startSuite(CppUnit::Test *suite);
-  // virtual void endSuite(CppUnit::Test *suite);
+  virtual void endSuite(CppUnit::Test *suite);
 
   //Called by a TestRunner before running the test.
   // virtual void startTestRun(CppUnit::Test *test, CppUnit::TestResult *event_manager);
@@ -41,6 +40,7 @@ private:
   progress_listener(const progress_listener& rhs) = delete;
   void operator =(const progress_listener& rhs) = delete;
 
+  test_list_type    m_test_path;
   failure_list_type m_failures;
   bool              m_last_test_failed;
 

@@ -53,7 +53,7 @@ test_valid_ai_ref(test_ai_ref ftor, uint16_t port = 0) {
   torrent::ai_unique_ptr ai;
 
   if (int err = ftor(ai)) {
-    std::cerr << std::endl << "valid_ai_ref got error '" << gai_strerror(err) << "'" << std::endl;
+    std::cout << std::endl << "valid_ai_ref got error '" << gai_strerror(err) << "'" << std::endl;
     return false;
   }
 
@@ -78,7 +78,7 @@ test_valid_ai_ref_err(test_ai_ref ftor, int expect_err) {
   int err = ftor(ai);
 
   if (err != expect_err) {
-    std::cerr << std::endl << "ai_ref_err got wrong error, expected '" << gai_strerror(expect_err) << "', got '" << gai_strerror(err) << "'" << std::endl;
+    std::cout << std::endl << "ai_ref_err got wrong error, expected '" << gai_strerror(expect_err) << "', got '" << gai_strerror(err) << "'" << std::endl;
     return false;
   }
 

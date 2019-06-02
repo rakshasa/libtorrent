@@ -19,7 +19,7 @@ dump_failure_log(const failure_type& failure) {
   if (failure.log->empty())
     return;
 
-  std::cout << std::endl << failure.test->failedTestName() << std::endl;
+  std::cout << std::endl << failure.name << std::endl;
 
   // Doesn't print dump messages as log_buffer drops them.
   std::for_each(failure.log->begin(), failure.log->end(), [](const torrent::log_entry& entry) {
@@ -42,6 +42,7 @@ dump_failures(const failure_list_type& failures) {
   std::for_each(failures.begin(), failures.end(), [](const failure_type& failure) {
       dump_failure_log(failure);
     });
+  std::cout << std::endl;
 }
 
 int main(int argc, char* argv[])
@@ -70,11 +71,9 @@ int main(int argc, char* argv[])
   try {
     std::cout << "Running ";
     runner.run( controller );
-    std::cerr << std::endl;
  
     // TODO: Make outputter.
     dump_failures(progress.failures());
-    std::cerr << std::endl;
 
     // Print test in a compiler compatible format.
     CppUnit::CompilerOutputter outputter( &result, std::cerr );
