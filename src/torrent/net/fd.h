@@ -27,9 +27,11 @@ bool fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
 bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
 
 extern "C" {
+  [[gnu::weak]] int fd__bind(int socket, const sockaddr *address, socklen_t address_len) LIBTORRENT_EXPORT;
   [[gnu::weak]] int fd__close(int fildes) LIBTORRENT_EXPORT;
   [[gnu::weak]] int fd__connect(int socket, const sockaddr *address, socklen_t address_len) LIBTORRENT_EXPORT;
   [[gnu::weak]] int fd__fcntl_int(int fildes, int cmd, int arg) LIBTORRENT_EXPORT;
+  [[gnu::weak]] int fd__setsockopt_int(int socket, int level, int option_name, int option_value) LIBTORRENT_EXPORT;
   [[gnu::weak]] int fd__socket(int domain, int type, int protocol) LIBTORRENT_EXPORT;
 }
 

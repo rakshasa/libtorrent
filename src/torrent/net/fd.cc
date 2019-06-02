@@ -46,10 +46,12 @@
 namespace torrent {
 
 extern "C" {
-  int fd__close(int fildes) { return close(fildes); }
-  int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return connect(socket, address, address_len); }
-  int fd__fcntl_int(int fildes, int cmd, int arg) { return fcntl(fildes, cmd, arg); }
-  int fd__socket(int domain, int type, int protocol) { return socket(domain, type, protocol); }
+  int fd__bind(int socket, const sockaddr *address, socklen_t address_len) { return ::bind(socket, address, address_len); }
+  int fd__close(int fildes) { return ::close(fildes); }
+  int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return ::connect(socket, address, address_len); }
+  int fd__fcntl_int(int fildes, int cmd, int arg) { return ::fcntl(fildes, cmd, arg); }
+  int fd__setsockopt_int(int socket, int level, int option_name, int option_value) { return ::setsockopt(socket, level, option_name, &option_value, sizeof(int)); }
+  int fd__socket(int domain, int type, int protocol) { return ::socket(domain, type, protocol); }
 }
 
 int
@@ -129,27 +131,23 @@ fd_set_nonblock(int fd) {
 
 bool
 fd_set_reuse_address(int fd, bool state) {
-  int opt = state;
-
-  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_reuse_address failed", opt);
+  if (fd__setsockopt_int(fd, SOL_SOCKET, SO_REUSEADDR, state) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_reuse_address failed", state);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_reuse_address succeeded", opt);
+  LT_LOG_FD_VALUE("fd_set_reuse_address succeeded", state);
   return true;
 }
 
 bool
 fd_set_v6only(int fd, bool state) {
-  int opt = state;
-
-  if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt)) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_set_v6only failed", opt);
+  if (fd__setsockopt_int(fd, IPPROTO_IPV6, IPV6_V6ONLY, state) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_set_v6only failed", state);
     return false;
   }
 
-  LT_LOG_FD_VALUE("fd_set_v6only succeeded", opt);
+  LT_LOG_FD_VALUE("fd_set_v6only succeeded", state);
   return true;
 }
 
@@ -179,7 +177,7 @@ fd_bind(int fd, const sockaddr* sa) {
   //   return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
   // }
 
-  if (::bind(fd, sa, sa_length(sa)) == -1) {
+  if (fd__bind(fd, sa, sa_length(sa)) == -1) {
     LT_LOG_FD_SOCKADDR_ERROR("fd_bind failed");
     return false;
   }
