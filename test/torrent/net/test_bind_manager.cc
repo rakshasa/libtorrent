@@ -191,6 +191,18 @@ test_bind_manager::test_add_bind_v4mapped() {
 }
 
 void
+test_bind_manager::test_remove_bind() {
+  torrent::bind_manager bm;
+
+  CPPUNIT_ASSERT(!bm.remove_bind("default"));
+  CPPUNIT_ASSERT_THROW(bm.remove_bind_throw("default"), torrent::input_error);
+
+  bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0);
+  CPPUNIT_ASSERT(bm.remove_bind("default"));
+  CPPUNIT_ASSERT(bm.size() == 0);
+}
+
+void
 test_bind_manager::test_connect_socket() {
   torrent::bind_manager bm;
   bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
@@ -258,7 +270,7 @@ test_bind_manager::test_connect_socket_v6bound() {
 void
 test_bind_manager::test_connect_socket_v4only() {
   torrent::bind_manager bm;
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0);
+  bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v4only);
 
   auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
   mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
@@ -268,4 +280,20 @@ test_bind_manager::test_connect_socket_v4only() {
 
   auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
   CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
+}
+
+void
+test_bind_manager::test_connect_socket_v6only() {
+  torrent::bind_manager bm;
+  bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v6only);
+
+  auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
+  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
+
+  auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
+  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+  mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
+  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_test.get(), (socklen_t)sizeof(sockaddr_in6));
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_test.get(), 0) == 1000);
 }

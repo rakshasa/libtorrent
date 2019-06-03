@@ -124,9 +124,10 @@ public:
   void set_block_connect(bool flag);
 
   void add_bind(const std::string& name, uint16_t priority, const sockaddr* bind_sa, int flags);
+  bool remove_bind(const std::string& name);
+  void remove_bind_throw(const std::string& name);
 
   int connect_socket(const sockaddr* connect_sa, int flags) const;
-  // void connect(const sockaddr* connect_sa, int flags, accepted_ftor ftor) const;
 
   listen_result_type listen_socket(int flags);
 

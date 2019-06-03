@@ -54,6 +54,9 @@
 #define LT_LOG_SOCKADDR_ERROR(log_fmt, bind_sa, flags, address)         \
   LT_LOG_SOCKADDR(log_fmt " (flags:0x%x fd:%i address:%s errno:%i message:'%s')", \
                   bind_sa, flags, fd, sa_pretty_address_str(address).c_str(), errno, std::strerror(errno));
+#define LT_INPUT_ERROR(message, condition)              \
+  { if (condition) throw input_error(message); }
+
 
 namespace torrent {
 
@@ -144,42 +147,53 @@ bind_manager::set_block_connect(bool flag) {
 
 void
 bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* bind_sa, int flags) {
-  if (find_name(name) != end())
-    throw input_error("add_bind with duplicate name");
-
-  if (bind_sa == nullptr)
-    throw input_error("add_bind with null sockaddr");
-
   auto sap = sa_convert(bind_sa);
 
-  if (!(sap_is_inet(sap) || sap_is_inet6(sap)) || sap_is_broadcast(sap))
-    throw input_error("add_bind with " + sap_pretty_str(sap) + " as sockaddr");
-
-  if (!sap_is_port_any(sap))
-    throw input_error("add_bind with non-zero port in sockaddr");
+  LT_INPUT_ERROR("add_bind with duplicate name", find_name(name) != end());
+  LT_INPUT_ERROR("add_bind with null sockaddr", bind_sa == nullptr);
+  LT_INPUT_ERROR("add_bind with " + sap_pretty_str(sap) + " as sockaddr", !(sap_is_inet(sap) || sap_is_inet6(sap)) || sap_is_broadcast(sap));
+  LT_INPUT_ERROR("add_bind with non-zero port in sockaddr", !sap_is_port_any(sap));
 
   if (sap_is_inet(sap)) {
-    if ((flags & flag_v6only))
-      throw input_error("add_bind with " + sap_pretty_str(sap) + " and incompatible v6only flag");
-
+    LT_INPUT_ERROR("add_bind with " + sap_pretty_str(sap) + " and incompatible v6only flag", (flags & flag_v6only));
     flags |= flag_v4only;
   }
 
   if (sap_is_inet6(sap)) {
-    if ((flags & flag_v4only))
-      throw input_error("add_bind with " + sap_pretty_str(sap) + " and incompatible v4only flag");
+    LT_INPUT_ERROR("add_bind with " + sap_pretty_str(sap) + " and incompatible v4only flag", (flags & flag_v4only));
 
     if (!sap_is_any(sap))
       flags |= flag_v6only;
   }
 
-  LT_LOG("added binding (flags:0x%x address:%s)", flags, sap_pretty_str(sap).c_str());
+  LT_LOG("added binding (name:%s priority:%" PRIu16 " flags:0x%x address:%s)", name.c_str(), priority, flags, sap_pretty_str(sap).c_str());
 
   // TODO: Verify passed flags, etc.
   // TODO: Sanitize the flags.
 
   base_type::insert(m_upper_bound_priority(priority),
                     make_bind_struct(name, std::move(sap), flags, priority));
+}
+
+bool
+bind_manager::remove_bind(const std::string& name) {
+  auto itr = m_find_name(name);
+
+  if (itr == end()) {
+    LT_LOG("remove binding failed, name not found (name:%s)", name.c_str());
+    return false;
+  }
+
+  LT_LOG("removed binding (name:%s)", name.c_str());
+
+  base_type::erase(itr);
+  return true;
+}
+
+void
+bind_manager::remove_bind_throw(const std::string& name) {
+  if (!remove_bind(name))
+    throw input_error("remove binding failed, name not found: '" + name + "'");
 }
 
 static int

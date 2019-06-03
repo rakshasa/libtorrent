@@ -169,14 +169,6 @@ fd_connect(int fd, const sockaddr* sa) {
 
 bool
 fd_bind(int fd, const sockaddr* sa) {
-  // Temporary workaround:
-  // if (sa->sa_family == AF_INET) {
-  //   sockaddr_in6 mapped;
-  //   sa_inet_mapped_inet6(reinterpret_cast<const sockaddr_in*>(sa), &mapped);
-
-  //   return ::bind(fd, reinterpret_cast<sockaddr*>(&mapped), sizeof(sockaddr_in6)) == 0;
-  // }
-
   if (fd__bind(fd, sa, sa_length(sa)) == -1) {
     LT_LOG_FD_SOCKADDR_ERROR("fd_bind failed");
     return false;
