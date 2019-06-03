@@ -256,13 +256,15 @@ bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
         continue;
 
       open_flags = open_flags | fd_flag_v4only;
-    }
 
-    if ((itr.flags & flag_v6only)) {
+    } else if ((itr.flags & flag_v6only)) {
       if (!sap_is_inet6(current_sap))
         continue;
 
       open_flags = open_flags | fd_flag_v6only;
+
+    } else if (sap_is_inet(current_sap)) {
+      current_sap = sap_to_v4mapped(current_sap);
     }
 
     int fd = attempt_open_connect(itr, current_sap.get(), open_flags);
