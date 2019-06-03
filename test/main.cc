@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 
   auto test_name = std::getenv("TEST_NAME");
 
-  if (test_name != NULL)
+  if (test_name != NULL && std::string(test_name) != "")
     runner.addTest(CppUnit::TestFactoryRegistry::getRegistry(test_name).makeTest());
   else
     runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
