@@ -272,6 +272,17 @@ TrackerHttp::receive_done() {
 
   // If no failures, set intervals to defaults prior to processing
 
+  if (b.has_key("warning message") && b.get_key("warning message").is_string()){
+
+    std::string msg=b.get_key_string("warning message");
+
+    if ( (msg.find(" not registered")!=std::string::npos) ||
+    		(msg.find("unregistered")!=std::string::npos) ||
+     		(msg.find("torrent cannot be found")!=std::string::npos) )
+
+       return receive_failed("Warning message \"" + msg + "\"");
+  }
+
   if (m_latest_event == EVENT_SCRAPE)
     process_scrape(b);
   else
