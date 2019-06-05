@@ -119,9 +119,8 @@ test_bind_manager::test_add_bind() {
   CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
 }
 
-// TODO: Test add_bind with flags.
-// TODO: Test remove bind.
 // TODO: Restrict characters in names.
+// TODO: Test add_bind with flags.
 
 void
 test_bind_manager::test_add_bind_error() {
@@ -139,7 +138,10 @@ test_bind_manager::test_add_bind_error() {
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_has_port", 100, wrap_ai_get_first_sa("::", "2000").get(), 0), torrent::input_error);
 
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin_v6only", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v6only), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin_bind_v6only", 100, wrap_ai_get_first_sa("1.2.3.4").get(), torrent::bind_manager::flag_v6only), torrent::input_error);
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_v4only", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v4only), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_bind_v4only", 100, wrap_ai_get_first_sa("ff01::1").get(), torrent::bind_manager::flag_v4only), torrent::input_error);
+
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin_v4only_v6only", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v4only | torrent::bind_manager::flag_v6only), torrent::input_error);
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_v4only_v6only", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v4only | torrent::bind_manager::flag_v6only), torrent::input_error);
 
@@ -197,7 +199,7 @@ test_bind_manager::test_remove_bind() {
   CPPUNIT_ASSERT(!bm.remove_bind("default"));
   CPPUNIT_ASSERT_THROW(bm.remove_bind_throw("default"), torrent::input_error);
 
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0);
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0));
   CPPUNIT_ASSERT(bm.remove_bind("default"));
   CPPUNIT_ASSERT(bm.size() == 0);
 }
@@ -205,7 +207,7 @@ test_bind_manager::test_remove_bind() {
 void
 test_bind_manager::test_connect_socket() {
   torrent::bind_manager bm;
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0));
 
   auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
   auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
@@ -228,7 +230,7 @@ test_bind_manager::test_connect_socket() {
 void
 test_bind_manager::test_connect_socket_error() {
   torrent::bind_manager bm;
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0);
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0));
 
   auto sin_no_port = wrap_ai_get_first_sa("1.2.3.4");
   auto sin6_no_port = wrap_ai_get_first_sa("ff01::1");
@@ -244,7 +246,7 @@ test_bind_manager::test_connect_socket_error() {
 void
 test_bind_manager::test_connect_socket_v4bound() {
   torrent::bind_manager bm;
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("4.3.2.1").get(), 0);
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("4.3.2.1").get(), 0));
 
   auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
   auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
@@ -266,7 +268,7 @@ test_bind_manager::test_connect_socket_v4bound() {
 void
 test_bind_manager::test_connect_socket_v6bound() {
   torrent::bind_manager bm;
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("ff01::1").get(), 0);
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("ff01::1").get(), 0));
 
   auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
   auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
@@ -285,7 +287,7 @@ test_bind_manager::test_connect_socket_v6bound() {
 void
 test_bind_manager::test_connect_socket_v4only() {
   torrent::bind_manager bm;
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v4only);
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v4only));
 
   auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
   auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
@@ -305,7 +307,7 @@ test_bind_manager::test_connect_socket_v4only() {
 void
 test_bind_manager::test_connect_socket_v6only() {
   torrent::bind_manager bm;
-  bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v6only);
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v6only));
 
   auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
   auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
@@ -317,5 +319,31 @@ test_bind_manager::test_connect_socket_v6only() {
   mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
   mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_test.get(), (socklen_t)sizeof(sockaddr_in6));
   CPPUNIT_ASSERT(bm.connect_socket(sin6_test.get(), 0) == 1000);
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
+}
+
+void
+test_bind_manager::test_connect_socket_block_connect() {
+  torrent::bind_manager bm;
+
+  auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
+  auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
+  auto sin6_v4mapped_fail = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
+
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_block_connect));
+  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
+
+  bm.clear();
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_block_connect));
+  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
+
+  bm.clear();
+  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_block_connect));
+  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
+  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
   CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
 }

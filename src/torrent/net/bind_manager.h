@@ -87,6 +87,7 @@ public:
 
   // TODO: Add block_* flag that can override global block setting.
   // TODO: Add http bind support.
+  // TODO: Flag to remove old entry if same name.
   enum flags_type {
     flag_v4only = 0x1,
     flag_v6only = 0x2,
