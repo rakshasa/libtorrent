@@ -45,6 +45,26 @@ dump_failures(const failure_list_type& failures) {
   std::cout << std::endl;
 }
 
+static
+void add_tests(CppUnit::TextUi::TestRunner& runner, const char* c_test_names) {
+  if (c_test_names == NULL || std::string(c_test_names).empty()) {
+    runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
+    return;
+  }
+
+  const std::string& test_names(c_test_names);
+
+  size_t pos = 0;
+  size_t next = 0;
+
+  while ((next = test_names.find(',', pos)) < test_names.size()) {
+    runner.addTest(CppUnit::TestFactoryRegistry::getRegistry(test_names.substr(pos, next - pos)).makeTest());
+    pos = next + 1;
+  }
+
+  runner.addTest(CppUnit::TestFactoryRegistry::getRegistry(test_names.substr(pos)).makeTest());
+}
+
 int main(int argc, char* argv[])
 {
   CppUnit::TestResult controller;
@@ -56,13 +76,7 @@ int main(int argc, char* argv[])
 
   // Adds the test to the list of test to run
   CppUnit::TextUi::TestRunner runner;
-
-  auto test_name = std::getenv("TEST_NAME");
-
-  if (test_name != NULL && std::string(test_name) != "")
-    runner.addTest(CppUnit::TestFactoryRegistry::getRegistry(test_name).makeTest());
-  else
-    runner.addTest(CppUnit::TestFactoryRegistry::getRegistry().makeTest());
+  add_tests(runner, std::getenv("TEST_NAME"));
 
   // Change the default outputter to a compiler error format outputter
   // runner.setOutputter( new CppUnit::CompilerOutputter( &runner.result(),

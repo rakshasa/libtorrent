@@ -46,14 +46,16 @@ sa_unique_ptr   sa_make_unix(const std::string& pathname) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_convert(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 sa_unique_ptr   sa_copy(const sockaddr* sa) LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_copy_addr(const sockaddr* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_copy_in(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_copy_in6(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_copy_addr_in(const sockaddr_in* sa) LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_copy_addr_in6(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
+sin_unique_ptr  sin_copy(const sockaddr_in* sa) LIBTORRENT_EXPORT;
+sin6_unique_ptr sin6_copy(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 sin_unique_ptr  sin_make() LIBTORRENT_EXPORT;
 sin6_unique_ptr sin6_make() LIBTORRENT_EXPORT;
-
-sin_unique_ptr  sin_copy(const sockaddr_in* sa) LIBTORRENT_EXPORT;
-sin6_unique_ptr sin6_copy(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
 sa_unique_ptr   sa_from_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_to_v4mapped(const sockaddr* sa) LIBTORRENT_EXPORT;
@@ -169,6 +171,8 @@ inline size_t sap_length(const c_sa_unique_ptr& sap) { return sa_length(sap.get(
 
 inline sa_unique_ptr sap_copy(const sa_unique_ptr& sap) { return sa_copy(sap.get()); }
 inline sa_unique_ptr sap_copy(const c_sa_unique_ptr& sap) { return sa_copy(sap.get()); }
+inline sa_unique_ptr sap_copy_addr(const sa_unique_ptr& sap) { return sa_copy_addr(sap.get()); }
+inline sa_unique_ptr sap_copy_addr(const c_sa_unique_ptr& sap) { return sa_copy_addr(sap.get()); }
 inline sa_unique_ptr sap_copy_in(const sin_unique_ptr& sinp) { return sa_copy_in(sinp.get()); }
 inline sa_unique_ptr sap_copy_in(const c_sin_unique_ptr& sinp) { return sa_copy_in(sinp.get()); }
 inline sa_unique_ptr sap_copy_in6(const sin6_unique_ptr& sin6p) { return sa_copy_in6(sin6p.get()); }

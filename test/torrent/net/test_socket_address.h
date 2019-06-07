@@ -10,6 +10,9 @@ class test_socket_address : public CppUnit::TestFixture {
 
   CPPUNIT_TEST(test_sa_equal);
   CPPUNIT_TEST(test_sa_equal_addr);
+  CPPUNIT_TEST(test_sa_copy);
+  CPPUNIT_TEST(test_sa_copy_addr);
+
   CPPUNIT_TEST(test_sa_from_v4mapped);
   CPPUNIT_TEST(test_sa_to_v4mapped);
 
@@ -26,6 +29,9 @@ public:
 
   void test_sa_equal();
   void test_sa_equal_addr();
+  void test_sa_copy();
+  void test_sa_copy_addr();
+
   void test_sa_from_v4mapped();
   void test_sa_to_v4mapped();
 };

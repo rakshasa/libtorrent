@@ -22,6 +22,8 @@ class test_bind_manager : public test_fixture {
   CPPUNIT_TEST(test_connect_socket_v6only);
   CPPUNIT_TEST(test_connect_socket_block_connect);
 
+  CPPUNIT_TEST(test_listen_socket);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -43,4 +45,6 @@ public:
   void test_connect_socket_v4only();
   void test_connect_socket_v6only();
   void test_connect_socket_block_connect();
+
+  void test_listen_socket();
 };

@@ -135,6 +135,7 @@ public:
   void     listen_open();
   void     listen_close();
   //void     listen_close_all();
+  //void     listen_open_all();
 
   int      listen_backlog() const { return m_listen_backlog; }
   uint16_t listen_port() const { return m_listen_port; }

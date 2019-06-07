@@ -12,10 +12,10 @@
 
 static std::string
 get_test_path(const test_list_type& tl) {
-  if (tl.empty())
+  if (tl.size() < 2)
     return "";
 
-  return std::accumulate(tl.begin(), std::prev(tl.end()), std::string(), [](std::string result, CppUnit::Test* test) {
+  return std::accumulate(std::next(tl.begin()), std::prev(tl.end()), std::string(), [](std::string result, CppUnit::Test* test) {
       return std::move(result) + test->getName() + "::";
     });
 }

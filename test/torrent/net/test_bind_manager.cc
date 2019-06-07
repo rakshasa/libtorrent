@@ -347,3 +347,13 @@ test_bind_manager::test_connect_socket_block_connect() {
   CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
   CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
 }
+
+void
+test_bind_manager::test_listen_socket() {
+  // torrent::bind_manager bm;
+  // CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0));
+
+  // auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
+  // auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
+  // auto sin6_v4mapped_fail = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
+}
