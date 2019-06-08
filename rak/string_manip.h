@@ -39,9 +39,13 @@
 
 #include <algorithm>
 #include <cctype>
+#include <climits>
 #include <cstdlib>
+#include <functional>
 #include <iterator>
 #include <locale>
+#include <random>
+
 
 namespace rak {
 
@@ -312,11 +316,13 @@ transform_hex_str(const Sequence& seq) {
 template <typename Sequence>
 Sequence
 generate_random(size_t length) {
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  using bytes_randomizer = std::independent_bits_engine<std::mt19937, CHAR_BIT, uint8_t>;
+  bytes_randomizer bytes(mt);
   Sequence s;
   s.reserve(length);
-
-  std::generate_n(std::back_inserter(s), length, &::random);
-
+  std::generate_n(std::back_inserter(s), length, std::ref(bytes));
   return s;
 }
 
