@@ -355,7 +355,7 @@ DownloadMain::receive_tracker_success() {
 
 void
 DownloadMain::receive_tracker_request() {
-  if (info()->is_pex_enabled() && info()->size_pex() > 0
+  if ((info()->is_pex_enabled() && info()->size_pex()) > 0
       || connection_list()->size() + peer_list()->available_list()->size() / 2 >= connection_list()->min_size()) {
 
     m_tracker_controller->stop_requesting();
