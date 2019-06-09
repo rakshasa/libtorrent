@@ -19,6 +19,7 @@ mock_clear(bool ignore_assert) {
   MOCK_CLEANUP_MAP(torrent::fd__close);
   MOCK_CLEANUP_MAP(torrent::fd__connect);
   MOCK_CLEANUP_MAP(torrent::fd__fcntl_int);
+  MOCK_CLEANUP_MAP(torrent::fd__listen);
   MOCK_CLEANUP_MAP(torrent::fd__setsockopt_int);
   MOCK_CLEANUP_MAP(torrent::fd__socket);
 };
@@ -55,6 +56,11 @@ extern "C" {
   int fd__fcntl_int(int fildes, int cmd, int arg) {
     MOCK_LOG("filedes:%i cmd:%i arg:%i", fildes, cmd, arg);
     return mock_call<int>(__func__, &torrent::fd__fcntl_int, fildes, cmd, arg);
+  }
+
+  int fd__listen(int socket, int backlog) {
+    MOCK_LOG("socket:%i backlog:%i", socket, backlog);
+    return mock_call<int>(__func__, &torrent::fd__listen, socket, backlog);
   }
 
   int fd__setsockopt_int(int socket, int level, int option_name, int option_value) {

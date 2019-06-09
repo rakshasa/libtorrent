@@ -117,6 +117,8 @@ mock_call(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)
   typedef mock_function_type<R, Args...> mock_type;
   auto itr = mock_type::type::functions.find(reinterpret_cast<void*>(fn));
 
+  // Throwing here causes undefined behaviour as it crosses C language
+  // barriers.
   CPPUNIT_ASSERT_MESSAGE(("mock_call expected function calls exhausted by '" + name + "'").c_str(),
                          itr != mock_type::type::functions.end());
 

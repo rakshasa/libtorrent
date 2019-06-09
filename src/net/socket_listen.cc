@@ -86,6 +86,13 @@ socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port
 
 void
 socket_listen::close() {
+  if (!is_open())
+    return;
+
+  fd_close(m_fileDesc);
+
+  m_fileDesc = -1;
+  m_socket_address.reset();
 }
 
 void

@@ -147,12 +147,13 @@ bind_manager::set_block_connect(bool flag) {
 
 void
 bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* bind_sa, int flags) {
+  LT_INPUT_ERROR("add_bind with duplicate name", find_name(name) != end());
+  LT_INPUT_ERROR("add_bind with " + sa_pretty_str(bind_sa) + " sockaddr", bind_sa == nullptr || !(sa_is_inet(bind_sa) || sa_is_inet6(bind_sa)));
+
   auto sap = sa_convert(bind_sa);
 
-  LT_INPUT_ERROR("add_bind with duplicate name", find_name(name) != end());
-  LT_INPUT_ERROR("add_bind with null sockaddr", bind_sa == nullptr);
-  LT_INPUT_ERROR("add_bind with " + sap_pretty_str(sap) + " as sockaddr", !(sap_is_inet(sap) || sap_is_inet6(sap)) || sap_is_broadcast(sap));
-  LT_INPUT_ERROR("add_bind with non-zero port in sockaddr", !sap_is_port_any(sap));
+  LT_INPUT_ERROR("add_bind with broadcast address", sap_is_broadcast(sap));
+  LT_INPUT_ERROR("add_bind with non-zero port", !sap_is_port_any(sap));
 
   if (sap_is_inet(sap)) {
     LT_INPUT_ERROR("add_bind with " + sap_pretty_str(sap) + " and incompatible v6only flag", (flags & flag_v6only));
