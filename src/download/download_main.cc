@@ -355,19 +355,14 @@ DownloadMain::receive_tracker_success() {
 
 void
 DownloadMain::receive_tracker_request() {
-  bool should_stop = false;
-  bool should_start = false;
+  if (info()->is_pex_enabled() && info()->size_pex() > 0
+      || connection_list()->size() + peer_list()->available_list()->size() / 2 >= connection_list()->min_size()) {
 
-  if (info()->is_pex_enabled() && info()->size_pex() > 0)
-    should_stop = true;
-
-  if (connection_list()->size() + peer_list()->available_list()->size() / 2 < connection_list()->min_size())
-    should_start = true;
-
-  if (should_stop)
     m_tracker_controller->stop_requesting();
-  else if (should_start)
-    m_tracker_controller->start_requesting();
+    return;
+  }
+
+  m_tracker_controller->start_requesting();
 }
 
 struct SocketAddressCompact_less {
