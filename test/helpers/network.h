@@ -7,6 +7,29 @@
 
 #include "torrent/net/address_info.h"
 
+#define TEST_DEFAULT_SA                                                 \
+  auto sin_any = wrap_ai_get_first_sa("0.0.0.0");                       \
+  auto sin_broadcast = wrap_ai_get_first_sa("255.255.255.255");         \
+  auto sin_1 = wrap_ai_get_first_sa("1.2.3.4");                         \
+  auto sin6_any = wrap_ai_get_first_sa("::");                           \
+  auto sin6_1 = wrap_ai_get_first_sa("ff01::1");                        \
+                                                                        \
+  auto sin_any_5050 = wrap_ai_get_first_sa("0.0.0.0", "5050");          \
+  auto sin_1_5050 = wrap_ai_get_first_sa("1.2.3.4", "5050");            \
+  auto sin6_any_5050 = wrap_ai_get_first_sa("::", "5050");              \
+  auto sin6_1_5050 = wrap_ai_get_first_sa("ff01::1", "5050");           \
+                                                                        \
+  auto c_sin_any = wrap_ai_get_first_c_sa("0.0.0.0");                   \
+  auto c_sin_broadcast = wrap_ai_get_first_c_sa("255.255.255.255");     \
+  auto c_sin_1 = wrap_ai_get_first_c_sa("1.2.3.4");                     \
+  auto c_sin6_any = wrap_ai_get_first_c_sa("::");                       \
+  auto c_sin6_1 = wrap_ai_get_first_c_sa("ff01::1");                    \
+                                                                        \
+  auto c_sin_any_5050 = wrap_ai_get_first_c_sa("0.0.0.0", "5050");      \
+  auto c_sin_1_5050 = wrap_ai_get_first_c_sa("1.2.3.4", "5050");        \
+  auto c_sin6_any_5050 = wrap_ai_get_first_c_sa("::", "5050");          \
+  auto c_sin6_1_5050 = wrap_ai_get_first_c_sa("ff01::1", "5050");
+
 inline bool
 compare_sin6_addr(in6_addr lhs, in6_addr rhs) {
   return std::equal(lhs.s6_addr, lhs.s6_addr + 16, rhs.s6_addr);

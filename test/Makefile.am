@@ -50,6 +50,8 @@ LibTorrentTest_SOURCES = \
 	torrent/net/test_address_info.h \
 	torrent/net/test_bind_manager.cc \
 	torrent/net/test_bind_manager.h \
+	torrent/net/test_fd.cc \
+	torrent/net/test_fd.h \
 	torrent/net/test_socket_address.cc \
 	torrent/net/test_socket_address.h \
 	\

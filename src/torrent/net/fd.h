@@ -12,8 +12,11 @@ enum fd_flags : int {
   fd_flag_nonblock = 0x10,
   fd_flag_reuse_address = 0x20,
   fd_flag_v4only = 0x40,
-  fd_flag_v6only = 0x80
+  fd_flag_v6only = 0x80,
+  fd_flag_all = 0xff,
 };
+
+constexpr bool fd_valid_flags(fd_flags flags);
 
 int  fd_open(fd_flags flags) LIBTORRENT_EXPORT;
 void fd_close(int fd) LIBTORRENT_EXPORT;
@@ -36,9 +39,17 @@ extern "C" {
   [[gnu::weak]] int fd__socket(int domain, int type, int protocol) LIBTORRENT_EXPORT;
 }
 
-inline fd_flags
+constexpr fd_flags
 operator |(fd_flags lhs, fd_flags rhs) {
   return static_cast<fd_flags>(static_cast<int>(lhs) | static_cast<int>(rhs));
+}
+
+constexpr bool
+fd_valid_flags(fd_flags flags) {
+  return
+    (flags & fd_flag_stream) &&
+    !((flags & fd_flag_v4only) && (flags & fd_flag_v6only)) &&
+    !(flags & ~(fd_flag_all));
 }
 
 }

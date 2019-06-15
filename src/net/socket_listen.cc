@@ -29,11 +29,15 @@ socket_listen::set_backlog(int backlog) {
 bool
 socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, uint16_t itr_port, fd_flags open_flags) {
   if (is_open())
-    throw internal_error("socket_listen::open already open");
+    throw internal_error("socket_listen::open: already open");
+
+  if (!(sap_is_inet(sap) || sap_is_inet6(sap)) || sap_is_v4mapped(sap) || !sap_is_port_any(sap) || sap_is_broadcast(sap))
+    throw internal_error("socket_listen::open: socket address must be inet/inet6 with no port, and not v4mapped nor broadcast: " + sap_pretty_str(sap));
+
+  if (sap_is_inet(sap) && !(open_flags & fd_flag_v4only))
+    throw internal_error("socket_listen::open: socket address is inet without v4only flag");
 
   // TODO: Verify backlog.
-  // TODO: Verify sap.
-  // TODO: Verify flags.
   // TODO: Verify ports.
 
   int fd = fd_open(open_flags);

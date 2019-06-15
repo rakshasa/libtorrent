@@ -26,7 +26,6 @@ static const auto sin6_m1_p2 = wrap_ai_get_first_sa("ff01::1", "7777");
 static const auto sin6_m2_p1 = wrap_ai_get_first_sa("ff01::100", "5555");
 static const auto sin6_m2_p2 = wrap_ai_get_first_sa("ff01::100", "7777");
 
-
 void
 test_socket_address::test_make() {
   torrent::sa_unique_ptr sa_unspec = torrent::sa_make_unspec();
@@ -275,6 +274,33 @@ test_socket_address::test_sa_copy_addr() {
   reinterpret_cast<sockaddr_in6*>(sin6_flags.get())->sin6_scope_id = 0x12345678;
 
   CPPUNIT_ASSERT(torrent::sap_equal(torrent::sap_copy_addr(sin6_flags), sin6_m1));
+}
+
+void
+test_socket_address::test_sa_is_broadcast() {
+  TEST_DEFAULT_SA;
+
+  CPPUNIT_ASSERT(torrent::sap_is_broadcast(sin_broadcast));
+
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_any));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_1));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_any));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_1));
+
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_any));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_1));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_any));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_1));
+
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_any_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_1_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_any_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_1_5050));
+
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_any_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_1_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_any_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_1_5050));
 }
 
 void

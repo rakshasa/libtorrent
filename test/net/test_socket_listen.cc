@@ -3,91 +3,207 @@
 #include "test_socket_listen.h"
 
 #include "helpers/network.h"
-#include "net/socket_listen.h"
+
+#include <fcntl.h>
+#include <net/socket_listen.h>
+#include <torrent/exceptions.h>
+#include <torrent/utils/log.h>
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_socket_listen, "net");
 
+#define TEST_SL_BEGIN(name)                                     \
+  torrent::socket_listen sl;                                    \
+  lt_log_print(torrent::LOG_MOCK_CALLS, "sl_begin: %s", name);  \
+  TEST_DEFAULT_SA;
+
+#define TEST_SL_ASSERT_OPEN(_sap_bind, _sap_result, _flags)            \
+  CPPUNIT_ASSERT(sl.open(_sap_bind, 5000, 5099, 5050, _flags));        \
+  CPPUNIT_ASSERT(sl.is_open());                                        \
+  CPPUNIT_ASSERT(sl.port() == 5050);                                   \
+  CPPUNIT_ASSERT(torrent::sa_equal(sl.socket_address(), _sap_result.get()));
+
+#define TEST_SL_ASSERT_CLOSED()                          \
+  CPPUNIT_ASSERT(!sl.is_open());                         \
+  CPPUNIT_ASSERT(sl.file_descriptor() == -1);            \
+  CPPUNIT_ASSERT(sl.socket_address() == nullptr);        \
+  CPPUNIT_ASSERT(sl.port() == 0);
+
+#define TEST_SL_CLOSE(_fd)                      \
+  mock_expect(&torrent::fd__close, 0, _fd);     \
+  CPPUNIT_ASSERT_NO_THROW(sl.close());          \
+  TEST_SL_ASSERT_CLOSED();
+
 void
 test_socket_listen::test_basic() {
-  torrent::socket_listen sl;
-
-  CPPUNIT_ASSERT(!sl.is_open());
+  TEST_SL_BEGIN("basic");
+  TEST_SL_ASSERT_CLOSED();
   CPPUNIT_ASSERT(sl.backlog() == SOMAXCONN);
-  CPPUNIT_ASSERT(sl.socket_address() == nullptr);
-  CPPUNIT_ASSERT(sl.port() == 0);
   CPPUNIT_ASSERT(sl.type_name() == std::string("listen"));
 }
 
 void
-test_socket_listen::test_open() {
-  torrent::socket_listen sl;
-
-  auto sin_any = wrap_ai_get_first_c_sa("0.0.0.0", "5050");
-  auto sin6_any = wrap_ai_get_first_c_sa("::", "5050");
-  auto sin_1 = wrap_ai_get_first_c_sa("1.2.3.4", "5050");
-  auto sin6_1 = wrap_ai_get_first_c_sa("ff01::1", "5050");
-
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__bind, 0, 1000, sin_any.get(), (socklen_t)sizeof(sockaddr_in));
-  mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
-  CPPUNIT_ASSERT(sl.open(torrent::sap_copy_addr(sin_any), 5000, 5099, 5050, torrent::fd_flags::fd_flag_stream | torrent::fd_flags::fd_flag_v4only));
-  CPPUNIT_ASSERT(sl.is_open());
-  CPPUNIT_ASSERT(sl.port() == 5050);
-  CPPUNIT_ASSERT(torrent::sa_equal(sl.socket_address(), sin_any.get()));
-
-  mock_expect(&torrent::fd__close, 0, 1000);
-  CPPUNIT_ASSERT_NO_THROW(sl.close());
-  CPPUNIT_ASSERT(!sl.is_open() && sl.file_descriptor() == -1 && sl.socket_address() == nullptr && sl.port() == 0);
-
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__bind, 0, 1000, sin6_any.get(), (socklen_t)sizeof(sockaddr_in6));
-  mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
-  CPPUNIT_ASSERT(sl.open(torrent::sap_copy_addr(sin6_any), 5000, 5099, 5050, torrent::fd_flags::fd_flag_stream));
-  CPPUNIT_ASSERT(sl.is_open());
-  CPPUNIT_ASSERT(sl.port() == 5050);
-  CPPUNIT_ASSERT(torrent::sa_equal(sl.socket_address(), sin6_any.get()));
-
-  mock_expect(&torrent::fd__close, 0, 1000);
-  CPPUNIT_ASSERT_NO_THROW(sl.close());
-  CPPUNIT_ASSERT(!sl.is_open() && sl.file_descriptor() == -1 && sl.socket_address() == nullptr && sl.port() == 0);
-
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__bind, 0, 1000, sin_1.get(), (socklen_t)sizeof(sockaddr_in));
-  mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
-  CPPUNIT_ASSERT(sl.open(torrent::sap_copy_addr(sin_1), 5000, 5099, 5050, torrent::fd_flags::fd_flag_stream | torrent::fd_flags::fd_flag_v4only));
-  CPPUNIT_ASSERT(sl.is_open());
-  CPPUNIT_ASSERT(sl.port() == 5050);
-  CPPUNIT_ASSERT(torrent::sa_equal(sl.socket_address(), sin_1.get()));
-
-  mock_expect(&torrent::fd__close, 0, 1000);
-  CPPUNIT_ASSERT_NO_THROW(sl.close());
-  CPPUNIT_ASSERT(!sl.is_open() && sl.file_descriptor() == -1 && sl.socket_address() == nullptr && sl.port() == 0);
-
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
-  mock_expect(&torrent::fd__bind, 0, 1000, sin6_1.get(), (socklen_t)sizeof(sockaddr_in6));
-  mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
-  CPPUNIT_ASSERT(sl.open(torrent::sap_copy_addr(sin6_1), 5000, 5099, 5050, torrent::fd_flags::fd_flag_stream | torrent::fd_flags::fd_flag_v6only));
-  CPPUNIT_ASSERT(sl.is_open());
-  CPPUNIT_ASSERT(sl.port() == 5050);
-  CPPUNIT_ASSERT(torrent::sa_equal(sl.socket_address(), sin6_1.get()));
-
-  mock_expect(&torrent::fd__close, 0, 1000);
-  CPPUNIT_ASSERT_NO_THROW(sl.close());
-  CPPUNIT_ASSERT(!sl.is_open() && sl.file_descriptor() == -1 && sl.socket_address() == nullptr && sl.port() == 0);
+test_socket_listen::test_open_sap() {
+  { TEST_SL_BEGIN("sin6_any, stream");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5050.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5050, torrent::fd_flag_stream);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin_any, stream|v4only");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_any_5050.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin_any), c_sin_any_5050, torrent::fd_flag_stream | torrent::fd_flag_v4only);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin_1, stream|v4only");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_1_5050.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin_1), c_sin_1_5050, torrent::fd_flag_stream | torrent::fd_flag_v4only);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin6_any, stream|v6only");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5050.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5050, torrent::fd_flag_stream | torrent::fd_flag_v6only);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin6_1, stream|v6only");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_1_5050.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_1), c_sin6_1_5050, torrent::fd_flag_stream | torrent::fd_flag_v6only);
+    TEST_SL_CLOSE(1000);
+  };
 }
 
-// test stream, nonblock and reuse_address.
+void
+test_socket_listen::test_open_flags() {
+  { TEST_SL_BEGIN("sin_any, stream|v4only|nonblock");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_any_5050.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy_addr(sin_any), c_sin_any_5050, torrent::fd_flag_stream | torrent::fd_flag_v4only | torrent::fd_flag_nonblock);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin6_any, stream|nonblock");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5050.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5050, torrent::fd_flag_stream | torrent::fd_flag_nonblock);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin_any, stream|v4only|reuse_address");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_any_5050.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy_addr(sin_any), c_sin_any_5050, torrent::fd_flag_stream | torrent::fd_flag_v4only | torrent::fd_flag_reuse_address);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin6_any, stream|reuse_address");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5050.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5050, torrent::fd_flag_stream | torrent::fd_flag_reuse_address);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin_any, stream|v4only|nonblock|reuse_address");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_any_5050.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy_addr(sin_any), c_sin_any_5050, torrent::fd_flag_stream | torrent::fd_flag_v4only | torrent::fd_flag_nonblock | torrent::fd_flag_reuse_address);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin6_any, stream|nonblock|reuse_address");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5050.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5050, torrent::fd_flag_stream | torrent::fd_flag_nonblock | torrent::fd_flag_reuse_address);
+    TEST_SL_CLOSE(1000);
+  };
+}
+
+void
+test_socket_listen::test_open_error() {
+  { TEST_SL_BEGIN("open twice");
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5050.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
+    TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5050, torrent::fd_flag_stream | torrent::fd_flag_nonblock);
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any), 5000, 5099, 5050, torrent::fd_flag_stream),
+                         torrent::internal_error);
+    TEST_SL_CLOSE(1000);
+  };
+  { TEST_SL_BEGIN("sin_any, stream, no v4only");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin_any), 5000, 5099, 5050, torrent::fd_flag_stream),
+                         torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+}
+
+void
+test_socket_listen::test_open_error_sap() {
+  { TEST_SL_BEGIN("unspec");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sa_make_unspec(), 5000, 5099, 5050, torrent::fd_flag_stream), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+  { TEST_SL_BEGIN("unix");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sa_make_unix("test"), 5000, 5099, 5050, torrent::fd_flag_stream), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+  { TEST_SL_BEGIN("sin_any_5050");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin_any_5050), 5000, 5099, 5050, torrent::fd_flag_stream | torrent::fd_flag_v4only), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+  { TEST_SL_BEGIN("sin6_any_5050");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any_5050), 5000, 5099, 5050, torrent::fd_flag_stream), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+  { TEST_SL_BEGIN("sin_any");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_to_v4mapped(sin_any), 5000, 5099, 5050, torrent::fd_flag_stream | torrent::fd_flag_v4only), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+  { TEST_SL_BEGIN("sin_1, v4mapped");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_to_v4mapped(sin_1), 5000, 5099, 5050, torrent::fd_flag_stream | torrent::fd_flag_v4only), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+  { TEST_SL_BEGIN("sin_broadcast");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin_broadcast), 5000, 5099, 5050, torrent::fd_flag_stream | torrent::fd_flag_v4only), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+}
+
+void
+test_socket_listen::test_open_error_flags() {
+  { TEST_SL_BEGIN("sin_any, fd_flags(0)");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin_any), 5000, 5099, 5050, torrent::fd_flags(0)), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+  { TEST_SL_BEGIN("sin_any, fd_flags(0xffff)");
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin_any), 5000, 5099, 5050, torrent::fd_flags(0xffff)), torrent::internal_error);
+    TEST_SL_ASSERT_CLOSED();
+  };
+}
 
 // TODO: errors on:
-// sa with port address set
-// not v4/v6
-// default v4/v6
 // invalid ports
-// unknown flags
-// fail on already open
-// fail on v4mapped
 
 // fd add randomize ports
+// iterate over closed ports, and fail if all used
+// open with one port distance, and fail if used
+// deal with reuse error
 
-// fd_flags open_flags = fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address;

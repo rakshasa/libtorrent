@@ -66,15 +66,11 @@ sa_is_inet_inet6(const sockaddr* sa) {
 
 bool
 sa_is_any(const sockaddr* sa) {
-  if (sa == NULL)
-    return true;
-
   switch (sa->sa_family) {
   case AF_INET:
     return sin_is_any(reinterpret_cast<const sockaddr_in*>(sa));
   case AF_INET6:
     return sin6_is_any(reinterpret_cast<const sockaddr_in6*>(sa));
-  case AF_UNSPEC:
   default:
     return true;
   }
@@ -92,14 +88,9 @@ sin6_is_any(const sockaddr_in6* sa) {
 
 bool
 sa_is_broadcast(const sockaddr* sa) {
-  if (sa == NULL)
-    return false;
-
   switch (sa->sa_family) {
   case AF_INET:
     return sin_is_broadcast(reinterpret_cast<const sockaddr_in*>(sa));
-  case AF_INET6:
-  case AF_UNSPEC:
   default:
     return false;
   }
@@ -134,7 +125,6 @@ sa_length(const sockaddr* sa) {
     return sizeof(sockaddr_in);
   case AF_INET6:
     return sizeof(sockaddr_in6);
-  case AF_UNSPEC:
   default:
     return sizeof(sa);
   }
@@ -378,9 +368,8 @@ sa_port(const sockaddr* sa) {
     return ntohs(reinterpret_cast<const sockaddr_in*>(sa)->sin_port);
   case AF_INET6:
     return ntohs(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_port);
-  case AF_UNSPEC:
   default:
-    return 0; // Do something?
+    return 0;
   }
 }
 
@@ -389,11 +378,12 @@ sa_set_port(sockaddr* sa, uint16_t port) {
   switch(sa->sa_family) {
   case AF_INET:
     reinterpret_cast<sockaddr_in*>(sa)->sin_port = htons(port);
+    return;
   case AF_INET6:
     reinterpret_cast<sockaddr_in6*>(sa)->sin6_port = htons(port);
-  case AF_UNSPEC:
+    return;
   default:
-    ; // Do something?
+    throw internal_error("torrent::sa_set_port: invalid family type");
   }
 }
 

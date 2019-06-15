@@ -60,6 +60,9 @@ fd_open(fd_flags flags) {
   int domain;
   int protocol;
 
+  if (!fd_valid_flags(flags))
+    throw internal_error("torrent::fd_open failed: invalid fd_flags");
+
   if ((flags & fd_flag_stream)) {
     domain = SOCK_STREAM;
     protocol = IPPROTO_TCP;
@@ -111,10 +114,10 @@ fd_open(fd_flags flags) {
 void
 fd_close(int fd) {
   if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
-    throw internal_error("torrent::fd_close(...) failed: tried to close stdin/out/err");
+    throw internal_error("torrent::fd_close: tried to close stdin/out/err");
 
   if (fd__close(fd) == -1)
-    throw internal_error("torrent::fd_close(...) failed: " + std::string(strerror(errno)));
+    throw internal_error("torrent::fd_close: " + std::string(strerror(errno)));
 
   LT_LOG_FD("fd_close succeeded");
 }
