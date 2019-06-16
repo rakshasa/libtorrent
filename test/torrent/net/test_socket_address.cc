@@ -292,15 +292,15 @@ test_socket_address::test_sa_is_broadcast() {
   CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_any));
   CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_1));
 
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_any_5050));
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_1_5050));
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_any_5050));
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_1_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_any_5005));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin_1_5005));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_any_5005));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(sin6_1_5005));
 
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_any_5050));
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_1_5050));
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_any_5050));
-  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_1_5050));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_any_5005));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin_1_5005));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_any_5005));
+  CPPUNIT_ASSERT(!torrent::sap_is_broadcast(c_sin6_1_5005));
 }
 
 void

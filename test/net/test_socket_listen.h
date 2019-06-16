@@ -8,6 +8,7 @@ class test_socket_listen : public test_fixture {
   CPPUNIT_TEST(test_open_sap);
   CPPUNIT_TEST(test_open_flags);
   CPPUNIT_TEST(test_open_port_single);
+  CPPUNIT_TEST(test_open_port_range);
 
   CPPUNIT_TEST(test_open_error);
   CPPUNIT_TEST(test_open_error_sap);
@@ -22,6 +23,7 @@ public:
   void test_open_sap();
   void test_open_flags();
   void test_open_port_single();
+  void test_open_port_range();
 
   void test_open_error();
   void test_open_error_sap();

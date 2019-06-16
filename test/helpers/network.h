@@ -18,10 +18,10 @@
   auto sin_1_5000 = wrap_ai_get_first_sa("1.2.3.4", "5000");            \
   auto sin6_any_5000 = wrap_ai_get_first_sa("::", "5000");              \
   auto sin6_1_5000 = wrap_ai_get_first_sa("ff01::1", "5000");           \
-  auto sin_any_5050 = wrap_ai_get_first_sa("0.0.0.0", "5050");          \
-  auto sin_1_5050 = wrap_ai_get_first_sa("1.2.3.4", "5050");            \
-  auto sin6_any_5050 = wrap_ai_get_first_sa("::", "5050");              \
-  auto sin6_1_5050 = wrap_ai_get_first_sa("ff01::1", "5050");           \
+  auto sin_any_5005 = wrap_ai_get_first_sa("0.0.0.0", "5005");          \
+  auto sin_1_5005 = wrap_ai_get_first_sa("1.2.3.4", "5005");            \
+  auto sin6_any_5005 = wrap_ai_get_first_sa("::", "5005");              \
+  auto sin6_1_5005 = wrap_ai_get_first_sa("ff01::1", "5005");           \
                                                                         \
   auto c_sin_any = wrap_ai_get_first_c_sa("0.0.0.0");                   \
   auto c_sin_broadcast = wrap_ai_get_first_c_sa("255.255.255.255");     \
@@ -33,10 +33,14 @@
   auto c_sin_1_5000 = wrap_ai_get_first_c_sa("1.2.3.4", "5000");        \
   auto c_sin6_any_5000 = wrap_ai_get_first_c_sa("::", "5000");          \
   auto c_sin6_1_5000 = wrap_ai_get_first_c_sa("ff01::1", "5000");       \
-  auto c_sin_any_5050 = wrap_ai_get_first_c_sa("0.0.0.0", "5050");      \
-  auto c_sin_1_5050 = wrap_ai_get_first_c_sa("1.2.3.4", "5050");        \
-  auto c_sin6_any_5050 = wrap_ai_get_first_c_sa("::", "5050");          \
-  auto c_sin6_1_5050 = wrap_ai_get_first_c_sa("ff01::1", "5050");
+  auto c_sin_any_5005 = wrap_ai_get_first_c_sa("0.0.0.0", "5005");      \
+  auto c_sin_1_5005 = wrap_ai_get_first_c_sa("1.2.3.4", "5005");        \
+  auto c_sin6_any_5005 = wrap_ai_get_first_c_sa("::", "5005");          \
+  auto c_sin6_1_5005 = wrap_ai_get_first_c_sa("ff01::1", "5005");       \
+  auto c_sin_any_5010 = wrap_ai_get_first_c_sa("0.0.0.0", "5010");      \
+  auto c_sin_1_5010 = wrap_ai_get_first_c_sa("1.2.3.4", "5010");        \
+  auto c_sin6_any_5010 = wrap_ai_get_first_c_sa("::", "5010");          \
+  auto c_sin6_1_5010 = wrap_ai_get_first_c_sa("ff01::1", "5010");
 
 inline bool
 compare_sin6_addr(in6_addr lhs, in6_addr rhs) {
