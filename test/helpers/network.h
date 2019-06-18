@@ -13,6 +13,7 @@
   auto sin_1 = wrap_ai_get_first_sa("1.2.3.4");                         \
   auto sin6_any = wrap_ai_get_first_sa("::");                           \
   auto sin6_1 = wrap_ai_get_first_sa("ff01::1");                        \
+  auto sin6_v4_1 = wrap_ai_get_first_sa("::ffff:1.2.3.4");              \
                                                                         \
   auto sin_any_5000 = wrap_ai_get_first_sa("0.0.0.0", "5000");          \
   auto sin_1_5000 = wrap_ai_get_first_sa("1.2.3.4", "5000");            \

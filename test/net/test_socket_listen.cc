@@ -290,27 +290,31 @@ test_socket_listen::test_open_error_flags() {
 }
 
 void
-test_socket_listen::test_open_error_port() {
+test_socket_listen::test_open_error_port_single() {
   { TEST_SL_BEGIN("sin6_any, 0, 0, 0");
     CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any), 0, 0, 0, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
   };
-  { TEST_SL_BEGIN("sin6_any, 0, 0, 0");
+  { TEST_SL_BEGIN("sin6_any, 1000, 0, 0");
     CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any), 1000, 0, 0, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
   };
-  { TEST_SL_BEGIN("sin6_any, 0, 0, 0");
+  { TEST_SL_BEGIN("sin6_any, 0, 1000, 0");
     CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any), 0, 1000, 0, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
   };
-  { TEST_SL_BEGIN("sin6_any, 0, 0, 0");
+  { TEST_SL_BEGIN("sin6_any, 0, 0, 500");
     CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any), 0, 0, 500, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
   };
-  { TEST_SL_BEGIN("sin6_any, 0, 0, 0");
+  { TEST_SL_BEGIN("sin6_any, 0, 1000, 500");
     CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any), 0, 1000, 500, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
   };
+}
+
+void
+test_socket_listen::test_open_error_port_range() {
   { TEST_SL_BEGIN("sin6_any, first > last");
     CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin6_any), 5000, 4999, 5000, torrent::fd_flag_stream), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
@@ -349,7 +353,5 @@ test_socket_listen::test_open_error_port() {
   };
 }
 
-// iterate over closed ports, and fail if all used
-// open with one port distance, and fail if used
 // deal with reuse error
 // fd add randomize ports

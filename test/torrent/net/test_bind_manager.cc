@@ -10,8 +10,15 @@
 #include "torrent/net/bind_manager.h"
 #include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
+#include "torrent/utils/log.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_bind_manager, "torrent/net");
+
+#define TEST_BM_BEGIN(name)                                     \
+  torrent::bind_manager bm;                                     \
+  std::vector<torrent::sa_unique_ptr> sap_cache;                \
+  lt_log_print(torrent::LOG_MOCK_CALLS, "bm_begin: %s", name);  \
+  TEST_DEFAULT_SA;
 
 inline bool
 compare_bind_base(const torrent::bind_struct& bs,
@@ -228,22 +235,6 @@ test_bind_manager::test_connect_socket() {
 }
 
 void
-test_bind_manager::test_connect_socket_error() {
-  torrent::bind_manager bm;
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0));
-
-  auto sin_no_port = wrap_ai_get_first_sa("1.2.3.4");
-  auto sin6_no_port = wrap_ai_get_first_sa("ff01::1");
-  auto sin6_v4mapped_no_port = wrap_ai_get_first_sa("::ffff:1.2.3.4");
-  CPPUNIT_ASSERT(bm.connect_socket(sin_no_port.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_no_port.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_no_port.get(), 0) == -1);
-
-  // TODO: Fail multicast addresses.
-  // TODO: Fail .0 / .255.
-}
-
-void
 test_bind_manager::test_connect_socket_v4bound() {
   torrent::bind_manager bm;
   CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("4.3.2.1").get(), 0));
@@ -346,6 +337,20 @@ test_bind_manager::test_connect_socket_block_connect() {
   CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
   CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
   CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
+}
+
+void
+test_bind_manager::test_error_connect_socket() {
+  { TEST_BM_BEGIN("sin6_any, connect zero port");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1.get(), 0) == -1);
+  };
+
+  // TODO: Fail multicast addresses.
+  // TODO: Fail .0 / .255.
 }
 
 void
