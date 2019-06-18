@@ -50,10 +50,10 @@
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
 #define LT_LOG_SOCKADDR(log_fmt, sa, ...)                               \
-  lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, sa_pretty_address_str(sa).c_str(), __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_BIND, "bind->%s: " log_fmt, sa_pretty_str(sa).c_str(), __VA_ARGS__);
 #define LT_LOG_SOCKADDR_ERROR(log_fmt, bind_sa, flags, address)         \
   LT_LOG_SOCKADDR(log_fmt " (flags:0x%x fd:%i address:%s errno:%i message:'%s')", \
-                  bind_sa, flags, fd, sa_pretty_address_str(address).c_str(), errno, std::strerror(errno));
+                  bind_sa, flags, fd, sa_pretty_str(address).c_str(), errno, std::strerror(errno));
 #define LT_INPUT_ERROR(message, condition)              \
   { if (condition) throw input_error(message); }
 
@@ -219,28 +219,28 @@ attempt_open_connect(const bind_struct& bs, const sockaddr* sockaddr, fd_flags f
   }
 
   LT_LOG_SOCKADDR("open_connect succeeded (flags:0x%x fd:%i address:%s)",
-                  bs.address.get(), flags, fd, sa_pretty_address_str(sockaddr).c_str());
+                  bs.address.get(), flags, fd, sa_pretty_str(sockaddr).c_str());
   return fd;
 }
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
   if (!sa_is_inet(connect_sa) && !sa_is_inet6(connect_sa)) {
-    LT_LOG("connect_socket called with invalid sockaddr (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+    LT_LOG("connect_socket called with invalid sockaddr (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
     return -1;
   }
 
-  if (sa_is_any(connect_sa) || sa_port(connect_sa) == 0) {
-    LT_LOG("connect_socket called with invalid address (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+  if (sa_is_any(connect_sa) || sa_is_broadcast(connect_sa) || sa_port(connect_sa) == 0) {
+    LT_LOG("connect_socket called with invalid address (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
     return -1;
   }
 
   if ((m_flags & flag_block_connect)) {
-    LT_LOG("connect_socket blocked (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+    LT_LOG("connect_socket blocked (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
     return -1;
   }
 
-  LT_LOG("connect_socket attempt (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+  LT_LOG("connect_socket attempt (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
 
   for (auto& itr : *this) {
     if (itr.flags & flag_block_connect)
@@ -274,7 +274,7 @@ bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
       return fd;
   }
 
-  LT_LOG("connect_socket failed (flags:0x%x address:%s)", flags, sa_pretty_address_str(connect_sa).c_str());
+  LT_LOG("connect_socket failed (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
   return -1;
 }
 

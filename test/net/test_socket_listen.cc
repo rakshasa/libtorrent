@@ -272,7 +272,7 @@ test_socket_listen::test_open_error_sap() {
     TEST_SL_ASSERT_CLOSED();
   };
   { TEST_SL_BEGIN("sin_broadcast");
-    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin_broadcast), 5000, 5009, 5005, torrent::fd_flag_stream | torrent::fd_flag_v4only), torrent::internal_error);
+    CPPUNIT_ASSERT_THROW(sl.open(torrent::sap_copy(sin_bc), 5000, 5009, 5005, torrent::fd_flag_stream | torrent::fd_flag_v4only), torrent::internal_error);
     TEST_SL_ASSERT_CLOSED();
   };
 }

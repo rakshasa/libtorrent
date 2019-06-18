@@ -297,60 +297,76 @@ test_bind_manager::test_connect_socket_v4only() {
 
 void
 test_bind_manager::test_connect_socket_v6only() {
-  torrent::bind_manager bm;
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_v6only));
-
-  auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
-  auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
-  auto sin6_v4mapped_fail = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
-
-  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_test.get(), (socklen_t)sizeof(sockaddr_in6));
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_test.get(), 0) == 1000);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
+  { TEST_BM_BEGIN("sin6_any, connect sin_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), torrent::bind_manager::flag_v6only));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect sin6_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), torrent::bind_manager::flag_v6only));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect sin6_v4_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), torrent::bind_manager::flag_v6only));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
+  };
 }
 
 void
 test_bind_manager::test_connect_socket_block_connect() {
-  torrent::bind_manager bm;
-
-  auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
-  auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
-  auto sin6_v4mapped_fail = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
-
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), torrent::bind_manager::flag_block_connect));
-  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
-
-  bm.clear();
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_block_connect));
-  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
-
-  bm.clear();
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_block_connect));
-  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
+  { TEST_BM_BEGIN("sin6_any");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), torrent::bind_manager::flag_block_connect));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin_any");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), torrent::bind_manager::flag_block_connect));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_1");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_1.get(), torrent::bind_manager::flag_block_connect));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin_1");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_1.get(), torrent::bind_manager::flag_block_connect));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
+  };
 }
 
 void
 test_bind_manager::test_error_connect_socket() {
   { TEST_BM_BEGIN("sin6_any, connect zero port");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-
     CPPUNIT_ASSERT(bm.connect_socket(sin_1.get(), 0) == -1);
     CPPUNIT_ASSERT(bm.connect_socket(sin6_1.get(), 0) == -1);
     CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1.get(), 0) == -1);
   };
-
-  // TODO: Fail multicast addresses.
-  // TODO: Fail .0 / .255.
+  { TEST_BM_BEGIN("sin6_any, connect any address");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_any_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_any_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_any_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect any address, zero port");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_any.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_any.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_any.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect broadcast address");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_bc_5000.get(), 0) == -1);
+  };
 }
 
 void

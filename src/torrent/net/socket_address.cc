@@ -13,11 +13,8 @@
 
 namespace torrent {
 
-// TODO: Cleanup.
-inline uint32_t
+constexpr uint32_t
 sin6_addr32_index(const sockaddr_in6* sa, unsigned int index) {
-  // TODO: Throw if >=4
-  // TODO: Use proper casting+htonl.
   return
     (sa->sin6_addr.s6_addr[index * 4 + 0] << 24) +
     (sa->sin6_addr.s6_addr[index * 4 + 1] << 16) +
@@ -70,6 +67,8 @@ sa_is_any(const sockaddr* sa) {
   case AF_INET:
     return sin_is_any(reinterpret_cast<const sockaddr_in*>(sa));
   case AF_INET6:
+    if (sa_is_v4mapped(sa))
+      return sin6_addr32_index(reinterpret_cast<const sockaddr_in6*>(sa), 3) == htonl(INADDR_ANY);
     return sin6_is_any(reinterpret_cast<const sockaddr_in6*>(sa));
   default:
     return true;
@@ -91,6 +90,10 @@ sa_is_broadcast(const sockaddr* sa) {
   switch (sa->sa_family) {
   case AF_INET:
     return sin_is_broadcast(reinterpret_cast<const sockaddr_in*>(sa));
+  case AF_INET6:
+    if (sa_is_v4mapped(sa))
+      return sin6_addr32_index(reinterpret_cast<const sockaddr_in6*>(sa), 3) == htonl(INADDR_BROADCAST);
+    return false;
   default:
     return false;
   }
