@@ -88,6 +88,7 @@ AC_DEFUN([TORRENT_CHECK_KQUEUE], [
     [
       AC_DEFINE(USE_KQUEUE, 1, Use kqueue.)
       AC_MSG_RESULT(yes)
+      TORRENT_CHECK_KQUEUE_SOCKET_ONLY
     ], [
       AC_MSG_RESULT(no)
     ])
@@ -137,7 +138,6 @@ AC_DEFUN([TORRENT_WITH_KQUEUE], [
     [
         if test "$withval" = "yes"; then
           TORRENT_CHECK_KQUEUE
-          TORRENT_CHECK_KQUEUE_SOCKET_ONLY
         fi
     ])
 ])
@@ -149,11 +149,9 @@ AC_DEFUN([TORRENT_WITHOUT_KQUEUE], [
     [
       if test "$withval" = "yes"; then
         TORRENT_CHECK_KQUEUE
-        TORRENT_CHECK_KQUEUE_SOCKET_ONLY
       fi
     ], [
         TORRENT_CHECK_KQUEUE
-        TORRENT_CHECK_KQUEUE_SOCKET_ONLY
     ])
 ])
 

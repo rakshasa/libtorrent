@@ -42,6 +42,11 @@ operator |(fd_flags lhs, fd_flags rhs) {
   return static_cast<fd_flags>(static_cast<int>(lhs) | static_cast<int>(rhs));
 }
 
+inline fd_flags&
+operator |=(fd_flags& lhs, fd_flags rhs) {
+  return (lhs = lhs | rhs);
+}
+
 constexpr bool
 fd_valid_flags(fd_flags flags) {
   return

@@ -138,9 +138,9 @@ test_bind_manager::test_add_bind_error() {
 
   bm.clear();
 
-  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_nullptr", 100, nullptr, 0), torrent::input_error);
-  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_unspec", 100, torrent::sa_make_unspec().get(), 0), torrent::input_error);
-  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_unix", 100, torrent::sa_make_unix("").get(), 0), torrent::input_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_nullptr", 100, nullptr, 0), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_unspec", 100, torrent::sa_make_unspec().get(), 0), torrent::internal_error);
+  CPPUNIT_ASSERT_THROW(bm.add_bind("sa_unix", 100, torrent::sa_make_unix("").get(), 0), torrent::internal_error);
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin_has_port", 100, wrap_ai_get_first_sa("0.0.0.0", "2000").get(), 0), torrent::input_error);
   CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_has_port", 100, wrap_ai_get_first_sa("::", "2000").get(), 0), torrent::input_error);
 
@@ -213,86 +213,116 @@ test_bind_manager::test_remove_bind() {
 
 void
 test_bind_manager::test_connect_socket() {
-  torrent::bind_manager bm;
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("::").get(), 0));
-
-  auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
-  auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
-  auto sin6_v4mapped_test = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
-
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_v4mapped_test.get(), (socklen_t)sizeof(sockaddr_in6));
-  CPPUNIT_ASSERT(bm.connect_socket(sin_test.get(), 0) == 1000);
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_test.get(), (socklen_t)sizeof(sockaddr_in6));
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_test.get(), 0) == 1000);
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_v4mapped_test.get(), (socklen_t)sizeof(sockaddr_in6));
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_test.get(), 0) == 1000);
+  { TEST_BM_BEGIN("sin6_any, connect sin_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect sin6_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect sin6_v4_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
+  };
 }
 
 void
 test_bind_manager::test_connect_socket_v4bound() {
-  torrent::bind_manager bm;
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("4.3.2.1").get(), 0));
-
-  auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
-  auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
-  auto sin6_v4mapped_test = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
-
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__bind, 0, 1000, bm.front().address.get(), (socklen_t)sizeof(sockaddr_in));
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin_test.get(), (socklen_t)sizeof(sockaddr_in));
-  CPPUNIT_ASSERT(bm.connect_socket(sin_test.get(), 0) == 1000);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__bind, 0, 1000, bm.front().address.get(), (socklen_t)sizeof(sockaddr_in));
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin_test.get(), (socklen_t)sizeof(sockaddr_in));
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_test.get(), 0) == 1000);
+  { TEST_BM_BEGIN("sin_bnd, connect sin_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), 0));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin_bnd, connect sin6_1_5000 fails");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == -1);
+  }
+  { TEST_BM_BEGIN("sin_bnd, connect sin6_v4_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), 0));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
+  };
 }
+
+// TODO: Use different address for bind and connect addresses.
 
 void
 test_bind_manager::test_connect_socket_v6bound() {
-  torrent::bind_manager bm;
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("ff01::1").get(), 0));
-
-  auto sin_fail = wrap_ai_get_first_sa("1.2.3.4", "5555");
-  auto sin6_test = wrap_ai_get_first_sa("ff01::1", "5555");
-  auto sin6_v4mapped_fail = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
-
-  CPPUNIT_ASSERT(bm.connect_socket(sin_fail.get(), 0) == -1);
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__bind, 0, 1000, bm.front().address.get(), (socklen_t)sizeof(sockaddr_in6));
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_test.get(), (socklen_t)sizeof(sockaddr_in6));
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_test.get(), 0) == 1000);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_fail.get(), 0) == -1);
+  { TEST_BM_BEGIN("sin6_bnd, connect sin_1_5000 fails");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_bnd, connect sin6_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), 0));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_bnd.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin6_bnd, connect sin6_v4_1_5000 fails");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
+  };
 }
 
 void
 test_bind_manager::test_connect_socket_v4only() {
-  torrent::bind_manager bm;
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, wrap_ai_get_first_sa("0.0.0.0").get(), torrent::bind_manager::flag_v4only));
-
-  auto sin_test = wrap_ai_get_first_sa("1.2.3.4", "5555");
-  auto sin6_fail = wrap_ai_get_first_sa("ff01::1", "5555");
-  auto sin6_v4mapped_test = wrap_ai_get_first_sa("::ffff:1.2.3.4", "5555");
-
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin_test.get(), (socklen_t)sizeof(sockaddr_in));
-  CPPUNIT_ASSERT(bm.connect_socket(sin_test.get(), 0) == 1000);
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_fail.get(), 0) == -1);
-  mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-  mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-  mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin_test.get(), (socklen_t)sizeof(sockaddr_in));
-  CPPUNIT_ASSERT(bm.connect_socket(sin6_v4mapped_test.get(), 0) == 1000);
+  { TEST_BM_BEGIN("sin_any, connect sin_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), torrent::bind_manager::flag_v4only));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin_any, connect sin6_1_5000 fails");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), torrent::bind_manager::flag_v4only));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin_any, connect sin6_v4_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), torrent::bind_manager::flag_v4only));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin_bnd, connect sin_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), torrent::bind_manager::flag_v4only));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin_bnd, connect sin6_1_5000 fails");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_1.get(), torrent::bind_manager::flag_v4only));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin_bnd, connect sin6_v4_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), torrent::bind_manager::flag_v4only));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
+  };
 }
 
 void
@@ -306,11 +336,28 @@ test_bind_manager::test_connect_socket_v6only() {
     mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
     mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
     mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-    mock_expect(&torrent::fd__connect, 0, 1000, (const sockaddr*)sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
   };
   { TEST_BM_BEGIN("sin6_any, connect sin6_v4_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), torrent::bind_manager::flag_v6only));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_bnd, connect sin_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), torrent::bind_manager::flag_v6only));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_bnd, connect sin6_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), torrent::bind_manager::flag_v6only));
+    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
+    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
+    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_bnd.get(), (socklen_t)sizeof(sockaddr_in6));
+    mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
+  };
+  { TEST_BM_BEGIN("sin6_bnd, connect sin6_v4_1_5000");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_1.get(), torrent::bind_manager::flag_v6only));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == -1);
   };
 }
@@ -347,25 +394,25 @@ void
 test_bind_manager::test_error_connect_socket() {
   { TEST_BM_BEGIN("sin6_any, connect zero port");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT(bm.connect_socket(sin_1.get(), 0) == -1);
-    CPPUNIT_ASSERT(bm.connect_socket(sin6_1.get(), 0) == -1);
-    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1.get(), 0) == -1);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_1.get(), 0), torrent::internal_error);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_1.get(), 0), torrent::internal_error);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_v4_1.get(), 0), torrent::internal_error);
   };
   { TEST_BM_BEGIN("sin6_any, connect any address");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT(bm.connect_socket(sin_any_5000.get(), 0) == -1);
-    CPPUNIT_ASSERT(bm.connect_socket(sin6_any_5000.get(), 0) == -1);
-    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_any_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_any_5000.get(), 0), torrent::internal_error);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_any_5000.get(), 0), torrent::internal_error);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_v4_any_5000.get(), 0), torrent::internal_error);
   };
   { TEST_BM_BEGIN("sin6_any, connect any address, zero port");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT(bm.connect_socket(sin_any.get(), 0) == -1);
-    CPPUNIT_ASSERT(bm.connect_socket(sin6_any.get(), 0) == -1);
-    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_any.get(), 0) == -1);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_any.get(), 0), torrent::internal_error);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_any.get(), 0), torrent::internal_error);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_v4_any.get(), 0), torrent::internal_error);
   };
   { TEST_BM_BEGIN("sin6_any, connect broadcast address");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT(bm.connect_socket(sin_bc_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_bc_5000.get(), 0), torrent::internal_error);
   };
 }
 

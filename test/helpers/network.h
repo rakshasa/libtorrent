@@ -10,8 +10,10 @@
 #define TEST_DEFAULT_SA                                                 \
   auto sin_any = wrap_ai_get_first_sa("0.0.0.0");                       \
   auto sin_bc = wrap_ai_get_first_sa("255.255.255.255");                \
+  auto sin_bnd = wrap_ai_get_first_sa("123.123.123.123");               \
   auto sin_1 = wrap_ai_get_first_sa("1.2.3.4");                         \
   auto sin6_any = wrap_ai_get_first_sa("::");                           \
+  auto sin6_bnd = wrap_ai_get_first_sa("ff01::123");                    \
   auto sin6_1 = wrap_ai_get_first_sa("ff01::1");                        \
   auto sin6_v4_any = wrap_ai_get_first_sa("::ffff:0.0.0.0");            \
   auto sin6_v4_bc = wrap_ai_get_first_sa("::ffff:255.255.255.255");     \
@@ -33,19 +35,26 @@
                                                                         \
   auto c_sin_any = wrap_ai_get_first_c_sa("0.0.0.0");                   \
   auto c_sin_bc = wrap_ai_get_first_c_sa("255.255.255.255");            \
+  auto c_sin_bnd = wrap_ai_get_first_c_sa("123.123.123.123");           \
   auto c_sin_1 = wrap_ai_get_first_c_sa("1.2.3.4");                     \
   auto c_sin6_any = wrap_ai_get_first_c_sa("::");                       \
+  auto c_sin6_bnd = wrap_ai_get_first_c_sa("ff01::123");                \
   auto c_sin6_1 = wrap_ai_get_first_c_sa("ff01::1");                    \
                                                                         \
   auto c_sin_any_5000 = wrap_ai_get_first_c_sa("0.0.0.0", "5000");      \
   auto c_sin_bc_5000 = wrap_ai_get_first_c_sa("255.255.255.255", "5000"); \
+  auto c_sin_bnd_5000 = wrap_ai_get_first_c_sa("123.123.123.123", "5000"); \
   auto c_sin_1_5000 = wrap_ai_get_first_c_sa("1.2.3.4", "5000");        \
   auto c_sin6_any_5000 = wrap_ai_get_first_c_sa("::", "5000");          \
+  auto c_sin6_bnd_5000 = wrap_ai_get_first_c_sa("ff01::123", "5000");   \
   auto c_sin6_1_5000 = wrap_ai_get_first_c_sa("ff01::1", "5000");       \
+  auto c_sin6_v4_1_5000 = wrap_ai_get_first_c_sa("::ffff:1.2.3.4", "5000"); \
+                                                                        \
   auto c_sin_any_5005 = wrap_ai_get_first_c_sa("0.0.0.0", "5005");      \
   auto c_sin_1_5005 = wrap_ai_get_first_c_sa("1.2.3.4", "5005");        \
   auto c_sin6_any_5005 = wrap_ai_get_first_c_sa("::", "5005");          \
   auto c_sin6_1_5005 = wrap_ai_get_first_c_sa("ff01::1", "5005");       \
+                                                                        \
   auto c_sin_any_5010 = wrap_ai_get_first_c_sa("0.0.0.0", "5010");      \
   auto c_sin_1_5010 = wrap_ai_get_first_c_sa("1.2.3.4", "5010");        \
   auto c_sin6_any_5010 = wrap_ai_get_first_c_sa("::", "5010");          \

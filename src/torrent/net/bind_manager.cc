@@ -54,9 +54,17 @@
 #define LT_LOG_SOCKADDR_ERROR(log_fmt, bind_sa, flags, address)         \
   LT_LOG_SOCKADDR(log_fmt " (flags:0x%x fd:%i address:%s errno:%i message:'%s')", \
                   bind_sa, flags, fd, sa_pretty_str(address).c_str(), errno, std::strerror(errno));
-#define LT_INPUT_ERROR(message, condition)              \
-  { if (condition) throw input_error(message); }
 
+#define LT_ASSERT_INPUT(message, condition)                             \
+  { if (!(condition)) { lt_log_print(LOG_CONNECTION_BIND, "bind: %s", std::string(message).c_str()); \
+                        throw input_error(message); }};
+#define LT_ASSERT_INTERNAL(message, condition)                          \
+  { if (!(condition)) { lt_log_print(LOG_CONNECTION_BIND, "bind: %s", std::string(message).c_str()); \
+                        throw internal_error(message); }};
+#define LT_ASSERT_INTERNAL_F_SA(message, flags, sa, condition)          \
+  { if (!(condition)) { lt_log_print(LOG_CONNECTION_BIND, "bind: %s (flags:0x%x address:%s)", \
+                                     std::string(message).c_str(), flags, torrent::sa_pretty_str(sa).c_str()); \
+                        throw internal_error(message); }};
 
 namespace torrent {
 
@@ -147,21 +155,21 @@ bind_manager::set_block_connect(bool flag) {
 
 void
 bind_manager::add_bind(const std::string& name, uint16_t priority, const sockaddr* bind_sa, int flags) {
-  LT_INPUT_ERROR("add_bind with duplicate name", find_name(name) != end());
-  LT_INPUT_ERROR("add_bind with " + sa_pretty_str(bind_sa) + " sockaddr", bind_sa == nullptr || !(sa_is_inet(bind_sa) || sa_is_inet6(bind_sa)));
+  LT_ASSERT_INTERNAL("add_bind with " + sa_pretty_str(bind_sa) + " sockaddr",
+                     bind_sa != nullptr && (sa_is_inet(bind_sa) || sa_is_inet6(bind_sa)));
 
   auto sap = sa_convert(bind_sa);
-
-  LT_INPUT_ERROR("add_bind with broadcast address", sap_is_broadcast(sap));
-  LT_INPUT_ERROR("add_bind with non-zero port", !sap_is_port_any(sap));
+  LT_ASSERT_INPUT("add_bind with duplicate name", find_name(name) == end());
+  LT_ASSERT_INPUT("add_bind with broadcast address", !sap_is_broadcast(sap));
+  LT_ASSERT_INPUT("add_bind with non-zero port", sap_is_port_any(sap));
 
   if (sap_is_inet(sap)) {
-    LT_INPUT_ERROR("add_bind with " + sap_pretty_str(sap) + " and incompatible v6only flag", (flags & flag_v6only));
+    LT_ASSERT_INPUT("add_bind with " + sap_pretty_str(sap) + " and incompatible v6only flag", !(flags & flag_v6only));
     flags |= flag_v4only;
   }
 
   if (sap_is_inet6(sap)) {
-    LT_INPUT_ERROR("add_bind with " + sap_pretty_str(sap) + " and incompatible v4only flag", (flags & flag_v4only));
+    LT_ASSERT_INPUT("add_bind with " + sap_pretty_str(sap) + " and incompatible v4only flag", !(flags & flag_v4only));
 
     if (!sap_is_any(sap))
       flags |= flag_v6only;
@@ -225,18 +233,14 @@ attempt_open_connect(const bind_struct& bs, const sockaddr* sockaddr, fd_flags f
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
-  if (!sa_is_inet(connect_sa) && !sa_is_inet6(connect_sa)) {
-    LT_LOG("connect_socket called with invalid sockaddr (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
-    return -1;
-  }
-
-  if (sa_is_any(connect_sa) || sa_is_broadcast(connect_sa) || sa_port(connect_sa) == 0) {
-    LT_LOG("connect_socket called with invalid address (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
-    return -1;
-  }
+  LT_ASSERT_INTERNAL_F_SA("connect_socket called with invalid sockaddr", flags, connect_sa,
+                          sa_is_inet(connect_sa) || sa_is_inet6(connect_sa));
+  LT_ASSERT_INTERNAL_F_SA("connect_socket called with invalid sockaddr", flags, connect_sa,
+                          !sa_is_any(connect_sa) && !sa_is_broadcast(connect_sa) && sa_port(connect_sa) != 0);
 
   if ((m_flags & flag_block_connect)) {
-    LT_LOG("connect_socket blocked (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
+    // LT_LOG("connect_socket failed, all outgoing connections blocked (flags:0x%x address:%s)",
+    //        flags, sa_pretty_str(connect_sa).c_str());
     return -1;
   }
 
@@ -255,17 +259,15 @@ bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
     if ((itr.flags & flag_v4only)) {
       if (!sap_is_inet(current_sap))
         continue;
-
-      open_flags = open_flags | fd_flag_v4only;
+      open_flags |= fd_flag_v4only;
 
     } else if ((itr.flags & flag_v6only)) {
       if (!sap_is_inet6(current_sap))
         continue;
-
-      open_flags = open_flags | fd_flag_v6only;
+      open_flags |= fd_flag_v6only;
 
     } else if (sap_is_inet(current_sap)) {
-      current_sap = sap_to_v4mapped(current_sap);
+      open_flags |= fd_flag_v4only;
     }
 
     int fd = attempt_open_connect(itr, current_sap.get(), open_flags);
@@ -290,10 +292,9 @@ attempt_listen_open(const sockaddr* bind_sa, int bind_flags) {
 
   // TODO: Validate bind sa is v4 or v6 respectively.
   if ((bind_flags & bind_manager::flag_v4only))
-    open_flags = open_flags | fd_flag_v4only;
-
+    open_flags |= fd_flag_v4only;
   if ((bind_flags & bind_manager::flag_v6only))
-    open_flags = open_flags | fd_flag_v6only;
+    open_flags |= fd_flag_v6only;
 
   int fd = fd_open(open_flags);
 

@@ -261,7 +261,7 @@ SocketFd::accept(rak::socket_address* sa) {
   socklen_t len = sizeof(rak::socket_address);
 
   if (sa == NULL) {
-    return SocketFd(::accept(m_fd, NULL, &len));
+    return SocketFd(::accept(m_fd, NULL, &len), m_ipv6_socket);
   }
 
   int fd = ::accept(m_fd, sa->c_sockaddr(), &len);
@@ -270,7 +270,7 @@ SocketFd::accept(rak::socket_address* sa) {
     *sa = sa->sa_inet6()->normalize_address();
   }
 
-  return SocketFd(fd);
+  return SocketFd(fd, m_ipv6_socket);
 }
 
 // unsigned int

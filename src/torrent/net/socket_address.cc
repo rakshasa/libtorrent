@@ -119,8 +119,6 @@ sa_is_port_any(const sockaddr* sa) {
   return sa_port(sa) == 0;
 }
 
-// TODO: Technically not correct, use sa length and throw if
-// invalid. Also make sure the length is not larger than required.
 size_t
 sa_length(const sockaddr* sa) {
   switch(sa->sa_family) {
