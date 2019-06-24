@@ -34,7 +34,6 @@ void mock_cleanup() {
 }
 
 namespace torrent {
-extern "C" {
 
   int fd__bind(int socket, const sockaddr *address, socklen_t address_len) {
     MOCK_LOG("socket:%i address:%s address_len:%u",
@@ -74,5 +73,4 @@ extern "C" {
     return mock_call<int>(__func__, &torrent::fd__socket, domain, type, protocol);
   }
 
-}
 }

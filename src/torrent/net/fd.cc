@@ -45,15 +45,13 @@
 
 namespace torrent {
 
-extern "C" {
-  int fd__bind(int socket, const sockaddr *address, socklen_t address_len) { return ::bind(socket, address, address_len); }
-  int fd__close(int fildes) { return ::close(fildes); }
-  int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return ::connect(socket, address, address_len); }
-  int fd__fcntl_int(int fildes, int cmd, int arg) { return ::fcntl(fildes, cmd, arg); }
-  int fd__listen(int socket, int backlog) { return ::listen(socket, backlog); }
-  int fd__setsockopt_int(int socket, int level, int option_name, int option_value) { return ::setsockopt(socket, level, option_name, &option_value, sizeof(int)); }
-  int fd__socket(int domain, int type, int protocol) { return ::socket(domain, type, protocol); }
-}
+int fd__bind(int socket, const sockaddr *address, socklen_t address_len) { return ::bind(socket, address, address_len); }
+int fd__close(int fildes) { return ::close(fildes); }
+int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return ::connect(socket, address, address_len); }
+int fd__fcntl_int(int fildes, int cmd, int arg) { return ::fcntl(fildes, cmd, arg); }
+int fd__listen(int socket, int backlog) { return ::listen(socket, backlog); }
+int fd__setsockopt_int(int socket, int level, int option_name, int option_value) { return ::setsockopt(socket, level, option_name, &option_value, sizeof(int)); }
+int fd__socket(int domain, int type, int protocol) { return ::socket(domain, type, protocol); }
 
 int
 fd_open(fd_flags flags) {

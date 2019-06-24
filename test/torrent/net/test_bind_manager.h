@@ -11,7 +11,6 @@ class test_bind_manager : public test_fixture {
   CPPUNIT_TEST(test_add_bind_error);
   CPPUNIT_TEST(test_add_bind_priority);
   CPPUNIT_TEST(test_add_bind_v4mapped);
-
   CPPUNIT_TEST(test_remove_bind);
 
   CPPUNIT_TEST(test_connect_socket);
@@ -20,7 +19,6 @@ class test_bind_manager : public test_fixture {
   CPPUNIT_TEST(test_connect_socket_v4only);
   CPPUNIT_TEST(test_connect_socket_v6only);
   CPPUNIT_TEST(test_connect_socket_block_connect);
-
   CPPUNIT_TEST(test_error_connect_socket);
 
   CPPUNIT_TEST(test_listen_socket);
@@ -36,7 +34,6 @@ public:
   void test_add_bind_error();
   void test_add_bind_priority();
   void test_add_bind_v4mapped();
-
   void test_remove_bind();
 
   void test_connect_socket();
@@ -45,7 +42,6 @@ public:
   void test_connect_socket_v4only();
   void test_connect_socket_v6only();
   void test_connect_socket_block_connect();
-
   void test_error_connect_socket();
 
   void test_listen_socket();
