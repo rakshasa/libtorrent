@@ -10,6 +10,8 @@ libsub_torrentutils_la_SOURCES = \
 	log_buffer.h \
 	option_strings.cc \
 	option_strings.h \
+	random.cc \
+	random.h \
 	ranges.h \
 	resume.cc \
 	resume.h \

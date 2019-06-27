@@ -16,13 +16,14 @@ struct mock_function_map {
   typedef std::vector<call_type> call_list_type;
   typedef std::map<void*, call_list_type> func_map_type;
 
-  static func_map_type functions;
+  typedef std::function<R (Args...)> function_type;
+  typedef std::map<void*, function_type> redirect_map_type;
 
-  mock_function_map() {
-    // Add std::function to size and clear queue.
-  }
+  static func_map_type functions;
+  static redirect_map_type redirects;
 
   static bool cleanup(void* fn) {
+    redirects.erase(fn);
     return functions.erase(fn) == 0;
   }
 
@@ -40,6 +41,8 @@ struct mock_function_map {
 
 template<typename R, typename... Args>
 typename mock_function_map<R, Args...>::func_map_type mock_function_map<R, Args...>::functions;
+template<typename R, typename... Args>
+typename mock_function_map<R, Args...>::redirect_map_type mock_function_map<R, Args...>::redirects;
 
 struct mock_void {};
 
@@ -74,7 +77,9 @@ struct mock_function_type {
     return mock_compare_tuple<sizeof...(Args)>(lhs, std::make_tuple(rhs...));
   }
 
-  static R ret_erase(void* fn) { return type::ret_erase(fn); }
+  static R    ret_erase(void* fn) { return type::ret_erase(fn); }
+  static bool has_redirect(void* fn) { return type::redirects.find(fn) != type::redirects.end(); }
+  static R    call_redirect(void* fn, Args... args) { return type::redirects.find(fn)->second(args...); }
 };
 
 template<typename... Args>
@@ -86,6 +91,8 @@ struct mock_function_type<void, Args...> {
   }
 
   static void ret_erase(void* fn) { type::ret_erase(fn); }
+  static bool has_redirect(void* fn) { return type::redirects.find(fn) != type::redirects.end(); }
+  static void call_redirect(void* fn, Args... args) { type::redirects.find(fn)->second(args...); }
 };
 
 void mock_init();
@@ -112,13 +119,21 @@ mock_expect(void fn(Args...), Args... args) {
 }
 
 template<typename R, typename... Args>
+void
+mock_redirect(R fn(Args...), std::function<R (Args...)> func) {
+  typedef mock_function_map<R, Args...> mock_map;
+  mock_map::redirects[reinterpret_cast<void*>(fn)] = func;
+}
+
+template<typename R, typename... Args>
 auto
 mock_call(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)) {
   typedef mock_function_type<R, Args...> mock_type;
-  auto itr = mock_type::type::functions.find(reinterpret_cast<void*>(fn));
 
-  // Throwing here causes undefined behaviour as it crosses C language
-  // barriers.
+  if (mock_type::has_redirect(reinterpret_cast<void*>(fn)))
+    return mock_type::call_redirect(reinterpret_cast<void*>(fn), args...);
+
+  auto itr = mock_type::type::functions.find(reinterpret_cast<void*>(fn));
   CPPUNIT_ASSERT_MESSAGE(("mock_call expected function calls exhausted by '" + name + "'").c_str(),
                          itr != mock_type::type::functions.end());
 

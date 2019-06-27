@@ -46,6 +46,7 @@
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/random.h"
 
 #define LT_LOG(log_fmt, ...)                                            \
   lt_log_print(LOG_CONNECTION_BIND, "bind: " log_fmt, __VA_ARGS__);
@@ -314,17 +315,17 @@ get_bind_ports(const bind_manager* manager, const bind_struct& itr) {
   uint16_t port_itr;
 
   if (port_first == 0 || port_last == 0 || port_first > port_last)
-    return std::make_tuple(0, 0, 0);
+    throw internal_error("port_first == 0 || port_last == 0 || port_first > port_last");
 
   // TODO: Check itr flag first.
   // TODO: Test that we can get the last port number.
   if (!manager->is_port_randomize() || (port_last - port_first) == 0)
     port_itr = port_first;
   else
-    port_itr = port_first + rand() % (port_last - port_first + 1);
+    port_itr = random_uniform_uint16(port_first, port_last);
 
   if (port_itr == 0 || port_itr < port_first || port_itr > port_last)
-    return std::make_tuple(0, 0, 0);
+    throw internal_error("port_itr == 0 || port_itr < port_first || port_itr > port_last");
 
   return std::make_tuple(port_first, port_last, port_itr);
 }

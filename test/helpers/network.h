@@ -58,7 +58,11 @@
   auto c_sin_any_5010 = wrap_ai_get_first_c_sa("0.0.0.0", "5010");      \
   auto c_sin_1_5010 = wrap_ai_get_first_c_sa("1.2.3.4", "5010");        \
   auto c_sin6_any_5010 = wrap_ai_get_first_c_sa("::", "5010");          \
-  auto c_sin6_1_5010 = wrap_ai_get_first_c_sa("ff01::1", "5010");
+  auto c_sin6_1_5010 = wrap_ai_get_first_c_sa("ff01::1", "5010");       \
+                                                                        \
+  auto c_sin6_any_6881 = wrap_ai_get_first_c_sa("::", "6881");          \
+  auto c_sin6_any_6900 = wrap_ai_get_first_c_sa("::", "6900");          \
+  auto c_sin6_any_6999 = wrap_ai_get_first_c_sa("::", "6999");
 
 inline bool
 compare_sin6_addr(in6_addr lhs, in6_addr rhs) {

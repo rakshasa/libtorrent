@@ -21,7 +21,7 @@ class test_bind_manager : public test_fixture {
   CPPUNIT_TEST(test_connect_socket_block_connect);
   CPPUNIT_TEST(test_error_connect_socket);
 
-  CPPUNIT_TEST(test_listen_socket);
+  CPPUNIT_TEST(test_listen_socket_randomize);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -44,5 +44,5 @@ public:
   void test_connect_socket_block_connect();
   void test_error_connect_socket();
 
-  void test_listen_socket();
+  void test_listen_socket_randomize();
 };
