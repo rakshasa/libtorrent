@@ -2,13 +2,11 @@
 
 #include "test_bind_manager.h"
 
-#include <fcntl.h>
-
+#include "helpers/fd.h"
 #include "helpers/network.h"
 
 #include "torrent/exceptions.h"
 #include "torrent/net/bind_manager.h"
-#include "torrent/net/fd.h"
 #include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "torrent/utils/random.h"
@@ -222,22 +220,19 @@ void
 test_bind_manager::test_connect_socket() {
   { TEST_BM_BEGIN("sin6_any, connect sin_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
   };
   { TEST_BM_BEGIN("sin6_any, connect sin6_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet6_tcp_nonblock(1000);
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
   };
   { TEST_BM_BEGIN("sin6_any, connect sin6_v4_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
   };
@@ -247,8 +242,7 @@ void
 test_bind_manager::test_connect_socket_v4bound() {
   { TEST_BM_BEGIN("sin_bnd, connect sin_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
@@ -259,8 +253,7 @@ test_bind_manager::test_connect_socket_v4bound() {
   }
   { TEST_BM_BEGIN("sin_bnd, connect sin6_v4_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
@@ -277,9 +270,7 @@ test_bind_manager::test_connect_socket_v6bound() {
   };
   { TEST_BM_BEGIN("sin6_bnd, connect sin6_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet6_tcp_v6only_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_bnd.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
@@ -294,8 +285,7 @@ void
 test_bind_manager::test_connect_socket_v4only() {
   { TEST_BM_BEGIN("sin_any, connect sin_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), torrent::bind_manager::flag_v4only));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
   };
@@ -305,15 +295,13 @@ test_bind_manager::test_connect_socket_v4only() {
   };
   { TEST_BM_BEGIN("sin_any, connect sin6_v4_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), torrent::bind_manager::flag_v4only));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
   };
   { TEST_BM_BEGIN("sin_bnd, connect sin_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), torrent::bind_manager::flag_v4only));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin_1_5000.get(), 0) == 1000);
@@ -324,8 +312,7 @@ test_bind_manager::test_connect_socket_v4only() {
   };
   { TEST_BM_BEGIN("sin_bnd, connect sin6_v4_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), torrent::bind_manager::flag_v4only));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin_bnd.get(), (socklen_t)sizeof(sockaddr_in));
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin_1_5000.get(), (socklen_t)sizeof(sockaddr_in));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
@@ -340,9 +327,7 @@ test_bind_manager::test_connect_socket_v6only() {
   };
   { TEST_BM_BEGIN("sin6_any, connect sin6_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), torrent::bind_manager::flag_v6only));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet6_tcp_v6only_nonblock(1000);
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
   };
@@ -356,9 +341,7 @@ test_bind_manager::test_connect_socket_v6only() {
   };
   { TEST_BM_BEGIN("sin6_bnd, connect sin6_1_5000");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), torrent::bind_manager::flag_v6only));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)IPPROTO_IPV6, (int)IPV6_V6ONLY, (int)true);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet6_tcp_v6only_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_bnd.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__connect, 0, 1000, c_sin6_1_5000.get(), (socklen_t)sizeof(sockaddr_in6));
     CPPUNIT_ASSERT(bm.connect_socket(sin6_1_5000.get(), 0) == 1000);
@@ -427,9 +410,7 @@ void
 test_bind_manager::test_listen_socket_randomize() {
   { TEST_BM_BEGIN("sin6_any, first port");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    fd_expect_inet6_tcp_nonblock_reuseaddr(1000);
     mock_expect(&torrent::random_uniform_uint16, (uint16_t)6881, (uint16_t)6881, (uint16_t)6999);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_6881.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
@@ -437,9 +418,7 @@ test_bind_manager::test_listen_socket_randomize() {
   };
   { TEST_BM_BEGIN("sin6_any, middle port");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    fd_expect_inet6_tcp_nonblock_reuseaddr(1000);
     mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_6900.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
@@ -447,9 +426,7 @@ test_bind_manager::test_listen_socket_randomize() {
   };
   { TEST_BM_BEGIN("sin6_any, last port");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    fd_expect_inet6_tcp_nonblock_reuseaddr(1000);
     mock_expect(&torrent::random_uniform_uint16, (uint16_t)6999, (uint16_t)6881, (uint16_t)6999);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_6999.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);

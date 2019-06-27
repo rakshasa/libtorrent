@@ -2,9 +2,9 @@
 
 #include "test_socket_listen.h"
 
+#include "helpers/fd.h"
 #include "helpers/network.h"
 
-#include <fcntl.h>
 #include <net/socket_listen.h>
 #include <torrent/exceptions.h>
 #include <torrent/utils/log.h>
@@ -98,16 +98,14 @@ test_socket_listen::test_open_sap() {
 void
 test_socket_listen::test_open_flags() {
   { TEST_SL_BEGIN("sin_any, stream|v4only|nonblock");
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin_any_5005.get(), (socklen_t)sizeof(sockaddr_in));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
     TEST_SL_ASSERT_OPEN(torrent::sap_copy_addr(sin_any), c_sin_any_5005, torrent::fd_flag_stream | torrent::fd_flag_v4only | torrent::fd_flag_nonblock);
     TEST_SL_CLOSE(1000);
   };
   { TEST_SL_BEGIN("sin6_any, stream|nonblock");
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet6_tcp_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5005.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
     TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5005, torrent::fd_flag_stream | torrent::fd_flag_nonblock);
@@ -130,8 +128,7 @@ test_socket_listen::test_open_flags() {
     TEST_SL_CLOSE(1000);
   };
   { TEST_SL_BEGIN("sin_any, stream|v4only|nonblock|reuse_address");
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet_tcp_nonblock(1000);
     mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin_any_5005.get(), (socklen_t)sizeof(sockaddr_in));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
@@ -139,9 +136,7 @@ test_socket_listen::test_open_flags() {
     TEST_SL_CLOSE(1000);
   };
   { TEST_SL_BEGIN("sin6_any, stream|nonblock|reuse_address");
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
-    mock_expect(&torrent::fd__setsockopt_int, 0, 1000, (int)SOL_SOCKET, (int)SO_REUSEADDR, (int)true);
+    fd_expect_inet6_tcp_nonblock_reuseaddr(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5005.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
     TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5005, torrent::fd_flag_stream | torrent::fd_flag_nonblock | torrent::fd_flag_reuse_address);
@@ -229,8 +224,7 @@ test_socket_listen::test_open_port_range() {
 void
 test_socket_listen::test_open_error() {
   { TEST_SL_BEGIN("open twice");
-    mock_expect(&torrent::fd__socket, 1000, (int)PF_INET6, (int)SOCK_STREAM, (int)IPPROTO_TCP);
-    mock_expect(&torrent::fd__fcntl_int, 0, 1000, F_SETFL, O_NONBLOCK);
+    fd_expect_inet6_tcp_nonblock(1000);
     mock_expect(&torrent::fd__bind, 0, 1000, c_sin6_any_5005.get(), (socklen_t)sizeof(sockaddr_in6));
     mock_expect(&torrent::fd__listen, 0, 1000, SOMAXCONN);
     TEST_SL_ASSERT_OPEN(torrent::sap_copy(sin6_any), c_sin6_any_5005, torrent::fd_flag_stream | torrent::fd_flag_nonblock);

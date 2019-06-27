@@ -7,6 +7,10 @@
 
 #include "torrent/net/address_info.h"
 
+//
+// Socket addresses
+//
+
 #define TEST_DEFAULT_SA                                                 \
   auto sin_any = wrap_ai_get_first_sa("0.0.0.0");                       \
   auto sin_bc = wrap_ai_get_first_sa("255.255.255.255");                \
