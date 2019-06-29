@@ -4,6 +4,7 @@
 
 #include <fcntl.h>
 #include <iostream>
+#include <torrent/event.h>
 #include <torrent/net/socket_address.h>
 #include <torrent/net/fd.h>
 #include <torrent/utils/log.h>
@@ -23,6 +24,17 @@ mock_clear(bool ignore_assert) {
   MOCK_CLEANUP_MAP(torrent::fd__listen);
   MOCK_CLEANUP_MAP(torrent::fd__setsockopt_int);
   MOCK_CLEANUP_MAP(torrent::fd__socket);
+
+  MOCK_CLEANUP_MAP(torrent::poll_event_open);
+  MOCK_CLEANUP_MAP(torrent::poll_event_close);
+  MOCK_CLEANUP_MAP(torrent::poll_event_closed);
+  MOCK_CLEANUP_MAP(torrent::poll_event_insert_read);
+  MOCK_CLEANUP_MAP(torrent::poll_event_insert_write);
+  MOCK_CLEANUP_MAP(torrent::poll_event_insert_error);
+  MOCK_CLEANUP_MAP(torrent::poll_event_remove_read);
+  MOCK_CLEANUP_MAP(torrent::poll_event_remove_write);
+  MOCK_CLEANUP_MAP(torrent::poll_event_remove_error);
+
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint16);
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint32);
 };
@@ -37,6 +49,10 @@ void mock_cleanup() {
 }
 
 namespace torrent {
+
+//
+// Mock functions for 'torrent/net/fd.h':
+//
 
 int fd__bind(int socket, const sockaddr *address, socklen_t address_len) {
   MOCK_LOG("socket:%i address:%s address_len:%u",
@@ -75,6 +91,59 @@ int fd__socket(int domain, int type, int protocol) {
   MOCK_LOG("domain:%i type:%i protocol:%i", domain, type, protocol);
   return mock_call<int>(__func__, &torrent::fd__socket, domain, type, protocol);
 }
+
+//
+// Mock functions for 'torrent/event.h':
+//
+
+void poll_event_open(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_open, event);
+}
+
+void poll_event_close(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_close, event);
+}
+
+void poll_event_closed(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_closed, event);
+}
+
+void poll_event_insert_read(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_insert_read, event);
+}
+
+void poll_event_insert_write(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_insert_write, event);
+}
+
+void poll_event_insert_error(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_insert_error, event);
+}
+
+void poll_event_remove_read(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_remove_read, event);
+}
+
+void poll_event_remove_write(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_remove_write, event);
+}
+
+void poll_event_remove_error(Event* event) {
+  MOCK_LOG("fd:%i type_name:%s", event->file_descriptor(), event->type_name());
+  return mock_call<void>(__func__, &torrent::poll_event_remove_error, event);
+}
+
+//
+// Mock functions for 'torrent/utils/random.h':
+//
 
 uint16_t random_uniform_uint16(uint16_t min, uint16_t max) {
   MOCK_LOG("min:%" PRIu16 " max:%" PRIu16, min, max);

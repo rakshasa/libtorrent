@@ -2,6 +2,8 @@
 
 #include "socket_listen.h"
 
+#include <algorithm>
+#include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
 
@@ -11,11 +13,6 @@
 namespace torrent {
 
 socket_listen::socket_listen() : m_backlog(SOMAXCONN) {
-  m_fileDesc = -1;
-}
-
-socket_listen::~socket_listen() {
-  close();
 }
 
 void
@@ -27,7 +24,7 @@ socket_listen::set_backlog(int backlog) {
 }
 
 bool
-socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, uint16_t itr_port, fd_flags open_flags) {
+socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, uint16_t start_port, fd_flags open_flags) {
   if (is_open())
     throw internal_error("socket_listen::open: already open");
 
@@ -37,8 +34,8 @@ socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port
   if (sap_is_inet(sap) && !(open_flags & fd_flag_v4only))
     throw internal_error("socket_listen::open: socket address is inet without v4only flag");
 
-  if (first_port == 0 || last_port == 0 || itr_port == 0 ||
-      !(first_port <= last_port && first_port <= itr_port && itr_port <= last_port))
+  if (first_port == 0 || last_port == 0 || start_port == 0 ||
+      !(first_port <= last_port && first_port <= start_port && start_port <= last_port))
     throw internal_error("socket_listen::open: port range not valid");
 
   int fd = fd_open(open_flags);
@@ -48,40 +45,17 @@ socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port
     return false;
   }
 
-  uint16_t stop_port = itr_port;
+  uint16_t p = start_port;
 
   do {
-    sap_set_port(sap, itr_port);
+    if (m_open_port(fd, sap, p))
+      return is_open();
 
-    if (!fd_bind(fd, sap.get())) {
-      if (errno == EADDRNOTAVAIL || errno == EAFNOSUPPORT) {
-        LT_LOG_SAP("listen address not usable (fd:%i errno:%i message:'%s')", sap, fd, errno, std::strerror(errno));
-        fd_close(fd);
-        return false;
-      }
-
-      if (itr_port == last_port)
-        itr_port = first_port;
-      else
-        itr_port++;
-
-      continue;
-    }
-
-    if (!fd_listen(fd, m_backlog)) {
-      LT_LOG_SAP("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
-                 sap, fd, m_backlog, errno, std::strerror(errno));
-      fd_close(fd);
-      return false;
-    }
-
-    LT_LOG_SAP("listen success (fd:%i)", sap, fd);
-
-    m_fileDesc = fd;
-    m_socket_address.swap(sap);
-    return true;
-
-  } while (itr_port != stop_port);
+    if (p == last_port)
+      p = first_port;
+    else
+      p++;
+  } while (p != start_port);
 
   LT_LOG_SAP("listen ports exhausted (fd:%i first_port:%" PRIu16 " last_port:%" PRIu16 ")",
              sap, fd, first_port, last_port);
@@ -94,9 +68,10 @@ socket_listen::close() {
   if (!is_open())
     return;
 
-  fd_close(m_fileDesc);
+  torrent::poll_event_closed(this);
 
-  m_fileDesc = -1;
+  fd_close(file_descriptor());
+  set_file_descriptor(-1);
   m_socket_address.reset();
 }
 
@@ -106,10 +81,45 @@ socket_listen::event_read() {
 
 void
 socket_listen::event_write() {
+  throw internal_error("Event write not supported by socket_listener.");
 }
 
 void
 socket_listen::event_error() {
+}
+
+bool
+socket_listen::m_open_port(int fd, sa_unique_ptr& sap, uint16_t port) {
+  sap_set_port(sap, port);
+
+  if (!fd_bind(fd, sap.get())) {
+    if (errno == EADDRNOTAVAIL || errno == EAFNOSUPPORT) {
+      LT_LOG_SAP("listen address not usable (fd:%i errno:%i message:'%s')",
+                 sap, fd, errno, std::strerror(errno));
+      fd_close(fd);
+      return true;
+    }
+
+    return false;
+  }
+
+  if (!fd_listen(fd, m_backlog)) {
+    LT_LOG_SAP("call to listen failed (fd:%i backlog:%i errno:%i message:'%s')",
+               sap, fd, m_backlog, errno, std::strerror(errno));
+    fd_close(fd);
+    return true;
+  }
+
+  LT_LOG_SAP("open listen port success (fd:%i backlog:%i)", sap, fd, m_backlog);
+
+  m_fileDesc = fd;
+  m_socket_address.swap(sap);
+
+  torrent::poll_event_open(this);
+  torrent::poll_event_insert_read(this);
+  torrent::poll_event_insert_error(this);
+
+  return true;
 }
 
 }

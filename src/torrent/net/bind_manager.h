@@ -51,6 +51,8 @@
 
 namespace torrent {
 
+class socket_listen;
+
 struct bind_struct {
   std::string name;
 
@@ -60,9 +62,12 @@ struct bind_struct {
   uint16_t priority;
   uint16_t listen_port_first;
   uint16_t listen_port_last;
+
+  const sockaddr* listen_socket_address() const;
+  std::unique_ptr<socket_listen> listen;
 };
 
-// Move listen to bind_struct.
+// TODO: Move listen to bind_struct.
 struct listen_result_type {
   int fd;
   sa_unique_ptr address;
@@ -99,6 +104,7 @@ public:
   };
 
   bind_manager();
+  ~bind_manager();
 
   void clear();
 
@@ -130,12 +136,15 @@ public:
 
   int connect_socket(const sockaddr* connect_sa, int flags) const;
 
+  // TODO: Deprecate.
   listen_result_type listen_socket(int flags);
 
-  void     listen_open();
-  void     listen_close();
-  //void     listen_close_all();
-  //void     listen_open_all();
+  // TODO: Open listen port count, error message in client if none open.
+
+  void     listen_open_all();
+  void     listen_close_all();
+
+  bool     listen_open_bind(const std::string& name);
 
   int      listen_backlog() const { return m_listen_backlog; }
   uint16_t listen_port() const { return m_listen_port; }
@@ -155,6 +164,9 @@ private:
   iterator m_lower_bound_priority(uint16_t priority);
   iterator m_upper_bound_priority(uint16_t priority);
 
+  bool     m_listen_open_bind(bind_struct& bind);
+
+  // TODO: Deprecate.
   listen_result_type attempt_listen(const bind_struct& bind_itr) const;
 
   int      m_flags;
@@ -201,6 +213,27 @@ bind_manager::lower_bound_priority(uint16_t priority) const {
 inline bind_manager::const_iterator
 bind_manager::upper_bound_priority(uint16_t priority) const {
   return std::find_if(begin(), end(), [priority](const_reference itr)->bool { return itr.priority > priority; });
+}
+
+inline bind_manager::iterator
+bind_manager::m_find_name(const std::string& name) {
+  return std::find_if(base_type::begin(), base_type::end(), [&name](reference itr)->bool { return itr.name == name; });
+}
+
+inline bind_manager::iterator
+bind_manager::m_lower_bound_priority(uint16_t priority) {
+  return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority >= priority; });
+}
+
+inline bind_manager::iterator
+bind_manager::m_upper_bound_priority(uint16_t priority) {
+  return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority > priority; });
+}
+
+inline bool
+bind_manager::listen_open_bind(const std::string& name) {
+  auto itr = m_find_name(name);
+  return itr != end() ? m_listen_open_bind(*itr) : false;
 }
 
 }

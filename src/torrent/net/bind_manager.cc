@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <cerrno>
@@ -42,7 +6,7 @@
 
 #include "bind_manager.h"
 
-#include "net/socket_fd.h"
+#include "net/socket_listen.h"
 #include "torrent/exceptions.h"
 #include "torrent/net/fd.h"
 #include "torrent/utils/log.h"
@@ -69,30 +33,20 @@
 
 namespace torrent {
 
-inline bind_manager::iterator
-bind_manager::m_find_name(const std::string& name) {
-  return std::find_if(base_type::begin(), base_type::end(), [&name](reference itr)->bool { return itr.name == name; });
-}
-
-inline bind_manager::iterator
-bind_manager::m_lower_bound_priority(uint16_t priority) {
-  return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority >= priority; });
-}
-
-inline bind_manager::iterator
-bind_manager::m_upper_bound_priority(uint16_t priority) {
-  return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority > priority; });
+const sockaddr*
+bind_struct::listen_socket_address() const {
+  return listen != nullptr ? listen->socket_address() : nullptr;
 }
 
 bind_struct
-make_bind_struct(const std::string& name, c_sa_unique_ptr&& sap, int flags, uint16_t priority) {
+make_bind_struct(const std::string& name, c_sa_unique_ptr&& sap, int flags, uint16_t priority, std::unique_ptr<socket_listen>&& listen) {
   if ((flags & bind_manager::flag_v4only) && !sap_is_inet(sap))
     throw internal_error("(flags & flag_v4only) && !sa_is_inet(sa)");
 
   if ((flags & bind_manager::flag_v6only) && !sap_is_inet6(sap))
     throw internal_error("(flags & flag_v6only) && !sa_is_inet(sa)");
 
-  return bind_struct{ name, flags, std::move(sap), priority, 0, 0 };
+  return bind_struct{ name, flags, std::move(sap), priority, 0, 0, std::move(listen) };
 }
 
 static bool
@@ -112,6 +66,9 @@ bind_manager::bind_manager() :
   m_listen_port_first(6881),
   m_listen_port_last(6999)
 {
+}
+
+bind_manager::~bind_manager() {
 }
 
 void
@@ -181,8 +138,11 @@ bind_manager::add_bind(const std::string& name, uint16_t priority, const sockadd
   // TODO: Verify passed flags, etc.
   // TODO: Sanitize the flags.
 
+  std::unique_ptr<socket_listen> listen(new socket_listen);
+  listen->set_backlog(m_listen_backlog);
+
   base_type::insert(m_upper_bound_priority(priority),
-                    make_bind_struct(name, std::move(sap), flags, priority));
+                    make_bind_struct(name, std::move(sap), flags, priority, std::move(listen)));
 }
 
 bool
@@ -403,16 +363,16 @@ bind_manager::listen_socket(int flags) {
 }
 
 void
-bind_manager::listen_open() {
-  if (m_flags & flag_listen_open)
+bind_manager::listen_open_all() {
+  if (is_listen_open())
     return;
 
   m_flags |= flag_listen_open;
 }
 
 void
-bind_manager::listen_close() {
-  if (m_flags | flag_listen_open)
+bind_manager::listen_close_all() {
+  if (!is_listen_open())
     return;
 
   m_flags &= flag_listen_open;
@@ -477,6 +437,11 @@ bind_manager::local_v6_address() const {
 
   LT_LOG("local_v6_address could not find any ipv6 address", 0);
   return NULL;
+}
+
+bool
+bind_manager::m_listen_open_bind(bind_struct& bind) {
+  
 }
 
 }

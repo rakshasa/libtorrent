@@ -64,6 +64,10 @@
   auto c_sin6_any_5010 = wrap_ai_get_first_c_sa("::", "5010");          \
   auto c_sin6_1_5010 = wrap_ai_get_first_c_sa("ff01::1", "5010");       \
                                                                         \
+  auto c_sin_any_6881 = wrap_ai_get_first_c_sa("0.0.0.0", "6881");      \
+  auto c_sin_any_6900 = wrap_ai_get_first_c_sa("0.0.0.0", "6900");      \
+  auto c_sin_any_6999 = wrap_ai_get_first_c_sa("0.0.0.0", "6999");      \
+                                                                        \
   auto c_sin6_any_6881 = wrap_ai_get_first_c_sa("::", "6881");          \
   auto c_sin6_any_6900 = wrap_ai_get_first_c_sa("::", "6900");          \
   auto c_sin6_any_6999 = wrap_ai_get_first_c_sa("::", "6999");
