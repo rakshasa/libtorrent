@@ -3,11 +3,13 @@
 #include "test_socket_listen.h"
 
 #include "helpers/fd.h"
+#include "helpers/mock_function.h"
 #include "helpers/network.h"
 
 #include <net/socket_listen.h>
 #include <torrent/exceptions.h>
 #include <torrent/utils/log.h>
+#include <torrent/utils/random.h>
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_socket_listen, "net");
 
@@ -24,13 +26,31 @@ typedef std::unique_ptr<torrent::socket_listen, test_sl_deleter> test_sl_unique_
   TEST_DEFAULT_SA;
 
 #define TEST_SL_ASSERT_OPEN(_sap_bind, _sap_result, _flags)             \
-  mock_expect(&torrent::poll_event_open, (torrent::Event*)&sl);         \
   TEST_SL_ASSERT_OPEN_PORT(_sap_bind, _sap_result, 5000, 5009, 5005, _flags); \
   CPPUNIT_ASSERT(sl->socket_address_port() == 5005);
 
 #define TEST_SL_ASSERT_OPEN_PORT(_sap_bind, _sap_result, _first_port, _last_port, _itr_port, _flags) \
+  mock_expect(&torrent::poll_event_open, (torrent::Event*)sl.get());    \
+  mock_expect(&torrent::poll_event_insert_read, (torrent::Event*)sl.get()); \
+  mock_expect(&torrent::poll_event_insert_error, (torrent::Event*)sl.get()); \
   CPPUNIT_ASSERT(sl->open(_sap_bind, _first_port, _last_port, _itr_port, _flags)); \
-  CPPUNIT_ASSERT(sl->is_open());                                         \
+  CPPUNIT_ASSERT(sl->is_open());                                        \
+  CPPUNIT_ASSERT(torrent::sa_equal(sl->socket_address(), _sap_result.get()));
+
+#define TEST_SL_ASSERT_OPEN_SEQUENTIAL(_sap_bind, _sap_result, _first_port, _last_port, _flags) \
+  mock_expect(&torrent::poll_event_open, (torrent::Event*)sl.get());    \
+  mock_expect(&torrent::poll_event_insert_read, (torrent::Event*)sl.get()); \
+  mock_expect(&torrent::poll_event_insert_error, (torrent::Event*)sl.get()); \
+  CPPUNIT_ASSERT(sl->open_sequential(_sap_bind, _first_port, _last_port, _flags)); \
+  CPPUNIT_ASSERT(sl->is_open());                                        \
+  CPPUNIT_ASSERT(torrent::sa_equal(sl->socket_address(), _sap_result.get()));
+
+#define TEST_SL_ASSERT_OPEN_RANDOMIZE(_sap_bind, _sap_result, _first_port, _last_port, _flags) \
+  mock_expect(&torrent::poll_event_open, (torrent::Event*)sl.get());    \
+  mock_expect(&torrent::poll_event_insert_read, (torrent::Event*)sl.get()); \
+  mock_expect(&torrent::poll_event_insert_error, (torrent::Event*)sl.get()); \
+  CPPUNIT_ASSERT(sl->open_randomize(_sap_bind, _first_port, _last_port, _flags)); \
+  CPPUNIT_ASSERT(sl->is_open());                                        \
   CPPUNIT_ASSERT(torrent::sa_equal(sl->socket_address(), _sap_result.get()));
 
 #define TEST_SL_ASSERT_CLOSED()                           \
@@ -41,6 +61,7 @@ typedef std::unique_ptr<torrent::socket_listen, test_sl_deleter> test_sl_unique_
 
 #define TEST_SL_CLOSE(_fd)                       \
   mock_expect(&torrent::fd__close, 0, _fd);      \
+  mock_expect(&torrent::poll_event_closed, (torrent::Event*)sl.get());  \
   CPPUNIT_ASSERT_NO_THROW(sl->close());          \
   TEST_SL_ASSERT_CLOSED();
 
@@ -149,6 +170,12 @@ test_socket_listen::test_open_port_single() {
     TEST_SL_ASSERT_OPEN_PORT(torrent::sap_copy(sin6_any), c_sin6_any_5000, 5000, 5000, 5000, torrent::fd_flag_stream);
     TEST_SL_CLOSE(1000);
   };
+  { TEST_SL_BEGIN("sin_any, stream");
+    fd_expect_inet_tcp(1000);
+    fd_expect_bind_listen(1000, c_sin_any_5000);
+    TEST_SL_ASSERT_OPEN_PORT(torrent::sap_copy(sin_any), c_sin_any_5000, 5000, 5000, 5000, torrent::fd_flag_stream | torrent::fd_flag_v4only);
+    TEST_SL_CLOSE(1000);
+  };
 }
 
 void
@@ -205,6 +232,27 @@ test_socket_listen::test_open_port_range() {
     TEST_SL_MOCK_CLOSED_PORT_RANGE(sin6_any, 5000, 5004);
     fd_expect_bind_listen(1000, c_sin6_any_5005);
     TEST_SL_ASSERT_OPEN_PORT(torrent::sap_copy(sin6_any), c_sin6_any_5005, 5000, 5010, 5010, torrent::fd_flag_stream);
+    TEST_SL_CLOSE(1000);
+  };
+}
+
+void
+test_socket_listen::test_open_sequential() {
+  { TEST_SL_BEGIN("sin6_any, stream");
+    fd_expect_inet6_tcp(1000);
+    fd_expect_bind_listen(1000, c_sin6_any_5000);
+    TEST_SL_ASSERT_OPEN_SEQUENTIAL(torrent::sap_copy(sin6_any), c_sin6_any_5000, 5000, 5010, torrent::fd_flag_stream);
+    TEST_SL_CLOSE(1000);
+  };
+}
+
+void
+test_socket_listen::test_open_randomize() {
+  { TEST_SL_BEGIN("sin6_any, stream");
+    fd_expect_inet6_tcp(1000);
+    mock_expect(&torrent::random_uniform_uint16, (uint16_t)5005, (uint16_t)5000, (uint16_t)5010);
+    fd_expect_bind_listen(1000, c_sin6_any_5005);
+    TEST_SL_ASSERT_OPEN_RANDOMIZE(torrent::sap_copy(sin6_any), c_sin6_any_5005, 5000, 5010, torrent::fd_flag_stream);
     TEST_SL_CLOSE(1000);
   };
 }

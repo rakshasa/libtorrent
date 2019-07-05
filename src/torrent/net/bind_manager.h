@@ -1,41 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
-// Add some helpfull words here.
-
 #ifndef LIBTORRENT_NET_BIND_MANAGER_H
 #define LIBTORRENT_NET_BIND_MANAGER_H
 
@@ -53,18 +15,20 @@ namespace torrent {
 
 class socket_listen;
 
-struct bind_struct {
+// Disable copy ctor, etc.
+struct LIBTORRENT_EXPORT bind_struct {
   std::string name;
 
   int flags;
   c_sa_unique_ptr address;
-
   uint16_t priority;
+
   uint16_t listen_port_first;
   uint16_t listen_port_last;
+  std::unique_ptr<socket_listen> listen;
 
   const sockaddr* listen_socket_address() const;
-  std::unique_ptr<socket_listen> listen;
+  uint16_t        listen_socket_address_port() const;
 };
 
 // TODO: Move listen to bind_struct.
@@ -98,9 +62,10 @@ public:
     flag_v6only = 0x2,
     flag_use_listen_ports = 0x4,
     flag_listen_open = 0x8,
-    flag_port_randomize = 0x10,
-    flag_block_accept = 0x20,
-    flag_block_connect = 0x40,
+    flag_listen_closed = 0x10,
+    flag_port_randomize = 0x20,
+    flag_block_accept = 0x40,
+    flag_block_connect = 0x80,
   };
 
   bind_manager();
@@ -228,12 +193,6 @@ bind_manager::m_lower_bound_priority(uint16_t priority) {
 inline bind_manager::iterator
 bind_manager::m_upper_bound_priority(uint16_t priority) {
   return std::find_if(base_type::begin(), base_type::end(), [priority](reference itr)->bool { return itr.priority > priority; });
-}
-
-inline bool
-bind_manager::listen_open_bind(const std::string& name) {
-  auto itr = m_find_name(name);
-  return itr != end() ? m_listen_open_bind(*itr) : false;
 }
 
 }

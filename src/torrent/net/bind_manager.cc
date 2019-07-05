@@ -29,7 +29,7 @@
 #define LT_ASSERT_INTERNAL_F_SA(message, flags, sa, condition)          \
   { if (!(condition)) { lt_log_print(LOG_CONNECTION_BIND, "bind: %s (flags:0x%x address:%s)", \
                                      std::string(message).c_str(), flags, torrent::sa_pretty_str(sa).c_str()); \
-                        throw internal_error(message); }};
+                        throw internal_error(std::string(message) + ": " + sa_pretty_str(sa)); }};
 
 namespace torrent {
 
@@ -38,13 +38,26 @@ bind_struct::listen_socket_address() const {
   return listen != nullptr ? listen->socket_address() : nullptr;
 }
 
+uint16_t
+bind_struct::listen_socket_address_port() const {
+  return listen != nullptr ? listen->socket_address_port() : 0;
+}
+
 bind_struct
 make_bind_struct(const std::string& name, c_sa_unique_ptr&& sap, int flags, uint16_t priority, std::unique_ptr<socket_listen>&& listen) {
   if ((flags & bind_manager::flag_v4only) && !sap_is_inet(sap))
-    throw internal_error("(flags & flag_v4only) && !sa_is_inet(sa)");
+    throw internal_error("make_bind_struct: (flags & flag_v4only) && !sa_is_inet(sa)");
 
   if ((flags & bind_manager::flag_v6only) && !sap_is_inet6(sap))
-    throw internal_error("(flags & flag_v6only) && !sa_is_inet(sa)");
+    throw internal_error("make_bind_struct: (flags & flag_v6only) && !sa_is_inet(sa)");
+
+  if (listen == nullptr)
+    throw internal_error("make_bind_struct: listen == nullptr");
+
+  if (listen->is_open())
+    flags = (flags & ~bind_manager::flag_listen_closed) | bind_manager::flag_listen_open;
+  else
+    flags = (flags & ~bind_manager::flag_listen_open) | bind_manager::flag_listen_closed;
 
   return bind_struct{ name, flags, std::move(sap), priority, 0, 0, std::move(listen) };
 }
@@ -69,6 +82,8 @@ bind_manager::bind_manager() :
 }
 
 bind_manager::~bind_manager() {
+  for (auto&& bs : *this)
+    bs.listen->close();
 }
 
 void
@@ -194,10 +209,13 @@ attempt_open_connect(const bind_struct& bs, const sockaddr* sockaddr, fd_flags f
 
 int
 bind_manager::connect_socket(const sockaddr* connect_sa, int flags) const {
-  LT_ASSERT_INTERNAL_F_SA("connect_socket called with invalid sockaddr", flags, connect_sa,
+  LT_ASSERT_INTERNAL_F_SA("connect_socket called with invalid sockaddr type", flags, connect_sa,
                           sa_is_inet(connect_sa) || sa_is_inet6(connect_sa));
-  LT_ASSERT_INTERNAL_F_SA("connect_socket called with invalid sockaddr", flags, connect_sa,
-                          !sa_is_any(connect_sa) && !sa_is_broadcast(connect_sa) && sa_port(connect_sa) != 0);
+
+  if (sa_is_any(connect_sa) || sa_is_broadcast(connect_sa) || sa_port(connect_sa) == 0) {
+    LT_LOG("connect_socket called with invalid sockaddr address (flags:0x%x address:%s)", flags, sa_pretty_str(connect_sa).c_str());
+    return -1;
+  }
 
   if ((m_flags & flag_block_connect)) {
     // LT_LOG("connect_socket failed, all outgoing connections blocked (flags:0x%x address:%s)",
@@ -375,7 +393,19 @@ bind_manager::listen_close_all() {
   if (!is_listen_open())
     return;
 
-  m_flags &= flag_listen_open;
+  m_flags &= ~flag_listen_open;
+}
+
+bool
+bind_manager::listen_open_bind(const std::string& name) {
+  auto itr = m_find_name(name);
+
+  if (itr == end()) {
+    LT_LOG("could not open listen, bind name not found (name:%s)", name.c_str());
+    throw input_error("Could not open listen, bind name '" + name + "' not found");
+  }
+
+  return m_listen_open_bind(*itr);
 }
 
 void
@@ -441,7 +471,34 @@ bind_manager::local_v6_address() const {
 
 bool
 bind_manager::m_listen_open_bind(bind_struct& bind) {
-  
+  // if (bind.listen->is_open()) {
+  //   LT_LOG_SOCKADDR("listen port already open, skipping (name:%s)", bind.name);
+  //   return true;
+  // }
+
+  if (!(bind.flags & flag_listen_closed)) {
+    LT_LOG_SOCKADDR("could not open listen port, flag listen_closed not set (name:%s, flags:%x)", bind.address.get(), bind.name.c_str(), bind.flags);
+    throw internal_error("Could not open listen port, flag listen_closed not set for '" + bind.name);
+  }
+
+  fd_flags open_flags = fd_flag_stream | fd_flag_nonblock | fd_flag_reuse_address;
+
+  if ((bind.flags & flag_v4only))
+    open_flags |= fd_flag_v4only;
+
+  uint16_t port_first = bind.listen_port_first != 0 ? bind.listen_port_first : m_listen_port_first;
+  uint16_t port_last = bind.listen_port_last != 0 ? bind.listen_port_last : m_listen_port_last;
+
+  if (!((m_flags & flag_port_randomize) && bind.listen->open_randomize(sap_copy(bind.address), port_first, port_last, open_flags)) &&
+      !(!(m_flags & flag_port_randomize) && bind.listen->open_sequential(sap_copy(bind.address), port_first, port_last, open_flags))) {
+    LT_LOG_SOCKADDR("could not open listen port, unavailable address or no available ports (name:%s, flags:%x port_first:%" PRIu16 " port_last:%" PRIu16 ")",
+                    bind.address.get(), bind.name.c_str(), bind.flags, port_first, port_last);
+    return false;
+  }
+
+  bind.flags = (bind.flags & ~flag_listen_closed) | flag_listen_open;
+
+  return true;
 }
 
 }

@@ -3,9 +3,11 @@
 #include "socket_listen.h"
 
 #include <algorithm>
+
 #include "torrent/connection_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/utils/log.h"
+#include "torrent/utils/random.h"
 
 #define LT_LOG_SAP(log_fmt, sap, ...)                                   \
   lt_log_print(LOG_CONNECTION_LISTEN, "listen->%s: " log_fmt, sap_pretty_str(sap).c_str(), __VA_ARGS__);
@@ -63,12 +65,25 @@ socket_listen::open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port
   return false;
 }
 
+bool
+socket_listen::open_randomize(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, fd_flags open_flags) {
+  if (last_port < first_port)
+    throw internal_error("socket_listen::open_randomize: port range not valid");
+
+  return open(std::move(sap), first_port, last_port, random_uniform_uint16(first_port, last_port), open_flags);
+}
+
+bool
+socket_listen::open_sequential(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, fd_flags open_flags) {
+  return open(std::move(sap), first_port, last_port, first_port, open_flags);
+}
+
 void
 socket_listen::close() {
   if (!is_open())
     return;
 
-  torrent::poll_event_closed(this);
+  // torrent::poll_event_closed(this);
 
   fd_close(file_descriptor());
   set_file_descriptor(-1);
@@ -88,6 +103,8 @@ void
 socket_listen::event_error() {
 }
 
+// Returns true if open is successful or if we cannot bind to the
+// address, returns false if other ports can be used.
 bool
 socket_listen::m_open_port(int fd, sa_unique_ptr& sap, uint16_t port) {
   sap_set_port(sap, port);
@@ -115,9 +132,9 @@ socket_listen::m_open_port(int fd, sa_unique_ptr& sap, uint16_t port) {
   m_fileDesc = fd;
   m_socket_address.swap(sap);
 
-  torrent::poll_event_open(this);
-  torrent::poll_event_insert_read(this);
-  torrent::poll_event_insert_error(this);
+  // torrent::poll_event_open(this);
+  // torrent::poll_event_insert_read(this);
+  // torrent::poll_event_insert_error(this);
 
   return true;
 }

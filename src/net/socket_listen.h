@@ -16,7 +16,6 @@ public:
   typedef std::function<void (int, sa_unique_ptr)> accepted_ftor;
 
   socket_listen();
-  // virtual ~socket_listen() {}
 
   int  backlog() const;
 
@@ -24,6 +23,8 @@ public:
   void set_slot_accepted(accepted_ftor&& ftor);
 
   bool open(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, uint16_t start_port, fd_flags open_flags);
+  bool open_randomize(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, fd_flags open_flags);
+  bool open_sequential(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, fd_flags open_flags);
   void close();
 
   virtual void event_read();

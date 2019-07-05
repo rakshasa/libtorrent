@@ -96,39 +96,34 @@ test_bind_manager::test_flags() {
 
 void
 test_bind_manager::test_add_bind() {
-  torrent::bind_manager bm;
-
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv4_zero", 100, wrap_ai_get_first_sa("0.0.0.0").get(), 0));
-
-  CPPUNIT_ASSERT(bm.size() == 1);
-  CPPUNIT_ASSERT(bm.back().name == "ipv4_zero");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("0.0.0.0")));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
-
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv6_zero", 100, wrap_ai_get_first_sa("::").get(), 0));
-
-  CPPUNIT_ASSERT(bm.size() == 2);
-  CPPUNIT_ASSERT(bm.back().name == "ipv6_zero");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, 0));
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("::")));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
-
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv4_lo", 100, wrap_ai_get_first_sa("127.0.0.1").get(), 0));
-
-  CPPUNIT_ASSERT(bm.size() == 3);
-  CPPUNIT_ASSERT(bm.back().name == "ipv4_lo");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("127.0.0.1")));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
-
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("ipv6_lo", 100, wrap_ai_get_first_sa("ff01::1").get(), 0));
-
-  CPPUNIT_ASSERT(bm.size() == 4);
-  CPPUNIT_ASSERT(bm.back().name == "ipv6_lo");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v6only));
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("ff01::1")));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
+  { TEST_BM_BEGIN("sin_any");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("sin_any", 100, sin_any.get(), 0));
+    CPPUNIT_ASSERT(bm.size() == 1);
+    CPPUNIT_ASSERT(bm.back().name == "sin_any");
+    CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_listen_closed | torrent::bind_manager::flag_v4only));
+    CPPUNIT_ASSERT(torrent::sap_equal(bm.back().address, sin_any));
+  };
+  { TEST_BM_BEGIN("sin6_any");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("sin6_any", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.size() == 1);
+    CPPUNIT_ASSERT(bm.back().name == "sin6_any");
+    CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_listen_closed));
+    CPPUNIT_ASSERT(torrent::sap_equal(bm.back().address, sin6_any));
+  };
+  { TEST_BM_BEGIN("sin_1");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("sin_1", 100, sin_1.get(), 0));
+    CPPUNIT_ASSERT(bm.size() == 1);
+    CPPUNIT_ASSERT(bm.back().name == "sin_1");
+    CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_listen_closed | torrent::bind_manager::flag_v4only));
+    CPPUNIT_ASSERT(torrent::sap_equal(bm.back().address, sin_1));
+  };
+  { TEST_BM_BEGIN("sin6_1");
+     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("sin6_1", 100, sin6_1.get(), 0));
+     CPPUNIT_ASSERT(bm.size() == 1);
+     CPPUNIT_ASSERT(bm.back().name == "sin6_1");
+     CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_listen_closed | torrent::bind_manager::flag_v6only));
+     CPPUNIT_ASSERT(torrent::sap_equal(bm.back().address, sin6_1));
+  };
 }
 
 // TODO: Restrict characters in names.
@@ -185,23 +180,19 @@ test_bind_manager::test_add_bind_priority() {
 
 void
 test_bind_manager::test_add_bind_v4mapped() {
-  torrent::bind_manager bm;
-
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("v4mapped_zero", 100, wrap_ai_get_first_sa("::ffff:0.0.0.0").get(), 0));
-
-  CPPUNIT_ASSERT(bm.back().name == "v4mapped_zero");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, torrent::sa_make_inet()));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
-
-  CPPUNIT_ASSERT_NO_THROW(bm.add_bind("v4mapped_1", 100, wrap_ai_get_first_sa("::ffff:1.2.3.4").get(), 0));
-
-  CPPUNIT_ASSERT(bm.back().name == "v4mapped_1");
-  CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_v4only));
-  CPPUNIT_ASSERT(torrent::sap_equal_addr(bm.back().address, wrap_ai_get_first_sa("1.2.3.4")));
-  CPPUNIT_ASSERT(torrent::sap_is_port_any(bm.back().address));
-
-  CPPUNIT_ASSERT_THROW(bm.add_bind("sin_v4mapped_bc", 100, wrap_ai_get_first_sa("::ffff:255.255.255.255").get(), 0), torrent::input_error);
+  { TEST_BM_BEGIN("sin6_v4_any");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_v4_any.get(), 0));
+    CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_listen_closed | torrent::bind_manager::flag_v4only));
+    CPPUNIT_ASSERT(torrent::sap_equal(bm.back().address, sin_any));
+  };
+  { TEST_BM_BEGIN("sin6_v4_1");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_v4_1.get(), 0));
+    CPPUNIT_ASSERT(compare_bind_base(bm.back(), 100, torrent::bind_manager::flag_listen_closed | torrent::bind_manager::flag_v4only));
+    CPPUNIT_ASSERT(torrent::sap_equal(bm.back().address, sin_1));
+  };
+  { TEST_BM_BEGIN("sin6_v4_bc");
+    CPPUNIT_ASSERT_THROW(bm.add_bind("sin6_v4_bc", 100, sin6_v4_bc.get(), 0), torrent::input_error);
+  }
 }
 
 void
@@ -235,6 +226,32 @@ test_bind_manager::test_connect_socket() {
     fd_expect_inet_tcp_nonblock(1000);
     fd_expect_connect(1000, c_sin_1_5000);
     CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1_5000.get(), 0) == 1000);
+  };
+}
+
+void
+test_bind_manager::test_connect_socket_error() {
+  { TEST_BM_BEGIN("sin6_any, connect zero port");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_1.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_1.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_1.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect any address");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_any_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_any_5000.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_any_5000.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect any address, zero port");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_any.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_any.get(), 0) == -1);
+    CPPUNIT_ASSERT(bm.connect_socket(sin6_v4_any.get(), 0) == -1);
+  };
+  { TEST_BM_BEGIN("sin6_any, connect broadcast address");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    CPPUNIT_ASSERT(bm.connect_socket(sin_bc_5000.get(), 0) == -1);
   };
 }
 
@@ -373,32 +390,6 @@ test_bind_manager::test_connect_socket_block_connect() {
 }
 
 void
-test_bind_manager::test_error_connect_socket() {
-  { TEST_BM_BEGIN("sin6_any, connect zero port");
-    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_1.get(), 0), torrent::internal_error);
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_1.get(), 0), torrent::internal_error);
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_v4_1.get(), 0), torrent::internal_error);
-  };
-  { TEST_BM_BEGIN("sin6_any, connect any address");
-    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_any_5000.get(), 0), torrent::internal_error);
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_any_5000.get(), 0), torrent::internal_error);
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_v4_any_5000.get(), 0), torrent::internal_error);
-  };
-  { TEST_BM_BEGIN("sin6_any, connect any address, zero port");
-    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_any.get(), 0), torrent::internal_error);
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_any.get(), 0), torrent::internal_error);
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin6_v4_any.get(), 0), torrent::internal_error);
-  };
-  { TEST_BM_BEGIN("sin6_any, connect broadcast address");
-    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
-    CPPUNIT_ASSERT_THROW(bm.connect_socket(sin_bc_5000.get(), 0), torrent::internal_error);
-  };
-}
-
-void
 test_bind_manager::test_listen_socket_randomize() {
   { TEST_BM_BEGIN("sin_any, first port");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), 0));
@@ -461,3 +452,22 @@ test_bind_manager::test_listen_socket_sequential() {
     CPPUNIT_ASSERT(compare_listen_result(bm.listen_socket(0), 1000, c_sin6_any_6881));
   };
 }
+
+void
+test_bind_manager::test_listen_open_bind() {
+  { TEST_BM_BEGIN("sin_any, single");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), 0));
+    fd_expect_inet_tcp_nonblock_reuseaddr(1000);
+    mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
+    fd_expect_bind_listen(1000, c_sin_any_6900);
+
+    CPPUNIT_ASSERT(bm.listen_open_bind("default"));
+    // CPPUNIT_ASSERT(torrent::sa_equal(bm.back().listen_socket_address(), c_sin_any_6900.get()));
+    // CPPUNIT_ASSERT(bm.back().listen_socket_address_port() == 6900);
+
+  };
+}
+
+// Test v4only/v6only
+
+// Test open errors.
