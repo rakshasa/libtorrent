@@ -10,15 +10,14 @@ namespace torrent {
 
 class LIBTORRENT_EXPORT socket_event : public Event {
 public:
-  virtual ~socket_event();
+  ~socket_event() override;
 
   const sockaddr* socket_address() const;
   uint16_t        socket_address_port() const;
 
-  // TODO: Check override keyword.
-  virtual void event_read();
-  virtual void event_write();
-  virtual void event_error();
+  void event_read() override;
+  void event_write() override;
+  void event_error() override;
 
 protected:
   sa_unique_ptr m_socket_address;

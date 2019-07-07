@@ -17,6 +17,7 @@
 
 void
 mock_clear(bool ignore_assert) {
+  MOCK_CLEANUP_MAP(torrent::fd__accept);
   MOCK_CLEANUP_MAP(torrent::fd__bind);
   MOCK_CLEANUP_MAP(torrent::fd__close);
   MOCK_CLEANUP_MAP(torrent::fd__connect);
@@ -37,6 +38,8 @@ mock_clear(bool ignore_assert) {
 
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint16);
   MOCK_CLEANUP_MAP(torrent::random_uniform_uint32);
+
+  mock_compare_map<torrent::Event>::values.clear();
 };
 
 void mock_init() {
@@ -53,6 +56,15 @@ namespace torrent {
 //
 // Mock functions for 'torrent/net/fd.h':
 //
+
+int fd__accept(int socket, sockaddr *address, socklen_t *address_len) {
+  MOCK_LOG("entry socket:%i address:%s address_len:%u",
+           socket, torrent::sa_pretty_str(address).c_str(), (unsigned int)(*address_len));
+  auto ret = mock_call<int>(__func__, &torrent::fd__accept, socket, address, address_len);
+  MOCK_LOG("exit socket:%i address:%s address_len:%u",
+           socket, torrent::sa_pretty_str(address).c_str(), (unsigned int)(*address_len));
+  return ret;
+}
 
 int fd__bind(int socket, const sockaddr *address, socklen_t address_len) {
   MOCK_LOG("socket:%i address:%s address_len:%u",

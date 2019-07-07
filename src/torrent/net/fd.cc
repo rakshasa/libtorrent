@@ -8,7 +8,6 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/net/socket_address.h"
@@ -45,6 +44,7 @@
 
 namespace torrent {
 
+int fd__accept(int socket, sockaddr *address, socklen_t *address_len) { return ::accept(socket, address, address_len); }
 int fd__bind(int socket, const sockaddr *address, socklen_t address_len) { return ::bind(socket, address, address_len); }
 int fd__close(int fildes) { return ::close(fildes); }
 int fd__connect(int socket, const sockaddr *address, socklen_t address_len) { return ::connect(socket, address, address_len); }
@@ -120,6 +120,59 @@ fd_close(int fd) {
   LT_LOG_FD("fd_close succeeded");
 }
 
+fd_sap_tuple
+fd_accept(int fd) {
+  sa_unique_ptr sap = sa_make_inet6();
+  socklen_t socklen = sap_length(sap);
+
+  int accept_fd = fd__accept(fd, sap.get(), &socklen);
+
+  if (accept_fd == -1) {
+    LT_LOG_FD_ERROR("fd_accept failed");
+    return fd_sap_tuple{-1, nullptr};
+  }
+
+  return fd_sap_tuple{accept_fd, std::move(sap)};
+}
+
+bool
+fd_bind(int fd, const sockaddr* sa) {
+  if (fd__bind(fd, sa, sa_length(sa)) == -1) {
+    LT_LOG_FD_SOCKADDR_ERROR("fd_bind failed");
+    return false;
+  }
+
+  LT_LOG_FD_SOCKADDR("fd_bind succeeded");
+  return true;
+}
+
+bool
+fd_connect(int fd, const sockaddr* sa) {
+  if (fd__connect(fd, sa, sa_length(sa)) == 0) {
+    LT_LOG_FD_SOCKADDR("fd_connect succeeded");
+    return true;
+  }
+
+  if (errno == EINPROGRESS) {
+    LT_LOG_FD_SOCKADDR("fd_connect succeeded and in progress");
+    return true;
+  }
+
+  LT_LOG_FD_SOCKADDR_ERROR("fd_connect failed");
+  return false;
+}
+
+bool
+fd_listen(int fd, int backlog) {
+  if (fd__listen(fd, backlog) == -1) {
+    LT_LOG_FD_VALUE_ERROR("fd_listen failed", backlog);
+    return false;
+  }
+
+  LT_LOG_FD_VALUE("fd_listen succeeded", backlog);
+  return true;
+}
+
 bool
 fd_set_nonblock(int fd) {
   if (fd__fcntl_int(fd, F_SETFL, O_NONBLOCK) == -1) {
@@ -151,45 +204,6 @@ fd_set_v6only(int fd, bool state) {
 
   LT_LOG_FD_VALUE("fd_set_v6only succeeded", state);
   return true;
-}
-
-bool
-fd_connect(int fd, const sockaddr* sa) {
-  if (fd__connect(fd, sa, sa_length(sa)) == 0) {
-    LT_LOG_FD_SOCKADDR("fd_connect succeeded");
-    return true;
-  }
-
-  if (errno == EINPROGRESS) {
-    LT_LOG_FD_SOCKADDR("fd_connect succeeded and in progress");
-    return true;
-  }
-
-  LT_LOG_FD_SOCKADDR_ERROR("fd_connect failed");
-  return false;
-}
-
-bool
-fd_bind(int fd, const sockaddr* sa) {
-  if (fd__bind(fd, sa, sa_length(sa)) == -1) {
-    LT_LOG_FD_SOCKADDR_ERROR("fd_bind failed");
-    return false;
-  }
-
-  LT_LOG_FD_SOCKADDR("fd_bind succeeded");
-  return true;
-}
-
-bool
-fd_listen(int fd, int backlog) {
-  if (fd__listen(fd, backlog) == -1) {
-    LT_LOG_FD_VALUE_ERROR("fd_listen failed", backlog);
-    return false;
-  }
-
-  LT_LOG_FD_VALUE("fd_listen succeeded", backlog);
-  return true;
-
 }
 
 }

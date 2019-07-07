@@ -12,7 +12,8 @@ libsub_torrentnet_la_SOURCES = \
 	socket_address_key.cc \
 	socket_address_key.h \
 	socket_event.cc \
-	socket_event.h
+	socket_event.h \
+	types.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../.. -I$(top_srcdir)
 
@@ -23,4 +24,5 @@ libtorrentinclude_HEADERS = \
 	fd.h \
 	socket_address.h \
 	socket_address_key.h \
-	socket_event.h
+	socket_event.h \
+	types.h

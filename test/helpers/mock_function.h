@@ -1,5 +1,5 @@
-#ifndef LIBTORRENT_HELPER_MOCK_FUNCTION_H
-#define LIBTORRENT_HELPER_MOCK_FUNCTION_H
+#ifndef LIBTORRENT_HELPERS_MOCK_FUNCTION_H
+#define LIBTORRENT_HELPERS_MOCK_FUNCTION_H
 
 #include <functional>
 #include <map>
@@ -8,7 +8,8 @@
 #include <type_traits>
 #include <utility>
 #include <cppunit/extensions/HelperMacros.h>
-#include <torrent/net/socket_address.h>
+
+#include "helpers/mock_compare.h"
 
 template<typename R, typename... Args>
 struct mock_function_map {
@@ -45,29 +46,6 @@ template<typename R, typename... Args>
 typename mock_function_map<R, Args...>::redirect_map_type mock_function_map<R, Args...>::redirects;
 
 struct mock_void {};
-
-template <typename Arg>
-inline bool mock_compare_arg(const Arg& lhs, const Arg& rhs) { return lhs == rhs; }
-inline bool mock_compare_arg(const sockaddr* lhs, const sockaddr* rhs) {
-  return lhs != nullptr && rhs != nullptr && torrent::sa_equal(lhs, rhs);
-}
-
-template <int I, typename A, typename... Args>
-typename std::enable_if<I == 1, int>::type
-mock_compare_tuple(const std::tuple<A, Args...>& lhs, const std::tuple<Args...>& rhs) {
-  return mock_compare_arg(std::get<I>(lhs), std::get<I - 1>(rhs)) ? 0 : 1;
-}
-
-template <int I, typename A, typename... Args>
-typename std::enable_if<1 < I, int>::type
-mock_compare_tuple(const std::tuple<A, Args...>& lhs, const std::tuple<Args...>& rhs) {
-  auto res = mock_compare_tuple<I - 1>(lhs, rhs);
-
-  if (res != 0)
-    return res;
-
-  return mock_compare_arg(std::get<I>(lhs), std::get<I - 1>(rhs)) ? 0 : I;
-}
 
 template<typename R, typename... Args>
 struct mock_function_type {
@@ -127,11 +105,8 @@ mock_redirect(R fn(Args...), std::function<R (Args...)> func) {
 
 template<typename R, typename... Args>
 auto
-mock_call(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)) {
+mock_call_direct(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)) {
   typedef mock_function_type<R, Args...> mock_type;
-
-  if (mock_type::has_redirect(reinterpret_cast<void*>(fn)))
-    return mock_type::call_redirect(reinterpret_cast<void*>(fn), args...);
 
   auto itr = mock_type::type::functions.find(reinterpret_cast<void*>(fn));
   CPPUNIT_ASSERT_MESSAGE(("mock_call expected function calls exhausted by '" + name + "'").c_str(),
@@ -142,6 +117,17 @@ mock_call(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)
                          mismatch_arg == 0);
 
   return mock_type::ret_erase(reinterpret_cast<void*>(fn));
+}
+
+template<typename R, typename... Args>
+auto
+mock_call(std::string name, R fn(Args...), Args... args) -> decltype(fn(args...)) {
+  typedef mock_function_type<R, Args...> mock_type;
+
+  if (mock_type::has_redirect(reinterpret_cast<void*>(fn)))
+    return mock_type::call_redirect(reinterpret_cast<void*>(fn), args...);
+
+  return mock_call_direct(name, fn, args...);
 }
 
 #endif

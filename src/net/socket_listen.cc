@@ -83,7 +83,7 @@ socket_listen::close() {
   if (!is_open())
     return;
 
-  // torrent::poll_event_closed(this);
+  torrent::poll_event_closed(this);
 
   fd_close(file_descriptor());
   set_file_descriptor(-1);
@@ -92,11 +92,6 @@ socket_listen::close() {
 
 void
 socket_listen::event_read() {
-}
-
-void
-socket_listen::event_write() {
-  throw internal_error("Event write not supported by socket_listener.");
 }
 
 void
@@ -132,9 +127,9 @@ socket_listen::m_open_port(int fd, sa_unique_ptr& sap, uint16_t port) {
   m_fileDesc = fd;
   m_socket_address.swap(sap);
 
-  // torrent::poll_event_open(this);
-  // torrent::poll_event_insert_read(this);
-  // torrent::poll_event_insert_error(this);
+  torrent::poll_event_open(this);
+  torrent::poll_event_insert_read(this);
+  torrent::poll_event_insert_error(this);
 
   return true;
 }

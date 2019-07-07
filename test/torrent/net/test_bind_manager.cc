@@ -455,19 +455,60 @@ test_bind_manager::test_listen_socket_sequential() {
 
 void
 test_bind_manager::test_listen_open_bind() {
-  { TEST_BM_BEGIN("sin_any, single");
+  { TEST_BM_BEGIN("sin_any");
     CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_any.get(), 0));
-    fd_expect_inet_tcp_nonblock_reuseaddr(1000);
     mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
+    fd_expect_inet_tcp_nonblock_reuseaddr(1000);
     fd_expect_bind_listen(1000, c_sin_any_6900);
-
+    event_expect_open_re(0);
+    event_expect_closed_fd(0, 1000);
     CPPUNIT_ASSERT(bm.listen_open_bind("default"));
-    // CPPUNIT_ASSERT(torrent::sa_equal(bm.back().listen_socket_address(), c_sin_any_6900.get()));
-    // CPPUNIT_ASSERT(bm.back().listen_socket_address_port() == 6900);
-
+  };
+  { TEST_BM_BEGIN("sin6_any");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_any.get(), 0));
+    mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
+    fd_expect_inet6_tcp_nonblock_reuseaddr(1000);
+    fd_expect_bind_listen(1000, c_sin6_any_6900);
+    event_expect_open_re(0);
+    event_expect_closed_fd(0, 1000);
+    CPPUNIT_ASSERT(bm.listen_open_bind("default"));
+  };
+  { TEST_BM_BEGIN("sin6_v4_any");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_v4_any.get(), 0));
+    mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
+    fd_expect_inet_tcp_nonblock_reuseaddr(1000);
+    fd_expect_bind_listen(1000, c_sin_any_6900);
+    event_expect_open_re(0);
+    event_expect_closed_fd(0, 1000);
+    CPPUNIT_ASSERT(bm.listen_open_bind("default"));
+  };
+  { TEST_BM_BEGIN("sin_bnd");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin_bnd.get(), 0));
+    mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
+    fd_expect_inet_tcp_nonblock_reuseaddr(1000);
+    fd_expect_bind_listen(1000, c_sin_bnd_6900);
+    event_expect_open_re(0);
+    event_expect_closed_fd(0, 1000);
+    CPPUNIT_ASSERT(bm.listen_open_bind("default"));
+  };
+  { TEST_BM_BEGIN("sin6_bnd");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_bnd.get(), 0));
+    mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
+    fd_expect_inet6_tcp_nonblock_reuseaddr(1000);
+    fd_expect_bind_listen(1000, c_sin6_bnd_6900);
+    event_expect_open_re(0);
+    event_expect_closed_fd(0, 1000);
+    CPPUNIT_ASSERT(bm.listen_open_bind("default"));
+  };
+  { TEST_BM_BEGIN("sin6_v4_bnd");
+    CPPUNIT_ASSERT_NO_THROW(bm.add_bind("default", 100, sin6_v4_bnd.get(), 0));
+    mock_expect(&torrent::random_uniform_uint16, (uint16_t)6900, (uint16_t)6881, (uint16_t)6999);
+    fd_expect_inet_tcp_nonblock_reuseaddr(1000);
+    fd_expect_bind_listen(1000, c_sin_bnd_6900);
+    event_expect_open_re(0);
+    event_expect_closed_fd(0, 1000);
+    CPPUNIT_ASSERT(bm.listen_open_bind("default"));
   };
 }
-
-// Test v4only/v6only
 
 // Test open errors.

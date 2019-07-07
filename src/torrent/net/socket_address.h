@@ -6,18 +6,9 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <torrent/common.h>
+#include <torrent/net/types.h>
 
 namespace torrent {
-
-typedef std::unique_ptr<sockaddr>     sa_unique_ptr;
-typedef std::unique_ptr<sockaddr_in>  sin_unique_ptr;
-typedef std::unique_ptr<sockaddr_in6> sin6_unique_ptr;
-typedef std::unique_ptr<sockaddr_un>  sun_unique_ptr;
-
-typedef std::unique_ptr<const sockaddr>     c_sa_unique_ptr;
-typedef std::unique_ptr<const sockaddr_in>  c_sin_unique_ptr;
-typedef std::unique_ptr<const sockaddr_in6> c_sin6_unique_ptr;
-typedef std::unique_ptr<const sockaddr_un>  c_sun_unique_ptr;
 
 bool sa_is_unspec(const sockaddr* sa) LIBTORRENT_EXPORT;
 bool sa_is_inet(const sockaddr* sa) LIBTORRENT_EXPORT;
@@ -46,11 +37,11 @@ sa_unique_ptr   sa_make_unix(const std::string& pathname) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_convert(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 sa_unique_ptr   sa_copy(const sockaddr* sa) LIBTORRENT_EXPORT;
-sa_unique_ptr   sa_copy_addr(const sockaddr* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_copy_in(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 sa_unique_ptr   sa_copy_in6(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
-sa_unique_ptr   sa_copy_addr_in(const sockaddr_in* sa) LIBTORRENT_EXPORT;
-sa_unique_ptr   sa_copy_addr_in6(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_copy_addr(const sockaddr* sa, uint16_t port = 0) LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_copy_addr_in(const sockaddr_in* sa, uint16_t port = 0) LIBTORRENT_EXPORT;
+sa_unique_ptr   sa_copy_addr_in6(const sockaddr_in6* sa, uint16_t port = 0) LIBTORRENT_EXPORT;
 sin_unique_ptr  sin_copy(const sockaddr_in* sa) LIBTORRENT_EXPORT;
 sin6_unique_ptr sin6_copy(const sockaddr_in6* sa) LIBTORRENT_EXPORT;
 
@@ -100,38 +91,10 @@ void sa_inet_mapped_inet6(const sockaddr_in* sa, sockaddr_in6* mapped) LIBTORREN
 std::string sa_pretty_address_str(const sockaddr* sa) LIBTORRENT_EXPORT;
 
 //
-// Implementations:
+// Tuples:
 //
 
-inline sa_unique_ptr
-sa_from_v4mapped_in6(const sockaddr_in6* sin6) {
-  return sa_from_in(sin_from_v4mapped_in6(sin6));
-}
-
-inline sa_unique_ptr
-sa_to_v4mapped_in(const sockaddr_in* sin) {
-  return sa_from_in6(sin6_to_v4mapped_in(sin));
-}
-
-inline sa_unique_ptr
-sa_from_in(sin_unique_ptr&& sinp) {
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sinp.release()));
-}
-
-inline c_sa_unique_ptr
-sa_from_in(c_sin_unique_ptr&& sinp) {
-  return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sinp.release()));
-}
-
-inline sa_unique_ptr
-sa_from_in6(sin6_unique_ptr&& sin6p) {
-  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6p.release()));
-}
-
-inline c_sa_unique_ptr
-sa_from_in6(c_sin6_unique_ptr&& sin6p) {
-  return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sin6p.release()));
-}
+bool fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) LIBTORRENT_EXPORT;
 
 //
 // Safe conversion from unique_ptr arguments:
@@ -171,8 +134,8 @@ inline size_t sap_length(const c_sa_unique_ptr& sap) { return sa_length(sap.get(
 
 inline sa_unique_ptr sap_copy(const sa_unique_ptr& sap) { return sa_copy(sap.get()); }
 inline sa_unique_ptr sap_copy(const c_sa_unique_ptr& sap) { return sa_copy(sap.get()); }
-inline sa_unique_ptr sap_copy_addr(const sa_unique_ptr& sap) { return sa_copy_addr(sap.get()); }
-inline sa_unique_ptr sap_copy_addr(const c_sa_unique_ptr& sap) { return sa_copy_addr(sap.get()); }
+inline sa_unique_ptr sap_copy_addr(const sa_unique_ptr& sap, uint16_t port = 0) { return sa_copy_addr(sap.get(), port); }
+inline sa_unique_ptr sap_copy_addr(const c_sa_unique_ptr& sap, uint16_t port = 0) { return sa_copy_addr(sap.get(), port); }
 inline sa_unique_ptr sap_copy_in(const sin_unique_ptr& sinp) { return sa_copy_in(sinp.get()); }
 inline sa_unique_ptr sap_copy_in(const c_sin_unique_ptr& sinp) { return sa_copy_in(sinp.get()); }
 inline sa_unique_ptr sap_copy_in6(const sin6_unique_ptr& sin6p) { return sa_copy_in6(sin6p.get()); }
@@ -221,6 +184,45 @@ inline std::string sap_addr_str(const sa_unique_ptr& sap) { return sa_addr_str(s
 inline std::string sap_addr_str(const c_sa_unique_ptr& sap) { return sa_addr_str(sap.get()); }
 inline std::string sap_pretty_str(const sa_unique_ptr& sap) { return sa_pretty_str(sap.get()); }
 inline std::string sap_pretty_str(const c_sa_unique_ptr& sap) { return sa_pretty_str(sap.get()); }
+
+//
+// Implementations:
+//
+
+inline sa_unique_ptr
+sa_from_v4mapped_in6(const sockaddr_in6* sin6) {
+  return sa_from_in(sin_from_v4mapped_in6(sin6));
+}
+
+inline sa_unique_ptr
+sa_to_v4mapped_in(const sockaddr_in* sin) {
+  return sa_from_in6(sin6_to_v4mapped_in(sin));
+}
+
+inline sa_unique_ptr
+sa_from_in(sin_unique_ptr&& sinp) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sinp.release()));
+}
+
+inline c_sa_unique_ptr
+sa_from_in(c_sin_unique_ptr&& sinp) {
+  return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sinp.release()));
+}
+
+inline sa_unique_ptr
+sa_from_in6(sin6_unique_ptr&& sin6p) {
+  return sa_unique_ptr(reinterpret_cast<sockaddr*>(sin6p.release()));
+}
+
+inline c_sa_unique_ptr
+sa_from_in6(c_sin6_unique_ptr&& sin6p) {
+  return c_sa_unique_ptr(reinterpret_cast<const sockaddr*>(sin6p.release()));
+}
+
+inline bool
+fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) {
+  return std::get<0>(lhs) == std::get<0>(rhs) && sap_equal(std::get<1>(lhs), std::get<1>(rhs));
+}
 
 }
 

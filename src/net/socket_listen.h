@@ -12,7 +12,6 @@ namespace torrent {
 
 class socket_listen : public socket_event {
 public:
-  // TODO: Add bind name, pass through bind_manager.
   typedef std::function<void (int, sa_unique_ptr)> accepted_ftor;
 
   socket_listen();
@@ -27,11 +26,10 @@ public:
   bool open_sequential(sa_unique_ptr&& sap, uint16_t first_port, uint16_t last_port, fd_flags open_flags);
   void close();
 
-  virtual void event_read();
-  virtual void event_write();
-  virtual void event_error();
+  void event_read() override;
+  void event_error() override;
 
-  virtual const char* type_name() const { return "socket_listen"; }
+  const char* type_name() const override { return "socket_listen"; }
 
 private:
   bool m_open_port(int fd, sa_unique_ptr& sap, uint16_t port);

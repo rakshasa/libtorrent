@@ -2,8 +2,8 @@
 #define LIBTORRENT_NET_FD_H
 
 #include <string>
-#include <sys/socket.h>
 #include <torrent/common.h>
+#include <torrent/net/types.h>
 
 namespace torrent {
 
@@ -21,14 +21,17 @@ constexpr bool fd_valid_flags(fd_flags flags);
 int  fd_open(fd_flags flags) LIBTORRENT_EXPORT;
 void fd_close(int fd) LIBTORRENT_EXPORT;
 
+fd_sap_tuple fd_accept(int fd) LIBTORRENT_EXPORT;
+
+bool fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
+bool fd_connect(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
+bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
+
 bool fd_set_nonblock(int fd) LIBTORRENT_EXPORT;
 bool fd_set_reuse_address(int fd, bool state) LIBTORRENT_EXPORT;
 bool fd_set_v6only(int fd, bool state) LIBTORRENT_EXPORT;
 
-bool fd_connect(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
-bool fd_bind(int fd, const sockaddr* sa) LIBTORRENT_EXPORT;
-bool fd_listen(int fd, int backlog) LIBTORRENT_EXPORT;
-
+[[gnu::weak]] int fd__accept(int socket, sockaddr *address, socklen_t *address_len) LIBTORRENT_EXPORT;
 [[gnu::weak]] int fd__bind(int socket, const sockaddr *address, socklen_t address_len) LIBTORRENT_EXPORT;
 [[gnu::weak]] int fd__close(int fildes) LIBTORRENT_EXPORT;
 [[gnu::weak]] int fd__connect(int socket, const sockaddr *address, socklen_t address_len) LIBTORRENT_EXPORT;

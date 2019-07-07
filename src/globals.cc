@@ -39,6 +39,7 @@
 #include "globals.h"
 #include "manager.h"
 #include "torrent/connection_manager.h"
+#include "torrent/event.h"
 #include "torrent/poll.h"
 
 namespace torrent {
