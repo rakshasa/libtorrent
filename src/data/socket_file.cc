@@ -48,6 +48,7 @@
 #include <sys/types.h>
 
 #ifdef HAVE_FALLOCATE
+#define _GNU_SOURCE
 #include <linux/falloc.h>
 #endif
 
