@@ -322,9 +322,7 @@ generate_random(size_t length) {
   bytes_randomizer bytes(mt);
   Sequence s;
   s.reserve(length);
-
-  std::generate_n(std::back_inserter(s), length, &::mrand48);
-
+  std::generate_n(std::back_inserter(s), length, std::ref(bytes));
   return s;
 }
 
