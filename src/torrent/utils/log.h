@@ -229,6 +229,7 @@ void log_cleanup() LIBTORRENT_EXPORT;
 
 void log_open_output(const char* name, log_slot slot) LIBTORRENT_EXPORT;
 void log_close_output(const char* name) LIBTORRENT_EXPORT;
+void log_close_output_str(const std::string name) LIBTORRENT_EXPORT;
 
 void log_add_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
@@ -239,6 +240,12 @@ void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
 void        log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
 void        log_open_gz_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
 log_buffer* log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
+
+//
+// Implementation:
+//
+
+inline void log_close_output_str(const std::string name) { log_close_output(name.c_str()); }
 
 }
 

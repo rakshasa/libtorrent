@@ -75,13 +75,13 @@ utils_log_test::test_output_open() {
   // Test inserting duplicate names, should catch.
   // CPPUNIT_ASSERT_THROW(torrent::log_open_output("test_output_1", torrent::log_slot());, torrent::input_error);
 
-  try {
-    torrent::log_open_output("test_output_1", torrent::log_slot());
-  } catch (torrent::input_error& e) {
-    return;
-  }
+  // try {
+  //   torrent::log_open_output("test_output_1", torrent::log_slot());
+  // } catch (torrent::input_error& e) {
+  //   return;
+  // }
 
-  CPPUNIT_ASSERT(false);
+  // CPPUNIT_ASSERT(false);
 
   // Test more than 64 entries.
 }

@@ -294,12 +294,16 @@ log_open_output(const char* name, log_slot slot) {
     throw input_error("Cannot open more than 64 log output handlers.");
   }
   
-  if (log_find_output_name(name) != log_outputs.end()) {
-    pthread_mutex_unlock(&log_mutex);
-    throw input_error("Log name already used.");
+  log_output_list::iterator itr = log_find_output_name(name);
+
+  if (itr == log_outputs.end()) {
+    log_outputs.push_back(std::make_pair(name, slot));
+  } else {
+    // by replacing the "write" slot binding, the old file gets closed
+    // (handles are shared pointers)
+    itr->second = slot;
   }
 
-  log_outputs.push_back(std::make_pair(name, slot));
   log_rebuild_cache();
 
   pthread_mutex_unlock(&log_mutex);
@@ -307,6 +311,14 @@ log_open_output(const char* name, log_slot slot) {
 
 void
 log_close_output(const char* name) {
+  pthread_mutex_lock(&log_mutex);
+
+  log_output_list::iterator itr = log_find_output_name(name);
+
+  if (itr != log_outputs.end())
+    log_outputs.erase(itr);
+
+  pthread_mutex_unlock(&log_mutex);
 }
 
 void
