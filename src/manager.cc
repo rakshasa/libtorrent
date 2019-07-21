@@ -62,7 +62,7 @@
 
 namespace torrent {
 
-Manager* manager = NULL;
+Manager* manager = nullptr;
 
 Manager::Manager() :
   m_downloadManager(new DownloadManager),

@@ -262,7 +262,7 @@ DhtServer::cancel_announce(DownloadInfo* info, const TrackerDht* tracker) {
     if (itr->second->is_search() && itr->second->as_search()->search()->is_announce()) {
       DhtAnnounce* announce = static_cast<DhtAnnounce*>(itr->second->as_search()->search());
 
-      if ((info == NULL || announce->target() == info->hash()) && (tracker == NULL || announce->tracker() == tracker)) {
+      if ((info == nullptr || announce->target() == info->hash()) && (tracker == nullptr || announce->tracker() == tracker)) {
         drop_packet(itr->second->packet());
         delete itr->second;
         m_transactions.erase(itr++);
@@ -666,7 +666,7 @@ DhtServer::failed_transaction(transaction_itr itr, bool quick) {
   // throttling, so don't blame the remote node for not replying.
   // Finally, if we haven't received anything whatsoever so far, assume the entire
   // network is down and so we can't blame the node either.
-  if (!quick && m_networkUp && transaction->packet() == NULL && transaction->id() != m_router->zero_id)
+  if (!quick && m_networkUp && transaction->packet() == nullptr && transaction->id() != m_router->zero_id)
     m_router->node_inactive(transaction->id(), transaction->address());
 
   if (transaction->type() == DhtTransaction::DHT_FIND_NODE) {
@@ -719,7 +719,7 @@ DhtServer::event_read() {
     rak::socket_address sa;
     int type = '?';
     DhtMessage message;
-    const HashString* nodeId = NULL;
+    const HashString* nodeId = nullptr;
 
     try {
       char buffer[2048];
@@ -781,7 +781,7 @@ DhtServer::event_read() {
         throw dht_error(dht_error_protocol, "Invalid transaction ID type/length.");
 
       // Stupid broken implementations.
-      if (nodeId != NULL && *nodeId == m_router->id())
+      if (nodeId != nullptr && *nodeId == m_router->id())
         throw dht_error(dht_error_protocol, "Send your own ID, not mine");
 
       switch (type) {
@@ -805,7 +805,7 @@ DhtServer::event_read() {
     // so that if it repeatedly sends malformed replies we will drop it instead of propagating it
     // to other nodes.
     } catch (bencode_error& e) {
-      if ((type == 'r' || type == 'e') && nodeId != NULL) {
+      if ((type == 'r' || type == 'e') && nodeId != nullptr) {
         m_router->node_inactive(*nodeId, &sa);
       } else {
         snprintf(message.data_end, message.data + message.data_size - message.data_end - 1, "Malformed packet: %s", e.what());
@@ -814,7 +814,7 @@ DhtServer::event_read() {
       }
 
     } catch (dht_error& e) {
-      if ((type == 'r' || type == 'e') && nodeId != NULL)
+      if ((type == 'r' || type == 'e') && nodeId != nullptr)
         m_router->node_inactive(*nodeId, &sa);
       else
         create_error(message, &sa, e.code(), e.what());
@@ -883,7 +883,7 @@ DhtServer::process_queue(packet_queue& queue, uint32_t* quota) {
       // here transaction can be already deleted by failed_transaction.
       transaction_itr itr = m_transactions.find(transactionKey);
       if (itr != m_transactions.end())
-        packet->transaction()->set_packet(NULL);
+        packet->transaction()->set_packet(nullptr);
     }
 
     delete packet;

@@ -46,7 +46,7 @@ private:
 
 inline bool
 socket_address_key::is_comparable_sockaddr(const sockaddr* sa) {
-  return sa != NULL && (sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
+  return sa != nullptr && (sa->sa_family == AF_INET || sa->sa_family == AF_INET6);
 }
 
 // TODO: Require socket length?
@@ -59,7 +59,7 @@ socket_address_key::from_sockaddr(const sockaddr* sa) {
 
   result.m_family = AF_UNSPEC;
 
-  if (sa == NULL)
+  if (sa == nullptr)
     return result;
 
   switch (sa->sa_family) {

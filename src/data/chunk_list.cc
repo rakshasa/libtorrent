@@ -149,7 +149,7 @@ ChunkList::get(size_type index, int flags) {
 
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
-    if (chunk == NULL) {
+    if (chunk == nullptr) {
       rak::error_number current_error = rak::error_number::current();
 
       LT_LOG_THIS(DEBUG, "Could not create: memory:%" PRIu64 " block:%" PRIu32 " errno:%i errmsg:%s.",
@@ -172,7 +172,7 @@ ChunkList::get(size_type index, int flags) {
 
     Chunk* chunk = m_slot_create_chunk(index, prot_flags);
 
-    if (chunk == NULL)
+    if (chunk == nullptr)
       return ChunkHandle::from_error(rak::error_number::current().is_valid() ? rak::error_number::current() : rak::error_number::e_noent);
 
     delete node->chunk();
@@ -255,7 +255,7 @@ ChunkList::clear_chunk(ChunkListNode* node, int flags) {
     throw internal_error("ChunkList::clear_chunk(...) !node->is_valid().");
 
   delete node->chunk();
-  node->set_chunk(NULL);
+  node->set_chunk(nullptr);
 
   m_manager->deallocate(m_chunk_size, (flags & get_dont_log) ? ChunkManager::allocate_dont_log : 0);
 }

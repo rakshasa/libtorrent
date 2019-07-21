@@ -218,11 +218,11 @@ ProtocolExtension::ProtocolExtension() :
   // Set HANDSHAKE as enabled and supported. Those bits should not be
   // touched.
   m_flags(flag_local_enabled_base | flag_remote_supported_base | flag_initial_handshake),
-  m_peerInfo(NULL),
-  m_download(NULL),
-  m_connection(NULL),
+  m_peerInfo(nullptr),
+  m_download(nullptr),
+  m_connection(nullptr),
   m_readType(FIRST_INVALID),
-  m_read(NULL),
+  m_read(nullptr),
   m_pendingType(HANDSHAKE) {
 
   reset();

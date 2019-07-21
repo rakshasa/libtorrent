@@ -102,7 +102,7 @@ PollKQueue::modify(Event* event, unsigned short op, short mask) {
 
   // Flush the changed filters to the kernel if the buffer is full.
   if (m_changedEvents == m_maxEvents) {
-    if (kevent(m_fd, m_changes, m_changedEvents, NULL, 0, NULL) == -1)
+    if (kevent(m_fd, m_changes, m_changedEvents, nullptr, 0, nullptr) == -1)
       throw internal_error("PollKQueue::modify() error: " + std::string(rak::error_number::current().c_str()));
 
     m_changedEvents = 0;
@@ -119,7 +119,7 @@ PollKQueue::create(int maxOpenSockets) {
   int fd = kqueue();
 
   if (fd == -1)
-    return NULL;
+    return nullptr;
 
   return new PollKQueue(fd, 1024, maxOpenSockets);
 }
@@ -129,7 +129,7 @@ PollKQueue::PollKQueue(int fd, int maxEvents, int maxOpenSockets) :
   m_maxEvents(maxEvents),
   m_waitingEvents(0),
   m_changedEvents(0),
-  m_stdinEvent(NULL) {
+  m_stdinEvent(nullptr) {
 
   m_events = new struct kevent[m_maxEvents];
   m_changes = new struct kevent[maxOpenSockets];
@@ -148,7 +148,7 @@ PollKQueue::~PollKQueue() {
 int
 PollKQueue::poll(int msec) {
 #if KQUEUE_SOCKET_ONLY
-  if (m_stdinEvent != NULL) {
+  if (m_stdinEvent != nullptr) {
     // Flush all changes to the kqueue poll before we start select
     // polling, so that they get included.
     if (m_changedEvents != 0)
@@ -201,7 +201,7 @@ PollKQueue::poll_select(int msec) {
   FD_SET(0,    readSet);
   FD_SET(m_fd, readSet);
 
-  int nfds = select(m_fd + 1, readSet, NULL, NULL, &selectTimeout);
+  int nfds = select(m_fd + 1, readSet, nullptr, nullptr, &selectTimeout);
 
   if (nfds == -1)
     return nfds;
@@ -230,7 +230,7 @@ PollKQueue::perform() {
 
     Table::iterator evItr = m_table.begin() + itr->ident;
 
-    if ((itr->flags & EV_ERROR) && evItr->second != NULL) {
+    if ((itr->flags & EV_ERROR) && evItr->second != nullptr) {
       if (evItr->first & flag_error)
         evItr->second->event_error();
 
@@ -240,12 +240,12 @@ PollKQueue::perform() {
 
     // Also check current mask.
 
-    if (itr->filter == EVFILT_READ && evItr->second != NULL && evItr->first & flag_read) {
+    if (itr->filter == EVFILT_READ && evItr->second != nullptr && evItr->first & flag_read) {
       count++;
       evItr->second->event_read();
     }
 
-    if (itr->filter == EVFILT_WRITE && evItr->second != NULL && evItr->first & flag_write) {
+    if (itr->filter == EVFILT_WRITE && evItr->second != nullptr && evItr->first & flag_write) {
       count++;
       evItr->second->event_write();
     }
@@ -302,7 +302,7 @@ PollKQueue::close(Event* event) {
 
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
-    m_stdinEvent = NULL;
+    m_stdinEvent = nullptr;
     return;
   }
 #endif
@@ -315,7 +315,7 @@ PollKQueue::close(Event* event) {
   // Shouldn't be needed anymore.
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
-      itr->udata = NULL;
+      itr->udata = nullptr;
 
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
                                    rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
@@ -327,7 +327,7 @@ PollKQueue::closed(Event* event) {
 
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
-    m_stdinEvent = NULL;
+    m_stdinEvent = nullptr;
     return;
   }
 #endif
@@ -341,7 +341,7 @@ PollKQueue::closed(Event* event) {
   // Shouldn't be needed anymore.
   for (struct kevent *itr = m_events, *last = m_events + m_waitingEvents; itr != last; ++itr)
     if (itr->udata == event)
-      itr->udata = NULL;
+      itr->udata = nullptr;
 
   m_changedEvents = std::remove_if(m_changes, m_changes + m_changedEvents,
                                    rak::equal(event, rak::mem_ref(&kevent::udata))) - m_changes;
@@ -407,7 +407,7 @@ PollKQueue::remove_read(Event* event) {
 
 #if KQUEUE_SOCKET_ONLY
   if (event->file_descriptor() == 0) {
-    m_stdinEvent = NULL;
+    m_stdinEvent = nullptr;
     return;
   }
 #endif
@@ -434,7 +434,7 @@ PollKQueue::remove_error(Event* event) {
 
 PollKQueue*
 PollKQueue::create(__UNUSED int maxOpenSockets) {
-  return NULL;
+  return nullptr;
 }
 
 PollKQueue::~PollKQueue() {

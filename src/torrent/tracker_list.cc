@@ -58,7 +58,7 @@
 namespace torrent {
 
 TrackerList::TrackerList() :
-  m_info(NULL),
+  m_info(nullptr),
   m_state(DownloadInfo::STOPPED),
 
   m_key(0),

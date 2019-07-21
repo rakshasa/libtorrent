@@ -109,7 +109,7 @@ private:
 
 inline
 PeerChunks::PeerChunks() :
-  m_peerInfo(NULL),
+  m_peerInfo(nullptr),
 
   m_usingCounter(false),
 

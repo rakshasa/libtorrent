@@ -84,7 +84,7 @@ struct HashQueueWillneed {
 HashQueue::HashQueue(thread_disk* thread) :
   m_thread_disk(thread) {
 
-  pthread_mutex_init(&m_done_chunks_lock, NULL);
+  pthread_mutex_init(&m_done_chunks_lock, nullptr);
   m_thread_disk->hash_queue()->slot_chunk_done() = std::bind(&HashQueue::chunk_done, this, std::placeholders::_1, std::placeholders::_2);
 }
 
@@ -145,7 +145,7 @@ HashQueue::remove(HashQueueNode::id_type id) {
       pthread_mutex_unlock(&m_done_chunks_lock);
     }
 
-    itr->slot_done()(*hash_chunk->chunk(), NULL);
+    itr->slot_done()(*hash_chunk->chunk(), nullptr);
     itr->clear();
 
     itr = erase(itr);

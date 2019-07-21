@@ -802,7 +802,7 @@ static_map_write_bencode_c_values(object_write_data_t* output,
                                  const static_map_entry_type* entry_values,
                                  const static_map_mapping_type* first_key,
                                  const static_map_mapping_type* last_key) {
-  const char* prev_key = NULL;
+  const char* prev_key = nullptr;
 
   static_map_stack_type stack[8];
   static_map_stack_type* stack_itr = stack;

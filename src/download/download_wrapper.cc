@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <iterator>
-#include <stdlib.h>
+#include <cstdlib>
 #include <rak/file_stat.h>
 
 #include "data/chunk_list.h"
@@ -70,8 +70,8 @@ namespace torrent {
 DownloadWrapper::DownloadWrapper() :
   m_main(new DownloadMain),
 
-  m_bencode(NULL),
-  m_hashChecker(NULL),
+  m_bencode(nullptr),
+  m_hashChecker(nullptr),
   m_connectionType(0) {
 
   m_main->delay_download_done().slot()       = std::bind(&download_data::call_download_done, data());
@@ -189,7 +189,7 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
 
   if (m_hashChecker->is_checking()) {
     
-    if (hash == NULL) {
+    if (hash == nullptr) {
       m_hashChecker->receive_chunk_cleared(handle.index());
 
     } else {
@@ -203,10 +203,10 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
     return;
   }
 
-  // If hash == NULL we're clearing the queue, so do nothing.
-  if (hash != NULL) {
+  // If hash == nullptr we're clearing the queue, so do nothing.
+  if (hash != nullptr) {
     if (!m_hashChecker->is_checked())
-      throw internal_error("DownloadWrapper::receive_hash_done(...) Was not expecting non-NULL hash.");
+      throw internal_error("DownloadWrapper::receive_hash_done(...) Was not expecting non-nullptr hash.");
 
     // Receiving chunk hashes after stopping the torrent should be
     // safe.

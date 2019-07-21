@@ -56,7 +56,7 @@ DhtNode::DhtNode(const HashString& id, const rak::socket_address* sa) :
   m_lastSeen(0),
   m_recentlyActive(false),
   m_recentlyInactive(0),
-  m_bucket(NULL) {
+  m_bucket(nullptr) {
 
   // TODO: Change this to use the id hash similar to how peer info
   // hash'es are logged.
@@ -71,7 +71,7 @@ DhtNode::DhtNode(const std::string& id, const Object& cache) :
   HashString(*HashString::cast_from(id.c_str())),
   m_recentlyActive(false),
   m_recentlyInactive(0),
-  m_bucket(NULL) {
+  m_bucket(nullptr) {
 
   // TODO: Check how DHT handles inet6.
   rak::socket_address_inet* sa = m_socketAddress.sa_inet();

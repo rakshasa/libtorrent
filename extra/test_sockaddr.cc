@@ -21,7 +21,7 @@ lookup_address(const char* name) {
     return false;
   }
 
-  for (rak::address_info* itr = result; itr != NULL; itr = itr->next()) {
+  for (rak::address_info* itr = result; itr != nullptr; itr = itr->next()) {
     std::cout << "Flags: " << itr->flags() << std::endl;
     std::cout << "Family: " << itr->family() << std::endl;
     std::cout << "Socket Type: " << itr->socket_type() << std::endl;

@@ -263,7 +263,7 @@ Chunk::from_buffer(const void* buffer, uint32_t position, uint32_t length) {
       throw storage_error("no space left on disk");
   }
 
-  sigaction(SIGBUS, &oldact, NULL);
+  sigaction(SIGBUS, &oldact, nullptr);
   
   return true;
 }

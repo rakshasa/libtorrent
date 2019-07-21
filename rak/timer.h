@@ -100,7 +100,7 @@ class timer {
 inline timer
 timer::current() {
   timeval t;
-  gettimeofday(&t, NULL);
+  gettimeofday(&t, nullptr);
   
   return timer(t);
 }

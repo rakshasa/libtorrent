@@ -67,7 +67,7 @@ option_pair option_list_connection[] = {
   { "seed",         Download::CONNECTION_SEED },
   { "initial_seed", Download::CONNECTION_INITIAL_SEED },
   { "metadata",     Download::CONNECTION_METADATA },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 option_pair option_list_heuristics[] = {
@@ -76,19 +76,19 @@ option_pair option_list_heuristics[] = {
   { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
   { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
   { "invalid",                   choke_queue::HEURISTICS_MAX_SIZE },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 option_pair option_list_heuristics_download[] = {
   { "download_leech",            choke_queue::HEURISTICS_DOWNLOAD_LEECH },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 option_pair option_list_heuristics_upload[] = {
   { "upload_leech",              choke_queue::HEURISTICS_UPLOAD_LEECH },
   { "upload_leech_experimental", choke_queue::HEURISTICS_UPLOAD_LEECH_EXPERIMENTAL },
   { "upload_seed",               choke_queue::HEURISTICS_UPLOAD_SEED },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 option_pair option_list_encryption[] = {
@@ -100,13 +100,13 @@ option_pair option_list_encryption[] = {
   { "require_rc4",      torrent::ConnectionManager::encryption_require_RC4 },
   { "enable_retry",     torrent::ConnectionManager::encryption_enable_retry },
   { "prefer_plaintext", torrent::ConnectionManager::encryption_prefer_plaintext },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 option_pair option_list_ip_filter[] = {
   { "unwanted",  PeerInfo::flag_unwanted },
   { "preferred", PeerInfo::flag_preferred },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 option_pair option_list_ip_tos[] = {
@@ -115,13 +115,13 @@ option_pair option_list_ip_tos[] = {
   { "throughput",  torrent::ConnectionManager::iptos_throughput },
   { "reliability", torrent::ConnectionManager::iptos_reliability },
   { "mincost",     torrent::ConnectionManager::iptos_mincost },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 option_pair option_list_tracker_mode[] = {
   { "normal",     choke_group::TRACKER_MODE_NORMAL },
   { "aggressive", choke_group::TRACKER_MODE_AGGRESSIVE },
-  { NULL, 0 }
+  { nullptr, 0 }
 };
 
 const char* option_list_log_group[] = {
@@ -216,7 +216,7 @@ const char* option_list_log_group[] = {
 
   "ui_events",
 
-  NULL
+  nullptr
 };
 
 const char* option_list_tracker_event[] = {
@@ -226,7 +226,7 @@ const char* option_list_tracker_event[] = {
   "stopped",
   "scrape",
 
-  NULL
+  nullptr
 };
 
 option_pair* option_pair_lists[OPTION_START_COMPACT] = {
@@ -256,7 +256,7 @@ option_find_string(option_enum opt_enum, const char* name) {
     do {
       if (std::strcmp(itr->name, name) == 0)
         return itr->value;
-    } while ((++itr)->name != NULL);
+    } while ((++itr)->name != nullptr);
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
     const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
@@ -264,7 +264,7 @@ option_find_string(option_enum opt_enum, const char* name) {
     do {
       if (std::strcmp(*itr, name) == 0)
         return std::distance(option_single_lists[opt_enum - OPTION_START_COMPACT].name, itr);
-    } while (*++itr != NULL);
+    } while (*++itr != nullptr);
   }
 
   throw input_error("Invalid option name.");  
@@ -278,7 +278,7 @@ option_as_string(option_enum opt_enum, unsigned int value) {
     do {
       if (itr->value == value)
         return itr->name;
-    } while ((++itr)->name != NULL);
+    } while ((++itr)->name != nullptr);
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
     if (value < option_single_lists[opt_enum - OPTION_START_COMPACT].size)
@@ -295,13 +295,13 @@ option_list_strings(option_enum opt_enum) {
   if (opt_enum < OPTION_START_COMPACT) {
     option_pair* itr = option_pair_lists[opt_enum];
 
-    while (itr->name != NULL)
+    while (itr->name != nullptr)
       result.push_back(std::string(itr++->name));
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
     const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
   
-    while (*itr != NULL) result.push_back(std::string(*itr++));
+    while (*itr != nullptr) result.push_back(std::string(*itr++));
   }
 
   return Object::from_list(result);

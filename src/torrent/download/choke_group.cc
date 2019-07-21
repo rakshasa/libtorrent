@@ -53,7 +53,7 @@ namespace torrent {
 choke_group::choke_group() :
   m_tracker_mode(TRACKER_MODE_NORMAL),
   m_down_queue(choke_queue::flag_unchoke_all_new),
-  m_first(NULL), m_last(NULL) { }
+  m_first(nullptr), m_last(nullptr) { }
 
 uint64_t
 choke_group::up_rate() const {

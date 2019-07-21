@@ -62,7 +62,7 @@ class LIBTORRENT_EXPORT resource_manager_entry {
 public:
   friend class ResourceManager;
 
-  resource_manager_entry(DownloadMain* d = NULL, uint16_t pri = 0, uint16_t grp = 0) :
+  resource_manager_entry(DownloadMain* d = nullptr, uint16_t pri = 0, uint16_t grp = 0) :
     m_download(d), m_priority(pri), m_group(grp) {}
 
   DownloadMain*       download()         { return m_download; }

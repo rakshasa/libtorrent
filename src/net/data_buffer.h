@@ -44,17 +44,17 @@ namespace torrent {
 
 // Recipient must call clear() when done with the buffer.
 struct DataBuffer {
-  DataBuffer()                        : m_data(NULL), m_end(NULL), m_owned(true) {}
+  DataBuffer()                        : m_data(nullptr), m_end(nullptr), m_owned(true) {}
   DataBuffer(char* data, char* end)   : m_data(data), m_end(end),  m_owned(true) {}
 
   DataBuffer          clone() const        { DataBuffer d = *this; d.m_owned = false; return d; }
-  DataBuffer          release()            { DataBuffer d = *this; set(NULL, NULL, false); return d; }
+  DataBuffer          release()            { DataBuffer d = *this; set(nullptr, nullptr, false); return d; }
 
   char*               data() const         { return m_data; }
   char*               end() const          { return m_end; }
 
   bool                owned() const        { return m_owned; }
-  bool                empty() const        { return m_data == NULL; }
+  bool                empty() const        { return m_data == nullptr; }
   size_t              length() const       { return m_end - m_data; }
 
   void                clear();
@@ -74,7 +74,7 @@ DataBuffer::clear() {
   if (!empty() && m_owned)
     delete[] m_data;
 
-  m_data = m_end = NULL;
+  m_data = m_end = nullptr;
   m_owned = false;
 }
 

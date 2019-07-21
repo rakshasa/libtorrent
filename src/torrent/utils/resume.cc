@@ -495,7 +495,7 @@ resume_load_addresses(Download download, const Object& object) {
 
     PeerInfo* peerInfo = peerList->insert_address(socketAddress.c_sockaddr(), flags);
 
-    if (peerInfo == NULL)
+    if (peerInfo == nullptr)
       continue;
 
     peerInfo->set_failed_counter(itr->get_key_value("failed"));

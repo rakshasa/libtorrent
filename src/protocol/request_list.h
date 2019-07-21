@@ -98,7 +98,7 @@ public:
 
   void                 transfer_dissimilar();
 
-  bool                 is_downloading()                   { return m_transfer != NULL; }
+  bool                 is_downloading()                   { return m_transfer != nullptr; }
   bool                 is_interested_in_active() const;
 
   // bool                 has_index(uint32_t i);
@@ -150,9 +150,9 @@ private:
 
 inline
 RequestList::RequestList() :
-  m_delegator(NULL),
-  m_peerChunks(NULL),
-  m_transfer(NULL),
+  m_delegator(nullptr),
+  m_peerChunks(nullptr),
+  m_transfer(nullptr),
   m_affinity(-1),
   m_last_unordered_position(0) {
   m_delay_remove_choked.slot() = std::bind(&RequestList::delay_remove_choked, this);

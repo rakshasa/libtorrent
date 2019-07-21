@@ -552,7 +552,7 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
     return;
   }
 
-  if (tb == NULL) {
+  if (tb == nullptr) {
     LT_LOG_TRACKER(INFO, "Received failure msg:'%s'.", msg.c_str());
     m_slot_failure(msg);
     return;

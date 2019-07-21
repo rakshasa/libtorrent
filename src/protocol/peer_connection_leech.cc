@@ -66,7 +66,7 @@ namespace torrent {
 
 template<Download::ConnectionType type>
 PeerConnection<type>::~PeerConnection() {
-//   if (m_download != NULL && m_down->get_state() != ProtocolRead::READ_BITFIELD)
+//   if (m_download != nullptr && m_down->get_state() != ProtocolRead::READ_BITFIELD)
 //     m_download->bitfield_counter().dec(m_peerChunks.bitfield()->bitfield());
 
 //   priority_queue_erase(&taskScheduler, &m_taskSendChoke);
@@ -76,7 +76,7 @@ template<Download::ConnectionType type>
 void
 PeerConnection<type>::initialize_custom() {
   if (type == Download::CONNECTION_INITIAL_SEED) {
-    if (m_download->initial_seeding() == NULL)
+    if (m_download->initial_seeding() == nullptr)
       throw close_connection();
 
     m_download->initial_seeding()->new_peer(this);
@@ -503,12 +503,12 @@ PeerConnection<type>::fill_write_buffer() {
       up_chunk_release();
       m_peerChunks.upload_queue()->clear();
 
-      if (m_encryptBuffer != NULL) {
+      if (m_encryptBuffer != nullptr) {
         if (m_encryptBuffer->remaining())
           throw internal_error("Deleting encryptBuffer with encrypted data remaining.");
 
         delete m_encryptBuffer;
-        m_encryptBuffer = NULL;
+        m_encryptBuffer = nullptr;
       }
 
     } else {

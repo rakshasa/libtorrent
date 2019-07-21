@@ -56,7 +56,7 @@ public:
   typedef value_type*       iterator;
   typedef const value_type* const_iterator;
 
-  no_copy_vector() : m_size(0), m_values(NULL) {}
+  no_copy_vector() : m_size(0), m_values(nullptr) {}
   ~no_copy_vector() { clear(); }
 
   size_type size() const { return m_size; }
@@ -64,7 +64,7 @@ public:
 
   void resize(size_type s) { clear(); m_size = s; m_values = new value_type[s]; }
 
-  void clear() { delete [] m_values; m_values = NULL; m_size = 0; }
+  void clear() { delete [] m_values; m_values = nullptr; m_size = 0; }
 
   iterator       begin() { return m_values; }
   const_iterator begin() const { return m_values; }

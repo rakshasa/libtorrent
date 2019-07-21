@@ -47,7 +47,7 @@
 namespace torrent {
 
 ClientList::ClientList() {
-  insert(ClientInfo::TYPE_UNKNOWN, NULL, NULL, NULL);
+  insert(ClientInfo::TYPE_UNKNOWN, nullptr, nullptr, nullptr);
 
   // Move this to a seperate initialize function in libtorrent.
 
@@ -55,59 +55,59 @@ ClientList::ClientList() {
   // biased by my own prejudices, and not at all based on facts.
 
   // First batch of clients.
-  insert_helper(ClientInfo::TYPE_AZUREUS, "AZ", NULL, NULL, "Azureus");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BC", NULL, NULL, "BitComet");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "CD", NULL, NULL, "Enhanced CTorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "KT", NULL, NULL, "KTorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "LT", NULL, NULL, "libtorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "lt", NULL, NULL, "libTorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "UM", NULL, NULL, "uTorrent Mac");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "UT", NULL, NULL, "uTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "AZ", nullptr, nullptr, "Azureus");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BC", nullptr, nullptr, "BitComet");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "CD", nullptr, nullptr, "Enhanced CTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "KT", nullptr, nullptr, "KTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "LT", nullptr, nullptr, "libtorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "lt", nullptr, nullptr, "libTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "UM", nullptr, nullptr, "uTorrent Mac");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "UT", nullptr, nullptr, "uTorrent");
 
-  insert_helper(ClientInfo::TYPE_MAINLINE, "M", NULL, NULL, "Mainline");
+  insert_helper(ClientInfo::TYPE_MAINLINE, "M", nullptr, nullptr, "Mainline");
 
-  insert_helper(ClientInfo::TYPE_COMPACT, "T", NULL, NULL, "BitTornado");
+  insert_helper(ClientInfo::TYPE_COMPACT, "T", nullptr, nullptr, "BitTornado");
 
   // Second batch of clients.
-  insert_helper(ClientInfo::TYPE_AZUREUS, "AR", NULL, NULL, "Arctic");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BB", NULL, NULL, "BitBuddy");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BX", NULL, NULL, "Bittorrent X");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BS", NULL, NULL, "BTSlave");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BT", NULL, NULL, "BBTor");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "CT", NULL, NULL, "CTorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "DE", NULL, NULL, "DelugeTorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "ES", NULL, NULL, "Electric Sheep");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "LP", NULL, NULL, "Lphant");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "MT", NULL, NULL, "MoonlightTorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "MP", NULL, NULL, "MooPolice");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "QT", NULL, NULL, "Qt 4 Torrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "RT", NULL, NULL, "Retriever");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "SZ", NULL, NULL, "Shareaza");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "SS", NULL, NULL, "SwarmScope");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "SB", NULL, NULL, "Swiftbit");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "TN", NULL, NULL, "TorrentDotNET");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "TS", NULL, NULL, "Torrentstorm");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "TR", NULL, NULL, "Transmission");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "XT", NULL, NULL, "XanTorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "ZT", NULL, NULL, "ZipTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "AR", nullptr, nullptr, "Arctic");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BB", nullptr, nullptr, "BitBuddy");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BX", nullptr, nullptr, "Bittorrent X");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BS", nullptr, nullptr, "BTSlave");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BT", nullptr, nullptr, "BBTor");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "CT", nullptr, nullptr, "CTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "DE", nullptr, nullptr, "DelugeTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "ES", nullptr, nullptr, "Electric Sheep");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "LP", nullptr, nullptr, "Lphant");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "MT", nullptr, nullptr, "MoonlightTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "MP", nullptr, nullptr, "MooPolice");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "QT", nullptr, nullptr, "Qt 4 Torrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "RT", nullptr, nullptr, "Retriever");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "SZ", nullptr, nullptr, "Shareaza");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "SS", nullptr, nullptr, "SwarmScope");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "SB", nullptr, nullptr, "Swiftbit");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "TN", nullptr, nullptr, "TorrentDotNET");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "TS", nullptr, nullptr, "Torrentstorm");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "TR", nullptr, nullptr, "Transmission");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "XT", nullptr, nullptr, "XanTorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "ZT", nullptr, nullptr, "ZipTorrent");
 
-  insert_helper(ClientInfo::TYPE_COMPACT, "A", NULL, NULL, "ABC");
-  insert_helper(ClientInfo::TYPE_COMPACT, "S", NULL, NULL, "Shadow's client");
-  insert_helper(ClientInfo::TYPE_COMPACT, "U", NULL, NULL, "UPnP NAT BitTorrent");
-  insert_helper(ClientInfo::TYPE_COMPACT, "O", NULL, NULL, "Osprey Permaseed");
+  insert_helper(ClientInfo::TYPE_COMPACT, "A", nullptr, nullptr, "ABC");
+  insert_helper(ClientInfo::TYPE_COMPACT, "S", nullptr, nullptr, "Shadow's client");
+  insert_helper(ClientInfo::TYPE_COMPACT, "U", nullptr, nullptr, "UPnP NAT BitTorrent");
+  insert_helper(ClientInfo::TYPE_COMPACT, "O", nullptr, nullptr, "Osprey Permaseed");
 
   // Third batch of clients.
-  insert_helper(ClientInfo::TYPE_AZUREUS, "AX", NULL, NULL, "BitPump");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BF", NULL, NULL, "BitFlu");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BG", NULL, NULL, "BTG");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "BR", NULL, NULL, "BitRocket");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "EB", NULL, NULL, "EBit");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "HL", NULL, NULL, "Halite");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "qB", NULL, NULL, "qBittorrent");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "UL", NULL, NULL, "uLeecher!");
-  insert_helper(ClientInfo::TYPE_AZUREUS, "XL", NULL, NULL, "XeiLun");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "AX", nullptr, nullptr, "BitPump");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BF", nullptr, nullptr, "BitFlu");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BG", nullptr, nullptr, "BTG");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "BR", nullptr, nullptr, "BitRocket");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "EB", nullptr, nullptr, "EBit");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "HL", nullptr, nullptr, "Halite");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "qB", nullptr, nullptr, "qBittorrent");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "UL", nullptr, nullptr, "uLeecher!");
+  insert_helper(ClientInfo::TYPE_AZUREUS, "XL", nullptr, nullptr, "XeiLun");
 
-  insert_helper(ClientInfo::TYPE_COMPACT, "R", NULL, NULL, "Tribler");
+  insert_helper(ClientInfo::TYPE_COMPACT, "R", nullptr, nullptr, "Tribler");
 }
 
 ClientList::~ClientList() {
@@ -128,17 +128,17 @@ ClientList::insert(ClientInfo::id_type type, const char* key, const char* versio
 
   std::memset(clientInfo.mutable_key(), 0, ClientInfo::max_key_size);
 
-  if (key == NULL)
+  if (key == nullptr)
     std::memset(clientInfo.mutable_key(), 0, ClientInfo::max_key_size);
   else
     std::strncpy(clientInfo.mutable_key(), key, ClientInfo::max_key_size);
     
-  if (version != NULL)
+  if (version != nullptr)
     std::memcpy(clientInfo.mutable_version(), version, ClientInfo::max_version_size);
   else
     std::memset(clientInfo.mutable_version(), 0, ClientInfo::max_version_size);
 
-  if (upperVersion != NULL)
+  if (upperVersion != nullptr)
     std::memcpy(clientInfo.mutable_upper_version(), upperVersion, ClientInfo::max_version_size);
   else
     std::memset(clientInfo.mutable_upper_version(), -1, ClientInfo::max_version_size);

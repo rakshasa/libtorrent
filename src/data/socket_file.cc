@@ -164,7 +164,7 @@ SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) 
 
   uint64_t align = offset % MemoryChunk::page_size();
 
-  char* ptr = (char*)mmap(NULL, length + align, prot, flags, m_fd, offset - align);
+  char* ptr = (char*)mmap(nullptr, length + align, prot, flags, m_fd, offset - align);
   
   if (ptr == MAP_FAILED)
     return MemoryChunk();

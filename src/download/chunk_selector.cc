@@ -37,7 +37,7 @@
 #include "config.h"
 
 #include <algorithm>
-#include <stdlib.h>
+#include <cstdlib>
 #include <rak/functional.h>
 
 #include "protocol/peer_chunks.h"
@@ -69,7 +69,7 @@ ChunkSelector::initialize(ChunkStatistics* cs) {
 void
 ChunkSelector::cleanup() {
   m_data->mutable_untouched_bitfield()->clear();
-  m_statistics = NULL;
+  m_statistics = nullptr;
 }
 
 // Consider if ChunksSelector::not_using_index(...) needs to be

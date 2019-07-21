@@ -62,7 +62,7 @@ public:
   ~BlockTransfer();
 
   // TODO: Do we need to also check for peer_info?...
-  bool                is_valid() const              { return m_block != NULL; }
+  bool                is_valid() const              { return m_block != nullptr; }
 
   bool                is_erased() const             { return m_state == STATE_ERASED; }
   bool                is_queued() const             { return m_state == STATE_QUEUED; }
@@ -118,28 +118,28 @@ private:
 
 inline
 BlockTransfer::BlockTransfer() :
-  m_peer_info(NULL),
-  m_block(NULL)
+  m_peer_info(nullptr),
+  m_block(nullptr)
 {
 }
 
 inline
 BlockTransfer::~BlockTransfer() {
-  if (m_block != NULL)
-    throw internal_error("BlockTransfer::~BlockTransfer() block not NULL");
+  if (m_block != nullptr)
+    throw internal_error("BlockTransfer::~BlockTransfer() block not nullptr");
 
-  if (m_peer_info != NULL)
-    throw internal_error("BlockTransfer::~BlockTransfer() peer_info not NULL");
+  if (m_peer_info != nullptr)
+    throw internal_error("BlockTransfer::~BlockTransfer() peer_info not nullptr");
 }
 
 inline void
 BlockTransfer::set_peer_info(key_type p) {
-  if (m_peer_info != NULL)
+  if (m_peer_info != nullptr)
     m_peer_info->dec_transfer_counter();
 
   m_peer_info = p;
 
-  if (m_peer_info != NULL)
+  if (m_peer_info != nullptr)
     m_peer_info->inc_transfer_counter();
 }
 

@@ -87,8 +87,8 @@ MemoryChunk::MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags)
   m_prot(prot),
   m_flags(flags) {
 
-  if (ptr == NULL)
-    throw internal_error("MemoryChunk::MemoryChunk(...) received ptr == NULL");
+  if (ptr == nullptr)
+    throw internal_error("MemoryChunk::MemoryChunk(...) received ptr == nullptr");
 
   if (page_align() >= m_pagesize)
     throw internal_error("MemoryChunk::MemoryChunk(...) received an page alignment >= page size");

@@ -75,7 +75,7 @@ class MemoryChunk {
   MemoryChunk() { clear(); }
   ~MemoryChunk() { clear(); }
 
-  // Doesn't allow ptr == NULL, use the default ctor instead.
+  // Doesn't allow ptr == nullptr, use the default ctor instead.
   MemoryChunk(char* ptr, char* begin, char* end, int prot, int flags);
 
   bool                is_valid() const                                     { return m_ptr; }
@@ -135,7 +135,7 @@ MemoryChunk::is_valid_range(uint32_t offset, uint32_t length) const {
 
 inline void
 MemoryChunk::clear() {
-  m_ptr = m_begin = m_end = NULL; m_flags = PROT_NONE;
+  m_ptr = m_begin = m_end = nullptr; m_flags = PROT_NONE;
 }
 
 inline uint32_t

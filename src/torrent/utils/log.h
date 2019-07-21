@@ -146,23 +146,23 @@ enum {
 
 #define lt_log_print(log_group, ...)                                    \
   if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(NULL, NULL, NULL, 0, __VA_ARGS__);
+    torrent::log_groups[log_group].internal_print(nullptr, nullptr, nullptr, 0, __VA_ARGS__);
 
 #define lt_log_print_info(log_group, log_info, log_subsystem, ...)      \
   if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, NULL, 0, __VA_ARGS__);
+    torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, nullptr, 0, __VA_ARGS__);
 
 #define lt_log_print_data(log_group, log_data, log_subsystem, ...)      \
   if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(&log_data->hash(), log_subsystem, NULL, 0, __VA_ARGS__);
+    torrent::log_groups[log_group].internal_print(&log_data->hash(), log_subsystem, nullptr, 0, __VA_ARGS__);
 
 #define lt_log_print_dump(log_group, log_dump_data, log_dump_size, ...) \
   if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(NULL, NULL, log_dump_data, log_dump_size, __VA_ARGS__); \
+    torrent::log_groups[log_group].internal_print(nullptr, nullptr, log_dump_data, log_dump_size, __VA_ARGS__); \
 
 #define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
   if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__);
+    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, nullptr, 0, __VA_ARGS__);
 
 #define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, log_subsystem, ...) \
   if (torrent::log_groups[log_group].valid())                           \
@@ -170,7 +170,7 @@ enum {
 
 #define lt_log_print_subsystem(log_group, log_subsystem, ...)           \
   if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__);
+    torrent::log_groups[log_group].internal_print(nullptr, log_subsystem, nullptr, 0, __VA_ARGS__);
 
 class log_buffer;
 
@@ -180,13 +180,13 @@ class LIBTORRENT_EXPORT log_group {
 public:
   typedef std::bitset<64> outputs_type;
 
-  log_group() : m_first(NULL), m_last(NULL) {
+  log_group() : m_first(nullptr), m_last(nullptr) {
     m_outputs.reset();
     m_cached_outputs.reset();
   }
 
-  bool                valid() const { return m_first != NULL; }
-  bool                empty() const { return m_first == NULL; }
+  bool                valid() const { return m_first != nullptr; }
+  bool                empty() const { return m_first == nullptr; }
 
   size_t              size_outputs() const { return std::distance(m_first, m_last); }
 

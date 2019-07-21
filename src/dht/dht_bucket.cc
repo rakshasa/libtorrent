@@ -44,8 +44,8 @@
 namespace torrent {
 
 DhtBucket::DhtBucket(const HashString& begin, const HashString& end) :
-  m_parent(NULL),
-  m_child(NULL),
+  m_parent(nullptr),
+  m_child(nullptr),
 
   m_lastChanged(cachedTime.seconds()),
 
@@ -184,7 +184,7 @@ DhtBucket::split(const HashString& id) {
 
   } else {
     // We become other's child, other becomes our parent's child.
-    if (parent() != NULL) {
+    if (parent() != nullptr) {
       parent()->m_child = other;
       other->m_parent = parent();
     }
@@ -211,7 +211,7 @@ DhtBucket::build_full_cache() {
           throw internal_error("DhtRouter::store_closest_nodes wrote past buffer end.");
       }
     }
-  } while (pos < m_fullCache + sizeof(m_fullCache) && chain.next() != NULL);
+  } while (pos < m_fullCache + sizeof(m_fullCache) && chain.next() != nullptr);
 
   m_fullCacheLength = pos - m_fullCache;
 }

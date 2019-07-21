@@ -80,14 +80,14 @@ uint32_t Peer::chunks_done() const         { return c_ptr()->c_peer_chunks()->bi
 
 const BlockTransfer*
 Peer::transfer() const {
-  if (c_ptr()->request_list()->transfer() != NULL)
+  if (c_ptr()->request_list()->transfer() != nullptr)
     return c_ptr()->request_list()->transfer();
 
   else if (!c_ptr()->request_list()->queued_empty())
     return c_ptr()->request_list()->queued_front();
 
   else
-    return NULL;
+    return nullptr;
 }
 
 void

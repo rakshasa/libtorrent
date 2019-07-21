@@ -79,7 +79,7 @@ ConnectionList::clear() {
 
 bool
 ConnectionList::want_connection(PeerInfo* p, Bitfield* bitfield) {
-  if (m_download->file_list()->is_done() || m_download->initial_seeding() != NULL)
+  if (m_download->file_list()->is_done() || m_download->initial_seeding() != nullptr)
     return !bitfield->is_all_set();
 
   if (!m_download->info()->is_accepting_seeders())
@@ -91,12 +91,12 @@ ConnectionList::want_connection(PeerInfo* p, Bitfield* bitfield) {
 PeerConnectionBase*
 ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfield, EncryptionInfo* encryptionInfo, ProtocolExtension* extensions) {
   if (size() >= m_maxSize)
-    return NULL;
+    return nullptr;
 
   PeerConnectionBase* peerConnection = m_slotNewConnection(encryptionInfo->is_encrypted());
 
-  if (peerConnection == NULL || bitfield == NULL)
-    throw internal_error("ConnectionList::insert(...) received a NULL pointer.");
+  if (peerConnection == nullptr || bitfield == nullptr)
+    throw internal_error("ConnectionList::insert(...) received a nullptr pointer.");
 
   peerInfo->set_connection(peerConnection);
   peerInfo->set_last_connection(cachedTime.seconds());
@@ -104,7 +104,7 @@ ConnectionList::insert(PeerInfo* peerInfo, const SocketFd& fd, Bitfield* bitfiel
 
   if (!peerConnection->get_fd().is_valid()) {
     delete peerConnection;
-    return NULL;
+    return nullptr;
   }
 
   base_type::push_back(peerConnection);
@@ -140,7 +140,7 @@ ConnectionList::erase(iterator pos, int flags) {
 
   // Before of after the signal?
   peerConnection->cleanup();
-  peerConnection->mutable_peer_info()->set_connection(NULL);
+  peerConnection->mutable_peer_info()->set_connection(nullptr);
 
   m_download->peer_list()->disconnected(peerConnection->mutable_peer_info(), PeerList::disconnect_set_time);
 

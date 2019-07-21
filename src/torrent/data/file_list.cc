@@ -231,7 +231,7 @@ FileList::split(iterator position, split_type* first, split_type* last) {
   size_type index = std::distance(begin(), position);
   size_type length = std::distance(first, last);
 
-  base_type::insert(position, length - 1, NULL);
+  base_type::insert(position, length - 1, nullptr);
   position = begin() + index;
 
   iterator itr = position;
@@ -617,7 +617,7 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
     MemoryChunk mc = create_chunk_part(itr, offset, length, prot);
 
     if (!mc.is_valid())
-      return NULL;
+      return nullptr;
 
     if (mc.size() == 0)
       throw internal_error("FileList::create_chunk(...) mc.size() == 0.", data()->hash());
@@ -633,7 +633,7 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
   }
 
   if (chunk->empty())
-    return NULL;
+    return nullptr;
 
   return chunk.release();
 }

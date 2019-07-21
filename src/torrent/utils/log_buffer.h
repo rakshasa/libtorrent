@@ -77,7 +77,7 @@ public:
   using base_type::empty;
   using base_type::size;
 
-  log_buffer() : m_max_size(200) { pthread_mutex_init(&m_lock, NULL); }
+  log_buffer() : m_max_size(200) { pthread_mutex_init(&m_lock, nullptr); }
 
   unsigned int        max_size() const { return m_max_size; }
   

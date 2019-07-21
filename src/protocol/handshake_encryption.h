@@ -66,7 +66,7 @@ public:
   static const unsigned int  vc_length = 8;
 
   HandshakeEncryption(int options) :
-    m_key(NULL),
+    m_key(nullptr),
     m_options(options),
     m_crypto(0),
     m_retry(RETRY_NONE),

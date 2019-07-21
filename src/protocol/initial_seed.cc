@@ -78,7 +78,7 @@ InitialSeeding::clear_peer(PeerInfo* peer) {
   peer->unset_flags(PeerInfo::flag_blocked);
 
   // If peer is still connected, offer new piece right away.
-  if (peer->connection() != NULL)
+  if (peer->connection() != nullptr)
     peer->connection()->write_insert_poll_safe();
 }
 

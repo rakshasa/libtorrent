@@ -243,7 +243,7 @@ public:
 
   // non-transaction packet
   DhtTransactionPacket(const rak::socket_address* s, const DhtMessage& d)
-    : m_sa(*s), m_id(-cachedTime.seconds()), m_transaction(NULL) { build_buffer(d); };
+    : m_sa(*s), m_id(-cachedTime.seconds()), m_transaction(nullptr) { build_buffer(d); };
 
   ~DhtTransactionPacket()                               { delete[] m_data; }
 

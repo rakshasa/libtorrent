@@ -93,14 +93,14 @@ DownloadInfo::DownloadInfo() :
 DownloadMain::DownloadMain() :
   m_info(new DownloadInfo),
 
-  m_choke_group(NULL),
+  m_choke_group(nullptr),
   m_chunkList(new ChunkList),
   m_chunkSelector(new ChunkSelector(file_list()->mutable_data())),
   m_chunkStatistics(new ChunkStatistics),
 
-  m_initialSeeding(NULL),
-  m_uploadThrottle(NULL),
-  m_downloadThrottle(NULL) {
+  m_initialSeeding(nullptr),
+  m_uploadThrottle(nullptr),
+  m_downloadThrottle(nullptr) {
 
   m_tracker_list = new TrackerList();
   m_tracker_controller = new TrackerController(m_tracker_list);
@@ -155,13 +155,13 @@ DownloadMain::~DownloadMain() {
 
 std::pair<ThrottleList*, ThrottleList*>
 DownloadMain::throttles(const sockaddr* sa) {
-  ThrottlePair pair = ThrottlePair(NULL, NULL);
+  ThrottlePair pair = ThrottlePair(nullptr, nullptr);
 
   if (manager->connection_manager()->address_throttle())
     pair = manager->connection_manager()->address_throttle()(sa);
 
-  return std::make_pair(pair.first == NULL ? upload_throttle() : pair.first->throttle_list(),
-                        pair.second == NULL ? download_throttle() : pair.second->throttle_list());
+  return std::make_pair(pair.first == nullptr ? upload_throttle() : pair.first->throttle_list(),
+                        pair.second == nullptr ? download_throttle() : pair.second->throttle_list());
 }
 
 void
@@ -232,7 +232,7 @@ DownloadMain::stop() {
   connection_list()->erase_remaining(connection_list()->begin(), ConnectionList::disconnect_available);
 
   delete m_initialSeeding;
-  m_initialSeeding = NULL;
+  m_initialSeeding = nullptr;
 
   priority_queue_erase(&taskScheduler, &m_delayDisconnectPeers);
   priority_queue_erase(&taskScheduler, &m_taskTrackerRequest);
@@ -252,7 +252,7 @@ DownloadMain::start_initial_seeding() {
 
 void
 DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
-  if (m_initialSeeding == NULL)
+  if (m_initialSeeding == nullptr)
     throw internal_error("DownloadMain::initial_seeding_done called when not initial seeding.");
 
   // Close all connections but the currently active one (pcb), that
@@ -277,7 +277,7 @@ DownloadMain::initial_seeding_done(PeerConnectionBase* pcb) {
   m_connectionList->slot_new_connection(&createPeerConnectionSeed);
 
   delete m_initialSeeding;
-  m_initialSeeding = NULL;
+  m_initialSeeding = nullptr;
 
   // And close the current connection.
   throw close_connection();

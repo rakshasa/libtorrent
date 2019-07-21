@@ -77,7 +77,7 @@ public:
     statistics_type(const Rate& up, const Rate& down) : up_rate(up), down_rate(down) { }
   };
 
-  DhtManager() : m_router(NULL), m_portSent(0), m_canReceive(true) { };
+  DhtManager() : m_router(nullptr), m_portSent(0), m_canReceive(true) { };
   ~DhtManager();
 
   void                initialize(const Object& dhtCache);

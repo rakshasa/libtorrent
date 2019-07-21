@@ -57,7 +57,7 @@ public:
 
   ChunkListNode() :
     m_index(invalid_index),
-    m_chunk(NULL),
+    m_chunk(nullptr),
     m_references(0),
     m_writable(0),
     m_blocking(0),

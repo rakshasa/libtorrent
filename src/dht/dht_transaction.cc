@@ -211,7 +211,7 @@ DhtAnnounce::~DhtAnnounce() {
   if (!complete())
     throw internal_error("DhtAnnounce::~DhtAnnounce called while announce not complete.");
 
-  const char* failure = NULL;
+  const char* failure = nullptr;
 
   if (m_tracker->get_state() != TrackerDht::state_announcing) {
     if (!m_contacted)
@@ -226,7 +226,7 @@ DhtAnnounce::~DhtAnnounce() {
       failure = "Announce failed";
   }
 
-  if (failure != NULL)
+  if (failure != nullptr)
     m_tracker->receive_failed(failure);
   else
     m_tracker->receive_success();
@@ -255,7 +255,7 @@ DhtAnnounce::start_announce() {
 void
 DhtTransactionPacket::build_buffer(const DhtMessage& msg) {
   char buffer[1500];  // If the message would exceed an Ethernet frame, something went very wrong.
-  object_buffer_t result = static_map_write_bencode_c(object_write_to_buffer, NULL, std::make_pair(buffer, buffer + sizeof(buffer)), msg);
+  object_buffer_t result = static_map_write_bencode_c(object_write_to_buffer, nullptr, std::make_pair(buffer, buffer + sizeof(buffer)), msg);
 
   m_length = result.second - buffer;
   m_data = new char[m_length];
@@ -268,12 +268,12 @@ DhtTransaction::DhtTransaction(int quick_timeout, int timeout, const HashString&
     m_sa(*sa),
     m_timeout(cachedTime.seconds() + timeout),
     m_quickTimeout(cachedTime.seconds() + quick_timeout),
-    m_packet(NULL) {
+    m_packet(nullptr) {
 
 }
 
 DhtTransaction::~DhtTransaction() {
-  if (m_packet != NULL)
+  if (m_packet != nullptr)
     m_packet->set_failed();
 }
 

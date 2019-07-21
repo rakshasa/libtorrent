@@ -214,7 +214,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
 
   for (BlockList::iterator itr = blockList->begin(), last = blockList->end(); itr != last; ++itr) {
     
-    if (itr->failed_list() == NULL)
+    if (itr->failed_list() == nullptr)
       itr->set_failed_list(new BlockFailed());
 
     BlockFailed::iterator failedItr = std::find_if(itr->failed_list()->begin(), itr->failed_list()->end(),

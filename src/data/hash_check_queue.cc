@@ -45,7 +45,7 @@
 namespace torrent {
 
 HashCheckQueue::HashCheckQueue() {
-  pthread_mutex_init(&m_lock, NULL);
+  pthread_mutex_init(&m_lock, nullptr);
 }
 
 HashCheckQueue::~HashCheckQueue() {
@@ -55,7 +55,7 @@ HashCheckQueue::~HashCheckQueue() {
 // Always poke thread_disk after calling this.
 void
 HashCheckQueue::push_back(HashChunk* hash_chunk) {
-  if (hash_chunk == NULL || !hash_chunk->chunk()->is_loaded() || !hash_chunk->chunk()->is_blocking())
+  if (hash_chunk == nullptr || !hash_chunk->chunk()->is_loaded() || !hash_chunk->chunk()->is_blocking())
     throw internal_error("Invalid hash chunk passed to HashCheckQueue.");
 
   pthread_mutex_lock(&m_lock);

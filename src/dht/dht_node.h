@@ -108,7 +108,7 @@ private:
 
 inline void
 DhtNode::set_good() {
-  if (m_bucket != NULL && !is_good())
+  if (m_bucket != nullptr && !is_good())
     m_bucket->node_now_good(is_bad());
 
   m_lastSeen = cachedTime.seconds();
@@ -118,7 +118,7 @@ DhtNode::set_good() {
 
 inline void
 DhtNode::set_bad() {
-  if (m_bucket != NULL && !is_bad())
+  if (m_bucket != nullptr && !is_bad())
     m_bucket->node_now_bad(is_good());
 
   m_recentlyInactive = max_failed_replies;

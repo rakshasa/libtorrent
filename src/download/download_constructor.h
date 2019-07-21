@@ -52,7 +52,7 @@ typedef std::list<std::string> EncodingList;
 
 class DownloadConstructor {
 public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
+  DownloadConstructor() : m_download(nullptr), m_encodingList(nullptr) {}
 
   void                initialize(Object& b);
 

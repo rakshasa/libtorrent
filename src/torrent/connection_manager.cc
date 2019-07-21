@@ -63,8 +63,8 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
     if (manager->main_thread_main()->is_current())
       thread_base::acquire_global_lock();
 
-    slot(NULL, err);
-    return NULL;
+    slot(nullptr, err);
+    return nullptr;
   }
 
   rak::socket_address sa;
@@ -75,7 +75,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
     thread_base::acquire_global_lock();
   
   slot(sa.c_sockaddr(), 0);
-  return NULL;
+  return nullptr;
 }
 
 ConnectionManager::ConnectionManager() :

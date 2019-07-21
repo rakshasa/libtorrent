@@ -183,15 +183,15 @@ inline const DhtBucket*
 DhtBucketChain::next() {
   // m_restart is clear when we're done recursing into the children and
   // follow the parents instead.
-  if (m_restart == NULL) {
+  if (m_restart == nullptr) {
     m_cur = m_cur->parent();
 
   } else {
     m_cur = m_cur->child();
 
-    if (m_cur == NULL) {
+    if (m_cur == nullptr) {
       m_cur = m_restart->parent();
-      m_restart = NULL;
+      m_restart = nullptr;
     }
   }
 

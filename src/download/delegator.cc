@@ -57,7 +57,7 @@ struct DelegatorCheckAffinity {
     m_delegator(delegator), m_target(target), m_index(index), m_peerInfo(peerInfo) {}
 
   bool operator () (BlockList* d) {
-    return m_index == d->index() && (*m_target = m_delegator->delegate_piece(d, m_peerInfo)) != NULL;
+    return m_index == d->index() && (*m_target = m_delegator->delegate_piece(d, m_peerInfo)) != nullptr;
   }
 
   Delegator*          m_delegator;
@@ -71,7 +71,7 @@ struct DelegatorCheckSeeder {
     m_delegator(delegator), m_target(target), m_peerInfo(peerInfo) {}
 
   bool operator () (BlockList* d) {
-    return d->by_seeder() && (*m_target = m_delegator->delegate_piece(d, m_peerInfo)) != NULL;
+    return d->by_seeder() && (*m_target = m_delegator->delegate_piece(d, m_peerInfo)) != nullptr;
   }
 
   Delegator*          m_delegator;
@@ -87,7 +87,7 @@ struct DelegatorCheckPriority {
     return
       m_priority == d->priority() &&
       m_peerChunks->bitfield()->get(d->index()) &&
-      (*m_target = m_delegator->delegate_piece(d, m_peerChunks->peer_info())) != NULL;
+      (*m_target = m_delegator->delegate_piece(d, m_peerChunks->peer_info())) != nullptr;
   }
 
   Delegator*          m_delegator;
@@ -106,11 +106,11 @@ struct DelegatorCheckAggressive {
 
     if (!m_peerChunks->bitfield()->get(d->index()) ||
         d->priority() == PRIORITY_OFF ||
-        (tmp = m_delegator->delegate_aggressive(d, m_overlapp, m_peerChunks->peer_info())) == NULL)
+        (tmp = m_delegator->delegate_aggressive(d, m_overlapp, m_peerChunks->peer_info())) == nullptr)
       return false;
 
     *m_target = tmp;
-    return m_overlapp == 0;
+    return m_overlapp == nullptr;
   }
 
   Delegator*          m_delegator;
@@ -123,7 +123,7 @@ BlockTransfer*
 Delegator::delegate(PeerChunks* peerChunks, int affinity) {
   // TODO: Make sure we don't queue the same piece several time on the same peer when
   // it timeout cancels them.
-  Block* target = NULL;
+  Block* target = nullptr;
 
   // Find piece with same index as affinity. This affinity should ensure that we
   // never start another piece while the chunk this peer used to download is still
@@ -135,7 +135,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
       != m_transfers.end())
     return target->insert(peerChunks->peer_info());
 
-  if (peerChunks->is_seeder() && (target = delegate_seeder(peerChunks)) != NULL)
+  if (peerChunks->is_seeder() && (target = delegate_seeder(peerChunks)) != nullptr)
     return target->insert(peerChunks->peer_info());
 
   // High priority pieces.
@@ -156,7 +156,7 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
     return target->insert(peerChunks->peer_info());
 
   if (!m_aggressive)
-    return NULL;
+    return nullptr;
 
   // Aggressive mode, look for possible downloads that already have
   // one or more queued.
@@ -166,12 +166,12 @@ Delegator::delegate(PeerChunks* peerChunks, int affinity) {
 
   std::find_if(m_transfers.begin(), m_transfers.end(), DelegatorCheckAggressive(this, &target, &overlapped, peerChunks));
 
-  return target ? target->insert(peerChunks->peer_info()) : NULL;
+  return target ? target->insert(peerChunks->peer_info()) : nullptr;
 }
   
 Block*
 Delegator::delegate_seeder(PeerChunks* peerChunks) {
-  Block* target = NULL;
+  Block* target = nullptr;
 
   if (std::find_if(m_transfers.begin(), m_transfers.end(), DelegatorCheckSeeder(this, &target, peerChunks->peer_info()))
       != m_transfers.end())
@@ -183,7 +183,7 @@ Delegator::delegate_seeder(PeerChunks* peerChunks) {
   if ((target = new_chunk(peerChunks, false)))
     return target;
 
-  return NULL;
+  return nullptr;
 }
 
 Block*
@@ -191,7 +191,7 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
   uint32_t index = m_slot_chunk_find(pc, highPriority);
 
   if (index == ~(uint32_t)0)
-    return NULL;
+    return nullptr;
 
   TransferList::iterator itr = m_transfers.insert(Piece(index, 0, m_slot_chunk_size(index)), block_size);
 
@@ -207,7 +207,7 @@ Delegator::new_chunk(PeerChunks* pc, bool highPriority) {
 
 Block*
 Delegator::delegate_piece(BlockList* c, const PeerInfo* peerInfo) {
-  Block* p = NULL;
+  Block* p = nullptr;
 
   for (BlockList::iterator i = c->begin(); i != c->end(); ++i) {
     if (i->is_finished() || !i->is_stalled())
@@ -217,7 +217,7 @@ Delegator::delegate_piece(BlockList* c, const PeerInfo* peerInfo) {
       // No one is downloading this, assign.
       return &*i;
 
-    } else if (p == NULL && i->find(peerInfo) == NULL) {
+    } else if (p == nullptr && i->find(peerInfo) == nullptr) {
       // Stalled but we really want to finish this piece. Check 'p' so
       // that we don't end up queuing the pieces in reverse.
       p = &*i;
@@ -229,10 +229,10 @@ Delegator::delegate_piece(BlockList* c, const PeerInfo* peerInfo) {
 
 Block*
 Delegator::delegate_aggressive(BlockList* c, uint16_t* overlapped, const PeerInfo* peerInfo) {
-  Block* p = NULL;
+  Block* p = nullptr;
 
   for (BlockList::iterator i = c->begin(); i != c->end() && *overlapped != 0; ++i)
-    if (!i->is_finished() && i->size_not_stalled() < *overlapped && i->find(peerInfo) == NULL) {
+    if (!i->is_finished() && i->size_not_stalled() < *overlapped && i->find(peerInfo) == nullptr) {
       p = &*i;
       *overlapped = i->size_not_stalled();
     }

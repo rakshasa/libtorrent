@@ -69,7 +69,7 @@ public:
 
   static const int stop_skip_tracker     = (1 << 0);
 
-  Download(DownloadWrapper* d = NULL) : m_ptr(d) {}
+  Download(DownloadWrapper* d = nullptr) : m_ptr(d) {}
 
   const DownloadInfo*  info() const;
   const download_data* data() const;

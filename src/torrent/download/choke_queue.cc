@@ -425,7 +425,7 @@ choke_queue::disconnected(PeerConnectionBase* pc, choke_status* base) {
 // care of things.
 void
 choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain* download, group_entry* base) {
-  if (src != NULL) {
+  if (src != nullptr) {
     group_container_type::iterator itr = std::find(src->m_group_container.begin(), src->m_group_container.end(), base);
 
     if (itr == src->m_group_container.end()) throw internal_error("choke_queue::move_connections(...) could not find group.");
@@ -434,11 +434,11 @@ choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain*
     src->m_group_container.pop_back();
   }
 
-  if (dest != NULL) {
+  if (dest != nullptr) {
     dest->m_group_container.push_back(base);
   }
 
-  if (src == NULL || dest == NULL)
+  if (src == nullptr || dest == nullptr)
     return;
 
   src->modify_currently_queued(-base->queued()->size());

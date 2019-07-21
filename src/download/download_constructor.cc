@@ -185,7 +185,7 @@ DownloadConstructor::parse_info(const Object& b) {
 
 void
 DownloadConstructor::parse_tracker(const Object& b) {
-  const Object::list_type* announce_list = NULL;
+  const Object::list_type* announce_list = nullptr;
 
   if (b.has_key_list("announce-list") &&
 
@@ -389,13 +389,13 @@ parse_base32_sha1(const char* pos, HashString& hash) {
     else if (c == '&')
       break;
     else
-      return NULL;
+      return nullptr;
 
     decoded |= (value << shift);
     if (shift <= 8) {
       // Too many characters for a base32 SHA1.
       if (hashItr == hash.end())
-        return NULL;
+        return nullptr;
 
       *hashItr++ = (decoded >> 8);
       decoded <<= 8;
@@ -405,7 +405,7 @@ parse_base32_sha1(const char* pos, HashString& hash) {
     }
   }
 
-  return hashItr != hash.end() || shift != base_shift ? NULL : pos;
+  return hashItr != hash.end() || shift != base_shift ? nullptr : pos;
 }
 
 void
@@ -436,7 +436,7 @@ DownloadConstructor::parse_magnet_uri(Object& b, const std::string& uri) {
       pos += 9;
 
       const char* nextPos = parse_base32_sha1(pos, hash);
-      if (nextPos != NULL) {
+      if (nextPos != nullptr) {
         pos = nextPos;
         hashValid = true;
         continue;

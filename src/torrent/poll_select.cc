@@ -68,7 +68,7 @@ struct poll_check_t {
   bool operator () (Event* s) {
     // This check is nessesary as other events may remove a socket
     // from the set.
-    if (s == NULL)
+    if (s == nullptr)
       return false;
 
     // This check is not nessesary, just for debugging.
@@ -106,8 +106,8 @@ struct poll_mark {
 
   void operator () (Event* s) {
     // Neither of these checks are nessesary, just for debugging.
-    if (s == NULL)
-      throw internal_error("poll_mark: s == NULL");
+    if (s == nullptr)
+      throw internal_error("poll_mark: s == nullptr");
 
     if (s->file_descriptor() < 0)
       throw internal_error("poll_mark: s->fd < 0");
@@ -176,7 +176,7 @@ PollSelect::~PollSelect() {
 //   delete m_writeSet;
 //   delete m_exceptSet;
 
-  m_readSet = m_writeSet = m_exceptSet = NULL;
+  m_readSet = m_writeSet = m_exceptSet = nullptr;
 }
 
 uint32_t

@@ -61,7 +61,7 @@ DhtManager::initialize(const Object& dhtCache) {
 
   LT_LOG_THIS("initializing (bind_address:%s)", bind_address->pretty_address_str().c_str());
 
-  if (m_router != NULL)
+  if (m_router != nullptr)
     throw internal_error("DhtManager::initialize called with DHT already active.");
 
   try {
@@ -75,7 +75,7 @@ bool
 DhtManager::start(port_type port) {
   LT_LOG_THIS("starting (port:%d)", port);
 
-  if (m_router == NULL)
+  if (m_router == nullptr)
     throw internal_error("DhtManager::start called without initializing first.");
 
   m_port = port;
@@ -92,7 +92,7 @@ DhtManager::start(port_type port) {
 
 void
 DhtManager::stop() {
-  if (m_router == NULL)
+  if (m_router == nullptr)
     return;
 
   LT_LOG_THIS("stopping", 0);
@@ -101,24 +101,24 @@ DhtManager::stop() {
 
 bool
 DhtManager::is_active() const {
-  return m_router != NULL && m_router->is_active();
+  return m_router != nullptr && m_router->is_active();
 }
 
 void
 DhtManager::add_node(const sockaddr* addr, int port) {
-  if (m_router != NULL)
+  if (m_router != nullptr)
     m_router->contact(rak::socket_address::cast_from(addr), port);
 }
 
 void
 DhtManager::add_node(const std::string& host, int port) {
-  if (m_router != NULL)
+  if (m_router != nullptr)
     m_router->add_contact(host, port);
 }
 
 Object*
 DhtManager::store_cache(Object* container) const {
-  if (m_router == NULL)
+  if (m_router == nullptr)
     throw internal_error("DhtManager::store_cache called but DHT not initialized.");
 
   return m_router->store_cache(container);

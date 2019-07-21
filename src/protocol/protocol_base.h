@@ -84,7 +84,7 @@ public:
   ProtocolBase() :
     m_state(IDLE),
     m_lastCommand(NONE),
-    m_throttle(NULL) {
+    m_throttle(nullptr) {
 
     m_buffer.reset();
   }

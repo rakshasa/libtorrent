@@ -320,7 +320,7 @@ Download::chunks_hashed() const {
 
 const uint8_t*
 Download::chunks_seen() const {
-  return !m_ptr->main()->chunk_statistics()->empty() ? &*m_ptr->main()->chunk_statistics()->begin() : NULL;
+  return !m_ptr->main()->chunk_statistics()->empty() ? &*m_ptr->main()->chunk_statistics()->begin() : nullptr;
 }
 
 void
@@ -554,7 +554,7 @@ Download::set_connection_type(ConnectionType t) {
     m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionSeed);
     break;
   case CONNECTION_INITIAL_SEED:
-    if (info()->is_active() && m_ptr->main()->initial_seeding() == NULL)
+    if (info()->is_active() && m_ptr->main()->initial_seeding() == nullptr)
       throw input_error("Can't switch to initial seeding: download is active.");
     m_ptr->main()->connection_list()->slot_new_connection(&createPeerConnectionInitialSeed);
     break;

@@ -99,7 +99,7 @@ DownloadManager::find_main(const char* hash) {
                                                          rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash))));
 
   if (itr == end())
-    return NULL;
+    return nullptr;
   else
     return (*itr)->main();
 }
@@ -110,7 +110,7 @@ DownloadManager::find_main_obfuscated(const char* hash) {
                                                          rak::on(std::mem_fun(&DownloadWrapper::info), std::mem_fun(&DownloadInfo::hash_obfuscated))));
 
   if (itr == end())
-    return NULL;
+    return nullptr;
   else
     return (*itr)->main();
 }

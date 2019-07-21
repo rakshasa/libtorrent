@@ -137,7 +137,7 @@ ChunkManager::erase(ChunkList* chunkList) {
   std::iter_swap(itr, --base_type::end());
   base_type::pop_back();
 
-  chunkList->set_manager(NULL);
+  chunkList->set_manager(nullptr);
 }
 
 bool

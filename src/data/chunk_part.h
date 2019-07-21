@@ -51,7 +51,7 @@ public:
   } mapped_type;
 
   ChunkPart(mapped_type mapped, const MemoryChunk& c, uint32_t pos) :
-    m_mapped(mapped), m_chunk(c), m_position(pos), m_file(NULL), m_file_offset(0) {}
+    m_mapped(mapped), m_chunk(c), m_position(pos), m_file(nullptr), m_file_offset(0) {}
 
   bool                is_valid() const                      { return m_chunk.is_valid(); }
   bool                is_contained(uint32_t p) const        { return p >= m_position && p < m_position + size(); }

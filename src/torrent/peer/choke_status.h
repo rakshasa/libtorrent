@@ -46,7 +46,7 @@ class group_entry;
 class choke_status {
 public:
   choke_status() :
-    m_group_entry(NULL),
+    m_group_entry(nullptr),
 
     m_queued(false),
     m_unchoked(false),

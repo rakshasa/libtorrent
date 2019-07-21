@@ -108,7 +108,7 @@ PeerList::~PeerList() {
   std::for_each(begin(), end(), rak::on(rak::mem_ref(&value_type::second), rak::call_delete<PeerInfo>()));
   base_type::clear();
 
-  m_info = NULL;
+  m_info = nullptr;
   delete m_available_list;
 }
 
@@ -126,7 +126,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   if (sock_key.is_valid() &&
       !socket_address_key::is_comparable_sockaddr(sa)) {
     LT_LOG_EVENTS("address not comparable", 0);
-    return NULL;
+    return nullptr;
   }
 
   const rak::socket_address* address = rak::socket_address::cast_from(sa);
@@ -141,7 +141,7 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
   if (range.first != range.second) {
     LT_LOG_EVENTS("address already exists " LT_LOG_SA_FMT,
                   address->address_str().c_str(), address->port());
-    return NULL;
+    return nullptr;
   }
 
   PeerInfo* peerInfo = new PeerInfo(sa);
@@ -224,7 +224,7 @@ PeerList::insert_available(const void* al) {
       if (peerInfo->listen_port() == 0)
         peerInfo->set_port(itr->port());
 
-      if (peerInfo->connection() != NULL ||
+      if (peerInfo->connection() != nullptr ||
           peerInfo->last_handshake() + 600 > (uint32_t)cachedTime.seconds()) {
         updated++;
         continue;
@@ -266,7 +266,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
 
   if (!sock_key.is_valid() ||
       !socket_address_key::is_comparable_sockaddr(sa))
-    return NULL;
+    return nullptr;
 
   uint32_t host_byte_order_ipv4_addr = address->sa_inet()->address_h();
   int filter_value = 0;
@@ -285,7 +285,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
 
     lt_log_print(LOG_PEER_INFO, "Peer %s is unwanted: preventing connection", ipv4_str);
 
-    return NULL;
+    return nullptr;
   }
 
   PeerInfo* peerInfo;
@@ -315,12 +315,12 @@ PeerList::connected(const sockaddr* sa, int flags) {
         rak::socket_address::cast_from(range.first->second->socket_address())->port() != address->port())
       m_available_list->buffer()->push_back(*address);
 
-    return NULL;
+    return nullptr;
   }
 
   if (flags & connect_filter_recent &&
       peerInfo->last_handshake() + 600 > (uint32_t)cachedTime.seconds())
-    return NULL;
+    return nullptr;
 
   if (!(flags & connect_incoming))
     peerInfo->set_listen_port(address->port());

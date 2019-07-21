@@ -250,8 +250,8 @@ SocketFd::accept(rak::socket_address* sa) {
   check_valid();
   socklen_t len = sizeof(rak::socket_address);
 
-  if (sa == NULL) {
-    return SocketFd(::accept(m_fd, NULL, &len), m_ipv6_socket);
+  if (sa == nullptr) {
+    return SocketFd(::accept(m_fd, nullptr, &len), m_ipv6_socket);
   }
 
   int fd = ::accept(m_fd, sa->c_sockaddr(), &len);

@@ -56,13 +56,13 @@ Block::~Block() {
     throw internal_error("Block dtor with 'm_state != STATE_INCOMPLETE && m_state != STATE_COMPLETED'");
 
   if (m_state == STATE_COMPLETED) {
-    if (m_leader == NULL)
-      throw internal_error("Block dtor with 'm_state == STATE_COMPLETED && m_leader == NULL'");
+    if (m_leader == nullptr)
+      throw internal_error("Block dtor with 'm_state == STATE_COMPLETED && m_leader == nullptr'");
 
-    m_leader->set_peer_info(NULL);
+    m_leader->set_peer_info(nullptr);
   }
 
-  m_leader = NULL;
+  m_leader = nullptr;
   m_state = STATE_INVALID;
 
   std::for_each(m_queued.begin(), m_queued.end(), std::bind1st(std::mem_fun(&Block::invalidate_transfer), this));
@@ -103,8 +103,8 @@ Block::erase(BlockTransfer* transfer) {
   if (transfer->is_erased())
     throw internal_error("Block::erase(...) transfer already erased");
 
-  if (transfer->peer_info() != NULL)
-    throw internal_error("Block::erase(...) transfer has non-null peer info");
+  if (transfer->peer_info() != nullptr)
+    throw internal_error("Block::erase(...) transfer has non-nullptr peer info");
 
   m_notStalled -= transfer->stall() == 0;
 
@@ -147,7 +147,7 @@ Block::erase(BlockTransfer* transfer) {
         m_leader = *newLeader;
         m_leader->set_state(BlockTransfer::STATE_LEADER);
       } else {
-        m_leader = NULL;
+        m_leader = nullptr;
 
         // If we have no new leader, remove the erased (dissimilar)
         // transfers so they can get another shot. They cannot be
@@ -161,16 +161,16 @@ Block::erase(BlockTransfer* transfer) {
     throw internal_error("Block::erase(...) Transfer is finished.");
   }
 
-  // Check if we need to check for peer_info not being null.
+  // Check if we need to check for peer_info not being nullptr.
 
-  transfer->set_block(NULL);
+  transfer->set_block(nullptr);
   delete transfer;
 }
 
 bool
 Block::transfering(BlockTransfer* transfer) {
   if (!transfer->is_valid())
-    throw internal_error("Block::transfering(...) transfer->block() == NULL.");
+    throw internal_error("Block::transfering(...) transfer->block() == nullptr.");
 
   transfer_list_type::iterator itr = std::find(m_queued.begin(), m_queued.end(), transfer);
 
@@ -185,7 +185,7 @@ Block::transfering(BlockTransfer* transfer) {
   // transfering, it will (a) take over as the leader if the data is
   // the same or (b) erase itself from this block if the data does not
   // match.
-  if (m_leader != NULL) {
+  if (m_leader != nullptr) {
     transfer->set_state(BlockTransfer::STATE_NOT_LEADER);
     return false;
 
@@ -202,7 +202,7 @@ Block::transfering(BlockTransfer* transfer) {
 bool
 Block::completed(BlockTransfer* transfer) {
   if (!transfer->is_valid())
-    throw internal_error("Block::completed(...) transfer->block() == NULL.");
+    throw internal_error("Block::completed(...) transfer->block() == nullptr.");
 
   if (!transfer->is_leader())
     throw internal_error("Block::completed(...) transfer is not the leader.");
@@ -224,7 +224,7 @@ Block::completed(BlockTransfer* transfer) {
 
   m_notStalled -= transfer->stall() == 0;
 
-  transfer->set_block(NULL);
+  transfer->set_block(nullptr);
   transfer->set_stall(~uint32_t());
 
   // Currently just throw out the queued transfers. In case the hash
@@ -271,7 +271,7 @@ Block::transfer_dissimilar(BlockTransfer* transfer) {
   
   transfer->set_state(BlockTransfer::STATE_ERASED);
   transfer->set_position(0);
-  transfer->set_block(NULL);
+  transfer->set_block(nullptr);
 }
 
 void
@@ -296,7 +296,7 @@ Block::change_leader(BlockTransfer* transfer) {
   if (is_finished())
     throw internal_error("Block::change_leader(...) is_finished().");
 
-  if (m_leader != NULL)
+  if (m_leader != nullptr)
     m_leader->set_state(BlockTransfer::STATE_NOT_LEADER);
 
   m_leader = transfer;
@@ -308,9 +308,9 @@ Block::failed_leader() {
   if (!is_finished())
     throw internal_error("Block::failed_leader(...) !is_finished().");
 
-  m_leader = NULL;
+  m_leader = nullptr;
 
-  if (m_failedList != NULL)
+  if (m_failedList != nullptr)
     m_failedList->set_current(BlockFailed::invalid_index);
 }
 
@@ -318,7 +318,7 @@ void
 Block::create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& piece) {
   transfer->set_peer_info(peerInfo);
 
-  transfer->set_block(NULL);
+  transfer->set_block(nullptr);
   transfer->set_piece(piece);
   transfer->set_state(BlockTransfer::STATE_ERASED);
 
@@ -329,7 +329,7 @@ Block::create_dummy(BlockTransfer* transfer, PeerInfo* peerInfo, const Piece& pi
 
 void
 Block::release(BlockTransfer* transfer) {
-  transfer->set_peer_info(NULL);
+  transfer->set_peer_info(nullptr);
 
   if (!transfer->is_valid())
     delete transfer;
@@ -349,9 +349,9 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
 
   // Check if the block is this.
 
-  transfer->set_block(NULL);
+  transfer->set_block(nullptr);
 
-  if (transfer->peer_info() == NULL) {
+  if (transfer->peer_info() == nullptr) {
     delete transfer;
     return; // Consider if this should be an exception.
   }
@@ -359,7 +359,7 @@ Block::invalidate_transfer(BlockTransfer* transfer) {
   m_notStalled -= (transfer->stall() == 0);
 
   // Do the canceling magic here. 
-  if (transfer->peer_info()->connection() != NULL)
+  if (transfer->peer_info()->connection() != nullptr)
     transfer->peer_info()->connection()->cancel_transfer(transfer);
 }
 
@@ -384,7 +384,7 @@ Block::find_queued(const PeerInfo* p) {
   transfer_list_type::iterator itr = std::find_if(m_queued.begin(), m_queued.end(), rak::equal(p, std::mem_fun(&BlockTransfer::peer_info)));
 
   if (itr == m_queued.end())
-    return NULL;
+    return nullptr;
   else
     return *itr;
 }
@@ -394,7 +394,7 @@ Block::find_queued(const PeerInfo* p) const {
   transfer_list_type::const_iterator itr = std::find_if(m_queued.begin(), m_queued.end(), rak::equal(p, std::mem_fun(&BlockTransfer::peer_info)));
 
   if (itr == m_queued.end())
-    return NULL;
+    return nullptr;
   else
     return *itr;
 }
@@ -404,7 +404,7 @@ Block::find_transfer(const PeerInfo* p) {
   transfer_list_type::iterator itr = std::find_if(m_transfers.begin(), m_transfers.end(), rak::equal(p, std::mem_fun(&BlockTransfer::peer_info)));
 
   if (itr == m_transfers.end())
-    return NULL;
+    return nullptr;
   else
     return *itr;
 }
@@ -414,7 +414,7 @@ Block::find_transfer(const PeerInfo* p) const {
   transfer_list_type::const_iterator itr = std::find_if(m_transfers.begin(), m_transfers.end(), rak::equal(p, std::mem_fun(&BlockTransfer::peer_info)));
 
   if (itr == m_transfers.end())
-    return NULL;
+    return nullptr;
   else
     return *itr;
 }

@@ -81,8 +81,8 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   m_state(INACTIVE),
 
   m_manager(m),
-  m_peerInfo(NULL),
-  m_download(NULL),
+  m_peerInfo(nullptr),
+  m_download(nullptr),
 
   // Use global throttles until we know which download it is.
   m_uploadThrottle(manager->upload_throttle()->throttle_list()),
@@ -173,7 +173,7 @@ Handshake::release_connection() {
     throw internal_error("Handshake::release_connection called but m_fd is not open.");
 
   m_peerInfo->unset_flags(PeerInfo::flag_handshake);
-  m_peerInfo = NULL;
+  m_peerInfo = nullptr;
 
   get_fd().clear();
 }
@@ -188,13 +188,13 @@ Handshake::destroy_connection() {
   get_fd().close();
   get_fd().clear();
 
-  if (m_peerInfo == NULL)
+  if (m_peerInfo == nullptr)
     return;
 
   m_download->peer_list()->disconnected(m_peerInfo, 0);
 
   m_peerInfo->unset_flags(PeerInfo::flag_handshake);
-  m_peerInfo = NULL;
+  m_peerInfo = nullptr;
 
   if (!m_extensions->is_default()) {
     m_extensions->cleanup();
@@ -493,7 +493,7 @@ Handshake::read_info() {
 
   // Check the info hash.
   if (m_incoming) {
-    if (m_download != NULL) {
+    if (m_download != nullptr) {
       // Have the download from the encrypted handshake, make sure it
       // matches the BT handshake.
       if (m_download->info()->hash().not_equal_to((char*)m_readBuffer.position()))
@@ -540,7 +540,7 @@ Handshake::read_peer() {
 
   // The download is just starting so we're not sending any
   // bitfield. Pretend we wrote it already.
-  if (m_download->file_list()->bitfield()->is_all_unset() || m_download->initial_seeding() != NULL) {
+  if (m_download->file_list()->bitfield()->is_all_unset() || m_download->initial_seeding() != nullptr) {
     m_writePos = m_download->file_list()->bitfield()->size_bytes();
     m_writeBuffer.write_32(0);
 
@@ -668,7 +668,7 @@ Handshake::read_done() {
   // still reading the bitfield/extension and postponed it. If we had no
   // bitfield to send, we need to send a keep-alive now.
   if (m_writePos == m_download->file_list()->bitfield()->size_bytes())
-    prepare_post_handshake(m_download->file_list()->bitfield()->is_all_unset() || m_download->initial_seeding() != NULL);
+    prepare_post_handshake(m_download->file_list()->bitfield()->is_all_unset() || m_download->initial_seeding() != nullptr);
 
   if (m_writeDone)
     throw handshake_succeeded();
@@ -883,7 +883,7 @@ Handshake::fill_read_buffer(int size) {
 
 inline void
 Handshake::validate_download() {
-  if (m_download == NULL)
+  if (m_download == nullptr)
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_unknown_download);
   if (!m_download->info()->is_active())
     throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_inactive_download);
@@ -1063,13 +1063,13 @@ Handshake::prepare_peer_info() {
 
   // PeerInfo handling for outgoing connections needs to be moved to
   // HandshakeManager.
-  if (m_peerInfo == NULL) {
+  if (m_peerInfo == nullptr) {
     if (!m_incoming)
       throw internal_error("Handshake::prepare_peer_info() !m_incoming.");
 
     m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), PeerList::connect_incoming);
 
-    if (m_peerInfo == NULL)
+    if (m_peerInfo == nullptr)
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_error);
 
     if (m_peerInfo->failed_counter() > m_manager->max_failed)

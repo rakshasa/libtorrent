@@ -45,9 +45,9 @@
 #include "torrent/exceptions.h"
 #include "torrent/hash_string.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
 #include <zlib.h>
 
 #include <algorithm>
@@ -65,7 +65,7 @@ struct log_cache_entry {
   bool equal_outputs(const outputs_type& out) const { return out == outputs; }
 
   void allocate(unsigned int count) { cache_first = new log_slot[count]; cache_last = cache_first + count; }
-  void clear()                      { delete [] cache_first; cache_first = NULL; cache_last = NULL; }
+  void clear()                      { delete [] cache_first; cache_first = nullptr; cache_last = nullptr; }
 
   outputs_type outputs;
   log_slot*    cache_first;
@@ -74,7 +74,7 @@ struct log_cache_entry {
 
 struct log_gz_output {
   log_gz_output(const char* filename) { gz_file = gzopen(filename, "w"); }
-  ~log_gz_output() { if (gz_file != NULL) gzclose(gz_file); }
+  ~log_gz_output() { if (gz_file != nullptr) gzclose(gz_file); }
 
   bool is_valid() { return gz_file != Z_NULL; }
 
@@ -141,7 +141,7 @@ log_rebuild_cache() {
     const log_group::outputs_type& use_outputs = log_groups[idx].cached_outputs();
 
     if (use_outputs == 0) {
-      log_groups[idx].set_cached(NULL, NULL);
+      log_groups[idx].set_cached(nullptr, nullptr);
       continue;
     }
 
@@ -173,8 +173,8 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
   char buffer[buffer_size];
   char* first = buffer;
 
-  if (subsystem != NULL) {
-    if (hash != NULL) {
+  if (subsystem != nullptr) {
+    if (hash != nullptr) {
       first = hash_string_to_hex(*hash, first);
       first += snprintf(first, 4096 - (first - buffer), "->%s: ", subsystem);
     } else {
@@ -197,7 +197,7 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
                                            (const char*)buffer,
                                            std::distance(buffer, first),
                                            std::distance(log_groups.begin(), this)));
-  if (dump_data != NULL) {
+  if (dump_data != nullptr) {
     std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
                                              std::placeholders::_1,
                                              (const char*)dump_data,

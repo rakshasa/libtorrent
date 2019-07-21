@@ -438,7 +438,7 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
 
   const Piece* p = request_list()->delegate();
 
-  if (p == NULL)
+  if (p == nullptr)
     return false;
 
   if (!m_download->file_list()->is_valid_piece(*p) || !m_peerChunks.bitfield()->get(p->index()))
@@ -456,7 +456,7 @@ PeerConnectionMetadata::try_request_metadata_pieces() {
 
 void
 PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data, uint32_t length) {
-  if (data == NULL) {
+  if (data == nullptr) {
     // Length is not set in a reject message.
     length = ProtocolExtension::metadata_piece_size;
 
@@ -478,7 +478,7 @@ PeerConnectionMetadata::receive_metadata_piece(uint32_t piece, const char* data,
     down_chunk_process(data, length);
   }
 
-  if (m_request_list.transfer() != NULL && !m_request_list.transfer()->is_finished())
+  if (m_request_list.transfer() != nullptr && !m_request_list.transfer()->is_finished())
     throw internal_error("PeerConnectionMetadata::receive_metadata_piece did not have complete piece.");
 
   m_tryRequest = true;

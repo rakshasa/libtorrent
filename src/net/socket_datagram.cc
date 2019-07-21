@@ -55,7 +55,7 @@ SocketDatagram::read_datagram(void* buffer, unsigned int length, rak::socket_add
   int r;
   socklen_t fromlen;
 
-  if (sa != NULL) {
+  if (sa != nullptr) {
     fromlen = sizeof(rak::socket_address);
     r = ::recvfrom(m_fileDesc, buffer, length, 0, sa->c_sockaddr(), &fromlen);
   } else {
@@ -72,7 +72,7 @@ SocketDatagram::write_datagram(const void* buffer, unsigned int length, rak::soc
 
   int r;
 
-  if (sa != NULL) {
+  if (sa != nullptr) {
     if (m_ipv6_socket && sa->family() == rak::socket_address::pf_inet) {
       rak::socket_address_inet6 sa_mapped = sa->sa_inet()->to_mapped_address();
       r = ::sendto(m_fileDesc, buffer, length, 0, sa_mapped.c_sockaddr(), sizeof(rak::socket_address_inet6));

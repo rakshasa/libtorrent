@@ -61,7 +61,7 @@ class LIBTORRENT_EXPORT Http {
   static const int flag_delete_self   = 0x1;
   static const int flag_delete_stream = 0x2;
 
-  Http() : m_flags(0), m_stream(NULL), m_timeout(0) {}
+  Http() : m_flags(0), m_stream(nullptr), m_timeout(0) {}
   virtual ~Http();
 
   // Start must never throw on bad input. Calling start/stop on an

@@ -131,7 +131,7 @@ SocketSet::erase(Event* s) {
 
   _index(s) = npos;
 
-  *(begin() + idx) = NULL;
+  *(begin() + idx) = nullptr;
   m_erased.push_back(idx);
 }
 

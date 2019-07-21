@@ -50,8 +50,8 @@ address_info_lookup(const char* hostname, int family, int socktype) {
   hints.ai_family = family;
   hints.ai_socktype = socktype;
   
-  addrinfo* res = NULL;
-  int err = ::getaddrinfo(hostname, NULL, &hints, &res);
+  addrinfo* res = nullptr;
+  int err = ::getaddrinfo(hostname, nullptr, &hints, &res);
 
   if (err)
     throw address_info_error(err);
@@ -61,7 +61,7 @@ address_info_lookup(const char* hostname, int family, int socktype) {
 
 bool
 address_info_call(addrinfo* ai, int flags, slot_ai_success slot_success) {
-  while (ai != NULL) {
+  while (ai != nullptr) {
     slot_success(ai->ai_addr, ai->ai_addrlen);
     return true;
   }

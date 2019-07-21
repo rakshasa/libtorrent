@@ -91,7 +91,7 @@ public:
 
   static const int flag_active       = (1 << 0);
 
-  ChunkList() : m_data(NULL), m_manager(NULL), m_flags(0), m_chunk_size(0) {}
+  ChunkList() : m_data(nullptr), m_manager(nullptr), m_flags(0), m_chunk_size(0) {}
   ~ChunkList() { clear(); }
 
   int                 flags() const                       { return m_flags; }

@@ -50,10 +50,10 @@ public:
   typedef value_type*           iterator;
   typedef const value_type*     const_iterator;
 
-  Bitfield() : m_size(0), m_set(0), m_data(NULL)    {}
+  Bitfield() : m_size(0), m_set(0), m_data(nullptr)    {}
   ~Bitfield()                                       { clear(); }
 
-  bool                empty() const                 { return m_data == NULL; }
+  bool                empty() const                 { return m_data == nullptr; }
 
   bool                is_all_set() const            { return m_set == m_size; }
   bool                is_all_unset() const          { return m_set == 0; }

@@ -50,7 +50,7 @@ HashQueueNode::get_index() const {
 void
 HashQueueNode::clear() {
   delete m_chunk;
-  m_chunk = NULL;
+  m_chunk = nullptr;
 }
 
 uint32_t

@@ -70,17 +70,17 @@ TrackerUdp::TrackerUdp(TrackerList* parent, const std::string& url, int flags) :
 
   m_port(0),
 
-  m_slot_resolver(NULL),
-  m_readBuffer(NULL),
-  m_writeBuffer(NULL) {
+  m_slot_resolver(nullptr),
+  m_readBuffer(nullptr),
+  m_writeBuffer(nullptr) {
 
   m_taskTimeout.slot() = std::bind(&TrackerUdp::receive_timeout, this);
 }
 
 TrackerUdp::~TrackerUdp() {
-  if (m_slot_resolver != NULL) {
+  if (m_slot_resolver != nullptr) {
     *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
+    m_slot_resolver = nullptr;
   }
 
   close_directly();
@@ -107,9 +107,9 @@ TrackerUdp::send_state(int state) {
 
   // Because we can only remember one slot, set any pending resolves blocked
   // so that if this tracker is deleted, the member function won't be called.
-  if (m_slot_resolver != NULL) {
+  if (m_slot_resolver != nullptr) {
     *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
+    m_slot_resolver = nullptr;
   }
 
   m_slot_resolver = make_resolver_slot(hostname);
@@ -139,12 +139,12 @@ TrackerUdp::make_resolver_slot(const hostname_type& hostname) {
 
 void
 TrackerUdp::start_announce(const sockaddr* sa, int err) {
-  if (m_slot_resolver != NULL) {
+  if (m_slot_resolver != nullptr) {
     *m_slot_resolver = resolver_type();
-    m_slot_resolver = NULL;
+    m_slot_resolver = nullptr;
   }
 
-  if (sa == NULL)
+  if (sa == nullptr)
     return receive_failed("could not resolve hostname");
 
   m_connectAddress = *rak::socket_address::cast_from(sa);
@@ -208,8 +208,8 @@ TrackerUdp::close_directly() {
   delete m_readBuffer;
   delete m_writeBuffer;
 
-  m_readBuffer = NULL;
-  m_writeBuffer = NULL;
+  m_readBuffer = nullptr;
+  m_writeBuffer = nullptr;
 
   priority_queue_erase(&taskScheduler, &m_taskTimeout);
 
