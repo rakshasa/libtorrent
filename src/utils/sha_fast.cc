@@ -40,7 +40,7 @@
  * GPL.
  */
 
-#include <string.h>
+#include <cstring>
 #include "sha_fast.h"
 
 namespace torrent {

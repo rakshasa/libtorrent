@@ -1,8 +1,8 @@
 #include <iostream>
 #include <stdexcept>
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cinttypes>
+#include <cstdio>
+#include <cstdlib>
 #include <fcntl.h>
 
 #include "../rak/file_stat.h"

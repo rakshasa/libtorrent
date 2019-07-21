@@ -38,7 +38,6 @@
 
 #include <cstdio>
 #include <cstring>
-#include <string.h>
 #include <rak/functional.h>
 #include <rak/string_manip.h>
 

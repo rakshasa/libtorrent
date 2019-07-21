@@ -36,10 +36,10 @@
 
 #include "config.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <rak/socket_address.h>
 #include <sys/types.h>
-#include <errno.h>
+#include <cerrno>
 
 #ifdef __linux__
 #include <linux/netlink.h>

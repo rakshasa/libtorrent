@@ -37,8 +37,7 @@
 #include "config.h"
 
 #include <limits>
-#include <stdarg.h>
-
+#include <cstdarg>
 #include <cstdio>
 
 #include "download/available_list.h"

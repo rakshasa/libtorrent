@@ -39,7 +39,7 @@
 #include "directory_events.h"
 
 #include <string>
-#include <errno.h>
+#include <cerrno>
 #include <unistd.h>
 
 #ifdef HAVE_INOTIFY

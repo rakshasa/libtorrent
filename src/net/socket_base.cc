@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <errno.h>
+#include <cerrno>
 #include <sys/types.h>
 #include <sys/socket.h>
 

@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "torrent/download/choke_group.h"
 #include "torrent/download/choke_queue.h"
