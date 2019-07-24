@@ -429,6 +429,19 @@ log_open_file_output(const char* name, const char* filename) {
 }
 
 void
+log_open_file_output_append(const char* name, const char* filename) {
+  std::shared_ptr<std::ofstream> outfile(new std::ofstream(filename, std::ofstream::out | std::ofstream::app));
+
+  if (!outfile->good())
+    throw input_error("Could not open log file '" + std::string(filename) + "'.");
+
+  log_open_output(name, std::bind(&log_file_write, outfile,
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3));
+}
+
+void
 log_open_gz_file_output(const char* name, const char* filename) {
   std::shared_ptr<log_gz_output> outfile(new log_gz_output(filename));
 
