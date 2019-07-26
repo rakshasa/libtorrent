@@ -162,7 +162,7 @@ utils_log_test::test_file_output_append() {
 
   mktemp(&*filename.begin());
 
-  torrent::log_open_file_output_append("test_file", filename.c_str());
+  torrent::log_open_file_output("test_file", filename.c_str(), false);
   torrent::log_add_group_output(GROUP_PARENT_1, "test_file");
 
   lt_log_print(GROUP_PARENT_1, "test_line_1");
@@ -170,7 +170,7 @@ utils_log_test::test_file_output_append() {
   torrent::log_cleanup(); // To ensure we flush the buffers.
 
   // re-open and write 2nd line
-  torrent::log_open_file_output_append("test_file", filename.c_str());
+  torrent::log_open_file_output("test_file", filename.c_str(), true);
   torrent::log_add_group_output(GROUP_PARENT_1, "test_file");
 
   lt_log_print(GROUP_PARENT_1, "test_line_2");
