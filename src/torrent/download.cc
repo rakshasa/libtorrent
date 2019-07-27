@@ -137,7 +137,13 @@ Download::start(int flags) {
     throw internal_error("Tried to start a download with empty bitfield.");
 
   if (info->is_active())
-    return;
+    throw internal_error("Tried to start an already started download.");
+
+  // Don't start the download if there's not enough disk space for it
+  // when the open_enable_fallocate was set and at least one of the
+  // files has fallocate flag (libtorrent would crash otherwise)
+  if (flags & open_enable_fallocate && !m_ptr->main()->file_list()->is_enough_diskspace())
+    throw internal_error("Tried to start a download with not enough disk space for it.");
 
   LT_LOG_THIS(INFO, "Starting torrent: flags:%0x.", flags);
 
@@ -145,9 +151,9 @@ Download::start(int flags) {
 
 //   file_list()->open(flags);
 
-  // If the FileList::open_no_create flag was not set, our new
-  // behavior is to create all zero-length files with
-  // flag_queued_create set.
+  // If the open_enable_fallocate or the FileList::open_no_create
+  // flag was not set, then create all zero-length files with
+  // flag_create_queued set.
   file_list()->open(flags & ~FileList::open_no_create);
 
   if (m_ptr->connection_type() == CONNECTION_INITIAL_SEED) {
@@ -592,8 +598,8 @@ Download::set_download_choke_heuristic(HeuristicType t) {
 }
 
 void
-Download::update_priorities() {
-  m_ptr->receive_update_priorities();
+Download::update_priorities(int flags) {
+  m_ptr->receive_update_priorities(flags);
 }
 
 void

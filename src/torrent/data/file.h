@@ -68,7 +68,10 @@ public:
 
   bool                is_create_queued() const                 { return m_flags & flag_create_queued; }
   bool                is_resize_queued() const                 { return m_flags & flag_resize_queued; }
+  bool                is_fallocatable() const                  { return m_flags & flag_fallocate; }
   bool                is_previously_created() const            { return m_flags & flag_previously_created; }
+
+  bool                is_fallocatable_file()                   { return has_flags(flag_resize_queued) && has_flags(flag_fallocate); }
 
   bool                has_flags(int flags)                     { return m_flags & flags; }
 

@@ -195,7 +195,7 @@ public:
   // Call this when you want the modifications of the download priorities
   // in the entries to take effect. It is slightly expensive as it rechecks
   // all the peer bitfields to see if we are still interested.
-  void                update_priorities();
+  void                update_priorities(int flags = 0);
 
   void                add_peer(const sockaddr* addr, int port);
 

@@ -198,9 +198,9 @@ FileList::set_max_file_size(uint64_t size) {
 uint64_t
 FileList::free_diskspace() const {
   uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
+  rak::fs_stat stat;
 
   for (path_list::const_iterator itr = m_indirectLinks.begin(), last = m_indirectLinks.end(); itr != last; ++itr) {
-    rak::fs_stat stat;
 
     if (!stat.update(*itr))
       continue;
@@ -208,7 +208,72 @@ FileList::free_diskspace() const {
     freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
   }
 
+  // Check the base directory of download if files haven't been created yet
+  if (freeDiskspace == std::numeric_limits<uint64_t>::max()) {
+    std::string dirPath = is_multi_file() ? m_rootDir.substr(0, m_rootDir.find_last_of("\\/")) : m_rootDir;
+
+    if (stat.update(dirPath))
+      freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
+  }
+
   return freeDiskspace != std::numeric_limits<uint64_t>::max() ? freeDiskspace : 0;
+}
+
+uint64_t
+FileList::allocatable_size_bytes() const {
+  uint64_t allocatableSizeBytes = 0;
+
+  if (data()->is_partially_done())
+    return allocatableSizeBytes;
+
+  uint32_t allocatableSizeChunks = 0;
+  uint32_t prevChunk = -1;
+  bool areAllFilesAllocatable = true;
+  bool isLastFileAllocatable = false;
+
+  for (FileList::const_iterator itr = begin(), last = end(); itr != last; itr++) {
+
+    // Checks flag_fallocate and flag_resize_queued as well, it will take care of restarting client.
+    if ((*itr)->is_fallocatable_file()) {
+      allocatableSizeChunks += (*itr)->size_chunks() - ((*itr)->range_first() == prevChunk ? 1 : 0);
+      prevChunk = (*itr)->range_second() - 1;
+
+      if (itr == end() - 1)
+        isLastFileAllocatable = true;
+    } else {
+      areAllFilesAllocatable = false;
+    }
+
+  }
+
+  if (areAllFilesAllocatable)
+    return m_torrentSize;
+
+  allocatableSizeBytes = (uint64_t)allocatableSizeChunks * (uint64_t)m_chunkSize;
+
+  // Dealing with size of last chunk as it's usually smaller than the rest.
+  uint64_t reminder = m_torrentSize % (uint64_t)m_chunkSize;
+
+  if (isLastFileAllocatable && reminder != 0)
+    allocatableSizeBytes = allocatableSizeBytes - (uint64_t)m_chunkSize + reminder;
+
+  return allocatableSizeBytes;
+}
+
+bool
+FileList::is_enough_diskspace() const {
+  uint64_t allocatable_size = allocatable_size_bytes();
+
+  if (allocatable_size > 0) {
+    uint64_t free_disk_space = free_diskspace();
+
+    if (free_disk_space < allocatable_size) {
+      LT_LOG_FL(INFO, "File allocation is set and not enough disk space to start torrent: allocatable size:%i free space:%i", allocatable_size, free_disk_space);
+      return false;
+    }
+  }
+
+  return true;
 }
 
 FileList::iterator_range
@@ -580,7 +645,12 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
     return false;
   }
 
-  return node->prepare(MemoryChunk::prot_read, 0);
+  // File allocation will be done if fallocate flag is set,
+  // create zero-length file otherwise.
+  if (node->has_flags(File::flag_fallocate))
+    return node->prepare(MemoryChunk::prot_write, 0);
+  else
+    return node->prepare(MemoryChunk::prot_read, 0);
 }
 
 MemoryChunk
