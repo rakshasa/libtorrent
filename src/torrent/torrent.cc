@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <rak/address_info.h>
@@ -139,8 +103,8 @@ main_thread() {
 
 ChunkManager*      chunk_manager() { return manager->chunk_manager(); }
 ClientList*        client_list() { return manager->client_list(); }
-FileManager*       file_manager() { return manager->file_manager(); }
 ConnectionManager* connection_manager() { return manager->connection_manager(); }
+FileManager*       file_manager() { return manager->file_manager(); }
 DhtManager*        dht_manager() { return manager->dht_manager(); }
 ResourceManager*   resource_manager() { return manager->resource_manager(); }
 
@@ -189,8 +153,10 @@ download_add(Object* object) {
     download->main()->set_metadata_size(metadata_size);
   }
 
+  std::string local_id = PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size());
+
   download->set_hash_queue(manager->hash_queue());
-  download->initialize(infoHash, PEER_NAME + rak::generate_random<std::string>(20 - std::string(PEER_NAME).size()));
+  download->initialize(infoHash, local_id);
 
   // Add trackers, etc, after setting the info hash so that log
   // entries look sane.

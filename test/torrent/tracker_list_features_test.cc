@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include lt_tr1_functional
+#include <functional>
 
 #include "torrent/http.h"
 #include "net/address_list.h"

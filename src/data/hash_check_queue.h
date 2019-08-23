@@ -38,8 +38,8 @@
 #define LIBTORRENT_DATA_HASH_CHECK_QUEUE_H
 
 #include <deque>
+#include <functional>
 #include <pthread.h>
-#include lt_tr1_functional
 
 #include "rak/allocators.h"
 

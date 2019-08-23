@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include <algorithm>
 #include <functional>
 #include <rak/functional.h>
@@ -56,6 +54,8 @@
 
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
   lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list", log_fmt, __VA_ARGS__);
+#define LT_LOG_ADDRESS(log_fmt, ...)                                    \
+  lt_log_print_info(LOG_PEER_LIST_ADDRESS, m_info, "peer_list", log_fmt, __VA_ARGS__);
 #define LT_LOG_SA_FMT "'%s:%" PRIu16 "'"
 
 namespace torrent {
@@ -196,6 +196,7 @@ PeerList::insert_available(const void* al) {
   for (; itr != last; itr++) {
     if (!socket_address_key::is_comparable_sockaddr(itr->c_sockaddr()) || itr->port() == 0) {
       invalid++;
+      LT_LOG_ADDRESS("skipped invalid address " LT_LOG_SA_FMT, itr->address_str().c_str(), itr->port());
       continue;
     }
 
@@ -242,6 +243,8 @@ PeerList::insert_available(const void* al) {
 
     inserted++;
     m_available_list->push_back(&*itr);
+
+    LT_LOG_ADDRESS("added available address " LT_LOG_SA_FMT, itr->address_str().c_str(), itr->port());
   }
 
   LT_LOG_EVENTS("inserted peers"

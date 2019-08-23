@@ -22,6 +22,7 @@ libsub_torrent_la_SOURCES = \
 	download_info.h \
 	error.cc \
 	error.h \
+	event.cc \
 	event.h \
 	exceptions.cc \
 	exceptions.h \

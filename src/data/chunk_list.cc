@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include <rak/error_number.h>
 #include <rak/functional.h>
 

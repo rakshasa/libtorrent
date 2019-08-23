@@ -37,9 +37,9 @@
 #ifndef LIBTORRENT_DATA_HASH_TORRENT_H
 #define LIBTORRENT_DATA_HASH_TORRENT_H
 
+#include <cinttypes>
+#include <functional>
 #include <string>
-#include <inttypes.h>
-#include lt_tr1_functional
 #include <rak/priority_queue_default.h>
 
 #include "data/chunk_handle.h"

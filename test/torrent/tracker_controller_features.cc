@@ -1,7 +1,7 @@
 #include "config.h"
 
+#include <functional>
 #include <iostream>
-#include lt_tr1_functional
 
 #include "rak/priority_queue_default.h"
 

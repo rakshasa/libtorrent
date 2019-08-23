@@ -37,9 +37,10 @@
 #ifndef LIBTORRENT_DIRECTORY_EVENTS_H
 #define LIBTORRENT_DIRECTORY_EVENTS_H
 
+#include <functional>
 #include <string>
 #include <vector>
-#include lt_tr1_functional
+
 #include <torrent/event.h>
 
 namespace torrent {

@@ -2,7 +2,7 @@
 
 #include "test_extents.h"
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <iostream>
 #include <torrent/utils/extents.h>
 

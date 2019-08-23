@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <rak/socket_address.h>
@@ -54,10 +18,10 @@
 
 #include "manager.h"
 
-#define LT_LOG_SA(log_level, sa, log_fmt, ...)                          \
-  lt_log_print(LOG_CONNECTION_##log_level, "handshake_manager->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
-#define LT_LOG_SA_C(log_level, sa, log_fmt, ...)                        \
-  lt_log_print(LOG_CONNECTION_##log_level, "handshake_manager->%s: " log_fmt, \
+#define LT_LOG_SA(sa, log_fmt, ...)                                     \
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
+#define LT_LOG_SA_C(sa, log_fmt, ...)                                   \
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, \
                reinterpret_cast<const rak::socket_address*>(sa)->address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
@@ -122,7 +86,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
     return;
   }
 
-  LT_LOG_SA(INFO, &sa, "Adding incoming connection: fd:%i.", fd.get_fd());
+  LT_LOG_SA(&sa, "Adding incoming connection: fd:%i.", fd.get_fd());
 
   manager->connection_manager()->inc_socket_count();
 
@@ -183,7 +147,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   else
     message = ConnectionManager::handshake_outgoing;
 
-  LT_LOG_SA(INFO, &sa, "Adding outcoming connection: encryption:%x message:%x.", encryptionOptions, message);
+  LT_LOG_SA(&sa, "Adding outcoming connection: encryption:%x message:%x.", encryptionOptions, message);
   manager->connection_manager()->inc_socket_count();
 
   Handshake* handshake = new Handshake(fd, this, encryptionOptions);
@@ -213,7 +177,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
                                                  handshake->extensions())) != NULL) {
     
     manager->client_list()->retrieve_id(&handshake->peer_info()->mutable_client_info(), handshake->peer_info()->id());
-    LT_LOG_SA_C(INFO, handshake->peer_info()->socket_address(), "Handshake success.", 0);
+    LT_LOG_SA_C(handshake->peer_info()->socket_address(), "Handshake success.", 0);
 
     pcb->peer_chunks()->set_have_timer(handshake->initialized_time());
 
@@ -237,7 +201,7 @@ HandshakeManager::receive_succeeded(Handshake* handshake) {
     else
       reason = e_handshake_duplicate;
 
-    LT_LOG_SA_C(INFO, handshake->peer_info()->socket_address(), "Handshake dropped: %s.", strerror(reason));
+    LT_LOG_SA_C(handshake->peer_info()->socket_address(), "Handshake dropped: %s.", strerror(reason));
     handshake->destroy_connection();
   }
 
@@ -255,13 +219,13 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   handshake->deactivate_connection();
   handshake->destroy_connection();
 
-  LT_LOG_SA(INFO, sa, "Received error: message:%x %s.", message, strerror(error));
+  LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
 
   if (handshake->encryption()->should_retry()) {
     int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SA(INFO, sa, "Retrying %s.",
+    LT_LOG_SA(sa, "Retrying %s.",
               retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
 
     create_outgoing(*sa, download, retry_options);

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <stdexcept>
-#include <inttypes.h>
+#include <cinttypes>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>

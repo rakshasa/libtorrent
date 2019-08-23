@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_NET_THROTTLE_NODE_H
 #define LIBTORRENT_NET_THROTTLE_NODE_H
 
-#include lt_tr1_functional
+#include <functional>
 
 #include "torrent/rate.h"
 

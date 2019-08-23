@@ -39,6 +39,8 @@
 
 #include <unistd.h>
 
+struct sockaddr;
+
 namespace rak {
   class socket_address;
 }
@@ -80,7 +82,11 @@ public:
 
   bool                bind(const rak::socket_address& sa);
   bool                bind(const rak::socket_address& sa, unsigned int length);
+  bool                bind_sa(const sockaddr* sa);
+
   bool                connect(const rak::socket_address& sa);
+  bool                connect_sa(const sockaddr* sa);
+
   bool                getsockname(rak::socket_address* sa);
 
   bool                listen(int size);

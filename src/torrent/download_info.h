@@ -37,10 +37,10 @@
 #ifndef LIBTORRENT_DOWNLOAD_INFO_H
 #define LIBTORRENT_DOWNLOAD_INFO_H
 
+#include <cinttypes>
+#include <functional>
 #include <list>
 #include <string>
-#include <inttypes.h>
-#include lt_tr1_functional
 
 #include <torrent/rate.h>
 #include <torrent/hash_string.h>

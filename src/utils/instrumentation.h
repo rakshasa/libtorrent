@@ -37,9 +37,8 @@
 #ifndef LIBTORRENT_UTILS_INSTRUMENTATION_H
 #define LIBTORRENT_UTILS_INSTRUMENTATION_H
 
-#include lt_tr1_array
-
 #include <algorithm>
+#include <array>
 
 #include "torrent/common.h"
 #include "torrent/utils/log.h"

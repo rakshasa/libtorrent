@@ -38,9 +38,9 @@
 #define LIBTORRENT_HTTP_H
 
 #include <string>
+#include <functional>
 #include <iosfwd>
 #include <list>
-#include lt_tr1_functional
 #include <torrent/common.h>
 
 namespace torrent {

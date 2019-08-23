@@ -36,9 +36,7 @@
 
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "data/block.h"
 #include "data/block_list.h"

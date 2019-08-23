@@ -1,7 +1,8 @@
 #include "config.h"
 
+#include <functional>
 #include <unistd.h>
-#include lt_tr1_functional
+
 #include <torrent/exceptions.h>
 #include <torrent/poll_select.h>
 #include <torrent/utils/thread_base.h>
