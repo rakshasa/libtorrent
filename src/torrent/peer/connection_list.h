@@ -37,9 +37,10 @@
 #ifndef LIBTORRENT_PEER_CONNECTION_LIST_H
 #define LIBTORRENT_PEER_CONNECTION_LIST_H
 
+#include <functional>
 #include <list>
 #include <vector>
-#include lt_tr1_functional
+
 #include <torrent/common.h>
 #include <torrent/hash_string.h>
 

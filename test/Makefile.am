@@ -18,6 +18,17 @@ LibTorrentTest_LDADD = \
 	../src/torrent/utils/libsub_torrentutils.la
 
 LibTorrentTest_SOURCES = \
+	helpers/expect_fd.h \
+	helpers/expect_utils.h \
+	helpers/mock_compare.h \
+	helpers/mock_function.cc \
+	helpers/mock_function.h \
+	helpers/network.h \
+	helpers/progress_listener.cc \
+	helpers/progress_listener.h \
+	helpers/test_fixture.cc \
+	helpers/test_fixture.h \
+	\
 	../src/thread_disk.cc \
 	../src/thread_disk.h \
 	\
@@ -31,22 +42,28 @@ LibTorrentTest_SOURCES = \
 	data/hash_check_queue_test.h \
 	data/hash_queue_test.cc \
 	data/hash_queue_test.h \
+	\
+	net/test_socket_listen.cc \
+	net/test_socket_listen.h \
+	\
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h \
 	\
-	torrent/net/test_socket_address_key.cc \
-	torrent/net/test_socket_address_key.h \
+	torrent/net/test_address_info.cc \
+	torrent/net/test_address_info.h \
+	torrent/net/test_fd.cc \
+	torrent/net/test_fd.h \
+	torrent/net/test_socket_address.cc \
+	torrent/net/test_socket_address.h \
 	\
 	torrent/utils/log_test.cc \
 	torrent/utils/log_test.h \
-	torrent/utils/log_buffer_test.cc \
-	torrent/utils/log_buffer_test.h \
-	torrent/utils/net_test.cc \
-	torrent/utils/net_test.h \
 	torrent/utils/option_strings_test.cc \
 	torrent/utils/option_strings_test.h \
 	torrent/utils/test_extents.cc \
 	torrent/utils/test_extents.h \
+	torrent/utils/test_log_buffer.cc \
+	torrent/utils/test_log_buffer.h \
 	torrent/utils/test_queue_buckets.cc \
 	torrent/utils/test_queue_buckets.h \
 	torrent/utils/test_uri_parser.cc \

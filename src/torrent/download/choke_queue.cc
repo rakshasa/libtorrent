@@ -37,10 +37,9 @@
 #include "config.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
 #include <numeric>
-#include <cstdlib>
-#include lt_tr1_functional
 #include <rak/functional.h>
 
 #include "protocol/peer_connection_base.h"

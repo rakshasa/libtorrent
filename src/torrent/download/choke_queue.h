@@ -39,10 +39,11 @@
 
 #include <torrent/common.h>
 
+#include <cinttypes>
+#include <functional>
 #include <list>
 #include <vector>
-#include <inttypes.h>
-#include lt_tr1_functional
+
 #include <torrent/download/group_entry.h>
 
 namespace torrent {

@@ -37,11 +37,12 @@
 #ifndef LIBTORRENT_UTILS_THREAD_BASE_H
 #define LIBTORRENT_UTILS_THREAD_BASE_H
 
+#include <functional>
 #include <pthread.h>
 #include <sys/types.h>
+
 #include <torrent/common.h>
 #include <torrent/utils/signal_bitfield.h>
-#include lt_tr1_functional
 
 namespace torrent {
 

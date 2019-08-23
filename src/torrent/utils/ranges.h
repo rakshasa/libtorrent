@@ -40,7 +40,6 @@
 #include <algorithm>
 #include <vector>
 
-// TODO: Use tr1 functional instead.
 #include <rak/functional.h>
 
 namespace torrent {

@@ -99,7 +99,7 @@ path_expand(const char* src, char* first, char* last) {
     src++;
   }
 
-  return std::max(first + strlcpy(first, src, std::distance(first, last)), last);
+  return std::min(first + strlcpy(first, src, std::distance(first, last)), last);
 }
 
 }

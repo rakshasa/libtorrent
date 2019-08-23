@@ -37,7 +37,7 @@
 #ifndef LIBTORRENT_DOWNLOAD_CHUNK_SELECTOR_H
 #define LIBTORRENT_DOWNLOAD_CHUNK_SELECTOR_H
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <rak/partial_queue.h>
 
 #include "torrent/bitfield.h"

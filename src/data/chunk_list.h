@@ -37,9 +37,9 @@
 #ifndef LIBTORRENT_DATA_CHUNK_LIST_H
 #define LIBTORRENT_DATA_CHUNK_LIST_H
 
+#include <functional>
 #include <string>
 #include <vector>
-#include lt_tr1_functional
 
 #include "chunk.h"
 #include "chunk_handle.h"

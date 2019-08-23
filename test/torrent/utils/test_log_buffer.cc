@@ -1,23 +1,23 @@
 #include "config.h"
 
-#include <torrent/utils/log_buffer.h>
+#include "test_log_buffer.h"
 
 #include "globals.h"
-#include "log_buffer_test.h"
+#include <torrent/utils/log_buffer.h>
 
-CPPUNIT_TEST_SUITE_REGISTRATION(utils_log_buffer_test);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_log_buffer, "torrent/utils");
 
 void
-utils_log_buffer_test::setUp() {
+test_log_buffer::setUp() {
   torrent::cachedTime = rak::timer::from_seconds(1000);
 }
 
 void
-utils_log_buffer_test::tearDown() {
+test_log_buffer::tearDown() {
 }
 
 void
-utils_log_buffer_test::test_basic() {
+test_log_buffer::test_basic() {
   torrent::log_buffer log;
 
   log.lock();
@@ -44,7 +44,7 @@ utils_log_buffer_test::test_basic() {
 }
 
 void
-utils_log_buffer_test::test_timestamps() {
+test_log_buffer::test_timestamps() {
   torrent::log_buffer log;
 
   log.lock_and_push_log("foobar", 6, 0);

@@ -5,7 +5,7 @@
 #define LIBTORRENT_UTILS_SOCKET_ADDRESS_KEY_H
 
 #include <cstring>
-#include <inttypes.h>
+#include <cinttypes>
 #include <netinet/in.h>
 
 // Unique key for the socket address, excluding port numbers, etc.

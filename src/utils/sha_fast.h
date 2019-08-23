@@ -41,7 +41,7 @@
 #ifndef _SHA_FAST_H_
 #define _SHA_FAST_H_
 
-#include <inttypes.h>
+#include <cinttypes>
 
 namespace torrent {
 

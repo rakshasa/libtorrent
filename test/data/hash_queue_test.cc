@@ -1,7 +1,7 @@
 #include "config.h"
 
+#include <functional>
 #include <signal.h>
-#include lt_tr1_functional
 
 #include "data/hash_queue_node.h"
 #include "torrent/chunk_manager.h"

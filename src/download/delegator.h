@@ -37,9 +37,9 @@
 #ifndef LIBTORRENT_DELEGATOR_H
 #define LIBTORRENT_DELEGATOR_H
 
+#include <functional>
 #include <string>
 #include <vector>
-#include lt_tr1_functional
 
 #include "torrent/data/transfer_list.h"
 

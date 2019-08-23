@@ -211,6 +211,11 @@ SocketFd::bind(const rak::socket_address& sa, unsigned int length) {
 }
 
 bool
+SocketFd::bind_sa(const sockaddr* sa) {
+  return bind(*rak::socket_address::cast_from(sa));
+}
+
+bool
 SocketFd::connect(const rak::socket_address& sa) {
   check_valid();
 
@@ -220,6 +225,11 @@ SocketFd::connect(const rak::socket_address& sa) {
   }
 
   return !::connect(m_fd, sa.c_sockaddr(), sa.length()) || errno == EINPROGRESS;
+}
+
+bool
+SocketFd::connect_sa(const sockaddr* sa) {
+  return connect(*rak::socket_address::cast_from(sa));
 }
 
 bool

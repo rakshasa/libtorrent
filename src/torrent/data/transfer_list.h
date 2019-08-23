@@ -37,9 +37,10 @@
 #ifndef LIBTORRENT_TRANSFER_LIST_H
 #define LIBTORRENT_TRANSFER_LIST_H
 
+#include <functional>
 #include <vector>
+
 #include <torrent/common.h>
-#include lt_tr1_functional
 
 namespace torrent {
 
