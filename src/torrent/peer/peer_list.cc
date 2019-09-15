@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include <algorithm>
 #include <functional>
 #include <rak/functional.h>
@@ -56,6 +54,8 @@
 
 #define LT_LOG_EVENTS(log_fmt, ...)                                     \
   lt_log_print_info(LOG_PEER_LIST_EVENTS, m_info, "peer_list", log_fmt, __VA_ARGS__);
+#define LT_LOG_ADDRESS(log_fmt, ...)                                    \
+  lt_log_print_info(LOG_PEER_LIST_ADDRESS, m_info, "peer_list", log_fmt, __VA_ARGS__);
 #define LT_LOG_SA_FMT "'%s:%" PRIu16 "'"
 
 namespace torrent {
@@ -146,7 +146,11 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
 
   PeerInfo* peerInfo = new PeerInfo(sa);
   peerInfo->set_listen_port(address->port());
-  peerInfo->set_flags(m_ipv4_table.at(address->sa_inet()->address_h()) & PeerInfo::mask_ip_table);
+  uint32_t host_byte_order_ipv4_addr = address->sa_inet()->address_h();
+
+  // IPv4 addresses stored in host byte order in ipv4_table so they are comparable. ntohl has been called
+  if(m_ipv4_table.defined(host_byte_order_ipv4_addr))
+    peerInfo->set_flags(m_ipv4_table.at(host_byte_order_ipv4_addr) & PeerInfo::mask_ip_table);
   
   manager->client_list()->retrieve_unknown(&peerInfo->mutable_client_info());
 
@@ -192,6 +196,7 @@ PeerList::insert_available(const void* al) {
   for (; itr != last; itr++) {
     if (!socket_address_key::is_comparable_sockaddr(itr->c_sockaddr()) || itr->port() == 0) {
       invalid++;
+      LT_LOG_ADDRESS("skipped invalid address " LT_LOG_SA_FMT, itr->address_str().c_str(), itr->port());
       continue;
     }
 
@@ -238,6 +243,8 @@ PeerList::insert_available(const void* al) {
 
     inserted++;
     m_available_list->push_back(&*itr);
+
+    LT_LOG_ADDRESS("added available address " LT_LOG_SA_FMT, itr->address_str().c_str(), itr->port());
   }
 
   LT_LOG_EVENTS("inserted peers"
@@ -264,12 +271,25 @@ PeerList::connected(const sockaddr* sa, int flags) {
       !socket_address_key::is_comparable_sockaddr(sa))
     return NULL;
 
-  int filter_value = m_ipv4_table.at(address->sa_inet()->address_h());
+  uint32_t host_byte_order_ipv4_addr = address->sa_inet()->address_h();
+  int filter_value = 0;
+
+  // IPv4 addresses stored in host byte order in ipv4_table so they are comparable. ntohl has been called
+  if(m_ipv4_table.defined(host_byte_order_ipv4_addr))
+    filter_value = m_ipv4_table.at(host_byte_order_ipv4_addr);
 
   // We should also remove any PeerInfo objects already for this
   // address.
-  if ((filter_value & PeerInfo::flag_unwanted))
+  if ((filter_value & PeerInfo::flag_unwanted)) {
+    char ipv4_str[INET_ADDRSTRLEN];
+    uint32_t net_order_addr = htonl(host_byte_order_ipv4_addr);
+
+    inet_ntop(AF_INET, &net_order_addr, ipv4_str, INET_ADDRSTRLEN);
+
+    lt_log_print(LOG_PEER_INFO, "Peer %s is unwanted: preventing connection", ipv4_str);
+
     return NULL;
+  }
 
   PeerInfo* peerInfo;
   range_type range = base_type::equal_range(sock_key);

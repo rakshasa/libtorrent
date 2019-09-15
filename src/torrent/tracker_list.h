@@ -38,10 +38,10 @@
 #define LIBTORRENT_TRACKER_LIST_H
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <vector>
 #include <torrent/common.h>
-#include lt_tr1_functional
 
 namespace torrent {
 

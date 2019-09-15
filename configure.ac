@@ -1,12 +1,12 @@
-AC_INIT(libtorrent, 0.13.6, sundell.software@gmail.com)
+AC_INIT(libtorrent, 0.13.8, sundell.software@gmail.com)
 
 LT_INIT([disable-static])
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME, "-lt0D60-", Identifier that is part of the default peer id)
-AC_DEFINE(PEER_VERSION, "lt\x0D\x60", 4 byte client and version identifier for DHT)
+AC_DEFINE(PEER_NAME, "-lt0D80-", Identifier that is part of the default peer id)
+AC_DEFINE(PEER_VERSION, "lt\x0D\x80", 4 byte client and version identifier for DHT)
 
-LIBTORRENT_CURRENT=19
+LIBTORRENT_CURRENT=21
 LIBTORRENT_REVISION=0
 LIBTORRENT_AGE=0
 
@@ -17,7 +17,7 @@ AC_SUBST(LIBTORRENT_CURRENT)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_INFO)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([serial-tests])
 AC_CONFIG_HEADERS(config.h)
 
 AC_PROG_CXX
@@ -28,12 +28,13 @@ AC_C_BIGENDIAN(
     AC_MSG_ERROR([Could not determine endianness])
 )
 
+RAK_CHECK_CFLAGS
+RAK_CHECK_CXXFLAGS
 RAK_ENABLE_DEBUG
 RAK_ENABLE_EXTRA_DEBUG
 RAK_ENABLE_WERROR
 
 RAK_CHECK_CXX11
-RAK_CHECK_TR1_LIB
 
 AC_SYS_LARGEFILE
 
@@ -65,37 +66,8 @@ CFLAGS="$PTHREAD_CFLAGS $CPPUNIT_CFLAGS $CFLAGS"
 CXXFLAGS="$PTHREAD_CFLAGS $CPPUNIT_CFLAGS $CXXFLAGS"
 LIBS="$PTHREAD_LIBS $CPPUNIT_LIBS $LIBS"
 
-AC_ARG_ENABLE(openssl,
-  [  --disable-openssl       Don't use OpenSSL's SHA1 implementation.],
-  [
-    if test "$enableval" = "yes"; then
-      PKG_CHECK_MODULES(OPENSSL, libcrypto,
-        CXXFLAGS="$CXXFLAGS $OPENSSL_CFLAGS";
-        LIBS="$LIBS $OPENSSL_LIBS")
-
-      AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
-      AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
-    else
-      AC_DEFINE(USE_NSS_SHA, 1, Using Mozilla's SHA1 implementation.)
-    fi
-  ],[
-    PKG_CHECK_MODULES(OPENSSL, libcrypto,
-      CXXFLAGS="$CXXFLAGS $OPENSSL_CFLAGS";
-      LIBS="$LIBS $OPENSSL_LIBS")
-
-    AC_DEFINE(USE_OPENSSL, 1, Using OpenSSL.)
-    AC_DEFINE(USE_OPENSSL_SHA, 1, Using OpenSSL's SHA1 implementation.)
-  ]
-)
-
-AC_ARG_ENABLE(cyrus-rc4,
-  [  --enable-cyrus-rc4=PFX  Use Cyrus RC4 implementation.],
-  [
-    CXXFLAGS="$CXXFLAGS -I${enableval}/include";
-    LIBS="$LIBS -lrc4 -L${enableval}/lib"
-    AC_DEFINE(USE_CYRUS_RC4, 1, Using Cyrus RC4 implementation.)
-  ]
-)
+TORRENT_ARG_OPENSSL
+TORRENT_ARG_CYRUS_RC4
 
 TORRENT_WITH_UDNS()
 

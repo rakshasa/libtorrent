@@ -15,6 +15,8 @@ libsub_net_la_SOURCES = \
 	socket_datagram.h \
 	socket_fd.cc \
 	socket_fd.h \
+	socket_listen.cc \
+	socket_listen.h \
 	socket_set.cc \
 	socket_set.h \
 	socket_stream.cc \

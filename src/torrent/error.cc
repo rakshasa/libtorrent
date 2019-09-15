@@ -54,11 +54,15 @@ static const char* errorStrings[e_last + 1] = {
   "unencrypted connection rejected",    // eh_unencrypted_rejected
   "invalid encryption method",          // eh_invalid_encryption
   "encryption sync failed",             // eh_encryption_sync_failed
-  "network error",                      // eh_network_error
+  "<deprecated>",                       // eh_
   "network unreachable",                // eh_network_unreachable
   "network timeout",                    // eh_network_timeout
   "invalid message order",              // eh_invalid_order
   "too many failed chunks",             // eh_toomanyfailed
+  "no peer info",                       // eh_no_peer_info
+  "network socket error",               // eh_network_socket_error
+  "network read error",                 // eh_network_read_error
+  "network write error",                // eh_network_write_error
 
 //   "", // e_handshake_incoming
 //   "", // e_handshake_outgoing

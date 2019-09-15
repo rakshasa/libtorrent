@@ -39,7 +39,7 @@
 
 #include <string>
 #include <vector>
-#include <inttypes.h>
+#include <cinttypes>
 #include <torrent/common.h>
 #include <torrent/download/choke_queue.h>
 

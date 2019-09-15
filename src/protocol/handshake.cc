@@ -46,6 +46,7 @@
 #include "torrent/error.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/utils/log.h"
 #include "utils/diffie_hellman.h"
 
 #include "globals.h"
@@ -54,6 +55,10 @@
 #include "extensions.h"
 #include "handshake.h"
 #include "handshake_manager.h"
+
+#define LT_LOG(log_fmt, ...)                                            \
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \
+               m_address.pretty_address_str().c_str(), __VA_ARGS__);
 
 namespace torrent {
 
@@ -862,7 +867,7 @@ restart:
     m_manager->receive_failed(this, e.type(), e.error());
 
   } catch (network_error& e) {
-    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
+    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_read_error);
   }
 }
 
@@ -969,7 +974,7 @@ Handshake::event_write() {
     m_manager->receive_failed(this, e.type(), e.error());
 
   } catch (network_error& e) {
-    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
+    m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_write_error);
   }
 }
 
@@ -1070,7 +1075,7 @@ Handshake::prepare_peer_info() {
     m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), PeerList::connect_incoming);
 
     if (m_peerInfo == NULL)
-      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_network_error);
+      throw handshake_error(ConnectionManager::handshake_failed, e_handshake_no_peer_info);
 
     if (m_peerInfo->failed_counter() > m_manager->max_failed)
       throw handshake_error(ConnectionManager::handshake_dropped, e_handshake_toomanyfailed);
@@ -1221,7 +1226,7 @@ Handshake::event_error() {
   if (m_state == INACTIVE)
     throw internal_error("Handshake::event_error() called on an inactive handshake.");
 
-  m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_error);
+  m_manager->receive_failed(this, ConnectionManager::handshake_failed, e_handshake_network_socket_error);
 }
 
 }

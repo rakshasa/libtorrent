@@ -38,8 +38,9 @@
 #define LIBTORRENT_DOWNLOAD_GROUP_ENTRY_H
 
 #include <algorithm>
+#include <functional>
 #include <vector>
-#include lt_tr1_functional
+
 #include <torrent/common.h>
 #include <torrent/exceptions.h>
 

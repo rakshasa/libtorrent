@@ -37,7 +37,8 @@
 #ifndef LIBTORRENT_UTILS_SIGNAL_BITFIELD_H
 #define LIBTORRENT_UTILS_SIGNAL_BITFIELD_H
 
-#include lt_tr1_functional
+#include <functional>
+
 #include <torrent/common.h>
 
 namespace torrent {

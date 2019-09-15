@@ -1,47 +1,12 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #ifndef LIBTORRENT_UTILS_LOG_H
 #define LIBTORRENT_UTILS_LOG_H
 
+#include <array>
 #include <bitset>
+#include <functional>
 #include <string>
 #include <vector>
-#include lt_tr1_array
-#include lt_tr1_functional
+
 #include <torrent/common.h>
 
 namespace torrent {
@@ -54,13 +19,6 @@ enum {
   LOG_NOTICE,
   LOG_INFO,
   LOG_DEBUG,
-
-  LOG_CONNECTION_CRITICAL,
-  LOG_CONNECTION_ERROR,
-  LOG_CONNECTION_WARN,
-  LOG_CONNECTION_NOTICE,
-  LOG_CONNECTION_INFO,
-  LOG_CONNECTION_DEBUG,
 
   LOG_DHT_CRITICAL,
   LOG_DHT_ERROR,
@@ -113,6 +71,14 @@ enum {
 
   LOG_NON_CASCADING,
 
+  LOG_CONNECTION,
+  LOG_CONNECTION_BIND,
+  LOG_CONNECTION_FD,
+  LOG_CONNECTION_FILTER,
+  LOG_CONNECTION_HANDSHAKE,
+  LOG_CONNECTION_LISTEN,
+
+  // TODO: Rename dht_all to just dht.
   LOG_DHT_ALL,
   LOG_DHT_MANAGER,
   LOG_DHT_NODE,
@@ -125,7 +91,10 @@ enum {
   LOG_INSTRUMENTATION_POLLING,
   LOG_INSTRUMENTATION_TRANSFERS,
 
+  LOG_MOCK_CALLS,
+
   LOG_PEER_LIST_EVENTS,
+  LOG_PEER_LIST_ADDRESS,
 
   LOG_PROTOCOL_PIECE_EVENTS,
   LOG_PROTOCOL_METADATA_EVENTS,
@@ -137,6 +106,8 @@ enum {
   LOG_RPC_EVENTS,
   LOG_RPC_DUMP,
 
+  LOG_SYSTEM,
+
   LOG_UI_EVENTS,
 
   LOG_GROUP_MAX_SIZE
@@ -145,34 +116,32 @@ enum {
 #define lt_log_is_valid(log_group) (torrent::log_groups[log_group].valid())
 
 #define lt_log_print(log_group, ...)                                    \
-  if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(NULL, NULL, NULL, 0, __VA_ARGS__);
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(NULL, NULL, NULL, 0, __VA_ARGS__); }
 
 #define lt_log_print_info(log_group, log_info, log_subsystem, ...)      \
-  if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, NULL, 0, __VA_ARGS__);
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, NULL, 0, __VA_ARGS__); }
 
 #define lt_log_print_data(log_group, log_data, log_subsystem, ...)      \
-  if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(&log_data->hash(), log_subsystem, NULL, 0, __VA_ARGS__);
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_data->hash(), log_subsystem, NULL, 0, __VA_ARGS__); }
 
 #define lt_log_print_dump(log_group, log_dump_data, log_dump_size, ...) \
-  if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(NULL, NULL, log_dump_data, log_dump_size, __VA_ARGS__); \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(NULL, NULL, log_dump_data, log_dump_size, __VA_ARGS__); }
 
 #define lt_log_print_hash(log_group, log_hash, log_subsystem, ...)      \
-  if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__);
+  { if (torrent::log_groups[log_group].valid())                         \
+    torrent::log_groups[log_group].internal_print(&log_hash, log_subsystem, NULL, 0, __VA_ARGS__); }
 
 #define lt_log_print_info_dump(log_group, log_dump_data, log_dump_size, log_info, log_subsystem, ...) \
-  if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); \
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(&log_info->hash(), log_subsystem, log_dump_data, log_dump_size, __VA_ARGS__); }
 
 #define lt_log_print_subsystem(log_group, log_subsystem, ...)           \
-  if (torrent::log_groups[log_group].valid())                           \
-    torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__);
-
-class log_buffer;
+  { if (torrent::log_groups[log_group].valid())                         \
+      torrent::log_groups[log_group].internal_print(NULL, log_subsystem, NULL, 0, __VA_ARGS__); }
 
 typedef std::function<void (const char*, unsigned int, int)> log_slot;
 
@@ -222,13 +191,14 @@ private:
 
 typedef std::array<log_group, LOG_GROUP_MAX_SIZE> log_group_list;
 
-extern log_group_list  log_groups LIBTORRENT_EXPORT;
+extern log_group_list log_groups LIBTORRENT_EXPORT;
 
 void log_initialize() LIBTORRENT_EXPORT;
 void log_cleanup() LIBTORRENT_EXPORT;
 
 void log_open_output(const char* name, log_slot slot) LIBTORRENT_EXPORT;
 void log_close_output(const char* name) LIBTORRENT_EXPORT;
+void log_close_output_str(const std::string name) LIBTORRENT_EXPORT;
 
 void log_add_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
@@ -236,9 +206,14 @@ void log_remove_group_output(int group, const char* name) LIBTORRENT_EXPORT;
 void log_add_child(int group, int child) LIBTORRENT_EXPORT;
 void log_remove_child(int group, int child) LIBTORRENT_EXPORT;
 
-void        log_open_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
-void        log_open_gz_file_output(const char* name, const char* filename) LIBTORRENT_EXPORT;
-log_buffer* log_open_log_buffer(const char* name) LIBTORRENT_EXPORT;
+void log_open_file_output(const char* name, const char* filename, bool append = false) LIBTORRENT_EXPORT;
+void log_open_gz_file_output(const char* name, const char* filename, bool append = false) LIBTORRENT_EXPORT;
+
+//
+// Implementation:
+//
+
+inline void log_close_output_str(const std::string name) { log_close_output(name.c_str()); }
 
 }
 

@@ -10,6 +10,7 @@ class utils_log_test : public CppUnit::TestFixture {
   CPPUNIT_TEST(test_print);
   CPPUNIT_TEST(test_children);
   CPPUNIT_TEST(test_file_output);
+  CPPUNIT_TEST(test_file_output_append);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -22,4 +23,5 @@ public:
   void test_print();
   void test_children();
   void test_file_output();
+  void test_file_output_append();
 };

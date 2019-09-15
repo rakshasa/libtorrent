@@ -211,6 +211,11 @@ SocketFd::bind(const rak::socket_address& sa, unsigned int length) {
 }
 
 bool
+SocketFd::bind_sa(const sockaddr* sa) {
+  return bind(*rak::socket_address::cast_from(sa));
+}
+
+bool
 SocketFd::connect(const rak::socket_address& sa) {
   check_valid();
 
@@ -220,6 +225,11 @@ SocketFd::connect(const rak::socket_address& sa) {
   }
 
   return !::connect(m_fd, sa.c_sockaddr(), sa.length()) || errno == EINPROGRESS;
+}
+
+bool
+SocketFd::connect_sa(const sockaddr* sa) {
+  return connect(*rak::socket_address::cast_from(sa));
 }
 
 bool
@@ -251,7 +261,7 @@ SocketFd::accept(rak::socket_address* sa) {
   socklen_t len = sizeof(rak::socket_address);
 
   if (sa == NULL) {
-    return SocketFd(::accept(m_fd, NULL, &len));
+    return SocketFd(::accept(m_fd, NULL, &len), m_ipv6_socket);
   }
 
   int fd = ::accept(m_fd, sa->c_sockaddr(), &len);
@@ -260,7 +270,7 @@ SocketFd::accept(rak::socket_address* sa) {
     *sa = sa->sa_inet6()->normalize_address();
   }
 
-  return SocketFd(fd);
+  return SocketFd(fd, m_ipv6_socket);
 }
 
 // unsigned int

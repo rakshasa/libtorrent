@@ -36,8 +36,6 @@
 
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include <functional>
 #include <rak/functional.h>
 #include <unistd.h>

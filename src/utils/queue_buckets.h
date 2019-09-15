@@ -38,9 +38,9 @@
 #define LIBTORRENT_QUEUE_BUCKETS_H
 
 #include <algorithm>
+#include <array>
 #include <deque>
-#include lt_tr1_functional
-#include lt_tr1_array
+#include <functional>
 
 namespace torrent {
 

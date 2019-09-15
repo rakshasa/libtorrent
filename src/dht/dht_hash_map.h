@@ -39,20 +39,14 @@
 
 #include "config.h"
 
-#if HAVE_TR1
-#include <lt_tr1_unordered_map>
-#else
-#include <map>
-#endif
-
-#include "torrent/hash_string.h"
+#include <unordered_map>
 
 #include "dht_node.h"
 #include "dht_tracker.h"
+#include "torrent/hash_string.h"
 
 namespace torrent {
 
-#if HAVE_TR1
 // Hash functions for HashString keys, and dereferencing HashString pointers.
 
 // Since the first few bits are very similar if not identical (since the IDs
@@ -141,53 +135,6 @@ public:
   typedef accessor_wrapper<iterator>        accessor;
 
 };
-
-#else
-
-// Compare HashString pointers by dereferencing them.
-struct hashstring_ptr_less : public std::binary_function<const HashString*, const HashString*, bool> {
-  size_t operator () (const HashString* one, const HashString* two) const 
-  { return *one < *two; }
-};
-
-class DhtNodeList : public std::map<const HashString*, DhtNode*, hashstring_ptr_less> {
-public:
-  typedef std::map<const HashString*, DhtNode*, hashstring_ptr_less> base_type;
-
-  // Define accessor iterator with more convenient access to the key and
-  // element values.  Allows changing the map definition more easily if needed.
-  template<typename T>
-  struct accessor_wrapper : public T {
-    accessor_wrapper(const T& itr) : T(itr) { }
-
-    const HashString&    id() const    { return *(**this).first; }
-    DhtNode*             node() const  { return (**this).second; }
-  };
-
-  typedef accessor_wrapper<const_iterator>  const_accessor;
-  typedef accessor_wrapper<iterator>        accessor;
-
-  DhtNode*            add_node(DhtNode* n);
-
-};
-
-class DhtTrackerList : public std::map<HashString, DhtTracker*> {
-public:
-  typedef std::map<HashString, DhtTracker*> base_type;
-
-  template<typename T>
-  struct accessor_wrapper : public T {
-    accessor_wrapper(const T& itr) : T(itr) { }
-
-    const HashString&    id() const       { return (**this).first; }
-    DhtTracker*          tracker() const  { return (**this).second; }
-  };
-
-  typedef accessor_wrapper<const_iterator>  const_accessor;
-  typedef accessor_wrapper<iterator>        accessor;
-
-};
-#endif // HAVE_TR1
 
 inline
 DhtNode* DhtNodeList::add_node(DhtNode* n) {

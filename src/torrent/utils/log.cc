@@ -1,45 +1,6 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include "log.h"
-#include "log_buffer.h"
 
 #include "globals.h"
 #include "torrent/exceptions.h"
@@ -54,8 +15,6 @@
 #include <fstream>
 #include <functional>
 #include <memory>
-#include lt_tr1_functional
-#include lt_tr1_memory
 
 namespace torrent {
 
@@ -73,7 +32,7 @@ struct log_cache_entry {
 };
 
 struct log_gz_output {
-  log_gz_output(const char* filename) { gz_file = gzopen(filename, "w"); }
+  log_gz_output(const char* filename, bool append) { gz_file = gzopen(filename, append ? "a" : "w"); }
   ~log_gz_output() { if (gz_file != NULL) gzclose(gz_file); }
 
   bool is_valid() { return gz_file != Z_NULL; }
@@ -232,7 +191,6 @@ log_initialize() {
 
   LOG_CASCADE(LOG_CRITICAL);
 
-  LOG_CASCADE(LOG_CONNECTION_CRITICAL);
   LOG_CASCADE(LOG_PEER_CRITICAL);
   LOG_CASCADE(LOG_SOCKET_CRITICAL);
   LOG_CASCADE(LOG_STORAGE_CRITICAL);
@@ -240,13 +198,18 @@ log_initialize() {
   LOG_CASCADE(LOG_TRACKER_CRITICAL);
   LOG_CASCADE(LOG_TORRENT_CRITICAL);
 
-  LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_CONNECTION_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_PEER_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_SOCKET_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_STORAGE_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_THREAD_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TRACKER_CRITICAL);
   LOG_CHILDREN_CASCADE(LOG_CRITICAL, LOG_TORRENT_CRITICAL);
+
+  LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_BIND);
+  LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_FD);
+  LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_FILTER);
+  LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_HANDSHAKE);
+  LOG_LINK(LOG_CONNECTION, LOG_CONNECTION_LISTEN);
 
   LOG_LINK(LOG_DHT_ALL, LOG_DHT_MANAGER);
   LOG_LINK(LOG_DHT_ALL, LOG_DHT_NODE);
@@ -294,12 +257,16 @@ log_open_output(const char* name, log_slot slot) {
     throw input_error("Cannot open more than 64 log output handlers.");
   }
   
-  if (log_find_output_name(name) != log_outputs.end()) {
-    pthread_mutex_unlock(&log_mutex);
-    throw input_error("Log name already used.");
+  log_output_list::iterator itr = log_find_output_name(name);
+
+  if (itr == log_outputs.end()) {
+    log_outputs.push_back(std::make_pair(name, slot));
+  } else {
+    // by replacing the "write" slot binding, the old file gets closed
+    // (handles are shared pointers)
+    itr->second = slot;
   }
 
-  log_outputs.push_back(std::make_pair(name, slot));
   log_rebuild_cache();
 
   pthread_mutex_unlock(&log_mutex);
@@ -307,6 +274,14 @@ log_open_output(const char* name, log_slot slot) {
 
 void
 log_close_output(const char* name) {
+  pthread_mutex_lock(&log_mutex);
+
+  log_output_list::iterator itr = log_find_output_name(name);
+
+  if (itr != log_outputs.end())
+    log_outputs.erase(itr);
+
+  pthread_mutex_unlock(&log_mutex);
 }
 
 void
@@ -381,7 +356,7 @@ log_gz_file_write(std::shared_ptr<log_gz_output>& outfile, const char* data, siz
 
   // Normal groups are nul-terminated strings.
   if (group >= 0) {
-    const char* fmt = (group >= LOG_NON_CASCADING) ? ("%" PRIi32 " ") : ("%" PRIi32 " %c");
+    const char* fmt = (group >= LOG_NON_CASCADING) ? ("%" PRIi32 " ") : ("%" PRIi32 " %c ");
 
     int buffer_length = snprintf(buffer, 64, fmt,
                                  cachedTime.seconds(),
@@ -404,8 +379,11 @@ log_gz_file_write(std::shared_ptr<log_gz_output>& outfile, const char* data, siz
 }
 
 void
-log_open_file_output(const char* name, const char* filename) {
-  std::shared_ptr<std::ofstream> outfile(new std::ofstream(filename));
+log_open_file_output(const char* name, const char* filename, bool append) {
+  std::ios_base::openmode mode = std::ofstream::out;
+  if (append)
+    mode |= std::ofstream::app;
+  std::shared_ptr<std::ofstream> outfile(new std::ofstream(filename, mode));
 
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
@@ -417,8 +395,8 @@ log_open_file_output(const char* name, const char* filename) {
 }
 
 void
-log_open_gz_file_output(const char* name, const char* filename) {
-  std::shared_ptr<log_gz_output> outfile(new log_gz_output(filename));
+log_open_gz_file_output(const char* name, const char* filename, bool append) {
+  std::shared_ptr<log_gz_output> outfile(new log_gz_output(filename, append));
 
   if (!outfile->is_valid())
     throw input_error("Could not open log gzip file '" + std::string(filename) + "'.");
@@ -430,23 +408,6 @@ log_open_gz_file_output(const char* name, const char* filename) {
                                   std::placeholders::_1,
                                   std::placeholders::_2,
                                   std::placeholders::_3));
-}
-
-log_buffer*
-log_open_log_buffer(const char* name) {
-  log_buffer* buffer = new log_buffer;
-
-  try {
-    log_open_output(name, std::bind(&log_buffer::lock_and_push_log, buffer,
-                                    std::placeholders::_1,
-                                    std::placeholders::_2,
-                                    std::placeholders::_3));
-    return buffer;
-
-  } catch (torrent::input_error& e) {
-    delete buffer;
-    throw;
-  }
 }
 
 }

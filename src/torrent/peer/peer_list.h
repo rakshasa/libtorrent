@@ -46,7 +46,7 @@ namespace torrent {
 
 class DownloadInfo;
 
-typedef extents<uint32_t, int, 32, 256, 8> ipv4_table;
+typedef extents<uint32_t, int> ipv4_table;
 
 class LIBTORRENT_EXPORT PeerList : private std::multimap<socket_address_key, PeerInfo*> {
 public:

@@ -29,13 +29,13 @@ tracker_timeout_test::test_set_timeout() {
 
   tracker.set_new_normal_interval(100);
   CPPUNIT_ASSERT(tracker.normal_interval() == 600);
-  tracker.set_new_normal_interval(4000);
-  CPPUNIT_ASSERT(tracker.normal_interval() == 3600);
+  tracker.set_new_normal_interval(8 * 4000);
+  CPPUNIT_ASSERT(tracker.normal_interval() == 8 * 3600);
 
   tracker.set_new_min_interval(100);
   CPPUNIT_ASSERT(tracker.min_interval() == 300);
-  tracker.set_new_min_interval(4000);
-  CPPUNIT_ASSERT(tracker.min_interval() == 1800);
+  tracker.set_new_min_interval(4 * 4000);
+  CPPUNIT_ASSERT(tracker.min_interval() == 4 * 3600);
 }
 
 void

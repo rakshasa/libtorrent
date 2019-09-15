@@ -38,7 +38,7 @@
 #define LIBTORRENT_NET_PROTOCOL_BUFFER_H
 
 #include <memory>
-#include <inttypes.h>
+#include <cinttypes>
 #include <netinet/in.h>
 
 #include "torrent/exceptions.h"

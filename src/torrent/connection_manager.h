@@ -39,14 +39,14 @@
 #ifndef LIBTORRENT_CONNECTION_MANAGER_H
 #define LIBTORRENT_CONNECTION_MANAGER_H
 
+#include <functional>
+#include <list>
+#include <memory>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
-#include <list>
-#include <memory>
-#include lt_tr1_functional
 #include <torrent/common.h>
 
 namespace torrent {
