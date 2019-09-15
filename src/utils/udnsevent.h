@@ -1,8 +1,7 @@
 #ifndef LIBTORRENT_NET_UDNSEVENT_H
 #define LIBTORRENT_NET_UDNSEVENT_H
 
-#include lt_tr1_functional
-
+#include <functional>
 #include <list>
 #include <inttypes.h>
 
