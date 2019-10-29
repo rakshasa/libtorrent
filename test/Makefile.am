@@ -83,6 +83,8 @@ LibTorrentTest_SOURCES = \
 	torrent/object_static_map_test.h \
 	torrent/object_stream_test.cc \
 	torrent/object_stream_test.h \
+        torrent/webseed_controller_test.cc \
+        torrent/webseed_controller_test.h \
 	torrent/tracker_controller_test.cc \
 	torrent/tracker_controller_test.h \
 	torrent/tracker_controller_features.cc \
@@ -97,6 +99,8 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_timeout_test.h \
 	tracker/tracker_http_test.cc \
 	tracker/tracker_http_test.h \
+        tracker/tracker_webseed_test.cc \
+        tracker/tracker_webseed_test.h \
 	main.cc
 
 LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)

@@ -62,6 +62,7 @@ public:
   friend class DownloadMain;
   friend class DownloadWrapper;
   friend class Handshake;
+  friend class WebseedController;
 
   typedef std::vector<File*>            base_type;
   typedef std::vector<std::string>      path_list;

@@ -46,6 +46,7 @@
 #include "tracker/tracker_dht.h"
 #include "tracker/tracker_http.h"
 #include "tracker/tracker_udp.h"
+#include "tracker/tracker_webseed.h"
 
 #include "globals.h"
 #include "exceptions.h"
@@ -202,6 +203,9 @@ TrackerList::insert_url(unsigned int group, const std::string& url, bool extra_t
 
   } else if (std::strncmp("dht://", url.c_str(), 6) == 0 && TrackerDht::is_allowed()) {
     tracker = new TrackerDht(this, url, flags);
+
+  } else if (std::strncmp("webseed:", url.c_str(), 8) == 0) {
+    tracker = new TrackerWebseed(this, url, flags);
 
   } else {
     LT_LOG_TRACKER(WARN, "could find matching tracker protocol (url:%s)", url.c_str());

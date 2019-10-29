@@ -57,6 +57,7 @@
 #include "torrent/peer/peer_info.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
+#include "torrent/webseed_controller.h"
 #include "torrent/utils/log.h"
 
 #include "available_list.h"
@@ -104,6 +105,8 @@ DownloadMain::DownloadMain() :
 
   m_tracker_list = new TrackerList();
   m_tracker_controller = new TrackerController(m_tracker_list);
+
+  m_webseed_controller = new WebseedController(this);
 
   m_tracker_list->slot_success() = std::bind(&TrackerController::receive_success, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);
   m_tracker_list->slot_failure() = std::bind(&TrackerController::receive_failure, m_tracker_controller, std::placeholders::_1, std::placeholders::_2);

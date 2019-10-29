@@ -48,6 +48,7 @@
 #include "torrent/object.h"
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
+#include "torrent/webseed_controller.h"
 #include "torrent/data/file.h"
 #include "torrent/data/file_list.h"
 
@@ -209,6 +210,9 @@ DownloadConstructor::parse_tracker(const Object& b) {
     std::for_each(b.get_key_list("nodes").begin(), b.get_key_list("nodes").end(),
                   rak::make_mem_fun(this, &DownloadConstructor::add_dht_node));
 
+  if (b.has_key("url-list"))
+    add_webseed_url(b.get_key("url-list"));
+
   m_download->main()->tracker_list()->randomize_group_entries();
 }
 
@@ -247,6 +251,20 @@ DownloadConstructor::add_dht_node(const Object& b) {
 
   manager->dht_manager()->add_node(host, el->as_value());
 }
+
+void
+DownloadConstructor::add_webseed_url(const Object& b) {
+  if (b.is_list())
+    std::for_each(b.as_list().begin(), b.as_list().end(), rak::make_mem_fun(this, &DownloadConstructor::add_webseed_url));
+
+  if (!b.is_string())
+    return;
+
+  std::string url = b.as_string();
+  m_download->main()->webseed_controller()->add_url(url);
+  m_download->main()->tracker_list()->insert_url(m_download->main()->tracker_list()->size_group(), "webseed:" + url);
+}
+
 
 bool
 DownloadConstructor::is_valid_path_element(const Object& b) {

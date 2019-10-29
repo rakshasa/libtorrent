@@ -19,6 +19,7 @@ public:
     TRACKER_HTTP,
     TRACKER_UDP,
     TRACKER_DHT,
+    TRACKER_WEBSEED
   } Type;
 
   enum tracker_event {

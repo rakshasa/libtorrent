@@ -64,6 +64,7 @@ class DownloadWrapper;
 class HandshakeManager;
 class TrackerController;
 class TrackerList;
+class WebseedController;
 class DownloadInfo;
 class ThrottleList;
 class InitialSeeding;
@@ -88,6 +89,8 @@ public:
 
   TrackerController*  tracker_controller()                       { return m_tracker_controller; }
   TrackerList*        tracker_list()                             { return m_tracker_list; }
+
+  WebseedController*  webseed_controller()                       { return m_webseed_controller; }
 
   DownloadInfo*       info()                                     { return m_info; }
 
@@ -173,6 +176,8 @@ private:
 
   TrackerController*  m_tracker_controller;
   TrackerList*        m_tracker_list;
+
+  WebseedController*  m_webseed_controller;
 
   class choke_group*  m_choke_group;
 

@@ -56,6 +56,7 @@
 #include "torrent/data/file.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/tracker_controller.h"
+#include "torrent/webseed_controller.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
 
@@ -169,6 +170,8 @@ Download::start(int flags) {
 
   if (!(flags & start_skip_tracker))
     m_ptr->main()->tracker_controller()->send_start_event();
+
+  m_ptr->main()->webseed_controller()->start();
 }
 
 void
@@ -184,6 +187,8 @@ Download::stop(int flags) {
     m_ptr->main()->tracker_controller()->send_stop_event();
 
   m_ptr->main()->tracker_controller()->disable();
+
+  m_ptr->main()->webseed_controller()->stop();
 }
 
 bool

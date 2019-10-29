@@ -34,56 +34,76 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#ifndef LIBTORRENT_WEBSEED_CONTROLLER_H
+#define LIBTORRENT_WEBSEED_CONTROLLER_H
 
-#include <list>
 #include <string>
-#include <cinttypes>
+#include <thread>
+#include <vector>
+#include <atomic>
+#include <memory>
+
+#include <torrent/common.h>
+
+class WebseedControllerTest;
 
 namespace torrent {
 
-class Object;
-class Content;
-class DownloadWrapper;
-class Path;
+class ChunkPart;
+class PeerChunks;
 
-typedef std::list<std::string> EncodingList;
-
-class DownloadConstructor {
+class WebseedDownloadBuffer {
 public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
+  WebseedDownloadBuffer(char* buffer, size_t size);
+  static size_t receiveBytesCallback(void *contents, size_t size, size_t nmemb, void *userp);
+  size_t getBytesWritten() { return m_position; }
 
-  void                initialize(Object& b);
+private:
+  size_t receiveBytes(void* contents, size_t realsize);
 
-  void                parse_tracker(const Object& b);
+  char* m_buffer;
+  size_t m_buffer_size;
+  size_t m_position;
+};
 
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
+class LIBTORRENT_EXPORT WebseedController {
+  friend WebseedControllerTest;
 
-private:  
-  void                parse_name(const Object& b);
-  void                parse_info(const Object& b);
-  void                parse_magnet_uri(Object& b, const std::string& uri);
+public:
+  typedef std::string url_type;
+  typedef std::vector<url_type> url_list_type;
 
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-  void                add_dht_node(const Object& b);
-  void                add_webseed_url(const Object& b);
+  WebseedController(DownloadMain* download);
+  ~WebseedController();
 
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
+  void add_url(const url_type& url);
+  const url_list_type* url_list() const { return &m_url_list; }
 
-  void                parse_single_file(const Object& b, uint32_t chunkSize);
-  void                parse_multi_files(const Object& b, uint32_t chunkSize);
+  void start();
+  void stop();
 
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
+  void doWebseed();
 
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
+private:
+  bool download_to_buffer
+  (
+    char* buffer,
+    const std::string& url,
+    const int offset,
+    const int length
+  );
 
-  std::string         m_defaultEncoding;
+  bool download_chunk_part(const ChunkPart& chunk_part, const std::string& url_base);
+  bool download_chunk(const uint32_t chunk_index, const std::string& url_base);
+
+  DownloadMain*    m_download;
+  url_list_type    m_url_list;
+  url_list_type    m_working_url_list;
+
+  std::atomic_bool m_thread_stop;
+  std::thread      m_thread;
+
+  std::unique_ptr<PeerChunks> m_allChunks;
 };
 
 }

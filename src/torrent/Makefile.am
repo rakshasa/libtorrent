@@ -57,7 +57,9 @@ libsub_torrent_la_SOURCES = \
 	tracker_controller.cc \
 	tracker_controller.h \
 	tracker_list.cc \
-	tracker_list.h
+	tracker_list.h \
+        webseed_controller.cc \
+        webseed_controller.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
 
@@ -89,4 +91,5 @@ libtorrentinclude_HEADERS = \
 	torrent.h \
 	tracker.h \
 	tracker_controller.h \
-	tracker_list.h
+	tracker_list.h \
+        webseed_controller.h

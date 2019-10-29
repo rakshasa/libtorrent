@@ -34,56 +34,40 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#ifndef LIBTORRENT_TRACKER_TRACKER_WEBSEED_H
+#define LIBTORRENT_TRACKER_TRACKER_WEBSEED_H
 
-#include <list>
-#include <string>
-#include <cinttypes>
+#include "net/address_list.h"
+#include "torrent/object.h"
+#include "torrent/tracker.h"
 
 namespace torrent {
 
-class Object;
-class Content;
-class DownloadWrapper;
-class Path;
-
-typedef std::list<std::string> EncodingList;
-
-class DownloadConstructor {
+class TrackerWebseed : public Tracker {
 public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
+  TrackerWebseed(TrackerList* parent, const std::string& url, int flags);
+  ~TrackerWebseed();
 
-  void                initialize(Object& b);
+  typedef enum {
+    state_idle,
+    state_downloading,
+  } state_type;
 
-  void                parse_tracker(const Object& b);
+  static const char* states[];
+  
+  virtual bool        is_busy() const;
+  virtual bool        is_usable() const;
 
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
+  virtual void        send_state(int state);
+  virtual void        close();
+  virtual void        disown();
 
-private:  
-  void                parse_name(const Object& b);
-  void                parse_info(const Object& b);
-  void                parse_magnet_uri(Object& b, const std::string& uri);
+  virtual Type        type() const;
 
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-  void                add_dht_node(const Object& b);
-  void                add_webseed_url(const Object& b);
+  virtual void        get_status(char* buffer, int length);
 
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
-
-  void                parse_single_file(const Object& b, uint32_t chunkSize);
-  void                parse_multi_files(const Object& b, uint32_t chunkSize);
-
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
-
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
-
-  std::string         m_defaultEncoding;
+private:
+  state_type m_state;
 };
 
 }

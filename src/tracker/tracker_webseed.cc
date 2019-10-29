@@ -34,58 +34,76 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
-#ifndef LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
-#define LIBTORRENT_PARSE_DOWNLOAD_CONSTRUCTOR_H
+#include "config.h"
 
-#include <list>
-#include <string>
-#include <cinttypes>
+#include <sstream>
+#include <cstdio>
+
+#include "dht/dht_router.h"
+#include "torrent/connection_manager.h"
+#include "torrent/download_info.h"
+#include "torrent/dht_manager.h"
+#include "torrent/exceptions.h"
+#include "torrent/tracker_list.h"
+#include "torrent/utils/log.h"
+
+#include "tracker_webseed.h"
+
+#include "globals.h"
+#include "manager.h"
 
 namespace torrent {
 
-class Object;
-class Content;
-class DownloadWrapper;
-class Path;
+const char* TrackerWebseed::states[] = { "Idle", "Downloading" };
 
-typedef std::list<std::string> EncodingList;
+TrackerWebseed::TrackerWebseed(TrackerList* parent, const std::string& url, int flags) :
+  Tracker(parent, url, flags),
+  m_state(state_idle) {
+}
 
-class DownloadConstructor {
-public:
-  DownloadConstructor() : m_download(NULL), m_encodingList(NULL) {}
+TrackerWebseed::~TrackerWebseed() {
+}
 
-  void                initialize(Object& b);
+bool
+TrackerWebseed::is_busy() const {
+  return m_state != state_idle;
+}
 
-  void                parse_tracker(const Object& b);
+bool
+TrackerWebseed::is_usable() const {
+  return true; 
+}
 
-  void                set_download(DownloadWrapper* d)         { m_download = d; }
-  void                set_encoding_list(const EncodingList* e) { m_encodingList = e; }
+void
+TrackerWebseed::send_state(int state) {
+  if (m_parent == NULL)
+    throw internal_error("TrackerWebseed::send_state(...) does not have a valid m_parent.");
 
-private:  
-  void                parse_name(const Object& b);
-  void                parse_info(const Object& b);
-  void                parse_magnet_uri(Object& b, const std::string& uri);
+  m_latest_event = state;
 
-  void                add_tracker_group(const Object& b);
-  void                add_tracker_single(const Object& b, int group);
-  void                add_dht_node(const Object& b);
-  void                add_webseed_url(const Object& b);
-
-  static bool         is_valid_path_element(const Object& b);
-  static bool         is_invalid_path_element(const Object& b) { return !is_valid_path_element(b); }
-
-  void                parse_single_file(const Object& b, uint32_t chunkSize);
-  void                parse_multi_files(const Object& b, uint32_t chunkSize);
-
-  inline Path         create_path(const Object::list_type& plist, const std::string enc);
-  inline Path         choose_path(std::list<Path>* pathList);
-
-  DownloadWrapper*    m_download;
-  const EncodingList* m_encodingList;
-
-  std::string         m_defaultEncoding;
-};
+  if (state == DownloadInfo::STOPPED)
+    return;
 
 }
 
-#endif
+void
+TrackerWebseed::close() {
+}
+
+void
+TrackerWebseed::disown() {
+  close();
+}
+
+TrackerWebseed::Type
+TrackerWebseed::type() const {
+  return TRACKER_WEBSEED;
+}
+
+void
+TrackerWebseed::get_status(char* buffer, int length) {
+  if (!is_busy())
+    throw internal_error("TrackerWebseed::get_status called while not busy.");
+}
+
+}
