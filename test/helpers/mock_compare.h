@@ -34,11 +34,11 @@ template <typename T>
 struct mock_compare_map {
   typedef std::map<const T*, const T*> values_type;
 
-  constexpr static T* begin_pointer = reinterpret_cast<T*>(0x1000);
-  constexpr static T* end_pointer = reinterpret_cast<T*>(0x2000);
+  static T* begin_pointer() { return reinterpret_cast<T*>(0x1000); }
+  static T* end_pointer() { return reinterpret_cast<T*>(0x2000); }
 
   static bool is_key(const T* k) {
-    return k >= begin_pointer && k < end_pointer;
+    return k >= begin_pointer() && k < end_pointer();
   }
 
   static bool has_key(const T* k) {

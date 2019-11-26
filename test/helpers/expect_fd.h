@@ -18,15 +18,15 @@ sap_cache_copy_addr_c_ptr(sap_cache_type& sap_cache, const torrent::c_sa_unique_
 
 inline void
 expect_event_open_re(int idx) {
-  mock_expect(&torrent::poll_event_open, mock_compare_map<torrent::Event>::begin_pointer + idx);
-  mock_expect(&torrent::poll_event_insert_read, mock_compare_map<torrent::Event>::begin_pointer + idx);
-  mock_expect(&torrent::poll_event_insert_error, mock_compare_map<torrent::Event>::begin_pointer + idx);
+  mock_expect(&torrent::poll_event_open, mock_compare_map<torrent::Event>::begin_pointer() + idx);
+  mock_expect(&torrent::poll_event_insert_read, mock_compare_map<torrent::Event>::begin_pointer() + idx);
+  mock_expect(&torrent::poll_event_insert_error, mock_compare_map<torrent::Event>::begin_pointer() + idx);
 }
 
 inline void
 expect_event_closed_fd(int idx, int fd) {
   mock_expect(&torrent::fd__close, 0, fd);
-  mock_expect(&torrent::poll_event_closed, mock_compare_map<torrent::Event>::begin_pointer + idx);
+  mock_expect(&torrent::poll_event_closed, mock_compare_map<torrent::Event>::begin_pointer() + idx);
 }
 
 inline void
