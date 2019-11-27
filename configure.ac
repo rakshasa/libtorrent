@@ -111,4 +111,5 @@ AC_OUTPUT([
 	src/tracker/Makefile
 	src/utils/Makefile
         test/Makefile
+        test/torrent/net/Makefile
 ])
