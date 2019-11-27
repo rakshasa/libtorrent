@@ -35,6 +35,6 @@ LibTorrentTestNet_SOURCES = \
 	../main.cc
 
 LibTorrentTestNet_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrentTestNet_LDFLAGS = $(CPPUNIT_LIBS)  -ldl
+LibTorrentTestNet_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 
-AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/test

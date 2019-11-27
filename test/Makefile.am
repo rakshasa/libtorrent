@@ -1,3 +1,5 @@
+SUBDIRS = torrent/net net
+
 TESTS = LibTorrentTest
 AUTOMAKE_OPTIONS = subdir-objects
 
@@ -91,6 +93,6 @@ LibTorrentTest_SOURCES = \
 	main.cc
 
 LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrentTest_LDFLAGS = $(CPPUNIT_LIBS)  -ldl
+LibTorrentTest_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 
 AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/src
