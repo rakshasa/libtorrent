@@ -154,8 +154,11 @@ directory_events::event_read() {
     wd_list::const_iterator itr = std::find_if(m_wd_list.begin(), m_wd_list.end(),
                                                std::bind(&watch_descriptor::compare_desc, std::placeholders::_1, event->wd));
 
-    if (itr != m_wd_list.end())
-      itr->slot(itr->path + event->name);
+    if (itr != m_wd_list.end()) {
+      std::string sname(event->name);
+      if((sname.substr(sname.find_last_of(".") ) == ".torrent"))
+        itr->slot(itr->path + event->name);
+    }
 
     event = (struct inotify_event*)(next_event);
   }
