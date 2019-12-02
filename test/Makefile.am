@@ -7,7 +7,6 @@ check_PROGRAMS = $(TESTS)
 LibTorrentTest_LDADD = \
 	../src/libtorrent.la \
 	../src/torrent/libsub_torrent.la \
-	../src/torrent/data/libsub_torrentdata.la \
 	../src/torrent/download/libsub_torrentdownload.la \
 	../src/torrent/peer/libsub_torrentpeer.la \
 	../src/data/libsub_data.la \

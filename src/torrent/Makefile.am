@@ -1,5 +1,4 @@
 SUBDIRS = \
-	data \
 	download \
 	net \
 	peer \
@@ -8,6 +7,30 @@ SUBDIRS = \
 noinst_LTLIBRARIES = libsub_torrent.la
 
 libsub_torrent_la_SOURCES = \
+	data/block.cc \
+	data/block.h \
+	data/block_failed.h \
+	data/block_list.cc \
+	data/block_list.h \
+	data/block_transfer.h \
+	data/chunk_utils.cc \
+	data/chunk_utils.h \
+	data/download_data.cc \
+	data/download_data.h \
+	data/file.cc \
+	data/file.h \
+	data/file_list.cc \
+	data/file_list.h \
+	data/file_list_iterator.cc \
+	data/file_list_iterator.h \
+	data/file_manager.cc \
+	data/file_manager.h \
+	data/file_utils.cc \
+	data/file_utils.h \
+	data/piece.h \
+	data/transfer_list.cc \
+	data/transfer_list.h \
+\
 	bitfield.cc \
 	bitfield.h \
 	chunk_manager.cc \
@@ -60,6 +83,21 @@ libsub_torrent_la_SOURCES = \
 	tracker_list.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/.. -I$(top_srcdir)
+
+libtorrentdataincludedir = $(includedir)/torrent/data
+libtorrentdatainclude_HEADERS = \
+	data/block.h \
+	data/block_list.h \
+	data/block_transfer.h \
+	data/chunk_utils.h \
+	data/download_data.h \
+	data/file.h \
+	data/file_list.h \
+	data/file_list_iterator.h \
+	data/file_manager.h \
+	data/file_utils.h \
+	data/piece.h \
+	data/transfer_list.h
 
 libtorrentincludedir = $(includedir)/torrent
 libtorrentinclude_HEADERS = \
