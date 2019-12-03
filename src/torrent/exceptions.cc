@@ -42,7 +42,7 @@
 #include <sstream>
 #include <unistd.h>
 
-#ifdef USE_EXECINFO
+#ifdef HAVE_BACKTRACE
 #include <execinfo.h>
 #endif
 
@@ -75,7 +75,7 @@ internal_error::initialize(const std::string& msg) {
 
   std::stringstream output;
 
-#ifdef USE_EXECINFO
+#ifdef HAVE_BACKTRACE
   void* stackPtrs[20];
 
   // Print the stack and exit.

@@ -54,7 +54,8 @@ void
 progress_listener::startSuite(CppUnit::Test *suite) {
   m_test_path.push_back(suite);
 
-  std::cout << std::endl << get_test_path(m_test_path) << suite->getName() << ":" << std::endl;
+  if (suite->countTestCases() > 0)
+    std::cout << std::endl << get_test_path(m_test_path) << suite->getName() << ":" << std::endl;
 }
 
 void

@@ -1,3 +1,5 @@
+SUBDIRS = torrent/net net
+
 TESTS = LibTorrentTest
 AUTOMAKE_OPTIONS = subdir-objects
 
@@ -43,18 +45,8 @@ LibTorrentTest_SOURCES = \
 	data/hash_queue_test.cc \
 	data/hash_queue_test.h \
 	\
-	net/test_socket_listen.cc \
-	net/test_socket_listen.h \
-	\
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h \
-	\
-	torrent/net/test_address_info.cc \
-	torrent/net/test_address_info.h \
-	torrent/net/test_fd.cc \
-	torrent/net/test_fd.h \
-	torrent/net/test_socket_address.cc \
-	torrent/net/test_socket_address.h \
 	\
 	torrent/utils/log_test.cc \
 	torrent/utils/log_test.h \
@@ -97,9 +89,10 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_timeout_test.h \
 	tracker/tracker_http_test.cc \
 	tracker/tracker_http_test.h \
+	\
 	main.cc
 
 LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrentTest_LDFLAGS = $(CPPUNIT_LIBS)  -ldl
+LibTorrentTest_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 
 AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/src
