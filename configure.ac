@@ -99,4 +99,6 @@ AC_OUTPUT([
 	src/Makefile
 	src/torrent/Makefile
         test/Makefile
+        test/torrent/net/Makefile
+        test/net/Makefile
 ])
