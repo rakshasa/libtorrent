@@ -1,25 +1,68 @@
-SUBDIRS = torrent/net net
-
-TESTS = LibTorrentTest
-AUTOMAKE_OPTIONS = subdir-objects
+TESTS = \
+	LibTorrent_Test_Torrent_Net \
+	LibTorrent_Test_Net \
+	LibTorrent_Test
 
 check_PROGRAMS = $(TESTS)
-LibTorrentTest_LDADD = \
-	../src/libtorrent.la \
-	../src/torrent/libsub_torrent.la \
-	../src/torrent/data/libsub_torrentdata.la \
-	../src/torrent/download/libsub_torrentdownload.la \
-	../src/torrent/peer/libsub_torrentpeer.la \
-	../src/data/libsub_data.la \
-	../src/dht/libsub_dht.la \
-	../src/net/libsub_net.la \
-	../src/protocol/libsub_protocol.la \
-	../src/download/libsub_download.la \
-	../src/tracker/libsub_tracker.la \
-	../src/utils/libsub_utils.la \
-	../src/torrent/utils/libsub_torrentutils.la
 
-LibTorrentTest_SOURCES = \
+LibTorrent_Test_LDADD = \
+	../src/libtorrent.la \
+	../src/libtorrent_other.la \
+	../src/torrent/libtorrent_torrent.la
+
+LibTorrent_Test_Net_LDADD = $(LibTorrent_Test_LDADD)
+LibTorrent_Test_Torrent_Net_LDADD = $(LibTorrent_Test_LDADD)
+
+# LibTorrent_Test_SOURCES = \
+# 	helpers/expect_fd.h \
+# 	helpers/expect_utils.h \
+# 	helpers/mock_compare.h \
+# 	helpers/mock_function.cc \
+# 	helpers/mock_function.h \
+# 	helpers/network.h \
+# 	helpers/progress_listener.cc \
+# 	helpers/progress_listener.h \
+# 	helpers/test_fixture.cc \
+# 	helpers/test_fixture.h
+
+LibTorrent_Test_Torrent_Net_SOURCES = \
+	main.cc \
+	helpers/expect_fd.h \
+	helpers/expect_utils.h \
+	helpers/mock_compare.h \
+	helpers/mock_function.cc \
+	helpers/mock_function.h \
+	helpers/network.h \
+	helpers/progress_listener.cc \
+	helpers/progress_listener.h \
+	helpers/test_fixture.cc \
+	helpers/test_fixture.h \
+	\
+	torrent/net/test_address_info.cc \
+	torrent/net/test_address_info.h \
+	torrent/net/test_fd.cc \
+	torrent/net/test_fd.h \
+	torrent/net/test_socket_address.cc \
+	torrent/net/test_socket_address.h
+
+LibTorrent_Test_Net_SOURCES = \
+	main.cc \
+	helpers/expect_fd.h \
+	helpers/expect_utils.h \
+	helpers/mock_compare.h \
+	helpers/mock_function.cc \
+	helpers/mock_function.h \
+	helpers/network.h \
+	helpers/progress_listener.cc \
+	helpers/progress_listener.h \
+	helpers/test_fixture.cc \
+	helpers/test_fixture.h \
+	\
+	net/test_socket_listen.cc \
+	net/test_socket_listen.h
+
+LibTorrent_Test_SOURCES = \
+	main.cc \
 	helpers/expect_fd.h \
 	helpers/expect_utils.h \
 	helpers/mock_compare.h \
@@ -87,12 +130,15 @@ LibTorrentTest_SOURCES = \
 	torrent/tracker_list_features_test.h \
 	torrent/tracker_timeout_test.cc \
 	torrent/tracker_timeout_test.h \
-	tracker/tracker_http_test.cc \
-	tracker/tracker_http_test.h \
 	\
-	main.cc
+	tracker/tracker_http_test.cc \
+	tracker/tracker_http_test.h
 
-LibTorrentTest_CXXFLAGS = $(CPPUNIT_CFLAGS)
-LibTorrentTest_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Torrent_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 
 AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/src
