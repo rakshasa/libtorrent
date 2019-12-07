@@ -13,19 +13,7 @@ LibTorrent_Test_LDADD = \
 LibTorrent_Test_Net_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_Net_LDADD = $(LibTorrent_Test_LDADD)
 
-# LibTorrent_Test_SOURCES = \
-# 	helpers/expect_fd.h \
-# 	helpers/expect_utils.h \
-# 	helpers/mock_compare.h \
-# 	helpers/mock_function.cc \
-# 	helpers/mock_function.h \
-# 	helpers/network.h \
-# 	helpers/progress_listener.cc \
-# 	helpers/progress_listener.h \
-# 	helpers/test_fixture.cc \
-# 	helpers/test_fixture.h
-
-LibTorrent_Test_Torrent_Net_SOURCES = \
+LibTorrent_Test_Common = \
 	main.cc \
 	helpers/expect_fd.h \
 	helpers/expect_utils.h \
@@ -36,8 +24,9 @@ LibTorrent_Test_Torrent_Net_SOURCES = \
 	helpers/progress_listener.cc \
 	helpers/progress_listener.h \
 	helpers/test_fixture.cc \
-	helpers/test_fixture.h \
-	\
+	helpers/test_fixture.h
+
+LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_address_info.cc \
 	torrent/net/test_address_info.h \
 	torrent/net/test_fd.cc \
@@ -45,34 +34,11 @@ LibTorrent_Test_Torrent_Net_SOURCES = \
 	torrent/net/test_socket_address.cc \
 	torrent/net/test_socket_address.h
 
-LibTorrent_Test_Net_SOURCES = \
-	main.cc \
-	helpers/expect_fd.h \
-	helpers/expect_utils.h \
-	helpers/mock_compare.h \
-	helpers/mock_function.cc \
-	helpers/mock_function.h \
-	helpers/network.h \
-	helpers/progress_listener.cc \
-	helpers/progress_listener.h \
-	helpers/test_fixture.cc \
-	helpers/test_fixture.h \
-	\
+LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common) \
 	net/test_socket_listen.cc \
 	net/test_socket_listen.h
 
-LibTorrent_Test_SOURCES = \
-	main.cc \
-	helpers/expect_fd.h \
-	helpers/expect_utils.h \
-	helpers/mock_compare.h \
-	helpers/mock_function.cc \
-	helpers/mock_function.h \
-	helpers/network.h \
-	helpers/progress_listener.cc \
-	helpers/progress_listener.h \
-	helpers/test_fixture.cc \
-	helpers/test_fixture.h \
+LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\
 	../src/thread_disk.cc \
 	../src/thread_disk.h \
