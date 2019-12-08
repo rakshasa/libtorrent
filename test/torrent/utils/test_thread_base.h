@@ -1,19 +1,20 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "helpers/test_fixture.h"
 
 #include "torrent/utils/thread_base.h"
 
-class utils_thread_base_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(utils_thread_base_test);
+class test_thread_base : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_thread_base);
+
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_lifecycle);
 
   CPPUNIT_TEST(test_global_lock_basic);
   CPPUNIT_TEST(test_interrupt);
   CPPUNIT_TEST(test_stop);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
   void tearDown();
 
   void test_basic();

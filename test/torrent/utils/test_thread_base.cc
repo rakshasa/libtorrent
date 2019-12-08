@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "test_thread_base.h"
+
 #include <functional>
 #include <unistd.h>
 
@@ -7,9 +9,7 @@
 #include <torrent/poll_select.h>
 #include <torrent/utils/thread_base.h>
 
-#include "thread_base_test.h"
-
-CPPUNIT_TEST_SUITE_REGISTRATION(utils_thread_base_test);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_thread_base, "torrent/utils");
 
 const int thread_test::test_flag_pre_stop;
 const int thread_test::test_flag_long_timeout;
@@ -81,17 +81,14 @@ wait_for_true(std::function<bool ()> test_function) {
 }
 
 void
-utils_thread_base_test::setUp() {
-}
-
-void
-utils_thread_base_test::tearDown() {
+test_thread_base::tearDown() {
   CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
   torrent::thread_base::release_global_lock();
+  test_fixture::tearDown();
 }
 
 void
-utils_thread_base_test::test_basic() {
+test_thread_base::test_basic() {
   thread_test* thread = new thread_test;
 
   CPPUNIT_ASSERT(thread->flags() == 0);
@@ -105,7 +102,7 @@ utils_thread_base_test::test_basic() {
 }
 
 void
-utils_thread_base_test::test_lifecycle() {
+test_thread_base::test_lifecycle() {
   thread_test* thread = new thread_test;
 
   CPPUNIT_ASSERT(thread->state() == torrent::thread_base::STATE_UNKNOWN);
@@ -132,7 +129,7 @@ utils_thread_base_test::test_lifecycle() {
 }
 
 void
-utils_thread_base_test::test_global_lock_basic() {
+test_thread_base::test_global_lock_basic() {
   thread_test* thread = new thread_test;
   
   thread->init_thread();
@@ -174,7 +171,7 @@ utils_thread_base_test::test_global_lock_basic() {
 }
 
 void
-utils_thread_base_test::test_interrupt() {
+test_thread_base::test_interrupt() {
   thread_test* thread = new thread_test;
   thread->set_test_flag(thread_test::test_flag_long_timeout);
 
@@ -201,7 +198,7 @@ utils_thread_base_test::test_interrupt() {
 }
 
 void
-utils_thread_base_test::test_stop() {
+test_thread_base::test_stop() {
   CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
   // torrent::thread_base::acquire_global_lock();
 

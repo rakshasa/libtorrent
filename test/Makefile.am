@@ -1,5 +1,6 @@
 TESTS = \
 	LibTorrent_Test_Torrent_Net \
+	LibTorrent_Test_Torrent_Utils \
 	LibTorrent_Test_Net \
 	LibTorrent_Test
 
@@ -12,6 +13,7 @@ LibTorrent_Test_LDADD = \
 
 LibTorrent_Test_Net_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_Net_LDADD = $(LibTorrent_Test_LDADD)
+LibTorrent_Test_Torrent_Utils_LDADD = $(LibTorrent_Test_LDADD)
 
 LibTorrent_Test_Common = \
 	main.cc \
@@ -33,6 +35,24 @@ LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_fd.h \
 	torrent/net/test_socket_address.cc \
 	torrent/net/test_socket_address.h
+
+LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
+	torrent/utils/test_extents.cc \
+	torrent/utils/test_extents.h \
+	torrent/utils/test_log.cc \
+	torrent/utils/test_log.h \
+	torrent/utils/test_log_buffer.cc \
+	torrent/utils/test_log_buffer.h \
+	torrent/utils/test_option_strings.cc \
+	torrent/utils/test_option_strings.h \
+	torrent/utils/test_queue_buckets.cc \
+	torrent/utils/test_queue_buckets.h \
+	torrent/utils/test_signal_bitfield.cc \
+	torrent/utils/test_signal_bitfield.h \
+	torrent/utils/test_thread_base.cc \
+	torrent/utils/test_thread_base.h \
+	torrent/utils/test_uri_parser.cc \
+	torrent/utils/test_uri_parser.h
 
 LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common) \
 	net/test_socket_listen.cc \
@@ -56,23 +76,6 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h \
-	\
-	torrent/utils/log_test.cc \
-	torrent/utils/log_test.h \
-	torrent/utils/option_strings_test.cc \
-	torrent/utils/option_strings_test.h \
-	torrent/utils/test_extents.cc \
-	torrent/utils/test_extents.h \
-	torrent/utils/test_log_buffer.cc \
-	torrent/utils/test_log_buffer.h \
-	torrent/utils/test_queue_buckets.cc \
-	torrent/utils/test_queue_buckets.h \
-	torrent/utils/test_uri_parser.cc \
-	torrent/utils/test_uri_parser.h \
-	torrent/utils/signal_bitfield_test.cc \
-	torrent/utils/signal_bitfield_test.h \
-	torrent/utils/thread_base_test.cc \
-	torrent/utils/thread_base_test.h \
 	\
 	torrent/http_test.cc \
 	torrent/http_test.h \
@@ -102,6 +105,8 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 
 LibTorrent_Test_Torrent_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Torrent_Utils_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Torrent_Utils_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_CXXFLAGS = $(CPPUNIT_CFLAGS)

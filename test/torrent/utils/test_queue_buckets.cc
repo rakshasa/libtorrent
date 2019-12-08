@@ -5,7 +5,7 @@
 #include "utils/instrumentation.h"
 #include "utils/queue_buckets.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TestQueueBuckets);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_queue_buckets, "torrent/utils");
 
 struct test_constants {
   static const int bucket_count = 2;
@@ -87,7 +87,7 @@ struct test_queue_bucket_compare {
 //
 
 void
-TestQueueBuckets::test_basic() {
+test_queue_buckets::test_basic() {
   torrent::instrumentation_initialize();
 
   buckets_type buckets;
@@ -129,7 +129,7 @@ TestQueueBuckets::test_basic() {
 }
 
 void
-TestQueueBuckets::test_erase() {
+test_queue_buckets::test_erase() {
   items_destroyed = 0;
   torrent::instrumentation_initialize();
 
@@ -162,7 +162,7 @@ bucket_queue_find_in_any(const buckets_type& buckets, int value) {
 }
 
 void
-TestQueueBuckets::test_find() {
+test_queue_buckets::test_find() {
   items_destroyed = 0;
   torrent::instrumentation_initialize();
 
@@ -183,7 +183,7 @@ TestQueueBuckets::test_find() {
 }
 
 void
-TestQueueBuckets::test_destroy_range() {
+test_queue_buckets::test_destroy_range() {
   items_destroyed = 0;
   torrent::instrumentation_initialize();
 
@@ -206,7 +206,7 @@ TestQueueBuckets::test_destroy_range() {
 }
 
 void
-TestQueueBuckets::test_move_range() {
+test_queue_buckets::test_move_range() {
   items_destroyed = 0;
   torrent::instrumentation_initialize();
 

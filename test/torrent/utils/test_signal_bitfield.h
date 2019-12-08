@@ -1,18 +1,17 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "helpers/test_fixture.h"
 
-#include "torrent/utils/signal_bitfield.h"
+class test_signal_bitfield : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_signal_bitfield);
 
-class utils_signal_bitfield_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(utils_signal_bitfield_test);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_single);
   CPPUNIT_TEST(test_multiple);
 
   CPPUNIT_TEST(test_thread);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
-  void setUp();
   void tearDown();
 
   void test_basic();

@@ -1,13 +1,13 @@
 #include "config.h"
 
+#include "test_signal_bitfield.h"
+#include "test_thread_base.h"
+
 #include <torrent/exceptions.h>
 #include <torrent/utils/signal_bitfield.h>
 #include <torrent/utils/thread_base.h>
 
-#include "signal_bitfield_test.h"
-#include "thread_base_test.h"
-
-CPPUNIT_TEST_SUITE_REGISTRATION(utils_signal_bitfield_test);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_signal_bitfield, "torrent/utils");
 
 static void
 mark_index(uint32_t* bitfield, unsigned int index) {
@@ -20,13 +20,10 @@ check_index(uint32_t* bitfield, unsigned int index) {
 }
 
 void
-utils_signal_bitfield_test::setUp() {
-}
-
-void
-utils_signal_bitfield_test::tearDown() {
+test_signal_bitfield::tearDown() {
   CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
   torrent::thread_base::release_global_lock();
+  test_fixture::tearDown();
 }
 
 static bool
@@ -54,7 +51,7 @@ verify_did_internal_error(std::function<unsigned int ()> func, bool should_throw
                                            did_throw));
 
 void
-utils_signal_bitfield_test::test_basic() {
+test_signal_bitfield::test_basic() {
   SETUP_SIGNAL_BITFIELD();
 
   CPPUNIT_ASSERT(torrent::signal_bitfield::max_size == sizeof(torrent::signal_bitfield::bitfield_type) * 8);
@@ -68,7 +65,7 @@ utils_signal_bitfield_test::test_basic() {
 }
 
 void
-utils_signal_bitfield_test::test_single() {
+test_signal_bitfield::test_single() {
   SETUP_SIGNAL_BITFIELD();
 
   CPPUNIT_ASSERT(signal_bitfield.add_signal(std::bind(&mark_index, &marked_bitfield, 0)) == 0);
@@ -86,7 +83,7 @@ utils_signal_bitfield_test::test_single() {
 }
 
 void
-utils_signal_bitfield_test::test_multiple() {
+test_signal_bitfield::test_multiple() {
   SETUP_SIGNAL_BITFIELD();
 
   for (unsigned int i = 0; i < torrent::signal_bitfield::max_size; i++)
@@ -106,7 +103,7 @@ utils_signal_bitfield_test::test_multiple() {
 }
 
 void
-utils_signal_bitfield_test::test_thread() {
+test_signal_bitfield::test_thread() {
   uint32_t marked_bitfield = 0;
   thread_test* thread = new thread_test;
   // thread->set_test_flag(thread_test::test_flag_long_timeout);
