@@ -1,7 +1,8 @@
 #include "config.h"
 
 #include "test_signal_bitfield.h"
-#include "test_thread_base.h"
+
+#include "helpers/test_utils.h"
 
 #include <torrent/exceptions.h>
 #include <torrent/utils/signal_bitfield.h>

@@ -1,7 +1,9 @@
 TESTS = \
 	LibTorrent_Test_Torrent_Net \
 	LibTorrent_Test_Torrent_Utils \
+	LibTorrent_Test_Data \
 	LibTorrent_Test_Net \
+	LibTorrent_Test_Tracker \
 	LibTorrent_Test
 
 check_PROGRAMS = $(TESTS)
@@ -11,9 +13,11 @@ LibTorrent_Test_LDADD = \
 	../src/libtorrent_other.la \
 	../src/torrent/libtorrent_torrent.la
 
-LibTorrent_Test_Net_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_Net_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_Utils_LDADD = $(LibTorrent_Test_LDADD)
+LibTorrent_Test_Data_LDADD = $(LibTorrent_Test_LDADD)
+LibTorrent_Test_Net_LDADD = $(LibTorrent_Test_LDADD)
+LibTorrent_Test_Tracker_LDADD = $(LibTorrent_Test_LDADD)
 
 LibTorrent_Test_Common = \
 	main.cc \
@@ -54,9 +58,17 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_uri_parser.cc \
 	torrent/utils/test_uri_parser.h
 
+LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
+	data/test_hash_queue.cc \
+	data/test_hash_queue.h
+
 LibTorrent_Test_Net_SOURCES = $(LibTorrent_Test_Common) \
 	net/test_socket_listen.cc \
 	net/test_socket_listen.h
+
+LibTorrent_Test_Tracker_SOURCES = $(LibTorrent_Test_Common) \
+	tracker/test_tracker_http.cc \
+	tracker/test_tracker_http.h
 
 LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	\
@@ -67,12 +79,11 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
+	\
 	data/chunk_list_test.cc \
 	data/chunk_list_test.h \
 	data/hash_check_queue_test.cc \
 	data/hash_check_queue_test.h \
-	data/hash_queue_test.cc \
-	data/hash_queue_test.h \
 	\
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h \
@@ -98,17 +109,18 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/tracker_list_features_test.cc \
 	torrent/tracker_list_features_test.h \
 	torrent/tracker_timeout_test.cc \
-	torrent/tracker_timeout_test.h \
-	\
-	tracker/tracker_http_test.cc \
-	tracker/tracker_http_test.h
+	torrent/tracker_timeout_test.h
 
 LibTorrent_Test_Torrent_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_Torrent_Utils_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Utils_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Data_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Data_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Tracker_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Tracker_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 

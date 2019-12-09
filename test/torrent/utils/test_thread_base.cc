@@ -2,6 +2,8 @@
 
 #include "test_thread_base.h"
 
+#include "helpers/test_utils.h"
+
 #include <functional>
 #include <unistd.h>
 
@@ -64,20 +66,6 @@ thread_test::call_events() {
 
   if ((m_test_flags & test_flag_post_poke)) {
   }
-}
-
-bool
-wait_for_true(std::function<bool ()> test_function) {
-  int i = 100;
-
-  do {
-    if (test_function())
-      return true;
-
-    usleep(10 * 1000);
-  } while (--i);
-
-  return false;
 }
 
 void
