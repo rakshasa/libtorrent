@@ -7,7 +7,7 @@ class test_signal_bitfield : public test_fixture {
   CPPUNIT_TEST(test_single);
   CPPUNIT_TEST(test_multiple);
 
-  CPPUNIT_TEST(test_thread);
+  CPPUNIT_TEST(test_threaded);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -18,5 +18,5 @@ public:
   void test_single();
   void test_multiple();
 
-  void test_thread();
+  void test_threaded();
 };

@@ -1,20 +1,23 @@
 #include "config.h"
 
+#include "test_hash_check_queue.h"
+
+#include "helpers/test_thread.h"
+#include "helpers/test_utils.h"
+
 #include <functional>
 #include <signal.h>
 
-#include "data/hash_queue_node.h"
+#include "data/chunk_handle.h"
 #include "utils/sha1.h"
 #include "torrent/chunk_manager.h"
 #include "torrent/exceptions.h"
 #include "torrent/poll_select.h"
-#include "torrent/utils/thread_base_test.h"
 #include "thread_disk.h"
 
 #include "chunk_list_test.h"
-#include "hash_check_queue_test.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(HashCheckQueueTest);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_hash_check_queue, "data");
 
 pthread_mutex_t done_chunks_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -68,22 +71,16 @@ static torrent::Poll* create_select_poll() { return torrent::PollSelect::create(
 static void do_nothing() {}
 
 void
-HashCheckQueueTest::setUp() {
+test_hash_check_queue::setUp() {
+  test_fixture::setUp();
+
   torrent::Poll::slot_create_poll() = std::bind(&create_select_poll);
 
   signal(SIGUSR1, (sig_t)&do_nothing);
 }
 
 void
-HashCheckQueueTest::tearDown() {
-}
-
-void
-HashCheckQueueTest::test_basic() {
-}
-
-void
-HashCheckQueueTest::test_single() {
+test_hash_check_queue::test_single() {
   SETUP_CHUNK_LIST();
   torrent::HashCheckQueue hash_queue;
 
@@ -110,7 +107,7 @@ HashCheckQueueTest::test_single() {
 }
 
 void
-HashCheckQueueTest::test_multiple() {
+test_hash_check_queue::test_multiple() {
   SETUP_CHUNK_LIST();
   torrent::HashCheckQueue hash_queue;
 
@@ -143,7 +140,7 @@ HashCheckQueueTest::test_multiple() {
 }
 
 void
-HashCheckQueueTest::test_erase() {
+test_hash_check_queue::test_erase() {
   // SETUP_CHUNK_LIST();
   // torrent::HashCheckQueue hash_queue;
 
@@ -176,7 +173,7 @@ HashCheckQueueTest::test_erase() {
 }
 
 void
-HashCheckQueueTest::test_thread() {
+test_hash_check_queue::test_thread() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD();
   thread_disk->start_thread();

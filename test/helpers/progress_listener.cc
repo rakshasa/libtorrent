@@ -39,7 +39,7 @@ progress_listener::addFailure(const CppUnit::TestFailure &failure) {
   std::cout << " : " << (failure.isError() ? "error" : "assertion") << std::flush;
 
   m_last_test_failed = true;
-  m_failures.push_back(std::move(failure_type{failure.failedTestName(), std::move(m_current_log_buffer)}));
+  m_failures.push_back(failure_type{ failure.failedTestName(), std::move(m_current_log_buffer) });
 }
 
 void

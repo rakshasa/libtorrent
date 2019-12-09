@@ -1,7 +1,8 @@
 SUBDIRS = torrent
 
 lib_LTLIBRARIES = libtorrent.la
-noinst_LTLIBRARIES = libtorrent_other.la
+noinst_LTLIBRARIES = \
+	libtorrent_other.la
 
 libtorrent_la_LDFLAGS = -version-info $(LIBTORRENT_INTERFACE_VERSION_INFO)
 libtorrent_la_LIBADD = \

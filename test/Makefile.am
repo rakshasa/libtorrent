@@ -30,7 +30,9 @@ LibTorrent_Test_Common = \
 	helpers/progress_listener.cc \
 	helpers/progress_listener.h \
 	helpers/test_fixture.cc \
-	helpers/test_fixture.h
+	helpers/test_fixture.h \
+	helpers/test_thread.cc \
+	helpers/test_thread.h
 
 LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_address_info.cc \
@@ -59,6 +61,10 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_uri_parser.h
 
 LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
+	data/test_chunk_list.cc \
+	data/test_chunk_list.h \
+	data/test_hash_check_queue.cc \
+	data/test_hash_check_queue.h \
 	data/test_hash_queue.cc \
 	data/test_hash_queue.h
 
@@ -79,11 +85,6 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	rak/allocators_test.h \
 	rak/ranges_test.cc \
 	rak/ranges_test.h \
-	\
-	data/chunk_list_test.cc \
-	data/chunk_list_test.h \
-	data/hash_check_queue_test.cc \
-	data/hash_check_queue_test.h \
 	\
 	protocol/test_request_list.cc \
 	protocol/test_request_list.h \

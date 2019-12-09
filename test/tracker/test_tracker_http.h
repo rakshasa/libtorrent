@@ -5,10 +5,8 @@
 class test_tracker_http : public test_fixture {
   CPPUNIT_TEST_SUITE(test_tracker_http);
   CPPUNIT_TEST(test_basic);
-  CPPUNIT_TEST(test_scrape);
   CPPUNIT_TEST_SUITE_END();
 
 public:
   void test_basic();
-  void test_scrape();
 };
