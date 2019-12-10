@@ -1,6 +1,7 @@
 TESTS = \
 	LibTorrent_Test_Torrent_Net \
 	LibTorrent_Test_Torrent_Utils \
+	LibTorrent_Test_Torrent \
 	LibTorrent_Test_Data \
 	LibTorrent_Test_Net \
 	LibTorrent_Test_Tracker \
@@ -15,6 +16,7 @@ LibTorrent_Test_LDADD = \
 
 LibTorrent_Test_Torrent_Net_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Torrent_Utils_LDADD = $(LibTorrent_Test_LDADD)
+LibTorrent_Test_Torrent_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Data_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Net_LDADD = $(LibTorrent_Test_LDADD)
 LibTorrent_Test_Tracker_LDADD = $(LibTorrent_Test_LDADD)
@@ -60,6 +62,31 @@ LibTorrent_Test_Torrent_Utils_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/utils/test_uri_parser.cc \
 	torrent/utils/test_uri_parser.h
 
+LibTorrent_Test_Torrent_SOURCES = $(LibTorrent_Test_Common) \
+	torrent/test_http.cc \
+	torrent/test_http.h \
+	\
+	torrent/object_test.cc \
+	torrent/object_test.h \
+	torrent/object_test_utils.cc \
+	torrent/object_test_utils.h \
+	torrent/object_static_map_test.cc \
+	torrent/object_static_map_test.h \
+	torrent/object_stream_test.cc \
+	torrent/object_stream_test.h \
+	torrent/tracker_controller_test.cc \
+	torrent/tracker_controller_test.h \
+	torrent/tracker_controller_features.cc \
+	torrent/tracker_controller_features.h \
+	torrent/tracker_controller_requesting.cc \
+	torrent/tracker_controller_requesting.h \
+	torrent/tracker_list_test.cc \
+	torrent/tracker_list_test.h \
+	torrent/tracker_list_features_test.cc \
+	torrent/tracker_list_features_test.h \
+	torrent/tracker_timeout_test.cc \
+	torrent/tracker_timeout_test.h
+
 LibTorrent_Test_Data_SOURCES = $(LibTorrent_Test_Common) \
 	data/test_chunk_list.cc \
 	data/test_chunk_list.h \
@@ -87,35 +114,14 @@ LibTorrent_Test_SOURCES = $(LibTorrent_Test_Common) \
 	rak/ranges_test.h \
 	\
 	protocol/test_request_list.cc \
-	protocol/test_request_list.h \
-	\
-	torrent/http_test.cc \
-	torrent/http_test.h \
-	torrent/object_test.cc \
-	torrent/object_test.h \
-	torrent/object_test_utils.cc \
-	torrent/object_test_utils.h \
-	torrent/object_static_map_test.cc \
-	torrent/object_static_map_test.h \
-	torrent/object_stream_test.cc \
-	torrent/object_stream_test.h \
-	torrent/tracker_controller_test.cc \
-	torrent/tracker_controller_test.h \
-	torrent/tracker_controller_features.cc \
-	torrent/tracker_controller_features.h \
-	torrent/tracker_controller_requesting.cc \
-	torrent/tracker_controller_requesting.h \
-	torrent/tracker_list_test.cc \
-	torrent/tracker_list_test.h \
-	torrent/tracker_list_features_test.cc \
-	torrent/tracker_list_features_test.h \
-	torrent/tracker_timeout_test.cc \
-	torrent/tracker_timeout_test.h
+	protocol/test_request_list.h
 
 LibTorrent_Test_Torrent_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Net_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_Torrent_Utils_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Torrent_Utils_LDFLAGS = $(CPPUNIT_LIBS) -ldl
+LibTorrent_Test_Torrent_CXXFLAGS = $(CPPUNIT_CFLAGS)
+LibTorrent_Test_Torrent_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_Data_CXXFLAGS = $(CPPUNIT_CFLAGS)
 LibTorrent_Test_Data_LDFLAGS = $(CPPUNIT_LIBS) -ldl
 LibTorrent_Test_Net_CXXFLAGS = $(CPPUNIT_CFLAGS)
