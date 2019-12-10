@@ -15,7 +15,7 @@
 #include "torrent/poll_select.h"
 #include "thread_disk.h"
 
-#include "chunk_list_test.h"
+#include "test_chunk_list.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_hash_check_queue, "data");
 

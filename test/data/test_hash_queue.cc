@@ -17,8 +17,8 @@
 #import "globals.h"
 #import "thread_disk.h"
 
-#import "chunk_list_test.h"
-#import "hash_check_queue_test.h"
+#import "test_chunk_list.h"
+#import "test_hash_check_queue.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_hash_queue, "data");
 
