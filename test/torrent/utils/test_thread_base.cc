@@ -8,11 +8,15 @@
 #include <functional>
 #include <unistd.h>
 
-#include <torrent/exceptions.h>
-#include <torrent/poll_select.h>
-#include <torrent/utils/thread_base.h>
+#include "torrent/exceptions.h"
+#include "torrent/poll_select.h"
+#include "torrent/utils/log.h"
+#include "torrent/utils/thread_base.h"
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_thread_base, "torrent/utils");
+
+#define TEST_BEGIN(name)                                           \
+  lt_log_print(torrent::LOG_MOCK_CALLS, "thread_base: %s", name);  \
 
 void throw_shutdown_exception() { throw torrent::shutdown_exception(); }
 
@@ -135,8 +139,10 @@ test_thread_base::test_interrupt() {
 
 void
 test_thread_base::test_stop() {
-  CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
-  // torrent::thread_base::acquire_global_lock();
+  { TEST_BEGIN("trylock global lock");
+    CPPUNIT_ASSERT(torrent::thread_base::trylock_global_lock());
+    // torrent::thread_base::acquire_global_lock();
+  };
 
   for (int i = 0; i < 20; i++) {
     CPPUNIT_ASSERT(!torrent::thread_base::trylock_global_lock());
@@ -144,14 +150,20 @@ test_thread_base::test_stop() {
     test_thread* thread = new test_thread;
     thread->set_test_flag(test_thread::test_flag_do_work);
 
-    thread->init_thread();
-    thread->start_thread();
+    { TEST_BEGIN("init and start thread");
+      thread->init_thread();
+      thread->start_thread();
+    };
 
-    thread->stop_thread_wait();
-    CPPUNIT_ASSERT(thread->is_inactive());
+    { TEST_BEGIN("stop and delete thread");
+      thread->stop_thread_wait();
+      CPPUNIT_ASSERT(thread->is_inactive());
 
-    delete thread;
+      delete thread;
+    }
   }
 
-  torrent::thread_base::release_global_lock();
+  { TEST_BEGIN("release global lock");
+    torrent::thread_base::release_global_lock();
+  };
 }
