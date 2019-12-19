@@ -2,31 +2,22 @@
 
 #include "test_uri_parser.h"
 
-#include <cinttypes>
-#include <iostream>
+#include <torrent/utils/log.h>
 #include <torrent/utils/uri_parser.h>
 
-CPPUNIT_TEST_SUITE_REGISTRATION(UriParserTest);
-
-void
-UriParserTest::setUp() {
-}
-
-void
-UriParserTest::tearDown() {
-}
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_uri_parser, "torrent/utils");
 
 void
 test_print_uri_state(torrent::utils::uri_state state) {
-  std::cerr << "state.uri: " << state.uri << std::endl;
-  std::cerr << "state.scheme: " << state.scheme << std::endl;
-  std::cerr << "state.resource: " << state.resource << std::endl;
-  std::cerr << "state.query: " << state.query << std::endl;
-  std::cerr << "state.fragment: " << state.fragment << std::endl;
+  lt_log_print(torrent::LOG_MOCK_CALLS, "state.uri: %s", state.uri.c_str());
+  lt_log_print(torrent::LOG_MOCK_CALLS, "state.scheme: %s", state.scheme.c_str());
+  lt_log_print(torrent::LOG_MOCK_CALLS, "state.resource: %s", state.resource.c_str());
+  lt_log_print(torrent::LOG_MOCK_CALLS, "state.query: %s", state.query.c_str());
+  lt_log_print(torrent::LOG_MOCK_CALLS, "state.fragment: %s", state.fragment.c_str());
 }
 
 void
-UriParserTest::test_basic() {
+test_uri_parser::test_basic() {
   torrent::utils::uri_state state;
 
   CPPUNIT_ASSERT(state.state == torrent::utils::uri_state::state_empty);
@@ -37,7 +28,7 @@ UriParserTest::test_basic() {
 #define MAGNET_BASIC "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
 
 void
-UriParserTest::test_basic_magnet() {
+test_uri_parser::test_basic_magnet() {
   torrent::utils::uri_state state;
 
   uri_parse_str(MAGNET_BASIC, state);
@@ -63,7 +54,7 @@ UriParserTest::test_basic_magnet() {
 #define QUERY_MAGNET "magnet:?" QUERY_MAGNET_QUERY
 
 void
-UriParserTest::test_query_magnet() {
+test_uri_parser::test_query_magnet() {
   torrent::utils::uri_state state;
   torrent::utils::uri_query_state query_state;
 
@@ -82,7 +73,7 @@ UriParserTest::test_query_magnet() {
   uri_parse_query_str(state.query, query_state);
   
   for (auto element : query_state.elements)
-    std::cerr << "query_element: " << element << std::endl;
+    lt_log_print(torrent::LOG_MOCK_CALLS, "query_element: %s", element.c_str());
 
   CPPUNIT_ASSERT(query_state.state == torrent::utils::uri_query_state::state_valid);
 

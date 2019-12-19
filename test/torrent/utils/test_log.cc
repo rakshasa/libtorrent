@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "test_log.h"
+
 #include <algorithm>
 #include <cstring>
 #include <fstream>
@@ -9,14 +11,12 @@
 #include <torrent/exceptions.h>
 #include <torrent/utils/log.h>
 
-#include "log_test.h"
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_log, "torrent/utils");
 
 namespace torrent {
 typedef std::vector<std::pair<std::string, log_slot> > log_output_list;
 extern log_output_list log_outputs;
 }
-
-CPPUNIT_TEST_SUITE_REGISTRATION(utils_log_test);
 
 const char* expected_output = NULL;
 unsigned int output_mask;
@@ -35,19 +35,19 @@ test_output(const char* output, unsigned int length, unsigned int mask) {
   CPPUNIT_ASSERT(output_mask == (mask));
 
 void
-utils_log_test::setUp() {
+test_log::setUp() {
   // Don't initialize since this creates the group->child connections.
   //  torrent::log_initialize();
   torrent::log_cleanup();
 }
 
 void
-utils_log_test::tearDown() {
+test_log::tearDown() {
   torrent::log_cleanup();
 }
 
 void
-utils_log_test::test_basic() {
+test_log::test_basic() {
   CPPUNIT_ASSERT(!torrent::log_groups.empty());
   CPPUNIT_ASSERT(torrent::log_groups.size() == torrent::LOG_GROUP_MAX_SIZE);
 
@@ -61,7 +61,7 @@ open_output(const char* name, int mask = 0) {
 }
 
 void
-utils_log_test::test_output_open() {
+test_log::test_output_open() {
   CPPUNIT_ASSERT(torrent::log_groups[0].size_outputs() == 0);
 
   // Add test for unknown output names.
@@ -92,7 +92,7 @@ utils_log_test::test_output_open() {
 // on unused log items.
 
 void
-utils_log_test::test_print() {
+test_log::test_print() {
   open_output("test_print_1", 0x1);
   open_output("test_print_2", 0x2);
   torrent::log_add_group_output(0, "test_print_1");
@@ -113,7 +113,7 @@ enum {
 };
 
 void
-utils_log_test::test_children() {
+test_log::test_children() {
   open_output("test_children_1", 0x1);
   open_output("test_children_2", 0x2);
   torrent::log_add_group_output(GROUP_PARENT_1, "test_children_1");
@@ -136,8 +136,8 @@ utils_log_test::test_children() {
 }
 
 void
-utils_log_test::test_file_output() {
-  std::string filename = "utils_log_test.XXXXXX";
+test_log::test_file_output() {
+  std::string filename = "test_log.XXXXXX";
 
   mktemp(&*filename.begin());
 
@@ -159,8 +159,8 @@ utils_log_test::test_file_output() {
 }
 
 void
-utils_log_test::test_file_output_append() {
-  std::string filename = "utils_log_test.XXXXXX";
+test_log::test_file_output_append() {
+  std::string filename = "test_log.XXXXXX";
 
   mktemp(&*filename.begin());
 

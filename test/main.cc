@@ -19,9 +19,11 @@
 #include "helpers/progress_listener.h"
 #include "helpers/utils.h"
 
-CPPUNIT_REGISTRY_ADD_TO_DEFAULT("net");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/net");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/utils");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("net");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("tracker");
 
 void
 do_test_panic(int signum) {
