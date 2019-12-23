@@ -252,10 +252,7 @@ resume_save_progress(Download download, Object& object) {
 
       //    } else if ((*listItr)->completed_chunks() == (*listItr)->size_chunks()) {
 
-    } else if (fileList->bitfield()->is_all_set()) {
-      // Currently only checking if we're finished. This needs to be
-      // smarter when it comes to downloading partial torrents, etc.
-
+    } else if (download.data()->is_partially_done()) {
       // This assumes the syncs are properly called before
       // resume_save_progress gets called after finishing a torrent.
       filesItr->insert_key("mtime", (int64_t)fs.modified_time());

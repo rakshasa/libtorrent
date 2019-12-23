@@ -195,7 +195,7 @@ PeerConnectionBase::initialize(DownloadMain* download, PeerInfo* peerInfo, Socke
 
   m_peerChunks.download_cache()->clear();
 
-  if (!m_download->file_list()->is_done()) {
+  if (!m_download->file_list()->data()->is_partially_done()) {
     m_sendInterested = true;
     m_downInterested = true;
   }

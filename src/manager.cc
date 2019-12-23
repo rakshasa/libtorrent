@@ -62,7 +62,7 @@ Manager::Manager() :
   m_connectionManager->listen()->slot_accepted() =
     std::bind(&HandshakeManager::add_incoming, m_handshakeManager, std::placeholders::_1, std::placeholders::_2);
 
-  m_resourceManager->push_group("default");
+  m_resourceManager->push_group("default_leech");
   m_resourceManager->group_back()->up_queue()->set_heuristics(choke_queue::HEURISTICS_UPLOAD_LEECH);
   m_resourceManager->group_back()->down_queue()->set_heuristics(choke_queue::HEURISTICS_DOWNLOAD_LEECH);
 }

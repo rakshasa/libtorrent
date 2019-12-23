@@ -691,7 +691,7 @@ PeerConnection<type>::read_have_chunk(uint32_t index) {
     m_download->choke_group()->up_queue()->set_not_queued(this, &m_upChoke);
   }
 
-  if (type != Download::CONNECTION_LEECH || m_download->file_list()->is_done())
+  if (type != Download::CONNECTION_LEECH || m_download->file_list()->data()->is_partially_done())
     return;
 
   if (is_down_interested()) {

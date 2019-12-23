@@ -109,6 +109,9 @@ public:
   uint64_t            size_bytes() const                              { return m_torrentSize; }
   uint32_t            size_chunks() const                             { return bitfield()->size_bits(); }
 
+  uint64_t            selected_size_bytes() const                     { return m_selectedSize; }
+  void                set_selected_size_bytes(uint64_t bytes = 0);
+
   uint32_t            completed_chunks() const                        { return bitfield()->size_set(); }
   uint64_t            completed_bytes() const;
   uint64_t            left_bytes() const;
@@ -187,6 +190,7 @@ private:
   uint64_t            m_torrentSize;
   uint32_t            m_chunkSize;
   uint64_t            m_maxFileSize;
+  uint64_t            m_selectedSize;
 
   std::string         m_rootDir;
 
