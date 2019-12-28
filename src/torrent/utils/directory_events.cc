@@ -110,6 +110,9 @@ directory_events::notify_on(const std::string& path, int flags, const slot_strin
   in_flags |= IN_ONLYDIR;
 #endif 
 
+  if ((flags & flag_on_added))
+    in_flags |= (IN_CREATE | IN_MOVED_TO);
+
   if ((flags & flag_on_updated))
     in_flags |= (IN_CLOSE | IN_ATTRIB);
 
@@ -145,7 +148,7 @@ directory_events::event_read() {
   while (event + 1 <= (struct inotify_event*)(buffer + result)) {
     char* next_event = (char*)event + sizeof(struct inotify_event) + event->len;
 
-    if (event->len == 0 || next_event > buffer + 2048) {
+    if (event->len == 0 || next_event > buffer + 2048)
       return;
 
     wd_list::const_iterator itr = std::find_if(m_wd_list.begin(), m_wd_list.end(),
