@@ -8,17 +8,9 @@
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_log_buffer, "torrent/utils");
 
 void
-test_log_buffer::setUp() {
-  torrent::cachedTime = rak::timer::from_seconds(1000);
-}
-
-void
-test_log_buffer::tearDown() {
-}
-
-void
 test_log_buffer::test_basic() {
   torrent::log_buffer log;
+  torrent::cachedTime = rak::timer::from_seconds(1000);
 
   log.lock();
   CPPUNIT_ASSERT(log.empty());
@@ -46,6 +38,7 @@ test_log_buffer::test_basic() {
 void
 test_log_buffer::test_timestamps() {
   torrent::log_buffer log;
+  torrent::cachedTime = rak::timer::from_seconds(1000);
 
   log.lock_and_push_log("foobar", 6, 0);
   CPPUNIT_ASSERT(log.back().timestamp == 1000);

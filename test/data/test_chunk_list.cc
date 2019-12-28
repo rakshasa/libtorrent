@@ -1,11 +1,11 @@
-#include "config.h"
+#import "config.h"
 
-#include "chunk_list_test.h"
+#import "test_chunk_list.h"
 
-#include "torrent/chunk_manager.h"
-#include "torrent/exceptions.h"
+#import "torrent/chunk_manager.h"
+#import "torrent/exceptions.h"
 
-CPPUNIT_TEST_SUITE_REGISTRATION(ChunkListTest);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_chunk_list, "data");
 
 torrent::Chunk*
 func_create_chunk(uint32_t index, int prot_flags) {
@@ -36,7 +36,7 @@ func_storage_error(torrent::ChunkList* chunk_list, const std::string& message) {
 }
 
 void
-ChunkListTest::test_basic() {
+test_chunk_list::test_basic() {
   torrent::ChunkManager chunk_manager;
   torrent::ChunkList chunk_list;
 
@@ -55,7 +55,7 @@ ChunkListTest::test_basic() {
 }
 
 void
-ChunkListTest::test_get_release() {
+test_chunk_list::test_get_release() {
   SETUP_CHUNK_LIST();
 
   CPPUNIT_ASSERT(!(*chunk_list)[0].is_valid());
@@ -112,7 +112,7 @@ ChunkListTest::test_get_release() {
 
 // Make sure we can't go into writable when blocking, etc.
 void
-ChunkListTest::test_blocking() {
+test_chunk_list::test_blocking() {
   SETUP_CHUNK_LIST();
 
   torrent::ChunkHandle handle_0_ro = chunk_list->get(0, torrent::ChunkList::get_blocking);

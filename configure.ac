@@ -17,10 +17,11 @@ AC_SUBST(LIBTORRENT_CURRENT)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_INFO)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
 
-AM_INIT_AUTOMAKE([serial-tests])
+AM_INIT_AUTOMAKE([serial-tests subdir-objects])
 AC_CONFIG_HEADERS(config.h)
 
 AC_PROG_CXX
+AC_SYS_LARGEFILE
 
 AC_C_BIGENDIAN(
     AC_DEFINE(IS_BIG_ENDIAN, 1, Big endian),
@@ -33,10 +34,9 @@ RAK_CHECK_CXXFLAGS
 RAK_ENABLE_DEBUG
 RAK_ENABLE_EXTRA_DEBUG
 RAK_ENABLE_WERROR
+RAK_DISABLE_BACKTRACE
 
 RAK_CHECK_CXX11
-
-AC_SYS_LARGEFILE
 
 TORRENT_ENABLE_ALIGNED
 TORRENT_ENABLE_INTERRUPT_SOCKET
@@ -57,8 +57,8 @@ TORRENT_WITH_INOTIFY
 
 CC_ATTRIBUTE_VISIBILITY
 
-AX_PTHREAD
 AX_CHECK_ZLIB
+AX_PTHREAD
 
 PKG_CHECK_MODULES([CPPUNIT], [cppunit],, [no_cppunit="yes"])
 
@@ -74,7 +74,6 @@ AC_CHECK_FUNCS(posix_memalign)
 TORRENT_CHECK_MADVISE()
 TORRENT_CHECK_CACHELINE()
 TORRENT_CHECK_POPCOUNT()
-TORRENT_CHECK_EXECINFO()
 TORRENT_CHECK_PTHREAD_SETNAME_NP()
 TORRENT_MINCORE()
 
@@ -98,17 +97,7 @@ AC_OUTPUT([
 	Makefile
 	src/Makefile
 	src/torrent/Makefile
-	src/torrent/data/Makefile
-	src/torrent/download/Makefile
-	src/torrent/net/Makefile
-	src/torrent/peer/Makefile
-	src/torrent/utils/Makefile
-	src/data/Makefile
-	src/dht/Makefile
-	src/download/Makefile
-	src/net/Makefile
-	src/protocol/Makefile
-	src/tracker/Makefile
-	src/utils/Makefile
         test/Makefile
+        test/torrent/net/Makefile
+        test/net/Makefile
 ])

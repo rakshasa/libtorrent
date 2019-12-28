@@ -1,10 +1,7 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "helpers/test_fixture.h"
 
-#include "data/hash_queue.h"
-
-class HashQueueTest : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(HashQueueTest);
-  CPPUNIT_TEST(test_basic);
+class test_hash_queue : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_hash_queue);
 
   CPPUNIT_TEST(test_single);
   CPPUNIT_TEST(test_multiple);
@@ -16,8 +13,6 @@ class HashQueueTest : public CppUnit::TestFixture {
 public:
   void setUp();
   void tearDown();
-
-  void test_basic();
 
   void test_single();
   void test_multiple();

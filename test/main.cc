@@ -12,16 +12,18 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 
-#ifdef USE_EXECINFO
+#ifdef HAVE_BACKTRACE
 #include <execinfo.h>
 #endif
 
 #include "helpers/progress_listener.h"
 #include "helpers/utils.h"
 
-CPPUNIT_REGISTRY_ADD_TO_DEFAULT("net");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/net");
 CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent/utils");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("torrent");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("net");
+CPPUNIT_REGISTRY_ADD_TO_DEFAULT("tracker");
 
 void
 do_test_panic(int signum) {
@@ -29,7 +31,7 @@ do_test_panic(int signum) {
 
   std::cout << std::endl << std::endl << "Caught " << strsignal(signum) << ", dumping stack:" << std::endl << std::endl;
   
-#ifdef USE_EXECINFO
+#ifdef HAVE_BACKTRACE
   void* stackPtrs[20];
 
   // Print the stack and exit.
