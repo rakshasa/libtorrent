@@ -7,4 +7,5 @@ Name: libtorrent
 Description: A BitTorrent library
 Version: @VERSION@
 Libs: -L${libdir} -ltorrent
+Libs.Private: -lz
 Cflags: -I${includedir}

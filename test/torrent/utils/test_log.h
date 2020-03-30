@@ -1,9 +1,7 @@
-#include <cppunit/extensions/HelperMacros.h>
+#include "helpers/test_fixture.h"
 
-#include "torrent/utils/log.h"
-
-class utils_log_test : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(utils_log_test);
+class test_log : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_log);
   CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_output_open);
 

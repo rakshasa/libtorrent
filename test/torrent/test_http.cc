@@ -1,10 +1,11 @@
 #include "config.h"
 
+#include "test_http.h"
+
 #include <sstream>
+#include "torrent/http.h"
 
-#include "http_test.h"
-
-CPPUNIT_TEST_SUITE_REGISTRATION(HttpTest);
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_http, "torrent");
 
 #define HTTP_SETUP()                                                    \
   bool http_destroyed = false;                                          \
@@ -72,7 +73,7 @@ TestHttp* create_test_http() { return new TestHttp; }
 static void increment_value(int* value) { (*value)++; }
 
 void
-HttpTest::test_basic() {
+test_http::test_basic() {
   torrent::Http::slot_factory() = std::bind(&create_test_http);
 
   torrent::Http* http = torrent::Http::slot_factory()();
@@ -94,7 +95,7 @@ HttpTest::test_basic() {
 }
 
 void
-HttpTest::test_done() {
+test_http::test_done() {
   HTTP_SETUP();
   http->start();
 
@@ -106,7 +107,7 @@ HttpTest::test_done() {
 }
 
 void
-HttpTest::test_failure() {
+test_http::test_failure() {
   HTTP_SETUP();
   http->start();
 
@@ -118,7 +119,7 @@ HttpTest::test_failure() {
 }
 
 void
-HttpTest::test_delete_on_done() {
+test_http::test_delete_on_done() {
   HTTP_SETUP();
   http->start();
   http->set_delete_stream();
@@ -145,7 +146,7 @@ HttpTest::test_delete_on_done() {
 }
 
 void
-HttpTest::test_delete_on_failure() {
+test_http::test_delete_on_failure() {
   HTTP_SETUP();
   http->start();
   http->set_delete_stream();

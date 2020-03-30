@@ -1,32 +1,32 @@
-#include <map>
-#include <vector>
-#include <cppunit/extensions/HelperMacros.h>
+#import "helpers/test_fixture.h"
 
-#include "data/hash_check_queue.h"
-#include "torrent/hash_string.h"
+class test_hash_check_queue : public test_fixture {
+  CPPUNIT_TEST_SUITE(test_hash_check_queue);
 
-
-class HashCheckQueueTest : public CppUnit::TestFixture {
-  CPPUNIT_TEST_SUITE(HashCheckQueueTest);
-  CPPUNIT_TEST(test_basic);
   CPPUNIT_TEST(test_single);
   CPPUNIT_TEST(test_multiple);
   CPPUNIT_TEST(test_erase);
 
   CPPUNIT_TEST(test_thread);
+
   CPPUNIT_TEST_SUITE_END();
 
 public:
   void setUp();
-  void tearDown();
 
-  void test_basic();
   void test_single();
   void test_multiple();
   void test_erase();
 
   void test_thread();
 };
+
+#import <map>
+#import <vector>
+
+#import "data/hash_queue_node.h"
+#import "data/hash_check_queue.h"
+#import "torrent/hash_string.h"
 
 typedef std::map<int, torrent::HashString> done_chunks_type;
 typedef std::vector<torrent::ChunkHandle> handle_list;

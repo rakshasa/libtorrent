@@ -1,22 +1,26 @@
-#include "config.h"
+#import "config.h"
 
-#include <functional>
-#include <signal.h>
+#import "test_hash_queue.h"
 
-#include "data/hash_queue_node.h"
-#include "torrent/chunk_manager.h"
-#include "torrent/exceptions.h"
-#include "torrent/hash_string.h"
-#include "torrent/poll_select.h"
-#include "torrent/utils/thread_base_test.h"
-#include "globals.h"
-#include "thread_disk.h"
+#import "helpers/test_thread.h"
+#import "helpers/test_utils.h"
 
-#include "chunk_list_test.h"
-#include "hash_queue_test.h"
-#include "hash_check_queue_test.h"
+#import <functional>
+#import <signal.h>
 
-CPPUNIT_TEST_SUITE_REGISTRATION(HashQueueTest);
+#import "data/hash_queue.h"
+#import "data/hash_queue_node.h"
+#import "torrent/chunk_manager.h"
+#import "torrent/exceptions.h"
+#import "torrent/hash_string.h"
+#import "torrent/poll_select.h"
+#import "globals.h"
+#import "thread_disk.h"
+
+#import "test_chunk_list.h"
+#import "test_hash_check_queue.h"
+
+CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_hash_queue, "data");
 
 typedef std::map<int, torrent::HashString> done_chunks_type;
 
@@ -39,7 +43,9 @@ static torrent::Poll* create_select_poll() { return torrent::PollSelect::create(
 static void do_nothing() {}
 
 void
-HashQueueTest::setUp() {
+test_hash_queue::setUp() {
+  test_fixture::setUp();
+
   CPPUNIT_ASSERT(torrent::taskScheduler.empty());
 
   torrent::Poll::slot_create_poll() = std::bind(&create_select_poll);
@@ -47,25 +53,9 @@ HashQueueTest::setUp() {
 }
 
 void
-HashQueueTest::tearDown() {
+test_hash_queue::tearDown() {
   torrent::taskScheduler.clear();
-}
-
-void
-HashQueueTest::test_basic() {
-  // SETUP_CHUNK_LIST();
-  // SETUP_THREAD();
-  // thread_disk->start_thread();
-
-  // torrent::HashQueue* hash_queue = new torrent::HashQueue(thread_disk);
-  
-  // // Do stuff?
-
-  // delete hash_queue;
-
-  // thread_disk->stop_thread();
-  // CLEANUP_THREAD();
-  // CLEANUP_CHUNK_LIST();
+  test_fixture::tearDown();
 }
 
 static void
@@ -73,7 +63,7 @@ fill_queue() {
 }
 
 void
-HashQueueTest::test_single() {
+test_hash_queue::test_single() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD();
   thread_disk->start_thread();
@@ -105,7 +95,7 @@ HashQueueTest::test_single() {
 }
 
 void
-HashQueueTest::test_multiple() {
+test_hash_queue::test_multiple() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD();
   thread_disk->start_thread();
@@ -137,7 +127,7 @@ HashQueueTest::test_multiple() {
 }
 
 void
-HashQueueTest::test_erase() {
+test_hash_queue::test_erase() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD();
 
@@ -164,7 +154,7 @@ HashQueueTest::test_erase() {
 }
 
 void
-HashQueueTest::test_erase_stress() {
+test_hash_queue::test_erase_stress() {
   SETUP_CHUNK_LIST();
   SETUP_THREAD();
   thread_disk->start_thread();
