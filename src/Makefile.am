@@ -138,6 +138,8 @@ libtorrent_other_la_SOURCES = \
 	utils/sha1.h \
 	utils/sha_fast.cc \
 	utils/sha_fast.h \
-	utils/queue_buckets.h
+	utils/queue_buckets.h \
+	utils/udnsevent.cc \
+	utils/udnsevent.h
 
 AM_CPPFLAGS = -I$(srcdir) -I$(top_srcdir)
