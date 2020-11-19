@@ -64,7 +64,7 @@ ResourceManager::ResourceManager() :
 {
 }
 
-ResourceManager::~ResourceManager() {
+ResourceManager::~ResourceManager() noexcept(false) {
   if (m_currentlyUploadUnchoked != 0)
     throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyUploadUnchoked != 0.");
 
@@ -115,7 +115,7 @@ ResourceManager::update_group_iterators() {
 }
 
 void
-ResourceManager::validate_group_iterators() {
+ResourceManager::validate_group_iterators() noexcept(false) {
   base_type::iterator       entry_itr = base_type::begin();
   choke_base_type::iterator group_itr = choke_base_type::begin();
 
@@ -133,7 +133,7 @@ ResourceManager::validate_group_iterators() {
 }
 
 void
-ResourceManager::erase(DownloadMain* d) {
+ResourceManager::erase(DownloadMain* d) noexcept(false) {
   iterator itr = std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
 
   if (itr == end())
@@ -282,7 +282,7 @@ ResourceManager::set_max_download_unchoked(unsigned int m) {
 // The choking choke manager won't updated it's count until after
 // possibly multiple calls of this function.
 void
-ResourceManager::receive_upload_unchoke(int num) {
+ResourceManager::receive_upload_unchoke(int num) noexcept(false) {
   lt_log_print(LOG_PEER_INFO, "Upload unchoked slots adjust; currently:%u adjust:%i", m_currentlyUploadUnchoked, num);
 
   if ((int)m_currentlyUploadUnchoked + num < 0)
@@ -292,7 +292,7 @@ ResourceManager::receive_upload_unchoke(int num) {
 }
 
 void
-ResourceManager::receive_download_unchoke(int num) {
+ResourceManager::receive_download_unchoke(int num) noexcept(false) {
   lt_log_print(LOG_PEER_INFO, "Download unchoked slots adjust; currently:%u adjust:%i", m_currentlyDownloadUnchoked, num);
 
   if ((int)m_currentlyDownloadUnchoked + num < 0)
@@ -346,7 +346,7 @@ ResourceManager::total_weight() const {
 }
 
 int
-ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) {
+ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked, bool is_up) noexcept(false) {
   int change = 0;
 
   if (max_unchoked == 0) {

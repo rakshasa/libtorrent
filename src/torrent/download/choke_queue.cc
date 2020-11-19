@@ -70,7 +70,7 @@ log_choke_changes_func_new(void* address, const char* title, int quota, int adju
                title, quota, adjust);
 }
 
-choke_queue::~choke_queue() {
+choke_queue::~choke_queue() noexcept(false) {
   if (m_currently_unchoked != 0)
     throw internal_error("choke_queue::~choke_queue() called but m_currentlyUnchoked != 0.");
 
@@ -265,7 +265,7 @@ choke_queue::balance_entry(group_entry* entry) {
 }
 
 int
-choke_queue::cycle(uint32_t quota) {
+choke_queue::cycle(uint32_t quota) noexcept(false) {
   // TODO: This should not use the old values, but rather the number
   // of unchoked this round.
   // HACKKKKKK
@@ -423,7 +423,7 @@ choke_queue::disconnected(PeerConnectionBase* pc, choke_status* base) {
 // No need to do any choking as the next choke balancing will take
 // care of things.
 void
-choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain*, group_entry* base) {
+choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain*, group_entry* base) noexcept(false) {
   if (src != NULL) {
     group_container_type::iterator itr = std::find(src->m_group_container.begin(), src->m_group_container.end(), base);
 
@@ -540,7 +540,7 @@ bool range_is_contained(Itr first, Itr last, Itr lower_bound, Itr upper_bound) {
 uint32_t
 choke_queue::adjust_choke_range(iterator first, iterator last,
                                 container_type* src_container, container_type* dest_container,
-                                uint32_t max, bool is_choke) {
+                                uint32_t max, bool is_choke) noexcept(false) {
   target_type target[order_max_size + 1];
 
   if (is_choke) {

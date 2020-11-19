@@ -62,7 +62,7 @@ public:
   } state_type;
 
   Block();
-  ~Block();
+  ~Block() noexcept(false);
 
   bool                      is_stalled() const                           { return m_notStalled == 0; }
   bool                      is_finished() const                          { return m_leader != NULL && m_leader->is_finished(); }

@@ -59,7 +59,7 @@ public:
   } state_type;
 
   BlockTransfer();
-  ~BlockTransfer();
+  ~BlockTransfer() noexcept(false);
 
   // TODO: Do we need to also check for peer_info?...
   bool                is_valid() const              { return m_block != NULL; }
@@ -124,7 +124,7 @@ BlockTransfer::BlockTransfer() :
 }
 
 inline
-BlockTransfer::~BlockTransfer() {
+BlockTransfer::~BlockTransfer() noexcept(false) {
   if (m_block != NULL)
     throw internal_error("BlockTransfer::~BlockTransfer() block not NULL");
 

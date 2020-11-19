@@ -62,7 +62,7 @@ public:
   using base_type::empty;
 
   ChunkManager();
-  ~ChunkManager();
+  ~ChunkManager() noexcept(false);
   
   uint64_t            memory_usage() const                      { return m_memoryUsage; }
   uint64_t            sync_queue_memory_usage() const;

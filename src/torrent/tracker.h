@@ -36,7 +36,7 @@ public:
   static const int max_flag_size   = 0x10;
   static const int mask_base_flags = 0x10 - 1;
 
-  virtual ~Tracker() {}
+  virtual ~Tracker() noexcept(false) {}
 
   int                 flags() const { return m_flags; }
 

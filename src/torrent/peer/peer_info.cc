@@ -68,7 +68,7 @@ PeerInfo::PeerInfo(const sockaddr* address) :
   m_address = sa->c_sockaddr();
 }
 
-PeerInfo::~PeerInfo() {
+PeerInfo::~PeerInfo() noexcept(false) {
   // if (m_transferCounter != 0)
   //   throw internal_error("PeerInfo::~PeerInfo() m_transferCounter != 0.");
 

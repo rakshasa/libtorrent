@@ -73,7 +73,7 @@ ChunkManager::ChunkManager() :
   m_maxMemoryUsage = (estimate_max_memory_usage() * 4) / 5;
 }
 
-ChunkManager::~ChunkManager() {
+ChunkManager::~ChunkManager() noexcept(false) {
   if (m_memoryUsage != 0 || m_memoryBlockCount != 0)
     throw internal_error("ChunkManager::~ChunkManager() m_memoryUsage != 0 || m_memoryBlockCount != 0.");
 }

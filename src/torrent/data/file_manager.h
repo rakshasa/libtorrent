@@ -59,7 +59,7 @@ public:
   using base_type::rend;
 
   FileManager();
-  ~FileManager();
+  ~FileManager() noexcept(false);
 
   size_type           open_files() const              { return base_type::size(); }
 

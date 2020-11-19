@@ -66,7 +66,7 @@ public:
   using base_type::rend;
 
   TransferList();
-  ~TransferList();
+  ~TransferList() noexcept(false);
 
   iterator            find(uint32_t index);
   const_iterator      find(uint32_t index) const;

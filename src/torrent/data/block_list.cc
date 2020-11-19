@@ -45,7 +45,7 @@
 
 namespace torrent {
 
-BlockList::BlockList(const Piece& piece, uint32_t blockLength) :
+BlockList::BlockList(const Piece& piece, uint32_t blockLength) noexcept(false) :
   m_piece(piece),
   m_priority(PRIORITY_OFF),
   m_finished(0),

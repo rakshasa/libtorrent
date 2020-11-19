@@ -51,7 +51,7 @@ public:
   typedef std::function<void (void)> slot_void;
 
   priority_item() {}
-  ~priority_item() {
+  ~priority_item() noexcept(false) {
     if (is_queued())
       throw torrent::internal_error("priority_item::~priority_item() called on a queued item.");
 

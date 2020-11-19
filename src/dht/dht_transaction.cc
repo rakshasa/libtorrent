@@ -59,7 +59,7 @@ DhtSearch::DhtSearch(const HashString& target, const DhtBucket& contacts)
   add_contacts(contacts);
 }
 
-DhtSearch::~DhtSearch() {
+DhtSearch::~DhtSearch() noexcept(false) {
   // Make sure transactions were destructed first. Since it is the destruction
   // of a transaction that triggers this destructor, that should always be the 
   // case.
@@ -207,7 +207,7 @@ DhtSearch::node_status(const_accessor& n, bool success) {
   set_node_active(n, false);
 }
 
-DhtAnnounce::~DhtAnnounce() {
+DhtAnnounce::~DhtAnnounce() noexcept(false) {
   if (!complete())
     throw internal_error("DhtAnnounce::~DhtAnnounce called while announce not complete.");
 

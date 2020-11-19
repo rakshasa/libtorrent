@@ -111,7 +111,7 @@ public:
     m_maxUnchoked(unlimited),
     m_currently_queued(0),
     m_currently_unchoked(0) {}
-  ~choke_queue();
+  ~choke_queue() noexcept(false);
   
   bool                is_full() const                         { return !is_unlimited() && size_unchoked() >= m_maxUnchoked; }
   bool                is_unlimited() const                    { return m_maxUnchoked == unlimited; }

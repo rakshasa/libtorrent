@@ -53,7 +53,7 @@ FileManager::FileManager() :
   m_filesClosedCounter(0),
   m_filesFailedCounter(0) {}
 
-FileManager::~FileManager() {
+FileManager::~FileManager() noexcept(false) {
   if (!empty())
     throw internal_error("FileManager::~FileManager() called but empty() != true.");
 }

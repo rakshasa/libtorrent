@@ -105,7 +105,7 @@ public:
 
 protected:
   Peer() {}
-  virtual ~Peer() {}
+  virtual ~Peer() noexcept(false) {}
 
   Peer(const Peer&);
   void operator = (const Peer&);

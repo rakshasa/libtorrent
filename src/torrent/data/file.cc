@@ -75,7 +75,7 @@ File::File() :
   m_matchDepthNext(0) {
 }
 
-File::~File() {
+File::~File() noexcept(false) {
   if (is_open())
     throw internal_error("File::~File() called on an open file.");
 }

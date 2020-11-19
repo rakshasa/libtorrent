@@ -58,7 +58,7 @@ public:
   static const int flag_prioritize_last    = (1 << 6);
 
   File();
-  ~File();
+  ~File() noexcept(false);
 
   bool                is_created() const;
   bool                is_open() const                          { return m_fd != -1; }
