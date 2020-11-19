@@ -234,6 +234,10 @@ public:
   char* data_end;
 };
 
+// See dht/dht_server.cc
+template <>
+const DhtMessage::key_list_type DhtMessage::base_type::keys;
+
 // Class holding transaction data to be transmitted.
 class DhtTransactionPacket {
 public:
