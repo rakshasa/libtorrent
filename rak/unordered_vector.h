@@ -87,7 +87,7 @@ private:
 
 template <typename _Tp>
 typename unordered_vector<_Tp>::iterator
-unordered_vector<_Tp>::insert(iterator position, const value_type& x) {
+unordered_vector<_Tp>::insert(iterator, const value_type& x) {
   Base::push_back(x);
 
   return --end();

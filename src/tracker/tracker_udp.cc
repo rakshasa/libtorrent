@@ -116,7 +116,7 @@ TrackerUdp::send_state(int state) {
 }
 
 bool
-TrackerUdp::parse_udp_url(const std::string& url, hostname_type& hostname, int& port) const {
+TrackerUdp::parse_udp_url(const std::string&, hostname_type& hostname, int& port) const {
   if (std::sscanf(m_url.c_str(), "udp://%1023[^:]:%i", hostname.data(), &port) == 2 && hostname[0] != '\0' &&
       port > 0 && port < (1 << 16))
     return true;
@@ -138,7 +138,7 @@ TrackerUdp::make_resolver_slot(const hostname_type& hostname) {
 }
 
 void
-TrackerUdp::start_announce(const sockaddr* sa, int err) {
+TrackerUdp::start_announce(const sockaddr* sa, int) {
   if (m_slot_resolver != NULL) {
     *m_slot_resolver = resolver_type();
     m_slot_resolver = NULL;

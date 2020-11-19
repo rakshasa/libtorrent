@@ -50,7 +50,7 @@
 jmp_buf jmp_disk_full;
 
 void
-bus_handler(int sig, siginfo_t *si, void *vuctx)
+bus_handler(int, siginfo_t *si, void *)
 {
     if (si->si_code == BUS_ADRERR)
         longjmp(jmp_disk_full, 1);

@@ -63,7 +63,7 @@ register_signal_handlers() {
   }
 }
 
-int main(int argc, char* argv[]) {
+int main(int, char**) {
   register_signal_handlers();
 
   CppUnit::TestResult controller;

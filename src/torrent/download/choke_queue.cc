@@ -423,7 +423,7 @@ choke_queue::disconnected(PeerConnectionBase* pc, choke_status* base) {
 // No need to do any choking as the next choke balancing will take
 // care of things.
 void
-choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain* download, group_entry* base) {
+choke_queue::move_connections(choke_queue* src, choke_queue* dest, DownloadMain*, group_entry* base) {
   if (src != NULL) {
     group_container_type::iterator itr = std::find(src->m_group_container.begin(), src->m_group_container.end(), base);
 

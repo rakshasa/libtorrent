@@ -278,7 +278,7 @@ resume_save_progress(Download download, Object& object) {
 }
 
 void
-resume_clear_progress(Download download, Object& object) {
+resume_clear_progress(Download, Object& object) {
   object.erase_key("bitfield");
 }
 

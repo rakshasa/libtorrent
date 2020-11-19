@@ -91,7 +91,7 @@ public:
   uint32_t            scrape_incomplete() const             { return m_scrape_incomplete; }
   uint32_t            scrape_downloaded() const             { return m_scrape_downloaded; }
 
-  virtual void        get_status(char* buffer, int length)  { buffer[0] = 0; } 
+  virtual void        get_status(char* buffer, int)         { buffer[0] = 0; } 
 
   static std::string  scrape_url_from(std::string url);
 

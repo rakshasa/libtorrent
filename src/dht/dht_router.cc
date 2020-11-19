@@ -610,7 +610,7 @@ DhtRouter::delete_node(const DhtNodeList::accessor& itr) {
 struct contact_node_t {
   contact_node_t(DhtRouter* router, int port) : m_router(router), m_port(port) { }
 
-  void operator() (const sockaddr* sa, int err)
+  void operator() (const sockaddr* sa, int)
     { if (sa != NULL) m_router->contact(rak::socket_address::cast_from(sa), m_port); }
 
   DhtRouter* m_router;

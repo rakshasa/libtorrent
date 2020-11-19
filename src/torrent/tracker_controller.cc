@@ -130,7 +130,7 @@ TrackerController::seconds_to_next_scrape() const {
 }
 
 void
-TrackerController::manual_request(bool request_now) {
+TrackerController::manual_request(bool) {
   if (!m_private->task_timeout.is_queued())
     return;
 
@@ -566,7 +566,7 @@ TrackerController::receive_failure(Tracker* tb, const std::string& msg) {
 }
 
 void
-TrackerController::receive_scrape(Tracker* tb) {
+TrackerController::receive_scrape(Tracker*) {
   if (!(m_flags & flag_active)) {
     return;
   }

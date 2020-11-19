@@ -350,7 +350,7 @@ DhtServer::create_get_peers_response(const DhtMessage& req, const rak::socket_ad
 }
 
 void
-DhtServer::create_announce_peer_response(const DhtMessage& req, const rak::socket_address* sa, DhtMessage& reply) {
+DhtServer::create_announce_peer_response(const DhtMessage& req, const rak::socket_address* sa, DhtMessage&) {
   raw_string info_hash = req[key_a_infoHash].as_raw_string();
 
   if (info_hash.size() < HashString::size_data)
@@ -542,7 +542,7 @@ DhtServer::drop_packet(DhtTransactionPacket* packet) {
 }
 
 void
-DhtServer::create_query(transaction_itr itr, int tID, const rak::socket_address* sa, int priority) {
+DhtServer::create_query(transaction_itr itr, int tID, const rak::socket_address*, int priority) {
   if (itr->second->id() == m_router->id())
     throw internal_error("DhtServer::create_query trying to send to itself.");
 

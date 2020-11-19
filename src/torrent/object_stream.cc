@@ -608,7 +608,7 @@ object_write_bencode_c(object_write_t writeFunc,
 }
 
 object_buffer_t
-object_write_to_buffer(void* data, object_buffer_t buffer) {
+object_write_to_buffer(void*, object_buffer_t buffer) {
   if (buffer.first == buffer.second)
     throw internal_error("object_write_to_buffer(...) buffer overflow.");
 

@@ -45,7 +45,7 @@
 namespace torrent {
 
 inline bool
-ChunkStatistics::should_add(PeerChunks* pc) {
+ChunkStatistics::should_add(PeerChunks*) {
   return m_accounted < max_accounted;
 }
 

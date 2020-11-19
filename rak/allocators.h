@@ -73,7 +73,7 @@ public:
 
   size_type max_size () const throw() { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
-  pointer allocate(size_type num, const_void_pointer hint = 0) { return alloc_size(num*sizeof(T)); }
+  pointer allocate(size_type num, const_void_pointer = 0) { return alloc_size(num*sizeof(T)); }
 
   static pointer alloc_size(size_type size) {
     pointer ptr = NULL;
@@ -84,7 +84,7 @@ public:
 
   void construct (pointer p, const T& value) { new((void*)p)T(value); }
   void destroy (pointer p) { p->~T(); }
-  void deallocate (pointer p, size_type num) { free((void*)p); }
+  void deallocate (pointer p, size_type) { free((void*)p); }
 };
 
 

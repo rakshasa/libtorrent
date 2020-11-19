@@ -12,7 +12,7 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(TestRequestList);
 
 static uint32_t
-chunk_index_size(uint32_t index) {
+chunk_index_size(uint32_t) {
   return 1 << 10;
 }
 
@@ -110,7 +110,7 @@ transfer_list_completed(torrent::TransferList* transfer_list, uint32_t index) {
 //
 
 static uint32_t
-basic_find_peer_chunk(torrent::PeerChunks* peerChunk, bool highPriority) {
+basic_find_peer_chunk(torrent::PeerChunks*, bool) {
   static int next_index = 0;
 
   return next_index++;

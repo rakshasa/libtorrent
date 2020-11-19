@@ -43,28 +43,28 @@
 namespace torrent {
 
 PeerConnectionBase*
-createPeerConnectionDefault(bool encrypted) {
+createPeerConnectionDefault(bool) {
   PeerConnectionBase* pc = new PeerConnection<Download::CONNECTION_LEECH>;
 
   return pc;
 }
 
 PeerConnectionBase*
-createPeerConnectionSeed(bool encrypted) {
+createPeerConnectionSeed(bool) {
   PeerConnectionBase* pc = new PeerConnection<Download::CONNECTION_SEED>;
 
   return pc;
 }
 
 PeerConnectionBase*
-createPeerConnectionInitialSeed(bool encrypted) {
+createPeerConnectionInitialSeed(bool) {
   PeerConnectionBase* pc = new PeerConnection<Download::CONNECTION_INITIAL_SEED>;
 
   return pc;
 }
 
 PeerConnectionBase*
-createPeerConnectionMetadata(bool encrypted) {
+createPeerConnectionMetadata(bool) {
   PeerConnectionBase* pc = new PeerConnectionMetadata;
 
   return pc;

@@ -451,7 +451,7 @@ PollKQueue::perform() {
 }
 
 unsigned int
-PollKQueue::do_poll(int64_t timeout_usec, int flags) {
+PollKQueue::do_poll(int64_t, int) {
   throw internal_error("An PollKQueue function was called, but it is disabled.");
 }
 

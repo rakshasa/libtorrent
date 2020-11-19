@@ -310,7 +310,7 @@ log_add_group_output(int group, const char* name) {
 }
 
 void
-log_remove_group_output(int group, const char* name) {
+log_remove_group_output(int, const char*) {
 }
 
 // The log_children list is <child, group> since we build the output
@@ -329,7 +329,7 @@ log_add_child(int group, int child) {
 }
 
 void
-log_remove_child(int group, int child) {
+log_remove_child(int, int) {
   // Remove from all groups, then modify all outputs.
 }
 

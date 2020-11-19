@@ -78,7 +78,7 @@ ConnectionList::clear() {
 }
 
 bool
-ConnectionList::want_connection(PeerInfo* p, Bitfield* bitfield) {
+ConnectionList::want_connection(PeerInfo*, Bitfield* bitfield) {
   if (m_download->file_list()->is_done() || m_download->initial_seeding() != NULL)
     return !bitfield->is_all_set();
 

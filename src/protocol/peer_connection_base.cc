@@ -1038,7 +1038,7 @@ PeerConnectionBase::send_ext_message() {
 }
 
 void
-PeerConnectionBase::receive_metadata_piece(uint32_t piece, const char* data, uint32_t length) {
+PeerConnectionBase::receive_metadata_piece(uint32_t, const char*, uint32_t) {
 }
 
 }

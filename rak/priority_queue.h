@@ -126,8 +126,8 @@ public:
 
   typename container_type::const_reference operator * () { return m_queue->top(); }
 
-  bool operator != (const queue_pop_iterator& itr)       { return !m_queue->empty() && !m_compare(m_queue->top()); }
-  bool operator == (const queue_pop_iterator& itr)       { return m_queue->empty() || m_compare(m_queue->top()); }
+  bool operator != (const queue_pop_iterator&)       { return !m_queue->empty() && !m_compare(m_queue->top()); }
+  bool operator == (const queue_pop_iterator&)       { return m_queue->empty() || m_compare(m_queue->top()); }
 
 private:
   Queue*  m_queue;

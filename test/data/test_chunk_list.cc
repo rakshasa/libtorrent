@@ -8,7 +8,7 @@
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_chunk_list, "data");
 
 torrent::Chunk*
-func_create_chunk(uint32_t index, int prot_flags) {
+func_create_chunk(uint32_t index, int) {
   // Do proper handling of prot_flags...
   char* memory_part1 = (char*)mmap(NULL, 10, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 
@@ -27,12 +27,12 @@ func_create_chunk(uint32_t index, int prot_flags) {
 }
 
 uint64_t
-func_free_diskspace(torrent::ChunkList* chunk_list) {
+func_free_diskspace(torrent::ChunkList*) {
   return 0;
 }
 
 void
-func_storage_error(torrent::ChunkList* chunk_list, const std::string& message) {
+func_storage_error(torrent::ChunkList*, const std::string&) {
 }
 
 void

@@ -50,7 +50,7 @@ ObjectStreamTest::testOutputMask() {
 // Dummy function that invalidates the buffer once called.
 
 torrent::object_buffer_t
-object_write_to_invalidate(void* data, torrent::object_buffer_t buffer) {
+object_write_to_invalidate(void*, torrent::object_buffer_t buffer) {
   return torrent::object_buffer_t(buffer.second, buffer.second);
 }
 
