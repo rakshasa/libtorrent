@@ -138,9 +138,12 @@ void
 directory_events::event_read() {
 #ifdef HAVE_INOTIFY
   char buffer[2048];
-  int result = ::read(m_fileDesc, buffer, 2048);
+  ssize_t result = ::read(m_fileDesc, buffer, 2048);
 
-  if (result < sizeof(struct inotify_event))
+  if (result < 0)
+    return;
+
+  if ((size_t)result < sizeof(struct inotify_event))
     return;
 
   struct inotify_event* event = (struct inotify_event*)buffer;

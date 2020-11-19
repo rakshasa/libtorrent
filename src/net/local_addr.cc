@@ -196,7 +196,7 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
     }
 
     for (const nlmsghdr *nlmsg = (const nlmsghdr *)buf;
-         NLMSG_OK(nlmsg, ret);
+         NLMSG_OK(nlmsg, (unsigned int)ret);
          nlmsg = NLMSG_NEXT(nlmsg, ret)) {
       if (nlmsg->nlmsg_seq != seq_no)
         continue;

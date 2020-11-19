@@ -229,7 +229,7 @@ RequestList::downloading(const Piece& piece) {
     //
     // Alternatively, move back some elements to bucket_queued.
 
-    if (std::distance(m_queues.begin(itr.first), itr.second) < m_last_unordered_position)
+    if ((size_t)std::abs(std::distance(m_queues.begin(itr.first), itr.second)) < m_last_unordered_position)
       m_last_unordered_position--;
 
     m_transfer = m_queues.take(itr.first, itr.second);
