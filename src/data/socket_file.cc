@@ -107,7 +107,7 @@ SocketFile::set_size(uint64_t size, int flags) const {
     throw internal_error("SocketFile::set_size() called on a closed file");
 
 #ifdef HAVE_FALLOCATE
-  if (flags & flag_fallocate && fallocate(m_fd, 0, 0, size) == 0)
+  if (flags & flag_fallocate && fallocate(m_fd, 0, 0, size) == 0 && ftruncate(m_fd, size) == 0)
     return true;
 #endif
 
