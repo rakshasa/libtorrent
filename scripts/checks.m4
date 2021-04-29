@@ -490,3 +490,21 @@ AC_DEFUN([TORRENT_CHECK_PTHREAD_SETNAME_NP], [
     ])
   ])
 ])
+
+AC_DEFUN([TORRENT_DISABLE_PTHREAD_SETNAME_NP], [
+  AC_MSG_CHECKING([for pthread_setname_no])
+
+  AC_ARG_ENABLE(pthread-setname-np,
+    AC_HELP_STRING([--disable-pthread-setname-np], [disable pthread_setname_np]),
+    [
+      if test "$enableval" = "no"; then
+        AC_MSG_RESULT(disabled)
+      else
+        AC_MSG_RESULT(checking)
+        TORRENT_CHECK_PTHREAD_SETNAME_NP
+      fi
+    ], [
+      TORRENT_CHECK_PTHREAD_SETNAME_NP
+    ]
+  )
+])
