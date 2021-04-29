@@ -203,6 +203,7 @@ download_priority(Download d) {
   return itr->priority();
 }
 
+// TODO: Remove this.
 void
 download_set_priority(Download d, uint32_t pri) {
   ResourceManager::iterator itr = manager->resource_manager()->find(d.ptr()->main());
