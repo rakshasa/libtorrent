@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <algorithm>
@@ -49,6 +13,10 @@
 #include "torrent/utils/log.h"
 
 #include "choke_queue.h"
+
+// TODO: Add a different logging category.
+#define LT_LOG_THIS(log_fmt, ...)                                       \
+  lt_log_print_subsystem(LOG_TORRENT_INFO, "choke_queue", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -193,6 +161,9 @@ choke_queue::rebuild_containers(container_type* queued, container_type* unchoked
 
 void
 choke_queue::balance() {
+  LT_LOG_THIS("balancing queue: heuristics:%i currently_unchoked:%" PRIu32 " max_unchoked:%" PRIu32,
+              m_heuristics, m_currently_unchoked, m_maxUnchoked)
+
   // Return if no balancing is needed. Don't return if is_unlimited()
   // as we might have just changed the value and have interested that
   // can be unchoked.
@@ -216,6 +187,9 @@ choke_queue::balance() {
 
   // If we have more unchoked than max global slots allow for,
   // 'can_unchoke' will be negative.
+  //
+  // Throws std::bad_function_call if 'set_slot_can_unchoke' is not
+  // set.
   int can_unchoke = m_slotCanUnchoke();
   int max_unchoked = std::min(m_maxUnchoked, (uint32_t)(1 << 20));
 
@@ -240,8 +214,8 @@ choke_queue::balance() {
   if (result != 0)
     m_slotUnchoke(result);
 
-  lt_log_print(LOG_PEER_DEBUG, "Called balance; adjust:%i can_unchoke:%i queued:%u unchoked:%u result:%i.",
-               adjust, can_unchoke, (unsigned)queued.size(), (unsigned)unchoked.size(), result);
+  LT_LOG_THIS("balanced queue: adjust:%i can_unchoke:%i queued:%" PRIu32 " unchoked:%" PRIu32 " result:%i",
+               adjust, can_unchoke, queued.size(), unchoked.size(), result);
 }
 
 void

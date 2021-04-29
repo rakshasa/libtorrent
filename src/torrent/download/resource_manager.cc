@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <algorithm>
@@ -50,6 +14,11 @@
 
 #include "choke_queue.h"
 #include "resource_manager.h"
+
+#define LT_LOG_THIS(log_fmt, ...)                                       \
+  lt_log_print_subsystem(LOG_TORRENT_INFO, "resource_manager", log_fmt, __VA_ARGS__);
+#define LT_LOG_ITR(log_fmt, ...)                                        \
+  lt_log_print_info(LOG_TORRENT_INFO, itr->download()->info(), "resource_manager", log_fmt, __VA_ARGS__);
 
 namespace torrent {
 
@@ -226,6 +195,8 @@ ResourceManager::group_index_of(const std::string& name) {
 
 void
 ResourceManager::set_priority(iterator itr, uint16_t pri) {
+  LT_LOG_ITR("set priority: %" PRIu16, 0)
+
   itr->set_priority(pri);
 }
 
@@ -283,7 +254,7 @@ ResourceManager::set_max_download_unchoked(unsigned int m) {
 // possibly multiple calls of this function.
 void
 ResourceManager::receive_upload_unchoke(int num) {
-  lt_log_print(LOG_PEER_INFO, "Upload unchoked slots adjust; currently:%u adjust:%i", m_currentlyUploadUnchoked, num);
+  LT_LOG_THIS("adjusting upload unchoked slots; current:%u adjusted:%i", m_currentlyUploadUnchoked, num);
 
   if ((int)m_currentlyUploadUnchoked + num < 0)
     throw internal_error("ResourceManager::receive_upload_unchoke(...) received an invalid value.");
@@ -293,7 +264,7 @@ ResourceManager::receive_upload_unchoke(int num) {
 
 void
 ResourceManager::receive_download_unchoke(int num) {
-  lt_log_print(LOG_PEER_INFO, "Download unchoked slots adjust; currently:%u adjust:%i", m_currentlyDownloadUnchoked, num);
+  LT_LOG_THIS("adjusting download unchoked slots; current:%u adjusted:%i", m_currentlyDownloadUnchoked, num);
 
   if ((int)m_currentlyDownloadUnchoked + num < 0)
     throw internal_error("ResourceManager::receive_download_unchoke(...) received an invalid value.");
@@ -387,12 +358,14 @@ ResourceManager::balance_unchoked(unsigned int weight, unsigned int max_unchoked
     std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
                                                  std::bind(&choke_group::up_requested, std::placeholders::_1),
                                                  std::bind(&choke_group::up_requested, std::placeholders::_2)));
-    lt_log_print(LOG_PEER_DEBUG, "Upload unchoked slots cycle; currently:%u adjusted:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
+
+    LT_LOG_THIS("balancing upload unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyUploadUnchoked, change, max_unchoked);
   } else {
     std::sort(group_first, group_last, std::bind(std::less<uint32_t>(),
                                                  std::bind(&choke_group::down_requested, std::placeholders::_1),
                                                  std::bind(&choke_group::down_requested, std::placeholders::_2)));
-    lt_log_print(LOG_PEER_DEBUG, "Download unchoked slots cycle; currently:%u adjusted:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
+
+    LT_LOG_THIS("balancing download unchoked slots; current_unchoked:%u change:%i max_unchoked:%u", m_currentlyDownloadUnchoked, change, max_unchoked);
   }
 
   while (group_first != group_last) {
