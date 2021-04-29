@@ -24,9 +24,9 @@ AC_PROG_CXX
 AC_SYS_LARGEFILE
 
 AC_C_BIGENDIAN(
-    AC_DEFINE(IS_BIG_ENDIAN, 1, Big endian),
-    AC_DEFINE(IS_LITTLE_ENDIAN, 1, Little endian),
-    AC_MSG_ERROR([Could not determine endianness])
+  AC_DEFINE(IS_BIG_ENDIAN, 1, Big endian),
+  AC_DEFINE(IS_LITTLE_ENDIAN, 1, Little endian),
+  AC_MSG_ERROR([Could not determine endianness])
 )
 
 RAK_CHECK_CFLAGS
@@ -54,7 +54,15 @@ TORRENT_WITHOUT_STATVFS
 TORRENT_WITHOUT_STATFS
 TORRENT_WITH_INOTIFY
 
-CC_ATTRIBUTE_VISIBILITY
+AC_ARG_ENABLE(attribute-visibility,
+  AC_HELP_STRING([--disable-attribute-visibility], [disable symbol visibility attribute [[default=enable]]]),
+  [
+    if test "$enableval" = "yes"; then
+      CC_ATTRIBUTE_VISIBILITY
+    fi
+  ],[
+    CC_ATTRIBUTE_VISIBILITY
+  ])
 
 AX_CHECK_ZLIB
 AX_EXECINFO
@@ -71,11 +79,11 @@ TORRENT_ARG_CYRUS_RC4
 
 AC_CHECK_FUNCS(posix_memalign)
 
-TORRENT_CHECK_MADVISE()
-TORRENT_CHECK_CACHELINE()
-TORRENT_CHECK_POPCOUNT()
-TORRENT_CHECK_PTHREAD_SETNAME_NP()
-TORRENT_MINCORE()
+TORRENT_CHECK_MADVISE
+TORRENT_CHECK_CACHELINE
+TORRENT_CHECK_POPCOUNT
+TORRENT_DISABLE_PTHREAD_SETNAME_NP
+TORRENT_MINCORE
 
 TORRENT_DISABLE_INSTRUMENTATION
 
@@ -88,8 +96,8 @@ AC_SUBST(LIBTORRENT_CFLAGS)
 AC_DEFINE(HAVE_CONFIG_H, 1, true if config.h was included)
 
 CC_ATTRIBUTE_UNUSED(
-	AC_DEFINE([__UNUSED], [__attribute__((unused))], [Wrapper around unused attribute]),
-	AC_DEFINE([__UNUSED], [], [Null-wrapper if unused attribute is unsupported])
+  AC_DEFINE([__UNUSED], [__attribute__((unused))], [Wrapper around unused attribute]),
+  AC_DEFINE([__UNUSED], [], [Null-wrapper if unused attribute is unsupported])
 )
 
 AC_OUTPUT([

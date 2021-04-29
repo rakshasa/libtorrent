@@ -41,10 +41,16 @@ thread_base::~thread_base() {
 
 void
 thread_base::start_thread() {
-  if (m_poll == NULL)
+  if (this == nullptr)
+    throw internal_error("Called thread_base::start_thread on a nullptr.");
+
+  if (m_poll == nullptr)
     throw internal_error("No poll object for thread defined.");
 
-  if (!is_initialized() || pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
+  if (!is_initialized())
+    throw internal_error("Called thread_base::start_thread on an uninitialized object.");
+
+  if (pthread_create(&m_thread, NULL, (pthread_func)&thread_base::event_loop, this))
     throw internal_error("Failed to create thread.");
 }
 
@@ -82,6 +88,12 @@ thread_base::should_handle_sigusr1() {
 
 void*
 thread_base::event_loop(thread_base* thread) {
+  if (thread == nullptr)
+    throw internal_error("thread_base::event_loop called with a null pointer thread");
+
+  if (!thread->is_initialized())
+    throw internal_error("thread_base::event_loop call on an uninitialized object");
+
   __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
 
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
