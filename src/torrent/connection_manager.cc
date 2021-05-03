@@ -48,11 +48,79 @@
 #include "exceptions.h"
 #include "manager.h"
 
+#ifdef USE_UDNS
+#include "utils/udnsevent.h"
+#endif
+
 namespace torrent {
 
-// Fix TrackerUdp, etc, if this is made async.
-static ConnectionManager::slot_resolver_result_type*
-resolve_host(const char* host, int family, int socktype, ConnectionManager::slot_resolver_result_type slot) {
+AsyncResolver::AsyncResolver(ConnectionManager *) {}
+
+#ifdef USE_UDNS
+class UdnsAsyncResolver : public AsyncResolver {
+public:
+  UdnsAsyncResolver(ConnectionManager *cm) : AsyncResolver(cm) {}
+
+  void *enqueue(const char *name, int family, resolver_callback *cbck) {
+    return m_udnsevent.enqueue_resolve(name, family, cbck);
+  }
+
+  void flush() {
+    m_udnsevent.flush_resolves();
+  }
+
+  void cancel(void *query) {
+    m_udnsevent.cancel(static_cast<udns_query*>(query));
+  }
+
+protected:
+  UdnsEvent           m_udnsevent;
+};
+#define ASYNC_RESOLVER_IMPL UdnsAsyncResolver
+#else
+class StubAsyncResolver : public AsyncResolver {
+public:
+  struct mock_resolve {
+    std::string hostname;
+    int family;
+    resolver_callback *callback;
+  };
+
+  StubAsyncResolver(ConnectionManager *cm): AsyncResolver(cm), m_connection_manager(cm) {}
+
+  void *enqueue(const char *name, int family, resolver_callback *cbck) {
+    mock_resolve *mr = new mock_resolve {name, family, cbck};
+    m_mock_resolve_queue.emplace_back(mr);
+    return mr;
+  }
+
+  void flush() {
+    // dequeue all callbacks and resolve them synchronously
+    while (!m_mock_resolve_queue.empty()) {
+      std::unique_ptr<mock_resolve> mr = std::move(m_mock_resolve_queue.back());
+      m_mock_resolve_queue.pop_back();
+      m_connection_manager->resolver()(mr->hostname.c_str(), mr->family, 0, *(mr->callback));
+    }
+  }
+
+  void cancel(void *query) {
+    auto it = std::find(
+      std::begin(m_mock_resolve_queue),
+      std::end(m_mock_resolve_queue),
+      std::unique_ptr<mock_resolve>(static_cast<mock_resolve*>(query))
+    );
+    if (it != std::end(m_mock_resolve_queue)) m_mock_resolve_queue.erase(it);
+  }
+
+protected:
+  ConnectionManager *m_connection_manager;
+  std::vector<std::unique_ptr<mock_resolve>> m_mock_resolve_queue;
+};
+#define ASYNC_RESOLVER_IMPL StubAsyncResolver
+#endif
+
+static void
+resolve_host(const char* host, int family, int socktype, resolver_callback slot) {
   if (manager->main_thread_main()->is_current())
     thread_base::release_global_lock();
 
@@ -64,7 +132,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
       thread_base::acquire_global_lock();
 
     slot(NULL, err);
-    return NULL;
+    return;
   }
 
   rak::socket_address sa;
@@ -75,7 +143,7 @@ resolve_host(const char* host, int family, int socktype, ConnectionManager::slot
     thread_base::acquire_global_lock();
   
   slot(sa.c_sockaddr(), 0);
-  return NULL;
+  return;
 }
 
 ConnectionManager::ConnectionManager() :
@@ -89,7 +157,8 @@ ConnectionManager::ConnectionManager() :
 
   m_listen(new Listen),
   m_listen_port(0),
-  m_listen_backlog(SOMAXCONN) {
+  m_listen_backlog(SOMAXCONN),
+  m_async_resolver(new ASYNC_RESOLVER_IMPL(this)) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   m_localAddress = (new rak::socket_address())->c_sockaddr();

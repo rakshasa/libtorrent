@@ -41,6 +41,7 @@
 
 #include <functional>
 #include <list>
+#include <memory>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
@@ -53,6 +54,29 @@ namespace torrent {
 // Standard pair of up/down throttles.
 // First element is upload throttle, second element is download throttle.
 typedef std::pair<Throttle*, Throttle*> ThrottlePair;
+
+// The sockaddr argument in the result call is NULL if the resolve failed,
+// and the int holds the error code.
+typedef std::function<void (const sockaddr*, int)> resolver_callback;
+
+// Encapsulates whether we do genuine async resolution or fall back to sync.
+// In a build with USE_UDNS, these do genuine asynchronous DNS resolution.
+// In a build without it, they're stubbed out to use a synchronous getaddrinfo(3)
+// call, while exposing the same API.
+class LIBTORRENT_EXPORT AsyncResolver {
+public:
+  AsyncResolver(ConnectionManager *);
+
+  // this queues a DNS resolve but doesn't send it. it doesn't execute any callbacks
+  // and returns control immediately. the return value is an opaque identifier that
+  // can be used to cancel the query (as long as the callback hasn't been executed yet):
+  virtual void*   enqueue(const char *name, int family, resolver_callback *cbck) = 0;
+  // this sends any queued resolves. it can execute arbitrary callbacks
+  // before returning control:
+  virtual void    flush() = 0;
+  // this cancels a pending async query (as long as the callback hasn't executed yet):
+  virtual void    cancel(void *query) = 0;
+};
 
 class LIBTORRENT_EXPORT ConnectionManager {
 public:
@@ -100,9 +124,7 @@ public:
   typedef std::function<uint32_t (const sockaddr*)>     slot_filter_type;
   typedef std::function<ThrottlePair (const sockaddr*)> slot_throttle_type;
 
-  // The sockaddr argument in the result slot call is NULL if the resolve failed, and the int holds the errno.
-  typedef std::function<void (const sockaddr*, int)> slot_resolver_result_type;
-  typedef std::function<slot_resolver_result_type* (const char*, int, int, slot_resolver_result_type)> slot_resolver_type;
+  typedef std::function<void (const char*, int, int, resolver_callback)> slot_resolver_type;
 
   ConnectionManager();
   ~ConnectionManager();
@@ -154,11 +176,15 @@ public:
   void                set_listen_port(port_type p)            { m_listen_port = p; }
   void                set_listen_backlog(int v);
 
-  // The resolver returns a pointer to its copy of the result slot
-  // which the caller may set blocked to prevent the slot from being
-  // called. The pointer must be NULL if the result slot was already
-  // called because the resolve was synchronous.
+  void*               enqueue_async_resolve(const char *name, int family, resolver_callback *cbck);
+  void                flush_async_resolves();
+  void                cancel_async_resolve(void *query);
+
+  // Legacy synchronous resolver interface.
   slot_resolver_type& resolver()          { return m_slot_resolver; }
+
+  // Asynchronous resolver interface.
+  AsyncResolver&      async_resolver()    { return *m_async_resolver; }
 
   // The slot returns a ThrottlePair to use for the given address, or
   // NULLs to use the default throttle.
@@ -190,6 +216,8 @@ private:
   slot_filter_type    m_slot_filter;
   slot_resolver_type  m_slot_resolver;
   slot_throttle_type  m_slot_address_throttle;
+
+  std::unique_ptr<AsyncResolver> m_async_resolver;
 };
 
 }
