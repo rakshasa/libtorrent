@@ -71,7 +71,11 @@ SocketFd::set_priority(priority_type p) {
   int opt = p;
 
   if (m_ipv6_socket)
+#ifdef IPV6_TCLASS
     return setsockopt(m_fd, IPPROTO_IPV6, IPV6_TCLASS, &opt, sizeof(opt)) == 0;
+#else
+    return false;
+#endif
   else
     return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
 }
