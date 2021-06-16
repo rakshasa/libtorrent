@@ -64,8 +64,17 @@ AC_ARG_ENABLE(attribute-visibility,
     CC_ATTRIBUTE_VISIBILITY
   ])
 
+AC_ARG_ENABLE(execinfo,
+  AC_HELP_STRING([--disable-execinfo], [disable libexecinfo [[default=enable]]]),
+  [
+    if test "$enableval" = "yes"; then
+      AX_EXECINFO
+    fi
+  ],[
+    AX_EXECINFO
+  ])
+
 AX_CHECK_ZLIB
-AX_EXECINFO
 AX_PTHREAD
 
 PKG_CHECK_MODULES([CPPUNIT], [cppunit],, [no_cppunit="yes"])
