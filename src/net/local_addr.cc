@@ -34,6 +34,8 @@
 //           Skomakerveien 33
 //           3185 Skoppum, NORWAY
 
+// TODO: Remove.
+
 #include "config.h"
 
 #include <stdio.h>
@@ -241,7 +243,7 @@ bool get_local_address(sa_family_t family, rak::socket_address *address) {
       int plen = IFA_PAYLOAD(nlmsg);
       for (const rtattr *rta = IFA_RTA(ifa);
            RTA_OK(rta, plen);
-	   rta = RTA_NEXT(rta, plen)) {
+           rta = RTA_NEXT(rta, plen)) {
         if (rta->rta_type != IFA_LOCAL &&
             rta->rta_type != IFA_ADDRESS) {
           continue;
@@ -303,7 +305,7 @@ get_local_address(sa_family_t family, rak::socket_address *address) {
     dummy_dest.set_address_c_str("4.0.0.0"); 
     break;
   case rak::socket_address::af_inet6:
-    dummy_dest.set_address_c_str("2001:700::"); 
+    dummy_dest.set_address_c_str("2001:1::");
     break;
   default:
     throw internal_error("Unknown address family");

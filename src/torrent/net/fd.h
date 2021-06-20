@@ -9,11 +9,12 @@ namespace torrent {
 
 enum fd_flags : int {
   fd_flag_stream = 0x1,
-  fd_flag_nonblock = 0x10,
-  fd_flag_reuse_address = 0x20,
-  fd_flag_v4only = 0x40,
-  fd_flag_v6only = 0x80,
-  fd_flag_all = 0xff,
+  fd_flag_datagram = 0x10,
+  fd_flag_nonblock = 0x20,
+  fd_flag_reuse_address = 0x40,
+  fd_flag_v4only = 0x80,
+  fd_flag_v6only = 0x100,
+  fd_flag_all = 0x1ff,
 };
 
 constexpr bool fd_valid_flags(fd_flags flags);
@@ -53,7 +54,8 @@ operator |=(fd_flags& lhs, fd_flags rhs) {
 constexpr bool
 fd_valid_flags(fd_flags flags) {
   return
-    (flags & fd_flag_stream) &&
+    ((flags & fd_flag_stream) || (flags & fd_flag_datagram)) &&
+    !((flags & fd_flag_stream) && (flags & fd_flag_datagram)) &&
     !((flags & fd_flag_v4only) && (flags & fd_flag_v6only)) &&
     !(flags & ~(fd_flag_all));
 }
