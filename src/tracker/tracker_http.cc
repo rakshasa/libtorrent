@@ -8,7 +8,6 @@
 #import <rak/string_manip.h>
 
 #import "net/address_list.h"
-#import "net/local_addr.h"
 #import "torrent/connection_manager.h"
 #import "torrent/download_info.h"
 #import "torrent/exceptions.h"
