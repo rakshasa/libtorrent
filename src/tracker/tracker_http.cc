@@ -109,16 +109,13 @@ TrackerHttp::send_state(int state) {
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
   if (localAddress->is_address_any()) {
-    auto ipv4_address = detect_local_sin_addr();
-    auto ipv6_address = detect_local_sin6_addr();
+    if (manager->connection_manager()->is_prefer_ipv6()) {
+      auto ipv6_address = detect_local_sin6_addr();
 
-    if (ipv4_address != nullptr) {
-      s << "&ipv4=" << sin_addr_str(ipv4_address.get());
+      if (ipv6_address != nullptr) {
+        s << "&ip=" << sin6_addr_str(ipv6_address.get());
+      }
     }
-    if (ipv6_address != nullptr) {
-      s << "&ipv6=" << sin6_addr_str(ipv6_address.get());
-    }
-
   } else {
     s << "&ip=" << localAddress->address_str();
   }
