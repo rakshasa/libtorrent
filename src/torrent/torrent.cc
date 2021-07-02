@@ -90,6 +90,11 @@ cleanup() {
 }
 
 bool
+is_initialized() {
+  return manager != NULL;
+}
+
+bool
 is_inactive() {
   return manager == NULL ||
     std::find_if(manager->download_manager()->begin(), manager->download_manager()->end(), std::not1(std::mem_fun(&DownloadWrapper::is_stopped)))
