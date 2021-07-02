@@ -37,6 +37,8 @@ thread_base::thread_base() :
 thread_base::~thread_base() {
   delete m_interrupt_sender;
   delete m_interrupt_receiver;
+  delete m_poll;
+  m_poll = nullptr;
 }
 
 void
