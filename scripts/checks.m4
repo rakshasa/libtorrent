@@ -460,7 +460,7 @@ AC_DEFUN([TORRENT_CHECK_PTHREAD_SETNAME_NP], [
     AC_DEFINE(HAS_PTHREAD_SETNAME_NP_GENERIC, 1, The function to set pthread name has a pthread_t argumet.)
     AC_MSG_RESULT(generic)
   ],[
-    _au_m4_changequote([,])AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
       #include <pthread.h>
       #include <sys/types.h>
     ]],[[
