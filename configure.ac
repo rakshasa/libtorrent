@@ -2,6 +2,8 @@ AC_INIT([[libtorrent]],[[0.13.8]],[[sundell.software@gmail.com]])
 
 LT_INIT([[disable-static]])
 
+AC_CONFIG_MACRO_DIRS([scripts])
+
 dnl Find a better way to do this
 AC_DEFINE([[PEER_NAME]], [["-lt0D80-"]], [[Identifier that is part of the default peer id.]])
 AC_DEFINE([[PEER_VERSION]], [["lt\x0D\x80"]], [[4 byte client and version identifier for DHT.]])
