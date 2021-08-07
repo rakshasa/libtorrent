@@ -1,8 +1,10 @@
 AC_INIT([[libtorrent]],[[0.13.8]],[[sundell.software@gmail.com]])
 
-LT_INIT([[disable-static]])
-
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIRS([scripts])
+AM_INIT_AUTOMAKE([serial-tests subdir-objects foreign])
+
+LT_INIT([[disable-static]])
 
 dnl Find a better way to do this
 AC_DEFINE([[PEER_NAME]], [["-lt0D80-"]], [[Identifier that is part of the default peer id.]])
@@ -18,9 +20,6 @@ LIBTORRENT_INTERFACE_VERSION_NO=$LIBTORRENT_CURRENT.$LIBTORRENT_AGE.$LIBTORRENT_
 AC_SUBST(LIBTORRENT_CURRENT)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_INFO)
 AC_SUBST(LIBTORRENT_INTERFACE_VERSION_NO)
-
-AM_INIT_AUTOMAKE([serial-tests subdir-objects])
-AC_CONFIG_HEADERS(config.h)
 
 AC_PROG_CXX
 AC_SYS_LARGEFILE
@@ -116,8 +115,8 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	src/torrent/Makefile
-        test/Makefile
-        test/torrent/net/Makefile
-        test/net/Makefile
+  test/Makefile
+  test/torrent/net/Makefile
+  test/net/Makefile
 ])
 AC_OUTPUT
