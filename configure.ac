@@ -1,10 +1,10 @@
-AC_INIT(libtorrent, 0.13.8, sundell.software@gmail.com)
+AC_INIT([[libtorrent]],[[0.13.8]],[[sundell.software@gmail.com]])
 
-LT_INIT([disable-static])
+LT_INIT([[disable-static]])
 
 dnl Find a better way to do this
-AC_DEFINE(PEER_NAME, "-lt0D80-", Identifier that is part of the default peer id)
-AC_DEFINE(PEER_VERSION, "lt\x0D\x80", 4 byte client and version identifier for DHT)
+AC_DEFINE([[PEER_NAME]], [["-lt0D80-"]], [[Identifier that is part of the default peer id.]])
+AC_DEFINE([[PEER_VERSION]], [["lt\x0D\x80"]], [[4 byte client and version identifier for DHT.]])
 
 LIBTORRENT_CURRENT=21
 LIBTORRENT_REVISION=0
@@ -29,13 +29,13 @@ AC_C_BIGENDIAN(
   AC_MSG_ERROR([Could not determine endianness])
 )
 
+AX_CXX_COMPILE_STDCXX(14, noext, mandatory)
+
 RAK_CHECK_CFLAGS
 RAK_CHECK_CXXFLAGS
 RAK_ENABLE_DEBUG
 RAK_ENABLE_EXTRA_DEBUG
 RAK_ENABLE_WERROR
-
-RAK_CHECK_CXX11
 
 TORRENT_ENABLE_ALIGNED
 TORRENT_ENABLE_INTERRUPT_SOCKET
@@ -55,7 +55,7 @@ TORRENT_WITHOUT_STATFS
 TORRENT_WITH_INOTIFY
 
 AC_ARG_ENABLE(attribute-visibility,
-  AC_HELP_STRING([--disable-attribute-visibility], [disable symbol visibility attribute [[default=enable]]]),
+  AS_HELP_STRING([--disable-attribute-visibility],[disable symbol visibility attribute [[default=enable]]]),
   [
     if test "$enableval" = "yes"; then
       CC_ATTRIBUTE_VISIBILITY
@@ -65,7 +65,7 @@ AC_ARG_ENABLE(attribute-visibility,
   ])
 
 AC_ARG_ENABLE(execinfo,
-  AC_HELP_STRING([--disable-execinfo], [disable libexecinfo [[default=enable]]]),
+  AS_HELP_STRING([--disable-execinfo],[disable libexecinfo [[default=enable]]]),
   [
     if test "$enableval" = "yes"; then
       AX_EXECINFO
@@ -109,7 +109,7 @@ CC_ATTRIBUTE_UNUSED(
   AC_DEFINE([__UNUSED], [], [Null-wrapper if unused attribute is unsupported])
 )
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 	libtorrent.pc
 	Makefile
 	src/Makefile
@@ -118,3 +118,4 @@ AC_OUTPUT([
         test/torrent/net/Makefile
         test/net/Makefile
 ])
+AC_OUTPUT
