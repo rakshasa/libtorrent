@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <algorithm>
+
 #include <rak/address_info.h>
 #include <rak/string_manip.h>
 
@@ -27,34 +29,6 @@
 
 namespace torrent {
 
-uint32_t
-calculate_max_open_files(uint32_t openMax) {
-  if (openMax >= 8096)
-    return 256;
-  else if (openMax >= 1024)
-    return 128;
-  else if (openMax >= 512)
-    return 64;
-  else if (openMax >= 128)
-    return 16;
-  else // Assumes we don't try less than 64.
-    return 4;
-}
-
-uint32_t
-calculate_reserved(uint32_t openMax) {
-  if (openMax >= 8096)
-    return 256;
-  else if (openMax >= 1024)
-    return 128;
-  else if (openMax >= 512)
-    return 64;
-  else if (openMax >= 128)
-    return 32;
-  else // Assumes we don't try less than 64.
-    return 16;
-}    
-
 void
 initialize() {
   if (manager != NULL)
@@ -67,9 +41,10 @@ initialize() {
   manager = new Manager;
   manager->main_thread_main()->init_thread();
 
-  uint32_t maxFiles = calculate_max_open_files(manager->poll()->open_max());
+  uint32_t maxOpen = manager->poll()->open_max();
+  uint32_t maxFiles = std::max<uint32_t>(4, maxOpen >> 3);
 
-  manager->connection_manager()->set_max_size(manager->poll()->open_max() - maxFiles - calculate_reserved(manager->poll()->open_max()));
+  manager->connection_manager()->set_max_size(maxOpen - maxFiles - std::max<uint32_t>(16, maxOpen >> 3)); // maxOpen - maxFiles - reserved
   manager->file_manager()->set_max_open_files(maxFiles);
 
   manager->main_thread_disk()->init_thread();
