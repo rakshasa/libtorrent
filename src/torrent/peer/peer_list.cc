@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <algorithm>
@@ -262,8 +226,11 @@ PeerList::available_list_size() const {
   return m_available_list->size();
 }
 
+// TODO: Rename connecting:
 PeerInfo*
 PeerList::connected(const sockaddr* sa, int flags) {
+  // TODO: Rewrite to use new socket address api after fixing bug.
+
   const rak::socket_address* address = rak::socket_address::cast_from(sa);
   socket_address_key sock_key = socket_address_key::from_sockaddr(sa);
 
@@ -281,13 +248,7 @@ PeerList::connected(const sockaddr* sa, int flags) {
   // We should also remove any PeerInfo objects already for this
   // address.
   if ((filter_value & PeerInfo::flag_unwanted)) {
-    char ipv4_str[INET_ADDRSTRLEN];
-    uint32_t net_order_addr = htonl(host_byte_order_ipv4_addr);
-
-    inet_ntop(AF_INET, &net_order_addr, ipv4_str, INET_ADDRSTRLEN);
-
-    lt_log_print(LOG_PEER_INFO, "Peer %s is unwanted: preventing connection", ipv4_str);
-
+    LT_LOG_EVENTS("connecting peer rejected, flagged as unwanted: " LT_LOG_SA_FMT, address->address_str().c_str(), address->port());
     return NULL;
   }
 
@@ -313,12 +274,23 @@ PeerList::connected(const sockaddr* sa, int flags) {
     //
     // This also ensure we can connect to peers running on the same
     // host as the tracker.
-    if (flags & connect_keep_handshakes &&
-        range.first->second->is_handshake() &&
-        rak::socket_address::cast_from(range.first->second->socket_address())->port() != address->port())
-      m_available_list->buffer()->push_back(*address);
+    // if (flags & connect_keep_handshakes &&
+    //     range.first->second->is_handshake() &&
+    //     rak::socket_address::cast_from(range.first->second->socket_address())->port() != address->port())
+    //   m_available_list->buffer()->push_back(*address);
 
-    return NULL;
+    LT_LOG_EVENTS("connecting peer rejected, already connected (buggy, fixme): " LT_LOG_SA_FMT, address->address_str().c_str(), address->port());
+
+    // TODO: Verify this works properly, possibly add a check/flag
+    // that allows the handshake manager to notify peer list if the
+    // incoming connection was a duplicate peer hash.
+
+    //return NULL;
+
+    peerInfo = new PeerInfo(sa);
+    peerInfo->set_flags(filter_value & PeerInfo::mask_ip_table);
+
+    base_type::insert(range.second, value_type(sock_key, peerInfo));
   }
 
   if (flags & connect_filter_recent &&

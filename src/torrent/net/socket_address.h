@@ -102,8 +102,8 @@ bool fd_sap_equal(const fd_sap_tuple& lhs, const fd_sap_tuple& rhs) LIBTORRENT_E
 
 inline bool sap_is_unspec(const sa_unique_ptr& sap) { return sa_is_unspec(sap.get()); }
 inline bool sap_is_unspec(const c_sa_unique_ptr& sap) { return sa_is_unspec(sap.get()); }
-inline bool sap_is_inet(const c_sa_unique_ptr& sap) { return sa_is_inet(sap.get()); }
 inline bool sap_is_inet(const sa_unique_ptr& sap) { return sa_is_inet(sap.get()); }
+inline bool sap_is_inet(const c_sa_unique_ptr& sap) { return sa_is_inet(sap.get()); }
 inline bool sap_is_inet6(const sa_unique_ptr& sap) { return sa_is_inet6(sap.get()); }
 inline bool sap_is_inet6(const c_sa_unique_ptr& sap) { return sa_is_inet6(sap.get()); }
 inline bool sap_is_inet_inet6(const sa_unique_ptr& sap) { return sa_is_inet_inet6(sap.get()); }

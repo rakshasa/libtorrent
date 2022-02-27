@@ -112,6 +112,7 @@ wrap_ai_get_first_sa(const char* nodename, const char* servname = nullptr, const
 
   CPPUNIT_ASSERT_MESSAGE(("wrap_ai_get_first_sa: nodename:'" + std::string(nodename) + "'").c_str(),
                         sa != nullptr);
+
   return sa;
 }
 
@@ -121,6 +122,7 @@ wrap_ai_get_first_c_sa(const char* nodename, const char* servname = nullptr, con
 
   CPPUNIT_ASSERT_MESSAGE(("wrap_ai_get_first_sa: nodename:'" + std::string(nodename) + "'").c_str(),
                         sa != nullptr);
+
   return torrent::c_sa_unique_ptr(sa.release());
 }
 

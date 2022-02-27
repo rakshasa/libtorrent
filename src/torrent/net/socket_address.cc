@@ -135,7 +135,7 @@ sa_unique_ptr
 sa_make_unspec() {
   sa_unique_ptr sa(new sockaddr);
 
-  std::memset(sa.get(), 0, sizeof(sa));
+  std::memset(sa.get(), 0, sizeof(sockaddr));
   sa.get()->sa_family = AF_UNSPEC;
 
   return sa;

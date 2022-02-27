@@ -1,63 +1,28 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
-#include "config.h"
+#import "config.h"
 
 #define __STDC_FORMAT_MACROS
 
-#include <iomanip>
-#include <sstream>
-#include <rak/functional.h>
-#include <rak/string_manip.h>
+#import <iomanip>
+#import <sstream>
+#import <rak/functional.h>
+#import <rak/string_manip.h>
 
-#include "net/address_list.h"
-#include "net/local_addr.h"
-#include "torrent/connection_manager.h"
-#include "torrent/download_info.h"
-#include "torrent/exceptions.h"
-#include "torrent/http.h"
-#include "torrent/object_stream.h"
-#include "torrent/tracker_list.h"
-#include "torrent/utils/log.h"
-#include "torrent/utils/option_strings.h"
+#import "net/address_list.h"
+#import "torrent/connection_manager.h"
+#import "torrent/download_info.h"
+#import "torrent/exceptions.h"
+#import "torrent/http.h"
+#import "torrent/net/utils.h"
+#import "torrent/net/socket_address.h"
+#import "torrent/object_stream.h"
+#import "torrent/tracker_list.h"
+#import "torrent/utils/log.h"
+#import "torrent/utils/option_strings.h"
 
-#include "tracker_http.h"
+#import "tracker_http.h"
 
-#include "globals.h"
-#include "manager.h"
+#import "globals.h"
+#import "manager.h"
 
 #define LT_LOG_TRACKER(log_level, log_fmt, ...)                         \
   lt_log_print_info(LOG_TRACKER_##log_level, m_parent->info(), "tracker", "[%u] " log_fmt, group(), __VA_ARGS__);
@@ -142,19 +107,16 @@ TrackerHttp::send_state(int state) {
 
   const rak::socket_address* localAddress = rak::socket_address::cast_from(manager->connection_manager()->local_address());
 
-  if (!localAddress->is_address_any())
-    s << "&ip=" << localAddress->address_str();
-  
-  if (localAddress->is_address_any() && localAddress->family() == rak::socket_address::pf_inet) {
-    rak::socket_address local_v6;
-    if (get_local_address(rak::socket_address::af_inet6, &local_v6))
-      s << "&ipv6=" << rak::copy_escape_html(local_v6.address_str());
-  }
+  if (localAddress->is_address_any()) {
+    if (manager->connection_manager()->is_prefer_ipv6()) {
+      auto ipv6_address = detect_local_sin6_addr();
 
-  if (localAddress->is_address_any() && localAddress->family() == rak::socket_address::pf_inet6) {
-    rak::socket_address local_v4;
-    if (get_local_address(rak::socket_address::af_inet, &local_v4))
-      s << "&ipv4=" << local_v4.address_str();
+      if (ipv6_address != nullptr) {
+        s << "&ip=" << sin6_addr_str(ipv6_address.get());
+      }
+    }
+  } else {
+    s << "&ip=" << localAddress->address_str();
   }
 
   if (info->is_compact())
