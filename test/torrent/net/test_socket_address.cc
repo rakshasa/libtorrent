@@ -83,7 +83,7 @@ test_socket_address::test_make() {
   CPPUNIT_ASSERT(sin6_inet6->sin6_family == AF_INET6);
   CPPUNIT_ASSERT(sin6_inet6->sin6_port == 0);
   CPPUNIT_ASSERT(sin6_inet6->sin6_flowinfo == 0);
-  CPPUNIT_ASSERT(compare_sin6_addr(sin6_inet6->sin6_addr, in6_addr{0}));
+  CPPUNIT_ASSERT(compare_sin6_addr(sin6_inet6->sin6_addr, (in6_addr{0})));
   CPPUNIT_ASSERT(sin6_inet6->sin6_scope_id == 0);
 
   torrent::sa_unique_ptr sa_unix = torrent::sa_make_unix("");

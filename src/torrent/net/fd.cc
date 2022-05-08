@@ -64,6 +64,9 @@ fd_open(fd_flags flags) {
   if ((flags & fd_flag_stream)) {
     domain = SOCK_STREAM;
     protocol = IPPROTO_TCP;
+  } else if ((flags & fd_flag_datagram)) {
+    domain = SOCK_DGRAM;
+    protocol = IPPROTO_UDP;
   } else {
     LT_LOG_FLAG("fd_open missing socket type");
     errno = EINVAL;

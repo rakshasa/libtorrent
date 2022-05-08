@@ -158,7 +158,10 @@ ConnectionManager::ConnectionManager() :
   m_listen(new Listen),
   m_listen_port(0),
   m_listen_backlog(SOMAXCONN),
-  m_async_resolver(new ASYNC_RESOLVER_IMPL(this)) {
+  m_async_resolver(new ASYNC_RESOLVER_IMPL(this)),
+  m_block_ipv4(false),
+  m_block_ipv6(false),
+  m_prefer_ipv6(false) {
 
   m_bindAddress = (new rak::socket_address())->c_sockaddr();
   m_localAddress = (new rak::socket_address())->c_sockaddr();

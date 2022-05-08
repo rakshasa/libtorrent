@@ -76,8 +76,6 @@ libtorrent_other_la_SOURCES = \
 	net/address_list.cc \
 	net/address_list.h \
 	net/data_buffer.h \
-	net/local_addr.cc \
-	net/local_addr.h \
 	net/listen.cc \
 	net/listen.h \
 	net/protocol_buffer.h \
