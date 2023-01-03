@@ -451,6 +451,7 @@ AC_DEFUN([TORRENT_CHECK_PTHREAD_SETNAME_NP], [
   AC_MSG_CHECKING(for pthread_setname_np type)
 
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+    #define _GNU_SOURCE
     #include <pthread.h>
     #include <sys/types.h>
   ]], [[
