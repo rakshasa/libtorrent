@@ -103,7 +103,7 @@ TrackerUdp::send_state(int state) {
   m_sendState = state;
   m_resolver_query = manager->connection_manager()->async_resolver().enqueue(
       hostname.data(),
-      AF_UNSPEC,
+      AF_INET,
       &m_resolver_callback
   );
   manager->connection_manager()->async_resolver().flush();
