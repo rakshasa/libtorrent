@@ -236,16 +236,16 @@ ResourceManager::set_group(iterator itr, uint16_t grp) {
 
 void
 ResourceManager::set_max_upload_unchoked(unsigned int m) {
-  if (m > (1 << 16))
-    throw input_error("Max unchoked must be between 0 and 2^16.");
+  if (m > (1 << 20))
+    throw input_error("Max unchoked must be between 0 and 2^20.");
 
   m_maxUploadUnchoked = m;
 }
 
 void
 ResourceManager::set_max_download_unchoked(unsigned int m) {
-  if (m > (1 << 16))
-    throw input_error("Max unchoked must be between 0 and 2^16.");
+  if (m > (1 << 20))
+    throw input_error("Max unchoked must be between 0 and 2^20.");
 
   m_maxDownloadUnchoked = m;
 }
