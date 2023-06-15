@@ -4,6 +4,17 @@ matrix:
   include:
   - compiler: clang
     env: COMPILER=clang++ SKIP_CHECK=true SKIP_COVERAGE=true
+    addons:
+      apt:
+        packages:
+        - libudns-dev
+  - compiler: clang
+    env: COMPILER=clang++ SKIP_COVERAGE=true
+    addons:
+      apt:
+        packages:
+        - libcppunit-dev
+        - libudns-dev
   - compiler: clang
     env: COMPILER=clang++ SKIP_COVERAGE=true
     addons:
@@ -20,6 +31,7 @@ matrix:
         packages:
         - clang-3.6
         - libcppunit-dev
+        - libudns-dev
   - compiler: clang
     env: COMPILER=clang++-3.7 SKIP_COVERAGE=true
     addons:
@@ -30,6 +42,7 @@ matrix:
         packages:
         - clang-3.7
         - libcppunit-dev
+        - libudns-dev
   - compiler: clang
     env: COMPILER=clang++-3.8 SKIP_COVERAGE=true
     addons:
@@ -40,6 +53,7 @@ matrix:
         packages:
         - clang-3.8
         - libcppunit-dev
+        - libudns-dev
   - compiler: gcc
     env: COMPILER=g++-4.7 SKIP_CHECK=true SKIP_COVERAGE=true
     addons:
@@ -47,6 +61,16 @@ matrix:
         sources: ubuntu-toolchain-r-test
         packages:
         - g++-4.7
+        - libudns-dev
+  - compiler: gcc
+    env: COMPILER=g++-4.7 SKIP_COVERAGE=true
+    addons:
+      apt:
+        sources: ubuntu-toolchain-r-test
+        packages:
+        - g++-4.7
+        - libcppunit-dev
+        - libudns-dev
   - compiler: gcc
     env: COMPILER=g++-4.7 SKIP_COVERAGE=true
     addons:
@@ -63,6 +87,7 @@ matrix:
         packages:
         - g++-4.8
         - libcppunit-dev
+        - libudns-dev
 
 before_install:
   - if [ ! $SKIP_COVERAGE ]; then pip install --user cpp-coveralls; fi
