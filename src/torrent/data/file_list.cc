@@ -674,15 +674,16 @@ FileList::mark_completed(uint32_t index) {
 
 FileList::iterator
 FileList::inc_completed(iterator firstItr, uint32_t index) {
-  firstItr         = std::find_if(firstItr, end(), rak::less(index, std::mem_fun(&File::range_second)));
-  iterator lastItr = std::find_if(firstItr, end(), rak::less(index + 1, std::mem_fun(&File::range_second)));
+  firstItr = std::find_if(firstItr, end(), rak::less(index, std::mem_fun(&File::range_second)));
 
   if (firstItr == end())
     throw internal_error("FileList::inc_completed() first == m_entryList->end().", data()->hash());
 
-  // TODO: Check if this works right for zero-length files.
+  uint64_t boundary = (index+1)*m_chunkSize;
+  iterator lastItr = std::find_if(firstItr, end(), rak::less_equal(boundary, std::mem_fun(&File::offset_end)));
+
   std::for_each(firstItr,
-                lastItr == end() ? end() : (lastItr + 1),
+                lastItr == end() ? end() : lastItr + 1,
                 std::mem_fun(&File::inc_completed_protected));
 
   return lastItr;

@@ -78,6 +78,7 @@ public:
   bool                has_permissions(int prot) const          { return !(prot & ~m_protection); }
 
   uint64_t            offset() const                           { return m_offset; }
+  uint64_t            offset_end() const                       { return m_offset + m_size; }
 
   uint64_t            size_bytes() const                       { return m_size; }
   uint32_t            size_chunks() const                      { return m_range.second - m_range.first; }
