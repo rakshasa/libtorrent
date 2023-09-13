@@ -258,12 +258,19 @@ TrackerHttp::receive_done() {
   if (!b.is_map())
     return receive_failed("Root not a bencoded map");
 
-  if (b.has_key("failure reason"))
+  if (b.has_key("failure reason")) {
+    if (m_latest_event != EVENT_SCRAPE)
+      process_bencode_response(b);
     return receive_failed("Failure reason \"" +
-			 (b.get_key("failure reason").is_string() ?
-			  b.get_key_string("failure reason") :
-			  std::string("failure reason not a string"))
-			 + "\"");
+                         (b.get_key("failure reason").is_string() ?
+                          b.get_key_string("failure reason") :
+                          std::string("failure reason not a string"))
+                         + "\"");
+  }
+
+  // If no failures, set intervals to defaults prior to processing
+  set_normal_interval(default_normal_interval);
+  set_min_interval(default_min_interval);
 
   if (m_latest_event == EVENT_SCRAPE)
     process_scrape(b);
@@ -287,7 +294,7 @@ TrackerHttp::receive_failed(std::string msg) {
 }
 
 void
-TrackerHttp::process_success(const Object& object) {
+TrackerHttp::process_bencode_response(const Object& object) {
   if (object.has_key_value("interval"))
     set_normal_interval(object.get_key_value("interval"));
   
@@ -305,6 +312,12 @@ TrackerHttp::process_success(const Object& object) {
 
   if (object.has_key_value("downloaded"))
     m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
+}
+
+
+void
+TrackerHttp::process_success(const Object& object) {
+  process_bencode_response(object);
 
   AddressList l;
 
