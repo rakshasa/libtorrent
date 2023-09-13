@@ -36,6 +36,9 @@ public:
   static const int max_flag_size   = 0x10;
   static const int mask_base_flags = 0x10 - 1;
 
+  static const int default_min_interval = 600;
+  static const int default_normal_interval = 1800;
+
   virtual ~Tracker() {}
 
   int                 flags() const { return m_flags; }

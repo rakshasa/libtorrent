@@ -68,6 +68,7 @@ private:
   void                receive_done();
   void                receive_failed(std::string msg);
 
+  void                process_bencode_response(const Object& object);
   void                process_success(const Object& object);
   void                process_scrape(const Object& object);
 
