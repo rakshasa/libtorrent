@@ -269,8 +269,6 @@ TrackerHttp::receive_done() {
   }
 
   // If no failures, set intervals to defaults prior to processing
-  set_normal_interval(default_normal_interval);
-  set_min_interval(default_min_interval);
 
   if (m_latest_event == EVENT_SCRAPE)
     process_scrape(b);
@@ -321,6 +319,10 @@ TrackerHttp::process_success(const Object& object) {
 
   AddressList l;
 
+  if (!object.has_key_value("interval"))
+    set_normal_interval(default_normal_interval);
+  if (!object.has_key_value("min interval"))
+    set_min_interval(default_min_interval);
   if (!object.has_key("peers") && !object.has_key("peers6"))
     return receive_failed("No peers returned");
 
