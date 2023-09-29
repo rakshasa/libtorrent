@@ -66,6 +66,7 @@ private:
   void                request_prefix(std::stringstream* stream, const std::string& url);
 
   void                receive_done();
+  void                receive_signal_failed(std::string msg);
   void                receive_failed(std::string msg);
 
   void                process_failure(const Object& object);
