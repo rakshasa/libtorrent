@@ -70,7 +70,7 @@ tracker_controller_features::test_requesting_timeout() {
   TEST_MULTI3_IS_BUSY("10111", "10111");
 
   CPPUNIT_ASSERT(tracker_0_0->trigger_failure());
-  CPPUNIT_ASSERT(tracker_controller.seconds_to_next_timeout() == 5);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)5, tracker_controller.seconds_to_next_timeout());
   // CPPUNIT_ASSERT(tracker_0_1->trigger_failure());
   CPPUNIT_ASSERT(tracker_1_0->trigger_failure());
   CPPUNIT_ASSERT(tracker_2_0->trigger_failure());
