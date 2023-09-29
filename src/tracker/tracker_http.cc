@@ -250,6 +250,9 @@ TrackerHttp::receive_done() {
   Object b;
   *m_data >> b;
 
+  // Temporarily reset the interval
+  m_normal_interval = 0;
+  m_min_interval = 0;
   if (m_data->fail()) {
     std::string dump = m_data->str();
     return receive_failed("Could not parse bencoded data: " + rak::sanitize(rak::striptags(dump)).substr(0,99));
@@ -260,7 +263,7 @@ TrackerHttp::receive_done() {
 
   if (b.has_key("failure reason")) {
     if (m_latest_event != EVENT_SCRAPE)
-      process_bencode_response(b);
+      process_failure(b);
     return receive_failed("Failure reason \"" +
                          (b.get_key("failure reason").is_string() ?
                           b.get_key_string("failure reason") :
@@ -292,7 +295,7 @@ TrackerHttp::receive_failed(std::string msg) {
 }
 
 void
-TrackerHttp::process_bencode_response(const Object& object) {
+TrackerHttp::process_failure(const Object& object) {
   if (object.has_key_value("interval"))
     set_normal_interval(object.get_key_value("interval"));
   
@@ -312,20 +315,34 @@ TrackerHttp::process_bencode_response(const Object& object) {
     m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
 }
 
-
 void
 TrackerHttp::process_success(const Object& object) {
-  process_bencode_response(object);
 
-  AddressList l;
-
-  if (!object.has_key_value("interval"))
+  if (object.has_key_value("interval"))
+    set_normal_interval(object.get_key_value("interval"));
+  else
     set_normal_interval(default_normal_interval);
-  if (!object.has_key_value("min interval"))
-    set_min_interval(default_min_interval);
+
+  if (object.has_key_value("min interval"))
+    set_normal_interval(object.get_key_value("min interval"));
+  else
+    set_normal_interval(default_min_interval);
+
+  if (object.has_key_string("tracker id"))
+    m_tracker_id = object.get_key_string("tracker id");
+
+  if (object.has_key_value("complete") && object.has_key_value("incomplete")) {
+    m_scrape_complete = std::max<int64_t>(object.get_key_value("complete"), 0);
+    m_scrape_incomplete = std::max<int64_t>(object.get_key_value("incomplete"), 0);
+    m_scrape_time_last = cachedTime.seconds();
+  }
+
+  if (object.has_key_value("downloaded"))
+    m_scrape_downloaded = std::max<int64_t>(object.get_key_value("downloaded"), 0);
   if (!object.has_key("peers") && !object.has_key("peers6"))
     return receive_failed("No peers returned");
 
+  AddressList l;
   if (object.has_key("peers")) {
     try {
       // Due to some trackers sending the wrong type when no peers are
