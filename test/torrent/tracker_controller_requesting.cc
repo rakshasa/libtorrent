@@ -30,6 +30,8 @@ do_test_hammering_basic(bool success1, bool success2, bool success3, uint32_t mi
 
   if (min_interval != 0)
     tracker_0_0->set_new_min_interval(min_interval);
+  else
+    tracker_0_0->set_new_min_interval(600);
 
   CPPUNIT_ASSERT(tracker_0_0->is_busy());
   CPPUNIT_ASSERT(success1 ? tracker_0_0->trigger_success() : tracker_0_0->trigger_failure());
@@ -107,6 +109,8 @@ do_test_hammering_multi3(bool success1, bool success2, bool success3, uint32_t m
 
   if (min_interval != 0)
     tracker_0_0->set_new_min_interval(min_interval);
+  else
+    tracker_0_0->set_new_min_interval(600);
 
   TEST_MULTI3_IS_BUSY("10000", "10000");
   CPPUNIT_ASSERT(success1 ? tracker_0_0->trigger_success() : tracker_0_0->trigger_failure());
