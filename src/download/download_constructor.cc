@@ -323,7 +323,15 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
       throw input_error("Bad torrent file, invalid length for file.");
 
     torrentSize += length;
-    *splitItr = FileList::split_type(length, choose_path(&pathList));
+
+    int flags = 0;
+    if (listItr->has_key_string("attr")) {
+      std::string attr = listItr->get_key_string("attr");
+      if (attr.find('p') != std::string::npos)
+        flags |= File::flag_attr_padding;
+    }
+
+    *splitItr = FileList::split_type(length, choose_path(&pathList), flags);
   }
 
   FileList* fileList = m_download->main()->file_list();

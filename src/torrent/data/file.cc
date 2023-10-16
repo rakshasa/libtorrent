@@ -59,6 +59,8 @@ const int File::flag_previously_created;
 const int File::flag_prioritize_first;
 const int File::flag_prioritize_last;
 
+const int File::flag_attr_padding;
+
 File::File() :
   m_fd(-1),
   m_protection(0),
@@ -76,12 +78,17 @@ File::File() :
 }
 
 File::~File() {
+  if (is_padding());
+    return;
   if (is_open())
     throw internal_error("File::~File() called on an open file.");
 }
 
 bool
 File::is_created() const {
+  if (is_padding())
+    return true;
+
   rak::file_stat fs;
 
   // If we can't even get permission to do fstat, we might as well
@@ -98,6 +105,9 @@ File::is_created() const {
 
 bool
 File::is_correct_size() const {
+  if (is_padding())
+    return true;
+
   rak::file_stat fs;
 
   if (!fs.update(frozen_path()))
@@ -111,6 +121,9 @@ File::is_correct_size() const {
 
 bool
 File::prepare(int prot, int flags) {
+  if (is_padding())
+    return true;
+
   m_lastTouched = cachedTime.usec();
 
   // Check if we got write protection and flag_resize_queued is
@@ -170,6 +183,9 @@ File::set_match_depth(File* left, File* right) {
 
 bool
 File::resize_file() {
+  if (is_padding())
+    return true;
+
   if (!is_open())
     return false;
 

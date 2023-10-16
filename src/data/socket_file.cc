@@ -153,6 +153,18 @@ SocketFile::set_size(uint64_t size, int flags) const {
 }
 
 MemoryChunk
+SocketFile::create_padding_chunk(uint32_t length, int prot, int flags) const {
+  flags |= MemoryChunk::map_anon;
+
+  char* ptr = (char*)mmap(NULL, length, prot, flags, -1, 0);
+
+  if (ptr == MAP_FAILED)
+    return MemoryChunk();
+
+  return MemoryChunk(ptr, ptr, ptr + length, prot, flags);
+}
+
+MemoryChunk
 SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const {
   if (!is_open())
     throw internal_error("SocketFile::get_chunk() called on a closed file");
