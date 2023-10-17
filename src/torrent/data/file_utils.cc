@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <cstring>
+#include <set>
 
 #include "exceptions.h"
 #include "file.h"
@@ -67,17 +68,17 @@ file_split(FileList* fileList, FileList::iterator position, uint64_t maxSize, co
 
   for (unsigned int i = 0; i != splitSize; ++i, ++splitItr) {
     if (i == splitSize - 1 && (*position)->size_bytes() % maxSize != 0)
-      splitItr->first = (*position)->size_bytes() % maxSize;
+      std::get<0>(*splitItr) = (*position)->size_bytes() % maxSize;
     else
-      splitItr->first = maxSize;
+      std::get<0>(*splitItr) = maxSize;
 
     name[nameSize + 0] = '0' + (i / 100) % 10;
     name[nameSize + 1] = '0' + (i / 10) % 10;
     name[nameSize + 2] = '0' + (i / 1) % 10;
     name[nameSize + 3] = '\0';
     
-    splitItr->second = *srcPath;
-    splitItr->second.back() = name;
+    std::get<1>(*splitItr) = *srcPath;
+    std::get<1>(*splitItr).back() = name;
   }
 
   return fileList->split(position, splitList, splitItr).second;

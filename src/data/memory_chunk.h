@@ -54,6 +54,7 @@ class MemoryChunk {
   static const int prot_write             = PROT_WRITE;
   static const int prot_none              = PROT_NONE;
   static const int map_shared             = MAP_SHARED;
+  static const int map_anon               = MAP_ANON;
 
 #ifdef USE_MADVISE
   static const int advice_normal          = MADV_NORMAL;

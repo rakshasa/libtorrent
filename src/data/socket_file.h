@@ -72,6 +72,7 @@ public:
   uint64_t            size() const;
   bool                set_size(uint64_t s, int flags = 0) const;
 
+  MemoryChunk         create_padding_chunk(uint32_t length, int prot, int flags) const;
   MemoryChunk         create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const;
   
   fd_type             fd() const                                        { return m_fd; }
