@@ -130,7 +130,7 @@ Delegator::delegate(PeerChunks* peerChunks, uint32_t affinity, uint32_t maxPiece
         if (!bl_itr->is_finished()) {
           BlockTransfer* inserted_info = bl_itr->insert(peerInfo);
           if (inserted_info != NULL) {
-            new_transfers.push_back(bl_itr->insert(peerInfo));
+            new_transfers.push_back(inserted_info);
             overlapped = bl_itr->size_not_stalled();
           }
         }
