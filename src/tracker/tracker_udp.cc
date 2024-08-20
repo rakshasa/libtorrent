@@ -274,8 +274,7 @@ TrackerUdp::event_read() {
 
     prepare_announce_input();
 
-    priority_queue_erase(&taskScheduler, &m_taskTimeout);
-    priority_queue_insert(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
+    priority_queue_update(&taskScheduler, &m_taskTimeout, (cachedTime + rak::timer::from_seconds(m_parent->info()->udp_timeout())).round_seconds());
 
     m_tries = m_parent->info()->udp_tries();
     manager->poll()->insert_write(this);
