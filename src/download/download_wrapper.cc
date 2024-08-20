@@ -191,9 +191,8 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
         finished_download();
 
       } else if (was_partial && data()->wanted_chunks() == 0) {
-        priority_queue_erase(&taskScheduler, &m_main->delay_partially_done());
         priority_queue_erase(&taskScheduler, &m_main->delay_partially_restarted());
-        priority_queue_insert(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
+        priority_queue_update(&taskScheduler, &m_main->delay_partially_done(), cachedTime);
       }
     
       if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
