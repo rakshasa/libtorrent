@@ -71,6 +71,9 @@ FileManager::set_max_open_files(size_type s) {
 
 bool
 FileManager::open(value_type file, int prot, int flags) {
+  if (file->is_padding())
+    return true;
+
   if (file->is_open())
     close(file);
 
@@ -100,6 +103,9 @@ FileManager::open(value_type file, int prot, int flags) {
 void
 FileManager::close(value_type file) {
   if (!file->is_open())
+    return;
+
+  if (file->is_padding())
     return;
 
   SocketFile(file->file_descriptor()).close();

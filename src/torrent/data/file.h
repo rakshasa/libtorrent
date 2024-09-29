@@ -57,6 +57,7 @@ public:
   static const int flag_prioritize_first   = (1 << 5);
   static const int flag_prioritize_last    = (1 << 6);
 
+  static const int flag_attr_padding       = (1 << 7);
   File();
   ~File();
 
@@ -69,6 +70,7 @@ public:
   bool                is_create_queued() const                 { return m_flags & flag_create_queued; }
   bool                is_resize_queued() const                 { return m_flags & flag_resize_queued; }
   bool                is_previously_created() const            { return m_flags & flag_previously_created; }
+  bool                is_padding() const                       { return m_flags & flag_attr_padding; }
 
   bool                has_flags(int flags)                     { return m_flags & flags; }
 
@@ -166,12 +168,12 @@ File::is_valid_position(uint64_t p) const {
 
 inline void
 File::set_flags(int flags) {
-  set_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last));
+  set_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last | flag_attr_padding));
 }
 
 inline void
 File::unset_flags(int flags) {
-  unset_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last));
+  unset_flags_protected(flags & (flag_create_queued | flag_resize_queued | flag_fallocate | flag_prioritize_first | flag_prioritize_last| flag_attr_padding));
 }
 
 inline void
