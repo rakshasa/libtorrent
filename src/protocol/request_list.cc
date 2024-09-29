@@ -111,9 +111,9 @@ RequestList::delegate(uint32_t maxPieces) {
 
 void
 RequestList::stall_initial() {
-  queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
+  queue_bucket_for_all_in_queue(m_queues, bucket_queued, &Block::stalled);
   m_queues.move_all_to(bucket_queued, bucket_stalled);
-  queue_bucket_for_all_in_queue(m_queues, bucket_unordered, std::ptr_fun(&Block::stalled));
+  queue_bucket_for_all_in_queue(m_queues, bucket_unordered, &Block::stalled);
   m_queues.move_all_to(bucket_unordered, bucket_stalled);
 }
 
@@ -122,9 +122,9 @@ RequestList::stall_prolonged() {
   if (m_transfer != NULL)
     Block::stalled(m_transfer);
 
-  queue_bucket_for_all_in_queue(m_queues, bucket_queued, std::ptr_fun(&Block::stalled));
+  queue_bucket_for_all_in_queue(m_queues, bucket_queued, &Block::stalled);
   m_queues.move_all_to(bucket_queued, bucket_stalled);
-  queue_bucket_for_all_in_queue(m_queues, bucket_unordered, std::ptr_fun(&Block::stalled));
+  queue_bucket_for_all_in_queue(m_queues, bucket_unordered, &Block::stalled);
   m_queues.move_all_to(bucket_unordered, bucket_stalled);
 
   // Currently leave the the requests until the peer gets disconnected. (?)
@@ -333,12 +333,6 @@ RequestList::transfer_dissimilar() {
   m_transfer->block()->transfer_dissimilar(m_transfer);
   m_transfer = dummy;
 }
-
-struct equals_reservee : public std::binary_function<BlockTransfer*, uint32_t, bool> {
-  bool operator () (BlockTransfer* r, uint32_t index) const {
-    return r->is_valid() && index == r->index();
-  }
-};
 
 bool
 RequestList::is_interested_in_active() const {
