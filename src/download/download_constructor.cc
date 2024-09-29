@@ -351,7 +351,7 @@ DownloadConstructor::create_path(const Object::list_type& plist, const std::stri
   if (plist.empty())
     throw input_error("Bad torrent file, \"path\" has zero entries.");
 
-  if (std::find_if(plist.begin(), plist.end(), std::ptr_fun(&DownloadConstructor::is_invalid_path_element)) != plist.end())
+  if (std::any_of(plist.begin(), plist.end(), &DownloadConstructor::is_invalid_path_element))
     throw input_error("Bad torrent file, \"path\" has zero entries or a zero length entry.");
 
   Path p;
