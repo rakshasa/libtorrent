@@ -4,7 +4,6 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent.pc
 
 EXTRA_DIST= \
-	autogen.sh \
 	scripts/checks.m4 \
 	scripts/common.m4 \
 	scripts/attributes.m4 \
@@ -13,12 +12,12 @@ EXTRA_DIST= \
 	doc/http.xml \
 	doc/torrent.xml \
 	rak/address_info.h \
-        rak/algorithm.h \
+	rak/algorithm.h \
 	rak/allocators.h \
 	rak/error_number.h \
 	rak/file_stat.h \
 	rak/fs_stat.h \
-        rak/functional.h \
+	rak/functional.h \
 	rak/path.h \
 	rak/partial_queue.h \
 	rak/priority_queue.h \

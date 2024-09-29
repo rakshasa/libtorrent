@@ -1,4 +1,4 @@
-AC_INIT([[libtorrent]],[[0.13.8]],[[sundell.software@gmail.com]])
+AC_INIT([[libtorrent]],[[0.14.0]],[[sundell.software@gmail.com]])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIRS([scripts])
@@ -7,10 +7,10 @@ AM_INIT_AUTOMAKE([serial-tests subdir-objects foreign])
 LT_INIT([[disable-static]])
 
 dnl Find a better way to do this
-AC_DEFINE([[PEER_NAME]], [["-lt0D80-"]], [[Identifier that is part of the default peer id.]])
-AC_DEFINE([[PEER_VERSION]], [["lt\x0D\x80"]], [[4 byte client and version identifier for DHT.]])
+AC_DEFINE([[PEER_NAME]], [["-lt0E00-"]], [[Identifier that is part of the default peer id.]])
+AC_DEFINE([[PEER_VERSION]], [["lt\x0E\x00"]], [[4 byte client and version identifier for DHT.]])
 
-LIBTORRENT_CURRENT=21
+LIBTORRENT_CURRENT=22
 LIBTORRENT_REVISION=0
 LIBTORRENT_AGE=0
 
@@ -115,8 +115,9 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	src/torrent/Makefile
-  test/Makefile
-  test/torrent/net/Makefile
-  test/net/Makefile
+    test/Makefile
 ])
+    #test/torrent/net/Makefile
+    #test/net/Makefile
+
 AC_OUTPUT

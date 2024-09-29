@@ -63,12 +63,14 @@ transfer_list_completed(torrent::TransferList* transfer_list, uint32_t index) {
   SETUP_DELEGATOR(basic);                       \
   SETUP_PEER_CHUNKS();                          \
   SETUP_REQUEST_LIST();
-  
+
 #define SETUP_ALL_WITH_3(fpc_prefix)                            \
   SETUP_ALL(fpc_prefix);                                        \
-  const torrent::Piece* piece_1 = request_list->delegate();     \
-  const torrent::Piece* piece_2 = request_list->delegate();     \
-  const torrent::Piece* piece_3 = request_list->delegate();     \
+  auto pieces = request_list->delegate(3);                      \
+  CPPUNIT_ASSERT(pieces.size() == 3);         \
+  const torrent::Piece* piece_1 = pieces[0];                    \
+  const torrent::Piece* piece_2 = pieces[1];                    \
+  const torrent::Piece* piece_3 = pieces[2];                    \
   CPPUNIT_ASSERT(piece_1 && piece_2 && piece_3);
 
 #define CLEANUP_ALL(fpc_prefix)                 \
@@ -137,7 +139,9 @@ void
 TestRequestList::test_single_request() {
   SETUP_ALL(basic);
 
-  const torrent::Piece* piece = request_list->delegate();
+  auto pieces = request_list->delegate(1);
+  CPPUNIT_ASSERT(pieces.size() == 1);
+  const torrent::Piece* piece = pieces[0];
   // std::cout << piece->index() << ' ' << piece->offset() << ' ' << piece->length() << std::endl;
   // std::cout << peer_info->transfer_counter() << std::endl;
 
@@ -161,7 +165,9 @@ void
 TestRequestList::test_single_canceled() {
   SETUP_ALL(basic);
 
-  const torrent::Piece* piece = request_list->delegate();
+  auto pieces = request_list->delegate(1);
+  CPPUNIT_ASSERT(pieces.size() == 1);
+  const torrent::Piece* piece = pieces[0];
   // std::cout << piece->index() << ' ' << piece->offset() << ' ' << piece->length() << std::endl;
   // std::cout << peer_info->transfer_counter() << std::endl;
 
@@ -194,7 +200,7 @@ TestRequestList::test_choke_normal() {
   VERIFY_QUEUE_SIZES(3, 0, 0, 0);
 
   request_list->choked();
-  
+
   SET_CACHED_TIME(1);
   VERIFY_QUEUE_SIZES(0, 0, 0, 3);
 
@@ -210,10 +216,10 @@ TestRequestList::test_choke_unchoke_discard() {
   SETUP_ALL_WITH_3(basic);
 
   request_list->choked();
-  
+
   SET_CACHED_TIME(5);
   request_list->unchoked();
-  
+
   SET_CACHED_TIME(10);
   VERIFY_QUEUE_SIZES(0, 0, 0, 3);
 
