@@ -34,7 +34,9 @@ LibTorrent_Test_Common = \
 	helpers/test_fixture.cc \
 	helpers/test_fixture.h \
 	helpers/test_thread.cc \
-	helpers/test_thread.h
+	helpers/test_thread.h \
+	helpers/test_utils.h \
+	helpers/utils.h
 
 LibTorrent_Test_Torrent_Net_SOURCES = $(LibTorrent_Test_Common) \
 	torrent/net/test_address_info.cc \
