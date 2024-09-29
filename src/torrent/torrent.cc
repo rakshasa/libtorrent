@@ -187,9 +187,8 @@ download_remove(Download d) {
 // Add all downloads to dlist. Make sure it's cleared.
 void
 download_list(DList& dlist) {
-  for (DownloadManager::const_iterator itr = manager->download_manager()->begin();
-       itr != manager->download_manager()->end(); ++itr)
-    dlist.push_back(Download(*itr));
+  for (const auto& dl : *manager->download_manager())
+    dlist.emplace_back(dl);
 }
 
 // Make sure you check that it's valid.
