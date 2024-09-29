@@ -170,22 +170,22 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 }
 
 #define LOG_CASCADE(parent) LOG_CHILDREN_CASCADE(parent, parent)
-#define LOG_LINK(parent, child) log_children.push_back(std::make_pair(parent, child))
+#define LOG_LINK(parent, child) log_children.emplace_back(parent, child)
 
 #define LOG_CHILDREN_CASCADE(parent, subgroup)                          \
-  log_children.push_back(std::make_pair(parent + LOG_ERROR,    subgroup + LOG_CRITICAL)); \
-  log_children.push_back(std::make_pair(parent + LOG_WARN,     subgroup + LOG_ERROR)); \
-  log_children.push_back(std::make_pair(parent + LOG_NOTICE,   subgroup + LOG_WARN)); \
-  log_children.push_back(std::make_pair(parent + LOG_INFO,     subgroup + LOG_NOTICE)); \
-  log_children.push_back(std::make_pair(parent + LOG_DEBUG,    subgroup + LOG_INFO));
+  log_children.emplace_back(parent + LOG_ERROR,    subgroup + LOG_CRITICAL); \
+  log_children.emplace_back(parent + LOG_WARN,     subgroup + LOG_ERROR); \
+  log_children.emplace_back(parent + LOG_NOTICE,   subgroup + LOG_WARN); \
+  log_children.emplace_back(parent + LOG_INFO,     subgroup + LOG_NOTICE); \
+  log_children.emplace_back(parent + LOG_DEBUG,    subgroup + LOG_INFO);
 
 #define LOG_CHILDREN_SUBGROUP(parent, subgroup)                         \
-  log_children.push_back(std::make_pair(parent + LOG_CRITICAL, subgroup + LOG_CRITICAL)); \
-  log_children.push_back(std::make_pair(parent + LOG_ERROR,    subgroup + LOG_ERROR)); \
-  log_children.push_back(std::make_pair(parent + LOG_WARN,     subgroup + LOG_WARN));  \
-  log_children.push_back(std::make_pair(parent + LOG_NOTICE,   subgroup + LOG_NOTICE)); \
-  log_children.push_back(std::make_pair(parent + LOG_INFO,     subgroup + LOG_INFO));  \
-  log_children.push_back(std::make_pair(parent + LOG_DEBUG,    subgroup + LOG_DEBUG));
+  log_children.emplace_back(parent + LOG_CRITICAL, subgroup + LOG_CRITICAL); \
+  log_children.emplace_back(parent + LOG_ERROR,    subgroup + LOG_ERROR); \
+  log_children.emplace_back(parent + LOG_WARN,     subgroup + LOG_WARN);  \
+  log_children.emplace_back(parent + LOG_NOTICE,   subgroup + LOG_NOTICE); \
+  log_children.emplace_back(parent + LOG_INFO,     subgroup + LOG_INFO);  \
+  log_children.emplace_back(parent + LOG_DEBUG,    subgroup + LOG_DEBUG);
 
 void
 log_initialize() {

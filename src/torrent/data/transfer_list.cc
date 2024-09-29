@@ -230,7 +230,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
 
       chunk->to_buffer(buffer, itr->piece().offset(), itr->piece().length());
 
-      itr->failed_list()->push_back(BlockFailed::value_type(buffer, 1));
+      itr->failed_list()->emplace_back(buffer, 1);
       failedItr = itr->failed_list()->end() - 1;
 
       // Count how many new data sets?
