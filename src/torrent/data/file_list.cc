@@ -578,7 +578,7 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
     return false;
   }
 
-  return node->prepare(MemoryChunk::prot_read, 0);
+  return node->prepare(MemoryChunk::prot_read | (node->is_resize_queued() ? MemoryChunk::prot_write : 0), 0);
 }
 
 MemoryChunk
@@ -592,6 +592,7 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
   // Check that offset != length of file.
 
   if (!(*itr)->prepare(prot))
+  if (!(*itr)->prepare(prot | ((*itr)->is_resize_queued() ? MemoryChunk::prot_write : 0)))
     return MemoryChunk();
 
   return SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);

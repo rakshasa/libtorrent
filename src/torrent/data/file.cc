@@ -117,8 +117,9 @@ File::prepare(int prot, int flags) {
   // set. If so don't quit as we need to try re-sizing, instead call
   // resize_file.
 
-  if (is_open() && has_permissions(prot))
-    return true;
+  if (is_open() && has_permissions(prot)) {
+    goto out;
+  }
 
   // For now don't allow overridding this check in prepare.
   if (m_flags & flag_create_queued)
@@ -132,6 +133,7 @@ File::prepare(int prot, int flags) {
   m_flags |= flag_previously_created;
   m_flags &= ~flag_create_queued;
 
+  out:
   // Replace PROT_WRITE with something prettier.
   if ((m_flags & flag_resize_queued) && has_permissions(PROT_WRITE)) {
     m_flags &= ~flag_resize_queued;
