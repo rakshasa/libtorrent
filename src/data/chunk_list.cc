@@ -84,7 +84,7 @@ ChunkList::has_chunk(size_type index, int prot) const {
 void
 ChunkList::resize(size_type to_size) {
   LT_LOG_THIS(INFO, "Resizing: from:%" PRIu32 " to:%" PRIu32 ".", size(), to_size);
-  
+
   if (!empty())
     throw internal_error("ChunkList::resize(...) called on an non-empty object.");
 
@@ -105,7 +105,7 @@ ChunkList::clear() {
   for (Queue::iterator itr = m_queue.begin(), last = m_queue.end(); itr != last; ++itr) {
     if ((*itr)->references() != 1 || (*itr)->writable() != 1)
       throw internal_error("ChunkList::clear() called but a node in the queue is still referenced.");
-    
+
     (*itr)->dec_rw();
     clear_chunk(*itr);
   }
