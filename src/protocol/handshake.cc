@@ -24,6 +24,13 @@
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \
                m_address.pretty_address_str().c_str(), __VA_ARGS__);
 
+#if USE_EXTRA_DEBUG
+#define LT_LOG_EXTRA_DEBUG_SA(sa, log_fmt, ...)                         \
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt, m_address.pretty_address_str().c_str(), __VA_ARGS__);
+#else
+#define LT_LOG_EXTRA_DEBUG_SA(sa, log_fmt, ...)
+#endif
+
 namespace torrent {
 
 const char* Handshake::m_protocol = "BitTorrent protocol";
@@ -66,7 +73,7 @@ Handshake::Handshake(SocketFd fd, HandshakeManager* m, int encryptionOptions) :
   set_fd(fd);
 
   m_readBuffer.reset();
-  m_writeBuffer.reset();      
+  m_writeBuffer.reset();
 
   m_taskTimeout.clear_time();
   m_taskTimeout.slot() = std::bind(&HandshakeManager::receive_timeout, m, this);
@@ -87,7 +94,7 @@ Handshake::initialize_incoming(const rak::socket_address& sa) {
   m_incoming = true;
   m_address = sa;
 
-  if (m_encryption.options() & (ConnectionManager::encryption_allow_incoming | ConnectionManager::encryption_require)) 
+  if (m_encryption.options() & (ConnectionManager::encryption_allow_incoming | ConnectionManager::encryption_require))
     m_state = READ_ENC_KEY;
   else
     m_state = READ_INFO;
@@ -202,7 +209,7 @@ bool
 Handshake::read_proxy_connect() {
   // Being greedy for now.
   m_readBuffer.move_end(read_unthrottled(m_readBuffer.end(), 512));
-  
+
   const char* pattern = "\r\n\r\n";
   const unsigned int patternLength = 4;
 
@@ -227,7 +234,7 @@ Handshake::read_encryption_key() {
   if (m_incoming) {
     if (m_readBuffer.remaining() < 20)
       m_readBuffer.move_end(read_unthrottled(m_readBuffer.end(), 20 - m_readBuffer.remaining()));
-  
+
     if (m_readBuffer.remaining() < 20)
       return false;
 
@@ -318,6 +325,8 @@ Handshake::read_encryption_sync() {
 
 bool
 Handshake::read_encryption_skey() {
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_encryption_skey", 0)
+
   if (!fill_read_buffer(20))
     return false;
 
@@ -344,6 +353,8 @@ Handshake::read_encryption_skey() {
 
 bool
 Handshake::read_encryption_negotiation() {
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_encryption_negotiation", 0)
+
   if (!fill_read_buffer(enc_negotiation_size))
     return false;
 
@@ -421,6 +432,8 @@ Handshake::read_negotiation_reply() {
     return true;
   }
 
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_negotiation_reply", 0)
+
   if (!fill_read_buffer(2))
     return false;
 
@@ -439,6 +452,8 @@ Handshake::read_negotiation_reply() {
 
 bool
 Handshake::read_info() {
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_info", 0)
+
   fill_read_buffer(handshake_size);
 
   // Check the first byte as early as possible so we can
@@ -491,6 +506,8 @@ Handshake::read_info() {
 
 bool
 Handshake::read_peer() {
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_peer", 0)
+
   if (!fill_read_buffer(20))
     return false;
 
@@ -566,6 +583,8 @@ Handshake::read_extension() {
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
   }
 
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_extension", 0)
+
   if (!fill_read_buffer(m_readBuffer.peek_32() + 4))
     return false;
 
@@ -598,6 +617,8 @@ Handshake::read_port() {
     if (need + 5 > m_readBuffer.reserved_left())
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_invalid_value);
   }
+
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_port", 0)
 
   if (!fill_read_buffer(m_readBuffer.peek_32() + 4))
     return false;
@@ -684,6 +705,8 @@ restart:
 
     case READ_ENC_PAD:
       if (m_readPos) {
+        LT_LOG_EXTRA_DEBUG_SA(m_address, "event_read : READ_ENC_PAD : m_readPos:%" PRIu32, m_readPos)
+
         // Read padC + lenIA or padD; pad length in m_readPos.
         if (!fill_read_buffer(m_readPos + (m_incoming ? 2 : 0)))
           // This can be improved (consume as much as was read)
@@ -700,6 +723,8 @@ restart:
         goto restart;
 
     case READ_ENC_IA:
+      LT_LOG_EXTRA_DEBUG_SA(m_address, "event_read : READ_ENC_IA", 0)
+
       // Just read (and automatically decrypt) the initial payload
       // and leave it in the buffer for READ_INFO later.
       if (m_encryption.length_ia() > 0 && !fill_read_buffer(m_encryption.length_ia()))
@@ -740,6 +765,8 @@ restart:
         read_done();
         break;
       }
+
+      LT_LOG_EXTRA_DEBUG_SA(m_address, "event_read : READ_MESSAGE", 0)
 
       fill_read_buffer(5);
 
@@ -836,6 +863,9 @@ restart:
 
 bool
 Handshake::fill_read_buffer(int size) {
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "fill_read_buffer : size:%i remaining:%" PRIu16 " reserved_left:%" PRIu16,
+                        size, m_readBuffer.remaining(), m_readBuffer.reserved_left())
+
   if (m_readBuffer.remaining() < size) {
     if (size - m_readBuffer.remaining() > m_readBuffer.reserved_left())
       throw internal_error("Handshake::fill_read_buffer(...) Buffer overflow.");
@@ -872,7 +902,7 @@ Handshake::event_write() {
 
       if (m_encryption.options() & ConnectionManager::encryption_use_proxy) {
         prepare_proxy_connect();
-        
+
         m_state = PROXY_CONNECT;
         break;
       }
@@ -944,7 +974,7 @@ Handshake::event_write() {
 void
 Handshake::prepare_proxy_connect() {
   char buf[256];
-  m_address.address_c_str(buf, 256);  
+  m_address.address_c_str(buf, 256);
 
   int advance = snprintf((char*)m_writeBuffer.position(), m_writeBuffer.reserved_left(),
                          "CONNECT %s:%hu HTTP/1.0\r\n\r\n", buf, m_address.port());

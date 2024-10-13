@@ -114,7 +114,7 @@ public:
 
   DownloadMain*       download()                    { return m_download; }
   Bitfield*           bitfield()                    { return &m_bitfield; }
-  
+
   void                deactivate_connection();
   void                release_connection();
   void                destroy_connection();
@@ -136,7 +136,7 @@ public:
 protected:
   Handshake(const Handshake&);
   void operator = (const Handshake&);
-  
+
   void                read_done();
   void                write_done();
 
