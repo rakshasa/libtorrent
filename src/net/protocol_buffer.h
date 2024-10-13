@@ -50,6 +50,7 @@ class ProtocolBuffer {
 public:
   typedef uint8_t     value_type;
   typedef value_type* iterator;
+  // TODO: Change to 32-bit,
   typedef uint16_t    size_type;
   typedef int16_t     difference_type;
 
