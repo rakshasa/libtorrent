@@ -7,6 +7,7 @@
 #include "download/download_main.h"
 #include "torrent/connection_manager.h"
 #include "torrent/download_info.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/peer/peer_info.h"
 #include "torrent/peer/client_list.h"
 #include "torrent/peer/connection_list.h"
@@ -20,6 +21,8 @@
 
 #define LT_LOG_SA(sa, log_fmt, ...)                                     \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, (sa)->address_str().c_str(), __VA_ARGS__);
+#define LT_LOG_SAP(sa, log_fmt, ...)                                 \
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, sap_addr_str(sa).c_str(), __VA_ARGS__);
 #define LT_LOG_SA_C(sa, log_fmt, ...)                                   \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake_manager->%s: " log_fmt, \
                reinterpret_cast<const rak::socket_address*>(sa)->address_str().c_str(), __VA_ARGS__);
@@ -91,7 +94,7 @@ HandshakeManager::add_incoming(SocketFd fd, const rak::socket_address& sa) {
   manager->connection_manager()->inc_socket_count();
 
   Handshake* h = new Handshake(fd, this, manager->connection_manager()->encryption_options());
-  h->initialize_incoming(sa);
+  h->initialize_incoming(sa.c_sockaddr());
 
   base_type::push_back(h);
 }
@@ -151,7 +154,7 @@ HandshakeManager::create_outgoing(const rak::socket_address& sa, DownloadMain* d
   manager->connection_manager()->inc_socket_count();
 
   Handshake* handshake = new Handshake(fd, this, encryption_options);
-  handshake->initialize_outgoing(sa, download, peerInfo);
+  handshake->initialize_outgoing(sa.c_sockaddr(), download, peerInfo);
 
   base_type::push_back(handshake);
 }
@@ -218,22 +221,25 @@ HandshakeManager::receive_failed(Handshake* handshake, int message, int error) {
   if (!handshake->is_active())
     throw internal_error("HandshakeManager::receive_failed(...) called on an inactive handshake.");
 
-  const rak::socket_address* sa = handshake->socket_address();
+  auto sa = sa_copy(handshake->socket_address());
 
   erase(handshake);
   handshake->deactivate_connection();
   handshake->destroy_connection();
 
-  LT_LOG_SA(sa, "Received error: message:%x %s.", message, strerror(error));
+  LT_LOG_SAP(sa, "Received error: message:%x %s.", message, strerror(error));
 
   if (handshake->encryption()->should_retry()) {
     int retry_options = handshake->retry_options() | ConnectionManager::encryption_retrying;
     DownloadMain* download = handshake->download();
 
-    LT_LOG_SA(sa, "Retrying %s.",
+    LT_LOG_SAP(sa, "Retrying %s.",
               retry_options & ConnectionManager::encryption_try_outgoing ? "encrypted" : "plaintext");
 
-    create_outgoing(*sa, download, retry_options);
+    rak::socket_address sa_copy;
+    sa_copy.copy_sockaddr(sa.get());
+
+    create_outgoing(sa_copy, download, retry_options);
   }
 
   delete handshake;
