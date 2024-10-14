@@ -10,6 +10,7 @@
 #include "torrent/error.h"
 #include "torrent/poll.h"
 #include "torrent/throttle.h"
+#include "torrent/net/socket_address.h"
 #include "torrent/utils/log.h"
 #include "utils/diffie_hellman.h"
 
@@ -26,7 +27,7 @@
 
 #if USE_EXTRA_DEBUG
 #define LT_LOG_EXTRA_DEBUG_SA(sa, log_fmt, ...)                         \
-  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt, m_address.pretty_address_str().c_str(), __VA_ARGS__);
+  lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt, sap_pretty_str(m_address).c_str(), __VA_ARGS__);
 #else
 #define LT_LOG_EXTRA_DEBUG_SA(sa, log_fmt, ...)
 #endif
@@ -90,9 +91,9 @@ Handshake::~Handshake() {
 }
 
 void
-Handshake::initialize_incoming(const rak::socket_address& sa) {
+Handshake::initialize_incoming(const sockaddr* sa) {
   m_incoming = true;
-  m_address = sa;
+  m_address = sa_copy(sa);
 
   if (m_encryption.options() & (ConnectionManager::encryption_allow_incoming | ConnectionManager::encryption_require))
     m_state = READ_ENC_KEY;
@@ -108,16 +109,16 @@ Handshake::initialize_incoming(const rak::socket_address& sa) {
 }
 
 void
-Handshake::initialize_outgoing(const rak::socket_address& sa, DownloadMain* d, PeerInfo* peerInfo) {
+Handshake::initialize_outgoing(const sockaddr* sa, DownloadMain* d, PeerInfo* peerInfo) {
   m_download = d;
 
   m_peerInfo = peerInfo;
   m_peerInfo->set_flags(PeerInfo::flag_handshake);
 
   m_incoming = false;
-  m_address = sa;
+  m_address = sa_copy(sa);
 
-  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.c_sockaddr());
+  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.get());
 
   m_state = CONNECTING;
 
@@ -336,7 +337,7 @@ Handshake::read_encryption_skey() {
 
   validate_download();
 
-  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.c_sockaddr());
+  std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.get());
 
   m_encryption.initialize_encrypt(m_download->info()->hash().c_str(), m_incoming);
   m_encryption.initialize_decrypt(m_download->info()->hash().c_str(), m_incoming);
@@ -489,7 +490,7 @@ Handshake::read_info() {
 
     validate_download();
 
-    std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.c_sockaddr());
+    std::make_pair(m_uploadThrottle, m_downloadThrottle) = m_download->throttles(m_address.get());
 
     prepare_handshake();
 
@@ -627,7 +628,7 @@ Handshake::read_port() {
   m_readBuffer.read_8();
 
   if (length == 2)
-    manager->dht_manager()->add_node(m_address.c_sockaddr(), m_readBuffer.peek_16());
+    manager->dht_manager()->add_node(m_address.get(), m_readBuffer.read_16());
 
   m_readBuffer.consume(length);
   return true;
@@ -973,11 +974,8 @@ Handshake::event_write() {
 
 void
 Handshake::prepare_proxy_connect() {
-  char buf[256];
-  m_address.address_c_str(buf, 256);
-
   int advance = snprintf((char*)m_writeBuffer.position(), m_writeBuffer.reserved_left(),
-                         "CONNECT %s:%hu HTTP/1.0\r\n\r\n", buf, m_address.port());
+                         "CONNECT %s:%hu HTTP/1.0\r\n\r\n", sap_addr_str(m_address).c_str(), sap_port(m_address));
 
   if (advance == -1 || advance > m_writeBuffer.reserved_left())
     throw internal_error("Handshake::prepare_proxy_connect() snprintf failed.");
@@ -1065,7 +1063,7 @@ Handshake::prepare_peer_info() {
     if (!m_incoming)
       throw internal_error("Handshake::prepare_peer_info() !m_incoming.");
 
-    m_peerInfo = m_download->peer_list()->connected(m_address.c_sockaddr(), PeerList::connect_incoming);
+    m_peerInfo = m_download->peer_list()->connected(m_address.get(), PeerList::connect_incoming);
 
     if (m_peerInfo == NULL)
       throw handshake_error(ConnectionManager::handshake_failed, e_handshake_no_peer_info);
