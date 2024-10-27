@@ -549,6 +549,8 @@ Handshake::read_peer() {
 
 bool
 Handshake::read_bitfield() {
+  LT_LOG_EXTRA_DEBUG_SA(m_address, "read_bitfield: size:%" PRIu32, m_bitfield.size_bytes());
+
   if (m_readPos < m_bitfield.size_bytes()) {
     uint32_t length = read_unthrottled(m_bitfield.begin() + m_readPos, m_bitfield.size_bytes() - m_readPos);
 
@@ -767,7 +769,10 @@ restart:
         break;
       }
 
-      LT_LOG_EXTRA_DEBUG_SA(m_address, "event_read : READ_MESSAGE", 0)
+      LT_LOG_EXTRA_DEBUG_SA(m_address, "event_read : READ_MESSAGE", 0);
+
+      if (m_readBuffer.reserved_left() < 5)
+        m_readBuffer.move_unused();
 
       fill_read_buffer(5);
 
