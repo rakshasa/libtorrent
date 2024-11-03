@@ -25,7 +25,7 @@
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt,     \
                m_address.pretty_address_str().c_str(), __VA_ARGS__);
 
-#if USE_EXTRA_DEBUG
+#if DISABLED__USE_EXTRA_DEBUG
 #define LT_LOG_EXTRA_DEBUG_SA(sa, log_fmt, ...)                         \
   lt_log_print(LOG_CONNECTION_HANDSHAKE, "handshake->%s: " log_fmt, sap_pretty_str(m_address).c_str(), __VA_ARGS__);
 #else
