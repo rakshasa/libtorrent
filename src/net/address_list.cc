@@ -8,7 +8,7 @@ namespace torrent {
 
 void
 AddressList::parse_address_normal(const Object::list_type& b) {
-  std::for_each(b.begin(), b.end(), [=](auto& obj) {
+  std::for_each(b.begin(), b.end(), [&](auto& obj) {
       if (!obj.is_map())
         return;
       if (!obj.has_key_string("ip"))
