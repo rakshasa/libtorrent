@@ -391,10 +391,11 @@ tracker_next_timeout_promiscuous(Tracker* tracker) {
 
   int32_t interval;
 
-  if (tracker->failed_counter())
-    interval = 5 << std::min<int>(tracker->failed_counter() - 1, 6);
-  else
+  if (tracker->failed_counter()) {
+    interval = tracker->failed_time_next() - tracker->failed_time_last();
+  } else {
     interval = tracker->normal_interval();
+  }
 
   int32_t min_interval = std::max(tracker->min_interval(), (uint32_t)300);
   int32_t use_interval = std::min(interval, min_interval);

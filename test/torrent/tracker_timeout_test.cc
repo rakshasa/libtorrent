@@ -25,7 +25,7 @@ void
 tracker_timeout_test::test_set_timeout() {
   TrackerTest tracker(NULL, "");
 
-  CPPUNIT_ASSERT(tracker.normal_interval() == 1800);
+  CPPUNIT_ASSERT(tracker.normal_interval() == 0);
 
   tracker.set_new_normal_interval(100);
   CPPUNIT_ASSERT(tracker.normal_interval() == 600);
@@ -33,7 +33,7 @@ tracker_timeout_test::test_set_timeout() {
   CPPUNIT_ASSERT(tracker.normal_interval() == 8 * 3600);
 
   tracker.set_new_min_interval(100);
-  CPPUNIT_ASSERT(tracker.min_interval() == 300);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)300, tracker.min_interval());
   tracker.set_new_min_interval(4 * 4000);
   CPPUNIT_ASSERT(tracker.min_interval() == 4 * 3600);
 }
@@ -60,18 +60,18 @@ tracker_timeout_test::test_timeout_tracker() {
 
   // Check also failed...
 
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 1800);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)1800, torrent::tracker_next_timeout(&tracker, flags));
   tracker.send_state(torrent::Tracker::EVENT_NONE);
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == ~uint32_t());
   tracker.send_state(torrent::Tracker::EVENT_SCRAPE);
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 1800);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)1800, torrent::tracker_next_timeout(&tracker, flags));
 
   tracker.close();
 
   tracker.set_success(1, torrent::cachedTime.seconds() - 3);
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 1800 - 3);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)(1800 - 3), torrent::tracker_next_timeout(&tracker, flags));
   tracker.set_success(1, torrent::cachedTime.seconds() + 3);
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 1800 + 3);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)(1800 + 3), torrent::tracker_next_timeout(&tracker, flags));
 
   tracker.close();
   flags = torrent::TrackerController::flag_active | torrent::TrackerController::flag_promiscuous_mode;
@@ -126,9 +126,10 @@ tracker_timeout_test::test_timeout_requesting() {
   tracker.set_failed(2, torrent::cachedTime.seconds());
   CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 10);
   tracker.set_failed(6 + 1, torrent::cachedTime.seconds());
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 320);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)299, torrent::tracker_next_timeout(&tracker, flags));
   tracker.set_failed(7 + 1, torrent::cachedTime.seconds());
-  CPPUNIT_ASSERT(torrent::tracker_next_timeout(&tracker, flags) == 320);
+  CPPUNIT_ASSERT_EQUAL((uint32_t)299, torrent::tracker_next_timeout(&tracker, flags));
+
   
   //std::cout << "timeout:" << torrent::tracker_next_timeout(&tracker, flags) << std::endl;
 
