@@ -29,20 +29,20 @@ public:
     EVENT_SCRAPE
   };
 
-  static const int flag_enabled = 0x1;
+  static const int flag_enabled       = 0x1;
   static const int flag_extra_tracker = 0x2;
-  static const int flag_can_scrape = 0x4;
+  static const int flag_can_scrape    = 0x4;
 
   static const int max_flag_size   = 0x10;
   static const int mask_base_flags = 0x10 - 1;
 
-  static const int min_min_interval = 300;
-  static const int default_min_interval = 600;
-  static const int max_min_interval = 4 * 3600;
+  static constexpr int min_min_interval     = 300;
+  static constexpr int default_min_interval = 600;
+  static constexpr int max_min_interval     = 4 * 3600;
 
-  static const int min_normal_interval = 600;
-  static const int default_normal_interval = 1800;
-  static const int max_normal_interval = 8 * 3600;
+  static constexpr int min_normal_interval     = 600;
+  static constexpr int default_normal_interval = 1800;
+  static constexpr int max_normal_interval     = 8 * 3600;
 
   virtual ~Tracker() {}
 

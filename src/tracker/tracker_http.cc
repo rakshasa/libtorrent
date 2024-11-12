@@ -282,7 +282,7 @@ TrackerHttp::receive_done() {
 void
 TrackerHttp::receive_signal_failed(std::string msg) {
   m_normal_interval = 0;
-  m_min_interval = 0;
+  m_min_interval    = 0;
   return receive_failed(msg);
 }
 
@@ -331,9 +331,9 @@ TrackerHttp::process_success(const Object& object) {
     set_normal_interval(default_normal_interval);
 
   if (object.has_key_value("min interval"))
-    set_normal_interval(object.get_key_value("min interval"));
+    set_min_interval(object.get_key_value("min interval"));
   else
-    set_normal_interval(default_min_interval);
+    set_min_interval(default_min_interval);
 
   if (object.has_key_string("tracker id"))
     m_tracker_id = object.get_key_string("tracker id");
