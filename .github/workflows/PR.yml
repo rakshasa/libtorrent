@@ -22,8 +22,9 @@ jobs:
         sudo apt-get install -y clang-tidy bear
     - name: Configure Project
       run: |
-        autoconf -i
+        libtoolize
         aclocal -I scripts
+        autoconf -i
         autoheader
         automake --add-missing
         ./configure
