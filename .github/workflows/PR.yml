@@ -19,10 +19,17 @@ jobs:
     - name: Install clang-tidy
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang-tidy
+        sudo apt-get install -y clang-tidy bear
+    - name: Configure Project
+      run: |
+        aclocal -I scripts
+        autoconf -i
+        autoheader
+        automake --add-missing
+        ./configure
     - name: Prepare compile_commands.json
       run: |
-        cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        bear -- make
     - name: Create results directory
       run: |
         mkdir clang-tidy-result
