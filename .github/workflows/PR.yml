@@ -22,6 +22,7 @@ jobs:
         sudo apt-get install -y clang-tidy bear
     - name: Configure Project
       run: |
+        libtoolize
         aclocal -I scripts
         autoconf -i
         autoheader
@@ -45,3 +46,17 @@ jobs:
       with:
         name: clang-tidy-result
         path: clang-tidy-result/
+    - name: Run clang-tidy-pr-comments action
+      uses: platisd/clang-tidy-pr-comments@v1
+      with:
+        # The GitHub token (or a personal access token)
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        # The path to the clang-tidy fixes generated previously
+        clang_tidy_fixes: clang-tidy-result/fixes.yml
+        # Optionally set to true if you want the Action to request
+        # changes in case warnings are found
+        request_changes: true
+        # Optionally set the number of comments per review
+        # to avoid GitHub API timeouts for heavily loaded
+        # pull requests
+        suggestions_per_comment: 10
