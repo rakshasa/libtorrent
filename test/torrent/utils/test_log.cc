@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cstdio>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -156,6 +157,7 @@ test_log::test_file_output() {
   temp_file.getline(buffer, 256);
 
   CPPUNIT_ASSERT_MESSAGE(buffer, std::string(buffer).find("test_file") != std::string::npos);
+  std::remove(filename.c_str());
 }
 
 void
@@ -191,4 +193,5 @@ test_log::test_file_output_append() {
 
   CPPUNIT_ASSERT_MESSAGE(buffer_line1, std::string(buffer_line1).find("test_line_1") != std::string::npos);
   CPPUNIT_ASSERT_MESSAGE(buffer_line2, std::string(buffer_line2).find("test_line_2") != std::string::npos);
+  std::remove(filename.c_str());
 }
