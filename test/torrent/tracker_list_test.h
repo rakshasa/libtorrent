@@ -77,8 +77,8 @@ public:
   void                set_scrape_on_success(bool state) { if (state) m_flags |= flag_scrape_on_success; else m_flags &= ~flag_scrape_on_success; }
   void                set_can_scrape()              { m_flags |= flag_can_scrape; }
 
-  void                set_success(uint32_t counter, uint32_t time_last) { m_success_counter = counter; m_success_time_last = time_last; }
-  void                set_failed(uint32_t counter, uint32_t time_last)  { m_failed_counter = counter; m_failed_time_last = time_last; }
+  void                set_success(uint32_t counter, uint32_t time_last) { m_success_counter = counter; m_success_time_last = time_last; set_normal_interval(default_normal_interval); set_min_interval(default_min_interval);}
+  void                set_failed(uint32_t counter, uint32_t time_last)  { m_failed_counter = counter; m_failed_time_last = time_last; m_normal_interval = 0; m_min_interval = 0; }
   void                set_latest_new_peers(uint32_t peers)              { m_latest_new_peers = peers; }
   void                set_latest_sum_peers(uint32_t peers)              { m_latest_sum_peers = peers; }
 
