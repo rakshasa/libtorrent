@@ -1,43 +1,8 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include "socket_file.h"
 #include "torrent/exceptions.h"
+#include "torrent/utils/log.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -48,9 +13,14 @@
 #include <sys/types.h>
 
 #ifdef HAVE_FALLOCATE
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <linux/falloc.h>
 #endif
+
+#define LT_LOG_ERROR(log_fmt, ...)                                      \
+  lt_log_print(LOG_STORAGE, "socket_file->%i: " log_fmt, m_fd, __VA_ARGS__);
 
 namespace torrent {
 
@@ -73,7 +43,7 @@ SocketFile::open(const std::string& path, int prot, int flags, mode_t mode) {
 #else
   fd_type fd = ::open(path.c_str(), flags, mode);
 #endif
-  
+
   if (fd == invalid_fd)
     return false;
 
@@ -99,26 +69,43 @@ SocketFile::size() const {
   rak::file_stat fs;
 
   return fs.update(m_fd) ? fs.size() : 0;
-}  
+}
 
 bool
-SocketFile::set_size(uint64_t size, int flags) const {
+SocketFile::set_size(uint64_t size) const {
   if (!is_open())
     throw internal_error("SocketFile::set_size() called on a closed file");
 
-#ifdef HAVE_FALLOCATE
-  if (flags & flag_fallocate && fallocate(m_fd, 0, 0, size) == 0 && ftruncate(m_fd, size) == 0)
-    return true;
-#endif
+  if (ftruncate(m_fd, size) != -1) {
+    LT_LOG_ERROR("ftruncate failed : %s", strerror(errno));
+    return false;
+  }
 
-#ifdef USE_POSIX_FALLOCATE
-  if (flags & flag_fallocate &&
-      flags & flag_fallocate_blocking &&
-      posix_fallocate(m_fd, 0, size) == 0 && ftruncate(m_fd, size) == 0)
-    return true;
-#endif
+  return true;
+}
 
-#ifdef SYS_DARWIN
+bool
+SocketFile::allocate(uint64_t size, int flags) const {
+  if (!is_open())
+    throw internal_error("SocketFile::allocate() called on a closed file");
+
+#if defined(HAVE_FALLOCATE)
+  if (flags & flag_fallocate) {
+    if (fallocate(m_fd, 0, 0, size) == -1) {
+      LT_LOG_ERROR("fallocate failed : %s", strerror(errno));
+      return false;
+    }
+  }
+
+#elif defined(USE_POSIX_FALLOCATE)
+  if (flags & flag_fallocate && flags & flag_fallocate_blocking) {
+    if (posix_fallocate(m_fd, 0, size) == -1) {
+      LT_LOG_INFO("posix_fallocate failed : %s", strerror(errno));
+      return false;
+    }
+  }
+
+#elif defined(SYS_DARWIN)
   if (flags & flag_fallocate) {
     fstore_t fstore;
     fstore.fst_flags = F_ALLOCATECONTIG;
@@ -127,29 +114,21 @@ SocketFile::set_size(uint64_t size, int flags) const {
     fstore.fst_length = size;
     fstore.fst_bytesalloc = 0;
 
-    // Hmm... this shouldn't really be something we fail the set_size
-    // on...
+    // This shouldn't really be something we fail the set_size
+    // on.
     //
-    // Yet is somehow fails with ENOSPC...
+    // Yet is somehow fails with ENOSPC.
 //     if (fcntl(m_fd, F_PREALLOCATE, &fstore) == -1)
 //       throw internal_error("hack: fcntl failed" + std::string(strerror(errno)));
 
-    fcntl(m_fd, F_PREALLOCATE, &fstore); // Ignore result for now...
+    if (fcntl(m_fd, F_PREALLOCATE, &fstore) == -1)
+      LT_LOG_INFO("fcntl(,F_PREALLOCATE,) failed : %s", strerror(errno));
+
+    return true;
   }
 #endif
 
-  if (ftruncate(m_fd, size) == 0)
-    return true;
-  
-  // Use workaround to resize files on vfat. It causes the whole
-  // client to block while it is resizing the files, this really
-  // should be in a seperate thread.
-  if (size != 0 &&
-      lseek(m_fd, size - 1, SEEK_SET) == (off_t)(size - 1) &&
-      write(m_fd, &size, 1) == 1)
-    return true;
-
-  return false;
+  return true;
 }
 
 MemoryChunk
@@ -165,7 +144,7 @@ SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) 
   uint64_t align = offset % MemoryChunk::page_size();
 
   char* ptr = (char*)mmap(NULL, length + align, prot, flags, m_fd, offset - align);
-  
+
   if (ptr == MAP_FAILED)
     return MemoryChunk();
 
