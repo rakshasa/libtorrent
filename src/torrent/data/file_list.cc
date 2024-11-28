@@ -1,39 +1,3 @@
-// libTorrent - BitTorrent library
-// Copyright (C) 2005-2011, Jari Sundell
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// In addition, as a special exception, the copyright holders give
-// permission to link the code of portions of this program with the
-// OpenSSL library under certain conditions as described in each
-// individual source file, and distribute linked combinations
-// including the two.
-//
-// You must obey the GNU General Public License in all respects for
-// all of the code used other than OpenSSL.  If you modify file(s)
-// with this exception, you may extend this exception to your version
-// of the file(s), but you are not obligated to do so.  If you do not
-// wish to do so, delete this exception statement from your version.
-// If you delete this exception statement from all source files in the
-// program, then also delete it here.
-//
-// Contact:  Jari Sundell <jaris@ifi.uio.no>
-//
-//           Skomakerveien 33
-//           3185 Skoppum, NORWAY
-
 #include "config.h"
 
 #include <algorithm>
@@ -92,7 +56,7 @@ FileList::~FileList() {
   // Can we skip close()?
   close();
 
-  std::for_each(begin(), end(), rak::call_delete<File>());
+  std::for_each(begin(), end(), [](File* file) { delete file; });
 
   base_type::clear();
   m_torrentSize = 0;
@@ -213,7 +177,7 @@ FileList::iterator_range
 FileList::split(iterator position, split_type* first, split_type* last) {
   if (is_open())
     throw internal_error("FileList::split(...) is_open().", data()->hash());
-  
+
   if (first == last || position == end())
     throw internal_error("FileList::split(...) invalid arguments.", data()->hash());
 
@@ -355,7 +319,7 @@ FileList::make_all_paths() {
     rak::error_number::clear_global();
 
     make_directory(entry->path()->begin(), entry->path()->end(), firstMismatch);
-    
+
     lastPath = entry->path();
   }
 
@@ -415,7 +379,7 @@ FileList::open(int flags) {
   try {
     if (!(flags & open_no_create) && !make_root_path())
       throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
-  
+
     for (itr = begin(); itr != end(); ++itr) {
       File* entry = *itr;
 
@@ -427,7 +391,7 @@ FileList::open(int flags) {
       // we can keep the previously opened file.
       if (entry->is_open())
         continue;
-      
+
       // Update the path during open so that any changes to root dir
       // and file paths are properly handled.
       if (entry->path()->back().empty())
@@ -602,10 +566,11 @@ FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
   if (offset + length > m_torrentSize)
     throw internal_error("Tried to access chunk out of range in FileList", data()->hash());
 
-  std::auto_ptr<Chunk> chunk(new Chunk);
+  std::unique_ptr<Chunk> chunk(new Chunk);
 
-  for (iterator itr = std::find_if(begin(), end(), std::bind2nd(std::mem_fun(&File::is_valid_position), offset)); length != 0; ++itr) {
+  auto itr = std::find_if(begin(), end(), [offset](File* file) { return file->is_valid_position(offset); });
 
+  for (; length != 0; ++itr) {
     if (itr == end())
       throw internal_error("FileList could not find a valid file for chunk", data()->hash());
 
@@ -667,15 +632,15 @@ FileList::mark_completed(uint32_t index) {
   if (m_data.normal_priority()->has(index) || m_data.high_priority()->has(index)) {
     if (m_data.wanted_chunks() == 0)
       throw internal_error("FileList::mark_completed(...) m_data.wanted_chunks() == 0.", data()->hash());
-    
+
     m_data.set_wanted_chunks(m_data.wanted_chunks() - 1);
   }
 }
 
 FileList::iterator
 FileList::inc_completed(iterator firstItr, uint32_t index) {
-  firstItr         = std::find_if(firstItr, end(), rak::less(index, std::mem_fun(&File::range_second)));
-  iterator lastItr = std::find_if(firstItr, end(), rak::less(index + 1, std::mem_fun(&File::range_second)));
+  firstItr     = std::find_if(firstItr, end(), [index](File* file) { return index < file->range_second(); });
+  auto lastItr = std::find_if(firstItr, end(), [index](File* file) { return index+1 < file->range_second(); });
 
   if (firstItr == end())
     throw internal_error("FileList::inc_completed() first == m_entryList->end().", data()->hash());
@@ -683,7 +648,7 @@ FileList::inc_completed(iterator firstItr, uint32_t index) {
   // TODO: Check if this works right for zero-length files.
   std::for_each(firstItr,
                 lastItr == end() ? end() : (lastItr + 1),
-                std::mem_fun(&File::inc_completed_protected));
+                [](File* file) { file->inc_completed_protected(); });
 
   return lastItr;
 }

@@ -43,10 +43,13 @@ TrackerTest::trigger_success(torrent::TrackerList::address_list* address_list, u
   m_open = !(m_flags & flag_close_on_done);
   return_new_peers = new_peers;
 
-  if (m_latest_event == EVENT_SCRAPE)
+  if (m_latest_event == EVENT_SCRAPE) {
     parent()->receive_scrape_success(this);
-  else
+  } else {
+    set_normal_interval(default_normal_interval);
+    set_min_interval(default_min_interval);
     parent()->receive_success(this, address_list);
+  }
 
   m_requesting_state = -1;
   return true;
@@ -61,10 +64,13 @@ TrackerTest::trigger_failure() {
   m_open = !(m_flags & flag_close_on_done);
   return_new_peers = 0;
 
-  if (m_latest_event == EVENT_SCRAPE)
+  if (m_latest_event == EVENT_SCRAPE) {
     parent()->receive_scrape_failed(this, "failed");
-  else
+  } else {
+    set_normal_interval(0);
+    set_min_interval(0);
     parent()->receive_failed(this, "failed");
+  }
 
   m_requesting_state = -1;
   return true;
