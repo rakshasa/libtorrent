@@ -76,8 +76,7 @@ SocketFile::set_size(uint64_t size) const {
   if (!is_open())
     throw internal_error("SocketFile::set_size() called on a closed file");
 
-  if (ftruncate(m_fd, size) != -1) {
-    LT_LOG_ERROR("ftruncate failed : %s", strerror(errno));
+  if (ftruncate(m_fd, size) == -1) {
     return false;
   }
 

@@ -142,7 +142,7 @@ private:
   int                 m_fd;
   int                 m_protection;
   int                 m_flags;
-  
+
   Path                m_path;
   std::string         m_frozenPath;
 
