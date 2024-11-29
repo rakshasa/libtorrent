@@ -93,16 +93,16 @@ public:
   void                setup_delegator();
   void                setup_tracker();
 
-  typedef rak::const_mem_fun1<HandshakeManager, uint32_t, DownloadMain*>                   SlotCountHandshakes;
-  typedef rak::mem_fun1<DownloadWrapper, void, ChunkHandle>                                SlotHashCheckAdd;
+  typedef std::function<uint32_t(DownloadMain*)>                         slot_count_handshakes_type;
+  typedef std::function<void(ChunkHandle)>                               slot_hash_check_add_type;
 
-  typedef rak::mem_fun2<HandshakeManager, void, const rak::socket_address&, DownloadMain*> slot_start_handshake_type;
-  typedef rak::mem_fun1<HandshakeManager, void, DownloadMain*>                             slot_stop_handshakes_type;
+  typedef std::function<void(const rak::socket_address&, DownloadMain*)> slot_start_handshake_type;
+  typedef std::function<void(DownloadMain*)>                             slot_stop_handshakes_type;
 
   void                slot_start_handshake(slot_start_handshake_type s) { m_slotStartHandshake = s; }
   void                slot_stop_handshakes(slot_stop_handshakes_type s) { m_slotStopHandshakes = s; }
-  void                slot_count_handshakes(SlotCountHandshakes s) { m_slotCountHandshakes = s; }
-  void                slot_hash_check_add(SlotHashCheckAdd s)      { m_slotHashCheckAdd = s; }
+  void                slot_count_handshakes(slot_count_handshakes_type s) { m_slotCountHandshakes = s; }
+  void                slot_hash_check_add(slot_hash_check_add_type s)     { m_slotHashCheckAdd = s; }
 
   void                add_peer(const rak::socket_address& sa);
 
@@ -165,8 +165,8 @@ private:
   slot_start_handshake_type m_slotStartHandshake;
   slot_stop_handshakes_type m_slotStopHandshakes;
 
-  SlotCountHandshakes m_slotCountHandshakes;
-  SlotHashCheckAdd    m_slotHashCheckAdd;
+  slot_count_handshakes_type m_slotCountHandshakes;
+  slot_hash_check_add_type   m_slotHashCheckAdd;
 
   rak::priority_item  m_delay_download_done;
   rak::priority_item  m_delay_partially_done;

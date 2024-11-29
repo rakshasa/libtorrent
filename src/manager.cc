@@ -93,8 +93,12 @@ Manager::~Manager() {
 
 void
 Manager::initialize_download(DownloadWrapper* d) {
-  d->main()->slot_count_handshakes(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::size_info));
-  d->main()->slot_start_handshake(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::add_outgoing));
+  d->main()->slot_count_handshakes([this](DownloadMain* download) {
+    return m_handshakeManager->size_info(download);
+  });
+  d->main()->slot_start_handshake([this](const rak::socket_address& sa, DownloadMain* download) {
+    return m_handshakeManager->add_outgoing(sa, download);
+  });
   d->main()->slot_stop_handshakes(rak::make_mem_fun(m_handshakeManager, &HandshakeManager::erase_download));
 
   // TODO: The resource manager doesn't need to know about this
