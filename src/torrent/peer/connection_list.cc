@@ -219,9 +219,9 @@ ConnectionList::find(const char* id) {
 
 ConnectionList::iterator
 ConnectionList::find(const sockaddr* sa) {
-  return std::find_if(begin(), end(), rak::equal_ptr(rak::socket_address::cast_from(sa),
-                                                     rak::on(std::mem_fun(&Peer::m_ptr), rak::on(std::mem_fun(&PeerConnectionBase::peer_info),
-                                                                                                 std::mem_fun(&PeerInfo::socket_address)))));
+  return std::find_if(begin(), end(), [sa](Peer* p) {
+    return *rak::socket_address::cast_from(sa) == *p->m_ptr()->peer_info()->socket_address();
+  });
 }
 
 void
