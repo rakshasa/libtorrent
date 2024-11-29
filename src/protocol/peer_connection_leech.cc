@@ -543,8 +543,10 @@ PeerConnection<type>::fill_write_buffer() {
       !haveQueue->empty() &&
       m_peerChunks.have_timer() <= haveQueue->front().first &&
       m_up->can_write_have()) {
-    DownloadMain::have_queue_type::iterator last = std::find_if(haveQueue->begin(), haveQueue->end(),
-                                                                rak::greater(m_peerChunks.have_timer(), rak::mem_ref(&DownloadMain::have_queue_type::value_type::first)));
+
+    auto last = std::find_if(haveQueue->begin(), haveQueue->end(), [this](auto v) {
+      return m_peerChunks.have_timer() > v.first;
+    });
 
     do {
       m_up->write_have((--last)->second);
