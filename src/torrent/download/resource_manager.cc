@@ -313,7 +313,7 @@ ResourceManager::receive_tick() {
 unsigned int
 ResourceManager::total_weight() const {
   // TODO: This doesn't take into account inactive downloads.
-  return std::for_each(begin(), end(), rak::accumulate((unsigned int)0, std::mem_fun_ref(&value_type::priority))).result;
+  return std::accumulate(begin(), end(), (unsigned int)0, [](unsigned int i, auto r){ return i + r.priority(); });
 }
 
 int

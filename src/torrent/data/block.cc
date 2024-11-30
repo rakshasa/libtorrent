@@ -141,10 +141,12 @@ Block::erase(BlockTransfer* transfer) {
       transfer_list_type::iterator first = std::find_if(m_transfers.begin(), m_transfers.end(), std::not1(std::mem_fun(&BlockTransfer::is_leader)));
       transfer_list_type::iterator last = std::stable_partition(first, m_transfers.end(), std::mem_fun(&BlockTransfer::is_not_leader));
 
-      transfer_list_type::iterator newLeader = std::max_element(first, last, rak::less2(std::mem_fun(&BlockTransfer::position), std::mem_fun(&BlockTransfer::position)));
+      transfer_list_type::iterator new_leader = std::max_element(first, last, [](BlockTransfer* t1, BlockTransfer* t2) {
+        return t1->position() < t2->position();
+      });
 
-      if (newLeader != last) {
-        m_leader = *newLeader;
+      if (new_leader != last) {
+        m_leader = *new_leader;
         m_leader->set_state(BlockTransfer::STATE_LEADER);
       } else {
         m_leader = NULL;
