@@ -13,7 +13,7 @@
 
 namespace torrent {
 
-thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, 0, PTHREAD_MUTEX_INITIALIZER };
+thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, PTHREAD_MUTEX_INITIALIZER };
 
 thread_base::thread_base() :
   m_state(STATE_UNKNOWN),
@@ -53,7 +53,7 @@ thread_base::start_thread() {
 
 void
 thread_base::stop_thread() {
-  __sync_fetch_and_or(&m_flags, flag_do_shutdown);
+  m_flags |= flag_do_shutdown;
   interrupt();
 }
 
@@ -88,10 +88,10 @@ thread_base::event_loop(thread_base* thread) {
   if (thread == nullptr)
     throw internal_error("thread_base::event_loop called with a null pointer thread");
 
-  if (!thread->is_initialized())
-    throw internal_error("thread_base::event_loop call on an uninitialized object");
+  auto previous_state = STATE_INITIALIZED;
 
-  __sync_lock_test_and_set(&thread->m_state, STATE_ACTIVE);
+  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_ACTIVE))
+    throw internal_error("thread_base::event_loop called on an object that is not in the initialized state.");
 
 #if defined(HAS_PTHREAD_SETNAME_NP_DARWIN)
   pthread_setname_np(thread->name());
@@ -116,7 +116,7 @@ thread_base::event_loop(thread_base* thread) {
       thread->call_events();
       thread->signal_bitfield()->work();
 
-      __sync_fetch_and_or(&thread->m_flags, flag_polling);
+      thread->m_flags |= flag_polling;
 
       // Call again after setting flag_polling to ensure we process
       // any events set while it was working.
@@ -151,7 +151,7 @@ thread_base::event_loop(thread_base* thread) {
       instrumentation_update(INSTRUMENTATION_POLLING_EVENTS, event_count);
       instrumentation_update(instrumentation_enum(INSTRUMENTATION_POLLING_EVENTS + thread->m_instrumentation_index), event_count);
 
-      __sync_fetch_and_and(&thread->m_flags, ~(flag_polling | flag_no_timeout));
+      thread->m_flags &= ~(flag_polling | flag_no_timeout);
     }
 
 // #ifdef USE_INTERRUPT_SOCKET
@@ -162,7 +162,11 @@ thread_base::event_loop(thread_base* thread) {
     lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Shutting down thread.", thread->name());
   }
 
-  __sync_lock_test_and_set(&thread->m_state, STATE_INACTIVE);
+  previous_state = STATE_ACTIVE;
+
+  if (!thread->m_state.compare_exchange_strong(previous_state, STATE_INACTIVE))
+    throw internal_error("thread_base::event_loop called on an object that is not in the active state.");
+
   return NULL;
 }
 
