@@ -4,11 +4,11 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "exceptions.h"
-#include "poll.h"
-#include "thread_base.h"
-#include "thread_interrupt.h"
-#include "utils/log.h"
+#include "torrent/exceptions.h"
+#include "torrent/poll.h"
+#include "torrent/utils/thread_base.h"
+#include "torrent/utils/thread_interrupt.h"
+#include "torrent/utils/log.h"
 #include "utils/instrumentation.h"
 
 namespace torrent {
@@ -41,9 +41,6 @@ thread_base::~thread_base() {
 
 void
 thread_base::start_thread() {
-  if (this == nullptr)
-    throw internal_error("Called thread_base::start_thread on a nullptr.");
-
   if (m_poll == nullptr)
     throw internal_error("No poll object for thread defined.");
 
@@ -68,7 +65,7 @@ thread_base::stop_thread_wait() {
 
   while (!is_inactive()) {
     usleep(1000);
-  }  
+  }
 
   acquire_global_lock();
 }
@@ -103,7 +100,9 @@ thread_base::event_loop(thread_base* thread) {
 #endif
 
   lt_log_print(torrent::LOG_THREAD_NOTICE, "%s: Starting thread.", thread->name());
-  
+
+  thread->m_signal_bitfield.handover(std::this_thread::get_id());
+
   try {
 
 // #ifdef USE_INTERRUPT_SOCKET

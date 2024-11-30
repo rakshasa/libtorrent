@@ -26,6 +26,8 @@ public:
   void          signal(unsigned int index) { m_bitfield |= 1 << index; }
   void          work();
 
+  void          handover(std::thread::id thread_id) { m_thread_id = thread_id; }
+
 private:
   std::thread::id m_thread_id;
   unsigned int    m_size;
