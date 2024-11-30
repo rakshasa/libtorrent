@@ -52,23 +52,6 @@ struct reference_fix<Type&> {
   typedef Type type;
 };
 
-template <typename Type, typename Ftor>
-struct accumulate_t {
-  accumulate_t(Type t, Ftor f) : result(t), m_f(f) {}
-
-  template <typename Arg>
-  void operator () (const Arg& a) { result += m_f(a); }
-
-  Type result;
-  Ftor m_f;
-};
-
-template <typename Type, typename Ftor>
-inline accumulate_t<Type, Ftor>
-accumulate(Type t, Ftor f) {
-  return accumulate_t<Type, Ftor>(t, f);
-}
-
 // Operators:
 
 template <typename Type, typename Ftor>
@@ -93,27 +76,6 @@ equal(Type t, Ftor f) {
 }
 
 template <typename Type, typename Ftor>
-struct not_equal_t {
-  typedef bool result_type;
-
-  not_equal_t(Type t, Ftor f) : m_t(t), m_f(f) {}
-
-  template <typename Arg>
-  bool operator () (Arg& a) {
-    return m_t != m_f(a);
-  }
-
-  Type m_t;
-  Ftor m_f;
-};
-
-template <typename Type, typename Ftor>
-inline not_equal_t<Type, Ftor>
-not_equal(Type t, Ftor f) {
-  return not_equal_t<Type, Ftor>(t, f);
-}
-
-template <typename Type, typename Ftor>
 struct less_t {
   typedef bool result_type;
 
@@ -132,24 +94,6 @@ template <typename Type, typename Ftor>
 inline less_t<Type, Ftor>
 less(Type t, Ftor f) {
   return less_t<Type, Ftor>(t, f);
-}
-
-template <typename FtorA, typename FtorB>
-struct less2_t : public std::binary_function<typename FtorA::argument_type, typename FtorB::argument_type, bool> {
-  less2_t(FtorA f_a, FtorB f_b) : m_f_a(f_a), m_f_b(f_b) {}
-
-  bool operator () (typename FtorA::argument_type a, typename FtorB::argument_type b) {
-    return m_f_a(a) < m_f_b(b);
-  }
-
-  FtorA m_f_a;
-  FtorB m_f_b;
-};
-
-template <typename FtorA, typename FtorB>
-inline less2_t<FtorA, FtorB>
-less2(FtorA f_a, FtorB f_b) {
-  return less2_t<FtorA,FtorB>(f_a,f_b);
 }
 
 template <typename Type, typename Ftor>
@@ -172,33 +116,6 @@ inline less_equal_t<Type, Ftor>
 less_equal(Type t, Ftor f) {
   return less_equal_t<Type, Ftor>(t, f);
 }
-
-template <typename Type, typename Ftor>
-struct greater_equal_t {
-  typedef bool result_type;
-
-  greater_equal_t(Type t, Ftor f) : m_t(t), m_f(f) {}
-
-  template <typename Arg>
-  bool operator () (Arg& a) {
-    return m_t >= m_f(a);
-  }
-
-  Type m_t;
-  Ftor m_f;
-};
-
-template <typename Type, typename Ftor>
-inline greater_equal_t<Type, Ftor>
-greater_equal(Type t, Ftor f) {
-  return greater_equal_t<Type, Ftor>(t, f);
-}
-
-template<typename Tp>
-struct invert : public std::unary_function<Tp, Tp> {
-  Tp
-  operator () (const Tp& x) const { return ~x; }
-};
 
 template <typename Src, typename Dest>
 struct on_t : public std::unary_function<typename Src::argument_type, typename Dest::result_type> {
@@ -260,37 +177,6 @@ struct call_delete : public std::unary_function<T*, void> {
     delete t;
   }
 };
-
-template <typename T>
-inline void
-call_delete_func(T* t) {
-  delete t;
-}
-
-template <typename Operation>
-class bind2nd_t : public std::unary_function<typename Operation::first_argument_type, typename Operation::result_type> {
-public:
-  typedef typename reference_fix<typename Operation::first_argument_type>::type argument_type;
-  typedef typename reference_fix<typename Operation::second_argument_type>::type value_type;
-
-  bind2nd_t(const Operation& op, const value_type v) :
-    m_op(op), m_value(v) {}
-
-  typename Operation::result_type
-  operator () (argument_type arg) {
-    return m_op(arg, m_value);
-  }
-
-protected:
-  Operation  m_op;
-  value_type m_value;
-};
-
-template <typename Operation, typename Type>
-inline bind2nd_t<Operation>
-bind2nd(const Operation& op, const Type& val) {
-  return bind2nd_t<Operation>(op, val);
-}
 
 // Lightweight callback function including pointer to object. Should
 // be replaced by TR1 stuff later. Requires an object to bind, instead

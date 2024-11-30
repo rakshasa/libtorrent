@@ -359,7 +359,9 @@ DownloadConstructor::choose_path(std::list<Path>* pathList) {
   EncodingList::const_iterator encodingLast  = m_encodingList->end();
   
   for ( ; encodingFirst != encodingLast; ++encodingFirst) {
-    std::list<Path>::iterator itr = std::find_if(pathFirst, pathLast, rak::bind2nd(download_constructor_encoding_match(), encodingFirst->c_str()));
+    auto itr = std::find_if(pathFirst, pathLast, [encodingFirst](const Path& p) {
+      return download_constructor_encoding_match()(p, encodingFirst->c_str());
+    });
     
     if (itr != pathLast)
       pathList->splice(pathFirst, *pathList, itr);
