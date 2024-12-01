@@ -59,7 +59,7 @@ ChunkSelector::initialize(ChunkStatistics* cs) {
 
   untouched->set_size_bits(completed->size_bits());
   untouched->allocate();
-  std::transform(completed->begin(), completed->end(), untouched->begin(), rak::invert<Bitfield::value_type>());
+  std::transform(completed->begin(), completed->end(), untouched->begin(), [](const Bitfield::value_type& v) { return ~v; });
   untouched->update();
 
   m_sharedQueue.enable(32);

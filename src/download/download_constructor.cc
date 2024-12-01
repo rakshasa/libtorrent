@@ -217,9 +217,9 @@ DownloadConstructor::add_tracker_group(const Object& b) {
   if (!b.is_list())
     throw bencode_error("Tracker group list not a list");
 
-  std::for_each(b.as_list().begin(), b.as_list().end(),
-		rak::bind2nd(rak::make_mem_fun(this, &DownloadConstructor::add_tracker_single),
-			     m_download->main()->tracker_list()->size_group()));
+  for (const auto& tracker : b.as_list()) {
+    add_tracker_single(tracker, m_download->main()->tracker_list()->size_group());
+  }
 }
 
 void
@@ -359,7 +359,9 @@ DownloadConstructor::choose_path(std::list<Path>* pathList) {
   EncodingList::const_iterator encodingLast  = m_encodingList->end();
   
   for ( ; encodingFirst != encodingLast; ++encodingFirst) {
-    std::list<Path>::iterator itr = std::find_if(pathFirst, pathLast, rak::bind2nd(download_constructor_encoding_match(), encodingFirst->c_str()));
+    auto itr = std::find_if(pathFirst, pathLast, [encodingFirst](const Path& p) {
+      return download_constructor_encoding_match()(p, encodingFirst->c_str());
+    });
     
     if (itr != pathLast)
       pathList->splice(pathFirst, *pathList, itr);

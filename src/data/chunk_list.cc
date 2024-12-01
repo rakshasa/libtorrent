@@ -291,7 +291,9 @@ ChunkList::sync_chunks(int flags) {
   if (flags & sync_all)
     split = m_queue.begin();
   else
-    split = std::stable_partition(m_queue.begin(), m_queue.end(), rak::not_equal(1, std::mem_fun(&ChunkListNode::writable)));
+    split = std::stable_partition(m_queue.begin(), m_queue.end(), [](ChunkListNode* n) {
+      return 1 != n->writable();
+    });
 
   // Allow a flag that does more culling, so that we only get large
   // continous sections.
