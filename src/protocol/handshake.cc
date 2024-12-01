@@ -630,7 +630,7 @@ Handshake::read_port() {
   m_readBuffer.read_8();
 
   if (length == 2)
-    manager->dht_manager()->add_node(m_address.get(), m_readBuffer.read_16());
+    manager->dht_manager()->add_node(m_address.get(), m_readBuffer.peek_16());
 
   m_readBuffer.consume(length);
   return true;
