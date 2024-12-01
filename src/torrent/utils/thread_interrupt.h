@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_UTILS_THREAD_INTERRUPT_H
 #define LIBTORRENT_UTILS_THREAD_INTERRUPT_H
 
+#include "config.h"
+
 #include <utility>
 #include <atomic>
 #include <torrent/event.h>

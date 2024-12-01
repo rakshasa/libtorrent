@@ -21,27 +21,27 @@ public:
 
   test_thread();
 
-  int     test_state() const { return m_test_state; }
+  int     test_state() const { return m_testState; }
   bool    is_state(int state) const { return m_state == state; }
-  bool    is_test_state(int state) const { return m_test_state == state; }
-  bool    is_test_flags(int flags) const { return (m_test_flags & flags) == flags; }
-  bool    is_not_test_flags(int flags) const { return !(m_test_flags & flags); }
+  bool    is_test_state(int state) const { return m_testState == state; }
+  bool    is_test_flags(int flags) const { return (m_testFlags & flags) == flags; }
+  bool    is_not_test_flags(int flags) const { return !(m_testFlags & flags); }
 
   auto    name() const -> const char* { return "test_thread"; }
 
   void    init_thread();
 
-  void    set_pre_stop() { m_test_flags |= test_flag_pre_stop; }
-  void    set_acquire_global() { m_test_flags |= test_flag_acquire_global; }
+  void    set_pre_stop() { m_testFlags |= test_flag_pre_stop; }
+  void    set_acquire_global() { m_testFlags |= test_flag_acquire_global; }
 
-  void    set_test_flag(int flags) { m_test_flags |= flags; }
+  void    set_test_flag(int flags) { m_testFlags |= flags; }
 
 private:
   void    call_events();
-  int64_t next_timeout_usec() { return (m_test_flags & test_flag_long_timeout) ? (10000 * 1000) : (100 * 1000); }
+  int64_t next_timeout_usec() { return (m_testFlags & test_flag_long_timeout) ? (10000 * 1000) : (100 * 1000); }
 
-  std::atomic<int> m_test_state lt_cacheline_aligned;
-  std::atomic<int> m_test_flags lt_cacheline_aligned;
+  std::atomic<int> m_testState lt_cacheline_aligned;
+  std::atomic<int> m_testFlags lt_cacheline_aligned;
 };
 
 struct thread_management_type {

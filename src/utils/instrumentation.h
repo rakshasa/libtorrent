@@ -37,6 +37,8 @@
 #ifndef LIBTORRENT_UTILS_INSTRUMENTATION_H
 #define LIBTORRENT_UTILS_INSTRUMENTATION_H
 
+#include "config.h"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
