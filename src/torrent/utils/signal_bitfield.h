@@ -37,8 +37,6 @@
 #ifndef LIBTORRENT_UTILS_SIGNAL_BITFIELD_H
 #define LIBTORRENT_UTILS_SIGNAL_BITFIELD_H
 
-#include "config.h"
-
 #include <functional>
 #include <atomic>
 
