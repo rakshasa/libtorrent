@@ -38,6 +38,7 @@
 #define LIBTORRENT_UTILS_THREAD_INTERRUPT_H
 
 #include <utility>
+#include <atomic>
 #include <torrent/event.h>
 
 namespace torrent {
@@ -66,7 +67,7 @@ private:
   SocketFd&           get_fd() { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
 
   thread_interrupt*   m_other;
-  bool                m_poking lt_cacheline_aligned;
+  std::atomic<bool>   m_poking lt_cacheline_aligned;
 };
 
 inline bool

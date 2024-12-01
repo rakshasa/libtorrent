@@ -67,7 +67,7 @@ thread_disk::call_events() {
     if ((m_flags & flag_did_shutdown))
       throw internal_error("Already trigged shutdown.");
 
-    __sync_or_and_fetch(&m_flags, flag_did_shutdown);
+    m_flags |= flag_did_shutdown;
     throw shutdown_exception();
   }
 

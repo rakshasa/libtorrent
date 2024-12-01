@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <atomic>
+
 #include "test_signal_bitfield.h"
 
 #include "helpers/test_thread.h"
@@ -12,12 +14,12 @@
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(test_signal_bitfield, "torrent/utils");
 
 static void
-mark_index(uint32_t* bitfield, unsigned int index) {
-  __sync_fetch_and_or(bitfield, 1 << index);
+mark_index(std::atomic<uint32_t>* bitfield, unsigned int index) {
+  bitfield->fetch_or(1 << index);
 }
 
 static bool
-check_index(uint32_t* bitfield, unsigned int index) {
+check_index(std::atomic<uint32_t>* bitfield, unsigned int index) {
   return *bitfield & (1 << index);
 }
 
@@ -42,7 +44,7 @@ verify_did_internal_error(std::function<unsigned int ()> func, bool should_throw
 }
 
 #define SETUP_SIGNAL_BITFIELD()                 \
-  uint32_t marked_bitfield = 0;                 \
+  std::atomic<uint32_t> marked_bitfield{0};     \
   torrent::signal_bitfield signal_bitfield;
 
 
@@ -106,7 +108,7 @@ test_signal_bitfield::test_multiple() {
 
 void
 test_signal_bitfield::test_threaded() {
-  uint32_t marked_bitfield = 0;
+  std::atomic<uint32_t> marked_bitfield{0};
   test_thread* thread = new test_thread;
   // thread->set_test_flag(test_thread::test_flag_long_timeout);
 
@@ -126,7 +128,7 @@ test_signal_bitfield::test_threaded() {
     // thread->interrupt();
 
     CPPUNIT_ASSERT(wait_for_true(std::bind(&check_index, &marked_bitfield, i % 20)));
-    __sync_fetch_and_and(&marked_bitfield, ~uint32_t());
+    marked_bitfield &= ~uint32_t();
   }
 
   thread->stop_thread();

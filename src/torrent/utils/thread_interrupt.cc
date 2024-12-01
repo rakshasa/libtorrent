@@ -63,7 +63,8 @@ thread_interrupt::~thread_interrupt() {
 
 bool
 thread_interrupt::poke() {
-  if (!__sync_bool_compare_and_swap(&m_other->m_poking, false, true))
+  bool flag = false;
+  if (!m_other->m_poking.compare_exchange_strong(flag, true))
     return true;
 
   int result = ::send(m_fileDesc, "a", 1, 0);
@@ -104,7 +105,8 @@ thread_interrupt::event_read() {
 
   instrumentation_update(INSTRUMENTATION_POLLING_INTERRUPT_READ_EVENT, 1);
 
-  __sync_bool_compare_and_swap(&m_poking, true, false);
+  m_poking = false;
 }
 
 }
+

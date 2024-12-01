@@ -262,13 +262,11 @@ PollKQueue::do_poll(int64_t timeout_usec, int flags) {
 
   if (!(flags & poll_worker_thread)) {
     thread_base::release_global_lock();
-    thread_base::entering_main_polling();
   }
 
   int status = poll((timeout.usec() + 999) / 1000);
 
   if (!(flags & poll_worker_thread)) {
-    thread_base::leaving_main_polling();
     thread_base::acquire_global_lock();
   }
 

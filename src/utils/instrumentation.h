@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 
 #include "torrent/common.h"
 #include "torrent/utils/log.h"
@@ -106,7 +107,7 @@ enum instrumentation_enum {
   INSTRUMENTATION_MAX_SIZE
 };
 
-extern std::array<int64_t, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
+extern std::array<std::atomic<int64_t>, INSTRUMENTATION_MAX_SIZE> instrumentation_values lt_cacheline_aligned;
 
 void instrumentation_initialize();
 void instrumentation_update(instrumentation_enum type, int64_t change);
@@ -125,7 +126,7 @@ instrumentation_initialize() {
 inline void
 instrumentation_update(instrumentation_enum type, int64_t change) {
 #ifdef LT_INSTRUMENTATION
-  __sync_add_and_fetch(&instrumentation_values[type], change);
+  instrumentation_values[type] += change;
 #endif
 }
 

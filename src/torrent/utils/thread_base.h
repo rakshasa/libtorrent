@@ -2,6 +2,7 @@
 #define LIBTORRENT_UTILS_THREAD_BASE_H
 
 #import <functional>
+#import <mutex>
 #import <pthread.h>
 #import <sys/types.h>
 
@@ -69,36 +70,29 @@ public:
   slot_void&          slot_do_work()      { return m_slot_do_work; }
   slot_timer&         slot_next_timeout() { return m_slot_next_timeout; }
 
-  static inline int   global_queue_size() { return m_global.waiting; }
+  static inline int   global_queue_size() { return m_waiting; }
 
   static inline void  acquire_global_lock();
   static inline bool  trylock_global_lock();
   static inline void  release_global_lock();
   static inline void  waive_global_lock();
 
-  static inline bool  is_main_polling() { return m_global.main_polling; }
-  static inline void  entering_main_polling();
-  static inline void  leaving_main_polling();
-
   static bool         should_handle_sigusr1();
 
   static void*        event_loop(thread_base* thread);
 
 protected:
-  struct lt_cacheline_aligned global_lock_type {
-    int             waiting;
-    int             main_polling;
-    pthread_mutex_t lock;
-  };
+  static std::mutex lt_cacheline_aligned m_globalLock;
+  static std::atomic<int> lt_cacheline_aligned m_waiting;
 
   virtual void        call_events() = 0;
   virtual int64_t     next_timeout_usec() = 0;
 
-  static global_lock_type m_global;
 
   pthread_t           m_thread;
-  state_type          m_state lt_cacheline_aligned;
-  int                 m_flags lt_cacheline_aligned;
+
+  std::atomic<state_type>     lt_cacheline_aligned     m_state{STATE_UNKNOWN};
+  std::atomic<int>            lt_cacheline_aligned     m_flags{0};
 
   int                 m_instrumentation_index;
 
@@ -124,13 +118,11 @@ thread_base::is_current() const {
 
 inline int
 thread_base::flags() const {
-  __sync_synchronize();
   return m_flags;
 }
 
 inline thread_base::state_type
 thread_base::state() const {
-  __sync_synchronize();
   return m_state;
 }
 
@@ -144,44 +136,27 @@ thread_base::send_event_signal(unsigned int index, bool do_interrupt) {
 
 inline void
 thread_base::acquire_global_lock() {
-  __sync_add_and_fetch(&thread_base::m_global.waiting, 1);
-  pthread_mutex_lock(&thread_base::m_global.lock);
-  __sync_sub_and_fetch(&thread_base::m_global.waiting, 1);
+  ++m_waiting;
+  m_globalLock.lock();
+  --m_waiting;
 }
 
 inline bool
 thread_base::trylock_global_lock() {
-  return pthread_mutex_trylock(&thread_base::m_global.lock) == 0;
+  return thread_base::m_globalLock.try_lock();
 }
 
 inline void
 thread_base::release_global_lock() {
-  pthread_mutex_unlock(&thread_base::m_global.lock);
+  return thread_base::m_globalLock.unlock();
 }
 
 inline void
 thread_base::waive_global_lock() {
-  pthread_mutex_unlock(&thread_base::m_global.lock);
+  thread_base::m_globalLock.unlock();
 
   // Do we need to sleep here? Make a CppUnit test for this.
   acquire_global_lock();
-}
-
-// 'entering/leaving_main_polling' is used by the main polling thread
-// to indicate to other threads when it is safe to change the main
-// thread's event entries.
-//
-// A thread should first aquire global lock, then if it needs to
-// change poll'ed sockets on the main thread it should call
-// 'interrupt_main_polling' unless 'is_main_polling() == false'.
-inline void
-thread_base::entering_main_polling() {
-  __sync_lock_test_and_set(&thread_base::m_global.main_polling, 1);
-}
-
-inline void
-thread_base::leaving_main_polling() {
-  __sync_lock_test_and_set(&thread_base::m_global.main_polling, 0);
 }
 
 }  

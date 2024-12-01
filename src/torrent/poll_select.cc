@@ -243,14 +243,12 @@ PollSelect::do_poll(int64_t timeout_usec, int flags) {
   timeval t = timeout.tval();
 
   if (!(flags & poll_worker_thread)) {
-    thread_base::entering_main_polling();
     thread_base::release_global_lock();
   }
 
   int status = select(maxFd + 1, read_set, write_set, error_set, &t);
 
   if (!(flags & poll_worker_thread)) {
-    thread_base::leaving_main_polling();
     thread_base::acquire_global_lock();
   }
 
