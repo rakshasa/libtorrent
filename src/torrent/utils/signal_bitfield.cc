@@ -36,7 +36,7 @@ signal_bitfield::work() {
 
   auto bitfield = m_bitfield.exchange(0);
 
-  for (unsigned int i = 0; bitfield != 0; i++) {
+  for (unsigned int i = 0; bitfield != 0 && i < m_size; i++) {
     if ((bitfield & (1 << i))) {
       m_slots[i]();
       bitfield = bitfield & ~(1 << i);
