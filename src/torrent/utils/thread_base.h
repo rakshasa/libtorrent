@@ -19,6 +19,7 @@ public:
   typedef void* (*pthread_func)(void*);
   typedef std::function<void ()>     slot_void;
   typedef std::function<uint64_t ()> slot_timer;
+  typedef class signal_bitfield      signal_bitfield_t;
 
   enum state_type {
     STATE_UNKNOWN,
@@ -54,7 +55,7 @@ public:
   virtual const char* name() const = 0;
 
   Poll*               poll()            { return m_poll; }
-  signal_bitfield*    signal_bitfield() { return &m_signal_bitfield; }
+  signal_bitfield_t*  signal_bitfield() { return &m_signal_bitfield; }
   pthread_t           pthread()         { return m_thread; }
 
   virtual void        init_thread() = 0;
@@ -95,10 +96,10 @@ protected:
   std::atomic<state_type> m_state;
   std::atomic<int>        m_flags;
 
-  int                     m_instrumentation_index;
+  int                 m_instrumentation_index;
 
-  Poll*                   m_poll;
-  class signal_bitfield   m_signal_bitfield;
+  Poll*               m_poll;
+  signal_bitfield_t   m_signal_bitfield;
 
   slot_void           m_slot_do_work;
   slot_timer          m_slot_next_timeout;
