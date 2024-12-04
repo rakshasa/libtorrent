@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <functional>
+#include <mutex>
 #include <pthread.h>
 #include <sys/types.h>
 
@@ -83,8 +84,8 @@ public:
 
 protected:
   struct global_lock_type {
-    int              waiting;
-    pthread_mutex_t  lock;
+    std::atomic_int waiting{0};
+    std::mutex      mutex;
   };
 
   virtual void        call_events() = 0;
@@ -94,7 +95,7 @@ protected:
 
   pthread_t               m_thread;
   std::atomic<state_type> m_state;
-  std::atomic<int>        m_flags;
+  std::atomic_int         m_flags;
 
   int                 m_instrumentation_index;
 
@@ -104,8 +105,8 @@ protected:
   slot_void           m_slot_do_work;
   slot_timer          m_slot_next_timeout;
 
-  thread_interrupt*   m_interrupt_sender;
-  thread_interrupt*   m_interrupt_receiver;
+  std::unique_ptr<thread_interrupt> m_interrupt_sender;
+  std::unique_ptr<thread_interrupt> m_interrupt_receiver;
 };
 
 inline bool
@@ -128,26 +129,24 @@ thread_base::send_event_signal(unsigned int index, bool do_interrupt) {
 
 inline void
 thread_base::acquire_global_lock() {
-  __sync_add_and_fetch(&thread_base::m_global.waiting, 1);
-  pthread_mutex_lock(&thread_base::m_global.lock);
-  __sync_sub_and_fetch(&thread_base::m_global.waiting, 1);
+  thread_base::m_global.waiting++;
+  thread_base::m_global.mutex.lock();
+  thread_base::m_global.waiting--;
 }
 
 inline bool
 thread_base::trylock_global_lock() {
-  return pthread_mutex_trylock(&thread_base::m_global.lock) == 0;
+  return thread_base::m_global.mutex.try_lock();
 }
 
 inline void
 thread_base::release_global_lock() {
-  pthread_mutex_unlock(&thread_base::m_global.lock);
+  thread_base::m_global.mutex.unlock();
 }
 
 inline void
 thread_base::waive_global_lock() {
-  pthread_mutex_unlock(&thread_base::m_global.lock);
-
-  // Do we need to sleep here? Make a CppUnit test for this.
+  release_global_lock();
   acquire_global_lock();
 }
 

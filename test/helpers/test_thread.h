@@ -1,5 +1,7 @@
 #import "torrent/utils/thread_base.h"
 
+#include <atomic>
+
 class test_thread : public torrent::thread_base {
 public:
   enum test_state {
@@ -31,17 +33,16 @@ public:
 
   void    init_thread();
 
-  void    set_pre_stop() { __sync_or_and_fetch(&m_test_flags, test_flag_pre_stop); }
-  void    set_acquire_global() { __sync_or_and_fetch(&m_test_flags, test_flag_acquire_global); }
-
-  void    set_test_flag(int flags) { __sync_or_and_fetch(&m_test_flags, flags); }
+  void    set_pre_stop() { m_test_state |= test_flag_pre_stop; }
+  void    set_acquire_global() { m_test_flags |= test_flag_acquire_global; }
+  void    set_test_flag(int flags) { m_test_flags |= flags; }
 
 private:
   void    call_events();
   int64_t next_timeout_usec() { return (m_test_flags & test_flag_long_timeout) ? (10000 * 1000) : (100 * 1000); }
 
-  int     m_test_state lt_cacheline_aligned;
-  int     m_test_flags lt_cacheline_aligned;
+  std::atomic_int m_test_state;
+  std::atomic_int m_test_flags;
 };
 
 struct thread_management_type {

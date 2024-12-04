@@ -2,6 +2,7 @@
 #define LIBTORRENT_UTILS_THREAD_INTERRUPT_H
 
 #include <atomic>
+#include <memory>
 #include <utility>
 #include <torrent/event.h>
 
@@ -11,7 +12,7 @@ class SocketFd;
 
 class LIBTORRENT_EXPORT thread_interrupt : public Event {
 public:
-  typedef std::pair<thread_interrupt*, thread_interrupt*> pair_type;
+  typedef std::pair<std::unique_ptr<thread_interrupt>, std::unique_ptr<thread_interrupt>> pair_type;
 
   ~thread_interrupt();
 

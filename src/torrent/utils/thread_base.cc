@@ -13,31 +13,27 @@
 
 namespace torrent {
 
-thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, PTHREAD_MUTEX_INITIALIZER };
+thread_base::global_lock_type thread_base::m_global;
 
 thread_base::thread_base() :
   m_state(STATE_UNKNOWN),
   m_flags(0),
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
 
-  m_poll(NULL),
-  m_interrupt_sender(NULL),
-  m_interrupt_receiver(NULL)
+  m_poll(NULL)
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
 
 // #ifdef USE_INTERRUPT_SOCKET
   thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
 
-  m_interrupt_sender = interrupt_sockets.first;
-  m_interrupt_receiver = interrupt_sockets.second;
+  m_interrupt_sender = std::move(interrupt_sockets.first);
+  m_interrupt_receiver = std::move(interrupt_sockets.second);
+
 // #endif
 }
 
-thread_base::~thread_base() {
-  delete m_interrupt_sender;
-  delete m_interrupt_receiver;
-}
+thread_base::~thread_base() = default;
 
 void
 thread_base::start_thread() {
@@ -106,7 +102,7 @@ thread_base::event_loop(thread_base* thread) {
   try {
 
 // #ifdef USE_INTERRUPT_SOCKET
-    thread->m_poll->insert_read(thread->m_interrupt_receiver);
+    thread->m_poll->insert_read(thread->m_interrupt_receiver.get());
 // #endif
 
     while (true) {
@@ -155,7 +151,7 @@ thread_base::event_loop(thread_base* thread) {
     }
 
 // #ifdef USE_INTERRUPT_SOCKET
-    thread->m_poll->remove_write(thread->m_interrupt_receiver);
+    thread->m_poll->remove_write(thread->m_interrupt_receiver.get());
 // #endif
 
   } catch (torrent::shutdown_exception& e) {
