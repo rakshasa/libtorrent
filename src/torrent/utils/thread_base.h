@@ -105,8 +105,8 @@ protected:
   slot_void           m_slot_do_work;
   slot_timer          m_slot_next_timeout;
 
-  thread_interrupt*   m_interrupt_sender;
-  thread_interrupt*   m_interrupt_receiver;
+  std::unique_ptr<thread_interrupt> m_interrupt_sender;
+  std::unique_ptr<thread_interrupt> m_interrupt_receiver;
 };
 
 inline bool

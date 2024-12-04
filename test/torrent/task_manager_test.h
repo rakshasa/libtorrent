@@ -21,8 +21,7 @@ public:
   void testLock();
   void testWaiveLock();
 
-  inline task_pair
-  create_task(const char* name, torrent::Task::pt_func func);
+  inline task_pair create_task(const char* name, torrent::Task::pt_func func);
 
   torrent::TaskManager m_manager;
 };

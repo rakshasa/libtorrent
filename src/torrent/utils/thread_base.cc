@@ -29,15 +29,12 @@ thread_base::thread_base() :
 // #ifdef USE_INTERRUPT_SOCKET
   thread_interrupt::pair_type interrupt_sockets = thread_interrupt::create_pair();
 
-  m_interrupt_sender = interrupt_sockets.first;
-  m_interrupt_receiver = interrupt_sockets.second;
+  m_interrupt_sender = std::move(interrupt_sockets.first);
+  m_interrupt_receiver = std::move(interrupt_sockets.second);
 // #endif
 }
 
-thread_base::~thread_base() {
-  delete m_interrupt_sender;
-  delete m_interrupt_receiver;
-}
+thread_base::~thread_base() = default;
 
 void
 thread_base::start_thread() {
@@ -106,7 +103,7 @@ thread_base::event_loop(thread_base* thread) {
   try {
 
 // #ifdef USE_INTERRUPT_SOCKET
-    thread->m_poll->insert_read(thread->m_interrupt_receiver);
+    thread->m_poll->insert_read(thread->m_interrupt_receiver.get());
 // #endif
 
     while (true) {
@@ -155,7 +152,7 @@ thread_base::event_loop(thread_base* thread) {
     }
 
 // #ifdef USE_INTERRUPT_SOCKET
-    thread->m_poll->remove_write(thread->m_interrupt_receiver);
+    thread->m_poll->remove_write(thread->m_interrupt_receiver.get());
 // #endif
 
   } catch (torrent::shutdown_exception& e) {

@@ -48,13 +48,15 @@ thread_interrupt::create_pair() {
   if (!SocketFd::open_socket_pair(fd1, fd2))
     throw internal_error("Could not create socket pair for thread_interrupt: " + std::string(rak::error_number::current().c_str()) + ".");
 
-  thread_interrupt* t1 = new thread_interrupt(fd1);
-  thread_interrupt* t2 = new thread_interrupt(fd2);
+  pair_type result;
 
-  t1->m_other = t2;
-  t2->m_other = t1;
+  result.first = std::unique_ptr<thread_interrupt>(new thread_interrupt(fd1));
+  result.second = std::unique_ptr<thread_interrupt>(new thread_interrupt(fd2));
 
-  return pair_type(t1, t2);
+  result.first->m_other = result.second.get();
+  result.second->m_other = result.first.get();
+
+  return result;
 }
 
 void

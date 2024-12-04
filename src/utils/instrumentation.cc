@@ -17,8 +17,6 @@ instrumentation_fetch_and_clear(instrumentation_enum type) {
 
 void
 instrumentation_tick() {
-  // Since the values are updated with __sync_add, they can be read
-  // without any memory barriers.
   lt_log_print(LOG_INSTRUMENTATION_MEMORY,
                "%" PRIi64 " %" PRIi64 " %" PRIi64  " %" PRIi64 " %" PRIi64,
                instrumentation_values[INSTRUMENTATION_MEMORY_CHUNK_USAGE].load(),
