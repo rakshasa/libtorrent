@@ -20,9 +20,7 @@ thread_base::thread_base() :
   m_flags(0),
   m_instrumentation_index(INSTRUMENTATION_POLLING_DO_POLL_OTHERS - INSTRUMENTATION_POLLING_DO_POLL),
 
-  m_poll(NULL),
-  m_interrupt_sender(NULL),
-  m_interrupt_receiver(NULL)
+  m_poll(NULL)
 {
   std::memset(&m_thread, 0, sizeof(pthread_t));
 
@@ -31,6 +29,7 @@ thread_base::thread_base() :
 
   m_interrupt_sender = std::move(interrupt_sockets.first);
   m_interrupt_receiver = std::move(interrupt_sockets.second);
+
 // #endif
 }
 
