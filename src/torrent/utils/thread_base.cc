@@ -13,7 +13,7 @@
 
 namespace torrent {
 
-thread_base::global_lock_type lt_cacheline_aligned thread_base::m_global = { 0, PTHREAD_MUTEX_INITIALIZER };
+thread_base::global_lock_type thread_base::m_global;
 
 thread_base::thread_base() :
   m_state(STATE_UNKNOWN),
