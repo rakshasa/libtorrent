@@ -33,7 +33,7 @@ public:
 
   void    init_thread();
 
-  void    set_pre_stop() { m_test_state |= test_flag_pre_stop; }
+  void    set_pre_stop() { m_test_flags |= test_flag_pre_stop; }
   void    set_acquire_global() { m_test_flags |= test_flag_acquire_global; }
   void    set_test_flag(int flags) { m_test_flags |= flags; }
 
