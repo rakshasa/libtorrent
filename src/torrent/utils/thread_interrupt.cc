@@ -27,7 +27,8 @@ thread_interrupt::~thread_interrupt() {
 
 bool
 thread_interrupt::poke() {
-  if (m_poking.test_and_set())
+  bool expected = false;
+  if (!m_other->m_poking.compare_exchange_strong(expected, true))
     return true;
 
   int result = ::send(m_fileDesc, "a", 1, 0);
@@ -61,10 +62,6 @@ thread_interrupt::create_pair() {
 
 void
 thread_interrupt::event_read() {
-  // This has a race condition where if poked again while processing the polled events it might be
-  // missed.
-  m_poking.clear();
-
   char buffer[256];
   int result = ::recv(m_fileDesc, buffer, 256, 0);
 
@@ -73,6 +70,8 @@ thread_interrupt::event_read() {
     throw internal_error("Invalid result reading from thread_interrupt socket.");
 
   instrumentation_update(INSTRUMENTATION_POLLING_INTERRUPT_READ_EVENT, 1);
+
+  m_poking = false;
 }
 
 }

@@ -30,7 +30,7 @@ private:
   SocketFd&           get_fd() { return *reinterpret_cast<SocketFd*>(&m_fileDesc); }
 
   thread_interrupt*   m_other;
-  std::atomic_flag    m_poking;
+  std::atomic_bool    m_poking;
 };
 
 }
