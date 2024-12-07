@@ -1,8 +1,6 @@
 name: "Project Builder"
 
 runs:
-  using: "project-builder"
-
   steps:
   - name: Install Dependencies
     shell: bash
