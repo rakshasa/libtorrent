@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: Update Packages
+      run: |
+        sudo apt-get update
     - uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha }}
@@ -26,7 +29,6 @@ jobs:
         ./configure
     - name: Install Dependencies
       run: |
-        sudo apt-get update
         sudo apt-get install -y clang-tidy bear
     - name: Prepare compile_commands.json
       run: |
@@ -65,6 +67,9 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: Update Packages
+      run: |
+        sudo apt-get update
     - uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha }}
@@ -73,6 +78,9 @@ jobs:
       run: |
         git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
         git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y libcppunit-dev
     - name: Configure Project
       run: |
         libtoolize
@@ -81,10 +89,6 @@ jobs:
         autoheader
         automake --add-missing
         ./configure
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libcppunit-dev
     - name: Build Project
       run: |
         make
