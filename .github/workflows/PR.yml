@@ -6,28 +6,9 @@ jobs:
 
   clang-tidy:
     runs-on: ubuntu-22.04
+    using: "builder"
 
     steps:
-    - name: Install clang-tidy
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y clang-tidy bear
-    - uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 0
-    - name: Fetch base branch
-      run: |
-        git remote add upstream "https://github.com/${{ github.event.pull_request.base.repo.full_name }}"
-        git fetch --no-tags --no-recurse-submodules upstream "${{ github.event.pull_request.base.ref }}"
-    - name: Configure Project
-      run: |
-        libtoolize
-        aclocal -I scripts
-        autoconf -i
-        autoheader
-        automake --add-missing
-        ./configure
     - name: Prepare compile_commands.json
       run: |
         bear -- make
