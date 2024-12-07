@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: project-builder
+    - uses: actions/checkout@v1
+    - uses: ./.github/actions/project-builder
     - name: Prepare compile_commands.json
       run: |
         bear -- make
