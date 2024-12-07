@@ -1,6 +1,6 @@
 name: "Project Builder"
 runs:
-  using: "builder"
+  using: "project-builder"
   runs-on: ubuntu-22.04
 
   steps:

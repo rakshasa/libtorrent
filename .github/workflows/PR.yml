@@ -6,9 +6,9 @@ jobs:
 
   clang-tidy:
     runs-on: ubuntu-22.04
-    using: "builder"
 
     steps:
+    - uses: project-builder
     - name: Prepare compile_commands.json
       run: |
         bear -- make
