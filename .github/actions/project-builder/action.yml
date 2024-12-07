@@ -2,7 +2,6 @@ name: "Project Builder"
 
 runs:
   using: "project-builder"
-  runs-on: ubuntu-22.04
 
   steps:
   - name: Install Dependencies
