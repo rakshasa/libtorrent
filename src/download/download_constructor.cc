@@ -36,10 +36,10 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <string.h>
-#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "download/download_wrapper.h"
@@ -192,22 +192,25 @@ DownloadConstructor::parse_tracker(const Object& b) {
       // Some torrent makers create empty/invalid 'announce-list'
       // entries while still having valid 'announce'.
       !(announce_list = &b.get_key_list("announce-list"))->empty() &&
-      std::find_if(announce_list->begin(), announce_list->end(), std::mem_fun_ref(&Object::is_list)) != announce_list->end())
-
-    std::for_each(announce_list->begin(), announce_list->end(), rak::make_mem_fun(this, &DownloadConstructor::add_tracker_group));
-
-  else if (b.has_key("announce"))
+      std::find_if(announce_list->begin(), announce_list->end(), std::mem_fun_ref(&Object::is_list)) != announce_list->end()) {
+    for (const auto& group : *announce_list) {
+      add_tracker_group(group);
+    }
+  } else if (b.has_key("announce")) {
     add_tracker_single(b.get_key("announce"), 0);
 
-  else if (!manager->dht_manager()->is_valid() || m_download->info()->is_private())
+  } else if (!manager->dht_manager()->is_valid() || m_download->info()->is_private()) {
     throw bencode_error("Could not find any trackers");
+  }
 
   if (manager->dht_manager()->is_valid() && !m_download->info()->is_private())
     m_download->main()->tracker_list()->insert_url(m_download->main()->tracker_list()->size_group(), "dht://");
 
-  if (manager->dht_manager()->is_valid() && b.has_key_list("nodes"))
-    std::for_each(b.get_key_list("nodes").begin(), b.get_key_list("nodes").end(),
-                  rak::make_mem_fun(this, &DownloadConstructor::add_dht_node));
+  if (manager->dht_manager()->is_valid() && b.has_key_list("nodes")) {
+    for (const auto& node : b.get_key_list("nodes")) {
+      add_dht_node(node);
+    }
+  }
 
   m_download->main()->tracker_list()->randomize_group_entries();
 }

@@ -365,10 +365,9 @@ resume_save_uncertain_pieces(Download download, Object& object) {
   object.erase_key("uncertain_pieces.timestamp");
 
   const TransferList::completed_list_type& completedList = download.transfer_list()->completed_list();
-  TransferList::completed_list_type::const_iterator itr =
-    std::find_if(completedList.begin(), completedList.end(),
-                 rak::less_equal((rak::timer::current() - rak::timer::from_minutes(15)).usec(),
-                                 rak::const_mem_ref(&TransferList::completed_list_type::value_type::first)));
+  auto itr = std::find_if(completedList.begin(), completedList.end(), [](const auto& v) {
+    return (rak::timer::current() - rak::timer::from_minutes(15).usec()) <= v.first;
+  });
 
   if (itr == completedList.end())
     return;

@@ -137,74 +137,12 @@ on(Src s, Dest d) {
   return on_t<Src, Dest>(s, d);
 }  
 
-template <typename Class, typename Member>
-struct mem_ref_t : public std::unary_function<Class&, Member&> {
-  mem_ref_t(Member Class::*m) : m_member(m) {}
-
-  Member& operator () (Class& c) {
-    return c.*m_member;
-  }
-
-  Member Class::*m_member;
-};
-
-template <typename Class, typename Member>
-struct const_mem_ref_t : public std::unary_function<const Class&, const Member&> {
-  const_mem_ref_t(const Member Class::*m) : m_member(m) {}
-
-  const Member& operator () (const Class& c) {
-    return c.*m_member;
-  }
-
-  const Member Class::*m_member;
-};
-
-template <typename Class, typename Member>
-inline mem_ref_t<Class, Member>
-mem_ref(Member Class::*m) {
-  return mem_ref_t<Class, Member>(m);
-}
-
-template <typename Class, typename Member>
-inline const_mem_ref_t<Class, Member>
-const_mem_ref(const Member Class::*m) {
-  return const_mem_ref_t<Class, Member>(m);
-}
-
 template <typename T>
 struct call_delete : public std::unary_function<T*, void> {
   void operator () (T* t) {
     delete t;
   }
 };
-
-// Lightweight callback function including pointer to object. Should
-// be replaced by TR1 stuff later. Requires an object to bind, instead
-// of using a seperate functor for that.
-
-template <typename Object, typename Ret, typename Arg1>
-class mem_fun1 {
-public:
-  typedef Ret result_type;
-  typedef Ret (Object::*Function)(Arg1);
-
-  mem_fun1() : m_object(NULL) {}
-  mem_fun1(Object* o, Function f) : m_object(o), m_function(f) {}
-
-  bool is_valid() const { return m_object; }
-
-  Ret operator () (Arg1 a1) { return (m_object->*m_function)(a1); }
-  
-private:
-  Object* m_object;
-  Function m_function;
-};
-
-template <typename Object, typename Ret, typename Arg1>
-inline mem_fun1<Object, Ret, Arg1>
-make_mem_fun(Object* o, Ret (Object::*f)(Arg1)) {
- return mem_fun1<Object, Ret, Arg1>(o, f);
-}
 
 template <typename Container>
 inline void
