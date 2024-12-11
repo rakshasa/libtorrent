@@ -146,9 +146,10 @@ TransferList::hash_succeeded(uint32_t index, Chunk* chunk) {
   m_completedList.push_back(std::make_pair(rak::timer::current().usec(), index));
   
   if (rak::timer(m_completedList.front().first) + rak::timer::from_minutes(60) < rak::timer::current()) {
-    completed_list_type::iterator itr = std::find_if(m_completedList.begin(), m_completedList.end(),
-                                                     rak::less_equal(rak::timer::current() - rak::timer::from_minutes(30),
-                                                                     rak::mem_ref(&completed_list_type::value_type::first)));
+    auto itr = std::find_if(m_completedList.begin(), m_completedList.end(), [](auto v) {
+      return (rak::timer::current() - rak::timer::from_minutes(30)) <= v.first;
+    });
+
     m_completedList.erase(m_completedList.begin(), itr);
   }
 
