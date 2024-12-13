@@ -48,7 +48,6 @@
 #include "torrent/download/choke_queue.h"
 #include "torrent/peer/connection_list.h"
 #include "torrent/peer/peer_info.h"
-#include "rak/functional.h"
 #include "torrent/utils/log.h"
 
 #include "extensions.h"

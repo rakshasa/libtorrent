@@ -36,7 +36,6 @@
 
 #include "config.h"
 
-#include <rak/functional.h>
 #include <rak/timer.h> 
 #include <rak/priority_queue_default.h> 
 
@@ -69,7 +68,9 @@ ThrottleInternal::~ThrottleInternal() {
   if (is_root())
     priority_queue_erase(&taskScheduler, &m_taskTick);
 
-  std::for_each(m_slaveList.begin(), m_slaveList.end(), rak::call_delete<ThrottleInternal>());
+  for (const auto& t : m_slaveList) {
+    delete t;
+  }
 }
 
 void

@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <functional>
 #include <numeric>
-#include <rak/functional.h>
 
 #include "protocol/peer_connection_base.h"
 #include "torrent/download/group_entry.h"

@@ -11,7 +11,6 @@
 
 #include "poll_kqueue.h"
 #include "torrent.h"
-#include "rak/functional.h"
 #include "rak/timer.h"
 #include "rak/error_number.h"
 #include "utils/log.h"

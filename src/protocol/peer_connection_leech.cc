@@ -38,7 +38,6 @@
 
 #include <cstring>
 #include <sstream>
-#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "data/chunk_list_node.h"

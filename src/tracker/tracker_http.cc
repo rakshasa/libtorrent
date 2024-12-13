@@ -4,7 +4,6 @@
 
 #import <iomanip>
 #import <sstream>
-#import <rak/functional.h>
 #import <rak/string_manip.h>
 
 #import "net/address_list.h"

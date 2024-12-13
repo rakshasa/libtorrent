@@ -39,7 +39,6 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"
@@ -132,8 +131,12 @@ DhtServer::DhtServer(DhtRouter* router) :
 DhtServer::~DhtServer() {
   stop();
 
-  std::for_each(m_highQueue.begin(), m_highQueue.end(), rak::call_delete<DhtTransactionPacket>());
-  std::for_each(m_lowQueue.begin(), m_lowQueue.end(), rak::call_delete<DhtTransactionPacket>());
+  for (const auto& packet : m_highQueue) {
+    delete packet;
+  }
+  for (const auto& packet : m_lowQueue) {
+    delete packet;
+  }
 
   manager->connection_manager()->dec_socket_count();
 }

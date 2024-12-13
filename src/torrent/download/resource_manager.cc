@@ -4,7 +4,6 @@
 #include <functional>
 #include <limits>
 #include <numeric>
-#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/download/choke_group.h"
@@ -40,7 +39,7 @@ ResourceManager::~ResourceManager() {
   if (m_currentlyDownloadUnchoked != 0)
     throw internal_error("ResourceManager::~ResourceManager() called but m_currentlyDownloadUnchoked != 0.");
 
-  std::for_each(choke_base_type::begin(), choke_base_type::end(), rak::call_delete<choke_group>());
+  std::for_each(choke_base_type::begin(), choke_base_type::end(), [](choke_group* g) { delete g; });
 }
 
 // If called directly ensure a valid group has been selected.
@@ -76,8 +75,9 @@ ResourceManager::update_group_iterators() {
 
   while (group_itr != choke_base_type::end()) {
     (*group_itr)->set_first(&*entry_itr);
-    entry_itr = std::find_if(entry_itr, end(), rak::less(std::distance(choke_base_type::begin(), group_itr),
-                                                         std::mem_fun_ref(&value_type::group)));
+    entry_itr = std::find_if(entry_itr, end(), [group_itr, this](value_type v) {
+      return (std::distance(choke_base_type::begin(), group_itr)) < v.group();
+    });
     (*group_itr)->set_last(&*entry_itr);
     group_itr++;
   }
@@ -92,8 +92,9 @@ ResourceManager::validate_group_iterators() {
     if ((*group_itr)->first() != &*entry_itr)
       throw internal_error("ResourceManager::receive_tick() invalid first iterator.");
 
-    entry_itr = std::find_if(entry_itr, end(), rak::less(std::distance(choke_base_type::begin(), group_itr),
-                                                         std::mem_fun_ref(&value_type::group)));
+    entry_itr = std::find_if(entry_itr, end(), [group_itr, this](value_type v) {
+      return (std::distance(choke_base_type::begin(), group_itr)) < v.group();
+    });
     if ((*group_itr)->last() != &*entry_itr)
       throw internal_error("ResourceManager::receive_tick() invalid last iterator.");
 
@@ -103,7 +104,7 @@ ResourceManager::validate_group_iterators() {
 
 void
 ResourceManager::erase(DownloadMain* d) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
+  auto itr = std::find_if(begin(), end(), [d](value_type e) { return d == e.download(); });
 
   if (itr == end())
     throw internal_error("ResourceManager::erase() itr == end().");
@@ -122,8 +123,8 @@ ResourceManager::erase(DownloadMain* d) {
 void
 ResourceManager::push_group(const std::string& name) {
   if (name.empty() ||
-      std::find_if(choke_base_type::begin(), choke_base_type::end(),
-                   rak::equal(name, std::mem_fun(&choke_group::name))) != choke_base_type::end())
+      std::any_of(choke_base_type::begin(), choke_base_type::end(),
+                  [name](choke_group* g) { return name == g->name(); }))
     throw input_error("Duplicate name for choke group.");
 
   choke_base_type::push_back(new choke_group());
@@ -145,12 +146,12 @@ ResourceManager::push_group(const std::string& name) {
 
 ResourceManager::iterator
 ResourceManager::find(DownloadMain* d) {
-  return std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
+  return std::find_if(begin(), end(), [d](value_type e) { return d == e.download(); });
 }
 
 ResourceManager::iterator
 ResourceManager::find_throw(DownloadMain* d) {
-  iterator itr = std::find_if(begin(), end(), rak::equal(d, std::mem_fun_ref(&value_type::download)));
+  auto itr = find(d);
 
   if (itr == end())
     throw input_error("Could not find download in resource manager.");
@@ -160,7 +161,7 @@ ResourceManager::find_throw(DownloadMain* d) {
 
 ResourceManager::iterator
 ResourceManager::find_group_end(uint16_t group) {
-  return std::find_if(begin(), end(), rak::less(group, std::mem_fun_ref(&value_type::group)));
+  return std::find_if(begin(), end(), [group](value_type v) { return group < v.group(); });
 }
 
 choke_group*
@@ -173,8 +174,7 @@ ResourceManager::group_at(uint16_t grp) {
 
 choke_group*
 ResourceManager::group_at_name(const std::string& name) {
-  choke_base_type::iterator itr = std::find_if(choke_base_type::begin(), choke_base_type::end(),
-                                               rak::equal(name, std::mem_fun(&choke_group::name)));
+  auto itr = std::find_if(choke_base_type::begin(), choke_base_type::end(), [name](choke_group* g) { return name == g->name(); });
 
   if (itr == choke_base_type::end())
     throw input_error("Choke group not found.");
@@ -184,8 +184,8 @@ ResourceManager::group_at_name(const std::string& name) {
 
 int
 ResourceManager::group_index_of(const std::string& name) {
-  choke_base_type::iterator itr = std::find_if(choke_base_type::begin(), choke_base_type::end(),
-                                               rak::equal(name, std::mem_fun(&choke_group::name)));
+  auto itr = std::find_if(choke_base_type::begin(), choke_base_type::end(),
+                          [name](choke_group* g) { return name == g->name(); });
 
   if (itr == choke_base_type::end())
     throw input_error("Choke group not found.");

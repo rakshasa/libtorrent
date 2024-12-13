@@ -41,7 +41,7 @@ handshake_manager_delete_handshake(Handshake* h) {
 
 HandshakeManager::size_type
 HandshakeManager::size_info(DownloadMain* info) const {
-  return std::count_if(base_type::begin(), base_type::end(), rak::equal(info, std::mem_fun(&Handshake::download)));
+  return std::count_if(base_type::begin(), base_type::end(), [info](Handshake* h) { return info == h->download(); });
 }
 
 void

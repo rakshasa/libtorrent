@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <rak/error_number.h>
-#include <rak/functional.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/chunk_manager.h"
