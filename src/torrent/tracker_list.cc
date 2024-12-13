@@ -37,7 +37,6 @@
 #include "config.h"
 
 #include <functional>
-#include <rak/functional.h>
 
 #include "net/address_list.h"
 #include "torrent/utils/log.h"
@@ -125,7 +124,9 @@ TrackerList::disown_all_including(int event_bitmap) {
 
 void
 TrackerList::clear() {
-  std::for_each(begin(), end(), rak::call_delete<Tracker>());
+  for (const auto& tracker : *this) {
+    delete tracker;
+  }
   base_type::clear();
 }
 
@@ -266,12 +267,12 @@ TrackerList::find_next_to_request(iterator itr) {
 
 TrackerList::iterator
 TrackerList::begin_group(unsigned int group) {
-  return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
+  return std::find_if(begin(), end(), [group](Tracker* t) { return group <= t->group(); });
 }
 
 TrackerList::const_iterator
 TrackerList::begin_group(unsigned int group) const {
-  return std::find_if(begin(), end(), rak::less_equal(group, std::mem_fun(&Tracker::group)));
+  return std::find_if(begin(), end(), [group](Tracker* t) { return group <= t->group(); });
 }
 
 TrackerList::size_type

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <functional>
 #include <cinttypes>
-#include <rak/functional.h>
 
 #include "torrent/data/block.h"
 #include "torrent/data/block_list.h"

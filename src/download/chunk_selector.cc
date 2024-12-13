@@ -38,7 +38,6 @@
 
 #include <algorithm>
 #include <stdlib.h>
-#include <rak/functional.h>
 
 #include "protocol/peer_chunks.h"
 #include "torrent/exceptions.h"

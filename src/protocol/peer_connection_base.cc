@@ -39,7 +39,6 @@
 #include <cstdio>
 #include <fcntl.h>
 #include <rak/error_number.h>
-#include <rak/functional.h>
 #include <rak/string_manip.h>
 
 #include "data/chunk_iterator.h"

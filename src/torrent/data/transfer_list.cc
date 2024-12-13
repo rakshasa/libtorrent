@@ -39,7 +39,6 @@
 #include <algorithm>
 #include <functional>
 #include <set>
-#include <rak/functional.h>
 #include <rak/timer.h>
 
 #include "data/chunk.h"
@@ -68,18 +67,22 @@ TransferList::~TransferList() {
 
 TransferList::iterator
 TransferList::find(uint32_t index) {
-  return std::find_if(begin(), end(), rak::equal(index, std::mem_fun(&BlockList::index)));
+  return std::find_if(begin(), end(), [index](BlockList* b) { return index == b->index(); });
 }
 
 TransferList::const_iterator
 TransferList::find(uint32_t index) const {
-  return std::find_if(begin(), end(), rak::equal(index, std::mem_fun(&BlockList::index)));
+  return std::find_if(begin(), end(), [index](BlockList* b) { return index == b->index(); });
 }
 
 void
 TransferList::clear() {
-  std::for_each(begin(), end(), std::bind(m_slot_canceled, std::bind(&BlockList::index, std::placeholders::_1)));
-  std::for_each(begin(), end(), rak::call_delete<BlockList>());
+  for (const auto& block_list : *this) {
+    m_slot_canceled(block_list->index());
+  }
+  for (const auto& block_list : *this) {
+    delete block_list;
+  }
 
   base_type::clear();
 }

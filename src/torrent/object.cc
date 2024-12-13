@@ -38,7 +38,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <rak/functional.h>
 
 #include "object.h"
 #include "object_stream.h"
