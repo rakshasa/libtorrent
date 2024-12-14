@@ -201,7 +201,6 @@ Object::operator = (const Object& src) {
   case TYPE_STRING:   new (&_string()) string_type(src._string()); break;
   case TYPE_LIST:     new (&_list()) list_type(src._list()); break;
   case TYPE_MAP:      _map_ptr() = new map_type(src._map()); break;
-  case TYPE_DICT_KEY: new (&_dict_key()) dict_key_type(src._dict_key()); _dict_key().second = new Object(*src._dict_key().second); break;
   default: t_pod = src.t_pod; break;
   }
 
