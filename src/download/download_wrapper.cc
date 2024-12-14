@@ -20,6 +20,7 @@
 #include "torrent/tracker_controller.h"
 #include "torrent/tracker_list.h"
 #include "torrent/utils/log.h"
+#include "utils/functional.h"
 
 #include "available_list.h"
 #include "chunk_selector.h"
@@ -207,8 +208,8 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
   }
 
     data()->call_chunk_done(handle.object());
-  m_main->chunk_list()->release(&handle);
-}  
+    m_main->chunk_list()->release(&handle);
+}
 
 void
 DownloadWrapper::check_chunk_hash(ChunkHandle handle) {
@@ -236,13 +237,13 @@ DownloadWrapper::receive_tracker_success(AddressList* l) {
   m_main->receive_connect_peers();
   m_main->receive_tracker_success();
 
-  rak::slot_list_call(info()->signal_tracker_success());
+  utils::slot_list_call(info()->signal_tracker_success());
   return inserted;
 }
 
 void
 DownloadWrapper::receive_tracker_failed(const std::string& msg) {
-  rak::slot_list_call(info()->signal_tracker_failed(), msg);
+  utils::slot_list_call(info()->signal_tracker_failed(), msg);
 }
 
 void

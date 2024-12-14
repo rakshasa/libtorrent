@@ -2,7 +2,6 @@
 #define LIBTORRENT_DOWNLOAD_MAIN_H
 
 #include <deque>
-#include <rak/functional.h>
 
 #include "globals.h"
 
@@ -59,7 +58,7 @@ public:
   ChunkList*          chunk_list()                               { return m_chunkList; }
   ChunkSelector*      chunk_selector()                           { return m_chunkSelector; }
   ChunkStatistics*    chunk_statistics()                         { return m_chunkStatistics; }
-  
+
   Delegator*          delegator()                                { return &m_delegator; }
 
   have_queue_type*    have_queue()                               { return &m_haveQueue; }
