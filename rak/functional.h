@@ -5,11 +5,35 @@
 
 namespace rak {
 
-template <typename Container, typename... Args>
+template <typename Container>
 inline void
-slot_list_call(const Container& slot_list, Args&&... args) {
-  for (const auto& slot : slot_list) {
-    slot(std::forward<Args>(args)...);
+slot_list_call(const Container& slot_list) {
+  if (slot_list.empty())
+    return;
+
+  typename Container::const_iterator first = slot_list.begin();
+  typename Container::const_iterator next  = slot_list.begin();
+
+  while (++next != slot_list.end()) {
+    (*first)();
+    first = next;
+  }
+
+  (*first)();
+}
+
+template <typename Container, typename Arg1>
+inline void
+slot_list_call(const Container& slot_list, Arg1 arg1) {
+  if (slot_list.empty())
+    return;
+
+  typename Container::const_iterator first = slot_list.begin();
+  typename Container::const_iterator next  = slot_list.begin();
+
+  while (++next != slot_list.end()) {
+    (*first)(arg1);
+    first = next;
   }
 }
 
