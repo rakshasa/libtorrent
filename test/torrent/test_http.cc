@@ -36,7 +36,7 @@ public:
 
   TestHttp(bool *destroyed = NULL) : m_flags(0), m_destroyed(destroyed) {}
   virtual ~TestHttp() { if (m_destroyed) *m_destroyed = true; }
-  
+
   virtual void start() { m_flags |= flag_active; }
   virtual void close() { m_flags &= ~flag_active; }
 
@@ -89,7 +89,7 @@ test_http::test_basic() {
   CPPUNIT_ASSERT(http->timeout() == 0);
   http->set_timeout(666);
   CPPUNIT_ASSERT(http->timeout() == 666);
-  
+
   delete http;
   delete http_stream;
 }
@@ -103,7 +103,8 @@ test_http::test_done() {
 
   // Check that we didn't delete...
 
-  CPPUNIT_ASSERT(done_counter == 1 && failed_counter == 0);
+  CPPUNIT_ASSERT(done_counter == 1);
+  CPPUNIT_ASSERT(failed_counter == 0);
 }
 
 void
@@ -115,7 +116,8 @@ test_http::test_failure() {
 
   // Check that we didn't delete...
 
-  CPPUNIT_ASSERT(done_counter == 0 && failed_counter == 1);
+  CPPUNIT_ASSERT(done_counter == 0);
+  CPPUNIT_ASSERT(failed_counter == 1);
 }
 
 void
