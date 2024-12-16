@@ -555,6 +555,9 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
     break;
 
   case Object::TYPE_MAP:
+    if (object->is_dict_key())
+      throw torrent::bencode_error("Cannot bencode internal dict_key type.");
+
     object_write_bencode_c_char(output, 'd');
 
     for (Object::map_const_iterator itr = object->as_map().begin(), last = object->as_map().end(); itr != last; ++itr) {
@@ -566,9 +569,6 @@ object_write_bencode_c_object(object_write_data_t* output, const Object* object,
     }
 
     object_write_bencode_c_char(output, 'e');
-    break;
-  case Object::TYPE_DICT_KEY:
-    throw torrent::bencode_error("Cannot bencode internal dict_key type.");
     break;
   }
 }
