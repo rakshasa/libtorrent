@@ -64,10 +64,9 @@ struct chunk_list_earliest_modified {
   rak::timer m_time;
 };
 
-struct chunk_list_sort_index {
-  bool operator () (ChunkListNode* node1, ChunkListNode* node2) {
-    return node1->index() < node2->index();
-  }
+bool
+chunk_list_sort_index(ChunkListNode* node1, ChunkListNode* node2) {
+  return node1->index() < node2->index();
 };
 
 inline bool
