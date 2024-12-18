@@ -93,17 +93,17 @@ private:
 
 inline
 BlockFailed::~BlockFailed() {
-  std::for_each(begin(), end(), std::ptr_fun(&BlockFailed::delete_entry));
+  std::for_each(begin(), end(), &BlockFailed::delete_entry);
 }
 
 inline BlockFailed::iterator
 BlockFailed::max_element() {
-  return std::max_element(begin(), end(), std::ptr_fun(&BlockFailed::compare_entries));
+  return std::max_element(begin(), end(), &BlockFailed::compare_entries);
 }
 
 inline BlockFailed::reverse_iterator
 BlockFailed::reverse_max_element() {
-  return std::max_element(rbegin(), rend(), std::ptr_fun(&BlockFailed::compare_entries));
+  return std::max_element(rbegin(), rend(), &BlockFailed::compare_entries);
 }
 
 }

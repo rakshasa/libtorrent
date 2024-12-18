@@ -50,12 +50,6 @@ socket_address_less(const sockaddr* s1, const sockaddr* s2) {
   }
 }
 
-struct peer_list_equal_port : public std::binary_function<PeerList::reference, uint16_t, bool> {
-  bool operator () (PeerList::reference p, uint16_t port) {
-    return rak::socket_address::cast_from(p.second->socket_address())->port() == port;
-  }
-};
-
 //
 // PeerList:
 //

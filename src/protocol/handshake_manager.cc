@@ -46,7 +46,7 @@ HandshakeManager::size_info(DownloadMain* info) const {
 
 void
 HandshakeManager::clear() {
-  std::for_each(base_type::begin(), base_type::end(), std::ptr_fun(&handshake_manager_delete_handshake));
+  std::for_each(base_type::begin(), base_type::end(), &handshake_manager_delete_handshake);
   base_type::clear();
 }
 
@@ -60,15 +60,10 @@ HandshakeManager::erase(Handshake* handshake) {
   base_type::erase(itr);
 }
 
-struct handshake_manager_equal : std::binary_function<const rak::socket_address*, const Handshake*, bool> {
-  bool operator () (const rak::socket_address* sa1, const Handshake* p2) const {
-    return p2->peer_info() != NULL && *sa1 == *rak::socket_address::cast_from(p2->peer_info()->socket_address());
-  }
-};
-
 bool
 HandshakeManager::find(const rak::socket_address& sa) {
-  return std::find_if(base_type::begin(), base_type::end(), std::bind1st(handshake_manager_equal(), &sa)) != base_type::end();
+  auto f = [&sa](const Handshake* p2) { return p2->peer_info() && sa == *rak::socket_address::cast_from(p2->peer_info()->socket_address()); };
+  return std::any_of(base_type::begin(), base_type::end(), f);
 }
 
 void
@@ -77,7 +72,7 @@ HandshakeManager::erase_download(DownloadMain* info) {
     return info != h->download();
   });
 
-  std::for_each(split, base_type::end(), std::ptr_fun(&handshake_manager_delete_handshake));
+  std::for_each(split, base_type::end(), &handshake_manager_delete_handshake);
   base_type::erase(split, base_type::end());
 }
 
