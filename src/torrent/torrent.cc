@@ -134,7 +134,7 @@ encoding_list() {
 
 Download
 download_add(Object* object) {
-  std::unique_ptr<DownloadWrapper> download(new DownloadWrapper);
+  auto download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
   ctor.set_download(download.get());
