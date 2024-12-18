@@ -64,12 +64,6 @@ struct chunk_list_earliest_modified {
   rak::timer m_time;
 };
 
-struct chunk_list_sort_index {
-  bool operator () (ChunkListNode* node1, ChunkListNode* node2) {
-    return node1->index() < node2->index();
-  }
-};
-
 inline bool
 ChunkList::is_queued(ChunkListNode* node) {
   return std::find(m_queue.begin(), m_queue.end(), node) != m_queue.end();
