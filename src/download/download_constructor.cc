@@ -109,14 +109,14 @@ DownloadConstructor::parse_name(const Object& b) {
 
   std::list<Path> pathList;
 
-  pathList.push_back(Path());
+  pathList.emplace_back();
   pathList.back().set_encoding(m_defaultEncoding);
   pathList.back().push_back(b.get_key_string("name"));
 
   for (Object::map_const_iterator itr = b.as_map().begin();
        (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path())) != b.as_map().end();
        ++itr) {
-    pathList.push_back(Path());
+    pathList.emplace_back();
     pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
     pathList.back().push_back(itr->second.as_string());
   }
@@ -272,14 +272,14 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
 
   std::list<Path> pathList;
 
-  pathList.push_back(Path());
+  pathList.emplace_back();
   pathList.back().set_encoding(m_defaultEncoding);
   pathList.back().push_back(b.get_key_string("name"));
 
   for (Object::map_const_iterator itr = b.as_map().begin();
        (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path())) != b.as_map().end();
        ++itr) {
-    pathList.push_back(Path());
+    pathList.emplace_back();
     pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
     pathList.back().push_back(itr->second.as_string());
   }

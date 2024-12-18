@@ -146,7 +146,7 @@ TransferList::hash_succeeded(uint32_t index, Chunk* chunk) {
   // pruned every 60 minutes, so any timer that reads values once
   // every 30 minutes is guaranteed to get them all as long as it is
   // ordered properly.
-  m_completedList.push_back(std::make_pair(rak::timer::current().usec(), index));
+  m_completedList.emplace_back(rak::timer::current().usec(), index);
   
   if (rak::timer(m_completedList.front().first) + rak::timer::from_minutes(60) < rak::timer::current()) {
     auto itr = std::find_if(m_completedList.begin(), m_completedList.end(), [](auto v) {
@@ -230,7 +230,7 @@ TransferList::update_failed(BlockList* blockList, Chunk* chunk) {
 
       chunk->to_buffer(buffer, itr->piece().offset(), itr->piece().length());
 
-      itr->failed_list()->push_back(BlockFailed::value_type(buffer, 1));
+      itr->failed_list()->emplace_back(buffer, 1);
       failedItr = itr->failed_list()->end() - 1;
 
       // Count how many new data sets?

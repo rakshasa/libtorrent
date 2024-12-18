@@ -127,7 +127,7 @@ ResourceManager::push_group(const std::string& name) {
                   [name](choke_group* g) { return name == g->name(); }))
     throw input_error("Duplicate name for choke group.");
 
-  choke_base_type::push_back(new choke_group());
+  choke_base_type::emplace_back();
 
   choke_base_type::back()->set_name(name);
   choke_base_type::back()->set_first(&*base_type::end());
