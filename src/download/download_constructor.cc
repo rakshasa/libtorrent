@@ -57,28 +57,14 @@
 
 namespace torrent {
 
-struct download_constructor_is_single_path {
-  bool operator () (Object::map_type::const_reference v) const {
-    return
-      std::strncmp(v.first.c_str(), "name.", sizeof("name.") - 1) == 0 &&
-      v.second.is_string();
-  }
+bool
+download_constructor_is_single_path(Object::map_type::const_reference v) {
+  return v.first.find("name.") == 0 && v.second.is_string();
 };
 
-struct download_constructor_is_multi_path {
-  bool operator () (Object::map_type::const_reference v) const {
-    return
-      std::strncmp(v.first.c_str(), "path.", sizeof("path.") - 1) == 0 &&
-      v.second.is_list();
-  }
-};
-
-struct download_constructor_encoding_match :
-    public std::binary_function<const Path&, const char*, bool> {
-
-  bool operator () (const Path& p, const char* enc) {
-    return strcasecmp(p.encoding().c_str(), enc) == 0;
-  }
+bool
+download_constructor_is_multi_path(Object::map_type::const_reference v) {
+  return v.first.find("path.") == 0 && v.second.is_list();
 };
 
 void
@@ -114,7 +100,7 @@ DownloadConstructor::parse_name(const Object& b) {
   pathList.back().push_back(b.get_key_string("name"));
 
   for (Object::map_const_iterator itr = b.as_map().begin();
-       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path())) != b.as_map().end();
+       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path)) != b.as_map().end();
        ++itr) {
     pathList.emplace_back();
     pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
@@ -277,7 +263,7 @@ DownloadConstructor::parse_single_file(const Object& b, uint32_t chunkSize) {
   pathList.back().push_back(b.get_key_string("name"));
 
   for (Object::map_const_iterator itr = b.as_map().begin();
-       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path())) != b.as_map().end();
+       (itr = std::find_if(itr, b.as_map().end(), download_constructor_is_single_path)) != b.as_map().end();
        ++itr) {
     pathList.emplace_back();
     pathList.back().set_encoding(itr->first.substr(sizeof("name.") - 1));
@@ -311,8 +297,8 @@ DownloadConstructor::parse_multi_files(const Object& b, uint32_t chunkSize) {
 
     Object::map_const_iterator itr = listItr->as_map().begin();
     Object::map_const_iterator last = listItr->as_map().end();
-  
-    while ((itr = std::find_if(itr, last, download_constructor_is_multi_path())) != last) {
+
+    while ((itr = std::find_if(itr, last, download_constructor_is_multi_path)) != last) {
       pathList.push_back(create_path(itr->second.as_list(), itr->first.substr(sizeof("path.") - 1)));
       ++itr;
     }
@@ -371,9 +357,9 @@ DownloadConstructor::choose_path(std::list<Path>* pathList) {
   
   for ( ; encodingFirst != encodingLast; ++encodingFirst) {
     auto itr = std::find_if(pathFirst, pathLast, [encodingFirst](const Path& p) {
-      return download_constructor_encoding_match()(p, encodingFirst->c_str());
+      return strcasecmp(p.encoding().c_str(), encodingFirst->c_str()) == 0;
     });
-    
+
     if (itr != pathLast)
       pathList->splice(pathFirst, *pathList, itr);
   }
