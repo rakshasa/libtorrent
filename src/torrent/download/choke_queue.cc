@@ -19,8 +19,9 @@
 
 namespace torrent {
 
-struct choke_manager_less {
-  bool operator () (choke_queue::value_type v1, choke_queue::value_type v2) const { return v1.weight < v2.weight; }
+bool
+choke_manager_less(choke_queue::value_type v1, choke_queue::value_type v2) {
+  return v1.weight < v2.weight;
 };
 
 static inline bool
@@ -70,10 +71,10 @@ choke_queue::prepare_weights(group_stats gs) {
 
   for (group_container_type::iterator itr = m_group_container.begin(), last = m_group_container.end(); itr != last; itr++) {
     m_heuristics_list[m_heuristics].slot_choke_weight((*itr)->mutable_unchoked()->begin(), (*itr)->mutable_unchoked()->end());
-    std::sort((*itr)->mutable_unchoked()->begin(), (*itr)->mutable_unchoked()->end(), choke_manager_less());
+    std::sort((*itr)->mutable_unchoked()->begin(), (*itr)->mutable_unchoked()->end(), choke_manager_less);
 
     m_heuristics_list[m_heuristics].slot_unchoke_weight((*itr)->mutable_queued()->begin(), (*itr)->mutable_queued()->end());
-    std::sort((*itr)->mutable_queued()->begin(), (*itr)->mutable_queued()->end(), choke_manager_less());
+    std::sort((*itr)->mutable_queued()->begin(), (*itr)->mutable_queued()->end(), choke_manager_less);
 
     // Aggregate the statistics... Remember to update them after
     // optimistic/pessimistic unchokes.
@@ -220,10 +221,10 @@ choke_queue::balance() {
 void
 choke_queue::balance_entry(group_entry* entry) {
   m_heuristics_list[m_heuristics].slot_choke_weight(entry->mutable_unchoked()->begin(), entry->mutable_unchoked()->end());
-  std::sort(entry->mutable_unchoked()->begin(), entry->mutable_unchoked()->end(), choke_manager_less());
+  std::sort(entry->mutable_unchoked()->begin(), entry->mutable_unchoked()->end(), choke_manager_less);
 
   m_heuristics_list[m_heuristics].slot_unchoke_weight(entry->mutable_queued()->begin(), entry->mutable_queued()->end());
-  std::sort(entry->mutable_queued()->begin(), entry->mutable_queued()->end(), choke_manager_less());
+  std::sort(entry->mutable_queued()->begin(), entry->mutable_queued()->end(), choke_manager_less);
 
   int count = 0;
   unsigned int min_slots = std::min(entry->min_slots(), entry->max_slots());
@@ -427,7 +428,7 @@ void
 choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator last,
                              uint32_t max, uint32_t* weights, choke_queue::target_type* target) {
   // Sorting the connections from the lowest to highest value.
-  // TODO:  std::sort(first, last, choke_manager_less());
+  // TODO:  std::sort(first, last, choke_manager_less);
 
   // 'weightTotal' only contains the weight of targets that have
   // connections to unchoke. When all connections are in a group are

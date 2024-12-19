@@ -70,10 +70,9 @@ struct request_list_same_piece {
   Piece m_piece;
 };
 
-struct request_list_keep_request {
-  bool operator () (const BlockTransfer* d) {
-    return d->is_valid();
-  }
+bool
+request_list_keep_request(const BlockTransfer* d) {
+  return d->is_valid();
 };
 
 RequestList::~RequestList() {

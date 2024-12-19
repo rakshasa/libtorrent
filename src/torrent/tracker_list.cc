@@ -84,14 +84,14 @@ TrackerList::has_active_not_scrape_in_group(uint32_t group) const {
   return std::find_if(begin_group(group), end_group(group), std::mem_fun(&Tracker::is_busy_not_scrape)) != end_group(group);
 }
 
-// Need a custom predicate because the is_usable function is virtual.
-struct tracker_usable_t : public std::unary_function<TrackerList::value_type, bool> {
-  bool operator () (const TrackerList::value_type& value) const { return value->is_usable(); }
+bool
+tracker_usable_t(const TrackerList::value_type& value) {
+  return value->is_usable();
 };
 
 bool
 TrackerList::has_usable() const {
-  return std::find_if(begin(), end(), tracker_usable_t()) != end();
+  return std::any_of(begin(), end(), tracker_usable_t);
 }
 
 unsigned int
@@ -101,7 +101,7 @@ TrackerList::count_active() const {
 
 unsigned int
 TrackerList::count_usable() const {
-  return std::count_if(begin(), end(), tracker_usable_t());
+  return std::count_if(begin(), end(), tracker_usable_t);
 }
 
 void
@@ -225,7 +225,7 @@ TrackerList::find_url(const std::string& url) {
 
 TrackerList::iterator
 TrackerList::find_usable(iterator itr) {
-  while (itr != end() && !tracker_usable_t()(*itr))
+  while (itr != end() && !tracker_usable_t(*itr))
     ++itr;
 
   return itr;
@@ -233,7 +233,7 @@ TrackerList::find_usable(iterator itr) {
 
 TrackerList::const_iterator
 TrackerList::find_usable(const_iterator itr) const {
-  while (itr != end() && !tracker_usable_t()(*itr))
+  while (itr != end() && !tracker_usable_t(*itr))
     ++itr;
 
   return itr;
