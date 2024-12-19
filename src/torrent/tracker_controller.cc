@@ -84,9 +84,9 @@ TrackerController::current_send_state() const {
 }
 
 TrackerController::TrackerController(TrackerList* trackers) :
-  m_flags(0),
-  m_tracker_list(trackers),
-  m_private(new tracker_controller_private) {
+    m_flags(0),
+    m_tracker_list(trackers),
+    m_private(std::make_unique<tracker_controller_private>()) {
 
   m_private->task_timeout.slot() = [this] { do_timeout(); };
   m_private->task_scrape.slot()  = [this] { do_scrape(); };
@@ -95,7 +95,6 @@ TrackerController::TrackerController(TrackerList* trackers) :
 TrackerController::~TrackerController() {
   priority_queue_erase(&taskScheduler, &m_private->task_timeout);
   priority_queue_erase(&taskScheduler, &m_private->task_scrape);
-  delete m_private;
 }
 
 rak::priority_item*
