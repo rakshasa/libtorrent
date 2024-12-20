@@ -65,7 +65,7 @@ Rate::insert(rate_type bytes) {
     throw internal_error("Rate::insert(bytes) received out-of-bounds values..");
 
   if (m_container.empty() || m_container.front().first != cachedTime.seconds())
-    m_container.push_front(value_type(cachedTime.seconds(), bytes));
+    m_container.emplace_front(cachedTime.seconds(), bytes);
   else
     m_container.front().second += bytes;
 

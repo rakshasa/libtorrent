@@ -72,7 +72,7 @@ public:
   bool                is_finished() const           { return m_position == m_piece.length(); }
 
   key_type            peer_info()                   { return m_peer_info; }
-  const key_type      const_peer_info() const       { return m_peer_info; }
+  key_type            const_peer_info() const { return m_peer_info; }
 
   Block*              block()                       { return m_block; }
   const Block*        const_block() const           { return m_block; }

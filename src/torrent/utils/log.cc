@@ -262,7 +262,7 @@ log_open_output(const char* name, log_slot slot) {
   log_output_list::iterator itr = log_find_output_name(name);
 
   if (itr == log_outputs.end()) {
-    log_outputs.push_back(std::make_pair(name, slot));
+    log_outputs.emplace_back(name, slot);
   } else {
     // by replacing the "write" slot binding, the old file gets closed
     // (handles are shared pointers)
@@ -321,7 +321,7 @@ log_add_child(int group, int child) {
   if (std::find(log_children.begin(), log_children.end(), std::make_pair(group, child)) != log_children.end())
     return;
 
-  log_children.push_back(std::make_pair(group, child));
+  log_children.emplace_back(group, child);
   std::sort(log_children.begin(), log_children.end());
 
   log_rebuild_cache();

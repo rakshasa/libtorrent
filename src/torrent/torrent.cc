@@ -189,7 +189,7 @@ void
 download_list(DList& dlist) {
   for (DownloadManager::const_iterator itr = manager->download_manager()->begin();
        itr != manager->download_manager()->end(); ++itr)
-    dlist.push_back(Download(*itr));
+    dlist.emplace_back(*itr);
 }
 
 // Make sure you check that it's valid.
