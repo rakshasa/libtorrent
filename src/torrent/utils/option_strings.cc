@@ -299,12 +299,13 @@ option_list_strings(option_enum opt_enum) {
     option_pair* itr = option_pair_lists[opt_enum];
 
     while (itr->name != NULL)
-      result.push_back(std::string(itr++->name));
+      result.emplace_back(std::string(itr++->name));
 
   } else if (opt_enum < OPTION_MAX_SIZE) {
     const char** itr = option_single_lists[opt_enum - OPTION_START_COMPACT].name;
-  
-    while (*itr != NULL) result.push_back(std::string(*itr++));
+
+    while (*itr != NULL)
+      result.emplace_back(std::string(*itr++));
   }
 
   return Object::from_list(result);

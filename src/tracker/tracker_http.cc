@@ -37,8 +37,8 @@ TrackerHttp::TrackerHttp(TrackerList* parent, const std::string& url, int flags)
   m_get(Http::slot_factory()()),
   m_data(NULL) {
 
-  m_get->signal_done().push_back(std::bind(&TrackerHttp::receive_done, this));
-  m_get->signal_failed().push_back(std::bind(&TrackerHttp::receive_signal_failed, this, std::placeholders::_1));
+  m_get->signal_done().emplace_back(std::bind(&TrackerHttp::receive_done, this));
+  m_get->signal_failed().emplace_back(std::bind(&TrackerHttp::receive_signal_failed, this, std::placeholders::_1));
 
   // Haven't considered if this needs any stronger error detection,
   // can dropping the '?' be used for malicious purposes?
