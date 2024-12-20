@@ -67,7 +67,7 @@ DhtTracker::add_peer(uint32_t addr, uint16_t port) {
 
   // If peer doesn't exist, append to list if the table is not full.
   if (size() < max_size) {
-    m_peers.push_back(compact);
+    m_peers.emplace_back(compact);
     m_lastSeen.push_back(cachedTime.seconds());
 
   // Peer doesn't exist and table is full: replace oldest peer.

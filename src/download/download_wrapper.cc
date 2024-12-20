@@ -197,9 +197,9 @@ DownloadWrapper::receive_hash_done(ChunkHandle handle, const char* hash) {
       }
     
       if (!m_main->have_queue()->empty() && m_main->have_queue()->front().first >= cachedTime)
-        m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(m_main->have_queue()->front().first + 1, handle.index()));
+        m_main->have_queue()->emplace_front(m_main->have_queue()->front().first + 1, handle.index());
       else
-        m_main->have_queue()->push_front(DownloadMain::have_queue_type::value_type(cachedTime, handle.index()));
+        m_main->have_queue()->emplace_front(cachedTime, handle.index());
 
     } else {
       // This needs to ensure the chunk is still valid.
