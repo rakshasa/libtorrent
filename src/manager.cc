@@ -140,10 +140,10 @@ Manager::receive_tick() {
   // various limited resources, like sockets for handshakes, cycle the
   // group in reverse order.
   if (!m_downloadManager->empty()) {
-    DownloadManager::iterator split = m_downloadManager->end() - m_ticks % m_downloadManager->size() - 1;
+    auto split = m_downloadManager->end() - m_ticks % m_downloadManager->size() - 1;
 
-    std::for_each(split, m_downloadManager->end(), std::bind2nd(std::mem_fn(&DownloadWrapper::receive_tick), m_ticks));
-    std::for_each(m_downloadManager->begin(), split, std::bind2nd(std::mem_fn(&DownloadWrapper::receive_tick), m_ticks));
+    std::for_each(split, m_downloadManager->end(), [this](auto wrapper) { return wrapper->receive_tick(m_ticks); });
+    std::for_each(m_downloadManager->begin(), split, [this](auto wrapper) { return wrapper->receive_tick(m_ticks); });
   }
 
   // If you change the interval, make sure the keepalives gets
