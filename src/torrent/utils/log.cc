@@ -63,9 +63,8 @@ const char log_level_char[] = { 'C', 'E', 'W', 'N', 'I', 'D' };
 
 void
 log_update_child_cache(int index) {
-  log_child_list::const_iterator first =
-    std::find_if(log_children.begin(), log_children.end(),
-                 std::bind2nd(std::greater_equal<std::pair<int, int> >(), std::make_pair(index, 0)));
+  auto first =
+    std::find_if(log_children.begin(), log_children.end(), [index](const auto& pair) { return pair >= std::make_pair(index, 0); });
 
   if (first == log_children.end())
     return;
