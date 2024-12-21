@@ -75,7 +75,7 @@ DhtBucket::add_node(DhtNode* n) {
 
 void
 DhtBucket::remove_node(DhtNode* n) {
-  iterator itr = std::find_if(begin(), end(), std::bind2nd(std::equal_to<DhtNode*>(), n));
+  auto itr = std::find(begin(), end(), n);
   if (itr == end())
     throw internal_error("DhtBucket::remove_node called for node not in bucket.");
 
@@ -165,9 +165,11 @@ DhtBucket::split(const HashString& id) {
 
   // Move nodes over to other bucket if they fall in its range, then
   // delete them from this one.
-  iterator split = std::partition(begin(), end(), std::bind2nd(std::mem_fn(&DhtNode::is_in_range), this));
+  auto split = std::partition(begin(), end(), [this](auto dht) { return dht->is_in_range(this); });
   other->insert(other->end(), split, end());
-  std::for_each(other->begin(), other->end(), std::bind2nd(std::mem_fn(&DhtNode::set_bucket), other));
+  for (auto& dht : *other) {
+    dht->set_bucket(other);
+  }
   erase(split, end());
 
   other->set_time(m_lastChanged);

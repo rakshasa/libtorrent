@@ -96,8 +96,7 @@ is_initialized() {
 
 bool
 is_inactive() {
-  return manager == NULL ||
-         std::find_if(manager->download_manager()->begin(), manager->download_manager()->end(), std::not1(std::mem_fn(&DownloadWrapper::is_stopped))) == manager->download_manager()->end();
+  return manager == nullptr || std::all_of(manager->download_manager()->begin(), manager->download_manager()->end(), std::mem_fn(&DownloadWrapper::is_stopped));
 }
 
 thread_base*
@@ -133,7 +132,7 @@ encoding_list() {
 
 Download
 download_add(Object* object) {
-  std::auto_ptr<DownloadWrapper> download(new DownloadWrapper);
+  auto                download = std::make_unique<DownloadWrapper>();
 
   DownloadConstructor ctor;
   ctor.set_download(download.get());
