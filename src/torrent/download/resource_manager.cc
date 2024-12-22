@@ -59,7 +59,7 @@ ResourceManager::insert(const resource_manager_entry& entry) {
     choke_base_type::iterator group_itr = choke_base_type::begin() + itr->group();
     (*group_itr)->set_last((*group_itr)->last() + 1);
 
-    std::for_each(++group_itr, choke_base_type::end(), std::mem_fun(&choke_group::inc_iterators));
+    std::for_each(++group_itr, choke_base_type::end(), std::mem_fn(&choke_group::inc_iterators));
   }
 
   choke_queue::move_connections(NULL, group_at(entry.group())->up_queue(), download, download->up_group_entry());
@@ -115,7 +115,7 @@ ResourceManager::erase(DownloadMain* d) {
   choke_base_type::iterator group_itr = choke_base_type::begin() + itr->group();
   (*group_itr)->set_last((*group_itr)->last() - 1);
 
-  std::for_each(++group_itr, choke_base_type::end(), std::mem_fun(&choke_group::dec_iterators));
+  std::for_each(++group_itr, choke_base_type::end(), std::mem_fn(&choke_group::dec_iterators));
 
   base_type::erase(itr);
 }
@@ -225,11 +225,11 @@ ResourceManager::set_group(iterator itr, uint16_t grp) {
   // not the same, so no need to check for that.
   if (group_dest < group_src) {
     (*group_dest)->set_last((*group_dest)->last() + 1);
-    std::for_each(++group_dest, group_src, std::mem_fun(&choke_group::inc_iterators));
+    std::for_each(++group_dest, group_src, std::mem_fn(&choke_group::inc_iterators));
     (*group_src)->set_first((*group_src)->first() + 1);
   } else {
     (*group_src)->set_last((*group_src)->last() - 1);
-    std::for_each(++group_src, group_dest, std::mem_fun(&choke_group::dec_iterators));
+    std::for_each(++group_src, group_dest, std::mem_fn(&choke_group::dec_iterators));
     (*group_dest)->set_first((*group_dest)->first() - 1);
   }
 }

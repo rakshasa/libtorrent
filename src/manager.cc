@@ -142,8 +142,8 @@ Manager::receive_tick() {
   if (!m_downloadManager->empty()) {
     DownloadManager::iterator split = m_downloadManager->end() - m_ticks % m_downloadManager->size() - 1;
 
-    std::for_each(split, m_downloadManager->end(),   std::bind2nd(std::mem_fun(&DownloadWrapper::receive_tick), m_ticks));
-    std::for_each(m_downloadManager->begin(), split, std::bind2nd(std::mem_fun(&DownloadWrapper::receive_tick), m_ticks));
+    std::for_each(split, m_downloadManager->end(), std::bind2nd(std::mem_fn(&DownloadWrapper::receive_tick), m_ticks));
+    std::for_each(m_downloadManager->begin(), split, std::bind2nd(std::mem_fn(&DownloadWrapper::receive_tick), m_ticks));
   }
 
   // If you change the interval, make sure the keepalives gets
