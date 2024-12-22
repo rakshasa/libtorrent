@@ -105,10 +105,9 @@ log_rebuild_cache() {
       continue;
     }
 
-    log_cache_list::iterator cache_itr = 
-      std::find_if(log_cache.begin(), log_cache.end(),
-                   std::bind(&log_cache_entry::equal_outputs, std::placeholders::_1, use_outputs));
-    
+    auto cache_itr =
+      std::find_if(log_cache.begin(), log_cache.end(), [use_outputs](const auto& log) { return log.equal_outputs(use_outputs); });
+
     if (cache_itr == log_cache.end()) {
       cache_itr = log_cache.insert(log_cache.end(), log_cache_entry());
       cache_itr->outputs = use_outputs;
@@ -152,17 +151,15 @@ log_group::internal_print(const HashString* hash, const char* subsystem, const v
 
   pthread_mutex_lock(&log_mutex);
 
-  std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
-                                           std::placeholders::_1,
-                                           (const char*)buffer,
-                                           std::distance(buffer, first),
-                                           std::distance(log_groups.begin(), this)));
+  auto begin   = static_cast<const char*>(first);
+  auto data    = static_cast<const char*>(buffer);
+  auto loc     = std::distance(data, begin);
+  auto locthis = std::distance(log_groups.begin(), this);
+  std::for_each(m_first, m_last, [this, data, loc, locthis](const auto& log) {
+    log(data, loc, locthis);
+  });
   if (dump_data != NULL) {
-    std::for_each(m_first, m_last, std::bind(&log_slot::operator(),
-                                             std::placeholders::_1,
-                                             (const char*)dump_data,
-                                             dump_size,
-                                             -1));
+    std::for_each(m_first, m_last, [dump_data, dump_size](const auto& log) { log(static_cast<const char*>(dump_data), dump_size, -1); });
   }
 
   pthread_mutex_unlock(&log_mutex);
@@ -333,7 +330,7 @@ log_remove_child(int group, int child) {
 }
 
 void
-log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t length, int group) {
+log_file_write(std::shared_ptr<std::ofstream> outfile, const char* data, size_t length, int group) {
   // Add group name, data, etc as flags.
 
   // Normal groups are nul-terminated strings.
@@ -352,7 +349,7 @@ log_file_write(std::shared_ptr<std::ofstream>& outfile, const char* data, size_t
 }
 
 void
-log_gz_file_write(std::shared_ptr<log_gz_output>& outfile, const char* data, size_t length, int group) {
+log_gz_file_write(std::shared_ptr<log_gz_output> outfile, const char* data, size_t length, int group) {
   char buffer[64];
 
   // Normal groups are nul-terminated strings.
@@ -382,20 +379,17 @@ log_open_file_output(const char* name, const char* filename, bool append) {
   std::ios_base::openmode mode = std::ofstream::out;
   if (append)
     mode |= std::ofstream::app;
-  std::shared_ptr<std::ofstream> outfile(new std::ofstream(filename, mode));
+  auto outfile = std::make_shared<std::ofstream>(filename, mode);
 
   if (!outfile->good())
     throw input_error("Could not open log file '" + std::string(filename) + "'.");
 
-  log_open_output(name, std::bind(&log_file_write, outfile,
-                                  std::placeholders::_1,
-                                  std::placeholders::_2,
-                                  std::placeholders::_3));
+  log_open_output(name, [outfile](auto data, auto len, auto group) { log_file_write(std::move(outfile), data, len, group); });
 }
 
 void
 log_open_gz_file_output(const char* name, const char* filename, bool append) {
-  std::shared_ptr<log_gz_output> outfile(new log_gz_output(filename, append));
+  auto outfile = std::make_shared<log_gz_output>(filename, append);
 
   if (!outfile->is_valid())
     throw input_error("Could not open log gzip file '" + std::string(filename) + "'.");
@@ -403,10 +397,7 @@ log_open_gz_file_output(const char* name, const char* filename, bool append) {
   // if (!outfile->set_buffer(1 << 14))
   //   throw input_error("Could not set gzip log file buffer size.");
 
-  log_open_output(name, std::bind(&log_gz_file_write, outfile,
-                                  std::placeholders::_1,
-                                  std::placeholders::_2,
-                                  std::placeholders::_3));
+  log_open_output(name, [outfile](auto data, auto len, auto group) { log_gz_file_write(std::move(outfile), data, len, group); });
 }
 
 }

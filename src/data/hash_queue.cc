@@ -82,7 +82,7 @@ HashQueue::HashQueue(thread_disk* thread) :
   m_thread_disk(thread) {
 
   pthread_mutex_init(&m_done_chunks_lock, NULL);
-  m_thread_disk->hash_queue()->slot_chunk_done() = std::bind(&HashQueue::chunk_done, this, std::placeholders::_1, std::placeholders::_2);
+  m_thread_disk->hash_queue()->slot_chunk_done() = [this](auto hc, const auto& hv) { chunk_done(hc, hv); };
 }
 
 
@@ -173,9 +173,7 @@ HashQueue::work() {
     // TODO: This is not optimal as we jump around... Check for front
     // of HashQueue in done_chunks instead.
 
-    iterator itr = std::find_if(begin(), end(), std::bind(std::equal_to<HashChunk*>(),
-                                                          hash_chunk,
-                                                          std::bind(&HashQueueNode::get_chunk, std::placeholders::_1)));
+    auto itr = std::find_if(begin(), end(), [hash_chunk](auto& hash) { return hash.get_chunk() == hash_chunk; });
 
     // TODO: Fix this...
     if (itr == end())
