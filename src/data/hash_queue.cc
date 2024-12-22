@@ -36,8 +36,9 @@
 
 #include "config.h"
 
+#include <chrono>
 #include <functional>
-#include <unistd.h>
+#include <thread>
 
 #include "torrent/exceptions.h"
 #include "torrent/data/download_data.h"
@@ -135,7 +136,7 @@ HashQueue::remove(HashQueueNode::id_type id) {
 
       while ((done_itr = m_done_chunks.find(hash_chunk)) == m_done_chunks.end()) {
         pthread_mutex_unlock(&m_done_chunks_lock);
-        usleep(100);
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
         pthread_mutex_lock(&m_done_chunks_lock);
       }
 
