@@ -70,12 +70,6 @@ struct request_list_same_piece {
   Piece m_piece;
 };
 
-struct request_list_keep_request {
-  bool operator () (const BlockTransfer* d) {
-    return d->is_valid();
-  }
-};
-
 RequestList::~RequestList() {
   if (m_transfer != NULL)
     throw internal_error("request dtor m_transfer != NULL");

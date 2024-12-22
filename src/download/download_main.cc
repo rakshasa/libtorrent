@@ -328,10 +328,9 @@ DownloadMain::receive_tracker_request() {
   m_tracker_controller->start_requesting();
 }
 
-struct SocketAddressCompact_less {
-  bool operator () (const SocketAddressCompact& a, const SocketAddressCompact& b) const {
-    return (a.addr < b.addr) || ((a.addr == b.addr) && (a.port < b.port));
-  }
+bool
+SocketAddressCompact_less(const SocketAddressCompact& a, const SocketAddressCompact& b) {
+  return (a.addr < b.addr) || ((a.addr == b.addr) && (a.port < b.port));
 };
 
 void
@@ -400,18 +399,16 @@ DownloadMain::do_peer_exchange() {
     pcb->do_peer_exchange();
   }
 
-  std::sort(current.begin(), current.end(), SocketAddressCompact_less());
+  std::sort(current.begin(), current.end(), SocketAddressCompact_less);
 
   ProtocolExtension::PEXList added;
   added.reserve(current.size());
-  std::set_difference(current.begin(), current.end(), m_ut_pex_list.begin(), m_ut_pex_list.end(), 
-                      std::back_inserter(added), SocketAddressCompact_less());
+  std::set_difference(current.begin(), current.end(), m_ut_pex_list.begin(), m_ut_pex_list.end(), std::back_inserter(added), SocketAddressCompact_less);
 
   ProtocolExtension::PEXList removed;
   removed.reserve(m_ut_pex_list.size());
-  std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), current.begin(), current.end(), 
-                      std::back_inserter(removed), SocketAddressCompact_less());
-    
+  std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), current.begin(), current.end(), std::back_inserter(removed), SocketAddressCompact_less);
+
   if (current.size() > m_info->max_size_pex_list()) {
     // This test is only correct as long as we have a constant max
     // size.
@@ -424,11 +421,13 @@ DownloadMain::do_peer_exchange() {
     // Create the new m_ut_pex_list by removing any 'removed'
     // addresses from the original list and then adding the new
     // addresses.
-    m_ut_pex_list.erase(std::set_difference(m_ut_pex_list.begin(), m_ut_pex_list.end(), removed.begin(), removed.end(),
-                                            m_ut_pex_list.begin(), SocketAddressCompact_less()), m_ut_pex_list.end());
+    m_ut_pex_list.erase(
+      std::set_difference(
+        m_ut_pex_list.begin(), m_ut_pex_list.end(), removed.begin(), removed.end(), m_ut_pex_list.begin(), SocketAddressCompact_less),
+      m_ut_pex_list.end());
     m_ut_pex_list.insert(m_ut_pex_list.end(), added.begin(), added.end());
 
-    std::sort(m_ut_pex_list.begin(), m_ut_pex_list.end(), SocketAddressCompact_less());
+    std::sort(m_ut_pex_list.begin(), m_ut_pex_list.end(), SocketAddressCompact_less);
 
   } else {
     m_ut_pex_list.swap(current);
