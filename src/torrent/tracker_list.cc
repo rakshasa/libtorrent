@@ -37,6 +37,7 @@
 #include "config.h"
 
 #include <functional>
+#include <random>
 
 #include "net/address_list.h"
 #include "torrent/utils/log.h"
@@ -295,12 +296,14 @@ TrackerList::promote(iterator itr) {
 
 void
 TrackerList::randomize_group_entries() {
+  static std::random_device rd;
+  static std::mt19937       rng(rd());
   // Random random random.
   iterator itr = begin();
   
   while (itr != end()) {
     iterator tmp = end_group((*itr)->group());
-    std::random_shuffle(itr, tmp);
+    std::shuffle(itr, tmp, rng);
 
     itr = tmp;
   }
