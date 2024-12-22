@@ -76,7 +76,7 @@ ThrottleInternal::~ThrottleInternal() {
 void
 ThrottleInternal::enable() {
   m_throttleList->enable();
-  std::for_each(m_slaveList.begin(), m_slaveList.end(), std::mem_fun(&ThrottleInternal::enable));
+  std::for_each(m_slaveList.begin(), m_slaveList.end(), std::mem_fn(&ThrottleInternal::enable));
 
   if (is_root()) {
     // We need to start the ticks, and make sure we set timeLastTick
@@ -89,7 +89,7 @@ ThrottleInternal::enable() {
 void
 ThrottleInternal::disable() {
   m_throttleList->disable();
-  std::for_each(m_slaveList.begin(), m_slaveList.end(), std::mem_fun(&ThrottleInternal::disable));
+  std::for_each(m_slaveList.begin(), m_slaveList.end(), std::mem_fn(&ThrottleInternal::disable));
 
   if (is_root())
     priority_queue_erase(&taskScheduler, &m_taskTick);
